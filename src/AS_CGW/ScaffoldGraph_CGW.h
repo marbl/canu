@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.42 2010-02-16 05:19:40 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.43 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -41,8 +41,6 @@ static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.42 201
 
 // controls whether or not we assert in CheckCIScaffoldTLength, ScaffoldSanity
 //#define STRICT_SCAFFOLD_CHECKING
-
-typedef FragOrient CIOrient;
 
 typedef EdgeCGW_T CIEdgeT;
 typedef CIEdgeT SEdgeT;
@@ -505,7 +503,7 @@ void FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
 
 EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
                                     NodeCGW_T *sourceCI, CDS_CID_t targetId,
-                                    ChunkOrientationType edgeOrient,
+                                    PairOrient edgeOrient,
                                     double inferredMean,
                                     double inferredVariance,
                                     float *chiSquaredValue,

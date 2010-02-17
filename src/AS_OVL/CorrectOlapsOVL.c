@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.40 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.41 2010-02-17 01:32:58 brianwalenz Exp $";
 
 //  System include files
 
@@ -1428,7 +1428,7 @@ static int  Output_OVL
              || (olap -> a_hang == 0 && olap -> b_hang > 0))
             return  FALSE;     // not canonical
 
-        ovMesg . orientation = AS_NORMAL;
+        ovMesg . orientation.setIsNormal();
         ovMesg . ahg = olap -> a_hang;
         ovMesg . bhg = olap -> b_hang;
         break;
@@ -1440,7 +1440,7 @@ static int  Output_OVL
                    || (olap -> a_hang == 0 && olap -> b_hang > 0))
                  return  FALSE;     // not canonical
 
-             ovMesg . orientation = AS_INNIE;
+             ovMesg . orientation.setIsInnie();
              ovMesg . ahg = olap -> a_hang;
              ovMesg . bhg = olap -> b_hang;
             }
@@ -1453,7 +1453,7 @@ static int  Output_OVL
 
              ovMesg . ahg = - olap -> b_hang;
              ovMesg . bhg = - olap -> a_hang;
-             ovMesg . orientation = AS_OUTTIE;
+             ovMesg . orientation.setIsOuttie();
             }
         break;
 

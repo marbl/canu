@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.21 2010-02-16 05:09:38 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.22 2010-02-17 01:32:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +30,13 @@ static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.21 2010-02-16 05:09:38 brianwalenz 
 #include "AS_global.h"
 #include "AS_UTL_Hash.h"
 #include "AS_UTL_fileIO.h"
+
+//  Debugging targets
+
+//  When doing an insert, check that the key doesn't exist immediately before inserting.
+//
+#define CHECKCOLLISION
+
 
 
 //  mix -- mix 3 32-bit values reversibly.
@@ -190,6 +197,12 @@ InsertNodeInHashBucket(HashTable_AS *table,
 
   //  Insert at head of bucket?
   if (comparison < 0) {
+#ifdef CHECKCOLLISION
+    if (LookupInHashTable_AS(table, newnode->key, newnode->keyLength, NULL, NULL)) {
+      fprintf(stderr, "KEY EXISTS!  (1)\n");
+      assert(0);
+    }
+#endif
     newnode->next          = table->buckets[bucket];
     table->buckets[bucket] = newnode;
     table->dirty = 1;
@@ -207,6 +220,12 @@ InsertNodeInHashBucket(HashTable_AS *table,
       return(HASH_FAILURE);
 
     if (comparison < 0) {
+#ifdef CHECKCOLLISION
+      if (LookupInHashTable_AS(table, newnode->key, newnode->keyLength, NULL, NULL)) {
+        fprintf(stderr, "KEY EXISTS!  (1)\n");
+        assert(0);
+      }
+#endif
       newnode->next  = node;
       prevnode->next = newnode;
       table->dirty = 1;
@@ -216,6 +235,13 @@ InsertNodeInHashBucket(HashTable_AS *table,
     prevnode = node;
     node     = node->next;
   }
+
+#ifdef CHECKCOLLISION
+  if (LookupInHashTable_AS(table, newnode->key, newnode->keyLength, NULL, NULL)) {
+    fprintf(stderr, "KEY EXISTS!  (1)\n");
+    assert(0);
+  }
+#endif
 
   //  Append to the end of the list
   prevnode->next = newnode;
@@ -412,6 +438,18 @@ DeleteFromHashTable_AS(HashTable_AS *table,
   assert(bucket >= 0);
   assert(bucket <= table->numBuckets);
 
+#if 0
+  if (keylen > 0)
+    fprintf(stderr, "delete - key "F_U64" %d,%d,%d keylen %d hashkey %d bucket %d\n",
+            key,
+            ((int *)key)[0],
+            ((int *)key)[1],
+            ((int *)key)[2],
+            keylen,
+            hashkey,
+            bucket);
+#endif
+
   node = table->buckets[bucket];
   while (node) {
     int comparison = (*table->compare)(node->key, key);
@@ -504,6 +542,18 @@ LookupInHashTable_AS(HashTable_AS *table,
   int32        hashkey   = (*table->hash)(key, keylen);
   int          bucket    = hashkey & table->hashmask;
   HashNode_AS *node      = NULL;
+
+#if 0
+  if (keylen > 0)
+    fprintf(stderr, "lookup - key "F_U64" %d,%d,%d keylen %d hashkey %d bucket %d\n",
+            key,
+            ((int *)key)[0],
+            ((int *)key)[1],
+            ((int *)key)[2],
+            keylen,
+            hashkey,
+            bucket);
+#endif
 
   assert(bucket >= 0);
   assert(bucket <= table->numBuckets);

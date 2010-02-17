@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.47 2010-01-22 04:49:54 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.48 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -179,7 +179,7 @@ void DumpCIScaffold(FILE *stream, ScaffoldGraphT *graph, CIScaffoldT *scaffold, 
             (int)CI->bpLength.mean, CI->bpLength.variance,
             (int)CI->offsetAEnd.mean, (int)CI->offsetBEnd.mean,
             CI->offsetAEnd.variance, CI->offsetBEnd.variance,
-            (GetNodeOrient(CI) == A_B? 'A':'B'));
+            GetNodeOrient(CI).toLetter());
   }
   fprintf(stream, "> %s Edges A \n",  (raw?" R ":" M "));
   InitSEdgeTIterator(graph, scaffold->id, raw, FALSE, A_END, FALSE,  &SEdges);
@@ -970,7 +970,7 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
         if(thisNode->setID == component){
           LengthT offsetAEnd, offsetBEnd;
           if(!seenFirstOffset){
-            if(GetNodeOrient(thisNode) == A_B){
+            if(GetNodeOrient(thisNode).isForward()) {
               firstOffset = thisNode->offsetAEnd;
             }else{
               firstOffset = thisNode->offsetBEnd;

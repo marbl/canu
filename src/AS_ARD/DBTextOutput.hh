@@ -21,7 +21,7 @@
 #ifndef DBTextOutput_HH
 #define DBTextOutput_HH
 
-static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.10 2010-02-12 20:32:48 brianwalenz Exp $";
+static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.11 2010-02-17 01:32:57 brianwalenz Exp $";
 
 #include "IDBOutput.hh"
 
@@ -86,7 +86,7 @@ namespace AS_ARD {
          bool storeULK2DB (
                   AS_UID euid,
                   CDS_CID_t ciid,
-                  ChunkOrientationType orientation,
+                  PairOrient orientation,
                   UnitigOverlapType overlap_type,
                   int32 is_possible_chimera,
                   float mean_distance,
@@ -143,7 +143,7 @@ namespace AS_ARD {
          bool storeCLK2DB(
                   AS_UID euid,
                   CDS_CID_t ciid,
-                  ChunkOrientationType orientation,
+                  PairOrient orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
                   float mean_distance,
@@ -151,7 +151,7 @@ namespace AS_ARD {
                   uint32 num_contributing,
                   PlacementStatusType status);
          bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
-         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);
+         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, PairOrient orient);
          bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
          bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd);
 

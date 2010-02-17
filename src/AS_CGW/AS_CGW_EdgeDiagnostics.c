@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.26 2009-10-27 12:26:40 skoren Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.27 2010-02-17 01:32:58 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -54,12 +54,12 @@ static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.26 2009-10-27 12:26:40 s
 void GetFragment5pAndOrientationInChunk(ScaffoldGraphT * graph,
                                         CIFragT * frag,
                                         LengthT * offset5p,
-                                        FragOrient * orient,
+                                        SequenceOrient * orient,
                                         ChunkInstanceT * chunk)
 {
   LengthT * localFragOffset5p = NULL;
   LengthT * localFragOffset3p = NULL;
-  FragOrient localOrient = X_X;
+  SequenceOrient localOrient;
   // chunk could be scaffold, contig, or chunk
   /*
     contigID, contigOffset5p & 3p are in CIFragT
@@ -107,7 +107,7 @@ void GetFragment5pAndOrientationInChunk(ScaffoldGraphT * graph,
           offset5p->variance = 0.0;
           localFragOffset5p = &(frag->offset5p);
           localFragOffset3p = &(frag->offset3p);
-          localOrient = A_B;
+          localOrient.setIsForward();
         }
         break;
       case CONTIG_CGW:
@@ -119,7 +119,7 @@ void GetFragment5pAndOrientationInChunk(ScaffoldGraphT * graph,
           offset5p->variance = 0.0;
           localFragOffset5p = &(frag->contigOffset5p);
           localFragOffset3p = &(frag->contigOffset3p);
-          localOrient = A_B;
+          localOrient.setIsForward();
         }
         break;
       case REAL_SCAFFOLD:
@@ -132,30 +132,33 @@ void GetFragment5pAndOrientationInChunk(ScaffoldGraphT * graph,
           offset5p->variance = 0.0;
           localFragOffset5p = &(frag->contigOffset5p);
           localFragOffset3p = &(frag->contigOffset3p);
-          localOrient =
-            (contig->offsetAEnd.mean < contig->offsetBEnd.mean) ? A_B : B_A;
+          if (contig->offsetAEnd.mean < contig->offsetBEnd.mean)
+            localOrient.setIsForward();
+          else
+            localOrient.setIsReverse();
         }
         break;
     }
 
   offset5p->variance = localFragOffset5p->variance;
-  if(localOrient == A_B)
-    {
-      offset5p->mean += localFragOffset5p->mean;
-      *orient =
-        (localFragOffset5p->mean < localFragOffset3p->mean) ? A_B : B_A;
-    }
-  else
-    {
-      offset5p->mean -= localFragOffset5p->mean;
-      *orient =
-        (localFragOffset5p->mean < localFragOffset3p->mean) ? B_A : A_B;
-    }
+  if(localOrient.isForward()) {
+    offset5p->mean += localFragOffset5p->mean;
+    if (localFragOffset5p->mean < localFragOffset3p->mean)
+      orient->setIsForward();
+    else
+      orient->setIsReverse();
+  } else {
+    offset5p->mean -= localFragOffset5p->mean;
+    if (localFragOffset5p->mean < localFragOffset3p->mean)
+      orient->setIsReverse();
+    else
+      orient->setIsForward();
+  }
 }
 
 
 void ComputeFrag5pToChunkEndFromOffset(LengthT * fragOffset5p,
-                                       ChunkOrientType whichEnd,
+                                       int whichEnd,
                                        LengthT * distFromEnd,
                                        ChunkInstanceT * chunk)
 {
@@ -167,22 +170,20 @@ void ComputeFrag5pToChunkEndFromOffset(LengthT * fragOffset5p,
   else
     {
       distFromEnd->mean = chunk->bpLength.mean - fragOffset5p->mean;
-      distFromEnd->variance =
-        chunk->bpLength.variance - fragOffset5p->variance;
+      distFromEnd->variance = chunk->bpLength.variance - fragOffset5p->variance;
     }
-  distFromEnd->variance =
-    (distFromEnd->variance < 1.0) ? 1.0 : distFromEnd->variance;
+  distFromEnd->variance = (distFromEnd->variance < 1.0) ? 1.0 : distFromEnd->variance;
 }
 
 
 void ComputeFrag5pToChunkEnd(ScaffoldGraphT * graph,
                              CIFragT * frag,
-                             ChunkOrientType whichEnd,
+                             int whichEnd,
                              LengthT * distFromEnd,
                              ChunkInstanceT * chunk)
 {
   LengthT offset5p;
-  FragOrient fragOrient;
+  SequenceOrient fragOrient;
 
   GetFragment5pAndOrientationInChunk(graph, frag, &offset5p, &fragOrient,
                                      chunk);
@@ -196,12 +197,12 @@ void ComputeFrag5pToChunkEnd(ScaffoldGraphT * graph,
 
 void ComputeFragToChunkEndForEdge(ScaffoldGraphT * graph,
                                   CIFragT * frag,
-                                  ChunkOrientType * endFromFrag,
+                                  int * endFromFrag,
                                   LengthT * distFromEnd,
                                   ChunkInstanceT * chunk)
 {
   LengthT offset5p;
-  FragOrient fragOrient;
+  SequenceOrient fragOrient;
 
   GetFragment5pAndOrientationInChunk(graph, frag, &offset5p, &fragOrient,
                                      chunk);
@@ -218,9 +219,9 @@ void ComputeFragToChunkEndForEdge(ScaffoldGraphT * graph,
     ii) Outtie:            |-------|  = B_END
   */
   if(frag->flags.bits.innieMate)
-    *endFromFrag = (ChunkOrientType)((fragOrient == A_B) ? B_END : A_END);
+    *endFromFrag = (fragOrient.isForward()) ? B_END : A_END;
   else
-    *endFromFrag = (ChunkOrientType)((fragOrient == A_B) ? A_END : B_END);
+    *endFromFrag = (fragOrient.isForward()) ? A_END : B_END;
 
   ComputeFrag5pToChunkEndFromOffset(&offset5p,
                                     *endFromFrag,
@@ -237,8 +238,8 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
                              DistT * dist,
                              EdgeCGW_T * edge)
 {
-  ChunkOrientType chunkEndFromFragA;
-  ChunkOrientType chunkEndFromFragB;
+  int chunkEndFromFragA;
+  int chunkEndFromFragB;
   LengthT distFromAChunkEnd;
   LengthT distFromBChunkEnd;
   LengthT distBetweenChunks;
@@ -343,13 +344,13 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
       if(-distBetweenChunks.mean >
          (chunkA->bpLength.mean + chunkB->bpLength.mean) / 2)
         {
-          chunkEndFromFragA = (ChunkOrientType) ((chunkEndFromFragA == A_END) ? B_END : A_END);
+          chunkEndFromFragA = (chunkEndFromFragA == A_END) ? B_END : A_END;
           ComputeFrag5pToChunkEnd(graph, fragA,
                                   chunkEndFromFragA,
                                   &distFromAChunkEnd,
                                   chunkA);
 
-          chunkEndFromFragB = (ChunkOrientType)((chunkEndFromFragB == A_END) ? B_END : A_END);
+          chunkEndFromFragB = (chunkEndFromFragB == A_END) ? B_END : A_END;
           ComputeFrag5pToChunkEnd(graph, fragB,
                                   chunkEndFromFragB,
                                   &distFromBChunkEnd,
@@ -365,10 +366,17 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
   distBetweenChunks.variance =
     distVariance + distFromAChunkEnd.variance + distFromBChunkEnd.variance;
 
-  if(chunkEndFromFragA == A_END)
-    edge->orient = (chunkEndFromFragB == A_END) ? BA_AB : BA_BA;
-  else
-    edge->orient = (chunkEndFromFragB == A_END) ? AB_AB : AB_BA;
+  if(chunkEndFromFragA == A_END) {
+    if (chunkEndFromFragB == A_END)
+      edge->orient.setIsBA_AB();
+    else
+      edge->orient.setIsBA_BA();
+  } else {
+    if (chunkEndFromFragB == A_END)
+      edge->orient.setIsAB_AB();
+    else
+      edge->orient.setIsAB_BA();
+  }
 
   distBetweenChunks.variance = MAX(1.0, distBetweenChunks.variance);
   edge->distance = distBetweenChunks;
@@ -465,7 +473,7 @@ int AddScaffoldToContigOrientChecker(ScaffoldGraphT * graph,
 
   // add scaffold to array - get orientation later based on first contig
   oh.keyID = scaffold->id;
-  oh.orient = X_X;
+  oh.orient.setIsUnknown();
   AppendVA_OrientHolder(coc->scaffolds->array, &oh);
 
   // iterate over scaffold & add contigs with orientations
@@ -484,8 +492,10 @@ int AddScaffoldToContigOrientChecker(ScaffoldGraphT * graph,
 
       // append it to the list, with its orientation
       oh.keyID = contig->id;
-      oh.orient = (contig->offsetAEnd.mean < contig->offsetBEnd.mean) ?
-        A_B : B_A;
+      if (contig->offsetAEnd.mean < contig->offsetBEnd.mean)
+        oh.orient.setIsForward();
+      else
+        oh.orient.setIsReverse();
       AppendVA_OrientHolder(coc->contigs->array, &oh);
     }
   return 0;
@@ -575,45 +585,42 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
       else
         {
           // Set the scaffold orientation based on this contig, if appropriate
-          switch(scaffoldOH->orient)
-            {
-              case X_X:
-                // no contigs from this scaffold have been seen yet
-                if((contigOH->orient == A_B &&
-                    contig->offsetAEnd.mean < contig->offsetBEnd.mean) ||
-                   (contigOH->orient == B_A &&
-                    contig->offsetAEnd.mean > contig->offsetBEnd.mean))
-                  scaffoldOH->orient = A_B;
-                else
-                  scaffoldOH->orient = B_A;
-                break;
-              case A_B:
-                // here, contig should have same orientation as before merging
-                if((contigOH->orient == A_B &&
-                    contig->offsetAEnd.mean > contig->offsetBEnd.mean) ||
-                   (contigOH->orient == B_A &&
-                    contig->offsetAEnd.mean < contig->offsetBEnd.mean))
-                  {
-                    fprintf(stderr, "!!!!! Contig "F_CID " from scaffold "F_CID " has been "
-                            "reversed in scaffold "F_CID "\n",
-                            contig->id, contigOH->secondID, contig->scaffoldID);
-                    status = 1;
-                  }
-                break;
-              case B_A:
-                // here, contig should be reversed
-                if((contigOH->orient == A_B &&
-                    contig->offsetAEnd.mean < contig->offsetBEnd.mean) ||
-                   (contigOH->orient == B_A &&
-                    contig->offsetAEnd.mean > contig->offsetBEnd.mean))
-                  {
-                    fprintf(stderr, "!!!!! Contig "F_CID " from scaffold "F_CID " has been "
-                            "reversed in scaffold "F_CID "\n",
-                            contig->id, contigOH->secondID, contig->scaffoldID);
-                    status = 1;
-                  }
-                break;
-            }
+          if (scaffoldOH->orient.isUnknown()) {
+            // no contigs from this scaffold have been seen yet
+            if((contigOH->orient.isForward() &&
+                contig->offsetAEnd.mean < contig->offsetBEnd.mean) ||
+               (contigOH->orient.isReverse() &&
+                contig->offsetAEnd.mean > contig->offsetBEnd.mean))
+              scaffoldOH->orient.setIsForward();
+            else
+              scaffoldOH->orient.setIsReverse();
+          }
+          if (scaffoldOH->orient.isForward()) {
+            // here, contig should have same orientation as before merging
+            if((contigOH->orient.isForward() &&
+                contig->offsetAEnd.mean > contig->offsetBEnd.mean) ||
+               (contigOH->orient.isReverse() &&
+                contig->offsetAEnd.mean < contig->offsetBEnd.mean))
+              {
+                fprintf(stderr, "!!!!! Contig "F_CID " from scaffold "F_CID " has been "
+                        "reversed in scaffold "F_CID "\n",
+                        contig->id, contigOH->secondID, contig->scaffoldID);
+                status = 1;
+              }
+          }
+          if (scaffoldOH->orient.isReverse()) {
+            // here, contig should be reversed
+            if((contigOH->orient.isForward() &&
+                contig->offsetAEnd.mean < contig->offsetBEnd.mean) ||
+               (contigOH->orient.isReverse() &&
+                contig->offsetAEnd.mean > contig->offsetBEnd.mean))
+              {
+                fprintf(stderr, "!!!!! Contig "F_CID " from scaffold "F_CID " has been "
+                        "reversed in scaffold "F_CID "\n",
+                        contig->id, contigOH->secondID, contig->scaffoldID);
+                status = 1;
+              }
+          }
         }
     }
   return status;
@@ -723,44 +730,15 @@ int CompareEdgeVariances(EdgeCGW_T * edge1,
   return(CompareEdgeFloats(edge1->distance.variance, edge2->distance.variance, "variances"));
 }
 
-void PrintOrientation(FILE * fp, ChunkOrientationType orient)
-{
-  switch(orient)
-    {
-      case AB_AB:
-        fprintf(fp, "AB_AB");
-        break;
-      case AB_BA:
-        fprintf(fp, "AB_BA");
-        break;
-      case BA_AB:
-        fprintf(fp, "BA_AB");
-        break;
-      case BA_BA:
-        fprintf(fp, "BA_BA");
-        break;
-      case XX_XX:
-        fprintf(fp, "XX_XX");
-        break;
-    }
-}
 
 int CompareEdgeOrientations(EdgeCGW_T * edge1,
                             EdgeCGW_T * edge2)
 {
-  if(edge1->orient != edge2->orient)
-    {
-      fprintf(stderr, "!!!!!!! Edge orientations not supported by fragment matepairs:");
-      PrintOrientation(stderr, edge1->orient);
-      fprintf(stderr, " (edge) vs. ");
-      PrintOrientation(stderr, edge2->orient);
-      fprintf(stderr, " (frags\n");
-      /* switch(edge1->orient)
-         {
-
-         } */
-      return 1;
-    }
+  if(edge1->orient != edge2->orient) {
+    fprintf(stderr, "!!!!!!! Edge orientations not supported by fragment matepairs %c (edge) vs %c (frags)\n",
+            edge1->orient.toLetter(), edge2->orient.toLetter());
+    return 1;
+  }
   return 0;
 }
 
@@ -893,51 +871,16 @@ void ValidateAllContigEdges(ScaffoldGraphT * graph, int fixBadOnes)
 typedef struct
 {
   CDS_CID_t   scaffoldID;
-  float minOffsetScaffoldB;
-  float maxOffsetScaffoldB;
-  float minOffset;
-  float maxOffset;
-  ChunkOrientationType orient;
+  float       minOffsetScaffoldB;
+  float       maxOffsetScaffoldB;
+  float       minOffset;
+  float       maxOffset;
+  PairOrient  orient;
   int         orientationsConsistent;
   int         weight;
 } ScfLink;
 
 VA_DEF(ScfLink);
-
-void PrintFragPairAndEdge(CIFragT * fragA,
-                          LengthT * offsetA,
-                          FragOrient orientA,
-                          CIFragT * fragB,
-                          LengthT * offsetB,
-                          FragOrient orientB,
-                          CIEdgeT * edge)
-{
-  fprintf(stdout, "%8"F_CIDP " %7"F_CIDP " %.f %s\t%8"F_CIDP " %7"F_CIDP " %.f %s\t%.f     ",
-          fragA->read_iid, fragA->contigID,
-          offsetA->mean, (orientA == A_B) ? "A_B" : "B_A",
-          fragB->read_iid, fragB->contigID,
-          offsetB->mean, (orientB == A_B) ? "A_B" : "B_A",
-          edge->distance.mean);
-  switch(edge->orient)
-    {
-      case AB_AB:
-        fprintf(stdout, "AB_AB");
-        break;
-      case AB_BA:
-        fprintf(stdout, "AB_BA");
-        break;
-      case BA_AB:
-        fprintf(stdout, "BA_AB");
-        break;
-      case BA_BA:
-        fprintf(stdout, "BA_BA");
-        break;
-      case XX_XX:
-        fprintf(stdout, "XX_XX");
-        break;
-    }
-  fprintf(stdout, "\n");
-}
 
 
 void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
@@ -1013,8 +956,8 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
                                                    chunkB->scaffoldID);
           LengthT offsetA;
           LengthT offsetB;
-          FragOrient orientA;
-          FragOrient orientB;
+          SequenceOrient orientA;
+          SequenceOrient orientB;
           ScfLink * link;
           ScfLink newLink;
 
@@ -1044,9 +987,10 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
 
           if(otherScaffoldID != NULLINDEX)
             {
-              PrintFragPairAndEdge(fragA, &offsetA, orientA,
-                                   fragB, &offsetB, orientB,
-                                   &myEdge);
+              fprintf(stdout, "%8"F_CIDP " %7"F_CIDP " %.f %c\t%8"F_CIDP " %7"F_CIDP " %.f %c\t%.f %c\n",
+                      fragA->read_iid, fragA->contigID, offsetA.mean, orientA.toLetter(),
+                      fragB->read_iid, fragB->contigID, offsetB.mean, orientB.toLetter(),
+                      myEdge.distance.mean, myEdge.orient.toLetter());
             }
           // see link to scaffoldB is already present
           if((link = (ScfLink *)(INTPTR)LookupValueInHashTable_AS(linkHT,
@@ -1095,31 +1039,12 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
             continue;
 
           fprintf(stdout,
-                  "\tweight %d from (%.f,%.f) to scaffold "F_CID " (%.f,%.f) orient: ",
+                  "\tweight %d from (%.f,%.f) to scaffold "F_CID " (%.f,%.f) orient: %c consistent %d\n",
                   link->weight, link->minOffset, link->maxOffset,
                   link->scaffoldID,
-                  link->minOffsetScaffoldB, link->maxOffsetScaffoldB);
-          switch(link->orient)
-            {
-              case AB_AB:
-                fprintf(stdout, "AB_AB");
-                break;
-              case AB_BA:
-                fprintf(stdout, "AB_BA");
-                break;
-              case BA_AB:
-                fprintf(stdout, "BA_AB");
-                break;
-              case BA_BA:
-                fprintf(stdout, "BA_BA");
-                break;
-              case XX_XX:
-                fprintf(stdout, "XX_XX");
-                break;
-            }
-          if(!link->orientationsConsistent)
-            fprintf(stdout, ", (not consistent)");
-          fprintf(stdout, "\n");
+                  link->minOffsetScaffoldB, link->maxOffsetScaffoldB,
+                  link->orient.toLetter(),
+                  link->orientationsConsistent);
         }
     }
   fprintf(stdout, "\n");
@@ -1247,8 +1172,8 @@ void DetectRepetitiveContigs(ScaffoldGraphT * graph)
               int isA = (edge->idA == contig->id);
               CDS_CID_t othercid = (isA? edge->idB: edge->idA);
 
-              if((isA && (edge->orient == AB_AB || edge->orient == AB_BA)) ||
-                 (!isA && (edge->orient == AB_BA || edge->orient == BA_BA)))
+              if((isA && (edge->orient.isAB_AB() || edge->orient.isAB_BA())) ||
+                 (!isA && (edge->orient.isAB_BA() || edge->orient.isBA_BA())))
                 AppendVA_CDS_CID_t(bEndIDs, &othercid);
               else
                 AppendVA_CDS_CID_t(aEndIDs, &othercid);
@@ -1309,7 +1234,7 @@ void DoSomethingWithUnitigsInScaffolds(ScaffoldGraphT * graph)
               ChunkInstanceT * contig;
               ContigTIterator unitigs;
               ChunkInstanceT * unitig;
-              FragOrient contigOrient;
+              SequenceOrient contigOrient;
 
               if((contig = GetGraphNode(graph->ContigGraph, cisTemp.curr)) == NULL)
                 {
@@ -1318,8 +1243,11 @@ void DoSomethingWithUnitigsInScaffolds(ScaffoldGraphT * graph)
                   return;
                 }
 
-              contigOrient =
-                (contig->offsetAEnd.mean < contig->offsetBEnd.mean) ? A_B : B_A;
+                if (contig->offsetAEnd.mean < contig->offsetBEnd.mean)
+                  contigOrient.setIsForward();
+                else
+                  contigOrient.setIsReverse();
+
               // Iterate over unitigs in contig & add data to contig instrumenter
               InitContigTIterator(graph, cisTemp.curr, TRUE, FALSE, &unitigs);
               while((unitig = NextContigTIterator(&unitigs)) != NULL)
@@ -1328,9 +1256,9 @@ void DoSomethingWithUnitigsInScaffolds(ScaffoldGraphT * graph)
                   if(!unitig->flags.bits.isStoneSurrogate &&
                      !unitig->flags.bits.isWalkSurrogate)
                     {
-                      FragOrient unitigOrient;
-                      unitigOrient =
-                        (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) ? A_B : B_A;
+                      //SequenceOrient unitigOrient;
+                      //unitigOrient =
+                      //  (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) ? A_B : B_A;
 
                       // do something
                     }

@@ -1,4 +1,4 @@
-const char *mainid = "$Id: markUniqueUnique.c,v 1.6 2009-10-28 16:35:01 skoren Exp $";
+const char *mainid = "$Id: markUniqueUnique.c,v 1.7 2010-02-17 01:32:59 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -134,7 +134,7 @@ int main (int argc, char *argv[]) {
             scf = (SnapScaffoldMesg *)(pmesg->m);
             
             count = scf->iaccession;
-            if (scf->contig_pairs[0].orient == AS_ANTI || scf->contig_pairs[0].orient == AS_OUTTIE) {
+            if (scf->contig_pairs[0].orient.isAnti() || scf->contig_pairs[0].orient.isOuttie()) {
                forward = FALSE;
             }
             lastCtg = MAX(scf->num_contig_pairs - 1, 0);

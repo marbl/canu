@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_main.c,v 1.26 2009-06-10 18:05:13 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_main.c,v 1.27 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -110,10 +110,23 @@ static void output_mesgs(Tfragment frags[],
     ovl_mesg.min_offset = ahg;
     ovl_mesg.max_offset = ahg;
 
-    ovl_mesg.orientation =
-      ( asx ?
-        ( bsx ? AS_INNIE : AS_NORMAL ) :
-        ( bsx ? AS_ANTI  : AS_OUTTIE ) );
+    //ovl_mesg.orientation =
+    //  ( asx ?
+    //    ( bsx ? AS_INNIE : AS_NORMAL ) :
+    //    ( bsx ? AS_ANTI  : AS_OUTTIE ) );
+
+    if (asx) {
+      if (bsx)
+        ovl_mesg.orientation.setIsInnie();
+      else
+        ovl_mesg.orientation.setIsNormal();
+    } else {
+      if (bsx)
+        ovl_mesg.orientation.setIsAnti();
+      else
+        ovl_mesg.orientation.setIsOuttie();
+    }
+
 
     switch(nes) {
       case AS_CGB_DOVETAIL_EDGE:

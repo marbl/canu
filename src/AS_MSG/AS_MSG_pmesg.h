@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.85 2010-02-12 20:33:05 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.86 2010-02-17 01:32:58 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.85 2010-02-12 20:33:05 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.86 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -97,7 +97,7 @@ typedef struct {
 typedef struct {
   ActionType      action;
   LinkType        type;
-  OrientType      link_orient;
+  PairOrient      link_orient;
   AS_UID          frag1;
   AS_UID          frag2;
   AS_UID          distance;
@@ -116,7 +116,7 @@ typedef struct {
   float        mean;
   float        stddev;
   char        *source;
-  OrientType   link_orient;
+  PairOrient   link_orient;
   uint32       num_features;
   char       **features;
   char       **values;
@@ -156,7 +156,7 @@ typedef FragMesg InternalFragMesg;
 typedef struct {
   IntFragment_ID   aifrag, bifrag;
   int32            ahg, bhg;
-  OrientType       orientation;
+  PairOrient       orientation;
   OverlapType      overlap_type;
   float            quality;
   int32            min_offset, max_offset;
@@ -172,7 +172,7 @@ typedef struct {
 typedef struct {
   IntChunk_ID		chunk1;
   IntChunk_ID     	chunk2;
-  ChunkOrientationType	orient;
+  PairOrient            orient;
   UnitigOverlapType	overlap_type;
   int32                 best_overlap_length;
   int32                 min_overlap_length;
@@ -303,7 +303,7 @@ typedef struct {
 typedef struct {
   IntChunk_ID		unitig1;
   IntChunk_ID		unitig2;
-  ChunkOrientationType	orientation;
+  PairOrient            orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
   float  		mean_distance;
@@ -316,7 +316,7 @@ typedef struct {
 typedef struct {
   IntChunk_ID		contig1;
   IntChunk_ID		contig2;
-  ChunkOrientationType	orientation;
+  PairOrient            orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
   float  		mean_distance;
@@ -329,7 +329,7 @@ typedef struct {
 typedef struct {
   IntScaffold_ID	iscaffold1;
   IntScaffold_ID	iscaffold2;
-  ChunkOrientationType	orientation;
+  PairOrient            orientation;
   float  		mean_distance;
   float  		std_deviation;
   int32			num_contributing;
@@ -381,7 +381,7 @@ typedef struct {
   IntContig_ID		contig2;
   float  		mean;
   float  		stddev;
-  ChunkOrientationType	orient;
+  PairOrient            orient;
 } IntContigPairs;  //  ICP
 
 typedef struct {
@@ -426,7 +426,7 @@ typedef struct {
 typedef struct {
   AS_UID   		eunitig1;
   AS_UID   		eunitig2;
-  ChunkOrientationType	orientation;
+  PairOrient            orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
   float  		mean_distance;
@@ -455,7 +455,7 @@ typedef struct {
 typedef struct {
   AS_UID   		econtig1; // changed in comparison to internal message
   AS_UID   		econtig2; // changed in comparison to internal message
-  ChunkOrientationType	orientation;
+  PairOrient            orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
   float  		mean_distance;
@@ -468,7 +468,7 @@ typedef struct {
 typedef struct {
   AS_UID                escaffold1;
   AS_UID                escaffold2;
-  ChunkOrientationType	orientation;
+  PairOrient            orientation;
   float  		mean_distance;
   float  		std_deviation;
   int32			num_contributing;
@@ -480,7 +480,7 @@ typedef struct {
   AS_UID   		econtig2; // changed in comparison to internal message
   float  		mean;
   float  		stddev;
-  ChunkOrientationType	orient;
+  PairOrient            orient;
 } SnapContigPairs;  //  CTP
 
 typedef struct {

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.31 2010-01-13 00:51:58 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.32 2010-02-17 01:32:58 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -59,25 +59,43 @@ CompareCIEdgeTMeans (const void *c1, const void *c2) {
 }
 
 static
-ChunkOrientationType
-InferredEdgeOrientation(ChunkOrientationType leftOrient,
-                        ChunkOrientationType rightOrient) {
+PairOrient
+InferredEdgeOrientation(PairOrient leftOrient,
+                        PairOrient rightOrient) {
+  PairOrient ret;
 
-  if ((leftOrient == AB_AB) || (leftOrient == BA_AB))
-    return(((rightOrient == AB_AB) || (rightOrient == BA_AB)) ? AB_AB : AB_BA);
+  if (leftOrient.isAB_AB() || leftOrient.isBA_AB())
+    if (rightOrient.isAB_AB() || rightOrient.isBA_AB())
+      ret.setIsAB_AB();
+    else
+      ret.setIsAB_BA();
   else
-    return(((rightOrient == AB_AB) || (rightOrient == BA_AB)) ? BA_AB : BA_BA);
+    if (rightOrient.isAB_AB() || rightOrient.isBA_AB())
+      ret.setIsBA_AB();
+    else
+      ret.setIsBA_BA();
+
+  return(ret);
 }
 
 static
-ChunkOrientationType
-TransitiveEdgeOrientation(ChunkOrientationType leftOrient,
-                          ChunkOrientationType rightOrient) {
+PairOrient
+TransitiveEdgeOrientation(PairOrient leftOrient,
+                          PairOrient rightOrient) {
+  PairOrient ret;
 
-  if ((leftOrient == AB_AB) || (leftOrient == AB_BA))
-    return(((rightOrient == AB_AB) || (rightOrient == BA_AB)) ? AB_AB : AB_BA);
+  if ((leftOrient.isAB_AB()) || (leftOrient.isAB_BA()))
+    if (rightOrient.isAB_AB() || rightOrient.isBA_AB())
+      ret.setIsAB_AB();
+    else
+      ret.setIsAB_BA();
   else
-    return(((rightOrient == AB_AB) || (rightOrient == BA_AB)) ? BA_AB : BA_BA);
+    if (rightOrient.isAB_AB() || rightOrient.isBA_AB())
+      ret.setIsBA_AB();
+    else
+      ret.setIsBA_BA();
+
+  return(ret);
 }
 
 
@@ -153,11 +171,11 @@ FoundTransitiveEdgePath(ScaffoldGraphT *graph,
   if (recurseSize > AS_CGW_MAX_FTEP_RECURSE_SIZE)
     return(FALSE);
 
-  ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge, startCI->id);
-  ChunkOrientationType pathOrient = GetEdgeOrientationWRT(path, startCI->id);
+  PairOrient edgeOrient = GetEdgeOrientationWRT(edge, startCI->id);
+  PairOrient pathOrient = GetEdgeOrientationWRT(path, startCI->id);
 
   //  Which end of thisCI are we walking off of.
-  int end = ((pathOrient == AB_AB) || (pathOrient == BA_AB)) ? B_END : A_END;
+  int end = ((pathOrient.isAB_AB()) || (pathOrient.isBA_AB())) ? B_END : A_END;
 
 
   //  If we got to the end, return true if the orientation is correct and the distance is correct.
@@ -346,13 +364,13 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 
     CDS_CID_t             AmidCID = (Ahop1->idA == thisCI->id) ? Ahop1->idB : Ahop1->idA;
     ChunkInstanceT       *AmidCI  = GetGraphNode(graph->ContigGraph, AmidCID);
-    ChunkOrientationType  AmidOri = GetEdgeOrientationWRT(Ahop1, thisCI->id);
+    PairOrient  AmidOri = GetEdgeOrientationWRT(Ahop1, thisCI->id);
 
     GraphEdgeIterator  Ahop2s;
     CIEdgeT           *Ahop2;
 
     InitGraphEdgeIterator(graph->ContigGraph, AmidCID,
-                          (AmidOri == AB_AB) || (AmidOri == BA_AB) ? B_END : A_END,
+                          (AmidOri.isAB_AB()) || (AmidOri.isBA_AB()) ? B_END : A_END,
                           ALL_EDGES, GRAPH_EDGE_DEFAULT, &Ahop2s);// Use merged edges
 
     while((Ahop2 = NextGraphEdgeIterator(&Ahop2s))!= NULL) {
@@ -362,7 +380,7 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
         continue;
 
       ChunkInstanceT        *AendCI    = GetGraphNode(graph->ContigGraph, ((Ahop2->idA == AmidCID) ? Ahop2->idB : Ahop2->idA));
-      ChunkOrientationType   AendOri   = TransitiveEdgeOrientation(AmidOri, GetEdgeOrientationWRT(Ahop2, AmidCID));
+      PairOrient   AendOri   = TransitiveEdgeOrientation(AmidOri, GetEdgeOrientationWRT(Ahop2, AmidCID));
       double                 AMean     = Ahop1->distance.mean     + AmidCI->bpLength.mean     + Ahop2->distance.mean;
       double                 AVariance = Ahop1->distance.variance + AmidCI->bpLength.variance + Ahop2->distance.variance;
 
@@ -380,13 +398,13 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 
         CDS_CID_t             BmidCID = (Bhop1->idA == thisCI->id) ? Bhop1->idB : Bhop1->idA;
         ChunkInstanceT       *BmidCI  = GetGraphNode(graph->ContigGraph, BmidCID);
-        ChunkOrientationType  BmidOri = GetEdgeOrientationWRT(Bhop1, thisCI->id);
+        PairOrient  BmidOri = GetEdgeOrientationWRT(Bhop1, thisCI->id);
 
         GraphEdgeIterator  Bhop2s;
         CIEdgeT           *Bhop2;
 
         InitGraphEdgeIterator(graph->ContigGraph, BmidCID,
-                              (BmidOri == AB_AB) || (BmidOri == BA_AB) ? B_END : A_END,
+                              (BmidOri.isAB_AB()) || (BmidOri.isBA_AB()) ? B_END : A_END,
                               ALL_EDGES, GRAPH_EDGE_DEFAULT, &Bhop2s);// Use merged edges
 
         while((Bhop2 = NextGraphEdgeIterator(&Bhop2s))!= NULL) {
@@ -396,7 +414,7 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
             continue;
 
           ChunkInstanceT        *BendCI    = GetGraphNode(graph->ContigGraph, ((Bhop2->idA == BmidCID) ? Bhop2->idB : Bhop2->idA));
-          ChunkOrientationType   BendOri   = TransitiveEdgeOrientation(BmidOri, GetEdgeOrientationWRT(Bhop2, BmidCID));
+          PairOrient   BendOri   = TransitiveEdgeOrientation(BmidOri, GetEdgeOrientationWRT(Bhop2, BmidCID));
           double                 BMean     = Bhop1->distance.mean     + BmidCI->bpLength.mean     + Bhop2->distance.mean;
           double                 BVariance = Bhop1->distance.variance + BmidCI->bpLength.variance + Bhop2->distance.variance;
 
@@ -539,7 +557,7 @@ static
 EdgeCGW_T *
 FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
                             ChunkInstanceT *sourceCI, CDS_CID_t targetId,
-                            ChunkOrientationType edgeOrient,
+                            PairOrient edgeOrient,
                             double inferredMean, double inferredVariance,
                             float *returnChiSquaredValue,
                             float chiSquareThreshold, int *isEssential) {
@@ -633,9 +651,9 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
                 F_CID ","F_CID ",%c)["F_S32","F_S32"] found ("
                 F_CID ","F_CID ",%c) "F_S32" (would have been "
                 F_S32")\n",
-                sourceCI->id, targetId, edgeOrient,
+                sourceCI->id, targetId, edgeOrient.toLetter(),
                 minOverlap, maxOverlap,
-                olap.spec.cidA, olap.spec.cidB, olap.spec.orientation,
+                olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(),
                 olap.overlap,olap.overlap+olap.ahg+olap.bhg);
       }else if (olap.overlap) {
       }else if (bestEdge == (CIEdgeT *)NULL) { // If we didn't find an overlap, and there was no other edge return NULL
@@ -653,7 +671,7 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
   // have been reallocated when an overlap edge was added in the code above.
 
   bestEdge = (CIEdgeT *)NULL;
-  if ((edgeOrient == AB_AB) || (edgeOrient == AB_BA)) {
+  if ((edgeOrient.isAB_AB()) || (edgeOrient.isAB_BA())) {
     /* edgeOrient == AB_XX */
     end = B_END;
   }else{
@@ -713,7 +731,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
   CDS_CID_t *existingEnd;
   CDS_CID_t *existingPtr;
   CIEdgeT *sourceEdge = NULL;
-  ChunkOrientationType sourceEdgeOrient;
+  PairOrient sourceEdgeOrient;
   ChunkInstanceT *sourceCI;
   double sourceMean, sourceVariance;
   int failedInfer;
@@ -802,7 +820,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       thisCI->essentialEdgeA = sourceEdgeIndex;
     }
     sourceEdgeOrient = GetEdgeOrientationWRT(sourceEdge, thisCI->id);
-    if ((sourceEdgeOrient == AB_AB) || (sourceEdgeOrient == BA_AB)) {
+    if ((sourceEdgeOrient.isAB_AB()) || (sourceEdgeOrient.isBA_AB())) {
       sourceCI->essentialEdgeA = sourceEdgeIndex;
     }else{
       sourceCI->essentialEdgeB = sourceEdgeIndex;
@@ -916,8 +934,8 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       double inferredMean, inferredVariance;
       LengthT inferredDistance;
       float chiSquaredValue;
-      ChunkOrientationType inferredEdgeOrient;
-      ChunkOrientationType targetEdgeOrient;
+      PairOrient inferredEdgeOrient;
+      PairOrient targetEdgeOrient;
       int isOverlapInferred = FALSE;
       int existingIsEssential;
 
@@ -1081,7 +1099,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       }else{
         thisCI->numEssentialA -= numEssentialRemoved;
       }
-      if ((sourceEdgeOrient == AB_AB) || (sourceEdgeOrient == BA_AB)) {
+      if ((sourceEdgeOrient.isAB_AB()) || (sourceEdgeOrient.isBA_AB())) {
         sourceEnd = B_END;
         sourceCI->numEssentialB += numEssentialAdded;
       }else{
@@ -1150,7 +1168,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
         }else{
           thisCI->essentialEdgeA = *branchSource;
         }
-        if ((sourceEdgeOrient == AB_AB) || (sourceEdgeOrient == BA_AB)) {
+        if ((sourceEdgeOrient.isAB_AB()) || (sourceEdgeOrient.isBA_AB())) {
           sourceCI->essentialEdgeA = *branchSource;
         }else{
           sourceCI->essentialEdgeB = *branchSource;
@@ -1169,10 +1187,10 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
               GetGraphNode(graph->ContigGraph,
                            ((existingEdge->idA == sourceCI->id) ?
                             existingEdge->idB : existingEdge->idA));
-            ChunkOrientationType existingEdgeOrient =
+            PairOrient existingEdgeOrient =
               GetEdgeOrientationWRT(existingEdge, sourceCI->id);
             // Fix numEssential
-            if ((existingEdgeOrient == AB_AB) || (existingEdgeOrient == BA_AB)) {
+            if ((existingEdgeOrient.isAB_AB()) || (existingEdgeOrient.isBA_AB())) {
               targetCI->numEssentialA--;
             }else{
               targetCI->numEssentialB--;
@@ -1429,9 +1447,9 @@ SmoothWithInferredEdges(ScaffoldGraphT *graph,
 
 static
 void
-SymmetricNeighbors(ChunkInstanceT *thisCI, ChunkOrientationType orient, CDS_CID_t edgeID) {
+SymmetricNeighbors(ChunkInstanceT *thisCI, PairOrient orient, CDS_CID_t edgeID) {
 
-  if ((orient == AB_AB) || (orient == BA_AB)) {
+  if ((orient.isAB_AB()) || (orient.isBA_AB())) {
     // A end of this CI
     assert(thisCI->numEssentialA == 1);
     assert(edgeID == thisCI->essentialEdgeA);
@@ -1455,7 +1473,7 @@ DetectScaffoldCycles(CDS_CID_t currentScaffoldID) {
     ChunkInstanceT *AendCI, *BendCI, *startingCI;
     CIEdgeT *edgeA, *edgeB, *edge;
     ChunkInstanceT *neighbor;
-    ChunkOrient orientCI;
+    SequenceOrient orientCI;
 
     // the following test identifies and skips CIs that were
     // assigned to a scaffold by LabelCIScaffolds, or were
@@ -1487,7 +1505,7 @@ DetectScaffoldCycles(CDS_CID_t currentScaffoldID) {
     fprintf(stderr, "*** Found a Cycle in Essential Edge Graph\ncId:"F_CID " Aend:"F_CID " Bend:"F_CID "\n",
             thisCI->id, AendCI->id, BendCI->id);
 
-    orientCI = A_B;
+    orientCI.setIsForward();
     edge = edgeB;
     neighbor = BendCI;
     startingCI = thisCI;
@@ -1496,24 +1514,24 @@ DetectScaffoldCycles(CDS_CID_t currentScaffoldID) {
     // starting CI), remove their essential edges ... i.e. completely
     // break the cycle into singleton bits
     do{
-      ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
+      PairOrient edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
       // Dump
       //DumpContig(stderr, ScaffoldGraph, thisCI,  FALSE);
 
       assert(neighbor != NULL);
-      if (orientCI == A_B) {
-        if (edgeOrient == AB_AB) {
-          orientCI = A_B;
-        }else if (edgeOrient == AB_BA) {
-          orientCI = B_A;
+      if (orientCI.isForward()) {
+        if (edgeOrient.isAB_AB()) {
+          orientCI.setIsForward();
+        }else if (edgeOrient.isAB_BA()) {
+          orientCI.setIsReverse();
         }else{
           assert(0);
         }
-      }else{// orientCI == B_A
-        if (edgeOrient == BA_AB) {
-          orientCI = A_B;
-        }else if (edgeOrient == BA_BA) {
-          orientCI = B_A;
+      }else{// orientCI.isReverse()
+        if (edgeOrient.isBA_AB()) {
+          orientCI.setIsForward();
+        }else if (edgeOrient.isBA_BA()) {
+          orientCI.setIsReverse();
         }else{
           assert(0);
         }
@@ -1530,7 +1548,7 @@ DetectScaffoldCycles(CDS_CID_t currentScaffoldID) {
 
       thisCI = neighbor;
 
-      if (orientCI == A_B) {
+      if (orientCI.isForward()) {
         if (thisCI->essentialEdgeB != NULLINDEX) {
           edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
           neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
@@ -1539,7 +1557,7 @@ DetectScaffoldCycles(CDS_CID_t currentScaffoldID) {
           edge = (CIEdgeT *)NULL;
           neighbor = (ChunkInstanceT *)NULL;
         }
-      }else{// orientCI == B_A
+      }else{// orientCI.isReverse()
         if (thisCI->essentialEdgeA != NULLINDEX) {
           edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
           neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
@@ -1573,7 +1591,7 @@ LabelCIScaffolds(void) {
     ChunkInstanceT *AendCI, *BendCI;
     CIEdgeT *edgeA, *edgeB, *edge;
     ChunkInstanceT *neighbor;
-    ChunkOrient orientCI;
+    SequenceOrient orientCI;
 
     if (thisCI->scaffoldID != NULLINDEX)
       // This CI has already been placed in a Scaffold.
@@ -1603,43 +1621,43 @@ LabelCIScaffolds(void) {
 
 
     if (BendCI != (ChunkInstanceT *)NULL) {
-      orientCI = A_B;
+      orientCI.setIsForward();
       edge = edgeB;
       neighbor = BendCI;
     }else if (AendCI != (ChunkInstanceT *)NULL) {
-      orientCI = B_A;
+      orientCI.setIsReverse();
       edge = edgeA;
       neighbor = AendCI;
     }else{// Singleton Scaffold
-      orientCI = A_B;
+      orientCI.setIsForward();
       edge = (CIEdgeT *)NULL;
       neighbor = (ChunkInstanceT *)NULL;
     }
 
     thisCI->scaffoldID = currentScaffoldID;
     while(neighbor != (ChunkInstanceT *)NULL) {
-      ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge,
+      PairOrient edgeOrient = GetEdgeOrientationWRT(edge,
                                                               thisCI->id);
-      if (orientCI == A_B) {
-        if (edgeOrient == AB_AB) {
-          orientCI = A_B;
-        }else if (edgeOrient == AB_BA) {
-          orientCI = B_A;
+      if (orientCI.isForward()) {
+        if (edgeOrient.isAB_AB()) {
+          orientCI.setIsForward();
+        }else if (edgeOrient.isAB_BA()) {
+          orientCI.setIsReverse();
         }else{
           assert(0);
         }
-      }else{// orientCI == B_A
-        if (edgeOrient == BA_AB) {
-          orientCI = A_B;
-        }else if (edgeOrient == BA_BA) {
-          orientCI = B_A;
+      }else{// orientCI.isReverse()
+        if (edgeOrient.isBA_AB()) {
+          orientCI.setIsForward();
+        }else if (edgeOrient.isBA_BA()) {
+          orientCI.setIsReverse();
         }else{
           assert(0);
         }
       }
       thisCI = neighbor;
       thisCI->scaffoldID = currentScaffoldID;
-      if (orientCI == A_B) {
+      if (orientCI.isForward()) {
         if (thisCI->essentialEdgeB != NULLINDEX) {
           edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
           neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
@@ -1648,7 +1666,7 @@ LabelCIScaffolds(void) {
           edge = (CIEdgeT *)NULL;
           neighbor = (ChunkInstanceT *)NULL;
         }
-      }else{// orientCI == B_A
+      }else{// orientCI.isReverse()
         if (thisCI->essentialEdgeA != NULLINDEX) {
           edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
           neighbor = GetGraphNode(ScaffoldGraph->ContigGraph,
@@ -1681,7 +1699,7 @@ ActuallyInsertCIsIntoScaffolds(void) {
     LengthT NullLength = {0.0, 0.0};
     LengthT aEndOffset, bEndOffset, currentOffset;
     CIScaffoldT CIScaffold;
-    ChunkOrient orientCI;
+    SequenceOrient orientCI;
 
     memset(&CIScaffold, 0, sizeof(CIScaffoldT));
 
@@ -1715,15 +1733,15 @@ ActuallyInsertCIsIntoScaffolds(void) {
       continue;
 
     if (BendCI != (ChunkInstanceT *)NULL) {
-      orientCI = A_B;
+      orientCI.setIsForward();
       edge = edgeB;
       neighbor = BendCI;
     }else if (AendCI != (ChunkInstanceT *)NULL) {
-      orientCI = B_A;
+      orientCI.setIsReverse();
       edge = edgeA;
       neighbor = AendCI;
     }else{// Singleton Scaffold
-      orientCI = A_B;
+      orientCI.setIsForward();
       edge = (CIEdgeT *)NULL;
       neighbor = (ChunkInstanceT *)NULL;
     }
@@ -1744,10 +1762,10 @@ ActuallyInsertCIsIntoScaffolds(void) {
 
     aEndOffset = bEndOffset = currentOffset = NullLength;
 
-    if (orientCI == A_B) {
+    if (orientCI.isForward()) {
       aEndOffset = NullLength;
       bEndOffset = thisCI->bpLength;
-    }else{// orientCI == B_A
+    }else{// orientCI.isReverse()
       bEndOffset = NullLength;
       aEndOffset = thisCI->bpLength;
     }
@@ -1757,21 +1775,21 @@ ActuallyInsertCIsIntoScaffolds(void) {
     currentOffset = thisCI->bpLength;
 
     while(neighbor != (ChunkInstanceT *)NULL) {
-      ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge,
+      PairOrient edgeOrient = GetEdgeOrientationWRT(edge,
                                                               thisCI->id);
-      if (orientCI == A_B) {
-        if (edgeOrient == AB_AB) {
-          orientCI = A_B;
-        }else if (edgeOrient == AB_BA) {
-          orientCI = B_A;
+      if (orientCI.isForward()) {
+        if (edgeOrient.isAB_AB()) {
+          orientCI.setIsForward();
+        }else if (edgeOrient.isAB_BA()) {
+          orientCI.setIsReverse();
         }else{
           assert(0);
         }
-      }else{// orientCI == B_A
-        if (edgeOrient == BA_AB) {
-          orientCI = A_B;
-        }else if (edgeOrient == BA_BA) {
-          orientCI = B_A;
+      }else{// orientCI.isReverse()
+        if (edgeOrient.isBA_AB()) {
+          orientCI.setIsForward();
+        }else if (edgeOrient.isBA_BA()) {
+          orientCI.setIsReverse();
         }else{
           assert(0);
         }
@@ -1780,22 +1798,22 @@ ActuallyInsertCIsIntoScaffolds(void) {
       thisCI->scaffoldID = currentScaffoldID;
       currentOffset.mean += edge->distance.mean;
       currentOffset.variance += edge->distance.variance;
-      if (orientCI == A_B) {
+      if (orientCI.isForward()) {
         aEndOffset = currentOffset;
-      }else{// orientCI == B_A
+      }else{// orientCI.isReverse()
         bEndOffset = currentOffset;
       }
       currentOffset.mean += thisCI->bpLength.mean;
       currentOffset.variance += thisCI->bpLength.variance;
-      if (orientCI == A_B) {
+      if (orientCI.isForward()) {
         bEndOffset = currentOffset;
-      }else{// orientCI == B_A
+      }else{// orientCI.isReverse()
         aEndOffset = currentOffset;
       }
       /* Don't Contig NOW!!! */
       InsertCIInScaffold(ScaffoldGraph, thisCI->id, currentScaffoldID,
                          aEndOffset, bEndOffset,  TRUE /* Should be FALSE */, FALSE);
-      if (orientCI == A_B) {
+      if (orientCI.isForward()) {
         if (thisCI->essentialEdgeB != NULLINDEX) {
           edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeB);
           assert(!isSloppyEdge(edge));
@@ -1805,7 +1823,7 @@ ActuallyInsertCIsIntoScaffolds(void) {
           edge = (CIEdgeT *)NULL;
           neighbor = (ChunkInstanceT *)NULL;
         }
-      }else{// orientCI == B_A
+      }else{// orientCI.isReverse()
         if (thisCI->essentialEdgeA != NULLINDEX) {
           edge = GetGraphEdge(ScaffoldGraph->ContigGraph, thisCI->essentialEdgeA);
           assert(!isSloppyEdge(edge));
@@ -1838,11 +1856,11 @@ ActuallyInsertCIsIntoScaffolds(void) {
 static
 int
 NeighborBranches(ChunkInstanceT *thisCI,
-                 ChunkOrientationType orient,
+                 PairOrient orient,
                  CDS_CID_t edgeID) {
 
-  if ((orient == AB_AB) ||
-      (orient == BA_AB)) {
+  if ((orient.isAB_AB()) ||
+      (orient.isBA_AB())) {
     // A end of this CI
     if (thisCI->numEssentialA != 1)
       return(TRUE);
@@ -1929,29 +1947,29 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
     prevCI = NextCIScaffoldTIterator(&CIs);
     while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-      LengthT              inferredDistance;
-      ChunkOrientationType inferredEdgeOrient;
+      LengthT    inferredDistance;
+      PairOrient inferredEdgeOrient;
 
       assert(!thisCI->flags.bits.isDead &&
              !prevCI->flags.bits.isDead);
 
-      if (GetNodeOrient(prevCI) == A_B) {
-        if (GetNodeOrient(thisCI) == A_B) {
-          inferredEdgeOrient = AB_AB;
+      if (GetNodeOrient(prevCI).isForward()) {
+        if (GetNodeOrient(thisCI).isForward()) {
+          inferredEdgeOrient.setIsAB_AB();
           inferredDistance.mean = thisCI->offsetAEnd.mean - prevCI->offsetBEnd.mean;
           inferredDistance.variance = thisCI->offsetAEnd.variance - prevCI->offsetBEnd.variance;
-        }else{// GetNodeOrient(thisCI) == B_A
-          inferredEdgeOrient = AB_BA;
+        }else{// GetNodeOrient(thisCI).isReverse()
+          inferredEdgeOrient.setIsAB_BA();
           inferredDistance.mean = thisCI->offsetBEnd.mean - prevCI->offsetBEnd.mean;
           inferredDistance.variance = thisCI->offsetBEnd.variance - prevCI->offsetBEnd.variance;
         }
-      }else{// GetNodeOrient(prevCI) == B_A
-        if (GetNodeOrient(thisCI) == A_B) {
-          inferredEdgeOrient = BA_AB;
+      }else{// GetNodeOrient(prevCI).isReverse()
+        if (GetNodeOrient(thisCI).isForward()) {
+          inferredEdgeOrient.setIsBA_AB();
           inferredDistance.mean = thisCI->offsetAEnd.mean - prevCI->offsetAEnd.mean;
           inferredDistance.variance = thisCI->offsetAEnd.variance - prevCI->offsetAEnd.variance;
-        }else{// GetNodeOrient(thisCI) == B_A
-          inferredEdgeOrient = BA_BA;
+        }else{// GetNodeOrient(thisCI).isReverse()
+          inferredEdgeOrient.setIsBA_BA();
           inferredDistance.mean = thisCI->offsetBEnd.mean - prevCI->offsetAEnd.mean;
           inferredDistance.variance = thisCI->offsetBEnd.variance - prevCI->offsetAEnd.variance;
         }
@@ -1996,7 +2014,7 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
       }else{
         // This is a containment edge
         fprintf(stderr,"* Did NOT add inferred edge ("F_CID ","F_CID ",%c) offsets [%g,%g] [%g,%g]... a containment?\n",
-                prevCI->id, thisCI->id, inferredEdgeOrient,
+                prevCI->id, thisCI->id, inferredEdgeOrient.toLetter(),
                 thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean,
                 prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
       }

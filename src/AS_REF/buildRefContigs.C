@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildRefContigs.C,v 1.6 2009-09-14 16:09:05 brianwalenz Exp $";
+const char *mainid = "$Id: buildRefContigs.C,v 1.7 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -542,7 +542,7 @@ outputScaffolds(void) {
         icp[0].contig2        = icmId;
         icp[0].mean           = mean;
         icp[0].stddev         = 0;
-        icp[0].orient         = AS_NORMAL;
+        icp[0].orient.setIsNormal();
         icpLen++;
       } else if ((icpLen == 1) && (icp[0].contig1 == icp[0].contig2)) {
         //  Second contig.  Make the first icp be a real contig pair.
@@ -550,14 +550,14 @@ outputScaffolds(void) {
         icp[0].contig2        = icmId;
         icp[0].mean           = mean;
         icp[0].stddev         = 0;
-        icp[0].orient         = AS_NORMAL;
+        icp[0].orient.setIsNormal();
       } else {
         //  Later contigs, as expected.
         icp[icpLen].contig1        = icmId - 1;
         icp[icpLen].contig2        = icmId;
         icp[icpLen].mean           = mean;
         icp[icpLen].stddev         = 0;
-        icp[icpLen].orient         = AS_NORMAL;
+        icp[icpLen].orient.setIsNormal();
         icpLen++;
       }
 

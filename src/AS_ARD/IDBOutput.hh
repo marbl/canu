@@ -21,7 +21,7 @@
 #ifndef IDBOutput_HH
 #define IDBOutput_HH
 
-static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.12 2010-02-12 20:32:50 brianwalenz Exp $";
+static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.13 2010-02-17 01:32:57 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -85,7 +85,7 @@ namespace AS_ARD {
          virtual bool storeULK2DB (
                   AS_UID euid,
                   CDS_CID_t ciid,
-                  ChunkOrientationType orientation,
+                  PairOrient orientation,
                   UnitigOverlapType overlap_type,
                   int32 is_possible_chimera,
                   float mean_distance,
@@ -152,7 +152,7 @@ namespace AS_ARD {
          virtual bool storeCLK2DB(
                   AS_UID euid,
                   CDS_CID_t ciid,
-                  ChunkOrientationType orientation,
+                  PairOrient orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
                   float mean_distance,
@@ -162,7 +162,7 @@ namespace AS_ARD {
 
          virtual bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs) = 0;
 
-         virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient) = 0;
+         virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, PairOrient orient) = 0;
          virtual bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) = 0;
          virtual bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd) = 0;
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.122 2010-02-03 14:34:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.123 2010-02-17 01:32:57 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -731,7 +731,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
           omesg.bifrag          = f->ident;
           omesg.ahg             = bestEdge->ahang;
           omesg.bhg             = bestEdge->bhang;
-          omesg.orientation     = AS_UNKNOWN;
+          omesg.orientation.setIsUnknown();
           omesg.overlap_type    = AS_DOVETAIL;
           omesg.quality         = 0.0;
           omesg.min_offset      = 0;
@@ -743,13 +743,13 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
 #endif
 
           if ((bestEnd == FIVE_PRIME) && (bestEdge->bend == FIVE_PRIME))
-            omesg.orientation = AS_OUTTIE;
+            omesg.orientation.setIsOuttie();
           if ((bestEnd == FIVE_PRIME) && (bestEdge->bend == THREE_PRIME))
-            omesg.orientation = AS_ANTI;
+            omesg.orientation.setIsAnti();
           if ((bestEnd == THREE_PRIME) && (bestEdge->bend == FIVE_PRIME))
-            omesg.orientation = AS_NORMAL;
+            omesg.orientation.setIsNormal();
           if ((bestEnd == THREE_PRIME) && (bestEdge->bend == THREE_PRIME))
-            omesg.orientation = AS_INNIE;
+            omesg.orientation.setIsInnie();
 
           pmesg.t = MESG_OVL;
           pmesg.m = &omesg;
@@ -2191,7 +2191,7 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
           omesg.bifrag          = bestident5;
           omesg.ahg             = bestedge5->ahang;
           omesg.bhg             = bestedge5->bhang;
-          omesg.orientation     = AS_UNKNOWN;
+          omesg.orientation.setIsUnknown();
           omesg.overlap_type    = AS_DOVETAIL;
           omesg.quality         = 0.0;
           omesg.min_offset      = 0;
@@ -2204,9 +2204,9 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
 
           //  This overlap is off of the 5' end of this fragment.
           if (bestedge5->bend == FIVE_PRIME)
-            omesg.orientation = AS_OUTTIE;
+            omesg.orientation.setIsOuttie();
           if (bestedge5->bend == THREE_PRIME)
-            omesg.orientation = AS_ANTI;
+            omesg.orientation.setIsAnti();
 
           pmesg.t = MESG_OVL;
           pmesg.m = &omesg;
@@ -2223,7 +2223,7 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
           omesg.bifrag          = bestident3;
           omesg.ahg             = bestedge3->ahang;
           omesg.bhg             = bestedge3->bhang;
-          omesg.orientation     = AS_UNKNOWN;
+          omesg.orientation.setIsUnknown();
           omesg.overlap_type    = AS_DOVETAIL;
           omesg.quality         = 0.0;
           omesg.min_offset      = 0;
@@ -2236,9 +2236,9 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
 
           //  This overlap is off of the 3' end of this fragment.
           if (bestedge3->bend == FIVE_PRIME)
-            omesg.orientation = AS_NORMAL;
+            omesg.orientation.setIsNormal();
           if (bestedge3->bend == THREE_PRIME)
-            omesg.orientation = AS_INNIE;
+            omesg.orientation.setIsInnie();
 
           pmesg.t = MESG_OVL;
           pmesg.m = &omesg;

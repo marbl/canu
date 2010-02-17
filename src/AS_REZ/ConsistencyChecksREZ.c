@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.16 2009-10-27 12:26:41 skoren Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.17 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,12 +86,10 @@ extern char * Filename_Prefix;
 static  FILE* logFile;
 #endif
 
-CIOrient Get_Gap_Chunk_Orient(const Gap_Chunk_t * chunk) {
-  if (chunk->end.mean > chunk->start.mean) {
-    return A_B;
-  }else{
-    return B_A;
-  }
+SequenceOrient Get_Gap_Chunk_Orient(const Gap_Chunk_t * chunk) {
+  SequenceOrient ret;
+  ret.setIsForward(chunk->end.mean > chunk->start.mean);
+  return(ret);
 }
 
 int Is_Edge_Orientation_Consistent(CIEdgeT * edge,
@@ -101,7 +99,7 @@ int Is_Edge_Orientation_Consistent(CIEdgeT * edge,
   // checks if the orientation of the edge is consistent with the orientation
   // of the chunks
   //
-  CIOrient leftCIorient = X_X, rightCIorient = X_X;
+  SequenceOrient leftCIorient, rightCIorient;
   CIEdgeT  tmp_edge = * edge;
 
   // Contained edges can have two different orientations
@@ -110,38 +108,37 @@ int Is_Edge_Orientation_Consistent(CIEdgeT * edge,
   if  (tmp_edge . distance . mean < 0.0)
       Canonicalize (& tmp_edge, left, right);
 
-  switch (GetEdgeOrientationWRT(& tmp_edge, left->chunk_id)) {
-  case AB_AB:
+  PairOrient ori = GetEdgeOrientationWRT(& tmp_edge, left->chunk_id);
+
+  assert(ori.isUnknown() == false);
+
+  if (ori.isAB_AB()) {
     //      leftCI                                        rightCI
     //  A --------------------- B               A --------------------- B
     //    5'----->                                           <------5'
-    leftCIorient = A_B;
-    rightCIorient = A_B;
-    break;
-  case AB_BA:
+    leftCIorient.setIsForward();
+    rightCIorient.setIsForward();
+  }
+  if (ori.isAB_BA()) {
     //      leftCI                                        rightCI
     //  A --------------------- B               B --------------------- A
     //    5'----->                                           <------5'
-    leftCIorient = A_B;
-    rightCIorient = B_A;
-    break;
-  case BA_BA:
+    leftCIorient.setIsForward();
+    rightCIorient.setIsReverse();
+  }
+  if (ori.isBA_BA()) {
     //      leftCI                                        rightCI
     //  B --------------------- A               B --------------------- A
     //    5'----->                                           <------5'
-    leftCIorient = B_A;
-    rightCIorient = B_A;
-    break;
-  case BA_AB:
+    leftCIorient.setIsReverse();
+    rightCIorient.setIsReverse();
+  }
+  if (ori.isBA_AB()) {
     //      thisCI                                        otherCI
     //  B --------------------- A               A --------------------- B
     //    5'----->                                           <------5'
-    leftCIorient = B_A;
-    rightCIorient = A_B;
-    break;
-  default:
-    assert(0);
-    break;
+    leftCIorient.setIsReverse();
+    rightCIorient.setIsForward();
   }
 
   //
@@ -205,7 +202,7 @@ void ComputeCanonicalOverlap(ChunkOverlapperT *chunkOverlapper,
 			     ChunkOverlapCheckT *canOlap);
 
 int InitCanonicalOverlapSpec(int cidA, int cidB,
-			     ChunkOrientationType orientation, ChunkOverlapSpecT *spec);
+			     PairOrient orientation, ChunkOverlapSpecT *spec);
 
 
 
@@ -345,8 +342,8 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 		  // overlapper test
 		  {//start
 		    int isCanonical;
-		    ChunkOrientationType orientation;
-		    ChunkOrientType orientA, orientB;
+		    PairOrient orientation;
+		    SequenceOrient orientA, orientB;
 		    ChunkOverlapCheckT *lookup;
 		    Gap_Chunk_t cidA = gapAssignment[i].gap[j].chunk[k];
 		    Gap_Chunk_t cidB = gapAssignment[i].gap[j].chunk[l];
@@ -354,24 +351,12 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 		    fprintf(logFile,"checking overlap precomputed overlap\n");
 
 		    if( left_of(&cidA,&cidB) ){
-		      if( cidA.start.mean < cidA.end.mean )
-			orientA = A_B;
-		      else
-			orientA = B_A;
-		      if( cidB.start.mean < cidB.end.mean )
-			orientB = A_B;
-		      else
-			orientB = B_A;
+                      orientA.setIsForward(cidA.start.mean < cidA.end.mean);
+                      orientB.setIsForward(cidB.start.mean < cidB.end.mean);
 		    }
 		    else{
-		      if( cidA.start.mean < cidA.end.mean )
-			orientA = B_A;
-		      else
-			orientA = A_B;
-		      if( cidB.start.mean < cidB.end.mean )
-			orientB = B_A;
-		      else
-			orientB = A_B;
+                      orientA.setIsReverse(cidA.start.mean < cidA.end.mean);
+                      orientB.setIsReverse(cidB.start.mean < cidB.end.mean);
 		    }
 
 		    orientation = GetChunkPairOrientation(orientA,orientB);
@@ -733,11 +718,11 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
   // this struct contains the presumed length of the gap between
   // the two chunks.
 
-  ChunkOrientationType orientation;
+  PairOrient orientation;
   // Holds the orientation (AB_AB, AB_BA...) we compute according to the
   // assumed positions
 
-  ChunkOrientType orientA, orientB;
+  SequenceOrient orientA, orientB;
   // The orientation of the two chunks
 
   float relError=0.0;
@@ -756,16 +741,10 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
 #if DEBUG > 2
     fprintf(logFile,"assuming overlap %lf,%lf\n",dist.mean,sqrt(dist.variance));
 #endif
-    if( cidA.start.mean < cidA.end.mean )
-      orientA = (ChunkOrientType)A_B;
-    else
-      orientA = (ChunkOrientType)B_A;
-    if( cidB.start.mean < cidB.end.mean )
-      orientB = (ChunkOrientType)A_B;
-    else
-      orientB = (ChunkOrientType)B_A;
+    orientA.setIsForward(cidA.start.mean < cidA.end.mean);
+    orientB.setIsForward(cidB.start.mean < cidB.end.mean);
 
-    orientation = GetChunkPairOrientation((ChunkOrient)orientA,(ChunkOrient)orientB);
+    orientation = GetChunkPairOrientation(orientA,orientB);
     // Compute the orientation of the two chunks
     //    printf("Orient = %c cidA %d, cidB %d \n",orientation,cidA.chunk_id,cidB.chunk_id);
 
@@ -788,8 +767,8 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
 
    if(olap->suspicious){
 	      fprintf(stderr,"* SUSPICIOUS Overlap found! Looked for (%d,%d,%c) found (%d,%d,%c)\n",
-		      cidA.chunk_id, cidB.chunk_id, orientation,
-		      olap->spec.cidA, olap->spec.cidB, olap->spec.orientation);
+		      cidA.chunk_id, cidB.chunk_id, orientation.toLetter(),
+		      olap->spec.cidA, olap->spec.cidB, olap->spec.orientation.toLetter());
    }else if(olap->overlap > 0){
      relError = fabs((float)(olap->overlap+dist.mean)/(float)olap->overlap);
    }
@@ -837,7 +816,7 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
   */
 
   const  Gap_Chunk_t *chunkT1, *chunkT2;
-  ChunkOrientType orient1, orient2;
+  SequenceOrient orient1, orient2;
 
 
   if( left_of(cT1,cT2) ){
@@ -850,15 +829,8 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
   }
 
 
-  if( chunkT1->start.mean < chunkT1->end.mean )
-    orient1 = (ChunkOrientType)A_B;
-  else
-    orient1 = (ChunkOrientType)B_A;
-  if( chunkT2->start.mean < chunkT2->end.mean )
-    orient2 = (ChunkOrientType)A_B;
-  else
-    orient2 = (ChunkOrientType)B_A;
-
+  orient1.setIsForward(chunkT1->start.mean < chunkT1->end.mean);
+  orient2.setIsForward(chunkT2->start.mean < chunkT2->end.mean);
 
 
 #if 0
@@ -876,60 +848,26 @@ static void estimate_gap_distrib(const Gap_Chunk_t *cT1,
 	  );
 #endif
 
-  switch(orient1){
-  case  A_B :
-#if 0
-    fprintf(logFile,"orient1=A_B\n");
-#endif
-    switch(orient2){
-    case A_B :
-#if 0
-      fprintf(logFile,"orient2=A_B\n");
-#endif
+  assert(orient1.isUnknown() == false);
+  assert(orient2.isUnknown() == false);
+
+  if (orient1.isForward()) {
+    if (orient2.isForward()) {
       gDist->mean     = chunkT2->start.mean - chunkT1->end.mean;
       gDist->variance = chunkT2->start.variance + chunkT1->end.variance;
-      break;
-    case B_A :
-#if 0
-      fprintf(logFile,"orient2=B_A\n");
-#endif
+    } else {
       gDist->mean     = chunkT2->end.mean - chunkT1->end.mean;
       gDist->variance = chunkT2->end.variance + chunkT1->end.variance;
-      break;
-    default:
-      assert(0);
-      break;
     }
-    break;
-  case B_A :
-#if 0
-    fprintf(logFile,"orient1=B_A\n");
-#endif
-    switch(orient2){
-    case A_B :
-#if 0
-      fprintf(logFile,"orient2=A_B\n");
-#endif
+  } else {
+    if (orient2.isForward()) {
       gDist->mean     = chunkT2->start.mean - chunkT1->start.mean;
       gDist->variance = chunkT2->start.variance + chunkT1->start.variance;
-      break;
-    case B_A :
-#if 0
-      fprintf(logFile,"orient2=B_A\n");
-#endif
+    } else {
       gDist->mean     = chunkT2->end.mean - chunkT1->start.mean;
       gDist->variance = chunkT2->end.variance + chunkT1->start.variance;
-      break;
-    default:
-      assert(0);
-      break;
     }
-    break;
-  default:
-    assert(0);
-    break;
   }
-  return;
 }
 
 
@@ -977,79 +915,30 @@ assert (edge -> idA == c1 -> chunk_id && edge -> idB == c2 -> chunk_id);
        }
 
    need_change = FALSE;
-   if  (left_c1 < left_c2)
-       {
-        switch (edge -> orient)
-          {
-           case  AB_AB :
-           case  AB_BA :
-             if  (c1_flipped)
-                 need_change = TRUE;
-             break;
-           case  BA_AB :
-           case  BA_BA :
-             if  (! c1_flipped)
-                 need_change = TRUE;
-             break;
-           default :
-             fprintf (stderr, "YIKES:  Bad orientation = %d at line %d file %s\n",
-                  (int) edge -> orient, __LINE__, __FILE__);
-             assert (FALSE);
-          }
-       }
-     else
-       {
-        switch (edge -> orient)
-          {
-           case  AB_AB :
-           case  AB_BA :
-             if  (! c1_flipped)
-                 need_change = TRUE;
-             break;
-           case  BA_AB :
-           case  BA_BA :
-             if  (c1_flipped)
-                 need_change = TRUE;
-             break;
-           default :
-             fprintf (stderr, "YIKES:  Bad orientation = %d at line %d file %s\n",
-                  (int) edge -> orient, __LINE__, __FILE__);
-             assert (FALSE);
-          }
-       }
 
-   if  (need_change)
-       {
-        double  c1_len, c2_len;
-        double  neg_half;
+   assert(edge->orient.isUnknown() == false);
 
-        c1_len = fabs (c1 -> end . mean - c1 -> start . mean);
-        c2_len = fabs (c2 -> end . mean - c2 -> start . mean);
-        neg_half = (c1_len + c2_len) / -2.0;
-        edge -> distance . mean = - c1_len - c2_len - edge -> distance . mean;
+   if  (left_c1 < left_c2) {
+     if ((edge->orient.isAB_AB() || edge->orient.isAB_BA()) && (c1_flipped))
+       need_change = TRUE;
+     if ((edge->orient.isBA_AB() || edge->orient.isBA_BA()) && (!c1_flipped))
+       need_change = TRUE;
+   } else {
+     if ((edge->orient.isAB_AB() || edge->orient.isAB_BA()) && (!c1_flipped))
+       need_change = TRUE;
+     if ((edge->orient.isBA_AB() || edge->orient.isBA_BA()) && (c1_flipped))
+       need_change = TRUE;
+   }
 
-        switch (edge -> orient)
-          {
-           case  AB_AB :
-             edge -> orient = BA_BA;
-             break;
-           case  AB_BA :
-             edge -> orient = BA_AB;
-             break;
-           case  BA_AB :
-             edge -> orient = AB_BA;
-             break;
-           case  BA_BA :
-             edge -> orient = AB_AB;
-             break;
-           default :
-             fprintf (stderr, "YIKES:  Bad orientation = %d at line %d file %s\n",
-                  (int) edge -> orient, __LINE__, __FILE__);
-             assert (FALSE);
-          }
-       }
+   if (need_change) {
+     double c1_len = fabs (c1 -> end . mean - c1 -> start . mean);
+     double c2_len = fabs (c2 -> end . mean - c2 -> start . mean);
+     double neg_half = (c1_len + c2_len) / -2.0;
 
-   return;
+     edge -> distance . mean = - c1_len - c2_len - edge -> distance . mean;
+
+     edge->orient.invert();
+   }
   }
 
 

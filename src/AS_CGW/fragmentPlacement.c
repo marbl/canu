@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.35 2009-10-14 16:38:43 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.36 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,13 +101,13 @@ typedef struct  {
 static
 void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
 				     CIFragT *mate,ChunkInstanceT*mateChunk,
-				     LengthT*separation,OrientType* edgeOri){
+				     LengthT*separation,PairOrient* edgeOri){
 
 
   // we pass in chunks because if a fragment in question is in a surrogate, we can't
   // get the info we need by identifying the parent chunk containing the frag
 
-  NodeOrient fOri,mOri,fCIOri,mCIOri,fCtgOri,mCtgOri,fOriOnScf,mOriOnScf;
+  SequenceOrient fOri,mOri,fCIOri,mCIOri,fCtgOri,mCtgOri,fOriOnScf,mOriOnScf;
   double f5pOnCI,m5pOnCI,f5pOnCtg,m5pOnCtg,f5pOnScf,m5pOnScf;
   NodeCGW_T *fragCtg, *mateCtg;
 
@@ -116,25 +116,25 @@ void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
 
 
   f5pOnCI =  frag->offset5p.mean;
-  fOri = (frag->offset5p.mean < frag->offset3p.mean) ? A_B : B_A;
+  fOri.setIsForward(frag->offset5p.mean < frag->offset3p.mean);
 
-  fCIOri = (fragChunk->offsetAEnd.mean < fragChunk->offsetBEnd.mean)? A_B : B_A;
-  f5pOnCtg =  fragChunk->offsetAEnd.mean + ((fCIOri==A_B) ? f5pOnCI : -f5pOnCI);
+  fCIOri.setIsForward(fragChunk->offsetAEnd.mean < fragChunk->offsetBEnd.mean);
+  f5pOnCtg =  fragChunk->offsetAEnd.mean + ((fCIOri.isForward()) ? f5pOnCI : -f5pOnCI);
 
   fragCtg = GetGraphNode(ScaffoldGraph->ContigGraph,fragChunk->info.CI.contigID);
-  fCtgOri = (fragCtg->offsetAEnd.mean < fragCtg->offsetBEnd.mean) ? A_B : B_A;
-  f5pOnScf = fragCtg->offsetAEnd.mean + ((fCtgOri == A_B) ? f5pOnCtg : -f5pOnCtg);
+  fCtgOri.setIsForward(fragCtg->offsetAEnd.mean < fragCtg->offsetBEnd.mean);
+  f5pOnScf = fragCtg->offsetAEnd.mean + ((fCtgOri.isForward()) ? f5pOnCtg : -f5pOnCtg);
 
 
   m5pOnCI =  mate->offset5p.mean;
-  mOri = (mate->offset5p.mean < mate->offset3p.mean) ? A_B : B_A;
+  mOri.setIsForward(mate->offset5p.mean < mate->offset3p.mean);
 
-  mCIOri = (mateChunk->offsetAEnd.mean < mateChunk->offsetBEnd.mean) ? A_B : B_A;
-  m5pOnCtg =  mateChunk->offsetAEnd.mean + ((mCIOri==A_B) ? m5pOnCI : -m5pOnCI);
+  mCIOri.setIsForward(mateChunk->offsetAEnd.mean < mateChunk->offsetBEnd.mean);
+  m5pOnCtg =  mateChunk->offsetAEnd.mean + ((mCIOri.isForward()) ? m5pOnCI : -m5pOnCI);
 
   mateCtg = GetGraphNode(ScaffoldGraph->ContigGraph,mateChunk->info.CI.contigID);
-  mCtgOri = (mateCtg->offsetAEnd.mean < mateCtg->offsetBEnd.mean) ? A_B : B_A;
-  m5pOnScf = mateCtg->offsetAEnd.mean + ((mCtgOri == A_B) ? m5pOnCtg : -m5pOnCtg);
+  mCtgOri.setIsForward(mateCtg->offsetAEnd.mean < mateCtg->offsetBEnd.mean);
+  m5pOnScf = mateCtg->offsetAEnd.mean + ((mCtgOri.isForward()) ? m5pOnCtg : -m5pOnCtg);
 
 
   separation->mean = abs(f5pOnScf - m5pOnScf);
@@ -142,37 +142,37 @@ void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
   separation->variance =
     abs(fragCtg->offsetAEnd.variance - mateCtg->offsetAEnd.variance) + ComputeFudgeVariance(f5pOnCtg) + ComputeFudgeVariance(m5pOnCtg);
 
-  if( ((fOri == A_B)+(fCIOri == A_B)+(fCtgOri == A_B)) % 2 == 0 ){
-    fOriOnScf = B_A;
+  if( ((fOri.isForward())+(fCIOri.isForward())+(fCtgOri.isForward())) % 2 == 0 ){
+    fOriOnScf.setIsReverse();
   } else {
-    fOriOnScf = A_B;
+    fOriOnScf.setIsForward();
   }
 
-  if( ((mOri == A_B)+(mCIOri == A_B)+(mCtgOri == A_B)) % 2 == 0 ){
-    mOriOnScf = B_A;
+  if( ((mOri.isForward())+(mCIOri.isForward())+(mCtgOri.isForward())) % 2 == 0 ){
+    mOriOnScf.setIsReverse();
   } else {
-    mOriOnScf = A_B;
+    mOriOnScf.setIsForward();
   }
 
-  if(fOriOnScf == A_B){
-    if(mOriOnScf == B_A){
+  if(fOriOnScf.isForward()){
+    if(mOriOnScf.isReverse()){
       if(f5pOnScf < m5pOnScf){
-	*edgeOri = AB_BA;
+	edgeOri->setIsAB_BA();
       } else {
-	*edgeOri = BA_AB;
+	edgeOri->setIsBA_AB();
       }
     } else {
-      *edgeOri = AB_AB;
+      edgeOri->setIsAB_AB();
     }
   } else { // fOriOnScf == B_A
-    if(mOriOnScf == A_B){
+    if(mOriOnScf.isForward()){
       if(f5pOnScf < m5pOnScf){
-	*edgeOri = BA_AB;
+	edgeOri->setIsBA_AB();
       } else {
-	*edgeOri = AB_BA;
+	edgeOri->setIsAB_BA();
       }
     } else {
-      *edgeOri = BA_BA;
+      edgeOri->setIsBA_BA();
     }
   }
 
@@ -184,17 +184,19 @@ void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
 
 static
 int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk,
-			     CIFragT *mate, ChunkInstanceT *mateChunk,
-			     OrientType expectedOri){
+			     CIFragT *mate, ChunkInstanceT *mateChunk){
 
   DistT *fragDist;
   LengthT separation;
   double jointstddev;
-  OrientType edgeOri;
+  PairOrient edgeOri;
 
   GetRelationBetweenFragsOnChunks(frag,fragChunk,mate,mateChunk,&separation,&edgeOri);
 
-  if(edgeOri != expectedOri) return FALSE;
+  //  This should really come from the library.  For now, we'll just assume innie.
+#warning INNIE mate pairs assumed
+  if(edgeOri.isInnie() == false)
+    return FALSE;
 
   fragDist = GetDistT(ScaffoldGraph->Dists, frag->dist);
 
@@ -844,7 +846,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
 
         if ((matePlacedOnlyIn(frag,sid,&mate,&mateChunk)) &&
             (frag->flags.bits.innieMate) &&
-            (FragAndMateAreCompatible(frag,candidateChunk,mate,mateChunk,AS_INNIE)))
+            (FragAndMateAreCompatible(frag,candidateChunk,mate,mateChunk)))
           fragIsGood = 1;          
 
         // if this is closure read and we can place it in this location, do it

@@ -22,7 +22,7 @@
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
 
-static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.23 2009-09-14 16:09:04 brianwalenz Exp $";
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.24 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -31,11 +31,6 @@ typedef struct {
   double  mean;
   double variance;
 }LengthT;
-
-
-typedef enum {X_X = 'X', A_B = 'F', B_A = 'R'} FragOrient;
-typedef FragOrient ChunkOrient;
-typedef FragOrient NodeOrient;
 
 
 typedef enum {
@@ -88,24 +83,26 @@ typedef struct {
 VA_DEF(CIFragT);
 
 
-static FragOrient getCIFragOrient(CIFragT *frag){
+static SequenceOrient getCIFragOrient(CIFragT *frag){
+  SequenceOrient  orient;
+
   if(frag->offset3p.mean == frag->offset5p.mean){
     fprintf(stderr,"* Frag %d in unitig %d has 3p=%g 5p=%g\n",frag->read_iid,frag->cid, frag->offset3p.mean, frag->offset5p.mean);
     assert(0);
   }
-  if(frag->offset3p.mean > frag->offset5p.mean)
-    return A_B;
-  return B_A;
+  orient.setIsForward(frag->offset5p.mean < frag->offset3p.mean);
+  return(orient);
 }
 
-static FragOrient GetContigFragOrient(CIFragT *frag){
+static SequenceOrient GetContigFragOrient(CIFragT *frag){
+  SequenceOrient  orient;
+
   if(frag->contigOffset3p.mean == frag->contigOffset5p.mean){
     fprintf(stderr,"* Frag %d in contig %d has 3p=%g 5p=%g\n",frag->read_iid,frag->contigID, frag->contigOffset3p.mean, frag->contigOffset5p.mean);
     assert(0);
   }
-  if(frag->contigOffset3p.mean > frag->contigOffset5p.mean)
-    return A_B;
-  return B_A;
+  orient.setIsForward(frag->contigOffset5p.mean < frag->contigOffset3p.mean);
+  return(orient);
 }
 
 #define CGW_NUM_BUCKETS 3

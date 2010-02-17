@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.19 2009-08-11 04:38:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.20 2010-02-17 01:32:56 brianwalenz Exp $";
 
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast
@@ -1351,9 +1351,9 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
       QVBuffer.ahg = -ahang;
       QVBuffer.bhg = -bhang;
       if (opposite)
-        QVBuffer.orientation = AS_OUTTIE;
+        QVBuffer.orientation.setIsOuttie();
       else
-        QVBuffer.orientation = AS_NORMAL;
+        QVBuffer.orientation.setIsNormal();
       QVBuffer.aifrag = b->iaccession;
       QVBuffer.bifrag = a->iaccession;
       if (trace != NULL)
@@ -1370,9 +1370,9 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
       QVBuffer.ahg = ahang;
       QVBuffer.bhg = bhang;
       if (opposite)
-        QVBuffer.orientation = AS_INNIE;
+        QVBuffer.orientation.setIsInnie();
       else
-        QVBuffer.orientation = AS_NORMAL;
+        QVBuffer.orientation.setIsNormal();
       QVBuffer.aifrag = a->iaccession;
       QVBuffer.bifrag = b->iaccession;
     }

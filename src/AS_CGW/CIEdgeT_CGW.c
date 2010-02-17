@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.19 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.20 2010-02-17 01:32:58 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -95,7 +95,7 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
           (edge->flags.bits.hasExtremalAFrag?"$A":"  "),
           (edge->flags.bits.hasExtremalBFrag?"$B":"  "),
           flagTrans, (edge->flags.bits.isLeastSquares?"L":" "),
-          GetEdgeOrientationWRT(edge, cid),
+          GetEdgeOrientationWRT(edge, cid).toLetter(),
           edge->flags.bits.hasContainmentOverlap,
           (int)edge->distance.mean, sqrt(edge->distance.variance),
           actualOverlap);
@@ -265,16 +265,9 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
       if(sourceTarget.mean - sourceTargetDelta <  CGW_DP_MINLEN){
         /* Figure out orientation of chunks overlap ranges, and
            CollectOverlap on the combination */
-        ChunkOrient sourceOrient =
-          GetRelativeChunkOrientation(GetEdgeOrientationWRT(source,
-                                                            cid ));
-        ChunkOrient targetOrient =
-          GetRelativeChunkOrientation(GetEdgeOrientationWRT(target,
-                                                            cid));
-        ChunkOrientationType sourceTargetOrient =
-          GetChunkPairOrientation(sourceOrient, targetOrient);
-
-
+        SequenceOrient sourceOrient = GetRelativeChunkOrientation(GetEdgeOrientationWRT(source, cid ));
+        SequenceOrient targetOrient = GetRelativeChunkOrientation(GetEdgeOrientationWRT(target, cid));
+        PairOrient sourceTargetOrient = GetChunkPairOrientation(sourceOrient, targetOrient);
 
         assert(GetChunkSeedSide(GetEdgeOrientationWRT(target, cid)) == GetChunkSeedSide(GetEdgeOrientationWRT(source, cid)));
         {
@@ -308,7 +301,7 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
 
           if(olap.overlap > 0){
             fprintf(stderr,"* Found Implied Overlap ("F_CID ","F_CID ",%c) with overlap "F_S32"\n",
-                    sourceCid, targetCid, sourceTargetOrient,
+                    sourceCid, targetCid, sourceTargetOrient.toLetter(),
                     olap.overlap);
             if(olap.suspicious){
               fprintf(stderr,"* OVERLAP is SUSPICIOUS!!!!!\n");

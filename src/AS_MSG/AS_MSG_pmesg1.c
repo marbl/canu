@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.47 2010-02-12 20:33:08 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.48 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,23 +36,78 @@ static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.47 2010-02-12 20:33:08 brianwalenz
 static
 LinkType
 DecodeLinkType(char l) {
-LinkType lt;
+  LinkType type;
 
   switch (l) {
     case 'M':
-      lt.setIsMatePair();
+      type.setIsMatePair();
       break;
     case 'X':
-      lt.setIsOverlap();
+      type.setIsOverlap();
       break;
     default:
-      fprintf(stderr, "Read_LKG_Mesg()-- invalid link type '%c'\n", l);
+      fprintf(stderr, "DecodeLinkType()-- invalid link type '%c'\n", l);
       assert(0);
       break;
   }
 
-  return(lt);
+  return(type);
 }
+
+//static -- Argh!  Used in AS_MSG_pmesg2 also.
+PairOrient
+DecodePairOrient(char l) {
+  PairOrient orient;
+
+  switch (l) {
+    case 'I':
+      orient.setIsInnie();
+      break;
+    case 'O':
+      orient.setIsOuttie();
+      break;
+    case 'N':
+      orient.setIsNormal();
+      break;
+    case 'A':
+      orient.setIsAnti();
+      break;
+    case 'U':
+      orient.setIsUnknown();
+      break;
+    default:
+      fprintf(stderr, "DecodePairOrient()-- invalid orient '%c'\n", l);
+      assert(0);
+      break;
+  }
+
+  return(orient);
+}
+
+static
+SequenceOrient
+DecodeSequenceOrient(char l) {
+  SequenceOrient orient;
+
+  switch (l) {
+    case 'F':
+      orient.setIsForward();
+      break;
+    case 'R':
+      orient.setIsReverse();
+      break;
+    //case 'U':
+    //  orient.setIsUnknown();
+    //  break;
+    default:
+      fprintf(stderr, "DecodePairOrient()-- invalid orient '%c'\n", l);
+      assert(0);
+      break;
+  }
+
+  return(orient);
+}
+
 
 static
 LinkType
@@ -328,7 +383,7 @@ static void *Read_OVL_Mesg(FILE *fin)
   GET_FIELD(omesg.aifrag,"afr:"F_IID,"a-fragment field");
   GET_FIELD(omesg.bifrag,"bfr:"F_IID,"b-fragment field");
 
-  omesg.orientation = (OrientType)GetType("ori:%1[NAIO]","orientation", fin);
+  omesg.orientation  = DecodePairOrient(GetType("ori:%1[NAIO]","orientation", fin));
   omesg.overlap_type = (OverlapType)GetType("olt:%1[DCSXdc]","overlap", fin);
 
   GET_FIELD(omesg.ahg,"ahg:"F_S32,"a-hang field");
@@ -382,7 +437,7 @@ Read_LKG_Mesg(FILE *fin) {
   if ((lmesg.action == AS_ADD) || (lmesg.action == AS_IGNORE)) {
     ReadLine(fin, TRUE);  //  unused "entry time field" etm:
     lmesg.distance    = GetUID("dst:",fin);
-    lmesg.link_orient = (OrientType)GetType("ori:%1[NAIOU]","link orientation", fin);
+    lmesg.link_orient = DecodePairOrient(GetType("ori:%1[NAIOU]","link orientation", fin));
   }
   GetEOM(fin);
   return(&lmesg);
@@ -393,7 +448,7 @@ static void *Read_UOM_Mesg(FILE *fin)
   GET_FIELD(mesg.chunk1,"ck1:"F_IID,"chunk 1 id field");
   GET_FIELD(mesg.chunk2,"ck2:"F_IID,"chunk 2 id field");
 
-  mesg.orient = (ChunkOrientationType)GetType("ori:%1[NAIO]","orientation", fin);
+  mesg.orient       = DecodePairOrient(GetType("ori:%1[NAIO]","orientation", fin));
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXdcYZ]","overlap type", fin);
 
   GET_FIELD(mesg.best_overlap_length,"len:"F_S32,"best overlap");
@@ -566,7 +621,7 @@ Read_IUL_Mesg(FILE *fin) {
 
   GET_FIELD(mesg.unitig1,"ut1:"F_IID,"unitig 1 field");
   GET_FIELD(mesg.unitig2,"ut2:"F_IID,"unitig 2 field");
-  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.orientation  = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
@@ -599,7 +654,7 @@ Read_ICL_Mesg(FILE *fin) {
 
   GET_FIELD(mesg.contig1,"co1:"F_IID,"contig 1 field");
   GET_FIELD(mesg.contig2,"co2:"F_IID,"contig 2 field");
-  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
@@ -632,7 +687,7 @@ Read_ISL_Mesg(FILE *fin) {
 
   GET_FIELD(mesg.iscaffold1,"sc1:"F_IID,"scaffold 1 field");
   GET_FIELD(mesg.iscaffold2,"sc2:"F_IID,"scaffold 2 field");
-  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
@@ -681,7 +736,7 @@ static void Read_ICP_Mesg(FILE *fin, IntContigPairs *icp)
   GET_FIELD(icp->contig2,"ct2:"F_IID,"contig 2 id");
   GET_FIELD(icp->mean,"mea:%f","mean distance");
   GET_FIELD(icp->stddev,"std:%f","standard deviation");
-  icp->orient = (ChunkOrientationType)GetType("ori:%1[NAIOU]","link orientation", fin);
+  icp->orient = DecodePairOrient(GetType("ori:%1[NAIOU]","link orientation", fin));
   GetEOM(fin);
 }
 
@@ -905,7 +960,7 @@ Read_CTP_Mesg(FILE *fin, SnapContigPairs *icp) {
 
   GET_FIELD(icp->mean,"mea:%f","mean distance");
   GET_FIELD(icp->stddev,"std:%f","standard deviation");
-  icp->orient = (ChunkOrientationType)GetType("ori:%1[NAIOU]","link orientation", fin);
+  icp->orient = DecodePairOrient(GetType("ori:%1[NAIOU]","link orientation", fin));
   GetEOM(fin);
 }
 
@@ -952,7 +1007,7 @@ static void *Read_ULK_Mesg(FILE *fin) {
   mesg.eunitig1 = GetUID("ut1:",fin);
   mesg.eunitig2 = GetUID("ut2:",fin);
 
-  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
@@ -1037,7 +1092,7 @@ static void *Read_CLK_Mesg(FILE *fin)
   mesg.econtig1 = GetUID("co1:",fin);
   mesg.econtig2 = GetUID("co2:",fin);
 
-  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
@@ -1072,7 +1127,7 @@ static void *Read_SLK_Mesg(FILE *fin)
   mesg.escaffold1 = GetUID("sc1:",fin);
   mesg.escaffold2 = GetUID("sc2:",fin);
 
-  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
@@ -1201,7 +1256,7 @@ static void Write_LKG_Mesg(FILE *fout, void *vmesg)
   if((mesg->action == AS_ADD) || (mesg->action == AS_IGNORE))
     { fprintf(fout,"etm:0\n");
       fprintf(fout,"dst:%s\n",AS_UID_toString(mesg->distance));
-      fprintf(fout,"ori:%c\n",mesg->link_orient);
+      fprintf(fout,"ori:%c\n",mesg->link_orient.toLetter());
     }
   fprintf(fout,"}\n");
 }
@@ -1241,7 +1296,7 @@ static void Write_OVL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{OVL\n");
   fprintf(fout,"afr:"F_IID"\n",omesg->aifrag);
   fprintf(fout,"bfr:"F_IID"\n",omesg->bifrag);
-  fprintf(fout,"ori:%c\n",omesg->orientation);
+  fprintf(fout,"ori:%c\n",omesg->orientation.toLetter());
   fprintf(fout,"olt:%c\n",omesg->overlap_type);
   fprintf(fout,"ahg:"F_S32"\n",omesg->ahg);
   fprintf(fout,"bhg:"F_S32"\n",omesg->bhg);
@@ -1267,7 +1322,7 @@ static void Write_UOM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{UOM\n");
   fprintf(fout,"ck1:"F_IID"\n",mesg->chunk1);
   fprintf(fout,"ck2:"F_IID"\n",mesg->chunk2);
-  fprintf(fout,"ori:%c\n",mesg->orient);
+  fprintf(fout,"ori:%c\n",mesg->orient.toLetter());
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"len:"F_S32"\n",mesg->best_overlap_length);
   fprintf(fout,"min:"F_S32"\n",mesg->min_overlap_length);
@@ -1398,7 +1453,7 @@ static void Write_IUL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{IUL\n");
   fprintf(fout,"ut1:"F_IID"\n",mesg->unitig1);
   fprintf(fout,"ut2:"F_IID"\n",mesg->unitig2);
-  fprintf(fout,"ori:%c\n",mesg->orientation);
+  fprintf(fout,"ori:%c\n",mesg->orientation.toLetter());
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
@@ -1425,7 +1480,7 @@ static void Write_ICL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{ICL\n");
   fprintf(fout,"co1:"F_IID"\n",mesg->contig1);
   fprintf(fout,"co2:"F_IID"\n",mesg->contig2);
-  fprintf(fout,"ori:%c\n",mesg->orientation);
+  fprintf(fout,"ori:%c\n",mesg->orientation.toLetter());
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
@@ -1452,7 +1507,7 @@ static void Write_ISL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{ISL\n");
   fprintf(fout,"sc1:"F_IID"\n",mesg->iscaffold1);
   fprintf(fout,"sc2:"F_IID"\n",mesg->iscaffold2);
-  fprintf(fout,"ori:%c\n",mesg->orientation);
+  fprintf(fout,"ori:%c\n",mesg->orientation.toLetter());
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
   fprintf(fout,"std:%.3f\n",mesg->std_deviation);
   fprintf(fout,"num:"F_S32"\n",mesg->num_contributing);
@@ -1499,7 +1554,7 @@ static void Write_ICP_Mesg(FILE *fout, IntContigPairs *mesg)
   fprintf(fout,"ct2:"F_IID"\n",mesg->contig2);
   fprintf(fout,"mea:%.3f\n",mesg->mean);
   fprintf(fout,"std:%.3f\n",mesg->stddev);
-  fprintf(fout,"ori:%c\n",mesg->orient);
+  fprintf(fout,"ori:%c\n",mesg->orient.toLetter());
   fprintf(fout,"}\n");
   return;
 }
@@ -1661,7 +1716,7 @@ static void Write_ULK_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{ULK\n");
   fprintf(fout,"ut1:%s\n",AS_UID_toString(mesg->eunitig1));
   fprintf(fout,"ut2:%s\n",AS_UID_toString(mesg->eunitig2));
-  fprintf(fout,"ori:%c\n",mesg->orientation);
+  fprintf(fout,"ori:%c\n",mesg->orientation.toLetter());
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
@@ -1719,7 +1774,7 @@ static void Write_CLK_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{CLK\n");
   fprintf(fout,"co1:%s\n",AS_UID_toString(mesg->econtig1));
   fprintf(fout,"co2:%s\n",AS_UID_toString(mesg->econtig2));
-  fprintf(fout,"ori:%c\n",mesg->orientation);
+  fprintf(fout,"ori:%c\n",mesg->orientation.toLetter());
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
@@ -1746,7 +1801,7 @@ static void Write_SLK_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{SLK\n");
   fprintf(fout,"sc1:%s\n",AS_UID_toString(mesg->escaffold1));
   fprintf(fout,"sc2:%s\n",AS_UID_toString(mesg->escaffold2));
-  fprintf(fout,"ori:%c\n",mesg->orientation);
+  fprintf(fout,"ori:%c\n",mesg->orientation.toLetter());
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
   fprintf(fout,"std:%.3f\n",mesg->std_deviation);
   fprintf(fout,"num:"F_S32"\n",mesg->num_contributing);
@@ -1770,7 +1825,7 @@ static void Write_CTP_Mesg(FILE *fout, SnapContigPairs *mesg)
   fprintf(fout,"ct2:%s\n",AS_UID_toString(mesg->econtig2));
   fprintf(fout,"mea:%.3f\n",mesg->mean);
   fprintf(fout,"std:%.3f\n",mesg->stddev);
-  fprintf(fout,"ori:%c\n",mesg->orient);
+  fprintf(fout,"ori:%c\n",mesg->orient.toLetter());
   fprintf(fout,"}\n");
   return;
 }

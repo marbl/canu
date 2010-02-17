@@ -22,7 +22,7 @@
 #ifndef UTILSREZ_H
 #define UTILSREZ_H
 
-static const char *rcsid_UTILSREZ_H = "$Id: UtilsREZ.h,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_UTILSREZ_H = "$Id: UtilsREZ.h,v 1.9 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "DataTypesREZ.h"
 
@@ -53,13 +53,6 @@ void Push_Node(nodes_stack *, int);
 int Top(nodes_stack *);
 int Pop_Node(nodes_stack *);
 void Free_Stack(nodes_stack *);
-
-// ------------
-// CIEdge stuff
-// ------------
-
-char * Orientation_As_String (ChunkOrientationType);
-int or2num(ChunkOrientationType);
 
 //--------------
 // Interval Math

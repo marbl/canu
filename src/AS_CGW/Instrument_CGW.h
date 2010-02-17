@@ -22,7 +22,7 @@
 #ifndef INSTRUMENT_CGW_H
 #define INSTRUMENT_CGW_H
 
-static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.11 2010-01-14 00:44:54 brianwalenz Exp $";
+static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.12 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -288,28 +288,28 @@ VA_DEF(InstrumenterBreakpoint);
 */
 typedef struct
 {
-  int32   numPairs;
-  float distPref;
-  ChunkOrientationType orientPref;
+  int32        numPairs;
+  float        distPref;
+  PairOrient   orientPref;
 } InstrumenterContigPair;
 VA_DEF(InstrumenterContigPair);
 
 typedef struct
 {
-  CDS_CID_t id;
-  float offset;
-  float length;
-  FragOrient orient;
+  CDS_CID_t       id;
+  float           offset;
+  float           length;
+  SequenceOrient  orient;
 } ContigPlacement;
 VA_DEF(ContigPlacement);
 
 typedef struct
 {
-  CDS_CID_t        contig1;
+  CDS_CID_t    contig1;
   int32        size1;
-  CDS_CID_t        contig2;
-  float      dist;
-  ChunkOrientationType orient;
+  CDS_CID_t    contig2;
+  float        dist;
+  PairOrient   orient;
 } CP_Index;
 VA_DEF(CP_Index);
 
@@ -359,7 +359,7 @@ typedef struct
   // unitig & above level of aggregation
   int32 leftEnd;
   int32 rightEnd;
-  int orientation;
+  SequenceOrient orientation;
 
   // simple counts of (some) fragment types
   int32 numReads;
@@ -393,7 +393,7 @@ typedef struct
   // contig & above level of aggregation
   int32 leftEnd;
   int32 rightEnd;
-  int orientation;
+  SequenceOrient orientation;
 
   // unitig counting/sizing
   VA_TYPE(float) * unitigSizes;

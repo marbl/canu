@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.56 2010-01-17 03:10:10 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.57 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -435,8 +435,8 @@ main(int argc, char **argv) {
     rcontigID = lcontig->BEndNext;
 
     while (rcontigID != -1) {
-      NodeOrient lcontigOrientation  = B_A;
-      NodeOrient rcontigOrientation  = B_A;
+      SequenceOrient lcontigOrientation;
+      SequenceOrient rcontigOrientation;
 
       LengthT    gapSize;
       int        numLeftFrags        = 0;
@@ -473,17 +473,21 @@ main(int argc, char **argv) {
       gapSize = FindGapLength(lcontig, rcontig, FALSE);
 
       if (lcontig->offsetAEnd.mean < lcontig->offsetBEnd.mean)
-        lcontigOrientation = A_B;
+        lcontigOrientation.setIsForward();
+      else
+        lcontigOrientation.setIsReverse();
 
       if (rcontig->offsetAEnd.mean < rcontig->offsetBEnd.mean)
-        rcontigOrientation = A_B;
+        rcontigOrientation.setIsForward();
+      else
+        rcontigOrientation.setIsReverse();
 
 
       fprintf(stderr, "---------------------------------------------------------------\n");
       fprintf(stderr, "examining gap %d from lcontig %d (orient: %c, pos: %f, %f) to rcontig %d (orient: %c, pos: %f, %f), size: %lf \n",
               gapNumber,
-              lcontig->id, lcontigOrientation, lcontig->offsetAEnd.mean, lcontig->offsetBEnd.mean,
-              rcontig->id, rcontigOrientation, rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean,
+              lcontig->id, lcontigOrientation.toLetter(), lcontig->offsetAEnd.mean, lcontig->offsetBEnd.mean,
+              rcontig->id, rcontigOrientation.toLetter(), rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean,
               gapSize.mean);
 
       if (gapSize.mean < 100.0) {
@@ -496,10 +500,10 @@ main(int argc, char **argv) {
 
 
       if (debug.eCRmainLV > 0)
-        fprintf(debug.eCRmainFP, "\nexamining lcontig %d (orientation %c) \n", lcontig->id, lcontigOrientation);
+        fprintf(debug.eCRmainFP, "\nexamining lcontig %d (orientation %c) \n", lcontig->id, lcontigOrientation.toLetter());
 
       // find the extreme read on the correct end of the lcontig
-      if (lcontigOrientation == A_B) {
+      if (lcontigOrientation.isForward()) {
         numLeftFrags = findLastExtendableFrags(lcontig, leftExtFragsArray);
         if (findLastUnitig(lcontig, &lunitigID)) {
           surrogatesOnEnd++;
@@ -514,12 +518,12 @@ main(int argc, char **argv) {
       }
 
       if (debug.eCRmainLV > 0) {
-        fprintf(debug.eCRmainFP, "finished examining lcontig %d (orientation %c) \n", lcontig->id, lcontigOrientation);
-        fprintf(debug.eCRmainFP, "\nexamining rcontig %d (orientation %c) \n", rcontig->id, rcontigOrientation);
+        fprintf(debug.eCRmainFP, "finished examining lcontig %d (orientation %c) \n", lcontig->id, lcontigOrientation.toLetter());
+        fprintf(debug.eCRmainFP, "\nexamining rcontig %d (orientation %c) \n", rcontig->id, rcontigOrientation.toLetter());
       }
 
       // find the extreme read on the correct end of the rchunk
-      if (rcontigOrientation == A_B) {
+      if (rcontigOrientation.isForward()) {
         numRightFrags = findFirstExtendableFrags(rcontig, rightExtFragsArray);
         if (findFirstUnitig(rcontig, &runitigID)) {
           surrogatesOnEnd++;
@@ -534,7 +538,7 @@ main(int argc, char **argv) {
       }
 
       if (debug.eCRmainLV > 0)
-        fprintf(debug.eCRmainFP, "finished examining rcontig %d (orientation %c) \n", rcontig->id, rcontigOrientation);
+        fprintf(debug.eCRmainFP, "finished examining rcontig %d (orientation %c) \n", rcontig->id, rcontigOrientation.toLetter());
 
 
       numExtendableGaps++;
@@ -806,7 +810,7 @@ main(int argc, char **argv) {
                 if (debug.diagnosticLV > 0)
                   DumpContigMultiAlignInfo ("after updating store (left)", NULL, lcontig->id);
 
-                if (lcontigOrientation == A_B)
+                if (lcontigOrientation.isForward())
                   extendContig(lcontig, FALSE);
                 else
                   extendContig(lcontig, TRUE);
@@ -855,7 +859,7 @@ main(int argc, char **argv) {
                 if (debug.diagnosticLV > 0)
                   DumpContigMultiAlignInfo ("after updating store (right)", NULL, rcontig->id);
 
-                if (rcontigOrientation == A_B)
+                if (rcontigOrientation.isForward())
                   extendContig(rcontig, TRUE);
                 else
                   extendContig(rcontig, FALSE);
@@ -882,11 +886,11 @@ main(int argc, char **argv) {
 
           if (debug.eCRmainLV > 0) {
             fprintf(debug.eCRmainFP, "after altering, lctg: %12.0f, %12.0f\n",
-                    (lcontigOrientation == A_B) ? lcontig->offsetAEnd.mean : lcontig->offsetBEnd.mean,
-                    (lcontigOrientation == A_B) ? lcontig->offsetBEnd.mean : lcontig->offsetAEnd.mean);
+                    (lcontigOrientation.isForward()) ? lcontig->offsetAEnd.mean : lcontig->offsetBEnd.mean,
+                    (lcontigOrientation.isForward()) ? lcontig->offsetBEnd.mean : lcontig->offsetAEnd.mean);
             fprintf(debug.eCRmainFP, "                rctg: %12.0f, %12.0f\n",
-                    (rcontigOrientation == A_B) ? rcontig->offsetAEnd.mean : rcontig->offsetBEnd.mean,
-                    (rcontigOrientation == A_B) ? rcontig->offsetBEnd.mean : rcontig->offsetAEnd.mean);
+                    (rcontigOrientation.isForward()) ? rcontig->offsetAEnd.mean : rcontig->offsetBEnd.mean,
+                    (rcontigOrientation.isForward()) ? rcontig->offsetBEnd.mean : rcontig->offsetAEnd.mean);
           }
 
           // setup for contig merge
@@ -924,12 +928,12 @@ main(int argc, char **argv) {
             LengthT    newOffsetAEnd = {0};
             LengthT    newOffsetBEnd = {0};
 
-            if (lcontigOrientation == A_B)
+            if (lcontigOrientation.isForward())
               newOffsetAEnd.mean = lcontig->offsetAEnd.mean;
             else
               newOffsetAEnd.mean = lcontig->offsetBEnd.mean;
 
-            if (rcontigOrientation == A_B)
+            if (rcontigOrientation.isForward())
               newOffsetBEnd.mean = rcontig->offsetBEnd.mean;
             else
               newOffsetBEnd.mean = rcontig->offsetAEnd.mean;
@@ -1438,7 +1442,7 @@ findFirstUnitig(ContigT *contig, int *unitigID) {
 
 void
 extendContig(ContigT *contig, int extendAEnd) {
-  int           contigOrientation = (contig->offsetAEnd.mean < contig->offsetBEnd.mean) ? A_B : B_A;
+  int           contigIsForward   = (contig->offsetAEnd.mean < contig->offsetBEnd.mean) ? true : false;
   MultiAlignT  *cma               = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
   double        lengthDelta       = strlen(Getchar(cma->consensus, 0)) - contig->bpLength.mean;
 
@@ -1447,13 +1451,13 @@ extendContig(ContigT *contig, int extendAEnd) {
   if (debug.eCRmainLV > 0)
     fprintf(debug.eCRmainFP, "extendContig()-- contig %8d original pos: %.0f, %.0f %s\n",
             contig->id,
-            (contigOrientation == A_B) ? contig->offsetAEnd.mean : contig->offsetBEnd.mean,
-            (contigOrientation == A_B) ? contig->offsetBEnd.mean : contig->offsetAEnd.mean,
-            (contigOrientation == A_B) ? "A_B" : "B_A");
+            (contigIsForward) ? contig->offsetAEnd.mean : contig->offsetBEnd.mean,
+            (contigIsForward) ? contig->offsetBEnd.mean : contig->offsetAEnd.mean,
+            (contigIsForward) ? "A_B" : "B_A");
 
   contig->bpLength.mean += lengthDelta;
 
-  if (contigOrientation == A_B) {
+  if (contigIsForward) {
     if (extendAEnd == TRUE)
       contig->offsetAEnd.mean -= lengthDelta;
     else
@@ -1468,9 +1472,9 @@ extendContig(ContigT *contig, int extendAEnd) {
   if (debug.eCRmainLV > 0)
     fprintf(debug.eCRmainFP, "extendContig()-- contig %8d original pos: %.0f, %.0f %s\n",
             contig->id,
-            (contigOrientation == A_B) ? contig->offsetAEnd.mean : contig->offsetBEnd.mean,
-            (contigOrientation == A_B) ? contig->offsetBEnd.mean : contig->offsetAEnd.mean,
-            (contigOrientation == A_B) ? "A_B" : "B_A");
+            (contigIsForward) ? contig->offsetAEnd.mean : contig->offsetBEnd.mean,
+            (contigIsForward) ? contig->offsetBEnd.mean : contig->offsetAEnd.mean,
+            (contigIsForward) ? "A_B" : "B_A");
 }
 
 

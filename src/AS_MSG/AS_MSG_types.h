@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_types.h,v 1.2 2010-02-09 20:19:37 brianwalenz Exp $   */
+/* $Id: AS_MSG_types.h,v 1.3 2010-02-17 01:32:58 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_TYPES_H
 #define AS_MSG_PMESG_TYPES_H
 
-static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.2 2010-02-09 20:19:37 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.3 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -44,7 +44,7 @@ typedef AS_IID      IntScaffold_ID;
 
 class LinkType {
 public:
-  LinkType()       { linkType = 0; };
+  LinkType()       { linkType = 'U'; };
   ~LinkType()      {};
 
   //  This operator is dangerous.  In a printf, where we'd usually want to have an implicit cast,
@@ -57,7 +57,6 @@ public:
     return(linkType);
   };
 
-public:
   bool  isMatePair(void)     { return(linkType == 'M'); };
   bool  isOverlap(void)      { return(linkType == 'X'); };  //  Really should be 'O', but that changes the asm
 
@@ -66,20 +65,127 @@ public:
 
 private:
   char  linkType;
+  char  pad[3];
 };
 
 
 
+//  PairOrient -- the orientation between two sequence objects.
+//
+//  Former names:
+//    OrientType, ChunkOrientationType
+//
+//  Former values:
+//    AS_UNKNOWN == XX_XX == 'U'
+//    AS_INNIE   == AB_BA == 'I'
+//    AS_OUTTIE  == BA_AB == 'O'
+//    AS_NORMAL  == AB_AB == 'N'
+//    AS_ANTI    == BA_BA == 'A'
 
+class PairOrient {
+public:
+  PairOrient()    { orient = 'U'; pad[0] = pad[1] = pad[2] = 0; };
+  ~PairOrient()   {};
 
+  char  toLetter(void)       { return(orient); };
 
-typedef enum {
-  AS_UNKNOWN	= (int)'U',
-  AS_INNIE      = (int)'I',
-  AS_OUTTIE     = (int)'O',
-  AS_NORMAL     = (int)'N',
-  AS_ANTI	= (int)'A'
-} OrientType;
+  bool  isInnie(void)        { return(orient == 'I'); };
+  bool  isOuttie(void)       { return(orient == 'O'); };
+  bool  isNormal(void)       { return(orient == 'N'); };
+  bool  isAnti(void)         { return(orient == 'A'); };
+  bool  isUnknown(void)      { return(orient == 'U'); };
+
+  void  setIsInnie(void)     { orient = 'I'; };
+  void  setIsOuttie(void)    { orient = 'O'; };
+  void  setIsNormal(void)    { orient = 'N'; };
+  void  setIsAnti(void)      { orient = 'A'; };
+  void  setIsUnknown(void)   { orient = 'U'; };
+
+  bool  isAB_BA(void)        { return(orient == 'I'); };
+  bool  isBA_AB(void)        { return(orient == 'O'); };
+  bool  isAB_AB(void)        { return(orient == 'N'); };
+  bool  isBA_BA(void)        { return(orient == 'A'); };
+
+  void  setIsAB_BA(void)     { orient = 'I'; };
+  void  setIsBA_AB(void)     { orient = 'O'; };
+  void  setIsAB_AB(void)     { orient = 'N'; };
+  void  setIsBA_BA(void)     { orient = 'A'; };
+
+  void  invert(void) {
+    switch (orient) {
+      case 'I': orient = 'O'; break;
+      case 'O': orient = 'I'; break;
+      case 'N': orient = 'A'; break;
+      case 'A': orient = 'N'; break;
+    }
+  };
+  void  flip(void) {
+    switch(orient){
+      case 'N': orient = 'A'; break;
+      case 'A': orient = 'N'; break;
+    }
+  };
+  void  swap(void) {
+    // Given orientation relating X and Y as ori(X)_ori(Y), return ori(Y)_ori(X)
+    switch(orient){
+      case 'I': orient = 'O'; break;
+      case 'O': orient = 'I'; break;
+    }
+  };
+
+  bool  operator==(const PairOrient that) { return(orient == that.orient); };
+  bool  operator!=(const PairOrient that) { return(orient != that.orient); };
+
+private:
+  char  orient;
+  char  pad[3];
+};
+
+//  SequenceOrient -- the orientation of a single sequence object.
+//
+//  Former names:
+//    DirectionType, FragOrient, ChunkOrient, NodeOrient and CIOrient,
+//
+//  Former values:
+//    AS_FORWARD == A_B == 'F'
+//    AS_REVERSE == B_A == 'R'
+
+class SequenceOrient {
+public:
+  SequenceOrient()    { orient = 'U'; };
+  ~SequenceOrient()   {};
+
+  char  toLetter(void)       { return(orient); };
+
+  bool  isForward(void)      { return(orient == 'F'); };
+  bool  isReverse(void)      { return(orient == 'R'); };
+  bool  isUnknown(void)      { return(orient == 'U'); };
+
+  void  setIsForward(bool f=true)   { orient = (f) ? 'F' : 'R'; };
+  void  setIsReverse(bool r=true)   { orient = (r) ? 'R' : 'F'; };
+  void  setIsUnknown(void)          { orient =       'U';       };
+
+#if 0
+  bool  isA_B(void)          { return(orient == 'F'); };
+  bool  isB_A(void)          { return(orient == 'R'); };
+
+  void  setIsA_B(void)       { orient = 'F'; };
+  void  setIsB_A(void)       { orient = 'R'; };
+#endif
+
+  void  flip(void) {
+    switch (orient) {
+      case 'F': orient = 'R'; break;
+      case 'R': orient = 'F'; break;
+    }
+  };
+
+  bool  operator==(const SequenceOrient that) { return(orient == that.orient); };
+  bool  operator!=(const SequenceOrient that) { return(orient != that.orient); };
+
+private:
+  char  orient;
+};
 
 
 
@@ -156,33 +262,6 @@ typedef enum {
 } OverlapType;
 
 typedef enum {
-  AS_A_END = (int)'A',
-  AS_B_END = (int)'B'
-} ChunkOrientType;
-
-
-/* UOM message */
-
-// ChunkOrientationType discontinued by Jason 7/01
-// because code intermingled it with OrientType.
-// Both enums used the same integer values.
-//typedef enum {
-//  AB_AB		= (int) 'N',
-//  BA_BA		= (int) 'A',
-//  BA_AB		= (int) 'O',
-//  AB_BA		= (int) 'I',
-//  XX_XX         = (int) 'U'    // unknown relative orientation
-//} ChunkOrientationType;
-
-#define ChunkOrientationType OrientType
-
-#define AB_AB AS_NORMAL
-#define BA_BA AS_ANTI
-#define BA_AB AS_OUTTIE
-#define AB_BA AS_INNIE
-#define XX_XX AS_UNKNOWN
-
-typedef enum {
   /* The following are CGW overlap output classifications: */
   AS_NO_OVERLAP	    = (int) 'N', // Not used by the unitigger.
   AS_OVERLAP        = (int) 'O', // A dovetail overlap between unitigs.
@@ -237,14 +316,6 @@ typedef enum {
 
 } UnitigOverlapType;
 
-
-//  Though DirectionType is not explicitly referenced, AS_FORWARD and
-//  AS_REVERSE are used in the code.
-//
-typedef enum {
-  AS_FORWARD = (int)'F',
-  AS_REVERSE = (int)'R'
-} DirectionType;
 
 typedef enum {
   AS_UNIQUE =     (int)'U',

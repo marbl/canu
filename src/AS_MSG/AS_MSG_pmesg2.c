@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.19 2010-02-09 20:19:37 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.20 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +30,11 @@ static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.19 2010-02-09 20:19:37 brianwalenz
 
 #include "AS_MSG_pmesg_internal.h"
 #include "AS_PER_gkpStore.h"
+
+//  Defined in AS_MSG_pmesg1.c
+extern
+PairOrient
+DecodePairOrient(char l);
 
 static
 void *
@@ -49,7 +54,7 @@ Read_LIB_Mesg(FILE *fin) {
   lmesg.num_features = 0;
 
   if ((lmesg.action == AS_ADD) || (lmesg.action == AS_IGNORE)) {
-    lmesg.link_orient = (OrientType)GetType("ori:%c","orientation",fin);
+    lmesg.link_orient = DecodePairOrient(GetType("ori:%c","orientation",fin));
 
     GET_FIELD(lmesg.mean,"mea:%f","mean field");
     GET_FIELD(lmesg.stddev ,"std:%f","stddev field");
@@ -135,7 +140,7 @@ Write_LIB_Mesg(FILE *fout,void *mesg) {
   }
 
   if ((lmesg->action == AS_ADD) || (lmesg->action == AS_IGNORE)) {
-    fprintf(fout,"ori:%c\n",lmesg->link_orient);
+    fprintf(fout,"ori:%c\n",lmesg->link_orient.toLetter());
     fprintf(fout,"mea:%.3f\n",lmesg->mean);
     fprintf(fout,"std:%.3f\n",lmesg->stddev);
 
@@ -298,7 +303,7 @@ Read_LKG_Mesg(FILE *fin) {
 
   lmesg.action      = (ActionType)GetType("act:%c","action",fin);
   lmesg.type.setIsMatePair();
-  lmesg.link_orient = (OrientType)AS_READ_ORIENT_UNKNOWN;
+  lmesg.link_orient.setIsUnknown();
   lmesg.frag1       = GetUID("frg:",fin);
   lmesg.frag2       = GetUID("frg:",fin);
   lmesg.distance    = AS_UID_undefined();

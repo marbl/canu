@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.58 2009-10-28 19:30:14 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.59 2010-02-17 01:32:58 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.58 2009-10-28 19:30:14 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.58 2009-10-28 19:30:14 brianwalenz Exp $
- * $Revision: 1.58 $
+ * $Id: AS_OVL_overlap_common.h,v 1.59 2010-02-17 01:32:58 brianwalenz Exp $
+ * $Revision: 1.59 $
 */
 
 
@@ -2900,9 +2900,9 @@ if  (Contig_Mode)
         ovMesg.bifrag = (Int_Frag_ID_t) T_ID;
 
         if  (S_Dir == FORWARD)
-          ovMesg.orientation = AS_NORMAL;
+          ovMesg.orientation.setIsNormal();
         else
-          ovMesg.orientation = AS_OUTTIE;
+          ovMesg.orientation.setIsOuttie();
 
         if  (S_Right_Hang >= T_Right_Hang)
             ovMesg.overlap_type = AS_CONTAINMENT;
@@ -2925,9 +2925,9 @@ if  (Contig_Mode)
          ovMesg.bifrag = (Int_Frag_ID_t) S_ID;
          ovMesg.aifrag = (Int_Frag_ID_t) T_ID;
         if  (S_Dir == FORWARD)
-          ovMesg.orientation = AS_NORMAL;
+          ovMesg.orientation.setIsNormal();
           else
-            ovMesg.orientation = AS_INNIE;
+            ovMesg.orientation.setIsInnie();
 
         if  (T_Right_Hang >= S_Right_Hang)
             ovMesg.overlap_type = AS_CONTAINMENT;
@@ -2962,7 +2962,7 @@ if  (Contig_Mode)
 
 
    if((ovMesg.overlap_type == AS_CONTAINMENT) &&
-      (ovMesg.orientation == AS_OUTTIE)) {
+      (ovMesg.orientation.isOuttie())) {
      // CMM: Regularize the reverse orientated containment overlaps to
      // a common orientation.
      const int ahg = ovMesg.ahg;
@@ -2970,7 +2970,7 @@ if  (Contig_Mode)
      const int min_delta = ovMesg.min_offset - ahg;
      const int max_delta = ovMesg.max_offset - ahg;
 
-     ovMesg.orientation = AS_INNIE;
+     ovMesg.orientation.setIsInnie();
      ovMesg.ahg = -bhg;
      ovMesg.bhg = -ahg;
      ovMesg.min_offset = ovMesg.ahg - max_delta;

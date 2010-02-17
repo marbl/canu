@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.54 2010-01-20 00:20:09 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.55 2010-02-17 01:32:58 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -120,7 +120,7 @@ void
 InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
                                    CDS_CID_t newScaffoldID,
                                    CDS_CID_t oldScaffoldID,
-                                   FragOrient orient,
+                                   SequenceOrient orient,
                                    LengthT * offset,
                                    int contigNow) {
   CIScaffoldT *oldScaffold = GetCIScaffoldT(sgraph->CIScaffolds, oldScaffoldID);
@@ -133,7 +133,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
           oldScaffoldID, oldScaffold->bpLength.mean,
           newScaffoldID, newScaffold->bpLength.mean,
           offset->mean, sqrt(offset->variance),
-          orient);
+          orient.toLetter());
 
   assert(offset->mean     >= 0.0);
   assert(offset->variance >= 0.0);
@@ -145,7 +145,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
   CIScaffoldTIterator CIs;
   ChunkInstanceT     *CI;
 
-  InitCIScaffoldTIterator(sgraph, oldScaffold, (orient == A_B), FALSE, &CIs);
+  InitCIScaffoldTIterator(sgraph, oldScaffold, orient.isForward(), FALSE, &CIs);
   while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
     LengthT offsetAEnd;
     LengthT offsetBEnd;
@@ -161,7 +161,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT *sgraph,
     assert(CI->offsetAEnd.variance <= oldScaffold->bpLength.variance);
     assert(CI->offsetBEnd.variance <= oldScaffold->bpLength.variance);
 
-    if (orient == A_B) {
+    if (orient.isForward()) {
       offsetAEnd.mean     = offset->mean     + CI->offsetAEnd.mean;
       offsetAEnd.variance = offset->variance + CI->offsetAEnd.variance;
       offsetBEnd.mean     = offset->mean     + CI->offsetBEnd.mean;
@@ -254,7 +254,7 @@ MarkUnderlyingRawCIEdgeTrusted(ScaffoldGraphT * sgraph, EdgeCGW_T * raw) {
   SetGraphEdgeStatus(sgraph->ContigGraph, topCIEdge, TRUSTED_EDGE_STATUS);
   if (GlobalData->debugLevel > 0) {
     fprintf(stderr,"* Marked contig edge " F_CID " (" F_CID "," F_CID ")%c as trusted(inside scaf " F_CID ")\n",
-            topCIEdge->topLevelEdge, topCIEdge->idA, topCIEdge->idB, topCIEdge->orient,
+            topCIEdge->topLevelEdge, topCIEdge->idA, topCIEdge->idB, topCIEdge->orient.toLetter(),
             contigA->scaffoldID);
   }
 }
@@ -265,7 +265,7 @@ void
 MarkUnderlyingCIEdgesTrusted(ScaffoldGraphT *sgraph, SEdgeT *edge) {
   if (GlobalData->debugLevel > 0)
     fprintf(stderr,"* MarkUnderlyingCIEdgesTrusted on SEdge (" F_CID "," F_CID ")%c nextRaw = " F_CID "\n",
-            edge->idA, edge->idB, edge->orient, edge->nextRawEdge);
+            edge->idA, edge->idB, edge->orient.toLetter(), edge->nextRawEdge);
 
   if (edge->flags.bits.isRaw) {
     MarkUnderlyingRawCIEdgeTrusted(sgraph, edge);
@@ -288,23 +288,21 @@ FindMaxGapInScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &Nodes);
   thisNode = NextCIScaffoldTIterator(&Nodes);
-  if (GetNodeOrient(thisNode) == A_B) {
+  if (GetNodeOrient(thisNode).isForward()) {
     prevEnd = &(thisNode->offsetBEnd);
   } else {
     prevEnd = &(thisNode->offsetAEnd);
   }
-  for(maxGap = 0.0; (thisNode = NextCIScaffoldTIterator(&Nodes)) != NULL;
-      prevEnd = thisEnd) {
+  for(maxGap = 0.0; (thisNode = NextCIScaffoldTIterator(&Nodes)) != NULL; prevEnd = thisEnd) {
     double thisGap;
-    if (GetNodeOrient(thisNode) == A_B) {
+    if (GetNodeOrient(thisNode).isForward()) {
       thisBegin = &(thisNode->offsetAEnd);
       thisEnd = &(thisNode->offsetBEnd);
     } else {
       thisEnd = &(thisNode->offsetAEnd);
       thisBegin = &(thisNode->offsetBEnd);
     }
-    thisGap = (thisBegin->mean - prevEnd->mean) +
-      (3.0 * sqrt(thisBegin->variance - prevEnd->variance));
+    thisGap = (thisBegin->mean - prevEnd->mean) + (3.0 * sqrt(thisBegin->variance - prevEnd->variance));
     if (thisGap > maxGap) {
       maxGap = thisGap;
     }
@@ -554,7 +552,7 @@ TouchesMarkedScaffolds(SEdgeT *curEdge) {
   CIScaffoldT *scaffoldA = GetGraphNode(ScaffoldGraph->ScaffoldGraph, curEdge->idA);
   CIScaffoldT *scaffoldB = GetGraphNode(ScaffoldGraph->ScaffoldGraph, curEdge->idB);
 
-  if (curEdge->orient == AB_AB) {
+  if (curEdge->orient.isAB_AB()) {
     if ((scaffoldA->numEssentialB == 0) &&
         (scaffoldB->numEssentialA == 0)) {
       assert(scaffoldA->essentialEdgeB == NULLINDEX);
@@ -565,7 +563,7 @@ TouchesMarkedScaffolds(SEdgeT *curEdge) {
     }
   }
 
-  if (curEdge->orient == AB_BA) {
+  if (curEdge->orient.isAB_BA()) {
     if ((scaffoldA->numEssentialB == 0) &&
         (scaffoldB->numEssentialB == 0)) {
       assert(scaffoldA->essentialEdgeB == NULLINDEX);
@@ -576,7 +574,7 @@ TouchesMarkedScaffolds(SEdgeT *curEdge) {
     }
   }
 
-  if (curEdge->orient == BA_AB) {
+  if (curEdge->orient.isBA_AB()) {
     if ((scaffoldA->numEssentialA == 0) &&
         (scaffoldB->numEssentialA == 0)) {
       assert(scaffoldA->essentialEdgeA == NULLINDEX);
@@ -587,7 +585,7 @@ TouchesMarkedScaffolds(SEdgeT *curEdge) {
     }
   }
 
-  if (curEdge->orient == BA_BA) {
+  if (curEdge->orient.isBA_BA()) {
     if ((scaffoldA->numEssentialA == 0) &&
         (scaffoldB->numEssentialB == 0)) {
       assert(scaffoldA->essentialEdgeA == NULLINDEX);
@@ -642,7 +640,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
 
   otherScaffoldID = (scfIID == curSEdge->idA) ? curSEdge->idB : curSEdge->idA;
   orientValue =
-    (curSEdge->orient == AB_AB || curSEdge->orient == BA_BA) ? 1 : -1;
+    (curSEdge->orient.isAB_AB() || curSEdge->orient.isBA_BA()) ? 1 : -1;
 
   /*
     iterate over otherEnd's merged edges to see if there is a
@@ -655,7 +653,7 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
     if (sEdge->idA == otherScaffoldID ||
         (sEdge->idB == otherScaffoldID && sEdge != curSEdge)) {
       int newOrientValue =
-        (sEdge->orient == AB_AB || sEdge->orient == BA_BA) ? 1 : -1;
+        (sEdge->orient.isAB_AB() || sEdge->orient.isBA_BA()) ? 1 : -1;
 
       /*
         Does the pair of edges agree (shift) or disagree (reversal)?
@@ -672,18 +670,18 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
             fprintf(stderr,
                     "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                     curSEdge->idA, curSEdge->idB,
-                    ((curSEdge->orient == AB_AB) ? "AB_AB" :
-                     ((curSEdge->orient == AB_BA) ? "AB_BA" :
-                      ((curSEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                    ((curSEdge->orient.isAB_AB()) ? "AB_AB" :
+                     ((curSEdge->orient.isAB_BA()) ? "AB_BA" :
+                      ((curSEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                     (int) curSEdge->distance.mean,
                     (int) curSEdge->distance.variance,
                     curSEdge->edgesContributing);
           }
           fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                   sEdge->idA, sEdge->idB,
-                  ((sEdge->orient == AB_AB) ? "AB_AB" :
-                   ((sEdge->orient == AB_BA) ? "AB_BA" :
-                    ((sEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                  ((sEdge->orient.isAB_AB()) ? "AB_AB" :
+                   ((sEdge->orient.isAB_BA()) ? "AB_BA" :
+                    ((sEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                   (int) sEdge->distance.mean,
                   (int) curSEdge->distance.variance,
                   sEdge->edgesContributing);
@@ -699,18 +697,18 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
                 fprintf(stderr,
                         "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                         curSEdge->idA, curSEdge->idB,
-                        ((curSEdge->orient == AB_AB) ? "AB_AB" :
-                         ((curSEdge->orient == AB_BA) ? "AB_BA" :
-                          ((curSEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                        ((curSEdge->orient.isAB_AB()) ? "AB_AB" :
+                         ((curSEdge->orient.isAB_BA()) ? "AB_BA" :
+                          ((curSEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                         (int) curSEdge->distance.mean,
                         (int) curSEdge->distance.variance,
                         curSEdge->edgesContributing);
               }
               fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                       sEdge->idA, sEdge->idB,
-                      ((sEdge->orient == AB_AB) ? "AB_AB" :
-                       ((sEdge->orient == AB_BA) ? "AB_BA" :
-                        ((sEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                      ((sEdge->orient.isAB_AB()) ? "AB_AB" :
+                       ((sEdge->orient.isAB_BA()) ? "AB_BA" :
+                        ((sEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                       (int) sEdge->distance.mean,
                       (int) curSEdge->distance.variance,
                       sEdge->edgesContributing);
@@ -727,18 +725,18 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
                 fprintf(stderr,
                         "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                         curSEdge->idA, curSEdge->idB,
-                        ((curSEdge->orient == AB_AB) ? "AB_AB" :
-                         ((curSEdge->orient == AB_BA) ? "AB_BA" :
-                          ((curSEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                        ((curSEdge->orient.isAB_AB()) ? "AB_AB" :
+                         ((curSEdge->orient.isAB_BA()) ? "AB_BA" :
+                          ((curSEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                         (int) curSEdge->distance.mean,
                         (int) curSEdge->distance.variance,
                         curSEdge->edgesContributing);
               }
               fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                       sEdge->idA, sEdge->idB,
-                      ((sEdge->orient == AB_AB) ? "AB_AB" :
-                       ((sEdge->orient == AB_BA) ? "AB_BA" :
-                        ((sEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                      ((sEdge->orient.isAB_AB()) ? "AB_AB" :
+                       ((sEdge->orient.isAB_BA()) ? "AB_BA" :
+                        ((sEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                       (int) sEdge->distance.mean,
                       (int) curSEdge->distance.variance,
                       sEdge->edgesContributing);
@@ -756,18 +754,18 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
               fprintf(stderr,
                       "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                       curSEdge->idA, curSEdge->idB,
-                      ((curSEdge->orient == AB_AB) ? "AB_AB" :
-                       ((curSEdge->orient == AB_BA) ? "AB_BA" :
-                        ((curSEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                      ((curSEdge->orient.isAB_AB()) ? "AB_AB" :
+                       ((curSEdge->orient.isAB_BA()) ? "AB_BA" :
+                        ((curSEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                       (int) curSEdge->distance.mean,
                       (int) curSEdge->distance.variance,
                       curSEdge->edgesContributing);
             }
             fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                     sEdge->idA, sEdge->idB,
-                    ((sEdge->orient == AB_AB) ? "AB_AB" :
-                     ((sEdge->orient == AB_BA) ? "AB_BA" :
-                      ((sEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                    ((sEdge->orient.isAB_AB()) ? "AB_AB" :
+                     ((sEdge->orient.isAB_BA()) ? "AB_BA" :
+                      ((sEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                     (int) sEdge->distance.mean,
                     (int) curSEdge->distance.variance,
                     sEdge->edgesContributing);
@@ -788,18 +786,18 @@ ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
               fprintf(stderr,
                       "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
                       curSEdge->idA, curSEdge->idB,
-                      ((curSEdge->orient == AB_AB) ? "AB_AB" :
-                       ((curSEdge->orient == AB_BA) ? "AB_BA" :
-                        ((curSEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                      ((curSEdge->orient.isAB_AB()) ? "AB_AB" :
+                       ((curSEdge->orient.isAB_BA()) ? "AB_BA" :
+                        ((curSEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                       (int) curSEdge->distance.mean,
                       (int) curSEdge->distance.variance,
                       curSEdge->edgesContributing);
             }
             fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
                     sEdge->idA, sEdge->idB,
-                    ((sEdge->orient == AB_AB) ? "AB_AB" :
-                     ((sEdge->orient == AB_BA) ? "AB_BA" :
-                      ((sEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))),
+                    ((sEdge->orient.isAB_AB()) ? "AB_AB" :
+                     ((sEdge->orient.isAB_BA()) ? "AB_BA" :
+                      ((sEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
                     (int) sEdge->distance.mean,
                     (int) curSEdge->distance.variance,
                     sEdge->edgesContributing);
@@ -824,10 +822,10 @@ OtherEndHasStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
   CDS_CID_t otherScaffoldID;
 
   if (scfIID == curSEdge->idA) {
-    otherEnd = (curSEdge->orient == AB_AB || curSEdge->orient == AB_BA) ? A_END : B_END;
+    otherEnd = (curSEdge->orient.isAB_AB() || curSEdge->orient.isAB_BA()) ? A_END : B_END;
     otherScaffoldID = curSEdge->idB;
   } else {
-    otherEnd = (curSEdge->orient == AB_BA || curSEdge->orient == BA_BA) ? A_END : B_END;
+    otherEnd = (curSEdge->orient.isAB_BA() || curSEdge->orient.isBA_BA()) ? A_END : B_END;
     otherScaffoldID = curSEdge->idA;
   }
 
@@ -1016,10 +1014,10 @@ GetTrueBEndCI(ScaffoldGraphT * graph, CIScaffoldT * scaffold) {
 static
 void
 TranslateScaffoldOverlapToContigOverlap(CIScaffoldT *scaffoldA, CIScaffoldT *scaffoldB,
-                                        ChunkOrientationType scaffoldEdgeOrient,
+                                        PairOrient scaffoldEdgeOrient,
                                         NodeCGW_T **endNodeA, NodeCGW_T **endNodeB,
-                                        ChunkOrient *orientEndNodeA,  ChunkOrient *orientEndNodeB,
-                                        ChunkOrientationType *edgeEndsOrient,
+                                        SequenceOrient *orientEndNodeA,  SequenceOrient *orientEndNodeB,
+                                        PairOrient *edgeEndsOrient,
                                         double *extremalGapSizeA, double *extremalGapSizeB) {
   NodeCGW_T *nextNodeA, *nextNodeB;
   int AGapTowardAEnd, BGapTowardAEnd;
@@ -1029,7 +1027,7 @@ TranslateScaffoldOverlapToContigOverlap(CIScaffoldT *scaffoldA, CIScaffoldT *sca
           scaffoldA->id, scaffoldA->info.Scaffold.AEndCI, scaffoldA->info.Scaffold.BEndCI,
           scaffoldB->id, scaffoldB->info.Scaffold.AEndCI, scaffoldB->info.Scaffold.BEndCI);
 #endif
-  if (scaffoldEdgeOrient == AB_AB) {
+  if (scaffoldEdgeOrient.isAB_AB()) {
     // BEndCI may be contained
     *endNodeA = GetTrueBEndCI(ScaffoldGraph, scaffoldA);
     *endNodeB = GetGraphNode(ScaffoldGraph->ContigGraph,
@@ -1039,45 +1037,44 @@ TranslateScaffoldOverlapToContigOverlap(CIScaffoldT *scaffoldA, CIScaffoldT *sca
 
     AGapTowardAEnd = TRUE;
     BGapTowardAEnd = FALSE;
-  }else if (scaffoldEdgeOrient == AB_BA) {
+  }else if (scaffoldEdgeOrient.isAB_BA()) {
     // BendCI may be contained
     *endNodeA = GetTrueBEndCI(ScaffoldGraph, scaffoldA);
     // BendCI may be contained
     *endNodeB = GetTrueBEndCI(ScaffoldGraph, scaffoldB);
     *orientEndNodeA = GetNodeOrient(*endNodeA);
-    *orientEndNodeB = FlipNodeOrient(GetNodeOrient(*endNodeB));
+    *orientEndNodeB = GetNodeOrient(*endNodeB);
+    orientEndNodeB->flip();
     AGapTowardAEnd = TRUE;
     BGapTowardAEnd = TRUE;
-  }else if (scaffoldEdgeOrient == BA_AB) {
-    *endNodeA = GetGraphNode(ScaffoldGraph->ContigGraph,
-                             scaffoldA->info.Scaffold.AEndCI);
-    *endNodeB = GetGraphNode(ScaffoldGraph->ContigGraph,
-                             scaffoldB->info.Scaffold.AEndCI);
-    *orientEndNodeA = FlipNodeOrient(GetNodeOrient(*endNodeA));
+  }else if (scaffoldEdgeOrient.isBA_AB()) {
+    *endNodeA = GetGraphNode(ScaffoldGraph->ContigGraph, scaffoldA->info.Scaffold.AEndCI);
+    *endNodeB = GetGraphNode(ScaffoldGraph->ContigGraph, scaffoldB->info.Scaffold.AEndCI);
+    *orientEndNodeA = GetNodeOrient(*endNodeA);
+    orientEndNodeA->flip();
     *orientEndNodeB = GetNodeOrient(*endNodeB);
     AGapTowardAEnd = FALSE;
     BGapTowardAEnd = FALSE;
-  } else {//curEdge->orient == BA_BA
-    *endNodeA = GetGraphNode(ScaffoldGraph->ContigGraph,
-                             scaffoldA->info.Scaffold.AEndCI);
+  } else {//curEdge->orient.isBA_BA()
+    *endNodeA = GetGraphNode(ScaffoldGraph->ContigGraph, scaffoldA->info.Scaffold.AEndCI);
     *endNodeB = GetTrueBEndCI(ScaffoldGraph, scaffoldB);
-    *orientEndNodeA = FlipNodeOrient(GetNodeOrient(*endNodeA));
-    *orientEndNodeB = FlipNodeOrient(GetNodeOrient(*endNodeB));
+    *orientEndNodeA = GetNodeOrient(*endNodeA);
+    *orientEndNodeB = GetNodeOrient(*endNodeB);
+    orientEndNodeA->flip();
+    orientEndNodeB->flip();
     AGapTowardAEnd = FALSE;
     BGapTowardAEnd = TRUE;
   }
-  if (*orientEndNodeA == A_B) {
-    if (*orientEndNodeB == A_B) {
-      *edgeEndsOrient = AB_AB;
-    } else {//(orientEndNodeB == B_A
-      *edgeEndsOrient = AB_BA;
-    }
-  } else {//(orientEndNodeA == B_A
-    if (*orientEndNodeB == A_B) {
-      *edgeEndsOrient = BA_AB;
-    } else {//(orientEndNodeB == B_A
-      *edgeEndsOrient = BA_BA;
-    }
+  if (orientEndNodeA->isForward()) {
+    if (orientEndNodeB->isForward())
+      edgeEndsOrient->setIsAB_AB();
+    else
+      edgeEndsOrient->setIsAB_BA();
+  } else {
+    if (orientEndNodeB->isForward())
+      edgeEndsOrient->setIsBA_AB();
+    else
+      edgeEndsOrient->setIsBA_BA();
   }
   nextNodeA = GetGraphNode(ScaffoldGraph->ContigGraph, (AGapTowardAEnd?(*endNodeA)->AEndNext:(*endNodeA)->BEndNext));
   nextNodeB = GetGraphNode(ScaffoldGraph->ContigGraph, (BGapTowardAEnd?(*endNodeB)->AEndNext:(*endNodeB)->BEndNext));
@@ -1121,45 +1118,39 @@ MarkScaffoldsForMerging(SEdgeT *curEdge, int markForMerging) {
 
     //  Note the differences in what is an "A" and what is a "B" below.
 
-    switch (curEdge->orient) {
-      case AB_AB:
-        assert(scaffoldA->essentialEdgeB == NULLINDEX);
-        assert(scaffoldB->essentialEdgeA == NULLINDEX);
-        scaffoldA->essentialEdgeB = edgeIndex;
-        scaffoldB->essentialEdgeA = edgeIndex;
-        scaffoldA->numEssentialB = 1;
-        scaffoldB->numEssentialA = 1;
-        break;
+    assert(curEdge->orient.isUnknown() == false);
 
-      case AB_BA:
-        assert(scaffoldA->essentialEdgeB == NULLINDEX);
-        assert(scaffoldB->essentialEdgeB == NULLINDEX);
-        scaffoldA->essentialEdgeB = edgeIndex;
-        scaffoldB->essentialEdgeB = edgeIndex;
-        scaffoldA->numEssentialB = 1;
-        scaffoldB->numEssentialB = 1;
-        break;
-
-      case BA_AB:
-        assert(scaffoldA->essentialEdgeA == NULLINDEX);
-        assert(scaffoldB->essentialEdgeA == NULLINDEX);
-        scaffoldA->essentialEdgeA = edgeIndex;
-        scaffoldB->essentialEdgeA = edgeIndex;
-        scaffoldA->numEssentialA = 1;
-        scaffoldB->numEssentialA = 1;
-        break;
-
-      case BA_BA:
-        assert(scaffoldA->essentialEdgeA == NULLINDEX);
-        assert(scaffoldB->essentialEdgeB == NULLINDEX);
-        scaffoldA->essentialEdgeA = edgeIndex;
-        scaffoldB->essentialEdgeB = edgeIndex;
-        scaffoldA->numEssentialA = 1;
-        scaffoldB->numEssentialB = 1;
-        break;
-
-      default:
-        assert(0);
+    if (curEdge->orient.isAB_AB()) {
+      assert(scaffoldA->essentialEdgeB == NULLINDEX);
+      assert(scaffoldB->essentialEdgeA == NULLINDEX);
+      scaffoldA->essentialEdgeB = edgeIndex;
+      scaffoldB->essentialEdgeA = edgeIndex;
+      scaffoldA->numEssentialB = 1;
+      scaffoldB->numEssentialA = 1;
+    }
+    if (curEdge->orient.isAB_BA()) {
+      assert(scaffoldA->essentialEdgeB == NULLINDEX);
+      assert(scaffoldB->essentialEdgeB == NULLINDEX);
+      scaffoldA->essentialEdgeB = edgeIndex;
+      scaffoldB->essentialEdgeB = edgeIndex;
+      scaffoldA->numEssentialB = 1;
+      scaffoldB->numEssentialB = 1;
+    }
+    if (curEdge->orient.isBA_AB()) {
+      assert(scaffoldA->essentialEdgeA == NULLINDEX);
+      assert(scaffoldB->essentialEdgeA == NULLINDEX);
+      scaffoldA->essentialEdgeA = edgeIndex;
+      scaffoldB->essentialEdgeA = edgeIndex;
+      scaffoldA->numEssentialA = 1;
+      scaffoldB->numEssentialA = 1;
+    }
+    if (curEdge->orient.isBA_BA()) {
+      assert(scaffoldA->essentialEdgeA == NULLINDEX);
+      assert(scaffoldB->essentialEdgeB == NULLINDEX);
+      scaffoldA->essentialEdgeA = edgeIndex;
+      scaffoldB->essentialEdgeB = edgeIndex;
+      scaffoldA->numEssentialA = 1;
+      scaffoldB->numEssentialB = 1;
     }
 
     // ignore these two scaffolds for the rest of this iteration
@@ -1372,8 +1363,8 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
   // C MUST overlap
   // look for overlap
   {
-    ChunkOrient orientEndNodeA, orientEndNodeB;
-    ChunkOrientationType edgeEndsOrient;
+    SequenceOrient orientEndNodeA, orientEndNodeB;
+    PairOrient edgeEndsOrient;
     NodeCGW_T *endNodeA, *endNodeB;
     double aGapSize, bGapSize;
     int alternate;
@@ -1383,7 +1374,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
 
     if (verbose)
       fprintf(stderr,"* Looking for overlap nodeA:" F_CID " nodeB: " F_CID ", endAOrient:%c endBOrient:%c orient:%c distance:%g\n",
-              endNodeA->id, endNodeB->id, orientEndNodeA, orientEndNodeB, edgeEndsOrient, edgeToC->distance.mean);
+              endNodeA->id, endNodeB->id, orientEndNodeA.toLetter(), orientEndNodeB.toLetter(), edgeEndsOrient.toLetter(), edgeToC->distance.mean);
 
     overlapEdge = FindOverlapEdgeChiSquare(ScaffoldGraph, endNodeA, endNodeB->id,
                                            edgeEndsOrient, edgeToC->distance.mean,
@@ -1517,7 +1508,7 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
 
     if (verbose) {
       fprintf(stderr,"* Found an edge AC (" F_CID "," F_CID ",%c)\n",
-              scaffoldA->id, otherID, GetEdgeOrientationWRT(edge, scaffoldA->id));
+              scaffoldA->id, otherID, GetEdgeOrientationWRT(edge, scaffoldA->id).toLetter());
 
 
       fprintf(stderr,"* Looking through %d edgesFromB\n",
@@ -1527,203 +1518,107 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
     // If present, weight = weight(A,C), add the heavier of (A,C) (B,C) to mergedEdges.
     // If absent, add (A,C) to mergedEdges
     for(j = 0; j < GetNumPtrTs(edgesFromB); j++) {
-      CDS_CID_t otherBID;
       SEdgeT *edgeB = (SEdgeT *) *GetPtrT(edgesFromB,j);
 
-      if (verbose)PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "EdgeFromBC? ", edgeB, edgeB->idA);
+      if (verbose)
+        PrintGraphEdge(stderr, ScaffoldGraph->ScaffoldGraph, "EdgeFromBC? ", edgeB, edgeB->idA);
 
-      if (edgeB->quality > 0.0) {
-        if (verbose)fprintf(stderr,"*Skipping (quality = %g)\n", edgeB->quality);
-        continue;   // This edge is already spoken for
-      }
-      if (edgeB->idA == scaffoldB->id)
-        otherBID = edgeB->idB;
-      else
-        otherBID = edgeB->idA;
+      if (edgeB->quality > 0.0)
+        // This edge is already spoken for
+        continue;
+
+      CDS_CID_t otherBID = (edgeB->idA == scaffoldB->id) ? edgeB->idB : edgeB->idA;
+
+      if (otherBID != otherID)
+        continue;
 
       // Make sure we have orientation correct
-      if (otherBID == otherID) {// We have (A,B), (A,C) AND (C,B)
-        switch(GetEdgeOrientationWRT(curEdge, scaffoldA->id)) {
-          case AB_AB:
-            switch(GetEdgeOrientationWRT(edge,scaffoldA->id)) { // orientation of AC
-              case AB_BA:
-                // ------------>   <----------------    ------------>
-                //      A                  C                  B
-                if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != BA_AB) { // orientation of BC
-                  if (verbose)fprintf(stderr,"* 1 Orientation is %c should be BA_AB\n",
-                                      GetEdgeOrientationWRT(edgeB,scaffoldB->id));
-                  continue;
-                }
-                break;
-              case AB_AB:
-                // ------------>   ---------------->    ------------>
-                //      A                  C                  B
-                if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != BA_BA) {
-                  if (verbose)fprintf(stderr,"* 1 Orientation is %c should be BA_BA\n",
-                                      GetEdgeOrientationWRT(edgeB,scaffoldB->id));
-                  continue;
-                }
-                break;
-              case BA_BA:
-                if (verbose)
-                  fprintf(stderr,"* 1 Wrong orientation BA_BA\n");
-                continue;  // wrong orientation
 
-              case BA_AB:
-                if (verbose)
-                  fprintf(stderr,"* 1 Wrong orientation BA_AB\n");
-                continue;  // wrong orientation
-              default:
-                assert(0);
-                break;
-            }
-            break;
-          case AB_BA:
-            switch(GetEdgeOrientationWRT(edge,scaffoldA->id)) {
-              case AB_BA:
-                // ------------>   <----------------    <------------
-                //      A                  C                  B
-                if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != AB_AB) {
-                  if (verbose)
-                    fprintf(stderr,"* 2 Orientation is %c should be AB_AB\n",
-                            GetEdgeOrientationWRT(edgeB,scaffoldB->id));
-                  continue;
-                }
-                break;
-              case AB_AB:
-                // ------------>   ---------------->    <------------
-                //      A                  C                  B
-                if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != AB_BA) {
-                  if (verbose)
-                    fprintf(stderr,"* 2 Orientation is %c should be AB_BA\n",
-                            GetEdgeOrientationWRT(edgeB,scaffoldB->id));
-                  continue;
-                }
-                break;
-              case BA_BA:
-                if (verbose)
-                  fprintf(stderr,"* 2 Wrong orientation BA_BA\n");
-                continue;  // wrong orientation
-              case BA_AB:
-                if (verbose)
-                  fprintf(stderr,"* 2 Wrong orientation BA_AB\n");
-                continue;  // wrong orientation
-              default:
-                assert(0);
-                break;
-            }
-            break;
-          case BA_AB:
-            switch(GetEdgeOrientationWRT(edge,scaffoldA->id)) {
-              case BA_BA:
-                // <------------   <----------------    ------------>
-                //      A                  C                  B
-                if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != BA_AB) {
-                  if (verbose)
-                    fprintf(stderr,"* 3 Orientation is %c should be BA_AB\n",
-                            GetEdgeOrientationWRT(edgeB,scaffoldB->id));
-                  continue;
-                }
-                break;
-              case BA_AB:
-                // <------------   ---------------->    ------------>
-                //      A                  C                  B
-                if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != BA_BA) {
-                  if (verbose)
-                    fprintf(stderr,"* 3 Orientation is %c should be BA_BA\n",
-                            GetEdgeOrientationWRT(edgeB,scaffoldB->id));
-                  continue;
-                }
-                break;
-              case AB_BA:
-                if (verbose)
-                  fprintf(stderr,"* 3 Wrong orientation AB_BA\n");
-                continue;
-              case AB_AB:
-                if (verbose)
-                  fprintf(stderr,"* 3 Wrong orientation AB_AB\n");
-                continue;  // wrong orientation
-              default:
-                assert(0);
-                break;
-            }
-            break;
-          case BA_BA:
-            switch(GetEdgeOrientationWRT(edge,scaffoldA->id)) { // orientation of AC
-              case BA_BA:
-                // <------------   <----------------    <-----------
-                //      A                  C                  B
-                if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != AB_AB) { // BC
-                  if (verbose)
-                    fprintf(stderr,"* rOrientation is %c should be AB_AB\n",
-                            GetEdgeOrientationWRT(edgeB,scaffoldB->id));
-                  continue;
-                }
-                break;
-              case BA_AB:
-                // <------------   ---------------->     <-----------
-                //      A                  C                  B
-                if (GetEdgeOrientationWRT(edgeB, scaffoldB->id) != AB_AB) { // BC
-                  if (verbose)
-                    fprintf(stderr,"* 4 Orientation is %c should be AB_AB\n",
-                            GetEdgeOrientationWRT(edgeB,scaffoldB->id));
-                  continue;
-                }
-                break;
-              case AB_AB:
-                if (verbose)
-                  fprintf(stderr,"* 4 Wrong orientation AB_AB\n");
-                continue;
-              case AB_BA:
-                if (verbose)
-                  fprintf(stderr,"* 4 Wrong orientation AB_BA\n");
-                continue;  // wrong orientation
-              default:
-                assert(0);
-                break;
-            }
-            break;
-          default:
-            assert(0);
-            break;
-        }
-        if (verbose)
-          fprintf(stderr,"* foundBC = TRUE!\n");
-        foundBC = TRUE;
-        if (verbose) {
-          fprintf(stderr,"* Found all three edges (" F_CID "," F_CID ",%c)%d, (" F_CID "," F_CID ",%c)%d AND (" F_CID "," F_CID ",%c)%d\n",
-                  scaffoldA->id, scaffoldB->id, GetEdgeOrientationWRT(curEdge, scaffoldA->id), curEdge->edgesContributing,
-                  scaffoldA->id, otherID, GetEdgeOrientationWRT(edge, scaffoldA->id), edge->edgesContributing,
-                  otherBID,scaffoldB->id, GetEdgeOrientationWRT(edgeB, otherBID), edgeB->edgesContributing);
-        }
-        if (edge->edgesContributing > edgeB->edgesContributing) {
-          edge->quality = edge->edgesContributing + edgeB->edgesContributing;
-          edgeB->quality = -1.0;
-          // If we have a singleton from each side, we accept this
-          if (edge->quality +0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD) {
+      // We have (A,B), (A,C) AND (C,B)
 
-            //AppendPtrT(mergedEdges, (void **)&edge);
-            AppendPtrT(mergedEdges, (void **) &edge);
-          }
+      PairOrient   edgeAB = GetEdgeOrientationWRT(curEdge, scaffoldA->id);  //  Orientation of AB
+      PairOrient   edgeAC    = GetEdgeOrientationWRT(edge,scaffoldA->id);      //  Orientation of AC
+      PairOrient   edgeBC   = GetEdgeOrientationWRT(edgeB, scaffoldB->id);    //  Orientation of BC
 
-        } else {
-          edgeB->quality = edge->edgesContributing + edgeB->edgesContributing;
-          edge->quality = -1.0;
-          if (edge->quality + 0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD) {
+      assert(edgeAB.isUnknown() == false);
+      assert(edgeAC.isUnknown() == false);
+      assert(edgeBC.isUnknown() == false);
 
-            //AppendPtrT(mergedEdges, (void **)&edge);
-            AppendPtrT(mergedEdges, (void **) &edge);
-          }
+      //  This block used to report ("if (verbose)") the continue conditions.  The logging was
+      //  mostly useless, stuff like "* 1 Orientation is %c should be BA_AB".  The code was
+      //  structured as nested switch statements, each (of the primary four) was about 80 lines.
+      //  Removing all that crap revealed a very simple function.
 
-          //AppendPtrT(mergedEdges, (void **)&edgeB);
-          AppendPtrT(mergedEdges, (void **)&edgeB);
-        }
-      } else {
-        if (verbose)
-          fprintf(stderr,"* otherBID(" F_CID ") != otherID(" F_CID ")\n", otherBID, otherID);
+      if (edgeAB.isAB_AB()) {
+        if (edgeAC.isAB_BA() && !edgeBC.isBA_AB())
+          continue;
+        if (edgeAC.isAB_AB() && !edgeBC.isBA_BA())
+          continue;
+        if (edgeAC.isBA_BA())
+          continue;
+        if (edgeAC.isBA_AB())
+          continue;
       }
 
-    }
+      if (edgeAB.isAB_BA()) {
+        if (edgeAC.isAB_BA() && !edgeBC.isAB_AB())
+          continue;
+        if (edgeAC.isAB_AB() && !edgeBC.isAB_BA())
+          continue;
+        if (edgeAC.isBA_BA())
+          continue;
+        if (edgeAC.isBA_AB())
+          continue;
+      }
+
+      if (edgeAB.isBA_AB()) {
+        if (edgeAC.isBA_BA() && !edgeBC.isBA_AB())
+          continue;
+        if (edgeAC.isBA_AB() && !edgeBC.isBA_BA())
+          continue;
+        if (edgeAC.isAB_BA())
+          continue;
+        if (edgeAC.isAB_AB())
+          continue;
+      }
+
+      if (edgeAB.isBA_BA()) {
+        if (edgeAC.isBA_BA() && !edgeBC.isAB_AB())
+          continue;
+        if (edgeAC.isBA_AB() && !edgeBC.isAB_AB())
+          continue;
+        if (edgeAC.isAB_AB())
+          continue;
+        if (edgeAC.isAB_BA())
+          continue;
+      }
+
+      foundBC = TRUE;
+
+      if (verbose)
+        fprintf(stderr,"* Found all three edges (" F_CID "," F_CID ",%c)%d, (" F_CID "," F_CID ",%c)%d AND (" F_CID "," F_CID ",%c)%d\n",
+                scaffoldA->id, scaffoldB->id, edgeAB.toLetter(), curEdge->edgesContributing,
+                scaffoldA->id, otherID,       edgeAC.toLetter(), edge->edgesContributing,
+                otherBID,scaffoldB->id,       edgeBC.toLetter(), edgeB->edgesContributing);
+
+      if (edge->edgesContributing > edgeB->edgesContributing) {
+        edge->quality = edge->edgesContributing + edgeB->edgesContributing;
+        edgeB->quality = -1.0;
+        // If we have a singleton from each side, we accept this
+        if (edge->quality +0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
+          AppendPtrT(mergedEdges, (void **) &edge);
+
+      } else {
+        edgeB->quality = edge->edgesContributing + edgeB->edgesContributing;
+        edge->quality = -1.0;
+        if (edge->quality + 0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
+          AppendPtrT(mergedEdges, (void **) &edge);
+        
+        AppendPtrT(mergedEdges, (void **)&edgeB);
+      }
+    }  //  End of for j loop
+
+
     if (foundBC == FALSE) {
       if (verbose)
         fprintf(stderr,"* Found %sconfirmed AC edge only\n", (edge->edgesContributing < CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD?"UN":""));
@@ -1762,7 +1657,7 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
       continue;
     if (verbose)
       fprintf(stderr,"* Found a BC edge (" F_CID "," F_CID ",%c)\n",
-              scaffoldB->id, otherID, GetEdgeOrientationWRT(edge, scaffoldB->id));
+              scaffoldB->id, otherID, GetEdgeOrientationWRT(edge, scaffoldB->id).toLetter());
 
 
     //AppendPtrT(mergedEdges, (void **)&edge);
@@ -1812,8 +1707,8 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
   curEdge->flags.bits.isBogus = TRUE; // We mark all edges visited by the recursion so we don't retrace our steps
 
   {
-    ChunkOrient orientEndNodeA, orientEndNodeB;
-    ChunkOrientationType edgeEndsOrient;
+    SequenceOrient orientEndNodeA, orientEndNodeB;
+    PairOrient edgeEndsOrient;
     NodeCGW_T *endNodeA, *endNodeB;
     double aGapSize, bGapSize;
 
@@ -1824,25 +1719,23 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
   }
 
 
-  switch(curEdge->orient) {
-    case AB_AB:
-      endA = B_END;
-      endB = A_END;
-      break;
-    case AB_BA:
-      endA = B_END;
-      endB = B_END;
-      break;
-    case BA_AB:
-      endA = A_END;
-      endB = A_END;
-      break;
-    case BA_BA:
-      endA = A_END;
-      endB = B_END;
-      break;
-    default:
-      assert(0);
+  assert(curEdge->orient.isUnknown() == false);
+
+  if (curEdge->orient.isAB_AB()) {
+    endA = B_END;
+    endB = A_END;
+  }
+  if (curEdge->orient.isAB_BA()) {
+    endA = B_END;
+    endB = B_END;
+  }
+  if (curEdge->orient.isBA_AB()) {
+    endA = A_END;
+    endB = A_END;
+  }
+  if (curEdge->orient.isBA_BA()) {
+    endA = A_END;
+    endB = B_END;
   }
 
   // Find all merge candidates incident on scaffoldA
@@ -1938,8 +1831,8 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
         if (verbose) {
           fprintf(stderr,"*### Scaffold " F_CID " fits between (" F_CID "," F_CID ")  curEdge = (" F_CID "," F_CID ",%c)   fEdge = (" F_CID "," F_CID ",%c)\n",
                   targetID, scaffoldA->id, scaffoldB->id,
-                  curEdge->idA, curEdge->idB, curEdge->orient,
-                  fEdge->idA, fEdge->idB, fEdge->orient);
+                  curEdge->idA, curEdge->idB, curEdge->orient.toLetter(),
+                  fEdge->idA, fEdge->idB, fEdge->orient.toLetter());
 
           fprintf(stderr,"* Calling FindMoreAttractive recursively on " F_CID " " F_CID "\n", sourceScaffold->id, targetScaffold->id);
         }
@@ -1972,8 +1865,8 @@ FindMoreAttractiveMergeEdge(SEdgeT *curEdge,
         if (verbose)
           fprintf(stderr,"*XXX Scaffold " F_CID " DOES NOT fit between (" F_CID "," F_CID ")  curEdge = (" F_CID "," F_CID ",%c)   fEdge = (" F_CID "," F_CID ",%c)\n",
                   targetID, scaffoldA->id, scaffoldB->id,
-                  curEdge->idA, curEdge->idB, curEdge->orient,
-                  fEdge->idA, fEdge->idB, fEdge->orient);
+                  curEdge->idA, curEdge->idB, curEdge->orient.toLetter(),
+                  fEdge->idA, fEdge->idB, fEdge->orient.toLetter());
 
         //MarkScaffoldForNotMerging(targetScaffold);
       }
@@ -2023,9 +1916,9 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
           curEdge->distance.mean,
           curEdge->distance.variance,
           curEdge->edgesContributing,
-          ((curEdge->orient == AB_AB) ? "AB_AB" :
-           ((curEdge->orient == AB_BA) ? "AB_BA" :
-            ((curEdge->orient == BA_AB) ? "BA_AB" : "BA_BA"))));
+          ((curEdge->orient.isAB_AB()) ? "AB_AB" :
+           ((curEdge->orient.isAB_BA()) ? "AB_BA" :
+            ((curEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))));
 
   MateInstrumenter matesBefore;
   MateInstrumenter matesAfter;
@@ -2335,7 +2228,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
     if (verbose)
       fprintf(stderr,
               "* Edge (" F_CID "," F_CID ",%c) touches marked scaffolds\n",
-              curEdge->idA, curEdge->idB, curEdge->orient);
+              curEdge->idA, curEdge->idB, curEdge->orient.toLetter());
     return;
   }
 
@@ -2360,7 +2253,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
   if (verbose) {
     fprintf(stderr,
             "* Top Level call to FindMoreAttractiveMergeEdge (" F_CID "," F_CID ",%c) (" F_CID "," F_CID ") gap = %g\n",
-            curEdge->idA, curEdge->idB, curEdge->orient,
+            curEdge->idA, curEdge->idB, curEdge->orient.toLetter(),
             scaffoldA->id, scaffoldB->id, curEdge->distance.mean);
   }
 
@@ -2402,12 +2295,12 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
       if (verbose) {
         if (!mergeEdge) {
           fprintf(stderr,"*(NONE) Return from Top Level call to FindMoreAttractiveMergeEdge (" F_CID "," F_CID ",%c) (" F_CID "," F_CID ") ==> NONE!\n",
-                  curEdge->idA, curEdge->idB, curEdge->orient, scaffoldA->id, scaffoldB->id);
+                  curEdge->idA, curEdge->idB, curEdge->orient.toLetter(), scaffoldA->id, scaffoldB->id);
         } else {
           fprintf(stderr,"*(%s) Return from Top Level call to FindMoreAttractiveMergeEdge (" F_CID "," F_CID ",%c) (" F_CID "," F_CID ") ==> merge (" F_CID "," F_CID ",%c)\n",
                   (curEdge == mergeEdge?"N":"Y"),
-                  curEdge->idA, curEdge->idB, curEdge->orient, scaffoldA->id, scaffoldB->id,
-                  mergeEdge->idA, mergeEdge->idB, mergeEdge->orient);
+                  curEdge->idA, curEdge->idB, curEdge->orient.toLetter(), scaffoldA->id, scaffoldB->id,
+                  mergeEdge->idA, mergeEdge->idB, mergeEdge->orient.toLetter());
         }
       }
 
@@ -2466,8 +2359,8 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
     }
 
     if (mayOverlap || mustOverlap) { // may overlap
-      ChunkOrient orientEndNodeA, orientEndNodeB;
-      ChunkOrientationType edgeEndsOrient;
+      SequenceOrient orientEndNodeA, orientEndNodeB;
+      PairOrient edgeEndsOrient;
       NodeCGW_T *endNodeA, *endNodeB;
       double aGapSize, bGapSize;
       EdgeCGW_T *overlapEdge;
@@ -2495,7 +2388,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 
         if (verbose) {
           fprintf(stderr, "Could not find overlap " F_CID "(" F_CID ") %c " F_CID "(" F_CID ")\n",
-                  scaffoldA->id, endNodeA->id, (char)edgeEndsOrient,
+                  scaffoldA->id, endNodeA->id, edgeEndsOrient.toLetter(),
                   scaffoldB->id, endNodeB->id);
         }
         if (mustOverlap ) {
@@ -2542,7 +2435,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
 
 
         fprintf(stderr,"*** %s:Alternate found: NEED TO FIX THIS OVERLAP (" F_CID "," F_CID ",%c) is really (" F_CID "," F_CID ",%c)...setting to CGW_MISSED_OVERLAP\n",
-                __FILE__, endNodeA->id, endNodeB->id, edgeEndsOrient, overlapEdge->idA, overlapEdge->idB, overlapEdge->orient);
+                __FILE__, endNodeA->id, endNodeB->id, edgeEndsOrient.toLetter(), overlapEdge->idA, overlapEdge->idB, overlapEdge->orient.toLetter());
 
         // To deal with this case we need to handle all of the ramifications.  once A and B have slid by each other, B may overlap with
         // the contig to the left of A, and A may overlap with the contig to the right of B.  If either of these overlaps fails to exist,
@@ -2574,17 +2467,20 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
         }
       } else {
         fprintf(stderr,"* Confirmed overlap (" F_CID "," F_CID ",%c) overlapEdge:%g   mergeEdge:%g\n",
-                overlapEdge->idA, overlapEdge->idB, overlapEdge->orient, overlapEdge->distance.mean, mergeEdge->distance.mean);
+                overlapEdge->idA, overlapEdge->idB, overlapEdge->orient.toLetter(), overlapEdge->distance.mean, mergeEdge->distance.mean);
         if (overlapEdge->orient != edgeEndsOrient && overlapEdge->idA == endNodeA->id) {
-          assert(overlapEdge->orient == InvertEdgeOrient(edgeEndsOrient));
-          overlapEdge->distance.mean =
-            endNodeA->bpLength.mean + endNodeB->bpLength.mean +
-            overlapEdge->distance.mean;
+          //  There is no easy way to get this assert.
+          //assert(overlapEdge->orient == InvertEdgeOrient(edgeEndsOrient));
+          {
+            PairOrient B = edgeEndsOrient;
+            B.flip();
+            assert(overlapEdge->orient == B);
+          }
+          overlapEdge->distance.mean = endNodeA->bpLength.mean + endNodeB->bpLength.mean + overlapEdge->distance.mean;
         } else {
           mergeEdge->distance.mean = overlapEdge->distance.mean;
         }
-        if (fabs(overlapEdge->distance.mean - mergeEdge->distance.mean) >
-            MAX_OVERLAP_SLOP_CGW) {
+        if (fabs(overlapEdge->distance.mean - mergeEdge->distance.mean) > MAX_OVERLAP_SLOP_CGW) {
           SaveEdgeMeanForLater(mergeEdge);
           mergeEdge->distance.mean = overlapEdge->distance.mean;
         }
@@ -2623,8 +2519,8 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
     mergeEdge = curEdge;
     if (mayOverlap || mustOverlap) {
       // may overlap
-      ChunkOrient orientEndNodeA, orientEndNodeB;
-      ChunkOrientationType edgeEndsOrient;
+      SequenceOrient orientEndNodeA, orientEndNodeB;
+      PairOrient edgeEndsOrient;
       NodeCGW_T *endNodeA, *endNodeB;
       double aGapSize, bGapSize;
       EdgeCGW_T *overlapEdge = NULL;
@@ -2966,19 +2862,19 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
 
   while ((thisScaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
-    const LengthT nullLength = {0.0, 0.0};
-    CIScaffoldT  *AendScaffold = NULL;
-    CIScaffoldT  *BendScaffold = NULL;
-    SEdgeT       *edgeA = NULL;
-    SEdgeT       *edgeB = NULL;
-    SEdgeT       *edge = NULL;
-    CIScaffoldT  *neighbor = NULL;
-    CDS_CID_t     neighborID = -1;
-    LengthT       currentOffset = nullLength;
-    CIScaffoldT   CIScaffold;
-    ChunkOrient   orientCI;
-    CDS_CID_t     newScaffoldID = -1;
-    int           numMerged = 0;
+    const LengthT  nullLength = {0.0, 0.0};
+    CIScaffoldT   *AendScaffold = NULL;
+    CIScaffoldT   *BendScaffold = NULL;
+    SEdgeT        *edgeA = NULL;
+    SEdgeT        *edgeB = NULL;
+    SEdgeT        *edge = NULL;
+    CIScaffoldT   *neighbor = NULL;
+    CDS_CID_t      neighborID = -1;
+    LengthT        currentOffset = nullLength;
+    CIScaffoldT    CIScaffold;
+    SequenceOrient orientCI;
+    CDS_CID_t      newScaffoldID = -1;
+    int            numMerged = 0;
 
     thisScaffoldID = thisScaffold->id;
 
@@ -3016,13 +2912,13 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
     }
 
     if        (BendScaffold != NULL) {
-      orientCI   = A_B;
+      orientCI.setIsForward();
       edge       = edgeB;
       neighbor   = BendScaffold;
       neighborID = neighbor->id;
 
     } else if (AendScaffold != NULL) {
-      orientCI   = B_A;
+      orientCI.setIsReverse();
       edge       = edgeA;
       neighbor   = AendScaffold;
       neighborID = neighbor->id;
@@ -3090,11 +2986,9 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
     numMerged = 1;
     mergedSomething = TRUE;
     while (neighbor != (CIScaffoldT *)NULL) {
-      ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge, thisScaffold->id);
+      PairOrient edgeOrient = GetEdgeOrientationWRT(edge, thisScaffold->id);
 
       cnt++;
-
-      assert(orientCI == A_B || orientCI == B_A);
 
       assert(edge->distance.variance >= 0);
 
@@ -3106,20 +3000,21 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
       neighborID = neighbor->id;
 
-      if (orientCI == A_B) {
-        if (edgeOrient == AB_AB) {
-          orientCI = A_B;
-        }else if (edgeOrient == AB_BA) {
-          orientCI = B_A;
+      assert(orientCI.isUnknown() == false);
+
+      if (orientCI.isForward()) {
+        if (edgeOrient.isAB_AB()) {
+          orientCI.setIsForward();
+        }else if (edgeOrient.isAB_BA()) {
+          orientCI.setIsReverse();
         } else {
           assert(0);
         }
-      } else {// orientCI == B_A
-        assert(orientCI == B_A);
-        if (edgeOrient == BA_AB) {
-          orientCI = A_B;
-        }else if (edgeOrient == BA_BA) {
-          orientCI = B_A;
+      } else {
+        if (edgeOrient.isBA_AB()) {
+          orientCI.setIsForward();
+        }else if (edgeOrient.isBA_BA()) {
+          orientCI.setIsReverse();
         } else {
           assert(0);
         }
@@ -3131,7 +3026,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
       assert(edge->distance.variance >= 0);
       assert(currentOffset.mean >= 0);
       assert(currentOffset.variance >= 0);
-      assert(orientCI == A_B || orientCI == B_A);
+      assert(orientCI.isUnknown() == false);
 
       currentOffset.mean += edge->distance.mean;
       currentOffset.variance += edge->distance.variance;
@@ -3147,7 +3042,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
           */
           CIScaffoldTIterator CIs;
           ChunkInstanceT * CI;
-          double variance = GetVarianceOffset(thisScaffold, -currentOffset.mean, orientCI == A_B);
+          double variance = GetVarianceOffset(thisScaffold, -currentOffset.mean, orientCI.isForward());
 
           fprintf(stderr, "Adjusting newScaffold offsets by mean - %f variance + %f\n", currentOffset.mean, variance);
 
@@ -3173,7 +3068,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
       if (verbose) {
         fprintf(stderr,"* Adding to scaffold " F_CID " scaffold " F_CID " at orient %c offset %g\n",
-                newScaffoldID, thisScaffoldID, orientCI, currentOffset.mean);
+                newScaffoldID, thisScaffoldID, orientCI.toLetter(), currentOffset.mean);
       }
 #ifdef CHECK_CONTIG_ORDERS
       AddScaffoldToContigOrientChecker(ScaffoldGraph, thisScaffold, coc);
@@ -3195,7 +3090,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
       neighbor = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
 
-      assert(orientCI == A_B || orientCI == B_A);
+      assert(orientCI.isUnknown() == false);
       assert(edge->distance.variance >= 0);
       assert(thisScaffold->bpLength.variance >= 0);
       assert(currentOffset.variance >= 0);
@@ -3210,7 +3105,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
       assert(currentOffset.variance >= 0);
 
       numMerged++;
-      if (orientCI == A_B) {
+      if (orientCI.isForward()) {
         if (thisScaffold->essentialEdgeB != NULLINDEX) {
           edge = GetGraphEdge(ScaffoldGraph->ScaffoldGraph, thisScaffold->essentialEdgeB);
           neighbor = GetGraphNode(ScaffoldGraph->ScaffoldGraph,

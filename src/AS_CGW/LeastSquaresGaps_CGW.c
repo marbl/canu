@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.39 2010-01-17 03:10:10 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.40 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,11 +108,11 @@ int
 FixUpMisorderedContigs(CIScaffoldT           *scaffold,
                        ContigT               *prevCI,
                        ContigT               *thisCI,
-                       ChunkOrientationType   edgeOrient,
+                       PairOrient   edgeOrient,
                        double                 inferredMean,
                        double                 inferredVariance,
                        EdgeCGW_T             *overlapEdge){
-  ChunkOrientationType newEdgeOrient = GetEdgeOrientationWRT(overlapEdge, prevCI->id);
+  PairOrient newEdgeOrient = GetEdgeOrientationWRT(overlapEdge, prevCI->id);
 
   LengthT aEndOffset, bEndOffset;
 
@@ -131,7 +131,7 @@ FixUpMisorderedContigs(CIScaffoldT           *scaffold,
   PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " overlapEdge: ", overlapEdge, overlapEdge->idA);
 
   fprintf(stderr,"* edgeOrient %c   edge->orient = %c  newEdgeOrient = %c  prevCI = "F_CID "   thisCI = "F_CID " mean:%g\n",
-          edgeOrient, overlapEdge->orient, newEdgeOrient,
+          edgeOrient.toLetter(), overlapEdge->orient.toLetter(), newEdgeOrient.toLetter(),
           prevCI->id, thisCI->id, inferredMean);
 
 
@@ -139,74 +139,72 @@ FixUpMisorderedContigs(CIScaffoldT           *scaffold,
   aEndOffset.mean = aEndOffset.variance = -1.0;
   bEndOffset.mean = bEndOffset.variance = -1.0;
 
+  assert(edgeOrient.isUnknown() == false);
 
-  switch (edgeOrient) {
-    case AB_AB:  //  aka AS_NORMAL
-      assert(newEdgeOrient == BA_BA);
-      //           expected                                 actual
-      //       ---------1-------->                            ---------1-------->
-      //                  ---------2-------->     ---------2-------->
-      //                                                      |<=====|
-      //                                                      overlap length
+  if (edgeOrient.isAB_AB()) {
+    assert(newEdgeOrient.isBA_BA());
+    //           expected                                 actual
+    //       ---------1-------->                            ---------1-------->
+    //                  ---------2-------->     ---------2-------->
+    //                                                      |<=====|
+    //                                                      overlap length
 
-      // overlap is negative
-      bEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean;
-      bEndOffset.variance = prevCI->offsetAEnd.variance +  overlapEdge->distance.variance;
-      aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
-      aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
-      break;
-    case AB_BA:  //  aka AS_INNIE
-      assert(newEdgeOrient == BA_AB);
-      //           expected                                 actual
-      //       ---------1-------->                            ---------1-------->
-      //                  <--------2--------     <--------2--------
-      //                                                      |<=====|
-      //                                                      overlap length
+    // overlap is negative
+    bEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean;
+    bEndOffset.variance = prevCI->offsetAEnd.variance +  overlapEdge->distance.variance;
+    aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
+    aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
+  }
 
+  if (edgeOrient.isAB_BA()) {
+    assert(newEdgeOrient.isBA_AB());
+    //           expected                                 actual
+    //       ---------1-------->                            ---------1-------->
+    //                  <--------2--------     <--------2--------
+    //                                                      |<=====|
+    //                                                      overlap length
 
-      // overlap is negative
-      aEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean;
-      aEndOffset.variance = prevCI->offsetAEnd.variance + overlapEdge->distance.variance;
-      bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
-      bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
-      break;
-    case BA_AB:  //  aka AS_OUTTIE
-      assert(newEdgeOrient == AB_BA);
-      //           expected                                    actual
-      //       <---------1--------                            <---------1--------
-      //                  --------2-------->     --------2------->
-      //                                                      |<=====|
-      //                                                      overlap length
+    // overlap is negative
+    aEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean;
+    aEndOffset.variance = prevCI->offsetAEnd.variance + overlapEdge->distance.variance;
+    bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
+    bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
+  }
 
-      // overlap is negative!
-      bEndOffset.mean = prevCI->offsetBEnd.mean -  overlapEdge->distance.mean;
-      bEndOffset.variance = prevCI->offsetBEnd.variance -  overlapEdge->distance.variance;
-      aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
-      aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
-      break;
-    case BA_BA:  //  aka AS_ANTI
-      assert(newEdgeOrient == AB_AB);
-      //           expected                                 actual
-      //       <---------1--------                            <---------1--------
-      //                  <---------2--------     <---------2--------
-      //                                                      |<=====|
-      //                                                      overlap length
+  if (edgeOrient.isBA_AB()) {
+    assert(newEdgeOrient.isAB_BA());
+    //           expected                                    actual
+    //       <---------1--------                            <---------1--------
+    //                  --------2-------->     --------2------->
+    //                                                      |<=====|
+    //                                                      overlap length
 
-      // overlap is negative
-      aEndOffset.mean = prevCI->offsetBEnd.mean - overlapEdge->distance.mean;
-      aEndOffset.variance = prevCI->offsetBEnd.variance +  overlapEdge->distance.variance;
-      bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
-      bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
-      break;
-    default:
-      return(0);
-      break;
+    // overlap is negative!
+    bEndOffset.mean = prevCI->offsetBEnd.mean -  overlapEdge->distance.mean;
+    bEndOffset.variance = prevCI->offsetBEnd.variance -  overlapEdge->distance.variance;
+    aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
+    aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
+  }
+
+  if (edgeOrient.isBA_BA()) {
+    assert(newEdgeOrient.isAB_AB());
+    //           expected                                 actual
+    //       <---------1--------                            <---------1--------
+    //                  <---------2--------     <---------2--------
+    //                                                      |<=====|
+    //                                                      overlap length
+
+    // overlap is negative
+    aEndOffset.mean = prevCI->offsetBEnd.mean - overlapEdge->distance.mean;
+    aEndOffset.variance = prevCI->offsetBEnd.variance +  overlapEdge->distance.variance;
+    bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
+    bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
   }
 
   fprintf(stderr,"* Overlap is ("F_CID ","F_CID ",%c)  moving "F_CID " from (%g,%g) to (%g,%g)\n",
           overlapEdge->idA,
           overlapEdge->idB,
-          overlapEdge->orient,
+          overlapEdge->orient.toLetter(),
           thisCI->id,
           thisCI->offsetAEnd.mean,
           thisCI->offsetBEnd.mean,
@@ -229,7 +227,7 @@ FixUpMisorderedContigs(CIScaffoldT           *scaffold,
 EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
                                     NodeCGW_T *sourceCI,
                                     CDS_CID_t targetId,
-                                    ChunkOrientationType edgeOrient,
+                                    PairOrient edgeOrient,
                                     double inferredMean,
                                     double inferredVariance,
                                     float *chiSquaredValue,
@@ -242,13 +240,13 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
   float bestChiSquaredValue = FLT_MAX;
 
   *alternate = FALSE;
-  if((edgeOrient == AB_AB) || (edgeOrient == AB_BA)){
-    /* edgeOrient == AB_XX */
-    end = B_END;
-  }else{
-    /* edgeOrient == BA_XX */
-    end = A_END;
-  }
+
+  if (edgeOrient.isAB_AB() ||
+      edgeOrient.isAB_BA())
+    end = B_END;  // edgeOrient == AB_XX
+  else
+    end = A_END;  // edgeOrient == BA_XX
+
   InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, sourceCI->id, end, ALL_EDGES,
                         GRAPH_EDGE_RAW_ONLY, &edges);// Use raw edges
   while((edge = NextGraphEdgeIterator(&edges))!= NULL){
@@ -274,53 +272,52 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
   if (bestEdge != NULL)
     return(bestEdge);
 
-  {
-    int32 minOverlap, maxOverlap;
-    minOverlap = MAX(CGW_MISSED_OVERLAP,
-                     -(inferredMean + (3.0 * sqrt(inferredVariance))));
-    maxOverlap = -(inferredMean - (3.0 * sqrt(inferredVariance)));
-    if(maxOverlap >= CGW_MISSED_OVERLAP){
-      float effectiveOlap;
-      ChunkOverlapCheckT olap;
-      assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-      olap = OverlapChunks(graph->ContigGraph,
-                           sourceCI->id, targetId,    // handles suspicious
-                           edgeOrient, minOverlap, maxOverlap,
-                           AS_CGW_ERROR_RATE, FALSE);
-      effectiveOlap = -olap.overlap;
-      if(olap.suspicious){
-        fprintf(stderr,"* FOEXS: SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c)["F_S32","F_S32"] found ("F_CID ","F_CID ",%c) "F_S32"\n",
-                sourceCI->id, targetId, edgeOrient,
-                minOverlap, maxOverlap,
-                olap.spec.cidA, olap.spec.cidB,
-                olap.spec.orientation, olap.overlap);
-        effectiveOlap = -(GetGraphNode(ScaffoldGraph->ContigGraph, targetId)->bpLength.mean +
-                          sourceCI->bpLength.mean - olap.overlap);
-      }
-      if(olap.overlap){
-        CDS_CID_t edgeIndex;
-        edgeIndex = InsertComputedOverlapEdge(graph->ContigGraph, &olap);
-        edge = GetGraphEdge(graph->ContigGraph, edgeIndex);
+  int32 minOverlap = MAX(CGW_MISSED_OVERLAP, -(inferredMean + (3.0 * sqrt(inferredVariance))));
+  int32 maxOverlap = -(inferredMean - (3.0 * sqrt(inferredVariance)));
 
-        // Create an appropriate hash table entry
-        CreateChunkOverlapFromEdge(ScaffoldGraph->ContigGraph, edge);
+  if (maxOverlap < CGW_MISSED_OVERLAP)
+    return(NULL);
 
-        if(PairwiseChiSquare((float)inferredMean, (float)inferredVariance,
-                             effectiveOlap,
-                             (float)((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
-                             (LengthT *)NULL, chiSquaredValue,
-                             (float)chiSquareThreshold)){
-          *alternate = olap.suspicious;
-          return(edge);
-        }else{
-          fprintf(stderr,"* Failed pairwise test between (%g, %g) and (%g,%g) not returning edge ("F_CID ","F_CID ",%c) %g\n",
-                  inferredMean, inferredVariance, effectiveOlap, (float) ((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
-                  edge->idA, edge->idB, edge->orient, edge->distance.mean);
-        }
-      }
-    }
-    return((EdgeCGW_T *)NULL);
+  assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
+
+  ChunkOverlapCheckT olap = OverlapChunks(graph->ContigGraph,
+                                          sourceCI->id, targetId,    // handles suspicious
+                                          edgeOrient, minOverlap, maxOverlap,
+                                          AS_CGW_ERROR_RATE, FALSE);
+  double effectiveOlap = -olap.overlap;
+
+  if(olap.suspicious){
+    fprintf(stderr,"* FOEXS: SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c)["F_S32","F_S32"] found ("F_CID ","F_CID ",%c) "F_S32"\n",
+            sourceCI->id, targetId, edgeOrient.toLetter(),
+            minOverlap, maxOverlap,
+            olap.spec.cidA, olap.spec.cidB,
+            olap.spec.orientation.toLetter(), olap.overlap);
+    effectiveOlap = -(GetGraphNode(ScaffoldGraph->ContigGraph, targetId)->bpLength.mean + sourceCI->bpLength.mean - olap.overlap);
   }
+
+  if (olap.overlap == NULL)
+    return(NULL);
+
+  edge = GetGraphEdge(graph->ContigGraph,
+                      InsertComputedOverlapEdge(graph->ContigGraph, &olap));
+
+  // Create an appropriate hash table entry
+  CreateChunkOverlapFromEdge(ScaffoldGraph->ContigGraph, edge);
+
+  if (PairwiseChiSquare((float)inferredMean, (float)inferredVariance,
+                        effectiveOlap,
+                        (float)((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
+                        (LengthT *)NULL, chiSquaredValue,
+                        (float)chiSquareThreshold)) {
+    *alternate = olap.suspicious;
+    return(edge);
+  }
+
+  fprintf(stderr,"* Failed pairwise test between (%g, %g) and (%g,%g) not returning edge ("F_CID ","F_CID ",%c) %g\n",
+          inferredMean, inferredVariance, effectiveOlap, (float) ((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
+          edge->idA, edge->idB, edge->orient.toLetter(), edge->distance.mean);
+
+  return((EdgeCGW_T *)NULL);
 }
 
 void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
@@ -367,8 +364,8 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       NodeCGW_T *otherCI =
         GetGraphNode(ScaffoldGraph->ContigGraph,
                      (isA? edge->idB: edge->idA));
-      ChunkOrientationType edgeOrient;
-      FragOrient thisCIorient, otherCIorient;
+      PairOrient edgeOrient;
+      SequenceOrient thisCIorient, otherCIorient;
       LengthT gapDistance;
       float chiSquareResult;
 
@@ -405,50 +402,44 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       /* Check that the edge orientation is consistent with the CI positions
          and orientations within the scaffold. */
       edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
-      switch(edgeOrient){
-        case AB_BA:
-          //      thisCI                                        otherCI
-          //  A --------------------- B               B --------------------- A
-          //    5'----->                                           <------5'
-          thisCIorient = A_B;
-          otherCIorient = B_A;
-          gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetBEnd.mean;
-          gapDistance.variance = otherCI->offsetBEnd.variance -
-            thisCI->offsetBEnd.variance;
-          break;
-        case AB_AB:
-          //      thisCI                                        otherCI
-          //  A --------------------- B               A --------------------- B
-          //    5'----->                                           <------5'
-          thisCIorient = A_B;
-          otherCIorient = A_B;
-          gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetBEnd.mean;
-          gapDistance.variance = otherCI->offsetAEnd.variance -
-            thisCI->offsetBEnd.variance;
-          break;
-        case BA_BA:
-          //      thisCI                                        otherCI
-          //  B --------------------- A               B --------------------- A
-          //    5'----->                                           <------5'
-          thisCIorient = B_A;
-          otherCIorient = B_A;
-          gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetAEnd.mean;
-          gapDistance.variance = otherCI->offsetBEnd.variance -
-            thisCI->offsetAEnd.variance;
-          break;
-        case BA_AB:
-          //      thisCI                                        otherCI
-          //  B --------------------- A               A --------------------- B
-          //    5'----->                                           <------5'
-          thisCIorient = B_A;
-          otherCIorient = A_B;
-          gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetAEnd.mean;
-          gapDistance.variance = otherCI->offsetAEnd.variance -
-            thisCI->offsetAEnd.variance;
-          break;
-        default:
-          assert(0);
-          break;
+
+      assert(edgeOrient.isUnknown() == false);
+
+      if (edgeOrient.isAB_BA()) {
+        //      thisCI                                        otherCI
+        //  A --------------------- B               B --------------------- A
+        //    5'----->                                           <------5'
+        thisCIorient.setIsForward();
+        otherCIorient.setIsReverse();
+        gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetBEnd.mean;
+        gapDistance.variance = otherCI->offsetBEnd.variance - thisCI->offsetBEnd.variance;
+      }
+      if (edgeOrient.isAB_AB()) {
+        //      thisCI                                        otherCI
+        //  A --------------------- B               A --------------------- B
+        //    5'----->                                           <------5'
+        thisCIorient.setIsForward();
+        otherCIorient.setIsForward();
+        gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetBEnd.mean;
+        gapDistance.variance = otherCI->offsetAEnd.variance - thisCI->offsetBEnd.variance;
+      }
+      if (edgeOrient.isBA_BA()) {
+        //      thisCI                                        otherCI
+        //  B --------------------- A               B --------------------- A
+        //    5'----->                                           <------5'
+        thisCIorient.setIsReverse();
+        otherCIorient.setIsReverse();
+        gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetAEnd.mean;
+        gapDistance.variance = otherCI->offsetBEnd.variance - thisCI->offsetAEnd.variance;
+      }
+      if (edgeOrient.isBA_AB()) {
+        //      thisCI                                        otherCI
+        //  B --------------------- A               A --------------------- B
+        //    5'----->                                           <------5'
+        thisCIorient.setIsReverse();
+        otherCIorient.setIsForward();
+        gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetAEnd.mean;
+        gapDistance.variance = otherCI->offsetAEnd.variance - thisCI->offsetAEnd.variance;
       }
       if ((GetNodeOrient(thisCI) != thisCIorient) ||
           (GetNodeOrient(otherCI) != otherCIorient)){
@@ -460,14 +451,14 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
               (edgeStatus == TENTATIVE_TRUSTED_EDGE_STATUS))
             fprintf(stderr, "["F_CID "."F_CID ","F_CID "."F_CID "]Trusted edge really Bad orientation (%c,%c) (%c,%c).\n",
                     thisCI->id, thisCI->scaffoldID, otherCI->id,
-                    otherCI->scaffoldID, GetNodeOrient(thisCI), thisCIorient,
-                    GetNodeOrient(otherCI), otherCIorient);
+                    otherCI->scaffoldID, GetNodeOrient(thisCI).toLetter(), thisCIorient.toLetter(),
+                    GetNodeOrient(otherCI).toLetter(), otherCIorient.toLetter());
           else if ((edgeStatus != UNTRUSTED_EDGE_STATUS) &&
                    (edgeStatus != TENTATIVE_UNTRUSTED_EDGE_STATUS))
             fprintf(stderr, "["F_CID "."F_CID ","F_CID "."F_CID "]Bad orientation (%c,%c) (%c,%c) edge marked as %d.\n",
                     thisCI->id, thisCI->scaffoldID, otherCI->id,
-                    otherCI->scaffoldID, GetNodeOrient(thisCI), thisCIorient,
-                    GetNodeOrient(otherCI), otherCIorient, edgeStatus);
+                    otherCI->scaffoldID, GetNodeOrient(thisCI).toLetter(), thisCIorient.toLetter(),
+                    GetNodeOrient(otherCI).toLetter(), otherCIorient.toLetter(), edgeStatus);
         }
         continue;
       }
@@ -1268,7 +1259,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
               prevCI = NextCIScaffoldTIterator(&CIs);
             (thisCI = NextCIScaffoldTIterator(&CIs)) != NULL;
             prevCI = thisCI, gapIndex++){
-          ChunkOrientationType edgeOrient;
+          PairOrient edgeOrient;
           float chiSquaredValue;
           EdgeCGW_T *overlapEdge;
           if(gapsToComputeGaps[gapIndex] == NULLINDEX){
@@ -1280,17 +1271,17 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             computeGapIndex++;
             continue;
           }
-          if(GetNodeOrient(thisCI) == A_B){
-            if(GetNodeOrient(prevCI) == A_B){
-              edgeOrient = AB_AB;
+          if(GetNodeOrient(thisCI).isForward()){
+            if(GetNodeOrient(prevCI).isForward()){
+              edgeOrient.setIsAB_AB();
             }else{//GetNodeOrient(prevCI) == B_A
-              edgeOrient = BA_AB;
+              edgeOrient.setIsBA_AB();
             }
           }else{//GetNodeOrient(thisCI) == B_A
-            if(GetNodeOrient(prevCI) == A_B){
-              edgeOrient = AB_BA;
+            if(GetNodeOrient(prevCI).isForward()){
+              edgeOrient.setIsAB_BA();
             }else{//GetNodeOrient(prevCI) == B_A
-              edgeOrient = BA_BA;
+              edgeOrient.setIsBA_BA();
             }
           }
           overlapEdge = FindOverlapEdgeChiSquare(graph, prevCI, thisCI->id,
@@ -1367,7 +1358,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                      CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
                      AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);
                                
-                     if(GetNodeOrient(toDelete) == A_B){
+                     if(GetNodeOrient(toDelete).isForward()){
                        firstOffset = toDelete->offsetAEnd;
                      }else{
                        firstOffset = toDelete->offsetBEnd;
@@ -1575,7 +1566,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
     if (debug.recomputeOffsetsVerboseLV > 1)
       fprintf(stderr,"Reestimate gaps for scaffold\n");
     prevCI = NextCIScaffoldTIterator(&CIs);
-    if(GetNodeOrient(prevCI) == A_B){
+    if(GetNodeOrient(prevCI).isForward()){
       prevLeftEnd = &(prevCI->offsetAEnd);
       prevRightEnd = &(prevCI->offsetBEnd);
     }else{
@@ -1598,7 +1589,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
           prevRightEnd = thisRightEnd, gapPtr++, gapVarPtr++){
       LengthT gapDistance;
 
-      if(GetNodeOrient(thisCI) == A_B){
+      if(GetNodeOrient(thisCI).isForward()){
         thisLeftEnd = &(thisCI->offsetAEnd);
         thisRightEnd = &(thisCI->offsetBEnd);
       }else{
@@ -1731,8 +1722,8 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       NodeCGW_T *otherCI =
         GetGraphNode(ScaffoldGraph->ContigGraph,
                      (isA? edge->idB: edge->idA));
-      ChunkOrientationType edgeOrient;
-      FragOrient thisCIorient, otherCIorient;
+      PairOrient edgeOrient;
+      SequenceOrient thisCIorient, otherCIorient;
       LengthT gapDistance;
       float chiSquareResult;
 
@@ -1742,7 +1733,7 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                 thisCI->id, otherCI->id,
                 edge->distance.mean, edge->distance.variance,
                 edge->edgesContributing,
-                GetEdgeOrientationWRT(edge, thisCI->id));
+                GetEdgeOrientationWRT(edge, thisCI->id).toLetter());
 
       /* We do not want to change the labels for edges with certain
          labels as specified in the doNotChange mask. */
@@ -1766,50 +1757,44 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       /* Check that the edge orientation is consistent with the CI positions
          and orientations within the scaffold. */
       edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
-      switch(edgeOrient){
-        case AB_BA:
-          //      thisCI                                        otherCI
-          //  A --------------------- B               B --------------------- A
-          //    5'----->                                           <------5'
-          thisCIorient = A_B;
-          otherCIorient = B_A;
-          gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetBEnd.mean;
-          gapDistance.variance = otherCI->offsetBEnd.variance -
-            thisCI->offsetBEnd.variance;
-          break;
-        case AB_AB:
-          //      thisCI                                        otherCI
-          //  A --------------------- B               A --------------------- B
-          //    5'----->                                           <------5'
-          thisCIorient = A_B;
-          otherCIorient = A_B;
-          gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetBEnd.mean;
-          gapDistance.variance = otherCI->offsetAEnd.variance -
-            thisCI->offsetBEnd.variance;
-          break;
-        case BA_BA:
-          //      thisCI                                        otherCI
-          //  B --------------------- A               B --------------------- A
-          //    5'----->                                           <------5'
-          thisCIorient = B_A;
-          otherCIorient = B_A;
-          gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetAEnd.mean;
-          gapDistance.variance = otherCI->offsetBEnd.variance -
-            thisCI->offsetAEnd.variance;
-          break;
-        case BA_AB:
-          //      thisCI                                        otherCI
-          //  B --------------------- A               A --------------------- B
-          //    5'----->                                           <------5'
-          thisCIorient = B_A;
-          otherCIorient = A_B;
-          gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetAEnd.mean;
-          gapDistance.variance = otherCI->offsetAEnd.variance -
-            thisCI->offsetAEnd.variance;
-          break;
-        default:
-          assert(0);
-          break;
+
+      assert(edgeOrient.isUnknown() == false);
+
+      if (edgeOrient.isAB_BA()) {
+        //      thisCI                                        otherCI
+        //  A --------------------- B               B --------------------- A
+        //    5'----->                                           <------5'
+        thisCIorient.setIsForward();
+        otherCIorient.setIsReverse();
+        gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetBEnd.mean;
+        gapDistance.variance = otherCI->offsetBEnd.variance - thisCI->offsetBEnd.variance;
+      }
+      if (edgeOrient.isAB_AB()) {
+        //      thisCI                                        otherCI
+        //  A --------------------- B               A --------------------- B
+        //    5'----->                                           <------5'
+        thisCIorient.setIsForward();
+        otherCIorient.setIsForward();
+        gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetBEnd.mean;
+        gapDistance.variance = otherCI->offsetAEnd.variance - thisCI->offsetBEnd.variance;
+      }
+      if (edgeOrient.isBA_BA()) {
+        //      thisCI                                        otherCI
+        //  B --------------------- A               B --------------------- A
+        //    5'----->                                           <------5'
+        thisCIorient.setIsReverse();
+        otherCIorient.setIsReverse();
+        gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetAEnd.mean;
+        gapDistance.variance = otherCI->offsetBEnd.variance - thisCI->offsetAEnd.variance;
+      }
+      if (edgeOrient.isBA_AB()) {
+        //      thisCI                                        otherCI
+        //  B --------------------- A               A --------------------- B
+        //    5'----->                                           <------5'
+        thisCIorient.setIsReverse();
+        otherCIorient.setIsForward();
+        gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetAEnd.mean;
+        gapDistance.variance = otherCI->offsetAEnd.variance - thisCI->offsetAEnd.variance;
       }
       if((GetNodeOrient(thisCI) != thisCIorient) ||
          (GetNodeOrient(otherCI) != otherCIorient)){
@@ -1819,8 +1804,8 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
         if (debug.markInternalEdgeStatusLV > 0)
           fprintf(debugfp, "["F_CID ","F_CID "]Bad orientation (%c,%c) (%c,%c)\n",
                   thisCI->id, otherCI->id,
-                  GetNodeOrient(thisCI), thisCIorient, GetNodeOrient(otherCI),
-                  otherCIorient);
+                  GetNodeOrient(thisCI).toLetter(), thisCIorient.toLetter(), GetNodeOrient(otherCI).toLetter(),
+                  otherCIorient.toLetter());
 
         SetEdgeStatus(graph->ContigGraph, edge, markUntrusted ? UNTRUSTED_EDGE_STATUS :
                       TENTATIVE_UNTRUSTED_EDGE_STATUS);
@@ -1980,8 +1965,8 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
   NodeCGW_T *otherCI =
     GetGraphNode(ScaffoldGraph->ContigGraph,
                  (isA? edge->idB: edge->idA));
-  ChunkOrientationType edgeOrient;
-  FragOrient thisCIorient, otherCIorient;
+  PairOrient edgeOrient;
+  SequenceOrient thisCIorient, otherCIorient;
   LengthT gapDistance;
   float chiSquareResult;
 
@@ -2016,51 +2001,46 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
   /* Check that the edge orientation is consistent with the CI positions
      and orientations within the scaffold. */
   edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
-  switch(edgeOrient){
-    case AB_BA:
-      //      thisCI                                        otherCI
-      //  A --------------------- B               B --------------------- A
-      //    5'----->                                           <------5'
-      thisCIorient = A_B;
-      otherCIorient = B_A;
-      gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetBEnd.mean;
-      gapDistance.variance = otherCI->offsetBEnd.variance -
-        thisCI->offsetBEnd.variance;
-      break;
-    case AB_AB:
-      //      thisCI                                        otherCI
-      //  A --------------------- B               A --------------------- B
-      //    5'----->                                           <------5'
-      thisCIorient = A_B;
-      otherCIorient = A_B;
-      gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetBEnd.mean;
-      gapDistance.variance = otherCI->offsetAEnd.variance -
-        thisCI->offsetBEnd.variance;
-      break;
-    case BA_BA:
-      //      thisCI                                        otherCI
-      //  B --------------------- A               B --------------------- A
-      //    5'----->                                           <------5'
-      thisCIorient = B_A;
-      otherCIorient = B_A;
-      gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetAEnd.mean;
-      gapDistance.variance = otherCI->offsetBEnd.variance -
-        thisCI->offsetAEnd.variance;
-      break;
-    case BA_AB:
-      //      thisCI                                        otherCI
-      //  B --------------------- A               A --------------------- B
-      //    5'----->                                           <------5'
-      thisCIorient = B_A;
-      otherCIorient = A_B;
-      gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetAEnd.mean;
-      gapDistance.variance = otherCI->offsetAEnd.variance -
-        thisCI->offsetAEnd.variance;
-      break;
-    default:
-      assert(0);
-      break;
+
+  assert(edgeOrient.isUnknown() == false);
+
+  if (edgeOrient.isAB_BA()) {
+    //      thisCI                                        otherCI
+    //  A --------------------- B               B --------------------- A
+    //    5'----->                                           <------5'
+    thisCIorient.setIsForward();
+    otherCIorient.setIsReverse();
+    gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetBEnd.mean;
+    gapDistance.variance = otherCI->offsetBEnd.variance - thisCI->offsetBEnd.variance;
   }
+  if (edgeOrient.isAB_AB()) {
+    //      thisCI                                        otherCI
+    //  A --------------------- B               A --------------------- B
+    //    5'----->                                           <------5'
+    thisCIorient.setIsForward();
+    otherCIorient.setIsForward();
+    gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetBEnd.mean;
+    gapDistance.variance = otherCI->offsetAEnd.variance - thisCI->offsetBEnd.variance;
+  }
+  if (edgeOrient.isBA_BA()) {
+    //      thisCI                                        otherCI
+    //  B --------------------- A               B --------------------- A
+    //    5'----->                                           <------5'
+    thisCIorient.setIsReverse();
+    otherCIorient.setIsReverse();
+    gapDistance.mean = otherCI->offsetBEnd.mean - thisCI->offsetAEnd.mean;
+    gapDistance.variance = otherCI->offsetBEnd.variance - thisCI->offsetAEnd.variance;
+  }
+  if (edgeOrient.isBA_AB()) {
+    //      thisCI                                        otherCI
+    //  B --------------------- A               A --------------------- B
+    //    5'----->                                           <------5'
+    thisCIorient.setIsReverse();
+    otherCIorient.setIsForward();
+    gapDistance.mean = otherCI->offsetAEnd.mean - thisCI->offsetAEnd.mean;
+    gapDistance.variance = otherCI->offsetAEnd.variance - thisCI->offsetAEnd.variance;
+  }
+
   if((GetNodeOrient(thisCI) != thisCIorient) ||
      (GetNodeOrient(otherCI) != otherCIorient)){
     /* edge orientation does not agree
@@ -2069,8 +2049,8 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
     if (debug.markInternalEdgeStatusLV > 1)
       fprintf(debugfp, "["F_CID ","F_CID "]Bad orientation (%c,%c) (%c,%c)\n",
               thisCI->id, otherCI->id,
-              GetNodeOrient(thisCI), thisCIorient, GetNodeOrient(otherCI),
-              otherCIorient);
+              GetNodeOrient(thisCI).toLetter(), thisCIorient.toLetter(), GetNodeOrient(otherCI).toLetter(),
+              otherCIorient.toLetter());
 
     return FALSE;
   }

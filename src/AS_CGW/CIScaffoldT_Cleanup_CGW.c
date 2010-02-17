@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.64 2010-01-17 03:10:10 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.65 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,8 +94,8 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
     }
 
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
-      ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge,contig->id);
-      ChunkOrientationType orient;
+      PairOrient edgeOrient = GetEdgeOrientationWRT(edge,contig->id);
+      PairOrient orient;
       LengthT distance;
       ContigT *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == contig->id? edge->idB:edge->idA));
       int32 overlap;
@@ -117,110 +117,97 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
 
       if(verbose){
         fprintf(stderr,"* Contain:  pos "F_CID "  flip:%d edgeOrient:%c beg:"F_S32" end:"F_S32" newContigLength:%g\n",
-                pos->ident, flip, edgeOrient, posBgn, posEnd, newContig->bpLength.mean);
+                pos->ident, flip, edgeOrient.toLetter(), posBgn, posEnd, newContig->bpLength.mean);
         PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,"propogating ", edge, edge->idA);
       }
 
       //  Compute the two edges for the containment
       overlap = (int32) -edge->distance.mean;
 
+      assert(edgeOrient.isUnknown() == false);
+
       if(!flip){
-        switch(edgeOrient){
-          case AB_AB:
+        if (edgeOrient.isAB_AB()) {
 
-            //  A-------------------------newcontig-----------------------------------------B
-            //        A ======================contig============================B
-            //  -------------------------A ===========other==========B
-            //                           |---------------overlap ---------------|
-            //                           |-----AB_AB overlap length-------------------------|
-            //
-            orient = AB_AB;
-            distance.mean = -(newContig->bpLength.mean - posEnd + overlap );
-            break;
-          case BA_BA:
-            //  A-------------------------newcontig-----------------------------------------B
-            //        A ======================contig============================B
-            //  -------------------------A ===========other==========B
-            //        |---------------overlap -----------------------|
-            //                             |-----AB_AB overlap length-----------------------|
-            //
-
-            orient = AB_AB;
-            distance.mean = -(newContig->bpLength.mean - posBgn - overlap + otherContig->bpLength.mean);
-            break;
-          case AB_BA:
-            //  A-------------------------newcontig-----------------------------------------B
-            //        A ======================contig============================B
-            //  -------------------------B ===========other==========A
-            //                           |---------------overlap ---------------|
-            //                           |-----AB_BA overlap length----------------------------|
-            //
-
-            orient = AB_BA;
-            distance.mean = -(newContig->bpLength.mean - posEnd +  overlap);
-            break;
-          case BA_AB:
-            //  A-------------------------newcontig-----------------------------------------B
-            //        A ======================contig============================B
-            //  -------------------------B ===========other==========A
-            //        |-------------------overlap -------------------|
-            //                           |---AB_BA overlap length----------------------------|
-            //
-
-            orient = AB_BA;
-            distance.mean = -(newContig->bpLength.mean - posBgn - overlap + otherContig->bpLength.mean);
-            break;
-          default:
-            assert(0);
+          //  A-------------------------newcontig-----------------------------------------B
+          //        A ======================contig============================B
+          //  -------------------------A ===========other==========B
+          //                           |---------------overlap ---------------|
+          //                           |-----AB_AB overlap length-------------------------|
+          //
+          orient.setIsAB_AB();
+          distance.mean = -(newContig->bpLength.mean - posEnd + overlap );
+        }
+        if (edgeOrient.isBA_BA()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        A ======================contig============================B
+          //  -------------------------A ===========other==========B
+          //        |---------------overlap -----------------------|
+          //                             |-----AB_AB overlap length-----------------------|
+          //
+          orient.setIsAB_AB();
+          distance.mean = -(newContig->bpLength.mean - posBgn - overlap + otherContig->bpLength.mean);
+        }
+        if (edgeOrient.isAB_BA()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        A ======================contig============================B
+          //  -------------------------B ===========other==========A
+          //                           |---------------overlap ---------------|
+          //                           |-----AB_BA overlap length----------------------------|
+          //
+          orient.setIsAB_BA();
+          distance.mean = -(newContig->bpLength.mean - posEnd +  overlap);
+        }
+        if (edgeOrient.isBA_AB()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        A ======================contig============================B
+          //  -------------------------B ===========other==========A
+          //        |-------------------overlap -------------------|
+          //                           |---AB_BA overlap length----------------------------|
+          //
+          orient.setIsAB_BA();
+          distance.mean = -(newContig->bpLength.mean - posBgn - overlap + otherContig->bpLength.mean);
         }
       }else{
-        switch(edgeOrient){
-          case BA_AB:
-            //  A-------------------------newcontig-----------------------------------------B
-            //        B ======================contig============================A
-            //  -------------------------A ===========other==========B
-            //                           |-------------------overlap -----------|
-            //                           |-----AB_AB overlap length-------------------------|
-            //
-            //
-            orient = AB_AB;
-            distance.mean = -(newContig->bpLength.mean - posBgn + overlap);
-            break;
-          case AB_BA:
-            //  A-------------------------newcontig-----------------------------------------B
-            //        B ======================contig============================A
-            //  -------------------------A ===========other==========B
-            //        |-------------------overlap -------------------|
-            //                           |-----AB_AB overlap length----------------------------|
-            //
-            //
-            orient = AB_AB;
-            distance.mean = -(newContig->bpLength.mean - posEnd - overlap + otherContig->bpLength.mean);
-            break;
-          case BA_BA:
-            //  A-------------------------newcontig-----------------------------------------B
-            //        B ======================contig============================A
-            //  -------------------------B ===========other==========A
-            //                           |-------------------overlap -----------|
-            //                           |-----AB_BA overlap length-------------------------|
-            //
-            //
-            orient = AB_BA;
-            distance.mean = -(newContig->bpLength.mean - posBgn  +  overlap);
-            break;
-          case AB_AB:
-            //  A-------------------------newcontig-----------------------------------------B
-            //        B ======================contig============================A
-            //  -------------------------B ===========other==========A
-            //         |-------------------overlap ------------------|
-            //                           |-----AB_BA overlap length-------------------------|
-            //
-            //
-            orient = AB_BA;
-            distance.mean = -(newContig->bpLength.mean - posEnd - overlap + otherContig->bpLength.mean);
-            break;
-          default:
-            assert(0);
+        if (edgeOrient.isBA_AB()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        B ======================contig============================A
+          //  -------------------------A ===========other==========B
+          //                           |-------------------overlap -----------|
+          //                           |-----AB_AB overlap length-------------------------|
+          //
+          orient.setIsAB_AB();
+          distance.mean = -(newContig->bpLength.mean - posBgn + overlap);
+        }
+        if (edgeOrient.isAB_BA()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        B ======================contig============================A
+          //  -------------------------A ===========other==========B
+          //        |-------------------overlap -------------------|
+          //                           |-----AB_AB overlap length----------------------------|
+          //
+          orient.setIsAB_AB();
+          distance.mean = -(newContig->bpLength.mean - posEnd - overlap + otherContig->bpLength.mean);
+        }
+        if (edgeOrient.isBA_BA()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        B ======================contig============================A
+          //  -------------------------B ===========other==========A
+          //                           |-------------------overlap -----------|
+          //                           |-----AB_BA overlap length-------------------------|
+          //
+          orient.setIsAB_BA();
+          distance.mean = -(newContig->bpLength.mean - posBgn  +  overlap);
+        }
+        if (edgeOrient.isAB_AB()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        B ======================contig============================A
+          //  -------------------------B ===========other==========A
+          //         |-------------------overlap ------------------|
+          //                           |-----AB_BA overlap length-------------------------|
+          //
+          orient.setIsAB_BA();
+          distance.mean = -(newContig->bpLength.mean - posEnd - overlap + otherContig->bpLength.mean);
         }
       }
       // Add the edge to the graph and insert them
@@ -241,7 +228,8 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
         }else{
           newEdge->idA = otherContig->id;
           newEdge->idB = newContig->id;
-          newEdge->orient = FlipEdgeOrient(orient);
+          newEdge->orient = orient;
+          newEdge->orient.flip();
           newEdge->flags.bits.bContainsA = TRUE;
           newEdge->flags.bits.hasContainmentOverlap = TRUE;
         }
@@ -273,10 +261,10 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
           if(olap.overlap == 0 || olap.suspicious){
             if(olap.suspicious){
               fprintf(stderr,"* CIS_C0 SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c) [%d,%d] found ("F_CID ","F_CID ",%c) "F_S32"\n",
-                      newEdge->idA, newEdge->idB, newEdge->orient,
+                      newEdge->idA, newEdge->idB, newEdge->orient.toLetter(),
                       (int)(-newEdge->distance.mean - delta),
                       (int) (-newEdge->distance.mean + delta),
-                      olap.spec.cidA, olap.spec.cidB, olap.spec.orientation,
+                      olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(),
                       olap.overlap);
             }
             if(verbose) {
@@ -327,7 +315,7 @@ static int CompareEdges(const void *c1, const void *c2){
   if(diff)
     return diff;
 
-  diff = edge1->orient - edge2->orient;
+  diff = (int)edge1->orient.toLetter() - (int)edge2->orient.toLetter();
   if(diff)
     return diff;
 
@@ -402,8 +390,8 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
     }
 
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
-      ChunkOrientationType edgeOrient = GetEdgeOrientationWRT(edge,contig->id);
-      ChunkOrientationType orient1, orient2;
+      PairOrient edgeOrient = GetEdgeOrientationWRT(edge,contig->id);
+      PairOrient orient1, orient2;
       LengthT distance1, distance2;
       ContigT *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == contig->id? edge->idB:edge->idA));
       int32 overlap;
@@ -422,7 +410,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	fprintf
           (stderr,
            "* pos "F_CID "  flip:%d edgeOrient:%c beg:"F_S32" end:"F_S32" newContigLength:%g\n",
-           pos->ident, flip, edgeOrient, posBgn, posEnd,
+           pos->ident, flip, edgeOrient.toLetter(), posBgn, posEnd,
            newContig->bpLength.mean);
 	PrintGraphEdge(stderr,
                        ScaffoldGraph->ContigGraph,"propogating*I* ",
@@ -435,121 +423,111 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       overlap = -edge->distance.mean;
 
       if(!flip){
-	switch(edgeOrient){
-          case AB_AB:
-
-            //  A-------------------------newcontig-----------------------------------------B
-            //        A ===========contig============B
-            //  -------------------------A ===========other==========B
-            //                           |-----AB_AB overlap length------------------------|
-            //  |----------------BA_BA overlap length-----------|
-            //
-            orient1 = AB_AB;
-            maxDistance = (newContig->bpLength.mean - posEnd + overlap);
-            distance1.mean = -maxDistance;
-            orient2 = BA_BA;
-            distance2.mean = -(posEnd - overlap + MIN(otherContig->bpLength.mean, maxDistance));
-            break;
-          case BA_BA:
-            //  A-------------------------newcontig-----------------------------------------B
-            //                                  A ===========contig============B
-            //  --------------------A ===========other==========B
-            //  |----------------BA_BA overlap length-----------|
-            //                             |-----------------AB_AB overlap length-----------|
-            //
-            orient1 = BA_BA;
-            maxDistance = posBgn + overlap;
-            distance1.mean = -maxDistance;
-            orient2 = AB_AB;
-            distance2.mean = -(newContig->bpLength.mean - posBgn + MIN(otherContig->bpLength.mean,maxDistance) - overlap);
-            break;
-          case AB_BA:
-            //  A-------------------------newcontig-----------------------------------------B
-            //        A ===========contig============B
-            //  -------------------------B ===========other==========A
-            //  |---------------------BA_AB overlap lengtnh-----------|
-            //                             |-----------------AB_BA overlap length-----------|
-            //
-            orient1 = AB_BA;
-            maxDistance = (newContig->bpLength.mean - posEnd + overlap);
-            distance1.mean = -maxDistance;
-            orient2 = BA_AB;
-            distance2.mean = -(posEnd + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
-            break;
-          case BA_AB:
-            //  A-------------------------newcontig-----------------------------------------B
-            //                                    A ===========contig============B
-            //  ----------------B ===========other==========A
-            //  |------------BA_AB overlap length-----------|
-            //                  |----------------AB_BA overlap length----------------------|
-            //
-            orient1 = BA_AB;
-            maxDistance = (posBgn + overlap);
-            distance1.mean = -maxDistance;
-            orient2 = AB_BA;
-            distance2.mean = -(newContig->bpLength.mean - posBgn + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
-            break;
-          default:
-            assert(0);
-	}
+        if (edgeOrient.isAB_AB()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        A ===========contig============B
+          //  -------------------------A ===========other==========B
+          //                           |-----AB_AB overlap length------------------------|
+          //  |----------------BA_BA overlap length-----------|
+          //
+          orient1.setIsAB_AB();
+          maxDistance = (newContig->bpLength.mean - posEnd + overlap);
+          distance1.mean = -maxDistance;
+          orient2.setIsBA_BA();
+          distance2.mean = -(posEnd - overlap + MIN(otherContig->bpLength.mean, maxDistance));
+        }
+        if (edgeOrient.isBA_BA()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //                                  A ===========contig============B
+          //  --------------------A ===========other==========B
+          //  |----------------BA_BA overlap length-----------|
+          //                             |-----------------AB_AB overlap length-----------|
+          //
+          orient1.setIsBA_BA();
+          maxDistance = posBgn + overlap;
+          distance1.mean = -maxDistance;
+          orient2.setIsAB_AB();
+          distance2.mean = -(newContig->bpLength.mean - posBgn + MIN(otherContig->bpLength.mean,maxDistance) - overlap);
+        }
+        if (edgeOrient.isAB_BA()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        A ===========contig============B
+          //  -------------------------B ===========other==========A
+          //  |---------------------BA_AB overlap lengtnh-----------|
+          //                             |-----------------AB_BA overlap length-----------|
+          //
+          orient1.setIsAB_BA();
+          maxDistance = (newContig->bpLength.mean - posEnd + overlap);
+          distance1.mean = -maxDistance;
+          orient2.setIsBA_AB();
+          distance2.mean = -(posEnd + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
+        }
+        if (edgeOrient.isBA_AB()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //                                    A ===========contig============B
+          //  ----------------B ===========other==========A
+          //  |------------BA_AB overlap length-----------|
+          //                  |----------------AB_BA overlap length----------------------|
+          //
+          orient1.setIsBA_AB();
+          maxDistance = (posBgn + overlap);
+          distance1.mean = -maxDistance;
+          orient2.setIsAB_BA();
+          distance2.mean = -(newContig->bpLength.mean - posBgn + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
+        }
       }else{
-	switch(edgeOrient){
-          case BA_AB:
-
-            //  A-------------------------newcontig-----------------------------------------B
-            //        B ===========contig============A
-            //  -------------------------A ===========other==========B
-            //  |-----BA_BA overlap length---------------------------|
-            //                             |----------------AB_AB overlap length-----------|
-            //
-            orient1 = BA_BA;
-            maxDistance = (posBgn + otherContig->bpLength.mean - overlap);
-            distance1.mean = -maxDistance;
-            orient2 = AB_AB;
-            distance2.mean = -(newContig->bpLength.mean - posBgn + overlap);
-            break;
-          case AB_BA:
-            //  A-------------------------newcontig-----------------------------------------B
-            //                                  B ===========contig============A
-            //  --------------------A ===========other==========B
-            //  |----------------BA_BA overlap length-----------|
-            //                             |-----------------AB_AB overlap length-----------|
-            //
-            orient1 = AB_AB;
-            maxDistance = (posEnd + overlap);
-            distance1.mean = -(newContig->bpLength.mean - posEnd + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
-            orient2 = BA_BA;
-            distance2.mean = -maxDistance;
-            break;
-          case BA_BA:
-            //  A-------------------------newcontig-----------------------------------------B
-            //        B ===========contig============A
-            //  -------------------------B ===========other==========A
-            //  |-----BA_AB overlap length---------------------------|
-            //                             |-----------------AB_BA overlap length-----------|
-            //
-            orient1 = AB_BA;
-            maxDistance = (newContig->bpLength.mean - posBgn + overlap);
-            distance1.mean = -maxDistance;
-            orient2 = BA_AB;
-            distance2.mean = -(posBgn + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
-            break;
-          case AB_AB:
-            //  A-------------------------newcontig-----------------------------------------B
-            //                                    B ===========contig============A
-            //  ----------------B ===========other==========A
-            //  |------------BA_AB overlap length-----------|
-            //                    |--------------------------------AB_BA overlap length-----|
-            //
-            maxDistance = (posEnd + overlap);
-            orient1 = BA_AB;
-            distance1.mean = -maxDistance;
-            orient2 = AB_BA;
-            distance2.mean = -(newContig->bpLength.mean - posEnd + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
-            break;
-          default:
-            assert(0);
-	}
+        if (edgeOrient.isBA_AB()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        B ===========contig============A
+          //  -------------------------A ===========other==========B
+          //  |-----BA_BA overlap length---------------------------|
+          //                             |----------------AB_AB overlap length-----------|
+          //
+          orient1.setIsBA_BA();
+          maxDistance = (posBgn + otherContig->bpLength.mean - overlap);
+          distance1.mean = -maxDistance;
+          orient2.setIsAB_AB();
+          distance2.mean = -(newContig->bpLength.mean - posBgn + overlap);
+        }
+        if (edgeOrient.isAB_BA()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //                                  B ===========contig============A
+          //  --------------------A ===========other==========B
+          //  |----------------BA_BA overlap length-----------|
+          //                             |-----------------AB_AB overlap length-----------|
+          //
+          orient1.setIsAB_AB();
+          maxDistance = (posEnd + overlap);
+          distance1.mean = -(newContig->bpLength.mean - posEnd + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
+          orient2.setIsBA_BA();
+          distance2.mean = -maxDistance;
+        }
+        if (edgeOrient.isBA_BA()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //        B ===========contig============A
+          //  -------------------------B ===========other==========A
+          //  |-----BA_AB overlap length---------------------------|
+          //                             |-----------------AB_BA overlap length-----------|
+          //
+          orient1.setIsAB_BA();
+          maxDistance = (newContig->bpLength.mean - posBgn + overlap);
+          distance1.mean = -maxDistance;
+          orient2.setIsBA_AB();
+          distance2.mean = -(posBgn + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
+        }
+        if (edgeOrient.isAB_AB()) {
+          //  A-------------------------newcontig-----------------------------------------B
+          //                                    B ===========contig============A
+          //  ----------------B ===========other==========A
+          //  |------------BA_AB overlap length-----------|
+          //                    |--------------------------------AB_BA overlap length-----|
+          //
+          maxDistance = (posEnd + overlap);
+          orient1.setIsBA_AB();
+          distance1.mean = -maxDistance;
+          orient2.setIsAB_BA();
+          distance2.mean = -(newContig->bpLength.mean - posEnd + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
+        }
       }
       // Add them to the graph, do NOT insert them.  Keep a list of such edges in collectedEdges
       {
@@ -637,7 +615,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
     int32 i;
     int32 numEdges = GetNumCDS_CID_ts(CollectedEdges);
     CDS_CID_t currID = NULLINDEX;
-    ChunkOrientationType currOrient = XX_XX;
+    PairOrient currOrient;
     ResetVA_CDS_CID_t(TentativeEdges);
 
     for(i = 0; i < numEdges; ){
@@ -682,13 +660,13 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	}else{
 	  if(GlobalData->debugLevel > 0)
 	    fprintf(stderr,"* Merging "F_CID ","F_CID ",%c   %d edges\n",
-                    e->idA, currID, currOrient,
+                    e->idA, currID, currOrient.toLetter(),
                     (int) GetNumCDS_CID_ts(TentativeEdges));
 	  addedEdges = MergeGraphEdges(ScaffoldGraph->ContigGraph, TentativeEdges);
 	  if(addedEdges> 0){
 	    if(GlobalData->debugLevel > 0)
 	      fprintf(stderr,"* Merging ("F_CID ","F_CID ",%c): Added %d edges!!!\n",
-                      e->idA, currID, currOrient, addedEdges);
+                      e->idA, currID, currOrient.toLetter(), addedEdges);
 
 	    ee = GetGraphEdge(ScaffoldGraph->ContigGraph, *GetCDS_CID_t(TentativeEdges,0));
 	    ee->flags.bits.bContainsA = FALSE;
@@ -722,7 +700,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
             AppendCDS_CID_t(DiscardedEdges, GetCDS_CID_t(TentativeEdges,i));
           }
 	currID = NULLINDEX;
-	currOrient = XX_XX;
+	currOrient.setIsUnknown();
 	ResetVA_CDS_CID_t(TentativeEdges);
 	if(last)
 	  break;
@@ -771,7 +749,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	ChunkOverlapCheckT olap = {0};
 	int32 delta = MIN((3 * sqrt(e->distance.variance)), 50);
 	CDS_CID_t idA, idB;
-	ChunkOrientationType orient;
+	PairOrient orient;
 
 	if(verbose) {
 	  PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,"dp_align check ",
@@ -784,7 +762,8 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	if(e->idA > e->idB){
 	  idA = e->idB;
 	  idB = e->idA;
-	  orient = FlipEdgeOrient(e->orient);
+	  orient = e->orient;
+          orient.flip();
 	}
 
 
@@ -812,10 +791,10 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	if(olap.overlap == 0 || olap.suspicious){
           if(olap.suspicious){
             fprintf(stderr,"* CIS_C1 SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c) [%d,%d] found ("F_CID ","F_CID ",%c) "F_S32" \n",
-                    idA, idB, orient,
+                    idA, idB, orient.toLetter(),
                     (int)(-e->distance.mean - delta),
                     (int)(-e->distance.mean + delta),
-                    olap.spec.cidA, olap.spec.cidB, olap.spec.orientation, olap.overlap);
+                    olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(), olap.overlap);
           }
 
 	  if(verbose) {
@@ -857,7 +836,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	  newEdge->flags.bits.hasContributingOverlap = !(olap.BContainsA || olap.AContainsB);
 	  newEdge->idA = newEdge->idB;
 	  newEdge->idB = tmp;
-	  newEdge->orient =  FlipEdgeOrient(newEdge->orient);
+          newEdge->orient.flip();
 	}
 	newEdge->edgesContributing = 1;
 
@@ -900,7 +879,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
   InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contigID, contigEnd, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
   while((edge = NextGraphEdgeIterator(&edges)) != NULL){
     EdgeCGW_T *rawEdge, *newEdge;
-    ChunkOrientationType newOrient = edge->orient;
+    PairOrient newOrient = edge->orient;
     NodeCGW_T *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == contigID? edge->idB:edge->idA));
 
     if(!isOverlapEdge(edge))
@@ -958,25 +937,20 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
     //  of the edge
     //
     if (contigEnd != newContigEnd) {
-      switch( newOrient){
-	case AB_BA:
-	  assert(contigEnd == B_END);
-	  newOrient = BA_BA;
-	  break;
-	case AB_AB:
-	  assert(contigEnd == B_END);
-	  newOrient = BA_AB;
-	  break;
-	case BA_AB:
-	  assert(contigEnd == A_END);
-	  newOrient = AB_AB;
-	  break;
-	case BA_BA:
-	  assert(contigEnd == A_END);
-	  newOrient = AB_BA;
-	  break;
-	default:
-	  assert(0);
+      assert(newOrient.isUnknown() == false);
+
+      if        (newOrient.isAB_BA()) {
+        assert(contigEnd == B_END);
+        newOrient.setIsBA_BA();
+      } else if (newOrient.isAB_AB()) {
+        assert(contigEnd == B_END);
+        newOrient.setIsBA_AB();
+      } else if (newOrient.isBA_AB()) {
+        assert(contigEnd == A_END);
+        newOrient.setIsAB_AB();
+      } else if (newOrient.isBA_BA()) {
+        assert(contigEnd == A_END);
+        newOrient.setIsAB_BA();
       }
     }
 
@@ -987,7 +961,8 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
       assert(rawEdge->idA == contigID || rawEdge->idB == contigID);
 
       if(otherCI->id < newContig->id){
-	newEdge->orient = FlipEdgeOrient(newOrient);
+        newEdge->orient = newOrient;
+	newEdge->orient.flip();
 	newEdge->idA = otherCI->id;
 	newEdge->idB = newContig->id;
       }else{
@@ -1000,7 +975,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
         ChunkOverlapCheckT olap = {0};
         if(LookupOverlap(ScaffoldGraph->ContigGraph, newEdge->idA, newEdge->idB, newEdge->orient, &olap)){
           fprintf(stderr,"\t* Overlap already exists ("F_CID ","F_CID ",%c)...skip\n",
-                  newEdge->idA, newEdge->idB, newEdge->orient);
+                  newEdge->idA, newEdge->idB, newEdge->orient.toLetter());
           FreeGraphEdge(ScaffoldGraph->ContigGraph, newEdge);
           continue;
         }
@@ -1022,19 +997,24 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
         if(olap.overlap == 0 || olap.suspicious){
           if(olap.suspicious){
             fprintf(stderr,"* CIS_S2 SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c) found ("F_CID ","F_CID ",%c)\n",
-                    newEdge->idA, newEdge->idB, newEdge->orient,
-                    olap.spec.cidA, olap.spec.cidB, olap.spec.orientation);
+                    newEdge->idA, newEdge->idB, newEdge->orient.toLetter(),
+                    olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter());
           }
           if(verbose) {
             PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,
                            "X No Overlap!  ", newEdge, newEdge->idA);
           }
+
+          newEdge->orient.flip();  //  Handles suspicious
+
           olap = OverlapChunks(ScaffoldGraph->ContigGraph,
                                newEdge->idA, newEdge->idB,
-                               FlipEdgeOrient(newEdge->orient), // handles suspicious
+                               newEdge->orient,
                                -newEdge->distance.mean - delta,
                                -newEdge->distance.mean + delta,
                                AS_CGW_ERROR_RATE, FALSE);
+
+          newEdge->orient.flip();
 
           if(olap.overlap > 0 && !olap.suspicious)
             fprintf(stderr,"*** DUMMY, you got the orientation backwards!!!! ****\n");
@@ -1540,19 +1520,19 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
          actual = IntervalsOverlap(contig.minOffset.mean, contig.maxOffset.mean, currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
                   
-         int32 expected_ahang = (GetNodeOrient(currCI) == A_B ? currCI->offsetAEnd.mean : currCI->offsetBEnd.mean);
-         expected_ahang -= (GetNodeOrient(contig.maxCI) == A_B ? contig.maxCI->offsetAEnd.mean : contig.maxCI->offsetBEnd.mean);
-         int32 expected_bhang = (GetNodeOrient(currCI) == A_B ? currCI->offsetBEnd.mean : currCI->offsetAEnd.mean);
-         expected_bhang -= (GetNodeOrient(contig.maxCI) == A_B ? contig.maxCI->offsetBEnd.mean : contig.maxCI->offsetAEnd.mean);
+         int32 expected_ahang = (GetNodeOrient(currCI).isForward() ? currCI->offsetAEnd.mean : currCI->offsetBEnd.mean);
+         expected_ahang -= (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetAEnd.mean : contig.maxCI->offsetBEnd.mean);
+         int32 expected_bhang = (GetNodeOrient(currCI).isForward() ? currCI->offsetBEnd.mean : currCI->offsetAEnd.mean);
+         expected_bhang -= (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetBEnd.mean : contig.maxCI->offsetAEnd.mean);
 
-         float inferredVar = (GetNodeOrient(contig.maxCI) == A_B ? contig.maxCI->offsetBEnd.variance : contig.maxCI->offsetAEnd.variance);
-         inferredVar += (GetNodeOrient(currCI) == A_B ? currCI->offsetAEnd.variance : currCI->offsetBEnd.variance);
+         float inferredVar = (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetBEnd.variance : contig.maxCI->offsetAEnd.variance);
+         inferredVar += (GetNodeOrient(currCI).isForward() ? currCI->offsetAEnd.variance : currCI->offsetBEnd.variance);
 
          int32 minOverlap = MAX(CGW_MISSED_OVERLAP, (actual - (3.0 * sqrt(inferredVar))));
          int32 maxOverlap = (actual + (3.0 * sqrt(inferredVar)));
          int32 minAhang = contig.maxCI->bpLength.mean - maxOverlap;
          int32 maxAhang = contig.maxCI->bpLength.mean - minOverlap;
-         ChunkOrientationType orient = GetChunkPairOrientation(GetNodeOrient(contig.maxCI), GetNodeOrient(currCI));
+         PairOrient orient = GetChunkPairOrientation(GetNodeOrient(contig.maxCI), GetNodeOrient(currCI));
 
          Overlap* ovl = OverlapContigs(contig.maxCI, currCI, &orient, minAhang, maxAhang, FALSE, TRUE, TRUE);
          if (ovl != NULL && ScoreOverlap(ovl, actual, expected_ahang, expected_bhang, AS_CGW_ERROR_RATE, NULL, NULL, NULL) != 0) {
@@ -2146,8 +2126,8 @@ ContigContainment(CIScaffoldT  *scaffold,
   int32            maxAhang;
   IntElementPos          contigPos;
   Overlap               *contigOverlap;
-  ChunkOrientationType   overlapOrientation;
-  ChunkOrientationType   actualOverlapOrientation;
+  PairOrient             overlapOrientation;
+  PairOrient             actualOverlapOrientation;
   NodeCGW_T             *leftContig;
   NodeCGW_T             *rightContig;
 
@@ -2168,21 +2148,21 @@ ContigContainment(CIScaffoldT  *scaffold,
 
   if (leftContig->offsetAEnd.mean < leftContig->offsetBEnd.mean) {  // leftContig is AB
     if (rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) {  // rightContig is AB
-      overlapOrientation = AB_AB;
+      overlapOrientation.setIsAB_AB();
       minAhang = (int32) (rightContig->offsetAEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     } else {  // rightContig is BA
-      overlapOrientation = AB_BA;
+      overlapOrientation.setIsAB_BA();
       minAhang = (int32) (rightContig->offsetBEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     }
   } else {  // leftContig is BA
     if (rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) {  // rightContig is AB
-      overlapOrientation = BA_AB;
+      overlapOrientation.setIsBA_AB();
       minAhang = (int32) (rightContig->offsetAEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     } else {  // rightContig is BA
-      overlapOrientation = BA_BA;
+      overlapOrientation.setIsBA_BA();
       minAhang = (int32) (rightContig->offsetBEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     }
@@ -2202,9 +2182,9 @@ ContigContainment(CIScaffoldT  *scaffold,
 #ifdef DEBUG_CONTIGCONTAINMENT
     fprintf(stderr, "ContigContainment()--  Try #2\n");
 #endif
-    overlapOrientation = InvertEdgeOrient(overlapOrientation);
+    overlapOrientation.invert();
     contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
-    overlapOrientation = InvertEdgeOrient(overlapOrientation);
+    overlapOrientation.invert();
 
     if (contigOverlap != NULL) {
       int32 temp      = -contigOverlap->begpos;
@@ -2230,9 +2210,9 @@ ContigContainment(CIScaffoldT  *scaffold,
 #endif
     int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
-    overlapOrientation = InvertEdgeOrient(overlapOrientation);
+    overlapOrientation.invert();
     contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
-    overlapOrientation = InvertEdgeOrient(overlapOrientation);
+    overlapOrientation.invert();
 
     if (contigOverlap != NULL) {
       int32 temp      = -contigOverlap->begpos;
@@ -2255,9 +2235,9 @@ ContigContainment(CIScaffoldT  *scaffold,
 #endif
     int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
-    overlapOrientation = EdgeOrientSwap(overlapOrientation);
+    overlapOrientation.swap();
     contigOverlap = OverlapContigs(rightContig, leftContig, &overlapOrientation, -maxLength, maxLength, FALSE);
-    overlapOrientation = EdgeOrientSwap(overlapOrientation);
+    overlapOrientation.swap();
 
     if (contigOverlap != NULL) {
       contigOverlap->begpos *= -1;
@@ -2272,13 +2252,13 @@ ContigContainment(CIScaffoldT  *scaffold,
 #endif
     int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
-    overlapOrientation = EdgeOrientSwap(overlapOrientation);
-    overlapOrientation = InvertEdgeOrient(overlapOrientation);
+    overlapOrientation.swap();
+    overlapOrientation.invert();
 
     contigOverlap = OverlapContigs(rightContig, leftContig, &overlapOrientation, -maxLength, maxLength, FALSE);
 
-    overlapOrientation = InvertEdgeOrient(overlapOrientation);
-    overlapOrientation = EdgeOrientSwap(overlapOrientation);
+    overlapOrientation.invert();
+    overlapOrientation.swap();
 
     if (contigOverlap != NULL) {
       int32 temp      = -contigOverlap->begpos;
@@ -2329,22 +2309,16 @@ ContigContainment(CIScaffoldT  *scaffold,
     contigOverlap->begpos = - contigOverlap->begpos;
     contigOverlap->endpos = - contigOverlap->endpos;
 
-    switch (overlapOrientation) {
-      case AB_AB:
-      case BA_BA:
-        actualOverlapOrientation = overlapOrientation;
-        break;
-      case AB_BA:
-        actualOverlapOrientation = BA_AB;
-        break;
-      case BA_AB:
-        actualOverlapOrientation = AB_BA;
-        break;
-      default:
-        assert(0);
-    }
+    //  AB_AB and BA_BA don't change
+    actualOverlapOrientation = overlapOrientation;
+
+    if (overlapOrientation.isAB_BA())
+      actualOverlapOrientation.setIsBA_AB();
+    if (overlapOrientation.isBA_AB())
+      actualOverlapOrientation.setIsAB_BA();
+
     fprintf(stderr, "* Switched right-left, orientation went from %c to %c\n",
-            overlapOrientation, actualOverlapOrientation);
+            overlapOrientation.toLetter(), actualOverlapOrientation.toLetter());
   } else {
     actualOverlapOrientation = overlapOrientation;
   }
@@ -2359,25 +2333,21 @@ ContigContainment(CIScaffoldT  *scaffold,
 #endif
 
   // assume we leave the leftContig where it is
-  switch (actualOverlapOrientation) {
-    case AB_AB:
-      rightContig->offsetAEnd.mean = leftContig->offsetAEnd.mean  + contigOverlap->begpos;
-      rightContig->offsetBEnd.mean = rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
-      break;
-    case AB_BA:
-      rightContig->offsetBEnd.mean = leftContig->offsetAEnd.mean  + contigOverlap->begpos;
-      rightContig->offsetAEnd.mean = rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
-      break;
-    case BA_AB:
-      rightContig->offsetAEnd.mean = leftContig->offsetBEnd.mean  + contigOverlap->begpos;
-      rightContig->offsetBEnd.mean = rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
-      break;
-    case BA_BA:
-      rightContig->offsetBEnd.mean = leftContig->offsetBEnd.mean  + contigOverlap->begpos;
-      rightContig->offsetAEnd.mean = rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
-      break;
-    default:
-      break;
+  if (actualOverlapOrientation.isAB_AB()) {
+    rightContig->offsetAEnd.mean = leftContig->offsetAEnd.mean  + contigOverlap->begpos;
+    rightContig->offsetBEnd.mean = rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
+  }
+  if (actualOverlapOrientation.isAB_BA()) {
+    rightContig->offsetBEnd.mean = leftContig->offsetAEnd.mean  + contigOverlap->begpos;
+    rightContig->offsetAEnd.mean = rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
+  }
+  if (actualOverlapOrientation.isBA_AB()) {
+    rightContig->offsetAEnd.mean = leftContig->offsetBEnd.mean  + contigOverlap->begpos;
+    rightContig->offsetBEnd.mean = rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
+  }
+  if (actualOverlapOrientation.isBA_BA()) {
+    rightContig->offsetBEnd.mean = leftContig->offsetBEnd.mean  + contigOverlap->begpos;
+    rightContig->offsetAEnd.mean = rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
   }
 
   VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(2);

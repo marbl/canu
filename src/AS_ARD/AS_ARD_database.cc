@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.13 2010-02-12 20:32:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.14 2010-02-17 01:32:57 brianwalenz Exp $";
 
 #include <iostream>
 #include <string>
@@ -396,7 +396,7 @@ bool AS_ARD_database::addCTP2DB(AS_UID scfID, SnapContigPairs * ctp, int32 &scfL
    // only add the first ctp if it is the only one or the first one
    // otherwise, the second is always a repeat of the previous one
    if (scfLen == 0 || AS_UID_compare(ctp->econtig1, ctp->econtig2) == 0) {
-      result = result & addCPS2DB(ctpID, ctp->econtig1, (ctp->orient == AS_OUTTIE || ctp->orient == AS_ANTI) ? true : false, scfLen);
+      result = result & addCPS2DB(ctpID, ctp->econtig1, (ctp->orient.isOuttie() || ctp->orient.isAnti()) ? true : false, scfLen);
    }
 
    // if there is a gap and this is not a single-contig pair
@@ -404,7 +404,7 @@ bool AS_ARD_database::addCTP2DB(AS_UID scfID, SnapContigPairs * ctp, int32 &scfL
       scfLen += (int32)rintf(ctp->mean);
 
       result = result & addCTPList2DB(ctpID, ctp->econtig2);
-      result = result & addCPS2DB(ctpID, ctp->econtig2, (ctp->orient == AS_INNIE || ctp->orient == AS_ANTI) ? true : false, scfLen);
+      result = result & addCPS2DB(ctpID, ctp->econtig2, (ctp->orient.isInnie() || ctp->orient.isAnti()) ? true : false, scfLen);
    }
 
    return result;

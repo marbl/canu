@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-examineGap.c,v 1.24 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-examineGap.c,v 1.25 2010-02-17 01:32:58 brianwalenz Exp $";
 #include "eCR.h"
 
 #include "GapWalkerREZ.h"  //  FindGapLength
@@ -103,8 +103,8 @@ examineGap(ContigT *lcontig, int lFragIid,
   uint rclr_bgn=0, rclr_end=0;
   char *lSequence = NULL;
   char *rSequence = NULL;
-  NodeOrient lContigOrientation = B_A;
-  NodeOrient rContigOrientation = B_A;
+  SequenceOrient lContigOrientation;
+  SequenceOrient rContigOrientation;
   int lcontigBaseStart = 0;
   int lcontigBasesUsed = 0;
   int rcontigBasesUsed = 0;
@@ -142,10 +142,14 @@ examineGap(ContigT *lcontig, int lFragIid,
   asymmetricEnds = TRUE;
 
   if (lcontig->offsetAEnd.mean < lcontig->offsetBEnd.mean)
-    lContigOrientation = A_B;
+    lContigOrientation.setIsForward();
+  else
+    lContigOrientation.setIsReverse();
 
   if (rcontig->offsetAEnd.mean < rcontig->offsetBEnd.mean)
-    rContigOrientation = A_B;
+    rContigOrientation.setIsForward();
+  else
+    rContigOrientation.setIsReverse();
 
   // Get the consensus sequences for both chunks from the Store
 
@@ -163,7 +167,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   //
   // the frag is oriented opposite to the contig in this case
   // flip contig sequence to its orientation in scaffold
-  if (lContigOrientation == B_A)
+  if (lContigOrientation.isReverse())
     reverseComplementSequence(lSequence, strlen(lSequence));
 
   // ----------------------> rContigOrientation == A_B
@@ -174,7 +178,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   //
   // the frag is oriented opposite to the contig in this case
   // flip contig sequence to its orientation in scaffold
-  if (rContigOrientation == B_A)
+  if (rContigOrientation.isReverse())
     reverseComplementSequence(rSequence, strlen(rSequence));
 
   if (lFragIid != -1) {
@@ -227,7 +231,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   lFragContigOverlapLength = 0;
 
   if (lFragIid != -1) {
-    if (lContigOrientation == A_B)
+    if (lContigOrientation.isForward())
       lFragContigOverlapLength = (int) (lcontig->bpLength.mean - lFrag->contigOffset3p.mean);
     else
       lFragContigOverlapLength = (int) (lFrag->contigOffset3p.mean);
@@ -287,7 +291,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   rFragContigOverlapLength = 0;
 
   if (rFragIid != -1) {
-    if (rContigOrientation == A_B)
+    if (rContigOrientation.isForward())
       rFragContigOverlapLength = (int) (rFrag->contigOffset3p.mean);
     else
       rFragContigOverlapLength = (int) (rcontig->bpLength.mean - rFrag->contigOffset3p.mean);

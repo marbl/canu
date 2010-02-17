@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.24 2009-10-27 12:26:41 skoren Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.25 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -491,12 +491,12 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
     compute coordinates left to right
     also measure distances from left end of scaffoldB
   */
-  if(sEdge->orient == AB_AB ||
-     (isA && sEdge->orient == AB_BA) ||
-     (!isA && sEdge->orient == BA_AB))
-    ss->orient = A_B;
+  if(sEdge->orient.isAB_AB() ||
+     (isA && sEdge->orient.isAB_BA()) ||
+     (!isA && sEdge->orient.isBA_AB()))
+    ss->orient.setIsForward();
   else
-    ss->orient = B_A;
+    ss->orient.setIsReverse();
 
   /*
     compute range in which to identify contigs that may be involved
@@ -509,14 +509,14 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
     osMin = CGW_DP_MINLEN;
     osMax = osLength.mean +
       INTERLEAVE_CUTOFF * sqrt((double) osLength.variance) - CGW_DP_MINLEN;
-    varDelta = (ss->orient == A_B) ? scaffold->bpLength.variance : 0.0;
+    varDelta = (ss->orient.isForward()) ? scaffold->bpLength.variance : 0.0;
   }
   else
     {
       osMin = thinEdge - (osLength.mean + INTERLEAVE_CUTOFF *
                           sqrt((double) osLength.variance)) + CGW_DP_MINLEN;
       osMax = thickEdge - CGW_DP_MINLEN;
-      varDelta = (ss->orient == B_A) ? scaffold->bpLength.variance : 0.0;
+      varDelta = (ss->orient.isReverse()) ? scaffold->bpLength.variance : 0.0;
     }
 
   /*
@@ -555,7 +555,7 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
   ss->bandEnd = CGW_DP_MINLEN;
 
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold,
-                          (ss->orient == A_B), FALSE, &contigIterator);
+                          (ss->orient.isForward()), FALSE, &contigIterator);
   while((contig = NextCIScaffoldTIterator(&contigIterator)) != NULL) {
     Scaffold_Tig tig;
     ContigElement ce;
@@ -564,7 +564,7 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
     ce.id = contig->id;
     ce.length = contig->bpLength.mean;
 
-    if(ss->orient == A_B) {
+    if(ss->orient.isForward()) {
       // scaffold is -------------->
       if(contig->offsetAEnd.mean < contig->offsetBEnd.mean)  // contig: -->
         {
@@ -572,7 +572,7 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
           thisLeft.variance = fabs(varDelta - contig->offsetAEnd.variance);
           thisRight.mean = contig->offsetBEnd.mean;
           thisRight.variance = fabs(varDelta - contig->offsetBEnd.variance);
-          ce.orient = A_B;
+          ce.orient.setIsForward();
         }
       else // contig: <--
         {
@@ -580,7 +580,7 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
           thisLeft.variance = fabs(varDelta - contig->offsetBEnd.variance);
           thisRight.mean = contig->offsetAEnd.mean;
           thisRight.variance = fabs(varDelta - contig->offsetAEnd.variance);
-          ce.orient = B_A;
+          ce.orient.setIsReverse();
         }
     }
     else
@@ -592,7 +592,7 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
             thisLeft.variance = fabs(varDelta - contig->offsetBEnd.variance);
             thisRight.mean = scaffold->bpLength.mean - contig->offsetAEnd.mean;
             thisRight.variance = fabs(varDelta - contig->offsetAEnd.variance);
-            ce.orient = B_A;
+            ce.orient.setIsReverse();
           }
         else // contig: -->
           {
@@ -600,7 +600,7 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
             thisLeft.variance = fabs(varDelta - contig->offsetAEnd.variance);
             thisRight.mean = scaffold->bpLength.mean - contig->offsetBEnd.mean;
             thisRight.variance = fabs(varDelta - contig->offsetBEnd.variance);
-            ce.orient = A_B;
+            ce.orient.setIsForward();
           }
       }
 
@@ -757,14 +757,14 @@ Overlap *
 LookForChunkOverlapFromContigElements(ContigElement * ceA,
                                       ContigElement * ceB,
                                       SEdgeT * sEdge) {
-  NodeOrient orientA;
-  NodeOrient orientB;
+  SequenceOrient orientA;
+  SequenceOrient orientB;
   static Overlap myOverlap;
   Overlap * retOverlap = NULL;
   int32 minOverlap;
   int32 maxOverlap;
   ChunkOverlapCheckT chunkOverlap = {0};
-  ChunkOrientationType overlapOrient;
+  PairOrient overlapOrient;
   ChunkInstanceT * contigA;
   ChunkInstanceT * contigB;
   int32 minLengthA;
@@ -804,10 +804,16 @@ LookForChunkOverlapFromContigElements(ContigElement * ceA,
   // first, consider min coord of A to the left of min coord of ceB,
 
   if(ceA->minCoord+minLengthA < ceB->maxCoord ) {
-    if(orientA == A_B)
-      overlapOrient = (orientB == A_B) ? AB_AB : AB_BA;
+    if(orientA.isForward())
+      if (orientB.isForward())
+        overlapOrient.setIsAB_AB();
+      else
+        overlapOrient.setIsAB_BA();
     else
-      overlapOrient = (orientB == A_B) ? BA_AB : BA_BA;
+      if (orientB.isForward())
+        overlapOrient.setIsBA_AB();
+      else
+        overlapOrient.setIsBA_BA();
 
     // min overlap: push ceA far to left wrt ceB
     minOverlap = MAX(CGW_MISSED_OVERLAP, ceA->minCoord + minLengthA - (ceB->maxCoord - minLengthB) + .5);
@@ -851,10 +857,16 @@ LookForChunkOverlapFromContigElements(ContigElement * ceA,
 
   // consider ceA to the right of ceB
   if(retOverlap == NULL && ceB->minCoord + minLengthB < ceA->maxCoord) {
-    if(orientA == A_B)
-      overlapOrient = (orientB == A_B) ? BA_BA : BA_AB;
+    if(orientA.isForward())
+      if (orientB.isForward())
+        overlapOrient.setIsBA_BA();
+      else
+        overlapOrient.setIsBA_AB();
     else
-      overlapOrient = (orientB == A_B) ? AB_BA : AB_AB;
+      if (orientB.isForward())
+        overlapOrient.setIsAB_BA();
+      else
+        overlapOrient.setIsAB_AB();
 
     // min overlap: push ceA far to the right wrt ceB
     minOverlap = MAX(CGW_MISSED_OVERLAP,
@@ -916,7 +928,7 @@ PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
   int indexA;
   CDS_CID_t idA;
   CDS_CID_t idB;
-  ChunkOrientationType orient;
+  PairOrient orient;
 
   if(sEdge->distance.mean -
      INTERLEAVE_CUTOFF * sqrt((double) sEdge->distance.variance) >= 0.0) {
@@ -933,7 +945,7 @@ PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
   if(sEdge->idA != scaffoldA->id) {
     sEdge->idA = idB;
     sEdge->idB = idA;
-    sEdge->orient = FlipEdgeOrient(sEdge->orient);
+    sEdge->orient.flip();
   }
 
   if(sEdge->distance.mean -
@@ -2084,7 +2096,7 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
   VA_TYPE(COSData) * cosData = NULL;
   CDS_CID_t idA;
   CDS_CID_t idB;
-  ChunkOrientationType orient;
+  PairOrient orient;
   static SEdgeT mySEdge = {0};
   double newEdgeMean;
 
@@ -2095,7 +2107,7 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
   if(sEdge->idA != scaffoldA->id) {
     sEdge->idA = idB;
     sEdge->idB = idA;
-    sEdge->orient = FlipEdgeOrient(sEdge->orient);
+    sEdge->orient.flip();
   }
 
   // organize overlaps so they're easier to use
@@ -2290,11 +2302,11 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
 #endif
 
   AdjustScaffoldContigPositions(scaffoldA, contigsA, numContigsA,
-                                (sEdge->orient == AB_AB ||
-                                 sEdge->orient == AB_BA));
+                                (sEdge->orient.isAB_AB() ||
+                                 sEdge->orient.isAB_BA()));
   AdjustScaffoldContigPositions(scaffoldB, contigsB, numContigsB,
-                                (sEdge->orient == AB_AB ||
-                                 sEdge->orient == BA_AB));
+                                (sEdge->orient.isAB_AB() ||
+                                 sEdge->orient.isBA_AB()));
 
 #ifdef CONNECTEDNESS_CHECKS
   MarkInternalEdgeStatus(ScaffoldGraph,scaffoldA,

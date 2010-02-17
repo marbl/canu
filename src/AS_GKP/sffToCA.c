@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.42 2010-02-09 20:19:31 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.43 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1636,8 +1636,30 @@ dumpFragFile(char *outName, FILE *outFile) {
     libMesg.mean         = gkl.mean;
     libMesg.stddev       = gkl.stddev;
     libMesg.source       = NULL;
-#warning unsafe conversion of orient
-    libMesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[gkl.orientation][0];
+
+    libMesg.link_orient.setIsUnknown();
+
+    switch(gkl.orientation) {
+      case AS_READ_ORIENT_INNIE:
+        libMesg.link_orient.setIsInnie();
+        break;
+      case AS_READ_ORIENT_OUTTIE:
+        libMesg.link_orient.setIsOuttie();
+        break;
+      case AS_READ_ORIENT_NORMAL:
+        libMesg.link_orient.setIsNormal();
+        break;
+      case AS_READ_ORIENT_ANTINORMAL:
+        libMesg.link_orient.setIsAnti();
+        break;
+      case AS_READ_ORIENT_UNKNOWN:
+        libMesg.link_orient.setIsUnknown();
+        break;
+      default:
+        //  Cannot happen, unless someone adds a new orientation to gkFragment.
+        assert(0);
+        break;
+    }
 
     gkl.gkLibrary_encodeFeatures(&libMesg);
 
@@ -1697,10 +1719,12 @@ dumpFragFile(char *outName, FILE *outFile) {
       pmesg.m = &lnkMesg;
       pmesg.t = MESG_LKG;
 
+      //  The link_orient is not used here.  These should be dumped as
+      //  version 2 fragments.
+
       lnkMesg.action      = AS_ADD;
       lnkMesg.type.setIsMatePair();
-#warning unsafe conversion of orient
-      lnkMesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()][0];
+      lnkMesg.link_orient.setIsUnknown();
       lnkMesg.frag1       = frgUID[fr.gkFragment_getMateIID()];
       lnkMesg.frag2       = fr.gkFragment_getReadUID();
       lnkMesg.distance    = frgUID[0];

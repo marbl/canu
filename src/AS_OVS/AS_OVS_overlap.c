@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.10 2010-01-22 05:24:47 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.11 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,47 +71,42 @@ AS_OVS_convertOverlapMesgToOVSoverlap(OverlapMesg *omesg, OVSoverlap *ovs) {
   ovs->dat.ovl.corr_erate = ovs->dat.ovl.orig_erate;
   ovs->dat.ovl.type = AS_OVS_TYPE_OVL;
 
-  switch (omesg->orientation) {
-    case  AS_NORMAL:
-      ovs->dat.ovl.a_hang   = omesg->ahg;
-      ovs->dat.ovl.b_hang   = omesg->bhg;
-      ovs->dat.ovl.flipped  = FALSE;
+  if (omesg->orientation.isNormal()) {
+    ovs->dat.ovl.a_hang   = omesg->ahg;
+    ovs->dat.ovl.b_hang   = omesg->bhg;
+    ovs->dat.ovl.flipped  = FALSE;
 
-      assert(ovs->dat.ovl.a_hang  == omesg->ahg);
-      assert(ovs->dat.ovl.b_hang  == omesg->bhg);
-      break;
+    assert(ovs->dat.ovl.a_hang  == omesg->ahg);
+    assert(ovs->dat.ovl.b_hang  == omesg->bhg);
 
-    case  AS_INNIE:
-      ovs->dat.ovl.a_hang   = omesg->ahg;
-      ovs->dat.ovl.b_hang   = omesg->bhg;
-      ovs->dat.ovl.flipped  = TRUE;
+  } else if (omesg->orientation.isInnie()) {
+    ovs->dat.ovl.a_hang   = omesg->ahg;
+    ovs->dat.ovl.b_hang   = omesg->bhg;
+    ovs->dat.ovl.flipped  = TRUE;
 
-      assert(ovs->dat.ovl.a_hang  == omesg->ahg);
-      assert(ovs->dat.ovl.b_hang  == omesg->bhg);
-      break;
+    assert(ovs->dat.ovl.a_hang  == omesg->ahg);
+    assert(ovs->dat.ovl.b_hang  == omesg->bhg);
 
-    case  AS_OUTTIE:
-      ovs->dat.ovl.a_hang   = -omesg->bhg;
-      ovs->dat.ovl.b_hang   = -omesg->ahg;
-      ovs->dat.ovl.flipped  = TRUE;
+  } else if (omesg->orientation.isOuttie()) {
+    ovs->dat.ovl.a_hang   = -omesg->bhg;
+    ovs->dat.ovl.b_hang   = -omesg->ahg;
+    ovs->dat.ovl.flipped  = TRUE;
 
-      assert(ovs->dat.ovl.a_hang  == -omesg->bhg);
-      assert(ovs->dat.ovl.b_hang  == -omesg->ahg);
-      break;
+    assert(ovs->dat.ovl.a_hang  == -omesg->bhg);
+    assert(ovs->dat.ovl.b_hang  == -omesg->ahg);
 
-    case  AS_ANTI:
-      ovs->dat.ovl.a_hang   = -omesg->bhg;
-      ovs->dat.ovl.b_hang   = -omesg->ahg;
-      ovs->dat.ovl.flipped  = FALSE;
+  } else if (omesg->orientation.isAnti()) {
+    ovs->dat.ovl.a_hang   = -omesg->bhg;
+    ovs->dat.ovl.b_hang   = -omesg->ahg;
+    ovs->dat.ovl.flipped  = FALSE;
 
-      assert(ovs->dat.ovl.a_hang  == -omesg->bhg);
-      assert(ovs->dat.ovl.b_hang  == -omesg->ahg);
-      break;
+    assert(ovs->dat.ovl.a_hang  == -omesg->bhg);
+    assert(ovs->dat.ovl.b_hang  == -omesg->ahg);
 
-    default:
-      fprintf(stderr, "YIKES:  Bad overlap orientation = %d for a = %d  b = %d\n",
-              omesg->orientation, omesg->aifrag, omesg->bifrag);
-      break;
+  } else {
+    fprintf(stderr, "YIKES:  Bad overlap orientation = %d for a = %d  b = %d\n",
+            omesg->orientation.toLetter(), omesg->aifrag, omesg->bifrag);
+    assert(0);
   }
 }
 

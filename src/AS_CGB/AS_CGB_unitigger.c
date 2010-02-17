@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.41 2009-10-05 22:49:41 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.42 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -619,8 +619,20 @@ main(int argc, char **argv) {
       omesg.min_offset = ahg;
       omesg.max_offset = ahg;
 
-      omesg.orientation = asx ? (bsx ? AS_INNIE : AS_NORMAL) :
-        (bsx ? AS_ANTI  : AS_OUTTIE);
+      //  I honestly don't know which is worse.
+      //omesg.orientation = asx ? (bsx ? AS_INNIE : AS_NORMAL) : (bsx ? AS_ANTI  : AS_OUTTIE);
+
+      if (asx) {
+        if (bsx)
+          omesg.orientation.setIsInnie();
+        else
+          omesg.orientation.setIsNormal();
+      } else {
+        if (bsx)
+          omesg.orientation.setIsAnti();
+        else
+          omesg.orientation.setIsOuttie();
+      }
 
       switch (get_nes_edge(heapva->edges,ie)) {
         case AS_CGB_DOVETAIL_EDGE:

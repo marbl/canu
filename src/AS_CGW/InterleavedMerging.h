@@ -22,7 +22,7 @@
 #ifndef INTERLEAVED_MERGING_H
 #define INTERLEAVED_MERGING_H
 
-static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.11 2010-01-14 00:44:54 brianwalenz Exp $";
+static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.12 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -47,7 +47,7 @@ typedef struct {
   double length;
   double minCoord;
   double maxCoord;
-  NodeOrient orient;
+  SequenceOrient orient;
 } ContigElement;
 
 VA_DEF(ContigElement);
@@ -65,7 +65,7 @@ typedef struct {
   ScaffoldPools * pools;
   VA_TYPE(ContigElement) * contigs;
   VA_TYPE(ContigElement) * edgeContigs;
-  NodeOrient orient;
+  SequenceOrient orient;
 } ScaffoldStuff;
 
 typedef struct {

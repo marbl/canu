@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.53 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.54 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +84,7 @@ AddLinkToMaps(ScaffoldGraphT *graph,
               VA_TYPE(uint16) *bcc,
               CIFragT *frag,
               CIFragT *mfrag,
-              OrientType orient,
+              PairOrient orient,
               CDS_CID_t distID,
               int32 length,
               int isUnitig) {
@@ -109,10 +109,9 @@ AddLinkToMaps(ScaffoldGraphT *graph,
       if((isUnitig && getCIFragOrient(frag) == getCIFragOrient(mfrag)) ||
          (!isUnitig && GetContigFragOrient(frag) == GetContigFragOrient(mfrag))) {
         // bad pair - increment intervals
-        if(orient == AS_INNIE) {
-          // link is innie
-          if((isUnitig && getCIFragOrient(frag) == A_B) ||
-             (!isUnitig && GetContigFragOrient(frag) == A_B)) {
+        if(orient.isInnie()) {
+          if((isUnitig && getCIFragOrient(frag).isForward()) ||
+             (!isUnitig && GetContigFragOrient(frag).isForward())) {
             // both are A_B oriented, so intervals > 5p are suspect
             // Increment from minPos to somewhere & maxPos to somewhere
             // minPos                   maxPos
@@ -136,8 +135,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
           }
         } else {
           // link is outtie
-          if((isUnitig && getCIFragOrient(frag) == A_B) ||
-             (!isUnitig && GetContigFragOrient(frag) == A_B)) {
+          if((isUnitig && getCIFragOrient(frag).isForward()) ||
+             (!isUnitig && GetContigFragOrient(frag).isForward())) {
             // both are A_B oriented, so
             // Increment from minPos to somewhere & maxPos to somewhere
             //               minPos                    maxPos
@@ -191,9 +190,9 @@ AddLinkToMaps(ScaffoldGraphT *graph,
     }
   } else {
     // in different unitigs, should be close to end of unitig
-    if(orient == AS_INNIE) {
-      if((isUnitig && getCIFragOrient(frag) == A_B && frag->offset5p.mean < length - distMax) ||
-         (!isUnitig && GetContigFragOrient(frag) == A_B && frag->contigOffset5p.mean < length - distMax)) {
+    if(orient.isInnie()) {
+      if((isUnitig && getCIFragOrient(frag).isForward() && frag->offset5p.mean < length - distMax) ||
+         (!isUnitig && GetContigFragOrient(frag).isForward() && frag->contigOffset5p.mean < length - distMax)) {
         //
         //  --------->
         //  --- increment ---
@@ -201,8 +200,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
         IncrementMapInterval("BCC", bcc,
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean),
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) + distMax);
-      } else if((isUnitig && getCIFragOrient(frag) == B_A && frag->offset5p.mean > distMax) ||
-                (!isUnitig && GetContigFragOrient(frag) == B_A && frag->contigOffset5p.mean > distMax)) {
+      } else if((isUnitig && getCIFragOrient(frag).isReverse() && frag->offset5p.mean > distMax) ||
+                (!isUnitig && GetContigFragOrient(frag).isReverse() && frag->contigOffset5p.mean > distMax)) {
         //
         //        <----------
         //  --- increment ---
@@ -213,8 +212,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
       }
     } else {
       // outtie
-      if((isUnitig && getCIFragOrient(frag) == B_A && frag->offset5p.mean < length - distMax) ||
-         (!isUnitig && GetContigFragOrient(frag) == B_A && frag->contigOffset5p.mean < length - distMax)) {
+      if((isUnitig && getCIFragOrient(frag).isReverse() && frag->offset5p.mean < length - distMax) ||
+         (!isUnitig && GetContigFragOrient(frag).isReverse() && frag->contigOffset5p.mean < length - distMax)) {
         //
         //  <----------
         //             --- increment ---
@@ -223,8 +222,8 @@ AddLinkToMaps(ScaffoldGraphT *graph,
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean),
                              ((isUnitig) ? frag->offset5p.mean : frag->contigOffset5p.mean) + distMax);
 
-      } else if((isUnitig && getCIFragOrient(frag) == A_B && frag->offset5p.mean > distMax) ||
-                (!isUnitig && GetContigFragOrient(frag) == A_B && frag->contigOffset5p.mean > distMax)) {
+      } else if((isUnitig && getCIFragOrient(frag).isForward() && frag->offset5p.mean > distMax) ||
+                (!isUnitig && GetContigFragOrient(frag).isForward() && frag->contigOffset5p.mean > distMax)) {
         //
         //                   --------->
         //  --- increment ---
@@ -303,15 +302,22 @@ CreateCloneCoverageMaps(ScaffoldGraphT *graph,
   for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
     CIFragT     *frag = GetCIFragT(graph->CIFrags, imp->ident);
+    PairOrient   ori;
 
     // this is unlike ComputeMatePairStatistics, since we're interested
     // even in pairs that are in different unitigs/contigs
+
+#warning not setting the mate pair orientation correctly
+    if (frag->flags.bits.innieMate)
+      ori.setIsInnie();
+    else
+      ori.setIsOuttie();
 
     if ((frag->flags.bits.hasMate > 0) &&
         (frag->mate_iid           > 0))
       AddLinkToMaps(graph, gcc, bcc, frag,
                     GetCIFragT(graph->CIFrags, frag->mate_iid),
-                    ((frag->flags.bits.innieMate) ? AS_INNIE : AS_OUTTIE),
+                    ori,
                     frag->dist,
                     GetMultiAlignLength(ma),
                     isUnitig);

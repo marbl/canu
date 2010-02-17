@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.5 2010-02-12 20:33:15 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.6 2010-02-17 01:32:59 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -741,8 +741,10 @@ writeSCF(FILE *asmFile, bool doWrite) {
     InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &contigs);
     contigLast = NextCIScaffoldTIterator(&contigs);
 
-    ChunkOrient  orientLast = (contigLast->offsetAEnd.mean < contigLast->offsetBEnd.mean) ? A_B : B_A;
-    ChunkOrient  orientCurr;
+    SequenceOrient  orientLast;
+    SequenceOrient  orientCurr;
+
+    orientLast.setIsForward(contigLast->offsetAEnd.mean < contigLast->offsetBEnd.mean);
 
     assert(contigLast->scaffoldID == scaffold->id);
 
@@ -751,7 +753,7 @@ writeSCF(FILE *asmFile, bool doWrite) {
       scf.contig_pairs[0].econtig2 = CCOmap.lookup(contigLast->id);
       scf.contig_pairs[0].mean     = 0.0;
       scf.contig_pairs[0].stddev   = 0.0;
-      scf.contig_pairs[0].orient   = AB_AB; // got to put something
+      scf.contig_pairs[0].orient.setIsAB_AB(); // got to put something
 
     } else {
       int32 pairCount = 0;
@@ -764,31 +766,33 @@ writeSCF(FILE *asmFile, bool doWrite) {
         scf.contig_pairs[pairCount].econtig1 = CCOmap.lookup(contigLast->id);
         scf.contig_pairs[pairCount].econtig2 = CCOmap.lookup(contigCurr->id);
 
-        ChunkOrient orientCurr = (contigCurr->offsetAEnd.mean < contigCurr->offsetBEnd.mean) ? A_B : B_A;
+        SequenceOrient orientCurr;
 
-        if (orientLast == A_B) {
-          if (orientCurr == A_B) {
+        orientCurr.setIsForward(contigCurr->offsetAEnd.mean < contigCurr->offsetBEnd.mean);
+
+        if (orientLast.isForward()) {
+          if (orientCurr.isForward()) {
             scf.contig_pairs[pairCount].mean   = contigCurr->offsetAEnd.mean - contigLast->offsetBEnd.mean;
             scf.contig_pairs[pairCount].stddev = sqrt(contigCurr->offsetAEnd.variance -
                                                       contigLast->offsetBEnd.variance);
-            scf.contig_pairs[pairCount].orient = AB_AB;
+            scf.contig_pairs[pairCount].orient.setIsAB_AB();
           } else {  //orientCurr == B_A
             scf.contig_pairs[pairCount].mean   = contigCurr->offsetBEnd.mean - contigLast->offsetBEnd.mean;
             scf.contig_pairs[pairCount].stddev = sqrt(contigCurr->offsetBEnd.variance -
                                                       contigLast->offsetBEnd.variance);
-            scf.contig_pairs[pairCount].orient = AB_BA;
+            scf.contig_pairs[pairCount].orient.setIsAB_BA();
           }
         } else {  //orientLast == B_A
-          if (orientCurr == A_B) {
+          if (orientCurr.isForward()) {
             scf.contig_pairs[pairCount].mean   = contigCurr->offsetAEnd.mean - contigLast->offsetAEnd.mean;
             scf.contig_pairs[pairCount].stddev = sqrt(contigCurr->offsetAEnd.variance -
                                                       contigLast->offsetAEnd.variance);
-            scf.contig_pairs[pairCount].orient = BA_AB;
+            scf.contig_pairs[pairCount].orient.setIsBA_AB();
           } else {  //orientCurr == B_A
             scf.contig_pairs[pairCount].mean   = contigCurr->offsetBEnd.mean - contigLast->offsetAEnd.mean;
             scf.contig_pairs[pairCount].stddev = sqrt(contigCurr->offsetBEnd.variance -
                                                       contigLast->offsetAEnd.variance);
-            scf.contig_pairs[pairCount].orient = BA_BA;
+            scf.contig_pairs[pairCount].orient.setIsBA_BA();
           }
         }
 

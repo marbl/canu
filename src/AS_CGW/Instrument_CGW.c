@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.44 2009-10-27 12:26:40 skoren Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.45 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -789,7 +789,8 @@ int InitializeUnitigInstrumenter(ScaffoldGraphT * graph,
 {
   ui->id = NULLINDEX;
   ui->isSurrogate = 0;
-  ui->leftEnd = ui->rightEnd = ui->orientation = 0;
+  ui->leftEnd = ui->rightEnd = 0;
+  ui->orientation.setIsUnknown();
 
   ui->numReads = ui->numExtReads = ui->numExtFrags = 0;
 
@@ -831,7 +832,8 @@ int InitializeContigInstrumenter(ScaffoldGraphT * graph,
                                  ContigInstrumenter * ci)
 {
   ci->id = NULLINDEX;
-  ci->leftEnd = ci->rightEnd = ci->orientation = 0;
+  ci->leftEnd = ci->rightEnd = 0;
+  ci->orientation.setIsUnknown();
 
   // allocate or reset unitig lengths
   if(ci->unitigSizes == NULL)
@@ -2018,7 +2020,7 @@ void PrintContigPlacement(ContigPlacement * cp,
   fprintf(printTo,
           "IID:"F_CID ", Offset:%.f, Length:%.f, Orientation:%s\n",
           cp->id, cp->offset, cp->length,
-          (cp->orient == A_B) ? "A_B" : "B_A");
+          (cp->orient.isForward()) ? "A_B" : "B_A");
 }
 
 
@@ -2027,7 +2029,7 @@ void PrintContigPair(IntContigPairs * cp, char * prefix, FILE * printTo)
   fprintf(printTo,
           "%scontig1 = "F_CID ", contig2 = "F_CID ", mean = %f, stddev = %f, orientation = %c\n",
           prefix, cp->contig1, cp->contig2,
-          cp->mean, cp->stddev, cp->orient);
+          cp->mean, cp->stddev, cp->orient.toLetter());
 }
 
 
@@ -2114,8 +2116,10 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
 	    md->mateIID, md->mateOffset5p,
 	    md->type, dptr->mu, dptr->sigma);
   } else {
-    int fragLeftEnd,fragRightEnd,fragOri;
+    int fragLeftEnd,fragRightEnd;
+    SequenceOrient fragOri;
     int32 mateChunk,mateScf,mateCtg;
+
     assert(PRINTCELAMY==printtype);
 
     if(! USE_ALL_MATES && ! (USE_LONG_MATES && dptr->mu > 15000))
@@ -2124,11 +2128,11 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
     if(md->fragOffset5p<md->fragOffset3p){
       fragLeftEnd = md->fragOffset5p;
       fragRightEnd = md->fragOffset3p;
-      fragOri = A_B;
+      fragOri.setIsForward();
     } else {
       fragRightEnd = md->fragOffset5p;
       fragLeftEnd = md->fragOffset3p;
-      fragOri = B_A;
+      fragOri.setIsReverse();
     }
     mateChunk = md->mateChunkIID;
     {
@@ -2161,8 +2165,8 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
 
 	fprintf(printTo,F_CID "Fragment: "F_S32" %s "F_S32" R50 # Externally-mated fragment "F_CID " ori:%s lib %f +/- %f Mate info: BaseCI "F_CID " Instances(%d): %s\n",
 		md->fragIID,fragLeftEnd,
-		fragOri==A_B ? "A7CMColor" : "A8CMColor" ,
-		fragRightEnd,md->fragIID,fragOri==A_B?"A_B":"B_A",
+		fragOri.isForward() ? "A7CMColor" : "A8CMColor" ,
+		fragRightEnd,md->fragIID,fragOri.isForward()?"A_B":"B_A",
 		dptr->mu,dptr->sigma,
 		unitig->id,
 		unitig->info.CI.numInstances,
@@ -2172,8 +2176,8 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
 	mateScf = unitig->scaffoldID;
 	fprintf(printTo,F_CID "Fragment: "F_S32" %s "F_S32" R50 # Externally-mated fragment "F_CID " ori:%s lib %f +/- %f mateChunk "F_CID " mateCtg %d mateScf %d\n",
 		md->fragIID,fragLeftEnd,
-		fragOri==A_B ? "A7CMColor" : "A8CMColor" ,
-		fragRightEnd,md->fragIID,fragOri==A_B?"A_B":"B_A",
+		fragOri.isForward() ? "A7CMColor" : "A8CMColor" ,
+		fragRightEnd,md->fragIID,fragOri.isForward()?"A_B":"B_A",
 		dptr->mu,dptr->sigma,
 		mateChunk,mateCtg,mateScf);
       }
@@ -2539,9 +2543,9 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
     {
       fprintf(printTo, "%sStatistics for contig "F_CID "\n", prefix, ci->id);
       fprintf(printTo, "%sSize: "F_S32"\n", prefix, ci->rightEnd - ci->leftEnd);
-      fprintf(printTo, "%sLeft end: "F_S32", Right end: "F_S32", Orientation: %s\n",
+      fprintf(printTo, "%sLeft end: "F_S32", Right end: "F_S32", Orientation: %c\n",
               prefix, ci->leftEnd, ci->rightEnd,
-              (ci->orientation == A_B) ? "A_B" : "B_A");
+              ci->orientation.toLetter());
     }
 
   fprintf(printTo, "\n%sUnitig sizes:\n", prefix);
@@ -3722,9 +3726,9 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
 void CheckMateLinkStatus(unsigned int innieMates,
                          DistT * dptr,
                          float frag5p,
-                         FragOrient fragOrient,
+                         SequenceOrient fragOrient,
                          float mate5p,
-                         FragOrient mateOrient,
+                         SequenceOrient mateOrient,
                          InstrumentOrientations * orientShouldBe,
                          InstrumentOrientations * orientIs,
                          InstrumentDistStatus * distStatus)
@@ -3734,11 +3738,11 @@ void CheckMateLinkStatus(unsigned int innieMates,
 
   // determine what the orientation is
   if(fragOrient == mateOrient)
-    *orientIs = (fragOrient == A_B) ? NORMAL_INSTR : ANTINORMAL_INSTR;
+    *orientIs = (fragOrient.isForward()) ? NORMAL_INSTR : ANTINORMAL_INSTR;
   else
     {
-      if((fragOrient == A_B && frag5p < mate5p) ||
-         (mateOrient == A_B && mate5p < frag5p))
+      if((fragOrient.isForward() && frag5p < mate5p) ||
+         (mateOrient.isForward() && mate5p < frag5p))
         *orientIs = INNIE_INSTR;
       else
         *orientIs = OUTTIE_INSTR;
@@ -3780,23 +3784,17 @@ int GetFragmentPositionInFauxScaffold(HashTable_AS * cpHT,
     }
 
   // 0 means A_B, non-0 means B_A
-  if(cp->orient == A_B)
+  if(cp->orient.isForward())
     {
-      *fragLeftEnd = cp->offset +
-        MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
-      *fragRightEnd = cp->offset +
-        MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
-      *fragOrientInScaffold =
-        (frag->contigOffset5p.mean < frag->contigOffset3p.mean) ? 0: 1;
+      *fragLeftEnd = cp->offset + MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
+      *fragRightEnd = cp->offset + MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
+      *fragOrientInScaffold = (frag->contigOffset5p.mean < frag->contigOffset3p.mean) ? 0: 1;
     }
   else
     {
-      *fragLeftEnd = cp->offset + cp->length -
-        MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
-      *fragRightEnd = cp->offset + cp->length -
-        MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
-      *fragOrientInScaffold =
-        (frag->contigOffset5p.mean > frag->contigOffset3p.mean) ? 0: 1;
+      *fragLeftEnd = cp->offset + cp->length - MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
+      *fragRightEnd = cp->offset + cp->length - MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
+      *fragOrientInScaffold = (frag->contigOffset5p.mean > frag->contigOffset3p.mean) ? 0: 1;
     }
   return 0;
 }
@@ -3806,15 +3804,14 @@ void GetFragmentPosition(HashTable_AS * cpHT,
                          CIFragT * frag,
                          int32 * frag5p,
                          int32 * frag3p,
-                         FragOrient * fragOrient)
+                         SequenceOrient * fragOrient)
 {
   if(cpHT == NULL)
     {
       // get fragment position & orientation in contig
       *frag5p = (int32) frag->contigOffset5p.mean;
       *frag3p = (int32) frag->contigOffset3p.mean;
-      *fragOrient = ((frag->contigOffset5p.mean < frag->contigOffset3p.mean) ?
-                     A_B : B_A);
+      fragOrient->setIsForward(frag->contigOffset5p.mean < frag->contigOffset3p.mean);
     }
   else
     {
@@ -3827,9 +3824,9 @@ void GetFragmentPosition(HashTable_AS * cpHT,
                                         &fragLeftEnd,
                                         &fragRightEnd,
                                         &fragOrientInScaffold);
-      *fragOrient = (fragOrientInScaffold == 0) ? A_B : B_A;
-      *frag5p = (*fragOrient == A_B) ? fragLeftEnd : fragRightEnd;
-      *frag3p = (*fragOrient == B_A) ? fragLeftEnd : fragRightEnd;
+      fragOrient->setIsForward(fragOrientInScaffold == 0);
+      *frag5p = (fragOrient->isForward()) ? fragLeftEnd : fragRightEnd;
+      *frag3p = (fragOrient->isReverse()) ? fragLeftEnd : fragRightEnd;
     }
 }
 
@@ -3852,15 +3849,10 @@ int GetFragment5pPositionInFauxScaffoldGivenCtgPsn(HashTable_AS * cpHT,
       return 1;
     }
 
-  if(cp->orient == A_B)
-    {
+  if(cp->orient.isForward())
       *scf5p = (int32) (cp->offset + ctg5p);
-    }
   else
-    {
       *scf5p = (int32) (cp->offset + cp->length - ctg5p);
-    }
-
 
   return 0;
 }
@@ -3910,7 +3902,7 @@ int GetSurrogatePositionInFauxScaffoldFromSFL(HashTable_AS * cpHT,
 
 
   // 0 means A_B, non-0 means B_A
-  if(cp->orient == A_B)
+  if(cp->orient.isForward())
     {
       *frag5p = (int32) cp->offset + AEndOnCtg;
       *frag3p = (int32) cp->offset + BEndOnCtg;
@@ -3921,9 +3913,9 @@ int GetSurrogatePositionInFauxScaffoldFromSFL(HashTable_AS * cpHT,
       *frag3p = (int32) (cp->offset + cp->length) - BEndOnCtg;
     }
 #if 0
-  fprintf(stderr,"Looking for surrogate position: from ["F_S32","F_S32"] to ["F_S32","F_S32"] using offset %g, orient %s , length %g\n",
+  fprintf(stderr,"Looking for surrogate position: from ["F_S32","F_S32"] to ["F_S32","F_S32"] using offset %g, orient %c , length %g\n",
 	  AEndOnCtg,BEndOnCtg,*frag5p,*frag3p,
-	  cp->offset, cp->orient == A_B ? "A_B" : "B_A",cp->length);
+	  cp->offset, cp->orient.toLetter(),cp->length);
 #endif
   return 0;
 }
@@ -3951,8 +3943,8 @@ void GetSurrogatePositionFromSFL(HashTable_AS * cpHT,
 
 void PrintScaffoldMateDetail(HashTable_AS * cpHT,
                              MateDetail * md,
-                             ChunkOrientationType oShouldBe,
-                             ChunkOrientationType oIs,
+                             PairOrient oShouldBe,
+                             PairOrient oIs,
                              char * category,
                              CDS_CID_t id,
                              FILE * printTo,
@@ -3964,8 +3956,8 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
   CDS_CID_t mateChunkIID;
   int32 frag5p,frag3p;
   int32 mate5p,mate3p;
-  FragOrient fragOrient;
-  FragOrient mateOrient;
+  SequenceOrient fragOrient;
+  SequenceOrient mateOrient;
   char oString[1024];
   CIFragT *tmpfrg;
 
@@ -4028,8 +4020,8 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
       temp5p = frag5p;
       frag5p = mate5p;
       mate5p = temp5p;
-      oShouldBe = FlipEdgeOrient(oShouldBe);
-      oIs = FlipEdgeOrient(oIs);
+      oShouldBe.flip();
+      oIs.flip();
     }
   else
     {
@@ -4050,19 +4042,19 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
   if(oShouldBe == oIs)
     {
       sprintf(oString, "%s",
-              oIs == AB_AB ? "AB_AB" :
-              (oIs == AB_BA ? "AB_BA" :
-               (oIs == BA_AB ? "BA_AB" : "BA_BA")));
+              oIs.isAB_AB() ? "AB_AB" :
+              (oIs.isAB_BA() ? "AB_BA" :
+               (oIs.isBA_AB() ? "BA_AB" : "BA_BA")));
     }
   else
     {
       sprintf(oString, "%s:%s",
-              oShouldBe == AB_AB ? "AB_AB" :
-              (oShouldBe == AB_BA ? "AB_BA" :
-               (oShouldBe == BA_AB ? "BA_AB" : "BA_BA")),
-              oIs == AB_AB ? "AB_AB" :
-              (oIs == AB_BA ? "AB_BA" :
-               (oIs == BA_AB ? "BA_AB" : "BA_BA")));
+              oShouldBe.isAB_AB() ? "AB_AB" :
+              (oShouldBe.isAB_BA() ? "AB_BA" :
+               (oShouldBe.isBA_AB() ? "BA_AB" : "BA_BA")),
+              oIs.isAB_AB() ? "AB_AB" :
+              (oIs.isAB_BA() ? "AB_BA" :
+               (oIs.isBA_AB() ? "BA_AB" : "BA_BA")));
     }
   if(printType == PRINTTABLE ){
     fprintf(printTo,
@@ -4090,10 +4082,10 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
       strcpy(catString,"A1CMColor");
       row=110+(int)( abs(frag5p-mate5p)/1000.);
     } else if(strcmp(category,"MISORIENTED")==0){
-      if(oIs == BA_BA){
+      if(oIs.isBA_BA()){
 	strcpy(catString,"A2CMColor");
 	row=70;
-      } else if(oIs ==AB_AB) {
+      } else if(oIs.isAB_AB()) {
 	strcpy(catString,"A5CMColor");
 	row=80;
       } else {
@@ -4128,8 +4120,8 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
 
 void PrintScaffoldMateDetailArray(HashTable_AS * cpHT,
                                   VA_TYPE(MateDetail) * mda,
-                                  ChunkOrientationType oShouldBe,
-                                  ChunkOrientationType oIs,
+                                  PairOrient oShouldBe,
+                                  PairOrient oIs,
                                   char * category,
                                   CDS_CID_t id,
                                   FILE * printTo,
@@ -4155,23 +4147,23 @@ void PrintScaffoldInstrumenterMateDetails(ScaffoldInstrumenter * si,
     {
       for(ori1 = 0; ori1 < NUM_ORIENTATIONS_INSTR; ori1++)
         {
-          ChunkOrientationType oShouldBe, oIs;
+          PairOrient oShouldBe, oIs;
           switch(ori1)
             {
               case INNIE_INSTR:
-                oShouldBe = AB_BA;
+                oShouldBe.setIsAB_BA();
                 break;
               case OUTTIE_INSTR:
-                oShouldBe = BA_AB;
+                oShouldBe.setIsBA_AB();
                 break;
               case NORMAL_INSTR:
-                oShouldBe = AB_AB;
+                oShouldBe.setIsAB_AB();
                 break;
               case ANTINORMAL_INSTR:
-                oShouldBe = BA_BA;
+                oShouldBe.setIsBA_BA();
                 break;
               default:
-                oShouldBe = XX_XX;
+                oShouldBe.setIsUnknown();
                 break;
             }
 
@@ -4190,19 +4182,19 @@ void PrintScaffoldInstrumenterMateDetails(ScaffoldInstrumenter * si,
               switch(ori2)
                 {
                   case INNIE_INSTR:
-                    oIs = AB_BA;
+                    oIs.setIsAB_BA();
                     break;
                   case OUTTIE_INSTR:
-                    oIs = BA_AB;
+                    oIs.setIsBA_AB();
                     break;
                   case NORMAL_INSTR:
-                    oIs = AB_AB;
+                    oIs.setIsAB_AB();
                     break;
                   case ANTINORMAL_INSTR:
-                    oIs = BA_BA;
+                    oIs.setIsBA_BA();
                     break;
                   default:
-                    oIs = XX_XX;
+                    oIs.setIsUnknown();
                     break;
                 }
               PrintScaffoldMateDetailArray(si->cpHT,
@@ -4241,7 +4233,7 @@ void PrintUnmatedDetails(ScaffoldInstrumenter * si,
       FragDetail *fd;
       int32 fragIID;
       int32 fragLeftEnd, fragRightEnd,frag5p, frag3p;
-      FragOrient fragOrient;
+      SequenceOrient fragOrient;
 
       fd=GetVA_FragDetail(si->mates.noMate,i);
       fragIID = fd->iid;
@@ -4261,9 +4253,9 @@ void PrintUnmatedDetails(ScaffoldInstrumenter * si,
 	fragRightEnd=frag5p;
       }
 
-      fprintf(printTo,F_CID "Fragment: "F_S32" A9CMColor "F_S32" R45 # Unmated Fragment "F_CID " ori:%s\n",
+      fprintf(printTo,F_CID "Fragment: "F_S32" A9CMColor "F_S32" R45 # Unmated Fragment "F_CID " ori:%c\n",
 	      frag->read_iid,fragLeftEnd,fragRightEnd,frag->read_iid,
-	      fragOrient==0 ? "A_B" : "B_A");
+	      fragOrient.toLetter());
     }
   }
   return;
@@ -4299,9 +4291,9 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       InstrumentOrientations orientIs;
       InstrumentDistStatus distStatus;
       int32 frag5p,frag3p;
-      FragOrient fragOrient;
+      SequenceOrient fragOrient;
       int32 mate5p,mate3p;
-      FragOrient mateOrient;
+      SequenceOrient mateOrient;
 
       // get current fragment & its mate
       frag = GetCIFragT(graph->CIFrags, *(GetVA_CDS_CID_t(bookkeeping->fragArray, i)));
@@ -4337,14 +4329,14 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
                     // see if it's a good pair: coords should be in appropriate reference
 #if 0
                     mate5p = sflp->offset5p; // this is relative to a contig!
-                    mateOrient = (sflp->offset5p < sflp->offset3p) ? A_B : B_A;
+                    mateOrient.setIsForward(sflp->offset5p < sflp->offset3p);
                     mockMate.CIid = sflp->contig;
 #else
                     // get position; if analyzing contig, this is relative to
                     // the contig; if analyzing scaffold, this is relative to
                     // the scaffold.
                     GetSurrogatePositionFromSFL(cpHT,sflp,&mate5p,&mate3p);
-                    mateOrient = ( mate5p < mate3p ) ? A_B : B_A;
+                    mateOrient.setIsForward(mate5p < mate3p);
                     mockMate.contigID = sflp->contig;
 #if 0
                     fprintf(stderr,"Found a surrogate mate (%d, frag = %d), was ctg %d [%d,%d], mapped to [%d,%d], orientation %c\n",
@@ -4538,8 +4530,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
   // get the position, whether or not it's a surrogate
   ui->leftEnd = MIN(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
   ui->rightEnd = MAX(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
-  ui->orientation =
-    (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) ? A_B : B_A;
+  ui->orientation.setIsForward(unitig->offsetAEnd.mean < unitig->offsetBEnd.mean);
   ctgID = unitig->info.CI.contigID;
 
   // surrogate? make sure we have a real unitig
@@ -4567,8 +4558,8 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
     {
       if(do_surrogate_tracking){
         float utgAEndOnCtg,utgBEndOnCtg;
-        utgAEndOnCtg = ((ui->orientation == A_B) ? ui->leftEnd : ui->rightEnd );
-        utgBEndOnCtg = ((ui->orientation == B_A) ? ui->leftEnd : ui->rightEnd );
+        utgAEndOnCtg = ((ui->orientation.isForward()) ? ui->leftEnd : ui->rightEnd );
+        utgBEndOnCtg = ((ui->orientation.isReverse()) ? ui->leftEnd : ui->rightEnd );
 
         // iterate over fragments in surrogate
         for(fi = 0; fi < GetNumIntMultiPoss(uma->f_list); fi++)
@@ -4701,7 +4692,7 @@ int InstrumentContig(ScaffoldGraphT * graph,
   ci->id = contig->id;
   ci->leftEnd = MIN(aEnd, bEnd) + 0.5f;
   ci->rightEnd = MAX(aEnd, bEnd) + 0.5f;
-  ci->orientation = (aEnd < bEnd) ? A_B : B_A;
+  ci->orientation.setIsForward(aEnd < bEnd);
 
 #ifdef LIST_TERMINAL_TYPES
   ContigLastBP = 0;
@@ -4760,43 +4751,36 @@ void PopulateICP(IntContigPairs * icp, CDS_CID_t id, CIEdgeT * edge)
       //assert(0);
   }
   icp->stddev = sqrt(edge->distance.variance);
+  icp->orient = edge->orient;
 
-  switch(edge->orient)
-    {
-      case AB_AB:
-        icp->orient = (edge->idA == id) ? AB_AB : BA_BA;
-        break;
-      case BA_BA:
-        icp->orient = (edge->idA == id) ? BA_BA : AB_AB;
-        break;
-      default:
-        icp->orient = edge->orient;
-        break;
-    }
+  if (edge->orient.isAB_AB())
+    if (edge->idA == id)
+      icp->orient.setIsAB_AB();
+    else
+      icp->orient.setIsBA_BA();
+
+  if (edge->orient.isBA_BA())
+    if (edge->idA == id)
+      icp->orient.setIsBA_BA();
+    else
+      icp->orient.setIsAB_AB();
 }
 
 
-int GetOppositeEndOfOtherCI(CIEdgeT * edge, CDS_CID_t thisID)
-{
-  switch(edge->orient)
-    {
-      case AS_NORMAL:
-        return((edge->idA != thisID) ? A_END : B_END);
-        break;
-      case AS_ANTI:
-        return((edge->idA != thisID) ? B_END : A_END);
-        break;
-      case AS_INNIE:
-        return A_END;
-        break;
-      case AS_OUTTIE:
-        return B_END;
-        break;
-      default:
-        return NO_END;
-        break;
-    }
-  return NO_END;
+int
+GetOppositeEndOfOtherCI(CIEdgeT * edge, CDS_CID_t thisID) {
+  int ret = NO_END;
+
+  if (edge->orient.isNormal())
+    ret  = (edge->idA != thisID) ? A_END : B_END;
+  if (edge->orient.isAnti())
+    ret = (edge->idA != thisID) ? B_END : A_END;
+  if (edge->orient.isInnie())
+    ret = A_END;
+  if (edge->orient.isOuttie())
+    ret = B_END;
+
+  return(ret);
 }
 
 
@@ -4864,7 +4848,7 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
     {
       float gapSize;
       float currVariance;
-      ChunkOrientationType pairwiseOrient;
+      PairOrient pairwiseOrient;
       ContigT * lContig;
       ContigT * rContig;
       EdgeCGW_T * edge;
@@ -4892,14 +4876,14 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
         {
           if(rContig->offsetAEnd.mean < rContig->offsetBEnd.mean)
             {
-              pairwiseOrient = AB_AB;
+              pairwiseOrient.setIsAB_AB();
               gapSize = rContig->offsetAEnd.mean - lContig->offsetBEnd.mean;
               currVariance =
                 rContig->offsetAEnd.variance - lContig->offsetBEnd.variance;
             }
           else
             {
-              pairwiseOrient = AB_BA;
+              pairwiseOrient.setIsAB_BA();
               gapSize = rContig->offsetBEnd.mean - lContig->offsetBEnd.mean;
               currVariance =
                 rContig->offsetBEnd.variance - lContig->offsetBEnd.variance;
@@ -4909,14 +4893,14 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
         {
           if(rContig->offsetAEnd.mean < rContig->offsetBEnd.mean)
             {
-              pairwiseOrient = BA_AB;
+              pairwiseOrient.setIsBA_AB();
               gapSize = rContig->offsetAEnd.mean - lContig->offsetAEnd.mean;
               currVariance =
                 rContig->offsetAEnd.variance - lContig->offsetAEnd.variance;
             }
           else
             {
-              pairwiseOrient = BA_BA;
+              pairwiseOrient.setIsBA_BA();
               gapSize = rContig->offsetBEnd.mean - lContig->offsetAEnd.mean;
               currVariance =
                 rContig->offsetBEnd.variance - lContig->offsetAEnd.variance;
@@ -4937,7 +4921,7 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
 
       // set some temporary variables that get changed in AddICP
       thisID = CIsTemp.curr;
-      thisEnd = (pairwiseOrient == AB_AB || pairwiseOrient == AB_BA) ? 2 : 1;
+      thisEnd = (pairwiseOrient.isAB_AB() || pairwiseOrient.isAB_BA()) ? 2 : 1;
 
       {
         myEdge.idA = CIsTemp.curr;
@@ -4959,7 +4943,7 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
 
       myEdge.idA = myEdge.idB = CIsTemp.curr;
       myEdge.distance.mean = myEdge.distance.variance = 0.0f;
-      myEdge.orient = AB_AB;
+      myEdge.orient.setIsAB_AB();
       PopulateICP(&icp, CIsTemp.curr, &myEdge);
       AppendVA_IntContigPairs(icps, &icp);
     }
@@ -5046,8 +5030,8 @@ int InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
   if(contigIndex == 0)
     {
       cp.offset = 0.f;
-      cp.orient = (isf->contig_pairs[0].orient == AB_AB ||
-                   isf->contig_pairs[0].orient == AB_BA) ? A_B : B_A;
+      cp.orient.setIsForward(isf->contig_pairs[0].orient.isAB_AB() ||
+                             isf->contig_pairs[0].orient.isAB_BA());
     }
   else
     {
@@ -5055,9 +5039,8 @@ int InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
                                                        contigIndex - 1);
       cp.offset = prevCP->offset + prevCP->length +
         isf->contig_pairs[contigIndex - 1].mean;
-      cp.orient = (isf->contig_pairs[contigIndex - 1].orient == AB_AB ||
-                   isf->contig_pairs[contigIndex - 1].orient == BA_AB) ?
-        A_B : B_A;
+      cp.orient.setIsForward(isf->contig_pairs[contigIndex - 1].orient.isAB_AB() ||
+                             isf->contig_pairs[contigIndex - 1].orient.isBA_AB());
     }
 
   // append the contig placement to the array & hashtable
@@ -5067,8 +5050,8 @@ int InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
   // instrument the contig
   if(InstrumentContig(graph, si->cpHT, &(si->surrogateTracker),
                       contig, &(si->reusableCI),
-                      (cp.orient == A_B) ? cp.offset : cp.offset + cp.length,
-                      (cp.orient == A_B) ? cp.offset + cp.length: cp.offset))
+                      (cp.orient.isForward()) ? cp.offset : cp.offset + cp.length,
+                      (cp.orient.isForward()) ? cp.offset + cp.length: cp.offset))
     {
       fprintf(stderr, "Failed to instrument contig "F_CID "\n", contig->id);
       return 1;
@@ -5567,7 +5550,7 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
 
   // get the next CI & the end of it that extends the path
   nextCI = GetGraphNode(graph->ContigGraph, icp.contig2);
-  nextEnd = (icp.orient == AB_AB || icp.orient == BA_AB) ? B_END : A_END;
+  nextEnd = (icp.orient.isAB_AB() || icp.orient.isBA_AB()) ? B_END : A_END;
   numEssential = (nextEnd == A_END) ?
     nextCI->numEssentialA : nextCI->numEssentialB;
   while(numEssential == 1)
@@ -5592,7 +5575,7 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
 
       // get the next CI & the end of it that extends the path
       nextCI = GetGraphNode(graph->ContigGraph, icp.contig2);
-      nextEnd = (icp.orient == AB_AB || icp.orient == BA_AB) ? B_END : A_END;
+      nextEnd = (icp.orient.isAB_AB() || icp.orient.isBA_AB()) ? B_END : A_END;
       numEssential = (nextEnd == A_END) ?
         nextCI->numEssentialA : nextCI->numEssentialB;
     }
@@ -6047,9 +6030,9 @@ void PopulateICPContigs(ScaffoldGraphT * graph,
                         CDS_CID_t index)
 {
   int isA = (sEdge->idA == scaffold->id);
-  int sIsA2B = (sEdge->orient == AB_AB ||
-                (isA && sEdge->orient == AB_BA) ||
-                (!isA && sEdge->orient == BA_AB));
+  int sIsA2B = (sEdge->orient.isAB_AB() ||
+                (isA && sEdge->orient.isAB_BA()) ||
+                (!isA && sEdge->orient.isBA_AB()));
   double varFrom = sIsA2B ? 0.0 : scaffold->bpLength.variance;
   double meanFrom = sIsA2B ? 0.0 : scaffold->bpLength.mean;
   CDS_CID_t cIndex;
@@ -6066,7 +6049,7 @@ void PopulateICPContigs(ScaffoldGraphT * graph,
          (!sIsA2B && ci->offsetAEnd.mean > ci->offsetBEnd.mean))
         {
           // contig is A2B
-          ism->contig_pairs[cIndex + index].orient = AB_AB;
+          ism->contig_pairs[cIndex + index].orient.setIsAB_AB();
           ism->contig_pairs[cIndex + index].mean =
             lengthToAdd.mean + (isA ? 0.0 : sEdge->distance.mean) +
             fabs(meanFrom - ci->offsetAEnd.mean);
@@ -6078,7 +6061,7 @@ void PopulateICPContigs(ScaffoldGraphT * graph,
       else
         {
           // contig is B2A
-          ism->contig_pairs[cIndex + index].orient = BA_BA;
+          ism->contig_pairs[cIndex + index].orient.setIsBA_BA();
           ism->contig_pairs[cIndex + index].mean =
             lengthToAdd.mean + (isA ? 0.0 : sEdge->distance.mean) +
             fabs(meanFrom - ci->offsetBEnd.mean);
@@ -6153,12 +6136,16 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
       ChunkInstanceT * ci = GetGraphNode(graph->ContigGraph,
                                          ism.contig_pairs[i].contig1);
       ism.contig_pairs[i].contig2 = ism.contig_pairs[i+1].contig1;
-      if(ism.contig_pairs[i].orient == AB_AB)
-        ism.contig_pairs[i].orient =
-          (ism.contig_pairs[i+1].orient == AB_AB ? AB_AB : AB_BA);
+      if(ism.contig_pairs[i].orient.isAB_AB())
+        if (ism.contig_pairs[i+1].orient.isAB_AB())
+          ism.contig_pairs[i].orient.setIsAB_AB();
+        else
+          ism.contig_pairs[i].orient.setIsAB_BA();
       else
-        ism.contig_pairs[i].orient =
-          (ism.contig_pairs[i+1].orient == AB_AB ? BA_AB : BA_BA);
+        if (ism.contig_pairs[i+1].orient.isAB_AB())
+          ism.contig_pairs[i].orient.setIsBA_AB();
+        else
+          ism.contig_pairs[i].orient.setIsBA_BA();
 
       ism.contig_pairs[i].mean = ism.contig_pairs[i+1].mean -
         ism.contig_pairs[i].mean - ci->bpLength.mean;
@@ -6172,8 +6159,8 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
 #if 0
   fprintf(stderr,"Instrumenting a scaffold pair ... %d to %d, orient %s to %s, mean %g\n",
 	  scaffoldA->id,scaffoldB->id,
-	  ( sEdge->orient == AB_AB || sEdge->orient == AB_BA ) ? "AB" : "BA",
-	  ( sEdge->orient == AB_AB || sEdge->orient == BA_AB ) ? "AB" : "BA",
+	  ( sEdge->orient.isAB_AB() || sEdge->orient.isAB_BA() ) ? "AB" : "BA",
+	  ( sEdge->orient.isAB_AB() || sEdge->orient.isBA_AB() ) ? "AB" : "BA",
 	  sEdge->distance.mean);
 #endif
 

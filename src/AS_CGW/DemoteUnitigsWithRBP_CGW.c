@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: DemoteUnitigsWithRBP_CGW.c,v 1.8 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: DemoteUnitigsWithRBP_CGW.c,v 1.9 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,19 +60,14 @@ void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph){
       }
       otherNode = GetNodeCGW_T(graph->nodes, otherNodeId);
       if((edge->edgesContributing >= MIN_EDGES) && isOverlapEdge(edge) && (otherNode->bpLength.mean > 1500.0)){
-	switch(GetEdgeOrientationWRT(edge, node->id)){
-	  /* EdgeMate from the A-End */
-	case BA_BA:
-	case BA_AB:
+        PairOrient orient = GetEdgeOrientationWRT(edge, node->id);
+
+        assert(orient.isUnknown() == false);
+
+	if (orient.isBA_BA() || orient.isBA_AB())
 	  numAEndConfirmOverlap++;
-	  break;
-	case AB_BA:
-	case AB_AB:
+        else
 	  numBEndConfirmOverlap++;
-	  break;
-	default:
-	  assert(0);
-	}
       }
     }
     

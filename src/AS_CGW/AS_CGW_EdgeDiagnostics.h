@@ -22,7 +22,7 @@
 #ifndef AS_CGW_EDGEDIAGNOSTICS_H
 #define AS_CGW_EDGEDIAGNOSTICS_H
 
-static const char *rcsid_AS_CGW_EDGEDIAGNOSTICS_H = "$Id: AS_CGW_EdgeDiagnostics.h,v 1.5 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_AS_CGW_EDGEDIAGNOSTICS_H = "$Id: AS_CGW_EdgeDiagnostics.h,v 1.6 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -37,7 +37,7 @@ typedef struct
 {
   CDS_CID_t  keyID;    // contigID for contigs, scaffoldID for scaffolds
   CDS_CID_t  secondID; // scaffoldID for contigs, else unused
-  FragOrient orient;
+  SequenceOrient orient;
 } OrientHolder;
 
 VA_DEF(OrientHolder);
@@ -59,20 +59,20 @@ typedef struct
 void GetFragment5pAndOrientationInChunk(ScaffoldGraphT * graph,
                                         CIFragT * frag,
                                         LengthT * offset5p,
-                                        FragOrient * orient,
+                                        SequenceOrient * orient,
                                         ChunkInstanceT * chunk);
 void ComputeFrag5pToChunkEndFromOffset(LengthT * fragOffset5p,
-                                       ChunkOrientType whichEnd,
+                                       int whichEnd,
                                        LengthT * distFromEnd,
                                        ChunkInstanceT * chunk);
 void ComputeFrag5pToChunkEnd(ScaffoldGraphT * graph,
                              CIFragT * frag,
-                             ChunkOrientType whichEnd,
+                             int whichEnd,
                              LengthT * distFromEnd,
                              ChunkInstanceT * chunk);
 void ComputeFragToChunkEndForEdge(ScaffoldGraphT * graph,
                                   CIFragT * frag,
-                                  ChunkOrientType * endFromFrag,
+                                  int * endFromFrag,
                                   LengthT * distFromEnd,
                                   ChunkInstanceT * chunk);
 void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,

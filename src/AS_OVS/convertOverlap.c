@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: convertOverlap.c,v 1.20 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: convertOverlap.c,v 1.21 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,11 @@ void   convertOVLMESGtoASCII(void) {
     omesg.bifrag       = olap.b_iid;
     omesg.ahg          = olap.dat.ovl.a_hang;
     omesg.bhg          = olap.dat.ovl.b_hang;
-    omesg.orientation  = (olap.dat.ovl.flipped) ? AS_INNIE : AS_NORMAL;
+    //omesg.orientation  = (olap.dat.ovl.flipped) ? AS_INNIE : AS_NORMAL;
+    if (olap.dat.ovl.flipped)
+      omesg.orientation.setIsInnie();
+    else
+      omesg.orientation.setIsNormal();
     omesg.overlap_type = AS_DOVETAIL;
     omesg.quality      = AS_OVS_decodeQuality(olap.dat.ovl.orig_erate);
     omesg.min_offset   = 0;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_io.c,v 1.32 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_io.c,v 1.33 2010-02-17 01:32:58 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -763,11 +763,11 @@ void input_messages_from_a_file(FILE       *fovl,
       int improper = ((o->ahg <  0) && (o->bhg <  0)) || ((o->ahg == 0) && (o->bhg <  0)) || ((o->ahg < 0) && (o->bhg == 0)) ;
 
       e.avx = o->aifrag;
-      e.asx = improper ^ ((o->orientation == AS_NORMAL) || (o->orientation == AS_INNIE));
+      e.asx = improper ^ ((o->orientation.isNormal()) || (o->orientation.isInnie()));
       e.ahg = (improper) ? -o->bhg : o->ahg;
 
       e.bvx = o->bifrag;
-      e.bsx = e.asx ^ !((o->orientation == AS_INNIE)  || (o->orientation == AS_OUTTIE));
+      e.bsx = e.asx ^ !((o->orientation.isInnie())  || (o->orientation.isOuttie()));
       e.bhg = (improper) ? -o->ahg : o->bhg;
 
       e.nes       = (is_a_dvt_simple(e.ahg, e.bhg)) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE;

@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.43 2010-02-16 05:19:40 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.44 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -47,7 +47,7 @@ EdgeStatus AS_CGW_SafeConvert_uintToEdgeStatus(unsigned int input);
 typedef struct {
   CDS_CID_t idA;
   CDS_CID_t idB;
-  ChunkOrientationType orient; // Orientation of idA <-> idB, BE CAREFUL IF YOU WANT idB<->idA
+  PairOrient orient; // Orientation of idA <-> idB, BE CAREFUL IF YOU WANT idB<->idA
   //
   int32 edgesContributing;
   float quality;   // Used to order edges by decreasing quality (quality = 0.0 is the best, 1.0 is the worst)
@@ -337,9 +337,9 @@ VA_DEF(EdgeCGW_T);
 //  This structure comprises the 'symbol' that is the key for database
 //  lookups
 typedef struct {
-  CDS_CID_t cidA;
-  CDS_CID_t cidB;
-  ChunkOrientationType orientation;
+  CDS_CID_t  cidA;
+  CDS_CID_t  cidB;
+  PairOrient orientation;
 } ChunkOverlapSpecT;
 
 //  This is the value stored in the symbol table.  Note that it's
@@ -414,7 +414,7 @@ typedef struct{
   CDS_CID_t id;
   int32 minGap;
   int32 maxGap;
-  ChunkOrientationType orient;
+  PairOrient orient;
 }RevivedEdgeT;
 
 static void InitializeGraph(GraphCGW_T *graph){
@@ -538,173 +538,86 @@ static void SetEdgeStatus(GraphCGW_T *graph,
 void PropagateEdgeStatusToFrag(GraphCGW_T *graph, EdgeCGW_T *edge);
 
 
-static ChunkOrientationType InvertEdgeOrient
-(const ChunkOrientationType orient){
-  ChunkOrientationType new_orient = orient;
-  switch(orient){
-    case AB_BA:
-      new_orient = BA_AB; break;
-    case BA_AB:
-      new_orient = AB_BA; break;
-    case XX_XX:
-      new_orient = orient; break;
-    case AB_AB:
-      new_orient = BA_BA; break;
-    case BA_BA:
-      new_orient = AB_AB; break;
-    default:
-      assert(0);
-  }
-  return new_orient;
-}
-
-
-static ChunkOrientationType FlipEdgeOrient(ChunkOrientationType orient){
-  ChunkOrientationType new_orient = orient;
-  switch(orient){
-    case AB_BA:
-    case BA_AB:
-    case XX_XX:
-      new_orient = orient; break;
-    case AB_AB:
-      new_orient = BA_BA; break;
-    case BA_BA:
-      new_orient = AB_AB; break;
-    default:
-      assert(0);
-  }
-  return new_orient;
-}
-
-
-// Given orientation relating X and Y as ori(X)_ori(Y), return ori(Y)_ori(X)
-static ChunkOrientationType EdgeOrientSwap
-(const ChunkOrientationType orient){
-  ChunkOrientationType new_orient = orient;
-  switch(orient){
-    case AB_BA:
-      new_orient = BA_AB; break;
-    case BA_AB:
-      new_orient = AB_BA; break;
-    case XX_XX:
-      new_orient = orient; break;
-    case AB_AB:
-      new_orient = AB_AB; break;
-    case BA_BA:
-      new_orient = BA_BA; break;
-    default:
-      assert(0);
-  }
-  return new_orient;
-}
-
-
-static NodeOrient FlipNodeOrient(NodeOrient orient){
-  NodeOrient new_orient = orient;
-  switch(orient){
-    case A_B:
-      new_orient = B_A; break;
-    case B_A:
-      new_orient = A_B; break;
-    case X_X:
-      new_orient = orient; break;
-    default:
-      assert(0);
-  }
-  return new_orient;
-}
-
-
 static int32 IsSurrogateNode(NodeCGW_T *node){
   return node->flags.bits.isSurrogate;
 }
 
 
-static NodeOrient GetNodeOrient(NodeCGW_T *CI){
+static SequenceOrient GetNodeOrient(NodeCGW_T *CI){
+  SequenceOrient  orient;
+
   if(CI->offsetBEnd.mean > CI->offsetAEnd.mean)
-    return A_B;
-  return B_A;
+    orient.setIsForward();
+  else
+    orient.setIsReverse();
+
+  return(orient);
 }
 
 
-static ChunkOrientationType GetEdgeOrientationWRT(EdgeCGW_T* edge,
-                                                  CDS_CID_t wrtCI){
-  AssertPtr(edge);
-  if(edge->idA == wrtCI)
-    return edge->orient;
-  return FlipEdgeOrient(edge->orient);
+static PairOrient GetEdgeOrientationWRT(EdgeCGW_T* edge, CDS_CID_t wrtCI){
+  PairOrient ret = edge->orient;
+  if(edge->idA != wrtCI)
+    ret.flip();
+  return(ret);
 }
 
 // which side of the seed is a chunk on in the scaffold
 typedef enum {LEFT_SIDE, RIGHT_SIDE, THE_SEED} SeedSideType;
 
-static SeedSideType GetChunkSeedSide( ChunkOrientationType edgeOrient){
-  SeedSideType ret = RIGHT_SIDE;
-  switch(edgeOrient){
-    case AB_AB:
-    case AB_BA:
-      ret = RIGHT_SIDE; break;
-    case BA_BA:
-    case BA_AB:
-      ret = LEFT_SIDE; break;
-    default:
-      assert(0);
-      break;
-  }
-  return ret;
+static SeedSideType GetChunkSeedSide( PairOrient edgeOrient){
+  assert(edgeOrient.isUnknown() == false);
+  if (edgeOrient.isAB_AB() || edgeOrient.isAB_BA())
+    return(RIGHT_SIDE);
+  return(LEFT_SIDE);
 }
 
 /* Always consider the seed in the AB orientation, so we flip
    the other chunk accordingly to make it so */
-static ChunkOrient GetRelativeChunkOrientation( ChunkOrientationType edgeOrient){
-  ChunkOrient ret = A_B;
-  switch(edgeOrient){
-    case AB_AB:
-    case BA_BA:  // flip so that it is really AB_AB with the seed on the right
-      ret = A_B;
-      break;
-    case AB_BA:
-    case BA_AB: // flip so that it is really BA_AB with the seed on the left
-      ret = B_A;
-      break;
-    default:
-      assert(0);
-      break;
-  }
-  return ret;
+static SequenceOrient GetRelativeChunkOrientation( PairOrient edgeOrient){
+  SequenceOrient  ret;
+
+  assert(edgeOrient.isUnknown() == false);
+
+  if (edgeOrient.isAB_AB() || edgeOrient.isBA_BA())
+    ret.setIsForward();
+  else
+    ret.setIsReverse();
+  return(ret);
 }
 
-static ChunkOrientationType GetChunkPairOrientation(ChunkOrient orientA,
-                                                    ChunkOrient orientB){
-  ChunkOrientationType ret = BA_AB;
+static PairOrient GetChunkPairOrientation(SequenceOrient orientA,
+                                          SequenceOrient orientB){
+  PairOrient ret;
   int code = 0;
 
-  if(orientA == A_B)
+  if(orientA.isForward())
     code += 2;
 
-  if(orientB == A_B)
+  if(orientB.isForward())
     code += 1;
 
   switch(code){
     case 0: // BA_BA
-      ret = BA_BA; break;
+      ret.setIsBA_BA(); break;
     case 1: // BA_AB
-      ret = BA_AB; break;
+      ret.setIsBA_AB(); break;
     case 2: // AB_BA
-      ret = AB_BA; break;
+      ret.setIsAB_BA(); break;
     case 3: // BA_AB
-      ret = AB_AB; break;
+      ret.setIsAB_AB(); break;
     default:
       assert(0);
   }
+
   return ret;
 }
 
 
-ChunkOrientationType
-ciEdgeOrientFromFragment(int          orient,
-                         ChunkOrient  ciOrient,
-                         ChunkOrient  mciOrient);
+PairOrient
+ciEdgeOrientFromFragment(int             orient,
+                         SequenceOrient  ciOrient,
+                         SequenceOrient  mciOrient);
 
 
 static ChunkInstanceType GetNodeType(NodeCGW_T *ci){
@@ -1059,7 +972,7 @@ static  EdgeCGW_T *NextGraphEdgeIterator(GraphEdgeIterator *e){
 
   while(retEdge == (EdgeCGW_T *)NULL &&
 	(e->nextRaw != NULLINDEX || e->next != NULLINDEX)){
-    ChunkOrientationType orient;
+    PairOrient orient;
 
     if(e->verbose)
       fprintf(stderr,"* In loop (" F_CID "," F_CID "," F_CID ")\n",
@@ -1095,36 +1008,32 @@ static  EdgeCGW_T *NextGraphEdgeIterator(GraphEdgeIterator *e){
       // Flip orientation to accomodate canonical graph form
       orient = GetEdgeOrientationWRT(r, e->cid);
 
+      assert(orient.isUnknown() == false);
+
       /* Check for correct end and confirmed status */
-      switch(orient){
+      if (orient.isBA_BA() || orient.isBA_AB()) {
         /* EdgeMate from the A-End */
-	case BA_BA:
-	case BA_AB:
-	  if((e->end & A_END) &&
-	     (e->confirmedOnly == 0 || isConfirmedEdge(r)) &&
-	     (e->includeContainment || !isContainmentEdge(r))){
-	    retEdge = r;
-	  }else{
-	    if(e->verbose)
-	      fprintf(stderr,
-                      "* Skipping edge (" F_CID "," F_CID ") with orient:%c orientWRT %c (e->end&A_END) = %d confirmedOnly = %d failedContainment:%d\n",
-		      r->idA, r->idB, r->orient, orient,e->end&A_END, e->confirmedOnly,(isContainmentEdge(r) && e->includeContainment == FALSE));
-	  }
-	  break;
-	case AB_BA:
-	case AB_AB:
-	  if((e->end & B_END) &&
-	     (e->confirmedOnly == 0 || isConfirmedEdge(r)) &&
-	     (e->includeContainment || !isContainmentEdge(r))){
-	    retEdge = r;
-	  }else{
-	    if(e->verbose)
-	      fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient:%c orientWRT %c (e->end&B_END) = %d confirmedOnly = %d failedContainment:%d\n",
-		      r->idA, r->idB, r->orient, orient,e->end&B_END, e->confirmedOnly,(isContainmentEdge(r) && e->includeContainment == FALSE));
-	  }
-	  break;
-	default:
-	  assert(0);
+        if((e->end & A_END) &&
+           (e->confirmedOnly == 0 || isConfirmedEdge(r)) &&
+           (e->includeContainment || !isContainmentEdge(r))){
+          retEdge = r;
+        }else{
+          if(e->verbose)
+            fprintf(stderr,
+                    "* Skipping edge (" F_CID "," F_CID ") with orient:%c orientWRT %c (e->end&A_END) = %d confirmedOnly = %d failedContainment:%d\n",
+                    r->idA, r->idB, r->orient.toLetter(), orient.toLetter(),e->end&A_END, e->confirmedOnly,(isContainmentEdge(r) && e->includeContainment == FALSE));
+        }
+      }
+      if (orient.isAB_BA() || orient.isAB_AB()) {
+        if((e->end & B_END) &&
+           (e->confirmedOnly == 0 || isConfirmedEdge(r)) &&
+           (e->includeContainment || !isContainmentEdge(r))){
+          retEdge = r;
+        }else{
+          if(e->verbose)
+            fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient:%c orientWRT %c (e->end&B_END) = %d confirmedOnly = %d failedContainment:%d\n",
+                    r->idA, r->idB, r->orient.toLetter(), orient.toLetter(),e->end&B_END, e->confirmedOnly,(isContainmentEdge(r) && e->includeContainment == FALSE));
+        }
       }
 
       e->prev = e->curr;
@@ -1161,7 +1070,7 @@ static  EdgeCGW_T *NextGraphEdgeIterator(GraphEdgeIterator *e){
   if(retEdge && e->verbose){
     fprintf(stderr,"* Found CIEdge (" F_CID "," F_CID ") with orient %c and e->end = %d status:%d (" F_CID "," F_CID "," F_CID ")\n",
 	    retEdge->idA, retEdge->idB,
-	    retEdge->orient, e->end,
+	    retEdge->orient.toLetter(), e->end,
 	    GetEdgeStatus(retEdge),
 	    e->prev, e->curr, e->next);
   }
@@ -1261,7 +1170,7 @@ CDS_CID_t AddGraphEdge( GraphCGW_T *graph,
                         LengthT distance,
                         float   quality,
                         int32 fudgeDistance,
-                        OrientType orientation,
+                        PairOrient orientation,
                         int isInducedByUnknownOrientation,
                         int isOverlap,
                         int isTransChunk,
@@ -1286,18 +1195,18 @@ void  DeleteGraphEdge(GraphCGW_T *graph,  EdgeCGW_T *edge);
 // Find an overlap edge..returns NULL if none found
 EdgeCGW_T *FindGraphOverlapEdge(GraphCGW_T *graph,
                                 CDS_CID_t idA, CDS_CID_t idB,
-                                ChunkOrientationType orient);
+                                PairOrient orient);
 
 // Find an edge..returns NULL if none found
 EdgeCGW_T *FindGraphEdge(GraphCGW_T *graph,
                          CDS_CID_t idA, CDS_CID_t idB,
-                         ChunkOrientationType orient);
+                         PairOrient orient);
 
 // Find an overlap edge (assumed to exist) between the two CIs.
 // Unlink it from the graph
 void  DeleteGraphOverlapEdge(GraphCGW_T *graph,
                              CDS_CID_t idB, CDS_CID_t idA,
-                             ChunkOrientationType orient);
+                             PairOrient orient);
 
 // Move the edge to the free list
 void FreeGraphEdgeByEID(GraphCGW_T *graph,  CDS_CID_t eid);
@@ -1349,7 +1258,7 @@ void UpdateNodeUnitigs(MultiAlignT *ma, NodeCGW_T *contig);
 int FragOffsetAndOrientation(CIFragT     *frag,
 			     NodeCGW_T *chunk,
 			     LengthT    *chunkOffset, // output
-			     FragOrient *chunkOrient, // output
+			     SequenceOrient *chunkOrient, // output
 			     int32 *extremal,         // output
 			     int32 orientIsOpposite);
 
@@ -1482,7 +1391,7 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
 ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream);
 
 int InitCanonicalOverlapSpec(CDS_CID_t cidA, CDS_CID_t cidB,
-                             ChunkOrientationType orientation,
+                             PairOrient orientation,
                              ChunkOverlapSpecT *spec);
 
 void CreateChunkOverlapFromEdge(GraphCGW_T *graph,
@@ -1495,7 +1404,7 @@ ChunkOverlapCheckT *LookupCanonicalOverlap(ChunkOverlapperT *chunkOverlapper,
 
 int LookupOverlap(GraphCGW_T *graph,
 		  CDS_CID_t cidA, CDS_CID_t cidB,
-		  ChunkOrientationType orientation,
+		  PairOrient orientation,
 		  ChunkOverlapCheckT *olap);
 
 CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
@@ -1503,28 +1412,28 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
 
 void CollectChunkOverlap(GraphCGW_T *graph,
                          CDS_CID_t cidA, CDS_CID_t cidB,
-                         ChunkOrientationType orientation,
+                         PairOrient orientation,
                          float   meanOverlap, float   deltaOverlap,
                          float   quality, int bayesian,
                          int fromCGB,
 			 int verbose);
 
 Overlap* OverlapSequences(char *seq1, char *seq2,
-                          ChunkOrientationType orientation,
+                          PairOrient orientation,
                           int32 min_ahang, int32 max_ahang,
                           double erate, double thresh, int32 minlen,
                           uint32 tryLocal = FALSE);
 
 ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
                                  CDS_CID_t cidA, CDS_CID_t cidB,
-                                 ChunkOrientationType orientation,
+                                 PairOrient orientation,
                                  int32 minOverlap,
                                  int32 maxOverlap,
                                  float errorRate,
                                  int insertGraphEdges);
 
 Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
-                        ChunkOrientationType *overlapOrientation,
+                        PairOrient *overlapOrientation,
                         int32 minAhang, int32 maxAhang,
                         int computeAhang,
                         uint32 tryLocal = FALSE,

@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.23 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.24 2010-02-17 01:32:57 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1600,9 +1600,9 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
         QVBuffer.ahg = -ahang;
         QVBuffer.bhg = -bhang;
         if (opposite)
-          QVBuffer.orientation = AS_OUTTIE;
+          QVBuffer.orientation.setIsOuttie();
         else
-          QVBuffer.orientation = AS_NORMAL;
+          QVBuffer.orientation.setIsNormal();
         QVBuffer.aifrag = b->iaccession;
         QVBuffer.bifrag = a->iaccession;
         if (trace != NULL)
@@ -1619,9 +1619,9 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
         QVBuffer.ahg = ahang;
         QVBuffer.bhg = bhang;
         if (opposite)
-          QVBuffer.orientation = AS_INNIE;
+          QVBuffer.orientation.setIsInnie();
         else
-          QVBuffer.orientation = AS_NORMAL;
+          QVBuffer.orientation.setIsNormal();
         QVBuffer.aifrag = a->iaccession;
         QVBuffer.bifrag = b->iaccession;
       }

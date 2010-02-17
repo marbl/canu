@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.27 2010-01-15 21:24:20 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.28 2010-02-17 01:32:58 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -120,7 +120,7 @@ static int ConfirmOverlap(GraphCGW_T *graph,
   overlap = (int32)overlapEdge->distance.mean;
 
   if(mateEdge->flags.bits.hasExtremalAFrag){
-    if(mateEdge->orient == AB_BA || mateEdge->orient == AB_AB){
+    if(mateEdge->orient.isAB_BA() || mateEdge->orient.isAB_AB()){
       endB = TRUE; /* The fragment is on the B end of Chunk A */
     }else{
       endB = FALSE; /* On the A end of Chunk A */
@@ -139,7 +139,7 @@ static int ConfirmOverlap(GraphCGW_T *graph,
 #endif
   }
   if(mateEdge->flags.bits.hasExtremalBFrag){
-    if(mateEdge->orient == AB_BA || mateEdge->orient == BA_BA){
+    if(mateEdge->orient.isAB_BA() || mateEdge->orient.isBA_BA()){
       endB = TRUE;  /* B end of Chunk B */
     }else{
       endB = FALSE;  /* A end of Chunk B */

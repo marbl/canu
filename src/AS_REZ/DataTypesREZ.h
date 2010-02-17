@@ -22,7 +22,7 @@
 #ifndef DATA_TYPES_REZ_H
 #define DATA_TYPES_REZ_H
 
-static const char *rcsid_DATA_TYPES_REZ_H = "$Id: DataTypesREZ.h,v 1.10 2008-12-16 22:33:52 skoren Exp $";
+static const char *rcsid_DATA_TYPES_REZ_H = "$Id: DataTypesREZ.h,v 1.11 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -121,8 +121,7 @@ typedef  struct
   {
    int32  id;
    double  lo, hi;       // range of scaff coords of *high* end of target
-   ChunkOrientationType
-       orient;           // orientation of link that connects the start
+   PairOrient orient;    // orientation of link that connects the start
                          //   of the search (i.e., "from") to this target
    double  where;        // scaff coord of *high* end of target on overlap
                          //   path if it was found

@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.14 2010-02-12 20:40:09 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.15 2010-02-17 01:32:59 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -248,7 +248,7 @@ processULK(SnapUnitigLinkMesg *ulk) {
   fprintf(utglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c",
           AS_UID_toString(ulk->eunitig1),
           AS_UID_toString(ulk->eunitig2),
-          ulk->orientation,
+          ulk->orientation.toLetter(),
           ulk->overlap_type,
           ulk->is_possible_chimera ? 'chimeric' : '.',
           ulk->mean_distance,
@@ -378,7 +378,7 @@ processCLK(SnapContigLinkMesg *clk) {
   fprintf(ctglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c",
           AS_UID_toString(clk->econtig1),
           AS_UID_toString(clk->econtig2),
-          clk->orientation,
+          clk->orientation.toLetter(),
           clk->overlap_type,
           clk->is_possible_chimera ? 'chimeric' : '.',
           clk->mean_distance,
@@ -437,8 +437,8 @@ processSCF(SnapScaffoldMesg *scf) {
       end     = scfLen;
       ori     = ORIF;
 
-      if ((scf->contig_pairs[i].orient == AS_ANTI) ||
-          (scf->contig_pairs[i].orient == AS_OUTTIE))
+      if ((scf->contig_pairs[i].orient.isAnti()) ||
+          (scf->contig_pairs[i].orient.isOuttie()))
         ori = ORIR;
 
       ctgInfo[ctgIID].scfUID = scf->eaccession;
@@ -466,8 +466,8 @@ processSCF(SnapScaffoldMesg *scf) {
       end     = scfLen;
       ori     = ORIF;
 
-      if ((scf->contig_pairs[i].orient == AS_ANTI) ||
-          (scf->contig_pairs[i].orient == AS_INNIE))
+      if ((scf->contig_pairs[i].orient.isAnti()) ||
+          (scf->contig_pairs[i].orient.isInnie()))
         ori = ORIR;
 
       ctgInfo[ctgIID].scfUID = scf->eaccession;
@@ -493,7 +493,7 @@ processSLK(SnapScaffoldLinkMesg *slk) {
   fprintf(scflkg, "%s\t%s\t%c\t%f\t%f\t%d",
           AS_UID_toString(slk->escaffold1),
           AS_UID_toString(slk->escaffold2),
-          slk->orientation,
+          slk->orientation.toLetter(),
           slk->mean_distance,
           slk->std_deviation,
           slk->num_contributing);

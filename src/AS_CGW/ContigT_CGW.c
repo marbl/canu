@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.28 2009-10-27 12:44:33 skoren Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.29 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -420,130 +420,85 @@ void DumpContigs(FILE *stream, ScaffoldGraphT *graph, int raw){
 int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
                                    CIFragT *frag,
                                    CDS_CID_t  cid, // input
-                                   CIOrient   chunkOrient,    // input orientation of fragment in CI
+                                   SequenceOrient   chunkOrient,    // input orientation of fragment in CI
                                    LengthT    *ciOffset,    // CI's offset within Contig
-                                   CIOrient   *ciOrient){    // CI's orientation within Contig
+                                   SequenceOrient   *ciOrient){    // CI's orientation within Contig
 
   ChunkInstanceT *CI = GetChunkInstanceT(graph->ChunkInstances, cid);
-  ContigT *contig;
-  CIOrient CIInContigOrient;
 
   if(CI->info.CI.contigID == NULLINDEX)
     return FALSE;
 
-  contig = GetGraphNode(graph->ContigGraph, CI->info.CI.contigID);
-
-  CIInContigOrient = GetNodeOrient(CI);
-
+  ContigT        *contig = GetGraphNode(graph->ContigGraph, CI->info.CI.contigID);
+  SequenceOrient  CIInContigOrient = GetNodeOrient(CI);
 
   /* Find the offset of the B end of the chunk within its chunkOfScaffolds.  The fragments
      offset is additive with this */
 
-  switch(chunkOrient){
-    case A_B:  // Fragment is A_B in CI
-      switch(CIInContigOrient){
-        case A_B:// Chunk is A_B in Contig
-          /*    Contig   ------------------------------------------------------->
-                CI      A_B     ---------------------->
-                Frag       A_B            ------>
-                Offset                    |=====================================|
-          */
+  assert(chunkOrient.isUnknown() == false);
+  assert(CIInContigOrient.isUnknown() == false);
 
-          *ciOrient = A_B;
-          ciOffset->mean =
-            (contig->bpLength.mean -  CI->offsetBEnd.mean);
+  if (chunkOrient.isForward()) {
+    if (CIInContigOrient.isForward()) {
+      //    Contig   ------------------------------------------------------->
+      //    CI      A_B     ---------------------->
+      //    Frag       A_B            ------>
+      //    Offset                    |=====================================|
 
-          /*
-            ciOffset->variance =
-            (contig->bpLength.variance - CI->offsetBEnd.variance);
-          */
+      ciOrient->setIsForward();
+      ciOffset->mean = (contig->bpLength.mean -  CI->offsetBEnd.mean);
 
-          // Take the proportinal part of the contig variance as the variance
-          ciOffset->variance = (contig->bpLength.variance ) * (contig->bpLength.mean - ciOffset->mean)  / contig->bpLength.mean ;
+      // Take the proportinal part of the contig variance as the variance
+      //ciOffset->variance = (contig->bpLength.variance - CI->offsetBEnd.variance);
+      ciOffset->variance = (contig->bpLength.variance ) * (contig->bpLength.mean - ciOffset->mean)  / contig->bpLength.mean ;
 
-          if(ciOffset->variance < 0.0){
-            fprintf(stderr,"* 1) CIInContig ciOffset->variance = %g => 0.0\n",
-                    ciOffset->variance);
-            fprintf(stderr,"* 1) contig " F_CID " bpLength (%g,%g) CI " F_CID "  CI->offsetBEnd (%g,%g)\n",
-                    CI->info.CI.contigID,
-                    contig->bpLength.mean,
-                    contig->bpLength.variance,
-                    cid,
-                    CI->offsetBEnd.mean,
-                    CI->offsetBEnd.variance);
-
-            ciOffset->variance = 0.0;
-          }
-
-          break;
-        case B_A: // Chunk is B_A in Contig
-          /*    Contig ------------------------------------------------------->
-                Chunk     B_A  <----------------------
-                Frag      A_B         <------
-                Offset |====================|
-          */
-          *ciOrient = B_A;
-          ciOffset->mean = CI->offsetBEnd.mean;
-          ciOffset->variance = CI->offsetBEnd.variance;
-
-          break;
-        default:
-          assert(0);
+      if(ciOffset->variance < 0.0){
+        fprintf(stderr,"* 1) CIInContig ciOffset->variance = %g => 0.0\n", ciOffset->variance);
+        fprintf(stderr,"* 1) contig " F_CID " bpLength (%g,%g) CI " F_CID "  CI->offsetBEnd (%g,%g)\n",
+                CI->info.CI.contigID, contig->bpLength.mean, contig->bpLength.variance, cid, CI->offsetBEnd.mean, CI->offsetBEnd.variance);
+        ciOffset->variance = 0.0;
       }
 
-      break;
+    } else {
+      //    Contig ------------------------------------------------------->
+      //    Chunk     B_A  <----------------------
+      //    Frag      A_B         <------
+      //    Offset |====================|
 
-    case B_A:  // Fragment is B_A in Chunk
-      switch(CIInContigOrient){
-        case A_B:// Chunk is A_B in Contig
-          /*    Contig    ------------------------------------------------------->
-                Chunk      A_B     ---------------------->
-                Frag       B_A            <------
-                Offset |===========|
-          */
+      ciOrient->setIsReverse();
+      ciOffset->mean = CI->offsetBEnd.mean;
+      ciOffset->variance = CI->offsetBEnd.variance;
+    }
+  }
 
-          *ciOrient = B_A;
-          ciOffset->mean = CI->offsetAEnd.mean;
-          ciOffset->variance = CI->offsetAEnd.variance;
+  if (chunkOrient.isReverse()) {
+    if (CIInContigOrient.isForward()) {
+      //    Contig    ------------------------------------------------------->
+      //    Chunk      A_B     ---------------------->
+      //    Frag       B_A            <------
+      //    Offset |===========|
 
+      ciOrient->setIsReverse();
+      ciOffset->mean = CI->offsetAEnd.mean;
+      ciOffset->variance = CI->offsetAEnd.variance;
+    } else {
 
-          break;
-        case B_A: // Chunk is B_A in Contig
-          /*    Contig    ------------------------------------------------------->
-                Chunk           <----------------------   B_A
-                Frag                   ------>    B_A
-                Offset                                 |=========================|
-          */
-          *ciOrient = A_B;
-          ciOffset->mean =
-            (contig->bpLength.mean - CI->offsetAEnd.mean);
+      //    Contig    ------------------------------------------------------->
+      //    Chunk           <----------------------   B_A
+      //    Frag                   ------>    B_A
+      //    Offset                                 |=========================|
 
-          ciOffset->variance =
-            (contig->bpLength.variance - CI->offsetAEnd.variance);
+      ciOrient->setIsForward();
+      ciOffset->mean = (contig->bpLength.mean - CI->offsetAEnd.mean);
+      ciOffset->variance = (contig->bpLength.variance - CI->offsetAEnd.variance);
 
-          if(ciOffset->variance < 0.0){
-            fprintf(stderr,"* 2) CIInContig ciOffset->variance = %g => 0.0\n",
-                    ciOffset->variance);
-            fprintf(stderr,"* 2) contig " F_CID " bpLength (%g,%g) CI " F_CID "  CI->offsetAEnd (%g,%g)\n",
-                    CI->info.CI.contigID,
-                    contig->bpLength.mean,
-                    contig->bpLength.variance,
-                    cid,
-                    CI->offsetAEnd.mean,
-                    CI->offsetAEnd.variance);
-
-            ciOffset->variance = 0.0;
-          }
-          break;
-
-        default:
-          assert(0);
+      if(ciOffset->variance < 0.0){
+        fprintf(stderr,"* 2) CIInContig ciOffset->variance = %g => 0.0\n", ciOffset->variance);
+        fprintf(stderr,"* 2) contig " F_CID " bpLength (%g,%g) CI " F_CID "  CI->offsetAEnd (%g,%g)\n",
+                CI->info.CI.contigID, contig->bpLength.mean, contig->bpLength.variance, cid, CI->offsetAEnd.mean, CI->offsetAEnd.variance);
+        ciOffset->variance = 0.0;
       }
-
-
-      break;
-    default:
-      assert(0);
+    }
   }
 
   return TRUE;
@@ -555,9 +510,8 @@ int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
 int BuildContigEdges(ScaffoldGraphT *graph){
   CDS_CID_t sid;
   int oldSize = GetNumCIEdgeTs(graph->ContigEdges);
-  CIOrient ciOrient, mciOrient;
-  //CIOrient contigEdgeOrient;
-  ChunkOrientationType contigEdgeOrient;
+  SequenceOrient ciOrient, mciOrient;
+  PairOrient contigEdgeOrient;
   LengthT ciOffset, mciOffset;
   LengthT distance;
   int edgesSucceeded = 0;
@@ -614,12 +568,12 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 	  InitCIEdgeTIterator(graph,  thisCI->id,   TRUE /* raw */, FALSE,  ALL_END,   ALL_EDGES, FALSE, &edges);// ONLY RAW
 	  while((edge = NextCIEdgeTIterator(&edges)) != NULL){
 	    int isA = (edge->idA == thisCI->id);
-	    ChunkOrientationType edgeOrient;
+	    PairOrient edgeOrient;
 	    CDS_CID_t otherCID = (isA? edge->idB: edge->idA);
 	    ChunkInstanceT *otherCI = GetChunkInstanceT(graph->ChunkInstances, otherCID);
 	    CIFragT *frag = GetCIFragT(graph->CIFrags, (isA? edge->fragA: edge->fragB));
 	    CIFragT *otherFrag = GetCIFragT(graph->CIFrags, (isA? edge->fragB: edge->fragA));
-	    FragOrient orient;
+	    SequenceOrient orient;
 	    int CIok, mCIok;
 	    CDS_CID_t contig, mcontig;
 
@@ -637,8 +591,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 
 #ifndef TRY_IANS_EDGES
 	    edgeOrient = GetEdgeOrientationWRT(edge, otherCI->id);
-	    orient = ((edgeOrient == AB_BA || edgeOrient == AB_AB)?A_B:B_A);
-
+            orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
 #if 0
             fprintf(stderr,"* Edge (" F_CID "," F_CID ") %c dist: %g in scaffolds (" F_CID "," F_CID ") orient = %c\n",
 		    thisCID, otherCID, edgeOrient, edge->distance.mean,
@@ -657,7 +610,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 	      continue;
 
 	    edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
-	    orient = ((edgeOrient == AB_BA || edgeOrient == AB_AB)?A_B:B_A);
+            orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
 	    CIok = CIinContigOffsetAndOrientation(graph,
                                                   frag,
                                                   thisCI->id, // input
@@ -670,68 +623,52 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 
 	    /* Mate pairs must be oriented in opposite directions.  So, if they are oriented the same wrt
 	       their own chunk, the chunks must be oriented opposite one another */
-	    switch(ciOrient){
-	      //
-              case A_B:
 
-                switch(mciOrient){
-                  case A_B:
-                    //           length - 5'             gap            length - 5'
-                    //      |------------------------||---------------||-----------|
-                    //  A --------------------------- B               B --------------------------- A
-                    //    5'----->                                           <------5'
-                    //      |-------------------------------------------------------|
-                    //                             mate distance
-                    //
-                    contigEdgeOrient = AB_BA;
-                    break;
-                  case B_A:
-                    //           length - 5'             gap                5'
-                    //      |------------------------||---------------||-----------|
-                    //  A --------------------------- B               A --------------------------- B
-                    //    5'----->                                           <------5'
-                    //      |-------------------------------------------------------|
-                    //                             mate distance
-                    //
-                    contigEdgeOrient = AB_AB;
-                    break;
-                  default:
-                    assert(0);
-                    break;
-                }
-                break;
-              case B_A:
+            assert(ciOrient.isUnknown() == false);
 
-                switch(mciOrient){
-                  case A_B:
-                    //                     5'             gap            length - 5'
-                    //      |------------------------||---------------||-----------|
-                    //  B --------------------------- A               B --------------------------- A
-                    //    5'----->                                           <------5'
-                    //      |-------------------------------------------------------|
-                    //                             mate distance
-                    //
-                    contigEdgeOrient = BA_BA;
-                    break;
-                  case B_A:
-                    //                     5'             gap                5'
-                    //      |------------------------||---------------||-----------|
-                    //  B --------------------------- A               A --------------------------- B
-                    //    5'----->                                           <------5'
-                    //      |-------------------------------------------------------|
-                    //                             mate/guide distance
-                    //
-                    contigEdgeOrient = BA_AB;
-                    break;
-                  default:
-                    assert(0);
-                    break;
-                }
-                break;
-              default:
-                assert(0);
-                break;
-	    }
+	    if (ciOrient.isForward()) {
+              if (mciOrient.isForward()) {
+                //           length - 5'             gap            length - 5'
+                //      |------------------------||---------------||-----------|
+                //  A --------------------------- B               B --------------------------- A
+                //    5'----->                                           <------5'
+                //      |-------------------------------------------------------|
+                //                             mate distance
+                //
+                contigEdgeOrient.setIsAB_BA();
+              } else {
+                //           length - 5'             gap                5'
+                //      |------------------------||---------------||-----------|
+                //  A --------------------------- B               A --------------------------- B
+                //    5'----->                                           <------5'
+                //      |-------------------------------------------------------|
+                //                             mate distance
+                //
+                contigEdgeOrient.setIsAB_AB();
+              }
+            } else {
+              //  ciOrient.isReverse()
+              if (mciOrient.isForward()) {
+                //                     5'             gap            length - 5'
+                //      |------------------------||---------------||-----------|
+                //  B --------------------------- A               B --------------------------- A
+                //    5'----->                                           <------5'
+                //      |-------------------------------------------------------|
+                //                             mate distance
+                //
+                contigEdgeOrient.setIsBA_BA();
+              } else {
+                //                     5'             gap                5'
+                //      |------------------------||---------------||-----------|
+                //  B --------------------------- A               A --------------------------- B
+                //    5'----->                                           <------5'
+                //      |-------------------------------------------------------|
+                //                             mate/guide distance
+                //
+                contigEdgeOrient.setIsBA_AB();
+              }
+            }
+
 #if 0
             fprintf(stderr,"* CIEdge (" F_CID "," F_CID ") %c induced\n",
                     thisCID, otherCID, edge->orient);

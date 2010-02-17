@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.1 2010-01-23 04:05:27 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.2 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -154,8 +154,30 @@ main(int argc, char **argv) {
   libMesg.mean         = gkl.mean;
   libMesg.stddev       = gkl.stddev;
   libMesg.source       = NULL;
-#warning unsafe conversion of orient
-  libMesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[gkl.orientation][0];
+
+  libMesg.link_orient.setIsUnknown();
+
+  switch(gkl.orientation) {
+    case AS_READ_ORIENT_INNIE:
+      libMesg.link_orient.setIsInnie();
+      break;
+    case AS_READ_ORIENT_OUTTIE:
+      libMesg.link_orient.setIsOuttie();
+      break;
+    case AS_READ_ORIENT_NORMAL:
+      libMesg.link_orient.setIsNormal();
+      break;
+    case AS_READ_ORIENT_ANTINORMAL:
+      libMesg.link_orient.setIsAnti();
+      break;
+    case AS_READ_ORIENT_UNKNOWN:
+      libMesg.link_orient.setIsUnknown();
+      break;
+    default:
+      //  Cannot happen, unless someone adds a new orientation to gkFragment.
+      assert(0);
+      break;
+  }
 
   gkl.gkLibrary_encodeFeatures(&libMesg);
 

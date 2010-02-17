@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.22 2010-02-09 20:19:25 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.23 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,8 +165,25 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
       return(1);
     }
 
-    gkFrag1->gkFragment_setOrientation(lkg_mesg->link_orient);
-    gkFrag2->gkFragment_setOrientation(lkg_mesg->link_orient);
+    gkFrag1->gkFragment_setOrientation(AS_READ_ORIENT_UNKNOWN);
+    gkFrag2->gkFragment_setOrientation(AS_READ_ORIENT_UNKNOWN);
+
+    if        (lkg_mesg->link_orient.isInnie()) {
+      gkFrag1->gkFragment_setOrientation(AS_READ_ORIENT_INNIE);
+      gkFrag2->gkFragment_setOrientation(AS_READ_ORIENT_INNIE);
+    } else if (lkg_mesg->link_orient.isOuttie()) {
+      gkFrag1->gkFragment_setOrientation(AS_READ_ORIENT_OUTTIE);
+      gkFrag2->gkFragment_setOrientation(AS_READ_ORIENT_OUTTIE);
+    } else if (lkg_mesg->link_orient.isNormal()) {
+      gkFrag1->gkFragment_setOrientation(AS_READ_ORIENT_NORMAL);
+      gkFrag2->gkFragment_setOrientation(AS_READ_ORIENT_NORMAL);
+    } else if (lkg_mesg->link_orient.isAnti()) {
+      gkFrag1->gkFragment_setOrientation(AS_READ_ORIENT_ANTINORMAL);
+      gkFrag2->gkFragment_setOrientation(AS_READ_ORIENT_ANTINORMAL);
+    } else {
+      //  This really cannot happen, unless someone adds a new orientation to PairOrient.
+      assert(0);
+    }
   }
 
   //  Now make absolutely sure the two reads are in the same library.

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.55 2010-02-09 20:19:27 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.56 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -536,8 +536,30 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
         lmesg.mean         = gkpl->mean;
         lmesg.stddev       = gkpl->stddev;
         lmesg.source       = NULL;
-#warning unsafe conversion of orient
-        lmesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[gkpl->orientation][0];
+
+        lmesg.link_orient.setIsUnknown();
+
+        switch(gkpl->orientation) {
+          case AS_READ_ORIENT_INNIE:
+            lmesg.link_orient.setIsInnie();
+            break;
+          case AS_READ_ORIENT_OUTTIE:
+            lmesg.link_orient.setIsOuttie();
+            break;
+          case AS_READ_ORIENT_NORMAL:
+            lmesg.link_orient.setIsNormal();
+            break;
+          case AS_READ_ORIENT_ANTINORMAL:
+            lmesg.link_orient.setIsAnti();
+            break;
+          case AS_READ_ORIENT_UNKNOWN:
+            lmesg.link_orient.setIsUnknown();
+            break;
+          default:
+            //  Cannot happen, unless someone adds a new orientation to gkFragment.
+            assert(0);
+            break;
+        }
 
         gkpl->gkLibrary_encodeFeatures(&lmesg);
       }
@@ -605,11 +627,34 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
 
         lmesg.action      = AS_ADD;
         lmesg.type.setIsMatePair();
-#warning unsafe conversion of orient
-        lmesg.link_orient = (OrientType)AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()][0];
+        lmesg.link_orient.setIsUnknown();
         lmesg.frag1       = frgUID[fr.gkFragment_getMateIID()];
         lmesg.frag2       = fr.gkFragment_getReadUID();
         lmesg.distance    = libUID[fr.gkFragment_getLibraryIID()];
+
+        lmesg.link_orient.setIsUnknown();
+
+        switch(fr.gkFragment_getOrientation()) {
+          case AS_READ_ORIENT_INNIE:
+            lmesg.link_orient.setIsInnie();
+            break;
+          case AS_READ_ORIENT_OUTTIE:
+            lmesg.link_orient.setIsOuttie();
+            break;
+          case AS_READ_ORIENT_NORMAL:
+            lmesg.link_orient.setIsNormal();
+            break;
+          case AS_READ_ORIENT_ANTINORMAL:
+            lmesg.link_orient.setIsAnti();
+            break;
+          case AS_READ_ORIENT_UNKNOWN:
+            lmesg.link_orient.setIsUnknown();
+            break;
+          default:
+            //  Cannot happen, unless someone adds a new orientation to gkFragment.
+            assert(0);
+            break;
+        }
 
         WriteProtoMesg_AS(stdout, &pmesg);
       }

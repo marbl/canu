@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.84 2010-02-16 05:19:40 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.85 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -391,7 +391,7 @@ int EdgeCGWCompare(EdgeCGW_T *edge1, EdgeCGW_T *edge2){
   if(diff)
     return diff;
 
-  diff = edge1->orient - edge2->orient;
+  diff = (int)edge1->orient.toLetter() - (int)edge2->orient.toLetter();
   if(diff)
     return diff;
 
@@ -945,7 +945,7 @@ void PrintGraphEdge(FILE *fp, GraphCGW_T *graph,
           (edge->flags.bits.hasExtremalAFrag?"$A":"  "),
           (edge->flags.bits.hasExtremalBFrag?"$B":"  "),
           flagTrans, (edge->flags.bits.isLeastSquares?"L":" "),
-          GetEdgeOrientationWRT(edge, edge->idA),
+          GetEdgeOrientationWRT(edge, edge->idA).toLetter(),
           edge->quality, edge->flags.bits.edgeStatus & TRUSTED_EDGE_STATUS,
           edge->flags.bits.hasContainmentOverlap,
           (int)edge->distance.mean,
@@ -1030,7 +1030,7 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
           (edge->flags.bits.hasExtremalAFrag?"$A":"  "),
           (edge->flags.bits.hasExtremalBFrag?"$B":"  "),
           flagTrans, (edge->flags.bits.isLeastSquares?"L":" "),
-          GetEdgeOrientationWRT(edge, edge->idA),
+          GetEdgeOrientationWRT(edge, edge->idA).toLetter(),
           edge->quality, edge->flags.bits.edgeStatus & TRUSTED_EDGE_STATUS,
           edge->flags.bits.hasContainmentOverlap,
           (int)edge->distance.mean,
@@ -1059,7 +1059,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
                        LengthT distance,
                        float   quality,
                        int32 fudgeDistance,
-                       OrientType orientation,
+                       PairOrient orientation,
                        int isInducedByUnknownOrientation,
                        int isOverlap,
                        int isAContainsB,
@@ -1074,7 +1074,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
   CDS_CID_t ciedgeIndex = GetVAIndex_EdgeCGW_T(graph->edges, ciedge);
   CDS_CID_t idA, idB;
   CDS_CID_t fidA, fidB;
-  OrientType orient;
+  PairOrient orient;
   ChunkInstanceT *CIa, *CIb;
   int aContainsB, bContainsA;
   int extremalA, extremalB;
@@ -1101,20 +1101,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
     extremalB = isExtremalA;
     aContainsB = isBContainsA;
     bContainsA = isAContainsB;
-    switch(orientation){
-      case AB_BA:
-      case BA_AB:
-	orient = orientation;
-	break;
-      case AB_AB:
-	orient = BA_BA;
-	break;
-      case BA_BA:
-	orient = AB_AB;
-	break;
-      default:
-	assert(0);
-    }
+    orient.flip();
   }
 
   CIa = GetGraphNode(graph, idA);
@@ -1258,7 +1245,7 @@ void DumpGraph(GraphCGW_T *graph, FILE *stream){
                           GRAPH_EDGE_DEFAULT , &edges);
     while(NULL != (edge = NextGraphEdgeIterator(&edges))){
       fprintf(stream,"\t("F_CID ","F_CID ") %c wt:%d %s\n",
-              edge->idA, edge->idB, edge->orient, edge->edgesContributing,
+              edge->idA, edge->idB, edge->orient.toLetter(), edge->edgesContributing,
               (isOverlapEdge(edge)?"*O*":" "));
     }
   }
@@ -1270,31 +1257,24 @@ void DumpGraph(GraphCGW_T *graph, FILE *stream){
 /* Find an overlap edge between A,B */
 EdgeCGW_T *FindGraphOverlapEdge(GraphCGW_T *graph,
                                 CDS_CID_t idA, CDS_CID_t idB,
-                                ChunkOrientationType orient){
+                                PairOrient orient){
 
   GraphEdgeIterator edges;
   EdgeCGW_T *edge;
   int end;
   int found = FALSE;
 
-  switch(orient){
-    case AB_AB:
-    case AB_BA:
-      end = B_END;
-      break;
-    case BA_AB:
-    case BA_BA:
-      end = A_END;
-      break;
-    default:
-      assert(0);
-  }
+  assert(orient.isUnknown() == false);
 
-  InitGraphEdgeIterator(graph, idA, end, ALL_EDGES,
-                        GRAPH_EDGE_DEFAULT, &edges);
+  if (orient.isAB_AB() || orient.isAB_BA())
+    end = B_END;
+  else
+    end = A_END;
+
+  InitGraphEdgeIterator(graph, idA, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
 
   while(NULL != (edge = NextGraphEdgeIterator(&edges))){
-    ChunkOrientationType corient = GetEdgeOrientationWRT(edge, idA);
+    PairOrient corient = GetEdgeOrientationWRT(edge, idA);
     if(!isOverlapEdge(edge)){
       continue;
     }
@@ -1318,34 +1298,24 @@ EdgeCGW_T *FindGraphOverlapEdge(GraphCGW_T *graph,
 /* Find an overlap edge between A,B */
 EdgeCGW_T *FindGraphEdge(GraphCGW_T *graph,
                          CDS_CID_t idA, CDS_CID_t idB,
-                         ChunkOrientationType orient){
+                         PairOrient orient){
 
   GraphEdgeIterator edges;
   EdgeCGW_T *edge;
-  int end;
+  int end = ALL_END;
   int found = FALSE;
 
-  switch(orient){
-    case AB_AB:
-    case AB_BA:
-      end = B_END;
-      break;
-    case BA_AB:
-    case BA_BA:
-      end = A_END;
-      break;
-    case XX_XX:
-      end = ALL_END;
-      break;
-    default:
-      assert(0);
-  }
+  //  ALL_END if orient is Unknown
 
-  InitGraphEdgeIterator(graph, idA, end, ALL_EDGES,
-                        GRAPH_EDGE_DEFAULT, &edges);
+  if (orient.isAB_AB() || orient.isAB_BA())
+    end = B_END;
+  if (orient.isBA_AB() || orient.isBA_BA())
+    end = A_END;
+
+  InitGraphEdgeIterator(graph, idA, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
 
   while(NULL != (edge = NextGraphEdgeIterator(&edges))){
-    ChunkOrientationType corient = GetEdgeOrientationWRT(edge, idA);
+    PairOrient corient = GetEdgeOrientationWRT(edge, idA);
     if(corient != orient)
       continue;
     if(edge->idA != idB &&
@@ -1366,7 +1336,7 @@ EdgeCGW_T *FindGraphEdge(GraphCGW_T *graph,
 // Unlink it from the graph
 void  DeleteGraphOverlapEdge(GraphCGW_T *graph,
                              CDS_CID_t idA, CDS_CID_t idB,
-                             ChunkOrientationType orient){
+                             PairOrient orient){
   CIEdgeT *edge = FindGraphOverlapEdge(graph, idA,idB, orient);
 
   AssertPtr(edge); // If we don't find it...assert
@@ -1455,7 +1425,7 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
       edgesAdded = MergeGraphEdges(graph, chain);
       if(debug && edgesAdded > 0) {
         fprintf(stderr,"* Found a chain of length %d between ("F_CID ","F_CID ") orient:%c ==> Added %d edges\n",
-                length, edge->idA, edge->idB, edge->orient, edgesAdded);
+                length, edge->idA, edge->idB, edge->orient.toLetter(), edgesAdded);
 
         //for(i = 0; i < GetNumCDS_CID_ts(chain); i ++){
         //  CDS_CID_t edgeID = *GetCDS_CID_t(chain,i);
@@ -1518,7 +1488,7 @@ void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
                           edge->idA, edge->idB,
                           edge->orient, &olap) == FALSE) {
           fprintf(stderr,"* Failure in CheckEdgeAgainstOverlapper for edge #%d:\n", count);
-          PrintGraphEdge(stderr, graph, " ", edge, node->id);
+          PrintGraphEdge(stderr, graph, "F", edge, node->id);
           failures++;
         }
       }
@@ -1765,7 +1735,7 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 int FragOffsetAndOrientation(CIFragT     *frag,
                              ChunkInstanceT *chunk,
                              LengthT    *chunkOffset, // output
-                             FragOrient *chunkOrient, // output
+                             SequenceOrient *chunkOrient, // output
                              int32 *extremal,         // output
                              int32 orientIsOpposite
                              /* TRUE if offset should be calculated from 5' towards end of
@@ -1792,59 +1762,51 @@ int FragOffsetAndOrientation(CIFragT     *frag,
 
   *extremal = FALSE;
 
+  assert(chunkOrient->isUnknown() == false);
+
   if(orientIsOpposite){   /* This is the case for ALL Mates and Bac Ends */
-    switch(*chunkOrient){
-      case A_B:
-        /*
-          Chunk                        ----------------------------------->
-          Frag                           --------->
-          ChunkOffset                    |--------------------------------|
-          ChunkOrient                         A_B
-        */
-        chunkOffset->mean = chunk->bpLength.mean - offset5p.mean;
-        if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_B || frag->flags.bits.chunkLabel == AS_SINGLETON)
-          *extremal = TRUE;
-        break;
-      case B_A:
-        /*
-          Chunk                        ----------------------------------->
-          Frag                           <---------
-          ChunkOffset                  |----------|
-          ChunkOrient                     B_A
-        */
-        chunkOffset->mean = offset5p.mean;
-        if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_A || frag->flags.bits.chunkLabel == AS_SINGLETON)
-          *extremal = TRUE;
-        break;
-      default:
-        assert(0);
+    if (chunkOrient->isForward()) {
+      /*
+        Chunk                        ----------------------------------->
+        Frag                           --------->
+        ChunkOffset                    |--------------------------------|
+        ChunkOrient                         A_B
+      */
+      chunkOffset->mean = chunk->bpLength.mean - offset5p.mean;
+      if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_B || frag->flags.bits.chunkLabel == AS_SINGLETON)
+        *extremal = TRUE;
+    } else {
+      /*
+        Chunk                        ----------------------------------->
+        Frag                           <---------
+        ChunkOffset                  |----------|
+        ChunkOrient                     B_A
+      */
+      chunkOffset->mean = offset5p.mean;
+      if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_A || frag->flags.bits.chunkLabel == AS_SINGLETON)
+        *extremal = TRUE;
     }
   }else{
-    switch(*chunkOrient){
-      case A_B:
-        /*
-          Chunk                        ----------------------------------->
-          Frag                           --------->
-          ChunkOffset                  |-|
-          ChunkOrient                         A_B
-        */
-        chunkOffset->mean = offset5p.mean;
-        if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_B || frag->flags.bits.chunkLabel == AS_SINGLETON)
-          *extremal = TRUE;
-        break;
-      case B_A:
-        /*
-          Chunk                        ----------------------------------->
-          Frag                           <---------
-          ChunkOffset                              |----------------------|
-          ChunkOrient                        B_A
-        */
-        chunkOffset->mean = chunk->bpLength.mean - offset5p.mean;
-        if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_A || frag->flags.bits.chunkLabel == AS_SINGLETON)
-          *extremal = TRUE;
-        break;
-      default:
-        assert(0);
+    if (chunkOrient->isForward()) {
+      /*
+        Chunk                        ----------------------------------->
+        Frag                           --------->
+        ChunkOffset                  |-|
+        ChunkOrient                         A_B
+      */
+      chunkOffset->mean = offset5p.mean;
+      if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_B || frag->flags.bits.chunkLabel == AS_SINGLETON)
+        *extremal = TRUE;
+    } else {
+      /*
+        Chunk                        ----------------------------------->
+        Frag                           <---------
+        ChunkOffset                              |----------------------|
+        ChunkOrient                        B_A
+      */
+      chunkOffset->mean = chunk->bpLength.mean - offset5p.mean;
+      if(frag->flags.bits.chunkLabel == AS_INTERCHUNK_A || frag->flags.bits.chunkLabel == AS_SINGLETON)
+        *extremal = TRUE;
     }
   }
 
@@ -1861,280 +1823,74 @@ int FragOffsetAndOrientation(CIFragT     *frag,
 }
 
 
-ChunkOrientationType
+PairOrient
 ciEdgeOrientFromFragment(int          orient,
-                         ChunkOrient  ciOrient,
-                         ChunkOrient  mciOrient) {
-  ChunkOrientationType  ciEdgeOrient;
+                         SequenceOrient  ciOrient,
+                         SequenceOrient  mciOrient) {
+  PairOrient  ciEdgeOrient;
 
-  // The following triply nested case statement captures all of the
-  // cases that arise from different relative alignments of the
-  // fragments in the LKG relationship, and their alignment with their
-  // respective chunks.
+  // The following triply nested switch/if statement captures all of the cases that arise from
+  // different relative alignments of the fragments in the LKG relationship, and their alignment
+  // with their respective chunks.
   //
-  // There is probably a better way to do this, but I think this is
-  // the clearest way to codify the relationships, complete with
-  // 'drawings'
+  //  The original version had 'pictures' which contributed a lot of useless information (like the
+  //  distance between mates), but didn't help at clarifying what is going on here...and probably
+  //  hurt just because of the volume of noise.  See version 1.83 if you want the pictures.
+  //
+  //  One picture, for AS_READ_ORIENT_INNIE, ciOrient.isForward(), mciOrient.isForward() (aka, the
+  //  first case):
+  //
+  //           length - 5'             gap            length - 5'
+  //      |------------------------||---------------||-----------|
+  //  A --------------------------- B               B --------------------------- A
+  //    5'----->                                           <------5'
+  //      |-------------------------------------------------------|
+  //                             mate distance
+  //
+  //
+  //  BPW's best guess here is that ciOrient and mciOrient are the orientation of the fragment
+  //  relative to the containing ci.  In this case, we know that the frags are innies, and that they
+  //  are both oriented in the same direction as the ci's.  Thus, we know that the ci's are AB_BA.
+  //
+  //  In the second case, the mate fragment is reversed from the mci, which will reverse the mci
+  //  itself, hence AB_AB.
+
+  assert(ciOrient.isUnknown() == false);
+  assert(mciOrient.isUnknown() == false);
 
   switch(orient){
-    case AS_READ_ORIENT_INNIE: /********* AB_BA *******************************/
-      switch(ciOrient){
-        case A_B:
-          switch(mciOrient){
-            case A_B:
-              //           length - 5'             gap            length - 5'
-              //      |------------------------||---------------||-----------|
-              //  A --------------------------- B               B --------------------------- A
-              //    5'----->                                           <------5'
-              //      |-------------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = AB_BA;  // A
-              break;
-            case B_A:
-              //           length - 5'             gap                5'
-              //      |------------------------||---------------||-----------|
-              //  A --------------------------- B               A --------------------------- B
-              //    5'----->                                           <------5'
-              //      |-------------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = AB_AB; // N
-              break;
-            default:
-              assert(0);
-              break;
-          }
-          break;
-        case B_A:
-
-          switch(mciOrient){
-            case A_B:
-              //                     5'             gap            length - 5'
-              //      |------------------------||---------------||-----------|
-              //  B --------------------------- A               B --------------------------- A
-              //    5'----->                                           <------5'
-              //      |-------------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = BA_BA; // I
-              break;
-            case B_A:
-              //                     5'             gap                5'
-              //      |------------------------||---------------||-----------|
-              //  B --------------------------- A               A --------------------------- B
-              //    5'----->                                           <------5'
-              //      |-------------------------------------------------------|
-              //                             mate/guide distance
-              //
-              ciEdgeOrient = BA_AB; // O
-              break;
-            default:
-              assert(0);
-              break;
-          }
-          break;
-        default:
-          assert(0);
-          break;
+    case AS_READ_ORIENT_INNIE:
+      if (ciOrient.isForward()) {
+        if (mciOrient.isForward()) {ciEdgeOrient.setIsAB_BA();} else {ciEdgeOrient.setIsAB_AB();}
+      } else {
+        if (mciOrient.isForward()) {ciEdgeOrient.setIsBA_BA();} else {ciEdgeOrient.setIsBA_AB();}
       }
       break;
 
-    case AS_READ_ORIENT_NORMAL: /******* AB_AB *******************************/
-      switch(ciOrient){
-	//
-        case A_B:
-
-          switch(mciOrient){
-            case B_A:
-              //           length - 5'             gap              Length - 5'
-              //      |------------------------||---------------||-----------|
-              //  A --------------------------- B               B --------------------------- A
-              //    5'----->                                                  5'------>
-              //      |-------------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = AB_BA;  // A
-              break;
-            case A_B:
-              //           length - 5'             gap                5'
-              //      |------------------------||---------------||------|
-              //  A --------------------------- B               A --------------------------- B
-              //    5'----->                                           5'------>
-              //      |-------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = AB_AB; // N
-              break;
-            default:
-              assert(0);
-              break;
-          }
-          break;
-        case B_A:
-
-          switch(mciOrient){
-            case A_B:
-              //                     5'             gap            5'
-              //      |------------------------||---------------||----|
-              //  B --------------------------- A               A --------------------------- B
-              //    5'----->                                          5'------>
-              //      |-----------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = BA_AB; // O
-              break;
-            case B_A:
-              //                     5'             gap                Length - 5'
-              //      |------------------------||---------------||----|
-              //  B --------------------------- A               B --------------------------- A
-              //    5'----->                                          5'------>
-              //      |-----------------------------------------------|
-              //                             mate/guide distance
-              //
-              ciEdgeOrient = BA_BA; // A
-              break;
-            default:
-              assert(0);
-              break;
-          }
-          break;
-        default:
-          assert(0);
-          break;
+    case AS_READ_ORIENT_NORMAL:
+      if (ciOrient.isForward()) {
+        if (mciOrient.isReverse()) {ciEdgeOrient.setIsAB_BA();} else {ciEdgeOrient.setIsAB_AB();}
+      } else {
+        if (mciOrient.isForward()) {ciEdgeOrient.setIsBA_AB();} else {ciEdgeOrient.setIsBA_BA();}
       }
       break;
-    case AS_READ_ORIENT_ANTINORMAL: /***** BA_BA *******************************/
-      switch(ciOrient){
-	//
-        case A_B:
 
-          switch(mciOrient){
-            case B_A:
-              //                 5'             gap                     5'
-              //          |---------------------||---------------||------------------|
-              //  B --------------------------- A               A --------------------------- B
-              //    <-----5'                                                  <------5'
-              //          |-----------------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = BA_AB;
-              break;
-            case A_B:
-              //                 5'             gap                     Length - 5'
-              //          |---------------------||---------------||------------------|
-              //  B --------------------------- A               B --------------------------- A
-              //    <-----5'                                                  <------5'
-              //          |-----------------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = BA_BA; // N
-              break;
-            default:
-              assert(0);
-              break;
-          }
-          break;
-        case B_A:
-
-          switch(mciOrient){
-            case A_B:
-              //                 Length - 5'             gap               Length - 5'
-              //          |---------------------||---------------||------------------|
-              //  A --------------------------- B               B --------------------------- A
-              //    <-----5'                                                  <------5'
-              //          |-----------------------------------------------------------|
-              //                             mate distance
-              //
-
-              ciEdgeOrient = AB_BA;
-              break;
-            case B_A:
-              //                 length - 5'           gap                     5'
-              //          |---------------------||---------------||------------------|
-              //  A --------------------------- B               A --------------------------- B
-              //    <-----5'                                                  <------5'
-              //          |-----------------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = BA_BA; // A
-              break;
-            default:
-              assert(0);
-              break;
-          }
-          break;
-        default:
-          assert(0);
-          break;
+    case AS_READ_ORIENT_ANTINORMAL:
+      if (ciOrient.isForward()) {
+        if (mciOrient.isReverse()) {ciEdgeOrient.setIsBA_AB();} else {ciEdgeOrient.setIsBA_BA();}
+      } else{
+        if (mciOrient.isForward()) {ciEdgeOrient.setIsAB_BA();} else {ciEdgeOrient.setIsBA_BA();}
       }
       break;
-    case AS_READ_ORIENT_OUTTIE: /******** BA_AB *******************************/
-      switch(ciOrient){
-	//
-        case A_B:
 
-          switch(mciOrient){
-            case B_A:
-              //                 5'             gap                     Length - 5'
-              //          |---------------------||---------------||------------ |
-              //  B --------------------------- A               B --------------------------- A
-              //    <-----5'                                                  5'------>
-              //          |-----------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = BA_BA;
-              break;
-            case A_B:
-              //                 5'             gap                      5'
-              //          |---------------------||---------------||-----------|
-              //  B --------------------------- A               A --------------------------- B
-              //    <-----5'                                                  5' ------>
-              //          |---------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = BA_AB; // N
-              break;
-            default:
-              assert(0);
-              break;
-          }
-          break;
-        case B_A:
-
-          switch(mciOrient){
-            case B_A:
-              //                 Length - 5'          gap                     Length - 5'
-              //          |---------------------||---------------||------------ |
-              //  A --------------------------- B               B --------------------------- A
-              //    <-----5'                                                  5'------>
-              //          |-----------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = AB_BA;
-              break;
-            case A_B:
-              //                 Length - 5'            gap                      5'
-              //          |---------------------||---------------||-----------|
-              //  A --------------------------- B               A --------------------------- B
-              //    <-----5'                                                  5' ------>
-              //          |---------------------------------------------------|
-              //                             mate distance
-              //
-              ciEdgeOrient = AB_AB; // N
-              break;
-            default:
-              assert(0);
-              break;
-          }
-          break;
-
-        default:
-          assert(0);
-          break;
+    case AS_READ_ORIENT_OUTTIE:
+      if (ciOrient.isForward()) {
+        if (mciOrient.isReverse()) {ciEdgeOrient.setIsBA_BA();} else {ciEdgeOrient.setIsBA_AB();}
+      } else {
+        if (mciOrient.isReverse()) {ciEdgeOrient.setIsAB_BA();} else {ciEdgeOrient.setIsAB_AB();}
       }
       break;
-    case XX_XX:
+
     default:
       assert(0);
   }
@@ -2160,8 +1916,8 @@ CreateGraphEdge(GraphCGW_T *graph,
   CDS_CID_t mfragID = GetVAIndex_CIFragT(ScaffoldGraph->CIFrags, mfrag);
   LengthT ciOffset, mciOffset, distance;
   int32 extremalA, extremalB;
-  ChunkOrient ciOrient, mciOrient;
-  ChunkOrientationType ciEdgeOrient;
+  SequenceOrient ciOrient, mciOrient;
+  PairOrient ciEdgeOrient;
   EdgeStatus status;
 
   assert(dist);
@@ -2816,7 +2572,7 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
             // If the order of the nodes is different than it used to be, flip
             // the edge orientation.  This shouldn't happen, since  the
             // surrogate ids are higher than any other node
-            newEdge->orient = FlipEdgeOrient(newEdge->orient);
+            newEdge->orient.flip();
           }
         }else{
           newEdge->idA = otherCID;
@@ -2824,7 +2580,7 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
           if(oldID < otherCID){
             // If the order of the nodes is different than it used to be, flip
             // the edge orientation.  This should occur with probability 0.5
-            newEdge->orient = FlipEdgeOrient(newEdge->orient);
+            newEdge->orient.flip();
           }
         }
         // insert the graph edge in the graph
@@ -3453,8 +3209,8 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
         dist = mate->offset5p.mean - frag->offset5p.mean;
 
-        if((frag->flags.bits.innieMate && getCIFragOrient(frag) == B_A) ||
-           (!frag->flags.bits.innieMate && getCIFragOrient(frag) == A_B) )
+        if((frag->flags.bits.innieMate && getCIFragOrient(frag).isReverse()) ||
+           (!frag->flags.bits.innieMate && getCIFragOrient(frag).isForward()) )
           dist = -dist;
       } else if (operateOnNodes == CONTIG_OPERATIONS) {
         ContigT *contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
@@ -3488,8 +3244,8 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
         //   <-------------------           ---------------------->
         //     mate                 outie            frag
 
-        if((frag->flags.bits.innieMate && GetContigFragOrient(frag) == B_A) ||
-           (!frag->flags.bits.innieMate && GetContigFragOrient(frag) == A_B) )
+        if((frag->flags.bits.innieMate && GetContigFragOrient(frag).isReverse()) ||
+           (!frag->flags.bits.innieMate && GetContigFragOrient(frag).isForward()) )
           dist =  -dist;
 
       } else if (operateOnNodes == SCAFFOLD_OPERATIONS) {
@@ -3920,7 +3676,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       lmesg.mean       = dptr->mu;
       lmesg.stddev     = dptr->sigma;
       lmesg.source     = NULL;
-      lmesg.link_orient  = AS_UNKNOWN;   //  Not used for AS_UPDATE
+      lmesg.link_orient.setIsUnknown();  //  Not used for AS_UPDATE
       lmesg.num_features = 0;            //  Not used for AS_UPDATE
       lmesg.features     = NULL;         //  Not used for AS_UPDATE
       lmesg.values       = NULL;         //  Not used for AS_UPDATE

@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_ITERATOR_H
 #define SCAFFOLD_GRAPH_ITERATOR_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.8 2009-10-27 12:26:41 skoren Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.9 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
@@ -126,7 +126,7 @@ static CIEdgeT *NextCIEdgeTIterator(CIEdgeTIterator *e){
 
   while(retEdge == (CIEdgeT *)NULL &&
 	(e->nextRaw != NULLINDEX || e->next != NULLINDEX)){
-    ChunkOrientationType orient;
+    PairOrient orient;
 
     if(e->verbose)
       fprintf(stderr,"* In loop (" F_CID "," F_CID "," F_CID ")\n",
@@ -157,33 +157,29 @@ static CIEdgeT *NextCIEdgeTIterator(CIEdgeTIterator *e){
       // Flip orientation to accomodate canonical graph form
       orient = GetEdgeOrientationWRT(r, e->cid);
 
+      assert(orient.isUnknown() == false);
+
       /* Check for correct end and confirmed status */
-      switch(orient){
+      if (orient.isBA_BA() || orient.isBA_AB()) {
 	/* EdgeMate from the A-End */
-        case BA_BA:
-        case BA_AB:
-          if((e->end & A_END) &&
-             (e->confirmedOnly == 0 || isConfirmedEdge(r))){
-            retEdge = r;
-          }else{
-            if(e->verbose)
-              fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient:%c orientWRT %c (e->end&A_END) = %d confirmedOnly = %d\n",
-                      r->idA, r->idB, r->orient, orient,e->end&A_END, e->confirmedOnly);
-          }
-          break;
-        case AB_BA:
-        case AB_AB:
-          if((e->end & B_END) &&
-             (e->confirmedOnly == 0 || isConfirmedEdge(r))){
-            retEdge = r;
-          }else{
-            if(e->verbose)
-              fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient %c orientWRT:%c (e->end&B_END) = %d confirmedOnly = %d\n",
-                      r->idA, r->idB, r->orient, orient, e->end&B_END, e->confirmedOnly);
-          }
-          break;
-        default:
-          assert(0);
+        if((e->end & A_END) &&
+           (e->confirmedOnly == 0 || isConfirmedEdge(r))){
+          retEdge = r;
+        }else{
+          if(e->verbose)
+            fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient:%c orientWRT %c (e->end&A_END) = %d confirmedOnly = %d\n",
+                    r->idA, r->idB, r->orient.toLetter(), orient.toLetter(),e->end&A_END, e->confirmedOnly);
+        }
+      }
+      if (orient.isAB_BA() || orient.isAB_AB()) {
+        if((e->end & B_END) &&
+           (e->confirmedOnly == 0 || isConfirmedEdge(r))){
+          retEdge = r;
+        }else{
+          if(e->verbose)
+            fprintf(stderr,"* Skipping edge (" F_CID "," F_CID ") with orient %c orientWRT:%c (e->end&B_END) = %d confirmedOnly = %d\n",
+                    r->idA, r->idB, r->orient.toLetter(), orient.toLetter(), e->end&B_END, e->confirmedOnly);
+        }
       }
       e->prev = e->curr;
       e->curr = e->next;
@@ -218,7 +214,7 @@ static CIEdgeT *NextCIEdgeTIterator(CIEdgeTIterator *e){
   if(retEdge && e->verbose)
     fprintf(stderr,"* Found CIEdge (" F_CID "," F_CID ") with orient %c and e->end = %d status:%d (" F_CID "," F_CID "," F_CID ")\n",
 	    retEdge->idA, retEdge->idB,
-	    retEdge->orient, e->end,
+	    retEdge->orient.toLetter(), e->end,
 	    GetEdgeStatus(retEdge),
 	    e->prev, e->curr, e->next);
 
@@ -566,7 +562,7 @@ static void NormalizeScaffoldOffsets(ScaffoldGraphT *graph,
   LengthT curBeginOffset;
   NodeCGW_T *endNodeA = GetGraphNode(graph->ContigGraph,
 				     scaffold->info.Scaffold.AEndCI);
-  if(GetNodeOrient(endNodeA) == A_B){
+  if(GetNodeOrient(endNodeA).isForward()){
     curBeginOffset = endNodeA->offsetAEnd;
   }else{
     curBeginOffset = endNodeA->offsetBEnd;

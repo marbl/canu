@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputFasta.c,v 1.15 2009-09-07 07:40:58 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputFasta.c,v 1.16 2010-02-17 01:32:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -283,9 +283,9 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
     reversed[0] = FALSE;
   } else {
     int i;
-    reversed[0] = ((scf_mesg->contig_pairs[0].orient == BA_AB) || (scf_mesg->contig_pairs[0].orient == BA_BA)) ? TRUE : FALSE;
+    reversed[0] = ((scf_mesg->contig_pairs[0].orient.isBA_AB()) || (scf_mesg->contig_pairs[0].orient.isBA_BA())) ? TRUE : FALSE;
     for (i=0; i<scf_mesg->num_contig_pairs; i++)
-      reversed[i+1] = ((scf_mesg->contig_pairs[i].orient == BA_AB) || (scf_mesg->contig_pairs[i].orient == AB_BA)) ? !reversed[i] : reversed[i];
+      reversed[i+1] = ((scf_mesg->contig_pairs[i].orient.isBA_AB()) || (scf_mesg->contig_pairs[i].orient.isAB_BA())) ? !reversed[i] : reversed[i];
   }
 
 

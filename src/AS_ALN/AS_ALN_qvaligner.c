@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.22 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.23 2010-02-17 01:32:57 brianwalenz Exp $";
 
 /* Utility routines to complement, unpack and pack alignments, and print
    overlaps.  Also a routine for re-aligning an overlap using quality
@@ -200,56 +200,49 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
   fprintf(file," B = (%s,"F_IID ")",AS_UID_toString(b->eaccession),b->iaccession);
   fprintf(file,"\n\n");
 
-  switch (align->orientation)
-  { case AS_NORMAL:
-      if (align->bhg <= 0)
-        { fprintf(file,"  A -----+------+----> %-4d\n",align->bhg);
-          fprintf(file,"    %4d -------> B\n",align->ahg);
-        }
-      else
-        { fprintf(file,"  A -----+------> %-4d\n",align->bhg);
-          fprintf(file,"    %4d -------+----> B\n",align->ahg);
-        }
-      break;
-    case AS_INNIE:
-      if (align->bhg <= 0)
-        { fprintf(file,"  A -----+------+----> %-4d\n",align->bhg);
-          fprintf(file,"    %4d <------- B\n",align->ahg);
-        }
-      else
-        { fprintf(file,"  A -----+------> %-4d\n",align->bhg);
-          fprintf(file,"    %4d <------+----- B\n",align->ahg);
-        }
-      break;
-    case AS_OUTTIE:
-      if (align->bhg <= 0)
-        { fprintf(file,"  A <----+------+----- %-4d\n",align->bhg);
-          fprintf(file,"    %4d -------> B\n",align->ahg);
-        }
-      else
-        { fprintf(file,"  A <----+------- %-4d\n",align->bhg);
-          fprintf(file,"    %4d -------+----> B\n",align->ahg);
-        }
-      break;
-    case AS_ANTI:
-    case AS_UNKNOWN:
-    default:
-      assert(0);
-      break;
+  if (align->orientation.isNormal()) {
+    if (align->bhg <= 0)
+      { fprintf(file,"  A -----+------+----> %-4d\n",align->bhg);
+        fprintf(file,"    %4d -------> B\n",align->ahg);
+      }
+    else
+      { fprintf(file,"  A -----+------> %-4d\n",align->bhg);
+        fprintf(file,"    %4d -------+----> B\n",align->ahg);
+      }
+  } else if (align->orientation.isInnie()) {
+    if (align->bhg <= 0)
+      { fprintf(file,"  A -----+------+----> %-4d\n",align->bhg);
+        fprintf(file,"    %4d <------- B\n",align->ahg);
+      }
+    else
+      { fprintf(file,"  A -----+------> %-4d\n",align->bhg);
+        fprintf(file,"    %4d <------+----- B\n",align->ahg);
+      }
+  } else if (align->orientation.isOuttie()) {
+    if (align->bhg <= 0)
+      { fprintf(file,"  A <----+------+----- %-4d\n",align->bhg);
+        fprintf(file,"    %4d -------> B\n",align->ahg);
+      }
+    else
+      { fprintf(file,"  A <----+------- %-4d\n",align->bhg);
+        fprintf(file,"    %4d -------+----> B\n",align->ahg);
+      }
+  } else {
+    assert(0);
   }
   fprintf(file,"\n");
 
   if (align->alignment_trace != NULL) {
-    if (align->orientation == AS_INNIE)
+    if (align->orientation.isInnie())
       reverseComplement(b->sequence, b->quality, strlen(b->sequence));
-    else if (align->orientation == AS_OUTTIE)
+    else if (align->orientation.isOuttie())
       reverseComplement(a->sequence, a->quality, strlen(a->sequence));
 
     PrintAlign(file,align->ahg,align->bhg,a->sequence,b->sequence,align->alignment_trace);
 
-    if (align->orientation == AS_INNIE)
+    if (align->orientation.isInnie())
       reverseComplement(b->sequence, b->quality, strlen(b->sequence));
-    else if (align->orientation == AS_OUTTIE)
+    else if (align->orientation.isOuttie())
       reverseComplement(a->sequence, a->quality, strlen(a->sequence));
   }
 }
@@ -412,9 +405,9 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     swap = 1;
   }
 
-  if (align->orientation == AS_INNIE)
+  if (align->orientation.isInnie())
     reverseComplement(b->sequence, b->quality, strlen(b->sequence));
-  else if (align->orientation == AS_OUTTIE)
+  else if (align->orientation.isOuttie())
     reverseComplement(a->sequence, a->quality, strlen(a->sequence));
 
   AnalyzeAffineAlign(align->ahg,align->bhg,
@@ -425,9 +418,9 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                      blockdel,blockins,blocksize,
                      biggestBlock);
 
-  if (align->orientation == AS_INNIE)
+  if (align->orientation.isInnie())
     reverseComplement(b->sequence, b->quality, strlen(b->sequence));
-  else if (align->orientation == AS_OUTTIE)
+  else if (align->orientation.isOuttie())
     reverseComplement(a->sequence, a->quality, strlen(a->sequence));
 
   if (swap) {
@@ -607,7 +600,7 @@ void Compute_Olap_Version(InternalFragMesg* a,InternalFragMesg *b,OverlapMesg *O
       *bhang = O->bhg;
     }
 
-  *ori = (( O->orientation == AS_INNIE || O->orientation == AS_OUTTIE) ?  'I' : 'N');
+  *ori = (O->orientation.isInnie() || O->orientation.isOuttie()) ?  'I' : 'N';
 
   return;
 }

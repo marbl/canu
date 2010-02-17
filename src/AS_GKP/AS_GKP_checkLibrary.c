@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.33 2010-02-05 13:45:11 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.34 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,7 +41,7 @@ Check_DistanceMesg(DistanceMesg    *dst_mesg,
   lmesg.mean         = dst_mesg->mean;
   lmesg.stddev       = dst_mesg->stddev;
   lmesg.source       = NULL;
-  lmesg.link_orient  = (OrientType)'I';
+  lmesg.link_orient.setIsInnie();
   lmesg.num_features = 0;
   lmesg.features     = NULL;
   lmesg.values       = NULL;
@@ -55,7 +55,7 @@ void
 checkLibraryDistances(LibraryMesg *lib_mesg,
                       int          fixInsertSizes) {
 
-  if (lib_mesg->link_orient == 'U')
+  if (lib_mesg->link_orient.isUnknown())
     return;
 
 
@@ -142,13 +142,19 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     gkpl.mean                       = lib_mesg->mean;
     gkpl.stddev                     = lib_mesg->stddev;
 
-    switch (lib_mesg->link_orient) {
-      case 'U': gkpl.orientation = AS_READ_ORIENT_UNKNOWN;    break;
-      case 'I': gkpl.orientation = AS_READ_ORIENT_INNIE;      break;
-      case 'O': gkpl.orientation = AS_READ_ORIENT_OUTTIE;     break;
-      case 'N': gkpl.orientation = AS_READ_ORIENT_NORMAL;     break;
-      default:  gkpl.orientation = AS_READ_ORIENT_UNKNOWN;    break;
-    }
+    gkpl.orientation                = AS_READ_ORIENT_UNKNOWN;
+
+    if (lib_mesg->link_orient.isInnie())
+      gkpl.orientation = AS_READ_ORIENT_INNIE;
+
+    if (lib_mesg->link_orient.isOuttie())
+      gkpl.orientation = AS_READ_ORIENT_OUTTIE;
+
+    if (lib_mesg->link_orient.isNormal())
+      gkpl.orientation = AS_READ_ORIENT_NORMAL;
+
+    if (lib_mesg->link_orient.isAnti())
+      gkpl.orientation = AS_READ_ORIENT_ANTINORMAL;
 
     gkpl.gkLibrary_decodeFeatures(lib_mesg);
 

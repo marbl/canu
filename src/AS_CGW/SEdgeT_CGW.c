@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.19 2009-10-27 12:26:41 skoren Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.20 2010-02-17 01:32:58 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -78,7 +78,7 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
           edge->idA, edge->idB,
           edge->edgesContributing,
           flag,
-          GetEdgeOrientationWRT(edge, sid),
+          GetEdgeOrientationWRT(edge, sid).toLetter(),
           edge->flags.bits.hasContainmentOverlap,
           (int)edge->distance.mean, sqrt(edge->distance.variance),
           actualOverlap, edge->fragA, edge->fragB);
@@ -153,7 +153,7 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
 
 double CorrectEdgeVariance(ScaffoldGraphT *graph, CIEdgeT *edge){
   LengthT oldOffsetA, newOffsetA, oldOffsetB, newOffsetB;
-  FragOrient fragOrient;
+  SequenceOrient fragOrient;
   CDS_CID_t extremalFrag;
   NodeCGW_T *nodeA = GetGraphNode(graph->ContigGraph, edge->idA);
   NodeCGW_T *nodeB = GetGraphNode(graph->ContigGraph, edge->idB);
@@ -182,15 +182,15 @@ double CorrectEdgeVariance(ScaffoldGraphT *graph, CIEdgeT *edge){
 
 int CIOffsetAndOrientation(ScaffoldGraphT *graph,
 			   CDS_CID_t         cid, // input
-			   CIOrient   chunkOrient,    // input orientation of fragment in CI
+			   SequenceOrient   chunkOrient,    // input orientation of fragment in CI
 			   //			   int        *sid,// output:  scaffold in which this fragment resides
 			   LengthT    *ciOffset,    // CI's offset within Scaffold
 			   LengthT    *ciFlipOffset,    // CI's offset within Scaffold if we flip the edge
-			   CIOrient   *ciOrient){    // CI's orientation within Scaffold
+			   SequenceOrient   *ciOrient){    // CI's orientation within Scaffold
 
   ChunkInstanceT *CI = GetGraphNode(graph->ContigGraph, cid);
   CIScaffoldT *CIS;
-  CIOrient CIInScaffoldOrient;
+  SequenceOrient CIInScaffoldOrient;
 
   if(CI->scaffoldID == NULLINDEX)
     return FALSE;
@@ -202,116 +202,96 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
 
 #ifdef DEBUG_SEDGE
   fprintf(stderr,"* CI " F_CID " is oriented %c in scaffold " F_CID " (FragOrient = %c)\n",
-	  cid, CIInScaffoldOrient, CI->scaffoldID, chunkOrient);
+	  cid, CIInScaffoldOrient.toLetter(), CI->scaffoldID, chunkOrient.toLetter());
 #endif
   /* Find the offset of the B end of the chunk within its chunkOfScaffolds.  The fragments
      offset is additive with this */
 
-  switch(chunkOrient){
-    case A_B:  // Fragment is A_B in CI
-      switch(CIInScaffoldOrient){
-        case A_B:// Chunk is A_B in COS
-          /*    COS    ------------------------------------------------------->
-                CI      A_B     ---------------------->
-                Frag       A_B            ------>
-                Offset                                |==========================|
-          */
+  assert(chunkOrient.isUnknown() == false);
+  assert(CIInScaffoldOrient.isUnknown() == false);
 
-          *ciOrient = A_B;
-          ciOffset->mean =
-            (CIS->bpLength.mean -  CI->offsetBEnd.mean);
-          ciFlipOffset->mean = CI->offsetBEnd.mean;
+  if (chunkOrient.isForward()) {
+    if (CIInScaffoldOrient.isForward()) {
+      /*    COS    ------------------------------------------------------->
+            CI      A_B     ---------------------->
+            Frag       A_B            ------>
+            Offset                                |==========================|
+      */
 
-          ciOffset->variance =
-            (CIS->bpLength.variance - CI->offsetBEnd.variance);
-          ciFlipOffset->variance = CI->offsetAEnd.variance;
+      ciOrient->setIsForward();
+      ciOffset->mean = (CIS->bpLength.mean -  CI->offsetBEnd.mean);
+      ciFlipOffset->mean = CI->offsetBEnd.mean;
+      
+      ciOffset->variance = (CIS->bpLength.variance - CI->offsetBEnd.variance);
+      ciFlipOffset->variance = CI->offsetAEnd.variance;
 
-          if(ciOffset->variance < 0.0){
-            fprintf(stderr,"* A_B Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
-                    ciOffset->variance, CI->id, CIS->id);
-            ciOffset->variance = 1.0;
-          }
-          break;
-        case B_A: // Chunk is B_A in COS
-          /*    COS    ------------------------------------------------------->
-                Chunk     B_A  <----------------------
-                Frag      A_B         <------
-                Offset |=======|
-          */
-          *ciOrient = B_A;
-          ciOffset->mean = CI->offsetBEnd.mean;
-          ciFlipOffset->mean =
-            (CIS->bpLength.mean - CI->offsetBEnd.mean);
-          ciOffset->variance = CI->offsetBEnd.variance;
-          ciFlipOffset->variance =
-            (CIS->bpLength.variance - CI->offsetAEnd.variance);
-
-          if(ciFlipOffset->variance < 0.0){
-            fprintf(stderr,"* A_B Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
-                    ciFlipOffset->variance, CI->id, CIS->id);
-            ciFlipOffset->variance = 1.0;
-          }
-          break;
-        default:
-          assert(0);
+      if(ciOffset->variance < 0.0){
+        fprintf(stderr,"* A_B Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+                ciOffset->variance, CI->id, CIS->id);
+        ciOffset->variance = 1.0;
       }
-      break;
+    } else {
+      /*    COS    ------------------------------------------------------->
+            Chunk     B_A  <----------------------
+            Frag      A_B         <------
+            Offset |=======|
+      */
+      ciOrient->setIsReverse();
+      ciOffset->mean = CI->offsetBEnd.mean;
+      ciFlipOffset->mean = (CIS->bpLength.mean - CI->offsetBEnd.mean);
+      ciOffset->variance = CI->offsetBEnd.variance;
+      ciFlipOffset->variance = (CIS->bpLength.variance - CI->offsetAEnd.variance);
 
-    case B_A:  // Fragment is B_A in Chunk
-      switch(CIInScaffoldOrient){
-        case A_B:// Chunk is A_B in COS
-          /*    COS    ------------------------------------------------------->
-                Chunk      A_B     ---------------------->
-                Frag       B_A            <------
-                Offset |===========|
-          */
-
-          *ciOrient = B_A; // in scaffold
-          ciOffset->mean = CI->offsetAEnd.mean;
-          ciFlipOffset->mean =
-            (CIS->bpLength.mean - CI->offsetAEnd.mean);
-          ciOffset->variance = CI->offsetAEnd.variance;
-          ciFlipOffset->variance =
-            (CIS->bpLength.variance - CI->offsetBEnd.variance);
-
-          if(ciFlipOffset->variance < 0.0){
-            fprintf(stderr,"* B_A Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
-                    ciFlipOffset->variance, CI->id, CIS->id);
-            ciFlipOffset->variance = 1.0;
-          }
-          break;
-        case B_A: // Chunk is B_A in COS
-          /*    COS    ------------------------------------------------------->
-                Chunk           <----------------------   B_A
-                Frag                   ------>    B_A
-                Offset                                |========================|
-          */
-          *ciOrient = A_B; // in scaffold
-          ciOffset->mean =
-            (CIS->bpLength.mean - CI->offsetAEnd.mean);
-          ciFlipOffset->mean = CI->offsetAEnd.mean;
-
-          ciOffset->variance =
-            (CIS->bpLength.variance - CI->offsetAEnd.variance);
-          ciFlipOffset->variance = CI->offsetBEnd.variance;
-
-          if(ciOffset->variance < 0.0){
-            fprintf(stderr,"* B_A Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
-                    ciOffset->variance, CI->id, CIS->id);
-            ciOffset->variance = 1.0;
-          }
-          break;
-
-        default:
-          assert(0);
+      if(ciFlipOffset->variance < 0.0){
+        fprintf(stderr,"* A_B Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+                ciFlipOffset->variance, CI->id, CIS->id);
+        ciFlipOffset->variance = 1.0;
       }
-      break;
-    default:
-      assert(0);
+    }
+
+  } else {
+    if (CIInScaffoldOrient.isForward()) {
+      /*    COS    ------------------------------------------------------->
+            Chunk      A_B     ---------------------->
+            Frag       B_A            <------
+            Offset |===========|
+      */
+      
+      ciOrient->setIsReverse(); // in scaffold
+      ciOffset->mean = CI->offsetAEnd.mean;
+      ciFlipOffset->mean = (CIS->bpLength.mean - CI->offsetAEnd.mean);
+      ciOffset->variance = CI->offsetAEnd.variance;
+      ciFlipOffset->variance = (CIS->bpLength.variance - CI->offsetBEnd.variance);
+
+      if(ciFlipOffset->variance < 0.0){
+        fprintf(stderr,"* B_A Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+                ciFlipOffset->variance, CI->id, CIS->id);
+        ciFlipOffset->variance = 1.0;
+      }
+    } else {
+      /*    COS    ------------------------------------------------------->
+            Chunk           <----------------------   B_A
+            Frag                   ------>    B_A
+            Offset                                |========================|
+      */
+      ciOrient->setIsForward(); // in scaffold
+      ciOffset->mean = (CIS->bpLength.mean - CI->offsetAEnd.mean);
+      ciFlipOffset->mean = CI->offsetAEnd.mean;
+
+      ciOffset->variance = (CIS->bpLength.variance - CI->offsetAEnd.variance);
+      ciFlipOffset->variance = CI->offsetBEnd.variance;
+
+      if(ciOffset->variance < 0.0){
+        fprintf(stderr,"* B_A Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+                ciOffset->variance, CI->id, CIS->id);
+        ciOffset->variance = 1.0;
+      }
+    }
   }
 
-  return TRUE;
+  assert(ciOrient->isUnknown() == false);
 
+  return TRUE;
 }
 
 void PopulateReverseEdge(EdgeCGW_T * reverseEdge, EdgeCGW_T * forwardEdge)
@@ -321,21 +301,8 @@ void PopulateReverseEdge(EdgeCGW_T * reverseEdge, EdgeCGW_T * forwardEdge)
   reverseEdge->idA = forwardEdge->idB;
   reverseEdge->idB = forwardEdge->idA;
 
-  switch(forwardEdge->orient)
-    {
-      case AB_BA:
-      case BA_AB:
-        break;
-      case AB_AB:
-        reverseEdge->orient = BA_BA;
-        break;
-      case BA_BA:
-        reverseEdge->orient = AB_AB;
-        break;
-      default:
-        assert(0);
-        break;
-    }
+  reverseEdge->orient = forwardEdge->orient;
+  reverseEdge->orient.flip();
 
   reverseEdge->flags.bits.aContainsB = forwardEdge->flags.bits.bContainsA;
   reverseEdge->flags.bits.bContainsA = forwardEdge->flags.bits.aContainsB;
@@ -357,13 +324,13 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
                             CIEdgeT * edge,
                             int canonicalOnly)
 {
-  CIOrient ciOrient, mciOrient;
-  ChunkOrientationType sedgeOrient;
+  SequenceOrient ciOrient, mciOrient;
+  PairOrient sedgeOrient;
   LengthT ciOffset, ciFlipOffset, mciOffset, mciFlipOffset;
   LengthT distance, flipDistance;
   SEdgeT sedge = {0};
-  ChunkOrientationType edgeOrient;
-  FragOrient orient;
+  PairOrient edgeOrient;
+  SequenceOrient orient;
   int CIok, mCIok;
   CIScaffoldT * scaffold =
     GetCIScaffoldT(graph->CIScaffolds, thisCI->scaffoldID);
@@ -377,13 +344,13 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
 
 #ifndef TRY_IANS_SEDGES
   edgeOrient = GetEdgeOrientationWRT(edge, otherCI->id);
-  orient = ((edgeOrient == AB_BA || edgeOrient == AB_AB)?A_B:B_A);
+  orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
 
 #ifdef DEBUG_SEDGE
   fprintf(stderr,"* Edge %s (" F_CID "," F_CID ") %c dist: %d in scaffolds (" F_CID "," F_CID ") orient = %c\n",
           (edge->flags.bits.isBogus?"*Bogus*":"     "),
-          thisCI->id, otherCI->id, edgeOrient, (int)edge->distance.mean,
-          thisCI->scaffoldID, otherCI->scaffoldID, orient);
+          thisCI->id, otherCI->id, edgeOrient.toLetter(), (int)edge->distance.mean,
+          thisCI->scaffoldID, otherCI->scaffoldID, orient.toLetter());
 #endif
 
   mCIok = CIOffsetAndOrientation(graph,
@@ -396,7 +363,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
     return FALSE;
 
   edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
-  orient = ((edgeOrient == AB_BA || edgeOrient == AB_AB)?A_B:B_A);
+  orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
   CIok = CIOffsetAndOrientation(graph,
                                 thisCI->id, // input
                                 orient,    // input orientation of fragment in CI
@@ -407,74 +374,58 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
 
 #ifdef DEBUG_SEDGE
   fprintf(stderr,"* mciOffset = %d mciOrient = %c  ciOffset = %d ciOrient = %c\n",
-          (int)mciOffset.mean, mciOrient, (int)ciOffset.mean, ciOrient);
+          (int)mciOffset.mean, mciOrient.toLetter(), (int)ciOffset.mean, ciOrient.toLetter());
 #endif
 
   /* Mate pairs must be oriented in opposite directions.
      So, if they are oriented the same wrt
      their own chunk, the chunks must be oriented opposite one another */
-  switch(ciOrient){
-    //
-    case A_B:
 
-      switch(mciOrient){
-        case A_B:
-          //           length - 5'             gap            length - 5'
-          //      |------------------------||---------------||-----------|
-          //  A --------------------------- B               B --------------------------- A
-          //    5'----->                                           <------5'
-          //      |-------------------------------------------------------|
-          //                             mate distance
-          //
-          sedgeOrient = AB_BA;
-          break;
-        case B_A:
-          //           length - 5'             gap                5'
-          //      |------------------------||---------------||-----------|
-          //  A --------------------------- B               A --------------------------- B
-          //    5'----->                                           <------5'
-          //      |-------------------------------------------------------|
-          //                             mate distance
-          //
-          sedgeOrient = AB_AB;
-          break;
-        default:
-          assert(0);
-          break;
-      }
-      break;
-    case B_A:
+  assert(ciOrient.isUnknown() == false);
+  assert(mciOrient.isUnknown() == false);
 
-      switch(mciOrient){
-        case A_B:
-          //                     5'             gap            length - 5'
-          //      |------------------------||---------------||-----------|
-          //  B --------------------------- A               B --------------------------- A
-          //    5'----->                                           <------5'
-          //      |-------------------------------------------------------|
-          //                             mate distance
-          //
-          sedgeOrient = BA_BA;
-          break;
-        case B_A:
-          //                     5'             gap                5'
-          //      |------------------------||---------------||-----------|
-          //  B --------------------------- A               A --------------------------- B
-          //    5'----->                                           <------5'
-          //      |-------------------------------------------------------|
-          //                             mate/guide distance
-          //
-          sedgeOrient = BA_AB;
-          break;
-        default:
-          assert(0);
-          break;
-      }
-      break;
-    default:
-      assert(0);
-      break;
+  if (ciOrient.isForward()) {
+    if (mciOrient.isForward()) {
+      //           length - 5'             gap            length - 5'
+      //      |------------------------||---------------||-----------|
+      //  A --------------------------- B               B --------------------------- A
+      //    5'----->                                           <------5'
+      //      |-------------------------------------------------------|
+      //                             mate distance
+      //
+      sedgeOrient.setIsAB_BA();
+    } else {
+      //           length - 5'             gap                5'
+      //      |------------------------||---------------||-----------|
+      //  A --------------------------- B               A --------------------------- B
+      //    5'----->                                           <------5'
+      //      |-------------------------------------------------------|
+      //                             mate distance
+      //
+      sedgeOrient.setIsAB_AB();
+    }
+  } else {
+    if (mciOrient.isForward()) {
+      //                     5'             gap            length - 5'
+      //      |------------------------||---------------||-----------|
+      //  B --------------------------- A               B --------------------------- A
+      //    5'----->                                           <------5'
+      //      |-------------------------------------------------------|
+      //                             mate distance
+      //
+      sedgeOrient.setIsBA_BA();
+    } else {
+      //                     5'             gap                5'
+      //      |------------------------||---------------||-----------|
+      //  B --------------------------- A               A --------------------------- B
+      //    5'----->                                           <------5'
+      //      |-------------------------------------------------------|
+      //                             mate/guide distance
+      //
+      sedgeOrient.setIsBA_AB();
+    }
   }
+
   distance.mean = edge->distance.mean - ciOffset.mean - mciOffset.mean;
   flipDistance.mean = - (edge->distance.mean + ciFlipOffset.mean +
                          mciFlipOffset.mean);
@@ -485,7 +436,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
     // already included in the edge->distance.variance
     distance.variance = edge->distance.variance + ciFlipOffset.variance +
       mciFlipOffset.variance + CorrectEdgeVariance(graph, edge);
-    sedgeOrient = InvertEdgeOrient(sedgeOrient);
+    sedgeOrient.invert();
   }else{
     // Since the two offsets and the dist are independent we SUM their variances
     distance.variance = edge->distance.variance + ciOffset.variance +

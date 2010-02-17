@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.63 2010-01-20 00:06:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.64 2010-02-17 01:32:58 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -433,7 +433,7 @@ static void  Adjust_By_Ref_Variance(Scaffold_Fill_t * fill_chunks);
 static void  Adjust_By_Ref_Variance_One_Scaffold(Scaffold_Fill_t * fill_chunks, int scaff_id);
 static void  Adjust_Positions(Gap_Fill_t * this_gap, int num_targets, Target_Info_t target [],
                               int gap_sub [], int max_hits, int max_first, double start_coord,
-                              DirectionType direction, double * high_variance, FILE * fp);
+                              SequenceOrient direction, double * high_variance, FILE * fp);
 static void  Adjust_Stone_Positions(int list [], int num_list, Gap_Chunk_t * node [], double ref_position,
                                     double factor, Path_Info_t path_info [], int target_sub,
                                     LengthT * target_position);
@@ -518,7 +518,7 @@ static int  Maybe_Rock(ContigT * chunk);
 static int  Maybe_Stone(ContigT * chunk);
 static int  Might_Overlap(double a_frag_start, double a_frag_end,
                           double b_frag_start, double b_frag_end,
-                          double slop, ChunkOrientationType * orient,
+                          double slop, PairOrient * orient,
                           int * min_ahang, int * max_ahang);
 static void  New_Confirm_Stones(FILE * fp, Scaffold_Fill_t * fill_chunks, int use_all);
 static void  New_Confirm_Stones_One_Scaffold(FILE * fp, Scaffold_Fill_t * fill_chunks, int use_all, int scaff_id);
@@ -538,7 +538,6 @@ static void  Reject_Non_Reachable(int id, Gap_Chunk_t * node [], int n, int edge
 static void  Remove_From_Scaffold(Gap_Chunk_t * cp);
 static void  Requalify_Scaff_Chunks(Scaffold_Fill_t * fill_chunks);
 static void  Restore_Best_Rocks(Scaffold_Fill_t * fill_chunks);
-static ChunkOrientationType  Reverse_Orientation(ChunkOrientationType orient);
 static void  Reverse_Positions(Gap_Fill_t * this_gap);
 static int  Scaff_Join_Cmp(const void *, const void *);
 Scaffold_Fill_t *  Scan_Gaps(void);
@@ -551,7 +550,7 @@ static void  Set_Position_From_Left_Olap(int left_cid, Gap_Chunk_t * this_chunk,
 static void  Set_Position_From_Right_Olap(Gap_Chunk_t * this_chunk, int right_cid, Overlap * olap);
 static void  Set_Split_Flags(Scaffold_Fill_t * fill, Set_Split_t set);
 static void  Set_Split_Flags_One_Scaffold(Scaffold_Fill_t * fill, Set_Split_t set, int scaff_id);
-static int  Should_Overlap(Placement_t * left, Placement_t * right, ChunkOrientationType * orient,
+static int  Should_Overlap(Placement_t * left, Placement_t * right, PairOrient * orient,
                            double * how_much);
 void  Show_Gap_Reads_One_Scaff(FILE * fp, Scaffold_Fill_t * fill_chunks, int scaff_id);
 static void  Show_Read_Info(FILE * fp, int cid);
@@ -2161,7 +2160,7 @@ static void  Adjust_By_Ref_Variance_One_Scaffold
 static void  Adjust_Positions
 (Gap_Fill_t * this_gap, int num_targets, Target_Info_t target [],
  int gap_sub [], int max_hits, int max_first, double start_coord,
- DirectionType direction, double * high_variance, FILE * fp)
+ SequenceOrient direction, double * high_variance, FILE * fp)
 
 //  Adjust positions of chunks in  this_gap  that were confirmed
 //  by an overlap path.  Use the length of the overlap path
@@ -2212,42 +2211,22 @@ static void  Adjust_Positions
                    gap_chunk -> end . mean,
                    gap_chunk -> end . variance);
 
-          switch  (direction)
-            {
-              case  AS_FORWARD :
-                factor = 1.0;
-                break;
-              case  AS_REVERSE :
-                factor = -1.0;
-                break;
-              default :
-                fprintf (stderr, "ERROR:  Bad direction\n");
-                assert (FALSE);
-            }
-          switch  (target [sub] . orient)
-            {
-              case  AB_AB :
-              case  BA_AB :
-                new_end . mean = start_coord + factor * target [sub] . where;
-                new_end . variance = ComputeFudgeVariance(target [sub] . total); //  * VARIANCE_FUDGE_FACTOR;
-                new_start . mean = new_end . mean - factor * chunk_len;
-                new_start . variance
-		  = ComputeFudgeVariance(target [sub] . total - chunk_len);//  * VARIANCE_FUDGE_FACTOR;
-                break;
+          assert(direction.isUnknown() == false);
+          assert(target[sub].orient.isUnknown() == false);
 
-              case  AB_BA :
-              case  BA_BA :
-                new_start . mean = start_coord + factor * target [sub] . where;
-                new_start . variance = ComputeFudgeVariance(target [sub] . total); // * VARIANCE_FUDGE_FACTOR;
-                new_end . mean = new_start . mean - factor * chunk_len;
-                new_end . variance
-		  = ComputeFudgeVariance(target [sub] . total - chunk_len); //  * VARIANCE_FUDGE_FACTOR;
-                break;
+          factor = (direction.isForward()) ? 1.0 : -1.0;
 
-              default :
-                fprintf (stderr, "ERROR:  Bad target orientation\n");
-                assert (FALSE);
-            }
+          if (target[sub].orient.isAB_AB() || target[sub].orient.isBA_AB()) {
+            new_end . mean = start_coord + factor * target [sub] . where;
+            new_end . variance = ComputeFudgeVariance(target [sub] . total); //  * VARIANCE_FUDGE_FACTOR;
+            new_start . mean = new_end . mean - factor * chunk_len;
+            new_start . variance = ComputeFudgeVariance(target [sub] . total - chunk_len);//  * VARIANCE_FUDGE_FACTOR;
+          } else {
+            new_start . mean = start_coord + factor * target [sub] . where;
+            new_start . variance = ComputeFudgeVariance(target [sub] . total); // * VARIANCE_FUDGE_FACTOR;
+            new_end . mean = new_start . mean - factor * chunk_len;
+            new_end . variance = ComputeFudgeVariance(target [sub] . total - chunk_len); //  * VARIANCE_FUDGE_FACTOR;
+          }
 
 #if  SIMPLE_ADJUST
           gap_chunk -> start = new_start;
@@ -2387,7 +2366,7 @@ static void  Check_Olaps
   for  (i = 1;  i < ct;  i ++)
     for  (j = i - 1;  j >= 0 && place [i] . keep;  j --)
       {
-        ChunkOrientationType  orient;
+        PairOrient  orient;
         double  how_much, allowed_error;
         int  min_ahang, max_ahang;
 
@@ -2444,8 +2423,8 @@ static void  Check_Olaps
 #endif
 
 #ifdef DEBUG_DETAILED
-      fprintf (stderr, ">>> Check olap %d/%d %s  exp: [%.0f,%.0f]  %s",
-               place [j] . id, place [i] . id, Orientation_As_String (orient),
+      fprintf (stderr, ">>> Check olap %d/%d %c  exp: [%.0f,%.0f]  %s",
+               place [j] . id, place [i] . id, orient.toLetter(),
                how_much - allowed_error, how_much + allowed_error,
                gap -> has_path ? "Has Path" : "No Path");
 #endif
@@ -2454,13 +2433,13 @@ static void  Check_Olaps
       fprintf (stderr,
                "olapping j = %d  [%.0f,%.0f]   i = %d  [%.0f,%.0f]\n"
                "  min_ahang = %d  max_ahang = %d  allowed_error = %d\n"
-               "  orient = %s  olap = %p\n",
+               "  orient = %c  olap = %p\n",
                place [j] . id,
                place [j] . A_end . mean, place [j] . B_end . mean,
                place [i] . id,
                place [i] . A_end . mean, place [i] . B_end . mean,
                min_ahang, max_ahang,
-               (int) allowed_error, Orientation_As_String (orient),
+               (int) allowed_error, orient.toLetter(),
                olap);
       if  (olap == NULL)
         fprintf (stderr, "  Not found\n");
@@ -2655,7 +2634,7 @@ static void  Check_Rock_Olaps
       for  (i = 0;  i < gap -> num_chunks;  i ++)
         if  (gap -> chunk [i] . keep)
           {
-            ChunkOrientationType  orient;
+            PairOrient  orient;
             double  how_much;
 
             place2 . A_end = gap -> chunk [i] . start;
@@ -2711,7 +2690,7 @@ static void  Check_Rock_Olaps
       for  (i = 0;  i < gap -> num_chunks;  i ++)
         if  (gap -> chunk [i] . keep)
           {
-            ChunkOrientationType  orient;
+            PairOrient  orient;
             double  how_much;
 
             place2 . A_end = gap -> chunk [i] . start;
@@ -3929,7 +3908,7 @@ static int  Chunk_Contained_In_Chunk
 //  that indicates it is contained within chunk  B .
 
 {
-  ChunkOrientationType  orient;
+  PairOrient  orient;
   ChunkOverlapCheckT  olap;
   int  olap_found;
 
@@ -3937,16 +3916,16 @@ static int  Chunk_Contained_In_Chunk
   if  (A -> start. mean <= A -> end . mean)
     {
       if  (B -> start . mean <= B -> end . mean)
-        orient = AB_AB;
+        orient.setIsAB_AB();
       else
-        orient = AB_BA;
+        orient.setIsAB_BA();
     }
   else
     {
       if  (B -> start . mean <= B -> end . mean)
-        orient = BA_AB;
+        orient.setIsBA_AB();
       else
-        orient = BA_BA;
+        orient.setIsBA_BA();
     }
   olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                               A -> chunk_id,
@@ -3955,21 +3934,8 @@ static int  Chunk_Contained_In_Chunk
   if  (olap_found && olap . BContainsA)
     return  TRUE;
 
-  switch  (orient)
-    {
-      case  AB_AB :
-      case  BA_BA :
-        break;              // No change
-      case  AB_BA :
-        orient = BA_AB;
-        break;
-      case  BA_AB :
-        orient = AB_BA;
-        break;
-      default :
-        fprintf (stderr, "YIKES:  Bad orientation = %d\n", (int) orient);
-        assert (FALSE);
-    }
+  orient.swap();
+
   olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                               A -> chunk_id,
                               B -> chunk_id,
@@ -3990,7 +3956,7 @@ static int  Chunk_Contained_In_Scaff
 
 {
   ChunkInstanceT  * B;
-  ChunkOrientationType  orient;
+  PairOrient  orient;
   ChunkOverlapCheckT  olap;
   int  olap_found;
 
@@ -4000,16 +3966,16 @@ static int  Chunk_Contained_In_Scaff
   if  (A -> start. mean <= A -> end . mean)
     {
       if  (B -> offsetAEnd . mean <= B -> offsetBEnd . mean)
-        orient = AB_AB;
+        orient.setIsAB_AB();
       else
-        orient = AB_BA;
+        orient.setIsAB_BA();
     }
   else
     {
       if  (B -> offsetAEnd . mean <= B -> offsetBEnd . mean)
-        orient = BA_AB;
+        orient.setIsBA_AB();
       else
-        orient = BA_BA;
+        orient.setIsBA_BA();
     }
   olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                               A -> chunk_id,
@@ -4018,21 +3984,8 @@ static int  Chunk_Contained_In_Scaff
   if  (olap_found && olap . BContainsA)
     return  TRUE;
 
-  switch  (orient)
-    {
-      case  AB_AB :
-      case  BA_BA :
-        break;              // No change
-      case  AB_BA :
-        orient = BA_AB;
-        break;
-      case  BA_AB :
-        orient = AB_BA;
-        break;
-      default :
-        fprintf (stderr, "YIKES:  Bad orientation = %d\n", (int) orient);
-        assert (FALSE);
-    }
+  orient.swap();
+
   olap_found = LookupOverlap (ScaffoldGraph -> ContigGraph,
                               A -> chunk_id,
                               cid,
@@ -4330,20 +4283,13 @@ static int  Depth_First_Visit
       {
         int  hit_correct_end;
 
-        switch  (target [i] . orient)
-          {
-            case  AB_AB :
-            case  BA_AB :
-              hit_correct_end = (from_end == B_END);
-              break;
-            case  AB_BA :
-            case  BA_BA :
-              hit_correct_end = (from_end == A_END);
-              break;
-            default :
-              fprintf (stderr, "ERROR:  Bad target orientation\n");
-              assert (FALSE);
-          }
+        assert(target [i].orient.isUnknown() == false);
+
+        if (target [i].orient.isAB_AB() || target [i].orient.isBA_AB()) {
+          hit_correct_end = (from_end == B_END);
+        } else {
+          hit_correct_end = (from_end == A_END);
+        }
 
         if  (Global_Debug_Flag)
           fprintf (stderr, "%*s   hit  lo = %.0f  hi = %.0f  so_far = %.0f  end = %c\n",
@@ -4543,23 +4489,14 @@ static int  Depth_First_Visit
         {
           int  found, next_end;
 
-          switch  (GetEdgeOrientationWRT (edge, from -> id))
-            {
-              case  AB_AB :
-                next_end = B_END;
-                break;
-              case  AB_BA :
-                next_end = A_END;
-                break;
-              case  BA_AB :
-                next_end = B_END;
-                break;
-              case  BA_BA :
-                next_end = A_END;
-                break;
-              default :
-                assert (FALSE);
-            }
+          PairOrient ori = GetEdgeOrientationWRT(edge, from->id);
+
+          assert(ori.isUnknown() == false);
+
+          if (ori.isAB_AB() || ori.isBA_AB())
+            next_end = B_END;
+          else
+            next_end = A_END;
 
           found = Depth_First_Visit
             (next_node, next_end, to, num_targets, target, bound,
@@ -6535,7 +6472,7 @@ static Overlap *  Get_Chunk_Overlap
 
 {
   double  max_var, min_var, var_diff, slop;
-  ChunkOrientationType  orient;
+  PairOrient  orient;
   int  min_ahang, max_ahang;
 
   max_var = MAX (a -> start . variance, a -> end . variance);
@@ -6576,8 +6513,8 @@ static Overlap *  Get_Chunk_Overlap
         ((* a_seq), (* b_seq), orient, min_ahang, max_ahang,
          AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN);
 #if  SHOW_OLAP_DETAILS
-      fprintf (fp, "  min_ahang = %4d  max_ahang = %4d  orient = %s\n",
-               min_ahang, max_ahang, Orientation_As_String (orient));
+      fprintf (fp, "  min_ahang = %4d  max_ahang = %4d  orient = %c\n",
+               min_ahang, max_ahang, orient.toLetter(),
       if  (result == NULL)
         fprintf (fp, "   No overlap\n");
       else {
@@ -7687,7 +7624,7 @@ Maybe_Stone(ContigT *chunk) {
 static int  Might_Overlap
 (double a_frag_start, double a_frag_end,
  double b_frag_start, double b_frag_end,
- double slop, ChunkOrientationType * orient,
+ double slop, PairOrient * orient,
  int * min_ahang, int * max_ahang)
 
 //  Return  TRUE  iff the sequence from  a_frag_start  to
@@ -7713,16 +7650,16 @@ static int  Might_Overlap
   if  (a_frag_start < a_frag_end)
     {
       if  (b_frag_start < b_frag_end)
-        (* orient) = AB_AB;
+        (* orient).setIsAB_AB();
       else
-        (* orient) = AB_BA;
+        (* orient).setIsAB_BA();
     }
   else
     {
       if  (b_frag_start < b_frag_end)
-        (* orient) = BA_AB;
+        (* orient).setIsBA_AB();
       else
-        (* orient) = BA_BA;
+        (* orient).setIsBA_BA();
     }
 
   //  If  slop  is negative, the intersection represents a "must overlap"
@@ -8498,11 +8435,11 @@ static void  Print_Scaffolds
           //                          A_END, FALSE,  & SEdges);
           while  ((edge = NextGraphEdgeIterator (& SEdges)) != NULL)
             {
-              fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %5s  %3d  %4s  %5s\n",
+              fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %c  %3d  %4s  %5s\n",
                        edge -> idA, edge -> idB,
                        edge -> distance . mean,
                        sqrt (edge -> distance . variance),
-                       Orientation_As_String (edge -> orient),
+                       edge->orient.toLetter(),
                        edge -> edgesContributing,
                        Is_Good_Scaff_Edge (edge) ? "good" : "bad",
                        edge -> flags . bits . isBogus ? "bogus" : "valid");
@@ -8516,11 +8453,11 @@ static void  Print_Scaffolds
           //                          B_END, FALSE,  & SEdges);
           while  ((edge = NextGraphEdgeIterator (& SEdges)) != NULL)
             {
-              fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %5s  %3d  %4s  %5s\n",
+              fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %c  %3d  %4s  %5s\n",
                        edge -> idA, edge -> idB,
                        edge -> distance . mean,
                        sqrt (edge -> distance . variance),
-                       Orientation_As_String (edge -> orient),
+                       edge->orient.toLetter(),
                        edge -> edgesContributing,
                        Is_Good_Scaff_Edge (edge) ? "good" : "bad",
                        edge -> flags . bits . isBogus ? "bogus" : "valid");
@@ -9013,13 +8950,12 @@ static void  Print_Potential_Fill_Chunks
                 {
                   Stack_Entry_t *se = GetVA_Stack_Entry_t(stackva, i);
 
-                  fprintf (fp, "  %8d %6d %6d %8.0f %6s %6d %7.1f  ",
+                  fprintf (fp, "  %8d %6d %6d %8.0f %c %6d %7.1f  ",
                            se -> chunk_id,
                            REF (se -> chunk_id) . scaff_id,
                            REF (se -> chunk_id) . rel_pos,
                            se -> edge -> distance . mean,
-                           Orientation_As_String
-                           (GetEdgeOrientationWRT (se -> edge, cid)),
+                           GetEdgeOrientationWRT (se -> edge, cid).toLetter(),
                            se -> edge -> edgesContributing,
                            CIEdge_Quality (se -> edge));
                   if  (isOverlapEdge (se -> edge))
@@ -9334,7 +9270,7 @@ static void  Restore_Best_Rocks
                        && this_gap -> right_cid >= 0)
                    || best_chunk -> copy_letter == JOINER_ROCK_CHAR))
             {
-              ChunkOrientationType  orient;
+              PairOrient  orient;
               int  min_ahang, max_ahang;
               int  had_left_overlap = FALSE;
               char  * scaff_seq, * rock_seq;
@@ -9392,9 +9328,9 @@ static void  Restore_Best_Rocks
                      AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN);
 #if  VERBOSE
                   fprintf (stderr, "Restore_Best olapping rock %d with left scaff_contig %d\n"
-                           "  min_ahang = %d  max_ahang = %d  orient = %s\n",
+                           "  min_ahang = %d  max_ahang = %d  orient = %c\n",
                            best_chunk -> chunk_id, this_gap -> left_cid,
-                           min_ahang, max_ahang, Orientation_As_String (orient));
+                           min_ahang, max_ahang, orient.toLetter());
                   if  (olap == NULL)
                     fprintf (stderr, "  Not found\n");
                   else
@@ -9469,9 +9405,9 @@ static void  Restore_Best_Rocks
                      AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN);
 #if  VERBOSE
                   fprintf (stderr, "Restore_Best olapping rock %d with right scaff_contig %d\n"
-                           "  min_ahang = %d  max_ahang = %d  orient = %s\n",
+                           "  min_ahang = %d  max_ahang = %d  orient = %c\n",
                            best_chunk -> chunk_id, this_gap -> right_cid,
-                           min_ahang, max_ahang, Orientation_As_String (orient));
+                           min_ahang, max_ahang, orient->toLetter());
                   if  (olap == NULL)
                     fprintf (stderr, "  Not found\n");
                   else
@@ -9613,30 +9549,6 @@ static void  Restore_Best_Rocks
 }
 
 
-
-static ChunkOrientationType  Reverse_Orientation
-(ChunkOrientationType orient)
-
-//  Return the flipped edge orientation of  orient .
-
-{
-  switch  (orient)
-    {
-      case  AB_AB :
-        return  BA_BA;
-      case  AB_BA :
-        return  AB_BA;
-      case  BA_AB :
-        return  BA_AB;
-      case  BA_BA :
-        return  AB_AB;
-      default :
-        fprintf (stderr, "ERROR:  Bad edge orientation\n");
-        assert (FALSE);
-    }
-
-  return  AB_AB;
-}
 
 
 
@@ -10037,7 +9949,7 @@ static int  Select_Good_Edges
           // Chunk in scaffold at other end of edge
           LengthT  * a_side, * b_side;
           // Of chunk in scaffold
-          ChunkOrientationType  orientation;
+          PairOrient  orientation;
 
           scaffold_chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                                         se -> chunk_id);
@@ -10047,68 +9959,51 @@ static int  Select_Good_Edges
 
           se -> scaff_id = scaff_id;
 
-          if  (se -> edge -> idB == se -> chunk_id)
-            orientation = se -> edge -> orient;
-          else
-            orientation = Reverse_Orientation (se -> edge -> orient);
+          orientation = se -> edge -> orient;
+
+          if  (se -> edge -> idB != se -> chunk_id)
+            orientation.flip();
+
+          assert(orientation.isUnknown() == false);
 
           // Find position in scaffold
-          switch  (orientation)
-            {
-              case  AB_AB :
-              case  BA_AB :
-                if  (a_side -> mean
-                     <= b_side -> mean)
-                  {
-                    se -> right_end . mean     = a_side -> mean - se -> edge -> distance . mean;
-                    se -> right_end . variance = a_side -> variance + se -> edge -> distance . variance;
-                    se -> left_end . mean      = se -> right_end . mean - chunk -> bpLength . mean;
-                    se -> left_end . variance  = se -> right_end . variance + chunk -> bpLength . variance;
-                    se -> flipped              = (orientation == BA_AB);
-                    se -> source_variance      = a_side -> variance;
-                    se -> left_link            = FALSE;
-                  }
-                else
-                  {
-                    se -> left_end . mean      = a_side -> mean + se -> edge -> distance . mean;
-                    se -> left_end . variance  = a_side -> variance + se -> edge -> distance . variance;
-                    se -> right_end . mean     = se -> left_end . mean + chunk -> bpLength . mean;
-                    se -> right_end . variance = se -> left_end . variance + chunk -> bpLength . variance;
-                    se -> flipped              = (orientation == AB_AB);
-                    se -> source_variance      = a_side -> variance;
-                    se -> left_link = TRUE;
-                  }
-                break;
-              case  AB_BA :
-              case  BA_BA :
-                if  (a_side -> mean
-                     <= b_side -> mean)
-                  {
-                    se -> left_end . mean      = b_side -> mean + se -> edge -> distance . mean;
-                    se -> left_end . variance  = b_side -> variance + se -> edge -> distance . variance;
-                    se -> right_end . mean     = se -> left_end . mean + chunk -> bpLength . mean;
-                    se -> right_end . variance = se -> left_end . variance + chunk -> bpLength . variance;
-                    se -> flipped              = (orientation == AB_BA);
-                    se -> source_variance      = b_side -> variance;
-                    se -> left_link            = TRUE;
-                  }
-                else
-                  {
-                    se -> right_end . mean     = b_side -> mean - se -> edge -> distance . mean;
-                    se -> right_end . variance = b_side -> variance + se -> edge -> distance . variance;
-                    se -> left_end . mean      = se -> right_end . mean - chunk -> bpLength . mean;
-                    se -> left_end . variance  = se -> right_end . variance + chunk -> bpLength . variance;
-                    se -> flipped              = (orientation == BA_BA);
-                    se -> source_variance      = b_side -> variance;
-                    se -> left_link            = FALSE;
-                  }
-                break;
-              case  XX_XX :
-              default :
-                fprintf (stderr, "ERROR:  Unexpected edge orientation, line %d\n",
-                         __LINE__);
-                assert (FALSE);
+          if (orientation.isAB_AB() || orientation.isBA_AB()) {
+            if  (a_side -> mean <= b_side -> mean) {
+              se -> right_end . mean     = a_side -> mean - se -> edge -> distance . mean;
+              se -> right_end . variance = a_side -> variance + se -> edge -> distance . variance;
+              se -> left_end . mean      = se -> right_end . mean - chunk -> bpLength . mean;
+              se -> left_end . variance  = se -> right_end . variance + chunk -> bpLength . variance;
+              se -> flipped              = (orientation.isBA_AB());
+              se -> source_variance      = a_side -> variance;
+              se -> left_link            = FALSE;
+            } else {
+              se -> left_end . mean      = a_side -> mean + se -> edge -> distance . mean;
+              se -> left_end . variance  = a_side -> variance + se -> edge -> distance . variance;
+              se -> right_end . mean     = se -> left_end . mean + chunk -> bpLength . mean;
+              se -> right_end . variance = se -> left_end . variance + chunk -> bpLength . variance;
+              se -> flipped              = (orientation.isAB_AB());
+              se -> source_variance      = a_side -> variance;
+              se -> left_link = TRUE;
             }
+          } else {
+            if  (a_side -> mean <= b_side -> mean) {
+              se -> left_end . mean      = b_side -> mean + se -> edge -> distance . mean;
+              se -> left_end . variance  = b_side -> variance + se -> edge -> distance . variance;
+              se -> right_end . mean     = se -> left_end . mean + chunk -> bpLength . mean;
+              se -> right_end . variance = se -> left_end . variance + chunk -> bpLength . variance;
+              se -> flipped              = (orientation.isAB_BA());
+              se -> source_variance      = b_side -> variance;
+              se -> left_link            = TRUE;
+            } else {
+              se -> right_end . mean     = b_side -> mean - se -> edge -> distance . mean;
+              se -> right_end . variance = b_side -> variance + se -> edge -> distance . variance;
+              se -> left_end . mean      = se -> right_end . mean - chunk -> bpLength . mean;
+              se -> left_end . variance  = se -> right_end . variance + chunk -> bpLength . variance;
+              se -> flipped              = (orientation.isBA_BA());
+              se -> source_variance      = b_side -> variance;
+              se -> left_link            = FALSE;
+            }
+          }
           se -> is_bad = FALSE;
 
           if (good_ct != i)
@@ -10658,7 +10553,7 @@ static void  Set_Split_Flags_One_Scaffold
 
 
 static int  Should_Overlap
-(Placement_t * left, Placement_t * right, ChunkOrientationType * orient,
+(Placement_t * left, Placement_t * right, PairOrient * orient,
  double * how_much)
 
 //  Check positions of  left  and  right  and return whether or not
@@ -10684,16 +10579,16 @@ static int  Should_Overlap
   if  (left -> flipped)
     {
       if  (right -> flipped)
-        (* orient) = BA_BA;
+        (* orient).setIsBA_BA();
       else
-        (* orient) = BA_AB;
+        (* orient).setIsBA_AB();
     }
   else
     {
       if  (right -> flipped)
-        (* orient) = AB_BA;
+        (* orient).setIsAB_BA();
       else
-        (* orient) = AB_AB;
+        (* orient).setIsAB_AB();
     }
 
   return  ((* how_much) >= MIN_OLAP_LEN);
@@ -11647,104 +11542,94 @@ static int  Violates_Scaff_Edges
       assert (edge -> idA < edge -> idB);
       trust_edge = Is_Good_Scaff_Edge (edge);
 
-      if  (edge -> idA == p -> scaff1 && edge -> idB == p -> scaff2)
-        {
-          switch  (edge -> orient)
-            {
-              case  AB_AB :
-                if  (p -> m != 1 && trust_edge)
-                  return  TRUE;
-                gap . mean = - (scaffold1 -> bpLength . mean + p -> b);
-                gap . variance = scaffold1 -> bpLength . variance + p -> variance;
-                break;
-              case  AB_BA :
-                if  (p -> m != -1 && trust_edge)
-                  return  TRUE;
-                gap . mean = p -> b - scaffold1 -> bpLength . mean
-                  - scaffold2 -> bpLength . mean;
-                gap . variance = scaffold1 -> bpLength . variance
-                  + scaffold2 -> bpLength . variance
-                  + p -> variance;
-                break;
-              case  BA_AB :
-                if  (p -> m != -1 && trust_edge)
-                  return  TRUE;
-                gap . mean = - (p -> b);
-                gap . variance = p -> variance;
-                break;
-              case  BA_BA :
-                if  (p -> m != 1 && trust_edge)
-                  return  TRUE;
-                gap . mean = p -> b - scaffold2 -> bpLength . mean;
-                gap . variance = scaffold2 -> bpLength . variance + p -> variance;
-                break;
-              default :
-                return  TRUE;   // edge without orientation kills join
-            }
+      if  (edge -> idA == p -> scaff1 && edge -> idB == p -> scaff2) {
 
-          edge_delta = 3.0 * sqrt (edge -> distance . variance);
-          edge_lo = (int) (edge -> distance . mean - edge_delta);
-          edge_hi = (int) (edge -> distance . mean + edge_delta);
-          gap_delta = 3.0 * sqrt (gap . variance);
-          gap_lo = (int) (gap . mean - gap_delta);
-          gap_hi = (int) (gap . mean + gap_delta);
+        if (edge->orient.isUnknown() == true)
+          //  Edge without orientation kills join
+          return(TRUE);
 
-          if  (Interval_Intersection (edge_lo, edge_hi, gap_lo, gap_hi))
-            found_supporting_edge = TRUE;
-          else if  (trust_edge)
-            {
-              return  TRUE;
-            }
+        if (edge->orient.isAB_AB()) {
+          if  (p -> m != 1 && trust_edge)
+            return  TRUE;
+          gap . mean = - (scaffold1 -> bpLength . mean + p -> b);
+          gap . variance = scaffold1 -> bpLength . variance + p -> variance;
         }
-      else if  (edge -> idA == p -> scaff2 && edge -> idB == p -> scaff1)
-        {
-          switch  (edge -> orient)
-            {
-              case  AB_AB :
-                if  (p -> m != 1 && trust_edge)
-                  return  TRUE;
-                gap . mean = p -> b - scaffold2 -> bpLength . mean;
-                gap . variance = scaffold2 -> bpLength . variance + p -> variance;
-                break;
-              case  AB_BA :
-                if  (p -> m != -1 && trust_edge)
-                  return  TRUE;
-                gap . mean = p -> b - scaffold1 -> bpLength . mean
-                  - scaffold2 -> bpLength . mean;
-                gap . variance = scaffold1 -> bpLength . variance
-                  + scaffold2 -> bpLength . variance
-                  + p -> variance;
-                break;
-              case  BA_AB :
-                if  (p -> m != -1 && trust_edge)
-                  return  TRUE;
-                gap . mean = - (p -> b);
-                gap . variance = p -> variance;
-                break;
-              case  BA_BA :
-                if  (p -> m != 1 && trust_edge)
-                  return  TRUE;
-                gap . mean = - (p -> b + scaffold1 -> bpLength . mean);
-                gap . variance = scaffold1 -> bpLength . variance + p -> variance;
-                break;
-              default :
-                return  TRUE;   // edge without orientation kills join
-            }
-
-          edge_delta = 3.0 * sqrt (edge -> distance . variance);
-          edge_lo = (int) (edge -> distance . mean - edge_delta);
-          edge_hi = (int) (edge -> distance . mean + edge_delta);
-          gap_delta = 3.0 * sqrt (gap . variance);
-          gap_lo = (int) (gap . mean - gap_delta);
-          gap_hi = (int) (gap . mean + gap_delta);
-
-          if  (Interval_Intersection (edge_lo, edge_hi, gap_lo, gap_hi))
-            found_supporting_edge = TRUE;
-          else if  (trust_edge)
-            {
-              return  TRUE;
-            }
+        if (edge->orient.isAB_BA()) {
+          if  (p -> m != -1 && trust_edge)
+            return  TRUE;
+          gap . mean = p -> b - scaffold1 -> bpLength . mean - scaffold2 -> bpLength . mean;
+          gap . variance = scaffold1 -> bpLength . variance + scaffold2 -> bpLength . variance + p -> variance;
         }
+        if (edge->orient.isBA_AB()) {
+          if  (p -> m != -1 && trust_edge)
+            return  TRUE;
+          gap . mean = - (p -> b);
+          gap . variance = p -> variance;
+        }
+        if (edge->orient.isBA_BA()) {
+          if  (p -> m != 1 && trust_edge)
+            return  TRUE;
+          gap . mean = p -> b - scaffold2 -> bpLength . mean;
+          gap . variance = scaffold2 -> bpLength . variance + p -> variance;
+        }
+
+        edge_delta = 3.0 * sqrt (edge -> distance . variance);
+        edge_lo = (int) (edge -> distance . mean - edge_delta);
+        edge_hi = (int) (edge -> distance . mean + edge_delta);
+        gap_delta = 3.0 * sqrt (gap . variance);
+        gap_lo = (int) (gap . mean - gap_delta);
+        gap_hi = (int) (gap . mean + gap_delta);
+        
+        if  (Interval_Intersection (edge_lo, edge_hi, gap_lo, gap_hi))
+          found_supporting_edge = TRUE;
+        else if  (trust_edge)
+          return  TRUE;
+
+      } else if  (edge -> idA == p -> scaff2 && edge -> idB == p -> scaff1) {
+        if (edge->orient.isUnknown() == true)
+          //  Edge without orientation kills join
+          return(TRUE);
+
+        if (edge->orient.isAB_AB()) {
+          if  (p -> m != 1 && trust_edge)
+            return  TRUE;
+          gap . mean = p -> b - scaffold2 -> bpLength . mean;
+          gap . variance = scaffold2 -> bpLength . variance + p -> variance;
+        }
+        if (edge->orient.isAB_BA()) {
+          if  (p -> m != -1 && trust_edge)
+            return  TRUE;
+          gap . mean = p -> b - scaffold1 -> bpLength . mean
+            - scaffold2 -> bpLength . mean;
+          gap . variance = scaffold1 -> bpLength . variance
+            + scaffold2 -> bpLength . variance
+            + p -> variance;
+        }
+        if (edge->orient.isBA_AB()) {
+          if  (p -> m != -1 && trust_edge)
+            return  TRUE;
+          gap . mean = - (p -> b);
+          gap . variance = p -> variance;
+        }
+        if (edge->orient.isBA_BA()) {
+          if  (p -> m != 1 && trust_edge)
+            return  TRUE;
+          gap . mean = - (p -> b + scaffold1 -> bpLength . mean);
+          gap . variance = scaffold1 -> bpLength . variance + p -> variance;
+        }
+
+        edge_delta = 3.0 * sqrt (edge -> distance . variance);
+        edge_lo = (int) (edge -> distance . mean - edge_delta);
+        edge_hi = (int) (edge -> distance . mean + edge_delta);
+        gap_delta = 3.0 * sqrt (gap . variance);
+        gap_lo = (int) (gap . mean - gap_delta);
+        gap_hi = (int) (gap . mean + gap_delta);
+
+        if  (Interval_Intersection (edge_lo, edge_hi, gap_lo, gap_hi))
+          found_supporting_edge = TRUE;
+        else if  (trust_edge)
+          return  TRUE;
+      }
     }
 
   if  (found_supporting_edge || ! REQUIRE_SCAFFOLD_EDGE_FOR_JOIN)

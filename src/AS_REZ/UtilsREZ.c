@@ -31,7 +31,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: UtilsREZ.c,v 1.10 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id: UtilsREZ.c,v 1.11 2010-02-17 01:32:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,49 +165,6 @@ void Free_Stack(nodes_stack * s) {
   safe_free(s);
 }
 
-// ------------
-// CIEdge stuff
-// ------------
-
-char * Orientation_As_String (ChunkOrientationType orient) {
-  //
-  //  Return string equivalent of orient
-  //
-  switch  (orient) {
-  case  AB_AB :
-    return  "AB_AB";
-  case  AB_BA :
-    return  "AB_BA";
-  case  BA_BA :
-    return  "BA_BA";
-  case  BA_AB :
-    return  "BA_AB";
-  default :
-    return  "*???*";
-  }
-}
-
-
-
-int or2num(ChunkOrientationType o) {
-  //
-  // convert a <ChunkOrientationType> to a number
-  // between 0 and 3
-  //
-  switch (o) {
-  case AB_AB :
-    return OR2NUM_AB_AB;
-  case AB_BA :
-    return OR2NUM_AB_BA;
-  case BA_AB :
-    return OR2NUM_BA_AB;
-  case BA_BA :
-    return OR2NUM_BA_BA;
-  default :
-    assert(0);
-  }
-  return -1;
-}
 
 /*--------------------------------------------------------------------*/
 /* Interval Math */
