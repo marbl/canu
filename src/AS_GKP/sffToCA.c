@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.43 2010-02-17 01:32:58 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.44 2010-02-19 18:23:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -463,6 +463,21 @@ processRead(sffHeader *h,
 
   if (r->clip_quality_right > r->number_of_bases)
     r->clip_quality_right = r->number_of_bases;
+
+  ////////////////////////////////////////
+  //
+  //  Check that the read is length is OK; some corrupt files will truncate sequence or quality.
+  //  This is just a quick test for that case.  Using strlen here is overkill; when the fragment is
+  //  added to the store, lengths are checked again.
+  //
+  if (r->bases[r->number_of_bases-1] == 0)
+    fprintf(stderr, "ERROR:  Read '%s' sequence is truncated.  Corrupt file?\n",
+            AS_UID_toString(readUID));
+  if (r->quality[r->number_of_bases-1] == 0)
+    fprintf(stderr, "ERROR:  Read '%s' quality values are truncated.  Corrupt file?\n",
+            AS_UID_toString(readUID));
+  assert(r->bases[r->number_of_bases-1] != 0);
+  assert(r->quality[r->number_of_bases-1] != 0);
 
   ////////////////////////////////////////
   //
