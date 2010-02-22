@@ -34,10 +34,10 @@ GKPSRC    = AS_GKP_buildPartition.C \
             AS_GKP_errors.C \
             AS_GKP_illumina.C
 
-SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC) sffToCA.C fastqToCA.C
+SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC) sffToCA.C fastqToCA.C fastqSample.C
 OBJECTS   = $(SOURCES:.C=.o)
 LIBRARIES =
-CXX_PROGS = gatekeeper gatekeeperbench sffToCA fastqToCA
+CXX_PROGS = gatekeeper gatekeeperbench sffToCA fastqToCA fastqSample
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -48,3 +48,4 @@ gatekeeper:      AS_GKP_main.o $(GKPSRC:.C=.o) libCA.a
 gatekeeperbench: AS_GKP_bench.o                libCA.a
 sffToCA:         sffToCA.o                     libCA.a
 fastqToCA:       fastqToCA.o                   libCA.a
+fastqSample:     fastqSample.o                 libCA.a
