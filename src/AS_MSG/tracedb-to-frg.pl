@@ -819,7 +819,8 @@ sub runFRG ($) {
         print STDERR "Found $fragsHere in $tmpDir/$xmlNam.$xmlIdx.frglib.\n";
     }
 
-    open(FRG, "| $tcat bzip2 -9c > $outNam.2.$xmlIdx.frg.bz2.tmp") or die "Failed to open '$outNam.2.$xmlIdx.frg.bz2.tmp' for write\n";
+    #open(FRG, "| $tcat bzip2 -9c > $outNam.2.$xmlIdx.frg.bz2.tmp") or die "Failed to open '$outNam.2.$xmlIdx.frg.bz2.tmp' for write\n";
+    open(FRG, "> $outNam.2.$xmlIdx.frg.tmp") or die "Failed to open '$outNam.2.$xmlIdx.frg.tmp' for write\n";
 
     my $numFrags = 0;
     my $haveMore = 1;
@@ -945,8 +946,10 @@ sub runFRG ($) {
     close(X);
     close(FRG);
 
-    rename "$outNam.2.$xmlIdx.frg.bz2.tmp", "$outNam.2.$xmlIdx.frg.bz2";
-    unlink "$outNam.2.$xmlIdx.frg.bz2" if ($numFrags == 0);
+    #rename "$outNam.2.$xmlIdx.frg.bz2.tmp", "$outNam.2.$xmlIdx.frg.bz2";
+    #unlink "$outNam.2.$xmlIdx.frg.bz2" if ($numFrags == 0);
+    rename "$outNam.2.$xmlIdx.frg.tmp", "$outNam.2.$xmlIdx.frg";
+    unlink "$outNam.2.$xmlIdx.frg" if ($numFrags == 0);
 
     exit(0);
 }
