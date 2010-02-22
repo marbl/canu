@@ -80,6 +80,8 @@ if (defined($vec)) {
         if      (scalar(@v) == 3) {
             $clv{$v[0]} = "$v[1],$v[2]";
 
+        } elsif (scalar(@t) == 13) {
+            $clv{$t[0]} = "$t[11],$t[12]";
         } elsif (scalar(@t) == 14) {
             $clv{$t[0]} = "$t[11],$t[12]";
 
