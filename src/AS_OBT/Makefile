@@ -64,6 +64,7 @@ EXE_SOURCES = chimera.C \
               deduplicate.C \
               initialTrim.C \
               merge-trimming.C \
+              overlapMask.C \
               trim.C \
               readOverlap.C \
               removeMateOverlap.C \
@@ -76,6 +77,7 @@ LIBRARIES   = libAS_OBT.a libCA.a
 
 CXX_PROGS   = initialTrim \
               merge-trimming \
+              overlapMask \
               consolidate \
               chimera \
               deduplicate \
@@ -96,6 +98,7 @@ libCA.a:     $(LIB_SOURCES:.C=.o)
 initialTrim:          initialTrim.o trim.o                    libCA.a
 consolidate:          consolidate.o util++.o readOverlap.o    libCA.a
 merge-trimming:       merge-trimming.o trim.o                 libCA.a
+overlapMask:          overlapMask.o util++.o readOverlap.o    libCA.a
 chimera:              chimera.o util++.o readOverlap.o        libCA.a
 deduplicate:          deduplicate.o util++.o readOverlap.o    libCA.a
 removeMateOverlap:    removeMateOverlap.o util++.o readOverlap.o    libCA.a
