@@ -34,6 +34,8 @@ sub runMeryl ($$$$$$) {
     #    print STDERR "runMeryl() would have returned.\n";
     #}
 
+    print STDERR "$ffile\n";
+
     if (merylVersion() eq "Mighty") {
 
         #  Use the better meryl!  This is straightforward.  We count,
@@ -222,7 +224,7 @@ sub meryl {
     }
 
     $ovlT = runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
-    $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming"));
+    $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming") || getGlobal("doMerBasedTrimming"));
 
     if ((getGlobal("obtMerThreshold") ne $obtT) && (getGlobal("doOverlapBasedTrimming"))) {
         print STDERR "Reset OBT mer threshold from ", getGlobal("obtMerThreshold"), " to $obtT.\n";

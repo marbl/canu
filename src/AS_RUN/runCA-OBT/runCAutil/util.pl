@@ -153,6 +153,7 @@ sub setGlobal ($$) {
 
     #  Update aliases.
 
+    $var = "doMerBasedTrimming"        if ($var eq "doMBT");
     $var = "doOverlapBasedTrimming"    if ($var eq "doOBT");
 
     #  If "help" exists, we're parsing command line options, and will catch this failure in
@@ -295,6 +296,11 @@ sub setDefaults () {
 
     $global{"doChimeraDetection"}          = "normal";
     $synops{"doChimeraDetection"}          = "Enable the OBT chimera detection and cleaning module; 'off', 'normal' or 'aggressive'";
+
+    #####  Mer Based Trimming
+
+    $global{"doMerBasedTrimming"}          = 0;
+    $synops{"doMerBasedTrimming"}          = "Enable the Mer Based Trimming module";
 
     #####  Overlapper
 
@@ -712,7 +718,7 @@ sub setParameters () {
         my $failureString = "Invalid stopBefore specified (" . getGlobal("stopBefore") . "); must be one of:\n";
 
         my @stopBefore = ("meryl",
-                          "initialTrimming",
+                          "initialTrim",
                           "deDuplication",
                           "mergeTrimming",
                           "chimeraDetection",
@@ -826,6 +832,11 @@ sub setParameters () {
     $ENV{'AS_OVL_ERROR_RATE'} = $ovlER;
     $ENV{'AS_CGW_ERROR_RATE'} = $cgwER;
     $ENV{'AS_CNS_ERROR_RATE'} = $cnsER;
+
+    if ((getGlobal("doOverlapBasedTrimming") == 1) &&
+        (getGlobal("doMerBasedTrimming") == 1)) {
+        caFailure("Cannot do both overlap based trimming and mer based trimming", undef);
+    }
 }
 
 sub logVersion() {

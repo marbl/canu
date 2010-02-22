@@ -98,6 +98,7 @@ submitScript(undef) if (!runningOnGrid());
 #  Begin
 
 preoverlap(@fragFiles);
+merTrim();
 overlapTrim();
 createOverlapJobs("normal");
 checkOverlap("normal");

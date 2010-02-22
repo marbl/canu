@@ -55,6 +55,7 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
 RUNCAOBTUTIL = runCA-OBT/runCAutil/checkOverlap.pl \
                runCA-OBT/runCAutil/createConsensusJobs.pl \
                runCA-OBT/runCAutil/merOverlapper.pl \
+               runCA-OBT/runCAutil/merTrim.pl \
                runCA-OBT/runCAutil/createOverlapJobs.pl \
                runCA-OBT/runCAutil/createOverlapStore.pl \
                runCA-OBT/runCAutil/createPostUnitiggerConsensus.pl \

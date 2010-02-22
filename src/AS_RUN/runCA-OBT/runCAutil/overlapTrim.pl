@@ -3,6 +3,7 @@ use strict;
 sub overlapTrim {
 
     return if (getGlobal("doOverlapBasedTrimming") == 0);
+    return if (getGlobal("doMerBasedTrimming") == 1);
     return if (getGlobal("ovlOverlapper") eq "umd");
 
     #  Skip overlap based trimming if it is done, or if the ovlStore already exists.
@@ -26,10 +27,13 @@ sub overlapTrim {
         }
     }
 
-
     #  Do an initial overly-permissive quality trimming, intersected
-    #  with any known vector trimming.
+    #  with any known vector trimming.  This is skipped if mer based trimming is enabled.
     #
+#
+#  TESTING:  DO NOT DO THIS IF WE HAVE MER TRIMMED
+#
+if (getGlobal("doMerBasedTrimming") == 0) {
     if ((! -e "$wrk/0-overlaptrim/$asm.initialTrimLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.initialTrimLog.bz2")) {
         my $bin = getBinDirectory();
@@ -49,7 +53,7 @@ sub overlapTrim {
 
         unlink "0-overlaptrim/$asm.initialTrim.err";
     }
-
+}
 
     #  Compute overlaps, if we don't have them already
     #
@@ -98,6 +102,10 @@ sub overlapTrim {
 
     #  Deduplicate?
     #
+#
+#  TESTING:  DO NOT DO THIS IF WE HAVE MER TRIMMED
+#
+if (getGlobal("doMerBasedTrimming") == 0) {
     if ((getGlobal("doDeDuplication") != 0) &&
         (! -e "$wrk/0-overlaptrim/$asm.deduplicate.summary")) {
         my $bin = getBinDirectory();
@@ -196,6 +204,7 @@ sub overlapTrim {
             caFailure("failed to merge trimming", "$wrk/0-overlaptrim/$asm.merge.err");
         }
     }
+}
 
     if (getGlobal("doChimeraDetection") ne 'off') {
         if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
@@ -219,7 +228,7 @@ sub overlapTrim {
         }
     }
 
-    rmrf("$asm.obtStore");
+    #rmrf("$asm.obtStore");
 
     touch("$wrk/0-overlaptrim/overlaptrim.success");
 
