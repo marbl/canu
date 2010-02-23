@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.48 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.49 2010-02-23 03:11:54 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -363,7 +363,7 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
       aEndOffset.mean = bEndOffset.mean + chunkInstance->bpLength.mean;
 #endif
   }
-  assert(fabs(aEndOffset.mean - bEndOffset.mean) < (1.2 * chunkInstance->bpLength.mean));
+  //assert(fabs(aEndOffset.mean - bEndOffset.mean) < (1.2 * chunkInstance->bpLength.mean));
 
   //  Check that the CI isn't already in the scaffold.
   {
