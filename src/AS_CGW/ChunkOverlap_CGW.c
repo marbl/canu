@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.48 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.49 2010-02-23 03:14:52 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -310,9 +310,11 @@ ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
     assert(olap.errorRate > 0.0);
 
     if (InsertChunkOverlap(chunkOverlapper, &olap) != HASH_SUCCESS) {
-      fprintf(stderr, "LoadChunkOverlapperFromStream()-- Failed to insert.\n");
-      assert(0);
+      fprintf(stderr, "LoadChunkOverlapperFromStream()-- WARNING:  Duplicate chunk overlap!\n");
+      //assert(0);
     }
+
+    //printChunkOverlapCheckT("INSERTED", &olap);
   }
 
   return chunkOverlapper;
