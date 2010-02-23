@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.9 2008-10-09 00:48:12 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.10 2010-02-23 03:48:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,7 +58,6 @@ static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.9 2008-10-09 00:48
 #define SEQ_T 0x03
 #define SEQ_N 0xff
 
-#define QUALITY_MAX  60
 
 void
 encodeSequenceQuality(char *enc,

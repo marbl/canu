@@ -22,10 +22,12 @@
 #ifndef AS_PER_ENCODESEQUENCEQUALITY_H
 #define AS_PER_ENCODESEQUENCEQUALITY_H
 
-static const char *rcsid_AS_PER_ENCODESEQUENCEQUALITY_H = "$Id: AS_PER_encodeSequenceQuality.h,v 1.8 2008-10-09 00:48:12 brianwalenz Exp $";
+static const char *rcsid_AS_PER_ENCODESEQUENCEQUALITY_H = "$Id: AS_PER_encodeSequenceQuality.h,v 1.9 2010-02-23 03:48:37 brianwalenz Exp $";
 
 // Functions for encoding sequence and quality values one char per
 // seq/quality pair.
+
+#define QUALITY_MAX  60
 
 
 void
