@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.2 2010-02-17 01:32:58 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.3 2010-02-23 03:49:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +40,8 @@ main(int argc, char **argv) {
 
   bool      isMated          = false;
 
+  char     *type             = "illumina";
+
   char    **fastq            = new char * [argc];
   int32     fastqLen         = 0;
 
@@ -55,6 +57,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-libraryname") == 0) {
       libraryName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-type") == 0) {
+      type = argv[++arg];
 
     } else if (strcmp(argv[arg], "-fastq") == 0) {
       fastq[fastqLen++] = argv[++arg];
@@ -72,18 +77,27 @@ main(int argc, char **argv) {
     err++;
   if (libraryName == 0L)
     err++;
+  if ((strcasecmp(type, "sanger") != 0) && (strcasecmp(type, "solexa") != 0) && (strcasecmp(type, "illumina") != 0))
+    err++;
   if (fastq == 0L)
     err++;
 
   if (err) {
     fprintf(stderr, "usage: %s [-insertsize <mean> <stddev>] [-libraryname <name>] [-output <name>]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -insertsize i d        Mates are on average i +- d bp apart.\n");
+    fprintf(stderr, "  -insertsize i d    Mates are on average i +- d bp apart.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -libraryname n         The UID of the library these reads are added to.\n");
+    fprintf(stderr, "  -libraryname n     The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -fastq A               Single ended reads, in fastq format.\n");
-    fprintf(stderr, "  -fastq A,B             Paired end reads, in fastq format.\n");
+    fprintf(stderr, "  -type t            What type of fastq:\n");
+    fprintf(stderr, "                       'sanger'   -- QV's are PHRED, offset=33 '!', NCBI SRA data.\n");
+    fprintf(stderr, "                       'solexa'   -- QV's are Solexa, early Solexa data.\n");
+    fprintf(stderr, "                       'illumina' -- QV's are PHRED, offset=64 '@', Illumina reads from version 1.3 on.\n");
+    fprintf(stderr, "                     See Cock, et al., 'The Sanger FASTQ file format for sequences with quality scores, and\n");
+    fprintf(stderr, "                     the Solexa/Illumina FASTQ variants', doi:10.1093/nar/gkp1137\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -fastq A           Single ended reads, in fastq format.\n");
+    fprintf(stderr, "  -fastq A,B         Paired end reads, in fastq format.\n");
     fprintf(stderr, "\n");
 
     if ((insertSize == 0) && (insertStdDev >  0))
@@ -92,6 +106,8 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR:  Invalid -insertsize.  Both mean and std.dev must be greater than zero.\n");
     if (libraryName == 0L)
       fprintf(stderr, "ERROR:  No library name supplied with -libraryname.\n");
+    if ((strcasecmp(type, "sanger") != 0) && (strcasecmp(type, "solexa") != 0) && (strcasecmp(type, "illumina") != 0))
+      fprintf(stderr, "ERROR:  Invalid type '%s' supplied with -type.\n", type);
     if (fastq == 0L)
       fprintf(stderr, "ERROR:  No reads supplied with -fastq.\n");
 
@@ -183,17 +199,27 @@ main(int argc, char **argv) {
 
   //  Add in the non-standard Illumina features.
 
-  libMesg.features = (char **)safe_realloc(libMesg.features, sizeof(char *) * (libMesg.num_features + fastqLen));
-  libMesg.values   = (char **)safe_realloc(libMesg.values,   sizeof(char *) * (libMesg.num_features + fastqLen));
+  libMesg.features = (char **)safe_realloc(libMesg.features, sizeof(char *) * (libMesg.num_features + 1 + fastqLen));
+  libMesg.values   = (char **)safe_realloc(libMesg.values,   sizeof(char *) * (libMesg.num_features + 1 + fastqLen));
+
+  int32 nf = libMesg.num_features;
+
+  libMesg.features[nf] = (char *)safe_malloc(sizeof(char) * 32);
+  libMesg.values  [nf] = (char *)safe_malloc(sizeof(char) * (strlen(type) + 1));
+
+  strcpy(libMesg.features[nf], "illuminaFastQType");
+  strcpy(libMesg.values[nf],   type);
+
+  libMesg.num_features++;
 
   for (int32 i=0; i<fastqLen; i++) {
-    int32 nf = libMesg.num_features;
+    nf = libMesg.num_features;
 
     libMesg.features[nf] = (char *)safe_malloc(sizeof(char) * 32);
     libMesg.values  [nf] = (char *)safe_malloc(sizeof(char) * (strlen(fastq[i]) + 1));
 
-    sprintf(libMesg.features[nf], "illuminaSequence");
-    sprintf(libMesg.values[nf],   "%s", fastq[i]);
+    strcpy(libMesg.features[nf], "illuminaSequence");
+    strcpy(libMesg.values[nf],   fastq[i]);
 
     libMesg.num_features++;
   }

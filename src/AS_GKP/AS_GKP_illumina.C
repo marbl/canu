@@ -19,14 +19,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.6 2010-01-29 13:08:05 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.7 2010-02-23 03:49:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 #include "AS_global.h"
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
+#include "AS_PER_encodeSequenceQuality.h"
+
+#define FASTQ_SANGER    0
+#define FASTQ_SOLEXA    1
+#define FASTQ_ILLUMINA  2
 
 
 class ilFragment {
@@ -41,7 +47,7 @@ class ilFragment {
 
 static
 uint64
-processSeq(char *N, ilFragment *fr, char end) {
+processSeq(char *N, ilFragment *fr, char end, uint32 fastqType) {
 
   fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   fr->fr.gkFragment_setIsDeleted(1);
@@ -97,15 +103,49 @@ processSeq(char *N, ilFragment *fr, char end) {
 
   //  Convert QVs
 
-  for (int32 i=0; i<qlen; i++)
-    fr->qstr[i] -= 'B' - '0';
+  if (fastqType == FASTQ_SANGER) {
+    for (uint32 i=0; fr->qstr[i]; i++) {
+      if (fr->qstr[i] < '!')
+        fprintf(stderr, "WARNING:  Low qv detected.\n");
+      fr->qstr[i] -= '!';
+      if (fr->qstr[i] > QUALITY_MAX)
+        fr->qstr[i] = QUALITY_MAX;
+      fr->qstr[i] += '0';
+    }
+  }
+
+  if (fastqType == FASTQ_SOLEXA) {
+    double qs;
+    for (uint32 i=0; fr->qstr[i]; i++) {
+      if (fr->qstr[i] < ';')
+        fprintf(stderr, "WARNING:  Low qv detected.\n");
+      qs  = fr->qstr[i];
+      qs -= '@';
+      qs /= 10.0;
+      qs  = 10.0 * log10(pow(10.0, qs) + 1);
+      if (qs > QUALITY_MAX)
+        qs = QUALITY_MAX;
+      fr->qstr[i] = lround(qs) + '0';
+    }
+  }
+
+  if (fastqType == FASTQ_ILLUMINA) {
+    for (uint32 i=0; fr->qstr[i]; i++) {
+      if (fr->qstr[i] < '@')
+        fprintf(stderr, "WARNING:  Low qv detected.\n");
+      fr->qstr[i] -= '@';
+      if (fr->qstr[i] > QUALITY_MAX)
+        fr->qstr[i] = QUALITY_MAX;
+      fr->qstr[i] += '0';
+    }
+  }
 
   //  Trim crap off the ends.
 
-  while ((fr->qstr[clrR-1] <= '0') && (clrR > 1))
+  while ((fr->qstr[clrR-1] < '6') && (clrR > 1))
     clrR--;
 
-  while ((fr->qstr[clrL] <= '0') && (clrL < clrR))
+  while ((fr->qstr[clrL] < '6') && (clrL < clrR))
     clrL++;
 
   assert(clrL <= clrR);
@@ -187,7 +227,7 @@ processSeq(char *N, ilFragment *fr, char end) {
 
 static
 uint64
-readQSeq(FILE *F, char *N, ilFragment *fr, char end) {
+readQSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType) {
 
   fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   fr->fr.gkFragment_setIsDeleted(1);
@@ -224,13 +264,13 @@ readQSeq(FILE *F, char *N, ilFragment *fr, char end) {
   sprintf(fr->qnam, "+%s:%s:%s:%s:%s#%s/%s", v[0], v[2], v[3], v[4], v[5], v[6], v[7]);
   sprintf(fr->qstr, "%s", v[9]);
 
-  return(processSeq(N, fr, end));
+  return(processSeq(N, fr, end, fastqType));
 }
 
 
 static
 uint64
-readSeq(FILE *F, char *N, ilFragment *fr, char end) {
+readSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType) {
 
   fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   fr->fr.gkFragment_setIsDeleted(1);
@@ -246,13 +286,13 @@ readSeq(FILE *F, char *N, ilFragment *fr, char end) {
   if (feof(F))
     return(0);
 
-  return(processSeq(N, fr, end));
+  return(processSeq(N, fr, end, fastqType));
 }
 
 
 static
 void
-loadIlluminaReads(char *lname, char *rname, bool isSeq) {
+loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType) {
   fprintf(stderr, "Processing illumina reads from '%s'\n", lname);
   fprintf(stderr, "                           and '%s'\n", rname);
 
@@ -274,8 +314,8 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq) {
   while (!feof(lfile) && !feof(rfile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 lUID = (isSeq) ? readSeq(lfile, lname, lfrg, 'l') : readQSeq(lfile, lname, lfrg, 'l');
-    uint64 rUID = (isSeq) ? readSeq(rfile, rname, rfrg, 'r') : readQSeq(rfile, rname, rfrg, 'r');
+    uint64 lUID = (isSeq) ? readSeq(lfile, lname, lfrg, 'l', fastqType) : readQSeq(lfile, lname, lfrg, 'l', fastqType);
+    uint64 rUID = (isSeq) ? readSeq(rfile, rname, rfrg, 'r', fastqType) : readQSeq(rfile, rname, rfrg, 'r', fastqType);
 
     if       ((lfrg->fr.gkFragment_getIsDeleted() == 0) &&
               (rfrg->fr.gkFragment_getIsDeleted() == 0)) {
@@ -313,7 +353,7 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq) {
 
 static
 void
-loadIlluminaReads(char *uname, bool isSeq) {
+loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType) {
   fprintf(stderr, "Processing illumina reads from '%s'.\n", uname);
 
   errno = 0;
@@ -328,7 +368,7 @@ loadIlluminaReads(char *uname, bool isSeq) {
   while (!feof(ufile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 uUID = (isSeq) ? readSeq(ufile, uname, ufrg, 'u') : readQSeq(ufile, uname, ufrg, 'u');
+    uint64 uUID = (isSeq) ? readSeq(ufile, uname, ufrg, 'u', fastqType) : readQSeq(ufile, uname, ufrg, 'u', fastqType);
 
     if (ufrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Add a fragment.
@@ -344,8 +384,27 @@ loadIlluminaReads(char *uname, bool isSeq) {
 
 
 
+
 void
 checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
+  uint32  fastqType = FASTQ_SOLEXA;
+
+  for (uint32 i=0; i<lib_mesg->num_features; i++) {
+    if (strcasecmp(lib_mesg->features[i], "illuminaFastQType") == 0) {
+      if (strcasecmp(lib_mesg->values[i], "sanger") == 0) {
+        fprintf(stderr, "Type set to SANGER.\n");
+        fastqType = FASTQ_SANGER;
+      }
+      if (strcasecmp(lib_mesg->values[i], "solexa") == 0) {
+        fprintf(stderr, "Type set to SOLEXA, pre-1.3.\n");
+        fastqType = FASTQ_SOLEXA;
+      }
+      if (strcasecmp(lib_mesg->values[i], "illumina") == 0) {
+        fprintf(stderr, "Type set to ILLUMINA 1.3+.\n");
+        fastqType = FASTQ_ILLUMINA;
+      }
+    }
+  }
 
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
     if (strcasecmp(lib_mesg->features[i], "illuminaQSequence") == 0) {
@@ -358,9 +417,9 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
       if (*sr) {
         *sr = 0;
         sr++;
-        loadIlluminaReads(sl, sr, false);
+        loadIlluminaReads(sl, sr, false, fastqType);
       } else {
-        loadIlluminaReads(sl, false);
+        loadIlluminaReads(sl, false, fastqType);
       }
     }
 
@@ -374,9 +433,9 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
       if (*sr) {
         *sr = 0;
         sr++;
-        loadIlluminaReads(sl, sr, true);
+        loadIlluminaReads(sl, sr, true, fastqType);
       } else {
-        loadIlluminaReads(sl, true);
+        loadIlluminaReads(sl, true, fastqType);
       }
     }
   }
