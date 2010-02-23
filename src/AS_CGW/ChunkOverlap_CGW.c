@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.49 2010-02-23 03:14:52 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.50 2010-02-23 22:30:26 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -124,7 +124,6 @@ int CanOlapCmp(uint64 cO1, uint64 cO2){
   ChunkOverlapSpecT *c1 = (ChunkOverlapSpecT *)(INTPTR)cO1;
   ChunkOverlapSpecT *c2 = (ChunkOverlapSpecT *)(INTPTR)cO2;
 
-
   if (c1->cidA < c2->cidA)
     return(-1);
   if (c1->cidA > c2->cidA)
@@ -209,7 +208,9 @@ void
 DeleteChunkOverlap(ChunkOverlapperT *chunkOverlapper,
                    ChunkOverlapCheckT *olap){
 
-  if (ExistsChunkOverlap(chunkOverlapper, olap) == FALSE)
+  ChunkOverlapCheckT  *del = LookupCanonicalOverlap(chunkOverlapper, &olap->spec);
+
+  if (del == NULL)
     return;
 
   if (DeleteFromHashTable_AS(chunkOverlapper->hashTable,
@@ -226,6 +227,9 @@ DeleteChunkOverlap(ChunkOverlapperT *chunkOverlapper,
     printChunkOverlapCheckT("WARNING:  Deleted overlap still exists", olap);
     assert(0);
   }
+
+  //  And finally, nuke the original data.
+  memset(del, 0xff, sizeof(ChunkOverlapCheckT));
 }
 
 //external
@@ -238,14 +242,14 @@ int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
   assert((nolap->overlap == 0) || (nolap->errorRate >= 0.0));
 
   int exists = ExistsInHashTable_AS(chunkOverlapper->hashTable,
-                                    (uint64)(INTPTR)&olap->spec,
+                                    (uint64)(INTPTR)&nolap->spec,
                                     sizeof(ChunkOverlapSpecT));
 
   if (exists == HASH_SUCCESS) {
-    ChunkOverlapCheckT  *old = LookupCanonicalOverlap(chunkOverlapper, &olap->spec);
+    ChunkOverlapCheckT  *old = LookupCanonicalOverlap(chunkOverlapper, &nolap->spec);
 
     fprintf(stderr, "WARNING:  InsertChunkOverlap()-- Chunk overlap already exists.\n");
-    printChunkOverlapCheckT("NEW", olap);
+    printChunkOverlapCheckT("NEW", nolap);
     printChunkOverlapCheckT("OLD", old);
   }
 
@@ -311,10 +315,8 @@ ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
 
     if (InsertChunkOverlap(chunkOverlapper, &olap) != HASH_SUCCESS) {
       fprintf(stderr, "LoadChunkOverlapperFromStream()-- WARNING:  Duplicate chunk overlap!\n");
-      //assert(0);
+      assert(0);
     }
-
-    //printChunkOverlapCheckT("INSERTED", &olap);
   }
 
   return chunkOverlapper;
@@ -900,24 +902,25 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
 
   //  Save a copy of the spec supplied, then reset
 
-  ChunkOverlapSpecT inSpec = canOlap->spec;
+  ChunkOverlapCheckT inOlap = *canOlap;
+  ChunkOverlapCheckT nnOlap = *canOlap;
 
-  canOlap->BContainsA = FALSE;
-  canOlap->AContainsB = FALSE;
-  canOlap->computed   = TRUE;
-  canOlap->overlap    = FALSE;
-  canOlap->ahg        = 0;
-  canOlap->bhg        = 0;
+  nnOlap.BContainsA = FALSE;
+  nnOlap.AContainsB = FALSE;
+  nnOlap.computed   = TRUE;
+  nnOlap.overlap    = FALSE;
+  nnOlap.ahg        = 0;
+  nnOlap.bhg        = 0;
 
-  if (canOlap->maxOverlap < 0)
+  if (nnOlap.maxOverlap < 0)
     //  No point doing the expensive part if there can be no overlap
     return;
 
   // Get the consensus sequences for both chunks from the ChunkStore
-  int32 lengthA = GetConsensus(graph, canOlap->spec.cidA, consensusA, qualityA);
-  int32 lengthB = GetConsensus(graph, canOlap->spec.cidB, consensusB, qualityB);
+  int32 lengthA = GetConsensus(graph, nnOlap.spec.cidA, consensusA, qualityA);
+  int32 lengthB = GetConsensus(graph, nnOlap.spec.cidB, consensusB, qualityB);
 
-  if (canOlap->minOverlap > (lengthA + lengthB - CGW_DP_MINLEN))
+  if (nnOlap.minOverlap > (lengthA + lengthB - CGW_DP_MINLEN))
     //  No point doing the expensive part if there can be no overlap
     return;
 
@@ -927,13 +930,13 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
   char *seq1   = Getchar(consensusA, 0);
   char *seq2   = Getchar(consensusB, 0);
 
-  int32 min_ahang = lengthA - canOlap->maxOverlap;
-  int32 max_ahang = lengthA - canOlap->minOverlap;
+  int32 min_ahang = lengthA - nnOlap.maxOverlap;
+  int32 max_ahang = lengthA - nnOlap.minOverlap;
 
   // tempOlap1 is a static down inside of DP_Compare, don't free it
-  Overlap *tempOlap1 = OverlapSequences(seq1, seq2, canOlap->spec.orientation,
+  Overlap *tempOlap1 = OverlapSequences(seq1, seq2, nnOlap.spec.orientation,
                                         min_ahang, max_ahang,
-                                        canOlap->errorRate,
+                                        nnOlap.errorRate,
                                         CGW_DP_THRESH, CGW_DP_MINLEN);
 
   if (tempOlap1 == NULL)
@@ -942,28 +945,28 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
 
   if (tempOlap1->begpos < 0 && tempOlap1->endpos > 0)
     // ahang is neg and bhang is pos
-    canOlap->BContainsA = TRUE;
+    nnOlap.BContainsA = TRUE;
 
   else if (tempOlap1->begpos > 0 && tempOlap1->endpos < 0)
     // ahang is pos and bhang is neg
-    canOlap->AContainsB = TRUE;
+    nnOlap.AContainsB = TRUE;
 
   //	    Print_Overlap_AS(stderr,&AFR,&BFR,O);
-  canOlap->computed = TRUE;
-  canOlap->ahg = tempOlap1->begpos;
-  canOlap->bhg = tempOlap1->endpos;
+  nnOlap.computed = TRUE;
+  nnOlap.ahg = tempOlap1->begpos;
+  nnOlap.bhg = tempOlap1->endpos;
 
   //  Make the overlap field be the number of bases from the tail of
   //  the A sequence to the beginning of the B sequence
-  canOlap->overlap = tempOlap1->length;
+  nnOlap.overlap = tempOlap1->length;
 
-  if  (canOlap->ahg < 0)
-    canOlap->overlap -= canOlap->ahg;
-  if  (canOlap->bhg < 0)
-    canOlap->overlap -= canOlap->bhg;
+  if  (nnOlap.ahg < 0)
+    nnOlap.overlap -= nnOlap.ahg;
+  if  (nnOlap.bhg < 0)
+    nnOlap.overlap -= nnOlap.bhg;
 
   // fields are no longer used in DP_Compare (as opposed to DP_Compare_AS)
-  canOlap->quality = 0.0;
+  nnOlap.quality = 0.0;
 
   // not dealing with containments here - they can go in either way?  (BPW: ??)
 
@@ -974,44 +977,47 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
   //
   //  Finally, we replace the overlap in the overlap table.
   //
-  if (canOlap->ahg < 0 && canOlap->bhg < 0) {
-    canOlap->suspicious = TRUE;
-    canOlap->overlap    = tempOlap1->length;
+  if (nnOlap.ahg < 0 && nnOlap.bhg < 0) {
+    nnOlap.suspicious = TRUE;
+    nnOlap.overlap    = tempOlap1->length;
 
-    assert(canOlap->spec.orientation.isUnknown() == false);
-    assert(canOlap->spec.orientation.isBA_BA()   == false);  //  Not canonical!?
+    assert(nnOlap.spec.orientation.isUnknown() == false);
+    assert(nnOlap.spec.orientation.isBA_BA()   == false);  //  Not canonical!?
 
-    if        (canOlap->spec.orientation.isAB_AB()) {
-      // we want to switch to a non-canonical orientation ...canOlap->spec.orientation = BA_BA; but
+    if        (nnOlap.spec.orientation.isAB_AB()) {
+      // we want to switch to a non-canonical orientation ...nnOlap.spec.orientation = BA_BA; but
       // since we can't, we switch order of operands instead
-      canOlap->spec.cidA = inSpec.cidB;
-      canOlap->spec.cidB = inSpec.cidA;
-      canOlap->ahg = -canOlap->ahg;
-      canOlap->bhg = -canOlap->bhg;
+      nnOlap.spec.cidA = inOlap.spec.cidB;
+      nnOlap.spec.cidB = inOlap.spec.cidA;
+      nnOlap.ahg = -nnOlap.ahg;
+      nnOlap.bhg = -nnOlap.bhg;
 
-    } else if (canOlap->spec.orientation.isAB_BA()) {
-      canOlap->spec.orientation.setIsBA_AB();
-      canOlap->ahg = -tempOlap1->endpos;
-      canOlap->bhg = -tempOlap1->begpos;
+    } else if (nnOlap.spec.orientation.isAB_BA()) {
+      nnOlap.spec.orientation.setIsBA_AB();
+      nnOlap.ahg = -tempOlap1->endpos;
+      nnOlap.bhg = -tempOlap1->begpos;
 
-    } else if (canOlap->spec.orientation.isBA_AB()) {
-      canOlap->spec.orientation.setIsAB_BA();
-      canOlap->ahg = -tempOlap1->endpos;
-      canOlap->bhg = -tempOlap1->begpos;
+    } else if (nnOlap.spec.orientation.isBA_AB()) {
+      nnOlap.spec.orientation.setIsAB_BA();
+      nnOlap.ahg = -tempOlap1->endpos;
+      nnOlap.bhg = -tempOlap1->begpos;
     }
 
     fprintf(stderr,">>> Fixing up suspicious overlap ("F_CID ","F_CID ",%c) (ahg:"F_S32" bhg:"F_S32") to ("F_CID ","F_CID ",%c) (ahg:"F_S32" bhg:"F_S32") len: "F_S32"\n",
-            inSpec.cidA,        inSpec.cidB,        inSpec.orientation.toLetter(),        tempOlap1->begpos, tempOlap1->endpos,
-            canOlap->spec.cidA, canOlap->spec.cidB, canOlap->spec.orientation.toLetter(), canOlap->ahg,      canOlap->bhg,
-            canOlap->overlap);
+            inOlap.spec.cidA, inOlap.spec.cidB, inOlap.spec.orientation.toLetter(), tempOlap1->begpos, tempOlap1->endpos,
+            nnOlap.spec.cidA, nnOlap.spec.cidB, nnOlap.spec.orientation.toLetter(), nnOlap.ahg,        nnOlap.bhg,
+            nnOlap.overlap);
 
-    DeleteChunkOverlap(ScaffoldGraph->ChunkOverlaps, canOlap);
+    DeleteChunkOverlap(ScaffoldGraph->ChunkOverlaps, &inOlap);  //  Delete the old overlap
+    DeleteChunkOverlap(ScaffoldGraph->ChunkOverlaps, &nnOlap);  //  New one shouldn't exist, but we'll delete it anyway
 
-    if (InsertChunkOverlap(ScaffoldGraph->ChunkOverlaps, canOlap) != HASH_SUCCESS) {
+    if (InsertChunkOverlap(ScaffoldGraph->ChunkOverlaps, &nnOlap) != HASH_SUCCESS) {
       fprintf(stderr, "ComputeCanonicalOverlap_new()-- Failed to insert.\n");
       assert(0);
     }
   }
+
+  *canOlap = nnOlap;
 }
 
 
@@ -1074,7 +1080,7 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
 
   if( lookup != NULL ){
     olap = *lookup;
-    if( checkChunkOverlapCheckT(lookup,minOverlap,maxOverlap,errorRate) == FALSE )
+    if( checkChunkOverlapCheckT(&olap,minOverlap,maxOverlap,errorRate) == FALSE )
       recompute = TRUE;
     insert = FALSE;
   }
@@ -1245,108 +1251,62 @@ static VA_TYPE(char) *quality2 = NULL;
 #define NUM_SECTIONS (5)
 
 //external
-void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
-                     int recomputeCGBOverlaps)
-{
-  int i = 0;
+void
+ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates, int recomputeCGBOverlaps) {
   HashTable_Iterator_AS iterator;
   uint64 key, value;
   uint32 valuetype;
-  int sectionOuter, sectionOuterMin, sectionOuterMax;
-  int sectionInner, sectionInnerMin, sectionInnerMax;
-  int numOverlaps = 0;
 
-  // Iterate over all hashtable elements, computing overlaps
-  for ( sectionOuter = 0; sectionOuter < NUM_SECTIONS; sectionOuter++)
-    {
-      sectionOuterMin = sectionOuter * (GetNumGraphNodes(graph)) / NUM_SECTIONS;
-      sectionOuterMax = (sectionOuter + 1) * (GetNumGraphNodes(graph)) / NUM_SECTIONS;
+  InitializeHashTable_Iterator_AS(ScaffoldGraph->ChunkOverlaps->hashTable, &iterator);
 
-      for ( sectionInner = 0; sectionInner < NUM_SECTIONS; sectionInner++)
-	{
-	  sectionInnerMin = sectionInner * (GetNumGraphNodes(graph)) / NUM_SECTIONS;
-	  sectionInnerMax = (sectionInner + 1) * (GetNumGraphNodes(graph)) / NUM_SECTIONS;
+  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype)) {
 
-	  fprintf(stderr,"ComputeOverlaps section (o %d,i %d) outer:[%d,%d) inner:[%d,%d)\n",
-                  sectionOuter,  sectionInner,
-                  sectionOuterMin, sectionOuterMax,
-                  sectionInnerMin, sectionInnerMax);
+    //  VERY IMPORTANT.  Do NOT directly use the overlap stored in the hash table.  If we recompute
+    //  it (ComputeCanonicalOverlap_new) we can and do screw up the hash table.  This function
+    //  occasionally changes the hash key on us, once the key changes, we cannot delete the original
+    //  overlap (because we fail to find it in the hash table now) and end up with duplicate entries
+    //  in the table.
+    //
+    ChunkOverlapCheckT olap = *(ChunkOverlapCheckT*)(INTPTR)value;
 
-	  InitializeHashTable_Iterator_AS(ScaffoldGraph->ChunkOverlaps->hashTable, &iterator);
+    assert(key == value);
 
-	  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype))
-            {
-              ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*)(INTPTR)value;
+    if (olap.computed)
+      continue;
 
-              assert(key == value);
+    if (olap.fromCGB && !recomputeCGBOverlaps)
+      continue;
 
-              {
-                int inSection = FALSE;
-                CDS_CID_t smaller, bigger;
+    // set errRate to old value
+    assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
+    olap.errorRate = AS_CGW_ERROR_RATE;
 
-                smaller = MIN( olap->spec.cidA, olap->spec.cidB);
-                bigger = MAX( olap->spec.cidA, olap->spec.cidB);
+    // first we trust that overlap
+    olap.suspicious = FALSE;
 
-                inSection = (smaller < sectionOuterMax && smaller >= sectionOuterMin) &&
-                  (bigger < sectionInnerMax && bigger >= sectionInnerMin);
-
-                // Only do the overlaps where the larger of the ids is within range.
-                // The overlaps order of appearance is sorted by the smaller of the indices.
-                if(olap->computed || !inSection)
-                  continue;
-              }
-
-
-              if(!olap->computed &&  /* We haven't computed this one, and it isn't from cgb, or recomputeCGBOverlaps is set */
-                 (!olap->fromCGB || recomputeCGBOverlaps)){
-                PairOrient orientation = olap->spec.orientation;
-
-                // set errRate to old value
-                assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-                olap->errorRate = AS_CGW_ERROR_RATE;
-
-                // first we trust that overlap
-                olap->suspicious = FALSE;
-
-                if(olap->maxOverlap < 0){ // Dummy!  Who put this overlap in the table?  No overlap is possible.....SAK
-                  olap->overlap = 0;
-                  continue;
-                }
-                if((++i % 100000) == 0){
-                  fprintf(stderr,
-                          "* ComputeOverlaps %d  ("F_CID ","F_CID ",%c)\n",
-                          i, olap->spec.cidA, olap->spec.cidB,
-                          olap->spec.orientation.toLetter());
-                }
-
-                numOverlaps++;
-
-                {
-		  ChunkOverlapSpecT inSpec;
-		  inSpec = olap->spec;
-		  ComputeCanonicalOverlap_new(graph, olap);
-		  if(olap->suspicious)
-                    {
-                      int lengthA, lengthB;
-                      lengthA = GetConsensus(graph, olap->spec.cidA, consensusA, qualityA);
-                      lengthB = GetConsensus(graph, olap->spec.cidB, consensusB, qualityB);
-
-                      fprintf(stderr,"* CO: SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c)["F_S32","F_S32"]"
-                              "found ("F_CID ","F_CID ",%c) "F_S32"; contig lengths as found (%d,%d)\n",
-                              inSpec.cidA, inSpec.cidB, orientation.toLetter(), olap->minOverlap, olap->maxOverlap,
-                              olap->spec.cidA, olap->spec.cidB, olap->spec.orientation.toLetter(), olap->overlap,
-                              lengthA,lengthB);
-                    }
-                }
-
-                if(addEdgeMates && !olap->fromCGB && olap->overlap)
-                  InsertComputedOverlapEdge(graph, olap);
-              }
-            }
-	}
+    if(olap.maxOverlap < 0){ // Dummy!  Who put this overlap in the table?  No overlap is possible.....SAK
+      olap.overlap = 0;
+      continue;
     }
-}
 
+    ChunkOverlapSpecT inSpec = olap.spec;
+
+    ComputeCanonicalOverlap_new(graph, &olap);
+
+    if (olap.suspicious) {
+      int lengthA = GetConsensus(graph, olap.spec.cidA, consensusA, qualityA);
+      int lengthB = GetConsensus(graph, olap.spec.cidB, consensusB, qualityB);
+
+      fprintf(stderr,"* CO: SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c)["F_S32","F_S32"] found ("F_CID ","F_CID ",%c) "F_S32"; contig lengths as found (%d,%d)\n",
+              inSpec.cidA,    inSpec.cidB,    inSpec.orientation.toLetter(),    olap.minOverlap, olap.maxOverlap,
+              olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(), olap.overlap,
+              lengthA,lengthB);
+    }
+
+    if (addEdgeMates && !olap.fromCGB && olap.overlap)
+      InsertComputedOverlapEdge(graph, &olap);
+  }
+}
 
 
 
