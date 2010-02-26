@@ -82,6 +82,7 @@ sub terminate () {
         $cmd .= " -t $wrk/$asm.tigStore $tigVersion ";
         $cmd .= " -c $wrk/7-CGW/$asm $ckpVersion ";
         $cmd .= " -o $wrk/9-terminator/$asm";
+        $cmd .= " > $wrk/9-terminator/$asm.asm.err";
 
         if (runCommand("$termDir", $cmd)) {
             rename "$termDir/$asm.asm", "$termDir/$asm.asm.FAILED";
