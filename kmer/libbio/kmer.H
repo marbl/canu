@@ -319,7 +319,7 @@ public:
 
 #ifdef DEBUGCOMP
         {
-          for (int x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+          for (u32bit x=0, y=_compressionFirstIndex; x<_merSize; x++) {
             fprintf(stderr, "%u(%d) ", _compressionLength[y], y);
             y = (y + 1) % _merSize;
           }
@@ -370,7 +370,7 @@ public:
 
 #ifdef DEBUGCOMP
       {
-        for (int x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+        for (u32bit x=0, y=_compressionFirstIndex; x<_merSize; x++) {
           fprintf(stderr, "%u(%d) ", _compressionLength[y], y);
           y = (y + 1) % _merSize;
         }
@@ -402,7 +402,7 @@ public:
         _merSizeValid[0]++;
 #ifdef DEBUGCOMP
         {
-          for (int x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+          for (u32bit x=0, y=_compressionFirstIndex; x<_merSize; x++) {
             fprintf(stderr, "%d ", _compressionLength[y]);
             y = (y + 1) % _merSize;
           }
@@ -416,7 +416,7 @@ public:
       //  Good!  Don't need another letter.
 #ifdef DEBUGCOMP
         {
-          for (int x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+          for (u32bit x=0, y=_compressionFirstIndex; x<_merSize; x++) {
             fprintf(stderr, "%d ", _compressionLength[y]);
             y = (y + 1) % _merSize;
           }
