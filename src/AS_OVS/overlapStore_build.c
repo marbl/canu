@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.29 2009-11-08 01:14:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.30 2010-02-26 04:59:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,11 +67,19 @@ writeToDumpFile(OVSoverlap          *overlap,
   int df = overlap->a_iid / iidPerBucket;
 
   if (df >= dumpFileMax) {
-    fprintf(stderr, "Too many bucket files.  Increase memory size, set the correct\n");
-    fprintf(stderr, "number of fragment IIDs in the input, or split your overlaps\n");
-    fprintf(stderr, "into multiple batches.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "The runCA option for increasing the memory size is ovlStoreMemory.\n");
+    fprintf(stderr, "Too many bucket files when adding overlap:\n");
+    fprintf(stderr, "  %d %d  %c  %d %d  %d %d  %f.2\n",
+            overlap->a_iid, overlap->b_iid,
+            overlap->dat.obt.fwd ? 'f' : 'r',
+            overlap->dat.obt.a_beg,
+            overlap->dat.obt.a_end,
+            overlap->dat.obt.b_beg,
+            (overlap->dat.obt.b_end_hi << 9) | overlap->dat.obt.b_end_lo,
+            AS_OVS_decodeQuality(overlap->dat.obt.erate) * 100.0);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "This might be a corrupt input file, or maybe you simply need to supply more\n");
+    fprintf(stderr, "memory with the runCA option ovlStoreMemory.\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -176,6 +184,25 @@ buildStore(
     inputFile = AS_OVS_openBinaryOverlapFile(fileList[i], FALSE);
 
     while (AS_OVS_readOverlap(inputFile, &fovrlap)) {
+
+      //  Quick sanity check on IIDs.
+
+      if ((fovrlap.a_iid == 0) ||
+          (fovrlap.b_iid == 0) ||
+          (fovrlap.a_iid >= maxIID) ||
+          (fovrlap.b_iid >= maxIID)) {
+        fprintf(stderr, "ERROR:  Overlap has IDs out of range, possibly corrupt input data.\n");
+        fprintf(stderr, "  %d %d  %c  %d %d  %d %d  %f.2\n",
+                fovrlap.a_iid, fovrlap.b_iid,
+                fovrlap.dat.obt.fwd ? 'f' : 'r',
+                fovrlap.dat.obt.a_beg,
+                fovrlap.dat.obt.a_end,
+                fovrlap.dat.obt.b_beg,
+                (fovrlap.dat.obt.b_end_hi << 9) | fovrlap.dat.obt.b_end_lo,
+                AS_OVS_decodeQuality(fovrlap.dat.obt.erate) * 100.0);
+        exit(1);
+      }
+
 
       //  If filtering for OBT, skip the crap.
       if ((doFilterOBT == 1) && (AS_OBT_acceptableOverlap(fovrlap) == 0))
