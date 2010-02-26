@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.51 2010-02-16 05:19:40 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.52 2010-02-26 05:14:51 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -148,9 +148,7 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   //  Open the gkpStore
   ScaffoldGraph->gkpStore = gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, writable);
 
-  //  Check (and cleanup?) scaffolds
-  SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
-  CheckCIScaffoldTs(ScaffoldGraph);
+  //  Do NOT check and cleanup scaffolds on load.  Do that BEFORE we save!
 
   fclose(F);
 }
@@ -161,6 +159,20 @@ void
 CheckpointScaffoldGraph(const char *logicalname, const char *location) {
   char ckpfile[FILENAME_MAX];
   char tmgfile[FILENAME_MAX];
+
+  //  Check (and cleanup?) scaffolds.  This is done BEFORE we save, so that we (you know) SAVE the
+  //  corrections made.  This solves a (rare?) problem in terminator where it would want to merge
+  //  two contigs, but fails because everything (tigStore) is opened read-only.
+  //
+  //  The last checkpoint doesn't have a tigStore available as we already partitioned it and closed
+  //  it, and so we cannot do the checks.  We don't expect any changes to have been made since the
+  //  last checkpoint, so no real loss.  See AS_CGW_main.c, not that it'll help the causal observer
+  //  any.
+  //
+  if (ScaffoldGraph->tigStore) {
+    SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
+    CheckCIScaffoldTs(ScaffoldGraph);
+  }
 
   sprintf(ckpfile, "%s.ckp.%d", GlobalData->outputPrefix, ScaffoldGraph->checkPointIteration++);
   sprintf(tmgfile, "%s.timing", GlobalData->outputPrefix);
