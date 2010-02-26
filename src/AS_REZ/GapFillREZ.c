@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.64 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.65 2010-02-26 05:08:06 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -5651,36 +5651,39 @@ static int  Estimate_Chunk_Ends
           good_edge = i;
         }
 
-      if  (good_edge < 0)
-        {
-          fprintf (stderr, "will die on chunk %d\n", chunk -> id);
-        }
-      assert (good_edge >= 0);
-
-      // Move the good edge to slot 0 in the stack for future reference
-      if  (good_edge != 0)
-        {
-          Stack_Entry_t  save;
-
-          save = stack [0];
-          stack [0] = stack [good_edge];
-          stack [good_edge] = save;
-        }
-
-      assert (min_right_variance >= 0.0);
-      if  (edge_ct == 0)
-        {
-          (* edge_quality) = 0.0;
-          fprintf(stderr,"* Chunk %d: no edges\n", chunk->id);
-          return  FALSE;
-        }
-
       if  (max_left_variance > - 1.0)
         ref_variance = max_left_variance;
       else
         ref_variance = min_right_variance;
 
+      if ((ref_variance < 0) || (ref_variance > FLT_MAX)) {
+        fprintf(stderr, "* Chunk %d: bad variance\n", chunk->id);
+        (* edge_quality) = 0.0;
+        return FALSE;
+      }
+
       assert (0.0 <= ref_variance && ref_variance <= FLT_MAX);
+      assert (min_right_variance >= 0.0);
+
+      if  (good_edge < 0) {
+        fprintf (stderr, "will die on chunk %d\n", chunk -> id);
+      }
+      assert (good_edge >= 0);
+
+      // Move the good edge to slot 0 in the stack for future reference
+      if  (good_edge != 0) {
+        Stack_Entry_t  save;
+
+        save = stack [0];
+        stack [0] = stack [good_edge];
+        stack [good_edge] = save;
+      }
+
+      if  (edge_ct == 0) {
+        (* edge_quality) = 0.0;
+        fprintf(stderr,"* Chunk %d: no edges\n", chunk->id);
+        return  FALSE;
+      }
 
       Calc_End_Coords (stackva, stack_beg, stack_end, left_end, right_end, chunk,
                        ref_variance);
