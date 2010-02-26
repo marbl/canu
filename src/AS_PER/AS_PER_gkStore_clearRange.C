@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.9 2009-11-09 01:03:02 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.10 2010-02-26 16:19:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -225,6 +225,11 @@ gkClearRange::gkClearRange_getClearRegion(gkFragment *fr, uint32& begin, uint32&
 
 void
 gkClearRange::gkClearRange_setClearRegion(gkFragment *fr, uint32  begin, uint32  end) {
+
+  assert(begin <= end);
+  assert(begin <= fr->gkFragment_getSequenceLength());
+  assert(end   <= fr->gkFragment_getSequenceLength());
+
   if (fr->type == GKFRAGMENT_PACKED) {
     if (!pkconfigured)
       gkClearRange_configurePacked();
