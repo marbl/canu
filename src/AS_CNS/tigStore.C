@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.5 2009-12-12 11:54:03 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.6 2010-02-27 18:52:01 mcschatz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -64,21 +64,21 @@ changeProperties(MultiAlignStore *tigStore,
     char   *vp = editLine;
 
     //  Skip whitespace before the operation
-    while (isspace(*op) == 1)
+    while (isspace(*op))
       op++;
 
     //  Skip the operation, then skip whitespace before the tig.
     tp = op;
-    while (isspace(*tp) == 0)
+    while (!isspace(*tp))
       tp++;
-    while (isspace(*tp) == 1)
+    while (isspace(*tp))
       tp++;
 
     //  Skip the tig, then skip whitespace before the value.
     vp = tp;
-    while (isspace(*vp) == 0)
+    while (!isspace(*vp))
       vp++;
-    while (isspace(*vp) == 1)
+    while (isspace(*vp))
       vp++;
 
     int32   tid = atoi(tp);
