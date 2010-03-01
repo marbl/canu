@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.1 2010-02-22 06:38:40 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.2 2010-03-01 08:19:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@ const char *mainid = "$Id: merTrim.C,v 1.1 2010-02-22 06:38:40 brianwalenz Exp $
 #include <algorithm>
 
 #include "AS_global.h"
+#include "AS_UTL_reverseComplement.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
 
@@ -38,9 +39,7 @@ const char *mainid = "$Id: merTrim.C,v 1.1 2010-02-22 06:38:40 brianwalenz Exp $
 #include "positionDB.H"
 #include "libmeryl.H"
 
-//
-//  THIS FAILS TO CORRECT ERRORS IN THE FIRST MER.  We need to reverse the string and try from the other end.
-//
+uint32  VERBOSE = 0;
 
 #define EXISTDB_MIN_COUNT   3
 
@@ -55,17 +54,21 @@ public:
     numThreads     = 4;
     beVerbose      = false;
     kb             = NULL;
+    kbtest         = NULL;
     edb            = NULL;
   };
 
   ~mertrimGlobalData() {
-    delete kb;
     delete edb;
+    delete kb;
+    delete kbtest;
   };
 
   void              initialize(void) {
-    kb  = new kMerBuilder(merSize, compression, 0L);
-    edb = new existDB(merCountsFile, merSize, existDBcounts, EXISTDB_MIN_COUNT, ~0);
+#warning kb and kbtest are THREAD UNSAFE
+    edb    = new existDB(merCountsFile, merSize, existDBcounts, EXISTDB_MIN_COUNT, ~0);
+    kb     = new kMerBuilder(merSize, compression, 0L);
+    kbtest = new kMerBuilder(merSize, compression, 0L);
   };
 
 public:
@@ -82,6 +85,7 @@ public:
   //  Global data
   //
   kMerBuilder  *kb;
+  kMerBuilder  *kbtest;
   existDB      *edb;
 };
 
@@ -103,9 +107,11 @@ public:
     readIID = fr_.gkFragment_getReadIID();
     seqLen  = fr_.gkFragment_getSequenceLength();
 
-    origSeq = new char [AS_READ_MAX_NORMAL_LEN];
-    corrSeq = new char [AS_READ_MAX_NORMAL_LEN];
-    origQlt = new char [AS_READ_MAX_NORMAL_LEN];
+    origSeq = new char   [AS_READ_MAX_NORMAL_LEN];
+    corrSeq = new char   [AS_READ_MAX_NORMAL_LEN];
+    origQlt = new char   [AS_READ_MAX_NORMAL_LEN];
+
+    seqMap  = new uint32 [AS_READ_MAX_NORMAL_LEN];
 
     nMersExpected = 0;
     nMersTested   = 0;
@@ -114,8 +120,12 @@ public:
     ms = NULL;
 
     disconnect = NULL;
+    mismatch   = NULL;
+    insertion  = NULL;
+    deletion   = NULL;
     coverage   = NULL;
 
+    uncovered  = NULL;
     corrected  = NULL;
 
     strcpy(origSeq, fr_.gkFragment_getSequence());
@@ -124,19 +134,36 @@ public:
 
     clrBgn = 0;
     clrEnd = seqLen;
+
+    for (uint32 i=0; i<AS_READ_MAX_NORMAL_LEN; i++)
+      seqMap[i] = i;
   };
   ~mertrimComputation() {
     delete [] origSeq;
     delete [] corrSeq;
     delete [] origQlt;
+    delete [] seqMap;
     delete    ms;
     delete [] disconnect;
+    delete [] mismatch;
+    delete [] insertion;
+    delete [] deletion;
     delete [] coverage;
+    delete [] uncovered;
     delete [] corrected;
   }
 
   uint32     evaluate(bool postCorrection);
+
+  void       reverse(void);
+  void       analyze(void);
+
+  uint32     testBaseChange(uint32 pos, char replacement);
+  uint32     testBaseIndel(uint32 pos, char replacement);
+
   uint32     attemptCorrection(void);
+
+  uint32     BADBASE(uint32 i);
   uint32     attemptTrimming(void);
 
   uint32     getNumUncoveredSpaces(void) { return(nHole); };
@@ -144,8 +171,9 @@ public:
 
   uint32     getNumCorrected(void)       { return(nCorr); };
 
-  uint32     getClrBgn(void) { return(clrBgn); };
-  uint32     getClrEnd(void) { return(clrEnd); };
+  uint32     getClrBgn(void) { return(seqMap[clrBgn]); };
+  uint32     getClrEnd(void) { return(seqMap[clrEnd]); };
+  uint32     getSeqLen(void) { return(seqLen); };
 
   void       dump(FILE *F, char *label);
 
@@ -159,6 +187,8 @@ private:
   char      *corrSeq;
   char      *origQlt;
 
+  uint32    *seqMap;
+
   uint32     nMersExpected;
   uint32     nMersTested;
   uint32     nMersFound;
@@ -169,7 +199,11 @@ private:
   uint32     clrEnd;
 
   uint32    *disconnect;  //  per base - a hole before this base
+  uint32    *mismatch;    //  
+  uint32    *insertion;   //  
+  uint32    *deletion;    //  
   uint32    *coverage;    //  per base - mer coverage
+  uint32    *uncovered;   //  per base - mer lack of coverage
 
   //  per base: C - this base corrected
   //            A - this base failed to be corrected, no answer
@@ -189,8 +223,8 @@ private:
 
 
 
-  //  Scan the sequence, counting the number of kmers verified.  If we find all of them, we're done.
-  //  
+//  Scan the sequence, counting the number of kmers verified.  If we find all of them, we're done.
+//  
 uint32
 mertrimComputation::evaluate(bool postCorrection) {
 
@@ -253,8 +287,10 @@ mertrimComputation::evaluate(bool postCorrection) {
     //  None of those conditions are strictly true when the clear range is not the whole read.
   }
 
-  //fprintf(stderr, "evaluate()-- nMersFound=%d nMersTested=%d nMersExpected=%d\n",
-  //        nMersFound, nMersTested, nMersExpected);
+  if (VERBOSE) {
+    fprintf(stderr, "evaluate()-- nMersFound=%d nMersTested=%d nMersExpected=%d\n",
+            nMersFound, nMersTested, nMersExpected);
+  }  //  VERBOSE
 
   if (nMersFound == nMersExpected)
     //  All mers confirmed, read is 100% verified!
@@ -275,89 +311,193 @@ mertrimComputation::evaluate(bool postCorrection) {
 
 
 
-uint32
-mertrimComputation::attemptCorrection(void) {
+void
+mertrimComputation::reverse(void) {
+  uint32  c = 0;
+  uint32 *s = NULL;
+  uint32 *S = NULL;
 
-  coverage   = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
-  disconnect = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
-  corrected  = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
+  reverseComplement(corrSeq, origQlt, seqLen);
+
+  delete ms;
+  ms = new merStream(g->kb, new seqStream(corrSeq, seqLen), false, true);
+
+  if (corrected) {
+    s = corrected;
+    S = corrected + seqLen - 1;
+
+    while (s < S) {
+      if (*s == 'X')  *s = 0;
+      if (*S == 'X')  *S = 0;
+
+      c    = *s;
+      *s++ =  *S;
+      *S-- =  c;
+    }
+  }
+
+  s = seqMap;
+  S = seqMap + seqLen - 1;
+
+  while (s < S) {
+    c    = *s;
+    *s++ =  *S;
+    *S-- =  c;
+  }
+}
+
+
+//  Analyze the read.  Annotate with the depth of mer coverage.  This lets us identify
+//  mismatches/insertions (though we cannot distinguish thses) and deletions.
+//
+void
+mertrimComputation::analyze(void) {
+
+  if (coverage == 0L)
+    coverage   = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
+
+  if (uncovered == 0L)
+    uncovered  = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
+
+  if (disconnect == 0L)
+    disconnect = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
+
+  if (corrected == 0L) {
+    corrected  = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
+    memset(corrected, 0, sizeof(uint32) * (AS_READ_MAX_NORMAL_LEN + 1));
+  }
 
   memset(coverage,   0, sizeof(uint32) * (AS_READ_MAX_NORMAL_LEN + 1));
+  memset(uncovered,  0, sizeof(uint32) * (AS_READ_MAX_NORMAL_LEN + 1));
   memset(disconnect, 0, sizeof(uint32) * (AS_READ_MAX_NORMAL_LEN + 1));
-  memset(corrected,  0, sizeof(uint32) * (AS_READ_MAX_NORMAL_LEN + 1));
 
   assert(ms != NULL);
 
   ms->rewind();
 
   while (ms->nextMer()) {
+    u32bit  posBgn = ms->thePositionInSequence();
+    u32bit  posEnd = ms->thePositionInSequence() + g->merSize - 1;
 
-    //  If the kMer is not present in our list of good mers, search for a kmer that does exist.
-    //
+    assert(posEnd < seqLen);
+
     if (g->edb->exists(ms->theCMer()) == false) {
-      kMer    testF = ms->theFMer();
-      kMer    testR = ms->theRMer();
+      for (u32bit add=posBgn; add<posEnd; add++)
+        uncovered[add]++;
 
-      uint32  numReplacements = 0;
-      char    replacementBase = 0;
+    } else {
 
-      //  Replace the last base in the F mer with all four bases.  The mechanism here is to shift
-      //  the last base out (using -= to append a base on the beginning of the mer), then to shift
-      //  on a new last base (using += to append a base on the end of the mer).  Instead of
-      //  reverse complementing the mer a bunch of times (somewhat expensive) we do the same
-      //  operations on the R mer.
+      //  This is an indication that our read is missing a base; there are two mers abutting
+      //  together, with no mer covering the junction.
+      if ((posBgn != 0) && (coverage[posBgn-1] != 0) && (coverage[posBgn] == 0))
+        disconnect[posBgn] = 'D';
 
-      testF -= 0x00;
-      testF += letterToBits['A'];   testF.mask(true);
-      testR += 0x00;                testR.mask(false);
-      testR -= letterToBits['T'];
-      if (g->edb->exists(testF) || g->edb->exists(testR)) {
-        numReplacements++;
-        replacementBase = 'A';
-      }
+      for (u32bit add=posBgn; add<posEnd; add++)
+        coverage[add]++;
+    }
+  }  //  Over all mers
 
-      testF -= 0x00;
-      testF += letterToBits['C'];    testF.mask(true);
-      testR += 0x00;                 testR.mask(false);
-      testR -= letterToBits['G'];
-      if (g->edb->exists(testF) || g->edb->exists(testR)) {
-        numReplacements++;
-        replacementBase = 'C';
-      }
+  ms->rewind();
 
-      testF -= 0x00;
-      testF += letterToBits['G'];    testF.mask(true);
-      testR += 0x00;                 testR.mask(false);
-      testR -= letterToBits['C'];
-      if (g->edb->exists(testF) || g->edb->exists(testR)) {
-        numReplacements++;
-        replacementBase = 'G';
-      }
+  if (VERBOSE) {
+    dump(stderr, "ANALYZE");
+  }  //  VERBOSE
+}
 
-      testF -= 0x00;
-      testF += letterToBits['T'];    testF.mask(true);
-      testR += 0x00;                 testR.mask(false);
-      testR -= letterToBits['A'];
-      if (g->edb->exists(testF) || g->edb->exists(testR)) {
-        numReplacements++;
-        replacementBase = 'T';
-      }
 
-      uint32 pos = ms->thePositionInSequence() + g->merSize - 1;
 
-      if (numReplacements == 0)
-        corrected[pos] = 'F';
+uint32
+mertrimComputation::attemptCorrection(void) {
 
-      if (numReplacements > 1)
-        corrected[pos] = 'X';
+  assert(coverage);
+  assert(disconnect);
+  assert(corrected);
 
-      if (numReplacements == 1) {
+  assert(ms != NULL);
+
+  ms->rewind();
+
+  while (ms->nextMer()) {
+    uint32 pos = ms->thePositionInSequence() + g->merSize - 1;
+
+    assert(seqLen < AS_READ_MAX_NORMAL_LEN);
+
+    //if (coverage[pos] > 0)
+    //  //  Base verified, no need to correct.
+    //  continue;
+
+    if (g->edb->exists(ms->theCMer())) {
+      //  Mer exists, no need to correct.
+      //fprintf(stderr, "MER at %d is %s AND EXISTS\n", pos, ms->theFMer().merToString(merstring));
+      continue;
+    }
+
+    //fprintf(stderr, "MER at %d is %s\n", pos, ms->theFMer().merToString(merstring));
+
+    assert(g->edb->exists(ms->theFMer()) == false);
+    assert(g->edb->exists(ms->theRMer()) == false);
+
+    //  State the minimum number of mers we'd accept as evidence any change we make is correct.  The
+    //  penalty for OVER correcting (too low a threshold) is potentially severe -- we could
+    //  insert/delete over and over and over eventually blowing up.  The penalty for UNDER
+    //  correcting, however, is that we trim a read too aggressively.
+    //
+    //  To make a change, the change must be supported MORE THAN whatever is there, and we'll go
+    //  even further, and set an absolute minimum.
+    //
+    //  Being strictly greater than before works for mismatches and deletions.
+    //
+    //  For insertions, especially insertions in single nucleotide runs, this doesn't work so well.
+    //  There are two cases, an insertion before a run, and an insertion after a run.  Below, X
+    //  represents ACGT, and the A's are the run.
+    //    XXXXXAAAAA: inserting an A after the X's, returns the same sequence, and the count of
+    //                good mers doesn't change.
+    //    AAAAAXXXXX: inserting an A before the X's changes the sequence, returning AAAAAAXXXX,
+    //                and it is possible (likely) that this new sequence will have a higher count.
+    //
+    //  We therefore require that we find at least TWO more good mers before accepting a change
+    //
+    uint32 mCur = testBaseChange(pos, corrSeq[pos]) + 1;
+    uint32 mNum = mCur;
+
+    //if (mCur == 1)
+    //  mNum = (seqLen - pos > g->merSize) ? (g->merSize / 3) : ((seqLen - pos) / 2);
+
+    //  This is the number of replacements we found.  If zero, we mark this mer as not confirmed
+    //  ('Z').  If more than one, we mark this mer as conflicting ('X').
+    //
+    uint32 nR = 0;
+
+    //  Test if we can repair the sequence with a single base change.
+    {
+      uint32 nA = (corrSeq[pos] != 'A') ? testBaseChange(pos, 'A') : 0;
+      uint32 nC = (corrSeq[pos] != 'C') ? testBaseChange(pos, 'C') : 0;
+      uint32 nG = (corrSeq[pos] != 'G') ? testBaseChange(pos, 'G') : 0;
+      uint32 nT = (corrSeq[pos] != 'T') ? testBaseChange(pos, 'T') : 0;
+      uint32 rB = 0;
+
+      if (nA > mNum)  { nR++;  rB = 'A'; }
+      if (nC > mNum)  { nR++;  rB = 'C'; }
+      if (nG > mNum)  { nR++;  rB = 'G'; }
+      if (nT > mNum)  { nR++;  rB = 'T'; }
+
+      if (VERBOSE) {
+        if (nA > mNum)  fprintf(stderr, "testA at %d -- %d req=%d\n", pos, nA, mNum);
+        if (nC > mNum)  fprintf(stderr, "testC at %d -- %d req=%d\n", pos, nC, mNum);
+        if (nG > mNum)  fprintf(stderr, "testG at %d -- %d req=%d\n", pos, nG, mNum);
+        if (nT > mNum)  fprintf(stderr, "testT at %d -- %d req=%d\n", pos, nT, mNum);
+      }  //  VERBOSE
+
+      //  If we found a single choice, correct it.
+      if (nR == 1) {
+        if (VERBOSE) {
+          fprintf(stderr, "Correct read %d at position %d from %c to %c (QV %d)\n",
+                  readIID, pos, corrSeq[pos], rB, origQlt[pos]);
+        }  //  VERBOSE
+
+        corrSeq[pos] = rB;
+
         corrected[pos] = 'C';
-
-        corrSeq[pos] = replacementBase;
-
-        //fprintf(stderr, "Correct read %d at position %d from %c to %c (QV %d)\n",
-        //        readIID, pos, origSeq[pos], corrSeq[pos], origQlt[pos]);
 
         //  Rebuild the merStream to use the corrected sequence, then move to the same position in
         //  the sequence.  This is done because we cannot simply change the string -- we need to
@@ -371,39 +511,244 @@ mertrimComputation::attemptCorrection(void) {
 
         while (pos != ms->thePositionInSequence())
           ms->nextMer();
+
+        continue;
       }
-    }
+    }  //  End of mismatch change test
 
-    //  After any corrections for this base are done, update the analysis of the read.  We want to
-    //  know if there are any bases not covered by mers (coverage[]) or if there are any discontinuities
-    //  in the mer coverage (disconnect[]).
+    //  Since we couldn't correct the single-base mismatch, see if it is an insertion or a deletion
+    //  in the read.
 
-    if (g->edb->exists(ms->theCMer())) {
-      u32bit  p = ms->thePositionInSequence();
+    nR = 0;
 
-      //  This is an indication that our read is missing a base; there are two mers abutting
-      //  together, with no mer covering the junction.
-      if ((p != 0) && (coverage[p-1] != 0) && (coverage[p] == 0))
-        disconnect[p] = 1;
+    {
+      uint32 nD = testBaseIndel(pos, '-');
+      uint32 nA = testBaseIndel(pos, 'A');
+      uint32 nC = testBaseIndel(pos, 'C');
+      uint32 nG = testBaseIndel(pos, 'G');
+      uint32 nT = testBaseIndel(pos, 'T');
+      char   rB = 0;
 
-      for (u32bit add=0; add < g->merSize; add++)
-        coverage[p + add]++;
+      if (nD > mNum)  { nR++;  rB = '-'; }
+      if (nA > mNum)  { nR++;  rB = 'A'; }
+      if (nC > mNum)  { nR++;  rB = 'C'; }
+      if (nG > mNum)  { nR++;  rB = 'G'; }
+      if (nT > mNum)  { nR++;  rB = 'T'; }
 
-      assert(p + g->merSize - 1 < seqLen);
-    }
+      if (VERBOSE) {
+        if (nD > mNum)  fprintf(stderr, "test-- %d -- %d req=%d\n", pos, nD, mNum);
+        if (nA > mNum)  fprintf(stderr, "test+A %d -- %d req=%d\n", pos, nA, mNum);
+        if (nC > mNum)  fprintf(stderr, "test+C %d -- %d req=%d\n", pos, nC, mNum);
+        if (nG > mNum)  fprintf(stderr, "test+G %d -- %d req=%d\n", pos, nG, mNum);
+        if (nT > mNum)  fprintf(stderr, "test+T %d -- %d req=%d\n", pos, nT, mNum);
+      }  //  VERBOSE
+
+      if (nR == 0) {
+        corrected[pos] = 'Z';
+        continue;
+      }
+
+      if (nR > 1) {
+        corrected[pos] = 'X';
+        continue;
+      }
+
+      if (nD > mNum) {
+        if (VERBOSE) {
+          fprintf(stderr, "Correct read %d at position %d from %c to DELETE (QV %d)\n",
+                  readIID, pos, corrSeq[pos], origQlt[pos] - '0');
+        }  //  VERBOSE
+        for (uint32 i=pos; i<seqLen; i++) {
+          corrSeq[i] = corrSeq[i+1];
+          origQlt[i] = origQlt[i+1];
+          seqMap[i]  = seqMap[i+1];
+        }
+
+        seqLen--;
+
+        corrected[pos] = 'D';
+
+      } else {
+        if (VERBOSE) {
+          fprintf(stderr, "Correct read %d at position %d INSERT %c\n",
+                  readIID, pos, rB);
+        }  //  VERBOSE
+        for (uint32 i=seqLen+1; i>pos; i--) {
+          corrSeq[i] = corrSeq[i-1];
+          origQlt[i] = origQlt[i-1];
+          seqMap[i]  = seqMap[i-1];
+        }
+
+        corrSeq[pos] = rB;
+        origQlt[pos] = '5';
+        seqMap[pos]  = seqMap[pos-1];
+
+        seqLen++;
+
+        corrected[pos] = 'I';
+      }
+
+      //  Rebuild the merstream.  When we call analyze() the stream gets rewound.  If we do not
+      //  restore our position, it is possible to get stuck in an infinite loop, inserting and
+      //  deleting the same base over and over.  This happens because we don't explicitly require
+      //  that the mer we are at be found, just that we find enough mers to make the change.
+      //
+      //  So, on the next pass through, we'd encounter the same mer we didn't find before, attempt
+      //  to change it again, and possibly delete the base we inserted.
+      //
+      //  test+A 57 -- 6 req=2
+      //  Correct read 6 at position 57 INSERT A
+      //
+      //  test-- 58 -- 3 req=2
+      //  Correct read 6 at position 58 from A to DELETE (QV 5)
+      //
+      //  The first time through, we insert an A (with 6 mers agreeing).  The second time through,
+      //  since we didn't fix the mer we were at, our choice is to delete the base we inserted (3
+      //  mers tell us to do so).
+
+      pos = ms->thePositionInSequence();
+
+      delete ms;
+      ms = new merStream(g->kb, new seqStream(corrSeq, seqLen), false, true);
+
+      analyze();
+
+      ms->nextMer();
+      while (pos != ms->thePositionInSequence())
+        ms->nextMer();
+    }  //  End of indel change test
   }  //  Over all mers
 
+  if (VERBOSE) {
+    dump(stderr, "POSTCORRECT");
+  }  //  VERBOSE
+
+  analyze();
 
   return(evaluate(true));
 }
 
 
-//  A BADBASE is one that was:
-//    corrected
-//    caused a mer to not exist
-//    has a low QV
+
+
+
+
+
+//  Attempt to change the base at pos to make the kmers spanning it agree.
+//  Returns the number of kmers validated, and the letter to change to.
 //
-#define BADBASE(i) (((corrected[i] == 'C') || (origQlt[i] < '5')) ? 1 : 0)
+uint32
+mertrimComputation::testBaseChange(uint32 pos, char replacement) {
+  uint32   numConfirmed = 0;
+  char     originalBase = corrSeq[pos];
+  uint32   offset       = pos + 1 - g->merSize;
+
+  corrSeq[pos] = replacement;
+
+#warning kbtest is THREAD UNSAFE
+  merStream  *localms = new merStream(g->kbtest,
+                                      new seqStream(corrSeq + offset, seqLen - offset),
+                                      false,
+                                      true);
+
+  //  Test
+  for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
+    if (g->edb->exists(localms->theCMer()))
+      numConfirmed++;
+
+  delete localms;
+
+  corrSeq[pos] = originalBase;
+
+  //if (numConfirmed > 0)
+  //  fprintf(stderr, "testBaseChange() pos=%d replacement=%c confirmed=%d\n",
+  //          pos, replacement, numConfirmed);
+
+  return(numConfirmed);
+}
+
+
+
+
+uint32
+mertrimComputation::testBaseIndel(uint32 pos, char replacement) {
+  uint32   numConfirmed = 0;
+  char     testStr[128] = {0};
+  uint32   len          = 0;
+  uint32   off          = pos + 1 - g->merSize;
+  uint32   limit        = g->merSize * 2 - 1;
+
+  assert(2 * g->merSize < 120);  //  Overly pessimistic
+
+  //  Copy the first merSize bases.
+
+  while (len < g->merSize - 1)
+    testStr[len++] = corrSeq[off++];
+
+  //  Copy the second merSize bases, but overwrite the last base in the first copy (if we're testing
+  //  a de;etion) or insert a replacement base.
+
+  if (replacement == '-') {
+    off++;
+  } else {
+    testStr[len++] = replacement;
+  }
+
+  //  Copy the rest of the bases.
+
+  while ((len < limit) && (corrSeq[off]))
+    testStr[len++] = corrSeq[off++];
+
+#warning kbtest is THREAD UNSAFE
+  merStream  *localms = new merStream(g->kbtest,
+                                      new seqStream(testStr, len),
+                                      false,
+                                      true);
+
+  //  Test
+  for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
+    if (g->edb->exists(localms->theCMer()))
+      numConfirmed++;
+
+  delete localms;
+
+  //if (numConfirmed > 0)
+  //  fprintf(stderr, "testBaseIndel() pos=%d replacement=%c confirmed=%d\n",
+  //          pos, replacement, numConfirmed);
+
+  return(numConfirmed);
+}
+
+
+
+
+//  A BADBASE is one that was:
+//
+//  o Corrected by an base change, insert or delete.
+//  o Has very very low quality, at or below QV 6 == 25% chance of error.
+//  o Has lower quality (QV of 16 == 2.5% chance of error), and is marked as being corrected.
+//    The marking here should be either "mer wasn't found" or "correction was conflicting", but we
+//    don't actually care what the mark says.
+//
+//  We don't want to trust many of these bases close together.
+//
+uint32
+mertrimComputation::BADBASE(uint32 i) {
+
+  if ((corrected[i] == 'C') || (corrected[i] == 'I') || (corrected[i] == 'D'))
+    //  We made a correction.
+    return(1);
+
+  if (origQlt[i] - '0' <= 6)
+    //  Low quality base.
+    return(1);
+
+  if ((corrected[i] != 0) && (origQlt[i] - '0' < 16))
+    //  Lower quality base, and we couldn't correct it or find it in the mers.
+    return(1);
+
+  return(0);
+}
 
 uint32
 mertrimComputation::attemptTrimming(void) {
@@ -451,7 +796,9 @@ mertrimComputation::attemptTrimming(void) {
   clrBgn = lBgn;
   clrEnd = lEnd;
 
-  //fprintf(stderr, "TRIM: %d,%d (pre)\n", clrBgn, clrEnd);
+  if (VERBOSE) {
+    fprintf(stderr, "TRIM: %d,%d (pre)\n", clrBgn, clrEnd);
+  }  //  VERBOSE
 
   //  Adjust borders to the first bad base.  Remember, clrBgn includes the base, clrEnd does not.
 
@@ -463,10 +810,11 @@ mertrimComputation::attemptTrimming(void) {
   while ((clrEnd < seqLen) && (BADBASE(clrEnd) == 0))
     clrEnd++;
 
-  //fprintf(stderr, "TRIM: %d,%d (post)\n", clrBgn, clrEnd);
+  if (VERBOSE) {
+    fprintf(stderr, "TRIM: %d,%d (post)\n", clrBgn, clrEnd);
+    dump(stderr, "TRIM");
+  }  //  VERBOSE
 
-  //if (clrEnd - clrBgn < AS_READ_MIN_LEN)
-  //  dump(stdout, "SHORT");
 
   return(evaluate(true));
 }
@@ -475,7 +823,17 @@ mertrimComputation::attemptTrimming(void) {
 void
 mertrimComputation::dump(FILE *F, char *label) {
   fprintf(F, "%s read %d len %d (trim %d-%d) with %d uncovered bases and %d uncovered spaces.  corrected %d conflicting %d failed %d\n",
-          label, readIID, seqLen, getClrBgn(), getClrEnd(), nZero, nHole, nCorr, nConf, nFail);
+          label, readIID, seqLen, clrBgn, clrEnd, nZero, nHole, nCorr, nConf, nFail);
+#if 1
+  for (uint32 i=0; origSeq[i]; i++) {
+    if (i == clrBgn)
+      fprintf(F, "-[");
+    fprintf(F, "%c", origSeq[i]);
+    if (i+1 == clrEnd)
+      fprintf(F, "]-");
+  }
+  fprintf(F, " (ORI)\n");
+#endif
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn)
       fprintf(F, "-[");
@@ -502,6 +860,16 @@ mertrimComputation::dump(FILE *F, char *label) {
     }
     fprintf(F, " (COVERAGE)\n");
   }
+  if (uncovered) {
+    for (uint32 i=0; i<seqLen; i++) {
+      if (i == clrBgn)
+        fprintf(F, "-[");
+      fprintf(F, "%c", uncovered[i] + 'A');
+      if (i+1 == clrEnd)
+        fprintf(F, "]-");
+    }
+    fprintf(F, " (UNCOVERED)\n");
+  }
   if (corrected) {
     for (uint32 i=0; i<seqLen; i++) {
       if (i == clrBgn)
@@ -512,15 +880,44 @@ mertrimComputation::dump(FILE *F, char *label) {
     }
     fprintf(F, " (CORRECTIONS)\n");
   }
+  if (disconnect) {
+    for (uint32 i=0; i<seqLen; i++) {
+      if (i == clrBgn)
+        fprintf(F, "-[");
+      fprintf(F, "%c", (disconnect[i]) ? disconnect[i] : ' ');
+      if (i+1 == clrEnd)
+        fprintf(F, "]-");
+    }
+    fprintf(F, " (DISCONNECTION)\n");
+  }
+  if (insertion) {
+    for (uint32 i=0; i<seqLen; i++) {
+      if (i == clrBgn)
+        fprintf(F, "-[");
+      fprintf(F, "%c", (insertion[i]) ? insertion[i] : ' ');
+      if (i+1 == clrEnd)
+        fprintf(F, "]-");
+    }
+    fprintf(F, " (INSERTIONS)\n");
+  }
+  if (deletion) {
+    for (uint32 i=0; i<seqLen; i++) {
+      if (i == clrBgn)
+        fprintf(F, "-[");
+      fprintf(F, "%c", (deletion[i]) ? deletion[i] : ' ');
+      if (i+1 == clrEnd)
+        fprintf(F, "]-");
+    }
+    fprintf(F, " (DELETIONS)\n");
+  }
 }
 
 
 
 int
 main(int argc, char **argv) {
-  mertrimGlobalData  *g = new mertrimGlobalData;
-
-  //assert(sizeof(kmerhit) == 8);
+  mertrimGlobalData  *g        = new mertrimGlobalData;
+  bool                doUpdate = true;
 
   argc = AS_configure(argc, argv);
 
@@ -538,27 +935,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-mc") == 0) {
       g->merCountsFile = argv[++arg];
 
-#if 0
-    } else if (strcmp(argv[arg], "-t") == 0) {
-      g->numThreads = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-tb") == 0) {
-      g->tBeg = atoi(argv[++arg]);
-    } else if (strcmp(argv[arg], "-te") == 0) {
-      g->tEnd = atoi(argv[++arg]);
-    } else if (strcmp(argv[arg], "-qb") == 0) {
-      g->qBeg = atoi(argv[++arg]);
-    } else if (strcmp(argv[arg], "-qe") == 0) {
-      g->qEnd = atoi(argv[++arg]);
-#endif
-
     } else if (strcmp(argv[arg], "-v") == 0) {
       g->beVerbose = true;
-
-#if 0
-    } else if (strcmp(argv[arg], "-o") == 0) {
-      g->outputName = argv[++arg];
-#endif
 
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
@@ -580,7 +958,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "opening gkStore '%s'\n", g->gkpPath);
 
-  gkStore     *gk = new gkStore(g->gkpPath, FALSE, TRUE);
+  gkStore     *gk = new gkStore(g->gkpPath, FALSE, doUpdate);
 
   gk->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
 
@@ -590,22 +968,23 @@ main(int argc, char **argv) {
   gkFragment   fr;
   //gkStream    *gs = new gkStream(gk, tBeg, tEnd, GKFRAGMENT_QLT);
 
-  uint32       resultCorrect      = 0;
-  uint32       resultCrap         = 0;
-  uint32       resultNotAMer      = 0;
-  uint32       resultCorrected    = 0;
-  uint32       resultTrimmed      = 0;
-  uint32       resultUncovered    = 0;
-  uint32       resultDeleted      = 0;
+  uint32       resultAllGood        = 0;  //  All read verified as good
+  uint32       resultAllCrap        = 0;  //  No mers found
+  uint32       resultCorrected      = 0;  //  Only a few bases needed to change to make it good
+  uint32       resultTrimmed        = 0;  //  After trimming off crud, it is now good
+  uint32       resultUnverified     = 0;
+  uint32       resultDeleted        = 0;
 
   uint32       resultCorrectedHistogram[100] = {0};
 
-  //  while (gs->next(&fr)) {
-
   for (uint32 iid=1; iid<=gk->gkStore_getNumFragments(); iid++) {
+
+    if (VERBOSE) {
+      fprintf(stderr, "----------------------------------------\n");
+    }  //  VERBOSE
+
     gk->gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
 
-    bool                delFrag = false;
     mertrimComputation *C = new mertrimComputation(g, fr);
 
     //assert((tBeg <= iid) && (iid <= tEnd));
@@ -615,7 +994,7 @@ main(int argc, char **argv) {
     //  Read is perfect!
     //
     if      (eval == ALLGOOD) {
-      resultCorrect++;
+      resultAllGood++;
       goto finished;
     }
 
@@ -623,12 +1002,17 @@ main(int argc, char **argv) {
     //  is a slight chance it has a 2-copy mer that will pull it in, or maybe the mate will.
     //
     if (eval == ALLCRAP) {
-      resultCrap++;
+      resultAllCrap++;
       C->attemptTrimming();
-      //C->dump(stderr, "CRAP");
       goto finished;
     }
 
+    C->reverse();
+    C->analyze();
+    eval = C->attemptCorrection();
+
+    C->reverse();
+    C->analyze();
     eval = C->attemptCorrection();
 
     //  Correction worked perfectly, we're done.
@@ -647,25 +1031,34 @@ main(int argc, char **argv) {
       goto finished;
     }
 
-    //  And then what??
-    //C->dump(stderr, "TRIM");
-    resultUncovered++;
-
-    //  DO NOT delete.
-    //delFrag = true;
+    resultUnverified++;
 
   finished:
+    bool  delFrag = false;
+
+    assert(C->getClrBgn()  < C->getClrEnd());
+    //assert(C->getClrBgn()  < C->getSeqLen());  don't have the original sequence length.
+    //assert(C->getClrEnd() <= C->getSeqLen());
 
     if (C->getClrEnd() - C->getClrBgn() < AS_READ_MIN_LEN)
       delFrag = true;
 
-    fr.gkFragment_setClearRegion(C->getClrBgn(), C->getClrEnd(), AS_READ_CLEAR_OBTINITIAL);
-    gk->gkStore_setFragment(&fr);
+    if (doUpdate) {
+      fr.gkFragment_setClearRegion(C->getClrBgn(), C->getClrEnd(), AS_READ_CLEAR_OBTINITIAL);
+      gk->gkStore_setFragment(&fr);
+    }
 
     if (delFrag) {
       resultDeleted++;
-      gk->gkStore_delFragment(fr.gkFragment_getReadIID(), false);
+
+      if (doUpdate)
+        gk->gkStore_delFragment(fr.gkFragment_getReadIID(), false);
     }
+
+    if (VERBOSE) {
+      fprintf(stderr, "read %d clr %d,%d%s\n",
+              fr.gkFragment_getReadIID(), C->getClrBgn(), C->getClrEnd(), delFrag ? " (deleted)" : "");
+    }  //  VERBOSE
 
     delete C;
   }
@@ -673,12 +1066,11 @@ main(int argc, char **argv) {
   //delete gs;
   delete gk;
 
-  fprintf(stderr, "resultCorrect        %d\n", resultCorrect);
-  fprintf(stderr, "resultCrap           %d\n", resultCrap);
-  fprintf(stderr, "resultNotAMer        %d\n", resultNotAMer);
+  fprintf(stderr, "resultAllGood        %d\n", resultAllGood);
+  fprintf(stderr, "resultAllCrap        %d\n", resultAllCrap);
   fprintf(stderr, "resultCorrected      %d\n", resultCorrected);
   fprintf(stderr, "resultTrimmed        %d\n", resultTrimmed);
-  fprintf(stderr, "resultUncovered      %d\n", resultUncovered);
+  fprintf(stderr, "resultUnverified     %d\n", resultUnverified);
   fprintf(stderr, "resultDeleted        %d\n", resultDeleted);
 
   //for (uint32 i=0; i<100; i++)
