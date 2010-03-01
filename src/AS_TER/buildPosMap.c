@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.15 2010-02-17 01:32:59 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.16 2010-03-01 08:27:45 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -30,6 +30,8 @@ const char *mainid = "$Id: buildPosMap.c,v 1.15 2010-02-17 01:32:59 brianwalenz 
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
+
+#include "util++.H"
 
 HashTable_AS   *uid2iid      = NULL;
 
@@ -245,12 +247,12 @@ processUTG(SnapUnitigMesg *utg) {
 void
 processULK(SnapUnitigLinkMesg *ulk) {
 
-  fprintf(utglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c",
+  fprintf(utglkg, "%s\t%s\t%c\t%c\t%s\t%f\t%f\t%d\t%c",
           AS_UID_toString(ulk->eunitig1),
           AS_UID_toString(ulk->eunitig2),
           ulk->orientation.toLetter(),
           ulk->overlap_type,
-          ulk->is_possible_chimera ? 'chimeric' : '.',
+          ulk->is_possible_chimera ? "chimeric" : ".",
           ulk->mean_distance,
           ulk->std_deviation,
           ulk->num_contributing,
@@ -375,12 +377,12 @@ processCCO(SnapConConMesg *cco) {
 void
 processCLK(SnapContigLinkMesg *clk) {
 
-  fprintf(ctglkg, "%s\t%s\t%c\t%c\t%c\t%f\t%f\t%d\t%c",
+  fprintf(ctglkg, "%s\t%s\t%c\t%c\t%s\t%f\t%f\t%d\t%c",
           AS_UID_toString(clk->econtig1),
           AS_UID_toString(clk->econtig2),
           clk->orientation.toLetter(),
           clk->overlap_type,
-          clk->is_possible_chimera ? 'chimeric' : '.',
+          clk->is_possible_chimera ? "chimeric" : ".",
           clk->mean_distance,
           clk->std_deviation,
           clk->num_contributing,
@@ -563,31 +565,30 @@ transferFrg(FILE *ctg, FILE *scf) {
 
 
 
+#warning this function will overflow on large (bogus) var sequences
 
 void
 transferVar(FILE *ctg, FILE *scf) {
-  char   varseq[16384] = {0};
-  char   ctgUID[1024]  = {0};
-  int    bgn = 0;
-  int    end = 0;
-  int    num_reads = 0;
-  int    num_conf_alleles = 0;
-  int    min_anchor_size = 0;
-  int    var_length = 0;
-  char   nr_conf_alleles[16384] = {0};
-  char   weights[16384] = {0};
-  char   conf_read_iids[16384] = {0};
+  int32  lineMax = 1 * 1024 * 1024;
+  char  *line    = new char [lineMax];
+
+  memset(line, 0, sizeof(char) * lineMax);
 
   rewind(ctg);
 
+  fgets(line, lineMax, ctg);
+  chomp(line);
+
   while (!feof(ctg)) {
-    if (11 == fscanf(ctg, "%s %s %d %d %d %d %d %d %s %s %s ",
-                     varseq, ctgUID,
-                     &bgn, &end, &num_reads, &num_conf_alleles, &min_anchor_size, &var_length,
-                     nr_conf_alleles,
-                     weights,
-                     conf_read_iids)) {
-      AS_UID uid = AS_UID_lookup(ctgUID, NULL);
+    splitToWords  W(line);
+
+    assert(line[lineMax-1] == 0);
+
+    if (11 == W.numWords()) {
+      int32 bgn = atoi(W[2]);
+      int32 end = atoi(W[3]);
+
+      AS_UID uid = AS_UID_lookup(W[1], NULL);
       AS_IID iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
                                                      AS_UID_toInteger(uid),
                                                      0);
@@ -607,14 +608,13 @@ transferVar(FILE *ctg, FILE *scf) {
           end = tmp;
         }
 
-        fprintf(scf, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%s\t%s\t%s\n",
-                varseq, AS_UID_toString(uid),
-                bgn, end, num_reads, num_conf_alleles, min_anchor_size, var_length,
-                nr_conf_alleles,
-                weights,
-                conf_read_iids);
+        fprintf(scf, "%s\t%s\t%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
+                W[0], AS_UID_toString(uid), bgn, end, W[4], W[5], W[6], W[7], W[8], W[9], W[10]);
       }
     }
+
+    fgets(line, lineMax, ctg);
+    chomp(line);
   }
 }
 
@@ -654,7 +654,6 @@ int main (int argc, char *argv[]) {
   uid2iid = CreateScalarHashTable_AS();
 
   ctgInfo = (ctgInfo_t *)safe_calloc(ctgInfoMax, sizeof(ctgInfo_t));
-
 
   frags  = openFile("frags",  outputPrefix, 1);
   mates  = openFile("mates",  outputPrefix, 1);
