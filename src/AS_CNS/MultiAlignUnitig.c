@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.26 2009-12-10 04:01:11 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.27 2010-03-03 04:14:22 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -177,6 +177,8 @@ public:
     frankensteinMax = 0;
     frankenstein    = NULL;
     frankensteinBof = NULL;
+
+    fragmentMap = CreateScalarHashTable_AS();
   };
 
   ~unitigConsensus() {
@@ -213,6 +215,8 @@ public:
   void rebuildFrankensteinFromFragment(void);
 
   void generateConsensus(CNS_PrintKey     printwhat);
+
+  bool fixFailures(void);
 
 private:
   MultiAlignT    *ma;
@@ -573,14 +577,18 @@ unitigConsensus::computePositionFromAlignment(void) {
 
   //  From the overlap and existing placements, find the thickest overlap, to set the piid and
   //  hangs, then reset the original placement based on that parents original placement.
-
+  //
+  //  To work with fixFailures(), we need to scan the entire fragment list.  This isn't so
+  //  bad, really, since before we were scanning (on average) half of it.
+  //
   placed[tiid].bgn = O->begpos;
   placed[tiid].end = O->endpos + frankensteinLen;
 
   int32   thickestLen = 0;
 
-  for (int32 qiid = tiid-1; qiid >= 0; qiid--) {
-    if ((placed[tiid].bgn < placed[qiid].end) &&
+  for (int32 qiid = numfrags-1; qiid >= 0; qiid--) {
+    if ((tiid != qiid) &&
+        (placed[tiid].bgn < placed[qiid].end) &&
         (placed[tiid].end > placed[qiid].bgn)) {
       int32 ooo = (MIN(placed[tiid].end, placed[qiid].end) -
                    MAX(placed[tiid].bgn, placed[qiid].bgn));
@@ -600,6 +608,7 @@ unitigConsensus::computePositionFromAlignment(void) {
   //  Oh crap, no overlap?  Something broke somewhere else.
   if (thickestLen <= 0) {
     fprintf(stderr, "WARNING:  Overlap found to frankenstein, but no parent fragment found!\n");
+    fprintf(stderr, "  This frag %d placed at %d,%d\n", tiid, placed[tiid].bgn, placed[tiid].end);
     //  emit lots more debugging here.
   }
   assert(thickestLen > 0);
@@ -1314,74 +1323,200 @@ unitigConsensus::generateConsensus(CNS_PrintKey     printwhat) {
 }
 
 
+bool
+unitigConsensus::fixFailures(void) {
+  int32  numFails = 0;
+
+  for (tiid=0; tiid<numfrags; tiid++) {
+    if ((placed[tiid].bgn == 0) && (placed[tiid].end == 0))
+      numFails++;
+  }
+
+  for (tiid=0; tiid<numfrags; tiid++) {
+    if ((placed[tiid].bgn != 0) || (placed[tiid].end != 0))
+      //  Fragment already placed.
+      continue;
+
+    if (VERBOSE_MULTIALIGN_OUTPUT)
+      reportStartingWork();
+
+    if (computePositionFromParent()    && alignFragment())  goto applyAlignmentAgain;
+    if (computePositionFromContainer() && alignFragment())  goto applyAlignmentAgain;
+    if (computePositionFromLayout()    && alignFragment())  goto applyAlignmentAgain;
+    if (computePositionFromAlignment() && alignFragment())  goto applyAlignmentAgain;
+
+    //  Dang, still failed to align the fragment.
+
+    return(false);
+
+  applyAlignmentAgain:
+    fprintf(stderr, "unitigConsensus::fixFailures()-- FIXING fragment %d from original placement of %d,%d to new placement of %d,%d\n",
+            fraglist[tiid].ident,
+            offsets[tiid].bgn, offsets[tiid].end,
+            placed[tiid].bgn, placed[tiid].end);
+  }
+
+  //  Everything placed.  Update the ORIGINAL unitig placement.  We'll rerun it outside this
+  //  function.
+
+  for (int32 i=0; i<numfrags; i++) {
+    if (fraglist[i].position.bgn < fraglist[i].position.end) {
+      fraglist[i].position.bgn = placed[i].bgn;
+      fraglist[i].position.end = placed[i].end;
+    } else {
+      fraglist[i].position.bgn = placed[i].end;
+      fraglist[i].position.end = placed[i].bgn;
+    }
+  }
+
+  //  Do a quick insertion sort to reorder the ORIGINAL unitig.
+
+  for (int32 i=1; i<numfrags; i++) {
+    IntMultiPos  Z;
+    IntMultiPos  T = fraglist[i];
+    int32        j = i-1;
+    bool         C = true;
+
+    memset(&Z, 0, sizeof(IntMultiPos));
+
+    while (C) {
+      if (MIN(fraglist[j].position.bgn, fraglist[j].position.end) > MIN(T.position.bgn, T.position.end)) {
+        fraglist[j+1] = fraglist[j];
+        fraglist[j]   = Z;
+        j--;
+      } else {
+        C = false;
+      }
+      if (j < 0)
+        C = false;
+    }
+
+    fraglist[j+1] = T;
+  }
+
+  //  Report what we have now.
+
+#if 1
+  for (int32 i=0; i<numfrags; i++)
+    fprintf(stderr, "%d ident %d contained %d parent %d %d,%d position %d,%d\n",
+            i,
+            fraglist[i].ident,
+            fraglist[i].contained,
+            fraglist[i].parent,
+            fraglist[i].ahang,
+            fraglist[i].bhang,
+            fraglist[i].position.bgn,
+            fraglist[i].position.end);
+#endif
+
+  //  And return success!
+
+  return(true);
+}
+
+
 int
 MultiAlignUnitig(MultiAlignT     *ma,
                  gkStore         *fragStore,
                  CNS_PrintKey     printwhat,
                  CNS_Options     *opp) {
-  double  origErate = AS_CNS_ERROR_RATE;
+  double             origErate          = AS_CNS_ERROR_RATE;
+  bool               failOnFirstFailure = false;
+  bool               failuresToFix      = false;
+  unitigConsensus   *uc                 = NULL;
 
-  fragmentMap = CreateScalarHashTable_AS();
+ tryAgain:
+  origErate          = AS_CNS_ERROR_RATE;
+  uc                 = new unitigConsensus(ma, opp);
 
-  unitigConsensus uc(ma, opp);
+  if (uc->initialize() == FALSE)
+    goto returnFailure;
 
-  if (uc.initialize() == FALSE)
-    return(FALSE);
-
-  while (uc.moreFragments()) {
+  while (uc->moreFragments()) {
     if (VERBOSE_MULTIALIGN_OUTPUT)
-      uc.reportStartingWork();
+      uc->reportStartingWork();
 
-    if (uc.computePositionFromParent()    && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromContainer() && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromLayout()    && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromAlignment() && uc.alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
 
-    if (uc.alignFragmentToFragments())
+    if (uc->alignFragmentToFragments())
       continue;
 
-    uc.rebuildFrankensteinFromConsensus();
+    uc->rebuildFrankensteinFromConsensus();
 
-    if (uc.computePositionFromParent()    && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromContainer() && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromLayout()    && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromAlignment() && uc.alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
 
-    if (uc.alignFragmentToFragments())
+    if (uc->alignFragmentToFragments())
       continue;
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 1.5 * AS_CNS_ERROR_RATE);
 
-    if (uc.computePositionFromParent()    && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromContainer() && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromLayout()    && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromAlignment() && uc.alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
 
-    if (uc.alignFragmentToFragments())
+    if (uc->alignFragmentToFragments())
       continue;
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE);
 
-    if (uc.computePositionFromParent()    && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromContainer() && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromLayout()    && uc.alignFragment())  goto applyAlignment;
-    if (uc.computePositionFromAlignment() && uc.alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
 
-    if (uc.alignFragmentToFragments())
+    if (uc->alignFragmentToFragments())
       continue;
 
-    //uc.removeFragment();
+    //  Failed to align the fragment.  Dang.  Either fail immediately, or keep going expecting to
+    //  fix things later.
 
-    uc.reportFailure();
-    return(FALSE);
+    uc->reportFailure();
+
+    if (failOnFirstFailure)
+      goto returnFailure;
+
+    failuresToFix = true;
+    continue;
 
   applyAlignment:
     AS_CNS_ERROR_RATE = origErate;
 
-    uc.applyAlignment();
+    uc->applyAlignment();
   }
 
-  uc.generateConsensus(printwhat);
+  if (failuresToFix) {
+    fprintf(stderr, "MultiAlignUnitig()-- WARNING!  Attempting to resolve alignment failures for unitig %d.\n", ma->maID);
 
+    if (uc->fixFailures() == false) {
+      fprintf(stderr, "MultiAlignUnitig()-- ERROR:  Failed to resolve alignment failures for unitig %d.\n", ma->maID);
+      goto returnFailure;
+    }
+
+    fprintf(stderr, "MultiAlignUnitig()-- WARNING!  Failures resolved for unitig %d.  Attampt consensus again.\n", ma->maID);
+
+    //  Fixed the placements.  Try again.
+
+    delete uc;
+
+    failOnFirstFailure = true;
+    failuresToFix      = false;
+
+    goto tryAgain;
+  }
+
+  uc->generateConsensus(printwhat);
+
+  delete uc;
   return(TRUE);
+
+ returnFailure:
+  delete uc;
+  return(FALSE);
 }
