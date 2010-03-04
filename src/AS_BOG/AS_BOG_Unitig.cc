@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.19 2010-02-03 14:34:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.20 2010-03-04 04:03:26 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -331,7 +331,8 @@ Unitig::addFrag(DoveTailNode node, int offset, bool report) {
 //  needed when moving a contained read from unitig A to unitig B.  It is NOT needed when rebuilding
 //  a unitig.
 //
-void Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
+bool
+Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
   DoveTailNode  frag;
   DoveTailNode *parent = NULL;
 
@@ -346,22 +347,40 @@ void Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report)
   frag.delta_length = 0;
   frag.delta        = NULL;
 
-  //  The only way to find a single fragment in a unitig is to linear search.
+  parent = &(*dovetail_path_ptr)[pathPosition(frag.contained)];
 
 #if 0
-  for (int fi=0; (parent == NULL) && (fi<dovetail_path_ptr->size()); fi++) {
-    DoveTailNode *ix = &(*dovetail_path_ptr)[fi];
+  //  This block is useful for debugging (maybe).  It is usually triggered only during popBubbles(),
+  //  when we try to place a contained fragment into a fragment that has not been moved into the new
+  //  unitig yet.  It might be useful if pathPosition ever gets messed up.
+  //
+  if ((parent == NULL) || (parent->ident != frag.contained)) {
+    fprintf(stderr, "WARNING:  Didn't find the correct parent frag (%d) for contained frag %d.\n",
+            frag.contained, frag.ident);
+    fprintf(stderr, "          Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
 
-    if (parent->ident == frag.contained)
-      parent = ix;
+    parent = NULL;
+
+    for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
+      DoveTailNode *ix = &(*dovetail_path_ptr)[fi];
+
+      fprintf(stderr, "          path[%4d,%4d] is frag %d %s\n",
+              fi, pathPosition(ix->ident),
+              ix->ident,
+              (ix->ident == frag.contained) ? " CORRECT PARENT!" : "");
+
+      if (ix->ident == frag.contained)
+        parent = ix;
+    }
   }
-#else
-  parent = &(*dovetail_path_ptr)[pathPosition(frag.contained)];
 #endif
 
-  assert(parent != NULL);
-  assert(parent->ident == frag.contained);
-
+  if ((parent == NULL) || (parent->ident != frag.contained)) {
+    fprintf(stderr, "Unitig::addContainedFrag()-- WARNING:  Failed to place frag %d into unitig %d; parent not here.\n",
+            fid, id());
+    return(false);
+  }
+  
   //  Adjust orientation.  See comments in AS_BOG_Unitig.cc::placeContains().
   //
   //  NOTE!  Code is duplicated there.
@@ -459,6 +478,8 @@ void Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report)
     f[i] = containee;
   }
 #endif
+
+  return(true);
 }
 
 

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.12 2009-12-18 21:06:34 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.13 2010-03-04 04:03:26 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -78,7 +78,7 @@ struct Unitig{
                  DoveTailNode &place3, int32 &fidx3, BestEdgeOverlap *bestedge3);
 
   void addFrag(DoveTailNode node, int offset=0, bool report=false);
-  void addContainedFrag(int32 fid, BestContainment *bestcont, bool report=false);
+  bool addContainedFrag(int32 fid, BestContainment *bestcont, bool report=false);
   bool addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *bestedge3, bool report=false);
 
 

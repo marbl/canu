@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.123 2010-02-17 01:32:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.124 2010-03-04 04:03:26 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -1149,6 +1149,7 @@ UnitigGraph::placeContains(void) {
 
       utg = (*unitigs)[Unitig::fragIn(bestcont->container)];
       utg->addContainedFrag(fid, bestcont, verboseContains);
+      assert(utg->id() == Unitig::fragIn(fid));
 
       bestcont->isPlaced = true;
 
@@ -1450,12 +1451,14 @@ UnitigGraph::popBubbles(void) {
     //  the picture on the left shows it has edges to B and C), and so we cannot place A until
     //  either B or C is placed.
 
-    bool  tryAgain = true;
-    bool  isStuck  = false;
+    bool  tryAgain  = true;
+    bool  allPlaced = true;
+    bool  isStuck   = false;
 
     while (tryAgain) {
-      tryAgain = false;
-      isStuck  = true;
+      tryAgain  = false;
+      allPlaced = true;
+      isStuck   = true;
 
       for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
         DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
@@ -1463,6 +1466,8 @@ UnitigGraph::popBubbles(void) {
         if (mergeTig->fragIn(frag->ident) == mergeTig->id())
           //  Already placed in mergeTig.
           continue;
+
+        allPlaced = false;
 
         if (bog_ptr->getBestContainer(frag->ident))
           mergeTig->addContainedFrag(frag->ident,
@@ -1474,21 +1479,34 @@ UnitigGraph::popBubbles(void) {
                                     bog_ptr->getBestEdgeOverlap(frag->ident, THREE_PRIME),
                                     verboseMerge);
 
-        if (mergeTig->fragIn(frag->ident) == mergeTig->id())
+        if (mergeTig->fragIn(frag->ident) == mergeTig->id()) {
           //  Placed something, making progress!
-          isStuck == false;
-        else
+          fprintf(stderr, "popBubbles()-- Moved frag %d from unitig %d to unitig %d (isStuck <- false)\n",
+                  frag->ident, utg->id(), mergeTig->id());
+          isStuck = false;
+        } else {
           //  Failed to place, gotta do the loop again.
+          fprintf(stderr, "popBubbles()-- Failed to move frag %d from unitig %d to unitig %d (tryAgain <- true)\n",
+                  frag->ident, utg->id(), mergeTig->id());
           tryAgain = true;
+        }
+      }
+
+      if ((allPlaced == false) && (isStuck == true)) {
+        fprintf(stderr, "popBubbles()--  Failed to completely merge unitig %d into unitig %d.\n",
+                utg->id(), mergeTig->id());
+        tryAgain = false;
       }
     }
 
     mergeTig->sort();
 
-    //  Mark this unitig as dead.
+    //  Mark this unitig as dead if we fully merged it.
 
-    (*unitigs)[ti] = NULL;
-    delete utg;
+    if (isStuck == false) {
+      (*unitigs)[ti] = NULL;
+      delete utg;
+    }
   }  //  over all unitigs
 }  //  orphan searching scope
 

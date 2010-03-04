@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.84 2010-01-14 03:12:49 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.85 2010-03-04 04:03:26 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -588,6 +588,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
         assert(bestcont->container == contFrgID);
 
         thatUnitig->addContainedFrag(thisFrgID, bestcont, verbose);
+        assert(thatUnitig->id() == Unitig::fragIn(thisFrgID));
 
       } else if ((moveToSingleton == true) && (thisUnitig->getNumFrags() != 1)) {
         //  Eject the fragment to a singleton (unless we ARE the singleton)
@@ -742,6 +743,8 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
                     splitFrags[0].ident, unitig->id(), dangler->id());
 
           dangler->addContainedFrag(splitFrags[0].ident, bestcont, verbose);
+          assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
+
         } else {
           Unitig *dangler = new Unitig(verbose);
 
