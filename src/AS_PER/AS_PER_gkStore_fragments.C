@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.1 2009-10-28 17:27:29 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.2 2010-03-05 03:34:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -302,15 +302,15 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
 
   int32 iid = gkStore_getNumFragments() + 1;
 
-  if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_enableCreate();
-  if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_enableCreate();
-  if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_enableCreate();
-  if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_enableCreate();
+  if (fr->clrBgn <= fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_enableCreate();
+  if (fr->vecBgn <  fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_enableCreate();
+  if (fr->maxBgn <  fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_enableCreate();
+  if (fr->tntBgn <  fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_enableCreate();
 
   assert(strlen(fr->gkFragment_getSequence()) == fr->gkFragment_getSequenceLength());
   assert(strlen(fr->gkFragment_getQuality())  == fr->gkFragment_getQualityLength());
 
-  assert((fr->gkFragment_getIsDeleted() == 1) || (fr->clrBgn < fr->clrEnd));
+  assert((fr->gkFragment_getIsDeleted() == 1) || (fr->clrBgn <= fr->clrEnd));
 
   switch (fr->type) {
     case GKFRAGMENT_PACKED:
@@ -367,10 +367,10 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
   //  the named region.  (That is, setting VEC will set both VEC and
   //  LATEST.)
   //
-  if (fr->vecBgn < fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_setClearRegion(fr, fr->vecBgn, fr->vecEnd);
-  if (fr->maxBgn < fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_setClearRegion(fr, fr->maxBgn, fr->maxEnd);
-  if (fr->tntBgn < fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_setClearRegion(fr, fr->tntBgn, fr->tntEnd);
-  if (fr->clrBgn < fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_setClearRegion(fr, fr->clrBgn, fr->clrEnd);
+  if (fr->vecBgn <  fr->vecEnd)  clearRange[AS_READ_CLEAR_VEC]->gkClearRange_setClearRegion(fr, fr->vecBgn, fr->vecEnd);
+  if (fr->maxBgn <  fr->maxEnd)  clearRange[AS_READ_CLEAR_MAX]->gkClearRange_setClearRegion(fr, fr->maxBgn, fr->maxEnd);
+  if (fr->tntBgn <  fr->tntEnd)  clearRange[AS_READ_CLEAR_TNT]->gkClearRange_setClearRegion(fr, fr->tntBgn, fr->tntEnd);
+  if (fr->clrBgn <= fr->clrEnd)  clearRange[AS_READ_CLEAR_CLR]->gkClearRange_setClearRegion(fr, fr->clrBgn, fr->clrEnd);
 
   switch (fr->type) {
     case GKFRAGMENT_PACKED:
