@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.44 2010-02-19 18:23:19 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.45 2010-03-05 03:39:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,6 +58,8 @@ const char *mainid = "$Id: sffToCA.c,v 1.44 2010-02-19 18:23:19 brianwalenz Exp 
 #define TRIM_HARD        2
 #define TRIM_CHOP        3
 #define TRIM_ERRR        9
+
+char *TRIM_NAMES[4]  = { "none", "soft", "hard", "chop" };
 
 #define AS_LINKER_MAX_SEQS       50
 #define AS_LINKER_CUSTOM_OFFSET  24
@@ -100,7 +102,7 @@ statistics st = {0};
 
 static
 void
-writeStatistics(int haveLinker, char *stsName) {
+writeStatistics(char **argv, int argc, int firstFileArg, char *fragName, int haveLinker, char **linker, int *search, char *stsName) {
 
   errno = 0;
   FILE *statOut = fopen(stsName, "w");
@@ -108,6 +110,37 @@ writeStatistics(int haveLinker, char *stsName) {
     fprintf(stderr, "ERROR: Failed to open the stats file '%s': %s\n", stsName, strerror(errno));
     statOut = stderr;
   }
+
+  fprintf(statOut, "PARAMETERS\n");
+  while (firstFileArg < argc)
+    fprintf(statOut, "input sff               %s\n", argv[firstFileArg++]);
+
+  fprintf(statOut, "output fragments        %s\n", fragName);
+
+  if (clearAction == CLEAR_ALL)
+    fprintf(statOut, "clear range             all\n");
+  if (clearAction & CLEAR_454)
+    fprintf(statOut, "clear range             454\n");
+  if (clearAction & CLEAR_N)
+    fprintf(statOut, "clear range             n\n");
+  if (clearAction & CLEAR_PAIR_N)
+    fprintf(statOut, "clear range             pair-of-n\n");
+  if (clearAction & CLEAR_DISCARD_N)
+    fprintf(statOut, "clear range             discard-n\n");
+
+  fprintf(statOut, "trimming                %s\n", TRIM_NAMES[trimAction]);
+
+  if (search[0] == TRUE)
+    fprintf(statOut, "linker                  %s (FLX)\n", linker[0]);
+
+  if (search[1] == TRUE)
+    fprintf(statOut, "linker                  %s (Titanium)\n", linker[1]);
+
+  for (int32 linkerID=3; linkerID < AS_LINKER_MAX_SEQS; linkerID++)
+    if (search[linkerID] == TRUE)
+      fprintf(statOut, "linker                  %s\n", linker[linkerID]);
+
+  fprintf(statOut, "\n");
 
   fprintf(statOut, "INPUT\n");
   fprintf(statOut, "numReadsInSFF           "F_U32"\n", st.readsInSFF);
@@ -574,22 +607,6 @@ processRead(sffHeader *h,
 
   ////////////////////////////////////////
   //
-  //  If told to, and there is still an N in the sequence, trash the
-  //  whole thing.
-  //
-  if ((clearAction & CLEAR_DISCARD_N) && (frn < crf)) {
-    st.deletedByN++;
-    st.notExaminedForLinker++;  //  because this SFF read isn't even added to the store
-
-    fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
-            AS_UID_toString(readUID), crn);
-
-    return(false);
-  }
-
-
-  ////////////////////////////////////////
-  //
   //  Now, decide how to set the clear ranges.
   //
 
@@ -690,6 +707,21 @@ processRead(sffHeader *h,
   }
 
 
+  ////////////////////////////////////////
+  //
+  //  If told to, and there is still an N in the sequence, trash the
+  //  whole thing.
+  //
+  if ((clearAction & CLEAR_DISCARD_N) && (frn < crf)) {
+    st.deletedByN++;
+    st.notExaminedForLinker++;  //  because this SFF read isn't even added to the store
+
+    fprintf(logFile, "Read '%s' contains an N at position %d.  Read deleted.\n",
+            AS_UID_toString(readUID), crn);
+
+    return(false);
+  }
+
 
   //  Finally, adjust everything to remove the key_length bases from the start.
   //
@@ -724,9 +756,11 @@ processRead(sffHeader *h,
   fr->gkFragment_getSequence()[r->final_length + 1] = 0;
   fr->gkFragment_getQuality() [r->final_length + 1] = 0;
 
-  assert(fr->clrBgn < fr->clrEnd);
-  assert(fr->vecBgn > fr->vecEnd);
-  assert(fr->tntBgn > fr->tntEnd);
+  //  Check clear ranges.  Why allow equality?  The two N trimming options can set the clear range
+  //  to 0,0 if there is an N in the first position.
+  assert(fr->clrBgn <= fr->clrEnd);
+  assert(fr->vecBgn >= fr->vecEnd);
+  assert(fr->tntBgn >= fr->tntEnd);
 
   return(true);
 } // processRead
@@ -1822,6 +1856,7 @@ main(int argc, char **argv) {
         clearAction = (clearSet == 0) ? (CLEAR_ERRR) : (clearAction | CLEAR_ERRR);
         err++;
       }
+      clearSet++;
 
     } else if (strcmp(argv[arg], "-trim") == 0) {
       arg++;
@@ -2007,8 +2042,8 @@ main(int argc, char **argv) {
 
   addLibrary(libraryName, insertSize, insertStdDev, haveLinker);
 
-  for (; firstFileArg < argc; firstFileArg++)
-    loadSFF(argv[firstFileArg]);
+  for (int32 file=firstFileArg; file < argc; file++)
+    loadSFF(argv[file]);
 
   if (doDeDup)
     removeDuplicateReads();
@@ -2032,7 +2067,7 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to close '%s': %s\n", logName, strerror(errno)), exit(1);
 
-  writeStatistics(haveLinker, stsName);
+  writeStatistics(argv, argc, firstFileArg, frgName, haveLinker, linker, search, stsName);
 
   return(0);
 }
