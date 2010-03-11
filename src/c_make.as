@@ -112,7 +112,11 @@ ifeq ($(OSTYPE), FreeBSD)
     ifeq ($(BUILDDEBUG), 1)
       ARCH_CFLAGS   += -g
     else
-      ARCH_CFLAGS   += -O -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+      ifeq ($(BUILDPROFILE), 1)
+        ARCH_CFLAGS   += -O -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions
+      else
+        ARCH_CFLAGS   += -O -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+      endif
     endif
   endif
 
