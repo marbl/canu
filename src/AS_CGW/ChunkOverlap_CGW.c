@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.50 2010-02-23 22:30:26 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.51 2010-03-15 10:40:12 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -400,8 +400,13 @@ CreateChunkOverlapFromEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
   olap.min_offset    = 0;
   olap.max_offset    = 0;
 
-  //  Delete any overlap that is there already.
-  //DeleteChunkOverlap(graph->overlapper, &olap);
+  //  Delete any overlap that is there already.  BPW is't sure if we want to REPLACE
+  //  any overlap that exists with the edge-based overlap, or leave it alone.  I'm
+  //  thinking that we DO want to replace, just because, for whatever reason, the
+  //  client didn't use the existing overlap, or didn't find it, or just didn't look.
+  //  Plus, it wasn't clear if the original intent was to replace or ignore.
+  //
+  //DeleteChunkOverlap(ScaffoldGraph->ChunkOverlaps, &olap);
 
   //  And add the new one.
   if (InsertChunkOverlap(ScaffoldGraph->ChunkOverlaps, &olap) != HASH_SUCCESS) {
