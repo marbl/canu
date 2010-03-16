@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.7 2010-03-16 20:33:41 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.8 2010-03-16 21:06:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -107,8 +107,8 @@ loadFragments(gkStore *gkp) {
 
     frag[iid].matePatternLeft  = 0;
     frag[iid].isDeleted        = fr.gkFragment_getIsDeleted() ? 1 : 0;
-    frag[iid].clrbeg           = fr.gkFragment_getClearRegionBegin();
-    frag[iid].frglen           = fr.gkFragment_getClearRegionLength();
+    frag[iid].clrbeg           = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
+    frag[iid].frglen           = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTINITIAL);
     frag[iid].mateIID          = fr.gkFragment_getMateIID();
     frag[iid].libraryIID       = fr.gkFragment_getLibraryIID();
 
