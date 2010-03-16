@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.85 2010-03-04 04:03:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.86 2010-03-16 13:06:25 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -27,26 +27,6 @@ static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.85 2010-03-04 04:03:2
 
 #include "AS_OVL_overlap.h"  //  For DEFAULT_MIN_OLAP_LEN
 
-MateChecker::MateChecker(FragmentInfo *fi) {
-
-  for(int i=1; i<=fi->numLibraries(); i++) {
-    DistanceCompute dc;
-
-    dc.mean      = fi->mean(i);
-    dc.stddev    = fi->stddev(i);
-    dc.numPairs  = fi->numMatesInLib(i);
-
-    _globalStats[ i ] = dc;
-  }
-
-  _fi = fi;
-}
-
-MateChecker::~MateChecker() {
-}
-
-
-IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen);
 
 
 
@@ -56,7 +36,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
 
   tigGraph.checkUnitigMembership();
 
-  computeGlobalLibStats( tigGraph );
+  computeGlobalLibStats(tigGraph);
 
   //  Move unhappy contained fragments before attempting mate based
   //  splitting.  We know they're broken already, and if scaffolder
@@ -137,204 +117,158 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
 
 
 
-LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
-  IdMap goodMates;
-  uint32 max = std::numeric_limits<uint32>::max(); // Sentinel value
-  int numInTig = 0;
-  int numWithMate = 0;
-  LibraryStats *libs = new LibraryStats();
-  std::vector<uint32> otherUnitig; // mates to another unitig
-  IdMap otherTigHist; // count of mates to the other unitigs
-  // Check each frag in unitig for it's mate
-  DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
-  for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
-    DoveTailNode frag = *tigIter;
+void
+MateChecker::accumulateLibraryStats(Unitig *utg) {
 
-    if (_fi->mateIID(frag.ident) != 0) {
-      numWithMate++;
-      if ( tig->id() == Unitig::fragIn( _fi->mateIID(frag.ident) ) ) {
-        numInTig++;
+  //  Check each frag in unitig for it's mate
+  for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+    DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
 
-        if (goodMates.find( frag.ident ) != goodMates.end()) {
-          // already seen it's mate
-          if (isReverse(frag.position)) {
-            if ( goodMates[frag.ident] == max )
-              continue;
-            // 2nd frag seen is reverse, so good orientation
-            long mateDist = frag.position.bgn - goodMates[frag.ident];
-            goodMates[frag.ident] = mateDist;
-            // Record the good distance for later stddev recalculation
-            uint32 distId = _fi->libraryIID(frag.ident);
-            if (_dists.find( distId ) == _dists.end()) {
-              DistanceList newDL;
-              _dists[ distId ] = newDL;
-            }
-            _dists[ distId ].push_back( mateDist );
+    if (_fi->mateIID(frag->ident) == 0)
+      //  Unmated fragment.
+      continue;
 
-            // Record the distance for unitig local stddev
-            if (libs->find( distId ) == libs->end()) {
-              DistanceCompute d;
-              d.numPairs   = 1;
-              d.sumDists   = mateDist;
-              (*libs)[ distId ] = d;
-            } else {
-              (*libs)[distId].numPairs++;
-              (*libs)[distId].sumDists+=mateDist;
-            }
-          } else {
-            // 2nd frag seen is forward, so bad
-            goodMates[frag.ident] = max;
-          }
-        } else { // 1st of pair
-          if (isReverse(frag.position)) {
-            // 1st reversed, so bad
-            goodMates[_fi->mateIID(frag.ident)] = max;
-          } else {
-            // 1st forward, so good store begin
-            goodMates[_fi->mateIID(frag.ident)] = frag.position.bgn;
-          }
-        }
-      } else {
-        // mate in other unitig, just create histogram currently
-        otherUnitig.push_back( frag.ident );
-        uint32 otherTig = Unitig::fragIn( _fi->mateIID(frag.ident) );
-        if (otherTigHist.find( otherTig ) == otherTigHist.end())
-          otherTigHist[ otherTig ] = 1;
-        else
-          otherTigHist[ otherTig ]++;
+    if (utg->id() != utg->fragIn(_fi->mateIID(frag->ident)))
+      //  Mate in a different unitig.
+      continue;
+
+    uint32        mi   = utg->pathPosition(_fi->mateIID(frag->ident));
+    DoveTailNode *mate = &(*utg->dovetail_path_ptr)[mi];
+
+    if (frag->ident < mate->ident)
+      //  Only do this once for each mate pair.
+      continue;
+
+#warning assumes innie mate pairs
+    if (isReverse(frag->position) == isReverse(mate->position))
+      //  Same orient mates, not a good mate pair.
+      continue;
+
+    //  Compute the insert size.
+
+    uint32  insertSize = 0;
+
+    if (isReverse(frag->position)) {
+      if (frag->position.end <= mate->position.bgn)
+        //  Misordered, not a good mate pair.  NOTE: this is specifically allowing mates that
+        //  overlap, i.e., insert size is less than the sum of fragment lengths.
+        continue;
+
+      //  We must have, at least, the following picture, where the relationship on the left is
+      //  strict.  'frag' is allowed to move to the right, and 'mate' is allowed to move to the
+      //  left, but moving either in the other direction turns this into an outtie relationship.
+      //
+      //  (end)  <----- (bgn)  frag
+      //  (bgn) ----->  (end) mate
+      //
+      assert(mate->position.bgn < frag->position.end);
+
+      //  However, we aren't guaranteed that the right side is ordered properly (i.e., misordered by
+      //  one fragment contained in the other fragment).  We hope this doesn't happen, but if it
+      //  does, we'll catch it.  The insertSize defaults to zero, which is then ignored below.
+      //
+      if (mate->position.bgn < frag->position.bgn)
+        insertSize = frag->position.bgn - mate->position.bgn;
+
+    } else {
+      //  (See comments above)
+      if (mate->position.end <= frag->position.bgn)
+        continue;
+
+      assert(frag->position.bgn < mate->position.end);
+
+      if (frag->position.bgn < mate->position.bgn)
+        insertSize = mate->position.bgn - frag->position.bgn;
+    }
+
+    if (insertSize > 0) {
+      uint32 di = _fi->libraryIID(frag->ident);
+
+      if (_globalStats[di].distancesMax <= _globalStats[di].distancesLen) {
+        _globalStats[di].distancesMax *= 2;
+        uint32 *d = new uint32 [_globalStats[di].distancesMax];
+        memcpy(d, _globalStats[di].distances, sizeof(uint32) * _globalStats[di].distancesLen);
+        delete [] _globalStats[di].distances;
+        _globalStats[di].distances = d;
       }
+
+      _globalStats[di].distances[_globalStats[di].distancesLen++] = insertSize;
     }
   }
-
-  // Calculate the unitig local mean
-  LibraryStats::iterator dcIter = libs->begin();
-  for(; dcIter != libs->end(); dcIter++) {
-    uint32 lib = dcIter->first;
-    DistanceCompute *dc = &(dcIter->second);
-    dc->mean = dc->sumDists / dc->numPairs;
-    //fprintf(stderr,"Distance lib %ld has %ld pairs with mean dist %.1f\n",
-    //        lib, dc->numPairs, dc->mean );
-  }
-  // Sum of (x-mean)^2, not yet full stddev
-  IdMapConstIter goodIter = goodMates.begin();
-  for(;goodIter != goodMates.end(); goodIter++) {
-    uint32 fragId = goodIter->first;
-    uint32 mateDist = goodIter->second;
-    if (mateDist == max)
-      continue;
-    uint32 distId = _fi->libraryIID(fragId);
-    (*libs)[distId].sumSquares+=pow(mateDist-(*libs)[distId].mean,2);
-  }
-  // Calculate the real stddev
-  dcIter = libs->begin();
-  for(; dcIter != libs->end(); dcIter++) {
-    uint32 lib = dcIter->first;
-    DistanceCompute *dc = &(dcIter->second);
-    // really need to just collect all values and calculate in checkUnitigGraph()
-    if (dc->numPairs == 1)
-      dc->stddev = 0.0;
-    else
-      dc->stddev = sqrt( dc->sumSquares / (dc->numPairs-1) );
-    //fprintf(stderr,"Distance lib %ld has %ld pairs with stddev %.1f\n",
-    //        lib, dc->numPairs, dc->stddev );
-  }
-  return libs;
 }
 
 
-void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
-  LibraryStats::iterator dcIter;
-  _dists.clear(); // reset to seperate multiple Graphs
-  UnitigsConstIter tigIter = tigGraph.unitigs->begin();
-  for(; tigIter != tigGraph.unitigs->end(); tigIter++) {
-    if (*tigIter == NULL )
-      continue;
-    LibraryStats* libs = computeLibraryStats(*tigIter);
-    // Accumulate per unitig stats to compute global stddev's
-    for(dcIter = libs->begin(); dcIter != libs->end(); dcIter++) {
-      uint32 lib = dcIter->first;
-      DistanceCompute dc = dcIter->second;
-      if (_globalStats.find(lib) == _globalStats.end() ) {
-        _globalStats[ lib ] = dc;
-      }
-      else {
-        DistanceCompute *gdc = &(_globalStats[ lib ]);
-        gdc->numPairs   += dc.numPairs;
-        gdc->sumDists   += dc.sumDists;
-        gdc->sumSquares += dc.sumSquares;
-      }
-    }
-    delete libs; // Created in computeLibraryStats
-  }
-  // Calculate and output overall global mean
-  for(dcIter= _globalStats.begin(); dcIter != _globalStats.end(); dcIter++){
-    uint32 lib = dcIter->first;
-    DistanceCompute *dc = &(dcIter->second);
-    dc->mean = dc->sumDists / dc->numPairs;
-    fprintf(stderr,"Distance lib %ld has global %ld pairs with mean dist %.1f\n",
-            lib, dc->numPairs, dc->mean );
-  }
-  // Calculate and output overall global stddev
-  for(dcIter= _globalStats.begin(); dcIter != _globalStats.end(); dcIter++) {
-    uint32 lib = dcIter->first;
-    DistanceCompute *dc = &(dcIter->second);
-    if (dc->numPairs == 1)
-      dc->stddev = 0.0;
-    else
-      dc->stddev = sqrt( dc->sumSquares / (dc->numPairs-1) );
-    fprintf(stderr,"Distance lib %ld has global %ld pairs with stddev %.1f\n",
-            lib, dc->numPairs, dc->stddev );
-    // Now reset the global stats to zero so the real calculation below works
-    dc->numPairs   = 0;
-    dc->mean       = 0.0;
-    dc->stddev     = 0.0;
-    dc->sumSquares = 0.0;
-    dc->sumDists   = 0.0;
-  }
-  // Tab delimited table header
-  fprintf(stderr,
-          "DistLib\tnumDists\tmedian\t1/3rd\t2/3rd\tmaxDiff\tmin\tmax\tnumGood\tmean\tstddev\n");
 
-  // Disregard outliers and recalculate global stddev
-  LibDistsConstIter libDistIter = _dists.begin();
-  for(; libDistIter != _dists.end(); libDistIter++) {
-    uint32 libId = libDistIter->first;
-    DistanceList dl = libDistIter->second;
-    sort(dl.begin(),dl.end());
-    int size = dl.size();
-    int median   = dl[ size / 2 ];
-    int third    = dl[ size / 3 ];
-    int twoThird = dl[ size * 2 / 3 ];
-    int aproxStd = MAX( median - third, twoThird - median);
+void MateChecker::computeGlobalLibStats(UnitigGraph& tigGraph) {
+
+  assert(_globalStats == NULL);
+
+  _globalStats = new DistanceCompute [_fi->numLibraries() + 1];
+
+  for (uint32 i=1; i < _fi->numLibraries()+1; i++) {
+    _globalStats[i].mean     = _fi->mean(i);
+    _globalStats[i].stddev   = _fi->stddev(i);
+    _globalStats[i].samples  = _fi->numMatesInLib(i);
+  }
+
+  for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
+    Unitig        *utg = (*tigGraph.unitigs)[ti];
+
+    if ((utg == NULL) ||
+        (utg->dovetail_path_ptr->size() < 2))
+      continue;
+
+    accumulateLibraryStats(utg);
+  }
+
+  fprintf(stderr, "LIB\tnDist\tmedian\t1/3rd\t2/3rd\tmaxDiff\tmin\tmax\tnumGood\tmean\tstddev\n");
+
+  //  Disregard outliers (those outside 5 (estimated) stddevs) and recompute global stddev
+
+  for (uint32 i=0; i<_fi->numLibraries()+1; i++) {
+    sort(_globalStats[i].distances, _globalStats[i].distances + _globalStats[i].distancesLen + 1);
+
+    int median   = _globalStats[i].distances[_globalStats[i].distancesLen * 1 / 2];
+    int oneThird = _globalStats[i].distances[_globalStats[i].distancesLen * 1 / 3];
+    int twoThird = _globalStats[i].distances[_globalStats[i].distancesLen * 2 / 3];
+
+    int aproxStd = MAX(median - oneThird, twoThird - median);
+
     int biggest  = median + aproxStd * 5;
     int smallest = median - aproxStd * 5;
 
-    // now go through the distances and calculate the real stddev
-    // including everything within 5 stddevs
-    uint32 numBad = 0;
-    DistanceCompute *gdc = &(_globalStats[ libId ]);
-    DistanceListCIter dIter = dl.begin();
-    for(;dIter != dl.end(); dIter++) {
-      if (*dIter >= smallest && *dIter <= biggest ) {
-        gdc->numPairs++;
-        gdc->sumDists += *dIter;
-      } else {
-        numBad++;
-      }
-    }
-    gdc->mean = gdc->sumDists / gdc->numPairs;
-    // Compute sum of squares for stddev
-    for(dIter = dl.begin(); dIter != dl.end(); dIter++) {
-      if (*dIter >= smallest && *dIter <= biggest )
-        gdc->sumSquares += pow( *dIter - gdc->mean, 2);
-    }
-    if (gdc->numPairs > 1)
-      gdc->stddev = sqrt( gdc->sumSquares / (gdc->numPairs-1) );
+    uint32    numPairs   = 0;
+    double    sumDists   = 0.0;
+    double    sumSquares = 0.0;
 
-    //  Should use AS_IID, but we don't know it!
+    for (uint32 d=0; d<_globalStats[i].distancesLen; d++)
+      if ((smallest <= _globalStats[i].distances[d]) &&
+          (_globalStats[i].distances[d] <= biggest)) {
+        numPairs++;
+        sumDists += _globalStats[i].distances[d];
+      }
+
+    if (numPairs > 0)
+      _globalStats[i].mean = sumDists / numPairs;
+    else
+      _globalStats[i].mean = 0;
+
+    for (uint32 d=0; d<_globalStats[i].distancesLen; d++)
+      if ((smallest <= _globalStats[i].distances[d]) &&
+          (_globalStats[i].distances[d] <= biggest))
+        sumSquares += ((_globalStats[i].distances[d] - _globalStats[i].mean) *
+                       (_globalStats[i].distances[d] - _globalStats[i].mean));
+
+    if (numPairs > 1)
+      _globalStats[i].stddev = sqrt(sumSquares / (numPairs - 1));
+    else
+      _globalStats[i].stddev = 0.0;
+
+    _globalStats[i].samples = numPairs;
+
     fprintf(stderr, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.1f\t%.1f\n",
-            libId, size, median, third, twoThird, aproxStd, smallest, biggest,
-            gdc->numPairs, gdc->mean, gdc->stddev );
+            i, _globalStats[i].distancesLen, median, oneThird, twoThird, aproxStd, smallest, biggest,
+            numPairs, _globalStats[i].mean, _globalStats[i].stddev);
   }
 }
 
@@ -361,10 +295,7 @@ void MateChecker::moveContains(UnitigGraph& tigGraph) {
         (thisUnitig->dovetail_path_ptr->size() == 1))
       continue;
 
-    MateLocation positions(_fi);
-
-    positions.buildTable(thisUnitig);
-    delete positions.buildHappinessGraphs(thisUnitig->getLength(), _globalStats);
+    MateLocation positions(_fi, thisUnitig, _globalStats);
 
     DoveTailNode         *frags         = new DoveTailNode [thisUnitig->dovetail_path_ptr->size()];
     int                   fragsLen      = 0;
@@ -802,23 +733,10 @@ void MateChecker::splitDiscontinuousUnitigs(UnitigGraph& tigGraph) {
 }
 
 
-void incrRange( std::vector<short>* graph, short val, uint32 n, uint32 m ) {
-  if (n == m)
-    return;
-  int sz = graph->size();
-  assert( m > n );
-  assert( n < sz );
-  assert( m <= sz );
-  if (n < 0) n = 0;
-  if (m >= sz) m = sz-1;
-
-  for(uint32 i=n; i <=m ; i++)
-    graph->at(i) += val;
-}
 
 //  True if interval a contains interval b.
 //
-bool contains( SeqInterval a, SeqInterval b) {
+bool contains(SeqInterval a, SeqInterval b) {
   int aMin,aMax,bMin,bMax;
   if (isReverse(a)) { aMin = a.end; aMax = a.bgn; }
   else              { aMin = a.bgn; aMax = a.end; }
@@ -832,7 +750,7 @@ bool contains( SeqInterval a, SeqInterval b) {
 
 //  Returns the intersection of intervals a and b.
 //
-SeqInterval intersection( SeqInterval a, SeqInterval b) {
+SeqInterval intersection(SeqInterval a, SeqInterval b) {
   SeqInterval retVal = NULL_SEQ_LOC;
   int aMin,aMax,bMin,bMax;
   if (isReverse(a)) { aMin = a.end; aMax = a.bgn; }
@@ -844,51 +762,50 @@ SeqInterval intersection( SeqInterval a, SeqInterval b) {
     return retVal;
 
   // so now aMax > bMin && bMax > aMin, thus intersection
-  retVal.bgn = MAX( aMin, bMin );
-  retVal.end = MIN( aMax, bMax );
+  retVal.bgn = MAX(aMin, bMin);
+  retVal.end = MIN(aMax, bMax);
   return retVal;
 }
 
-// Assumes list is already sorted
-void combineOverlapping( IntervalList* list ) {
-  IntervalList::iterator iter = list->begin();
-  IntervalList::iterator a = iter++;
-  for(; iter != list->end() && iter != static_cast<IntervalList::iterator>(NULL);
-      iter++) {
-    SeqInterval aIb = intersection( *a, *iter );
-    if (!(aIb == NULL_SEQ_LOC) && aIb.end - aIb.bgn > 1000) {
-      a->bgn = aIb.bgn;
-      a->end = aIb.end;
-      list->erase( iter );
-    }
-  }
-}
 
+vector<SeqInterval> *
+findPeakBad(int32 *badGraph, int tigLen, int badMateBreakThreshold) {
+  vector<SeqInterval> *peakBads = new vector<SeqInterval>;
+  SeqInterval          peak     = {0, 0};
+  int32                peakBad  = 0;
 
-IntervalList* findPeakBad(std::vector<short>* badGraph, int tigLen, int badMateBreakThreshold) {
-  IntervalList* peakBads = new IntervalList();
-  SeqInterval   peak = NULL_SEQ_LOC;
-  int badBegin, peakBad, lastBad;
-  peakBad = lastBad = badBegin = 0;
-  for(int i=0; i < tigLen; i++) {
-    if( badGraph->at( i ) <= badMateBreakThreshold ) {
-      if (badBegin == 0)  // start bad region
-        badBegin = i;
-      if(badGraph->at(i) < peakBad) {
-        peakBad   = badGraph->at(i);
-        peak.bgn = peak.end = i;
-      } else if (lastBad < 0 && lastBad == peakBad) {
-        peak.end = i-1;
+  for (int32 i=0; i<tigLen; i++) {
+    if (badGraph[i] <= badMateBreakThreshold) {
+      //  We are below the bad threshold, start a new bad region, or extend an existing one.
+
+      if (badGraph[i] < peakBad) {
+        //  Reset the bad region, we found one that is worse.
+        peakBad  = badGraph[i];
+        peak.bgn = i;
+        peak.end = i;
       }
-      lastBad = badGraph->at(i);
+
+      if (badGraph[i] <= peakBad)
+        //  Extend the bad region into this base.
+        peak.end = i;
+
     } else {
-      if (badBegin > 0) {  // end bad region
-        peakBads->push_back( peak );
-        peakBad = lastBad = badBegin = 0;
-        peak = NULL_SEQ_LOC;
+      //  Else, we are above the bad threshold, save any existing bad region and reset.
+      if (peakBad < 0) {
+        peakBads->push_back(peak);
+
+        peakBad  = 0;
+        peak.bgn = 0;
+        peak.end = 0;
       }
     }
   }
+
+  //  If there is still a bad region on the stack, save it too.
+
+  if (peakBad < 0)
+    peakBads->push_back(peak);
+
   return peakBads;
 }
 
@@ -899,33 +816,31 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
 
   bool verbose = false;
 
-  MateLocation positions(_fi);
-  positions.buildTable( tig );
-  MateCounts *unused = positions.buildHappinessGraphs( tigLen, _globalStats );
-  delete unused;
+  MateLocation         positions(_fi, tig, _globalStats);
+  vector<SeqInterval> *fwdBads = findPeakBad(positions.badFwdGraph, tigLen, badMateBreakThreshold);
+  vector<SeqInterval> *revBads = findPeakBad(positions.badRevGraph, tigLen, badMateBreakThreshold);
 
-  IntervalList *fwdBads = findPeakBad( positions.badFwdGraph, tigLen, badMateBreakThreshold );
-  IntervalList *revBads = findPeakBad( positions.badRevGraph, tigLen, badMateBreakThreshold );
+  vector<SeqInterval>::const_iterator fwdIter = fwdBads->begin();
+  vector<SeqInterval>::const_iterator revIter = revBads->begin();
 
   UnitigBreakPoints* breaks = new UnitigBreakPoints();
 
   uint32 backBgn; // Start position of final backbone unitig
   DoveTailNode backbone = tig->getLastBackboneNode(backBgn);
-  backBgn = isReverse( backbone.position ) ? backbone.position.end :
+  backBgn = isReverse(backbone.position) ? backbone.position.end :
     backbone.position.bgn ;
 
   bool combine = false;
   int32 currBackboneEnd = 0;
   int32 lastBreakBBEnd = 0;
-  IntervalList::const_iterator fwdIter = fwdBads->begin();
-  IntervalList::const_iterator revIter = revBads->begin();
+
   DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
   // Go through the peak bad ranges looking for reads to break on
-  while( fwdIter != fwdBads->end() || revIter != revBads->end() ) {
+  while(fwdIter != fwdBads->end() || revIter != revBads->end()) {
     bool isFwdBad = false;
     SeqInterval bad;
-    if ( revIter == revBads->end() ||
-         fwdIter != fwdBads->end() &&  *fwdIter < *revIter ) {
+    if (revIter == revBads->end() ||
+         fwdIter != fwdBads->end() &&  *fwdIter < *revIter) {
       // forward bad group, break at 1st frag
       isFwdBad = true;
       bad = *fwdIter;
@@ -948,14 +863,14 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
         continue;
       }
       if (fwdIter != fwdBads->end()) {
-        if ( fwdIter->bgn < bad.end && bad.end - fwdIter->bgn > 500 ) {
+        if (fwdIter->bgn < bad.end && bad.end - fwdIter->bgn > 500) {
           // if fwd and reverse bad overlap
           // and end of reverse is far away, do fwd 1st
           isFwdBad = true;
           bad = *fwdIter;
           fwdIter++;
         } else {
-          if ( fwdIter->bgn < bad.end &&
+          if (fwdIter->bgn < bad.end &&
                fwdIter->end > bad.end &&
                bad.end - fwdIter->end < 200) {
             if (verbose)
@@ -986,22 +901,22 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
       SeqInterval loc = frag.position;
 
       // Don't want to go past range and break in wrong place
-      assert( loc.bgn <= bad.end+1 || loc.end <= bad.end+1 );
+      assert(loc.bgn <= bad.end+1 || loc.end <= bad.end+1);
 
       // keep track of current and previous uncontained contig end
       // so that we can split apart contained reads that don't overlap each other
-      if ( !bog_ptr->isContained(frag.ident) )
+      if (!bog_ptr->isContained(frag.ident))
         currBackboneEnd = MAX(loc.bgn, loc.end);
 
       bool breakNow = false;
-      MateLocationEntry mloc = positions.getById( frag.ident );
+      MateLocationEntry mloc = positions.getById(frag.ident);
 
       if (mloc.mleFrgID1 != 0 && mloc.isGrumpy) { // only break on bad mates
-        if ( isFwdBad && bad.bgn <= loc.end ) {
+        if (isFwdBad && bad.bgn <= loc.end) {
           breakNow = true;
-        } else if ( !isFwdBad && (loc.bgn >= bad.end) ||
+        } else if (!isFwdBad && (loc.bgn >= bad.end) ||
                     (combine && loc.end >  bad.bgn) ||
-                    (combine && loc.end == bad.end) ) {
+                    (combine && loc.end == bad.end)) {
           breakNow = true;
         } else if (bad.bgn > backBgn) {
           // fun special case, keep contained frags at end of tig in container
@@ -1015,32 +930,32 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
         lastBreakBBEnd = currBackboneEnd;
         if (verbose)
           fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
-                  frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd );
+                  frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd);
         uint32 fragEndInTig = THREE_PRIME;
         // If reverse mate is 1st and overlaps its mate break at 5'
-        if ( mloc.mleUtgID2 == tig->id() && isReverse( loc ) &&
-             !isReverse(mloc.mlePos2) && loc.bgn >= mloc.mlePos2.bgn )
+        if (mloc.mleUtgID2 == tig->id() && isReverse(loc) &&
+             !isReverse(mloc.mlePos2) && loc.bgn >= mloc.mlePos2.bgn)
           fragEndInTig = FIVE_PRIME;
 
-        UnitigBreakPoint bp( frag.ident, fragEndInTig );
+        UnitigBreakPoint bp(frag.ident, fragEndInTig);
         bp.fragPos = frag.position;
         bp.inSize = 100000;
         bp.inFrags = 10;
-        breaks->push_back( bp );
+        breaks->push_back(bp);
       }
 
-      if ( lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end)) {
+      if (lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end)) {
 
         DoveTailConstIter nextPos = tigIter;
         nextPos++;
 
         if (nextPos != tig->dovetail_path_ptr->end()) {
 
-          if ( contains( loc, nextPos->position ) ) {
+          if (contains(loc, nextPos->position)) {
             // Contains the next one, so skip it
           } else {
             SeqInterval overlap = intersection(loc, nextPos->position);
-            int diff = abs( overlap.end - overlap.bgn);
+            int diff = abs(overlap.end - overlap.bgn);
 
             //  No overlap between this and the next
             //  frag, or the overlap is tiny, or this
@@ -1050,17 +965,17 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
             //
             if ((NULL_SEQ_LOC == overlap) ||
                 (diff < DEFAULT_MIN_OLAP_LEN) ||
-                (bog_ptr->isContained( frag.ident ) && !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
+                (bog_ptr->isContained(frag.ident) && !bog_ptr->containHaveEdgeTo(frag.ident, nextPos->ident))) {
 
               uint32 fragEndInTig = THREE_PRIME;
-              if (isReverse( loc ))
+              if (isReverse(loc))
                 fragEndInTig = FIVE_PRIME;
 
-              UnitigBreakPoint bp( frag.ident, fragEndInTig );
+              UnitigBreakPoint bp(frag.ident, fragEndInTig);
               bp.fragPos = loc;
               bp.inSize = 100001;
               bp.inFrags = 11;
-              breaks->push_back( bp );
+              breaks->push_back(bp);
               if (verbose)
                 fprintf(stderr,"Might make frg %d singleton, end %d size %d pos %d,%d\n",
                         frag.ident, fragEndInTig, breaks->size(),loc.bgn,loc.end);
@@ -1080,251 +995,198 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
 }
 
 
-void MateLocation::buildTable( Unitig *tig) {
+void
+MateLocation::buildTable(Unitig *utg) {
 
-  for(DoveTailConstIter frag = tig->dovetail_path_ptr->begin();
-      frag != tig->dovetail_path_ptr->end();
-      frag++) {
+  for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+    DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
 
-    if ( _fi->mateIID(frag->ident) != 0 ) {
-      if (hasFrag( _fi->mateIID(frag->ident) ) )
-        addMate( tig->id(), frag->ident, frag->position );
-      else
-        startEntry( tig->id(), frag->ident, frag->position );
-    }
-  }
-  sort();
-}
-
-
-MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& globalStats ) {
-  goodGraph->resize( tigLen+1 );
-  badFwdGraph->resize( tigLen+1 );
-  badRevGraph->resize( tigLen+1 );
-
-  MateCounts *cnts = new MateCounts();
-
-  for(MateLocIter  posIter  = begin(); posIter != end(); posIter++) {
-    MateLocationEntry loc = *posIter;
-    uint32 fragId         =  loc.mleFrgID1;
-    uint32 mateId         =  _fi->mateIID(fragId);
-    uint32 lib            =  _fi->libraryIID(fragId);
-    cnts->total++;
-    DistanceCompute *gdc = &(globalStats[ lib ]);
-    // Don't check libs that we didn't generate good stats for
-    if (gdc->numPairs < 10)
+    if (_fi->mateIID(frag->ident) == 0)
+      //  Not mated.
       continue;
-    int badMax = static_cast<int>(gdc->mean + 5 * gdc->stddev);
-    int badMin = static_cast<int>(gdc->mean - 5 * gdc->stddev);
-    int frgBgn = loc.mlePos1.bgn;
-    int frgEnd = loc.mlePos1.end;
-    int frgLen = abs(frgEnd - frgBgn);
-    if (frgLen >= badMax) {
-      fprintf(stderr,"Warning skipping read %d with length %d > mean + 5*stddev %d\n",
-              fragId, frgLen, badMax );
-      continue; // Could assert instead
-    }
-    frgLen = abs( loc.mlePos2.end - loc.mlePos2.bgn );
-    if (frgLen >= badMax) {
-      fprintf(stderr,"Warning skipping read %d with length %d > mean + 5*stddev %d\n",
-              loc.mleFrgID2, frgLen, badMax );
-      continue; // Could assert instead
-    }
-    if ( loc.mleUtgID1 != loc.mleUtgID2) {
-      // mate in another tig, mark bad only if max range exceeded
-      if (isReverse(loc.mlePos1)) {
-        if ( frgBgn > badMax ) {
-          incrRange( badRevGraph, -1, frgBgn - badMax, frgEnd );
-          posIter->isGrumpy = true;
-#if 0
-          fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                  fragId, frgBgn, loc.mlePos1.end, mateId, lib);
-#endif
-          cnts->badOtherTig++;
-        } else {
-          cnts->otherTig++;
-        }
-      } else {
-        if ( frgBgn + badMax < tigLen ) {
-          incrRange( badFwdGraph, -1, frgEnd, frgBgn + badMax );
-          posIter->isGrumpy = true;
-#if 0
-          fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                  fragId, frgBgn, frgEnd, mateId, lib);
-#endif
-          cnts->badOtherTig++;
-        } else {
-          cnts->otherTig++;
-        }
-      }
+
+    uint32  mid = _fi->mateIID(frag->ident);
+
+    if (_iidToTableEntry.find(mid) == _iidToTableEntry.end()) {
+      //  We didn't find the mate in the _table, so we know that we haven't seen
+      //  either pair, and can create a new entry.
+      //
+      MateLocationEntry  mle;
+
+      mle.mleFrgID1 = frag->ident;
+      mle.mlePos1   = frag->position;
+      mle.mleUtgID1 = utg->id();
+
+      mle.mleFrgID2 = 0;
+      mle.mlePos2   = NULL_SEQ_LOC;
+      mle.mleUtgID2 = 0;
+
+      mle.isGrumpy  = false;
+
+      _iidToTableEntry[frag->ident] = _table.size();
+      _table.push_back(mle);
+
     } else {
-      // both mates in this unitig
-      int mateBgn =  loc.mlePos2.bgn;
-      int mateEnd =  loc.mlePos2.end;
-      if (isReverse( loc.mlePos1 )) {
-        if (!isReverse( loc.mlePos2 )) {
-          // reverse and forward, check for circular unitig
-          int dist = frgBgn + tigLen - mateBgn;
-          if ( dist <= badMax && dist >= badMin) {
-            cnts->goodCircular++;
-            continue; // Good circular mates
-          }
-        }
-        // 1st reversed, so bad
-        uint32 beg = MAX( 0, frgBgn - badMax );
-        incrRange( badRevGraph, -1, beg, frgEnd);
-        posIter->isGrumpy = true;
-#if 0
-        fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                fragId, frgBgn, frgEnd, mateId, lib);
-#endif
+      //  Found the mate in the table.  Use that entry.
+      //
+      uint32  tid = _iidToTableEntry[mid];
 
-        if (isReverse( loc.mlePos2 )) {
-          // 2nd mate is reversed, so mark bad towards tig begin
-          beg = MAX( 0, mateBgn - badMax );
-          incrRange( badRevGraph, -1, beg, mateEnd);
-          cnts->badAntiNormal++;
-        } else {
-          // 2nd mate is forward, so mark bad towards tig end
-          uint32 end = MIN( tigLen, mateBgn + badMax );
-          incrRange( badFwdGraph, -1, mateEnd, end);
-          cnts->badOuttie++;
-        }
-#if 0
-        fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                mateId, mateBgn, mateEnd, fragId, lib);
-#endif
+      _table[tid].mleFrgID2 = frag->ident;
+      _table[tid].mlePos2   = frag->position;
+      _table[tid].mleUtgID2 = utg->id();
 
-      } else {
-        // 1st forward
-        if (isReverse( loc.mlePos2 )) {
-          // 2nd reverse so good orient, check distance
-          int32 mateLen  = mateBgn - mateEnd;
-          int32 mateDist = mateBgn - frgBgn;
-
-          if (mateDist >= badMin && mateDist <= badMax) {
-            // For good graph only we mark from 5' to 5'
-            // so overlapping mates can still be good
-            incrRange(goodGraph,2, frgBgn, mateBgn);
-            cnts->good++;
-          }
-          else {
-            // both are bad, mate points towards tig begin
-            uint32 beg = MAX(0, mateBgn - badMax);
-            uint32 end = mateEnd;
-
-            incrRange(badRevGraph, -1, beg, end);
-            posIter->isGrumpy = true;
-#if 0
-            fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                    mateId, mateBgn, mateEnd, fragId, lib);
-#endif
-
-            end = MIN( tigLen, frgBgn + badMax );
-            beg = frgEnd;
-
-            incrRange(badFwdGraph,-1, beg, end);
-#if 0
-            fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                    fragId, frgBgn, frgEnd, mateId, lib);
-#endif
-            cnts->badInnie++;
-          }
-        } else {
-          // 1st and 2nd forward so both bad
-          uint32 end = MIN( tigLen, frgBgn + badMax );
-          uint32 beg = frgEnd;
-
-          incrRange(badFwdGraph,-1, beg, end);
-          posIter->isGrumpy = true;
-
-#if 0
-          fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                  fragId, frgBgn, frgEnd, mateId, lib);
-#endif
-
-          // 2nd mate is forward, so mark bad towards tig end
-          end = MIN( tigLen, mateBgn + badMax );
-          beg = mateEnd;
-
-          incrRange( badFwdGraph, -1, beg, end);
-#if 0
-          fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                  mateId, mateBgn, mateEnd, fragId, lib);
-#endif
-          cnts->badNormal++;
-        }
-      }
+      _iidToTableEntry[frag->ident] = tid;
     }
   }
-  return cnts;
-}
 
+  std::sort(_table.begin(), _table.end());
 
-bool MateLocation::startEntry(uint32 unitigID, uint32 fragID, SeqInterval fragPos) {
-  if ( _iidIndex.find( fragID) != _iidIndex.end() )
-    return false; // Entry already exists, can't start new
-
-  assert( fragID != 0 );
-
-  MateLocationEntry entry;
-
-  entry.mleFrgID1  = fragID;
-  entry.mlePos1    = fragPos;
-  entry.mleUtgID1  = unitigID;
-
-  entry.mleFrgID2  = 0;
-  entry.mlePos2    = NULL_SEQ_LOC;
-  entry.mleUtgID2  = 0;;
-
-  entry.isGrumpy   = false;
-
-  _table.push_back( entry );
-  _iidIndex[ fragID ] = _table.size()-1;
-  return true;
-}
-
-
-bool MateLocation::addMate(uint32 unitigId, uint32 fragId, SeqInterval fragPos) {
-  uint32 mateId = _fi->mateIID(fragId);
-  IdMapConstIter entryIndex = _iidIndex.find( mateId );
-  if ( _iidIndex.find( fragId ) != _iidIndex.end() ||
-       entryIndex == _iidIndex.end() )
-    return false; // Missing mate or already added
-
-  uint32 idx = entryIndex->second;
-  _table[ idx ].mleFrgID2  = fragId;
-  _table[ idx ].mlePos2    = fragPos;
-  _table[ idx ].mleUtgID2  = unitigId;
-  _iidIndex[ fragId ]    = idx;
-  return true;
-}
-
-
-MateLocationEntry MateLocation::getById( uint32 fragId ) {
-  IdMapConstIter entryIndex = _iidIndex.find( fragId );
-  if ( entryIndex == _iidIndex.end() )
-    return NULL_MATE_ENTRY;
-  else
-    return _table[ entryIndex->second ];
-}
-
-
-bool MateLocation::hasFrag(uint32 fragId) {
-  if ( _iidIndex.find( fragId ) == _iidIndex.end() )
-    return false;
-  else
-    return true;
-}
-
-
-void MateLocation::sort() {
-  std::sort(begin(),end());
-  MateLocCIter iter = begin();
-  int i = 0;
-  for(; iter != end(); iter++, i++) {
-    MateLocationEntry entry = *iter;
-    _iidIndex[ entry.mleFrgID1 ] = i;
-    _iidIndex[ entry.mleFrgID2 ] = i;
+  for (uint32 i=0; i<_table.size(); i++) {
+    _iidToTableEntry[_table[i].mleFrgID1] = i;
+    _iidToTableEntry[_table[i].mleFrgID2] = i;
   }
 }
+
+
+void
+MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
+
+  for (uint32 mleidx=0; mleidx<_table.size(); mleidx++) {
+    MateLocationEntry &loc = _table[mleidx];
+
+    uint32 lib =  _fi->libraryIID(loc.mleFrgID1);
+
+    if (globalStats[lib].samples < 10)
+      // Don't check libs that we didn't generate good stats for
+      continue;
+
+    int32 badMax = static_cast<int32>(globalStats[lib].mean + 5 * globalStats[lib].stddev);
+    int32 badMin = static_cast<int32>(globalStats[lib].mean - 5 * globalStats[lib].stddev);
+
+    int32 dist = 0;
+    int32 bgn  = 0;
+    int32 end  = 0;
+
+    int32 matBgn = loc.mlePos2.bgn;
+    int32 matEnd = loc.mlePos2.end;
+    int32 matLen = (matBgn < matEnd) ? (matEnd - matBgn) : (matBgn - matEnd);
+
+    int32 frgBgn = loc.mlePos1.bgn;
+    int32 frgEnd = loc.mlePos1.end;
+    int32 frgLen = (frgBgn < frgEnd) ? (frgEnd - frgBgn) : (frgBgn - frgEnd);
+
+    if ((matLen >= badMax) ||
+        (frgLen >= badMax))
+      //  Yikes, fragment longer than insert size!
+      continue;
+
+
+    //  Until reset, assume this is a bad mate pair.
+    loc.isGrumpy = true;
+
+
+    //  If the mate is in another unitig, mark bad only if there is enough space to fit the mate in
+    //  this unitig.
+    if (loc.mleUtgID1 != loc.mleUtgID2) {
+      if ((isReverse(loc.mlePos1) == true)  && (badMax < frgBgn))
+        goto markBad;
+
+      if ((isReverse(loc.mlePos1) == false) && (badMax < _tigLen - frgBgn))
+        goto markBad;
+
+      //  Not enough space.  Not a grumpy mate pair.
+      loc.isGrumpy = false;
+      continue;
+    }
+
+
+    //  Both mates are in this unitig.
+
+
+    //  Same orientation?
+    if ((isReverse(loc.mlePos1) == false) &&
+        (isReverse(loc.mlePos2) == false))
+      goto markBad;
+    if ((isReverse(loc.mlePos1) == true) &&
+        (isReverse(loc.mlePos2) == true))
+      goto markBad;
+
+
+    //  Check a special case for a circular unitig, outtie mates, but close enough to the end to
+    //  plausibly be linking the ends together.
+    //
+    //   <---              --->
+    //  ========unitig==========
+    //
+    if ((isReverse(loc.mlePos1) == true) &&
+        (badMin <= frgBgn + _tigLen - matBgn) &&
+        (frgBgn + _tigLen - matBgn <= badMax)) {
+      loc.isGrumpy = false;  //  IT'S GOOD, kind of.
+      continue;
+    }
+
+
+    //  Outties?  True if pos1.end < pos2.bgn.  (For the second case, swap pos1 and pos2)
+    //
+    //  (pos1.end) <------   (pos1.bgn)
+    //  (pos2.bgn)  -------> (pos2.end)
+    //
+    if ((isReverse(loc.mlePos1) == true)  && (loc.mlePos1.end < loc.mlePos2.bgn))
+      goto markBad;
+    if ((isReverse(loc.mlePos1) == false) && (loc.mlePos2.end < loc.mlePos1.bgn))
+      goto markBad;
+
+    //  So, now not NORMAL or ANTI or OUTTIE.  We must be left with innies.
+
+    if (isReverse(loc.mlePos1) == false)
+      //  First fragment is on the left, second is on the right.
+      dist = loc.mlePos2.bgn - loc.mlePos1.bgn;
+    else
+      //  First fragment is on the right, second is on the left.
+      dist = loc.mlePos1.bgn - loc.mlePos2.bgn;
+
+    assert(dist >= 0);
+
+    if ((badMin <= dist) && (dist <= badMax)) {
+      bgn = frgBgn;
+      end = matBgn;
+      incrRange(goodGraph, 2, bgn, end);
+      loc.isGrumpy = false;  //  IT'S GOOD!
+      continue;
+    }
+
+  markBad:
+
+    //  Mark bad from the 3' end of the fragment till the upper limit where the mate should go.
+
+    if (loc.mleUtgID1 == utg->id()) {
+      assert(loc.mleFrgID1 != 0);
+      if (isReverse(loc.mlePos1) == false) {
+        //  Mark bad for forward fagment 1
+        bgn = frgEnd;
+        end = frgBgn + badMax;
+        incrRange(badFwdGraph, -1, bgn, end);
+      } else {
+        //  Mark bad for reverse fragment 1
+        bgn = frgEnd - badMax;
+        end = frgEnd;
+        incrRange(badRevGraph, -1, bgn, end);
+      }
+    }
+
+    if (loc.mleUtgID2 == utg->id()) {
+      assert(loc.mleFrgID2 != 0);
+      if (isReverse(loc.mlePos2) == false) {
+        //  Mark bad for forward fragment 2
+        bgn = matEnd;
+        end = matBgn + badMax;
+        incrRange(badFwdGraph, -1, bgn, end);
+      } else {
+        //  Mark bad for reverse fragment 2
+        bgn = matEnd - badMax;
+        end = matEnd;
+        incrRange(badRevGraph, -1, bgn, end);
+      }
+    }
+  }  //  Over all MateLocationEntries in the table
+}  //  buildHappinessGraph()

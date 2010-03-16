@@ -22,12 +22,32 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.13 2010-03-04 04:03:26 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.14 2010-03-16 13:06:31 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
-
+//  Derived from IntMultiPos, but removes some of the data (48b in IntMultiPos, 32b in struct
+//  DoveTailNode).  The minimum size (bit fields, assuming maximum limits, not using the contained
+//  field) seems to be 24b, and is more effort than it is worth (just removing 'contained' would be
+//  a chore).
+//
+#ifdef WITHIMP
 typedef IntMultiPos                       DoveTailNode;
+#else
+struct DoveTailNode {
+  int32           ident;
+  int32           contained;
+  int32           parent;     //  IID of the fragment we align to
+
+  int32           ahang;      //  If parent defined, these are relative
+  int32           bhang;      //  that fragment
+
+  SeqInterval     position;
+
+  int32           delta_length;
+};
+#endif
+
 typedef std::vector<DoveTailNode>         DoveTailPath;
 
 
@@ -70,7 +90,8 @@ struct Unitig{
   long getNumFrags(void)        { return(dovetail_path_ptr->size()); };
   long getNumRandomFrags(void)  { return(getNumFrags());             };
 
-  DoveTailNode getLastBackboneNode(uint32&);
+  DoveTailNode getLastBackboneNode(void);
+  DoveTailNode getLastBackboneNode(uint32 &);
 
   uint32       id(void) { return(_id); };
 

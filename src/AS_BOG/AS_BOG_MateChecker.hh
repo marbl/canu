@@ -22,12 +22,14 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.32 2009-06-15 05:52:49 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.33 2010-03-16 13:06:31 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 
+#if 0
 typedef std::map<uint32,uint32> IdMap;
+
 typedef IdMap::iterator IdMapIter;
 typedef IdMap::const_iterator IdMapConstIter;
 
@@ -36,76 +38,87 @@ typedef DistanceList::const_iterator DistanceListCIter;
 
 typedef std::map<uint32,DistanceList> LibraryDistances;
 typedef LibraryDistances::const_iterator LibDistsConstIter;
+#endif
 
 static const SeqInterval NULL_SEQ_LOC = {0,0};
 
+
+
 struct DistanceCompute {
-  double stddev;
-  double mean;
-  double sumSquares;
-  double sumDists;
-  int numPairs;
-  DistanceCompute() : stddev(0), mean(0), sumSquares(0), sumDists(0), numPairs(0) {}
-};
+  double  stddev;
+  double  mean;
+  uint32  samples;
 
-typedef std::map<uint32,DistanceCompute> LibraryStats;
+  uint32  distancesLen;
+  uint32  distancesMax;
+  uint32 *distances;
 
-struct MateCounts {
-  int badOtherTig;
-  int otherTig;
-  int total;
-  int goodCircular;
-  int good;
-  int badOuttie;
-  int badInnie;
-  int badAntiNormal;
-  int badNormal;
-  MateCounts() : badOtherTig(0), otherTig(0), total(0), goodCircular(0), good(0),
-                 badOuttie(0), badInnie(0), badAntiNormal(0), badNormal(0)
-  {}
-
-  MateCounts operator+= (MateCounts other) {
-    badOtherTig   += other.badOtherTig;
-    otherTig      += other.otherTig;
-    total         += other.total;
-    goodCircular  += other.goodCircular;
-    good          += other.good;
-    badOuttie     += other.badOuttie;
-    badInnie      += other.badInnie;
-    badAntiNormal += other.badAntiNormal;
-    badNormal     += other.badNormal;
+  DistanceCompute() {
+    stddev       = 0.0;
+    mean         = 0.0;
+    distancesLen = 0;
+    distancesMax = 1048576;
+    distances    = new uint32 [distancesMax];
   };
+
+  ~DistanceCompute() {
+    delete [] distances;
+  }
 };
+
+
 
 
 struct MateChecker{
-  MateChecker(FragmentInfo *fi);
-  ~MateChecker();
+  MateChecker(FragmentInfo *fi) {
+    _globalStats = NULL;
+    _fi          = fi;
+  };
+  ~MateChecker() {
+    delete [] _globalStats;
+  };
 
   void checkUnitigGraph(UnitigGraph &, int badMateBreakThreshold);
 
 private:
+  void  accumulateLibraryStats(Unitig *);
+  void  computeGlobalLibStats(UnitigGraph &);
 
-  // Checks size of mates internal to unitig
-  LibraryStats* computeLibraryStats( Unitig* );
-
-  // Compute good and bad coverage graphs for a unitig, returns split points
   UnitigBreakPoints* computeMateCoverage(Unitig *, BestOverlapGraph *, int badMateBreakThreshold);
 
   void moveContains(UnitigGraph&);
   void splitDiscontinuousUnitigs(UnitigGraph&);
 
-  // Computes stddev and mate coverage over all unitigs
-  void computeGlobalLibStats( UnitigGraph& );
-
 private:
-  LibraryDistances _dists; // all distances
-  LibraryStats     _globalStats;
-  FragmentInfo    *_fi;
+  DistanceCompute  *_globalStats;
+  FragmentInfo     *_fi;
 };
 
 
-struct MateLocationEntry {
+
+#if 1
+inline
+bool
+operator==(SeqInterval a, SeqInterval b) {
+  return((a.bgn == b.bgn) && (a.end == b.end) ||
+         (a.bgn == b.end) && (a.end == b.bgn));
+};
+
+inline
+bool
+operator<(SeqInterval a, SeqInterval b) {
+  if (isReverse(a)) {
+    if (isReverse(b)) return a.end < b.end;
+    else              return a.end < b.bgn;
+  } else {
+    if (isReverse(b)) return a.bgn < b.end;
+    else              return a.bgn < b.bgn;
+  }
+};
+#endif
+
+class MateLocationEntry {
+public:
   SeqInterval mlePos1;
   SeqInterval mlePos2;
   uint32      mleFrgID1;
@@ -113,79 +126,108 @@ struct MateLocationEntry {
   uint32      mleUtgID1;
   uint32      mleUtgID2; // in the future the table might be across unitigs
   bool        isGrumpy;
+
+  //bool operator==(MateLocation &that) {
+  //  return((mlePos1 == that.mlePos1) && (mlePos2 == that.mlePos2));
+  //};
+
+  bool operator<(MateLocationEntry const &that) const {
+
+#if 0
+    if (mlePos1  < that.mlePos1)                           return true;
+    if (mlePos1 == that.mlePos1 && mlePos2 < that.mlePos2) return true;
+    else                                                   return false;
+#endif
+
+    int32  m1 = MIN(     mlePos1.bgn,      mlePos1.end);
+    int32  t1 = MIN(that.mlePos1.bgn, that.mlePos1.end);
+    int32  m2 = MIN(     mlePos2.bgn,      mlePos2.end);
+    int32  t2 = MIN(that.mlePos2.bgn, that.mlePos2.end);
+
+    return((m1 < t1) || ((m1 == t1) && (m2 < t2)));
+  };
 };
 
-static const MateLocationEntry NULL_MATE_ENTRY =
-  {NULL_SEQ_LOC,NULL_SEQ_LOC,0,0,0,0};
-
-typedef std::vector<MateLocationEntry> MateLocTable;
-typedef MateLocTable::iterator MateLocIter;
-typedef MateLocTable::const_iterator MateLocCIter;
 
 class MateLocation {
 public:
+  MateLocation(FragmentInfo *fi, Unitig *utg, DistanceCompute *dc) {
+    MateLocationEntry   mle;
 
-  MateLocation(FragmentInfo *fi) {
-    goodGraph   = new std::vector<short>;
-    badFwdGraph = new std::vector<short>;
-    badRevGraph = new std::vector<short>;
-    _fi         = fi;
+    mle.mlePos1.bgn = mle.mlePos1.end = 0;
+    mle.mlePos2.bgn = mle.mlePos2.end = 0;
+
+    mle.mleFrgID1 = 0;
+    mle.mleFrgID2 = 0;
+
+    mle.mleUtgID1 = 0;
+    mle.mleUtgID2 = 0;
+
+    mle.isGrumpy = false;
+
+    _table.clear();
+    _table.push_back(mle);
+
+    _tigLen = utg->getLength();
+
+    goodGraph   = new int32 [_tigLen + 1];
+    badFwdGraph = new int32 [_tigLen + 1];
+    badRevGraph = new int32 [_tigLen + 1];
+
+    memset(goodGraph,   0, sizeof(int32) * (_tigLen + 1));
+    memset(badFwdGraph, 0, sizeof(int32) * (_tigLen + 1));
+    memset(badRevGraph, 0, sizeof(int32) * (_tigLen + 1));
+
+    _fi = fi;
+
+    buildTable(utg);
+    buildHappinessGraphs(utg, dc);
   };
+
   ~MateLocation() {
-    delete goodGraph;
-    delete badFwdGraph;
-    delete badRevGraph;
+    delete [] goodGraph;
+    delete [] badFwdGraph;
+    delete [] badRevGraph;
+  };
+            
+  MateLocationEntry getById(uint32 fragId) {
+    map<uint32,uint32>::const_iterator  e = _iidToTableEntry.find(fragId);
+
+    if (e == _iidToTableEntry.end())
+      return _table[0];
+    else
+      return _table[e->second];
   };
 
-  bool startEntry( uint32, uint32, SeqInterval);
-  bool addMate( uint32, uint32, SeqInterval);
-  bool hasFrag( uint32 );
-  MateLocationEntry getById( uint32 );
-  void sort();
-  MateLocIter begin() { return _table.begin(); }
-  MateLocIter end()   { return _table.end();   }
-
-  void buildTable( Unitig *);
-  MateCounts* buildHappinessGraphs( int tigLen, LibraryStats &);
-
-  std::vector<short>* goodGraph;
-  std::vector<short>* badFwdGraph;
-  std::vector<short>* badRevGraph;
+  int32  *goodGraph;
+  int32  *badFwdGraph;
+  int32  *badRevGraph;
 
 private:
-  MateLocTable  _table;
-  IdMap         _iidIndex;
-  FragmentInfo *_fi;
+  void buildTable(Unitig *utg);
+  void buildHappinessGraphs(Unitig *utg, DistanceCompute *);
+
+  void incrRange(int32 *graph, int32 val, int32 n, int32 m) {
+    n = MAX(n, 0);
+    m = MIN(m, _tigLen);
+
+    //  Earlier versions asserted n<m (and even earlier versions used i<=m in the loop below, which
+    //  made this far more complicated than necessary).  Now, we don't care.  We'll adjust n and m
+    //  to the min/max possible, and ignore out of bounds cases.  Those happen when, for example,
+    //  fragments are the same orientation.  If one of those is the last fragment in the unitig,
+    //  we'll call incrRange with n=(the higher coord)=(_tigLen), and m=(the lower coord + max
+    //  insert size).  We threshold m to _tigLen, and correctly do nothing in the loop.
+
+    for(uint32 i=n; i<m; i++)
+      graph[i] += val;
+  };
+
+  uint32                     _tigLen;
+
+  vector<MateLocationEntry>  _table;
+  map<uint32,uint32>         _iidToTableEntry;
+  FragmentInfo              *_fi;
 };
-inline bool operator==(SeqInterval a, SeqInterval b) {
-  if (a.bgn == b.bgn && a.end == b.end ||
-      a.bgn == b.end && a.end == b.bgn)
-    return true;
-  else
-    return false;
-};
-inline bool operator<(SeqInterval a, SeqInterval b) {
-  if ( isReverse(a) ) {
-    if ( isReverse(b) ) return a.end < b.end;
-    else                return a.end < b.bgn;
-  } else {
-    if ( isReverse(b) ) return a.bgn < b.end;
-    else                return a.bgn < b.bgn;
-  }
-};
-inline bool SeqInterval_less(SeqInterval a, SeqInterval b) {
-  return a < b;
-};
-inline bool operator==(MateLocationEntry a, MateLocationEntry b) {
-  if (a.mlePos1 == b.mlePos1 && a.mlePos2 == b.mlePos2)
-    return true;
-  else
-    return false;
-};
-inline bool operator<(MateLocationEntry a, MateLocationEntry b) {
-  if (a.mlePos1 < b.mlePos1)                           return true;
-  if (a.mlePos1 == b.mlePos1 && a.mlePos2 < b.mlePos2) return true;
-  else                                                 return false;
-};
+
 
 #endif

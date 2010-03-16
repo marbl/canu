@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.20 2010-03-04 04:03:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.21 2010-03-16 13:06:31 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -56,6 +56,24 @@ Unitig::~Unitig(void){
   delete dovetail_path_ptr;
 }
 
+
+#warning WHAT REALLLY HAPPENS IF NO BACKBONE NODE, OR NO PREVIOUS BACKBONE NODE
+
+DoveTailNode Unitig::getLastBackboneNode(void) {
+  for (int32 fi=dovetail_path_ptr->size()-1; fi >= 0; fi--) {
+    DoveTailNode  &node = (*dovetail_path_ptr)[fi];
+
+    if (node.contained)
+      continue;
+
+    return(node);
+  }
+
+  fprintf(stderr, "Unitig::getLastBackboneNode()--  WARNING:  unitig %d has no backbone nodes, all contained!\n", id());
+  DoveTailNode last;
+  memset(&last, 0, sizeof(DoveTailNode));
+  return(last);
+}
 
 
 DoveTailNode Unitig::getLastBackboneNode(uint32 &prevID) {
@@ -100,7 +118,9 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
                   DoveTailNode &frag3, int32 &bidx3, BestEdgeOverlap *bestedge3) {
   bool  verbose = false;
 
+#ifdef WITHIMP
   frag5.type         = AS_READ;
+#endif
   //frag5.ident
   frag5.contained    = 0;
   frag5.parent       = 0;
@@ -108,10 +128,14 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   frag5.bhang        = 0;
   frag5.position.bgn = 0;
   frag5.position.end = 0;
+#ifdef WITHIMP
   frag5.delta_length = 0;
   frag5.delta        = NULL;
+#endif
 
+#ifdef WITHIMP
   frag3.type         = AS_READ;
+#endif
   //frag3.ident
   frag3.contained    = 0;
   frag3.parent       = 0;
@@ -119,8 +143,10 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   frag3.bhang        = 0;
   frag3.position.bgn = 0;
   frag3.position.end = 0;
+#ifdef WITHIMP
   frag3.delta_length = 0;
   frag3.delta        = NULL;
+#endif
 
   assert(frag3.ident > 0);
   assert(frag5.ident > 0);
@@ -336,7 +362,9 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
   DoveTailNode  frag;
   DoveTailNode *parent = NULL;
 
+#ifdef WITHIMP
   frag.type         = AS_READ;
+#endif
   frag.ident        = fid;
   frag.contained    = bestcont->container;
   frag.parent       = bestcont->container;
@@ -344,8 +372,10 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
   frag.bhang        = 0;
   frag.position.bgn = 0;
   frag.position.end = 0;
+#ifdef WITHIMP
   frag.delta_length = 0;
   frag.delta        = NULL;
+#endif
 
   parent = &(*dovetail_path_ptr)[pathPosition(frag.contained)];
 
@@ -495,7 +525,9 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   int32        blen5 =  0,   blen3 =  0;
   DoveTailNode frag;
 
+#ifdef WITHIMP
   frag.type         = AS_READ;
+#endif
   frag.ident        = fid;
   frag.contained    = 0;
   frag.parent       = 0;
@@ -503,8 +535,10 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   frag.bhang        = 0;
   frag.position.bgn = 0;
   frag.position.end = 0;
+#ifdef WITHIMP
   frag.delta_length = 0;
   frag.delta        = NULL;
+#endif
 
   //  The length of the overlap depends only on the length of the a frag and the hangs.  We don't
   //  actually care about the real length (except for logging), only which is thicker.

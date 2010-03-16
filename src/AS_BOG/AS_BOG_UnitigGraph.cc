@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.124 2010-03-04 04:03:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.125 2010-03-16 13:06:31 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -487,7 +487,9 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
 
   DoveTailNode  frag;
 
+#ifdef WITHIMP
   frag.type         = AS_READ;
+#endif
   frag.ident        = frag_idx;
   frag.contained    = 0;
   frag.parent       = 0;
@@ -496,7 +498,9 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
   frag.position.bgn = _fi->fragmentLength(frag_idx);
   frag.position.end = 0;
   frag.delta_length = 0;
+#ifdef WITHIMP
   frag.delta        = NULL;
+#endif
 
   utg->addFrag(frag, 0, verboseBuild);
 
@@ -1226,11 +1230,15 @@ UnitigGraph::placeZombies(void) {
 
         DoveTailNode frag;
 
+#ifdef WITHIMP
         frag.type         = AS_READ;
+#endif
         frag.ident        = i;
         frag.contained    = 0;
         frag.delta_length = 0;
+#ifdef WITHIMP
         frag.delta        = NULL;
+#endif
 
         frag.position.bgn = 0;
         frag.position.end = _fi->fragmentLength(i);
@@ -2110,7 +2118,9 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, char *tigStorePath, int frg_c
       //  We abused the delta_length field earlier.  Make sure it's sane.  If not, we assert when
       //  writing the tig.
       f->delta_length = 0;
+#ifdef WITHIMP
       f->delta        = NULL;
+#endif
     }
 
     utg_count += 1;
@@ -2154,7 +2164,27 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, char *tigStorePath, int frg_c
     //  Add the fragments
 
     ResetVA_IntMultiPos(ma->f_list);
+#ifdef WITHIMP
     SetRangeVA_IntMultiPos(ma->f_list, 0, nf, &(*utg->dovetail_path_ptr)[0]);
+#else
+    for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+      DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
+      IntMultiPos    imp;
+
+      imp.type         = AS_READ;
+      imp.ident        = frg->ident;
+      imp.contained    = frg->contained;
+      imp.parent       = frg->parent;
+      imp.ahang        = frg->ahang;
+      imp.bhang        = frg->bhang;
+      imp.position.bgn = frg->position.bgn;
+      imp.position.end = frg->position.end;
+      imp.delta_length = 0;
+      imp.delta        = NULL;
+
+      AppendVA_IntMultiPos(ma->f_list, &imp);
+    }
+#endif
 
     //  NOTE!  This is not currently a valid multialign as it has NO IntUnitigPos.  That is
     //  added during consensus.  CGW will correctly assert that it reads in unitigs with
