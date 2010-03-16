@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.21 2010-03-16 13:06:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.22 2010-03-16 19:37:21 skoren Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -742,9 +742,14 @@ void Unitig::reverseComplement(bool doSort) {
 
 
 int
-IntMultiPosCmp(const void *a, const void *b){
-  IntMultiPos *impa = (IntMultiPos *)a;
-  IntMultiPos *impb = (IntMultiPos *)b;
+DoveTailNodeCmp(const void *a, const void *b){
+#ifdef WITHIMP
+	IntMultiPos *impa = (IntMultiPos *)a;
+	IntMultiPos *impb = (IntMultiPos *)b;
+#else
+	DoveTailNode *impa = (DoveTailNode *)a;
+	DoveTailNode *impb = (DoveTailNode *)b;
+#endif
 
   int32 abgn = (impa->position.bgn < impa->position.end) ? impa->position.bgn : impa->position.end;
   int32 aend = (impa->position.bgn < impa->position.end) ? impa->position.end : impa->position.bgn;
@@ -767,7 +772,7 @@ IntMultiPosCmp(const void *a, const void *b){
 
 void
 Unitig::sort(void) {
-  qsort( &(dovetail_path_ptr->front()), getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp );
+  qsort( &(dovetail_path_ptr->front()), getNumFrags(), sizeof(DoveTailNode), &DoveTailNodeCmp );
 
   for (int fi=0; fi<dovetail_path_ptr->size(); fi++)
     _pathPosition[(*dovetail_path_ptr)[fi].ident] = fi;
