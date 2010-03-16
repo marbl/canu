@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapMask.C,v 1.1 2010-02-22 06:39:59 brianwalenz Exp $";
+const char *mainid = "$Id: overlapMask.C,v 1.2 2010-03-16 05:27:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -132,6 +132,11 @@ main(int argc, char **argv) {
 
     int32 ibgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
     int32 iend = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
+
+    if (ibgn >= iend)
+      //  Reset invalid and/or unset clear ranges to null.  This shouldn't happen in a
+      //  normal assembly (some flavor of initial trimming should have been run already).
+      ibgn = iend = 0;
 
     for (uint32 i=0; i<ovlLen; i++) {
       assert(iid == ovl[i].a_iid);
