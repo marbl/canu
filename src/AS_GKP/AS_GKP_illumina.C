@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.7 2010-02-23 03:49:28 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.8 2010-03-16 13:07:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,11 +29,14 @@ static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.7 2010-02-23 03:49:28 bri
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
+#include "AS_UTL_reverseComplement.h"
 
 #define FASTQ_SANGER    0
 #define FASTQ_SOLEXA    1
 #define FASTQ_ILLUMINA  2
 
+#define FASTQ_INNIE     0
+#define FASTQ_OUTTIE    1
 
 class ilFragment {
  public:
@@ -47,7 +50,7 @@ class ilFragment {
 
 static
 uint64
-processSeq(char *N, ilFragment *fr, char end, uint32 fastqType) {
+processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrient) {
 
   fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   fr->fr.gkFragment_setIsDeleted(1);
@@ -140,6 +143,12 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType) {
     }
   }
 
+  //  Reverse the read if it is from an outtie pair.  This ONLY works if the reads are the same
+  //  length throughout the library.  WE DO NOT CHECK THAT IS SO.
+
+  if (fastqOrient == FASTQ_OUTTIE)
+    reverseComplement(fr->sstr, fr->qstr, slen);
+
   //  Trim crap off the ends.
 
   while ((fr->qstr[clrR-1] < '6') && (clrR > 1))
@@ -155,7 +164,7 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType) {
 
   //  Make sure there aren't any bogus letters
 
-  for (int32 i=0; i<slen; i++)
+  for (uint32 i=0; i<slen; i++)
     if (fr->sstr[i] == '.')
       return(0);
 
@@ -227,7 +236,7 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType) {
 
 static
 uint64
-readQSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType) {
+readQSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrient) {
 
   fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   fr->fr.gkFragment_setIsDeleted(1);
@@ -264,13 +273,13 @@ readQSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType) {
   sprintf(fr->qnam, "+%s:%s:%s:%s:%s#%s/%s", v[0], v[2], v[3], v[4], v[5], v[6], v[7]);
   sprintf(fr->qstr, "%s", v[9]);
 
-  return(processSeq(N, fr, end, fastqType));
+  return(processSeq(N, fr, end, fastqType, fastqType));
 }
 
 
 static
 uint64
-readSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType) {
+readSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrient) {
 
   fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   fr->fr.gkFragment_setIsDeleted(1);
@@ -286,13 +295,13 @@ readSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType) {
   if (feof(F))
     return(0);
 
-  return(processSeq(N, fr, end, fastqType));
+  return(processSeq(N, fr, end, fastqType, fastqType));
 }
 
 
 static
 void
-loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType) {
+loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
   fprintf(stderr, "Processing illumina reads from '%s'\n", lname);
   fprintf(stderr, "                           and '%s'\n", rname);
 
@@ -314,8 +323,8 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType) {
   while (!feof(lfile) && !feof(rfile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 lUID = (isSeq) ? readSeq(lfile, lname, lfrg, 'l', fastqType) : readQSeq(lfile, lname, lfrg, 'l', fastqType);
-    uint64 rUID = (isSeq) ? readSeq(rfile, rname, rfrg, 'r', fastqType) : readQSeq(rfile, rname, rfrg, 'r', fastqType);
+    uint64 lUID = (isSeq) ? readSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient) : readQSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient);
+    uint64 rUID = (isSeq) ? readSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient) : readQSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient);
 
     if       ((lfrg->fr.gkFragment_getIsDeleted() == 0) &&
               (rfrg->fr.gkFragment_getIsDeleted() == 0)) {
@@ -353,7 +362,7 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType) {
 
 static
 void
-loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType) {
+loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
   fprintf(stderr, "Processing illumina reads from '%s'.\n", uname);
 
   errno = 0;
@@ -368,7 +377,7 @@ loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType) {
   while (!feof(ufile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 uUID = (isSeq) ? readSeq(ufile, uname, ufrg, 'u', fastqType) : readQSeq(ufile, uname, ufrg, 'u', fastqType);
+    uint64 uUID = (isSeq) ? readSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient) : readQSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient);
 
     if (ufrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Add a fragment.
@@ -387,8 +396,10 @@ loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType) {
 
 void
 checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
-  uint32  fastqType = FASTQ_SOLEXA;
+  uint32  fastqType   = FASTQ_SOLEXA;
+  uint32  fastqOrient = FASTQ_INNIE;
 
+  //  Search for the type of the reads.
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
     if (strcasecmp(lib_mesg->features[i], "illuminaFastQType") == 0) {
       if (strcasecmp(lib_mesg->values[i], "sanger") == 0) {
@@ -406,6 +417,21 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
     }
   }
 
+  //  Search for the orientation of the reads.
+  for (uint32 i=0; i<lib_mesg->num_features; i++) {
+    if (strcasecmp(lib_mesg->features[i], "illuminaOrientation") == 0) {
+      if (strcasecmp(lib_mesg->values[i], "innie") == 0) {
+        fprintf(stderr, "Orientation set to INNIE.\n");
+        fastqOrient = FASTQ_INNIE;
+      }
+      if (strcasecmp(lib_mesg->values[i], "outtie") == 0) {
+        fprintf(stderr, "Orientation set to OUTTIE.\n");
+        fastqOrient = FASTQ_OUTTIE;
+      }
+    }
+  }
+
+  //  Search for and load the reads.
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
     if (strcasecmp(lib_mesg->features[i], "illuminaQSequence") == 0) {
       char *sl = lib_mesg->values[i];
@@ -417,9 +443,9 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
       if (*sr) {
         *sr = 0;
         sr++;
-        loadIlluminaReads(sl, sr, false, fastqType);
+        loadIlluminaReads(sl, sr, false, fastqType, fastqOrient);
       } else {
-        loadIlluminaReads(sl, false, fastqType);
+        loadIlluminaReads(sl, false, fastqType, fastqOrient);
       }
     }
 
@@ -433,9 +459,9 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
       if (*sr) {
         *sr = 0;
         sr++;
-        loadIlluminaReads(sl, sr, true, fastqType);
+        loadIlluminaReads(sl, sr, true, fastqType, fastqOrient);
       } else {
-        loadIlluminaReads(sl, true, fastqType);
+        loadIlluminaReads(sl, true, fastqType, fastqOrient);
       }
     }
   }

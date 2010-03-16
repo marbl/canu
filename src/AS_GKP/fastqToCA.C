@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.3 2010-02-23 03:49:28 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.4 2010-03-16 13:07:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,6 +32,23 @@ const char *mainid = "$Id: fastqToCA.C,v 1.3 2010-02-23 03:49:28 brianwalenz Exp
 #include "AS_PER_gkpStore.h"
 #include "AS_MSG_pmesg.h"
 
+
+
+void
+addFeature(LibraryMesg *libMesg, char *feature, char *value) {
+  int32 nf = libMesg->num_features;
+
+  libMesg->features[nf] = (char *)safe_malloc(sizeof(char) * (strlen(feature) + 1));
+  libMesg->values  [nf] = (char *)safe_malloc(sizeof(char) * (strlen(value) + 1));
+
+  strcpy(libMesg->features[nf], feature);
+  strcpy(libMesg->values[nf],   value);
+
+  libMesg->num_features++;
+}
+
+
+
 int
 main(int argc, char **argv) {
   int       insertSize       = 0;
@@ -41,6 +58,10 @@ main(int argc, char **argv) {
   bool      isMated          = false;
 
   char     *type             = "illumina";
+
+  char     *orientInnie      = "innie";
+  char     *orientOuttie     = "outtie";
+  char     *orient           = orientInnie;
 
   char    **fastq            = new char * [argc];
   int32     fastqLen         = 0;
@@ -61,10 +82,18 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-type") == 0) {
       type = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-innie") == 0) {
+      orient = orientInnie;
+
+    } else if (strcmp(argv[arg], "-outtie") == 0) {
+      orient = orientOuttie;
+
     } else if (strcmp(argv[arg], "-fastq") == 0) {
       fastq[fastqLen++] = argv[++arg];
 
     } else {
+      fprintf(stderr, "ERROR:  Unknown option '%s'\n", argv[arg]);
+      exit(1);
       err++;
     }
 
@@ -83,7 +112,11 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s [-insertsize <mean> <stddev>] [-libraryname <name>] [-output <name>]\n", argv[0]);
+    fprintf(stderr, "usage: %s [-insertsize <mean> <stddev>] [-libraryname <name>]\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Writes a CA FRG file consisting of a single LIB message to stdout.  When this file is fed to\n");
+    fprintf(stderr, "gatekeeper, gatekeeper will read fragments from the original fastq files supplied with the\n");
+    fprintf(stderr, "-fastq option.  The full absolute path name must be used for fastq files.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -insertsize i d    Mates are on average i +- d bp apart.\n");
     fprintf(stderr, "\n");
@@ -95,6 +128,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "                       'illumina' -- QV's are PHRED, offset=64 '@', Illumina reads from version 1.3 on.\n");
     fprintf(stderr, "                     See Cock, et al., 'The Sanger FASTQ file format for sequences with quality scores, and\n");
     fprintf(stderr, "                     the Solexa/Illumina FASTQ variants', doi:10.1093/nar/gkp1137\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -innie             The paired end reads are 5'-3' <-> 3'-5' (usually for paired-end reads) (default)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -outtie            The paired end reads are 3'-5' <-> 5'-3' (usually for mate-pair reads)\n");
+    fprintf(stderr, "                     This switch will reverse-complement every read, transforming outtie-oriented\n");
+    fprintf(stderr, "                     mates into innie-oriented mates.  This trick only works if all reads are the\n");
+    fprintf(stderr, "                     same length.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -fastq A           Single ended reads, in fastq format.\n");
     fprintf(stderr, "  -fastq A,B         Paired end reads, in fastq format.\n");
@@ -199,30 +239,14 @@ main(int argc, char **argv) {
 
   //  Add in the non-standard Illumina features.
 
-  libMesg.features = (char **)safe_realloc(libMesg.features, sizeof(char *) * (libMesg.num_features + 1 + fastqLen));
-  libMesg.values   = (char **)safe_realloc(libMesg.values,   sizeof(char *) * (libMesg.num_features + 1 + fastqLen));
+  libMesg.features = (char **)safe_realloc(libMesg.features, sizeof(char *) * (libMesg.num_features + 2 + fastqLen));
+  libMesg.values   = (char **)safe_realloc(libMesg.values,   sizeof(char *) * (libMesg.num_features + 2 + fastqLen));
 
-  int32 nf = libMesg.num_features;
+  addFeature(&libMesg, "illuminaFastQType", type);
+  addFeature(&libMesg, "illuminaOrientation", orient);
 
-  libMesg.features[nf] = (char *)safe_malloc(sizeof(char) * 32);
-  libMesg.values  [nf] = (char *)safe_malloc(sizeof(char) * (strlen(type) + 1));
-
-  strcpy(libMesg.features[nf], "illuminaFastQType");
-  strcpy(libMesg.values[nf],   type);
-
-  libMesg.num_features++;
-
-  for (int32 i=0; i<fastqLen; i++) {
-    nf = libMesg.num_features;
-
-    libMesg.features[nf] = (char *)safe_malloc(sizeof(char) * 32);
-    libMesg.values  [nf] = (char *)safe_malloc(sizeof(char) * (strlen(fastq[i]) + 1));
-
-    strcpy(libMesg.features[nf], "illuminaSequence");
-    strcpy(libMesg.values[nf],   fastq[i]);
-
-    libMesg.num_features++;
-  }
+  for (int32 i=0; i<fastqLen; i++)
+    addFeature(&libMesg, "illuminaSequence", fastq[i]);
 
   //  Emit the VER and LIB messages.  Enable version 2, write the LIB, switch back to version 1.
 
