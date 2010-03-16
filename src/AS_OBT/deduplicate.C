@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.6 2009-11-08 01:16:16 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.7 2010-03-16 20:33:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,7 +206,7 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
           (abegdiff <= FRAG_HANG_SLOP) &&
           (bbegdiff <= FRAG_HANG_SLOP) &&
           (aenddiff <= FRAG_HANG_SLOP) && (bhang >= 0) &&
-          (error    <= 0.025 / 100.0)) {
+          (error    <= 2.50 / 100.0)) {
         fprintf(reportFile, "Delete %s,%u DUPof %s,%u (a %d,%d  b %d,%d  hang %d,%d  diff %d,%d  error %f\n",
                 AS_UID_toString(frag[ovl->a_iid].readUID), ovl->a_iid,
                 AS_UID_toString(frag[ovl->b_iid].readUID), ovl->b_iid,
@@ -320,7 +320,7 @@ main(int argc, char **argv) {
   OverlapStore      *ovsprimary   = 0L;
   OverlapStore      *ovssecondary = 0L;
 
-  bool               testing      = false;
+  bool               doUpdate     = true;
 
   argc = AS_configure(argc, argv);
 
@@ -328,7 +328,7 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
-      gkp = new gkStore(argv[++arg], FALSE, testing == false);
+      gkp = new gkStore(argv[++arg], FALSE, doUpdate);
 
       //  The cache is not enabled, as we don't expect many changes to the store.
       gkp->gkStore_metadataCaching(false);
@@ -399,7 +399,7 @@ main(int argc, char **argv) {
     readOverlapsAndProcessFragments(gkp, ovsprimary, ovssecondary, errorLimit, frag);
     processMatedFragments(gkp, frag);
 
-    if (testing == false)
+    if (doUpdate)
       deleteFragments(gkp, frag);
 
     delete [] frag;
