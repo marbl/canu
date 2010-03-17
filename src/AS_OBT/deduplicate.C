@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.8 2010-03-16 21:06:21 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.9 2010-03-17 01:17:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -155,17 +155,6 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
       //  And not deleted already
       continue;
 
-    //  Require that both fragments be unmated.  There is one (rare?) case that cannot be detected,
-    //  when a circle is duplicated, but one duplicate forms an unmated fragment:
-    //
-    //  mated      ------------->     <-----
-    //  fragment   ----------------->    <-- (this frag too short)
-    //  fragment   ->    <------------------
-
-    if ((frag[ovl->a_iid].mateIID == 0) && (frag[ovl->b_iid].mateIID == 0))
-      //  And both unmated
-      continue;
-
     if ((frag[ovl->a_iid].libraryIID != frag[ovl->b_iid].libraryIID))
       //  And in the same library
       continue;
@@ -173,6 +162,7 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
     if (libs[frag[ovl->a_iid].libraryIID].doRemoveDuplicateReads == 0)
       //  And marked for deduplication (lib 0 is init to not dedup)
       continue;
+
 
     int32 ab = ovl->dat.obt.a_beg;
     int32 ae = ovl->dat.obt.a_end;
@@ -193,6 +183,32 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
 
     double error    = AS_OVS_decodeQuality(ovl->dat.obt.erate);
 
+    //  We can't process mated reads until we have all the overlaps for both this read and it's
+    //  mate.  We save the overlaps for later consumption.
+    //
+    //  There is one (rare?) case that cannot be detected, when a circle is duplicated, but one
+    //  duplicate forms an unmated fragment:
+    //
+    //  mated      ------------->     <-----
+    //  fragment   ----------------->    <-- (this frag too short)
+    //  fragment   ->    <------------------
+    //
+    if ((frag[ovl->a_iid].mateIID != 0) && (frag[ovl->b_iid].mateIID != 0))
+      frag[ovl->a_iid].addOlap(ovl->b_iid,
+                               (ahang >= -MATE_HANG_SLOP) && (ahang <= MATE_HANG_SLOP) && (abegdiff <= MATE_HANG_SLOP) && (bbegdiff <= MATE_HANG_SLOP),
+                               (bhang >= -MATE_HANG_SLOP) && (bhang <= MATE_HANG_SLOP) && (aenddiff <= MATE_HANG_SLOP) && (benddiff <= MATE_HANG_SLOP));
+
+
+    if ((frag[ovl->a_iid].mateIID != 0) || (frag[ovl->b_iid].mateIID != 0))
+      //  Finally, for fragment duplicates, we require that both fragments be unmated.  We
+      //  could let the b_iid fragment be mated, hoping to catch another (rare?) case, where
+      //  this fragment read came from a mate read where the b_iid mate is bad:
+      //
+      //  mated      ------------->     <-----
+      //  fragment   --------->    <--          (this frag too short, or bad quality, etc)
+      //
+      continue;
+
     //  For unmated reads, delete if it is a near perfect prefix of somethng else.
     //
     //  Since these are partial overlaps, we need to check both that the overlap covers about the
@@ -206,7 +222,7 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
           (abegdiff <= FRAG_HANG_SLOP) &&
           (bbegdiff <= FRAG_HANG_SLOP) &&
           (aenddiff <= FRAG_HANG_SLOP) && (bhang >= 0) &&
-          (error    <= 2.50 / 100.0)) {
+          (error    <= 0.025)) {
         fprintf(reportFile, "Delete %s,%u DUPof %s,%u (a %d,%d  b %d,%d  hang %d,%d  diff %d,%d  error %f\n",
                 AS_UID_toString(frag[ovl->a_iid].readUID), ovl->a_iid,
                 AS_UID_toString(frag[ovl->b_iid].readUID), ovl->b_iid,
@@ -219,14 +235,6 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
         frag[ovl->a_iid].isDeleted = 1;
       }
     }
-
-    //  We can't process mated reads until we have all the overlaps for both this read and it's
-    //  mate.  We save the overlaps for later consumption.
-    //
-    if (frag[ovl->a_iid].mateIID != 0)
-      frag[ovl->a_iid].addOlap(ovl->b_iid,
-                               (ahang >= -MATE_HANG_SLOP) && (ahang <= MATE_HANG_SLOP) && (abegdiff <= MATE_HANG_SLOP) && (bbegdiff <= MATE_HANG_SLOP),
-                               (bhang >= -MATE_HANG_SLOP) && (bhang <= MATE_HANG_SLOP) && (aenddiff <= MATE_HANG_SLOP) && (benddiff <= MATE_HANG_SLOP));
   }
 
   delete [] libs;
