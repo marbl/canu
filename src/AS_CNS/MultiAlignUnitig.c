@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.27 2010-03-03 04:14:22 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.28 2010-03-17 03:44:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -399,7 +399,9 @@ unitigConsensus::computePositionFromParent(void) {
   for (piid = tiid-1; piid >= 0; piid--) {
     Fragment *afrag = GetFragment(fragmentStore, piid);
 
-    if (fraglist[tiid].parent == afrag->iid) {
+    //  If this is the parent, and the parent is placed, compute the placement.
+    if ((fraglist[tiid].parent == afrag->iid) &&
+        ((placed[piid].bgn != 0) || (placed[piid].end != 0))) {
       int32 beg = placed[piid].bgn + fraglist[tiid].ahang;
       int32 end = placed[piid].end + fraglist[tiid].bhang;
 
@@ -446,7 +448,9 @@ unitigConsensus::computePositionFromContainer(void) {
   for (piid = tiid-1; piid >= 0; piid--) {
     Fragment *afrag = GetFragment(fragmentStore, piid);
 
-    if (fraglist[tiid].contained == afrag->iid) {
+    //  If this is the container, and the container is placed, compute the placement.
+    if ((fraglist[tiid].contained == afrag->iid) &&
+        ((placed[piid].bgn != 0) || (placed[piid].end != 0))) {
       int32 beg = placed[piid].bgn + offsets[tiid].bgn - offsets[afrag->lid].bgn;
       int32 end = placed[piid].end + offsets[tiid].end - offsets[afrag->lid].end;
 
@@ -473,10 +477,12 @@ unitigConsensus::computePositionFromLayout(void) {
   if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
     fprintf(stderr, "unitigConsensus()--  Starting computePositionFromLayout\n");
 
-  //  Find the thickest qiid overlap
+  //  Find the thickest qiid overlap to any placed fragment
   for (int32 qiid = tiid-1; qiid >= 0; qiid--) {
     if ((offsets[tiid].bgn < offsets[qiid].end) &&
-        (offsets[tiid].end > offsets[qiid].bgn)) {
+        (offsets[tiid].end > offsets[qiid].bgn) &&
+        ((placed[qiid].bgn != 0) ||
+         (placed[qiid].end != 0))) {
       int32 beg = placed[qiid].bgn + offsets[tiid].bgn - offsets[qiid].bgn;
       int32 end = placed[qiid].end + offsets[tiid].end - offsets[qiid].end;
 
@@ -697,21 +703,26 @@ unitigConsensus::rebuildFrankensteinFromConsensus(void) {
       lg = gapToUngap[i];
   }
 
+  //  Replace each fragment based on the new consensus.  If the fragment wasn't placed to begin
+  //  with, skip it.
+
   for (int32 i=0; i<tiid; i++) {
-    Fragment *frg  = GetFragment(fragmentStore, i);
-    Bead     *frst = GetBead(beadStore, frg->firstbead);
-    Bead     *last = GetBead(beadStore, frg->firstbead + frg->length - 1);
+    if ((placed[i].bgn != 0) || (placed[i].end != 0)) {
+      Fragment *frg  = GetFragment(fragmentStore, i);
+      Bead     *frst = GetBead(beadStore, frg->firstbead);
+      Bead     *last = GetBead(beadStore, frg->firstbead + frg->length - 1);
 
-    int32     frstIdx = GetColumn(columnStore, frst->column_index)->ma_index;
-    int32     lastIdx = GetColumn(columnStore, last->column_index)->ma_index;
+      int32     frstIdx = GetColumn(columnStore, frst->column_index)->ma_index;
+      int32     lastIdx = GetColumn(columnStore, last->column_index)->ma_index;
 
-    assert(frstIdx < gapToUngapLen);
-    assert(lastIdx < gapToUngapLen);
+      assert(frstIdx < gapToUngapLen);
+      assert(lastIdx < gapToUngapLen);
 
-    placed[i].bgn = gapToUngap[frstIdx];
-    placed[i].end = gapToUngap[lastIdx] + 1;
+      placed[i].bgn = gapToUngap[frstIdx];
+      placed[i].end = gapToUngap[lastIdx] + 1;
 
-    //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", i, fraglist[i].ident, placed[i].bgn, placed[i].end);
+      //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", i, fraglist[i].ident, placed[i].bgn, placed[i].end);
+    }
   }
 
   delete [] gapToUngap;
@@ -842,18 +853,23 @@ unitigConsensus::alignFragmentToFragments(void) {
     double    thresh      = 1e-3;
     int32     minlen      = AS_OVERLAP_MIN_LEN;
 
-    //  If the current fragment is not contained and the target
-    //  fragment doesn't extend to the end of frankenstein, don't even
-    //  bother aligning.  Any alignment we'd get would have to be
-    //  contained else we'll insert huge gaps into the multialign, but
-    //  the fragment isn't marked as contained.
+    //  If the current fragment is not contained and the target fragment doesn't extend to the end
+    //  of frankenstein, don't even bother aligning.  Any alignment we'd get would have to be
+    //  contained else we'll insert huge gaps into the multialign, but the fragment isn't marked as
+    //  contained.
     //
     if ((fraglist[tiid].contained == 0) &&
         (placed[qiid].end != frankensteinLen))
       continue;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-    fprintf(stderr, "alignFragmentToFragment()--  Testing vs %d\n", fraglist[qiid].ident);
+    //  If the target fragment was skipped (failOnFirstFailure), we can't use it for alignment into
+    //  the unitig.  Skip it.
+    //
+    if ((placed[qiid].bgn == 0) && (placed[qiid].end == 0))
+      continue;
+
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      fprintf(stderr, "alignFragmentToFragment()--  Testing vs %d\n", fraglist[qiid].ident);
 
     char      *aseq = Getchar(sequenceStore, GetFragment(fragmentStore, qiid)->sequence);
     char      *bseq = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
