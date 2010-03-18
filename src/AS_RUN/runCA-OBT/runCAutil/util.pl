@@ -155,6 +155,7 @@ sub setGlobal ($$) {
 
     $var = "doMerBasedTrimming"        if ($var eq "doMBT");
     $var = "doOverlapBasedTrimming"    if ($var eq "doOBT");
+    $var = "doExtendClearRanges"       if ($var eq "doECR");
 
     #  If "help" exists, we're parsing command line options, and will catch this failure in
     #  printHelp().  Otherwise, this is an internal error, and we should bomb now.
