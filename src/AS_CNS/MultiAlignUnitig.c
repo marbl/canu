@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.28 2010-03-17 03:44:42 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.29 2010-03-18 08:18:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1452,10 +1452,15 @@ MultiAlignUnitig(MultiAlignT     *ma,
     if (VERBOSE_MULTIALIGN_OUTPUT)
       uc->reportStartingWork();
 
+    //  The first computePositionFromAlignment() is slightly too permissive -- in a very rare cases
+    //  it will align short reads to the wrong place (think repeats).  By waiting until we rebuild
+    //  consensus we can hopefully align the short read correctly (or, better, use the old-school
+    //  alignFragmentToFragment() first).
+
     if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
+    //if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
 
     if (uc->alignFragmentToFragments())
       continue;
