@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.16 2010-03-01 08:27:45 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.17 2010-03-19 16:14:33 skoren Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -257,7 +257,11 @@ processULK(SnapUnitigLinkMesg *ulk) {
           ulk->std_deviation,
           ulk->num_contributing,
           ulk->status);
-  for (uint32 i=0; i<ulk->num_contributing; i++)
+  uint32 max = ulk->num_contributing;
+  if (ulk->overlap_type != AS_NO_OVERLAP) {
+	  max--;
+  }
+  for (uint32 i=0; i<max; i++)
     fprintf(utglkg, "\t%s,%s,%c",
             AS_UID_toString(ulk->jump_list[i].in1),
             AS_UID_toString(ulk->jump_list[i].in2),
