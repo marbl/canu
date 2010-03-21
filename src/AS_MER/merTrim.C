@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.3 2010-03-16 05:33:06 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.4 2010-03-21 04:57:52 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +44,15 @@ uint32  VERBOSE = 0;
 #define EXISTDB_MIN_COUNT   3
 
 
+#define ALLGOOD 1
+#define ALLCRAP 2
+#define ATTEMPTCORRECTION 3
+
+//  Doesn't work, gets different results.
+#undef USE_MERSTREAM_REBUILD
+
+#undef TEST_TESTBASE
+
 class mertrimGlobalData {
 public:
   mertrimGlobalData() {
@@ -54,22 +63,23 @@ public:
     numThreads     = 4;
     beVerbose      = false;
     kb             = NULL;
-    kbtest         = NULL;
     edb            = NULL;
+
+    logFile        = stderr;
   };
 
   ~mertrimGlobalData() {
     delete edb;
     delete kb;
-    delete kbtest;
+    if (logFile != stderr)
+      fclose(logFile);
   };
 
   void              initialize(void) {
-#warning kb and kbtest are THREAD UNSAFE
+#warning kb is THREAD UNSAFE
     //edb    = new existDB(merCountsFile, merSize, existDBcounts | existDBcompressBuckets | existDBcompressCounts, EXISTDB_MIN_COUNT, ~0);
     edb    = new existDB(merCountsFile, merSize, existDBnoFlags, EXISTDB_MIN_COUNT, ~0);
     kb     = new kMerBuilder(merSize, compression, 0L);
-    kbtest = new kMerBuilder(merSize, compression, 0L);
   };
 
 public:
@@ -82,21 +92,31 @@ public:
   uint32   compression;
   uint32   numThreads;
   bool     beVerbose;
+  FILE         *logFile;
 
   //  Global data
   //
   kMerBuilder  *kb;
-  kMerBuilder  *kbtest;
   existDB      *edb;
 };
 
 
 
+#if 0
+class mertrimThreadData {
+public:
+  mertrimTrheadData() {
+  };
+  ~mertrimThreadData() {
+  }
 
+  void          initialize(mertrimGlobalData *g) {
+  };
 
-#define ALLGOOD 1
-#define ALLCRAP 2
-#define ATTEMPTCORRECTION 3
+public:
+}
+#endif
+
 
 
 class mertrimComputation {
@@ -168,6 +188,7 @@ public:
   void       reverse(void);
   void       analyze(void);
 
+  uint32     testBases(char *bases, uint32 basesLen);
   uint32     testBaseChange(uint32 pos, char replacement);
   uint32     testBaseIndel(uint32 pos, char replacement);
 
@@ -599,7 +620,37 @@ mertrimComputation::attemptCorrection(void) {
 
 
 
+uint32
+mertrimComputation::testBases(char *bases, uint32 basesLen) {
+  uint32  offset       = 0;
+  uint32  numConfirmed = 0;
 
+  kMerTiny F(g->merSize);
+  kMerTiny R(g->merSize);
+
+  for (uint32 i=1; i<g->merSize && offset<basesLen; i++, offset++) {
+    F += letterToBits[bases[offset]];
+    R -= letterToBits[complementSymbol[bases[offset]]];
+  }
+
+  for (uint32 i=0; i<g->merSize && offset<basesLen; i++, offset++) {
+    F += letterToBits[bases[offset]];
+    R -= letterToBits[complementSymbol[bases[offset]]];
+
+    F.mask(true);
+    R.mask(false);
+
+    if (F < R) {
+      if (g->edb->exists(F))
+        numConfirmed++;
+    } else {
+      if (g->edb->exists(R))
+        numConfirmed++;
+    }
+  }
+
+  return(numConfirmed);
+}
 
 
 
@@ -614,18 +665,27 @@ mertrimComputation::testBaseChange(uint32 pos, char replacement) {
 
   corrSeq[pos] = replacement;
 
-#warning kbtest is THREAD UNSAFE
-  merStream  *localms = new merStream(g->kbtest,
-                                      new seqStream(corrSeq + offset, seqLen - offset),
-                                      false,
-                                      true);
+  numConfirmed = testBases(corrSeq + offset, MIN(seqLen - offset, 2 * g->merSize - 1));
 
-  //  Test
-  for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
-    if (g->edb->exists(localms->theCMer()))
-      numConfirmed++;
+#ifdef TEST_TESTBASE
+  {
+    uint32 oldConfirmed = 0;
 
-  delete localms;
+    merStream  *localms = new merStream(new kMerBuilder(merSize, compression, 0L),
+                                        new seqStream(corrSeq + offset, seqLen - offset),
+                                        true,
+                                        true);
+
+    //  Test
+    for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
+      if (g->edb->exists(localms->theCMer()))
+        oldConfirmed++;
+
+    delete localms;
+
+    assert(oldConfirmed == numConfirmed);
+  }
+#endif
 
   corrSeq[pos] = originalBase;
 
@@ -644,7 +704,7 @@ mertrimComputation::testBaseIndel(uint32 pos, char replacement) {
   uint32   numConfirmed = 0;
   char     testStr[128] = {0};
   uint32   len          = 0;
-  uint32   off          = pos + 1 - g->merSize;
+  uint32   offset       = pos + 1 - g->merSize;
   uint32   limit        = g->merSize * 2 - 1;
 
   assert(2 * g->merSize < 120);  //  Overly pessimistic
@@ -652,34 +712,43 @@ mertrimComputation::testBaseIndel(uint32 pos, char replacement) {
   //  Copy the first merSize bases.
 
   while (len < g->merSize - 1)
-    testStr[len++] = corrSeq[off++];
+    testStr[len++] = corrSeq[offset++];
 
   //  Copy the second merSize bases, but overwrite the last base in the first copy (if we're testing
   //  a de;etion) or insert a replacement base.
 
   if (replacement == '-') {
-    off++;
+    offset++;
   } else {
     testStr[len++] = replacement;
   }
 
   //  Copy the rest of the bases.
 
-  while ((len < limit) && (corrSeq[off]))
-    testStr[len++] = corrSeq[off++];
+  while ((len < limit) && (corrSeq[offset]))
+    testStr[len++] = corrSeq[offset++];
 
-#warning kbtest is THREAD UNSAFE
-  merStream  *localms = new merStream(g->kbtest,
-                                      new seqStream(testStr, len),
-                                      false,
-                                      true);
+  numConfirmed = testBases(testStr, len);
 
-  //  Test
-  for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
-    if (g->edb->exists(localms->theCMer()))
-      numConfirmed++;
+#ifdef TEST_TESTBASE
+  {
+    uint32 oldConfirmed = 0;
 
-  delete localms;
+    merStream  *localms = new merStream(new kMerBuilder(merSize, compression, 0L),
+                                        new seqStream(testStr, len),
+                                        true,
+                                        true);
+
+    //  Test
+    for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
+      if (g->edb->exists(localms->theCMer()))
+        oldConfirmed++;
+
+    delete localms;
+
+    assert(oldConfirmed == numConfirmed);
+  }
+#endif
 
   //if (numConfirmed > 0)
   //  fprintf(stderr, "testBaseIndel() pos=%d replacement=%c confirmed=%d\n",
@@ -745,6 +814,7 @@ mertrimComputation::attemptTrimming(void) {
   wErr[seqLen-2] = wErr[seqLen-3] - BADBASE(seqLen-4);
   wErr[seqLen-1] = wErr[seqLen-2] - BADBASE(seqLen-3);
 
+#if 0
   fprintf(stderr, "B=");
   for (uint32 i=0; i<seqLen; i++) {
     fprintf(stderr, "%d", BADBASE(i));
@@ -754,6 +824,7 @@ mertrimComputation::attemptTrimming(void) {
     fprintf(stderr, "%d", wErr[i]);
   }
   fprintf(stderr, "\n");
+#endif
 
   //  Find the largest region with < 2 errors.  Whenever we hit a region with
   //  two errors, clear the old region (saving it if it was the biggest).
@@ -915,6 +986,12 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-v") == 0) {
       g->beVerbose = true;
 
+    } else if (strcmp(argv[arg], "-l") == 0) {
+      errno = 0;
+      g->logFile = fopen(argv[++arg], "w");
+      if (errno)
+        fprintf(stderr, "Failed to open logfile '%s': %s\n", argv[arg], strerror(errno)), exit(1);
+
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
@@ -922,6 +999,7 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((g->gkpPath == 0L) || (err)) {
+    fprintf(stderr, "usage: %s -g gkpStore -m merSize -mc merCountsFile [-v]\n", argv[0]);
     exit(1);
   }
 
@@ -952,9 +1030,8 @@ main(int argc, char **argv) {
   uint32       resultUnverified     = 0;
   uint32       resultDeleted        = 0;
 
-  //speedCounter SC(" Trimming: %11.0f reads -- %7.5f reads/second\r", 1.0, 0x1fff, true);
+  speedCounter SC(" Trimming: %11.0f reads -- %7.5f reads/second\r", 1.0, 0x1fff, true);
 
-  tEnd = 1000;
   for (uint32 iid=tBeg; iid<=tEnd; iid++) {
 
     if (VERBOSE) {
@@ -1036,14 +1113,17 @@ main(int argc, char **argv) {
         gk->gkStore_delFragment(fr.gkFragment_getReadIID(), false);
     }
 
-    if (VERBOSE) {
-      fprintf(stderr, "read %d clr %d,%d%s\n",
-              fr.gkFragment_getReadIID(), C->getClrBgn(), C->getClrEnd(), delFrag ? " (deleted)" : "");
-    }  //  VERBOSE
+    if (g->logFile)
+      fprintf(g->logFile, "%s,%d\t%d\t%d%s\n",
+              AS_UID_toString(fr.gkFragment_getReadUID()),
+              fr.gkFragment_getReadIID(),
+              C->getClrBgn(),
+              C->getClrEnd(),
+              delFrag ? "\t(deleted)" : "");
 
     delete C;
 
-    //SC.tick();
+    SC.tick();
   }
 
   //delete gs;
