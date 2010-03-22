@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.7 2009-03-31 20:32:31 skoren Exp $";
+static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.8 2010-03-22 20:08:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,9 +47,9 @@ AS_UTL_isValidSequence(char *s, int sl) {
 }
 
 void
-AS_UTL_writeFastAWithBreaks(FILE *f,
-                  char *s, int sl,
-                  int lineBreaks, char *h, ...) {
+AS_UTL_writeFastA(FILE *f,
+                  char *s, int sl, int bl,
+                  char *h, ...) {
   va_list ap;
   char   *o  = (char *)safe_malloc(sizeof(char) * (sl + sl / 70 + 2));
   int     si = 0;
@@ -58,7 +58,7 @@ AS_UTL_writeFastAWithBreaks(FILE *f,
   while (si < sl) {
     o[oi++] = s[si++];
 
-    if (lineBreaks != 0 && (si % lineBreaks) == 0)
+    if (bl != 0 && (si % bl) == 0)
       o[oi++] = '\n';
   }
   if (o[oi-1] != '\n')
@@ -76,9 +76,9 @@ AS_UTL_writeFastAWithBreaks(FILE *f,
 
 
 void
-AS_UTL_writeQVFastAWithBreaks(FILE *f,
-                    char *q, int ql,
-                    int lineBreaks, char *h, ...) {
+AS_UTL_writeQVFastA(FILE *f,
+                    char *q, int ql, int bl,
+                    char *h, ...) {
   va_list ap;
   char   *o  = (char *)safe_malloc(sizeof(char) * (3*ql + 3*ql / 70 + 2));
   int     qi = 0;
@@ -99,7 +99,7 @@ AS_UTL_writeQVFastAWithBreaks(FILE *f,
 
     qi++;
 
-    if (lineBreaks != 0 && (qi % lineBreaks) == 0)
+    if (bl != 0 && (qi % bl) == 0)
       o[oi-1] = '\n';
   }
   if (o[oi-1] != '\n')
@@ -117,38 +117,32 @@ AS_UTL_writeQVFastAWithBreaks(FILE *f,
 
 
 void
-AS_UTL_writeQVFastQWithBreaks(FILE *f,
-                    char *q, int ql,
-                    int lineBreaks, char *h, ...) {
+AS_UTL_writeFastQ(FILE *f,
+                  char *s, int sl,
+                  char *q, int ql,
+                  char *h, ...) {
   va_list ap;
-  char   *o  = (char *)safe_malloc(sizeof(char) * (3*ql + 3*ql / 70 + 2));
+  char   *o  = (char *)safe_malloc(sizeof(char) * (ql + 1));
   int     qi = 0;
   int     oi = 0;
 
-  //
-  //  20 values per line -> 60 letters per line.
-  //  |xx xx xx xx xx ..... xx|
-  //
+  assert(sl == ql);
 
-  while (qi < ql) {
-    // endecode the quality value using fastq format
-    int qlt = (((int)q[qi])-'0');
-    qlt += '!';
-    o[oi++] = (char) qlt;
-    qi++;
-
-    if (lineBreaks != 0 && (qi % lineBreaks) == 0)
-      o[oi-1] = '\n';
-  }
-  if (o[oi-1] != '\n')
-    o[oi++] = '\n';
+  //  Reencode the QV to the Sanger spec.
+  while (qi < ql)
+    o[oi++] = q[qi++] - '0' + '!';
   o[oi] = 0;
 
   va_start(ap, h);
   vfprintf(f, h, ap);
   va_end(ap);
 
-  AS_UTL_safeWrite(f, o, "AS_UTL_writeQVFastA", sizeof(char), oi);
+  AS_UTL_safeWrite(f, s, "AS_UTL_writeFastQ", sizeof(char), sl);
+  fprintf(f, "\n");
+
+  fprintf(f, "+\n");
+  AS_UTL_safeWrite(f, o, "AS_UTL_writeFastQ", sizeof(char), ql);
+  fprintf(f, "\n");
 
   safe_free(o);
 }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fragmentDepth.c,v 1.14 2009-08-14 13:37:07 skoren Exp $";
+const char *mainid = "$Id: fragmentDepth.c,v 1.15 2010-03-22 20:08:13 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fasta.h"
@@ -215,7 +215,7 @@ void outputResult(AS_UID lastuid,
 
             seq[id[idlen-1].hi] = 0;
 
-            AS_UTL_writeFastA(stdout, seq, id[idlen-1].hi, ">%s\n", AS_UID_toString(lastuid));
+            AS_UTL_writeFastA(stdout, seq, id[idlen-1].hi, 0, ">%s\n", AS_UID_toString(lastuid));
             }
          break;
    }

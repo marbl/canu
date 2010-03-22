@@ -21,7 +21,7 @@
 #ifndef AS_UTL_FASTA_H
 #define AS_UTL_FASTA_H
 
-static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.6 2009-03-31 20:32:31 skoren Exp $";
+static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.7 2010-03-22 20:08:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,48 +68,23 @@ AS_UTL_getSpaceArray() {
 int 
 AS_UTL_isValidSequence(char *s, int sl);
 
+//  Writes sequence as fasta, with at most 'bl' letters per line (unlimited if 0).
 void 
-AS_UTL_writeFastAWithBreaks(FILE *f,
-                  char *s, int sl,
-                  int lineBreaks,                  
+AS_UTL_writeFastA(FILE *f,
+                  char *s, int sl, int bl,
                   char *h, ...);
 
-static inline void
-AS_UTL_writeFastA(FILE *f,
-                  char *s, int sl,                  
-                  char *h, ...) {
-   va_list ap;
-   va_start(ap, h);
-   vfprintf(f, h, ap);
-   va_end(ap);
-   
-   AS_UTL_writeFastAWithBreaks(f, s, sl, 70, "", NULL);
-}
-
-//  Assumes a CA encoded QV string, and writes it to a fasta formated
-//  as 2-digit white space separated.
-//
+//  Writes QVs as decimal 'fasta' ("00 00 00 00 ...") with up to 'bl' QVs per line.
 void
-AS_UTL_writeQVFastAWithBreaks(FILE *f,
-                    char *q, int ql,
-                    int lineBreaks,
+AS_UTL_writeQVFastA(FILE *f,
+                    char *q, int ql, int bl,
                     char *h, ...);
 
-static inline void
-AS_UTL_writeQVFastA(FILE *f,
-                    char *q, int ql,
-                    char *h, ...) {
-   va_list ap;
-   va_start(ap, h);
-   vfprintf(f, h, ap);
-   va_end(ap);
-
-   AS_UTL_writeQVFastAWithBreaks(f, q, ql, 20, "", NULL);
-                    }
-
+//  Writes FastQ, converting CA QVs into Sanger QVs.
 void
-AS_UTL_writeQVFastQWithBreaks(FILE *f,
-                    char *q, int ql,
-                    int lineBreaks, char *h, ...);
+AS_UTL_writeFastQ(FILE *f,
+                  char *s, int sl,
+                  char *q, int ql,
+                  char *h, ...);
 
 #endif

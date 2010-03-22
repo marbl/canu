@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.56 2010-01-04 21:22:50 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.57 2010-03-22 20:08:09 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.56 2010-01-04 21:22:50 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.57 2010-03-22 20:08:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -118,13 +118,13 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
                         int         dumpFRGClear);
 
 void
-dumpGateKeeperAsVelvet(char       *gkpStoreName,
-                        char       *prefix,
-                        AS_IID      begIID,
-                        AS_IID      endIID,
-                        char       *iidToDump,
-                        int         doNotFixMates,
-                        int         dumpFRGClear);
+dumpGateKeeperAsFastQ(char       *gkpStoreName,
+                      char       *prefix,
+                      AS_IID      begIID,
+                      AS_IID      endIID,
+                      char       *iidToDump,
+                      int         doNotFixMates,
+                      int         dumpFRGClear);
 
 int
 dumpGateKeeperIsFeatureSet(char       *gkpStoreName,

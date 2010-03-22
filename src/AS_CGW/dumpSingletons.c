@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.34 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: dumpSingletons.c,v 1.35 2010-03-22 20:07:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -152,7 +152,7 @@ main( int argc, char **argv) {
       AS_UID  fUID = getFragmentClear(frag->read_iid, 0, toprint);
 
       AS_UTL_writeFastA(stdout,
-                        toprint, strlen(toprint),
+                        toprint, strlen(toprint), 0,
                         ">%s /type=singleton\n", AS_UID_toString(fUID));
 
     } else if ((mate != NULL) &&
@@ -173,7 +173,7 @@ main( int argc, char **argv) {
       AS_UID  mUID = getFragmentClear(mate->read_iid, 1, toprint + strlen(toprint));
 
       AS_UTL_writeFastA(stdout,
-                        toprint, strlen(toprint),
+                        toprint, strlen(toprint), 0,
                         ">"F_U64" /type=mini_scaffold /frgs=(%s,%s)\n",
                         getUID(uids),
                         AS_UID_toString(fUID),

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputFasta.c,v 1.16 2010-02-17 01:32:59 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputFasta.c,v 1.17 2010-03-22 20:08:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -132,21 +132,21 @@ processIUM(IntUnitigMesg *ium_mesg) {
 
   if ((UTGseqout) && (ium_mesg->num_frags > minNumFragsInUnitig)) {
     AS_UTL_writeFastA(UTGseqout,
-                      ium_mesg->consensus, len,
+                      ium_mesg->consensus, len, 70,
                       ">ium"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
                       ium_mesg->iaccession,
                       strlen(ium_mesg->consensus),
                       ium_mesg->num_frags,
                       ium_mesg->coverage_stat);
     AS_UTL_writeFastA(UTGqltout,
-                      ium_mesg->quality, len,
+                      ium_mesg->quality, len, 70,
                       ">ium"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
                       ium_mesg->iaccession,
                       strlen(ium_mesg->consensus),
                       ium_mesg->num_frags,
                       ium_mesg->coverage_stat);
     AS_UTL_writeQVFastA(UTGquaout,
-                        ium_mesg->quality, len,
+                        ium_mesg->quality, len, 20,
                         ">ium"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
                         ium_mesg->iaccession,
                         strlen(ium_mesg->consensus),
@@ -166,21 +166,21 @@ processUTG(SnapUnitigMesg  *utg_mesg) {
 
   if ((UTGseqout) && (utg_mesg->num_frags > minNumFragsInUnitig)) {
     AS_UTL_writeFastA(UTGseqout,
-                      utg_mesg->consensus, len,
+                      utg_mesg->consensus, len, 70,
                       ">utg%s length=%d num_frags="F_IID" Astat=%.2f\n",
                       AS_UID_toString(utg_mesg->eaccession),
                       strlen(utg_mesg->consensus),
                       utg_mesg->num_frags,
                       utg_mesg->coverage_stat);
     AS_UTL_writeFastA(UTGqltout,
-                      utg_mesg->quality, len,
+                      utg_mesg->quality, len, 70,
                       ">utg%s length=%d num_frags="F_IID" Astat=%.2f\n",
                       AS_UID_toString(utg_mesg->eaccession),
                       strlen(utg_mesg->consensus),
                       utg_mesg->num_frags,
                       utg_mesg->coverage_stat);
     AS_UTL_writeQVFastA(UTGquaout,
-                        utg_mesg->quality, len,
+                        utg_mesg->quality, len, 20,
                         ">utg%s length=%d num_frags="F_IID" Astat=%.2f\n",
                         AS_UID_toString(utg_mesg->eaccession),
                         strlen(utg_mesg->consensus),
@@ -231,29 +231,29 @@ processCCO(SnapConConMesg *cco_mesg) {
 
   if ((cd->isDegenerate == 0) && (CCOseqout)) {
     AS_UTL_writeFastA(CCOseqout,
-                      cd->cns, cd->len,
+                      cd->cns, cd->len, 70,
                       ">ctg%s\n",
                       AS_UID_toString(cco_mesg->eaccession));
     AS_UTL_writeFastA(CCOqltout,
-                      cd->qlt, cd->len,
+                      cd->qlt, cd->len, 70,
                       ">ctg%s\n",
                       AS_UID_toString(cco_mesg->eaccession));
     AS_UTL_writeQVFastA(CCOquaout,
-                        cd->qlt, cd->len,
+                        cd->qlt, cd->len, 20,
                         ">ctg%s\n",
                         AS_UID_toString(cco_mesg->eaccession));
   }
   if ((cd->isDegenerate == 1) && (DEGseqout)) {
     AS_UTL_writeFastA(DEGseqout,
-                      cd->cns, cd->len,
+                      cd->cns, cd->len, 70,
                       ">deg%s\n",
                       AS_UID_toString(cco_mesg->eaccession));
     AS_UTL_writeFastA(DEGqltout,
-                      cd->qlt, cd->len,
+                      cd->qlt, cd->len, 70,
                       ">deg%s\n",
                       AS_UID_toString(cco_mesg->eaccession));
     AS_UTL_writeQVFastA(DEGquaout,
-                        cd->qlt, cd->len,
+                        cd->qlt, cd->len, 20,
                         ">deg%s\n",
                         AS_UID_toString(cco_mesg->eaccession));
   }
@@ -345,13 +345,13 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
   //  Output
 
   AS_UTL_writeFastA(SCFseqout,
-                    scfcns, scfPos,
+                    scfcns, scfPos, 70,
                     ">scf%s\n", AS_UID_toString(scf_mesg->eaccession));
   AS_UTL_writeFastA(SCFqltout,
-                    scfqlt, scfPos,
+                    scfqlt, scfPos, 70,
                     ">scf%s\n", AS_UID_toString(scf_mesg->eaccession));
   AS_UTL_writeQVFastA(SCFquaout,
-                      scfqlt, scfPos,
+                      scfqlt, scfPos, 20,
                       ">scf%s\n", AS_UID_toString(scf_mesg->eaccession));
 
   safe_free(reversed);
@@ -497,6 +497,9 @@ main(int argc, char **argv) {
         break;
       case MESG_SCF:
         processSCF((SnapScaffoldMesg *)pmesg->m);
+        break;
+      default:
+        //fprintf(stderr, "Ignoring message of type %s\n", pmesg->m);
         break;
     }
   }

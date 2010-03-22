@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.56 2010-02-17 01:32:58 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.57 2010-03-22 20:08:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,7 +142,7 @@ dumpGateKeeperInfo(char       *gkpStoreName,
    else
       fprintf(stdout, "%s\t", (j == 0 ? "LegacyUnmatedReads" : AS_UID_toString(gkp->gkStore_getLibrary(j)->libraryUID)));
 
-    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
+    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\n",
             numActivePerLib[j], numDeletedPerLib[j], numMatedPerLib[j], readLengthPerLib[j], clearLengthPerLib[j]);
   }
 
@@ -180,7 +180,6 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
     if ((iidToDump == NULL) || (iidToDump[i])) {
       gkLibrary      *gkpl = gkp->gkStore_getLibrary(i);
       LibraryMesg     lmesg;
-      int              nf;
 
       gkpl->gkLibrary_encodeFeatures(&lmesg);
 
@@ -190,7 +189,7 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
                 AS_READ_ORIENT_NAMES[gkpl->orientation],
                 gkpl->mean,
                 gkpl->stddev,
-                nf);
+                lmesg.num_features);
       } else {
         uint32 f;
 
@@ -372,7 +371,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
         }
 
         if (dumpQuality >=2) {
-          AS_UTL_writeQVFastA(stdout, seq, clrEnd-clrBeg,
+          AS_UTL_writeQVFastA(stdout, seq, clrEnd-clrBeg, 0,
                               ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
                               AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                               AS_UID_toString(mateuid), mateiid,
@@ -381,7 +380,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                               fr.gkFragment_getIsDeleted());
 
         } else {
-          AS_UTL_writeFastA(stdout, seq, clrEnd-clrBeg,
+          AS_UTL_writeFastA(stdout, seq, clrEnd-clrBeg, 0,
                             ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
                             AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                             AS_UID_toString(mateuid), mateiid,
@@ -831,13 +830,11 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
       }
 
       AS_UTL_writeFastA(f,
-                        fr.gkFragment_getSequence(),
-                        fr.gkFragment_getSequenceLength(),
+                        fr.gkFragment_getSequence(), fr.gkFragment_getSequenceLength(), 0,
                         defline, NULL);
 
       AS_UTL_writeQVFastA(q,
-			  fr.gkFragment_getQuality(),
-                          fr.gkFragment_getSequenceLength(),
+			  fr.gkFragment_getQuality(), fr.gkFragment_getSequenceLength(), 0,
                           defline, NULL);
     }
   }
@@ -847,16 +844,15 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
 }
 
 void
-dumpGateKeeperAsVelvet(char       *gkpStoreName,
-                        char       *prefix,
-                        AS_IID      begIID,
-                        AS_IID      endIID,
-                        char       *iidToDump,
-                        int         doNotFixMates,
-                        int         dumpFRGClear) {
-  gkFragment        fr;
-  gkFragment        mate;
-  gkStream       *fs = NULL;
+dumpGateKeeperAsFastQ(char       *gkpStoreName,
+                      char       *prefix,
+                      AS_IID      begIID,
+                      AS_IID      endIID,
+                      char       *iidToDump,
+                      int         doNotFixMates,
+                      int         dumpFRGClear) {
+  gkFragment        fr, mr;
+  gkStream         *fs = NULL;
 
   unsigned int      firstElem = 0;
   unsigned int      lastElem = 0;
@@ -919,16 +915,30 @@ dumpGateKeeperAsVelvet(char       *gkpStoreName,
   for (i=1; i<=gkp->gkStore_getNumLibraries(); i++)
     fprintf(stderr, "Dumping %d fragments from library IID %d\n", libToDump[i], i);
 
-  char  fname[FILENAME_MAX];
+  char  aname[FILENAME_MAX];
+  char  bname[FILENAME_MAX];
+  char  pname[FILENAME_MAX];
   char  uname[FILENAME_MAX];
 
-  sprintf(fname, "%s.fastq",              prefix);
-  sprintf(uname, "%s.unmated.fastq",      prefix);
+  sprintf(aname, "%s.1.fastq",       prefix);
+  sprintf(bname, "%s.2.fastq",       prefix);
+  sprintf(pname, "%s.paired.fastq",  prefix);
+  sprintf(uname, "%s.unmated.fastq", prefix);
 
   errno = 0;
-  FILE *f = fopen(fname, "w");
+  FILE *a = fopen(aname, "w");
   if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", fname, strerror(errno)), exit(1);
+    fprintf(stderr, "Failed to open output file '%s': %s\n", aname, strerror(errno)), exit(1);
+
+  errno = 0;
+  FILE *b = fopen(bname, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output file '%s': %s\n", bname, strerror(errno)), exit(1);
+
+  errno = 0;
+  FILE *p = fopen(pname, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output file '%s': %s\n", pname, strerror(errno)), exit(1);
 
   FILE *u = fopen(uname, "w");
   if (errno)
@@ -949,115 +959,142 @@ dumpGateKeeperAsVelvet(char       *gkpStoreName,
 
   //  Dump fragments -- as soon as both reads in a mate are defined,
   //  we dump the mate relationship.
-  //
+
   fs = new gkStream(gkp, begIID, endIID, GKFRAGMENT_QLT);
 
   while (fs->next(&fr)) {
-    FragMesg  fmesg;
-    LinkMesg  lmesg;
-
-    //  Newbler is not happy at all with clear ranges < 1 base.  We do
-    //  not dump those.
-
     int  lclr = fr.gkFragment_getClearRegionBegin(dumpFRGClear) + 1;
     int  rclr = fr.gkFragment_getClearRegionEnd  (dumpFRGClear);
 
-    if (!fr.gkFragment_getIsDeleted() && (iidToDump[fr.gkFragment_getReadIID()]) && (lclr < rclr)) {
-      char    defline[1024];
+    AS_IID  id1 = fr.gkFragment_getReadIID();
+    AS_IID  id2 = fr.gkFragment_getMateIID();
 
-      if (fr.gkFragment_getMateIID()) {
-        AS_IID  id1 = fr.gkFragment_getReadIID();
-        AS_IID  id2 = fr.gkFragment_getMateIID();
 
-        sprintf(defline, "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
-                //  ID
-                AS_UID_toString(fr.gkFragment_getReadUID()),
-                //  template
-                (id1 < id2) ? id1 : id2,
-                (id1 < id2) ? id2 : id1,
-                //  dir
-                (id1 < id2) ? 'F' : 'R',
-                //  library
-                AS_UID_toString(libUID[fr.gkFragment_getLibraryIID()]),
-                //  trim
-                lclr,
-                rclr);
+    if (fr.gkFragment_getIsDeleted() == true)
+      //  Fragment is deleted, don't dump.
+      continue;
 
-         AS_UTL_writeFastAWithBreaks(f,
-                           fr.gkFragment_getSequence(),
-                           fr.gkFragment_getSequenceLength(),
-                           0,
-                           defline, NULL);
-   
-         // for fastq file we need different header character for quality
-         defline[0] = '+';
-         AS_UTL_writeQVFastQWithBreaks(f,
-              fr.gkFragment_getQuality(),
-                             fr.gkFragment_getSequenceLength(),
-                             0,
-                             defline, NULL);
+    if (iidToDump[id1] == 0)
+      //  Fragment isn't marked for dumping, don't dump.
+      continue;
 
-         // now dump the mate
-         gkp->gkStore_getFragment(id2, &mate, GKFRAGMENT_QLT);
-         lclr = mate.gkFragment_getClearRegionBegin(dumpFRGClear) + 1;
-         rclr = mate.gkFragment_getClearRegionEnd  (dumpFRGClear);
-         sprintf(defline, "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
-                //  ID
-                 AS_UID_toString(mate.gkFragment_getReadUID()),
-                //  template
-                (id1 < id2) ? id1 : id2,
-                (id1 < id2) ? id2 : id1,
-                //  dir
-                (id1 < id2) ? 'F' : 'R',
-                //  library
-                AS_UID_toString(libUID[mate.gkFragment_getLibraryIID()]),
-                //  trim
-                lclr,
-                rclr);
-                
-         AS_UTL_writeFastAWithBreaks(f,
-                                     mate.gkFragment_getSequence(),
-                                     mate.gkFragment_getSequenceLength(),
-                                     0,
-                                     defline, NULL);
-   
-         // for fastq file we need different header character for quality
-         defline[0] = '+';
-         AS_UTL_writeQVFastQWithBreaks(f,
-                                       mate.gkFragment_getQuality(),
-                                       mate.gkFragment_getSequenceLength(),
-                                       0,
-                                       defline, NULL);
-         iidToDump[id2] = 0; // we dumped the mate we don't need it anymore
-      } else {
-        // unmated need to be in a separate file
-        sprintf(defline, "@%s trim=%d-%d\n",
-                //  ID
-                AS_UID_toString(fr.gkFragment_getReadUID()),
-                //  trim
-                lclr,
-                rclr);
-         AS_UTL_writeFastAWithBreaks(u,
-                                     fr.gkFragment_getSequence(),
-                                     fr.gkFragment_getSequenceLength(),
-                                     0,
-                                     defline, NULL);
-   
-         // for fastq file we need different header character for quality
-         defline[0] = '+';
-         AS_UTL_writeQVFastQWithBreaks(u,
-                                       fr.gkFragment_getQuality(),
-                                       fr.gkFragment_getSequenceLength(),
-                                       0,
-                                       defline, NULL);
+    if (lclr >= rclr)
+      //  Fragment has null or invalid clear range, don't dump.
+      continue;
 
-      }
+
+    if (id2 == 0) {
+      //  Unmated read, dump to the unmated reads file.
+      //
+      AS_UTL_writeFastQ(u,
+                        fr.gkFragment_getSequence(), fr.gkFragment_getSequenceLength(),
+                        fr.gkFragment_getQuality(),  fr.gkFragment_getQualityLength(),
+                        "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
+                        //  ID
+                        AS_UID_toString(fr.gkFragment_getReadUID()),
+                        //  template
+                        (id1 < id2) ? id1 : id2,
+                        (id1 < id2) ? id2 : id1,
+                        //  dir
+                        'U',
+                        //  library
+                        AS_UID_toString(libUID[fr.gkFragment_getLibraryIID()]),
+                        //  trim
+                        lclr,
+                        rclr);
+      continue;
     }
+
+    //  We must now have a valid mate pair.  Note that a after we dump,
+    //  the iidToDump[] array is updated so we never see this pair again.
+
+    //  Write the first fragment (twice).
+    AS_UTL_writeFastQ(a,
+                      fr.gkFragment_getSequence(), fr.gkFragment_getSequenceLength(),
+                      fr.gkFragment_getQuality(),  fr.gkFragment_getQualityLength(),
+                      "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
+                      //  ID
+                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      //  template
+                      (id1 < id2) ? id1 : id2,
+                      (id1 < id2) ? id2 : id1,
+                      //  dir
+                      (id1 < id2) ? 'F' : 'R',
+                      //  library
+                      AS_UID_toString(libUID[fr.gkFragment_getLibraryIID()]),
+                      //  trim
+                      lclr,
+                      rclr);
+
+    AS_UTL_writeFastQ(p,
+                      fr.gkFragment_getSequence(), fr.gkFragment_getSequenceLength(),
+                      fr.gkFragment_getQuality(),  fr.gkFragment_getQualityLength(),
+                      "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
+                      //  ID
+                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      //  template
+                      (id1 < id2) ? id1 : id2,
+                      (id1 < id2) ? id2 : id1,
+                      //  dir
+                      (id1 < id2) ? 'F' : 'R',
+                      //  library
+                      AS_UID_toString(libUID[fr.gkFragment_getLibraryIID()]),
+                      //  trim
+                      lclr,
+                      rclr);
+
+    //  Grab the second fragment.
+
+    gkp->gkStore_getFragment(id2, &mr, GKFRAGMENT_QLT);
+
+    lclr = mr.gkFragment_getClearRegionBegin(dumpFRGClear) + 1;
+    rclr = mr.gkFragment_getClearRegionEnd  (dumpFRGClear);
+
+    //  Write the second fragment (twice).
+    AS_UTL_writeFastQ(b,
+                      fr.gkFragment_getSequence(), fr.gkFragment_getSequenceLength(),
+                      fr.gkFragment_getQuality(),  fr.gkFragment_getQualityLength(),
+                      "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
+                      //  ID
+                      AS_UID_toString(mr.gkFragment_getReadUID()),
+                      //  template
+                      (id1 < id2) ? id1 : id2,
+                      (id1 < id2) ? id2 : id1,
+                      //  dir
+                      (id1 < id2) ? 'F' : 'R',
+                      //  library
+                      AS_UID_toString(libUID[mr.gkFragment_getLibraryIID()]),
+                      //  trim
+                      lclr,
+                      rclr);
+
+    AS_UTL_writeFastQ(p,
+                      fr.gkFragment_getSequence(), fr.gkFragment_getSequenceLength(),
+                      fr.gkFragment_getQuality(),  fr.gkFragment_getQualityLength(),
+                      "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
+                      //  ID
+                      AS_UID_toString(mr.gkFragment_getReadUID()),
+                      //  template
+                      (id1 < id2) ? id1 : id2,
+                      (id1 < id2) ? id2 : id1,
+                      //  dir
+                      (id1 < id2) ? 'F' : 'R',
+                      //  library
+                      AS_UID_toString(libUID[mr.gkFragment_getLibraryIID()]),
+                      //  trim
+                      lclr,
+                      rclr);
+
+    //  Mark the pair as dumped.  This is a cheap way around testing 
+    //
+    iidToDump[id1] = 0;
+    iidToDump[id2] = 0;
   }
 
   delete fs;
   delete gkp;
 }
+
 
 int
 dumpGateKeeperIsFeatureSet(char      *gkpStoreName,
