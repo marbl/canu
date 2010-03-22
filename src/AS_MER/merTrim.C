@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.4 2010-03-21 04:57:52 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.5 2010-03-22 13:43:53 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,74 +58,125 @@ public:
   mertrimGlobalData() {
     gkpPath        = 0L;
     merCountsFile  = 0L;
-    merSize        = 23;
+    merSize        = 22;
     compression    = 0;
     numThreads     = 4;
     beVerbose      = false;
-    kb             = NULL;
+    doUpdate       = false;
+
+    gk             = NULL;
     edb            = NULL;
 
     logFile        = stderr;
+
+    tBgn = 0;
+    tEnd = 0;
+    tCur = 0;
   };
 
   ~mertrimGlobalData() {
     delete edb;
-    delete kb;
+    delete gk;
     if (logFile != stderr)
       fclose(logFile);
   };
 
   void              initialize(void) {
-#warning kb is THREAD UNSAFE
-    //edb    = new existDB(merCountsFile, merSize, existDBcounts | existDBcompressBuckets | existDBcompressCounts, EXISTDB_MIN_COUNT, ~0);
+
+    fprintf(stderr, "opening gkStore '%s'\n", gkpPath);
+    gk = new gkStore(gkpPath, FALSE, doUpdate);
+
+    tBgn = 1;
+    tCur = 1;
+    tEnd = gk->gkStore_getNumFragments();
+
+    fprintf(stderr, "enabling clear range.\n");
+    gk->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
+
+    fprintf(stderr, "loading mer database.\n");
     edb    = new existDB(merCountsFile, merSize, existDBnoFlags, EXISTDB_MIN_COUNT, ~0);
-    kb     = new kMerBuilder(merSize, compression, 0L);
   };
 
 public:
 
   //  Command line parameters
   //
-  char    *gkpPath;
-  char    *merCountsFile;
-  uint32   merSize;
-  uint32   compression;
-  uint32   numThreads;
-  bool     beVerbose;
+  char         *gkpPath;
+
+  char         *merCountsFile;
+
+  uint32        merSize;
+  uint32        compression;
+  uint32        numThreads;
+  bool          beVerbose;
+  bool          doUpdate;
+
   FILE         *logFile;
 
   //  Global data
   //
-  kMerBuilder  *kb;
+  gkStore      *gk;
   existDB      *edb;
+
+  //  Input State
+  //
+  uint32        tBgn;
+  uint32        tCur;
+  uint32        tEnd;
 };
 
 
 
-#if 0
+
 class mertrimThreadData {
 public:
-  mertrimTrheadData() {
+  mertrimThreadData(mertrimGlobalData *g) {
+    kb     = new kMerBuilder(g->merSize, g->compression, 0L);
   };
   ~mertrimThreadData() {
-  }
-
-  void          initialize(mertrimGlobalData *g) {
+    delete kb;
   };
 
 public:
-}
-#endif
+  kMerBuilder  *kb;
+};
+
 
 
 
 class mertrimComputation {
 public:
-  mertrimComputation(mertrimGlobalData *g_, gkFragment &fr_) {
-    g = g_;
+  mertrimComputation() {
+    origSeq    = NULL;
+    origQlt    = NULL;
+    corrSeq    = NULL;
+    corrQlt    = NULL;
+    seqMap     = NULL;
 
-    readIID = fr_.gkFragment_getReadIID();
-    seqLen  = fr_.gkFragment_getSequenceLength();
+    disconnect = NULL;
+    deletion   = NULL;
+    coverage   = NULL;
+    corrected  = NULL;
+  }
+  ~mertrimComputation() {
+    delete [] origSeq;
+    delete [] origQlt;
+    delete [] corrSeq;
+    delete [] corrQlt;
+    delete [] seqMap;
+    delete    ms;
+
+    delete [] disconnect;
+    delete [] deletion;
+    delete [] coverage;
+    delete [] corrected;
+  }
+
+  void   initialize(mertrimGlobalData *g_) {
+    g  = g_;
+
+    readIID = fr.gkFragment_getReadIID();
+    seqLen  = fr.gkFragment_getSequenceLength();
 
     origSeq = new char   [AS_READ_MAX_NORMAL_LEN];
     origQlt = new char   [AS_READ_MAX_NORMAL_LEN];
@@ -146,10 +197,10 @@ public:
 
     corrected  = NULL;
 
-    strcpy(origSeq, fr_.gkFragment_getSequence());
-    strcpy(origQlt, fr_.gkFragment_getQuality());
-    strcpy(corrSeq, fr_.gkFragment_getSequence());
-    strcpy(corrQlt, fr_.gkFragment_getQuality());
+    strcpy(origSeq, fr.gkFragment_getSequence());
+    strcpy(origQlt, fr.gkFragment_getQuality());
+    strcpy(corrSeq, fr.gkFragment_getSequence());
+    strcpy(corrQlt, fr.gkFragment_getQuality());
 
     //  Replace Ns with a random low-quality base.  This is necessary, since the mer routines
     //  will not make a mer for N, and we never see it to correct it.
@@ -169,19 +220,6 @@ public:
     for (uint32 i=0; i<AS_READ_MAX_NORMAL_LEN; i++)
       seqMap[i] = i;
   };
-  ~mertrimComputation() {
-    delete [] origSeq;
-    delete [] origQlt;
-    delete [] corrSeq;
-    delete [] corrQlt;
-    delete [] seqMap;
-    delete    ms;
-
-    delete [] disconnect;
-    delete [] deletion;
-    delete [] coverage;
-    delete [] corrected;
-  }
 
   uint32     evaluate(bool postCorrection);
 
@@ -214,8 +252,11 @@ public:
 
   void       dump(FILE *F, char *label);
 
-private:
+  //  Public for the writer.
+  gkFragment           fr;
+
   mertrimGlobalData   *g;
+  mertrimThreadData   *t;
 
   AS_IID     readIID;
   uint32     seqLen;
@@ -262,7 +303,7 @@ uint32
 mertrimComputation::evaluate(bool postCorrection) {
 
   if (ms == NULL)
-    ms = new merStream(g->kb, new seqStream(corrSeq, seqLen), false, true);
+    ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
   ms->rewind();
 
@@ -308,7 +349,7 @@ mertrimComputation::reverse(void) {
   reverseComplement(corrSeq, corrQlt, seqLen);
 
   delete ms;
-  ms = new merStream(g->kb, new seqStream(corrSeq, seqLen), false, true);
+  ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
   if (corrected) {
     s = corrected;
@@ -488,7 +529,7 @@ mertrimComputation::attemptCorrection(void) {
         pos = ms->thePositionInSequence();
 
         delete ms;
-        ms = new merStream(g->kb, new seqStream(corrSeq, seqLen), false, true);
+        ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
         ms->nextMer();
 
         while (pos != ms->thePositionInSequence())
@@ -597,7 +638,7 @@ mertrimComputation::attemptCorrection(void) {
       pos = ms->thePositionInSequence();
 
       delete ms;
-      ms = new merStream(g->kb, new seqStream(corrSeq, seqLen), false, true);
+      ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
       analyze();
 
@@ -962,10 +1003,138 @@ mertrimComputation::dump(FILE *F, char *label) {
 
 
 
+
+
+void
+mertrimWorker(void *G, void *T, void *S) {
+  mertrimGlobalData    *g = (mertrimGlobalData  *)G;
+  mertrimThreadData    *t = (mertrimThreadData  *)T;
+  mertrimComputation   *s = (mertrimComputation *)S;
+
+  s->t = t;
+
+  uint32  eval = s->evaluate(false);
+
+  //  Read is perfect!
+  //
+  if      (eval == ALLGOOD) {
+    //resultAllGood++;
+    goto finished;
+  }
+
+  //  Read had NO mers found.  We'll let it through, but it might just end up a singleton.  There
+  //  is a slight chance it has a 2-copy mer that will pull it in, or maybe the mate will.
+  //
+  if (eval == ALLCRAP) {
+    //resultAllCrap++;
+    s->attemptTrimming();
+    goto finished;
+  }
+
+  s->reverse();
+  s->analyze();
+  eval = s->attemptCorrection();
+
+  s->reverse();
+  s->analyze();
+  eval = s->attemptCorrection();
+
+  //  Correction worked perfectly, we're done.
+  //
+  if ((eval == ALLGOOD) && (s->getNumCorrected() < 4)) {
+    //resultCorrected++;
+    goto finished;
+  }
+
+  eval = s->attemptTrimming();
+
+  if ((eval == ALLGOOD) && (s->getNumCorrected() < 4)) {
+    //resultTrimmed++;
+    goto finished;
+  }
+
+  //resultUnverified++;
+
+  finished:
+  ;
+}
+
+
+void *
+mertrimReader(void *G) {
+  mertrimGlobalData    *g = (mertrimGlobalData  *)G;
+  mertrimComputation   *s = NULL;
+
+  if (g->tCur <= g->tEnd) {
+    s = new mertrimComputation();
+
+    g->gk->gkStore_getFragment(g->tCur, &s->fr, GKFRAGMENT_QLT);
+    g->tCur++;
+
+    s->initialize(g);
+  }
+
+  return(s);
+}
+
+
+
+void
+mertrimWriter(void *G, void *S) {
+  mertrimGlobalData    *g = (mertrimGlobalData  *)G;
+  mertrimComputation   *s = (mertrimComputation *)S;
+
+  bool  delFrag = false;
+
+  //  The get*() functions return positions in the original uncorrected sequence.  They
+  //  map from positions in the corrected sequence (which has inserts and deletes) back
+  //  to the original sequence.
+  //
+  assert(s->getClrBgn() <= s->getClrEnd());
+  assert(s->getClrBgn() <  s->getSeqLen());
+  assert(s->getClrEnd() <= s->getSeqLen());
+
+#if 0
+  if ((s->getClrEnd() <= s->getClrBgn()) ||
+      (s->getClrEnd() - s->getClrBgn() < AS_READ_MIN_LEN))
+    delFrag = true;
+    
+  if (g->doUpdate) {
+    s->fr.gkFragment_setClearRegion(s->getClrBgn(), s->getClrEnd(), AS_READ_CLEAR_OBTINITIAL);
+    g->gk->gkStore_setFragment(&s->fr);
+  }
+
+  if (delFrag) {
+    //resultDeleted++;
+
+    if (g->doUpdate)
+      g->gk->gkStore_delFragment(s->fr.gkFragment_getReadIID(), false);
+  }
+#endif
+
+  if (g->logFile)
+    fprintf(g->logFile, "%s,%d\t%d\t%d%s\n",
+            AS_UID_toString(s->fr.gkFragment_getReadUID()),
+            s->fr.gkFragment_getReadIID(),
+            s->getClrBgn(),
+            s->getClrEnd(),
+            delFrag ? "\t(deleted)" : "");
+
+  delete s;
+}
+
+
+
+
+
+
+
+
+
+
 int
 main(int argc, char **argv) {
   mertrimGlobalData  *g        = new mertrimGlobalData;
-  bool                doUpdate = true;
 
   argc = AS_configure(argc, argv);
 
@@ -1005,136 +1174,59 @@ main(int argc, char **argv) {
 
   gkpStoreFile::registerFile();
 
-  //  Read mers into an existDB.
-
   g->initialize();
 
-  //  Open gkpStore, stream reads, compute trim.
-
-  fprintf(stderr, "opening gkStore '%s'\n", g->gkpPath);
-
-  gkStore     *gk = new gkStore(g->gkpPath, FALSE, doUpdate);
-
-  gk->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
-
-  uint32       tBeg = 1;
-  uint32       tEnd = gk->gkStore_getNumFragments();
-
   gkFragment   fr;
-  //gkStream    *gs = new gkStream(gk, tBeg, tEnd, GKFRAGMENT_QLT);
 
+#if 0
   uint32       resultAllGood        = 0;  //  All read verified as good
   uint32       resultAllCrap        = 0;  //  No mers found
   uint32       resultCorrected      = 0;  //  Only a few bases needed to change to make it good
   uint32       resultTrimmed        = 0;  //  After trimming off crud, it is now good
   uint32       resultUnverified     = 0;
   uint32       resultDeleted        = 0;
+#endif
 
+
+#if 0
   speedCounter SC(" Trimming: %11.0f reads -- %7.5f reads/second\r", 1.0, 0x1fff, true);
 
-  for (uint32 iid=tBeg; iid<=tEnd; iid++) {
+  mertrimThreadData *t = new mertrimThreadData(g);
 
-    if (VERBOSE) {
-      fprintf(stderr, "----------------------------------------\n");
-    }  //  VERBOSE
-
-    gk->gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
-
-    mertrimComputation *C = new mertrimComputation(g, fr);
-
-    //assert((tBeg <= iid) && (iid <= tEnd));
-
-    uint32  eval = C->evaluate(false);
-
-    //  Read is perfect!
-    //
-    if      (eval == ALLGOOD) {
-      resultAllGood++;
-      goto finished;
-    }
-
-    //  Read had NO mers found.  We'll let it through, but it might just end up a singleton.  There
-    //  is a slight chance it has a 2-copy mer that will pull it in, or maybe the mate will.
-    //
-    if (eval == ALLCRAP) {
-      resultAllCrap++;
-      C->attemptTrimming();
-      goto finished;
-    }
-
-    C->reverse();
-    C->analyze();
-    eval = C->attemptCorrection();
-
-    C->reverse();
-    C->analyze();
-    eval = C->attemptCorrection();
-
-    //  Correction worked perfectly, we're done.
-    //
-    if ((eval == ALLGOOD) && (C->getNumCorrected() < 4)) {
-      resultCorrected++;
-      goto finished;
-    }
-
-    eval = C->attemptTrimming();
-
-    if ((eval == ALLGOOD) && (C->getNumCorrected() < 4)) {
-      resultTrimmed++;
-      goto finished;
-    }
-
-    resultUnverified++;
-
-  finished:
-    bool  delFrag = false;
-
-    //  The get*() functions return positions in the original uncorrected sequence.  They
-    //  map from positions in the corrected sequence (which has inserts and deletes) back
-    //  to the original sequence.
-    //
-    assert(C->getClrBgn() <= C->getClrEnd());
-    assert(C->getClrBgn() <  C->getSeqLen());
-    assert(C->getClrEnd() <= C->getSeqLen());
-
-    if ((C->getClrEnd() <= C->getClrBgn()) ||
-        (C->getClrEnd() - C->getClrBgn() < AS_READ_MIN_LEN))
-      delFrag = true;
-    
-    if (doUpdate) {
-      fr.gkFragment_setClearRegion(C->getClrBgn(), C->getClrEnd(), AS_READ_CLEAR_OBTINITIAL);
-      gk->gkStore_setFragment(&fr);
-    }
-
-    if (delFrag) {
-      resultDeleted++;
-
-      if (doUpdate)
-        gk->gkStore_delFragment(fr.gkFragment_getReadIID(), false);
-    }
-
-    if (g->logFile)
-      fprintf(g->logFile, "%s,%d\t%d\t%d%s\n",
-              AS_UID_toString(fr.gkFragment_getReadUID()),
-              fr.gkFragment_getReadIID(),
-              C->getClrBgn(),
-              C->getClrEnd(),
-              delFrag ? "\t(deleted)" : "");
-
-    delete C;
-
+  mertrimComputation *s = (mertrimComputation *)mertrimReader(g);
+  while (s) {
+    mertrimWorker(g, t, s);
+    mertrimWriter(g, s);
     SC.tick();
+    s = (mertrimComputation *)mertrimReader(g);
   }
 
-  //delete gs;
-  delete gk;
+  delete t;
+#else
+  sweatShop *ss = new sweatShop(mertrimReader, mertrimWorker, mertrimWriter);
 
+  ss->setLoaderQueueSize(16384);
+  ss->setWriterQueueSize(1024);
+
+  ss->setNumberOfWorkers(g->numThreads);
+
+  for (u32bit w=0; w<g->numThreads; w++)
+    ss->setThreadData(w, new mertrimThreadData(g));  //  these leak
+
+  ss->run(g, g->beVerbose);  //  true == verbose
+#endif
+
+
+#if 0
   fprintf(stderr, "resultAllGood        %d\n", resultAllGood);
   fprintf(stderr, "resultAllCrap        %d\n", resultAllCrap);
   fprintf(stderr, "resultCorrected      %d\n", resultCorrected);
   fprintf(stderr, "resultTrimmed        %d\n", resultTrimmed);
   fprintf(stderr, "resultUnverified     %d\n", resultUnverified);
   fprintf(stderr, "resultDeleted        %d\n", resultDeleted);
+#endif
+
+  delete g;
 
   fprintf(stderr, "\nSuccess!  Bye.\n");
 
