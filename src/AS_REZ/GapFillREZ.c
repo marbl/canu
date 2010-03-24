@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.65 2010-02-26 05:08:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.66 2010-03-24 15:17:40 skoren Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -710,10 +710,13 @@ fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in 
                LengthT chunk_start;
                LengthT chunk_end;                  
                if (g.start.mean <= g.end.mean) {
-                  chunk_start.mean = g.start.mean - 1;
-                  chunk_start.variance = g.start.variance;
-                  chunk_end.mean = g.end.mean + 1;                   
-                  chunk_end.variance = g.end.variance;
+            	  // estimate positions of the contig in the gap, evenly distribute overhang on both sides of the gap
+            	  double diffInSize = (contig->bpLength.mean - (g.end.mean - g.start.mean)) / 2;
+
+            	  chunk_start.mean = g.start.mean - diffInSize;
+                  chunk_start.variance = g.start.variance + contig->bpLength.variance;
+                  chunk_end.mean = g.end.mean + diffInSize;
+                  chunk_end.variance = g.end.variance + contig->bpLength.variance;
                } else {
                   fprintf(stderr, "Place_Closure_Chunk(): Closure gap %d (%f) in scf=%d is negative, not placing closure reads here\n", i, g.len, end_chunk->scaffoldID);
                   assert(0);
@@ -846,6 +849,8 @@ static void Print_Closure_Reads_Info(Scaffold_Fill_t * fill_chunks) {
          for (j = 0; j < g.num_chunks; j++) {
             if (g.chunk[j].isClosure) {
                fprintf(stderr, "Place_Closure_Chunk(): CID %d thrown into gap %d for SCF %d total placed=%d\n", g.chunk[j].chunk_id, i, scf->id, g.num_chunks);
+            } else {
+            	fprintf(stderr, "Place_Closure_Chunk(): Non-Closure CID %d thrown into gap %d for SCF %d total placed=%d\n", g.chunk[j].chunk_id, i, scf->id, g.num_chunks);
             }
          }
       }
