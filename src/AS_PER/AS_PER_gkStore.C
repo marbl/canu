@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.18 2009-12-10 23:00:53 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.19 2010-03-25 14:31:52 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +41,9 @@ static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.18 2009-12-10 23:00:53 brianwale
 
 
 gkStore::gkStore() {
+
+  gkStore_clear();
+
   uid      = createStringStore(NULL, "uid");
   STRtoUID = CreateStringHashTable_AS();
 }
