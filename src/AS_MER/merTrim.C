@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.5 2010-03-22 13:43:53 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.6 2010-03-25 16:44:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +64,8 @@ public:
     beVerbose      = false;
     doUpdate       = false;
 
-    gk             = NULL;
+    gkRead         = NULL;
+    gkWrite        = NULL;
     edb            = NULL;
 
     logFile        = stderr;
@@ -76,7 +77,8 @@ public:
 
   ~mertrimGlobalData() {
     delete edb;
-    delete gk;
+    delete gkRead;
+    delete gkWrite;
     if (logFile != stderr)
       fclose(logFile);
   };
@@ -84,14 +86,15 @@ public:
   void              initialize(void) {
 
     fprintf(stderr, "opening gkStore '%s'\n", gkpPath);
-    gk = new gkStore(gkpPath, FALSE, doUpdate);
+    gkRead  = new gkStore(gkpPath, FALSE, FALSE);
+    gkWrite = (doUpdate) ? new gkStore(gkpPath, FALSE, TRUE) : NULL;
 
     tBgn = 1;
     tCur = 1;
-    tEnd = gk->gkStore_getNumFragments();
+    tEnd = gkRead->gkStore_getNumFragments();
 
     fprintf(stderr, "enabling clear range.\n");
-    gk->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
+    gkRead->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
 
     fprintf(stderr, "loading mer database.\n");
     edb    = new existDB(merCountsFile, merSize, existDBnoFlags, EXISTDB_MIN_COUNT, ~0);
@@ -115,7 +118,8 @@ public:
 
   //  Global data
   //
-  gkStore      *gk;
+  gkStore      *gkRead;
+  gkStore      *gkWrite;
   existDB      *edb;
 
   //  Input State
@@ -440,6 +444,12 @@ mertrimComputation::attemptCorrection(void) {
   while (ms->nextMer()) {
     uint32 pos = ms->thePositionInSequence() + g->merSize - 1;
 
+    //  Sometimes, we see long bogus 454 reads.  Gatekeeper will trim these to 2043 bases, leaving us
+    //  no space to insert bases.  If this happens, well, there isn't a whole lot we can really do,
+    //  and we'll just return ALLCRAP.
+
+    if (seqLen >= AS_READ_MAX_NORMAL_LEN)
+      return(ALLCRAP);
     assert(seqLen < AS_READ_MAX_NORMAL_LEN);
 
     //if (coverage[pos] > 0)
@@ -1068,7 +1078,7 @@ mertrimReader(void *G) {
   if (g->tCur <= g->tEnd) {
     s = new mertrimComputation();
 
-    g->gk->gkStore_getFragment(g->tCur, &s->fr, GKFRAGMENT_QLT);
+    g->gkRead->gkStore_getFragment(g->tCur, &s->fr, GKFRAGMENT_QLT);
     g->tCur++;
 
     s->initialize(g);
@@ -1094,23 +1104,21 @@ mertrimWriter(void *G, void *S) {
   assert(s->getClrBgn() <  s->getSeqLen());
   assert(s->getClrEnd() <= s->getSeqLen());
 
-#if 0
   if ((s->getClrEnd() <= s->getClrBgn()) ||
       (s->getClrEnd() - s->getClrBgn() < AS_READ_MIN_LEN))
     delFrag = true;
     
   if (g->doUpdate) {
     s->fr.gkFragment_setClearRegion(s->getClrBgn(), s->getClrEnd(), AS_READ_CLEAR_OBTINITIAL);
-    g->gk->gkStore_setFragment(&s->fr);
+    g->gkWrite->gkStore_setFragment(&s->fr);
   }
 
   if (delFrag) {
     //resultDeleted++;
 
     if (g->doUpdate)
-      g->gk->gkStore_delFragment(s->fr.gkFragment_getReadIID(), false);
+      g->gkWrite->gkStore_delFragment(s->fr.gkFragment_getReadIID(), false);
   }
-#endif
 
   if (g->logFile)
     fprintf(g->logFile, "%s,%d\t%d\t%d%s\n",
@@ -1152,8 +1160,14 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-mc") == 0) {
       g->merCountsFile = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      g->numThreads = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-v") == 0) {
       g->beVerbose = true;
+
+    } else if (strcmp(argv[arg], "-V") == 0) {
+      VERBOSE++;
 
     } else if (strcmp(argv[arg], "-l") == 0) {
       errno = 0;
@@ -1189,9 +1203,14 @@ main(int argc, char **argv) {
 
 
 #if 0
+  //  DEBUG, non-threaded version.
   speedCounter SC(" Trimming: %11.0f reads -- %7.5f reads/second\r", 1.0, 0x1fff, true);
 
   mertrimThreadData *t = new mertrimThreadData(g);
+
+  g->tBgn = 140222;
+  g->tCur = 140222;
+  g->tEnd = 140222;
 
   mertrimComputation *s = (mertrimComputation *)mertrimReader(g);
   while (s) {
@@ -1203,6 +1222,7 @@ main(int argc, char **argv) {
 
   delete t;
 #else
+  //  PRODUCTION, threaded version
   sweatShop *ss = new sweatShop(mertrimReader, mertrimWorker, mertrimWriter);
 
   ss->setLoaderQueueSize(16384);
