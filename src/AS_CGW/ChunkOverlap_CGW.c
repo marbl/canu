@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.51 2010-03-15 10:40:12 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.52 2010-03-28 22:01:06 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -905,17 +905,21 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
     qualityB   = CreateVA_char(2048);
   }
 
-  //  Save a copy of the spec supplied, then reset
+  //  Reset, make it look like there is no overlap.
 
-  ChunkOverlapCheckT inOlap = *canOlap;
-  ChunkOverlapCheckT nnOlap = *canOlap;
+  canOlap->BContainsA = FALSE;
+  canOlap->AContainsB = FALSE;
+  canOlap->computed   = TRUE;
+  canOlap->overlap    = FALSE;
+  canOlap->ahg        = 0;
+  canOlap->bhg        = 0;
 
-  nnOlap.BContainsA = FALSE;
-  nnOlap.AContainsB = FALSE;
-  nnOlap.computed   = TRUE;
-  nnOlap.overlap    = FALSE;
-  nnOlap.ahg        = 0;
-  nnOlap.bhg        = 0;
+  //  Save a copy of the spec supplied, then reset.  The copies are made because 'canOlap' is
+  //  probably a reference to an overlap in the store.  If we were to modify the spec, we screw up
+  //  the hash function, and also cannot even remove the original overlap from the store.
+
+  ChunkOverlapCheckT inOlap = *canOlap;  //  Copy of the original input, will be removed from the store
+  ChunkOverlapCheckT nnOlap = *canOlap;  //  Working copy, will be added to the store
 
   if (nnOlap.maxOverlap < 0)
     //  No point doing the expensive part if there can be no overlap
@@ -957,7 +961,6 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
     nnOlap.AContainsB = TRUE;
 
   //	    Print_Overlap_AS(stderr,&AFR,&BFR,O);
-  nnOlap.computed = TRUE;
   nnOlap.ahg = tempOlap1->begpos;
   nnOlap.bhg = tempOlap1->endpos;
 
