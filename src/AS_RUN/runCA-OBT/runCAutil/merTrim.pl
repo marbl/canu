@@ -15,7 +15,7 @@ sub merTrim {
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
 
 
-    if (! -e "$wrk/0-overlaptrim/$asm.merTrim.err") {
+    if (! -e "$wrk/0-overlaptrim/$asm.merTrimLog") {
         meryl();
 
         my $merSize     = getGlobal("obtMerSize");
@@ -28,6 +28,7 @@ sub merTrim {
         $cmd .= " -m  $merSize \\\n";
         $cmd .= " -c  $merComp \\\n";
         $cmd .= " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
+        $cmd .= " -l  $wrk/0-overlaptrim/$asm.merTrimLog \\\n";
         $cmd .= " >  $wrk/0-overlaptrim/$asm.merTrim.err 2>&1\n";
 
         stopBefore("initialTrim", $cmd);
