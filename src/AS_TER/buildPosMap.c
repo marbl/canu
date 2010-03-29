@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.17 2010-03-19 16:14:33 skoren Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.18 2010-03-29 04:11:47 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -257,11 +257,8 @@ processULK(SnapUnitigLinkMesg *ulk) {
           ulk->std_deviation,
           ulk->num_contributing,
           ulk->status);
-  uint32 max = ulk->num_contributing;
-  if (ulk->overlap_type != AS_NO_OVERLAP) {
-	  max--;
-  }
-  for (uint32 i=0; i<max; i++)
+  //  If overlap type indicates an overlap was counted, subtract one
+  for (uint32 i=0; i < ulk->num_contributing - (ulk->overlap_type != AS_NO_OVERLAP); i++)
     fprintf(utglkg, "\t%s,%s,%c",
             AS_UID_toString(ulk->jump_list[i].in1),
             AS_UID_toString(ulk->jump_list[i].in2),
@@ -391,7 +388,8 @@ processCLK(SnapContigLinkMesg *clk) {
           clk->std_deviation,
           clk->num_contributing,
           clk->status);
-  for (uint32 i=0; i<clk->num_contributing; i++)
+  //  If overlap type indicates an overlap was counted, subtract one
+  for (uint32 i=0; i < clk->num_contributing - (clk->overlap_type != AS_NO_OVERLAP); i++)
     fprintf(ctglkg, "\t%s,%s,%c",
             AS_UID_toString(clk->jump_list[i].in1),
             AS_UID_toString(clk->jump_list[i].in2),
@@ -503,6 +501,7 @@ processSLK(SnapScaffoldLinkMesg *slk) {
           slk->mean_distance,
           slk->std_deviation,
           slk->num_contributing);
+  //  Unlike ULK and CLK, there is no overlap_type here, so all num_contributing are edges
   for (uint32 i=0; i<slk->num_contributing; i++)
     fprintf(scflkg, "\t%s,%s,%c",
             AS_UID_toString(slk->jump_list[i].in1),
@@ -627,6 +626,8 @@ transferVar(FILE *ctg, FILE *scf) {
 
 int main (int argc, char *argv[]) {
   char *outputPrefix       = NULL;
+  char *asmName            = NULL;
+  FILE *asmFile            = stdin;
 
   GenericMesg *pmesg       = NULL;
 
@@ -638,6 +639,9 @@ int main (int argc, char *argv[]) {
     if        (strcmp(argv[arg], "-o") == 0) {
       outputPrefix = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-i") == 0) {
+      asmName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-h") == 0) {
       err++;
 
@@ -647,10 +651,18 @@ int main (int argc, char *argv[]) {
     }
     arg++;
   }
+  if (asmName) {
+    errno = 0;
+    asmFile = fopen(asmName, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open assembly file '%s': %s\n", asmName, strerror(errno)), exit(1);
+  }
   if ((outputPrefix == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -o prefix [-h] < prefix.asm\n", argv[0]);
+    fprintf(stderr, "usage: %s -o prefix [-h] [-i prefix.asm | < prefix.asm]\n", argv[0]);
     fprintf(stderr, "  -o prefix        write the output here\n");
+    fprintf(stderr, "  -u prefix.asm    read the assembly from here; default is to read stdin\n");
     fprintf(stderr, "  -h               print help\n");
+
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -687,7 +699,7 @@ int main (int argc, char *argv[]) {
   scflen = openFile("scflen", outputPrefix, 1);
 
 
-  while(ReadProtoMesg_AS(stdin,&pmesg) != EOF){
+  while(ReadProtoMesg_AS(asmFile, &pmesg) != EOF){
     switch(pmesg->t){
       case MESG_MDI:
         //processMDI(pmesg->m);
