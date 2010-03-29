@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.33 2010-03-16 13:06:31 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.34 2010-03-29 14:35:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -78,16 +78,20 @@ struct MateChecker{
     delete [] _globalStats;
   };
 
-  void checkUnitigGraph(UnitigGraph &, int badMateBreakThreshold);
+  void checkUnitigGraph(UnitigGraph &tigGraph, int badMateBreakThreshold);
 
 private:
-  void  accumulateLibraryStats(Unitig *);
-  void  computeGlobalLibStats(UnitigGraph &);
+  void  accumulateLibraryStats(Unitig *utg);
+  void  computeGlobalLibStats(UnitigGraph &tigGraph);
 
-  UnitigBreakPoints* computeMateCoverage(Unitig *, BestOverlapGraph *, int badMateBreakThreshold);
+  UnitigBreakPoints* computeMateCoverage(Unitig *utg,
+                                         BestOverlapGraph *bog,
+                                         int badMateBreakThreshold);
 
-  void moveContains(UnitigGraph&);
-  void splitDiscontinuousUnitigs(UnitigGraph&);
+  void evaluateMates(UnitigGraph &tigGraph);
+
+  void moveContains(UnitigGraph &tigGraph);
+  void splitDiscontinuousUnitigs(UnitigGraph &tigGraph);
 
 private:
   DistanceCompute  *_globalStats;
@@ -149,6 +153,13 @@ public:
 };
 
 
+
+//  The MateLocation table builds a table of positions of mated reads.
+//    o  Unmated reads are NOT in the table.
+//    o  Mates in other unitigs are not in the table.  The fragment
+//       in this unitig is present, but the mate is NULL.
+//    o  Mates in the same unitig are in the table.
+//
 class MateLocation {
 public:
   MateLocation(FragmentInfo *fi, Unitig *utg, DistanceCompute *dc) {

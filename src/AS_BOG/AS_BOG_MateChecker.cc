@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.86 2010-03-16 13:06:25 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.87 2010-03-29 14:35:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -32,11 +32,12 @@ static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.86 2010-03-16 13:06:2
 
 void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThreshold) {
 
+  computeGlobalLibStats(tigGraph);
+
   fprintf(stderr, "==> STARTING MATE BASED SPLITTING.\n");
 
   tigGraph.checkUnitigMembership();
-
-  computeGlobalLibStats(tigGraph);
+  evaluateMates(tigGraph);
 
   //  Move unhappy contained fragments before attempting mate based
   //  splitting.  We know they're broken already, and if scaffolder
@@ -47,6 +48,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
 
   tigGraph.reportOverlapsUsed("overlaps.aftermatecheck1");
   tigGraph.checkUnitigMembership();
+  evaluateMates(tigGraph);
 
   //  This should do absolutely nothing.  If it does, something is
   //  broken.  By just ejecting unhappy contains, nothing should be
@@ -57,6 +59,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
 
   tigGraph.reportOverlapsUsed("overlaps.aftermatecheck2");
   tigGraph.checkUnitigMembership();
+  evaluateMates(tigGraph);
 
   fprintf(stderr, "==> SPLIT BAD MATES\n");
   {
@@ -85,6 +88,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
 
   tigGraph.reportOverlapsUsed("overlaps.aftermatecheck3");
   tigGraph.checkUnitigMembership();
+  evaluateMates(tigGraph);
 
   //  The splitting code above is not smart enough to move contained
   //  fragments with containers.  This leaves unitigs disconnected.
@@ -95,6 +99,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
 
   tigGraph.reportOverlapsUsed("overlaps.aftermatecheck4");
   tigGraph.checkUnitigMembership();
+  evaluateMates(tigGraph);
 
   //  But now, all the splitting probably screwed up happiness of
   //  contained fragments, of left some unhappy fragments in a unitig
@@ -105,6 +110,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
 
   tigGraph.reportOverlapsUsed("overlaps.aftermatecheck5");
   tigGraph.checkUnitigMembership();
+  evaluateMates(tigGraph);
 
   //  Do one last check for disconnected unitigs.
   //
@@ -113,6 +119,7 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
 
   tigGraph.reportOverlapsUsed("overlaps.aftermatecheck6");
   tigGraph.checkUnitigMembership();
+  evaluateMates(tigGraph);
 }
 
 
@@ -270,6 +277,135 @@ void MateChecker::computeGlobalLibStats(UnitigGraph& tigGraph) {
             i, _globalStats[i].distancesLen, median, oneThird, twoThird, aproxStd, smallest, biggest,
             numPairs, _globalStats[i].mean, _globalStats[i].stddev);
   }
+}
+
+
+
+void
+MateChecker::evaluateMates(UnitigGraph &tigGraph) {
+
+  //  [0] -- BOTH frag and mate are dovetail
+  //  [1] -- ONE frag dovetail, ONE frag contained
+  //  [2] -- BOTH frag and mate are contained
+
+  uint64   unmated[3]         = { 0, 0, 0 };
+  uint64   mated[3]           = { 0, 0, 0 };
+  uint64   different[3][3]    = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
+  uint64   happy[3]           = { 0, 0, 0 };
+  uint64   grumpy[3]          = { 0, 0, 0 };
+
+  for (int  ti=0; ti<tigGraph.unitigs->size(); ti++) {
+    Unitig  *thisUtg = (*tigGraph.unitigs)[ti];
+
+    if ((thisUtg == NULL) ||
+        (thisUtg->dovetail_path_ptr->empty()) ||
+        (thisUtg->dovetail_path_ptr->size() == 1))
+      continue;
+
+    MateLocation          positions(_fi, thisUtg, _globalStats);
+
+    for (uint32 fi=0; fi<thisUtg->dovetail_path_ptr->size(); fi++) {
+      DoveTailNode  *thisFrg = &(*thisUtg->dovetail_path_ptr)[fi];
+
+      uint32  thisFrgID = thisFrg->ident;
+      uint32  mateFrgID = _fi->mateIID(thisFrg->ident);
+
+      BestContainment *thiscont = tigGraph.bog_ptr->getBestContainer(thisFrgID);
+      BestContainment *matecont = tigGraph.bog_ptr->getBestContainer(mateFrgID);
+
+      uint32  type = (thiscont != NULL) + (matecont != NULL);
+
+      //  Trivial case, not a mated fragment.
+
+      if (mateFrgID == 0) {
+        unmated[type]++;
+        continue;
+      }
+
+      uint32  thisUtgID = thisUtg->fragIn(thisFrgID);
+      uint32  mateUtgID = thisUtg->fragIn(mateFrgID);
+
+      MateLocationEntry  mloc     = positions.getById(thisFrg->ident);
+
+      //  Skip this fragment, unless it is mleFrgID1.  Fragments with mates in other unitigs
+      //  are always listed in ID1, and mates completely in this unitig should be counted once.
+      if (mloc.mleFrgID1 != thisFrgID)
+        continue;
+
+      mated[type]++;
+
+      //  Easy case, both fragments in the same unitig.
+
+      if (thisUtgID == mateUtgID) {
+        assert(mloc.mleUtgID1 == thisUtg->id());
+        assert(mloc.mleUtgID2 == thisUtg->id());
+        assert(mloc.mleFrgID1 == thisFrgID);
+        assert(mloc.mleFrgID2 == mateFrgID);
+
+        if (mloc.isGrumpy == false)
+          happy[type]++;
+        else
+          grumpy[type]++;
+        continue;
+      }
+
+      //  Hard case, fragments in different unitigs.  We want to distinguish between
+      //  three cases:
+      //    1) mates at the end that could potentially join unitigs across a gap
+      //    2) mate at the end to an interior mate -- possibly a repeat
+      //    3) both interior mates
+
+      assert(mloc.mleUtgID1 == thisUtg->id());
+      assert(mloc.mleUtgID2 == 0);
+      assert(mloc.mleFrgID1 == thisFrgID);
+      assert(mloc.mleFrgID2 == 0);
+
+      //  Get the mate frag.
+
+      Unitig        *mateUtg = (*tigGraph.unitigs)[mateUtgID];
+      DoveTailNode  *mateFrg = &(*mateUtg->dovetail_path_ptr)[mateUtg->pathPosition(mateFrgID)];
+
+      //differentSum[type]++;
+
+      bool  fragIsInterior = false;
+      bool  mateIsInterior = false;
+
+      uint32  lib           = _fi->libraryIID(thisFrg->ident);
+      uint32  minInsertSize = _globalStats[lib].mean - 3 * _globalStats[lib].stddev;
+      uint32  maxInsertSize = _globalStats[lib].mean + 3 * _globalStats[lib].stddev;
+
+      if (thisFrg->position.bgn < thisFrg->position.end) {
+        //  Fragment is forward, so mate should be after it.
+        if (thisUtg->getLength() - thisFrg->position.bgn > maxInsertSize)
+          fragIsInterior = true;
+      } else {
+        //  Fragment is reverse, so mate should be before it.
+        if (thisFrg->position.bgn > maxInsertSize)
+          fragIsInterior = true;
+      }
+
+      if (mateFrg->position.bgn < mateFrg->position.end) {
+        //  Fragment is forward, so mate should be after it.
+        if (mateUtg->getLength() - mateFrg->position.bgn > maxInsertSize)
+          mateIsInterior = true;
+      } else {
+        //  Fragment is reverse, so mate should be before it.
+        if (mateFrg->position.bgn > maxInsertSize)
+          mateIsInterior = true;
+      }
+
+      uint32  dtyp = (fragIsInterior == true) + (mateIsInterior == true);
+
+      different[type][dtyp]++;
+    }
+  }
+
+  fprintf(stderr, "MATE HAPPINESS (dove/dove):  unmated %11"F_U64P"  mated %11"F_U64P"  sameTig: happy %11"F_U64P" grumpy %11"F_U64P"  diffTig: end-end %11"F_U64P" end-int %11"F_U64P" int-int %11"F_U64P"\n",
+          unmated[0], mated[0], happy[0], grumpy[0], different[0][0], different[0][1], different[0][2]);
+  fprintf(stderr, "MATE HAPPINESS (dove/cont):  unmated %11"F_U64P"  mated %11"F_U64P"  sameTig: happy %11"F_U64P" grumpy %11"F_U64P"  diffTig: end-end %11"F_U64P" end-int %11"F_U64P" int-int %11"F_U64P"\n",
+          unmated[1], mated[1], happy[1], grumpy[1], different[1][0], different[1][1], different[1][2]);
+  fprintf(stderr, "MATE HAPPINESS (cont/cont):  unmated %11"F_U64P"  mated %11"F_U64P"  sameTig: happy %11"F_U64P" grumpy %11"F_U64P"  diffTig: end-end %11"F_U64P" end-int %11"F_U64P" int-int %11"F_U64P"\n",
+          unmated[2], mated[2], happy[2], grumpy[2], different[2][0], different[2][1], different[2][2]);
 }
 
 
