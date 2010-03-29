@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.34 2010-03-29 14:35:37 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.35 2010-03-29 16:52:40 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -56,6 +56,8 @@ struct DistanceCompute {
   DistanceCompute() {
     stddev       = 0.0;
     mean         = 0.0;
+    samples      = 0;
+
     distancesLen = 0;
     distancesMax = 1048576;
     distances    = new uint32 [distancesMax];
