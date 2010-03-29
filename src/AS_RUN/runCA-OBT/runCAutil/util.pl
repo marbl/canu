@@ -6,7 +6,7 @@ sub submitBatchJobs($$) {
    my $TAG = shift @_;
 
    if (runningOnGrid()) {
-       system($SGE) and caFailure("Failed to submit batch jobs.");
+       runCommand($wrk, $SGE) and caFailure("Failed to submit batch jobs.");
        submitScript($TAG);
    } else {
        pleaseExecute($SGE);
@@ -1082,7 +1082,7 @@ sub submitScript ($) {
 
     my $qcmd = "qsub $sge $sgeScript -cwd -N \"rCA_$asm$sgeName\" -j y -o $output $waitTag $script";
 
-    system($qcmd) and caFailure("Failed to submit script.\n");
+    runCommand($wrk, $qcmd) and caFailure("Failed to submit script.\n");
 
     if (defined($sgePropHold)) {
         my $acmd = "qalter -hold_jid \"rCA_$asm$sgeName\" \"$sgePropHold\"";
