@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.6 2010-02-27 18:52:01 mcschatz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.7 2010-03-29 21:51:54 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -27,12 +27,13 @@ const char *mainid = "$Id: tigStore.C,v 1.6 2010-02-27 18:52:01 mcschatz Exp $";
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
-#define DUMP_PROPERTIES  0x01
-#define DUMP_FRAGS       0x02
-#define DUMP_UNITIGS     0x04
-#define DUMP_CONSENSUS   0x08
-#define DUMP_LAYOUT      0x10
-#define DUMP_MULTIALIGN  0x20
+#define DUMP_PROPERTIES      0x01
+#define DUMP_FRAGS           0x02
+#define DUMP_UNITIGS         0x04
+#define DUMP_CONSENSUS       0x08
+#define DUMP_CONSENSUSGAPPED 0x10
+#define DUMP_LAYOUT          0x20
+#define DUMP_MULTIALIGN      0x40
 
 #define OPERATION_UNITIGLIST  1
 #define OPERATION_CONTIGLIST  2
@@ -188,14 +189,32 @@ void
 dumpConsensus(MultiAlignStore *tigStore,
               int32 tigID,
               int32 tigIsUnitig,
-              MultiAlignT *ma) {
+              MultiAlignT *ma,
+              bool withGaps) {
 
-  if ((ma->consensus) &&
-      ( Getchar(ma->consensus, 0) != NULL) &&
-      (*Getchar(ma->consensus, 0) != 0)) {
-    fprintf(stderr, ">%s%d len="F_U64"\n", (tigIsUnitig) ? "utg" : "ctg", ma->maID, GetNumchars(ma->consensus) - 1);
-    fprintf(stderr, "%s\n", Getchar(ma->consensus, 0));
+  if (ma->consensus == NULL)
+    return;
+
+  char *cns = Getchar(ma->consensus, 0);
+
+  if ((cns == NULL) || (cns[0] == 0))
+    return;
+
+  if (withGaps == false) {
+    char *o = cns;
+    char *n = cns;
+
+    while (*n) {
+      if (*n != '-')
+        *o++ = *n;
+      n++;
+    }
+
+    *o = 0;
   }
+
+  fprintf(stderr, ">%s%d len="F_U64"\n", (tigIsUnitig) ? "utg" : "ctg", ma->maID, GetNumchars(ma->consensus) - 1);
+  fprintf(stderr, "%s\n", cns);
 }
 
 
@@ -272,6 +291,9 @@ main (int argc, char **argv) {
       else if (strncmp(argv[arg], "consensus", 1) == 0)
         dumpFlags |= DUMP_CONSENSUS;
 
+      else if (strncmp(argv[arg], "consensusgapped", 1) == 0)
+        dumpFlags |= DUMP_CONSENSUSGAPPED;
+
       else if (strncmp(argv[arg], "layout", 1) == 0)
         dumpFlags |= DUMP_LAYOUT;
 
@@ -339,6 +361,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "     frags              ...a list of fragments\n");
     fprintf(stderr, "     unitigs            ...a list of unitigs\n");
     fprintf(stderr, "     consensus          ...the consensus sequence\n");
+    fprintf(stderr, "     consensusgapped    ...the consensus sequence, with gaps as indicated in the multialignment\n");
     fprintf(stderr, "     layout             ...the layout\n");
     fprintf(stderr, "     multialign         ...the full multialignment\n");
     fprintf(stderr, "\n");
@@ -466,7 +489,10 @@ main (int argc, char **argv) {
         dumpUnitigs(tigStore, tigID, tigIsUnitig, ma);
 
       if (dumpFlags & DUMP_CONSENSUS)
-        dumpConsensus(tigStore, tigID, tigIsUnitig, ma);
+        dumpConsensus(tigStore, tigID, tigIsUnitig, ma, false);
+
+      if (dumpFlags & DUMP_CONSENSUSGAPPED)
+        dumpConsensus(tigStore, tigID, tigIsUnitig, ma, true);
 
       if (dumpFlags & DUMP_LAYOUT)
         DumpMultiAlignForHuman(stdout, ma, tigIsUnitig);
