@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.55 2009-11-02 21:15:16 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.56 2010-03-29 04:14:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -174,7 +174,14 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
                        AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MAX_NORMAL_LEN);
 
     sl = AS_READ_MAX_NORMAL_LEN;
-    
+
+    S[sl] = 0;
+    Q[ql] = 0;
+
+    frg_mesg->clear_rng.end = MIN(frg_mesg->clear_rng.end, sl);
+    frg_mesg->clear_vec.end = MIN(frg_mesg->clear_vec.end, sl);
+    frg_mesg->clear_max.end = MIN(frg_mesg->clear_max.end, sl);
+
     failed = 1;
   }
 
@@ -249,7 +256,7 @@ checkClearRanges(FragMesg   *frg_mesg,
   if (assembler == AS_ASSEMBLER_OBT) {
     if (gkFrag1->clrBgn >= gkFrag1->clrEnd) {
       gkFrag1->clrBgn = 0;
-      gkFrag1->clrEnd = strlen(frg_mesg->sequence);
+      gkFrag1->clrEnd = strlen(gkFrag1->gkFragment_getSequence());
     }
   }
 
