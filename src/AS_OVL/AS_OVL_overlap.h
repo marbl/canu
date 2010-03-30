@@ -26,15 +26,15 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.33 2010-03-29 22:02:35 brianwalenz Exp $
- * $Revision: 1.33 $
+ * $Id: AS_OVL_overlap.h,v 1.34 2010-03-30 05:33:20 brianwalenz Exp $
+ * $Revision: 1.34 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
 
-static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.33 2010-03-29 22:02:35 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.34 2010-03-30 05:33:20 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -274,52 +274,6 @@ static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.33 2010-0
 #define  MAX_FRAGS_PER_THREAD    500
     //  The number of fragments each parallel thread tries to
     //  process in a "round"
-
-#undef HUGE_TABLE_VERSION
-#undef TINY_FRAG_VERSION
-    //  The HUGE_TABLE_VERSION essentially unlimits the amount of sequence
-    //  that can be stored in the table.  It also gets around the problem
-    //  of not having enough space to load the kmers to ignore.  It also
-    //  requires nearly infinite memory; don't expect it to work in small
-    //  spaces!
-
-#if AS_READ_MAX_NORMAL_LEN_BITS > 11
-#define HUGE_TABLE_VERSION
-#endif
-
-#ifdef  HUGE_TABLE_VERSION
-#define STRING_NUM_BITS          24
-#else
-#define STRING_NUM_BITS          19
-#endif
-
-#ifdef  CONTIG_OVERLAPPER_VERSION
-#undef  STRING_NUM_BITS
-#define STRING_NUM_BITS          11
-#endif
-
-#ifdef  TINY_FRAG_VERSION
-#undef  STRING_NUM_BITS
-#define STRING_NUM_BITS          23
-#endif
-    //  Number of bits used to store the string number in the
-    //  hash table
-
-#define  MAX_STRING_NUM          ((1 << STRING_NUM_BITS) - 1)
-   //   Largest string number that can fit in the hash table
-
-#if STRING_NUM_BITS <= 19
-#define  OFFSET_BITS             (30 - STRING_NUM_BITS)
-#else
-#define  OFFSET_BITS             (60 - STRING_NUM_BITS)
-#endif
-    //  Number of bits used to store lengths of strings stored
-    //  in the hash table
-
-
-#define  OFFSET_MASK             (((uint64)1 << OFFSET_BITS) - 1)
-    //  Mask used to extract bits to put in  Offset  field
-
 
 #ifdef  CONTIG_OVERLAPPER_VERSION
 #define  EXPECTED_STRING_LEN     (AS_READ_MAX_NORMAL_LEN / 2)
