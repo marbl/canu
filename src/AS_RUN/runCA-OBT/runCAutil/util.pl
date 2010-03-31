@@ -540,6 +540,22 @@ sub setDefaults () {
 
     $global{"closurePlacement"}           = 2;
     $synops{"closurePlacement"}           = "Option for placing closure reads using the constraints.\n\t0 - Place at the first location found\n\t1 - Place at the best location (indicated by most constraints)\n\t2 - Place at multiple locations as long as the closure read/unitig in question is not unique";
+
+
+    if (exists($ENV{'AS_OVL_ERROR_RATE'})) {
+        setGlobal("ovlErrorRate", $ENV{'AS_OVL_ERROR_RATE'});
+        print STDERR "ovlErrorRate $ENV{'AS_OVL_ERROR_RATE'} (from \$AS_OVL_ERROR_RATE)\n";
+    }
+
+    if (exists($ENV{'AS_CGW_ERROR_RATE'})) {
+        setGlobal("cgwErrorRate", $ENV{'AS_CGW_ERROR_RATE'});
+        print STDERR "ENV: cgwErrorRate $ENV{'AS_CGW_ERROR_RATE'} (from \$AS_CGW_ERROR_RATE)\n";
+    }
+
+    if (exists($ENV{'AS_CNS_ERROR_RATE'})) {
+        setGlobal("cnsErrorRate", $ENV{'AS_CNS_ERROR_RATE'});
+        print STDERR "ENV: cnsErrorRate $ENV{'AS_CNS_ERROR_RATE'} (from \$AS_CNS_ERROR_RATE)\n";
+    }
 }
 
 sub makeAbsolute ($) {
@@ -563,67 +579,40 @@ sub setParametersFromFile ($@) {
     my $specFile  = shift @_;
     my @fragFiles = @_;
 
-    if (exists($ENV{'AS_OVL_ERROR_RATE'})) {
-        setGlobal("ovlErrorRate", $ENV{'AS_OVL_ERROR_RATE'});
-        print STDERR "ENV: ovlErrorRate $ENV{'AS_OVL_ERROR_RATE'}\n";
-    }
-    if (exists($ENV{'AS_CGW_ERROR_RATE'})) {
-        setGlobal("cgwErrorRate", $ENV{'AS_CGW_ERROR_RATE'});
-        print STDERR "cgwErrorRate $ENV{'AS_CGW_ERROR_RATE'}\n";
-    }
-    if (exists($ENV{'AS_CNS_ERROR_RATE'})) {
-        setGlobal("cnsErrorRate", $ENV{'AS_CNS_ERROR_RATE'});
-        print STDERR "cnsErrorRate $ENV{'AS_CNS_ERROR_RATE'}\n";
-    }
+    #  Client should be ensuring that the file exists before calling this function.
+    die "specFile '$specFile' not found.\n"  if (! -e "$specFile");
 
-    if (defined($specFile)) {
-        my $bin = "$FindBin::RealBin/spec";
+    print STDERR "#\n";
+    print STDERR "#  Reading options from '$specFile'\n";
+    print STDERR "#\n";
+    open(F, "< $specFile") or caFailure("Couldn't open '$specFile'", undef);
 
-        if (-e $specFile && ! -d $specFile) {
-            print STDERR "#\n";
-            print STDERR "#  Reading options from '$specFile'\n";
-            print STDERR "#\n";
-            open(F, "< $specFile") or caFailure("Couldn't open '$specFile'", undef);
-        } elsif (-e "$bin/$specFile") {
-            print STDERR "#\n";
-            print STDERR "#  Reading options from '$bin/$specFile'\n";
-            print STDERR "#\n";
-            open(F, "< $bin/$specFile") or caFailure("Couldn't open '$bin/$specFile'", undef);
-        } elsif (-e "$bin/$specFile.specFile") {
-            print STDERR "#\n";
-            print STDERR "#  Reading options from '$bin/$specFile.specFile'\n";
-            print STDERR "#\n";
-            open(F, "< $bin/$specFile.specFile") or caFailure("Couldn't open '$bin/$specFile.specFile'", undef);
+    while (<F>) {
+        print STDERR $_;
+
+        s/^\s+//;
+        s/\s+$//;
+
+        next if (m/^\s*\#/);
+        next if (m/^\s*$/);
+
+        if (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
+            my ($var, $val) = ($1, $2);
+            $var =~ s/^\s+//; $var =~ s/\s+$//;
+            $val =~ s/^\s+//; $val =~ s/\s+$//;
+            undef $val if ($val eq "undef");
+            setGlobal($var, $val);
         } else {
-            caFailure("specFile '$specFile' or '$bin/$specFile' or '$bin/$specFile.specFile' not found", undef);
-        }
-        while (<F>) {
-            print STDERR $_;
-
-            s/^\s+//;
-            s/\s+$//;
-
-            next if (m/^\s*\#/);
-            next if (m/^\s*$/);
-
-            if (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
-                my ($var, $val) = ($1, $2);
-                $var =~ s/^\s+//; $var =~ s/\s+$//;
-                $val =~ s/^\s+//; $val =~ s/\s+$//;
-                undef $val if ($val eq "undef");
-                setGlobal($var, $val);
+            my $xx = $_;
+            $xx = "$ENV{'PWD'}/$xx" if ($xx !~ m!^/!);
+            if (-e $xx) {
+                push @fragFiles, $xx;
             } else {
-                my $xx = $_;
-                $xx = "$ENV{'PWD'}/$xx" if ($xx !~ m!^/!);
-                if (-e $xx) {
-                    push @fragFiles, $xx;
-                } else {
-                    setGlobal("help", getGlobal("help") . "File not found or invalid specFile line '$_'\n");
-                }
+                setGlobal("help", getGlobal("help") . "File not found or invalid specFile line '$_'\n");
             }
         }
-        close(F);
     }
+    close(F);
 
     return(@fragFiles);
 }
@@ -1064,8 +1053,8 @@ sub submitScript ($) {
 
     print F getBinDirectoryShellCode();
 
-    print F "hostname\n";
-    print F "echo \$bin\n";
+    #print F "hostname\n";
+    #print F "echo \$bin\n";
 
     print F "/usr/bin/env perl \$bin/runCA $commandLineOptions\n";
     close(F);

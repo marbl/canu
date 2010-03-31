@@ -1,16 +1,15 @@
 
 
-my $specFile = undef;
+my @specFiles;
 my @specOpts;
 my @fragFiles;
 
+#  Set global defaults.
 setDefaults();
 
 #  At some pain, we stash the original options for later use.  We need
-#  to use these when we resubmit ourself to SGE.
-#
-#  We can't simply dump all of @ARGV into here, because we need to
-#  fix up relative paths.
+#  to use these when we resubmit ourself to SGE.  We can't simply dump
+#  all of @ARGV into here, because we need to fix up relative paths.
 #
 $commandLineOptions = "";
 
@@ -27,8 +26,7 @@ while (scalar(@ARGV)) {
         $commandLineOptions .= " -p \"$asm\"";
 
     } elsif ($arg eq "-s") {
-        $specFile = shift @ARGV;
-        $commandLineOptions .= " -s \"$specFile\"";
+        push @specFiles, shift @ARGV;
 
     } elsif ($arg eq "-version") {
         setGlobal("version", 1);
@@ -61,15 +59,38 @@ while (scalar(@ARGV)) {
     }
 }
 
+
 setGlobal("help", getGlobal("help") . "Assembly name prefix not supplied with -p.\n") if (!defined($asm));
 setGlobal("help", getGlobal("help") . "Directory not supplied with -d.\n")            if (!defined($wrk));
 
-{
-    my $bin = getBinDirectory();
 
-    @fragFiles = setParametersFromFile("$bin/runCA.default.spec", @fragFiles) if (-e "$bin/runCA.default.spec");
-    @fragFiles = setParametersFromFile("$ENV{'HOME'}/.runCA",     @fragFiles) if (-e "$ENV{'HOME'}/.runCA");
-    @fragFiles = setParametersFromFile($specFile,                 @fragFiles);
+my $bin = getBinDirectory();
+
+@fragFiles = setParametersFromFile("$bin/spec/runCA.default.specFile", @fragFiles)   if (-e "$bin/spec/runCA.default.specFile");
+@fragFiles = setParametersFromFile("$ENV{'HOME'}/.runCA",              @fragFiles)   if (-e "$ENV{'HOME'}/.runCA");
+
+
+#  For each of the specfiles on the command line, find the actual file and make it an absolute path.
+#  These can be in the current directory (e.g., 'my.spec'), or in the installed directory ('$bin/spec').
+#
+foreach my $specFile (@specFiles) {
+
+    if ((-e "$specFile") && (! -d "$specFile")) {
+        $specFile = "$ENV{'PWD'}/$specFile" if ($specFile !~ m!^/!);
+
+    } elsif ((-e "$bin/spec/$specFile") && (! -d "$bin/spec/$specFile")) {
+        $specFile = "$bin/spec/$specFile";
+
+    } elsif ((-e "$bin/spec/$specFile.specFile") && (! -d "$bin/spec/$specFile.specFile")) {
+        $specFile = "$bin/spec/$specFile.specFile";
+
+    } else {
+        die "specFile '$specFile' not found.\n";
+    }
+
+    $commandLineOptions .= " -s \"$specFile\"";
+
+    @fragFiles = setParametersFromFile($specFile, @fragFiles);
 }
 
 setParametersFromCommandLine(@specOpts);
