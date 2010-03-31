@@ -95,9 +95,11 @@ sweatShop::sweatShop(void*(*loaderfcn)(void *G),
   _showStatus       = false;
 
   _loaderQueueSize  = 1024;
+  _loaderQueueMax   = 10240;
   _loaderBatchSize  = 1;
   _workerBatchSize  = 1;
   _writerQueueSize  = 128;
+  _writerQueueMax   = 1280;
 
   _numberOfWorkers  = 2;
 
@@ -386,6 +388,9 @@ sweatShop::status(void) {
       readjustAt       += (u64bit)(2 * cpuPerSec);
       _loaderQueueSize  = (u32bit)(5 * cpuPerSec);
     }
+
+    if (_loaderQueueSize > _loaderQueueMax)
+      _loaderQueueSize = _loaderQueueMax;
 
     nanosleep(&naptime, 0L);
   }

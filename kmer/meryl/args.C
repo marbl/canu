@@ -283,7 +283,7 @@ merylArgs::merylArgs(int argc, char **argv) {
   }
 
   mergeFiles   = new char * [mergeFilesMax];
-  options      = new char   [optionsLen + 1];
+  options      = new char   [2 * optionsLen + 1];
   options[0]   = 0;
 
   bool fail = false;

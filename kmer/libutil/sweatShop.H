@@ -29,11 +29,11 @@ public:
   void        setThreadData(u32bit t, void *x);
 
   void        setLoaderBatchSize(u32bit batchSize) { _loaderBatchSize = batchSize; };
-  void        setLoaderQueueSize(u32bit queueSize) { _loaderQueueSize = queueSize; };
+  void        setLoaderQueueSize(u32bit queueSize) { _loaderQueueSize = queueSize;  _loaderQueueMax = queueSize; };
 
   void        setWorkerBatchSize(u32bit batchSize) { _workerBatchSize = batchSize; };
 
-  void        setWriterQueueSize(u32bit queueSize) { _writerQueueSize = queueSize; };
+  void        setWriterQueueSize(u32bit queueSize) { _writerQueueSize = queueSize;  _writerQueueMax = queueSize; };
 
   void        run(void *user=0L, bool beVerbose=false);
 private:
@@ -69,10 +69,10 @@ private:
 
   bool                   _showStatus;
 
-  u32bit                 _loaderQueueSize;
+  u32bit                 _loaderQueueSize, _loaderQueueMax;
   u32bit                 _loaderBatchSize;
   u32bit                 _workerBatchSize;
-  u32bit                 _writerQueueSize;
+  u32bit                 _writerQueueSize, _writerQueueMax;
 
   u32bit                 _numberOfWorkers;
 
