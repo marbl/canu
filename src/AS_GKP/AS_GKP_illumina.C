@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.8 2010-03-16 13:07:34 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.9 2010-04-02 05:41:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -307,12 +307,18 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
 
   errno = 0;
   FILE  *lfile = fopen(lname, "r");
-  if (errno)
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, lname, strerror(errno)), exit(1);
+  if (errno) {
+    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", lname, strerror(errno));
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, lname, strerror(errno));
+    exit(1);
+  }
 
   FILE  *rfile = fopen(rname, "r");
-  if (errno)
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, rname, strerror(errno)), exit(1);
+  if (errno) {
+    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", rname, strerror(errno));
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, rname, strerror(errno));
+    exit(1);
+  }
 
   ilFragment  *lfrg = new ilFragment;
   ilFragment  *rfrg = new ilFragment;
@@ -367,8 +373,11 @@ loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient)
 
   errno = 0;
   FILE  *ufile = fopen(uname, "r");
-  if (errno)
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, uname, strerror(errno)), exit(1);
+  if (errno) {
+    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", uname, strerror(errno));
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, uname, strerror(errno));
+    exit(1);
+  }
 
   ilFragment  *ufrg = new ilFragment;
 
