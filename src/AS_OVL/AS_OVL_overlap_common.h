@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.60 2010-03-30 05:33:20 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.61 2010-04-02 06:55:32 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.60 2010-03-30 05:33:20 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.60 2010-03-30 05:33:20 brianwalenz Exp $
- * $Revision: 1.60 $
+ * $Id: AS_OVL_overlap_common.h,v 1.61 2010-04-02 06:55:32 brianwalenz Exp $
+ * $Revision: 1.61 $
 */
 
 
@@ -705,6 +705,19 @@ main(int argc, char **argv) {
         Max_Hash_Data_Len = atoi(argv[++arg]);
       } else if (strcmp(argv[arg], "--hashload") == 0) {
         Max_Hash_Load = atof(argv[++arg]);
+      } else if (strcmp(argv[arg], "--maxreadlen") == 0) {
+        //  Quite the gross way to do this, but simple.
+        arg++;
+        OFFSET_BITS = 1;
+        while ((1 << OFFSET_BITS) < atoi(argv[arg]))
+          OFFSET_BITS++;
+
+        STRING_NUM_BITS       = 30 - OFFSET_BITS;
+
+        STRING_NUM_MASK       = (1 << STRING_NUM_BITS) - 1;
+        OFFSET_MASK           = (1 << OFFSET_BITS) - 1;
+
+        MAX_STRING_NUM        = STRING_NUM_MASK;
 
       } else if (strcmp(argv[arg], "-o") == 0) {
         strcpy(Outfile_Name, argv[++arg]);
@@ -813,11 +826,11 @@ main(int argc, char **argv) {
       fprintf(stderr, "\n");
       fprintf(stderr, "--hashload f       Load to at most 0.0 < f < 1.0 capacity (default 0.7).\n");
       fprintf(stderr, "\n");
-      fprintf(stderr, "--readbits n       Use n bits for storing read positions; read length limited\n");
-      fprintf(stderr, "                   to 2^n, and hash strings limited to 2^(30-n).  Common values:\n");
-      fprintf(stderr, "                     11 -- read length 2048, strings  524288 (default)\n");
-      fprintf(stderr, "                      9 -- read length  512, strings 2097152\n");
-      fprintf(stderr, "                      7 -- read length  128, strings 8388608\n");
+      fprintf(stderr, "--maxreadlen n     Use m=log2(n) bits for storing read positions; read length limited\n");
+      fprintf(stderr, "                   to n, and --hashstrings limited to 2^(30-m).  Common values:\n");
+      fprintf(stderr, "                     maxreadlen 2048 -> hashstrings  524288 (default)\n");
+      fprintf(stderr, "                     maxreadlen  512 -> hashstrings 2097152\n");
+      fprintf(stderr, "                     maxreadlen  128 -> hashstrings 8388608\n");
       fprintf(stderr, "\n");
       exit(1);
     }
@@ -855,14 +868,21 @@ main(int argc, char **argv) {
    Branch_Match_Value = (Doing_Partial_Overlaps) ? PARTIAL_BRANCH_MATCH_VAL : DEFAULT_BRANCH_MATCH_VAL;
    Branch_Error_Value = Branch_Match_Value - 1.0;
 
-   fprintf (stderr, "    Hash_Mask_Bits = %d\n", Hash_Mask_Bits);
-   fprintf (stderr, "  Max_Hash_Strings = %d\n", Max_Hash_Strings);
-   fprintf (stderr, " Max_Hash_Data_Len = %d\n", Max_Hash_Data_Len);
-   fprintf (stderr, "     Max_Hash_Load = %f\n", Max_Hash_Load);
-   fprintf (stderr, "       Kmer Length = %d\n", (int)Kmer_Len);
-   fprintf (stderr, "Min Overlap Length = %d\n", Min_Olap_Len);
-   fprintf (stderr, "        MAX_ERRORS = %d\n", MAX_ERRORS);
-   fprintf (stderr, "   ERRORS_FOR_FREE = %d\n", ERRORS_FOR_FREE);
+   fprintf(stderr, "\n");
+   fprintf(stderr, "STRING_NUM_BITS     %d\n", STRING_NUM_BITS);
+   fprintf(stderr, "OFFSET_BITS         %d\n", OFFSET_BITS);
+   fprintf(stderr, "STRING_NUM_MASK     %d\n", STRING_NUM_MASK);
+   fprintf(stderr, "OFFSET_MASK         %d\n", OFFSET_MASK);
+   fprintf(stderr, "MAX_STRING_NUM      %d\n", MAX_STRING_NUM);
+   fprintf(stderr, "\n");
+   fprintf(stderr, "Hash_Mask_Bits      %d\n", Hash_Mask_Bits);
+   fprintf(stderr, "Max_Hash_Strings    %d\n", Max_Hash_Strings);
+   fprintf(stderr, "Max_Hash_Data_Len   %d\n", Max_Hash_Data_Len);
+   fprintf(stderr, "Max_Hash_Load       %f\n", Max_Hash_Load);
+   fprintf(stderr, "Kmer Length         %d\n", (int)Kmer_Len);
+   fprintf(stderr, "Min Overlap Length  %d\n", Min_Olap_Len);
+   fprintf(stderr, "MAX_ERRORS          %d\n", MAX_ERRORS);
+   fprintf(stderr, "ERRORS_FOR_FREE     %d\n", ERRORS_FOR_FREE);
 
    assert (8 * sizeof (uint64) > 2 * Kmer_Len);
 
@@ -1352,12 +1372,6 @@ int  Build_Hash_Index
    fprintf (stderr, "### Build_Hash:  first_frag_id = %d  Max_Hash_Strings = %d\n",
         first_frag_id, Max_Hash_Strings);
 
-   fprintf(stderr, "STRING_NUM_BITS  %d\n", STRING_NUM_BITS);
-   fprintf(stderr, "OFFSET_BITS      %d\n", OFFSET_BITS);
-   fprintf(stderr, "STRING_NUM_MASK  %d\n", STRING_NUM_MASK);
-   fprintf(stderr, "OFFSET_MASK      %d\n", OFFSET_MASK);
-   fprintf(stderr, "MAX_STRING_NUM   %d\n", MAX_STRING_NUM);
-
    screen_blocks_used = 1;
 
    Extra_Ref_Ct = 0;
@@ -1446,14 +1460,12 @@ int  Build_Hash_Index
 
       Put_String_In_Hash (String_Ct);
 
-      if ((STRING_NUM_BITS > 19) &&
-          ((String_Ct % 10000) == 0)) {
+      if ((String_Ct % 100000) == 0)
         fprintf (stderr, "String_Ct:%d  totalLen:"F_S64"  Hash_Entries:"F_S64"  Load:%.1f%%\n",
                  String_Ct,
                  total_len,
                  Hash_Entries,
                  (100.0 * Hash_Entries) / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
-      }
 
       String_Ct ++;
      }
