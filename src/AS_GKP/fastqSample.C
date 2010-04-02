@@ -19,13 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSample.C,v 1.1 2010-02-22 06:35:49 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSample.C,v 1.2 2010-04-02 06:14:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
+#include <errno.h>
 
 #include "AS_global.h"
 
@@ -35,10 +36,18 @@ public:
   ~aRead() {};
 
   void  read(FILE *F) {
-    fgets(a, 128, F);
-    fgets(b, 128, F);
-    fgets(c, 128, F);
-    fgets(d, 128, F);
+    fgets(a, 1024, F);
+    fgets(b, 1024, F);
+    fgets(c, 1024, F);
+    fgets(d, 1024, F);
+    if ((a[0] != '@') || (c[0] != '+')) {
+      fprintf(stderr, "ERROR:  Not FastQ.  Read lines:\n");
+      fprintf(stderr, "  %s", a);
+      fprintf(stderr, "  %s", b);
+      fprintf(stderr, "  %s", c);
+      fprintf(stderr, "  %s", d);
+      exit(1);
+    }
   };
   void  write(FILE *F) {
     fputs(a, F);
@@ -48,16 +57,16 @@ public:
   };
 
 private:
-  char  a[128];
-  char  b[128];
-  char  c[128];
-  char  d[128];
+  char  a[1024];
+  char  b[1024];
+  char  c[1024];
+  char  d[1024];
 };
 
 
 int
 main(int argc, char **argv) {
-  aRead     Ar,         Br;
+  aRead     Ar,        Br;
   FILE     *Ai = NULL, *Bi = NULL;
   FILE     *Ao = NULL, *Bo = NULL;
 
@@ -139,8 +148,15 @@ main(int argc, char **argv) {
     sprintf(path1, "%s.1.fastq", NAME);
     sprintf(path2, "%s.2.fastq", NAME);
 
+    errno = 0;
     Ai = fopen(path1, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", path1, strerror(errno)), exit(1);
+
+    errno = 0;
     Bi = fopen(path2, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
 
     for (Ac=0; !feof(Ai); Ac++)
       Ar.read(Ai);
@@ -196,26 +212,55 @@ main(int argc, char **argv) {
   sprintf(path1, "%s.1.fastq", NAME);
   sprintf(path2, "%s.2.fastq", NAME);
 
+  errno = 0;
   Ai = fopen(path1, "r");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", path1, strerror(errno)), exit(1);
+
+  errno = 0;
   Bi = fopen(path2, "r");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
 
   sprintf(path1, "%s.%03dx.1.fastq", NAME, COVERAGE);
   sprintf(path2, "%s.%03dx.2.fastq", NAME, COVERAGE);
 
+  errno = 0;
   Ao = fopen(path1, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", path1, strerror(errno)), exit(1);
+
+  errno = 0;
   Bo = fopen(path2, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
 
   fprintf(stderr, "Extracting %d mate pairs into %s and %s\n",
           I, path1, path2);
 
-  for (int i=0; !feof(Ai); i++) {
+  int i=0;
+  int s=0;
+  for (; !feof(Ai); i++) {
     Ar.read(Ai);
     Br.read(Bi);
 
     if (save[i]) {
       Ar.write(Ao);
       Br.write(Bo);
+      s++;
     }
+  }
+
+  if (i > NUMREADS) {
+    fprintf(stderr, "WARNING:  There are %d mates in the input; you claimed there are %d (-t option) mates.\n",
+            i, NUMREADS);
+    fprintf(stderr, "WARNING:  Result is not a random sample of the input file.\n");
+  }
+
+  if (i < NUMREADS) {
+    fprintf(stderr, "WARNING:  There are %d mates in the input; you claimed there are %d (-t option) mates.\n",
+            i, NUMREADS);
+    fprintf(stderr, "WARNING:  Result is only %f X coverage.\n", (double)s * READLENGTH / GENOMESIZE);
   }
 
   fclose(Ai);
