@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.125 2010-03-16 13:06:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.126 2010-04-02 06:30:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -38,7 +38,7 @@ static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.125 2010-03-16 13:06:
 //  Logging
 bool verboseBuild    = false;  //  Dovetail path construction
 bool verboseMerge    = false;  //  Bubbles
-bool verboseBreak    = false;  //  Intersection breaking
+bool verboseBreak    = false;  //  Intersection AND mate-based breaking
 bool verboseJoin     = false;  //  Joining
 bool verboseContains = false;  //  Containment placing
 
@@ -1973,8 +1973,11 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
         //
         //  Break at both ends, create a singleton for this fragment.
         //
+        if ((verboseBreak) && (newTig))
+          fprintf(stderr, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->dovetail_path_ptr->size());
+
         if (verboseBreak)
-          fprintf(stderr,"  Break tig %d at both ends of %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
+          fprintf(stderr, "Break tig %d at both ends of frag %d\n", tig->id(), breakPoint.fragEnd.fragId());
 
         newTig = new Unitig(verboseBreak);  //  always make a new unitig, we put a frag in it now
         splits->push_back(newTig);
@@ -1982,6 +1985,9 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
         if (newTig->dovetail_path_ptr->empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
         newTig->addFrag(frg, offset, verboseBreak);
+
+        if ((verboseBreak) && (newTig))
+          fprintf(stderr, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->dovetail_path_ptr->size());
 
         newTig = NULL;  //  delay until we need to make it
       }
@@ -1991,8 +1997,11 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
         //
         //  Break at left end of frg, frg starts new tig
         //
+        if ((verboseBreak) && (newTig))
+          fprintf(stderr, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->dovetail_path_ptr->size());
+
         if (verboseBreak)
-          fprintf(stderr,"  Break tig %d before %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
+          fprintf(stderr,"Break tig %d before frag %d\n", tig->id(), breakPoint.fragEnd.fragId());
 
         newTig = new Unitig(verboseBreak);  //  always make a new unitig, we put a frag in it now
         splits->push_back(newTig);
@@ -2008,6 +2017,9 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
         //  Break at right end of frg, frg goes in existing tig, then make new unitig
         //
 
+        if (verboseBreak)
+          fprintf(stderr,"Break tig %d up to frag %d\n", tig->id(), breakPoint.fragEnd.fragId());
+
         if (newTig == NULL) {  //  delayed creation?
           newTig = new Unitig(verboseBreak);
           splits->push_back(newTig);
@@ -2017,11 +2029,13 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
           offset = reverse ? -frg.position.end : -frg.position.bgn;
         newTig->addFrag(frg, offset, verboseBreak);
 
-        if (verboseBreak)
-          fprintf(stderr,"  Break tig %d after %d num %d\n", tig->id(), breakPoint.fragEnd.fragId(), breakPoint.fragsBefore);
+        if ((verboseBreak) && (newTig))
+          fprintf(stderr, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->dovetail_path_ptr->size());
 
-        //  Delay making a new unitig until we need it.
         newTig = NULL;
+
+        if (verboseBreak)
+          fprintf(stderr,"Break tig %d after %d\n", tig->id(), breakPoint.fragEnd.fragId());
       } else {
         // logically impossible!
         assert(0);
@@ -2043,6 +2057,8 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
       //
 
       if (newTig == NULL) {  //  delayed creation?
+        if (verboseBreak)
+          fprintf(stderr,"Break tig %d up until some later fragment\n", tig->id());
         newTig = new Unitig(verboseBreak);
         splits->push_back(newTig);
       }
