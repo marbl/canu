@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.87 2010-03-29 14:35:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.88 2010-04-02 06:31:52 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -61,6 +61,9 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
   tigGraph.checkUnitigMembership();
   evaluateMates(tigGraph);
 
+  //  DON'T DO MATE BASED SPLITTING
+  //return;
+
   fprintf(stderr, "==> SPLIT BAD MATES\n");
   {
     //  Need to get rid of this cMap guy
@@ -89,6 +92,9 @@ void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThresh
   tigGraph.reportOverlapsUsed("overlaps.aftermatecheck3");
   tigGraph.checkUnitigMembership();
   evaluateMates(tigGraph);
+
+  //  DO MATE BASED SPLITTING BUT NOTHING ELSE
+  //return;
 
   //  The splitting code above is not smart enough to move contained
   //  fragments with containers.  This leaves unitigs disconnected.
@@ -232,7 +238,7 @@ void MateChecker::computeGlobalLibStats(UnitigGraph& tigGraph) {
 
   //  Disregard outliers (those outside 5 (estimated) stddevs) and recompute global stddev
 
-  for (uint32 i=0; i<_fi->numLibraries()+1; i++) {
+  for (uint32 i=1; i<_fi->numLibraries()+1; i++) {
     sort(_globalStats[i].distances, _globalStats[i].distances + _globalStats[i].distancesLen + 1);
 
     int median   = _globalStats[i].distances[_globalStats[i].distancesLen * 1 / 2];
