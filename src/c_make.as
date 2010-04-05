@@ -143,21 +143,11 @@ ifeq ($(OSTYPE), Darwin)
 
   ifeq ($(MACHINETYPE), i386)
     ifeq ($(BUILDDEBUG), 1)
-      ARCH_CFLAGS   += -arch i386 -g
-      ARCH_LDFLAGS  += -arch i386 -lm
+      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts -g
+      ARCH_LDFLAGS  += -m64 -lm
     else
-      ARCH_CFLAGS   += -arch i386 -fast
-      ARCH_LDFLAGS  += -arch i386 -lm
-    endif
-  endif
-
-  ifeq ($(MACHINETYPE), amd64)
-    ifeq ($(BUILDDEBUG), 1)
-      ARCH_CFLAGS   += -arch x86_64 -g
-      ARCH_LDFLAGS  += -arch x86_64 -lm
-    else
-      ARCH_CFLAGS   += -arch x86_64 -fast
-      ARCH_LDFLAGS  += -arch x86_64 -lm
+      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts -fast
+      ARCH_LDFLAGS  += -m64 -lm
     endif
   endif
 
