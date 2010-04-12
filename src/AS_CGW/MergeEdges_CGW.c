@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.28 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.29 2010-04-12 03:15:06 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -28,7 +28,7 @@ static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.28 2010-02-17 01:32:58 brianwale
 #include <string.h>
 #include <unistd.h>
 
-#undef C_SORT
+#define C_SORT
 
 #ifndef C_SORT
 #include <algorithm>
@@ -719,6 +719,17 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
     std::sort(sortClusterScoreChi2, sortClusterScoreChi2 + numPairs);
 #endif
 
+    {
+      for (uint32 i=0; i<numPairs; i++) {
+        fprintf(stderr, "PAIR %4d  %4d %4d  %4d %4d\n",
+                sortClusterScoreChi2[i]->active,
+                sortClusterScoreChi2[i]->passed,
+                sortClusterScoreChi2[i]->score);
+      }
+    }
+
+
+
     sortClusterScoreChi2Ptr = sortClusterScoreChi2;
     pairClusterScoreChi2Ptr = *sortClusterScoreChi2Ptr;
     /* While there are still potential merge candidates try the next merge. */
@@ -829,6 +840,16 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 #else
         std::sort(sortClusterScoreChi2, sortClusterScoreChi2 + numPairs);
 #endif
+
+
+    {
+      for (uint32 i=0; i<numPairs; i++) {
+        fprintf(stderr, "PAIR %4d  %4d %4d  %4d %4d\n",
+                sortClusterScoreChi2[i]->active,
+                sortClusterScoreChi2[i]->passed,
+                sortClusterScoreChi2[i]->score);
+      }
+    }
 
 	sortClusterScoreChi2Ptr = sortClusterScoreChi2;
       }else{
