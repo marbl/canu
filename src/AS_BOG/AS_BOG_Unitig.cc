@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.22 2010-03-16 19:37:21 skoren Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.23 2010-04-12 08:25:04 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -730,6 +730,7 @@ void Unitig::reverseComplement(bool doSort) {
   //  pathPosition map.
 
   if (doSort) {
+    assert(0);
     sort();
   } else {
     std::reverse(dovetail_path_ptr->begin(), dovetail_path_ptr->end());
@@ -743,19 +744,25 @@ void Unitig::reverseComplement(bool doSort) {
 
 int
 DoveTailNodeCmp(const void *a, const void *b){
-#ifdef WITHIMP
-	IntMultiPos *impa = (IntMultiPos *)a;
-	IntMultiPos *impb = (IntMultiPos *)b;
-#else
-	DoveTailNode *impa = (DoveTailNode *)a;
-	DoveTailNode *impb = (DoveTailNode *)b;
-#endif
+  DoveTailNode *impa = (DoveTailNode *)a;
+  DoveTailNode *impb = (DoveTailNode *)b;
 
   int32 abgn = (impa->position.bgn < impa->position.end) ? impa->position.bgn : impa->position.end;
   int32 aend = (impa->position.bgn < impa->position.end) ? impa->position.end : impa->position.bgn;
 
   int32 bbgn = (impb->position.bgn < impb->position.end) ? impb->position.bgn : impb->position.end;
   int32 bend = (impb->position.bgn < impb->position.end) ? impb->position.end : impb->position.bgn;
+
+#undef NEWSORT
+
+#ifdef NEWSORT
+  bool  aIsCont = bog->isContained(impa->ident);
+  bool  bIsCont = bog->isContained(impb->ident);
+
+  if ((aIsCont == false) && (bIsCont == false))
+    //  Both dovetail nodes, keep same order
+    return((int)impa->delta_length - (int)impb->delta_length);
+#endif
 
   if (abgn != bbgn)
     //  Return negative for the one that starts first.
@@ -765,13 +772,33 @@ DoveTailNodeCmp(const void *a, const void *b){
     //  Return negative for the one that ends last.
     return(bend - aend);
 
-  //  Fallback on depth added, negative for earliest added
-  return(impa->delta_length - impb->delta_length);
+#ifdef NEWSORT
+ if (aIsCont == false)
+    //  b must be contained.
+    return(-1);
+
+  if (bIsCont == false)
+    //  a must be contained.
+    return(1);
+#endif
+
+  //  Both contained, fallback on depth added, negative for earliest added
+  return((int)impa->delta_length - (int)impb->delta_length);
 }
 
 
 void
 Unitig::sort(void) {
+
+#ifdef NEWSORT
+  for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
+    DoveTailNode *f = &((*dovetail_path_ptr)[fi]);
+
+    if (bog->isContained(f->ident) == false)
+      f->delta_length = fi;
+  }
+#endif
+
   qsort( &(dovetail_path_ptr->front()), getNumFrags(), sizeof(DoveTailNode), &DoveTailNodeCmp );
 
   for (int fi=0; fi<dovetail_path_ptr->size(); fi++)
