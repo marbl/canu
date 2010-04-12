@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.126 2010-04-02 06:30:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.127 2010-04-12 08:23:07 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -451,14 +451,19 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
     bestnext = bog_ptr->getBestEdgeOverlap(lastID, lastEnd);
 
-    //  Abort if we intersect, or are circular
+    //  Abort if we intersect, or are circular.  Save the intersection, but not the circularity.
 
     if (Unitig::fragIn(bestnext->frag_b_id) == unitig->id()) {
-#warning not saving self-intersection
-      //if (verboseBuild)
-      //  fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d\n",
-      //          unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
-      //  unitigIntersect[bestnext->frag_b_id].push_back(lastID);
+      if (Unitig::pathPosition(bestnext->frag_b_id) == 0) {
+        if (verboseBuild)
+          fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d (CIRCULAR)\n",
+                  unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
+      } else {
+        if (verboseBuild)
+          fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d\n",
+                  unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
+        unitigIntersect[bestnext->frag_b_id].push_back(lastID);
+      }
       break;
     }
 
@@ -525,7 +530,11 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
   if (bestedge3->frag_b_id)
     populateUnitig(utg, bestedge3);
 
-  utg->reverseComplement(false);
+  //  Enabling this reverse complement is known to degrade the assembly.  It is not known WHY it
+  //  degrades the assembly.
+  //
+#warning Reverse complement degrades assemblies
+  //utg->reverseComplement(false);
 }
 
 
@@ -546,7 +555,8 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
 
   fprintf(stderr, "==> BREAKING UNITIGS.\n");
 
-  //  Debug output
+  //  Debug output - useless
+#if 0
   for (int  ti=0; ti<unitigs->size(); ti++) {
     Unitig        *tig   = (*unitigs)[ti];
 
@@ -575,10 +585,13 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
 
     if (verboseBreak)
       if (firstBest->frag_b_id == lastBest->frag_b_id)
-        fprintf(stderr, "Bubble %d to %d len %d (self bubble %d to %d)\n", firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength(), id1, id2);
+        fprintf(stderr, "Bubble %d to %d len %d (self bubble %d to %d)\n",
+                firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength(), id1, id2);
       else
-        fprintf(stderr, "Bubble %d to %d len %d\n", firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength());
+        fprintf(stderr, "Bubble %d to %d len %d\n",
+                firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength());
   }
+#endif
 
 
   //  Stop when we've seen all current unitigs.  Replace tiMax
@@ -599,7 +612,11 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
     int                 fragCount        = 0;
     int                 fragIdx;
 
-    tig->sort();
+    //  Enabling this sort should do nothing (no contained fragments to sort).  Unless the sort function
+    //  (in AS_BOG_Unitig.cc) is enabled to preserve the ordering of dovetail fragments, enabling the sort
+    //  actually breaks unitigging.
+    //
+    //tig->sort();
 
     //  Count the number of fragments in this unitig, including
     //  yet-to-be-placed contained fragments.
