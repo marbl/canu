@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.55 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.56 2010-04-12 07:54:45 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -1993,7 +1993,10 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
 
 #define MAX_FRAC_BAD_TO_GOOD .3
 
-  double badGoodRatio      = (double)(mAfterBad - mBeforeBad) / (double)(mAfterGood - mBeforeGood);
+  double badGoodRatio      = 1.0;
+
+  if (mAfterGood > mBeforeGood)
+    badGoodRatio = (double)(mAfterBad - mBeforeBad) / (double)(mAfterGood - mBeforeGood);
 
   bool  failsMinimum       = (fractMatesHappyAfter < minSatisfied);
   bool  failsToGetHappier1 = (fractMatesHappyAfter < fractMatesHappyBefore);
