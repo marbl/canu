@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.57 2010-01-29 08:31:39 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.58 2010-04-13 02:18:06 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -88,8 +88,17 @@ struct BestOverlapGraph {
 
   bool    isOverlapBadQuality(const OVSoverlap& olap) {
 
-    if ((olap.dat.ovl.orig_erate <= consensusCutoff) &&
-        (olap.dat.ovl.corr_erate <= mismatchCutoff)) {
+    //  The overlap is ALWAYS bad if the original error rate is above what we initially required
+    //  overlaps to be at.  We shouldn't have even seen this overlap.  This is a bug in the
+    //  overlapper.
+    //
+    if (olap.dat.ovl.orig_erate > consensusCutoff)
+      return(true);
+
+    //  The overlap is GOOD (false == not bad) if the corrected error rate is below the requested
+    //  erate.
+    //
+    if (olap.dat.ovl.corr_erate <= mismatchCutoff) {
       if (logFile)
         fprintf(logFile, "OVERLAP GOOD:     %d %d %c  hangs %d %d err %.3f %.3f\n",
                 olap.a_iid, olap.b_iid,
@@ -101,9 +110,15 @@ struct BestOverlapGraph {
       return(false);
     }
 
-    //  There are a few cases where the orig_erate is _better_ than the corr_erate -- the orig is 0%
-    //  and the corrected is > 0%.  Regardless, we probably want to be using the correct erate here.
+    //  If we didn't allow fixed-number-of-errors, the overlap is now bad.  Just a slight
+    //  optimization.
     //
+    if (mismatchLimit <= 0)
+      return(true);
+
+    //  There are a few cases where the orig_erate is _better_ than the corr_erate.  That is, the
+    //  orig erate is 0% but we 'correct' it to something more than 0%.  Regardless, we probably
+    //  want to be using the corrected erate here.
 
     double olen = olapLength(olap.a_iid, olap.b_iid, olap.dat.ovl.a_hang, olap.dat.ovl.b_hang);
     double nerr = olen * AS_OVS_decodeQuality(olap.dat.ovl.corr_erate);
