@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.25 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.26 2010-04-14 22:28:01 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -195,7 +195,7 @@ void
 PrintContigElement(FILE * fp, ContigElement * ce) {
   fprintf(fp, "    (%d, "F_CID ") len: %.f, min: %.f, max: %.f, orient: %c\n",
           ce->index, ce->id, ce->length, ce->minCoord, ce->maxCoord,
-          ce->orient);
+          ce->orient.toLetter());
 }
 
 
