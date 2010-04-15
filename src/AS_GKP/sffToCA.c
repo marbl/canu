@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.45 2010-03-05 03:39:20 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.46 2010-04-15 23:56:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2007,9 +2007,9 @@ main(int argc, char **argv) {
   {
     int32  oLen = strlen(oPrefix);
 
-    if ((oPrefix[oLen-4] == '.') || 
-        (oPrefix[oLen-3] == 'f') || 
-        (oPrefix[oLen-2] == 'r') || 
+    if ((oPrefix[oLen-4] == '.') &&
+        (oPrefix[oLen-3] == 'f') &&
+        (oPrefix[oLen-2] == 'r') &&
         (oPrefix[oLen-1] == 'g'))
       oPrefix[oLen-4] = 0;
   }
