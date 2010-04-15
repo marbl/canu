@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.16 2010-02-05 13:47:06 skoren Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.17 2010-04-15 01:38:46 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -100,7 +100,7 @@ MultiAlignStore::MultiAlignStore(const char *path_,
   if ((writable == false) && (append == true))
     fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, cannot append unless writable.\n"), exit(1);
 
-  if ((inplace_ == true) && (append_ == true))
+  if ((inplace == true) && (append == true))
     fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, cannot both append and be inplace.\n"), exit(1);
 
   //  Load the MultiAlignRs for the current version.
@@ -109,7 +109,11 @@ MultiAlignStore::MultiAlignStore(const char *path_,
   loadMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE, FALSE);
 
   if ((utgLen == 0) && (ctgLen == 0) && (append == false)) {
-    fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, didn't find any unitigs or contigs in the store.  Correct version?\n");
+    fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, didn't find any unitigs or contigs in the store.\n");
+    fprintf(stderr, "MultiAlignStore::MultiAlignStore()--        asked for store '%s', correct?\n", path);
+    fprintf(stderr, "MultiAlignStore::MultiAlignStore()--        asked for version '%d', correct?\n", originalVersion);
+    fprintf(stderr, "MultiAlignStore::MultiAlignStore()--        asked for partition unitig=%d contig=%d, correct?\n", unitigPart, contigPart);
+    fprintf(stderr, "MultiAlignStore::MultiAlignStore()--        asked for writable=%d inplace=%d append=%d, correct?\n", writable, inplace, append);
     exit(1);
   }
 
