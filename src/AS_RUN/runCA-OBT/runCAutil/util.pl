@@ -523,7 +523,15 @@ sub setDefaults () {
     $global{"toggleDoNotDemote"}             = 0;
     $synops{"toggleDoNotDemote"}            = "Do not allow CGW to demote toggled unitigs based on branching patterns.";
 
-   #####  Ugly, command line options passed to printHelp()
+    #### Closure Options
+
+    $global{"closureOverlaps"}            = 0;
+    $synops{"closureOverlaps"}             = "Option for handling overlaps involving closure reads.\n\t0 - Treat them just like regular reads, \n\t1 - Do not allow any overlaps (i.e. closure reads will stay as singletons until scaffolding), \n\t2 - allow overlaps betweeen closure reads and non-closure reads only";
+
+    $global{"closurePlacement"}           = 2;
+    $synops{"closurePlacement"}           = "Option for placing closure reads using the constraints.\n\t0 - Place at the first location found\n\t1 - Place at the best location (indicated by most constraints)\n\t2 - Place at multiple locations as long as the closure read/unitig in question is not unique";
+
+    #####  Ugly, command line options passed to printHelp()
 
     $global{"help"}                        = "";
     $synops{"help"}                        = undef;
@@ -534,12 +542,6 @@ sub setDefaults () {
     $global{"options"}                     = 0;
     $synops{"options"}                     = undef;
 
-    #### Closure Options
-    $global{"closureOverlaps"}            = 0;
-    $synops{"closureOverlaps"}             = "Option for handling overlaps involving closure reads.\n\t0 - Treat them just like regular reads, \n\t1 - Do not allow any overlaps (i.e. closure reads will stay as singletons until scaffolding), \n\t2 - allow overlaps betweeen closure reads and non-closure reads only";
-
-    $global{"closurePlacement"}           = 2;
-    $synops{"closurePlacement"}           = "Option for placing closure reads using the constraints.\n\t0 - Place at the first location found\n\t1 - Place at the best location (indicated by most constraints)\n\t2 - Place at multiple locations as long as the closure read/unitig in question is not unique";
 
 
     if (exists($ENV{'AS_OVL_ERROR_RATE'})) {
