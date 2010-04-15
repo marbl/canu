@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Globals_CGW.C,v 1.2 2009-10-27 12:26:40 skoren Exp $";
+static char *rcsid = "$Id: Globals_CGW.C,v 1.3 2010-04-15 01:42:11 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "Globals_CGW.h"
@@ -90,11 +90,12 @@ Globals_CGW::setPrefix(char *runCAroot) {
     if (AS_UTL_fileExists(testname, FALSE, FALSE))
       ckp = i;
     else
-      break;
+      if (ckp != -1)
+        break;
   }
 
   if (ckp == -1)
-    fprintf(stderr, "Globals_CGW::setPrefix()-- I couldn't find any checkpoints in '%s/7-CGW/'.\n",
+    fprintf(stderr, "Globals_CGW::setPrefix()-- I couldn't find any checkpoints in '7-CGW/%s/'.\n",
             runCAroot), exit(1);
 
   return(ckp);
