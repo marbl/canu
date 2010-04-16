@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.4 2010-03-16 13:07:37 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.5 2010-04-16 21:24:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libraryname n     The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -type t            What type of fastq:\n");
+    fprintf(stderr, "  -type t            What type of fastq ('illumina' is the default):\n");
     fprintf(stderr, "                       'sanger'   -- QV's are PHRED, offset=33 '!', NCBI SRA data.\n");
     fprintf(stderr, "                       'solexa'   -- QV's are Solexa, early Solexa data.\n");
     fprintf(stderr, "                       'illumina' -- QV's are PHRED, offset=64 '@', Illumina reads from version 1.3 on.\n");
