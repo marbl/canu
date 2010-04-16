@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.25 2010-01-29 07:15:25 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.26 2010-04-16 21:08:10 brianwalenz Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -80,18 +80,6 @@ main(int argc, char **argv) {
       gkpName     = argv[++arg];
       clearRegion = gkStore_decodeClearRegionLabel(argv[++arg]);
       operation   = OP_DUMP_PICTURE;
-
-    } else if (strcmp(argv[arg], "-s") == 0) {
-      if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
-      storeName   = argv[++arg];
-      operation   = OP_STATS_DUMP;
-
-    } else if (strcmp(argv[arg], "-S") == 0) {
-      if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
-      storeName   = argv[++arg];
-      operation   = OP_STATS_REBUILD;
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       if (storeName)
@@ -202,34 +190,30 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s -c storeName [-M x (MB)] [-t threads] [-g gkpStore] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
     fprintf(stderr, "       %s -m storeName mergeName\n", argv[0]);
     fprintf(stderr, "       %s -d storeName [-B] [-E erate] [-b beginIID] [-e endIID]\n", argv[0]);
-    fprintf(stderr, "       %s -s storeName\n", argv[0]);
-    fprintf(stderr, "       %s -S storeName -g gkpStore\n", argv[0]);
-    fprintf(stderr, "       %s -q iid iid storeName\n", argv[0]);
+    fprintf(stderr, "       %s -q aiid biid storeName\n", argv[0]);
     fprintf(stderr, "       %s -p iid storeName gkpStore clr\n", argv[0]);
     fprintf(stderr, "\n");
+    fprintf(stderr, "There are five modes of operation, selected by the first option:\n");
     fprintf(stderr, "  -c  create a new store, fails if the store exists\n");
     fprintf(stderr, "  -m  merge store mergeName into store storeName\n");
     fprintf(stderr, "  -d  dump a store\n");
-    fprintf(stderr, "  -s  dump statistics about a store\n");
-    fprintf(stderr, "  -S  recompute overlap statistics\n");
     fprintf(stderr, "  -q  report the a,b overlap, if it exists.\n");
     fprintf(stderr, "  -p  dump a picture of overlaps to fragment 'iid', using clear region 'clr'.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "CREATION\n");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "CREATION - create a new store from raw overlap files\n");
     fprintf(stderr, "  -O           Filter overlaps for OBT.\n");
     fprintf(stderr, "  -M x         Use 'x'MB memory for sorting overlaps.\n");
     fprintf(stderr, "  -t t         Use 't' threads for sorting overlaps.\n");
     fprintf(stderr, "  -L f         Read overlaps from files listed in 'f'.\n");
-    fprintf(stderr, "  -I F         Ignore the ovls for the reads listed in 'f'.\n");
-    fprintf(stderr, "  -i x         Where x is either 0, 1, or 2. Requires -I option. 1 (default) - Delete all overlaps. 2 - Delete only the overlaps between reads listed in 'f'.\n");
+    fprintf(stderr, "  -i x         Ignore overlaps to closure reads; x is:\n");
+    fprintf(stderr, "                 0 Delete no overlaps.\n");
+    fprintf(stderr, "                 1 Delete all overlaps to closure read (default).\n");
+    fprintf(stderr, "                 2 Delete only overlaps between closure reads.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "MERGING\n");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "MERGING - merge two stores into one\n");
     fprintf(stderr, "  -m storeName mergeName   Merge the store 'mergeName' into 'storeName'\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "DUMPING\n");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "DUMPING - report overlaps in the store\n");
     fprintf(stderr, "  -B                Dump the store as binary, suitable for input to create a new store.\n");
     fprintf(stderr, "  -E erate          Dump only overlaps <= erate error.\n");
     fprintf(stderr, "  -d5               Dump only overlaps off the 5' end of the A frag.\n");
@@ -239,8 +223,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -b beginIID       Start dumping at 'beginIID'.\n");
     fprintf(stderr, "  -e endIID         Stop dumping after 'endIID'.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "DUMPING PICTURES\n");
+    fprintf(stderr, "QUERYING - quickly ask if an overlap exists\n");
+    fprintf(stderr, "  -q aiid biid storeName\n");
+    fprintf(stderr, "                    If an overlap between fragments 'aiid' and 'biid' exists, it is printed.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "DUMPING PICTURES - draw a multi-alignment-like picture for a single fragment and its overlaps\n");
     fprintf(stderr, "  -p iid storeName gkpStore clr\n");
     fprintf(stderr, "                    clr is usually OBTINITIAL for obtStore.\n");
     fprintf(stderr, "                    clr is usually OBTCHIMERA for ovlStore when OBT is used.\n");
@@ -274,12 +261,6 @@ main(int argc, char **argv) {
       break;
     case OP_DUMP_PICTURE:
       dumpPicture(storeName, gkpName, clearRegion, dumpERate, dumpType, qryIID);
-      break;
-    case OP_STATS_DUMP:
-      dumpStats(storeName);
-      break;
-    case OP_STATS_REBUILD:
-      rebuildStats(storeName, gkpName);
       break;
     case OP_UPDATE_ERATES:
       updateErates(storeName, fileList[0]);
