@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.46 2010-04-15 23:56:08 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.47 2010-04-16 20:36:10 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1128,6 +1128,11 @@ processMate(gkFragment *fr,
   uint32 rSize = 0;
   int another1, another2;
 
+  int linkerLength = 0;
+  const int MAX_MISMATCH_CONSIDERED_FUNCTIONAL = 2;
+  const int DIFFERENCE_CONSIDERED_MINIMAL = 15;
+  const int DIFFERENCE_CONSIDERED_FRACTIONAL = 25;
+
   assert(fr->clrBgn < fr->clrEnd);
   if ((m1 == NULL) && (m2 == NULL)) {
     allowedToSplit = 0;
@@ -1150,6 +1155,7 @@ processMate(gkFragment *fr,
   while (linkerID < AS_LINKER_MAX_SEQS && foundAlignment == 0) {
     if (search[linkerID] == TRUE) {
       assert(linker[linkerID] != NULL);
+      linkerLength = strlen ( linker[linkerID] );
 
       char *seq      = fr->gkFragment_getSequence();
       char  stopBase = seq[fr->clrEnd];
@@ -1183,7 +1189,8 @@ processMate(gkFragment *fr,
       if (mismatches <= 5) {
 	if (1==stringent) {
 	  // Look for a full-length alignment.
-	  if ((al.alignLen >=  40) && (mismatches <= 2)) {
+	  if ((al.alignLen >=  linkerLength - MAX_MISMATCH_CONSIDERED_FUNCTIONAL ) 
+	      && (mismatches <= MAX_MISMATCH_CONSIDERED_FUNCTIONAL )) {
 	    minimalAlignment = 1;
 	    fractionalAlignment = 1; 
 	    functionalAlignment = 1;
@@ -1191,9 +1198,9 @@ processMate(gkFragment *fr,
 	} else {
 	  // Look for a partial alignment.
 	  functionalAlignment = 0;
-	  if (al.matches - mismatches > 15) {
+	  if (al.matches - mismatches > DIFFERENCE_CONSIDERED_MINIMAL) {
 	    minimalAlignment = 1;
-	    if (al.matches - mismatches > 25) {
+	    if (al.matches - mismatches > DIFFERENCE_CONSIDERED_FRACTIONAL) {
 	      fractionalAlignment = 1; 
 	    }
 	  }
