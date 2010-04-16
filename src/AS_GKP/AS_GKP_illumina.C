@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.9 2010-04-02 05:41:49 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.10 2010-04-16 21:25:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,8 +108,10 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
 
   if (fastqType == FASTQ_SANGER) {
     for (uint32 i=0; fr->qstr[i]; i++) {
-      if (fr->qstr[i] < '!')
-        fprintf(stderr, "WARNING:  Low qv detected.\n");
+      if (fr->qstr[i] < '!') {
+        AS_GKP_reportError(AS_GKP_ILL_BAD_QV, fr->snam, fr->qstr[i], "sanger");
+        return(0);
+      }
       fr->qstr[i] -= '!';
       if (fr->qstr[i] > QUALITY_MAX)
         fr->qstr[i] = QUALITY_MAX;
@@ -120,8 +122,10 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
   if (fastqType == FASTQ_SOLEXA) {
     double qs;
     for (uint32 i=0; fr->qstr[i]; i++) {
-      if (fr->qstr[i] < ';')
-        fprintf(stderr, "WARNING:  Low qv detected.\n");
+      if (fr->qstr[i] < ';') {
+        AS_GKP_reportError(AS_GKP_ILL_BAD_QV, fr->snam, fr->qstr[i], "solexa");
+        return(0);
+      }
       qs  = fr->qstr[i];
       qs -= '@';
       qs /= 10.0;
@@ -134,8 +138,10 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
 
   if (fastqType == FASTQ_ILLUMINA) {
     for (uint32 i=0; fr->qstr[i]; i++) {
-      if (fr->qstr[i] < '@')
-        fprintf(stderr, "WARNING:  Low qv detected.\n");
+      if (fr->qstr[i] < '@') {
+        AS_GKP_reportError(AS_GKP_ILL_BAD_QV, fr->snam, fr->qstr[i], "illumina");
+        return(0);
+      }
       fr->qstr[i] -= '@';
       if (fr->qstr[i] > QUALITY_MAX)
         fr->qstr[i] = QUALITY_MAX;
@@ -266,6 +272,8 @@ readQSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fa
     }
   }
 
+  if (nv != 11)
+    fprintf(stderr, "ERROR:  qseq not in expected format.  Please convert to standard FastQ.\n");
   assert(nv == 11);
 
   sprintf(fr->snam, "@%s:%s:%s:%s:%s#%s/%s", v[0], v[2], v[3], v[4], v[5], v[6], v[7]);
