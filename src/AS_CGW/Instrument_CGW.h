@@ -22,7 +22,7 @@
 #ifndef INSTRUMENT_CGW_H
 #define INSTRUMENT_CGW_H
 
-static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.12 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.13 2010-04-17 03:24:09 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -333,6 +333,10 @@ typedef struct
   // for looking up & adding mates in this entity - place all frags here
   HashTable_AS * fragHT;
 
+  //  Mate pairs with both fragments in this table are not counted as bad
+  //  THIS IS CURRENTLY UNUSED, but here for possible future use.
+  HashTable_AS * ignoreHT;
+
   // since iterating through the above hash table gets slow,
   // also keep the index in an array
   VA_TYPE(CDS_CID_t) * fragArray;
@@ -464,6 +468,11 @@ typedef struct
 
   // bookkeeping of fragments, fragment locations, mates, & locales
   InstrumenterBookkeeping bookkeeping;
+
+  // matepairs completely outside this range (meaning that both fragments are outside)
+  // are not counted as bad
+  LengthT        ignoreBgn;
+  LengthT        ignoreEnd;
 
   // inter-contig breakpoints
   VA_TYPE(InstrumenterBreakpoint) * breakpoints;
