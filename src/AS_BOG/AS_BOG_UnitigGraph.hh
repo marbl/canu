@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.69 2009-12-19 05:36:16 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.70 2010-04-20 16:08:12 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -135,7 +135,14 @@ private:
   //  unitigIntersect is a FragmentEdgeList, a map<uint32, FragmentList>.
   //                       FragmentList,     a vector<uint32>
   //
-  FragmentEdgeList  unitigIntersect;
+  //  selfIntersect is a list of the invading fragments that are known to be intersecting their own
+  //  unitig.  When short unitigs are merged into larger unitigs, those short unitigs likely have
+  //  saved a unitigIntersect to the exact spot where we merged them in, and we need to NOT split on
+  //  those false intersections.  On the other hand, if an invading fragment is listed here, we know
+  //  it is a true self-intersection, and allow it.
+  //
+  FragmentEdgeList      unitigIntersect;
+  map<uint32,bool>      selfIntersect;
 };
 
 #endif

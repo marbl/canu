@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.127 2010-04-12 08:23:07 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.128 2010-04-20 16:08:12 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -401,8 +401,8 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
   if (Unitig::fragIn(bestnext->frag_b_id) != 0) {
     //  Intersection.  Remember.
-    if (verboseBuild)
-      fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d (before construction)\n",
+    if (verboseBuild || verboseBreak)
+      fprintf(stderr,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (before construction)\n",
               unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
     unitigIntersect[bestnext->frag_b_id].push_back(lastID);
     return;
@@ -455,21 +455,22 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
     if (Unitig::fragIn(bestnext->frag_b_id) == unitig->id()) {
       if (Unitig::pathPosition(bestnext->frag_b_id) == 0) {
-        if (verboseBuild)
-          fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d (CIRCULAR)\n",
+        if (verboseBuild || verboseBreak)
+          fprintf(stderr,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (CIRCULAR)\n",
                   unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
       } else {
-        if (verboseBuild)
-          fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d\n",
+        if (verboseBuild || verboseBreak)
+          fprintf(stderr,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (SELF)\n",
                   unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
         unitigIntersect[bestnext->frag_b_id].push_back(lastID);
+        selfIntersect[lastID] = true;
       }
       break;
     }
 
     if (Unitig::fragIn(bestnext->frag_b_id) != 0) {
-      if (verboseBuild)
-        fprintf(stderr,"unitigIntersect: unitig %5d frag %7d -> unitig %5d frag %7d (during construction)\n",
+      if (verboseBuild || verboseBreak)
+        fprintf(stderr,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (during construction)\n",
                 unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
       unitigIntersect[bestnext->frag_b_id].push_back(lastID);
       break;
@@ -612,11 +613,14 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
     int                 fragCount        = 0;
     int                 fragIdx;
 
-    //  Enabling this sort should do nothing (no contained fragments to sort).  Unless the sort function
-    //  (in AS_BOG_Unitig.cc) is enabled to preserve the ordering of dovetail fragments, enabling the sort
-    //  actually breaks unitigging.
+    //  Enabling this sort should do nothing -- there are no contained fragments placed yet, and any
+    //  bubbles that have been merged in have already had their unitigs sorted.
     //
-    //tig->sort();
+    //  HOWEVER, unless the sort function (in AS_BOG_Unitig.cc) is enabled to preserve the ordering
+    //  of THE ORIGINAL dovetail fragments, enabling the sort actually breaks unitigging.  We assume
+    //  that fragments that intersect other unitigs are either the first or last fragment.
+    //
+    tig->sort();
 
     //  Count the number of fragments in this unitig, including
     //  yet-to-be-placed contained fragments.
@@ -715,12 +719,21 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
           continue;
         }
 
-        //  Don't break on self-intersections.  These might be bubbles that we popped...but they
-        //  might also be real intersections (loops) that should be broken.
-#warning not breaking on self intersections
-        if (Unitig::fragIn(inFrag) == tig->id())
-          continue;
-
+        //  If the incoming fragment is in this unitig (this unitig == 'tig'), AND it isn't listed
+        //  as being a true self intersection, don't use it.  This fragment was placed here by short
+        //  unitig merging, and is no longer an intersection.
+        if (Unitig::fragIn(inFrag) == tig->id()) {
+          if (selfIntersect.find(inFrag) != selfIntersect.end()) {
+            if (verboseBreak)
+              fprintf(stderr, "unitig %d frag %d - TRUE self intersection from frag %d\n",
+                      tig->id(), f->ident, inFrag);
+          } else {
+            if (verboseBreak)
+              fprintf(stderr, "unitig %d frag %d - skipping false self intersection from frag %d\n",
+                      tig->id(), f->ident, inFrag);
+            continue;
+          }
+        }
 
         UnitigBreakPoint breakPoint(f->ident, bestEdge->bend);
 
@@ -2044,6 +2057,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
 
         if (newTig->dovetail_path_ptr->empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
+
         newTig->addFrag(frg, offset, verboseBreak);
 
         if ((verboseBreak) && (newTig))
