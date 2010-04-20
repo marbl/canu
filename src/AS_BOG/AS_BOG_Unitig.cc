@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.23 2010-04-12 08:25:04 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.24 2010-04-20 16:06:53 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -753,6 +753,10 @@ DoveTailNodeCmp(const void *a, const void *b){
   int32 bbgn = (impb->position.bgn < impb->position.end) ? impb->position.bgn : impb->position.end;
   int32 bend = (impb->position.bgn < impb->position.end) ? impb->position.end : impb->position.bgn;
 
+  //  NEWSORT does not work.  When bubbles are popped, we add non-contained fragments to
+  //  a unitig, but just stick them at the end of the list.  NEWSORT would then maintain
+  //  this ordering, which is an error.
+  //
 #undef NEWSORT
 
 #ifdef NEWSORT
@@ -773,12 +777,12 @@ DoveTailNodeCmp(const void *a, const void *b){
     return(bend - aend);
 
 #ifdef NEWSORT
- if (aIsCont == false)
-    //  b must be contained.
+  if (bIsCont == true)
+    //  b is contained in a, so it comes after a.
     return(-1);
 
-  if (bIsCont == false)
-    //  a must be contained.
+ if (aIsCont == true)
+    //  a is contained in b, so it comes after b.
     return(1);
 #endif
 
