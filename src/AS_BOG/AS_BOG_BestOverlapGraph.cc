@@ -19,12 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.72 2010-01-29 07:36:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.73 2010-04-20 20:11:50 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
 #undef max
+
 
 //  The overlap, pi, exists between A and B:
 //
@@ -98,6 +99,11 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
   mismatchLimit   = AS_UTG_ERROR_LIMIT;
 
+#ifdef ENABLE_CHECKPOINTING
+  if (load())
+    return;
+#endif
+
   //  Pass 1 through overlaps -- find the contained fragments.
 
   //setLogFile("unitigger", "bestoverlapgraph-containments");
@@ -117,6 +123,7 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
   delete [] _best_contains_score;
   _best_contains_score    = NULL;
+
 
   //  Report some statistics on overlaps
   {
@@ -158,6 +165,20 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
   //setLogFile("unitigger", NULL);
 
+
+  //  Clean up our allocation.  We seem to over count the number of overlaps in the first pass,
+  //  then don't add any overlaps in the second pass, leaving the count positive and the pointer
+  //  NULL.  In the case where we just overcount, the pointer is valid, and the count is correct.
+  //
+  //  A better explanation is that we count near containment overlaps for ALL fragments in the
+  //  first pass, but then only save near containment overlaps for contained fragments, leaving
+  //  the dovetail fragments with a positive count and a NULL pointer.
+  //
+  for (uint32 i=0; i<_fi->numFragments() + 1; i++)
+    if (_best_contains[i].olaps == NULL)
+      _best_contains[i].olapsLen = 0;
+
+
   //  Diagnostic.  Dump the best edges, count the number of contained
   //  reads, etc.
   {
@@ -183,6 +204,10 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
       fclose(BE);
     }
   }
+
+#ifdef ENABLE_CHECKPOINTING
+  save();
+#endif
 }
 
 BestOverlapGraph::~BestOverlapGraph(){
