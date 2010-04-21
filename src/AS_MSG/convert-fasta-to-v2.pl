@@ -228,16 +228,31 @@ while (defined($seq) && defined($qlt)) {
 close(SEQ);
 close(QLT);
 
+my $mateline = 1;
+my $matefail = 0;
+
 if (defined($matefile)) {
     open(F, "< $matefile") or die "Failed to open '$matefile'\n";
     while (<F>) {
-        my ($a, $b) = split '\s+', $_;
+        $_ =~ s/^\s+//;
+        $_ =~ s/\s+$//;
 
-        print "{LKG\n";
-        print "act:A\n";
-        print "frg:$a\n";
-        print "frg:$b\n";
-        print "}\n";
+        if ($_ ne "") {
+            my ($a, $b, $c) = split '\s+', $_;
+
+            if ((!defined($a)) || (!defined($b)) || (defined($c))) {
+                print STDERR "Invalid mate pair '$_' on line $mateline -- NO MATE CREATED.\n";
+                $matefail++;
+            }
+
+            print "{LKG\n";
+            print "act:A\n";
+            print "frg:$a\n";
+            print "frg:$b\n";
+            print "}\n";
+        }
+
+        $mateline++;
     }
     close(F);
 }
@@ -339,3 +354,11 @@ sub readQual {
     undef $qhdr;
     return($ret, $qstr);
 }
+
+if ($matefail > 0) {
+    print STDERR "\nThere were $matefail errors in the matefile.\n";
+} else {
+    print STDERR "Finished successfully.\n";
+}
+
+exit($matefail != 0);
