@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.8 2010-04-02 05:44:39 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.9 2010-04-23 15:14:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -411,6 +411,11 @@ main (int argc, char **argv) {
 
 
   if ((dumpType == OPERATION_REPLACE) && (replaceName != NULL)) {
+    if (tigID) {
+      fprintf(stderr, "ERROR:  -R is incompatible with -c and -u.  Did you mean -cp or -up instead?\n");
+      exit(1);
+    }
+
     errno = 0;
     FILE         *F = fopen(replaceName, "r");
     if (errno)
