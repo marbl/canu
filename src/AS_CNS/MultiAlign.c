@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.14 2010-01-22 04:48:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.15 2010-04-23 15:11:06 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -685,6 +685,7 @@ LoadMultiAlignFromHumanGetLine(FILE *in, int32 LINElen, int32 LINEmax, char *LIN
     ;
 
   chomp(LINE);
+  W.split(LINE);
 
   if (feof(in))
     //  Nothing more to read!
@@ -693,8 +694,6 @@ LoadMultiAlignFromHumanGetLine(FILE *in, int32 LINElen, int32 LINEmax, char *LIN
   if (LINE[0] == 0)
     //  Blank or whitespace only line.  Recurse or just goto, hmmmm.
     goto LoadMultiAlignFromHumanGetLineAgain;
-
-  W.split(LINE);
 
   return(W.numWords() > 0);
 }
@@ -723,10 +722,11 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
     ma->maID = atoi(W[1]);
   } else {
     fprintf(stderr, "MultiAlign not loaded:  Unknown MultiAlign type (expected 'unitig' or 'contig') in '%s'\n", LINE);
-    return(false);
+    exit(1);
   }
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "LoadMultiAlignFromHuman()-- Expecting 'len' line, got empty line.\n"), exit(1);
 
   if (strcmp(W[0], "len") == 0) {
     int32 l = atoi(W[1]) + 1024;
@@ -736,51 +736,56 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
       LINE = new char [LINEmax];
     }
   } else {
-    fprintf(stderr, "MultiAlign not loaded:  Unknown length in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown length in '%s'\n", ma->maID, LINE);
+    exit(1);
   }
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'cns' line, got empty line.\n", ma->maID), exit(1);
 
   if (strcmp(W[0], "cns") == 0) {
     if (W[1])
       SetRangeVA_char(ma->consensus, 0, strlen(W[1]) + 1, W[1]);
   } else {
-    fprintf(stderr, "MultiAlign not loaded:  Unknown cns in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown cns in '%s'\n", ma->maID, LINE);
+    exit(1);
   }
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'qlt' line, got empty line.\n", ma->maID), exit(1);
 
   if (strcmp(W[0], "qlt") == 0) {
     if (W[1])
       SetRangeVA_char(ma->quality, 0, strlen(W[1]) + 1, W[1]);
   } else {
-    fprintf(stderr, "MultiAlign not loaded:  Unknown qlt in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown qlt in '%s'\n", ma->maID, LINE);
+    exit(1);
   }
 
   ////////////////////////////////////////
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_coverage_stat' line, got empty line.\n", ma->maID), exit(1);
 
   if (strcmp(W[0], "data.unitig_coverage_stat") == 0) {
     ma->data.unitig_coverage_stat = atof(W[1]);
   } else {
-    fprintf(stderr, "MultiAlign not loaded:  Unknown data.unitig_converage_stat in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_converage_stat in '%s'\n", ma->maID, LINE);
+    exit(1);
   }
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_microhet_prob' line, got empty line.\n", ma->maID), exit(1);
 
   if (strcmp(W[0], "data.unitig_microhet_prob") == 0) {
     ma->data.unitig_microhet_prob = atof(W[1]);
   } else {
-    fprintf(stderr, "MultiAlign not loaded:  Unknown data.unitig_microhet_prob in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_microhet_prob in '%s'\n", ma->maID, LINE);
+    exit(1);
   }
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_status' line, got empty line.\n", ma->maID), exit(1);
 
   if (strcmp(W[0], "data.unitig_status") == 0) {
     switch (W[1][0]) {
@@ -797,16 +802,17 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         ma->data.unitig_status = AS_UNASSIGNED;
         break;
       default:
-        fprintf(stderr, "MultiAlign not loaded:  Unknown data.unitig_status in '%s'\n", LINE);
-        return(false);
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_status in '%s'\n", ma->maID, LINE);
+        exit(1);
         break;
     }
   } else {
-    fprintf(stderr, "MultiAlign not loaded:  Unknown data.unitig_status in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_status in '%s'\n", ma->maID, ma->maID, LINE);
+    exit(1);
   }
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_unique_rept' line, got empty line.\n"), exit(1);
 
   if (strcmp(W[0], "data.unitig_unique_rept") == 0) {
     switch (W[1][0]) {
@@ -820,16 +826,17 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         ma->data.unitig_unique_rept = AS_FORCED_REPEAT;
         break;
       default:
-        fprintf(stderr, "MultiAlign not loaded:  Unknown data.unitig_unique_rept in '%s'\n", LINE);
-        return(false);
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_unique_rept in '%s'\n", ma->maID, ma->maID, LINE);
+        exit(1);
         break;
     }
   } else {
-    fprintf(stderr, "MultiAlign not loaded:  Unknown data.unitig_unique_rept in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_unique_rept in '%s'\n", ma->maID, LINE);
+    exit(1);
   }
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.contig_status' line, got empty line.\n", ma->maID), exit(1);
 
   if (strcmp(W[0], "data.contig_status") == 0) {
     switch (W[1][0]) {
@@ -840,31 +847,33 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         ma->data.contig_status = AS_UNPLACED;
         break;
       default:
-        fprintf(stderr, "MultiAlign not loaded:  Unknown data.contig_status in '%s'\n", LINE);
-        return(false);
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.contig_status in '%s'\n", ma->maID, LINE);
+        exit(1);
         break;
     }
   } else {
-    fprintf(stderr, "Unknown data.contig_status in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "Unknown data.contig_status in '%s'\n", ma->maID, LINE);
+    exit(1);
   }
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.num_frags' line, got empty line.\n"), exit(1);
 
   if (strcmp(W[0], "data.num_frags") == 0) {
     ma->data.num_frags = atoi(W[1]);
   } else {
-    fprintf(stderr, "MultiAlign not loaded:  Unknown data.num_frags in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.num_frags in '%s'\n", ma->maID, ma->maID, LINE);
+    exit(1);
   }
 
-  LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W);
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.num_unitigs' line, got empty line.\n"), exit(1);
 
   if (strcmp(W[0], "data.num_unitigs") == 0) {
     ma->data.num_unitigs = atoi(W[1]);
   } else {
-    fprintf(stderr, "MultiAlign not loaded:  Unknown data.num_unitigs in '%s'\n", LINE);
-    return(false);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.num_unitigs in '%s'\n", ma->maID, ma->maID, LINE);
+    exit(1);
   }
 
   ////////////////////////////////////////
@@ -882,8 +891,8 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
       ;
 
     if (W.numWords() == 0) {
-      fprintf(stderr, "MultiAlign not loaded:  Too few FRG lines\n");
-      return(false);
+      fprintf(stderr, "MultiAlign %d not loaded:  Too few FRG lines; read %d, expected %d\n", ma->maID, i, ma->data.num_frags);
+      exit(1);
     }
 
     if ((W.numWords() != 15) ||
@@ -894,8 +903,8 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         (strcmp(W[ 7], "parent")    != 0) ||
         (strcmp(W[ 9], "hang")      != 0) ||
         (strcmp(W[12], "position")  != 0)) {
-      fprintf(stderr, "MultiAlign not loaded:  Unknown FRG line in '%s'\n", LINE);
-      return(false);
+      fprintf(stderr, "MultiAlign %d not loaded:  Unknown FRG line in '%s'\n", ma->maID, LINE);
+      exit(1);
     }
 
     switch (W[2][0]) {
@@ -903,8 +912,8 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         imp->type = AS_READ;
         break;
       default:
-        fprintf(stderr, "MultiAlign not loaded:  Unknown FRG type %c/%d in '%s'\n", W[2][0], W[2][0], LINE);
-        return(false);
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown FRG type %c/%d in '%s'\n", ma->maID, W[2][0], W[2][0], ma->maID, LINE);
+        exit(1);
         break;
     }
 
@@ -927,8 +936,8 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
       ;
 
     if (W.numWords() == 0) {
-      fprintf(stderr, "MultiAlign not loaded:  Too few FRG lines\n");
-      return(false);
+      fprintf(stderr, "MultiAlign %d not loaded:  Too few UTG lines; read %d, expected %d\n", ma->maID, i, ma->data.num_unitigs);
+      exit(1);
     }
 
     if ((W.numWords() != 10) ||
@@ -937,8 +946,8 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         (strcmp(W[3], "ident")         != 0) ||
         (strcmp(W[5], "position")      != 0) ||
         (strcmp(W[8], "num_instances") != 0)) {
-      fprintf(stderr, "MultiAlign not loaded:  Unknown UTG line in '%s'\n", LINE);
-      return(false);
+      fprintf(stderr, "MultiAlign not loaded:  Unknown UTG line in '%s'\n", ma->maID, LINE);
+      exit(1);
     }
 
     switch (W[2][0]) {
@@ -961,8 +970,8 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         iup->type = AS_OTHER_UNITIG;
         break;
       default:
-        fprintf(stderr, "MultiAlign not loaded:  Unknown UTG type %c/%d in '%s'\n", W[2][0], W[2][0], LINE);
-        return(false);
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown UTG type %c/%d in '%s'\n", ma->maID, W[2][0], W[2][0], ma->maID, LINE);
+        exit(1);
         break;
     }
 
