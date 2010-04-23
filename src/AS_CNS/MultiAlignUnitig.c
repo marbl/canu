@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.29 2010-03-18 08:18:26 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.30 2010-04-23 11:18:12 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -589,6 +589,7 @@ unitigConsensus::computePositionFromAlignment(void) {
   //
   placed[tiid].bgn = O->begpos;
   placed[tiid].end = O->endpos + frankensteinLen;
+  //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", tiid, fraglist[tiid].ident, placed[tiid].bgn, placed[tiid].end);
 
   int32   thickestLen = 0;
 
@@ -720,7 +721,6 @@ unitigConsensus::rebuildFrankensteinFromConsensus(void) {
 
       placed[i].bgn = gapToUngap[frstIdx];
       placed[i].end = gapToUngap[lastIdx] + 1;
-
       //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", i, fraglist[i].ident, placed[i].bgn, placed[i].end);
     }
   }
@@ -834,6 +834,16 @@ unitigConsensus::alignFragment(void) {
   }
 
   AS_CNS_ERROR_RATE = origErate;
+
+  //  This might be useless.  computePositionFromAlignment() is setting placed[] for this fragment,
+  //  and I'm not exactly sure if it should be doing that.  I don't see anywhere in this function
+  //  that placed[] is used, but it might be calling something that uses it.
+  //
+  if (success == false) {
+    placed[tiid].bgn = 0;
+    placed[tiid].end = 0;
+    //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", tiid, fraglist[tiid].ident, placed[tiid].bgn, placed[tiid].end);
+  }
 
   return(success);
 }
@@ -968,6 +978,7 @@ unitigConsensus::alignFragmentToFragments(void) {
 
     placed[tiid].bgn = placed[qiid].bgn + O->begpos;
     placed[tiid].end = placed[qiid].end + O->endpos;
+    //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", tiid, fraglist[tiid].ident, placed[tiid].bgn, placed[tiid].end);
 
     //  Add the alignment to abacus.
 
@@ -1006,6 +1017,7 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
 
     placed[tiid].bgn = ahang;
     placed[tiid].end = frankensteinLen + bhang;
+    //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", tiid, fraglist[tiid].ident, placed[tiid].bgn, placed[tiid].end);
   }
 
   //  Update parent and hangs to reflect the overlap that succeeded.
@@ -1112,6 +1124,7 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
     for (int32 x=0; x<=tiid; x++) {
       placed[x].bgn  += -ahang;
       placed[x].end  += -ahang;
+      //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", x, fraglist[x].ident, placed[x].bgn, placed[x].end);
     }
 
     int32   bidx = frankensteinBof[-ahang];
