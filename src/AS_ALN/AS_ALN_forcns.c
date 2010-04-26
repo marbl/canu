@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.24 2009-10-26 13:20:26 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.25 2010-04-26 03:52:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,7 +109,7 @@ Local_Overlap_AS_forCNS(char *a, char *b,
 #endif
 
   if (erate > AS_MAX_ERROR_RATE) {
-    fprintf(stderr, "Local_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
+    //fprintf(stderr, "Local_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
     erate = AS_MAX_ERROR_RATE;
   }
   assert((0.0 <= erate) && (erate <= 4 * AS_MAX_ERROR_RATE));
@@ -252,7 +252,7 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
 #endif
 
   if (erate > AS_MAX_ERROR_RATE) {
-    fprintf(stderr, "Affine_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
+    //fprintf(stderr, "Affine_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
     erate = AS_MAX_ERROR_RATE;
   }
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
@@ -387,7 +387,7 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 #endif
 
   if (erate > AS_MAX_ERROR_RATE) {
-    fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
+    //fprintf(stderr, "Optimal_Overlap_AS_forCNS()--  erate=%f >= AS_MAX_ERROR_RATE=%f, reset to max\n", erate, (double)AS_MAX_ERROR_RATE);
     erate = AS_MAX_ERROR_RATE;
   }
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
