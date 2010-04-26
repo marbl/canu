@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.70 2010-04-20 16:08:12 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.71 2010-04-26 04:11:59 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -80,6 +80,8 @@ struct UnitigGraph{
 
   // Call this on a chunk graph pointer to build a unitig graph
   void build(ChunkGraph *cg_ptr,
+             OverlapStore *ovlStoreUniq,
+             OverlapStore *ovlStoreRept,
              bool enableIntersectionBreaking,
              bool enableJoining,
              bool enableBubblePopping,
@@ -95,7 +97,8 @@ struct UnitigGraph{
   void joinUnitigs(void);
   void placeContains(void);
   void placeZombies(void);
-  void popBubbles(void);
+  void popBubbles(OverlapStore *ovlStoreUniq,
+                  OverlapStore *ovlStoreRept);
 
   void filterBreakPoints(ContainerMap &cMap,
                          Unitig *,

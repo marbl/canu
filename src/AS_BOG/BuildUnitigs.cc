@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.71 2010-03-16 13:06:46 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.72 2010-04-26 04:11:59 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -296,7 +296,7 @@ main (int argc, char * argv []) {
 
   ChunkGraph *cg = new ChunkGraph(fragInfo, BOG);
   UnitigGraph utg(fragInfo, BOG);
-  utg.build(cg, breakIntersections, joinUnitigs, popBubbles, output_prefix);
+  utg.build(cg, ovlStoreUniq, ovlStoreRept, breakIntersections, joinUnitigs, popBubbles, output_prefix);
 
   MateChecker  mateChecker(fragInfo);
   mateChecker.checkUnitigGraph(utg, badMateBreakThreshold);

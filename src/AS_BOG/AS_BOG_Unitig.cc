@@ -19,13 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.24 2010-04-20 16:06:53 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.25 2010-04-26 04:11:59 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
 #undef max
+
+#undef DEBUG_PLACEMENT
 
 
 extern FragmentInfo     *debugfi;
@@ -546,14 +548,20 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   if ((bestedge5) && (fragIn(bestedge5->frag_b_id) == id())) {
     bidx5 = pathPosition(bestedge5->frag_b_id);
     blen5 = debugfi->fragmentLength(fid) + ((bestedge5->ahang < 0) ? bestedge5->bhang : -bestedge5->ahang);
-    //fprintf(stderr, "bestedge5:  %d,%d,%d,%d len %d\n", bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
+#ifdef DEBUG_PLACEMENT
+    fprintf(stderr, "addAndPlaceFrag()-- bestedge5:  %d,%d,%d,%d len %d\n",
+            bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
+#endif
     assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
   }
 
   if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
     bidx3 = pathPosition(bestedge3->frag_b_id);;
     blen3 = debugfi->fragmentLength(fid) + ((bestedge3->ahang < 0) ? bestedge3->bhang : -bestedge3->ahang);
-    //fprintf(stderr, "bestedge3:  %d,%d,%d,%d len %d\n", bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
+#ifdef DEBUG_PLACEMENT
+    fprintf(stderr, "addAndPlaceFrag()-- bestedge3:  %d,%d,%d,%d len %d\n",
+            bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
+#endif
     assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
   }
 

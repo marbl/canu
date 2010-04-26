@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.128 2010-04-20 16:08:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.129 2010-04-26 04:11:59 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -177,6 +177,8 @@ UnitigGraph::~UnitigGraph() {
 
 
 void UnitigGraph::build(ChunkGraph *cg_ptr,
+                        OverlapStore *ovlStoreUniq,
+                        OverlapStore *ovlStoreRept,
                         bool enableIntersectionBreaking,
                         bool enableJoining,
                         bool enableBubblePopping,
@@ -228,7 +230,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr,
   reportOverlapsUsed("overlaps.afterbuild2");
 
   if (enableBubblePopping)
-    popBubbles();
+    popBubbles(ovlStoreUniq, ovlStoreRept);
 
   if (enableIntersectionBreaking) {
     breakUnitigs(cMap, output_prefix);
@@ -248,7 +250,7 @@ void UnitigGraph::build(ChunkGraph *cg_ptr,
   checkUnitigMembership();
 
   if (enableBubblePopping)
-    popBubbles();
+    popBubbles(ovlStoreUniq, ovlStoreRept);
 
   checkUnitigMembership();
 }
@@ -705,16 +707,16 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
         if ((inTig->dovetail_path_ptr->size() == 1) &&
             ((best5->frag_b_id == 0) || (best3->frag_b_id == 0))) {
 #ifdef DEBUG_BREAK
-        fprintf(stderr, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d -- IS A SPUR, skip it\n",
-                Unitig::fragIn(inFrag),
-                inTig->getNumFrags(),
-                inTig->getLength(),
-                inFrag,
-                (bestEnd == FIVE_PRIME) ? '5' : '3',
-                tig->id(),
-                f->ident,
-                (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
-                pos);
+          fprintf(stderr, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d -- IS A SPUR, skip it\n",
+                  Unitig::fragIn(inFrag),
+                  inTig->getNumFrags(),
+                  inTig->getLength(),
+                  inFrag,
+                  (bestEnd == FIVE_PRIME) ? '5' : '3',
+                  tig->id(),
+                  f->ident,
+                  (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
+                  pos);
 #endif
           continue;
         }
@@ -921,7 +923,7 @@ UnitigGraph::joinUnitigs(void) {
 
       joinsLen++;
 
-  skipFirst:
+    skipFirst:
       ;
     }
 
@@ -1292,37 +1294,47 @@ UnitigGraph::placeZombies(void) {
 //  ends is to the same unitig.  This will include those.
 //
 void
-UnitigGraph::popBubbles(void) {
+UnitigGraph::popBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
+
+#define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
+
+  uint32      ovlMax = MAX_OVERLAPS_PER_FRAG;
+  uint32      ovlLen = 0;
+  OVSoverlap *ovl    = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * ovlMax);
+  uint32     *ovlCnt = (uint32     *)safe_malloc(sizeof(uint32)     * AS_READ_MAX_NORMAL_LEN);
 
   fprintf(stderr, "==> SEARCHING FOR BUBBLES\n");
 
   for (int  ti=0; ti<unitigs->size(); ti++) {
-    Unitig        *utg = (*unitigs)[ti];
+    Unitig        *shortTig = (*unitigs)[ti];
+    Unitig        *mergeTig = NULL;
 
-    if ((utg == NULL) ||
-        (utg->dovetail_path_ptr == NULL) ||
-        (utg->dovetail_path_ptr->size() >= 30))
+    if ((shortTig == NULL) ||
+        (shortTig->dovetail_path_ptr == NULL) ||
+        (shortTig->dovetail_path_ptr->size() >= 30))
       continue;
 
-    uint32         otherUtg   = 987654321;
-    uint32         conflicts  = 0;
-    uint32         self       = 0;
-    uint32         nonmated   = 0;
-    uint32         matedcont  = 0;
-    uint32         spurs      = 0;
+    uint32         otherUtg     = 987654321;
+    uint32         conflicts    = 0;
+    uint32         self         = 0;
+    uint32         nonmated     = 0;
+    uint32         matedcont    = 0;
+    uint32         spurs        = 0;
 
-    uint32         diffOrient = 0;
-    uint32         tooLong    = 0;
-    uint32         tigLong    = 0;
+    uint32         diffOrient   = 0;
+    uint32         tooLong      = 0;
+    uint32         tigLong      = 0;
 
-    int32          minNewPos  = INT32_MAX;
-    int32          maxNewPos  = INT32_MIN;
+    uint32         tooDifferent = 0;
 
-    for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode *frg = &(*utg->dovetail_path_ptr)[fi];
+    int32          minNewPos    = INT32_MAX;
+    int32          maxNewPos    = INT32_MIN;
+
+    for (int fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
+      DoveTailNode *frg = &(*shortTig->dovetail_path_ptr)[fi];
 
       int32  frgID = frg->ident;
-      int32  utgID = utg->id();
+      int32  utgID = shortTig->id();
 
       BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
       BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
@@ -1341,11 +1353,11 @@ UnitigGraph::popBubbles(void) {
       if (bestedge5->frag_b_id == 0) {
         spurs++;
       } else {
-        int32 ou5 = utg->fragIn(bestedge5->frag_b_id);
+        int32 ou5 = shortTig->fragIn(bestedge5->frag_b_id);
 
         assert(ou5 > 0);
 
-        if (ou5 == utg->id()) {
+        if (ou5 == shortTig->id()) {
           self++;
         } else {
           if ((otherUtg == 987654321) && (ou5 != 0))
@@ -1358,11 +1370,11 @@ UnitigGraph::popBubbles(void) {
       if (bestedge3->frag_b_id == 0) {
         spurs++;
       } else {
-        int32 ou3 = utg->fragIn(bestedge3->frag_b_id);
+        int32 ou3 = shortTig->fragIn(bestedge3->frag_b_id);
 
         assert(ou3 > 0);
 
-        if (ou3 == utg->id()) {
+        if (ou3 == shortTig->id()) {
           self++;
         } else {
           if ((otherUtg == 987654321) && (ou3 != 0))
@@ -1372,108 +1384,226 @@ UnitigGraph::popBubbles(void) {
         }
       }
 
+      if (otherUtg == 987654321)
+        //  Didn't find a unitig to merge this fragment into.
+        continue;
 
-#if 1
+      if (conflicts > 0)
+        //  Found multiple unitigs to merge this fragment into, or multiple unitigs to merge this unitig into.
+        continue;
+
       //  Check sanity of the new placement.
 
-      if ((otherUtg  != 987654321) &&
-          (conflicts == 0)) {
-        DoveTailNode place5;
-        DoveTailNode place3;
+      mergeTig = (*unitigs)[otherUtg];
 
-        place5.ident = frgID;
-        place3.ident = frgID;
+      DoveTailNode place5;
+      DoveTailNode place3;
 
-        int32 bidx5 = -1;
-        int32 bidx3 = -1;
+      place5.ident = frgID;
+      place3.ident = frgID;
 
-        Unitig  *mergeTig = (*unitigs)[otherUtg];
+      int32 bidx5 = -1;
+      int32 bidx3 = -1;
 
-        mergeTig->placeFrag(place5, bidx5, bestedge5,
-                            place3, bidx3, bestedge3);
+      mergeTig->placeFrag(place5, bidx5, bestedge5,
+                          place3, bidx3, bestedge3);
 
-        //  Either or both ends can fail to place in the new unitig -- edges can be to a fragment in
-        //  the tig we're testing.  This doesn't matter for finding the min/max, but does matter
-        //  when we decide if the placements are about the correct size.
-          
-        //  Update the min/max placement for the whole tig.  At the end of everyhing we'll
-        //  make sure the min/max agree with the size of the tig.
+      //  Either or both ends can fail to place in the new unitig -- edges can be to a fragment in
+      //  the tig we're testing.  This doesn't matter for finding the min/max, but does matter
+      //  when we decide if the placements are about the correct size.
 
-        int32  min5 = INT32_MAX, max5 = INT32_MIN;
-        int32  min3 = INT32_MAX, max3 = INT32_MIN;
+      //  Update the min/max placement for the whole tig.  At the end of everyhing we'll
+      //  make sure the min/max agree with the size of the tig.
 
-        int32  minU = INT32_MAX;
-        int32  maxU = INT32_MIN;
+      int32  min5 = INT32_MAX, max5 = INT32_MIN;
+      int32  min3 = INT32_MAX, max3 = INT32_MIN;
 
-        if (bidx5 != -1) {
-          min5 = MIN(place5.position.bgn, place5.position.end);
-          max5 = MAX(place5.position.bgn, place5.position.end);
-        }
+      int32  minU = INT32_MAX;
+      int32  maxU = INT32_MIN;
 
-        if (bidx3 != -1) {
-          min3 = MIN(place3.position.bgn, place3.position.end);
-          max3 = MAX(place3.position.bgn, place3.position.end);
-        }
-
-        minU = MIN(min5, min3);
-        maxU = MAX(max5, max3);
-
-        minNewPos = MIN(minU, minNewPos);
-        maxNewPos = MAX(maxU, maxNewPos);
-
-        //  Check that the two placements agree with each other.  Same orientation, more or less the
-        //  same location, more or less the correct length.
-
-        if ((bidx5 != -1) && (bidx3 != -1)) {
-
-          //  Orientation.
-          if ((min5 < max5) != (min3 < max3))
-            diffOrient++;
-
-          //  Location.
-          if (maxU - minU > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
-            tooLong++;
-
-          //  Length.
-          if (max5 - min5 > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
-            tooLong++;
-
-          if (max3 - min3 > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
-            tooLong++;
-        }
-      }
+      if (bidx5 != -1) {
+#ifdef DEBUG_MERGE
+        fprintf(stderr, "popBubbles()-- place fragment %d using 5' edge at %d,%d\n", frgID, place5.position.bgn, place5.position.end);
 #endif
-    }  //  Over all frags
+        min5 = MIN(place5.position.bgn, place5.position.end);
+        max5 = MAX(place5.position.bgn, place5.position.end);
+      }
+
+      if (bidx3 != -1) {
+#ifdef DEBUG_MERGE
+        fprintf(stderr, "popBubbles()-- place fragment %d using 3' edge at %d,%d\n", frgID, place3.position.bgn, place3.position.end);
+#endif
+        min3 = MIN(place3.position.bgn, place3.position.end);
+        max3 = MAX(place3.position.bgn, place3.position.end);
+      }
+
+      minU = MIN(min5, min3);
+      maxU = MAX(max5, max3);
+
+      minNewPos = MIN(minU, minNewPos);
+      maxNewPos = MAX(maxU, maxNewPos);
+
+      //  Check that the two placements agree with each other.  Same orientation, more or less the
+      //  same location, more or less the correct length.
+
+      if ((bidx5 != -1) && (bidx3 != -1)) {
+        if ((min5 < max5) != (min3 < max3))
+          //  Orientation bad.
+          diffOrient++;
+
+        if (maxU - minU > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
+          //  Location bad.
+          tooLong++;
+
+        if (max5 - min5 > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
+          //  Length bad.
+          tooLong++;
+
+        if (max3 - min3 > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
+          //  Length bad.
+          tooLong++;
+      }
+    }  //  Over all fragments in the source unitig/
+
+    //
+    //  If we are bad already, just stop.  If we pass these tests, continue on to checking overlaps.
+    //
 
 #warning NEED TO SET AS_UTG_ERROR_RATE
 #warning NEED TO SET AS_UTG_ERROR_RATE
 #warning NEED TO SET AS_UTG_ERROR_RATE
-    if (maxNewPos - minNewPos > (1 + 2 * 0.03) * utg->getLength())
+    if (maxNewPos - minNewPos > (1 + 2 * 0.03) * shortTig->getLength())
       tigLong++;
 
 #ifdef DEBUG_MERGE
-    fprintf(stderr, "CONFLICTS %d SPURS %d SELF %d len %d frags %d matedcont %d nonmated %d diffOrient %d tooLong %d tigLong %d\n",
-            conflicts, spurs, self, utg->getLength(), utg->dovetail_path_ptr->size(), matedcont, nonmated, diffOrient, tooLong, tigLong);
+    fprintf(stderr, "popBubbles()-- unitig %d CONFLICTS %d SPURS %d SELF %d len %d frags %d matedcont %d nonmated %d diffOrient %d tooLong %d tigLong %d\n",
+            shortTig->id(), conflicts, spurs, self, shortTig->getLength(), shortTig->dovetail_path_ptr->size(), matedcont, nonmated, diffOrient, tooLong, tigLong);
 #endif
 
-    if ((conflicts  > 0) ||
-        (spurs      > 0) ||
-        (self       > 6) ||
-        (matedcont  > 6) ||
-        (diffOrient > 0) ||
-        (tooLong    > 0) ||
-        (tigLong    > 0) ||
-        (otherUtg == 987654321))
+    if ((spurs        > 0) ||
+        (self         > 6) ||
+        (matedcont    > 6) ||
+        (diffOrient   > 0) ||
+        (tooLong      > 0) ||
+        (tigLong      > 0) ||
+        (tooDifferent > 0) ||
+        (conflicts    > 0))
       continue;
+
+    if (mergeTig == NULL)
+      //  Didn't find any place to put this short unitig.
+      continue;
+
+    //
+    //  Grab the overlaps for this read, paint the number of times we overlap some fragment
+    //  already in this unitig.  If we have any significant blocks with no coverage, the bubble
+    //  is probably too big for consensus.
+    //
+
+#define CHECK_OVERLAPS
+#ifdef CHECK_OVERLAPS
+    for (int fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
+      DoveTailNode *frg = &(*shortTig->dovetail_path_ptr)[fi];
+
+      int32  frgID = frg->ident;
+      int32  utgID = shortTig->id();
+
+      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
+      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestContainment *bestcont  = bog_ptr->getBestContainer(frg->ident);
+
+      if (bestcont)
+        continue;
+
+      ovlLen  = 0;
+
+      if (ovlStoreUniq) {
+        AS_OVS_setRangeOverlapStore(ovlStoreUniq, frgID, frgID);
+        ovlLen += AS_OVS_readOverlapsFromStore(ovlStoreUniq, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
+      }
+
+      if (ovlStoreRept) {
+        AS_OVS_setRangeOverlapStore(ovlStoreRept, frgID, frgID);
+        ovlLen += AS_OVS_readOverlapsFromStore(ovlStoreRept, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
+      }
+
+      memset(ovlCnt, 0, sizeof(uint32) * AS_READ_MAX_NORMAL_LEN);
+
+      uint32 alen = _fi->fragmentLength(frgID);
+
+      for (uint32 o=0; o<ovlLen; o++) {
+        int32 a_iid = ovl[o].a_iid;
+        int32 b_iid = ovl[o].b_iid;
+
+        assert(a_iid == frgID);
+
+        if (shortTig->fragIn(b_iid) != mergeTig->id())
+          //  Ignore overlaps to fragments not in this unitig.  We might want to ignore overlaps
+          //  to fragments in this unitig but not at this position, though that assumes we
+          //  actually got the placement correct....and it only matters for repeats.
+          continue;
+
+        uint32 bgn = 0;
+        uint32 end = 0;
+
+        int32 a_hang = ovl[o].dat.ovl.a_hang;
+        int32 b_hang = ovl[o].dat.ovl.b_hang;
+
+        if (a_hang < 0) {
+          //  b_hang < 0      ?     ----------  :     ----
+          //                  ?  ----------     :  ----------
+          //
+          bgn = 0;
+          end = (b_hang < 0) ? (alen + b_hang) : (alen);
+        } else {
+          //  b_hang < 0      ?  ----------              :  ----------
+          //                  ?     ----                 :     ----------
+          //
+          bgn = a_hang;
+          end = (b_hang < 0) ? (alen + b_hang) : alen;
+        }
+
+        for (uint32 x=bgn; x<end; x++)
+          ovlCnt[x]++;
+      }
+
+      uint32 zed = 0;
+
+      for (uint32 x=0; x<alen; x++)
+        if (ovlCnt[x] == 0)
+          zed++;
+
+      if (zed > 0.10 * alen)
+        tooDifferent++;
+
+#ifdef DEBUG_MERGE
+      if (zed > 0.10 * alen) {
+        fprintf(stderr, "frag %d too different with zed=%d > 0.10 * alen = 0.10 * %d = %d\n",
+                frgID, zed, alen, (int)(0.10 * alen));
+        for (uint32 x=0; x<alen; x++)
+          fprintf(stderr, "%c", (ovlCnt[x] < 10) ? '0' + ovlCnt[x] : '*');
+        fprintf(stderr, "\n");
+      }
+#endif
+    }  //  over all frags
+
+    //  If there are fragments with missing overlaps, don't merge.
+
+#ifdef DEBUG_MERGE
+    fprintf(stderr, "popBubbles()-- unitig %d tooDifferent %d\n",
+            shortTig->id(), tooDifferent);
+#endif
+
+    if (tooDifferent > 0)
+      continue;
+#endif // CHECK_OVERLAPS
 
 
     //  Merge this unitig into otherUtg.
 
-    Unitig  *mergeTig    = (*unitigs)[otherUtg];
-
 #ifdef DEBUG_MERGE
-    fprintf(stderr, "MERGE unitig %d (len %d) into unitig %d (len %d)\n",
-            utg->id(), utg->getLength(),
+    fprintf(stderr, "popBubbles()-- merge unitig %d (len %d) into unitig %d (len %d)\n",
+            shortTig->id(), shortTig->getLength(),
             mergeTig->id(), mergeTig->getLength());
 #endif
 
@@ -1498,8 +1628,8 @@ UnitigGraph::popBubbles(void) {
       allPlaced = true;
       isStuck   = true;
 
-      for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-        DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
+      for (int fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
+        DoveTailNode  *frag = &(*shortTig->dovetail_path_ptr)[fi];
 
         if (mergeTig->fragIn(frag->ident) == mergeTig->id())
           //  Already placed in mergeTig.
@@ -1519,20 +1649,23 @@ UnitigGraph::popBubbles(void) {
 
         if (mergeTig->fragIn(frag->ident) == mergeTig->id()) {
           //  Placed something, making progress!
-          fprintf(stderr, "popBubbles()-- Moved frag %d from unitig %d to unitig %d (isStuck <- false)\n",
-                  frag->ident, utg->id(), mergeTig->id());
+          if (verboseMerge)
+            fprintf(stderr, "popBubbles()-- Moved frag %d from unitig %d to unitig %d (isStuck <- false)\n",
+                    frag->ident, shortTig->id(), mergeTig->id());
           isStuck = false;
         } else {
           //  Failed to place, gotta do the loop again.
-          fprintf(stderr, "popBubbles()-- Failed to move frag %d from unitig %d to unitig %d (tryAgain <- true)\n",
-                  frag->ident, utg->id(), mergeTig->id());
+          if (verboseMerge)
+            fprintf(stderr, "popBubbles()-- Failed to move frag %d from unitig %d to unitig %d (tryAgain <- true)\n",
+                    frag->ident, shortTig->id(), mergeTig->id());
           tryAgain = true;
         }
       }
 
       if ((allPlaced == false) && (isStuck == true)) {
-        fprintf(stderr, "popBubbles()--  Failed to completely merge unitig %d into unitig %d.\n",
-                utg->id(), mergeTig->id());
+        if (verboseMerge)
+          fprintf(stderr, "popBubbles()--  Failed to completely merge unitig %d into unitig %d.\n",
+                  shortTig->id(), mergeTig->id());
         tryAgain = false;
       }
     }
@@ -1543,10 +1676,13 @@ UnitigGraph::popBubbles(void) {
 
     if (isStuck == false) {
       (*unitigs)[ti] = NULL;
-      delete utg;
+      delete shortTig;
     }
   }  //  over all unitigs
-}  //  orphan searching scope
+
+  delete [] ovl;
+  delete [] ovlCnt;
+}  //  bubble popping scope
 
 
 
@@ -1660,6 +1796,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
           }
           if(recalibrated_fragment_arrival_rate > _globalArrivalRate){
             _globalArrivalRate = recalibrated_fragment_arrival_rate;
+#if 0
             std::cerr <<
               "Used recalibrated global_fragment_arrival_rate="
                       << _globalArrivalRate << std::endl
@@ -1673,15 +1810,16 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
                        << std::endl;
             }
             std::cerr << max_local_arrival_rate << std::endl;
+#endif
           }
         }
       }
     }
 
-   std::cerr << 
+    std::cerr << 
       "Computed genome_size="
-      << (_globalArrivalRate > 0.f ? ((float)total_random_frags_in_genome / _globalArrivalRate) : 0.f) 
-      << std::endl;
+              << (_globalArrivalRate > 0.f ? ((float)total_random_frags_in_genome / _globalArrivalRate) : 0.f) 
+              << std::endl;
   }else{
     // Compute actual GAR
     _globalArrivalRate = (float)total_random_frags_in_genome / (float)genome_size;
@@ -1933,7 +2071,9 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
     }
 
     if (newUnitigsConstructed < 2) {
+#ifdef DEBUG_BREAK
       fprintf(stderr, "SPLITTING BUG DETECTED!  Adjusting for it.\n");
+#endif
       return NULL;
     }
 
