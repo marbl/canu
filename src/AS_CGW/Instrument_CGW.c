@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.46 2010-04-17 03:24:09 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.47 2010-04-26 03:59:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,9 +61,11 @@ int32 UnitigOffset;
 #define USE_LONG_MATES 0
 #define USE_ALL_MATES 1
 
-//  If enabled, ignore mate pairs that are buried inside scaffolds when testing
-//  if two scaffolds should be merged.
+//  If enabled, ignore mate pairs that are buried inside scaffolds when testing if two scaffolds
+//  should be merged.  If the pair is buried more than mean + DIST * stddev, it is ignored.
+//
 #define IGNORE_MATES_TOO_FAR
+#define IGNORE_MATES_TOO_FAR_DIST 5.0
 
 int do_surrogate_tracking=1;
 
@@ -310,6 +312,9 @@ void FreeMateStatusPositions(MateStatusPositions * msp)
             DeleteVA_MateDetail(msp->misseparatedFar[ori1]);
         }
 
+      if(msp->missingMate)
+        DeleteVA_FragDetail(msp->missingMate);
+
       if(msp->inter)
         DeleteVA_FragDetail(msp->inter);
 
@@ -555,6 +560,7 @@ void InitializeMateStatusPositions(MateStatusPositions * msp)
       InitializeMateDetailArray(&(msp->misseparatedFar[ori1]));
     }
 
+  InitializeFragDetailArray(&(msp->missingMate));
   InitializeFragDetailArray(&(msp->inter));
 }
 
@@ -580,9 +586,9 @@ void ResetMateStatsSet(MateStatsSet * mss)
   ResetMateStats(&(mss->misoriented));
   ResetMateStats(&(mss->misseparatedClose));
   ResetMateStats(&(mss->misseparatedFar));
+  ResetMateStats(&(mss->missingMate));
   ResetMateStats(&(mss->inter));
 }
-
 
 void ResetMateInstrumenterCounts(MateInstrumenter * mi)
 {
@@ -1865,7 +1871,6 @@ void ComputeMateStats(MateStatsSet * mss, MateStatusPositions * msp)
 {
   int ori1;
 
-  AddFragDetailsToMateStats(&(mss->inter), msp->inter);
   for(ori1 = 0; ori1 < NUM_ORIENTATIONS_INSTR; ori1++)
     {
       int ori2;
@@ -1880,6 +1885,9 @@ void ComputeMateStats(MateStatsSet * mss, MateStatusPositions * msp)
         AddMateDetailsToMateStatsSet(&(mss->misoriented),
                                      msp->misoriented[ori1][ori2]);
     }
+
+  AddFragDetailsToMateStats(&(mss->missingMate), msp->missingMate);
+  AddFragDetailsToMateStats(&(mss->inter), msp->inter);
 }
 
 
@@ -2844,6 +2852,7 @@ void CopyMateStatsSet(MateStatsSet * dest,
   CopyMateStats(&(dest->misoriented), &(src->misoriented));
   CopyMateStats(&(dest->misseparatedClose), &(src->misseparatedClose));
   CopyMateStats(&(dest->misseparatedFar), &(src->misseparatedFar));
+  CopyMateStats(&(dest->missingMate), &(src->missingMate));
   CopyMateStats(&(dest->inter), &(src->inter));
 }
 
@@ -2914,6 +2923,7 @@ int AddMateStatusPositions(MateStatusPositions * dest,
 #endif
 
   AddFragDetails(dest->inter, src->inter);
+  AddFragDetails(dest->missingMate, src->missingMate);
 
   for(ori1 = 0; ori1 < NUM_ORIENTATIONS_INSTR; ori1++)
     {
@@ -2956,8 +2966,6 @@ int AddMateInstrumenters(MateInstrumenter * dest,
   return 0;
 }
 
-
-//  guido fragHT ignoreHT
 
 /*
   if as_is flag is non-zero it means adding like-level bookkeeping
@@ -3161,6 +3169,8 @@ void AddMateStatsSet(MateStatsSet * dest, MateStatsSet * src)
   AddMateStats(&(dest->misoriented), &(src->misoriented));
   AddMateStats(&(dest->misseparatedClose), &(src->misseparatedClose));
   AddMateStats(&(dest->misseparatedFar), &(src->misseparatedFar));
+  AddMateStats(&(dest->missingMate), &(src->missingMate));
+  //AddMateStats(&(dest->inter), &(src->inter));  //  Why not done?
 }
 
 
@@ -3184,6 +3194,11 @@ int32 GetMateStatsBad(MateStatsSet * mss)
 int32 GetMateStatsHappy(MateStatsSet * mss)
 {
   return GetMateStatsSum(&(mss->happy));
+}
+
+int32 GetMateStatsMissing(MateStatsSet * mss)
+{
+  return GetMateStatsSum(&(mss->missingMate));
 }
 
 
@@ -4303,6 +4318,23 @@ CheckFragmentMatePairs(ScaffoldGraphT           *graph,
   HashTable_AS        *cpHT        = (si == NULL) ? NULL :  si->cpHT;
   HashTable_AS        *anchoredHT  = (si == NULL) ? NULL :  si->anchoredHT;
 
+#ifdef IGNORE_MATES_TOO_FAR
+  //  Ugh, we need to know the length of the scaffold, so we run through all fragments
+  //  to discover it.
+  int32 SCFLEN = 0;
+
+  for (int32 i=0; i<GetNumVA_CDS_CID_t(bookkeeping->fragArray); i++) {
+    CIFragT               *frag = GetCIFragT(graph->CIFrags, *(GetVA_CDS_CID_t(bookkeeping->fragArray, i)));
+    int32                  frag5p, frag3p;
+    SequenceOrient         fragOrient;
+
+    GetFragmentPosition(cpHT, frag, &frag5p, &frag3p, &fragOrient);
+
+    SCFLEN = MAX(SCFLEN, frag5p);
+    SCFLEN = MAX(SCFLEN, frag3p);
+  }
+#endif
+
   for (int32 i=0; i<GetNumVA_CDS_CID_t(bookkeeping->fragArray); i++) {
     CIFragT                mockMate;
     CIFragT               *lookupMate;
@@ -4311,11 +4343,15 @@ CheckFragmentMatePairs(ScaffoldGraphT           *graph,
     InstrumentDistStatus   distStatus;
     int32                  frag5p, frag3p, mate5p, mate3p;
     SequenceOrient         fragOrient,     mateOrient;
+    bool                   isSurrogateFrag = false;
 
     //  Get the current fragment and mate
 
     CIFragT *frag = GetCIFragT(graph->CIFrags, *(GetVA_CDS_CID_t(bookkeeping->fragArray, i)));
     CIFragT *mate = GetCIFragT(graph->CIFrags, frag->mate_iid);
+
+    assert(frag->mate_iid > 0);
+    assert(mate->read_iid > 0);
 
     GetFragmentPosition(cpHT, frag, &frag5p, &frag3p, &fragOrient);
 
@@ -4331,6 +4367,9 @@ CheckFragmentMatePairs(ScaffoldGraphT           *graph,
 
       //  If we find a surrogate frag location, and ( we're working on a scaffold or the surrogate
       //  is this contig ), create a mock fragment with usable coordinates.
+
+      if (sflp != NULL)
+        isSurrogateFrag = true;
 
       if ((sflp != NULL) && ((!doingContig) || (sflp->contig == chunkIID))) {
 
@@ -4430,15 +4469,109 @@ CheckFragmentMatePairs(ScaffoldGraphT           *graph,
     bool  fragIgnore = false;
     bool  mateIgnore = false;
 
+#if 1
+#ifdef IGNORE_MATES_TOO_FAR
+    //  If we didn't find the mate, and the fragement is contained in our overlap region, count it
+    //  as bad.  The matepair SHOULD be present in this scaffold; we're merging two scaffolds at
+    //  about this spot.
+    //
+    //  There are three cases.  Not sure if all cases actually occur (the contained case might not).
+    //
+    //        b              X         b           X     b
+    //  ------------         X ---------           X     ----------
+    //        -------------- X            -------- X -----------------
+    //              e        X            e        X              e
+    // 
+    //  We'll pick on one merge type and show the forward case.
+    //
+    //                b
+    //  ------[-------------
+    //           ->   --------------
+    //                     e
+    //
+    //  For the forward (->) case, the fragment must start after a spot that is
+    //  considered likely to allow it's mate to be present ([).  If it also starts before the
+    //  overlap end region (to ignore most fragments in the second scaffold) then the mate should
+    //  at least be present in the second scaffold -- sure, if the second scaffold is much smaller
+    //  than the insert size, it will never be there.
+    //
+
+    //  Check if the mate fragment is in a surrogate.
+    //    cid      = unitig ID
+    //    CIid     = chunk instance ID
+    //    contigID = contig ID
+    //
+    if (mate->flags.bits.isPlaced == false)
+      isSurrogateFrag = true;
+
+    if (mate->flags.bits.isSingleton == true)
+      isSurrogateFrag = true;
+
+    if ((lookupMate == NULL) && (isSurrogateFrag == false) && (si) && (si->ignoreBgn.mean > 0.0) && (si->ignoreEnd.mean > 0.0)) {
+      int32  fragDist = 0;
+
+      FragDetail fragdetail;
+
+      fragdetail.iid      = frag->read_iid;
+      fragdetail.type     = AS_READ;
+      fragdetail.offset5p = frag5p;
+
+      DistT *dptr  = GetDistT(graph->Dists, frag->dist);
+      int32  SIZEa = dptr->mu + 3.0 * dptr->sigma;  //  frag must be at least this close to end
+      int32  SIZEb = dptr->mu + 5.0 * dptr->sigma;  //  other scaffold must have at least this much space for mate to go
+
+      if ((fragOrient.isForward() == true) &&
+          (si->ignoreBgn.mean - SIZEa <= frag5p) &&
+          (frag3p <= si->ignoreEnd.mean) &&
+          (SCFLEN - si->ignoreEnd.mean >= SIZEb)) {
+        //  If the fragment is forward and is close enough to the end of the first scaffold so it's
+        //  mate should be present in the second scaffold (and the second scaffold is big enough to
+        //  hopefully contain it), yet we never found the second mate, THEN count that as bad.
+        //
+        //*numFar++;
+        fprintf(stderr, "isBuried-- pos=%d,%d,%c overlap=%d,%d SIZE=%d,%d SCFLEN=%d\n",
+                frag5p, frag3p, fragOrient.toLetter(),
+                (int32)si->ignoreBgn.mean, (int32)si->ignoreEnd.mean,
+                SIZEa, SIZEb, SCFLEN);
+        AppendVA_FragDetail(msp->missingMate, &fragdetail);
+      }
+
+      if ((fragOrient.isForward() == false) &&
+          (si->ignoreEnd.mean + SIZEa >= frag5p) &&
+          (frag3p >= si->ignoreBgn.mean) &&
+          (si->ignoreBgn.mean > SIZEb)) {
+        //*numFar++;
+        fprintf(stderr, "isBuried-- pos=%d,%d,%c overlap=%d,%d SIZE=%d,%d SCFLEN=%d\n",
+                frag5p, frag3p, fragOrient.toLetter(),
+                (int32)si->ignoreBgn.mean, (int32)si->ignoreEnd.mean,
+                SIZEa, SIZEb, SCFLEN);
+        AppendVA_FragDetail(msp->missingMate, &fragdetail);
+      }
+    }
+#endif
+#endif
+
+#ifdef IGNORE_MATES_TOO_FAR
     //  Overlap region is at si->ignoreBgn and si->ignoreEnd.
     //
     //  Fragments are at frag5p and frag3p.
     //  Fragments are at mate5p and mate3p.
     //
-#ifdef IGNORE_MATES_TOO_FAR
-    if ((si) && (si->ignoreBgn.mean > 0.0) && (si->ignoreEnd.mean > 0.0)) {
+    //  For the mate to be counted, either fragment must be close to the overlapping region.  If
+    //  both mates are far away, the status of the mate is not checked.  This makes sense (and is
+    //  enabled) only for when we check if two scaffolds can be merged.  Those mates that are far
+    //  outside the overlapping region will never ever be satisfied by any merge of these scaffolds,
+    //  and should not penalize the merge.
+    //
+    //  This differs from the last block of code, which tries to explicitly count as bad those mates
+    //  that are near the overlapping region, whose mate should be present but is not.
+    //
+    if ((lookupMate != NULL) && (si) && (si->ignoreBgn.mean > 0.0) && (si->ignoreEnd.mean > 0.0)) {
       int32  fragDist = 0;
       int32  mateDist = 0;
+
+      DistT *dptr = GetDistT(graph->Dists, frag->dist);
+      int32  SIZE = dptr->mu + IGNORE_MATES_TOO_FAR_DIST * dptr->sigma;
 
       if (fragOrient.isForward()) {
         if (frag5p < si->ignoreBgn.mean)
@@ -4464,10 +4597,6 @@ CheckFragmentMatePairs(ScaffoldGraphT           *graph,
         if (si->ignoreEnd.mean < mate5p)
           mateDist = MAX(mateDist, mate5p - si->ignoreEnd.mean);
       }
-
-
-      DistT *dptr = GetDistT(graph->Dists, frag->dist);
-      int32  SIZE = dptr->mu + 5.0 * dptr->sigma;
 
       fragIgnore = (fragDist > SIZE);
       mateIgnore = (mateDist > SIZE);
@@ -6096,20 +6225,28 @@ InstrumentScaffoldPair(ScaffoldGraphT * graph,
   LengthT offset = {0.0, 0.0};
 
   if (sEdge->distance.mean >= 0) {
+
+    //          bgn
     //  A -------*
     //           ^
     //           +--edge--+
     //                    v
     //                  B *---------------------
+    //                   end
+    //
     si->ignoreBgn.mean = scaffoldA->bpLength.mean;
     si->ignoreEnd.mean = scaffoldA->bpLength.mean + sEdge->distance.mean;
 
   } else if (scaffoldA->bpLength.mean < -sEdge->distance.mean) {
+
+    //        bgn
     //       A -------*
     //                ^
     //    +---edge----+
     //    v
     //  B *---------------------
+    //               end
+    //
     offset.mean     = -sEdge->distance.mean - scaffoldA->bpLength.mean;  //  AKA, begin of A
     offset.variance = sEdge->distance.variance;
 
@@ -6117,11 +6254,15 @@ InstrumentScaffoldPair(ScaffoldGraphT * graph,
     si->ignoreEnd.mean = offset.mean + scaffoldA->bpLength.mean;
 
   } else {
+
+    //       bgn
     //  A -------*
     //           ^
     //        +--+
     //        v
     //      B *---------------------
+    //          end
+    //
     si->ignoreBgn.mean = scaffoldA->bpLength.mean + sEdge->distance.mean;
     si->ignoreEnd.mean = scaffoldA->bpLength.mean;
   }
@@ -6191,6 +6332,10 @@ InstrumentScaffoldPair(ScaffoldGraphT * graph,
   ComputeScaffoldInstrumenterStats(graph, si);
 
   safe_free(ism.contig_pairs);
+
+  //  IMPORTANT!  Reset the ignore points.  NOBODY but us uses these.
+  si->ignoreBgn.mean = 0.0;
+  si->ignoreEnd.mean = 0.0;
 
   return 0;
 }

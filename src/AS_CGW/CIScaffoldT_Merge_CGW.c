@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.56 2010-04-12 07:54:45 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.57 2010-04-26 03:59:33 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -1914,7 +1914,7 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
           scaffoldA->id, scaffoldA->bpLength.mean,
           scaffoldB->id, scaffoldB->bpLength.mean,
           curEdge->distance.mean,
-          curEdge->distance.variance,
+          sqrt(curEdge->distance.variance),
           curEdge->edgesContributing,
           ((curEdge->orient.isAB_AB()) ? "AB_AB" :
            ((curEdge->orient.isAB_BA()) ? "AB_BA" :
@@ -1961,6 +1961,12 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
   int32   mAfterGood  = GetMateStatsHappy(&matesAfter.intra)  + GetMateStatsHappy(&matesAfter.inter);
   int32   mAfterBad   = GetMateStatsBad(&matesAfter.intra)    + GetMateStatsBad(&matesAfter.inter);
 
+  //  Add in mates that should have been satisfied, but weren't.
+  mAfterBad += GetMateStatsMissing(&matesAfter.inter);
+
+  //  This should only be counted for 'inter' (== inter-contig?) and not for 'intra'.
+  assert(GetMateStatsMissing(&matesAfter.intra) == 0);
+
   int32   mBeforeSum  = mBeforeGood + mBeforeBad;
   int32   mAfterSum   = mAfterGood  + mAfterBad;
 
@@ -1970,9 +1976,10 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
   if (mAfterSum > 0)
     fractMatesHappyAfter  = (double)mAfterGood / mAfterSum;
 
-  fprintf(stderr, "isQualityScaffoldMergingEdge()--   before: %.3f satisfied (%d/%d good/bad mates)  after: %.3f satisfied (%d/%d good/bad mates)\n",
+  fprintf(stderr, "isQualityScaffoldMergingEdge()--   before: %.3f satisfied (%d/%d good/bad mates)  after: %.3f satisfied (%d/%d good/bad mates; bad missing %d)\n",
           fractMatesHappyBefore, mBeforeGood, mBeforeBad,
-          fractMatesHappyAfter,  mAfterGood,  mAfterBad);
+          fractMatesHappyAfter,  mAfterGood,  mAfterBad,
+          GetMateStatsMissing(&matesAfter.inter));
 
   if ((maxDelta > 0.0) &&
       (fractMatesHappyBefore - fractMatesHappyAfter > maxDelta)) {

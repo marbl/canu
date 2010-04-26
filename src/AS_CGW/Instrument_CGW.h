@@ -22,7 +22,7 @@
 #ifndef INSTRUMENT_CGW_H
 #define INSTRUMENT_CGW_H
 
-static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.13 2010-04-17 03:24:09 brianwalenz Exp $";
+static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.14 2010-04-26 03:59:33 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -174,6 +174,7 @@ typedef struct
   VA_TYPE(MateDetail) * misoriented[NUM_ORIENTATIONS_INSTR][NUM_ORIENTATIONS_INSTR];
   VA_TYPE(MateDetail) * misseparatedClose[NUM_ORIENTATIONS_INSTR];
   VA_TYPE(MateDetail) * misseparatedFar[NUM_ORIENTATIONS_INSTR];
+  VA_TYPE(FragDetail) * missingMate;
   VA_TYPE(FragDetail) * inter;
 } MateStatusPositions;
 
@@ -202,6 +203,7 @@ typedef struct
   MateStats misoriented;
   MateStats misseparatedClose;
   MateStats misseparatedFar;
+  MateStats missingMate;
   MateStats inter;
 } MateStatsSet;
 
@@ -649,6 +651,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
 
 int32 GetMateStatsBad(MateStatsSet * mss);
 int32 GetMateStatsHappy(MateStatsSet * mss);
+int32 GetMateStatsMissing(MateStatsSet * mss);
 void PrintFragment(CIFragT * frag, CDS_CID_t index, FILE * printTo);
 void PrintBreakpoint(InstrumenterBreakpoint * bp,
                      char * prefix,
