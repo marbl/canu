@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.73 2010-04-20 20:11:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.74 2010-04-27 14:55:47 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -197,7 +197,9 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
         if (bestcont)
           fprintf(BC, "%u\t%u\t%c\t%u\n", id, _fi->libraryIID(id), (_fi->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
         else if ((bestedge5->frag_b_id > 0) || (bestedge3->frag_b_id > 0))
-          fprintf(BE, "%u\t%u\t%u\t%u\n", id, _fi->libraryIID(id), bestedge5->frag_b_id, bestedge3->frag_b_id);
+          fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\n", id, _fi->libraryIID(id),
+                  bestedge5->frag_b_id, (bestedge5->bend == FIVE_PRIME) ? '5' : '3',
+                  bestedge3->frag_b_id, (bestedge3->bend == FIVE_PRIME) ? '5' : '3');
       }
 
       fclose(BC);
