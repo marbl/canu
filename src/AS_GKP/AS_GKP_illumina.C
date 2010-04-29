@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.10 2010-04-16 21:25:23 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.11 2010-04-29 17:57:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -308,25 +308,54 @@ readSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fas
 
 
 static
+bool
+openFile(char *name, FILE *&file) {
+  char *cmd  = new char [strlen(name) + 256];
+  bool  pipe = false;
+
+  errno = 0;
+  if        (name == NULL) {
+    fprintf(stderr, "ERROR:  Failed to open illumina input file: no name supplied.\n");
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, "(no-name-supplied)", "no name supplied");
+    exit(1);
+
+  } else if (strcasecmp(name+strlen(name)-3, ".gz") == 0) {
+    sprintf(cmd, "gzip -dc %s", name);
+    file = popen(cmd, "r");
+    pipe = true;
+
+  } else if (strcasecmp(name+strlen(name)-4, ".bz2") == 0) {
+    sprintf(cmd, "bzip2 -dc %s", name);
+    file = popen(cmd, "r");
+    pipe = true;
+
+  } else {
+    file = fopen(name, "r");
+    pipe = false;
+  }
+
+  if (errno) {
+    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", name, strerror(errno));
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, name, strerror(errno));
+    exit(1);
+  }
+
+  delete [] cmd;
+
+  return(pipe);
+}
+
+
+static
 void
 loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
   fprintf(stderr, "Processing illumina reads from '%s'\n", lname);
   fprintf(stderr, "                           and '%s'\n", rname);
 
-  errno = 0;
-  FILE  *lfile = fopen(lname, "r");
-  if (errno) {
-    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", lname, strerror(errno));
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, lname, strerror(errno));
-    exit(1);
-  }
-
-  FILE  *rfile = fopen(rname, "r");
-  if (errno) {
-    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", rname, strerror(errno));
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, rname, strerror(errno));
-    exit(1);
-  }
+  FILE *lfile = NULL;
+  bool  lpipe = openFile(lname, lfile);
+  FILE *rfile = NULL;
+  bool  rpipe = openFile(rname, rfile);
 
   ilFragment  *lfrg = new ilFragment;
   ilFragment  *rfrg = new ilFragment;
@@ -370,6 +399,9 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
 
   delete lfrg;
   delete rfrg;
+
+  if (lpipe)  pclose(lfile);  else  fclose(lfile);
+  if (rpipe)  pclose(rfile);  else  fclose(rfile);
 }
 
 
@@ -379,13 +411,8 @@ void
 loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
   fprintf(stderr, "Processing illumina reads from '%s'.\n", uname);
 
-  errno = 0;
-  FILE  *ufile = fopen(uname, "r");
-  if (errno) {
-    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", uname, strerror(errno));
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, uname, strerror(errno));
-    exit(1);
-  }
+  FILE *ufile = NULL;
+  bool  upipe = openFile(uname, ufile);
 
   ilFragment  *ufrg = new ilFragment;
 
@@ -406,6 +433,8 @@ loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient)
   }
 
   delete ufrg;
+
+  if (upipe)  pclose(ufile);  else  fclose(ufile);
 }
 
 
