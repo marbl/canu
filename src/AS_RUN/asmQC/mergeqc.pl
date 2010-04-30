@@ -30,13 +30,30 @@ my $l;
 my $v;
 
 my $firstFile = 1;
+my $numFiles  = 1;  #  First file is the label column
+my $isWiki    = 0;
 
-push @labels, "files";
+push @labels, "Files";
+
+if ($ARGV[0] eq "-wiki") {
+    shift @ARGV;
+
+    $isWiki = 1;
+    print "{| class=\"wikitable\" border=\"1\"\n";
+}
 
 while (scalar(@ARGV) > 0) {
     if (open(F, "< $ARGV[0]")) {
-        $values{"files"} .= "\t$ARGV[0]";
-        $values{"files"} .= "BRIWASHERE";
+
+        if ($isWiki) {
+            $values{"Files"} .= "|| $ARGV[0]";
+            $values{"Files"} .= "BRIWASHERE";
+        } else {
+            $values{"Files"} .= "\t$ARGV[0]";
+            $values{"Files"} .= "BRIWASHERE";
+        }
+
+        $numFiles++;
 
         while (<F>) {
             $_ =~ s/^\s+//;
@@ -62,8 +79,13 @@ while (scalar(@ARGV) > 0) {
                 push @labels, $l;
             }
 
-            $values{$l} .= substr("\t$v                ", 0, 16);
-            $values{$l} .= "BRIWASHERE";
+            if ($isWiki) {
+                $values{$l} .= "|| $v";
+                $values{$l} .= "BRIWASHERE";
+            } else {
+                $values{$l} .= substr("\t$v                ", 0, 16);
+                $values{$l} .= "BRIWASHERE";
+            }
         }
         close(F);
 
@@ -72,7 +94,11 @@ while (scalar(@ARGV) > 0) {
             if ($values{$l} =~ m/^(.*)BRIWASHERE$/) {
                 $values{$l}  = $1;
             } else {
-                $values{$l} .= substr("\tN/A                ", 0, 16);
+                if ($isWiki) {
+                    $values{$l} .= "|| N/A";
+                } else {
+                    $values{$l} .= substr("\tN/A                ", 0, 16);
+                }
             }
         }
 
@@ -88,11 +114,26 @@ foreach my $xx (@labels) {
     ($s, $l) = split '\0', $xx;
 
     if ($s ne $lasts) {
-        print "\n[$s]\n";
+        if ($isWiki) {
+            print "| colspan=\"$numFiles\" rowheight=\"6\" bgcolor=\"#f2f2f2\" |\n";
+            print "|-\n";
+            print "| colspan=\"$numFiles\" bgcolor=\"#d2d2d2\" | $s\n";
+            print "|-\n";
+        } else {
+            print "\n[$s]\n";
+        }
         $lasts = $s;
     }
 
-    $l = substr("$l                    ", 0, 20);
+    if ($isWiki) {
+        print "| $l $values{$xx}\n";
+        print "|-\n";
+    } else {
+        $l = substr("$l                    ", 0, 20);
+        print "$l$values{$xx}\n";
+    }
+}
 
-    print "$l$values{$xx}\n";
+if ($isWiki) {
+    print "|}\n";
 }
