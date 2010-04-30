@@ -57,6 +57,9 @@ if [ "x$target" = "x" ] ; then
       if [ `uname -m` = "x86_64" ] ; then
         target="Linux-amd64$opts"
       fi
+      if [ `uname -m` = "ia64" ] ; then
+        target="Linux-ia64$opts"
+      fi
       ;;
     *)
       echo "ERROR: Unknown uname of `uname` -- try manual configuration."
@@ -133,6 +136,21 @@ if [ x$CFLAGS_PYTHON = x ] ; then
   WITHOUT_ATAC="atac-driver/ seatac/"
 fi
 
+#
+#  Decide on compilers to use.  Unfortunately, all the options are tuned for gcc/g++.
+#
+
+if [ x$CC = x ] ; then
+    CC="gcc"
+fi
+
+if [ x$CXX = x ] ; then
+    CXX="g++"
+fi
+
+#
+#  Emit architecture specific configurations.
+#
 
 case $target in
   Darwin-i386)
@@ -142,12 +160,12 @@ case $target in
 #  OS-X, optimized
 #
 FAST              := -fast -fPIC
-CC                := gcc
+CC                := $CC
 SHLIB_FLAGS       := -dynamiclib
 CFLAGS_COMPILE    := \$(FAST) -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CLDFLAGS          := -m64
 CLIBS             := 
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := \$(FAST) -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CXXLDFLAGS        := -m64
 CXXLIBS           := 
@@ -162,12 +180,12 @@ EOF
 # -*- makefile -*-
 #  OS-X, debug
 #
-CC                := gcc
+CC                := $CC
 SHLIB_FLAGS       := -dynamiclib
 CFLAGS_COMPILE    := -g3 -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CLDFLAGS          := -m64
 CLIBS             := 
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -g3 -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CXXLDFLAGS        := -m64
 CXXLIBS           := 
@@ -192,12 +210,12 @@ EOF
 #
 FAST              := -fast -fPIC
 FAST              := -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
-CC                := gcc
+CC                := $CC
 SHLIB_FLAGS       := -dynamiclib
 CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CLDFLAGS          := 
 CLIBS             := 
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CXXLDFLAGS        := 
 CXXLIBS           := 
@@ -208,7 +226,6 @@ EOF
     ;;
   FreeBSD-i386)
     rm -f Make.compilers
-#    echo "Using linuxthreads by default!"
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, optimized
@@ -216,12 +233,12 @@ THREADS           := -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads
 THREADL           := -llthread -llgcc_r
 THREADS           := -pthread
 THREADL           := -pthread
-CC                := cc
+CC                := $CC
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
@@ -237,12 +254,12 @@ EOF
 #  FreeBSD, optimized
 THREADS           := -pthread
 THREADL           := -pthread -lthr
-CC                := cc
+CC                := $CC
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
@@ -261,14 +278,14 @@ EOF
 #
 THREADS           := -pthread
 THREADL           := -pthread -lthr
-CC                := cc
+CC                := $CC
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -g \$(THREADS) -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
   -Wcast-align -Wwrite-strings -Wconversion -Wstrict-prototypes -Wmissing-prototypes \
   -Wmissing-declarations -Wnested-externs  
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -g \$(THREADS) -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
   -Wcast-align -Wwrite-strings -Wconversion
 CXXLDFLAGS        := -L/usr/local/lib
@@ -288,12 +305,12 @@ EOF
 #
 THREADS           := -pthread
 THREADL           := -pthread -lthr
-CC                := cc
+CC                := $CC
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -pg -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CLDFLAGS          := -pg -L/usr/local/lib
 CLIBS             := \$(THREADL)
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CXXLDFLAGS        := -pg -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
@@ -351,12 +368,12 @@ EOF
 #  Linux, optimized
 THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
-CC                := cc
+CC                := $CC
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL) -ldl
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
@@ -372,12 +389,12 @@ EOF
 #  Linux64, optimized
 THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
-CC                := cc
+CC                := $CC
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL) -ldl
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
@@ -393,12 +410,12 @@ EOF
 #  Linux64, optimized
 THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
-CC                := cc
+CC                := $CC
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL) -ldl
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
@@ -414,13 +431,34 @@ EOF
 #  Linux64, optimized
 THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
-CC                := cc
+CC                := $CC
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -pg -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL) -ldl
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -pg -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
+CXXLDFLAGS        := -L/usr/local/lib
+CXXLIBS           := \$(THREADL) -ldl
+CXXSHARED         := -shared
+ARFLAGS           := ruvs
+INSTALL/          := $target/
+EOF
+    ;;
+  Linux-ia64)
+    rm -f Make.compilers
+    cat <<EOF > Make.compilers
+# -*- makefile -*-
+#  Linux64, optimized
+THREADS           := -D_THREAD_SAFE -pthread
+THREADL           := -pthread
+CC                := $CC
+SHLIB_FLAGS       := -shared
+CFLAGS_COMPILE    := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CLDFLAGS          := -L/usr/local/lib
+CLIBS             := \$(THREADL) -ldl
+CXX               := $CXX
+CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
 CXXSHARED         := -shared
@@ -445,12 +483,12 @@ EOF
 # -*- makefile -*-
 #  Solaris, gcc optimized
 #
-CC                := gcc
+CC                := $CC
 SHLIB_FLAGS       := -G #untested
 CFLAGS_COMPILE    := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := 
 CLIBS             := -lpthread -lrt
-CXX               := g++
+CXX               := $CXX
 CXXFLAGS_COMPILE  := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer 
 CXXLDFLAGS        := 
 CXXLIBS           := -lpthread -lrt
