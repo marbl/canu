@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.9 2010-04-23 15:14:40 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.10 2010-05-17 17:22:25 mcschatz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -148,6 +148,42 @@ dumpProperties(MultiAlignStore *tigStore,
   fprintf(stdout, "unitigStatus        %c/%d\n",   ma->data.unitig_status, ma->data.unitig_status);
   fprintf(stdout, "unitigFUR           %c/%d\n",   ma->data.unitig_unique_rept, ma->data.unitig_unique_rept);
   fprintf(stdout, "contigStatus        %c/%d\n",   ma->data.contig_status, ma->data.contig_status);
+
+  #if GCCONTENT
+  float gcContent = 0.0;
+  int ulen = 0;
+  int glen = 0;
+
+  if (ma->consensus)
+  {
+    char *cns = Getchar(ma->consensus, 0);
+
+    if (cns && *cns)
+    {
+      int gcs = 0;
+
+      while (*cns)
+      {
+        glen++;
+
+        if (*cns != '-')
+        {
+          if (*cns == 'G' || *cns == 'C') { gcs++; }
+          ulen++;
+        }
+
+        cns++;
+      }
+
+      if (ulen) { gcContent = (float) gcs / (float) ulen; }
+    }
+  }
+
+  fprintf(stdout, "gcContent           %f\n",      gcContent);
+  fprintf(stdout, "uLen                %d\n",      ulen);
+  fprintf(stdout, "gLen                %d\n",      glen);
+  #endif
+
   fprintf(stdout, "numFrags            "F_U32" (vs "F_U64")\n", ma->data.num_frags, (uint64)GetNumIntMultiPoss(ma->f_list));
   fprintf(stdout, "numUnitigs          "F_U32" (vs "F_U64")\n", ma->data.num_unitigs, (uint64)GetNumIntUnitigPoss(ma->u_list));
 
