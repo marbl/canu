@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.56 2010-03-29 04:14:39 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.57 2010-06-02 10:28:31 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,6 +97,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
   //  ones, just so we can load the sequence into the store.  We'll
   //  remove spaces later.
   //
+
   for (p = 0; s[p]; p++) {
     if ((isspacearray[s[p]]) || (isValidACGTN[s[p]])) {
     } else {
@@ -174,7 +175,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
                        AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MAX_NORMAL_LEN);
 
     sl = AS_READ_MAX_NORMAL_LEN;
-
+    ql = AS_READ_MAX_NORMAL_LEN;
     S[sl] = 0;
     Q[ql] = 0;
 
