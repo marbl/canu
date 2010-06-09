@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.3 2009-10-05 04:30:49 brianwalenz Exp $";
+static char *rcsid = "$Id: AbacusRefine.c,v 1.4 2010-06-09 15:34:54 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -119,7 +119,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
   ColumnBeadIterator  bi;
   Bead               *bead;
   MANode             *ma;
-#define  MAX_MID_COLUMN_NUM 50
+#define  MAX_MID_COLUMN_NUM 100
   static int                 mid_column_points[MAX_MID_COLUMN_NUM] = { 75, 150};
   Column             *mid_column[MAX_MID_COLUMN_NUM] = { NULL, NULL };
   int                 next_mid_column=0;
@@ -137,7 +137,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
 #ifdef EXTRA_MID_COLUMNS
   if(mid_column_points[0]==75){
     for (i=0; i<MAX_MID_COLUMN_NUM; i++){
-      mid_column_points[i] = i * (AS_READ_MIN_LEN-1) + 30;
+      mid_column_points[i] = i * ((AS_READ_MIN_LEN/2)-1) + 30;
       mid_column[i]=NULL;
     }
   }
@@ -181,7 +181,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
   fprintf(stderr, "\n");
 #endif
 
-  if(columns>MAX_MID_COLUMN_NUM*(AS_READ_MIN_LEN-1)){
+  if(columns>MAX_MID_COLUMN_NUM*((AS_READ_MIN_LEN/2)-1)){
     fprintf(stderr,"WARNING: CreateAbacus called with such a large window that small fragments might slip through the cracks...\n");
   }
 
