@@ -23,6 +23,16 @@ sub unitigger () {
                setGlobal("unitigger", "bog");
             }
         }
+        
+		#  Default to overlap error %, unless the gkpStore says otherwise.
+		#
+		if (!defined(getGlobal("utgErrorLimit"))) {
+			setGlobal("utgErrorLimit", 0);
+
+			if (system("$bin/gatekeeper -isfeatureset 0 shortOverlapModel $wrk/$asm.gkpStore") == 0) {
+				setGlobal("utgErrorLimit", getGlobal("utgShortOverlapModelDefault"));
+			}
+		}
 
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 

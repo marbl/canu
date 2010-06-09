@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.5 2010-04-16 21:24:06 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.6 2010-06-09 19:52:43 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -182,6 +182,7 @@ main(int argc, char **argv) {
   gkl.stddev                     = insertStdDev;
 
   gkl.forceBOGunitigger          = 1;
+  gkl.shortOverlapModel		     = 1;
   gkl.isNotRandom                = 0;
 
   gkl.doNotTrustHomopolymerRuns  = 0;
