@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.47 2010-04-16 20:36:10 jasonmiller9704 Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.48 2010-06-17 22:33:03 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1539,8 +1539,13 @@ detectMates(char *linker[AS_LINKER_MAX_SEQS], int search[AS_LINKER_MAX_SEQS]) {
       continue;
     }
 
-    assert(fr.clrBgn < fr.clrEnd);
-
+    if (fr.clrBgn >= fr.clrEnd || fr.clrEnd <= 0) {
+      // assert(fr.clrBgn < fr.clrEnd);  // REMOVED BY JASON
+      // This happens when read begins NN... and user option trim = pair-of-n.
+      st.notExaminedForLinker++;  //  because it was deleted already
+      continue;
+    }
+      
     m1.gkFragment_setType(GKFRAGMENT_NORMAL);
     m1.gkFragment_setReadUID(AS_UID_undefined());
     m1.gkFragment_setIsDeleted(1);
