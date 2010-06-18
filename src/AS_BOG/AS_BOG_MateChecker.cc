@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.88 2010-04-02 06:31:52 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.89 2010-06-18 16:21:15 skoren Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -968,11 +968,12 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
   UnitigBreakPoints* breaks = new UnitigBreakPoints();
 
   uint32 backBgn; // Start position of final backbone unitig
-  DoveTailNode backbone = tig->getLastBackboneNode(backBgn);
+  DoveTailNode backbone = tig->getLastBackboneNode(); //tig->getLastBackboneNode(backBgn);
   backBgn = isReverse(backbone.position) ? backbone.position.end :
     backbone.position.bgn ;
 
   bool combine = false;
+  int32 currBackbonePredecessorEnd = 0;
   int32 currBackboneEnd = 0;
   int32 lastBreakBBEnd = 0;
 
@@ -1012,6 +1013,24 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
           bad = *fwdIter;
           fwdIter++;
         } else {
+          // check for containment relations and skip them
+          if (fwdIter->bgn >= bad.bgn && fwdIter->end <= bad.end) {
+            if (verbose)
+              fprintf(stderr,"Skip fwd bad range %d %d due to contained in rev %d %d\n",
+            		  fwdIter->bgn, fwdIter->end, bad.bgn, bad.end);
+
+        	fwdIter++;
+            if (fwdIter == fwdBads->end()) {
+              continue;
+            }
+          } else if (bad.bgn >= fwdIter->bgn && bad.end <= fwdIter->end) {
+            if (verbose)
+              fprintf(stderr,"Skip rev bad range %d %d due to contained in fwd %d %d\n",
+                      bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
+      	    revIter++;
+            continue;
+          }
+
           if (fwdIter->bgn < bad.end &&
                fwdIter->end > bad.end &&
                bad.end - fwdIter->end < 200) {
@@ -1041,49 +1060,94 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
     for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
       DoveTailNode frag = *tigIter;
       SeqInterval loc = frag.position;
+      if (isReverse(loc)) { loc.bgn = frag.position.end; loc.end = frag.position.bgn; }
 
       // Don't want to go past range and break in wrong place
       assert(loc.bgn <= bad.end+1 || loc.end <= bad.end+1);
 
       // keep track of current and previous uncontained contig end
       // so that we can split apart contained reads that don't overlap each other
-      if (!bog_ptr->isContained(frag.ident))
+      if (!bog_ptr->isContained(frag.ident)) {
+        currBackbonePredecessorEnd = currBackboneEnd;
         currBackboneEnd = MAX(loc.bgn, loc.end);
+      }
 
       bool breakNow = false;
       MateLocationEntry mloc = positions.getById(frag.ident);
 
       if (mloc.mleFrgID1 != 0 && mloc.isGrumpy) { // only break on bad mates
-        if (isFwdBad && bad.bgn <= loc.end) {
-          breakNow = true;
-        } else if (!isFwdBad && (loc.bgn >= bad.end) ||
+    	  if (isFwdBad && bad.bgn <= loc.end) {
+			breakNow = true;
+        } else if (!isFwdBad && (loc.bgn >= /* bad.bgn*/ bad.end) ||
                     (combine && loc.end >  bad.bgn) ||
                     (combine && loc.end == bad.end)) {
-          breakNow = true;
+        	breakNow = true;
         } else if (bad.bgn > backBgn) {
           // fun special case, keep contained frags at end of tig in container
           // instead of in their own new tig where they might not overlap
-          breakNow = true;
+        	breakNow = true;
         }
       }
 
+      bool noContainerToBreak = false;
+      bool incrementToNextFragment = true;
       if (breakNow) {
-        combine = false;
-        lastBreakBBEnd = currBackboneEnd;
-        if (verbose)
-          fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
+        if (bog_ptr->isContained(frag.ident)) {
+	      // try to find a subsequent uncontained
+          while (tigIter != tig->dovetail_path_ptr->end()) {
+	        if (bog_ptr->isContained(tigIter->ident) != 0) {
+	          tigIter++;
+	        } else {
+	          break;
+	        }
+	      }
+	      // we couldn't find a downstream frag take upstream one then
+	      if (tigIter == tig->dovetail_path_ptr->end()) {
+	        tigIter--;
+	        while (tigIter != tig->dovetail_path_ptr->begin()) {
+	          if (bog_ptr->isContained(tigIter->ident) != 0) {
+	            tigIter--;
+	          } else {
+		       break;
+	          }
+	        }
+	        if (tigIter == tig->dovetail_path_ptr->begin()) {
+	          noContainerToBreak = true;
+	        } else {
+              currBackboneEnd = currBackbonePredecessorEnd;
+            }
+          }
+        }
+        if (noContainerToBreak == false) {
+          combine = false;
+          lastBreakBBEnd = currBackboneEnd;
+          if (verbose)
+            fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
                   frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd);
-        uint32 fragEndInTig = THREE_PRIME;
-        // If reverse mate is 1st and overlaps its mate break at 5'
-        if (mloc.mleUtgID2 == tig->id() && isReverse(loc) &&
-             !isReverse(mloc.mlePos2) && loc.bgn >= mloc.mlePos2.bgn)
-          fragEndInTig = FIVE_PRIME;
+          uint32 fragEndInTig = THREE_PRIME;
+          // If reverse mate is 1st and overlaps its mate break at 5'
+          if (mloc.mleUtgID2 == tig->id() && isReverse(loc) &&
+               !isReverse(mloc.mlePos2) && loc.bgn >= mloc.mlePos2.bgn)
+            fragEndInTig = FIVE_PRIME;
 
-        UnitigBreakPoint bp(frag.ident, fragEndInTig);
-        bp.fragPos = frag.position;
-        bp.inSize = 100000;
-        bp.inFrags = 10;
-        breaks->push_back(bp);
+          // either adjust the break position to be before the container so the container travels together with containees
+          if (fragEndInTig ==  FIVE_PRIME && !isReverse(tigIter->position)||
+              fragEndInTig== THREE_PRIME && isReverse(tigIter->position)) {
+          	  // do nothing we are breaking before the current fragment which is our container
+        	  incrementToNextFragment = false;
+          } else {
+        	  // move one back we are breaking after the current fragment
+        	  tigIter--;
+          }
+          frag = *tigIter;
+          loc = frag.position;
+
+          UnitigBreakPoint bp(frag.ident, fragEndInTig);
+          bp.fragPos = frag.position;
+          bp.inSize = 100000;
+          bp.inFrags = 10;
+          breaks->push_back(bp);
+	    }
       }
 
       if (lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end)) {
@@ -1126,7 +1190,9 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
         }
       }
       if (breakNow) { // Move to next breakpoint
-        tigIter++;  // make sure to advance past curr frg
+        if (incrementToNextFragment) {
+          tigIter++;  // make sure to advance past curr frg
+        }
         break;
       }
     }
