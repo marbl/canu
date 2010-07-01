@@ -154,10 +154,11 @@ print ".\n";
 print "nft:9\n";
 print "fea:\n";
 if ($is454) {
+	print "forceBOGunitigger=1\n";
     print "doNotTrustHomopolymerRuns=1\n";
-    print "discardReadsWithNs=1\n";
+    print "doRemoveDuplicateReads=1\n";
     print "doNotQVTrim=1\n";
-    print "deletePerfectPrefixes=1\n";
+    print "goodBadQVThreshold=1\n";
 } else {
     print "doNotTrustHomopolymerRuns=0\n";
     print "discardReadsWithNs=0\n";
