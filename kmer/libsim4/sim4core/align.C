@@ -130,7 +130,79 @@ Sim4::align_get_dist(int i1, int j1, int i2, int j2, int limit) {
 
 
 
+int
+Sim4::get_dist(int i1, int j1, int i2, int j2, int limit)
+{
+        int *SS, *DD, *II;
+        int goal_diag;
+        int c, k, t1, t2, t;
+        int start, lower, upper;
 
+        /* Compute the boundary diagonals */
+        start = j1 - i1;
+        lower = max(j1-i2, start-limit);
+        upper = min(j2-i1, start+limit);
+        goal_diag = j2-i2;
+
+        if (goal_diag > upper || goal_diag < lower) {
+                printf("The two sequences are not really similar.(1 %d; %d %d %d %d)\n", limit, i1, j1, i2, j2);
+                printf("Please try exact phase 1 method\n.");
+                exit(1);
+        }
+
+        /* Allocate space for forward vectors */
+        SS = (int *)ckalloc((upper-lower+1)*sizeof(int)) - lower;
+        DD = (int *)ckalloc((upper-lower+2)*sizeof(int)) - lower;
+        II = (int *)ckalloc((upper-lower+2)*sizeof(int)) - lower + 1;
+
+        /* Initialization */
+        for (k=lower; k<=upper; ++k) SS[k] = -99999;
+        for (k=lower; k<=upper+1; ++k) DD[k] = -99999;
+        for (k=lower-1; k<=upper; ++k) II[k] = -99999;
+        SS[start] = snake(start, i1, i2, j2);
+
+        if (SS[goal_diag] >= i2) {
+#ifdef STATS
+                printf("get_dist = %d\n", 0);
+#endif
+
+                /* Free working vectors */
+                free(SS+lower);
+                free(DD+lower);
+                free(II+lower-1);
+                return 0;
+        }
+
+        for (c=1; c<=limit; ++c) {
+                t = max(lower, start-c);
+                t1 = II[t-1];
+                for (k=t; k<=min(upper, start+c); ++k) {
+                        t2 = II[k];
+                        II[k] = max(t1, SS[k]);
+                        t1 = t2;
+                        DD[k] = max(DD[k+1]+1, SS[k]);
+                        SS[k] = snake(k, min(j2-k,max(max(SS[k]+1, II[k]), DD[k]
+)), i2, j2);
+                }
+
+                if (SS[goal_diag] >= i2) {
+#ifdef STATS
+                        printf("get_dist = %d\n", c);
+#endif
+
+                        /* Free working vectors */
+                        free(SS+lower);
+                        free(DD+lower);
+                        free(II+lower-1);
+                        return c;
+                }
+        }
+
+        /* Ran out of distance limit */
+        printf("Two sequences are not really similar.\n");
+        printf("Please try exact phase 1.\n");
+        exit(1);
+}
 
 
 
@@ -336,7 +408,7 @@ Sim4::align_path(int i1, int j1,
   for (int k=rlower; k<=rupper; k++)
     rlast_d[k] = i2+1;
 
-  rlast_d[rstart] = rsnake(rstart,i2,i1,j1,_genLen);
+  rlast_d[rstart] = rsnake(rstart,i2,i1,j1,i2+1);
 
   //  Backward computation
   for (int c=1; c<=rmidc; ++c) {
@@ -364,7 +436,7 @@ Sim4::align_path(int i1, int j1,
         row = rlast_d[k+1];
       }
       
-      rtemp_d[k] = rsnake(k,row,i1,j1,_genLen);
+      rtemp_d[k] = rsnake(k,row,i1,j1,i2+1);
     }    
     for (int k=ll; k<=uu; ++k)
       rlast_d[k] = rtemp_d[k];
@@ -452,6 +524,237 @@ Sim4::align_path(int i1, int j1,
     *tail = tail2;
   else
     *tail = tail1;
+}
+
+
+void
+Sim4::path(int i1, int j1, char type1, int i2, int j2, char type2, int dist, edit_script **head, edit_script **tail)
+{
+        int *SS, *DD, *II;       /* Forward vectors */
+        int *RS, *RD, *RI;       /* Backward vectors */
+
+        edit_script *head1, *tail1, *head2, *tail2;
+        int midc, rmidc;
+        int start, lower, upper;
+        int rstart, rlower, rupper;
+        int c, k, t1, t2, t;
+        int maxint;
+        int mi, mj, mtype;
+        char flag;
+
+/*
+printf("i1=%d,j1=%d,type1=%d,i2=%d,j2=%d,type2=%d,dist=%d\n",i1,j1,type1,i2,j2,type2,dist);
+*/
+
+        /* Boundary cases */
+        if (i1 == i2) {
+           if (j1 == j2) *head = NULL;
+           else {
+                head1 = (edit_script *) ckalloc(sizeof(edit_script));
+                head1->op_type = INSERT;
+                head1->num = j2-j1;
+                head1->next = NULL;
+                *head = *tail = head1;
+           }
+           return;
+        }
+
+        if (j1 == j2) {
+                head1 = (edit_script *) ckalloc(sizeof(edit_script));
+                head1->op_type = DELETE;
+                head1->num = i2-i1;
+                head1->next = NULL;
+                *head = *tail = head1;
+                return;
+        }
+
+        if (dist <= 1) {
+           if (j2-i2 == j1-i1) {
+                head1 = (edit_script *) ckalloc(sizeof(edit_script));
+                head1->op_type = SUBSTITUTE;
+                head1->num = i2-i1;
+                head1->next = NULL;
+                *head = *tail = head1;
+           } else if (j2-i2 > j1-i1) {
+                if (type1 == INSERT) {
+                        head1 = (edit_script *) ckalloc(sizeof(edit_script));
+                        head1->op_type = INSERT;
+                        head1->num = 1;
+                        head2 = (edit_script *) ckalloc(sizeof(edit_script));
+                        head2->op_type = SUBSTITUTE;
+                        head2->num = i2-i1;
+                } else {
+                        head1 = (edit_script *) ckalloc(sizeof(edit_script));
+                        head1->op_type = SUBSTITUTE;
+                        head1->num = i2-i1;
+                        head2 = (edit_script *) ckalloc(sizeof(edit_script));
+                        head2->op_type = INSERT;
+                        head2->num = 1;
+                }
+                head1->next = head2;
+                head2->next = NULL;
+                *head = head1;
+                *tail = head2;
+           } else if (j2-i2 < j1-i1) {
+                if (type1 == DELETE) {
+                        head1 = (edit_script *) ckalloc(sizeof(edit_script));
+                        head1->op_type = DELETE;
+                        head1->num = 1;
+                        head2 = (edit_script *) ckalloc(sizeof(edit_script));
+                        head2->op_type = SUBSTITUTE;
+                        head2->num = j2-j1;
+                } else {
+                        head1 = (edit_script *) ckalloc(sizeof(edit_script));
+                        head1->op_type = SUBSTITUTE;
+                        head1->num = j2-j1;
+                        head2 = (edit_script *) ckalloc(sizeof(edit_script));
+                        head2->op_type = DELETE;
+                        head2->num = 1;
+                }
+                head1->next = head2;
+                head2->next = NULL;
+                *head = head1;
+                *tail = head2;
+           }
+           return;
+        }
+
+        /* Divide the problem at the middle cost */
+        midc = dist/2;
+        rmidc = dist - midc;
+
+        /* Compute the boundary diagonals */
+        start = j1 - i1;
+        lower = max(j1-i2, start-midc);
+        upper = min(j2-i1, start+midc);
+        rstart = j2-i2;
+        rlower = max(j1-i2, rstart-rmidc);
+        rupper = min(j2-i1, rstart+rmidc);
+
+        /* Allocate space for forward vectors */
+        SS = (int *)ckalloc((upper-lower+1)*sizeof(int)) - lower;
+        DD = (int *)ckalloc((upper-lower+2)*sizeof(int)) - lower;
+        II = (int *)ckalloc((upper-lower+2)*sizeof(int)) - lower + 1;
+
+        /* Forward computation */
+        for (k=lower; k<=upper; ++k) SS[k] = -99999;
+        for (k=lower; k<=upper+1; ++k) DD[k] = -99999;
+        for (k=lower-1; k<=upper; ++k) II[k] = -99999;
+        if (type1 == SUBSTITUTE) SS[start] = snake(start, i1, i2, j2);
+        else if (type1 == DELETE) {
+                DD[start] = i1;
+                SS[start] = snake(start,i1,i2,j2);
+        } else {
+                II[start] = i1; 
+                SS[start] = snake(start,i1,i2,j2);
+        }
+
+        for (c=1; c<=midc; ++c) {
+                t = max(lower, start-c);
+                t1 = II[t-1];
+                for (k=t; k<=min(upper, start+c); ++k) {
+                        t2 = II[k];
+                        II[k] = max(t1, SS[k]);
+                        t1 = t2;
+                        DD[k] = max(DD[k+1]+1, SS[k]);
+                        SS[k] = snake(k, min(j2-k,max(max(SS[k]+1, II[k]), DD[k])), i2, j2);
+                }
+        }
+
+        /* Allocate space for backward vectors */
+        RS = (int *)ckalloc((rupper-rlower+1)*sizeof(int)) - rlower;
+        RD = (int *)ckalloc((rupper-rlower+2)*sizeof(int)) - rlower + 1;
+        RI = (int *)ckalloc((rupper-rlower+2)*sizeof(int)) - rlower;
+
+        /* Backward computation */
+        maxint = i2 + dist + _estLen;
+        for (k=rlower; k<=rupper; ++k) RS[k] = maxint;
+        for (k=rlower-1; k<=rupper; ++k) RD[k] = maxint;
+        for (k=rlower; k<=rupper+1; ++k) RI[k] = maxint;
+        if (type2 == SUBSTITUTE)
+           RI[rstart] = RD[rstart] = RS[rstart] = rsnake(rstart, i2, i1, j1, i2+1);
+        else if (type2 == DELETE) RD[rstart] = i2;
+        else RI[rstart] = i2;
+
+        for (c=1; c<=rmidc; ++c) {
+                t = max(rlower, rstart-c);
+                t1 = RD[t-1];
+                for (k=t; k<=min(rupper, rstart+c); ++k) {
+#if 0
+                        int x = min(min(RS[k]-1,RD[k]),RI[k]);
+                        printf("<<<%d>>>", x);
+                        assert(0<=x);
+                        assert (x<=_estLen);
+                        printf("%d", x);
+#endif
+                        RS[k] = rsnake(k, max(j1-k, min(min(RS[k]-1,RD[k]),RI[k])),i1,j1,i2+1);
+                        t2 = RD[k];
+                        RD[k] = min(t1-1, RS[k]);
+                        t1 = t2;
+                        RI[k] = min(RI[k+1], RS[k]);
+                }
+        }
+
+        /* Find (mi, mj, mtype) such that
+               the distance from (i1, j1, type1) to (mi, mj, mtype) is midc
+           and the distance from (mi, mj, mtype) to (i2, j2, type2) is rmidc.
+        */ 
+
+        flag = 0;
+        for (k=max(lower,rlower); k<=min(upper,rupper);++k) {
+
+/*
+printf("k=%d, SS=%d, RS=%d, DD=%d, RD=%d, II=%d, RI=%d\n",k,SS[k],RS[k],DD[k],RD[k],II[k],RI[k]);
+*/
+
+                if (SS[k]>=RS[k] || DD[k]>=RD[k] || II[k]>=RI[k]) {
+                        if (DD[k]>=RD[k]) {
+                                mi = DD[k];
+                                mj = k+mi;
+                                mtype = DELETE;
+                        } else if (II[k] >= RI[k]) {
+                                mi = II[k];
+                                mj = k+mi;
+                                mtype = INSERT;
+                        } else {
+                                mi = SS[k];
+                                mj = k+mi;
+                                mtype = SUBSTITUTE;
+                        }
+
+/*
+                        printf("mi=%d, mj=%d, mtype=%d\n", mi, mj, mtype);
+*/
+                        flag = 1;
+                        break;
+                }
+        }
+
+        /* Free working vectors */
+        free(SS+lower);
+        free(DD+lower);
+        free(II+lower-1);
+        free(RS+rlower);
+        free(RD+rlower-1);
+        free(RI+rlower);
+
+        if (flag) {
+                /* Find a path from (i1,j1,type1) to (mi,mj,mtype) */
+                path(i1,j1,type1,mi,mj,mtype,midc,&head1,&tail1);
+
+                /* Find a path from (mi,mj,mtype) to (i2,j2,type2) */
+                path(mi,mj,mtype,i2,j2,type2,rmidc,&head2,&tail2);
+
+                /* Join these two paths together */
+                if (head1) tail1->next = head2;
+                else head1 = head2;
+        } else {
+                printf("Something wrong when dividing\n");
+                head1 = NULL;
+        }
+        *head = head1;
+        if (head2) *tail = tail2;
+        else *tail = tail1;
 }
 
 

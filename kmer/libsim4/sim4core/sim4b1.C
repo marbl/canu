@@ -224,7 +224,11 @@ Sim4::SIM4(int            *dist_ptr,
   /* compaction step; note: it resets the right end of the list to   */ 
   /* the last item in the block list                                 */
 
-  compact_list(&(Lblock->next_exon), &Rblock);
+  compact_list(&(Lblock->next_exon), &Rblock, (globalParams->_interspecies ? SHORT_INTRON : wordSize));
+
+  if (globalParams->_interspecies)
+     filter(&Lblock, &Rblock);
+
 
 #ifdef SHOW_PROGRESS
   fprintf(stderr, "sim4b1 -- before small block at start removal\n");
@@ -274,10 +278,14 @@ Sim4::SIM4(int            *dist_ptr,
 
   /* Slide exon boundaries for optimal intron signals */
   if (globalParams->_slideIntrons) {
-    if (get_sync_flag(Lblock, Rblock, 6) == 1)
-      sync_slide_intron(6,&Lblock,st);
-    else
-      slide_intron(6,&Lblock,st);
+    if (globalParams->_interspecies == 1) {
+       SLIDE_INTRON(min(15,MAX_SLIDE), Lblock->next_exon, Rblock, spliceModel, st, 1);
+     } else {
+       if (get_sync_flag(Lblock, Rblock, 6) == 1)
+         SLIDE_INTRON(6, Lblock->next_exon, Rblock, SPLICE_ORIGINAL, st, 1);
+       else
+         SLIDE_INTRON(6, Lblock->next_exon, Rblock, SPLICE_ORIGINAL, st, 0);
+     }
   } else {
     //  Set orientation flag on introns to be unknown -- this has an
     //  undesired side effect of forcing the resulting match to have a

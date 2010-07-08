@@ -12,6 +12,8 @@ src    := $/sim4command.C \
           $/exon.H \
           $/exon_cores.C \
           $/extend.C \
+          $/glimmerSplice.C \
+          $/glimmerSplice.H \
           $/greedy.C \
           $/mspManager.C \
           $/mspManager.H \
@@ -24,8 +26,13 @@ src    := $/sim4command.C \
           $/sim4b1-2.C \
           $/sim4b1-3.C \
           $/sim4b1-4.C \
+          $/sim4b1_s.C \
           $/sim4defines.H \
           $/sim4parameters.H \
+          $/sites.C \
+          $/sites_acceptor.C \
+          $/sites_donor.C \
+          $/sites_score.C \
           $/splice.C \
           $/table.C \
           $/util.C

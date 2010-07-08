@@ -15,7 +15,8 @@ Sim4::extend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
   DELTA,                  /* n-m  */
   ORIGIN,
   lower,
-  upper;
+  upper,
+  magic_d;
   int     *last_d, *temp_d;       /* column containing the last p */
   int     *min_row, *min_diag;    /* min (b)/ max (f) row (and diagonal) */
   /* reached for cost d=0, ... m.  */
@@ -151,7 +152,8 @@ Sim4::extend_bw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
   }
 
   /* report here the previous maximal match, stored in min_diag and min_row */
-  while ((d>0) && (min_row[d-1]-min_row[d]<3))
+  magic_d = (globalParams->_interspecies ? 2 : 3);
+  while ((d>0) && (min_row[d-1]-min_row[d]<magic_d))
     d--;
 
   *line1 = min_row[d]+offset1;
@@ -174,7 +176,8 @@ Sim4::extend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
   k,                      /* current diagonal */
   ORIGIN,
   lower,
-  upper;
+  upper,
+  magic_d;
   int     *last_d, *temp_d;       /* column containing the last p */
   int     *max_row, *max_diag;    /* min (b)/ max (f) row (and diagonal) */
   /* reached for cost d=0, ... m.  */
@@ -315,7 +318,8 @@ Sim4::extend_fw(char *s1, char *s2, int m, int n, int offset1, int offset2, int 
 
   /* report here the previous maximal match, stored in max_diag and max_row */
 
-  while ((d>0) && (max_row[d]-max_row[d-1]<3))
+  magic_d = (globalParams->_interspecies ? 2 : 3);
+  while ((d>0) && (max_row[d]-max_row[d-1]<magic_d))
     d--;
 
   *line1 = max_row[d]+offset1;

@@ -30,9 +30,13 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
       ANNOUNCEEXIT("greedy-1\n");
       return(m-n0+(int)(globalParams->_percentError * n0 + 1));
     } else if (m > (int)min(wordSize, (1 + globalParams->_percentError) * n0)) {
-      *lblock = *rblock = 0L;
-      ANNOUNCEEXIT("greedy-2\n");
-      return(MAX_D+1);
+      if (globalParams->_interspecies) {
+             ;
+      } else {
+         *lblock = *rblock = 0L;
+         ANNOUNCEEXIT("greedy-2\n");
+         return(MAX_D+1);
+      }
     }
   }       
 

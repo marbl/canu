@@ -2,6 +2,8 @@
 #define SIM4_PARAMETERS_H
 
 #include "mspManager.H"
+#include "sim4defines.H"
+#include "ckalloc.H"
 
 class sim4parameters {
 public:
@@ -66,6 +68,16 @@ public:
     _wordSizeExt = w;
   };
 
+  void  setSpacedSeed(char *z) {
+    _spacedSeed = strsave(z);
+    _isSetSpacedSeed = true;
+  };
+
+  void  setSpliceModel(int j) { 
+    _spliceModel = j;
+    _isSetSpliceModel = true;
+  };
+
   void  setDontForceCanonicalSplicing(bool x=true) {
     _dontForceCanonicalSplicing = x;
   };
@@ -74,24 +86,37 @@ public:
     _forceStrandPrediction = x;
   };
 
-
   void  setSlideIntrons(bool x=true) {
     _slideIntrons = x;
   };
-
 
   void  setInterspecies(bool x=true) {
     _interspecies = x;
 
     if (_interspecies) {
-      _percentError =  0.25;
+      _percentError =  0.45;
       _match        =  1;
-      _mismatch     = -3;
+      _imismatch    = -1;
+      _vmismatch    = -3;
+
+      if (_isSetSpliceModel == false)
+         _spliceModel = SPLICE_GENESPLICER;
+
+      if (_isSetSpacedSeed == false)
+         _spacedSeed = strsave(DEFAULT_SPACED_SEED);
+      _spacedSeedInt = strsave(DEFAULT_SPACED_SEED_INT);
+      _spacedSeedExt = strsave(DEFAULT_SPACED_SEED_EXT);
+
     } else {
       _percentError =  0.20;
       _match        =  1;
-      _mismatch     = -5;
+      _imismatch    = -5;
+      _vmismatch    = -5;
     }
+  }
+
+  int   setSpliceMutex(void) {
+    return pthread_mutex_init(&_splice_mutex,NULL);
   }
 
 
@@ -132,6 +157,23 @@ private:
   int           _wordSizeInt;
   int           _wordSizeExt;
 
+  char         *_spacedSeed;
+  char         *_spacedSeedInt;
+  char         *_spacedSeedExt;
+  bool          _isSetSpacedSeed;
+
+  int           _spliceModel;
+  bool          _isSetSpliceModel;
+
+  pthread_mutex_t
+                _splice_mutex;
+
+  // Interspecies comparison options.
+  //    _percentError is the former #defined P
+  //    _match is the former MATCH
+  //    _misMatch is the former MISMATCH
+  //
+
   bool          _slideIntrons;
 
   // Interspecies comparison options.
@@ -147,8 +189,11 @@ private:
 
   double        _percentError;
   int           _match;
-  int           _mismatch;
-
+  int           _imismatch;
+  int           _vmismatch;
+  int           _imatchdiff;
+  int           _vmatchdiff;
+  
   friend class Sim4;
 };
 

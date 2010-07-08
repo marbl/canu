@@ -23,6 +23,9 @@
 #include "exon.H"
 #include "mspManager.H"
 #include "sim4defines.H"
+#include "glimmerSplice.H"
+#include "sim4b1_s.H"
+#include "ckalloc.H"
 
 #include "../sim4polish/sim4polish.h"
 #include "../sim4polish/sim4polishList.H"
@@ -69,6 +72,7 @@ enum { OK = 0, FREE_START = 1, FREE_END = 2, FREE_BOTH_ENDS = 3};
 #define CDNA_LOG4_ENTRIES 25
 
 #define HASH_SIZE 32767        /* 2**15 - 1 */
+
 
 class Sim4 {
 private:
@@ -126,7 +130,12 @@ struct hash_table {
   int                 nodesused;
 };
 
-
+typedef struct positions {
+    int    begin;
+    int    end;
+    int    width;
+    int    result_shifts;
+} position_t;
 
 
 private:
@@ -157,6 +166,16 @@ private:
   int         wordSizeInt;
   int         wordSizeExt;
 
+  char       *spacedSeed;
+  char       *spacedSeedInt;
+  char       *spacedSeedExt;
+
+  mss_t       spacedSeedMSS;
+  mss_t       spacedSeedIntMSS;
+  mss_t       spacedSeedExtMSS;
+
+  int         spliceModel;
+
   int         mspThreshold1;
   int         mspThreshold2;
 
@@ -174,7 +193,6 @@ private:
   //
   bool _accurateSequences;
 
-
 #ifdef __APPLE__
   bool   _pad[7];
 #endif
@@ -184,8 +202,6 @@ private:
   void adjustBoundariesOfMarginalExons(Exon    *Lblock);
   void findLastAGandAC(Exon *tmp_block1);
   void findLastGTandCT(Exon *tmp_block);
-
-
 
 
   //  Functions from Xtend1.c
@@ -222,7 +238,9 @@ private:
 
   //  Functions from align.c
   //
+  void path(int,int,char,int,int,char,int,edit_script**,edit_script**);
   void align_path(int,int,int,int,int,edit_script**,edit_script**);
+  int  get_dist(int, int, int, int, int);
   int  align_get_dist(int, int, int, int, int);
   void Condense_script(edit_script *);
   void Condense_both_Ends(edit_script **, edit_script **, edit_script **);
@@ -298,7 +316,7 @@ private:
   void complement_exons(Exon **,int,int);
 
 
-  void bld_table(char *,int,int,int);
+  void bld_table(char *,int,mss_t,int);
 
   int SIM4_block1(Exon*  &Lblock,
                   Exon*  &tmp_block,
@@ -326,16 +344,25 @@ private:
 
   void   merge(Exon **,Exon **); 
   bool   get_sync_flag(Exon *, Exon *, int);
-  void   slide_intron(int w, Exon **, sim4_stats_t *);
-  void   sync_slide_intron(int w, Exon **, sim4_stats_t *);
+  void   slide_intron(int w, Exon *, Exon *, int, sim4_stats_t *);
+  void   sync_slide_intron(int w, Exon *, Exon *, int, sim4_stats_t *);
+  void   filter(Exon **,Exon **);
   void   wobble(Exon *, Exon *, const char *, const char *, char *seq1);
   Exon  *bmatch(char *,char *,int,int,int,int);
   Exon  *fmatch(char *,char *,int,int,int,int);
-  void   compact_list(Exon **Lblock, Exon **Rblock);
+  void   compact_list(Exon **Lblock, Exon **Rblock, int SI);
   int    resolve_overlap(Exon *,Exon *,char *);
   int    greedy(char *,char *,int,int,int,int,Exon **, Exon **);
   int    extend_bw(char *,char *,int,int,int,int,int *,int *);
   int    extend_fw(char *,char *,int,int,int,int,int *,int *);
+
+  void   SLIDE_INTRON(int a, Exon *b, Exon *c, int d, sim4_stats_t *e, int f) {
+    if (f == 1) {
+      return(sync_slide_intron(a,b,c,d,e));
+    } else {
+      return(slide_intron(a,b,c,d,e));
+    }
+  };
 
   void   pluri_align(int *dist_ptr,
                      Exon *lblock,
@@ -348,9 +375,9 @@ private:
   int    get_edist(int,int,int,int,char *,char *);
 
   void   add_word(int,int);
-  int     extend_hit(int,int,const char *const,const char * const,int,int,int,int);
-  void   search(char *,char *,int,int,int); 
-  void   exon_cores(char*,char*,int,int,int,int,int,int,int,int);
+  int    extend_hit(int,int,const char *const,const char * const,int,int,int,int);
+  void   search(char *,char *,int,int,mss_t); 
+  void   exon_cores(char*,char*,int,int,int,int,int,mss_t,int,int);
 
   Exon *find_previous(Exon *head, Exon *target) {
     while (head && (head->next_exon != target))
@@ -359,19 +386,56 @@ private:
   };
 
   bool   get_match_quality(Exon *,Exon *,sim4_stats_t *,int);
+#if 0
+  //  Dead code, 05 apr 2004, bpw
+  void   check_consistency_intron_ori(Exon *,int,char *);
+#endif
 
+
+  //  sim4b1_s.h
+  //
+  public:
+    mss_t  masks_shifts(char *);
+    int    mask_shift(u64bit, mss_t);
+
+private:  
   //  splice.h
   //
-  void splice_donor(char *xseq, char *yseq, int M, int N, int *gt_score,
-                    int *ct_score, int **max_Gf, int **max_Cf,
+  void splice_donor(char *xseq, char *yseq, int M, int N, double *gt_score,
+                    double *ct_score, double **max_Gf, double **max_Cf,
                     int **start_Gi, int **start_Ci);
   void splice_donor_uni(char *xseq, char *yseq, int M, int N,
-                        int *It_score, int **max_IF, int **end_Ii);
+                        double *It_score, double **max_IF, int **end_Ii);
   void splice_acceptor(char *xseq, char *yseq, int M, int N,
-                       int *ag_score, int *ac_score, int **max_Gb,  
-                       int **max_Cb, int **end_Gi, int **end_Ci);
+                       double *ag_score, double *ac_score, double **max_Gb,  
+                       double **max_Cb, int **end_Gi, int **end_Ci);
   void splice_acceptor_uni(char *xseq, char *yseq, int M, int N,
-                           int *aI_score, int **max_Ib, int **end_Ii);
+                           double *aI_score, double **max_Ib, int **end_Ii);
+  void splice_init(int spl_model);
+  void splice_close();
+
+  void    loadGeneSplicerModel (void);
+  void    loadGlimmerModel (char *train_dir);
+  double  ScoreDonor_Glimmer (char *asegment, char *train_dir);
+  double  ScoreAcceptor_Glimmer (char *asegment, char *train_dir);
+
+  void splice_original(char *in_seqx, int ls, int us, int le, int ue,
+                       char *in_seqy, int ys, int ye,
+                       double *gtscore, double *agscore,
+                       double *ctscore, double *acscore, int ori,
+                       char *nsgemnetL, char *nsegmentR);
+  void splice_GeneSplicer(char *in_seqx, int ls, int us, int le, int ue,
+                       char *in_seqy, int ys, int ye,
+                       double *gtscore, double *agscore,
+                       double *ctscore, double *acscore, int ori,
+                       char *nsgemnetL, char *nsegmentR);
+  void splice_Glimmer(char *in_seqx, int ls, int us, int le, int ue,
+                       char *in_seqy, int ys, int ye,
+                       double *gtscore, double *agscore,
+                       double *ctscore, double *acscore, int ori,
+                       char *nsgementL, char *nsegmentR,
+                       char *asegmentL, char *asegmentR);
+
   int  stepct(int n) {
     if (n<0) fatal("splice.c: Negative value in stepct().");
     if (n<=4) return((int)1.6*8);
@@ -380,13 +444,43 @@ private:
     return((int)1.6*11);
   };
 
-  splice_t *new_splice(char,int,int,int,int,int,splice_t *);
-  void splice(char *in_seqx, int ls, int us, int le, int ue, 
-              char *in_seqy, int ys, int ye, splice_t **g, splice_t **c, int ori);
+  splice_t *new_splice(char,int,int,int,int,double,splice_t *);
+  void splice(char *in_seqx, int ls, int us, int le, int ue, char *in_seqy, int ys, int ye,
+              splice_t **gcell, splice_t **ccell, int ori, int spl_model);
 
 
+  //  Functions and defines from GeneSplicer header files: sites.h
+  //
 
+#define  ALPHABET_SIZE     4
+  
+  void    init_GeneSPlicer  ();
+  double  ScoreAcceptor_GeneSplicer  (char *);
+  double  ScoreDonor_GeneSplicer  (char *);
+  void    UnLoadSites_GeneSplicer (); 
 
+  //  ... sites_score.h
+
+#define NUM_VALUES_SCORES   2560
+
+  double score_ex_acc[NUM_VALUES_SCORES];
+  double score_in_acc[NUM_VALUES_SCORES];
+  double score_ex_don[NUM_VALUES_SCORES];
+  double score_in_don[NUM_VALUES_SCORES]; 
+
+  // ... sites_donor.h
+
+#define NUM_MODELS_DON    25
+#define NUM_VALUES_DON   928
+    
+  double don[NUM_MODELS_DON][NUM_VALUES_DON];
+    
+  // ... sites_acceptor.h
+  
+#define NUM_MODELS_ACC    25
+#define NUM_VALUES_ACC   928
+  
+  double acc[NUM_MODELS_ACC][NUM_VALUES_ACC];
 
 
   //  Functions from misc.h
@@ -439,54 +533,13 @@ script_flip_list(edit_script_list **left) {
   int   computePercentIdentity(int numEdits, int alignLen) {
     if (alignLen == 0)
       return(0);
-    return((int)floor(100.0 * (1 - 2.0 * numEdits / alignLen) + 0.5));
+    if (numEdits == 0) 
+      return 100;
+//  return((int)floor(100.0 * (1 - 2.0 * numEdits / alignLen) + 0.5));   LLL 6/18/10 this reports 100% id for non-exact matches
+    int pctId = (int)(floor(100.0 * (1 - 2.0 * numEdits / alignLen)));
+
+    return ((pctId<100) ? pctId : 99);
   };
-
-
-private:
-  //  If we want to use palloc() in here, we need to have a private
-  //  pallochandle, which means that all memory allocation must be
-  //  done within the class.
-  //
-#ifdef WITH_PALLOC
-
-  void  *_pallochandle;
-  void  *ckalloc(size_t amount) {
-    return(palloc2(amount, _pallochandle));
-  };
-  void  *ckcalloc(size_t amount) {
-    void *x = palloc2(amount, _pallochandle);
-    memset(x, 0x00, amount);
-    return(x);
-  };
-  void   ckfree(void *) {
-  };
-
-#else
-
-  void  *ckalloc(size_t amount) {
-#ifdef __APPLE__
-    if (amount == 0)
-      amount = 16;
-#else
-    if (amount == 0)
-      amount = 8;
-#endif
-
-    void *p = malloc(amount);
-    if (p == NULL) {
-      fprintf(stderr, "Can't allocate "u64bitFMT" bytes.\n", (u64bit)amount);
-      kill(getpid(), SIGKILL);
-    }
-
-    return(p);
-  };
-  void   ckfree(void *P) {
-    free(P);
-  };
-
-#endif
-
 
 
 public:
@@ -514,7 +567,8 @@ public:
 
     _mspManager.setLimits(globalParams->_mspLimitAbsolute, globalParams->_mspLimitPercent);
     _mspManager.setParameters(globalParams->_match,
-                              globalParams->_mismatch,
+                              globalParams->_imismatch,
+                              globalParams->_vmismatch,
                               globalParams->_percentError,
                               wordExtensionAllowance);
     _mspManager.setExonSource(&_exonManager);
@@ -533,6 +587,19 @@ public:
 
     if (globalParams->_wordSizeInt)  wordSizeInt = globalParams->_wordSizeInt;
     if (globalParams->_wordSizeExt)  wordSizeExt = globalParams->_wordSizeExt;
+
+    spacedSeed    = globalParams->_spacedSeed;
+    spacedSeedInt = globalParams->_spacedSeedInt;
+    spacedSeedExt = globalParams->_spacedSeedExt;
+
+    spacedSeedMSS    =  masks_shifts(spacedSeed);
+    spacedSeedIntMSS =  masks_shifts(spacedSeedInt);
+    spacedSeedExtMSS =  masks_shifts(spacedSeedExt);
+
+    spliceModel   = globalParams->_spliceModel;
+
+    if (!globalParams->_dontForceCanonicalSplicing)
+       splice_init(spliceModel);
 
     mspThreshold1 = globalParams->_mspThresh1;  //K;
     mspThreshold2 = globalParams->_mspThresh2;  //C;
@@ -556,8 +623,11 @@ public:
 
     _accurateSequences = false;
 
-#ifdef WITH_PALLOC
-    _pallochandle = pallochandle(2 * 1024 * 1024);
+
+    mem_init();
+
+#if 0
+    _pallochandle = pallochandle(2 * 1024 * 1024);  6/8/2010 LLL: replaced with mem_init()
 #endif
   };
 
@@ -568,14 +638,17 @@ public:
     delete [] thashtable.nextPos;
     delete [] thashtable.nodes;
 
-#ifdef WITH_PALLOC
-    pfree2(_pallochandle);
+    mem_end();
+
+#if 0
+    pfree2(_pallochandle);   6/8/2010 LLL: replaced with mem_end()
     pfreehandle(_pallochandle);
 #endif
 
   };
 
   sim4polishList *run(sim4command *cmd);
+
 };
 
 

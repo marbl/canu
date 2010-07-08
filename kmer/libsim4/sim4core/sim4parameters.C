@@ -1,3 +1,4 @@
+#include <pthread.h>
 #include "sim4parameters.H"
 #include "sim4defines.H"
 
@@ -24,19 +25,29 @@ sim4parameters::sim4parameters() {
     _relinkWeight               = DEFAULT_RELINK_WEIGHT;
 
     _wordSize                   = 12;
-    _wordSizeInt                = 0;
-    _wordSizeExt                = 0;
+    _wordSizeInt                = 8;
+    _wordSizeExt                = 10;
 
     _dontForceCanonicalSplicing = false;
     _forceStrandPrediction      = false;
 
     _slideIntrons               = true;
 
+    _spacedSeed                 = "111111111111";
+    _spacedSeedInt              = "11111111";
+    _spacedSeedExt              = "1111111111";
+    _isSetSpacedSeed            = false;
+
+    _spliceModel                = DEFAULT_SPLICE_MODEL;
+    _isSetSpliceModel           = false;
+
     _interspecies               = false;
     _percentError               = 0.20;
     _match                      =  1;
-    _mismatch                   = -5;
+    _imismatch                  = -5;
+    _vmismatch                  = -5;
 }
 
 sim4parameters::~sim4parameters() {
+    pthread_mutex_destroy(&_splice_mutex);
 }

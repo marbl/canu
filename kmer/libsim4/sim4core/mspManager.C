@@ -32,8 +32,12 @@ mspManager::mspManager() {
   //  during link() if they are not set.
   //
   _match            = 0;
-  _matchdiff        = 0;
   _percentError     = 0.0;
+  _imismatch        = 0;
+  _vmismatch        = 0;
+  _imatchdiff       = 0;
+  _vmatchdiff       = 0;
+
   _wordExtAllow     = 0;
 
   _exonManager      = 0L;
@@ -98,6 +102,22 @@ mspManager_msp_compare(const void *A, const void *B) {
 }
 
 
+static
+int find_log_entry(const int *log4s, int n, int len, int offset)
+{
+    int a;
+
+    a = n/2;
+    if ((len<log4s[a]) && (!a || (len>=log4s[a-1])))
+                return max(0,(a-1))+offset;
+    else if ((len>=log4s[a]) && ((a==n-1) || (len<log4s[a+1])))
+                return min(n-1,(a+1))+offset;
+    else if (len<log4s[a])
+                return find_log_entry(log4s,a-1,len, offset);
+    else if (len>log4s[a])
+                return find_log_entry(log4s+a+1,n-a-1,len, offset+a+1);
+    return -1;
+}
 
 Exon*
 mspManager::doLinking(int    weight,
@@ -126,7 +146,8 @@ mspManager::doLinking(int    weight,
   //  Sim4::Sim4().
   //
   if ((_match == 0) &&
-      (_matchdiff == 0) &&
+      (_imatchdiff == 0) &&
+      (_vmatchdiff == 0) &&
       (_percentError == 0.0)) {
     fprintf(stderr, "sim4::link()-- ERROR; mspManager parameters not set!  This is an algorithm error.\n");
     exit(1);
@@ -220,7 +241,7 @@ mspManager::doLinking(int    weight,
                                       mp->pos1+mp->len-1, 
                                       mp->pos2+mp->len-1,
                                       -1, 
-                                      (mp->len * _match - mp->score) / _matchdiff,
+                                      (mp->len * _match - mp->score) / _vmatchdiff,
                                       0,
                                       0L);
 
@@ -241,7 +262,7 @@ mspManager::doLinking(int    weight,
         (elist->frEST - (mp->pos2 + mp->len - 1)) < MAX_INTERNAL_GAP) {
       /* merge with previous exon */
       elist->edist += diag_dist;
-      elist->edist += (mp->len * _match - mp->score) / _matchdiff;
+      elist->edist += (mp->len * _match - mp->score) / _vmatchdiff;
       if ((diff=mp->pos2+mp->len-elist->frEST)>0) {   /* overlap */
         int dist1, dist2;
         dist1 = get_edist(elist->frGEN,mp->pos2+mp->len-diff,
@@ -262,7 +283,7 @@ mspManager::doLinking(int    weight,
                                     mp->pos1+mp->len-1,
                                     mp->pos2+mp->len-1,
                                     -1,
-                                    (mp->len * _match - mp->score) / _matchdiff,
+                                    (mp->len * _match - mp->score) / _vmatchdiff,
                                     0,
                                     elist);
     }
@@ -328,9 +349,12 @@ cDNA_log4s[CDNA_LOG4_ENTRIES]= {1, 1, 2, 4, 7, 11, 19, 32, 52, 86,
                                 141, 231, 380, 624, 1024, 1680, 2756, 4522, 7419, 12173,
                                 19972, 32768, 53761, 88204, 144715 };
 
-
+#if 0
 //  The original used a binary search but with so few entries brute
 //  force works better.
+//  LLL 4/9/2009: does not return the same result as the original, 
+//  and gives false positive matches for interspecies comparisons;
+// restored original version 
 //
 int
 get_msp_threshold(int len1, int len2) {
@@ -366,62 +390,57 @@ get_msp_threshold(int len1, int len2) {
 
   return(i/2+j/2+1);
 }
+#endif
 
 
+int get_msp_threshold(int len1, int len2)
+{
+    int i, j;
 
+    i = find_log_entry(genomic_log4s, GEN_LOG4_ENTRIES, len1, 0);
+    j = find_log_entry(cDNA_log4s, CDNA_LOG4_ENTRIES, len2, 0);
+
+    if (!(i % 2)) return (int)(i/2+j/2);
+    else if (!(j % 2)) return (int)(i/2+j/2);
+    else return (int)(i/2+j/2+1);
+}
 
 
 void
 mspManager::setScoreThreshold(int K, int interspecies) {
 
   if (interspecies) {
-    _minMSPScore = (int)(((int)(log(.75*(double)_GENlen)+log((double)_ESTlen))/log(4.0)) * 1.0);
+    if (K <= 0) {
+//     _minMSPScore = (int)(((int)(log(.75*(double)_GENlen)+log((double)_ESTlen))/log(4.0)) * 1.0);
+       _minMSPScore = get_msp_threshold(_GENlen, _ESTlen);
+    } else {
+       _minMSPScore = K;
+    }      
   } else {
     if (K <= 0) {
       _minMSPScore = get_msp_threshold(_GENlen, _ESTlen);
-        
-      //  compensate for the rounding in the log formula
-      if (_minMSPScore >= 0)
+          
+    //  compensate for the rounding in the log formula
+    if (_minMSPScore >= 0)
         _minMSPScore--;
     } else {
-      _minMSPScore = K;
+        _minMSPScore = K;
     }
   }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 void
 mspManager::addHit_(char *genSeq, char *estSeq,
                     int   genLen, int   estLen,
                     int   genPos, int   estPos,
-                    int   W) {
+                    mss_t MSS) {
   char *genBeg = 0L;
   char *estBeg = 0L;
   char *genEnd = 0L;
   char *genTmp = 0L;
   char *estTmp = 0L;
   int   right_sum  = 0;
-#ifdef TEST_SEEDS_IN_EXTENSION
   int   middle_sum = 0;
-#endif
   int   left_sum   = 0;
   int   sum        = 0;
   int   score      = 0;
@@ -436,11 +455,11 @@ mspManager::addHit_(char *genSeq, char *estSeq,
     char L[41], M[41], R[41];
     int  x;
 
-    if (genPos-W > 20) genTmp = genSeq + 1 + genPos - W - 20;
+    if (genPos-MSS.seedLength > 20) genTmp = genSeq + 1 + genPos - MSS.seedLength - 20;
     else               genTmp = genSeq + 1;
 
     x=0;
-    while (genTmp < genSeq + 1 + genPos - W)
+    while (genTmp < genSeq + 1 + genPos - MSS.seedLength)
       L[x++] = *genTmp++;
     L[x] = 0;
     x=0;
@@ -453,11 +472,11 @@ mspManager::addHit_(char *genSeq, char *estSeq,
     R[x] = 0;
     fprintf(stderr, "GEN=%8d %s:%s:%s\n", genPos, L, M, R);
 
-    if (estPos-W > 20) estTmp = estSeq + 1 + estPos - W - 20;
+    if (estPos-MSS.seedLength > 20) estTmp = estSeq + 1 + estPos - MSS.seedLength - 20;
     else               estTmp = estSeq + 1;
 
     x=0;
-    while (estTmp < estSeq + 1 + estPos - W)
+    while (estTmp < estSeq + 1 + estPos - MSS.seedLength)
       L[x++] = *estTmp++;
     L[x] = 0;
     x=0;
@@ -491,7 +510,7 @@ mspManager::addHit_(char *genSeq, char *estSeq,
 
     sum += _match;
     if (*estTmp != *genTmp)
-      sum -= _matchdiff;
+      sum -= (transition[*estTmp][*genTmp] ? _imatchdiff : _vmatchdiff);
 
     estTmp++;
     genTmp++;
@@ -509,10 +528,10 @@ mspManager::addHit_(char *genSeq, char *estSeq,
   genTmp     = genSeq + 1 + genPos - 1;
   estTmp     = estSeq + 1 + estPos - 1;
 
-  for (int x=0; x<W; x++) {
+  for (int x=0; x<MSS.seedLength; x++) {
     middle_sum += _match;
     if (*genTmp != *estTmp)
-      middle_sum -= _matchdiff;
+      middle_sum -= (transition[*estTmp][*genTmp] ? _imatchdiff : _vmatchdiff);
 
     //fprintf(stderr, "%c %c\n", *genTmp, *estTmp);
 
@@ -520,7 +539,7 @@ mspManager::addHit_(char *genSeq, char *estSeq,
     genTmp--;
   }
 
-  if (middle_sum != W) {
+  if (middle_sum != (MSS.matchesLegth/2))) {
     fprintf(stderr, "mspManager::addHit()-- ERROR:  i didn't find an exact match for the seed you supplied!\n");
     fprintf(stderr, "mspManager::addHit()-- ERROR:  GEN=%40.40s\n", genTmp);
     fprintf(stderr, "mspManager::addHit()-- ERROR:  EST=%40.40s\n", estTmp);
@@ -528,13 +547,27 @@ mspManager::addHit_(char *genSeq, char *estSeq,
   }
 #endif
 
+  //  Calculate the score of the seed match
+  //
+  middle_sum = 0;
+  sum        = 0;
+  genTmp     = genSeq + 1 + genPos - 1;
+  estTmp     = estSeq + 1 + estPos - 1;
 
+  for (int x=0; x<MSS.seedLength; x++) {
+    if (*genTmp == *estTmp) middle_sum += _match;
+
+    estTmp--;
+    genTmp--;
+  }
+
+  
   //  Extend to the left
   //
   right_sum = 0;
   sum       = 0;
-  genTmp    = genSeq + 1 + genPos - W;
-  estTmp    = estSeq + 1 + estPos - W;
+  genTmp    = genSeq + 1 + genPos - MSS.seedLength;
+  estTmp    = estSeq + 1 + estPos - MSS.seedLength;
   genBeg    = genTmp;
   estBeg    = estTmp;
 
@@ -546,7 +579,7 @@ mspManager::addHit_(char *genSeq, char *estSeq,
     genTmp--;
     sum += _match;
     if (*estTmp != *genTmp)
-      sum -= _matchdiff;
+      sum -= (transition[*estTmp][*genTmp] ? _imatchdiff : _vmatchdiff);
 
     if (sum > right_sum) {
       right_sum = sum;
@@ -555,7 +588,21 @@ mspManager::addHit_(char *genSeq, char *estSeq,
     }
   }
 
-  score = _match * W + left_sum + right_sum;
+  score = middle_sum + left_sum + right_sum;
+
+#ifdef DEBUG_MSPS
+
+  printf("TESTMSP: p1 = %7d p2 = %7d l = %7d sc = %7d (%d-%d-%d) ",
+          (int)(genBeg - (genSeq + 1)), (int)(estBeg - (estSeq + 1)), (int)(genEnd - genBeg),
+          score, left_sum, middle_sum, right_sum);
+  printf("g: ");
+  for (s=genBeg; s<genEnd; s++) printf("%c", *s);
+  printf(" c: ");
+  for (s=estBeg; s<estBeg+(int)(genEnd-genBeg); s++) printf("%c", *s);
+  printf(" S: %7d W: %7d cutoff: %d", MSS.seedLength, (int)(MSS.matchedLength/2), _minMSPScore);
+  printf("\n");
+
+#endif
 
   //  If this hit is significant, save it
   //
@@ -569,7 +616,7 @@ mspManager::addHit_(char *genSeq, char *estSeq,
   fprintf(stderr, "mspManager::addHit()-- added from GEN %d to %d and EST %d to ? (length = %d) with score %d (needed %d) l,m,r sums %d %d %d\n", 
           (int)(genBeg - (genSeq + 1)), (int)(genEnd - (genSeq + 1)) + W,
           (int)(estBeg - (estSeq + 1)),
-          W,
+          MSS.seedLength,
           score, _minMSPScore, left_sum, middle_sum, right_sum);
 #endif
 
@@ -577,5 +624,5 @@ mspManager::addHit_(char *genSeq, char *estSeq,
   //  to.  We use this to short circuit useless mer extensions (if
   //  we've already extended through it).
   //
-  _diagExt[estLen + genPos - estPos - 1] = (int)(genEnd - genSeq - 1 + W);
+  _diagExt[estLen + genPos - estPos - 1] = (int)(genEnd - genSeq - 1 + MSS.seedLength);
 }

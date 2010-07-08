@@ -96,9 +96,15 @@ Sim4::pluri_align(int *dist_ptr,
       }
     }
 
-    diff = align_get_dist(nextExon->frGEN-1, nextExon->frEST-1,
-                          nextExon->toGEN, nextExon->toEST,
-                          max(1000, (int)(.2*(nextExon->toEST - nextExon->frEST + 1))));
+    if (globalParams->_interspecies) {
+       diff = get_dist(nextExon->frGEN-1, nextExon->frEST-1,
+                       nextExon->toGEN, nextExon->toEST,
+                       max(1000, (int)(globalParams->_percentError*(nextExon->toEST - nextExon->frEST + 1))));
+    } else { // original       
+       diff = align_get_dist(nextExon->frGEN-1, nextExon->frEST-1,
+                             nextExon->toGEN, nextExon->toEST,
+                             max(1000, (int)(.2*(nextExon->toEST - nextExon->frEST + 1))));
+    }
 
 
     //  Return if the alignment fails.
@@ -107,7 +113,9 @@ Sim4::pluri_align(int *dist_ptr,
       st->numberOfMatches = 0;
       st->numberOfNs      = 0;
       st->percentID       = -1;
+
       *Aligns             = 0L;
+
       return;
     }
 
@@ -116,8 +124,14 @@ Sim4::pluri_align(int *dist_ptr,
       (void)printf("Warning: Distance threshold on segment exceeded.\n");
 #endif
 
-    align_path(nextExon->frGEN-1, nextExon->frEST-1, 
-               nextExon->toGEN, nextExon->toEST, diff, &left, &right);
+    if (globalParams->_interspecies) {
+       path(nextExon->frGEN-1, nextExon->frEST-1, SUBSTITUTE,
+            nextExon->toGEN, nextExon->toEST, SUBSTITUTE,
+            diff, &left, &right);
+    } else { // original
+       align_path(nextExon->frGEN-1, nextExon->frEST-1, 
+                  nextExon->toGEN, nextExon->toEST, diff, &left, &right);
+    }
 
     //  Return if the alignment fails -- this occurred once aligning
     //  dros frags to dros using snapper.  Snapper was giving the wrong

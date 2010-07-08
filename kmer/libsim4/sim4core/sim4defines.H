@@ -1,4 +1,3 @@
-
 //  Don't define this (unless your name starts with L or B).
 //
 //  Changes to here, sim4db.H and exon_cores.H
@@ -8,7 +7,11 @@
 #define  DIST_CUTOFF       3
 
 #define  MIN_INTRON        30
+#define  SHORT_INTRON      50
+#define  LONG_INTRON       20000
+#define  SHORT_EXON        40
 #define  MAX_GRINIT        500
+#define  MAX_SLIDE         15
 #define  MAX_INTERNAL_GAP  50
 
 #define  DEFAULT_DRANGE    10
@@ -29,3 +32,14 @@
 #define  SUBSTITUTE      3
 #define  INTRON          4
 #define  O_INTRON        5
+
+#define  SPLICE_ORIGINAL         0
+#define  SPLICE_GENESPLICER      1
+#define  SPLICE_GLIMMER          2
+#define  DEFAULT_SPLICE_MODEL    SPLICE_ORIGINAL
+
+#define  DEFAULT_SPACED_SEED        "1xx1011011011xx11"
+#define  DEFAULT_SPACED_SEED_INT    "10011010100011"
+#define  DEFAULT_SPACED_SEED_EXT    "1101100011010111"
+#define  SEED_SPAN               40   /* 22 */
+

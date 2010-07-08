@@ -7,6 +7,7 @@
 
 #include "util++.H"
 #include "exon.H"
+#include "sim4b1_s.H"
 
 struct msp {
   int         len;
@@ -30,11 +31,30 @@ public:
   mspManager();
   ~mspManager();
 
-  void   setParameters(int match, int mismatch, double percenterror, int wordextallow) {
+  void   setParameters(int match, int imismatch, int vmismatch, double percenterror, int wordextallow) {
+    int i, j;
+
+    _imismatch        = imismatch;
+    _vmismatch        = vmismatch;
     _match            = match;
-    _matchdiff        = match - mismatch;
+    _imatchdiff       = match - imismatch;
+    _vmatchdiff       = match - vmismatch;
     _percentError     = percenterror;
     _wordExtAllow     = wordextallow;
+
+    for (i=0; i<256; i++)
+     for (j=0; j<256; j++)
+       transition[i][j] = 0;
+
+    transition[(int)'A'][(int)'G'] = transition[(int)'a'][(int)'g'] = 1;
+    transition[(int)'a'][(int)'G'] = transition[(int)'A'][(int)'g'] = 1;
+    transition[(int)'G'][(int)'A'] = transition[(int)'g'][(int)'a'] = 1;
+    transition[(int)'g'][(int)'A'] = transition[(int)'G'][(int)'a'] = 1;
+    transition[(int)'C'][(int)'T'] = transition[(int)'c'][(int)'t'] = 1;
+    transition[(int)'c'][(int)'T'] = transition[(int)'C'][(int)'t'] = 1;
+    transition[(int)'T'][(int)'C'] = transition[(int)'t'][(int)'c'] = 1;
+    transition[(int)'t'][(int)'C'] = transition[(int)'T'][(int)'c'] = 1;
+
   };
 
   void   setExonSource(exonManager *em) {
@@ -95,14 +115,14 @@ public:
   void  addHit(char *genSeq, char *estSeq,
                int   genLen, int   estLen,
                int   genPos, int   estPos,
-               int   W) {
+               mss_t MSS) {
 
 #if 0
     //  We'd like to tie this into DEBUG_EXTENSION, but I want
     //  to keep those defines in the source file.  Oh well.
     //
     fprintf(stderr, "mspManager::addHit()-- adding hit from GEN %d to %d and EST %d to %d (length = %d)  diag=%d lim=%d have %d\n", 
-            genPos-W, genPos, estPos-W, estPos, W,
+            genPos-MSS.seedLength, genPos, estPos-MSS.seedLength, estPos, MSS.seedLength,
             estLen + genPos - estPos - 1,
             _diagExt[estLen + genPos - estPos - 1],
             genPos);
@@ -110,7 +130,7 @@ public:
 #endif
 
     if (_diagExt[estLen + genPos - estPos - 1] <= genPos)
-      addHit_(genSeq, estSeq, genLen, estLen, genPos, estPos, W);
+      addHit_(genSeq, estSeq, genLen, estLen, genPos, estPos, MSS);
   };
 
 
@@ -127,7 +147,7 @@ private:
   void  addHit_(char *genSeq, char *estSeq,
                 int   genLen, int   estLen,
                 int   genPos, int   estPos,
-                int   W);
+                mss_t MSS);
 
   bool           _sorted;
 
@@ -145,7 +165,12 @@ private:
   u32bit         _mspLimitAbsolute;
 
   int            _match;
-  int            _matchdiff;
+  int            _imismatch;
+  int            _vmismatch;
+  int            _imatchdiff;
+  int            _vmatchdiff;
+
+  int            transition[256][256];
 
 #ifdef __APPLE__
   int            _pad1;
@@ -189,7 +214,7 @@ mspManager::addMSP(int l, int p1, int p2, int sc) {
     _allMSPs = n;
   }
 
-#if 0
+#ifdef DEBUG_MSPS
   fprintf(stdout, "ADDMSP: p1=%8d p2=%8d l=%8d sc=%8d\n",
           p1, p2, l, sc);
 #endif

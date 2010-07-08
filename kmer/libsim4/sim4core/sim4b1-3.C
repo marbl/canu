@@ -68,7 +68,7 @@ Sim4::SIM4_block3(bool     good_match,
                tmp_block->toGEN+1,
                tmp_block->toEST+1,
                1,
-               wordSizeExt,
+               spacedSeedExtMSS,
                mspThreshold2,
                TEMP);
 

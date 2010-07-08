@@ -103,6 +103,7 @@ Sim4::run(sim4command *cmd) {
   char   *estrev     = 0L;
   char   *estseqorig = 0L;
 
+//mss_t   MSS;   LLL DELETE
 
   //  Allocate space for temporary sequence storage.  We need
   //  to allocate space for two copies of the database, and space
@@ -182,8 +183,10 @@ Sim4::run(sim4command *cmd) {
     memset(&st,     0, sizeof(sim4_stats_t));
     memset(&rev_st, 0, sizeof(sim4_stats_t));
 
-    if (cmd->externalSeedsExist() == false)
-      bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, wordSize, INIT);
+    if (cmd->externalSeedsExist() == false) {
+//    MSS = masks_shifts(globalParams->_spacedSeed);   LLL DELETE
+      bld_table(estseq - 1 + g_pT, estlen - g_pA - g_pT, spacedSeedMSS, INIT);
+    }
 
     if (cmd->doForward()) {
 
@@ -209,7 +212,7 @@ Sim4::run(sim4command *cmd) {
       //  Find the seeds.
       //
       if (cmd->externalSeedsExist() == false) {
-        exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
+        exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, spacedSeedMSS, mspThreshold1, PERM);
       } else {
 #ifdef SHOW_EXTERNAL_SEEDING
         fprintf(stderr, "FWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
@@ -223,7 +226,8 @@ Sim4::run(sim4command *cmd) {
                                _genLen, _estLen,
                                cmd->externalSeedGENPosition(x),
                                cmd->externalSeedESTPosition(x),
-                               cmd->externalSeedLength(x));
+                               spacedSeedMSS); // LLL 6-17/10 This doesn't make sense here (seed is probably 20mer, but not used anyway
+//                             cmd->externalSeedLength(x));   LLL: MUST CHANGE, using spaced seeds
 
         exon_list = _mspManager.doLinking(DEFAULT_WEIGHT, DEFAULT_DRANGE,
                                           1, 1,
@@ -289,7 +293,7 @@ Sim4::run(sim4command *cmd) {
       //  Find the seeds.
       //
       if (cmd->externalSeedsExist() == false) {
-        exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, wordSize, mspThreshold1, PERM);
+        exon_cores(_genSeq-1, _estSeq-1, _genLen, _estLen, 1, 1, 0, spacedSeedMSS, mspThreshold1, PERM);
       } else {
 #ifdef SHOW_EXTERNAL_SEEDING
         fprintf(stderr, "BWD: Using external seeds -- adding "u32bitFMT" seeds to sim4.\n", cmd->numberOfExternalSeeds());
@@ -315,7 +319,8 @@ Sim4::run(sim4command *cmd) {
                                _genLen, _estLen,
                                cmd->externalSeedGENPosition(x),
                                cmd->externalSeedESTPosition(x),
-                               cmd->externalSeedLength(x));
+                               spacedSeedMSS); // 6-17-10 LLL This doesn't make sense here; seed must probably be a 20-mer, but the code is unused anyway
+//                             cmd->externalSeedLength(x));  LLL:  MUST CHANGE, using spaced seeds
 
         exon_list = _mspManager.doLinking(DEFAULT_WEIGHT, DEFAULT_DRANGE,
                                           1, 1,

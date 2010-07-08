@@ -44,20 +44,20 @@ Sim4::add_word(int ecode, int pos) {
 
 
 void
-Sim4::bld_table(char *s, int len, int in_W, int type) {
-  int ecode;
-  int i, j;
+Sim4::bld_table(char *s, int len, mss_t MSS, int type) {
+  u64bit ecode;
+  int i, j, masked_ecode;
   char *t;
 
   if (type == PERM) {
-    mask = (1 << (in_W+in_W-2)) - 1;
+    mask = (1 << (2*MSS.seedLength-2)) - 1;   /* LLL 6/16/10 we are setting this for continuous seeds, where 2*seedLength=matchedLength; no effect if seed is spaced */
     hashtable = &phashtable;
     return; 
   }
 
   /* perform initializations */
   if (type == INIT) {
-    mask = (1 << (in_W+in_W-2)) - 1;
+    mask = (1 << (2*MSS.seedLength-2)) - 1;  /* LLL 6/16/10 we are setting this for continuous seeds, where 2*seedLength=matchedLength; no effect if seed is spaced */
 
     hashtable = &phashtable;
 
@@ -71,9 +71,9 @@ Sim4::bld_table(char *s, int len, int in_W, int type) {
     phashtable.nodesused = 0;
 
     for (i=0; i<HASH_SIZE+1; ++i)
-      phashtable.table[i] = 0L;
+      phashtable.table[i] = u64bitZERO;
   } else if (type == TEMP) {
-    mask = (1 << (in_W+in_W-2)) - 1;
+    mask = (1 << (2*MSS.seedLength-2)) - 1;  /* LLL 6/16/10 we are setting this for continuous seeds, where 2*seedLength=matchedLength; no effect if seed is spaced */
 
     hashtable = &thashtable;
 
@@ -100,33 +100,75 @@ Sim4::bld_table(char *s, int len, int in_W, int type) {
   //
   t = s+1;
 
-  for (i=1; (i<=len) && *t; ) {
-  restart: 
-    ecode = 0L;
+  if (MSS.type == CONTINUOUS_SEED) {
+    for (i=1; (i<=len) && *t; ) {
+    restart_c:
+      ecode = u64bitZERO;
 
-    for (j=1; (j<in_W) && (i<=len) && *t; ++j) {
-      emer = encoding[(int)(*t++)];
-      i++;
+      for (j=1; (j<MSS.seedLength) && (i<=len) && *t; ++j) {
+        emer = encoding[(int)(*t++)];
+        i++;
 
-      if (emer < 0)
-        goto restart;
+        if (emer < 0)
+          goto restart_c;
 
-      ecode <<= 2;
-      ecode  |= emer;
+          ecode <<= 2;
+          ecode  |= emer;
+        }
+   
+      for (; (i<=len) && *t; ) {
+        emer = encoding[(int)(*t++)];
+        i++;
+
+        if (emer < 0)
+          goto restart_c;
+
+        ecode  &= mask;
+        ecode <<= 2;
+        ecode  |= emer;
+
+        add_word(ecode, (int)(t-s-1));
+      }
     }
+  } else {
+    /* SPACED_SEED */
+    for (i=1; (i<=len) && *t; ) {
+    restart_s: 
+      ecode = u64bitZERO;
+
+      for (j=1; (j<MSS.seedLength) && (i<=len) && *t; ++j) {
+        emer = encoding[(int)(*t++)];
+        i++;
+
+        if (emer < 0)
+          goto restart_s;
+
+        ecode <<= 2;
+        ecode  |= emer;
+      }
     
-    for (; (i<=len) && *t; ) {
-      emer = encoding[(int)(*t++)];
-      i++;
+      for (; (i<=len) && *t; ) {
+        emer = encoding[(int)(*t++)];
+        i++;
 
-      if (emer < 0)
-        goto restart;
+        if (emer < 0)
+          goto restart_s;
 
-      ecode  &= mask;
-      ecode <<= 2;
-      ecode  |= emer;
+        ecode  &= MSS.mask;
+        ecode <<= 2;
+        ecode  |= emer;
 
-      add_word(ecode, (int)(t-s-1)); 
+#if 1
+        // much cheaper...
+
+        for (j=masked_ecode=0; j<MSS.masknum; j++)
+          masked_ecode += (ecode & MSS.masks[j]) >> MSS.shifts[j];
+
+        add_word(masked_ecode, (int)(t-s-1));
+#else
+        add_word(masked_shift(ecode), (int)(t-s-1)); 
+#endif
+      }
     }
   }
 }

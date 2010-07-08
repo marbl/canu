@@ -73,8 +73,6 @@ u32bit            loaderCacheSize  = 1024;
 
 sim4parameters    sim4params;
 
-
-
 //  Parse the command line to create a sim4command object
 //
 //  [-f|-r] -e ESTid -D GENid GENlo GENhi
@@ -436,6 +434,9 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-sc", 3) == 0) {
       scriptFileName = argv[++arg];
 
+    } else if (strncmp(argv[arg], "-sp", 3) == 0) {
+      sim4params.setSpliceModel(atoi(argv[++arg]));
+
     } else if (strncmp(argv[arg], "-pa", 3) == 0) {
       pairwise = true;
 
@@ -459,6 +460,9 @@ main(int argc, char **argv) {
 
     } else if (strncmp(argv[arg], "-C", 2) == 0) {
       sim4params.setMSPThreshold2(atoi(argv[++arg]));
+
+    } else if (strncmp(argv[arg], "-Z", 2) == 0) {
+      sim4params.setSpacedSeed(argv[++arg]);
 
     } else if (strncmp(argv[arg], "-Ma", 3) == 0) {
       sim4params.setMSPLimitAbsolute(atoi(argv[++arg]));
@@ -524,6 +528,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "       -cut          Trim marginal exons if A/T %% > x (poly-AT tails)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "       -noncanonical Don't force canonical splice sites\n");
+    fprintf(stderr, "       -splicemodel  Use the following splice model: 0 - original sim4;\n");
+    fprintf(stderr, "                     1 - GeneSplicer; 2 - Glimmer (default: 0)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "       -forcestrand  Force the strand prediction to always be\n");
     fprintf(stderr, "                     'forward' or 'reverse'\n");
@@ -531,6 +537,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "       -interspecies Configure sim4 for better inter-species alignments\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  The following are for use only by immortals.\n");
+    fprintf(stderr, "       -Z            set the (spaced) seed pattern\n");
     fprintf(stderr, "       -H            set the relink weight factor\n");
     fprintf(stderr, "       -K            set the first MSP threshold\n");
     fprintf(stderr, "       -C            set the second MSP threshold\n");
@@ -550,6 +557,13 @@ main(int argc, char **argv) {
   fYesNo  = openOutputFile(yesnoFileName);
 
   sweatShop  *ss = 0L;
+
+  err = sim4params.setSpliceMutex();
+  if (err) {
+    fprintf(stderr, "sim4th::main()--  Failed to initialize splice mutex: %s.\n", strerror(err));
+    exit(1);
+  }
+
 
   //  If we have a script, read work from there, otherwise,
   //  do an all-vs-all.
@@ -581,6 +595,7 @@ main(int argc, char **argv) {
     close(fYesNo);
 
   delete scriptFile;
+
 
   exit(0);
 }

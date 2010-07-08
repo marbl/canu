@@ -10,9 +10,11 @@ s4csrc := $/sim4core/sim4command.C \
           $/sim4core/sim4string.C \
           $/sim4core/Xtend1.C \
           $/sim4core/align.C \
+          $/sim4core/ckalloc.C \
           $/sim4core/exon.H \
           $/sim4core/exon_cores.C \
           $/sim4core/extend.C \
+          $/sim4core/glimmerSplice.C \
           $/sim4core/greedy.C \
           $/sim4core/mspManager.C \
           $/sim4core/mspManager.H \
@@ -25,8 +27,13 @@ s4csrc := $/sim4core/sim4command.C \
           $/sim4core/sim4b1-2.C \
           $/sim4core/sim4b1-3.C \
           $/sim4core/sim4b1-4.C \
+          $/sim4core/sim4b1_s.C \
           $/sim4core/sim4defines.H \
           $/sim4core/sim4parameters.H \
+          $/sim4core/sites.C \
+          $/sim4core/sites_donor.C \
+          $/sim4core/sites_acceptor.C \
+          $/sim4core/sites_score.C \
           $/sim4core/splice.C \
           $/sim4core/table.C \
           $/sim4core/util.C
