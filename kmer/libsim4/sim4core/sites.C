@@ -2,9 +2,9 @@
 
 
 #include "sim4.H"
-#include "sites_score.h"
-#include "sites_donor.h"
-#include "sites_acceptor.h"
+#include "sites_score.H"
+#include "sites_donor.H"
+#include "sites_acceptor.H"
 
 char DONOR_TREE[] = "( 0 2 4 10000 l( 1 2 9 7841 l( 3 0 8 5666 l( 5 0 3 3977 l( 7 0 7 2186 l( 9 -1 -1 995 l r ) r( 10 -1 -1 1191 l r ) ) r( 8 3 10 1791 l( 15 -1 -1 931 l r ) r( 16 -1 -1 860 l r ) ) ) r( 6 -1 -1 1689 l r ) ) r( 4 -1 -1 2175 l r ) ) r( 2 -1 -1 2159 l r ) )"; // \n5 20\n";
 
