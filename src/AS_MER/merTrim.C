@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.6 2010-03-25 16:44:35 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.7 2010-07-12 17:17:58 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -909,8 +909,9 @@ mertrimComputation::attemptTrimming(void) {
 
   //  The (pre) clear range is jsut the largest window found, but trimmed back (into potentially
   //  good sequence) to the end/start of the window.
-  clrBgn = lBgn + 2;
-  clrEnd = lEnd - 2;
+  //  limit to valid sequences
+  clrBgn = (lBgn <= seqLen - 2 ? lBgn + 2 : seqLen);
+  clrEnd = (lEnd >= 2 ? lEnd - 2 : 0);
 
   if (VERBOSE) {
     fprintf(stderr, "TRIM: %d,%d (pre)\n", clrBgn, clrEnd);
