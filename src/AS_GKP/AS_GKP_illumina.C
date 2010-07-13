@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.11 2010-04-29 17:57:00 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.12 2010-07-13 19:57:08 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,6 +81,14 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
 
   uint32   slen = strlen(fr->sstr);
   uint32   qlen = strlen(fr->qstr);
+
+  //  Make sure we do not go over the maximum read lengths
+  //  This assumes all illumna reads are always of the packed type
+  if (slen >= AS_READ_MAX_PACKED_LEN) {
+	  qlen = slen = AS_READ_MAX_PACKED_LEN - 1;
+	  fr->sstr[slen] = 0;
+	  fr->qstr[qlen] = 0;
+  }
 
   uint32   clrL=0, clrR=slen;
 
