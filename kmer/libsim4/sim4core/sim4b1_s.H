@@ -14,5 +14,8 @@ typedef struct mss {
     int    *shifts;
 } mss_t;
 
+struct mss masks_shifts(char *);
+int        mask_shift(u64bit, struct mss);
+
 #endif
 
