@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: Array_CNS.c,v 1.24 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: Array_CNS.c,v 1.25 2010-08-06 22:09:00 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -71,7 +71,7 @@ createLaneNode(IntMultiPos *read) {
 
 static
 int
- freeLaneNode(LaneNode *node) {
+freeLaneNode(LaneNode *node) {
   safe_free(node->sequence);
   safe_free(node->quality);
   safe_free(node);
@@ -80,7 +80,7 @@ int
 
 static
 int
- PushLaneNode(LaneNode *new_lane_node, Lane *lane) {
+PushLaneNode(LaneNode *new_lane_node, Lane *lane) {
   int leftpos = (new_lane_node->read->position.bgn<new_lane_node->read->position.end) ?
     new_lane_node->read->position.bgn : new_lane_node->read->position.end;
   if (leftpos < lane->lastcol+3) return 0;
@@ -109,13 +109,11 @@ ClearLane(Lane *lane) {
 
 static
 void
- FreeLane(Lane *lane) {
+FreeLane(Lane *lane) {
   if (lane->first) {
-    // free nodes in lane
     LaneNode *node=lane->first;
-    LaneNode *next;
     while (node) {
-      next = node->next;
+      LaneNode *next = node->next;
       freeLaneNode(node);
       node = next;
     }
@@ -124,98 +122,100 @@ void
 
 static
 int
- IntMultiPositionCmp( const IntMultiPos *l, const IntMultiPos *m) {
-  int ltmp,mtmp;
-  ltmp = (l->position.bgn<l->position.end)?l->position.bgn:l->position.end;
-  mtmp = (m->position.bgn<m->position.end)?m->position.bgn:m->position.end;
-  if (ltmp == mtmp) return 0;
-  return (ltmp > mtmp ) ? 1 : -1;
+IntMultiPositionCmp(const void *l, const void *m) {
+  const IntMultiPos *L = (const IntMultiPos *)l;
+  const IntMultiPos *M = (const IntMultiPos *)m;
+
+  int32 ltmp = (L->position.bgn < L->position.end) ? L->position.bgn : L->position.end;
+  int32 mtmp = (M->position.bgn < M->position.end) ? M->position.bgn : M->position.end;
+
+  if (ltmp == mtmp)
+    return 0;
+
+  return((ltmp > mtmp ) ? 1 : -1);
 }
 
 
 
 int
- IMP2Array(IntMultiPos *all_frags,
-              int num_pieces,
-              int length,
-              gkStore *frag_store,
-              int *depth,
-              char ***array,
-              int ***id_array,
-              int ***ori_array,
-              int show_cel_status,
-              uint32 clrrng_flag) {
+IMP2Array(IntMultiPos *all_frags,
+          int num_pieces,
+          int length,
+          gkStore *frag_store,
+          int *depth,
+          char ***array,
+          int ***id_array,
+          int ***ori_array,
+          int show_cel_status,
+          uint32 clrrng_flag) {
   char **multia = NULL;
   int **ia = NULL;
   int **oa = NULL;
-  int i,lane_depth;
-  uint clr_bgn, clr_end;
-  FragMesg frag;
-  Lane null_lane;
-  int next_lane; Lane *free_lane,*lane; LaneNode *new_mlp; Lane space;
+  int lane_depth = 32;
+  Lane *lane;
   int rc;
-  char seq[AS_READ_MAX_NORMAL_LEN+1];
-  char qv[AS_READ_MAX_NORMAL_LEN+1];
-  gkFragment fsread;
 
-  VA_TYPE(Lane) *Packed;
-  lane_depth = 32;
-  Packed = (VA_TYPE(Lane) *) CreateVA_Lane(lane_depth);
-  frag.action = AS_ADD;
-  frag.source = NULL;
-  null_lane.first=NULL;
-  null_lane.last=NULL;
-  null_lane.lastcol=-3;
-  for (i=0;i<lane_depth;i++){
-    SetLane(Packed,i,&null_lane);
+  VA_TYPE(Lane) *Packed = (VA_TYPE(Lane) *)CreateVA_Lane(lane_depth);
+
+  {
+    Lane null_lane;
+
+    null_lane.first   = NULL;
+    null_lane.last    = NULL;
+    null_lane.lastcol = -3;
+
+    for (int32 i=0; i<lane_depth; i++)
+      SetLane(Packed, i, &null_lane);
   }
+
   // Sort the fragments by leftmost position within contig
-  qsort(all_frags, num_pieces, sizeof(IntMultiPos),
-        (int (*)(const void *,const void *))IntMultiPositionCmp);
-  next_lane=0;
-  for (i=0;i<num_pieces;i++) {
-    new_mlp = createLaneNode(&all_frags[i]);
+  qsort(all_frags,
+        num_pieces,
+        sizeof(IntMultiPos),
+        IntMultiPositionCmp);
 
-    frag_store->gkStore_getFragment(all_frags[i].ident,&fsread,GKFRAGMENT_QLT);
+  for (int32 i=0; i<num_pieces; i++) {
+    gkFragment  fsread;
+    uint32      clr_bgn;
+    uint32      clr_end;
+    LaneNode   *new_mlp = createLaneNode(&all_frags[i]);
+
+    frag_store->gkStore_getFragment(all_frags[i].ident, &fsread, GKFRAGMENT_QLT);
+
     fsread.gkFragment_getClearRegion(clr_bgn, clr_end, clrrng_flag);
-    new_mlp->read_length = fsread.gkFragment_getSequenceLength();
 
-    strcpy(seq, fsread.gkFragment_getSequence());
-    strcpy(qv,  fsread.gkFragment_getQuality());
+    new_mlp->read_length = clr_end - clr_bgn;
+    new_mlp->sequence    = (char *)safe_malloc(sizeof(char)*(new_mlp->read_length + 1));
+    new_mlp->quality     = (char *)safe_malloc(sizeof(char)*(new_mlp->read_length + 1));
 
-    frag.eaccession = fsread.gkFragment_getReadUID();
+    memcpy(new_mlp->sequence, fsread.gkFragment_getSequence() + clr_bgn, sizeof(char) * new_mlp->read_length);
+    memcpy(new_mlp->quality,  fsread.gkFragment_getQuality()  + clr_bgn, sizeof(char) * new_mlp->read_length);
 
-    // All this frag stuff is defined in case it becomes important to print the frag
-    frag.iaccession = all_frags[i].ident;
-    frag.sequence = seq;
-    frag.quality = qv;
-    frag.type = all_frags[i].type;
-    frag.clear_rng.bgn = clr_bgn;
-    frag.clear_rng.end = clr_end;
+    new_mlp->sequence[new_mlp->read_length] = 0;
+    new_mlp->quality [new_mlp->read_length] = 0;
 
-    new_mlp->read_length = clr_end-clr_bgn;
-    new_mlp->sequence = (char *)safe_malloc(sizeof(char)*(new_mlp->read_length+1));
-    new_mlp->quality = (char *)safe_malloc(sizeof(char)*(new_mlp->read_length+1));
+    if (new_mlp->read->position.bgn > new_mlp->read->position.end)
+      reverseComplement(new_mlp->sequence,
+                        new_mlp->quality,
+                        new_mlp->read_length);
 
-    seq[clr_end] = '\0';
-    qv[clr_end] = '\0';
+    int32  next_lane = 0;
 
-    strcpy(new_mlp->sequence,&seq[clr_bgn]);
-    strcpy(new_mlp->quality,&qv[clr_bgn]);
-    if (new_mlp->read->position.bgn > new_mlp->read->position.end) {
-      reverseComplement(new_mlp->sequence, new_mlp->quality, strlen(new_mlp->sequence));
-    }
-    for (next_lane=0;next_lane<lane_depth;next_lane++) {
-      free_lane = GetLane(Packed,next_lane);
-      if (PushLaneNode(new_mlp,free_lane)) break;
-    }
-    if (next_lane==lane_depth) {  // an additional lane is needed
+    for (next_lane=0; next_lane<lane_depth; next_lane++)
+      if (PushLaneNode(new_mlp, GetLane(Packed,next_lane)))
+        break;
+
+    if (next_lane == lane_depth) {  // an additional lane is needed
+      Lane space;
+
       ClearLane(&space);
-      PushLaneNode(new_mlp,&space);
+      PushLaneNode(new_mlp, &space);
       SetLane(Packed, next_lane, &space);
       lane_depth++;
     }
   }
+
+
   {
     IntMultiPos *read;
     int col,cols;
@@ -224,7 +224,7 @@ int
 
     lane_depth = GetNumLanes(Packed);
     *depth =-1; // initializing is a good idea, obviously
-    for (i=0;i<lane_depth;i++) {
+    for (int32 i=0; i<lane_depth; i++) {
       lane = GetLane(Packed,i);
       if (lane->first == NULL) {
         *depth = i;
@@ -239,56 +239,64 @@ int
 
       multia = (char **)safe_malloc(2*(*depth)*sizeof(char *));
 
-      ia = (int **)safe_malloc((*depth)*sizeof(int *));
-      oa = (int **)safe_malloc((*depth)*sizeof(int *));
+      ia = (int **)safe_malloc((*depth) * sizeof(int *));
+      oa = (int **)safe_malloc((*depth) * sizeof(int *));
 
       sprintf(laneformat,"%%%ds",length);
-      {int j;
-        for (i=0;i<(*depth);i++) {
-          ia[i] = (int *) safe_malloc( length*sizeof(int));
-          oa[i] = (int *) safe_malloc( length*sizeof(int));
-          for (j=0;j<length;j++) {
-            ia[i][j] = 0;
-            oa[i][j] = 0;
-          }
+
+      for (int32 i=0; i<(*depth); i++) {
+        ia[i] = (int *) safe_malloc(length * sizeof(int));
+        oa[i] = (int *) safe_malloc(length * sizeof(int));
+        for (int32 j=0;j<length;j++) {
+          ia[i][j] = 0;
+          oa[i][j] = 0;
         }
       }
-      for (i=0;i<2*(*depth);i++) {
+
+      for (int32 i=0; i<2*(*depth); i++) {
         multia[i] = (char *) safe_malloc((length+1)*sizeof(char));
         sprintf(multia[i],laneformat," ");
         *(multia[i]+length) = '\0';
       }
-      for (i=0;i<(*depth);i++) {
-        int j,lastcol,firstcol,seglen;
+
+      for (int32 i=0; i<(*depth); i++) {
+        int lastcol,firstcol,seglen;
         srow = multia[2*i];
         qrow = multia[2*i+1];
         lane = GetLane(Packed,i);
         lastcol = 0;
+
         if (lane->first == NULL) {
           *depth = i;
           break;
         }
-        for (new_mlp=lane->first; new_mlp!=NULL; new_mlp=new_mlp->next) {
+
+        for (LaneNode *new_mlp=lane->first; new_mlp != NULL; new_mlp = new_mlp->next) {
           read = new_mlp->read;
-          firstcol = read->position.bgn;
-          if (firstcol>read->position.end) firstcol = read->position.end;
+          firstcol = (read->position.bgn < read->position.end) ? read->position.bgn : read->position.end;
+
           col = firstcol;
           cols = 0;
-          for (j=0;j<read->delta_length;j++) {
-            seglen = read->delta[j] - ( (j>0)?read->delta[j-1]:0 ) ;
-            memcpy(srow+col,&new_mlp->sequence[cols],seglen);
-            memcpy(qrow+col,&new_mlp->quality[cols],seglen);
+
+          for (int32 j=0; j<read->delta_length; j++) {
+            seglen = read->delta[j] - ((j > 0) ? read->delta[j-1] : 0);
+
+            memcpy(srow + col, new_mlp->sequence + cols, seglen);
+            memcpy(qrow + col, new_mlp->quality  + cols, seglen);
+
             col+=seglen;
             srow[col] = '-';
             qrow[col] = '-';
             col++;
             cols+=seglen;
           }
-          memcpy(srow+col,&new_mlp->sequence[cols],new_mlp->read_length-cols);
-          memcpy(qrow+col,&new_mlp->quality[cols],new_mlp->read_length-cols);
+
+          memcpy(srow + col, new_mlp->sequence + cols, new_mlp->read_length - cols);
+          memcpy(qrow + col, new_mlp->quality  + cols, new_mlp->read_length - cols);
         }
+
         // now, set the ids
-        for (new_mlp=lane->first; new_mlp!=NULL; new_mlp=new_mlp->next) {
+        for (LaneNode *new_mlp=lane->first; new_mlp != NULL; new_mlp = new_mlp->next) {
           int lastcol;
           int orient=0;
           read = new_mlp->read;
@@ -316,15 +324,15 @@ int
       rc = 0;
     }
   }
-  { Lane *this_lane;
-    for (i=0;i<lane_depth;i++){
-      this_lane = GetLane(Packed,i);
-      FreeLane(this_lane);
-    }
-    Delete_VA(Packed);
-  }
-  *array = multia;
-  *id_array = ia;
+
+
+  for (int32 i=0; i<lane_depth; i++)
+    FreeLane(GetLane(Packed, i));
+  Delete_VA(Packed);
+
+  *array     = multia;
+  *id_array  = ia;
   *ori_array = oa;
+
   return rc;
 }
