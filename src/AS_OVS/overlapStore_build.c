@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.30 2010-02-26 04:59:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.31 2010-08-06 15:03:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -149,20 +149,21 @@ buildStore(
 
     assert(numOverlaps > 0);
 
-    //  Small datasets die with the default maxIID; reset it to not die.
-    if (maxIID > numOverlaps)
-      maxIID = numOverlaps;
+    //  Why the +1 below?  Consider the case when the number of overlaps is less than the number of
+    //  fragments.  This value is used to figure out how many IIDs we can fit into a single bucket,
+    //  and making it too large means we'll get maybe one more bucket and the buckets will be smaller.
+    //  Yeah, we probably could have just used ceil.
+    //
+    double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(OVSoverlap);
+    double  overlapsPerIID      = (double)numOverlaps / (double)maxIID;
 
-    uint64  overlapsPerBucket   = memoryLimit / sizeof(OVSoverlap);
-    uint64  overlapsPerIID      = numOverlaps / maxIID;
+    iidPerBucket                = (uint64)(overlapsPerBucket / overlapsPerIID) + 1;
 
-    iidPerBucket                = overlapsPerBucket / overlapsPerIID;
-
-    fprintf(stderr, "For %.3f million overlaps, in "F_U64"MB memory, I'll put "F_U64" IID's (approximately "F_U64" overlaps) per bucket.\n",
+    fprintf(stderr, "For %.3f million overlaps in "F_U64"MB memory, I'll put "F_U64" IID's (%.3f million overlaps) per bucket.\n",
             numOverlaps / 1000000.0,
             memoryLimit / (uint64)1048576,
             iidPerBucket,
-            overlapsPerBucket);
+            overlapsPerBucket / 1000000.0);
   } else {
     iidPerBucket = maxIID / 100;
     fprintf(stderr, "Using stdin; cannot size buckets properly.  Using 100 buckets, "F_U64" IIDs per bucket.  Good luck!\n",
@@ -191,7 +192,8 @@ buildStore(
           (fovrlap.b_iid == 0) ||
           (fovrlap.a_iid >= maxIID) ||
           (fovrlap.b_iid >= maxIID)) {
-        fprintf(stderr, "ERROR:  Overlap has IDs out of range, possibly corrupt input data.\n");
+        fprintf(stderr, "ERROR:  Overlap has IDs out of range (maxIID "F_U64"), possibly corrupt input data.\n",
+                maxIID);
         fprintf(stderr, "  %d %d  %c  %d %d  %d %d  %f.2\n",
                 fovrlap.a_iid, fovrlap.b_iid,
                 fovrlap.dat.obt.fwd ? 'f' : 'r',
