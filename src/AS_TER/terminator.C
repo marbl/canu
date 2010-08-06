@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.6 2010-02-17 01:32:59 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.7 2010-08-06 17:36:43 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -986,7 +986,10 @@ int main (int argc, char *argv[]) {
   writeMDI(asmFile, true);
   writeAFG(asmFile, true);
 
-  uidServer = UIDserverInitialize(256, MAX(uidMin, uidStart));
+  //  If uidStart is zero, use the UID server; otherwise, initialize the 'fake uid server' to start
+  //  there, or after the last UID used by a fragment.
+  //
+  uidServer = UIDserverInitialize(256, (uidStart == 0) ? 0 : MAX(uidMin, uidStart));
 
   writeAMP(asmFile, true);
   writeUTG(asmFile, true);

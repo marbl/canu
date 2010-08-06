@@ -77,10 +77,12 @@ sub terminate () {
 
         caFailure("contig consensus didn't find any checkpoints in '$wrk/7-CGW'", undef) if (!defined($tigVersion));
 
-        $cmd  = "$bin/terminator ";
-        $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " -t $wrk/$asm.tigStore $tigVersion ";
-        $cmd .= " -c $wrk/7-CGW/$asm $ckpVersion ";
+        $cmd  = "$bin/terminator";
+        $cmd .= " -E $uidServer" if (defined($uidServer));
+        $cmd .= " -s $fakeUIDs" if ($fakeUIDs > 0);
+        $cmd .= " -g $wrk/$asm.gkpStore";
+        $cmd .= " -t $wrk/$asm.tigStore $tigVersion";
+        $cmd .= " -c $wrk/7-CGW/$asm $ckpVersion";
         $cmd .= " -o $wrk/9-terminator/$asm";
         $cmd .= " > $wrk/9-terminator/$asm.asm.err";
 
