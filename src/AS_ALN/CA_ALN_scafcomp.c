@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.20 2009-12-14 19:23:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.21 2010-08-06 20:13:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,8 +145,6 @@ add_to_ilist_special(interval_list *tail, interval to_add){
   assert(tail!=NULL);
   assert(to_add.beg < tail->ival.beg);
 
-  fprintf(stderr,"Inefficient addition into interval list!\n");
-
   curr=tail;
 
   // back up until to_add would be a simple append
@@ -187,8 +185,6 @@ add_to_ilist_special(interval_list *tail, interval to_add){
   while(curr->next!=NULL){
     curr=curr->next;
   }
-
-  fprintf(stderr,"Inefficient addition into interval list - finished.\n");
 
   assert(curr->prev!=curr);
   return(curr);
