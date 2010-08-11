@@ -339,7 +339,7 @@ sub merOverlapper($) {
     #  Submit to the grid (or tell the user to do it), or just run
     #  things here
     #
-    if (findOlapFromSeedsSuccess($outDir, $ovmJobs) == 0) {
+    if (findOlapFromSeedsSuccess($outDir, $olpJobs) == 0) {
         if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
             my $sge        = getGlobal("sge");
             my $sgeName    = getGlobal("sgeName");
