@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.44 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.45 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -1418,11 +1418,11 @@ void CollectChunkOverlap(GraphCGW_T *graph,
                          int fromCGB,
 			 int verbose);
 
-Overlap* OverlapSequences(char *seq1, char *seq2,
-                          PairOrient orientation,
-                          int32 min_ahang, int32 max_ahang,
-                          double erate, double thresh, int32 minlen,
-                          uint32 tryLocal = FALSE);
+ALNoverlap* OverlapSequences(char *seq1, char *seq2,
+                             PairOrient orientation,
+                             int32 min_ahang, int32 max_ahang,
+                             double erate, double thresh, int32 minlen,
+                             uint32 tryLocal = FALSE);
 
 ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
                                  CDS_CID_t cidA, CDS_CID_t cidB,
@@ -1432,12 +1432,12 @@ ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
                                  float errorRate,
                                  int insertGraphEdges);
 
-Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
-                        PairOrient *overlapOrientation,
-                        int32 minAhang, int32 maxAhang,
-                        int computeAhang,
-                        uint32 tryLocal = FALSE,
-                        uint32 tryRev   = FALSE);
+ALNoverlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
+                           PairOrient *overlapOrientation,
+                           int32 minAhang, int32 maxAhang,
+                           int computeAhang,
+                           uint32 tryLocal = FALSE,
+                           uint32 tryRev   = FALSE);
 
 void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                      int recomputeCGBOverlaps);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.66 2010-03-24 15:17:40 skoren Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.67 2010-08-12 19:19:48 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -499,8 +499,8 @@ static int  Estimate_Chunk_Ends(VA_TYPE(Stack_Entry_t) * stackva, int stack_beg,
 static void  Fixup_Chunk_End_Variances(LengthT * left_end, LengthT * right_end, double diff);
 void  Force_Increasing_Variances(void);
 static void  Free_Global_Arrays(void);
-static Overlap *  Get_Chunk_Overlap(Gap_Chunk_t * a, Gap_Chunk_t * b, char * * a_seq,
-                                    char * * b_seq, FILE * fp);
+static ALNoverlap *  Get_Chunk_Overlap(Gap_Chunk_t * a, Gap_Chunk_t * b, char * * a_seq,
+                                       char * * b_seq, FILE * fp);
 static char *  Get_Contig_Sequence(int id);
 static void  Identify_Best_Rocks(Scaffold_Fill_t * fill_chunks, int check_keep);
 static void  Include_Good_Joins(Scaffold_Fill_t * fill_chunks);
@@ -546,8 +546,8 @@ static void  Set_Is_Hopeless(Scaffold_Fill_t * fill);
 static int  Set_Longest_Path(int list [], int num_list, Gap_Chunk_t * node [], int num_nodes,
                              int target_sub, int edge [], Stone_Edge_t pool [], double ref_position,
                              double factor, LengthT * target_position);
-static void  Set_Position_From_Left_Olap(int left_cid, Gap_Chunk_t * this_chunk, Overlap * olap);
-static void  Set_Position_From_Right_Olap(Gap_Chunk_t * this_chunk, int right_cid, Overlap * olap);
+static void  Set_Position_From_Left_Olap(int left_cid, Gap_Chunk_t * this_chunk, ALNoverlap * olap);
+static void  Set_Position_From_Right_Olap(Gap_Chunk_t * this_chunk, int right_cid, ALNoverlap * olap);
 static void  Set_Split_Flags(Scaffold_Fill_t * fill, Set_Split_t set);
 static void  Set_Split_Flags_One_Scaffold(Scaffold_Fill_t * fill, Set_Split_t set, int scaff_id);
 static int  Should_Overlap(Placement_t * left, Placement_t * right, PairOrient * orient,
@@ -2402,7 +2402,7 @@ static void  Check_Olaps
           && Should_Overlap (place + j, place + i, & orient, & how_much))
 #endif
     {
-      Overlap  * olap;
+      ALNoverlap  * olap;
       char  * i_seq, * j_seq;
 
       assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
@@ -4119,7 +4119,7 @@ static void  Confirm_Contained
           ct = 0;
           for  (k = 0;  k < this_gap -> num_chunks;  k ++)
             {
-              Overlap  * left_olap = NULL, * right_olap = NULL;
+              ALNoverlap  * left_olap = NULL, * right_olap = NULL;
               Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
               char  * this_sequence = NULL;
               int  trim;
@@ -6469,7 +6469,7 @@ static void   Free_Global_Arrays
 
 
 
-static Overlap *  Get_Chunk_Overlap
+static ALNoverlap *  Get_Chunk_Overlap
 (Gap_Chunk_t * a, Gap_Chunk_t * b, char * * a_seq, char * * b_seq, FILE * fp)
 
 //  Determine if contigs  a  and  b  might overlap, and if so
@@ -6510,7 +6510,7 @@ static Overlap *  Get_Chunk_Overlap
                       b -> start . mean, b -> end . mean,
                       slop, & orient, & min_ahang, & max_ahang))
     {
-      Overlap  * result;
+      ALNoverlap  * result;
 
       if  ((* a_seq) == NULL)
         (* a_seq) = Get_Contig_Sequence (a -> chunk_id);
@@ -7826,7 +7826,7 @@ static void  New_Confirm_Stones_One_Scaffold
         {
           for  (q = p + 1;  q < ct;  q ++)
             {
-              Overlap  * olap;
+              ALNoverlap  * olap;
 
               olap = Get_Chunk_Overlap
                 (check [p], check [q],
@@ -9287,7 +9287,7 @@ static void  Restore_Best_Rocks
               LengthT  * best_lo_pos, * best_hi_pos;
               double  max_gap_expansion, max_left_shift = DBL_MAX;
               double  gap_adjustment = 0.0;
-              Overlap  * olap;
+              ALNoverlap  * olap;
 
               best_chunk -> keep = TRUE;
               best_chunk -> path_confirmed = FALSE;
@@ -10360,7 +10360,7 @@ static int  Set_Longest_Path
 
 
 static void  Set_Position_From_Left_Olap
-(int left_cid, Gap_Chunk_t * this_chunk, Overlap * olap)
+(int left_cid, Gap_Chunk_t * this_chunk, ALNoverlap * olap)
 
 //  Set  start  and  end  positions in  (* this_chunk)  based on
 //  the overlap between it and the contig  left_cid  recorded in
@@ -10427,7 +10427,7 @@ static void  Set_Position_From_Left_Olap
 
 
 static void  Set_Position_From_Right_Olap
-(Gap_Chunk_t * this_chunk, int right_cid, Overlap * olap)
+(Gap_Chunk_t * this_chunk, int right_cid, ALNoverlap * olap)
 
 //  Set  start  and  end  positions in  (* this_chunk)  based on
 //  the overlap between it and the contig  right_cid  recorded in

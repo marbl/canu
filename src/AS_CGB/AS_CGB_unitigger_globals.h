@@ -22,7 +22,7 @@
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 
-static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id: AS_CGB_unitigger_globals.h,v 1.19 2009-10-05 22:49:41 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id: AS_CGB_unitigger_globals.h,v 1.20 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -185,8 +185,6 @@ typedef struct {
   char * chimeras_file;
   char * spurs_file;
   char   bubble_overlaps_filename[FILENAME_MAX];
-  char * blessed_overlaps_input_filename;
-  char * blessed_overlaps_output_filename;
 
   /* Reaper/FGB input */
   int     num_ovl_files;
@@ -203,8 +201,6 @@ typedef struct {
 
   char * tigStorePath;
   // The file name of the output tigStore.
-
-  char * ovl_files_list_fname;
 
   int            recalibrate_global_arrival_rate;
   int            dechord_the_graph;

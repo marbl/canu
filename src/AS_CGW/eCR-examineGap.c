@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-examineGap.c,v 1.25 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-examineGap.c,v 1.26 2010-08-12 19:19:48 brianwalenz Exp $";
 #include "eCR.h"
 
 #include "GapWalkerREZ.h"  //  FindGapLength
@@ -333,7 +333,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   // now lcompBuffer and rcompBuffer hold the sequence of the fragments in the correct strand
   // now prepare for call to Local_Overlap_AS_forCNS
 
-  Overlap *overlap;
+  ALNoverlap *overlap;
   int beg, end, opposite = FALSE;
   double erate, thresh, minlen;
   CompareOptions what;
@@ -376,7 +376,7 @@ examineGap(ContigT *lcontig, int lFragIid,
     fprintf(debug.examineGapFP, "initial ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
             overlap->begpos, overlap->endpos, overlap->length, overlap->diffs,
             100.0 * overlap->diffs / overlap->length);
-    Print_Overlap(debug.examineGapFP, lcompBuffer, rcompBuffer, overlap);
+    PrintALNoverlap(debug.examineGapFP, lcompBuffer, rcompBuffer, overlap);
   }
 
   /*
@@ -455,7 +455,7 @@ examineGap(ContigT *lcontig, int lFragIid,
     fprintf(debug.examineGapFP, "post-flap trimming ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
             overlap->begpos, overlap->endpos, overlap->length, overlap->diffs,
             100.0 * overlap->diffs / overlap->length);
-    Print_Overlap(debug.examineGapFP, lcompBuffer, rcompBufferTrimmed, overlap);
+    PrintALNoverlap(debug.examineGapFP, lcompBuffer, rcompBufferTrimmed, overlap);
   }
 
   if (debug.examineGapLV > 0) {

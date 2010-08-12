@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.24 2010-02-17 01:32:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.25 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1082,7 +1082,7 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
 */
 
 
-OverlapMesg *
+ALNoverlapFull *
 Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                  int beg, int end,
                  int opposite,
@@ -1105,7 +1105,7 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
   double avgerror=0.;
 
-  static OverlapMesg QVBuffer;
+  static ALNoverlapFull QVBuffer;
 
   Local_Segment *local_results=NULL;
   Local_Overlap *O=NULL;
@@ -1735,21 +1735,21 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     if (opposite)
       reverseComplement(b->sequence, b->quality, strlen(b->sequence));
 
-    Analyze_Affine_Overlap_AS(a,
-                              b,
-                              &QVBuffer,
-                              AS_ANALYZE_ALL,
-                              &alen,
-                              &blen,
-                              &del,
-                              &sub,
-                              &ins,
-			      &affdel,
-                              &affins,
-                              &blockdel,
-                              &blockins,
-                              AFFINEBLOCKSIZE,
-                              &max_indel_AS_ALN_LOCOLAP_GLOBAL);
+    Analyze_Affine_ALNoverlapFull(a,
+                                  b,
+                                  &QVBuffer,
+                                  AS_ANALYZE_ALL,
+                                  &alen,
+                                  &blen,
+                                  &del,
+                                  &sub,
+                                  &ins,
+                                  &affdel,
+                                  &affins,
+                                  &blockdel,
+                                  &blockins,
+                                  AFFINEBLOCKSIZE,
+                                  &max_indel_AS_ALN_LOCOLAP_GLOBAL);
 
     if (opposite)
       reverseComplement(b->sequence, b->quality, strlen(b->sequence));
@@ -1803,5 +1803,5 @@ Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
   safe_free(O);
 
-  return((OverlapMesg*)NULL);
+  return((ALNoverlapFull*)NULL);
 }

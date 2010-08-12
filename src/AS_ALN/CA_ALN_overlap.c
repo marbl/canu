@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CA_ALN_overlap.c,v 1.9 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: CA_ALN_overlap.c,v 1.10 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1105,6 +1105,7 @@ static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segmen
     aseg[alen]='\0';
     revA=1;
   }
+
   if(seg->bbpos < seg->bepos){
     blen=seg->bepos - seg->bbpos;
     assert(blen<100000);
@@ -1118,37 +1119,15 @@ static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segmen
     revB=1;
   }
 
-
-  if((revA||revB)&&!(revA&&revB)){
+  if ((revA||revB)&&!(revA&&revB))
     Complement(bseg,blen);
-  }
 
+  aptr = aseg - 1;
+  bptr = bseg - 1;
 
-  //    OverlapMesg ovlmsg;
-  //    ovlmsg.overlap_type = AS_CONTAINMENT;
-  //    ovlmsg.ahg=0;
-  //    ovlmsg.bhg=0;
-  //    ovlmsg.aifrag=&A;
-  //    ovlmsg.bifrag=&B;
-  //    if(revA||revB){
-  //      ovlmsg.orientation = AS_INNIE;
-  //    } else {
-  //      ovlmsg.orientation = NORMAL;
-  //    }
-
-  aptr=aseg;
-  aptr--;
-  bptr=bseg;
-  bptr--;
-  trace=AS_ALN_OKNAlign(aptr,
-		 alen,
-		 bptr,
-		 blen,
-		 &spnt,
-		 MAX(10,blen/50));
+  trace = AS_ALN_OKNAlign(aptr, alen, bptr, blen, &spnt, MAX(10,blen/50));
 
   PrintAlign(stderr,0,0,aseg,bseg,trace);
-
 }
 
 void Print_Local_Overlap_withAlign(FILE *file, Local_Overlap *desc,char *a,char *b)

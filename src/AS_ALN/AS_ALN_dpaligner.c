@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.20 2010-02-17 01:32:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.21 2010-08-12 19:19:48 brianwalenz Exp $";
 
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast
@@ -1314,7 +1314,7 @@ fprintf(stderr, "Boundary returning (%d, %d)\n",boundval,boundpos);
    in the interval [beg,end].  If it does not, then it calls the initial
    beg,end range into question.                                            */
 
-OverlapMesg *
+ALNoverlapFull *
 DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
               int beg, int end,
               int opposite,
@@ -1323,8 +1323,8 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
   char *aseq, *bseq;
   int  ahang, bhang;
   int  *trace;
-  Overlap *rawOverlap;
-  static OverlapMesg QVBuffer;  //Note: return is static storage--do not free
+  ALNoverlap *rawOverlap;
+  static ALNoverlapFull QVBuffer;  //Note: return is static storage--do not free
 
   aseq = a->sequence;  /* Setup sequence access */
   bseq = b->sequence;
@@ -1418,17 +1418,17 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
    by the routine, and must be copied if it is to be retained beyond the
    given call.                                                            */
 
-Overlap *DP_Compare(char *aseq, char *bseq,
-                    int beg, int end,
-                    int ahangUNUSED, int bhangUNUSED,
-                    int opposite,
-                    double erate, double thresh, int minlen,
-                    CompareOptions what)
+ALNoverlap *DP_Compare(char *aseq, char *bseq,
+                       int beg, int end,
+                       int ahangUNUSED, int bhangUNUSED,
+                       int opposite,
+                       double erate, double thresh, int minlen,
+                       CompareOptions what)
 { int   alen,  blen;
   int   pos1,  pos2;
   int   dif1,  dif2;
 
-  static Overlap OVL;
+  static ALNoverlap OVL;
 
   assert(erate>=0&&erate<1);
 
@@ -1866,7 +1866,7 @@ static void CNS_PrintAlign(FILE *file, int prefix, int suffix,
 /* Print an ASCII representation of the overlap in align between fragments
    a and b to given file.                                                  */
 
-void Print_Overlap(FILE *file, char *aseq, char *bseq, Overlap *align)
+void PrintALNoverlap(FILE *file, char *aseq, char *bseq, ALNoverlap *align)
 { int sym1, sym2;
 
   if (align->comp)
@@ -1931,11 +1931,11 @@ void Print_Overlap(FILE *file, char *aseq, char *bseq, Overlap *align)
     }
 }
 
-Overlap *Copy_Overlap(Overlap *ovl)
+ALNoverlap *CopyALNoverlap(ALNoverlap *ovl)
 { int      i, len;
-  Overlap *new_ovl;
+  ALNoverlap *new_ovl;
 
-  new_ovl = (Overlap *) safe_malloc(sizeof(Overlap));
+  new_ovl = (ALNoverlap *) safe_malloc(sizeof(ALNoverlap));
   new_ovl->begpos = ovl->begpos;
   new_ovl->endpos = ovl->endpos;
   new_ovl->diffs  = ovl->diffs;

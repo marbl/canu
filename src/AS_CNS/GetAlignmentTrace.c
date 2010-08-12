@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.10 2009-12-01 01:25:36 brianwalenz Exp $";
+static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.11 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -87,7 +87,7 @@ CNS_AlignParams_init(CNS_AlignParams *ap) {
 
 static
 int
-InvertTrace(int alen, int blen, Overlap *O) {
+InvertTrace(int alen, int blen, ALNoverlap *O) {
   int aend=alen+2;
   int bend=blen+2;
   int n_dels=0;
@@ -130,9 +130,9 @@ InvertTrace(int alen, int blen, Overlap *O) {
 
 
 static
-Overlap *
+ALNoverlap *
 Compare(char *a, int alen,char *b, int blen, AS_ALN_Aligner *alignFunction, CNS_AlignParams *params) {
-  Overlap *O;
+  ALNoverlap *O;
 
   int maxbegdef=MaxBegGap;
   int maxenddef=MaxEndGap;
@@ -181,7 +181,7 @@ Compare(char *a, int alen,char *b, int blen, AS_ALN_Aligner *alignFunction, CNS_
 static
 void
 ReportOverlap(FILE *fp, AS_ALN_Aligner *alignFunction, CNS_AlignParams params,
-                   int32 aiid,char atype,int32 biid,char btype,Overlap *O,int expected_hang) {
+                   int32 aiid,char atype,int32 biid,char btype,ALNoverlap *O,int expected_hang) {
 
   if ((O == NULL) || (fp == NULL))
     return;
@@ -205,15 +205,15 @@ ReportOverlap(FILE *fp, AS_ALN_Aligner *alignFunction, CNS_AlignParams params,
 
 static
 int
-ScoreOverlap(Overlap *O,
-             int      expected_length,
-             int      ahang_input,
-             int      bhang_input,
-             double   maxerate,
-             int      alignment_context,
-             double  *lScore_out,
-             double  *aScore_out,
-             double  *bScore_out) {
+ScoreOverlap(ALNoverlap *O,
+             int         expected_length,
+             int         ahang_input,
+             int         bhang_input,
+             double      maxerate,
+             int         alignment_context,
+             double     *lScore_out,
+             double     *aScore_out,
+             double     *bScore_out) {
 
   if (O == NULL)
     return(0);
@@ -337,7 +337,7 @@ ScoreOverlap(Overlap *O,
 
   //  BAD!
   //ReportOverlap(stderr,alignFunction,params,afrag->iid,afrag->type,bfrag->iid,bfrag->type,O,ahang_input);
-  //Print_Overlap(stderr, aseq, bseq, O);
+  //PrintALNoverlap(stderr, aseq, bseq, O);
   if (VERBOSE_MULTIALIGN_OUTPUT)
     fprintf(stderr,"GetAlignmentTrace()-- Overlap rejected.  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
             acceptThreshold,
@@ -349,14 +349,14 @@ ScoreOverlap(Overlap *O,
 }
 
 int
-ScoreOverlap(Overlap *O,
-             int      expected_length,
-             int      ahang_input,
-             int      bhang_input,
-             double   maxerate,
-             double  *lScore_out,
-             double  *aScore_out,
-             double  *bScore_out) {
+ScoreOverlap(ALNoverlap *O,
+             int         expected_length,
+             int         ahang_input,
+             int         bhang_input,
+             double      maxerate,
+             double     *lScore_out,
+             double     *aScore_out,
+             double     *bScore_out) {
    return ScoreOverlap(O, expected_length, ahang_input, bhang_input, maxerate, GETALIGNTRACE_MERGE, lScore_out, aScore_out, bScore_out);
 }
 
@@ -387,7 +387,7 @@ GetAlignmentTrace(int32                        afid,
   int       alen  = 0,              blen  = 0;
   int       ahang_input = *ahang,   bhang_input = *bhang;
 
-  Overlap        *O = NULL;
+  ALNoverlap        *O = NULL;
 
   CNS_AlignParams params;
   CNS_AlignParams paramsDefault;
@@ -823,7 +823,7 @@ GetAlignmentTrace(int32                        afid,
     assert(0);
 
     ReportOverlap(stderr, alignFunction, params, aiid, (afrag) ? afrag->type : 'C', biid, bfrag->type, O, ahang_input);
-    Print_Overlap(stderr, aseq, bseq, O);
+    PrintALNoverlap(stderr, aseq, bseq, O);
     fprintf(stderr,"GetAlignmentTrace()-- Overlap rejected.  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
             acceptThreshold,
             lScore, O->length, expected_length,
@@ -852,7 +852,7 @@ GetAlignmentTrace(int32                        afid,
 
   if (show_olap) {
     ReportOverlap(stderr, alignFunction, params, aiid, (afrag) ? afrag->type : 'C', biid, bfrag->type, O, ahang_input);
-    Print_Overlap(stderr, NULL, NULL, O);  //  Replace with a,b to print the bases in the align
+    PrintALNoverlap(stderr, NULL, NULL, O);  //  Replace with a,b to print the bases in the align
   }
 
   *otype = (O->endpos<0)?AS_CONTAINMENT:AS_DOVETAIL;

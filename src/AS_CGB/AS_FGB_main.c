@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_main.c,v 1.27 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_main.c,v 1.28 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
@@ -74,18 +74,27 @@ process_ovl_store(char * OVL_Store_Path,
                   const uint32 overlap_error_threshold);
 
 
+void
+process_ovl_file(const char Batch_File_Name[],
+                 THeapGlobals   * heapva,
+                 IntFragment_ID * afr_to_avx,
+                 VA_TYPE(IntEdge_ID)  * next_edge,
+                 const int dvt_double_sided_threshold_fragment_end_degree,
+                 const int con_double_sided_threshold_fragment_end_degree,
+                 const int intrude_with_non_blessed_overlaps_flag,
+                 const uint32 overlap_error_threshold);
 
 
-static void output_mesgs(Tfragment frags[],
-                         Tedge     edges[],
-                         FILE *fcgb) {
+static void output_mesgs(Tfragment          frags[],
+                         Tedge              edges[],
+                         BinaryOverlapFile *bof) {
 
   // Output the OVL messages:
 
   const IntEdge_ID  nedge = GetNumEdges(edges);
   IntEdge_ID ie;
   for(ie=0;ie<nedge;ie++){
-    OverlapMesg ovl_mesg;
+    OVSoverlap overlap;
 
     const IntFragment_ID avx = get_avx_edge(edges,ie);
     const int asx = get_asx_edge(edges,ie);
@@ -102,101 +111,90 @@ static void output_mesgs(Tfragment frags[],
     const IntFragment_ID bid = get_iid_fragment(frags,bvx);
     // Assembler internal Fragment ids.
 
-    ovl_mesg.aifrag = aid;
-    ovl_mesg.bifrag = bid;
+    overlap.a_iid = aid;
+    overlap.b_iid = bid;
 
-    ovl_mesg.ahg = ahg;
-    ovl_mesg.bhg = bhg;
-    ovl_mesg.min_offset = ahg;
-    ovl_mesg.max_offset = ahg;
+    overlap.dat.ovl.datpad1     = 0;
+    overlap.dat.ovl.flipped     = 0;
+    overlap.dat.ovl.a_hang      = ahg;
+    overlap.dat.ovl.b_hang      = bhg;
+    overlap.dat.ovl.orig_erate  = qua;
+    overlap.dat.ovl.corr_erate  = qua;
+    overlap.dat.ovl.seed_value  = 0;
+    overlap.dat.ovl.type        = AS_OVS_TYPE_OVL;
+
 
     //ovl_mesg.orientation =
     //  ( asx ?
     //    ( bsx ? AS_INNIE : AS_NORMAL ) :
     //    ( bsx ? AS_ANTI  : AS_OUTTIE ) );
 
+    //  The OVS overlap doesn't store the exact orientation, and assumes the first fragment
+    //  is forward.  We occasionally need to do some work to enforce this.
+    //
     if (asx) {
-      if (bsx)
-        ovl_mesg.orientation.setIsInnie();
-      else
-        ovl_mesg.orientation.setIsNormal();
+      if (bsx) {
+        //ovl_mesg.orientation.setIsInnie();
+        overlap.dat.ovl.flipped = 1;
+      } else {
+        //ovl_mesg.orientation.setIsNormal();
+        overlap.dat.ovl.flipped = 0;
+      }
     } else {
-      if (bsx)
-        ovl_mesg.orientation.setIsAnti();
-      else
-        ovl_mesg.orientation.setIsOuttie();
+      if (bsx) {
+        //ovl_mesg.orientation.setIsAnti();
+        //  Reverse the overlap into a normal overlap.
+        overlap.dat.ovl.flipped = 0;
+        overlap.dat.ovl.a_hang  = -bhg;
+        overlap.dat.ovl.b_hang  = -ahg;
+      } else {
+        //ovl_mesg.orientation.setIsOuttie();
+        //  Swap fragments.
+        overlap.a_iid           = bid;
+        overlap.b_iid           = aid;
+        overlap.dat.ovl.flipped = 1;
+        overlap.dat.ovl.a_hang  = -ahg;
+        overlap.dat.ovl.b_hang  = -bhg;
+      }
     }
 
+    //  The OVS overlap doesn't store the type of overlap, but we preserve this for documentation.
+    //
+    //switch(nes) {
+    //  case AS_CGB_DOVETAIL_EDGE:
+    //  case AS_CGB_INTERCHUNK_EDGE:
+    //  case AS_CGB_INTRACHUNK_EDGE:
+    //  case AS_CGB_TOUCHES_CONTAINED_EDGE:
+    //  case AS_CGB_BETWEEN_CONTAINED_EDGE:
+    //    ovl_mesg.overlap_type = AS_DOVETAIL;
+    //    break;
+    //  case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
+    //    ovl_mesg.overlap_type = AS_DOVETAIL_CHORD;
+    //    break;
+    //  case AS_CGB_CONTAINED_EDGE:
+    //    ovl_mesg.overlap_type = AS_CONTAINMENT;
+    //    break;
+    //  case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
+    //    ovl_mesg.overlap_type = AS_CONTAINMENT_CHORD;
+    //    break;
+    //  default:
+    //    fprintf(stderr,"Unexpected overlap edge type: nes=%d\n", nes);
+    //    assert(FALSE);
+    //}
 
-    switch(nes) {
-      case AS_CGB_DOVETAIL_EDGE:
-      case AS_CGB_INTERCHUNK_EDGE:
-      case AS_CGB_INTRACHUNK_EDGE:
-      case AS_CGB_TOUCHES_CONTAINED_EDGE:
-      case AS_CGB_BETWEEN_CONTAINED_EDGE:
-        ovl_mesg.overlap_type = AS_DOVETAIL; break;
-      case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
-        ovl_mesg.overlap_type = AS_DOVETAIL_CHORD; break;
-      case AS_CGB_CONTAINED_EDGE:
-        ovl_mesg.overlap_type = AS_CONTAINMENT; break;
-      case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
-        ovl_mesg.overlap_type = AS_CONTAINMENT_CHORD; break;
-      default:
-        fprintf(stderr,"Unexpected overlap edge type: nes=%d\n", nes);
-        assert(FALSE);
-    }
 
-    ovl_mesg.quality = AS_OVS_decodeQuality(qua);
-    ovl_mesg.polymorph_ct = 0;
-    ovl_mesg.alignment_trace = NULL;
-
-    if(
-       ((is_a_dvt_simple(ahg,bhg))&&(aid < bid))
-       // Output only one dovetail overlap edge record per overlap.
-       ||
-       ((!is_a_dvt_simple(ahg,bhg))&&(asx))
-       // Output only one containment overlap edge record per overlap.
-       // Choose the NORMAL and INNIE orientations.
-       ){
-      GenericMesg   pmesg;
-      pmesg.t = MESG_OVL;
-      pmesg.m = &ovl_mesg;
-      WriteProtoMesg_AS(fcgb,&pmesg);
-    }
+    // Output only one dovetail overlap edge record per overlap.
+    // Output only one containment overlap edge record per overlap.
+    // Choose the NORMAL and INNIE orientations.
+    //
+    if (((is_a_dvt_simple(ahg,bhg)) &&
+         (aid < bid)) ||
+       ((!is_a_dvt_simple(ahg,bhg))&&(asx)))
+      AS_OVS_writeOverlap(bof, &overlap);
   }
 }
 
 
-
-
-
-static void process_one_ovl_file(const char Batch_File_Name[],
-                                 THeapGlobals   * heapva,
-                                 IntFragment_ID * afr_to_avx,
-                                 VA_TYPE(IntEdge_ID)  * next_edge,
-                                 const int dvt_double_sided_threshold_fragment_end_degree,
-                                 const int con_double_sided_threshold_fragment_end_degree,
-                                 const int intrude_with_non_blessed_overlaps_flag,
-                                 const uint32 overlap_error_threshold) {
-
-  FILE *fovl = fopen(Batch_File_Name,"r");
-  if(NULL == fovl){
-    fprintf(stderr,"* Can not open input file %s\n",Batch_File_Name);
-    exit(1);
-  }
-
-  input_messages_from_a_file(fovl,
-                             heapva->frags,
-                             heapva->edges,
-                             afr_to_avx,
-                             next_edge,
-                             dvt_double_sided_threshold_fragment_end_degree,
-                             con_double_sided_threshold_fragment_end_degree,
-                             intrude_with_non_blessed_overlaps_flag,
-                             overlap_error_threshold);
-
-  fclose(fovl);
-}
 
 
 
@@ -318,59 +316,18 @@ int main_fgb(THeapGlobals  * heapva,
 
   VA_TYPE(IntEdge_ID)  *next_edge = CreateVA_IntEdge_ID(rg->maxedges);
 
-  if (rg->ovl_files_list_fname != NULL)
-    process_one_ovl_file(rg->ovl_files_list_fname,
-                         heapva,
-                         afr_to_avx,
-                         next_edge,
-                         rg->dvt_double_sided_threshold_fragment_end_degree,
-                         rg->con_double_sided_threshold_fragment_end_degree,
-                         rg->intrude_with_non_blessed_overlaps_flag,
-                         rg->overlap_error_threshold);
-
-
-
-  // Process the blessed ovl file.
-  if(rg->blessed_overlaps_input_filename){
-    assert(0 == GetNumEdges(heapva->edges));
-
-    process_one_ovl_file(rg->blessed_overlaps_input_filename,
-                         heapva,
-                         afr_to_avx,
-                         next_edge,
-                         rg->dvt_double_sided_threshold_fragment_end_degree,
-                         rg->con_double_sided_threshold_fragment_end_degree,
-                         rg->intrude_with_non_blessed_overlaps_flag,
-                         AS_OVS_encodeQuality(1.0));
-
-    {
-      const IntFragment_ID nfrag = GetNumFragments(heapva->frags);
-      const IntEdge_ID nedge = GetNumEdges(heapva->edges);
-      IntEdge_ID ie;
-      for( ie=0; ie < nedge; ie ++) {
-        const IntFragment_ID avx = get_avx_edge(heapva->edges,ie);
-        const IntFragment_ID asx = get_asx_edge(heapva->edges,ie);
-        // assert(nedge > ie);
-        assert(nfrag > avx);
-        set_blessed_edge(heapva->edges, ie, TRUE);
-        set_blessed_vertex(heapva->frags, avx, asx, TRUE);
-      }
-    }
-  }
-
-
-  // Process the bubble smoothing ovl file.
+  //  Process the bubble smoothing ovl file.
   if(rg->bubble_overlaps_filename[0])
-    process_one_ovl_file(rg->bubble_overlaps_filename,
-                         heapva,
-                         afr_to_avx,
-                         next_edge,
-                         rg->dvt_double_sided_threshold_fragment_end_degree,
-                         rg->con_double_sided_threshold_fragment_end_degree,
-                         rg->intrude_with_non_blessed_overlaps_flag,
-                         rg->overlap_error_threshold);
+    process_ovl_file(rg->bubble_overlaps_filename,
+                     heapva,
+                     afr_to_avx,
+                     next_edge,
+                     rg->dvt_double_sided_threshold_fragment_end_degree,
+                     rg->con_double_sided_threshold_fragment_end_degree,
+                     rg->intrude_with_non_blessed_overlaps_flag,
+                     rg->overlap_error_threshold);
 
-
+  //  Process all the rest of the overlaps
   if ((rg->OVL_Store_Path) && (rg->OVL_Store_Path[0] != '\0'))
     process_ovl_store(rg->OVL_Store_Path,
                       heapva->frags,
@@ -479,21 +436,13 @@ int main_fgb(THeapGlobals  * heapva,
 
 
   if( rg->create_dump_file ) {
-    FILE *folp = NULL;
-    char strtmp[FILENAME_MAX];
+    char bon[FILENAME_MAX];
+    sprintf(bon, "%s.edges", rg->Output_Graph_Store_Prefix);
 
-    fprintf(stderr,"Opening dump file to write a batch of "
-	    "ADT+IDT+OFG+OVL messages.\n");
+    BinaryOverlapFile *bof = AS_OVS_createBinaryOverlapFile(bon, FALSE);
+    output_mesgs(heapva->frags, heapva->edges, bof);
 
-    if(NULL == (folp = fopen(rg->Dump_File_Name,"w"))){
-      fprintf(stderr,"* Can not open output file %s\n",rg->Dump_File_Name);
-      exit(1);
-    }
-
-    output_mesgs (heapva->frags,
-                  heapva->edges,
-                  folp);
-    fclose(folp);
+    AS_OVS_closeBinaryOverlapFile(bof);
   }
 
   return( status);

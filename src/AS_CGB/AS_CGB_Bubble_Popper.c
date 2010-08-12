@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_Popper.c,v 1.21 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_Popper.c,v 1.22 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,7 +68,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
   bp->bubFrags     = (IntFragment_ID *)safe_malloc(sizeof(IntFragment_ID) * POPPER_MAX_BUBBLE_SIZE);
   bp->bubMesgs     = (InternalFragMesg *)safe_calloc(sizeof(InternalFragMesg), POPPER_MAX_BUBBLE_SIZE);
   bp->adj          = (int *)safe_malloc(sizeof(int) * BP_SQR(POPPER_MAX_BUBBLE_SIZE));
-  bp->bubOlaps     = (OverlapMesg *)safe_calloc(sizeof(OverlapMesg), BP_SQR(POPPER_MAX_BUBBLE_SIZE));
+  bp->bubOlaps     = (ALNoverlapFull *)safe_calloc(sizeof(ALNoverlapFull), BP_SQR(POPPER_MAX_BUBBLE_SIZE));
 
   for (i = 0; i < POPPER_MAX_BUBBLE_SIZE; ++i) {
     bp->bubMesgs[i].sequence = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_NORMAL_LEN + 3));
@@ -176,19 +176,14 @@ BP_getBID(BubblePopper_t bp, IntFragment_ID vid)
 int
 BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
 {
-  int reversed = FALSE, orientation = FALSE;
-  OverlapMesg *aln_msg = NULL;
-  InternalFragMesg *if1, *if2;
-  char *seq_buf;
-  IntFragment_ID id1, id2;
-  char *src, *dst;
-  int where;
 
   /* Setup fake fragment messages. */
-  if1 = &(bp->bubMesgs[bid1]);
-  if2 = &(bp->bubMesgs[bid2]);
-  id1 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid1]);
+  InternalFragMesg *if1 = &(bp->bubMesgs[bid1]);
+  InternalFragMesg *if2 = &(bp->bubMesgs[bid2]);
+
+  int32 id1 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid1]);
   if (if1->iaccession != id1) {
+    char *seq_buf, *src, *dst;
     if1->iaccession = id1;
     bp->gkpStore->gkStore_getFragment(id1, &bp->rsp, GKFRAGMENT_SEQ);
 
@@ -203,8 +198,10 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
       *dst = *src;
     *dst = '\0';
   }
-  id2 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid2]);
+
+  int32 id2 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid2]);
   if (if2->iaccession != id2) {
+    char *seq_buf, *src, *dst;
     if2->iaccession = id2;
     bp->gkpStore->gkStore_getFragment(id2, &bp->rsp, GKFRAGMENT_SEQ);
 
@@ -221,36 +218,37 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   }
 
 #if AS_CGB_BUBBLE_VERBOSE
-  fprintf(BUB_LOG_G, "Overlapping "F_IID " ("F_IID " , "F_IID ") and "F_IID " ("F_IID " , "F_IID ") ... ",
+  fprintf(stderr, "Overlapping "F_IID " ("F_IID " , "F_IID ") and "F_IID " ("F_IID " , "F_IID ") ... ",
 	  bid1, bp->bubFrags[bid1], id1, bid2, bp->bubFrags[bid2], id2);
 #endif
 
   assert((0.0 <= POPPER_ALN_ERATE) && (POPPER_ALN_ERATE <= AS_MAX_ERROR_RATE));
 
   /* Compute overlap */
-  orientation = FALSE;
-  aln_msg = POPPER_ALN_FN(if1, if2, -strlen(if2->sequence),
+  int             orientation = FALSE;
+  int             reversed    = FALSE;
+  ALNoverlapFull *aln         = NULL;
+  int             where       = 0;
+
+  aln = POPPER_ALN_FN(if1, if2, -strlen(if2->sequence),
                           strlen(if1->sequence), FALSE,
                           POPPER_ALN_ERATE, POPPER_ALN_THRESH,
                           POPPER_ALN_MIN_LEN, POPPER_ALN_TYPE,
                           &where);
-  if (!aln_msg) {
+  if (!aln) {
     orientation = TRUE;
-    aln_msg = POPPER_ALN_FN(if1, if2, -strlen(if2->sequence),
+    aln = POPPER_ALN_FN(if1, if2, -strlen(if2->sequence),
                             strlen(if1->sequence), TRUE,
                             POPPER_ALN_ERATE, POPPER_ALN_THRESH,
                             POPPER_ALN_MIN_LEN, POPPER_ALN_TYPE,
                             &where);
-    if (!aln_msg) {
-#if AS_CGB_BUBBLE_VERBOSE
-      fprintf(BUB_LOG_G, "Failed.\n");
-#endif
-      return FALSE;		/* No overlap found */
-    }
-    else if ((aln_msg->ahg < 0) && (aln_msg->bhg < 0)) {
+    if (!aln)
+      return FALSE;
+
+    if ((aln->ahg < 0) && (aln->bhg < 0)) {
       reversed = TRUE;
       orientation = TRUE;
-      aln_msg = POPPER_ALN_FN(if2, if1, -strlen(if1->sequence),
+      aln = POPPER_ALN_FN(if2, if1, -strlen(if1->sequence),
                               strlen(if2->sequence), TRUE,
                               POPPER_ALN_ERATE, POPPER_ALN_THRESH,
                               POPPER_ALN_MIN_LEN, POPPER_ALN_TYPE,
@@ -258,76 +256,33 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
     }
 
   }
-  else if ((aln_msg->ahg < 0) && (aln_msg->bhg < 0)) {
+  else if ((aln->ahg < 0) && (aln->bhg < 0)) {
     reversed = TRUE;
     orientation = FALSE;
-    aln_msg = POPPER_ALN_FN(if2, if1, -strlen(if1->sequence),
+    aln = POPPER_ALN_FN(if2, if1, -strlen(if1->sequence),
                             strlen(if2->sequence), FALSE,
                             POPPER_ALN_ERATE, POPPER_ALN_THRESH,
                             POPPER_ALN_MIN_LEN, POPPER_ALN_TYPE,
                             &where);
   }
 
-  if (!aln_msg) {
-#if AS_CGB_BUBBLE_VERBOSE
-    fprintf(BUB_LOG_G, "Failed on reversal.\n");
-#endif
-    return FALSE;		/* No overlap found */
-  }
+  if (!aln)
+    return FALSE;
 
-#ifdef AS_CGB_BUBBLE_VERBOSE2
-  if((
-      ( 987811 == aln_msg->aifrag) ||
-      (1237816 == aln_msg->aifrag) ||
-      (1737351 == aln_msg->aifrag) ||
-      (2237426 == aln_msg->aifrag) ||
-      (3182276 == aln_msg->aifrag) ||
-      (3252937 == aln_msg->aifrag) ||
-      (4519491 == aln_msg->aifrag) ||
+  //  Save the alignment to our list of potential bubble overlaps
 
-      ( 987811 == aln_msg->bifrag) ||
-      (1237816 == aln_msg->bifrag) ||
-      (1737351 == aln_msg->bifrag) ||
-      (2237426 == aln_msg->bifrag) ||
-      (3182276 == aln_msg->bifrag) ||
-      (3252937 == aln_msg->bifrag) ||
-      (4519491 == aln_msg->bifrag)
-
-      ) &&
-     (NULL != aln_msg)
-     ) {
-    fprintf(BUB_LOG_G, "BUBA orientation=%d reversed=%d\n", orientation, reversed);
-    fprintf(BUB_LOG_G,
-            "BUBB "
-            "afr="F_IID " bfr="F_IID " "
-            "ahg=%d bhg=%d "
-            "ori=%c "
-            "olt=%c "
-            "qua=%f "
-            "\n",
-            aln_msg->aifrag, aln_msg->bifrag,
-            aln_msg->ahg, aln_msg->bhg,
-            aln_msg->orientation,
-            aln_msg->overlap_type,
-            aln_msg->quality);
-    // fprintf(BUB_LOG_G, "BUBC delta=");
-  }
-#endif // AS_CGB_BUBBLE_VERBOSE2
-
-  /* Copy overlap message. */
-  bp->bubOlaps[bp->numOlaps].ahg = aln_msg->ahg;
-  bp->bubOlaps[bp->numOlaps].min_offset = aln_msg->ahg;
-  bp->bubOlaps[bp->numOlaps].max_offset = aln_msg->ahg;
-  bp->bubOlaps[bp->numOlaps].bhg = aln_msg->bhg;
-  bp->bubOlaps[bp->numOlaps].aifrag = aln_msg->aifrag;
-  bp->bubOlaps[bp->numOlaps].bifrag = aln_msg->bifrag;
-  bp->bubOlaps[bp->numOlaps].orientation = aln_msg->orientation;
-  bp->bubOlaps[bp->numOlaps].overlap_type = aln_msg->overlap_type;
+  bp->bubOlaps[bp->numOlaps].ahg          = aln->ahg;
+  bp->bubOlaps[bp->numOlaps].bhg          = aln->bhg;
+  bp->bubOlaps[bp->numOlaps].aifrag       = aln->aifrag;
+  bp->bubOlaps[bp->numOlaps].bifrag       = aln->bifrag;
+  bp->bubOlaps[bp->numOlaps].orientation  = aln->orientation;
+  bp->bubOlaps[bp->numOlaps].overlap_type = aln->overlap_type;
   /* WARNING: HACK!  Next line has a big ol' hack.  See the comments
      in AS_CGB_Bubble.h for more explanation. */
-  bp->bubOlaps[bp->numOlaps].quality = -(aln_msg->quality);
-  bp->bubOlaps[bp->numOlaps].polymorph_ct = aln_msg->polymorph_ct;
-  (bp->numOlaps)++;
+  //bp->bubOlaps[bp->numOlaps].quality = -(aln->quality);
+  bp->bubOlaps[bp->numOlaps].quality      = aln->quality;
+
+  bp->numOlaps++;
 
   /* Update adjacency array. */
   if (!reversed)
@@ -335,9 +290,6 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   else
     BP_setAdj(bp, bid2, bid1, 1);
 
-#if AS_CGB_BUBBLE_VERBOSE
-      fprintf(BUB_LOG_G, "Success.\n");
-#endif
   return TRUE;
 }
 
@@ -374,7 +326,7 @@ BP_setAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2,
 
 
 
-OverlapMesg *
+ALNoverlapFull *
 AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 			 int start_sx, IntFragment_ID end,
 			 int end_sx, int *num_olaps)
@@ -423,20 +375,20 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
   }
 
 #if AS_CGB_BUBBLE_VERBOSE
-  fprintf(BUB_LOG_G, "Fragments:\n");
+  fprintf(stderr, "Fragments:\n");
   for (r = 0; r < num_frags; r++) {
-    fprintf(BUB_LOG_G, "%d]\t\t"F_IID "\t("F_IID ")\t" F_S64 "\n", r, bp->bubFrags[r],
+    fprintf(stderr, "%d]\t\t"F_IID "\t("F_IID ")\t" F_S64 "\n", r, bp->bubFrags[r],
 	    get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[r]),
 	    BG_V_getDistance(bp->bg, bp->bubFrags[r]));
   }
 #endif
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-  fprintf(BUB_LOG_G, "\nPre Transitive Closure Adjacency Array\n");
+  fprintf(stderr, "\nPre Transitive Closure Adjacency Array\n");
   for (r = 0; r < num_frags; r++) {
     for (c = 0; c < num_frags; c++)
-      fprintf(BUB_LOG_G, "%d  ", BP_getAdj(bp, r, c));
-    fprintf(BUB_LOG_G, "\n");
+      fprintf(stderr, "%d  ", BP_getAdj(bp, r, c));
+    fprintf(stderr, "\n");
   }
 #endif
 
@@ -448,12 +400,12 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 
   disc = BP_discriminator(bp);
 #if AS_CGB_BUBBLE_VERBOSE
-  fprintf(BUB_LOG_G, "Bubble discriminator is %.2f.\n", disc);
+  fprintf(stderr, "Bubble discriminator is %.2f.\n", disc);
 #endif
   if (disc < POPPER_MIN_DISCRIMINATOR) {
     bp->numRejectedByDiscriminator++;
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-    fprintf(BUB_LOG_G, "REJECTING BUBBLE BASED ON DISCRIMINATOR.\n\n");
+    fprintf(stderr, "REJECTING BUBBLE BASED ON DISCRIMINATOR.\n\n");
 #endif
     *num_olaps = 0;
     return NULL;
@@ -465,11 +417,11 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   {
-    fprintf(BUB_LOG_G, "\nPost Transitive Closure Adjacency Array\n");
+    fprintf(stderr, "\nPost Transitive Closure Adjacency Array\n");
     for (r = 0; r < num_frags; r++) {
       for (c = 0; c < num_frags; c++)
-	fprintf(BUB_LOG_G, "%d  ", BP_getAdj(bp, r, c));
-      fprintf(BUB_LOG_G, "\n");
+	fprintf(stderr, "%d  ", BP_getAdj(bp, r, c));
+      fprintf(stderr, "\n");
     }
   }
 #endif
@@ -489,11 +441,11 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   {
-    fprintf(BUB_LOG_G, "\nPost Affine Overlap Adjacency Array\n");
+    fprintf(stderr, "\nPost Affine Overlap Adjacency Array\n");
     for (r = 0; r < num_frags; r++) {
       for (c = 0; c < num_frags; c++)
-	fprintf(BUB_LOG_G, "%d  ", BP_getAdj(bp, r, c));
-      fprintf(BUB_LOG_G, "\n");
+	fprintf(stderr, "%d  ", BP_getAdj(bp, r, c));
+      fprintf(stderr, "\n");
     }
   }
 #endif
@@ -503,16 +455,16 @@ AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 
   path_len = BP_DAG_longest_path(bp);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-  fprintf(BUB_LOG_G, "Found path of length %d.\n", path_len);
+  fprintf(stderr, "Found path of length %d.\n", path_len);
 #endif
 
   bub_closed = ((path_len + 1) == num_frags);
 
 #if AS_CGB_BUBBLE_VERBOSE
   if (bub_closed)
-    fprintf(BUB_LOG_G, "SUMMARY:  Bubble should be popped!\n\n");
+    fprintf(stderr, "SUMMARY:  Bubble should be popped!\n\n");
   else
-    fprintf(BUB_LOG_G, "SUMMARY:  Bubble should be REJECTED!\n\n");
+    fprintf(stderr, "SUMMARY:  Bubble should be REJECTED!\n\n");
 #endif
 
   if (bub_closed) {

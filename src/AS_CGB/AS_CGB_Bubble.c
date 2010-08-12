@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.17 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.18 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -46,9 +46,6 @@ static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.17 2009-07-30 10:42:55 brianwalen
 
 void AS_CGB_Bubble_dfs(BubGraph_t bg);
 
-
-
-FILE *BUB_LOG_G = NULL;
 
 typedef struct BVSPair {
   BubVertexSet_t f, r;
@@ -117,7 +114,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 	!BVS_empty(&(fwd[top[f]])) &&
 	!BVS_empty(&(rvs[top[f]]))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "Inserting "F_IID " ("F_IID ") into the table.\n", top[f],
+      fprintf(stderr, "Inserting "F_IID " ("F_IID ") into the table.\n", top[f],
 	      get_iid_fragment(BG_vertices(bg), top[f]));
 #endif
       bp_ins_keys[f].f = &(fwd[top[f]]);
@@ -131,7 +128,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 	!BVS_empty(&(fwd[top[f]])) &&
 	!BVS_empty(&(rvs[top[f]]))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "Looking for matches for "F_IID " ("F_IID ") in the table.  ",
+      fprintf(stderr, "Looking for matches for "F_IID " ("F_IID ") in the table.  ",
 	      top[f], get_iid_fragment(BG_vertices(bg), top[f]));
 #endif
       bp_find_key.f = &(fwd[top[f]]);
@@ -139,9 +136,9 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
       i_node = (IntFragment_ID *)(INTPTR)LookupValueInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_find_key, sizeof(BVSPair));
 #if AS_CGB_BUBBLE_VERY_VERBOSE
       if (!i_node)
-	fprintf(BUB_LOG_G, "None found.\n");
+	fprintf(stderr, "None found.\n");
       else
-	fprintf(BUB_LOG_G, "Found init node = "F_IID " ("F_IID ").\n", *i_node,
+	fprintf(stderr, "Found init node = "F_IID " ("F_IID ").\n", *i_node,
 		get_iid_fragment(BG_vertices(bg), *i_node));
 #endif
 
@@ -258,7 +255,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
       BG_E_setFlag(bg, e, AS_CGB_BUBBLE_E_UNUSED);
     }
 
-  //fprintf(BUB_LOG_G, "  * Found "F_IID " valid edges.\n", num_valid);
+  //fprintf(stderr, "  * Found "F_IID " valid edges.\n", num_valid);
 
   num_valid = 0;
   for (f = 0; f < GetNumFragments(BG_vertices(bg)); ++f)
@@ -268,7 +265,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
 	out[q_end++] = f;
     }
 
-  //fprintf(BUB_LOG_G, "  * Found "F_IID " valid vertices.\n", num_valid);
+  //fprintf(stderr, "  * Found "F_IID " valid vertices.\n", num_valid);
 
   while (q_start < q_end) {
     for (e = BGEI_bgn(bg, &e_it, out[q_start], bgeiOut, valid_and_unused);
@@ -283,7 +280,7 @@ AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
   }
 
   if (q_end < num_valid) {
-    //fprintf(BUB_LOG_G, "  * WARNING: Only processed "F_IID " of "F_IID " vertices!  Cyclic graph!\n", q_end, num_valid);
+    //fprintf(stderr, "  * WARNING: Only processed "F_IID " of "F_IID " vertices!  Cyclic graph!\n", q_end, num_valid);
     return 0;
   }
 
@@ -313,19 +310,19 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 
   /* Mark the "interesting" fragments, assign them all relative coordinates,
      and make the graph into a DAG. */
-  fprintf(BUB_LOG_G, "  * Step 1: Assign coordinates and mark fragments\n");
+  fprintf(stderr, "  * Step 1: Assign coordinates and mark fragments\n");
   AS_CGB_Bubble_dfs(bg);
 
   num_frags = GetNumFragments(BG_vertices(bg));
   top_order = (IntFragment_ID *)safe_calloc(sizeof(IntFragment_ID), num_frags);
 
   /* Get a topological ordering of the valid fragments. */
-  fprintf(BUB_LOG_G, "  * Step 2: Topological sort of fragment graph\n");
+  fprintf(stderr, "  * Step 2: Topological sort of fragment graph\n");
   num_valid = AS_CGB_Bubble_topo_sort(bg, top_order);
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   for (f = 0; f < num_valid; ++f)
-    fprintf(BUB_LOG_G, ""F_IID " ("F_IID ")\n", top_order[f],
+    fprintf(stderr, ""F_IID " ("F_IID ")\n", top_order[f],
 	    get_iid_fragment(BG_vertices(bg), top_order[f]));
 #endif
 
@@ -337,8 +334,8 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
     BVS_initialize(&(rvs[f]));
   }
 
-  fprintf(BUB_LOG_G, "  * Step 3: Calculating fragment labels\n");
-  fprintf(BUB_LOG_G, "  * Step 3: num_valid = "F_IID "\n", num_valid);
+  fprintf(stderr, "  * Step 3: Calculating fragment labels\n");
+  fprintf(stderr, "  * Step 3: num_valid = "F_IID "\n", num_valid);
   if( num_valid != 0 ) {
     _forward_collect_sets(bg, fwd, top_order, num_valid);
     _reverse_collect_sets(bg, rvs, top_order, num_valid);
@@ -346,17 +343,17 @@ AS_CGB_Bubble_find_bubbles_with_graph(BubGraph_t bg, int sz, int age,
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
   for (f = 0; f < num_valid; ++f) {
-    fprintf(BUB_LOG_G, ""F_IID " ("F_IID "):\t", top_order[f],
+    fprintf(stderr, ""F_IID " ("F_IID "):\t", top_order[f],
 	    get_iid_fragment(BG_vertices(bg), top_order[f]));
     BVS_print(&(fwd[top_order[f]]), stderr);
-    fprintf(BUB_LOG_G, "  |  ");
+    fprintf(stderr, "  |  ");
     BVS_print(&(rvs[top_order[f]]), stderr);
-    fprintf(BUB_LOG_G, "\n");
+    fprintf(stderr, "\n");
   }
 #endif
 
-  fprintf(BUB_LOG_G, "  * Step 4: Finding matching labels\n");
-  fprintf(BUB_LOG_G, "  * Step 4: num_valid = "F_IID "\n", num_valid);
+  fprintf(stderr, "  * Step 4: Finding matching labels\n");
+  fprintf(stderr, "  * Step 4: num_valid = "F_IID "\n", num_valid);
 
   if( num_valid != 0 ) {
     result = _collect_bubbles(bg, fwd, rvs, top_order, num_valid);
@@ -391,8 +388,6 @@ AS_CGB_Bubble_find_bubbles(Tfragment *frags, Tedge *edges, int sz, int age,
   BubGraph bg = {0};
   AS_CGB_Bubble_List_t result = NULL;
 
-  BUB_LOG_G = stderr;
-
   BG_initialize(&bg, frags, edges);
   result = AS_CGB_Bubble_find_bubbles_with_graph(&bg, sz, age, max_outdegree);
   BG_destroy(&bg);
@@ -407,80 +402,102 @@ AS_CGB_Bubble_find_and_remove_bubbles
  Tfragment *frags, Tedge *edges,
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float gar,
- FILE *olap_file, FILE *log_file,
+ const char * bubblename,
  const char * fileprefix)
 {
   BubGraph bg;
   BubblePopper bp;
   AS_CGB_Bubble_List_t bubs = NULL;
-  if (log_file)
-    BUB_LOG_G = log_file;
+
+  BinaryOverlapFile *bof = AS_OVS_createBinaryOverlapFile(bubblename, FALSE);
 
   BG_initialize(&bg, frags, edges);
   bubs = AS_CGB_Bubble_find_bubbles_with_graph(&bg, 0, 0, 0);
 
-#ifdef AS_CGB_BUBBLE_VERBOSE
-  {
-    int num_bubs = 0;
-    AS_CGB_Bubble_List_t bptr = NULL;
-    for (bptr = bubs; bptr; bptr = bptr->next)
-      num_bubs++;
-    fprintf(BUB_LOG_G, "  * SPECIAL PREVIEW: Found %d potential bubbles.\n",
-	    num_bubs);
-  }
-#endif
+  fprintf(stderr, "  * Processing bubbles.\n");
 
-  fprintf(BUB_LOG_G, "  * Processing bubbles.\n");
   BP_init(&bp, &bg, chunks, cfrgs, gar, gkpStore, fileprefix);
+
   while (NULL != bubs) {
     AS_CGB_Bubble_List_t bptr = NULL;
     int num_ovl = 0;
 
-    OverlapMesg *ovl = AS_CGB_Bubble_pop_bubble
-      (&bp, bubs->start, bubs->start_sx,
-       bubs->end, bubs->end_sx, &num_ovl);
-    if (ovl) {
-      int o;
-      GenericMesg m;
-      m.t = MESG_OVL;
-      for (o = 0; o < num_ovl; ++o) {
-	m.m = (void *) &(ovl[o]);
-	WriteProtoMesg_AS(olap_file, &m);
+    ALNoverlapFull *ovl = AS_CGB_Bubble_pop_bubble(&bp, bubs->start, bubs->start_sx, bubs->end, bubs->end_sx, &num_ovl);
+
+    for (int32 o=0; o<num_ovl; ++o) {
+      OVSoverlap   olap;
+
+#if 0
+      fprintf(stderr, "ALNoverlapFull: ID %d %d HG %d %d orient %c type %c qual %f\n",
+              ovl[o].aifrag,
+              ovl[o].bifrag,
+              ovl[o].ahg,
+              ovl[o].bhg,
+              ovl[o].orientation.toLetter(),
+              ovl[o].overlap_type,
+              ovl[o].quality);
+#endif
+
+      olap.a_iid = ovl[o].aifrag;
+      olap.b_iid = ovl[o].bifrag;
+
+      olap.dat.ovl.datpad1     = 0;
+      olap.dat.ovl.flipped     = 0;
+      olap.dat.ovl.orig_erate  = AS_OVS_encodeQuality(ovl[o].quality / 100.0);
+      olap.dat.ovl.corr_erate  = AS_OVS_encodeQuality(ovl[o].quality / 100.0);
+      olap.dat.ovl.seed_value  = 0;
+      olap.dat.ovl.type        = AS_OVS_TYPE_OVL;
+
+      //  This is similar to AS_OVS_convertOverlapMesgToOVSOverlap()
+
+      if (ovl[o].orientation.isNormal()) {
+        olap.dat.ovl.a_hang  = ovl[o].ahg;
+        olap.dat.ovl.b_hang  = ovl[o].bhg;
+        olap.dat.ovl.flipped = FALSE;
+
+      } else if (ovl[o].orientation.isInnie()) {
+        olap.dat.ovl.a_hang  = ovl[o].ahg;
+        olap.dat.ovl.b_hang  = ovl[o].bhg;
+        olap.dat.ovl.flipped = TRUE;
+
+      } else if (ovl[o].orientation.isOuttie()) {
+        olap.dat.ovl.a_hang  = -ovl[o].bhg;
+        olap.dat.ovl.b_hang  = -ovl[o].ahg;
+        olap.dat.ovl.flipped = TRUE;
+
+      } else if (ovl[o].orientation.isAnti()) {
+        olap.dat.ovl.a_hang  = -ovl[o].bhg;
+        olap.dat.ovl.b_hang  = -ovl[o].ahg;
+        olap.dat.ovl.flipped = FALSE;
+
+      } else {
+        assert(0);
       }
+
+      AS_OVS_writeOverlap(bof, &olap);
     }
-    assert(NULL != olap_file);
-    fflush(olap_file); // CMM BUG WORK-AROUND
 
     bptr = bubs;
     bubs = bubs->next;
     safe_free(bptr);
     // release memory as we go.
   }
+
+  AS_OVS_closeBinaryOverlapFile(bof);
+
   // All the memory for bubs is released.
 
-  fprintf(BUB_LOG_G, "  * ====================================================\n");
-  fprintf(BUB_LOG_G, "  *                 BUBBLE POPPER STATS\n\n");
-  fprintf(BUB_LOG_G, "  * Num Bubbles Processed:   \t\t%d\n",
-	  bp.numBubblesProcessed);
-  if (bp.numBubblesProcessed > 0) {
-    fprintf(BUB_LOG_G, "  * Num Bubbles Collapsed:   \t\t%d\n",
-	    bp.numBubblesCollapsed);
-    fprintf(BUB_LOG_G, "  * Num Rejected by A-stat:  \t\t%d\n",
-	    bp.numRejectedByDiscriminator);
-    fprintf(BUB_LOG_G, "  * Num Overlaps Attempted:  \t\t%d\n",
-	    bp.numOlapsComputed);
-    fprintf(BUB_LOG_G, "  * Num Overlaps Found:      \t\t%d\n",
-	    bp.numOlapsSuccessful);
-    fprintf(BUB_LOG_G, "  * Num Overlaps Output:     \t\t%d\n",
-	    bp.numOlapsRetained);
-    fprintf(BUB_LOG_G, "  * Num Frags In Bubbles:    \t\t%d\n",
-	    bp.numFragsInBubbles);
-    fprintf(BUB_LOG_G, "  * Num Frags In Collapsed:  \t\t%d\n",
-	    bp.numFragsInCollapsedBubbles);
-    fprintf(BUB_LOG_G, "  * Average Bubble Length:   \t\t%d\n",
-	    bp.totalDistSpannedByBubbles / bp.numBubblesProcessed);
-    fprintf(BUB_LOG_G, "  * Average Collapsed Length:\t\t%d\n",
-	    bp.totalDistSpannedByBubbles / bp.numBubblesProcessed);
-  }
-  fprintf(BUB_LOG_G, "  * ====================================================\n");
+  fprintf(stderr, "  * ====================================================\n");
+  fprintf(stderr, "  *                 BUBBLE POPPER STATS\n\n");
+  fprintf(stderr, "  * Num Bubbles Processed:   \t\t%d\n", bp.numBubblesProcessed);
+  fprintf(stderr, "  * Num Bubbles Collapsed:   \t\t%d\n", bp.numBubblesCollapsed);
+  fprintf(stderr, "  * Num Rejected by A-stat:  \t\t%d\n", bp.numRejectedByDiscriminator);
+  fprintf(stderr, "  * Num Overlaps Attempted:  \t\t%d\n", bp.numOlapsComputed);
+  fprintf(stderr, "  * Num Overlaps Found:      \t\t%d\n", bp.numOlapsSuccessful);
+  fprintf(stderr, "  * Num Overlaps Output:     \t\t%d\n", bp.numOlapsRetained);
+  fprintf(stderr, "  * Num Frags In Bubbles:    \t\t%d\n", bp.numFragsInBubbles);
+  fprintf(stderr, "  * Num Frags In Collapsed:  \t\t%d\n", bp.numFragsInCollapsedBubbles);
+  fprintf(stderr, "  * Average Bubble Length:   \t\t%d\n", (bp.numBubblesProcessed == 0) ? 0 : bp.totalDistSpannedByBubbles / bp.numBubblesProcessed);
+  fprintf(stderr, "  * Average Collapsed Length:\t\t%d\n", (bp.numBubblesProcessed == 0) ? 0 : bp.totalDistSpannedByBubbles / bp.numBubblesProcessed);
+  fprintf(stderr, "  * ====================================================\n");
 }

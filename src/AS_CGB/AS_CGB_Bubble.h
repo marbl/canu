@@ -26,7 +26,9 @@
 #ifndef _AS_CGB_BUBBLE_H_
 #define _AS_CGB_BUBBLE_H_
 
-static const char *rcsid__AS_CGB_BUBBLE_H_ = "$Id: AS_CGB_Bubble.h,v 1.6 2009-06-10 18:05:13 brianwalenz Exp $";
+#include "AS_ALN_aligners.h"
+
+static const char *rcsid__AS_CGB_BUBBLE_H_ = "$Id: AS_CGB_Bubble.h,v 1.7 2010-08-12 19:19:48 brianwalenz Exp $";
 
 /* For debugging only.  Set this to 1 only for test-size problems ... :-) */
 #define AS_CGB_BUBBLE_VERBOSE 0
@@ -34,8 +36,6 @@ static const char *rcsid__AS_CGB_BUBBLE_H_ = "$Id: AS_CGB_Bubble.h,v 1.6 2009-06
 /* For traversal debugging only.  Produces too much output. Use only for
    teensy-weensy test-size problems ... */
 #define AS_CGB_BUBBLE_VERY_VERBOSE 0
-
-extern FILE *BUB_LOG_G;
 
 /* For outputting distribution bubble size distribution data to a
    file.  Set to 1 to create three files, "bubble.nfrags.celagram",
@@ -67,7 +67,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
  Tfragment *frags, Tedge *edges,
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float global_arrival_rate,
- FILE *olap_file, FILE *log_file,
+ const char * bubblename,
  const char * fileprefix);
 
 /*
@@ -127,7 +127,7 @@ typedef struct BubblePopper * BubblePopper_t;
    to take the ABS() of the quality before using it for comparison purposes.
 
    Implemented in "AS_CGB_Bubble_PopperMethods.c" */
-OverlapMesg *
+ALNoverlapFull *
 AS_CGB_Bubble_pop_bubble(BubblePopper_t bp, IntFragment_ID start,
 			 int start_sx, IntFragment_ID end,
 			 int end_sx, int *num_olaps);

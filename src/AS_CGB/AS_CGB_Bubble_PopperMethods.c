@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_PopperMethods.c,v 1.11 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_PopperMethods.c,v 1.12 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +78,7 @@ BP_find_bubble_dfs(BubblePopper_t bp, IntFragment_ID start,
   while (s_top > -1) {
     if (BGEI_end(cur_v_it) || (cur_v == end)) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "Done with "F_IID " ("F_IID ").  Backtracking.\n", cur_v,
+      fprintf(stderr, "Done with "F_IID " ("F_IID ").  Backtracking.\n", cur_v,
 	      get_iid_fragment(BG_vertices(bp->bg), cur_v));
 #endif
       BG_V_clearFlag(bp->bg, cur_v, AS_CGB_BUBBLE_V_STACKED);
@@ -94,7 +94,7 @@ BP_find_bubble_dfs(BubblePopper_t bp, IntFragment_ID start,
       cur_e = BGEI_cur(cur_v_it);
       dst_v = BG_getOppositeVertex(bp->bg, cur_e, cur_v);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "Processing edge from "F_IID " ("F_IID ") to "F_IID " ("F_IID ").  ", cur_v,
+      fprintf(stderr, "Processing edge from "F_IID " ("F_IID ") to "F_IID " ("F_IID ").  ", cur_v,
 	      get_iid_fragment(BG_vertices(bp->bg), cur_v), dst_v,
 	      get_iid_fragment(BG_vertices(bp->bg), dst_v));
 #endif
@@ -104,7 +104,7 @@ BP_find_bubble_dfs(BubblePopper_t bp, IntFragment_ID start,
       if (BG_V_isSetFlag(bp->bg, dst_v, AS_CGB_BUBBLE_V_STACKED) ||
 	  BG_V_isSetFlag(bp->bg, dst_v, AS_CGB_BUBBLE_V_IN_BUBBLE)) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-	fprintf(BUB_LOG_G, "Back Edge (or edge to end fragment).\n");
+	fprintf(stderr, "Back Edge (or edge to end fragment).\n");
 #endif
 	BGEI_next(bp->bg, cur_v_it, e_flags);
       }
@@ -113,7 +113,7 @@ BP_find_bubble_dfs(BubblePopper_t bp, IntFragment_ID start,
 	cur_v = dst_v;
 	if (!BP__insertFragment(bp, cur_v)) {
 #if AS_CGB_BUBBLE_VERBOSE
-	  fprintf(BUB_LOG_G, "Bubble too big (maybe it's not closed?).  Aborting.\n");
+	  fprintf(stderr, "Bubble too big (maybe it's not closed?).  Aborting.\n");
 #endif
 	  return FALSE;
 	}
@@ -123,13 +123,13 @@ BP_find_bubble_dfs(BubblePopper_t bp, IntFragment_ID start,
 	BG_V_setFlag(bp->bg, cur_v, AS_CGB_BUBBLE_V_STACKED);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
 	if (!BG_V_isSetFlag(bp->bg, cur_v, AS_CGB_BUBBLE_V_CONTAINED))
-	  fprintf(BUB_LOG_G, "\nGoing to "F_IID "\t ( iid "F_IID ", dist " F_S64 ", forward = %d )\n",
+	  fprintf(stderr, "\nGoing to "F_IID "\t ( iid "F_IID ", dist " F_S64 ", forward = %d )\n",
 		  cur_v,
 		  get_iid_fragment(BG_vertices(bp->bg), cur_v),
 		  BG_V_getDistance(bp->bg, cur_v),
 		  BG_vertexForward(bp->bg, cur_v));
 	else
-	  fprintf(BUB_LOG_G, "\nGoing to "F_IID "(C)\t ( iid "F_IID ", dist " F_S64 ", forward = %d )\n",
+	  fprintf(stderr, "\nGoing to "F_IID "(C)\t ( iid "F_IID ", dist " F_S64 ", forward = %d )\n",
 		  cur_v,
 		  get_iid_fragment(BG_vertices(bp->bg), cur_v),
 		  BG_V_getDistance(bp->bg, cur_v),
@@ -180,13 +180,13 @@ BP_DAG_longest_path(BubblePopper_t bp)
 
   if (bp->topDistArray[0] > 0) {
 #if AS_CGB_BUBBLE_VERBOSE
-    fprintf(BUB_LOG_G, "Start vertex has non-zero in degree!  Aborting.\n");
+    fprintf(stderr, "Start vertex has non-zero in degree!  Aborting.\n");
 #endif
     return FALSE;
   }
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-  fprintf(BUB_LOG_G, "Adding vertex 0 ("F_IID ") as start.\n",
+  fprintf(stderr, "Adding vertex 0 ("F_IID ") as start.\n",
 	  get_iid_fragment(BG_vertices(bp->bg), BP_getFrag(bp, 0)));
 #endif
   bp->dfsStack[q_end++].v = 0;	/* Assumes bubble start is one and only
@@ -194,7 +194,7 @@ BP_DAG_longest_path(BubblePopper_t bp)
 
   while (q_start < q_end) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-    fprintf(BUB_LOG_G, "PROCESSING vertex "F_IID " ("F_IID ").\n", bp->dfsStack[q_start].v,
+    fprintf(stderr, "PROCESSING vertex "F_IID " ("F_IID ").\n", bp->dfsStack[q_start].v,
 	    get_iid_fragment(BG_vertices(bp->bg), bp->dfsStack[q_start].v));
 #endif
 
@@ -212,7 +212,7 @@ BP_DAG_longest_path(BubblePopper_t bp)
 	  bp->dfsStack[q_end++].v = c;
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-	  fprintf(BUB_LOG_G, "Adding vertex "F_IID " ("F_IID ") at distance %d.\n", c,
+	  fprintf(stderr, "Adding vertex "F_IID " ("F_IID ") at distance %d.\n", c,
 		  get_iid_fragment(BG_vertices(bp->bg), BP_getFrag(bp, c)),
 		  bp->topDistArray[c]);
 #endif
@@ -223,7 +223,7 @@ BP_DAG_longest_path(BubblePopper_t bp)
   }
 
   if (q_end < BP_numFrags(bp)) {
-    fprintf(BUB_LOG_G, "WARNING: Only processed "F_IID " of "F_IID " vertices!  Cyclic graph!\n", q_end, BP_numFrags(bp));
+    fprintf(stderr, "WARNING: Only processed "F_IID " of "F_IID " vertices!  Cyclic graph!\n", q_end, BP_numFrags(bp));
     return 0;
   }
 
@@ -276,7 +276,7 @@ BP_discriminator(BubblePopper_t bp)
   }
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-  fprintf(BUB_LOG_G, "Computing discriminator with length = "F_S64P" and num frags = %d.\n", total_len, num_rand_frags);
+  fprintf(stderr, "Computing discriminator with length = "F_S64P" and num frags = %d.\n", total_len, num_rand_frags);
 #endif
 
   return compute_coverage_statistic(total_len, num_rand_frags,

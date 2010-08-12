@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.25 2010-04-26 03:52:57 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.26 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +84,7 @@ static char *safe_copy_Bstring_with_preceding_null(char *in){
 }
 
 
-Overlap *
+ALNoverlap *
 Local_Overlap_AS_forCNS(char *a, char *b,
                         int beg, int end,
                         int ahangUNUSED, int bhangUNUSED,
@@ -93,11 +93,11 @@ Local_Overlap_AS_forCNS(char *a, char *b,
                         CompareOptions what) {
 
   InternalFragMesg  A, B;
-  OverlapMesg  *O;
+  ALNoverlapFull  *O;
   int alen,blen,del,sub,ins,affdel,affins,blockdel,blockins;
   double errRate,errRateAffine;
   int AFFINEBLOCKSIZE=4;
-  static Overlap o;
+  static ALNoverlap o;
   int where=0;
 
   //  Ugh, hack to get around C++ not liking A = {0} above.
@@ -135,8 +135,8 @@ Local_Overlap_AS_forCNS(char *a, char *b,
     return(NULL);
   }
 
-  Analyze_Affine_Overlap_AS(&A,&B,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
-		    &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
+  Analyze_Affine_ALNoverlapFull(&A,&B,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
+                                &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
 
   errRate = (sub+ins+del)/(double)(alen+ins);
 
@@ -164,7 +164,7 @@ Local_Overlap_AS_forCNS(char *a, char *b,
   fprintf(stderr, "aifrag=%d bifrag=%d ahg=%d bhg=%d\n", O->aifrag, O->bifrag, O->ahg, O->bhg);
 #endif
 
-  if(O->aifrag==2){/*The OverlapMesg gives b first for nonnegative ahang*/
+  if(O->aifrag==2){/*The ALNoverlapFull gives b first for nonnegative ahang*/
     int i=0;
     while(o.trace[i]!=0){
       o.trace[i++]*=-1;
@@ -230,7 +230,7 @@ Local_Overlap_AS_forCNS(char *a, char *b,
 
 
 
-Overlap *
+ALNoverlap *
 Affine_Overlap_AS_forCNS(char *a, char *b,
                          int beg, int end,
                          int ahangUNUSED, int bhangUNUSED,
@@ -238,14 +238,14 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
                          double erate, double thresh, int minlen,
                          CompareOptions what){
   InternalFragMesg  A, B;
-  OverlapMesg  *O;
+  ALNoverlapFull  *O;
   int alen,blen,del,sub,ins,affdel,affins,blockdel,blockins;
   double errRate,errRateAffine;
   extern int AS_ALN_TEST_NUM_INDELS;
   int orig_TEST_NUM_INDELS;
   int AFFINEBLOCKSIZE=4;
   int where=0;
-  static Overlap o;
+  static ALNoverlap o;
 
 #ifdef DEBUG_GENERAL
   fprintf(stderr, "Affine_Overlap_AS_forCNS()--  Begins\n");
@@ -282,8 +282,8 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
     return(NULL);
   }
 
-  Analyze_Affine_Overlap_AS(&A,&B,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
-		    &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
+  Analyze_Affine_ALNoverlapFull(&A,&B,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
+                                &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
 
   errRate = (sub+ins+del)/(double)(alen+ins);
 
@@ -302,7 +302,7 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
 
   o.trace = O->alignment_trace;
 
-  if(O->aifrag==2){/*The OverlapMesg gives b first for nonnegative ahang*/
+  if(O->aifrag==2){/*The ALNoverlapFull gives b first for nonnegative ahang*/
     int i=0;
     while(o.trace[i]!=0){
       o.trace[i++]*=-1;
@@ -357,7 +357,7 @@ Affine_Overlap_AS_forCNS(char *a, char *b,
 
 
 
-Overlap *
+ALNoverlap *
 Optimal_Overlap_AS_forCNS(char *a, char *b,
                           int begUNUSED, int endUNUSED,
                           int ahang, int bhang,
@@ -372,7 +372,7 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
     int      h_trace[AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 2];
   } dpMatrix;
 
-  static Overlap   o = {0};
+  static ALNoverlap   o = {0};
   static dpMatrix *m = NULL;
 
   alignLinker_s   al;

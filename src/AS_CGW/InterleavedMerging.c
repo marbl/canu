@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.26 2010-04-14 22:28:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.27 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -753,14 +753,14 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
 }
 
 static
-Overlap *
+ALNoverlap *
 LookForChunkOverlapFromContigElements(ContigElement * ceA,
                                       ContigElement * ceB,
                                       SEdgeT * sEdge) {
   SequenceOrient orientA;
   SequenceOrient orientB;
-  static Overlap myOverlap;
-  Overlap * retOverlap = NULL;
+  static ALNoverlap myOverlap;
+  ALNoverlap * retOverlap = NULL;
   int32 minOverlap;
   int32 maxOverlap;
   ChunkOverlapCheckT chunkOverlap = {0};
@@ -979,7 +979,7 @@ PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
 
       // look for overlap if they intersect
       if(ceA->maxCoord >= ceB->minCoord && ceB->maxCoord >= ceA->minCoord) {
-        Overlap * overlap = NULL;
+        ALNoverlap * overlap = NULL;
         overlap = LookForChunkOverlapFromContigElements(ceA, ceB, sEdge);
         if(overlap) {
           // MODIFICATIONS Nov 17 2003 by ALH:

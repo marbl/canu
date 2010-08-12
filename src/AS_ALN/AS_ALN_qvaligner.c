@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.23 2010-02-17 01:32:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_qvaligner.c,v 1.24 2010-08-12 19:19:48 brianwalenz Exp $";
 
 /* Utility routines to complement, unpack and pack alignments, and print
    overlaps.  Also a routine for re-aligning an overlap using quality
@@ -184,7 +184,7 @@ void PrintAlign(FILE *file, int prefix, int suffix,
    a and b to given file.                                                  */
 
 void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
-                                  InternalFragMesg *b, OverlapMesg *align)
+                                  InternalFragMesg *b, ALNoverlapFull *align)
 {
   if (a->iaccession == align->bifrag)
     {
@@ -387,12 +387,12 @@ AnalyzeAffineAlign(int prefix, int suffix,
 //     affdel - # of runs of unaligned symbols in a,
 //     affins - # of runs of unaligned symbols in b.
 //
-void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
-                               OverlapMesg *align, int amode,
-                               int *alen, int *blen, int *del, int *sub, int *ins,
-                               int *affdel, int *affins,
-                               int *blockdel, int *blockins, int blocksize,
-                               int *biggestBlock) {
+void Analyze_Affine_ALNoverlapFull(InternalFragMesg *a, InternalFragMesg *b,
+                                   ALNoverlapFull *align, int amode,
+                                   int *alen, int *blen, int *del, int *sub, int *ins,
+                                   int *affdel, int *affins,
+                                   int *blockdel, int *blockins, int blocksize,
+                                   int *biggestBlock) {
   int swap = 0;
 
   assert(align->alignment_trace != NULL);
@@ -458,7 +458,7 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
             (should use affine alignment option when Gene checks it in).
    - use Analyze_Affine_Overlap_AS() to evaluate the resulting alignment.
    - if the error rate in the alignment, adjusted for an affine scoring scheme,
-     is better than user's erate, return the OverlapMesg*; else return NULL;
+     is better than user's erate, return the ALNoverlapFull*; else return NULL;
      optionally, also test number of large indels.
 
    Assumptions/caveats:
@@ -523,14 +523,14 @@ int AFFINEBLOCKSIZE= 4;
 // number of large indels allowed
 int AFFINE_MAX_BLOCKS=3;
 
-OverlapMesg *
+ALNoverlapFull *
 Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                   int beg, int end,
                   int opposite,
                   double erate, double thresh, int minlen,
                   CompareOptions what, int *where) {
 
-  OverlapMesg *O;
+  ALNoverlapFull *O;
 
   assert(0);
   O=DP_Compare_AS(a,b,beg,end,opposite,MAX(MAXDPERATE,erate),thresh,minlen,AS_FIND_AFFINE_ALIGN,where);
@@ -540,8 +540,8 @@ Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     int del, sub, ins, affdel, affins, alen, blen, blockdel, blockins;
     float errRate, errRateAffine;
 
-    Analyze_Affine_Overlap_AS(a,b,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
-			      &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
+    Analyze_Affine_ALNoverlapFull(a,b,O,AS_ANALYZE_ALL,&alen,&blen,&del,&sub,&ins,
+                                  &affdel,&affins,&blockdel,&blockins,AFFINEBLOCKSIZE, NULL);
 
     errRate = (sub+ins+del)/(double)(alen+ins);
 
@@ -582,28 +582,6 @@ Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 }
 
-
-
-
-void Compute_Olap_Version(InternalFragMesg* a,InternalFragMesg *b,OverlapMesg *O,int *ahang,int *bhang, char *ori){
-
-  if (a->iaccession == O->bifrag)
-    {
-      InternalFragMesg *c;
-      c = a;
-      a = b;
-      b = c;
-      *ahang = -O->ahg;
-      *bhang = -O->bhg;
-    } else {
-      *ahang = O->ahg;
-      *bhang = O->bhg;
-    }
-
-  *ori = (O->orientation.isInnie() || O->orientation.isOuttie()) ?  'I' : 'N';
-
-  return;
-}
 
 
 

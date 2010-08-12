@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimChe.c,v 1.8 2008-12-18 07:13:22 brianwalenz Exp $";
+const char *mainid = "$Id: chimChe.c,v 1.9 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -585,7 +585,7 @@ int main(int argc, char *argv[])
       }
 
       {
-	Overlap *ovl=NULL;
+	ALNoverlap *ovl=NULL;
 	double erate=0.02;
 	// below, .9 fudge factor may be necessary to handle cases where some matching kmers are random out of order matches
 	int minovl=simplescore *.9;
@@ -654,7 +654,7 @@ int main(int argc, char *argv[])
 	int backstart=startbestmatch;
 	int backend=endbestmatch;
 
-	Overlap *ovl=NULL;
+	ALNoverlap *ovl=NULL;
 	double erate=0.02;
 	// below, .9 fudge factor may be necessary to handle cases where some matching kmers are random out of order matches
 	int minovl=hitCounts[bestloc][bestfront]*.9;

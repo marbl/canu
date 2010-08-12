@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.21 2010-08-06 20:13:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.22 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,7 +67,7 @@ typedef struct _ScafLap_tag {
   int                  bsnum;   /* B scaffold number in assembly */
   int                  abase;   /* #(in assembly) of 1st contig in A scaffold */
   int                  bbase;   /* #(in assembly) of 1st contig in B scaffold */
-  Overlap             *overlap; /* Overlap between scaffolds (sequence and
+  ALNoverlap          *overlap; /* Overlap between scaffolds (sequence and
                                    trace fields are NULL!)              */
   int                  score;   /* Sum of lengths contig overlaps involved
                                    in this scaffold overlap.         */

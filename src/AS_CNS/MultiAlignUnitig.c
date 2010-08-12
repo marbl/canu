@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.30 2010-04-23 11:18:12 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.31 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -553,13 +553,13 @@ unitigConsensus::computePositionFromAlignment(void) {
   //  We don't expect to have big negative ahangs, and so we don't allow them.  To unlimit this, use
   //  "-fragmentLen" instead of the arbitrary cutoff below.
 
-  Overlap  *O           = NULL;
-  double    thresh      = 1e-3;
-  int32     minlen      = AS_OVERLAP_MIN_LEN;
-  int32     ahanglimit  = -10;
+  ALNoverlap  *O           = NULL;
+  double       thresh      = 1e-3;
+  int32        minlen      = AS_OVERLAP_MIN_LEN;
+  int32        ahanglimit  = -10;
 
-  char     *fragment    = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
-  int32     fragmentLen = strlen(fragment);
+  char        *fragment    = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
+  int32        fragmentLen = strlen(fragment);
 
   O = DP_Compare(frankenstein,
                  fragment,
@@ -859,9 +859,9 @@ unitigConsensus::alignFragmentToFragments(void) {
   int32     fragmentLen = strlen(fragment);
 
   for (int32 qiid = tiid-1; qiid >= 0; qiid--) {
-    Overlap  *O           = NULL;
-    double    thresh      = 1e-3;
-    int32     minlen      = AS_OVERLAP_MIN_LEN;
+    ALNoverlap  *O           = NULL;
+    double       thresh      = 1e-3;
+    int32        minlen      = AS_OVERLAP_MIN_LEN;
 
     //  If the current fragment is not contained and the target fragment doesn't extend to the end
     //  of frankenstein, don't even bother aligning.  Any alignment we'd get would have to be
@@ -905,7 +905,7 @@ unitigConsensus::alignFragmentToFragments(void) {
                      AS_FIND_ALIGN);
       if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
         fprintf(stderr, "DP_Compare found:\n");
-        Print_Overlap(stderr, aseq, bseq, O);
+        PrintALNoverlap(stderr, aseq, bseq, O);
       }
     }
 
@@ -919,7 +919,7 @@ unitigConsensus::alignFragmentToFragments(void) {
                                   AS_FIND_ALIGN);
       if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
         fprintf(stderr, "Local_Overlap found:\n");
-        Print_Overlap(stderr, aseq, bseq, O);
+        PrintALNoverlap(stderr, aseq, bseq, O);
       }
     }
 
@@ -933,7 +933,7 @@ unitigConsensus::alignFragmentToFragments(void) {
                                     AS_FIND_ALIGN);
       if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
         fprintf(stderr, "Optimal_Overlap found:\n");
-        Print_Overlap(stderr, aseq, bseq, O);
+        PrintALNoverlap(stderr, aseq, bseq, O);
       }
     }
 

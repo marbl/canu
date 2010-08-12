@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_io.c,v 1.33 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_io.c,v 1.34 2010-08-12 19:19:48 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -696,7 +696,7 @@ void process_ovl_store(char * OVL_Store_Path,
 
 /****************************************************************************/
 
-void input_messages_from_a_file(FILE       *fovl,
+void input_messages_from_a_file(BinaryOverlapFile *bof,
                                 Tfragment  frags[],
                                 Tedge      edges[],
                                 IntFragment_ID *afr_to_avx,
@@ -721,82 +721,80 @@ void input_messages_from_a_file(FILE       *fovl,
   /* It is assumed that in the overlap records that new fragments
      point to old fragments.  */
 
-  GenericMesg  *pmesg;
+  OVSoverlap    olap;
 
-  while( EOF != ReadProtoMesg_AS(fovl, &pmesg)) {
-    const MessageType imesgtype = pmesg->t;
+  while (AS_OVS_readOverlap(bof, &olap)) {
 
+    //  This improper dovetail overlap (a_hang<0)&&(b_hang<0)
+    //  A_frag    >>>>>>>>>>>
+    //  B_frag  >>>>>>>>
+    //  becomes a proper dovetail overlap (ahg>0)&&(bhg>0)
+    //  A_frag  <<<<<<<<<<<
+    //  B_frag       <<<<<<<<
     //
-    //  bubble popper writes this input, otherwise, it's unused
+    //  This improper to-contained overlap (a_hang==0)&&(b_hang<0)
+    //  A_frag  >>>>>>>>>>
+    //  B_frag  >>>>>>>...
+    //  becomes a proper to-contained overlap (ahg>0)&&(bhg==0)
+    //  A_frag  <<<<<<<<<<
+    //  B_frag     <<<<<<<
     //
+    //  This improper from-contained overlap (a_hang<0)&&(b_hang==0)
+    //  A_frag  ...>>>>>>>
+    //  B_frag  >>>>>>>>>>
+    //  becomes a proper from-contained overlap (ahg==0)&&(bhg>0)
+    //  A_frag  <<<<<<<
+    //  B_frag  <<<<<<<<<<
+    //
+    //  A degenerate overlap (a_hang==0)&&(b_hang==0)
+    //  A_frag  >>>>>>>>>>
+    //  B_frag  >>>>>>>>>>
 
-    if (pmesg->t == MESG_OVL) {
+    Aedge        e = {0};
 
-      //  This improper dovetail overlap (a_hang<0)&&(b_hang<0)
-      //  A_frag    >>>>>>>>>>>
-      //  B_frag  >>>>>>>>
-      //  becomes a proper dovetail overlap (ahg>0)&&(bhg>0)
-      //  A_frag  <<<<<<<<<<<
-      //  B_frag       <<<<<<<<
-      //
-      //  This improper to-contained overlap (a_hang==0)&&(b_hang<0)
-      //  A_frag  >>>>>>>>>>
-      //  B_frag  >>>>>>>...
-      //  becomes a proper to-contained overlap (ahg>0)&&(bhg==0)
-      //  A_frag  <<<<<<<<<<
-      //  B_frag     <<<<<<<
-      //
-      //  This improper from-contained overlap (a_hang<0)&&(b_hang==0)
-      //  A_frag  ...>>>>>>>
-      //  B_frag  >>>>>>>>>>
-      //  becomes a proper from-contained overlap (ahg==0)&&(bhg>0)
-      //  A_frag  <<<<<<<
-      //  B_frag  <<<<<<<<<<
-      //
-      //  A degenerate overlap (a_hang==0)&&(b_hang==0)
-      //  A_frag  >>>>>>>>>>
-      //  B_frag  >>>>>>>>>>
+    int improper = (((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang <  0)) ||
+                    ((olap.dat.ovl.a_hang == 0) && (olap.dat.ovl.b_hang <  0)) ||
+                    ((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang == 0)));
 
-      OverlapMesg *o = (OverlapMesg *)pmesg->m;
-      Aedge        e = {0};
+    e.avx = olap.a_iid;
+    e.asx = !improper;
+    e.ahg = (improper ? -olap.dat.ovl.b_hang : olap.dat.ovl.a_hang);
 
-      int improper = ((o->ahg <  0) && (o->bhg <  0)) || ((o->ahg == 0) && (o->bhg <  0)) || ((o->ahg < 0) && (o->bhg == 0)) ;
+    e.bvx = olap.b_iid;
+    e.bsx = (!improper) ^ (!olap.dat.ovl.flipped);
+    e.bhg = (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang);
 
-      e.avx = o->aifrag;
-      e.asx = improper ^ ((o->orientation.isNormal()) || (o->orientation.isInnie()));
-      e.ahg = (improper) ? -o->bhg : o->ahg;
+    e.nes       = (is_a_dvt_simple(e.ahg, e.bhg)) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE;
+    e.quality   = olap.dat.ovl.corr_erate;
+    e.invalid   = FALSE;
+    e.grangered = FALSE;
+    e.reflected = FALSE;
+    e.blessed   = FALSE;
 
-      e.bvx = o->bifrag;
-      e.bsx = e.asx ^ !((o->orientation.isInnie())  || (o->orientation.isOuttie()));
-      e.bhg = (improper) ? -o->ahg : o->bhg;
+    assert( (e.ahg>0) || (e.bhg>0) || ((e.ahg == 0) && (e.bhg == 0)) );
 
-      e.nes       = (is_a_dvt_simple(e.ahg, e.bhg)) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE;
-      e.quality   = o->quality;
-      e.invalid   = FALSE;
-      e.grangered = FALSE;
-      e.reflected = FALSE;
-      e.blessed   = FALSE;
+#if 0
+    fprintf(stderr, "A %d %d %d B %d %d %d quality %d %d\n",
+            e.avx, e.asx, e.ahg,
+            e.bvx, e.bsx, e.bhg,
+            e.nes, e.quality);
+#endif
 
-      assert( (e.ahg>0) || (e.bhg>0) || ((e.ahg == 0) && (e.bhg == 0)) );
-
-      if (e.quality < overlap_error_threshold)
-        add_overlap_to_graph(e,
-                             frags,
-                             edges,
-                             afr_to_avx,
-                             next_edge,
-                             dvt_double_sided_threshold_fragment_end_degree,
-                             con_double_sided_threshold_fragment_end_degree,
-                             intrude_with_non_blessed_overlaps_flag,
-                             &novl_dovetail,
-                             &novl_containment,
-                             &nedge_delta);
-    } else {
-      fprintf(stderr,"Unexpected message type %d (%s)\n",imesgtype, MessageTypeName[imesgtype]);
-      assert(FALSE);
-    }
+    if (e.quality < overlap_error_threshold)
+      add_overlap_to_graph(e,
+                           frags,
+                           edges,
+                           afr_to_avx,
+                           next_edge,
+                           dvt_double_sided_threshold_fragment_end_degree,
+                           con_double_sided_threshold_fragment_end_degree,
+                           intrude_with_non_blessed_overlaps_flag,
+                           &novl_dovetail,
+                           &novl_containment,
+                           &nedge_delta);
+      //else
+      //fprintf(stderr, "SKIP\n");
   }
-
 
   fprintf(stderr,"Input %10"F_IIDP " OVL records (skipped %10"F_IIDP" degenerate).\n",novl_dovetail+novl_containment, novl_degenerate);
   fprintf(stderr,"      %10"F_IIDP " OVL dovetail records.\n",novl_dovetail);
@@ -805,3 +803,31 @@ void input_messages_from_a_file(FILE       *fovl,
   nedge_new = nedge_old + nedge_delta;
   assert(nedge_new == GetNumEdges(edges));
 }
+
+
+
+void process_ovl_file(const char Batch_File_Name[],
+                      THeapGlobals   * heapva,
+                      IntFragment_ID * afr_to_avx,
+                      VA_TYPE(IntEdge_ID)  * next_edge,
+                      const int dvt_double_sided_threshold_fragment_end_degree,
+                      const int con_double_sided_threshold_fragment_end_degree,
+                      const int intrude_with_non_blessed_overlaps_flag,
+                      const uint32 overlap_error_threshold) {
+
+  BinaryOverlapFile *bof = AS_OVS_openBinaryOverlapFile(Batch_File_Name, FALSE);
+
+  input_messages_from_a_file(bof,
+                             heapva->frags,
+                             heapva->edges,
+                             afr_to_avx,
+                             next_edge,
+                             dvt_double_sided_threshold_fragment_end_degree,
+                             con_double_sided_threshold_fragment_end_degree,
+                             intrude_with_non_blessed_overlaps_flag,
+                             overlap_error_threshold);
+
+  AS_OVS_closeBinaryOverlapFile(bof);
+}
+
+

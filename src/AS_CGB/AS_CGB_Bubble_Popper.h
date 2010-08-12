@@ -22,7 +22,9 @@
 #ifndef _AS_CGB_BUBBLE_POPPER_H_
 #define _AS_CGB_BUBBLE_POPPER_H_
 
-static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id: AS_CGB_Bubble_Popper.h,v 1.10 2009-06-10 18:05:13 brianwalenz Exp $";
+#include "AS_ALN_aligners.h"
+
+static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id: AS_CGB_Bubble_Popper.h,v 1.11 2010-08-12 19:19:48 brianwalenz Exp $";
 
 /* The bubble popper will REJECT bubbles with more than this many fragments! */
 #define POPPER_MAX_BUBBLE_SIZE 200
@@ -84,7 +86,7 @@ typedef struct BubblePopper {
   InternalFragMesg *bubMesgs;	/* Frags in message form for aligner */
   int *adj;			/* Adjacency array */
   int numOlaps;
-  OverlapMesg *bubOlaps;        /* Temporary array of generated overlaps */
+  ALNoverlapFull *bubOlaps;     /* Temporary array of generated overlaps */
   int allocatedByCreate;	/* True if create method was used for
 				   allocation */
 } BubblePopper;

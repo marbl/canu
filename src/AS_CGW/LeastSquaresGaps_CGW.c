@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.40 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.41 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -295,7 +295,7 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
     effectiveOlap = -(GetGraphNode(ScaffoldGraph->ContigGraph, targetId)->bpLength.mean + sourceCI->bpLength.mean - olap.overlap);
   }
 
-  if (olap.overlap == NULL)
+  if (olap.overlap == 0)
     return(NULL);
 
   edge = GetGraphEdge(graph->ContigGraph,

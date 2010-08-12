@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.66 2010-03-24 15:20:16 skoren Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.67 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1536,7 +1536,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
         	 int32 maxAhang = contig.maxCI->bpLength.mean - minOverlap;
         	 PairOrient orient = GetChunkPairOrientation(GetNodeOrient(contig.maxCI), GetNodeOrient(currCI));
 
-        	 Overlap* ovl = OverlapContigs(contig.maxCI, currCI, &orient, minAhang, maxAhang, FALSE, TRUE, TRUE);
+                 ALNoverlap* ovl = OverlapContigs(contig.maxCI, currCI, &orient, minAhang, maxAhang, FALSE, TRUE, TRUE);
         	 if (ovl != NULL && ScoreOverlap(ovl, actual, expected_ahang, expected_bhang, AS_CGW_ERROR_RATE, NULL, NULL, NULL) != 0) {
         		 failed = FALSE;
         		 fprintf(stderr, "CleanupAScaffold() Undoing jiggling for %d worked.\n", currCI->id);
@@ -2128,7 +2128,7 @@ ContigContainment(CIScaffoldT  *scaffold,
   int32            minAhang;
   int32            maxAhang;
   IntElementPos          contigPos;
-  Overlap               *contigOverlap;
+  ALNoverlap            *contigOverlap;
   PairOrient             overlapOrientation;
   PairOrient             actualOverlapOrientation;
   NodeCGW_T             *leftContig;

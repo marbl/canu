@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_dfs.c,v 1.11 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble_dfs.c,v 1.12 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -159,7 +159,7 @@ _do_dfs(BubGraph_t bg, IntFragment_ID start_v, BG_E_Iter stack[])
   while (s_top > -1) {
     if (BGEI_end(cur_v_it)) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "Done with "F_IID " ("F_IID ").  Backtracking.\n", cur_v,
+      fprintf(stderr, "Done with "F_IID " ("F_IID ").  Backtracking.\n", cur_v,
 	      get_iid_fragment(BG_vertices(bg), cur_v));
 #endif
       BG_V_clearFlag(bg, cur_v, AS_CGB_BUBBLE_V_STACKED);
@@ -174,7 +174,7 @@ _do_dfs(BubGraph_t bg, IntFragment_ID start_v, BG_E_Iter stack[])
       cur_e = BGEI_cur(cur_v_it);
       dst_v = BG_getOppositeVertex(bg, cur_e, cur_v);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "Processing edge from "F_IID " ("F_IID ") to "F_IID " ("F_IID ").  ", cur_v,
+      fprintf(stderr, "Processing edge from "F_IID " ("F_IID ") to "F_IID " ("F_IID ").  ", cur_v,
 	      get_iid_fragment(BG_vertices(bg), cur_v), dst_v,
 	      get_iid_fragment(BG_vertices(bg), dst_v));
 #endif
@@ -187,12 +187,12 @@ _do_dfs(BubGraph_t bg, IntFragment_ID start_v, BG_E_Iter stack[])
 	  /* Bad back edge. Mark edge as invalid. */
 	  BG_E_clearFlagSymmetric(bg, cur_e, AS_CGB_BUBBLE_E_VALID);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-	  fprintf(BUB_LOG_G, "INCONSISTENT BACK EDGE.\n");
+	  fprintf(stderr, "INCONSISTENT BACK EDGE.\n");
 #endif
 	}
 #if AS_CGB_BUBBLE_VERY_VERBOSE
 	else
-	  fprintf(BUB_LOG_G, "Consistent Back Edge.\n");
+	  fprintf(stderr, "Consistent Back Edge.\n");
 #endif
 
 	BGEI_next(bg, cur_v_it, e_flags);
@@ -216,14 +216,14 @@ _do_dfs(BubGraph_t bg, IntFragment_ID start_v, BG_E_Iter stack[])
 	BG_V_setFlag(bg, cur_v, AS_CGB_BUBBLE_V_STACKED);
 #if AS_CGB_BUBBLE_VERY_VERBOSE
 	if (!BG_V_isSetFlag(bg, cur_v, AS_CGB_BUBBLE_V_CONTAINED))
-	  fprintf(BUB_LOG_G, "\nGoing to "F_IID "\t ( iid "F_IID ", dist " F_S64 ", forward = %d, ssx = %d, dsx = %d )\n",
+	  fprintf(stderr, "\nGoing to "F_IID "\t ( iid "F_IID ", dist " F_S64 ", forward = %d, ssx = %d, dsx = %d )\n",
 		  cur_v,
 		  get_iid_fragment(BG_vertices(bg), cur_v),
 		  BG_V_getDistance(bg, cur_v),
 		  BG_vertexForward(bg, cur_v),
 		  cur_sx, dst_sx);
 	else
-	  fprintf(BUB_LOG_G, "\nGoing to "F_IID "(C)\t ( iid "F_IID ", dist " F_S64 ", forward = %d, ssx = %d, dsx = %d )\n",
+	  fprintf(stderr, "\nGoing to "F_IID "(C)\t ( iid "F_IID ", dist " F_S64 ", forward = %d, ssx = %d, dsx = %d )\n",
 		  cur_v,
 		  get_iid_fragment(BG_vertices(bg), cur_v),
 		  BG_V_getDistance(bg, cur_v),
@@ -259,7 +259,7 @@ AS_CGB_Bubble_dfs(BubGraph_t bg)
     if ((!BG_V_isSetFlag(bg, v, AS_CGB_BUBBLE_V_DONE)) &&
 	(!BG_V_isSetFlag(bg, v, AS_CGB_BUBBLE_V_CONTAINED))) {
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-      fprintf(BUB_LOG_G, "START: "F_IID " ("F_IID ")\n", v,
+      fprintf(stderr, "START: "F_IID " ("F_IID ")\n", v,
 	      get_iid_fragment(BG_vertices(bg), v));
 #endif
       _do_dfs(bg, v, stack);

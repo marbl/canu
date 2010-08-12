@@ -22,22 +22,22 @@
 #ifndef AS_ALN_ALIGNERS_H
 #define AS_ALN_ALIGNERS_H
 
-static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.18 2009-10-27 12:44:31 skoren Exp $";
+static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.19 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "SUBDELREZ.h"
 
-/*  Print an ASCII representation of the alignment between fragments a and
-    b encoded in align to the file "file".
-
-    Within the file AS_ALN_qvaligner.c the defined constant PRINT_WIDTH
-    (set to 50) controls the number of columns per line in the display
-    of the alignment.                                                     */
-void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
-                                  InternalFragMesg *b, OverlapMesg *align);
-
-
+typedef struct {
+  uint32           aifrag;
+  uint32           bifrag;
+  int32            ahg;
+  int32            bhg;
+  PairOrient       orientation;
+  OverlapType      overlap_type;
+  float            quality;
+  int32            *alignment_trace;
+} ALNoverlapFull;  //  Former 'OverlapMesg'
 
 typedef struct {
   int begpos;
@@ -46,7 +46,19 @@ typedef struct {
   int diffs;
   int comp;
   int *trace;
-} Overlap;
+} ALNoverlap;  //  Former 'Overlap'
+
+
+//  Print an ASCII representation of the alignment between fragments a and
+//  b encoded in align to the file "file".
+//
+//  Within the file AS_ALN_qvaligner.c the defined constant PRINT_WIDTH
+//  (set to 50) controls the number of columns per line in the display
+//  of the alignment.
+//
+void PrintALNoverlapFull(FILE *file, InternalFragMesg *a, InternalFragMesg *b, ALNoverlapFull *align);
+
+
 
 /*  Print an ASCII representation of the alignment between fragments a and
     b encoded in align to the file "file".
@@ -54,11 +66,11 @@ typedef struct {
     Within the file AS_ALN_qvaligner.c the defined constant PRINT_WIDTH
     (set to 50) controls the number of columns per line in the display
     of the alignment.                                                     */
-void Print_Overlap(FILE *file, char *aseq, char *bseq, Overlap *align);
+void PrintALNoverlap(FILE *file, char *aseq, char *bseq, ALNoverlap *align);
 
 
 /* Make a copy of overlap ovl, allocating memory for the copy. */
-Overlap *Copy_Overlap(Overlap *ovl);
+ALNoverlap *CopyALNoverlap(ALNoverlap *ovl);
 
 
 #define AS_ANALYZE_ALL           0
@@ -84,13 +96,14 @@ Overlap *Copy_Overlap(Overlap *ovl);
      optional biggestBlock - the length of the largest mismatch, OK to give it NULL here
 
 */
-void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
-                               OverlapMesg *align, int amode,
-                               int *alen, int *blen,
-                               int *del, int *sub, int *ins,
-                               int *affdel, int *affins,
-                               int *blockdel, int *blockins, int blocksize,
-                               int *biggestBlock);
+void Analyze_Affine_ALNoverlapFull(InternalFragMesg *a,
+                                   InternalFragMesg *b,
+                                   ALNoverlapFull *align,
+                                   int amode, int *alen, int *blen,
+                                   int *del, int *sub, int *ins,
+                                   int *affdel, int *affins,
+                                   int *blockdel, int *blockins, int blocksize,
+                                   int *biggestBlock);
 
 
 
@@ -107,20 +120,20 @@ typedef enum {
   AS_FIND_LOCAL_ALIGN_NO_TRACE
 } CompareOptions;
 
-typedef OverlapMesg *(AS_ALN_Aligner_AS)(InternalFragMesg *a, InternalFragMesg *b,
-                                         int beg, int end,
-                                         int opposite,
-                                         double erate, double thresh, int minlen,
-                                         CompareOptions what, int *where);
+typedef ALNoverlapFull *(AS_ALN_Aligner_AS)(InternalFragMesg *a, InternalFragMesg *b,
+                                            int beg, int end,
+                                            int opposite,
+                                            double erate, double thresh, int minlen,
+                                            CompareOptions what, int *where);
 
-typedef Overlap *(AS_ALN_Aligner)(char *aseq, char *bseq,
-                                  int beg, int end,
-                                  int ahang, int bhang,
-                                  int opposite,
-                                  double erate, double thresh, int minlen,
-                                  CompareOptions what);
+typedef ALNoverlap *(AS_ALN_Aligner)(char *aseq, char *bseq,
+                                     int beg, int end,
+                                     int ahang, int bhang,
+                                     int opposite,
+                                     double erate, double thresh, int minlen,
+                                     CompareOptions what);
 
-typedef int (AS_ALN_OverlapScorer)(Overlap *O,
+typedef int (AS_ALN_OverlapScorer)(ALNoverlap *O,
                                    int      expected_length,
                                    int      ahang_input,
                                    int      bhang_input,
@@ -177,9 +190,6 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
    such that the number of mismatches is minimized */
 void fix_overlapping_pieces(char *aseq, char *bseq, Local_Overlap *O,int piece0, int piece1);
 
-
-/*  Compute_Olap_Version converts and OverlapMesg into the orientation and hangs that would be reported as an "olap" (e.g. by dump-olap-store) */
-void Compute_Olap_Version(InternalFragMesg* a,InternalFragMesg *b,OverlapMesg *O,int *ahang,int *bhang, char *ori);
 
 /*  AS_ALN_clean_up_trace removes leading and trailing gaps */
 void AS_ALN_clean_up_trace(int *trace,int alen, int blen,int *spos,int *epos);

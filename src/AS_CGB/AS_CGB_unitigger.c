@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.42 2010-02-17 01:32:58 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.43 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -177,7 +177,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
                  char * argv[]) {
 
   int illegal=FALSE;
-  int blessed_overlaps_output_flag = FALSE;
 
   int ch,errflg=0;
   optarg = NULL;
@@ -186,9 +185,9 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
   while (!errflg &&
          ((ch = getopt(argc, argv,
-                       "B:F:H:I:L:S:T:U:W:Y:"
+                       "B:F:H:I:S:T:U:W:Y:"
                        "d:e:h:j:kl:m:n:o:p:su:w:x:y:z:"
-                       "56:7"
+                       "5"
                        )) != EOF)) {
 
     switch(ch) {
@@ -212,11 +211,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
         rg->OVL_Store_Path = optarg;
         fprintf(stderr,"* The input overlapper overlap store is <%s>.\n",
                 rg->OVL_Store_Path);
-        break;
-      case 'L':
-        rg->ovl_files_list_fname = optarg;
-        fprintf(stderr,"*  ovl_files_list_fname <%s>\n",
-                rg->ovl_files_list_fname);
         break;
       case 'S':
         // -S <filename> : identify spurs file
@@ -352,12 +346,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
       case '5':
         REAPER_VALIDATION = TRUE;
         break;
-      case '6':
-        rg->blessed_overlaps_input_filename = optarg;
-        break;
-      case '7':
-        blessed_overlaps_output_flag = TRUE;
-        break;
       default :
         fprintf(stderr,"Unrecognized option -%c\n",optopt);
         errflg++;
@@ -390,12 +378,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
     sprintf(chimeras_report_filename,"%s.cgb_chimeras", rg->Output_Graph_Store_Prefix);
     rg->chimeras_file = chimeras_report_filename;
-  }
-
-  if(blessed_overlaps_output_flag) {
-    static char blessed_overlaps_output_filename[FILENAME_MAX]={0};
-    sprintf(blessed_overlaps_output_filename,"%s.blovl", rg->Output_Graph_Store_Prefix);
-    rg->blessed_overlaps_output_filename = blessed_overlaps_output_filename;
   }
 
  UsageStatement:
@@ -503,16 +485,13 @@ main(int argc, char **argv) {
 
     // The OVL records needed to remove the bubbles
     sprintf(rg->bubble_overlaps_filename, "%s.bubble_edges.ovl", rg->Output_Graph_Store_Prefix);
-    FILE *bfp = fopen(rg->bubble_overlaps_filename, "w");
 
     AS_CGB_Bubble_find_and_remove_bubbles(gkpStore,
                                           heapva->frags, heapva->edges,
                                           heapva->thechunks, heapva->chunkfrags,
                                           heapva->global_fragment_arrival_rate,
-                                          bfp,
-                                          stderr,
+                                          rg->bubble_overlaps_filename,
                                           rg->Output_Graph_Store_Prefix);
-    fclose(bfp);
 
     /* NOTE: 0's in following call indicate use of defaults. */
 
@@ -566,16 +545,11 @@ main(int argc, char **argv) {
   IntEdge_ID     nedge = GetNumEdges(heapva->edges);
   IntEdge_ID     ie;
 
-  FILE          *fcgb = NULL;
+  char bon[FILENAME_MAX];
+  sprintf(bon, "%s.edges.blessed", rg->Output_Graph_Store_Prefix);
 
-  if (rg->blessed_overlaps_output_filename)
-    fcgb = fopen(rg->blessed_overlaps_output_filename,"w");
-
-  GenericMesg    pmesg;
-  OverlapMesg    omesg;
-
-  pmesg.t = MESG_OVL;
-  pmesg.m = &omesg;
+  BinaryOverlapFile *bof = AS_OVS_createBinaryOverlapFile(bon, FALSE);
+  OVSoverlap overlap;
 
   for (ie=0; ie < nedge; ie ++) {
     Tnes nes = get_nes_edge(heapva->edges,ie);
@@ -597,7 +571,7 @@ main(int argc, char **argv) {
 
     // output latest set of blessed overlap edges.
 
-    if ((fcgb) && (get_blessed_edge(heapva->edges,ie))) {
+    if (get_blessed_edge(heapva->edges,ie)) {
       IntFragment_ID avx = get_avx_edge(heapva->edges,ie);
       int asx = get_asx_edge(heapva->edges,ie);
       int ahg = get_ahg_edge(heapva->edges,ie);
@@ -611,59 +585,51 @@ main(int argc, char **argv) {
       IntFragment_ID aid = get_iid_fragment(heapva->frags,avx);
       IntFragment_ID bid = get_iid_fragment(heapva->frags,bvx);
 
-      omesg.aifrag = aid;
-      omesg.bifrag = bid;
+      //  The rest swiped from output_mesgs() in AS_FGB_main.c
 
-      omesg.ahg        = ahg;
-      omesg.bhg        = bhg;
-      omesg.min_offset = ahg;
-      omesg.max_offset = ahg;
+      overlap.a_iid = aid;
+      overlap.b_iid = bid;
 
-      //  I honestly don't know which is worse.
-      //omesg.orientation = asx ? (bsx ? AS_INNIE : AS_NORMAL) : (bsx ? AS_ANTI  : AS_OUTTIE);
+      overlap.dat.ovl.datpad1     = 0;
+      overlap.dat.ovl.flipped     = 0;
+      overlap.dat.ovl.a_hang      = ahg;
+      overlap.dat.ovl.b_hang      = bhg;
+      overlap.dat.ovl.orig_erate  = qua;
+      overlap.dat.ovl.corr_erate  = qua;
+      overlap.dat.ovl.seed_value  = 0;
+      overlap.dat.ovl.type        = AS_OVS_TYPE_OVL;
 
       if (asx) {
-        if (bsx)
-          omesg.orientation.setIsInnie();
-        else
-          omesg.orientation.setIsNormal();
+        if (bsx) {
+          //ovl_mesg.orientation.setIsInnie();
+          overlap.dat.ovl.flipped = 1;
+        } else {
+          //ovl_mesg.orientation.setIsNormal();
+          overlap.dat.ovl.flipped = 0;
+        }
       } else {
-        if (bsx)
-          omesg.orientation.setIsAnti();
-        else
-          omesg.orientation.setIsOuttie();
+        if (bsx) {
+          //ovl_mesg.orientation.setIsAnti();
+          //  Reverse the overlap into a normal overlap.
+          overlap.dat.ovl.flipped = 0;
+          overlap.dat.ovl.a_hang  = -bhg;
+          overlap.dat.ovl.b_hang  = -ahg;
+        } else {
+          //ovl_mesg.orientation.setIsOuttie();
+          //  Swap fragments.
+          overlap.a_iid           = bid;
+          overlap.b_iid           = aid;
+          overlap.dat.ovl.flipped = 1;
+          overlap.dat.ovl.a_hang  = -ahg;
+          overlap.dat.ovl.b_hang  = -bhg;
+        }
       }
 
-      switch (get_nes_edge(heapva->edges,ie)) {
-        case AS_CGB_DOVETAIL_EDGE:
-        case AS_CGB_THICKEST_EDGE:
-        case AS_CGB_INTERCHUNK_EDGE:
-        case AS_CGB_INTRACHUNK_EDGE:
-        case AS_CGB_TOUCHES_CONTAINED_EDGE:
-        case AS_CGB_BETWEEN_CONTAINED_EDGE:
-        case AS_CGB_TOUCHES_CRAPPY_DVT:
-          omesg.overlap_type = AS_DOVETAIL;
-          break;
-        case AS_CGB_CONTAINED_EDGE:
-        case AS_CGB_TOUCHES_CRAPPY_CON:
-        case AS_CGB_BETWEEN_CRAPPY_CON:
-          omesg.overlap_type = AS_CONTAINMENT;
-          break;
-        default:
-          fprintf(stderr,"Unexpected overlap edge type: nes=%d\n", nes);
-          assert(FALSE);
-      }
-
-      omesg.quality = AS_OVS_decodeQuality(qua);
-      omesg.polymorph_ct = 0;
-      omesg.alignment_trace = NULL;
-
-      WriteProtoMesg_AS(fcgb,&pmesg);
+      AS_OVS_writeOverlap(bof, &overlap);
     }
   }
 
-  if (fcgb)
-    fclose(fcgb);
+  AS_OVS_closeBinaryOverlapFile(bof);
 
   //  This writes the .fgv and .fge files.
   view_fgb_chkpnt(rg->Output_Graph_Store_Prefix,

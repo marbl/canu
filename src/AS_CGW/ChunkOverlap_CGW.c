@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.52 2010-03-28 22:01:06 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.53 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -795,14 +795,14 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 
 
 //external
-Overlap* OverlapSequences( char *seq1, char *seq2,
-                           PairOrient orientation,
-                           int32 min_ahang, int32 max_ahang,
-                           double erate, double thresh, int32 minlen,
-                           uint32 tryLocal)
+ALNoverlap* OverlapSequences(char *seq1, char *seq2,
+                             PairOrient orientation,
+                             int32 min_ahang, int32 max_ahang,
+                             double erate, double thresh, int32 minlen,
+                             uint32 tryLocal)
 {
-  Overlap *dp_omesg = NULL;
-  Overlap *lo_omesg = NULL;
+  ALNoverlap *dp_omesg = NULL;
+  ALNoverlap *lo_omesg = NULL;
   int      flip = 0;
   int      len1 = strlen(seq1);
   int      len2 = strlen(seq2);
@@ -943,8 +943,8 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
   int32 max_ahang = lengthA - nnOlap.minOverlap;
 
   // tempOlap1 is a static down inside of DP_Compare, don't free it
-  Overlap *tempOlap1 = OverlapSequences(seq1, seq2, nnOlap.spec.orientation,
-                                        min_ahang, max_ahang,
+  ALNoverlap *tempOlap1 = OverlapSequences(seq1, seq2, nnOlap.spec.orientation,
+                                           min_ahang, max_ahang,
                                         nnOlap.errorRate,
                                         CGW_DP_THRESH, CGW_DP_MINLEN);
 
@@ -1174,13 +1174,13 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
 
 
 //external
-Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
-                        PairOrient *overlapOrientation,
-                        int32 minAhang, int32 maxAhang,
-                        int computeAhang,
-                        uint32 tryLocal, uint32 tryRev)
+ALNoverlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
+                           PairOrient *overlapOrientation,
+                           int32 minAhang, int32 maxAhang,
+                           int computeAhang,
+                           uint32 tryLocal, uint32 tryRev)
 {
-  Overlap *tempOlap1;
+  ALNoverlap *tempOlap1;
   char *seq1, *seq2;
   double erate, thresh;
   int32 minlen;

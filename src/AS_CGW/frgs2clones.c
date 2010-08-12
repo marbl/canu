@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.40 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: frgs2clones.c,v 1.41 2010-08-12 19:19:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -116,14 +116,14 @@ main(int argc, char **argv) {
     //fprintf(stderr, ">A %d len=%d\n%s\n", fr.gkFragment_getReadIID(), frlen, frseq);
     //fprintf(stderr, ">B %d len=%d\n%s\n", fr.gkFragment_getMateIID(), fmlen, fmseq);
 
-    Overlap *ovl = Local_Overlap_AS_forCNS(frseq, fmseq,
-                                           -fmlen, frlen,
-                                           fmlen,  frlen,
-                                           1,
-                                           AS_CNS_ERROR_RATE,
-                                           1e-6,
-                                           40,
-                                           AS_FIND_LOCAL_ALIGN_NO_TRACE);
+    ALNoverlap *ovl = Local_Overlap_AS_forCNS(frseq, fmseq,
+                                              -fmlen, frlen,
+                                              fmlen,  frlen,
+                                              1,
+                                              AS_CNS_ERROR_RATE,
+                                              1e-6,
+                                              40,
+                                              AS_FIND_LOCAL_ALIGN_NO_TRACE);
 
     //  If they don't overlap reasonably, join together with a gap, or as two sequences.
     //
