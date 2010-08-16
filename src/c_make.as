@@ -139,19 +139,17 @@ ifeq ($(OSTYPE), Darwin)
     endif
   endif
 
-# -mpim-altivec
-
   ifeq ($(MACHINETYPE), i386)
     ifeq ($(BUILDDEBUG), 1)
-      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts -g
+      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -g
       ARCH_LDFLAGS  += -m64 -lm
     else
-      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts -fast
+      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -fast
       ARCH_LDFLAGS  += -m64 -lm
     endif
   endif
 
-  ARCH_LIB         = /usr/local/lib /usr/X11R6/lib
+  ARCH_LIB         = /opt/local/lib /usr/X11R6/lib
 endif
 
 
