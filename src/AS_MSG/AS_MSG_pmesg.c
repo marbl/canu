@@ -18,83 +18,77 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.51 2010-01-26 16:09:43 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.52 2010-08-16 07:22:28 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
 AS_MSG_global_t *AS_MSG_globals = NULL;
 
-#define MAX_LINE_LEN  (16 * 1024 * 1024)
-
 char *
 GetMemory(size_t nbytes) {
-  if (AS_MSG_globals->msgLen % 8)
-    AS_MSG_globals->msgLen += 8 - (AS_MSG_globals->msgLen % 8);
-  char *ret = AS_MSG_globals->msgBuffer + AS_MSG_globals->msgLen;
-  AS_MSG_globals->msgLen += nbytes;
-  if (AS_MSG_globals->msgLen > AS_MSG_globals->msgMax) {
-    //  Wrap around.  Used when writing VARs.  VARs allocate space, on write, to generate the
-    //  strings.  When consensus writes a contig, we need to allocate space WITHOUT overwriting the
-    //  space already allocated when the contig was read in.
-    AS_MSG_globals->msgLen = 0;
-    ret = AS_MSG_globals->msgBuffer;
-  }
-  return(ret);
-}
 
+  //  Pad to a multiple of 8.
+  if (nbytes % 8)
+    nbytes += 8 - (nbytes % 8);
+
+  assert((nbytes % 8) == 0);
+
+  return((char *)GetHeapItems_AS(AS_MSG_globals->msgHeap, nbytes));
+}
 
 
 char *
 ReadLine(FILE *fin, int skipComment) {
 
+  //  Do until we get a complete non-comment line.
   do {
-    AS_MSG_globals->curLine[MAX_LINE_LEN-2] = '\n';
-    AS_MSG_globals->curLine[MAX_LINE_LEN-1] = 0;
-
     errno = 0;
 
     AS_MSG_globals->curLineNum++;
 
-#ifdef FGETS_IS_BROKEN
-    int p=0;
+    uint64   cloffset = 0;
 
-    for (p=0; p<MAX_LINE_LEN; p++)
-      AS_MSG_globals->curLine[p] = 0;
-    AS_MSG_globals->curLine[MAX_LINE_LEN-2] = '\n';
-    AS_MSG_globals->curLine[MAX_LINE_LEN-1] = 0;
+    //  Do until we get a complete line.
+    do {
+      AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] = '\n';
+      AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 1] = 0;
 
-    for (p=0; p<MAX_LINE_LEN-1; p++) {
-      AS_MSG_globals->curLine[p]   = fgetc(fin);
-      AS_MSG_globals->curLine[p+1] = 0;
-      if (AS_MSG_globals->curLine[p] == 0)
-        AS_MSG_globals->curLine[p] = '\n';
-      if (AS_MSG_globals->curLine[p] == '\n') {
-        AS_MSG_globals->curLine[p+1] = 0;
-        break;
+      //  Read as much of the line as possible into the current line buffer.
+      //
+      if (fgets(AS_MSG_globals->curLine + cloffset, AS_MSG_globals->curLineMax - cloffset - 1, fin) == NULL) {
+        fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Premature end of input at line " F_U64 " (%s)\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
+        fprintf(stderr,"       '%s'\n", AS_MSG_globals->curLine);
+        exit(1);
       }
-    }
-#else
-    if (fgets(AS_MSG_globals->curLine, MAX_LINE_LEN-1, fin) == NULL) {
-      fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Premature end of input at line " F_U64 " (%s)\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
-      fprintf(stderr,"       '%s'\n", AS_MSG_globals->curLine);
-      exit(1);
-    }
+
+      //  Detect other errors, exit.
+      //
+      if (errno) {
+        fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Read error at line " F_U64 ": '%s'\n", AS_MSG_globals->curLineNum, strerror(errno));
+        fprintf(stderr,"       '%s'\n", AS_MSG_globals->curLine);
+        exit(1);
+      }
+
+      //  If the line didn't fit completely, make the buffer larger.
+      //
+      if (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != '\n') {
+#if 0
+        fprintf(stderr, "WARNING: Input line "F_U64" is long (%s), resizing.\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
+        fprintf(stderr, "         '%s'\n", AS_MSG_globals->curLine);
+        fprintf(stderr, "         length = %d\n", strlen(AS_MSG_globals->curLine));
+        fprintf(stderr, "         cloffset = %d\n", cloffset);
+        fprintf(stderr, "         max = %d\n", AS_MSG_globals->curLineMax);
 #endif
+        cloffset = AS_MSG_globals->curLineMax - 2;
 
-    if (errno) {
-      fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Read error at line " F_U64 ": '%s'\n", AS_MSG_globals->curLineNum, strerror(errno));
-      fprintf(stderr,"       '%s'\n", AS_MSG_globals->curLine);
-      exit(1);
-    }
+        AS_MSG_globals->curLineMax *= 2;
+        AS_MSG_globals->curLine     = (char *)safe_realloc(AS_MSG_globals->curLine, sizeof(char) * AS_MSG_globals->curLineMax);
 
-    if (AS_MSG_globals->curLine[MAX_LINE_LEN-2] != '\n') {
-      fprintf(stderr,"ERROR: Input line " F_U64 " is too long (%s)\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
-      fprintf(stderr,"       '%s'\n", AS_MSG_globals->curLine);
-      exit(1);
-    }
+        AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] = 0;  //  Reset the end-of-line mark so we read more of the line
+        AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 1] = 0;
+      }
+    } while (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != '\n');
   } while (skipComment && AS_MSG_globals->curLine[0] == '#');
-
-  //fprintf(stderr, "ReadLine()-- '%s", AS_MSG_globals->curLine);
 
   return(AS_MSG_globals->curLine);
 }
@@ -102,22 +96,6 @@ ReadLine(FILE *fin, int skipComment) {
 
 
 
-
-// Found an enum out-of-range error.
-void
-MtypeError(const char * const name) {
-  fprintf(stderr,"ERROR: Illegal %s type value '%c' (%s) at line " F_U64 " \n",
-          name,AS_MSG_globals->curLine[4],AS_MSG_globals->msgCode, AS_MSG_globals->curLineNum);
-  exit (1);
-}
-
-// Found a bad 3-code field name.
-void
-MtagError(const char * const tag) {
-  fprintf(stderr,"ERROR: Illegal tag '%s' (expected '%s') (%s) at line " F_U64 "\n",
-          AS_MSG_globals->curLine, tag, AS_MSG_globals->msgCode, AS_MSG_globals->curLineNum);
-  exit (1);
-}
 
 // Field content area did not have correct syntax.
 void
@@ -132,16 +110,6 @@ MfieldError(const char * const mesg) {
   exit (1);
 }
 
-// General error message exit.
-void
-MgenError(const char * const mesg) {
-  fprintf(stderr,"ERROR: %s (%s) at line " F_U64 "\n",
-          mesg,AS_MSG_globals->msgCode,AS_MSG_globals->curLineNum);
-  exit (1);
-}
-
-
-
 
 
 
@@ -153,8 +121,11 @@ GetText(const char * const tag, FILE *fin, const int delnewlines) {
 
   ReadLine(fin, TRUE);
 
-  if (strncmp(AS_MSG_globals->curLine,tag,4) != 0)
-    MtagError(tag);
+  if (strncmp(AS_MSG_globals->curLine,tag,4) != 0) {
+    fprintf(stderr,"ERROR: Illegal tag '%s' (expected '%s') (%s) at line " F_U64 "\n",
+            AS_MSG_globals->curLine, tag, AS_MSG_globals->msgCode, AS_MSG_globals->curLineNum);
+    exit (1);
+  }
 
   while (1) {
     ReadLine(fin, FALSE);
@@ -176,6 +147,11 @@ GetText(const char * const tag, FILE *fin, const int delnewlines) {
 
   AS_MSG_globals->msgBuffer[AS_MSG_globals->msgLen++] = 0;
 
+  assert(AS_MSG_globals->msgLen <= AS_MSG_globals->msgMax);
+
+  //if (AS_MSG_globals->curLineNum > 258000000)
+  //  fprintf(stderr, "TEXT (len:"F_U64"): %s\n", AS_MSG_globals->msgLen, ret);
+
   return(ret);
 }
 
@@ -183,15 +159,18 @@ GetText(const char * const tag, FILE *fin, const int delnewlines) {
 // Get a string field item: syntax "tag%s\n".
 char *
 GetString(const char * const tag, FILE *fin) {
-  char *ret = AS_MSG_globals->msgBuffer + AS_MSG_globals->msgLen;
+  char *ret = NULL;
   char *str = ReadLine(fin, TRUE);
   int   len = 0;
 
   if ((tag[0] != str[0]) ||
       (tag[1] != str[1]) ||
       (tag[2] != str[2]) ||
-      (tag[3] != str[3]))
-    MtagError(tag);
+      (tag[3] != str[3])) {
+    fprintf(stderr,"ERROR: Illegal tag '%s' (expected '%s') (%s) at line " F_U64 "\n",
+            AS_MSG_globals->curLine, tag, AS_MSG_globals->msgCode, AS_MSG_globals->curLineNum);
+    exit (1);
+  }
 
   str += 4;
   len  = strlen(str);
@@ -201,10 +180,8 @@ GetString(const char * const tag, FILE *fin) {
     str[len] = 0;
   }
 
-  memcpy(AS_MSG_globals->msgBuffer + AS_MSG_globals->msgLen, str, len);
-  AS_MSG_globals->msgLen += len;
-
-  AS_MSG_globals->msgBuffer[AS_MSG_globals->msgLen++] = 0;
+  ret = GetMemory(len + 1);
+  memcpy(ret, str, len + 1);
 
   return(ret);
 }
@@ -214,8 +191,11 @@ char
 GetType(char *format, char *name, FILE *fin) {
   char value[2];
   ReadLine(fin, TRUE);
-  if (sscanf(AS_MSG_globals->curLine, format, value) != 1)
-    MtypeError(name);
+  if (sscanf(AS_MSG_globals->curLine, format, value) != 1) {
+    fprintf(stderr,"ERROR: Illegal %s type value '%c' (%s) at line " F_U64 " \n",
+            name,AS_MSG_globals->curLine[4],AS_MSG_globals->msgCode, AS_MSG_globals->curLineNum);
+    exit(1);
+  }
   return(value[0]);
 }
 
@@ -224,7 +204,8 @@ GetType(char *format, char *name, FILE *fin) {
 void
 GetEOM(FILE *fin) {
   if (ReadLine(fin,TRUE)[0] != '}')
-    MgenError("Expecting end of message");
+    fprintf(stderr, "ERROR: ??? expecting end of message '}' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
 }
 
 
@@ -300,15 +281,18 @@ AS_MSG_globalsInitialize(void) {
   if (AS_MSG_globals == NULL) {
     AS_MSG_globals = (AS_MSG_global_t *)safe_calloc(1, sizeof(AS_MSG_global_t));
 
-    AS_MSG_globals->msgMax    = 256;
-    AS_MSG_globals->msgMax   *= 1024;
-    AS_MSG_globals->msgMax   *= 1024;
-    //AS_MSG_globals->msgMax   *= 1024;  //  8GB needed for GOSIII
+    AS_MSG_globals->msgMax     = 256;
+    AS_MSG_globals->msgMax    *= 1024;
+    AS_MSG_globals->msgMax    *= 1024;
+    //AS_MSG_globals->msgMax    *= 1024;  //  8GB needed for GOSIII
 
-    AS_MSG_globals->msgLen    = 0;
-    AS_MSG_globals->msgBuffer = (char *)safe_malloc(sizeof(char) * AS_MSG_globals->msgMax);
+    AS_MSG_globals->msgLen     = 0;
+    AS_MSG_globals->msgBuffer  = (char *)safe_malloc(sizeof(char) * AS_MSG_globals->msgMax);
 
-    AS_MSG_globals->curLine   = (char *)safe_malloc(sizeof(char) * MAX_LINE_LEN);
+    AS_MSG_globals->msgHeap    = AllocateHeap_AS(1, 128 * 1024 * 1024);
+
+    AS_MSG_globals->curLineMax = 1024;
+    AS_MSG_globals->curLine    = (char *)safe_malloc(sizeof(char) * AS_MSG_globals->curLineMax);
 
     AS_MSG_setFormatVersion(1);
   }
@@ -382,12 +366,14 @@ ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg) {
   //
   AS_MSG_globals->msgLen = 0;
 
+  ClearHeap_AS(AS_MSG_globals->msgHeap);
+
   //  Can't use ReadLine() here, because we want to return EOF if we
   //  read an empty line.
   //
   do {
     AS_MSG_globals->curLineNum++;
-    if (fgets(AS_MSG_globals->curLine,MAX_LINE_LEN,fin) == NULL)
+    if (fgets(AS_MSG_globals->curLine, AS_MSG_globals->curLineMax, fin) == NULL)
       return (EOF);
 
     //  Brute force skip ADT messages.
@@ -464,7 +450,7 @@ ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg) {
   return (0);
 }
 
-int
+void
 WriteProtoMesg_AS(FILE *fout, GenericMesg *pmesg) {
 
   AS_MSG_globalsInitialize();
@@ -478,5 +464,9 @@ WriteProtoMesg_AS(FILE *fout, GenericMesg *pmesg) {
     fprintf(stderr, "ERROR: Write Failure: %s\n", strerror(errno));
     exit(1);
   }
-  return (0);
+
+  //  After we have written the message, reset the buffer.
+  AS_MSG_globals->msgLen = 0;
+
+  ClearHeap_AS(AS_MSG_globals->msgHeap);
 }

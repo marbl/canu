@@ -22,12 +22,7 @@
 #ifndef AS_MSG_PMESG_INTERNAL_H
 #define AS_MSG_PMESG_INTERNAL_H
 
-static const char *rcsid_AS_MSG_PMESG_INTERNAL_H = "$Id: AS_MSG_pmesg_internal.h,v 1.11 2010-01-25 17:34:27 brianwalenz Exp $";
-
-//  FreeBSD 6.1 fgets() sporadically replaces \n with \0, which
-//  horribly breaks this reader.  Defined this to replace
-//  fgets() with fgetc().
-//#define FGETS_IS_BROKEN
+static const char *rcsid_AS_MSG_PMESG_INTERNAL_H = "$Id: AS_MSG_pmesg_internal.h,v 1.12 2010-08-16 07:22:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +34,7 @@ static const char *rcsid_AS_MSG_PMESG_INTERNAL_H = "$Id: AS_MSG_pmesg_internal.h
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
-
+#include "AS_UTL_heap.h"
 
 #define ROUNDUP(n,u) ((((n)-1)/(u) + 1)*(u))  /* Round n up to nearest multiple of u */
 
@@ -57,11 +52,18 @@ typedef struct {
 
   const char *msgCode;      //  3-code of current read/write routine
 
-  uint64      msgMax;       //  -- amount allocated
-  uint64      msgLen;       //  -- next free bit
-  char       *msgBuffer;    //  Memory allocation buffer for messages, and the current ceiling/top.
+  Heap_AS    *msgHeap;     //  More storage space for messages, used when we know how much to allocate per block.
+
+  uint64      msgMax;      //  -- amount allocated
+  uint64      msgLen;      //  -- next free bit
+  char       *msgBuffer;   //  Memory allocation buffer for messages, and the current ceiling/top.
+
+  //uint64      lineMax;
+  //uint64      lineLen;
+  //char       *lineBuffer;   //  Memory allocation buffer for the current line being read/written.
 
   char       *curLine;      //  The current line
+  uint64      curLineMax;   //  The maximum length of the current line
   uint64      curLineNum;   //  and current line number
 
   //  The current calling table
@@ -74,10 +76,7 @@ extern AS_MSG_global_t  *AS_MSG_globals;
 char   *GetMemory(size_t nbytes);
 char   *ReadLine(FILE *fin, int skipComment);
 
-void    MtypeError(const char * const name);
-void    MtagError(const char * const tag);
 void    MfieldError(const char * const mesg);
-void    MgenError(const char * const mesg);
 
 char   *GetText(const char * const tag, FILE *fin, const int delnewlines);
 char   *GetString(const char * const tag, FILE *fin);

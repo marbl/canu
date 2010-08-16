@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.86 2010-02-17 01:32:58 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.87 2010-08-16 07:22:28 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.86 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.87 2010-08-16 07:22:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -541,6 +541,6 @@ const char  *GetMessageName(int type);
 void       AS_MSG_setFormatVersion(int format);
 
 int        ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg);
-int        WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg);
+void       WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg);
 
 #endif  /* AS_MSG_PMESG_INCLUDE */
