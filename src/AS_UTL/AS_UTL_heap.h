@@ -22,7 +22,7 @@
 #ifndef AS_UTL_HEAP_H
 #define AS_UTL_HEAP_H
 
-static const char *rcsid_AS_UTL_HEAP_H = "$Id: AS_UTL_heap.h,v 1.9 2008-12-05 19:06:12 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_HEAP_H = "$Id: AS_UTL_heap.h,v 1.10 2010-08-16 06:29:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -42,12 +42,14 @@ typedef struct {
 typedef struct{
   Heap_AS      *heap;
   HeapArray_AS *array;
-  int           item;
+  uint32        item;
 } HeapIterator_AS;
 
-Heap_AS       *AllocateHeap_AS(size_t item_size);
+Heap_AS       *AllocateHeap_AS(size_t item_size, size_t items_per_block = 4096);
 void          *GetHeapItem_AS(Heap_AS *heap);
+void          *GetHeapItems_AS(Heap_AS *heap, size_t num_items);
 void           FreeHeap_AS(Heap_AS *heap);
+void           ClearHeap_AS(Heap_AS *heap);
 
 void           InitHeapIterator_AS(Heap_AS *heap, HeapIterator_AS *iterator);
 void          *NextHeapIterator_AS(HeapIterator_AS *iterator);

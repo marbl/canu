@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_heap.c,v 1.10 2008-12-05 19:06:12 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_heap.c,v 1.11 2010-08-16 06:29:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_heap.h"
@@ -32,9 +32,9 @@ static char *rcsid = "$Id: AS_UTL_heap.c,v 1.10 2008-12-05 19:06:12 brianwalenz 
 //  blocks.
 
 Heap_AS *
-AllocateHeap_AS(size_t item_size) {
+AllocateHeap_AS(size_t item_size, size_t items_per_block) {
   Heap_AS *heap         = (Heap_AS *)safe_calloc(1, sizeof(Heap_AS));
-  heap->items_per_block = 4096;
+  heap->items_per_block = items_per_block;
   heap->item_size       = item_size;
   heap->first           = (HeapArray_AS *)safe_calloc(1, sizeof(HeapArray_AS));
   heap->first->array    = safe_calloc(heap->items_per_block, item_size);
@@ -55,15 +55,69 @@ FreeHeap_AS(Heap_AS *heap) {
   safe_free(heap);
 }
 
+void
+ClearHeap_AS(Heap_AS *heap) {
+  if (heap == NULL)
+    return;
+  //  While there is more than one block on the heap, remove the first
+  //  block.  This saves the last (and largest) allocation.  VERY IMPORTANT!
+  //  The last (and largest) allocation MUST be the one saved, because it
+  //  is the current one -- heap->items_per_block is the size of the last
+  //  block, not any other block.
+  //
+  //  One block is kept for performance reasons - in the usual use case
+  //  of this function (reading messages) the heap has only one block
+  //  allocated.
+  //
+  while (heap->first->next) {
+    HeapArray_AS *t = heap->first->next;
+    safe_free(heap->first->array);
+    safe_free(heap->first);
+    heap->first = t;
+  }
+  assert(heap->first        != NULL);
+  assert(heap->first->array != NULL);
+  assert(heap->first->next  == NULL);
+  heap->first->nextAvail = 0;
+  heap->current = heap->first;
+}
+
 void *
 GetHeapItem_AS(Heap_AS *heap) {
-  if (heap->current->nextAvail >= heap->items_per_block) {
+  if (heap->current->nextAvail + 1 > heap->items_per_block) {
     heap->items_per_block     *= 2;
     heap->current->next        = (HeapArray_AS *)safe_calloc(1, sizeof(HeapArray_AS));
     heap->current->next->array = safe_calloc(heap->items_per_block, heap->item_size);
     heap->current              = heap->current->next;
   }
-  return((char *)heap->current->array + heap->item_size * heap->current->nextAvail++);
+  size_t  na = heap->item_size * heap->current->nextAvail;
+  heap->current->nextAvail += 1;
+  return(((char *)heap->current->array) + na);
+}
+
+void *
+GetHeapItems_AS(Heap_AS *heap, size_t num_items) {
+  if (num_items > heap->items_per_block) {
+    //  We'd love to allocate exactly the size needed for just the next block, leaving the
+    //  default block size the same, but cannot.  So, we'll just double the items
+    //  per block until we fit.
+    while (num_items > heap->items_per_block)
+      heap->items_per_block *= 2;
+    heap->current->next        = (HeapArray_AS *)safe_calloc(1, sizeof(HeapArray_AS));
+    heap->current->next->array = safe_calloc(heap->items_per_block, heap->item_size);
+    heap->current              = heap->current->next;
+  }
+  if (heap->current->nextAvail + num_items > heap->items_per_block) {
+    //  This is the usual case; we just need another small block of memory,
+    //  but the current block is too full.  Move along to the next block.
+    heap->items_per_block     *= 2;
+    heap->current->next        = (HeapArray_AS *)safe_calloc(1, sizeof(HeapArray_AS));
+    heap->current->next->array = safe_calloc(heap->items_per_block, heap->item_size);
+    heap->current              = heap->current->next;
+  }
+  size_t  na = heap->item_size * heap->current->nextAvail;
+  heap->current->nextAvail += num_items;
+  return(((char *)heap->current->array) + na);
 }
 
 void
