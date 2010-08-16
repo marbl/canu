@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.48 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.49 2010-08-16 06:47:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -397,7 +397,8 @@ static void *Read_OVL_Mesg(FILE *fin)
 
 #ifdef AS_MSG_USE_OVL_DELTA
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
-    MgenError("delta tag label");
+    fprintf(stderr, "ERROR: OVL expecting 'del:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
 
   omesg.alignment_delta = (signed char *)GetMemory(2*AS_READ_MAX_NORMAL_LEN);
 
@@ -412,7 +413,8 @@ static void *Read_OVL_Mesg(FILE *fin)
         if (u == t) break;
         t = u;
         if (! isspace((int)*t))
-          MgenError("Delta is not a sequence of digits");
+          fprintf(stderr, "ERROR: OVL expecting sequence of digits in a delta code at line "F_U64", got '%s' instead.\n",
+                  AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
         omesg.alignment_delta[i++] = n;
       }
     omesg.alignment_delta[i] = 0;
@@ -475,7 +477,8 @@ Read_IMP_Mesg(FILE *fin, IntMultiPos *imp) {
   GET_FIELD(imp->bhang,"bhg:"F_S32,"bhang");
   GET_FIELD(imp->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
-    MgenError("Missing del: field");
+    fprintf(stderr, "ERROR: IMP expecting 'del:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   imp->delta = NULL;
   if (imp->delta_length > 0) {
     imp->delta = (int32 *)GetMemory(sizeof(int32) * imp->delta_length);
@@ -485,6 +488,7 @@ Read_IMP_Mesg(FILE *fin, IntMultiPos *imp) {
       n = (int32) strtol(line,&u,10);
       while (u != line) {
 	line = u;
+        assert(i < imp->delta_length);
 	imp->delta[i++] = n;
         n = (int32) strtol(line,&u,10);
       }
@@ -556,7 +560,8 @@ Read_IUP_Mesg(FILE *fin, IntUnitigPos *iup) {
   GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(iup->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
-    MgenError("Missing del: field");
+    fprintf(stderr, "ERROR: IUP expecting 'del:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   iup->delta = NULL;
   if (iup->delta_length > 0) {
     iup->delta = (int32 *)GetMemory(sizeof(int32)*iup->delta_length);
@@ -601,7 +606,8 @@ Read_IUM_Mesg(FILE *fin) {
 
     for (i=0; i < mesg.num_frags; ++i) {
       if (strncmp(ReadLine(fin,TRUE),"{IMP",4) != 0)
-	MgenError("Expecting IMP record");
+        fprintf(stderr, "ERROR: IUM expecting IMP message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_IMP_Mesg(fin, mesg.f_list + i);
     }
   }
@@ -629,7 +635,8 @@ Read_IUL_Mesg(FILE *fin) {
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
-    MgenError("Expecting jls field");
+    fprintf(stderr, "ERROR: IUL expecting 'jls:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   size = mesg.num_contributing;
   if (mesg.overlap_type != AS_NO_OVERLAP)
     --size;
@@ -662,7 +669,8 @@ Read_ICL_Mesg(FILE *fin) {
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
-    MgenError("Expecting jls field");
+    fprintf(stderr, "ERROR: ICL expecting 'jls:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   size = mesg.num_contributing;
   if (mesg.overlap_type != AS_NO_OVERLAP)
     --size;
@@ -692,7 +700,8 @@ Read_ISL_Mesg(FILE *fin) {
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
-    MgenError("Expecting jls field");
+    fprintf(stderr, "ERROR: ISL expecting 'jls:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   size = mesg.num_contributing;
   assert(size > 0);
   mesg.jump_list = (IntMate_Pairs *)GetMemory(sizeof(IntMate_Pairs)*size);
@@ -754,7 +763,8 @@ Read_ISF_Mesg(FILE *fin) {
     icp = mesg.contig_pairs = (IntContigPairs *)GetMemory(num*sizeof(IntContigPairs));
     for (i=0; i < num; ++i) {
       if (strncmp(ReadLine(fin,TRUE),"{ICP",4) != 0)
-	MgenError("Expecting ICP record");
+        fprintf(stderr, "ERROR: ISF expecting ICP message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_ICP_Mesg(fin,icp);
       ++icp;
     }
@@ -778,7 +788,8 @@ Read_IMD_Mesg(FILE *fin) {
   GET_FIELD(mesg.max,"max:"F_S32,"max distance");
   GET_FIELD(mesg.num_buckets,"buc:"F_S32,"number of buckets");
   if (strncmp(ReadLine(fin,TRUE),"his:",4) != 0)
-    MgenError("Expecting his field");
+    fprintf(stderr, "ERROR: IMD expecting 'his:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   if (mesg.num_buckets > 0) {
     mesg.histogram = (int32 *)GetMemory(mesg.num_buckets*sizeof(int32));
     for (i=0; i < mesg.num_buckets; ++i)
@@ -814,7 +825,8 @@ Read_ICM_Mesg(FILE *fin) {
     mesg.v_list = (IntMultiVar *)GetMemory(mesg.num_vars   *sizeof(IntMultiVar));
     for (i=0; i < mesg.num_vars; ++i) {
       if (strncmp(ReadLine(fin,TRUE),"{IMV",4) != 0)
-        MgenError("Expecting IMV record");
+        fprintf(stderr, "ERROR: ICM expecting IMV message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_IMV_Mesg(fin, mesg.v_list + i);
     }
   }
@@ -823,7 +835,8 @@ Read_ICM_Mesg(FILE *fin) {
     mesg.pieces = (IntMultiPos *)GetMemory(mesg.num_pieces *sizeof(IntMultiPos));
     for (i=0; i < mesg.num_pieces; ++i) {
       if (strncmp(ReadLine(fin,TRUE),"{IMP",4) != 0)
-        MgenError("Expecting IMP record");
+        fprintf(stderr, "ERROR: ICM expecting IMP message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_IMP_Mesg(fin, mesg.pieces + i);
     }
   }
@@ -832,7 +845,8 @@ Read_ICM_Mesg(FILE *fin) {
     mesg.unitigs = (IntUnitigPos *)GetMemory(mesg.num_unitigs*sizeof(IntUnitigPos));
     for (i=0; i < mesg.num_unitigs; ++i) {
       if (strncmp(ReadLine(fin,TRUE),"{IUP",4) != 0)
-	MgenError("Expecting IUP record");
+        fprintf(stderr, "ERROR: ICM expecting IUP message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_IUP_Mesg(fin, mesg.unitigs + i);
     }
   }
@@ -900,7 +914,8 @@ Read_MPS_Mesg(FILE *fin, SnapMultiPos *imp) {
   GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(imp->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
-    MgenError("Missing del: field");
+    fprintf(stderr, "ERROR: MPS expecting 'del:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   imp->delta = NULL;
   if (imp->delta_length > 0) {
     imp->delta = (int32 *)GetMemory(sizeof(int32) * imp->delta_length);
@@ -910,6 +925,7 @@ Read_MPS_Mesg(FILE *fin, SnapMultiPos *imp) {
       n = (int32) strtol(line,&u,10);
       while (u != line) {
 	line = u;
+        assert(i < imp->delta_length);
 	imp->delta[i++] = n;
         n = (int32) strtol(line,&u,10);
       }
@@ -932,7 +948,8 @@ Read_UPS_Mesg(FILE *fin, UnitigPos *iup) {
   GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_S32","F_S32,"position field");
   GET_FIELD(iup->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
-    MgenError("Missing del: field");
+    fprintf(stderr, "ERROR: UPS expecting 'del:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   iup->delta = NULL;
   if (iup->delta_length > 0) {
     iup->delta = (int32 *)GetMemory(sizeof(int32)*iup->delta_length);
@@ -989,7 +1006,8 @@ Read_UTG_Mesg(FILE *fin) {
 
     for (i=0; i < mesg.num_frags; ++i) {
       if (strncmp(ReadLine(fin,TRUE),"{MPS",4) != 0)
-	MgenError("Expecting MPS record");
+        fprintf(stderr, "ERROR: UTG expecting MPS message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_MPS_Mesg(fin, mesg.f_list + i);
     }
   }
@@ -1015,7 +1033,8 @@ static void *Read_ULK_Mesg(FILE *fin) {
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
-    MgenError("Expecting jls field");
+    fprintf(stderr, "ERROR: ULK expecting 'jls:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   size = mesg.num_contributing;
   if (mesg.overlap_type != AS_NO_OVERLAP)
     --size;
@@ -1055,7 +1074,8 @@ static void *Read_CCO_Mesg(FILE *fin)
     mesg.vars = (IntMultiVar *)GetMemory(mesg.num_vars  *sizeof(IntMultiVar));
     for (i=0; i < mesg.num_vars; ++i) {
       if (strncmp(ReadLine(fin,TRUE),"{VAR",4) != 0)
-        MgenError("Expecting VAR record");
+        fprintf(stderr, "ERROR: CCO expecting VAR message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_VAR_Mesg(fin, mesg.vars + i);
     }
   }
@@ -1064,7 +1084,8 @@ static void *Read_CCO_Mesg(FILE *fin)
     mesg.pieces = (SnapMultiPos *)GetMemory(mesg.num_pieces * sizeof(SnapMultiPos));
     for (i=0; i < mesg.num_pieces; ++i) {
       if (strncmp(ReadLine(fin,TRUE),"{MPS",4) != 0)
-        MgenError("Expecting MPS record");
+        fprintf(stderr, "ERROR: CCO expecting MPS message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_MPS_Mesg(fin, mesg.pieces + i);
     }
   }
@@ -1073,7 +1094,8 @@ static void *Read_CCO_Mesg(FILE *fin)
     mesg.unitigs  = (UnitigPos *)GetMemory(mesg.num_unitigs*sizeof(UnitigPos));
     for (i=0; i < mesg.num_unitigs; ++i) {
       if (strncmp(ReadLine(fin,TRUE),"{UPS",4) != 0)
-	MgenError("Expecting UPS record");
+        fprintf(stderr, "ERROR: CCO expecting UPS message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_UPS_Mesg(fin, mesg.unitigs + i);
     }
   }
@@ -1100,7 +1122,8 @@ static void *Read_CLK_Mesg(FILE *fin)
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
-    MgenError("Expecting jls field");
+    fprintf(stderr, "ERROR: CLK expecting 'jls:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
 
   size = mesg.num_contributing;
   if (mesg.overlap_type != AS_NO_OVERLAP)
@@ -1132,7 +1155,8 @@ static void *Read_SLK_Mesg(FILE *fin)
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
-    MgenError("Expecting jls field");
+    fprintf(stderr, "ERROR: SLK expecting 'jls:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   size = mesg.num_contributing;
   assert(size > 0) ;
   mesg.jump_list = (SnapMate_Pairs *)GetMemory(sizeof(SnapMate_Pairs)*size);
@@ -1160,7 +1184,8 @@ static void *Read_SCF_Mesg(FILE *fin)
     for (i=0; i < num; ++i) {
       SnapContigPairs *icp = mesg.contig_pairs + i;
       if (strncmp(ReadLine(fin,TRUE),"{CTP",4) != 0)
-	MgenError("Expecting CTP record");
+        fprintf(stderr, "ERROR: SCF expecting CTP message at line "F_U64", got '%s' instead.\n",
+                AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
       Read_CTP_Mesg(fin,icp);
     }
   }
@@ -1182,7 +1207,8 @@ static void *Read_MDI_Mesg(FILE *fin)
   GET_FIELD(mesg.max,"max:"F_S32,"max distance");
   GET_FIELD(mesg.num_buckets,"buc:"F_S32,"number of buckets");
   if (strncmp(ReadLine(fin,TRUE),"his:",4) != 0)
-    MgenError("Expecting his field");
+    fprintf(stderr, "ERROR: MDI expecting 'his:' at line "F_U64", got '%s' instead.\n",
+            AS_MSG_globals->curLineNum, AS_MSG_globals->curLine), exit(1);
   if (mesg.num_buckets > 0) {
     mesg.histogram = (int32 *)GetMemory(mesg.num_buckets*sizeof(int32));
 
@@ -1329,7 +1355,6 @@ static void Write_UOM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"max:"F_S32"\n",mesg->max_overlap_length);
   fprintf(fout,"qua:%.6f\n",mesg->quality);
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
@@ -1352,7 +1377,6 @@ static void Write_IMP_Mesg(FILE *fout, IntMultiPos *mlp)
     if (mlp->delta_length%20 != 0) fprintf(fout,"\n");
   }
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_IMV_Mesg(FILE *fout, IntMultiVar *imv)
@@ -1375,7 +1399,6 @@ static void Write_IMV_Mesg(FILE *fout, IntMultiVar *imv)
   PutText(fout,"rid:",imv->enc_read_ids,  FALSE);
 
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_VAR_Mesg(FILE *fout, IntMultiVar *smv)
@@ -1398,7 +1421,6 @@ static void Write_VAR_Mesg(FILE *fout, IntMultiVar *smv)
   PutText(fout,"rid:",smv->enc_read_ids,  FALSE);
 
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_IUP_Mesg(FILE *fout, IntUnitigPos *up)
@@ -1417,7 +1439,6 @@ static void Write_IUP_Mesg(FILE *fout, IntUnitigPos *up)
     if (up->delta_length%20 != 0) fprintf(fout,"\n");
   }
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_IUM_Mesg(FILE *fout, void *vmesg)
@@ -1443,7 +1464,6 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < mesg->num_frags; ++i)
     Write_IMP_Mesg(fout,&(mesg->f_list[i]));
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_IUL_Mesg(FILE *fout, void *vmesg)
@@ -1470,7 +1490,6 @@ static void Write_IUL_Mesg(FILE *fout, void *vmesg)
             mesg->jump_list[i].in2,
             mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_ICL_Mesg(FILE *fout, void *vmesg)
@@ -1497,7 +1516,6 @@ static void Write_ICL_Mesg(FILE *fout, void *vmesg)
             mesg->jump_list[i].in2,
             mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_ISL_Mesg(FILE *fout, void *vmesg)
@@ -1520,7 +1538,6 @@ static void Write_ISL_Mesg(FILE *fout, void *vmesg)
             mesg->jump_list[i].in2,
             mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_AFG_Mesg(FILE *fout, void *vmesg)
@@ -1533,7 +1550,6 @@ static void Write_AFG_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"cha:"F_S32"\n",mesg->chaff);
   fprintf(fout,"clr:"F_S32","F_S32"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_AMP_Mesg(FILE *fout, void *vmesg)
@@ -1544,7 +1560,6 @@ static void Write_AMP_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"frg:%s\n",AS_UID_toString(mesg->fragment2));
   fprintf(fout,"mst:%c\n",mesg->mate_status);
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_ICP_Mesg(FILE *fout, IntContigPairs *mesg)
@@ -1556,7 +1571,6 @@ static void Write_ICP_Mesg(FILE *fout, IntContigPairs *mesg)
   fprintf(fout,"std:%.3f\n",mesg->stddev);
   fprintf(fout,"ori:%c\n",mesg->orient.toLetter());
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_ISF_Mesg(FILE *fout, void *vmesg)
@@ -1569,7 +1583,6 @@ static void Write_ISF_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < num; ++i)
     Write_ICP_Mesg(fout,&mesg->contig_pairs[i]);
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_IMD_Mesg(FILE *fout, void *vmesg)
@@ -1587,7 +1600,6 @@ static void Write_IMD_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < mesg->num_buckets; ++i)
     fprintf(fout,F_S32"\n",mesg->histogram[i]);
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_ICM_Mesg(FILE *fout, void *vmesg)
@@ -1611,7 +1623,6 @@ static void Write_ICM_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < mesg->num_unitigs; ++i)
     Write_IUP_Mesg(fout, &(mesg->unitigs[i]));
   fprintf(fout,"}\n");
-  return;
 }
 
 
@@ -1626,7 +1637,6 @@ static void Write_IAF_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"clr:"F_S32","F_S32"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
   fprintf(fout,"mst:%c\n",mesg->mate_status);
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_IAM_Mesg(FILE *fout, void *vmesg)
@@ -1637,7 +1647,6 @@ static void Write_IAM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"frg:"F_IID"\n",mesg->fragment2);
   fprintf(fout,"mst:%c\n",mesg->mate_status);
   fprintf(fout,"}\n");
-  return;
 }
 
 
@@ -1661,7 +1670,6 @@ static void Write_UPS_Mesg(FILE *fout, UnitigPos *up)
     if (up->delta_length%20 != 0) fprintf(fout,"\n");
   }
   fprintf(fout,"}\n");
-  return;
 }
 static void Write_MPS_Mesg(FILE *fout, SnapMultiPos *mlp)
 { int i;
@@ -1679,7 +1687,6 @@ static void Write_MPS_Mesg(FILE *fout, SnapMultiPos *mlp)
     if (mlp->delta_length%20 != 0) fprintf(fout,"\n");
   }
   fprintf(fout,"}\n");
-  return;
 }
 
 
@@ -1705,7 +1712,6 @@ static void Write_UTG_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < mesg->num_frags; ++i)
     Write_MPS_Mesg(fout,&(mesg->f_list[i]));
   fprintf(fout,"}\n");
-  return;
 }
 
 
@@ -1733,7 +1739,6 @@ static void Write_ULK_Mesg(FILE *fout, void *vmesg)
             AS_UID_toString(mesg->jump_list[i].in2),
             mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
-  return;
 }
 
 
@@ -1763,7 +1768,6 @@ static void Write_CCO_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < mesg->num_unitigs; ++i)
     Write_UPS_Mesg(fout, &(mesg->unitigs[i]));
   fprintf(fout,"}\n");
-  return;
 }
 
 
@@ -1791,7 +1795,6 @@ static void Write_CLK_Mesg(FILE *fout, void *vmesg)
             AS_UID_toString(mesg->jump_list[i].in2),
             mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_SLK_Mesg(FILE *fout, void *vmesg)
@@ -1814,7 +1817,6 @@ static void Write_SLK_Mesg(FILE *fout, void *vmesg)
             AS_UID_toString(mesg->jump_list[i].in2),
             mesg->jump_list[i].type.toLetter());
   fprintf(fout,"}\n");
-  return;
 }
 
 
@@ -1827,7 +1829,6 @@ static void Write_CTP_Mesg(FILE *fout, SnapContigPairs *mesg)
   fprintf(fout,"std:%.3f\n",mesg->stddev);
   fprintf(fout,"ori:%c\n",mesg->orient.toLetter());
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_SCF_Mesg(FILE *fout, void *vmesg)
@@ -1840,7 +1841,6 @@ static void Write_SCF_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < num; ++i)
     Write_CTP_Mesg(fout,&mesg->contig_pairs[i]);
   fprintf(fout,"}\n");
-  return;
 }
 
 
@@ -1859,7 +1859,6 @@ static void Write_MDI_Mesg(FILE *fout, void *vmesg)
   for (i=0; i < mesg->num_buckets; ++i)
     fprintf(fout,F_S32"\n",mesg->histogram[i]);
   fprintf(fout,"}\n");
-  return;
 }
 
 static void Write_BAT_Mesg(FILE *fout, void *vmesg){
@@ -1870,7 +1869,6 @@ static void Write_BAT_Mesg(FILE *fout, void *vmesg){
   fprintf(fout,"acc:%s\n",AS_UID_toString(mesg->eaccession));
   PutText(fout,"com:",mesg->comment, FALSE);
   fprintf(fout,"}\n");
-
 }
 
 static void Write_EOF_Mesg(FILE *fout, void *vmesg)
