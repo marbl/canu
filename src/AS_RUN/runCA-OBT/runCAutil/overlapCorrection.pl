@@ -15,7 +15,7 @@ sub overlapCorrection {
     if ((getGlobal("ovlOverlapper") eq "ovl") && (! -e "$wrk/3-overlapcorrection/frgcorr.sh")) {
         my $batchSize   = getGlobal("frgCorrBatchSize");
         my $numThreads  = getGlobal("frgCorrThreads");
-        my $jobs        = int($numFrags / ($batchSize-1)) + 1;
+        my $jobs        = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
 
         open(F, "> $wrk/3-overlapcorrection/frgcorr.sh") or caFailure("failed to write to '$wrk/3-overlapcorrection/frgcorr.sh'", undef);
         print F "#!" . getGlobal("shell") . "\n\n";
@@ -102,7 +102,7 @@ sub overlapCorrection {
 
     if (! -e "$wrk/3-overlapcorrection/$asm.frgcorr") {
         my $batchSize  = (getGlobal("ovlOverlapper") eq "mer") ? getGlobal("merOverlapperExtendBatchSize") : getGlobal("frgCorrBatchSize");
-        my $jobs       = int($numFrags / ($batchSize-1)) + 1;
+        my $jobs       = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
         my $failedJobs = 0;
 
         open(F, "> $wrk/3-overlapcorrection/cat-corrects.frgcorrlist");
@@ -161,8 +161,8 @@ sub overlapCorrection {
     #
 
     if (! -e "$wrk/3-overlapcorrection/ovlcorr.sh") {
-        my $ovlCorrBatchSize  = getGlobal("ovlCorrBatchSize");
-        my $jobs              = int($numFrags / ($ovlCorrBatchSize-1)) + 1;
+        my $batchSize  = getGlobal("ovlCorrBatchSize");
+        my $jobs       = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
 
         open(F, "> $wrk/3-overlapcorrection/ovlcorr.sh") or caFailure("failed to write '$wrk/3-overlapcorrection/ovlcorr.sh'", undef);
         print F "jobid=\$SGE_TASK_ID\n";
@@ -179,8 +179,8 @@ sub overlapCorrection {
         print F "fi\n";
         print F "\n";
         print F "jobid=`printf %04d \$jobid`\n";
-        print F "frgBeg=`expr \$jobid \\* $ovlCorrBatchSize - $ovlCorrBatchSize + 1`\n";
-        print F "frgEnd=`expr \$jobid \\* $ovlCorrBatchSize`\n";
+        print F "frgBeg=`expr \$jobid \\* $batchSize - $batchSize + 1`\n";
+        print F "frgEnd=`expr \$jobid \\* $batchSize`\n";
         print F "if [ \$frgEnd -ge $numFrags ] ; then\n";
         print F "  frgEnd=$numFrags\n";
         print F "fi\n";
@@ -238,10 +238,10 @@ sub overlapCorrection {
     #
 
     if (! -e "$wrk/3-overlapcorrection/$asm.erates.updated") {
-        my $ovlCorrBatchSize = getGlobal("ovlCorrBatchSize");
-        my $bin              = getBinDirectory();
-        my $failedJobs       = 0;
-        my $jobs             = int($numFrags / ($ovlCorrBatchSize-1)) + 1;
+        my $batchSize   = getGlobal("ovlCorrBatchSize");
+        my $bin         = getBinDirectory();
+        my $failedJobs  = 0;
+        my $jobs        = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
         my $cmd;
 
         open(F, "> $wrk/3-overlapcorrection/cat-erates.eratelist");

@@ -54,7 +54,7 @@ sub checkMerOverlapper ($) {
     }
 
     my $batchSize  = getGlobal("merOverlapperExtendBatchSize");
-    my $jobs       = int($numFrags / ($batchSize-1)) + 1;
+    my $jobs       = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
     my $failedJobs = 0;
 
     for (my $i=1; $i<=$jobs; $i++) {

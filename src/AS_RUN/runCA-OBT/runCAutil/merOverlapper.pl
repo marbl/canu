@@ -102,10 +102,10 @@ sub merOverlapper($) {
     system("mkdir $wrk/3-overlapcorrection") if ((! -d "$wrk/3-overlapcorrection") && ($isTrim ne "trim"));
 
     my $ovmBatchSize = getGlobal("merOverlapperSeedBatchSize");
-    my $ovmJobs      = int(($numFrags - 1) / $ovmBatchSize) + 1;
+    my $ovmJobs      = int($numFrags / $ovmBatchSize) + (($numFrags % $ovmBatchSize == 0) ? 0 : 1);
 
     my $olpBatchSize = getGlobal("merOverlapperExtendBatchSize");
-    my $olpJobs      = int(($numFrags - 1) / $olpBatchSize) + 1;
+    my $olpJobs      = int($numFrags / $olpBatchSize) + (($numFrags % $olpBatchSize == 0) ? 0 : 1);
 
     #  Need mer counts, unless there is only one partition.
     meryl() if (($ovmJobs > 1) || ($merylNeeded));
