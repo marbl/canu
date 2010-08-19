@@ -22,7 +22,7 @@
 #ifndef AS_UTL_IID_H
 #define AS_UTL_IID_H
 
-static const char *rcsid_AS_UTL_IID_H = "$Id: AS_UTL_IID.h,v 1.4 2009-07-30 10:42:56 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_IID_H = "$Id: AS_UTL_IID.h,v 1.5 2010-08-19 05:28:07 brianwalenz Exp $";
 
 typedef int32  CDS_CID_t;
 #define CDS_CID_MAX     INT32_MAX
@@ -39,14 +39,14 @@ inline
 AS_IID
 AS_IID_fromString(char *str, char **nxt) {
   return(strtoull(str, nxt, 10));
-};
+}
 
 static
 inline
 int
 AS_IID_isDefined(AS_IID iid) {
   return(iid > 0);
-};
+}
 
 
 #endif  //  AS_UTL_IID_H

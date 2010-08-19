@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: scoreOverlaps.C,v 1.1 2009-06-18 14:55:50 brianwalenz Exp $";
+const char *mainid = "$Id: scoreOverlaps.C,v 1.2 2010-08-19 05:28:06 brianwalenz Exp $";
 
 //  Scores all overlaps for a given frag IID on the command line
 
@@ -138,7 +138,7 @@ scoreOverlap(const OVSoverlap& olap) {
   leng <<= (2 * AS_OVS_ERRBITS);
 
   return(leng | corr | orig);
-};
+}
 
 
 

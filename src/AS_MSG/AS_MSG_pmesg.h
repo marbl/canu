@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.87 2010-08-16 07:22:28 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.88 2010-08-19 05:28:07 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.87 2010-08-16 07:22:28 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.88 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -508,11 +508,11 @@ typedef struct EndOfFileMesgTag {
 
 
 
-VA_DEF(IntMultiPos);
-VA_DEF(IntMultiVar);
-VA_DEF(IntUnitigPos);
-VA_DEF(IntElementPos);
-VA_DEF(IntUnitigMesg);  //  Used by unitigger.
+VA_DEF(IntMultiPos)
+VA_DEF(IntMultiVar)
+VA_DEF(IntUnitigPos)
+VA_DEF(IntElementPos)
+VA_DEF(IntUnitigMesg)  //  Used by unitigger.
 
 
 

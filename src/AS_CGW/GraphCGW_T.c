@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.85 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.86 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +42,7 @@ static char *rcsid = "$Id: GraphCGW_T.c,v 1.85 2010-02-17 01:32:58 brianwalenz E
 
 #include "Input_CGW.h"
 
-VA_DEF(PtrT);
+VA_DEF(PtrT)
 
 void InitializeChunkInstance(ChunkInstanceT *ci, ChunkInstanceType type){
   ClearChunkInstance(ci);
@@ -1471,7 +1471,7 @@ void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
   GraphEdgeIterator edgeMates;
   GraphNodeIterator nodes;
   NodeCGW_T *node;
-  ChunkOverlapCheckT olap = {0};
+  ChunkOverlapCheckT olap;
   int count    = 0;
   int failures = 0;
 

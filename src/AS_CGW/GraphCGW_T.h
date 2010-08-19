@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.45 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.46 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -208,7 +208,7 @@ typedef enum {
 */
 
 
-VA_DEF(CDS_CID_t);
+VA_DEF(CDS_CID_t)
 
 
 typedef struct{
@@ -326,8 +326,8 @@ typedef struct{
 
 }NodeCGW_T;
 
-VA_DEF(NodeCGW_T);
-VA_DEF(EdgeCGW_T);
+VA_DEF(NodeCGW_T)
+VA_DEF(EdgeCGW_T)
 
 ////////////////////////////////////////////////////////////////////////////////
 //

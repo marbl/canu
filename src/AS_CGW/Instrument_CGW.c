@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.47 2010-04-26 03:59:33 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.48 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,7 +74,7 @@ typedef struct
   CDS_CID_t   iid;
   int32 length;
 } IID_Size;
-VA_DEF(IID_Size);
+VA_DEF(IID_Size)
 
 #undef DUMP_MATE_PAIRS
 //#define DUMP_MATE_PAIRS

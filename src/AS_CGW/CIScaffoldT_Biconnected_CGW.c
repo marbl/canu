@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.16 2009-07-27 08:08:28 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.17 2010-08-19 05:28:06 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -58,8 +58,8 @@ static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.16 2009-07-27 08:08
 
 /* Create a parametrized stack of PtrT variables */
 
-VA_DEF(PtrT);
-STACK_DEF(PtrT);
+VA_DEF(PtrT)
+STACK_DEF(PtrT)
 
 /****** Stolen from LEDA _bicomponents.c
         For a detailed reference, see "Computer Algorithms" , Horowitz,Sahni, Rajesekaran pg 335.
@@ -74,11 +74,12 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
 static Stack_PtrT *Stack = NULL;
 
 int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
-  int numElements = scaffold->info.Scaffold.numElements;
-  NodeCGW_T *contigs[numElements], *contig1;
-  int32    dfsnum[numElements];
-  int32    father[numElements];
-  int32    lowpt[numElements];
+  int         numElements = scaffold->info.Scaffold.numElements;
+  NodeCGW_T  *contig1;
+  NodeCGW_T **contigs = (NodeCGW_T **)safe_malloc(sizeof(NodeCGW_T *) * numElements);
+  int32      *dfsnum  = (int32      *)safe_malloc(sizeof(int32)       * numElements);
+  int32      *father  = (int32      *)safe_malloc(sizeof(int32)       * numElements);
+  int32      *lowpt   = (int32      *)safe_malloc(sizeof(int32)       * numElements);
   CIScaffoldTIterator Nodes;
   int count1 = 0;
   int count2 = 0;
@@ -169,8 +170,12 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
     }
   }
 
-  return (numBridges == 0);
+  safe_free(contigs);
+  safe_free(dfsnum);
+  safe_free(father);
+  safe_free(lowpt);
 
+  return (numBridges == 0);
 }
 
 

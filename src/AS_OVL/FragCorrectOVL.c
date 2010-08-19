@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.33 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.34 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -1739,7 +1739,8 @@ static void  Process_Olap
   {
    char  * a_part, * b_part;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
-   int  match_to_end, delta [MAX_ERRORS], delta_len, errors;
+   int  match_to_end, delta_len, errors;
+   int *delta = NULL;
    int  a_offset, sub;
 
    if  (Verbose_Level > 0)
@@ -1837,6 +1838,8 @@ static void  Process_Olap
    b_part_len = strlen (b_part);
    olap_len = OVL_Min_int (a_part_len, b_part_len);
 
+   delta = (int *)safe_malloc(sizeof(int) * MAX_ERRORS);
+
    errors = Prefix_Edit_Dist
               (a_part, a_part_len, b_part, b_part_len,
                Error_Bound [olap_len], & a_end, & b_end,
@@ -1877,6 +1880,8 @@ if  (a_end < 0 || a_end > a_part_len || b_end < 0 || b_end > b_part_len)
        }
      else
        Failed_Olaps ++;
+
+   safe_free(delta);
 
    return;
   }

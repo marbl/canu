@@ -144,7 +144,9 @@ ifeq ($(OSTYPE), Darwin)
       ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -g
       ARCH_LDFLAGS  += -m64 -lm
     else
-      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -fast
+      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wshorten-64-to-32  -fast
+      ARCH_CfLAGS   += -Wextra
+      ARCH_CFLAGS   += -pedantic
       ARCH_LDFLAGS  += -m64 -lm
     endif
   endif

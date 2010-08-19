@@ -22,7 +22,7 @@
 #ifndef AS_CGW_EDGEDIAGNOSTICS_H
 #define AS_CGW_EDGEDIAGNOSTICS_H
 
-static const char *rcsid_AS_CGW_EDGEDIAGNOSTICS_H = "$Id: AS_CGW_EdgeDiagnostics.h,v 1.6 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_AS_CGW_EDGEDIAGNOSTICS_H = "$Id: AS_CGW_EdgeDiagnostics.h,v 1.7 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -40,7 +40,7 @@ typedef struct
   SequenceOrient orient;
 } OrientHolder;
 
-VA_DEF(OrientHolder);
+VA_DEF(OrientHolder)
 
 
 typedef struct

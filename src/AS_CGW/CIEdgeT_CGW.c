@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.20 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.21 2010-08-19 05:28:06 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -275,7 +275,7 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
           int32 minOverlap =
             MAX(-sourceTarget.mean - delta, 0);
           int32 maxOverlap = -sourceTarget.mean + delta;
-          ChunkOverlapCheckT olap = {0};
+          ChunkOverlapCheckT olap;
 
           int overlapCheckFound = LookupOverlap(graph,
                                                 sourceCid, targetCid,

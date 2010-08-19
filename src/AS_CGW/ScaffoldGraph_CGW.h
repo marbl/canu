@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.43 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.44 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -63,11 +63,11 @@ int isDeadCIScaffoldT(CIScaffoldT *scaffold);
 
 int RepeatRez(int repeatRezLevel, char *name);
 
-VA_DEF(ChunkInstanceT);
-VA_DEF(CIScaffoldT);
-VA_DEF(ContigT);
-VA_DEF(CIEdgeT);
-VA_DEF(SEdgeT);
+VA_DEF(ChunkInstanceT)
+VA_DEF(CIScaffoldT)
+VA_DEF(ContigT)
+VA_DEF(CIEdgeT)
+VA_DEF(SEdgeT)
 
 typedef struct{
   VA_TYPE(CIFragT)        *CIFrags;

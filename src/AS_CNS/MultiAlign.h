@@ -22,14 +22,14 @@
 #ifndef MULTIALIGN_H
 #define MULTIALIGN_H
 
-static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.8 2009-12-10 04:01:10 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.9 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
 #include "AS_PER_gkpStore.h"
 
-VA_DEF(char);
-VA_DEF(int32);
+VA_DEF(char)
+VA_DEF(int32)
 
 typedef struct {
   double                     unitig_coverage_stat;

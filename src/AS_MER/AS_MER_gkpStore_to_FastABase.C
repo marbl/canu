@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_MER_gkpStore_to_FastABase.C,v 1.18 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_MER_gkpStore_to_FastABase.C,v 1.19 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
@@ -121,7 +121,7 @@ gkpStoreFile::openFile(const char *name) {
   //  if can't open store, or file not there, return null
 
   return(new gkpStoreFile(n, bgn, end, clr));
-};
+}
 
 
 

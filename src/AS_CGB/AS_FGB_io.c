@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_io.c,v 1.34 2010-08-12 19:19:48 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_io.c,v 1.35 2010-08-19 05:28:06 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -61,7 +61,7 @@ int REAPER_VALIDATION = FALSE;
 #undef REPORT_DELETED_UNDEF_FRAGS
 
 
-VA_DEF(IntEdge_ID);
+VA_DEF(IntEdge_ID)
 static void keep_a_list_of_extreme_elements(Aedge       *newedge,
                                             IntEdge_ID  *next_edge,
                                             size_t       start_idx,

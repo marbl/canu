@@ -21,7 +21,7 @@
 #ifndef FIXZLFCONTIGS_H
 #define FIXZLFCONTIGS_H
 
-static const char *rcsid_FIXZLFCONTIGS_H = "$Id: fixZLFContigs.h,v 1.5 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_FIXZLFCONTIGS_H = "$Id: fixZLFContigs.h,v 1.6 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -33,7 +33,7 @@ typedef struct
   LengthT aEnd;
   LengthT bEnd;
 } IEPish;
-VA_DEF(IEPish);
+VA_DEF(IEPish)
 
 typedef struct
 {
@@ -41,7 +41,7 @@ typedef struct
   int32 zlfUsFound;
   VA_TYPE(MultiAlignT) * zlfUMAs;
 } ZLFContig;
-VA_DEF(ZLFContig);
+VA_DEF(ZLFContig)
 
 typedef struct
 {
@@ -49,7 +49,7 @@ typedef struct
   int32 zlfContigsFound;
   VA_TYPE(ZLFContig) * zlfContigs;
 } ZLFScaffold;
-VA_DEF(ZLFScaffold);
+VA_DEF(ZLFScaffold)
 
 
 void PopulateContigUnitigCoords(ContigT * contig,

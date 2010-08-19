@@ -21,7 +21,7 @@
 #ifndef DBTextOutput_HH
 #define DBTextOutput_HH
 
-static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.11 2010-02-17 01:32:57 brianwalenz Exp $";
+static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.12 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #include "IDBOutput.hh"
 
@@ -178,6 +178,6 @@ namespace AS_ARD {
          bool commitCTPList2DB() { return true; };
          bool commitCPS2DB() { return true; };
    };
-};
+}
 
 #endif // DBTextOutput_HH

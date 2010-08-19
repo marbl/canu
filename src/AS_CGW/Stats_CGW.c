@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Stats_CGW.c,v 1.23 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: Stats_CGW.c,v 1.24 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static char *rcsid = "$Id: Stats_CGW.c,v 1.23 2009-10-05 22:49:42 brianwalenz Ex
 #include "AS_UTL_fileIO.h"
 #include "MultiAlignment_CNS.h"
 
-VA_DEF(int);
+VA_DEF(int)
 
 
 /* Generate statistics on the U-Unitig induced subgraph of
@@ -594,7 +594,7 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
       if(mates){  // we only want edges that are NOT overlap only
         fprintf(linkstd_w_overlap,"%d\n", std);
         if(graph->type == CONTIG_GRAPH){
-          ChunkOverlapCheckT olap = {0};
+          ChunkOverlapCheckT olap;
           int overlapFound = LookupOverlap(graph, edge->idA, edge->idB, edge->orient, &olap);
           if(overlapFound && olap.fromCGB){
             cgbOverlap++;

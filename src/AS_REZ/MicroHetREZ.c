@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MicroHetREZ.c,v 1.23 2009-07-30 10:42:56 brianwalenz Exp $";
+static char *rcsid = "$Id: MicroHetREZ.c,v 1.24 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -161,7 +161,7 @@ AS_REZ_print_alignment(Alignment_t *a,  int w) {
   int c = a->cols;
   int r = a->rows;
   int iter = 0;
-  char consensus[a->cols];
+  char *consensus = (char *)safe_malloc(sizeof(char) * a->cols);
   int count[6]; // A C G T Dash N
 
   for(i=0; i<a->cols; i++)
@@ -242,6 +242,7 @@ AS_REZ_print_alignment(Alignment_t *a,  int w) {
     printf("\n");
   }while(iter*w < c);
 
+  safe_free(consensus);
 }
 
 
@@ -299,7 +300,7 @@ AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
 // they will grow to the length of the number of frags
 // in the entire genome (not the number in this partition). SAK
 //
-VA_DEF(uint32);
+VA_DEF(uint32)
 
 static  VA_TYPE(uint32)  *locales  = NULL;
 static  VA_TYPE(uint32)  *locbeg   = NULL;

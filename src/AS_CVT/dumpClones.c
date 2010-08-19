@@ -27,7 +27,7 @@
 #include "AS_global.h"
 #include "ASMData.h"
 
-VA_DEF(CDS_UID_t);
+VA_DEF(CDS_UID_t)
 
 int main(int argc, char ** argv)
 {

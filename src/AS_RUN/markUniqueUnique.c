@@ -1,4 +1,4 @@
-const char *mainid = "$Id: markUniqueUnique.c,v 1.7 2010-02-17 01:32:59 brianwalenz Exp $";
+const char *mainid = "$Id: markUniqueUnique.c,v 1.8 2010-08-19 05:28:07 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -23,7 +23,7 @@ const char *mainid = "$Id: markUniqueUnique.c,v 1.7 2010-02-17 01:32:59 brianwal
 #define DEFAULT_DISTANCE_TO_ENDS        1000
 #define NUM_INSTANCES_AT_SCAFFOLD_ENDS     2
 #define TIG_STORE_UTGS                     2
-VA_DEF(uint32);
+VA_DEF(uint32)
 
 int main (int argc, char *argv[]) {
    int      firstFileArg   = 0;

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.35 2010-03-29 16:52:40 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.36 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -108,7 +108,7 @@ bool
 operator==(SeqInterval a, SeqInterval b) {
   return((a.bgn == b.bgn) && (a.end == b.end) ||
          (a.bgn == b.end) && (a.end == b.bgn));
-};
+}
 
 inline
 bool
@@ -120,7 +120,7 @@ operator<(SeqInterval a, SeqInterval b) {
     if (isReverse(b)) return a.bgn < b.end;
     else              return a.bgn < b.bgn;
   }
-};
+}
 #endif
 
 class MateLocationEntry {

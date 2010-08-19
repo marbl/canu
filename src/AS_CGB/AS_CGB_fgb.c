@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_fgb.c,v 1.19 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_fgb.c,v 1.20 2010-08-19 05:28:06 brianwalenz Exp $";
 
 //  The fragment overlap graph builder.
 //
@@ -38,6 +38,10 @@ static char *rcsid = "$Id: AS_CGB_fgb.c,v 1.19 2009-10-26 13:20:26 brianwalenz E
 //  AS_CGB_edgemate.c
 int verify_that_the_edges_are_in_order(Tedge edges[]);
 
+
+//  This function is far far too general for use here.  We know 'size' is sizeof(Aedge), and
+//  we only call it on an arrayof Aedge.  Oh well.
+//
 static void in_place_permute
 (
  const size_t  ndata,  // The number of data records.
@@ -46,11 +50,10 @@ static void in_place_permute
  void  *       data    // The data.
 )
 { // Inspired by Gene^s in-place permute ...
-  char * done = NULL;
-  char  saved_source[size], saved_target[size];
+  char *done         = (char *)safe_malloc(sizeof(char) * ndata);
+  char *saved_source = (char *)safe_malloc(sizeof(char) * size);
+  char *saved_target = (char *)safe_malloc(sizeof(char) * size);
   size_t ii, jj=0;
-
-  done = (char *)safe_malloc(sizeof(char) * ndata);
 
   fprintf(stderr,"Permutation in-place " F_SIZE_T " items of " F_SIZE_T " bytes\n",
           ndata, size);
@@ -82,6 +85,8 @@ static void in_place_permute
   }
   assert(jj == ndata); // Was this a permutation??
   safe_free(done);
+  safe_free(saved_source);
+  safe_free(saved_target);
 }
 
 
@@ -624,11 +629,6 @@ void transitive_edge_marking
 
   int64 successful_searches = 0, failed_searches = 0;
 
-  // Maximum number of edges to explore per candidate edge.
-  int64 work_tally_per_candidate_edge_histogram
-    [work_limit_per_candidate_edge+1];
-  // The last entry represents a failure.
-
   /* Transitive Edge Removal */
   int64 num_of_triangles_visited = 0;
   int64 num_of_quads_visited = 0;
@@ -661,10 +661,6 @@ void transitive_edge_marking
     //failed_search_path_histogram[i] = 0;
   }}
 #endif // WALK_DEPTH_DIAGNOSTICS
-
-  { int i; for(i=0;i<work_limit_per_candidate_edge+1;i++) {
-    work_tally_per_candidate_edge_histogram[i]=0;
-  }}
 
   // Should these histograms be stored in the check-point or remain a
   // batch quanitity?
@@ -842,9 +838,6 @@ void transitive_edge_marking
                     // frpt
                     );
               }
-
-              work_tally_per_candidate_edge_histogram[work_tally_per_candidate_edge]++;
-
 	    }
 
 	    if(iremove) {

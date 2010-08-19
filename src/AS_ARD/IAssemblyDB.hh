@@ -21,7 +21,7 @@
 #ifndef IAssemblyDB_HH
 #define IAssemblyDB_HH
 
-static const char *rcsid_IAssemblyDB_HH = "$Id: IAssemblyDB.hh,v 1.5 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_IAssemblyDB_HH = "$Id: IAssemblyDB.hh,v 1.6 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #include <string>
 #include <IDBOutput.hh>
@@ -53,6 +53,6 @@ namespace AS_ARD {
 
          virtual bool LoadDatabaseFromASMFile(FILE * fi, UIDserver * uid) = 0;
    };
-};
+}
 
 #endif // IAssemblyDB_HH

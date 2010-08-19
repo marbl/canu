@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.61 2010-04-02 06:55:32 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.62 2010-08-19 05:28:07 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.61 2010-04-02 06:55:32 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.61 2010-04-02 06:55:32 brianwalenz Exp $
- * $Revision: 1.61 $
+ * $Id: AS_OVL_overlap_common.h,v 1.62 2010-08-19 05:28:07 brianwalenz Exp $
+ * $Revision: 1.62 $
 */
 
 
@@ -2638,6 +2638,8 @@ void  Initialize_Work_Area
    WA -> Left_Delta  = (int *)safe_malloc (MAX_ERRORS * sizeof (int));
    WA -> Right_Delta = (int *)safe_malloc (MAX_ERRORS * sizeof (int));
 
+   WA -> Delta_Stack = (int *)safe_malloc (MAX_ERRORS * sizeof (int));
+
    WA -> Edit_Space = (int *)safe_malloc ((MAX_ERRORS + 4) * MAX_ERRORS * sizeof (int));
    WA -> Edit_Array = (int **)safe_malloc (MAX_ERRORS * sizeof (int *));
 
@@ -3278,7 +3280,7 @@ static int  Prefix_Edit_Dist
 //  a branch point.
 
   {
-   int  Delta_Stack [MAX_ERRORS];
+    //int  Delta_Stack [MAX_ERRORS];
 #if 0
    double  Cost_Sum, Min_Cost_Sum;
    int Adjustment, Cost_Sub;
@@ -4578,7 +4580,6 @@ static void  Set_Right_Delta
 //  delta entries.
 
   {
-   int  delta_stack [MAX_ERRORS];
    int  from, last, max;
    int  i, j, k;
 
@@ -4600,23 +4601,23 @@ static void  Set_Right_Delta
           }
       if  (from == d - 1)
           {
-           delta_stack [WA -> Right_Delta_Len ++] = max - last - 1;
+           WA -> Delta_Stack [WA -> Right_Delta_Len ++] = max - last - 1;
            d --;
            last = WA -> Edit_Array [k - 1] [from];
           }
       else if  (from == d + 1)
           {
-           delta_stack [WA -> Right_Delta_Len ++] = last - (max - 1);
+           WA -> Delta_Stack [WA -> Right_Delta_Len ++] = last - (max - 1);
            d ++;
            last = WA -> Edit_Array [k - 1] [from];
           }
      }
-   delta_stack [WA -> Right_Delta_Len ++] = last + 1;
+   WA -> Delta_Stack [WA -> Right_Delta_Len ++] = last + 1;
 
    k = 0;
    for  (i = WA -> Right_Delta_Len - 1;  i > 0;  i --)
      WA -> Right_Delta [k ++]
-         = abs (delta_stack [i]) * Sign (delta_stack [i - 1]);
+         = abs (WA -> Delta_Stack [i]) * Sign (WA -> Delta_Stack [i - 1]);
    WA -> Right_Delta_Len --;
 
    return;

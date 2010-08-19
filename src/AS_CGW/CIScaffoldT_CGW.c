@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.49 2010-02-23 03:11:54 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.50 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -48,7 +48,7 @@ static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.49 2010-02-23 03:11:54 brianwal
 #include "CommonREZ.h"
 #include "Stats_CGW.h"   // for collecting scaffold merging stats
 
-VA_DEF(PtrT);
+VA_DEF(PtrT)
 
 
 void PrintCINodeFields(FILE * stream, NodeCGW_T * node)
@@ -908,7 +908,7 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
 
   // Expected case, Scaffold is connected
   if(numComponents > 1){
-    CDS_CID_t nodes[numNodes];
+    CDS_CID_t *nodes = (CDS_CID_t *)safe_malloc(sizeof(CDS_CID_t) * numNodes);
     int inode;
 
     // IsScaffoldInternalyConnected does a connected component analysis, marking the contigs with their component number
@@ -1013,6 +1013,8 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
     scaffold->info.Scaffold.numElements = 0;
     scaffold->bpLength.mean             = 0.0;
     scaffold->bpLength.variance         = 0.0;
+
+    safe_free(nodes);
   }
   return numComponents;
 }

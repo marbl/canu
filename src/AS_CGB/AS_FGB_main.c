@@ -19,13 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_main.c,v 1.28 2010-08-12 19:19:48 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_main.c,v 1.29 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
 int (*compare_edge_function)(const void *a, const void *b);
 
-VA_DEF(IntEdge_ID);
+VA_DEF(IntEdge_ID)
 
 //  AS_CGB_fga.c
 void fragment_graph_analysis(Tfragment frags[],

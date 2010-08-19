@@ -26,15 +26,15 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.34 2010-03-30 05:33:20 brianwalenz Exp $
- * $Revision: 1.34 $
+ * $Id: AS_OVL_overlap.h,v 1.35 2010-08-19 05:28:07 brianwalenz Exp $
+ * $Revision: 1.35 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
 
-static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.34 2010-03-30 05:33:20 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.35 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -436,10 +436,11 @@ typedef  struct
 
 typedef  struct Work_Area
   {
-   int  Left_Delta_Len;
+   int    Left_Delta_Len;
    int  * Left_Delta;
    int    Right_Delta_Len;
    int  * Right_Delta;
+   int  * Delta_Stack;
    int  * Edit_Space;
    int  ** Edit_Array;
    int  * Edit_Match_Limit;

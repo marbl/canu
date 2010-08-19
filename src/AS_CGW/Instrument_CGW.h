@@ -22,7 +22,7 @@
 #ifndef INSTRUMENT_CGW_H
 #define INSTRUMENT_CGW_H
 
-static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.14 2010-04-26 03:59:33 brianwalenz Exp $";
+static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.15 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -32,8 +32,8 @@ static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.14 2010-0
 #include "InputDataTypes_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 
-VA_DEF(float);
-VA_DEF(IntContigPairs);
+VA_DEF(float)
+VA_DEF(IntContigPairs)
 
 /*
   Bit vector switches for instrumenting options - field in instrumenter
@@ -154,7 +154,7 @@ typedef struct
   float mateOffset3p;
 #endif
 } MateDetail;
-VA_DEF(MateDetail);
+VA_DEF(MateDetail)
 
 
 /*
@@ -166,7 +166,7 @@ typedef struct
   FragType    type;
   float offset5p;
 } FragDetail;
-VA_DEF(FragDetail);
+VA_DEF(FragDetail)
 
 typedef struct
 {
@@ -280,7 +280,7 @@ typedef struct
   VA_TYPE(MateDetail *) mates;
   int32 pairs;
 } InstrumenterBreakpoint;
-VA_DEF(InstrumenterBreakpoint);
+VA_DEF(InstrumenterBreakpoint)
 
 #define INST_MIN_BREAK_MATES   2
 
@@ -294,7 +294,7 @@ typedef struct
   float        distPref;
   PairOrient   orientPref;
 } InstrumenterContigPair;
-VA_DEF(InstrumenterContigPair);
+VA_DEF(InstrumenterContigPair)
 
 typedef struct
 {
@@ -303,7 +303,7 @@ typedef struct
   float           length;
   SequenceOrient  orient;
 } ContigPlacement;
-VA_DEF(ContigPlacement);
+VA_DEF(ContigPlacement)
 
 typedef struct
 {
@@ -313,7 +313,7 @@ typedef struct
   float        dist;
   PairOrient   orient;
 } CP_Index;
-VA_DEF(CP_Index);
+VA_DEF(CP_Index)
 
 /*
   Structure to keep track of many fragments in surrogates

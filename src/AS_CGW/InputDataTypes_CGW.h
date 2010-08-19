@@ -22,7 +22,7 @@
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
 
-static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.24 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.25 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -37,7 +37,7 @@ typedef enum {
   AS_SINGLETON    = (int)'S',
   AS_INTERCHUNK_A = (int)'A',
   AS_INTERCHUNK_B = (int)'B',
-  AS_INTRACHUNK   = (int)'I',
+  AS_INTRACHUNK   = (int)'I'
 } LabelType;
 
 
@@ -80,7 +80,7 @@ typedef struct {
   } flags;
 }CIFragT;
 
-VA_DEF(CIFragT);
+VA_DEF(CIFragT)
 
 
 static SequenceOrient getCIFragOrient(CIFragT *frag){
@@ -124,6 +124,6 @@ typedef struct {
   int32         numBad;
 }DistT;
 
-VA_DEF(DistT);
+VA_DEF(DistT)
 
 #endif

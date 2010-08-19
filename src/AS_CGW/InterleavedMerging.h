@@ -22,7 +22,7 @@
 #ifndef INTERLEAVED_MERGING_H
 #define INTERLEAVED_MERGING_H
 
-static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.12 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.13 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -35,11 +35,11 @@ static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.
 
 #include "Instrument_CGW.h"
 
-VA_DEF(Segment);
-VA_DEF(Local_Overlap);
-VA_DEF(Scaffold_Gap);
-VA_DEF(Scaffold_Tig);
-VA_DEF(PtrT);
+VA_DEF(Segment)
+VA_DEF(Local_Overlap)
+VA_DEF(Scaffold_Gap)
+VA_DEF(Scaffold_Tig)
+VA_DEF(PtrT)
 
 typedef struct {
   int index;
@@ -50,8 +50,8 @@ typedef struct {
   SequenceOrient orient;
 } ContigElement;
 
-VA_DEF(ContigElement);
-VA_DEF(MateInstrumenterP);
+VA_DEF(ContigElement)
+VA_DEF(MateInstrumenterP)
 
 typedef struct {
   VA_TYPE(Scaffold_Gap) * gapPool;

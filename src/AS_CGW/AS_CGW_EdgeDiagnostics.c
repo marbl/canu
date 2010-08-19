@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.27 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.28 2010-08-19 05:28:06 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -880,7 +880,7 @@ typedef struct
   int         weight;
 } ScfLink;
 
-VA_DEF(ScfLink);
+VA_DEF(ScfLink)
 
 
 void PrintScaffoldConnectivity(ScaffoldGraphT * graph,

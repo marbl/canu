@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.54 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.55 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,8 +40,8 @@ static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.54 2010-02-17 01:32:58 brianwal
 #define MAX_GOOD_CLONE_COVERAGE  0
 #define LN_2                     0.693147
 
-VA_DEF(uint16);
-VA_DEF(SeqInterval);
+VA_DEF(uint16)
+VA_DEF(SeqInterval)
 
 typedef struct {
   IntMultiPos     *f_list;

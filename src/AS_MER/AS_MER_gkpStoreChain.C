@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_MER_gkpStoreChain.C,v 1.1 2009-07-24 12:09:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_MER_gkpStoreChain.C,v 1.2 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include "AS_MER_gkpStoreChain.H"
 
@@ -125,7 +125,7 @@ gkpStoreChain::openFile(const char *name) {
     return(0L);
 
   return(new gkpStoreChain(n, AS_READ_CLEAR_LATEST));
-};
+}
 
 
 

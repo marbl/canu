@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.67 2010-08-12 19:19:48 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.68 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -66,7 +66,7 @@ typedef struct{
   int32 count;
 }ContigEndsT;
 
-VA_DEF(ContigEndsT);
+VA_DEF(ContigEndsT)
 VA_TYPE(ContigEndsT) *ContigEnds = NULL;
 
 

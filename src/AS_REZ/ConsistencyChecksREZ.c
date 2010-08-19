@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.17 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.18 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -488,7 +488,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	  int overlaps   = 0;
 	  int noOverlaps = 0;
 	  int wrongOverlapChunk = 0;
-	  int goodChunks[numChunks];
+	  int *goodChunks = (int *)safe_malloc(sizeof(int) * numChunks);
 	  int goodChunksTop=0;
 	  // in this stack we keep track
 	  // of the chunks that were tested for overlap with chunk k and passed
@@ -627,6 +627,8 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 #endif
 	      round2Rejected++;
 	    }
+
+          safe_free(goodChunks);
 	}
       }
     }

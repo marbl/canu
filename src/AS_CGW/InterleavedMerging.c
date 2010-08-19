@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.27 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.28 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -151,7 +151,7 @@ typedef struct
   ContigSetInterval b;
 } COSData;
 
-VA_DEF(COSData);
+VA_DEF(COSData)
 
 
 
@@ -763,7 +763,7 @@ LookForChunkOverlapFromContigElements(ContigElement * ceA,
   ALNoverlap * retOverlap = NULL;
   int32 minOverlap;
   int32 maxOverlap;
-  ChunkOverlapCheckT chunkOverlap = {0};
+  ChunkOverlapCheckT chunkOverlap;
   PairOrient overlapOrient;
   ChunkInstanceT * contigA;
   ChunkInstanceT * contigB;

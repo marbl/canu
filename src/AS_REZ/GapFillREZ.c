@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.67 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.68 2010-08-19 05:28:07 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -339,7 +339,7 @@ typedef  struct
   // creating multiple copies of a stone.
 }  Stack_Entry_t;
 
-VA_DEF(Stack_Entry_t);
+VA_DEF(Stack_Entry_t)
 
 
 typedef  struct
@@ -3118,7 +3118,7 @@ static int  Choose_Best_Stones
 //  stones.
 
 {
-  int  sorted [num_nodes];    // non-standard run-time allocation
+  int  *sorted = (int *)safe_malloc(sizeof(int) * num_nodes);
   int  start_sub = 0, target_sub = 0, num_sorted;
   int  num_kept;
   int  i;
@@ -3169,6 +3169,8 @@ static int  Choose_Best_Stones
                                    target_sub, edge, pool, ref_position,
                                    factor, target_position);
     }
+
+  safe_free(sorted);
 
   return  num_kept;
 }

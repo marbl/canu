@@ -22,7 +22,7 @@
 #ifndef AS_ARD_database_HH
 #define AS_ARD_database_HH
 
-static const char *rcsid_AS_ARD_database_HH = "$Id: AS_ARD_database.hh,v 1.6 2009-07-30 10:42:55 brianwalenz Exp $";
+static const char *rcsid_AS_ARD_database_HH = "$Id: AS_ARD_database.hh,v 1.7 2010-08-19 05:28:06 brianwalenz Exp $";
 
 #include <string>
 
@@ -70,6 +70,6 @@ namespace AS_ARD {
          ~AS_ARD_database();
          bool LoadDatabaseFromASMFile(FILE * fi, UIDserver * uid);
    };
-};
+}
 
 #endif // AS_ARD_database_HH

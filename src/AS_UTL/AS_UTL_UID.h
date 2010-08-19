@@ -22,7 +22,7 @@
 #ifndef AS_UTL_UID_H
 #define AS_UTL_UID_H
 
-static const char *rcsid_AS_UTL_UID_H = "$Id: AS_UTL_UID.h,v 1.5 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_UID_H = "$Id: AS_UTL_UID.h,v 1.6 2010-08-19 05:28:07 brianwalenz Exp $";
 
 #include <string.h>
 
@@ -85,7 +85,7 @@ uint64
 AS_UID_toInteger(AS_UID uid) {
   uint64  uii = uid.isString;  //  Need to force it to a 64-bit value
   return((uii << 63) | uid.UID);
-};
+}
 
 static
 inline
@@ -101,7 +101,7 @@ AS_UID_fromInteger(uint64 uidn) {
   assert(uid.UID == (uidn & ~mask));
   assert(AS_UID_toInteger(uid) == uidn);
   return(uid);
-};
+}
 
 
 
@@ -129,7 +129,7 @@ inline
 int
 AS_UID_isDefined(AS_UID uid) {
   return((uid.UID > 0) || (uid.isString == 1));
-};
+}
 
 //  A special case, used only by terminator.  Please do not use.
 static
@@ -152,7 +152,7 @@ AS_UID_compare(AS_UID a, AS_UID b) {
   if (ai > bi)
     return(1);
   return(0);
-};
+}
 
 
 
