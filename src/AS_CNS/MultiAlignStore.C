@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.17 2010-04-15 01:38:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.18 2010-08-24 14:59:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -562,11 +562,14 @@ MultiAlignStore::copyMultiAlign(int32 maID, bool isUnitig, MultiAlignT *macopy) 
 
 void
 MultiAlignStore::flushCache(void) {
+  uint32  numUFlushed = 0;
+  uint32  numCFlushed = 0;
 
   for (uint32 i=0; i<utgLen; i++) {
     if (utgCache[i]) {
       DeleteMultiAlignT(utgCache[i]);
       utgCache[i] = NULL;
+      numUFlushed++;
     }
   }
 
@@ -574,8 +577,12 @@ MultiAlignStore::flushCache(void) {
     if (ctgCache[i]) {
       DeleteMultiAlignT(ctgCache[i]);
       ctgCache[i] = NULL;
+      numCFlushed++;
     }
   }
+
+  fprintf(stderr, "MultiAlignStore::flushCache()-- flushed %u unitigs and %u contigs.\n",
+          numUFlushed, numCFlushed);
 
 #if 0
   for (uint32 p=0; p<MAX_PART; p++)
