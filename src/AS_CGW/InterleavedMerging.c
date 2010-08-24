@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.28 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.29 2010-08-24 15:02:38 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -275,6 +275,7 @@ DeleteScaffoldStuff(ScaffoldStuff * ss) {
       DeleteVA_ContigElement(ss->contigs);
     if(ss->edgeContigs)
       DeleteVA_ContigElement(ss->edgeContigs);
+    safe_free(ss);
   }
 }
 

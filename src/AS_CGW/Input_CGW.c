@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.69 2010-01-17 03:10:10 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.70 2010-08-24 15:02:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,6 +100,8 @@ int ProcessInput(int optind, int argc, char *argv[]){
       fprintf(stderr, "...processed "F_S32" fragments.\n", numFRG);
     }
   }
+
+  delete fs;
 
   fprintf(stderr, "Reading unitigs.\n");
 

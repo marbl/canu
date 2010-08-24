@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.22 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.23 2010-08-24 15:02:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1632,6 +1632,8 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
     seglist=NULL;
 
   }
+
+  safe_free(Blists);
 
   return (seglist);
 }

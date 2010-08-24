@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.36 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.37 2010-08-24 15:02:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -873,9 +873,11 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
 
     DeleteHashTable_AS(instanceList);
 
-    if (numFrgsToPlace == 0)
+    if (numFrgsToPlace == 0) {
       //  Nothing to place.
+      DeleteHashTable_AS(fragPlacedTimes);
       continue;
+    }
 
     //  Over all instances, again, build the final list of fragments to place.  This discards any
     //  fragment we try to place more than once.
@@ -940,7 +942,7 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
 
       numReallyPlaced+=GetNumCDS_CID_ts(toplace);
 
-      ResetVA_CDS_CID_t(toplace);
+      DeleteVA_CDS_CID_t(toplace);
 
       ResetVA_int32(placedList[i]);
     }  //  Over all instances

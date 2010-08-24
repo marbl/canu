@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.48 2009-12-01 00:20:30 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.49 2010-08-24 15:02:38 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -294,8 +294,11 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
     ResetVA_char(ma->consensus);
     ResetVA_char(ma->quality);
 
+    //  Important: we want to keep this ma in the cache, only so that we don't have to explicitly
+    //  delete it right here.  When the store is deleted (below) the cache will get flushed.
+
     ScaffoldGraph->tigStore->setContigStatus(ctg->id, ((scaffold != NULL) && (scaffold->type == REAL_SCAFFOLD)) ? AS_PLACED : AS_UNPLACED);
-    ScaffoldGraph->tigStore->insertMultiAlign(ma, FALSE, FALSE);
+    ScaffoldGraph->tigStore->insertMultiAlign(ma, FALSE, TRUE);
   }
 
   //  Flush and close the tigStore.  We are no longer able to do anything with the scaffold graph.
