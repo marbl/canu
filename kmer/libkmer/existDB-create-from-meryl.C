@@ -78,8 +78,6 @@ existDB::createFromMeryl(char const  *prefix,
         numberOfMers++;
       }
 
-      numberOfMers++;
-
       if (maxCount < M->theCount())
         maxCount = M->theCount();
 
@@ -118,15 +116,13 @@ existDB::createFromMeryl(char const  *prefix,
   if (beVerbose) {
     fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "u64bitFMT"MB\n", _hashTableWords >> 17);
     fprintf(stderr, "existDB::createFromMeryl()-- buckets is "u64bitFMT"MB\n", _bucketsWords >> 17);
+    if (flags & existDBcounts)
+      fprintf(stderr, "existDB::createFromMeryl()-- counts is "u64bitFMT"MB\n", _countsWords >> 17);
   }
 
   _hashTable = new u64bit [_hashTableWords];
   _buckets   = new u64bit [_bucketsWords];
-  _counts    = 0L;
-
-  if (flags & existDBcounts)
-    _counts    = new u64bit [_countsWords];
-
+  _counts    = (flags & existDBcounts) ? new u64bit [_countsWords] : 0L;
 
   ////////////////////////////////////////////////////////////////////////////////
   //
