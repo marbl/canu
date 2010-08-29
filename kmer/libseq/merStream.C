@@ -32,6 +32,14 @@ merStream::rewind(void) {
 
 
 void
+merStream::rebuild(void) {
+  _ss->setPosition(_ss->strPos() - _kb->theFMer().getMerSpan());
+  _kb->clear();
+  _invalid = true;
+}
+
+
+void
 merStream::setRange(u64bit beg, u64bit end) {
 
   assert(beg < end);

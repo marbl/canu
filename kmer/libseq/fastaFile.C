@@ -221,7 +221,12 @@ fastaFile::getSequence(u32bit iid,
     if (whitespaceSymbol[x] == false) {
       s[sLen++] = x;
       if (sLen >= sMax) {
-        sMax *= 2;
+        if (sMax == 4294967295)  //  4G - 1
+          fprintf(stderr, "fastaFile::getSequence()-- ERROR: sequence is too long; must be less than 4 Gbp.\n"), exit(1);
+        if (sMax >= 2147483648)  //  2G
+          sMax = 4294967295;
+        else
+          sMax *= 2;
         char *S = new char [sMax];
         memcpy(S, s, sLen);
         delete [] s;
@@ -238,7 +243,7 @@ fastaFile::getSequence(u32bit iid,
 }
 
 
-
+// slow
 bool
 fastaFile::getSequence(u32bit iid,
                        u32bit bgn, u32bit end, char *s) {
@@ -481,6 +486,13 @@ fastaFile::constructIndex(void) {
       x = ib.read();
     }
 
+    if (namesLen + 1 >= namesMax) {
+      namesMax += 32 * 1024 * 1024;
+      char *nt = new char [namesMax];
+      memcpy(nt, _names, namesLen);
+      delete [] _names;
+      _names = nt;
+    }
     _names[namesLen++] = 0;
 
     //  Skip the rest of the defline

@@ -56,6 +56,9 @@ private:
 
   u32bit             _nextID;         //  Next sequence in the read buffer
 
+  u32bit             _gs_iid;
+  u32bit             _gs_pos;
+
   friend class seqFactory;
 };
 

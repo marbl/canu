@@ -57,6 +57,7 @@ public:
   //  range(0,5) -> AAAnnnCnnnG
   //
   void              setRange(u64bit bgn, u64bit end);
+  void              setPosition(u64bit pos);
 
   //  seqPos() is the position we are at in the current sequence;
   //  seqIID() is the iid of that sequence;

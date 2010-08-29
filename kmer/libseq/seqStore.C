@@ -328,6 +328,15 @@ seqStore::loadIndex(void) {
   fseeko(F, _header._indexStart, SEEK_SET);
   fread( _index,   sizeof(seqStoreIndex), _header._numberOfSequences, F);
 
+  for (u32bit i=0; i<_header._numberOfSequences; i++)
+    fprintf(stderr, "IDX[%4u] hdrPos=%u hdrLen=%u seqPos=%llu seqLen=%u block=%u\n",
+            i,
+            _index[i]._hdrPosition,
+            _index[i]._hdrLength,
+            _index[i]._seqPosition,
+            _index[i]._seqLength,
+            _index[i]._block);
+
   fseeko(F, _header._blockStart, SEEK_SET);
   fread( _block,   sizeof(seqStoreBlock), _header._numberOfBlocks, F);
 
@@ -362,6 +371,9 @@ addSeqStoreBlock(u32bit          &BLOKmax,
                  u32bit          &nBlockACGT,
                  u32bit          &nBlockGAP,
                  u64bit          &nACGT) {
+
+  //fprintf(stderr, "addSeqStoreBlock()-- BLOK max=%u len=%u ACGT=%u GAP=%u nACGT=%lu\n",
+  //        BLOKmax, BLOKlen, nBlockACGT, nBlockGAP, nACGT);
 
   if (b._len == 0)
     return;
@@ -418,8 +430,6 @@ constructSeqStore(char *filename, seqCache *inputseq) {
   speedCounter      C(" reading sequences %7.0f sequences -- %5.0f sequences/second\r", 1.0, 0x1ffff, true);
 
   while (sic != NULL) {
-    nSequences++;
-
     if (sic->sequence()) {
       char          *seq = sic->sequence();
       seqStoreBlock  b;
@@ -437,6 +447,21 @@ constructSeqStore(char *filename, seqCache *inputseq) {
       INDX[nSequences]._seqPosition = DATA->tell() / 2;
       INDX[nSequences]._seqLength   = sic->sequenceLength();
       INDX[nSequences]._block       = BLOKlen;
+
+      fprintf(stderr, "ADD SEQUENCE hdr pos=%u len=%u seq pos=%u len=%u blok=%u\n",
+              INDX[nSequences]._hdrPosition,
+              INDX[nSequences]._hdrLength,
+              INDX[nSequences]._seqPosition,
+              INDX[nSequences]._seqLength,
+              INDX[nSequences]._block);              
+
+      if (sic->sequenceLength() > SEQSTOREBLOCK_MAXPOS)
+        fprintf(stderr, "constructSeqStore()-- sequence %s too long, must be shorter than %llu Gbp.\n",
+                sic->header(), SEQSTOREBLOCK_MAXPOS / 1024 / 1024 / 1024), exit(1);
+
+      if (sic->getIID() > SEQSTOREBLOCK_MAXPOS)
+        fprintf(stderr, "constructSeqStore()-- too many sequences, must be fewer than %llu.\n",
+                SEQSTOREBLOCK_MAXIID), exit(1);
 
       if (NAMElen + sic->headerLength() + 1 > NAMEmax) {
         NAMEmax += 32 * 1024 * 1024;
@@ -513,6 +538,10 @@ constructSeqStore(char *filename, seqCache *inputseq) {
       //
       addSeqStoreBlock(BLOKmax, BLOKlen, BLOK, b, nBlockACGT, nBlockGAP, nACGT);
     }
+
+    //  If there is no sequence, the index record for this sequence is left blank.
+    //
+    nSequences++;
 
     C.tick();
 

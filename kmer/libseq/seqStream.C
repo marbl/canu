@@ -243,6 +243,19 @@ seqStream::setRange(u64bit bgn, u64bit end) {
 }
 
 
+void
+seqStream::setPosition(u64bit pos) {
+
+  assert(_bgn <=  pos);
+  assert( pos <  _end);
+
+  u64bit old = _bgn;
+
+  _bgn = pos;
+  rewind();
+  _bgn = old;
+}
+
 
 u32bit
 seqStream::sequenceNumberOfPosition(u64bit p) {

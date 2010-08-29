@@ -57,13 +57,15 @@ struct seqStoreIndex {
 //
 struct seqStoreBlock {
   u64bit      _isACGT:1;    // block is acgt
-  u64bit      _pos:31;      // position in sequence
+  u64bit      _pos:32;      // position in sequence
   u64bit      _iid:32;      // iid of the sequence we are in
-  u64bit      _len:24;      // length of block
+  u64bit      _len:23;      // length of block
   u64bit      _bpf:40;      // position in the bit file of sequence
 };
 
-#define SEQSTOREBLOCK_MAXLEN u64bitMASK(24)
+#define SEQSTOREBLOCK_MAXPOS u64bitMASK(32)
+#define SEQSTOREBLOCK_MAXIID u64bitMASK(32)
+#define SEQSTOREBLOCK_MAXLEN u64bitMASK(23)
 
 class seqStore : public seqFile {
 protected:

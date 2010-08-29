@@ -58,6 +58,7 @@ public:
   };
 
   void                   rewind(void);
+  void                   rebuild(void);
   void                   setRange(u64bit beg, u64bit end);
 
   u64bit                 thePositionInSequence(void)   { assert(_invalid == false); return(_ss->seqPos() - theFMer().getMerSpan()); };
