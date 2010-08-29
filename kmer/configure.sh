@@ -138,6 +138,7 @@ fi
 
 #
 #  Decide on compilers to use.  Unfortunately, all the options are tuned for gcc/g++.
+#  In particular, -m64 and -W* and -f* aren't liked by Intel compilers.
 #
 
 if [ x$CC = x ] ; then
@@ -307,11 +308,11 @@ THREADS           := -pthread
 THREADL           := -pthread -lthr
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -pg -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
+CFLAGS_COMPILE    := -pg -O3 \$(THREADS) -fPIC -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CLDFLAGS          := -pg -L/usr/local/lib
 CLIBS             := \$(THREADL)
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
+CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -fPIC -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CXXLDFLAGS        := -pg -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 CXXSHARED         := -shared
