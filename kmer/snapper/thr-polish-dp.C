@@ -83,8 +83,8 @@ public:
       delete [] alignB;
       delete [] matrix;
 
-      aMax = lenA + 1;
-      bMax = lenB + 1;
+      aMax = MAX(aMax, lenA) + 1000;
+      bMax = MAX(bMax, lenB) + 1000;
 
       fprintf(stderr, "dpMatrix-- reallocate to "u32bitFMT" x "u32bitFMT"\n", aMax, bMax);
 
@@ -261,53 +261,44 @@ dpMatrix::dpAlign(char     *stringA,  int lenA,
 
 
 
-char*
+void
 doPolishDP(searcherState       *state,
-           seqInCore           *seq,
-           aHit               *&theHits,
-           u32bit              &theHitsLen,
-           logMsg              *theLog) {
-  double   startTime = getTime();
-  u32bit   outLen    = 0;
-  u32bit   outMax    = 2 * 1024 * theHitsLen;
-  char    *out       = 0L;
+           query               *qry) {
 
   //  For the autofilter
   u64bit   successes    = u64bitZERO;
   u64bit   successMask  = u64bitMASK(config._afLength);
   u32bit   attempts     = 0;
 
-  if (theHitsLen == 0) {
-    out    = new char [8];
-    out[0] = 0;
-    return(out);
-  }
+  if (qry->theHitsLen == 0)
+    return;
 
-  try {
-    out = new char [outMax];
-  } catch (...) {
-    fprintf(stderr, "doPolish()-- Can't allocate space for the output string ("u32bitFMT" bytes) in thread "u64bitFMT"\n", outMax, state->threadID);
-    abort();
-  }
+  qry->theOutputLen = 0;
+  qry->theOutputMax = 2 * 1024 * qry->theHitsLen;
+  qry->theOutput    = new char [qry->theOutputMax];
 
-  out[0] = 0;
+  qry->theOutput[0] = 0;
 
   //  Move these to searcherState!
-  dpMatch   match;
-  dpMatrix  matrix;
 
-  for (u32bit h=0; h<theHitsLen; h++) {
+  if (state->DP == 0L)
+    state->DP = new dpMatrix;
+
+  dpMatch   match;
+  dpMatrix *matrix = (dpMatrix *)state->DP;
+
+  for (u32bit h=0; h<qry->theHitsLen; h++) {
 
     //  If the hit was discarded, move along.
     //
-    if (theHits[h]._status & AHIT_DISCARDED)
+    if (qry->theHits[h]._status & AHIT_DISCARDED)
       continue;
 
     //  If the hit was filtered out, move along.
     //
     if ((config._doValidation == false) &&
-        ((theHits[h]._status & AHIT_POLISHABLE) == 0) &&
-        ((theHits[h]._status & AHIT_HAS_UNIQUE) == 0))
+        ((qry->theHits[h]._status & AHIT_POLISHABLE) == 0) &&
+        ((qry->theHits[h]._status & AHIT_HAS_UNIQUE) == 0))
       continue;
 
     //  If our recent success rate is pretty terrible, continue.
@@ -319,7 +310,7 @@ doPolishDP(searcherState       *state,
         //  If we've hit the end of the good polishes, give up.  But
         //  still do all the stuff with unique mers in them.
         //
-        if (((theHits[h]._status & AHIT_HAS_UNIQUE) == 0) &&
+        if (((qry->theHits[h]._status & AHIT_HAS_UNIQUE) == 0) &&
             (rat < config._afThreshold))
           continue;
       }
@@ -331,10 +322,10 @@ doPolishDP(searcherState       *state,
     //  Polish it up!
     //
 
-    seqInCore            *QRYseq = seq;
-    seqInCore            *GENseq = genome->getSequenceInCore(theHits[h]._dsIdx);
-    u32bit                GENlo  = theHits[h]._dsLo;
-    u32bit                GENhi  = theHits[h]._dsHi;
+    seqInCore            *QRYseq = qry->seq;
+    seqInCore            *GENseq = genome->getSequenceInCore(qry->theHits[h]._dsIdx);
+    u32bit                GENlo  = qry->theHits[h]._dsLo;
+    u32bit                GENhi  = qry->theHits[h]._dsHi;
 
     char  *q = QRYseq->sequence();
     char  *g = GENseq->sequence() + GENlo;
@@ -342,21 +333,24 @@ doPolishDP(searcherState       *state,
     if (GENhi > GENseq->sequenceLength())
       GENhi = GENseq->sequenceLength();
 
-    u32bit   qlen = seq->sequenceLength();
+    u32bit   qlen = qry->seq->sequenceLength();
     u32bit   glen = GENhi - GENlo;
 
-    bool     doForward =  theHits[h]._status & AHIT_DIRECTION_MASK;
+    bool     doForward =  qry->theHits[h]._status & AHIT_DIRECTION_MASK;
     bool     doReverse = !doForward;
 
     if (doReverse) {
       reverseComplementSequence(q, qlen);
     }
 
+#if 0
     fprintf(stderr, "align QRYlen="u32bitFMT" GEN="u32bitFMT"-"u32bitFMT" GENlen="u32bitFMT"\n",
             qlen, GENlo, GENhi, glen);
+#endif
 
-    if ((qlen * 3 > glen) && ((qlen / 1024) * (glen / 1024) < 4 * 1024))
-      matrix.dpAlign(q, qlen, g, glen, &match);
+    //if ((qlen * 3 > glen) && ((qlen / 1024) * (glen / 1024) < 4 * 1024))
+
+    matrix->dpAlign(q, qlen, g, glen, &match);
 
     if (doReverse) {
       reverseComplementSequence(q, qlen);
@@ -373,7 +367,7 @@ doPolishDP(searcherState       *state,
       sim4polish      p;
       sim4polishExon  e;
 
-      theHits[h]._status |= AHIT_VERIFIED;
+      qry->theHits[h]._status |= AHIT_VERIFIED;
 
       p.estID    = QRYseq->getIID();
       p.estLen   = QRYseq->sequenceLength();
@@ -420,23 +414,25 @@ doPolishDP(searcherState       *state,
         char *pstr = s4p_polishToString(&p);
 
         u32bit l = (u32bit)strlen(pstr);
-        if (outLen + l + 1 >= outMax) {
-          outMax = outMax + outMax + l;
+
+        if (qry->theOutputLen + l + 1 >= qry->theOutputMax) {
+          qry->theOutputMax = qry->theOutputMax + qry->theOutputMax + l;
           char *o = 0L;
           try {
-            o = new char [outMax];
+            o = new char [qry->theOutputMax];
           } catch (...) {
-            fprintf(stderr, "doPolish()-- Can't reallocate space for the output string ("u32bitFMT" bytes) in thread "u64bitFMT"\n", outMax, state->threadID);
+            fprintf(stderr, "doPolish()-- Can't reallocate space for the output string ("u32bitFMT" bytes) in thread "u64bitFMT"\n", qry->theOutputMax, state->threadID);
             abort();
           }
-          memcpy(o, out, sizeof(char) * outLen);
-          delete [] out;
-          out = o;
+          memcpy(o, qry->theOutput, sizeof(char) * qry->theOutputLen);
+          delete [] qry->theOutput;
+          qry->theOutput = o;
         }
 
-        memcpy(out + outLen, pstr, sizeof(char) * l);
-        outLen += l;
-        out[outLen] = 0;
+        memcpy(qry->theOutput + qry->theOutputLen, pstr, sizeof(char) * l);
+        qry->theOutputLen += l;
+
+        qry->theOutput[qry->theOutputLen] = 0;
 
         free(pstr);
 
@@ -445,8 +441,8 @@ doPolishDP(searcherState       *state,
         u32bit pi = p.percentIdentity;
         u32bit pc = p.querySeqIdentity;
 
-        theHits[h]._status |= pi << 16;
-        theHits[h]._status |= pc << 24;
+        qry->theHits[h]._status |= pi << 16;
+        qry->theHits[h]._status |= pc << 24;
 
         successes <<= 1;
         if ((pi  >= config._minMatchIdentity) &&
@@ -460,12 +456,6 @@ doPolishDP(searcherState       *state,
         successes  &= successMask;
       }
     }
-
-    state->polished++;
   }  //  over all hits
-
-  state->polishTime += getTime() - startTime;
-
-  return(out);
 }
 

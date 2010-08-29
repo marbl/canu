@@ -13,9 +13,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/resource.h>
 #include <sys/utsname.h>
 #include <fcntl.h>
@@ -31,6 +31,9 @@
 #include "sim4.H"
 
 #include "logMsg.H"
+
+
+#define MAX_THREADS  64
 
 
 //  A meta-option.  Enable all the good stuff.  Or not, I guess.
@@ -83,45 +86,113 @@
 
 
 
-class searcherState {
+class configuration {
 public:
-  u64bit         threadID;
+  configuration();
+  ~configuration();
 
-  u64bit         posnMax;
-  u64bit         posnLen;
-  u64bit        *posn;
+  void  read(int argc, char **argv);
 
-  double         searchTime;
-  double         chainTime;
-  double         polishTime;
-
-  u64bit         searched;
-  u64bit         polished;
-
-  kMerBuilder   *KB;
-
-  searcherState(u64bit U) {
-    threadID    = U;
-
-    posnMax     = 0;
-    posnLen     = 0;
-    posn        = 0L;
-
-    searchTime  = 0.0;
-    chainTime   = 0.0;
-    polishTime  = 0.0;
-
-    searched    = 0;
-    polished    = 0;
-
-    KB          = 0L;
+  void  setTime(struct timespec *ts, double t) {
+    ts->tv_sec  = (time_t)floor(t);
+    ts->tv_nsec = (long)((t - ts->tv_sec) * 1e9);
   };
 
-  ~searcherState() {
-    delete [] posn;
-    delete    KB;
-  };
+public:
+  bool             _beVerbose;
+
+  //  These are private to the kMerBuilder -- in particular, we cannot
+  //  use _merSize as a surrogate for the length of the seed,
+  //  compressed seeds can be much longer.
+  //
+  u32bit           _KBmerSize;
+  u32bit           _KBcompression;
+  char            *_KBspacingTemplate;
+
+  u32bit           _merSkip;
+
+  u32bit           _numSearchThreads;
+
+  bool             _doReverse;
+  bool             _doForward;
+  bool             _doValidation;
+  char            *_doValidationFileName;
+
+  bool             _doAlignments;
+
+  double           _Lo;
+  double           _Hi;
+  double           _Va;
+
+  u32bit           _maxDiagonal;
+
+  double           _extendWeight;
+  u32bit           _extendMinimum;
+  u32bit           _extendMaximum;
+
+  u32bit           _repeatThreshold;
+
+  //  Minimums for hits
+  double           _minHitCoverage;
+  u32bit           _minHitLength;
+
+  //  Minimums for matches
+  u32bit           _minMatchIdentity;
+  u32bit           _minMatchCoverage;
+
+  //  Filtering of hits
+  bool             _afEnabled;
+  double           _afThreshold;
+  u32bit           _afLength;
+  u32bit           _afInit;
+
+  //  Filtering and/or cleanup of matches
+  u32bit           _discardExonLength;
+  u32bit           _discardExonQuality;
+  bool             _splitMatches;
+  bool             _polishOptimally;
+
+  char            *_dbFileName;
+  char            *_psFileName;
+  char            *_qsFileName;
+
+  char            *_maskFileName;
+  char            *_onlyFileName;
+
+  bool             _buildOnly;
+
+  u32bit           _ignoreThreshold;
+  char            *_maskPrefix;
+  u32bit           _maskThreshold;
+  char            *_onlyPrefix;
+  u32bit           _onlyThreshold;
+
+  char            *_outputFileName;
+  char            *_logmsgFileName;
+  char            *_statsFileName;
 };
+
+
+
+
+
+
+//  Shared data
+//
+extern configuration          config;
+extern sim4parameters         sim4params;
+
+extern seqCache              *genome;
+extern seqStream             *genomeMap;
+
+extern seqCache              *qsFASTA;  //  Used exclusively by thr-loader.C
+
+extern existDB               *maskDB;  //  thr-search.C
+extern existDB               *onlyDB;  //  thr-search.C
+
+extern positionDB            *positions;
+
+extern volatile u32bit        numberOfQueries;
 
 
 
@@ -144,18 +215,6 @@ public:
 #define AHIT_DISCARDED       0x00000010
 
 
-struct diagonalLine {
-  union {
-    u64bit  all;
-    struct {
-      u64bit     uniq : 10;  //  uniqueness score for the mer here
-      u64bit     qPos : 22;  //  position in the query, 0 to 4M
-      u64bit     dPos : 32;  //  position in the genome, 0 to 4G
-    } val;
-  };
-};
-
-
 struct aHit {
   u32bit     _status;
   u32bit     _qsIdx;
@@ -167,6 +226,95 @@ struct aHit {
   u32bit     _numMers;
   merList   *_ML;
 };
+
+
+
+class query {
+public:
+  query() {
+    seq          = 0L;
+
+    theHitsLen   = 0;
+    theHitsMax   = 4;
+    theHits      = new aHit [theHitsMax];
+
+    theLog       = 0L;
+    if (config._logmsgFileName)
+      theLog     = new logMsg(true);
+
+    theOutputLen = 0;
+    theOutputMax = 0;
+    theOutput    = 0L;
+  };
+
+  ~query() {
+    delete    seq;
+    delete [] theHits;
+    delete [] theLog;
+    delete [] theOutput;
+  };
+
+  bool         loadSequence(seqCache *qs) {
+    seq = qs->getSequenceInCore();
+    return(seq != 0L);
+  };
+
+  seqInCore   *seq;
+  u32bit       theHitsLen;
+  u32bit       theHitsMax;
+  aHit        *theHits;
+
+  logMsg      *theLog;
+
+  u32bit       theOutputLen;
+  u32bit       theOutputMax;
+  char        *theOutput;
+};
+
+
+
+class searcherState {
+public:
+  u64bit         threadID;
+
+  u64bit         posnMax;
+  u64bit         posnLen;
+  u64bit        *posn;
+
+  kMerBuilder   *KB;
+  void          *DP;
+
+  searcherState(u64bit U) {
+    threadID    = U;
+
+    posnMax     = 0;
+    posnLen     = 0;
+    posn        = 0L;
+
+    KB          = 0L;
+    DP          = 0L;
+  };
+
+  ~searcherState() {
+    delete [] posn;
+    delete    KB;
+  };
+};
+
+
+
+
+struct diagonalLine {
+  union {
+    u64bit  all;
+    struct {
+      u64bit     uniq : 10;  //  uniqueness score for the mer here
+      u64bit     qPos : 22;  //  position in the query, 0 to 4M
+      u64bit     dPos : 32;  //  position in the genome, 0 to 4G
+    } val;
+  };
+};
+
 
 
 class trapMatch {
@@ -304,211 +452,23 @@ hitMatrix::addHits(u32bit  qi,
 
 
 
-
-
-
-//
-//  A singleton for working with the command line parameters.
-//
-#define MAX_THREADS  64
-
-
-class configuration {
-public:
-  bool             _beVerbose;
-
-  //  These are private to the kMerBuilder -- in particular, we cannot
-  //  use _merSize as a surrogate for the length of the seed,
-  //  compressed seeds can be much longer.
-  //
-  u32bit           _KBmerSize;
-  u32bit           _KBcompression;
-  char            *_KBspacingTemplate;
-
-  u32bit           _merSkip;
-
-  u32bit           _numSearchThreads;
-
-  bool             _doReverse;
-  bool             _doForward;
-  bool             _doValidation;
-  char            *_doValidationFileName;
-
-  bool             _doAlignments;
-
-  double           _Lo;
-  double           _Hi;
-  double           _Va;
-
-  u32bit           _maxDiagonal;
-
-  double           _extendWeight;
-  u32bit           _extendMinimum;
-  u32bit           _extendMaximum;
-
-  u32bit           _repeatThreshold;
-
-  //  Minimums for hits
-  double           _minHitCoverage;
-  u32bit           _minHitLength;
-
-  //  Minimums for matches
-  u32bit           _minMatchIdentity;
-  u32bit           _minMatchCoverage;
-
-  //  Filtering of hits
-  bool             _afEnabled;
-  double           _afThreshold;
-  u32bit           _afLength;
-  u32bit           _afInit;
-
-  //  Filtering and/or cleanup of matches
-  u32bit           _discardExonLength;
-  u32bit           _discardExonQuality;
-  bool             _splitMatches;
-  bool             _polishOptimally;
-
-  char            *_dbFileName;
-  char            *_psFileName;
-  char            *_qsFileName;
-
-  char            *_maskFileName;
-  char            *_onlyFileName;
-
-  bool             _buildOnly;
-
-  u32bit           _ignoreThreshold;
-  char            *_maskPrefix;
-  u32bit           _maskThreshold;
-  char            *_onlyPrefix;
-  u32bit           _onlyThreshold;
-
-  char            *_outputFileName;
-  char            *_logmsgFileName;
-  char            *_statsFileName;
-
-  //  Wall clock times
-  //
-  double           _startTime;
-  double           _initTime;
-  double           _buildTime;
-  double           _searchTime;
-
-  //  Loader parameters
-  //
-  u32bit           _loaderHighWaterMark;
-  struct timespec  _loaderSleep;
-  bool             _loaderWarnings;
-
-  //  Search parameters
-  //
-  struct timespec  _searchSleep;
-
-  //  Output parameters
-  //
-  u32bit           _writerHighWaterMark;
-  struct timespec  _writerSleep;
-  bool             _writerWarnings;
-
-  configuration();
-  ~configuration();
-
-  void  usage(char *name);
-  void  read(int argc, char **argv);
-  void  display(FILE *out=stdout);
-
-  void  completeUseList(u32bit numSeqs);
-
-  void  setTime(struct timespec *ts, double t) {
-    ts->tv_sec  = (time_t)floor(t);
-    ts->tv_nsec = (long)((t - ts->tv_sec) * 1e9);
-  };
-};
-
-
-
-
-
-
-
-
-
-
 void
 doSearch(searcherState       *state,
-         seqInCore           *seq,
-         u32bit               idx,
-         bool                 rc,
-         aHit               *&theHits,
-         u32bit              &theHitsLen,
-         u32bit              &theHitsMax,
-         logMsg              *theLog);
+         query               *qry,
+         bool                 rc);
 
-u32bit
+void
 doFilter(searcherState       *state,
-         aHit               *&theHits,
-         u32bit              &theHitsLen,
-         logMsg              *theLog);
+         query               *qry);
 
-char*
+void
 doPolishS4(searcherState       *state,
-           seqInCore           *seq,
-           aHit               *&theHits,
-           u32bit              &theHitsLen,
-           logMsg              *theLog);
+           query               *qry);
 
-char*
+void
 doPolishDP(searcherState       *state,
-           seqInCore           *seq,
-           aHit               *&theHits,
-           u32bit              &theHitsLen,
-           logMsg              *theLog);
+           query               *qry);
 
-
-
-
-
-
-
-
-//  Shared data
-//
-extern configuration          config;
-extern sim4parameters         sim4params;
-
-extern seqCache              *genome;
-extern seqStream             *genomeMap;
-
-extern seqCache              *qsFASTA;  //  Used exclusively by thr-loader.C
-
-extern existDB               *maskDB;  //  thr-search.C
-extern existDB               *onlyDB;  //  thr-search.C
-
-extern positionDB            *positions;
-
-
-extern volatile u32bit        numberOfQueries;
-
-extern aHit                 **answer;
-extern u32bit                *answerLen;
-extern char                 **output;
-extern u32bit                *outputLen;
-extern logMsg               **logmsg;
-
-extern pthread_mutex_t        inputTailMutex;
-extern seqInCore            **input;
-extern volatile u32bit        inputHead;
-extern volatile u32bit        inputTail;
-
-extern volatile u32bit        outputPos;
-
-extern char                  *threadStats[MAX_THREADS];
-
-void     *deadlockDetector(void *U);
-void     *deadlockChecker(void *U);
-
-void     *loaderThread(void *U);
-void     *searchThread(void *U);
 
 u32bit    configureFilter(double L,
                           double H,

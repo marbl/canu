@@ -14,6 +14,8 @@ struct filterStats {
 };
 
 
+
+
 //  Shared data
 //
 configuration          config;
@@ -26,104 +28,198 @@ existDB               *onlyDB;
 positionDB            *positions;
 volatile u32bit        numberOfQueries;
 
-aHit                 **answer;
-u32bit                *answerLen;
+int resultFILE;
+int logmsgFILE;
 
-char                 **output;
-u32bit                *outputLen;
-
-logMsg               **logmsg;
-
-pthread_mutex_t        inputTailMutex;
-seqInCore            **input;
-
-volatile u32bit        inputHead;
-volatile u32bit        inputTail;
-volatile u32bit        outputPos;
-
-char                  *threadStats[MAX_THREADS];
-
+u32bit        numFilters;
+u32bit        maxFilters;
+filterStats  *theFilters;
 
 
 void
-writeValidationFile(char *name, filterStats *theFilters, u32bit numFilters) {
+writeValidationFile(char *name) {
 
   FILE *F = fopen(name, "wb");
-  if (F == 0L) {
-    fprintf(stderr, "Couldn't open the validation output file '%s'?\n", name);
-    F = stdout;
+  if (F) {
+    fprintf(F, "%6s %6s %6s  %6s %6s  %8s %8s %8s %8s\n",
+            "L", "H", "V",
+            "sens", "spec",
+            "tp", "fp", "tn", "fn");
+
+    for (u32bit f=0; f<numFilters; f++) {
+      double sens = 0.0;
+      double spec = 0.0;
+
+      if (theFilters[f].tp + theFilters[f].fn > 0)
+        sens = (double)theFilters[f].tp / (theFilters[f].tp + theFilters[f].fn);
+
+      if (theFilters[f].tn + theFilters[f].fp > 0)
+        spec = (double)theFilters[f].tn / (theFilters[f].tn + theFilters[f].fp);
+
+      fprintf(F, "%6.4f %6.4f %6.4f  %6.4f %6.4f  "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)"\n",
+              theFilters[f].L,
+              theFilters[f].H,
+              theFilters[f].V,
+              sens, spec,
+              theFilters[f].tp,
+              theFilters[f].fp,
+              theFilters[f].tn,
+              theFilters[f].fn);
+    }
+
+    fclose(F);
   }
-
-  fprintf(F, "%6s %6s %6s  %6s %6s  %8s %8s %8s %8s\n",
-          "L", "H", "V",
-          "sens", "spec",
-          "tp", "fp", "tn", "fn");
-
-  for (u32bit f=0; f<numFilters; f++) {
-    double sens = 0.0;
-    double spec = 0.0;
-
-    if (theFilters[f].tp + theFilters[f].fn > 0)
-      sens = (double)theFilters[f].tp / (theFilters[f].tp + theFilters[f].fn);
-
-    if (theFilters[f].tn + theFilters[f].fp > 0)
-      spec = (double)theFilters[f].tn / (theFilters[f].tn + theFilters[f].fp);
-
-    fprintf(F, "%6.4f %6.4f %6.4f  %6.4f %6.4f  "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(8)"\n",
-            theFilters[f].L,
-            theFilters[f].H,
-            theFilters[f].V,
-            sens, spec,
-            theFilters[f].tp,
-            theFilters[f].fp,
-            theFilters[f].tn,
-            theFilters[f].fn);
-  }
-
-  fclose(F);
 }
 
 
 
-#ifdef _AIX
+void*
+loaderThread(void *global) {
+  query *q = new query;
 
-//  If we're AIX, define a new handler.  Other OS's reliably throw exceptions.
-//
-static
+  if (q->loadSequence(qsFASTA) == false) {
+    delete q;
+    q = 0L;
+  }
+
+  return(q);
+}
+
+
+
 void
-aix_new_handler() {
-  fprintf(stderr, "aix_new_handler()-- Memory allocation failed.\n");
-  throw std::bad_alloc();
+searchThread(void *global, void *thread, void *thing) {
+  searcherState       *state    = (searcherState *)thread;
+  query               *qry      = (query *)thing;
+
+
+  //  Do searches.
+  //
+  if (config._doForward)
+    doSearch(state, qry, true);
+  if (config._doReverse)
+    doSearch(state, qry, false);
+
+
+  //  Filter the hits
+  //
+  doFilter(state, qry);
+
+
+  //  Polish the filtered hits
+  //
+  if (config._polishOptimally)
+    doPolishDP(state, qry);
+  else
+    doPolishS4(state, qry);
+
+
+  //  Clean up
+  //
+  delete qry->seq;
+  qry->seq = 0L;
+
+  for (u32bit h=0; h<qry->theHitsLen; h++) {
+    delete qry->theHits[h]._ML;
+    qry->theHits[h]._ML = 0L;
+  }
+
+
+  //  If we aren't validating or aren't logging, don't save those pieces, just nuke them now.
+  //
+  if (config._doValidation == false) {
+    delete [] qry->theHits;
+    qry->theHitsLen  = 0;
+    qry->theHits     = 0L;
+  }
+
+  if (config._logmsgFileName == 0L) {
+    delete qry->theLog;
+    qry->theLog = 0L;
+  }
 }
 
-#endif
+
+
+void
+writerThread(void *global, void *thing) {
+  query   *qry = (query *)thing;
+
+
+  //  Write the output, if there is any (zero length just means that
+  //  there was no match found).
+  //
+  if ((qry->theOutput != 0L) &&
+      (qry->theOutputLen > 0)) {
+    errno = 0;
+    write(resultFILE, qry->theOutput, sizeof(char) * qry->theOutputLen);
+    if (errno)
+      fprintf(stderr, "Couldn't write to the output file '%s': %s\n",
+              config._outputFileName, strerror(errno)), exit(1);
+  }
+
+
+  //  Write the log messages, if any, and if there is a log file
+  //
+  if ((logmsgFILE) && (qry->theLog))
+    qry->theLog->write(logmsgFILE, config._logmsgFileName);
+
+
+  //  If we are supposed to be doing validation, test a bunch of
+  //  filters here.
+  //
+  if (config._doValidation &&
+      (qry->theHitsLen > 0)) {
+    for (u32bit f=0; f<numFilters; f++) {
+      u32bit cutL = configureFilter(theFilters[f].L,
+                                    theFilters[f].H,
+                                    theFilters[f].V,
+                                    qry->theHits,
+                                    qry->theHitsLen);
+
+      for (u32bit a=0; a<qry->theHitsLen; a++) {
+        if (qry->theHits[a]._covered < cutL) {
+          //  These hits would have been discarded by the filter.
+          //
+          if (qry->theHits[a]._status & AHIT_VERIFIED) {
+            //  Oops.  We found a high-quality match.
+            theFilters[f].fn++;
+          } else {
+            //  Good call.  Nothing there!
+            theFilters[f].tn++;
+          }
+        } else {
+          //  These hits would have been kept by the filter.
+          //
+          if (qry->theHits[a]._status & AHIT_VERIFIED) {
+            //  Allright!  Got a high-quality match!
+            theFilters[f].tp++;
+          } else {
+            //  Dang.  Nothing there.
+            theFilters[f].fp++;
+          }
+        }
+      }
+    }
+
+    //  Dump a snapshot of the filter testing
+    //
+    if ((qry->seq->getIID() % 50) == 0)
+      writeValidationFile(config._doValidationFileName);
+  } // doing validation
+
+  delete qry;
+}
+
+
 
 
 
 int
 main(int argc, char **argv) {
 
-#ifdef _AIX
-  //  By default, AIX Visual Age C++ new() returns 0L; this turns on
-  //  exceptions (sorta -- it sets a handler that throws an
-  //  exception).
-  //
-  std::set_new_handler(aix_new_handler);
-#endif
-
-
-  //
-  //  Read the configuration from the command line
-  //
-  if (argc < 2) {
-    config.usage(argv[0]);
-    exit(1);
-  }
   config.read(argc, argv);
 
-
-  //  Open and init the query sequence.
-  //
   if (config._beVerbose)
     fprintf(stderr, "Opening the cDNA sequences.\n");
 
@@ -169,9 +265,9 @@ main(int argc, char **argv) {
   //  Allocate some structures for doing a validation run.  This is
   //  done pretty early, just in case it needs to abort.
   //
-  u32bit        numFilters = 0;
-  u32bit        maxFilters = 21 * 22 / 2 * 20;
-  filterStats  *theFilters = 0L;
+  numFilters = 0;
+  maxFilters = 21 * 22 / 2 * 20;
+  theFilters = 0L;
 
   if (config._doValidation) {
     theFilters = new filterStats [maxFilters];
@@ -199,13 +295,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "Created "u32bitFMT" filters (out of "u32bitFMT" available) to test/validate.\n",
             numFilters, maxFilters);
   }
-
-
-
-  //  Take a snapshot of the init time here.  We build next, then we finish some
-  //  more initialization
-  //
-  config._initTime = getTime() - config._startTime;
 
 
   //  Read in the positionDB if it's already built, or build a new one.
@@ -298,8 +387,6 @@ main(int argc, char **argv) {
     }
   }
 
-  config._buildTime = getTime() - config._startTime - config._initTime;
-
 
   //  Open and init the genomic sequences.
   //
@@ -311,28 +398,6 @@ main(int argc, char **argv) {
 
   genomeMap = new seqStream(config._dbFileName);
 
-  input            = new seqInCore * [numberOfQueries];
-  inputHead        = 0;
-  inputTail        = 0;
-  answerLen        = new u32bit   [numberOfQueries];
-  answer           = new aHit *   [numberOfQueries];
-  outputLen        = new u32bit   [numberOfQueries];
-  output           = new char *   [numberOfQueries];
-  logmsg           = new logMsg * [numberOfQueries];
-
-  for (u32bit i=0; i<numberOfQueries; i++) {
-    input[i]            = 0L;
-    answerLen[i]        = 0;
-    answer[i]           = 0L;
-    outputLen[i]        = 0;
-    output[i]           = 0L;
-    logmsg[i]           = 0L;
-  }
-
-
-  //  Init all done!
-  //
-  config._initTime = getTime() - config._startTime - config._buildTime;
 
 
   //
@@ -350,59 +415,18 @@ main(int argc, char **argv) {
   //sim4params.setWordSizeExt(14);
 
   //
-  //  Initialize threads
-  //
-  pthread_attr_t   threadAttr;
-  u32bit           threadIDX = 0;
-  pthread_t        threadTID[MAX_THREADS + 4];
-  u32bit           threadPID[MAX_THREADS + 4];
-
-  pthread_mutex_init(&inputTailMutex, NULL);
-
-  pthread_attr_init(&threadAttr);
-  pthread_attr_setscope(&threadAttr, PTHREAD_SCOPE_SYSTEM);
-  pthread_attr_setdetachstate(&threadAttr, PTHREAD_CREATE_DETACHED);
-
-  //
-  //  Start the deadlock detection threads
-  //
-#ifdef __alpha
-  fprintf(stderr, "Deadlock detection enabled!\n");
-  pthread_create(threadTID + threadIDX++, &threadAttr, deadlockDetector, 0L);
-  pthread_create(threadTID + threadIDX++, &threadAttr, deadlockChecker, 0L);
-#endif
-
-
-  //
-  //  Start the loader thread
-  //
-  pthread_create(threadTID + threadIDX++, &threadAttr, loaderThread, 0L);
-
-
-  //
-  //  Start the search threads
-  //
-  for (u64bit i=0; i<config._numSearchThreads; i++) {
-    threadPID[i] = i;
-    pthread_create(threadTID + threadIDX++, &threadAttr, searchThread, (void *)(threadPID + i));
-  }
-
-
-  //
   //  Open output files
   // 
-  int resultFILE = fileno(stdout);
-  int logmsgFILE = 0;
+  resultFILE = fileno(stdout);
+  logmsgFILE = 0;
 
   if (config._outputFileName) {
     errno = 0;
     resultFILE = open(config._outputFileName,
                       O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
                       S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-    if (errno) {
-      fprintf(stderr, "Couldn't open the output file '%s'.\n%s\n", config._outputFileName, strerror(errno));
-      exit(1);
-    }
+    if (errno)
+      fprintf(stderr, "Couldn't open the output file '%s': %s\n", config._outputFileName, strerror(errno)), exit(1);
   }
 
   if (config._logmsgFileName) {
@@ -410,157 +434,37 @@ main(int argc, char **argv) {
     logmsgFILE = open(config._logmsgFileName,
                       O_WRONLY | O_LARGEFILE | O_CREAT | O_TRUNC,
                       S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
-    if (errno) {
-      fprintf(stderr, "Couldn't open the log message file '%s'.\n%s\n", config._logmsgFileName, strerror(errno));
-      exit(1);
-    }
+    if (errno)
+      fprintf(stderr, "Couldn't open the log message file '%s': %s\n", config._logmsgFileName, strerror(errno)), exit(1);
   }
 
-
-
   //
-  //  Wait for threads to produce output
+  //  Initialize threads
   //
-  outputPos = 0;
 
-  double  zeroTime = getTime();
-  u32bit  outputMask = 0xf;
+  sweatShop  *ss = new sweatShop(loaderThread,
+                                 searchThread,
+                                 writerThread);
 
-  while (outputPos < numberOfQueries) {
-    bool  justSlept = false;
+  ss->setNumberOfWorkers(config._numSearchThreads);
 
-    if (output[outputPos]) {
+  for (u32bit i=0; i<config._numSearchThreads; i++)
+    ss->setThreadData(i, new searcherState(i));
 
-      //  Write the output, if there is any (zero length just means that
-      //  there was no match found).
-      //
-      if (outputLen[outputPos] > 0) {
-        errno = 0;
-        write(resultFILE, output[outputPos], sizeof(char) * outputLen[outputPos]);
-        if (errno) {
-          fprintf(stderr, "Couldn't write to the output file '%s'.\n%s\n",
-                  config._outputFileName, strerror(errno));
-          exit(1);
-        }
-      }
+  ss->run(0L, config._beVerbose);
 
-      //  Write the log messages, if any, and if there is a log file
-      //
-      if (logmsgFILE && logmsg[outputPos])
-        logmsg[outputPos]->write(logmsgFILE, config._logmsgFileName);
 
-      //  If we are supposed to be doing validation, test a bunch of
-      //  filters here.
-      //
-      if (config._doValidation &&
-          (answerLen[outputPos] > 0)) {
-        for (u32bit f=0; f<numFilters; f++) {
-          u32bit cutL = configureFilter(theFilters[f].L,
-                                        theFilters[f].H,
-                                        theFilters[f].V,
-                                        answer[outputPos],
-                                        answerLen[outputPos]);
-
-          for (u32bit a=0; a<answerLen[outputPos]; a++) {
-
-            if (answer[outputPos][a]._covered < cutL) {
-              //  These hits would have been discarded by the filter.
-              //
-              if (answer[outputPos][a]._status & AHIT_VERIFIED) {
-                //  Oops.  We found a high-quality match.
-                theFilters[f].fn++;
-              } else {
-                //  Good call.  Nothing there!
-                theFilters[f].tn++;
-              }
-            } else {
-              //  These hits would have been kept by the filter.
-              //
-              if (answer[outputPos][a]._status & AHIT_VERIFIED) {
-                //  Allright!  Got a high-quality match!
-                theFilters[f].tp++;
-              } else {
-                //  Dang.  Nothing there.
-                theFilters[f].fp++;
-              }
-            }
-          }
-        }
-
-        //  Dump a snapshot of the filter testing
-        //
-        //  XXX:  This should be removed from production runs, I think
-        //
-        if ((outputPos % 50) == 0)
-          writeValidationFile(config._doValidationFileName, theFilters, numFilters);
-      } // doing validation
-
-      delete    input[outputPos];
-      delete [] answer[outputPos];
-      delete    logmsg[outputPos];
-      delete [] output[outputPos];
-
-      input[outputPos]     = 0L;
-      answerLen[outputPos] = 0;
-      answer[outputPos]    = 0L;
-      outputLen[outputPos] = 0;
-      output[outputPos]    = 0L;
-      logmsg[outputPos]    = 0L;
-
-      outputPos++;
-    } else {
-      nanosleep(&config._writerSleep, 0L);
-      justSlept = true;
-    }
-
-    if (config._beVerbose &&
-        (outputPos > 0) &&
-        ((justSlept) || (outputPos & outputMask) == outputMask)) {
-      double thisTimeD = getTime() - zeroTime + 0.0000001;
-      double perSec    = outputPos / thisTimeD;
-      double remTime   = (numberOfQueries - outputPos) * thisTimeD / outputPos;
-
-      fprintf(stderr, "O:"u32bitFMTW(7)" S:"u32bitFMTW(7)" I:"u32bitFMTW(7)" T:"u32bitFMTW(7)" (%5.1f%%; %8.3f/sec) Finish in %5.2f seconds.\r",
-              outputPos,
-              inputTail,
-              inputHead,
-              numberOfQueries,
-              100.0 * outputPos / numberOfQueries,
-              perSec,
-              remTime);
-      fflush(stderr);
-
-      if      (perSec <   32.0) outputMask = 0x000f;
-      else if (perSec <  256.0) outputMask = 0x007f;
-      else if (perSec < 1024.0) outputMask = 0x01ff;
-      else                      outputMask = 0x03ff;
-    }
-  }
-
-  if (config._beVerbose)
-    fprintf(stderr, "\n"u32bitFMTW(7)" sequences in %5.2f seconds, %8.3f per second.\n",
-            numberOfQueries,
-            getTime() - zeroTime,
-            numberOfQueries / (getTime() - zeroTime));
-
-  errno = 0;
   if (resultFILE != fileno(stdout))
     close(resultFILE);
-  if (errno)
-    fprintf(stderr, "WARNING: Couldn't close to the output file '%s'.\n%s\n", config._outputFileName, strerror(errno));
 
   if (logmsgFILE != 0)
     close(logmsgFILE);
-  if (errno)
-    fprintf(stderr, "WARNING: Couldn't close to the log message file '%s'.\n%s\n", config._logmsgFileName, strerror(errno));
-
-  config._searchTime = getTime() - config._initTime - config._buildTime;
 
 
   //  Summarize the filter test results
   //
   if (config._doValidation)
-    writeValidationFile(config._doValidationFileName, theFilters, numFilters);
+    writeValidationFile(config._doValidationFileName);
 
 
   //  Clean up
@@ -573,20 +477,10 @@ main(int argc, char **argv) {
 
   delete qsFASTA;
 
-  delete [] input;
-  delete [] answerLen;
-  delete [] answer;
-  delete [] outputLen;
-  delete [] output;
-  delete [] logmsg;
-
   delete maskDB;
   delete onlyDB;
 
   delete positions;
-
-  pthread_attr_destroy(&threadAttr);
-  pthread_mutex_destroy(&inputTailMutex);
 
   return(0);
 }

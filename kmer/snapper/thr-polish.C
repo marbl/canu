@@ -2,52 +2,39 @@
 
 
 
-char*
+void
 doPolishS4(searcherState       *state,
-           seqInCore           *seq,
-           aHit               *&theHits,
-           u32bit              &theHitsLen,
-           logMsg              *theLog) {
-  double   startTime = getTime();
-  u32bit   outLen    = 0;
-  u32bit   outMax    = 2 * 1024 * theHitsLen;
-  char    *out       = 0L;
+           query               *qry) {
 
   //  For the autofilter
   u64bit   successes    = u64bitZERO;
   u64bit   successMask  = u64bitMASK(config._afLength);
   u32bit   attempts     = 0;
 
-  if (theHitsLen == 0) {
-    out    = new char [8];
-    out[0] = 0;
-    return(out);
-  }
+  if (qry->theHitsLen == 0)
+    return;
 
-  try {
-    out = new char [outMax];
-  } catch (...) {
-    fprintf(stderr, "doPolish()-- Can't allocate space for the output string ("u32bitFMT" bytes) in thread "u64bitFMT"\n", outMax, state->threadID);
-    abort();
-  }
+  qry->theOutputLen = 0;
+  qry->theOutputMax = 2 * 1024 * qry->theHitsLen;
+  qry->theOutput    = new char [qry->theOutputMax];
 
-  out[0] = 0;
+  qry->theOutput[0] = 0;
 
-  for (u32bit h=0; h<theHitsLen; h++) {
+  for (u32bit h=0; h<qry->theHitsLen; h++) {
 
     //  If the hit was discarded, move along.
     //
-    if (theHits[h]._status & AHIT_DISCARDED) {
+    if (qry->theHits[h]._status & AHIT_DISCARDED) {
 #ifdef SHOW_HIT_DISCARDING
-      theLog->add("Hit %u out of %u (%u -> %u[%u-%u]) cov=%u matched=%u numMers=%u DISCARDED\n",
-                  h, theHitsLen,
-                  seq->getIID(),
-                  theHits[h]._dsIdx,
-                  theHits[h]._dsLo,
-                  theHits[h]._dsHi,
-                  theHits[h]._covered,
-                  theHits[h]._matched,
-                  theHits[h]._numMers);
+      qry->theLog->add("Hit %u out of %u (%u -> %u[%u-%u]) cov=%u matched=%u numMers=%u DISCARDED\n",
+                  h, qry->theHitsLen,
+                  qry->seq->getIID(),
+                  qry->theHits[h]._dsIdx,
+                  qry->theHits[h]._dsLo,
+                  qry->theHits[h]._dsHi,
+                  qry->theHits[h]._covered,
+                  qry->theHits[h]._matched,
+                  qry->theHits[h]._numMers);
 #endif
       continue;
     }
@@ -56,8 +43,8 @@ doPolishS4(searcherState       *state,
     //  If the hit was filtered out, move along.
     //
     if ((config._doValidation == false) &&
-        ((theHits[h]._status & AHIT_POLISHABLE) == 0) &&
-        ((theHits[h]._status & AHIT_HAS_UNIQUE) == 0))
+        ((qry->theHits[h]._status & AHIT_POLISHABLE) == 0) &&
+        ((qry->theHits[h]._status & AHIT_HAS_UNIQUE) == 0))
       continue;
 
 
@@ -70,13 +57,13 @@ doPolishS4(searcherState       *state,
 
 #if 0
         fprintf(stderr, "autofilter: hit "u32bitFMT" out of "u32bitFMT" (attempts="u32bitFMT") with rate %f\n",
-                h, theHitsLen, attempts, rat);
+                h, qry->theHitsLen, attempts, rat);
 #endif
 
         //  If we've hit the end of the good polishes, give up.  But
         //  still do all the stuff with unique mers in them.
         //
-        if (((theHits[h]._status & AHIT_HAS_UNIQUE) == 0) &&
+        if (((qry->theHits[h]._status & AHIT_HAS_UNIQUE) == 0) &&
             (rat < config._afThreshold))
           continue;
       }
@@ -84,37 +71,34 @@ doPolishS4(searcherState       *state,
       attempts++;
     }
 
-
-
     //
     //  Polish it up!
     //
 
-
-    seqInCore            *ESTseq = seq;
-    seqInCore            *GENseq = genome->getSequenceInCore(theHits[h]._dsIdx);
-    u32bit                GENlo  = theHits[h]._dsLo;
-    u32bit                GENhi  = theHits[h]._dsHi;
+    seqInCore            *ESTseq = qry->seq;
+    seqInCore            *GENseq = genome->getSequenceInCore(qry->theHits[h]._dsIdx);
+    u32bit                GENlo  = qry->theHits[h]._dsLo;
+    u32bit                GENhi  = qry->theHits[h]._dsHi;
 
     if (GENhi > GENseq->sequenceLength())
       GENhi = GENseq->sequenceLength();
 
     assert(GENlo < GENhi);
 
-    bool    doForward =  theHits[h]._status & AHIT_DIRECTION_MASK;
+    bool    doForward =  qry->theHits[h]._status & AHIT_DIRECTION_MASK;
     bool    doReverse = !doForward;
 
 #ifdef SHOW_POLISHING
-    theLog->add("Hit %u out of %u (%u -> %u[%u-%u]) dir=%c cov=%u matched=%u numMers=%u\n",
-                h, theHitsLen,
+    qry->theLog->add("Hit %u out of %u (%u -> %u[%u-%u]) dir=%c cov=%u matched=%u numMers=%u\n",
+                h, qry->theHitsLen,
                 ESTseq->getIID(),
-                theHits[h]._dsIdx,
-                theHits[h]._dsLo,
-                theHits[h]._dsHi,
+                qry->theHits[h]._dsIdx,
+                qry->theHits[h]._dsLo,
+                qry->theHits[h]._dsHi,
                 doForward ? 'F' : 'R',
-                theHits[h]._covered,
-                theHits[h]._matched,
-                theHits[h]._numMers);
+                qry->theHits[h]._covered,
+                qry->theHits[h]._matched,
+                qry->theHits[h]._numMers);
 #endif
 
 
@@ -130,7 +114,6 @@ doPolishS4(searcherState       *state,
                                           doReverse);
 
 
-
     ////////////////////////////////////////
     //
     //  Add hits to the command
@@ -140,12 +123,12 @@ doPolishS4(searcherState       *state,
     //  the size of a mer fixes both.
     //
     if (doForward) {
-      for (u32bit i=0, x, y; theHits[h]._ML->getMer(i, x, y); i++) {
+      for (u32bit i=0, x, y; qry->theHits[h]._ML->getMer(i, x, y); i++) {
 #ifdef SHOW_HITS_ADDED
 #ifdef SHOW_HITS_ADDED_AFTER_QUERY
         if (ESTseq->getIID() > SHOW_HITS_ADDED_AFTER_QUERY)
 #endif
-          theLog->add("FORWARDHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
+          qry->theLog->add("FORWARDHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
                       GENhi, GENlo, y, (u32bit)ESTseq->sequenceLength(), x);
 #endif
         assert(y + config._KBmerSize >= GENlo);
@@ -155,12 +138,12 @@ doPolishS4(searcherState       *state,
                     config._KBmerSize);
       }
     } else {
-      for (u32bit i=0, x, y; theHits[h]._ML->getMer(i, x, y); i++) {
+      for (u32bit i=0, x, y; qry->theHits[h]._ML->getMer(i, x, y); i++) {
 #ifdef SHOW_HITS_ADDED
 #ifdef SHOW_HITS_ADDED_AFTER_QUERY
         if (ESTseq->getIID() > SHOW_HITS_ADDED_AFTER_QUERY)
 #endif
-          theLog->add("REVERSEHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
+          qry->theLog->add("REVERSEHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
                       GENhi, GENlo, y, (u32bit)ESTseq->sequenceLength(), x);
 #endif
         //  Original form was (GENhi-GENlo) - (y-GENlo), which
@@ -182,8 +165,8 @@ doPolishS4(searcherState       *state,
     //  The main loop deletes the hits, but we take care of deleting _ML here.
     //  Maybe it should go in the destructor for the hits??
     //
-    delete theHits[h]._ML;
-    theHits[h]._ML = 0L;
+    delete qry->theHits[h]._ML;
+    qry->theHits[h]._ML = 0L;
 
 
     Sim4            *S4 = new Sim4(&sim4params);
@@ -197,10 +180,10 @@ doPolishS4(searcherState       *state,
     for (u32bit i=0; L4[i]; i++) {
 
 #ifdef SHOW_MATCH_SPLITTING
-      theLog->add("  match "u32bitFMT" has "u32bitFMT" exons.\n",
+      qry->theLog->add("  match "u32bitFMT" has "u32bitFMT" exons.\n",
                   i, L4[i]->numExons);
       for (u32bit j=L4[i]->numExons; j--; )
-        theLog->add("    exon "u32bitFMT" query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT" id:%d nm:%d\n",
+        qry->theLog->add("    exon "u32bitFMT" query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT" id:%d nm:%d\n",
                     j,
                     L4[i]->exons[j].estFrom,
                     L4[i]->exons[j].estTo,
@@ -215,7 +198,7 @@ doPolishS4(searcherState       *state,
         if (((L4[i]->exons[j].estTo - L4[i]->exons[j].estFrom) < config._discardExonLength)  ||
             (L4[i]->exons[j].percentIdentity < config._discardExonQuality)) {
 #ifdef SHOW_MATCH_SPLITTING
-          theLog->add("    Deleting exon "u32bitFMT" from query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT"\n",
+          qry->theLog->add("    Deleting exon "u32bitFMT" from query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT"\n",
                       j,
                       L4[i]->exons[j].estFrom,
                       L4[i]->exons[j].estTo,
@@ -230,7 +213,7 @@ doPolishS4(searcherState       *state,
 
       while (L4[i]->numExons > 1) {
 #ifdef SHOW_MATCH_SPLITTING
-        theLog->add("    Saving exon "u32bitFMT" from query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT"\n",
+        qry->theLog->add("    Saving exon "u32bitFMT" from query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT"\n",
                     L4[i]->numExons-1,
                     L4[i]->exons[L4[i]->numExons-1].estFrom,
                     L4[i]->exons[L4[i]->numExons-1].estTo,
@@ -248,7 +231,7 @@ doPolishS4(searcherState       *state,
 
       if (L4[i]->numExons > 0) {
 #ifdef SHOW_MATCH_SPLITTING
-        theLog->add("    Saving exon "u32bitFMT" from query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT"\n",
+        qry->theLog->add("    Saving exon "u32bitFMT" from query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT"\n",
                     0,
                     L4[i]->exons[0].estFrom,
                     L4[i]->exons[0].estTo,
@@ -263,7 +246,7 @@ doPolishS4(searcherState       *state,
         L4[i]->querySeqIdentity = s4p_percentCoverageApprox(L4[i]);
       } else {
 #ifdef SHOW_MATCH_SPLITTING
-        theLog->add("    All exons removed!\n");
+        qry->theLog->add("    All exons removed!\n");
 #endif
         L4.remove(i);
         i--;
@@ -278,7 +261,7 @@ doPolishS4(searcherState       *state,
     //  Again, this should be already done, but we need to guarantee
     //  it.
     //
-    //theHits[h]._status &= 0x00000003;
+    //qry->theHits[h]._status &= 0x00000003;
     //  (I guess we don't _need_ to do it....)
 
     u32bit  pi = 0;
@@ -297,7 +280,7 @@ doPolishS4(searcherState       *state,
       }
 
 #ifdef SHOW_POLISHING
-      theLog->add("  match["u32bitFMT"] query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT" id=%u cv=%d nm=%u\n",
+      qry->theLog->add("  match["u32bitFMT"] query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT" id=%u cv=%d nm=%u\n",
                   i,
                   L4[i]->exons[0].estFrom,
                   L4[i]->exons[0].estTo,
@@ -313,28 +296,30 @@ doPolishS4(searcherState       *state,
       if ((L4[i]->percentIdentity  >= config._minMatchIdentity) &&
           (L4[i]->querySeqIdentity >= config._minMatchCoverage)) {
 
-        theHits[h]._status |= AHIT_VERIFIED;
+        qry->theHits[h]._status |= AHIT_VERIFIED;
 
         char *pstr = s4p_polishToString(L4[i]);
 
         u32bit l = (u32bit)strlen(pstr);
-        if (outLen + l + 1 >= outMax) {
-          outMax = outMax + outMax + l;
+
+        if (qry->theOutputLen + l + 1 >= qry->theOutputMax) {
+          qry->theOutputMax = qry->theOutputMax + qry->theOutputMax + l;
           char *o = 0L;
           try {
-            o = new char [outMax];
+            o = new char [qry->theOutputMax];
           } catch (...) {
-            fprintf(stderr, "doPolish()-- Can't reallocate space for the output string ("u32bitFMT" bytes) in thread "u64bitFMT"\n", outMax, state->threadID);
+            fprintf(stderr, "doPolish()-- Can't reallocate space for the output string ("u32bitFMT" bytes) in thread "u64bitFMT"\n", qry->theOutputMax, state->threadID);
             abort();
           }
-          memcpy(o, out, sizeof(char) * outLen);
-          delete [] out;
-          out = o;
+          memcpy(o, qry->theOutput, sizeof(char) * qry->theOutputLen);
+          delete [] qry->theOutput;
+          qry->theOutput = o;
         }
 
-        memcpy(out + outLen, pstr, sizeof(char) * l);
-        outLen += l;
-        out[outLen] = 0;
+        memcpy(qry->theOutput + qry->theOutputLen, pstr, sizeof(char) * l);
+        qry->theOutputLen += l;
+
+        qry->theOutput[qry->theOutputLen] = 0;
 
         free(pstr);
       }
@@ -342,8 +327,8 @@ doPolishS4(searcherState       *state,
 
     //  Save the best scores
     //
-    theHits[h]._status |= pi << 16;
-    theHits[h]._status |= pc << 24;
+    qry->theHits[h]._status |= pi << 16;
+    qry->theHits[h]._status |= pc << 24;
 
     successes <<= 1;
     if ((pi  >= config._minMatchIdentity) &&
@@ -363,20 +348,11 @@ doPolishS4(searcherState       *state,
 #ifdef SHOW_POLISHING_EXPENSIVE
     double elapsedTime = getTime() - startTime;
     if (elapsedTime >= SHOW_POLISHING_EXPENSIVE) {
-      theLog->add("Hit %u out of %u (%u -> %u[%u-%u]) took %f seconds ().\n",
-                  h, theHitsLen,
-                  ESTseq->getIID(), GENseq->getIID(), theHits[h]._dsLo, theHits[h]._dsHi,
+      qry->theLog->add("Hit %u out of %u (%u -> %u[%u-%u]) took %f seconds ().\n",
+                  h, qry->theHitsLen,
+                  ESTseq->getIID(), GENseq->getIID(), qry->theHits[h]._dsLo, qry->theHits[h]._dsHi,
                   elapsedTime);
     }
 #endif
-
-    state->polished++;
   }  //  over all hits
-
-  state->polishTime += getTime() - startTime;
-  return(out);
 }
-
-
-
-

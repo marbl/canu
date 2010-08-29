@@ -9,13 +9,10 @@ LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
 src      := $/snapper2.C \
             $/configuration.C \
-            $/thr.C \
             $/thr-search.C \
             $/thr-filter.C \
             $/thr-polish.C \
             $/thr-polish-dp.C \
-            $/thr-loader.C \
-            $/thr-deadlock.C \
             $/hitMatrix.C \
             $/hitMatrix-sort.C \
             $/snapper2.H

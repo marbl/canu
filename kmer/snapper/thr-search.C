@@ -2,8 +2,6 @@
 
 
 
-
-
 class encodedQuery {
 private:
   u64bit   *_mers;
@@ -11,8 +9,8 @@ private:
   u32bit   *_span;
   u32bit    _mersActive;
   u32bit    _mersInQuery;
-public:
 
+public:
   encodedQuery(seqInCore           *seq,
                kMerBuilder         *KB,
                bool                 rc) {
@@ -116,77 +114,33 @@ public:
 
 
 
-
-
-
-
-
-
 void
 doSearch(searcherState       *state,
-         seqInCore           *seq,
-         u32bit               idx,
-         bool                 rc,
-         aHit               *&theHits,
-         u32bit              &theHitsLen,
-         u32bit              &theHitsMax,
-         logMsg              *theLog) {
-  encodedQuery  *query      = 0L;
-  hitMatrix     *matrix     = 0L;
-  double         startTime  = 0.0;
+         query               *qry,
+         bool                 rc) {
 
   if (state->KB == 0L)
     state->KB = new kMerBuilder(config._KBmerSize,
                                 config._KBcompression,
                                 config._KBspacingTemplate);
 
-  startTime = getTime();
+  encodedQuery *encqry = new encodedQuery(qry->seq, state->KB, rc);
 
-  ///////////////////////////////////////
-  //
-  //  Build and mask the query
-  //
-  query = new encodedQuery(seq, state->KB, rc);
+  hitMatrix    *matrix = new hitMatrix(qry->seq->sequenceLength(),
+                                       encqry->numberOfMersInQuery(),
+                                       qry->seq->getIID(),
+                                       qry->theLog);
 
-
-  ///////////////////////////////////////
-  //
-  //  Get the hits
-  //
-  startTime = getTime();
-  matrix = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
-  for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
+  for (u32bit qidx=0; qidx<encqry->numberOfMersActive(); qidx++) {
     u64bit  count = 0;
 
-    if (positions->getExact(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
-#if 0
-      fprintf(stderr, "rc=%d qidx="u32bitFMT" pos="u32bitFMT" mer="u64bitHEX" hits="u64bitFMT"\n",
-              rc, qidx, query->getPosn(qidx), query->getMer(qidx), state->posnLen);
-#endif
-#if 0
-      //  Special one off for mapping hydra 454 reads to hydra sanger
-      //  reads, lots of repeats kill us.
-      //
-      u64bit lim=5000;
-      if (state->posnLen > lim) {
-        //fprintf(stderr, "THRESHOLD HIT: "u64bitFMT" hits -> "u64bitFMT"\n", state->posnLen, lim);
-        state->posnLen = lim;
-      }
-#endif
-      matrix->addHits(query->getPosn(qidx), state->posn, state->posnLen);
-    }
+    if (positions->getExact(encqry->getMer(qidx), state->posn, state->posnMax, state->posnLen, count))
+      matrix->addHits(encqry->getPosn(qidx), state->posn, state->posnLen);
   }
-  state->searchTime += getTime() - startTime;
 
-
-  ///////////////////////////////////////
-  //
   //  Chain the hits
   //
-  startTime = getTime();
-  matrix->filter(rc ? 'r' : 'f', config._minHitCoverage, config._minHitLength,
-                 theHits, theHitsLen, theHitsMax);
-  state->chainTime += getTime() - startTime;
+  matrix->filter(rc ? 'r' : 'f', config._minHitCoverage, config._minHitLength, qry->theHits, qry->theHitsLen, qry->theHitsMax);
 
 
   ////////////////////////////////////////
@@ -197,19 +151,19 @@ doSearch(searcherState       *state,
   //  We work backwards because we add on new hits to the end of our
   //  list.
   //
-  for (u32bit h=theHitsLen; h--; ) {
+  for (u32bit h=qry->theHitsLen; h--; ) {
 
     //  The first test eliminates hits that were not generated for the
     //  complementarity used in this search (e.g., the first search
     //  does rc=forward, adds some hits, the second search does
     //  rc=reverse, and we should skip all the rc=forward hits.
     //  
-    if (((theHits[h]._status & AHIT_DIRECTION_MASK) == !rc) && 
-        (theHits[h]._matched > 2 * theHits[h]._numMers)) {
+    if (((qry->theHits[h]._status & AHIT_DIRECTION_MASK) == !rc) && 
+        (qry->theHits[h]._matched > 2 * qry->theHits[h]._numMers)) {
 
 #ifdef SHOW_HIT_DISCARDING
-      theLog->add("Seq "u32bitFMT" Hit "u32bitFMT" (%c) has "u32bitFMT" matched, but only "u32bitFMT" mers.\n",
-                 seq->getIID(), h, rc ? 'r' : 'f', theHits[h]._matched, theHits[h]._numMers);
+      qry->theLog->add("Seq "u32bitFMT" Hit "u32bitFMT" (%c) has "u32bitFMT" matched, but only "u32bitFMT" mers.\n",
+                 seq->getIID(), h, rc ? 'r' : 'f', qry->theHits[h]._matched, qry->theHits[h]._numMers);
 #endif
 
       //  Grab the genomic sequence.
@@ -217,9 +171,9 @@ doSearch(searcherState       *state,
       //  Build a positionDB of the region (both positions and counts).
       //  Fill out another hitMatrix using about 2*length mers.
       //
-      seqInCore            *GENseq = genome->getSequenceInCore(theHits[h]._dsIdx);
-      u32bit                GENlo  = theHits[h]._dsLo;
-      u32bit                GENhi  = theHits[h]._dsHi;
+      seqInCore            *GENseq = genome->getSequenceInCore(qry->theHits[h]._dsIdx);
+      u32bit                GENlo  = qry->theHits[h]._dsLo;
+      u32bit                GENhi  = qry->theHits[h]._dsHi;
 
       merStream            *MS     = new merStream(state->KB,
                                                    new seqStream(GENseq->sequence(), GENseq->sequenceLength()),
@@ -228,7 +182,10 @@ doSearch(searcherState       *state,
       MS->setRange(GENlo, GENhi);
 
       positionDB           *PS     = new positionDB(MS, config._KBmerSize, 0, 0L, 0L, 0L, 0, 0, 0, 0, false);
-      hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
+      hitMatrix            *HM     = new hitMatrix(qry->seq->sequenceLength(),
+                                                   encqry->numberOfMersInQuery(),
+                                                   qry->seq->getIID(),
+                                                   qry->theLog);
 
       //  We find the number of hits we would get if we use a
       //  countLimit of i.
@@ -246,8 +203,8 @@ doSearch(searcherState       *state,
       u32bit maxNum  = 0;
 #endif
 
-      for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
-        if (PS->getExact(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
+      for (u32bit qidx=0; qidx<encqry->numberOfMersActive(); qidx++) {
+        if (PS->getExact(encqry->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           numMers++;
 
           if (state->posnLen < COUNT_MAX)
@@ -272,17 +229,17 @@ doSearch(searcherState       *state,
       }
 
 #ifdef SHOW_HIT_DISCARDING
-      theLog->add(" -- found "u32bitFMT" hits in "u32bitFMT" mers, min="u32bitFMT" max="u32bitFMT" avg=%.5f hits/mer.\n",
+      qry->theLog->add(" -- found "u32bitFMT" hits in "u32bitFMT" mers, min="u32bitFMT" max="u32bitFMT" avg=%.5f hits/mer.\n",
                  numHits, numMers, minNum, maxNum, (double)numHits / (double)numMers);
-      theLog->add(" -- using a countLimit of "u32bitFMT" which gets us "u32bitFMT" mers\n",
+      qry->theLog->add(" -- using a countLimit of "u32bitFMT" which gets us "u32bitFMT" mers\n",
                  countLimit, numHitsAtCount[countLimit]);
 #endif
 
-      for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
-        if (PS->getExact(query->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
+      for (u32bit qidx=0; qidx<encqry->numberOfMersActive(); qidx++) {
+        if (PS->getExact(encqry->getMer(qidx), state->posn, state->posnMax, state->posnLen, count)) {
           if (state->posnLen <= countLimit) {
             for (u32bit x=0; x<state->posnLen; x++)
-              state->posn[x] += genomeMap->startOf(theHits[h]._dsIdx);
+              state->posn[x] += genomeMap->startOf(qry->theHits[h]._dsIdx);
 
             //  The kmer counts for these mers are relative to the
             //  sub-regions, not the global, so we want to disable any
@@ -291,18 +248,18 @@ doSearch(searcherState       *state,
             //  values.  Or we could simply reset the counts to the global
             //  value.
             //
-            HM->addHits(query->getPosn(qidx), state->posn, state->posnLen, positions->countExact(query->getMer(qidx)));
+            HM->addHits(encqry->getPosn(qidx), state->posn, state->posnLen, positions->countExact(encqry->getMer(qidx)));
           }
         }
       }
 
       //  Chain the hits
       //
-      HM->filter(rc ? 'r' : 'f', 0.01, 0, theHits, theHitsLen, theHitsMax);
+      HM->filter(rc ? 'r' : 'f', 0.01, 0, qry->theHits, qry->theHitsLen, qry->theHitsMax);
 
       //  Mark this hit as dead
       //
-      theHits[h]._status |= AHIT_DISCARDED;
+      qry->theHits[h]._status |= AHIT_DISCARDED;
 
       delete HM;
       delete PS;
@@ -311,7 +268,7 @@ doSearch(searcherState       *state,
   }
 
   delete matrix;
-  delete query;
+  delete encqry;
 }
 
 

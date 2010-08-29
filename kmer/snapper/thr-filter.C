@@ -81,47 +81,46 @@ aHitAutoFilterSort(const void *a, const void *b) {
 
 
 
-u32bit
+void
 doFilter(searcherState       *state,
-         aHit               *&theHits,
-         u32bit              &theHitsLen,
-         logMsg              *theLog) {
+         query               *qry) {
 
-  if (theHitsLen == 0)
-    return(0);
+  if (qry->theHitsLen == 0)
+    return;
 
   u32bit numF = 0;
 
+  //  Auto filter -- keep polishing until a running average of
+  //  polishes falls below some threshold.
+  //
   if (config._afEnabled) {
+    qsort(qry->theHits, qry->theHitsLen, sizeof(aHit), aHitAutoFilterSort);
 
-    //  Auto filter -- keep polishing until a running average of
-    //  polishes falls below some threshold.
-    //
-    qsort(theHits, theHitsLen, sizeof(aHit), aHitAutoFilterSort);
+    for (u32bit i=0; i < qry->theHitsLen; i++)
+      qry->theHits[i]._status |= AHIT_POLISHABLE;
 
-    for (u32bit i=0; i < theHitsLen; i++)
-      theHits[i]._status |= AHIT_POLISHABLE;
-
-    numF = theHitsLen;
+    numF = qry->theHitsLen;
 
   } else {
-
     u32bit cutL = configureFilter(config._Lo,
                                   config._Hi,
-                                  config._Va, theHits, theHitsLen);
+                                  config._Va, qry->theHits, qry->theHitsLen);
 
     //  If the coverage of the hit is more than the minimum, mark the
     //  hit as polishable.  Unless the hit was discarded.
 
-    for (u32bit i=0; i < theHitsLen; i++) {
-      if (!(theHits[i]._status & AHIT_DISCARDED) &&
-          (theHits[i]._covered >= cutL)) {
-        theHits[i]._status |= AHIT_POLISHABLE;
+    for (u32bit i=0; i < qry->theHitsLen; i++) {
+      if (!(qry->theHits[i]._status & AHIT_DISCARDED) &&
+          (qry->theHits[i]._covered >= cutL)) {
+        qry->theHits[i]._status |= AHIT_POLISHABLE;
         numF++;
       }
     }
-
   }
 
-  return(numF);
+#ifdef VERBOSE_FILTER
+  if (qry->theHitsLen >= VERBOSE_FILTER_MINIMUM)
+    theLog->add("Query "u32bitFMT" with "u32bitFMT" good hits out of "u32bitFMT" total hits.\n",
+                idx, numF, qry->theHitsLen);
+#endif
 }
