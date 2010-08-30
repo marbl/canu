@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.62 2010-08-19 05:28:07 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.63 2010-08-30 07:12:38 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.62 2010-08-19 05:28:07 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.62 2010-08-19 05:28:07 brianwalenz Exp $
- * $Revision: 1.62 $
+ * $Id: AS_OVL_overlap_common.h,v 1.63 2010-08-30 07:12:38 brianwalenz Exp $
+ * $Revision: 1.63 $
 */
 
 
@@ -102,92 +102,46 @@ typedef  struct Olap_Info
   }  Olap_Info_t;
 
 
-#if 0
+//#define HUGE_TABLE_VERSION
 
-#undef HUGE_TABLE_VERSION
-#undef TINY_FRAG_VERSION
-    //  The HUGE_TABLE_VERSION essentially unlimits the amount of sequence
-    //  that can be stored in the table.  It also gets around the problem
-    //  of not having enough space to load the kmers to ignore.  It also
-    //  requires nearly infinite memory; don't expect it to work in small
-    //  spaces!
+#ifdef HUGE_TABLE_VERSION
 
-#if AS_READ_MAX_NORMAL_LEN_BITS > 11
-#define HUGE_TABLE_VERSION
-#endif
+typedef  uint64   String_Ref_t;
 
-#ifdef  HUGE_TABLE_VERSION
-#define STRING_NUM_BITS          24
-#else
-#define STRING_NUM_BITS          19
-#endif
+#define  BIT_EMPT  62
+#define  BIT_LAST  63
 
-#ifdef  CONTIG_OVERLAPPER_VERSION
-#undef  STRING_NUM_BITS
-#define STRING_NUM_BITS          11
-#endif
+uint32 STRING_NUM_BITS       = 31;  //  MUST BE EXACTLY THIS
+uint32 OFFSET_BITS           = 31;
 
-#ifdef  TINY_FRAG_VERSION
-#undef  STRING_NUM_BITS
-#define STRING_NUM_BITS          23
-#endif
-    //  Number of bits used to store the string number in the
-    //  hash table
+uint64 TRUELY_ZERO           = 0;
+uint64 TRUELY_ONE            = 1;
 
-#define  MAX_STRING_NUM          ((1 << STRING_NUM_BITS) - 1)
-   //   Largest string number that can fit in the hash table
+uint64 STRING_NUM_MASK       = (TRUELY_ONE << STRING_NUM_BITS) - 1;
+uint64 OFFSET_MASK           = (TRUELY_ONE << OFFSET_BITS) - 1;
 
-#if STRING_NUM_BITS <= 19
-#define  OFFSET_BITS             (30 - STRING_NUM_BITS)
-#else
-#warning OFFSET_BITS is 64-bit
-#define  OFFSET_BITS             (60 - STRING_NUM_BITS)
-#endif
-    //  Number of bits used to store lengths of strings stored
-    //  in the hash table
-
-
-#define  STRING_NUM_MASK         (((uint64)1 << STRING_NUM_BITS) - 1)
-#define  OFFSET_MASK             (((uint64)1 << OFFSET_BITS) - 1)
-    //  Mask used to extract bits to put in  Offset  field
-
-
-typedef  struct String_Ref
-  {
-#if STRING_NUM_BITS + OFFSET_BITS <= 30
-   uint32  private_String_Num : STRING_NUM_BITS;
-   uint32  private_Offset : OFFSET_BITS;
-   uint32  private_Empty : 1;
-   uint32  private_Last : 1;
-#else
-   uint64  private_String_Num : STRING_NUM_BITS;
-   uint64  private_Offset : OFFSET_BITS;
-   uint64  private_Empty : 1;
-   uint64  private_Last : 1;
-#endif
-  }  String_Ref_t;
-
-#define getStringRefStringNum(X)      ((X).private_String_Num)
-#define getStringRefOffset(X)         ((X).private_Offset)
-#define getStringRefEmpty(X)          ((X).private_Empty)
-#define getStringRefLast(X)           ((X).private_Last)
-
-#define setStringRefStringNum(X, Y)   ((X).private_String_Num = (Y))
-#define setStringRefOffset(X, Y)      ((X).private_Offset = (Y))
-#define setStringRefEmpty(X, Y)       ((X).private_Empty = (Y))
-#define setStringRefLast(X, Y)        ((X).private_Last = (Y))
+uint64 MAX_STRING_NUM        = STRING_NUM_MASK;
 
 #else
 
 typedef  uint32   String_Ref_t;
 
-uint32 STRING_NUM_BITS       = 19;  //  21
+#define  BIT_EMPT  30
+#define  BIT_LAST  31
+
+uint32 STRING_NUM_BITS       = 19;
 uint32 OFFSET_BITS           = 30 - STRING_NUM_BITS;
 
-uint32 STRING_NUM_MASK       = (1 << STRING_NUM_BITS) - 1;
-uint32 OFFSET_MASK           = (1 << OFFSET_BITS) - 1;
+uint32 TRUELY_ZERO           = 0;
+uint32 TRUELY_ONE            = 1;
+
+uint32 STRING_NUM_MASK       = (TRUELY_ONE << STRING_NUM_BITS) - 1;
+uint32 OFFSET_MASK           = (TRUELY_ONE << OFFSET_BITS) - 1;
 
 uint32 MAX_STRING_NUM        = STRING_NUM_MASK;
+
+#endif
+
 
 //
 //  [ Last (1) ][ Empty (1) ][ Offset (11) ][ StringNum (19) ]
@@ -195,15 +149,15 @@ uint32 MAX_STRING_NUM        = STRING_NUM_MASK;
 
 #define getStringRefStringNum(X)      (((X)                   ) & STRING_NUM_MASK)
 #define getStringRefOffset(X)         (((X) >> STRING_NUM_BITS) & OFFSET_MASK)
-#define getStringRefEmpty(X)          (((X) >> 30             ) & 0x0001)
-#define getStringRefLast(X)           (((X) >> 31             ) & 0x0001)
+#define getStringRefEmpty(X)          (((X) >> BIT_EMPT       ) & TRUELY_ONE)
+#define getStringRefLast(X)           (((X) >> BIT_LAST       ) & TRUELY_ONE)
 
 #define setStringRefStringNum(X, Y)   ((X) = (((X) & ~(STRING_NUM_MASK                   )) | ((Y))))
 #define setStringRefOffset(X, Y)      ((X) = (((X) & ~(OFFSET_MASK     << STRING_NUM_BITS)) | ((Y) << STRING_NUM_BITS)))
-#define setStringRefEmpty(X, Y)       ((X) = (((X) & ~(1               << 30             )) | ((Y) << 30)))
-#define setStringRefLast(X, Y)        ((X) = (((X) & ~(1               << 31             )) | ((Y) << 31)))
+#define setStringRefEmpty(X, Y)       ((X) = (((X) & ~(TRUELY_ONE      << BIT_EMPT       )) | ((Y) << BIT_EMPT)))
+#define setStringRefLast(X, Y)        ((X) = (((X) & ~(TRUELY_ONE      << BIT_LAST       )) | ((Y) << BIT_LAST)))
 
-#endif
+
 
 
 typedef  struct Hash_Bucket
@@ -777,7 +731,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "* No kmer length supplied; -k needed!\n"), err++;
 
     if (Max_Hash_Strings > MAX_STRING_NUM)
-      fprintf(stderr, "Too many strings (--hashstrings), must be less than %d\n", MAX_STRING_NUM), err++;
+      fprintf(stderr, "Too many strings (--hashstrings), must be less than "F_U64"\n", MAX_STRING_NUM), err++;
 
     if ((!Contig_Mode) && (Outfile_Name[0] == 0))
       fprintf (stderr, "ERROR:  No output file name specified\n"), err++;
@@ -869,11 +823,11 @@ main(int argc, char **argv) {
    Branch_Error_Value = Branch_Match_Value - 1.0;
 
    fprintf(stderr, "\n");
-   fprintf(stderr, "STRING_NUM_BITS     %d\n", STRING_NUM_BITS);
-   fprintf(stderr, "OFFSET_BITS         %d\n", OFFSET_BITS);
-   fprintf(stderr, "STRING_NUM_MASK     %d\n", STRING_NUM_MASK);
-   fprintf(stderr, "OFFSET_MASK         %d\n", OFFSET_MASK);
-   fprintf(stderr, "MAX_STRING_NUM      %d\n", MAX_STRING_NUM);
+   fprintf(stderr, "STRING_NUM_BITS     "F_U32"\n", STRING_NUM_BITS);
+   fprintf(stderr, "OFFSET_BITS         "F_U32"\n", OFFSET_BITS);
+   fprintf(stderr, "STRING_NUM_MASK     "F_U64"\n", STRING_NUM_MASK);
+   fprintf(stderr, "OFFSET_MASK         "F_U64"\n", OFFSET_MASK);
+   fprintf(stderr, "MAX_STRING_NUM      "F_U64"\n", MAX_STRING_NUM);
    fprintf(stderr, "\n");
    fprintf(stderr, "Hash_Mask_Bits      %d\n", Hash_Mask_Bits);
    fprintf(stderr, "Max_Hash_Strings    %d\n", Max_Hash_Strings);
@@ -1035,10 +989,11 @@ static String_Ref_t  Add_Extra_Hash_String
 //  a single reference to the beginning of it.
 
   {
-   String_Ref_t  ref;
+   String_Ref_t  ref = 0;
+   String_Ref_t  sub = 0;
    size_t  new_len;
-   int  len, sub;
-
+   int  len;
+   
    new_len = Used_Data_Len + Kmer_Len;
    if  (Extra_String_Subcount < MAX_EXTRA_SUBCOUNT)
        sub = String_Ct + Extra_String_Ct - 1;
@@ -1078,10 +1033,10 @@ static String_Ref_t  Add_Extra_Hash_String
              "Exiting\n");
         exit (1);
        }
-   setStringRefOffset(ref, Extra_String_Subcount * Kmer_Len);
+   setStringRefOffset(ref, (String_Ref_t)Extra_String_Subcount * (String_Ref_t)Kmer_Len);
    assert(Extra_String_Subcount * Kmer_Len < OFFSET_MASK);
-   setStringRefLast(ref, TRUE);
-   setStringRefEmpty(ref, TRUE);
+   setStringRefLast(ref, TRUELY_ONE);
+   setStringRefEmpty(ref, TRUELY_ONE);
    Extra_String_Subcount ++;
 
    return  ref;
@@ -1542,8 +1497,8 @@ Collision_Ct = 0;
         if  (! getStringRefLast(ref) && ! getStringRefEmpty(ref))
             {
              Extra_Ref_Space [Extra_Ref_Ct] = ref;
-             setStringRefStringNum(Hash_Table [i] . Entry [j], (Extra_Ref_Ct >> OFFSET_BITS));
-             setStringRefOffset   (Hash_Table [i] . Entry [j], (Extra_Ref_Ct & OFFSET_MASK));
+             setStringRefStringNum(Hash_Table [i] . Entry [j], (String_Ref_t)(Extra_Ref_Ct >> OFFSET_BITS));
+             setStringRefOffset   (Hash_Table [i] . Entry [j], (String_Ref_t)(Extra_Ref_Ct & OFFSET_MASK));
              Extra_Ref_Ct ++;
              do
                {
@@ -2229,7 +2184,7 @@ static String_Ref_t  Hash_Find
 //  because it was screened out, otherwise set to FALSE.
 
   {
-   String_Ref_t  H_Ref;
+   String_Ref_t  H_Ref = 0;
    char  * T;
    unsigned char  Key_Check;
    int64  Ct, Probe;
@@ -2262,7 +2217,7 @@ Hash_Find_Ct ++;
                  {
                   if  (is_empty)
                       {
-                       setStringRefEmpty(H_Ref, TRUE);
+                       setStringRefEmpty(H_Ref, TRUELY_ONE);
                        (* hi_hits) = TRUE;
                       }
                   return  H_Ref;
@@ -2270,7 +2225,7 @@ Hash_Find_Ct ++;
             }
       if  (Hash_Table [Sub] . Entry_Ct < ENTRIES_PER_BUCKET)
           {
-           setStringRefEmpty(H_Ref, TRUE);
+           setStringRefEmpty(H_Ref, TRUELY_ONE);
            return  H_Ref;
           }
 #if  SHOW_STATS
@@ -2279,7 +2234,7 @@ Collision_Ct ++;
       Sub = (Sub + Probe) % HASH_TABLE_SIZE;
      }  while  (++ Ct < HASH_TABLE_SIZE);
 
-   setStringRefEmpty(H_Ref, TRUE);
+   setStringRefEmpty(H_Ref, TRUELY_ONE);
    return  H_Ref;
   }
 
@@ -2360,7 +2315,7 @@ static void  Hash_Insert
                               / (HASH_KMER_SKIP + 1)]
                                 = H_Ref;
                   Extra_Ref_Ct ++;
-                  setStringRefLast(Ref, FALSE);
+                  setStringRefLast(Ref, TRUELY_ZERO);
                   Hash_Table [Sub] . Entry [i] = Ref;
 
                   if  (Hash_Table [Sub] . Hits [i] < HIGHEST_KMER_LIMIT)
@@ -2377,7 +2332,7 @@ if  (i != Hash_Table [Sub] . Entry_Ct)
       assert (i == Hash_Table [Sub] . Entry_Ct);
       if  (Hash_Table [Sub] . Entry_Ct < ENTRIES_PER_BUCKET)
           {
-           setStringRefLast(Ref, TRUE);
+           setStringRefLast(Ref, TRUELY_ONE);
            Hash_Table [Sub] . Entry [i] = Ref;
            Hash_Table [Sub] . Check [i] = Key_Check;
            Hash_Table [Sub] . Entry_Ct ++;
@@ -2433,7 +2388,7 @@ static void  Hash_Mark_Empty
                  {
                    if  (! getStringRefEmpty(Hash_Table [sub] . Entry [i]))
                       Mark_Screened_Ends_Chain (Hash_Table [sub] . Entry [i]);
-                  setStringRefEmpty(Hash_Table [sub] . Entry [i], TRUE);
+                  setStringRefEmpty(Hash_Table [sub] . Entry [i], TRUELY_ONE);
                   return;
                  }
             }
@@ -2443,7 +2398,7 @@ static void  Hash_Mark_Empty
            if  (Use_Hopeless_Check)
                {
                 Hash_Table [sub] . Entry [i] = Add_Extra_Hash_String (s);
-                setStringRefEmpty(Hash_Table [sub] . Entry [i], TRUE);
+                setStringRefEmpty(Hash_Table [sub] . Entry [i], TRUELY_ONE);
                 Hash_Table [sub] . Check [i] = key_check;
                 Hash_Table [sub] . Entry_Ct ++;
                 Hash_Table [sub] . Hits [i] = 0;
@@ -3642,10 +3597,9 @@ static void  Process_Matches
       if  (Doing_Partial_Overlaps)
         {
           if  (Unique_Olap_Per_Pair)
-            Choose_Best_Partial (distinct_olap, distinct_olap_ct,
-                                 deleted);
-          else
-            ;  // Do nothing, output them all
+            Choose_Best_Partial (distinct_olap, distinct_olap_ct, deleted);
+          //else
+          //  Do nothing, output them all
         }
       else
         {
@@ -4105,7 +4059,7 @@ static void  Put_String_In_Hash
 //  global variables  Data, String_Start, String_Info, ....
 
   {
-   String_Ref_t  ref;
+   String_Ref_t  ref = 0;
    char  * p, * window;
    int  kmers_inserted = 0;
    int  skip_ct;
@@ -4139,9 +4093,9 @@ static void  Put_String_In_Hash
         fprintf (stderr, "Too many strings for hash table--exiting\n");
         exit (1);
        }
-   setStringRefOffset(ref, 0);
+   setStringRefOffset(ref, TRUELY_ZERO);
    skip_ct = 0;
-   setStringRefEmpty(ref, FALSE);
+   setStringRefEmpty(ref, TRUELY_ZERO);
 
    if  ((int) (getStringRefOffset(ref)) <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP
             && ! key_is_bad)
@@ -4167,7 +4121,7 @@ static void  Put_String_In_Hash
       window ++;
 
       {
-        uint32 newoff = getStringRefOffset(ref) + 1;
+        String_Ref_t newoff = getStringRefOffset(ref) + 1;
         assert(newoff < OFFSET_MASK);
         setStringRefOffset(ref, newoff);
       }
