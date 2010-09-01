@@ -69,7 +69,7 @@ outputPartition(seqCache *F,
       for (u32bit i=0; i<n; i++)
         if (p[i].partition == o) {
           seqInCore *S = F->getSequenceInCore(p[i].index);
-          fprintf(file, "%s\n", S->header());
+          fprintf(file, ">%s\n", S->header());
           fwrite(S->sequence(), sizeof(char), S->sequenceLength(), file);
           fprintf(file, "\n");
 
