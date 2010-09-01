@@ -63,15 +63,19 @@ merStream::setRange(u64bit beg, u64bit end) {
 u64bit
 merStream::approximateNumberOfMers(void) {
   u64bit  approx = _end - _beg;
+  u64bit  k      = _kb->merSize();
 
   //  If we don't know the range, sum all the sequence lengths,
   //  otherwise, it's just the length from begin to end.
   //
   if (_end == ~u64bitZERO) {
     approx = u64bitZERO;
-    
+
     for (u32bit s=0; s<_ss->numberOfSequences(); s++) {
-      approx += _ss->lengthOf(s);
+      u32bit l = _ss->lengthOf(s);
+
+      if (l > k)
+        approx += l - k + 1;
     }
   }
 
