@@ -19,15 +19,16 @@ merylsrc := $/args.C \
 
 #  meryl.H is exported only for celera-assembler.
 
-$/.CXX_SRCS   := ${merylsrc} $/meryl.C $/asmMerQC.C $/mapMers.C $/mapMers-depth.C $/maskMers.C $/compare-counts.C
+$/.CXX_SRCS   := ${merylsrc} $/meryl.C $/asmMerQC.C $/mapMers.C $/mapMers-depth.C $/maskMers.C $/compare-counts.C $/simple.C
 $/.CXX_INCS   := $/meryl.H
 $/.CXX_LIBS   := $/libmerylguts.a
-$/.CXX_EXES   := $/meryl $/asmMerQC $/mapMers $/mapMers-depth $/testPositionBias $/maskMers $/compare-counts
+$/.CXX_EXES   := $/meryl $/simple $/asmMerQC $/mapMers $/mapMers-depth $/testPositionBias $/maskMers $/compare-counts
 $/.CLEAN      := $/*.o
 
 $/libmerylguts.a : ${merylsrc:.C=.o}
 
 $/meryl            : $/meryl.o      $/libmerylguts.a            ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/simple           : $/simple.o                                 ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/asmMerQC         : $/asmMerQC.o                               ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/mapMers          : $/mapMers.o           ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/mapMers-depth    : $/mapMers-depth.o     ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
