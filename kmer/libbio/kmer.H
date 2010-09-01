@@ -556,6 +556,9 @@ public:
   kMer const   &theRMer(void) { return(*_rMer); };
   kMer const   &theCMer(void) { return((theFMer() < theRMer()) ? theFMer() : theRMer()); };
 
+  u32bit        merSize(void)      { return(_merSize); };
+  u32bit        templateSpan(void) { return(_templateSpan); };
+
 private:
 
   //  Style of builder we are
