@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: estimate-mer-threshold.C,v 1.2 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: estimate-mer-threshold.C,v 1.3 2010-09-01 02:28:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,20 +100,20 @@ main(int argc, char **argv) {
   //  If this pattern is not found, we fallback to the default
   //  guess of 8x coverage.
   //
-  fprintf(stderr, "Xcoverage zero %d %d %d\n", 1, 0, MF->histogram(1));
+  fprintf(stderr, "Xcoverage zero 1 0 "F_U64"\n", MF->histogram(1));
 
   for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++) {
-    fprintf(stderr, "Xcoverage drop %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
+    fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
   }
 
   for (; (i < MF->histogramLength()) && (MF->histogram(i-1) < MF->histogram(i)); i++) {
-    fprintf(stderr, "Xcoverage incr %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
+    fprintf(stderr, "Xcoverage incr "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
     Xcoverage = i;
   }
 
-  fprintf(stderr, "Xcoverage done %d %d %d\n", i, MF->histogram(i-1), MF->histogram(i));
+  fprintf(stderr, "Xcoverage done "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
 
-  fprintf(stderr, "Guessed X coverage is %d\n", Xcoverage);
+  fprintf(stderr, "Guessed X coverage is "F_U32"\n", Xcoverage);
 
   //  Pass 1: look for a reasonable limit, using %distinct and %total.
   //
