@@ -34,8 +34,10 @@ char const *usage =
 "  -selfhits      Filter out alignments to ourself -- if you did an all-to-all\n"
 "                 mapping of a set onto itself.  Deflines needed!\n"
 "\n"
-"  -segregate     Segregate polishes by genomic idx.  Must be used with -o,\n"
-"                 will create numerous files 'o.%%05d'.\n"
+"  -segregate a b Segregate polishes by genomic idx, for idx's between a and b inclusive.\n"
+"                 b-a must be less than %u.\n"
+"                 Must be used with -o.\n"
+"                 Will create numerous files 'o.%%05d'.\n"
 "\n"
 "  -nodeflines    Strip out deflines.\n"
 "  -noalignments  Strip out alignments.\n"
@@ -68,6 +70,8 @@ main(int argc, char ** argv) {
   u64bit       junk = 0;
   int          doSelfFilter = 0;
   int          doSegregation = 0;
+  u32bit       doSegregationLo = 0;
+  u32bit       doSegregationHi = 0;
   char        *filePrefix = 0L;
   FILE       **SEGREGATE = 0L;
   u32bit       printOpts = S4P_PRINTPOLISH_NOTVALUABLE;
@@ -132,6 +136,10 @@ main(int argc, char ** argv) {
       doSelfFilter = 1;
     } else if (strncmp(argv[arg], "-segregate", 4) == 0) {
       doSegregation = 1;
+      doSegregationLo = atoi(argv[++arg]);
+      doSegregationHi = atoi(argv[++arg]);
+      if (doSegregationHi - doSegregationLo + 1 > maxScaffold)
+        fprintf(stderr, "error: -segregate range too big; must be less than %u.\n", maxScaffold), exit(1);
       SEGREGATE = (FILE **)calloc(maxScaffold, sizeof(FILE *));
     } else if (strncmp(argv[arg], "-nodeflines", 4) == 0) {
       printOpts |= S4P_PRINTPOLISH_NODEFS;
@@ -146,7 +154,7 @@ main(int argc, char ** argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, usage, argv[0]);
+    fprintf(stderr, usage, argv[0], maxScaffold);
     exit(1);
   }
 
@@ -191,20 +199,19 @@ main(int argc, char ** argv) {
           ((doSelfFilter == 0) || (strcmp(p->estDefLine, p->genDefLine) != 0))) {
         good++;
         if (doSegregation) {
-          if (p->genID >= maxScaffold) {
-            fprintf(stderr, "Genomic index "u32bitFMT" larger than maxScaffold = "u32bitFMT"!\n", p->genID, maxScaffold);
-          } else {
-            if (SEGREGATE[p->genID] == 0L) {
+          if ((doSegregationLo <= p->genID) &&
+              (p->genID <= doSegregationHi)) {
+            if (SEGREGATE[p->genID - doSegregationLo] == 0L) {
               char filename[1024];
               sprintf(filename, "%s.%04d", filePrefix, (int)p->genID);
               errno = 0;
-              SEGREGATE[p->genID] = fopen(filename, "w");
+              SEGREGATE[p->genID - doSegregationLo] = fopen(filename, "w");
               if (errno) {
                 fprintf(stderr, "Error: Couldn't open '%s'\n%s\n", filename, strerror(errno));
                 exit(1);
               }
             }
-            s4p_printPolish(SEGREGATE[p->genID], p, printOpts);
+            s4p_printPolish(SEGREGATE[p->genID - doSegregationLo], p, printOpts);
           }
         } else {
           if (!GOODsilent)
