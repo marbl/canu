@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.39 2009-12-18 04:29:34 brianwalenz Exp $";
+const char *mainid = "$Id: overmerry.C,v 1.40 2010-09-03 19:53:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -579,25 +579,52 @@ ovmWorker(void *G, void *T, void *S) {
       g->tPS->getExact(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen, fcount);
       g->tPS->getExact(sMSTR->theRMer(), t->posnR, t->posnRMax, t->posnRLen, rcount);
 
-      //  If we don't have a mer counts file, then we need to add the
-      //  f and r counts to get the canonical count.  If we do have
-      //  the mer counts, it is assumed those counts are canonical, we
-      //  just have to pick the biggest -- if we don't find one mer,
-      //  that count will be zero.
-      //
+      //  If we don't have a mer counts file, then we need to add the f and r counts to get the
+      //  canonical count.  If we do have the mer counts, it is assumed those counts are canonical,
+      //  we just have to pick the biggest. -- we're guaranteed to find at most one mer here
+      //  (palindromes are handled above).
+
       if (g->merCountsFile == 0L) {
+        //  No mer counts file, the count for this mer is the sum of the forward and reverse mers in
+        //  the table.
         tcount = fcount + rcount;
-        //  Sanity
-        assert(t->posnFLen == fcount);
+
+        assert(t->posnFLen == fcount);  //  Sanity.
         assert(t->posnRLen == rcount);
+
       } else {
+        //  Mer counts file exists.  Both the F and R mers are set to the same value, but one or
+        //  both might not exist in this table.  Pick the largest.
+
         tcount = (fcount > rcount) ? fcount : rcount;
-        //  Check sanity - if both mers are present, the counts should
-        //  be the same.
+
+        //  A quirk (well, actually a user error); if the count in the global file is LESS THAN the
+        //  count in the table, it is likely that we are using the wrong global counts.  Detect
+        //  that, print a warning that will fill the disk, and keep going.
+
+        if (tcount < t->posnFLen + t->posnRLen) {
+          char tmpstrf[65];
+          char tmpstrr[65];
+
+          fprintf(stderr, "WARNING:  mer '%s' ('%s') has count "F_U64","F_U64" but posnLen "F_U64","F_U64"\n",
+                  sMSTR->theFMer().merToString(tmpstrf),
+                  sMSTR->theRMer().merToString(tmpstrr),
+                  fcount, rcount,
+                  t->posnFLen, t->posnRLen);
+          fprintf(stderr, "          This can be caused by using the wrong merCount file (-mc option) for this data.\n");
+          fprintf(stderr, "          Using the local count for this mer.\n");
+
+          tcount = t->posnFLen + t->posnRLen;
+        }
+
+        //  Check sanity - if both mers are present, the counts should be the same.
+
         if ((t->posnFLen > 0) && (t->posnRLen > 0))
           assert(fcount == rcount);
         if ((t->posnFLen > 0) || (t->posnRLen > 0))
           assert(tcount > 0);
+
+        //  Check sanity - the count from the position table should be at most the global count.
 
         assert(tcount >= t->posnFLen);
         assert(tcount >= t->posnRLen);
