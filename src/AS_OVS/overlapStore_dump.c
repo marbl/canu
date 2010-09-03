@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_dump.c,v 1.16 2010-01-29 07:15:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_dump.c,v 1.17 2010-09-03 20:36:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +78,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
         else
-          fprintf(stdout, "%8d %8d %c %5d %5d %5.2f %5.2f %5d\n",
+          fprintf(stdout, "%8d %8d  %c  %5"F_S64P" %5"F_S64P"  %4.2f  %4.2f\n",
                   overlap.a_iid,
                   overlap.b_iid,
                   overlap.dat.ovl.flipped ? 'I' : 'N',
@@ -98,7 +98,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
         else
-          fprintf(stdout, "%7d %7d %c %4d %4d %4d %4d %5.2f\n",
+          fprintf(stdout, "%7d %7d  %c  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"  %5.2f\n",
                   overlap.a_iid,
                   overlap.b_iid,
                   overlap.dat.obt.fwd ? 'f' : 'r',
@@ -115,7 +115,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
         else
-          fprintf(stdout, "%7d %7d %c %4d %4d %4d %4d\n",
+          fprintf(stdout, "%7d %7d  %c  "F_U64"  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"\n",
                   overlap.a_iid,
                   overlap.b_iid,
                   overlap.dat.mer.palindrome ? 'p' : (overlap.dat.mer.fwd ? 'f' : 'r'),
@@ -391,16 +391,15 @@ dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, 
   }
 
 
-  if (novl == 0)
-    return;
+  if      (novl == 0)
+    fprintf(stderr, "no overlaps to show.\n");
 
+  else if (overlaps[0].dat.ovl.type == AS_OVS_TYPE_MER)
+    fprintf(stderr, "mer overlaps cannot be visualized.\n");
 
-  if (overlaps[0].dat.obt.type == AS_OVS_TYPE_OBT) {
+  else if (overlaps[0].dat.obt.type == AS_OVS_TYPE_OBT)
     dumpPictureOBT(overlaps, novl, gkpStore, clearRegion, qryIID);
-  }
 
-
-  if (overlaps[0].dat.ovl.type == AS_OVS_TYPE_OVL) {
+  else if (overlaps[0].dat.ovl.type == AS_OVS_TYPE_OVL)
     dumpPictureOVL(overlaps, novl, gkpStore, clearRegion, qryIID);
-  }
 }
