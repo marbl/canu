@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.57 2010-03-22 20:08:00 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.58 2010-09-07 20:56:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1061,7 +1061,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       (id1 < id2) ? id1 : id2,
                       (id1 < id2) ? id2 : id1,
                       //  dir
-                      (id1 < id2) ? 'F' : 'R',
+                      (id1 < id2) ? 'R' : 'F',
                       //  library
                       AS_UID_toString(libUID[mr.gkFragment_getLibraryIID()]),
                       //  trim
@@ -1078,7 +1078,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       (id1 < id2) ? id1 : id2,
                       (id1 < id2) ? id2 : id1,
                       //  dir
-                      (id1 < id2) ? 'F' : 'R',
+                      (id1 < id2) ? 'R' : 'F',
                       //  library
                       AS_UID_toString(libUID[mr.gkFragment_getLibraryIID()]),
                       //  trim
