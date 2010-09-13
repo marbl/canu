@@ -280,7 +280,7 @@ int  Subscript(char ch)
   {
    char  * p;
 
-   p = strchr (ALPHA_STRING, tolower (Filter (ch)));
+   p = strchr ((char *)ALPHA_STRING, tolower (Filter (ch)));
    if  (p == NULL)
        {
         fprintf (stderr, "ERROR:  Bad character %c in subscript conversion",
