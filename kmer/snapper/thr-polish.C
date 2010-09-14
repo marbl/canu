@@ -181,69 +181,69 @@ doPolishS4(searcherState       *state,
 
 #ifdef SHOW_MATCH_SPLITTING
       qry->theLog->add("  match "u32bitFMT" has "u32bitFMT" exons.\n",
-                  i, L4[i]->numExons);
-      for (u32bit j=L4[i]->numExons; j--; )
+                  i, L4[i]->_numExons);
+      for (u32bit j=L4[i]->_numExons; j--; )
         qry->theLog->add("    exon "u32bitFMT" query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT" id:%d nm:%d\n",
                     j,
-                    L4[i]->exons[j].estFrom,
-                    L4[i]->exons[j].estTo,
-                    L4[i]->exons[j].genFrom,
-                    L4[i]->exons[j].genTo,
-                    L4[i]->exons[j].percentIdentity,
-                    L4[i]->exons[j].numMatches);
+                    L4[i]->_exons[j].estFrom,
+                    L4[i]->_exons[j].estTo,
+                    L4[i]->_exons[j]._genFrom,
+                    L4[i]->_exons[j]._genTo,
+                    L4[i]->_exons[j]._percentIdentity,
+                    L4[i]->_exons[j]._numMatches);
 
 #endif
 
-      for (u32bit j=L4[i]->numExons; j--; ) {
-        if (((L4[i]->exons[j].estTo - L4[i]->exons[j].estFrom) < config._discardExonLength)  ||
-            (L4[i]->exons[j].percentIdentity < config._discardExonQuality)) {
+      for (u32bit j=L4[i]->_numExons; j--; ) {
+        if (((L4[i]->_exons[j]._estTo - L4[i]->_exons[j]._estFrom) < config._discardExonLength)  ||
+            (L4[i]->_exons[j]._percentIdentity < config._discardExonQuality)) {
 #ifdef SHOW_MATCH_SPLITTING
           qry->theLog->add("    Deleting exon "u32bitFMT" from query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT"\n",
                       j,
-                      L4[i]->exons[j].estFrom,
-                      L4[i]->exons[j].estTo,
-                      L4[i]->exons[j].genFrom,
-                      L4[i]->exons[j].genTo);
+                      L4[i]->_exons[j]._estFrom,
+                      L4[i]->_exons[j]._estTo,
+                      L4[i]->_exons[j]._genFrom,
+                      L4[i]->_exons[j]._genTo);
 #endif
-          s4p_deleteExon(L4[i], j);
+          L4[i]->s4p_deleteExon(j);
         }
       }
 
       //  Copy each exon into a new match ("split things with big gaps")
 
-      while (L4[i]->numExons > 1) {
+      while (L4[i]->_numExons > 1) {
 #ifdef SHOW_MATCH_SPLITTING
         qry->theLog->add("    Saving exon "u32bitFMT" from query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT"\n",
-                    L4[i]->numExons-1,
-                    L4[i]->exons[L4[i]->numExons-1].estFrom,
-                    L4[i]->exons[L4[i]->numExons-1].estTo,
-                    L4[i]->exons[L4[i]->numExons-1].genFrom,
-                    L4[i]->exons[L4[i]->numExons-1].genTo);
+                    L4[i]->_numExons-1,
+                    L4[i]->_exons[L4[i]->_numExons-1]._estFrom,
+                    L4[i]->_exons[L4[i]->_numExons-1]._estTo,
+                    L4[i]->_exons[L4[i]->_numExons-1]._genFrom,
+                    L4[i]->_exons[L4[i]->_numExons-1]._genTo);
 #endif
 
-        sim4polish *n = s4p_copyPolish_OneExon(L4[i], L4[i]->numExons-1);
+        sim4polish *n = new sim4polish(L4[i], L4[i]->_numExons-1);
         L4.push(n);
-        s4p_deleteExon(L4[i], L4[i]->numExons-1);
+        L4[i]->s4p_deleteExon(L4[i]->_numExons-1);
       }
 
       //  Rebuild the stats on this guy -- we now have one exon, so just copy
       //  the exon stats to the global stats.
 
-      if (L4[i]->numExons > 0) {
+      if (L4[i]->_numExons > 0) {
 #ifdef SHOW_MATCH_SPLITTING
         qry->theLog->add("    Saving exon "u32bitFMT" from query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT"\n",
                     0,
-                    L4[i]->exons[0].estFrom,
-                    L4[i]->exons[0].estTo,
-                    L4[i]->exons[0].genFrom,
-                    L4[i]->exons[0].genTo);
+                    L4[i]->_exons[0]._estFrom,
+                    L4[i]->_exons[0]._estTo,
+                    L4[i]->_exons[0]._genFrom,
+                    L4[i]->_exons[0]._genTo);
 #endif
 
-        L4[i]->numMatches       = L4[i]->exons[0].numMatches;
-        L4[i]->numMatchesN      = L4[i]->exons[0].numMatchesN;
-        L4[i]->numCovered       = L4[i]->exons[0].genTo - L4[i]->exons[0].genFrom + 1;
-        L4[i]->percentIdentity  = L4[i]->exons[0].percentIdentity;
-        L4[i]->querySeqIdentity = s4p_percentCoverageApprox(L4[i]);
+        L4[i]->_numMatches       = L4[i]->_exons[0]._numMatches;
+        L4[i]->_numMatchesN      = L4[i]->_exons[0]._numMatchesN;
+        L4[i]->_numCovered       = L4[i]->_exons[0]._genTo - L4[i]->_exons[0]._genFrom + 1;
+        L4[i]->_percentIdentity  = L4[i]->_exons[0]._percentIdentity;
+        L4[i]->_querySeqIdentity = L4[i]->s4p_percentCoverageApprox();
       } else {
 #ifdef SHOW_MATCH_SPLITTING
         qry->theLog->add("    All exons removed!\n");
@@ -273,32 +273,32 @@ doPolishS4(searcherState       *state,
       //  identity/coverage.  These wil be stored in the hit after
       //  we process all matches.
       //
-      if ((L4[i]->percentIdentity >= pi) &&
-          (L4[i]->querySeqIdentity >= pc)) {
-        pi = L4[i]->percentIdentity;
-        pc = L4[i]->querySeqIdentity;
+      if ((L4[i]->_percentIdentity >= pi) &&
+          (L4[i]->_querySeqIdentity >= pc)) {
+        pi = L4[i]->_percentIdentity;
+        pc = L4[i]->_querySeqIdentity;
       }
 
 #ifdef SHOW_POLISHING
       qry->theLog->add("  match["u32bitFMT"] query:"u32bitFMT"-"u32bitFMT" genome:"u32bitFMT"-"u32bitFMT" id=%u cv=%d nm=%u\n",
                   i,
-                  L4[i]->exons[0].estFrom,
-                  L4[i]->exons[0].estTo,
-                  L4[i]->exons[0].genFrom,
-                  L4[i]->exons[0].genTo,
-                  L4[i]->percentIdentity,
-                  L4[i]->querySeqIdentity,
-                  L4[i]->exons[0].numMatches);
+                  L4[i]->_exons[0]._estFrom,
+                  L4[i]->_exons[0]._estTo,
+                  L4[i]->_exons[0]._genFrom,
+                  L4[i]->_exons[0]._genTo,
+                  L4[i]->_percentIdentity,
+                  L4[i]->_querySeqIdentity,
+                  L4[i]->_exons[0]._numMatches);
 #endif
 
       //  If we have a real hit, set the flag and save the output
       //
-      if ((L4[i]->percentIdentity  >= config._minMatchIdentity) &&
-          (L4[i]->querySeqIdentity >= config._minMatchCoverage)) {
+      if ((L4[i]->_percentIdentity  >= config._minMatchIdentity) &&
+          (L4[i]->_querySeqIdentity >= config._minMatchCoverage)) {
 
         qry->theHits[h]._status |= AHIT_VERIFIED;
 
-        char *pstr = s4p_polishToString(L4[i]);
+        char *pstr = L4[i]->s4p_polishToString();
 
         u32bit l = (u32bit)strlen(pstr);
 
@@ -321,7 +321,7 @@ doPolishS4(searcherState       *state,
 
         qry->theOutput[qry->theOutputLen] = 0;
 
-        free(pstr);
+        delete [] pstr;
       }
     }
 

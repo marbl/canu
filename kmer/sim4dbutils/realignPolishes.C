@@ -87,11 +87,11 @@ main(int argc, char **argv) {
   speedCounter  *C = new speedCounter("%12.0f polishes -- %12.0f polishes/second\r",
                                       1.0, 0xff, true);
 
-  sim4polish *p = 0L;
-  while ((p = s4p_readPolish(stdin)) != 0L) {
+  sim4polish *p = new sim4polish(stdin);
+  while (p->_numExons) {
 
     //fprintf(stdout, "BEFORE\n");
-    //s4p_printPolish(stdout, p, 0);
+    //p->s4p_printPolish(stdout, 0);
 
     //  If we have a mergeTolerance, merge adjacent exons that are
     //  separated my approximately equal sized cDNA and genomic gaps.
@@ -104,17 +104,17 @@ main(int argc, char **argv) {
     double id = 0.0;
     double cv = 0.0;
     if (mergeLog) {
-      id = s4p_percentIdentityExact(p);
-      cv = s4p_percentCoverageExact(p);
+      id = p->s4p_percentIdentityExact();
+      cv = p->s4p_percentCoverageExact();
     }
 
     int   merged = 0;
     int   gapped = 0;
 
     if ((mergeTolerancePerc > 0) || (mergeToleranceBase > 0)) {
-      for (u32bit i=1; i<p->numExons; i++) {
-        int cgap = p->exons[i].estFrom - p->exons[i-1].estTo;
-        int ggap = p->exons[i].genFrom - p->exons[i-1].genTo;
+      for (u32bit i=1; i<p->_numExons; i++) {
+        int cgap = p->_exons[i]._estFrom - p->_exons[i-1]._estTo;
+        int ggap = p->_exons[i]._genFrom - p->_exons[i-1]._genTo;
 
         bool  mergeGap = false;
 
@@ -156,19 +156,19 @@ main(int argc, char **argv) {
             fprintf(mergeLog,
                     "MERGE: "u32bitFMTW(4)"-"u32bitFMTW(4)" (%6.2f,%6.2f) "u32bitFMTW(4)"-"u32bitFMTW(4)
                     " and "u32bitFMTW(8)"-"u32bitFMTW(8)" (%6.2f,%6.2f) "u32bitFMTW(8)"-"u32bitFMTW(8)"\n",
-                    p->exons[i-1].estFrom, p->exons[i-1].estTo,
+                    p->_exons[i-1]._estFrom, p->_exons[i-1]._estTo,
                     cgap / 100.0, ctol / 100.0,
-                    p->exons[i].estFrom, p->exons[i].estTo,
-                    p->exons[i-1].genFrom, p->exons[i-1].genTo,
+                    p->_exons[i]._estFrom, p->_exons[i]._estTo,
+                    p->_exons[i-1]._genFrom, p->_exons[i-1]._genTo,
                     ggap / 100.0, gtol / 100.0,
-                    p->exons[i].genFrom, p->exons[i].genTo);
+                    p->_exons[i]._genFrom, p->_exons[i]._genTo);
 
           //  merge exons
-          p->exons[i-1].estTo = p->exons[i].estTo;
-          p->exons[i-1].genTo = p->exons[i].genTo;
+          p->_exons[i-1]._estTo = p->_exons[i]._estTo;
+          p->_exons[i-1]._genTo = p->_exons[i]._genTo;
 
           //  delete this exon
-          s4p_deleteExon(p, i);
+          p->s4p_deleteExon(i);
 
           //  Do it again!
           i--;
@@ -189,65 +189,66 @@ main(int argc, char **argv) {
 
 
     if (statsOnly == 0) {
-      p->estLen   = EST->getSequenceInCore(p->estID)->sequenceLength();
-      p->estPolyA = 0;
-      p->estPolyT = 0;
+      p->_estLen   = EST->getSequenceInCore(p->_estID)->sequenceLength();
+      p->_estPolyA = 0;
+      p->_estPolyT = 0;
 
-      for (u32bit i=0; i<p->numExons; i++) {
-        l1 = p->exons[i].estTo - p->exons[i].estFrom + 1;
-        l2 = p->exons[i].genTo - p->exons[i].genFrom + 1;
+      for (u32bit i=0; i<p->_numExons; i++) {
+        l1 = p->_exons[i]._estTo - p->_exons[i]._estFrom + 1;
+        l2 = p->_exons[i]._genTo - p->_exons[i]._genFrom + 1;
 
-        strncpy(s1, EST->getSequenceInCore(p->estID)->sequence() + p->exons[i].estFrom - 1, l1);
-        strncpy(s2, GEN->getSequenceInCore(p->genID)->sequence() + p->exons[i].genFrom - 1, l2);
+        strncpy(s1, EST->getSequenceInCore(p->_estID)->sequence() + p->_exons[i]._estFrom - 1, l1);
+        strncpy(s2, GEN->getSequenceInCore(p->_genID)->sequence() + p->_exons[i]._genFrom - 1, l2);
 
-        if (p->matchOrientation == SIM4_MATCH_COMPLEMENT) {
-          strncpy(s1, EST->getSequenceInCore(p->estID)->sequence() + p->estLen - p->exons[i].estTo, l1);
+        if (p->_matchOrientation == SIM4_MATCH_COMPLEMENT) {
+          strncpy(s1, EST->getSequenceInCore(p->_estID)->sequence() + p->_estLen - p->_exons[i]._estTo, l1);
           reverseComplementSequence(s1, l1);
         }
 
         s1[l1] = 0;
         s2[l2] = 0;
 
-        free(p->exons[i].estAlignment);
-        free(p->exons[i].genAlignment);
+        delete [] p->_exons[i]._estAlignment;
+        delete [] p->_exons[i]._genAlignment;
 
-        p->exons[i].estAlignment = (char *)malloc(sizeof(char) * (l1+l2+1));
-        p->exons[i].genAlignment = (char *)malloc(sizeof(char) * (l1+l2+1));
+        p->_exons[i]._estAlignment = new char [l1+l2+1];
+        p->_exons[i]._genAlignment = new char [l1+l2+1];
 
         halign(s1, s2,
                l1, l2,
-               p->exons[i].estAlignment,
-               p->exons[i].genAlignment);
+               p->_exons[i]._estAlignment,
+               p->_exons[i]._genAlignment);
       }
 
       //  There isn't an intron after the last exon.  Force it.
       //
-      p->exons[p->numExons-1].intronOrientation = SIM4_INTRON_NONE;
+      p->_exons[p->_numExons-1]._intronOrientation = SIM4_INTRON_NONE;
 
       //  Check that we didn't radically change things
-      u32bit nm = p->numMatches;
+      u32bit nm = p->_numMatches;
 
-      s4p_updateAlignmentScores(p);
-      s4p_printPolish(stdout, p, 0);
+      p->s4p_updateAlignmentScores();
+      p->s4p_printPolish(stdout, 0);
 
       if (warnOnChange) {
         u32bit diff = 0;
-        if (nm < p->numMatches)  diff = p->numMatches - nm;
-        if (nm > p->numMatches)  diff = nm - p->numMatches;
+        if (nm < p->_numMatches)  diff = p->_numMatches - nm;
+        if (nm > p->_numMatches)  diff = nm - p->_numMatches;
 
-        if (diff > p->numMatches / 100)
-          fprintf(stdout, "WARNING: CHANGED! "u32bitFMT" -> "u32bitFMT"\n", nm, p->numMatches);
+        if (diff > p->_numMatches / 100)
+          fprintf(stdout, "WARNING: CHANGED! "u32bitFMT" -> "u32bitFMT"\n", nm, p->_numMatches);
       }
     }
 
     if (merged) {
       fprintf(mergeLog, "MERGED\tEST\t"u32bitFMT"\tfrom\t%8.3f\t%8.3f\tto\t%8.3f\t%8.3f\n",
-              p->estID, id, cv, s4p_percentIdentityExact(p), s4p_percentCoverageExact(p));
+              p->_estID, id, cv, p->s4p_percentIdentityExact(), p->s4p_percentCoverageExact());
     }
 
-    s4p_destroyPolish(p);
-
     C->tick();
+
+    delete p;
+    p = new sim4polish(stdin);
   }
 
   if ((mergeTolerancePerc > 0) || (mergeToleranceBase > 0)) {

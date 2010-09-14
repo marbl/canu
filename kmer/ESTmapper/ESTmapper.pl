@@ -1258,11 +1258,11 @@ sub assembleOutput {
 
         print STDERR "ESTmapper/assembleOutput-- counting cDNA.\n";
         print F "cDNA COUNTS:\n";
-        my $cnttotl = int(`grep -c '>' $path/0-input/cDNA.fasta`);
-        my $cntgood = int(`grep -c '>' $path/cDNA-good.fasta`);
-        my $cntmiss = int(`grep -c '>' $path/cDNA-missing.fasta`);
-        my $cntrept = int(`grep -c '>' $path/cDNA-repeat.fasta`) if (-e "$path/cDNA-repeat.fasta");
-        my $cntzero = int(`grep -c '>' $path/cDNA-zero.fasta`);
+        my $cnttotl = int(`grep -c '^>' $path/0-input/cDNA.fasta`);
+        my $cntgood = int(`grep -c '^>' $path/cDNA-good.fasta`);
+        my $cntmiss = int(`grep -c '^>' $path/cDNA-missing.fasta`);
+        my $cntrept = int(`grep -c '^>' $path/cDNA-repeat.fasta`) if (-e "$path/cDNA-repeat.fasta");
+        my $cntzero = int(`grep -c '^>' $path/cDNA-zero.fasta`);
 
         printf F "cDNA:            %8d\n", $cnttotl, "\n";
         printf F "cDNA-good:       %8d (%8.4f%%)\n", $cntgood, 100 * $cntgood / $cnttotl;

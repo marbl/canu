@@ -369,49 +369,49 @@ doPolishDP(searcherState       *state,
 
       qry->theHits[h]._status |= AHIT_VERIFIED;
 
-      p.estID    = QRYseq->getIID();
-      p.estLen   = QRYseq->sequenceLength();
-      p.estPolyA = 0;
-      p.estPolyT = 0;
+      p._estID    = QRYseq->getIID();
+      p._estLen   = QRYseq->sequenceLength();
+      p._estPolyA = 0;
+      p._estPolyT = 0;
 
-      p.genID            = GENseq->getIID();
-      p.genRegionOffset  = GENlo;
-      p.genRegionLength  = GENhi - GENlo;
+      p._genID            = GENseq->getIID();
+      p._genRegionOffset  = GENlo;
+      p._genRegionLength  = GENhi - GENlo;
 
-      p.numMatches   = match.matches;
-      p.numMatchesN  = 0;
-      p.numCovered   = match.endI - match.begI;
+      p._numMatches   = match.matches;
+      p._numMatchesN  = 0;
+      p._numCovered   = match.endI - match.begI;
       
-      p.percentIdentity  = 0;
-      p.querySeqIdentity = 0;
+      p._percentIdentity  = 0;
+      p._querySeqIdentity = 0;
 
-      p.matchOrientation  = (doReverse) ? SIM4_MATCH_COMPLEMENT : SIM4_MATCH_FORWARD;
-      p.strandOrientation = SIM4_STRAND_UNKNOWN;
+      p._matchOrientation  = (doReverse) ? SIM4_MATCH_COMPLEMENT : SIM4_MATCH_FORWARD;
+      p._strandOrientation = SIM4_STRAND_UNKNOWN;
 
-      p.comment    = NULL;
-      p.estDefLine = QRYseq->header();
-      p.genDefLine = GENseq->header();
+      p._comment    = NULL;
+      p._estDefLine = QRYseq->header();
+      p._genDefLine = GENseq->header();
 
-      p.numExons = 1;
-      p.exons    = &e;
+      p._numExons = 1;
+      p._exons    = &e;
 
-      e.estFrom           = match.begI + 1;
-      e.estTo             = match.endI;
-      e.genFrom           = match.begJ + GENlo + 1;
-      e.genTo             = match.endJ + GENlo;
-      e.numMatches        = match.matches;
-      e.numMatchesN       = 0;
-      e.percentIdentity   = 0;
-      e.intronOrientation = SIM4_INTRON_NONE;
-      e.estAlignment      = match.alignA;
-      e.genAlignment      = match.alignB;
+      e._estFrom           = match.begI + 1;
+      e._estTo             = match.endI;
+      e._genFrom           = match.begJ + GENlo + 1;
+      e._genTo             = match.endJ + GENlo;
+      e._numMatches        = match.matches;
+      e._numMatchesN       = 0;
+      e._percentIdentity   = 0;
+      e._intronOrientation = SIM4_INTRON_NONE;
+      e._estAlignment      = match.alignA;
+      e._genAlignment      = match.alignB;
 
-      s4p_updateAlignmentScores(&p);
+      p.s4p_updateAlignmentScores();
 
       //  Save it if it is truely good.
-      if ((p.percentIdentity  >= config._minMatchIdentity) &&
-          (p.querySeqIdentity >= config._minMatchCoverage)) {
-        char *pstr = s4p_polishToString(&p);
+      if ((p._percentIdentity  >= config._minMatchIdentity) &&
+          (p._querySeqIdentity >= config._minMatchCoverage)) {
+        char *pstr = p.s4p_polishToString();
 
         u32bit l = (u32bit)strlen(pstr);
 
@@ -434,12 +434,12 @@ doPolishDP(searcherState       *state,
 
         qry->theOutput[qry->theOutputLen] = 0;
 
-        free(pstr);
+        delete [] pstr;
 
         //  Save the best scores
         //
-        u32bit pi = p.percentIdentity;
-        u32bit pc = p.querySeqIdentity;
+        u32bit pi = p._percentIdentity;
+        u32bit pc = p._querySeqIdentity;
 
         qry->theHits[h]._status |= pi << 16;
         qry->theHits[h]._status |= pc << 24;

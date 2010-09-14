@@ -6,12 +6,25 @@
 //#include "fasta.H"
 #include "sim4.H"
 
-//
 //  usage: mergeInput -m match1 cdna1 -m match2 cdna2 -m ... -o match cdna
 //
 //  Merges the results from two ESTmapper runs.  The runs MUST be on
 //  the same genomic sequence using DIFFERENT cDNA inputs.
-//
+
+static
+void
+loadNext(u32bit idx, sim4polish **polishes, FILE **inMatch, u32bit *numSeqs) {
+
+  delete polishes[idx];
+  polishes[idx] = new sim4polish(inMatch[idx]);
+
+  if (polishes[idx]->_numExons > 0) {
+    polishes[idx]->_estID += numSeqs[idx];
+  } else {
+    delete polishes[idx];
+    polishes[idx] = 0L;
+  }
+}
 
 int
 main(int argc, char **argv) {
@@ -22,11 +35,11 @@ main(int argc, char **argv) {
 
   FILE       **inMatch = new FILE * [argc];
   FILE        *otMatch = 0L;
-  int         *numSeqs = new int [argc];
+  u32bit      *numSeqs = new u32bit [argc];
 
   sim4polish **polishes = new sim4polish * [argc];
 
-  int          numIn = 0;
+  u32bit       numIn = 0;
 
   int arg = 1;
   while (arg < argc) {
@@ -42,6 +55,7 @@ main(int argc, char **argv) {
         exit(1);
       }
       numIn++;
+
     } else if (strcmp(argv[arg], "-o") == 0) {
       arg++;
       otMatchName = (char *)argv[arg++];
@@ -56,23 +70,20 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-
-  //
-  //  Merge the input sequences into the output sequence.  We also count
-  //  the number of sequences here, so we don't need random-access
-  //  of the input.
+  //  Merge the input sequences into the output sequence.  We also count the number of sequences
+  //  here, so we don't need random-access of the input.
   //
   fprintf(stderr, "Merging sequences.\n");
 
   FILE         *O = fopen(otSeqName, "w");
-  for (int i=0; i<numIn; i++) {
+  for (u32bit i=0; i<numIn; i++) {
     seqCache  *I = new seqCache(inSeqName[i]);
     seqInCore *B = I->getSequenceInCore();
 
     numSeqs[i] = 0;
 
     while (B) {
-      fprintf(O, "%s\n%s\n", B->header(), B->sequence());
+      fprintf(O, ">%s\n%s\n", B->header(), B->sequence());
       numSeqs[i]++;
 
       delete B;
@@ -84,69 +95,49 @@ main(int argc, char **argv) {
   fclose(O);
 
 
-  //  Make numSeqs[] be the offset needed to convert a polish
-  //  in each inMatch[] file into a polish in the merged file.
+  //  Make numSeqs[] be the offset needed to convert a polish in each inMatch[] file into a polish
+  //  in the merged file.
   //
-  int o = 0;
-  int s = 0;
-  for (int i=0; i<numIn; i++) {
+  u32bit o = 0;
+  u32bit s = 0;
+  for (u32bit i=0; i<numIn; i++) {
     o  = numSeqs[i];
     numSeqs[i] = s;
     s += o;
   }
 
-
-
-  //
   //  Load the initial polishes
   //
-  fprintf(stderr, "Loading initial.\n");
+  for (u32bit i=0; i<numIn; i++)
+    loadNext(i, polishes, inMatch, numSeqs);
 
-  for (int i=0; i<numIn; i++) {
-    polishes[i]           = s4p_readPolish(inMatch[i]);
-    if (polishes[i])
-      polishes[i]->estID += numSeqs[i];
-
-    if (polishes[i] == 0L)
-      fprintf(stderr, "Error: no matches found in %s\n", inMatchName[i]);
-  }
-
-
+  //  Merge, until no more input is left.  Each round we scan the list of loaded polishes[] and
+  //  remember the lowest, which is then output and a new polish is loaded in its place.
   //
-  //  Do a merge, until no more input exists
-  //
-  fprintf(stderr, "Merging polishes.\n");
-
   bool keepGoing = true;
   while (keepGoing) {
 
-    //  Find the lowest polish -- we want to keep these sorted by scaffold,
-    //  then by cDNA.
-    //
-    int first = 0;
+    u32bit first = 0;
     while ((polishes[first] == 0L) && (first < numIn))
       first++;
 
-    if (polishes[first]) {
-      for (int i=first+1; i<numIn; i++)
-        if ((polishes[i]) &&
-            (s4p_genIDcompare(polishes + first, polishes + i) > 0))
-          first = i;
-
-
-      //  Dump the 'first', read in a new polish
-      //
-      s4p_printPolish(otMatch, polishes[first], S4P_PRINTPOLISH_FULL);
-
-      s4p_destroyPolish(polishes[first]);
-
-      polishes[first]           = s4p_readPolish(inMatch[first]);
-      if (polishes[first])
-        polishes[first]->estID += numSeqs[first];
-    } else {
-      keepGoing = false;
+    if (polishes[first] == 0L) {
+      keepGoing = 0L;
+      continue;
     }
+
+    for (u32bit i=first+1; i<numIn; i++)
+      if ((polishes[i]) &&
+          (s4p_genIDcompare(polishes + first, polishes + i) > 0))
+        first = i;
+
+    polishes[first]->s4p_printPolish(otMatch, S4P_PRINTPOLISH_FULL);
+
+    loadNext(first, polishes, inMatch, numSeqs);
   }
 
   fclose(otMatch);
 }
+
+
+

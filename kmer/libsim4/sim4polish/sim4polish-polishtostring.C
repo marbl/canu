@@ -1,36 +1,38 @@
-#include "sim4polish.h"
+#include "sim4polish.H"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 char*
-s4p_polishToString(sim4polish *p) {
-  u32bit  spaceNeeded = 0;
-  u32bit  i;
-  char   *outc=NULL, *outs=NULL;
-  char   *mOri="", *sOri="", *iOri="";
+sim4polish::s4p_polishToString(void) {
+  u32bit        spaceNeeded = 0;
+  char         *outc = NULL;
+  char         *outs = NULL;
+  const char   *mOri = "";
+  const char   *sOri = "";
+  const char   *iOri = "";
 
-  if (p == 0L)
+  if (_numExons == 0)
     return(0L);
 
   //  Make a decent estimate of how much space we'll need to
   //  store the string
   //
-  spaceNeeded = 1024 + 128 * p->numExons;
+  spaceNeeded = 1024 + 128 * _numExons;
 
-  if (p->comment)     spaceNeeded += strlen(p->comment);
-  if (p->estDefLine)  spaceNeeded += strlen(p->estDefLine);
-  if (p->genDefLine)  spaceNeeded += strlen(p->genDefLine);
+  if (_comment)     spaceNeeded += strlen(_comment);
+  if (_estDefLine)  spaceNeeded += strlen(_estDefLine);
+  if (_genDefLine)  spaceNeeded += strlen(_genDefLine);
 
-  for (i=0; i<p->numExons; i++) {
-    if (p->exons[i].estAlignment)
-      spaceNeeded += 2 * strlen(p->exons[i].estAlignment);
+  for (u32bit i=0; i<_numExons; i++) {
+    if (_exons[i]._estAlignment)
+      spaceNeeded += 2 * strlen(_exons[i]._estAlignment);
   }
 
-  outc = outs = (char *)malloc(spaceNeeded * sizeof(char));
+  outc = outs = new char [spaceNeeded];
 
-  switch (p->matchOrientation) {
+  switch (_matchOrientation) {
     case SIM4_MATCH_FORWARD:
       mOri = "forward";
       break;
@@ -41,12 +43,12 @@ s4p_polishToString(sim4polish *p) {
       mOri = "error";
       break;
     default:
-      fprintf(stderr, "sim4reader: Unknown matchOrientation '"u32bitFMT"' in printPolish()\n", p->matchOrientation);
+      fprintf(stderr, "sim4reader: Unknown matchOrientation '"u32bitFMT"' in printPolish()\n", _matchOrientation);
       mOri = "UNKNOWN";
       break;
   }
 
-  switch (p->strandOrientation) {
+  switch (_strandOrientation) {
     case SIM4_STRAND_POSITIVE:
       sOri = "forward";
       break;
@@ -66,34 +68,34 @@ s4p_polishToString(sim4polish *p) {
       sOri = "error";
       break;
     default:
-      fprintf(stderr, "sim4reader: Unknown strandOrientation '"u32bitFMT"' in printPolish()\n", p->matchOrientation);
+      fprintf(stderr, "sim4reader: Unknown strandOrientation '"u32bitFMT"' in printPolish()\n", _matchOrientation);
       sOri = "UNKNOWN";
       break;
   }
 
   sprintf(outc, "sim4begin\n"u32bitFMT"["u32bitFMT"-"u32bitFMT"-"u32bitFMT"] "u32bitFMT"["u32bitFMT"-"u32bitFMT"] <"u32bitFMT"-"u32bitFMT"-"u32bitFMT"-%s-%s>\n",
-          p->estID, p->estLen, p->estPolyA, p->estPolyT,
-          p->genID, p->genRegionOffset, p->genRegionLength,
-          p->numMatches, p->numMatchesN, p->percentIdentity, mOri, sOri);
+          _estID, _estLen, _estPolyA, _estPolyT,
+          _genID, _genRegionOffset, _genRegionLength,
+          _numMatches, _numMatchesN, _percentIdentity, mOri, sOri);
   while (*outc)  outc++;
 
-  if (p->comment) {
-    sprintf(outc, "comment=%s\n", p->comment);
+  if (_comment) {
+    sprintf(outc, "comment=%s\n", _comment);
     while (*outc)  outc++;
   }
 
-  if (p->estDefLine) {
-    sprintf(outc, "edef=%s\n", p->estDefLine);
+  if (_estDefLine) {
+    sprintf(outc, "edef=%s\n", _estDefLine);
     while (*outc)  outc++;
   }
 
-  if (p->genDefLine) {
-    sprintf(outc, "ddef=%s\n", p->genDefLine);
+  if (_genDefLine) {
+    sprintf(outc, "ddef=%s\n", _genDefLine);
     while (*outc)  outc++;
   }
 
-  for (i=0; i<p->numExons; i++) {
-    switch (p->exons[i].intronOrientation) {
+  for (u32bit i=0; i<_numExons; i++) {
+    switch (_exons[i]._intronOrientation) {
       case SIM4_INTRON_POSITIVE:
         iOri = " ->";
         break;
@@ -115,24 +117,22 @@ s4p_polishToString(sim4polish *p) {
     }
 
     sprintf(outc, ""u32bitFMT"-"u32bitFMT" ("u32bitFMT"-"u32bitFMT") <"u32bitFMT"-"u32bitFMT"-"u32bitFMT">%s\n",
-            p->exons[i].estFrom, p->exons[i].estTo,
-            p->exons[i].genFrom, p->exons[i].genTo,
-            p->exons[i].numMatches, p->exons[i].numMatchesN, p->exons[i].percentIdentity, iOri);
+            _exons[i]._estFrom, _exons[i]._estTo,
+            _exons[i]._genFrom, _exons[i]._genTo,
+            _exons[i]._numMatches, _exons[i]._numMatchesN, _exons[i]._percentIdentity, iOri);
 
     while (*outc)  outc++;
   }
 
-  //fputs(outs, stderr);
-
-  for (i=0; i<p->numExons; i++) {
-    if (p->exons[i].estAlignment) {
-      strcpy(outc, p->exons[i].estAlignment);
+  for (u32bit i=0; i<_numExons; i++) {
+    if (_exons[i]._estAlignment) {
+      strcpy(outc, _exons[i]._estAlignment);
       while (*outc)  outc++;
       *outc = '\n';
       outc++;
     }
-    if (p->exons[i].genAlignment) {
-      strcpy(outc, p->exons[i].genAlignment);
+    if (_exons[i]._genAlignment) {
+      strcpy(outc, _exons[i]._genAlignment);
       while (*outc)  outc++;
       *outc = '\n';
       outc++;

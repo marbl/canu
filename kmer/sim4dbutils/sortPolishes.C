@@ -87,7 +87,7 @@ writeTemporary(char *filePrefix, sim4polish **p, int pLen, int (*fcn)(const void
 
   for (i=0; i<pLen; i++) {
     errno = 0;
-    s4p_printPolish(F, p[i], S4P_PRINTPOLISH_FULL);
+    p[i]->s4p_printPolish(F, S4P_PRINTPOLISH_FULL);
     if (errno)
       fprintf(stderr, "sortPolishes: Failed to write temporary file!\n"), exit(1);
   }
@@ -107,53 +107,51 @@ writeTemporary(char *filePrefix, sim4polish **p, int pLen, int (*fcn)(const void
 //
 sim4polish *
 savePolish(sim4polish *q, double *alloc) {
-  sim4polish   *r = NULL;
   int           l = 0;
-  int           i = 0;
 
   //  Copy the base polish structure.
   //
-  r = (sim4polish *)palloc(sizeof(sim4polish));
+  sim4polish *r = (sim4polish *)palloc(sizeof(sim4polish));
   memcpy(r, q, sizeof(sim4polish));
   *alloc += sizeof(sim4polish);
 
   //  Copy the deflines.
   //
-  if (q->estDefLine && q->genDefLine) {
-    l = strlen(q->estDefLine) + 1;
-    r->estDefLine = (char *)palloc(sizeof(char) * l);
-    memcpy(r->estDefLine, q->estDefLine, sizeof(char) * l);
+  if (q->_estDefLine && q->_genDefLine) {
+    l = strlen(q->_estDefLine) + 1;
+    r->_estDefLine = (char *)palloc(sizeof(char) * l);
+    memcpy(r->_estDefLine, q->_estDefLine, sizeof(char) * l);
     *alloc += l * sizeof(char);
  
-    l = strlen(q->genDefLine) + 1;
-    r->genDefLine = (char *)palloc(sizeof(char) * l);
-    memcpy(r->genDefLine, q->genDefLine, sizeof(char) * l);
+    l = strlen(q->_genDefLine) + 1;
+    r->_genDefLine = (char *)palloc(sizeof(char) * l);
+    memcpy(r->_genDefLine, q->_genDefLine, sizeof(char) * l);
     *alloc += l * sizeof(char);
   } else {
-    r->estDefLine = 0L;
-    r->genDefLine = 0L;
+    r->_estDefLine = 0L;
+    r->_genDefLine = 0L;
   }
 
   //  Copy the base exon structure.
   //
-  r->exons = (sim4polishExon *)palloc(sizeof(sim4polishExon) * q->numExons);
-  memcpy(r->exons, q->exons, sizeof(sim4polishExon) * q->numExons);
-  *alloc += sizeof(sim4polishExon) * q->numExons;
+  r->_exons = (sim4polishExon *)palloc(sizeof(sim4polishExon) * q->_numExons);
+  memcpy(r->_exons, q->_exons, sizeof(sim4polishExon) * q->_numExons);
+  *alloc += sizeof(sim4polishExon) * q->_numExons;
 
   //  Copy the exon alignments.
   //
-  for (i=0; i<q->numExons; i++) {
-    if (q->exons[i].estAlignment) {
-      l = strlen(q->exons[i].estAlignment) + 1;
-      r->exons[i].estAlignment = (char *)palloc(sizeof(char) * l);
-      memcpy(r->exons[i].estAlignment, q->exons[i].estAlignment, sizeof(char) * l);
+  for (u32bit i=0; i<q->_numExons; i++) {
+    if (q->_exons[i]._estAlignment) {
+      l = strlen(q->_exons[i]._estAlignment) + 1;
+      r->_exons[i]._estAlignment = (char *)palloc(sizeof(char) * l);
+      memcpy(r->_exons[i]._estAlignment, q->_exons[i]._estAlignment, sizeof(char) * l);
       *alloc += l * sizeof(char);
     }
 
-    if (q->exons[i].genAlignment) {
-      l = strlen(q->exons[i].genAlignment) + 1;
-      r->exons[i].genAlignment = (char *)palloc(sizeof(char) * l);
-      memcpy(r->exons[i].genAlignment, q->exons[i].genAlignment, sizeof(char) * l);
+    if (q->_exons[i]._genAlignment) {
+      l = strlen(q->_exons[i]._genAlignment) + 1;
+      r->_exons[i]._genAlignment = (char *)palloc(sizeof(char) * l);
+      memcpy(r->_exons[i]._genAlignment, q->_exons[i]._genAlignment, sizeof(char) * l);
       *alloc += l * sizeof(char);
     }
   }
@@ -189,7 +187,6 @@ main(int argc, char **argv) {
   int          beVerbose = 0;
   char        *filePrefix = NULL;
 
-  sim4polish **p    = 0L;
   int          pLen = 0;
   int          pMax = 1 * 1024 * 1024;
 
@@ -207,8 +204,8 @@ main(int argc, char **argv) {
 
   int          mergeFilesLen   = 0;
   int          mergeFilesMax   = sysconf(_SC_OPEN_MAX);
-  FILE       **mergeFiles      = (FILE **)malloc(sizeof(FILE*) * mergeFilesMax);
-  char       **mergeNames      = (char **)malloc(sizeof(char*) * mergeFilesMax);
+  FILE       **mergeFiles      = new FILE * [mergeFilesMax];
+  char       **mergeNames      = new char * [mergeFilesMax];
 
   int          arg = 0;
 
@@ -277,15 +274,10 @@ main(int argc, char **argv) {
     //  get to be as big as the silly user said it can.
     //
     upperAlloc = findMemorySize(upperAlloc);
-
     arrayAlloc = getProcessSize();
 
-    errno = 0;
-    p     = (sim4polish **)calloc(pMax, sizeof(sim4polish *));
-    if (errno) {
-      fprintf(stderr, "ERROR: Can't allocate initial polish storage!\n%s\n", strerror(errno));
-      exit(1);
-    }
+    sim4polish **p = new sim4polish * [pMax];
+    memset(p, 0, sizeof(sim4polish) * pMax);
 
     arrayAlloc += sizeof(sim4polish *) * pMax;
 
@@ -299,7 +291,7 @@ main(int argc, char **argv) {
 
 
     while (!feof(stdin)) {
-      q = s4p_readPolish(stdin);
+      q = new sim4polish(stdin);
 
       if (q) {
 
@@ -308,21 +300,18 @@ main(int argc, char **argv) {
         if ((pLen >= pMax) ||
             (arrayAlloc + matchAlloc >= upperAlloc)) {
 
-          //  If reallocating more pointer space doesn't blow our memory
-          //  limit, try allocating some more space.  We might need
-          //  space for both the original array and the new one, so we
-          //  can copy the old into the new.
-          //
-          sim4polish **N = 0L;
+          //  Either realloc space (if we're still small enough to do so) or
+          //  write an intermediate file.
 
-          if (arrayAlloc + matchAlloc + sizeof(sim4polish*) * pMax * 2 < upperAlloc)
-            N = (sim4polish **)realloc(p, sizeof(sim4polish *) * pMax * 2);
+          if (arrayAlloc + matchAlloc + sizeof(sim4polish*) * pMax * 2 < upperAlloc) {
+            sim4polish **P = new sim4polish * [pMax * 2];
+            memcpy(P, p, sizeof(sim4polish *) * pMax);
+            delete [] p;
+            pMax *= 2;
+            p       = P;
+            arrayAlloc += sizeof(sim4polish *) * pMax;
 
-          //  If N is NULL, then we were unable to get more space,
-          //  either by a soft limit or failure of realloc.  Save the
-          //  current stuff in a temporary file, and continue.
-          //
-          if (N == 0L) {
+          } else {
             if (beVerbose) {
               statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
               fprintf(stderr, "\n");
@@ -332,23 +321,19 @@ main(int argc, char **argv) {
               fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
               exit(1);
             }
+
             mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, fcn);
 
             pfree();
             matchAlloc = 0;
             pLen = 0;
-          } else {
-            pMax *= 2;
-            p       = N;
-
-            arrayAlloc += sizeof(sim4polish *) * pMax;
           }
         }
 
         //  Save, then kill, the polish
         //
         p[pLen++] = savePolish(q, &matchAlloc);
-        s4p_destroyPolish(q);
+        delete q;
       }
 
       if (beVerbose && ((pLen % 2000) == 0))
@@ -365,7 +350,7 @@ main(int argc, char **argv) {
       qsort(p, pLen, sizeof(sim4polish *), fcn);
 
       for (i=0; i<pLen; i++)
-        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
+        p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
     } else {
 
       //  Crud.  Temporary files.  Sort the last batch, dump it, then do
@@ -381,7 +366,7 @@ main(int argc, char **argv) {
       matchAlloc = 0;
       pLen = 0;
 
-      free(p);
+      delete [] p;
     }
   }
 
@@ -391,14 +376,10 @@ main(int argc, char **argv) {
   //
 
   if (mergeFilesLen > 0) {
-    p = (sim4polish **)malloc(sizeof(sim4polish) * mergeFilesLen);
-    if (p == 0L) {
-      fprintf(stderr, "Couldn't allocate polish pointers in merge!\n");
-      exit(1);
-    }
+    sim4polish **p = new sim4polish * [mergeFilesLen];
 
     for (i=0; i<mergeFilesLen; i++)
-      p[i] = s4p_readPolish(mergeFiles[i]);
+      p[i] = new sim4polish(mergeFiles[i]);
 
     while (moreInput) {
       int smallestPolish = 0;
@@ -417,9 +398,9 @@ main(int argc, char **argv) {
       if (p[smallestPolish] == 0L) {
         moreInput = 0;
       } else {
-        s4p_printPolish(stdout, p[smallestPolish], S4P_PRINTPOLISH_FULL);
-        s4p_destroyPolish(p[smallestPolish]);
-        p[smallestPolish] = s4p_readPolish(mergeFiles[smallestPolish]);
+        p[smallestPolish]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+        delete p[smallestPolish];
+        p[smallestPolish] = new sim4polish(mergeFiles[smallestPolish]);
       }
     }
 
@@ -427,8 +408,12 @@ main(int argc, char **argv) {
     //
     for (i=0; i<mergeFilesLen; i++)
       closeFile(mergeFiles[i], mergeNames[i]);
+
+    delete [] p;
   }
 
+  delete [] mergeFiles;
+  delete [] mergeNames;
 
   return(0);
 }

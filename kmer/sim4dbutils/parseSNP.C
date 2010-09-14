@@ -115,12 +115,7 @@ findSNPid(char *defline) {
     ;
 #endif
 
-  errno = 0;
-  ret = (char *)malloc(sizeof(char) * (len+1));
-  if (errno) {
-    fprintf(stderr, "malloc() problem: %s\n", strerror(errno));
-    exit(1);
-  }
+  ret = new char [len+1];
 
   for (i=sta; i<len-1; i++)
     ret[i-sta] = defline[i+1];
@@ -140,12 +135,7 @@ findGENid(char *defline) {
   for (len=1; defline[len] && !isspace(defline[len]); len++)
     ;
 
-  errno = 0;
-  ret = (char *)malloc(sizeof(char) * (len+1));
-  if (errno) {
-    fprintf(stderr, "malloc() problem: %s\n", strerror(errno));
-    exit(1);
-  }
+  ret = new char [len+1];
 
   for (i=0; i<len-1; i++)
     ret[i] = defline[i+1];
@@ -193,7 +183,7 @@ findPosition(char *defline) {
 static
 int
 printSNP(FILE *F, sim4polish *p) {
-  u32bit   pos           = findPosition(p->estDefLine);
+  u32bit   pos           = findPosition(p->_estDefLine);
   u32bit   exonWithSNP   = ~u32bitZERO;
   u32bit   i             = 0;
   u32bit   seqOffset     = 0;
@@ -203,19 +193,19 @@ printSNP(FILE *F, sim4polish *p) {
   //  the offset at the end of the sequence (not always the same as
   //  the offset at the start of the sequence).
   //
-  //  XXX: Previous version had this as "p->estLen - pos + siz", which
+  //  XXX: Previous version had this as "p->_estLen - pos + siz", which
   //  seems wrong.  This version does what appears to be reverse
   //  complement - size.  I don't understand if this is a "size" or
   //  just a "1" thing.
   //
   seqOffset = pos;
-  if (p->matchOrientation == SIM4_MATCH_COMPLEMENT)
-    seqOffset = p->estLen - pos - 1;
+  if (p->_matchOrientation == SIM4_MATCH_COMPLEMENT)
+    seqOffset = p->_estLen - pos - 1;
 
   //  Find the exon with the SNP
   //
-  for (i=0; i<p->numExons; i++)
-    if (((p->exons[i].estFrom-1) <= seqOffset) && (seqOffset <= (p->exons[i].estTo-1)))
+  for (i=0; i<p->_numExons; i++)
+    if (((p->_exons[i]._estFrom-1) <= seqOffset) && (seqOffset <= (p->_exons[i]._estTo-1)))
       exonWithSNP = i;
 
   if (exonWithSNP == ~u32bitZERO)
@@ -225,8 +215,8 @@ printSNP(FILE *F, sim4polish *p) {
   //  just return.
   //
   if (F) {
-    char *SNPid = findSNPid(p->estDefLine);
-    char *GENid = findGENid(p->genDefLine);
+    char *SNPid = findSNPid(p->_estDefLine);
+    char *GENid = findGENid(p->_genDefLine);
 
     char  SNPbase = 0;
     char  GENbase = 0;
@@ -240,13 +230,13 @@ printSNP(FILE *F, sim4polish *p) {
     //
     //  XXX:  these used to be int!
     //
-    u32bit  bpToExamine = seqOffset - (p->exons[exonWithSNP].estFrom - 1) + 1;
+    u32bit  bpToExamine = seqOffset - (p->_exons[exonWithSNP]._estFrom - 1) + 1;
     u32bit  examinePos  = 0;
-    u32bit  genPosition = p->exons[exonWithSNP].genFrom - 1;
+    u32bit  genPosition = p->_exons[exonWithSNP]._genFrom - 1;
 
     //  Recent runs of dbSNP showed that we are off by one (too many if forward, too few if complement).  This is a hack to fix it.
     //
-    if (p->matchOrientation == SIM4_MATCH_COMPLEMENT)
+    if (p->_matchOrientation == SIM4_MATCH_COMPLEMENT)
       bpToExamine++;
     else
       bpToExamine--;
@@ -256,13 +246,13 @@ printSNP(FILE *F, sim4polish *p) {
       //  If the SNP alignment eats up a base pair, decrement
       //  the number of bp left to examine.
       //
-      if (p->exons[exonWithSNP].estAlignment[examinePos] != '-')
+      if (p->_exons[exonWithSNP]._estAlignment[examinePos] != '-')
         bpToExamine--;
 
       //  If the the genomic alignment is not a gap, increment the
       //  position.
       //
-      if (p->exons[exonWithSNP].genAlignment[examinePos] != '-')
+      if (p->_exons[exonWithSNP]._genAlignment[examinePos] != '-')
         genPosition++;
 
       examinePos++;
@@ -270,16 +260,16 @@ printSNP(FILE *F, sim4polish *p) {
 
     //  Adjust the quality values, treating the SNP as a match always.
     //
-    SNPbase = p->exons[exonWithSNP].estAlignment[examinePos-1];
-    GENbase = p->exons[exonWithSNP].genAlignment[examinePos-1];
+    SNPbase = p->_exons[exonWithSNP]._estAlignment[examinePos-1];
+    GENbase = p->_exons[exonWithSNP]._genAlignment[examinePos-1];
 
-    p->exons[exonWithSNP].estAlignment[examinePos-1] = 'A';
-    p->exons[exonWithSNP].genAlignment[examinePos-1] = 'A';
+    p->_exons[exonWithSNP]._estAlignment[examinePos-1] = 'A';
+    p->_exons[exonWithSNP]._genAlignment[examinePos-1] = 'A';
 
-    s4p_updateAlignmentScores(p);
+    p->s4p_updateAlignmentScores();
 
-    p->exons[exonWithSNP].estAlignment[examinePos-1] = SNPbase;
-    p->exons[exonWithSNP].genAlignment[examinePos-1] = GENbase;
+    p->_exons[exonWithSNP]._estAlignment[examinePos-1] = SNPbase;
+    p->_exons[exonWithSNP]._genAlignment[examinePos-1] = GENbase;
 
 
     if (outputFormat == 1) {
@@ -289,13 +279,13 @@ printSNP(FILE *F, sim4polish *p) {
               genPosition,
               SNPbase,
               GENbase,
-              (p->matchOrientation == SIM4_MATCH_FORWARD) ? "forward" : "complement",
-              p->percentIdentity,
-              p->querySeqIdentity,
-              p->numExons,
+              (p->_matchOrientation == SIM4_MATCH_FORWARD) ? "forward" : "complement",
+              p->_percentIdentity,
+              p->_querySeqIdentity,
+              p->_numExons,
               exonWithSNP,
-              p->exons[exonWithSNP].percentIdentity,
-              (u32bit)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));
+              p->_exons[exonWithSNP]._percentIdentity,
+              (u32bit)floor(100.0 * (double)p->_exons[exonWithSNP]._numMatches / (double)p->_estLen));
     } else if (outputFormat == 2) {
 
       //  The format is all on one line, data fields separated by tab.
@@ -327,21 +317,21 @@ printSNP(FILE *F, sim4polish *p) {
               "a", //SNPid,
               "b", //GENid,
               genPosition,
-              p->exons[exonWithSNP].estAlignment[examinePos-1],                                       // sa
-              p->exons[exonWithSNP].genAlignment[examinePos-1],                                       // ga
-              (p->matchOrientation == SIM4_MATCH_FORWARD) ? 'f' : 'r',                                // mo
-              p->percentIdentity,                                                                     // pi
-              p->querySeqIdentity,                                                                    // pc
-              p->numExons,                                                                            // nb
-              exonWithSNP,                                                                            // bl
-              examinePos,                                                                             // bp
-              p->exons[exonWithSNP].percentIdentity,                                                  // bi
-              (u32bit)floor(100.0 * (double)p->exons[exonWithSNP].numMatches / (double)p->estLen));   // bc
+              p->_exons[exonWithSNP]._estAlignment[examinePos-1],                                        // sa
+              p->_exons[exonWithSNP]._genAlignment[examinePos-1],                                        // ga
+              (p->_matchOrientation == SIM4_MATCH_FORWARD) ? 'f' : 'r',                                  // mo
+              p->_percentIdentity,                                                                       // pi
+              p->_querySeqIdentity,                                                                      // pc
+              p->_numExons,                                                                              // nb
+              exonWithSNP,                                                                               // bl
+              examinePos,                                                                                // bp
+              p->_exons[exonWithSNP]._percentIdentity,                                                   // bi
+              (u32bit)floor(100.0 * (double)p->_exons[exonWithSNP]._numMatches / (double)p->_estLen));   // bc
     } else {
     }
 
-    free(SNPid);
-    free(GENid);
+    delete [] SNPid;
+    delete [] GENid;
   }
 
   return(1);
@@ -361,7 +351,7 @@ parseSNP(sim4polish **p, int pNum) {
   //  Count the number of matches that have more than one exon
   //
   for (i=0; i<pNum; i++)
-    if (p[i]->numExons > 1)
+    if (p[i]->_numExons > 1)
       numMulti++;
 
   if (pNum == 1) {
@@ -375,28 +365,28 @@ parseSNP(sim4polish **p, int pNum) {
       //  Match has one exon
 
       if (singleSingleFile)
-        s4p_printPolish(singleSingleFile, p[0], S4P_PRINTPOLISH_FULL);
+        p[0]->s4p_printPolish(singleSingleFile, S4P_PRINTPOLISH_FULL);
 
       if (printSNP(validSNPMapFile, p[0])) {
         sspass++;
       } else {
         ssfail++;
         if (failedSNPMapFile)
-          s4p_printPolish(failedSNPMapFile, p[0], S4P_PRINTPOLISH_FULL);
+          p[0]->s4p_printPolish(failedSNPMapFile, S4P_PRINTPOLISH_FULL);
       }
     } else {
 
       //  Match has more than one exon
 
       if (singleMultiFile)
-        s4p_printPolish(singleMultiFile, p[0], S4P_PRINTPOLISH_FULL);
+        p[0]->s4p_printPolish(singleMultiFile, S4P_PRINTPOLISH_FULL);
 
       if (printSNP(validSNPMapFile, p[0])) {
         smpass++;
       } else {
         smfail++;
         if (failedSNPMapFile)
-          s4p_printPolish(failedSNPMapFile, p[0], S4P_PRINTPOLISH_FULL);
+          p[0]->s4p_printPolish(failedSNPMapFile, S4P_PRINTPOLISH_FULL);
       }
     }
   } else {
@@ -412,7 +402,7 @@ parseSNP(sim4polish **p, int pNum) {
 
       if (multiSingleFile)
         for (i=0; i<pNum; i++)
-          s4p_printPolish(multiSingleFile, p[i], S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(multiSingleFile, S4P_PRINTPOLISH_FULL);
 
       for (i=0; i<pNum; i++)
         if (printSNP(validSNPMapFile, p[i])) {
@@ -420,7 +410,7 @@ parseSNP(sim4polish **p, int pNum) {
         } else {
           fail++;
           if (failedSNPMapFile)
-            s4p_printPolish(failedSNPMapFile, p[i], S4P_PRINTPOLISH_FULL);
+            p[i]->s4p_printPolish(failedSNPMapFile, S4P_PRINTPOLISH_FULL);
         }
 
       if (pass==1)       sspass++;
@@ -434,7 +424,7 @@ parseSNP(sim4polish **p, int pNum) {
 
       if (multiMultiFile)
         for (i=0; i<pNum; i++)
-          s4p_printPolish(multiMultiFile, p[i], S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(multiMultiFile, S4P_PRINTPOLISH_FULL);
 
       for (i=0; i<pNum; i++)
         if (printSNP(validSNPMapFile, p[i])) {
@@ -442,7 +432,7 @@ parseSNP(sim4polish **p, int pNum) {
         } else {
           fail++;
           if (failedSNPMapFile)
-            s4p_printPolish(failedSNPMapFile, p[i], S4P_PRINTPOLISH_FULL);
+            p[i]->s4p_printPolish(failedSNPMapFile, S4P_PRINTPOLISH_FULL);
         }
 
       if (pass==1)       smpass++;
@@ -452,25 +442,23 @@ parseSNP(sim4polish **p, int pNum) {
   }
 
   for (i=0; i<pNum; i++)
-    s4p_destroyPolish(p[i]);
+    delete p[i];
 }
 
 
 int
 main(int argc, char **argv) {
-  int          arg    = 1;
   int          pNum   = 0;
   int          pAlloc = 8388608;
-  sim4polish **p      = 0L;
-  sim4polish  *q      = 0L;
   u32bit       estID  = 0;
 
-  int          percentID = 0;
-  int          percentCO = 0;
+  u32bit       percentID = 0;
+  u32bit       percentCO = 0;
 
   validSNPMapFile   = 0L;
   failedSNPMapFile  = 0L;
 
+  int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-i", 2) == 0) {
       percentID = atoi(argv[++arg]);
@@ -562,38 +550,39 @@ main(int argc, char **argv) {
   //  We could also extend this to discard matches that look
   //  suspicious -- or maybe pick the single best match for each.
 
-  p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
+  sim4polish **p = new sim4polish * [pAlloc];
+  sim4polish  *q = new sim4polish(stdin);
 
-  while ((q = s4p_readPolish(stdin)) != 0L) {
-    if (q->estID < estID) {
+  while (q->_numExons > 0) {
+    if (q->_estID < estID) {
       fprintf(stderr, "ERROR:  Polishes not sorted by SNP idx!  this="u32bitFMT", looking for "u32bitFMT"\n",
-              q->estID, estID);
+              q->_estID, estID);
       exit(1);
     }
 
-    if ((q->estID != estID) && (pNum > 0)) {
+    if ((q->_estID != estID) && (pNum > 0)) {
       parseSNP(p, pNum);
       pNum  = 0;
     }
 
-    //  Reallocate pointers?
-    //
     if (pNum >= pAlloc) {
-      p = (sim4polish **)realloc(p, sizeof(sim4polish *) * (pAlloc *= 2));
-      if (p == 0L) {
-        fprintf(stderr, "Out of memory: Couldn't allocate space for polish pointers.\n");
-        exit(1);
-      }
+      sim4polish **P = new sim4polish * [pAlloc * 2];
+      memcpy(p, P, sizeof(sim4polish *) * pAlloc);
+      delete [] p;
+      p = P;
+      pAlloc *= 2;
     }
 
-    estID     = q->estID;
+    estID     = q->_estID;
 
-    if ((q->percentIdentity >= percentID) &&
-        (q->querySeqIdentity >= percentCO)) {
+    if ((q->_percentIdentity >= percentID) &&
+        (q->_querySeqIdentity >= percentCO)) {
       p[pNum++] = q;
     } else {
-      s4p_destroyPolish(q);
+      delete q;
     }
+
+    q = new sim4polish(stdin);
   }
 
   if (pNum > 0)

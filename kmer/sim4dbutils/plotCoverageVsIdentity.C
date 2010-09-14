@@ -8,13 +8,8 @@
 
 int
 main(int argc, char ** argv) {
-  sim4polish  *p;
   int          c[101] = {0};
   int          i[101] = {0};
-  int          x;
-  FILE        *C;
-  FILE        *I;
-  FILE        *S;
 
   if (isatty(fileno(stdin))) {
     fprintf(stderr, "creates three files:\n");
@@ -26,20 +21,22 @@ main(int argc, char ** argv) {
     exit(1);
   }
 
-  C = fopen("coverage.histogram", "w");
-  I = fopen("identity.histogram", "w");
-  S = fopen("c-vs-i.scatter", "w");
+  FILE *C = fopen("coverage.histogram", "w");
+  FILE *I = fopen("identity.histogram", "w");
+  FILE *S = fopen("c-vs-i.scatter", "w");
 
-  while ((p = s4p_readPolish(stdin)) != 0L) {
-    fprintf(S, u32bitFMT" "u32bitFMT"\n", p->percentIdentity, p->querySeqIdentity);
+  sim4polish *p = new sim4polish(stdin);
+  while (p->_numExons > 0) {
+    fprintf(S, u32bitFMT" "u32bitFMT"\n", p->_percentIdentity, p->_querySeqIdentity);
 
-    i[p->percentIdentity]++;
-    c[p->querySeqIdentity]++;
+    i[p->_percentIdentity]++;
+    c[p->_querySeqIdentity]++;
 
-    s4p_destroyPolish(p);
+    delete p;
+    p = new sim4polish(stdin);
   }
 
-  for (x=0; x<101; x++) {
+  for (int x=0; x<101; x++) {
     fprintf(C, "%d\n", c[x]);
     fprintf(I, "%d\n", i[x]);
   }

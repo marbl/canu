@@ -9,23 +9,23 @@
 u32bit
 findOverlap(sim4polish *A, sim4polish *B) {
 
-  if ((A->genID != B->genID) || (A->matchOrientation != B->matchOrientation))
+  if ((A->_genID != B->_genID) || (A->_matchOrientation != B->_matchOrientation))
     return(0);
 
   u32bit        length = 0;
   u32bit        total  = 0;
   intervalList  IL;
 
-  for (u32bit i=0; i<A->numExons; i++) {
-    length = A->exons[i].genTo - A->exons[i].genFrom + 1;
+  for (u32bit i=0; i<A->_numExons; i++) {
+    length = A->_exons[i]._genTo - A->_exons[i]._genFrom + 1;
     total  += length;
-    IL.add(A->exons[i].genFrom, length);
+    IL.add(A->_exons[i]._genFrom, length);
   }
 
-  for (u32bit i=0; i<B->numExons; i++) {
-    length = B->exons[i].genTo - B->exons[i].genFrom + 1;
+  for (u32bit i=0; i<B->_numExons; i++) {
+    length = B->_exons[i]._genTo - B->_exons[i]._genFrom + 1;
     total  += length;
-    IL.add(B->exons[i].genFrom, length);
+    IL.add(B->_exons[i]._genFrom, length);
   }
 
   IL.merge();

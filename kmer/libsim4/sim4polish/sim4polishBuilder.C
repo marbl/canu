@@ -4,7 +4,6 @@
 #include <errno.h>
 #include <math.h>
 #include "bio++.H"
-#include "sim4polish.h"
 #include "sim4polishBuilder.H"
 
 
@@ -14,22 +13,17 @@ sim4polishBuilder::sim4polishBuilder() {
   exPos = 0;
   exMax = 32;
   exAli = 0;
-  ex    = new sim4polishExon* [exMax];
+  ex    = new sim4polishExon * [exMax];
 
   for (u32bit i=0; i<exMax; i++)
     ex[i] = 0L;
 }
 
 sim4polishBuilder::~sim4polishBuilder() {
-  s4p_destroyPolish(it);
+  delete it;
 
-  for (u32bit i=0; i<exMax; i++) {
-    if (ex[i]) {
-      free(ex[i]->estAlignment);
-      free(ex[i]->genAlignment);
-    }
+  for (u32bit i=0; i<exMax; i++)
     delete ex[i];
-  }
 
   delete [] ex;
 }
@@ -43,46 +37,40 @@ sim4polishBuilder::create(u32bit estid, u32bit estlen,
   //
   if (it) {
     fprintf(stderr, "sim4polishBuilder::create()-- WARNING:  release() not called.  Polish killed.\n");
-    s4p_destroyPolish(it);
+    delete it;
   }
 
-  errno = 0;
-  it = (sim4polish *)malloc(sizeof(sim4polish));
-  if (errno) {
-    fprintf(stderr, "malloc() error in sim4polishBuilder::create -- can't allocate sim4polish\n%s\n", strerror(errno));
-    abort();
-    exit(1);
-  }
+  it = new sim4polish;
 
-  it->estID    = estid;
-  it->estLen   = estlen;
-  it->estPolyA = 0;
-  it->estPolyT = 0;
+  it->_estID    = estid;
+  it->_estLen   = estlen;
+  it->_estPolyA = 0;
+  it->_estPolyT = 0;
 
-  it->genID           = genid;
-  it->genRegionOffset = genlo;
-  it->genRegionLength = genhi - genlo;
+  it->_genID           = genid;
+  it->_genRegionOffset = genlo;
+  it->_genRegionLength = genhi - genlo;
 
-  it->numMatches        = 0;
-  it->numMatchesN       = 0;
-  it->numCovered        = 0;
-  it->percentIdentity   = 0;
-  it->querySeqIdentity  = 0;
-  it->matchOrientation  = SIM4_MATCH_ERROR;
-  it->strandOrientation = SIM4_STRAND_ERROR;
+  it->_numMatches        = 0;
+  it->_numMatchesN       = 0;
+  it->_numCovered        = 0;
+  it->_percentIdentity   = 0;
+  it->_querySeqIdentity  = 0;
+  it->_matchOrientation  = SIM4_MATCH_ERROR;
+  it->_strandOrientation = SIM4_STRAND_ERROR;
 
-  it->comment    = 0L;
-  it->estDefLine = 0L;
-  it->genDefLine = 0L;
+  it->_comment    = 0L;
+  it->_estDefLine = 0L;
+  it->_genDefLine = 0L;
 
-  it->numExons = 0;
-  it->exons    = 0L;
+  it->_numExons = 0;
+  it->_exons    = 0L;
 }
 
 void
 sim4polishBuilder::setPolyTails(u32bit pa, u32bit pt) {
-  it->estPolyA = pa;
-  it->estPolyT = pt;
+  it->_estPolyA = pa;
+  it->_estPolyT = pt;
 }
 
 void
@@ -91,8 +79,9 @@ sim4polishBuilder::setESTdefline(char *defline) {
     fprintf(stderr, "sim4polishBuilder::setESTdefline()-- no polish to build; create() not called\n");
     return;
   }
-  free(it->estDefLine);
-  it->estDefLine = (char *)memdup(defline, (strlen(defline) + 1) * sizeof(char));
+  delete [] it->_estDefLine;
+  it->_estDefLine = new char [strlen(defline) + 1];
+  memcpy(it->_estDefLine, defline, sizeof(char) * (strlen(defline) + 1));
 }
 
 
@@ -102,8 +91,9 @@ sim4polishBuilder::setGENdefline(char *defline) {
     fprintf(stderr, "sim4polishBuilder::setGENdefline()-- no polish to build; create() not called\n");
     return;
   }
-  free(it->genDefLine);
-  it->genDefLine = (char *)memdup(defline, (strlen(defline) + 1) * sizeof(char));
+  delete [] it->_genDefLine;
+  it->_genDefLine = new char [strlen(defline) + 1];
+  memcpy(it->_genDefLine, defline, sizeof(char) * (strlen(defline) + 1));
 }
 
 
@@ -113,8 +103,8 @@ sim4polishBuilder::setNumberOfMatches(u32bit nummatches, u32bit nummatchesN) {
     fprintf(stderr, "sim4polishBuilder::setNumberOfMatches()-- no polish to build; create() not called\n");
     return;
   }
-  it->numMatches  = nummatches;
-  it->numMatchesN = nummatchesN;
+  it->_numMatches  = nummatches;
+  it->_numMatchesN = nummatchesN;
 }
 
 
@@ -124,7 +114,7 @@ sim4polishBuilder::setPercentIdentity(u32bit id) {
     fprintf(stderr, "sim4polishBuilder::setPercentIdentitysetPercentIdentity()-- no polish to build; create() not called\n");
     return;
   }
-  it->percentIdentity  = id;
+  it->_percentIdentity  = id;
 }
 
 
@@ -138,7 +128,7 @@ sim4polishBuilder::setMatchOrientation(char o) {
     case SIM4_MATCH_ERROR:
     case SIM4_MATCH_FORWARD:
     case SIM4_MATCH_COMPLEMENT:
-      it->matchOrientation = o;
+      it->_matchOrientation = o;
       break;
     default:
       fprintf(stderr, "sim4polishBuilder::setMatchOrientation()-- invalid match orientation\n");
@@ -159,7 +149,7 @@ sim4polishBuilder::setStrandOrientation(char o) {
     case SIM4_STRAND_UNKNOWN:
     case SIM4_STRAND_INTRACTABLE:
     case SIM4_STRAND_FAILED:
-      it->strandOrientation = o;
+      it->_strandOrientation = o;
       break;
     default:
       fprintf(stderr, "sim4polishBuilder::setStrandOrientation()-- invalid match orientation\n");
@@ -194,24 +184,24 @@ sim4polishBuilder::addExon(u32bit estlo, u32bit esthi,
     ex[exPos] = new sim4polishExon;
   } else {
     //  Just in case someone didn't clean up after themselves.
-    free(ex[exPos]->estAlignment);
-    free(ex[exPos]->genAlignment);
+    delete [] ex[exPos]->_estAlignment;
+    delete [] ex[exPos]->_genAlignment;
   }
 
-  ex[exPos]->estAlignment      = 0L;
-  ex[exPos]->genAlignment      = 0L;
+  ex[exPos]->_estAlignment      = 0L;
+  ex[exPos]->_genAlignment      = 0L;
 
-  ex[exPos]->estFrom           = estlo;
-  ex[exPos]->estTo             = esthi;
-  ex[exPos]->genFrom           = genlo + it->genRegionOffset;
-  ex[exPos]->genTo             = genhi + it->genRegionOffset;
-  ex[exPos]->numMatches        = nummatches;
-  ex[exPos]->numMatchesN       = nummatchesN;
-  ex[exPos]->percentIdentity   = percentid;
-  ex[exPos]->intronOrientation = intronorientation;
+  ex[exPos]->_estFrom           = estlo;
+  ex[exPos]->_estTo             = esthi;
+  ex[exPos]->_genFrom           = genlo + it->_genRegionOffset;
+  ex[exPos]->_genTo             = genhi + it->_genRegionOffset;
+  ex[exPos]->_numMatches        = nummatches;
+  ex[exPos]->_numMatchesN       = nummatchesN;
+  ex[exPos]->_percentIdentity   = percentid;
+  ex[exPos]->_intronOrientation = intronorientation;
 
-  ex[exPos]->estAlignment      = 0L;
-  ex[exPos]->genAlignment      = 0L;
+  ex[exPos]->_estAlignment      = 0L;
+  ex[exPos]->_genAlignment      = 0L;
 
   exPos++;
 }
@@ -230,8 +220,8 @@ sim4polishBuilder::addExonAlignment(char *estalign,
     exit(1);
   }
 
-  ex[exAli]->estAlignment = (char *)memdup(estalign, (strlen(estalign) + 1) * sizeof(char));
-  ex[exAli]->genAlignment = (char *)memdup(genalign, (strlen(genalign) + 1) * sizeof(char));
+  ex[exAli]->_estAlignment = (char *)memdup(estalign, (strlen(estalign) + 1) * sizeof(char));
+  ex[exAli]->_genAlignment = (char *)memdup(genalign, (strlen(genalign) + 1) * sizeof(char));
 
   exAli++;
 }
@@ -248,22 +238,22 @@ sim4polishBuilder::release(void) {
   if (exPos == 0)
     return(0L);
 
-  it->numCovered = 0;
-  it->numExons   = exPos;
-  it->exons      = (sim4polishExon *)malloc(exPos * sizeof(sim4polishExon));
+  it->_numCovered = 0;
+  it->_numExons   = exPos;
+  it->_exons      = new sim4polishExon [exPos];
 
   for (u32bit i=0; i<exPos; i++) {
-    memcpy(it->exons + i, ex[i], sizeof(sim4polishExon));
-    ex[i]->estAlignment = 0L;  //  Owned by 'it' now
-    ex[i]->genAlignment = 0L;
+    memcpy(it->_exons + i, ex[i], sizeof(sim4polishExon));
+    ex[i]->_estAlignment = 0L;  //  Owned by 'it' now
+    ex[i]->_genAlignment = 0L;
 
-    it->numCovered += (ex[i]->genTo - ex[i]->genFrom + 1);
+    it->_numCovered += (ex[i]->_genTo - ex[i]->_genFrom + 1);
   }
 
   //  Last, compute the querySeqIdentity using other fields (like our
   //  just updated numCovered).
   //
-  it->querySeqIdentity = s4p_percentCoverageApprox(it);
+  it->_querySeqIdentity = it->s4p_percentCoverageApprox();
 
   it    = 0L;
 

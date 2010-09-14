@@ -147,187 +147,186 @@ main(int argc, char **argv) {
 
   u32bit   totalFixed   = 0;
 
-  while (!feof(stdin)) {
-    sim4polish *p = s4p_readPolish(stdin);
+  sim4polish *p = new sim4polish(stdin);
+  while (p->_numExons > 0) {
 
-    if (p != 0L) {
+    //  Parse the defline to find the genomic region our 'est'
+    //  (unfortunate sim4db term) is from.  Search for our
+    //  information in the defline
+    //
+    //    extracted from iid (\d+) pos (\d+) (\d+) 
 
-      //  Parse the defline to find the genomic region our 'est'
-      //  (unfortunate sim4db term) is from.  Search for our
-      //  information in the defline
+    splitToWords  W(p->_estDefLine);
+
+    u32bit   i=0;
+    while ((i < W.numWords()) && (strcmp(W[i], "iid") != 0))
+      i++;
+    if ((i == 0) || (i == W.numWords()))
+      fprintf(stderr, "Failed to match est defline '%s'\n", p->_estDefLine), exit(1);
+
+    u32bit  qSeqIID = strtou32bit(W[i+1], 0L);
+    u32bit  qSeqBeg = strtou32bit(W[i+3], 0L);
+    u32bit  qSeqEnd = strtou32bit(W[i+4], 0L);  //  Not used
+
+
+    W.split(p->_genDefLine);
+
+    i=0;
+    while ((i<W.numWords()) && (strcmp(W[i], "iid") != 0))
+      i++;
+    if ((i == 0) || (i == W.numWords()))
+      fprintf(stderr, "Failed to match gen defline '%s'\n", p->_genDefLine), exit(1);
+
+    u32bit  gSeqIID = strtou32bit(W[i+1], 0L);
+    u32bit  gSeqBeg = strtou32bit(W[i+3], 0L);
+    //u32bit  gSeqEnd = strtou32bit(W[i+4], 0L);  //  Not used
+
+    bool    fwd  = (p->_matchOrientation == SIM4_MATCH_FORWARD);
+
+
+    //  Fix the coords
+    //
+    if (fwd) {
+      //  Forward is easy!  Just add.
+
+      for (u32bit exon=0; exon<p->_numExons; exon++) {
+        sim4polishExon *e = p->_exons + exon;
+
+        e->_estFrom += qSeqBeg;
+        e->_estTo   += qSeqBeg;
+        e->_genFrom += gSeqBeg;
+        e->_genTo   += gSeqBeg;
+      }
+    } else {
+      //  Reverse is not easy.  Need to reverse complement the query positions.
+
+      for (u32bit exon=0; exon<p->_numExons; exon++) {
+        sim4polishExon *e = p->_exons + exon;
+
+        //  First, reverse the query relative to our extracted piece
+        //
+        u32bit f = (qSeqEnd - qSeqBeg) - e->_estTo   + 2;  //  Extra +1 to offset -1 when we set qBeg
+        u32bit t = (qSeqEnd - qSeqBeg) - e->_estFrom + 2;
+
+        //  Now we can just offset stuff.
+        e->_estFrom  = qSeqBeg + t;  //  Really the end!
+        e->_estTo    = qSeqBeg + f;  //  Really the begin!
+        e->_genFrom += gSeqBeg;
+        e->_genTo   += gSeqBeg;
+      }
+    }
+
+
+
+    for (u32bit exon=0; exon<p->_numExons; exon++) {
+      sim4polishExon *e = p->_exons + exon;
+
+      //  Parse the alignment to find ungapped blocks
+
+      u32bit  aPos = 0;
+
+      u32bit  qBeg = e->_estFrom - 1;
+      u32bit  gBeg = e->_genFrom - 1;
+
+      u32bit  mLen = 0;
+
+      totalFixed += indelFixAlignment(e->_estAlignment, e->_genAlignment);
+
+      //  Skip mismatches/gaps at the start of this sequence
       //
-      //    extracted from iid (\d+) pos (\d+) (\d+) 
-
-      splitToWords  W(p->estDefLine);
-
-      u32bit   i=0;
-      while ((i < W.numWords()) && (strcmp(W[i], "iid") != 0))
-        i++;
-      if ((i == 0) || (i == W.numWords()))
-        fprintf(stderr, "Failed to match est defline '%s'\n", p->estDefLine), exit(1);
-
-      u32bit  qSeqIID = strtou32bit(W[i+1], 0L);
-      u32bit  qSeqBeg = strtou32bit(W[i+3], 0L);
-      u32bit  qSeqEnd = strtou32bit(W[i+4], 0L);  //  Not used
-
-
-      W.split(p->genDefLine);
-
-      i=0;
-      while ((i<W.numWords()) && (strcmp(W[i], "iid") != 0))
-        i++;
-      if ((i == 0) || (i == W.numWords()))
-        fprintf(stderr, "Failed to match gen defline '%s'\n", p->genDefLine), exit(1);
-
-      u32bit  gSeqIID = strtou32bit(W[i+1], 0L);
-      u32bit  gSeqBeg = strtou32bit(W[i+3], 0L);
-      //u32bit  gSeqEnd = strtou32bit(W[i+4], 0L);  //  Not used
-
-      bool    fwd  = (p->matchOrientation == SIM4_MATCH_FORWARD);
-
-
-      //  Fix the coords
-      //
-      if (fwd) {
-        //  Forward is easy!  Just add.
-
-        for (u32bit exon=0; exon<p->numExons; exon++) {
-          sim4polishExon *e = p->exons + exon;
-
-          e->estFrom += qSeqBeg;
-          e->estTo   += qSeqBeg;
-          e->genFrom += gSeqBeg;
-          e->genTo   += gSeqBeg;
-        }
-      } else {
-        //  Reverse is not easy.  Need to reverse complement the query positions.
-
-        for (u32bit exon=0; exon<p->numExons; exon++) {
-          sim4polishExon *e = p->exons + exon;
-
-          //  First, reverse the query relative to our extracted piece
-          //
-          u32bit f = (qSeqEnd - qSeqBeg) - e->estTo   + 2;  //  Extra +1 to offset -1 when we set qBeg
-          u32bit t = (qSeqEnd - qSeqBeg) - e->estFrom + 2;
-
-          //  Now we can just offset stuff.
-          e->estFrom  = qSeqBeg + t;  //  Really the end!
-          e->estTo    = qSeqBeg + f;  //  Really the begin!
-          e->genFrom += gSeqBeg;
-          e->genTo   += gSeqBeg;
-        }
+      while ((e->_estAlignment[aPos] == '-') ||
+             (e->_genAlignment[aPos] == '-') ||
+             (e->_estAlignment[aPos] != e->_genAlignment[aPos])) {
+        if (e->_estAlignment[aPos] != '-')
+          if (fwd) qBeg++;
+          else     qBeg--;
+        if (e->_genAlignment[aPos] != '-')
+          gBeg++;
+        //fprintf(stderr, "SKIP BEGIN %c %c\n", e->_estAlignment[aPos], e->_genAlignment[aPos]);
+        aPos++;
       }
 
 
+      bool  notDone = true;  //  There should be a way to get rid of this stupid variable....
+      while (notDone) {
+        notDone = ((e->_estAlignment[aPos] != 0) &&
+                   (e->_genAlignment[aPos] != 0));
 
-      for (u32bit exon=0; exon<p->numExons; exon++) {
-        sim4polishExon *e = p->exons + exon;
+        //  If we find the end of a gapless block, emit a match
 
-        //  Parse the alignment to find ungapped blocks
+        if ((e->_estAlignment[aPos] == '-') || (e->_estAlignment[aPos] == 0) ||
+            (e->_genAlignment[aPos] == '-') || (e->_genAlignment[aPos] == 0)) {
 
-        u32bit  aPos = 0;
+          //  Trim off any mismatches at the end of this block.
+          //
+          u32bit  mismatch = 0;
+          while ((aPos > mismatch) &&
+                 (e->_estAlignment[aPos - mismatch - 1] != e->_genAlignment[aPos - mismatch - 1])) {
+            //fprintf(stderr, "SKIP MIDDLE %c %c\n", e->_estAlignment[aPos-mismatch], e->_genAlignment[aPos-mismatch]);
+            mismatch++;
+          }
 
-        u32bit  qBeg = e->estFrom - 1;
-        u32bit  gBeg = e->genFrom - 1;
+          //  If there is an indel at the start (which probably
+          //  shouldn't happen anyway!), or possibly at the end,
+          //  then our length is zero, and we should not emit
+          //  anything.
+          //
+          if (mLen > mismatch) {
+            mLen -= mismatch;
 
-        u32bit  mLen = 0;
+            if (flip == false) {
+              fprintf(stdout, "M u dupr"u32bitFMT" dupp"u32bitFMT" %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s\n",
+                      dupRecordIID,
+                      dupParentIID,
+                      nickname1, qSeqIID, (fwd) ? qBeg : qBeg - mLen, mLen,
+                      nickname2, gSeqIID, gBeg, mLen,
+                      (fwd) ? "1" : "-1");
+            } else {
+              fprintf(stdout, "M u dupr"u32bitFMT" dupp"u32bitFMT" %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s\n",
+                      dupRecordIID,
+                      dupParentIID,
+                      nickname2, gSeqIID, gBeg, mLen,
+                      nickname1, qSeqIID, (fwd) ? qBeg : qBeg - mLen, mLen,
+                      (fwd) ? "1" : "-1");
+            }
+            dupRecordIID++;
 
-        totalFixed += indelFixAlignment(e->estAlignment, e->genAlignment);
+            mLen += mismatch;
 
-        //  Skip mismatches/gaps at the start of this sequence
-        //
-        while ((e->estAlignment[aPos] == '-') ||
-               (e->genAlignment[aPos] == '-') ||
-               (e->estAlignment[aPos] != e->genAlignment[aPos])) {
-          if (e->estAlignment[aPos] != '-')
-            if (fwd) qBeg++;
-            else     qBeg--;
-          if (e->genAlignment[aPos] != '-')
-            gBeg++;
-          //fprintf(stderr, "SKIP BEGIN %c %c\n", e->estAlignment[aPos], e->genAlignment[aPos]);
+            //  Adjust our begin and end positions to the end of this record
+            if (fwd)  qBeg += mLen;
+            else      qBeg -= mLen;
+            gBeg += mLen;
+
+            mLen  = 0;
+          }
+
+          //  Skip whatever caused us to emit a gapless block, also skip any mismatches here
+          //
+          while ((e->_estAlignment[aPos] == '-') ||
+                 (e->_genAlignment[aPos] == '-') ||
+                 (e->_estAlignment[aPos] != e->_genAlignment[aPos])) {
+            if (e->_estAlignment[aPos] != '-')
+              if (fwd) qBeg++;
+              else     qBeg--;
+            if (e->_genAlignment[aPos] != '-')
+              gBeg++;
+            //fprintf(stderr, "SKIP END %c %c\n", e->_estAlignment[aPos], e->_genAlignment[aPos]);
+            aPos++;
+          }
+        } else {
+          //  Not the end of a gapless block, extend this match by one
+          mLen++;
           aPos++;
         }
 
+      }  //  over all positions in the alignemnt
+    }  //  over all exons
 
-        bool  notDone = true;  //  There should be a way to get rid of this stupid variable....
-        while (notDone) {
-          notDone = ((e->estAlignment[aPos] != 0) &&
-                     (e->genAlignment[aPos] != 0));
+    dupParentIID++;
 
-          //  If we find the end of a gapless block, emit a match
-
-          if ((e->estAlignment[aPos] == '-') || (e->estAlignment[aPos] == 0) ||
-              (e->genAlignment[aPos] == '-') || (e->genAlignment[aPos] == 0)) {
-
-            //  Trim off any mismatches at the end of this block.
-            //
-            u32bit  mismatch = 0;
-            while ((aPos > mismatch) &&
-                   (e->estAlignment[aPos - mismatch - 1] != e->genAlignment[aPos - mismatch - 1])) {
-              //fprintf(stderr, "SKIP MIDDLE %c %c\n", e->estAlignment[aPos-mismatch], e->genAlignment[aPos-mismatch]);
-              mismatch++;
-            }
-
-            //  If there is an indel at the start (which probably
-            //  shouldn't happen anyway!), or possibly at the end,
-            //  then our length is zero, and we should not emit
-            //  anything.
-            //
-            if (mLen > mismatch) {
-              mLen -= mismatch;
-
-              if (flip == false) {
-                fprintf(stdout, "M u dupr"u32bitFMT" dupp"u32bitFMT" %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s\n",
-                        dupRecordIID,
-                        dupParentIID,
-                        nickname1, qSeqIID, (fwd) ? qBeg : qBeg - mLen, mLen,
-                        nickname2, gSeqIID, gBeg, mLen,
-                        (fwd) ? "1" : "-1");
-              } else {
-                fprintf(stdout, "M u dupr"u32bitFMT" dupp"u32bitFMT" %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %s\n",
-                        dupRecordIID,
-                        dupParentIID,
-                        nickname2, gSeqIID, gBeg, mLen,
-                        nickname1, qSeqIID, (fwd) ? qBeg : qBeg - mLen, mLen,
-                        (fwd) ? "1" : "-1");
-              }
-              dupRecordIID++;
-
-              mLen += mismatch;
-
-              //  Adjust our begin and end positions to the end of this record
-              if (fwd)  qBeg += mLen;
-              else      qBeg -= mLen;
-              gBeg += mLen;
-
-              mLen  = 0;
-            }
-
-            //  Skip whatever caused us to emit a gapless block, also skip any mismatches here
-            //
-            while ((e->estAlignment[aPos] == '-') ||
-                   (e->genAlignment[aPos] == '-') ||
-                   (e->estAlignment[aPos] != e->genAlignment[aPos])) {
-              if (e->estAlignment[aPos] != '-')
-                if (fwd) qBeg++;
-                else     qBeg--;
-              if (e->genAlignment[aPos] != '-')
-                gBeg++;
-              //fprintf(stderr, "SKIP END %c %c\n", e->estAlignment[aPos], e->genAlignment[aPos]);
-              aPos++;
-            }
-          } else {
-            //  Not the end of a gapless block, extend this match by one
-            mLen++;
-            aPos++;
-          }
-
-        }  //  over all positions in the alignemnt
-      }  //  over all exons
-
-      dupParentIID++;
-      s4p_destroyPolish(p);
-    }
+    delete p;
+    p = new sim4polish(stdin);
   }
 
   fprintf(stderr, "Fixed "u32bitFMT" indel/mismatches.\n", totalFixed);

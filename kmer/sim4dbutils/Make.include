@@ -14,19 +14,19 @@ src  := $/cleanPolishes.C \
         $/convertToExtent.C \
         $/detectChimera.C \
         $/depthOfPolishes.C \
-        $/filterPolishes.c \
-        $/headPolishes.c \
+        $/filterPolishes.C \
+        $/headPolishes.C \
         $/mappedCoverage.C \
         $/mergePolishes.C \
-        $/parseSNP.c \
-        $/pickBestPolish.c \
+        $/parseSNP.C \
+        $/pickBestPolish.C \
         $/pickUniquePolish.C \
         $/pickUniquePolish-nhgri.C \
-        $/plotCoverageVsIdentity.c \
-        $/removeDuplicate.c \
-        $/sortPolishes.c \
+        $/plotCoverageVsIdentity.C \
+        $/removeDuplicate.C \
+        $/sortPolishes.C \
         $/summarizePolishes.C \
-        $/uniqPolishes.c \
+        $/uniqPolishes.C \
         $/vennPolishes.C \
         $/realignPolishes.C \
         $/removeRedundant.C \

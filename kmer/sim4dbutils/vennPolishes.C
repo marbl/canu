@@ -131,22 +131,22 @@ main(int argc, char **argv) {
       exit(1);
     }
 
-    while (!feof(F)) {
-      sim4polish *p = s4p_readPolish(F);
-      if ((p) &&
-          (p->percentIdentity  >= minI) &&
-          (p->querySeqIdentity >= minC)) {
+    sim4polish *p = new sim4polish(F);
+    while (p->_numExons > 0) {
+      if ((p->_percentIdentity  >= minI) &&
+          (p->_querySeqIdentity >= minC)) {
 
-        if (p->estID >= foundMax) {
+        if (p->_estID >= foundMax) {
           fprintf(stderr, "Please increase foundMax, or make me reallocate storage.\n");
           exit(1);
         }
 
-        if (found[arg-numArgs][p->estID] < p->percentIdentity)
-          found[arg-numArgs][p->estID] = p->percentIdentity;
-
-        s4p_destroyPolish(p);
+        if (found[arg-numArgs][p->_estID] < p->_percentIdentity)
+          found[arg-numArgs][p->_estID] = p->_percentIdentity;
       }
+
+      delete p;
+      p = new sim4polish(F);
     }
   }
 

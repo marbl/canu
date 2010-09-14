@@ -4,7 +4,6 @@
 #include <errno.h>
 #include <math.h>
 #include "bio++.H"
-#include "sim4polish.h"
 #include "sim4polishList.H"
 
 
@@ -27,14 +26,14 @@ sim4polishList::sim4polishList(char const *filename) {
   }
 
   while (!feof(F))
-    push(s4p_readPolish(F));
+    push(new sim4polish(F));
 
   fclose(F);
 }
 
 sim4polishList::~sim4polishList() {
   for (u32bit i=0; i<len; i++)
-    s4p_destroyPolish(list[i]);
+    delete list[i];
   delete [] list;
 }
 
@@ -61,7 +60,7 @@ sim4polishList::remove(u32bit i) {
   if (i >= len)
     return;
 
-  s4p_destroyPolish(list[i]);
+  delete list[i];
 
   len--;
   for ( ; i < len; i++)
@@ -86,11 +85,11 @@ sim4polishList::filterByQuality(u32bit minI, u32bit minC) {
   u32bit next = 0;
 
   while (next < len) {
-    if ((list[next]->percentIdentity  >= minI) &&
-        (list[next]->querySeqIdentity >= minC)) {
+    if ((list[next]->_percentIdentity  >= minI) &&
+        (list[next]->_querySeqIdentity >= minC)) {
       list[save++] = list[next++];
     } else {
-      s4p_destroyPolish(list[next]);
+      delete list[next];
       list[next++] = 0L;
     }
   }

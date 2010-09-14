@@ -317,14 +317,14 @@ writer(void *U, void *S) {
   sim4polishList  &L4 = *(p->output);
 
   for (u32bit i=0; L4[i]; i++) {
-    char *o = s4p_polishToString(L4[i]);
+    char *o = L4[i]->s4p_polishToString();
 
     errno = 0;
     write(fOutput, o, strlen(o) * sizeof(char));
     if (errno)
       fprintf(stderr, "Couldn't write the output file '%s': %s\n", outputFileName, strerror(errno)), exit(1);
 
-    free(o);
+    delete [] o;
   }
 
   if (yesnoFileName) {
@@ -332,7 +332,7 @@ writer(void *U, void *S) {
 
     if (L4[0])
       sprintf(str, "%s -Y "u32bitFMT" "u32bitFMT"\n",
-              p->script, L4[0]->percentIdentity, L4[0]->querySeqIdentity);
+              p->script, L4[0]->_percentIdentity, L4[0]->_querySeqIdentity);
     else
       sprintf(str, "%s -N 0 0\n", p->script);
 

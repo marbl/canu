@@ -80,10 +80,10 @@ main(int argc, char **argv) {
         if (nooverlaps) {
           matchesWithNoOverlap++;
 
-          s4p_printPolish(stdout, (*A)[a], 0);
+          (*A)[a]->s4p_printPolish(stdout, 0);
         } else {
           matchesWithOverlap++;
-          W->push(s4p_copyPolish((*A)[a]));
+          W->push(new sim4polish((*A)[a]));
         }
       }
 
@@ -133,8 +133,8 @@ main(int argc, char **argv) {
 
         for (u32bit a=0; a<W->length(); a++) {
           length[a] = 0;
-          for (u32bit i=0; i<(*W)[a]->numExons; i++)
-            length[a] += (*W)[a]->exons[i].genTo - (*W)[a]->exons[i].genFrom + 1;
+          for (u32bit i=0; i<(*W)[a]->_numExons; i++)
+            length[a] += (*W)[a]->_exons[i]._genTo - (*W)[a]->_exons[i]._genFrom + 1;
         }
 
         //  reconstruct the overlap matrix -- hey, if you want to be
@@ -199,7 +199,7 @@ main(int argc, char **argv) {
 
             for (u32bit a=0; a<W->length(); a++)
               if (clique[a])
-                s4p_printPolish(stderr, (*W)[a], S4P_PRINTPOLISH_MINIMAL);
+                (*W)[a]->s4p_printPolish(stderr, S4P_PRINTPOLISH_MINIMAL);
           }
           
         }
@@ -214,14 +214,14 @@ main(int argc, char **argv) {
           if ((clique[i]) && (length[longest] < length[i]))
             longest = i;
 
-        s4p_printPolish(stdout, (*W)[longest], 0);
+        (*W)[longest]->s4p_printPolish(stdout, 0);
 
         //  Remove the clique from the set of overlaps
 
         A = new sim4polishList;
         for (u32bit i=0; i<W->length(); i++) {
           if (clique[i] == 0)
-            A->push(s4p_copyPolish( (*W)[i] ));
+            A->push(new sim4polish((*W)[i]));
         }
 
         delete W;

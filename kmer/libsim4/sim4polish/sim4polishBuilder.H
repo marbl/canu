@@ -1,7 +1,7 @@
 #ifndef SIM4_POLISH_BUILDER_H
 #define SIM4_POLISH_BUILDER_H
 
-#include "sim4polish.h"
+#include "sim4polish.H"
 
 class sim4polishBuilder {
 public:

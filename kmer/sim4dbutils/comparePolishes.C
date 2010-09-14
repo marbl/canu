@@ -173,7 +173,7 @@ main(int argc, char **argv) {
         novelInA++;
 
         if (fanovel)
-          s4p_printPolish(fanovel, (*A)[a], 0);
+          (*A)[a]->s4p_printPolish(fanovel, 0);
       }
     }
 
@@ -189,7 +189,7 @@ main(int argc, char **argv) {
         novelInB++;
 
         if (fbnovel)
-          s4p_printPolish(fbnovel, (*B)[b], 0);
+          (*B)[b]->s4p_printPolish(fbnovel, 0);
       }
     }    
 
@@ -235,16 +235,16 @@ main(int argc, char **argv) {
           u32bit AgenLen = 0, BgenLen = 0;
           u32bit Agaps   = 0, Bgaps   = 0;
 
-          for (u32bit x=0; x < (*A)[a]->numExons; x++)
-            AgenLen += (*A)[a]->exons[x].genTo - (*A)[a]->exons[x].genFrom + 1;
+          for (u32bit x=0; x < (*A)[a]->_numExons; x++)
+            AgenLen += (*A)[a]->_exons[x]._genTo - (*A)[a]->_exons[x]._genFrom + 1;
 
-          for (u32bit x=0; x < (*B)[b]->numExons; x++)
-            BgenLen += (*B)[b]->exons[x].genTo - (*B)[b]->exons[x].genFrom + 1;
+          for (u32bit x=0; x < (*B)[b]->_numExons; x++)
+            BgenLen += (*B)[b]->_exons[x]._genTo - (*B)[b]->_exons[x]._genFrom + 1;
 
 #ifdef GAP_MINIMUM
-          for (u32bit x=1; x < (*A)[a]->numExons; x++) {
-            int egap = (*A)[a]->exons[x].estFrom - (*A)[a]->exons[x-1].estTo;
-            int ggap = (*A)[a]->exons[x].genFrom - (*A)[a]->exons[x-1].genTo;
+          for (u32bit x=1; x < (*A)[a]->_numExons; x++) {
+            int egap = (*A)[a]->_exons[x]._estFrom - (*A)[a]->_exons[x-1]._estTo;
+            int ggap = (*A)[a]->_exons[x]._genFrom - (*A)[a]->_exons[x-1]._genTo;
             int dgap = 0;
 
             if (egap > ggap)
@@ -257,9 +257,9 @@ main(int argc, char **argv) {
               Agaps++;
           }
 
-          for (u32bit x=1; x < (*B)[b]->numExons; x++) {
-            int egap = (*B)[b]->exons[x].estFrom - (*B)[b]->exons[x-1].estTo;
-            int ggap = (*B)[b]->exons[x].genFrom - (*B)[b]->exons[x-1].genTo;
+          for (u32bit x=1; x < (*B)[b]->_numExons; x++) {
+            int egap = (*B)[b]->_exons[x]._estFrom - (*B)[b]->_exons[x-1]._estTo;
+            int ggap = (*B)[b]->_exons[x]._genFrom - (*B)[b]->_exons[x-1]._genTo;
             int dgap = 0;
 
             if (egap > ggap)
@@ -272,12 +272,12 @@ main(int argc, char **argv) {
               Bgaps++;
           }
 #else
-          for (u32bit x=1; x < (*A)[a]->numExons; x++)
-            if ( (*A)[a]->exons[x].estFrom - (*A)[a]->exons[x-1].estTo != 1 )
+          for (u32bit x=1; x < (*A)[a]->_numExons; x++)
+            if ( (*A)[a]->_exons[x]._estFrom - (*A)[a]->_exons[x-1]._estTo != 1 )
               Agaps++;
 
-          for (u32bit x=1; x < (*B)[b]->numExons; x++)
-            if ( (*B)[b]->exons[x].estFrom - (*B)[b]->exons[x-1].estTo != 1 )
+          for (u32bit x=1; x < (*B)[b]->_numExons; x++)
+            if ( (*B)[b]->_exons[x]._estFrom - (*B)[b]->_exons[x-1]._estTo != 1 )
               Bgaps++;
 #endif
 
@@ -289,20 +289,20 @@ main(int argc, char **argv) {
 
           fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t"OLAPTFMT"\t%f\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%8.3f\t%8.3f\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
                   iid,
-                  (*A)[a]->estLen,
+                  (*A)[a]->_estLen,
                   overlap[a][b],
                   score,
-                  s4p_percentIdentityExact( (*A)[a] ),
-                  s4p_percentCoverageExact( (*A)[a] ),
-                  AgenLen, (*A)[a]->numExons, Agaps,
-                  s4p_percentIdentityExact( (*B)[b] ),
-                  s4p_percentCoverageExact( (*B)[b] ),
-                  BgenLen, (*B)[b]->numExons, Bgaps);
+                  (*A)[a]->s4p_percentIdentityExact(),
+                  (*A)[a]->s4p_percentCoverageExact(),
+                  AgenLen, (*A)[a]->_numExons, Agaps,
+                  (*B)[b]->s4p_percentIdentityExact(),
+                  (*B)[b]->s4p_percentCoverageExact(),
+                  BgenLen, (*B)[b]->_numExons, Bgaps);
                   
           if (fasame)
-            s4p_printPolish(fasame, (*A)[a], 0);
+            (*A)[a]->s4p_printPolish(fasame, 0);
           if (fbsame)
-            s4p_printPolish(fbsame, (*B)[b], 0);
+            (*B)[b]->s4p_printPolish(fbsame, 0);
         }
       }
     }
@@ -316,11 +316,11 @@ main(int argc, char **argv) {
 
     for (u32bit a=0; a<A->length(); a++)
       if (removeA[a] == false)
-        Ta->push( s4p_copyPolish((*A)[a]) );
+        Ta->push(new sim4polish((*A)[a]));
 
     for (u32bit b=0; b<B->length(); b++)
       if (removeB[b] == false)
-        Tb->push( s4p_copyPolish((*B)[b]) );
+        Tb->push(new sim4polish((*B)[b]));
 
     delete A;
     delete B;
@@ -403,33 +403,33 @@ main(int argc, char **argv) {
       if        ((inA  > 1) && (inB  > 1)) {
         hairyOverlap++;
 
-        fprintf(fhairy, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->estID, inA, inB);
+        fprintf(fhairy, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
-            s4p_printPolish(fhairy, (*A)[a], 0);
+            (*A)[a]->s4p_printPolish(fhairy, 0);
         for (u32bit b=0; b<B->length(); b++)
           if (removeB[b])
-            s4p_printPolish(fhairy, (*B)[b], 0);
+            (*B)[b]->s4p_printPolish(fhairy, 0);
       } else if ((inA == 1) && (inB  > 1)) {
         multipleInB++;
 
-        fprintf(fbmulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->estID, inA, inB);
+        fprintf(fbmulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
-            s4p_printPolish(fbmulti, (*A)[a], 0);
+            (*A)[a]->s4p_printPolish(fbmulti, 0);
         for (u32bit b=0; b<B->length(); b++)
           if (removeB[b])
-            s4p_printPolish(fbmulti, (*B)[b], 0);
+            (*B)[b]->s4p_printPolish(fbmulti, 0);
       } else if ((inA  > 1) && (inB == 1)) {
         multipleInA++;
 
-        fprintf(famulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->estID, inA, inB);
+        fprintf(famulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
-            s4p_printPolish(famulti, (*A)[a], 0);
+            (*A)[a]->s4p_printPolish(famulti, 0);
         for (u32bit b=0; b<B->length(); b++)
           if (removeB[b])
-            s4p_printPolish(famulti, (*B)[b], 0);
+            (*B)[b]->s4p_printPolish(famulti, 0);
       } else {
         fprintf(stderr, "ERROR!  inA="u32bitFMT" inB="u32bitFMT"\n", inA, inB);
       }
@@ -443,11 +443,11 @@ main(int argc, char **argv) {
 
       for (u32bit a=0; a<A->length(); a++)
         if (removeA[a] == false)
-          Ta->push( s4p_copyPolish((*A)[a]) );
+          Ta->push(new sim4polish((*A)[a]));
 
       for (u32bit b=0; b<B->length(); b++)
         if (removeB[b] == false)
-          Tb->push( s4p_copyPolish((*B)[b]) );
+          Tb->push(new sim4polish((*B)[b]));
     
       delete A;
       delete B;

@@ -1,4 +1,4 @@
-#include "sim4polish.h"
+#include "sim4polish.H"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,9 +6,8 @@
 #include <math.h>
 
 void
-s4p_deleteExon(sim4polish *p, int a) {
+sim4polish::s4p_deleteExon(u32bit a) {
   char  *ed, *gd;
-  int    i;
   int    editDistance    = 0;
   int    alignmentLength = 0;
 
@@ -16,7 +15,7 @@ s4p_deleteExon(sim4polish *p, int a) {
   //  driver (e.g., cleanPolishes.C)
   //
 #if 0
-  if ((p->exons[0].estAlignment == 0L) || (p->exons[0].genAlignment == 0L))
+  if ((p->exons[0]._estAlignment == 0L) || (p->exons[0]._genAlignment == 0L))
     fprintf(stderr, "s4p_deleteExon()-- Need alignments to recompute scores correctly!\n");
 #endif
 
@@ -26,42 +25,43 @@ s4p_deleteExon(sim4polish *p, int a) {
   //    If we are deleting the last exon, set the previous to SIM4_INTRON_NONE
   //    Otherwise, set the previous to SIM4_INTRON_GAP
   //
-  if (p->numExons > 1) {
-    if (a == p->numExons-1)
-      p->exons[a-1].intronOrientation = SIM4_INTRON_NONE;
+  if (_numExons > 1) {
+    if (a == _numExons - 1)
+      _exons[a-1]._intronOrientation = SIM4_INTRON_NONE;
     else if (a > 0)
-      p->exons[a-1].intronOrientation = SIM4_INTRON_GAP;
+      _exons[a-1]._intronOrientation = SIM4_INTRON_GAP;
   }
 
   //  Update the match scores
   //
-  p->numMatches  -= p->exons[a].numMatches;
-  p->numMatchesN -= p->exons[a].numMatchesN;
+  _numMatches  -= _exons[a]._numMatches;
+  _numMatchesN -= _exons[a]._numMatchesN;
 
-  //  Delete any alignment in the soon to be deleted exon
+  //  Erase the exon we're removing, but save a copy so we can stash it in the
+  //  soon-to-be-emptied last location.
   //
-  free(p->exons[a].genAlignment);
-  free(p->exons[a].estAlignment);
+  _exons[a].s4p_clearExon();
+
+  sim4polishExon d = _exons[a];
 
   //  Shift all the exons down by one, and decrement the number of
   //  exons present in the list.
   //
-  for (i=a+1; i<p->numExons; i++)
-    memcpy(p->exons+i-1, p->exons+i, sizeof(sim4polishExon));
+  for (u32bit i=a+1; i<_numExons; i++)
+    _exons[i-1] = _exons[i];
 
-  p->numExons--;
+  _numExons--;
 
-  //  To be safe, zero out the space for the (still allocated, but
-  //  unused) last exon
+  //  Stash the now deleted exon in the last spot, just to clear out the old contents.
   //
-  memset(p->exons+p->numExons, 0, sizeof(sim4polishExon));
+  _exons[_numExons] = d;
 
   //  The strand orientation becomes unknown if we delete internal
   //  exons, or we end up with only one exon.
   //
-  if (((0 < a) && (a < p->numExons)) ||
-      (p->numExons == 1))
-    p->strandOrientation = SIM4_STRAND_UNKNOWN;
+  if (((0 < a) && (a < _numExons)) ||
+      (_numExons == 1))
+    _strandOrientation = SIM4_STRAND_UNKNOWN;
 
 
   //  Compute the alignment length and the number of edits.
@@ -69,11 +69,11 @@ s4p_deleteExon(sim4polish *p, int a) {
   alignmentLength = 0;
   editDistance    = 0;
 
-  p->numCovered   = 0;
+  _numCovered   = 0;
 
-  for (i=0; i<p->numExons; i++) {
-    ed = p->exons[i].estAlignment;
-    gd = p->exons[i].genAlignment;
+  for (u32bit i=0; i<_numExons; i++) {
+    ed = _exons[i]._estAlignment;
+    gd = _exons[i]._genAlignment;
 
     if (ed && gd) {
       alignmentLength += 2 * strlen(ed);
@@ -82,13 +82,13 @@ s4p_deleteExon(sim4polish *p, int a) {
           editDistance++;
       }
     } else {
-      int len = p->exons[i].estTo - p->exons[i].estFrom + 1 + p->exons[i].estTo - p->exons[i].estFrom + 1;
+      int len = _exons[i]._estTo - _exons[i]._estFrom + 1 + _exons[i]._estTo - _exons[i]._estFrom + 1;
 
       alignmentLength += len;
-      editDistance    += len / 2 - p->exons[i].numMatches - p->exons[i].numMatchesN;
+      editDistance    += len / 2 - _exons[i]._numMatches - _exons[i]._numMatchesN;
     }
 
-    p->numCovered += p->exons[i].genTo - p->exons[i].genFrom + 1;
+    _numCovered += _exons[i]._genTo - _exons[i]._genFrom + 1;
   }
 
 #if 0
@@ -100,13 +100,13 @@ s4p_deleteExon(sim4polish *p, int a) {
   //  one exon left, the score for the exon is the score for the
   //  match.
   //
-  if (p->numExons == 1)
-    p->percentIdentity = p->exons[0].percentIdentity;
+  if (_numExons == 1)
+    _percentIdentity = _exons[0]._percentIdentity;
   else
-    p->percentIdentity = s4p_percentIdentityApprox(editDistance, alignmentLength);
+    _percentIdentity = s4p_percentIdentityApprox(editDistance, alignmentLength);
 
   //  Update the query sequence identity
   //
-  p->querySeqIdentity = s4p_percentCoverageApprox(p);
+  _querySeqIdentity = s4p_percentCoverageApprox();
 }
 

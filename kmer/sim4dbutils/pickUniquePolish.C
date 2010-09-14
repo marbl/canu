@@ -57,7 +57,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   if (pNum == 1) {
     statOneMatch++;
     statUnique++;
-    s4p_printPolish(stdout, p[0], S4P_PRINTPOLISH_FULL);
+    p[0]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
     return;
   }
 
@@ -72,17 +72,17 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   //  matchm    is the match index
 
   for (u32bit i=0; i<pNum; i++) {
-    if ((p[i]->percentIdentity > identityi) || 
-        (p[i]->percentIdentity == identityi && p[i]->numMatches > nmatchesi)) {
-      identityi = p[i]->percentIdentity;
-      nmatchesi = p[i]->numMatches;
+    if ((p[i]->_percentIdentity > identityi) || 
+        (p[i]->_percentIdentity == identityi && p[i]->_numMatches > nmatchesi)) {
+      identityi = p[i]->_percentIdentity;
+      nmatchesi = p[i]->_numMatches;
       matchi    = i;
     }
    
-    if ((p[i]->numMatches > nmatchesm) ||
-        (p[i]->numMatches == nmatchesm && p[i]->percentIdentity > identitym)) {
-      nmatchesm = p[i]->numMatches;
-      identitym = p[i]->percentIdentity;
+    if ((p[i]->_numMatches > nmatchesm) ||
+        (p[i]->_numMatches == nmatchesm && p[i]->_percentIdentity > identitym)) {
+      nmatchesm = p[i]->_numMatches;
+      identitym = p[i]->_percentIdentity;
       matchm    = i;
     }
   }
@@ -103,7 +103,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
     //
     u32bit numBest = 0;
     for (u32bit i=0; i<pNum; i++)
-      if ((p[i]->percentIdentity == identityi) && (p[i]->numMatches == nmatchesi))
+      if ((p[i]->_percentIdentity == identityi) && (p[i]->_numMatches == nmatchesi))
         numBest++;
 
     if (numBest > 1) {
@@ -121,20 +121,20 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 
       u32bit  closeQuality = 0;
       for (u32bit i=0; i<pNum; i++)
-        if (((p[i]->percentIdentity * 100) >= (identityi * (100 - qualityDifference))) ||
-            ((p[i]->numMatches      * 100) >= (nmatchesi * (100 - qualityDifference))))
+        if (((p[i]->_percentIdentity * 100) >= (identityi * (100 - qualityDifference))) ||
+            ((p[i]->_numMatches      * 100) >= (nmatchesi * (100 - qualityDifference))))
           closeQuality++;
 
       //  If only one match has close quality (the one we want to save!),
       //  save it.  Otherwise, label this query as multiple.
 
-      u32bit  length = p[matchi]->exons[0].estFrom - p[matchi]->exons[0].estTo;
+      u32bit  length = p[matchi]->_exons[0]._estFrom - p[matchi]->_exons[0]._estTo;
 
       if (closeQuality == 1) {
         matchIsOK = true;
         consistentMatches++;
       } else if ((length > 100) &&
-                 (length / p[matchi]->estLen < 0.5)) {
+                 (length / p[matchi]->_estLen < 0.5)) {
         consistentTooShort++;
       } else {
         consistentNot++;
@@ -161,7 +161,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   if (matchIsOK) {
     statUnique++;
     assert(matchi == matchm);
-    s4p_printPolish(stdout, p[matchi], S4P_PRINTPOLISH_FULL);
+    p[matchi]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
   } else {
     statLost++;
   }
@@ -183,7 +183,7 @@ pickBest(sim4polish **p, u32bit pNum) {
   pickBestSlave(p, pNum);
 
   for (u32bit i=0; i<pNum; i++)
-    s4p_destroyPolish(p[i]);
+    delete p[i];
 }
 
 
@@ -193,9 +193,7 @@ int
 main(int argc, char **argv) {
   u32bit       pNum         = 0;
   u32bit       pAlloc       = 8388608;
-  sim4polish **p            = 0L;
-  sim4polish  *q            = 0L;
-  u32bit       estID        = ~0;
+  u32bit       estID        = ~u32bitZERO;
 
   int arg = 1;
   while (arg < argc) {
@@ -221,26 +219,27 @@ main(int argc, char **argv) {
   //  Read polishes, picking the best when we see a change in the
   //  estID.
 
-  p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
+  sim4polish **p = new sim4polish * [pAlloc];
+  sim4polish  *q = new sim4polish(stdin);
 
-  while ((q = s4p_readPolish(stdin)) != 0L) {
-    if ((q->estID != estID) && (pNum > 0)) {
+  while (q->_numExons > 0) {
+    if ((q->_estID != estID) && (pNum > 0)) {
       pickBest(p, pNum);
       pNum  = 0;
     }
 
-    //  Reallocate pointers?
-    //
     if (pNum >= pAlloc) {
-      p = (sim4polish **)realloc(p, sizeof(sim4polish *) * (pAlloc *= 2));
-      if (p == 0L) {
-        fprintf(stderr, "Out of memory: Couldn't allocate space for polish pointers.\n");
-        exit(1);
-      }
+      sim4polish **P = new sim4polish * [pAlloc * 2];
+      memcpy(p, P, sizeof(sim4polish *) * pAlloc);
+      delete [] p;
+      p = P;
+      pAlloc *= 2;
     }
 
     p[pNum++] = q;
-    estID     = q->estID;
+    estID     = q->_estID;
+
+    q = new sim4polish(stdin);
   }
 
   if (pNum > 0)
@@ -248,6 +247,8 @@ main(int argc, char **argv) {
 
   printSummary();
   fprintf(stderr, "\n");
+
+  delete [] p;
 
   return(0);
 }

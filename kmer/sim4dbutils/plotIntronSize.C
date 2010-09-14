@@ -15,10 +15,8 @@
 
 int
 main(int argc, char ** argv) {
-  sim4polish  *p;
-  int          arg;
-  int          dumpSize = 0;
-  int         *hist;
+  u32bit       dumpSize = 0;
+  u32bit      *hist;
   FILE        *all;
   FILE        *big;
   int          i, j;
@@ -28,7 +26,7 @@ main(int argc, char ** argv) {
     exit(1);
   }
 
-  arg = 1;
+  int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-dump", 2) == 0) {
       dumpSize = atoi(argv[++arg]);
@@ -52,17 +50,12 @@ main(int argc, char ** argv) {
   }
 
   if (all || big) {
-    hist = (int *)malloc(sizeof(int) * HISTMAX);
-    if (hist == 0L) {
-      fprintf(stderr, "Can't allocate histogram\n");
-      exit(1);
-    }
-    for (i=0; i<HISTMAX; i++)
-      hist[i] = 0;
+    hist = new u32bit [HISTMAX];
+    memset(hist, 0, sizeof(u32bit) * HISTMAX);
   }
 
-
-  while ((p = readPolish(stdin)) != 0L) {
+  sim4polish  *p = new sim4polish(stdin);
+  while (p->_numExons > 0) {
     if (p->numExons > 1) {
       int   exA;
       int   exB;
@@ -105,7 +98,7 @@ main(int argc, char ** argv) {
     fclose(big);
   }
 
-  free(hist);
+  delete [] hist;
 
   return(0);
 }

@@ -106,38 +106,38 @@ main(int argc, char **argv) {
   //  Read all the matches, changing IIDs.  If we find a defline
   //  with no IID, holler and die.
 
-  sim4polish *p;
+  sim4polish *p = new sim4polish(stdin);
 
   //speedCounter  *C = new speedCounter("%12.0f polishes -- %12.0f polishes/second\r",
   //                                    1.0, 0xfff, beVerbose);
 
-  while ((p = s4p_readPolish(stdin)) != 0L) {
-
-    if ((p->estDefLine == 0L) || (p->genDefLine == 0L)) {
-      s4p_printPolish(stdout, p, S4P_PRINTPOLISH_NOTVALUABLE);
+  while (p->_numExons > 0) {
+    if ((p->_estDefLine == 0L) || (p->_genDefLine == 0L)) {
+      p->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
       fprintf(stderr, "ERROR:  Polish has no deflines!\n");
       exit(1);
     }
 
-    dnode_t *cid = dict_lookup(c, p->estDefLine);
-    dnode_t *gid = dict_lookup(g, p->genDefLine);
+    dnode_t *cid = dict_lookup(c, p->_estDefLine);
+    dnode_t *gid = dict_lookup(g, p->_genDefLine);
 
     if ((cid == 0L) || (gid == 0L)) {
       const char *msg = "both deflines";
       if (cid)  msg = "genomic defline";
       if (gid)  msg = "est defline";
 
-      s4p_printPolish(stdout, p, S4P_PRINTPOLISH_NOTVALUABLE);
+      p->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
       fprintf(stderr, "ERROR:  Couldn't find %s (%p %p) in the dictionary!\n", msg, cid, gid);
       exit(1);
     }
 
-    p->estID = (u32bit)(unsigned long)dnode_get(cid);
-    p->genID = (u32bit)(unsigned long)dnode_get(gid);
+    p->_estID = (u32bit)(unsigned long)dnode_get(cid);
+    p->_genID = (u32bit)(unsigned long)dnode_get(gid);
 
-    s4p_printPolish(stdout, p, S4P_PRINTPOLISH_NOTVALUABLE);
-    s4p_destroyPolish(p);
+    p->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
 
+    delete p;
+    p = new sim4polish(stdin);
     //C->tick();
   }
 

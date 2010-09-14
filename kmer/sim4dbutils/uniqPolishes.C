@@ -17,15 +17,15 @@ pickBest(sim4polish **p, int pNum, int uniq) {
 
   if (pNum == 1) {
     if (uniq)
-      s4p_printPolish(stdout, p[0], S4P_PRINTPOLISH_FULL);
+      p[0]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
   } else {
     if (!uniq)
       for (i=0; i<pNum; i++)
-        s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
+        p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
   }
 
   for (i=0; i<pNum; i++)
-    s4p_destroyPolish(p[i]);
+    delete p[i];
 }
 
 
@@ -33,13 +33,11 @@ pickBest(sim4polish **p, int pNum, int uniq) {
 
 int
 main(int argc, char **argv) {
-  int          pNum   = 0;
-  int          pAlloc = 8388608;
-  sim4polish **p      = 0L;
-  sim4polish  *q      = 0L;
-  int          estID  = ~0;
+  u32bit       pNum   = 0;
+  u32bit       pAlloc = 8388608;
+  u32bit       estID  = ~u32bitZERO;
 
-  int          uniq   = 1;
+  u32bit       uniq   = 1;
 
   int arg = 1;
   while (arg < argc) {
@@ -65,30 +63,33 @@ main(int argc, char **argv) {
   //  Read polishes, picking the best when we see a change in
   //  the estID.
 
-  p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
+  sim4polish **p = new sim4polish * [pAlloc];
+  sim4polish  *q = new sim4polish(stdin);
 
-  while ((q = s4p_readPolish(stdin)) != 0L) {
-    if ((q->estID != estID) && (pNum > 0)) {
+  while (q->_numExons > 0) {
+    if ((q->_estID != estID) && (pNum > 0)) {
       pickBest(p, pNum, uniq);
       pNum  = 0;
     }
 
-    //  Reallocate pointers?
-    //
     if (pNum >= pAlloc) {
-      p = (sim4polish **)realloc(p, sizeof(sim4polish *) * (pAlloc *= 2));
-      if (p == 0L) {
-        fprintf(stderr, "Out of memory: Couldn't allocate space for polish pointers.\n");
-        exit(1);
-      }
+      sim4polish **P = new sim4polish * [pAlloc * 2];
+      memcpy(p, P, sizeof(sim4polish *) * pAlloc);
+      delete [] p;
+      p = P;
+      pAlloc *= 2;
     }
 
     p[pNum++] = q;
-    estID     = q->estID;
+    estID     = q->_estID;
+
+    q = new sim4polish(stdin);
   }
 
   if (pNum > 0)
     pickBest(p, pNum, uniq);
+
+  delete [] p;
 
   return(0);
 }

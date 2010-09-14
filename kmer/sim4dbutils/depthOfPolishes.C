@@ -27,20 +27,18 @@ main(int argc, char **argv) {
 
   intervalList  IL;
 
-  while (!feof(stdin)) {
-    sim4polish *p = s4p_readPolish(stdin);
+  sim4polish *p = new sim4polish(stdin);
+  while (p->_numExons > 0) {
+    u32bit  beg = p->_exons[0]._genFrom - 1;
+    u32bit  end = p->_exons[p->_numExons-1]._genTo;
 
-    if (p != 0L) {
-      u32bit  beg = p->exons[0].genFrom - 1;
-      u32bit  end = p->exons[p->numExons-1].genTo;
+    if (end > genomeLength)
+      genomeLength = end;
 
-      if (end > genomeLength)
-        genomeLength = end;
+    IL.add(beg, end-beg);
 
-      IL.add(beg, end-beg);
-
-      s4p_destroyPolish(p);
-    }
+    delete p;
+    p = new sim4polish(stdin);
   }
 
   intervalDepth ID(IL);

@@ -1,7 +1,7 @@
 #ifndef SIM4POLISHFILE
 #define SIM4POLISHFILE
 
-#include "sim4polish.h"
+#include "sim4polish.H"
 #include "sim4polishList.H"
 
 //

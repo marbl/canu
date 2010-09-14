@@ -7,49 +7,8 @@
 #include "bio.h"
 #include "sim4.H"
 
-
-char const *usage =
-"usage: %s [-c c] [-i i] [-o o]\n"
-"  -verbose       Report progress\n"
-"\n"
-"  -c c           Discard polishes below c%% composite (default: 0).\n"
-"  -i i           Discard polishes below i%% identity (default: 0).\n"
-"  -l l           Discard polishes below l identities (default: 0).\n"
-"\n"
-"  -minexons e    Discard polishes below e exons (default: 0).\n"
-"  -maxexons e    Discard polishes above e exons (default: infinity).\n"
-"\n"
-"  -C c           Discard polishes that are not from cDNA idx 'c'\n"
-"  -G g           Discard polishes that are not from genomic idx 'g'\n"
-"\n"
-"  -o o           Write saved polishes to the 'o' file (default == stdout).\n"
-"  -O             Don't write saved polishes.\n"
-"\n"
-"  -d o           Write discarded polishes to the 'o' file (default == stdout).\n"
-"  -D             Don't write discarded polishes.\n"
-"\n"
-"  -j o           Write intractable and aborted polishes to the 'o' file.  By\n"
-"                 default these are silently discarded.\n"
-"\n"
-"  -selfhits      Filter out alignments to ourself -- if you did an all-to-all\n"
-"                 mapping of a set onto itself.  Deflines needed!\n"
-"\n"
-"  -segregate a b Segregate polishes by genomic idx, for idx's between a and b inclusive.\n"
-"                 b-a must be less than %u.\n"
-"                 Must be used with -o.\n"
-"                 Will create numerous files 'o.%%05d'.\n"
-"\n"
-"  -nodeflines    Strip out deflines.\n"
-"  -noalignments  Strip out alignments.\n"
-"  -normalized    Strip out the genomic region (makes the polish relative\n"
-"                 to the start of the sequence).\n"
-"\n"
-"                 All conditions must be met.\n";
-
-
 int
 main(int argc, char ** argv) {
-  u32bit       arg  = 1;
   u32bit       minC = 0;
   u32bit       minI = 0;
   u32bit       minL = 0;
@@ -63,7 +22,6 @@ main(int argc, char ** argv) {
   int          CRAPsilent = 0;
   FILE        *CRAP       = stdout;
   FILE        *JUNK = 0L;
-  sim4polish  *p;
   u64bit       pmod = 1;
   u64bit       good = 0;
   u64bit       crap = 0;
@@ -74,27 +32,33 @@ main(int argc, char ** argv) {
   u32bit       doSegregationHi = 0;
   char        *filePrefix = 0L;
   FILE       **SEGREGATE = 0L;
-  u32bit       printOpts = S4P_PRINTPOLISH_NOTVALUABLE;
+  u32bit       printOpts = S4P_PRINTPOLISH_FULL;
 
   //  We limit scaffolds to be below the number of open files per
   //  process.
   //
   u32bit       maxScaffold = sysconf(_SC_OPEN_MAX);
 
-  arg = 1;
+  int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-verbose", 2) == 0) {
       beVerbose = 1;
+
     } else if (strncmp(argv[arg], "-c", 2) == 0) {
       minC = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-i", 2) == 0) {
       minI = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-l", 2) == 0) {
       minL = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-minexons", 3) == 0) {
       minExons = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-maxexons", 3) == 0) {
       maxExons = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-o", 2) == 0) {
       arg++;
       errno = 0;
@@ -105,8 +69,10 @@ main(int argc, char ** argv) {
         exit(1);
       }
       GOODsilent = 0;
+
     } else if (strncmp(argv[arg], "-O", 2) == 0) {
       GOODsilent = 1;
+
     } else if (strncmp(argv[arg], "-d", 2) == 0) {
       arg++;
       errno = 0;
@@ -116,10 +82,13 @@ main(int argc, char ** argv) {
         exit(1);
       }
       CRAPsilent = 0;
+
     } else if (strncmp(argv[arg], "-q", 2) == 0) {
       CRAPsilent = 1;
+
     } else if (strncmp(argv[arg], "-D", 2) == 0) {
       CRAPsilent = 1;
+
     } else if (strncmp(argv[arg], "-j", 2) == 0) {
       arg++;
       errno = 0;
@@ -128,23 +97,31 @@ main(int argc, char ** argv) {
         fprintf(stderr, "error: I couldn't open '%s' for saving junk polishes.\n%s\n", argv[arg], strerror(errno));
         exit(1);
       }
+
     } else if (strncmp(argv[arg], "-C", 2) == 0) {
       cdna = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-G", 2) == 0) {
       geno = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-selfhits", 4) == 0) {
       doSelfFilter = 1;
+
     } else if (strncmp(argv[arg], "-segregate", 4) == 0) {
       doSegregation = 1;
       doSegregationLo = atoi(argv[++arg]);
       doSegregationHi = atoi(argv[++arg]);
       if (doSegregationHi - doSegregationLo + 1 > maxScaffold)
         fprintf(stderr, "error: -segregate range too big; must be less than %u.\n", maxScaffold), exit(1);
-      SEGREGATE = (FILE **)calloc(maxScaffold, sizeof(FILE *));
+      SEGREGATE = new FILE * [maxScaffold];
+      memset(SEGREGATE, 0, sizeof(FILE *) * maxScaffold);
+
     } else if (strncmp(argv[arg], "-nodeflines", 4) == 0) {
       printOpts |= S4P_PRINTPOLISH_NODEFS;
+
     } else if (strncmp(argv[arg], "-noalignments", 4) == 0) {
       printOpts |= S4P_PRINTPOLISH_NOALIGNS;
+
     } else {
       fprintf(stderr, "UNKNOWN option '%s'\n", argv[arg]);
       exit(1);
@@ -154,7 +131,42 @@ main(int argc, char ** argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, usage, argv[0], maxScaffold);
+    fprintf(stderr, "usage: %s [-c c] [-i i] [-o o]\n", argv[0]);
+    fprintf(stderr, "  -verbose       Report progress\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -c c           Discard polishes below c%% composite (default: 0).\n");
+    fprintf(stderr, "  -i i           Discard polishes below i%% identity (default: 0).\n");
+    fprintf(stderr, "  -l l           Discard polishes below l identities (default: 0).\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -minexons e    Discard polishes below e exons (default: 0).\n");
+    fprintf(stderr, "  -maxexons e    Discard polishes above e exons (default: infinity).\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -C c           Discard polishes that are not from cDNA idx 'c'\n");
+    fprintf(stderr, "  -G g           Discard polishes that are not from genomic idx 'g'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o o           Write saved polishes to the 'o' file (default == stdout).\n");
+    fprintf(stderr, "  -O             Don't write saved polishes.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -d o           Write discarded polishes to the 'o' file (default == stdout).\n");
+    fprintf(stderr, "  -D             Don't write discarded polishes.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -j o           Write intractable and aborted polishes to the 'o' file.  By\n");
+    fprintf(stderr, "                 default these are silently discarded.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -selfhits      Filter out alignments to ourself -- if you did an all-to-all\n");
+    fprintf(stderr, "                 mapping of a set onto itself.  Deflines needed!\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -segregate a b Segregate polishes by genomic idx, for idx's between a and b inclusive.\n");
+    fprintf(stderr, "                 b-a must be less than %u.\n", maxScaffold);
+    fprintf(stderr, "                 Must be used with -o.\n");
+    fprintf(stderr, "                 Will create numerous files 'o.%%05d'.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -nodeflines    Strip out deflines.\n");
+    fprintf(stderr, "  -noalignments  Strip out alignments.\n");
+    fprintf(stderr, "  -normalized    Strip out the genomic region (makes the polish relative\n");
+    fprintf(stderr, "                 to the start of the sequence).\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "                 All conditions must be met.\n");
     exit(1);
   }
 
@@ -182,45 +194,46 @@ main(int argc, char ** argv) {
       fprintf(stderr, "Filtering for genomic idx "u32bitFMT".\n", geno);
   }
 
-  while ((p = s4p_readPolish(stdin)) != 0L) {
+  sim4polish  *p = new sim4polish(stdin);
 
-    if (JUNK && ((p->strandOrientation == SIM4_STRAND_INTRACTABLE) ||
-                 (p->strandOrientation == SIM4_STRAND_FAILED))) {
+  while (p->_numExons > 0) {
+    if (JUNK && ((p->_strandOrientation == SIM4_STRAND_INTRACTABLE) ||
+                 (p->_strandOrientation == SIM4_STRAND_FAILED))) {
       junk++;
-      s4p_printPolish(JUNK, p, printOpts);
+      p->s4p_printPolish(JUNK, printOpts);
     } else {
-      if ((p->percentIdentity  >= minI) &&
-          (p->querySeqIdentity >= minC) &&
-          (p->numMatches  >= minL) &&
-          ((cdna == -1) || (cdna == p->estID)) &&
-          ((geno == -1) || (geno == p->genID)) &&
-          (minExons <= p->numExons) &&
-          (p->numExons <= maxExons) &&
-          ((doSelfFilter == 0) || (strcmp(p->estDefLine, p->genDefLine) != 0))) {
+      if ((p->_percentIdentity  >= minI) &&
+          (p->_querySeqIdentity >= minC) &&
+          (p->_numMatches  >= minL) &&
+          ((cdna == ~u32bitZERO) || (cdna == p->_estID)) &&
+          ((geno == ~u32bitZERO) || (geno == p->_genID)) &&
+          (minExons <= p->_numExons) &&
+          (p->_numExons <= maxExons) &&
+          ((doSelfFilter == 0) || (strcmp(p->_estDefLine, p->_genDefLine) != 0))) {
         good++;
         if (doSegregation) {
-          if ((doSegregationLo <= p->genID) &&
-              (p->genID <= doSegregationHi)) {
-            if (SEGREGATE[p->genID - doSegregationLo] == 0L) {
+          if ((doSegregationLo <= p->_genID) &&
+              (p->_genID <= doSegregationHi)) {
+            if (SEGREGATE[p->_genID - doSegregationLo] == 0L) {
               char filename[1024];
-              sprintf(filename, "%s.%04d", filePrefix, (int)p->genID);
+              sprintf(filename, "%s.%04d", filePrefix, (int)p->_genID);
               errno = 0;
-              SEGREGATE[p->genID - doSegregationLo] = fopen(filename, "w");
+              SEGREGATE[p->_genID - doSegregationLo] = fopen(filename, "w");
               if (errno) {
                 fprintf(stderr, "Error: Couldn't open '%s'\n%s\n", filename, strerror(errno));
                 exit(1);
               }
             }
-            s4p_printPolish(SEGREGATE[p->genID - doSegregationLo], p, printOpts);
+            p->s4p_printPolish(SEGREGATE[p->_genID - doSegregationLo], printOpts);
           }
         } else {
           if (!GOODsilent)
-            s4p_printPolish(GOOD, p, printOpts);
+            p->s4p_printPolish(GOOD, printOpts);
         }
       } else {
         crap++;
         if (!CRAPsilent)
-          s4p_printPolish(CRAP, p, printOpts);
+          p->s4p_printPolish(CRAP, printOpts);
       }
     }
 
@@ -238,8 +251,11 @@ main(int argc, char ** argv) {
       fflush(stderr);
     }
 
-    s4p_destroyPolish(p);
+    delete p;
+    p = new sim4polish(stdin);
   }
+
+  delete p;  //  Remove the last polish, should be empty.
 
   if (beVerbose) {
     if (junk > 0)
@@ -253,8 +269,16 @@ main(int argc, char ** argv) {
               good+crap);
   }
 
+  if (doSegregation) {
+    for (u32bit i=0; i<maxScaffold; i++)
+      if (SEGREGATE[i])
+        fclose(SEGREGATE[i]);
+    delete [] SEGREGATE;
+  }
+
   if (GOOD)
     fclose(GOOD);
+
   if (JUNK)
     fclose(JUNK);
 

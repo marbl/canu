@@ -3,18 +3,18 @@
 LIBUTL/ :=$(call MakePath,$/../../libutil/)
 LIBBIO/ :=$(call MakePath,$/../../libbio/)
 
-src     :=$/sim4polish.c \
-          $/sim4polish-copy.c \
-          $/sim4polish-compare.c \
-          $/sim4polish-deleteexon.c \
-          $/sim4polish-destroypolish.c \
-          $/sim4polish-exons.c \
-          $/sim4polish-polishtostring.c \
-          $/sim4polish-printpolish.c \
-          $/sim4polish-read.c \
-          $/sim4polish-stringtopolish.c \
-          $/sim4polish-updatescores.c \
-          $/sim4polish.h \
+src     :=$/sim4polish.C \
+          $/sim4polish-copy.C \
+          $/sim4polish-compare.C \
+          $/sim4polish-deleteexon.C \
+          $/sim4polish-destroypolish.C \
+          $/sim4polish-exons.C \
+          $/sim4polish-polishtostring.C \
+          $/sim4polish-printpolish.C \
+          $/sim4polish-read.C \
+          $/sim4polish-stringtopolish.C \
+          $/sim4polish-updatescores.C \
+          $/sim4polish.H \
           $/sim4polishList.H \
           $/sim4polishList.C \
           $/sim4polishBuilder.H \

@@ -80,16 +80,16 @@ sim4polishFile::getEST(u32bit iid) {
 
   if (i != ~u32bitZERO) {
     setPosition(_polishRecordEST[i]);
-    p = s4p_readPolish(_file);
+    p = new sim4polish(_file);
 
-    while ((p) && (p->estID == iid)) {
+    while ((p) && (p->_numExons > 0) && (p->_estID == iid)) {
       l->push(p);
       i++;
       setPosition(_polishRecordEST[i]);
-      p = s4p_readPolish(_file);
+      p = new sim4polish(_file);
     }
   
-    s4p_destroyPolish(p);
+    delete p;
   }
 
   return(l);
@@ -106,7 +106,7 @@ sim4polishFile::getGEN(u32bit iid, u32bit lo, u32bit hi) {
 
 sim4polish*
 sim4polishFile::getNext(void) {
-  return(s4p_readPolish(_file));
+  return(new sim4polish(_file));
 }
 
 
@@ -238,10 +238,9 @@ sim4polishFile::buildIndex(void) {
     while (!feof(_file)) {
 
       off_t       fp = ftello(_file);
-      sim4polish *p  = s4p_readPolish(_file);
+      sim4polish *p  = new sim4polish(_file);
 
       if (p) {
-
         if (_polishRecordLen >= _polishRecordMax) {
           _polishRecordMax *= 2;
           polishRecord  *n = new polishRecord [_polishRecordMax];
@@ -251,14 +250,14 @@ sim4polishFile::buildIndex(void) {
         }
 
         _polishRecord[_polishRecordLen]._fileposition = fp;
-        _polishRecord[_polishRecordLen]._ESTiid = p->estID;
-        _polishRecord[_polishRecordLen]._GENiid = p->genID;
-        _polishRecord[_polishRecordLen]._GENlo  = p->exons[0].genFrom;
-        _polishRecord[_polishRecordLen]._GENhi  = p->exons[p->numExons-1].genTo;
+        _polishRecord[_polishRecordLen]._ESTiid = p->_estID;
+        _polishRecord[_polishRecordLen]._GENiid = p->_genID;
+        _polishRecord[_polishRecordLen]._GENlo  = p->_exons[0]._genFrom;
+        _polishRecord[_polishRecordLen]._GENhi  = p->_exons[p->_numExons-1]._genTo;
         _polishRecordLen++;
       }
 
-      s4p_destroyPolish(p);
+      delete p;
       
       if ((_polishRecordLen & 0xfff) == 0) {
         fprintf(stderr, "polishes: "u32bitFMT"\r", _polishRecordLen);

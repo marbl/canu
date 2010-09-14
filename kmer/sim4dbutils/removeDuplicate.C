@@ -17,27 +17,27 @@ void
 pickBest(sim4polish **p, int pNum) {
   int i, j;
 
-  //fprintf(stderr, "Pick for %d with %d things\n", p[0]->estID, pNum);
+  //fprintf(stderr, "Pick for %d with %d things\n", p[0]->_estID, pNum);
 
   for (i=0; i<pNum; i++) {
     for (j=i+1; j<pNum; j++) {
       if ((p[i]) &&
           (p[j]) &&
-          (p[i]->numExons == p[j]->numExons) &&
-          (p[i]->genID == p[j]->genID)) {
+          (p[i]->_numExons == p[j]->_numExons) &&
+          (p[i]->_genID == p[j]->_genID)) {
         int a, b;
         int sd = 666;
         int ed = 666;
 
-        a = p[i]->exons[0].genFrom;
-        b = p[j]->exons[0].genFrom;
+        a = p[i]->_exons[0]._genFrom;
+        b = p[j]->_exons[0]._genFrom;
         if (a < b)
           sd = b - a;
         else
           sd = a - b;
 
-        a = p[i]->exons[p[i]->numExons-1].genTo;
-        b = p[j]->exons[p[j]->numExons-1].genTo;
+        a = p[i]->_exons[p[i]->_numExons-1]._genTo;
+        b = p[j]->_exons[p[j]->_numExons-1]._genTo;
         if (a < b)
           ed = b - a;
         else
@@ -45,13 +45,13 @@ pickBest(sim4polish **p, int pNum) {
 
         if ((sd == 0) && (ed == 0)) {
           //fprintf(stderr, "%d and %d are exact; %d removed.\n", i, j, j);
-          s4p_destroyPolish(p[j]);
+          delete p[j];
           p[j] = 0L;
         } else if ((sd < 10) && (ed < 10)) {
           fprintf(stderr, "----------------------------------------\n");
           fprintf(stderr, "Warning: %d and %d are similar.\n", i, j);
-          s4p_printPolish(stderr, p[i], S4P_PRINTPOLISH_FULL);
-          s4p_printPolish(stderr, p[j], S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(stderr, S4P_PRINTPOLISH_FULL);
+          p[j]->s4p_printPolish(stderr, S4P_PRINTPOLISH_FULL);
           fprintf(stderr, "----------------------------------------\n");
         }
       }
@@ -60,19 +60,17 @@ pickBest(sim4polish **p, int pNum) {
 
   for (i=0; i<pNum; i++) {
     if (p[i]) {
-      s4p_printPolish(stdout, p[i], S4P_PRINTPOLISH_FULL);
-      s4p_destroyPolish(p[i]);
+      p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+      delete p[i];
     }
   }
 }
 
 int
 main(int argc, char **argv) {
-  int          pNum   = 0;
-  int          pAlloc = 8388608;
-  sim4polish **p      = 0L;
-  sim4polish  *q      = 0L;
-  int          estID  = ~0;
+  u32bit   pNum   = 0;
+  u32bit   pAlloc = 8388608;
+  u32bit   estID  = ~u32bitZERO;
 
   if (isatty(fileno(stdin))) {
     fprintf(stderr, usage, argv[0]);
@@ -86,30 +84,33 @@ main(int argc, char **argv) {
   //  Read polishes, picking the best when we see a change in
   //  the estID.
 
-  p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
+  sim4polish **p = new sim4polish * [pAlloc];
+  sim4polish  *q = new sim4polish (stdin);
 
-  while ((q = s4p_readPolish(stdin)) != 0L) {
-    if ((q->estID != estID) && (pNum > 0)) {
+  while (q->_numExons > 0) {
+    if ((q->_estID != estID) && (pNum > 0)) {
       pickBest(p, pNum);
       pNum  = 0;
     }
 
-    //  Reallocate pointers?
-    //
     if (pNum >= pAlloc) {
-      p = (sim4polish **)realloc(p, sizeof(sim4polish *) * (pAlloc *= 2));
-      if (p == 0L) {
-        fprintf(stderr, "Out of memory: Couldn't allocate space for polish pointers.\n");
-        exit(1);
-      }
+      sim4polish **P = new sim4polish * [pAlloc * 2];
+      memcpy(p, P, sizeof(sim4polish *) * pAlloc);
+      delete [] p;
+      p = P;
+      pAlloc *= 2;
     }
 
     p[pNum++] = q;
-    estID     = q->estID;
+    estID     = q->_estID;
+
+    q = new sim4polish (stdin);
   }
 
   if (pNum > 0)
     pickBest(p, pNum);
+
+  delete [] p;
 
   return(0);
 }

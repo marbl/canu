@@ -13,30 +13,6 @@
 //
 //  Takes no options, reads from stdin, writes to stdout.
 
-void
-usage(char *name) {
-  fprintf(stderr, "usage: %s [-mask in.fasta] [-cov dat] [-raw | -blast] < sim4db-results\n", name);
-  fprintf(stderr, "       -mask    Read sequences from in.fasta, lower-case mask\n");
-  fprintf(stderr, "                any base with an alignment, write to out.fasta\n");
-  fprintf(stderr, "       -cov     Write coverage statistics to 'dat' instead of stdout\n");
-  fprintf(stderr, "       -raw     If present, assume the 'sim4db-results' are\n");
-  fprintf(stderr, "                a space-separated list of 'iid begin end', one per line\n");
-  fprintf(stderr, "       -blast   Same idea as raw, expects 'UID.IID' for query id,\n");
-  fprintf(stderr, "                blast format (-m) 9.\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Output on stdout is the masked sequence if -mask is specified,\n");
-  fprintf(stderr, "otherwise, it is the coverage statistics.\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "-mask is almost a required option - we need it to get the length.\n");
-  fprintf(stderr, "of sequences with no mapping (100%% uncovered) and to get the\n");
-  fprintf(stderr, "number of sequences.\n");
-  fprintf(stderr, "\n");
-
-  if (isatty(fileno(stdin)))
-    fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
-}
-
-
 int
 main(int argc, char **argv) {
   u32bit                covMax    = 0;
@@ -55,23 +31,46 @@ main(int argc, char **argv) {
 
   FILE                 *C = stdout;
 
-  if (isatty(fileno(stdin)))
-    usage(argv[0]), exit(1);
-
   int arg=1;
+  int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mask") == 0) {
       fastaname = argv[++arg];
+
     } else if (strcmp(argv[arg], "-cov") == 0) {
       covname   = argv[++arg];
+
     } else if (strcmp(argv[arg], "-raw") == 0) {
       isRaw = true;
+
     } else if (strcmp(argv[arg], "-blast") == 0) {
       isBlast = true;
+
     } else {
       fprintf(stderr, "unknown arg: '%s'\n", argv[arg]);
+      err++;
     }
     arg++;
+  }
+  if ((err) || (isatty(fileno(stdin)))) {
+    fprintf(stderr, "usage: %s [-mask in.fasta] [-cov dat] [-raw | -blast] < sim4db-results\n", argv[0]);
+    fprintf(stderr, "       -mask    Read sequences from in.fasta, lower-case mask\n");
+    fprintf(stderr, "                any base with an alignment, write to out.fasta\n");
+    fprintf(stderr, "       -cov     Write coverage statistics to 'dat' instead of stdout\n");
+    fprintf(stderr, "       -raw     If present, assume the 'sim4db-results' are\n");
+    fprintf(stderr, "                a space-separated list of 'iid begin end', one per line\n");
+    fprintf(stderr, "       -blast   Same idea as raw, expects 'UID.IID' for query id,\n");
+    fprintf(stderr, "                blast format (-m) 9.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Output on stdout is the masked sequence if -mask is specified,\n");
+    fprintf(stderr, "otherwise, it is the coverage statistics.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "-mask is almost a required option - we need it to get the length.\n");
+    fprintf(stderr, "of sequences with no mapping (100%% uncovered) and to get the\n");
+    fprintf(stderr, "number of sequences.\n");
+    fprintf(stderr, "\n");
+    if (isatty(fileno(stdin)))
+      fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
   }
 
   if (fastaname) {
@@ -142,37 +141,38 @@ main(int argc, char **argv) {
       cov[iid]->add(beg, end-beg);
     }
   } else {
-    sim4polish  *p = 0L;
+    sim4polish  *p = new sim4polish(stdin);
 
-    while ((p = s4p_readPolish(stdin)) != 0L) {
-      if (p->estID > covMax)
+    while (p->_numExons > 0) {
+      if (p->_estID > covMax)
         fprintf(stderr, "DIE!  You have more sequences in your polishes than in your source!\n"), exit(1);
 
-      if (p->estID >= covMax) {
+      if (p->_estID >= covMax) {
         fprintf(stderr, "ERROR:  Found iid "u32bitFMT", but only allocated "u32bitFMT" places!\n",
-                p->estID, covMax);
+                p->_estID, covMax);
         exit(1);
       }
-      if (cov[p->estID] == 0L) {
-        cov[p->estID] = new intervalList;
-        len[p->estID] = p->estLen;
+      if (cov[p->_estID] == 0L) {
+        cov[p->_estID] = new intervalList;
+        len[p->_estID] = p->_estLen;
       }
-      if (p->estID >= lastIID) {
-        lastIID = p->estID + 1;
+      if (p->_estID >= lastIID) {
+        lastIID = p->_estID + 1;
       }
 
-      for (u32bit e=0; e<p->numExons; e++) {
-        p->exons[e].estFrom--;        //  Convert to space-based
+      for (u32bit e=0; e<p->_numExons; e++) {
+        p->_exons[e]._estFrom--;        //  Convert to space-based
 
-        if (p->matchOrientation == SIM4_MATCH_FORWARD)
-          cov[p->estID]->add(p->exons[e].estFrom,
-                             p->exons[e].estTo - p->exons[e].estFrom);
+        if (p->_matchOrientation == SIM4_MATCH_FORWARD)
+          cov[p->_estID]->add(p->_exons[e]._estFrom,
+                              p->_exons[e]._estTo - p->_exons[e]._estFrom);
         else
-          cov[p->estID]->add(p->estLen - p->exons[e].estTo,
-                             p->exons[e].estTo - p->exons[e].estFrom);
+          cov[p->_estID]->add(p->_estLen - p->_exons[e]._estTo,
+                              p->_exons[e]._estTo - p->_exons[e]._estFrom);
       }
 
-      s4p_destroyPolish(p);
+      delete p;
+      p = new sim4polish(stdin);
     }
   }
 
@@ -249,4 +249,3 @@ main(int argc, char **argv) {
     }
   }
 }
-

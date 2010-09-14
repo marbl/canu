@@ -59,116 +59,115 @@ main(int argc, char **argv) {
   lines[QUERY_LENGTH]  = 0;
   equals[QUERY_LENGTH] = 0;
 
-  while (!feof(stdin)) {
-    sim4polish *p = s4p_readPolish(stdin);
-
-    if ((p == 0L) || (p->estID != ILid)) {
-      if (lastdefline[0]) {
+  sim4polish *p = new sim4polish(stdin);
+  if ((p->_numExons == 0) ||
+      (p->_estID != ILid)) {
+    if (lastdefline[0]) {
 
 #if 0
-        fprintf(stdout, "\n\n");
+      fprintf(stdout, "\n\n");
 
-        fprintf(stdout, "IL "u32bitFMT"\n", IL.numberOfIntervals());
-        for (u32bit i=0; i<IL.numberOfIntervals(); i++)
-          fprintf(stderr, "IL["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, IL.lo(i), IL.hi(i));
+      fprintf(stdout, "IL "u32bitFMT"\n", IL.numberOfIntervals());
+      for (u32bit i=0; i<IL.numberOfIntervals(); i++)
+        fprintf(stderr, "IL["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, IL.lo(i), IL.hi(i));
 
-        fprintf(stdout, "ILfull "u32bitFMT"\n", ILfull.numberOfIntervals());
-        for (u32bit i=0; i<ILfull.numberOfIntervals(); i++)
-          fprintf(stderr, "ILfull["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, ILfull.lo(i), ILfull.hi(i));
+      fprintf(stdout, "ILfull "u32bitFMT"\n", ILfull.numberOfIntervals());
+      for (u32bit i=0; i<ILfull.numberOfIntervals(); i++)
+        fprintf(stderr, "ILfull["u32bitFMTW(3)"] "u64bitFMT" "u64bitFMT"\n", i, ILfull.lo(i), ILfull.hi(i));
 #endif
 
-        IL.merge();
-        ILfull.merge();
+      IL.merge();
+      ILfull.merge();
 
-        if ((IL.numberOfIntervals() > 1) &&
-            (ILfull.sumOfLengths() >= 0.9 * queryLength)) {
-          fprintf(stdout, "%s\n", lastdefline);
+      if ((IL.numberOfIntervals() > 1) &&
+          (ILfull.sumOfLengths() >= 0.9 * queryLength)) {
+        fprintf(stdout, "%s\n", lastdefline);
 
-          equals[queryLength] = 0;
-          fprintf(stdout, "        %s\n", equals);
-          equals[queryLength] = '=';
+        equals[queryLength] = 0;
+        fprintf(stdout, "        %s\n", equals);
+        equals[queryLength] = '=';
 
-          //  Bubble sort the positions.
-          //
-          for (u32bit a=0; a<numPts; a++) {
-            for (u32bit b=a+1; b<numPts; b++) {
-              if ((begPt[a] > begPt[b]) ||
-                  ((begPt[a] == begPt[b]) && (endPt[a] > endPt[b]))) {
-                u32bit x = begPt[a];
-                u32bit y = endPt[a];
-                begPt[a] = begPt[b];
-                endPt[a] = endPt[b];
-                begPt[b] = x;
-                endPt[b] = y;
+        //  Bubble sort the positions.
+        //
+        for (u32bit a=0; a<numPts; a++) {
+          for (u32bit b=a+1; b<numPts; b++) {
+            if ((begPt[a] > begPt[b]) ||
+                ((begPt[a] == begPt[b]) && (endPt[a] > endPt[b]))) {
+              u32bit x = begPt[a];
+              u32bit y = endPt[a];
+              begPt[a] = begPt[b];
+              endPt[a] = endPt[b];
+              begPt[b] = x;
+              endPt[b] = y;
 
-                x         = genBeg[a];
-                y         = genEnd[a];
-                genBeg[a] = genBeg[b];
-                genEnd[a] = genEnd[b];
-                genBeg[b] = x;
-                genEnd[b] = y;
-              }
+              x         = genBeg[a];
+              y         = genEnd[a];
+              genBeg[a] = genBeg[b];
+              genEnd[a] = genEnd[b];
+              genBeg[b] = x;
+              genEnd[b] = y;
             }
+          }
+        }
+
+
+        for (u32bit i=0; i<numPts && i<maxPts; i++) {
+          if (begPt[i] >= QUERY_LENGTH) {
+            fprintf(stdout, "WARNING:  Next line (begin) truncated to %d positions!\n", QUERY_LENGTH);
+            begPt[i] = QUERY_LENGTH-1;
+          }
+          if (endPt[i] >= QUERY_LENGTH) {
+            fprintf(stdout, "WARNING:  Next line (end) truncated to %d positions!\n", QUERY_LENGTH);
+            endPt[i] = QUERY_LENGTH-1;
           }
 
 
-          for (u32bit i=0; i<numPts && i<maxPts; i++) {
-            if (begPt[i] >= QUERY_LENGTH) {
-              fprintf(stdout, "WARNING:  Next line (begin) truncated to %d positions!\n", QUERY_LENGTH);
-              begPt[i] = QUERY_LENGTH-1;
-            }
-            if (endPt[i] >= QUERY_LENGTH) {
-              fprintf(stdout, "WARNING:  Next line (end) truncated to %d positions!\n", QUERY_LENGTH);
-              endPt[i] = QUERY_LENGTH-1;
-            }
+          spaces[begPt[i]] = 0;
+          lines[endPt[i] - begPt[i]] = 0;
+          fprintf(stdout, u32bitFMTW(3)"-"u32bitFMTW(3)" %s%s ("u32bitFMT","u32bitFMT")\n",
+                  begPt[i], endPt[i], spaces, lines, genBeg[i], genEnd[i]);
+          spaces[begPt[i]] = ' ';
+          lines[endPt[i] - begPt[i]] = '-';
+        }
 
-
-            spaces[begPt[i]] = 0;
-            lines[endPt[i] - begPt[i]] = 0;
-            fprintf(stdout, u32bitFMTW(3)"-"u32bitFMTW(3)" %s%s ("u32bitFMT","u32bitFMT")\n",
-                    begPt[i], endPt[i], spaces, lines, genBeg[i], genEnd[i]);
-            spaces[begPt[i]] = ' ';
-            lines[endPt[i] - begPt[i]] = '-';
-          }
-
-          fprintf(stdout, "\n\n");
-        }  //  end of chimera detected
-      }
-
-      IL.clear();
-      ILfull.clear();
-      numPts = 0;
+        fprintf(stdout, "\n\n");
+      }  //  end of chimera detected
     }
 
-    if (p != 0L) {
-      strcpy(lastdefline, p->estDefLine);
-      ILid = p->estID;
+    IL.clear();
+    ILfull.clear();
+    numPts = 0;
+  }
 
-      queryLength = p->estLen;
+  if (p != 0L) {
+    strcpy(lastdefline, p->_estDefLine);
+    ILid = p->_estID;
 
-      u32bit  beg = p->exons[0].estFrom - 1;
-      u32bit  end = p->exons[p->numExons-1].estTo;
+    queryLength = p->_estLen;
 
-      if (numPts == maxPts) {
-        fprintf(stdout, "Wow!  The next guy is a deep mapping!  I'm only showing the\n");
-        fprintf(stdout, "first "u32bitFMT" alignments.\n", maxPts);
-      } else if (numPts < maxPts) {
-        begPt[numPts] = beg;
-        endPt[numPts] = end;
-        genBeg[numPts] = p->exons[0].genFrom - 1;
-        genEnd[numPts] = p->exons[p->numExons-1].genTo;
-      }
-      numPts++;
+    u32bit  beg = p->_exons[0]._estFrom - 1;
+    u32bit  end = p->_exons[p->_numExons-1]._estTo;
 
-      //fprintf(stdout, "beg,end = %d,%d\n", (int)beg, (int)end);
-
-      if (end - beg > 2 * chimeraOverlap) {
-        IL.add(beg + chimeraOverlap, end - beg - 2 * chimeraOverlap);
-        ILfull.add(beg, end - beg);
-      }
-
-      s4p_destroyPolish(p);
+    if (numPts == maxPts) {
+      fprintf(stdout, "Wow!  The next guy is a deep mapping!  I'm only showing the\n");
+      fprintf(stdout, "first "u32bitFMT" alignments.\n", maxPts);
+    } else if (numPts < maxPts) {
+      begPt[numPts] = beg;
+      endPt[numPts] = end;
+      genBeg[numPts] = p->_exons[0]._genFrom - 1;
+      genEnd[numPts] = p->_exons[p->_numExons-1]._genTo;
     }
+    numPts++;
+
+    //fprintf(stdout, "beg,end = %d,%d\n", (int)beg, (int)end);
+
+    if (end - beg > 2 * chimeraOverlap) {
+      IL.add(beg + chimeraOverlap, end - beg - 2 * chimeraOverlap);
+      ILfull.add(beg, end - beg);
+    }
+
+    delete p;
+    p = new sim4polish(stdin);
   }
 
   return(0);

@@ -87,19 +87,20 @@ readMatches(char           *filename,
 
   matches.clear();
 
-  sim4polish *p;
+  sim4polish *p = new sim4polish(F);
 
-  while ((p = s4p_readPolish(F)) != 0L) {
+  while (p->_numExons > 0) {
     match  m;
 
-    m._estid    = p->estID;
-    m._genid    = p->genID;
-    m._identity = p->percentIdentity;
-    m._coverage = p->querySeqIdentity;
+    m._estid    = p->_estID;
+    m._genid    = p->_genID;
+    m._identity = p->_percentIdentity;
+    m._coverage = p->_querySeqIdentity;
 
     matches.push_back(m);
 
-    s4p_destroyPolish(p);
+    delete p;
+    p = new sim4polish(F);
   }
 
   if ((filename != 0L) && (strcmp(filename, "-") == 0)) {

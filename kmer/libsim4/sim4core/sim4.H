@@ -27,7 +27,7 @@
 #include "sim4b1_s.H"
 #include "ckalloc.H"
 
-#include "../sim4polish/sim4polish.h"
+#include "../sim4polish/sim4polish.H"
 #include "../sim4polish/sim4polishList.H"
 #include "../sim4polish/sim4polishBuilder.H"
 

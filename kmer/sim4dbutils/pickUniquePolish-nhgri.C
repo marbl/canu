@@ -143,15 +143,15 @@ void
 analyze(sim4polish *p,
         char        type) {
 
-  u32bit  clrl = p->exons[0].estFrom - 1;
-  u32bit  clrr = p->exons[0].estTo   - 1;
+  u32bit  clrl = p->_exons[0]._estFrom - 1;
+  u32bit  clrr = p->_exons[0]._estTo   - 1;
 
-  if (p->matchOrientation == SIM4_MATCH_COMPLEMENT) {
-    clrl = p->estLen - (p->exons[0].estTo   - 1);
-    clrr = p->estLen - (p->exons[0].estFrom - 1);
+  if (p->_matchOrientation == SIM4_MATCH_COMPLEMENT) {
+    clrl = p->_estLen - (p->_exons[0]._estTo   - 1);
+    clrr = p->_estLen - (p->_exons[0]._estFrom - 1);
   }
 
-  analyze(p->estID, clrl, clrr, p->estLen, p->matchOrientation != SIM4_MATCH_COMPLEMENT, type);
+  analyze(p->_estID, clrl, clrr, p->_estLen, p->_matchOrientation != SIM4_MATCH_COMPLEMENT, type);
 }
 
 
@@ -169,10 +169,10 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
     statUnique++;
 
     if (uFile)
-      s4p_printPolish(uFile, p[0], S4P_PRINTPOLISH_FULL);
+      p[0]->s4p_printPolish(uFile, S4P_PRINTPOLISH_FULL);
 
     if (oFile)
-      s4p_printPolish(oFile, p[0], S4P_PRINTPOLISH_FULL);
+      p[0]->s4p_printPolish(oFile, S4P_PRINTPOLISH_FULL);
 
     analyze(p[0], 'U');
 
@@ -190,17 +190,17 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   //  matchm    is the match index
 
   for (u32bit i=0; i<pNum; i++) {
-    if ((p[i]->percentIdentity > identityi) || 
-        (p[i]->percentIdentity == identityi && p[i]->numMatches > nmatchesi)) {
-      identityi = p[i]->percentIdentity;
-      nmatchesi = p[i]->numMatches;
+    if ((p[i]->_percentIdentity > identityi) || 
+        (p[i]->_percentIdentity == identityi && p[i]->_numMatches > nmatchesi)) {
+      identityi = p[i]->_percentIdentity;
+      nmatchesi = p[i]->_numMatches;
       matchi    = i;
     }
    
-    if ((p[i]->numMatches > nmatchesm) ||
-        (p[i]->numMatches == nmatchesm && p[i]->percentIdentity > identitym)) {
-      nmatchesm = p[i]->numMatches;
-      identitym = p[i]->percentIdentity;
+    if ((p[i]->_numMatches > nmatchesm) ||
+        (p[i]->_numMatches == nmatchesm && p[i]->_percentIdentity > identitym)) {
+      nmatchesm = p[i]->_numMatches;
+      identitym = p[i]->_percentIdentity;
       matchm    = i;
     }
   }
@@ -222,7 +222,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
     //
     u32bit numBest = 0;
     for (u32bit i=0; i<pNum; i++)
-      if ((p[i]->percentIdentity == identityi) && (p[i]->numMatches == nmatchesi))
+      if ((p[i]->_percentIdentity == identityi) && (p[i]->_numMatches == nmatchesi))
         numBest++;
 
     if (numBest > 1) {
@@ -239,20 +239,20 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
       u32bit  closeQuality = 0;
 
       for (u32bit i=0; i<pNum; i++)
-        if (((p[i]->percentIdentity * 102) >= (identityi * 100)) ||
-            ((p[i]->numMatches      * 102) >= (nmatchesi * 100)))
+        if (((p[i]->_percentIdentity * 102) >= (identityi * 100)) ||
+            ((p[i]->_numMatches      * 102) >= (nmatchesi * 100)))
           closeQuality++;
 
       //  If only one match has close quality (the one we want to save!),
       //  save it.  Otherwise, label this query as multiple.
 
-      u32bit  length = p[matchi]->exons[0].estFrom - p[matchi]->exons[0].estTo;
+      u32bit  length = p[matchi]->_exons[0]._estFrom - p[matchi]->_exons[0]._estTo;
 
       if (closeQuality == 1) {
         matchIsOK = true;
         consistentMatches++;
       } else if ((length > 100) &&
-                 (length / p[matchi]->estLen < 0.5)) {
+                 (length / p[matchi]->_estLen < 0.5)) {
         consistentTooShort++;
       } else {
         consistentNot++;
@@ -282,7 +282,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   if (matchIsOK) {
     statUnique++;
     if (uFile)
-      s4p_printPolish(uFile, p[matchi], S4P_PRINTPOLISH_FULL);
+      p[matchi]->s4p_printPolish(uFile, S4P_PRINTPOLISH_FULL);
 
     assert(matchi == matchm);
 
@@ -294,10 +294,10 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
     //  Just pick the longest match, analyze that.
 
     for (u32bit i=0; i<pNum; i++) {
-      u32bit  len = p[i]->exons[0].estFrom - p[i]->exons[0].estTo;
+      u32bit  len = p[i]->_exons[0]._estFrom - p[i]->_exons[0]._estTo;
 
       if ((len  > best) ||
-          ((len == best) && (p[i]->numMatches > p[besti]->numMatches))) {
+          ((len == best) && (p[i]->_numMatches > p[besti]->_numMatches))) {
         best  = len;
         besti = i;
       }
@@ -308,14 +308,14 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 
 
 #if 0
-  u32bit  nm = (u32bit)(p[besti]->numMatches * 0.75);
+  u32bit  nm = (u32bit)(p[besti]->_numMatches * 0.75);
   u32bit  sv = 0;
 
   for (u32bit i=0; i<pNum; i++)
-    if (p[i]->numMatches >= nm)
+    if (p[i]->_numMatches >= nm)
       sv++;
   
-  fprintf(stderr, "Saved "u32bitFMT" matches more than nmatches "u32bitFMT" (from best of "u32bitFMT")\n", sv, nm, p[besti]->numMatches);
+  fprintf(stderr, "Saved "u32bitFMT" matches more than nmatches "u32bitFMT" (from best of "u32bitFMT")\n", sv, nm, p[besti]->_numMatches);
 #endif
 
 
@@ -323,11 +323,11 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   //  to throw out the obvious junk.
   //
   if ((oFile) && (doFiltering)) {
-    u32bit  nm = (u32bit)(p[besti]->numMatches * filter);
+    u32bit  nm = (u32bit)(p[besti]->_numMatches * filter);
 
     for (u32bit i=0; i<pNum; i++)
-      if (p[i]->numMatches >= nm)
-        s4p_printPolish(oFile, p[i], S4P_PRINTPOLISH_FULL);
+      if (p[i]->_numMatches >= nm)
+        p[i]->s4p_printPolish(oFile, S4P_PRINTPOLISH_FULL);
   }
 
 #if 0
@@ -354,7 +354,7 @@ pickBest(sim4polish **p, u32bit pNum) {
   pickBestSlave(p, pNum);
 
   for (u32bit i=0; i<pNum; i++)
-    s4p_destroyPolish(p[i]);
+    delete p[i];
 }
 
 
@@ -371,21 +371,21 @@ void
 fixIID(sim4polish *q, dict_t *estdict) {
 
   //  Fix the IID's
-  dnode_t *cid = dict_lookup(estdict, q->estDefLine);
-  dnode_t *gid = dict_lookup(GENdict, q->genDefLine);
+  dnode_t *cid = dict_lookup(estdict, q->_estDefLine);
+  dnode_t *gid = dict_lookup(GENdict, q->_genDefLine);
 
   if ((cid == 0L) || (gid == 0L)) {
     const char *msg = "both deflines";
     if (cid)  msg = "genomic defline";
     if (gid)  msg = "est defline";
 
-    s4p_printPolish(stdout, q, S4P_PRINTPOLISH_NOTVALUABLE);
+    q->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
     fprintf(stderr, "ERROR:  Couldn't find %s (%p %p) in the dictionary!\n", msg, cid, gid);
     exit(1);
   }
 
-  q->estID = (u32bit)(unsigned long)dnode_get(cid);
-  q->genID = (u32bit)(unsigned long)dnode_get(gid);
+  q->_estID = (u32bit)(unsigned long)dnode_get(cid);
+  q->_genID = (u32bit)(unsigned long)dnode_get(gid);
 }
 
 
@@ -415,7 +415,7 @@ nextPolish(void) {
   //  If no merge files, read from stdin
   //
   if (mergeFilesLen == 0) {
-    return(s4p_readPolish(stdin));
+    return(new sim4polish(stdin));
   }
 
   //  Find the smallest polish.
@@ -432,7 +432,7 @@ nextPolish(void) {
     return(0L);
   } else {
     sim4polish  *ret = mergePolishes[smallestPolish];
-    mergePolishes[smallestPolish] = s4p_readPolish(mergeFiles[smallestPolish]);
+    mergePolishes[smallestPolish] = new sim4polish(mergeFiles[smallestPolish]);
 
     //  fix the iid's to be consistent in our partition, so we can have the input files
     //  sorted by est iid.
@@ -501,9 +501,7 @@ int
 main(int argc, char **argv) {
   u32bit       pNum   = 0;
   u32bit       pAlloc = 8388608;
-  sim4polish **p      = 0L;
-  sim4polish  *q      = 0L;
-  u32bit       estID  = ~0;
+  u32bit       estID  = ~u32bitZERO;
 
   bool        *found  = 0L;
 
@@ -515,9 +513,9 @@ main(int argc, char **argv) {
   //  Incorporated from sortPolishes
   mergeFilesLen   = 0;
   mergeFilesMax   = sysconf(_SC_OPEN_MAX);
-  mergeFiles      = (FILE **)malloc(sizeof(FILE*) * mergeFilesMax);
-  mergeNames      = (char **)malloc(sizeof(char*) * mergeFilesMax);
-  mergePolishes   = (sim4polish **)malloc(sizeof(char*) * mergeFilesMax);
+  mergeFiles      = new FILE *       [mergeFilesMax];
+  mergeNames      = new char *       [mergeFilesMax];
+  mergePolishes   = new sim4polish * [mergeFilesMax];
 
   //  Default to printing stats on stdout.
   sFile = stdout;
@@ -645,7 +643,7 @@ main(int argc, char **argv) {
   //  Initialize the merge -- if no merge files, nothing done!
   //
   for (int i=0; i<mergeFilesLen; i++) {
-    mergePolishes[i] = s4p_readPolish(mergeFiles[i]);
+    mergePolishes[i] = new sim4polish(mergeFiles[i]);
     fixIID(mergePolishes[i], IIDdict);
   }
 
@@ -653,11 +651,12 @@ main(int argc, char **argv) {
   //  Read polishes, picking the best when we see a change in the
   //  estID.
 
-  p = (sim4polish **)malloc(sizeof(sim4polish *) * pAlloc);
+  sim4polish **p = new sim4polish * [pAlloc];
+  sim4polish  *q;
 
   while ((q = nextPolish()) != 0L) {
 
-    if ((q->estID != estID) && (pNum > 0)) {
+    if ((q->_estID != estID) && (pNum > 0)) {
       //fprintf(stderr, "PickBest for estID "u32bitFMT"\n", estID);
 
       found[estID] = true;
@@ -665,18 +664,16 @@ main(int argc, char **argv) {
       pNum  = 0;
     }
 
-    //  Reallocate pointers?
-    //
     if (pNum >= pAlloc) {
-      p = (sim4polish **)realloc(p, sizeof(sim4polish *) * (pAlloc *= 2));
-      if (p == 0L) {
-        fprintf(stderr, "Out of memory: Couldn't allocate space for polish pointers.\n");
-        exit(1);
-      }
+      sim4polish **P = new sim4polish * [pAlloc * 2];
+      memcpy(p, P, sizeof(sim4polish *) * pAlloc);
+      delete [] p;
+      p = P;
+      pAlloc *= 2;
     }
 
     p[pNum++] = q;
-    estID     = q->estID;
+    estID     = q->_estID;
   }
 
   if (pNum > 0) {
@@ -692,6 +689,10 @@ main(int argc, char **argv) {
   for (estID=0; estID < SEQ->getNumberOfSequences(); estID++)
     if (found[estID] == false)
       analyze(estID, 0, SEQ->getSequenceLength(estID), SEQ->getSequenceLength(estID), true, 'M');
+
+  delete [] mergeFiles;
+  delete [] mergeNames;
+  delete [] mergePolishes;
 
   if (oFile)  pclose(oFile);
   if (uFile)  pclose(uFile);

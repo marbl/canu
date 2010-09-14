@@ -48,14 +48,14 @@ public:
 
   void     nextIID(void) {
     if (isPolishes) {
-      sim4polish *p = s4p_readPolish(inFile);
-      if (p) {
-        if (p->estID < iid) {
+      sim4polish *p = new sim4polish(inFile);
+      if (p->_numExons > 0) {
+        if (p->_estID < iid) {
           fprintf(stderr, "ERROR!  Polishes not sorted by cDNA id!\n");
           exit(1);
         }
-        iid = p->estID;
-        s4p_destroyPolish(p);
+        iid = p->_estID;
+        delete p;
       }
     } else {
       fscanf(inFile, u32bitFMT, &iid);
@@ -79,7 +79,7 @@ public:
   };
 
   void     writeSequence(seqInCore *S) {
-    fprintf(otFile, "%s\n%s\n", S->header(), S->sequence());
+    fprintf(otFile, ">%s\n%s\n", S->header(), S->sequence());
   };
 
   void     load(u32bit maxiid) {
@@ -91,11 +91,11 @@ public:
     //  Mostly, nextIID(), where we stuff the value of iid into an array
     //
     if (isPolishes) {
-      sim4polish *p = s4p_readPolish(inFile);
-      while (p) {
-        iids[p->estID] = true;
-        s4p_destroyPolish(p);
-        p = s4p_readPolish(inFile);
+      sim4polish *p = new sim4polish(inFile);
+      while (p->_numExons > 0) {
+        iids[p->_estID] = true;
+        delete p;
+        p = new sim4polish(inFile);
       }
     } else {
       fscanf(inFile, u32bitFMT, &iid);
@@ -104,20 +104,6 @@ public:
         fscanf(inFile, u32bitFMT, &iid);
       }
     }
-
-#ifdef OLDLOAD
-    //  A very simple loader, but it still assumes the IIDs are sorted.
-    //
-    for (u32bit i=0; i<maxiid; i++) {
-      if ((i & 0xfff) == 0)
-        fprintf(stderr, "loading "u32bitFMT"\r", i);
-      iidsload[i] = thisIID(i);
-    }
-    iids = iidsload;
-    fprintf(stderr, "\n");
-#endif
-
-
   };
 
 private:

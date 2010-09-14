@@ -15,32 +15,32 @@ output(sim4polish *p,
        u32bit      a,
        u32bit      b,
        bool        isExon) {
-  u32bit  beg = p->exons[a].estFrom - 1;
-  u32bit  end = p->exons[b].estTo;
+  u32bit  beg = p->_exons[a]._estFrom - 1;
+  u32bit  end = p->_exons[b]._estTo;
 
-  if (p->matchOrientation == SIM4_MATCH_COMPLEMENT) {
-    beg = p->estLen - beg;
-    end = p->estLen - end;
+  if (p->_matchOrientation == SIM4_MATCH_COMPLEMENT) {
+    beg = p->_estLen - beg;
+    end = p->_estLen - end;
   }
 
-  double  ident = p->exons[a].percentIdentity;
+  double  ident = p->_exons[a]._percentIdentity;
   double  cover = 0.0;
 
   //  If we're not a single exon, compute the real identity of the whole thing.
   //
   if (isExon == false) {
-    if (p->exons[a].estAlignment) {
-      s4p_percentIdentityExact(p);
-      s4p_percentCoverageExact(p);
+    if (p->_exons[a]._estAlignment) {
+      ident = p->s4p_percentIdentityExact();
+      cover = p->s4p_percentCoverageExact();
     } else {
-      ident = p->percentIdentity;
-      cover = p->querySeqIdentity;
+      ident = p->_percentIdentity;
+      cover = p->_querySeqIdentity;
     }
   }
 
   fprintf(stdout, "%s\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%s\t"u32bitFMT"\t"u32bitFMT"\t%6.3f\t%6.3f\n",
-          Ep, p->estLen, a, beg, end,
-          Gp, p->exons[a].genFrom - 1, p->exons[b].genTo,
+          Ep, p->_estLen, a, beg, end,
+          Gp, p->_exons[a]._genFrom - 1, p->_exons[b]._genTo,
           ident, cover);
 }
 
@@ -80,36 +80,33 @@ main(int argc, char **argv) {
   char          G[1024], *Gp;
   splitToWords  W;
 
-  while (!feof(stdin)) {
-    sim4polish *p = s4p_readPolish(stdin);
-
-    if (p != 0L) {
-
-      if (wholeEDefLine == true) {
-        Ep = p->estDefLine;
-      } else {
-        W.split(p->estDefLine);
-        strcpy(E, W[0] + ((W[0][0] == '>') ? 1 : 0));
-        Ep = E;
-      }
-
-      if (wholeGDefLine == true) {
-        Gp = p->genDefLine;
-      } else {
-        W.split(p->genDefLine);
-        strcpy(G, W[0] + ((W[0][0] == '>') ? 1 : 0));
-        Gp = G;
-      }
-
-      if (doExons == false) {
-        output(p, Ep, Gp, 0, p->numExons-1, false);
-      } else {
-        for (u32bit i=0; i<p->numExons; i++)
-          output(p, Ep, Gp, i, i, true);
-      }
-
-      s4p_destroyPolish(p);
+  sim4polish *p = new sim4polish(stdin);
+  while (p->_numExons > 0) {
+    if (wholeEDefLine == true) {
+      Ep = p->_estDefLine;
+    } else {
+      W.split(p->_estDefLine);
+      strcpy(E, W[0] + ((W[0][0] == '>') ? 1 : 0));
+      Ep = E;
     }
+
+    if (wholeGDefLine == true) {
+      Gp = p->_genDefLine;
+    } else {
+      W.split(p->_genDefLine);
+      strcpy(G, W[0] + ((W[0][0] == '>') ? 1 : 0));
+      Gp = G;
+    }
+
+    if (doExons == false) {
+      output(p, Ep, Gp, 0, p->_numExons-1, false);
+    } else {
+      for (u32bit i=0; i<p->_numExons; i++)
+        output(p, Ep, Gp, i, i, true);
+    }
+
+    delete p;
+    p = new sim4polish(stdin);
   }
 
   return(0);

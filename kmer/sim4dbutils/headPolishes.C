@@ -30,13 +30,11 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  while (numToPrint--) {
-    sim4polish *p;
-
-    if ((p = s4p_readPolish(F)) != 0L) {
-      s4p_printPolish(stdout, p, S4P_PRINTPOLISH_FULL);
-      s4p_destroyPolish(p);
-    }
+  sim4polish *p = new sim4polish(F);
+  while ((numToPrint--) && (p->_numExons > 0)) {
+    p->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+    delete p;
+    p = new sim4polish(F);
   }
 
   return(0);

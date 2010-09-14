@@ -1,25 +1,22 @@
 #include <math.h>
-#include "sim4polish.h"
+#include "sim4polish.H"
 
 
 void
-s4p_updateAlignmentScores(sim4polish *p) {
+sim4polish::s4p_updateAlignmentScores(void) {
+  u32bit  ni = 0, numInDel    = 0;
+  u32bit  ne = 0, numEdits    = 0;
+  u32bit  nn = 0, numMatchesN = 0;
+  u32bit  nm = 0, numMatches  = 0;
+  u32bit  al = 0, alignmentLength = 0;
+  u32bit  nc = 0, numCovered  = 0;
 
-  int  exon;
+  u32bit  estn = 0;
+  u32bit  genn = 0;
 
-  int  ni = 0, numInDel    = 0;
-  int  ne = 0, numEdits    = 0;
-  int  nn = 0, numMatchesN = 0;
-  int  nm = 0, numMatches  = 0;
-  int  al = 0, alignmentLength = 0;
-  int  nc = 0, numCovered  = 0;
-
-  int  estn = 0;
-  int  genn = 0;
-
-  for (exon=0; exon<p->numExons; exon++) {
-    char *est = p->exons[exon].estAlignment;
-    char *gen = p->exons[exon].genAlignment;
+  for (u32bit exon=0; exon<_numExons; exon++) {
+    char *est = _exons[exon]._estAlignment;
+    char *gen = _exons[exon]._genAlignment;
 
     al = 0;
 
@@ -69,15 +66,15 @@ s4p_updateAlignmentScores(sim4polish *p) {
       }
     }
 
-    p->exons[exon].numMatches  = nm;
-    p->exons[exon].numMatchesN = nn;
+    _exons[exon]._numMatches  = nm;
+    _exons[exon]._numMatchesN = nn;
 
-    al = (p->exons[exon].genTo - p->exons[exon].genFrom + 1 +
-          p->exons[exon].estTo - p->exons[exon].estFrom + 1 +
+    al = (_exons[exon]._genTo - _exons[exon]._genFrom + 1 +
+          _exons[exon]._estTo - _exons[exon]._estFrom + 1 +
           ne);
-    nc = (p->exons[exon].genTo - p->exons[exon].genFrom + 1);
+    nc = (_exons[exon]._genTo - _exons[exon]._genFrom + 1);
 
-    p->exons[exon].percentIdentity = s4p_percentIdentityApprox(ne, al);
+    _exons[exon]._percentIdentity = s4p_percentIdentityApprox(ne, al);
 
     numInDel        += ni;
     numEdits        += ne;
@@ -87,9 +84,9 @@ s4p_updateAlignmentScores(sim4polish *p) {
     numCovered      += nc;
   }
 
-  p->numMatches  = numMatches;
-  p->numMatchesN = numMatchesN;
-  p->numCovered  = numCovered;
+  _numMatches  = numMatches;
+  _numMatchesN = numMatchesN;
+  _numCovered  = numCovered;
 
 #if 0
   fprintf(stderr, "numInDel    = %d\n", numInDel);
@@ -100,19 +97,19 @@ s4p_updateAlignmentScores(sim4polish *p) {
   fprintf(stderr, "numCovered  = %d\n", numCovered);
 #endif
 
-  p->percentIdentity  = s4p_percentIdentityApprox(numEdits, alignmentLength);
-  p->querySeqIdentity = s4p_percentCoverageApprox(p);
+  _percentIdentity  = s4p_percentIdentityApprox(numEdits, alignmentLength);
+  _querySeqIdentity = s4p_percentCoverageApprox();
 }
 
 
 int
-s4p_percentCoverageApprox(sim4polish *p) {
-  return((int)floor(100.0 * p->numCovered / (double)(p->estLen - p->estPolyA - p->estPolyT) + 0.5));
+sim4polish::s4p_percentCoverageApprox(void) {
+  return((int)floor(100.0 * _numCovered / (double)(_estLen - _estPolyA - _estPolyT) + 0.5));
 }
 
 
 int
-s4p_percentIdentityApprox(int numEdits, int alignmentLength) {
+sim4polish::s4p_percentIdentityApprox(int numEdits, int alignmentLength) {
   if (alignmentLength == 0)
     return(0);
   return((int)floor(100.0 * (1 - 2.0 * numEdits / alignmentLength) + 0.5));
@@ -120,31 +117,28 @@ s4p_percentIdentityApprox(int numEdits, int alignmentLength) {
 
 
 double
-s4p_percentCoverageExact(sim4polish *p) {
-  return( 100 * (double)(p->numCovered) / (double)(p->estLen - p->estPolyA - p->estPolyT) );
+sim4polish::s4p_percentCoverageExact(void) {
+  return( 100 * (double)(_numCovered) / (double)(_estLen - _estPolyA - _estPolyT) );
 }
 
 
 double
-s4p_percentIdentityExact(sim4polish *p) {
+sim4polish::s4p_percentIdentityExact(void) {
+  u32bit  ni = 0, numInDel    = 0;
+  u32bit  ne = 0, numEdits    = 0;
+  u32bit  nn = 0, numMatchesN = 0;
+  u32bit  nm = 0, numMatches  = 0;
+  u32bit  al = 0, alignmentLength = 0;
+  u32bit  nc = 0, numCovered  = 0;
 
-  int  exon;
-
-  int  ni = 0, numInDel    = 0;
-  int  ne = 0, numEdits    = 0;
-  int  nn = 0, numMatchesN = 0;
-  int  nm = 0, numMatches  = 0;
-  int  al = 0, alignmentLength = 0;
-  int  nc = 0, numCovered  = 0;
-
-  int  estn = 0;
-  int  genn = 0;
+  u32bit  estn = 0;
+  u32bit  genn = 0;
 
   double ret = 0.0;
 
-  for (exon=0; exon<p->numExons; exon++) {
-    char *est = p->exons[exon].estAlignment;
-    char *gen = p->exons[exon].genAlignment;
+  for (u32bit exon=0; exon<_numExons; exon++) {
+    char *est = _exons[exon]._estAlignment;
+    char *gen = _exons[exon]._genAlignment;
 
     al = 0;
 
@@ -185,17 +179,17 @@ s4p_percentIdentityExact(sim4polish *p) {
     }
 
 #if 0
-    p->exons[exon].numMatches  = nm;
-    p->exons[exon].numMatchesN = nn;
+    _exons[exon]._numMatches  = nm;
+    _exons[exon]._numMatchesN = nn;
 #endif
 
-    al = (p->exons[exon].genTo - p->exons[exon].genFrom + 1 +
-          p->exons[exon].estTo - p->exons[exon].estFrom + 1 +
+    al = (_exons[exon]._genTo - _exons[exon]._genFrom + 1 +
+          _exons[exon]._estTo - _exons[exon]._estFrom + 1 +
           ne);
-    nc = (p->exons[exon].genTo - p->exons[exon].genFrom + 1);
+    nc = (_exons[exon]._genTo - _exons[exon]._genFrom + 1);
 
 #if 0
-    p->exons[exon].percentIdentity = s4p_percentIdentityApprox(ne, al);
+    _exons[exon]._percentIdentity = s4p_percentIdentityApprox(ne, al);
 #endif
 
     numInDel        += ni;
@@ -207,9 +201,9 @@ s4p_percentIdentityExact(sim4polish *p) {
   }
 
 #if 0
-  p->numMatches  = numMatches;
-  p->numMatchesN = numMatchesN;
-  p->numCovered  = numCovered;
+  _numMatches  = numMatches;
+  _numMatchesN = numMatchesN;
+  _numCovered  = numCovered;
 #endif
 
 #if 0
