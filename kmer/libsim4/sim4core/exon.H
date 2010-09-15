@@ -67,7 +67,7 @@ public:
   void  printList(char *label) {
     Exon *l = this;
 
-    fprintf(stdout, label);
+    fprintf(stdout, "%s", label);
     while (l) {
       fprintf(stdout, "GEN f=%8d t=%8d  EST f=%8d t=%8d   flag=%d\n",
               l->frGEN,
