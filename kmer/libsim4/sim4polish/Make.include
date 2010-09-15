@@ -7,7 +7,6 @@ src     :=$/sim4polish.C \
           $/sim4polish-copy.C \
           $/sim4polish-compare.C \
           $/sim4polish-deleteexon.C \
-          $/sim4polish-destroypolish.C \
           $/sim4polish-exons.C \
           $/sim4polish-polishtostring.C \
           $/sim4polish-printpolish.C \
