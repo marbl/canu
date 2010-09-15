@@ -38,23 +38,23 @@ s4csrc := $/sim4core/sim4command.C \
           $/sim4core/table.C \
           $/sim4core/util.C
 
-s4psrc  :=$/sim4polish/sim4polish.c \
-          $/sim4polish/sim4polish-copy.c \
-          $/sim4polish/sim4polish-compare.c \
-          $/sim4polish/sim4polish-deleteexon.c \
-          $/sim4polish/sim4polish-exons.c \
-          $/sim4polish/sim4polish-polishtostring.c \
-          $/sim4polish/sim4polish-printpolish.c \
-          $/sim4polish/sim4polish-read.c \
-          $/sim4polish/sim4polish-stringtopolish.c \
-          $/sim4polish/sim4polish-updatescores.c \
-          $/sim4polish/sim4polish.h \
-          $/sim4polish/sim4polishList.H \
+s4psrc  :=$/sim4polish/sim4polish-compare.C \
+          $/sim4polish/sim4polish-copy.C \
+          $/sim4polish/sim4polish-deleteexon.C \
+          $/sim4polish/sim4polish-exons.C \
+          $/sim4polish/sim4polish-polishtostring.C \
+          $/sim4polish/sim4polish-printpolish.C \
+          $/sim4polish/sim4polish-read.C \
+          $/sim4polish/sim4polish-stringtopolish.C \
+          $/sim4polish/sim4polish-updatescores.C \
+          $/sim4polish/sim4polish.C \
+          $/sim4polish/sim4polish.H \
           $/sim4polish/sim4polishList.C \
-          $/sim4polish/sim4polishBuilder.H \
+          $/sim4polish/sim4polishList.H \
           $/sim4polish/sim4polishBuilder.C \
-          $/sim4polish/sim4polishFile.H \
-          $/sim4polish/sim4polishFile.C
+          $/sim4polish/sim4polishBuilder.H \
+          $/sim4polish/sim4polishFile.C \
+          $/sim4polish/sim4polishFile.H
 
 $/.C_SRCS     := $(filter %.c,${s4csrc}) $(filter %.c,${s4psrc})
 $/.C_INCS     := $(filter %.h,${s4csrc}) $(filter %.h,${s4psrc})
