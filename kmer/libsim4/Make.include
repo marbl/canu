@@ -42,7 +42,6 @@ s4psrc  :=$/sim4polish/sim4polish.c \
           $/sim4polish/sim4polish-copy.c \
           $/sim4polish/sim4polish-compare.c \
           $/sim4polish/sim4polish-deleteexon.c \
-          $/sim4polish/sim4polish-destroypolish.c \
           $/sim4polish/sim4polish-exons.c \
           $/sim4polish/sim4polish-polishtostring.c \
           $/sim4polish/sim4polish-printpolish.c \
