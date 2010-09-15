@@ -91,7 +91,7 @@ main(int argc, char **argv) {
   while (p->_numExons) {
 
     //fprintf(stdout, "BEFORE\n");
-    //p->s4p_printPolish(stdout, 0);
+    //p->s4p_printPolish(stdout);
 
     //  If we have a mergeTolerance, merge adjacent exons that are
     //  separated my approximately equal sized cDNA and genomic gaps.
@@ -228,7 +228,7 @@ main(int argc, char **argv) {
       u32bit nm = p->_numMatches;
 
       p->s4p_updateAlignmentScores();
-      p->s4p_printPolish(stdout, 0);
+      p->s4p_printPolish(stdout);
 
       if (warnOnChange) {
         u32bit diff = 0;

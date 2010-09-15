@@ -365,28 +365,28 @@ parseSNP(sim4polish **p, int pNum) {
       //  Match has one exon
 
       if (singleSingleFile)
-        p[0]->s4p_printPolish(singleSingleFile, S4P_PRINTPOLISH_FULL);
+        p[0]->s4p_printPolish(singleSingleFile);
 
       if (printSNP(validSNPMapFile, p[0])) {
         sspass++;
       } else {
         ssfail++;
         if (failedSNPMapFile)
-          p[0]->s4p_printPolish(failedSNPMapFile, S4P_PRINTPOLISH_FULL);
+          p[0]->s4p_printPolish(failedSNPMapFile);
       }
     } else {
 
       //  Match has more than one exon
 
       if (singleMultiFile)
-        p[0]->s4p_printPolish(singleMultiFile, S4P_PRINTPOLISH_FULL);
+        p[0]->s4p_printPolish(singleMultiFile);
 
       if (printSNP(validSNPMapFile, p[0])) {
         smpass++;
       } else {
         smfail++;
         if (failedSNPMapFile)
-          p[0]->s4p_printPolish(failedSNPMapFile, S4P_PRINTPOLISH_FULL);
+          p[0]->s4p_printPolish(failedSNPMapFile);
       }
     }
   } else {
@@ -402,7 +402,7 @@ parseSNP(sim4polish **p, int pNum) {
 
       if (multiSingleFile)
         for (i=0; i<pNum; i++)
-          p[i]->s4p_printPolish(multiSingleFile, S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(multiSingleFile);
 
       for (i=0; i<pNum; i++)
         if (printSNP(validSNPMapFile, p[i])) {
@@ -410,7 +410,7 @@ parseSNP(sim4polish **p, int pNum) {
         } else {
           fail++;
           if (failedSNPMapFile)
-            p[i]->s4p_printPolish(failedSNPMapFile, S4P_PRINTPOLISH_FULL);
+            p[i]->s4p_printPolish(failedSNPMapFile);
         }
 
       if (pass==1)       sspass++;
@@ -424,7 +424,7 @@ parseSNP(sim4polish **p, int pNum) {
 
       if (multiMultiFile)
         for (i=0; i<pNum; i++)
-          p[i]->s4p_printPolish(multiMultiFile, S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(multiMultiFile);
 
       for (i=0; i<pNum; i++)
         if (printSNP(validSNPMapFile, p[i])) {
@@ -432,7 +432,7 @@ parseSNP(sim4polish **p, int pNum) {
         } else {
           fail++;
           if (failedSNPMapFile)
-            p[i]->s4p_printPolish(failedSNPMapFile, S4P_PRINTPOLISH_FULL);
+            p[i]->s4p_printPolish(failedSNPMapFile);
         }
 
       if (pass==1)       smpass++;

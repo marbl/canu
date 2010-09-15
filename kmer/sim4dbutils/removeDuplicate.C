@@ -50,8 +50,8 @@ pickBest(sim4polish **p, int pNum) {
         } else if ((sd < 10) && (ed < 10)) {
           fprintf(stderr, "----------------------------------------\n");
           fprintf(stderr, "Warning: %d and %d are similar.\n", i, j);
-          p[i]->s4p_printPolish(stderr, S4P_PRINTPOLISH_FULL);
-          p[j]->s4p_printPolish(stderr, S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(stderr);
+          p[j]->s4p_printPolish(stderr);
           fprintf(stderr, "----------------------------------------\n");
         }
       }
@@ -60,7 +60,7 @@ pickBest(sim4polish **p, int pNum) {
 
   for (i=0; i<pNum; i++) {
     if (p[i]) {
-      p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+      p[i]->s4p_printPolish(stdout);
       delete p[i];
     }
   }

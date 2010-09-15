@@ -169,10 +169,10 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
     statUnique++;
 
     if (uFile)
-      p[0]->s4p_printPolish(uFile, S4P_PRINTPOLISH_FULL);
+      p[0]->s4p_printPolish(uFile);
 
     if (oFile)
-      p[0]->s4p_printPolish(oFile, S4P_PRINTPOLISH_FULL);
+      p[0]->s4p_printPolish(oFile);
 
     analyze(p[0], 'U');
 
@@ -282,7 +282,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   if (matchIsOK) {
     statUnique++;
     if (uFile)
-      p[matchi]->s4p_printPolish(uFile, S4P_PRINTPOLISH_FULL);
+      p[matchi]->s4p_printPolish(uFile);
 
     assert(matchi == matchm);
 
@@ -327,7 +327,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 
     for (u32bit i=0; i<pNum; i++)
       if (p[i]->_numMatches >= nm)
-        p[i]->s4p_printPolish(oFile, S4P_PRINTPOLISH_FULL);
+        p[i]->s4p_printPolish(oFile);
   }
 
 #if 0
@@ -379,7 +379,7 @@ fixIID(sim4polish *q, dict_t *estdict) {
     if (cid)  msg = "genomic defline";
     if (gid)  msg = "est defline";
 
-    q->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+    q->s4p_printPolish(stdout);
     fprintf(stderr, "ERROR:  Couldn't find %s (%p %p) in the dictionary!\n", msg, cid, gid);
     exit(1);
   }

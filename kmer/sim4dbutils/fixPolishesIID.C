@@ -113,7 +113,7 @@ main(int argc, char **argv) {
 
   while (p->_numExons > 0) {
     if ((p->_estDefLine == 0L) || (p->_genDefLine == 0L)) {
-      p->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+      p->s4p_printPolish(stdout);
       fprintf(stderr, "ERROR:  Polish has no deflines!\n");
       exit(1);
     }
@@ -126,7 +126,7 @@ main(int argc, char **argv) {
       if (cid)  msg = "genomic defline";
       if (gid)  msg = "est defline";
 
-      p->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+      p->s4p_printPolish(stdout);
       fprintf(stderr, "ERROR:  Couldn't find %s (%p %p) in the dictionary!\n", msg, cid, gid);
       exit(1);
     }
@@ -134,7 +134,7 @@ main(int argc, char **argv) {
     p->_estID = (u32bit)(unsigned long)dnode_get(cid);
     p->_genID = (u32bit)(unsigned long)dnode_get(gid);
 
-    p->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+    p->s4p_printPolish(stdout);
 
     delete p;
     p = new sim4polish(stdin);

@@ -61,7 +61,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   //
   if (pNum == 1) {
     if (doValidate == 0)
-      p[0]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+      p[0]->s4p_printPolish(stdout);
     return;
   }
 
@@ -138,7 +138,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches == tmp_nmatches) &&
             (p[i]->_numExons == numExons))
-          p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(stdout);
     }
 
     return;
@@ -227,7 +227,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches      == tmp_nmatches) &&
             (p[i]->_numExons	 == numExons))
-          p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(stdout);
     }
 
     return;
@@ -263,7 +263,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches      == nmatchesi) &&
             (p[i]->_numExons 	 == numExons))
-          p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(stdout);
     }
 
     return;
@@ -317,7 +317,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches      == nmatchesi) &&
             (p[i]->_numExons	       == numExonsi))
-          p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(stdout);
     }
   } else {
     numExons = numExonsm;
@@ -344,7 +344,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identitym) &&
             (p[i]->_numMatches      == tmp_nmatches) &&
             (p[i]->_numExons        == numExons))
-          p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+          p[i]->s4p_printPolish(stdout);
     }
   }
 }

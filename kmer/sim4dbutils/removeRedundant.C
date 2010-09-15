@@ -80,7 +80,7 @@ main(int argc, char **argv) {
         if (nooverlaps) {
           matchesWithNoOverlap++;
 
-          (*A)[a]->s4p_printPolish(stdout, 0);
+          (*A)[a]->s4p_printPolish(stdout);
         } else {
           matchesWithOverlap++;
           W->push(new sim4polish((*A)[a]));
@@ -199,7 +199,7 @@ main(int argc, char **argv) {
 
             for (u32bit a=0; a<W->length(); a++)
               if (clique[a])
-                (*W)[a]->s4p_printPolish(stderr, S4P_PRINTPOLISH_MINIMAL);
+                (*W)[a]->s4p_printPolish(stderr);
           }
           
         }
@@ -214,7 +214,7 @@ main(int argc, char **argv) {
           if ((clique[i]) && (length[longest] < length[i]))
             longest = i;
 
-        (*W)[longest]->s4p_printPolish(stdout, 0);
+        (*W)[longest]->s4p_printPolish(stdout);
 
         //  Remove the clique from the set of overlaps
 

@@ -32,7 +32,8 @@ main(int argc, char ** argv) {
   u32bit       doSegregationHi = 0;
   char        *filePrefix = 0L;
   FILE       **SEGREGATE = 0L;
-  u32bit       printOpts = S4P_PRINTPOLISH_FULL;
+  bool         noDefLines = false;
+  bool         noAlignments = false;
 
   //  We limit scaffolds to be below the number of open files per
   //  process.
@@ -117,10 +118,10 @@ main(int argc, char ** argv) {
       memset(SEGREGATE, 0, sizeof(FILE *) * maxScaffold);
 
     } else if (strncmp(argv[arg], "-nodeflines", 4) == 0) {
-      printOpts |= S4P_PRINTPOLISH_NODEFS;
+      noDefLines = true;
 
     } else if (strncmp(argv[arg], "-noalignments", 4) == 0) {
-      printOpts |= S4P_PRINTPOLISH_NOALIGNS;
+      noAlignments = true;
 
     } else {
       fprintf(stderr, "UNKNOWN option '%s'\n", argv[arg]);
@@ -197,10 +198,16 @@ main(int argc, char ** argv) {
   sim4polish  *p = new sim4polish(stdin);
 
   while (p->_numExons > 0) {
+
+    if (noDefLines)
+      p->s4p_removeDefLines();
+    if (noAlignments)
+      p->s4p_removeAlignments();
+
     if (JUNK && ((p->_strandOrientation == SIM4_STRAND_INTRACTABLE) ||
                  (p->_strandOrientation == SIM4_STRAND_FAILED))) {
       junk++;
-      p->s4p_printPolish(JUNK, printOpts);
+      p->s4p_printPolish(JUNK);
     } else {
       if ((p->_percentIdentity  >= minI) &&
           (p->_querySeqIdentity >= minC) &&
@@ -224,16 +231,16 @@ main(int argc, char ** argv) {
                 exit(1);
               }
             }
-            p->s4p_printPolish(SEGREGATE[p->_genID - doSegregationLo], printOpts);
+            p->s4p_printPolish(SEGREGATE[p->_genID - doSegregationLo]);
           }
         } else {
           if (!GOODsilent)
-            p->s4p_printPolish(GOOD, printOpts);
+            p->s4p_printPolish(GOOD);
         }
       } else {
         crap++;
         if (!CRAPsilent)
-          p->s4p_printPolish(CRAP, printOpts);
+          p->s4p_printPolish(CRAP);
       }
     }
 

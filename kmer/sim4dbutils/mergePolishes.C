@@ -131,7 +131,7 @@ main(int argc, char **argv) {
           (s4p_genIDcompare(polishes + first, polishes + i) > 0))
         first = i;
 
-    polishes[first]->s4p_printPolish(otMatch, S4P_PRINTPOLISH_FULL);
+    polishes[first]->s4p_printPolish(otMatch);
 
     loadNext(first, polishes, inMatch, numSeqs);
   }

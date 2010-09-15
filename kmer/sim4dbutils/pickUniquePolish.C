@@ -57,7 +57,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   if (pNum == 1) {
     statOneMatch++;
     statUnique++;
-    p[0]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+    p[0]->s4p_printPolish(stdout);
     return;
   }
 
@@ -161,7 +161,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   if (matchIsOK) {
     statUnique++;
     assert(matchi == matchm);
-    p[matchi]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+    p[matchi]->s4p_printPolish(stdout);
   } else {
     statLost++;
   }

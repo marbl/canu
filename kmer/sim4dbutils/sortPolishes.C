@@ -87,7 +87,7 @@ writeTemporary(char *filePrefix, sim4polish **p, int pLen, int (*fcn)(const void
 
   for (i=0; i<pLen; i++) {
     errno = 0;
-    p[i]->s4p_printPolish(F, S4P_PRINTPOLISH_FULL);
+    p[i]->s4p_printPolish(F);
     if (errno)
       fprintf(stderr, "sortPolishes: Failed to write temporary file!\n"), exit(1);
   }
@@ -350,7 +350,7 @@ main(int argc, char **argv) {
       qsort(p, pLen, sizeof(sim4polish *), fcn);
 
       for (i=0; i<pLen; i++)
-        p[i]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+        p[i]->s4p_printPolish(stdout);
     } else {
 
       //  Crud.  Temporary files.  Sort the last batch, dump it, then do
@@ -398,7 +398,7 @@ main(int argc, char **argv) {
       if (p[smallestPolish] == 0L) {
         moreInput = 0;
       } else {
-        p[smallestPolish]->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+        p[smallestPolish]->s4p_printPolish(stdout);
         delete p[smallestPolish];
         p[smallestPolish] = new sim4polish(mergeFiles[smallestPolish]);
       }

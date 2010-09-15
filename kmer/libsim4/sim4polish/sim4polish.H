@@ -28,19 +28,17 @@
 #define SIM4_STRAND_INTRACTABLE  'I'
 #define SIM4_STRAND_FAILED       'F'
 
-//  We allow the polish to be printed in different ways:
-//
-//  WARNING: A flags value of zero MUST ALWAYS mean print the whole polish.
-//
-#define S4P_PRINTPOLISH_FULL         0x0000
-#define S4P_PRINTPOLISH_NOALIGNS     0x0001
-#define S4P_PRINTPOLISH_NODEFS       0x0002
-#define S4P_PRINTPOLISH_MINIMAL     (S4P_PRINTPOLISH_NOALIGNS | S4P_PRINTPOLISH_NODEFS)
+enum sim4polishStyle {
+  sim4polishS4DB,
+  sim4polishGFF3,
+  sim4polishATAC
+};
 
-#define SIM4_FORMAT_UNKNOWN       0  //  No format specified, usually an error
-#define SIM4_FORMAT_SIM4DB        1  //  Original sim4db, multilines, with alignments
-#define SIM4_FORMAT_ATAC          2  //  Reduced sim4db, one record per line
-#define SIM4_FORMAT_GFF3          3  //  GFF3, duh.
+extern sim4polishStyle sim4polishStyleDefault;
+
+//#define SIM4_FORMAT_SIM4DB        0x0010  //  Original sim4db, multilines, with alignments
+//#define SIM4_FORMAT_GFF3          0x0020  //  GFF3, duh.
+//#define SIM4_FORMAT_ATAC          0x0030  //  Reduced sim4db, one record per line
 
 
 class sim4polishExon {
@@ -152,13 +150,17 @@ private:
   void   s4p_linesToPolish(u32bit lineNumber, u32bit maxLines, char **lines, u32bit *lengths);
 
 public:
-  void   s4p_readPolish(FILE *F);
   void   s4p_copyPolish(sim4polish *orig, u32bit exonNum=2147483648);
 
-  void   s4p_stringToPolish(char *s);
-  char  *s4p_polishToString(void);
+  void   s4p_readPolish(FILE *F);
+  void   s4p_printPolish(FILE *O, sim4polishStyle style=sim4polishS4DB);
 
-  void   s4p_printPolish(FILE *O, u32bit flags);
+  void   s4p_stringToPolish(char *s);
+  char  *s4p_polishToString(sim4polishStyle style=sim4polishS4DB);
+
+  char  *s4p_polishToStringS4DB(void);
+  char  *s4p_polishToStringGFF3(void);
+  char  *s4p_polishToStringATAC(void);
 
   void   s4p_removeAlignments(void) {
     for (u32bit i=0; i<_numExons; i++) {
@@ -166,7 +168,7 @@ public:
       delete [] _exons[i]._genAlignment;   _exons[i]._genAlignment = 0L;
     }
   };
-  void   s4p_removeDeflines(void) {
+  void   s4p_removeDefLines(void) {
     delete [] _estDefLine;   _estDefLine = 0L;
     delete [] _genDefLine;   _genDefLine = 0L;
   };

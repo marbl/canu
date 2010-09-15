@@ -32,7 +32,7 @@ main(int argc, char **argv) {
 
   sim4polish *p = new sim4polish(F);
   while ((numToPrint--) && (p->_numExons > 0)) {
-    p->s4p_printPolish(stdout, S4P_PRINTPOLISH_FULL);
+    p->s4p_printPolish(stdout);
     delete p;
     p = new sim4polish(F);
   }
