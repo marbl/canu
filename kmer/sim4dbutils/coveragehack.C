@@ -11,6 +11,9 @@
 //
 u32bit  orientation = 1;
 
+//
+//  WARNING!  This is stale code.  It does not compile.  The fasta interface has changed.
+//
 
 void
 readATAC(intervalList **coverage, char *path) {
@@ -63,42 +66,42 @@ readSIM4(intervalList **coverage, int which, char *path) {
     fprintf(stderr, "Failed to open '%s': %s\n", path, strerror(errno)), exit(1);
 
   while (!feof(F)) {
-    sim4polish *p = s4p_readPolish(F);
+    sim4polish *p = new sim4polish(F);
 
     if (p) {
 
       switch (which) {
         case 1:
           //  The query are contaminant reads, the genomic is the assembly
-          if ((p->percentIdentity >= 94) && (p->querySeqIdentity >= 80)) {
-            u32bit  idx = p->genID;
+          if ((p->_percentIdentity >= 94) && (p->_querySeqIdentity >= 80)) {
+            u32bit  idx = p->_genID;
 
             if (coverage[idx] == 0L)
               coverage[idx] = new intervalList();
 
-            coverage[idx]->add(p->genLo + p->exons[0].genFrom,
-                               p->exons[0].genTo - p->exons[0].genFrom + 1);
+            coverage[idx]->add(p->_exons[0]._genFrom,
+                               p->_exons[0]._genTo - p->_exons[0]._genFrom + 1);
           }
           break;
         case 2:
           //  The query are assembly scaffolds, the genomic is the contaminant assembly (one or a few contigs)
           //
-          u32bit  idx = p->estID;
+          u32bit  idx = p->_estID;
 
           if (coverage[idx] == 0L)
             coverage[idx] = new intervalList();
 
-          if (p->matchOrientation == SIM4_MATCH_FORWARD) {
-            coverage[idx]->add(p->exons[0].estFrom,
-                               p->exons[0].estTo - p->exons[0].estFrom + 1);
+          if (p->_matchOrientation == SIM4_MATCH_FORWARD) {
+            coverage[idx]->add(p->_exons[0]._estFrom,
+                               p->_exons[0]._estTo - p->_exons[0]._estFrom + 1);
           } else {
-            coverage[idx]->add(p->estLen - p->exons[0].estTo + 1,
-                               p->exons[0].estTo - p->exons[0].estFrom + 1);
+            coverage[idx]->add(p->_estLen - p->_exons[0]._estTo + 1,
+                               p->_exons[0]._estTo - p->_exons[0]._estFrom + 1);
           }
           break;
       }
 
-      s4p_destroyPolish(p);
+      delete p;
     }
   }
   fclose(F);
