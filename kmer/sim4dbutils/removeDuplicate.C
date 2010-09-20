@@ -5,19 +5,15 @@
 
 #include "sim4.H"
 
-char const *usage =
-"usage: %s < file > file\n"
-"\n";
-
 //  Input matches should be sorted by cDNA, and ran through pickBest.
 //  This code will remove all matches that have the same genomic span,
 //  and warn when two matches have nearly the same genomic span.
 
+sim4polishWriter *W = 0L;
+
 void
 pickBest(sim4polish **p, int pNum) {
   int i, j;
-
-  //fprintf(stderr, "Pick for %d with %d things\n", p[0]->_estID, pNum);
 
   for (i=0; i<pNum; i++) {
     for (j=i+1; j<pNum; j++) {
@@ -48,11 +44,17 @@ pickBest(sim4polish **p, int pNum) {
           delete p[j];
           p[j] = 0L;
         } else if ((sd < 10) && (ed < 10)) {
+          char *alignI = p[i]->s4p_polishToString(sim4polishS4DB);
+          char *alignJ = p[j]->s4p_polishToString(sim4polishS4DB);
+
           fprintf(stderr, "----------------------------------------\n");
           fprintf(stderr, "Warning: %d and %d are similar.\n", i, j);
-          p[i]->s4p_printPolish(stderr);
-          p[j]->s4p_printPolish(stderr);
+          fprintf(stderr, "%s\n", alignI);
+          fprintf(stderr, "%s\n", alignJ);
           fprintf(stderr, "----------------------------------------\n");
+
+          delete [] alignI;
+          delete [] alignJ;
         }
       }
     }
@@ -60,7 +62,7 @@ pickBest(sim4polish **p, int pNum) {
 
   for (i=0; i<pNum; i++) {
     if (p[i]) {
-      p[i]->s4p_printPolish(stdout);
+      W->writeAlignment(p[i]);
       delete p[i];
     }
   }
@@ -73,7 +75,7 @@ main(int argc, char **argv) {
   u32bit   estID  = ~u32bitZERO;
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, usage, argv[0]);
+    fprintf(stderr, "usage: %s < file > file\n", argv[0]);
 
     if (isatty(fileno(stdin)))
       fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
@@ -84,10 +86,13 @@ main(int argc, char **argv) {
   //  Read polishes, picking the best when we see a change in
   //  the estID.
 
-  sim4polish **p = new sim4polish * [pAlloc];
-  sim4polish  *q = new sim4polish (stdin);
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish      **p = new sim4polish * [pAlloc];
+  sim4polish       *q = 0L;
 
-  while (q->_numExons > 0) {
+  W = new sim4polishWriter("-", sim4polishS4DB);
+
+  while (R->nextAlignment(q)) {
     if ((q->_estID != estID) && (pNum > 0)) {
       pickBest(p, pNum);
       pNum  = 0;
@@ -104,13 +109,16 @@ main(int argc, char **argv) {
     p[pNum++] = q;
     estID     = q->_estID;
 
-    q = new sim4polish (stdin);
+    q = 0L;  //  Else we will delete the polish we just saved!
   }
 
   if (pNum > 0)
     pickBest(p, pNum);
 
   delete [] p;
+
+  delete R;
+  delete W;
 
   return(0);
 }

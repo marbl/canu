@@ -87,9 +87,10 @@ readMatches(char           *filename,
 
   matches.clear();
 
-  sim4polish *p = new sim4polish(F);
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
 
-  while (p->_numExons > 0) {
+  while (R->nextAlignment(p)) {
     match  m;
 
     m._estid    = p->_estID;
@@ -98,9 +99,6 @@ readMatches(char           *filename,
     m._coverage = p->_querySeqIdentity;
 
     matches.push_back(m);
-
-    delete p;
-    p = new sim4polish(F);
   }
 
   if ((filename != 0L) && (strcmp(filename, "-") == 0)) {

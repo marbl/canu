@@ -21,8 +21,10 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  sim4polish *p = new sim4polish(stdin);
-  while (p->_numExons > 0) {
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+
+  while (R->nextAlignment(p)) {
     bool    fwd  = (p->_matchOrientation == SIM4_MATCH_FORWARD);
 
     for (u32bit exon=0; exon<p->_numExons; exon++) {
@@ -66,11 +68,8 @@ main(int argc, char **argv) {
           gBeg++;
 
         aPos++;
-
       }
     }
-
-    delete p;
   }
 
   return(0);

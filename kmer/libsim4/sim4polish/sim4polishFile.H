@@ -74,7 +74,7 @@ public:
 
 private:
   char            *_path;
-  FILE            *_file;
+  readBuffer      *_file;
 
   //  One record for each polish, in the order they are in the file.
   //  One integer pointer into _polishRecord, sorted by either the EST

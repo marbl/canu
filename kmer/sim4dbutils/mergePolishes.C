@@ -13,33 +13,24 @@
 
 static
 void
-loadNext(u32bit idx, sim4polish **polishes, FILE **inMatch, u32bit *numSeqs) {
-
-  delete polishes[idx];
-  polishes[idx] = new sim4polish(inMatch[idx]);
-
-  if (polishes[idx]->_numExons > 0) {
+loadNext(u32bit idx, sim4polish **polishes, sim4polishReader **inMatch, u32bit *numSeqs) {
+  if (inMatch[idx]->nextAlignment(polishes[idx]))
     polishes[idx]->_estID += numSeqs[idx];
-  } else {
-    delete polishes[idx];
-    polishes[idx] = 0L;
-  }
 }
 
 int
 main(int argc, char **argv) {
-  char       **inMatchName = new char * [argc];
-  char       **inSeqName   = new char * [argc];
-  char        *otMatchName = 0L;
-  char        *otSeqName   = 0L;
+  char              **inMatchName = new char * [argc];
+  char              **inSeqName   = new char * [argc];
+  char               *otMatchName = 0L;
+  char               *otSeqName   = 0L;
 
-  FILE       **inMatch = new FILE * [argc];
-  FILE        *otMatch = 0L;
-  u32bit      *numSeqs = new u32bit [argc];
+  sim4polishReader  **inMatch  = new sim4polishReader * [argc];
+  sim4polish        **polishes = new sim4polish * [argc];
+  sim4polishWriter   *otMatch  = 0L;
+  u32bit             *numSeqs  = new u32bit [argc];
 
-  sim4polish **polishes = new sim4polish * [argc];
-
-  u32bit       numIn = 0;
+  u32bit              numIn = 0;
 
   int arg = 1;
   while (arg < argc) {
@@ -48,12 +39,7 @@ main(int argc, char **argv) {
       inMatchName[numIn] = (char *)argv[arg++];
       inSeqName[numIn]   = (char *)argv[arg++];
 
-      errno = 0;
-      inMatch[numIn] = fopen(inMatchName[numIn], "r");
-      if (inMatch[numIn] == 0L) {
-        fprintf(stderr, "Couldn't open '%s'\n%s\n", inMatchName[numIn], strerror(errno));
-        exit(1);
-      }
+      inMatch[numIn] = new sim4polishReader(inMatchName[numIn]);
       numIn++;
 
     } else if (strcmp(argv[arg], "-o") == 0) {
@@ -61,7 +47,7 @@ main(int argc, char **argv) {
       otMatchName = (char *)argv[arg++];
       otSeqName   = (char *)argv[arg++];
 
-      otMatch = fopen(otMatchName, "w");
+      otMatch = new sim4polishWriter(otMatchName, sim4polishS4DB);
     }
   }
 
@@ -131,12 +117,15 @@ main(int argc, char **argv) {
           (s4p_genIDcompare(polishes + first, polishes + i) > 0))
         first = i;
 
-    polishes[first]->s4p_printPolish(otMatch);
+    otMatch->writeAlignment(polishes[first]);
 
     loadNext(first, polishes, inMatch, numSeqs);
   }
 
-  fclose(otMatch);
+  delete [] polishes;
+
+  delete inMatch;
+  delete otMatch;
 }
 
 

@@ -80,8 +80,10 @@ main(int argc, char **argv) {
   char          G[1024], *Gp;
   splitToWords  W;
 
-  sim4polish *p = new sim4polish(stdin);
-  while (p->_numExons > 0) {
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+
+  while (R->nextAlignment(p)) {
     if (wholeEDefLine == true) {
       Ep = p->_estDefLine;
     } else {
@@ -104,9 +106,6 @@ main(int argc, char **argv) {
       for (u32bit i=0; i<p->_numExons; i++)
         output(p, Ep, Gp, i, i, true);
     }
-
-    delete p;
-    p = new sim4polish(stdin);
   }
 
   return(0);

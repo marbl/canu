@@ -25,11 +25,17 @@ class iidReaderWriter {
 public:
   iidReaderWriter(char *infile, char *otfile, bool ispolishes) {
     isPolishes = ispolishes;
+    inPolishes = 0L;
+    inFile     = 0L;
 
-    errno = 0;
-    inFile = fopen(infile, "r");
-    if (errno)
-      fprintf(stderr, "iidReaderWriter-- can't open '%s': %s\n", infile, strerror(errno)), exit(1);
+    if (isPolishes) {
+      inPolishes = new sim4polishReader(infile);
+    } else {
+      errno = 0;
+      inFile = fopen(infile, "r");
+      if (errno)
+        fprintf(stderr, "iidReaderWriter-- can't open '%s': %s\n", infile, strerror(errno)), exit(1);
+    }
 
     errno = 0;
     otFile = fopen(otfile, "w");
@@ -37,45 +43,22 @@ public:
       fprintf(stderr, "iidReaderWriter-- can't open '%s': %s\n", otfile, strerror(errno)), exit(1);
 
     iids = 0L;
-
-    //nextIID();
   };
 
   ~iidReaderWriter() {
-    fclose(inFile);
+
+    delete [] iids;
+
+    if (isPolishes)
+      delete inPolishes;
+    else
+      fclose(inFile);
+
     fclose(otFile);
   };
 
-  void     nextIID(void) {
-    if (isPolishes) {
-      sim4polish *p = new sim4polish(inFile);
-      if (p->_numExons > 0) {
-        if (p->_estID < iid) {
-          fprintf(stderr, "ERROR!  Polishes not sorted by cDNA id!\n");
-          exit(1);
-        }
-        iid = p->_estID;
-        delete p;
-      }
-    } else {
-      fscanf(inFile, u32bitFMT, &iid);
-    }
-  };
-
   bool     thisIID(u32bit targetiid) {
-    bool  result = false;
-
-    if (iids) {
-      result = iids[targetiid];
-    } else {
-      while ((iid < targetiid) && (!feof(inFile))) {
-        nextIID();
-        if (feof(inFile))
-          iid = ~u32bitZERO;
-      }
-      result = iid == targetiid;
-    }
-    return(result);
+    return(iids[targetiid]);
   };
 
   void     writeSequence(seqInCore *S) {
@@ -88,14 +71,12 @@ public:
     for (u32bit i=0; i<maxiid; i++)
       iids[i] = false;
 
-    //  Mostly, nextIID(), where we stuff the value of iid into an array
-    //
     if (isPolishes) {
-      sim4polish *p = new sim4polish(inFile);
-      while (p->_numExons > 0) {
+      sim4polish *p = inPolishes->nextAlignment();
+      while (p) {
         iids[p->_estID] = true;
         delete p;
-        p = new sim4polish(inFile);
+        p = inPolishes->nextAlignment();
       }
     } else {
       fscanf(inFile, u32bitFMT, &iid);
@@ -107,20 +88,17 @@ public:
   };
 
 private:
-  bool           isPolishes;
-  FILE          *inFile;
-  FILE          *otFile;
-  u32bit         iid;
-  bool          *iids;
+  bool               isPolishes;
+  sim4polishReader  *inPolishes;
+  FILE              *inFile;
+  FILE              *otFile;
+  u32bit             iid;
+  bool              *iids;
 };
 
 
 int
 main(int argc, char **argv) {
-
-  if (argc < 2)
-    fprintf(stderr, "ESTmapper utility function -- not for human use.\n"), exit(1);
-
   u32bit                iidRWlen = 0;
   u32bit                iidRWmax = 128;
   iidReaderWriter     **iidRW    = new iidReaderWriter* [iidRWmax];
@@ -151,15 +129,13 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-
   if ((iidRWlen == 0) || (defaultOut == 0L) || (F == 0L)) {
     fprintf(stderr, "spec error.\n");
     exit(1);
   }
 
-  if (true)
-    for (u32bit i=0; i<iidRWlen; i++)
-      iidRW[i]->load(F->getNumberOfSequences());
+  for (u32bit i=0; i<iidRWlen; i++)
+    iidRW[i]->load(F->getNumberOfSequences());
 
   for (u32bit sid=0; ((S = F->getSequenceInCore(sid)) != 0L); sid++) {
     bool     found = false;

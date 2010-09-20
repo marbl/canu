@@ -9,31 +9,31 @@
 
 int
 main(int argc, char ** argv) {
-  u32bit       minC = 0;
-  u32bit       minI = 0;
-  u32bit       minL = 0;
-  u32bit       cdna = ~u32bitZERO;
-  u32bit       geno = ~u32bitZERO;
-  u32bit       minExons = 0;
-  u32bit       maxExons = ~u32bitZERO;
-  u32bit       beVerbose = 0;
-  int          GOODsilent = 0;
-  FILE        *GOOD       = stdout;
-  int          CRAPsilent = 0;
-  FILE        *CRAP       = stdout;
-  FILE        *JUNK = 0L;
-  u64bit       pmod = 1;
-  u64bit       good = 0;
-  u64bit       crap = 0;
-  u64bit       junk = 0;
-  int          doSelfFilter = 0;
-  int          doSegregation = 0;
-  u32bit       doSegregationLo = 0;
-  u32bit       doSegregationHi = 0;
-  char        *filePrefix = 0L;
-  FILE       **SEGREGATE = 0L;
-  bool         noDefLines = false;
-  bool         noAlignments = false;
+  u32bit              minC = 0;
+  u32bit              minI = 0;
+  u32bit              minL = 0;
+  u32bit              cdna = ~u32bitZERO;
+  u32bit              geno = ~u32bitZERO;
+  u32bit              minExons = 0;
+  u32bit              maxExons = ~u32bitZERO;
+  u32bit              beVerbose = 0;
+  int                 GOODsilent = 0;
+  sim4polishWriter   *GOOD       = 0L;
+  int                 CRAPsilent = 0;
+  sim4polishWriter   *CRAP       = 0L;
+  sim4polishWriter   *JUNK = 0L;
+  u64bit              pmod = 1;
+  u64bit              good = 0;
+  u64bit              crap = 0;
+  u64bit              junk = 0;
+  int                 doSelfFilter = 0;
+  int                 doSegregation = 0;
+  u32bit              doSegregationLo = 0;
+  u32bit              doSegregationHi = 0;
+  char               *filePrefix = 0L;
+  sim4polishWriter  **SEGREGATE = 0L;
+  bool                noDefLines = false;
+  bool                noAlignments = false;
 
   //  We limit scaffolds to be below the number of open files per
   //  process.
@@ -61,27 +61,15 @@ main(int argc, char ** argv) {
       maxExons = atoi(argv[++arg]);
 
     } else if (strncmp(argv[arg], "-o", 2) == 0) {
-      arg++;
-      errno = 0;
-      filePrefix = argv[arg];
-      GOOD = fopen(argv[arg], "w");
-      if (errno) {
-        fprintf(stderr, "error: I couldn't open '%s' for saving good polishes.\n%s\n", argv[arg], strerror(errno));
-        exit(1);
-      }
+      filePrefix = argv[++arg];
+      GOOD       = new sim4polishWriter(filePrefix, sim4polishS4DB);
       GOODsilent = 0;
 
     } else if (strncmp(argv[arg], "-O", 2) == 0) {
       GOODsilent = 1;
 
     } else if (strncmp(argv[arg], "-d", 2) == 0) {
-      arg++;
-      errno = 0;
-      CRAP = fopen(argv[arg], "w");
-      if (errno) {
-        fprintf(stderr, "error: I couldn't open '%s' for saving discarded polishes.\n%s\n", argv[arg], strerror(errno));
-        exit(1);
-      }
+      CRAP       = new sim4polishWriter(argv[++arg], sim4polishS4DB);
       CRAPsilent = 0;
 
     } else if (strncmp(argv[arg], "-q", 2) == 0) {
@@ -91,13 +79,7 @@ main(int argc, char ** argv) {
       CRAPsilent = 1;
 
     } else if (strncmp(argv[arg], "-j", 2) == 0) {
-      arg++;
-      errno = 0;
-      JUNK = fopen(argv[arg], "w");
-      if (errno) {
-        fprintf(stderr, "error: I couldn't open '%s' for saving junk polishes.\n%s\n", argv[arg], strerror(errno));
-        exit(1);
-      }
+      JUNK = new sim4polishWriter(argv[++arg], sim4polishS4DB);
 
     } else if (strncmp(argv[arg], "-C", 2) == 0) {
       cdna = atoi(argv[++arg]);
@@ -114,8 +96,8 @@ main(int argc, char ** argv) {
       doSegregationHi = atoi(argv[++arg]);
       if (doSegregationHi - doSegregationLo + 1 > maxScaffold)
         fprintf(stderr, "error: -segregate range too big; must be less than %u.\n", maxScaffold), exit(1);
-      SEGREGATE = new FILE * [maxScaffold];
-      memset(SEGREGATE, 0, sizeof(FILE *) * maxScaffold);
+      SEGREGATE = new sim4polishWriter * [maxScaffold];
+      memset(SEGREGATE, 0, sizeof(sim4polishWriter *) * maxScaffold);
 
     } else if (strncmp(argv[arg], "-nodeflines", 4) == 0) {
       noDefLines = true;
@@ -171,7 +153,7 @@ main(int argc, char ** argv) {
     exit(1);
   }
 
-  if (!CRAPsilent && !GOODsilent && (fileno(GOOD) == fileno(CRAP))) {
+  if ((CRAPsilent == 0) && (GOODsilent == 0) && (GOOD == 0L) && (CRAP == 0L)) {
     fprintf(stderr, "error: filter has no effect; saved and discarded polishes\n");
     fprintf(stderr, "       both printed to the same place!\n");
     fprintf(stderr, "       (try using one of -o, -O, -d, -D)\n");
@@ -182,7 +164,6 @@ main(int argc, char ** argv) {
     fprintf(stderr, "error: you must specify a file prefix when segregating (-s requires -o)\n");
     exit(1);
   }
-
 
   if (beVerbose) {
     fprintf(stderr, "Filtering at "u32bitFMT"%% coverage and "u32bitFMT"%% identity and "u32bitFMT"bp.\n", minC, minI, minL);
@@ -195,9 +176,16 @@ main(int argc, char ** argv) {
       fprintf(stderr, "Filtering for genomic idx "u32bitFMT".\n", geno);
   }
 
-  sim4polish  *p = new sim4polish(stdin);
+  if ((CRAPsilent == 0) && (CRAP == 0L))
+    CRAP = new sim4polishWriter("-", sim4polishS4DB);
 
-  while (p->_numExons > 0) {
+  if ((GOODsilent == 0) && (GOOD == 0L))
+    GOOD = new sim4polishWriter("-", sim4polishS4DB);
+
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+
+  while (R->nextAlignment(p)) {
 
     if (noDefLines)
       p->s4p_removeDefLines();
@@ -207,7 +195,7 @@ main(int argc, char ** argv) {
     if (JUNK && ((p->_strandOrientation == SIM4_STRAND_INTRACTABLE) ||
                  (p->_strandOrientation == SIM4_STRAND_FAILED))) {
       junk++;
-      p->s4p_printPolish(JUNK);
+      JUNK->writeAlignment(p);
     } else {
       if ((p->_percentIdentity  >= minI) &&
           (p->_querySeqIdentity >= minC) &&
@@ -224,23 +212,18 @@ main(int argc, char ** argv) {
             if (SEGREGATE[p->_genID - doSegregationLo] == 0L) {
               char filename[1024];
               sprintf(filename, "%s.%04d", filePrefix, (int)p->_genID);
-              errno = 0;
-              SEGREGATE[p->_genID - doSegregationLo] = fopen(filename, "w");
-              if (errno) {
-                fprintf(stderr, "Error: Couldn't open '%s'\n%s\n", filename, strerror(errno));
-                exit(1);
-              }
+              SEGREGATE[p->_genID - doSegregationLo] = new sim4polishWriter(filename, sim4polishS4DB);
             }
-            p->s4p_printPolish(SEGREGATE[p->_genID - doSegregationLo]);
+            SEGREGATE[p->_genID - doSegregationLo]->writeAlignment(p);
           }
         } else {
           if (!GOODsilent)
-            p->s4p_printPolish(GOOD);
+            GOOD->writeAlignment(p);
         }
       } else {
         crap++;
         if (!CRAPsilent)
-          p->s4p_printPolish(CRAP);
+          CRAP->writeAlignment(p);
       }
     }
 
@@ -257,12 +240,8 @@ main(int argc, char ** argv) {
                 good+crap);
       fflush(stderr);
     }
-
-    delete p;
-    p = new sim4polish(stdin);
   }
 
-  delete p;  //  Remove the last polish, should be empty.
 
   if (beVerbose) {
     if (junk > 0)
@@ -276,18 +255,17 @@ main(int argc, char ** argv) {
               good+crap);
   }
 
+  delete R;
+
   if (doSegregation) {
     for (u32bit i=0; i<maxScaffold; i++)
       if (SEGREGATE[i])
-        fclose(SEGREGATE[i]);
+        delete SEGREGATE[i];
     delete [] SEGREGATE;
   }
 
-  if (GOOD)
-    fclose(GOOD);
-
-  if (JUNK)
-    fclose(JUNK);
+  delete GOOD;
+  delete JUNK;
 
   return(0);
 }

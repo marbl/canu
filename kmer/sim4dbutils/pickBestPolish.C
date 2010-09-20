@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -27,6 +26,7 @@
 u32bit EPS_N       = EPS_N_ESTS;
 u32bit doValidate  = 0;
 
+sim4polishWriter *W = 0L;
 
 static
 void
@@ -61,7 +61,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   //
   if (pNum == 1) {
     if (doValidate == 0)
-      p[0]->s4p_printPolish(stdout);
+      W->writeAlignment(p[0]);
     return;
   }
 
@@ -138,7 +138,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches == tmp_nmatches) &&
             (p[i]->_numExons == numExons))
-          p[i]->s4p_printPolish(stdout);
+          W->writeAlignment(p[i]);
     }
 
     return;
@@ -227,7 +227,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches      == tmp_nmatches) &&
             (p[i]->_numExons	 == numExons))
-          p[i]->s4p_printPolish(stdout);
+          W->writeAlignment(p[i]);
     }
 
     return;
@@ -263,7 +263,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches      == nmatchesi) &&
             (p[i]->_numExons 	 == numExons))
-          p[i]->s4p_printPolish(stdout);
+          W->writeAlignment(p[i]);
     }
 
     return;
@@ -317,7 +317,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identityi) &&
             (p[i]->_numMatches      == nmatchesi) &&
             (p[i]->_numExons	       == numExonsi))
-          p[i]->s4p_printPolish(stdout);
+          W->writeAlignment(p[i]);
     }
   } else {
     numExons = numExonsm;
@@ -344,7 +344,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
         if ((p[i]->_percentIdentity == identitym) &&
             (p[i]->_numMatches      == tmp_nmatches) &&
             (p[i]->_numExons        == numExons))
-          p[i]->s4p_printPolish(stdout);
+          W->writeAlignment(p[i]);
     }
   }
 }
@@ -398,10 +398,13 @@ main(int argc, char **argv) {
   //  Read polishes, picking the best when we see a change in the
   //  estID.
 
-  sim4polish **p = new sim4polish * [pAlloc];
-  sim4polish  *q = new sim4polish(stdin);
+  sim4polishReader  *R = new sim4polishReader("-");
+  sim4polish       **p = new sim4polish * [pAlloc];
+  sim4polish        *q = 0L;
 
-  while (q->_numExons > 0) {
+  W = new sim4polishWriter("-", sim4polishS4DB);
+
+  while (R->nextAlignment(q)) {
     if ((q->_estID != estID) && (pNum > 0)) {
       pickBest(p, pNum);
       pNum  = 0;
@@ -418,13 +421,16 @@ main(int argc, char **argv) {
     p[pNum++] = q;
     estID     = q->_estID;
 
-    q = new sim4polish(stdin);
+    q = 0L;  //  Otherwise we delete the alignment we just saved!
   }
 
   if (pNum > 0)
     pickBest(p, pNum);
 
   delete [] p;
+
+  delete R;
+  delete W;
 
   return(0);
 }

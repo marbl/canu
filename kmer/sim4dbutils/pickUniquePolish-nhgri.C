@@ -14,6 +14,8 @@
 #include "kazlib/list.h"
 #include "kazlib/sfx.h"
 
+this is now dead code.  It was unused and needed too much effort to update to sim4polishReader
+
 //  Derived from pickBestPolish.c.  We report only the single best
 //  match, when it is obvious that there is EXACTLY one best match.
 //

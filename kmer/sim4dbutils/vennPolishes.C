@@ -124,15 +124,10 @@ main(int argc, char **argv) {
     for (u32bit i=0; i<foundMax; i++)
       found[arg-numArgs][i] = 0;
 
-    errno = 0;
-    FILE *F = fopen(argv[arg], "r");
-    if (errno) {
-      fprintf(stderr, "Failed to open '%s': %s\n", argv[arg], strerror(errno));
-      exit(1);
-    }
+    sim4polishReader *R = new sim4polishReader("-");
+    sim4polish       *p = 0L;
 
-    sim4polish *p = new sim4polish(F);
-    while (p->_numExons > 0) {
+    while (R->nextAlignment(p)) {
       if ((p->_percentIdentity  >= minI) &&
           (p->_querySeqIdentity >= minC)) {
 
@@ -144,9 +139,6 @@ main(int argc, char **argv) {
         if (found[arg-numArgs][p->_estID] < p->_percentIdentity)
           found[arg-numArgs][p->_estID] = p->_percentIdentity;
       }
-
-      delete p;
-      p = new sim4polish(F);
     }
   }
 

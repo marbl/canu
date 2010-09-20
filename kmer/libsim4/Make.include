@@ -43,7 +43,6 @@ s4psrc  :=$/sim4polish/sim4polish-compare.C \
           $/sim4polish/sim4polish-deleteexon.C \
           $/sim4polish/sim4polish-exons.C \
           $/sim4polish/sim4polish-polishtostring.C \
-          $/sim4polish/sim4polish-printpolish.C \
           $/sim4polish/sim4polish-read.C \
           $/sim4polish/sim4polish-stringtopolish.C \
           $/sim4polish/sim4polish-updatescores.C \
@@ -54,7 +53,11 @@ s4psrc  :=$/sim4polish/sim4polish-compare.C \
           $/sim4polish/sim4polishBuilder.C \
           $/sim4polish/sim4polishBuilder.H \
           $/sim4polish/sim4polishFile.C \
-          $/sim4polish/sim4polishFile.H
+          $/sim4polish/sim4polishFile.H \
+          $/sim4polish/sim4polishReader.C \
+          $/sim4polish/sim4polishReader.H \
+          $/sim4polish/sim4polishWriter.C \
+          $/sim4polish/sim4polishWriter.H
 
 $/.C_SRCS     := $(filter %.c,${s4csrc}) $(filter %.c,${s4psrc})
 $/.C_INCS     := $(filter %.h,${s4csrc}) $(filter %.h,${s4psrc})

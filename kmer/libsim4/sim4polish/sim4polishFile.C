@@ -39,10 +39,7 @@ sim4polishFile::sim4polishFile(char *path) {
   _path = new char [strlen(path) + 1];
   strcpy(_path, path);
 
-  errno = 0;
-  _file = fopen(path, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open %s: %s\n", path, strerror(errno)), exit(1);
+  _file = new readBuffer(path);
 
   _polishRecordLen = 0;
   _polishRecordMax = 0;
@@ -80,13 +77,14 @@ sim4polishFile::getEST(u32bit iid) {
 
   if (i != ~u32bitZERO) {
     setPosition(_polishRecordEST[i]);
-    p = new sim4polish(_file);
+
+    p = new sim4polish(_file, sim4polishS4DB);
 
     while ((p) && (p->_numExons > 0) && (p->_estID == iid)) {
       l->push(p);
       i++;
       setPosition(_polishRecordEST[i]);
-      p = new sim4polish(_file);
+      p = new sim4polish(_file, sim4polishS4DB);
     }
   
     delete p;
@@ -106,7 +104,7 @@ sim4polishFile::getGEN(u32bit iid, u32bit lo, u32bit hi) {
 
 sim4polish*
 sim4polishFile::getNext(void) {
-  return(new sim4polish(_file));
+  return(new sim4polish(_file, sim4polishS4DB));
 }
 
 
@@ -119,10 +117,7 @@ sim4polishFile::setPosition(u32bit ordinal) {
   if (ordinal >= _polishRecordLen)
     fprintf(stderr, "Failed to reposition %s to record "u32bitFMT", only "u32bitFMT" records\n", _path, ordinal, _polishRecordLen), exit(1);
 
-  errno = 0;
-  fseeko(_file, _polishRecord[ordinal]._fileposition, SEEK_SET);
-  if (errno)
-    fprintf(stderr, "Failed to reposition %s to the start: %s\n", _path, strerror(errno)), exit(1);
+  _file->seek(_polishRecord[ordinal]._fileposition);
 }
 
 
@@ -216,14 +211,7 @@ sim4polishFile::buildIndex(void) {
   if (_polishRecord == 0L) {
     fprintf(stderr, "sim4polishFile::buildIndex()-- building index for '%s'\n", _path);
 
-
-    //  Reposition back to the start of the file
-    //
-    errno = 0;
-    fseeko(_file, 0, SEEK_SET);
-    if (errno)
-      fprintf(stderr, "Failed to reposition %s to the start: %s\n", _path, strerror(errno)), exit(1);
-
+    _file->seek(0);
 
     //  Allocate a bunch of space for stuff
     //
@@ -235,34 +223,34 @@ sim4polishFile::buildIndex(void) {
     //  Read all polishes, storing stuff, reallocating more space if
     //  needed.
     //
-    while (!feof(_file)) {
+    off_t       fp = _file->tell();
+    sim4polish *p  = new sim4polish(_file, sim4polishS4DB);
 
-      off_t       fp = ftello(_file);
-      sim4polish *p  = new sim4polish(_file);
-
-      if (p) {
-        if (_polishRecordLen >= _polishRecordMax) {
-          _polishRecordMax *= 2;
-          polishRecord  *n = new polishRecord [_polishRecordMax];
-          memcpy(n, _polishRecord, sizeof(polishRecord) * _polishRecordLen);
-          delete [] _polishRecord;
-          _polishRecord = n;
-        }
-
-        _polishRecord[_polishRecordLen]._fileposition = fp;
-        _polishRecord[_polishRecordLen]._ESTiid = p->_estID;
-        _polishRecord[_polishRecordLen]._GENiid = p->_genID;
-        _polishRecord[_polishRecordLen]._GENlo  = p->_exons[0]._genFrom;
-        _polishRecord[_polishRecordLen]._GENhi  = p->_exons[p->_numExons-1]._genTo;
-        _polishRecordLen++;
+    while (p) {
+      if (_polishRecordLen >= _polishRecordMax) {
+        _polishRecordMax *= 2;
+        polishRecord  *n = new polishRecord [_polishRecordMax];
+        memcpy(n, _polishRecord, sizeof(polishRecord) * _polishRecordLen);
+        delete [] _polishRecord;
+        _polishRecord = n;
       }
 
-      delete p;
-      
+      _polishRecord[_polishRecordLen]._fileposition = fp;
+      _polishRecord[_polishRecordLen]._ESTiid = p->_estID;
+      _polishRecord[_polishRecordLen]._GENiid = p->_genID;
+      _polishRecord[_polishRecordLen]._GENlo  = p->_exons[0]._genFrom;
+      _polishRecord[_polishRecordLen]._GENhi  = p->_exons[p->_numExons-1]._genTo;
+      _polishRecordLen++;
+
       if ((_polishRecordLen & 0xfff) == 0) {
         fprintf(stderr, "polishes: "u32bitFMT"\r", _polishRecordLen);
         fflush(stderr);
       }
+
+      delete p;
+      
+      fp = _file->tell();
+      p  = new sim4polish(_file, sim4polishS4DB);
     }
 
 
@@ -315,13 +303,9 @@ sim4polishFile::buildIndex(void) {
     //
     saveIndex();
 
-
     //  Be nice, reposition the file to the start.
     //
-    errno = 0;
-    fseeko(_file, 0, SEEK_SET);
-    if (errno)
-      fprintf(stderr, "Failed to reposition %s to the start: %s\n", _path, strerror(errno)), exit(1);
+    _file->seek(0);
   }
 }
 

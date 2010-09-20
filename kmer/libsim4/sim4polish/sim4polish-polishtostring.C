@@ -28,10 +28,10 @@ const char *iOriGAP = " ==";
 const char *iOriERR = " ??";
 const char *iOriNOO = "";
 
+
+bool            sim4polishStyleSet     = false;
 sim4polishStyle sim4polishStyleDefault = sim4polishS4DB;
 u32bit          sim4polishPolishID     = 0;
-
-
 
 
 char *
@@ -131,6 +131,9 @@ sim4polish::s4p_polishToString(sim4polishStyle style) {
 
   return(ret);
 }
+
+
+
 
 char *
 sim4polish::s4p_polishToStringS4DB(void) {
@@ -261,7 +264,6 @@ sim4polish::s4p_polishToStringGFF3(void) {
   //      Ontology_term
   //      Is_circular
   //
-
 
   //  Make a decent estimate of how much space we'll need to store the string
   //

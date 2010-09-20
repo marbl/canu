@@ -9,7 +9,6 @@ src     :=$/sim4polish.C \
           $/sim4polish-deleteexon.C \
           $/sim4polish-exons.C \
           $/sim4polish-polishtostring.C \
-          $/sim4polish-printpolish.C \
           $/sim4polish-read.C \
           $/sim4polish-stringtopolish.C \
           $/sim4polish-updatescores.C \
@@ -19,7 +18,11 @@ src     :=$/sim4polish.C \
           $/sim4polishBuilder.H \
           $/sim4polishBuilder.C \
           $/sim4polishFile.H \
-          $/sim4polishFile.C
+          $/sim4polishFile.C \
+          $/sim4polishReader.C \
+          $/sim4polishReader.H \
+          $/sim4polishWriter.C \
+          $/sim4polishWriter.H
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.C_INCS    :=$(filter %.h,${src})

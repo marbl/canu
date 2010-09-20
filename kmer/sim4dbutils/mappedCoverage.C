@@ -140,10 +140,12 @@ main(int argc, char **argv) {
       }
       cov[iid]->add(beg, end-beg);
     }
-  } else {
-    sim4polish  *p = new sim4polish(stdin);
 
-    while (p->_numExons > 0) {
+  } else {
+    sim4polishReader *R = new sim4polishReader("-");
+    sim4polish       *p = 0L;
+
+    while (R->nextAlignment(p)) {
       if (p->_estID > covMax)
         fprintf(stderr, "DIE!  You have more sequences in your polishes than in your source!\n"), exit(1);
 
@@ -170,9 +172,6 @@ main(int argc, char **argv) {
           cov[p->_estID]->add(p->_estLen - p->_exons[e]._estTo,
                               p->_exons[e]._estTo - p->_exons[e]._estFrom);
       }
-
-      delete p;
-      p = new sim4polish(stdin);
     }
   }
 

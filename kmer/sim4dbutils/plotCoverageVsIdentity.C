@@ -25,15 +25,14 @@ main(int argc, char ** argv) {
   FILE *I = fopen("identity.histogram", "w");
   FILE *S = fopen("c-vs-i.scatter", "w");
 
-  sim4polish *p = new sim4polish(stdin);
-  while (p->_numExons > 0) {
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+
+  while (R->nextAlignment(p)) {
     fprintf(S, u32bitFMT" "u32bitFMT"\n", p->_percentIdentity, p->_querySeqIdentity);
 
     i[p->_percentIdentity]++;
     c[p->_querySeqIdentity]++;
-
-    delete p;
-    p = new sim4polish(stdin);
   }
 
   for (int x=0; x<101; x++) {

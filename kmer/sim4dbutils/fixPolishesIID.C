@@ -18,14 +18,6 @@
 //  IIDs are guaranteed to be unique, and in the order of the
 //  polishes.
 
-const char *usage =
-"usage: %s [-v] [-c x] [-g x] < polishes > polishes\n"
-"     -v         Entertain the user\n"
-"     -c x       Read cDNA deflines from x\n"
-"     -g x       Read genomic deflines from x\n"
-"  x is a fasta file, or a list of deflines (fasta file with no sequence)\n";
-
-
 void
 addToDict(dict_t *d, char *n) {
   dnode_t  *node = 0L;
@@ -70,21 +62,26 @@ main(int argc, char **argv) {
 
   int arg=1;
   while (arg < argc) {
-    
     if        (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
+
     } else if (strcmp(argv[arg], "-c") == 0) {
       cDeflines = argv[++arg];
+
     } else if (strcmp(argv[arg], "-g") == 0) {
       gDeflines = argv[++arg];
+
     } else {
       fprintf(stderr, "Unknown arg: %s\n", argv[arg]);
     }
     arg++;
   }
-
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, usage, argv[0]);
+    fprintf(stderr, "usage: %s [-v] [-c x] [-g x] < polishes > polishes\n", argv[0]);
+    fprintf(stderr, "     -v         Entertain the user\n");
+    fprintf(stderr, "     -c x       Read cDNA deflines from x\n");
+    fprintf(stderr, "     -g x       Read genomic deflines from x\n");
+    fprintf(stderr, "  x is a fasta file, or a list of deflines (fasta file with no sequence)\n");
     exit(1);
   }
 
@@ -106,14 +103,16 @@ main(int argc, char **argv) {
   //  Read all the matches, changing IIDs.  If we find a defline
   //  with no IID, holler and die.
 
-  sim4polish *p = new sim4polish(stdin);
+  sim4polishWriter *W = new sim4polishWriter("-", sim4polishS4DB);
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
 
   //speedCounter  *C = new speedCounter("%12.0f polishes -- %12.0f polishes/second\r",
   //                                    1.0, 0xfff, beVerbose);
 
-  while (p->_numExons > 0) {
+  while (R->nextAlignment(p)) {
     if ((p->_estDefLine == 0L) || (p->_genDefLine == 0L)) {
-      p->s4p_printPolish(stdout);
+      W->writeAlignment(p);
       fprintf(stderr, "ERROR:  Polish has no deflines!\n");
       exit(1);
     }
@@ -126,7 +125,7 @@ main(int argc, char **argv) {
       if (cid)  msg = "genomic defline";
       if (gid)  msg = "est defline";
 
-      p->s4p_printPolish(stdout);
+      W->writeAlignment(p);
       fprintf(stderr, "ERROR:  Couldn't find %s (%p %p) in the dictionary!\n", msg, cid, gid);
       exit(1);
     }
@@ -134,14 +133,15 @@ main(int argc, char **argv) {
     p->_estID = (u32bit)(unsigned long)dnode_get(cid);
     p->_genID = (u32bit)(unsigned long)dnode_get(gid);
 
-    p->s4p_printPolish(stdout);
+    W->writeAlignment(p);
 
-    delete p;
-    p = new sim4polish(stdin);
     //C->tick();
   }
 
   //delete C;
+
+  delete R;
+  delete W;
 
   //  We should clean up our dictionaries, but we just let the OS do it.
   exit(0);

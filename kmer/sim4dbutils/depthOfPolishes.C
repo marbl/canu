@@ -27,8 +27,10 @@ main(int argc, char **argv) {
 
   intervalList  IL;
 
-  sim4polish *p = new sim4polish(stdin);
-  while (p->_numExons > 0) {
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+
+  while (R->nextAlignment(p)) {
     u32bit  beg = p->_exons[0]._genFrom - 1;
     u32bit  end = p->_exons[p->_numExons-1]._genTo;
 
@@ -36,9 +38,6 @@ main(int argc, char **argv) {
       genomeLength = end;
 
     IL.add(beg, end-beg);
-
-    delete p;
-    p = new sim4polish(stdin);
   }
 
   intervalDepth ID(IL);

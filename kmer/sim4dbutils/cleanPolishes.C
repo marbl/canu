@@ -7,34 +7,11 @@
 #include "bio++.H"
 #include "sim4.H"
 
-char const *usage =
-"usage: %s [-threshold t] [-savejunk] [-quiet] [-debug]\n"
-"  -threshold    Introns bigger than this are candidates for trimming (default = 100000).\n"
-"  -quiet        Don't print unmodified matches\n"
-"  -beforeafter  Save (in separate files) the before/after of each modified match\n"
-"  -segregate    Save (in separate files) the after of each modified match\n"
-"  -savejunk     Also print the trimmed pieces (as separate matches)\n"
-"\n";
-
 //#define  MIN_EXON_LENGTH       50
 //#define  MIN_PERCENT_IDENTITY  88
 
 #define  MIN_EXON_LENGTH       20
 #define  MIN_PERCENT_IDENTITY  90
-
-
-FILE *openDebugFile(char const *name) {
-  FILE *f;
-
-  errno=0;
-  f = fopen(name, "w");
-  if (errno) {
-    fprintf(stderr, "Can't debug file '%s' for writing!\n%s\n", name, strerror(errno));
-    exit(1);
-  }
-
-  return(f);
-}
 
 
 bool
@@ -116,99 +93,117 @@ main(int argc, char ** argv) {
   //
   bool  beforeafter   = false;
 #if 0
-  FILE *splGood       = 0L;
-  FILE *splProbGood   = 0L;
+  sim4polishWriter *splGood       = 0L;
+  sim4polishWriter *splProbGood   = 0L;
 #endif
-  FILE *splJunkLeft   = 0L;
-  FILE *splJunkRight  = 0L;
-  FILE *splJunkBoth   = 0L;
-  FILE *splIntronGap  = 0L;
+  sim4polishWriter *splJunkLeft   = 0L;
+  sim4polishWriter *splJunkRight  = 0L;
+  sim4polishWriter *splJunkBoth   = 0L;
+  sim4polishWriter *splIntronGap  = 0L;
 
   //  Segregation files
   //
   bool  segregate     = false;
 #if 0
-  FILE *filtOne       = 0L;
-  FILE *filtAllSmall  = 0L;
+  sim4polishWriter *filtOne       = 0L;
+  sim4polishWriter *filtAllSmall  = 0L;
 #endif
-  FILE *filtGood      = 0L;
-  FILE *filtProbGood  = 0L;
-  FILE *filtJunkLeft  = 0L;
-  FILE *filtJunkRight = 0L;
-  FILE *filtJunkBoth  = 0L;
-  FILE *filtIntronGap = 0L;
+  sim4polishWriter *filtGood      = 0L;
+  sim4polishWriter *filtProbGood  = 0L;
+  sim4polishWriter *filtJunkLeft  = 0L;
+  sim4polishWriter *filtJunkRight = 0L;
+  sim4polishWriter *filtJunkBoth  = 0L;
+  sim4polishWriter *filtIntronGap = 0L;
 
   bool  hasBeenWarned = false;
 
   bool  beVerbose     = false;
 
   int arg = 1;
+  int err = 0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-threshold", 2) == 0) {
       intronLimit = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-quiet", 2) == 0) {
       fprintf(stderr, "QUIET MODE ENABLED -- non-modified matches not output!\n");
       filter = false;
+
     } else if (strncmp(argv[arg], "-beforeafter", 2) == 0) {
       fprintf(stderr, "DEBUG MODE ENABLED -- many 'spl.*' files created!\n");
       beforeafter  = true;
 #if 0
-      splGood      = openDebugFile("spl.good");
-      splProbGood  = openDebugFile("spl.probGood");
+      splGood      = new sim4polishWriter("spl.good",      sim4polishS4DB);
+      splProbGood  = new sim4polishWriter("spl.probGood",  sim4polishS4DB);
 #endif
-      splJunkLeft  = openDebugFile("spl.junkLeft");
-      splJunkRight = openDebugFile("spl.junkRight");
-      splJunkBoth  = openDebugFile("spl.junkBoth");
-      splIntronGap = openDebugFile("spl.intronGap");
+      splJunkLeft  = new sim4polishWriter("spl.junkLeft",  sim4polishS4DB);
+      splJunkRight = new sim4polishWriter("spl.junkRight", sim4polishS4DB);
+      splJunkBoth  = new sim4polishWriter("spl.junkBoth",  sim4polishS4DB);
+      splIntronGap = new sim4polishWriter("spl.intronGap", sim4polishS4DB);
+
     } else if (strncmp(argv[arg], "-segregate", 3) == 0) {
       fprintf(stderr, "SEGREGATION MODE ENABLED -- many 'filt.*' files created!\n");
       segregate     = true;
 #if 0
-      filtOne       = openDebugFile("filt.filtOne");
-      filtAllSmall  = openDebugFile("filt.allSmall");
+      filtOne       = new sim4polishWriter("filt.filtOne",   sim4polishS4DB);
+      filtAllSmall  = new sim4polishWriter("filt.allSmall",  sim4polishS4DB);
 #endif
-      filtGood      = openDebugFile("filt.good");
-      filtProbGood  = openDebugFile("filt.probGood");
-      filtJunkLeft  = openDebugFile("filt.junkLeft");
-      filtJunkRight = openDebugFile("filt.junkRight");
-      filtJunkBoth  = openDebugFile("filt.junkBoth");
-      filtIntronGap = openDebugFile("filt.intronGap");
+      filtGood      = new sim4polishWriter("filt.good",      sim4polishS4DB);
+      filtProbGood  = new sim4polishWriter("filt.probGood",  sim4polishS4DB);
+      filtJunkLeft  = new sim4polishWriter("filt.junkLeft",  sim4polishS4DB);
+      filtJunkRight = new sim4polishWriter("filt.junkRight", sim4polishS4DB);
+      filtJunkBoth  = new sim4polishWriter("filt.junkBoth",  sim4polishS4DB);
+      filtIntronGap = new sim4polishWriter("filt.intronGap", sim4polishS4DB);
+
     } else if (strncmp(argv[arg], "-savejunk", 3) == 0) {
       saveJunk = true;
+
     } else if (strncmp(argv[arg], "-verbose", 2) == 0) {
       beVerbose = true;
+
+    } else {
+      err++;
     }
 
     arg++;
   }
+  if ((err) ||
+      (isatty(fileno(stdin))) ||
+      (isatty(fileno(stdout)) && filter)) {
+    fprintf(stderr, "usage: %s [-threshold t] [-savejunk] [-quiet] [-debug]\n", argv[0]);
+    fprintf(stderr, "  -threshold    Introns bigger than this are candidates for trimming (default = 100000).\n");
+    fprintf(stderr, "  -quiet        Don't print unmodified matches\n");
+    fprintf(stderr, "  -beforeafter  Save (in separate files) the before/after of each modified match\n");
+    fprintf(stderr, "  -segregate    Save (in separate files) the after of each modified match\n");
+    fprintf(stderr, "  -savejunk     Also print the trimmed pieces (as separate matches)\n");
 
-  if (isatty(fileno(stdin))) {
-    fprintf(stderr, usage, argv[0]);
-    fprintf(stderr, "error: I cannot read polishes from the terminal!\n");
-    exit(1);
-  }
+    if (isatty(fileno(stdin)))
+      fprintf(stderr, "error: I cannot read polishes from the terminal!\n");
 
-  if (isatty(fileno(stdout)) && filter) {
-    fprintf(stderr, usage, argv[0]);
-    fprintf(stderr, "error: Please redirect the polishes (stdout) to a file.\n");
+    if (isatty(fileno(stdout)) && filter)
+      fprintf(stderr, "error: Please redirect the polishes (stdout) to a file.\n");
+
     exit(1);
   }
 
   if (beVerbose)
     fprintf(stderr, "A big intron is one that is at least "u32bitFMT"bp long.\n", intronLimit);
 
-  sim4polish *p = new sim4polish(stdin);
-  while (p->_numExons > 0) {
+  sim4polishWriter *W = new sim4polishWriter("-", sim4polishS4DB);
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+
+  while (R->nextAlignment(p)) {
     u32bit exA;
     u32bit exB;
 
     if (p->_numExons == 1) {
       oneExon++;
       if (filter)
-        p->s4p_printPolish(stdout);
+        W->writeAlignment(p);
 #if 0
       if (segregate)
-        p->s4p_printPolish(filtOneExon);
+        filtOneExon->writeAlignment(p);
 #endif
     } else {
 
@@ -240,10 +235,10 @@ main(int argc, char ** argv) {
       if (biggestIntron < intronLimit) {
         smaIntron++;
         if (filter)
-          p->s4p_printPolish(stdout);
+          W->writeAlignment(p);
 #if 0
         if (segregate)
-          p->s4p_printPolish(filtAllSmall);
+          filtAllSmall->writeAlignment(p);
 #endif
       } else {
 
@@ -284,20 +279,20 @@ main(int argc, char ** argv) {
           trimExonsBefore(intronSplit, b);
 
           if (filter && saveJunk) {
-            a->s4p_printPolish(stdout);
-            b->s4p_printPolish(stdout);
+            W->writeAlignment(a);
+            W->writeAlignment(b);
           }
 
           if (beforeafter) {
-            fprintf(splJunkBoth, "====================\n");
-            p->s4p_printPolish(splJunkBoth);
-            a->s4p_printPolish(splJunkBoth);
-            b->s4p_printPolish(splJunkBoth);
+            //fprintf(splJunkBoth, "====================\n");
+            splJunkBoth->writeAlignment(p);
+            splJunkBoth->writeAlignment(a);
+            splJunkBoth->writeAlignment(b);
           }
 
           if (segregate) {
-            a->s4p_printPolish(filtJunkBoth);
-            b->s4p_printPolish(filtJunkBoth);
+            filtJunkBoth->writeAlignment(a);
+            filtJunkBoth->writeAlignment(b);
           }
 
           delete a;
@@ -317,20 +312,20 @@ main(int argc, char ** argv) {
 
           if (filter) {
             if (saveJunk)
-              a->s4p_printPolish(stdout);
-            b->s4p_printPolish(stdout);
+              W->writeAlignment(a);
+            W->writeAlignment(b);
           }
 
           if (beforeafter) {
-            fprintf(splJunkLeft, "====================\n");
-            p->s4p_printPolish(splJunkLeft);
-            a->s4p_printPolish(splJunkLeft);
-            b->s4p_printPolish(splJunkLeft);
+            //fprintf(splJunkLeft, "====================\n");
+            splJunkLeft->writeAlignment(p);
+            splJunkLeft->writeAlignment(a);
+            splJunkLeft->writeAlignment(b);
           }
 
           if (segregate) {
-            a->s4p_printPolish(filtJunkLeft);
-            b->s4p_printPolish(filtJunkLeft);
+            filtJunkLeft->writeAlignment(a);
+            filtJunkLeft->writeAlignment(b);
           }
 
           delete a;
@@ -346,21 +341,21 @@ main(int argc, char ** argv) {
           trimExonsBefore(intronSplit, b);
 
           if (filter) {
-            a->s4p_printPolish(stdout);
+            W->writeAlignment(a);
             if (saveJunk)
-              b->s4p_printPolish(stdout);
+              W->writeAlignment(b);
           }
 
           if (beforeafter) {
-            fprintf(splJunkRight, "====================\n");
-            p->s4p_printPolish(splJunkRight);
-            a->s4p_printPolish(splJunkRight);
-            b->s4p_printPolish(splJunkRight);
+            //fprintf(splJunkRight, "====================\n");
+            splJunkRight->writeAlignment(p);
+            splJunkRight->writeAlignment(a);
+            splJunkRight->writeAlignment(b);
           }
 
           if (segregate) {
-            a->s4p_printPolish(filtJunkRight);
-            b->s4p_printPolish(filtJunkRight);
+            filtJunkRight->writeAlignment(a);
+            filtJunkRight->writeAlignment(b);
           }
 
           delete a;
@@ -389,20 +384,20 @@ main(int argc, char ** argv) {
             trimExonsAfter(intronSplit, b);
 
             if (filter) {
-              a->s4p_printPolish(stdout);
-              b->s4p_printPolish(stdout);
+              W->writeAlignment(a);
+              W->writeAlignment(b);
             }
 
             if (beforeafter) {
-              fprintf(splIntronGap, "====================\n");
-              p->s4p_printPolish(splIntronGap);
-              a->s4p_printPolish(splIntronGap);
-              b->s4p_printPolish(splIntronGap);
+              //fprintf(splIntronGap, "====================\n");
+              splIntronGap->writeAlignment(p);
+              splIntronGap->writeAlignment(a);
+              splIntronGap->writeAlignment(b);
             }
 
             if (segregate) {
-              a->s4p_printPolish(filtIntronGap);
-              b->s4p_printPolish(filtIntronGap);
+              filtIntronGap->writeAlignment(a);
+              filtIntronGap->writeAlignment(b);
             }
 
             delete a;
@@ -430,15 +425,15 @@ main(int argc, char ** argv) {
                  (p->_strandOrientation == SIM4_STRAND_NEGATIVE))) {
               goodQual++;
               if (filter)
-                p->s4p_printPolish(stdout);
+                W->writeAlignment(p);
               if (segregate)
-                p->s4p_printPolish(filtGood);
+                filtGood->writeAlignment(p);
             } else {
               probGood++;
               if (filter)
-                p->s4p_printPolish(stdout);
+                W->writeAlignment(p);
               if (segregate)
-                p->s4p_printPolish(filtProbGood);
+                filtProbGood->writeAlignment(p);
             }
           }
         }
@@ -447,33 +442,33 @@ main(int argc, char ** argv) {
     }  //  More than one exon
 
     totMatches++;
-
-    delete p;
-    p = new sim4polish(stdin);
   }
+
+  delete R;
+  delete W;
 
   if (beforeafter) {
 #if 0
-    fclose(splGood);
-    fclose(splProbGood);
+    delete splGood;
+    delete splProbGood;
 #endif
-    fclose(splJunkLeft);
-    fclose(splJunkRight);
-    fclose(splJunkBoth);
-    fclose(splIntronGap);
+    delete splJunkLeft;
+    delete splJunkRight;
+    delete splJunkBoth;
+    delete splIntronGap;
   }
 
   if (segregate) {
 #if 0
-    fclose(filtOne);
-    fclose(filtAllSmall);
+    delete filtOne;
+    delete filtAllSmall;
 #endif
-    fclose(filtGood);
-    fclose(filtProbGood);
-    fclose(filtJunkLeft);
-    fclose(filtJunkRight);
-    fclose(filtJunkBoth);
-    fclose(filtIntronGap);
+    delete filtGood;
+    delete filtProbGood;
+    delete filtJunkLeft;
+    delete filtJunkRight;
+    delete filtJunkBoth;
+    delete filtIntronGap;
   }
 
   if (beVerbose) {

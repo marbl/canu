@@ -33,17 +33,11 @@
 #define GAP_DIFFERENCE   4
 
 
-FILE*
+sim4polishWriter *
 openOutput(const char *prefix, const char *suffix) {
-  char name[1025];
+  char name[FILENAME_MAX];
   sprintf(name, "%s.%s", prefix, suffix);
-  errno = 0;
-  FILE *r = fopen(name, "w");
-  if (errno) {
-    fprintf(stderr, "Failed to open '%s' for output: %s\n", name, strerror(errno));
-    exit(1);
-  }
-  return(r);
+  return(new sim4polishWriter(name, sim4polishS4DB));
 }
 
 
@@ -100,13 +94,13 @@ main(int argc, char **argv) {
 
   //  Open the output files
   //
-  FILE *fasame  = openOutput(prefix, "a-same");
-  FILE *fbsame  = openOutput(prefix, "b-same");
-  FILE *fanovel = openOutput(prefix, "a-novel");
-  FILE *fbnovel = openOutput(prefix, "b-novel");
-  FILE *famulti = openOutput(prefix, "a-multi");
-  FILE *fbmulti = openOutput(prefix, "b-multi");
-  FILE *fhairy  = openOutput(prefix, "hairy");
+  sim4polishWriter *fasame  = openOutput(prefix, "a-same");
+  sim4polishWriter *fbsame  = openOutput(prefix, "b-same");
+  sim4polishWriter *fanovel = openOutput(prefix, "a-novel");
+  sim4polishWriter *fbnovel = openOutput(prefix, "b-novel");
+  sim4polishWriter *famulti = openOutput(prefix, "a-multi");
+  sim4polishWriter *fbmulti = openOutput(prefix, "b-multi");
+  sim4polishWriter *fhairy  = openOutput(prefix, "hairy");
 
   //  Force index builds
   //
@@ -173,7 +167,7 @@ main(int argc, char **argv) {
         novelInA++;
 
         if (fanovel)
-          (*A)[a]->s4p_printPolish(fanovel);
+          fanovel->writeAlignment((*A)[a]);
       }
     }
 
@@ -189,7 +183,7 @@ main(int argc, char **argv) {
         novelInB++;
 
         if (fbnovel)
-          (*B)[b]->s4p_printPolish(fbnovel);
+          fbnovel->writeAlignment((*B)[b]);
       }
     }    
 
@@ -300,9 +294,9 @@ main(int argc, char **argv) {
                   BgenLen, (*B)[b]->_numExons, Bgaps);
                   
           if (fasame)
-            (*A)[a]->s4p_printPolish(fasame);
+            fasame->writeAlignment((*A)[a]);
           if (fbsame)
-            (*B)[b]->s4p_printPolish(fbsame);
+            fbsame->writeAlignment((*B)[b]);
         }
       }
     }
@@ -403,33 +397,33 @@ main(int argc, char **argv) {
       if        ((inA  > 1) && (inB  > 1)) {
         hairyOverlap++;
 
-        fprintf(fhairy, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
+        //fprintf(fhairy, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
-            (*A)[a]->s4p_printPolish(fhairy);
+            fhairy->writeAlignment((*A)[a]);
         for (u32bit b=0; b<B->length(); b++)
           if (removeB[b])
-            (*B)[b]->s4p_printPolish(fhairy);
+            fhairy->writeAlignment((*B)[b]);
       } else if ((inA == 1) && (inB  > 1)) {
         multipleInB++;
 
-        fprintf(fbmulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
+        //fprintf(fbmulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
-            (*A)[a]->s4p_printPolish(fbmulti);
+            fbmulti->writeAlignment((*A)[a]);
         for (u32bit b=0; b<B->length(); b++)
           if (removeB[b])
-            (*B)[b]->s4p_printPolish(fbmulti);
+            fbmulti->writeAlignment((*B)[b]);
       } else if ((inA  > 1) && (inB == 1)) {
         multipleInA++;
 
-        fprintf(famulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
+        //fprintf(famulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->_estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
-            (*A)[a]->s4p_printPolish(famulti);
+            famulti->writeAlignment((*A)[a]);
         for (u32bit b=0; b<B->length(); b++)
           if (removeB[b])
-            (*B)[b]->s4p_printPolish(famulti);
+            famulti->writeAlignment((*B)[b]);
       } else {
         fprintf(stderr, "ERROR!  inA="u32bitFMT" inB="u32bitFMT"\n", inA, inB);
       }
@@ -488,17 +482,19 @@ main(int argc, char **argv) {
     delete B;
   }
 
-  fprintf(stderr, "\ngood:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\n",
-          goodOverlap, novelInA, multipleInA, novelInB, multipleInB, hairyOverlap);
-
-  fclose(fasame);
-  fclose(fbsame);
-  fclose(fanovel);
-  fclose(fbnovel);
-  fclose(famulti);
-  fclose(fbmulti);
-  fclose(fhairy);
+  delete fasame;
+  delete fbsame;
+  delete fanovel;
+  delete fbnovel;
+  delete famulti;
+  delete fbmulti;
+  delete fhairy;
 
   delete Afile;
   delete Bfile;
+
+  fprintf(stderr, "\ngood:"u32bitFMTW(4)" Anovel:"u32bitFMTW(4)" Amulti:"u32bitFMTW(4)" Bnovel:"u32bitFMTW(4)" Bmulti:"u32bitFMTW(4)" hairy:"u32bitFMTW(4)"\n",
+          goodOverlap, novelInA, multipleInA, novelInB, multipleInB, hairyOverlap);
+
+  exit(0);
 }

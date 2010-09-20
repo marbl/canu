@@ -4,8 +4,9 @@
 #include <errno.h>
 #include <math.h>
 #include "bio++.H"
-#include "sim4polishList.H"
 
+#include "sim4polishList.H"
+#include "sim4polishReader.H"
 
 sim4polishList::sim4polishList() {
   len  = 0;
@@ -18,17 +19,13 @@ sim4polishList::sim4polishList(char const *filename) {
   max  = 4;
   list = new sim4polish* [max];
 
-  errno=0;
-  FILE *F = fopen(filename, "r");
-  if (errno) {
-    fprintf(stderr, "sim4polishList()--  Can't open '%s' for reading\n%s\n", filename, strerror(errno));
-    exit(1);
-  }
+  sim4polishReader *R = new sim4polishReader(filename);
+  sim4polish       *p = 0L;
 
-  while (!feof(F))
-    push(new sim4polish(F));
+  while (R->nextAlignment(p))
+    push(p);
 
-  fclose(F);
+  delete R;
 }
 
 sim4polishList::~sim4polishList() {

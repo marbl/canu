@@ -59,10 +59,12 @@ main(int argc, char **argv) {
   lines[QUERY_LENGTH]  = 0;
   equals[QUERY_LENGTH] = 0;
 
-  sim4polish *p = new sim4polish(stdin);
-  if ((p->_numExons == 0) ||
-      (p->_estID != ILid)) {
-    if (lastdefline[0]) {
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+
+  while (R->nextAlignment(p)) {
+    if ((p->_estID != ILid) &&
+        (lastdefline[0])) {
 
 #if 0
       fprintf(stdout, "\n\n");
@@ -132,14 +134,12 @@ main(int argc, char **argv) {
 
         fprintf(stdout, "\n\n");
       }  //  end of chimera detected
+
+      IL.clear();
+      ILfull.clear();
+      numPts = 0;
     }
 
-    IL.clear();
-    ILfull.clear();
-    numPts = 0;
-  }
-
-  if (p != 0L) {
     strcpy(lastdefline, p->_estDefLine);
     ILid = p->_estID;
 
@@ -165,9 +165,6 @@ main(int argc, char **argv) {
       IL.add(beg + chimeraOverlap, end - beg - 2 * chimeraOverlap);
       ILfull.add(beg, end - beg);
     }
-
-    delete p;
-    p = new sim4polish(stdin);
   }
 
   return(0);

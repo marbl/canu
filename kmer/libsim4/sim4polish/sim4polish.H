@@ -8,7 +8,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "bio.h"
+#include "util++.H"
+#include "bio++.H"
+//#include "bio.h"
 
 #define SIM4_INTRON_ERROR        '?'  //  '??'
 #define SIM4_INTRON_POSITIVE     '>'  //  '->'
@@ -36,10 +38,9 @@ enum sim4polishStyle {
 
 extern sim4polishStyle sim4polishStyleDefault;
 
-//#define SIM4_FORMAT_SIM4DB        0x0010  //  Original sim4db, multilines, with alignments
-//#define SIM4_FORMAT_GFF3          0x0020  //  GFF3, duh.
-//#define SIM4_FORMAT_ATAC          0x0030  //  Reduced sim4db, one record per line
-
+//  sim4polishExon and sim4polish constructors should be private (with whatever builds them a
+//  friend) but snapper2 needs to create empty objects and fill them manually.  We could provide a
+//  constructor for that, but time is finite.
 
 class sim4polishExon {
 public:
@@ -92,7 +93,7 @@ public:
 
 
 class sim4polish {
-private:
+public:
   void clear(void) {
     _estID             = 0;
     _estLen            = 0;
@@ -119,14 +120,38 @@ private:
     _exons             = NULL;
   };
 
-public:
+
   sim4polish() {
     clear();
   };
 
-  sim4polish(FILE *F) {
+  friend class sim4polishBuilder;
+  friend class sim4polishReader;
+  friend class sim4polishWriter;
+public:
+  //  OBSOLETE
+  //sim4polish(FILE *F) {
+  //  fprintf(stderr, "OBSOLETE.\n");
+  //  exit(1);
+  //};
+
+  sim4polish(readBuffer *rb, sim4polishStyle style) {
     clear();
-    s4p_readPolish(F);
+
+    switch (style) {
+      case sim4polishS4DB:
+        s4p_readPolishS4DB(rb);
+        break;
+      case sim4polishGFF3:
+        s4p_readPolishGFF3(rb);
+        break;
+      case sim4polishATAC:
+        s4p_readPolishATAC(rb);
+        break;
+      default:
+        fprintf(stderr, "sim4polish()-- ERROR: unknown style '%d'\n", style);
+        exit(1);
+    }
   };
 
   sim4polish(sim4polish *orig) {
@@ -147,21 +172,28 @@ public:
   };
 
 private:
-  void   s4p_linesToPolish(u32bit lineNumber, u32bit maxLines, char **lines, u32bit *lengths);
+  void   s4p_readPolishS4DB(readBuffer *rb);
+  void   s4p_readPolishGFF3(readBuffer *rb);
+  void   s4p_readPolishATAC(readBuffer *rb);
 
-public:
+  void   s4p_linesToPolishS4DB(u32bit lineNumber, u32bit maxLines, char **lines, u32bit *lengths);
+  void   s4p_linesToPolishGFF3(u32bit lineNumber, u32bit maxLines, char **lines, u32bit *lengths);
+  void   s4p_linesToPolishATAC(u32bit lineNumber, u32bit maxLines, char **lines, u32bit *lengths);
+
   void   s4p_copyPolish(sim4polish *orig, u32bit exonNum=2147483648);
 
-  void   s4p_readPolish(FILE *F);
-  void   s4p_printPolish(FILE *O, sim4polishStyle style=sim4polishS4DB);
+public:
 
-  void   s4p_stringToPolish(char *s);
+  //  Note that there is no (public) mechanism to convert these strings back to a sim4polish.  The
+  //  only mechanism is through a readBuffer (aka, a file).
+  //
   char  *s4p_polishToString(sim4polishStyle style=sim4polishS4DB);
-
+private:
   char  *s4p_polishToStringS4DB(void);
   char  *s4p_polishToStringGFF3(void);
   char  *s4p_polishToStringATAC(void);
 
+public:
   void   s4p_removeAlignments(void) {
     for (u32bit i=0; i<_numExons; i++) {
       delete [] _exons[i]._estAlignment;   _exons[i]._estAlignment = 0L;
@@ -223,29 +255,29 @@ public:
   sim4polishExon  *_exons;
 };
 
-int            s4p_genIDcompare(const void *a, const void *b);
-int            s4p_estIDcompare(const void *a, const void *b);
+int  s4p_genIDcompare(const void *a, const void *b);
+int  s4p_estIDcompare(const void *a, const void *b);
 
-int            s4p_genDEFcompare(const void *a, const void *b);
-int            s4p_estDEFcompare(const void *a, const void *b);
+int  s4p_genDEFcompare(const void *a, const void *b);
+int  s4p_estDEFcompare(const void *a, const void *b);
 
-bool           s4p_compatable(sim4polish *A, sim4polish *B);
-bool           s4p_IsSameRegion(sim4polish *A, sim4polish *B, int tolerance);
-bool           s4p_IsRegionOverlap(sim4polish *A, sim4polish *B);
-bool           s4p_IsSameExonModel(sim4polish *A, sim4polish *B, int tolerance);
+bool s4p_compatable(sim4polish *A, sim4polish *B);
+bool s4p_IsSameRegion(sim4polish *A, sim4polish *B, int tolerance);
+bool s4p_IsRegionOverlap(sim4polish *A, sim4polish *B);
+bool s4p_IsSameExonModel(sim4polish *A, sim4polish *B, int tolerance);
 
-void           s4p_compareExons_Overlap(sim4polish *A,
-                                        sim4polish *B,
-                                        double      overlapThreshold,
-                                        u32bit     *numSame,
-                                        u32bit     *numAOnly,
-                                        u32bit     *numBOnly);
+void s4p_compareExons_Overlap(sim4polish *A,
+                              sim4polish *B,
+                              double      overlapThreshold,
+                              u32bit     *numSame,
+                              u32bit     *numAOnly,
+                              u32bit     *numBOnly);
 
-void           s4p_compareExons_Ends(sim4polish *A,
-                                     sim4polish *B,
-                                     s32bit      tolerance,
-                                     u32bit     *numSame,
-                                     u32bit     *numAOnly,
-                                     u32bit     *numBOnly);
+void s4p_compareExons_Ends(sim4polish *A,
+                           sim4polish *B,
+                           s32bit      tolerance,
+                           u32bit     *numSame,
+                           u32bit     *numAOnly,
+                           u32bit     *numBOnly);
 
 #endif  //  SIM4_POLISH_H

@@ -9,7 +9,10 @@
 #include <assert.h>
 
 void
-sim4polish::s4p_linesToPolish(u32bit lineNumber, u32bit maxLines, char **lines, u32bit *lengths) {
+sim4polish::s4p_linesToPolishS4DB(u32bit startPosition,
+                                  u32bit maxLines,
+                                  char **lines,
+                                  u32bit *lengths) {
   char             mOri[65];
   char             sOri[65];
 
@@ -20,7 +23,8 @@ sim4polish::s4p_linesToPolish(u32bit lineNumber, u32bit maxLines, char **lines, 
   assert(_numExons   == 0);
 
   if (strcmp(lines[0], "sim4begin")) {
-    fprintf(stderr, "sim4polish::s4p_linesToPolish()-- Invalid sim4db format.  Cannot convert.\n");
+    fprintf(stderr, "sim4polish::s4p_linesToPolish()-- Invalid sim4db format, got '%s' instead of sim4begin.  Cannot convert.\n",
+            lines[0]);
     return;
   }
 
@@ -48,7 +52,7 @@ sim4polish::s4p_linesToPolish(u32bit lineNumber, u32bit maxLines, char **lines, 
                     &_percentIdentity,
                     mOri, sOri);
   if (r != 12) {
-    fprintf(stderr, "sim4polish::s4p_linesToPolish()--  line "u32bitFMT": '%s'\n", lineNumber, lines[cl]);
+    fprintf(stderr, "sim4polish::s4p_linesToPolish()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
     fprintf(stderr, "sim4polish::s4p_linesToPolish()--  Expecting description line, found %d tokens instead of 12.\n", r);
   }
 
@@ -65,29 +69,19 @@ sim4polish::s4p_linesToPolish(u32bit lineNumber, u32bit maxLines, char **lines, 
       _matchOrientation = SIM4_MATCH_COMPLEMENT;
       break;
     default:
-      fprintf(stderr, "sim4polish::s4p_linesToPolish()--  line "u32bitFMT": '%s'\n", lineNumber, lines[cl]);
+      fprintf(stderr, "sim4polish::s4p_linesToPolish()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
       fprintf(stderr, "sim4polish::s4p_linesToPolish()--  unknown match orientation\n");
       break;
   }
 
   switch (sOri[2]) {
-    case 'r':
-      _strandOrientation = SIM4_STRAND_POSITIVE;
-      break;
-    case 'v':
-      _strandOrientation = SIM4_STRAND_NEGATIVE;
-      break;
-    case 'k':
-      _strandOrientation = SIM4_STRAND_UNKNOWN;
-      break;
-    case 't':
-      _strandOrientation = SIM4_STRAND_INTRACTABLE;
-      break;
-    case 'i':
-      _strandOrientation = SIM4_STRAND_FAILED;
-      break;
+    case 'r': _strandOrientation = SIM4_STRAND_POSITIVE; break;
+    case 'v': _strandOrientation = SIM4_STRAND_NEGATIVE; break;
+    case 'k': _strandOrientation = SIM4_STRAND_UNKNOWN; break;
+    case 't': _strandOrientation = SIM4_STRAND_INTRACTABLE; break;
+    case 'i': _strandOrientation = SIM4_STRAND_FAILED; break;
     default:
-      fprintf(stderr, "sim4polish::s4p_linesToPolish()--  line "u32bitFMT": '%s'\n", lineNumber, lines[cl]);
+      fprintf(stderr, "sim4polish::s4p_linesToPolish()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
       fprintf(stderr, "sim4polish::s4p_linesToPolish()--  unknown strand orientation\n");
       break;
   }
@@ -172,7 +166,7 @@ sim4polish::s4p_linesToPolish(u32bit lineNumber, u32bit maxLines, char **lines, 
   }
 
   if (_numExons == 0) {
-    fprintf(stderr, "sim4polish::s4p_linesToPolish()--  line "u32bitFMT": '%s'\n", lineNumber, lines[cl]);
+    fprintf(stderr, "sim4polish::s4p_linesToPolish()--  byte "u32bitFMT": '%s'\n", startPosition, lines[cl]);
     fprintf(stderr, "sim4polish::s4p_linesToPolish()--  WARNING: found ZERO exons?\n");
   }
 
@@ -194,68 +188,4 @@ sim4polish::s4p_linesToPolish(u32bit lineNumber, u32bit maxLines, char **lines, 
       cl++;
     }
   }
-}
-
-
-
-//  Convert string str to an array of lines, call function to parse those lines.
-//
-//  NOTE that this is DESTRUCTIVE to the string!
-void
-sim4polish::s4p_stringToPolish(char *s) {
-
-  //  Clear this polish.
-
-  _numExons = 0;
-
-  delete [] _comment;     _comment = 0L;
-  delete [] _estDefLine;  _estDefLine = 0L;
-  delete [] _genDefLine;  _genDefLine = 0L;
-  delete [] _exons;       _exons = 0L;
-
-  //  Decide the type of record we're reading.
-
-  //  Read it.
-
-  if ((s == 0L) || (s[0] == 0))
-    return;
-
-  //  Count the number of lines in the string
-
-  u32bit  numLines = 0;
-  u32bit  curLine  = 0;
-
-  for (u32bit r=0; s[r] != 0; r++)
-    if (s[r] == '\n')
-      numLines++;
-
-  if (numLines == 0)
-    return;
-
-  //  Allocate space for the lines
-
-  char   **lines   = new char * [numLines + 1];
-  u32bit  *lengths = new u32bit [numLines + 1];
-
-  //  Set pointers to the character after each \n, change \n's to 0's.  Even though we set it, the
-  //  last \n doesn't contribute a line.  The code is simpler if we treat it as a line though.
-
-  lines[curLine++] = s;
-
-  for (u32bit r=0; s[r] != 0; r++) {
-    if (s[r] == '\n') {
-      s[r] = 0;
-      lines[curLine++] = s + r + 1;
-    }
-  }
-
-  assert(curLine == numLines + 1);
-
-  for (u32bit r=0; r<numLines; r++)
-    lengths[r] = strlen(lines[r]);
-
-  s4p_linesToPolish(0, numLines, lines, lengths);
-
-  delete [] lines;
-  delete [] lengths;
 }

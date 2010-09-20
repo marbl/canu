@@ -3,39 +3,52 @@
 #include <string.h>
 #include <errno.h>
 
-//#include "bio++.H"
 #include "sim4.H"
 
 //  Writes n polishes from stdin to stdout, default 1.
 
 int
 main(int argc, char **argv) {
-  u32bit     numToPrint   = 1;
-  FILE      *F            = stdin;
+  u32bit              numToPrint   = 1;
+  sim4polishReader   *R = 0L;
+  sim4polishWriter   *W = 0L;
 
   int arg = 1;
+  int err = 0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-h", 2) == 0) {
-      fprintf(stderr, "usage: %s [-h] [-numPolishes] [polishes-file]\n", argv[0]);
-      exit(1);
+      err++;
+
+    } else if (strncmp(argv[arg], "-n", 2) == 0) {
+      numToPrint = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-", 1) == 0) {
       numToPrint = atoi(argv[arg] + 1);
+
     } else {
-      F = fopen(argv[arg], "r");
-      if (F == 0L) {
-        fprintf(stderr, "Failed to open '%s'.\n%s\n", argv[arg], strerror(errno));
-        exit(1);
-      }
+      R = new sim4polishReader(argv[arg]);
     }
+
     arg++;
   }
-
-  sim4polish *p = new sim4polish(F);
-  while ((numToPrint--) && (p->_numExons > 0)) {
-    p->s4p_printPolish(stdout);
-    delete p;
-    p = new sim4polish(F);
+  if ((err) || ((R == 0L) && (isatty(fileno(stdin))))) {
+    fprintf(stderr, "usage: %s [-h] [-# | -n #] [polishes-file]\n", argv[0]);
+    exit(1);
   }
+
+  if (R == 0L)
+    R = new sim4polishReader("-");
+
+  if (W == 0L)
+    W = new sim4polishWriter("-", sim4polishS4DB);
+
+  sim4polish *p = 0L;
+
+  while ((numToPrint--) && (R->nextAlignment(p)))
+    W->writeAlignment(p);
+
+  delete W;
+  delete R;
 
   return(0);
 }

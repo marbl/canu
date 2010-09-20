@@ -13,80 +13,33 @@
 //  failure file.  Otherwise, if the mapping is above the threshold, a
 //  line describing the snp is output.
 
+sim4polishWriter  *multiMultiFile   = 0L;  //  multiple hits, at least one is multiple exon
+sim4polishWriter  *multiSingleFile  = 0L;  //  multiple hits, all are single exon
+sim4polishWriter  *singleMultiFile  = 0L;  //  single hit, and it has more than one exon
+sim4polishWriter  *singleSingleFile = 0L;  //  single hit, single exon
 
-const char *usage =
-"usage: %s [options]\n"
-"             -i min-identity     filter matches on percent identity\n"
-"             -c min-coverage     filter matches on percent coverage\n"
-"             -F failed           save matches that do not contain the\n"
-"                                 to the file 'failed'\n"
-"             -O output           save the parsed SNPs to the file\n"
-"                                 'output'\n"
-"             -D prefix           report debugging stuff into files\n"
-"                                 prefixed with 'prefix'\n"
-"             -d delimiter        Use the single character delimiter as\n"
-"                                 the end of the defline ID field.  The\n"
-"                                 default is to split on any whitespace.\n"
-"\n"
-"             -s sizeTag          Use this tag as the size of the snp.\n"
-"                                 '/size=' is tried by default.\n"
-"\n"
-"             -p posTag           Use this tag as the position of the snp.\n"
-"                                 'allelePos=' and '/pos=' are tried by\n"
-"                                 default, and if posTag is not found.\n"
-"\n"
-"                                 TAGS: The number immediately after the first\n"
-"                                 occurance of the tag will be used.\n"
-"\n"
-"             -o offset           An additive offset to the SNP position.\n"
-"                                 The default is 0.\n"
-"\n"
-"             -format n           1 - use the original (default) format\n"
-"                                 2 - use an extended format, includes the\n"
-"                                     position in the alignment string\n"
-"\n"
-"             -h                  Show this help.\n"
-"\n"
-"\n" 
-"             only -O is required.  Input is read from stdin.\n"
-"\n"
-"             NOTE!  Sizes and sizeTag is NOT IMPLEMENTED!\n"
-"                    All SNPs are of size == 1\n"
-"\n"
-"             If you parse base-based SNPs, the result is returned base-based.\n"
-"             You should use an ofset of 0.\n"
-"\n"
-"             If you parse space-based SNPs, the result is returned base-based.\n"
-"             You should use an offset of 1.\n"
-"\n";
+int               smpass = 0;
+int               sspass = 0;
+int               mmpass = 0;
+int               mspass = 0;
 
-FILE       *multiMultiFile   = 0L;  //  multiple hits, at least one is multiple exon
-FILE       *multiSingleFile  = 0L;  //  multiple hits, all are single exon
-FILE       *singleMultiFile  = 0L;  //  single hit, and it has more than one exon
-FILE       *singleSingleFile = 0L;  //  single hit, single exon
+int               smfail = 0;
+int               ssfail = 0;
+int               mmfail = 0;
+int               msfail = 0;
 
-int         smpass = 0;
-int         sspass = 0;
-int         mmpass = 0;
-int         mspass = 0;
+int               failedsnps    = 0;
+int               failedmatches = 0;
 
-int         smfail = 0;
-int         ssfail = 0;
-int         mmfail = 0;
-int         msfail = 0;
+FILE             *validSNPMapFile   = 0L;
+sim4polishWriter *failedSNPMapFile  = 0L;
 
-int         failedsnps    = 0;
-int         failedmatches = 0;
+char              fieldDelimiter = 0;
+const char       *sizeTag        = "/size=";
+const char       *posTag         = "/pos=";
+int               positionOffset = 0;
 
-FILE       *validSNPMapFile   = 0L;
-FILE       *failedSNPMapFile  = 0L;
-
-char        fieldDelimiter = 0;
-const char *sizeTag        = "/size=";
-const char *posTag         = "/pos=";
-int         positionOffset = 0;
-
-int         outputFormat   = 1;
+int               outputFormat   = 1;
 
 static
 char *
@@ -365,28 +318,28 @@ parseSNP(sim4polish **p, int pNum) {
       //  Match has one exon
 
       if (singleSingleFile)
-        p[0]->s4p_printPolish(singleSingleFile);
+        singleSingleFile->writeAlignment(p[0]);
 
       if (printSNP(validSNPMapFile, p[0])) {
         sspass++;
       } else {
         ssfail++;
         if (failedSNPMapFile)
-          p[0]->s4p_printPolish(failedSNPMapFile);
+          failedSNPMapFile->writeAlignment(p[0]);
       }
     } else {
 
       //  Match has more than one exon
 
       if (singleMultiFile)
-        p[0]->s4p_printPolish(singleMultiFile);
+        singleMultiFile->writeAlignment(p[0]);
 
       if (printSNP(validSNPMapFile, p[0])) {
         smpass++;
       } else {
         smfail++;
         if (failedSNPMapFile)
-          p[0]->s4p_printPolish(failedSNPMapFile);
+          failedSNPMapFile->writeAlignment(p[0]);
       }
     }
   } else {
@@ -402,7 +355,7 @@ parseSNP(sim4polish **p, int pNum) {
 
       if (multiSingleFile)
         for (i=0; i<pNum; i++)
-          p[i]->s4p_printPolish(multiSingleFile);
+          multiSingleFile->writeAlignment(p[i]);
 
       for (i=0; i<pNum; i++)
         if (printSNP(validSNPMapFile, p[i])) {
@@ -410,7 +363,7 @@ parseSNP(sim4polish **p, int pNum) {
         } else {
           fail++;
           if (failedSNPMapFile)
-            p[i]->s4p_printPolish(failedSNPMapFile);
+            failedSNPMapFile->writeAlignment(p[i]);
         }
 
       if (pass==1)       sspass++;
@@ -424,7 +377,7 @@ parseSNP(sim4polish **p, int pNum) {
 
       if (multiMultiFile)
         for (i=0; i<pNum; i++)
-          p[i]->s4p_printPolish(multiMultiFile);
+          multiMultiFile->writeAlignment(p[i]);
 
       for (i=0; i<pNum; i++)
         if (printSNP(validSNPMapFile, p[i])) {
@@ -432,7 +385,7 @@ parseSNP(sim4polish **p, int pNum) {
         } else {
           fail++;
           if (failedSNPMapFile)
-            p[i]->s4p_printPolish(failedSNPMapFile);
+            failedSNPMapFile->writeAlignment(p[i]);
         }
 
       if (pass==1)       smpass++;
@@ -459,83 +412,109 @@ main(int argc, char **argv) {
   failedSNPMapFile  = 0L;
 
   int arg = 1;
+  int err = 0;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-i", 2) == 0) {
       percentID = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-c", 2) == 0) {
       percentCO = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-F", 2) == 0) {
-      errno = 0;
-      failedSNPMapFile = fopen(argv[++arg], "w");
-      if (errno) {
-        fprintf(stderr, "Couldn't open '%s' for writing.\n%s\n", argv[arg], strerror(errno));
-        exit(1);
-      }
+      failedSNPMapFile = new sim4polishWriter(argv[++arg], sim4polishS4DB);
+
     } else if (strncmp(argv[arg], "-O", 2) == 0) {
       errno = 0;
       validSNPMapFile = fopen(argv[++arg], "w");
-      if (errno) {
-        fprintf(stderr, "Couldn't open '%s' for writing.\n%s\n", argv[arg], strerror(errno));
-        exit(1);
-      }
-    } else if (strncmp(argv[arg], "-D", 2) == 0) {
-      char   name[1025];
+      if (errno)
+        fprintf(stderr, "Couldn't open '%s' for writing: %s\n", argv[arg], strerror(errno)), exit(1);
 
-      errno = 0;
+    } else if (strncmp(argv[arg], "-D", 2) == 0) {
+      char   name[FILENAME_MAX];
 
       arg++;
 
       sprintf(name, "%s-multi-multi", argv[arg]);
-      multiMultiFile = fopen(name, "w");
-      if (errno) {
-        fprintf(stderr, "Couldn't open '%s' for writing.\n%s\n", name, strerror(errno));
-        exit(1);
-      }
+      multiMultiFile = new sim4polishWriter(name, sim4polishS4DB);
 
       sprintf(name, "%s-multi-single", argv[arg]);
-      multiSingleFile = fopen(name, "w");
-      if (errno) {
-        fprintf(stderr, "Couldn't open '%s' for writing.\n%s\n", name, strerror(errno));
-        exit(1);
-      }
+      multiSingleFile = new sim4polishWriter(name, sim4polishS4DB);
 
       sprintf(name, "%s-single-multi", argv[arg]);
-      singleMultiFile = fopen(name, "w");
-      if (errno) {
-        fprintf(stderr, "Couldn't open '%s' for writing.\n%s\n", name, strerror(errno));
-        exit(1);
-      }
+      singleMultiFile = new sim4polishWriter(name, sim4polishS4DB);
 
       sprintf(name, "%s-single-single", argv[arg]);
-      singleSingleFile = fopen(name, "w");
-      if (errno) {
-        fprintf(stderr, "Couldn't open '%s' for writing.\n%s\n", name, strerror(errno));
-        exit(1);
-      }
+      singleSingleFile = new sim4polishWriter(name, sim4polishS4DB);
+
     } else if (strncmp(argv[arg], "-d", 2) == 0) {
-      arg++;
-      fieldDelimiter = argv[arg][0];
+      fieldDelimiter = argv[++arg][0];
+
     } else if (strncmp(argv[arg], "-p", 2) == 0) {
-      arg++;
-      posTag = argv[arg];
+      posTag = argv[++arg];
+
     } else if (strncmp(argv[arg], "-s", 2) == 0) {
-      arg++;
-      sizeTag = argv[arg];
+      sizeTag = argv[++arg];
+
     } else if (strncmp(argv[arg], "-o", 2) == 0) {
-      arg++;
-      positionOffset = atoi(argv[arg]);
+      positionOffset = atoi(argv[++arg]);
+
     } else if (strncmp(argv[arg], "-format", 2) == 0) {
-      arg++;
-      outputFormat = atoi(argv[arg]);
-    } else if (strncmp(argv[arg], "-h", 2) == 0) {
-      fputs(usage, stderr);
-      exit(1);
+      outputFormat = atoi(argv[++arg]);
+
     } else {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
+      err++;
     }
+
     arg++;
   }
 
+  if (err) {
+    fprintf(stderr, "usage: %s [options]\n", argv[0]);
+    fprintf(stderr, "             -i min-identity     filter matches on percent identity\n");
+    fprintf(stderr, "             -c min-coverage     filter matches on percent coverage\n");
+    fprintf(stderr, "             -F failed           save matches that do not contain the\n");
+    fprintf(stderr, "                                 to the file 'failed'\n");
+    fprintf(stderr, "             -O output           save the parsed SNPs to the file\n");
+    fprintf(stderr, "                                 'output'\n");
+    fprintf(stderr, "             -D prefix           report debugging stuff into files\n");
+    fprintf(stderr, "                                 prefixed with 'prefix'\n");
+    fprintf(stderr, "             -d delimiter        Use the single character delimiter as\n");
+    fprintf(stderr, "                                 the end of the defline ID field.  The\n");
+    fprintf(stderr, "                                 default is to split on any whitespace.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             -s sizeTag          Use this tag as the size of the snp.\n");
+    fprintf(stderr, "                                 '/size=' is tried by default.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             -p posTag           Use this tag as the position of the snp.\n");
+    fprintf(stderr, "                                 'allelePos=' and '/pos=' are tried by\n");
+    fprintf(stderr, "                                 default, and if posTag is not found.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "                                 TAGS: The number immediately after the first\n");
+    fprintf(stderr, "                                 occurance of the tag will be used.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             -o offset           An additive offset to the SNP position.\n");
+    fprintf(stderr, "                                 The default is 0.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             -format n           1 - use the original (default) format\n");
+    fprintf(stderr, "                                 2 - use an extended format, includes the\n");
+    fprintf(stderr, "                                     position in the alignment string\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             -h                  Show this help.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "\n" );
+    fprintf(stderr, "             only -O is required.  Input is read from stdin.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             NOTE!  Sizes and sizeTag is NOT IMPLEMENTED!\n");
+    fprintf(stderr, "                    All SNPs are of size == 1\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             If you parse base-based SNPs, the result is returned base-based.\n");
+    fprintf(stderr, "             You should use an ofset of 0.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "             If you parse space-based SNPs, the result is returned base-based.\n");
+    fprintf(stderr, "             You should use an offset of 1.\n");
+    fprintf(stderr, "\n");
+  }
 
   if ((outputFormat != 1) && (outputFormat != 2)) {
     fprintf(stderr, "Invalid output format.  Must be 1 or 2.\n");
@@ -550,10 +529,11 @@ main(int argc, char **argv) {
   //  We could also extend this to discard matches that look
   //  suspicious -- or maybe pick the single best match for each.
 
-  sim4polish **p = new sim4polish * [pAlloc];
-  sim4polish  *q = new sim4polish(stdin);
+  sim4polishReader  *R = new sim4polishReader("-");
+  sim4polish       **p = new sim4polish * [pAlloc];
+  sim4polish        *q = 0L;
 
-  while (q->_numExons > 0) {
+  while (R->nextAlignment(q)) {
     if (q->_estID < estID) {
       fprintf(stderr, "ERROR:  Polishes not sorted by SNP idx!  this="u32bitFMT", looking for "u32bitFMT"\n",
               q->_estID, estID);
@@ -582,7 +562,7 @@ main(int argc, char **argv) {
       delete q;
     }
 
-    q = new sim4polish(stdin);
+    q = 0L;  //  Otherwise we delete the one we just saved!
   }
 
   if (pNum > 0)
@@ -600,12 +580,12 @@ main(int argc, char **argv) {
   fprintf(stdout, "  multiple hits, multiple exons:  %6d\n", mmfail);
 
   fclose(validSNPMapFile);
-  fclose(failedSNPMapFile);
+  delete failedSNPMapFile;
 
-  fclose(multiMultiFile);
-  fclose(multiSingleFile);
-  fclose(singleMultiFile);
-  fclose(singleSingleFile);
+  delete multiMultiFile;
+  delete multiSingleFile;
+  delete singleMultiFile;
+  delete singleSingleFile;
 
   return(0);
 }

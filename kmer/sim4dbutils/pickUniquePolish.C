@@ -36,6 +36,8 @@ u32bit  totRQ = 0;
 u32bit  qualityDifference = 5;
 u32bit  minQuality        = 95;
 
+sim4polishWriter *W = 0L;
+
 void
 printSummary(void) {
   fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\r",
@@ -57,7 +59,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   if (pNum == 1) {
     statOneMatch++;
     statUnique++;
-    p[0]->s4p_printPolish(stdout);
+    W->writeAlignment(p[0]);
     return;
   }
 
@@ -161,7 +163,7 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   if (matchIsOK) {
     statUnique++;
     assert(matchi == matchm);
-    p[matchi]->s4p_printPolish(stdout);
+    W->writeAlignment(p[matchi]);
   } else {
     statLost++;
   }
@@ -219,10 +221,13 @@ main(int argc, char **argv) {
   //  Read polishes, picking the best when we see a change in the
   //  estID.
 
-  sim4polish **p = new sim4polish * [pAlloc];
-  sim4polish  *q = new sim4polish(stdin);
+  sim4polishReader  *R = new sim4polishReader("-");
+  sim4polish       **p = new sim4polish * [pAlloc];
+  sim4polish        *q = 0L;
 
-  while (q->_numExons > 0) {
+  W = new sim4polishWriter("-", sim4polishS4DB);
+
+  while (R->nextAlignment(q)) {
     if ((q->_estID != estID) && (pNum > 0)) {
       pickBest(p, pNum);
       pNum  = 0;
@@ -239,7 +244,7 @@ main(int argc, char **argv) {
     p[pNum++] = q;
     estID     = q->_estID;
 
-    q = new sim4polish(stdin);
+    q = 0L;  //  Otherwise we delete the alignment we just saved!
   }
 
   if (pNum > 0)
@@ -249,6 +254,9 @@ main(int argc, char **argv) {
   fprintf(stderr, "\n");
 
   delete [] p;
+
+  delete R;
+  delete W;
 
   return(0);
 }

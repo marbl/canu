@@ -147,8 +147,9 @@ main(int argc, char **argv) {
 
   u32bit   totalFixed   = 0;
 
-  sim4polish *p = new sim4polish(stdin);
-  while (p->_numExons > 0) {
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+  while (R->nextAlignment(p)) {
 
     //  Parse the defline to find the genomic region our 'est'
     //  (unfortunate sim4db term) is from.  Search for our
@@ -324,9 +325,6 @@ main(int argc, char **argv) {
     }  //  over all exons
 
     dupParentIID++;
-
-    delete p;
-    p = new sim4polish(stdin);
   }
 
   fprintf(stderr, "Fixed "u32bitFMT" indel/mismatches.\n", totalFixed);

@@ -8,58 +8,8 @@
 #include <assert.h>
 
 
-//  Utility for reading a whole line, safely, from a file.  Newlines at the end are trimmed out.
-//
-class _line {
-public:
-  _line() {
-    _len = 0;
-    _max = 1024;
-    _str = new char [_max];
-    _num = 0;
-  };
-  ~_line() {
-    delete [] _str;
-  };
-
-  void   readLine(FILE *F) {
-    _len = 0;
-
-    if (fgets(_str, _max, F)) {
-      _num++;
-      _len = strlen(_str);
-
-      while ((_len + 1 >= _max) &&
-             (_str[_len - 1] != '\n')) {
-        _max *= 2;
-        char *nnn = new char [_max];
-        memcpy(nnn, _str, sizeof(char) * _len);
-        delete [] _str;
-        _str = nnn;
-
-        fgets(_str + _len, _max - _len, F);
-        _len += strlen(_str + _len);
-      }
-
-      while ((_len > 0) &&
-             ((_str[_len - 1] == '\r') ||
-              (_str[_len - 1] == '\n')))
-        _str[--_len] = 0;
-    }
-  };
-
-public:
-  u32bit   _len;  //  length of the line
-  u32bit   _max;  //  maximum space
-  char    *_str;  //  the string
-  u32bit   _num;  //  line number
-};
-
-
-
 void
-sim4polish::s4p_readPolish(FILE *F) {
-  _line            l;
+sim4polish::s4p_readPolishS4DB(readBuffer *rb) {
 
   //  Clear this polish.
 
@@ -74,6 +24,12 @@ sim4polish::s4p_readPolish(FILE *F) {
 
   //  Read it.
 
+  u64bit    startPosition = rb->tell();
+
+  u64bit    thisLineMax  = 1048576;
+  u64bit    thisLineLen  = 0;
+  char     *thisLine     = new char [thisLineMax];
+
   u32bit    numLines = 10240;
   u32bit    curLine  = 0;
 
@@ -83,27 +39,27 @@ sim4polish::s4p_readPolish(FILE *F) {
   memset(lines,   0, sizeof(char *) * numLines);
   memset(lengths, 0, sizeof(u32bit) * numLines);
 
-  l.readLine(F);
-  while(!feof(F) && strcmp(l._str, "sim4begin")) {
-    fprintf(stderr, "sim4reader: Got '%s', expecting 'sim4begin' at line "u32bitFMT"\n",
-            l._str, l._num);
-    l.readLine(F);
+  thisLineLen = rb->read(thisLine, thisLineMax, '\n');
+  chompL(thisLine, thisLineLen);
+
+  while (!rb->eof() && strcmp(thisLine, "sim4begin")) {
+    fprintf(stderr, "sim4reader: Got '%s', expecting 'sim4begin' at byte "u64bitFMT"\n",
+            thisLine, startPosition);
+    thisLineLen = rb->read(thisLine, thisLineMax, '\n');
+    chompL(thisLine, thisLineLen);
   }
 
   //  Stash the 'sim4begin' line into the lines array.
-
-  u32bit    lineNumber = l._num;
-
-  lines[curLine]   = new char [l._len + 1];
-  lengths[curLine] = l._len;
-
-  memcpy(lines[curLine++], l._str, sizeof(char) * (l._len + 1));
+  lines[curLine]   = new char [thisLineLen + 1];
+  lengths[curLine] = thisLineLen;
+  memcpy(lines[curLine++], thisLine, sizeof(char) * (thisLineLen + 1));
 
   //  Until we hit 'sim4end' stash lines into lines.  Yes, we test the previous line, then read the
   //  next.  At the end of the loop, we'll read 'sim4end', stash it in lines[], then test.
 
-  while(!feof(F) && strcmp(l._str, "sim4end")) {
-    l.readLine(F);
+  while (!rb->eof() && strcmp(thisLine, "sim4end")) {
+    thisLineLen = rb->read(thisLine, thisLineMax, '\n');
+    chompL(thisLine, thisLineLen);
 
     if (curLine >= numLines) {
 #warning LAZY PROGRAMMER did not extend an array
@@ -111,18 +67,32 @@ sim4polish::s4p_readPolish(FILE *F) {
       exit(1);
     }
 
-    lines[curLine]   = new char [l._len + 1];
-    lengths[curLine] = l._len;
-
-    memcpy(lines[curLine++], l._str, sizeof(char) * (l._len + 1));
+    //  Stash the line in the lines array.
+    lines[curLine]   = new char [thisLineLen + 1];
+    lengths[curLine] = thisLineLen;
+    memcpy(lines[curLine++], thisLine, sizeof(char) * (thisLineLen + 1));
   }
 
-  if (feof(F) == false)
-    s4p_linesToPolish(lineNumber, numLines, lines, lengths);
+  delete [] thisLine;
+
+  if (numLines > 0)
+    s4p_linesToPolishS4DB(startPosition, numLines, lines, lengths);
 
   for (u32bit i=0; i<curLine; i++)
     delete [] lines[i];
 
   delete [] lines;
   delete [] lengths;
+}
+
+
+
+void
+sim4polish::s4p_readPolishGFF3(readBuffer *rb) {
+}
+
+
+
+void
+sim4polish::s4p_readPolishATAC(readBuffer *rb) {
 }

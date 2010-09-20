@@ -87,8 +87,11 @@ main(int argc, char **argv) {
   speedCounter  *C = new speedCounter("%12.0f polishes -- %12.0f polishes/second\r",
                                       1.0, 0xff, true);
 
-  sim4polish *p = new sim4polish(stdin);
-  while (p->_numExons) {
+  sim4polishWriter *W = new sim4polishWriter("-", sim4polishS4DB);
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+
+  while (R->nextAlignment(p)) {
 
     //fprintf(stdout, "BEFORE\n");
     //p->s4p_printPolish(stdout);
@@ -228,7 +231,8 @@ main(int argc, char **argv) {
       u32bit nm = p->_numMatches;
 
       p->s4p_updateAlignmentScores();
-      p->s4p_printPolish(stdout);
+
+      W->writeAlignment(p);
 
       if (warnOnChange) {
         u32bit diff = 0;
@@ -246,9 +250,6 @@ main(int argc, char **argv) {
     }
 
     C->tick();
-
-    delete p;
-    p = new sim4polish(stdin);
   }
 
   if ((mergeTolerancePerc > 0) || (mergeToleranceBase > 0)) {

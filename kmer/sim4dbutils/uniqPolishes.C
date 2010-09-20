@@ -6,22 +6,17 @@
 #include "sim4.H"
 
 
-char const *usage =
-"usage: %s [-uniq | -dupl] < file > file\n"
-"\n";
-
-
 void
-pickBest(sim4polish **p, int pNum, int uniq) {
+pickBest(sim4polishWriter *W, sim4polish **p, int pNum, int uniq) {
   int i;
 
   if (pNum == 1) {
     if (uniq)
-      p[0]->s4p_printPolish(stdout);
+      W->writeAlignment(p[0]);
   } else {
     if (!uniq)
       for (i=0; i<pNum; i++)
-        p[i]->s4p_printPolish(stdout);
+        W->writeAlignment(p[0]);
   }
 
   for (i=0; i<pNum; i++)
@@ -52,7 +47,7 @@ main(int argc, char **argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, usage, argv[0]);
+    fprintf(stderr, "usage: %s [-uniq | -dupl] < file > file\n", argv[0]);
 
     if (isatty(fileno(stdin)))
       fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
@@ -63,12 +58,14 @@ main(int argc, char **argv) {
   //  Read polishes, picking the best when we see a change in
   //  the estID.
 
-  sim4polish **p = new sim4polish * [pAlloc];
-  sim4polish  *q = new sim4polish(stdin);
+  sim4polishWriter  *W = new sim4polishWriter("-", sim4polishS4DB);
+  sim4polishReader  *R = new sim4polishReader("-");
+  sim4polish       **p = new sim4polish * [pAlloc];
+  sim4polish        *q = 0L;
 
-  while (q->_numExons > 0) {
+  while (R->nextAlignment(q)) {
     if ((q->_estID != estID) && (pNum > 0)) {
-      pickBest(p, pNum, uniq);
+      pickBest(W, p, pNum, uniq);
       pNum  = 0;
     }
 
@@ -83,13 +80,15 @@ main(int argc, char **argv) {
     p[pNum++] = q;
     estID     = q->_estID;
 
-    q = new sim4polish(stdin);
+    q = 0L;  //  Else we'll delete the polish we just saved!
   }
 
   if (pNum > 0)
-    pickBest(p, pNum, uniq);
+    pickBest(W, p, pNum, uniq);
 
   delete [] p;
+  delete    R;
+  delete    W;
 
   return(0);
 }

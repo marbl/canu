@@ -21,6 +21,7 @@ main(int argc, char **argv) {
   if (argc < 2) {
     fprintf(stderr, "usage: %s [] <polishes-file>\n", argv[0]);
     fprintf(stderr, "(yes, you _must_ give it a file.  stdin is not possible.)\n");
+    fprintf(stderr, "WARNING THIS IS PROTOTYPE BROKEN CODE!\n");
     exit(1);
   }
 
@@ -42,6 +43,8 @@ main(int argc, char **argv) {
   //
   sim4polishFile *Afile = new sim4polishFile(argv[argc-1]);
   Afile->setPosition(0);
+
+  sim4polishWriter *writer = new sim4polishWriter("-", sim4polishS4DB);
 
   //  Ask both for the largest EST iid seen, then iterate over those.
   //
@@ -80,7 +83,7 @@ main(int argc, char **argv) {
         if (nooverlaps) {
           matchesWithNoOverlap++;
 
-          (*A)[a]->s4p_printPolish(stdout);
+          writer->writeAlignment((*A)[a]);
         } else {
           matchesWithOverlap++;
           W->push(new sim4polish((*A)[a]));
@@ -197,9 +200,9 @@ main(int argc, char **argv) {
             fprintf(stderr, "\nNOT A PERFECT CLIQUE!  Found "u32bitFMT" overlaps, wanted "u32bitFMT" in the clique.\n",
                     num, cliqueSize * (cliqueSize-1));
 
-            for (u32bit a=0; a<W->length(); a++)
-              if (clique[a])
-                (*W)[a]->s4p_printPolish(stderr);
+            //for (u32bit a=0; a<W->length(); a++)
+            //  if (clique[a])
+            //    writer->writeAlignment((*W)[a]);
           }
           
         }
@@ -214,7 +217,7 @@ main(int argc, char **argv) {
           if ((clique[i]) && (length[longest] < length[i]))
             longest = i;
 
-        (*W)[longest]->s4p_printPolish(stdout);
+        writer->writeAlignment((*W)[longest]);
 
         //  Remove the clique from the set of overlaps
 
@@ -239,11 +242,12 @@ main(int argc, char **argv) {
     delete A;
   }
 
+  delete writer;
+  delete Afile;
+
   fprintf(stderr, "\nmatches withOvl:"u32bitFMT" withoutOvl:"u32bitFMT"\n",
           matchesWithOverlap, matchesWithNoOverlap);
   fprintf(stderr, "not perfect clique:"u32bitFMT"\n", notPerfectClique);
-
-  delete Afile;
 }
 
 
