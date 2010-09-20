@@ -11,7 +11,7 @@
 //  If bufferMax is zero, then the file is accessed using memory
 //  mapped I/O.  Otherwise, a small buffer is used.
 //
-readBuffer::readBuffer(const char *filename, u32bit bufferMax) {
+readBuffer::readBuffer(const char *filename, u64bit bufferMax) {
 
   _filename    = 0L;
   _file        = 0;
@@ -35,8 +35,7 @@ readBuffer::readBuffer(const char *filename, u32bit bufferMax) {
     if (bufferMax == 0)
       bufferMax = 32 * 1024;
   } else if (filename == 0L) {
-    fprintf(stderr, "readBuffer()-- no filename supplied, and I will not use the terminal for input.\n",
-            _filename, strerror(errno)), exit(1);
+    fprintf(stderr, "readBuffer()-- no filename supplied, and I will not use the terminal for input.\n"), exit(1);
   } else {
     _filename  = new char [strlen(filename) + 1];
     strcpy(_filename, filename);
@@ -62,6 +61,27 @@ readBuffer::readBuffer(const char *filename, u32bit bufferMax) {
 
   if (_bufferLen == 0)
     _eof   = true;
+}
+
+
+readBuffer::readBuffer(FILE *file, u64bit bufferMax) {
+
+  if (bufferMax == 0)
+    fprintf(stderr, "readBuffer()-- WARNING: mmap() not supported in readBuffer(FILE *)\n");
+
+  _filename    = new char [32];
+  _file        = fileno(file);
+  _filePos     = 0;
+  _mmap        = false;
+  _stdin       = false;
+  _eof         = false;
+  _valid       = false;
+  _bufferPos   = 0;
+  _bufferLen   = 0;
+  _bufferMax   = (bufferMax == 0) ? 32 * 1024 : bufferMax;
+  _buffer      = new char [_bufferMax];
+
+  strcpy(_filename, "(hidden file)");
 }
 
 
@@ -97,12 +117,12 @@ readBuffer::fillBuffer(void) {
 
  again:
   errno = 0;
-  _bufferLen = (u32bit)::read(_file, _buffer, _bufferMax * sizeof(char));
+  _bufferLen = (u64bit)::read(_file, _buffer, _bufferMax);
   if (errno == EAGAIN)
     goto again;
   if (errno)
-    fprintf(stderr, "readBuffer::fillBuffer()-- only read %d bytes, couldn't read %d bytes from '%s': %s\n",
-            (int)_bufferLen, (int)(_bufferMax * sizeof(char)), _filename, strerror(errno)), exit(1);
+    fprintf(stderr, "readBuffer::fillBuffer()-- only read "u64bitFMT" bytes, couldn't read "u64bitFMT" bytes from '%s': %s\n",
+            _bufferLen, _bufferMax, _filename, strerror(errno)), exit(1);
 
   if (_bufferLen == 0)
     _eof = true;
@@ -110,12 +130,23 @@ readBuffer::fillBuffer(void) {
 
 
 void
-readBuffer::seek(off_t pos) {
-
-  if (_stdin == true)
-    fprintf(stderr, "readBuffer()-- seek() not available for file 'stdin'.\n");
+readBuffer::seek(u64bit pos) {
 
   assert(_valid == true);
+
+  if (_stdin == true) {
+    if (_filePos < _bufferLen) {
+      _filePos   = 0;
+      _bufferPos = 0;
+      return;
+    } else {
+      fprintf(stderr, "readBuffer()-- seek() not available for file 'stdin'.\n");
+      exit(1);
+    }
+
+    return;
+  }
+
   assert(_stdin == false);
 
   if (_mmap) {
@@ -139,8 +170,8 @@ readBuffer::seek(off_t pos) {
 }
 
 
-size_t
-readBuffer::read(void *buf, size_t len) {
+u64bit
+readBuffer::read(void *buf, u64bit len) {
   char  *bufchar = (char *)buf;
 
   assert(_valid);
@@ -148,10 +179,12 @@ readBuffer::read(void *buf, size_t len) {
   //  Handle the mmap'd file first.
 
   if (_mmap) {
-    size_t c = 0;
+    u64bit c = 0;
 
-    while ((_bufferPos < _bufferLen) && (c < len))
+    while ((_bufferPos < _bufferLen) && (c < len)) {
       bufchar[c++] = _buffer[_bufferPos++];
+      _filePos++;
+    }
 
     if (c == 0)
       _eof = true;
@@ -163,10 +196,12 @@ readBuffer::read(void *buf, size_t len) {
   //  copy and move the position.
 
   if (_bufferLen - _bufferPos > len) {
-    memcpy(bufchar, _buffer + _bufferPos, sizeof(char) * len);
-    _bufferPos += (u32bit)len;
+    memcpy(bufchar, _buffer + _bufferPos, len);
+    _bufferPos += len;
 
     fillBuffer();
+
+    _filePos   += len;
 
     return(len);
   }
@@ -174,20 +209,20 @@ readBuffer::read(void *buf, size_t len) {
   //  Existing buffer not big enough.  Copy what's there, then finish
   //  with a read.
 
-  size_t   bCopied = 0;   //  Number of bytes copied into the buffer
-  size_t   bRead   = 0;   //  Number of bytes read into the buffer
-  size_t   bAct    = 0;   //  Number of bytes actually read from disk
+  u64bit   bCopied = 0;   //  Number of bytes copied into the buffer
+  u64bit   bRead   = 0;   //  Number of bytes read into the buffer
+  u64bit   bAct    = 0;   //  Number of bytes actually read from disk
 
-  memcpy(bufchar, _buffer + _bufferPos, (_bufferLen - _bufferPos) * sizeof(char));
+  memcpy(bufchar, _buffer + _bufferPos, _bufferLen - _bufferPos);
   bCopied    = _bufferLen - _bufferPos;
   _bufferPos = _bufferLen;
 
   while (bCopied + bRead < len) {
     errno = 0;
-    bAct = (u32bit)::read(_file, bufchar + bCopied + bRead, (len - bCopied - bRead) * sizeof(char));
+    bAct = (u64bit)::read(_file, bufchar + bCopied + bRead, len - bCopied - bRead);
     if (errno)
-      fprintf(stderr, "readBuffer()-- couldn't read "u32bitFMT" bytes from '%s': n%s\n",
-              (u32bit)(len * sizeof(char)), _filename, strerror(errno)), exit(1);
+      fprintf(stderr, "readBuffer()-- couldn't read "u64bitFMT" bytes from '%s': n%s\n",
+              len, _filename, strerror(errno)), exit(1);
 
     //  If we hit EOF, return a short read
     if (bAct == 0)
@@ -198,5 +233,50 @@ readBuffer::read(void *buf, size_t len) {
 
   fillBuffer();
 
+  _filePos += bCopied + bRead;
+
   return(bCopied + bRead);
+}
+
+
+u64bit
+readBuffer::read(void *buf, u64bit maxlen, char stop) {
+  char  *bufchar = (char *)buf;
+  u64bit c = 0;
+
+  assert(_valid);
+
+  //  We will copy up to 'maxlen'-1 bytes into 'buf', or stop at the first occurrence of 'stop'.
+  //  This will reserve space at the end of any string for a zero-terminating byte.
+  maxlen--;
+
+  if (_mmap) {
+    //  Handle the mmap'd file first.
+    while ((_bufferPos < _bufferLen) &&
+           (c < maxlen)) {
+      bufchar[c++] = _buffer[_bufferPos++];
+
+      if (bufchar[c-1] == stop)
+        break;
+    }
+
+    if (_bufferPos >= _bufferLen)
+      _eof = true;
+
+  } else {
+    //  And the usual case.
+    while ((_eof == false) && (c < maxlen)) {
+      bufchar[c++] = _buffer[_bufferPos++];
+
+      if (_bufferPos >= _bufferLen)
+        fillBuffer();
+
+      if (bufchar[c-1] == stop)
+        break;
+    }
+  }
+
+  bufchar[c] = 0;
+
+  return(c);
 }
