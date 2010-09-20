@@ -152,6 +152,9 @@ double  getTime(void);
 #endif
 
 
+u64bit   getProcessSizeCurrent(void);
+u64bit   getProcessSizeLimit(void);
+
 
 //  Useful routines for dealing with the existence of files
 
@@ -362,15 +365,16 @@ qsort_mt(void *a,
 //  perl's chomp is pretty nice
 //
 #ifndef chomp
-#define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
+#define chomp(S)    { char *t=S; while (*t) t++; t--; while (isspace(*t)) { *t--=0; } }
+#define chompL(S,L) { char *t=S; while (*t) t++; t--; while (isspace(*t)) { *t--=0; L--; } }
 #endif
 
 #ifndef munch
-#define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
+#define munch(S)    { while (*(S) &&  isspace(*(S))) (S)++; }
 #endif
 
 #ifndef crunch
-#define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
+#define crunch(S)   { while (*(S) && !isspace(*(S))) (S)++; }
 #endif
 
 

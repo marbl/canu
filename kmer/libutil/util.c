@@ -7,6 +7,11 @@
 #include <sys/resource.h>
 #include <sys/stat.h>
 
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
+
 #include "util.h"
 
 
@@ -16,6 +21,43 @@ getTime(void) {
   gettimeofday(&tp, NULL);
   return(tp.tv_sec + (double)tp.tv_usec / 1000000.0);
 }
+
+
+u64bit
+getProcessSizeCurrent(void) {
+  struct rusage  ru;
+  u64bit         sz = 0;
+
+  errno = 0;
+  if (getrusage(RUSAGE_SELF, &ru) == -1) {
+    fprintf(stderr, "getProcessSizeCurrent()-- getrusage(RUSAGE_SELF, ...) failed: %s\n",
+            strerror(errno));
+  } else {
+    sz  = ru.ru_maxrss;
+    sz *= 1024;
+  }
+
+  return(sz);
+}
+
+
+u64bit
+getProcessSizeLimit(void) {
+  struct rlimit rlp;
+  u64bit        sz = ~u64bitZERO;
+
+  errno = 0;
+  if (getrlimit(RLIMIT_DATA, &rlp) == -1) {
+    fprintf(stderr, "getProcessSizeLimit()-- getrlimit(RLIMIT_DATA, ...) failed: %s\n",
+            strerror(errno));
+  } else {
+    sz = rlp.rlim_cur;
+  }
+
+  return(sz);
+}
+
+
 
 
 void *
