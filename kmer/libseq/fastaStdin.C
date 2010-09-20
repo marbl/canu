@@ -10,7 +10,7 @@ fastaStdin::fastaStdin(const char *filename) {
 
   strcpy(_filename, "(stdin)");
 
-  _rb = new readBuffer(0L);
+  _rb = new readBuffer("-");
 }
 
 
