@@ -4,8 +4,9 @@
 #define GENESPLICER_SPAN    80
 #define GLIMMER_XSPAN       30
 #define GLIMMER_ISPAN       20
+#define GLIMMER_SPAN        30
 #define S4_SPAN              0
-#define MAX_SPAN            80
+/* #define MAX_SPAN            80   Now defined in sim4.H */ 
 
 static int   spl_encode[256] = { 0 };
 static int   rev_compl[256] = { 0 };
@@ -554,21 +555,21 @@ Sim4::splice_original(char *in_seqx, int ls, int us, int le, int ue,
    int p, q, i;
    char  *s,*t, ch;
 
-  
-   for (i=0, s=in_seqx+ls-MAX_SPAN-1; i<2*MAX_SPAN+us-ls+3; nsegmentL[i++] = spl_encode[(int)(*s++)]);
-   for (i=0, s=in_seqx+le-2-MAX_SPAN-1; i<2*MAX_SPAN+ue-le+3; nsegmentR[i++] = spl_encode[(int)(*s++)]);
+   /* changed MAX_SPAN to S4_SPAN; see main fix to out of bounds problems in util.C */ 
+   for (i=0, s=in_seqx+ls-S4_SPAN-1; i<2*S4_SPAN+us-ls+3; nsegmentL[i++] = spl_encode[(int)(*s++)]);
+   for (i=0, s=in_seqx+le-2-S4_SPAN-1; i<2*S4_SPAN+ue-le+3; nsegmentR[i++] = spl_encode[(int)(*s++)]);
                                                                                                                          
    if (ori==FWD || ori==BOTH) { 
   
        if (globalParams->_dontForceCanonicalSplicing) {
-          for (p=0, s=nsegmentL+MAX_SPAN; p<=us-ls+1; p++, s++)
+          for (p=0, s=nsegmentL+S4_SPAN; p<=us-ls+1; p++, s++)
             gtscore[p] = 0; 
-          for (q=ue-le+1, s=nsegmentR+MAX_SPAN+ue-le+2; q>=0; q--, s--)
+          for (q=ue-le+1, s=nsegmentR+S4_SPAN+ue-le+2; q>=0; q--, s--)
             agscore[q] = 0;
        } else { 
-          for (p=0, s=nsegmentL+MAX_SPAN; p<=us-ls+1; p++, s++)
+          for (p=0, s=nsegmentL+S4_SPAN; p<=us-ls+1; p++, s++)
             gtscore[p] = gt[(int)*s][(int)*(s+1)];
-          for (q=ue-le+1, s=nsegmentR+MAX_SPAN+ue-le+2; q>=0; q--, s--)
+          for (q=ue-le+1, s=nsegmentR+S4_SPAN+ue-le+2; q>=0; q--, s--)
             agscore[q] = ag[(int)*(s-1)][(int)*s];
        }
    }
@@ -577,20 +578,20 @@ Sim4::splice_original(char *in_seqx, int ls, int us, int le, int ue,
    if (ori==BWD || ori==BOTH) {
 
        /* reverse complement the nsegments, 0-3 alphabet */
-       for (s=nsegmentL, t=nsegmentL+2*MAX_SPAN+us-ls+3-1; s<t; s++, t--)
+       for (s=nsegmentL, t=nsegmentL+2*S4_SPAN+us-ls+3-1; s<t; s++, t--)
            { ch = 3-(*s); *s = 3-(*t); *t = ch; }
-       for (s=nsegmentR, t=nsegmentR+2*MAX_SPAN+ue-le+3-1; s<t; s++, t--)
+       for (s=nsegmentR, t=nsegmentR+2*S4_SPAN+ue-le+3-1; s<t; s++, t--)
            { ch = 3-(*s); *s = 3-(*t); *t = ch; }
 
        if (globalParams->_dontForceCanonicalSplicing) {
-         for (p=0, s=nsegmentL+MAX_SPAN+us-ls+2; p<=us-ls+1; p++, s++)
+         for (p=0, s=nsegmentL+S4_SPAN+us-ls+2; p<=us-ls+1; p++, s++)
            ctscore[p] = 0;
-         for (q=ue-le+1, s=nsegmentR+MAX_SPAN; q>=0; q--, s--)
+         for (q=ue-le+1, s=nsegmentR+S4_SPAN; q>=0; q--, s--)
            acscore[q] = 0;
        } else {
-         for (p=0, s=nsegmentL+MAX_SPAN+us-ls+2; p<=us-ls+1; p++, s--)
+         for (p=0, s=nsegmentL+S4_SPAN+us-ls+2; p<=us-ls+1; p++, s--)
            ctscore[p] = ag[(int)*(s-1)][(int)*s];
-         for (q=ue-le+1, s=nsegmentR+MAX_SPAN; q>=0; q--, s++)
+         for (q=ue-le+1, s=nsegmentR+S4_SPAN; q>=0; q--, s++)
            acscore[q] = gt[(int)*s][(int)*(s+1)];
        }
    }
@@ -610,13 +611,14 @@ Sim4::splice_GeneSplicer(char *in_seqx, int ls, int us, int le, int ue,
    char  *s,*t, ch;
 
 
-   for (i=0, s=in_seqx+ls-MAX_SPAN-1; i<2*MAX_SPAN+us-ls+3; nsegmentL[i++] = spl_encode[(int)(*s++)]);
-   for (i=0, s=in_seqx+le-2-MAX_SPAN-1; i<2*MAX_SPAN+ue-le+3; nsegmentR[i++] = spl_encode[(int)(*s++)]);
+   /* changed MAX_SPAN to GENESPLICER_SPAN; see main fix to out of bounds problems in util.C */ 
+   for (i=0, s=in_seqx+ls-GENESPLICER_SPAN-1; i<2*GENESPLICER_SPAN+us-ls+3; nsegmentL[i++] = spl_encode[(int)(*s++)]);
+   for (i=0, s=in_seqx+le-2-GENESPLICER_SPAN-1; i<2*GENESPLICER_SPAN+ue-le+3; nsegmentR[i++] = spl_encode[(int)(*s++)]);
 
 
    if (ori==FWD || ori==BOTH) {
 
-       for (p=0, s=nsegmentL+MAX_SPAN; p<=us-ls+1; p++, s++) {
+       for (p=0, s=nsegmentL+GENESPLICER_SPAN; p<=us-ls+1; p++, s++) {
            gtscore[p] = ScoreDonor_GeneSplicer(s-GENESPLICER_SPAN);
 
            if (gtscore[p] < -14) gtscore[p] = -14.0;
@@ -624,7 +626,7 @@ Sim4::splice_GeneSplicer(char *in_seqx, int ls, int us, int le, int ue,
            gtscore[p] = 5.0*(gtscore[p]+14.0)/33.0;
            gtscore[p] = 0.4*gtscore[p] + 0.6*gt[(int)*s][(int)*(s+1)];
        }
-       for (q=ue-le+1, s=nsegmentR+MAX_SPAN+ue-le+2; q>=0; q--, s--) {
+       for (q=ue-le+1, s=nsegmentR+GENESPLICER_SPAN+ue-le+2; q>=0; q--, s--) {
            agscore[q] = ScoreAcceptor_GeneSplicer(s-GENESPLICER_SPAN-1);
 
            if (agscore[q] < -23) agscore[q] = -23.0;
@@ -638,13 +640,13 @@ Sim4::splice_GeneSplicer(char *in_seqx, int ls, int us, int le, int ue,
    if (ori==BWD || ori==BOTH) {
 
        /* reverse complement the nsegments, 0-3 alphabet */
-       for (s=nsegmentL, t=nsegmentL+2*MAX_SPAN+us-ls+3-1; s<t; s++, t--)
+       for (s=nsegmentL, t=nsegmentL+2*GENESPLICER_SPAN+us-ls+3-1; s<t; s++, t--)
            { ch = 3-(*s); *s = 3-(*t); *t = ch; }
-       for (s=nsegmentR, t=nsegmentR+2*MAX_SPAN+ue-le+3-1; s<t; s++, t--)
+       for (s=nsegmentR, t=nsegmentR+2*GENESPLICER_SPAN+ue-le+3-1; s<t; s++, t--)
            { ch = 3-(*s); *s = 3-(*t); *t = ch; }
 
 
-       for (p=0, s=nsegmentL+MAX_SPAN+us-ls+2; p<=us-ls+1; p++, s--) {
+       for (p=0, s=nsegmentL+GENESPLICER_SPAN+us-ls+2; p<=us-ls+1; p++, s--) {
            ctscore[p] = ScoreAcceptor_GeneSplicer(s-GENESPLICER_SPAN-1);
 
 
@@ -653,7 +655,7 @@ Sim4::splice_GeneSplicer(char *in_seqx, int ls, int us, int le, int ue,
            ctscore[p] = 5.0*(ctscore[p]+23.0)/43.0;
            ctscore[p] = 0.4*ctscore[p] + 0.6*ag[(int)*(s-1)][(int)*s];
        }
-       for (q=ue-le+1, s=nsegmentR+MAX_SPAN; q>=0; q--, s++) {
+       for (q=ue-le+1, s=nsegmentR+GENESPLICER_SPAN; q>=0; q--, s++) {
            acscore[q] = ScoreDonor_GeneSplicer(s-GENESPLICER_SPAN);
 
 
@@ -679,17 +681,18 @@ Sim4::splice_Glimmer(char *in_seqx, int ls, int us, int le, int ue,
    char  *s,*t, ch;
 
 
-   for (i=0, s=in_seqx+ls-MAX_SPAN-1; i<2*MAX_SPAN+us-ls+3; nsegmentL[i++] = spl_encode[(int)(*s++)]);
-   for (i=0, s=in_seqx+le-2-MAX_SPAN-1; i<2*MAX_SPAN+ue-le+3; nsegmentR[i++] = spl_encode[(int)(*s++)]);
+   /* changed MAX_SPAN to GLIMMER_SPAN; see also main fix to out of bounds problems in util.C */ 
+   for (i=0, s=in_seqx+ls-GLIMMER_SPAN-1; i<2*GLIMMER_SPAN+us-ls+3; nsegmentL[i++] = spl_encode[(int)(*s++)]);
+   for (i=0, s=in_seqx+le-2-GLIMMER_SPAN-1; i<2*GLIMMER_SPAN+ue-le+3; nsegmentR[i++] = spl_encode[(int)(*s++)]);
 
 
    /* Glimmer specific matrices */
-   for (i=0, s=in_seqx+ls-MAX_SPAN-1; i<2*MAX_SPAN+us-ls+3; asegmentL[i++] = *s++);
-   for (i=0, s=in_seqx+le-2-MAX_SPAN-1; i<2*MAX_SPAN+ue-le+3; asegmentR[i++] = *s++);
+   for (i=0, s=in_seqx+ls-GLIMMER_SPAN-1; i<2*GLIMMER_SPAN+us-ls+3; asegmentL[i++] = *s++);
+   for (i=0, s=in_seqx+le-2-GLIMMER_SPAN-1; i<2*GLIMMER_SPAN+ue-le+3; asegmentR[i++] = *s++);
 
    if (ori==FWD || ori==BOTH) {
 
-      for (p=0, s=nsegmentL+MAX_SPAN, t=asegmentL+MAX_SPAN; p<=us-ls+1; p++, s++, t++) {
+      for (p=0, s=nsegmentL+GLIMMER_SPAN, t=asegmentL+GLIMMER_SPAN; p<=us-ls+1; p++, s++, t++) {
           gtscore[p] = ScoreDonor_Glimmer(t-GLIMMER_XSPAN, Glimmer_TRAIN_DIR);
 
           if (gtscore[p] < 0) gtscore[p] = 0.0;
@@ -697,7 +700,7 @@ Sim4::splice_Glimmer(char *in_seqx, int ls, int us, int le, int ue,
           gtscore[p] = 5.0*(gtscore[p]+0.0)/0.31;
           gtscore[p] = 0.2*gtscore[p] + 0.8*gt[(int)*s][(int)*(s+1)];
       }
-      for (q=ue-le+1, s=nsegmentR+MAX_SPAN+ue-le+2, t=asegmentR+MAX_SPAN+ue-le+2; q>=0; q--, s--, t--) {
+      for (q=ue-le+1, s=nsegmentR+GLIMMER_SPAN+ue-le+2, t=asegmentR+GLIMMER_SPAN+ue-le+2; q>=0; q--, s--, t--) {
           agscore[q] = ScoreAcceptor_Glimmer(t-GLIMMER_ISPAN-1, Glimmer_TRAIN_DIR);
 
 
@@ -712,22 +715,22 @@ Sim4::splice_Glimmer(char *in_seqx, int ls, int us, int le, int ue,
    if (ori==BWD || ori==BOTH) {
 
        /* reverse complement the nsegments, 0-3 alphabet */
-       for (s=nsegmentL, t=nsegmentL+2*MAX_SPAN+us-ls+3-1; s<t; s++, t--)
+       for (s=nsegmentL, t=nsegmentL+2*GLIMMER_SPAN+us-ls+3-1; s<t; s++, t--)
            { ch = 3-(*s); *s = 3-(*t); *t = ch; }
-       for (s=nsegmentR, t=nsegmentR+2*MAX_SPAN+ue-le+3-1; s<t; s++, t--)
+       for (s=nsegmentR, t=nsegmentR+2*GLIMMER_SPAN+ue-le+3-1; s<t; s++, t--)
            { ch = 3-(*s); *s = 3-(*t); *t = ch; }
 
 
 
 
        /* reverse complement the asegments, ACTG alphabet */
-       for (s=asegmentL, t=asegmentL+2*MAX_SPAN+us-ls+3-1; s<t; s++, t--)
+       for (s=asegmentL, t=asegmentL+2*GLIMMER_SPAN+us-ls+3-1; s<t; s++, t--)
             { ch = rev_compl[(int)*s]; *s = rev_compl[(int)*t]; *t = ch; }
-       for (s=asegmentR, t=asegmentR+2*MAX_SPAN+ue-le+3-1; s<t; s++, t--)
+       for (s=asegmentR, t=asegmentR+2*GLIMMER_SPAN+ue-le+3-1; s<t; s++, t--)
             { ch = rev_compl[(int)*s]; *s = rev_compl[(int)*t]; *t = ch; }
    
 
-       for (p=0, s=nsegmentL+MAX_SPAN+us-ls+2, t=asegmentL+MAX_SPAN+us-ls+2; p<=us-ls+1; p++, s--, t--)  {
+       for (p=0, s=nsegmentL+GLIMMER_SPAN+us-ls+2, t=asegmentL+GLIMMER_SPAN+us-ls+2; p<=us-ls+1; p++, s--, t--)  {
            ctscore[p] = ScoreAcceptor_Glimmer(t-GLIMMER_ISPAN-1, Glimmer_TRAIN_DIR);
 
 
@@ -736,7 +739,7 @@ Sim4::splice_Glimmer(char *in_seqx, int ls, int us, int le, int ue,
            ctscore[p] = 5.0*(ctscore[p]+0.16)/0.39;
            ctscore[p] = 0.2*ctscore[p] + 0.8*ag[(int)*(s-1)][(int)*s];
        }
-       for (q=ue-le+1, s=nsegmentR+MAX_SPAN, t=asegmentR+MAX_SPAN; q>=0; q--, s++, t++) {
+       for (q=ue-le+1, s=nsegmentR+GLIMMER_SPAN, t=asegmentR+GLIMMER_SPAN; q>=0; q--, s++, t++) {
            acscore[q] = ScoreDonor_Glimmer(t-GLIMMER_XSPAN, Glimmer_TRAIN_DIR);
    
 

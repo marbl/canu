@@ -322,7 +322,7 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
   splice_t **Glist, **Clist;
   int Gscore=0, Cscore=0;
   char *oris;
-  int w1, w2, ni, i, numC, numG;
+  int w1, w2, ni, i, numC, numG, model;
 
   ni = 0;
   numG = numC = 0;
@@ -372,8 +372,10 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
       } else {
         w1 = min(in_w, (int)(0.5*min(t0->length-1, t0->toGEN-t0->frGEN)));
         w2 = min(in_w, (int)(0.5*min(t1->length-1, t1->toGEN-t1->frGEN)));
+        model = ((t0->toGEN-w1<=MAX_SPAN) || (t1->frGEN+w2+MAX_SPAN+2>_genLen)) ?
+                  SPLICE_ORIGINAL : spl_model;
         splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
-               _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH, spl_model);
+               _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH, model);
 
         Gscore += g->score; Cscore += c->score;
         cell = NULL; oris[ni] = '*';
@@ -385,7 +387,7 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
           numG++; numC++; cell = g;  oris[ni] = 'G';
         }
 #ifdef SPLSCORE
-        t0->splScore = cell->score;
+        t0->splScore = (model==spl_model) ? cell->score : 777777;
 #endif
         t0->ori = oris[ni];
         t0->toGEN = cell->xs; t0->toEST = cell->ys;
@@ -416,13 +418,15 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
                 /* compute the values for C */
                 w1 = min(in_w, (int)(0.5*min(t0->length-1, t0->toGEN-t0->frGEN)));
                 w2 = min(in_w, (int)(0.5*min(t1->length-1, t1->toGEN-t1->frGEN)));
+                model = ((t0->toGEN-w1<=MAX_SPAN) || (t1->frGEN+w2+MAX_SPAN+2>_genLen)) ?
+                         SPLICE_ORIGINAL : spl_model;
                 splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
                        t1->frGEN-w2, t1->frGEN+w2, _estSeq,
-                       t0->toEST-w1, t1->frEST+w2, &g, &c, FWD, spl_model);
+                       t0->toEST-w1, t1->frEST+w2, &g, &c, FWD, model);
               } else g = Glist[i];
 
 #ifdef SPLSCORE
-              t0->splScore = g->score;
+              t0->splScore = (model==spl_model) ? g->score : 777777;
 #endif
 
                 t0->ori = 'G';
@@ -449,13 +453,15 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
                 /* compute the values for C */
                 w1 = min(in_w, (int)(0.5*min(t0->length-1, t0->toGEN-t0->frGEN)));
                 w2 = min(in_w, (int)(0.5*min(t1->length-1, t1->toGEN-t1->frGEN)));
+                model = ((t0->toGEN-w1<=MAX_SPAN) || (t1->frGEN+w2+MAX_SPAN+2>_genLen)) ?
+                         SPLICE_ORIGINAL : spl_model;
                 splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1,
                        t1->frGEN-w2, t1->frGEN+w2,
-                       _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BWD, spl_model);
+                       _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BWD, model);
               } else c = Clist[i];
        
 #ifdef SPLSCORE 
-              t0->splScore = c->score;
+              t0->splScore = (spl_model==model) ? c->score : 777777;
 #endif
                 t0->ori = 'C';
                 t0->toGEN = c->xs; t0->toEST = c->ys;
@@ -562,7 +568,7 @@ Sim4::slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_stats_
   splice_t *g, *c, *cell;
   char type;
   int w1, w2;
-  int numG=0, numC=0, numE=0, numN=0;
+  int numG=0, numC=0, numE=0, numN=0, model;
 
   t0 = head;
   while (t0 && (t0!=last) && (t1=t0->next_exon) && t1->toGEN) {
@@ -590,14 +596,16 @@ Sim4::slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_stats_
 
         w1 = min(in_w, (int)(0.5*min(t0->length-2, t0->toGEN-t0->frGEN-1)));
         w2 = min(in_w, (int)(0.5*min(t1->length-2, t1->toGEN-t1->frGEN-1)));
+        model = ((t0->toGEN-w1<=MAX_SPAN) || (t1->frGEN+w2+MAX_SPAN+2>_genLen)) ?
+                 SPLICE_ORIGINAL : spl_model;
         splice(_genSeq, t0->toGEN-w1, t0->toGEN+w1, t1->frGEN-w2, t1->frGEN+w2,
-               _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH, spl_model);
+               _estSeq, t0->toEST-w1, t1->frEST+w2, &g, &c, BOTH, model);
         if (g->score>c->score) { cell = g; type = 'G'; }
         else if (c->score>g->score) { cell = c; type = 'C'; }
         else { cell = g; type = 'G'; }
 
 #ifdef SPLSCORE
-        t0->splScore = cell->score;
+        t0->splScore = (model==spl_model) ? cell->score : 777777;
 #endif
 
         t0->toGEN = cell->xs; t0->toEST = cell->ys;

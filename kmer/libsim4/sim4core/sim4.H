@@ -401,6 +401,9 @@ private:
 private:  
   //  splice.h
   //
+
+#define MAX_SPAN  80
+
   void splice_donor(char *xseq, char *yseq, int M, int N, double *gt_score,
                     double *ct_score, double **max_Gf, double **max_Cf,
                     int **start_Gi, int **start_Ci);
