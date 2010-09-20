@@ -485,7 +485,7 @@ sweatShop::run(void *user, bool beVerbose) {
   errno = 0;
   threadSchedParamMax.sched_priority = sched_get_priority_max(threadSchedPolicy);
   if (errno)
-    fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (set max param priority): %s.\n", strerror(errno)), exit(1);
+    fprintf(stderr, "sweatShop::run()--  WARNING: Failed to configure pthreads (set max param priority): %s.\n", strerror(errno));
 
   //  Fire off the loader
 
