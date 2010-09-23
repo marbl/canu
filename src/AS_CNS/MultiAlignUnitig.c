@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.31 2010-08-12 19:19:48 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.32 2010-09-23 20:39:46 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -243,8 +243,8 @@ private:
 
   int32           piid;   //  Parent frag IID
 
-  uint32          frankensteinLen;
-  uint32          frankensteinMax;
+  int32           frankensteinLen;
+  int32           frankensteinMax;
   char           *frankenstein;
   int32          *frankensteinBof;
 };
@@ -777,7 +777,7 @@ unitigConsensus::alignFragment(void) {
               fraglist[tiid].ident,
               offsets[tiid].bgn,
               offsets[tiid].end,
-              ahang_offset, bhang_posn, frankensteinLen, strlen(frankenstein + ahang_offset),
+              ahang_offset, bhang_posn, frankensteinLen, (int)strlen(frankenstein + ahang_offset),
               ovl,
               ahang, bhang);
 
