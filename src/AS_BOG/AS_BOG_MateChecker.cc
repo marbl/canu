@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.89 2010-06-18 16:21:15 skoren Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.90 2010-09-23 08:42:46 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -1147,7 +1147,7 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
           bp.inSize = 100000;
           bp.inFrags = 10;
           breaks->push_back(bp);
-	    }
+        }
       }
 
       if (lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end)) {
@@ -1376,7 +1376,7 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
         incrRange(badFwdGraph, -1, bgn, end);
       } else {
         //  Mark bad for reverse fragment 1
-        bgn = frgEnd - badMax;
+        bgn = frgBgn - badMax;
         end = frgEnd;
         incrRange(badRevGraph, -1, bgn, end);
       }
@@ -1391,7 +1391,7 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
         incrRange(badFwdGraph, -1, bgn, end);
       } else {
         //  Mark bad for reverse fragment 2
-        bgn = matEnd - badMax;
+        bgn = matBgn - badMax;
         end = matEnd;
         incrRange(badRevGraph, -1, bgn, end);
       }
