@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.72 2010-09-23 06:08:34 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.73 2010-09-23 06:13:11 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -101,8 +101,10 @@ struct UnitigGraph{
   void joinUnitigs(bool enableJoining);
   void placeContains(void);
   void placeZombies(void);
-  void popBubbles(OverlapStore *ovlStoreUniq,
-                  OverlapStore *ovlStoreRept);
+  void popIntersectionBubbles(OverlapStore *ovlStoreUniq,
+                              OverlapStore *ovlStoreRept);
+  void popMateBubbles(OverlapStore *ovlStoreUniq,
+                      OverlapStore *ovlStoreRept);
 
   void filterBreakPoints(ContainerMap &cMap,
                          Unitig *,
@@ -119,6 +121,7 @@ struct UnitigGraph{
 
   void           checkUnitigMembership(void);
   void           reportOverlapsUsed(const char *filename);
+  void           reportUnitigs(const char *filename);
 
   // Unitigs are the dove tails and their contained fragments
   UnitigVector *unitigs;
