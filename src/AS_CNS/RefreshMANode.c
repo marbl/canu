@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: RefreshMANode.c,v 1.4 2009-09-29 18:45:42 brianwalenz Exp $";
+static char *rcsid = "$Id: RefreshMANode.c,v 1.5 2010-09-23 20:29:52 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -775,7 +775,6 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
   char   *var_seq=NULL;
   double *varf=NULL, *svarf=NULL;
   Column *column = NULL;
-  VarRegion  vreg = {0};
   char  **reads = NULL;
   MANode *ma = GetMANode(manodeStore,mid);
   int32   min_len_vlist = 10;
@@ -808,6 +807,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
   if ( ma->first == -1 )
     return 1;
+
+  VarRegion  vreg;
+  memset(&vreg, 0, sizeof(VarRegion));
 
   vreg.nr     = 0;
   vreg.max_nr = MIN_ALLOCATED_DEPTH;
