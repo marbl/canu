@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.70 2010-08-24 15:02:38 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.71 2010-09-23 08:47:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,8 +130,32 @@ int ProcessInput(int optind, int argc, char *argv[]){
 
   ScaffoldGraph->tigStore->flushCache();
 
-  fprintf(stderr,"Processed %d unitigs with %d fragments\n",
+  fprintf(stderr, "Checking sanity of loaded fragments.\n");
+ 
+  uint32  numErrors = 0;
+
+  for (int32 i=1, s=GetNumCIFragTs(ScaffoldGraph->CIFrags); i<s; i++) {
+    CIFragT     *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, i);
+ 
+    if (cifrag->flags.bits.isDeleted)
+      continue;
+
+    //  We could instead delete these fragments from the assembly.  That is somewhat difficult to do
+    //  here, since we (a) don't have the gkpStore opened for writing and (b) don't have permission to
+    //  do that anyway.
+
+    if ((cifrag->cid == NULLINDEX) || (cifrag->CIid == NULLINDEX)) {
+      fprintf(stderr, "ERROR:  Frag %d has null cid or CIid.  Fragment is not in an input unitig!\n", i);
+      numErrors++;
+    }
+  }
+
+  fprintf(stderr,"Processed %d unitigs with %d fragments.\n",
           numUTG, numFRG);
+
+  if (numErrors > 0)
+    fprintf(stderr, "ERROR:  Some fragments are not in unitigs.\n");
+  assert(numErrors == 0);
 
   ScaffoldGraph->numLiveCIs     = GetNumGraphNodes(ScaffoldGraph->CIGraph);
   ScaffoldGraph->numOriginalCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);

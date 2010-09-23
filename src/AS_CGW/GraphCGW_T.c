@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.86 2010-08-19 05:28:06 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.87 2010-09-23 08:47:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1940,6 +1940,31 @@ CreateGraphEdge(GraphCGW_T *graph,
     default:
       assert(0);
   }
+
+  //  Guard against bogus data.  These should never occur.  If they do, your input unitigs are
+  //  missing fragments....and we should have already caught that in Input_CGW.c.  Possibly, we can
+  //  simply return FALSE instead of failing, but your input IS messed up, and that's bad.
+
+  if (frag->flags.bits.isDeleted)
+    fprintf(stderr, "CreateGraphEdge()-- WARNING: frag %d (mate %d) is DELETED!\n",
+            frag->read_iid, frag->mate_iid);
+
+  if (mfrag->flags.bits.isDeleted)
+    fprintf(stderr, "CreateGraphEdge()-- WARNING: frag %d (mate %d) is DELETED!\n",
+            mfrag->read_iid, mfrag->mate_iid);
+
+  if (node == NULL)
+    fprintf(stderr, "CreateGraphEdge()-- WARNING: node is NULL!  isCI=%d  node %d/%d/%d mnode %d/%d/%d\n",
+            isCI, frag->read_iid, frag->cid, frag->contigID, mfrag->read_iid, mfrag->cid, mfrag->contigID);
+
+  if (mnode == NULL)
+    fprintf(stderr, "CreateGraphEdge()-- WARNING: mnode is NULL!  isCI=%d  node %d/%d/%d mnode %d/%d/%d\n",
+            isCI, frag->read_iid, frag->cid, frag->contigID, mfrag->read_iid, mfrag->cid, mfrag->contigID);
+
+  assert(frag->flags.bits.isDeleted == 0);
+  assert(mfrag->flags.bits.isDeleted == 0);
+  assert(node != NULL);
+  assert(mnode != NULL);
 
   // Don't add edges to chaff
   if(GlobalData->ignoreChaffUnitigs && (mnode->flags.bits.isChaff ||
