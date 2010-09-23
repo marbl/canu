@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.15 2010-09-23 02:31:22 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.16 2010-09-23 09:09:31 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -31,9 +31,6 @@ static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.15 2
 //  field) seems to be 24b, and is more effort than it is worth (just removing 'contained' would be
 //  a chore).
 //
-#ifdef WITHIMP
-typedef IntMultiPos                       DoveTailNode;
-#else
 struct DoveTailNode {
   int32           ident;
   int32           contained;
@@ -44,9 +41,8 @@ struct DoveTailNode {
 
   SeqInterval     position;
 
-  int32           delta_length;
+  int32           containment_depth;
 };
-#endif
 
 typedef std::vector<DoveTailNode>         DoveTailPath;
 

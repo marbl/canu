@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.133 2010-09-23 06:13:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.134 2010-09-23 09:09:31 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -532,20 +532,14 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
 
   DoveTailNode  frag;
 
-#ifdef WITHIMP
-  frag.type         = AS_READ;
-#endif
-  frag.ident        = frag_idx;
-  frag.contained    = 0;
-  frag.parent       = 0;
-  frag.ahang        = 0;
-  frag.bhang        = 0;
-  frag.position.bgn = _fi->fragmentLength(frag_idx);
-  frag.position.end = 0;
-  frag.delta_length = 0;
-#ifdef WITHIMP
-  frag.delta        = NULL;
-#endif
+  frag.ident             = frag_idx;
+  frag.contained         = 0;
+  frag.parent            = 0;
+  frag.ahang             = 0;
+  frag.bhang             = 0;
+  frag.position.bgn      = _fi->fragmentLength(frag_idx);
+  frag.position.end      = 0;
+  frag.containment_depth = 0;
 
   utg->addFrag(frag, 0, verboseBuild);
 
@@ -1276,18 +1270,12 @@ UnitigGraph::placeZombies(void) {
 
         DoveTailNode frag;
 
-#ifdef WITHIMP
-        frag.type         = AS_READ;
-#endif
-        frag.ident        = i;
-        frag.contained    = 0;
-        frag.delta_length = 0;
-#ifdef WITHIMP
-        frag.delta        = NULL;
-#endif
+        frag.ident             = i;
+        frag.contained         = 0;
+        frag.containment_depth = 0;
 
-        frag.position.bgn = 0;
-        frag.position.end = _fi->fragmentLength(i);
+        frag.position.bgn      = 0;
+        frag.position.end      = _fi->fragmentLength(i);
 
         utg->addFrag(frag, 0, false);
         unitigs->push_back(utg);
@@ -2437,9 +2425,7 @@ UnitigGraph::unitigToMA(MultiAlignT *ma,
   //  Add the fragments
 
   ResetVA_IntMultiPos(ma->f_list);
-#ifdef WITHIMP
-  SetRangeVA_IntMultiPos(ma->f_list, 0, nf, &(*utg->dovetail_path_ptr)[0]);
-#else
+
   for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
     DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
     IntMultiPos    imp;
@@ -2457,7 +2443,6 @@ UnitigGraph::unitigToMA(MultiAlignT *ma,
 
     AppendVA_IntMultiPos(ma->f_list, &imp);
   }
-#endif
 }
 
 
@@ -2524,13 +2509,6 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
       DoveTailNode  *f = &(*utg->dovetail_path_ptr)[fragIdx];
 
       fprintf(part, "%d\t%d\n", prt_count, f->ident);
-
-      //  We abused the delta_length field earlier.  Make sure it's sane.  If not, we assert when
-      //  writing the tig.
-      f->delta_length = 0;
-#ifdef WITHIMP
-      f->delta        = NULL;
-#endif
     }
 
     utg_count += 1;
