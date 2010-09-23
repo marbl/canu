@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.131 2010-08-19 05:28:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.132 2010-09-23 06:08:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -42,6 +42,7 @@ bool verboseBreak    = false;  //  Intersection AND mate-based breaking
 bool verboseJoin     = false;  //  Joining
 bool verboseContains = false;  //  Containment placing
 
+uint32  noUnitig = 0xffffffff;
 
 
 void
@@ -52,21 +53,31 @@ UnitigGraph::checkUnitigMembership(void) {
   fprintf(stderr, "checkUnitigMembership()--  numfrags=%d\n", _fi->numFragments());
 
   uint32 *inUnitig = new uint32 [_fi->numFragments()+1];
+  uint32  logSize[20] = {0};
 
   for (uint32 i=0; i<_fi->numFragments()+1; i++)
-    inUnitig[i] = 987654321;
+    inUnitig[i] = noUnitig;
 
   for (uint32 ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];
+    uint32   len = 0;
 
     if (utg) {
       nutg++;
+
       for (DoveTailIter it=utg->dovetail_path_ptr->begin(); it != utg->dovetail_path_ptr->end(); it++) {
+        nfrg++;
+
         if (it->ident > _fi->numFragments())
           fprintf(stderr, "HUH?  ident=%d numfrags=%d\n", it->ident, _fi->numFragments());
+
         inUnitig[it->ident] = ti;
-        nfrg++;
-      }
+
+        len = MAX(len, it->position.bgn);
+        len = MAX(len, it->position.end);
+       }
+
+      logSize[ (uint32)(log10(len) / log10(2)) ]++;
     }
   }
 
@@ -77,7 +88,7 @@ UnitigGraph::checkUnitigMembership(void) {
     if (_fi->fragmentLength(i) > 0) {
       if (inUnitig[i] == 0) {
         fprintf(stderr, "ERROR frag %d is in unitig 0!\n", i);
-      } else if (inUnitig[i] != 987654321) {
+      } else if (inUnitig[i] != noUnitig) {
         found++;
       } else {
         fprintf(stderr, "ERROR frag %d disappeared!\n", i);
@@ -87,6 +98,10 @@ UnitigGraph::checkUnitigMembership(void) {
   }
 
   fprintf(stderr, "checkUnitigMembership()-- nutg=%d nfrg=%d lost=%d found=%d\n", nutg, nfrg, lost, found);
+
+  fprintf(stderr, "checkUnitigMembership()-- log2 length histogram:\n");
+  for (uint32 i=5; i<20; i++)
+    fprintf(stderr, "checkUnitigMembership()-- %2u (%9u-%9u) %u\n", i, (uint32)1 << i, (uint32)1 << (i+1), logSize[i]);
 
   assert(lost == 0);
 }
@@ -212,8 +227,6 @@ void UnitigGraph::build(ChunkGraph *cg_ptr,
     populateUnitig(frag_idx);
   }
 
-  reportOverlapsUsed("overlaps.afterbuild");
-
   fprintf(stderr, "==> BUILDING UNITIGS catching missed fragments.\n");
 
   //  Pick up frags missed above, leftovers from possibly circular unitigs
@@ -227,18 +240,20 @@ void UnitigGraph::build(ChunkGraph *cg_ptr,
     populateUnitig(frag_idx);
   }
 
-  reportOverlapsUsed("overlaps.afterbuild2");
+  reportOverlapsUsed("overlaps.afterbuild");
 
-  if (enableBubblePopping)
+  if (enableBubblePopping) {
     popBubbles(ovlStoreUniq, ovlStoreRept);
-
-  if (enableIntersectionBreaking) {
-    breakUnitigs(cMap, output_prefix);
-    reportOverlapsUsed("overlaps.afterbreak");
   }
 
+  //  If enabled, break unitigs.  If not enabled, report on breaks.
+  breakUnitigs(cMap, output_prefix, enableIntersectionBreaking);
+  reportOverlapsUsed("overlaps.afterbreak");
+
+  //  If enabled, join unitigs.  If not enabled, report on joins.
+  //  (not supported, just crashes if called and not enabled)
   if (enableJoining) {
-    joinUnitigs();
+    joinUnitigs(enableJoining);
     reportOverlapsUsed("overlaps.afterjoin");
   }
 
@@ -249,8 +264,9 @@ void UnitigGraph::build(ChunkGraph *cg_ptr,
 
   checkUnitigMembership();
 
-  if (enableBubblePopping)
+  if (enableBubblePopping) {
     popBubbles(ovlStoreUniq, ovlStoreRept);
+  }
 
   checkUnitigMembership();
 }
@@ -543,7 +559,7 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
 
 
 
-void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
+void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool enableIntersectionBreaking) {
   FILE *breakFile;
 
   {
@@ -557,45 +573,6 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
   }
 
   fprintf(stderr, "==> BREAKING UNITIGS.\n");
-
-  //  Debug output - useless
-#if 0
-  for (int  ti=0; ti<unitigs->size(); ti++) {
-    Unitig        *tig   = (*unitigs)[ti];
-
-    if (tig == NULL)
-      continue;
-
-    DoveTailNode   first = tig->dovetail_path_ptr->front();
-    uint32         prev  = 0;
-    DoveTailNode   last  = tig->getLastBackboneNode(prev);
-
-    if ( prev == 0 )
-      continue; // skip singletons
-
-    uint32 id1 = first.ident;
-    uint32 id2 = last.ident;
-
-    assert(prev != id2);
-    assert(last.contained == 0);
-
-    BestEdgeOverlap *firstBest = bog_ptr->getBestEdgeOverlap(id1, (first.position.bgn < first.position.end) ? FIVE_PRIME  : THREE_PRIME);
-    BestEdgeOverlap *lastBest  = bog_ptr->getBestEdgeOverlap(id2, (last.position.bgn  < last.position.end)  ? THREE_PRIME : FIVE_PRIME);
-
-    // Skip non bubbles, anchored ends
-    if (lastBest->frag_b_id == 0 || firstBest->frag_b_id == 0)
-      continue;
-
-    if (verboseBreak)
-      if (firstBest->frag_b_id == lastBest->frag_b_id)
-        fprintf(stderr, "Bubble %d to %d len %d (self bubble %d to %d)\n",
-                firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength(), id1, id2);
-      else
-        fprintf(stderr, "Bubble %d to %d len %d\n",
-                firstBest->frag_b_id, lastBest->frag_b_id, tig->getLength());
-  }
-#endif
-
 
   //  Stop when we've seen all current unitigs.  Replace tiMax
   //  in the for loop below with unitigs->size() to recursively
@@ -816,15 +793,31 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix) {
 
       breaks.push_back(breakPoint);
 
-      UnitigVector* newUs = breakUnitigAt(cMap, tig, breaks);
+      filterBreakPoints(cMap, tig, breaks);
 
-      if (newUs != NULL) {
-        delete tig;
-        (*unitigs)[ti] = NULL;
-        unitigs->insert(unitigs->end(), newUs->begin(), newUs->end());
+      //  Report where breaks occur.  'breaks' is a list, not a vector.
+      for (uint32 i=0; i<breaks.size(); i++)
+        fprintf(stderr, "BREAK unitig %d at position %d,%d from inSize %d inFrags %d.\n",
+                tig->id(),
+                breaks.front().fragPos.bgn,
+                breaks.front().fragPos.end,
+                breaks.front().inSize,
+                breaks.front().inFrags);
+
+      //  Actually do the breaking.
+      if (enableIntersectionBreaking) {
+        UnitigVector* newUs = breakUnitigAt(cMap, tig, breaks);
+
+        if (newUs != NULL) {
+          delete tig;
+          (*unitigs)[ti] = NULL;
+          unitigs->insert(unitigs->end(), newUs->begin(), newUs->end());
+        }
+
+        delete newUs;
       }
 
-      delete newUs;
+      breaks.clear();
     }
   }  //  Over all tigs
 
@@ -848,7 +841,7 @@ public:
 
 
 void
-UnitigGraph::joinUnitigs(void) {
+UnitigGraph::joinUnitigs(bool enableJoining) {
 
   fprintf(stderr, "==> JOINING SPLIT UNITIGS\n");
 
@@ -1233,7 +1226,7 @@ UnitigGraph::placeZombies(void) {
   //  Mark fragments as dead.
   //
   for (uint32 i=0; i<_fi->numFragments()+1; i++)
-    inUnitig[i] = 987654321;
+    inUnitig[i] = noUnitig;
 
   //  ZZZzzzzaapaapppp!  IT'S ALIVE!
   //
@@ -1251,7 +1244,7 @@ UnitigGraph::placeZombies(void) {
     if (_fi->fragmentLength(i) > 0) {
       if (inUnitig[i] == 0) {
         //  We'll catch this error inna second in checkUnitigMembership().
-      } else if (inUnitig[i] != 987654321) {
+      } else if (inUnitig[i] != noUnitig) {
         //  We'll count this inna second there too.
       } else {
         //  Ha!  Gotcha!  You're now a resurrected brain eating
@@ -1318,7 +1311,7 @@ UnitigGraph::popBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) 
         (shortTig->dovetail_path_ptr->size() >= 30))
       continue;
 
-    uint32         otherUtg     = 987654321;
+    uint32         otherUtg     = noUnitig;
     uint32         conflicts    = 0;
     uint32         self         = 0;
     uint32         nonmated     = 0;
@@ -1365,7 +1358,7 @@ UnitigGraph::popBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) 
         if (ou5 == shortTig->id()) {
           self++;
         } else {
-          if ((otherUtg == 987654321) && (ou5 != 0))
+          if ((otherUtg == noUnitig) && (ou5 != 0))
             otherUtg = ou5;
           if (otherUtg != ou5)
             conflicts++;
@@ -1382,14 +1375,14 @@ UnitigGraph::popBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) 
         if (ou3 == shortTig->id()) {
           self++;
         } else {
-          if ((otherUtg == 987654321) && (ou3 != 0))
+          if ((otherUtg == noUnitig) && (ou3 != 0))
             otherUtg = ou3;
           if (otherUtg != ou3)
             conflicts++;
         }
       }
 
-      if (otherUtg == 987654321)
+      if (otherUtg == noUnitig)
         //  Didn't find a unitig to merge this fragment into.
         continue;
 
@@ -2056,7 +2049,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
     return NULL;
 
   // remove small break points
-  filterBreakPoints(cMap, tig, breaks);
+  //filterBreakPoints(cMap, tig, breaks);
 
   // if we filtered all the breaks out return an empty list
   if (breaks.empty())
@@ -2313,7 +2306,54 @@ UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
 
 
 
-void UnitigGraph::writeIUMtoFile(char *fileprefix, char *tigStorePath, int frg_count_target){
+//  Massage the Unitig into a MultiAlignT (also used in SplitChunks_CGW.c)
+void
+UnitigGraph::unitigToMA(MultiAlignT *ma,
+                        uint32       iumiid,
+                        Unitig      *utg) {
+
+  ma->maID                      = iumiid;
+  ma->data.unitig_coverage_stat = utg->getCovStat(_fi);
+  ma->data.unitig_microhet_prob = 1.0;  //  Default to 100% probability of unique
+
+  ma->data.unitig_status        = AS_UNASSIGNED;
+  ma->data.unitig_unique_rept   = AS_FORCED_NONE;
+
+  ma->data.contig_status        = AS_UNPLACED;
+
+  //  Add the fragments
+
+  ResetVA_IntMultiPos(ma->f_list);
+#ifdef WITHIMP
+  SetRangeVA_IntMultiPos(ma->f_list, 0, nf, &(*utg->dovetail_path_ptr)[0]);
+#else
+  for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+    DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
+    IntMultiPos    imp;
+
+    imp.type         = AS_READ;
+    imp.ident        = frg->ident;
+    imp.contained    = frg->contained;
+    imp.parent       = frg->parent;
+    imp.ahang        = frg->ahang;
+    imp.bhang        = frg->bhang;
+    imp.position.bgn = frg->position.bgn;
+    imp.position.end = frg->position.end;
+    imp.delta_length = 0;
+    imp.delta        = NULL;
+
+    AppendVA_IntMultiPos(ma->f_list, &imp);
+  }
+#endif
+}
+
+
+
+void
+UnitigGraph::writeIUMtoFile(char *fileprefix,
+                            char *tigStorePath,
+                            int   frg_count_target,
+                            bool  isFinal) {
   int32       utg_count              = 0;
   int32       frg_count              = 0;
   int32       prt_count              = 1;
@@ -2322,7 +2362,8 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, char *tigStorePath, int frg_c
 
   //  This code closely follows that in AS_CGB_unitigger.c::output_the_chunks()
 
-  checkUnitigMembership();
+  if (isFinal)
+    checkUnitigMembership();
 
   // Open up the initial output file
 
@@ -2406,41 +2447,7 @@ void UnitigGraph::writeIUMtoFile(char *fileprefix, char *tigStorePath, int frg_c
     if ((utg == NULL) || (nf == 0))
       continue;
 
-    //  Massage the Unitig into a MultiAlignT (also used in SplitChunks_CGW.c)
-
-    ma->maID                      = iumiid;
-    ma->data.unitig_coverage_stat = utg->getCovStat(_fi);
-    ma->data.unitig_microhet_prob = 1.0;  //  Default to 100% probability of unique
-
-    ma->data.unitig_status        = AS_UNASSIGNED;
-    ma->data.unitig_unique_rept   = AS_FORCED_NONE;
-
-    ma->data.contig_status        = AS_UNPLACED;
-
-    //  Add the fragments
-
-    ResetVA_IntMultiPos(ma->f_list);
-#ifdef WITHIMP
-    SetRangeVA_IntMultiPos(ma->f_list, 0, nf, &(*utg->dovetail_path_ptr)[0]);
-#else
-    for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
-      IntMultiPos    imp;
-
-      imp.type         = AS_READ;
-      imp.ident        = frg->ident;
-      imp.contained    = frg->contained;
-      imp.parent       = frg->parent;
-      imp.ahang        = frg->ahang;
-      imp.bhang        = frg->bhang;
-      imp.position.bgn = frg->position.bgn;
-      imp.position.end = frg->position.end;
-      imp.delta_length = 0;
-      imp.delta        = NULL;
-
-      AppendVA_IntMultiPos(ma->f_list, &imp);
-    }
-#endif
+    unitigToMA(ma, (isFinal) ? iumiid : ti, utg);
 
     //  NOTE!  This is not currently a valid multialign as it has NO IntUnitigPos.  That is
     //  added during consensus.  CGW will correctly assert that it reads in unitigs with

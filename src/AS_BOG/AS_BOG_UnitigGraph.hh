@@ -22,11 +22,13 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.71 2010-04-26 04:11:59 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.72 2010-09-23 06:08:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_Unitig.hh"
+
+#include "MultiAlignStore.h"
 
 typedef std::vector<uint32>                 FragmentList;
 typedef std::map<uint32, FragmentList>      FragmentEdgeList;
@@ -88,13 +90,15 @@ struct UnitigGraph{
              char *output_prefix);
   void setParentAndHang(ChunkGraph *cg_ptr);
 
-  void writeIUMtoFile(char *fileprefix, char *tigStorePath, int fragment_count_target);
+  void unitigToMA(MultiAlignT *ma, uint32 iumiid, Unitig *utg);
+
+  void writeIUMtoFile(char *fileprefix, char *tigStorePath, int fragment_count_target, bool isFinal=true);
   void writeOVLtoFile(char *fileprefix);
 
   float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 
-  void breakUnitigs(ContainerMap &cMap, char *output_prefix);
-  void joinUnitigs(void);
+  void breakUnitigs(ContainerMap &cMap, char *output_prefix, bool enableIntersectionBreaking);
+  void joinUnitigs(bool enableJoining);
   void placeContains(void);
   void placeZombies(void);
   void popBubbles(OverlapStore *ovlStoreUniq,
