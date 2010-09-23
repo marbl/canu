@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.15 2010-04-23 15:11:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.16 2010-09-23 20:20:50 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -349,7 +349,7 @@ saveVARData(MultiAlignT *ma, char *&memory) {
   //  If no memory pointer, we're just requesting the size needed
   //  Otherwise, copy into pre-allocated memory
 
-  for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
+  for (uint32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
     IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
 
     s += sizeof(IntVarAllele) * imv->num_alleles;
@@ -378,7 +378,7 @@ restoreVARData(char *&memory, MultiAlignT *ma) {
 
   //  Allocate our memory.
 
-  for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
+  for (uint32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
     IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
 
     //  The IMVs should already be empty, but our pointers are invalid and non-NULL.
@@ -393,7 +393,7 @@ restoreVARData(char *&memory, MultiAlignT *ma) {
 
   //  And copy data back into the correct spots in each VAR entry.
 
-  for (int32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
+  for (uint32 i=0; i<GetNumIntMultiVars(ma->v_list); i++) {
     IntMultiVar  *imv = GetIntMultiVar(ma->v_list, i);
 
     memcpy(imv->alleles, memory, sizeof(IntVarAllele) * imv->num_alleles);
@@ -639,7 +639,7 @@ DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
   char *qlt = ma->quality   ? Getchar(ma->quality, 0)   : NULL;
 
   fprintf(out, "%s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
-  fprintf(out, "len %d\n", (cns) ? strlen(cns) : 0);
+  fprintf(out, "len %d\n", (cns) ? (int)strlen(cns) : 0);
   fprintf(out, "cns %s\n", (cns) ? cns : "");
   fprintf(out, "qlt %s\n", (qlt) ? qlt : "");
   fprintf(out, "data.unitig_coverage_stat %f\n", ma->data.unitig_coverage_stat);
@@ -650,7 +650,7 @@ DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
   fprintf(out, "data.num_frags            %u\n", ma->data.num_frags);
   fprintf(out, "data.num_unitigs          %u\n", ma->data.num_unitigs);
 
-  for (int32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
 
     fprintf(stdout, "FRG type %c ident %9d container %9d parent %9d hang %6d %6d position %6d %6d\n",
@@ -662,7 +662,7 @@ DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
             imp->position.bgn, imp->position.end);
   }
 
-  for (int32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
+  for (uint32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
     IntUnitigPos *iup = GetIntUnitigPos(ma->u_list, i);
 
     fprintf(stdout, "UTG type %c ident %9d position %6d %6d num_instances %d\n",
@@ -807,12 +807,12 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         break;
     }
   } else {
-    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_status in '%s'\n", ma->maID, ma->maID, LINE);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_status in '%s'\n", ma->maID, LINE);
     exit(1);
   }
 
   if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
-    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_unique_rept' line, got empty line.\n"), exit(1);
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.unitig_unique_rept' line, got empty line.\n", ma->maID), exit(1);
 
   if (strcmp(W[0], "data.unitig_unique_rept") == 0) {
     switch (W[1][0]) {
@@ -826,7 +826,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         ma->data.unitig_unique_rept = AS_FORCED_REPEAT;
         break;
       default:
-        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_unique_rept in '%s'\n", ma->maID, ma->maID, LINE);
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.unitig_unique_rept in '%s'\n", ma->maID, LINE);
         exit(1);
         break;
     }
@@ -852,27 +852,27 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         break;
     }
   } else {
-    fprintf(stderr, "Unknown data.contig_status in '%s'\n", ma->maID, LINE);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.contig_status in '%s'\n", ma->maID, LINE);
     exit(1);
   }
 
   if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
-    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.num_frags' line, got empty line.\n"), exit(1);
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.num_frags' line, got empty line.\n", ma->maID), exit(1);
 
   if (strcmp(W[0], "data.num_frags") == 0) {
     ma->data.num_frags = atoi(W[1]);
   } else {
-    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.num_frags in '%s'\n", ma->maID, ma->maID, LINE);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.num_frags in '%s'\n", ma->maID, LINE);
     exit(1);
   }
 
   if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
-    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.num_unitigs' line, got empty line.\n"), exit(1);
+    fprintf(stderr, "MultiAlign %d not loaded:  Expecting 'data.num_unitigs' line, got empty line.\n", ma->maID), exit(1);
 
   if (strcmp(W[0], "data.num_unitigs") == 0) {
     ma->data.num_unitigs = atoi(W[1]);
   } else {
-    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.num_unitigs in '%s'\n", ma->maID, ma->maID, LINE);
+    fprintf(stderr, "MultiAlign %d not loaded:  Unknown data.num_unitigs in '%s'\n", ma->maID, LINE);
     exit(1);
   }
 
@@ -883,7 +883,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
 
   ////////////////////////////////////////
 
-  for (int32 i=0; i<ma->data.num_frags; i++) {
+  for (uint32 i=0; i<ma->data.num_frags; i++) {
     IntMultiPos  *imp = GetIntMultiPos(ma->f_list, i);
 
     while ((LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W)) &&
@@ -912,7 +912,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         imp->type = AS_READ;
         break;
       default:
-        fprintf(stderr, "MultiAlign %d not loaded:  Unknown FRG type %c/%d in '%s'\n", ma->maID, W[2][0], W[2][0], ma->maID, LINE);
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown FRG type %c/%d in '%s'\n", ma->maID, W[2][0], W[2][0], LINE);
         exit(1);
         break;
     }
@@ -928,7 +928,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
 
   ////////////////////////////////////////
 
-  for (int32 i=0; i<ma->data.num_unitigs; i++) {
+  for (uint32 i=0; i<ma->data.num_unitigs; i++) {
     IntUnitigPos *iup = GetIntUnitigPos(ma->u_list, i);
 
     while ((LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W)) &&
@@ -946,7 +946,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         (strcmp(W[3], "ident")         != 0) ||
         (strcmp(W[5], "position")      != 0) ||
         (strcmp(W[8], "num_instances") != 0)) {
-      fprintf(stderr, "MultiAlign not loaded:  Unknown UTG line in '%s'\n", ma->maID, LINE);
+      fprintf(stderr, "MultiAlign %d not loaded:  Unknown UTG line in '%s'\n", ma->maID, LINE);
       exit(1);
     }
 
@@ -970,7 +970,7 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
         iup->type = AS_OTHER_UNITIG;
         break;
       default:
-        fprintf(stderr, "MultiAlign %d not loaded:  Unknown UTG type %c/%d in '%s'\n", ma->maID, W[2][0], W[2][0], ma->maID, LINE);
+        fprintf(stderr, "MultiAlign %d not loaded:  Unknown UTG type %c/%d in '%s'\n", ma->maID, W[2][0], W[2][0], LINE);
         exit(1);
         break;
     }
