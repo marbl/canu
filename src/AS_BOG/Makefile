@@ -25,11 +25,27 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-LIB_SOURCES = AS_BOG_BestOverlapGraph.cc AS_BOG_ChunkGraph.cc AS_BOG_MateChecker.cc AS_BOG_Unitig.cc AS_BOG_UnitigGraph.cc
-LIB_OBJECTS = $(LIB_SOURCES:.cc=.o)
+BOG_SOURCES = AS_BOG_ArrivalRate.cc \
+              AS_BOG_BestOverlapGraph.cc \
+              AS_BOG_Breaking.cc \
+              AS_BOG_ChunkGraph.cc \
+              AS_BOG_Instrumentation.cc \
+              AS_BOG_IntersectBubble.cc \
+              AS_BOG_IntersectSplit.cc \
+              AS_BOG_Joining.cc \
+              AS_BOG_MateBubble.cc \
+              AS_BOG_MateChecker.cc \
+              AS_BOG_Outputs.cc \
+              AS_BOG_PlaceContains.cc \
+              AS_BOG_PlaceZombies.cc \
+              AS_BOG_PopulateUnitig.cc \
+              AS_BOG_SetParentAndHang.cc \
+              AS_BOG_Unitig.cc \
+              AS_BOG_UnitigGraph.cc
+BOG_OBJECTS = $(BOG_SOURCES:.cc=.o)
 
-SOURCES     = BuildUnitigs.cc fixUnitigs.C scoreOverlaps.C $(LIB_SOURCES)
-OBJECTS     = BuildUnitigs.o  fixUnitigs.o scoreOverlaps.o $(LIB_OBJECTS)
+SOURCES     = BuildUnitigs.cc fixUnitigs.C scoreOverlaps.C $(BOG_SOURCES)
+OBJECTS     = BuildUnitigs.o  fixUnitigs.o scoreOverlaps.o $(BOG_OBJECTS)
 
 CXX_PROGS = buildUnitigs fixUnitigs scoreOverlaps
 
@@ -39,6 +55,6 @@ include $(LOCAL_WORK)/src/c_make.as
 all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
-buildUnitigs:    BuildUnitigs.o $(LIB_OBJECTS) libCA.a
+buildUnitigs:    BuildUnitigs.o $(BOG_OBJECTS) libCA.a
 fixUnitigs:      fixUnitigs.o                  libCA.a
 scoreOverlaps:   scoreOverlaps.o               libCA.a

@@ -22,13 +22,30 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.73 2010-09-23 06:13:11 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.74 2010-09-23 09:34:50 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_Unitig.hh"
 
 #include "MultiAlignStore.h"
+
+//  Debugging
+#undef DEBUG_BUILD   //  Dovetail path construction
+#undef DEBUG_MERGE   //  Bubbles
+#undef DEBUG_BREAK   //  Breaking
+#undef DEBUG_JOIN    //  Joining
+
+//  Logging (in AS_BOG_UnitigGraph.cc)
+extern bool verboseBuild;
+extern bool verboseMerge;
+extern bool verboseBreak;
+extern bool verboseJoin;
+extern bool verboseContains;
+
+const uint32  noUnitig = 0xffffffff;
+
+
 
 typedef std::vector<uint32>                 FragmentList;
 typedef std::map<uint32, FragmentList>      FragmentEdgeList;
