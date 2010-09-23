@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.72 2010-04-26 04:11:59 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.73 2010-09-23 02:32:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -279,7 +279,7 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Error limit           = %.3f errors\n", elimit);
   fprintf(stderr, "Genome Size           = "F_S64"\n", genome_size);
   fprintf(stderr, "\n");
-  fprintf(stderr, "sizeof(DoveTailNode)  = %d\n", sizeof(DoveTailNode));
+  fprintf(stderr, "sizeof(DoveTailNode)  = %d\n", (int)sizeof(DoveTailNode));
   fprintf(stderr, "\n");
 
   gkStore          *gkpStore     = new gkStore(gkpStorePath, FALSE, FALSE);
