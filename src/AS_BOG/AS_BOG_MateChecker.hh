@@ -22,27 +22,12 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.36 2010-08-19 05:28:06 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.37 2010-09-23 08:45:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 
-#if 0
-typedef std::map<uint32,uint32> IdMap;
-
-typedef IdMap::iterator IdMapIter;
-typedef IdMap::const_iterator IdMapConstIter;
-
-typedef std::vector<int> DistanceList;
-typedef DistanceList::const_iterator DistanceListCIter;
-
-typedef std::map<uint32,DistanceList> LibraryDistances;
-typedef LibraryDistances::const_iterator LibDistsConstIter;
-#endif
-
 static const SeqInterval NULL_SEQ_LOC = {0,0};
-
-
 
 struct DistanceCompute {
   double  stddev;
@@ -123,6 +108,10 @@ operator<(SeqInterval a, SeqInterval b) {
 }
 #endif
 
+
+
+
+
 class MateLocationEntry {
 public:
   SeqInterval mlePos1;
@@ -187,9 +176,27 @@ public:
     badFwdGraph = new int32 [_tigLen + 1];
     badRevGraph = new int32 [_tigLen + 1];
 
+    badExternalFwd = new int32 [_tigLen + 1];
+    badExternalRev = new int32 [_tigLen + 1];
+
+    badCompressed = new int32 [_tigLen + 1];
+    badStretched  = new int32 [_tigLen + 1];
+    badNormal     = new int32 [_tigLen + 1];
+    badAnti       = new int32 [_tigLen + 1];
+    badOuttie     = new int32 [_tigLen + 1];
+
     memset(goodGraph,   0, sizeof(int32) * (_tigLen + 1));
     memset(badFwdGraph, 0, sizeof(int32) * (_tigLen + 1));
     memset(badRevGraph, 0, sizeof(int32) * (_tigLen + 1));
+
+    memset(badExternalFwd, 0, sizeof(int32) * (_tigLen + 1));
+    memset(badExternalRev, 0, sizeof(int32) * (_tigLen + 1));
+
+    memset(badCompressed, 0, sizeof(int32) * (_tigLen + 1));
+    memset(badStretched,  0, sizeof(int32) * (_tigLen + 1));
+    memset(badNormal,     0, sizeof(int32) * (_tigLen + 1));
+    memset(badAnti,       0, sizeof(int32) * (_tigLen + 1));
+    memset(badOuttie,     0, sizeof(int32) * (_tigLen + 1));
 
     _fi = fi;
 
@@ -201,6 +208,15 @@ public:
     delete [] goodGraph;
     delete [] badFwdGraph;
     delete [] badRevGraph;
+
+    delete [] badExternalFwd;
+    delete [] badExternalRev;
+
+    delete [] badCompressed;
+    delete [] badStretched;
+    delete [] badNormal;
+    delete [] badAnti;
+    delete [] badOuttie;
   };
             
   MateLocationEntry getById(uint32 fragId) {
@@ -216,6 +232,15 @@ public:
   int32  *badFwdGraph;
   int32  *badRevGraph;
 
+  int32  *badExternalFwd;
+  int32  *badExternalRev;
+
+  int32  *badCompressed;
+  int32  *badStretched;
+  int32  *badNormal;
+  int32  *badAnti;
+  int32  *badOuttie;
+
 private:
   void buildTable(Unitig *utg);
   void buildHappinessGraphs(Unitig *utg, DistanceCompute *);
@@ -223,6 +248,9 @@ private:
   void incrRange(int32 *graph, int32 val, int32 n, int32 m) {
     n = MAX(n, 0);
     m = MIN(m, _tigLen);
+
+    assert(n <= _tigLen);
+    assert(0 <= m);
 
     //  Earlier versions asserted n<m (and even earlier versions used i<=m in the loop below, which
     //  made this far more complicated than necessary).  Now, we don't care.  We'll adjust n and m
@@ -233,6 +261,8 @@ private:
 
     for(uint32 i=n; i<m; i++)
       graph[i] += val;
+    for(uint32 i=m; i<n; i++)
+      graph[i] += val;
   };
 
   uint32                     _tigLen;
@@ -241,6 +271,17 @@ private:
   map<uint32,uint32>         _iidToTableEntry;
   FragmentInfo              *_fi;
 };
+
+
+
+class PeakBad {
+public:
+  uint32    bgn;
+  uint32    end;
+  uint32    fragiid;
+};
+
+
 
 
 #endif

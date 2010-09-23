@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.90 2010-09-23 08:42:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.91 2010-09-23 08:45:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -27,7 +27,8 @@ static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.90 2010-09-23 08:42:4
 
 #include "AS_OVL_overlap.h"  //  For DEFAULT_MIN_OLAP_LEN
 
-
+#define BADMATE_INTRA_STDDEV 3  //  Mates more than this stddev away in the same unitig are bad
+#define BADMATE_INTER_STDDEV 5  //  Mates more than this stddev away from the end of the unitig are bad
 
 
 void MateChecker::checkUnitigGraph(UnitigGraph& tigGraph, int badMateBreakThreshold) {
@@ -340,7 +341,8 @@ MateChecker::evaluateMates(UnitigGraph &tigGraph) {
 
       mated[type]++;
 
-      //  Easy case, both fragments in the same unitig.
+      //  Easy case, both fragments in the same unitig.  We can use the isGrumpy flag directly to
+      //  decide if the mates are happy or not.
 
       if (thisUtgID == mateUtgID) {
         assert(mloc.mleUtgID1 == thisUtg->id());
@@ -377,8 +379,8 @@ MateChecker::evaluateMates(UnitigGraph &tigGraph) {
       bool  mateIsInterior = false;
 
       uint32  lib           = _fi->libraryIID(thisFrg->ident);
-      uint32  minInsertSize = _globalStats[lib].mean - 3 * _globalStats[lib].stddev;
-      uint32  maxInsertSize = _globalStats[lib].mean + 3 * _globalStats[lib].stddev;
+      uint32  minInsertSize = _globalStats[lib].mean - BADMATE_INTRA_STDDEV * _globalStats[lib].stddev;
+      uint32  maxInsertSize = _globalStats[lib].mean + BADMATE_INTRA_STDDEV * _globalStats[lib].stddev;
 
       if (thisFrg->position.bgn < thisFrg->position.end) {
         //  Fragment is forward, so mate should be after it.
@@ -406,6 +408,7 @@ MateChecker::evaluateMates(UnitigGraph &tigGraph) {
     }
   }
 
+#warning THIS IS COMPLETELY BROKEN
   fprintf(stderr, "MATE HAPPINESS (dove/dove):  unmated %11"F_U64P"  mated %11"F_U64P"  sameTig: happy %11"F_U64P" grumpy %11"F_U64P"  diffTig: end-end %11"F_U64P" end-int %11"F_U64P" int-int %11"F_U64P"\n",
           unmated[0], mated[0], happy[0], grumpy[0], different[0][0], different[0][1], different[0][2]);
   fprintf(stderr, "MATE HAPPINESS (dove/cont):  unmated %11"F_U64P"  mated %11"F_U64P"  sameTig: happy %11"F_U64P" grumpy %11"F_U64P"  diffTig: end-end %11"F_U64P" end-int %11"F_U64P" int-int %11"F_U64P"\n",
@@ -967,10 +970,50 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
 
   UnitigBreakPoints* breaks = new UnitigBreakPoints();
 
-  uint32 backBgn; // Start position of final backbone unitig
-  DoveTailNode backbone = tig->getLastBackboneNode(); //tig->getLastBackboneNode(backBgn);
-  backBgn = isReverse(backbone.position) ? backbone.position.end :
-    backbone.position.bgn ;
+  DoveTailNode backbone = tig->getLastBackboneNode();
+  uint32       backBgn  = isReverse(backbone.position) ? backbone.position.end : backbone.position.bgn ;
+
+
+#if 0
+  if ((tig->getLength() > 150) &&
+      (tig->dovetail_path_ptr->size() > 3)) {
+    char  filename[FILENAME_MAX] = {0};
+    sprintf(filename, "coverageplot/utg%09u.badCoverage", tig->id());
+
+    fprintf(stderr, "%s -- fwdBads %d revBads %d\n", filename, fwdBads->size(), revBads->size());
+
+    if (AS_UTL_fileExists("coverageplot", TRUE, TRUE) == 0)
+      AS_UTL_mkdir("coverageplot");
+
+    FILE *F = fopen(filename, "w");
+
+    for (uint32 i=0; i<tigLen; i++)
+      fprintf(F, "%u\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+              i,
+              positions.goodGraph[i],
+              positions.badFwdGraph[i],
+              positions.badRevGraph[i],
+              positions.badExternalFwd[i],
+              positions.badExternalRev[i],
+              positions.badCompressed[i],
+              positions.badStretched[i],
+              positions.badNormal[i],
+              positions.badAnti[i],
+              positions.badOuttie[i]);
+
+    fclose(F);
+
+    verbose = true;
+  }
+#endif
+
+
+  if ((fwdBads->size() == 0) &&
+      (revBads->size() == 0)) {
+    delete fwdBads;
+    delete revBads;
+    return(breaks);
+  }
 
   bool combine = false;
   int32 currBackbonePredecessorEnd = 0;
@@ -1146,6 +1189,8 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
           bp.fragPos = frag.position;
           bp.inSize = 100000;
           bp.inFrags = 10;
+          //fprintf(stderr, "BREAK unitig %d at position %d,%d from MATES.\n",
+          //        tig->id(), bp.fragPos.bgn, bp.fragPos.end);
           breaks->push_back(bp);
         }
       }
@@ -1181,6 +1226,8 @@ UnitigBreakPoints* MateChecker::computeMateCoverage(Unitig* tig, BestOverlapGrap
               bp.fragPos = loc;
               bp.inSize = 100001;
               bp.inFrags = 11;
+              //fprintf(stderr, "BREAK unitig %d at position %d,%d from MATES.\n",
+              //        tig->id(), bp.fragPos.bgn, bp.fragPos.end);
               breaks->push_back(bp);
               if (verbose)
                 fprintf(stderr,"Might make frg %d singleton, end %d size %d pos %d,%d\n",
@@ -1268,12 +1315,21 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
       // Don't check libs that we didn't generate good stats for
       continue;
 
-    int32 badMax = static_cast<int32>(globalStats[lib].mean + 5 * globalStats[lib].stddev);
-    int32 badMin = static_cast<int32>(globalStats[lib].mean - 5 * globalStats[lib].stddev);
+    int32 badMaxInter = static_cast<int32>(globalStats[lib].mean + BADMATE_INTER_STDDEV * globalStats[lib].stddev);
+    int32 badMinInter = static_cast<int32>(globalStats[lib].mean - BADMATE_INTER_STDDEV * globalStats[lib].stddev);
+
+    int32 badMaxIntra = static_cast<int32>(globalStats[lib].mean + BADMATE_INTRA_STDDEV * globalStats[lib].stddev);
+    int32 badMinIntra = static_cast<int32>(globalStats[lib].mean - BADMATE_INTRA_STDDEV * globalStats[lib].stddev);
+
+    //  To keep the results the same as the previous version (1.89)
+    badMaxIntra = badMaxInter;
+    badMinIntra = badMinInter;
 
     int32 dist = 0;
     int32 bgn  = 0;
     int32 end  = 0;
+
+    //  Bgn and End MUST be signed.
 
     int32 matBgn = loc.mlePos2.bgn;
     int32 matEnd = loc.mlePos2.end;
@@ -1283,8 +1339,8 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
     int32 frgEnd = loc.mlePos1.end;
     int32 frgLen = (frgBgn < frgEnd) ? (frgEnd - frgBgn) : (frgBgn - frgEnd);
 
-    if ((matLen >= badMax) ||
-        (frgLen >= badMax))
+    if ((matLen >= MIN(badMaxInter, badMaxIntra)) ||
+        (frgLen >= MIN(badMaxInter, badMaxIntra)))
       //  Yikes, fragment longer than insert size!
       continue;
 
@@ -1296,11 +1352,17 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
     //  If the mate is in another unitig, mark bad only if there is enough space to fit the mate in
     //  this unitig.
     if (loc.mleUtgID1 != loc.mleUtgID2) {
-      if ((isReverse(loc.mlePos1) == true)  && (badMax < frgBgn))
+      if ((isReverse(loc.mlePos1) == true)  && (badMaxInter < frgBgn)) {
+        incrRange(badExternalRev, -1, frgBgn - badMaxInter, frgEnd);
+        incrRange(badExternalRev, -1, frgBgn, frgEnd);
         goto markBad;
+      }
 
-      if ((isReverse(loc.mlePos1) == false) && (badMax < _tigLen - frgBgn))
+      if ((isReverse(loc.mlePos1) == false) && (badMaxInter < _tigLen - frgBgn)) {
+        incrRange(badExternalFwd, -1, frgEnd, frgBgn + badMaxInter);
+        incrRange(badExternalFwd, -1, frgEnd, frgBgn);
         goto markBad;
+      }
 
       //  Not enough space.  Not a grumpy mate pair.
       loc.isGrumpy = false;
@@ -1313,11 +1375,16 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
 
     //  Same orientation?
     if ((isReverse(loc.mlePos1) == false) &&
-        (isReverse(loc.mlePos2) == false))
+        (isReverse(loc.mlePos2) == false)) {
+      incrRange(badNormal, -1, MIN(frgBgn, matBgn), MAX(frgEnd, matEnd));
       goto markBad;
+    }
+
     if ((isReverse(loc.mlePos1) == true) &&
-        (isReverse(loc.mlePos2) == true))
+        (isReverse(loc.mlePos2) == true)) {
+      incrRange(badAnti, -1, MIN(frgEnd, matEnd), MAX(frgBgn, matBgn));
       goto markBad;
+    }
 
 
     //  Check a special case for a circular unitig, outtie mates, but close enough to the end to
@@ -1327,8 +1394,8 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
     //  ========unitig==========
     //
     if ((isReverse(loc.mlePos1) == true) &&
-        (badMin <= frgBgn + _tigLen - matBgn) &&
-        (frgBgn + _tigLen - matBgn <= badMax)) {
+        (badMinIntra               <= frgBgn + _tigLen - matBgn) &&
+        (frgBgn + _tigLen - matBgn <= badMaxIntra)) {
       loc.isGrumpy = false;  //  IT'S GOOD, kind of.
       continue;
     }
@@ -1339,10 +1406,14 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
     //  (pos1.end) <------   (pos1.bgn)
     //  (pos2.bgn)  -------> (pos2.end)
     //
-    if ((isReverse(loc.mlePos1) == true)  && (loc.mlePos1.end < loc.mlePos2.bgn))
+    if ((isReverse(loc.mlePos1) == true)  && (loc.mlePos1.end < loc.mlePos2.bgn)) {
+      incrRange(badOuttie, -1, MIN(frgBgn, frgEnd), MAX(matBgn, matEnd));
       goto markBad;
-    if ((isReverse(loc.mlePos1) == false) && (loc.mlePos2.end < loc.mlePos1.bgn))
+    }
+    if ((isReverse(loc.mlePos1) == false) && (loc.mlePos2.end < loc.mlePos1.bgn)) {
+      incrRange(badOuttie, -1, MIN(frgBgn, frgEnd), MAX(matBgn, matEnd));
       goto markBad;
+    }
 
     //  So, now not NORMAL or ANTI or OUTTIE.  We must be left with innies.
 
@@ -1355,13 +1426,22 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
 
     assert(dist >= 0);
 
-    if ((badMin <= dist) && (dist <= badMax)) {
-      bgn = frgBgn;
-      end = matBgn;
-      incrRange(goodGraph, 2, bgn, end);
-      loc.isGrumpy = false;  //  IT'S GOOD!
-      continue;
+    if (dist < badMinIntra) {
+      incrRange(badCompressed, -1, MIN(frgBgn, matBgn), MAX(frgBgn, matBgn));
+      goto markBad;
     }
+
+    if (badMaxIntra < dist) {
+      incrRange(badStretched, -1, MIN(frgBgn, matBgn), MAX(frgBgn, matBgn));
+      goto markBad;
+    }
+
+    assert(badMinIntra <= dist);
+    assert(dist        <= badMaxIntra);
+
+    incrRange(goodGraph, 1, MIN(frgBgn, matBgn), MAX(frgBgn, matBgn));
+    loc.isGrumpy = false;  //  IT'S GOOD!
+    continue;
 
   markBad:
 
@@ -1371,14 +1451,18 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
       assert(loc.mleFrgID1 != 0);
       if (isReverse(loc.mlePos1) == false) {
         //  Mark bad for forward fagment 1
+        assert(frgBgn < frgEnd);
         bgn = frgEnd;
-        end = frgBgn + badMax;
+        end = frgBgn + badMaxIntra;
         incrRange(badFwdGraph, -1, bgn, end);
+        fprintf(stderr, "badFwdGraph1 %d %d\n", bgn, end);
       } else {
         //  Mark bad for reverse fragment 1
-        bgn = frgBgn - badMax;
+        assert(frgEnd < frgBgn);
+        bgn = frgBgn - badMaxIntra;
         end = frgEnd;
         incrRange(badRevGraph, -1, bgn, end);
+        fprintf(stderr, "badRevGraph1 %d %d\n", bgn, end);
       }
     }
 
@@ -1386,14 +1470,18 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
       assert(loc.mleFrgID2 != 0);
       if (isReverse(loc.mlePos2) == false) {
         //  Mark bad for forward fragment 2
+        assert(matBgn < matEnd);
         bgn = matEnd;
-        end = matBgn + badMax;
+        end = matBgn + badMaxIntra;
         incrRange(badFwdGraph, -1, bgn, end);
+        fprintf(stderr, "badFwdGraph2 %d %d\n", bgn, end);
       } else {
         //  Mark bad for reverse fragment 2
-        bgn = matBgn - badMax;
+        assert(matEnd < matBgn);
+        bgn = matBgn - badMaxIntra;
         end = matEnd;
         incrRange(badRevGraph, -1, bgn, end);
+        fprintf(stderr, "badRevGraph2 %d %d\n", bgn, end);
       }
     }
   }  //  Over all MateLocationEntries in the table
