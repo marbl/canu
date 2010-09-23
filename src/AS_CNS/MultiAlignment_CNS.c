@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.254 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.255 2010-09-23 20:34:51 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -467,7 +467,7 @@ GetMANodePositions(int32        mid,
   ResetVA_int32(ma->fdelta);
   ResetVA_int32(ma->udelta);
 
-  for (int32 i=0; i<GetNumFragments(fragmentStore); i++) {
+  for (uint32 i=0; i<GetNumFragments(fragmentStore); i++) {
     Fragment *fragment = GetFragment(fragmentStore, i);
 
     //fprintf(stderr, "GetMANodePositions()--  frag %d ident %d deleted %d\n",
@@ -528,7 +528,7 @@ GetMANodePositions(int32        mid,
   n_frags   = 0;
   n_unitigs = 0;
 
-  for (int32 i=0; i<GetNumFragments(fragmentStore); i++) {
+  for (uint32 i=0; i<GetNumFragments(fragmentStore); i++) {
     Fragment *fragment = GetFragment(fragmentStore, i);
 
     if (fragment->deleted)
@@ -1118,7 +1118,7 @@ ShowColumn(int32 cid) {
             bead->prev,
             bead->next,
             type,
-            (type == AS_UNITIG)?utype:'.');
+            utype);
 
     assert(bead->column_index == cid);
   }
