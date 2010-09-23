@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.91 2010-09-23 08:45:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.92 2010-09-23 21:28:50 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -1455,14 +1455,12 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
         bgn = frgEnd;
         end = frgBgn + badMaxIntra;
         incrRange(badFwdGraph, -1, bgn, end);
-        fprintf(stderr, "badFwdGraph1 %d %d\n", bgn, end);
       } else {
         //  Mark bad for reverse fragment 1
         assert(frgEnd < frgBgn);
         bgn = frgBgn - badMaxIntra;
         end = frgEnd;
         incrRange(badRevGraph, -1, bgn, end);
-        fprintf(stderr, "badRevGraph1 %d %d\n", bgn, end);
       }
     }
 
@@ -1474,14 +1472,12 @@ MateLocation::buildHappinessGraphs(Unitig *utg, DistanceCompute *globalStats) {
         bgn = matEnd;
         end = matBgn + badMaxIntra;
         incrRange(badFwdGraph, -1, bgn, end);
-        fprintf(stderr, "badFwdGraph2 %d %d\n", bgn, end);
       } else {
         //  Mark bad for reverse fragment 2
         assert(matEnd < matBgn);
         bgn = matBgn - badMaxIntra;
         end = matEnd;
         incrRange(badRevGraph, -1, bgn, end);
-        fprintf(stderr, "badRevGraph2 %d %d\n", bgn, end);
       }
     }
   }  //  Over all MateLocationEntries in the table
