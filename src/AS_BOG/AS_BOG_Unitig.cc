@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.25 2010-04-26 04:11:59 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.26 2010-09-23 02:31:22 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -43,7 +43,6 @@ uint32* Unitig::_pathPosition = NULL;
 
 Unitig::Unitig(bool report){
   _localArrivalRate = -1;
-  _covStat          = FLT_MAX;
   _length           = -1;
   _avgRho           = -1;
   dovetail_path_ptr = new DoveTailPath;
@@ -688,7 +687,6 @@ float Unitig::getLocalArrivalRate(FragmentInfo *fi){
 
 
 float Unitig::getCovStat(FragmentInfo *fi){
-
   const float ln2=0.69314718055994530941723212145818;
 
   // Note that we are using numFrags in this calculation.
@@ -699,18 +697,15 @@ float Unitig::getCovStat(FragmentInfo *fi){
   //   The value should really be "number of randomly sampled
   //   fragments in the unitig".
 
-  if(_globalArrivalRate==-1)
-    fprintf(stderr, "You have not set the _globalArrivalRate variable.\n");
+  //if(_globalArrivalRate == -1)
+  //  fprintf(stderr, "You have not set the _globalArrivalRate variable.\n");
 
-  if(_covStat == FLT_MAX){
-    if(_globalArrivalRate > 0.0){
-      _covStat = (getAvgRho(fi) * _globalArrivalRate) - (ln2 * (getNumFrags() -1));
-    }else{
-      _covStat = 0.0;
-    }
-  }
+  float covStat = 0.0;
 
-  return(_covStat);
+  if (_globalArrivalRate > 0.0)
+    covStat = (getAvgRho(fi) * _globalArrivalRate) - (ln2 * (getNumFrags() -1));
+
+  return(covStat);
 }
 
 
