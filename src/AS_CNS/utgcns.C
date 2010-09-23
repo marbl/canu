@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcns.C,v 1.9 2009-12-10 04:23:03 brianwalenz Exp $";
+const char *mainid = "$Id: utgcns.C,v 1.10 2010-09-23 08:50:24 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -65,6 +65,11 @@ main (int argc, char **argv) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
       tigPart = atoi(argv[++arg]);
+
+      if (tigVers <= 0)
+        fprintf(stderr, "invalid tigStore version (-t store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
+      if ((tigPart <= 0) && (argv[arg][0] != '.'))
+        fprintf(stderr, "invalid tigStore partition (-t store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       utgTest = atoi(argv[++arg]);
@@ -148,6 +153,8 @@ main (int argc, char **argv) {
     delete tigStore;
     tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, TRUE, FALSE, TRUE);
   }
+
+  fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32"\n", b, e);
 
   //  Now the usual case.  Iterate over all unitigs, compute and update.
   for (uint32 i=b; i<e; i++) {
