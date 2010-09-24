@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.49 2010-08-24 15:02:38 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.50 2010-09-24 02:33:47 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -189,6 +189,8 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
 
   //  Build the partition mapping
 
+  memset(partmap, 0xff, sizeof(uint32) * (ScaffoldGraph->tigStore->numContigs() + 1));
+
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while ((ctg = NextGraphNodeIterator(&nodes)) != NULL) {
     if (ctg->flags.bits.isChaff)
@@ -218,6 +220,7 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
 
     //fprintf(stderr, "contig %d into partition %d\n", ma->maID, partitionNum);
 
+    assert(ma->maID < ScaffoldGraph->tigStore->numContigs() + 1);
     partmap[ma->maID]  = partitionNum;
 
     partitionContigs += 1;
@@ -232,7 +235,7 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
 
   //  Reset the tigStore for partitioning
 
-  ScaffoldGraph->tigStore->writeToPartitioned(NULL, partmap);
+  ScaffoldGraph->tigStore->writeToPartitioned(NULL, 0, partmap, ScaffoldGraph->tigStore->numContigs() + 1);
 
   //  Finalize contigs, remove existing alignments and write to the partitioned store.
 

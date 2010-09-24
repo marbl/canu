@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.43 2010-08-12 19:19:48 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.44 2010-09-24 02:33:47 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -72,6 +72,8 @@ output_the_chunks(Tfragment     *frags,
 
   //  Step through all the unitigs once to build the partition mapping and IID mapping.
 
+  memset(partmap, 0xff, sizeof(uint32) * nchunks);
+
   for (int32 ci=0; ci<nchunks; ci++) {
     AChunkMesg     *ch  = GetVA_AChunkMesg(thechunks,ci);
     uint32          nf  = ch->num_frags;
@@ -87,6 +89,7 @@ output_the_chunks(Tfragment     *frags,
       frg_count = 0;
     }
 
+    assert(ch->iaccession < nchunks);
     partmap[ch->iaccession] = prt_count;
 
     fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (in partition "F_U32" with "F_S64" frags)\n",
@@ -113,7 +116,7 @@ output_the_chunks(Tfragment     *frags,
   MultiAlignStore  *MAS = new MultiAlignStore(tigStorePath);
   MultiAlignT      *ma  = CreateEmptyMultiAlignT();
 
-  MAS->writeToPartitioned(partmap, NULL);
+  MAS->writeToPartitioned(partmap, nchunks, NULL, 0);
 
   for (int32 ci=0; ci<nchunks; ci++) {
     AChunkMesg     *ch  = GetVA_AChunkMesg(thechunks,ci);

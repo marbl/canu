@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
-static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.7 2009-12-12 11:54:03 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.8 2010-09-24 02:33:47 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -101,7 +101,8 @@ public:
   //  processed.  Later, the store is opened unpartitioned.  We now see all three contigs.
   //
   //
-  void           writeToPartitioned(uint32 *unitigPartMap, uint32 *contigPartMap);
+  void           writeToPartitioned(uint32 *unitigPartMap, uint32 unitigPartMapLen,
+                                    uint32 *contigPartMap, uint32 contigPartMapLen);
 
   
   //  Add or update a MA in the store.  If keepInCache, we keep a pointer to the MultiAlignT.  THE
@@ -190,7 +191,10 @@ private:
   //  little sense to change the unitig partitioning when the contigs are partitioned.
   //
   uint32                 *unitigPartMap;          //  Unitig partitioning
+  uint32                  unitigPartMapLen;       //  Unitig partitioning
+
   uint32                 *contigPartMap;          //  Contig partitioning
+  uint32                  contigPartMapLen;       //  Contig partitioning
 
   //  Loading restrictions; if these are non-zero, we can only load tigs in this partition.
   //  Attempts to load other tigs result in NULL returns.  On write, these will set or override the

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.2 2010-09-24 02:33:47 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -103,6 +103,8 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
 
   //  Step through all the unitigs once to build the partition mapping and IID mapping.
 
+  memset(partmap, 0xff, sizeof(uint32) * unitigs->size());
+
   for (uint32 iumiid=0, ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];
     uint32   nf  = (utg) ? utg->getNumFrags() : 0;
@@ -124,10 +126,16 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
       frg_count = 0;
     }
 
-    partmap[iumiid] = prt_count;
+    uint32 tigid = (isFinal) ? iumiid : ti;
+
+    assert(tigid < unitigs->size());
+    partmap[tigid] = prt_count;
 
     fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (in partition "F_U32" with "F_S64" frags)\n",
-            utg->id(), iumiid, partmap[iumiid], nf);
+            utg->id(),
+            (tigid),
+            partmap[(tigid)],
+            nf);
 
     for (int32 fragIdx=0; fragIdx<nf; fragIdx++) {
       DoveTailNode  *f = &(*utg->dovetail_path_ptr)[fragIdx];
@@ -153,7 +161,7 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
   MultiAlignStore  *MAS = new MultiAlignStore(tigStorePath);
   MultiAlignT      *ma  = CreateEmptyMultiAlignT();
 
-  MAS->writeToPartitioned(partmap, NULL);
+  MAS->writeToPartitioned(partmap, unitigs->size(), NULL, 0);
 
   for (uint32 iumiid=0, ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];

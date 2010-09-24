@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.18 2010-08-24 14:59:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.19 2010-09-24 02:33:47 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -257,6 +257,9 @@ MultiAlignStore::nextVersion(void) {
 
   //  Bump to the next version.
 
+  //fprintf(stderr, "MultiAlignStore()-- moving from version %d to version %d; utgLen %d ctgLen %d\n",
+  //        currentVersion, currentVersion+1, utgLen, ctgLen);
+
   currentVersion++;
 
   //  Remove any existing files at that version level.
@@ -267,7 +270,8 @@ MultiAlignStore::nextVersion(void) {
 
 
 void
-MultiAlignStore::writeToPartitioned(uint32 *unitigPartMap_, uint32 *contigPartMap_) {
+MultiAlignStore::writeToPartitioned(uint32 *unitigPartMap_, uint32 unitigPartMapLen_,
+                                    uint32 *contigPartMap_, uint32 contigPartMapLen_) {
 
   assert(writable == true);          //  Must be writable to write!
   assert(inplace == false);
@@ -288,8 +292,11 @@ MultiAlignStore::writeToPartitioned(uint32 *unitigPartMap_, uint32 *contigPartMa
     fprintf(stderr, "MultiAlignStore::writeToPartitiond()--  ERROR!  Attempting to partition both unitigs and contigs.\n");
   assert((unitigPartMap_ == NULL) || (contigPartMap_ == NULL));
 
-  unitigPartMap = unitigPartMap_;
-  contigPartMap = contigPartMap_;
+  unitigPartMap    = unitigPartMap_;
+  unitigPartMapLen = unitigPartMapLen_;
+
+  contigPartMap    = contigPartMap_;
+  contigPartMapLen = contigPartMapLen_;
 }
 
 
@@ -314,11 +321,13 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
     if (ma->maID < 0) {
       ma->maID = utgLen;
       newTigs  = true;
-      assert(contigPart == 0);
-      assert(contigPartMap == 0);
+      assert(contigPart       == 0);
+      assert(contigPartMap    == NULL);
+      assert(contigPartMapLen == 0);
+      fprintf(stderr, "insertMultiAlign()-- Added new unitig %d\n", ma->maID);
     }
 
-    if (utgMax <= (uint32)ma->maID) {
+    if (utgMax <= ma->maID) {
       utgMax = (utgMax == 0) ? (65536) : (2 * utgMax);
       assert(ma->maID < utgMax);
 
@@ -329,18 +338,20 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
       memset(utgCache  + utgLen, 0, sizeof(MultiAlignT *) * (utgMax - utgLen));
     }
 
-    utgLen = MAX(utgLen, (uint32)ma->maID + 1);
+    utgLen = MAX(utgLen, ma->maID + 1);
   }
 
   if (isUnitig == 0) {
     if (ma->maID < 0) {
       ma->maID = ctgLen;
       newTigs  = true;
-      assert(unitigPart == 0);
-      assert(unitigPartMap == 0);
+      assert(unitigPart       == 0);
+      assert(unitigPartMap    == NULL);
+      assert(unitigPartMapLen == 0);
+      fprintf(stderr, "insertMultiAlign()-- Added new contig %d\n", ma->maID);
     }
 
-    if (ctgMax <= (uint32)ma->maID) {
+    if (ctgMax <= ma->maID) {
       ctgMax = (ctgMax == 0) ? (65536) : (2 * ctgMax);
       assert(ma->maID < ctgMax);
 
@@ -351,7 +362,7 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
       memset(ctgCache  + ctgLen, 0, sizeof(MultiAlignT *) * (ctgMax - ctgLen));
     }
 
-    ctgLen = MAX(ctgLen, (uint32)ma->maID + 1);
+    ctgLen = MAX(ctgLen, ma->maID + 1);
   }
 
   MultiAlignR  *maRecord = (isUnitig) ? (utgRecord + ma->maID) : (ctgRecord + ma->maID);
@@ -379,17 +390,41 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
   //
   if (isUnitig == true) {
     if ((contigPart > 0) || (contigPartMap != NULL))
-      fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Attempt to insert a contig into a store parititioned on unitigs.\n");
+      fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Attempt to insert a unitig into a store parititioned on contigs.\n");
     assert(contigPart    == 0);
     assert(contigPartMap == NULL);
+    if (unitigPartMap) {
+      if (unitigPartMapLen <= ma->maID)
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Attempt to insert a unitig (id=%d) into a store partitioned only for %d unitigs.\n",
+                ma->maID, unitigPartMapLen);
+      if (unitigPartMap[ma->maID] == 0)
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Unitig %d is partitioned to partition 0.\n", ma->maID);
+      if (unitigPartMap[ma->maID] == 0xffffffff)
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Unitig %d is partitioned, but not in a partition.\n", ma->maID);
+      assert(unitigPartMapLen > ma->maID);
+      assert(unitigPartMap[ma->maID] != 0);
+      assert(unitigPartMap[ma->maID] != 0xffffffff);
+    }
     maRecord->ptID = (unitigPartMap) ? unitigPartMap[ma->maID] : unitigPart;
   }
 
   if (isUnitig == false) {
     if ((unitigPart > 0) || (unitigPartMap != NULL))
-      fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Attempt to insert a unitig into a store parititioned on contigs.\n");
+      fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Attempt to insert a contig into a store parititioned on unitigs.\n");
     assert(unitigPart    == 0);
     assert(unitigPartMap == NULL);
+    if (contigPartMap) {
+      if (contigPartMapLen <= ma->maID)
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Attempt to insert a contig (id=%d) into a store partitioned only for %d contigs.\n",
+                ma->maID, contigPartMapLen);
+      if (contigPartMap[ma->maID] == 0)
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Contig %d is partitioned to partition 0.\n", ma->maID);
+      if (contigPartMap[ma->maID] == 0xffffffff)
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()--  ERROR!  Contig %d is partitioned, but not in a partition.\n", ma->maID);
+      assert(contigPartMapLen > ma->maID);
+      assert(contigPartMap[ma->maID] != 0);
+      assert(contigPartMap[ma->maID] != 0xffffffff);
+    }
     maRecord->ptID = (contigPartMap) ? contigPartMap[ma->maID] : contigPart;
   }
 
@@ -619,8 +654,6 @@ MultiAlignStore::dumpMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, ui
     uint32       *indx    = (uint32      *)safe_malloc(sizeof(uint32)      * L);
     MultiAlignR  *masr    = (MultiAlignR *)safe_malloc(sizeof(MultiAlignR) * L);
 
-    fprintf(stderr, "MultiAlignStore::dumpMASRfile()-- Writing '%s' partitioned.\n", name);
-
     //  Copy all the metadata for this partition into our buffer...
     //
     //  ...and, if this is the first partition, copy all the deleted stuff here too.  No client will
@@ -634,6 +667,8 @@ MultiAlignStore::dumpMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, ui
       }
     }
 
+    fprintf(stderr, "MultiAlignStore::dumpMASRfile()-- Writing '%s' partitioned (indxLen=%d masrLen=%d).\n", name, indxLen, masrLen);
+
     AS_UTL_safeWrite(F, &indxLen, "MASRindxLen", sizeof(uint32),      1);
     AS_UTL_safeWrite(F, &masrLen, "MASRlen",     sizeof(uint32),      1);
 
@@ -646,7 +681,7 @@ MultiAlignStore::dumpMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, ui
   } else {
     uint32  indxLen = 0;
 
-    fprintf(stderr, "MultiAlignStore::dumpMASRfile()-- Writing '%s' unpartitioned.\n", name);
+    fprintf(stderr, "MultiAlignStore::dumpMASRfile()-- Writing '%s' unpartitioned (indxLen=%d masrLen=%d).\n", name, indxLen, L);
 
     AS_UTL_safeWrite(F, &indxLen, "MASRindexLen", sizeof(uint32),      1);
     AS_UTL_safeWrite(F, &L,       "MASRlen",      sizeof(uint32),      1);
