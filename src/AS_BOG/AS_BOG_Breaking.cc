@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.2 2010-09-24 15:01:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -49,8 +49,8 @@ UnitigBreakPoint UnitigGraph::selectSmall(ContainerMap &cMap,
   if (cMap.find(big.fragEnd.fragId()) != cMap.end())
     bContain = cMap[big.fragEnd.fragId()].size();
 
-  if (((bRev == true)  && (big.fragEnd == THREE_PRIME)) ||
-      ((bRev == false) && (big.fragEnd == FIVE_PRIME)))
+  if (((bRev == true)  && (big.fragEnd.fragEnd() == THREE_PRIME)) ||
+      ((bRev == false) && (big.fragEnd.fragEnd() == FIVE_PRIME)))
     rFrgs -= 1 + bContain;
 
   for(UnitigBreakPoints::const_iterator sIter = smalls.begin(); sIter != smalls.end(); sIter++) {
@@ -68,8 +68,8 @@ UnitigBreakPoint UnitigGraph::selectSmall(ContainerMap &cMap,
       sContain = cMap[sid].size();
 
     // left side of the frag in the unitig, don't count it
-    if (((rev == true)  && (small.fragEnd == THREE_PRIME)) ||
-        ((rev == false) && (small.fragEnd == FIVE_PRIME)))
+    if (((rev == true)  && (small.fragEnd.fragEnd() == THREE_PRIME)) ||
+        ((rev == false) && (small.fragEnd.fragEnd() == FIVE_PRIME)))
       lFrgs -= 1 + sContain;
 
     if (rFrgs - lFrgs == 1)
@@ -144,8 +144,8 @@ void UnitigGraph::filterBreakPoints(ContainerMap &cMap,
 
           bool bRev = isReverse(nextBP.fragPos);
 
-          if (((bRev == true)  && (nextBP.fragEnd == THREE_PRIME)) ||
-              ((bRev == false) && (nextBP.fragEnd == FIVE_PRIME)))
+          if (((bRev == true)  && (nextBP.fragEnd.fragEnd() == THREE_PRIME)) ||
+              ((bRev == false) && (nextBP.fragEnd.fragEnd() == FIVE_PRIME)))
             lastBPFragNum -= 1 + bContain;
         }
 
