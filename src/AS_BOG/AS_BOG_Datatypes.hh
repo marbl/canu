@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.39 2010-03-16 13:06:17 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.40 2010-09-25 07:42:21 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -53,13 +53,18 @@ void  setLogFile(char *prefix, char *name);
 
 class FragmentEnd {
 public:
-  FragmentEnd(uint32 id=0, uint32 end=FIVE_PRIME) {
+  FragmentEnd() {
+    _id  = 0;
+    _end = 0;
+  };
+  FragmentEnd(uint32 id, uint32 end) {
     _id  = id;
     _end = end;
   };
 
   uint32  fragId(void)  const { return(_id); };
   uint32  fragEnd(void) const { return(_end); };
+  uint32  index(void)   const { return(_id * 2 + _end); };
 
   bool operator==(FragmentEnd const that) const {
     return((fragId() == that.fragId()) && (fragEnd() == that.fragEnd()));

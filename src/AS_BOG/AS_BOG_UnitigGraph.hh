@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.74 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.75 2010-09-25 07:42:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -71,7 +71,20 @@ struct UnitigBreakPoint {
   int         inSize;           // the size of the incoming unitig
   int         inFrags;          // the number of fragments in incoming unitig
 
-  UnitigBreakPoint(uint32 id=0, uint32 end=FIVE_PRIME) {
+  UnitigBreakPoint() {
+    fragEnd      = FragmentEnd();
+    fragPos.bgn  = 0;
+    fragPos.end  = 0;
+
+    fragsBefore  = 0;
+    fragsAfter   = 0;
+
+    inEnd        = FragmentEnd();
+    inSize       = 0;
+    inFrags      = 0;
+  };
+
+  UnitigBreakPoint(uint32 id, uint32 end) {
     fragEnd      = FragmentEnd(id, end);
     fragPos.bgn  = 0;
     fragPos.end  = 0;
@@ -82,7 +95,7 @@ struct UnitigBreakPoint {
     inEnd        = FragmentEnd();
     inSize       = 0;
     inFrags      = 0;
-  }
+  };
 };
 
 //  Unfortunately, this does need to be a list.  Search for pop_front.
