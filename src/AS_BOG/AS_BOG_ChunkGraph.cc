@@ -19,109 +19,149 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.30 2010-01-25 12:58:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.31 2010-09-25 07:48:45 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
 
-ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *BOG){
+ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *bog) {
 
-  _max_fragments   = fi->numFragments();
+  _BOG             = bog;
 
-  uint32 *pathLen = new uint32[(_max_fragments+1)*2];
-  memset(pathLen, 0, sizeof(uint32)*(_max_fragments+1)*2);
+  _maxFragment     = fi->numFragments();
 
-  _chunk_lengths   = new _chunk_length      [_max_fragments];
-  for(uint32 frag_id=1; frag_id<=_max_fragments; frag_id++){
-    _chunk_lengths[frag_id-1].fragId = frag_id;
-    _chunk_lengths[frag_id-1].cnt    = (countFullWidth(BOG, pathLen, frag_id, FIVE_PRIME) +
-                                        countFullWidth(BOG, pathLen, frag_id, THREE_PRIME));
+  _pathLen         = new uint32      [_maxFragment * 2 + 2];
+  _chunkLength     = new ChunkLength [_maxFragment];
+  _chunkLengthIter = 0;
+
+  memset(_pathLen, 0, sizeof(uint32) * (_maxFragment * 2 + 2));
+
+  for (uint32 fid=1; fid <= _maxFragment; fid++) {
+    if (bog->isContained(fid))
+      continue;
+
+    _chunkLength[fid-1].fragId = fid;
+    _chunkLength[fid-1].cnt    = (countFullWidth(FragmentEnd(fid, FIVE_PRIME)) +
+                                  countFullWidth(FragmentEnd(fid, THREE_PRIME)));
   }
 
-  std::sort(_chunk_lengths, _chunk_lengths + _max_fragments);
+  delete [] _pathLen;
+  _pathLen = NULL;
 
-  delete[] pathLen;
+  std::sort(_chunkLength, _chunkLength + _maxFragment);
 }
 
 
 uint32
-ChunkGraph::countFullWidth(BestOverlapGraph *BOG, uint32 *pathLen, uint32 firstFrag, uint32 end) {
-  uint32 index = firstFrag * 2 + end;
+ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
 
-  if (pathLen[index] > 0)
-    return pathLen[index];
+  assert(firstEnd.index() < _maxFragment * 2 + 2);
 
-  uint32                cnt    = 0;
-  uint32                cntMax = 0;
+  if (_pathLen[firstEnd.index()] > 0)
+    return _pathLen[firstEnd.index()];
+
+  uint32                length = 0;
   std::set<FragmentEnd> seen;
-  FragmentEnd           lastEnd(firstFrag, end);
+  FragmentEnd           lastEnd = firstEnd;
 
-  //  Until we run off the chain, or we hit a fragment with a known
-  //  length, compute the length FROM THE START.
+  //  Until we run off the chain, or we hit a fragment with a known length, compute the length FROM
+  //  THE START.
   //
   while ((lastEnd.fragId() != 0) &&
-         (pathLen[index] == 0)) {
+         (_pathLen[lastEnd.index()] == 0)) {
 
     seen.insert(lastEnd);
 
-    pathLen[index] = ++cnt;
+    _pathLen[lastEnd.index()] = ++length;
 
     //  Follow the path of lastEnd
 
-    lastEnd = BOG->followOverlap(lastEnd);
-    index   = lastEnd.fragId() * 2 + lastEnd.fragEnd();
+    lastEnd = _BOG->followOverlap(lastEnd);
   }
 
-  //  Check why we stopped.  If we've seen this fragment before, we
-  //  just encountered a cycle in the graph.  Adjust every node in the
-  //  cycle to have the correct length.
+  //  Check why we stopped.  Three cases:
   //
-  //  Otherwise, we've stopped because we've hit a fragment with a
-  //  known path length.
+  //  1)  We ran out of best edges to follow -- lastEnd.fragId() == 0
+  //  2)  We encountered a fragment with known length -- _pathLen[lastEnd.index()] > 0
+  //  3)  We encountered a self-loop (same condition as case 2)
+  //
+  //  To distinguish case 2 and 3, we keep a set<> of the fragments we've seen in this construction.
+  //  If 'lastEnd' is in that set, then we're case 3.  If so, adjust every node in the cycle to have
+  //  the same length, the length of the cycle itself.
+  //
+  //  'lastEnd' and 'index' are the first fragment in the cycle; we've seen this one before.
+  //
+  if (lastEnd.fragId() == 0) {
+    //  Case 1.  Do nothing.
+    ;
 
-  if (seen.find(lastEnd) != seen.end()) {
-    //  If we end because of a cycle, mark points in circle same count.
-    //  lastEnd will be the first fragment in the path that is in the
-    //  circle, the * below (the path follows the top edge around).
-    //
-    //  >---------*------\
-    //            |      |
-    //            \------/
-
-    //  pathLen[index] is the length of the path at the *.
-    //
-    uint32      circleLen = cnt - pathLen[index];
-    FragmentEnd currEnd   = lastEnd;
-
+  } else if (seen.find(lastEnd) != seen.end()) {
+    //  Case 3, a cycle.
+    uint32      cycleLen = length - _pathLen[lastEnd.index()] + 1;
+    FragmentEnd currEnd  = lastEnd;
     do {
-      pathLen[index] = circleLen;
-      currEnd = BOG->followOverlap(currEnd);
-
-      index = currEnd.fragId() * 2 + currEnd.fragEnd();
+      _pathLen[currEnd.index()] = cycleLen;
+      currEnd = _BOG->followOverlap(currEnd);
     } while (lastEnd != currEnd);
 
-  } else if (lastEnd.fragId() != 0) {
-    //  Otherwise, if lastEnd is not NULL, we must have stopped
-    //  because of an existing path.
-    cnt += pathLen[index];
+  } else {
+    //  Case 2, an existing path.
+    length += _pathLen[lastEnd.index()];
   }
 
   //  Our return value is now whatever count we're at.
-  cntMax = cnt;
+  uint32 lengthMax = length;
 
-  //  Traverse the last again, converting path length from the start
-  //  to be path length from the end.  Notice that we stop at either
-  //  the end of the path -- either NULL or the first frag with known
-  //  length -- or the start of the circle.
+  //  Traverse again, converting "path length from the start" into "path length from the end".  Any
+  //  cycle has had its length set correctly already, and we stop at either the start of the cycle,
+  //  or at the start of any existing path.
   //
-  FragmentEnd currEnd(firstFrag, end);
+  FragmentEnd currEnd = firstEnd;
 
   while (currEnd.fragId() != lastEnd.fragId()) {
-    pathLen[currEnd.fragId() * 2 + currEnd.fragEnd()] = cnt--;
-    currEnd = BOG->followOverlap(currEnd);
+    _pathLen[currEnd.index()] = length--;
+    currEnd = _BOG->followOverlap(currEnd);
   }
 
-  return(cntMax);
+#ifdef EMIT_CHUNK_GRAPH_PATH
+  seen.clear();
+
+  currEnd = firstEnd;
+
+  fprintf(stderr, "PATH from %d,%d:",
+          firstEnd.fragId(),
+          (firstEnd.fragEnd() == FIVE_PRIME) ? 5 : 3);
+
+  while ((currEnd.fragId() != 0) &&
+         (seen.find(currEnd) == seen.end())) {
+    seen.insert(currEnd);
+
+    if (currEnd.fragId() == lastEnd.fragId())
+      fprintf(stderr, " LAST");
+
+    fprintf(stderr, " %d,%d(%d)",
+            currEnd.fragId(),
+            (currEnd.fragEnd() == FIVE_PRIME) ? 5 : 3,
+            _pathLen[currEnd.index()]);
+
+    currEnd = _BOG->followOverlap(currEnd);
+  }
+
+  if (seen.find(currEnd) != seen.end())
+    fprintf(stderr, " CYCLE %d,%d(%d)",
+            currEnd.fragId(),
+            (currEnd.fragEnd() == FIVE_PRIME) ? 5 : 3,
+            _pathLen[currEnd.index()]);
+
+  fprintf(stderr, "\n");
+#endif
+
+  if (lengthMax != _pathLen[firstEnd.index()])
+    fprintf(stderr, "ERROR: lengthMax %d _pathLen[] %d\n",
+            lengthMax, _pathLen[firstEnd.index()]);
+  assert(lengthMax == _pathLen[firstEnd.index()]);
+
+  return(_pathLen[firstEnd.index()]);
 }

@@ -22,48 +22,46 @@
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.20 2009-06-15 07:01:37 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.21 2010-09-25 07:48:45 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
-#define PROMISCUOUS
+class BestOverlapGraph;
 
-struct BestOverlapGraph;
-
-struct ChunkGraph{
+class ChunkLength {
 public:
-  ChunkGraph(FragmentInfo *fi, BestOverlapGraph *bovlg);
+  uint32 fragId;
+  uint32 cnt;
+
+  bool operator<(ChunkLength const that) const {
+    if (cnt == that.cnt)
+      return(fragId < that.fragId);
+    return(cnt > that.cnt);
+  };
+};
+
+
+class ChunkGraph {
+public:
+  ChunkGraph(FragmentInfo *fi, BestOverlapGraph *bog);
   ~ChunkGraph(void) {
-    delete [] _chunk_lengths;
+    delete [] _chunkLength;
   };
 
   uint32 nextFragByChunkLength(void) {
-    static uint32 pos = 0;
-
-    if (pos < _max_fragments)
-      return _chunk_lengths[pos++].fragId;
-
-    pos = 0;
+    if (_chunkLengthIter < _maxFragment)
+      return(_chunkLength[_chunkLengthIter++].fragId);
     return(0);
   };
 
 private:
-  uint32 countFullWidth(BestOverlapGraph *BOG, uint32 *, uint32, uint32 );
+  uint32 countFullWidth(FragmentEnd firstEnd);
 
-  struct _chunk_length {
-    uint32 fragId;
-    uint32 cnt;
-
-    bool operator<(_chunk_length const that) const {
-      if (cnt == that.cnt)
-        return(fragId < that.fragId);
-      return(cnt > that.cnt);
-    };
-  };
-  _chunk_length      *_chunk_lengths;
-
-  uint32              _max_fragments;
+  BestOverlapGraph   *_BOG;
+  uint32              _maxFragment;
+  ChunkLength        *_chunkLength;
+  uint32              _chunkLengthIter;
+  uint32             *_pathLen;
 };
 
 #endif
-
