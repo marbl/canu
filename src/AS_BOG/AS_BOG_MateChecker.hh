@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.37 2010-09-23 08:45:34 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.38 2010-09-28 06:37:46 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -265,7 +265,7 @@ private:
       graph[i] += val;
   };
 
-  uint32                     _tigLen;
+  int32                      _tigLen;
 
   vector<MateLocationEntry>  _table;
   map<uint32,uint32>         _iidToTableEntry;
