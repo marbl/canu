@@ -76,6 +76,7 @@ Sim4::complement_exons(Exon **left, int M, int N) {
 void
 Sim4::get_stats(Exon *lblock, sim4_stats_t *st) {
   Exon *t, *t1;
+  bool  singleExon = true;
 
   st->icoverage = 0;
   st->internal  = 1;
@@ -89,6 +90,7 @@ Sim4::get_stats(Exon *lblock, sim4_stats_t *st) {
   t = lblock;
   while (t) {
     t1 = t->next_exon;
+    if (t->toGEN && t1 && t1->toGEN) singleExon = false;
 
     if ((t->toGEN) &&
         (t1) && 
@@ -100,8 +102,9 @@ Sim4::get_stats(Exon *lblock, sim4_stats_t *st) {
   }
 
   if (!globalParams->_forceStrandPrediction) {
-    if (((st->orientation != BOTH) && (st->percentID < 90)) ||
-        (st->internal == 0)) {
+    if (((st->orientation != BOTH) && (!globalParams->_interspecies && (st->percentID < 90))) ||
+        (!globalParams->_interspecies && (st->internal == 0)) ||
+        singleExon) {
       st->orientation = BOTH;
     }
   }
@@ -310,6 +313,7 @@ Sim4::get_sync_flag(Exon *lblock, Exon *rblock, int w)
       return 0;
     e2 = t->toEST;
   }
+
   return ((numx<3) ? 0:1);
 }
 
@@ -408,7 +412,7 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
   if ((numG==1) && (numC==1) &&
       (!Glist[0] || !Clist[0] || !Glist[1] || !Clist[1])) goto free_all;
 
-  if (numG>=numC) {
+  if (numG && numG>=numC) {
     /* revisit all previous assignments that are inconsistent */
     for (i=0, t0=head; i<ni; i++, t0=t1) {
       t1 = t0->next_exon;
@@ -443,7 +447,7 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
     }
 
     st->orientation = FWD;
-  } else {
+  } else if (numC) {
     /* analyze all assignments for consistency */
     for (i=0, t0=head; i<ni; i++, t0=t1) {
       t1 = t0->next_exon;
@@ -657,6 +661,15 @@ Sim4::slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_stats_
     st->orientation = BWD;
   }
 
+  /* code not actually used - sim4cc (-interspecies) currently uses only
+     sync_slide_intron(), but provided here in case that changes */
+  if ((globalParams->_interspecies) && (st->orientation == BOTH)) { 
+    if (numG > numC)
+      st->orientation = FWD;
+    if (numG < numC)
+      st->orientation = BWD;
+  }
+
   if ((globalParams->_forceStrandPrediction) && (st->orientation == BOTH)) {
     if (numG > numC)
       st->orientation = FWD;
@@ -666,6 +679,7 @@ Sim4::slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_stats_
     //  otherwise, st->orientation = match orientation, but we
     //  don't know that here.  It's set in sim4string.C:run()
   }
+
 }
 
 
