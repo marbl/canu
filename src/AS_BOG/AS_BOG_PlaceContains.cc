@@ -19,18 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceContains.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceContains.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
 #include "MultiAlignStore.h"
-
-#undef max
-
-
-
 
 void
 UnitigGraph::placeContains(void) {
@@ -41,7 +36,7 @@ UnitigGraph::placeContains(void) {
     fragsPlaced  = 0;
     fragsPending = 0;
 
-    fprintf(stderr, "==> PLACING CONTAINED FRAGMENTS\n");
+    fprintf(logFile, "==> PLACING CONTAINED FRAGMENTS\n");
 
     for (uint32 fid=0; fid<_fi->numFragments()+1; fid++) {
       BestContainment *bestcont = bog_ptr->getBestContainer(fid);
@@ -62,7 +57,7 @@ UnitigGraph::placeContains(void) {
       }
 
       utg = (*unitigs)[Unitig::fragIn(bestcont->container)];
-      utg->addContainedFrag(fid, bestcont, verboseContains);
+      utg->addContainedFrag(fid, bestcont, logFileFlagSet(LOG_INITIAL_CONTAINED_PLACEMENT));
       assert(utg->id() == Unitig::fragIn(fid));
 
       bestcont->isPlaced = true;
@@ -70,17 +65,17 @@ UnitigGraph::placeContains(void) {
       fragsPlaced++;
     }
 
-    fprintf(stderr, "==> PLACING CONTAINED FRAGMENTS - placed %d fragments; still need to place %d\n",
+    fprintf(logFile, "==> PLACING CONTAINED FRAGMENTS - placed %d fragments; still need to place %d\n",
             fragsPlaced, fragsPending);
 
     if ((fragsPlaced == 0) && (fragsPending > 0)) {
-      fprintf(stderr, "Stopping contained fragment placement due to zombies.\n");
+      fprintf(logFile, "Stopping contained fragment placement due to zombies.\n");
       fragsPlaced  = 0;
       fragsPending = 0;
     }
   }
 
-  for (int ti=0; ti<unitigs->size(); ti++) {
+  for (uint32 ti=0; ti<unitigs->size(); ti++) {
     Unitig *utg = (*unitigs)[ti];
 
     if (utg)

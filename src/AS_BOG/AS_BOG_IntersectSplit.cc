@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -27,11 +27,10 @@ static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.1 2010-09-23 09:34
 
 #include "MultiAlignStore.h"
 
-#undef max
 
 
 void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool enableIntersectionBreaking) {
-  FILE *breakFile;
+  FILE *breakFile = NULL;
 
   {
     char name[FILENAME_MAX];
@@ -39,11 +38,13 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
     errno = 0;
     breakFile = fopen(name, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' to write unitig breaks.\n", name), exit(1);
+    if (errno) {
+      fprintf(logFile, "Failed to open '%s' to write unitig breaking overlaps: %s\n", name, strerror(errno));
+      fprintf(logFile, "Will not write unitig breaking overlaps.\n");
+    }
   }
 
-  fprintf(stderr, "==> BREAKING UNITIGS.\n");
+  fprintf(logFile, "==> BREAKING UNITIGS.\n");
 
   //  Stop when we've seen all current unitigs.  Replace tiMax
   //  in the for loop below with unitigs->size() to recursively
@@ -94,27 +95,27 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
       if (cMap.find(f->ident) != cMap.end())
         fragCount += cMap[f->ident].size();
 
-#ifdef DEBUG_BREAK
-      if (fragIdx == 0) {
-        uint32             dtEnd = (isReverse(f->position)) ? THREE_PRIME : FIVE_PRIME;
-        BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
+      if (logFileFlagSet(LOG_INTERSECTION_BREAKING)) {
+        if (fragIdx == 0) {
+          uint32             dtEnd = (isReverse(f->position)) ? THREE_PRIME : FIVE_PRIME;
+          BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
 
-        if ((bEdge) && (bEdge->frag_b_id > 0))
-          fprintf(stderr,"unitig %d %c' frag %d points to unitig %d frag %d\n",
-                  tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
-                  Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
+          if ((bEdge) && (bEdge->frag_b_id > 0))
+            fprintf(logFile,"unitig %d %c' frag %d points to unitig %d frag %d\n",
+                    tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
+                    Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
+        }
+
+        if (fragIdx + 1 == tig->dovetail_path_ptr->size()) {
+          uint32             dtEnd = (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME;
+          BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
+
+          if ((bEdge) && (bEdge->frag_b_id > 0))
+            fprintf(logFile,"unitig %d %c' frag %d points to unitig %d frag %d\n",
+                    tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
+                    Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
+        }
       }
-
-      if (fragIdx + 1 == tig->dovetail_path_ptr->size()) {
-        uint32             dtEnd = (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME;
-        BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
-
-        if ((bEdge) && (bEdge->frag_b_id > 0))
-          fprintf(stderr,"unitig %d %c' frag %d points to unitig %d frag %d\n",
-                  tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
-                  Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
-      }
-#endif
 
       FragmentEdgeList::const_iterator edge_itr = unitigIntersect.find(f->ident);
 
@@ -154,18 +155,17 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
         //  Don't break on spur fragments!  These will only chop off the ends of unitigs anyway.
         if ((inTig->dovetail_path_ptr->size() == 1) &&
             ((best5->frag_b_id == 0) || (best3->frag_b_id == 0))) {
-#ifdef DEBUG_BREAK
-          fprintf(stderr, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d -- IS A SPUR, skip it\n",
-                  Unitig::fragIn(inFrag),
-                  inTig->getNumFrags(),
-                  inTig->getLength(),
-                  inFrag,
-                  (bestEnd == FIVE_PRIME) ? '5' : '3',
-                  tig->id(),
-                  f->ident,
-                  (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
-                  pos);
-#endif
+          if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
+            fprintf(logFile, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d -- IS A SPUR, skip it\n",
+                    Unitig::fragIn(inFrag),
+                    inTig->getNumFrags(),
+                    inTig->getLength(),
+                    inFrag,
+                    (bestEnd == FIVE_PRIME) ? '5' : '3',
+                    tig->id(),
+                    f->ident,
+                    (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
+                    pos);
           continue;
         }
 
@@ -174,12 +174,12 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
         //  unitig merging, and is no longer an intersection.
         if (Unitig::fragIn(inFrag) == tig->id()) {
           if (selfIntersect.find(inFrag) != selfIntersect.end()) {
-            if (verboseBreak)
-              fprintf(stderr, "unitig %d frag %d - TRUE self intersection from frag %d\n",
+            if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
+              fprintf(logFile, "unitig %d frag %d - TRUE self intersection from frag %d\n",
                       tig->id(), f->ident, inFrag);
           } else {
-            if (verboseBreak)
-              fprintf(stderr, "unitig %d frag %d - skipping false self intersection from frag %d\n",
+            if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
+              fprintf(logFile, "unitig %d frag %d - skipping false self intersection from frag %d\n",
                       tig->id(), f->ident, inFrag);
             continue;
           }
@@ -195,19 +195,19 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
         breaks.push_back(breakPoint);
 
-#ifdef DEBUG_BREAK
-        fprintf(stderr, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d\n",
-                Unitig::fragIn(inFrag),
-                inTig->getNumFrags(),
-                inTig->getLength(),
-                inFrag,
-                (bestEnd == FIVE_PRIME) ? '5' : '3',
-                tig->id(),
-                f->ident,
-                (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
-                pos);
-#endif
-        {
+        if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
+          fprintf(logFile, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d\n",
+                  Unitig::fragIn(inFrag),
+                  inTig->getNumFrags(),
+                  inTig->getLength(),
+                  inFrag,
+                  (bestEnd == FIVE_PRIME) ? '5' : '3',
+                  tig->id(),
+                  f->ident,
+                  (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
+                  pos);
+
+        if (breakFile) {
           GenericMesg  pmesg;
           OverlapMesg  omesg;
 
@@ -267,13 +267,14 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
       filterBreakPoints(cMap, tig, breaks);
 
       //  Report where breaks occur.  'breaks' is a list, not a vector.
-      for (uint32 i=0; i<breaks.size(); i++)
-        fprintf(stderr, "BREAK unitig %d at position %d,%d from inSize %d inFrags %d.\n",
-                tig->id(),
-                breaks.front().fragPos.bgn,
-                breaks.front().fragPos.end,
-                breaks.front().inSize,
-                breaks.front().inFrags);
+      if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
+        for (uint32 i=0; i<breaks.size(); i++)
+          fprintf(logFile, "BREAK unitig %d at position %d,%d from inSize %d inFrags %d.\n",
+                  tig->id(),
+                  breaks.front().fragPos.bgn,
+                  breaks.front().fragPos.end,
+                  breaks.front().inSize,
+                  breaks.front().inFrags);
 
       //  Actually do the breaking.
       if (enableIntersectionBreaking) {
@@ -292,5 +293,6 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
     }
   }  //  Over all tigs
 
-  fclose(breakFile);
+  if (breakFile)
+    fclose(breakFile);
 }

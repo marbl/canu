@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.75 2010-09-25 07:42:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.76 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -30,21 +30,8 @@ static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.h
 
 #include "MultiAlignStore.h"
 
-//  Debugging
-#undef DEBUG_BUILD   //  Dovetail path construction
-#undef DEBUG_MERGE   //  Bubbles
-#undef DEBUG_BREAK   //  Breaking
-#undef DEBUG_JOIN    //  Joining
-
-//  Logging (in AS_BOG_UnitigGraph.cc)
-extern bool verboseBuild;
-extern bool verboseMerge;
-extern bool verboseBreak;
-extern bool verboseJoin;
-extern bool verboseContains;
 
 const uint32  noUnitig = 0xffffffff;
-
 
 
 typedef std::vector<uint32>                 FragmentList;
@@ -124,6 +111,7 @@ struct UnitigGraph{
 
   void writeIUMtoFile(char *fileprefix, char *tigStorePath, int fragment_count_target, bool isFinal=true);
   void writeOVLtoFile(char *fileprefix);
+  void writeCGAtoFile(char *fileprefix, float globalARate);
 
   float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 

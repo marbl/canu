@@ -22,23 +22,10 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.59 2010-04-20 20:11:50 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.60 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
-//  Checkpointing will save the best overlap graph after it is loaded from the overlap store.  It
-//  seems to be working, but is missing a few features:
-//
-//  1) It has no version number of any other verification of the data (like, is this a checkpoint
-//     file).
-//
-//  2) It doesn't remember the erate/elimit used when reading overlaps.  Changing these command line
-//     parameters with a checkpoint file will result in the original overlaps being used.
-//
-//  3) It doesn't checkpoint _enough_ (maybe).  It is storing only best overlaps, not the state of
-//     bog at the time.  It might be useful to save the gatekeeper information too.
-//
-#undef ENABLE_CHECKPOINTING
 
 struct BestOverlapGraph {
   BestOverlapGraph(FragmentInfo *fi, OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit);
@@ -100,8 +87,6 @@ struct BestOverlapGraph {
   };
 
   // Graph building methods
-  uint32  AEnd(const OVSoverlap& olap);
-  uint32  BEnd(const OVSoverlap& olap);
   void    processOverlap(const OVSoverlap& olap);
 
   bool    isOverlapBadQuality(const OVSoverlap& olap) {
@@ -117,7 +102,7 @@ struct BestOverlapGraph {
     //  erate.
     //
     if (olap.dat.ovl.corr_erate <= mismatchCutoff) {
-      if (logFile)
+      if (logFileFlags & LOG_OVERLAP_QUALITY)
         fprintf(logFile, "OVERLAP GOOD:     %d %d %c  hangs "F_S64" "F_S64" err %.3f %.3f\n",
                 olap.a_iid, olap.b_iid,
                 olap.dat.ovl.flipped ? 'A' : 'N',
@@ -144,7 +129,7 @@ struct BestOverlapGraph {
     assert(nerr >= 0);
 
     if (nerr <= mismatchLimit) {
-      if (logFile)
+      if (logFileFlags & LOG_OVERLAP_QUALITY)
         fprintf(logFile, "OVERLAP SAVED:    %d %d %c  hangs "F_S64" "F_S64" err %.3f %.3f olen %f nerr %f\n",
                 olap.a_iid, olap.b_iid,
                 olap.dat.ovl.flipped ? 'A' : 'N',
@@ -156,7 +141,7 @@ struct BestOverlapGraph {
       return(false);
     }
 
-    if (logFile)
+    if (logFileFlags & LOG_OVERLAP_QUALITY)
       fprintf(logFile, "OVERLAP REJECTED: %d %d %c  hangs "F_S64" "F_S64" err %.3f %.3f olen %f nerr %f\n",
               olap.a_iid, olap.b_iid,
               olap.dat.ovl.flipped ? 'A' : 'N',
@@ -242,59 +227,13 @@ struct BestOverlapGraph {
     return(_fi->fragmentLength(id));
   };
 
-  bool checkForNextFrag(const OVSoverlap& olap);
+private:
   void scoreContainment(const OVSoverlap& olap);
   void scoreEdge(const OVSoverlap& olap);
 
-#ifdef ENABLE_CHECKPOINTING
-  void save(void) {
-    assert(_best_overlaps_5p_score == NULL);
-    assert(_best_overlaps_3p_score == NULL);
-    assert(_best_contains_score    == NULL);
-
-    errno = 0;
-    FILE *bogFile = fopen("bog.ckp", "w");
-    if (errno) {
-      fprintf(stderr, "Failed to open 'bog.ckp' for writing: %s\n", strerror(errno));
-      return;
-    }
-
-    AS_UTL_safeWrite(bogFile, _best_overlaps, "best overlaps", sizeof(BestFragmentOverlap), _fi->numFragments() + 1);
-    AS_UTL_safeWrite(bogFile, _best_contains, "best contains", sizeof(BestContainment),     _fi->numFragments() + 1);
-
-    for (uint32 i=0; i<_fi->numFragments() + 1; i++)
-      if (_best_contains[i].olaps != NULL)
-        AS_UTL_safeWrite(bogFile, _best_contains[i].olaps, "best contains olaps", sizeof(uint32), _best_contains[i].olapsLen);
-
-    fclose(bogFile);
-  };
-
-  bool load(void) {
-    errno = 0;
-    FILE *bogFile = fopen("bog.ckp", "r");
-    if (errno)
-      return(false);
-
-    assert(_best_overlaps != NULL);
-    assert(_best_contains != NULL);
-
-    AS_UTL_safeRead(bogFile, _best_overlaps, "best overlaps", sizeof(BestFragmentOverlap), _fi->numFragments() + 1);
-    AS_UTL_safeRead(bogFile, _best_contains, "best contains", sizeof(BestContainment),     _fi->numFragments() + 1);
-
-    for (uint32 i=0; i<_fi->numFragments() + 1; i++) {
-      if (_best_contains[i].olapsLen > 0) {
-        _best_contains[i].olaps = new uint32 [_best_contains[i].olapsLen];
-        AS_UTL_safeRead(bogFile, _best_contains[i].olaps, "best contains olaps", sizeof(uint32), _best_contains[i].olapsLen);
-      } else {
-        assert(_best_contains[i].olaps == NULL);
-      }
-    }
-
-    fclose(bogFile);
-
-    return(true);
-  };
-#endif
+private:
+  void save(void);
+  bool load(void);
 
 private:
   BestFragmentOverlap *_best_overlaps;

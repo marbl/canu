@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.40 2010-09-25 07:42:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.41 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -45,10 +45,30 @@ using namespace std;
 #define FIVE_PRIME   0
 #define THREE_PRIME  1
 
+//  Historical.  Eli had problems with STL and max.
+#undef max
+
 //  Lack of a better place....
 
-extern FILE *logFile;
 void  setLogFile(char *prefix, char *name);
+
+#define logFileFlagSet(L) ((logFileFlags & L) == L)
+
+extern FILE   *logFile;
+extern uint64  logFileFlags;
+
+extern uint64 LOG_OVERLAP_QUALITY;
+extern uint64 LOG_CHUNK_GRAPH;
+extern uint64 LOG_INTERSECTIONS;
+extern uint64 LOG_POPULATE_UNITIG;
+extern uint64 LOG_INTERSECTION_BREAKING;
+extern uint64 LOG_INTERSECTION_BUBBLES;
+extern uint64 LOG_INTERSECTION_BUBBLES_DEBUG;
+extern uint64 LOG_INTERSECTION_JOINING;
+extern uint64 LOG_INTERSECTION_JOINING_DEBUG;
+extern uint64 LOG_INITIAL_CONTAINED_PLACEMENT;
+extern uint64 LOG_HAPPINESS;
+
 
 
 class FragmentEnd {
@@ -196,14 +216,14 @@ public:
       }
 
       if (((numDeleted + numLoaded) % 10000000) == 0)
-        fprintf(stderr, "Loading fragment information deleted:%9d active:%9d\n", numDeleted, numLoaded);
+        fprintf(logFile, "Loading fragment information deleted:%9d active:%9d\n", numDeleted, numLoaded);
     }
 
     for (uint32 i=0; i<_numLibraries + 1; i++) {
       _numMatesInLib[i] /= 2;
     }
 
-    fprintf(stderr, "Loaded %d alive fragments, skipped %d dead fragments.\n", numLoaded, numDeleted);
+    fprintf(logFile, "Loaded %d alive fragments, skipped %d dead fragments.\n", numLoaded, numDeleted);
 
     delete fs;
   };

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -27,7 +27,6 @@ static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.1 2010-09-23 09:34:50 
 
 #include "MultiAlignStore.h"
 
-#undef max
 
 void
 UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
@@ -43,7 +42,7 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRe
   uint32      nBubbleTooBig   = 0;
   uint32      nBubbleConflict = 0;
 
-  fprintf(stderr, "==> SEARCHING FOR MATE BUBBLES\n");
+  fprintf(logFile, "==> SEARCHING FOR MATE BUBBLES\n");
 
   //  For each unitig, if all (or most) of the external mates are to a single other unitig (not
   //  counting singletons), then this is a potential bubble popping unitig.
@@ -112,7 +111,7 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRe
     for (uint32 i=1; i<lkgLen; i++) {
       if (last != lkg[i]) {
         if ((lcnt > 3))
-          fprintf(stderr, "popMateBubble()-- tig %d len %d might pop bubble in tig %d (%d mates in there out of %d external mates)\n",
+          fprintf(logFile, "popMateBubble()-- tig %d len %d might pop bubble in tig %d (%d mates in there out of %d external mates)\n",
                   tig->id(), tig->getLength(), last, lcnt, lkgExt);
         last = lkg[i];
         lcnt = 0;
@@ -122,7 +121,7 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRe
     }
 
     if ((lcnt > 3))
-      fprintf(stderr, "popMateBubble()-- tig %d len %d might pop bubble in tig %d (%d mates in there out of %d external mates)\n",
+      fprintf(logFile, "popMateBubble()-- tig %d len %d might pop bubble in tig %d (%d mates in there out of %d external mates)\n",
               tig->id(), tig->getLength(), last, lcnt, lkgExt);
 
     delete [] lkg;

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.16 2010-09-23 09:09:31 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.17 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -82,9 +82,9 @@ struct Unitig{
   // contain guides, or other fragments that are not randomly sampled
   // across the whole genome.
 
-  long getLength(void)          { return(_length);                   };
-  long getNumFrags(void)        { return(dovetail_path_ptr->size()); };
-  long getNumRandomFrags(void)  { return(getNumFrags());             };
+  int32 getLength(void)          { return(_length);                   };
+  uint32 getNumFrags(void)        { return(dovetail_path_ptr->size()); };
+  uint32 getNumRandomFrags(void)  { return(getNumFrags());             };
 
   DoveTailNode getLastBackboneNode(void);
   DoveTailNode getLastBackboneNode(uint32 &);
@@ -125,17 +125,13 @@ struct Unitig{
   DoveTailPath *dovetail_path_ptr;
 
 private:
+  float   _avgRho;
+  int32   _length;
+  float   _localArrivalRate;
+  uint32   _id;
 
-  // Do not access these private variables directly, they may
-  // not be computed yet, use accessors!
-  //
-  float  _avgRho;
-  long   _length;
-  float  _localArrivalRate;
-  uint32 _id;
-
-  static uint32 nextId;
-  static float _globalArrivalRate;
+  static uint32  _nextId;
+  static float   _globalArrivalRate;
   static uint32 *_inUnitig;      //  Maps a fragment iid to a unitig id.
   static uint32 *_pathPosition;  //  Maps a fragment iid to an index in the dovetail path
 };

@@ -19,15 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.2 2010-09-24 02:33:47 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.3 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
+#include "AS_CGB_histo.h"
+
 #include "MultiAlignStore.h"
 
-#undef max
 
 
 
@@ -284,4 +285,94 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
   }
 
   fclose(file);
+}
+
+
+
+void
+UnitigGraph::writeCGAtoFile(char *outputprefix, float globalARate) {
+  char  filename[FILENAME_MAX] = {0};
+  sprintf(filename, "%s.cga.0", outputprefix);
+
+  errno = 0;
+  FILE *stats = fopen(filename,"w");
+  if (errno) {
+    fprintf(logFile, "Failed to open '%s' for writing: %s\n", filename, strerror(errno));
+    fprintf(logFile, "Writing CGA to the log instead.\n");
+    stats = logFile;
+  }
+
+  fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
+  fprintf(stats, "There were %d unitigs generated.\n", unitigs->size());
+
+  const int nsample = 500;
+  const int nbucket = 500;
+
+  MyHistoDataType  z;
+
+  memset(&z, 0, sizeof(MyHistoDataType));
+
+  Histogram_t *len = create_histogram(nsample, nbucket, 0, TRUE);
+  Histogram_t *cvg = create_histogram(nsample, nbucket, 0, TRUE);
+  Histogram_t *arv = create_histogram(nsample, nbucket, 0, TRUE);
+
+  extend_histogram(len, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
+  extend_histogram(cvg, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
+  extend_histogram(arv, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
+
+  for (uint32 ti=0; ti<unitigs->size(); ti++) {
+    Unitig          *u = (*unitigs)[ti];
+
+    if (u == NULL)
+      continue;
+
+    int  l = u->getLength();
+    int  c = (int)rintf(u->getCovStat(_fi));
+    int  a = (int)rintf(u->getLocalArrivalRate(_fi) * 10000);
+
+    if (c < -200000) {
+      fprintf(stderr, "ti=%d c=%d\n", ti, c);
+    }
+
+    z.nsamples     = 1;
+    z.sum_frags    = z.min_frags    = z.max_frags    = u->getNumFrags();
+    z.sum_bp       = z.min_bp       = z.max_bp       = l;;
+    z.sum_rho      = z.min_rho      = z.max_rho      = (int)rintf(u->getAvgRho(_fi));
+    z.sum_discr    = z.min_discr    = z.max_discr    = c;
+    z.sum_arrival  = z.min_arrival  = z.max_arrival  = a;
+    z.sum_rs_frags = z.min_rs_frags = z.max_rs_frags = 0;
+    z.sum_nr_frags = z.min_nr_frags = z.max_nr_frags = 0;
+
+    add_to_histogram(len, l, &z);
+    add_to_histogram(cvg, c, &z);
+    add_to_histogram(arv, a, &z);
+  }
+
+  fprintf(stats, "\n");
+  fprintf(stats, "\n");
+  fprintf(stats, "Unitig Length\n");
+  fprintf(stats, "label\tsum\tcummulative\tcummulative   min  average  max\n");
+  fprintf(stats, "     \t   \t sum       \t fraction\n");
+  print_histogram(stats,len, 0, 1);
+
+  fprintf(stats, "\n");
+  fprintf(stats, "\n");
+  fprintf(stats, "Unitig Coverage Stat\n");
+  fprintf(stats, "label\tsum\tcummulative\tcummulative   min  average  max\n");
+  fprintf(stats, "     \t   \t sum       \t fraction\n");
+  print_histogram(stats,cvg, 0, 1);
+
+  fprintf(stats, "\n");
+  fprintf(stats, "\n");
+  fprintf(stats, "Unitig Arrival Rate\n");
+  fprintf(stats, "label\tsum\tcummulative\tcummulative   min  average  max\n");
+  fprintf(stats, "     \t   \t sum       \t fraction\n");
+  print_histogram(stats,arv, 0, 1);
+
+  free_histogram(len);
+  free_histogram(cvg);
+  free_histogram(arv);
+
+  if (stats != logFile)
+    fclose(stats);
 }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -27,7 +27,6 @@ static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.1 2010-09-23 09:3
 
 #include "MultiAlignStore.h"
 
-#undef max
 
 
 void
@@ -35,7 +34,7 @@ UnitigGraph::checkUnitigMembership(void) {
   int nutg = 0;
   int nfrg = 0;
 
-  fprintf(stderr, "checkUnitigMembership()--  numfrags=%d\n", _fi->numFragments());
+  fprintf(logFile, "checkUnitigMembership()--  numfrags=%d\n", _fi->numFragments());
 
   uint32 *inUnitig = new uint32 [_fi->numFragments()+1];
   uint32  logSize[20] = {0};
@@ -54,7 +53,7 @@ UnitigGraph::checkUnitigMembership(void) {
         nfrg++;
 
         if (it->ident > _fi->numFragments())
-          fprintf(stderr, "HUH?  ident=%d numfrags=%d\n", it->ident, _fi->numFragments());
+          fprintf(logFile, "HUH?  ident=%d numfrags=%d\n", it->ident, _fi->numFragments());
 
         inUnitig[it->ident] = ti;
 
@@ -72,21 +71,21 @@ UnitigGraph::checkUnitigMembership(void) {
   for (uint32 i=0; i<_fi->numFragments()+1; i++) {
     if (_fi->fragmentLength(i) > 0) {
       if (inUnitig[i] == 0) {
-        fprintf(stderr, "ERROR frag %d is in unitig 0!\n", i);
+        fprintf(logFile, "ERROR frag %d is in unitig 0!\n", i);
       } else if (inUnitig[i] != noUnitig) {
         found++;
       } else {
-        fprintf(stderr, "ERROR frag %d disappeared!\n", i);
+        fprintf(logFile, "ERROR frag %d disappeared!\n", i);
         lost++;
       }
     }
   }
 
-  fprintf(stderr, "checkUnitigMembership()-- nutg=%d nfrg=%d lost=%d found=%d\n", nutg, nfrg, lost, found);
+  fprintf(logFile, "checkUnitigMembership()-- nutg=%d nfrg=%d lost=%d found=%d\n", nutg, nfrg, lost, found);
 
-  fprintf(stderr, "checkUnitigMembership()-- log2 length histogram:\n");
+  fprintf(logFile, "checkUnitigMembership()-- log2 length histogram:\n");
   for (uint32 i=5; i<20; i++)
-    fprintf(stderr, "checkUnitigMembership()-- %2u (%9u-%9u) %u\n", i, (uint32)1 << i, (uint32)1 << (i+1), logSize[i]);
+    fprintf(logFile, "checkUnitigMembership()-- %2u (%9u-%9u) %u\n", i, (uint32)1 << i, (uint32)1 << (i+1), logSize[i]);
 
   assert(lost == 0);
 }

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.38 2010-09-28 06:37:46 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.39 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -36,7 +36,7 @@ struct DistanceCompute {
 
   uint32  distancesLen;
   uint32  distancesMax;
-  uint32 *distances;
+  int32  *distances;
 
   DistanceCompute() {
     stddev       = 0.0;
@@ -45,7 +45,7 @@ struct DistanceCompute {
 
     distancesLen = 0;
     distancesMax = 1048576;
-    distances    = new uint32 [distancesMax];
+    distances    = new int32 [distancesMax];
   };
 
   ~DistanceCompute() {
@@ -259,9 +259,9 @@ private:
     //  we'll call incrRange with n=(the higher coord)=(_tigLen), and m=(the lower coord + max
     //  insert size).  We threshold m to _tigLen, and correctly do nothing in the loop.
 
-    for(uint32 i=n; i<m; i++)
+    for (int32 i=n; i<m; i++)
       graph[i] += val;
-    for(uint32 i=m; i<n; i++)
+    for (int32 i=m; i<n; i++)
       graph[i] += val;
   };
 

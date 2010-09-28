@@ -19,22 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.135 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.136 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
 #include "MultiAlignStore.h"
-
-#undef max
-
-//  Logging
-bool verboseBuild    = false;  //  Dovetail path construction
-bool verboseMerge    = false;  //  Bubbles
-bool verboseBreak    = false;  //  Intersection AND mate-based breaking
-bool verboseJoin     = false;  //  Joining
-bool verboseContains = false;  //  Containment placing
 
 
 UnitigGraph::UnitigGraph(FragmentInfo *fi, BestOverlapGraph *bp) {
@@ -43,8 +34,9 @@ UnitigGraph::UnitigGraph(FragmentInfo *fi, BestOverlapGraph *bp) {
   bog_ptr = bp;
 }
 
+
 UnitigGraph::~UnitigGraph() {
-  for (int  ti=0; ti<unitigs->size(); ti++)
+  for (uint32  ti=0; ti<unitigs->size(); ti++)
     delete (*unitigs)[ti];
   delete unitigs;
 }
@@ -70,7 +62,8 @@ void UnitigGraph::build(ChunkGraph *cg_ptr,
 
   // Step through all the fragments
 
-  fprintf(stderr, "==> BUILDING UNITIGS from %d fragments.\n", _fi->numFragments());
+  setLogFile("unitigger", "buildUnitigs");
+  fprintf(logFile, "==> BUILDING UNITIGS from %d fragments.\n", _fi->numFragments());
 
   //  There is no 0th unitig.
   unitigs->push_back(NULL);
@@ -86,7 +79,8 @@ void UnitigGraph::build(ChunkGraph *cg_ptr,
     populateUnitig(frag_idx);
   }
 
-  fprintf(stderr, "==> BUILDING UNITIGS catching missed fragments.\n");
+  setLogFile("unitigger", "buildUnitigs-MissedFragments");
+  fprintf(logFile, "==> BUILDING UNITIGS catching missed fragments.\n");
 
   //  Pick up frags missed above, leftovers from possibly circular unitigs
 
@@ -103,11 +97,15 @@ void UnitigGraph::build(ChunkGraph *cg_ptr,
   reportUnitigs("unitigs.afterbuild");
 
   if (enableBubblePopping) {
+    setLogFile("unitigger", "bubblePopping");
     popIntersectionBubbles(ovlStoreUniq, ovlStoreRept);
     //popMateBubbles(ovlStoreUniq, ovlStoreRept);  NEED TO HAVE CONTAINS PLACED
+    reportOverlapsUsed("overlaps.afterbubbles1");
+    reportUnitigs("unitigs.afterbubbles1");
   }
 
   //  If enabled, break unitigs.  If not enabled, report on breaks.
+  setLogFile("unitigger", "intersectionBreaking");
   breakUnitigs(cMap, output_prefix, enableIntersectionBreaking);
   reportOverlapsUsed("overlaps.afterbreak");
   reportUnitigs("unitigs.afterbreak");
@@ -115,26 +113,37 @@ void UnitigGraph::build(ChunkGraph *cg_ptr,
   //  If enabled, join unitigs.  If not enabled, report on joins.
   //  (not supported, just crashes if called and not enabled)
   if (enableJoining) {
+    setLogFile("unitigger", "joinUnitigs");
     joinUnitigs(enableJoining);
     reportOverlapsUsed("overlaps.afterjoin");
     reportUnitigs("unitigs.afterjoin");
   }
 
   //  This will only analyze and report potential breaks.
+  //setLogFile("unitigger", "intersectionBreaking");
   //breakUnitigs(cMap, output_prefix, false);
 
+  setLogFile("unitigger", "placeContains");
   placeContains();
   reportOverlapsUsed("overlaps.aftercontains");
   reportUnitigs("unitigs.aftercontains");
 
+  setLogFile("unitigger", "placeZombies");
   placeZombies();
+  reportOverlapsUsed("overlaps.afterzombies");
+  reportUnitigs("unitigs.afterzombies");
 
-  checkUnitigMembership();
+  //checkUnitigMembership();
 
   if (enableBubblePopping) {
+    setLogFile("unitigger", "bubblePopping");
     popIntersectionBubbles(ovlStoreUniq, ovlStoreRept);
     //popMateBubbles(ovlStoreUniq, ovlStoreRept);
+    reportOverlapsUsed("overlaps.afterbubbles2");
+    reportUnitigs("unitigs.afterbubbles2");
   }
 
   checkUnitigMembership();
+
+  setLogFile("unitigger", NULL);
 }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PopulateUnitig.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PopulateUnitig.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -27,7 +27,6 @@ static const char *rcsid = "$Id: AS_BOG_PopulateUnitig.cc,v 1.1 2010-09-23 09:34
 
 #include "MultiAlignStore.h"
 
-#undef max
 
 
 void
@@ -53,8 +52,8 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
   if (Unitig::fragIn(bestnext->frag_b_id) != 0) {
     //  Intersection.  Remember.
-    if (verboseBuild || verboseBreak)
-      fprintf(stderr,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (before construction)\n",
+    if (logFileFlagSet(LOG_INTERSECTIONS))
+      fprintf(logFile,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (before construction)\n",
               unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
     unitigIntersect[bestnext->frag_b_id].push_back(lastID);
     return;
@@ -88,11 +87,11 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
     if (unitig->placeFrag(frag, bidx5, (bestnext->bend == THREE_PRIME) ? NULL : &bestprev,
                           frag, bidx3, (bestnext->bend == THREE_PRIME) ? &bestprev : NULL)) {
-      unitig->addFrag(frag, 0, verboseBuild);
+      unitig->addFrag(frag, 0, logFileFlagSet(LOG_POPULATE_UNITIG));
 
     } else {
 
-      fprintf(stderr, "ERROR:  Failed to place frag %d into BOG path.\n", frag.ident);
+      fprintf(logFile, "ERROR:  Failed to place frag %d into BOG path.\n", frag.ident);
       assert(0);
     }
 
@@ -107,12 +106,12 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
     if (Unitig::fragIn(bestnext->frag_b_id) == unitig->id()) {
       if (Unitig::pathPosition(bestnext->frag_b_id) == 0) {
-        if (verboseBuild || verboseBreak)
-          fprintf(stderr,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (CIRCULAR)\n",
+        if (logFileFlagSet(LOG_INTERSECTIONS))
+          fprintf(logFile,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (CIRCULAR)\n",
                   unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
       } else {
-        if (verboseBuild || verboseBreak)
-          fprintf(stderr,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (SELF)\n",
+        if (logFileFlagSet(LOG_INTERSECTIONS))
+          fprintf(logFile,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (SELF)\n",
                   unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
         unitigIntersect[bestnext->frag_b_id].push_back(lastID);
         selfIntersect[lastID] = true;
@@ -121,8 +120,8 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
     }
 
     if (Unitig::fragIn(bestnext->frag_b_id) != 0) {
-      if (verboseBuild || verboseBreak)
-        fprintf(stderr,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (during construction)\n",
+      if (logFileFlagSet(LOG_INTERSECTIONS))
+        fprintf(logFile,"unitigIntersect: unitig %d frag %d -> unitig %d frag %d (during construction)\n",
                 unitig->id(), lastID, Unitig::fragIn(bestnext->frag_b_id), bestnext->frag_b_id);
       unitigIntersect[bestnext->frag_b_id].push_back(lastID);
       break;
@@ -136,7 +135,7 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 void
 UnitigGraph::populateUnitig(int32 frag_idx) {
 
-  Unitig *utg = new Unitig(verboseBuild);
+  Unitig *utg = new Unitig(logFileFlagSet(LOG_POPULATE_UNITIG));
 
   unitigs->push_back(utg);
 
@@ -154,15 +153,15 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
   frag.position.end      = 0;
   frag.containment_depth = 0;
 
-  utg->addFrag(frag, 0, verboseBuild);
+  utg->addFrag(frag, 0, logFileFlagSet(LOG_POPULATE_UNITIG));
 
   //  Add fragments as long as there is a path to follow...from the 3' end of the first fragment.
 
   BestEdgeOverlap  *bestedge5 = bog_ptr->getBestEdgeOverlap(frag_idx, FIVE_PRIME);
   BestEdgeOverlap  *bestedge3 = bog_ptr->getBestEdgeOverlap(frag_idx, THREE_PRIME);
 
-  if (verboseBuild)
-    fprintf(stderr, "Adding 5' edges off of frag %d in unitig %d\n",
+  if (logFileFlagSet(LOG_POPULATE_UNITIG))
+    fprintf(logFile, "Adding 5' edges off of frag %d in unitig %d\n",
             utg->dovetail_path_ptr->back().ident, utg->id());
 
   if (bestedge5->frag_b_id)
@@ -170,8 +169,8 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
 
   utg->reverseComplement(false);
 
-  if (verboseBuild)
-    fprintf(stderr, "Adding 3' edges off of frag %d in unitig %d\n",
+  if (logFileFlagSet(LOG_POPULATE_UNITIG))
+    fprintf(logFile, "Adding 3' edges off of frag %d in unitig %d\n",
             utg->dovetail_path_ptr->back().ident, utg->id());
 
   if (bestedge3->frag_b_id)

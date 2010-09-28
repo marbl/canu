@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -27,7 +27,6 @@ static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.1 2010-09-23 09:34:50 bri
 
 #include "MultiAlignStore.h"
 
-#undef max
 
 
 class joinEntry {
@@ -47,14 +46,14 @@ public:
 void
 UnitigGraph::joinUnitigs(bool enableJoining) {
 
-  fprintf(stderr, "==> JOINING SPLIT UNITIGS\n");
+  fprintf(logFile, "==> JOINING SPLIT UNITIGS\n");
 
   //  Sort unitigs by joined size.  Sort.  Join the largest first.
 
   joinEntry  *joins    = new joinEntry [ 2*unitigs->size() ];
   uint32      joinsLen = 0;
 
-  for (int32 frID=0; frID<unitigs->size(); frID++) {
+  for (uint32 frID=0; frID<unitigs->size(); frID++) {
     Unitig        *fr   = (*unitigs)[frID];
 
     if (fr == NULL)
@@ -186,7 +185,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
     }
   }  //  Over all unitigs.
 
-  fprintf(stderr, "Found %d pairs of unitigs to join.\n", joinsLen);
+  fprintf(logFile, "Found %d pairs of unitigs to join.\n", joinsLen);
 
   std::sort(joins, joins + joinsLen, greater<joinEntry>());
 
@@ -215,12 +214,11 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
     if ((toIdx != 0) && (toIdx != toUnitig->dovetail_path_ptr->size() - 1))
       continue;
 
-#ifdef DEBUG_JOIN
-    fprintf(stderr, "Join from unitig %d (length %d idx %d/%d) to unitig %d (length %d idx %d/%d) for a total length of %d\n",
-            frUnitigID, join->frLen, frIdx, frUnitig->dovetail_path_ptr->size(),
-            toUnitigID, join->toLen, toIdx, toUnitig->dovetail_path_ptr->size(),
-            join->combinedLength);
-#endif
+    if (logFileFlagSet(LOG_INTERSECTION_JOINING))
+      fprintf(logFile, "Join from unitig %d (length %d idx %d/%d) to unitig %d (length %d idx %d/%d) for a total length of %d\n",
+              frUnitigID, join->frLen, frIdx, frUnitig->dovetail_path_ptr->size(),
+              toUnitigID, join->toLen, toIdx, toUnitig->dovetail_path_ptr->size(),
+              join->combinedLength);
 
     //  Reverse complement to ensure that we append to the tail of the toUnitig, and grab fragments
     //  from the start of the frUnitig.
@@ -307,24 +305,24 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
         }
       }
 
-#ifdef DEBUG_JOIN
-      fprintf(stderr, "Adding frag %d using frag %d (%d,%d)\n", frFragment->ident, toFragment->ident, toFragment->position.bgn, toFragment->position.end);
-      fprintf(stderr, "best5fr = %8d %1d %5d %5d\n", best5fr->frag_b_id, best5fr->bend, best5fr->ahang, best5fr->bhang);
-      fprintf(stderr, "best3fr = %8d %1d %5d %5d\n", best3fr->frag_b_id, best3fr->bend, best3fr->ahang, best3fr->bhang);
-      fprintf(stderr, "best5to = %8d %1d %5d %5d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
-      fprintf(stderr, "best3to = %8d %1d %5d %5d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
-      fprintf(stderr, "join3   = %8d %1d %5d %5d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
-      fprintf(stderr, "join5   = %8d %1d %5d %5d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
-#endif
+      if (logFileFlagSet(LOG_INTERSECTION_JOINING_DEBUG)) {
+        fprintf(logFile, "Adding frag %d using frag %d (%d,%d)\n", frFragment->ident, toFragment->ident, toFragment->position.bgn, toFragment->position.end);
+        fprintf(logFile, "best5fr = %8d %1d %5d %5d\n", best5fr->frag_b_id, best5fr->bend, best5fr->ahang, best5fr->bhang);
+        fprintf(logFile, "best3fr = %8d %1d %5d %5d\n", best3fr->frag_b_id, best3fr->bend, best3fr->ahang, best3fr->bhang);
+        fprintf(logFile, "best5to = %8d %1d %5d %5d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
+        fprintf(logFile, "best3to = %8d %1d %5d %5d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
+        fprintf(logFile, "join3   = %8d %1d %5d %5d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
+        fprintf(logFile, "join5   = %8d %1d %5d %5d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
+      }
 
       if ((joinEdge5.frag_b_id == 0) &&
           (joinEdge3.frag_b_id == 0)) {
         //  No suitable edge found to add frFragment to the toUnitig!
-        fprintf(stderr, "No edge found!  Argh!\n");
-        fprintf(stderr, "best5fr = %d %d %d %d\n", best5fr->frag_b_id, best5fr->bend, best5fr->ahang, best5fr->bhang);
-        fprintf(stderr, "best3fr = %d %d %d %d\n", best3fr->frag_b_id, best3fr->bend, best3fr->ahang, best3fr->bhang);
-        fprintf(stderr, "best5to = %d %d %d %d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
-        fprintf(stderr, "best3to = %d %d %d %d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
+        fprintf(logFile, "ERROR:  No edge found!  Can't place fragment.\n");
+        fprintf(logFile, "best5fr = %d %d %d %d\n", best5fr->frag_b_id, best5fr->bend, best5fr->ahang, best5fr->bhang);
+        fprintf(logFile, "best3fr = %d %d %d %d\n", best3fr->frag_b_id, best3fr->bend, best3fr->ahang, best3fr->bhang);
+        fprintf(logFile, "best5to = %d %d %d %d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
+        fprintf(logFile, "best3to = %d %d %d %d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
         assert(0);
       }
 
@@ -333,8 +331,8 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       if (toUnitig->addAndPlaceFrag(frFragment->ident,
                                     (joinEdge5.frag_b_id == 0) ? NULL : &joinEdge5,
                                     (joinEdge3.frag_b_id == 0) ? NULL : &joinEdge3,
-                                    verboseMerge) == false) {
-        fprintf(stderr, "ERROR:  Failed to place frag %d into extended unitig.\n", frFragment->ident);
+                                    logFileFlagSet(LOG_INTERSECTION_JOINING)) == false) {
+        fprintf(logFile, "ERROR:  Failed to place frag %d into extended unitig.\n", frFragment->ident);
         assert(0);
       }
 

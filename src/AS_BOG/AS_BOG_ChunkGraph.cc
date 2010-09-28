@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.31 2010-09-25 07:48:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.32 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -27,6 +27,8 @@ static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.31 2010-09-25 07:48:45
 
 
 ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *bog) {
+
+  setLogFile("unitigger", "ChunkGraph");
 
   _BOG             = bog;
 
@@ -36,7 +38,8 @@ ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *bog) {
   _chunkLength     = new ChunkLength [_maxFragment];
   _chunkLengthIter = 0;
 
-  memset(_pathLen, 0, sizeof(uint32) * (_maxFragment * 2 + 2));
+  memset(_pathLen,     0, sizeof(uint32)      * (_maxFragment * 2 + 2));
+  memset(_chunkLength, 0, sizeof(ChunkLength) * (_maxFragment));
 
   for (uint32 fid=1; fid <= _maxFragment; fid++) {
     if (bog->isContained(fid))
@@ -125,41 +128,41 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
     currEnd = _BOG->followOverlap(currEnd);
   }
 
-#ifdef EMIT_CHUNK_GRAPH_PATH
-  seen.clear();
+  if (logFileFlagSet(LOG_CHUNK_GRAPH)) {
+    seen.clear();
 
-  currEnd = firstEnd;
+    currEnd = firstEnd;
 
-  fprintf(stderr, "PATH from %d,%d:",
-          firstEnd.fragId(),
-          (firstEnd.fragEnd() == FIVE_PRIME) ? 5 : 3);
+    fprintf(logFile, "PATH from %d,%d:",
+            firstEnd.fragId(),
+            (firstEnd.fragEnd() == FIVE_PRIME) ? 5 : 3);
 
-  while ((currEnd.fragId() != 0) &&
-         (seen.find(currEnd) == seen.end())) {
-    seen.insert(currEnd);
+    while ((currEnd.fragId() != 0) &&
+           (seen.find(currEnd) == seen.end())) {
+      seen.insert(currEnd);
 
-    if (currEnd.fragId() == lastEnd.fragId())
-      fprintf(stderr, " LAST");
+      if (currEnd.fragId() == lastEnd.fragId())
+        fprintf(logFile, " LAST");
 
-    fprintf(stderr, " %d,%d(%d)",
-            currEnd.fragId(),
-            (currEnd.fragEnd() == FIVE_PRIME) ? 5 : 3,
-            _pathLen[currEnd.index()]);
+      fprintf(logFile, " %d,%d(%d)",
+              currEnd.fragId(),
+              (currEnd.fragEnd() == FIVE_PRIME) ? 5 : 3,
+              _pathLen[currEnd.index()]);
 
-    currEnd = _BOG->followOverlap(currEnd);
+      currEnd = _BOG->followOverlap(currEnd);
+    }
+
+    if (seen.find(currEnd) != seen.end())
+      fprintf(logFile, " CYCLE %d,%d(%d)",
+              currEnd.fragId(),
+              (currEnd.fragEnd() == FIVE_PRIME) ? 5 : 3,
+              _pathLen[currEnd.index()]);
+
+    fprintf(logFile, "\n");
   }
 
-  if (seen.find(currEnd) != seen.end())
-    fprintf(stderr, " CYCLE %d,%d(%d)",
-            currEnd.fragId(),
-            (currEnd.fragEnd() == FIVE_PRIME) ? 5 : 3,
-            _pathLen[currEnd.index()]);
-
-  fprintf(stderr, "\n");
-#endif
-
   if (lengthMax != _pathLen[firstEnd.index()])
-    fprintf(stderr, "ERROR: lengthMax %d _pathLen[] %d\n",
+    fprintf(logFile, "ERROR: lengthMax %d _pathLen[] %d\n",
             lengthMax, _pathLen[firstEnd.index()]);
   assert(lengthMax == _pathLen[firstEnd.index()]);
 

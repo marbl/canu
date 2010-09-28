@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -28,7 +28,6 @@ static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.1 2010-09-23 09:34:5
 
 #include "MultiAlignStore.h"
 
-#undef max
 
 
 
@@ -43,14 +42,11 @@ static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.1 2010-09-23 09:34:5
 void
 UnitigGraph::placeZombies(void) {
 
-  fprintf(stderr, "==> SEARCHING FOR ZOMBIES\n");
+  fprintf(logFile, "==> SEARCHING FOR ZOMBIES\n");
 
   uint32 *inUnitig   = new uint32 [_fi->numFragments()+1];
   int     numZombies = 0;
 
-  //  Sorry, poor fella that has more than 987,654,321 unitigs.  I
-  //  can't imagine the rest of the pipeline would run though.
-  //
   //  Mark fragments as dead.
   //
   for (uint32 i=0; i<_fi->numFragments()+1; i++)
@@ -58,48 +54,53 @@ UnitigGraph::placeZombies(void) {
 
   //  ZZZzzzzaapaapppp!  IT'S ALIVE!
   //
-  for (int  ti=0; ti<unitigs->size(); ti++) {
+  for (uint32 ti=0; ti<unitigs->size(); ti++) {
     Unitig  *utg = (*unitigs)[ti];
 
-    if (utg)
-      for (DoveTailIter it=utg->dovetail_path_ptr->begin(); it != utg->dovetail_path_ptr->end(); it++)
-        inUnitig[it->ident] = utg->id();
+    if (utg == NULL)
+      continue;
+
+    for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
+      DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
+
+      inUnitig[frag->ident] = utg->id();
+    }
   }
 
   //  Anything still dead?
   //
   for (uint32 i=0; i<_fi->numFragments()+1; i++) {
-    if (_fi->fragmentLength(i) > 0) {
-      if (inUnitig[i] == 0) {
-        //  We'll catch this error inna second in checkUnitigMembership().
-      } else if (inUnitig[i] != noUnitig) {
-        //  We'll count this inna second there too.
-      } else {
-        //  Ha!  Gotcha!  You're now a resurrected brain eating
-        //  zomibie?  Some day we'll figure out how to put you in
-        //  properly.  For now, enjoy the ride.
+    if (_fi->fragmentLength(i) == 0)
+      //  Deleted fragment
+      continue;
 
-        Unitig *utg = new Unitig(false);
+    if (inUnitig[i] != noUnitig)
+      //  Valid fragment in a unitig, other errors caught in checkUnitigMembership()
+      continue;
 
-        DoveTailNode frag;
+    //  Ha!  Gotcha!  You're now a resurrected brain eating
+    //  zomibie?  Some day we'll figure out how to put you in
+    //  properly.  For now, enjoy the ride.
 
-        frag.ident             = i;
-        frag.contained         = 0;
-        frag.containment_depth = 0;
+    Unitig      *utg = new Unitig(false);
+    DoveTailNode frg;
 
-        frag.position.bgn      = 0;
-        frag.position.end      = _fi->fragmentLength(i);
+    frg.ident             = i;
+    frg.contained         = 0;
+    frg.containment_depth = 0;
 
-        utg->addFrag(frag, 0, false);
-        unitigs->push_back(utg);
+    frg.position.bgn      = 0;
+    frg.position.end      = _fi->fragmentLength(i);
 
-        numZombies++;
-      }
-    }
+    utg->addFrag(frg, 0, false);
+    unitigs->push_back(utg);
+
+    fprintf(logFile, "placeZombies()-- unitig %d created from zombie fragment %d\n",
+            utg->id(), i);
+    numZombies++;
   }
 
-  if (numZombies > 0)
-    fprintf(stderr, "RESURRECTED %d ZOMBIE FRAGMENTS.\n", numZombies);
+  fprintf(logFile, "RESURRECTED %d ZOMBIE FRAGMENT%s.\n", numZombies, (numZombies != 1) ? "s" : "");
 
   delete [] inUnitig;
 }

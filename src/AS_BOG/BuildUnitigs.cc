@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.73 2010-09-23 02:32:21 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.74 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -25,15 +25,39 @@ const char *mainid = "$Id: BuildUnitigs.cc,v 1.73 2010-09-23 02:32:21 brianwalen
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_MateChecker.hh"
 
-#include "getopt.h"
-#include "AS_CGB_histo.h"
-
 //  Used in AS_BOG_Unitig.cc
 FragmentInfo     *debugfi = 0L;
 BestOverlapGraph *bog     = 0L;
 
-FILE             *logFile      = NULL;
+FILE             *logFile      = stderr;
 uint32            logFileOrder = 1;
+uint64            logFileFlags = 0;  //  defined in AS_BOG_Datatypes.hh
+
+uint64 LOG_OVERLAP_QUALITY             = 0x0000000000000001;  //  Debug, scoring of overlaps
+uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000002;  //  Report the chunk graph as we build it
+uint64 LOG_INTERSECTIONS               = 0x0000000000000004;  //  Report intersections found when building initial unitigs
+uint64 LOG_POPULATE_UNITIG             = 0x0000000000000008;  //  Report building of initial unitigs (both unitig creation and fragment placement)
+uint64 LOG_INTERSECTION_BREAKING       = 0x0000000000000010;  //  
+uint64 LOG_INTERSECTION_BUBBLES        = 0x0000000000000020;  //  
+uint64 LOG_INTERSECTION_BUBBLES_DEBUG  = 0x0000000000000040;  //  
+uint64 LOG_INTERSECTION_JOINING        = 0x0000000000000080;  //
+uint64 LOG_INTERSECTION_JOINING_DEBUG  = 0x0000000000000100;  //
+uint64 LOG_INITIAL_CONTAINED_PLACEMENT = 0x0000000000000200;  //
+uint64 LOG_HAPPINESS                   = 0x0000000000000400;  //
+
+const char *logFileFlagNames[64] = { "overlapQuality",
+                                     "chunkGraph",
+                                     "intersections",
+                                     "populate",
+                                     "intersectionBreaking",
+                                     "intersectionBubbles",
+                                     "intersectionBubblesDebug",
+                                     "intersectionJoining",
+                                     "intersectionJoiningDebug",
+                                     "containedPlacement",
+                                     "happiness",
+                                     NULL
+};
 
 //  Closes the current logFile, opens a new one called 'prefix.logFileOrder.name'.  If 'name' is
 //  NULL, the logFile is reset to stderr.
@@ -49,7 +73,7 @@ setLogFile(char *prefix, char *name) {
     return;
   }
 
-  sprintf(logFileName, "%s.%03u.%s", prefix, logFileOrder++, name);
+  sprintf(logFileName, "%s.%03u.%s.log", prefix, logFileOrder++, name);
 
   errno = 0;
   logFile = fopen(logFileName, "w");
@@ -58,81 +82,11 @@ setLogFile(char *prefix, char *name) {
     fprintf(stderr, "setLogFile()-- Will now log to stderr instead.\n");
     logFile = stderr;
   }
+
+  fprintf(stderr,  "setLogFile()-- Now logging to '%s'\n", logFileName);
+  //fprintf(logFile, "setLogFile()-- Search for '%s' in unitigger.err for messages before/after this file.\n", logFileName);
 }
 
-
-void outputHistograms(UnitigGraph *utg, FragmentInfo *fi, FILE *stats) {
-  const int nsample=500;
-  const int nbucket=500;
-  MyHistoDataType zork;
-
-  Histogram_t *length_of_unitigs_histogram = create_histogram(nsample,nbucket,0,TRUE);
-  Histogram_t *covg_histogram = create_histogram(nsample,nbucket,0,TRUE);
-  Histogram_t *arate_histogram = create_histogram(nsample,nbucket,0,TRUE);
-
-  extend_histogram(length_of_unitigs_histogram, sizeof(MyHistoDataType),
-                   myindexdata,mysetdata,myaggregate,myprintdata);
-  extend_histogram(covg_histogram, sizeof(MyHistoDataType),
-                   myindexdata,mysetdata,myaggregate,myprintdata);
-  extend_histogram(arate_histogram, sizeof(MyHistoDataType),
-                   myindexdata,mysetdata,myaggregate,myprintdata);
-
-  for (uint32 ti=0; ti<utg->unitigs->size(); ti++) {
-    Unitig  *u = (*utg->unitigs)[ti];
-
-    if (u == NULL)
-      continue;
-
-    zork.nsamples = 1;
-    int numFrags = u->getNumFrags();
-    zork.sum_frags = zork.min_frags = zork.max_frags = numFrags;
-
-    int bases = u->getLength();
-    zork.sum_bp = zork.min_bp = zork.max_bp = bases;
-
-    int rho = static_cast<int>(u->getAvgRho(fi));
-    zork.sum_rho = zork.min_rho = zork.max_rho = rho;
-
-    //long covg = static_cast<long>(rint(u->getCovStat() * 1000));
-    int covg = static_cast<int>(rintf(u->getCovStat(fi)));
-    zork.sum_discr = zork.min_discr = zork.max_discr = covg;
-
-    float arateF = u->getLocalArrivalRate(fi) * 10000;
-    int arate = static_cast<int>(rintf(arateF));
-    if (arate < 0)
-      fprintf(stats, "Negative Local ArrivalRate %f id %d arate %d\n", arateF, ti, arate);
-    zork.sum_arrival = zork.min_arrival = zork.max_arrival = arate;
-
-    zork.sum_rs_frags=zork.min_rs_frags=zork.max_rs_frags=0;
-    zork.sum_nr_frags=zork.min_nr_frags=zork.max_nr_frags=0;
-
-    add_to_histogram(length_of_unitigs_histogram, u->getLength(), &zork);
-    add_to_histogram(covg_histogram, covg, &zork);
-    add_to_histogram(arate_histogram, arate, &zork);
-  }
-
-  fprintf(stats,
-          "\n\nUnitig Length\n\n"
-          "label\tsum\tcummulative\tcummulative   min  average  max\n"
-          "     \t   \t sum       \t fraction\n");
-  print_histogram(stats,length_of_unitigs_histogram, 0, 1);
-
-  fprintf(stats,
-          "\n\nUnitig Coverage Stat\n\n"
-          "label\tsum\tcummulative\tcummulative   min  average  max\n"
-          "     \t   \t sum       \t fraction\n");
-  print_histogram(stats,covg_histogram, 0, 1);
-
-  fprintf(stats,
-          "\n\nUnitig Arrival Rate\n\n"
-          "label\tsum\tcummulative\tcummulative   min  average  max\n"
-          "     \t   \t sum       \t fraction\n");
-  print_histogram(stats,arate_histogram, 0, 1);
-
-  free_histogram( length_of_unitigs_histogram );
-  free_histogram( covg_histogram );
-  free_histogram( arate_histogram );
-}
 
 
 int
@@ -200,6 +154,26 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       genome_size = atol(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-D") == 0) {
+      uint32  opt = 0;
+      uint64  flg = 1;
+      bool    fnd = false;
+      for (arg++; logFileFlagNames[opt]; flg <<= 1, opt++) {
+        if (strcasecmp(logFileFlagNames[opt], argv[arg]) == 0) {
+          fprintf(stderr, "SET flag to "F_U64"\n", flg);
+          logFileFlags |= flg;
+          fnd = true;
+        }
+      }
+      if (strcasecmp("all", argv[arg]) == 0) {
+        logFileFlags = 0xffffffffffffffff;
+        fnd = true;
+      }
+      if (fnd == false) {
+        fprintf(stderr, "ERROR:  Unknown '-D' option '%s'.\n", argv[arg]);
+        err++;
+      }
+
     } else {
       err++;
     }
@@ -244,6 +218,12 @@ main (int argc, char * argv []) {
     fprintf(stderr, "                    the following conditions hold:\n");
     fprintf(stderr, "  -e 0.015   no more than 0.015 fraction (1.5%%) error\n");
     fprintf(stderr, "  -E 0       no more than 0 errors\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Debugging and Logging\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -D <name>  enable logging/debugging for a specific component.\n");
+    for (uint32 l=0; logFileFlagNames[l]; l++)
+      fprintf(stderr, "               %s\n", logFileFlagNames[l]);
     fprintf(stderr, "\n");
 
     if ((erate < 0.0) || (AS_MAX_ERROR_RATE < erate))
@@ -301,28 +281,16 @@ main (int argc, char * argv []) {
   MateChecker  mateChecker(fragInfo);
   mateChecker.checkUnitigGraph(utg, badMateBreakThreshold);
 
-  float globalARate = utg.getGlobalArrivalRate(gkpStore->gkStore_getNumRandomFragments(), genome_size);
-  Unitig::setGlobalArrivalRate(globalARate);
+  setLogFile("unitigger", "output");
 
   utg.setParentAndHang(cg);
 
+  float globalARate = utg.getGlobalArrivalRate(gkpStore->gkStore_getNumRandomFragments(), genome_size);
+  Unitig::setGlobalArrivalRate(globalARate);
+
   utg.writeIUMtoFile(output_prefix, tigStorePath, fragment_count_target);
   utg.writeOVLtoFile(output_prefix);
-
-  {
-    char  filename[FILENAME_MAX] = {0};
-    sprintf(filename, "%s.cga.0", output_prefix);
-
-    FILE *stats = fopen(filename,"w");
-    assert(NULL != stats);
-
-    fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
-    fprintf(stats, "There were %d unitigs generated.\n", (int)utg.unitigs->size());
-
-    outputHistograms( &utg, fragInfo, stats );
-
-    fclose(stats);
-  }
+  utg.writeCGAtoFile(output_prefix, globalARate);
 
   delete BOG;
   delete cg;
@@ -332,9 +300,8 @@ main (int argc, char * argv []) {
   AS_OVS_closeOverlapStore(ovlStoreUniq);
   AS_OVS_closeOverlapStore(ovlStoreRept);
 
+  setLogFile(NULL, NULL);
   fprintf(stderr, "Bye.\n");
 
-  return 0;
+  return(0);
 }
-
-

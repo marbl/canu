@@ -19,13 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.27 2010-09-23 09:09:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.28 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
-#undef max
 
 #undef DEBUG_PLACEMENT
 
@@ -36,20 +35,20 @@ extern BestOverlapGraph *bog;
 // various class static methods and variables
 static std::map<uint32,int>* containPartialOrder;
 
-uint32  Unitig::nextId        = 1;
+uint32  Unitig::_nextId       = 1;
 uint32* Unitig::_inUnitig     = NULL;
 uint32* Unitig::_pathPosition = NULL;
 
 
 Unitig::Unitig(bool report){
   _localArrivalRate = -1;
-  _length           = -1;
+  _length           =  0;
   _avgRho           = -1;
   dovetail_path_ptr = new DoveTailPath;
-  _id               = nextId++;
+  _id               = _nextId++;
 
   if (report)
-    fprintf(stderr, "Creating Unitig %d\n", _id);
+    fprintf(logFile, "Creating Unitig %d\n", _id);
 }
 
 
@@ -70,7 +69,7 @@ DoveTailNode Unitig::getLastBackboneNode(void) {
     return(node);
   }
 
-  fprintf(stderr, "Unitig::getLastBackboneNode()--  WARNING:  unitig %d has no backbone nodes, all contained!\n", id());
+  fprintf(logFile, "Unitig::getLastBackboneNode()--  WARNING:  unitig %d has no backbone nodes, all contained!\n", id());
   DoveTailNode last;
   memset(&last, 0, sizeof(DoveTailNode));
   return(last);
@@ -226,7 +225,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
                  ((parent->position.end < parent->position.bgn) && (bestedge5->bend == THREE_PRIME)));
 
     if (verbose)
-      fprintf(stderr, "bestedge5:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d  flip %d\n",
+      fprintf(logFile, "bestedge5:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d  flip %d\n",
               parent->ident, parent->position.bgn, parent->position.end,
               bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, bgn, end, flip);
 
@@ -281,7 +280,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
                  ((parent->position.end < parent->position.bgn) && (bestedge3->bend == FIVE_PRIME)));
 
     if (verbose)
-      fprintf(stderr, "bestedge3:  parent iid %d %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
+      fprintf(logFile, "bestedge3:  parent iid %d %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
               parent->ident, parent->position.bgn, parent->position.end,
               bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, bgn, end, flip);
 
@@ -323,13 +322,13 @@ Unitig::addFrag(DoveTailNode node, int offset, bool report) {
     int32 pos = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
 
     if (node.contained)
-      fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d) (contained in %d)\n",
+      fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d) (contained in %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
               dovetail_path_ptr->size() - 1,
               pos - len,
               node.contained);
     else
-      fprintf(stderr, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d)\n",
+      fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
               dovetail_path_ptr->size() - 1,
               pos - len);
@@ -365,16 +364,16 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
   //  unitig yet.  It might be useful if pathPosition ever gets messed up.
   //
   if ((parent == NULL) || (parent->ident != frag.contained)) {
-    fprintf(stderr, "WARNING:  Didn't find the correct parent frag (%d) for contained frag %d.\n",
+    fprintf(logFile, "WARNING:  Didn't find the correct parent frag (%d) for contained frag %d.\n",
             frag.contained, frag.ident);
-    fprintf(stderr, "          Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
+    fprintf(logFile, "          Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
 
     parent = NULL;
 
     for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
       DoveTailNode *ix = &(*dovetail_path_ptr)[fi];
 
-      fprintf(stderr, "          path[%4d,%4d] is frag %d %s\n",
+      fprintf(logFile, "          path[%4d,%4d] is frag %d %s\n",
               fi, pathPosition(ix->ident),
               ix->ident,
               (ix->ident == frag.contained) ? " CORRECT PARENT!" : "");
@@ -386,7 +385,7 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
 #endif
 
   if ((parent == NULL) || (parent->ident != frag.contained)) {
-    fprintf(stderr, "Unitig::addContainedFrag()-- WARNING:  Failed to place frag %d into unitig %d; parent not here.\n",
+    fprintf(logFile, "Unitig::addContainedFrag()-- WARNING:  Failed to place frag %d into unitig %d; parent not here.\n",
             fid, id());
     return(false);
   }
@@ -517,7 +516,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
     bidx5 = pathPosition(bestedge5->frag_b_id);
     blen5 = debugfi->fragmentLength(fid) + ((bestedge5->ahang < 0) ? bestedge5->bhang : -bestedge5->ahang);
 #ifdef DEBUG_PLACEMENT
-    fprintf(stderr, "addAndPlaceFrag()-- bestedge5:  %d,%d,%d,%d len %d\n",
+    fprintf(logFile, "addAndPlaceFrag()-- bestedge5:  %d,%d,%d,%d len %d\n",
             bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
 #endif
     assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
@@ -527,7 +526,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
     bidx3 = pathPosition(bestedge3->frag_b_id);;
     blen3 = debugfi->fragmentLength(fid) + ((bestedge3->ahang < 0) ? bestedge3->bhang : -bestedge3->ahang);
 #ifdef DEBUG_PLACEMENT
-    fprintf(stderr, "addAndPlaceFrag()-- bestedge3:  %d,%d,%d,%d len %d\n",
+    fprintf(logFile, "addAndPlaceFrag()-- bestedge3:  %d,%d,%d,%d len %d\n",
             bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
 #endif
     assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
@@ -539,7 +538,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   //  etc.
 
   if ((blen5 == 0) && (blen3 == 0)) {
-    fprintf(stderr, "Unitig::addAndPlaceFrag()-- WARNING:  Failed to place frag %d into unitig %d; no edges to the unitig.\n",
+    fprintf(logFile, "Unitig::addAndPlaceFrag()-- WARNING:  Failed to place frag %d into unitig %d; no edges to the unitig.\n",
             fid, id());
     return(false);
   }
@@ -602,7 +601,7 @@ float Unitig::getAvgRho(FragmentInfo *fi){
 
   DoveTailPath::const_iterator dtp_iter;
   if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty()) {
-    //fprintf(stderr,"NULL dovetailpath\n");
+    //fprintf(logFile,"NULL dovetailpath\n");
     return 1;
   }
 
@@ -627,7 +626,7 @@ float Unitig::getAvgRho(FragmentInfo *fi){
   _avgRho = unitig_length - avg_frag_len;
 
   if (_avgRho <= 0 ) {
-    //fprintf(stderr, "Negative Rho ident1 "F_IID" ident2 "F_IID" unitig_length %d first_frag_len %d last_frag_len %d avg_frag_len %f\n",
+    //fprintf(logFile, "Negative Rho ident1 "F_IID" ident2 "F_IID" unitig_length %d first_frag_len %d last_frag_len %d avg_frag_len %f\n",
     //        ident1, ident2, unitig_length, first_frag_len, last_frag_len, avg_frag_len);
     _avgRho = 1;
   }
@@ -638,8 +637,9 @@ float Unitig::getAvgRho(FragmentInfo *fi){
 float Unitig::_globalArrivalRate = -1;
 
 void Unitig::setGlobalArrivalRate(float global_arrival_rate){
-  _globalArrivalRate=global_arrival_rate;
+  _globalArrivalRate = global_arrival_rate;
 }
+
 void Unitig::setLocalArrivalRate(float local_arrival_rate){
 
   if ( local_arrival_rate < std::numeric_limits<float>::epsilon())
@@ -647,6 +647,7 @@ void Unitig::setLocalArrivalRate(float local_arrival_rate){
   else
     _localArrivalRate = local_arrival_rate;
 }
+
 float Unitig::getLocalArrivalRate(FragmentInfo *fi){
   if (_localArrivalRate != -1 )
     return _localArrivalRate;
@@ -667,19 +668,18 @@ float Unitig::getCovStat(FragmentInfo *fi){
   //   fragments in the unitig".
 
   //if(_globalArrivalRate == -1)
-  //  fprintf(stderr, "You have not set the _globalArrivalRate variable.\n");
+  //  fprintf(logFile, "You have not set the _globalArrivalRate variable.\n");
 
   float covStat = 0.0;
 
   if (_globalArrivalRate > 0.0)
-    covStat = (getAvgRho(fi) * _globalArrivalRate) - (ln2 * (getNumFrags() -1));
+    covStat = (getAvgRho(fi) * _globalArrivalRate) - (ln2 * (getNumFrags() - 1));
 
   return(covStat);
 }
 
 
 void Unitig::reverseComplement(bool doSort) {
-  DoveTailIter iter   = dovetail_path_ptr->begin();
 
   //  If there are contained fragments, we need to sort by position to place them correctly after
   //  their containers.  If there are no contained fragments, sorting can break the initial unitig
@@ -687,15 +687,17 @@ void Unitig::reverseComplement(bool doSort) {
   //  building depends on having the first fragment added become the last fragment in the unitig
   //  after reversing.
 
-  for(; iter != dovetail_path_ptr->end(); iter++) {
-    iter->position.bgn = getLength() - iter->position.bgn;
-    iter->position.end = getLength() - iter->position.end;
+  for (uint32 fi=0; fi<dovetail_path_ptr->size(); fi++) {
+    DoveTailNode  *frg = &(*dovetail_path_ptr)[fi];
 
-    //if (iter->contained != 0)
+    frg->position.bgn = getLength() - frg->position.bgn;
+    frg->position.end = getLength() - frg->position.end;
+
+    //if (frg->contained != 0)
     //  doSort = true;
 
-    assert(iter->position.bgn >= 0);
-    assert(iter->position.end >= 0);
+    assert(frg->position.bgn >= 0);
+    assert(frg->position.end >= 0);
   }
 
   //  We've updated the positions of everything.  Now, sort or reverse the list, and rebuild the

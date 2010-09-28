@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.1 2010-09-23 09:34:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -27,7 +27,7 @@ static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.1 2010-09-23 09:3
 
 #include "MultiAlignStore.h"
 
-#undef max
+#define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 
 
 
@@ -36,21 +36,18 @@ static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.1 2010-09-23 09:3
 //
 void
 UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
-
-#define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
-
   uint32      ovlMax = MAX_OVERLAPS_PER_FRAG;
   uint32      ovlLen = 0;
-  OVSoverlap *ovl    = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * ovlMax);
-  uint32     *ovlCnt = (uint32     *)safe_malloc(sizeof(uint32)     * AS_READ_MAX_NORMAL_LEN);
+  OVSoverlap *ovl    = new OVSoverlap [ovlMax];
+  uint32     *ovlCnt = new uint32     [AS_READ_MAX_NORMAL_LEN];
 
   uint32      nBubblePopped   = 0;
   uint32      nBubbleTooBig   = 0;
   uint32      nBubbleConflict = 0;
 
-  fprintf(stderr, "==> SEARCHING FOR BUBBLES\n");
+  fprintf(logFile, "==> SEARCHING FOR BUBBLES\n");
 
-  for (int  ti=0; ti<unitigs->size(); ti++) {
+  for (uint32 ti=0; ti<unitigs->size(); ti++) {
     Unitig        *shortTig = (*unitigs)[ti];
     Unitig        *mergeTig = NULL;
 
@@ -76,7 +73,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
     int32          minNewPos    = INT32_MAX;
     int32          maxNewPos    = INT32_MIN;
 
-    for (int fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
+    for (uint32 fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
       DoveTailNode *frg = &(*shortTig->dovetail_path_ptr)[fi];
 
       int32  frgID = frg->ident;
@@ -99,7 +96,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       if (bestedge5->frag_b_id == 0) {
         spurs++;
       } else {
-        int32 ou5 = shortTig->fragIn(bestedge5->frag_b_id);
+        uint32 ou5 = shortTig->fragIn(bestedge5->frag_b_id);
 
         assert(ou5 > 0);
 
@@ -116,7 +113,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       if (bestedge3->frag_b_id == 0) {
         spurs++;
       } else {
-        int32 ou3 = shortTig->fragIn(bestedge3->frag_b_id);
+        uint32 ou3 = shortTig->fragIn(bestedge3->frag_b_id);
 
         assert(ou3 > 0);
 
@@ -168,17 +165,15 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       int32  maxU = INT32_MIN;
 
       if (bidx5 != -1) {
-#ifdef DEBUG_MERGE
-        fprintf(stderr, "popBubbles()-- place frag %d using 5' edge at %d,%d\n", frgID, place5.position.bgn, place5.position.end);
-#endif
+        if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+          fprintf(logFile, "popBubbles()-- place frag %d using 5' edge at %d,%d\n", frgID, place5.position.bgn, place5.position.end);
         min5 = MIN(place5.position.bgn, place5.position.end);
         max5 = MAX(place5.position.bgn, place5.position.end);
       }
 
       if (bidx3 != -1) {
-#ifdef DEBUG_MERGE
-        fprintf(stderr, "popBubbles()-- place frag %d using 3' edge at %d,%d\n", frgID, place3.position.bgn, place3.position.end);
-#endif
+        if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+          fprintf(logFile, "popBubbles()-- place frag %d using 3' edge at %d,%d\n", frgID, place3.position.bgn, place3.position.end);
         min3 = MIN(place3.position.bgn, place3.position.end);
         max3 = MAX(place3.position.bgn, place3.position.end);
       }
@@ -229,10 +224,9 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       //  Bad placement; edges indicate we compressed the unitig (usually by placing only one fragment)
       tigShort++;
 
-#ifdef DEBUG_MERGE
-    fprintf(stderr, "popBubbles()-- unitig %d CONFLICTS %d SPURS %d SELF %d len %d frags %d matedcont %d nonmated %d diffOrient %d tooLong %d tigLong %d tigShort %d\n",
-            shortTig->id(), conflicts, spurs, self, shortTig->getLength(), shortTig->dovetail_path_ptr->size(), matedcont, nonmated, diffOrient, tooLong, tigLong, tigShort);
-#endif
+    if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+      fprintf(logFile, "popBubbles()-- unitig %d CONFLICTS %d SPURS %d SELF %d len %d frags %u matedcont %d nonmated %d diffOrient %d tooLong %d tigLong %d tigShort %d\n",
+              shortTig->id(), conflicts, spurs, self, shortTig->getLength(), (uint32)shortTig->dovetail_path_ptr->size(), matedcont, nonmated, diffOrient, tooLong, tigLong, tigShort);
 
 #if 1
     //  This rule is possible too aggressive.  It was originally used before CHECK_OVERLAPS existed.
@@ -276,7 +270,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
 #define CHECK_OVERLAPS
 #ifdef CHECK_OVERLAPS
-    for (int fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
+    for (uint32 fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
       DoveTailNode *frg = &(*shortTig->dovetail_path_ptr)[fi];
 
       int32  frgID = frg->ident;
@@ -323,14 +317,16 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
         if ((mrg->position.bgn < minNewPos - AS_OVERLAP_MIN_LEN) &&
             (mrg->position.end < minNewPos - AS_OVERLAP_MIN_LEN)) {
           //  This overlapping fragment is before the position we are supposed to be merging to, skip it.
-          fprintf(stderr, "frag %d ignores overlap to frag %d - outside range\n", frgID, b_iid);
+          if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+            fprintf(logFile, "frag %d ignores overlap to frag %d - outside range\n", frgID, b_iid);
           continue;
         }
 
         if ((mrg->position.bgn > maxNewPos - AS_OVERLAP_MIN_LEN) &&
             (mrg->position.end > maxNewPos - AS_OVERLAP_MIN_LEN)) {
           //  This overlapping fragment is after the position we are supposed to be merging to, skip it.
-          fprintf(stderr, "frag %d ignores overlap to frag %d - outside range\n", frgID, b_iid);
+          if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+            fprintf(logFile, "frag %d ignores overlap to frag %d - outside range\n", frgID, b_iid);
           continue;
         }
 
@@ -377,26 +373,23 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       }
 
       if ((zTotal > 0.10 * alen) ||
-          (zInternal > AS_OVERLAP_MIN_LEN))
+          (zInternal > AS_OVERLAP_MIN_LEN)) {
+        if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG)) {
+          fprintf(logFile, "frag %d too different with zTotal=%d (limit=%d) and zInternal=%d (ovl=%d)\n",
+                  frgID, zTotal, (int)(0.10 * alen), zInternal, AS_OVERLAP_MIN_LEN);
+          for (uint32 x=0; x<alen; x++)
+            fprintf(logFile, "%c", (ovlCnt[x] < 10) ? '0' + ovlCnt[x] : '*');
+          fprintf(logFile, "\n");
+        }
         tooDifferent++;
-
-#ifdef DEBUG_MERGE
-      if ((zTotal > 0) || (zInternal > 0)) {
-        fprintf(stderr, "frag %d too different with zTotal=%d (limit=%d) and zInternal=%d (ovl=%d)\n",
-                frgID, zTotal, (int)(0.10 * alen), zInternal, AS_OVERLAP_MIN_LEN);
-        for (uint32 x=0; x<alen; x++)
-          fprintf(stderr, "%c", (ovlCnt[x] < 10) ? '0' + ovlCnt[x] : '*');
-        fprintf(stderr, "\n");
       }
-#endif
     }  //  over all frags
 
     //  If there are fragments with missing overlaps, don't merge.
 
-#ifdef DEBUG_MERGE
-    fprintf(stderr, "popBubbles()-- unitig %d tooDifferent %d\n",
-            shortTig->id(), tooDifferent);
-#endif
+    if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+      fprintf(logFile, "popBubbles()-- unitig %d tooDifferent %d\n",
+              shortTig->id(), tooDifferent);
 
     if (tooDifferent > 0) {
       nBubbleTooBig++;
@@ -407,11 +400,10 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
     //  Merge this unitig into otherUtg.
 
-#ifdef DEBUG_MERGE
-    fprintf(stderr, "popBubbles()-- merge unitig %d (len %d) into unitig %d (len %d)\n",
-            shortTig->id(), shortTig->getLength(),
-            mergeTig->id(), mergeTig->getLength());
-#endif
+    if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+      fprintf(logFile, "popBubbles()-- merge unitig %d (len %d) into unitig %d (len %d)\n",
+              shortTig->id(), shortTig->getLength(),
+              mergeTig->id(), mergeTig->getLength());
     nBubblePopped++;
 
     //  Every once in a while, we get a unitig that is misordered, caused by conflicting best overlaps.
@@ -435,7 +427,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       allPlaced = true;
       isStuck   = true;
 
-      for (int fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
+      for (uint32 fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
         DoveTailNode  *frag = &(*shortTig->dovetail_path_ptr)[fi];
 
         if (mergeTig->fragIn(frag->ident) == mergeTig->id())
@@ -447,31 +439,31 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
         if (bog_ptr->getBestContainer(frag->ident))
           mergeTig->addContainedFrag(frag->ident,
                                      bog_ptr->getBestContainer(frag->ident),
-                                     verboseMerge);
+                                     logFileFlagSet(LOG_INTERSECTION_BUBBLES));
         else
           mergeTig->addAndPlaceFrag(frag->ident,
                                     bog_ptr->getBestEdgeOverlap(frag->ident, FIVE_PRIME),
                                     bog_ptr->getBestEdgeOverlap(frag->ident, THREE_PRIME),
-                                    verboseMerge);
+                                    logFileFlagSet(LOG_INTERSECTION_BUBBLES));
 
         if (mergeTig->fragIn(frag->ident) == mergeTig->id()) {
           //  Placed something, making progress!
-          if (verboseMerge)
-            fprintf(stderr, "popBubbles()-- Moved frag %d from unitig %d to unitig %d (isStuck <- false)\n",
+          if (logFileFlagSet(LOG_INTERSECTION_BUBBLES))
+            fprintf(logFile, "popBubbles()-- Moved frag %d from unitig %d to unitig %d (isStuck <- false)\n",
                     frag->ident, shortTig->id(), mergeTig->id());
           isStuck = false;
         } else {
           //  Failed to place, gotta do the loop again.
-          if (verboseMerge)
-            fprintf(stderr, "popBubbles()-- Failed to move frag %d from unitig %d to unitig %d (tryAgain <- true)\n",
+          if (logFileFlagSet(LOG_INTERSECTION_BUBBLES))
+            fprintf(logFile, "popBubbles()-- Failed to move frag %d from unitig %d to unitig %d (tryAgain <- true)\n",
                     frag->ident, shortTig->id(), mergeTig->id());
           tryAgain = true;
         }
       }
 
       if ((allPlaced == false) && (isStuck == true)) {
-        if (verboseMerge)
-          fprintf(stderr, "popBubbles()--  Failed to completely merge unitig %d into unitig %d.\n",
+        if (logFileFlagSet(LOG_INTERSECTION_BUBBLES))
+          fprintf(logFile, "popBubbles()--  Failed to completely merge unitig %d into unitig %d.\n",
                   shortTig->id(), mergeTig->id());
         tryAgain = false;
       }
@@ -490,7 +482,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
   delete [] ovl;
   delete [] ovlCnt;
 
-  fprintf(stderr, "==> SEARCHING FOR BUBBLES done, %u popped, %u had conflicting placement, %u were too dissimilar.\n",
+  fprintf(logFile, "==> SEARCHING FOR BUBBLES done, %u popped, %u had conflicting placement, %u were too dissimilar.\n",
           nBubblePopped, nBubbleConflict, nBubbleTooBig);
 }  //  bubble popping scope
 
