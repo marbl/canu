@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTORE_H
 #define OVERLAPSTORE_H
 
-static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.17 2010-04-16 21:08:10 brianwalenz Exp $";
+static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.18 2010-09-28 10:44:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +49,16 @@ dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 dumpType,
 void
 dumpPicture(char *ovlName, char *gkpName, uint32 clearRegion, double dumpERate, uint32 dumpType, uint32 qryIID);
 
+void
+estimateGenomeLength(char    *ovlName,
+                     char    *gkpName,
+                     uint32   overlapLimit,  //  K
+                     uint32   bgnIID,
+                     uint32   endIID,
+                     uint32   into,
+                     uint32   windowSize,
+                     uint32   minOvl);
+
 int
 OVSoverlap_sort(const void *a, const void *b);
 
@@ -58,7 +68,8 @@ OVSoverlap_sort(const void *a, const void *b);
 #define OP_MERGE          2
 #define OP_DUMP           3
 #define OP_DUMP_PICTURE   4
-#define OP_UPDATE_ERATES  5
+#define OP_GENOME_LENGTH  5
+#define OP_UPDATE_ERATES  6
 
 #define DUMP_5p         1
 #define DUMP_3p         2

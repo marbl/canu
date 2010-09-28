@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.26 2010-04-16 21:08:10 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.27 2010-09-28 10:44:29 brianwalenz Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -34,12 +34,20 @@ main(int argc, char **argv) {
   char           *storeName   = NULL;
   char           *gkpName     = NULL;
   uint32          clearRegion = AS_READ_CLEAR_ERROR;
+
   uint32          dumpBinary  = FALSE;
   double          dumpERate   = 100.0;
   uint32          dumpType    = 0;
+
   uint32          bgnIID      = 0;
   uint32          endIID      = 1000000000;
   uint32          qryIID      = 0;
+
+  uint32          gs_ovlLimit = 100;
+  uint32          gs_winSize  = 100;
+  uint32          gs_minOvl   = 40;
+  uint32          gs_into     = 5;
+
   uint64          memoryLimit = 512 * 1024 * 1024;
   uint32          nThreads    = 4;
   uint32          doFilterOBT = 0;
@@ -56,34 +64,42 @@ main(int argc, char **argv) {
 
     if        (strcmp(argv[arg], "-c") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S, -G or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_BUILD;
 
     } else if (strcmp(argv[arg], "-m") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S, -G or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_MERGE;
 
     } else if (strcmp(argv[arg], "-d") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S, -G or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_DUMP;
 
     } else if (strcmp(argv[arg], "-p") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S, -G or -u may be supplied.\n"), err++;
       qryIID      = atoi(argv[++arg]);
       storeName   = argv[++arg];
       gkpName     = argv[++arg];
       clearRegion = gkStore_decodeClearRegionLabel(argv[++arg]);
       operation   = OP_DUMP_PICTURE;
 
+    } else if (strcmp(argv[arg], "-G") == 0) {
+      if (storeName)
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S, -G or -u may be supplied.\n"), err++;
+      storeName    = argv[++arg];
+      gkpName      = argv[++arg];
+      gs_ovlLimit  = atoi(argv[++arg]);
+      operation    = OP_GENOME_LENGTH;
+
     } else if (strcmp(argv[arg], "-u") == 0) {
       if (storeName)
-        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S or -u may be supplied.\n"), err++;
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -q, -s, -S, -G or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_UPDATE_ERATES;
 
@@ -192,13 +208,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "       %s -d storeName [-B] [-E erate] [-b beginIID] [-e endIID]\n", argv[0]);
     fprintf(stderr, "       %s -q aiid biid storeName\n", argv[0]);
     fprintf(stderr, "       %s -p iid storeName gkpStore clr\n", argv[0]);
+    fprintf(stderr, "       %s -G storeName gkpStore ovlLimit\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "There are five modes of operation, selected by the first option:\n");
+    fprintf(stderr, "There are six modes of operation, selected by the first option:\n");
     fprintf(stderr, "  -c  create a new store, fails if the store exists\n");
     fprintf(stderr, "  -m  merge store mergeName into store storeName\n");
     fprintf(stderr, "  -d  dump a store\n");
     fprintf(stderr, "  -q  report the a,b overlap, if it exists.\n");
     fprintf(stderr, "  -p  dump a picture of overlaps to fragment 'iid', using clear region 'clr'.\n");
+    fprintf(stderr, "  -G  estimate genome length\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "CREATION - create a new store from raw overlap files\n");
     fprintf(stderr, "  -O           Filter overlaps for OBT.\n");
@@ -261,6 +279,16 @@ main(int argc, char **argv) {
       break;
     case OP_DUMP_PICTURE:
       dumpPicture(storeName, gkpName, clearRegion, dumpERate, dumpType, qryIID);
+      break;
+    case OP_GENOME_LENGTH:
+      estimateGenomeLength(storeName,
+                           gkpName,
+                           gs_ovlLimit,
+                           bgnIID,
+                           endIID,
+                           gs_into,
+                           gs_winSize,
+                           gs_minOvl);
       break;
     case OP_UPDATE_ERATES:
       updateErates(storeName, fileList[0]);

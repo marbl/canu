@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.31 2010-08-06 15:03:20 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.32 2010-09-28 10:44:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,15 +100,14 @@ writeToDumpFile(OVSoverlap          *overlap,
 
 
 void
-buildStore(
-      char *storeName, 
-      char *gkpName, 
-      uint64 memoryLimit, 
-      uint32 nThreads, 
-      uint32 doFilterOBT, 
-      uint32 fileListLen, 
-      char **fileList, 
-      Ovl_Skip_Type_t ovlSkipOpt) {
+buildStore(char *storeName, 
+           char *gkpName, 
+           uint64 memoryLimit, 
+           uint32 nThreads, 
+           uint32 doFilterOBT, 
+           uint32 fileListLen, 
+           char **fileList, 
+           Ovl_Skip_Type_t ovlSkipOpt) {
 
   if (gkpName == NULL) {
     fprintf(stderr, "overlapStore: The '-g gkpName' parameter is required.\n");
