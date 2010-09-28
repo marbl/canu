@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.3 2010-09-28 10:55:18 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -41,9 +41,10 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
   OVSoverlap *ovl    = new OVSoverlap [ovlMax];
   uint32     *ovlCnt = new uint32     [AS_READ_MAX_NORMAL_LEN];
 
-  uint32      nBubblePopped   = 0;
-  uint32      nBubbleTooBig   = 0;
-  uint32      nBubbleConflict = 0;
+  uint32      nBubblePopped    = 0;
+  uint32      nBubbleTooBig    = 0;
+  uint32      nBubbleConflict  = 0;
+  uint32      nBubbleNoEdge    = 0;
 
   fprintf(logFile, "==> SEARCHING FOR BUBBLES\n");
 
@@ -72,6 +73,12 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
     int32          minNewPos    = INT32_MAX;
     int32          maxNewPos    = INT32_MIN;
+
+    if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+      fprintf(logFile, "popBubbles()-- try unitig %d of length %d with %d fragments\n",
+              shortTig->id(),
+              shortTig->getLength(),
+              shortTig->dovetail_path_ptr->size());
 
     for (uint32 fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
       DoveTailNode *frg = &(*shortTig->dovetail_path_ptr)[fi];
@@ -166,14 +173,16 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
       if (bidx5 != -1) {
         if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
-          fprintf(logFile, "popBubbles()-- place frag %d using 5' edge at %d,%d\n", frgID, place5.position.bgn, place5.position.end);
+          fprintf(logFile, "popBubbles()-- place frag %d using 5' edge (%d,%c) in unitig %d at %d,%d\n",
+                  frgID, bestedge5->frag_b_id, bestedge5->bend ? '3' : '5', otherUtg, place5.position.bgn, place5.position.end);
         min5 = MIN(place5.position.bgn, place5.position.end);
         max5 = MAX(place5.position.bgn, place5.position.end);
       }
 
       if (bidx3 != -1) {
         if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
-          fprintf(logFile, "popBubbles()-- place frag %d using 3' edge at %d,%d\n", frgID, place3.position.bgn, place3.position.end);
+          fprintf(logFile, "popBubbles()-- place frag %d using 3' edge (%d,%c) in unitig %d at %d,%d\n",
+                  frgID, bestedge3->frag_b_id, bestedge3->bend ? '3' : '5', otherUtg, place3.position.bgn, place3.position.end);
         min3 = MIN(place3.position.bgn, place3.position.end);
         max3 = MAX(place3.position.bgn, place3.position.end);
       }
@@ -195,17 +204,29 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
           //  Orientation bad.
           diffOrient++;
 
-        if (maxU - minU > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
+        if (maxU - minU > 1.25 * _fi->fragmentLength(frgID)) {
           //  Location bad.
+          if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+            fprintf(logFile, "popBubbles()--   too long1 %d - %d = %d > 1.06 * %d = %.2f\n",
+                    maxU, minU, maxU - minU, _fi->fragmentLength(frgID), 1.06 * _fi->fragmentLength(frgID));
           tooLong++;
+        }
 
-        if (max5 - min5 > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
+        if (max5 - min5 > 1.25 * _fi->fragmentLength(frgID)) {
           //  Length bad.
+          if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+            fprintf(logFile, "popBubbles()--   too long2 %d - %d = %d > 1.06 * %d = %.2f\n",
+                    max5, min5, max5 - min5, _fi->fragmentLength(frgID), 1.06 * _fi->fragmentLength(frgID));
           tooLong++;
+        }
 
-        if (max3 - min3 > (1 + 2 * 0.03) * _fi->fragmentLength(frgID))
+        if (max3 - min3 > 1.25 * _fi->fragmentLength(frgID)) {
           //  Length bad.
+          if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+            fprintf(logFile, "popBubbles()--   too long3 %d - %d = %d > 1.06 * %d = %.2f\n",
+                    max3, min3, max3 - min3, _fi->fragmentLength(frgID), 1.06 * _fi->fragmentLength(frgID));
           tooLong++;
+        }
       }
     }  //  Over all fragments in the source unitig/
 
@@ -213,49 +234,48 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
     //  If we are bad already, just stop.  If we pass these tests, continue on to checking overlaps.
     //
 
-#warning NEED TO SET AS_UTG_ERROR_RATE
-#warning NEED TO SET AS_UTG_ERROR_RATE
-#warning NEED TO SET AS_UTG_ERROR_RATE
-    if (maxNewPos - minNewPos > (1 + 2 * 0.03) * shortTig->getLength())
-      //  Bad placement; edges indicate we blew the unitig apart.
-      tigLong++;
+    if (otherUtg == noUnitig) {
+      if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+        fprintf(logFile, "popBubbles()-- unitig %d has NO EDGES\n",
+                shortTig->id());
+      nBubbleNoEdge++;
+      continue;
+    }
 
-    if (maxNewPos - minNewPos > (1 - 2 * 0.03) * shortTig->getLength())
+    if (maxNewPos - minNewPos > 1.25 * shortTig->getLength()) {
+      //  Bad placement; edges indicate we blew the unitig apart.
+      if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+        fprintf(logFile, "popBubbles()--   tig long %d - %d = %d > 1.06 * %d = %.2f\n",
+                maxNewPos, minNewPos, maxNewPos - minNewPos, shortTig->getLength(), 1.06 * shortTig->getLength());
+      tigLong++;
+    }
+
+    if (maxNewPos - minNewPos < 0.75 * shortTig->getLength()) {
       //  Bad placement; edges indicate we compressed the unitig (usually by placing only one fragment)
+      if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+        fprintf(logFile, "popBubbles()--   tig short %d - %d = %d < 1.06 * %d = %.2f\n",
+                maxNewPos, minNewPos, maxNewPos - minNewPos, shortTig->getLength(), 1.06 * shortTig->getLength());
       tigShort++;
+    }
 
     if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
       fprintf(logFile, "popBubbles()-- unitig %d CONFLICTS %d SPURS %d SELF %d len %d frags %u matedcont %d nonmated %d diffOrient %d tooLong %d tigLong %d tigShort %d\n",
               shortTig->id(), conflicts, spurs, self, shortTig->getLength(), (uint32)shortTig->dovetail_path_ptr->size(), matedcont, nonmated, diffOrient, tooLong, tigLong, tigShort);
 
-#if 1
-    //  This rule is possible too aggressive.  It was originally used before CHECK_OVERLAPS existed.
-    //  That should catch what 'self' and 'matedcont' were trying to catch.
     if ((spurs        > 0) ||
-        (self         > 6) ||
-        (matedcont    > 6) ||
-        (diffOrient   > 0) ||
-        (tooLong      > 0) ||
-        (tigLong      > 0) ||
-        (tigShort     > 0) ||
-        (tooDifferent > 0) ||
-        (conflicts    > 0)) {
-      nBubbleConflict++;
-      continue;
-    }
-#else
-    //  The revised rule hasn't been tested though.
-    if ((spurs        > 0) ||
-        (diffOrient   > 0) ||
-        (tooLong      > 0) ||
-        (tigLong      > 0) ||
-        (tigShort     > 0) ||
-        (tooDifferent > 0) ||
-        (conflicts    > 0)) {
-      nBubbleConflict++;
-      continue;
-    }
+#if 0
+        (self         > 6) ||  //  These are possible too aggressive.  They were originally
+        (matedcont    > 6) ||  //  used before CHECK_OVERLAPS existed.
 #endif
+        (diffOrient   > 0) ||
+        (tooLong      > 0) ||
+        (tigLong      > 0) ||
+        (tigShort     > 0) ||
+        (tooDifferent > 0) ||
+        (conflicts    > 0)) {
+      nBubbleConflict++;
+      continue;
+    }
 
     if (mergeTig == NULL)
       //  Didn't find any place to put this short unitig.  It's not a bubble, just a short unitig
@@ -400,7 +420,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
     //  Merge this unitig into otherUtg.
 
-    if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
+    if (logFileFlagSet(LOG_INTERSECTION_BUBBLES))
       fprintf(logFile, "popBubbles()-- merge unitig %d (len %d) into unitig %d (len %d)\n",
               shortTig->id(), shortTig->getLength(),
               mergeTig->id(), mergeTig->getLength());
@@ -482,7 +502,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
   delete [] ovl;
   delete [] ovlCnt;
 
-  fprintf(logFile, "==> SEARCHING FOR BUBBLES done, %u popped, %u had conflicting placement, %u were too dissimilar.\n",
-          nBubblePopped, nBubbleConflict, nBubbleTooBig);
+  fprintf(logFile, "==> SEARCHING FOR BUBBLES done, %u popped, %u had conflicting placement, %u had no edges, %u were too dissimilar.\n",
+          nBubblePopped, nBubbleConflict, nBubbleNoEdge, nBubbleTooBig);
 }  //  bubble popping scope
 
