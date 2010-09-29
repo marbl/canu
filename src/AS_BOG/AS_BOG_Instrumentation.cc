@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.3 2010-09-29 22:04:29 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -96,7 +96,8 @@ UnitigGraph::checkUnitigMembership(void) {
 void
 UnitigGraph::reportOverlapsUsed(const char *filename) {
 
-  return;
+  if (logFileFlagSet(LOG_OVERLAPS_USED) == 0)
+    return;
 
   FILE *F = fopen(filename, "w");
 
@@ -164,7 +165,8 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
 void
 UnitigGraph::reportUnitigs(const char *filename) {
 
-  return;
+  if (logFileFlagSet(LOG_INTERMEDIATE_UNITIGS) == 0)
+    return;
 
   char tigStorePath[FILENAME_MAX];
   sprintf(tigStorePath, "debug.%s.tigStore", filename);

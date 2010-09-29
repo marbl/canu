@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.41 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.42 2010-09-29 22:04:29 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -58,6 +58,7 @@ extern FILE   *logFile;
 extern uint64  logFileFlags;
 
 extern uint64 LOG_OVERLAP_QUALITY;
+extern uint64 LOG_OVERLAPS_USED;
 extern uint64 LOG_CHUNK_GRAPH;
 extern uint64 LOG_INTERSECTIONS;
 extern uint64 LOG_POPULATE_UNITIG;
@@ -68,7 +69,7 @@ extern uint64 LOG_INTERSECTION_JOINING;
 extern uint64 LOG_INTERSECTION_JOINING_DEBUG;
 extern uint64 LOG_INITIAL_CONTAINED_PLACEMENT;
 extern uint64 LOG_HAPPINESS;
-
+extern uint64 LOG_INTERMEDIATE_UNITIGS;
 
 
 class FragmentEnd {

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.74 2010-09-28 09:17:54 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.75 2010-09-29 22:04:29 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -34,18 +34,21 @@ uint32            logFileOrder = 1;
 uint64            logFileFlags = 0;  //  defined in AS_BOG_Datatypes.hh
 
 uint64 LOG_OVERLAP_QUALITY             = 0x0000000000000001;  //  Debug, scoring of overlaps
-uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000002;  //  Report the chunk graph as we build it
-uint64 LOG_INTERSECTIONS               = 0x0000000000000004;  //  Report intersections found when building initial unitigs
-uint64 LOG_POPULATE_UNITIG             = 0x0000000000000008;  //  Report building of initial unitigs (both unitig creation and fragment placement)
-uint64 LOG_INTERSECTION_BREAKING       = 0x0000000000000010;  //  
-uint64 LOG_INTERSECTION_BUBBLES        = 0x0000000000000020;  //  
-uint64 LOG_INTERSECTION_BUBBLES_DEBUG  = 0x0000000000000040;  //  
-uint64 LOG_INTERSECTION_JOINING        = 0x0000000000000080;  //
-uint64 LOG_INTERSECTION_JOINING_DEBUG  = 0x0000000000000100;  //
-uint64 LOG_INITIAL_CONTAINED_PLACEMENT = 0x0000000000000200;  //
-uint64 LOG_HAPPINESS                   = 0x0000000000000400;  //
+uint64 LOG_OVERLAPS_USED               = 0x0000000000000002;  //  Report overlaps used/not used
+uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000004;  //  Report the chunk graph as we build it
+uint64 LOG_INTERSECTIONS               = 0x0000000000000008;  //  Report intersections found when building initial unitigs
+uint64 LOG_POPULATE_UNITIG             = 0x0000000000000010;  //  Report building of initial unitigs (both unitig creation and fragment placement)
+uint64 LOG_INTERSECTION_BREAKING       = 0x0000000000000020;  //  
+uint64 LOG_INTERSECTION_BUBBLES        = 0x0000000000000040;  //  
+uint64 LOG_INTERSECTION_BUBBLES_DEBUG  = 0x0000000000000080;  //  
+uint64 LOG_INTERSECTION_JOINING        = 0x0000000000000100;  //
+uint64 LOG_INTERSECTION_JOINING_DEBUG  = 0x0000000000000200;  //
+uint64 LOG_INITIAL_CONTAINED_PLACEMENT = 0x0000000000000400;  //
+uint64 LOG_HAPPINESS                   = 0x0000000000000800;  //
+uint64 LOG_INTERMEDIATE_UNITIGS        = 0x0000000000001000;  //  At various spots, dump the current unitigs
 
 const char *logFileFlagNames[64] = { "overlapQuality",
+                                     "overlapsUsed",
                                      "chunkGraph",
                                      "intersections",
                                      "populate",
@@ -56,6 +59,7 @@ const char *logFileFlagNames[64] = { "overlapQuality",
                                      "intersectionJoiningDebug",
                                      "containedPlacement",
                                      "happiness",
+                                     "intermediateUnitigs",
                                      NULL
 };
 
@@ -160,7 +164,6 @@ main (int argc, char * argv []) {
       bool    fnd = false;
       for (arg++; logFileFlagNames[opt]; flg <<= 1, opt++) {
         if (strcasecmp(logFileFlagNames[opt], argv[arg]) == 0) {
-          fprintf(stderr, "SET flag to "F_U64"\n", flg);
           logFileFlags |= flg;
           fnd = true;
         }
