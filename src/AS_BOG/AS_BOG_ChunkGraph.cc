@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.32 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.33 2010-09-29 22:15:02 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -123,7 +123,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
   //
   FragmentEnd currEnd = firstEnd;
 
-  while (currEnd.fragId() != lastEnd.fragId()) {
+  while (currEnd != lastEnd) {
     _pathLen[currEnd.index()] = length--;
     currEnd = _BOG->followOverlap(currEnd);
   }
@@ -141,7 +141,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
            (seen.find(currEnd) == seen.end())) {
       seen.insert(currEnd);
 
-      if (currEnd.fragId() == lastEnd.fragId())
+      if (currEnd == lastEnd)
         fprintf(logFile, " LAST");
 
       fprintf(logFile, " %d,%d(%d)",
