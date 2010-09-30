@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.2 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.3 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_InsertSizes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -29,8 +29,8 @@ static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.2 2010-09-30 05:50:17
 void
 InsertSizes::accumulateLibraryStats(Unitig *utg) {
 
-  for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-    DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
+  for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
+    ufNode  *frag = &utg->ufpath[fi];
 
     if (FI->mateIID(frag->ident) == 0)
       //  Unmated fragment.
@@ -41,7 +41,7 @@ InsertSizes::accumulateLibraryStats(Unitig *utg) {
       continue;
 
     uint32        mi   = utg->pathPosition(FI->mateIID(frag->ident));
-    DoveTailNode *mate = &(*utg->dovetail_path_ptr)[mi];
+    ufNode *mate = &utg->ufpath[mi];
 
     if (frag->ident < mate->ident)
       //  Only do this once for each mate pair.
@@ -137,7 +137,7 @@ InsertSizes::InsertSizes() {
     Unitig        *utg = UG->unitigs[ti];
 
     if ((utg == NULL) ||
-        (utg->dovetail_path_ptr->size() < 2))
+        (utg->ufpath.size() < 2))
       continue;
 
     accumulateLibraryStats(utg);

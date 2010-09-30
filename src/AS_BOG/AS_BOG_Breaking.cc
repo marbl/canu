@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.4 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -206,8 +206,8 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
     if (!breakstmp.empty())
       nextBP = breakstmp.front();
 
-    for(DoveTailIter dtIter = tig->dovetail_path_ptr->begin(); dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
-      DoveTailNode frg = *dtIter;
+    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+      ufNode  frg = tig->ufpath[fi];
 
       bool bothEnds = false;
       while ( !breakstmp.empty() && nextBP.fragEnd.fragId() == breakPoint.fragEnd.fragId() ) {
@@ -282,8 +282,8 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
   if (!breaks.empty())
     nextBP = breaks.front();
 
-  for(DoveTailIter dtIter = tig->dovetail_path_ptr->begin(); dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
-    DoveTailNode frg = *dtIter;
+  for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+    ufNode  frg = tig->ufpath[fi];
 
     // reduce multiple breaks at the same fragment end down to one
     bool bothEnds = false;
@@ -330,7 +330,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         //  Break at both ends, create a singleton for this fragment.
         //
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING) && newTig)
-          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->dovetail_path_ptr->size());
+          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->ufpath.size());
 
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
           fprintf(logFile, "Break tig %d at both ends of frag %d\n", tig->id(), breakPoint.fragEnd.fragId());
@@ -338,12 +338,12 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         newTig = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));  //  always make a new unitig, we put a frag in it now
         splits->push_back(newTig);
 
-        if (newTig->dovetail_path_ptr->empty())
+        if (newTig->ufpath.empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
         newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
 
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING) && newTig)
-          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->dovetail_path_ptr->size());
+          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->ufpath.size());
 
         newTig = NULL;  //  delay until we need to make it
       }
@@ -354,7 +354,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         //  Break at left end of frg, frg starts new tig
         //
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING) && newTig)
-          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->dovetail_path_ptr->size());
+          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->ufpath.size());
 
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
           fprintf(logFile,"Break tig %d before frag %d\n", tig->id(), breakPoint.fragEnd.fragId());
@@ -362,7 +362,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         newTig = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));  //  always make a new unitig, we put a frag in it now
         splits->push_back(newTig);
 
-        if (newTig->dovetail_path_ptr->empty())
+        if (newTig->ufpath.empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
         newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
       }
@@ -381,13 +381,13 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
           splits->push_back(newTig);
         }
 
-        if (newTig->dovetail_path_ptr->empty())
+        if (newTig->ufpath.empty())
           offset = reverse ? -frg.position.end : -frg.position.bgn;
 
         newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
 
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING) && newTig)
-          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->dovetail_path_ptr->size());
+          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->ufpath.size());
 
         newTig = NULL;
 
@@ -419,7 +419,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         newTig = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
         splits->push_back(newTig);
       }
-      if (newTig->dovetail_path_ptr->empty())
+      if (newTig->ufpath.empty())
         offset = reverse ? -frg.position.end : -frg.position.bgn;
       newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
     }

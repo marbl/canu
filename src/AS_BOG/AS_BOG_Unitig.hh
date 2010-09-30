@@ -22,16 +22,18 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.18 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.19 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
 //  Derived from IntMultiPos, but removes some of the data (48b in IntMultiPos, 32b in struct
-//  DoveTailNode).  The minimum size (bit fields, assuming maximum limits, not using the contained
+//  ufNode).  The minimum size (bit fields, assuming maximum limits, not using the contained
 //  field) seems to be 24b, and is more effort than it is worth (just removing 'contained' would be
 //  a chore).
 //
-struct DoveTailNode {
+//  ufNode is, of course, 'unitig fragment node'.
+//
+struct ufNode {
   int32           ident;
   int32           contained;
   int32           parent;     //  IID of the fragment we align to
@@ -44,11 +46,9 @@ struct DoveTailNode {
   int32           containment_depth;
 };
 
-typedef std::vector<DoveTailNode>         DoveTailPath;
+typedef std::vector<ufNode>         ufPath;
 
 
-typedef DoveTailPath::iterator            DoveTailIter;
-typedef DoveTailPath::const_iterator      DoveTailConstIter;
 
 //  The ContainerMap stores a list of IDs contained in the index fragment:
 //    cMap[index] = list of IDs contained in index
@@ -82,19 +82,19 @@ struct Unitig{
   // contain guides, or other fragments that are not randomly sampled
   // across the whole genome.
 
-  int32 getLength(void)          { return(_length);                   };
-  uint32 getNumFrags(void)        { return(dovetail_path_ptr->size()); };
-  uint32 getNumRandomFrags(void)  { return(getNumFrags());             };
+  int32  getLength(void)          { return(_length);       };
+  uint32 getNumFrags(void)        { return(ufpath.size()); };
+  uint32 getNumRandomFrags(void)  { return(getNumFrags()); };
 
-  DoveTailNode getLastBackboneNode(void);
-  DoveTailNode getLastBackboneNode(uint32 &);
+  ufNode getLastBackboneNode(void);
+  ufNode getLastBackboneNode(uint32 &);
 
   uint32       id(void) { return(_id); };
 
-  bool placeFrag(DoveTailNode &place5, int32 &fidx5, BestEdgeOverlap *bestedge5,
-                 DoveTailNode &place3, int32 &fidx3, BestEdgeOverlap *bestedge3);
+  bool placeFrag(ufNode &place5, int32 &fidx5, BestEdgeOverlap *bestedge5,
+                 ufNode &place3, int32 &fidx3, BestEdgeOverlap *bestedge3);
 
-  void addFrag(DoveTailNode node, int offset=0, bool report=false);
+  void addFrag(ufNode node, int offset=0, bool report=false);
   bool addContainedFrag(int32 fid, BestContainment *bestcont, bool report=false);
   bool addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *bestedge3, bool report=false);
 
@@ -122,7 +122,7 @@ struct Unitig{
   };
 
   // Public Member Variables
-  DoveTailPath *dovetail_path_ptr;
+  ufPath   ufpath;
 
 private:
   float   _avgRho;

@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -60,8 +60,8 @@ UnitigGraph::placeZombies(void) {
     if (utg == NULL)
       continue;
 
-    for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
+    for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
+      ufNode  *frag = &utg->ufpath[fi];
 
       inUnitig[frag->ident] = utg->id();
     }
@@ -83,7 +83,7 @@ UnitigGraph::placeZombies(void) {
     //  properly.  For now, enjoy the ride.
 
     Unitig      *utg = new Unitig(false);
-    DoveTailNode frg;
+    ufNode       frg;
 
     frg.ident             = i;
     frg.contained         = 0;

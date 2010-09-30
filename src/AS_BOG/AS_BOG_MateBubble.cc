@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -53,26 +53,26 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRe
     Unitig        *tig = unitigs[ti];
 
     if ((tig == NULL) ||
-        (tig->dovetail_path_ptr == NULL))
+        (tig->ufpath.size() == 0))
       //   No tig here.
       continue;
 
     if ((tig->getLength() > 1000) ||
-        (tig->dovetail_path_ptr->size() >= 3000))
+        (tig->ufpath.size() >= 3000))
       //  Tig too big.
       continue;
 
     //if ((tig->getLength() < 150) ||
-    //    (tig->dovetail_path_ptr->size() < 5))
+    //    (tig->ufpath.size() < 5))
     //  //  Tig too small.
     //  continue;
 
-    uint32        *lkg    = new uint32 [tig->dovetail_path_ptr->size()];
+    uint32        *lkg    = new uint32 [tig->ufpath.size()];
     uint32         lkgLen = 0;
     uint32         lkgExt = 0;
 
-    for (int fi=0; fi<tig->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode *frg = &(*tig->dovetail_path_ptr)[fi];
+    for (int fi=0; fi<tig->ufpath.size(); fi++) {
+      ufNode *frg = &tig->ufpath[fi];
       int32         frgID = frg->ident;
       int32         matID = FI->mateIID(frgID);
 
@@ -92,7 +92,7 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRe
 
       lkgExt++;
 
-      if (mtig->dovetail_path_ptr->size() < 2)
+      if (mtig->ufpath.size() < 2)
         //  Mate is in singleton.
         continue;
 

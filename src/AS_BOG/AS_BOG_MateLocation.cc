@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.1 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.2 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_MateLocation.hh"
 
@@ -99,8 +99,8 @@ MateLocation::buildTable(Unitig *utg) {
   fprintf(logFile, "buildTable()-- unitig %d\n", utg->id());
 #endif
 
-  for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-    DoveTailNode  *frag = &(*utg->dovetail_path_ptr)[fi];
+  for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
+    ufNode  *frag = &utg->ufpath[fi];
 
     if (FI->mateIID(frag->ident) == 0)
       //  Not mated.

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.5 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.6 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -53,8 +53,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
     Unitig        *mergeTig = NULL;
 
     if ((shortTig == NULL) ||
-        (shortTig->dovetail_path_ptr == NULL) ||
-        (shortTig->dovetail_path_ptr->size() >= 30))
+        (shortTig->ufpath.size() >= 30))
       continue;
 
     uint32         otherUtg     = noUnitig;
@@ -78,10 +77,10 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       fprintf(logFile, "popBubbles()-- try unitig %d of length %d with %d fragments\n",
               shortTig->id(),
               shortTig->getLength(),
-              shortTig->dovetail_path_ptr->size());
+              shortTig->ufpath.size());
 
-    for (uint32 fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode *frg = &(*shortTig->dovetail_path_ptr)[fi];
+    for (uint32 fi=0; fi<shortTig->ufpath.size(); fi++) {
+      ufNode *frg = &shortTig->ufpath[fi];
 
       int32  frgID = frg->ident;
       int32  utgID = shortTig->id();
@@ -146,8 +145,8 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
       mergeTig = unitigs[otherUtg];
 
-      DoveTailNode place5;
-      DoveTailNode place3;
+      ufNode place5;
+      ufNode place3;
 
       place5.ident = frgID;
       place3.ident = frgID;
@@ -260,7 +259,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
     if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
       fprintf(logFile, "popBubbles()-- unitig %d CONFLICTS %d SPURS %d SELF %d len %d frags %u matedcont %d nonmated %d diffOrient %d tooLong %d tigLong %d tigShort %d\n",
-              shortTig->id(), conflicts, spurs, self, shortTig->getLength(), (uint32)shortTig->dovetail_path_ptr->size(), matedcont, nonmated, diffOrient, tooLong, tigLong, tigShort);
+              shortTig->id(), conflicts, spurs, self, shortTig->getLength(), (uint32)shortTig->ufpath.size(), matedcont, nonmated, diffOrient, tooLong, tigLong, tigShort);
 
     if ((spurs        > 0) ||
 #if 0
@@ -290,8 +289,8 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
 #define CHECK_OVERLAPS
 #ifdef CHECK_OVERLAPS
-    for (uint32 fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode *frg = &(*shortTig->dovetail_path_ptr)[fi];
+    for (uint32 fi=0; fi<shortTig->ufpath.size(); fi++) {
+      ufNode *frg = &shortTig->ufpath[fi];
 
       int32  frgID = frg->ident;
       int32  utgID = shortTig->id();
@@ -332,7 +331,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
           continue;
 
         uint32        mrgPos = mergeTig->pathPosition(b_iid);
-        DoveTailNode *mrg    = &(*mergeTig->dovetail_path_ptr)[mrgPos];
+        ufNode *mrg    = &mergeTig->ufpath[mrgPos];
 
         if ((mrg->position.bgn < minNewPos - AS_OVERLAP_MIN_LEN) &&
             (mrg->position.end < minNewPos - AS_OVERLAP_MIN_LEN)) {
@@ -447,8 +446,8 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       allPlaced = true;
       isStuck   = true;
 
-      for (uint32 fi=0; fi<shortTig->dovetail_path_ptr->size(); fi++) {
-        DoveTailNode  *frag = &(*shortTig->dovetail_path_ptr)[fi];
+      for (uint32 fi=0; fi<shortTig->ufpath.size(); fi++) {
+        ufNode  *frag = &shortTig->ufpath[fi];
 
         if (mergeTig->fragIn(frag->ident) == mergeTig->id())
           //  Already placed in mergeTig.

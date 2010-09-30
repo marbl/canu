@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_SetParentAndHang.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_SetParentAndHang.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -36,13 +36,13 @@ UnitigGraph::setParentAndHang(void) {
     if (utg == NULL)
       continue;
 
-    if (utg->dovetail_path_ptr->size() == 0)
+    if (utg->ufpath.size() == 0)
       continue;
 
     //  Reset parent and hangs for everything.
 
-    for (int fi=1; fi<utg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode *frg = &(*utg->dovetail_path_ptr)[fi];
+    for (int fi=1; fi<utg->ufpath.size(); fi++) {
+      ufNode *frg = &utg->ufpath[fi];
 
       frg->parent       = 0;
       frg->ahang        = 0;
@@ -51,8 +51,8 @@ UnitigGraph::setParentAndHang(void) {
 
     //  For each fragment, set parent/hangs using the edges.
 
-    for (int fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode *frg  = &(*utg->dovetail_path_ptr)[fi];
+    for (int fi=0; fi<utg->ufpath.size(); fi++) {
+      ufNode *frg  = &utg->ufpath[fi];
 
       //  If we're contained, gee, I sure hope the container is here!
 
@@ -60,7 +60,7 @@ UnitigGraph::setParentAndHang(void) {
 
       if ((bestcont) && (utg->fragIn(bestcont->container) == utg->id())) {
         int32         pi   = utg->pathPosition(bestcont->container);
-        DoveTailNode *par  = &(*utg->dovetail_path_ptr)[pi];
+        ufNode *par  = &utg->ufpath[pi];
 
         frg->parent = bestcont->container;
 
@@ -84,7 +84,7 @@ UnitigGraph::setParentAndHang(void) {
 
       if ((bestedge5->frag_b_id) && (utg->fragIn(bestedge5->frag_b_id) == utg->id())) {
         int32         pi5  = utg->pathPosition(bestedge5->frag_b_id);
-        DoveTailNode *oth  = &(*utg->dovetail_path_ptr)[pi5];
+        ufNode *oth  = &utg->ufpath[pi5];
 
         //  Consensus is expected parent/hangs to be relative to the parent fragment.  This is used
         //  ONLY to place the fragment, not to orient the fragment.  Orientation comes from the
@@ -120,7 +120,7 @@ UnitigGraph::setParentAndHang(void) {
 
       if ((bestedge3->frag_b_id) && (utg->fragIn(bestedge3->frag_b_id) == utg->id())) {
         int32         pi3  = utg->pathPosition(bestedge3->frag_b_id);
-        DoveTailNode *oth  = &(*utg->dovetail_path_ptr)[pi3];
+        ufNode *oth  = &utg->ufpath[pi3];
 
         if (pi3 < fi) {
           //  We have an edge off our 3' end to something before us --> fragment MUST be reverse.

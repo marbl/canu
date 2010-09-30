@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.5 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.6 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -43,22 +43,23 @@ UnitigGraph::checkUnitigMembership(void) {
     inUnitig[i] = noUnitig;
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *utg = unitigs[ti];
+    Unitig  *tig = unitigs[ti];
     uint32   len = 0;
 
-    if (utg) {
+    if (tig) {
       nutg++;
 
-      for (DoveTailIter it=utg->dovetail_path_ptr->begin(); it != utg->dovetail_path_ptr->end(); it++) {
+      for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+        ufNode  *frg = &tig->ufpath[fi];
         nfrg++;
 
-        if (it->ident > FI->numFragments())
-          fprintf(logFile, "HUH?  ident=%d numfrags=%d\n", it->ident, FI->numFragments());
+        if (frg->ident > FI->numFragments())
+          fprintf(logFile, "HUH?  ident=%d numfrags=%d\n", frg->ident, FI->numFragments());
 
-        inUnitig[it->ident] = ti;
+        inUnitig[frg->ident] = ti;
 
-        len = MAX(len, it->position.bgn);
-        len = MAX(len, it->position.end);
+        len = MAX(len, frg->position.bgn);
+        len = MAX(len, frg->position.end);
       }
 
       logSize[ (uint32)(log10(len) / log10(2)) ]++;
@@ -110,8 +111,8 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
     if (utg == NULL)
       continue;
 
-    for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
+    for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
+      ufNode  *frg = &utg->ufpath[fi];
 
       //  Where is our best overlap?  Contained or dovetail?
 
@@ -129,8 +130,8 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
 
       //  Now search ahead, reporting any overlap to any fragment.
       //
-      for (uint32 oi=fi+1; oi<utg->dovetail_path_ptr->size(); oi++) {
-        DoveTailNode  *ooo = &(*utg->dovetail_path_ptr)[oi];
+      for (uint32 oi=fi+1; oi<utg->ufpath.size(); oi++) {
+        ufNode  *ooo = &utg->ufpath[oi];
 
         int frgbgn = MIN(frg->position.bgn, frg->position.end);
         int frgend = MAX(frg->position.bgn, frg->position.end);

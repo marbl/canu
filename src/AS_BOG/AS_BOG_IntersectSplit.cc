@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -58,7 +58,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
       continue;
 
     UnitigBreakPoints   breaks;
-    DoveTailNode        lastBackbone;
+    ufNode        lastBackbone;
 
     int                 numFragsInUnitig = 0;
     int                 fragCount        = 0;
@@ -75,8 +75,8 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
     //  Count the number of fragments in this unitig, including
     //  yet-to-be-placed contained fragments.
-    for (fragIdx=0; fragIdx<tig->dovetail_path_ptr->size(); fragIdx++) {
-      DoveTailNode  *f = &(*tig->dovetail_path_ptr)[fragIdx];
+    for (fragIdx=0; fragIdx<tig->ufpath.size(); fragIdx++) {
+      ufNode  *f = &tig->ufpath[fragIdx];
 
       if (cMap.find(f->ident) != cMap.end())
         numFragsInUnitig += cMap[f->ident].size();
@@ -88,8 +88,8 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
     }
 
 
-    for (fragIdx=0; fragIdx<tig->dovetail_path_ptr->size(); fragIdx++) {
-      DoveTailNode  *f = &(*tig->dovetail_path_ptr)[fragIdx];
+    for (fragIdx=0; fragIdx<tig->ufpath.size(); fragIdx++) {
+      ufNode  *f = &tig->ufpath[fragIdx];
 
       fragCount++;
       if (cMap.find(f->ident) != cMap.end())
@@ -106,7 +106,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
                     Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
         }
 
-        if (fragIdx + 1 == tig->dovetail_path_ptr->size()) {
+        if (fragIdx + 1 == tig->ufpath.size()) {
           uint32             dtEnd = (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME;
           BestEdgeOverlap   *bEdge = OG->getBestEdgeOverlap(f->ident, dtEnd);
 
@@ -153,7 +153,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
         assert(inTig->id() == Unitig::fragIn(inFrag));
 
         //  Don't break on spur fragments!  These will only chop off the ends of unitigs anyway.
-        if ((inTig->dovetail_path_ptr->size() == 1) &&
+        if ((inTig->ufpath.size() == 1) &&
             ((best5->frag_b_id == 0) || (best3->frag_b_id == 0))) {
           if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
             fprintf(logFile, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d -- IS A SPUR, skip it\n",
@@ -244,7 +244,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
     }  //  Over all fragments in the unitig
 
     if (breaks.empty() == false) {
-      DoveTailNode  *f = &tig->dovetail_path_ptr->back();
+      ufNode  *f = &tig->ufpath.back();
 
       //  create a final fake bp for the last frag so we
       //  have a reference point to the end of the tig for

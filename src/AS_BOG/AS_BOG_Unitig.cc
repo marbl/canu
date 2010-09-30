@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.29 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.30 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -41,7 +41,6 @@ Unitig::Unitig(bool report){
   _localArrivalRate = -1;
   _length           =  0;
   _avgRho           = -1;
-  dovetail_path_ptr = new DoveTailPath;
   _id               = _nextId++;
 
   if (report)
@@ -50,15 +49,14 @@ Unitig::Unitig(bool report){
 
 
 Unitig::~Unitig(void){
-  delete dovetail_path_ptr;
 }
 
 
 #warning WHAT REALLLY HAPPENS IF NO BACKBONE NODE, OR NO PREVIOUS BACKBONE NODE
 
-DoveTailNode Unitig::getLastBackboneNode(void) {
-  for (int32 fi=dovetail_path_ptr->size()-1; fi >= 0; fi--) {
-    DoveTailNode  &node = (*dovetail_path_ptr)[fi];
+ufNode Unitig::getLastBackboneNode(void) {
+  for (int32 fi=ufpath.size()-1; fi >= 0; fi--) {
+    ufNode  &node = ufpath[fi];
 
     if (node.contained)
       continue;
@@ -67,21 +65,21 @@ DoveTailNode Unitig::getLastBackboneNode(void) {
   }
 
   fprintf(logFile, "Unitig::getLastBackboneNode()--  WARNING:  unitig %d has no backbone nodes, all contained!\n", id());
-  DoveTailNode last;
-  memset(&last, 0, sizeof(DoveTailNode));
+  ufNode last;
+  memset(&last, 0, sizeof(ufNode));
   return(last);
 }
 
 
-DoveTailNode Unitig::getLastBackboneNode(uint32 &prevID) {
-  DoveTailNode last;
+ufNode Unitig::getLastBackboneNode(uint32 &prevID) {
+  ufNode last;
 
-  memset(&last, 0, sizeof(DoveTailNode));
+  memset(&last, 0, sizeof(ufNode));
 
   prevID = 0;
 
-  for (int32 fi=dovetail_path_ptr->size()-1; (fi >= 0) && (prevID == 0); fi--) {
-    DoveTailNode  *node = &(*dovetail_path_ptr)[fi];
+  for (int32 fi=ufpath.size()-1; (fi >= 0) && (prevID == 0); fi--) {
+    ufNode  *node = &ufpath[fi];
 
     if (node->contained)
       continue;
@@ -111,8 +109,8 @@ DoveTailNode Unitig::getLastBackboneNode(uint32 &prevID) {
 //  The bidx value is set to -1 if no placement is found for that end.
 //
 bool
-Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
-                  DoveTailNode &frag3, int32 &bidx3, BestEdgeOverlap *bestedge3) {
+Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
+                  ufNode &frag3, int32 &bidx3, BestEdgeOverlap *bestedge3) {
   bool  verbose = false;
 
   //frag5.ident
@@ -145,7 +143,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   //
   if ((bestedge5) && (fragIn(bestedge5->frag_b_id) == id())) {
     bidx5 = pathPosition(bestedge5->frag_b_id);
-    assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
+    assert(bestedge5->frag_b_id == ufpath[bidx5].ident);
   } else {
     bestedge5 = NULL;
     bidx5     = -1;
@@ -153,7 +151,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
 
   if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
     bidx3 = pathPosition(bestedge3->frag_b_id);;
-    assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
+    assert(bestedge3->frag_b_id == ufpath[bidx3].ident);
   } else {
     bestedge3 = NULL;
     bidx3     = -1;
@@ -162,7 +160,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   //  Now, just compute the placement based on edges that exist.
 
   if ((bestedge5) && (bidx5 != -1)) {
-    DoveTailNode *parent = &(*dovetail_path_ptr)[bidx5];
+    ufNode *parent = &ufpath[bidx5];
 
     assert(parent->ident == bestedge5->frag_b_id);
 
@@ -236,7 +234,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
 
 
   if ((bestedge3) && (bidx3 != -1)) {
-    DoveTailNode *parent = &(*dovetail_path_ptr)[bidx3];
+    ufNode *parent = &ufpath[bidx3];
 
     assert(parent->ident == bestedge3->frag_b_id);
 
@@ -296,7 +294,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
 
 
 void
-Unitig::addFrag(DoveTailNode node, int offset, bool report) {
+Unitig::addFrag(ufNode node, int offset, bool report) {
 
   node.position.bgn += offset;
   node.position.end += offset;
@@ -305,14 +303,14 @@ Unitig::addFrag(DoveTailNode node, int offset, bool report) {
 
   // keep track of the unitig a frag is in
   _inUnitig[node.ident]     = _id;
-  _pathPosition[node.ident] = dovetail_path_ptr->size();
+  _pathPosition[node.ident] = ufpath.size();
 
   // keep track of max position in unitig
   int32 frgEnd = MAX(node.position.bgn, node.position.end);
   if (frgEnd > _length)
     _length = frgEnd;
 
-  dovetail_path_ptr->push_back(node);
+  ufpath.push_back(node);
 
   if ((report) || (node.position.bgn < 0) || (node.position.end < 0)) {
     int32 len = FI->fragmentLength(node.ident);
@@ -321,13 +319,13 @@ Unitig::addFrag(DoveTailNode node, int offset, bool report) {
     if (node.contained)
       fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d) (contained in %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
-              dovetail_path_ptr->size() - 1,
+              ufpath.size() - 1,
               pos - len,
               node.contained);
     else
       fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
-              dovetail_path_ptr->size() - 1,
+              ufpath.size() - 1,
               pos - len);
   }
 
@@ -342,8 +340,8 @@ Unitig::addFrag(DoveTailNode node, int offset, bool report) {
 //
 bool
 Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
-  DoveTailNode  frag;
-  DoveTailNode *parent = NULL;
+  ufNode  frag;
+  ufNode *parent = NULL;
 
   frag.ident        = fid;
   frag.contained    = bestcont->container;
@@ -353,7 +351,7 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
   frag.position.bgn = 0;
   frag.position.end = 0;
 
-  parent = &(*dovetail_path_ptr)[pathPosition(frag.contained)];
+  parent = &ufpath[pathPosition(frag.contained)];
 
 #if 0
   //  This block is useful for debugging (maybe).  It is usually triggered only during popBubbles(),
@@ -367,8 +365,8 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
 
     parent = NULL;
 
-    for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
-      DoveTailNode *ix = &(*dovetail_path_ptr)[fi];
+    for (int fi=0; fi<ufpath.size(); fi++) {
+      ufNode *ix = &ufpath[fi];
 
       fprintf(logFile, "          path[%4d,%4d] is frag %d %s\n",
               fi, pathPosition(ix->ident),
@@ -462,13 +460,13 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
   //  use the sort() method on Unitig, since we lost the
   //  containPartialOrder.
   //
-  int             i = dovetail_path_ptr->size() - 1;
-  DoveTailNode   *f = &dovetail_path_ptr->front();
+  int             i = ufpath.size() - 1;
+  ufNode   *f = &ufpath.front();
 
   //  Only needed if the frag we just added (i) begins before the second to last frag.
 
   if (MIN(f[i].position.bgn, f[i].position.end) < MIN(f[i-1].position.bgn, f[i-1].position.end)) {
-    DoveTailNode    containee    = f[i];
+    ufNode          containee    = f[i];
     int             containeeMin = MIN(containee.position.bgn, containee.position.end);
 
     while ((i > 0) &&
@@ -496,7 +494,7 @@ bool
 Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *bestedge3, bool report) {
   int32        bidx5 = -1,   bidx3 = -1;
   int32        blen5 =  0,   blen3 =  0;
-  DoveTailNode frag;
+  ufNode       frag;
 
   frag.ident        = fid;
   frag.contained    = 0;
@@ -516,7 +514,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
     fprintf(logFile, "addAndPlaceFrag()-- bestedge5:  %d,%d,%d,%d len %d\n",
             bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
 #endif
-    assert(bestedge5->frag_b_id == (*dovetail_path_ptr)[bidx5].ident);
+    assert(bestedge5->frag_b_id == ufpath[bidx5].ident);
   }
 
   if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
@@ -526,7 +524,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
     fprintf(logFile, "addAndPlaceFrag()-- bestedge3:  %d,%d,%d,%d len %d\n",
             bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
 #endif
-    assert(bestedge3->frag_b_id == (*dovetail_path_ptr)[bidx3].ident);
+    assert(bestedge3->frag_b_id == ufpath[bidx3].ident);
   }
 
   //  Use the longest that exists -- an alternative would be to take the average position, but that
@@ -565,8 +563,8 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
 
     _length += frgBgn;
 
-    for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
-      DoveTailNode *tfrg = &(*dovetail_path_ptr)[fi];
+    for (int fi=0; fi<ufpath.size(); fi++) {
+      ufNode *tfrg = &ufpath[fi];
 
       tfrg->position.bgn += frgBgn;
       tfrg->position.end += frgBgn;
@@ -583,7 +581,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
 
 float Unitig::getAvgRho(void){
 
-  if(dovetail_path_ptr->size() == 1)
+  if(ufpath.size() == 1)
     _avgRho = 1;
   if(_avgRho!=-1)
     return(_avgRho);
@@ -596,23 +594,17 @@ float Unitig::getAvgRho(void){
   //   direction we are walking the unitig from.  We will take the average
   //   of the rhos through both directions.
 
-  DoveTailPath::const_iterator dtp_iter;
-  if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty()) {
-    //fprintf(logFile,"NULL dovetailpath\n");
+  if (ufpath.empty())
     return 1;
-  }
 
   // Get first fragment's length
-  dtp_iter=dovetail_path_ptr->begin();
-  int ident1 = dtp_iter->ident;
-  long first_frag_len = FI->fragmentLength(dtp_iter->ident);
+  int32 ident1         = ufpath[0].ident;
+  int32 first_frag_len = FI->fragmentLength(ident1);
   assert(first_frag_len > 0);
 
   // Get last fragment's length
-  dtp_iter=dovetail_path_ptr->end();
-  dtp_iter--;
-  int ident2 = dtp_iter->ident;
-  long last_frag_len = FI->fragmentLength(dtp_iter->ident);
+  int32 ident2        = ufpath[ufpath.size()-1].ident;
+  int32 last_frag_len = FI->fragmentLength(ident2);
   assert(last_frag_len > 0);
 
   // Get average of first and last fragment lengths
@@ -684,8 +676,8 @@ void Unitig::reverseComplement(bool doSort) {
   //  building depends on having the first fragment added become the last fragment in the unitig
   //  after reversing.
 
-  for (uint32 fi=0; fi<dovetail_path_ptr->size(); fi++) {
-    DoveTailNode  *frg = &(*dovetail_path_ptr)[fi];
+  for (uint32 fi=0; fi<ufpath.size(); fi++) {
+    ufNode  *frg = &ufpath[fi];
 
     frg->position.bgn = getLength() - frg->position.bgn;
     frg->position.end = getLength() - frg->position.end;
@@ -704,19 +696,19 @@ void Unitig::reverseComplement(bool doSort) {
     assert(0);
     sort();
   } else {
-    std::reverse(dovetail_path_ptr->begin(), dovetail_path_ptr->end());
+    std::reverse(ufpath.begin(), ufpath.end());
 
-    for (int fi=0; fi<dovetail_path_ptr->size(); fi++)
-      _pathPosition[(*dovetail_path_ptr)[fi].ident] = fi;
+    for (int fi=0; fi<ufpath.size(); fi++)
+      _pathPosition[ufpath[fi].ident] = fi;
   }
 }
 
 
 
 int
-DoveTailNodeCmp(const void *a, const void *b){
-  DoveTailNode *impa = (DoveTailNode *)a;
-  DoveTailNode *impb = (DoveTailNode *)b;
+ufNodeCmp(const void *a, const void *b){
+  ufNode *impa = (ufNode *)a;
+  ufNode *impb = (ufNode *)b;
 
   int32 abgn = (impa->position.bgn < impa->position.end) ? impa->position.bgn : impa->position.end;
   int32 aend = (impa->position.bgn < impa->position.end) ? impa->position.end : impa->position.bgn;
@@ -766,16 +758,16 @@ void
 Unitig::sort(void) {
 
 #ifdef NEWSORT
-  for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
-    DoveTailNode *f = &((*dovetail_path_ptr)[fi]);
+  for (int fi=0; fi<ufpath.size(); fi++) {
+    ufNode *f = &(ufpath[fi]);
 
     if (OG->isContained(f->ident) == false)
       f->containment_depth = fi;
   }
 #endif
 
-  qsort( &(dovetail_path_ptr->front()), getNumFrags(), sizeof(DoveTailNode), &DoveTailNodeCmp );
+  qsort( &(ufpath.front()), getNumFrags(), sizeof(ufNode), &ufNodeCmp );
 
-  for (int fi=0; fi<dovetail_path_ptr->size(); fi++)
-    _pathPosition[(*dovetail_path_ptr)[fi].ident] = fi;
+  for (int fi=0; fi<ufpath.size(); fi++)
+    _pathPosition[ufpath[fi].ident] = fi;
 }

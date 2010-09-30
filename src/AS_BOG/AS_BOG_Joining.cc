@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -59,13 +59,13 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
     if (fr == NULL)
       continue;
 
-    if (fr->dovetail_path_ptr->size() == 1)
+    if (fr->ufpath.size() == 1)
       continue;
 
     //  Examine the first fragment.
     {
-      DoveTailNode *frg      = &(*fr->dovetail_path_ptr)[0];
-      DoveTailNode *tgt      = NULL;
+      ufNode *frg      = &fr->ufpath[0];
+      ufNode *tgt      = NULL;
       uint32        tgtEnd   = 0;
 
       bool  fragForward = (frg->position.bgn < frg->position.end);
@@ -84,19 +84,19 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       to   = unitigs[toID];
 
       //  Joining to something teeny?  Skip it.
-      if (to->dovetail_path_ptr->size() == 1)
+      if (to->ufpath.size() == 1)
         goto skipFirst;
 
       //  Figure out which fragment we have an edge to, and which end of it is sticking out from the
       //  end of the unitig.
 
-      if (bestEdge->frag_b_id == (*to->dovetail_path_ptr)[0].ident) {
-        tgt      = &(*to->dovetail_path_ptr)[0];
+      if (bestEdge->frag_b_id == to->ufpath[0].ident) {
+        tgt      = &to->ufpath[0];
         tgtEnd   = (tgt->position.bgn < tgt->position.end) ? FIVE_PRIME : THREE_PRIME;
       }
 
-      if (bestEdge->frag_b_id == (*to->dovetail_path_ptr)[to->dovetail_path_ptr->size()-1].ident) {
-        tgt      = &(*to->dovetail_path_ptr)[to->dovetail_path_ptr->size()-1];
+      if (bestEdge->frag_b_id == to->ufpath[to->ufpath.size()-1].ident) {
+        tgt      = &to->ufpath[to->ufpath.size()-1];
         tgtEnd   = (tgt->position.bgn < tgt->position.end) ? THREE_PRIME : FIVE_PRIME;
       }
 
@@ -125,8 +125,8 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
 
     //  Examine the last fragment.
     {
-      DoveTailNode *frg      = &(*fr->dovetail_path_ptr)[0];
-      DoveTailNode *tgt      = NULL;
+      ufNode *frg      = &fr->ufpath[0];
+      ufNode *tgt      = NULL;
       uint32        tgtEnd   = 0;
 
       bool  fragForward = (frg->position.bgn < frg->position.end);
@@ -145,19 +145,19 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       to   = unitigs[toID];
 
       //  Joining to something teeny?  Skip it.
-      if (to->dovetail_path_ptr->size() == 1)
+      if (to->ufpath.size() == 1)
         goto skipLast;
 
       //  Figure out which fragment we have an edge to, and which end of it is sticking out from the
       //  end of the unitig.
 
-      if (bestEdge->frag_b_id == (*to->dovetail_path_ptr)[0].ident) {
-        tgt      = &(*to->dovetail_path_ptr)[0];
+      if (bestEdge->frag_b_id == to->ufpath[0].ident) {
+        tgt      = &to->ufpath[0];
         tgtEnd   = (tgt->position.bgn < tgt->position.end) ? FIVE_PRIME : THREE_PRIME;
       }
 
-      if (bestEdge->frag_b_id == (*to->dovetail_path_ptr)[to->dovetail_path_ptr->size()-1].ident) {
-        tgt      = &(*to->dovetail_path_ptr)[to->dovetail_path_ptr->size()-1];
+      if (bestEdge->frag_b_id == to->ufpath[to->ufpath.size()-1].ident) {
+        tgt      = &to->ufpath[to->ufpath.size()-1];
         tgtEnd   = (tgt->position.bgn < tgt->position.end) ? THREE_PRIME : FIVE_PRIME;
       }
 
@@ -208,16 +208,16 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
     //  If either fragment is not the first or last, bail.  We already joined something to
     //  one of these unitigs.
 
-    if ((frIdx != 0) && (frIdx != frUnitig->dovetail_path_ptr->size() - 1))
+    if ((frIdx != 0) && (frIdx != frUnitig->ufpath.size() - 1))
       continue;
 
-    if ((toIdx != 0) && (toIdx != toUnitig->dovetail_path_ptr->size() - 1))
+    if ((toIdx != 0) && (toIdx != toUnitig->ufpath.size() - 1))
       continue;
 
     if (logFileFlagSet(LOG_INTERSECTION_JOINING))
       fprintf(logFile, "Join from unitig %d (length %d idx %d/%d) to unitig %d (length %d idx %d/%d) for a total length of %d\n",
-              frUnitigID, join->frLen, frIdx, frUnitig->dovetail_path_ptr->size(),
-              toUnitigID, join->toLen, toIdx, toUnitig->dovetail_path_ptr->size(),
+              frUnitigID, join->frLen, frIdx, frUnitig->ufpath.size(),
+              toUnitigID, join->toLen, toIdx, toUnitig->ufpath.size(),
               join->combinedLength);
 
     //  Reverse complement to ensure that we append to the tail of the toUnitig, and grab fragments
@@ -230,13 +230,13 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       toUnitig->reverseComplement();
 
     frIdx = 0;
-    toIdx = toUnitig->dovetail_path_ptr->size() - 1;
+    toIdx = toUnitig->ufpath.size() - 1;
 
     //  Over all fragments in the frUnitig, add them to the toUnitig.
 
-    while (frIdx < frUnitig->dovetail_path_ptr->size()) {
-      DoveTailNode  *frFragment = &(*frUnitig->dovetail_path_ptr)[frIdx];
-      DoveTailNode  *toFragment = &(*toUnitig->dovetail_path_ptr)[toIdx];
+    while (frIdx < frUnitig->ufpath.size()) {
+      ufNode  *frFragment = &frUnitig->ufpath[frIdx];
+      ufNode  *toFragment = &toUnitig->ufpath[toIdx];
 
       //  Construct an edge that will place the frFragment onto the toUnitig.  This edge
       //  can come from either fragment.

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.95 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.96 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -54,14 +54,13 @@ UnitigGraph::evaluateMates(void) {
     Unitig  *thisUtg = unitigs[ti];
 
     if ((thisUtg == NULL) ||
-        (thisUtg->dovetail_path_ptr->empty()) ||
-        (thisUtg->dovetail_path_ptr->size() == 1))
+        (thisUtg->ufpath.size() < 2))
       continue;
 
     MateLocation          positions(thisUtg);
 
-    for (uint32 fi=0; fi<thisUtg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode  *thisFrg = &(*thisUtg->dovetail_path_ptr)[fi];
+    for (uint32 fi=0; fi<thisUtg->ufpath.size(); fi++) {
+      ufNode  *thisFrg = &thisUtg->ufpath[fi];
 
       uint32  thisFrgID = thisFrg->ident;
       uint32  mateFrgID = FI->mateIID(thisFrg->ident);
@@ -121,7 +120,7 @@ UnitigGraph::evaluateMates(void) {
       //  Get the mate frag.
 
       Unitig        *mateUtg = unitigs[mateUtgID];
-      DoveTailNode  *mateFrg = &(*mateUtg->dovetail_path_ptr)[mateUtg->pathPosition(mateFrgID)];
+      ufNode        *mateFrg = &mateUtg->ufpath[mateUtg->pathPosition(mateFrgID)];
 
       //differentSum[type]++;
 
@@ -186,30 +185,28 @@ void UnitigGraph::moveContains(void) {
     Unitig  *thisUnitig = unitigs[ti];
 
     if ((thisUnitig == NULL) ||
-        (thisUnitig->dovetail_path_ptr->empty()) ||
-        (thisUnitig->dovetail_path_ptr->size() == 1))
+        (thisUnitig->ufpath.size() < 2))
       continue;
 
     MateLocation positions(thisUnitig);
 
-    DoveTailNode         *frags         = new DoveTailNode [thisUnitig->dovetail_path_ptr->size()];
+    ufNode               *frags         = new ufNode [thisUnitig->ufpath.size()];
     uint32                fragsLen      = 0;
 
-    bool                  verbose       = false;
+    bool                  verbose       = true;
 
     if (verbose)
       fprintf(logFile, "moveContain unitig %d\n", thisUnitig->id());
 
-    for (DoveTailIter fragIter = thisUnitig->dovetail_path_ptr->begin();
-         fragIter != thisUnitig->dovetail_path_ptr->end();
-         fragIter++) {
+    for (uint32 fi=0; fi<thisUnitig->ufpath.size(); fi++) {
+      ufNode  *frg = &thisUnitig->ufpath[fi];
 
-      BestContainment   *bestcont   = OG->getBestContainer(fragIter->ident);
-      MateLocationEntry  mloc       = positions.getById(fragIter->ident);
+      BestContainment   *bestcont   = OG->getBestContainer(frg->ident);
+      MateLocationEntry  mloc       = positions.getById(frg->ident);
 
-      uint32  thisFrgID = fragIter->ident;
+      uint32  thisFrgID = frg->ident;
       uint32  contFrgID = (bestcont) ? bestcont->container : 0;
-      uint32  mateFrgID = FI->mateIID(fragIter->ident);
+      uint32  mateFrgID = FI->mateIID(frg->ident);
 
       uint32  thisUtgID = thisUnitig->fragIn(thisFrgID);
       uint32  contUtgID = thisUnitig->fragIn(contFrgID);
@@ -232,7 +229,7 @@ void UnitigGraph::moveContains(void) {
       bool    moveToContainer = false;
       bool    moveToSingleton = false;
 
-      if        ((fragIter->contained == 0) && (bestcont == NULL)) {
+      if        ((frg->contained == 0) && (bestcont == NULL)) {
         //  CASE 1:  Not contained.  Leave the fragment here.
         //fprintf(logFile, "case1 frag %d fragsLen %d\n", thisFrgID, fragsLen);
 
@@ -279,26 +276,28 @@ void UnitigGraph::moveContains(void) {
             //  fragment, then that fragment will likely NOT align
             //  correctly.
 
-            DoveTailIter  ft = fragIter + 1;
+            uint32 ft = fi + 1;
+
+#warning 2x BUGS IN COMPARISON HERE
 
             //  Skip all the contains.
-            while ((ft != thisUnitig->dovetail_path_ptr->end()) &&
-                   (OG->isContained(ft->ident) == true) &&
-                   (MAX(fragIter->position.bgn, fragIter->position.end) < MIN(ft->position.bgn, ft->position.end)))
+            while ((ft < thisUnitig->ufpath.size()) &&
+                   (OG->isContained(thisUnitig->ufpath[ft].ident) == true) &&
+                   (MAX(frg->position.bgn, frg->position.end) < MIN(thisUnitig->ufpath[ft].position.bgn, thisUnitig->ufpath[ft].position.end)))
               ft++;
 
             //  If the frag is not contained (we could be the
             //  container), and overlaps in the layout, see if there
             //  is a real overlap.
-            if ((ft != thisUnitig->dovetail_path_ptr->end()) &&
-                (OG->isContained(ft->ident) == false) &&
-                (MAX(fragIter->position.bgn, fragIter->position.end) < MIN(ft->position.bgn, ft->position.end)))
-              hasOverlap = OG->containHaveEdgeTo(thisFrgID, ft->ident);
+            if ((ft < thisUnitig->ufpath.size()) &&
+                (OG->isContained(thisUnitig->ufpath[ft].ident) == false) &&
+                (MAX(frg->position.bgn, frg->position.end) < MIN(thisUnitig->ufpath[ft].position.bgn, thisUnitig->ufpath[ft].position.end)))
+              hasOverlap = OG->containHaveEdgeTo(thisFrgID, thisUnitig->ufpath[ft].ident);
           } else {
             //  Not the first fragment, search for an overlap to an
             //  already placed frag.
 
-            DoveTailIter  ft = fragIter;
+            uint32  ft = fi;
 
             do {
               ft--;
@@ -306,14 +305,14 @@ void UnitigGraph::moveContains(void) {
               //  OK to overlap to a contained frag; he could be our
               //  container.
 
-              hasOverlap = OG->containHaveEdgeTo(thisFrgID, ft->ident);
+              hasOverlap = OG->containHaveEdgeTo(thisFrgID, thisUnitig->ufpath[ft].ident);
 
               //  Stop if we found an overlap, or we just checked the
               //  first frag in the unitig, or we no longer overlap in
               //  the layout.
             } while ((hasOverlap == false) &&
-                     (ft != thisUnitig->dovetail_path_ptr->begin()) &&
-                     (MIN(fragIter->position.bgn, fragIter->position.end) < MAX(ft->position.bgn, ft->position.end)));
+                     (ft > 0) &&
+                     (MIN(frg->position.bgn, frg->position.end) < MAX(thisUnitig->ufpath[ft].position.bgn, thisUnitig->ufpath[ft].position.end)));
           }
         }  //  end of hasOverlap
 
@@ -331,11 +330,8 @@ void UnitigGraph::moveContains(void) {
         if (fragsLen == 0) {
           allContained = true;
 
-          for (DoveTailIter  ft = fragIter + 1;
-               ((allContained == true) &&
-                (ft != thisUnitig->dovetail_path_ptr->end()));
-               ft++)
-            allContained = OG->isContained(ft->ident);
+          for (uint32 ft = fi + 1; ((allContained == true) && (ft < thisUnitig->ufpath.size())); ft++)
+            allContained = OG->isContained(thisUnitig->ufpath[ft].ident);
         }
 
 
@@ -395,15 +391,15 @@ void UnitigGraph::moveContains(void) {
         //  Move the fragment to be with its container.
 
         Unitig         *thatUnitig = unitigs[contUtgID];
-        DoveTailNode    containee  = *fragIter;
+        ufNode          containee  = *frg;
 
         assert(thatUnitig->id() == contUtgID);
 
         //  Nuke the fragment in the current list
-        fragIter->ident        = 999999999;
-        fragIter->contained    = 999999999;
-        fragIter->position.bgn = 0;
-        fragIter->position.end = 0;
+        frg->ident        = 999999999;
+        frg->contained    = 999999999;
+        frg->position.bgn = 0;
+        frg->position.end = 0;
 
         assert(thatUnitig->id() == contUtgID);
 
@@ -419,13 +415,13 @@ void UnitigGraph::moveContains(void) {
       } else if ((moveToSingleton == true) && (thisUnitig->getNumFrags() != 1)) {
         //  Eject the fragment to a singleton (unless we ARE the singleton)
         Unitig        *singUnitig  = new Unitig(verbose);
-        DoveTailNode    containee  = *fragIter;
+        ufNode         containee  = *frg;
 
         //  Nuke the fragment in the current list
-        fragIter->ident        = 999999999;
-        fragIter->contained    = 999999999;
-        fragIter->position.bgn = 0;
-        fragIter->position.end = 0;
+        frg->ident        = 999999999;
+        frg->contained    = 999999999;
+        frg->position.bgn = 0;
+        frg->position.end = 0;
 
         if (verbose)
           fprintf(logFile, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
@@ -450,10 +446,10 @@ void UnitigGraph::moveContains(void) {
         //  put this check in all the places where we stay put in the
         //  above if-else-else-else, it's here.
 
-        if ((fragIter->contained) && (thisUtgID != contUtgID))
-          fragIter->contained = 0;
+        if ((frg->contained) && (thisUtgID != contUtgID))
+          frg->contained = 0;
 
-        frags[fragsLen] = *fragIter;
+        frags[fragsLen] = *frg;
         fragsLen++;
       }
 
@@ -461,13 +457,11 @@ void UnitigGraph::moveContains(void) {
 
     //  Now, rebuild this unitig if we made changes.
 
-    if (fragsLen != thisUnitig->dovetail_path_ptr->size()) {
+    if (fragsLen != thisUnitig->ufpath.size()) {
       if (verbose)
         fprintf(logFile, "Rebuild unitig %d after removing contained fragments.\n", thisUnitig->id());
 
-      delete thisUnitig->dovetail_path_ptr;
-
-      thisUnitig->dovetail_path_ptr = new DoveTailPath;
+      thisUnitig->ufpath.clear();
 
       //  Occasionally, we move all fragments out of the original unitig.  Might be worth checking
       //  if that makes sense!!
@@ -502,32 +496,31 @@ void UnitigGraph::moveContains(void) {
 //
 void UnitigGraph::splitDiscontinuousUnitigs(void) {
 
-  bool  verbose = false;
+  bool  verbose = true;
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *unitig = unitigs[ti];
+    Unitig  *tig = unitigs[ti];
 
-    if ((unitig == NULL) ||
-        (unitig->dovetail_path_ptr->empty()) ||
-        (unitig->dovetail_path_ptr->size() == 1))
+    if ((tig == NULL) ||
+        (tig->ufpath.size() < 2))
       continue;
 
     //  Check for discontinuities
 
-    DoveTailConstIter     fragIter = unitig->dovetail_path_ptr->begin();
     int32                 maxEnd   = 0;
 
-    DoveTailNode         *splitFrags    = new DoveTailNode [unitig->dovetail_path_ptr->size()];
+    ufNode               *splitFrags    = new ufNode [tig->ufpath.size()];
     uint32                splitFragsLen = 0;
 
-    while (fragIter != unitig->dovetail_path_ptr->end()) {
+    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+      ufNode  *frg = &tig->ufpath[fi];
 
       //  If this is the first frag in this block (we are at
       //  the start of a unitig, or just split off a new
       //  unitig), remember the end location.
       //
       if (splitFragsLen == 0) {
-        maxEnd =  MAX(fragIter->position.bgn, fragIter->position.end);
+        maxEnd =  MAX(frg->position.bgn, frg->position.end);
       }
 
       //  We require at least (currently 40bp, was 10bp hardcoded
@@ -548,7 +541,7 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
       //  Because the two small guys are marked as uncontained, they
       //  are assumed to have a good dovetail overlap.
       //
-      if (maxEnd - AS_OVERLAP_MIN_LEN < MIN(fragIter->position.bgn, fragIter->position.end)) {
+      if (maxEnd - AS_OVERLAP_MIN_LEN < MIN(frg->position.bgn, frg->position.end)) {
 
         //  If there is exactly one fragment, and it's contained, and
         //  it's not mated, move it to the container.  (This has a
@@ -559,14 +552,14 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
             (FI->mateIID(splitFrags[0].ident) == 0) &&
             (splitFrags[0].contained != 0)) {
 
-          Unitig           *dangler  = unitigs[unitig->fragIn(splitFrags[0].contained)];
+          Unitig           *dangler  = unitigs[tig->fragIn(splitFrags[0].contained)];
           BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
 
-          assert(dangler->id() == unitig->fragIn(splitFrags[0].contained));
+          assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
 
           if (verbose)
             fprintf(logFile, "Dangling contained fragment %d in unitig %d -> move them to container unitig %d\n",
-                    splitFrags[0].ident, unitig->id(), dangler->id());
+                    splitFrags[0].ident, tig->id(), dangler->id());
 
           dangler->addContainedFrag(splitFrags[0].ident, bestcont, verbose);
           assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
@@ -575,7 +568,7 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
           Unitig *dangler = new Unitig(verbose);
 
           if (verbose)
-            fprintf(logFile, "Dangling fragments in unitig %d -> move them to unitig %d\n", unitig->id(), dangler->id());
+            fprintf(logFile, "Dangling fragments in unitig %d -> move them to unitig %d\n", tig->id(), dangler->id());
 
           int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
 
@@ -586,32 +579,28 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
             dangler->addFrag(splitFrags[i], splitOffset, verbose);
 
           unitigs.push_back(dangler);
-          unitig = unitigs[ti];
+          tig = unitigs[ti];
         }
 
         //  We just split out these fragments.  Reset the list.
         splitFragsLen = 0;
       }  //  End break
 
-      splitFrags[splitFragsLen++] = *fragIter;
+      splitFrags[splitFragsLen++] = *frg;
 
-      maxEnd = MAX(maxEnd, MAX(fragIter->position.bgn, fragIter->position.end));
-
-      fragIter++;
+      maxEnd = MAX(maxEnd, MAX(frg->position.bgn, frg->position.end));
     }  //  End of unitig fragment iteration
 
     //  If we split this unitig, the length of the
     //  frags in splitFrags will be less than the length of
     //  the path in this unitg.  If so, rebuild this unitig.
     //
-    if (splitFragsLen != unitig->dovetail_path_ptr->size()) {
+    if (splitFragsLen != tig->ufpath.size()) {
 
       if (verbose)
-        fprintf(logFile, "Rebuild unitig %d\n", unitig->id());
+        fprintf(logFile, "Rebuild unitig %d\n", tig->id());
 
-      delete unitig->dovetail_path_ptr;
-
-      unitig->dovetail_path_ptr = new DoveTailPath;
+      tig->ufpath.clear();
 
       int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
 
@@ -619,7 +608,7 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
       splitFrags[0].contained = 0;
 
       for (uint32 i=0; i<splitFragsLen; i++)
-        unitig->addFrag(splitFrags[i], splitOffset, verbose);
+        tig->addFrag(splitFrags[i], splitOffset, verbose);
     }
 
     delete [] splitFrags;
@@ -710,7 +699,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
                                                     int badMateBreakThreshold) {
   int tigLen = tig->getLength();
 
-  bool verbose = false;
+  bool verbose = true;
 
   MateLocation         positions(tig);
   vector<SeqInterval> *fwdBads = findPeakBad(positions.badFwdGraph, tigLen, badMateBreakThreshold);
@@ -721,13 +710,13 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
 
   UnitigBreakPoints* breaks = new UnitigBreakPoints();
 
-  DoveTailNode backbone = tig->getLastBackboneNode();
+  ufNode       backbone = tig->getLastBackboneNode();
   int32        backBgn  = isReverse(backbone.position) ? backbone.position.end : backbone.position.bgn ;
 
 
 #if 0
   if ((tig->getLength() > 150) &&
-      (tig->dovetail_path_ptr->size() > 3)) {
+      (tig->ufpath.size() > 3)) {
     char  filename[FILENAME_MAX] = {0};
     sprintf(filename, "coverageplot/utg%09u.badCoverage", tig->id());
 
@@ -771,13 +760,14 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
   int32 currBackboneEnd = 0;
   int32 lastBreakBBEnd = 0;
 
-  DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
+  uint32 frgidx = 0;
+
   // Go through the peak bad ranges looking for reads to break on
   while(fwdIter != fwdBads->end() || revIter != revBads->end()) {
     bool isFwdBad = false;
     SeqInterval bad;
     if (revIter == revBads->end() ||
-         fwdIter != fwdBads->end() &&  *fwdIter < *revIter) {
+        fwdIter != fwdBads->end() &&  *fwdIter < *revIter) {
       // forward bad group, break at 1st frag
       isFwdBad = true;
       bad = *fwdIter;
@@ -811,9 +801,9 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
           if (fwdIter->bgn >= bad.bgn && fwdIter->end <= bad.end) {
             if (verbose)
               fprintf(logFile,"Skip fwd bad range %d %d due to contained in rev %d %d\n",
-            		  fwdIter->bgn, fwdIter->end, bad.bgn, bad.end);
+                      fwdIter->bgn, fwdIter->end, bad.bgn, bad.end);
 
-        	fwdIter++;
+            fwdIter++;
             if (fwdIter == fwdBads->end()) {
               continue;
             }
@@ -826,8 +816,8 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
           }
 
           if (fwdIter->bgn < bad.end &&
-               fwdIter->end > bad.end &&
-               bad.end - fwdIter->end < 200) {
+              fwdIter->end > bad.end &&
+              bad.end - fwdIter->end < 200) {
             if (verbose)
               fprintf(logFile,"Combine bad ranges %d - %d with %d - %d\n",
                       bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
@@ -851,8 +841,8 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
     if (verbose)
       fprintf(logFile,"Bad peak from %d to %d\n",bad.bgn,bad.end);
 
-    for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
-      DoveTailNode frag = *tigIter;
+    for (; frgidx < tig->ufpath.size(); frgidx++) {
+      ufNode frag = tig->ufpath[frgidx];
       SeqInterval loc = frag.position;
       if (isReverse(loc)) { loc.bgn = frag.position.end; loc.end = frag.position.bgn; }
 
@@ -870,16 +860,16 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       MateLocationEntry mloc = positions.getById(frag.ident);
 
       if (mloc.mleFrgID1 != 0 && mloc.isGrumpy) { // only break on bad mates
-    	  if (isFwdBad && bad.bgn <= loc.end) {
-			breakNow = true;
+        if (isFwdBad && bad.bgn <= loc.end) {
+          breakNow = true;
         } else if (!isFwdBad && (loc.bgn >= /* bad.bgn*/ bad.end) ||
-                    (combine && loc.end >  bad.bgn) ||
-                    (combine && loc.end == bad.end)) {
-        	breakNow = true;
+                   (combine && loc.end >  bad.bgn) ||
+                   (combine && loc.end == bad.end)) {
+          breakNow = true;
         } else if (bad.bgn > backBgn) {
           // fun special case, keep contained frags at end of tig in container
           // instead of in their own new tig where they might not overlap
-        	breakNow = true;
+          breakNow = true;
         }
       }
 
@@ -887,76 +877,70 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       bool incrementToNextFragment = true;
       if (breakNow) {
         if (OG->isContained(frag.ident)) {
-	      // try to find a subsequent uncontained
-          while (tigIter != tig->dovetail_path_ptr->end()) {
-	        if (OG->isContained(tigIter->ident) != 0) {
-	          tigIter++;
-	        } else {
-	          break;
-	        }
-	      }
-	      // we couldn't find a downstream frag take upstream one then
-	      if (tigIter == tig->dovetail_path_ptr->end()) {
-	        tigIter--;
-	        while (tigIter != tig->dovetail_path_ptr->begin()) {
-	          if (OG->isContained(tigIter->ident) != 0) {
-	            tigIter--;
-	          } else {
-		       break;
-	          }
-	        }
-	        if (tigIter == tig->dovetail_path_ptr->begin()) {
-	          noContainerToBreak = true;
-	        } else {
+          // try to find a subsequent uncontained
+          while ((frgidx < tig->ufpath.size()) &&
+                 (OG->isContained(tig->ufpath[frgidx].ident) == true))
+            frgidx++;
+          // we couldn't find a downstream frag take upstream one then
+          if (frgidx >= tig->ufpath.size()) {
+            do {
+              frgidx--;
+            } while ((frgidx > 0) &&
+                     (OG->isContained(tig->ufpath[frgidx].ident) == true));
+            if ((frgidx == 0) && (OG->isContained(tig->ufpath[0].ident) == true))
+              noContainerToBreak = true;
+            else
               currBackboneEnd = currBackbonePredecessorEnd;
-            }
           }
+          //  This is either a bug, or a bug fix.  The original version would decrement frgidx above
+          //  (which, at that time was an iterator) but NOT update the copy of 'frag' or 'loc' (as
+          //  we are doing below).  The next block below would then test with the old value of loc.
+#warning bug fix or bug
+          frag = tig->ufpath[frgidx];
+          loc = frag.position;
         }
         if (noContainerToBreak == false) {
           combine = false;
           lastBreakBBEnd = currBackboneEnd;
           if (verbose)
             fprintf(logFile,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
-                  frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd);
+                    frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd);
           uint32 fragEndInTig = THREE_PRIME;
           // If reverse mate is 1st and overlaps its mate break at 5'
           if (mloc.mleUtgID2 == tig->id() && isReverse(loc) &&
-               !isReverse(mloc.mlePos2) && loc.bgn >= mloc.mlePos2.bgn)
+              !isReverse(mloc.mlePos2) && loc.bgn >= mloc.mlePos2.bgn)
             fragEndInTig = FIVE_PRIME;
 
           // either adjust the break position to be before the container so the container travels together with containees
-          if (fragEndInTig ==  FIVE_PRIME && !isReverse(tigIter->position)||
-              fragEndInTig== THREE_PRIME && isReverse(tigIter->position)) {
-          	  // do nothing we are breaking before the current fragment which is our container
-        	  incrementToNextFragment = false;
+          if (fragEndInTig ==  FIVE_PRIME && !isReverse(frag.position)||
+              fragEndInTig == THREE_PRIME &&  isReverse(frag.position)) {
+            // do nothing we are breaking before the current fragment which is our container
+            incrementToNextFragment = false;
           } else {
-        	  // move one back we are breaking after the current fragment
-        	  tigIter--;
+            // move one back we are breaking after the current fragment
+            frgidx--;
           }
-          frag = *tigIter;
+          frag = tig->ufpath[frgidx];
           loc = frag.position;
 
           UnitigBreakPoint bp(frag.ident, fragEndInTig);
           bp.fragPos = frag.position;
           bp.inSize = 100000;
           bp.inFrags = 10;
-          //fprintf(logFile, "BREAK unitig %d at position %d,%d from MATES.\n",
-          //        tig->id(), bp.fragPos.bgn, bp.fragPos.end);
+          //fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #1.\n",
+          //        tig->id(), frag.ident, bp.fragPos.bgn, bp.fragPos.end);
           breaks->push_back(bp);
         }
       }
 
       if (lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end)) {
+        uint32  np = frgidx + 1;
 
-        DoveTailConstIter nextPos = tigIter;
-        nextPos++;
-
-        if (nextPos != tig->dovetail_path_ptr->end()) {
-
-          if (contains(loc, nextPos->position)) {
+        if (np < tig->ufpath.size()) {
+          if (contains(loc, tig->ufpath[np].position)) {
             // Contains the next one, so skip it
           } else {
-            SeqInterval overlap = intersection(loc, nextPos->position);
+            SeqInterval overlap = intersection(loc, tig->ufpath[np].position);
             int diff = abs(overlap.end - overlap.bgn);
 
             //  No overlap between this and the next
@@ -967,7 +951,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
             //
             if ((NULL_SEQ_LOC == overlap) ||
                 (diff < DEFAULT_MIN_OLAP_LEN) ||
-                (OG->isContained(frag.ident) && !OG->containHaveEdgeTo(frag.ident, nextPos->ident))) {
+                (OG->isContained(frag.ident) && !OG->containHaveEdgeTo(frag.ident, tig->ufpath[np].ident))) {
 
               uint32 fragEndInTig = THREE_PRIME;
               if (isReverse(loc))
@@ -977,8 +961,8 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
               bp.fragPos = loc;
               bp.inSize = 100001;
               bp.inFrags = 11;
-              //fprintf(logFile, "BREAK unitig %d at position %d,%d from MATES.\n",
-              //        tig->id(), bp.fragPos.bgn, bp.fragPos.end);
+              //fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #2.\n",
+              //        tig->id(), frag.ident, bp.fragPos.bgn, bp.fragPos.end);
               breaks->push_back(bp);
               if (verbose)
                 fprintf(logFile,"Might make frg %d singleton, end %d size %u pos %d,%d\n",
@@ -989,7 +973,8 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       }
       if (breakNow) { // Move to next breakpoint
         if (incrementToNextFragment) {
-          tigIter++;  // make sure to advance past curr frg
+          frgidx++;  // make sure to advance past curr frg
+          frag = tig->ufpath[frgidx];
         }
         break;
       }

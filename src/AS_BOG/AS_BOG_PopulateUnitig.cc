@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PopulateUnitig.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PopulateUnitig.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -39,7 +39,7 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
     //  Nothing to add!
     return;
 
-  DoveTailNode frag = unitig->dovetail_path_ptr->back();
+  ufNode frag = unitig->ufpath.back();
 
   //  The ID of the last fragment in the unitig, and the end we should walk off of it.
   int32 lastID  = frag.ident;
@@ -142,7 +142,7 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
   //  Add a first fragment -- to be 'compatable' with the old code, the first fragment is added
   //  reversed, we walk off of its 5' end, flip it, and add the 3' walk.
 
-  DoveTailNode  frag;
+  ufNode  frag;
 
   frag.ident             = frag_idx;
   frag.contained         = 0;
@@ -162,7 +162,7 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
 
   if (logFileFlagSet(LOG_POPULATE_UNITIG))
     fprintf(logFile, "Adding 5' edges off of frag %d in unitig %d\n",
-            utg->dovetail_path_ptr->back().ident, utg->id());
+            utg->ufpath.back().ident, utg->id());
 
   if (bestedge5->frag_b_id)
     populateUnitig(utg, bestedge5);
@@ -171,7 +171,7 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
 
   if (logFileFlagSet(LOG_POPULATE_UNITIG))
     fprintf(logFile, "Adding 3' edges off of frag %d in unitig %d\n",
-            utg->dovetail_path_ptr->back().ident, utg->id());
+            utg->ufpath.back().ident, utg->id());
 
   if (bestedge3->frag_b_id)
     populateUnitig(utg, bestedge3);

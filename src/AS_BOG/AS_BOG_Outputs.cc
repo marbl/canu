@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.5 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.6 2010-09-30 11:32:48 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -51,8 +51,8 @@ UnitigGraph::unitigToMA(MultiAlignT *ma,
 
   ResetVA_IntMultiPos(ma->f_list);
 
-  for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-    DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
+  for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
+    ufNode        *frg = &utg->ufpath[fi];
     IntMultiPos    imp;
 
     imp.type         = AS_READ;
@@ -114,7 +114,7 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
       continue;
 
     assert(utg->getLength() > 0);
-    assert(nf == utg->dovetail_path_ptr->size());
+    assert(nf == utg->ufpath.size());
 
     if ((0              <= frg_count_target) &&
         (frg_count + nf >= frg_count_target) &&
@@ -139,7 +139,7 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
             nf);
 
     for (int32 fragIdx=0; fragIdx<nf; fragIdx++) {
-      DoveTailNode  *f = &(*utg->dovetail_path_ptr)[fragIdx];
+      ufNode  *f = &utg->ufpath[fragIdx];
 
       fprintf(part, "%d\t%d\n", prt_count, f->ident);
     }
@@ -207,8 +207,8 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
     if (utg == NULL)
       continue;
 
-    for (uint32 fi=0; fi<utg->dovetail_path_ptr->size(); fi++) {
-      DoveTailNode  *frg = &(*utg->dovetail_path_ptr)[fi];
+    for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
+      ufNode  *frg = &utg->ufpath[fi];
 
       //  Where is our best overlap?  Contained or dovetail?
 
