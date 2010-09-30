@@ -39,6 +39,9 @@ if [ "x$target" = "x" ] ; then
       if [ "`uname -m`" = "Power Macintosh" ] ; then
           target="Darwin-ppc$opts"
       fi
+      if [ `uname -m` = "x86_64" ] ; then
+        target="Darwin-amd64$opts"
+      fi
       ;;
     FreeBSD)
       target="FreeBSD-i386$opts"
@@ -154,7 +157,7 @@ fi
 #
 
 case $target in
-  Darwin-i386)
+  Darwin-i386|Darwin-amd64)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
@@ -175,7 +178,7 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
-  Darwin-i386-debug)
+  Darwin-i386-debug|Darwin-amd64-debug)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
