@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.77 2010-09-30 11:32:48 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.78 2010-09-30 15:27:42 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -49,6 +49,10 @@ uint64 LOG_INTERSECTION_JOINING_DEBUG  = 0x0000000000000200;  //
 uint64 LOG_INITIAL_CONTAINED_PLACEMENT = 0x0000000000000400;  //
 uint64 LOG_HAPPINESS                   = 0x0000000000000800;  //
 uint64 LOG_INTERMEDIATE_UNITIGS        = 0x0000000000001000;  //  At various spots, dump the current unitigs
+uint64 LOG_MATE_SPLIT_ANALYSIS         = 0x0000000000002000;  //
+uint64 LOG_MATE_SPLIT_DISCONTINUOUS    = 0x0000000000004000;  //
+uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS = 0x0000000000008000;  //
+uint64 LOG_MATE_SPLIT_COVERAGE_PLOT    = 0x0000000000010000;  //
 
 const char *logFileFlagNames[64] = { "overlapQuality",
                                      "overlapsUsed",
@@ -63,6 +67,10 @@ const char *logFileFlagNames[64] = { "overlapQuality",
                                      "containedPlacement",
                                      "happiness",
                                      "intermediateUnitigs",
+                                     "mateSplitAnalysis",
+                                     "mateSplitDiscontinuous",
+                                     "mateSplitUnhappyContains",
+                                     "mateSplitCoveragePlot",
                                      NULL
 };
 

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.43 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.44 2010-09-30 15:27:42 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -89,6 +89,10 @@ extern uint64 LOG_INTERSECTION_JOINING_DEBUG;
 extern uint64 LOG_INITIAL_CONTAINED_PLACEMENT;
 extern uint64 LOG_HAPPINESS;
 extern uint64 LOG_INTERMEDIATE_UNITIGS;
+extern uint64 LOG_MATE_SPLIT_ANALYSIS;
+extern uint64 LOG_MATE_SPLIT_DISCONTINUOUS;
+extern uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS;
+extern uint64 LOG_MATE_SPLIT_COVERAGE_PLOT;
 
 
 ////////////////////////////////////////

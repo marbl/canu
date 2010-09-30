@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.96 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.97 2010-09-30 15:27:42 brianwalenz Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -193,9 +193,7 @@ void UnitigGraph::moveContains(void) {
     ufNode               *frags         = new ufNode [thisUnitig->ufpath.size()];
     uint32                fragsLen      = 0;
 
-    bool                  verbose       = true;
-
-    if (verbose)
+    if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
       fprintf(logFile, "moveContain unitig %d\n", thisUnitig->id());
 
     for (uint32 fi=0; fi<thisUnitig->ufpath.size(); fi++) {
@@ -403,18 +401,18 @@ void UnitigGraph::moveContains(void) {
 
         assert(thatUnitig->id() == contUtgID);
 
-        if (verbose)
+        if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
           fprintf(logFile, "Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
                   thisFrgID, thisUtgID, contFrgID, contUtgID);
 
         assert(bestcont->container == contFrgID);
 
-        thatUnitig->addContainedFrag(thisFrgID, bestcont, verbose);
+        thatUnitig->addContainedFrag(thisFrgID, bestcont, logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
         assert(thatUnitig->id() == Unitig::fragIn(thisFrgID));
 
       } else if ((moveToSingleton == true) && (thisUnitig->getNumFrags() != 1)) {
         //  Eject the fragment to a singleton (unless we ARE the singleton)
-        Unitig        *singUnitig  = new Unitig(verbose);
+        Unitig        *singUnitig  = new Unitig(logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
         ufNode         containee  = *frg;
 
         //  Nuke the fragment in the current list
@@ -423,13 +421,13 @@ void UnitigGraph::moveContains(void) {
         frg->position.bgn = 0;
         frg->position.end = 0;
 
-        if (verbose)
+        if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
           fprintf(logFile, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
                   thisFrgID, thisUtgID, singUnitig->id());
 
         containee.contained = 0;
 
-        singUnitig->addFrag(containee, -MIN(containee.position.bgn, containee.position.end), verbose);
+        singUnitig->addFrag(containee, -MIN(containee.position.bgn, containee.position.end), logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
 
         unitigs.push_back(singUnitig);
         thisUnitig = unitigs[ti];  //  Reset the pointer; unitigs might be reallocated
@@ -458,7 +456,7 @@ void UnitigGraph::moveContains(void) {
     //  Now, rebuild this unitig if we made changes.
 
     if (fragsLen != thisUnitig->ufpath.size()) {
-      if (verbose)
+      if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
         fprintf(logFile, "Rebuild unitig %d after removing contained fragments.\n", thisUnitig->id());
 
       thisUnitig->ufpath.clear();
@@ -479,7 +477,7 @@ void UnitigGraph::moveContains(void) {
         frags[0].contained = 0;
 
         for (uint32 i=0; i<fragsLen; i++)
-          thisUnitig->addFrag(frags[i], splitOffset, verbose);
+          thisUnitig->addFrag(frags[i], splitOffset, logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
       }
     }
 
@@ -495,8 +493,6 @@ void UnitigGraph::moveContains(void) {
 //  After splitting and ejecting some contains, check for discontinuous unitigs.
 //
 void UnitigGraph::splitDiscontinuousUnitigs(void) {
-
-  bool  verbose = true;
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig  *tig = unitigs[ti];
@@ -557,17 +553,17 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
 
           assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
 
-          if (verbose)
+          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
             fprintf(logFile, "Dangling contained fragment %d in unitig %d -> move them to container unitig %d\n",
                     splitFrags[0].ident, tig->id(), dangler->id());
 
-          dangler->addContainedFrag(splitFrags[0].ident, bestcont, verbose);
+          dangler->addContainedFrag(splitFrags[0].ident, bestcont, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
           assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
 
         } else {
-          Unitig *dangler = new Unitig(verbose);
+          Unitig *dangler = new Unitig(logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
 
-          if (verbose)
+          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
             fprintf(logFile, "Dangling fragments in unitig %d -> move them to unitig %d\n", tig->id(), dangler->id());
 
           int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
@@ -576,7 +572,7 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
           splitFrags[0].contained = 0;
 
           for (uint32 i=0; i<splitFragsLen; i++)
-            dangler->addFrag(splitFrags[i], splitOffset, verbose);
+            dangler->addFrag(splitFrags[i], splitOffset, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
 
           unitigs.push_back(dangler);
           tig = unitigs[ti];
@@ -597,7 +593,7 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
     //
     if (splitFragsLen != tig->ufpath.size()) {
 
-      if (verbose)
+      if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
         fprintf(logFile, "Rebuild unitig %d\n", tig->id());
 
       tig->ufpath.clear();
@@ -608,7 +604,7 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
       splitFrags[0].contained = 0;
 
       for (uint32 i=0; i<splitFragsLen; i++)
-        tig->addFrag(splitFrags[i], splitOffset, verbose);
+        tig->addFrag(splitFrags[i], splitOffset, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
     }
 
     delete [] splitFrags;
@@ -699,8 +695,6 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
                                                     int badMateBreakThreshold) {
   int tigLen = tig->getLength();
 
-  bool verbose = true;
-
   MateLocation         positions(tig);
   vector<SeqInterval> *fwdBads = findPeakBad(positions.badFwdGraph, tigLen, badMateBreakThreshold);
   vector<SeqInterval> *revBads = findPeakBad(positions.badRevGraph, tigLen, badMateBreakThreshold);
@@ -713,40 +707,36 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
   ufNode       backbone = tig->getLastBackboneNode();
   int32        backBgn  = isReverse(backbone.position) ? backbone.position.end : backbone.position.bgn ;
 
+  if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT)) {
+    if ((tig->getLength() > 150) &&
+        (tig->ufpath.size() > 3)) {
+      char  filename[FILENAME_MAX] = {0};
+      sprintf(filename, "coverageplot/utg%09u.badCoverage", tig->id());
 
-#if 0
-  if ((tig->getLength() > 150) &&
-      (tig->ufpath.size() > 3)) {
-    char  filename[FILENAME_MAX] = {0};
-    sprintf(filename, "coverageplot/utg%09u.badCoverage", tig->id());
+      fprintf(logFile, "%s -- fwdBads %d revBads %d\n", filename, fwdBads->size(), revBads->size());
 
-    fprintf(logFile, "%s -- fwdBads %d revBads %d\n", filename, fwdBads->size(), revBads->size());
+      if (AS_UTL_fileExists("coverageplot", TRUE, TRUE) == 0)
+        AS_UTL_mkdir("coverageplot");
 
-    if (AS_UTLfileExists("coverageplot", TRUE, TRUE) == 0)
-      AS_UTL_mkdir("coverageplot");
+      FILE *F = fopen(filename, "w");
 
-    FILE *F = fopen(filename, "w");
+      for (uint32 i=0; i<tigLen; i++)
+        fprintf(F, "%u\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+                i,
+                positions.goodGraph[i],
+                positions.badFwdGraph[i],
+                positions.badRevGraph[i],
+                positions.badExternalFwd[i],
+                positions.badExternalRev[i],
+                positions.badCompressed[i],
+                positions.badStretched[i],
+                positions.badNormal[i],
+                positions.badAnti[i],
+                positions.badOuttie[i]);
 
-    for (uint32 i=0; i<tigLen; i++)
-      fprintf(F, "%u\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-              i,
-              positions.goodGraph[i],
-              positions.badFwdGraph[i],
-              positions.badRevGraph[i],
-              positions.badExternalFwd[i],
-              positions.badExternalRev[i],
-              positions.badCompressed[i],
-              positions.badStretched[i],
-              positions.badNormal[i],
-              positions.badAnti[i],
-              positions.badOuttie[i]);
-
-    fclose(F);
-
-    verbose = true;
+      fclose(F);
+    }
   }
-#endif
-
 
   if ((fwdBads->size() == 0) &&
       (revBads->size() == 0)) {
@@ -774,7 +764,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       fwdIter++;
       if (lastBreakBBEnd >= bad.bgn) {
         // Skip, instead of combine trying to detect in combine case
-        if (verbose)
+        if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
           fprintf(logFile,"Skip fwd bad range %d %d due to backbone %d\n",
                   bad.bgn, bad.end, lastBreakBBEnd);
         continue;
@@ -783,7 +773,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       bad = *revIter;
       if (lastBreakBBEnd >= bad.bgn) {
         // Skip, instead of combine trying to detect in combine case
-        if (verbose)
+        if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
           fprintf(logFile,"Skip rev bad range %d %d due to backbone %d\n",
                   bad.bgn, bad.end, lastBreakBBEnd);
         revIter++;
@@ -799,7 +789,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
         } else {
           // check for containment relations and skip them
           if (fwdIter->bgn >= bad.bgn && fwdIter->end <= bad.end) {
-            if (verbose)
+            if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
               fprintf(logFile,"Skip fwd bad range %d %d due to contained in rev %d %d\n",
                       fwdIter->bgn, fwdIter->end, bad.bgn, bad.end);
 
@@ -808,7 +798,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
               continue;
             }
           } else if (bad.bgn >= fwdIter->bgn && bad.end <= fwdIter->end) {
-            if (verbose)
+            if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
               fprintf(logFile,"Skip rev bad range %d %d due to contained in fwd %d %d\n",
                       bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
       	    revIter++;
@@ -818,7 +808,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
           if (fwdIter->bgn < bad.end &&
               fwdIter->end > bad.end &&
               bad.end - fwdIter->end < 200) {
-            if (verbose)
+            if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
               fprintf(logFile,"Combine bad ranges %d - %d with %d - %d\n",
                       bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
             if (bad.bgn == 0) { // ignore reverse at start of tig
@@ -838,13 +828,21 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       }
     }
 
-    if (verbose)
+    if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
       fprintf(logFile,"Bad peak from %d to %d\n",bad.bgn,bad.end);
 
     for (; frgidx < tig->ufpath.size(); frgidx++) {
       ufNode frag = tig->ufpath[frgidx];
       SeqInterval loc = frag.position;
-      if (isReverse(loc)) { loc.bgn = frag.position.end; loc.end = frag.position.bgn; }
+
+      if (isReverse(loc)) {
+        loc.bgn = frag.position.end;
+        loc.end = frag.position.bgn;
+      }
+
+      if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
+        fprintf(logFile, "unitig %d frag %d %d,%d bad %d,%d\n",
+                tig->id(), frag.ident, loc.bgn, loc.end, bad.bgn, bad.end);
 
       // Don't want to go past range and break in wrong place
       assert(loc.bgn <= bad.end+1 || loc.end <= bad.end+1);
@@ -858,6 +856,16 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
 
       bool breakNow = false;
       MateLocationEntry mloc = positions.getById(frag.ident);
+
+      //  If we do go past the split point, whoops, break now and hope it all works out later.
+#if 0
+      //  NOT TESTED
+      if ((loc.bgn > bad.end+1) && (loc.end > bad.end+1)) {
+        fprintf(logFile, "SPLIT ERROR: unitig %d frag %d missed the split point.\n",
+                tig->id(), frag.ident);
+        breakNow = true;
+      }
+#endif
 
       if (mloc.mleFrgID1 != 0 && mloc.isGrumpy) { // only break on bad mates
         if (isFwdBad && bad.bgn <= loc.end) {
@@ -902,7 +910,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
         if (noContainerToBreak == false) {
           combine = false;
           lastBreakBBEnd = currBackboneEnd;
-          if (verbose)
+          if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
             fprintf(logFile,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
                     frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd);
           uint32 fragEndInTig = THREE_PRIME;
@@ -927,8 +935,9 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
           bp.fragPos = frag.position;
           bp.inSize = 100000;
           bp.inFrags = 10;
-          //fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #1.\n",
-          //        tig->id(), frag.ident, bp.fragPos.bgn, bp.fragPos.end);
+          if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
+            fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #1.\n",
+                    tig->id(), frag.ident, bp.fragPos.bgn, bp.fragPos.end);
           breaks->push_back(bp);
         }
       }
@@ -961,10 +970,11 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
               bp.fragPos = loc;
               bp.inSize = 100001;
               bp.inFrags = 11;
-              //fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #2.\n",
-              //        tig->id(), frag.ident, bp.fragPos.bgn, bp.fragPos.end);
+              if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
+                fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #2.\n",
+                        tig->id(), frag.ident, bp.fragPos.bgn, bp.fragPos.end);
               breaks->push_back(bp);
-              if (verbose)
+              if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
                 fprintf(logFile,"Might make frg %d singleton, end %d size %u pos %d,%d\n",
                         frag.ident, fragEndInTig, (uint32)breaks->size(), loc.bgn, loc.end);
             }
