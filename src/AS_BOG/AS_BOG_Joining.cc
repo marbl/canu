@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -50,11 +50,11 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
 
   //  Sort unitigs by joined size.  Sort.  Join the largest first.
 
-  joinEntry  *joins    = new joinEntry [ 2*unitigs->size() ];
+  joinEntry  *joins    = new joinEntry [ 2*unitigs.size() ];
   uint32      joinsLen = 0;
 
-  for (uint32 frID=0; frID<unitigs->size(); frID++) {
-    Unitig        *fr   = (*unitigs)[frID];
+  for (uint32 frID=0; frID<unitigs.size(); frID++) {
+    Unitig        *fr   = unitigs[frID];
 
     if (fr == NULL)
       continue;
@@ -81,7 +81,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
         goto skipFirst;
 
       toID = fr->fragIn(bestEdge->frag_b_id);
-      to   = (*unitigs)[toID];
+      to   = unitigs[toID];
 
       //  Joining to something teeny?  Skip it.
       if (to->dovetail_path_ptr->size() == 1)
@@ -142,7 +142,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
         goto skipLast;
 
       toID = fr->fragIn(bestEdge->frag_b_id);
-      to   = (*unitigs)[toID];
+      to   = unitigs[toID];
 
       //  Joining to something teeny?  Skip it.
       if (to->dovetail_path_ptr->size() == 1)
@@ -195,8 +195,8 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
     int32    frUnitigID = Unitig::fragIn(join->frFragID);
     int32    toUnitigID = Unitig::fragIn(join->toFragID);
 
-    Unitig  *frUnitig = (*unitigs)[frUnitigID];
-    Unitig  *toUnitig = (*unitigs)[toUnitigID];
+    Unitig  *frUnitig = unitigs[frUnitigID];
+    Unitig  *toUnitig = unitigs[toUnitigID];
 
     if ((frUnitig == NULL) || (toUnitig == NULL))
       //  Already added one of the unitigs to another one.  Should never happen, really.
@@ -343,7 +343,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
     //  Finally, delete the frUnitig.  It's now in the toUnitig.
 
     delete frUnitig;
-    (*unitigs)[frUnitigID] = NULL;
+    unitigs[frUnitigID] = NULL;
   }  //  Over all joins.
 }
 

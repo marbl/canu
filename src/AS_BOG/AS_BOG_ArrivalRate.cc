@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ArrivalRate.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ArrivalRate.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -42,8 +42,8 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
 
   // Go through all the unitigs to sum rho and unitig arrival frags
   UnitigVector::const_iterator iter;
-  for(iter=unitigs->begin();
-      iter!=unitigs->end();
+  for(iter=unitigs.begin();
+      iter!=unitigs.end();
       iter++){
 
     if (*iter == NULL)
@@ -76,7 +76,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
     int median_index;
     std::vector<float> arrival_rate_array(rho_gt_10000);
 
-    for( iter=unitigs->begin(); iter!=unitigs->end(); iter++) {
+    for( iter=unitigs.begin(); iter!=unitigs.end(); iter++) {
       if (*iter == NULL)
         continue;
       avg_rho = (*iter)->getAvgRho();

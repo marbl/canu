@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -49,8 +49,8 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRe
   //
   //  At present, this is exploratory only.
 
-  for (int  ti=0; ti<unitigs->size(); ti++) {
-    Unitig        *tig = (*unitigs)[ti];
+  for (int  ti=0; ti<unitigs.size(); ti++) {
+    Unitig        *tig = unitigs[ti];
 
     if ((tig == NULL) ||
         (tig->dovetail_path_ptr == NULL))
@@ -84,7 +84,7 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRe
         continue;
 
       mtigID = tig->fragIn(matID);
-      mtig   = (*unitigs)[mtigID];
+      mtig   = unitigs[mtigID];
 
       if (mtigID == tig->id())
         //  Mate is not external.

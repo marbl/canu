@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -47,12 +47,12 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
   fprintf(logFile, "==> BREAKING UNITIGS.\n");
 
   //  Stop when we've seen all current unitigs.  Replace tiMax
-  //  in the for loop below with unitigs->size() to recursively
+  //  in the for loop below with unitigs.size() to recursively
   //  split unitigs.
-  int  tiMax = unitigs->size();
+  int  tiMax = unitigs.size();
 
   for (int  ti=0; ti<tiMax; ti++) {
-    Unitig             *tig = (*unitigs)[ti];
+    Unitig             *tig = unitigs[ti];
 
     if (tig == NULL)
       continue;
@@ -149,7 +149,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
         int pos = (bestEdge->bend == FIVE_PRIME) ? f->position.bgn : f->position.end;
 
-        Unitig *inTig = (*unitigs)[Unitig::fragIn(inFrag)];
+        Unitig *inTig = unitigs[Unitig::fragIn(inFrag)];
         assert(inTig->id() == Unitig::fragIn(inFrag));
 
         //  Don't break on spur fragments!  These will only chop off the ends of unitigs anyway.
@@ -282,8 +282,8 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
         if (newUs != NULL) {
           delete tig;
-          (*unitigs)[ti] = NULL;
-          unitigs->insert(unitigs->end(), newUs->begin(), newUs->end());
+          unitigs[ti] = NULL;
+          unitigs.insert(unitigs.end(), newUs->begin(), newUs->end());
         }
 
         delete newUs;

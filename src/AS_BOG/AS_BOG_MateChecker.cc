@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.94 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.95 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -50,8 +50,8 @@ UnitigGraph::evaluateMates(void) {
   uint64   happy[3]           = { 0, 0, 0 };
   uint64   grumpy[3]          = { 0, 0, 0 };
 
-  for (uint32 ti=0; ti<unitigs->size(); ti++) {
-    Unitig  *thisUtg = (*unitigs)[ti];
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *thisUtg = unitigs[ti];
 
     if ((thisUtg == NULL) ||
         (thisUtg->dovetail_path_ptr->empty()) ||
@@ -120,7 +120,7 @@ UnitigGraph::evaluateMates(void) {
 
       //  Get the mate frag.
 
-      Unitig        *mateUtg = (*unitigs)[mateUtgID];
+      Unitig        *mateUtg = unitigs[mateUtgID];
       DoveTailNode  *mateFrg = &(*mateUtg->dovetail_path_ptr)[mateUtg->pathPosition(mateFrgID)];
 
       //differentSum[type]++;
@@ -182,8 +182,8 @@ UnitigGraph::evaluateMates(void) {
 //
 void UnitigGraph::moveContains(void) {
 
-  for (uint32 ti=0; ti<unitigs->size(); ti++) {
-    Unitig  *thisUnitig = (*unitigs)[ti];
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *thisUnitig = unitigs[ti];
 
     if ((thisUnitig == NULL) ||
         (thisUnitig->dovetail_path_ptr->empty()) ||
@@ -394,7 +394,7 @@ void UnitigGraph::moveContains(void) {
       if (moveToContainer == true) {
         //  Move the fragment to be with its container.
 
-        Unitig         *thatUnitig = (*unitigs)[contUtgID];
+        Unitig         *thatUnitig = unitigs[contUtgID];
         DoveTailNode    containee  = *fragIter;
 
         assert(thatUnitig->id() == contUtgID);
@@ -435,8 +435,8 @@ void UnitigGraph::moveContains(void) {
 
         singUnitig->addFrag(containee, -MIN(containee.position.bgn, containee.position.end), verbose);
 
-        unitigs->push_back(singUnitig);
-        thisUnitig = (*unitigs)[ti];  //  Reset the pointer; unitigs might be reallocated
+        unitigs.push_back(singUnitig);
+        thisUnitig = unitigs[ti];  //  Reset the pointer; unitigs might be reallocated
 
       } else {
         //  Leave fragment here.  Copy the fragment to the list -- if
@@ -504,8 +504,8 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
 
   bool  verbose = false;
 
-  for (uint32 ti=0; ti<unitigs->size(); ti++) {
-    Unitig  *unitig = (*unitigs)[ti];
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *unitig = unitigs[ti];
 
     if ((unitig == NULL) ||
         (unitig->dovetail_path_ptr->empty()) ||
@@ -559,7 +559,7 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
             (FI->mateIID(splitFrags[0].ident) == 0) &&
             (splitFrags[0].contained != 0)) {
 
-          Unitig           *dangler  = (*unitigs)[unitig->fragIn(splitFrags[0].contained)];
+          Unitig           *dangler  = unitigs[unitig->fragIn(splitFrags[0].contained)];
           BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
 
           assert(dangler->id() == unitig->fragIn(splitFrags[0].contained));
@@ -585,8 +585,8 @@ void UnitigGraph::splitDiscontinuousUnitigs(void) {
           for (uint32 i=0; i<splitFragsLen; i++)
             dangler->addFrag(splitFrags[i], splitOffset, verbose);
 
-          unitigs->push_back(dangler);
-          unitig = (*unitigs)[ti];
+          unitigs.push_back(dangler);
+          unitig = unitigs[ti];
         }
 
         //  We just split out these fragments.  Reset the list.

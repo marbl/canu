@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.4 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.5 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -48,8 +48,8 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
   fprintf(logFile, "==> SEARCHING FOR BUBBLES\n");
 
-  for (uint32 ti=0; ti<unitigs->size(); ti++) {
-    Unitig        *shortTig = (*unitigs)[ti];
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig        *shortTig = unitigs[ti];
     Unitig        *mergeTig = NULL;
 
     if ((shortTig == NULL) ||
@@ -144,7 +144,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
       //  Check sanity of the new placement.
 
-      mergeTig = (*unitigs)[otherUtg];
+      mergeTig = unitigs[otherUtg];
 
       DoveTailNode place5;
       DoveTailNode place3;
@@ -494,7 +494,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
     //  Mark this unitig as dead if we fully merged it.
 
     if (isStuck == false) {
-      (*unitigs)[ti] = NULL;
+      unitigs[ti] = NULL;
       delete shortTig;
     }
   }  //  over all unitigs

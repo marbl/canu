@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.4 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.5 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -81,7 +81,7 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
   int32       frg_count              = 0;
   int32       prt_count              = 1;
   char        filename[FILENAME_MAX] = {0};
-  uint32     *partmap                = new uint32 [unitigs->size()];
+  uint32     *partmap                = new uint32 [unitigs.size()];
 
   //  This code closely follows that in AS_CGB_unitigger.c::output_the_chunks()
 
@@ -104,10 +104,10 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
 
   //  Step through all the unitigs once to build the partition mapping and IID mapping.
 
-  memset(partmap, 0xff, sizeof(uint32) * unitigs->size());
+  memset(partmap, 0xff, sizeof(uint32) * unitigs.size());
 
-  for (uint32 iumiid=0, ti=0; ti<unitigs->size(); ti++) {
-    Unitig  *utg = (*unitigs)[ti];
+  for (uint32 iumiid=0, ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *utg = unitigs[ti];
     uint32   nf  = (utg) ? utg->getNumFrags() : 0;
 
     if ((utg == NULL) || (nf == 0))
@@ -129,7 +129,7 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
 
     uint32 tigid = (isFinal) ? iumiid : ti;
 
-    assert(tigid < unitigs->size());
+    assert(tigid < unitigs.size());
     partmap[tigid] = prt_count;
 
     fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (in partition "F_U32" with "F_S64" frags)\n",
@@ -162,10 +162,10 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
   MultiAlignStore  *MAS = new MultiAlignStore(tigStorePath);
   MultiAlignT      *ma  = CreateEmptyMultiAlignT();
 
-  MAS->writeToPartitioned(partmap, unitigs->size(), NULL, 0);
+  MAS->writeToPartitioned(partmap, unitigs.size(), NULL, 0);
 
-  for (uint32 iumiid=0, ti=0; ti<unitigs->size(); ti++) {
-    Unitig  *utg = (*unitigs)[ti];
+  for (uint32 iumiid=0, ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *utg = unitigs[ti];
     uint32   nf  = (utg) ? utg->getNumFrags() : 0;
 
     if ((utg == NULL) || (nf == 0))
@@ -201,8 +201,8 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
   FILE *file = fopen(filename, "w");
   assert(file != NULL);
 
-  for (uint32  ti=0; ti<unitigs->size(); ti++) {
-    Unitig  *utg = (*unitigs)[ti];
+  for (uint32  ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *utg = unitigs[ti];
 
     if (utg == NULL)
       continue;
@@ -303,7 +303,7 @@ UnitigGraph::writeCGAtoFile(char *outputprefix, float globalARate) {
   }
 
   fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
-  fprintf(stats, "There were %d unitigs generated.\n", unitigs->size());
+  fprintf(stats, "There were %d unitigs generated.\n", unitigs.size());
 
   const int nsample = 500;
   const int nbucket = 500;
@@ -320,8 +320,8 @@ UnitigGraph::writeCGAtoFile(char *outputprefix, float globalARate) {
   extend_histogram(cvg, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
   extend_histogram(arv, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
 
-  for (uint32 ti=0; ti<unitigs->size(); ti++) {
-    Unitig          *u = (*unitigs)[ti];
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig          *u = unitigs[ti];
 
     if (u == NULL)
       continue;

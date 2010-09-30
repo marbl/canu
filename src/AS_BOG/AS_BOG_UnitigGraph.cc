@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.137 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.138 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -32,14 +32,12 @@ static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.137 2010-09-30 05:40:
 
 
 UnitigGraph::UnitigGraph() {
-  unitigs = new UnitigVector;
 }
 
 
 UnitigGraph::~UnitigGraph() {
-  for (uint32  ti=0; ti<unitigs->size(); ti++)
-    delete (*unitigs)[ti];
-  delete unitigs;
+  for (uint32  ti=0; ti<unitigs.size(); ti++)
+    delete unitigs[ti];
 }
 
 
@@ -68,7 +66,7 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   fprintf(logFile, "==> BUILDING UNITIGS from %d fragments.\n", FI->numFragments());
 
   //  There is no 0th unitig.
-  unitigs->push_back(NULL);
+  unitigs.push_back(NULL);
 
   uint32 frag_idx;
   while ((frag_idx = CG->nextFragByChunkLength()) > 0) {
@@ -192,8 +190,8 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   setLogFile("unitigger", "splitBadMates");
   fprintf(logFile, "==> SPLIT BAD MATES\n");
 
-  for (uint32 ti=0; ti<unitigs->size(); ti++) {
-    Unitig  *tig = (*unitigs)[ti];
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *tig = unitigs[ti];
 
     if ((tig == NULL) || (tig->getNumFrags() < 2))
       continue;
@@ -203,8 +201,8 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
 
     if (newUs != NULL) {
       delete tig;
-      (*unitigs)[ti] = NULL;
-      unitigs->insert(unitigs->end(), newUs->begin(), newUs->end());
+      unitigs[ti] = NULL;
+      unitigs.insert(unitigs.end(), newUs->begin(), newUs->end());
     }
 
     delete newUs;

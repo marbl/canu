@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.1 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.2 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_InsertSizes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -133,8 +133,8 @@ InsertSizes::InsertSizes() {
     _samples[i]  = FI->numMatesInLib(i);
   }
 
-  for (uint32 ti=0; ti<UG->unitigs->size(); ti++) {
-    Unitig        *utg = (*UG->unitigs)[ti];
+  for (uint32 ti=0; ti<UG->unitigs.size(); ti++) {
+    Unitig        *utg = UG->unitigs[ti];
 
     if ((utg == NULL) ||
         (utg->dovetail_path_ptr->size() < 2))

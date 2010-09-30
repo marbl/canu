@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -54,8 +54,8 @@ UnitigGraph::placeZombies(void) {
 
   //  ZZZzzzzaapaapppp!  IT'S ALIVE!
   //
-  for (uint32 ti=0; ti<unitigs->size(); ti++) {
-    Unitig  *utg = (*unitigs)[ti];
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *utg = unitigs[ti];
 
     if (utg == NULL)
       continue;
@@ -93,7 +93,7 @@ UnitigGraph::placeZombies(void) {
     frg.position.end      = FI->fragmentLength(i);
 
     utg->addFrag(frg, 0, false);
-    unitigs->push_back(utg);
+    unitigs.push_back(utg);
 
     fprintf(logFile, "placeZombies()-- unitig %d created from zombie fragment %d\n",
             utg->id(), i);

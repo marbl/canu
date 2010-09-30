@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.77 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.78 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -138,11 +138,10 @@ struct UnitigGraph{
   void           reportOverlapsUsed(const char *filename);
   void           reportUnitigs(const char *filename);
 
-  // Unitigs are the dove tails and their contained fragments
-  UnitigVector *unitigs;
+  UnitigVector   unitigs;
 
-  //  This is the MateChecker interface
 public:
+  //  This is the MateChecker interface
   UnitigBreakPoints* computeMateCoverage(Unitig *utg, int badMateBreakThreshold);
 
   void evaluateMates(void);

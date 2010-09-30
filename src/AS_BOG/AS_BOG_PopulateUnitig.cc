@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PopulateUnitig.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PopulateUnitig.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -137,7 +137,7 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
 
   Unitig *utg = new Unitig(logFileFlagSet(LOG_POPULATE_UNITIG));
 
-  unitigs->push_back(utg);
+  unitigs.push_back(utg);
 
   //  Add a first fragment -- to be 'compatable' with the old code, the first fragment is added
   //  reversed, we walk off of its 5' end, flip it, and add the 3' walk.
