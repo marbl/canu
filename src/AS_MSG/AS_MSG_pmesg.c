@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.52 2010-08-16 07:22:28 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.53 2010-09-30 09:34:11 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -413,7 +413,9 @@ ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg) {
       //  Force us to read another message
       AS_MSG_globals->curLine[0] = '#';
     }
-  } while (AS_MSG_globals->curLine[0] == '#');
+  } while ((AS_MSG_globals->curLine[0] == '#') ||
+           (AS_MSG_globals->curLine[0] == '\r') ||
+           (AS_MSG_globals->curLine[0] == '\n'));
 
   if (errno)
     fprintf(stderr, "ERROR: Read Failure looking for message type: %s\n",
