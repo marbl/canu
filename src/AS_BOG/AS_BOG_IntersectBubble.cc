@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.3 2010-09-28 10:55:18 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.4 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -86,11 +86,11 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       int32  frgID = frg->ident;
       int32  utgID = shortTig->id();
 
-      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
-      BestContainment *bestcont  = bog_ptr->getBestContainer(frg->ident);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestContainment *bestcont  = OG->getBestContainer(frg->ident);
 
-      if (_fi->mateIID(frgID) > 0) {
+      if (FI->mateIID(frgID) > 0) {
         if (bestcont)
           matedcont++;
       } else {
@@ -204,27 +204,27 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
           //  Orientation bad.
           diffOrient++;
 
-        if (maxU - minU > 1.25 * _fi->fragmentLength(frgID)) {
+        if (maxU - minU > 1.25 * FI->fragmentLength(frgID)) {
           //  Location bad.
           if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
             fprintf(logFile, "popBubbles()--   too long1 %d - %d = %d > 1.06 * %d = %.2f\n",
-                    maxU, minU, maxU - minU, _fi->fragmentLength(frgID), 1.06 * _fi->fragmentLength(frgID));
+                    maxU, minU, maxU - minU, FI->fragmentLength(frgID), 1.06 * FI->fragmentLength(frgID));
           tooLong++;
         }
 
-        if (max5 - min5 > 1.25 * _fi->fragmentLength(frgID)) {
+        if (max5 - min5 > 1.25 * FI->fragmentLength(frgID)) {
           //  Length bad.
           if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
             fprintf(logFile, "popBubbles()--   too long2 %d - %d = %d > 1.06 * %d = %.2f\n",
-                    max5, min5, max5 - min5, _fi->fragmentLength(frgID), 1.06 * _fi->fragmentLength(frgID));
+                    max5, min5, max5 - min5, FI->fragmentLength(frgID), 1.06 * FI->fragmentLength(frgID));
           tooLong++;
         }
 
-        if (max3 - min3 > 1.25 * _fi->fragmentLength(frgID)) {
+        if (max3 - min3 > 1.25 * FI->fragmentLength(frgID)) {
           //  Length bad.
           if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
             fprintf(logFile, "popBubbles()--   too long3 %d - %d = %d > 1.06 * %d = %.2f\n",
-                    max3, min3, max3 - min3, _fi->fragmentLength(frgID), 1.06 * _fi->fragmentLength(frgID));
+                    max3, min3, max3 - min3, FI->fragmentLength(frgID), 1.06 * FI->fragmentLength(frgID));
           tooLong++;
         }
       }
@@ -296,9 +296,9 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       int32  frgID = frg->ident;
       int32  utgID = shortTig->id();
 
-      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
-      BestContainment *bestcont  = bog_ptr->getBestContainer(frg->ident);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestContainment *bestcont  = OG->getBestContainer(frg->ident);
 
       if (bestcont)
         continue;
@@ -317,7 +317,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
       memset(ovlCnt, 0, sizeof(uint32) * AS_READ_MAX_NORMAL_LEN);
 
-      uint32 alen = _fi->fragmentLength(frgID);
+      uint32 alen = FI->fragmentLength(frgID);
 
       for (uint32 o=0; o<ovlLen; o++) {
         int32 a_iid = ovl[o].a_iid;
@@ -456,14 +456,14 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
         allPlaced = false;
 
-        if (bog_ptr->getBestContainer(frag->ident))
+        if (OG->getBestContainer(frag->ident))
           mergeTig->addContainedFrag(frag->ident,
-                                     bog_ptr->getBestContainer(frag->ident),
+                                     OG->getBestContainer(frag->ident),
                                      logFileFlagSet(LOG_INTERSECTION_BUBBLES));
         else
           mergeTig->addAndPlaceFrag(frag->ident,
-                                    bog_ptr->getBestEdgeOverlap(frag->ident, FIVE_PRIME),
-                                    bog_ptr->getBestEdgeOverlap(frag->ident, THREE_PRIME),
+                                    OG->getBestEdgeOverlap(frag->ident, FIVE_PRIME),
+                                    OG->getBestEdgeOverlap(frag->ident, THREE_PRIME),
                                     logFileFlagSet(LOG_INTERSECTION_BUBBLES));
 
         if (mergeTig->fragIn(frag->ident) == mergeTig->id()) {

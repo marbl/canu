@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.17 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.18 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -72,11 +72,11 @@ struct Unitig{
 
   // Accessor methods
 
-  float getAvgRho(FragmentInfo *fi);
+  float getAvgRho(void);
   static void setGlobalArrivalRate(float global_arrival_rate);
   void setLocalArrivalRate(float local_arrival_rate);
-  float getLocalArrivalRate(FragmentInfo *fi);
-  float getCovStat(FragmentInfo *fi);
+  float getLocalArrivalRate(void);
+  float getCovStat(void);
 
   // getNumRandomFrags() is a placeholder, random frags should not
   // contain guides, or other fragments that are not randomly sampled

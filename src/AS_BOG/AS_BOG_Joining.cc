@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -71,7 +71,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       bool  fragForward = (frg->position.bgn < frg->position.end);
 
       uint32           bestEnd  = (fragForward) ? FIVE_PRIME : THREE_PRIME;
-      BestEdgeOverlap *bestEdge = bog_ptr->getBestEdgeOverlap(frg->ident, bestEnd);
+      BestEdgeOverlap *bestEdge = OG->getBestEdgeOverlap(frg->ident, bestEnd);
 
       int32            toID = 0;
       Unitig          *to   = NULL;
@@ -132,7 +132,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       bool  fragForward = (frg->position.bgn < frg->position.end);
 
       uint32           bestEnd  = (fragForward) ? THREE_PRIME : FIVE_PRIME;
-      BestEdgeOverlap *bestEdge = bog_ptr->getBestEdgeOverlap(frg->ident, bestEnd);
+      BestEdgeOverlap *bestEdge = OG->getBestEdgeOverlap(frg->ident, bestEnd);
 
       int32            toID = 0;
       Unitig          *to   = NULL;
@@ -241,10 +241,10 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       //  Construct an edge that will place the frFragment onto the toUnitig.  This edge
       //  can come from either fragment.
 
-      BestEdgeOverlap  *best5fr = bog_ptr->getBestEdgeOverlap(frFragment->ident, FIVE_PRIME);
-      BestEdgeOverlap  *best3fr = bog_ptr->getBestEdgeOverlap(frFragment->ident, THREE_PRIME);
-      BestEdgeOverlap  *best5to = bog_ptr->getBestEdgeOverlap(toFragment->ident, FIVE_PRIME);
-      BestEdgeOverlap  *best3to = bog_ptr->getBestEdgeOverlap(toFragment->ident, THREE_PRIME);
+      BestEdgeOverlap  *best5fr = OG->getBestEdgeOverlap(frFragment->ident, FIVE_PRIME);
+      BestEdgeOverlap  *best3fr = OG->getBestEdgeOverlap(frFragment->ident, THREE_PRIME);
+      BestEdgeOverlap  *best5to = OG->getBestEdgeOverlap(toFragment->ident, FIVE_PRIME);
+      BestEdgeOverlap  *best3to = OG->getBestEdgeOverlap(toFragment->ident, THREE_PRIME);
 
       BestEdgeOverlap   joinEdge5;
       BestEdgeOverlap   joinEdge3;

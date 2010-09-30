@@ -17,17 +17,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.75 2010-09-29 22:04:29 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.76 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
-#include "AS_BOG_MateChecker.hh"
+#include "AS_BOG_InsertSizes.hh"
 
-//  Used in AS_BOG_Unitig.cc
-FragmentInfo     *debugfi = 0L;
-BestOverlapGraph *bog     = 0L;
+FragmentInfo     *FI  = 0L;
+BestOverlapGraph *OG  = 0L;
+ChunkGraph       *CG  = 0L;
+UnitigGraph      *UG  = 0L;
+InsertSizes      *IS  = 0L;
+
 
 FILE             *logFile      = stderr;
 uint32            logFileOrder = 1;
@@ -269,42 +272,41 @@ main (int argc, char * argv []) {
   OverlapStore     *ovlStoreUniq = AS_OVS_openOverlapStore(ovlStoreUniqPath);
   OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
-  FragmentInfo     *fragInfo = new FragmentInfo(gkpStore);
+  FI = new FragmentInfo(gkpStore);
+  OG = new BestOverlapGraph(ovlStoreUniq, ovlStoreRept, erate, elimit);
+  CG = new ChunkGraph();
+  UG = new UnitigGraph();
+  IS = NULL;
 
-  debugfi = fragInfo;
-
-  BestOverlapGraph      *BOG = new BestOverlapGraph(fragInfo, ovlStoreUniq, ovlStoreRept, erate, elimit);
-
-  bog = BOG;
-
-  ChunkGraph *cg = new ChunkGraph(fragInfo, BOG);
-  UnitigGraph utg(fragInfo, BOG);
-  utg.build(cg, ovlStoreUniq, ovlStoreRept, breakIntersections, joinUnitigs, popBubbles, output_prefix);
-
-  MateChecker  mateChecker(fragInfo);
-  mateChecker.checkUnitigGraph(utg, badMateBreakThreshold);
+  UG->build(ovlStoreUniq,
+            ovlStoreRept,
+            breakIntersections,
+            joinUnitigs,
+            popBubbles,
+            badMateBreakThreshold,
+            output_prefix);
 
   setLogFile("unitigger", "output");
 
-  utg.setParentAndHang(cg);
-
-  float globalARate = utg.getGlobalArrivalRate(gkpStore->gkStore_getNumRandomFragments(), genome_size);
+  float globalARate = UG->getGlobalArrivalRate(gkpStore->gkStore_getNumRandomFragments(), genome_size);
   Unitig::setGlobalArrivalRate(globalARate);
 
-  utg.writeIUMtoFile(output_prefix, tigStorePath, fragment_count_target);
-  utg.writeOVLtoFile(output_prefix);
-  utg.writeCGAtoFile(output_prefix, globalARate);
+  UG->writeIUMtoFile(output_prefix, tigStorePath, fragment_count_target);
+  UG->writeOVLtoFile(output_prefix);
+  UG->writeCGAtoFile(output_prefix, globalARate);
 
-  delete BOG;
-  delete cg;
-  delete fragInfo;
+  delete IS;
+  delete UG;
+  delete CG;
+  delete OG;
+  delete FI;
 
   delete gkpStore;
   AS_OVS_closeOverlapStore(ovlStoreUniq);
   AS_OVS_closeOverlapStore(ovlStoreRept);
 
   setLogFile(NULL, NULL);
-  fprintf(stderr, "Bye.\n");
+  fprintf(logFile, "Bye.\n");
 
   return(0);
 }

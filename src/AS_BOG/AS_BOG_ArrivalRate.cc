@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ArrivalRate.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ArrivalRate.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -49,7 +49,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
     if (*iter == NULL)
       continue;
 
-    avg_rho = (*iter)->getAvgRho(_fi);
+    avg_rho = (*iter)->getAvgRho();
     total_rho += avg_rho;
     if (avg_rho > 10000.0)
       rho_gt_10000 += (size_t)avg_rho / 10000;
@@ -79,7 +79,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
     for( iter=unitigs->begin(); iter!=unitigs->end(); iter++) {
       if (*iter == NULL)
         continue;
-      avg_rho = (*iter)->getAvgRho(_fi);
+      avg_rho = (*iter)->getAvgRho();
       if (avg_rho > 10000.0) {
         const int num_10000 = (size_t)avg_rho / 10000;
         const float local_arrival_rate =

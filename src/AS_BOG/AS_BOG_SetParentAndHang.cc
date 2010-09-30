@@ -19,18 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_SetParentAndHang.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_SetParentAndHang.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
-#include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
+#include "AS_BOG_UnitigGraph.hh"
 
 #include "MultiAlignStore.h"
 
-
-
 void
-UnitigGraph::setParentAndHang(ChunkGraph *cg) {
+UnitigGraph::setParentAndHang(void) {
 
   for (int  ti=0; ti<unitigs->size(); ti++) {
     Unitig        *utg = (*unitigs)[ti];
@@ -58,7 +56,7 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
 
       //  If we're contained, gee, I sure hope the container is here!
 
-      BestContainment *bestcont  = bog_ptr->getBestContainer(frg->ident);
+      BestContainment *bestcont  = OG->getBestContainer(frg->ident);
 
       if ((bestcont) && (utg->fragIn(bestcont->container) == utg->id())) {
         int32         pi   = utg->pathPosition(bestcont->container);
@@ -81,8 +79,8 @@ UnitigGraph::setParentAndHang(ChunkGraph *cg) {
       //  Nope, not contained.  If we don't have a parent set, see if one of our best overlaps
       //  can set it.
 
-      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
 
       if ((bestedge5->frag_b_id) && (utg->fragIn(bestedge5->frag_b_id) == utg->id())) {
         int32         pi5  = utg->pathPosition(bestedge5->frag_b_id);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.76 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.77 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -39,20 +39,17 @@ static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.76 2010-09-28 09
 //     bog at the time.  It might be useful to save the gatekeeper information too.
 
 
-BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
-                                   OverlapStore        *ovlStoreUniq,
+BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
                                    OverlapStore        *ovlStoreRept,
                                    double               AS_UTG_ERROR_RATE,
                                    double               AS_UTG_ERROR_LIMIT) {
   OVSoverlap olap;
 
-  _fi = fi;
+  _best_overlaps = new BestFragmentOverlap [FI->numFragments() + 1];
+  _best_contains = new BestContainment     [FI->numFragments() + 1];
 
-  _best_overlaps = new BestFragmentOverlap [fi->numFragments() + 1];
-  _best_contains = new BestContainment     [fi->numFragments() + 1];
-
-  memset(_best_overlaps, 0, sizeof(BestFragmentOverlap) * (fi->numFragments() + 1));
-  memset(_best_contains, 0, sizeof(BestContainment)     * (fi->numFragments() + 1));
+  memset(_best_overlaps, 0, sizeof(BestFragmentOverlap) * (FI->numFragments() + 1));
+  memset(_best_contains, 0, sizeof(BestContainment)     * (FI->numFragments() + 1));
 
   assert(AS_UTG_ERROR_RATE >= 0.0);
   assert(AS_UTG_ERROR_RATE <= AS_MAX_ERROR_RATE);
@@ -77,8 +74,8 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
   setLogFile("unitigger", "bestoverlapgraph-containments");
 
-  _best_contains_score    = new uint64 [fi->numFragments() + 1];
-  memset(_best_contains_score,    0, sizeof(uint64) * (fi->numFragments() + 1));
+  _best_contains_score    = new uint64 [FI->numFragments() + 1];
+  memset(_best_contains_score,    0, sizeof(uint64) * (FI->numFragments() + 1));
 
   AS_OVS_resetRangeOverlapStore(ovlStoreUniq);
   while  (AS_OVS_readOverlapFromStore(ovlStoreUniq, &olap, AS_OVS_TYPE_OVL))
@@ -98,7 +95,7 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
   {
     uint64  numContainsToSave = 0;
 
-    for (uint32 i=0; i<fi->numFragments(); i++)
+    for (uint32 i=0; i<FI->numFragments(); i++)
       numContainsToSave += _best_contains[i].olapsLen;
 
     fprintf(logFile, "Need to save "F_U64" near-containment overlaps\n", numContainsToSave);
@@ -110,11 +107,11 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
 
   setLogFile("unitigger", "bestoverlapgraph-dovetails");
 
-  _best_overlaps_5p_score = new uint64 [fi->numFragments() + 1];
-  _best_overlaps_3p_score = new uint64 [fi->numFragments() + 1];
+  _best_overlaps_5p_score = new uint64 [FI->numFragments() + 1];
+  _best_overlaps_3p_score = new uint64 [FI->numFragments() + 1];
 
-  memset(_best_overlaps_5p_score, 0, sizeof(uint64) * (fi->numFragments() + 1));
-  memset(_best_overlaps_3p_score, 0, sizeof(uint64) * (fi->numFragments() + 1));
+  memset(_best_overlaps_5p_score, 0, sizeof(uint64) * (FI->numFragments() + 1));
+  memset(_best_overlaps_3p_score, 0, sizeof(uint64) * (FI->numFragments() + 1));
 
   AS_OVS_resetRangeOverlapStore(ovlStoreUniq);
   while  (AS_OVS_readOverlapFromStore(ovlStoreUniq, &olap, AS_OVS_TYPE_OVL))
@@ -143,7 +140,7 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
   //  first pass, but then only save near containment overlaps for contained fragments, leaving
   //  the dovetail fragments with a positive count and a NULL pointer.
   //
-  for (uint32 i=0; i<_fi->numFragments() + 1; i++)
+  for (uint32 i=0; i<FI->numFragments() + 1; i++)
     if (_best_contains[i].olaps == NULL)
       _best_contains[i].olapsLen = 0;
 
@@ -158,15 +155,15 @@ BestOverlapGraph::BestOverlapGraph(FragmentInfo        *fi,
       fprintf(BC, "#fragId\tlibId\tmated\tbestCont\n");
       fprintf(BE, "#fragId\tlibId\tbest5\tbest3\n");
 
-      for (uint32 id=1; id<_fi->numFragments() + 1; id++) {
+      for (uint32 id=1; id<FI->numFragments() + 1; id++) {
         BestContainment *bestcont  = getBestContainer(id);
         BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, FIVE_PRIME);
         BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, THREE_PRIME);
 
         if (bestcont)
-          fprintf(BC, "%u\t%u\t%c\t%u\n", id, _fi->libraryIID(id), (_fi->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
+          fprintf(BC, "%u\t%u\t%c\t%u\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
         else if ((bestedge5->frag_b_id > 0) || (bestedge3->frag_b_id > 0))
-          fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\n", id, _fi->libraryIID(id),
+          fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\n", id, FI->libraryIID(id),
                   bestedge5->frag_b_id, (bestedge5->bend == FIVE_PRIME) ? '5' : '3',
                   bestedge3->frag_b_id, (bestedge3->bend == FIVE_PRIME) ? '5' : '3');
       }
@@ -364,10 +361,10 @@ BestOverlapGraph::save(void) {
     return;
   }
 
-  AS_UTL_safeWrite(bogFile, _best_overlaps, "best overlaps", sizeof(BestFragmentOverlap), _fi->numFragments() + 1);
-  AS_UTL_safeWrite(bogFile, _best_contains, "best contains", sizeof(BestContainment),     _fi->numFragments() + 1);
+  AS_UTL_safeWrite(bogFile, _best_overlaps, "best overlaps", sizeof(BestFragmentOverlap), FI->numFragments() + 1);
+  AS_UTL_safeWrite(bogFile, _best_contains, "best contains", sizeof(BestContainment),     FI->numFragments() + 1);
 
-  for (uint32 i=0; i<_fi->numFragments() + 1; i++)
+  for (uint32 i=0; i<FI->numFragments() + 1; i++)
     if (_best_contains[i].olaps != NULL)
       AS_UTL_safeWrite(bogFile, _best_contains[i].olaps, "best contains olaps", sizeof(uint32), _best_contains[i].olapsLen);
 
@@ -384,10 +381,10 @@ BestOverlapGraph::load(void) {
   assert(_best_overlaps != NULL);
   assert(_best_contains != NULL);
 
-  AS_UTL_safeRead(bogFile, _best_overlaps, "best overlaps", sizeof(BestFragmentOverlap), _fi->numFragments() + 1);
-  AS_UTL_safeRead(bogFile, _best_contains, "best contains", sizeof(BestContainment),     _fi->numFragments() + 1);
+  AS_UTL_safeRead(bogFile, _best_overlaps, "best overlaps", sizeof(BestFragmentOverlap), FI->numFragments() + 1);
+  AS_UTL_safeRead(bogFile, _best_contains, "best contains", sizeof(BestContainment),     FI->numFragments() + 1);
 
-  for (uint32 i=0; i<_fi->numFragments() + 1; i++) {
+  for (uint32 i=0; i<FI->numFragments() + 1; i++) {
     if (_best_contains[i].olapsLen > 0) {
       _best_contains[i].olaps = new uint32 [_best_contains[i].olapsLen];
       AS_UTL_safeRead(bogFile, _best_contains[i].olaps, "best contains olaps", sizeof(uint32), _best_contains[i].olapsLen);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -74,7 +74,7 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRe
     for (int fi=0; fi<tig->dovetail_path_ptr->size(); fi++) {
       DoveTailNode *frg = &(*tig->dovetail_path_ptr)[fi];
       int32         frgID = frg->ident;
-      int32         matID = _fi->mateIID(frgID);
+      int32         matID = FI->mateIID(frgID);
 
       int32         mtigID = 0;
       Unitig       *mtig   = 0L;

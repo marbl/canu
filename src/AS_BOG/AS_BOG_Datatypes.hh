@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.42 2010-09-29 22:04:29 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.43 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -40,15 +40,34 @@ using namespace std;
 #include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
 
+////////////////////////////////////////
+
 //  Assign values to the enum to show this bug
 #warning there is a comparison assuming fragment_end_type FIVE_PRIME < THREE_PRIME
 #define FIVE_PRIME   0
 #define THREE_PRIME  1
 
+#define BADMATE_INTRA_STDDEV 3  //  Mates more than this stddev away in the same unitig are bad
+#define BADMATE_INTER_STDDEV 5  //  Mates more than this stddev away from the end of the unitig are bad
+
 //  Historical.  Eli had problems with STL and max.
 #undef max
 
-//  Lack of a better place....
+////////////////////////////////////////
+
+class FragmentInfo;
+class BestOverlapGraph;
+class ChunkGraph;
+class UnitigGraph;
+class InsertSizes;
+
+extern FragmentInfo     *FI;
+extern BestOverlapGraph *OG;
+extern ChunkGraph       *CG;
+extern UnitigGraph      *UG;
+extern InsertSizes      *IS;
+
+////////////////////////////////////////
 
 void  setLogFile(char *prefix, char *name);
 
@@ -71,6 +90,37 @@ extern uint64 LOG_INITIAL_CONTAINED_PLACEMENT;
 extern uint64 LOG_HAPPINESS;
 extern uint64 LOG_INTERMEDIATE_UNITIGS;
 
+
+////////////////////////////////////////
+
+static const SeqInterval NULL_SEQ_LOC = {0,0};
+
+inline
+bool
+isReverse(SeqInterval pos) {
+  return(pos.bgn > pos.end);
+}
+
+inline
+bool
+operator==(SeqInterval a, SeqInterval b) {
+  return((a.bgn == b.bgn) && (a.end == b.end) ||
+         (a.bgn == b.end) && (a.end == b.bgn));
+}
+
+inline
+bool
+operator<(SeqInterval a, SeqInterval b) {
+  if (isReverse(a)) {
+    if (isReverse(b)) return a.end < b.end;
+    else              return a.end < b.bgn;
+  } else {
+    if (isReverse(b)) return a.bgn < b.end;
+    else              return a.bgn < b.bgn;
+  }
+}
+
+////////////////////////////////////////
 
 class FragmentEnd {
 public:
@@ -260,6 +310,7 @@ private:
   uint32  *_numFragsInLib;
   uint32  *_numMatesInLib;
 };
+
 
 #endif
 

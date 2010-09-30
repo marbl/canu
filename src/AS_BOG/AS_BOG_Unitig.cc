@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.28 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.29 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -28,9 +28,6 @@ static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.28 2010-09-28 09:17:54 bri
 
 #undef DEBUG_PLACEMENT
 
-
-extern FragmentInfo     *debugfi;
-extern BestOverlapGraph *bog;
 
 // various class static methods and variables
 static std::map<uint32,int>* containPartialOrder;
@@ -137,8 +134,8 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   assert(frag3.ident > 0);
   assert(frag5.ident > 0);
 
-  assert(frag3.ident <= debugfi->numFragments());
-  assert(frag5.ident <= debugfi->numFragments());
+  assert(frag3.ident <= FI->numFragments());
+  assert(frag5.ident <= FI->numFragments());
 
   bidx5              = -1;
   bidx3              = -1;
@@ -209,7 +206,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     //
 
 #warning not knowing the overlap length really hurts.
-    end = bgn + debugfi->fragmentLength(frag5.ident);
+    end = bgn + FI->fragmentLength(frag5.ident);
     if (end <= MAX(parent->position.bgn, parent->position.end))
       end = MAX(parent->position.bgn, parent->position.end) + 1;
 
@@ -264,7 +261,7 @@ Unitig::placeFrag(DoveTailNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     assert(bgn < end);
 
 #warning not knowing the overlap length really hurts.
-    end = bgn + debugfi->fragmentLength(frag3.ident);
+    end = bgn + FI->fragmentLength(frag3.ident);
     if (end <= MAX(parent->position.bgn, parent->position.end))
       end = MAX(parent->position.bgn, parent->position.end) + 1;
 
@@ -318,7 +315,7 @@ Unitig::addFrag(DoveTailNode node, int offset, bool report) {
   dovetail_path_ptr->push_back(node);
 
   if ((report) || (node.position.bgn < 0) || (node.position.end < 0)) {
-    int32 len = debugfi->fragmentLength(node.ident);
+    int32 len = FI->fragmentLength(node.ident);
     int32 pos = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
 
     if (node.contained)
@@ -446,11 +443,11 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
   //
 #warning not knowing the overlap length really hurts.
   if (frag.position.bgn < frag.position.end) {
-    frag.position.end = frag.position.bgn + bog->fragmentLength(frag.ident);
+    frag.position.end = frag.position.bgn + FI->fragmentLength(frag.ident);
     if (frag.position.end > MAX(parent->position.bgn, parent->position.end))
       frag.position.end = MAX(parent->position.bgn, parent->position.end);
   } else {
-    frag.position.bgn = frag.position.end + bog->fragmentLength(frag.ident);
+    frag.position.bgn = frag.position.end + FI->fragmentLength(frag.ident);
     if (frag.position.bgn > MAX(parent->position.bgn, parent->position.end))
       frag.position.bgn = MAX(parent->position.bgn, parent->position.end);
   }
@@ -514,7 +511,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
 
   if ((bestedge5) && (fragIn(bestedge5->frag_b_id) == id())) {
     bidx5 = pathPosition(bestedge5->frag_b_id);
-    blen5 = debugfi->fragmentLength(fid) + ((bestedge5->ahang < 0) ? bestedge5->bhang : -bestedge5->ahang);
+    blen5 = FI->fragmentLength(fid) + ((bestedge5->ahang < 0) ? bestedge5->bhang : -bestedge5->ahang);
 #ifdef DEBUG_PLACEMENT
     fprintf(logFile, "addAndPlaceFrag()-- bestedge5:  %d,%d,%d,%d len %d\n",
             bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
@@ -524,7 +521,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
 
   if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
     bidx3 = pathPosition(bestedge3->frag_b_id);;
-    blen3 = debugfi->fragmentLength(fid) + ((bestedge3->ahang < 0) ? bestedge3->bhang : -bestedge3->ahang);
+    blen3 = FI->fragmentLength(fid) + ((bestedge3->ahang < 0) ? bestedge3->bhang : -bestedge3->ahang);
 #ifdef DEBUG_PLACEMENT
     fprintf(logFile, "addAndPlaceFrag()-- bestedge3:  %d,%d,%d,%d len %d\n",
             bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
@@ -584,7 +581,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
 }
 
 
-float Unitig::getAvgRho(FragmentInfo *fi){
+float Unitig::getAvgRho(void){
 
   if(dovetail_path_ptr->size() == 1)
     _avgRho = 1;
@@ -608,14 +605,14 @@ float Unitig::getAvgRho(FragmentInfo *fi){
   // Get first fragment's length
   dtp_iter=dovetail_path_ptr->begin();
   int ident1 = dtp_iter->ident;
-  long first_frag_len = fi->fragmentLength(dtp_iter->ident);
+  long first_frag_len = FI->fragmentLength(dtp_iter->ident);
   assert(first_frag_len > 0);
 
   // Get last fragment's length
   dtp_iter=dovetail_path_ptr->end();
   dtp_iter--;
   int ident2 = dtp_iter->ident;
-  long last_frag_len = fi->fragmentLength(dtp_iter->ident);
+  long last_frag_len = FI->fragmentLength(dtp_iter->ident);
   assert(last_frag_len > 0);
 
   // Get average of first and last fragment lengths
@@ -648,15 +645,15 @@ void Unitig::setLocalArrivalRate(float local_arrival_rate){
     _localArrivalRate = local_arrival_rate;
 }
 
-float Unitig::getLocalArrivalRate(FragmentInfo *fi){
+float Unitig::getLocalArrivalRate(void){
   if (_localArrivalRate != -1 )
     return _localArrivalRate;
-  setLocalArrivalRate((getNumFrags() - 1) / getAvgRho(fi));
+  setLocalArrivalRate((getNumFrags() - 1) / getAvgRho());
   return _localArrivalRate;
 }
 
 
-float Unitig::getCovStat(FragmentInfo *fi){
+float Unitig::getCovStat(void){
   const float ln2=0.69314718055994530941723212145818;
 
   // Note that we are using numFrags in this calculation.
@@ -673,7 +670,7 @@ float Unitig::getCovStat(FragmentInfo *fi){
   float covStat = 0.0;
 
   if (_globalArrivalRate > 0.0)
-    covStat = (getAvgRho(fi) * _globalArrivalRate) - (ln2 * (getNumFrags() - 1));
+    covStat = (getAvgRho() * _globalArrivalRate) - (ln2 * (getNumFrags() - 1));
 
   return(covStat);
 }
@@ -734,8 +731,8 @@ DoveTailNodeCmp(const void *a, const void *b){
 #undef NEWSORT
 
 #ifdef NEWSORT
-  bool  aIsCont = bog->isContained(impa->ident);
-  bool  bIsCont = bog->isContained(impb->ident);
+  bool  aIsCont = OG->isContained(impa->ident);
+  bool  bIsCont = OG->isContained(impb->ident);
 
   if ((aIsCont == false) && (bIsCont == false))
     //  Both dovetail nodes, keep same order
@@ -772,7 +769,7 @@ Unitig::sort(void) {
   for (int fi=0; fi<dovetail_path_ptr->size(); fi++) {
     DoveTailNode *f = &((*dovetail_path_ptr)[fi]);
 
-    if (bog->isContained(f->ident) == false)
+    if (OG->isContained(f->ident) == false)
       f->containment_depth = fi;
   }
 #endif

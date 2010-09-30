@@ -32,9 +32,11 @@ BOG_SOURCES = AS_BOG_ArrivalRate.cc \
               AS_BOG_Instrumentation.cc \
               AS_BOG_IntersectBubble.cc \
               AS_BOG_IntersectSplit.cc \
+              AS_BOG_InsertSizes.cc \
               AS_BOG_Joining.cc \
               AS_BOG_MateBubble.cc \
               AS_BOG_MateChecker.cc \
+              AS_BOG_MateLocation.cc \
               AS_BOG_Outputs.cc \
               AS_BOG_PlaceContains.cc \
               AS_BOG_PlaceZombies.cc \

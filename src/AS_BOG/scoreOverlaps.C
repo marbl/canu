@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: scoreOverlaps.C,v 1.2 2010-08-19 05:28:06 brianwalenz Exp $";
+const char *mainid = "$Id: scoreOverlaps.C,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
 
 //  Scores all overlaps for a given frag IID on the command line
 
@@ -25,7 +25,6 @@ const char *mainid = "$Id: scoreOverlaps.C,v 1.2 2010-08-19 05:28:06 brianwalenz
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
-#include "AS_BOG_MateChecker.hh"
 
 char         *gkpName = NULL;
 gkStore      *gkpStore;

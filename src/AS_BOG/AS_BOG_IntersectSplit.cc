@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -98,7 +98,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
       if (logFileFlagSet(LOG_INTERSECTION_BREAKING)) {
         if (fragIdx == 0) {
           uint32             dtEnd = (isReverse(f->position)) ? THREE_PRIME : FIVE_PRIME;
-          BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
+          BestEdgeOverlap   *bEdge = OG->getBestEdgeOverlap(f->ident, dtEnd);
 
           if ((bEdge) && (bEdge->frag_b_id > 0))
             fprintf(logFile,"unitig %d %c' frag %d points to unitig %d frag %d\n",
@@ -108,7 +108,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
         if (fragIdx + 1 == tig->dovetail_path_ptr->size()) {
           uint32             dtEnd = (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME;
-          BestEdgeOverlap   *bEdge = bog_ptr->getBestEdgeOverlap(f->ident, dtEnd);
+          BestEdgeOverlap   *bEdge = OG->getBestEdgeOverlap(f->ident, dtEnd);
 
           if ((bEdge) && (bEdge->frag_b_id > 0))
             fprintf(logFile,"unitig %d %c' frag %d points to unitig %d frag %d\n",
@@ -128,8 +128,8 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
            fragItr++) {
         uint32 inFrag = *fragItr;
 
-        BestEdgeOverlap  *best5 = bog_ptr->getBestEdgeOverlap(inFrag, FIVE_PRIME);
-        BestEdgeOverlap  *best3 = bog_ptr->getBestEdgeOverlap(inFrag, THREE_PRIME);
+        BestEdgeOverlap  *best5 = OG->getBestEdgeOverlap(inFrag, FIVE_PRIME);
+        BestEdgeOverlap  *best3 = OG->getBestEdgeOverlap(inFrag, THREE_PRIME);
 
         // check if it's incoming frag's 5' best edge.  If not, it must be the 3' edge.
 
@@ -278,7 +278,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
       //  Actually do the breaking.
       if (enableIntersectionBreaking) {
-        UnitigVector* newUs = breakUnitigAt(cMap, tig, breaks);
+        UnitigVector* newUs = breakUnitigAt(tig, breaks);
 
         if (newUs != NULL) {
           delete tig;

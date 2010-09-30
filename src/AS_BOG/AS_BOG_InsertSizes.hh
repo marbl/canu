@@ -19,49 +19,37 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef INCLUDE_AS_BOG_CHUNKGRAPH
-#define INCLUDE_AS_BOG_CHUNKGRAPH
+#ifndef INCLUDE_AS_INSERT_SIZES
+#define INCLUDE_AS_INSERT_SIZES
 
-static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.22 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_INSERTSIZES = "$Id: AS_BOG_InsertSizes.hh,v 1.1 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
-class BestOverlapGraph;
+class Unitig;
 
-class ChunkLength {
+class
+InsertSizes {
 public:
-  uint32 fragId;
-  uint32 cnt;
+  InsertSizes();
+  ~InsertSizes();
 
-  bool operator<(ChunkLength const that) const {
-    if (cnt == that.cnt)
-      return(fragId < that.fragId);
-    return(cnt > that.cnt);
-  };
-};
-
-
-class ChunkGraph {
-public:
-  ChunkGraph();
-  ~ChunkGraph(void) {
-    delete [] _chunkLength;
-  };
-
-  uint32 nextFragByChunkLength(void) {
-    if (_chunkLengthIter < _maxFragment)
-      return(_chunkLength[_chunkLengthIter++].fragId);
-    return(0);
-  };
+  int32      mean(uint32 libIID)    { return(_mean[libIID]);          };
+  int32      stddev(uint32 libIID)  { return(_stddev[libIID]);        };
+  bool       valid(uint32 libIID)   { return(_samples[libIID] >= 10); };
 
 private:
-  uint32 countFullWidth(FragmentEnd firstEnd);
+  void       accumulateLibraryStats(Unitig *utg);
 
-  BestOverlapGraph   *_BOG;
-  uint32              _maxFragment;
-  ChunkLength        *_chunkLength;
-  uint32              _chunkLengthIter;
-  uint32             *_pathLen;
+  uint32    _numLibs;
+
+  int32   **_dist;
+  int32    *_distLen;
+  int32    *_distMax;
+
+  int32    *_mean;
+  int32    *_stddev;
+  int32    *_samples;
 };
 
-#endif
+#endif // INCLUDE_AS_INSERT_SIZES

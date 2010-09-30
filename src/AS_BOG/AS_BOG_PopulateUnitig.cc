@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PopulateUnitig.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PopulateUnitig.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -100,7 +100,7 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
     lastID  = frag.ident;
     lastEnd = (frag.position.bgn < frag.position.end) ? THREE_PRIME : FIVE_PRIME;
 
-    bestnext = bog_ptr->getBestEdgeOverlap(lastID, lastEnd);
+    bestnext = OG->getBestEdgeOverlap(lastID, lastEnd);
 
     //  Abort if we intersect, or are circular.  Save the intersection, but not the circularity.
 
@@ -149,7 +149,7 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
   frag.parent            = 0;
   frag.ahang             = 0;
   frag.bhang             = 0;
-  frag.position.bgn      = _fi->fragmentLength(frag_idx);
+  frag.position.bgn      = FI->fragmentLength(frag_idx);
   frag.position.end      = 0;
   frag.containment_depth = 0;
 
@@ -157,8 +157,8 @@ UnitigGraph::populateUnitig(int32 frag_idx) {
 
   //  Add fragments as long as there is a path to follow...from the 3' end of the first fragment.
 
-  BestEdgeOverlap  *bestedge5 = bog_ptr->getBestEdgeOverlap(frag_idx, FIVE_PRIME);
-  BestEdgeOverlap  *bestedge3 = bog_ptr->getBestEdgeOverlap(frag_idx, THREE_PRIME);
+  BestEdgeOverlap  *bestedge5 = OG->getBestEdgeOverlap(frag_idx, FIVE_PRIME);
+  BestEdgeOverlap  *bestedge3 = OG->getBestEdgeOverlap(frag_idx, THREE_PRIME);
 
   if (logFileFlagSet(LOG_POPULATE_UNITIG))
     fprintf(logFile, "Adding 5' edges off of frag %d in unitig %d\n",

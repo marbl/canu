@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.3 2010-09-29 22:04:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.4 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -34,12 +34,12 @@ UnitigGraph::checkUnitigMembership(void) {
   int nutg = 0;
   int nfrg = 0;
 
-  fprintf(logFile, "checkUnitigMembership()--  numfrags=%d\n", _fi->numFragments());
+  fprintf(logFile, "checkUnitigMembership()--  numfrags=%d\n", FI->numFragments());
 
-  uint32 *inUnitig = new uint32 [_fi->numFragments()+1];
+  uint32 *inUnitig = new uint32 [FI->numFragments()+1];
   uint32  logSize[20] = {0};
 
-  for (uint32 i=0; i<_fi->numFragments()+1; i++)
+  for (uint32 i=0; i<FI->numFragments()+1; i++)
     inUnitig[i] = noUnitig;
 
   for (uint32 ti=0; ti<unitigs->size(); ti++) {
@@ -52,8 +52,8 @@ UnitigGraph::checkUnitigMembership(void) {
       for (DoveTailIter it=utg->dovetail_path_ptr->begin(); it != utg->dovetail_path_ptr->end(); it++) {
         nfrg++;
 
-        if (it->ident > _fi->numFragments())
-          fprintf(logFile, "HUH?  ident=%d numfrags=%d\n", it->ident, _fi->numFragments());
+        if (it->ident > FI->numFragments())
+          fprintf(logFile, "HUH?  ident=%d numfrags=%d\n", it->ident, FI->numFragments());
 
         inUnitig[it->ident] = ti;
 
@@ -68,8 +68,8 @@ UnitigGraph::checkUnitigMembership(void) {
   int lost = 0;
   int found = 0;
 
-  for (uint32 i=0; i<_fi->numFragments()+1; i++) {
-    if (_fi->fragmentLength(i) > 0) {
+  for (uint32 i=0; i<FI->numFragments()+1; i++) {
+    if (FI->fragmentLength(i) > 0) {
       if (inUnitig[i] == 0) {
         fprintf(logFile, "ERROR frag %d is in unitig 0!\n", i);
       } else if (inUnitig[i] != noUnitig) {
@@ -115,8 +115,8 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
 
       //  Where is our best overlap?  Contained or dovetail?
 
-      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
 
       uint32           bestident5 = 0;
       uint32           bestident3 = 0;
@@ -139,7 +139,7 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
         int oooend = MAX(ooo->position.bgn, ooo->position.end);
 
         if ((frgbgn <= ooobgn) && (ooobgn + 40 < frgend)) {
-          BestContainment *bestcont  = bog_ptr->getBestContainer(ooo->ident);
+          BestContainment *bestcont  = OG->getBestContainer(ooo->ident);
 
           uint32           bestident  = 0;
           if (bestcont)

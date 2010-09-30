@@ -22,10 +22,9 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.76 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.77 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
-#include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_Unitig.hh"
 
 #include "MultiAlignStore.h"
@@ -39,9 +38,7 @@ typedef std::map<uint32, FragmentList>      FragmentEdgeList;
 
 typedef std::map<uint32, SeqInterval>       FragmentPositionMap;
 
-inline bool isReverse( SeqInterval pos ) {
-  return(pos.bgn > pos.end);
-}
+
 
 struct UnitigBreakPoint {
   FragmentEnd fragEnd;          // frag id and which end to break on
@@ -94,18 +91,18 @@ typedef std::list<UnitigBreakPoint> UnitigBreakPoints;
 struct UnitigGraph{   
   // This will store the entire set of unitigs that are generated
   // It's just a unitig container.
-  UnitigGraph(FragmentInfo *fi, BestOverlapGraph *);
+  UnitigGraph();
   ~UnitigGraph();
 
   // Call this on a chunk graph pointer to build a unitig graph
-  void build(ChunkGraph *cg_ptr,
-             OverlapStore *ovlStoreUniq,
+  void build(OverlapStore *ovlStoreUniq,
              OverlapStore *ovlStoreRept,
              bool enableIntersectionBreaking,
              bool enableJoining,
              bool enableBubblePopping,
+             int32 badMateBreakThreshold,
              char *output_prefix);
-  void setParentAndHang(ChunkGraph *cg_ptr);
+  void setParentAndHang();
 
   void unitigToMA(MultiAlignT *ma, uint32 iumiid, Unitig *utg);
 
@@ -135,7 +132,7 @@ struct UnitigGraph{
                                int   &lastBPCoord,
                                int   &lastBPFragNum);
 
-  UnitigVector*  breakUnitigAt(ContainerMap &cMap, Unitig *, UnitigBreakPoints &);
+  UnitigVector*  breakUnitigAt(Unitig *, UnitigBreakPoints &);
 
   void           checkUnitigMembership(void);
   void           reportOverlapsUsed(const char *filename);
@@ -144,7 +141,15 @@ struct UnitigGraph{
   // Unitigs are the dove tails and their contained fragments
   UnitigVector *unitigs;
 
-  BestOverlapGraph *bog_ptr;
+  //  This is the MateChecker interface
+public:
+  UnitigBreakPoints* computeMateCoverage(Unitig *utg, int badMateBreakThreshold);
+
+  void evaluateMates(void);
+
+  void moveContains(void);
+  void splitDiscontinuousUnitigs(void);
+
 
 private:
   static const int MIN_BREAK_FRAGS = 1;
@@ -154,8 +159,6 @@ private:
 
   void populateUnitig(Unitig             *unitig,
                       BestEdgeOverlap    *nextedge);
-
-  FragmentInfo     *_fi;
 
   //  This is a map from 'invaded fragment' to a list of 'invading fragments';
   //    unitigIntersect[a] = b means that b is invading into a.

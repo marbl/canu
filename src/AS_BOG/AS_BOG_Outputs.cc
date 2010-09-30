@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.3 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.4 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -39,7 +39,7 @@ UnitigGraph::unitigToMA(MultiAlignT *ma,
                         Unitig      *utg) {
 
   ma->maID                      = iumiid;
-  ma->data.unitig_coverage_stat = utg->getCovStat(_fi);
+  ma->data.unitig_coverage_stat = utg->getCovStat();
   ma->data.unitig_microhet_prob = 1.0;  //  Default to 100% probability of unique
 
   ma->data.unitig_status        = AS_UNASSIGNED;
@@ -212,8 +212,8 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
 
       //  Where is our best overlap?  Contained or dovetail?
 
-      BestEdgeOverlap *bestedge5 = bog_ptr->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = bog_ptr->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
 
       int              bestident5 = 0;
       int              bestident3 = 0;
@@ -327,8 +327,8 @@ UnitigGraph::writeCGAtoFile(char *outputprefix, float globalARate) {
       continue;
 
     int  l = u->getLength();
-    int  c = (int)rintf(u->getCovStat(_fi));
-    int  a = (int)rintf(u->getLocalArrivalRate(_fi) * 10000);
+    int  c = (int)rintf(u->getCovStat());
+    int  a = (int)rintf(u->getLocalArrivalRate() * 10000);
 
     if (c < -200000) {
       fprintf(stderr, "ti=%d c=%d\n", ti, c);
@@ -337,7 +337,7 @@ UnitigGraph::writeCGAtoFile(char *outputprefix, float globalARate) {
     z.nsamples     = 1;
     z.sum_frags    = z.min_frags    = z.max_frags    = u->getNumFrags();
     z.sum_bp       = z.min_bp       = z.max_bp       = l;;
-    z.sum_rho      = z.min_rho      = z.max_rho      = (int)rintf(u->getAvgRho(_fi));
+    z.sum_rho      = z.min_rho      = z.max_rho      = (int)rintf(u->getAvgRho());
     z.sum_discr    = z.min_discr    = z.max_discr    = c;
     z.sum_arrival  = z.min_arrival  = z.max_arrival  = a;
     z.sum_rs_frags = z.min_rs_frags = z.max_rs_frags = 0;

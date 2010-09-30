@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.3 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.4 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -175,8 +175,7 @@ void UnitigGraph::filterBreakPoints(ContainerMap &cMap,
 }
 
 // Doesn't handle contained frags yet
-UnitigVector* UnitigGraph::breakUnitigAt(ContainerMap &cMap,
-                                         Unitig *tig,
+UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
                                          UnitigBreakPoints &breaks) {
 
   if (breaks.empty())

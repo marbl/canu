@@ -19,97 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef INCLUDE_AS_BOG_MATECHEKER
-#define INCLUDE_AS_BOG_MATECHEKER
+#ifndef INCLUDE_AS_BOG_MATE_LOCATION
+#define INCLUDE_AS_BOG_MATE_LOCATION
 
-static const char *rcsid_INCLUDE_AS_BOG_MATECHEKER = "$Id: AS_BOG_MateChecker.hh,v 1.39 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATELOCATION = "$Id: AS_BOG_MateLocation.hh,v 1.1 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
-
-static const SeqInterval NULL_SEQ_LOC = {0,0};
-
-struct DistanceCompute {
-  double  stddev;
-  double  mean;
-  uint32  samples;
-
-  uint32  distancesLen;
-  uint32  distancesMax;
-  int32  *distances;
-
-  DistanceCompute() {
-    stddev       = 0.0;
-    mean         = 0.0;
-    samples      = 0;
-
-    distancesLen = 0;
-    distancesMax = 1048576;
-    distances    = new int32 [distancesMax];
-  };
-
-  ~DistanceCompute() {
-    delete [] distances;
-  }
-};
-
-
-
-
-struct MateChecker{
-  MateChecker(FragmentInfo *fi) {
-    _globalStats = NULL;
-    _fi          = fi;
-  };
-  ~MateChecker() {
-    delete [] _globalStats;
-  };
-
-  void checkUnitigGraph(UnitigGraph &tigGraph, int badMateBreakThreshold);
-
-private:
-  void  accumulateLibraryStats(Unitig *utg);
-  void  computeGlobalLibStats(UnitigGraph &tigGraph);
-
-  UnitigBreakPoints* computeMateCoverage(Unitig *utg,
-                                         BestOverlapGraph *bog,
-                                         int badMateBreakThreshold);
-
-  void evaluateMates(UnitigGraph &tigGraph);
-
-  void moveContains(UnitigGraph &tigGraph);
-  void splitDiscontinuousUnitigs(UnitigGraph &tigGraph);
-
-private:
-  DistanceCompute  *_globalStats;
-  FragmentInfo     *_fi;
-};
-
-
-
-#if 1
-inline
-bool
-operator==(SeqInterval a, SeqInterval b) {
-  return((a.bgn == b.bgn) && (a.end == b.end) ||
-         (a.bgn == b.end) && (a.end == b.bgn));
-}
-
-inline
-bool
-operator<(SeqInterval a, SeqInterval b) {
-  if (isReverse(a)) {
-    if (isReverse(b)) return a.end < b.end;
-    else              return a.end < b.bgn;
-  } else {
-    if (isReverse(b)) return a.bgn < b.end;
-    else              return a.bgn < b.bgn;
-  }
-}
-#endif
-
-
-
+#include "AS_BOG_InsertSizes.hh"
 
 
 class MateLocationEntry {
@@ -153,71 +70,8 @@ public:
 //
 class MateLocation {
 public:
-  MateLocation(FragmentInfo *fi, Unitig *utg, DistanceCompute *dc) {
-    MateLocationEntry   mle;
-
-    mle.mlePos1.bgn = mle.mlePos1.end = 0;
-    mle.mlePos2.bgn = mle.mlePos2.end = 0;
-
-    mle.mleFrgID1 = 0;
-    mle.mleFrgID2 = 0;
-
-    mle.mleUtgID1 = 0;
-    mle.mleUtgID2 = 0;
-
-    mle.isGrumpy = false;
-
-    _table.clear();
-    _table.push_back(mle);
-
-    _tigLen = utg->getLength();
-
-    goodGraph   = new int32 [_tigLen + 1];
-    badFwdGraph = new int32 [_tigLen + 1];
-    badRevGraph = new int32 [_tigLen + 1];
-
-    badExternalFwd = new int32 [_tigLen + 1];
-    badExternalRev = new int32 [_tigLen + 1];
-
-    badCompressed = new int32 [_tigLen + 1];
-    badStretched  = new int32 [_tigLen + 1];
-    badNormal     = new int32 [_tigLen + 1];
-    badAnti       = new int32 [_tigLen + 1];
-    badOuttie     = new int32 [_tigLen + 1];
-
-    memset(goodGraph,   0, sizeof(int32) * (_tigLen + 1));
-    memset(badFwdGraph, 0, sizeof(int32) * (_tigLen + 1));
-    memset(badRevGraph, 0, sizeof(int32) * (_tigLen + 1));
-
-    memset(badExternalFwd, 0, sizeof(int32) * (_tigLen + 1));
-    memset(badExternalRev, 0, sizeof(int32) * (_tigLen + 1));
-
-    memset(badCompressed, 0, sizeof(int32) * (_tigLen + 1));
-    memset(badStretched,  0, sizeof(int32) * (_tigLen + 1));
-    memset(badNormal,     0, sizeof(int32) * (_tigLen + 1));
-    memset(badAnti,       0, sizeof(int32) * (_tigLen + 1));
-    memset(badOuttie,     0, sizeof(int32) * (_tigLen + 1));
-
-    _fi = fi;
-
-    buildTable(utg);
-    buildHappinessGraphs(utg, dc);
-  };
-
-  ~MateLocation() {
-    delete [] goodGraph;
-    delete [] badFwdGraph;
-    delete [] badRevGraph;
-
-    delete [] badExternalFwd;
-    delete [] badExternalRev;
-
-    delete [] badCompressed;
-    delete [] badStretched;
-    delete [] badNormal;
-    delete [] badAnti;
-    delete [] badOuttie;
-  };
+  MateLocation(Unitig *utg);
+  ~MateLocation();
             
   MateLocationEntry getById(uint32 fragId) {
     map<uint32,uint32>::const_iterator  e = _iidToTableEntry.find(fragId);
@@ -243,7 +97,7 @@ public:
 
 private:
   void buildTable(Unitig *utg);
-  void buildHappinessGraphs(Unitig *utg, DistanceCompute *);
+  void buildHappinessGraphs(Unitig *utg);
 
   void incrRange(int32 *graph, int32 val, int32 n, int32 m) {
     n = MAX(n, 0);
@@ -269,19 +123,7 @@ private:
 
   vector<MateLocationEntry>  _table;
   map<uint32,uint32>         _iidToTableEntry;
-  FragmentInfo              *_fi;
 };
 
 
-
-class PeakBad {
-public:
-  uint32    bgn;
-  uint32    end;
-  uint32    fragiid;
-};
-
-
-
-
-#endif
+#endif // INCLUDE_AS_BOG_MATE_LOCATION

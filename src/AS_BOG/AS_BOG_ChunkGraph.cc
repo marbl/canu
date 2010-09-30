@@ -19,20 +19,18 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.33 2010-09-29 22:15:02 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.34 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
 
-ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *bog) {
+ChunkGraph::ChunkGraph() {
 
   setLogFile("unitigger", "ChunkGraph");
 
-  _BOG             = bog;
-
-  _maxFragment     = fi->numFragments();
+  _maxFragment     = FI->numFragments();
 
   _pathLen         = new uint32      [_maxFragment * 2 + 2];
   _chunkLength     = new ChunkLength [_maxFragment];
@@ -42,7 +40,7 @@ ChunkGraph::ChunkGraph(FragmentInfo *fi, BestOverlapGraph *bog) {
   memset(_chunkLength, 0, sizeof(ChunkLength) * (_maxFragment));
 
   for (uint32 fid=1; fid <= _maxFragment; fid++) {
-    if (bog->isContained(fid))
+    if (OG->isContained(fid))
       continue;
 
     _chunkLength[fid-1].fragId = fid;
@@ -81,7 +79,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
 
     //  Follow the path of lastEnd
 
-    lastEnd = _BOG->followOverlap(lastEnd);
+    lastEnd = OG->followOverlap(lastEnd);
   }
 
   //  Check why we stopped.  Three cases:
@@ -106,7 +104,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
     FragmentEnd currEnd  = lastEnd;
     do {
       _pathLen[currEnd.index()] = cycleLen;
-      currEnd = _BOG->followOverlap(currEnd);
+      currEnd = OG->followOverlap(currEnd);
     } while (lastEnd != currEnd);
 
   } else {
@@ -125,7 +123,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
 
   while (currEnd != lastEnd) {
     _pathLen[currEnd.index()] = length--;
-    currEnd = _BOG->followOverlap(currEnd);
+    currEnd = OG->followOverlap(currEnd);
   }
 
   if (logFileFlagSet(LOG_CHUNK_GRAPH)) {
@@ -149,7 +147,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
               (currEnd.fragEnd() == FIVE_PRIME) ? 5 : 3,
               _pathLen[currEnd.index()]);
 
-      currEnd = _BOG->followOverlap(currEnd);
+      currEnd = OG->followOverlap(currEnd);
     }
 
     if (seen.find(currEnd) != seen.end())

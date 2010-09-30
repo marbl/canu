@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.2 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.3 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -44,12 +44,12 @@ UnitigGraph::placeZombies(void) {
 
   fprintf(logFile, "==> SEARCHING FOR ZOMBIES\n");
 
-  uint32 *inUnitig   = new uint32 [_fi->numFragments()+1];
+  uint32 *inUnitig   = new uint32 [FI->numFragments()+1];
   int     numZombies = 0;
 
   //  Mark fragments as dead.
   //
-  for (uint32 i=0; i<_fi->numFragments()+1; i++)
+  for (uint32 i=0; i<FI->numFragments()+1; i++)
     inUnitig[i] = noUnitig;
 
   //  ZZZzzzzaapaapppp!  IT'S ALIVE!
@@ -69,8 +69,8 @@ UnitigGraph::placeZombies(void) {
 
   //  Anything still dead?
   //
-  for (uint32 i=0; i<_fi->numFragments()+1; i++) {
-    if (_fi->fragmentLength(i) == 0)
+  for (uint32 i=0; i<FI->numFragments()+1; i++) {
+    if (FI->fragmentLength(i) == 0)
       //  Deleted fragment
       continue;
 
@@ -90,7 +90,7 @@ UnitigGraph::placeZombies(void) {
     frg.containment_depth = 0;
 
     frg.position.bgn      = 0;
-    frg.position.end      = _fi->fragmentLength(i);
+    frg.position.end      = FI->fragmentLength(i);
 
     utg->addFrag(frg, 0, false);
     unitigs->push_back(utg);

@@ -22,13 +22,13 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.60 2010-09-28 09:17:54 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.61 2010-09-30 05:40:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
 
 struct BestOverlapGraph {
-  BestOverlapGraph(FragmentInfo *fi, OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit);
+  BestOverlapGraph(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit);
   ~BestOverlapGraph();
 
   //  Given a fragment UINT32 and which end, returns pointer to
@@ -192,8 +192,8 @@ struct BestOverlapGraph {
 
   uint32  olapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
     int32  ooff = 0;
-    int32  alen = _fi->fragmentLength(a_iid);
-    int32  blen = _fi->fragmentLength(b_iid);
+    int32  alen = FI->fragmentLength(a_iid);
+    int32  blen = FI->fragmentLength(b_iid);
     int32  aovl = 0;
     int32  bovl = 0;
 
@@ -223,10 +223,6 @@ struct BestOverlapGraph {
   };
 
 
-  uint32 fragmentLength(uint32 id) {
-    return(_fi->fragmentLength(id));
-  };
-
 private:
   void scoreContainment(const OVSoverlap& olap);
   void scoreEdge(const OVSoverlap& olap);
@@ -238,7 +234,6 @@ private:
 private:
   BestFragmentOverlap *_best_overlaps;
   BestContainment     *_best_contains;
-  FragmentInfo        *_fi;
 
   uint64              *_best_overlaps_5p_score;
   uint64              *_best_overlaps_3p_score;
