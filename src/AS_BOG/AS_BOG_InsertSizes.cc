@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.3 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.4 2010-10-01 13:10:37 brianwalenz Exp $";
 
 #include "AS_BOG_InsertSizes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -109,7 +109,7 @@ InsertSizes::accumulateLibraryStats(Unitig *utg) {
 
 InsertSizes::InsertSizes() {
 
-  _numLibs        = FI->numLibraries() + 1;
+  _numLibs        = FI->numLibraries();
 
   _dist    = new int32 * [_numLibs + 1];
   _distLen = new int32   [_numLibs + 1];
@@ -192,11 +192,9 @@ InsertSizes::InsertSizes() {
   for (uint32 i=0; i<_numLibs + 1; i++)
     delete [] _dist[i];
 
-  delete [] _dist;
-  delete [] _distLen;
-  delete [] _distMax;
-
-  delete [] _samples;
+  delete [] _dist;     _dist    = NULL;
+  delete [] _distLen;  _distLen = NULL;
+  delete [] _distMax;  _distMax = NULL;
 };
 
 
@@ -204,6 +202,7 @@ InsertSizes::InsertSizes() {
 InsertSizes::~InsertSizes() {
   delete [] _mean;
   delete [] _stddev;
+  delete [] _samples;
 };
 
 

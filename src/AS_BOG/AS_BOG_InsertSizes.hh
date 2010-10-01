@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_INSERT_SIZES
 #define INCLUDE_AS_INSERT_SIZES
 
-static const char *rcsid_INCLUDE_AS_BOG_INSERTSIZES = "$Id: AS_BOG_InsertSizes.hh,v 1.1 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_INSERTSIZES = "$Id: AS_BOG_InsertSizes.hh,v 1.2 2010-10-01 13:10:37 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -34,9 +34,9 @@ public:
   InsertSizes();
   ~InsertSizes();
 
-  int32      mean(uint32 libIID)    { return(_mean[libIID]);          };
-  int32      stddev(uint32 libIID)  { return(_stddev[libIID]);        };
-  bool       valid(uint32 libIID)   { return(_samples[libIID] >= 10); };
+  int32      mean(uint32 libIID)    { assert(libIID > 0); assert(libIID <= _numLibs); return(_mean[libIID]);          };
+  int32      stddev(uint32 libIID)  { assert(libIID > 0); assert(libIID <= _numLibs); return(_stddev[libIID]);        };
+  bool       valid(uint32 libIID)   { assert(libIID > 0); assert(libIID <= _numLibs); return(_samples[libIID] >= 10); };
 
 private:
   void       accumulateLibraryStats(Unitig *utg);
