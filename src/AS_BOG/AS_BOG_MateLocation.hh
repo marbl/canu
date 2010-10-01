@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_MATE_LOCATION
 #define INCLUDE_AS_BOG_MATE_LOCATION
 
-static const char *rcsid_INCLUDE_AS_BOG_MATELOCATION = "$Id: AS_BOG_MateLocation.hh,v 1.1 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATELOCATION = "$Id: AS_BOG_MateLocation.hh,v 1.2 2010-10-01 10:07:45 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -77,9 +77,13 @@ public:
     map<uint32,uint32>::const_iterator  e = _iidToTableEntry.find(fragId);
 
     if (e == _iidToTableEntry.end())
-      return _table[0];
+      return(_table[0]);
     else
-      return _table[e->second];
+      return(_table[e->second]);
+  };
+
+  uint32             numMates(void) {
+    return(_numMates);
   };
 
   int32  *goodGraph;
@@ -120,6 +124,8 @@ private:
   };
 
   int32                      _tigLen;
+
+  uint32                     _numMates;
 
   vector<MateLocationEntry>  _table;
   map<uint32,uint32>         _iidToTableEntry;

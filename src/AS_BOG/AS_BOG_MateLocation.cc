@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.2 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.3 2010-10-01 10:07:45 brianwalenz Exp $";
 
 #include "AS_BOG_MateLocation.hh"
 
@@ -42,6 +42,8 @@ MateLocation::MateLocation(Unitig *utg) {
   _table.push_back(mle);
 
   _tigLen = utg->getLength();
+
+  _numMates = 0;
 
   goodGraph   = new int32 [_tigLen + 1];
   badFwdGraph = new int32 [_tigLen + 1];
@@ -142,6 +144,8 @@ MateLocation::buildTable(Unitig *utg) {
       _table[tid].mleUtgID2 = utg->id();
 
       _iidToTableEntry[frag->ident] = tid;
+
+      _numMates++;
 
 #if 0
       fprintf(logFile, "buildTable()-- unitig %d frag %d at %d,%d AND unitig %d frag %d at %d,%d\n",
