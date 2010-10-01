@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.30 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.31 2010-10-01 13:13:25 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -496,13 +496,14 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   int32        blen5 =  0,   blen3 =  0;
   ufNode       frag;
 
-  frag.ident        = fid;
-  frag.contained    = 0;
-  frag.parent       = 0;
-  frag.ahang        = 0;
-  frag.bhang        = 0;
-  frag.position.bgn = 0;
-  frag.position.end = 0;
+  frag.ident             = fid;
+  frag.contained         = 0;
+  frag.parent            = 0;
+  frag.ahang             = 0;
+  frag.bhang             = 0;
+  frag.position.bgn      = 0;
+  frag.position.end      = 0;
+  frag.containment_depth = 0;
 
   //  The length of the overlap depends only on the length of the a frag and the hangs.  We don't
   //  actually care about the real length (except for logging), only which is thicker.
