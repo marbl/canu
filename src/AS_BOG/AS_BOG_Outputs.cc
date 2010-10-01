@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.6 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.7 2010-10-01 13:12:23 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -183,6 +183,8 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
 
     iumiid++;
   }
+
+  DeleteMultiAlignT(ma);
 
   delete    MAS;
   delete [] partmap;
