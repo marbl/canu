@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.78 2010-09-30 15:27:42 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.79 2010-10-01 09:32:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -275,6 +275,10 @@ main (int argc, char * argv []) {
   fprintf(stderr, "\n");
   fprintf(stderr, "sizeof(ufPath)        = %d\n", (int)sizeof(ufPath));
   fprintf(stderr, "\n");
+
+  for (uint64 i=0, j=1; i<64; i++, j<<=1)
+    if (logFileFlagSet(j))
+      fprintf(stderr, "DEBUG                 = %s\n", logFileFlagNames[i]);
 
   gkStore          *gkpStore     = new gkStore(gkpStorePath, FALSE, FALSE);
   OverlapStore     *ovlStoreUniq = AS_OVS_openOverlapStore(ovlStoreUniqPath);
