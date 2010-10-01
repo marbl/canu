@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.3 2010-10-01 10:07:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.4 2010-10-01 13:11:45 brianwalenz Exp $";
 
 #include "AS_BOG_MateLocation.hh"
 
@@ -172,6 +172,10 @@ MateLocation::buildHappinessGraphs(Unitig *utg) {
     MateLocationEntry &loc = _table[mleidx];
 
     uint32 lib =  FI->libraryIID(loc.mleFrgID1);
+
+    if (lib == 0)
+      //  Shouldn't occur, but just in case, ignore fragments in the legacy library.
+      continue;
 
     if (IS->valid(lib) == false)
       // Don't check libs that we didn't generate good stats for
