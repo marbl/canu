@@ -538,10 +538,9 @@ script_flip_list(edit_script_list **left) {
       return(0);
     if (numEdits == 0) 
       return 100;
-//  return((int)floor(100.0 * (1 - 2.0 * numEdits / alignLen) + 0.5));   LLL 6/18/10 this reports 100% id for non-exact matches
-    int pctId = (int)(floor(100.0 * (1 - 2.0 * numEdits / alignLen)));
+    int pctId = (int)(round(100.0 * (1 - 2.0 * numEdits / alignLen)));
 
-    return ((pctId<100) ? pctId : 99);
+    return ((pctId < 100) ? pctId : 99);
   };
 
 

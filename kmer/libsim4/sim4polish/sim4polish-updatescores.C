@@ -72,7 +72,7 @@ sim4polish::s4p_updateAlignmentScores(void) {
     al = (_exons[exon]._genTo - _exons[exon]._genFrom + 1 +
           _exons[exon]._estTo - _exons[exon]._estFrom + 1 +
           ne);
-    nc = (_exons[exon]._genTo - _exons[exon]._genFrom + 1);
+    nc = (_exons[exon]._estTo - _exons[exon]._estFrom + 1);
 
     _exons[exon]._percentIdentity = s4p_percentIdentityApprox(ne, al);
 
@@ -104,15 +104,26 @@ sim4polish::s4p_updateAlignmentScores(void) {
 
 int
 sim4polish::s4p_percentCoverageApprox(void) {
-  return((int)floor(100.0 * _numCovered / (double)(_estLen - _estPolyA - _estPolyT) + 0.5));
+  int ret;
+
+  if (_numCovered == _estLen - _estPolyA - _estPolyT)
+    return(100); 
+
+  return(((ret=(int)round(100.0 * _numCovered / (double)(_estLen - _estPolyA - _estPolyT))) < 100) ? ret : 99);
 }
 
 
 int
 sim4polish::s4p_percentIdentityApprox(int numEdits, int alignmentLength) {
+  int ret;
+
   if (alignmentLength == 0)
     return(0);
-  return((int)floor(100.0 * (1 - 2.0 * numEdits / alignmentLength) + 0.5));
+
+  if (numEdits == 0)
+    return(100);
+
+  return(((ret=(int)round(100.0 * (1 - 2.0 * numEdits / alignmentLength))) < 100) ? ret : 99);
 }
 
 

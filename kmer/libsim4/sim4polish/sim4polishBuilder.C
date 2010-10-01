@@ -247,7 +247,7 @@ sim4polishBuilder::release(void) {
     ex[i]->_estAlignment = 0L;  //  Owned by 'it' now
     ex[i]->_genAlignment = 0L;
 
-    it->_numCovered += (ex[i]->_genTo - ex[i]->_genFrom + 1);
+    it->_numCovered += (ex[i]->_estTo - ex[i]->_estFrom + 1);
   }
 
   //  Last, compute the querySeqIdentity using other fields (like our

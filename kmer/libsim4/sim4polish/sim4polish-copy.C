@@ -112,7 +112,7 @@ sim4polish::s4p_copyPolish(sim4polish *orig, u32bit exonNum) {
     //  Rebuild stats
     _numMatches       = _exons[0]._numMatches;
     _numMatchesN      = _exons[0]._numMatchesN;
-    _numCovered       = _exons[0]._genTo - _exons[0]._genFrom + 1;
+    _numCovered       = _exons[0]._estTo - _exons[0]._estFrom + 1;
     _percentIdentity  = _exons[0]._percentIdentity;
     _querySeqIdentity = s4p_percentCoverageApprox();
 

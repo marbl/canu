@@ -146,8 +146,8 @@ main(int argc, char ** argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nodeflines    Strip out deflines.\n");
     fprintf(stderr, "  -noalignments  Strip out alignments.\n");
-    fprintf(stderr, "  -normalized    Strip out the genomic region (makes the polish relative\n");
-    fprintf(stderr, "                 to the start of the sequence).\n");
+//  fprintf(stderr, "  -normalized    Strip out the genomic region (makes the polish relative\n");  ---Deprecated
+//  fprintf(stderr, "                 to the start of the sequence).\n");                           ---Deprecated
     fprintf(stderr, "\n");
     fprintf(stderr, "                 All conditions must be met.\n");
     exit(1);
@@ -199,7 +199,7 @@ main(int argc, char ** argv) {
     } else {
       if ((p->_percentIdentity  >= minI) &&
           (p->_querySeqIdentity >= minC) &&
-          (p->_numMatches  >= minL) &&
+          (p->_numCovered  >= minL) &&
           ((cdna == ~u32bitZERO) || (cdna == p->_estID)) &&
           ((geno == ~u32bitZERO) || (geno == p->_genID)) &&
           (minExons <= p->_numExons) &&

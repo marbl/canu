@@ -243,7 +243,7 @@ public:
   u32bit           _numMatchesN;
   u32bit           _numCovered;          //  Number of bp covered in alignments
   u32bit           _percentIdentity;
-  u32bit           _querySeqIdentity;    //  numMatches / (estLen - pA -pT)
+  u32bit           _querySeqIdentity;    //  numCovered / (estLen - pA -pT)
   u32bit           _matchOrientation;
   u32bit           _strandOrientation;
 
