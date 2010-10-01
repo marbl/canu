@@ -19,12 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.77 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.78 2010-10-01 13:40:57 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
-
+const uint64 ogMagicNumber   = 0x72476c764f747362llu;  //  'bstOvlGr'
+const uint64 ogVersionNumber = 1;
 
 //  Checkpointing will save the best overlap graph after it is loaded from the overlap store.  It
 //  seems to be working, but is missing a few features:
@@ -42,7 +43,8 @@ static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.77 2010-09-30 05
 BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
                                    OverlapStore        *ovlStoreRept,
                                    double               AS_UTG_ERROR_RATE,
-                                   double               AS_UTG_ERROR_LIMIT) {
+                                   double               AS_UTG_ERROR_LIMIT,
+                                   const char          *prefix) {
   OVSoverlap olap;
 
   _best_overlaps = new BestFragmentOverlap [FI->numFragments() + 1];
@@ -65,10 +67,8 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
 
   mismatchLimit   = AS_UTG_ERROR_LIMIT;
 
-  if (load()) {
-    fprintf(logFile, "BestOverlapGraph()--  Checkpoint loaded, skipping overlap store reading.\n");
+  if (load(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT))
     return;
-  }
 
   //  Pass 1 through overlaps -- find the contained fragments.
 
@@ -173,7 +173,7 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
     }
   }
 
-  save();
+  save(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT);
 }
 
 BestOverlapGraph::~BestOverlapGraph(){
@@ -348,52 +348,107 @@ void BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
 
 
 void
-BestOverlapGraph::save(void) {
+BestOverlapGraph::save(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT) {
+  char name[FILENAME_MAX];
+
+  sprintf(name, "%s.bog", prefix);
+
   assert(_best_overlaps_5p_score == NULL);
   assert(_best_overlaps_3p_score == NULL);
   assert(_best_contains_score    == NULL);
 
   errno = 0;
-  FILE *bogFile = fopen("bog.ckp", "w");
+  FILE *file = fopen(name, "w");
   if (errno) {
-    fprintf(logFile, "BestOverlapGraph::save()-- Failed to open 'bog.ckp' for writing: %s\n", strerror(errno));
-    fprintf(logFile, "BestOverlapGraph::save()-- No checkpoint saved, continuing.\n", strerror(errno));
+    fprintf(logFile, "BestOverlapGraph-- Failed to open '%s' for writing: %s\n", name, strerror(errno));
+    fprintf(logFile, "BestOverlapGraph-- Will not save best overlap graph to cache.\n", strerror(errno));
     return;
   }
 
-  AS_UTL_safeWrite(bogFile, _best_overlaps, "best overlaps", sizeof(BestFragmentOverlap), FI->numFragments() + 1);
-  AS_UTL_safeWrite(bogFile, _best_contains, "best contains", sizeof(BestContainment),     FI->numFragments() + 1);
+  fprintf(logFile, "BestOverlapGraph()-- Saving overlap graph to '%s'.\n",
+          name);
+
+  AS_UTL_safeWrite(file, &ogMagicNumber,      "magicnumber",   sizeof(uint64),              1);
+  AS_UTL_safeWrite(file, &ogVersionNumber,    "versionnumber", sizeof(uint64),              1);
+
+  AS_UTL_safeWrite(file, &AS_UTG_ERROR_RATE,  "errorRate",     sizeof(double),              1);
+  AS_UTL_safeWrite(file, &AS_UTG_ERROR_LIMIT, "errorLimit",    sizeof(double),              1);
+
+  AS_UTL_safeWrite(file, _best_overlaps,      "best overlaps", sizeof(BestFragmentOverlap), FI->numFragments() + 1);
+  AS_UTL_safeWrite(file, _best_contains,      "best contains", sizeof(BestContainment),     FI->numFragments() + 1);
 
   for (uint32 i=0; i<FI->numFragments() + 1; i++)
     if (_best_contains[i].olaps != NULL)
-      AS_UTL_safeWrite(bogFile, _best_contains[i].olaps, "best contains olaps", sizeof(uint32), _best_contains[i].olapsLen);
+      AS_UTL_safeWrite(file, _best_contains[i].olaps, "best contains olaps", sizeof(uint32), _best_contains[i].olapsLen);
 
-  fclose(bogFile);
+  fclose(file);
 }
 
 bool
-BestOverlapGraph::load(void) {
+BestOverlapGraph::load(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT) {
+  char name[FILENAME_MAX];
+
+  sprintf(name, "%s.bog", prefix);
+
   errno = 0;
-  FILE *bogFile = fopen("bog.ckp", "r");
+  FILE *file = fopen(name, "r");
   if (errno)
     return(false);
 
   assert(_best_overlaps != NULL);
   assert(_best_contains != NULL);
 
-  AS_UTL_safeRead(bogFile, _best_overlaps, "best overlaps", sizeof(BestFragmentOverlap), FI->numFragments() + 1);
-  AS_UTL_safeRead(bogFile, _best_contains, "best contains", sizeof(BestContainment),     FI->numFragments() + 1);
+  uint64 magicNumber;
+  uint64 versionNumber;
+
+  AS_UTL_safeRead(file, &magicNumber,   "magicnumber",   sizeof(uint64), 1);
+  AS_UTL_safeRead(file, &versionNumber, "versionnumber", sizeof(uint64), 1);
+
+  if (magicNumber != ogMagicNumber) {
+    fprintf(logFile, "BestOverlapGraph()-- File '%s' is not a best overlap graph; cannot load graph.\n", name);
+    fclose(file);
+    return(false);
+  }
+  if (versionNumber != ogVersionNumber) {
+    fprintf(logFile, "BestOverlapGraph()-- File '%s' is version "F_U64", I can only read version "F_U64"; cannot load graph.\n",
+            versionNumber, ogVersionNumber, name);
+    fclose(file);
+    return(false);
+  }
+
+  fprintf(logFile, "BestOverlapGraph()-- Loading overlap graph from '%s'.\n", name);
+
+  double  eRate  = 0.0;
+  double  eLimit = 0.0;
+
+  AS_UTL_safeRead(file, &AS_UTG_ERROR_RATE,  "errorRate",     sizeof(double), 1);
+  AS_UTL_safeRead(file, &AS_UTG_ERROR_LIMIT, "errorLimit",    sizeof(double), 1);
+
+  if (eRate  != AS_UTG_ERROR_RATE)
+    fprintf(logFile, "BestOverlapGraph()-- Saved graph in '%s' has error rate %f, this run is expecting error rate %f; cannot load graph.\n",
+            name, eRate, AS_UTG_ERROR_RATE);
+  if (eLimit != AS_UTG_ERROR_LIMIT)
+    fprintf(logFile, "BestOverlapGraph()-- Saved graph in '%s' has error limit %f, this run is expecting error limit %f; cannot load graph.\n",
+            name, eLimit, AS_UTG_ERROR_LIMIT);
+  if ((eRate  != AS_UTG_ERROR_RATE) ||
+      (eLimit != AS_UTG_ERROR_LIMIT)) {
+    fclose(file);
+    return(false);
+  }
+
+  AS_UTL_safeRead(file, _best_overlaps, "best overlaps", sizeof(BestFragmentOverlap), FI->numFragments() + 1);
+  AS_UTL_safeRead(file, _best_contains, "best contains", sizeof(BestContainment),     FI->numFragments() + 1);
 
   for (uint32 i=0; i<FI->numFragments() + 1; i++) {
     if (_best_contains[i].olapsLen > 0) {
       _best_contains[i].olaps = new uint32 [_best_contains[i].olapsLen];
-      AS_UTL_safeRead(bogFile, _best_contains[i].olaps, "best contains olaps", sizeof(uint32), _best_contains[i].olapsLen);
+      AS_UTL_safeRead(file, _best_contains[i].olaps, "best contains olaps", sizeof(uint32), _best_contains[i].olapsLen);
     } else {
       assert(_best_contains[i].olaps == NULL);
     }
   }
 
-  fclose(bogFile);
+  fclose(file);
 
   return(true);
 }

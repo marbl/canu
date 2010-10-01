@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.79 2010-10-01 09:32:21 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.80 2010-10-01 13:40:57 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -53,6 +53,7 @@ uint64 LOG_MATE_SPLIT_ANALYSIS         = 0x0000000000002000;  //
 uint64 LOG_MATE_SPLIT_DISCONTINUOUS    = 0x0000000000004000;  //
 uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS = 0x0000000000008000;  //
 uint64 LOG_MATE_SPLIT_COVERAGE_PLOT    = 0x0000000000010000;  //
+uint64 LOG_STDERR                      = 0x0000000000020000;  //  Write ALL logging to stderr, not the files.
 
 const char *logFileFlagNames[64] = { "overlapQuality",
                                      "overlapsUsed",
@@ -71,6 +72,7 @@ const char *logFileFlagNames[64] = { "overlapQuality",
                                      "mateSplitDiscontinuous",
                                      "mateSplitUnhappyContains",
                                      "mateSplitCoveragePlot",
+                                     "stderr",
                                      NULL
 };
 
@@ -79,6 +81,10 @@ const char *logFileFlagNames[64] = { "overlapQuality",
 void
 setLogFile(char *prefix, char *name) {
   char  logFileName[FILENAME_MAX];
+
+  if (logFileFlagSet(LOG_STDERR))
+    //  Write everything to stderr
+    return;
 
   if (logFile != stderr)
     fclose(logFile);
@@ -284,8 +290,8 @@ main (int argc, char * argv []) {
   OverlapStore     *ovlStoreUniq = AS_OVS_openOverlapStore(ovlStoreUniqPath);
   OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
-  FI = new FragmentInfo(gkpStore);
-  OG = new BestOverlapGraph(ovlStoreUniq, ovlStoreRept, erate, elimit);
+  FI = new FragmentInfo(gkpStore, output_prefix);
+  OG = new BestOverlapGraph(ovlStoreUniq, ovlStoreRept, erate, elimit, output_prefix);
   CG = new ChunkGraph();
   UG = new UnitigGraph();
   IS = NULL;

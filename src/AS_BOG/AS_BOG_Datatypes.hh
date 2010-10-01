@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.44 2010-09-30 15:27:42 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.45 2010-10-01 13:40:57 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -93,7 +93,7 @@ extern uint64 LOG_MATE_SPLIT_ANALYSIS;
 extern uint64 LOG_MATE_SPLIT_DISCONTINUOUS;
 extern uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS;
 extern uint64 LOG_MATE_SPLIT_COVERAGE_PLOT;
-
+extern uint64 LOG_STDERR;
 
 ////////////////////////////////////////
 
@@ -209,84 +209,12 @@ public:
 };
 
 
+
+
 class FragmentInfo {
 public:
-  FragmentInfo(gkStore *gkpStore) {
-    gkStream         *fs = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
-    gkFragment        fr;
-
-    _numLibraries = gkpStore->gkStore_getNumLibraries();
-    _numFragments = gkpStore->gkStore_getNumFragments();
-
-    _fragLength    = new uint32 [_numFragments + 1];
-    _mateIID       = new uint32 [_numFragments + 1];
-    _libIID        = new uint32 [_numFragments + 1];
-
-    _mean          = new double [_numLibraries + 1];
-    _stddev        = new double [_numLibraries + 1];
-
-    _numFragsInLib = new uint32 [_numLibraries + 1];
-    _numMatesInLib = new uint32 [_numLibraries + 1];
-
-    for (uint32 i=0; i<_numFragments + 1; i++) {
-      _fragLength[i] = 0;
-      _mateIID[i] = 0;
-      _libIID[i] = 0;
-    }
-
-    for (uint32 i=0; i<_numLibraries + 1; i++) {
-      _mean[i]          = 0.0;
-      _stddev[i]        = 0.0;
-      _numFragsInLib[i] = 0;
-      _numMatesInLib[i] = 0;
-    }
-
-    for (uint32 i=1; i<_numLibraries + 1; i++) {
-      _mean[i]          = gkpStore->gkStore_getLibrary(i)->mean;
-      _stddev[i]        = gkpStore->gkStore_getLibrary(i)->stddev;
-      _numFragsInLib[i] = 0;
-      _numMatesInLib[i] = 0;
-    }
-
-    uint32 numDeleted = 0;
-    uint32 numLoaded  = 0;
-
-    while(fs->next(&fr)) {
-      if (fr.gkFragment_getIsDeleted()) {
-        numDeleted++;
-      } else {
-        uint32 iid = fr.gkFragment_getReadIID();
-        uint32 lib = fr.gkFragment_getLibraryIID();
-
-        _fragLength[iid] = fr.gkFragment_getClearRegionLength();
-        _mateIID[iid]    = fr.gkFragment_getMateIID();;
-        _libIID[iid]     = lib;
-
-        _numFragsInLib[lib]++;
-
-        if (_mateIID[iid])
-          _numMatesInLib[lib]++;
-
-        numLoaded++;
-      }
-
-      if (((numDeleted + numLoaded) % 10000000) == 0)
-        fprintf(logFile, "Loading fragment information deleted:%9d active:%9d\n", numDeleted, numLoaded);
-    }
-
-    for (uint32 i=0; i<_numLibraries + 1; i++) {
-      _numMatesInLib[i] /= 2;
-    }
-
-    fprintf(logFile, "Loaded %d alive fragments, skipped %d dead fragments.\n", numLoaded, numDeleted);
-
-    delete fs;
-  };
-  ~FragmentInfo() {
-    delete [] _fragLength;
-    delete [] _mateIID;
-    delete [] _libIID;
-  };
+  FragmentInfo(gkStore *gkpStore, const char *prefix);
+  ~FragmentInfo();
 
   uint32  numFragments(void) { return(_numFragments); };
   uint32  numLibraries(void) { return(_numLibraries); };
@@ -301,6 +229,9 @@ public:
   uint32  numMatesInLib(uint32 iid) { return(_numMatesInLib[iid]); };
 
 private:
+  void      save(const char *prefix);
+  bool      load(const char *prefix);
+
   uint32   _numFragments;
   uint32   _numLibraries;
 
@@ -316,5 +247,8 @@ private:
 };
 
 
+
 #endif
+
+
 

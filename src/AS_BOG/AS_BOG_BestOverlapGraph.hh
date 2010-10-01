@@ -22,13 +22,13 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.61 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.62 2010-10-01 13:40:57 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
 
 struct BestOverlapGraph {
-  BestOverlapGraph(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit);
+  BestOverlapGraph(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit, const char *prefix);
   ~BestOverlapGraph();
 
   //  Given a fragment UINT32 and which end, returns pointer to
@@ -228,8 +228,8 @@ private:
   void scoreEdge(const OVSoverlap& olap);
 
 private:
-  void save(void);
-  bool load(void);
+  void save(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT);
+  bool load(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT);
 
 private:
   BestFragmentOverlap *_best_overlaps;
