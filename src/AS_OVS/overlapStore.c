@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.27 2010-09-28 10:44:29 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.28 2010-10-01 13:59:43 brianwalenz Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -27,6 +27,10 @@ const char *mainid = "$Id: overlapStore.c,v 1.27 2010-09-28 10:44:29 brianwalenz
 
 #include <ctype.h>
 #include <unistd.h>  //  sysconf()
+
+#include <vector>;
+
+using namespace std;
 
 int
 main(int argc, char **argv) {
@@ -51,9 +55,7 @@ main(int argc, char **argv) {
   uint64          memoryLimit = 512 * 1024 * 1024;
   uint32          nThreads    = 4;
   uint32          doFilterOBT = 0;
-  uint32          fileListLen = 0;
-  uint32          fileListMax = 10 * 1024;  //  If you run more than 10,000 overlapper jobs, you'll die.
-  char          **fileList    = (char **)safe_malloc(sizeof(char *) * fileListMax);
+  vector<char *>  fileList;
   Ovl_Skip_Type_t ovlSkipOpt  = ALL;
 
   argc = AS_configure(argc, argv);
@@ -162,10 +164,8 @@ main(int argc, char **argv) {
       fgets(line, FILENAME_MAX, F);
       while (!feof(F)) {
         chomp(line);
-        fileList[fileListLen++] = line;
-        if (fileListLen >= fileListMax)
-          fprintf(stderr, "Too many input files, increase fileListMax.\n"), exit(1);
-        line = (char *)safe_malloc(sizeof(char) * FILENAME_MAX);
+        fileList.push_back(line);
+       line = (char *)safe_malloc(sizeof(char) * FILENAME_MAX);
         fgets(line, FILENAME_MAX, F);
       }
       safe_free(line);
@@ -193,12 +193,8 @@ main(int argc, char **argv) {
       err++;
 
     } else {
-      //
       //  Assume it's an input file
-      //
-      fileList[fileListLen++] = argv[arg];
-      if (fileListLen >= fileListMax)
-        fprintf(stderr, "Too many input files, increase fileListMax.\n"), exit(1);
+      fileList.push_back(argv[arg]);
     }
     arg++;
   }
@@ -208,7 +204,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "       %s -d storeName [-B] [-E erate] [-b beginIID] [-e endIID]\n", argv[0]);
     fprintf(stderr, "       %s -q aiid biid storeName\n", argv[0]);
     fprintf(stderr, "       %s -p iid storeName gkpStore clr\n", argv[0]);
-    fprintf(stderr, "       %s -G storeName gkpStore ovlLimit\n");
+    fprintf(stderr, "       %s -G storeName gkpStore ovlLimit\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "There are six modes of operation, selected by the first option:\n");
     fprintf(stderr, "  -c  create a new store, fails if the store exists\n");
@@ -251,16 +247,16 @@ main(int argc, char **argv) {
     fprintf(stderr, "                    clr is usually OBTCHIMERA for ovlStore when OBT is used.\n");
     fprintf(stderr, "                    clr is usually CLR        for ovlStore when OBT is not used.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Limited to %d open files.\n", sysconf(_SC_OPEN_MAX));
+    fprintf(stderr, "Limited to %d open files.\n", (int)sysconf(_SC_OPEN_MAX));
     fprintf(stderr, "\n");
-    fprintf(stderr, "OVSoverlap     %d bytes\n", sizeof(OVSoverlap));
-    fprintf(stderr, "OVSoverlapINT  %d bytes\n", sizeof(OVSoverlapINT));
-    fprintf(stderr, "OVSoverlapDAT  %d bytes\n", sizeof(OVSoverlapDAT));
-    fprintf(stderr, "               %d %d %d\n", sizeof(struct OVSoverlapOVL), sizeof(struct OVSoverlapMER), sizeof(struct OVSoverlapOBT));
+    fprintf(stderr, "OVSoverlap     %d bytes\n", (int)sizeof(OVSoverlap));
+    fprintf(stderr, "OVSoverlapINT  %d bytes\n", (int)sizeof(OVSoverlapINT));
+    fprintf(stderr, "OVSoverlapDAT  %d bytes\n", (int)sizeof(OVSoverlapDAT));
+    fprintf(stderr, "               %d %d %d\n", (int)sizeof(struct OVSoverlapOVL), (int)sizeof(struct OVSoverlapMER), (int)sizeof(struct OVSoverlapOBT));
     fprintf(stderr, "AS_OVS_NWORDS  %d\n", AS_OVS_NWORDS);
     exit(1);
   }
-  if ((fileListLen == 0) && (operation == OP_BUILD)) {
+  if ((fileList.size() == 0) && (operation == OP_BUILD)) {
     fprintf(stderr, "No input files?\n");
     exit(1);
   }
@@ -269,7 +265,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_BUILD:
-      buildStore(storeName, gkpName, memoryLimit, nThreads, doFilterOBT, fileListLen, fileList, ovlSkipOpt);
+      buildStore(storeName, gkpName, memoryLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt);
       break;
     case OP_MERGE:
       mergeStore(storeName, fileList[0]);
@@ -296,7 +292,6 @@ main(int argc, char **argv) {
     default:
       break;
   }
-
 
   exit(0);
 }
