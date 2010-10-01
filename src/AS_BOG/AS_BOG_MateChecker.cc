@@ -19,598 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.97 2010-09-30 15:27:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.98 2010-10-01 13:43:49 brianwalenz Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_MateLocation.hh"
 
 #include "AS_OVL_overlap.h"  //  For DEFAULT_MIN_OLAP_LEN
-
-
-class PeakBad {
-public:
-  uint32    bgn;
-  uint32    end;
-  uint32    fragiid;
-};
-
-
-
-void
-UnitigGraph::evaluateMates(void) {
-
-  //  [0] -- BOTH frag and mate are dovetail
-  //  [1] -- ONE frag dovetail, ONE frag contained
-  //  [2] -- BOTH frag and mate are contained
-
-  uint64   unmated[3]         = { 0, 0, 0 };
-  uint64   mated[3]           = { 0, 0, 0 };
-  uint64   different[3][3]    = { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0 } };
-  uint64   happy[3]           = { 0, 0, 0 };
-  uint64   grumpy[3]          = { 0, 0, 0 };
-
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *thisUtg = unitigs[ti];
-
-    if ((thisUtg == NULL) ||
-        (thisUtg->ufpath.size() < 2))
-      continue;
-
-    MateLocation          positions(thisUtg);
-
-    for (uint32 fi=0; fi<thisUtg->ufpath.size(); fi++) {
-      ufNode  *thisFrg = &thisUtg->ufpath[fi];
-
-      uint32  thisFrgID = thisFrg->ident;
-      uint32  mateFrgID = FI->mateIID(thisFrg->ident);
-
-      BestContainment *thiscont = OG->getBestContainer(thisFrgID);
-      BestContainment *matecont = OG->getBestContainer(mateFrgID);
-
-      uint32  type = (thiscont != NULL) + (matecont != NULL);
-
-      //  Trivial case, not a mated fragment.
-
-      if (mateFrgID == 0) {
-        unmated[type]++;
-        continue;
-      }
-
-      uint32  thisUtgID = thisUtg->fragIn(thisFrgID);
-      uint32  mateUtgID = thisUtg->fragIn(mateFrgID);
-
-      MateLocationEntry  mloc     = positions.getById(thisFrg->ident);
-
-      //  Skip this fragment, unless it is mleFrgID1.  Fragments with mates in other unitigs
-      //  are always listed in ID1, and mates completely in this unitig should be counted once.
-      if (mloc.mleFrgID1 != thisFrgID)
-        continue;
-
-      mated[type]++;
-
-      //  Easy case, both fragments in the same unitig.  We can use the isGrumpy flag directly to
-      //  decide if the mates are happy or not.
-
-      if (thisUtgID == mateUtgID) {
-        assert(mloc.mleUtgID1 == thisUtg->id());
-        assert(mloc.mleUtgID2 == thisUtg->id());
-        assert(mloc.mleFrgID1 == thisFrgID);
-        assert(mloc.mleFrgID2 == mateFrgID);
-
-        if (mloc.isGrumpy == false)
-          happy[type]++;
-        else
-          grumpy[type]++;
-
-        continue;
-      }
-
-      //  Hard case, fragments in different unitigs.  We want to distinguish between
-      //  three cases:
-      //    1) mates at the end that could potentially join unitigs across a gap
-      //    2) mate at the end to an interior mate -- possibly a repeat
-      //    3) both interior mates
-
-      assert(mloc.mleUtgID1 == thisUtg->id());
-      assert(mloc.mleUtgID2 == 0);
-      assert(mloc.mleFrgID1 == thisFrgID);
-      assert(mloc.mleFrgID2 == 0);
-
-      //  Get the mate frag.
-
-      Unitig        *mateUtg = unitigs[mateUtgID];
-      ufNode        *mateFrg = &mateUtg->ufpath[mateUtg->pathPosition(mateFrgID)];
-
-      //differentSum[type]++;
-
-      bool  fragIsInterior = false;
-      bool  mateIsInterior = false;
-
-      uint32  lib           = FI->libraryIID(thisFrg->ident);
-      int32   minInsertSize = IS->mean(lib) - BADMATE_INTRA_STDDEV * IS->stddev(lib);
-      int32   maxInsertSize = IS->mean(lib) + BADMATE_INTRA_STDDEV * IS->stddev(lib);
-
-      if (thisFrg->position.bgn < thisFrg->position.end) {
-        //  Fragment is forward, so mate should be after it.
-        if (thisUtg->getLength() - thisFrg->position.bgn > maxInsertSize)
-          fragIsInterior = true;
-      } else {
-        //  Fragment is reverse, so mate should be before it.
-        if (thisFrg->position.bgn > maxInsertSize)
-          fragIsInterior = true;
-      }
-
-      if (mateFrg->position.bgn < mateFrg->position.end) {
-        //  Fragment is forward, so mate should be after it.
-        if (mateUtg->getLength() - mateFrg->position.bgn > maxInsertSize)
-          mateIsInterior = true;
-      } else {
-        //  Fragment is reverse, so mate should be before it.
-        if (mateFrg->position.bgn > maxInsertSize)
-          mateIsInterior = true;
-      }
-
-      uint32  dtyp = (fragIsInterior == true) + (mateIsInterior == true);
-
-      different[type][dtyp]++;
-    }
-  }
-
-#warning THIS IS COMPLETELY BROKEN
-  fprintf(logFile, "MATE HAPPINESS (dove/dove):  unmated %11"F_U64P"  mated %11"F_U64P"  sameTig: happy %11"F_U64P" grumpy %11"F_U64P"  diffTig: end-end %11"F_U64P" end-int %11"F_U64P" int-int %11"F_U64P"\n",
-          unmated[0], mated[0], happy[0], grumpy[0], different[0][0], different[0][1], different[0][2]);
-  fprintf(logFile, "MATE HAPPINESS (dove/cont):  unmated %11"F_U64P"  mated %11"F_U64P"  sameTig: happy %11"F_U64P" grumpy %11"F_U64P"  diffTig: end-end %11"F_U64P" end-int %11"F_U64P" int-int %11"F_U64P"\n",
-          unmated[1], mated[1], happy[1], grumpy[1], different[1][0], different[1][1], different[1][2]);
-  fprintf(logFile, "MATE HAPPINESS (cont/cont):  unmated %11"F_U64P"  mated %11"F_U64P"  sameTig: happy %11"F_U64P" grumpy %11"F_U64P"  diffTig: end-end %11"F_U64P" end-int %11"F_U64P" int-int %11"F_U64P"\n",
-          unmated[2], mated[2], happy[2], grumpy[2], different[2][0], different[2][1], different[2][2]);
-}
-
-
-
-//  Make sure that contained fragments are in the same unitig
-//  as their container.  Due to sorting, contained fragments
-//  can come much later in the unitig:
-//
-//  ------------1
-//    -------------2
-//       --------------3
-//         ----4 (contained in 1, too much error keeps it out of 2 and 3)
-//
-//  So, our first pass is to move contained fragments around.
-//
-void UnitigGraph::moveContains(void) {
-
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *thisUnitig = unitigs[ti];
-
-    if ((thisUnitig == NULL) ||
-        (thisUnitig->ufpath.size() < 2))
-      continue;
-
-    MateLocation positions(thisUnitig);
-
-    ufNode               *frags         = new ufNode [thisUnitig->ufpath.size()];
-    uint32                fragsLen      = 0;
-
-    if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
-      fprintf(logFile, "moveContain unitig %d\n", thisUnitig->id());
-
-    for (uint32 fi=0; fi<thisUnitig->ufpath.size(); fi++) {
-      ufNode  *frg = &thisUnitig->ufpath[fi];
-
-      BestContainment   *bestcont   = OG->getBestContainer(frg->ident);
-      MateLocationEntry  mloc       = positions.getById(frg->ident);
-
-      uint32  thisFrgID = frg->ident;
-      uint32  contFrgID = (bestcont) ? bestcont->container : 0;
-      uint32  mateFrgID = FI->mateIID(frg->ident);
-
-      uint32  thisUtgID = thisUnitig->fragIn(thisFrgID);
-      uint32  contUtgID = thisUnitig->fragIn(contFrgID);
-      uint32  mateUtgID = thisUnitig->fragIn(mateFrgID);
-
-      //  id1 != 0 -> we found the fragment in the mate happiness table
-      //  isBad -> and the mate is unhappy.
-      //
-      //  What's id1 vs id2 in MateLocationEntry?  Dunno.  All I
-      //  know is that if there is no mate present, one of those
-      //  will be 0.  (Similar test used above too.)
-      //
-      bool    isMated    = (mateFrgID > 0);
-      bool    isGrumpy   = ((isMated) && (mloc.mleFrgID1 != 0) && (mloc.mleFrgID2 != 0) && (mloc.isGrumpy == true));
-
-      //
-      //  Figure out what to do.
-      //
-
-      bool    moveToContainer = false;
-      bool    moveToSingleton = false;
-
-      if        ((frg->contained == 0) && (bestcont == NULL)) {
-        //  CASE 1:  Not contained.  Leave the fragment here.
-        //fprintf(logFile, "case1 frag %d fragsLen %d\n", thisFrgID, fragsLen);
-
-      } else if (isMated == false) {
-        //  CASE 2: Contained but not mated.  Move to be with the
-        //  container (if the container isn't here).
-        //fprintf(logFile, "case2 frag %d contID %d fragsLen %d\n", thisFrgID, contUtgID, fragsLen);
-
-        if (thisUtgID != contUtgID)
-          moveToContainer = true;
-
-      } else if ((isGrumpy == true) && (thisUtgID == mateUtgID)) {
-        //  CASE 3: Not happy, and the frag and mate are together.
-        //  Kick out to a singleton.
-
-        //fprintf(logFile, "case3 frag %d utg %d mate %d utg %d cont %d utg %d fragsLen %d\n",
-        //        thisFrgID, thisUtgID, mateFrgID, mateUtgID, contFrgID, contUtgID, fragsLen);
-
-        if (thisUtgID == mateUtgID)
-          moveToSingleton = true;
-
-      } else {
-
-        //  This makes for some ugly code (we break the nice if else
-        //  if else structure we had going on) but the next two cases
-        //  need to know if there is an overlap to the rest of the
-        //  unitig.
-
-        bool  hasOverlap   = (thisUtgID == contUtgID);
-        bool  allContained = false;
-
-
-        if (hasOverlap == false) {
-          if (fragsLen == 0) {
-            //  The first fragment.  Check fragments after to see if
-            //  there is an overlap (note only frags with an overlap
-            //  in the layout are tested).  In rare cases, we ejected
-            //  the container, and left a containee with no overlap to
-            //  fragments remaining.
-            //
-            //  Note that this checks if there is an overlap to the
-            //  very first non-contained (aka dovetail) fragment ONLY.
-            //  If there isn't an overlap to the first non-contained
-            //  fragment, then that fragment will likely NOT align
-            //  correctly.
-
-            uint32 ft = fi + 1;
-
-#warning 2x BUGS IN COMPARISON HERE
-
-            //  Skip all the contains.
-            while ((ft < thisUnitig->ufpath.size()) &&
-                   (OG->isContained(thisUnitig->ufpath[ft].ident) == true) &&
-                   (MAX(frg->position.bgn, frg->position.end) < MIN(thisUnitig->ufpath[ft].position.bgn, thisUnitig->ufpath[ft].position.end)))
-              ft++;
-
-            //  If the frag is not contained (we could be the
-            //  container), and overlaps in the layout, see if there
-            //  is a real overlap.
-            if ((ft < thisUnitig->ufpath.size()) &&
-                (OG->isContained(thisUnitig->ufpath[ft].ident) == false) &&
-                (MAX(frg->position.bgn, frg->position.end) < MIN(thisUnitig->ufpath[ft].position.bgn, thisUnitig->ufpath[ft].position.end)))
-              hasOverlap = OG->containHaveEdgeTo(thisFrgID, thisUnitig->ufpath[ft].ident);
-          } else {
-            //  Not the first fragment, search for an overlap to an
-            //  already placed frag.
-
-            uint32  ft = fi;
-
-            do {
-              ft--;
-
-              //  OK to overlap to a contained frag; he could be our
-              //  container.
-
-              hasOverlap = OG->containHaveEdgeTo(thisFrgID, thisUnitig->ufpath[ft].ident);
-
-              //  Stop if we found an overlap, or we just checked the
-              //  first frag in the unitig, or we no longer overlap in
-              //  the layout.
-            } while ((hasOverlap == false) &&
-                     (ft > 0) &&
-                     (MIN(frg->position.bgn, frg->position.end) < MAX(thisUnitig->ufpath[ft].position.bgn, thisUnitig->ufpath[ft].position.end)));
-          }
-        }  //  end of hasOverlap
-
-
-        //  An unbelievabe special case.  When the unitig is just a
-        //  single container fragment (and any contained frags under
-        //  it) rule 4 breaks.  The first fragment has no overlap (all
-        //  later reads are contained) and so we want to eject it to a
-        //  new unitig.  Since there are multiple fragments in this
-        //  unitig, the ejection occurs.  Later, all the contains get
-        //  moved to the new unitig.  And we repeat.  To prevent, we
-        //  abort the ejection if the unitig is all contained in one
-        //  fragment.
-        //
-        if (fragsLen == 0) {
-          allContained = true;
-
-          for (uint32 ft = fi + 1; ((allContained == true) && (ft < thisUnitig->ufpath.size())); ft++)
-            allContained = OG->isContained(thisUnitig->ufpath[ft].ident);
-        }
-
-
-
-        if (isGrumpy == true) {
-          //  CASE 4: Not happy and not with the mate.  This one is a
-          //  bit of a decision.
-          //
-          //  If an overlap exists to the rest of the unitig, we'll
-          //  leave it here.  We'll also leave it here if it is the
-          //  rest of the unitig is all contained in this fragment.
-          //
-          //  If no overlap, and the mate and container are in the
-          //  same unitig, we'll just eject.  That also implies the
-          //  other unitig is somewhat large, at least as big as the
-          //  insert size.
-          //
-          //  Otherwise, we'll move to the container and cross our
-          //  fingers we place it correctly.  The alternative is to
-          //  eject, and hope that we didn't also eject the mate to a
-          //  singleton.
-
-          //fprintf(logFile, "case4 frag %d utg %d mate %d utg %d cont %d utg %d fragsLen %d\n",
-          //        thisFrgID, thisUtgID, mateFrgID, mateUtgID, contFrgID, contUtgID, fragsLen);
-
-          if ((hasOverlap == false) && (allContained == false))
-            if (mateUtgID == contUtgID)
-              moveToSingleton = true;
-            else
-              moveToContainer = true;
-
-        } else {
-          //  CASE 5: Happy!  If with container, or an overlap exists to
-          //  some earlier fragment, leave it here.  Otherwise, eject it
-          //  to a singleton.  The fragment is ejected instead of moved
-          //  to be with its container since we don't know which is
-          //  correct - the mate or the overlap.
-          //
-          //  If not happy, we've already made sure that the mate is not
-          //  here (that was case 3).
-
-          //fprintf(logFile, "case5 frag %d utg %d mate %d utg %d cont %d utg %d fragsLen %d\n",
-          //        thisFrgID, thisUtgID, mateFrgID, mateUtgID, contFrgID, contUtgID, fragsLen);
-
-          //  If no overlap (so not with container or no overlap to
-          //  other frags) eject.
-          if ((hasOverlap == false) && (allContained == false))
-            moveToSingleton = true;
-        }
-      }  //  End of cases
-
-      //
-      //  Do it.
-      //
-
-      if (moveToContainer == true) {
-        //  Move the fragment to be with its container.
-
-        Unitig         *thatUnitig = unitigs[contUtgID];
-        ufNode          containee  = *frg;
-
-        assert(thatUnitig->id() == contUtgID);
-
-        //  Nuke the fragment in the current list
-        frg->ident        = 999999999;
-        frg->contained    = 999999999;
-        frg->position.bgn = 0;
-        frg->position.end = 0;
-
-        assert(thatUnitig->id() == contUtgID);
-
-        if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
-          fprintf(logFile, "Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
-                  thisFrgID, thisUtgID, contFrgID, contUtgID);
-
-        assert(bestcont->container == contFrgID);
-
-        thatUnitig->addContainedFrag(thisFrgID, bestcont, logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
-        assert(thatUnitig->id() == Unitig::fragIn(thisFrgID));
-
-      } else if ((moveToSingleton == true) && (thisUnitig->getNumFrags() != 1)) {
-        //  Eject the fragment to a singleton (unless we ARE the singleton)
-        Unitig        *singUnitig  = new Unitig(logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
-        ufNode         containee  = *frg;
-
-        //  Nuke the fragment in the current list
-        frg->ident        = 999999999;
-        frg->contained    = 999999999;
-        frg->position.bgn = 0;
-        frg->position.end = 0;
-
-        if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
-          fprintf(logFile, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
-                  thisFrgID, thisUtgID, singUnitig->id());
-
-        containee.contained = 0;
-
-        singUnitig->addFrag(containee, -MIN(containee.position.bgn, containee.position.end), logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
-
-        unitigs.push_back(singUnitig);
-        thisUnitig = unitigs[ti];  //  Reset the pointer; unitigs might be reallocated
-
-      } else {
-        //  Leave fragment here.  Copy the fragment to the list -- if
-        //  we need to rebuild the unitig (because fragments were
-        //  removed), the list is used, otherwise, we have already
-        //  made the changes needed.
-        //
-        //  Also, very important, update our containment mark.  If our
-        //  container was moved, but we stayed put because of a happy
-        //  mate, we're still marked as being contained.  Rather than
-        //  put this check in all the places where we stay put in the
-        //  above if-else-else-else, it's here.
-
-        if ((frg->contained) && (thisUtgID != contUtgID))
-          frg->contained = 0;
-
-        frags[fragsLen] = *frg;
-        fragsLen++;
-      }
-
-    }  //  over all frags
-
-    //  Now, rebuild this unitig if we made changes.
-
-    if (fragsLen != thisUnitig->ufpath.size()) {
-      if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
-        fprintf(logFile, "Rebuild unitig %d after removing contained fragments.\n", thisUnitig->id());
-
-      thisUnitig->ufpath.clear();
-
-      //  Occasionally, we move all fragments out of the original unitig.  Might be worth checking
-      //  if that makes sense!!
-      //
-#warning EMPTIED OUT A UNITIG
-      if (fragsLen > 0) {
-        //  No need to resort.  Offsets only need adjustment if the first fragment is thrown out.
-        //  If not, splitOffset will be zero.
-        //
-        int splitOffset = -MIN(frags[0].position.bgn, frags[0].position.end);
-
-        //  This is where we clean up from the splitting not dealing with contained fragments -- we
-        //  force the first frag to be uncontained.
-        //
-        frags[0].contained = 0;
-
-        for (uint32 i=0; i<fragsLen; i++)
-          thisUnitig->addFrag(frags[i], splitOffset, logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
-      }
-    }
-
-    delete [] frags;
-    frags = NULL;
-
-  }  //  Over all unitigs
-}
-
-
-
-
-//  After splitting and ejecting some contains, check for discontinuous unitigs.
-//
-void UnitigGraph::splitDiscontinuousUnitigs(void) {
-
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig  *tig = unitigs[ti];
-
-    if ((tig == NULL) ||
-        (tig->ufpath.size() < 2))
-      continue;
-
-    //  Check for discontinuities
-
-    int32                 maxEnd   = 0;
-
-    ufNode               *splitFrags    = new ufNode [tig->ufpath.size()];
-    uint32                splitFragsLen = 0;
-
-    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-      ufNode  *frg = &tig->ufpath[fi];
-
-      //  If this is the first frag in this block (we are at
-      //  the start of a unitig, or just split off a new
-      //  unitig), remember the end location.
-      //
-      if (splitFragsLen == 0) {
-        maxEnd =  MAX(frg->position.bgn, frg->position.end);
-      }
-
-      //  We require at least (currently 40bp, was 10bp hardcoded
-      //  here) of overlap between fragments.  If we don't have that,
-      //  split off the fragments we've seen.
-      //
-      //  10bp was a bad choice.  It caught most of the breaks, but
-      //  missed one class; when a container fragment is moved out of
-      //  the unitig, fragments contained in there are marked as
-      //  uncontained.  That container fragment could have been the
-      //  one holding the unitig together:
-      //
-      //  -----------------   <- container (removed)
-      //    --------
-      //      ---------
-      //              -----------------
-      //
-      //  Because the two small guys are marked as uncontained, they
-      //  are assumed to have a good dovetail overlap.
-      //
-      if (maxEnd - AS_OVERLAP_MIN_LEN < MIN(frg->position.bgn, frg->position.end)) {
-
-        //  If there is exactly one fragment, and it's contained, and
-        //  it's not mated, move it to the container.  (This has a
-        //  small positive benefit over just making every read a
-        //  singleton).
-        //
-        if ((splitFragsLen == 1) &&
-            (FI->mateIID(splitFrags[0].ident) == 0) &&
-            (splitFrags[0].contained != 0)) {
-
-          Unitig           *dangler  = unitigs[tig->fragIn(splitFrags[0].contained)];
-          BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
-
-          assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
-
-          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-            fprintf(logFile, "Dangling contained fragment %d in unitig %d -> move them to container unitig %d\n",
-                    splitFrags[0].ident, tig->id(), dangler->id());
-
-          dangler->addContainedFrag(splitFrags[0].ident, bestcont, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
-          assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
-
-        } else {
-          Unitig *dangler = new Unitig(logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
-
-          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-            fprintf(logFile, "Dangling fragments in unitig %d -> move them to unitig %d\n", tig->id(), dangler->id());
-
-          int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
-
-          //  This should already be true, but we force it still
-          splitFrags[0].contained = 0;
-
-          for (uint32 i=0; i<splitFragsLen; i++)
-            dangler->addFrag(splitFrags[i], splitOffset, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
-
-          unitigs.push_back(dangler);
-          tig = unitigs[ti];
-        }
-
-        //  We just split out these fragments.  Reset the list.
-        splitFragsLen = 0;
-      }  //  End break
-
-      splitFrags[splitFragsLen++] = *frg;
-
-      maxEnd = MAX(maxEnd, MAX(frg->position.bgn, frg->position.end));
-    }  //  End of unitig fragment iteration
-
-    //  If we split this unitig, the length of the
-    //  frags in splitFrags will be less than the length of
-    //  the path in this unitg.  If so, rebuild this unitig.
-    //
-    if (splitFragsLen != tig->ufpath.size()) {
-
-      if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-        fprintf(logFile, "Rebuild unitig %d\n", tig->id());
-
-      tig->ufpath.clear();
-
-      int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
-
-      //  This should already be true, but we force it still
-      splitFrags[0].contained = 0;
-
-      for (uint32 i=0; i<splitFragsLen; i++)
-        tig->addFrag(splitFrags[i], splitOffset, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
-    }
-
-    delete [] splitFrags;
-    splitFrags    = NULL;
-  }  //  End of discontinuity splitting
-}
 
 
 
@@ -648,11 +63,32 @@ SeqInterval intersection(SeqInterval a, SeqInterval b) {
 }
 
 
+static
 vector<SeqInterval> *
-findPeakBad(int32 *badGraph, int tigLen, int badMateBreakThreshold) {
+findPeakBad(int32 *badGraph,
+            int32 tigLen,
+            int32 badMateBreakThreshold) {
   vector<SeqInterval> *peakBads = new vector<SeqInterval>;
   SeqInterval          peak     = {0, 0};
   int32                peakBad  = 0;
+
+#if 0
+  int32                numBad   = 0;
+
+  //  NOT TESTED
+
+  for (int32 i=0; i<tigLen; i++) {
+    if (badGraph[i] <= badMateBreakThreshold)
+      numBad++;
+  }
+
+  //  If we found too many spots with bad, assume this is a large repeat and do not split anything.
+  if (numBad * 4 > tigLen) {
+    fprintf(stderr, "found %d bad spots out of tigLen %d; ignoring all bad regions\n",
+            numBad, tigLen);
+    return(peakBads);
+  }
+#endif
 
   for (int32 i=0; i<tigLen; i++) {
     if (badGraph[i] <= badMateBreakThreshold) {
@@ -686,8 +122,10 @@ findPeakBad(int32 *badGraph, int tigLen, int badMateBreakThreshold) {
   if (peakBad < 0)
     peakBads->push_back(peak);
 
-  return peakBads;
+  return(peakBads);
 }
+
+
 
 
 // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
@@ -699,13 +137,28 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
   vector<SeqInterval> *fwdBads = findPeakBad(positions.badFwdGraph, tigLen, badMateBreakThreshold);
   vector<SeqInterval> *revBads = findPeakBad(positions.badRevGraph, tigLen, badMateBreakThreshold);
 
-  vector<SeqInterval>::const_iterator fwdIter = fwdBads->begin();
-  vector<SeqInterval>::const_iterator revIter = revBads->begin();
-
   UnitigBreakPoints* breaks = new UnitigBreakPoints();
 
-  ufNode       backbone = tig->getLastBackboneNode();
-  int32        backBgn  = isReverse(backbone.position) ? backbone.position.end : backbone.position.bgn ;
+  if ((fwdBads->size() == 0) &&
+      (revBads->size() == 0)) {
+    delete fwdBads;
+    delete revBads;
+    //fprintf(logFile, "unitig %d no bad peaks\n", tig->id());
+    return(breaks);
+  }
+
+  if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS)) {
+    fprintf(logFile, "unitig %d with %d fwd and %d rev bads\n",
+            tig->id(), fwdBads->size(), revBads->size());
+    fprintf(logFile, "fwd:");
+    for (uint32 i=0; i<fwdBads->size(); i++)
+      fprintf(logFile, " %d,%d", tig->id(), i, (*fwdBads)[i].bgn, (*fwdBads)[i].end);
+    fprintf(logFile, "\n");
+    fprintf(logFile, "rev:");
+    for (uint32 i=0; i<revBads->size(); i++)
+      fprintf(logFile, " %d,%d", tig->id(), i, (*revBads)[i].bgn, (*revBads)[i].end);
+    fprintf(logFile, "\n");
+  }
 
   if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT)) {
     if ((tig->getLength() > 150) &&
@@ -738,19 +191,18 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
     }
   }
 
-  if ((fwdBads->size() == 0) &&
-      (revBads->size() == 0)) {
-    delete fwdBads;
-    delete revBads;
-    return(breaks);
-  }
-
   bool combine = false;
   int32 currBackbonePredecessorEnd = 0;
   int32 currBackboneEnd = 0;
   int32 lastBreakBBEnd = 0;
 
   uint32 frgidx = 0;
+
+  ufNode       backbone = tig->getLastBackboneNode();
+  int32        backBgn  = isReverse(backbone.position) ? backbone.position.end : backbone.position.bgn ;
+
+  vector<SeqInterval>::const_iterator fwdIter = fwdBads->begin();
+  vector<SeqInterval>::const_iterator revIter = revBads->begin();
 
   // Go through the peak bad ranges looking for reads to break on
   while(fwdIter != fwdBads->end() || revIter != revBads->end()) {

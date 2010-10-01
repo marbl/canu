@@ -29,6 +29,8 @@ BOG_SOURCES = AS_BOG_ArrivalRate.cc \
               AS_BOG_BestOverlapGraph.cc \
               AS_BOG_Breaking.cc \
               AS_BOG_ChunkGraph.cc \
+              AS_BOG_EvaluateMates.cc \
+              AS_BOG_FragmentInfo.cc \
               AS_BOG_Instrumentation.cc \
               AS_BOG_IntersectBubble.cc \
               AS_BOG_IntersectSplit.cc \
@@ -37,11 +39,13 @@ BOG_SOURCES = AS_BOG_ArrivalRate.cc \
               AS_BOG_MateBubble.cc \
               AS_BOG_MateChecker.cc \
               AS_BOG_MateLocation.cc \
+              AS_BOG_MoveContains.cc \
               AS_BOG_Outputs.cc \
               AS_BOG_PlaceContains.cc \
               AS_BOG_PlaceZombies.cc \
               AS_BOG_PopulateUnitig.cc \
               AS_BOG_SetParentAndHang.cc \
+              AS_BOG_SplitDiscontinuous.cc \
               AS_BOG_Unitig.cc \
               AS_BOG_UnitigGraph.cc
 BOG_OBJECTS = $(BOG_SOURCES:.cc=.o)
