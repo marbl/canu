@@ -323,9 +323,6 @@ sub setDefaults () {
     $global{"ovlConcurrency"}              = 1;
     $synops{"ovlConcurrency"}              = "If not SGE, number of overlapper processes to run at the same time";
 
-    $global{"ovlStart"}                    = 1;
-    $synops{"ovlStart"}                    = "Starting fragment for overlaps (EXPERT!)";
-
     $global{"ovlHashBlockSize"}            = 200000;
     $synops{"ovlHashBlockSize"}            = "Number of fragments to load into the in-core overlap hash table";
 

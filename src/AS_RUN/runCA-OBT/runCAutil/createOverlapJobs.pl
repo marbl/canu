@@ -82,9 +82,9 @@ sub createOverlapJobs($) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F "bat=`\$perl $wrk/$outDir/ovlopts.pl bat \$jobid`\n";
-    print F "job=`\$perl $wrk/$outDir/ovlopts.pl job \$jobid`\n";
-    print F "opt=`\$perl $wrk/$outDir/ovlopts.pl opt \$jobid`\n";
+    print F "bat=`head -n \$jobid $wrk/$outDir/ovlbat | tail -n 1`\n";
+    print F "job=`head -n \$jobid $wrk/$outDir/ovljob | tail -n 1`\n";
+    print F "opt=`head -n \$jobid $wrk/$outDir/ovlopt | tail -n 1`\n";
     print F "jid=\$\$\n";
     print F "\n";
     print F "if [ ! -d $wrk/$outDir/\$bat ]; then\n";
@@ -127,7 +127,7 @@ sub createOverlapJobs($) {
     #  and the stream into $numFrags / $ovlRefBlockSize pieces.  Put
     #  all runs for the same hash into a subdirectory.
 
-    my ($hashBeg, $hashEnd, $refBeg, $refEnd) = (getGlobal("ovlStart"), 0, 1, 0);
+    my ($hashBeg, $hashEnd, $refBeg, $refEnd) = (1, 0, 1, 0);
 
     my $ovlHashBlockSize  = getGlobal("ovlHashBlockSize");
     my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize");
@@ -139,11 +139,11 @@ sub createOverlapJobs($) {
 
     #  Number of jobs per batch directory
     #
-    my $batchMax  = 200;
+    my $batchMax  = 1000;
     my $batchSize = 0;
-    my $batch     = 1;
 
-    my $batchName = substr("0000000000" . $batch, -10);
+    my $batchName = "001";
+    my $jobName   = "000001";
 
     while ($hashBeg < $numFrags) {
         $hashEnd = $hashBeg + $ovlHashBlockSize - 1;
@@ -155,12 +155,6 @@ sub createOverlapJobs($) {
             $refEnd = $refBeg + $ovlRefBlockSize - 1;
             $refEnd = $numFrags if ($refEnd > $numFrags);
 
-            #print STDERR "hash: $hashBeg-$hashEnd ref: $refBeg-$refEnd\n";
-
-            my $jobName;
-            $jobName .= "h" . substr("0000000000" . $hashBeg, -10);
-            $jobName .= "r" . substr("0000000000" . $refBeg, -10);
-
             push @bat, "$batchName";
             push @job, "$jobName";
             push @opt, "-h $hashBeg-$hashEnd  -r $refBeg-$refEnd";
@@ -169,43 +163,31 @@ sub createOverlapJobs($) {
 
             $batchSize++;
             if ($batchSize >= $batchMax) {
-                $batch++;
-                $batchName = substr("0000000000" . $batch, -10);
                 $batchSize = 0;
+                $batchName++;
             }
+
+            $jobName++;
         }
 
         $hashBeg = $hashEnd + 1;
     }
 
-    open(SUB, "> $wrk/$outDir/ovlopts.pl") or caFailure("failed to open '$wrk/$outDir/ovlopts.pl'", undef);
-    print SUB "#!/usr/bin/env perl\n";
-    print SUB "use strict;\n";
-    print SUB "my \@bat = (\n";  foreach my $b (@bat) { print SUB "\"$b\",\n"; }  print SUB ");\n";
-    print SUB "my \@job = (\n";  foreach my $b (@job) { print SUB "\"$b\",\n"; }  print SUB ");\n";
-    print SUB "my \@opt = (\n";  foreach my $b (@opt) { print SUB "\"$b\",\n"; }  print SUB ");\n";
-    print SUB "my \$idx = int(\$ARGV[1]) - 1;\n";
-    print SUB "if      (\$ARGV[0] eq \"bat\") {\n";
-    print SUB "    print \"\$bat[\$idx]\";\n";
-    print SUB "} elsif (\$ARGV[0] eq \"job\") {\n";
-    print SUB "    print \"\$job[\$idx]\";\n";
-    print SUB "} elsif (\$ARGV[0] eq \"opt\") {\n";
-    print SUB "    print \"\$opt[\$idx]\";\n";
-    print SUB "} else {\n";
-    print SUB "    print STDOUT \"Got '\$ARGV[0]' and don't know what to do!\\n\";\n";
-    print SUB "    print STDERR \"Got '\$ARGV[0]' and don't know what to do!\\n\";\n";
-    print SUB "    die;\n";
-    print SUB "}\n";
-    print SUB "exit(0);\n";
-    close(SUB);
+    open(BAT, "> $wrk/$outDir/ovlbat") or caFailure("failed to open '$wrk/$outDir/ovlbat'", undef);
+    open(JOB, "> $wrk/$outDir/ovljob") or caFailure("failed to open '$wrk/$outDir/ovljob'", undef);
+    open(OPT, "> $wrk/$outDir/ovlopt") or caFailure("failed to open '$wrk/$outDir/ovlopt'", undef);
 
-    open(SUB, "> $wrk/$outDir/ovljobs.dat") or caFailure("failed to open '$wrk/$outDir/ovljobs.dat'", undef);
-    foreach my $b (@bat) { print SUB "$b "; }  print SUB "\n";
-    foreach my $b (@job) { print SUB "$b "; }  print SUB "\n";
-    close(SUB);
+    foreach my $b (@bat) { print BAT "$b\n"; }
+    foreach my $b (@job) { print JOB "$b\n"; }
+    foreach my $b (@opt) { print OPT "$b\n"; }
 
+    close(BAT);
+    close(JOB);
+    close(OPT);
 
     my $jobs = scalar(@opt);
+
+    print STDERR "Created $jobs overlap jobs.  Last batch '$batchName', last job '$jobName'.\n";
 
     #  Submit to the grid (or tell the user to do it), or just run
     #  things here
@@ -220,15 +202,15 @@ sub createOverlapJobs($) {
         my $SGE;
         $SGE  = "qsub $sge $sgeOverlap -cwd -N ovl_$asm$sgeName \\\n";
         $SGE .= "  -t 1-$jobs \\\n";
-        $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
+        $SGE .= "  -j y -o $wrk/$outDir/\\\$TASK_ID.out \\\n";
         $SGE .= "  $wrk/$outDir/overlap.sh\n";
 
 	submitBatchJobs($SGE, "ovl_$asm$sgeName");
         exit(0);
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
-            my $out = substr("0000" . $i, -4);
-            &scheduler::schedulerSubmit("$wrk/$outDir/overlap.sh $i > $wrk/$outDir/overlap.$out.out 2>&1");
+            my $out = substr("000000" . $i, -6);
+            &scheduler::schedulerSubmit("$wrk/$outDir/overlap.sh $i > $wrk/$outDir/$out.out 2>&1");
         }
 
         &scheduler::schedulerSetNumberOfProcesses(getGlobal("ovlConcurrency"));
