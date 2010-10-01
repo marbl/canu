@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.6 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.7 2010-10-01 13:20:08 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -89,6 +89,8 @@ UnitigGraph::checkUnitigMembership(void) {
     fprintf(logFile, "checkUnitigMembership()-- %2u (%9u-%9u) %u\n", i, (uint32)1 << i, (uint32)1 << (i+1), logSize[i]);
 
   assert(lost == 0);
+
+  delete [] inUnitig;
 }
 
 
