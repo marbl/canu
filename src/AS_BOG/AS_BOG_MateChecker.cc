@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.98 2010-10-01 13:43:49 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.99 2010-10-04 03:29:49 brianwalenz Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -442,9 +442,16 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       }
     }
   }
+
   delete fwdBads;
   delete revBads;
+
+  //  If we are logging the coverage plot, do not do any splitting.  We accomplish this by throwing
+  //  out any break points we carefully selected and continuing.
+  if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT)) {
+    delete breaks;
+    breaks = new UnitigBreakPoints();
+  }
+
   return breaks;
 }
-
-

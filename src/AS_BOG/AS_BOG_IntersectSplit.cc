@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.6 2010-10-04 03:29:49 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -267,7 +267,8 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
       filterBreakPoints(cMap, tig, breaks);
 
       //  Report where breaks occur.  'breaks' is a list, not a vector.
-      if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
+      if (logFileFlagSet(LOG_INTERSECTION_BREAKING) ||
+          logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
         for (uint32 i=0; i<breaks.size(); i++)
           fprintf(logFile, "BREAK unitig %d at position %d,%d from inSize %d inFrags %d.\n",
                   tig->id(),
@@ -276,8 +277,9 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
                   breaks.front().inSize,
                   breaks.front().inFrags);
 
-      //  Actually do the breaking.
-      if (enableIntersectionBreaking) {
+      //  Actually do the breaking.  Do NOT break if we are plotting the coverage.
+      if (enableIntersectionBreaking &&
+          !logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT)) {
         UnitigVector* newUs = breakUnitigAt(tig, breaks);
 
         if (newUs != NULL) {
