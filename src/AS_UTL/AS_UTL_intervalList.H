@@ -30,7 +30,7 @@
 //  I don't want this to be public, but the sort function
 //  in intervalList.C needs it so.
 //
-typedef uint64  intervalNumber;
+typedef int64  intervalNumber;
 
 struct _intervalPair {
   intervalNumber    lo;
