@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapMask.C,v 1.2 2010-03-16 05:27:57 brianwalenz Exp $";
+const char *mainid = "$Id: overlapMask.C,v 1.3 2010-10-04 08:51:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,12 +28,12 @@ const char *mainid = "$Id: overlapMask.C,v 1.2 2010-03-16 05:27:57 brianwalenz E
 #include <math.h>
 #include <assert.h>
 
-#include "util++.H"
 #include "readOverlap.H"
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
+#include "AS_UTL_intervalList.H"
 
 //  Implements a very simple trimming based on overlaps.  Trim to the largest region covered by
 //  'good' overlap.  A 'good' overlap is the same as in BOG: less than 1.5% error or less than 3

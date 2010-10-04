@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: removeMateOverlap.C,v 1.2 2009-07-24 12:05:34 brianwalenz Exp $";
+const char *mainid = "$Id: removeMateOverlap.C,v 1.3 2010-10-04 08:51:44 brianwalenz Exp $";
 
 //  Remove mate relationships for any fragments that overlap
 
@@ -30,7 +30,6 @@ const char *mainid = "$Id: removeMateOverlap.C,v 1.2 2009-07-24 12:05:34 brianwa
 #include <math.h>
 #include <assert.h>
 
-#include "util++.H"
 #include "readOverlap.H"
 
 #include "AS_global.h"

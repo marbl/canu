@@ -19,126 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef UTIL_PLUS_PLUS_H
-#define UTIL_PLUS_PLUS_H
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <ctype.h>
-#include <errno.h>
-#include <string.h>
+#ifndef AS_UTL_INTERVALLIST_H
+#define AS_UTL_INTERVALLIST_H
 
 #include "AS_global.h"
 
-
-class splitToWords {
-public:
-  splitToWords(char *cmd) {
-    _argWords = 0;
-    _maxWords = 0;
-    _arg      = 0L;
-    _maxChars = 0;
-    _cmd      = 0L;
-
-    split(cmd);
-  };
-  ~splitToWords() {
-    delete [] _cmd;
-    delete [] _arg;
-  };
-
-
-  void   split(char *cmd) {
-
-    //  Step Zero:
-    //
-    //  Count the length of the string, in words and in characters.
-    //  For simplicity, we overcount words, by just counting white-space.
-    //
-    //  Then, allocate space for a temporary copy of the string, and a
-    //  set of pointers into the temporary copy (much like argv).
-    //
-    uint32   cmdChars = 1;  //  1 == Space for terminating 0
-    uint32   cmdWords = 2;  //  2 == Space for first word and terminating 0L
-
-    for (char *tmp=cmd; *tmp; tmp++) {
-      cmdWords += *tmp == ' ';
-      cmdWords += *tmp == '\t';
-      cmdChars++;
-    }
-
-    if (cmdChars > _maxChars) {
-      delete [] _cmd;
-      _cmd      = new char   [cmdChars];
-      _maxChars = cmdChars;
-    }
-    if (cmdWords > _maxWords) {
-      delete [] _arg;
-      _arg      = new char * [cmdWords];
-      _maxWords = cmdWords;
-    }
-
-    _argWords = 0;
-
-    //  Step One:
-    //
-    //  Determine where the words are in the command string, copying the
-    //  string to _cmd and storing words in _arg.
-    //
-    bool           isFirst  = true;
-    char          *cmdI = cmd;
-    char          *cmdO = _cmd;
-
-    while (*cmdI) {
-
-      //  If we are at a non-space character, we are in a word.  If
-      //  this is the first character in the word, save the word in
-      //  the args list.
-      //
-      //  Otherwise we are at a space and thus not in a word.  Make
-      //  all spaces be string terminators, and declare that we are
-      //  at the start of a word.
-      //
-      if ((*cmdI != ' ') && (*cmdI != '\t')) {
-        *cmdO = *cmdI;
-
-        if (isFirst) {
-          _arg[_argWords++] = cmdO;
-          isFirst           = false;
-        }
-      } else {
-        *cmdO   = 0;
-        isFirst = true;
-      }
-
-      cmdI++;
-      cmdO++;
-    }
-
-    //  Finish off the list by terminating the last arg, and
-    //  terminating the list of args.
-    //
-    *cmdO           = 0;
-    _arg[_argWords] = 0L;
-  };
-
-
-  uint32  numWords(void)        { return(_argWords); };
-  char   *getWord(uint32 i)     { return(_arg[i]); };
-  char   *operator[](uint32 i)  { return(_arg[i]); };
-private:
-  uint32    _argWords;
-  uint32    _maxWords;
-  char    **_arg;
-  uint32    _maxChars;
-  char     *_cmd;
-};
-
-
-
-
+//  This is kmer/libutil/intervalList.[CH], replacing u32bit with uint32.
 
 
 //  I don't want this to be public, but the sort function
@@ -152,10 +38,21 @@ struct _intervalPair {
   uint32            ct;
 };
 
+struct _intervalDepth {
+  intervalNumber    lo;
+  intervalNumber    hi;
+  uint32            de;
+};
+
+struct intervalDepthRegions {
+  intervalNumber    pos;  //  Position of the change in depth
+  int32             cha;  //  The change in depth, e.g, +1, -1
+};
+
 
 class intervalList {
 public:
-  intervalList();
+  intervalList(uint32 initialSize=32);
   ~intervalList();
 
   intervalList &operator=(intervalList &src);
@@ -163,6 +60,7 @@ public:
   //  Clear a list
   void        clear(void) {
     _isSorted = true;
+    _isMerged = true;
     _listLen  = 0;
   }
 
@@ -174,6 +72,8 @@ public:
 
   //  Merge overlapping or adjacent intervals together.
   void        merge(void);
+
+  void        invert(intervalNumber lo, intervalNumber hi);
 
   //  Returns the number of intervals
   uint32      numberOfIntervals(void) {
@@ -192,6 +92,7 @@ public:
     return(len);
   };
 
+
   //  Populates an array with the intervals that are within the
   //  supplied interval.  Return
   //
@@ -201,11 +102,34 @@ public:
                           uint32           &intervalsLen,
                           uint32           &intervalsMax);
 
+  //  Adds all the intervals in IL to this list
+  //
+  void        merge(intervalList *IL);
+
+  //  Populates this intervalList with the intersection of A and B.
+  //  This intervalList is not cleared prior to adding new intervals.
+  //
+  //  Both A and B call merge().
+  //
+  void                intersect(intervalList &A,
+                                intervalList &B);
+
+  //  Populates this intervalList with regions in A that are completely
+  //  contained in a region in B.
+  //
+  //  Both A and B call merge().
+  //
+  void                contained(intervalList &A,
+                                intervalList &B);
+
+
   intervalNumber      lo(uint32 i) { return(_list[i].lo); };
   intervalNumber      hi(uint32 i) { return(_list[i].hi); };
   uint32              ct(uint32 i) { return(_list[i].ct); };
+
 private:
   bool                      _isSorted;
+  bool                      _isMerged;
   uint32                    _listLen;
   uint32                    _listMax;
   _intervalPair            *_list;
@@ -213,6 +137,37 @@ private:
 
 
 
+//  Takes as input an intervalList, computes the number of intervals
+//  covering every position in there, stores this as a new set of
+//  intervals, annotated with the depth.
+//
+//  This is a static object, initialized once by the intervalList.
+//
+class intervalDepth {
+public:
+  intervalDepth(intervalList &IL);
+  intervalDepth(intervalDepthRegions *id, uint32 idlen);
+  ~intervalDepth();
 
-#endif  //  UTIL_PLUS_PLUS_H
+  //  Returns the number of intervals
+  uint32                     numberOfIntervals(void) {
+    return(_listLen);
+  };
 
+  intervalNumber             lo(uint32 i) { return(_list[i].lo); };
+  intervalNumber             hi(uint32 i) { return(_list[i].hi); };
+  uint32                     de(uint32 i) { return(_list[i].de); };
+
+private:
+  void                       computeIntervals(intervalDepthRegions *id, uint32 idlen);
+
+  uint32                    _listLen;
+  uint32                    _listMax;
+  _intervalDepth           *_list;
+};
+
+
+
+
+
+#endif  //  AS_UTL_INTERVALLIST_H

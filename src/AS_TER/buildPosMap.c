@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.18 2010-03-29 04:11:47 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.19 2010-10-04 08:51:44 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -31,7 +31,7 @@ const char *mainid = "$Id: buildPosMap.c,v 1.18 2010-03-29 04:11:47 brianwalenz 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 
-#include "util++.H"
+#include "AS_UTL_splitToWords.H"
 
 HashTable_AS   *uid2iid      = NULL;
 

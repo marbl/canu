@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.40 2009-12-01 22:27:17 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.41 2010-10-04 08:51:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,11 +28,10 @@ const char *mainid = "$Id: chimera.C,v 1.40 2009-12-01 22:27:17 brianwalenz Exp 
 #include <math.h>
 #include <assert.h>
 
-#include "util++.H"
-
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
+#include "AS_UTL_intervalList.H"
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 

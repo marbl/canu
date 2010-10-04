@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: consolidate.C,v 1.20 2009-12-01 22:27:17 brianwalenz Exp $";
+const char *mainid = "$Id: consolidate.C,v 1.21 2010-10-04 08:51:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,8 +28,6 @@ const char *mainid = "$Id: consolidate.C,v 1.20 2009-12-01 22:27:17 brianwalenz 
 #include <ctype.h>
 #include <math.h>
 #include <assert.h>
-
-#include "util++.H"
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"

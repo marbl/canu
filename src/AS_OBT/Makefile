@@ -67,8 +67,7 @@ EXE_SOURCES = chimera.C \
               overlapMask.C \
               trim.C \
               readOverlap.C \
-              removeMateOverlap.C \
-              util++.C
+              removeMateOverlap.C
 LIB_SOURCES = AS_OBT_acceptableOverlap.C
 
 SOURCES     = $(EXE_SOURCES) $(LIB_SOURCES)
@@ -95,13 +94,13 @@ all: $(CXX_PROGS) $(SCRIPTS)
 libAS_OBT.a: $(LIB_SOURCES:.C=.o)
 libCA.a:     $(LIB_SOURCES:.C=.o)
 
-initialTrim:          initialTrim.o trim.o                    libCA.a
-consolidate:          consolidate.o util++.o readOverlap.o    libCA.a
-merge-trimming:       merge-trimming.o trim.o                 libCA.a
-overlapMask:          overlapMask.o util++.o readOverlap.o    libCA.a
-chimera:              chimera.o util++.o readOverlap.o        libCA.a
-deduplicate:          deduplicate.o util++.o readOverlap.o    libCA.a
-removeMateOverlap:    removeMateOverlap.o util++.o readOverlap.o    libCA.a
+initialTrim:          initialTrim.o       trim.o           libCA.a
+consolidate:          consolidate.o       readOverlap.o    libCA.a
+merge-trimming:       merge-trimming.o    trim.o           libCA.a
+overlapMask:          overlapMask.o       readOverlap.o    libCA.a
+chimera:              chimera.o           readOverlap.o    libCA.a
+deduplicate:          deduplicate.o       readOverlap.o    libCA.a
+removeMateOverlap:    removeMateOverlap.o readOverlap.o    libCA.a
 
 figaro: $(FIGARO)/figaro
 	@cp $< $(LOCAL_BIN)/$@

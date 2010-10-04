@@ -1,0 +1,138 @@
+
+/**************************************************************************
+ * This file is part of Celera Assembler, a software program that
+ * assembles whole-genome shotgun reads into contigs and scaffolds.
+ * Copyright (C) 2005-2007, J. Craig Venter Institute.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *************************************************************************/
+
+#ifndef AS_UTL_SPLITTOWORDS
+#define AS_UTL_SPLITTOWORDS
+
+#include "AS_global.h"
+
+class splitToWords {
+public:
+  splitToWords() {
+    _argWords = 0;
+    _maxWords = 0;
+    _arg      = 0L;
+    _maxChars = 0;
+    _cmd      = 0L;
+  };
+  splitToWords(char *cmd) {
+    _argWords = 0;
+    _maxWords = 0;
+    _arg      = 0L;
+    _maxChars = 0;
+    _cmd      = 0L;
+
+    split(cmd);
+  };
+  ~splitToWords() {
+    delete [] _cmd;
+    delete [] _arg;
+  };
+
+
+  void   split(char *cmd) {
+
+    //  Step Zero:
+    //
+    //  Count the length of the string, in words and in characters.
+    //  For simplicity, we overcount words, by just counting white-space.
+    //
+    //  Then, allocate space for a temporary copy of the string, and a
+    //  set of pointers into the temporary copy (much like argv).
+    //
+    uint32   cmdChars = 1;  //  1 == Space for terminating 0
+    uint32   cmdWords = 2;  //  2 == Space for first word and terminating 0L
+
+    for (char *tmp=cmd; *tmp; tmp++) {
+      cmdWords += *tmp == ' ';
+      cmdWords += *tmp == '\t';
+      cmdChars++;
+    }
+
+    if (cmdChars > _maxChars) {
+      delete [] _cmd;
+      _cmd      = new char   [cmdChars];
+      _maxChars = cmdChars;
+    }
+    if (cmdWords > _maxWords) {
+      delete [] _arg;
+      _arg      = new char * [cmdWords];
+      _maxWords = cmdWords;
+    }
+
+    _argWords = 0;
+
+    //  Step One:
+    //
+    //  Determine where the words are in the command string, copying the
+    //  string to _cmd and storing words in _arg.
+    //
+    bool           isFirst  = true;
+    char          *cmdI = cmd;
+    char          *cmdO = _cmd;
+
+    while (*cmdI) {
+
+      //  If we are at a non-space character, we are in a word.  If
+      //  this is the first character in the word, save the word in
+      //  the args list.
+      //
+      //  Otherwise we are at a space and thus not in a word.  Make
+      //  all spaces be string terminators, and declare that we are
+      //  at the start of a word.
+      //
+      if ((*cmdI != ' ') && (*cmdI != '\t')) {
+        *cmdO = *cmdI;
+
+        if (isFirst) {
+          _arg[_argWords++] = cmdO;
+          isFirst           = false;
+        }
+      } else {
+        *cmdO   = 0;
+        isFirst = true;
+      }
+
+      cmdI++;
+      cmdO++;
+    }
+
+    //  Finish off the list by terminating the last arg, and
+    //  terminating the list of args.
+    //
+    *cmdO           = 0;
+    _arg[_argWords] = 0L;
+  };
+
+
+  uint32  numWords(void)        { return(_argWords); };
+  char   *getWord(uint32 i)     { return(_arg[i]); };
+  char   *operator[](uint32 i)  { return(_arg[i]); };
+private:
+  uint32    _argWords;
+  uint32    _maxWords;
+  char    **_arg;
+  uint32    _maxChars;
+  char     *_cmd;
+};
+
+
+#endif  //  AS_UTL_SPLITTOWORDS

@@ -30,8 +30,6 @@
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 
-#include "util++.H"
-
 void  doTrim(gkFragment *fr,
              double      minQuality,
              uint32     &left,

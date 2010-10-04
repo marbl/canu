@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildRefOverlaps.C,v 1.2 2009-06-10 18:05:14 brianwalenz Exp $";
+const char *mainid = "$Id: buildRefOverlaps.C,v 1.3 2010-10-04 08:51:44 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,12 +32,12 @@ const char *mainid = "$Id: buildRefOverlaps.C,v 1.2 2009-06-10 18:05:14 brianwal
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_fileIO.h"
+#include "AS_UTL_splitToWords.H"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_gkpStore.h"
 
 gkStore   *gkpStore = 0L;
 
-#include "splitToWords.H"
 #include "refAlignment.H"
 
 fragmentData    *frg    = 0L;

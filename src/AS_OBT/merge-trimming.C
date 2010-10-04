@@ -19,7 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merge-trimming.C,v 1.42 2009-11-08 01:16:16 brianwalenz Exp $";
+const char *mainid = "$Id: merge-trimming.C,v 1.43 2010-10-04 08:51:44 brianwalenz Exp $";
+
+#include "AS_global.h"
+#include "AS_UTL_splitToWords.H"
 
 #include "trim.H"
 #include "constants.H"
