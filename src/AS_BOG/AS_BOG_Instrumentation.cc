@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.7 2010-10-01 13:20:08 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.8 2010-10-04 03:28:45 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -171,9 +171,24 @@ UnitigGraph::reportUnitigs(const char *filename) {
   if (logFileFlagSet(LOG_INTERMEDIATE_UNITIGS) == 0)
     return;
 
-  char tigStorePath[FILENAME_MAX];
-  sprintf(tigStorePath, "debug.%s.tigStore", filename);
+  uint32  numFragsT  = 0;
+  uint32  numFragsP  = 0;
 
-  writeIUMtoFile(tigStorePath, tigStorePath, 90000, false);
+  //  Compute average frags per partition.
+  for (uint32  ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *utg = unitigs[ti];
+
+    if (utg == NULL)
+      continue;
+
+    numFragsT += utg->ufpath.size();
+  }
+
+  numFragsP = numFragsT / 7;
+
+  char tigStorePath[FILENAME_MAX];
+  sprintf(tigStorePath, "%s.tigStore", filename);
+
+  writeIUMtoFile(tigStorePath, tigStorePath, numFragsP, false);
 }
 
