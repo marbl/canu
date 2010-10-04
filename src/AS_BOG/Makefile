@@ -46,6 +46,9 @@ BOG_SOURCES = AS_BOG_ArrivalRate.cc \
               AS_BOG_PopulateUnitig.cc \
               AS_BOG_SetParentAndHang.cc \
               AS_BOG_SplitDiscontinuous.cc \
+              AS_BOG_Unitig_AddAndPlaceFrag.cc \
+              AS_BOG_Unitig_AddFrag.cc \
+              AS_BOG_Unitig_PlaceFrag.cc \
               AS_BOG_Unitig.cc \
               AS_BOG_UnitigGraph.cc
 BOG_OBJECTS = $(BOG_SOURCES:.cc=.o)
