@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.1 2010-10-04 04:48:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.2 2010-10-04 16:37:47 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -27,45 +27,44 @@ static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.1 2010
 
 
 
-//  Given an implicit fragment, and at least one best edge to a fragment in this unitig, compute the
-//  position of the fragment in this unitig.  If both edges are given, both will independently
-//  compute a placement, which might disagree.
+//  Given an implicit fragment -- a ufNode with only the 'ident' set -- and at least one best edge
+//  to a fragment in this unitig, compute the position of the fragment in this unitig.  If both
+//  edges are given, both will independently compute a placement, which might disagree.  It is up to
+//  the client to figure out what to do in this case.
 //
 //  If a placement is not found for an edge, the corresponding bidx value is set to -1.  Otherwise,
 //  it is set to the position in the fragment list of the fragment in this unitig (from above).
 //
 //  Returns true if any placement is found, false otherwise.
-//  The bidx value is set to -1 if no placement is found for that end.
 //
 bool
 Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
                   ufNode &frag3, int32 &bidx3, BestEdgeOverlap *bestedge3) {
-  bool  verbose = false;
-
-  //frag5.ident
-  frag5.contained    = 0;
-  frag5.parent       = 0;
-  frag5.ahang        = 0;
-  frag5.bhang        = 0;
-  frag5.position.bgn = 0;
-  frag5.position.end = 0;
-
-  //frag3.ident
-  frag3.contained    = 0;
-  frag3.parent       = 0;
-  frag3.ahang        = 0;
-  frag3.bhang        = 0;
-  frag3.position.bgn = 0;
-  frag3.position.end = 0;
-
-  assert(frag3.ident > 0);
-  assert(frag5.ident > 0);
-
-  assert(frag3.ident <= FI->numFragments());
-  assert(frag5.ident <= FI->numFragments());
 
   bidx5              = -1;
   bidx3              = -1;
+
+  assert(frag5.ident > 0);
+  assert(frag5.ident <= FI->numFragments());
+
+  frag5.contained         = 0;
+  frag5.parent            = 0;
+  frag5.ahang             = 0;
+  frag5.bhang             = 0;
+  frag5.position.bgn      = 0;
+  frag5.position.end      = 0;
+  frag5.containment_depth = 0;
+
+  assert(frag3.ident > 0);
+  assert(frag3.ident <= FI->numFragments());
+
+  frag3.contained         = 0;
+  frag3.parent            = 0;
+  frag3.ahang             = 0;
+  frag3.bhang             = 0;
+  frag3.position.bgn      = 0;
+  frag3.position.end      = 0;
+  frag3.containment_depth = 0;
 
   //  If we have an incoming edge, AND the fragment for that edge is in this unitig, look up its
   //  index.  Otherwise, discard the edge to prevent placement.
@@ -106,21 +105,27 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
       bhang = bestedge5->ahang;
     }
 
-    int  bgn, end;
+    int  pbgn, pend;
+    int  fbgn, fend;
 
     //  Place the new fragment using the overlap.  We don't worry about the orientation of the new
     //  fragment, only the location.  Orientation of the parent fragment matters (1) to know which
     //  coordinate is the lower, and (2) to decide if the overlap needs to be flipped (again).
 
     if (parent->position.bgn < parent->position.end) {
-      bgn = parent->position.bgn + ahang;
-      end = parent->position.end + bhang;
+      pbgn = parent->position.bgn;
+      pend = parent->position.end;
+      fbgn = parent->position.bgn + ahang;
+      fend = parent->position.end + bhang;
     } else {
-      bgn = parent->position.end - bhang;
-      end = parent->position.bgn - ahang;
+      pbgn = parent->position.end;
+      pend = parent->position.bgn;
+      fbgn = parent->position.end - bhang;
+      fend = parent->position.bgn - ahang;
     }
 
-    assert(bgn < end);
+    assert(pbgn < pend);
+    assert(fbgn < fend);
 
     //  Since we don't know the true length of the overlap, if we use just the hangs to place a
     //  fragment, we typically shrink fragments well below their actual length.  In one case, we
@@ -133,9 +138,29 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     //
 
 #warning not knowing the overlap length really hurts.
-    end = bgn + FI->fragmentLength(frag5.ident);
-    if (end <= MAX(parent->position.bgn, parent->position.end))
-      end = MAX(parent->position.bgn, parent->position.end) + 1;
+    fend = fbgn + FI->fragmentLength(frag5.ident);
+
+    //  Make sure that we didn't just make a contained fragment out of a dovetail.  There are two
+    //  cases here, either the fragment is before or after the parent.  We'll compare fbgn to the
+    //  parent position.  We could use orientations and ends, but this is easier.
+
+    if (fbgn < pbgn) {
+      //  Fragment begins before the parent (fragment must therefore be forward since the edge is
+      //  off the 5' end) and so fend must be before pend (otherwise fragment would contain parent).
+      if (fend >= pend) {
+        if (logFileFlagSet(LOG_PLACE_FRAG))
+          fprintf(logFile, "RESET5l fend from %d to %d\n", fend, pend - 1);
+        fend = pend - 1;
+      }
+
+    } else {
+      if (fend <= pend) {
+        if (logFileFlagSet(LOG_PLACE_FRAG))
+          fprintf(logFile, "RESET5r fend from %d to %d\n", fend, pend + 1);
+        fend = pend + 1;
+      }
+    }
+
 
     //  The new frag is reverse if:
     //    the old frag is forward and we hit its 5' end, or
@@ -148,17 +173,17 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     bool flip = (((parent->position.bgn < parent->position.end) && (bestedge5->bend == FIVE_PRIME)) ||
                  ((parent->position.end < parent->position.bgn) && (bestedge5->bend == THREE_PRIME)));
 
-    if (verbose)
-      fprintf(logFile, "bestedge5:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d  flip %d\n",
+    if (logFileFlagSet(LOG_PLACE_FRAG))
+      fprintf(logFile, "bestedge5:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
               parent->ident, parent->position.bgn, parent->position.end,
-              bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, bgn, end, flip);
+              bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, fbgn, fend, flip);
 
     frag5.contained    = 0;
     frag5.parent       = bestedge5->frag_b_id;
     frag5.ahang        = ahang;
     frag5.bhang        = bhang;
-    frag5.position.bgn = (flip) ? end : bgn;
-    frag5.position.end = (flip) ? bgn : end;
+    frag5.position.bgn = (flip) ? fend : fbgn;
+    frag5.position.end = (flip) ? fbgn : fend;
   }
 
 
@@ -175,22 +200,48 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
       bhang = bestedge3->ahang;
     }
 
-    int  bgn, end;
+    int  pbgn, pend;
+    int  fbgn, fend;
 
     if (parent->position.bgn < parent->position.end) {
-      bgn = parent->position.bgn + ahang;
-      end = parent->position.end + bhang;
+      pbgn = parent->position.bgn;
+      pend = parent->position.end;
+      fbgn = parent->position.bgn + ahang;
+      fend = parent->position.end + bhang;
     } else {
-      bgn = parent->position.end - bhang;
-      end = parent->position.bgn - ahang;
+      pbgn = parent->position.end;
+      pend = parent->position.bgn;
+      fbgn = parent->position.end - bhang;
+      fend = parent->position.bgn - ahang;
     }
 
-    assert(bgn < end);
+    assert(pbgn < pend);
+    assert(fbgn < fend);
 
 #warning not knowing the overlap length really hurts.
-    end = bgn + FI->fragmentLength(frag3.ident);
-    if (end <= MAX(parent->position.bgn, parent->position.end))
-      end = MAX(parent->position.bgn, parent->position.end) + 1;
+    fend = fbgn + FI->fragmentLength(frag3.ident);
+
+    //  Make sure that we didn't just make a contained fragment out of a dovetail.  There are two
+    //  cases here, either the fragment is before or after the parent.  We'll compare fbgn to the
+    //  parent position.  We could use orientations and ends, but this is easier.
+
+    if (fbgn < pbgn) {
+      //  Fragment begins before the parent (fragment must therefore be reverse since the edge is
+      //  off the 3' end) and so fend must be before pend (otherwise fragment would contain parent).
+      if (fend >= pend) {
+        if (logFileFlagSet(LOG_PLACE_FRAG))
+          fprintf(logFile, "RESET3l fend from %d to %d\n", fend, pend-1);
+        fend = pend - 1;
+      }
+
+    } else {
+      if (fend <= pend) {
+        if (logFileFlagSet(LOG_PLACE_FRAG))
+          fprintf(logFile, "RESET3r fend from %d to %d\n", fend, pend+1);
+        fend = pend + 1;
+      }
+    }
+
 
     //  The new frag is reverse if:
     //    the old frag is forward and we hit its 3' end, or
@@ -203,17 +254,17 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     bool flip = (((parent->position.bgn < parent->position.end) && (bestedge3->bend == THREE_PRIME)) ||
                  ((parent->position.end < parent->position.bgn) && (bestedge3->bend == FIVE_PRIME)));
 
-    if (verbose)
-      fprintf(logFile, "bestedge3:  parent iid %d %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
+    if (logFileFlagSet(LOG_PLACE_FRAG))
+      fprintf(logFile, "bestedge3:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
               parent->ident, parent->position.bgn, parent->position.end,
-              bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, bgn, end, flip);
+              bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, fbgn, fend, flip);
 
     frag3.contained    = 0;
     frag3.parent       = bestedge3->frag_b_id;
     frag3.ahang        = ahang;
     frag3.bhang        = bhang;
-    frag3.position.bgn = (flip) ? end : bgn;
-    frag3.position.end = (flip) ? bgn : end;
+    frag3.position.bgn = (flip) ? fend : fbgn;
+    frag3.position.end = (flip) ? fbgn : fend;
   }
 
   return((bidx5 != -1) || (bidx3 != -1));

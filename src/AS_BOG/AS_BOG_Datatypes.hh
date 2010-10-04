@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.45 2010-10-01 13:40:57 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.46 2010-10-04 16:37:47 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -94,6 +94,8 @@ extern uint64 LOG_MATE_SPLIT_DISCONTINUOUS;
 extern uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS;
 extern uint64 LOG_MATE_SPLIT_COVERAGE_PLOT;
 extern uint64 LOG_STDERR;
+
+extern uint64 LOG_PLACE_FRAG;
 
 ////////////////////////////////////////
 
@@ -196,7 +198,7 @@ public:
   };
 
   uint32  container:31;
-  uint32  isContained:1;
+  uint32  isContained:1;  //  See comments in AS_BOG_Unitig_PlaceFragmentsUsingEdges.cc
 
   int32   a_hang;
   int32   b_hang;

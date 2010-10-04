@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.80 2010-10-01 13:40:57 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.81 2010-10-04 16:37:47 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -54,6 +54,8 @@ uint64 LOG_MATE_SPLIT_DISCONTINUOUS    = 0x0000000000004000;  //
 uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS = 0x0000000000008000;  //
 uint64 LOG_MATE_SPLIT_COVERAGE_PLOT    = 0x0000000000010000;  //
 uint64 LOG_STDERR                      = 0x0000000000020000;  //  Write ALL logging to stderr, not the files.
+
+uint64 LOG_PLACE_FRAG                  = 0x8000000000000000;  //  Internal use only.
 
 const char *logFileFlagNames[64] = { "overlapQuality",
                                      "overlapsUsed",
