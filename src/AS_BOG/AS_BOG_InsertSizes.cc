@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.4 2010-10-01 13:10:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.5 2010-10-05 16:15:19 brianwalenz Exp $";
 
 #include "AS_BOG_InsertSizes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -195,7 +195,7 @@ InsertSizes::InsertSizes() {
   delete [] _dist;     _dist    = NULL;
   delete [] _distLen;  _distLen = NULL;
   delete [] _distMax;  _distMax = NULL;
-};
+}
 
 
 
@@ -203,7 +203,7 @@ InsertSizes::~InsertSizes() {
   delete [] _mean;
   delete [] _stddev;
   delete [] _samples;
-};
+}
 
 
 
