@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.87 2010-09-23 08:47:58 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.88 2010-10-05 16:18:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3072,10 +3072,10 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
   int NN = GetNumDistTs(ScaffoldGraph->Dists);
 
-  DistT                  dwork[NN];
-  VA_TYPE(int32)        *dworkSamples[NN];
-  VA_TYPE(CDS_CID_t)    *dworkFrags[NN];
-  VA_TYPE(CDS_CID_t)    *dworkMates[NN];
+  DistT                 *dwork        = new DistT [NN];
+  VA_TYPE(int32)       **dworkSamples = new VA_TYPE(int32) *     [NN];
+  VA_TYPE(CDS_CID_t)   **dworkFrags   = new VA_TYPE(CDS_CID_t) * [NN];
+  VA_TYPE(CDS_CID_t)   **dworkMates   = new VA_TYPE(CDS_CID_t) * [NN];
 
   int i, j;
 
@@ -3666,6 +3666,10 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
   }  //  over all distances
 
+  delete [] dwork;
+  delete [] dworkSamples;
+  delete [] dworkFrags;
+  delete [] dworkMates;
 
   //  Finally, output a file appropriate for sending to gatekeeper, to
   //  update the distances there.  This is used by some modes of
