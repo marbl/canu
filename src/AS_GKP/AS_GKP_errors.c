@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.14 2010-04-16 21:25:23 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.15 2010-10-05 11:08:53 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -149,7 +149,7 @@ AS_GKP_reportError(int error, ...) {
     errorSs[AS_GKP_LIB_INVALID_STDDEV     ] = "# LIB Alert: invalid stddev; reset stddev to 0.1 * mean.\n";
     errorSs[AS_GKP_LIB_STDDEV_TOO_BIG     ] = "# LIB Alert: stddev too big for mean; reset stddev to 0.1 * mean.\n";
     errorSs[AS_GKP_LIB_STDDEV_TOO_SMALL   ] = "# LIB Alert: suspicious mean and standard deviation; reset stddev to 0.10 * mean.\n";
-    errorSs[AS_GKP_LIB_EXISTS             ] = "# LIB Error: already exists; can't add it again.\n";
+    errorSs[AS_GKP_LIB_EXISTS             ] = "# LIB Alert: already exists; can't add it again.\n";
     errorSs[AS_GKP_LIB_ZERO_UID           ] = "# LIB Error: zero or no UID; can't add it.\n";
     errorSs[AS_GKP_LIB_DOESNT_EXIST_UPDATE] = "# LIB Error: does not exist, can't update it.\n";
     errorSs[AS_GKP_LIB_UNKNOWN_ACTION     ] = "# LIB Error: invalid action.\n";
@@ -202,12 +202,12 @@ AS_GKP_summarizeErrors(void) {
     nerrs += errorCs[i];
 
   if (nerrs) {
-    fprintf(stderr, "GKP finished with %d errors:\n", nerrs);
+    fprintf(stderr, "GKP finished with %d alerts or errors:\n", nerrs);
     for (i=0; i<AS_GKP_NUM_ERRORS; i++)
       if (errorCs[i])
         fprintf(stderr, "%d\t%s", errorCs[i], errorSs[i]);
   } else {
-    fprintf(stderr, "GKP finished with no errors.\n");
+    fprintf(stderr, "GKP finished with no alerts or errors.\n");
   }
 
   //  Gatekeeper never dies.  We're always successful.  Maybe we
