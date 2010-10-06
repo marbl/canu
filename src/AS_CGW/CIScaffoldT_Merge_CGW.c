@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.57 2010-04-26 03:59:33 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.58 2010-10-06 15:15:49 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -2859,7 +2859,7 @@ RemoveDeadRefsFromSEdge(ScaffoldGraphT * graph, SEdgeT * sEdge) {
 static
 int
 MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
-  int mergedSomething = FALSE;
+  int mergedSomething = 0;
   GraphNodeIterator scaffolds;
   CIScaffoldT *thisScaffold;
   CDS_CID_t thisScaffoldID; /* The index of the thisScaffold. We have to be careful about thisScaffold since
@@ -2994,7 +2994,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
     currentOffset = thisScaffold->bpLength;
     numMerged = 1;
-    mergedSomething = TRUE;
+    mergedSomething++;
     while (neighbor != (CIScaffoldT *)NULL) {
       PairOrient edgeOrient = GetEdgeOrientationWRT(edge, thisScaffold->id);
 
@@ -3145,8 +3145,12 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
     if (iSpec->contigNow == TRUE &&
         GetGraphNode(ScaffoldGraph->ScaffoldGraph,
                      newScaffoldID)->info.Scaffold.numElements > 1) {
-      int status = RECOMPUTE_SINGULAR;
-      int recomputeIteration = 0;
+
+      int32  numScaffoldsBefore = GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds);
+      int32  status             = RECOMPUTE_SINGULAR;
+
+      int32 recomputeIteration = 0;
+
       while (recomputeIteration < 3 &&
              (status == RECOMPUTE_SINGULAR ||
               status == RECOMPUTE_CONTIGGED_CONTAINMENTS)) {
@@ -3172,11 +3176,34 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
                                             TRUE, TRUE, FALSE);
         recomputeIteration++;
       }
+
       if (status != RECOMPUTE_OK)
         fprintf(stderr, "ReomputeOffsetsInScaffold failed (%d) for scaffold " F_CID " in MergeScaffolds\n", status, newScaffoldID);
+
+      int32  numScaffoldsAfter = GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds);
+
+      //  If numScaffoldsBefore is not the same as numScaffoldsAfter, then RecomputeOffsetsInScaffold() decided
+      //  to split a scaffold we just merged.  This (once) led to an infinite loop in scaffold merging where
+      //  a two contig and a one contig scaffold were merged, then ROIS() would unmerge them into the original
+      //  layout.
+
+      if (status == RECOMPUTE_FAILED_CONTIG_DELETED)
+        fprintf(stderr, "MergeScaffolds()-- WARNING:  ROIS failed, contig deleted.\n");
+
+      if         (numScaffoldsAfter - numScaffoldsBefore == numMerged - 1) {
+        fprintf(stderr, "MergeScaffolds()-- WARNING:  merged %d scaffolds into 1, then unmerged into %d new scaffolds.  NO MERGING DONE?!\n",
+                numMerged, numScaffoldsAfter - numScaffoldsBefore);
+        mergedSomething--;
+
+      } else  if (numScaffoldsAfter != numScaffoldsBefore) {
+        fprintf(stderr, "MergeScaffolds()-- WARNING:  merged %d scaffolds into 1, then unmerged into %d new scaffolds.  Partial merging done?\n",
+                numMerged, numScaffoldsAfter - numScaffoldsBefore);
+      }
     }  //  if (iSpec->contigNow == TRUE && .....)
 
+#warning numLiveScaffolds is probably broken, and is nearly unused
     ScaffoldGraph->numLiveScaffolds += (1 - numMerged);
+
     currentSetID++;
   }
 
