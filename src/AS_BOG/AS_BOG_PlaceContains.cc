@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceContains.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceContains.cc,v 1.5 2010-10-07 12:27:02 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -38,7 +38,7 @@ UnitigGraph::placeContains(void) {
 
     fprintf(logFile, "==> PLACING CONTAINED FRAGMENTS\n");
 
-    for (uint32 fid=0; fid<FI->numFragments()+1; fid++) {
+    for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
       BestContainment *bestcont = OG->getBestContainer(fid);
       Unitig          *utg;
 
@@ -75,7 +75,7 @@ UnitigGraph::placeContains(void) {
     }
   }
 
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+  for (uint32 ti=1; ti<unitigs.size(); ti++) {
     Unitig *utg = unitigs[ti];
 
     if (utg)
