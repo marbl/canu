@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAP_H
 #define AS_OVS_OVERLAP_H
 
-static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.12 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.13 2010-10-07 12:18:43 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"  //  pretty heavy just to get OverlapMesg.
@@ -188,6 +188,118 @@ typedef struct {
 void  AS_OVS_convertOverlapMesgToOVSoverlap(OverlapMesg *omesg, OVSoverlap *ovs);
 int   AS_OVS_convertOVLdumpToOVSoverlap(char *line, OVSoverlap *olap);
 int   AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap);
+
+
+
+
+static
+uint32
+AS_OVS_overlapAEndIs5prime(const OVSoverlap& olap) {
+  return((olap.dat.ovl.a_hang < 0) && (olap.dat.ovl.b_hang < 0));
+}
+
+static
+uint32
+AS_OVS_overlapAEndIs3prime(const OVSoverlap& olap) {
+  return((olap.dat.ovl.a_hang > 0) && (olap.dat.ovl.b_hang > 0));
+}
+
+static
+uint32
+AS_OVS_overlapAIsContained(const OVSoverlap& olap) {
+  return((olap.dat.ovl.a_hang <= 0) && (olap.dat.ovl.b_hang >= 0));
+}
+
+static
+uint32
+AS_OVS_overlapAIsContainer(const OVSoverlap& olap) {
+  return((olap.dat.ovl.a_hang >= 0) && (olap.dat.ovl.b_hang <= 0));
+}
+
+
+
+static
+uint32
+AS_OVS_overlapBEndIs5prime(const OVSoverlap& olap) {
+  return((AS_OVS_overlapAEndIs5prime(olap) && (olap.dat.ovl.flipped == true)) ||
+         (AS_OVS_overlapAEndIs3prime(olap) && (olap.dat.ovl.flipped == false)));
+}
+
+static
+uint32
+AS_OVS_overlapBEndIs3prime(const OVSoverlap& olap) {
+  return((AS_OVS_overlapAEndIs5prime(olap) && (olap.dat.ovl.flipped == false)) ||
+         (AS_OVS_overlapAEndIs3prime(olap) && (olap.dat.ovl.flipped == true)));
+}
+
+static
+uint32
+AS_OVS_overlapBIsContained(const OVSoverlap& olap) {
+  return((olap.dat.ovl.a_hang >= 0) && (olap.dat.ovl.b_hang <= 0));
+}
+
+static
+uint32
+AS_OVS_overlapBIsContainer(const OVSoverlap& olap) {
+  return((olap.dat.ovl.a_hang <= 0) && (olap.dat.ovl.b_hang >= 0));
+}
+
+
+static
+void
+AS_OVS_testEndComparisons_Test(const OVSoverlap &olap, uint32 c=1) {
+
+  if (AS_OVS_overlapAEndIs5prime(olap) + AS_OVS_overlapAEndIs3prime(olap) + AS_OVS_overlapAIsContained(olap) + AS_OVS_overlapAIsContainer(olap) != c) {
+    fprintf(stderr, "A AS_OVS_overlapAEndIs5prime(olap) = %d\n", AS_OVS_overlapAEndIs5prime(olap));
+    fprintf(stderr, "A AS_OVS_overlapAEndIs3prime(olap) = %d\n", AS_OVS_overlapAEndIs3prime(olap));
+    fprintf(stderr, "A AS_OVS_overlapAIsContained(olap) = %d\n", AS_OVS_overlapAIsContained(olap));
+    fprintf(stderr, "A AS_OVS_overlapAIsContainer(olap) = %d\n", AS_OVS_overlapAIsContainer(olap));
+    fprintf(stderr, "a_hang %d b_hang %d flipped %d\n", olap.dat.ovl.a_hang, olap.dat.ovl.b_hang, olap.dat.ovl.flipped);
+  }
+
+  if (AS_OVS_overlapBEndIs5prime(olap) + AS_OVS_overlapBEndIs3prime(olap) + AS_OVS_overlapBIsContained(olap) + AS_OVS_overlapBIsContainer(olap) != c) {
+    fprintf(stderr, "B AS_OVS_overlapBEndIs5prime(olap) = %d\n", AS_OVS_overlapBEndIs5prime(olap));
+    fprintf(stderr, "B AS_OVS_overlapBEndIs3prime(olap) = %d\n", AS_OVS_overlapBEndIs3prime(olap));
+    fprintf(stderr, "B AS_OVS_overlapBIsContained(olap) = %d\n", AS_OVS_overlapBIsContained(olap));
+    fprintf(stderr, "B AS_OVS_overlapBIsContainer(olap) = %d\n", AS_OVS_overlapBIsContainer(olap));
+    fprintf(stderr, "a_hang %d b_hang %d flipped %d\n", olap.dat.ovl.a_hang, olap.dat.ovl.b_hang, olap.dat.ovl.flipped);
+  }
+
+  assert(AS_OVS_overlapAEndIs5prime(olap) + AS_OVS_overlapAEndIs3prime(olap) + AS_OVS_overlapAIsContained(olap) + AS_OVS_overlapAIsContainer(olap) == c);
+  assert(AS_OVS_overlapBEndIs5prime(olap) + AS_OVS_overlapBEndIs3prime(olap) + AS_OVS_overlapBIsContained(olap) + AS_OVS_overlapBIsContainer(olap) == c);
+}
+
+static
+void
+AS_OVS_testEndComparisons(void) {
+  OVSoverlap  olap;
+
+  olap.dat.ovl.a_hang = -1;  olap.dat.ovl.b_hang = -1;  olap.dat.ovl.flipped = 0;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang = -1;  olap.dat.ovl.b_hang =  0;  olap.dat.ovl.flipped = 0;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang = -1;  olap.dat.ovl.b_hang =  1;  olap.dat.ovl.flipped = 0;  AS_OVS_testEndComparisons_Test(olap);
+
+  olap.dat.ovl.a_hang =  0;  olap.dat.ovl.b_hang = -1;  olap.dat.ovl.flipped = 0;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang =  0;  olap.dat.ovl.b_hang =  0;  olap.dat.ovl.flipped = 0;  AS_OVS_testEndComparisons_Test(olap, 2);
+  olap.dat.ovl.a_hang =  0;  olap.dat.ovl.b_hang =  1;  olap.dat.ovl.flipped = 0;  AS_OVS_testEndComparisons_Test(olap);
+
+  olap.dat.ovl.a_hang =  1;  olap.dat.ovl.b_hang = -1;  olap.dat.ovl.flipped = 0;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang =  1;  olap.dat.ovl.b_hang =  0;  olap.dat.ovl.flipped = 0;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang =  1;  olap.dat.ovl.b_hang =  1;  olap.dat.ovl.flipped = 0;  AS_OVS_testEndComparisons_Test(olap);
+
+
+  olap.dat.ovl.a_hang = -1;  olap.dat.ovl.b_hang = -1;  olap.dat.ovl.flipped = 1;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang = -1;  olap.dat.ovl.b_hang =  0;  olap.dat.ovl.flipped = 1;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang = -1;  olap.dat.ovl.b_hang =  1;  olap.dat.ovl.flipped = 1;  AS_OVS_testEndComparisons_Test(olap);
+
+  olap.dat.ovl.a_hang =  0;  olap.dat.ovl.b_hang = -1;  olap.dat.ovl.flipped = 1;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang =  0;  olap.dat.ovl.b_hang =  0;  olap.dat.ovl.flipped = 1;  AS_OVS_testEndComparisons_Test(olap, 2);
+  olap.dat.ovl.a_hang =  0;  olap.dat.ovl.b_hang =  1;  olap.dat.ovl.flipped = 1;  AS_OVS_testEndComparisons_Test(olap);
+
+  olap.dat.ovl.a_hang =  1;  olap.dat.ovl.b_hang = -1;  olap.dat.ovl.flipped = 1;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang =  1;  olap.dat.ovl.b_hang =  0;  olap.dat.ovl.flipped = 1;  AS_OVS_testEndComparisons_Test(olap);
+  olap.dat.ovl.a_hang =  1;  olap.dat.ovl.b_hang =  1;  olap.dat.ovl.flipped = 1;  AS_OVS_testEndComparisons_Test(olap);
+}
+
 
 
 #endif  //  AS_OVS_OVERLAP_H
