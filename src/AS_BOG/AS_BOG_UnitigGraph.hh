@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.78 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.79 2010-10-07 12:51:15 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -120,6 +120,10 @@ struct UnitigGraph{
                               OverlapStore *ovlStoreRept);
   void popMateBubbles(OverlapStore *ovlStoreUniq,
                       OverlapStore *ovlStoreRept);
+
+  bool placeFragUsingOverlaps(ufNode frag,
+                              OverlapStore *ovlStoreUniq,
+                              OverlapStore *ovlStoreRept);
 
   void filterBreakPoints(ContainerMap &cMap,
                          Unitig *,

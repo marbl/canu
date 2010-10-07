@@ -42,6 +42,7 @@ BOG_SOURCES = AS_BOG_ArrivalRate.cc \
               AS_BOG_MoveContains.cc \
               AS_BOG_Outputs.cc \
               AS_BOG_PlaceContains.cc \
+              AS_BOG_PlaceFragUsingOverlaps.cc \
               AS_BOG_PlaceZombies.cc \
               AS_BOG_PopulateUnitig.cc \
               AS_BOG_SetParentAndHang.cc \

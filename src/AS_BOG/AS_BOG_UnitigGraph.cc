@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.138 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.139 2010-10-07 12:51:15 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -123,10 +123,38 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   //setLogFile("unitigger", "intersectionBreaking");
   //breakUnitigs(cMap, output_prefix, false);
 
+#if 0
+  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
+    ufNode frag;
+
+    if (Unitig::fragIn(fid) > 0)
+      //  Fragment placed already.
+      continue;
+
+    frag.ident = fid;
+
+    placeFragUsingOverlaps(frag, ovlStoreUniq, ovlStoreRept);
+  }
+#endif
+
   setLogFile("unitigger", "placeContains");
   placeContains();
   reportOverlapsUsed("overlaps.aftercontains");
   reportUnitigs("unitigs.aftercontains");
+
+#if 0
+  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
+    ufNode frag;
+
+    if (OG->getBestContainer(fid) == NULL)
+      //  Dovetail node, don't try to re-place it
+      continue;
+
+    frag.ident = fid;
+
+    placeFragUsingOverlaps(frag, ovlStoreUniq, ovlStoreRept);
+  }
+#endif
 
   setLogFile("unitigger", "placeZombies");
   placeZombies();
