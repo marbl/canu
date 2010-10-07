@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.78 2010-10-01 13:40:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.79 2010-10-07 12:50:38 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -421,8 +421,8 @@ BestOverlapGraph::load(const char *prefix, double AS_UTG_ERROR_RATE, double AS_U
   double  eRate  = 0.0;
   double  eLimit = 0.0;
 
-  AS_UTL_safeRead(file, &AS_UTG_ERROR_RATE,  "errorRate",     sizeof(double), 1);
-  AS_UTL_safeRead(file, &AS_UTG_ERROR_LIMIT, "errorLimit",    sizeof(double), 1);
+  AS_UTL_safeRead(file, &eRate,  "errorRate",     sizeof(double), 1);
+  AS_UTL_safeRead(file, &eLimit, "errorLimit",    sizeof(double), 1);
 
   if (eRate  != AS_UTG_ERROR_RATE)
     fprintf(logFile, "BestOverlapGraph()-- Saved graph in '%s' has error rate %f, this run is expecting error rate %f; cannot load graph.\n",
