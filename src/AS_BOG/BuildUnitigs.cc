@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.81 2010-10-04 16:37:47 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.82 2010-10-07 21:10:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -188,7 +188,9 @@ main (int argc, char * argv []) {
         }
       }
       if (strcasecmp("all", argv[arg]) == 0) {
-        logFileFlags = 0xffffffffffffffff;
+        for (flg=1, opt=0; logFileFlagNames[opt]; flg <<= 1, opt++)
+          if (strcasecmp(logFileFlagNames[opt], "stderr") != 0)
+            logFileFlags |= flg;
         fnd = true;
       }
       if (fnd == false) {
