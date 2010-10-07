@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.46 2010-10-04 16:37:47 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.47 2010-10-07 13:34:49 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -42,8 +42,7 @@ using namespace std;
 
 ////////////////////////////////////////
 
-//  Assign values to the enum to show this bug
-#warning there is a comparison assuming fragment_end_type FIVE_PRIME < THREE_PRIME
+//  These MUST be 0 and 1, but it is arbitrary.
 #define FIVE_PRIME   0
 #define THREE_PRIME  1
 
