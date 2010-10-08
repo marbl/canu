@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.99 2010-10-04 03:29:49 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.100 2010-10-08 16:21:00 brianwalenz Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -296,9 +296,6 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
         fprintf(logFile, "unitig %d frag %d %d,%d bad %d,%d\n",
                 tig->id(), frag.ident, loc.bgn, loc.end, bad.bgn, bad.end);
 
-      // Don't want to go past range and break in wrong place
-      assert(loc.bgn <= bad.end+1 || loc.end <= bad.end+1);
-
       // keep track of current and previous uncontained contig end
       // so that we can split apart contained reads that don't overlap each other
       if (!OG->isContained(frag.ident)) {
@@ -310,14 +307,14 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       MateLocationEntry mloc = positions.getById(frag.ident);
 
       //  If we do go past the split point, whoops, break now and hope it all works out later.
-#if 0
-      //  NOT TESTED
       if ((loc.bgn > bad.end+1) && (loc.end > bad.end+1)) {
-        fprintf(logFile, "SPLIT ERROR: unitig %d frag %d missed the split point.\n",
-                tig->id(), frag.ident);
+        fprintf(logFile, "SPLIT ERROR: unitig %d frag %d %d,%d missed the split point %d,%d.\n",
+                tig->id(), frag.ident, loc.bgn, loc.end, bad.bgn, bad.end);
         breakNow = true;
       }
-#endif
+      // Don't want to go past range and break in wrong place
+      assert(loc.bgn <= bad.end+1 || loc.end <= bad.end+1);
+
 
       if (mloc.mleFrgID1 != 0 && mloc.isGrumpy) { // only break on bad mates
         if (isFwdBad && bad.bgn <= loc.end) {
@@ -378,7 +375,11 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
             incrementToNextFragment = false;
           } else {
             // move one back we are breaking after the current fragment
-            frgidx--;
+            //  UGH, this is gross nasty code
+            if (frgidx > 0)
+              frgidx--;
+            else
+              fprintf(logFile, "DECREMENT ZERO frgidx!\n");
           }
           frag = tig->ufpath[frgidx];
           loc = frag.position;
