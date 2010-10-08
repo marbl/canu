@@ -77,7 +77,7 @@ foreach my $file (@files) {
 
     my $cnt = 1;
 
-    open(F, "cat unitigger.*.log | ") or die;
+    open(F, "cat unitigger.*.intersectionBreaking.log | ") or die;
     while (<F>) {
         if (m/BREAK unitig (\d+) at position (\d+),(\d+) from inSize (\d+) inFrags (\d+)./) {
             if ($1 == $num) {
