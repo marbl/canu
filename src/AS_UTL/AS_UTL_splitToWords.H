@@ -126,6 +126,7 @@ public:
   uint32  numWords(void)        { return(_argWords); };
   char   *getWord(uint32 i)     { return(_arg[i]); };
   char   *operator[](uint32 i)  { return(_arg[i]); };
+  int64   operator()(uint32 i)  { return(strtoull(_arg[i], NULL, 10)); };
 private:
   uint32    _argWords;
   uint32    _maxWords;
