@@ -48,7 +48,7 @@ if (-e "tig.coords") {
 }
 
 
-open(F, "ls coverageplot/*.badCoverage |");
+open(F, "find coverageplot -name '*.badCoverage' -print | sort |");
 my @files = <F>;
 chomp @files;
 close(F);
@@ -135,6 +135,7 @@ foreach my $file (@files) {
 
     close(GP);
 
+    print STDERR "$file\n";
     system("gnuplot < $file.gnuplot > /dev/null 2>&1");
 }
 
