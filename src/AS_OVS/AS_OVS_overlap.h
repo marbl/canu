@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAP_H
 #define AS_OVS_OVERLAP_H
 
-static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.13 2010-10-07 12:18:43 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.14 2010-10-09 02:15:50 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"  //  pretty heavy just to get OverlapMesg.
@@ -254,7 +254,7 @@ AS_OVS_testEndComparisons_Test(const OVSoverlap &olap, uint32 c=1) {
     fprintf(stderr, "A AS_OVS_overlapAEndIs3prime(olap) = %d\n", AS_OVS_overlapAEndIs3prime(olap));
     fprintf(stderr, "A AS_OVS_overlapAIsContained(olap) = %d\n", AS_OVS_overlapAIsContained(olap));
     fprintf(stderr, "A AS_OVS_overlapAIsContainer(olap) = %d\n", AS_OVS_overlapAIsContainer(olap));
-    fprintf(stderr, "a_hang %d b_hang %d flipped %d\n", olap.dat.ovl.a_hang, olap.dat.ovl.b_hang, olap.dat.ovl.flipped);
+    fprintf(stderr, "a_hang "F_S64" b_hang "F_S64" flipped "F_U64"\n", olap.dat.ovl.a_hang, olap.dat.ovl.b_hang, olap.dat.ovl.flipped);
   }
 
   if (AS_OVS_overlapBEndIs5prime(olap) + AS_OVS_overlapBEndIs3prime(olap) + AS_OVS_overlapBIsContained(olap) + AS_OVS_overlapBIsContainer(olap) != c) {
@@ -262,7 +262,7 @@ AS_OVS_testEndComparisons_Test(const OVSoverlap &olap, uint32 c=1) {
     fprintf(stderr, "B AS_OVS_overlapBEndIs3prime(olap) = %d\n", AS_OVS_overlapBEndIs3prime(olap));
     fprintf(stderr, "B AS_OVS_overlapBIsContained(olap) = %d\n", AS_OVS_overlapBIsContained(olap));
     fprintf(stderr, "B AS_OVS_overlapBIsContainer(olap) = %d\n", AS_OVS_overlapBIsContainer(olap));
-    fprintf(stderr, "a_hang %d b_hang %d flipped %d\n", olap.dat.ovl.a_hang, olap.dat.ovl.b_hang, olap.dat.ovl.flipped);
+    fprintf(stderr, "a_hang "F_S64" b_hang "F_S64" flipped "F_U64"\n", olap.dat.ovl.a_hang, olap.dat.ovl.b_hang, olap.dat.ovl.flipped);
   }
 
   assert(AS_OVS_overlapAEndIs5prime(olap) + AS_OVS_overlapAEndIs3prime(olap) + AS_OVS_overlapAIsContained(olap) + AS_OVS_overlapAIsContainer(olap) == c);
