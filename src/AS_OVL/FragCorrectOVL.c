@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.34 2010-08-19 05:28:07 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.35 2010-10-09 01:29:48 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -36,6 +36,8 @@ const char *mainid = "$Id: FragCorrectOVL.c,v 1.34 2010-08-19 05:28:07 brianwale
 #include  "AS_PER_gkpStore.h"
 #include  "FragCorrectOVL.h"
 #include  "AS_OVS_overlapStore.h"
+
+#include  "AS_UTL_qsort_mt.h"
 
 //  Constants
 
@@ -174,7 +176,7 @@ typedef  struct
   {
    int  thread_id;
    int32  lo_frag, hi_frag;
-   int  next_olap;
+   int64  next_olap;
    gkStream  *frag_stream;
    gkFragment *frag_read;
    Frag_List_t  * frag_list;
@@ -238,7 +240,7 @@ static time_t  Now = 0;
     // Used to get current time
 static int  Num_Frags = 0;
     // Number of fragments being corrected
-static int  Num_Olaps = 0;
+static int64  Num_Olaps = 0;
     // Number of overlaps being used
 static int  Num_PThreads = DEFAULT_NUM_PTHREADS;
     // Number of pthreads to process overlaps/corrections;
@@ -280,11 +282,11 @@ static void  Display_Frags
     (void);
 static void  Extract_Needed_Frags
     (gkStore *store, int32 lo_frag, int32 hi_frag,
-     Frag_List_t * list, int * next_olap);
+     Frag_List_t * list, int64 * next_olap);
 static char  Filter
     (char ch);
 static void  Get_Olaps_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int * num);
+    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int64 * num);
 static void  Init_Frag_List
     (Frag_List_t * list);
 static void  Initialize_Globals
@@ -341,14 +343,12 @@ int  main
    fprintf (stderr, "Starting Read_Olaps ()\n");
    Read_Olaps ();
 
-   fprintf (stderr, "Before sort\n");
+   fprintf (stderr, "Before sort "F_S64" overlaps\n", Num_Olaps);
    qsort (Olap, Num_Olaps, sizeof (Olap_Info_t), By_B_IID);
 
    if  (Verbose_Level > 2)
        {
-        int  i;
-
-        for  (i = 0;  i < Num_Olaps;  i ++)
+        for  (int64 i = 0;  i < Num_Olaps;  i ++)
           printf ("%8d %8d %5d %5d  %c\n",
                   Olap [i] . a_iid, Olap [i] . b_iid,
                   Olap [i] . a_hang, Olap [i] . b_hang,
@@ -357,7 +357,7 @@ int  main
 
    if  (Num_Olaps > 0)
        {
-        fprintf (stderr, "Before Stream_Old_Frags  Num_Olaps = %d\n", Num_Olaps);
+        fprintf (stderr, "Before Stream_Old_Frags  Num_Olaps = "F_S64"\n", Num_Olaps);
         if  (Num_PThreads > 0)
             Threaded_Stream_Old_Frags ();
           else
@@ -955,7 +955,7 @@ static void  Display_Frags
 
 static void  Extract_Needed_Frags
     (gkStore *store, int32 lo_frag, int32 hi_frag,
-     Frag_List_t * list, int * next_olap)
+     Frag_List_t * list, int64 * next_olap)
 
 //  Read fragments  lo_frag .. hi_frag  from  store  and save
 //  the ids and sequences of those with overlaps to fragments in
@@ -1097,7 +1097,7 @@ static char  Filter
 
 
 static void  Get_Olaps_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int * num)
+    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int64 * num)
 
 //  Open overlap store  path  and read from it the overlaps for fragments
 //   lo_id .. hi_id , putting them in  (* olap)  for which space
@@ -1107,8 +1107,8 @@ static void  Get_Olaps_From_Store
   {
     OverlapStore  *ovs = NULL;
     OVSoverlap     ovl;
-    uint64         numolaps = 0;
-    uint64         numread  = 0;
+    int64         numolaps = 0;
+    int64         numread  = 0;
 
     assert (1 <= lo_id && lo_id <= hi_id);
 
@@ -2089,7 +2089,7 @@ static void  Stream_Old_Frags
    char  rev_seq [AS_READ_MAX_NORMAL_LEN + 1] = "acgt";
    unsigned  clear_start, clear_end;
    int32  lo_frag, hi_frag;
-   int  next_olap;
+   int64  next_olap;
    int  i, j;
 
    Init_Thread_Work_Area (& wa, 0);
@@ -2234,7 +2234,9 @@ static void  Threaded_Stream_Old_Frags
    Frag_List_t  frag_list_1, frag_list_2;
    Frag_List_t  * curr_frag_list, * next_frag_list, * save_frag_list;
    Thread_Work_Area_t  * thread_wa;
-   int  next_olap, save_olap, status;
+   int64  next_olap;
+   int64  save_olap;
+   int status;
    int32  first_frag, last_frag, lo_frag, hi_frag;
    int  i;
 
