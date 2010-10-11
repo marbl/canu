@@ -289,19 +289,19 @@ public:
   };
 
   AS_IID      gkFragment_getReadIID(void) {
-    AS_IID r = -1;
+    AS_IID r = 0;
     gkFragment_get(readIID);
     return(r);
   };
 
   AS_IID      gkFragment_getMateIID(void) {
-    AS_IID r = -1;
+    AS_IID r = 0;
     gkFragment_get(mateIID);
     return(r);
   };
 
   AS_IID      gkFragment_getLibraryIID(void) {
-    AS_IID r = -1;
+    AS_IID r = 0;
     gkFragment_get(libraryIID);
     return(r);
   };
