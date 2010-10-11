@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.6 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -43,13 +43,13 @@ UnitigBreakPoint UnitigGraph::selectSmall(ContainerMap &cMap,
   bool bRev    = isReverse(big.fragPos);
   int bContain = 0;
 
-  int right    = (big.fragEnd.fragEnd() == FIVE_PRIME) ? big.fragPos.bgn : big.fragPos.end;
+  int right    = (big.fragEnd.frag3p() == false) ? big.fragPos.bgn : big.fragPos.end;
 
   if (cMap.find(big.fragEnd.fragId()) != cMap.end())
     bContain = cMap[big.fragEnd.fragId()].size();
 
-  if (((bRev == true)  && (big.fragEnd.fragEnd() == THREE_PRIME)) ||
-      ((bRev == false) && (big.fragEnd.fragEnd() == FIVE_PRIME)))
+  if (((bRev == true)  && (big.fragEnd.frag3p() == true)) ||
+      ((bRev == false) && (big.fragEnd.frag3p() == false)))
     rFrgs -= 1 + bContain;
 
   for(UnitigBreakPoints::const_iterator sIter = smalls.begin(); sIter != smalls.end(); sIter++) {
@@ -67,8 +67,8 @@ UnitigBreakPoint UnitigGraph::selectSmall(ContainerMap &cMap,
       sContain = cMap[sid].size();
 
     // left side of the frag in the unitig, don't count it
-    if (((rev == true)  && (small.fragEnd.fragEnd() == THREE_PRIME)) ||
-        ((rev == false) && (small.fragEnd.fragEnd() == FIVE_PRIME)))
+    if (((rev == true)  && (small.fragEnd.frag3p() == true)) ||
+        ((rev == false) && (small.fragEnd.frag3p() == false)))
       lFrgs -= 1 + sContain;
 
     if (rFrgs - lFrgs == 1)
@@ -133,7 +133,7 @@ void UnitigGraph::filterBreakPoints(ContainerMap &cMap,
 
         } else {
           //  No smalls.  Update state to move past the current big breakpoint.
-          lastBPCoord   = (nextBP.fragEnd.fragEnd() == FIVE_PRIME) ? nextBP.fragPos.bgn : nextBP.fragPos.end;
+          lastBPCoord   = (nextBP.fragEnd.frag3p() == false) ? nextBP.fragPos.bgn : nextBP.fragPos.end;
           lastBPFragNum = nextBP.fragsBefore;
 
           int bContain = 0;
@@ -143,8 +143,8 @@ void UnitigGraph::filterBreakPoints(ContainerMap &cMap,
 
           bool bRev = isReverse(nextBP.fragPos);
 
-          if (((bRev == true)  && (nextBP.fragEnd.fragEnd() == THREE_PRIME)) ||
-              ((bRev == false) && (nextBP.fragEnd.fragEnd() == FIVE_PRIME)))
+          if (((bRev == true)  && (nextBP.fragEnd.frag3p() == true)) ||
+              ((bRev == false) && (nextBP.fragEnd.frag3p() == false)))
             lastBPFragNum -= 1 + bContain;
         }
 
@@ -211,7 +211,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
 
       bool bothEnds = false;
       while ( !breakstmp.empty() && nextBP.fragEnd.fragId() == breakPoint.fragEnd.fragId() ) {
-        if (nextBP.fragEnd.fragEnd() != breakPoint.fragEnd.fragEnd())
+        if (nextBP.fragEnd.frag3p() != breakPoint.fragEnd.frag3p())
           bothEnds = true;
         breakstmp.pop_front();
         if (!breakstmp.empty())
@@ -227,14 +227,14 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
           newUnitigExists = 0;
         }
 
-        else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && !reverse ||
-                 breakPoint.fragEnd.fragEnd() == THREE_PRIME && reverse) {
+        else if (breakPoint.fragEnd.frag3p() == false && !reverse ||
+                 breakPoint.fragEnd.frag3p() == true  && reverse) {
           newUnitigsConstructed++;
           newUnitigExists = 1;
         }
 
-        else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && reverse ||
-                 breakPoint.fragEnd.fragEnd() == THREE_PRIME && !reverse ) {
+        else if (breakPoint.fragEnd.frag3p() == false && reverse ||
+                 breakPoint.fragEnd.frag3p() == true  && !reverse ) {
           if (newUnitigExists == 0)
             newUnitigsConstructed++;
           newUnitigExists = 0;
@@ -288,7 +288,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
     // reduce multiple breaks at the same fragment end down to one
     bool bothEnds = false;
     while ( !breaks.empty() && nextBP.fragEnd.fragId() == breakPoint.fragEnd.fragId() ) {
-      if (nextBP.fragEnd.fragEnd() != breakPoint.fragEnd.fragEnd())
+      if (nextBP.fragEnd.frag3p() != breakPoint.fragEnd.frag3p())
         bothEnds = true;
       breaks.pop_front();
       if (!breaks.empty())
@@ -348,8 +348,8 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         newTig = NULL;  //  delay until we need to make it
       }
 
-      else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && !reverse ||
-               breakPoint.fragEnd.fragEnd() == THREE_PRIME && reverse) {
+      else if (breakPoint.fragEnd.frag3p() == false && !reverse ||
+               breakPoint.fragEnd.frag3p() == true  && reverse) {
         //
         //  Break at left end of frg, frg starts new tig
         //
@@ -367,8 +367,8 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
       }
 
-      else if (breakPoint.fragEnd.fragEnd() ==  FIVE_PRIME && reverse ||
-               breakPoint.fragEnd.fragEnd() == THREE_PRIME && !reverse) {
+      else if (breakPoint.fragEnd.frag3p() == false && reverse ||
+               breakPoint.fragEnd.frag3p() == true  && !reverse) {
         //
         //  Break at right end of frg, frg goes in existing tig, then make new unitig
         //

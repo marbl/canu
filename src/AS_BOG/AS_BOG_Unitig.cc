@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.32 2010-10-04 04:41:33 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.33 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -231,7 +231,7 @@ ufNodeCmp(const void *a, const void *b){
   int32 aend = (impa->position.bgn < impa->position.end) ? impa->position.end : impa->position.bgn;
 
   int32 bbgn = (impb->position.bgn < impb->position.end) ? impb->position.bgn : impb->position.end;
-  int32 bend = (impb->position.bgn < impb->position.end) ? impb->position.end : impb->position.bgn;
+  int32 frag3p = (impb->position.bgn < impb->position.end) ? impb->position.end : impb->position.bgn;
 
   //  NEWSORT does not work.  When bubbles are popped, we add non-contained fragments to
   //  a unitig, but just stick them at the end of the list.  NEWSORT would then maintain
@@ -252,9 +252,9 @@ ufNodeCmp(const void *a, const void *b){
     //  Return negative for the one that starts first.
     return(abgn - bbgn);
 
-  if (aend != bend)
+  if (aend != frag3p)
     //  Return negative for the one that ends last.
-    return(bend - aend);
+    return(frag3p - aend);
 
 #ifdef NEWSORT
   if (bIsCont == true)

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig_AddAndPlaceFrag.cc,v 1.1 2010-10-04 04:41:33 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig_AddAndPlaceFrag.cc,v 1.2 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -51,24 +51,24 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   //  The length of the overlap depends only on the length of the a frag and the hangs.  We don't
   //  actually care about the real length (except for logging), only which is thicker.
 
-  if ((bestedge5) && (fragIn(bestedge5->frag_b_id) == id())) {
-    bidx5 = pathPosition(bestedge5->frag_b_id);
-    blen5 = FI->fragmentLength(fid) + ((bestedge5->ahang < 0) ? bestedge5->bhang : -bestedge5->ahang);
+  if ((bestedge5) && (fragIn(bestedge5->fragId()) == id())) {
+    bidx5 = pathPosition(bestedge5->fragId());
+    blen5 = FI->fragmentLength(fid) + ((bestedge5->ahang() < 0) ? bestedge5->bhang() : -bestedge5->ahang());
 #ifdef DEBUG_PLACEMENT
     fprintf(logFile, "addAndPlaceFrag()-- bestedge5:  %d,%d,%d,%d len %d\n",
-            bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, blen5);
+            bestedge5->fragId(), bestedge5->frag3p, bestedge5->ahang(), bestedge5->bhang(), blen5);
 #endif
-    assert(bestedge5->frag_b_id == ufpath[bidx5].ident);
+    assert(bestedge5->fragId() == ufpath[bidx5].ident);
   }
 
-  if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
-    bidx3 = pathPosition(bestedge3->frag_b_id);;
-    blen3 = FI->fragmentLength(fid) + ((bestedge3->ahang < 0) ? bestedge3->bhang : -bestedge3->ahang);
+  if ((bestedge3) && (fragIn(bestedge3->fragId()) == id())) {
+    bidx3 = pathPosition(bestedge3->fragId());;
+    blen3 = FI->fragmentLength(fid) + ((bestedge3->ahang() < 0) ? bestedge3->bhang() : -bestedge3->ahang());
 #ifdef DEBUG_PLACEMENT
     fprintf(logFile, "addAndPlaceFrag()-- bestedge3:  %d,%d,%d,%d len %d\n",
-            bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, blen3);
+            bestedge3->fragId(), bestedge3->frag3p, bestedge3->ahang(), bestedge3->bhang(), blen3);
 #endif
-    assert(bestedge3->frag_b_id == ufpath[bidx3].ident);
+    assert(bestedge3->fragId() == ufpath[bidx3].ident);
   }
 
   //  Use the longest that exists -- an alternative would be to take the average position, but that

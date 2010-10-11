@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_SetParentAndHang.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_SetParentAndHang.cc,v 1.6 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -30,7 +30,7 @@ static const char *rcsid = "$Id: AS_BOG_SetParentAndHang.cc,v 1.5 2010-09-30 11:
 void
 UnitigGraph::setParentAndHang(void) {
 
-  for (int  ti=0; ti<unitigs.size(); ti++) {
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig        *utg = unitigs[ti];
 
     if (utg == NULL)
@@ -41,7 +41,7 @@ UnitigGraph::setParentAndHang(void) {
 
     //  Reset parent and hangs for everything.
 
-    for (int fi=1; fi<utg->ufpath.size(); fi++) {
+    for (uint32 fi=1; fi<utg->ufpath.size(); fi++) {
       ufNode *frg = &utg->ufpath[fi];
 
       frg->parent       = 0;
@@ -51,7 +51,7 @@ UnitigGraph::setParentAndHang(void) {
 
     //  For each fragment, set parent/hangs using the edges.
 
-    for (int fi=0; fi<utg->ufpath.size(); fi++) {
+    for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
       ufNode *frg  = &utg->ufpath[fi];
 
       //  If we're contained, gee, I sure hope the container is here!
@@ -59,7 +59,7 @@ UnitigGraph::setParentAndHang(void) {
       BestContainment *bestcont  = OG->getBestContainer(frg->ident);
 
       if ((bestcont) && (utg->fragIn(bestcont->container) == utg->id())) {
-        int32         pi   = utg->pathPosition(bestcont->container);
+        int32   pi   = utg->pathPosition(bestcont->container);
         ufNode *par  = &utg->ufpath[pi];
 
         frg->parent = bestcont->container;
@@ -79,11 +79,11 @@ UnitigGraph::setParentAndHang(void) {
       //  Nope, not contained.  If we don't have a parent set, see if one of our best overlaps
       //  can set it.
 
-      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, false);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, true);
 
-      if ((bestedge5->frag_b_id) && (utg->fragIn(bestedge5->frag_b_id) == utg->id())) {
-        int32         pi5  = utg->pathPosition(bestedge5->frag_b_id);
+      if ((bestedge5->fragId()) && (utg->fragIn(bestedge5->fragId()) == utg->id())) {
+        int32         pi5  = utg->pathPosition(bestedge5->fragId());
         ufNode *oth  = &utg->ufpath[pi5];
 
         //  Consensus is expected parent/hangs to be relative to the parent fragment.  This is used
@@ -101,9 +101,9 @@ UnitigGraph::setParentAndHang(void) {
           //  We have an edge off our 5' end to something before us --> fragment MUST be forward.
           //  Flip the overlap so it is relative to the other fragment.
           if (frg->position.bgn < frg->position.end) {
-            frg->parent = bestedge5->frag_b_id;
-            frg->ahang  = -bestedge5->ahang;
-            frg->bhang  = -bestedge5->bhang;
+            frg->parent = bestedge5->fragId();
+            frg->ahang  = -bestedge5->ahang();
+            frg->bhang  = -bestedge5->bhang();
             assert(frg->ahang >= 0);
           }
         } else {
@@ -111,15 +111,15 @@ UnitigGraph::setParentAndHang(void) {
           //  Because our fragment is now reverse, we must reverse the overlap too.
           if (frg->position.end < frg->position.bgn) {
             oth->parent = frg->ident;
-            oth->ahang  = -bestedge5->bhang;
-            oth->bhang  = -bestedge5->ahang;
+            oth->ahang  = -bestedge5->bhang();
+            oth->bhang  = -bestedge5->ahang();
             assert(oth->ahang >= 0);
           }
         }
       }
 
-      if ((bestedge3->frag_b_id) && (utg->fragIn(bestedge3->frag_b_id) == utg->id())) {
-        int32         pi3  = utg->pathPosition(bestedge3->frag_b_id);
+      if ((bestedge3->fragId()) && (utg->fragIn(bestedge3->fragId()) == utg->id())) {
+        int32         pi3  = utg->pathPosition(bestedge3->fragId());
         ufNode *oth  = &utg->ufpath[pi3];
 
         if (pi3 < fi) {
@@ -127,9 +127,9 @@ UnitigGraph::setParentAndHang(void) {
           //  Flip the overlap so it is relative to the other fragment.
           //  Because our fragment is now reverse, we must reverse the overlap too.
           if (frg->position.end < frg->position.bgn) {
-            frg->parent = bestedge3->frag_b_id;
-            frg->ahang  = bestedge3->bhang;
-            frg->bhang  = bestedge3->ahang;
+            frg->parent = bestedge3->fragId();
+            frg->ahang  = bestedge3->bhang();
+            frg->bhang  = bestedge3->ahang();
             assert(frg->ahang >= 0);
           }
         } else {
@@ -137,8 +137,8 @@ UnitigGraph::setParentAndHang(void) {
           //  This is the simplest case, the overlap is already correct.
           if (frg->position.bgn < frg->position.end) {
             oth->parent = frg->ident;
-            oth->ahang  = bestedge3->ahang;
-            oth->bhang  = bestedge3->bhang;
+            oth->ahang  = bestedge3->ahang();
+            oth->bhang  = bestedge3->bhang();
             assert(oth->ahang >= 0);
           }
         }

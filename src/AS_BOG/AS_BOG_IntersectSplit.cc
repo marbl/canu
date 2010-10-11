@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.6 2010-10-04 03:29:49 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.7 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -60,9 +60,9 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
     UnitigBreakPoints   breaks;
     ufNode        lastBackbone;
 
-    int                 numFragsInUnitig = 0;
-    int                 fragCount        = 0;
-    int                 fragIdx;
+    uint32   numFragsInUnitig = 0;
+    uint32   fragCount        = 0;
+    uint32   fragIdx;
 
     //  Enabling this sort should do nothing -- there are no contained fragments placed yet, and any
     //  bubbles that have been merged in have already had their unitigs sorted.
@@ -97,23 +97,23 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
       if (logFileFlagSet(LOG_INTERSECTION_BREAKING)) {
         if (fragIdx == 0) {
-          uint32             dtEnd = (isReverse(f->position)) ? THREE_PRIME : FIVE_PRIME;
-          BestEdgeOverlap   *bEdge = OG->getBestEdgeOverlap(f->ident, dtEnd);
+          uint32             dt3p  = (isReverse(f->position) == true);
+          BestEdgeOverlap   *bEdge = OG->getBestEdgeOverlap(f->ident, dt3p);
 
-          if ((bEdge) && (bEdge->frag_b_id > 0))
+          if ((bEdge) && (bEdge->fragId() > 0))
             fprintf(logFile,"unitig %d %c' frag %d points to unitig %d frag %d\n",
-                    tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
-                    Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
+                    tig->id(), dt3p ? '3' : '5', f->ident,
+                    Unitig::fragIn(bEdge->fragId()), bEdge->fragId());
         }
 
         if (fragIdx + 1 == tig->ufpath.size()) {
-          uint32             dtEnd = (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME;
-          BestEdgeOverlap   *bEdge = OG->getBestEdgeOverlap(f->ident, dtEnd);
+          uint32             dt3p  = (isReverse(f->position) == false);
+          BestEdgeOverlap   *bEdge = OG->getBestEdgeOverlap(f->ident, dt3p);
 
-          if ((bEdge) && (bEdge->frag_b_id > 0))
+          if ((bEdge) && (bEdge->fragId() > 0))
             fprintf(logFile,"unitig %d %c' frag %d points to unitig %d frag %d\n",
-                    tig->id(), (dtEnd == THREE_PRIME) ? '3' : '5', f->ident,
-                    Unitig::fragIn(bEdge->frag_b_id), bEdge->frag_b_id);
+                    tig->id(), dt3p ? '3' : '5', f->ident,
+                    Unitig::fragIn(bEdge->fragId()), bEdge->fragId());
         }
       }
 
@@ -128,43 +128,43 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
            fragItr++) {
         uint32 inFrag = *fragItr;
 
-        BestEdgeOverlap  *best5 = OG->getBestEdgeOverlap(inFrag, FIVE_PRIME);
-        BestEdgeOverlap  *best3 = OG->getBestEdgeOverlap(inFrag, THREE_PRIME);
+        BestEdgeOverlap  *best5 = OG->getBestEdgeOverlap(inFrag, false);
+        BestEdgeOverlap  *best3 = OG->getBestEdgeOverlap(inFrag, true);
 
         // check if it's incoming frag's 5' best edge.  If not, it must be the 3' edge.
 
-        uint32            bestEnd;
+        bool              best3p;
         BestEdgeOverlap  *bestEdge;
 
-        if        (best5->frag_b_id == f->ident) {
-          bestEnd  = FIVE_PRIME;
+        if        (best5->fragId() == f->ident) {
+          best3p   = false;
           bestEdge = best5;
-        } else if (best3->frag_b_id == f->ident) {
-          bestEnd  = THREE_PRIME;
+        } else if (best3->fragId() == f->ident) {
+          best3p   = true;
           bestEdge = best3;
         } else {
           assert(0);
           continue;
         }
 
-        int pos = (bestEdge->bend == FIVE_PRIME) ? f->position.bgn : f->position.end;
+        int pos = (bestEdge->frag3p() == false) ? f->position.bgn : f->position.end;
 
         Unitig *inTig = unitigs[Unitig::fragIn(inFrag)];
         assert(inTig->id() == Unitig::fragIn(inFrag));
 
         //  Don't break on spur fragments!  These will only chop off the ends of unitigs anyway.
         if ((inTig->ufpath.size() == 1) &&
-            ((best5->frag_b_id == 0) || (best3->frag_b_id == 0))) {
+            ((best5->fragId() == 0) || (best3->fragId() == 0))) {
           if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
             fprintf(logFile, "unitig %d (%d frags, len %d) frag %d end %c' into unitig %d frag %d end %c' pos %d -- IS A SPUR, skip it\n",
                     Unitig::fragIn(inFrag),
                     inTig->getNumFrags(),
                     inTig->getLength(),
                     inFrag,
-                    (bestEnd == FIVE_PRIME) ? '5' : '3',
+                    best3p ? '3' : '5',
                     tig->id(),
                     f->ident,
-                    (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
+                    bestEdge->frag3p() ? '3' : '5',
                     pos);
           continue;
         }
@@ -185,7 +185,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
           }
         }
 
-        UnitigBreakPoint breakPoint(f->ident, bestEdge->bend);
+        UnitigBreakPoint breakPoint(f->ident, bestEdge->frag3p());
 
         breakPoint.fragPos     = f->position;
         breakPoint.fragsBefore = fragCount;
@@ -201,10 +201,10 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
                   inTig->getNumFrags(),
                   inTig->getLength(),
                   inFrag,
-                  (bestEnd == FIVE_PRIME) ? '5' : '3',
+                  best3p ? '3' : '5',
                   tig->id(),
                   f->ident,
-                  (bestEdge->bend == FIVE_PRIME) ? '5' : '3',
+                  bestEdge->frag3p() ? '3' : '5',
                   pos);
 
         if (breakFile) {
@@ -213,8 +213,8 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
 
           omesg.aifrag          = inFrag;
           omesg.bifrag          = f->ident;
-          omesg.ahg             = bestEdge->ahang;
-          omesg.bhg             = bestEdge->bhang;
+          omesg.ahg             = bestEdge->ahang();
+          omesg.bhg             = bestEdge->bhang();
           omesg.orientation.setIsUnknown();
           omesg.overlap_type    = AS_DOVETAIL;
           omesg.quality         = 0.0;
@@ -226,13 +226,13 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
           omesg.alignment_delta = NULL;
 #endif
 
-          if ((bestEnd == FIVE_PRIME) && (bestEdge->bend == FIVE_PRIME))
+          if ((best3p == false) && (bestEdge->frag3p() == false))
             omesg.orientation.setIsOuttie();
-          if ((bestEnd == FIVE_PRIME) && (bestEdge->bend == THREE_PRIME))
+          if ((best3p == false) && (bestEdge->frag3p() == true))
             omesg.orientation.setIsAnti();
-          if ((bestEnd == THREE_PRIME) && (bestEdge->bend == FIVE_PRIME))
+          if ((best3p == true) && (bestEdge->frag3p() == false))
             omesg.orientation.setIsNormal();
-          if ((bestEnd == THREE_PRIME) && (bestEdge->bend == THREE_PRIME))
+          if ((best3p == true) && (bestEdge->frag3p() == true))
             omesg.orientation.setIsInnie();
 
           pmesg.t = MESG_OVL;
@@ -250,7 +250,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
       //  have a reference point to the end of the tig for
       //  filtering the breakpoints.  fakeEnd, for searching.
       //
-      UnitigBreakPoint breakPoint(f->ident, (isReverse(f->position)) ? FIVE_PRIME : THREE_PRIME);
+      UnitigBreakPoint breakPoint(f->ident, (isReverse(f->position) == false));
 
       //  +1 below seems like a bug, but it reproduces what was here
       //  before.

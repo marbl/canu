@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.7 2010-10-01 13:12:23 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.8 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -73,13 +73,13 @@ UnitigGraph::unitigToMA(MultiAlignT *ma,
 
 
 void
-UnitigGraph::writeIUMtoFile(char *fileprefix,
-                            char *tigStorePath,
-                            int   frg_count_target,
-                            bool  isFinal) {
-  int32       utg_count              = 0;
-  int32       frg_count              = 0;
-  int32       prt_count              = 1;
+UnitigGraph::writeIUMtoFile(char   *fileprefix,
+                            char   *tigStorePath,
+                            uint32  frg_count_target,
+                            bool    isFinal) {
+  uint32      utg_count              = 0;
+  uint32      frg_count              = 0;
+  uint32      prt_count              = 1;
   char        filename[FILENAME_MAX] = {0};
   uint32     *partmap                = new uint32 [unitigs.size()];
 
@@ -132,13 +132,13 @@ UnitigGraph::writeIUMtoFile(char *fileprefix,
     assert(tigid < unitigs.size());
     partmap[tigid] = prt_count;
 
-    fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (in partition "F_U32" with "F_S64" frags)\n",
+    fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (in partition "F_U32" with "F_U32" frags)\n",
             utg->id(),
             (tigid),
             partmap[(tigid)],
             nf);
 
-    for (int32 fragIdx=0; fragIdx<nf; fragIdx++) {
+    for (uint32 fragIdx=0; fragIdx<nf; fragIdx++) {
       ufNode  *f = &utg->ufpath[fragIdx];
 
       fprintf(part, "%d\t%d\n", prt_count, f->ident);
@@ -214,20 +214,20 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
 
       //  Where is our best overlap?  Contained or dovetail?
 
-      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, false);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, true);
 
       int              bestident5 = 0;
       int              bestident3 = 0;
 
       if (bestedge5) {
-        bestident5 = bestedge5->frag_b_id;
+        bestident5 = bestedge5->fragId();
 
         if ((bestident5 > 0) && (utg->fragIn(bestident5) != utg->id())) {
           omesg.aifrag          = frg->ident;
           omesg.bifrag          = bestident5;
-          omesg.ahg             = bestedge5->ahang;
-          omesg.bhg             = bestedge5->bhang;
+          omesg.ahg             = bestedge5->ahang();
+          omesg.bhg             = bestedge5->bhang();
           omesg.orientation.setIsUnknown();
           omesg.overlap_type    = AS_DOVETAIL;
           omesg.quality         = 0.0;
@@ -240,9 +240,9 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
 #endif
 
           //  This overlap is off of the 5' end of this fragment.
-          if (bestedge5->bend == FIVE_PRIME)
+          if (bestedge5->frag3p() == false)
             omesg.orientation.setIsOuttie();
-          if (bestedge5->bend == THREE_PRIME)
+          if (bestedge5->frag3p() == true)
             omesg.orientation.setIsAnti();
 
           pmesg.t = MESG_OVL;
@@ -253,13 +253,13 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
       }
 
       if (bestedge3) {
-        bestident3 = bestedge3->frag_b_id;
+        bestident3 = bestedge3->fragId();
 
         if ((bestident3 > 0) && (utg->fragIn(bestident3) != utg->id())) {
           omesg.aifrag          = frg->ident;
           omesg.bifrag          = bestident3;
-          omesg.ahg             = bestedge3->ahang;
-          omesg.bhg             = bestedge3->bhang;
+          omesg.ahg             = bestedge3->ahang();
+          omesg.bhg             = bestedge3->bhang();
           omesg.orientation.setIsUnknown();
           omesg.overlap_type    = AS_DOVETAIL;
           omesg.quality         = 0.0;
@@ -272,9 +272,9 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
 #endif
 
           //  This overlap is off of the 3' end of this fragment.
-          if (bestedge3->bend == FIVE_PRIME)
+          if (bestedge3->frag3p() == false)
             omesg.orientation.setIsNormal();
-          if (bestedge3->bend == THREE_PRIME)
+          if (bestedge3->frag3p() == true)
             omesg.orientation.setIsInnie();
 
           pmesg.t = MESG_OVL;

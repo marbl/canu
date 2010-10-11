@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.6 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -66,21 +66,19 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
     {
       ufNode *frg      = &fr->ufpath[0];
       ufNode *tgt      = NULL;
-      uint32        tgtEnd   = 0;
+      bool    tgt3p    = false;
 
-      bool  fragForward = (frg->position.bgn < frg->position.end);
-
-      uint32           bestEnd  = (fragForward) ? FIVE_PRIME : THREE_PRIME;
-      BestEdgeOverlap *bestEdge = OG->getBestEdgeOverlap(frg->ident, bestEnd);
+      bool             fragForward = (frg->position.bgn < frg->position.end);
+      BestEdgeOverlap *bestEdge = OG->getBestEdgeOverlap(frg->ident, (fragForward == false));
 
       int32            toID = 0;
       Unitig          *to   = NULL;
 
       //  No best edge?  Skip it.
-      if (bestEdge->frag_b_id == 0)
+      if (bestEdge->fragId() == 0)
         goto skipFirst;
 
-      toID = fr->fragIn(bestEdge->frag_b_id);
+      toID = fr->fragIn(bestEdge->fragId());
       to   = unitigs[toID];
 
       //  Joining to something teeny?  Skip it.
@@ -90,14 +88,14 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       //  Figure out which fragment we have an edge to, and which end of it is sticking out from the
       //  end of the unitig.
 
-      if (bestEdge->frag_b_id == to->ufpath[0].ident) {
+      if (bestEdge->fragId() == to->ufpath[0].ident) {
         tgt      = &to->ufpath[0];
-        tgtEnd   = (tgt->position.bgn < tgt->position.end) ? FIVE_PRIME : THREE_PRIME;
+        tgt3p    = (tgt->position.bgn > tgt->position.end);
       }
 
-      if (bestEdge->frag_b_id == to->ufpath[to->ufpath.size()-1].ident) {
+      if (bestEdge->fragId() == to->ufpath[to->ufpath.size()-1].ident) {
         tgt      = &to->ufpath[to->ufpath.size()-1];
-        tgtEnd   = (tgt->position.bgn < tgt->position.end) ? THREE_PRIME : FIVE_PRIME;
+        tgt3p    = (tgt->position.bgn < tgt->position.end);
       }
 
       //  Attempt to join to a fragment that isn't first or last.  Skip it.
@@ -105,7 +103,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
         goto skipFirst;
 
       //  Joining to the wrong end of the first/last fragment?  Skip it.
-      if (bestEdge->bend != tgtEnd)
+      if (bestEdge->frag3p() != tgt3p)
         goto skipFirst;
 
       //  OK, join.
@@ -127,21 +125,19 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
     {
       ufNode *frg      = &fr->ufpath[0];
       ufNode *tgt      = NULL;
-      uint32        tgtEnd   = 0;
+      uint32  tgt3p    = false;
 
-      bool  fragForward = (frg->position.bgn < frg->position.end);
-
-      uint32           bestEnd  = (fragForward) ? THREE_PRIME : FIVE_PRIME;
-      BestEdgeOverlap *bestEdge = OG->getBestEdgeOverlap(frg->ident, bestEnd);
+      bool             fragForward = (frg->position.bgn < frg->position.end);
+      BestEdgeOverlap *bestEdge = OG->getBestEdgeOverlap(frg->ident, fragForward);
 
       int32            toID = 0;
       Unitig          *to   = NULL;
 
       //  No best edge?  Skip it.
-      if (bestEdge->frag_b_id == 0)
+      if (bestEdge->fragId() == 0)
         goto skipLast;
 
-      toID = fr->fragIn(bestEdge->frag_b_id);
+      toID = fr->fragIn(bestEdge->fragId());
       to   = unitigs[toID];
 
       //  Joining to something teeny?  Skip it.
@@ -151,14 +147,14 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       //  Figure out which fragment we have an edge to, and which end of it is sticking out from the
       //  end of the unitig.
 
-      if (bestEdge->frag_b_id == to->ufpath[0].ident) {
+      if (bestEdge->fragId() == to->ufpath[0].ident) {
         tgt      = &to->ufpath[0];
-        tgtEnd   = (tgt->position.bgn < tgt->position.end) ? FIVE_PRIME : THREE_PRIME;
+        tgt3p    = (tgt->position.bgn > tgt->position.end);
       }
 
-      if (bestEdge->frag_b_id == to->ufpath[to->ufpath.size()-1].ident) {
+      if (bestEdge->fragId() == to->ufpath[to->ufpath.size()-1].ident) {
         tgt      = &to->ufpath[to->ufpath.size()-1];
-        tgtEnd   = (tgt->position.bgn < tgt->position.end) ? THREE_PRIME : FIVE_PRIME;
+        tgt3p    = (tgt->position.bgn < tgt->position.end);
       }
 
       //  Attempt to join to a fragment that isn't first or last.  Skip it.
@@ -166,7 +162,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
         goto skipLast;
 
       //  Joining to the wrong end of the first/last fragment?  Skip it.
-      if (bestEdge->bend != tgtEnd)
+      if (bestEdge->frag3p() != tgt3p)
         goto skipLast;
 
       //  OK, join.
@@ -192,8 +188,8 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
   for (uint32 j=0; j<joinsLen; j++) {
     joinEntry  *join = joins + j;
 
-    int32    frUnitigID = Unitig::fragIn(join->frFragID);
-    int32    toUnitigID = Unitig::fragIn(join->toFragID);
+    uint32    frUnitigID = Unitig::fragIn(join->frFragID);
+    uint32    toUnitigID = Unitig::fragIn(join->toFragID);
 
     Unitig  *frUnitig = unitigs[frUnitigID];
     Unitig  *toUnitig = unitigs[toUnitigID];
@@ -202,8 +198,8 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       //  Already added one of the unitigs to another one.  Should never happen, really.
       continue;
 
-    int32  frIdx = Unitig::pathPosition(join->frFragID);
-    int32  toIdx = Unitig::pathPosition(join->toFragID);
+    uint32  frIdx = Unitig::pathPosition(join->frFragID);
+    uint32  toIdx = Unitig::pathPosition(join->toFragID);
 
     //  If either fragment is not the first or last, bail.  We already joined something to
     //  one of these unitigs.
@@ -215,7 +211,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       continue;
 
     if (logFileFlagSet(LOG_INTERSECTION_JOINING))
-      fprintf(logFile, "Join from unitig %d (length %d idx %d/%d) to unitig %d (length %d idx %d/%d) for a total length of %d\n",
+      fprintf(logFile, "Join from unitig "F_U32" (length %d idx %d/%d) to unitig "F_U32" (length %d idx %d/%d) for a total length of %d\n",
               frUnitigID, join->frLen, frIdx, frUnitig->ufpath.size(),
               toUnitigID, join->toLen, toIdx, toUnitig->ufpath.size(),
               join->combinedLength);
@@ -241,32 +237,22 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       //  Construct an edge that will place the frFragment onto the toUnitig.  This edge
       //  can come from either fragment.
 
-      BestEdgeOverlap  *best5fr = OG->getBestEdgeOverlap(frFragment->ident, FIVE_PRIME);
-      BestEdgeOverlap  *best3fr = OG->getBestEdgeOverlap(frFragment->ident, THREE_PRIME);
-      BestEdgeOverlap  *best5to = OG->getBestEdgeOverlap(toFragment->ident, FIVE_PRIME);
-      BestEdgeOverlap  *best3to = OG->getBestEdgeOverlap(toFragment->ident, THREE_PRIME);
+      BestEdgeOverlap  *best5fr = OG->getBestEdgeOverlap(frFragment->ident, false);
+      BestEdgeOverlap  *best3fr = OG->getBestEdgeOverlap(frFragment->ident, true);
+      BestEdgeOverlap  *best5to = OG->getBestEdgeOverlap(toFragment->ident, false);
+      BestEdgeOverlap  *best3to = OG->getBestEdgeOverlap(toFragment->ident, true);
 
       BestEdgeOverlap   joinEdge5;
       BestEdgeOverlap   joinEdge3;
 
-      joinEdge5.frag_b_id = 0;
-      joinEdge5.bend      = 0;
-      joinEdge5.ahang     = 0;
-      joinEdge5.bhang     = 0;
-
-      joinEdge3.frag_b_id = 0;
-      joinEdge3.bend      = 0;
-      joinEdge3.ahang     = 0;
-      joinEdge3.bhang     = 0;
-
       //  The first two cases are trivial, the edge is already correctly oriented, so just copy it over.
 
-      if ((best5fr->frag_b_id == toFragment->ident) ||
-          (Unitig::fragIn(best5fr->frag_b_id) == toUnitigID))
+      if ((best5fr->fragId() == toFragment->ident) ||
+          (Unitig::fragIn(best5fr->fragId()) == toUnitigID))
         joinEdge5 = *best5fr;
 
-      if ((best3fr->frag_b_id == toFragment->ident) ||
-          (Unitig::fragIn(best3fr->frag_b_id) == toUnitigID))
+      if ((best3fr->fragId() == toFragment->ident) ||
+          (Unitig::fragIn(best3fr->fragId()) == toUnitigID))
         joinEdge3 = *best3fr;
 
 
@@ -277,60 +263,46 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       //  If the fragments are innie/outtie, we need to reverse the overlap to maintain that the
       //  A fragment is forward.
       //
-      if (best5to->frag_b_id == frFragment->ident) {
-        if (best5to->bend == FIVE_PRIME) {
-          joinEdge5.frag_b_id = toFragment->ident;
-          joinEdge5.bend      = FIVE_PRIME;
-          joinEdge5.ahang     = best5to->bhang;
-          joinEdge5.bhang     = best5to->ahang;
-        } else {
-          joinEdge3.frag_b_id = toFragment->ident;
-          joinEdge3.bend      = FIVE_PRIME;
-          joinEdge3.ahang     = -best5to->ahang;
-          joinEdge3.bhang     = -best5to->bhang;
-        }
+      if (best5to->fragId() == frFragment->ident) {
+        if (best5to->frag3p() == false)
+          joinEdge5.set(toFragment->ident, false, best5to->bhang(), best5to->ahang());
+        else
+          joinEdge3.set(toFragment->ident, false, -best5to->ahang(), -best5to->bhang());
       }
 
-      if (best3to->frag_b_id == frFragment->ident) {
-        if (best3to->bend == FIVE_PRIME) {
-          joinEdge5.frag_b_id = toFragment->ident;
-          joinEdge5.bend      = THREE_PRIME;
-          joinEdge5.ahang     = -best3to->ahang;
-          joinEdge5.bhang     = -best3to->bhang;
-        } else {
-          joinEdge3.frag_b_id = toFragment->ident;
-          joinEdge3.bend      = THREE_PRIME;
-          joinEdge3.ahang     = best3to->bhang;
-          joinEdge3.bhang     = best3to->ahang;
-        }
+      if (best3to->fragId() == frFragment->ident) {
+        if (best3to->frag3p() == false)
+          joinEdge5.set(toFragment->ident, true, -best3to->ahang(), -best3to->bhang());
+        else
+          joinEdge3.set(toFragment->ident, true, best3to->bhang(), best3to->ahang());
       }
 
       if (logFileFlagSet(LOG_INTERSECTION_JOINING_DEBUG)) {
         fprintf(logFile, "Adding frag %d using frag %d (%d,%d)\n", frFragment->ident, toFragment->ident, toFragment->position.bgn, toFragment->position.end);
-        fprintf(logFile, "best5fr = %8d %1d %5d %5d\n", best5fr->frag_b_id, best5fr->bend, best5fr->ahang, best5fr->bhang);
-        fprintf(logFile, "best3fr = %8d %1d %5d %5d\n", best3fr->frag_b_id, best3fr->bend, best3fr->ahang, best3fr->bhang);
-        fprintf(logFile, "best5to = %8d %1d %5d %5d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
-        fprintf(logFile, "best3to = %8d %1d %5d %5d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
-        fprintf(logFile, "join3   = %8d %1d %5d %5d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
-        fprintf(logFile, "join5   = %8d %1d %5d %5d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
+        fprintf(logFile, "best5fr = %8d %1d %5d %5d\n", best5fr->fragId(), best5fr->frag3p(), best5fr->ahang(), best5fr->bhang());
+        fprintf(logFile, "best3fr = %8d %1d %5d %5d\n", best3fr->fragId(), best3fr->frag3p(), best3fr->ahang(), best3fr->bhang());
+        fprintf(logFile, "best5to = %8d %1d %5d %5d\n", best5to->fragId(), best5to->frag3p(), best5to->ahang(), best5to->bhang());
+        fprintf(logFile, "best3to = %8d %1d %5d %5d\n", best3to->fragId(), best3to->frag3p(), best3to->ahang(), best3to->bhang());
+        fprintf(logFile, "join3   = %8d %1d %5d %5d\n", best5to->fragId(), best5to->frag3p(), best5to->ahang(), best5to->bhang());
+        fprintf(logFile, "join5   = %8d %1d %5d %5d\n", best3to->fragId(), best3to->frag3p(), best3to->ahang(), best3to->bhang());
       }
 
-      if ((joinEdge5.frag_b_id == 0) &&
-          (joinEdge3.frag_b_id == 0)) {
+      if ((joinEdge5.fragId() == 0) &&
+          (joinEdge3.fragId() == 0)) {
         //  No suitable edge found to add frFragment to the toUnitig!
         fprintf(logFile, "ERROR:  No edge found!  Can't place fragment.\n");
-        fprintf(logFile, "best5fr = %d %d %d %d\n", best5fr->frag_b_id, best5fr->bend, best5fr->ahang, best5fr->bhang);
-        fprintf(logFile, "best3fr = %d %d %d %d\n", best3fr->frag_b_id, best3fr->bend, best3fr->ahang, best3fr->bhang);
-        fprintf(logFile, "best5to = %d %d %d %d\n", best5to->frag_b_id, best5to->bend, best5to->ahang, best5to->bhang);
-        fprintf(logFile, "best3to = %d %d %d %d\n", best3to->frag_b_id, best3to->bend, best3to->ahang, best3to->bhang);
+        fprintf(logFile, "best5fr = %d %d %d %d\n", best5fr->fragId(), best5fr->frag3p(), best5fr->ahang(), best5fr->bhang());
+        fprintf(logFile, "best3fr = %d %d %d %d\n", best3fr->fragId(), best3fr->frag3p(), best3fr->ahang(), best3fr->bhang());
+        fprintf(logFile, "best5to = %d %d %d %d\n", best5to->fragId(), best5to->frag3p(), best5to->ahang(), best5to->bhang());
+        fprintf(logFile, "best3to = %d %d %d %d\n", best3to->fragId(), best3to->frag3p(), best3to->ahang(), best3to->bhang());
         assert(0);
       }
 
       //  Now, just add the fragment.  Simple!
 
       if (toUnitig->addAndPlaceFrag(frFragment->ident,
-                                    (joinEdge5.frag_b_id == 0) ? NULL : &joinEdge5,
-                                    (joinEdge3.frag_b_id == 0) ? NULL : &joinEdge3,
+                                    (joinEdge5.fragId() == 0) ? NULL : &joinEdge5,
+                                    (joinEdge3.fragId() == 0) ? NULL : &joinEdge3,
                                     logFileFlagSet(LOG_INTERSECTION_JOINING)) == false) {
         fprintf(logFile, "ERROR:  Failed to place frag %d into extended unitig.\n", frFragment->ident);
         assert(0);

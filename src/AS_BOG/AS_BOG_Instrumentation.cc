@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.8 2010-10-04 03:28:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.9 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -118,17 +118,17 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
 
       //  Where is our best overlap?  Contained or dovetail?
 
-      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, false);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, true);
 
       uint32           bestident5 = 0;
       uint32           bestident3 = 0;
 
       if (bestedge5)
-        bestident5 = bestedge5->frag_b_id;
+        bestident5 = bestedge5->fragId();
 
       if (bestedge3)
-        bestident3 = bestedge3->frag_b_id;
+        bestident3 = bestedge3->fragId();
 
       //  Now search ahead, reporting any overlap to any fragment.
       //

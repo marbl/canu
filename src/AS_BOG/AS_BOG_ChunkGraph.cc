@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.34 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.35 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -44,8 +44,8 @@ ChunkGraph::ChunkGraph() {
       continue;
 
     _chunkLength[fid-1].fragId = fid;
-    _chunkLength[fid-1].cnt    = (countFullWidth(FragmentEnd(fid, FIVE_PRIME)) +
-                                  countFullWidth(FragmentEnd(fid, THREE_PRIME)));
+    _chunkLength[fid-1].cnt    = (countFullWidth(FragmentEnd(fid, false)) +
+                                  countFullWidth(FragmentEnd(fid, true)));
   }
 
   delete [] _pathLen;
@@ -133,7 +133,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
 
     fprintf(logFile, "PATH from %d,%d:",
             firstEnd.fragId(),
-            (firstEnd.fragEnd() == FIVE_PRIME) ? 5 : 3);
+            (firstEnd.frag3p()) ? 3 : 5);
 
     while ((currEnd.fragId() != 0) &&
            (seen.find(currEnd) == seen.end())) {
@@ -144,7 +144,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
 
       fprintf(logFile, " %d,%d(%d)",
               currEnd.fragId(),
-              (currEnd.fragEnd() == FIVE_PRIME) ? 5 : 3,
+              (currEnd.frag3p()) ? 3 : 5,
               _pathLen[currEnd.index()]);
 
       currEnd = OG->followOverlap(currEnd);
@@ -153,7 +153,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
     if (seen.find(currEnd) != seen.end())
       fprintf(logFile, " CYCLE %d,%d(%d)",
               currEnd.fragId(),
-              (currEnd.fragEnd() == FIVE_PRIME) ? 5 : 3,
+              (currEnd.frag3p()) ? 3 : 5,
               _pathLen[currEnd.index()]);
 
     fprintf(logFile, "\n");

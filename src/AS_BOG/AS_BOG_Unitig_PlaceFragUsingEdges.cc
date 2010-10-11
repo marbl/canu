@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.3 2010-10-07 12:49:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.4 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -69,17 +69,17 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   //  If we have an incoming edge, AND the fragment for that edge is in this unitig, look up its
   //  index.  Otherwise, discard the edge to prevent placement.
   //
-  if ((bestedge5) && (fragIn(bestedge5->frag_b_id) == id())) {
-    bidx5 = pathPosition(bestedge5->frag_b_id);
-    assert(bestedge5->frag_b_id == ufpath[bidx5].ident);
+  if ((bestedge5) && (fragIn(bestedge5->fragId()) == id())) {
+    bidx5 = pathPosition(bestedge5->fragId());
+    assert(bestedge5->fragId() == ufpath[bidx5].ident);
   } else {
     bestedge5 = NULL;
     bidx5     = -1;
   }
 
-  if ((bestedge3) && (fragIn(bestedge3->frag_b_id) == id())) {
-    bidx3 = pathPosition(bestedge3->frag_b_id);;
-    assert(bestedge3->frag_b_id == ufpath[bidx3].ident);
+  if ((bestedge3) && (fragIn(bestedge3->fragId()) == id())) {
+    bidx3 = pathPosition(bestedge3->fragId());;
+    assert(bestedge3->fragId() == ufpath[bidx3].ident);
   } else {
     bestedge3 = NULL;
     bidx3     = -1;
@@ -90,19 +90,19 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   if ((bestedge5) && (bidx5 != -1)) {
     ufNode *parent = &ufpath[bidx5];
 
-    assert(parent->ident == bestedge5->frag_b_id);
+    assert(parent->ident == bestedge5->fragId());
 
     //  Overlap is stored using 'node' as the A frag, and we negate the hangs to make them relative
     //  to the 'parent'.  (This is opposite from how containment edges are saved.)  A special case
     //  exists when we overlap to the 5' end of the other fragment; we need to flip the overlap to
     //  ensure the (new) A frag is forward.
 
-    int ahang = -bestedge5->ahang;
-    int bhang = -bestedge5->bhang;
+    int ahang = -bestedge5->ahang();
+    int bhang = -bestedge5->bhang();
 
-    if (bestedge5->bend == FIVE_PRIME) {
-      ahang = bestedge5->bhang;
-      bhang = bestedge5->ahang;
+    if (bestedge5->frag3p() == false) {
+      ahang = bestedge5->bhang();
+      bhang = bestedge5->ahang();
     }
 
     int  pbgn, pend;
@@ -172,17 +172,17 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     //    the old frag is forward and we hit its 3' end, or
     //    the old frag is reverse and we hit its 5' end.
     //
-    bool flip = (((parent->position.bgn < parent->position.end) && (bestedge5->bend == FIVE_PRIME)) ||
-                 ((parent->position.end < parent->position.bgn) && (bestedge5->bend == THREE_PRIME)));
+    bool flip = (((parent->position.bgn < parent->position.end) && (bestedge5->frag3p() == false)) ||
+                 ((parent->position.end < parent->position.bgn) && (bestedge5->frag3p() == true)));
 
 #ifdef DEBUG_PLACE_FRAG
     fprintf(logFile, "bestedge5:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
             parent->ident, parent->position.bgn, parent->position.end,
-            bestedge5->frag_b_id, bestedge5->bend, bestedge5->ahang, bestedge5->bhang, fbgn, fend, flip);
+            bestedge5->fragId(), bestedge5->frag3p(), bestedge5->ahang(), bestedge5->bhang(), fbgn, fend, flip);
 #endif
 
     frag5.contained    = 0;
-    frag5.parent       = bestedge5->frag_b_id;
+    frag5.parent       = bestedge5->fragId();
     frag5.ahang        = ahang;
     frag5.bhang        = bhang;
     frag5.position.bgn = (flip) ? fend : fbgn;
@@ -193,14 +193,14 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   if ((bestedge3) && (bidx3 != -1)) {
     ufNode *parent = &ufpath[bidx3];
 
-    assert(parent->ident == bestedge3->frag_b_id);
+    assert(parent->ident == bestedge3->fragId());
 
-    int ahang = -bestedge3->ahang;
-    int bhang = -bestedge3->bhang;
+    int ahang = -bestedge3->ahang();
+    int bhang = -bestedge3->bhang();
 
-    if (bestedge3->bend == THREE_PRIME) {
-      ahang = bestedge3->bhang;
-      bhang = bestedge3->ahang;
+    if (bestedge3->frag3p() == true) {
+      ahang = bestedge3->bhang();
+      bhang = bestedge3->ahang();
     }
 
     int  pbgn, pend;
@@ -256,17 +256,17 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     //    the old frag is forward and we hit its 5' end, or
     //    the old frag is reverse and we hit its 3' end.
     //
-    bool flip = (((parent->position.bgn < parent->position.end) && (bestedge3->bend == THREE_PRIME)) ||
-                 ((parent->position.end < parent->position.bgn) && (bestedge3->bend == FIVE_PRIME)));
+    bool flip = (((parent->position.bgn < parent->position.end) && (bestedge3->frag3p() == true)) ||
+                 ((parent->position.end < parent->position.bgn) && (bestedge3->frag3p() == false)));
 
 #ifdef DEBUG_PLACE_FRAG
     fprintf(logFile, "bestedge3:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
             parent->ident, parent->position.bgn, parent->position.end,
-            bestedge3->frag_b_id, bestedge3->bend, bestedge3->ahang, bestedge3->bhang, fbgn, fend, flip);
+            bestedge3->fragId(), bestedge3->frag3p(), bestedge3->ahang(), bestedge3->bhang(), fbgn, fend, flip);
 #endif
 
     frag3.contained    = 0;
-    frag3.parent       = bestedge3->frag_b_id;
+    frag3.parent       = bestedge3->fragId();
     frag3.ahang        = ahang;
     frag3.bhang        = bhang;
     frag3.position.bgn = (flip) ? fend : fbgn;

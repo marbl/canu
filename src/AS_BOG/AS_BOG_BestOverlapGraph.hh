@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.62 2010-10-01 13:40:57 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.63 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -33,10 +33,10 @@ struct BestOverlapGraph {
 
   //  Given a fragment UINT32 and which end, returns pointer to
   //  BestOverlap node.
-  BestEdgeOverlap *getBestEdgeOverlap(uint32 frag_id, uint32 which_end) {
-    if(which_end == FIVE_PRIME)    return(&_best_overlaps[frag_id].five_prime);
-    if(which_end == THREE_PRIME)   return(&_best_overlaps[frag_id].three_prime);
-    return(NULL);
+  BestEdgeOverlap *getBestEdgeOverlap(uint32 frag_id, bool threePrime) {
+    if (threePrime)
+      return(_best3 + frag_id);
+    return(_best5 + frag_id);
   };
 
   // given a FragmentEnd sets it to the next FragmentEnd after following the
@@ -45,22 +45,22 @@ struct BestOverlapGraph {
     if (end.fragId() == 0)
       return(FragmentEnd());
 
-    BestEdgeOverlap *edge = getBestEdgeOverlap(end.fragId(), end.fragEnd());
+    BestEdgeOverlap *edge = getBestEdgeOverlap(end.fragId(), end.frag3p());
 
-    return(FragmentEnd(edge->frag_b_id, (edge->bend == FIVE_PRIME) ? THREE_PRIME : FIVE_PRIME));
+    return(FragmentEnd(edge->fragId(), !edge->frag3p()));
   };
 
   bool isContained(const uint32 fragid) {
-    return(_best_contains[fragid].isContained);
+    return(_bestC[fragid].isContained);
   };
 
   // Given a containee, returns pointer to BestContainment record
   BestContainment *getBestContainer(const uint32 fragid) {
-    return((isContained(fragid)) ? &_best_contains[fragid] : NULL);
+    return((isContained(fragid)) ? &_bestC[fragid] : NULL);
   };
 
   bool containHaveEdgeTo(uint32 contain, uint32 otherRead) {
-    BestContainment  *c = &_best_contains[contain];
+    BestContainment  *c = &_bestC[contain];
     bool              r = false;
 
     if ((c->olapsLen == 0) || (c->olaps == NULL))
@@ -232,12 +232,13 @@ private:
   bool load(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT);
 
 private:
-  BestFragmentOverlap *_best_overlaps;
-  BestContainment     *_best_contains;
+  BestEdgeOverlap     *_best5;
+  BestEdgeOverlap     *_best3;
+  BestContainment     *_bestC;
 
-  uint64              *_best_overlaps_5p_score;
-  uint64              *_best_overlaps_3p_score;
-  uint64              *_best_contains_score;
+  uint64              *_best5score;
+  uint64              *_best3score;
+  uint64              *_bestCscore;
 
 public:
   uint64 mismatchCutoff;

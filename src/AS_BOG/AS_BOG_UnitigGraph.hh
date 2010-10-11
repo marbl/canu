@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.79 2010-10-07 12:51:15 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.80 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -106,7 +106,7 @@ struct UnitigGraph{
 
   void unitigToMA(MultiAlignT *ma, uint32 iumiid, Unitig *utg);
 
-  void writeIUMtoFile(char *fileprefix, char *tigStorePath, int fragment_count_target, bool isFinal=true);
+  void writeIUMtoFile(char *fileprefix, char *tigStorePath, uint32 fragment_count_target, bool isFinal=true);
   void writeOVLtoFile(char *fileprefix);
   void writeCGAtoFile(char *fileprefix, float globalARate);
 

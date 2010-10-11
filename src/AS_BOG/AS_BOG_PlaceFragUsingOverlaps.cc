@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceFragUsingOverlaps.cc,v 1.1 2010-10-07 12:51:15 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceFragUsingOverlaps.cc,v 1.2 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -56,32 +56,6 @@ public:
   ufNode            frg;      //  Position computed from the overlap
 };
 
-
-//  DUPLICAATED IN AS_BOG_BestOverlapGraph.cc
-static
-uint32
-AEnd(const OVSoverlap& olap) {
-  if (olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 0)
-    return FIVE_PRIME;
-  if (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > 0)
-    return THREE_PRIME;
-
-  assert(0); // no contained
-  return(0);
-}
-
-static
-uint32
-BEnd(const OVSoverlap& olap) {
-  if (olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 0)
-    return((olap.dat.ovl.flipped) ? FIVE_PRIME : THREE_PRIME);
-
-  if (olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > 0)
-    return((olap.dat.ovl.flipped) ? THREE_PRIME : FIVE_PRIME);
-
-  assert(0); // no contained
-  return(0);
-}
 
 
 //  Given an implicit fragment -- a ufNode with only the 'ident' set -- this will compute the
@@ -226,15 +200,17 @@ UnitigGraph::placeFragUsingOverlaps(ufNode frag,
       //  A dovetail, use the existing placement routine
       BestEdgeOverlap   best;
       int32             plac3, plac5;
-      int32             end   = AEnd(ovl[i]);
+      int32             aend3p = AS_OVS_overlapAEndIs3prime(ovl[i]);
 
-      best.frag_b_id = ovl[i].b_iid;
-      best.bend      = BEnd(ovl[i]);
-      best.ahang     = ovl[i].dat.ovl.a_hang;
-      best.bhang     = ovl[i].dat.ovl.b_hang;
+      best.set(ovl[i]);
 
-      if (utg->placeFrag(frag, plac5, ((end == FIVE_PRIME) ? &best : NULL),
-                         frag, plac3, ((end == FIVE_PRIME) ? NULL  : &best))) {
+      //best.fragId = ovl[i].b_iid;
+      //best.frag3p      = Frag3p(ovl[i]);
+      //best.ahang     = ovl[i].dat.ovl.a_hang;
+      //best.bhang     = ovl[i].dat.ovl.b_hang;
+
+      if (utg->placeFrag(frag, plac5, (aend3p ? NULL  : &best),
+                         frag, plac3, (aend3p ? &best : NULL))) {
         ovlPlace[i].tigID = utgID;
         ovlPlace[i].frg   = frag;
 #if 0

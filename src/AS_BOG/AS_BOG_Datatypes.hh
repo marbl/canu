@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.47 2010-10-07 13:34:49 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.48 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -41,10 +41,6 @@ using namespace std;
 #include "AS_PER_gkpStore.h"
 
 ////////////////////////////////////////
-
-//  These MUST be 0 and 1, but it is arbitrary.
-#define FIVE_PRIME   0
-#define THREE_PRIME  1
 
 #define BADMATE_INTRA_STDDEV 3  //  Mates more than this stddev away in the same unitig are bad
 #define BADMATE_INTER_STDDEV 5  //  Mates more than this stddev away from the end of the unitig are bad
@@ -131,54 +127,75 @@ class FragmentEnd {
 public:
   FragmentEnd() {
     _id  = 0;
-    _end = 0;
+    _e3p = false;
   };
-  FragmentEnd(uint32 id, uint32 end) {
+  FragmentEnd(uint32 id, bool e3p) {
     _id  = id;
-    _end = end;
+    _e3p = e3p;
   };
 
   uint32  fragId(void)  const { return(_id); };
-  uint32  fragEnd(void) const { return(_end); };
-  uint32  index(void)   const { return(_id * 2 + _end); };
+  bool    frag3p(void)  const { return(_e3p == true);  };
+  bool    frag5p(void)  const { return(_e3p == false); };
+  uint32  index(void)   const { return(_id * 2 + _e3p); };
 
   bool operator==(FragmentEnd const that) const {
-    return((fragId() == that.fragId()) && (fragEnd() == that.fragEnd()));
+    return((fragId() == that.fragId()) && (frag3p() == that.frag3p()));
   };
 
   bool operator!=(FragmentEnd const that) const {
-    return((fragId() != that.fragId()) || (fragEnd() != that.fragEnd()));
+    return((fragId() != that.fragId()) || (frag3p() != that.frag3p()));
   };
 
   bool operator<(FragmentEnd const that) const {
     if (fragId() != that.fragId())
       return fragId() < that.fragId();
     else
-      return fragEnd() < that.fragEnd();
+      return frag3p() < that.frag3p();
   };
 
 private:
   uint32   _id:31;
-  uint32   _end:1;
+  uint32   _e3p:1;
 };
 
 
-class BestEdgeOverlap{
+class BestEdgeOverlap {
 public:
-  uint32            frag_b_id:31;
-  uint32            bend:1;
-  int32             ahang;
-  int32             bhang;
-};
+  BestEdgeOverlap() {
+    _ahang = 0;
+    _bhang = 0;
+  };
+  ~BestEdgeOverlap() {
+  };
+
+  void    set(OVSoverlap const &olap) {
+    _id    = olap.b_iid;
+    _e3p   = AS_OVS_overlapBEndIs3prime(olap);
+    _ahang = olap.dat.ovl.a_hang;
+    _bhang = olap.dat.ovl.b_hang;
+  };
+
+  void    set(uint32 id, bool e3p, int32 ahang, int32 bhang) {
+    _id    = id;
+    _e3p   = e3p;
+    _ahang = ahang;
+    _bhang = bhang;
+  };
 
 
-// Contains information on what a known fragment overlaps.
-// It is assumed that an index into an array of BestOverlap
-// will tell us what fragment has this best overlap
-class BestFragmentOverlap{
-public:
-  BestEdgeOverlap five_prime;
-  BestEdgeOverlap three_prime;
+  uint32  fragId(void)  const { return(_id); };
+  bool    frag3p(void)  const { return(_e3p == true);  };
+  bool    frag5p(void)  const { return(_e3p == false); };
+
+  int32   ahang(void)   const { return(_ahang); };
+  int32   bhang(void)   const { return(_bhang); };
+
+private:
+  uint32            _id:31;
+  uint32            _e3p:1;    //  Overlap with the 3' end of that fragment
+  int32             _ahang;
+  int32             _bhang;
 };
 
 

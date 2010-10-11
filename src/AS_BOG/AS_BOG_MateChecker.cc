@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.100 2010-10-08 16:21:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.101 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -362,15 +362,15 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
           if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
             fprintf(logFile,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
                     frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd);
-          uint32 fragEndInTig = THREE_PRIME;
+          uint32 frag3p = true;
           // If reverse mate is 1st and overlaps its mate break at 5'
           if (mloc.mleUtgID2 == tig->id() && isReverse(loc) &&
               !isReverse(mloc.mlePos2) && loc.bgn >= mloc.mlePos2.bgn)
-            fragEndInTig = FIVE_PRIME;
+            frag3p = false;
 
           // either adjust the break position to be before the container so the container travels together with containees
-          if (fragEndInTig ==  FIVE_PRIME && !isReverse(frag.position)||
-              fragEndInTig == THREE_PRIME &&  isReverse(frag.position)) {
+          if (frag3p == false && !isReverse(frag.position)||
+              frag3p == true  &&  isReverse(frag.position)) {
             // do nothing we are breaking before the current fragment which is our container
             incrementToNextFragment = false;
           } else {
@@ -384,7 +384,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
           frag = tig->ufpath[frgidx];
           loc = frag.position;
 
-          UnitigBreakPoint bp(frag.ident, fragEndInTig);
+          UnitigBreakPoint bp(frag.ident, frag3p);
           bp.fragPos = frag.position;
           bp.inSize = 100000;
           bp.inFrags = 10;
@@ -415,11 +415,11 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
                 (diff < DEFAULT_MIN_OLAP_LEN) ||
                 (OG->isContained(frag.ident) && !OG->containHaveEdgeTo(frag.ident, tig->ufpath[np].ident))) {
 
-              uint32 fragEndInTig = THREE_PRIME;
+              uint32 frag3p = true;
               if (isReverse(loc))
-                fragEndInTig = FIVE_PRIME;
+                frag3p = false;
 
-              UnitigBreakPoint bp(frag.ident, fragEndInTig);
+              UnitigBreakPoint bp(frag.ident, frag3p);
               bp.fragPos = loc;
               bp.inSize = 100001;
               bp.inFrags = 11;
@@ -429,7 +429,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
               breaks->push_back(bp);
               if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
                 fprintf(logFile,"Might make frg %d singleton, end %d size %u pos %d,%d\n",
-                        frag.ident, fragEndInTig, (uint32)breaks->size(), loc.bgn, loc.end);
+                        frag.ident, frag3p, (uint32)breaks->size(), loc.bgn, loc.end);
             }
           }
         }

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.20 2010-10-07 12:49:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.21 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -34,16 +34,16 @@ static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.20 2
 //  ufNode is, of course, 'unitig fragment node'.
 //
 struct ufNode {
-  int32           ident;
-  int32           contained;
-  int32           parent;     //  IID of the fragment we align to
+  uint32           ident;
+  uint32           contained;
+  uint32           parent;     //  IID of the fragment we align to
 
-  int32           ahang;      //  If parent defined, these are relative
-  int32           bhang;      //  that fragment
+  int32           ahang;       //  If parent defined, these are relative
+  int32           bhang;       //  that fragment
 
   SeqInterval     position;
 
-  int32           containment_depth;
+  uint32           containment_depth;
 };
 
 typedef std::vector<ufNode>         ufPath;

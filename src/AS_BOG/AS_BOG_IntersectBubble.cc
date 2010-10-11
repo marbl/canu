@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.6 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.7 2010-10-11 03:43:44 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -85,8 +85,8 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       int32  frgID = frg->ident;
       int32  utgID = shortTig->id();
 
-      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, false);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, true);
       BestContainment *bestcont  = OG->getBestContainer(frg->ident);
 
       if (FI->mateIID(frgID) > 0) {
@@ -99,10 +99,10 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       if (bestcont)
         continue;
 
-      if (bestedge5->frag_b_id == 0) {
+      if (bestedge5->fragId() == 0) {
         spurs++;
       } else {
-        uint32 ou5 = shortTig->fragIn(bestedge5->frag_b_id);
+        uint32 ou5 = shortTig->fragIn(bestedge5->fragId());
 
         assert(ou5 > 0);
 
@@ -116,10 +116,10 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
         }
       }
 
-      if (bestedge3->frag_b_id == 0) {
+      if (bestedge3->fragId() == 0) {
         spurs++;
       } else {
-        uint32 ou3 = shortTig->fragIn(bestedge3->frag_b_id);
+        uint32 ou3 = shortTig->fragIn(bestedge3->fragId());
 
         assert(ou3 > 0);
 
@@ -173,7 +173,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       if (bidx5 != -1) {
         if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
           fprintf(logFile, "popBubbles()-- place frag %d using 5' edge (%d,%c) in unitig %d at %d,%d\n",
-                  frgID, bestedge5->frag_b_id, bestedge5->bend ? '3' : '5', otherUtg, place5.position.bgn, place5.position.end);
+                  frgID, bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5', otherUtg, place5.position.bgn, place5.position.end);
         min5 = MIN(place5.position.bgn, place5.position.end);
         max5 = MAX(place5.position.bgn, place5.position.end);
       }
@@ -181,7 +181,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       if (bidx3 != -1) {
         if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
           fprintf(logFile, "popBubbles()-- place frag %d using 3' edge (%d,%c) in unitig %d at %d,%d\n",
-                  frgID, bestedge3->frag_b_id, bestedge3->bend ? '3' : '5', otherUtg, place3.position.bgn, place3.position.end);
+                  frgID, bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5', otherUtg, place3.position.bgn, place3.position.end);
         min3 = MIN(place3.position.bgn, place3.position.end);
         max3 = MAX(place3.position.bgn, place3.position.end);
       }
@@ -295,8 +295,8 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       int32  frgID = frg->ident;
       int32  utgID = shortTig->id();
 
-      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, FIVE_PRIME);
-      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, THREE_PRIME);
+      BestEdgeOverlap *bestedge5 = OG->getBestEdgeOverlap(frg->ident, false);
+      BestEdgeOverlap *bestedge3 = OG->getBestEdgeOverlap(frg->ident, true);
       BestContainment *bestcont  = OG->getBestContainer(frg->ident);
 
       if (bestcont)
@@ -461,8 +461,8 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
                                      logFileFlagSet(LOG_INTERSECTION_BUBBLES));
         else
           mergeTig->addAndPlaceFrag(frag->ident,
-                                    OG->getBestEdgeOverlap(frag->ident, FIVE_PRIME),
-                                    OG->getBestEdgeOverlap(frag->ident, THREE_PRIME),
+                                    OG->getBestEdgeOverlap(frag->ident, false),
+                                    OG->getBestEdgeOverlap(frag->ident, true),
                                     logFileFlagSet(LOG_INTERSECTION_BUBBLES));
 
         if (mergeTig->fragIn(frag->ident) == mergeTig->id()) {
