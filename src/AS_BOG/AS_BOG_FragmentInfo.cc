@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_FragmentInfo.cc,v 1.1 2010-10-01 13:40:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_FragmentInfo.cc,v 1.2 2010-10-12 22:24:15 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -96,6 +96,22 @@ FragmentInfo::FragmentInfo(gkStore *gkpStore, const char *prefix) {
 
   for (uint32 i=0; i<_numLibraries + 1; i++)
     _numMatesInLib[i] /= 2;
+
+  //  Search for and break (and complain) mates to deleted fragments.
+  for (uint32 i=0; i<_numFragments + 1; i++) {
+    if ((_fragLength[i] == 0) ||
+        (_mateIID[i] == 0) ||
+        (_fragLength[_mateIID[i]] > 0))
+      //  This frag deleted, or this frag unmated, or mate of this frag is alive, all good!
+      continue;
+
+    assert(_mateIID[_mateIID[i]] == 0);
+
+    fprintf(logFile, "FragmentInfo()-- WARNING!  Mate of fragment %d (fragment %d) is deleted.\n",
+            i, _mateIID[i]);
+
+    _mateIID[i] = 0;
+  }
 
   fprintf(logFile, "FragmentInfo()-- Loaded %d alive fragments, skipped %d dead fragments.\n", numLoaded, numDeleted);
 
