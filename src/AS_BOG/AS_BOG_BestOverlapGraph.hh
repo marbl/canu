@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.63 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.64 2010-10-12 22:24:56 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -96,6 +96,12 @@ struct BestOverlapGraph {
     //  overlapper.
     //
     if (olap.dat.ovl.orig_erate > consensusCutoff)
+      return(true);
+
+    if ((FI->fragmentLength(olap.a_iid) == 0) ||
+        (FI->fragmentLength(olap.b_iid) == 0))
+      //  The overlap is bad if it involves deleted fragments.  Shouldn't happen in a normal
+      //  assembly, but sometimes us users want to delete fragments after overlaps are generated.
       return(true);
 
     //  The overlap is GOOD (false == not bad) if the corrected error rate is below the requested
