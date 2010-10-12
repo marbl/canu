@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.22 2010-06-09 19:52:43 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.23 2010-10-12 22:21:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,7 +166,7 @@ revertClearRange(char *clearRegionName, char *gkpStoreName) {
 
 static
 void
-setClear(gkFragment *fr, char *E, uint32 which, int update) {
+setClear(gkFragment *fr, char *E, uint32 which, int update, int verbose) {
   uint32 bo, eo, bn, en;
 
   //  Code used to exist to update "ALL" clear ranges, but that makes
@@ -181,7 +181,7 @@ setClear(gkFragment *fr, char *E, uint32 which, int update) {
   fr->gkFragment_getClearRegion(bo, eo, which);
   fr->gkFragment_setClearRegion(bn, en, which);
 
-  if (update)
+  if (verbose)
     fprintf(stdout, "frg uid %s %s %d %d -> %d %d\n",
             AS_UID_toString(fr->gkFragment_getReadUID()),
             AS_READ_CLEAR_NAMES[which],
@@ -197,14 +197,15 @@ allFrags(gkStore *gkpStore,
          AS_IID           IID,
          char             action,
          int              flag,
-         int              update) {
+         int              update,
+         int              verbose) {
   gkFragment  fr;
   uint32      i;
 
   int64  firstElem = 1;
   int64  lastElem  = gkpStore->gkStore_getNumFragments();
 
-  if (update) {
+  if (verbose) {
     fprintf(stderr, "update all frags in lib "F_IID" ("F_S64","F_S64")\n",
             IID, firstElem, lastElem);    
   }
@@ -245,6 +246,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
   char            *E        = NULL;
 
   int              errors   = 0;
+  int              verbose  = 1;
 
   gkpStore = new gkStore(gkpStoreName, FALSE, update);
 
@@ -283,7 +285,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
     munch(E);
 
     if ((E[0] == '#') || (E[0] == ';') || (E[0] == 0)) {
-      if (update)
+      if (verbose)
         fprintf(stdout, "%s\n", L);
       goto nextline;
     }
@@ -356,37 +358,37 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
       uint32  clr = gkStore_decodeClearRegionLabel(ACT);
 
       if        (clr != AS_READ_CLEAR_ERROR) {
-        setClear(&fr, E, clr, update);
+        setClear(&fr, E, clr, update, verbose);
       } else if (strcasecmp(ACT, "mateiid") == 0) {
         AS_IID    o = fr.gkFragment_getMateIID();
         fr.gkFragment_setMateIID(AS_IID_fromString(E, &E));
-        if (update)
+        if (verbose)
           fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID"\n",
                   AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getMateIID());
       } else if (strcasecmp(ACT, "mateuid") == 0) {
         AS_IID    o = fr.gkFragment_getMateIID();
         AS_UID    n = AS_UID_lookup(E, &E);
         fr.gkFragment_setMateIID(gkpStore->gkStore_getUIDtoIID(n, NULL));
-        if (update)
+        if (verbose)
           fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID" mateuid %s\n",
                   AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getMateIID(), AS_UID_toString(n));
       } else if (strcasecmp(ACT, "readuid") == 0) {
         AS_UID    o = fr.gkFragment_getReadUID();
         fr.gkFragment_setReadUID(AS_UID_lookup(E, &E));  //  I _really_ hope you know what you're doing
-        if (update)
+        if (verbose)
           fprintf(stdout, "frg iid "F_IID" readuid %s -> %s\n",
                   fr.gkFragment_getReadIID(), AS_UID_toString(o), AS_UID_toString(fr.gkFragment_getReadUID()));
       } else if (strcasecmp(ACT, "libiid") == 0) {
         AS_IID    o = fr.gkFragment_getLibraryIID();
         fr.gkFragment_setLibraryIID(AS_IID_fromString(E, &E));
-        if (update)
+        if (verbose)
           fprintf(stdout, "frg uid %s libiid "F_IID" -> libiid "F_IID"\n",
                   AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getLibraryIID());
       } else if (strcasecmp(ACT, "libuid") == 0) {
         AS_IID    o = fr.gkFragment_getLibraryIID();
         AS_UID    n = AS_UID_lookup(E, &E);
         fr.gkFragment_setLibraryIID(gkpStore->gkStore_getUIDtoIID(n, NULL));
-        if (update)
+        if (verbose)
           fprintf(stdout, "frg uid %s libiid "F_IID" -> libiid "F_IID" libuid %s\n",
                   AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getLibraryIID(), AS_UID_toString(n));
       } else if (strcasecmp(ACT, "isnonrandom") == 0) {
@@ -400,7 +402,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "frg uid %s isnonrandom "F_U32" -> "F_U32"\n",
                   AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getIsNonRandom());
       } else if (strcasecmp(ACT, "isdeleted") == 0) {
@@ -414,7 +416,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "frg uid %s isdeleted "F_U32" -> "F_U32"\n",
                   AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getIsDeleted());
       } else if (strcasecmp(ACT, "orientation") == 0) {
@@ -430,7 +432,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "frg uid %s orientation %s -> %s\n",
                   AS_UID_toString(fr.gkFragment_getReadUID()), AS_READ_ORIENT_NAMES[o], AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()]);
       } else {
@@ -457,13 +459,13 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
       if        (strcasecmp(ACT, "mean") == 0) {
         double m = gklr.mean;
         gklr.mean   = atof(E);
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s mean %f -> %f\n",
                   AS_UID_toString(gklr.libraryUID), m, gklr.mean);
       } else if (strcasecmp(ACT, "stddev") == 0) {
         double s = gklr.stddev;
         gklr.stddev = atof(E);
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s mean %f -> %f\n",
                   AS_UID_toString(gklr.libraryUID), s, gklr.stddev);
       } else if (strcasecmp(ACT, "distance") == 0) {
@@ -473,7 +475,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         crunch(E);
         munch(E);
         gklr.stddev = atof(E);
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s distance %f %f -> %f %f\n",
                   AS_UID_toString(gklr.libraryUID), m, s, gklr.mean, gklr.stddev);
 
@@ -490,7 +492,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s forceBOGunitigger %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.forceBOGunitigger) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "shortOverlapModel") == 0) {
@@ -504,7 +506,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s shortOverlapModel %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.shortOverlapModel) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "isNotRandom") == 0) {
@@ -518,10 +520,10 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s isNotRandom %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.isNotRandom) ? 'T' : 'F');
-        allFrags(gkpStore, IID, 'r', gklr.isNotRandom, update);
+        allFrags(gkpStore, IID, 'r', gklr.isNotRandom, update, verbose);
       } else if (strcasecmp(ACT, "doNotTrustHomopolymerRuns") == 0) {
         uint32 o = gklr.doNotTrustHomopolymerRuns;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
@@ -533,7 +535,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s donottrushhomopolymerruns %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotTrustHomopolymerRuns) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "doRemoveDuplicateReads") == 0) {
@@ -547,7 +549,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s doRemoveDuplicateReads %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doRemoveDuplicateReads) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "doNotQVTrim") == 0) {
@@ -561,13 +563,13 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s doNotQVTrim %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotQVTrim) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "goodBadQVThreshold") == 0) {
         uint32 o = gklr.goodBadQVThreshold;
         gklr.goodBadQVThreshold = strtoul(E, NULL, 10);
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s goodBadQVThreshold %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.goodBadQVThreshold) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "doNotOverlapTrim") == 0) {
@@ -581,7 +583,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s doNotOverlapTrim %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotOverlapTrim) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "usePackedFragments") == 0) {
@@ -595,7 +597,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s usePackedFragments %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.usePackedFragments) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "orientation") == 0) {
@@ -611,10 +613,10 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        if (update)
+        if (verbose)
           fprintf(stdout, "lib uid %s orientation %s -> %s\n",
                   AS_UID_toString(gklr.libraryUID), AS_READ_ORIENT_NAMES[o], AS_READ_ORIENT_NAMES[gklr.orientation]);
-        allFrags(gkpStore, IID, 'o', gklr.orientation, update);
+        allFrags(gkpStore, IID, 'o', gklr.orientation, update, verbose);
       } else if (strcasecmp(ACT, "allfragsdeleted") == 0) {
         uint32 maketrue = 0;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
@@ -626,7 +628,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        allFrags(gkpStore, IID, 'd', maketrue, update);
+        allFrags(gkpStore, IID, 'd', maketrue, update, verbose);
         IID = 0;
       } else if (strcasecmp(ACT, "allfragsnonrandom") == 0) {
         uint32 maketrue = 0;
@@ -639,12 +641,12 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           errors++;
           goto nextline;
         }
-        allFrags(gkpStore, IID, 'r', maketrue, update);
+        allFrags(gkpStore, IID, 'r', maketrue, update, verbose);
         IID = 0;
       } else if (strcasecmp(ACT, "allfragsunmated") == 0) {
         uint32 maketrue = 0;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T')) {
-          allFrags(gkpStore, IID, 'u', 1, update);
+          allFrags(gkpStore, IID, 'u', 1, update, verbose);
         } else {
           fprintf(stderr, "invalid lib allfragsunmated flag in edit line: '%s'\n", L);
           errors++;
