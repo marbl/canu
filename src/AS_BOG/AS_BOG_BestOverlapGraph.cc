@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.80 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.81 2010-10-14 22:53:07 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -74,7 +74,7 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
 
   //  Pass 1 through overlaps -- find the contained fragments.
 
-  setLogFile("unitigger", "bestoverlapgraph-containments");
+  setLogFile(prefix, "bestoverlapgraph-containments");
 
   _bestCscore    = new uint64 [FI->numFragments() + 1];
   memset(_bestCscore,    0, sizeof(uint64) * (FI->numFragments() + 1));
@@ -107,7 +107,7 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
   //  Pass 2 through overlaps -- find dovetails, build the overlap graph.  For each
   //  contained fragment, remember some of the almost containment overlaps.
 
-  setLogFile("unitigger", "bestoverlapgraph-dovetails");
+  setLogFile(prefix, "bestoverlapgraph-dovetails");
 
   _best5score = new uint64 [FI->numFragments() + 1];
   _best3score = new uint64 [FI->numFragments() + 1];
@@ -131,7 +131,7 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
   _best5score = NULL;
   _best3score = NULL;
 
-  setLogFile("unitigger", NULL);
+  setLogFile(prefix, NULL);
 
 
   //  Clean up our allocation.  We seem to over count the number of overlaps in the first pass,
@@ -152,10 +152,12 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
   {
     FILE *BC = fopen("best.contains", "w");
     FILE *BE = fopen("best.edges", "w");
+    FILE *BS = fopen("best.singletons", "w");
 
     if ((BC) && (BE)) {
       fprintf(BC, "#fragId\tlibId\tmated\tbestCont\n");
       fprintf(BE, "#fragId\tlibId\tbest5\tbest3\n");
+      fprintf(BS, "#fragId\tlibId\tmated\n");
 
       for (uint32 id=1; id<FI->numFragments() + 1; id++) {
         BestContainment *bestcont  = getBestContainer(id);
@@ -168,6 +170,9 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
           fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\n", id, FI->libraryIID(id),
                   bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
                   bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5');
+        else
+          fprintf(BS, "%u\t%u\t%c\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f');
+
       }
 
       fclose(BC);
