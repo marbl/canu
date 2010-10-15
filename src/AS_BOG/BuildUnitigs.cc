@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.82 2010-10-07 21:10:34 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.83 2010-10-15 02:46:18 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -81,7 +81,7 @@ const char *logFileFlagNames[64] = { "overlapQuality",
 //  Closes the current logFile, opens a new one called 'prefix.logFileOrder.name'.  If 'name' is
 //  NULL, the logFile is reset to stderr.
 void
-setLogFile(char *prefix, char *name) {
+setLogFile(const char *prefix, const char *name) {
   char  logFileName[FILENAME_MAX];
 
   if (logFileFlagSet(LOG_STDERR))

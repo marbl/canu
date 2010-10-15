@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.48 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.49 2010-10-15 02:46:18 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -64,7 +64,7 @@ extern InsertSizes      *IS;
 
 ////////////////////////////////////////
 
-void  setLogFile(char *prefix, char *name);
+void  setLogFile(const char *prefix, const char *name);
 
 #define logFileFlagSet(L) ((logFileFlags & L) == L)
 
