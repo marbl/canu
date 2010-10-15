@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.83 2010-10-15 02:46:18 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.84 2010-10-15 03:15:56 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -195,6 +195,21 @@ main (int argc, char * argv []) {
       }
       if (fnd == false) {
         fprintf(stderr, "ERROR:  Unknown '-D' option '%s'.\n", argv[arg]);
+        err++;
+      }
+
+    } else if (strcmp(argv[arg], "-d") == 0) {
+      uint32  opt = 0;
+      uint64  flg = 1;
+      bool    fnd = false;
+      for (arg++; logFileFlagNames[opt]; flg <<= 1, opt++) {
+        if (strcasecmp(logFileFlagNames[opt], argv[arg]) == 0) {
+          logFileFlags &= ~flg;
+          fnd = true;
+        }
+      }
+      if (fnd == false) {
+        fprintf(stderr, "ERROR:  Unknown '-d' option '%s'.\n", argv[arg]);
         err++;
       }
 
