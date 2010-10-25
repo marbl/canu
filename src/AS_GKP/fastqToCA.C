@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.6 2010-06-09 19:52:43 skoren Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.7 2010-10-25 10:11:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -191,8 +191,6 @@ main(int argc, char **argv) {
   gkl.doNotQVTrim                = 0;
   gkl.goodBadQVThreshold         = 0;
   gkl.doNotOverlapTrim           = 0;
-
-  gkl.usePackedFragments         = 1;
 
   gkl.orientation                = (isMated) ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_UNKNOWN;
 

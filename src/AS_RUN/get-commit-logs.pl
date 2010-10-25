@@ -23,9 +23,9 @@ my %logdate;
 
 my $date;
 $date = "-d '1 day ago<now'";
-$date = "-d '1 year ago<now'";
 $date = "-d '1 week ago<now'";
 $date = "-d '5 month ago<now'";
+$date = "-d '1 year ago<now'";
 
 open(F, "/usr/bin/cvs -z3 log -N -S $date |");
 while (<F>) {

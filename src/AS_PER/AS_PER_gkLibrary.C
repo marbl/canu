@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.9 2010-06-09 19:52:43 skoren Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.10 2010-10-25 10:11:11 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -92,8 +92,6 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
       doNotOverlapTrim = decodeBoolean("doNotOverlapTrim", val);
 
     //  Gatekeeper options
-    else if (strcasecmp(fea, "usePackedFragments") == 0)
-      usePackedFragments = decodeBoolean("usePackedFragments", val);
 
     //  Illumina options, just to make it not complain about unknown features
 
@@ -216,15 +214,6 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
     sprintf(fea[nf], "doNotOverlapTrim");
     sprintf(val[nf], "%d", doNotOverlapTrim);
-    nf++;
-  }
-
-  //  Gatekeeper options
-  if (usePackedFragments || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "usePackedFragments");
-    sprintf(val[nf], "%d", usePackedFragments);
     nf++;
   }
 

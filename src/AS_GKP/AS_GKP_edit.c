@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.23 2010-10-12 22:21:40 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.24 2010-10-25 10:11:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -586,20 +586,6 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         if (verbose)
           fprintf(stdout, "lib uid %s doNotOverlapTrim %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotOverlapTrim) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "usePackedFragments") == 0) {
-        uint32 o = gklr.usePackedFragments;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.usePackedFragments = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.usePackedFragments = 0;
-        else {
-          fprintf(stderr, "invalid lib usePackedFragments flag in edit line: '%s'\n", L);
-          errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "lib uid %s usePackedFragments %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.usePackedFragments) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "orientation") == 0) {
         uint32 o = gklr.orientation;
         uint32 i;
