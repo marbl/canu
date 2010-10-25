@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.88 2010-03-22 20:08:09 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.89 2010-10-25 08:58:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -764,7 +764,11 @@ main(int argc, char **argv) {
   delete gkpStore;
 
   if (errorFile)
+    //  Close it if it is a file
     fclose(errorFP);
+  else
+    //  Or flush it; it is stdout and summarizeErrors writes to stderr
+    fflush(errorFP);
 
   return(AS_GKP_summarizeErrors());
 }
