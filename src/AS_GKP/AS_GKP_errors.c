@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.15 2010-10-05 11:08:53 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.16 2010-10-25 09:12:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,6 +73,7 @@ AS_GKP_reportError(int error, ...) {
     errorMs[AS_GKP_ILL_NOT_QLT_START_LINE ] = "# ILL Error: File '%s': qlt name '%s' is not a quality start line.\n";
     errorMs[AS_GKP_ILL_SEQ_QLT_NAME_DIFFER] = "# ILL Error: File '%s': seq/qlt names differ; seq='%s' qlt='%s'\n";
     errorMs[AS_GKP_ILL_SEQ_QLT_LEN_DIFFER ] = "# ILL Error: File '%s': seq/qlt lengths differ for read '%s'; seq=%d qlt=%d\n";
+    errorMs[AS_GKP_ILL_SEQ_TOO_LONG       ] = "# ILL Alert: File '%s': seq name '%s' is longer than PACKED length, storing as NORMAL fragment.\n";
     errorMs[AS_GKP_ILL_CANT_OPEN_INPUT    ] = "# ILL Error: Coulnd't open Illumina file '%s' for reading: %s\n";
     errorMs[AS_GKP_ILL_BAD_QV             ] = "# ILL Error: Fragment %s has invalid QV '%c'; QVs probably not style '%s'\n";
 
@@ -141,6 +142,7 @@ AS_GKP_reportError(int error, ...) {
     errorSs[AS_GKP_ILL_NOT_QLT_START_LINE ] = "# ILL Error: not a quality start line.\n";
     errorSs[AS_GKP_ILL_SEQ_QLT_NAME_DIFFER] = "# ILL Error: seq/qlt names differ.\n";
     errorSs[AS_GKP_ILL_SEQ_QLT_LEN_DIFFER ] = "# ILL Error: seq/qlt lengths differ.\n";
+    errorSs[AS_GKP_ILL_SEQ_TOO_LONG       ] = "# ILL Error: seq longer than PACKED length, storing as NORMAL fragment.\n";
     errorSs[AS_GKP_ILL_CANT_OPEN_INPUT    ] = "# ILL Error: Coulnd't open Illumina file for reading.\n";
     errorSs[AS_GKP_ILL_BAD_QV             ] = "# ILL Error: invalid QV in read.\n";
 

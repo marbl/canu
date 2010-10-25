@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.12 2010-07-13 19:57:08 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.13 2010-10-25 09:12:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,18 +52,31 @@ static
 uint64
 processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrient) {
 
-  fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
+  chomp(fr->snam);
+  chomp(fr->sstr);
+  chomp(fr->qnam);
+  chomp(fr->qstr);
+
+  uint32   slen = strlen(fr->sstr);
+  uint32   qlen = strlen(fr->qstr);
+
+  //  Determine if this should be a PACKED or a NORMAL fragment.  PACKED is definitely
+  //  preferred for assemblies that are using most reads of a single length.
+
+  if (slen < AS_READ_MAX_PACKED_LEN) {
+    fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
+  } else {
+    AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, N, fr->snam);
+    fr->fr.gkFragment_setType(GKFRAGMENT_NORMAL);
+  }
+
   fr->fr.gkFragment_setIsDeleted(1);
 
   fr->fr.gkFragment_setMateIID(0);
   fr->fr.gkFragment_setLibraryIID(0);
 
-  //  Clean up what we read.  Remove trailing newline, truncate read names to the first word.
-
-  chomp(fr->snam);
-  chomp(fr->sstr);
-  chomp(fr->qnam);
-  chomp(fr->qstr);
+  //  Clean up what we read.  Remove trailing newline (whoops, already done), truncate read names to
+  //  the first word.
 
   for (uint32 i=0; fr->snam[i]; i++)
     if (isspace(fr->snam[i])) {
@@ -78,17 +91,6 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
     }
 
   //  Check that things are consistent.  Same names, same lengths, etc.
-
-  uint32   slen = strlen(fr->sstr);
-  uint32   qlen = strlen(fr->qstr);
-
-  //  Make sure we do not go over the maximum read lengths
-  //  This assumes all illumna reads are always of the packed type
-  if (slen >= AS_READ_MAX_PACKED_LEN) {
-	  qlen = slen = AS_READ_MAX_PACKED_LEN - 1;
-	  fr->sstr[slen] = 0;
-	  fr->qstr[qlen] = 0;
-  }
 
   uint32   clrL=0, clrR=slen;
 
