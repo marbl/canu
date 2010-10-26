@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.53 2010-09-30 09:34:11 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.54 2010-10-26 21:41:19 skoren Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -71,7 +71,8 @@ ReadLine(FILE *fin, int skipComment) {
 
       //  If the line didn't fit completely, make the buffer larger.
       //
-      if (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != '\n') {
+      if ((AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != 0) &&
+    		  (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] !='\n')) {
 #if 0
         fprintf(stderr, "WARNING: Input line "F_U64" is long (%s), resizing.\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
         fprintf(stderr, "         '%s'\n", AS_MSG_globals->curLine);
@@ -84,7 +85,7 @@ ReadLine(FILE *fin, int skipComment) {
         AS_MSG_globals->curLineMax *= 2;
         AS_MSG_globals->curLine     = (char *)safe_realloc(AS_MSG_globals->curLine, sizeof(char) * AS_MSG_globals->curLineMax);
 
-        AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] = 0;  //  Reset the end-of-line mark so we read more of the line
+        AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] = '\n';  //  Reset the end-of-line mark so we read more of the line
         AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 1] = 0;
       }
     } while (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != '\n');
