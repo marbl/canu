@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.81 2010-10-27 04:15:06 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.82 2010-10-27 04:34:45 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -122,10 +122,13 @@ struct UnitigGraph{
                                      bool   withMatesToUnambiguousContain);
 
   void placeZombies(void);
+
   void popIntersectionBubbles(OverlapStore *ovlStoreUniq,
                               OverlapStore *ovlStoreRept);
   void popMateBubbles(OverlapStore *ovlStoreUniq,
                       OverlapStore *ovlStoreRept);
+  void popOverlapBubbles(OverlapStore *ovlStoreUniq,
+                         OverlapStore *ovlStoreRept);
 
   bool placeFragUsingOverlaps(ufNode frag,
                               OverlapStore *ovlStoreUniq,

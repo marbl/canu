@@ -41,6 +41,7 @@ BOG_SOURCES = AS_BOG_ArrivalRate.cc \
               AS_BOG_MateLocation.cc \
               AS_BOG_MoveContains.cc \
               AS_BOG_Outputs.cc \
+              AS_BOG_OverlapBubble.cc \
               AS_BOG_PlaceContains.cc \
               AS_BOG_PlaceFragUsingOverlaps.cc \
               AS_BOG_PlaceZombies.cc \
