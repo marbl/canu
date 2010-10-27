@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceContains.cc,v 1.5 2010-10-07 12:27:02 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceContains.cc,v 1.6 2010-10-27 04:15:06 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -28,7 +28,7 @@ static const char *rcsid = "$Id: AS_BOG_PlaceContains.cc,v 1.5 2010-10-07 12:27:
 #include "MultiAlignStore.h"
 
 void
-UnitigGraph::placeContains(void) {
+UnitigGraph::placeContainsUsingBestOverlaps(void) {
   uint32   fragsPlaced  = 1;
   uint32   fragsPending = 0;
 
@@ -46,7 +46,7 @@ UnitigGraph::placeContains(void) {
         //  Not a contained fragment.
         continue;
 
-      if (bestcont->isPlaced == true)
+      if (Unitig::fragIn(fid) != 0)
         //  Containee already placed.
         continue;
 
@@ -59,8 +59,6 @@ UnitigGraph::placeContains(void) {
       utg = unitigs[Unitig::fragIn(bestcont->container)];
       utg->addContainedFrag(fid, bestcont, logFileFlagSet(LOG_INITIAL_CONTAINED_PLACEMENT));
       assert(utg->id() == Unitig::fragIn(fid));
-
-      bestcont->isPlaced = true;
 
       fragsPlaced++;
     }
@@ -83,3 +81,25 @@ UnitigGraph::placeContains(void) {
   }
 }
 
+
+
+void
+UnitigGraph::placeContainsUsingAllOverlaps(OverlapStore *ovlStoreUniq,
+                                           OverlapStore *ovlStoreRept,
+                                           bool   withMatesToNonContained,
+                                           bool   withMatesToUnambiguousContain) {
+
+#if 0
+  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
+    ufNode frag;
+
+    if (Unitig::fragIn(fid) > 0)
+      //  Fragment placed already.
+      continue;
+
+    frag.ident = fid;
+
+    placeFragUsingOverlaps(frag, ovlStoreUniq, ovlStoreRept);
+  }
+#endif
+}

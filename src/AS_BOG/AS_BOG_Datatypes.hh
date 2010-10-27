@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.49 2010-10-15 02:46:18 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.50 2010-10-27 04:15:06 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -163,6 +163,8 @@ private:
 class BestEdgeOverlap {
 public:
   BestEdgeOverlap() {
+    _id    = 0;
+    _e3p   = 0;
     _ahang = 0;
     _bhang = 0;
   };
@@ -220,7 +222,7 @@ public:
   int32   b_hang;
 
   uint32  sameOrientation:1;
-  uint32  isPlaced:1;
+
   uint32  olapsSorted:1;
   uint32  olapsLen:29;
   uint32 *olaps;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.139 2010-10-07 12:51:15 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.140 2010-10-27 04:15:06 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -138,7 +138,7 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
 #endif
 
   setLogFile("unitigger", "placeContains");
-  placeContains();
+  placeContainsUsingBestOverlaps();
   reportOverlapsUsed("overlaps.aftercontains");
   reportUnitigs("unitigs.aftercontains");
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceFragUsingOverlaps.cc,v 1.2 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceFragUsingOverlaps.cc,v 1.3 2010-10-27 04:15:06 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -153,7 +153,6 @@ UnitigGraph::placeFragUsingOverlaps(ufNode frag,
       best.a_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.b_hang : -ovl[i].dat.ovl.a_hang;
       best.b_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.a_hang : -ovl[i].dat.ovl.b_hang;
       best.sameOrientation = ovl[i].dat.ovl.flipped ? false : true;
-      best.isPlaced        = false;
       best.olapsSorted     = false;
       best.olapsLen        = 0;
       best.olaps           = NULL;
@@ -180,7 +179,6 @@ UnitigGraph::placeFragUsingOverlaps(ufNode frag,
       best.a_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.b_hang : -ovl[i].dat.ovl.a_hang;
       best.b_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.a_hang : -ovl[i].dat.ovl.b_hang;
       best.sameOrientation = ovl[i].dat.ovl.flipped ? false : true;
-      best.isPlaced        = false;
       best.olapsSorted     = false;
       best.olapsLen        = 0;
       best.olaps           = NULL;
