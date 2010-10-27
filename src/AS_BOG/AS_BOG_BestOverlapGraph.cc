@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.82 2010-10-27 04:15:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.83 2010-10-27 09:58:39 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -61,16 +61,16 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
   assert(AS_CNS_ERROR_RATE >= 0.0);
   assert(AS_CNS_ERROR_RATE <= AS_MAX_ERROR_RATE);
 
-  fprintf(logFile, "BestOverlapGraph()-- UTG erate %.4f%%, CNS erate %.4f%%\n",
-          100.0 * AS_UTG_ERROR_RATE, 100.0 * AS_CNS_ERROR_RATE);
-
   mismatchCutoff  = AS_OVS_encodeQuality(AS_UTG_ERROR_RATE);
   consensusCutoff = AS_OVS_encodeQuality(AS_CNS_ERROR_RATE);
 
   mismatchLimit   = AS_UTG_ERROR_LIMIT;
 
-  if (load(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT))
+  if (load(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT)) {
+    logFileOrder += 2;  //  To keep indices the same on log names
+    setLogFile(prefix, NULL);
     return;
+  }
 
   //  Pass 1 through overlaps -- find the contained fragments.
 

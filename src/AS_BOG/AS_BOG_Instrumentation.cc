@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.9 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.10 2010-10-27 09:58:39 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -97,12 +97,15 @@ UnitigGraph::checkUnitigMembership(void) {
 //  For every unitig, report the best overlaps contained in the
 //  unitig, and all overlaps contained in the unitig.
 void
-UnitigGraph::reportOverlapsUsed(const char *filename) {
+UnitigGraph::reportOverlapsUsed(const char *prefix, const char *name) {
 
   if (logFileFlagSet(LOG_OVERLAPS_USED) == 0)
     return;
 
-  FILE *F = fopen(filename, "w");
+  char ovlPath[FILENAME_MAX];
+  sprintf(ovlPath, "%s.%03u.%s.overlaps", prefix, logFileOrder, name);
+
+  FILE *F = fopen(ovlPath, "w");
 
   if (F == NULL)
     return;
@@ -166,7 +169,7 @@ UnitigGraph::reportOverlapsUsed(const char *filename) {
 
 
 void
-UnitigGraph::reportUnitigs(const char *filename) {
+UnitigGraph::reportUnitigs(const char *prefix, const char *name) {
 
   if (logFileFlagSet(LOG_INTERMEDIATE_UNITIGS) == 0)
     return;
@@ -187,7 +190,7 @@ UnitigGraph::reportUnitigs(const char *filename) {
   numFragsP = numFragsT / 7;
 
   char tigStorePath[FILENAME_MAX];
-  sprintf(tigStorePath, "%s.tigStore", filename);
+  sprintf(tigStorePath, "%s.%03u.%s.tigStore", prefix, logFileOrder, name);
 
   writeIUMtoFile(tigStorePath, tigStorePath, numFragsP, false);
 }

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.82 2010-10-27 04:34:45 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.83 2010-10-27 09:58:39 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -148,8 +148,8 @@ struct UnitigGraph{
   UnitigVector*  breakUnitigAt(Unitig *, UnitigBreakPoints &);
 
   void           checkUnitigMembership(void);
-  void           reportOverlapsUsed(const char *filename);
-  void           reportUnitigs(const char *filename);
+  void           reportOverlapsUsed(const char *prefix, const char *name);
+  void           reportUnitigs(const char *prefix, const char *name);
 
   UnitigVector   unitigs;
 

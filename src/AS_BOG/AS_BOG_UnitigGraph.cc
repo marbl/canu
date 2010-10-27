@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.140 2010-10-27 04:15:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.141 2010-10-27 09:58:39 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -62,7 +62,7 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
 
   // Step through all the fragments
 
-  setLogFile("unitigger", "buildUnitigs");
+  setLogFile(output_prefix, "buildUnitigs");
   fprintf(logFile, "==> BUILDING UNITIGS from %d fragments.\n", FI->numFragments());
 
   //  There is no 0th unitig.
@@ -79,7 +79,7 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
     populateUnitig(frag_idx);
   }
 
-  setLogFile("unitigger", "buildUnitigs-MissedFragments");
+  //setLogFile(output_prefix, "buildUnitigs-MissedFragments");
   fprintf(logFile, "==> BUILDING UNITIGS catching missed fragments.\n");
 
   //  Pick up frags missed above, leftovers from possibly circular unitigs
@@ -93,34 +93,34 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
     populateUnitig(frag_idx);
   }
 
-  reportOverlapsUsed("overlaps.afterbuild");
-  reportUnitigs("unitigs.afterbuild");
+  reportOverlapsUsed(output_prefix, "buildUnitigs");
+  reportUnitigs(output_prefix, "buildUnitigs");
 
   if (enableBubblePopping) {
-    setLogFile("unitigger", "bubblePopping");
+    setLogFile(output_prefix, "bubblePopping");
     popIntersectionBubbles(ovlStoreUniq, ovlStoreRept);
     //popMateBubbles(ovlStoreUniq, ovlStoreRept);  NEED TO HAVE CONTAINS PLACED
-    reportOverlapsUsed("overlaps.afterbubbles1");
-    reportUnitigs("unitigs.afterbubbles1");
+    reportOverlapsUsed(output_prefix, "bubblePopping");
+    reportUnitigs(output_prefix, "bubblePopping");
   }
 
   //  If enabled, break unitigs.  If not enabled, report on breaks.
-  setLogFile("unitigger", "intersectionBreaking");
+  setLogFile(output_prefix, "intersectionBreaking");
   breakUnitigs(cMap, output_prefix, enableIntersectionBreaking);
-  reportOverlapsUsed("overlaps.afterbreak");
-  reportUnitigs("unitigs.afterbreak");
+  reportOverlapsUsed(output_prefix, "intersectionBreaking");
+  reportUnitigs(output_prefix, "intersectionBreaking");
 
   //  If enabled, join unitigs.  If not enabled, report on joins.
   //  (not supported, just crashes if called and not enabled)
   if (enableJoining) {
-    setLogFile("unitigger", "joinUnitigs");
+    setLogFile(output_prefix, "joinUnitigs");
     joinUnitigs(enableJoining);
-    reportOverlapsUsed("overlaps.afterjoin");
-    reportUnitigs("unitigs.afterjoin");
+    reportOverlapsUsed(output_prefix, "joinUnitigs");
+    reportUnitigs(output_prefix, "joinUnitigs");
   }
 
   //  This will only analyze and report potential breaks.
-  //setLogFile("unitigger", "intersectionBreaking");
+  //setLogFile(output_prefix, "intersectionBreaking");
   //breakUnitigs(cMap, output_prefix, false);
 
 #if 0
@@ -137,10 +137,10 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   }
 #endif
 
-  setLogFile("unitigger", "placeContains");
+  setLogFile(output_prefix, "placeContains");
   placeContainsUsingBestOverlaps();
-  reportOverlapsUsed("overlaps.aftercontains");
-  reportUnitigs("unitigs.aftercontains");
+  reportOverlapsUsed(output_prefix, "placeContains");
+  reportUnitigs(output_prefix, "placeContains");
 
 #if 0
   for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
@@ -156,19 +156,19 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   }
 #endif
 
-  setLogFile("unitigger", "placeZombies");
+  setLogFile(output_prefix, "placeZombies");
   placeZombies();
-  reportOverlapsUsed("overlaps.afterzombies");
-  reportUnitigs("unitigs.afterzombies");
+  reportOverlapsUsed(output_prefix, "placeZombies");
+  reportUnitigs(output_prefix, "placeZombies");
 
   //checkUnitigMembership();
 
   if (enableBubblePopping) {
-    setLogFile("unitigger", "bubblePopping");
+    setLogFile(output_prefix, "bubblePopping");
     popIntersectionBubbles(ovlStoreUniq, ovlStoreRept);
     //popMateBubbles(ovlStoreUniq, ovlStoreRept);
-    reportOverlapsUsed("overlaps.afterbubbles2");
-    reportUnitigs("unitigs.afterbubbles2");
+    reportOverlapsUsed(output_prefix, "bubblePopping");
+    reportUnitigs(output_prefix, "bubblePopping");
   }
 
   checkUnitigMembership();
@@ -179,10 +179,10 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   //
   ////////////////////////////////////////////////////////////////////////////////
 
-  setLogFile("unitigger", "libraryStats");
+  setLogFile(output_prefix, "libraryStats");
   IS = new InsertSizes();
 
-  setLogFile("unitigger", "evaluateMates");
+  setLogFile(output_prefix, "evaluateMates");
   fprintf(logFile, "==> STARTING MATE BASED SPLITTING.\n");
 
   checkUnitigMembership();
@@ -192,11 +192,11 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   //  splitting.  We know they're broken already, and if scaffolder
   //  can put them back, we'll let it.
 
-  setLogFile("unitigger", "moveContains1");
+  setLogFile(output_prefix, "moveContains1");
   fprintf(logFile, "==> MOVE CONTAINS #1\n");
   moveContains();
 
-  reportOverlapsUsed("overlaps.aftermatecheck1");
+  reportOverlapsUsed(output_prefix, "moveContains1");
   checkUnitigMembership();
   evaluateMates();
 
@@ -204,18 +204,18 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   //  broken.  By just ejecting unhappy contains, nothing should be
   //  disconnected.
 
-  setLogFile("unitigger", "splitDiscontinuous1");
+  setLogFile(output_prefix, "splitDiscontinuous1");
   fprintf(logFile, "==> SPLIT DISCONTINUOUS #1\n");
   splitDiscontinuousUnitigs();
 
-  reportOverlapsUsed("overlaps.aftermatecheck2");
+  reportOverlapsUsed(output_prefix, "splitDiscontinuous2");
   checkUnitigMembership();
   evaluateMates();
 
   //  DON'T DO MATE BASED SPLITTING
   //return;
 
-  setLogFile("unitigger", "splitBadMates");
+  setLogFile(output_prefix, "splitBadMates");
   fprintf(logFile, "==> SPLIT BAD MATES\n");
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
@@ -237,7 +237,7 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
     delete breaks;
   }
 
-  reportOverlapsUsed("overlaps.aftermatecheck3");
+  reportOverlapsUsed(output_prefix, "splitBadMates");
   checkUnitigMembership();
   evaluateMates();
 
@@ -248,11 +248,11 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   //  fragments with containers.  This leaves unitigs disconnected.
   //  We break those unitigs here.
 
-  setLogFile("unitigger", "splitDiscontinuous2");
+  setLogFile(output_prefix, "splitDiscontinuous2");
   fprintf(logFile, "==> SPLIT DISCONTINUOUS #2\n");
   splitDiscontinuousUnitigs();
 
-  reportOverlapsUsed("overlaps.aftermatecheck4");
+  reportOverlapsUsed(output_prefix, "splitDiscontinuous2");
   checkUnitigMembership();
   evaluateMates();
 
@@ -260,25 +260,25 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   //  contained fragments, of left some unhappy fragments in a unitig
   //  that just lost the container.
 
-  setLogFile("unitigger", "moveContains2");
+  setLogFile(output_prefix, "moveContains2");
   fprintf(logFile, "==> MOVE CONTAINS #2\n");
   moveContains();
 
-  reportOverlapsUsed("overlaps.aftermatecheck5");
+  reportOverlapsUsed(output_prefix, "moveContains2");
   checkUnitigMembership();
   evaluateMates();
 
   //  Do one last check for disconnected unitigs.
 
-  setLogFile("unitigger", "splitDiscontinuous3");
+  setLogFile(output_prefix, "splitDiscontinuous3");
   fprintf(logFile, "==> SPLIT DISCONTINUOUS #3\n");
   splitDiscontinuousUnitigs();
 
-  reportOverlapsUsed("overlaps.aftermatecheck6");
+  reportOverlapsUsed(output_prefix, "splitDiscontinuous3");
   checkUnitigMembership();
   evaluateMates();
 
-  setLogFile("unitigger", NULL);
+  setLogFile(output_prefix, NULL);
 
   setParentAndHang();
 }

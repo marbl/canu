@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.50 2010-10-27 04:15:06 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.51 2010-10-27 09:58:39 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -69,6 +69,7 @@ void  setLogFile(const char *prefix, const char *name);
 #define logFileFlagSet(L) ((logFileFlags & L) == L)
 
 extern FILE   *logFile;
+extern uint32  logFileOrder;
 extern uint64  logFileFlags;
 
 extern uint64 LOG_OVERLAP_QUALITY;

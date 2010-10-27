@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.85 2010-10-27 03:39:03 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.86 2010-10-27 09:58:39 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -33,7 +33,7 @@ InsertSizes      *IS  = 0L;
 
 
 FILE             *logFile      = stderr;
-uint32            logFileOrder = 1;
+uint32            logFileOrder = 0;
 uint64            logFileFlags = 0;  //  defined in AS_BOG_Datatypes.hh
 
 uint64 LOG_OVERLAP_QUALITY             = 0x0000000000000001;  //  Debug, scoring of overlaps
@@ -96,7 +96,7 @@ setLogFile(const char *prefix, const char *name) {
     return;
   }
 
-  sprintf(logFileName, "%s.%03u.%s.log", prefix, logFileOrder++, name);
+  sprintf(logFileName, "%s.%03u.%s.log", prefix, ++logFileOrder, name);
 
   errno = 0;
   logFile = fopen(logFileName, "w");
