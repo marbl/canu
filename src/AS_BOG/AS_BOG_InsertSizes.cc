@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.5 2010-10-05 16:15:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.6 2010-10-27 12:47:05 brianwalenz Exp $";
 
 #include "AS_BOG_InsertSizes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -162,7 +162,7 @@ InsertSizes::InsertSizes() {
     double    sum_Dists  = 0.0;
     double    sumSquares = 0.0;
 
-    for (uint32 d=0; d<_distLen[i]; d++)
+    for (int32 d=0; d<_distLen[i]; d++)
       if ((smallest    <= _dist[i][d]) &&
           (_dist[i][d] <= biggest)) {
         numPairs++;
@@ -172,22 +172,16 @@ InsertSizes::InsertSizes() {
     _samples[i] = numPairs;
     _mean[i]    = (numPairs > 0) ? sum_Dists / numPairs : 0;
 
-    for (uint32 d=0; d<_distLen[i]; d++)
+    for (int32 d=0; d<_distLen[i]; d++)
       if ((smallest    <= _dist[i][d]) &&
           (_dist[i][d] <= biggest))
         sumSquares += ((_dist[i][d] - _mean[i]) *
                        (_dist[i][d] - _mean[i]));
 
     _stddev[i]  = (numPairs > 1) ? sqrt(sumSquares / (numPairs - 1)) : 0.0;
-  }
 
-#if 0
-  fprintf(logFile, "LIB\tn_Dist\tmedian\t1/3rd\t2/3rd\tmaxDiff\tmin\tmax\tnumGood\tmean\tstddev\n");
-  for (uint32 i=1; i<_numLibs + 1; i++)
-    fprintf(logFile, "%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%.1f\t%.1f\n",
-            i, _distLen[i], median, oneThird, twoThird, aproxStd, smallest, biggest,
-            numPairs, _mean[i], _stddev[i]);
-#endif
+    fprintf(logFile, "InsertSizes()-- lib %d mean %d stddev %d samples %d\n", i, _mean[i], _stddev[i], _samples[i]);
+  }
 
   for (uint32 i=0; i<_numLibs + 1; i++)
     delete [] _dist[i];
@@ -204,13 +198,3 @@ InsertSizes::~InsertSizes() {
   delete [] _stddev;
   delete [] _samples;
 }
-
-
-
-
-
-
-
-
-
-
