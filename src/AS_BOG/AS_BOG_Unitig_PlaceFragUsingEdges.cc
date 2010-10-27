@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.4 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.5 2010-10-27 04:28:10 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -65,6 +65,12 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   frag3.position.bgn      = 0;
   frag3.position.end      = 0;
   frag3.containment_depth = 0;
+
+  if ((bestedge5) && (bestedge5->fragId() == 0))
+    bestedge5 = NULL;
+
+  if ((bestedge3) && (bestedge3->fragId() == 0))
+    bestedge3 = NULL;
 
   //  If we have an incoming edge, AND the fragment for that edge is in this unitig, look up its
   //  index.  Otherwise, discard the edge to prevent placement.

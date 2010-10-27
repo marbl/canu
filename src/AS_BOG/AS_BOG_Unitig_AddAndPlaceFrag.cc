@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig_AddAndPlaceFrag.cc,v 1.2 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig_AddAndPlaceFrag.cc,v 1.3 2010-10-27 04:28:10 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -50,6 +50,12 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
 
   //  The length of the overlap depends only on the length of the a frag and the hangs.  We don't
   //  actually care about the real length (except for logging), only which is thicker.
+
+  if ((bestedge5) && (bestedge5->fragId() == 0))
+    bestedge5 = NULL;
+
+  if ((bestedge3) && (bestedge3->fragId() == 0))
+    bestedge3 = NULL;
 
   if ((bestedge5) && (fragIn(bestedge5->fragId()) == id())) {
     bidx5 = pathPosition(bestedge5->fragId());
