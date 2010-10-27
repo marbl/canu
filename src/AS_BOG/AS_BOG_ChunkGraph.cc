@@ -19,16 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.35 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ChunkGraph.cc,v 1.36 2010-10-27 03:39:04 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
 
 
-ChunkGraph::ChunkGraph() {
+ChunkGraph::ChunkGraph(const char *output_prefix) {
 
-  setLogFile("unitigger", "ChunkGraph");
+  setLogFile(output_prefix, "ChunkGraph");
 
   _maxFragment     = FI->numFragments();
 

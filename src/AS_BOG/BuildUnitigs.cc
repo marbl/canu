@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.84 2010-10-15 03:15:56 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.85 2010-10-27 03:39:03 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -311,7 +311,7 @@ main (int argc, char * argv []) {
 
   FI = new FragmentInfo(gkpStore, output_prefix);
   OG = new BestOverlapGraph(ovlStoreUniq, ovlStoreRept, erate, elimit, output_prefix);
-  CG = new ChunkGraph();
+  CG = new ChunkGraph(output_prefix);
   UG = new UnitigGraph();
   IS = NULL;
 
@@ -323,7 +323,7 @@ main (int argc, char * argv []) {
             badMateBreakThreshold,
             output_prefix);
 
-  setLogFile("unitigger", "output");
+  setLogFile(output_prefix, "output");
 
   float globalARate = UG->getGlobalArrivalRate(gkpStore->gkStore_getNumRandomFragments(), genome_size);
   Unitig::setGlobalArrivalRate(globalARate);

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.22 2010-09-30 05:40:21 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.23 2010-10-27 03:39:04 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -43,7 +43,7 @@ public:
 
 class ChunkGraph {
 public:
-  ChunkGraph();
+  ChunkGraph(const char *output_prefix);
   ~ChunkGraph(void) {
     delete [] _chunkLength;
   };
