@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.6 2010-10-27 04:31:20 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -29,7 +29,8 @@ static const char *rcsid = "$Id: AS_BOG_MateBubble.cc,v 1.5 2010-09-30 11:32:48 
 
 
 void
-UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
+UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq,
+                            OverlapStore *ovlStoreRept) {
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 

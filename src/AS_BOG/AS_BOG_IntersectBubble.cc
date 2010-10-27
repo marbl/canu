@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.7 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.8 2010-10-27 04:32:51 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -52,8 +52,12 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
     Unitig        *shortTig = unitigs[ti];
     Unitig        *mergeTig = NULL;
 
-    if ((shortTig == NULL) ||
-        (shortTig->ufpath.size() >= 30))
+    if (shortTig == NULL)
+      //  Ain't no tig here!
+      continue;
+
+    if (shortTig->ufpath.size() >= 30)
+      //  Woah!  Lots of fragments in this tig.  Too slow to figure it out.
       continue;
 
     uint32         otherUtg     = noUnitig;
