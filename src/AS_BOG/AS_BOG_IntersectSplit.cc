@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.7 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.8 2010-10-27 09:03:01 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -278,8 +278,7 @@ void UnitigGraph::breakUnitigs(ContainerMap &cMap, char *output_prefix, bool ena
                   breaks.front().inFrags);
 
       //  Actually do the breaking.  Do NOT break if we are plotting the coverage.
-      if (enableIntersectionBreaking &&
-          !logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT)) {
+      if (enableIntersectionBreaking) {
         UnitigVector* newUs = breakUnitigAt(tig, breaks);
 
         if (newUs != NULL) {
