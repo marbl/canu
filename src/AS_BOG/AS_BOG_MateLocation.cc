@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.4 2010-10-01 13:11:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.5 2010-10-27 14:14:16 brianwalenz Exp $";
 
 #include "AS_BOG_MateLocation.hh"
 
@@ -168,8 +168,16 @@ MateLocation::buildTable(Unitig *utg) {
 void
 MateLocation::buildHappinessGraphs(Unitig *utg) {
 
-  for (uint32 mleidx=0; mleidx<_table.size(); mleidx++) {
+  //  First entry is always zero.  Needed for the getById() accessor.
+
+  assert(_table[0].mleFrgID1 == 0);
+  assert(_table[0].mleFrgID2 == 0);
+
+  for (uint32 mleidx=1; mleidx<_table.size(); mleidx++) {
     MateLocationEntry &loc = _table[mleidx];
+
+    //  We MUST have mleFrgID1 defined.  If mleFrgID2 is not defined, then the mate is external.
+    assert(loc.mleFrgID1 != 0);
 
     uint32 lib =  FI->libraryIID(loc.mleFrgID1);
 
@@ -222,10 +230,9 @@ MateLocation::buildHappinessGraphs(Unitig *utg) {
         incrRange(badExternalRev, -1, frgBgn - badMaxInter, frgEnd);
         incrRange(badExternalRev, -1, frgBgn, frgEnd);
         if (logFileFlagSet(LOG_HAPPINESS))
-          fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- bad external reverse\n",
-                  frgBgn, frgEnd, frgLen,
-                  matBgn, matEnd, matLen,
-                  _tigLen);
+          fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad external reverse\n",
+                  loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                  loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
         goto markBad;
       }
 
@@ -233,20 +240,18 @@ MateLocation::buildHappinessGraphs(Unitig *utg) {
         incrRange(badExternalFwd, -1, frgEnd, frgBgn + badMaxInter);
         incrRange(badExternalFwd, -1, frgEnd, frgBgn);
         if (logFileFlagSet(LOG_HAPPINESS))
-          fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- bad external forward\n",
-                  frgBgn, frgEnd, frgLen,
-                  matBgn, matEnd, matLen,
-                  _tigLen);
+          fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad external forward\n",
+                  loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                  loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
         goto markBad;
       }
 
       //  Not enough space.  Not a grumpy mate pair.
       loc.isGrumpy = false;
       if (logFileFlagSet(LOG_HAPPINESS))
-        fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- not bad, not enough space\n",
-                frgBgn, frgEnd, frgLen,
-                matBgn, matEnd, matLen,
-                _tigLen);
+        fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- not bad, not enough space\n",
+                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
       continue;
     }
 
@@ -259,10 +264,9 @@ MateLocation::buildHappinessGraphs(Unitig *utg) {
         (isReverse(loc.mlePos2) == false)) {
       incrRange(badNormal, -1, MIN(frgBgn, matBgn), MAX(frgEnd, matEnd));
       if (logFileFlagSet(LOG_HAPPINESS))
-        fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- bad normal\n",
-                frgBgn, frgEnd, frgLen,
-                matBgn, matEnd, matLen,
-                _tigLen);
+        fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad normal\n",
+                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
@@ -270,10 +274,9 @@ MateLocation::buildHappinessGraphs(Unitig *utg) {
         (isReverse(loc.mlePos2) == true)) {
       incrRange(badAnti, -1, MIN(frgEnd, matEnd), MAX(frgBgn, matBgn));
       if (logFileFlagSet(LOG_HAPPINESS))
-        fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- bad anti\n",
-                frgBgn, frgEnd, frgLen,
-                matBgn, matEnd, matLen,
-                _tigLen);
+        fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad anti\n",
+                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
@@ -289,10 +292,9 @@ MateLocation::buildHappinessGraphs(Unitig *utg) {
         (frgBgn + _tigLen - matBgn <= badMaxIntra)) {
       loc.isGrumpy = false;  //  IT'S GOOD, kind of.
       if (logFileFlagSet(LOG_HAPPINESS))
-        fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- good because circular\n",
-                frgBgn, frgEnd, frgLen,
-                matBgn, matEnd, matLen,
-                _tigLen);
+        fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- good because circular\n",
+                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
       continue;
     }
 
@@ -305,19 +307,17 @@ MateLocation::buildHappinessGraphs(Unitig *utg) {
     if ((isReverse(loc.mlePos1) == true)  && (loc.mlePos1.end < loc.mlePos2.bgn)) {
       incrRange(badOuttie, -1, MIN(frgBgn, frgEnd), MAX(matBgn, matEnd));
       if (logFileFlagSet(LOG_HAPPINESS))
-        fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- bad outtie (case 1)\n",
-                frgBgn, frgEnd, frgLen,
-                matBgn, matEnd, matLen,
-                _tigLen);
+        fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad outtie (case 1)\n",
+                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
     if ((isReverse(loc.mlePos1) == false) && (loc.mlePos2.end < loc.mlePos1.bgn)) {
       incrRange(badOuttie, -1, MIN(frgBgn, frgEnd), MAX(matBgn, matEnd));
       if (logFileFlagSet(LOG_HAPPINESS))
-        fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- bad outtie (case 2)\n",
-                frgBgn, frgEnd, frgLen,
-                matBgn, matEnd, matLen,
-                _tigLen);
+        fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad outtie (case 2)\n",
+                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
@@ -335,20 +335,18 @@ MateLocation::buildHappinessGraphs(Unitig *utg) {
     if (dist < badMinIntra) {
       incrRange(badCompressed, -1, MIN(frgBgn, matBgn), MAX(frgBgn, matBgn));
       if (logFileFlagSet(LOG_HAPPINESS))
-        fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- bad compressed\n",
-                frgBgn, frgEnd, frgLen,
-                matBgn, matEnd, matLen,
-                _tigLen);
+        fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad compressed\n",
+                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
     if (badMaxIntra < dist) {
       incrRange(badStretched, -1, MIN(frgBgn, matBgn), MAX(frgBgn, matBgn));
       if (logFileFlagSet(LOG_HAPPINESS))
-        fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- bad stretched\n",
-                frgBgn, frgEnd, frgLen,
-                matBgn, matEnd, matLen,
-                _tigLen);
+        fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad stretched\n",
+                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
@@ -358,10 +356,9 @@ MateLocation::buildHappinessGraphs(Unitig *utg) {
     incrRange(goodGraph, 1, MIN(frgBgn, matBgn), MAX(frgBgn, matBgn));
     loc.isGrumpy = false;  //  IT'S GOOD!
     if (logFileFlagSet(LOG_HAPPINESS))
-      fprintf(logFile, "buildHappinessGraph()--  pos %d,%d (len %d) and pos %d,%d (len %d) in tig of length %u -- GOOD!\n",
-              frgBgn, frgEnd, frgLen,
-              matBgn, matEnd, matLen,
-              _tigLen);
+      fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- GOOD!\n",
+              loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+              loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
     continue;
 
   markBad:
