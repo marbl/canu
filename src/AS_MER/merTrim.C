@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.7 2010-07-12 17:17:58 skoren Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.8 2010-11-02 07:51:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -676,8 +676,12 @@ mertrimComputation::testBases(char *bases, uint32 basesLen) {
   uint32  offset       = 0;
   uint32  numConfirmed = 0;
 
-  kMerTiny F(g->merSize);
-  kMerTiny R(g->merSize);
+  //
+  //  UNTESTED with KMER_WORDS != 1
+  //
+
+  kMer F(g->merSize);
+  kMer R(g->merSize);
 
   for (uint32 i=1; i<g->merSize && offset<basesLen; i++, offset++) {
     F += letterToBits[bases[offset]];
