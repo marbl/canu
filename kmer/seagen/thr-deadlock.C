@@ -1,4 +1,3 @@
-#include "posix.H"
 #include "searchGENOME.H"
 
 //  OSF/1 on Compaq Alpha has, in the past, gotten stuck in a deadlock

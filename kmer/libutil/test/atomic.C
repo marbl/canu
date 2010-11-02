@@ -5,17 +5,10 @@
 #include <time.h>
 #include <sys/time.h>
 
-#if defined(__bsd) || defined(__alpha)
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 199506L
-#endif
-#endif
-
 #include <pthread.h>
 #include <semaphore.h>
 
 //  Tests if add is atomic.
-
 
 long int     count     = 0;
 long int     counts[8] = { 0 };

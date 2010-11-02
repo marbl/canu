@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <new>
 
-#include "posix.H"
 #include "searchGENOME.H"
 
 #if 0

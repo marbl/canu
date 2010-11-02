@@ -1,7 +1,6 @@
 #ifndef ENCODEDQUERY_H
 #define ENCODEDQUERY_H
 
-#include "posix.H"
 #include <stdio.h>
 #include <stdlib.h>
 #include "bio++.H"

@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <new>
 
-#include "posix.H"
 #include "seatac.H"
 
 //  Define this to print a message whenever a sequence is loaded.

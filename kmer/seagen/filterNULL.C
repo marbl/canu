@@ -1,4 +1,3 @@
-#include "posix.H"
 #include "aHit.H"
 #include "hitReader.H"
 

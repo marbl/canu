@@ -1,4 +1,3 @@
-#include "posix.H"
 #include "seatac.H"
 
 char const *srchGbye = "[%ld] computed: "u64bitFMTW(8)"  blocked: "u64bitFMTW(4)"/"u64bitFMTW(4)"  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";

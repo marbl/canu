@@ -1,14 +1,6 @@
 #ifndef SWEATSHOP_H
 #define SWEATSHOP_H
 
-#if defined(__bsd) || defined(__alpha)
-
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 199506L
-#endif
-
-#endif
-
 #include <pthread.h>
 #include <semaphore.h>
 

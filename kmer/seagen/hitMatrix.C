@@ -1,4 +1,3 @@
-#include "posix.H"
 #include "searchGENOME.H"
 #include "aHit.H"
 

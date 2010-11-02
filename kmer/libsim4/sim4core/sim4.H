@@ -1,10 +1,6 @@
 #ifndef SIM4_H
 #define SIM4_H
 
-#ifndef _POSIX_C_SOURCE
-#define _POSIX_C_SOURCE 199506L
-#endif
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>

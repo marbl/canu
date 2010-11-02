@@ -163,14 +163,13 @@ case $target in
 # -*- makefile -*-
 #  OS-X, optimized
 #
-FAST              := -fast -fPIC
 CC                := $CC
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := \$(FAST) -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CFLAGS_COMPILE    := -fast -fPIC -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CLDFLAGS          := -m64
 CLIBS             := 
 CXX               := $CXX
-CXXFLAGS_COMPILE  := \$(FAST) -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CXXFLAGS_COMPILE  := -fast -fPIC -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CXXLDFLAGS        := -m64
 CXXLIBS           := 
 CXXSHARED         := -Wl,-r -dynamic
@@ -186,11 +185,11 @@ EOF
 #
 CC                := $CC
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := -g3 -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CFLAGS_COMPILE    := -g3 -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CLDFLAGS          := -m64
 CLIBS             := 
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -g3 -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CXXFLAGS_COMPILE  := -g3 -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CXXLDFLAGS        := -m64
 CXXLIBS           := 
 CXXSHARED         := -Wl,-r -dynamic
@@ -216,37 +215,14 @@ FAST              := -fast -fPIC
 FAST              := -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
 CC                := $CC
 SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CLDFLAGS          := 
 CLIBS             := 
 CXX               := $CXX
-CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall -Wno-char-subscripts
+CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CXXLDFLAGS        := 
 CXXLIBS           := 
 CXXSHARED         := -Wl,-r -dynamic
-ARFLAGS           := ruvs
-INSTALL/          := $target/
-EOF
-    ;;
-  FreeBSD-i386)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  FreeBSD, optimized
-THREADS           := -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
-THREADL           := -llthread -llgcc_r
-THREADS           := -pthread
-THREADL           := -pthread
-CC                := $CC
-SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL)
-CXX               := $CXX
-CXXFLAGS_COMPILE  := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL)
-CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -256,17 +232,15 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, optimized
-THREADS           := -pthread
-THREADL           := -pthread -lthr
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -O3 -fPIC -pthread -D_REENTRANT -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL)
+CLIBS             := -pthread -lthr
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -O3 -fPIC -pthread -D_REENTRANT -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL)
+CXXLIBS           := -pthread -lthr
 CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
@@ -277,23 +251,15 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, debug, warnings
-#  removed -Wredundant-decls cause it is annoying.
-#  removed -Waggregate-return cause stl does it too much
-#
-THREADS           := -pthread
-THREADL           := -pthread -lthr
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -g \$(THREADS) -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
-  -Wcast-align -Wwrite-strings -Wconversion -Wstrict-prototypes -Wmissing-prototypes \
-  -Wmissing-declarations -Wnested-externs  
+CFLAGS_COMPILE    := -g -pthread -D_REENTRANT -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs  
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL)
+CLIBS             := -pthread -lthr
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -g \$(THREADS) -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
-  -Wcast-align -Wwrite-strings -Wconversion
+CXXFLAGS_COMPILE  := -g -pthread -D_REENTRANT -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL)
+CXXLIBS           := -pthread -lthr
 CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
@@ -304,64 +270,17 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, debug, warnings
-#  removed -Wredundant-decls cause it is annoying.
-#  removed -Waggregate-return cause stl does it too much
-#
-THREADS           := -pthread
-THREADL           := -pthread -lthr
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -pg -O3 \$(THREADS) -fPIC -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
+CFLAGS_COMPILE    := -pg -O3 -pthread -D_REENTRANT -fPIC -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CLDFLAGS          := -pg -L/usr/local/lib
-CLIBS             := \$(THREADL)
+CLIBS             := -pthread -lthr
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -fPIC -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
+CXXFLAGS_COMPILE  := -pg -O3 -pthread -D_REENTRANT -fPIC -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CXXLDFLAGS        := -pg -L/usr/local/lib
-CXXLIBS           := \$(THREADL)
+CXXLIBS           := -pthread -lthr
 CXXSHARED         := -shared
 ARFLAGS           := ruvs
-INSTALL/          := $target/
-EOF
-    ;;
-  AIX)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  AIX5, optimized
-#  Tested, verified on 30jan03
-CC                := xlc_r
-SHLIB_FLAGS       := -G
-CFLAGS_COMPILE    := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict -qcpluscmt
-CLDFLAGS          := 
-CLIBS             := 
-CXX               := xlC_r
-CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
-CXXLDFLAGS        := 
-CXXLIBS           := 
-CXXSHARED         := -shared
-ARFLAGS           := -X 64 ruv
-INSTALL/          := $target/
-EOF
-    ;;
-  compaq|tru64)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  Tru64, native compilers, optimized
-CC                := cxx
-SHLIB_FLAGS       := -shared   # -G is something else
-CFLAGS_COMPILE    := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthread -w0 -fast
-CDEPFLAGS         := -pthread -D_XOPEN_SOURCE=500
-CLDFLAGS          := 
-CLIBS             := -lpthread -lrt
-CXX               := cxx
-CXXFLAGS_COMPILE  := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthread -w0 -fast
-CXXDEPFLAGS       := -pthread -D_XOPEN_SOURCE=500
-CXXLDFLAGS        := 
-CXXLIBS           := -lpthread -lrt
-CXXSHARED         := -shared
-ARFLAGS           := ruv
-CXX_TMP_ARCH      := cxx_repository
 INSTALL/          := $target/
 EOF
     ;;
@@ -370,17 +289,15 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Linux, optimized
-THREADS           := -D_THREAD_SAFE -pthread
-THREADL           := -pthread
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL) -ldl
+CLIBS             := -pthread -ldl
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL) -ldl
+CXXLIBS           := -pthread -ldl
 CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
@@ -391,17 +308,15 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Linux64, optimized
-THREADS           := -D_THREAD_SAFE -pthread
-THREADL           := -pthread
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -m64 -fPIC -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL) -ldl
+CLIBS             := -pthread -ldl
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL) -ldl
+CXXLIBS           := -pthread -ldl
 CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
@@ -412,17 +327,15 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Linux64, optimized
-THREADS           := -D_THREAD_SAFE -pthread
-THREADL           := -pthread
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL) -ldl
+CLIBS             := -pthread -ldl
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL) -ldl
+CXXLIBS           := -pthread -ldl
 CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
@@ -433,17 +346,15 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Linux64, optimized
-THREADS           := -D_THREAD_SAFE -pthread
-THREADL           := -pthread
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -pg -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
+CFLAGS_COMPILE    := -pg -m64 -fPIC -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL) -ldl
+CLIBS             := -pthread -ldl
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -pg -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
+CXXFLAGS_COMPILE  := -pg -m64 -fPIC -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL) -ldl
+CXXLIBS           := -pthread -ldl
 CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
@@ -454,17 +365,15 @@ EOF
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  Linux64, optimized
-THREADS           := -D_THREAD_SAFE -pthread
-THREADL           := -pthread
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -m64 -fPIC -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
-CLIBS             := \$(THREADL) -ldl
+CLIBS             := -pthread -ldl
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
-CXXLIBS           := \$(THREADL) -ldl
+CXXLIBS           := -pthread -ldl
 CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/

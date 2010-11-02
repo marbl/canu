@@ -1,4 +1,3 @@
-#include "posix.H"
 #include "hitMatrix.H"
 
 //  Sort by dsPos
