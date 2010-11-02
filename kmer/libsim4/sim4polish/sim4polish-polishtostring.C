@@ -245,11 +245,11 @@ sim4polish::s4p_polishToStringGFF3(void) {
   //  undefined values should use '.'
   //
   //  1 seqid, genome name (a-zA-Z0-9.:^*$@!+_?-|), no whitespace (??) and not begin with >
-  //  2 source ("sim4cc")
+  //  2 source ("sim4db")
   //  3 type ("mRNA" or "exon")
   //  4 begin, 1-based
   //  5 end, zero-length start=end, to the right of this base
-  //  6 score, ill-defined
+  //  6 score (percent identity)
   //  7 strand
   //  8 phase
   //  9 attributes
@@ -291,10 +291,10 @@ sim4polish::s4p_polishToStringGFF3(void) {
     if (genend < _exons[i]._genFrom)  genend = _exons[i]._genFrom;
     if (genend < _exons[i]._genTo)    genend = _exons[i]._genTo;
 
-    if (_exons[i]._genFrom < estbgn)  estbgn = _exons[i]._genFrom;
-    if (_exons[i]._genTo   < estbgn)  estbgn = _exons[i]._genTo;
-    if (estend < _exons[i]._genFrom)  estend = _exons[i]._genFrom;
-    if (estend < _exons[i]._genTo)    estend = _exons[i]._genTo;
+    if (_exons[i]._estFrom < estbgn)  estbgn = _exons[i]._estFrom;
+    if (_exons[i]._estTo   < estbgn)  estbgn = _exons[i]._estTo;
+    if (estend < _exons[i]._estFrom)  estend = _exons[i]._estFrom;
+    if (estend < _exons[i]._estTo)    estend = _exons[i]._estTo;
   }
 
   //  Find the orientation
@@ -302,6 +302,21 @@ sim4polish::s4p_polishToStringGFF3(void) {
 
   if (_matchOrientation == SIM4_MATCH_FORWARD)     mOri = '+';
   if (_matchOrientation == SIM4_MATCH_COMPLEMENT)  mOri = '-';
+
+  // Find the strand
+  char    sOri = '?';
+  switch (_strandOrientation) {
+    case SIM4_STRAND_POSITIVE:    sOri = '+';  break;
+    case SIM4_STRAND_NEGATIVE:    sOri = '-';  break;
+    case SIM4_STRAND_UNKNOWN:
+    case SIM4_STRAND_INTRACTABLE:
+    case SIM4_STRAND_FAILED:
+    case SIM4_STRAND_ERROR:       sOri = '.';  break;
+    default:
+      fprintf(stderr, "sim4reader: Unknown strandOrientation '"u32bitFMT"' in printPolishGFF3()\n", _matchOrientation);
+      sOri = '.';
+      break;
+  }
 
   //  Get rid of spaces in the names (and do it non-destructively).
 
@@ -321,12 +336,16 @@ sim4polish::s4p_polishToStringGFF3(void) {
 
   //  The main mRNA match line.
 
-  sprintf(outc, "%s\tsim4cc\tmRNA\t"u32bitFMT"\t"u32bitFMT"\t.\t%c\t.\t",
-          _genDefLine, genbgn, genend, mOri);
+  sprintf(outc, u32bitFMT":%s\tsim4db\tmRNA\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t.\t",
+          _genID, _genDefLine, genbgn, genend, _percentIdentity, sOri);
   while (*outc)  outc++;
 
-  sprintf(outc, "ID=sim4cc"u32bitFMT";Name=%s;Target=%s "u32bitFMT" "u32bitFMT" %c\n",
-          sim4polishPolishID, _estDefLine, _estDefLine, estbgn, estend, mOri);
+  sprintf(outc, "ID=sim4db"u32bitFMT";Name="u32bitFMT":%s;Target="u32bitFMT":%s "u32bitFMT" "u32bitFMT" %c;",
+          sim4polishPolishID, _estID, _estDefLine, _estID, _estDefLine, estbgn, estend, mOri);
+  while (*outc)  outc++;
+
+  sprintf(outc, "targetLen="u32bitFMT";pA="u32bitFMT";pT="u32bitFMT";genRegion="u32bitFMT"-"u32bitFMT"\n",
+          _estLen, _estPolyA, _estPolyT, _genRegionOffset, _genRegionOffset + _genRegionLength -1);
   while (*outc)  outc++;
 
   //  Exons.
@@ -334,19 +353,31 @@ sim4polish::s4p_polishToStringGFF3(void) {
   for (u32bit i=0; i<_numExons; i++) {
     char *gap = encodeGap(_exons[i]._genAlignment, _exons[i]._estAlignment);
 
-    sprintf(outc, "%s\tsim4cc\texon\t"u32bitFMT"\t"u32bitFMT"\t.\t%c\t.\t",
-            _genDefLine, _exons[i]._genFrom, _exons[i]._genTo, mOri);
+    sprintf(outc, u32bitFMT":%s\tsim4db\texon\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%c\t.\t",
+            _genID, _genDefLine, _exons[i]._genFrom, _exons[i]._genTo, _exons[i]._percentIdentity, sOri);
     while (*outc)  outc++;
 
     if (gap)
-      sprintf(outc, "Parent=sim4cc"u32bitFMT";Target=%s "u32bitFMT" "u32bitFMT" %c;Gap=%s\n",
-              sim4polishPolishID, _estDefLine, _exons[i]._estFrom, _exons[i]._estTo, '-', gap);
+      sprintf(outc, "Parent=sim4db"u32bitFMT";Target="u32bitFMT":%s "u32bitFMT" "u32bitFMT" %c;Gap=%s;nMatches="u32bitFMT"",
+              sim4polishPolishID, _estID, _estDefLine, _exons[i]._estFrom, _exons[i]._estTo, mOri, gap, _exons[i]._numMatches);
     else
-      sprintf(outc, "Parent=sim4cc"u32bitFMT";Target=%s "u32bitFMT" "u32bitFMT" %c\n",
-              sim4polishPolishID, _estDefLine, _exons[i]._estFrom, _exons[i]._estTo, '-');
+      sprintf(outc, "Parent=sim4db"u32bitFMT";Target="u32bitFMT":%s "u32bitFMT" "u32bitFMT" %c;nMatches="u32bitFMT"",
+              sim4polishPolishID, _estID, _estDefLine, _exons[i]._estFrom, _exons[i]._estTo, mOri, _exons[i]._numMatches);
     while (*outc)  outc++;
 
     delete [] gap;
+
+    switch (_exons[i]._intronOrientation) {
+      // +1 to exclude the front blank space
+      case SIM4_INTRON_POSITIVE:    sprintf(outc, ";intron=%s\n", iOriPOS +1); break;
+      case SIM4_INTRON_NEGATIVE:    sprintf(outc, ";intron=%s\n", iOriNEG +1); break;
+      case SIM4_INTRON_AMBIGUOUS:   sprintf(outc, ";intron=%s\n", iOriAMB +1); break;
+      case SIM4_INTRON_GAP:         sprintf(outc, ";intron=%s\n", iOriGAP +1); break;
+      case SIM4_INTRON_ERROR:       sprintf(outc, ";intron=%s\n", iOriERR +1); break;
+      default:                      sprintf(outc, "\n"); break;
+    }
+
+    while (*outc)  outc++;
   }
 
   sim4polishPolishID++;
@@ -361,6 +392,5 @@ char *
 sim4polish::s4p_polishToStringATAC(void) {
   return(0L);
 }
-
 
 

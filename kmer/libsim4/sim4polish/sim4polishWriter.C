@@ -40,6 +40,13 @@ sim4polishWriter::sim4polishWriter(const char *name, sim4polishStyle style, bool
   }
 
   _style = style;
+
+  switch (_style) {
+    case sim4polishS4DB: s4p_putHeaderS4DB(); break; 
+    case sim4polishGFF3: s4p_putHeaderGFF3(); break;
+    case sim4polishATAC: s4p_putHeaderATAC(); break; 
+  }
+
   memset(_sourceName,    0, sizeof(char) * 32);
   memset(_matchIDprefix, 0, sizeof(char) * 32);
   memset(_matchIDsalt,   0, sizeof(char) * 8);
@@ -68,6 +75,22 @@ sim4polishWriter::sim4polishWriter(const char *name, sim4polishStyle style, bool
           saltPID, saltTime, _matchIDsalt);
 }
 
+void
+sim4polishWriter::s4p_putHeaderS4DB() {
+  return;
+}
+
+void
+sim4polishWriter::s4p_putHeaderATAC() {
+  return;
+}
+
+void
+sim4polishWriter::s4p_putHeaderGFF3() {
+  fputs( "##gff-version 3\n", _otFile);
+
+  return;
+}
 
 sim4polishWriter::~sim4polishWriter() {
 

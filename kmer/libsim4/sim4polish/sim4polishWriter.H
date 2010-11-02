@@ -18,6 +18,10 @@ private:
   //
   FILE  *surrenderToReader(void);
 
+  void s4p_putHeaderS4DB();
+  void s4p_putHeaderGFF3();
+  void s4p_putHeaderATAC();
+
   friend class sim4polishReader;
 
 public:
