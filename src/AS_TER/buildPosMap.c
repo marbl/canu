@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.19 2010-10-04 08:51:44 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.20 2010-11-05 01:37:26 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -47,8 +47,7 @@ typedef struct {
   char     scfOri;
 } ctgInfo_t;
 
-int          ctgInfoMax = 32 * 1024 * 1024;
-int          ctgInfoLen = 0;
+uint32       ctgInfoMax = 32 * 1024 * 1024;
 ctgInfo_t   *ctgInfo    = NULL;
 
 
@@ -258,7 +257,7 @@ processULK(SnapUnitigLinkMesg *ulk) {
           ulk->num_contributing,
           ulk->status);
   //  If overlap type indicates an overlap was counted, subtract one
-  for (uint32 i=0; i < ulk->num_contributing - (ulk->overlap_type != AS_NO_OVERLAP); i++)
+  for (int32 i=0; i < ulk->num_contributing - (ulk->overlap_type != AS_NO_OVERLAP); i++)
     fprintf(utglkg, "\t%s,%s,%c",
             AS_UID_toString(ulk->jump_list[i].in1),
             AS_UID_toString(ulk->jump_list[i].in2),
@@ -308,6 +307,10 @@ processCCO(SnapConConMesg *cco) {
   InsertInHashTable_AS(uid2iid,
                        AS_UID_toInteger(cco->eaccession), 0,
                        cco->iaccession, 0);
+  if (ctgInfoMax <= cco->iaccession) {
+    ctgInfoMax *= 2;
+    ctgInfo     = (ctgInfo_t *)safe_realloc(ctgInfo, ctgInfoMax * sizeof(ctgInfo_t));
+  }
   ctgInfo[cco->iaccession].len = contigLengthUngap;
 
   //  VAR/variants
@@ -389,7 +392,7 @@ processCLK(SnapContigLinkMesg *clk) {
           clk->num_contributing,
           clk->status);
   //  If overlap type indicates an overlap was counted, subtract one
-  for (uint32 i=0; i < clk->num_contributing - (clk->overlap_type != AS_NO_OVERLAP); i++)
+  for (int32 i=0; i < clk->num_contributing - (clk->overlap_type != AS_NO_OVERLAP); i++)
     fprintf(ctglkg, "\t%s,%s,%c",
             AS_UID_toString(clk->jump_list[i].in1),
             AS_UID_toString(clk->jump_list[i].in2),
@@ -502,7 +505,7 @@ processSLK(SnapScaffoldLinkMesg *slk) {
           slk->std_deviation,
           slk->num_contributing);
   //  Unlike ULK and CLK, there is no overlap_type here, so all num_contributing are edges
-  for (uint32 i=0; i<slk->num_contributing; i++)
+  for (int32 i=0; i<slk->num_contributing; i++)
     fprintf(scflkg, "\t%s,%s,%c",
             AS_UID_toString(slk->jump_list[i].in1),
             AS_UID_toString(slk->jump_list[i].in2),
@@ -660,7 +663,7 @@ int main (int argc, char *argv[]) {
   if ((outputPrefix == NULL) || (err)) {
     fprintf(stderr, "usage: %s -o prefix [-h] [-i prefix.asm | < prefix.asm]\n", argv[0]);
     fprintf(stderr, "  -o prefix        write the output here\n");
-    fprintf(stderr, "  -u prefix.asm    read the assembly from here; default is to read stdin\n");
+    fprintf(stderr, "  -i prefix.asm    read the assembly from here; default is to read stdin\n");
     fprintf(stderr, "  -h               print help\n");
 
     fprintf(stderr, "\n");
