@@ -370,6 +370,8 @@ main(int argc, char **argv) {
   u32bit       pAlloc = 8388608;
   u32bit       estID  = ~u32bitZERO;
 
+  sim4polishStyle  style = sim4polishStyleDefault;
+
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-n", 2) == 0) {
@@ -380,6 +382,8 @@ main(int argc, char **argv) {
       EPS_N = EPS_N_ESTS;
     } else if (strncmp(argv[arg], "-validate", 2) == 0) {
       doValidate = 1;
+    } else if (strcmp(argv[arg], "-gff3") == 0) {
+      style = sim4polishGFF3;
     } else {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
     }
@@ -387,7 +391,7 @@ main(int argc, char **argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, "usage: %s [-mrna|-ests] [-validate] < file > file\n", argv[0]);
+    fprintf(stderr, "usage: %s [-mrna|-ests] [-validate] [-gff3] < file > file\n", argv[0]);
 
     if (isatty(fileno(stdin)))
       fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
@@ -402,7 +406,10 @@ main(int argc, char **argv) {
   sim4polish       **p = new sim4polish * [pAlloc];
   sim4polish        *q = 0L;
 
-  W = new sim4polishWriter("-", sim4polishS4DB);
+  W = new sim4polishWriter("-", style);
+
+  if (R->getsim4polishStyle() != style)
+    fprintf(stderr, "warning: input format and output format differ.\n");
 
   while (R->nextAlignment(q)) {
     if ((q->_estID != estID) && (pNum > 0)) {

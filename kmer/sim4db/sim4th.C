@@ -310,7 +310,7 @@ writer(void *U, void *S) {
   sim4polishList  &L4 = *(p->output);
 
   for (u32bit i=0; L4[i]; i++) {
-    char *o = L4[i]->s4p_polishToString();
+    char *o = L4[i]->s4p_polishToString(sim4params.getOutputFormat());
 
     errno = 0;
     write(fOutput, o, strlen(o) * sizeof(char));
@@ -394,7 +394,7 @@ main(int argc, char **argv) {
       }
       sim4params.setPolyTailPercent(x);
 
-    } else if (strncmp(argv[arg], "-genomic", 2) == 0) {
+    } else if (strncmp(argv[arg], "-genomic", 4) == 0) {
       databaseFileName = argv[++arg];
 
     } else if (strncmp(argv[arg], "-minc", 5) == 0) {
@@ -465,6 +465,9 @@ main(int argc, char **argv) {
 
     } else if (strncmp(argv[arg], "-interspecies", 2) == 0) {
       sim4params.setInterspecies(true);
+
+    } else if (strcmp(argv[arg], "-gff3") == 0) {
+      sim4params.setOutputFormat(S4P_POLISH_GFF3);
 
     } else {
       fprintf(stderr, "Unknown option '%s'.\n", argv[arg]);

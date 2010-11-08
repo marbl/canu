@@ -298,7 +298,7 @@ doPolishS4(searcherState       *state,
 
         qry->theHits[h]._status |= AHIT_VERIFIED;
 
-        char *pstr = L4[i]->s4p_polishToString();
+        char *pstr = L4[i]->s4p_polishToString(sim4params.getOutputFormat());
 
         u32bit l = (u32bit)strlen(pstr);
 

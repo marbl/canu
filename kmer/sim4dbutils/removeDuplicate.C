@@ -74,8 +74,22 @@ main(int argc, char **argv) {
   u32bit   pAlloc = 8388608;
   u32bit   estID  = ~u32bitZERO;
 
+  sim4polishStyle  style = sim4polishStyleDefault;
+
+  int arg = 1;
+
+  while (arg < argc) {
+    if (strcmp(argv[1], "-gff3") == 0) 
+      style = sim4polishGFF3;
+    else 
+      fprintf(stderr, "usage: %s [-gff3] < file > file\n", argv[0]);
+
+    arg++;
+  }
+
+
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, "usage: %s < file > file\n", argv[0]);
+    fprintf(stderr, "usage: %s [-gff3] < file > file\n", argv[0]);
 
     if (isatty(fileno(stdin)))
       fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
@@ -90,7 +104,10 @@ main(int argc, char **argv) {
   sim4polish      **p = new sim4polish * [pAlloc];
   sim4polish       *q = 0L;
 
-  W = new sim4polishWriter("-", sim4polishS4DB);
+  W = new sim4polishWriter("-", style);
+
+  if (R->getsim4polishStyle() != style)
+    fprintf(stderr, "warning: input format and output format differ.\n");
 
   while (R->nextAlignment(q)) {
     if ((q->_estID != estID) && (pNum > 0)) {

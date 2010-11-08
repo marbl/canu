@@ -16,6 +16,7 @@
 //    -c min percent coverage (default 50)
 //    -a polishes input file 1
 //    -b polishes input file 2
+//    -gff3 write output as GFF3
 //
 //    Output is on standard out, and is tab-delimited.  It reports
 //    stuff about the 'same' matches:
@@ -34,10 +35,10 @@
 
 
 sim4polishWriter *
-openOutput(const char *prefix, const char *suffix) {
+openOutput(const char *prefix, const char *suffix, sim4polishStyle style) {
   char name[FILENAME_MAX];
   sprintf(name, "%s.%s", prefix, suffix);
-  return(new sim4polishWriter(name, sim4polishS4DB));
+  return(new sim4polishWriter(name, style));
 }
 
 
@@ -70,6 +71,14 @@ main(int argc, char **argv) {
   u32bit           multipleInB  = 0;
   u32bit           hairyOverlap = 0;
 
+  bool             doGFF3;
+
+  sim4polishStyle Astyle = sim4polishStyleDefault;
+  sim4polishStyle Bstyle = sim4polishStyleDefault;
+
+  sim4polishStyle style  = sim4polishStyleDefault;
+
+
   int arg=1;
   while(arg < argc) {
     if        (strcmp(argv[arg], "-i") == 0) {
@@ -77,30 +86,45 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-c") == 0) {
       minC = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-a") == 0) {
-      Afile = new sim4polishFile(argv[++arg]);
+      //  Ugly hack to obtain the style of the input files, but can be fixed later
+
+      sim4polishReader *AR = new sim4polishReader(argv[++arg]);
+      Astyle = AR->getsim4polishStyle();
+      delete   AR;     
+
+      Afile = new sim4polishFile(argv[arg], Astyle);
     } else if (strcmp(argv[arg], "-b") == 0) {
-      Bfile = new sim4polishFile(argv[++arg]);
+      //  Ugly hack to obtain the style of the input files, but can be fixed later
+
+      sim4polishReader *BR = new sim4polishReader(argv[++arg]);
+      Bstyle = BR->getsim4polishStyle();
+      delete   BR;
+
+      Bfile = new sim4polishFile(argv[arg], Astyle);
     } else if (strcmp(argv[arg], "-p") == 0) {
       prefix = argv[++arg];
+    } else if (strcmp(argv[arg], "-gff3") == 0) {
+      doGFF3 = true;
+      style = sim4polishGFF3;
     }
     arg++;
   }
 
   if ((Afile == 0L) || (Bfile == 0L)) {
-    fprintf(stderr, "usage: %s [-i percent-identity] [-c percent-coverage] -a input-set-a -b input-set-b [-p output-prefix]\n", argv[0]);
+    fprintf(stderr, "usage: %s [-i percent-identity] [-c percent-coverage] -a input-set-a -b input-set-b [-p output-prefix] [-gff3]\n", argv[0]);
     fprintf(stderr, "only -a and -b are mandatory, but you should give all anyway\n");
     exit(1);
   }
 
   //  Open the output files
   //
-  sim4polishWriter *fasame  = openOutput(prefix, "a-same");
-  sim4polishWriter *fbsame  = openOutput(prefix, "b-same");
-  sim4polishWriter *fanovel = openOutput(prefix, "a-novel");
-  sim4polishWriter *fbnovel = openOutput(prefix, "b-novel");
-  sim4polishWriter *famulti = openOutput(prefix, "a-multi");
-  sim4polishWriter *fbmulti = openOutput(prefix, "b-multi");
-  sim4polishWriter *fhairy  = openOutput(prefix, "hairy");
+  sim4polishWriter *fasame  = openOutput(prefix, "a-same", style);
+  sim4polishWriter *fbsame  = openOutput(prefix, "b-same", style);
+  sim4polishWriter *fanovel = openOutput(prefix, "a-novel", style);
+  sim4polishWriter *fbnovel = openOutput(prefix, "b-novel", style);
+  sim4polishWriter *famulti = openOutput(prefix, "a-multi", style);
+  sim4polishWriter *fbmulti = openOutput(prefix, "b-multi", style);
+  sim4polishWriter *fhairy  = openOutput(prefix, "hairy", style);
 
   //  Force index builds
   //

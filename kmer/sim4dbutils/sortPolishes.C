@@ -4,14 +4,15 @@
 #include <errno.h>
 #include <string.h>
 
-#include "bio.h"
 #include "sim4.H"
+#include "bio.h"
+#include "util.h"
 
 //  Sorts a file of polishes by cDNA or genomic idx.
 
 sim4polishReader *
-writeTemporary(char *filePrefix, sim4polish **p, u32bit pLen, int (*fcn)(const void *, const void *)) {
-  sim4polishWriter *W = new sim4polishWriter(0L, sim4polishS4DB, true);
+writeTemporary(char *filePrefix, sim4polish **p, u32bit pLen, sim4polishStyle style, int (*fcn)(const void *, const void *)) {
+  sim4polishWriter *W = new sim4polishWriter(0L, style, true);
   sim4polishReader *R;
 
   qsort(p, pLen, sizeof(sim4polish *), fcn);
@@ -26,8 +27,9 @@ writeTemporary(char *filePrefix, sim4polish **p, u32bit pLen, int (*fcn)(const v
   return(R);
 }
 
+static void *ph;
 
-//  Save the polish using palloc
+//  Save the polish using palloc;
 //
 sim4polish *
 savePolish(sim4polish *q, u64bit *alloc) {
@@ -35,7 +37,7 @@ savePolish(sim4polish *q, u64bit *alloc) {
 
   //  Copy the base polish structure.
   //
-  sim4polish *r = (sim4polish *)palloc(sizeof(sim4polish));
+  sim4polish *r = (sim4polish *)palloc2(sizeof(sim4polish), ph);
   memcpy(r, q, sizeof(sim4polish));
   *alloc += sizeof(sim4polish);
 
@@ -43,19 +45,19 @@ savePolish(sim4polish *q, u64bit *alloc) {
   //
   if (q->_estDefLine && q->_genDefLine) {
     l = strlen(q->_estDefLine) + 1;
-    r->_estDefLine = (char *)palloc(sizeof(char) * l);
+    r->_estDefLine = (char *)palloc2(sizeof(char) * l, ph);
     memcpy(r->_estDefLine, q->_estDefLine, sizeof(char) * l);
     *alloc += l * sizeof(char);
  
     l = strlen(q->_genDefLine) + 1;
-    r->_genDefLine = (char *)palloc(sizeof(char) * l);
+    r->_genDefLine = (char *)palloc2(sizeof(char) * l, ph);
     memcpy(r->_genDefLine, q->_genDefLine, sizeof(char) * l);
     *alloc += l * sizeof(char);
   }
 
   //  Copy the base exon structure.
   //
-  r->_exons = (sim4polishExon *)palloc(sizeof(sim4polishExon) * q->_numExons);
+  r->_exons = (sim4polishExon *)palloc2(sizeof(sim4polishExon) * q->_numExons, ph);
   memcpy(r->_exons, q->_exons, sizeof(sim4polishExon) * q->_numExons);
   *alloc += sizeof(sim4polishExon) * q->_numExons;
 
@@ -64,14 +66,14 @@ savePolish(sim4polish *q, u64bit *alloc) {
   for (u32bit i=0; i<q->_numExons; i++) {
     if (q->_exons[i]._estAlignment) {
       l = strlen(q->_exons[i]._estAlignment) + 1;
-      r->_exons[i]._estAlignment = (char *)palloc(sizeof(char) * l);
+      r->_exons[i]._estAlignment = (char *)palloc2(sizeof(char) * l, ph);
       memcpy(r->_exons[i]._estAlignment, q->_exons[i]._estAlignment, sizeof(char) * l);
       *alloc += l * sizeof(char);
     }
 
     if (q->_exons[i]._genAlignment) {
       l = strlen(q->_exons[i]._genAlignment) + 1;
-      r->_exons[i]._genAlignment = (char *)palloc(sizeof(char) * l);
+      r->_exons[i]._genAlignment = (char *)palloc2(sizeof(char) * l, ph);
       memcpy(r->_exons[i]._genAlignment, q->_exons[i]._genAlignment, sizeof(char) * l);
       *alloc += l * sizeof(char);
     }
@@ -121,8 +123,11 @@ main(int argc, char **argv) {
 
   u32bit              mergeFilesLen   = 0;
   u32bit              mergeFilesMax   = sysconf(_SC_OPEN_MAX);
-  sim4polishReader **mergeFiles      = new sim4polishReader * [mergeFilesMax];
-  char             **mergeNames      = new char * [mergeFilesMax];
+  sim4polishReader  **mergeFiles      = new sim4polishReader * [mergeFilesMax];
+  char              **mergeNames      = new char * [mergeFilesMax];
+
+  sim4polishStyle     style = sim4polishStyleDefault;
+
 
   if ((mergeFiles == 0L) || (mergeNames == 0L)) {
     fprintf(stderr, "sortPolishes: Failed to initialize.\n");
@@ -160,6 +165,9 @@ main(int argc, char **argv) {
       arg++;
       filePrefix = argv[arg];
 
+    } else if (strcmp(argv[arg], "-gff3") == 0) {
+      style = sim4polishGFF3;
+
     } else if (strncmp(argv[arg], "-M", 2) == 0) {
       arg++;
       while ((arg < argc) && (fileExists(argv[arg]))) {
@@ -183,7 +191,7 @@ main(int argc, char **argv) {
   if ((err) ||
       (fcn == 0L) ||
       ((mergeFilesLen == 0) && (isatty(fileno(stdin))))) {
-    fprintf(stderr, "usage: %s [-c | -g] [-m M] [-t T] [-M [file ...]]\n", argv[0]);
+    fprintf(stderr, "usage: %s [-c | -g] [-m M] [-t T] [-gff3] [-M [file ...]]\n", argv[0]);
     fprintf(stderr, "  -c (-C)    Sort by the cDNA index (defline).\n");
     fprintf(stderr, "  -g (-G)    Sort by the genomic index (defline).\n");
     fprintf(stderr, "  -M         Skip the sort, just do a merge.\n");
@@ -192,6 +200,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -t T       Use directory 'T' for temporary files.  Default is the current\n");
     fprintf(stderr, "             working directory.  The sort unlinks files immediately after\n");
     fprintf(stderr, "             creation: no files will exist, but space will be used.\n");
+    fprintf(stderr, "  -gff3      Format output as GFF3.\n");
     fprintf(stderr, "  -v         Be verbose.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  Both sort methods use the OTHER index as a secondary key.\n");
@@ -210,7 +219,7 @@ main(int argc, char **argv) {
 
 
   //  XXX: Experimental method to automagically determine the amount of memory available (or, to at
-  //  least, determine if this process can get to be as big as the silly user said it can.
+  //  least, determine if this process can get to be as big as the user said it can.
   //
   arrayAlloc = getProcessSizeCurrent();
 
@@ -224,10 +233,15 @@ main(int argc, char **argv) {
   //  of not having palloc() use a blocksize that divides our upperAlloc size.  This attempts to
   //  sync them up.
   //
-  psetblocksize(upperAlloc / 16);
+  ph = pallochandle(2 * 1024 * 1024);
+
+  psetblocksize(upperAlloc / 16);   // This produced a crash in readBuffer
 
   sim4polishReader *R = new sim4polishReader("-");
   sim4polish       *q = 0L;
+
+  if (R->getsim4polishStyle() != style)
+    fprintf(stderr, "warning: input format and output format differ.\n");
 
   while (R->nextAlignment(q)) {
     
@@ -257,7 +271,7 @@ main(int argc, char **argv) {
           fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
           exit(1);
         }
-        mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, fcn);
+        mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, style, fcn);
 
         pfree();
         matchAlloc = 0;
@@ -276,7 +290,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
   }
 
-  sim4polishWriter  *W = new sim4polishWriter("-", sim4polishS4DB);
+  sim4polishWriter  *W = new sim4polishWriter("-", style);
 
   if (mergeFilesLen == 0) {
     //  No temporary files.  Sort the polishes, and dump.
@@ -293,7 +307,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "Too many open files.  Try increasing memory size.\n");
       exit(1);
     }
-    mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, fcn);
+    mergeFiles[mergeFilesLen++] = writeTemporary(filePrefix, p, pLen, style, fcn);
 
     pfree();
     matchAlloc = 0;
@@ -346,6 +360,9 @@ main(int argc, char **argv) {
 
   delete [] mergeFiles;
   delete [] mergeNames;
+
+  pfree2(ph);
+  pfreehandle(ph);
 
   return(0);
 }

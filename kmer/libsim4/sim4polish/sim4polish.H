@@ -30,6 +30,10 @@
 #define SIM4_STRAND_INTRACTABLE  'I'
 #define SIM4_STRAND_FAILED       'F'
 
+#define S4P_POLISH_S4DB          100
+#define S4P_POLISH_GFF3          101
+#define S4P_POLISH_ATAC          102
+
 enum sim4polishStyle {
   sim4polishS4DB,
   sim4polishGFF3,
@@ -187,7 +191,7 @@ public:
   //  Note that there is no (public) mechanism to convert these strings back to a sim4polish.  The
   //  only mechanism is through a readBuffer (aka, a file).
   //
-  char  *s4p_polishToString(sim4polishStyle style=sim4polishS4DB);
+  char  *s4p_polishToString(sim4polishStyle style);  // STYLE - add =sim4polishS4DB
 private:
   char  *s4p_polishToStringS4DB(void);
   char  *s4p_polishToStringGFF3(void);

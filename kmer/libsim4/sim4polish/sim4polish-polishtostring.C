@@ -113,7 +113,7 @@ sim4polish::s4p_polishToString(sim4polishStyle style) {
   if (_numExons == 0)
     return(ret);
 
-  switch (sim4polishStyleDefault) {
+  switch (style) {
     case sim4polishS4DB:
       ret = s4p_polishToStringS4DB();
       break;
@@ -124,8 +124,8 @@ sim4polish::s4p_polishToString(sim4polishStyle style) {
       ret = s4p_polishToStringATAC();
       break;
     default:
-      fprintf(stderr, "s4p_polishToString()-- unknown style default='%d' style='%d'\n",
-              sim4polishStyleDefault, style);
+      fprintf(stderr, "s4p_polishToString()-- unknown style='%d'\n",
+              style);
       exit(1);
   }
 
@@ -263,6 +263,13 @@ sim4polish::s4p_polishToStringGFF3(void) {
   //      Dbxref
   //      Ontology_term
   //      Is_circular
+  //      others, user-defined (lowercase first letter; see below)
+  //
+  //   Example:
+  //     0:arm_2L        sim4db  mRNA    2372455 2373234 98      -       .       ID=sim4db0;Name=61728:gb|CA807305;Target=61728:gb|CA807305 22 685 +;targetLen=685;pA=0;pT=21;genRegion=2370482-2375223
+  //     0:arm_2L        sim4db  exon    2372455 2372770 99      -       .       Parent=sim4db0;Target=61728:gb|CA807305 22 337 +;Gap=M316;nMatches=313;intron=<-
+  //     0:arm_2L        sim4db  exon    2372830 2373076 96      -       .       Parent=sim4db0;Target=61728:gb|CA807305 338 584 +;Gap=M74 D1 M2 I1 M170;nMatches=238;intron=<-
+  //     0:arm_2L        sim4db  exon    2373134 2373234 99      -       .       Parent=sim4db0;Target=61728:gb|CA807305 585 685 +;Gap=M101;nMatches=100
   //
 
   //  Make a decent estimate of how much space we'll need to store the string

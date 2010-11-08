@@ -247,7 +247,7 @@ dpMatrix::dpAlign(char     *stringA,  int lenA,
   match->lenA     = lenA;
   match->lenB     = lenB;
 
-#warning alignA and alignB aliases to dpMatrix
+//warning alignA and alignB aliases to dpMatrix
   match->alignA   = alignA;
   match->alignB   = alignB;
 
@@ -411,7 +411,7 @@ doPolishDP(searcherState       *state,
       //  Save it if it is truely good.
       if ((p._percentIdentity  >= config._minMatchIdentity) &&
           (p._querySeqIdentity >= config._minMatchCoverage)) {
-        char *pstr = p.s4p_polishToString();
+        char *pstr = p.s4p_polishToString(sim4polishStyleDefault);
 
         u32bit l = (u32bit)strlen(pstr);
 

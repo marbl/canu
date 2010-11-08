@@ -4,6 +4,7 @@
 #include "mspManager.H"
 #include "sim4defines.H"
 #include "ckalloc.H"
+#include "../sim4polish/sim4polish.H"
 
 class sim4parameters {
 public:
@@ -115,10 +116,22 @@ public:
     }
   }
 
+  void  setOutputFormat(int styleCode) {
+    switch (styleCode) {
+      case S4P_POLISH_S4DB: _style = sim4polishS4DB; break;
+      case S4P_POLISH_GFF3: _style = sim4polishGFF3; break;
+      case S4P_POLISH_ATAC: _style = sim4polishS4DB; break; // Not yet implemented
+                   default: fprintf(stderr, "sim4parameters::setOutputFormat() error: unrecognized output format; re-setting to default.\n");
+    }
+  }
+
   int   setSpliceMutex(void) {
     return pthread_mutex_init(&_splice_mutex,NULL);
   }
 
+  sim4polishStyle getOutputFormat(void) {
+    return _style;
+  }
 
 private:
   double        _minCoverage;
@@ -182,6 +195,9 @@ private:
   //    _misMatch is the former MISMATCH
   //
   bool          _interspecies;
+
+  sim4polishStyle _style;
+
 #ifdef __APPLE__
   bool          _pad4[3];
   u32bit        _pad5;

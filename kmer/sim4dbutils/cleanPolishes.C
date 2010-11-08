@@ -115,6 +115,8 @@ main(int argc, char ** argv) {
   sim4polishWriter *filtJunkBoth  = 0L;
   sim4polishWriter *filtIntronGap = 0L;
 
+  sim4polishStyle style = sim4polishStyleDefault;
+
   bool  hasBeenWarned = false;
 
   bool  beVerbose     = false;
@@ -132,28 +134,13 @@ main(int argc, char ** argv) {
     } else if (strncmp(argv[arg], "-beforeafter", 2) == 0) {
       fprintf(stderr, "DEBUG MODE ENABLED -- many 'spl.*' files created!\n");
       beforeafter  = true;
-#if 0
-      splGood      = new sim4polishWriter("spl.good",      sim4polishS4DB);
-      splProbGood  = new sim4polishWriter("spl.probGood",  sim4polishS4DB);
-#endif
-      splJunkLeft  = new sim4polishWriter("spl.junkLeft",  sim4polishS4DB);
-      splJunkRight = new sim4polishWriter("spl.junkRight", sim4polishS4DB);
-      splJunkBoth  = new sim4polishWriter("spl.junkBoth",  sim4polishS4DB);
-      splIntronGap = new sim4polishWriter("spl.intronGap", sim4polishS4DB);
 
     } else if (strncmp(argv[arg], "-segregate", 3) == 0) {
       fprintf(stderr, "SEGREGATION MODE ENABLED -- many 'filt.*' files created!\n");
       segregate     = true;
-#if 0
-      filtOne       = new sim4polishWriter("filt.filtOne",   sim4polishS4DB);
-      filtAllSmall  = new sim4polishWriter("filt.allSmall",  sim4polishS4DB);
-#endif
-      filtGood      = new sim4polishWriter("filt.good",      sim4polishS4DB);
-      filtProbGood  = new sim4polishWriter("filt.probGood",  sim4polishS4DB);
-      filtJunkLeft  = new sim4polishWriter("filt.junkLeft",  sim4polishS4DB);
-      filtJunkRight = new sim4polishWriter("filt.junkRight", sim4polishS4DB);
-      filtJunkBoth  = new sim4polishWriter("filt.junkBoth",  sim4polishS4DB);
-      filtIntronGap = new sim4polishWriter("filt.intronGap", sim4polishS4DB);
+
+    } else if (strncmp(argv[arg], "-gff3", 5) == 0) {
+      style = sim4polishGFF3;
 
     } else if (strncmp(argv[arg], "-savejunk", 3) == 0) {
       saveJunk = true;
@@ -189,9 +176,36 @@ main(int argc, char ** argv) {
   if (beVerbose)
     fprintf(stderr, "A big intron is one that is at least "u32bitFMT"bp long.\n", intronLimit);
 
-  sim4polishWriter *W = new sim4polishWriter("-", sim4polishS4DB);
+  if (beforeafter) {
+#if 0
+    splGood      = new sim4polishWriter("spl.good",      style);
+    splProbGood  = new sim4polishWriter("spl.probGood",  style);
+#endif
+    splJunkLeft  = new sim4polishWriter("spl.junkLeft",  style);
+    splJunkRight = new sim4polishWriter("spl.junkRight", style);
+    splJunkBoth  = new sim4polishWriter("spl.junkBoth",  style);
+    splIntronGap = new sim4polishWriter("spl.intronGap", style);
+  }
+
+  if (segregate) {
+#if 0
+    filtOne       = new sim4polishWriter("filt.filtOne",   style);
+    filtAllSmall  = new sim4polishWriter("filt.allSmall",  style);
+#endif
+    filtGood      = new sim4polishWriter("filt.good",      style);
+    filtProbGood  = new sim4polishWriter("filt.probGood",  style);
+    filtJunkLeft  = new sim4polishWriter("filt.junkLeft",  style);
+    filtJunkRight = new sim4polishWriter("filt.junkRight", style);
+    filtJunkBoth  = new sim4polishWriter("filt.junkBoth",  style);
+    filtIntronGap = new sim4polishWriter("filt.intronGap", style);
+  }
+
+  sim4polishWriter *W = new sim4polishWriter("-", style);
   sim4polishReader *R = new sim4polishReader("-");
   sim4polish       *p = 0L;
+
+  if (R->getsim4polishStyle() != style)
+    fprintf(stderr, "warning: input format and output format differ.\n");
 
   while (R->nextAlignment(p)) {
     u32bit exA;

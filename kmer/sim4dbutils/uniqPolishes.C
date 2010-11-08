@@ -34,12 +34,16 @@ main(int argc, char **argv) {
 
   u32bit       uniq   = 1;
 
+  sim4polishStyle style = sim4polishStyleDefault;
+
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-uniq", 2) == 0) {
       uniq = 1;
     } else if (strncmp(argv[arg], "-dupl", 2) == 0) {
       uniq = 0;
+    } else if (strcmp(argv[arg], "-gff3") == 0) {
+      style = sim4polishGFF3;
     } else {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
     }
@@ -47,7 +51,7 @@ main(int argc, char **argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, "usage: %s [-uniq | -dupl] < file > file\n", argv[0]);
+    fprintf(stderr, "usage: %s [-uniq | -dupl] [-gff3] < file > file\n", argv[0]);
 
     if (isatty(fileno(stdin)))
       fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
@@ -58,10 +62,13 @@ main(int argc, char **argv) {
   //  Read polishes, picking the best when we see a change in
   //  the estID.
 
-  sim4polishWriter  *W = new sim4polishWriter("-", sim4polishS4DB);
+  sim4polishWriter  *W = new sim4polishWriter("-", style);
   sim4polishReader  *R = new sim4polishReader("-");
   sim4polish       **p = new sim4polish * [pAlloc];
   sim4polish        *q = 0L;
+
+  if (R->getsim4polishStyle() != style) 
+    fprintf(stderr, "warning: input format and output format differ.\n");
 
   while (R->nextAlignment(q)) {
     if ((q->_estID != estID) && (pNum > 0)) {

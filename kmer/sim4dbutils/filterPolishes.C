@@ -30,10 +30,14 @@ main(int argc, char ** argv) {
   int                 doSegregation = 0;
   u32bit              doSegregationLo = 0;
   u32bit              doSegregationHi = 0;
-  char               *filePrefix = 0L;
+  char               *filePrefixGOOD = 0L;
+  char               *filePrefixCRAP = 0L;
+  char               *filePrefixJUNK = 0L;
   sim4polishWriter  **SEGREGATE = 0L;
   bool                noDefLines = false;
   bool                noAlignments = false;
+  bool                doGFF3 = false;
+  sim4polishStyle     style = sim4polishStyleDefault;
 
   //  We limit scaffolds to be below the number of open files per
   //  process.
@@ -61,15 +65,14 @@ main(int argc, char ** argv) {
       maxExons = atoi(argv[++arg]);
 
     } else if (strncmp(argv[arg], "-o", 2) == 0) {
-      filePrefix = argv[++arg];
-      GOOD       = new sim4polishWriter(filePrefix, sim4polishS4DB);
+      filePrefixGOOD = argv[++arg];
       GOODsilent = 0;
 
     } else if (strncmp(argv[arg], "-O", 2) == 0) {
       GOODsilent = 1;
 
     } else if (strncmp(argv[arg], "-d", 2) == 0) {
-      CRAP       = new sim4polishWriter(argv[++arg], sim4polishS4DB);
+      filePrefixCRAP = argv[++arg];
       CRAPsilent = 0;
 
     } else if (strncmp(argv[arg], "-q", 2) == 0) {
@@ -79,7 +82,7 @@ main(int argc, char ** argv) {
       CRAPsilent = 1;
 
     } else if (strncmp(argv[arg], "-j", 2) == 0) {
-      JUNK = new sim4polishWriter(argv[++arg], sim4polishS4DB);
+      filePrefixJUNK = argv[++arg];
 
     } else if (strncmp(argv[arg], "-C", 2) == 0) {
       cdna = atoi(argv[++arg]);
@@ -104,6 +107,10 @@ main(int argc, char ** argv) {
 
     } else if (strncmp(argv[arg], "-noalignments", 4) == 0) {
       noAlignments = true;
+
+    } else if (strncmp(argv[arg], "-gff3", 4) == 0) {
+      doGFF3 = true;
+      style = sim4polishGFF3;
 
     } else {
       fprintf(stderr, "UNKNOWN option '%s'\n", argv[arg]);
@@ -146,24 +153,26 @@ main(int argc, char ** argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nodeflines    Strip out deflines.\n");
     fprintf(stderr, "  -noalignments  Strip out alignments.\n");
-//  fprintf(stderr, "  -normalized    Strip out the genomic region (makes the polish relative\n");  ---Deprecated
-//  fprintf(stderr, "                 to the start of the sequence).\n");                           ---Deprecated
+    fprintf(stderr, "  -gff3          Write output in GFF3 format.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "                 All conditions must be met.\n");
     exit(1);
   }
 
-  if ((CRAPsilent == 0) && (GOODsilent == 0) && (GOOD == 0L) && (CRAP == 0L)) {
+  if ((CRAPsilent == 0) && (GOODsilent == 0) && (filePrefixGOOD == 0L) && (filePrefixCRAP == 0L)) {
     fprintf(stderr, "error: filter has no effect; saved and discarded polishes\n");
     fprintf(stderr, "       both printed to the same place!\n");
     fprintf(stderr, "       (try using one of -o, -O, -d, -D)\n");
     exit(1);
   }
 
-  if (doSegregation && (filePrefix == 0L)) {
+  if (doSegregation && (filePrefixGOOD == 0L)) {
     fprintf(stderr, "error: you must specify a file prefix when segregating (-s requires -o)\n");
     exit(1);
   }
+
+  if (noDefLines && doGFF3)
+    fprintf(stderr, "warning: No deflines option inactive with GFF3.\n");
 
   if (beVerbose) {
     fprintf(stderr, "Filtering at "u32bitFMT"%% coverage and "u32bitFMT"%% identity and "u32bitFMT"bp.\n", minC, minI, minL);
@@ -176,18 +185,35 @@ main(int argc, char ** argv) {
       fprintf(stderr, "Filtering for genomic idx "u32bitFMT".\n", geno);
   }
 
+  //  Prepare input files
+
+  sim4polishReader *R = new sim4polishReader("-");
+  sim4polish       *p = 0L;
+
+  if (R->getsim4polishStyle() != style)
+    fprintf(stderr, "warning: input format and output format differ.\n");
+
+  // Prepare output files 
+
+  if (filePrefixGOOD != 0L) 
+    GOOD = new sim4polishWriter(filePrefixGOOD, style);
+  if (filePrefixCRAP != 0L)
+    CRAP = new sim4polishWriter(filePrefixCRAP, style); 
+  if (filePrefixJUNK != 0L)
+    JUNK = new sim4polishWriter(filePrefixJUNK, style);
+
   if ((CRAPsilent == 0) && (CRAP == 0L))
     CRAP = new sim4polishWriter("-", sim4polishS4DB);
 
   if ((GOODsilent == 0) && (GOOD == 0L))
     GOOD = new sim4polishWriter("-", sim4polishS4DB);
 
-  sim4polishReader *R = new sim4polishReader("-");
-  sim4polish       *p = 0L;
+
+  //  Start processing
 
   while (R->nextAlignment(p)) {
 
-    if (noDefLines)
+    if (noDefLines && (doGFF3 == false))
       p->s4p_removeDefLines();
     if (noAlignments)
       p->s4p_removeAlignments();
@@ -211,7 +237,7 @@ main(int argc, char ** argv) {
               (p->_genID <= doSegregationHi)) {
             if (SEGREGATE[p->_genID - doSegregationLo] == 0L) {
               char filename[1024];
-              sprintf(filename, "%s.%04d", filePrefix, (int)p->_genID);
+              sprintf(filename, "%s.%04d", filePrefixGOOD, (int)p->_genID);
               SEGREGATE[p->_genID - doSegregationLo] = new sim4polishWriter(filename, sim4polishS4DB);
             }
             SEGREGATE[p->_genID - doSegregationLo]->writeAlignment(p);

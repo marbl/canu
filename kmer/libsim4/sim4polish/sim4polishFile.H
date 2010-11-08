@@ -32,7 +32,7 @@
 
 class sim4polishFile {
 public:
-  sim4polishFile(char *path);
+  sim4polishFile(char *path, sim4polishStyle style);
   ~sim4polishFile();
 
   //  Number of EST's actually present
@@ -85,6 +85,8 @@ private:
   polishRecord    *_polishRecord;
   u32bit          *_polishRecordEST;
   u32bit          *_polishRecordGEN;
+  
+  sim4polishStyle  _style;
 
   //  One integer pointer for each iid we've seen.  Pointer into
   //  _polishRecordEST or _polishRecordGEN.  If memory is tight, we

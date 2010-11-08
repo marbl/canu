@@ -35,7 +35,6 @@
 //  Define this to use our own memory management -- one that doesn't bother to
 //  release memory during the compute (but does release it all at the end).
 //
-#define WITH_PALLOC
 
 //  Define this to get a detailed report on hit extension (in mspManager.C)
 //
@@ -624,9 +623,6 @@ public:
 
     mem_init();
 
-#if 0
-    _pallochandle = pallochandle(2 * 1024 * 1024);  6/8/2010 LLL: replaced with mem_init()
-#endif
   };
 
   ~Sim4() {
@@ -637,11 +633,6 @@ public:
     delete [] thashtable.nodes;
 
     mem_end();
-
-#if 0
-    pfree2(_pallochandle);   6/8/2010 LLL: replaced with mem_end()
-    pfreehandle(_pallochandle);
-#endif
 
   };
 

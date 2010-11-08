@@ -19,16 +19,19 @@ int
 main(int argc, char **argv) {
 
   if (argc < 2) {
-    fprintf(stderr, "usage: %s [] <polishes-file>\n", argv[0]);
+    fprintf(stderr, "usage: %s [-gff3] <polishes-file>\n", argv[0]);
     fprintf(stderr, "(yes, you _must_ give it a file.  stdin is not possible.)\n");
     fprintf(stderr, "WARNING THIS IS PROTOTYPE BROKEN CODE!\n");
     exit(1);
   }
 
+  sim4polishStyle  wstyle = sim4polishStyleDefault;
+  sim4polishStyle  rstyle = sim4polishStyleDefault;
+
   int arg = 1;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "", 2) == 0) {
-    } else if (strncmp(argv[arg], "", 2) == 0) {
+    if (strcmp(argv[arg], "-gff3") == 0) {
+       wstyle = sim4polishGFF3;
     }
 
     arg++;
@@ -40,11 +43,20 @@ main(int argc, char **argv) {
   u32bit  notPerfectClique           = 0;
 
   //  Open a polishFile and force the index to build
-  //
-  sim4polishFile *Afile = new sim4polishFile(argv[argc-1]);
+  //  First find the input file type, with a hack
+
+  sim4polishReader *reader = new sim4polishReader(argv[argc-1]);
+  rstyle = reader->getsim4polishStyle();
+  delete reader;
+
+  sim4polishFile   *Afile  = new sim4polishFile(argv[argc-1], rstyle);
   Afile->setPosition(0);
 
-  sim4polishWriter *writer = new sim4polishWriter("-", sim4polishS4DB);
+  sim4polishWriter *writer = new sim4polishWriter("-", wstyle);
+
+  if (rstyle != wstyle)
+    fprintf(stderr, "warning: input format and output format differ.\n");
+
 
   //  Ask both for the largest EST iid seen, then iterate over those.
   //

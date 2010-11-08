@@ -6,7 +6,7 @@
 //#include "fasta.H"
 #include "sim4.H"
 
-//  usage: mergeInput -m match1 cdna1 -m match2 cdna2 -m ... -o match cdna
+//  usage: mergeInput -m match1 cdna1 -m match2 cdna2 -m ... -o match cdna [-gff3]
 //
 //  Merges the results from two ESTmapper runs.  The runs MUST be on
 //  the same genomic sequence using DIFFERENT cDNA inputs.
@@ -32,6 +32,8 @@ main(int argc, char **argv) {
 
   u32bit              numIn = 0;
 
+  sim4polishStyle    style = sim4polishStyleDefault;
+
   int arg = 1;
   while (arg < argc) {
     if (strcmp(argv[arg], "-m") == 0) {
@@ -47,14 +49,24 @@ main(int argc, char **argv) {
       otMatchName = (char *)argv[arg++];
       otSeqName   = (char *)argv[arg++];
 
-      otMatch = new sim4polishWriter(otMatchName, sim4polishS4DB);
+    } else if (strcmp(argv[arg], "-gff3") == 0) {
+      style = sim4polishGFF3;
+
     }
   }
 
   if ((numIn < 1) || (otMatch == 0L)) {
-    fprintf(stderr, "usage: %s -o match cdna -m match1 cdna1 -m match2 cdna2 -m ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -o match cdna -m match1 cdna1 -m match2 cdna2 -m ... [-gff3]\n", argv[0]);
     exit(1);
   }
+
+  otMatch = new sim4polishWriter(otMatchName, style);
+
+  for (u32bit i=0; i<numIn; i++)
+    if (inMatch[i]->getsim4polishStyle() != style) {
+      fprintf(stderr, "warning: input format and output format may differ.\n");
+      break;
+    }
 
   //  Merge the input sequences into the output sequence.  We also count the number of sequences
   //  here, so we don't need random-access of the input.

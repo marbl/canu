@@ -60,6 +60,8 @@ main(int argc, char **argv) {
   char  *cDeflines = 0L;
   char  *gDeflines = 0L;
 
+  sim4polishStyle style = sim4polishStyleDefault;
+
   int arg=1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-v") == 0) {
@@ -71,16 +73,20 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-g") == 0) {
       gDeflines = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-gff3") == 0) {
+      style = sim4polishGFF3;
+
     } else {
       fprintf(stderr, "Unknown arg: %s\n", argv[arg]);
     }
     arg++;
   }
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, "usage: %s [-v] [-c x] [-g x] < polishes > polishes\n", argv[0]);
+    fprintf(stderr, "usage: %s [-v] [-c x] [-g x] [-gff3] < polishes > polishes\n", argv[0]);
     fprintf(stderr, "     -v         Entertain the user\n");
     fprintf(stderr, "     -c x       Read cDNA deflines from x\n");
     fprintf(stderr, "     -g x       Read genomic deflines from x\n");
+    fprintf(stderr, "     -gff3      Write output as GFF3\n");
     fprintf(stderr, "  x is a fasta file, or a list of deflines (fasta file with no sequence)\n");
     exit(1);
   }
@@ -103,9 +109,12 @@ main(int argc, char **argv) {
   //  Read all the matches, changing IIDs.  If we find a defline
   //  with no IID, holler and die.
 
-  sim4polishWriter *W = new sim4polishWriter("-", sim4polishS4DB);
+  sim4polishWriter *W = new sim4polishWriter("-", style);
   sim4polishReader *R = new sim4polishReader("-");
   sim4polish       *p = 0L;
+
+  if (R->getsim4polishStyle() != style) 
+    fprintf(stderr, "warning: input format and output format differ.\n");
 
   //speedCounter  *C = new speedCounter("%12.0f polishes -- %12.0f polishes/second\r",
   //                                    1.0, 0xfff, beVerbose);

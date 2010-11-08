@@ -71,8 +71,10 @@ sim4polishWriter::sim4polishWriter(const char *name, sim4polishStyle style, bool
   _matchIDsalt[6] = base64[saltInteger & saltMask];  saltInteger >>= 6;  //  42 bits
   _matchIDsalt[7] = 0;
 
+#if DEBUG_WRITER
   fprintf(stderr, "SALT: "u64bitFMT" + "u64bitFMT" = %s\n",
           saltPID, saltTime, _matchIDsalt);
+#endif
 }
 
 void

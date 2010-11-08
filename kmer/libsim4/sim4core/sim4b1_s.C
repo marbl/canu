@@ -51,7 +51,7 @@ Sim4::masks_shifts(char seed[32]) {
     MSS.masks  = (u64bit*)ckalloc(masknum*sizeof(u64bit));
     MSS.shifts = (int *)ckalloc(masknum*sizeof(int));
 
-#ifdef debug
+#ifdef DEBUG
     printf(u64bitHEX, MSS.mask);
     printf("\n");
 #endif

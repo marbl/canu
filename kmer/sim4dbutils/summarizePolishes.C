@@ -71,23 +71,22 @@ struct match {
 void
 readMatches(char           *filename,
             vector<match>  &matches) {
-  FILE     *F = stdin;
+
+  sim4polishReader *R = 0L; 
 
   if ((filename != 0L) && (strcmp(filename, "-") != 0)) {
-    errno = 0;
-    F = fopen(filename, "r");
-    if (errno) {
-      fprintf(stderr, "ERROR: Can't open '%s'.\n%s\n", filename, strerror(errno));
-      exit(1);
-    }
+
     fprintf(stderr, "Reading matches from '%s'\n", filename);
+    R = new sim4polishReader(filename); 
+
   } else {
+
     fprintf(stderr, "Reading matches from 'stdin'\n");
+    R = new sim4polishReader("-");
   }
 
   matches.clear();
 
-  sim4polishReader *R = new sim4polishReader("-");
   sim4polish       *p = 0L;
 
   while (R->nextAlignment(p)) {
@@ -101,9 +100,7 @@ readMatches(char           *filename,
     matches.push_back(m);
   }
 
-  if ((filename != 0L) && (strcmp(filename, "-") == 0)) {
-    fclose(F);
-  }
+  delete R;
 
   fprintf(stderr, "read %d matches.\n", (int)matches.size());
 }

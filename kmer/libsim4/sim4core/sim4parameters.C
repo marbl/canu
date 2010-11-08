@@ -1,6 +1,7 @@
 #include <pthread.h>
 #include "sim4parameters.H"
 #include "sim4defines.H"
+#include "../sim4polish/sim4polish.H"
 
 sim4parameters::sim4parameters() {
     _findAllExons               = false;
@@ -42,6 +43,7 @@ sim4parameters::sim4parameters() {
     _isSetSpliceModel           = false;
 
     _interspecies               = false;
+    _style                      = sim4polishStyleDefault;
     _percentError               = 0.20;
     _match                      =  1;
     _imismatch                  = -5;

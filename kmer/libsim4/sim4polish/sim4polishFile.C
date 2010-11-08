@@ -34,12 +34,14 @@ __prsaGEN(const void *a, const void *b) {
 
 
 
-sim4polishFile::sim4polishFile(char *path) {
+sim4polishFile::sim4polishFile(char *path, sim4polishStyle style) {
 
   _path = new char [strlen(path) + 1];
   strcpy(_path, path);
 
   _file = new readBuffer(path);
+
+  _style = style;
 
   _polishRecordLen = 0;
   _polishRecordMax = 0;
@@ -78,13 +80,13 @@ sim4polishFile::getEST(u32bit iid) {
   if (i != ~u32bitZERO) {
     setPosition(_polishRecordEST[i]);
 
-    p = new sim4polish(_file, sim4polishS4DB);
+    p = new sim4polish(_file, _style);
 
     while ((p) && (p->_numExons > 0) && (p->_estID == iid)) {
       l->push(p);
       i++;
       setPosition(_polishRecordEST[i]);
-      p = new sim4polish(_file, sim4polishS4DB);
+      p = new sim4polish(_file, _style);
     }
   
     delete p;
@@ -104,7 +106,7 @@ sim4polishFile::getGEN(u32bit iid, u32bit lo, u32bit hi) {
 
 sim4polish*
 sim4polishFile::getNext(void) {
-  return(new sim4polish(_file, sim4polishS4DB));
+  return(new sim4polish(_file, _style));
 }
 
 
@@ -224,7 +226,7 @@ sim4polishFile::buildIndex(void) {
     //  needed.
     //
     off_t       fp = _file->tell();
-    sim4polish *p  = new sim4polish(_file, sim4polishS4DB);
+    sim4polish *p  = new sim4polish(_file, _style);
 
     while (p) {
       if (_polishRecordLen >= _polishRecordMax) {
@@ -250,7 +252,7 @@ sim4polishFile::buildIndex(void) {
       delete p;
       
       fp = _file->tell();
-      p  = new sim4polish(_file, sim4polishS4DB);
+      p  = new sim4polish(_file, _style);
     }
 
 
