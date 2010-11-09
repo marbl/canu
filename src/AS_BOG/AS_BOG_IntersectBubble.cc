@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.8 2010-10-27 04:32:51 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.9 2010-11-09 19:40:29 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -489,10 +489,35 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
           fprintf(logFile, "popBubbles()--  Failed to completely merge unitig %d into unitig %d.\n",
                   shortTig->id(), mergeTig->id());
         tryAgain = false;
+        assert(0);
       }
     }
 
     mergeTig->sort();
+
+#if 0
+  {
+    bool screwedUp = false;
+
+    for (uint32 fi=0; fi<mergeTig->ufpath.size(); fi++)
+      if (mergeTig->pathPosition(mergeTig->ufpath[fi].ident) != fi)
+        screwedUp = true;
+
+    if (screwedUp) {
+      fprintf(logFile, "WARNING: PATH POSITION MESSED UP in unitig %d\n", mergeTig->id());
+
+      for (uint32 fi=0; fi<mergeTig->ufpath.size(); fi++) {
+        ufNode *ix = &mergeTig->ufpath[fi];
+
+        fprintf(logFile, "          path[%4d,%4d] is frag %d %d,%d\n",
+                fi, mergeTig->pathPosition(ix->ident),
+                ix->ident, ix->position.bgn, ix->position.end);
+      }
+
+      assert(0);
+    }
+  }
+#endif
 
     //  Mark this unitig as dead if we fully merged it.
 
