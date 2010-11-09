@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.5 2010-10-27 04:28:10 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.6 2010-11-09 18:57:57 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -303,22 +303,25 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
   //  unitig yet.  It might be useful if pathPosition ever gets messed up.
   //
   if ((parent == NULL) || (parent->ident != bestcont->container)) {
-    fprintf(logFile, "WARNING:  Didn't find the correct parent frag (%d) for contained frag %d.\n",
-            bestcont->container, frag.ident);
-    fprintf(logFile, "          Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
+    ufNode *found = parent;
 
-    parent = NULL;
+    for (int fi=0; fi<ufpath.size(); fi++)
+      if (ufpath[fi].ident == bestcont->container)
+        parent = &ufpath[fi];
 
-    for (int fi=0; fi<ufpath.size(); fi++) {
-      ufNode *ix = &ufpath[fi];
+    if (parent) {
+      fprintf(logFile, "WARNING:  Didn't find the correct parent frag (%d) for contained frag %d -- pathPosition screwed up.\n",
+              bestcont->container, frag.ident);
+      fprintf(logFile, "          Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
 
-      fprintf(logFile, "          path[%4d,%4d] is frag %d %s\n",
-              fi, pathPosition(ix->ident),
-              ix->ident,
-              (ix->ident == bestcont->container) ? " CORRECT PARENT!" : "");
+      for (int fi=0; fi<ufpath.size(); fi++) {
+        ufNode *ix = &ufpath[fi];
 
-      if (ix->ident == bestcont->container)
-        parent = ix;
+        fprintf(logFile, "          path[%4d,%4d] is frag %d %s\n",
+                fi, pathPosition(ix->ident),
+                ix->ident,
+                (ix->ident == bestcont->container) ? " CORRECT PARENT!" : "");
+      }
     }
   }
 #endif
