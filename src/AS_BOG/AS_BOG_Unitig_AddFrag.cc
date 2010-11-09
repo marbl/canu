@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig_AddFrag.cc,v 1.2 2010-10-07 12:49:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig_AddFrag.cc,v 1.3 2010-11-09 19:37:45 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -81,8 +81,11 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
 
   frag.ident        = fid;
 
-  if (placeFrag(frag, bestcont) == false)
+  if (placeFrag(frag, bestcont) == false) {
+    fprintf(logFile, "addContainedFrag()-- Failed to place contained frag %d using bestcont %d (hang %d,%d same orient %d).\n",
+            fid, bestcont->container, bestcont->a_hang, bestcont->b_hang, bestcont->sameOrientation);
     return(false);
+  }
 
   addFrag(frag, 0, report);
 
