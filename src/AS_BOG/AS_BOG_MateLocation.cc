@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.5 2010-10-27 14:14:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateLocation.cc,v 1.6 2010-11-09 18:59:41 brianwalenz Exp $";
 
 #include "AS_BOG_MateLocation.hh"
 
@@ -126,6 +126,8 @@ MateLocation::buildTable(Unitig *utg) {
 
       mle.isGrumpy  = false;
 
+      assert(_table.size() > 0);
+
       _iidToTableEntry[frag->ident] = _table.size();
       _table.push_back(mle);
 
@@ -138,6 +140,8 @@ MateLocation::buildTable(Unitig *utg) {
       //  Found the mate in the table.  Use that entry.
       //
       uint32  tid = _iidToTableEntry[mid];
+
+      assert(tid != 0);
 
       _table[tid].mleFrgID2 = frag->ident;
       _table[tid].mlePos2   = frag->position;
@@ -156,6 +160,12 @@ MateLocation::buildTable(Unitig *utg) {
   }
 
   std::sort(_table.begin(), _table.end());
+
+  assert(_table[0].mleFrgID1 == 0);
+  assert(_table[0].mleFrgID2 == 0);
+
+  assert(_table[0].mleUtgID1 == 0);
+  assert(_table[0].mleUtgID2 == 0);
 
   for (uint32 i=0; i<_table.size(); i++) {
     _iidToTableEntry[_table[i].mleFrgID1] = i;
