@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceContains.cc,v 1.6 2010-10-27 04:15:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceContains.cc,v 1.7 2010-11-09 19:00:22 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -58,7 +58,11 @@ UnitigGraph::placeContainsUsingBestOverlaps(void) {
 
       utg = unitigs[Unitig::fragIn(bestcont->container)];
       utg->addContainedFrag(fid, bestcont, logFileFlagSet(LOG_INITIAL_CONTAINED_PLACEMENT));
+
+      if (utg->id() != Unitig::fragIn(fid))
+        fprintf(logFile, "placeContainsUsingBestOverlaps()-- FAILED to add frag %d to unitig %d.\n", fid, bestcont->container);
       assert(utg->id() == Unitig::fragIn(fid));
+
 
       fragsPlaced++;
     }
