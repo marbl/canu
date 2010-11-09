@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_MATE_LOCATION
 #define INCLUDE_AS_BOG_MATE_LOCATION
 
-static const char *rcsid_INCLUDE_AS_BOG_MATELOCATION = "$Id: AS_BOG_MateLocation.hh,v 1.2 2010-10-01 10:07:45 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATELOCATION = "$Id: AS_BOG_MateLocation.hh,v 1.3 2010-11-09 11:11:20 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -50,6 +50,11 @@ public:
     if (mlePos1 == that.mlePos1 && mlePos2 < that.mlePos2) return true;
     else                                                   return false;
 #endif
+
+    if (mleFrgID1 == 0)
+      return(true);
+    if (that.mleFrgID1 == 0)
+      return(false);
 
     int32  m1 = MIN(     mlePos1.bgn,      mlePos1.end);
     int32  t1 = MIN(that.mlePos1.bgn, that.mlePos1.end);
