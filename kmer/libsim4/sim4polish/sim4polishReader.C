@@ -28,6 +28,8 @@ sim4polishReader::sim4polishReader(const char *name, sim4polishWriter *writer) {
   //  This fixes a bug in split to words, that white space at the end isn't trimmed.
   chomp(firstLine);
 
+  //fprintf(stderr, "sim4polishReader()-- '%s'\n", firstLine);
+
   firstWords.split(firstLine);
 
   if        (strcmp(firstWords[0], "sim4begin") == 0) {
@@ -83,6 +85,7 @@ bool
 sim4polishReader::nextAlignment(sim4polish * &p) {
 
   delete p;
+  p = 0L;
 
   if (_rb->eof())
     return(false);
@@ -91,6 +94,7 @@ sim4polishReader::nextAlignment(sim4polish * &p) {
 
   if (p->_numExons == 0) {
     delete p;
+    p = 0L;
     return(false);
   }
 
