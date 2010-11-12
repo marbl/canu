@@ -14,15 +14,15 @@ char base64[65] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012345678
 
 sim4polishWriter::sim4polishWriter(const char *name, sim4polishStyle style, bool hidden) {
 
-  if ((name == 0L) || ((name[0] == '-') && (name[1] == 0))) {
-    //  We are stdout.
-    strcpy(_otName, "(stdout)");
-    _otFile = stdout;
-
-  } else if (hidden) {
+  if (hidden) {
     //  We are supposed to be a hidden file.
     strcpy(_otName, "(hidden)");
     _otFile = makeTempFile(NULL);
+
+  } else if ((name == 0L) || ((name[0] == '-') && (name[1] == 0))) {
+    //  We are stdout.
+    strcpy(_otName, "(stdout)");
+    _otFile = stdout;
 
   } else {
     //  Nope, just a regular ol' file.
@@ -118,6 +118,7 @@ sim4polishWriter::surrenderToReader(void) {
 
   _otFile = 0L;
 
+  fflush(retval);
   rewind(retval);
   return(retval);
 }
