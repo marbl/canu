@@ -328,6 +328,7 @@ seqStore::loadIndex(void) {
   fseeko(F, _header._indexStart, SEEK_SET);
   fread( _index,   sizeof(seqStoreIndex), _header._numberOfSequences, F);
 
+#if 0
   for (u32bit i=0; i<_header._numberOfSequences; i++)
     fprintf(stderr, "IDX[%4u] hdrPos=%u hdrLen=%u seqPos=%llu seqLen=%u block=%u\n",
             i,
@@ -336,6 +337,7 @@ seqStore::loadIndex(void) {
             _index[i]._seqPosition,
             _index[i]._seqLength,
             _index[i]._block);
+#endif
 
   fseeko(F, _header._blockStart, SEEK_SET);
   fread( _block,   sizeof(seqStoreBlock), _header._numberOfBlocks, F);
