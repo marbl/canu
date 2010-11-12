@@ -19,7 +19,6 @@ readBuffer::readBuffer(const char *filename, u64bit bufferMax) {
   _mmap        = false;
   _stdin       = false;
   _eof         = false;
-  _valid       = false;
   _bufferPos   = 0;
   _bufferLen   = 0;
   _bufferMax   = 0;
@@ -57,8 +56,6 @@ readBuffer::readBuffer(const char *filename, u64bit bufferMax) {
 
   fillBuffer();
 
-  _valid = true;
-
   if (_bufferLen == 0)
     _eof   = true;
 }
@@ -75,13 +72,24 @@ readBuffer::readBuffer(FILE *file, u64bit bufferMax) {
   _mmap        = false;
   _stdin       = false;
   _eof         = false;
-  _valid       = false;
   _bufferPos   = 0;
   _bufferLen   = 0;
   _bufferMax   = (bufferMax == 0) ? 32 * 1024 : bufferMax;
   _buffer      = new char [_bufferMax];
 
   strcpy(_filename, "(hidden file)");
+
+  //  Just be sure that we are at the start of the file.
+  errno = 0;
+  lseek(_file, 0, SEEK_SET);
+  if (errno)
+    fprintf(stderr, "readBuffer()-- '%s' couldn't seek to position 0: %s\n",
+            _filename, strerror(errno)), exit(1);
+
+  fillBuffer();
+
+  if (_bufferLen == 0)
+    _eof   = true;
 }
 
 
@@ -132,8 +140,6 @@ readBuffer::fillBuffer(void) {
 void
 readBuffer::seek(u64bit pos) {
 
-  assert(_valid == true);
-
   if (_stdin == true) {
     if (_filePos < _bufferLen) {
       _filePos   = 0;
@@ -173,8 +179,6 @@ readBuffer::seek(u64bit pos) {
 u64bit
 readBuffer::read(void *buf, u64bit len) {
   char  *bufchar = (char *)buf;
-
-  assert(_valid);
 
   //  Handle the mmap'd file first.
 
@@ -243,8 +247,6 @@ u64bit
 readBuffer::read(void *buf, u64bit maxlen, char stop) {
   char  *bufchar = (char *)buf;
   u64bit c = 0;
-
-  assert(_valid);
 
   //  We will copy up to 'maxlen'-1 bytes into 'buf', or stop at the first occurrence of 'stop'.
   //  This will reserve space at the end of any string for a zero-terminating byte.

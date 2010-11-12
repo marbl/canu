@@ -34,7 +34,6 @@ private:
   bool            _stdin;
 
   bool            _eof;
-  bool            _valid;
 
   //  If bufferMax is zero, then we are using the mmapped interface, otherwise,
   //  we are using a open()/read() and a small buffer.
@@ -54,8 +53,6 @@ inline
 char
 readBuffer::peek(void) {
 
-  assert(_valid);
-
   if ((_eof == false) && (_bufferPos >= _bufferLen))
     fillBuffer();
 
@@ -73,8 +70,6 @@ inline
 char
 readBuffer::read(void) {
 
-  assert(_valid);
-
   if ((_eof == false) && (_bufferPos >= _bufferLen))
     fillBuffer();
 
@@ -86,7 +81,6 @@ readBuffer::read(void) {
 
   return(_buffer[_bufferPos-1]);
 }
-
 
 
 #endif  //  READ_BUFFER_H
