@@ -55,10 +55,10 @@ BOG_SOURCES = AS_BOG_ArrivalRate.cc \
               AS_BOG_UnitigGraph.cc
 BOG_OBJECTS = $(BOG_SOURCES:.cc=.o)
 
-SOURCES     = BuildUnitigs.cc fixUnitigs.C scoreOverlaps.C analyzeBest.C $(BOG_SOURCES)
-OBJECTS     = BuildUnitigs.o  fixUnitigs.o scoreOverlaps.o analyzeBest.o $(BOG_OBJECTS)
+SOURCES     = BuildUnitigs.cc fixUnitigs.C analyzeBest.C $(BOG_SOURCES)
+OBJECTS     = BuildUnitigs.o  fixUnitigs.o analyzeBest.o $(BOG_OBJECTS)
 
-CXX_PROGS = buildUnitigs fixUnitigs scoreOverlaps analyzeBest
+CXX_PROGS = buildUnitigs fixUnitigs analyzeBest
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -68,5 +68,4 @@ all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 
 buildUnitigs:    BuildUnitigs.o $(BOG_OBJECTS) libCA.a
 fixUnitigs:      fixUnitigs.o                  libCA.a
-scoreOverlaps:   scoreOverlaps.o               libCA.a
 analyzeBest:     analyzeBest.o                 libCA.a
