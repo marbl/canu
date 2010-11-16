@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.57 2010-06-02 10:28:31 jasonmiller9704 Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.58 2010-11-16 23:08:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -247,10 +247,10 @@ checkClearRanges(FragMesg   *frg_mesg,
     }
   }
 
-  gkFrag1->clrBgn = frg_mesg->clear_rng.bgn;  gkFrag1->clrEnd = frg_mesg->clear_rng.end;
-  gkFrag1->vecBgn = frg_mesg->clear_vec.bgn;  gkFrag1->vecEnd = frg_mesg->clear_vec.end;
-  gkFrag1->maxBgn = frg_mesg->clear_max.bgn;  gkFrag1->maxEnd = frg_mesg->clear_max.end;
-  gkFrag1->tntBgn = 1;                        gkFrag1->tntEnd = 0;
+  gkFrag1->clrBgn = frg_mesg->clear_rng.bgn;      gkFrag1->clrEnd = frg_mesg->clear_rng.end;
+  gkFrag1->vecBgn = frg_mesg->clear_vec.bgn;      gkFrag1->vecEnd = frg_mesg->clear_vec.end;
+  gkFrag1->maxBgn = frg_mesg->clear_max.bgn;      gkFrag1->maxEnd = frg_mesg->clear_max.end;
+  gkFrag1->tntBgn = frg_mesg->contamination.bgn;  gkFrag1->tntEnd = frg_mesg->contamination.end;
 
   //  If OBT, reset invalid clear ranges so they'll load.
   //
