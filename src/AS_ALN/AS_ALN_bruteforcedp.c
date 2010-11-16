@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.14 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.15 2010-11-16 23:07:01 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -159,8 +159,8 @@ alignLinker(char           *alignA,
         (jbgn < 0) || (jend < 0) ||
         (iend < ibgn) ||
         (jend < jbgn)) {
-      fprintf(stderr, "WARNING:  bgn: %d,%d  end: %d,%d  lens: %d,%d  hangs: %d,%d\n",
-              ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
+      //fprintf(stderr, "WARNING:  bgn: %d,%d  end: %d,%d  lens: %d,%d  hangs: %d,%d\n",
+      //        ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
       a->alignLen = 0;
       return;
     }
