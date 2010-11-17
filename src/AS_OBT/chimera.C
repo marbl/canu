@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.41 2010-10-04 08:51:43 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.42 2010-11-17 15:21:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,19 +77,29 @@ uint32   minOverhang  = 1000000000;
 
 uint32   readsProcessed      = 0;
 
+//  Read fates
+
+uint32   fullCoverage  = 0;  //  No gap in overlap coverage
+uint32   noChimericOvl = 0;  //  Gap in coverage, but no chimeric looking overlaps
+
+uint32   bothFixed           = 0;
 uint32   chimeraFixed        = 0;
-uint32   chimeraDeletedSmall = 0;
 uint32   spurFixed           = 0;
+
+uint32   bothDeletedSmall    = 0;
+uint32   chimeraDeletedSmall = 0;
 uint32   spurDeletedSmall    = 0;
+
+//  Types of fixes
+
+uint32   spurDetectedNormal = 0;
+uint32   spurDetectedLinker = 0;
 
 uint32   chimeraDetectedInnie    = 0;   //  Detected chimera
 uint32   chimeraDetectedOverhang = 0;
 uint32   chimeraDetectedGap      = 0;
 uint32   chimeraDetectedLinker   = 0;
 
-uint32   fullCoverage  = 0;  //  No gap in overlap coverage
-uint32   gapNotChimera = 0;  //  Has a gap, but not labeled chimeric
-uint32   noChimericOvl = 0;  //  Gap in coverage, but no chimeric looking overlaps
 
 
 
@@ -848,15 +858,15 @@ process(const AS_IID           iid,
   bool           leftIntervalHang[1025];
   bool           rightIntervalHang[1025];
 
-  uint32         ola = clear[iid].mergL;
-  uint32         ora = clear[iid].mergR;
+  int32         ola = clear[iid].mergL;
+  int32         ora = clear[iid].mergR;
 
   for (uint32 interval=0; interval<=IL.numberOfIntervals(); interval++) {
-    uint32  begGap = (interval == 0)                      ? ola : IL.hi(interval-1);
-    uint32  endGap = (interval == IL.numberOfIntervals()) ? ora : IL.lo(interval);
+    int32  begGap = (interval == 0)                      ? ola : IL.hi(interval-1);
+    int32  endGap = (interval == IL.numberOfIntervals()) ? ora : IL.lo(interval);
 
-    uint32  l = 0;
-    uint32  r = 0;
+    int32  l = 0;
+    int32  r = 0;
 
     //  initialize interval hang marks
     //
@@ -1018,8 +1028,8 @@ process(const AS_IID           iid,
 
 #define SPUR_PADDING 5
 
-  uint32  minOvl = AS_READ_MAX_NORMAL_LEN + 1;
-  uint32  maxOvl = 0;
+  int32  minOvl = AS_READ_MAX_NORMAL_LEN + 1;
+  int32  maxOvl = 0;
   bool    isLeftSpur  = false;
   bool    isRightSpur = false;
   bool    isSpur      = false;
@@ -1092,9 +1102,13 @@ process(const AS_IID           iid,
     }
   }
 
-  isSpur = isLeftSpur || isRightSpur;
+  isSpur = (isLeftSpur || isRightSpur);
 
-
+  if (isSpur)
+    if (isLinker)
+      spurDetectedLinker++;
+    else
+      spurDetectedNormal++;
 
 
   if ((isChimera == false) &&
@@ -1235,20 +1249,38 @@ process(const AS_IID           iid,
 #endif
   }
 
-
-
-  if (isSpur) {
+  //  If we're not chimeric, we can pick the portion covered by overlaps.  Basically, ignore all the
+  //  crud above.
+  if (isChimera == false) {
     intervalBeg = minOvl;
     intervalEnd = maxOvl;
   }
 
   assert(intervalBeg < intervalEnd);
 
+  //  Yup, nasty bit of engineering here.  These should be a function; three blocks to do the same stuff.
 
+  if (isSpur && isChimera) {
+    if (intervalMax < AS_READ_MIN_LEN) {
+      bothDeletedSmall++;
+      printLogMessage(clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "BOTH", "New length too small, fragment deleted");
 
+      if (doUpdate)
+        gkp->gkStore_delFragment(iid);
+    } else {
+      bothFixed++;
+      printLogMessage(clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "BOTH", "Length OK");
 
+      if (doUpdate) {
+        gkFragment fr;
+        gkp->gkStore_getFragment(iid, &fr, GKFRAGMENT_INF);
+        fr.gkFragment_setClearRegion(intervalBeg, intervalEnd, AS_READ_CLEAR_OBTCHIMERA);
+        gkp->gkStore_setFragment(&fr);
+      }
+    }
+    printReport("BOTH", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
 
-  if (isSpur) {
+  } else if (isSpur) {
     if (intervalMax < AS_READ_MIN_LEN) {
       spurDeletedSmall++;
       printLogMessage(clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "SPUR", "New length too small, fragment deleted");
@@ -1287,10 +1319,6 @@ process(const AS_IID           iid,
       }
     }
     printReport("CHIMERA", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
-
-  } else {
-    gapNotChimera++;
-    printReport("NOT CHIMERA", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
   }
 }
 
@@ -1401,26 +1429,32 @@ main(int argc, char **argv) {
   delete gkp;
 
   if (summaryFile) {
-    fprintf(summaryFile, "EXCEPT for the number of things fixed or deleted, these stats\n");
-    fprintf(summaryFile, "are not meaningful, and likely wrong.\n");
+    fprintf(summaryFile, "READS (= ACEEPTED + TRIMMED + DELETED)\n");
+    fprintf(summaryFile, "  total processed       "F_U32"\n", readsProcessed);
     fprintf(summaryFile, "\n");
-    fprintf(summaryFile, "READS\n");
-    fprintf(summaryFile, "total processed       "F_U32"\n", readsProcessed);
-    fprintf(summaryFile, "full coverage         "F_U32"\n", fullCoverage);
-    fprintf(summaryFile, "gap not chimera       "F_U32"\n", gapNotChimera);
-    fprintf(summaryFile, "no chimeric ovl       "F_U32"\n", noChimericOvl);
+    fprintf(summaryFile, "ACCEPTED\n");
+    fprintf(summaryFile, "  full coverage         "F_U32"\n", fullCoverage);
+    fprintf(summaryFile, "  no chimeric overlaps  "F_U32"\n", noChimericOvl);
     fprintf(summaryFile, "\n");
-    fprintf(summaryFile, "chimera fixed:        "F_U32"\n", chimeraFixed);
-    fprintf(summaryFile, "chimera deleted small "F_U32"\n", chimeraDeletedSmall);
+    fprintf(summaryFile, "TRIMMED\n");
+    fprintf(summaryFile, "  both                  "F_U32"\n", bothFixed);
+    fprintf(summaryFile, "  chimera               "F_U32"\n", chimeraFixed);
+    fprintf(summaryFile, "  spur                  "F_U32"\n", spurFixed);
     fprintf(summaryFile, "\n");
-    fprintf(summaryFile, "spur fixed            "F_U32"\n", spurFixed);
-    fprintf(summaryFile, "spur deleted small    "F_U32"\n", spurDeletedSmall);
+    fprintf(summaryFile, "DELETED\n");
+    fprintf(summaryFile, "  both                  "F_U32"\n", bothDeletedSmall);
+    fprintf(summaryFile, "  chimera               "F_U32"\n", chimeraDeletedSmall);
+    fprintf(summaryFile, "  spur                  "F_U32"\n", spurDeletedSmall);
     fprintf(summaryFile, "\n");
-    fprintf(summaryFile, "CHIMERA\n");
-    fprintf(summaryFile, "from innie pair       "F_U32"\n", chimeraDetectedInnie);
-    fprintf(summaryFile, "from overhang         "F_U32"\n", chimeraDetectedOverhang);
-    fprintf(summaryFile, "from gap              "F_U32"\n", chimeraDetectedGap);
-    fprintf(summaryFile, "from linker           "F_U32"\n", chimeraDetectedLinker);
+    fprintf(summaryFile, "SPUR TYPES (= TRIMMED/DELETED spur + both)\n");
+    fprintf(summaryFile, "  normal                "F_U32"\n", spurDetectedNormal);
+    fprintf(summaryFile, "  linker                "F_U32"\n", spurDetectedLinker);
+    fprintf(summaryFile, "\n");
+    fprintf(summaryFile, "CHIMERA TYPES (= TRIMMED/DELETED chimera + both)\n");
+    fprintf(summaryFile, "  innie pair            "F_U32"\n", chimeraDetectedInnie);
+    fprintf(summaryFile, "  overhang              "F_U32"\n", chimeraDetectedOverhang);
+    fprintf(summaryFile, "  gap                   "F_U32"\n", chimeraDetectedGap);
+    fprintf(summaryFile, "  linker                "F_U32"\n", chimeraDetectedLinker);
   }
 
   exit(0);
