@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.54 2010-10-26 21:41:19 skoren Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.55 2010-11-19 23:07:52 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -55,7 +55,7 @@ ReadLine(FILE *fin, int skipComment) {
 
       //  Read as much of the line as possible into the current line buffer.
       //
-      if (fgets(AS_MSG_globals->curLine + cloffset, AS_MSG_globals->curLineMax - cloffset - 1, fin) == NULL) {
+      if (fgets(AS_MSG_globals->curLine + cloffset, AS_MSG_globals->curLineMax - cloffset, fin) == NULL) {
         fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Premature end of input at line " F_U64 " (%s)\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
         fprintf(stderr,"       '%s'\n", AS_MSG_globals->curLine);
         exit(1);
@@ -71,8 +71,13 @@ ReadLine(FILE *fin, int skipComment) {
 
       //  If the line didn't fit completely, make the buffer larger.
       //
+      //  If [-2] == 0, we read in a string and it just barely fit.  ([-3] should be \n then).
+      //
+      //  If [-2] == \n, we read in a string and it either even more just barely fit, or fit with no
+      //  problems.
+      //
       if ((AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != 0) &&
-    		  (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] !='\n')) {
+          (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] !='\n')) {
 #if 0
         fprintf(stderr, "WARNING: Input line "F_U64" is long (%s), resizing.\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
         fprintf(stderr, "         '%s'\n", AS_MSG_globals->curLine);
@@ -88,6 +93,9 @@ ReadLine(FILE *fin, int skipComment) {
         AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] = '\n';  //  Reset the end-of-line mark so we read more of the line
         AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 1] = 0;
       }
+
+      if (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] == 0)
+        assert(AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 3] == '\n');
     } while (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != '\n');
   } while (skipComment && AS_MSG_globals->curLine[0] == '#');
 
