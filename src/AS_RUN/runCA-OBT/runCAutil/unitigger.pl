@@ -24,15 +24,15 @@ sub unitigger () {
             }
         }
         
-		#  Default to overlap error %, unless the gkpStore says otherwise.
-		#
-		if (!defined(getGlobal("utgErrorLimit"))) {
-			setGlobal("utgErrorLimit", 0);
+        #  Default to overlap error %, unless the gkpStore says otherwise.
+        #
+        if (!defined(getGlobal("utgErrorLimit"))) {
+            setGlobal("utgErrorLimit", 0);
 
-			if (system("$bin/gatekeeper -isfeatureset 0 shortOverlapModel $wrk/$asm.gkpStore") == 0) {
-				setGlobal("utgErrorLimit", getGlobal("utgShortOverlapModelDefault"));
-			}
-		}
+            if (system("$bin/gatekeeper -isfeatureset 0 shortOverlapModel $wrk/$asm.gkpStore") == 0) {
+                setGlobal("utgErrorLimit", getGlobal("utgShortOverlapModelDefault"));
+            }
+        }
 
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
@@ -49,7 +49,23 @@ sub unitigger () {
 
         my $cmd;
 
-        if ($unitigger eq "bog") {
+        if ($unitigger eq "bogart") {
+            my $bmd = getGlobal("bogBadMateDepth");
+
+            $cmd  = "$bin/bogart ";
+            $cmd .= " -O $wrk/$asm.ovlStore ";
+            $cmd .= " -G $wrk/$asm.gkpStore ";
+            $cmd .= " -T $wrk/$asm.tigStore ";
+            $cmd .= " -B $B ";
+            $cmd .= " -e $e ";
+            $cmd .= " -E $E ";
+            $cmd .= " -s $l "   if (defined($l));
+            $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
+            $cmd .= " -m $bmd " if (defined($bmd));
+            $cmd .= " -U "      if ($u == 1);
+            $cmd .= " -o $wrk/4-unitigger/$asm ";
+            $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
+        } elsif ($unitigger eq "bog") {
             my $bmd = getGlobal("bogBadMateDepth");
 
             $cmd  = "$bin/buildUnitigs ";
