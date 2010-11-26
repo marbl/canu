@@ -323,6 +323,9 @@ sub setDefaults () {
     $global{"ovlConcurrency"}              = 1;
     $synops{"ovlConcurrency"}              = "If not SGE, number of overlapper processes to run at the same time";
 
+    $global{"ovlHashBlockLength"}          = undef;
+    $synops{"ovlHashBlockLength"}          = "If set, ignore ovlHashBlockSize, and instead use the sum of fragment length as the block size.  Works only with OBT enabled, requires HUGE_TABLE overlapper";
+
     $global{"ovlHashBlockSize"}            = 200000;
     $synops{"ovlHashBlockSize"}            = "Number of fragments to load into the in-core overlap hash table";
 
@@ -330,7 +333,7 @@ sub setDefaults () {
     $synops{"ovlRefBlockSize"}             = "Number of fragments to search against the hash table per batch";
 
     $global{"ovlMemory"}                   = "2GB";
-    $synops{"ovlMemory"}                   = "Amount of memory to use for overlaps";
+    $synops{"ovlMemory"}                   = "Amount of memory to use for ovl overlaps";
 
     $global{"ovlMerSize"}                  = 22;
     $synops{"ovlMerSize"}                  = "K-mer size for seeds in overlaps";

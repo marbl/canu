@@ -33,8 +33,7 @@ sub runMeryl ($$$$$$) {
     #if (-e $ffile) {
     #    print STDERR "runMeryl() would have returned.\n";
     #}
-
-    print STDERR "$ffile\n";
+    #print STDERR "$ffile\n";
 
     if (merylVersion() eq "Mighty") {
 

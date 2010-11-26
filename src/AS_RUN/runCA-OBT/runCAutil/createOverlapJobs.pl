@@ -129,8 +129,17 @@ sub createOverlapJobs($) {
 
     my ($hashBeg, $hashEnd, $refBeg, $refEnd) = (1, 0, 1, 0);
 
-    my $ovlHashBlockSize  = getGlobal("ovlHashBlockSize");
-    my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize");
+    my $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
+    my $ovlHashBlockSize   = getGlobal("ovlHashBlockSize");
+    my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
+
+    if (defined($ovlHashBlockLength)) {
+        my $bin = getBinDirectory();
+
+        print STDERR "Partitioning overlap jobs by fragment length.  $ovlHashBlockLength bp per block.\n";
+        open(FL, "$bin/gatekeeper -nouid -dumpfragments -tabular $wrk/$asm.gkpStore |");
+        $_ = <FL>;  #  Header
+    }
 
     #  Saved for output to ovlopts.pl
     my @bat;
@@ -145,9 +154,44 @@ sub createOverlapJobs($) {
     my $batchName = "001";
     my $jobName   = "000001";
 
+    #  hashBeg and hashEnd are INCLUSIVE ranges, not C-style ranges.
+
     while ($hashBeg < $numFrags) {
-        $hashEnd = $hashBeg + $ovlHashBlockSize - 1;
-        $hashEnd = $numFrags if ($hashEnd > $numFrags);
+        my $maxNumFrags = 0;
+        my $maxLength   = 0;
+
+        if (defined($ovlHashBlockLength)) {
+            die "Partitioning error hashBeg=$hashBeg hashEnd=$hashEnd\n" if ($hashEnd != $hashBeg - 1);
+
+            my $len = 0;
+
+            while (<FL>) {
+                my @v = split '\s+', $_;
+
+                #  Even deleted fragments contribute to the length (by one byte, the terminating zero)
+                $len += $v[11] - $v[10] if ($v[6] == 0);
+                $len += 1;
+                $hashEnd = $v[1];
+
+                last if ($len >= $ovlHashBlockLength);
+            }
+
+            if (eof(FL)) {
+                if ($hashEnd != $numFrags) {
+                    print STDERR "WARNING:  End of initialTrimLog before end of fragments.  hashEnd=$hashEnd numFrags=$numFrags\n";
+                    $hashEnd = $numFrags;
+                }
+            }
+
+            $maxNumFrags = ($maxNumFrags > $hashEnd - $hashBeg + 1) ? ($maxNumFrags) : ($hashEnd - $hashBeg + 1);
+            $maxLength   = ($maxLength   > $len)                    ? ($maxLength)   : ($len);
+
+            print STDERR "Batch $batchName/$jobName from $hashBeg to $hashEnd (", $hashEnd - $hashBeg + 1, " fragments) with length $len\n";
+        } else {
+            $hashEnd = $hashBeg + $ovlHashBlockSize - 1;
+            $hashEnd = $numFrags if ($hashEnd > $numFrags);
+        }
+
         $refBeg = 0;
         $refEnd = 0;
 
@@ -157,7 +201,12 @@ sub createOverlapJobs($) {
 
             push @bat, "$batchName";
             push @job, "$jobName";
-            push @opt, "-h $hashBeg-$hashEnd  -r $refBeg-$refEnd";
+
+            if (defined($ovlHashBlockLength)) {
+                push @opt, "-h $hashBeg-$hashEnd  -r $refBeg-$refEnd --hashstrings $maxNumFrags --hashdatalen $maxLength";
+            } else {
+                push @opt, "-h $hashBeg-$hashEnd  -r $refBeg-$refEnd";
+            }
 
             $refBeg = $refEnd + 1;
 
