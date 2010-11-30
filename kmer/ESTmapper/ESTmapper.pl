@@ -90,7 +90,7 @@ sub setExecutables {
     $prog{'filterEST'}           = "$exechome/filterEST";
     $prog{'filterMRNA'}          = "$exechome/filterMRNA";
     $prog{'filterNULL'}          = "$exechome/filterNULL";
-    $prog{'sim4db'}              = "$exechome/sim4th";
+    $prog{'sim4db'}              = "$exechome/sim4db";
     $prog{'leaff'}               = "$exechome/leaff";
     $prog{'meryl'}               = "$exechome/meryl";
     $prog{'cleanPolishes'}       = "$exechome/cleanPolishes";

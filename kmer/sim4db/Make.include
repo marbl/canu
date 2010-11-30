@@ -8,11 +8,11 @@ LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
 $/.CXX_SRCS  := $/sim4th.C
-$/.CXX_EXES  := $/sim4th
+$/.CXX_EXES  := $/sim4db
 
 $/.CLEAN  := $/*.o
 
-$/sim4th: $/sim4th.o
+$/sim4db: $/sim4th.o
 
 ${$/.CXX_EXES}:  ${LIBSIM4/}libsim4.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 

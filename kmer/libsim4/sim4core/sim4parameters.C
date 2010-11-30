@@ -15,7 +15,7 @@ sim4parameters::sim4parameters() {
     _alwaysReport               = 0;
 
     _ignorePolyTails            = true;
-    _polyTailPercent            = 0.75;
+    _polyTailPercent            = 0.60;
 
     _mspThresh1                 = 0;
     _mspThresh2                 = 0;

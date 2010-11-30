@@ -46,7 +46,7 @@ void readModel(struct Fixed_Length_ICM_t *fixed, const char *path)
    int  i;
 
    if ((fp = fopen (path, "r"))==NULL) {
-      fprintf(stderr, "Error: Could not open GeneSplicer model file for reading (%s).\n", path); 
+      fprintf(stderr, "Error: Could not open Glimmer model file for reading (%s).\n", path); 
       exit(1);
    }
 

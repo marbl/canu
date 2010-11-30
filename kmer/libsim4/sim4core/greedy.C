@@ -13,6 +13,7 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
   blower,flower,          /* boundaries for searching diagonals */
   bupper,fupper,
   row;                    /* row number */
+  int     flip = 0;               /* swap sequences for narrow gaps with interspecies */
   int     max_d;                  /* bound on size of edit script */
   int     back, forth;            /* backward and forward limits at exit */
 
@@ -31,7 +32,12 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
       return(m-n0+(int)(globalParams->_percentError * n0 + 1));
     } else if (m > (int)min(wordSize, (1 + globalParams->_percentError) * n0)) {
       if (globalParams->_interspecies) {
-             ;
+         /* flip coordinates */
+         d = m; m = n0; n0 = d;
+         d = OFFSET1; OFFSET1 = OFFSET2; OFFSET2 = d;
+         char *s = s1; s1 = s2; s2 = s;
+
+         flip = 1;
       } else {
          *lblock = *rblock = 0L;
          ANNOUNCEEXIT("greedy-2\n");
@@ -63,6 +69,11 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
   
   if (row == 0) {
     /* hit last row; stop search */
+    if (flip) {
+       d = m; m = n0; n0 = d;
+       d = OFFSET1; OFFSET1 = OFFSET2; OFFSET2 = d;
+       char *s = s1; s1 = s2; s2 = s;
+    }
     *lblock = *rblock = _exonManager.newExon(r_offset2-m+n2+1,r_offset1+1,r_offset2+n2,
                                              r_offset1+m,m,0,0,NULL);
     ANNOUNCEEXIT("greedy-3\n");
@@ -102,6 +113,11 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
 
   if (row == m) {
     /* hit last row; stop search */
+    if (flip) {
+       d = m; m = n0; n0 = d;
+       d = OFFSET1; OFFSET1 = OFFSET2; OFFSET2 = d;
+       char *s = s1; s1 = s2; s2 = s;
+    }
     *lblock = *rblock = _exonManager.newExon(l_offset2+1,l_offset1+1,l_offset2+m,
                                              l_offset1+m,m,0,0,NULL);
     ckfree(allocdSpace);
@@ -290,7 +306,18 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
     return(MAX_D+1);
   }
 
+  if (flip) {
+    /* Cost is within allocated limit */
+    d = m; m = n0; n0 = d;
+    d = OFFSET1; OFFSET1 = OFFSET2; OFFSET2 = d;
+    char *s = s1; s1 = s2; s2 = s;
+    *lblock = *rblock = _exonManager.newExon(OFFSET2+1,OFFSET1+1,OFFSET2+n0,OFFSET1+m,m,back+forth,0,NULL); 
 
+    ckfree(allocdSpace);
+    ANNOUNCEEXIT("greedy-6\n");
+
+    return back+forth;
+  }
   if (m-min_row[back]>=max_row[forth]) {
 
     if ((r_offset2+1+min_diag[back]-R_ORIGIN) < 
@@ -326,6 +353,6 @@ Sim4::greedy(char *s1, char *s2, int m, int n0, int OFFSET1, int OFFSET2, Exon *
   
   ckfree(allocdSpace);
 
-  ANNOUNCEEXIT("greedy-6\n");
+  ANNOUNCEEXIT("greedy-7\n");
   return back+forth;
 }

@@ -19,6 +19,9 @@ Sim4::SIM4_block2(Exon*   &tmp_Lblock,
                   tmp_block1->frGEN-tmp_block->toGEN-1,
                   tmp_block->toEST,tmp_block->toGEN,
                   &tmp_Lblock, &tmp_Rblock);
+#if 0
+    printf("greedy returned cost %d (limit:%d)\n", cost, max(wordSize,(int)(globalParams->_percentError * diff + 1)));
+#endif
   } else {
     cost = max(wordSize,(int)(globalParams->_percentError * diff + 1))+1;
   }

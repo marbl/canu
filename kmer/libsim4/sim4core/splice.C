@@ -484,7 +484,7 @@ Sim4::splice(char *in_seqx, int ls, int us, int le, int ue,
 
 #if 0
   for (i=0; i<=ye-ys+1; i++) {
-    fprintf(stderr, "%3d: max_Gf=%8d  max_Cf=%8d  max_Gb=%8d  max_Cb=%8d\n",
+    fprintf(stderr, "%3d: max_Gf=%1.6f  max_Cf=%1.6f  max_Gb=%1.6f  max_Cb=%1.6f\n",
             i,
             max_Gf[i], max_Cf[i], max_Gb[i], max_Cb[i]);
   }
@@ -555,6 +555,7 @@ Sim4::splice_original(char *in_seqx, int ls, int us, int le, int ue,
    int p, q, i;
    char  *s,*t, ch;
 
+
    /* changed MAX_SPAN to S4_SPAN; see main fix to out of bounds problems in util.C */ 
    for (i=0, s=in_seqx+ls-S4_SPAN-1; i<2*S4_SPAN+us-ls+3; nsegmentL[i++] = spl_encode[(int)(*s++)]);
    for (i=0, s=in_seqx+le-2-S4_SPAN-1; i<2*S4_SPAN+ue-le+3; nsegmentR[i++] = spl_encode[(int)(*s++)]);
@@ -611,6 +612,7 @@ Sim4::splice_GeneSplicer(char *in_seqx, int ls, int us, int le, int ue,
    char  *s,*t, ch;
 
 
+
    /* changed MAX_SPAN to GENESPLICER_SPAN; see main fix to out of bounds problems in util.C */ 
    for (i=0, s=in_seqx+ls-GENESPLICER_SPAN-1; i<2*GENESPLICER_SPAN+us-ls+3; nsegmentL[i++] = spl_encode[(int)(*s++)]);
    for (i=0, s=in_seqx+le-2-GENESPLICER_SPAN-1; i<2*GENESPLICER_SPAN+ue-le+3; nsegmentR[i++] = spl_encode[(int)(*s++)]);
@@ -634,8 +636,12 @@ Sim4::splice_GeneSplicer(char *in_seqx, int ls, int us, int le, int ue,
            agscore[q] = 5.0*(agscore[q]+23.0)/43.0;
            agscore[q] = 0.4*agscore[q] + 0.6*ag[(int)*(s-1)][(int)*s];
        }
-   }
 
+#if 0
+       printf("gtscore:"); for (p=0; p<=us-ls+1; p++) printf(" %f", gtscore[p]); printf("\n");
+       printf("agscore:"); for (q=ue-le+1; q>=0; q--) printf(" %f", agscore[q]); printf("\n");
+#endif
+   }
 
    if (ori==BWD || ori==BOTH) {
 
@@ -664,6 +670,10 @@ Sim4::splice_GeneSplicer(char *in_seqx, int ls, int us, int le, int ue,
            acscore[q] = 5.0*(acscore[q]+14.0)/33.0;
            acscore[q] = 0.4*acscore[q] + 0.6*gt[(int)*s][(int)*(s+1)];
        }
+#if 0
+       printf("ctscore:"); for (p=0; p<=us-ls+1; p++) printf(" %f", ctscore[p]); printf("\n");
+       printf("acscore:"); for (q=ue-le+1; q>=0; q--) printf(" %f", acscore[q]); printf("\n");
+#endif
    }
 
    return;

@@ -436,10 +436,10 @@ private:
 
   int  stepct(int n) {
     if (n<0) fatal("splice.c: Negative value in stepct().");
-    if (n<=4) return((int)1.6*8);
-    if (n<=8) return((int)1.6*9);
-    if (n<=12) return((int)1.6*10);
-    return((int)1.6*11);
+    if (n<=4) return 9;   // return((int)1.6*8);
+    if (n<=8) return 10;  // return((int)1.6*9);
+    if (n<=12) return 12; // return((int)1.6*10);
+    return 12;            // return((int)1.6*11);
   };
 
   splice_t *new_splice(char,int,int,int,int,double,splice_t *);

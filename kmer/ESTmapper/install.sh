@@ -18,7 +18,7 @@ mkdir -p $installdir/lib
 #  Install binaries
 #
 binaries="mergeCounts terminate"
-binaries="$binaries ../leaff/leaff ../sim4db/sim4th ../meryl/meryl ../libkmer/positionDB"
+binaries="$binaries ../leaff/leaff ../sim4db/sim4db ../meryl/meryl ../libkmer/positionDB"
 binaries="$binaries ../seagen/seagen ../seagen/filterEST ../seagen/filterMRNA ../seagen/filterNULL ../seagen/sortHits"
 binaries="$binaries ../sim4dbutils/cleanPolishes ../sim4dbutils/sortPolishes ../sim4dbutils/parseSNP ../sim4dbutils/filterPolishes ../sim4dbutils/pickBestPolish"
 
