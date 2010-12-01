@@ -10,6 +10,7 @@ typedef u64bit  intervalNumber;
 struct _intervalPair {
   intervalNumber    lo;
   intervalNumber    hi;
+  u32bit            ct;
 };
 
 struct _intervalDepth {
@@ -99,6 +100,7 @@ public:
 
   intervalNumber      lo(u32bit i) { return(_list[i].lo); };
   intervalNumber      hi(u32bit i) { return(_list[i].hi); };
+  u32bit              ct(u32bit i) { return(_list[i].ct); };
 
 private:
   bool                      _isSorted;

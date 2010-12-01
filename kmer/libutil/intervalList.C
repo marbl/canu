@@ -50,6 +50,7 @@ intervalList::add(intervalNumber position, intervalNumber length) {
 
   _list[_listLen].lo   = position;
   _list[_listLen].hi   = position + length;
+  _list[_listLen].ct   = 1;
 
 #if 0
   //  Aborted attempt to add a data field here.  Got stuck
@@ -125,6 +126,7 @@ intervalList::merge(void) {
 
       _list[thisInterval].lo = _list[nextInterval].lo;
       _list[thisInterval].hi = _list[nextInterval].hi;
+      _list[thisInterval].ct = _list[nextInterval].ct;
 
       _list[nextInterval].lo = 0;
       _list[nextInterval].hi = 0;
@@ -143,11 +145,14 @@ intervalList::merge(void) {
         //
         if (_list[thisInterval].hi < _list[nextInterval].hi)
           _list[thisInterval].hi = _list[nextInterval].hi;
+
+        _list[thisInterval].ct += _list[nextInterval].ct;
         
         //  Clear the just merged nextInterval and move to the next one.
         //
         _list[nextInterval].lo = 0;
         _list[nextInterval].hi = 0;
+        _list[nextInterval].ct = 0;
         nextInterval++;
       } else {
 
@@ -162,6 +167,7 @@ intervalList::merge(void) {
         if (thisInterval != nextInterval) {
           _list[thisInterval].lo = _list[nextInterval].lo;
           _list[thisInterval].hi = _list[nextInterval].hi;
+          _list[thisInterval].ct = _list[nextInterval].ct;
         }
 
         nextInterval++;
