@@ -27,8 +27,6 @@ writeTemporary(char *filePrefix, sim4polish **p, u32bit pLen, sim4polishStyle st
   return(R);
 }
 
-static void *ph;
-
 //  Save the polish using palloc;
 //
 sim4polish *
@@ -37,7 +35,7 @@ savePolish(sim4polish *q, u64bit *alloc) {
 
   //  Copy the base polish structure.
   //
-  sim4polish *r = (sim4polish *)palloc2(sizeof(sim4polish), ph);
+  sim4polish *r = (sim4polish *)palloc(sizeof(sim4polish));
   memcpy(r, q, sizeof(sim4polish));
   *alloc += sizeof(sim4polish);
 
@@ -45,19 +43,19 @@ savePolish(sim4polish *q, u64bit *alloc) {
   //
   if (q->_estDefLine && q->_genDefLine) {
     l = strlen(q->_estDefLine) + 1;
-    r->_estDefLine = (char *)palloc2(sizeof(char) * l, ph);
+    r->_estDefLine = (char *)palloc(sizeof(char) * l);
     memcpy(r->_estDefLine, q->_estDefLine, sizeof(char) * l);
     *alloc += l * sizeof(char);
  
     l = strlen(q->_genDefLine) + 1;
-    r->_genDefLine = (char *)palloc2(sizeof(char) * l, ph);
+    r->_genDefLine = (char *)palloc(sizeof(char) * l);
     memcpy(r->_genDefLine, q->_genDefLine, sizeof(char) * l);
     *alloc += l * sizeof(char);
   }
 
   //  Copy the base exon structure.
   //
-  r->_exons = (sim4polishExon *)palloc2(sizeof(sim4polishExon) * q->_numExons, ph);
+  r->_exons = (sim4polishExon *)palloc(sizeof(sim4polishExon) * q->_numExons);
   memcpy(r->_exons, q->_exons, sizeof(sim4polishExon) * q->_numExons);
   *alloc += sizeof(sim4polishExon) * q->_numExons;
 
@@ -66,14 +64,14 @@ savePolish(sim4polish *q, u64bit *alloc) {
   for (u32bit i=0; i<q->_numExons; i++) {
     if (q->_exons[i]._estAlignment) {
       l = strlen(q->_exons[i]._estAlignment) + 1;
-      r->_exons[i]._estAlignment = (char *)palloc2(sizeof(char) * l, ph);
+      r->_exons[i]._estAlignment = (char *)palloc(sizeof(char) * l);
       memcpy(r->_exons[i]._estAlignment, q->_exons[i]._estAlignment, sizeof(char) * l);
       *alloc += l * sizeof(char);
     }
 
     if (q->_exons[i]._genAlignment) {
       l = strlen(q->_exons[i]._genAlignment) + 1;
-      r->_exons[i]._genAlignment = (char *)palloc2(sizeof(char) * l, ph);
+      r->_exons[i]._genAlignment = (char *)palloc(sizeof(char) * l);
       memcpy(r->_exons[i]._genAlignment, q->_exons[i]._genAlignment, sizeof(char) * l);
       *alloc += l * sizeof(char);
     }
@@ -84,13 +82,13 @@ savePolish(sim4polish *q, u64bit *alloc) {
 
 
 void
-statusReport(u32bit pLen, u32bit mergeFilesLen, u64bit arrayAlloc, u64bit matchAlloc) {
+statusReport(u32bit pLen, u32bit mergeFilesLen, u64bit arrayAlloc, u64bit matchAlloc, u64bit upperAlloc) {
   if (pLen > 0) {
-    fprintf(stderr, "Read: "u32bitFMTW(8)" polishes -- "u32bitFMTW(5)" temporary files -- "u64bitFMTW(5)"MB / "u64bitFMTW(5)"fMB -- "u64bitFMTW(5)" bytes/polish\r",
+    fprintf(stderr, "Read: "u32bitFMTW(8)" polishes -- "u32bitFMTW(5)" temporary files -- "u64bitFMTW(5)"MB / "u64bitFMTW(5)"MB -- "u64bitFMTW(5)" bytes/polish\r",
             pLen,
             mergeFilesLen,
             (arrayAlloc + matchAlloc) >> 20,
-            getProcessSizeLimit() >> 20,
+            upperAlloc >> 20,
             matchAlloc / pLen);
     fflush(stderr);
   }
@@ -213,7 +211,7 @@ main(int argc, char **argv) {
 
     exit(1);
   }
-  
+
   if (mergeFilesLen > 0)
     fprintf(stderr, "Found %d files to merge!\n", mergeFilesLen);
 
@@ -233,9 +231,8 @@ main(int argc, char **argv) {
   //  of not having palloc() use a blocksize that divides our upperAlloc size.  This attempts to
   //  sync them up.
   //
-  ph = pallochandle(2 * 1024 * 1024);
-
   psetblocksize(upperAlloc / 16);   // This produced a crash in readBuffer
+  //psetdebug(2);
 
   sim4polishReader *R = new sim4polishReader("-");
   sim4polish       *q = 0L;
@@ -263,7 +260,7 @@ main(int argc, char **argv) {
 
       } else {
         if (beVerbose) {
-          statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
+          statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc, upperAlloc);
           fprintf(stderr, "\n");
         }
 
@@ -282,11 +279,11 @@ main(int argc, char **argv) {
     p[pLen++] = savePolish(q, &matchAlloc);  //  COPY the polish.
 
     if (beVerbose && ((pLen % 2000) == 0))
-      statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
+      statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc, upperAlloc);
   }
 
   if (beVerbose) {
-    statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc);
+    statusReport(pLen, mergeFilesLen+1, arrayAlloc, matchAlloc, upperAlloc);
     fprintf(stderr, "\n");
   }
 
@@ -321,7 +318,11 @@ main(int argc, char **argv) {
   //
 
   if (mergeFilesLen > 0) {
+    if (beVerbose)
+      fprintf(stderr, "Merging temporary files....\n");
+
     sim4polish **p = new sim4polish * [mergeFilesLen];
+
     memset(p, 0, sizeof(sim4polish *) * mergeFilesLen);
 
     for (u32bit i=0; i<mergeFilesLen; i++)
@@ -361,8 +362,7 @@ main(int argc, char **argv) {
   delete [] mergeFiles;
   delete [] mergeNames;
 
-  pfree2(ph);
-  pfreehandle(ph);
+  pfree();
 
   return(0);
 }
