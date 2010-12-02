@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.35 2010-10-09 01:29:48 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.36 2010-12-02 21:13:13 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -1932,6 +1932,9 @@ static void  Read_Frags
       FragType  read_type;
       unsigned  deleted;
       int  result, frag_len;
+
+      if ((i % 100000) == 0)
+        fprintf(stderr, "Read_Frags - at %d\n", i);
 
       deleted = frag_read.gkFragment_getIsDeleted();
       if  (deleted)
