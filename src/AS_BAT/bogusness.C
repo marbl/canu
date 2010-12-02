@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogusness.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+const char *mainid = "$Id: bogusness.C,v 1.2 2010-12-02 20:49:26 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -198,9 +198,6 @@ main(int argc, char **argv) {
   char  *nucmerName   = 0L;
   char  *snapperName  = 0L;
   char  *idealName = 0L;
-  char  *outputPrefix   = 0L;
-  char   outputName[FILENAME_MAX];
-  FILE  *outputFile = 0L;
 
   vector<idealUnitig>    ideal;
 
@@ -216,15 +213,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-ideal") == 0) {
       idealName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-output") == 0) {
-      outputPrefix = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-wobble") == 0) {
-      //alignWobble = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-overlap") == 0) {
-      //minOverlap = atoi(argv[++arg]);
-
     } else {
       err++;
     }
@@ -234,8 +222,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "ERROR: No input matches supplied (either -nucmer or -snapper).\n"), err++;
   if (idealName == 0L)
     fprintf(stderr, "ERROR: No ideal unitigs supplied (-ideal).\n"), err++;
-  if (outputPrefix == 0L)
-    fprintf(stderr, "ERROR: No output prefix supplied (-output).\n"), err++;
   if (err) {
     exit(1);
   }
@@ -279,11 +265,6 @@ main(int argc, char **argv) {
   longest.resize(IIDnext);
 
 
-  //  Write a header
-  fprintf(stdout, "{| class=\"wikitable\" border=1\n");
-  fprintf(stdout, "! unitig !! align num !! utg coords !! gen coords !! status !! ideal type !! ideal index !! ideal coords !! length !! utg cov !! ideal cov !! annotation\n");
-  fprintf(stdout, "|-\n");
-
   for (uint32 bgn=0, lim=genome.size(); bgn<lim; ) {
     uint32 frgIID = genome[bgn].frgIID;
 
@@ -293,8 +274,6 @@ main(int argc, char **argv) {
     while ((end < genome.size()) &&
            (genome[bgn].frgIID == genome[end].frgIID))
       end++;
-
-    //fprintf(stderr, "%d bgn %d end %d\n", frgIID, bgn, end);
 
     //  Delete any alignments that are contained in some other alignment.
 
@@ -352,17 +331,7 @@ main(int argc, char **argv) {
     }
 #endif
 
-    fprintf(stdout, "|-\n");
-    fprintf(stdout, "| colspan=12 |\n");
-    fprintf(stdout, "|-\n");
-
-
-    //const char *fmt = "%-10s %1d/%1d (utg %7d %7d gen %7d %7d) %s %s %05d (gen %7d %7d) covering %7dbp, %6.2f%% of the unitig, %6.2f%% of the ideal%s\n";
-    const char *fmt = "| %s || %d of %d || %d-%d || %d-%d || %s || %s || %05d || %d-%d || %dbp || %.2f%% || %.2f%% || %s\n|-\n";
-
-
-    //fprintf(stderr, "----------------------------------------\n");
-    //fprintf(stderr, "%d has %d alignments\n", frgIID, cover.size());
+    const char *fmt = "| %s || %d of %d || %d-%d || %d-%d || %s || %s || %05d || %d-%d || %dbp || %.2f%% || %.2f%% || %s\n";
 
     for (uint32 c=0; c<cover.size(); c++) {
       int32  alen  = 0;
@@ -451,8 +420,6 @@ main(int argc, char **argv) {
 
     bgn = end;
   }
-
-  fprintf(stdout, "|}\n");
 
   return(0);
 }
