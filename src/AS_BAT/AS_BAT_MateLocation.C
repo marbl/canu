@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MateLocation.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MateLocation.C,v 1.2 2010-12-02 20:47:46 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -329,8 +329,8 @@ MateLocation::buildHappinessGraphs(void) {
         nbadExternalRev[nContained]++;
         if (logFileFlagSet(LOG_HAPPINESS))
           fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad external reverse\n",
-                  loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                  loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                  loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                  loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
         goto markBad;
       }
 
@@ -340,8 +340,8 @@ MateLocation::buildHappinessGraphs(void) {
         nbadExternalFwd[nContained]++;
         if (logFileFlagSet(LOG_HAPPINESS))
           fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad external forward\n",
-                  loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                  loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                  loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                  loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
         goto markBad;
       }
 
@@ -355,8 +355,8 @@ MateLocation::buildHappinessGraphs(void) {
 
       if (logFileFlagSet(LOG_HAPPINESS))
         fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- not bad, not enough space\n",
-                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
       continue;
     }
 
@@ -371,8 +371,8 @@ MateLocation::buildHappinessGraphs(void) {
       nbadNormal[nContained]++;
       if (logFileFlagSet(LOG_HAPPINESS))
         fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad normal\n",
-                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
@@ -382,8 +382,8 @@ MateLocation::buildHappinessGraphs(void) {
       nbadAnti[nContained]++;
       if (logFileFlagSet(LOG_HAPPINESS))
         fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad anti\n",
-                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
@@ -401,8 +401,8 @@ MateLocation::buildHappinessGraphs(void) {
       ngood[nContained]++;
       if (logFileFlagSet(LOG_HAPPINESS))
         fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- good because circular\n",
-                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
       continue;
     }
 
@@ -417,8 +417,8 @@ MateLocation::buildHappinessGraphs(void) {
       nbadOuttie[nContained]++;
       if (logFileFlagSet(LOG_HAPPINESS))
         fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad outtie (case 1)\n",
-                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
     if ((isReverse(loc.mlePos1) == false) && (loc.mlePos2.end < loc.mlePos1.bgn)) {
@@ -426,8 +426,8 @@ MateLocation::buildHappinessGraphs(void) {
       nbadOuttie[nContained]++;
       if (logFileFlagSet(LOG_HAPPINESS))
         fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad outtie (case 2)\n",
-                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
@@ -447,8 +447,8 @@ MateLocation::buildHappinessGraphs(void) {
       nbadCompressed[nContained]++;
       if (logFileFlagSet(LOG_HAPPINESS))
         fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad compressed\n",
-                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
@@ -457,8 +457,8 @@ MateLocation::buildHappinessGraphs(void) {
       nbadStretched[nContained]++;
       if (logFileFlagSet(LOG_HAPPINESS))
         fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- bad stretched\n",
-                loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-                loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+                loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+                loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
       goto markBad;
     }
 
@@ -470,8 +470,8 @@ MateLocation::buildHappinessGraphs(void) {
     ngood[nContained]++;
     if (logFileFlagSet(LOG_HAPPINESS))
       fprintf(logFile, "buildHappinessGraph()--  unitig %d (len %d) frag %d pos %d,%d (len %d) and unitig %d (len %d) frag %d pos %d,%d (len %d) -- GOOD!\n",
-              loc.mleUtgID1, 0, loc.mleFrgID1, frgBgn, frgEnd, frgLen,
-              loc.mleUtgID2, 0, loc.mleFrgID2, matBgn, matEnd, matLen);
+              loc.mleUtgID1, UG->unitigs[loc.mleUtgID1], loc.mleFrgID1, frgBgn, frgEnd, frgLen,
+              loc.mleUtgID2, UG->unitigs[loc.mleUtgID2], loc.mleFrgID2, matBgn, matEnd, matLen);
     continue;
 
   markBad:
