@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.2 2010-12-02 20:48:48 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -163,9 +163,6 @@ loadSnapper(char                      *snapperName,
   if (errno)
     fprintf(stderr, "Failed to open '%s' for reading: %s\n", snapperName, strerror(errno)), exit(1);
 
-  //  First line is a header
-  fgets(inLine, 1024, inFile);
-
   //  Read the first line
   fgets(inLine, 1024, inFile);
   chomp(inLine);
@@ -215,7 +212,3 @@ loadSnapper(char                      *snapperName,
 
   fclose(inFile);
 }
-
-
-
-
