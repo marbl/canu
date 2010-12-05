@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.2 2010-12-05 00:59:12 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_ChunkGraph.H"
@@ -190,6 +190,14 @@ main (int argc, char * argv []) {
       if (strcasecmp("all", argv[arg]) == 0) {
         for (flg=1, opt=0; logFileFlagNames[opt]; flg <<= 1, opt++)
           if (strcasecmp(logFileFlagNames[opt], "stderr") != 0)
+            logFileFlags |= flg;
+        fnd = true;
+      }
+      if (strcasecmp("most", argv[arg]) == 0) {
+        for (flg=1, opt=0; logFileFlagNames[opt]; flg <<= 1, opt++)
+          if ((strcasecmp(logFileFlagNames[opt], "stderr") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "mateSplitCoveragePlot") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "overlapQuality") != 0))
             logFileFlags |= flg;
         fnd = true;
       }
