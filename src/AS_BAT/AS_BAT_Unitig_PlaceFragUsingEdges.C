@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig_PlaceFragUsingEdges.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig_PlaceFragUsingEdges.C,v 1.2 2010-12-05 00:05:46 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -388,6 +388,10 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
   }
 
 
+  if (bestcont->isContained == false)
+    //  If we're a false containment overlap, skip the adjustment below.
+    return(true);
+
   //  Containments are particularily painful.  A beautiful example: a fragment of length 253bp is
   //  contained in a fragment of length 251bp (both hangs are zero).  In this case, the
   //  "ahang+length" method fails, placing the contained fragment outside the container (and if
@@ -397,8 +401,8 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
   //  We can use either method first, then adjust using the other method.
   //
   //  We'll use 'ahang,bhang' first (mostly because it was already done, and we need to compute
-  //  those values anyway) then reset the end based on the length, limited to maintain a
-  //  containment relationship.
+  //  those values anyway) then reset the end based on the length, limited to maintain a containment
+  //  relationship.
   //
 #warning not knowing the overlap length really hurts.
   if (frag.position.bgn < frag.position.end) {

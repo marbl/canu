@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.2 2010-12-05 00:05:46 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -29,7 +29,6 @@ static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.1 2010-11-2
 #include "AS_UTL_intervalList.H"
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
-
 
 
 //  Given an implicit fragment -- a ufNode with only the 'ident' set -- this will compute the
@@ -132,8 +131,8 @@ UnitigGraph::placeFragUsingOverlaps(uint32 fid,
       //  A (us) contains B (the other fragment)
       BestContainment  best;
 
-      best.container       = ovl[i].b_iid;
-      best.isContained     = false;  //  Mark as a false BestContainment
+      best.container       = ovl[i].b_iid;  //  Not really the container...
+      best.isContained     = false;         //  ...so mark this as a false BestContainment
       best.a_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.b_hang : -ovl[i].dat.ovl.a_hang;
       best.b_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.a_hang : -ovl[i].dat.ovl.b_hang;
       best.sameOrientation = ovl[i].dat.ovl.flipped ? false : true;
