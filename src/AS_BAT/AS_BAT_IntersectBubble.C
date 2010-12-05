@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.2 2010-12-05 00:56:42 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_UnitigGraph.H"
@@ -122,6 +122,21 @@ UnitigGraph::validateBubbleWithEdges(Unitig *bubble,
       lFrgPlacement = placements[i];
   }
 
+  lFrgN.ident             = lFrgPlacement.frgID;
+  lFrgN.contained         = 0;
+  lFrgN.parent            = 0;
+  lFrgN.ahang             = 0;
+  lFrgN.bhang             = 0;
+  lFrgN.position          = lFrgPlacement.position;
+  lFrgN.containment_depth = 0;
+
+  if ((lFrgN.position.bgn == 0) &&
+      (lFrgN.position.end == 0)) {
+    fprintf(logFile, "popBubbles()-- Failed to place lFrg.\n");
+    return(false);
+  }
+
+
   placements.clear();
 
   UG->placeFragUsingOverlaps(rFrg.ident, ovlStoreUniq, ovlStoreRept, placements);
@@ -140,14 +155,6 @@ UnitigGraph::validateBubbleWithEdges(Unitig *bubble,
       rFrgPlacement = placements[i];
   }
 
-  lFrgN.ident             = lFrgPlacement.frgID;
-  lFrgN.contained         = 0;
-  lFrgN.parent            = 0;
-  lFrgN.ahang             = 0;
-  lFrgN.bhang             = 0;
-  lFrgN.position          = lFrgPlacement.position;
-  lFrgN.containment_depth = 0;
-
   rFrgN.ident             = rFrgPlacement.frgID;
   rFrgN.contained         = 0;
   rFrgN.parent            = 0;
@@ -155,16 +162,6 @@ UnitigGraph::validateBubbleWithEdges(Unitig *bubble,
   rFrgN.bhang             = 0;
   rFrgN.position          = rFrgPlacement.position;
   rFrgN.containment_depth = 0;
-
-  //fprintf(logFile, "lFrgN %d,%d rFrgN %d,%d\n",
-  //        lFrgN.position.bgn, lFrgN.position.end,
-  //        rFrgN.position.bgn, rFrgN.position.end);
-
-  if ((lFrgN.position.bgn == 0) &&
-      (lFrgN.position.end == 0)) {
-    fprintf(logFile, "popBubbles()-- Failed to place lFrg.\n");
-    return(false);
-  }
 
   if ((rFrgN.position.bgn == 0) &&
       (rFrgN.position.end == 0)) {
@@ -354,13 +351,28 @@ UnitigGraph::validateBubbleFragmentsWithOverlaps(Unitig *bubble,
         continue;
       }
 
-      //  The current placement seems like a good one.  Is it the best one?
-      //
-      //  TODO:  We should also use mate pair information here!
-      //
-      if (placements[fi][pl].errors / correctPlace[fi].aligned < correctPlace[fi].errors / correctPlace[fi].aligned) {
+      //  The current placement seems like a good one.  Should we keep it?
+
+      //  The length requirement was added to solve a problem during testing on hydra.  We tried to
+      //  place a contained fragment -- so skipped the fCoverage test above.  This fragment had two
+      //  placements in the correct location on the target unitig.  One plaement was fCoverage=1.00,
+      //  the other was fCoverage=0.15.  Clearly the first was better, but the second had less
+      //  error.  Without the length filter, we'd incorrectly pick the second placement.
+
+      bool  keepIt = false;
+
+      if (placements[fi][pl].fCoverage > correctPlace[fi].fCoverage)
+        //  Yes!  The current placement has more coverage than the saved one.
+        keepIt = true;
+
+      if ((placements[fi][pl].fCoverage >= correctPlace[fi].fCoverage) &&
+          (placements[fi][pl].errors / placements[fi][pl].aligned < correctPlace[fi].errors / correctPlace[fi].aligned))
+        //  Yes!  The current placement is just as long, and lower error.
+        keepIt = true;
+
+      //  Yup, looks like a better placement.
+      if (keepIt)
         correctPlace[fi] = placements[fi][pl];
-      }
     }  //  over all placements
 
     if (correctPlace[fi].fCoverage > 0)
