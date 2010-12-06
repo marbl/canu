@@ -80,11 +80,13 @@ private:
     else
       _buckets[countingTable[hsh]] = chk;
 
-    if (_counts)
-      if (_compressedCounts)
+    if (_counts) {
+      if (_compressedCounts) {
         setDecodedValue(_counts, countingTable[hsh] * _cntWidth, _cntWidth, cnt);
-      else
+      } else {
         _counts[countingTable[hsh]] = cnt;
+      }
+    }
 
     countingTable[hsh]++;
   };

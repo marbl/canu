@@ -100,7 +100,7 @@ main(int argc, char **argv) {
       Bstyle = BR->getsim4polishStyle();
       delete   BR;
 
-      Bfile = new sim4polishFile(argv[arg], Astyle);
+      Bfile = new sim4polishFile(argv[arg], Bstyle);
     } else if (strcmp(argv[arg], "-p") == 0) {
       prefix = argv[++arg];
     } else if (strcmp(argv[arg], "-gff3") == 0) {

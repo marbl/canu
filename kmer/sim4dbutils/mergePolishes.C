@@ -55,7 +55,7 @@ main(int argc, char **argv) {
     }
   }
 
-  if ((numIn < 1) || (otMatch == 0L)) {
+  if ((numIn < 1) || (otMatchName == 0L)) {
     fprintf(stderr, "usage: %s -o match cdna -m match1 cdna1 -m match2 cdna2 -m ... [-gff3]\n", argv[0]);
     exit(1);
   }

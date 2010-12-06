@@ -157,11 +157,12 @@ main(int argc, char ** argv) {
   if ((err) ||
       (isatty(fileno(stdin))) ||
       (isatty(fileno(stdout)) && filter)) {
-    fprintf(stderr, "usage: %s [-threshold t] [-savejunk] [-quiet] [-debug]\n", argv[0]);
+    fprintf(stderr, "usage: %s [-threshold t] [-savejunk] [-gff3] [-quiet] [-debug]\n", argv[0]);
     fprintf(stderr, "  -threshold    Introns bigger than this are candidates for trimming (default = 100000).\n");
     fprintf(stderr, "  -quiet        Don't print unmodified matches\n");
     fprintf(stderr, "  -beforeafter  Save (in separate files) the before/after of each modified match\n");
     fprintf(stderr, "  -segregate    Save (in separate files) the after of each modified match\n");
+    fprintf(stderr, "  -gff3         Write output in GFF3 format\n");
     fprintf(stderr, "  -savejunk     Also print the trimmed pieces (as separate matches)\n");
 
     if (isatty(fileno(stdin)))

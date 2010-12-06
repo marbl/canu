@@ -252,7 +252,10 @@ sim4polishFile::buildIndex(void) {
       delete p;
       
       fp = _file->tell();
-      p  = new sim4polish(_file, _style);
+      if (_file->eof())
+        p = NULL;
+      else 
+        p  = new sim4polish(_file, _style);
     }
 
 
