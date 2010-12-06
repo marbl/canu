@@ -19,12 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_InsertSizes.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_InsertSizes.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_InsertSizes.H"
-#include "AS_BAT_UnitigGraph.H"
 #include "AS_BAT_Unitig.H"
-
 
 void
 InsertSizes::accumulateLibraryStats(Unitig *utg) {
@@ -107,7 +105,7 @@ InsertSizes::accumulateLibraryStats(Unitig *utg) {
 
 
 
-InsertSizes::InsertSizes() {
+InsertSizes::InsertSizes(UnitigVector &unitigs) {
 
   _numLibs        = FI->numLibraries();
 
@@ -133,8 +131,8 @@ InsertSizes::InsertSizes() {
     _samples[i]  = FI->numMatesInLib(i);
   }
 
-  for (uint32 ti=0; ti<UG->unitigs.size(); ti++) {
-    Unitig        *utg = UG->unitigs[ti];
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig        *utg = unitigs[ti];
 
     if ((utg == NULL) ||
         (utg->ufpath.size() < 2))

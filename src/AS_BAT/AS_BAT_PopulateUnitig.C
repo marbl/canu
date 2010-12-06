@@ -19,19 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
+#include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
-#include "MultiAlignStore.h"
+#include "AS_BAT_PopulateUnitig.H"
 
 
 
 void
-UnitigGraph::populateUnitig(Unitig           *unitig,
-                            BestEdgeOverlap  *bestnext) {
+populateUnitig(Unitig           *unitig,
+               BestEdgeOverlap  *bestnext) {
 
   assert(unitig->getLength() > 0);
 
@@ -91,7 +91,8 @@ UnitigGraph::populateUnitig(Unitig           *unitig,
 
 
 void
-UnitigGraph::populateUnitig(int32 fi) {
+populateUnitig(UnitigVector &unitigs,
+               int32 fi) {
 
   if ((FI->fragmentLength(fi) == 0) ||  //  Skip deleted
       (Unitig::fragIn(fi) != 0) ||      //  Skip placed

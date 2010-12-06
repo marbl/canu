@@ -19,13 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.2 2010-12-05 00:56:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
 #include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_Unitig.H"
+#include "AS_BAT_PlaceFragUsingOverlaps.H"
 
-#include "MultiAlignStore.h"
+#include "AS_BAT_IntersectBubble.H"
+
+//#include "AS_BAT_BestOverlapGraph.H"
+//#include "MultiAlignStore.h"
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 
@@ -53,13 +57,15 @@ static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.2 2010-12-05 00:56
 //
 //  lFrg and rFrg are UPDATED with the position of those fragments in the larger unitig.
 //
+static
 bool
-UnitigGraph::validateBubbleWithEdges(Unitig *bubble,
-                                     ufNode &lFrg, BestEdgeOverlap *lEnd,
-                                     ufNode &rFrg, BestEdgeOverlap *rEnd,
-                                     Unitig *larger,
-                                     OverlapStore *ovlStoreUniq,
-                                     OverlapStore *ovlStoreRept) {
+validateBubbleWithEdges(UnitigVector &unitigs,
+                        Unitig *bubble,
+                        ufNode &lFrg, BestEdgeOverlap *lEnd,
+                        ufNode &rFrg, BestEdgeOverlap *rEnd,
+                        Unitig *larger,
+                        OverlapStore *ovlStoreUniq,
+                        OverlapStore *ovlStoreRept) {
 
   //  Compute placement of the two fragments.  Compare the size against the bubble.
 
@@ -106,7 +112,7 @@ UnitigGraph::validateBubbleWithEdges(Unitig *bubble,
 
   placements.clear();
 
-  UG->placeFragUsingOverlaps(lFrg.ident, ovlStoreUniq, ovlStoreRept, placements);
+  placeFragUsingOverlaps(unitigs, lFrg.ident, ovlStoreUniq, ovlStoreRept, placements);
   for (uint32 i=0; i<placements.size(); i++) {
     if (placements[i].tigID != larger->id())
       continue;
@@ -139,7 +145,7 @@ UnitigGraph::validateBubbleWithEdges(Unitig *bubble,
 
   placements.clear();
 
-  UG->placeFragUsingOverlaps(rFrg.ident, ovlStoreUniq, ovlStoreRept, placements);
+  placeFragUsingOverlaps(unitigs, rFrg.ident, ovlStoreUniq, ovlStoreRept, placements);
   for (uint32 i=0; i<placements.size(); i++) {
     if (placements[i].tigID != larger->id())
       continue;
@@ -251,13 +257,15 @@ UnitigGraph::validateBubbleWithEdges(Unitig *bubble,
 //
 //  If the above tests pass, 'bubble' is inserted into 'larger' and 'bubble' is deleted.
 //
+static
 bool
-UnitigGraph::validateBubbleFragmentsWithOverlaps(Unitig *bubble,
-                                                 ufNode &lFrg,
-                                                 ufNode &rFrg,
-                                                 Unitig *larger,
-                                                 OverlapStore *ovlStoreUniq,
-                                                 OverlapStore *ovlStoreRept) {
+validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
+                                    Unitig *bubble,
+                                    ufNode &lFrg,
+                                    ufNode &rFrg,
+                                    Unitig *larger,
+                                    OverlapStore *ovlStoreUniq,
+                                    OverlapStore *ovlStoreRept) {
 
   //  Method:
   //
@@ -278,7 +286,7 @@ UnitigGraph::validateBubbleFragmentsWithOverlaps(Unitig *bubble,
   for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
     ufNode *frg = &bubble->ufpath[fi];
 
-    UG->placeFragUsingOverlaps(frg->ident, ovlStoreUniq, ovlStoreRept, placements[fi]);
+    placeFragUsingOverlaps(unitigs, frg->ident, ovlStoreUniq, ovlStoreRept, placements[fi]);
 
     //  Initialize the final placement to be bad, so we can pick the best.
     correctPlace[fi].fCoverage = 0.0;
@@ -424,27 +432,8 @@ UnitigGraph::validateBubbleFragmentsWithOverlaps(Unitig *bubble,
 
 
 
-
-//  True if overlaps for every fragment in the bubble are colocated on the large unitig.  There
-//  isn't a large insertion in the large unitig.
-//
-//bool
-//UnitigGraph::validateBubblePlacementWithOverlaps(Unitig *bubble,
-//                                                 Unitig *larger) {
-//}
-
-
-//  After all the above tests pass (the tests ALSO compute the placement) this
-//  does the mechanics of inserting the short unitig into the large unitig.
-//void
-//UnitigGraph::insertBubble() {
-//}
-
-
-
-
 void
-UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
+popIntersectionBubbles(UnitigVector &unitigs, OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
   uint32      ovlMax = MAX_OVERLAPS_PER_FRAG;
   uint32      ovlLen = 0;
   OVSoverlap *ovl    = new OVSoverlap [ovlMax];
@@ -479,8 +468,6 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
       while (OG->isContained(shortTig->ufpath[lIdx].ident) == true)
         lIdx--;
-
-      assert(lIdx >= 0);
     }
 
     ufNode  fFrg = shortTig->ufpath[fIdx];  //  NOTE:  A COPY, not a pointer or reference.
@@ -511,16 +498,16 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
       continue;
 
     if ((fUtg != 0) && (lUtg != 0))
-      fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %d fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
+      fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
               shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
               fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5),
               lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
     else if (fUtg != 0)
-      fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %d fragments.  Edge (%d/%d') from frag %d/%d'\n",
+      fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
               shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
               fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5));
     else if (lUtg != 0)
-      fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %d fragments.  Edge (%d/%d') from frag %d/%d'\n",
+      fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
               shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
               lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
     else
@@ -537,13 +524,13 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
 
     mergeTig = (fUtg == 0) ? unitigs[lUtg] : unitigs[fUtg];
 
-    if (validateBubbleWithEdges(shortTig, fFrg, fEdge, lFrg, lEdge, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
+    if (validateBubbleWithEdges(unitigs, shortTig, fFrg, fEdge, lFrg, lEdge, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
       fprintf(logFile, "popBubbles()-- failed to validate edges for bubble unitig %d into larger unitig %d\n",
               shortTig->id(), mergeTig->id());
       continue;
     }
 
-    if (validateBubbleFragmentsWithOverlaps(shortTig, fFrg, lFrg, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
+    if (validateBubbleFragmentsWithOverlaps(unitigs, shortTig, fFrg, lFrg, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
       fprintf(logFile, "popBubbles()-- failed to validate fragments for bubble unitig %d into larger unitig %d\n",
               shortTig->id(), mergeTig->id());
       continue;

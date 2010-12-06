@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
+const char *mainid = "$Id: petey.C,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -25,16 +25,14 @@ const char *mainid = "$Id: bogart.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $"
 #include "AS_BAT_Unitig.H"
 
 #include "AS_BAT_InsertSizes.H"
-
-#include "AS_BAT_PopulateUnitig.H"
-#include "AS_BAT_Instrumentation.H"
+#include "AS_BAT_MateLocation.H"
 #include "AS_BAT_EvaluateMates.H"
-#include "AS_BAT_PlaceContains.H"
-#include "AS_BAT_PlaceZombies.H"
-#include "AS_BAT_IntersectBubble.H"
-#include "AS_BAT_IntersectSplit.H"
+#include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_Breaking.H"
-#include "AS_BAT_Joining.H"
+#include "AS_BAT_PlaceContains.H"
+#include "AS_BAT_MoveContains.H"
+#include "AS_BAT_SplitDiscontinuous.H"
+#include "AS_BAT_MateChecker.H"
 #include "AS_BAT_SetParentAndHang.H"
 #include "AS_BAT_ArrivalRate.H"
 #include "AS_BAT_Outputs.H"
@@ -140,9 +138,7 @@ main (int argc, char * argv []) {
   int       fragment_count_target   = 0;
   char     *output_prefix           = NULL;
 
-  bool      popBubbles              = false;
-  bool      breakIntersections      = false;
-  bool      enableJoining           = false;
+  int       badMateBreakThreshold   = -7;
 
   argc = AS_configure(argc, argv);
 
@@ -169,20 +165,14 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigStorePath = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-U") == 0) {
-      popBubbles = true;
-
-    } else if (strcmp(argv[arg], "-b") == 0) {
-      breakIntersections = true;
-
-    } else if (strcmp(argv[arg], "-J") == 0) {
-      enableJoining = true;
-
     } else if (strcmp(argv[arg], "-e") == 0) {
       erate = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-E") == 0) {
       elimit = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      badMateBreakThreshold = -atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-s") == 0) {
       genome_size = atol(argv[++arg]);
@@ -265,9 +255,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "             to try to estimate the genome size based on the constructed\n");
     fprintf(stderr, "             unitig lengths.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -U         Enable EXPERIMENTAL short unitig merging (aka bubble popping).\n");
-    fprintf(stderr, "  -J         Enable EXPERIMENTAL long unitig joining.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  -b         Break promisciuous unitigs at unitig intersection points\n");
     fprintf(stderr, "  -m 7       Break a unitig if a region has more than 7 bad mates\n");
     fprintf(stderr, " \n");
@@ -309,9 +296,7 @@ main (int argc, char * argv []) {
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Bubble popping        = %s\n", (popBubbles) ? "on" : "off");
-  fprintf(stderr, "Intersection breaking = %s\n", (breakIntersections) ? "on" : "off");
-  fprintf(stderr, "Intersection joining  = %s\n", (enableJoining) ? "on" : "off");
+  fprintf(stderr, "Bad mate threshold    = %d\n", badMateBreakThreshold);
   fprintf(stderr, "Error threshold       = %.3f (%.3f%%)\n", erate, erate * 100);
   fprintf(stderr, "Error limit           = %.3f errors\n", elimit);
   fprintf(stderr, "Genome Size           = "F_S64"\n", genome_size);
@@ -332,127 +317,109 @@ main (int argc, char * argv []) {
 
   UnitigVector   unitigs;
 
-  // Initialize where we've been to nowhere, and create the non-existent 0th unitig.
-  Unitig::resetFragUnitigMap(FI->numFragments());
-  unitigs.push_back(NULL);
+
+
+
+
 
 
   ////////////////////////////////////////////////////////////////////////////////
   //
-  //  Build the initial unitig path from non-contained fragments.  The first pass is usually the
-  //  only one needed, but occasionally (maybe) we miss fragments, so we make an explicit pass
-  //  through all fragments and place whatever isn't already placed.
+  //  This is the MateChecker
   //
-
-  setLogFile(output_prefix, "buildUnitigs");
-  fprintf(logFile, "==> BUILDING UNITIGS from %d fragments.\n", FI->numFragments());
-
-  for (uint32 fi=CG->nextFragByChunkLength(); fi>0; fi=CG->nextFragByChunkLength())
-    populateUnitig(unitigs, fi);
-
-  //setLogFile(output_prefix, "buildUnitigs-MissedFragments");
-  fprintf(logFile, "==> BUILDING UNITIGS catching missed fragments.\n");
-
-  for (uint32 fi=1; fi <= FI->numFragments(); fi++)
-    populateUnitig(unitigs, fi);
-
-  reportOverlapsUsed(unitigs, output_prefix, "buildUnitigs");
-  reportUnitigs(unitigs, output_prefix, "buildUnitigs");
-  evaluateMates(unitigs, output_prefix, "buildUnitigs");
-
-
   ////////////////////////////////////////////////////////////////////////////////
-  //
-  //  Place contained fragments.  There is a variety of evidence we can use to determine
-  //  where to place these:
-  //
-  //    1) By using the best containment overlap (no way to measure if this is an uncontested
-  //    placement)
-  //
-  //    2) By using all overlaps (we can measure if the placement is unique)
-  //
-  //    3) By using any mate relationship to a non-contained fragment
-  //
-  //    4) By using any mate relationship to an unambiguously placed (#2) contained fragment
-  //
-  //  For now, we're using the standard method #1.
-  //
-  //
-  //  After placing contains, every fragment should be in a unitig.  Sometimes this
-  //  is not true and we have zombie fragments (not dead, but not in a unitig).  We
-  //  place any of those into their own unitig.
-  //
 
-  setLogFile(output_prefix, "placeContainsZombies");
+  //  Move unhappy contained fragments before attempting mate based
+  //  splitting.  We know they're broken already, and if scaffolder
+  //  can put them back, we'll let it.
+
+  setLogFile(output_prefix, "moveContains1");
+  fprintf(logFile, "==> MOVE CONTAINS #1\n");
+  moveContains(unitigs);
+
+  reportOverlapsUsed(unitigs, output_prefix, "moveContains1");
+  checkUnitigMembership(unitigs);
+  evaluateMates(unitigs, output_prefix, "moveContains1");
+
+  //  This should do absolutely nothing.  If it does, something is
+  //  broken.  By just ejecting unhappy contains, nothing should be
+  //  disconnected.
+
+  setLogFile(output_prefix, "splitDiscontinuous1");
+  fprintf(logFile, "==> SPLIT DISCONTINUOUS #1\n");
+  splitDiscontinuousUnitigs(unitigs);
+
+  reportOverlapsUsed(unitigs, output_prefix, "splitDiscontinuous1");
+  checkUnitigMembership(unitigs);
+  evaluateMates(unitigs, output_prefix, "splitDiscontinuous1");
+
+  setLogFile(output_prefix, "splitBadMates");
+  fprintf(logFile, "==> SPLIT BAD MATES\n");
+
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *tig = unitigs[ti];
+
+    if ((tig == NULL) || (tig->getNumFrags() < 2))
+      continue;
+
+    MateLocation      *mates  = new MateLocation(unitigs, tig);
+    UnitigBreakPoints *breaks = computeMateCoverage(tig, mates, badMateBreakThreshold);
+    UnitigVector      *newUs  = breakUnitigAt(tig, *breaks);
+
+    if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
+      mates->dumpHappiness(output_prefix, "splitBadMates");
+
+    if (newUs != NULL) {
+      delete tig;
+      unitigs[ti] = NULL;
+      unitigs.insert(unitigs.end(), newUs->begin(), newUs->end());
+    }
+
+    delete newUs;
+    delete breaks;
+    delete mates;
+  }
 
   placeContainsUsingBestOverlaps(unitigs);
-  //placeContainsUsingAllOverlaps(ovlStoreUniq,
-  //                              ovlStoreRept,
-  //                              bool withMatesToNonContained,
-  //                              bool withMatesToUnambiguousContain);
 
-  placeZombies(unitigs);
-
+  reportOverlapsUsed(unitigs, output_prefix, "splitBadMates");
   checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "placeContainsZombies");
-  reportUnitigs(unitigs, output_prefix, "placeContainsZombies");
-  evaluateMates(unitigs, output_prefix, "placeContainsZombies");
+  evaluateMates(unitigs, output_prefix, "splitBadMates");
 
+  //  The splitting code above is not smart enough to move contained
+  //  fragments with containers.  This leaves unitigs disconnected.
+  //  We break those unitigs here.
 
-  ////////////////////////////////////////////////////////////////////////////////
-  //
-  //  Search for bubbles/staples.  Two methods so far.
-  //
-  //  1) By using best overlaps off the end of a small unitig that intersect a larger unitig to give
-  //  an approximate placement, then using overlaps to place fragments into the larger unitig.
-  //
-  //  2) By using mates to give an approximate placement, then using overlaps to place fragments.
-  //
-  //  3) By blindly searching.  For each small unitig, attempt to place it using overlaps.  If the
-  //  placement is consistent, the bubble is popped.  Works if there is no mate and no intersection.
+  setLogFile(output_prefix, "splitDiscontinuous2");
+  fprintf(logFile, "==> SPLIT DISCONTINUOUS #2\n");
+  splitDiscontinuousUnitigs(unitigs);
 
-  setLogFile(output_prefix, "bubblePopping");
-
-  popIntersectionBubbles(unitigs, ovlStoreUniq, ovlStoreRept);  //  Well supported as of Wed 13 Oct
-  popMateBubbles(unitigs, ovlStoreUniq, ovlStoreRept);          //  Exploratory as of Wed 13 Oct
-
+  reportOverlapsUsed(unitigs, output_prefix, "splitDiscontinuous2");
   checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "bubblePopping");
-  reportUnitigs(unitigs, output_prefix, "bubblePopping");
-  evaluateMates(unitigs, output_prefix, "bubblePopping");
+  evaluateMates(unitigs, output_prefix, "splitDiscontinuous2");
 
-  ////////////////////////////////////////////////////////////////////////////////
-  //
-  //  Search for intersection breaks and joins.  These are cases where we extended a BOG unitig into
-  //  a spur, and fell off the best overlap path.  We hope to trim off the spur end, join the two
-  //  unitigs into one, and maybe fold back the spur as a bubble.
-  //
-  //  We don't know how to handle contains when we split a unitig.  The splitting proceedure removes
-  //  contains from unitigs that are split (it does NOT put them in singleton unitigs, it just
-  //  removes them as if they were never placed), so after splitting we must do placeContains()
-  //  again.
+  //  But now, all the splitting probably screwed up happiness of
+  //  contained fragments, of left some unhappy fragments in a unitig
+  //  that just lost the container.
 
-  setLogFile(output_prefix, "intersectionBreaking");
+  setLogFile(output_prefix, "moveContains2");
+  fprintf(logFile, "==> MOVE CONTAINS #2\n");
 
-  breakUnitigs(unitigs, output_prefix, breakIntersections);
-  placeContainsUsingBestOverlaps(unitigs);
+  moveContains(unitigs);
 
+  reportOverlapsUsed(unitigs, output_prefix, "moveContains2");
   checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "intersectionBreaking");
-  reportUnitigs(unitigs, output_prefix, "intersectionBreaking");
-  evaluateMates(unitigs, output_prefix, "intersectionBreaking");
+  evaluateMates(unitigs, output_prefix, "moveContains2");
 
-  setLogFile(output_prefix, "joinUnitigs");
+  //  Do one last check for disconnected unitigs.
 
-  joinUnitigs(unitigs, enableJoining);
-  placeContainsUsingBestOverlaps(unitigs);
+  setLogFile(output_prefix, "splitDiscontinuous3");
+  fprintf(logFile, "==> SPLIT DISCONTINUOUS #3\n");
+  splitDiscontinuousUnitigs(unitigs);
 
+  reportOverlapsUsed(unitigs, output_prefix, "splitDiscontinuous3");
   checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "joinUnitigs");
-  reportUnitigs(unitigs, output_prefix, "joinUnitigs");
-  evaluateMates(unitigs, output_prefix, "joinUnitigs");
-
-  //  Maybe another round of bubble popping as above.
+  evaluateMates(unitigs, output_prefix, "splitDiscontinuous3");
 
   //  OUTPUT
 

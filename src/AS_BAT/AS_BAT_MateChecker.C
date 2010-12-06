@@ -19,10 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MateChecker.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MateChecker.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+
+#include "AS_BAT_Datatypes.H"
+#include "AS_BAT_Unitig.H"
+
+#include "AS_BAT_Breaking.H"
 
 #include "AS_BAT_BestOverlapGraph.H"
-#include "AS_BAT_UnitigGraph.H"
 #include "AS_BAT_MateLocation.H"
 
 #include "AS_OVL_overlap.h"  //  For DEFAULT_MIN_OLAP_LEN
@@ -129,9 +133,9 @@ findPeakBad(int32 *badGraph,
 
 
 // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
-UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
-                                                    MateLocation *mates,
-                                                    int badMateBreakThreshold) {
+UnitigBreakPoints* computeMateCoverage(Unitig* tig,
+                                       MateLocation *mates,
+                                       int badMateBreakThreshold) {
   int tigLen = tig->getLength();
 
   vector<SeqInterval> *fwdBads = findPeakBad(mates->badFwd, tigLen, badMateBreakThreshold);
@@ -148,7 +152,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
   }
 
   if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS)) {
-    fprintf(logFile, "unitig %d with %d fwd and %d rev bads\n",
+    fprintf(logFile, "unitig %d with %lu fwd and %lu rev bads\n",
             tig->id(), fwdBads->size(), revBads->size());
     fprintf(logFile, "fwd:");
     for (uint32 i=0; i<fwdBads->size(); i++)
@@ -321,7 +325,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
           //  This is either a bug, or a bug fix.  The original version would decrement frgidx above
           //  (which, at that time was an iterator) but NOT update the copy of 'frag' or 'loc' (as
           //  we are doing below).  The next block below would then test with the old value of loc.
-#warning bug fix or bug
+
           frag = tig->ufpath[frgidx];
           loc = frag.position;
         }

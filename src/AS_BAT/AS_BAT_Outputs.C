@@ -19,14 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Outputs.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Outputs.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
+#include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_Instrumentation.H"
+
+#include "AS_BAT_Outputs.H"
 
 #include "AS_CGB_histo.h"
-
 #include "MultiAlignStore.h"
 
 
@@ -34,9 +36,9 @@ static const char *rcsid = "$Id: AS_BAT_Outputs.C,v 1.1 2010-11-24 01:03:31 bria
 
 //  Massage the Unitig into a MultiAlignT (also used in SplitChunks_CGW.c)
 void
-UnitigGraph::unitigToMA(MultiAlignT *ma,
-                        uint32       iumiid,
-                        Unitig      *utg) {
+unitigToMA(MultiAlignT *ma,
+           uint32       iumiid,
+           Unitig      *utg) {
 
   ma->maID                      = iumiid;
   ma->data.unitig_coverage_stat = utg->getCovStat();
@@ -73,10 +75,11 @@ UnitigGraph::unitigToMA(MultiAlignT *ma,
 
 
 void
-UnitigGraph::writeIUMtoFile(char   *fileprefix,
-                            char   *tigStorePath,
-                            uint32  frg_count_target,
-                            bool    isFinal) {
+writeIUMtoFile(UnitigVector  &unitigs,
+               char          *fileprefix,
+               char          *tigStorePath,
+               uint32         frg_count_target,
+               bool           isFinal) {
   uint32      utg_count              = 0;
   uint32      frg_count              = 0;
   uint32      prt_count              = 1;
@@ -86,7 +89,7 @@ UnitigGraph::writeIUMtoFile(char   *fileprefix,
   //  This code closely follows that in AS_CGB_unitigger.c::output_the_chunks()
 
   if (isFinal)
-    checkUnitigMembership();
+    checkUnitigMembership(unitigs);
 
   // Open up the initial output file
 
@@ -116,9 +119,8 @@ UnitigGraph::writeIUMtoFile(char   *fileprefix,
     assert(utg->getLength() > 0);
     assert(nf == utg->ufpath.size());
 
-    if ((0              <= frg_count_target) &&
-        (frg_count + nf >= frg_count_target) &&
-        (frg_count                      >  0)) {
+    if ((frg_count + nf >= frg_count_target) &&
+        (frg_count      >  0)) {
       fprintf(pari, "Partition %d has %d unitigs and %d fragments.\n",
               prt_count, utg_count, frg_count);
 
@@ -194,7 +196,8 @@ UnitigGraph::writeIUMtoFile(char   *fileprefix,
 //  For every unitig, report the best overlaps contained in the
 //  unitig, and all overlaps contained in the unitig.
 void
-UnitigGraph::writeOVLtoFile(char *fileprefix) {
+writeOVLtoFile(UnitigVector &unitigs,
+               char         *fileprefix) {
   char         filename[FILENAME_MAX] = {0};
   GenericMesg  pmesg;
   OverlapMesg  omesg;
@@ -292,7 +295,9 @@ UnitigGraph::writeOVLtoFile(char *fileprefix) {
 
 
 void
-UnitigGraph::writeCGAtoFile(char *outputprefix, float globalARate) {
+writeCGAtoFile(UnitigVector &unitigs,
+               char         *outputprefix,
+               float         globalARate) {
   char  filename[FILENAME_MAX] = {0};
   sprintf(filename, "%s.cga.0", outputprefix);
 
@@ -305,7 +310,6 @@ UnitigGraph::writeCGAtoFile(char *outputprefix, float globalARate) {
   }
 
   fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
-  fprintf(stats, "There were %d unitigs generated.\n", unitigs.size());
 
   const int nsample = 500;
   const int nbucket = 500;

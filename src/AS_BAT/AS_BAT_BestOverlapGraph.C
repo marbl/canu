@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -329,7 +329,7 @@ BestOverlapGraph::save(const char *prefix, double AS_UTG_ERROR_RATE, double AS_U
   FILE *file = fopen(name, "w");
   if (errno) {
     fprintf(logFile, "BestOverlapGraph-- Failed to open '%s' for writing: %s\n", name, strerror(errno));
-    fprintf(logFile, "BestOverlapGraph-- Will not save best overlap graph to cache.\n", strerror(errno));
+    fprintf(logFile, "BestOverlapGraph-- Will not save best overlap graph to cache.\n");
     return;
   }
 
@@ -381,7 +381,7 @@ BestOverlapGraph::load(const char *prefix, double AS_UTG_ERROR_RATE, double AS_U
   }
   if (versionNumber != ogVersionNumber) {
     fprintf(logFile, "BestOverlapGraph()-- File '%s' is version "F_U64", I can only read version "F_U64"; cannot load graph.\n",
-            versionNumber, ogVersionNumber, name);
+            name, versionNumber, ogVersionNumber);
     fclose(file);
     return(false);
   }

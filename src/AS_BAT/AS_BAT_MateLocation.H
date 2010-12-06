@@ -22,10 +22,9 @@
 #ifndef INCLUDE_AS_BAT_MATE_LOCATION
 #define INCLUDE_AS_BAT_MATE_LOCATION
 
-static const char *rcsid_INCLUDE_AS_BAT_MATELOCATION = "$Id: AS_BAT_MateLocation.H,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_MATELOCATION = "$Id: AS_BAT_MateLocation.H,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
 #include "AS_BAT_InsertSizes.H"
 
 
@@ -75,7 +74,7 @@ public:
 //
 class MateLocation {
 public:
-  MateLocation(Unitig *utg);
+  MateLocation(UnitigVector &unitigs, Unitig *utg);
   ~MateLocation();
             
   MateLocationEntry getById(uint32 fragId) {
@@ -114,7 +113,7 @@ public:
 
 private:
   void buildTable(void);
-  void buildHappinessGraphs(void);
+  void buildHappinessGraphs(UnitigVector &unitigs);
 
   void incrRange(int32 *graph, int32 val, int32 n, int32 m) {
     n = MAX(n, 0);

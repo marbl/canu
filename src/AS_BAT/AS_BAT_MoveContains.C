@@ -19,12 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
+#include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
-#include "AS_BAT_UnitigGraph.H"
 #include "AS_BAT_MateLocation.H"
 
+#include "AS_BAT_MoveContains.H"
 
 //  Make sure that contained fragments are in the same unitig
 //  as their container.  Due to sorting, contained fragments
@@ -37,7 +38,7 @@ static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.1 2010-11-24 01:03:31
 //
 //  So, our first pass is to move contained fragments around.
 //
-void UnitigGraph::moveContains(void) {
+void moveContains(UnitigVector &unitigs) {
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig  *thisUnitig = unitigs[ti];
@@ -46,7 +47,7 @@ void UnitigGraph::moveContains(void) {
         (thisUnitig->ufpath.size() < 2))
       continue;
 
-    MateLocation positions(thisUnitig);
+    MateLocation positions(unitigs, thisUnitig);
 
     ufNode               *frags         = new ufNode [thisUnitig->ufpath.size()];
     uint32                fragsLen      = 0;

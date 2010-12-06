@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogus.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+const char *mainid = "$Id: bogus.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -87,7 +87,7 @@ main(int argc, char **argv) {
   vector<genomeAlignment>    genome;
   map<string, int32>         IIDmap;
   vector<string>             IIDname;
-  int32                      IIDnext = 0;
+  uint32                     IIDnext = 0;
 
   //  Load all the matches into genomeAlignment.  Generate longestAlignment for each fragment.
   //  genomeAlignment::isLognest and genomeAlignment::isRepeat are computed later.

@@ -19,18 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Instrumentation.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Instrumentation.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
-#include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
+#include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
-
-#include "MultiAlignStore.h"
-
-
+#include "AS_BAT_SetParentAndHang.H"
+#include "AS_BAT_Outputs.H"
 
 void
-UnitigGraph::checkUnitigMembership(void) {
+checkUnitigMembership(UnitigVector &unitigs) {
   int nutg = 0;
   int nfrg = 0;
 
@@ -44,7 +41,7 @@ UnitigGraph::checkUnitigMembership(void) {
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig  *tig = unitigs[ti];
-    uint32   len = 0;
+    int32    len = 0;
 
     if (tig) {
       nutg++;
@@ -97,7 +94,7 @@ UnitigGraph::checkUnitigMembership(void) {
 //  For every unitig, report the best overlaps contained in the
 //  unitig, and all overlaps contained in the unitig.
 void
-UnitigGraph::reportOverlapsUsed(const char *prefix, const char *name) {
+reportOverlapsUsed(UnitigVector &unitigs, const char *prefix, const char *name) {
 
   if (logFileFlagSet(LOG_OVERLAPS_USED) == 0)
     return;
@@ -169,7 +166,7 @@ UnitigGraph::reportOverlapsUsed(const char *prefix, const char *name) {
 
 
 void
-UnitigGraph::reportUnitigs(const char *prefix, const char *name) {
+reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name) {
 
   if (logFileFlagSet(LOG_INTERMEDIATE_UNITIGS) == 0)
     return;
@@ -194,8 +191,8 @@ UnitigGraph::reportUnitigs(const char *prefix, const char *name) {
 
   //  Failing to do this results in consensus running about 40 times slower.  Three hours instead of
   //  five minutes.
-  setParentAndHang();
+  setParentAndHang(unitigs);
 
-  writeIUMtoFile(tigStorePath, tigStorePath, numFragsP, false);
+  writeIUMtoFile(unitigs, tigStorePath, tigStorePath, numFragsP, false);
 }
 

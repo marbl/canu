@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -40,6 +40,8 @@ using namespace std;
 #include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
 
+const uint32  noUnitig = 0xffffffff;
+
 ////////////////////////////////////////
 
 #define BADMATE_INTRA_STDDEV 3  //  Mates more than this stddev away in the same unitig are bad
@@ -53,13 +55,11 @@ using namespace std;
 class FragmentInfo;
 class BestOverlapGraph;
 class ChunkGraph;
-class UnitigGraph;
 class InsertSizes;
 
 extern FragmentInfo     *FI;
 extern BestOverlapGraph *OG;
 extern ChunkGraph       *CG;
-extern UnitigGraph      *UG;
 extern InsertSizes      *IS;
 
 ////////////////////////////////////////
@@ -266,7 +266,6 @@ private:
   uint32  *_numFragsInLib;
   uint32  *_numMatesInLib;
 };
-
 
 
 #endif

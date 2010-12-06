@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.2 2010-12-02 20:48:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -78,7 +78,7 @@ loadNucmer(char                      *nucmerName,
            vector<genomeAlignment>   &genome,
            map<string, int32>        &IIDmap,
            vector<string>            &IIDname,
-           int32                     &IIDnext,
+           uint32                    &IIDnext,
            FILE                      *outputFile) {
   FILE  *inFile = 0L;
   char   inLine[1024];
@@ -153,7 +153,7 @@ loadSnapper(char                      *snapperName,
             vector<genomeAlignment>   &genome,
             map<string, int32>        &IIDmap,
             vector<string>            &IIDname,
-            int32                     &IIDnext,
+            uint32                    &IIDnext,
             FILE                      *outputFile) {
   FILE  *inFile = 0L;
   char   inLine[1024];

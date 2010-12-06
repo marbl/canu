@@ -19,15 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapBubble.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+#ifndef INCLUDE_AS_BAT_MOVECONTAINS
+#define INCLUDE_AS_BAT_MOVECONTAINS
 
-#include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
-#include "AS_BAT_BestOverlapGraph.H"
+static const char *rcsid_INCLUDE_AS_BAT_MOVECONTAINS = "$Id: AS_BAT_MoveContains.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
 
-#include "MultiAlignStore.h"
+void moveContains(UnitigVector &unitigs);
 
-
-void
-UnitigGraph::popOverlapBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
-}    
+#endif  //  INCLUDE_AS_BAT_MOVECONTAINS

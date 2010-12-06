@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_FragmentInfo.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_FragmentInfo.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -196,7 +196,7 @@ FragmentInfo::load(const char *prefix) {
   }
   if (versionNumber != fiVersionNumber) {
     fprintf(logFile, "FragmentInfo()-- File '%s' is version "F_U64", I can only read version "F_U64"; cannot load.\n",
-            versionNumber, fiVersionNumber, name);
+            name, versionNumber, fiVersionNumber);
     fclose(file);
     return(false);
   }

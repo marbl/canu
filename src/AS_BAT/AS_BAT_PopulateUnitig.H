@@ -19,36 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef INCLUDE_AS_INSERT_SIZES
-#define INCLUDE_AS_INSERT_SIZES
+#ifndef INCLUDE_AS_BAT_POPULATEUNITIG
+#define INCLUDE_AS_BAT_POPULATEUNITIG
 
-static const char *rcsid_INCLUDE_AS_BAT_INSERTSIZES = "$Id: AS_BAT_InsertSizes.H,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_POPULATEUNITIG = "$Id: AS_BAT_PopulateUnitig.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
 
-#include "AS_BAT_Datatypes.H"
-#include "AS_BAT_Unitig.H"
+void populateUnitig(Unitig             *unitig,
+                    BestEdgeOverlap    *nextedge);
 
-class
-InsertSizes {
-public:
-  InsertSizes(UnitigVector &unitigs);
-  ~InsertSizes();
+void populateUnitig(UnitigVector         &unitigs,
+                    int32               fragID);
 
-  int32      mean(uint32 libIID)    { assert(libIID > 0); assert(libIID <= _numLibs); return(_mean[libIID]);          };
-  int32      stddev(uint32 libIID)  { assert(libIID > 0); assert(libIID <= _numLibs); return(_stddev[libIID]);        };
-  bool       valid(uint32 libIID)   { assert(libIID > 0); assert(libIID <= _numLibs); return(_samples[libIID] >= 10); };
-
-private:
-  void       accumulateLibraryStats(Unitig *utg);
-
-  uint32    _numLibs;
-
-  int32   **_dist;
-  int32    *_distLen;
-  int32    *_distMax;
-
-  int32    *_mean;
-  int32    *_stddev;
-  int32    *_samples;
-};
-
-#endif // INCLUDE_AS_INSERT_SIZES
+#endif  //  INCLUDE_AS_BAT_POPULATUNITIG

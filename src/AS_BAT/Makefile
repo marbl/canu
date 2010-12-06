@@ -41,7 +41,6 @@ BAT_SOURCES = AS_BAT_ArrivalRate.C \
               AS_BAT_MateLocation.C \
               AS_BAT_MoveContains.C \
               AS_BAT_Outputs.C \
-              AS_BAT_OverlapBubble.C \
               AS_BAT_PlaceContains.C \
               AS_BAT_PlaceFragUsingOverlaps.C \
               AS_BAT_PlaceZombies.C \
@@ -51,12 +50,11 @@ BAT_SOURCES = AS_BAT_ArrivalRate.C \
               AS_BAT_Unitig_AddAndPlaceFrag.C \
               AS_BAT_Unitig_AddFrag.C \
               AS_BAT_Unitig_PlaceFragUsingEdges.C \
-              AS_BAT_Unitig.C \
-              AS_BAT_UnitigGraph.C
+              AS_BAT_Unitig.C
 BAT_OBJECTS = $(BAT_SOURCES:.C=.o)
 
-SOURCES     = bogart.C bogus.C bogusness.C AS_BAT_bogusUtil.C $(BAT_SOURCES)
-OBJECTS     = bogart.o bogus.o bogusness.o AS_BAT_bogusUtil.o $(BAT_OBJECTS)
+SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C $(BAT_SOURCES)
+OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o $(BAT_OBJECTS)
 
 CXX_PROGS   = bogart bogus bogusness
 
@@ -67,5 +65,6 @@ all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
 bogart:              bogart.o       $(BAT_OBJECTS) libCA.a
+petey:               petey.o        $(BAT_OBJECTS) libCA.a
 bogus:               bogus.o                       libCA.a AS_BAT_bogusUtil.o
 bogusness:           bogusness.o                   libCA.a AS_BAT_bogusUtil.o

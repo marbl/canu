@@ -20,19 +20,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
+#include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
-#include "MultiAlignStore.h"
+#include "AS_BAT_PlaceZombies.H"
+
 
 //  Zombies are either caused by a bug (hope not) or by a contained fragment being contained in something that
 //  is eventually contained in the original fragment.  A contains B, B contains C....and C contains A.
 
 void
-UnitigGraph::placeZombies(void) {
+placeZombies(UnitigVector &unitigs) {
 
   fprintf(logFile, "==> SEARCHING FOR ZOMBIES\n");
 

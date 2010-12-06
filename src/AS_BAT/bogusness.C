@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogusness.C,v 1.2 2010-12-02 20:49:26 brianwalenz Exp $";
+const char *mainid = "$Id: bogusness.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -95,7 +95,7 @@ loadIdealUnitigs(char *idealName,
 
   fclose(F);
 
-  fprintf(stderr, "Loaded %d ideal unitigs.\n", ideal.size());
+  fprintf(stderr, "Loaded %lu ideal unitigs.\n", ideal.size());
 }
 
 
@@ -234,7 +234,7 @@ main(int argc, char **argv) {
   vector<genomeAlignment>    genome;
   map<string, int32>         IIDmap;
   vector<string>             IIDname;
-  int32                      IIDnext = 0;
+  uint32                     IIDnext = 0;
 
   if (nucmerName)
     loadNucmer(nucmerName, longest, genome, IIDmap, IIDname, IIDnext, NULL);

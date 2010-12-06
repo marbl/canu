@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -214,7 +214,7 @@ void Unitig::reverseComplement(bool doSort) {
   } else {
     std::reverse(ufpath.begin(), ufpath.end());
 
-    for (int fi=0; fi<ufpath.size(); fi++)
+    for (uint32 fi=0; fi<ufpath.size(); fi++)
       _pathPosition[ufpath[fi].ident] = fi;
   }
 }
@@ -284,6 +284,6 @@ Unitig::sort(void) {
 
   qsort( &(ufpath.front()), getNumFrags(), sizeof(ufNode), &ufNodeCmp );
 
-  for (int fi=0; fi<ufpath.size(); fi++)
+  for (uint32 fi=0; fi<ufpath.size(); fi++)
     _pathPosition[ufpath[fi].ident] = fi;
 }

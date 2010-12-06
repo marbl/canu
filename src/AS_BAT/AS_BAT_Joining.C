@@ -19,14 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Joining.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Joining.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
+#include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
-#include "MultiAlignStore.h"
-
+#include "AS_BAT_Joining.H"
 
 class joinEntry {
 public:
@@ -62,9 +61,11 @@ public:
 
 
 //  Examine the first (few?) fragments of a unitig, evaluate if they indicate a join should be made.
+static
 void
-UnitigGraph::joinUnitigs_examineFirst(Unitig *fr,
-                                      vector<joinEntry> &joins) {
+joinUnitigs_examineFirst(UnitigVector &unitigs,
+                         Unitig *fr,
+                         vector<joinEntry> &joins) {
   ufNode          *frg         = &fr->ufpath[0];
   bool             fragForward = (frg->position.bgn < frg->position.end);
   BestEdgeOverlap *bestEdge    = OG->getBestEdgeOverlap(frg->ident, (fragForward == false));
@@ -118,9 +119,11 @@ UnitigGraph::joinUnitigs_examineFirst(Unitig *fr,
 
 //  Examine the last (few?) fragments of a unitig, evaluate if they indicate a join should be made.
 //  This is complicated by wanting the last non-contained fragment.
+static
 void
-UnitigGraph::joinUnitigs_examineLast(Unitig *fr,
-                                     vector<joinEntry> &joins) {
+joinUnitigs_examineLast(UnitigVector &unitigs,
+                        Unitig *fr,
+                        vector<joinEntry> &joins) {
   ufNode          *frg         = &fr->ufpath[fr->ufpath.size()-1];
   bool             fragForward = (frg->position.bgn < frg->position.end);
   BestEdgeOverlap *bestEdge    = OG->getBestEdgeOverlap(frg->ident, (fragForward == true));
@@ -170,10 +173,9 @@ UnitigGraph::joinUnitigs_examineLast(Unitig *fr,
 }
 
 
-
-
+static
 bool
-UnitigGraph::joinUnitigs_confirmJoin(joinEntry *join) {
+joinUnitigs_confirmJoin(UnitigVector &unitigs, joinEntry *join) {
   uint32    frUnitigID = Unitig::fragIn(join->frFragID);
   uint32    toUnitigID = Unitig::fragIn(join->toFragID);
 
@@ -254,8 +256,9 @@ UnitigGraph::joinUnitigs_confirmJoin(joinEntry *join) {
 //  associate aFrg to some fragment in tUtg.  If no such edge exists, the function
 //  returns false.
 //
+static
 bool
-UnitigGraph::findEdgeToUnitig(ufNode *aFrg, BestEdgeOverlap &a5, BestEdgeOverlap &a3,
+findEdgeToUnitig(ufNode *aFrg, BestEdgeOverlap &a5, BestEdgeOverlap &a3,
                               Unitig *tUtg) {
   return(false);
 }
@@ -267,8 +270,9 @@ UnitigGraph::findEdgeToUnitig(ufNode *aFrg, BestEdgeOverlap &a5, BestEdgeOverlap
 //  For example, if there is a best edge from aFrg 3' to bFrg 5', this will return that edge in a3,
 //  and also create the symmetric edge in b5.
 //
+static
 bool
-UnitigGraph::findEdges(ufNode *aFrg, BestEdgeOverlap &a5, BestEdgeOverlap &a3,
+findEdges(ufNode *aFrg, BestEdgeOverlap &a5, BestEdgeOverlap &a3,
                        ufNode *bFrg, BestEdgeOverlap &b5, BestEdgeOverlap &b3) {
 
   if (OG->isContained(aFrg->ident) ||
@@ -394,7 +398,7 @@ UnitigGraph::findEdges(ufNode *aFrg, BestEdgeOverlap &a5, BestEdgeOverlap &a3,
       a5.set(bFrg->ident, true, -b3.ahang(), -b3.bhang());
 
   } else {
-    fprintf(stderr, "UnitigGraph::findEdges()-- Logically impossible!\n");
+    fprintf(stderr, "findEdges()-- Logically impossible!\n");
     assert(0);
   }
 
@@ -416,8 +420,9 @@ UnitigGraph::findEdges(ufNode *aFrg, BestEdgeOverlap &a5, BestEdgeOverlap &a3,
 //  This method DOES NOT WORK due to ties, imprecise lengths of alignments, sorting and reverse
 //  complementing.
 //
+static
 void
-UnitigGraph::joinUnitigs_merge(joinEntry *join) {
+joinUnitigs_merge(UnitigVector &unitigs, joinEntry *join) {
   uint32    frUnitigID = Unitig::fragIn(join->frFragID);
   uint32    toUnitigID = Unitig::fragIn(join->toFragID);
 
@@ -537,9 +542,9 @@ UnitigGraph::joinUnitigs_merge(joinEntry *join) {
 
 
 
-
+static
 void
-UnitigGraph::joinUnitigs_append(joinEntry *join) {
+joinUnitigs_append(UnitigVector &unitigs, joinEntry *join) {
   uint32    frUnitigID = Unitig::fragIn(join->frFragID);
   uint32    toUnitigID = Unitig::fragIn(join->toFragID);
 
@@ -605,7 +610,7 @@ UnitigGraph::joinUnitigs_append(joinEntry *join) {
 
 
 void
-UnitigGraph::joinUnitigs(bool enableJoining) {
+joinUnitigs(UnitigVector &unitigs, bool enableJoining) {
 
   if (enableJoining == false)
     return;
@@ -629,8 +634,8 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       //  Ain't no real unitig here, mister!
       continue;
 
-    joinUnitigs_examineFirst(fr, joins);
-    joinUnitigs_examineLast(fr, joins);
+    joinUnitigs_examineFirst(unitigs, fr, joins);
+    joinUnitigs_examineLast(unitigs, fr, joins);
   }  //  Over all unitigs.
 
 
@@ -641,12 +646,12 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
   for (uint32 j=0; j<joins.size(); j++) {
     joinEntry  *join = &joins[j];
 
-    if (joinUnitigs_confirmJoin(join) == false)
+    if (joinUnitigs_confirmJoin(unitigs, join) == false)
       //  Join didn't pass muster.  Maybe one unitig already joined to something, maybe
       //  overlaps didn't agree.
       continue;
 
-    joinUnitigs_append(join);
+    joinUnitigs_append(unitigs, join);
     //joinUnitigs_merge(join);
   }
 }

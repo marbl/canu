@@ -19,12 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.2 2010-12-05 00:05:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
-#include "AS_BAT_BestOverlapGraph.H"
-#include "AS_BAT_UnitigGraph.H"
 #include "AS_BAT_Unitig.H"
+#include "AS_BAT_BestOverlapGraph.H"
+
+#include "AS_BAT_PlaceFragUsingOverlaps.H"
 
 #include "AS_UTL_intervalList.H"
 
@@ -40,10 +41,11 @@ static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.2 2010-12-0
 //  Returns true if any placement is found, false otherwise.
 //
 bool
-UnitigGraph::placeFragUsingOverlaps(uint32 fid,
-                                    OverlapStore *ovlStoreUniq,
-                                    OverlapStore *ovlStoreRept,
-                                    vector<overlapPlacement> &placements) {
+placeFragUsingOverlaps(UnitigVector &unitigs,
+                       uint32        fid,
+                       OverlapStore *ovlStoreUniq,
+                       OverlapStore *ovlStoreRept,
+                       vector<overlapPlacement> &placements) {
 
   assert(fid > 0);
   assert(fid <= FI->numFragments());

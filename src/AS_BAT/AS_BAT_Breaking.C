@@ -19,31 +19,30 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
-#include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
+#include "AS_BAT_Breaking.H"
+
 #include "AS_BAT_BestOverlapGraph.H"
-
-#include "MultiAlignStore.h"
-
 
 //  The original version was filtering breakpoints.  It was accepting any break point with more than
 //  MIN_BREAK_FRAGS fragments and longer than MIN_BREAK_LENGTH.  The shorter ones in between two
 //  large break points were (I suspect) analyzed to see if many short break points were piling up in
 //  one region.  If so, one was selected and accepted into the list of final break points.
 
+static const int MIN_BREAK_FRAGS = 1;
+static const int MIN_BREAK_LENGTH = 500;
 
 
 void
-UnitigGraph::filterBreakPoints(Unitig *tig,
+filterBreakPoints(Unitig *tig,
                                UnitigBreakPoints &breaks) {
 
   UnitigBreakPoints  newBreaks;
 
   for (uint32 i=0; i<breaks.size(); i++)
-    if ((breaks[i].inFrags > UnitigGraph::MIN_BREAK_FRAGS) &&
-        (breaks[i].inSize  > UnitigGraph::MIN_BREAK_LENGTH))
+    if ((breaks[i].inFrags > MIN_BREAK_FRAGS) &&
+        (breaks[i].inSize  > MIN_BREAK_LENGTH))
       newBreaks.push_back(breaks[i]);
 
   breaks = newBreaks;
@@ -53,7 +52,7 @@ UnitigGraph::filterBreakPoints(Unitig *tig,
 
 
 UnitigVector *
-UnitigGraph::breakUnitigAt(Unitig *tig,
+breakUnitigAt(Unitig *tig,
                            UnitigBreakPoints &breaks) {
 
   if (breaks.empty())

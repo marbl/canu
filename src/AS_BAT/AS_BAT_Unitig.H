@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -46,13 +46,9 @@ struct ufNode {
   uint32           containment_depth;
 };
 
-typedef std::vector<ufNode>         ufPath;
 
 
-struct BestOverlapGraph;
-
-
-struct Unitig{
+struct Unitig {
   Unitig(bool report=false);
   ~Unitig(void);
 
@@ -117,7 +113,7 @@ struct Unitig{
   };
 
   // Public Member Variables
-  ufPath   ufpath;
+  vector<ufNode>         ufpath;
 
 private:
   float   _avgRho;
@@ -133,8 +129,6 @@ private:
 
 
 typedef std::vector<Unitig*> UnitigVector;
-typedef UnitigVector::iterator UnitigsIter;
-typedef UnitigVector::const_iterator UnitigsConstIter;
 
 
 #endif  //  INCLUDE_AS_BAT_UNITIG

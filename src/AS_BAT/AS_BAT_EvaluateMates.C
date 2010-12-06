@@ -19,15 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_EvaluateMates.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_EvaluateMates.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
-#include "AS_BAT_BestOverlapGraph.H"
-#include "AS_BAT_UnitigGraph.H"
+#include "AS_BAT_Unitig.H"
 #include "AS_BAT_MateLocation.H"
 
-
 void
-UnitigGraph::evaluateMates(const char *output_prefix, const char *name) {
+evaluateMates(UnitigVector &unitigs, const char *output_prefix, const char *name) {
 
   //  [0] -- BOTH frag and mate are dovetail
   //  [1] -- ONE frag dovetail, ONE frag contained
@@ -55,7 +53,7 @@ UnitigGraph::evaluateMates(const char *output_prefix, const char *name) {
 
   if (IS)
     delete IS;
-  IS = new InsertSizes();
+  IS = new InsertSizes(unitigs);
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig  *thisUtg = unitigs[ti];
@@ -64,7 +62,7 @@ UnitigGraph::evaluateMates(const char *output_prefix, const char *name) {
         (thisUtg->ufpath.size() < 2))
       continue;
 
-    MateLocation          positions(thisUtg);
+    MateLocation          positions(unitigs, thisUtg);
 
     //positions.dumpHappiness(output_prefix, name);
 

@@ -19,18 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MateBubble.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MateBubble.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
-#include "AS_BAT_UnitigGraph.H"
+#include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
 #include "MultiAlignStore.h"
 
 
 void
-UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq,
-                            OverlapStore *ovlStoreRept) {
+popMateBubbles(UnitigVector &unitigs,
+               OverlapStore *ovlStoreUniq,
+               OverlapStore *ovlStoreRept) {
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 
@@ -50,7 +51,7 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq,
   //
   //  At present, this is exploratory only.
 
-  for (int  ti=0; ti<unitigs.size(); ti++) {
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig        *tig = unitigs[ti];
 
     if ((tig == NULL) ||
@@ -72,12 +73,12 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq,
     uint32         lkgLen = 0;
     uint32         lkgExt = 0;
 
-    for (int fi=0; fi<tig->ufpath.size(); fi++) {
+    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode *frg = &tig->ufpath[fi];
       int32         frgID = frg->ident;
       int32         matID = FI->mateIID(frgID);
 
-      int32         mtigID = 0;
+      uint32        mtigID = 0;
       Unitig       *mtig   = 0L;
 
       if (matID == 0)
@@ -106,13 +107,13 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq,
 
     sort(lkg, lkg+lkgLen);
 
-    int32  last = lkg[0];
-    int32  lcnt = 1;
+    uint32  last = lkg[0];
+    uint32  lcnt = 1;
 
     for (uint32 i=1; i<lkgLen; i++) {
       if (last != lkg[i]) {
         if ((lcnt > 3))
-          fprintf(logFile, "popMateBubble()-- tig %d len %d might pop bubble in tig %d (%d mates in there out of %d external mates)\n",
+          fprintf(logFile, "popMateBubble()-- tig %d len %d might pop bubble in tig %u (%u mates in there out of %d external mates)\n",
                   tig->id(), tig->getLength(), last, lcnt, lkgExt);
         last = lkg[i];
         lcnt = 0;
@@ -122,7 +123,7 @@ UnitigGraph::popMateBubbles(OverlapStore *ovlStoreUniq,
     }
 
     if ((lcnt > 3))
-      fprintf(logFile, "popMateBubble()-- tig %d len %d might pop bubble in tig %d (%d mates in there out of %d external mates)\n",
+      fprintf(logFile, "popMateBubble()-- tig %d len %d might pop bubble in tig %u (%u mates in there out of %d external mates)\n",
               tig->id(), tig->getLength(), last, lcnt, lkgExt);
 
     delete [] lkg;
