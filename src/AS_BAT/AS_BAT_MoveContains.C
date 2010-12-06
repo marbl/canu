@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.3 2010-12-06 18:59:00 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -136,7 +136,8 @@ void moveContains(UnitigVector &unitigs) {
             uint32 ft = fi + 1;
 
 #warning 2x BUGS IN COMPARISON HERE
-
+#warning BROKEN.  BROKEN.  BROKEN.  BROKEN.  BROKEN.
+#if 0
             //  Skip all the contains.
             while ((ft < thisUnitig->ufpath.size()) &&
                    (OG->isContained(thisUnitig->ufpath[ft].ident) == true) &&
@@ -170,6 +171,7 @@ void moveContains(UnitigVector &unitigs) {
             } while ((hasOverlap == false) &&
                      (ft > 0) &&
                      (MIN(frg->position.bgn, frg->position.end) < MAX(thisUnitig->ufpath[ft].position.bgn, thisUnitig->ufpath[ft].position.end)));
+#endif
           }
         }  //  end of hasOverlap
 

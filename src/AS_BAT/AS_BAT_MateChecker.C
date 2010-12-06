@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MateChecker.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MateChecker.C,v 1.3 2010-12-06 18:59:00 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -384,6 +384,9 @@ UnitigBreakPoints* computeMateCoverage(Unitig* tig,
             //  in the next frag; Break after this
             //  frag.
             //
+
+#warning BROKEN.  BROKEN.  BROKEN.  BROKEN.  BROKEN.
+#if 0
             if ((NULL_SEQ_LOC == overlap) ||
                 (diff < DEFAULT_MIN_OLAP_LEN) ||
                 (OG->isContained(frag.ident) && !OG->containHaveEdgeTo(frag.ident, tig->ufpath[np].ident))) {
@@ -405,6 +408,7 @@ UnitigBreakPoints* computeMateCoverage(Unitig* tig,
                 fprintf(logFile,"Might make frg %d singleton, end %d size %u pos %d,%d\n",
                         frag.ident, frag3p, (uint32)breaks->size(), loc.bgn, loc.end);
             }
+#endif
           }
         }
       }

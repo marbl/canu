@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id: AS_BAT_BestOverlapGraph.H,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id: AS_BAT_BestOverlapGraph.H,v 1.2 2010-12-06 18:59:00 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -57,33 +57,6 @@ struct BestOverlapGraph {
   // Given a containee, returns pointer to BestContainment record
   BestContainment *getBestContainer(const uint32 fragid) {
     return((isContained(fragid)) ? &_bestC[fragid] : NULL);
-  };
-
-  bool containHaveEdgeTo(uint32 contain, uint32 otherRead) {
-    BestContainment  *c = &_bestC[contain];
-    bool              r = false;
-
-    if ((c->olapsLen == 0) || (c->olaps == NULL))
-      return(r);
-
-    if (c->isContained == false)
-      return(r);
-
-    if (c->olapsLen < 16) {
-      for (uint32 i=0; i<c->olapsLen; i++)
-        if (c->olaps[i] == otherRead) {
-          r = true;
-          break;
-        }
-    } else {
-      if (c->olapsSorted == false) {
-        std::sort(c->olaps, c->olaps + c->olapsLen);
-        c->olapsSorted = true;
-      }
-      r = std::binary_search(c->olaps, c->olaps + c->olapsLen, otherRead);
-    }
-
-    return(r);
   };
 
   // Graph building methods
@@ -170,8 +143,9 @@ struct BestOverlapGraph {
     //
     //  (Well, 12 == AS_OVS_ERRBITS)
 
-    if (isOverlapBadQuality(olap))
-      return(0);
+    //  Checked already!
+    //if (isOverlapBadQuality(olap))
+    //  return(0);
 
     uint64  leng = 0;
     uint64  corr = (AS_OVS_MAX_ERATE - olap.dat.ovl.corr_erate);

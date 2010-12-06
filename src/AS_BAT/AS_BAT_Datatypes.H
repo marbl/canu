@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.3 2010-12-06 18:59:00 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -213,20 +213,13 @@ public:
   BestContainment() {
   };
   ~BestContainment() {
-    delete [] olaps;
   };
 
   uint32  container:31;
   uint32  isContained:1;  //  See comments in AS_BAT_Unitig_PlaceFragmentsUsingEdges.cc
-
-  int32   a_hang;
-  int32   b_hang;
-
   uint32  sameOrientation:1;
-
-  uint32  olapsSorted:1;
-  uint32  olapsLen:29;
-  uint32 *olaps;
+  int32   a_hang:15;
+  int32   b_hang:15;
 };
 
 

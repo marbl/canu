@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.4 2010-12-06 18:59:00 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -138,9 +138,6 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
       best.a_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.b_hang : -ovl[i].dat.ovl.a_hang;
       best.b_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.a_hang : -ovl[i].dat.ovl.b_hang;
       best.sameOrientation = ovl[i].dat.ovl.flipped ? false : true;
-      best.olapsSorted     = false;
-      best.olapsLen        = 0;
-      best.olaps           = NULL;
 
       if (utg->placeFrag(frag, &best)) {
         ovlPlace[i].frgID       = frag.ident;
@@ -171,9 +168,6 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
       best.a_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.b_hang : -ovl[i].dat.ovl.a_hang;
       best.b_hang          = ovl[i].dat.ovl.flipped ? ovl[i].dat.ovl.a_hang : -ovl[i].dat.ovl.b_hang;
       best.sameOrientation = ovl[i].dat.ovl.flipped ? false : true;
-      best.olapsSorted     = false;
-      best.olapsLen        = 0;
-      best.olaps           = NULL;
 
       if (utg->placeFrag(frag, &best)) {
         ovlPlace[i].frgID       = frag.ident;
