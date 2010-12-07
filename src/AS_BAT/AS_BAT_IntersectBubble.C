@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.4 2010-12-07 00:59:29 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -57,6 +57,19 @@ static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.3 2010-12-06 08:03
 //
 //  lFrg and rFrg are UPDATED with the position of those fragments in the larger unitig.
 //
+
+
+////////////////////////////////////////
+//
+//  This is suboptimal.  It is possible to have two bubbles, A and B, that both really belong in
+//  larger unitig C, but A -> B -> C.  If A is merged into B first, then there is a chance that
+//  we'll lose the edges at the ends of B that place it in C (via ties; two fragments end at exaclty
+//  the end of unitig B).
+//
+////////////////////////////////////////
+
+
+
 static
 bool
 validateBubbleWithEdges(UnitigVector &unitigs,
@@ -430,115 +443,198 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
 
 
 
+static
+bool
+popIntersectionBubble(UnitigVector &unitigs, 
+                      Unitig       *shortTig,
+                      OverlapStore *ovlStoreUniq,
+                      OverlapStore *ovlStoreRept) {
+
+  //  Search for edges.  For a bubble to exist, either the first or last non-contained fragment
+  //  must have an edge to the 'merge' unitig it is a bubble of.  Ideally, both the first and
+  //  last will have edges to the same unitig, but we'll test and allow only a single edge.
+
+  uint32  fIdx = 0;
+  uint32  lIdx = shortTig->ufpath.size() - 1;
+
+  //  Zombie fragments (circular containments) violate this constraint.  So we just ignore it for
+  //  singleton unitigs, and completely skip searching for the last non-contained in that case.
+  if (shortTig->ufpath.size() > 1) {
+    assert(OG->isContained(shortTig->ufpath[fIdx].ident) == false);
+
+    while (OG->isContained(shortTig->ufpath[lIdx].ident) == true)
+      lIdx--;
+  }
+
+  ufNode  fFrg = shortTig->ufpath[fIdx];  //  NOTE:  A COPY, not a pointer or reference.
+  ufNode  lFrg = shortTig->ufpath[lIdx];  //         These get modified.
+
+  //  Grab the best edges outside the unitig.  If the first fragment is reversed, we want
+  //  to grab the edge off of the 3' end; opposite for the last fragment.
+
+  bool             f3p   = (isReverse(fFrg.position) == true);
+  BestEdgeOverlap *fEdge = OG->getBestEdgeOverlap(fFrg.ident, f3p);
+
+  bool             l3p   = (isReverse(lFrg.position) == false);
+  BestEdgeOverlap *lEdge = OG->getBestEdgeOverlap(lFrg.ident, l3p);
+
+  //  Just make sure...those edges should NOT to be to ourself.  But if they are, we'll just ignore
+  //  them -- these can be from circular unitigs (in which case we can't really merge ourself into
+  //  ourself at the correct spot) OR from a bubble that was already merged and just happened to tie
+  //  for a fragment at the end.
+  //
+  //  aaaaaaaaaa
+  //      aaaaaaaaaaa
+  //    bbbbbbbbb
+  //       bbbbbbbbbb
+  //
+  //  The second b fragment now becomes the last non-contained fragment in the merged unitig, and it has
+  //  a best edge to ourself.
+  //
+  //  We are no longer using fEdge or rEdge to place these fragments in the larger unitig; we're
+  //  using all overlaps.  Just to be sure, we'll get rid of them.
+  //
+  uint32  fUtg = Unitig::fragIn(fEdge->fragId());
+  uint32  lUtg = Unitig::fragIn(lEdge->fragId());
+
+  if (fUtg == shortTig->id()) {
+    fEdge = NULL;
+    fUtg  = 0;
+  }
+  if (lUtg == shortTig->id()) {
+    lEdge = NULL;
+    lUtg  = 0;
+  }
+
+  if ((fUtg != 0) && (lUtg != 0))
+    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
+            shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
+            fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5),
+            lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
+  else if (fUtg != 0)
+    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
+            shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
+            fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5));
+  else if (lUtg != 0)
+    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
+            shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
+            lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
+  else {
+    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  NO EDGES, no bubble.\n",
+            shortTig->id(), shortTig->getLength(), shortTig->ufpath.size());
+    return(false);
+  }
+
+  //  The only interesting case here is if we have both edges and they point to different unitigs.  We could try
+  //  placing in both, but for now, we just give up.
+
+  if ((fUtg != 0) && (lUtg != 0) && (fUtg != lUtg)) {
+    fprintf(logFile, "popBubbles()-- bubble unitig %d has edges to both unitig %d and unitig %d, cannot place (yet)\n",
+            shortTig->id(), fUtg, lUtg);
+    return(true);
+  }
+
+  Unitig *mergeTig = (fUtg == 0) ? unitigs[lUtg] : unitigs[fUtg];
+
+  if (validateBubbleWithEdges(unitigs, shortTig, fFrg, fEdge, lFrg, lEdge, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
+    fprintf(logFile, "popBubbles()-- failed to validate edges for bubble unitig %d into larger unitig %d\n",
+            shortTig->id(), mergeTig->id());
+    return(false);
+  }
+
+  if (validateBubbleFragmentsWithOverlaps(unitigs, shortTig, fFrg, lFrg, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
+    fprintf(logFile, "popBubbles()-- failed to validate fragments for bubble unitig %d into larger unitig %d\n",
+            shortTig->id(), mergeTig->id());
+    return(false);
+  }
+
+  //  Merged successfully!
+
+  unitigs[shortTig->id()] = NULL;
+  delete shortTig;
+
+  return(true);
+}
 
 
 void
 popIntersectionBubbles(UnitigVector &unitigs, OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
-  uint32      ovlMax = MAX_OVERLAPS_PER_FRAG;
-  uint32      ovlLen = 0;
-  OVSoverlap *ovl    = new OVSoverlap [ovlMax];
-  uint32     *ovlCnt = new uint32     [AS_READ_MAX_NORMAL_LEN];
+  uint32          nFrgToMerge      = 1;
+  uint32          nFrgToMergeMax   = 500;
 
-  uint32      nBubblePopped    = 0;
-  uint32      nBubbleTooBig    = 0;
-  uint32      nBubbleConflict  = 0;
-  uint32      nBubbleNoEdge    = 0;
+  uint32          nBubblePopped    = 0;
 
-  fprintf(logFile, "==> SEARCHING FOR BUBBLES\n");
+  while (1) {
+    bool            keepPopping      = false;
+    uint32          nBubbleFixed     = 1;
+    vector<uint32>  tryAgain;
 
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig        *shortTig = unitigs[ti];
-    Unitig        *mergeTig = NULL;
+    //  Step 1:  Iterate over all possible merge sizes, popping whatever.
 
-    if (shortTig == NULL)
-      //  Ain't no tig here!
-      continue;
+    for (nFrgToMerge=1; nFrgToMerge < nFrgToMergeMax; nFrgToMerge++) {
+      fprintf(logFile, "==> SEARCHING FOR BUBBLES of size %u fragments.\n", nFrgToMerge);
 
-    //  Search for edges.  For a bubble to exist, either the first or last non-contained fragment
-    //  must have an edge to the 'merge' unitig it is a bubble of.  Ideally, both the first and
-    //  last will have edges to the same unitig, but we'll test and allow only a single edge.
+      for (uint32 ti=0; ti<unitigs.size(); ti++) {
+        Unitig        *shortTig = unitigs[ti];
 
-    uint32  fIdx = 0;
-    uint32  lIdx = shortTig->ufpath.size() - 1;
+        if (shortTig == NULL)
+          //  Ain't no tig here!
+          continue;
 
-    //  Zombie fragments (circular containments) violate this constraint.  So we just ignore it for
-    //  singleton unitigs, and completely skip searching for the last non-contained in that case.
-    if (shortTig->ufpath.size() > 1) {
-      assert(OG->isContained(shortTig->ufpath[fIdx].ident) == false);
+        if (shortTig->ufpath.size() != nFrgToMerge)
+          //  Wrong size.  We've either done it, or will do it, or it's just too big.
+          continue;
 
-      while (OG->isContained(shortTig->ufpath[lIdx].ident) == true)
-        lIdx--;
+        //  popIntersectionBubble() returns false if the shortTig cannot be merged.  It returns true
+        //  if the shortTig was merged, or might be merged after some other merge.
+        //
+        if (popIntersectionBubble(unitigs, shortTig, ovlStoreUniq, ovlStoreRept)) {
+          if (unitigs[ti]) {
+            tryAgain.push_back(ti);
+          } else {
+            nBubblePopped++;
+            keepPopping = true;
+          }
+        }
+      }  //  Over all unitigs
+    }  //  Over all merge sizes
+
+    //  Step 2:  If nothing changed, get out of here.
+
+    if (keepPopping == false)
+      break;
+
+    //  Step 3: Attempt to merge bubbles that were across two unitigs.  Regardless of the order we
+    //  merge in, it is possible for some bubble unitig B to have edges to A (a large unitig) and C
+    //  (another bubble).  If B is examined before C, B will not be merged.  This is noted above
+    //  ('tryAgain' will store B), and here we see if C was merged into A, thus allowing B to merge.
+
+    while (nBubbleFixed > 0) {
+      nBubbleFixed = 0;
+
+      fprintf(logFile, "==> SEARCHING FOR BUBBLES that spanned unitigs.\n");
+
+      for (uint32 ta=0; ta<tryAgain.size(); ta++) {
+        Unitig        *shortTig = unitigs[tryAgain[ta]];
+
+        if (shortTig == NULL)
+          continue;
+
+        if (popIntersectionBubble(unitigs, shortTig, ovlStoreUniq, ovlStoreRept)) {
+          if (unitigs[tryAgain[ta]] == NULL) {
+            nBubblePopped++;
+            nBubbleFixed++;
+            keepPopping = true;
+          }
+        }
+      }
     }
 
-    ufNode  fFrg = shortTig->ufpath[fIdx];  //  NOTE:  A COPY, not a pointer or reference.
-    ufNode  lFrg = shortTig->ufpath[lIdx];  //         These get modified.
+    //  Step 4:  If nothing changed, get out of here.
 
-    //  Grab the best edges outside the unitig.  If the first fragment is reversed, we want
-    //  to grab the edge off of the 3' end; opposite for the last fragment.
+    if (keepPopping == false)
+      break;
+  }  //  Until we break.
 
-    bool             f3p   = (isReverse(fFrg.position) == true);
-    BestEdgeOverlap *fEdge = OG->getBestEdgeOverlap(fFrg.ident, f3p);
-
-    bool             l3p   = (isReverse(lFrg.position) == false);
-    BestEdgeOverlap *lEdge = OG->getBestEdgeOverlap(lFrg.ident, l3p);
-
-    //  Just make sure...those edges should NOT to be to ourself.
-
-    uint32  fUtg = Unitig::fragIn(fEdge->fragId());
-    uint32  lUtg = Unitig::fragIn(lEdge->fragId());
-
-    if ((fUtg == shortTig->id()) ||
-        (lUtg == shortTig->id()))
-      //  Must have been a circular unitig.  We'll split it later.
-      continue;
-
-    if ((fUtg == 0) &&
-        (lUtg == 0))
-      //  No edges, no bubble.
-      continue;
-
-    if ((fUtg != 0) && (lUtg != 0))
-      fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
-              shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
-              fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5),
-              lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
-    else if (fUtg != 0)
-      fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
-              shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
-              fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5));
-    else if (lUtg != 0)
-      fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
-              shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
-              lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
-    else
-      assert(0);
-
-    //  The only interesting case here is if we have both edges and they point to different unitigs.  We could try
-    //  placing in both, but for now, we just give up.
-
-    if ((fUtg != 0) && (lUtg != 0) && (fUtg != lUtg)) {
-      fprintf(logFile, "popBubbles()-- bubble unitig %d has edges to both unitig %d and unitig %d, cannot place (yet)\n",
-              shortTig->id(), fUtg, lUtg);
-      continue;
-    }
-
-    mergeTig = (fUtg == 0) ? unitigs[lUtg] : unitigs[fUtg];
-
-    if (validateBubbleWithEdges(unitigs, shortTig, fFrg, fEdge, lFrg, lEdge, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
-      fprintf(logFile, "popBubbles()-- failed to validate edges for bubble unitig %d into larger unitig %d\n",
-              shortTig->id(), mergeTig->id());
-      continue;
-    }
-
-    if (validateBubbleFragmentsWithOverlaps(unitigs, shortTig, fFrg, lFrg, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
-      fprintf(logFile, "popBubbles()-- failed to validate fragments for bubble unitig %d into larger unitig %d\n",
-              shortTig->id(), mergeTig->id());
-      continue;
-    }
-
-    //  Merged successfully!
-
-    delete shortTig;
-    unitigs[ti] = shortTig = NULL;
-  }
+  fprintf(logFile, "Popped %u bubbles.\n", nBubblePopped);
 }
