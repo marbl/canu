@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.4 2010-12-07 01:22:57 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -110,6 +110,8 @@ loadNucmer(char                      *nucmerName,
       assert(IIDnext == IIDname.size());
     }
 
+    //  Unlike snapper, these are already in base-based coords.
+
     A.frgIID    = IIDmap[ID];
     A.frgBgn    = W(3);
     A.frgEnd    = W(4);
@@ -178,10 +180,12 @@ loadSnapper(char                      *snapperName,
       assert(IIDnext == IIDname.size());
     }
 
+    //  "+1" -- Convert from space-based coords to base-based coords.
+
     A.frgIID    = IIDmap[ID];
-    A.frgBgn    = W(3);
+    A.frgBgn    = W(3) + 1;
     A.frgEnd    = W(4);
-    A.genBgn    = W(6);
+    A.genBgn    = W(6) + 1;
     A.genEnd    = W(7);
     A.isReverse = false;
     A.isSpanned = false;
@@ -189,7 +193,7 @@ loadSnapper(char                      *snapperName,
 
     if (A.frgBgn > A.frgEnd) {
       A.frgBgn    = W(4);
-      A.frgEnd    = W(3);
+      A.frgEnd    = W(3) + 1;
       A.isReverse = true;
     }
 
