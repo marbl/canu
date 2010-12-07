@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.5 2010-12-07 00:26:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.6 2010-12-07 01:22:15 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -237,6 +237,8 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
   }
 
   if (nFragmentsNotPlaced > 0)
+    //  For whatever reason, the fragment placement routines failed to place a fragment using an overlap.
+    //  This shouldn't happen, but if it does, it is hardly fatal.
     if (logFileFlagSet(LOG_PLACE_FRAG))
       fprintf(logFile, "placeFragUsingOverlaps()-- WARNING: Failed to place %d fragments\n", nFragmentsNotPlaced);
 
