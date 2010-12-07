@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.3 2010-12-06 18:59:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.4 2010-12-07 00:25:56 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -67,7 +67,7 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
   mismatchLimit   = AS_UTG_ERROR_LIMIT;
 
   if (load(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT)) {
-    logFileOrder += 2;  //  To keep indices the same on log names
+    logFileOrder++;  //  To keep indices the same on log names
     setLogFile(prefix, NULL);
     return;
   }
