@@ -530,7 +530,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "       -forcestrand  Force the strand prediction to always be\n");
     fprintf(stderr, "                     'forward' or 'reverse'\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "       -interspecies Configure sim4 for better inter-species alignments\n");
+    fprintf(stderr, "       -interspecies Use sim4cc for inter-species alignments\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  The following are for use only by immortals.\n");
     fprintf(stderr, "       -Z            set the (spaced) seed pattern\n");
