@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.4 2010-12-06 18:59:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.5 2010-12-07 00:26:46 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -87,11 +87,8 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
     return(false);
   }
 
-  logFileFlags |= LOG_PLACE_FRAG;
-
-  if (logFileFlagSet(LOG_PLACE_FRAG)) {
+  if (logFileFlagSet(LOG_PLACE_FRAG))
     fprintf(logFile, "placeFragUsingOverlaps()-- frag %d has %d overlaps\n", frag.ident, ovlLen);
-  }
 
   ////////////////////////////////////////
   //
@@ -389,8 +386,6 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
     bgn = end;
     end = end + 1;
   }
-
-  logFileFlags &= ~LOG_PLACE_FRAG;
 
   delete [] ovlPlace;
   delete [] ovl;
