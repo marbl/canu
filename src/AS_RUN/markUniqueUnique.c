@@ -1,4 +1,4 @@
-const char *mainid = "$Id: markUniqueUnique.c,v 1.8 2010-08-19 05:28:07 brianwalenz Exp $";
+const char *mainid = "$Id: markUniqueUnique.c,v 1.9 2010-12-08 12:43:28 skoren Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -82,6 +82,7 @@ int main (int argc, char *argv[]) {
    HashTable_AS      *UIDtoIID         = CreateScalarHashTable_AS();
    HashTable_AS      *CTGtoFirstUTG    = CreateScalarHashTable_AS();
    HashTable_AS      *CTGtoLastUTG     = CreateScalarHashTable_AS();
+   VA_TYPE(int32)    *unitigLength	   = CreateVA_int32(8192);
    VA_TYPE(uint32)   *surrogateCount   = CreateVA_uint32(8192);
    VA_TYPE(uint32)   *surrogateAtScaffoldEnds   = CreateVA_uint32(8192);
    
@@ -100,6 +101,8 @@ int main (int argc, char *argv[]) {
       {
          case MESG_UTG:
             utg = (SnapUnitigMesg*)(pmesg->m);
+            Setint32(unitigLength, utg->iaccession, &utg->length);
+
             if (utg->length >= minLength && (utg->status == AS_NOTREZ || utg->status == AS_SEP)) {               
                // store the mapping for this unitig's UID to IID and initialize it's instance counter at 0
                count = 0;
@@ -216,7 +219,7 @@ int main (int argc, char *argv[]) {
          toggled = TRUE;
       }   
       // special case, mark non-singleton unitigs as unique if we are given no instances
-      else if (numInstances == 0 && tigStore->getNumFrags(i, TRUE) > 1) {
+      else if (numInstances == 0 && (*Getint32(unitigLength, i)) >= minLength && tigStore->getNumFrags(i, TRUE) > 1) {
          toggled = TRUE;
       }
       
