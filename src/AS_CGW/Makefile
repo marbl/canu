@@ -33,7 +33,8 @@ CGW_SOURCES =     AS_CGW_main.C \
                   dumpCloneMiddles.C \
                   exploreGapStructure.C \
                   frgs2clones.C \
-                  dumpSingletons.C
+                  dumpSingletons.C \
+                  AS_CGW_dump.C
 
 #  Not all of these are external, most are probably private to cgw itself.
 CGW_LIB_SOURCES = Globals_CGW.C \
@@ -60,7 +61,8 @@ CGW_LIB_SOURCES = Globals_CGW.C \
                   SplitChunks_CGW.C \
                   SplitScaffolds_CGW.C \
                   Stats_CGW.C \
-                  TransitiveReduction_CGW.C
+                  TransitiveReduction_CGW.C \
+		  ShatterScaffolds_CGW.C
 
 SOURCES         = $(CGW_SOURCES) $(CGW_LIB_SOURCES)
 SCRIPTS		=
@@ -73,7 +75,6 @@ LIBS          = libCA.a
 
 CXX_PROGS = cgw extendClearRanges extendClearRangesPartition resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure frgs2clones
 
-
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
@@ -84,6 +85,7 @@ libAS_CGW.a: $(CGW_LIB_OBJECTS)
 
 libCA.a: $(CGW_LIB_OBJECTS)
 
+dumpCheckpoint: AS_CGW_dump.o $(LIBS)
 
 cgw: AS_CGW_main.o $(LIBS)
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.84 2010-02-16 05:19:40 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.85 2010-12-08 12:40:53 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -210,6 +210,19 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       GlobalData->stoneLevel = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-shatter") == 0) {
+      GlobalData->shatterLevel = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-missingMate") == 0) {
+      GlobalData->mergeScaffoldMissingMates = atof(argv[++arg]);
+
+      // the value is a percentage between 0 and 1 so make sure it never goes out of those bounds
+      if (GlobalData->mergeScaffoldMissingMates < 0) {
+    	  GlobalData->mergeScaffoldMissingMates = -1;
+      } else if (GlobalData->mergeScaffoldMissingMates > 1) {
+    	  GlobalData->mergeScaffoldMissingMates = 1;
+      }
+
     } else if (strcmp(argv[arg], "-U") == 0) {
       GlobalData->doUnjiggleWhenMerging = 1;
 
@@ -272,6 +285,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "                                 (which really mean t = 0.0, but triggers a better algorithm)\n");
     fprintf(stderr, "                    if <t> =  0, do not resolve surrogate fragments\n");
     fprintf(stderr, "   -s <lvl>     stone throwing level\n");
+    fprintf(stderr, "   -shatter <thresh>  Set threshold for shattering scaffolds when loading from checkpoint. Any contigs connected to a scaffold only by edges with less weight than the threshold will be split into a new scaffold (default OFF)\n");
+    fprintf(stderr, "   -missingMate <thresh>  Set threshold (0-1) for the percentage of mates (out of total) that are allowed to be missing when attempting a scaffold merge (default 0). A value of -1 will ignore all missing mates\n");
     fprintf(stderr, "   -U           after inserting rocks/stones try shifting contig positions back to their original location when computing overlaps to see if they overlap with the rock/stone and allow them to merge if they do\n");
     fprintf(stderr, "   -u <file>    load these overlaps (from BOG) into the scaffold graph\n");
     fprintf(stderr, "   -v           verbose\n");
@@ -296,7 +311,6 @@ main(int argc, char **argv) {
 
     exit(1);
   }
-
 
   if(GlobalData->cgbDefinitelyUniqueCutoff < GlobalData->cgbUniqueCutoff)
     GlobalData->cgbDefinitelyUniqueCutoff = GlobalData->cgbUniqueCutoff;
@@ -363,6 +377,11 @@ main(int argc, char **argv) {
     //  Dump stats on the loaded checkpoint
     //GeneratePlacedContigGraphStats(tmpBuffer,0);
     //GenerateScaffoldGraphStats(tmpBuffer,0);
+
+    // shatter scaffolds if requested
+    if (GlobalData->shatterLevel > 0) {
+    	ShatterScaffoldsConnectedByLowWeight(stderr, ScaffoldGraph, GlobalData->shatterLevel, TRUE);
+    }
   }
 
 
@@ -450,7 +469,6 @@ main(int argc, char **argv) {
 
     /* First we try to merge Scaffolds agressively */
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_DURING_1ST_SCAFF_MERGE, FALSE);
-
     ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
     CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
@@ -519,7 +537,6 @@ main(int argc, char **argv) {
   }
 
 
-
   if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_2ND_SCAFF_MERGE) < 0) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_2ND_SCAFF_MERGE\n");
 
@@ -542,7 +559,6 @@ main(int argc, char **argv) {
 
     CheckpointScaffoldGraph(CHECKPOINT_AFTER_2ND_SCAFF_MERGE, "after 2nd scaffold merge");
   }
-
 
   //  We DO want to flush unused unitigs/contigs at this point.  They're not in
   //  a scaffold, and possibly will never be used again (except as rocks/stones).

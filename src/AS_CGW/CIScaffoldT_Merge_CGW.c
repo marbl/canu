@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.58 2010-10-06 15:15:49 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.59 2010-12-08 12:40:53 skoren Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -1967,6 +1967,14 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
   //  This should only be counted for 'inter' (== inter-contig?) and not for 'intra'.
   assert(GetMateStatsMissing(&matesAfter.intra) == 0);
 
+  // since we expect some set of mates to be missing due to divergence between closely related species, we don't perform this check the same way for metagenomics
+  if (GetMateStatsMissing(&matesAfter.inter) > 0) {
+	  if (((double)GetMateStatsMissing(&matesAfter.inter) / mAfterGood) < GlobalData->mergeScaffoldMissingMates || GlobalData->mergeScaffoldMissingMates == -1) {
+	fprintf(stderr, "DOWNCOUNDING THE MISSING MATES BY %d\n", GetMateStatsMissing(&matesAfter.inter));
+		  mAfterBad -= GetMateStatsMissing(&matesAfter.inter);
+	  }
+  }
+
   int32   mBeforeSum  = mBeforeGood + mBeforeBad;
   int32   mAfterSum   = mAfterGood  + mAfterBad;
 
@@ -1997,7 +2005,6 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
   //  failsToGetHappier2 -- true if there are fewer happy mates after, or there are a whole lot more
   //                        bad mates after.  The original version of this test was screwing up the
   //                        compute of badGoodRatio, by omitting some parens.
-
 #define MAX_FRAC_BAD_TO_GOOD .3
 
   double badGoodRatio      = 1.0;

@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.34 2009-10-27 12:26:40 skoren Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.35 2010-12-08 12:40:53 skoren Exp $";
 
 #include "AS_global.h"
 
@@ -41,6 +41,9 @@ public:
 
   int    repeatRezLevel;
   int    stoneLevel;
+
+  uint32 shatterLevel;
+  float  mergeScaffoldMissingMates;
 
   int    minSamplesForOverride;
 

@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.44 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.45 2010-12-08 12:40:53 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -528,6 +528,7 @@ void DemoteSmallSingletonScaffolds(void);
 void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
                             CIScaffoldT * scaffold);
 
+void ShatterScaffoldsConnectedByLowWeight(FILE *stream, ScaffoldGraphT *graph, uint32 minWeight, int verbose);
 
 #include "CIScaffoldT_Merge_CGW.h"
 
