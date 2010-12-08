@@ -68,6 +68,9 @@ sub CGW ($$$$$$) {
     $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
 
     my $P = getGlobal("closurePlacement");
+    
+    my $shatterLevel = getGlobal("cgwContigShatterWeight");
+    my $missingMate  = getGlobal("cgwMergeMissingThreshold");
 
     $cmd  = "$bin/cgw $ckp \\\n";
     $cmd .= "  -j $astatLow -k $astatHigh \\\n";
@@ -82,6 +85,8 @@ sub CGW ($$$$$$) {
     $cmd .= "  -F \\\n"                                  if (getGlobal("toggleDoNotDemote") != 0);
     $cmd .= "  -B $B \\\n";
     $cmd .= "  -u $wrk/4-unitigger/$asm.unused.ovl \\\n" if (getGlobal("cgwUseUnitigOverlaps") != 0);
+    $cmd .= "  -shatter $shatterLevel \\\n";
+    $cmd .= "  -missingMate $missingMate \\\n";
     $cmd .= "  -m $sampleSize \\\n";
     $cmd .= "  -g $wrk/$asm.gkpStore \\\n";
     $cmd .= "  -t $tigStore \\\n";

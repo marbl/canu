@@ -461,7 +461,13 @@ sub setDefaults () {
     $synops{"kickOutNonOvlContigs"}        = "Allow kicking out a contig placed in a scaffold by mate pairs that has no overlaps to both its left and right neighbor contigs. EXPERT!\n";
 
     $global{"doUnjiggleWhenMerging"}        = 0;
-    $synops{"doUnjiggleWhenMerging"}        = "after inserting rocks/stones try shifting contig positions back to their original location when computing overlaps to see if they overlap with the rock/stone and allow them to merge if they do. EXPERT!\n";
+    $synops{"doUnjiggleWhenMerging"}        = "After inserting rocks/stones try shifting contig positions back to their original location when computing overlaps to see if they overlap with the rock/stone and allow them to merge if they do. EXPERT!\n";
+    
+    $global{"cgwContigShatterWeight"}		= 0;
+    $synops{"cgwContigShatterWeight"}		= "When starting from a checkpoint, for any contig connected to its scaffold by a link with less than cgwContigShatterWeight, remove it and place it into a singleton scaffold. EXPERT!\n";
+
+    $global{"cgwMergeMissingThreshold"}		= 0;
+    $synops{"cgwMergeMissingThreshold"}		= "When merging scaffolds, missing mates are those mates that should fall within the merged scaffold but do not. In metagenomics, this may not be the case for a conserved region within strains as the mates are missing because they are in a different strain. This is a value between 0 and 1 to specify the percentage of missing mates (relative to good mates) to ignore. A value of -1 means ignore all missing mates when merging. EXPERT!\n";
     
     #####  Consensus Options
 
