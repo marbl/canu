@@ -373,9 +373,9 @@ sub runSGE (@) {
         $jid = $outNam;
     }
 
-    open(X, "> $tmpDir/tafrgX-$jid.sh") or die;
-    open(L, "> $tmpDir/tafrgL-$jid.sh") or die;
-    open(F, "> $tmpDir/tafrgF-$jid.sh") or die;
+    open(X, "> $tmpDir/tafrgX-$jid.sh") or die "Failed to open '$tmpDir/tafrgX-$jid.sh' for writing.\n";
+    open(L, "> $tmpDir/tafrgL-$jid.sh") or die "Failed to open '$tmpDir/tafrgL-$jid.sh' for writing.\n";
+    open(F, "> $tmpDir/tafrgF-$jid.sh") or die "Failed to open '$tmpDir/tafrgF-$jid.sh' for writing.\n";
 
     print X "#!/bin/sh\n";
     print X "#\n";
@@ -427,9 +427,9 @@ sub runSGE (@) {
 
     #  -b n  is the default; TIGR IT decided to change the default.
 
-    system("qsub -b n -p -5 -N tfX-$jid                    -t 1-$nf -o $tmpDir/tafrgX-$jid-\\\$TASK_ID.out $sgeOptions ./$tmpDir/tafrgX-$jid.sh") and die;
-    system("qsub -b n -p -4 -N tfL-$jid -hold_jid tfX-$jid          -o $tmpDir/tafrgL-$jid.out             $sgeOptions ./$tmpDir/tafrgL-$jid.sh") and die;
-    system("qsub -b n -p -6 -N tfF-$jid -hold_jid tfL-$jid -t 1-$nf -o $tmpDir/tafrgF-$jid-\\\$TASK_ID.out $sgeOptions ./$tmpDir/tafrgF-$jid.sh") and die;
+    system("qsub -cwd -b n -p -5 -N tfX-$jid                    -t 1-$nf -o $tmpDir/tafrgX-$jid-\\\$TASK_ID.out $sgeOptions ./$tmpDir/tafrgX-$jid.sh") and die "Failed to qsub tafrgX??!\n";
+    system("qsub -cwd -b n -p -4 -N tfL-$jid -hold_jid tfX-$jid          -o $tmpDir/tafrgL-$jid.out             $sgeOptions ./$tmpDir/tafrgL-$jid.sh") and die "Failed to qsub tafrgL??!\n";
+    system("qsub -cwd -b n -p -6 -N tfF-$jid -hold_jid tfL-$jid -t 1-$nf -o $tmpDir/tafrgF-$jid-\\\$TASK_ID.out $sgeOptions ./$tmpDir/tafrgF-$jid.sh") and die "Failed to qsub tafrgF??!\n";
 
     exit(0);
 }
@@ -936,7 +936,7 @@ sub runFRG ($) {
             print STDERR "ID mismatch: X='$xid' =?= S='$sid'\n";
             print STDERR "ID mismatch: X='$xid' =?= Q='$qid'\n";
             print STDERR "ID mismatch: X='$xid' =?= L='$lid'\n";
-            die;
+            die "This is bad.  :-(\n";
         }
     }
 
@@ -1065,7 +1065,7 @@ sub runNBL ($) {
                         print STDERR "ID mismatch: X='$xid' =?= S='$sid'\n";
                         print STDERR "ID mismatch: X='$xid' =?= Q='$qid'\n";
                         print STDERR "ID mismatch: X='$xid' =?= L='$lid'\n";
-                        die;
+                        die "This is bad.  :-(\n";
                     }
                 }
             }
