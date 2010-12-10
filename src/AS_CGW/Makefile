@@ -33,8 +33,7 @@ CGW_SOURCES =     AS_CGW_main.C \
                   dumpCloneMiddles.C \
                   exploreGapStructure.C \
                   frgs2clones.C \
-                  dumpSingletons.C \
-                  AS_CGW_dump.C
+                  dumpSingletons.C
 
 #  Not all of these are external, most are probably private to cgw itself.
 CGW_LIB_SOURCES = Globals_CGW.C \
@@ -84,8 +83,6 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 libAS_CGW.a: $(CGW_LIB_OBJECTS)
 
 libCA.a: $(CGW_LIB_OBJECTS)
-
-dumpCheckpoint: AS_CGW_dump.o $(LIBS)
 
 cgw: AS_CGW_main.o $(LIBS)
 
