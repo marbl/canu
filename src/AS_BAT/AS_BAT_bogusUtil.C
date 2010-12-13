@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.4 2010-12-07 01:22:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.5 2010-12-13 20:06:20 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -174,6 +174,10 @@ loadSnapper(char                      *snapperName,
     genomeAlignment  A;
     string           ID = W[0];
 
+    if (strncmp(inLine, "cDNAid", 6) == 0)
+      //  Skip header lines.
+      goto nextLine;
+
     if (IIDmap.find(ID) == IIDmap.end()) {
       IIDname.push_back(ID);
       IIDmap[ID]       = IIDnext++;
@@ -192,8 +196,8 @@ loadSnapper(char                      *snapperName,
     A.isRepeat  = true;
 
     if (A.frgBgn > A.frgEnd) {
-      A.frgBgn    = W(4);
-      A.frgEnd    = W(3) + 1;
+      A.frgBgn    = W(4) + 1;
+      A.frgEnd    = W(3);
       A.isReverse = true;
     }
 
@@ -210,6 +214,7 @@ loadSnapper(char                      *snapperName,
 
     genome.push_back(A);
 
+  nextLine:
     fgets(inLine, 1024, inFile);
     chomp(inLine);
   }
