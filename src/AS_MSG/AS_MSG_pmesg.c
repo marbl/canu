@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.55 2010-11-19 23:07:52 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.56 2010-12-13 06:22:19 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -61,6 +61,10 @@ ReadLine(FILE *fin, int skipComment) {
         exit(1);
       }
 
+#if 0
+      fprintf(stderr, "READ: len=%d '%s'\n", strlen(AS_MSG_globals->curLine + cloffset), AS_MSG_globals->curLine + cloffset);
+#endif
+
       //  Detect other errors, exit.
       //
       if (errno) {
@@ -77,7 +81,7 @@ ReadLine(FILE *fin, int skipComment) {
       //  problems.
       //
       if ((AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != 0) &&
-          (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] !='\n')) {
+          (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != '\n')) {
 #if 0
         fprintf(stderr, "WARNING: Input line "F_U64" is long (%s), resizing.\n", AS_MSG_globals->curLineNum, AS_MSG_globals->msgCode);
         fprintf(stderr, "         '%s'\n", AS_MSG_globals->curLine);
@@ -96,8 +100,14 @@ ReadLine(FILE *fin, int skipComment) {
 
       if (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] == 0)
         assert(AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 3] == '\n');
-    } while (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != '\n');
+
+    } while ((AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != '\n') &&
+             (AS_MSG_globals->curLine[AS_MSG_globals->curLineMax - 2] != 0));
   } while (skipComment && AS_MSG_globals->curLine[0] == '#');
+
+#if 0
+  fprintf(stderr, "RETURN: '%s'\n", AS_MSG_globals->curLine);
+#endif
 
   return(AS_MSG_globals->curLine);
 }
