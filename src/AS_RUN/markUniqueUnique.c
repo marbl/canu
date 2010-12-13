@@ -1,4 +1,4 @@
-const char *mainid = "$Id: markUniqueUnique.c,v 1.9 2010-12-08 12:43:28 skoren Exp $";
+const char *mainid = "$Id: markUniqueUnique.c,v 1.10 2010-12-13 03:40:56 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -22,60 +22,67 @@ const char *mainid = "$Id: markUniqueUnique.c,v 1.9 2010-12-08 12:43:28 skoren E
 #define DEFAULT_NUM_INSTANCES              1
 #define DEFAULT_DISTANCE_TO_ENDS        1000
 #define NUM_INSTANCES_AT_SCAFFOLD_ENDS     2
-#define TIG_STORE_UTGS                     2
+
 VA_DEF(uint32)
 
 int main (int argc, char *argv[]) {
-   int      firstFileArg   = 0;
    char    *asmFileName    = NULL;
+   char    *tigStoreName   = NULL;
+   uint32   tigStoreVers   = 2;
+
    int      minLength      = DEFAULT_UNITIG_LENGTH;
    int      numInstances   = DEFAULT_NUM_INSTANCES;
    int      distanceToEnds = DEFAULT_DISTANCE_TO_ENDS;
+
    uint32   numToggled     = 0;
-   uint32   i              = 0;
 
    argc = AS_configure(argc, argv);
   
    int arg=1;
    int err=0;
    while (arg < argc) {
-      if (strcmp(argv[arg], "-a") == 0) {
+      if        (strcmp(argv[arg], "-a") == 0) {
          asmFileName = argv[++arg];
+
+      } else if (strcmp(argv[arg], "-t") == 0) {
+        tigStoreName = argv[++arg];
+        tigStoreVers = atoi(argv[++arg]);
+
       } else if (strcmp(argv[arg], "-l") == 0) {
          minLength = atoi(argv[++arg]);
-         if (minLength <= 0) err++;
+
       } else if (strcmp(argv[arg], "-n") == 0) {
          numInstances = atoi(argv[++arg]);
-         if (numInstances < 0) err++;
+
       } else if (strcmp(argv[arg], "-d") == 0) {
          distanceToEnds = atoi(argv[++arg]);
-         if (distanceToEnds <= 0) err++;
-      } else if ((argv[arg][0] != '-') && (firstFileArg == 0)) {
-         firstFileArg = arg;
-         arg = argc;
-      } else if (strcmp(argv[arg], "-h") == 0) {
-         err++;
+
       } else {
          fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
          err++;
       }
+
       arg++;
    }
 
-   if ((asmFileName == NULL) || firstFileArg == 0 || (err)) {
-      fprintf(stderr, "usage: %s -a asmFile [-l minLength] [-n numInstances] [-d distanceToEnd] CGI file list\n", argv[0]);
-      fprintf(stderr, "  -a asmFile       mandatory path to the assembly asm file\n");
-      fprintf(stderr, "  CGI fileList     mandatory list of CGI files containing unitigs to be toggled\n");
-      fprintf(stderr, "  -l minLength     minimum size of a unitig to be toggled, default=%d)\n", DEFAULT_UNITIG_LENGTH);
-      fprintf(stderr, "  -n numInstances  number of instances of a surrogate that is toggled, default = %d\n", DEFAULT_NUM_INSTANCES);
-      fprintf(stderr, "  -d distanceToEnd max number of bases the surrogate can be from the end of a scaffold for toggling, default = %d\n", DEFAULT_DISTANCE_TO_ENDS);
+   if (minLength <= 0) err++;
+   if (numInstances < 0) err++;
+   if (distanceToEnds <= 0) err++;
+
+   if ((asmFileName == NULL) || (tigStoreName == NULL) || (err > 0)) {
+      fprintf(stderr, "usage: %s -a asmFile -t tigStore version [-l minLength] [-n numInstances] [-d distanceToEnd]\n", argv[0]);
       fprintf(stderr, "\n");
-      fprintf(stderr, "  Reads assembly,\n");
-      fprintf(stderr, "  finds surrogates matching specified parameters.\n");
-      fprintf(stderr, "  There are two special cases in addition to the standard length and number of instances parameters.\n");
-      fprintf(stderr, "  1. If numInstances is set to 0, all surrogate unitigs with more than one read will be toggled to unique.\n");
-      fprintf(stderr, "  2. If a surrogate appears twice, both times at the ends of a scaffold (within distanceToEnd bases) then it is toggled\n");
-      fprintf(stderr, "  Scans the input tigStore for unitigs representing the identified surrogates and changes them to be unique in the store.\n");
+      fprintf(stderr, "  -a asmFile            path to the assembly .asm file\n");
+      fprintf(stderr, "  -t tigStore version   path to the tigStore and version to modify\n");
+
+      fprintf(stderr, "  -l minLength          minimum size of a unitig to be toggled, default=%d)\n", DEFAULT_UNITIG_LENGTH);
+      fprintf(stderr, "  -n numInstances       number of instances of a surrogate that is toggled, default = %d\n", DEFAULT_NUM_INSTANCES);
+      fprintf(stderr, "  -d distanceToEnd      max number of bases the surrogate can be from the end of a scaffold for toggling, default = %d\n", DEFAULT_DISTANCE_TO_ENDS);
+      fprintf(stderr, "\n");
+      fprintf(stderr, "  Labels surrogate unitigs as non-repeat if they match any of the following conditions:\n");
+      fprintf(stderr, "    1. the unitig meets all the -l, -n and -d conditions\n");
+      fprintf(stderr, "    2. When -n = 0, all surrogate unitigs with more than one read\n");
+      fprintf(stderr, "    3. the unitig appears exactly twice, within '-d' bases from the end of a scaffold\n");
       exit(1);
    }
   
@@ -87,8 +94,8 @@ int main (int argc, char *argv[]) {
    VA_TYPE(uint32)   *surrogateAtScaffoldEnds   = CreateVA_uint32(8192);
    
    GenericMesg    *pmesg;
-   FILE           *infp;
-   infp = fopen(asmFileName, "r");   
+   FILE           *infp = fopen(asmFileName, "r");   
+
    while ((EOF != ReadProtoMesg_AS(infp, &pmesg))) {
       SnapUnitigMesg    *utg     = NULL;
       SnapConConMesg    *ctg     = NULL;
@@ -97,8 +104,7 @@ int main (int argc, char *argv[]) {
       uint32             forward = TRUE;
       uint32             lastCtg = 0;
 
-      switch(pmesg->t)
-      {
+      switch(pmesg->t) {
          case MESG_UTG:
             utg = (SnapUnitigMesg*)(pmesg->m);
             Setint32(unitigLength, utg->iaccession, &utg->length);
@@ -110,10 +116,11 @@ int main (int argc, char *argv[]) {
                Setuint32(surrogateCount, utg->iaccession, &count);
             }
             break;    
+
          case MESG_CCO:
             ctg = (SnapConConMesg *)(pmesg->m);
             
-            for (i = 0; i < (uint32) ctg->num_unitigs; i++) {
+            for (int32 i = 0; i < ctg->num_unitigs; i++) {
                // increment the surrogate unitigs instance counter
                if (ExistsInHashTable_AS(UIDtoIID, AS_UID_toInteger(ctg->unitigs[i].eident), 0)) {
                   uint32 *ret = Getuint32(surrogateCount, (uint32) LookupValueInHashTable_AS(UIDtoIID, AS_UID_toInteger(ctg->unitigs[i].eident), 0));
@@ -133,6 +140,7 @@ int main (int argc, char *argv[]) {
                }
             }
             break;
+
          case MESG_SCF:
             scf = (SnapScaffoldMesg *)(pmesg->m);
             
@@ -198,26 +206,32 @@ int main (int argc, char *argv[]) {
    }
    fclose(infp);
   
-   int     toggled   = FALSE;
+
+
+
    uint32 *ret       = NULL;
    uint32 *atScfEnd  = NULL;
+
    // open the tig store for in-place writing (we don't increment the version since CGW always reads a fixed version initially)
    // this also removes any partitioning
-   MultiAlignStore *tigStore = new MultiAlignStore(argv[firstFileArg], TIG_STORE_UTGS, 0, 0, TRUE, TRUE);
 
-   for (i = 0; i < tigStore->numUnitigs(); i++) {
-      //MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
-      ret = Getuint32(surrogateCount, i);
-      atScfEnd = Getuint32(surrogateAtScaffoldEnds, i);
-      toggled = FALSE;
+   MultiAlignStore *tigStore = new MultiAlignStore(tigStoreName, tigStoreVers, 0, 0, TRUE, TRUE);
+
+   for (uint32 i = 0; i < tigStore->numUnitigs(); i++) {
+     uint32 *ret      = Getuint32(surrogateCount, i);
+     uint32 *atScfEnd = Getuint32(surrogateAtScaffoldEnds, i);
+
+      bool toggled = false;
                      
       if (ret != NULL && (*ret) == (uint32)numInstances && numInstances != 0) {
          toggled = TRUE;
       } 
+
       // if we find a surrogate that has two instances and it is at scaffold ends mark toggle it as well
       else if (ret != NULL && (*ret) == NUM_INSTANCES_AT_SCAFFOLD_ENDS && atScfEnd != NULL && (*atScfEnd) == UINT32_MAX) {
          toggled = TRUE;
       }   
+
       // special case, mark non-singleton unitigs as unique if we are given no instances
       else if (numInstances == 0 && (*Getint32(unitigLength, i)) >= minLength && tigStore->getNumFrags(i, TRUE) > 1) {
          toggled = TRUE;
@@ -232,6 +246,7 @@ int main (int argc, char *argv[]) {
    DeleteHashTable_AS(UIDtoIID);
    DeleteHashTable_AS(CTGtoFirstUTG);
    DeleteHashTable_AS(CTGtoLastUTG);
+
    delete tigStore;
    
    fprintf(stderr, "Toggled %d\n", numToggled);

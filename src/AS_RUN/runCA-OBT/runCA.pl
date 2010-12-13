@@ -119,7 +119,7 @@ submitScript(undef) if (!runningOnGrid());
 #  Begin
 
 preoverlap(@fragFiles);
-merTrim();
+merTrim();       #  merTrim() MUST be before overlapTrim().
 overlapTrim();
 createOverlapJobs("normal");
 checkOverlap("normal");
@@ -130,7 +130,7 @@ postUnitiggerConsensus();
 scaffolder();
 postScaffolderConsensus();
 terminate();
-cleaner();
 toggler();
+cleaner();
 
 exit(0);
