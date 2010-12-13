@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.3 2010-12-13 08:00:52 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -80,6 +80,11 @@ public:
     source3p  = s3p;
 
     isSelf    = self;
+
+    //fprintf(stderr, "intersectionPoint()-- %d/%c' from %d/%c' self=%d\n",
+    //        isectFrg,  isect3p  ? '3' : '5',
+    //        sourceFrg, source3p ? '3' : '5',
+    //        isSelf);
   };
   ~intersectionPoint() {
   };
@@ -339,10 +344,11 @@ breakUnitigs(UnitigVector &unitigs,
       assert(isects[ii].isectFrg == frg->ident);
       assert(tig->id() == Unitig::fragIn(isects[ii].isectFrg));
 
-      for (; isects[ii].isectFrg == frg->ident; ii++) {
+      for (; (isects[ii].isectFrg == frg->ident) &&
+             (ii < isects.size()); ii++) {
+        //fprintf(stderr, "ii=%d isectFrg=%d sourceFrg=%d\n", ii, isects[ii].isectFrg, isects[ii].sourceFrg);
 
         //  Grab the invading unitig
-
         Unitig *inv = unitigs[Unitig::fragIn(isects[ii].sourceFrg)];
         assert(inv->id() == Unitig::fragIn(isects[ii].sourceFrg));
 
