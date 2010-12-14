@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.5 2010-12-13 20:06:20 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.6 2010-12-14 01:46:35 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -51,12 +51,13 @@ byGenomePosition(const genomeAlignment &A, const genomeAlignment &B) {
 
 void
 addAlignment(vector<genomeAlignment>   &genome,
-             int32  frgIID,
+             int32  frgIID, int32  frgLen,
              int32  frgBgn, int32  frgEnd, bool  isReverse,
              int32  genBgn, int32  genEnd) {
   genomeAlignment  A;
 
   A.frgIID    = frgIID;
+  A.frgLen    = frgLen;
   A.frgBgn    = frgBgn;
   A.frgEnd    = frgEnd;
   A.genBgn    = genBgn;
@@ -74,11 +75,10 @@ addAlignment(vector<genomeAlignment>   &genome,
 
 void
 loadNucmer(char                      *nucmerName,
-           vector<longestAlignment>  &longest,
            vector<genomeAlignment>   &genome,
            map<string, int32>        &IIDmap,
            vector<string>            &IIDname,
-           uint32                    &IIDnext,
+           vector<uint32>            &IIDcount,
            FILE                      *outputFile) {
   FILE  *inFile = 0L;
   char   inLine[1024];
@@ -106,13 +106,14 @@ loadNucmer(char                      *nucmerName,
 
     if (IIDmap.find(ID) == IIDmap.end()) {
       IIDname.push_back(ID);
-      IIDmap[ID]       = IIDnext++;
-      assert(IIDnext == IIDname.size());
+      IIDcount.push_back(0);
+      IIDmap[ID] = IIDname.size() - 1;
     }
 
     //  Unlike snapper, these are already in base-based coords.
 
     A.frgIID    = IIDmap[ID];
+    A.frgLen    = 0;
     A.frgBgn    = W(3);
     A.frgEnd    = W(4);
     A.genBgn    = W(0);
@@ -126,6 +127,8 @@ loadNucmer(char                      *nucmerName,
       A.frgEnd    = W(3);
       A.isReverse = true;
     }
+
+    IIDcount[A.frgIID]++;
 
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);
@@ -151,11 +154,10 @@ loadNucmer(char                      *nucmerName,
 
 void
 loadSnapper(char                      *snapperName,
-            vector<longestAlignment>  &longest,
             vector<genomeAlignment>   &genome,
             map<string, int32>        &IIDmap,
             vector<string>            &IIDname,
-            uint32                    &IIDnext,
+            vector<uint32>            &IIDcount,
             FILE                      *outputFile) {
   FILE  *inFile = 0L;
   char   inLine[1024];
@@ -180,13 +182,14 @@ loadSnapper(char                      *snapperName,
 
     if (IIDmap.find(ID) == IIDmap.end()) {
       IIDname.push_back(ID);
-      IIDmap[ID]       = IIDnext++;
-      assert(IIDnext == IIDname.size());
+      IIDcount.push_back(0);
+      IIDmap[ID] = IIDname.size() - 1;
     }
 
     //  "+1" -- Convert from space-based coords to base-based coords.
 
     A.frgIID    = IIDmap[ID];
+    A.frgLen    = 0;
     A.frgBgn    = W(3) + 1;
     A.frgEnd    = W(4);
     A.genBgn    = W(6) + 1;
@@ -200,6 +203,8 @@ loadSnapper(char                      *snapperName,
       A.frgEnd    = W(3);
       A.isReverse = true;
     }
+
+    IIDcount[A.frgIID]++;
 
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);

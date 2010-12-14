@@ -21,8 +21,8 @@ if (! -e "$prefix.bogus.out") {
 
 my $lastUtg;
 
-open(F, "sort -k10n -k18n < $prefix.bogusness.out |") or die;
-open(O, "> $prefix.bogusness.wiki") or die;
+open(F, "sort -k10n -k18n < $prefix.bogusness.out |") or die "Failed to read sort output.\n";
+open(O, "> $prefix.bogusness.wiki") or die "Failed to open '$prefix.bogusness.wiki' for writing.\n";
 
 print O "{| class=\"wikitable\" border=1\n";
 print O "! unitig !! align num !! utg coords !! gen coords !! status !! ideal type !! ideal index !! ideal coords !! length !! utg cov !! ideal cov !! annotation\n";

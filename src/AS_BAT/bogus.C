@@ -17,9 +17,30 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogus.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+const char *mainid = "$Id: bogus.C,v 1.3 2010-12-14 01:46:35 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
+
+
+class longestAlignment {
+public:
+  longestAlignment() {
+    bgn = end = len = num = 0;
+    rptBgn = rptEnd = frgLen = 0;
+  };
+
+  int32   bgn;  //  Begin coord on the fragment for this region
+  int32   end;  //  End coord on the fragment for this region
+  int32   len;  //  Length of the match
+  int32   num;  //  Number of matches on this region
+
+  int32   rptBgn;
+  int32   rptEnd;
+
+  int32   frgLen;
+};
+
+
 
 int
 main(int argc, char **argv) {
@@ -44,7 +65,7 @@ main(int argc, char **argv) {
   //  start at least this many bases from the end of the non-repeat alignment.  In other words, a
   //  fragment with a repeat in the middle can be uniquely placed (by overlaps) with only 20 bases of
   //  unique sequence on the end.
-  int32  uniqEnd      = 10;
+  int32  uniqEnd      = 40;
 
 
   int arg=1;
@@ -85,9 +106,9 @@ main(int argc, char **argv) {
 
   vector<longestAlignment>   longest;
   vector<genomeAlignment>    genome;
-  map<string, int32>         IIDmap;
-  vector<string>             IIDname;
-  uint32                     IIDnext = 0;
+  map<string, int32>         IIDmap;       //  Maps an ID string to an IID.
+  vector<string>             IIDname;      //  Maps an IID to an ID string.
+  vector<uint32>             IIDcount;     //  Maps an IID to the number of alignments
 
   //  Load all the matches into genomeAlignment.  Generate longestAlignment for each fragment.
   //  genomeAlignment::isLognest and genomeAlignment::isRepeat are computed later.
@@ -96,10 +117,10 @@ main(int argc, char **argv) {
   outputFile = fopen(outputName, "w");
 
   if (nucmerName)
-    loadNucmer(nucmerName, longest, genome, IIDmap, IIDname, IIDnext, outputFile);
+    loadNucmer(nucmerName, genome, IIDmap, IIDname, IIDcount, outputFile);
 
   if (snapperName)
-    loadSnapper(snapperName, longest, genome, IIDmap, IIDname, IIDnext, outputFile);
+    loadSnapper(snapperName, genome, IIDmap, IIDname, IIDcount, outputFile);
 
   fclose(outputFile);
 
@@ -112,7 +133,7 @@ main(int argc, char **argv) {
 
   sort(genome.begin(), genome.end(), byFragmentID);
 
-  longest.resize(IIDnext);
+  longest.resize(IIDname.size());
 
   for (uint32 bgn=0, lim=genome.size(); bgn<lim; ) {
     uint32 frgIID = genome[bgn].frgIID;
@@ -203,14 +224,14 @@ main(int argc, char **argv) {
 
       if (longest[frgIID].rptBgn > 0)
         addAlignment(genome,
-                     LONG->frgIID,
+                     LONG->frgIID, 0,
                      0, longest[frgIID].rptBgn, false,
                      LONG->genBgn,
                      LONG->genBgn + longest[frgIID].rptBgn);
 
       if (longest[frgIID].rptEnd < LONG->frgEnd)
         addAlignment(genome,
-                     LONG->frgIID,
+                     LONG->frgIID, 0,
                      longest[frgIID].rptEnd, LONG->frgEnd, false,
                      LONG->genBgn + longest[frgIID].rptEnd,
                      LONG->genBgn + LONG->frgEnd);

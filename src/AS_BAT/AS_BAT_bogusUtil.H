@@ -20,7 +20,7 @@
 #ifndef INCLUDE_AS_BAT_BOGUSUTIL
 #define INCLUDE_AS_BAT_BOGUSUTIL
 
-static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.3 2010-12-14 01:46:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,37 +38,24 @@ using namespace std;
 #include "AS_UTL_splitToWords.H"
 #include "AS_UTL_intervalList.H"
 
-class longestAlignment {
-public:
-  longestAlignment() {
-    bgn = end = len = num = 0;
-    rptBgn = rptEnd = frgLen = 0;
-  };
-
-  int32   bgn;  //  Begin coord on the fragment for this region
-  int32   end;  //  End coord on the fragment for this region
-  int32   len;  //  Length of the match
-  int32   num;  //  Number of matches on this region
-
-  int32   rptBgn;
-  int32   rptEnd;
-
-  int32   frgLen;
-};
 
 class genomeAlignment {
 public:
   genomeAlignment() {
-    frgIID = frgBgn = frgEnd = 0;
+    frgIID = frgLen = frgBgn = frgEnd = 0;
     genBgn = genEnd = 0;
-    isReverse = isSpanned = isRepeat = false;
+    isDeleted = isReverse = isSpanned = isRepeat = false;
   }
+
   int32   frgIID;
+  int32   frgLen;  //  UNUSED
   int32   frgBgn;
   int32   frgEnd;
 
   int32   genBgn;
   int32   genEnd;
+
+  bool    isDeleted;  //  Used by bogusness
 
   bool    isReverse;
   bool    isSpanned;
@@ -81,24 +68,22 @@ bool byGenomePosition(const genomeAlignment &A, const genomeAlignment &B);
 
 
 void addAlignment(vector<genomeAlignment>   &genome,
-                  int32  frgIID,
+                  int32  frgIID, int32  frgLen,
                   int32  frgBgn, int32  frgEnd, bool  isReverse,
                   int32  genBgn, int32  genEnd);
 
 void loadNucmer(char                      *nucmerName,
-                vector<longestAlignment>  &longest,
                 vector<genomeAlignment>   &genome,
                 map<string, int32>        &IIDmap,
                 vector<string>            &IIDname,
-                uint32                    &IIDnext,
+                vector<uint32>            &IIDcount,
                 FILE                      *outputFile);
 
 void loadSnapper(char                      *snapperName,
-                 vector<longestAlignment>  &longest,
                  vector<genomeAlignment>   &genome,
                  map<string, int32>        &IIDmap,
                  vector<string>            &IIDname,
-                 uint32                    &IIDnext,
+                 vector<uint32>            &IIDcount,
                  FILE                      *outputFile);
 
 #endif  //  INCLUDE_AS_BAT_BOGUSUTIL
