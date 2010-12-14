@@ -6,57 +6,40 @@
 #include "bio.h"
 #include "sim4.H"
 
-//  Kaz Kylheku <kaz@ashi.footprints.net> library.
-#include "kazlib/dict.h"
-#include "kazlib/except.h"
-#include "kazlib/hash.h"
-#include "kazlib/list.h"
-#include "kazlib/sfx.h"
+#include <map>
+#include <string>
+
+using namespace std;
 
 //  Updates the IID's in a set of polishes.  If a file of deflines (or
 //  fasta file) is supplied, the IIDs will match those, otherwise,
-//  IIDs are guaranteed to be unique, and in the order of the
-//  polishes.
+//  they remain the same.
 
 void
-addToDict(dict_t *d, char *n) {
-  dnode_t  *node = 0L;
-  char     *dcpy = 0L;
+addToDict(map<string, u64bit> &d, char *n) {
 
   if (n == 0L)
     return;
 
   seqCache  *F = new seqCache(n);
   seqInCore *S = F->getSequenceInCore();
+
   while (S) {
-    node = (dnode_t *)palloc(sizeof(dnode_t));
-    dcpy = (char    *)palloc(sizeof(char) * S->headerLength() + 1);
+    string   s = S->header();
 
-    strcpy(dcpy, S->header());
-
-    dnode_init(node, (void *)(unsigned long)S->getIID());
-    dict_insert(d, node, dcpy);
+    d[s] = S->getIID();
 
     delete S;
     S = F->getSequenceInCore();
   }
+
   delete F;
 }
 
 
-int
-headerCompare(const void *a, const void *b) {
-  char  *A = *((char **)a);
-  char  *B = *((char **)b);
-
-  //fprintf(stderr, "%s -- %s\n", A, B);
-  return(strcmp(A, B));
-}
-
 
 int
 main(int argc, char **argv) {
-  bool   beVerbose = false;
   char  *cDeflines = 0L;
   char  *gDeflines = 0L;
 
@@ -64,10 +47,7 @@ main(int argc, char **argv) {
 
   int arg=1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-v") == 0) {
-      beVerbose = true;
-
-    } else if (strcmp(argv[arg], "-c") == 0) {
+    if        (strcmp(argv[arg], "-c") == 0) {
       cDeflines = argv[++arg];
 
     } else if (strcmp(argv[arg], "-g") == 0) {
@@ -82,29 +62,33 @@ main(int argc, char **argv) {
     arg++;
   }
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, "usage: %s [-v] [-c x] [-g x] [-gff3] < polishes > polishes\n", argv[0]);
-    fprintf(stderr, "     -v         Entertain the user\n");
-    fprintf(stderr, "     -c x       Read cDNA deflines from x\n");
-    fprintf(stderr, "     -g x       Read genomic deflines from x\n");
-    fprintf(stderr, "     -gff3      Write output as GFF3\n");
-    fprintf(stderr, "  x is a fasta file, or a list of deflines (fasta file with no sequence)\n");
+    fprintf(stderr, "usage: %s [-c c.fasta] [-g g.fasta] [-gff3] < polishes > polishes\n", argv[0]);
+    fprintf(stderr, "     -c c.fasta   Read cDNA deflines from c.fasta\n");
+    fprintf(stderr, "     -g g.fasta   Read genomic deflines from g.fasta\n");
+    fprintf(stderr, "     -gff3        Write output as GFF3\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  Rewrites the input polishes, updating the sequence index to match\n");
+    fprintf(stderr, "  that of the associated fasta file.  One or both of -c and -g may be used.\n");
+    fprintf(stderr, "  Polishes that refer to a sequence not present in the input fasta file are\n");
+    fprintf(stderr, "  not output.\n");
     exit(1);
   }
 
   //  We parse args, then build the dictionaries, so we can do
   //  any quick error detection first.
 
-  if (beVerbose)
-    fprintf(stderr, "%s: Reading genomic deflines from '%s'\n", argv[0], gDeflines);
+  map<string, u64bit>   g;
+  map<string, u64bit>   c;
 
-  dict_t  *g = dict_create(DICTCOUNT_T_MAX, headerCompare);
-  addToDict(g, gDeflines);
+  if (gDeflines) {
+    fprintf(stderr, "Reading genomic deflines from '%s'\n", gDeflines);
+    addToDict(g, gDeflines);
+  }
 
-  if (beVerbose)
-    fprintf(stderr, "%s: Reading genomic deflines from '%s'\n", argv[0], cDeflines);
-
-  dict_t  *c = dict_create(DICTCOUNT_T_MAX, headerCompare);
-  addToDict(c, cDeflines);
+  if (cDeflines) {
+    fprintf(stderr, "Reading genomic deflines from '%s'\n", cDeflines);
+    addToDict(c, cDeflines);
+  }
 
   //  Read all the matches, changing IIDs.  If we find a defline
   //  with no IID, holler and die.
@@ -116,44 +100,29 @@ main(int argc, char **argv) {
   if (R->getsim4polishStyle() != style) 
     fprintf(stderr, "warning: input format and output format differ.\n");
 
-  //speedCounter  *C = new speedCounter("%12.0f polishes -- %12.0f polishes/second\r",
-  //                                    1.0, 0xfff, beVerbose);
+  fprintf(stderr, "Filtering polishes.\n");
 
   while (R->nextAlignment(p)) {
-    if ((p->_estDefLine == 0L) || (p->_genDefLine == 0L)) {
-      W->writeAlignment(p);
-      fprintf(stderr, "ERROR:  Polish has no deflines!\n");
-      exit(1);
+    string cd = p->_estDefLine;
+    string gd = p->_genDefLine;
+
+    if (cDeflines != 0L) {
+      if (c.find(cd) == c.end())
+        //  EST defline not in the input sequences, don't output.
+        continue;
+      p->_estID = c[cd];
     }
 
-    dnode_t *cid = dict_lookup(c, p->_estDefLine);
-    dnode_t *gid = dict_lookup(g, p->_genDefLine);
-
-    if ((cid == 0L) || (gid == 0L)) {
-      const char *msg = "both deflines";
-      if (cid)  msg = "genomic defline";
-      if (gid)  msg = "est defline";
-
-      W->writeAlignment(p);
-      fprintf(stderr, "ERROR:  Couldn't find %s (%p %p) in the dictionary!\n", msg, cid, gid);
-      exit(1);
+    if (gDeflines != 0L) {
+      if (g.find(gd) == g.end())
+        //  Genomic defline not in the input sequences, don't output.
+        continue;
+      p->_genID = g[gd];
     }
-
-    p->_estID = (u32bit)(unsigned long)dnode_get(cid);
-    p->_genID = (u32bit)(unsigned long)dnode_get(gid);
 
     W->writeAlignment(p);
-
-    //C->tick();
   }
-
-  //delete C;
 
   delete R;
   delete W;
-
-  //  We should clean up our dictionaries, but we just let the OS do it.
-  exit(0);
 }
-
-
