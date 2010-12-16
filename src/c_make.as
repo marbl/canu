@@ -63,31 +63,28 @@ include $(LOCAL_WORK)/src/c_make.gen
 
 
 ifeq ($(OSTYPE), Linux)
-  ARCH_CFLAGS = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -fPIC
-
-  ARCH_CFLAGS    += -pthread
-  ARCH_LDFLAGS   += -pthread -lm
-
-  ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS  += -g -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
-    ARCH_LDFLAGS +=
-  else
-    ARCH_CFLAGS  += -O2 -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
-    ARCH_LDFLAGS += -Wl,-O1
-  endif
-
-  ARCH_LIB      = /usr/X11R6/lib
-
   ifeq ($(MACHINETYPE), i686)
-    ARCH_CFLAGS   += -march=i686 -DX86_GCC_LINUX
-    ARCH_LDFLAGS  += -march=i686
+    ARCH_LDFLAGS  += -pthread -lm
+    ARCH_CFLAGS   += -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DX86_GCC_LINUX
+    ARCH_LIB       = /usr/X11R6/lib
   endif
   ifeq ($(MACHINETYPE), amd64)
-    ARCH_CFLAGS   += -m64 -DX86_GCC_LINUX
+    ARCH_LDFLAGS  += -pthread -lm
+    ARCH_CFLAGS   += -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DX86_GCC_LINUX
     ARCH_LIB       = /usr/lib64 /usr/X11R6/lib64
   endif
   ifeq ($(MACHINETYPE), ia64)
-    # Don't set X86_GCC_LINUX because IEEE floating point mode is not available.
+    ARCH_LDFLAGS  += -pthread -lm
+    ARCH_CFLAGS   += -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+    ARCH_LIB       = /usr/X11R6/lib
+  endif
+
+  ifeq ($(BUILDDEBUG), 1)
+    ARCH_CFLAGS  += -g 
+    ARCH_LDFLAGS +=
+  else
+    ARCH_CFLAGS  += -O2
+    ARCH_LDFLAGS += -Wl,-O1
   endif
 endif
 
