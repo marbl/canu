@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.2 2010-12-16 03:27:13 brianwalenz Exp $";
 
 class overlapPlacement {
 public:
@@ -33,8 +33,7 @@ public:
     position.bgn          = 0;
     position.end          = 0;
 
-    nReverse              = 0;
-    nForward              = 0;
+    clusterID             = 0;
 
     fCoverage             = 0.0;
 
@@ -46,11 +45,19 @@ public:
   ~overlapPlacement() {
   };
 
+  //  Sort by:
+  //    tigID
+  //    orientation
+  //    position
+#if 0
   bool operator<(const overlapPlacement &that) const {
     if (tigID != that.tigID)
       return(tigID < that.tigID);
+    if (isReverse(position) != isReverse(that.position))
+      return(isReverse(position) < isReverse(that.position));
     return(position < that.position);
   };
+#endif
 
 public:
   uint32            frgID;      //  ID of the fragment this position is for.
@@ -58,8 +65,10 @@ public:
   uint32            tigID;      //  Unitig ID of this placement
   SeqInterval       position;   //  Unitig position of this placement
 
-  uint32            nReverse;   //  Num overlaps aligned reverse
-  uint32            nForward;   //  Num overlaps aligned forward
+  double            bgnStdDev;  //  Standard deviation of position.bgn
+  double            endStdDev;  //  Standard deviation of position.end
+
+  int32             clusterID;
 
   double            fCoverage;  //  Coverage of the fragment
 
@@ -67,6 +76,28 @@ public:
   uint32            aligned;    //  number of bases in alignments
   SeqInterval       covered;    //  Position of the overlap on the read
 };
+
+
+  //  Sort by:
+  //    tigID
+  //    orientation
+  //    position
+inline
+bool
+overlapPlacement_byLocation(const overlapPlacement &A, const overlapPlacement &B) {
+  if (A.tigID != B.tigID)
+    return(A.tigID < B.tigID);
+  if (isReverse(A.position) != isReverse(B.position))
+    return(isReverse(A.position) < isReverse(B.position));
+  return(A.position < B.position);
+}
+
+
+inline
+bool
+overlapPlacement_byCluster(const overlapPlacement &A, const overlapPlacement &B) {
+  return(A.clusterID < B.clusterID);
+}
 
 
 bool

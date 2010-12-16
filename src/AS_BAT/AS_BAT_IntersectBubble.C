@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.4 2010-12-07 00:59:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.5 2010-12-16 03:27:13 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -133,9 +133,9 @@ validateBubbleWithEdges(UnitigVector &unitigs,
     if (placements[i].fCoverage < 0.99)
       continue;
 
-    if ((placements[i].nForward > 0) &&
-        (placements[i].nReverse > 0))
-      continue;
+    //if ((placements[i].nForward > 0) &&
+    //    (placements[i].nReverse > 0))
+    //  continue;
 
     if (placements[i].errors / placements[i].aligned < lFrgPlacement.errors / lFrgPlacement.aligned)
       lFrgPlacement = placements[i];
@@ -166,9 +166,9 @@ validateBubbleWithEdges(UnitigVector &unitigs,
     if (placements[i].fCoverage < 0.99)
       continue;
 
-    if ((placements[i].nForward > 0) &&
-        (placements[i].nReverse > 0))
-      continue;
+    //if ((placements[i].nForward > 0) &&
+    //    (placements[i].nReverse > 0))
+    //  continue;
 
     if (placements[i].errors / placements[i].aligned < rFrgPlacement.errors / rFrgPlacement.aligned)
       rFrgPlacement = placements[i];
@@ -366,11 +366,11 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
         continue;
       }
 
-      if ((placements[fi][pl].nForward > 0) &&
-          (placements[fi][pl].nReverse > 0)) {
-        nNotOriented++;
-        continue;
-      }
+      //if ((placements[fi][pl].nForward > 0) &&
+      //    (placements[fi][pl].nReverse > 0)) {
+      //  nNotOriented++;
+      //  continue;
+      //}
 
       //  The current placement seems like a good one.  Should we keep it?
 
@@ -564,6 +564,8 @@ popIntersectionBubbles(UnitigVector &unitigs, OverlapStore *ovlStoreUniq, Overla
 
   uint32          nBubblePopped    = 0;
 
+  logFileFlags |= LOG_PLACE_FRAG;
+
   while (1) {
     bool            keepPopping      = false;
     uint32          nBubbleFixed     = 1;
@@ -635,6 +637,8 @@ popIntersectionBubbles(UnitigVector &unitigs, OverlapStore *ovlStoreUniq, Overla
     if (keepPopping == false)
       break;
   }  //  Until we break.
+
+  logFileFlags &= ~LOG_PLACE_FRAG;
 
   fprintf(logFile, "Popped %u bubbles.\n", nBubblePopped);
 }
