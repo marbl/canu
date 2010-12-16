@@ -61,7 +61,6 @@ sub unitigger () {
             $cmd .= " -E $E ";
             $cmd .= " -s $l "   if (defined($l));
             $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
-            $cmd .= " -m $bmd " if (defined($bmd));
             $cmd .= " -U "      if ($u == 1);
             $cmd .= " -o $wrk/4-unitigger/$asm ";
             $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
