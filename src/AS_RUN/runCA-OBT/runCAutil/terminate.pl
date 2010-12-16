@@ -148,11 +148,13 @@ sub terminate () {
     #  Generate a read depth histogram
     #
     ########################################
-    if ((getGlobal("createPosMap") > 0) && (! -e "$termDir/$asm.qc.readdepth")) {
-        my $cmd;
+    if ((  -e "$termDir/$asm.posmap.frgscf") &&
+        (! -e "$termDir/$asm.qc.readdepth") &&
+        (! -e "$termDir/$asm.qc")) {
 
         #  Youch.  Run five commands, do something if all are successful.
 
+        my $cmd;
         $cmd  = "sort -k2n -k3n -T $termDir $termDir/$asm.posmap.frgscf > $termDir/$asm.posmap.frgscf.sorted &&";
         $cmd .= "$bin/fragmentDepth -min       0 -max    3000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram1 && ";
         $cmd .= "$bin/fragmentDepth -min    3001 -max   10000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram2 && ";
