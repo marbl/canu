@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.4 2010-12-17 09:55:56 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -67,7 +67,8 @@ uint64 LOG_MATE_SPLIT_ANALYSIS         = 0x0000000000002000;  //
 uint64 LOG_MATE_SPLIT_DISCONTINUOUS    = 0x0000000000004000;  //
 uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS = 0x0000000000008000;  //
 uint64 LOG_MATE_SPLIT_COVERAGE_PLOT    = 0x0000000000010000;  //
-uint64 LOG_STDERR                      = 0x0000000000020000;  //  Write ALL logging to stderr, not the files.
+uint64 LOG_SET_PARENT_AND_HANG         = 0x0000000000020000;  //
+uint64 LOG_STDERR                      = 0x0000000000040000;  //  Write ALL logging to stderr, not the files.
 
 uint64 LOG_PLACE_FRAG                  = 0x8000000000000000;  //  Internal use only.
 
@@ -88,6 +89,7 @@ const char *logFileFlagNames[64] = { "overlapQuality",
                                      "mateSplitDiscontinuous",
                                      "mateSplitUnhappyContains",
                                      "mateSplitCoveragePlot",
+                                     "setParentAndHang",
                                      "stderr",
                                      NULL
 };
@@ -207,7 +209,9 @@ main (int argc, char * argv []) {
         for (flg=1, opt=0; logFileFlagNames[opt]; flg <<= 1, opt++)
           if ((strcasecmp(logFileFlagNames[opt], "stderr") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "mateSplitCoveragePlot") != 0) &&
-              (strcasecmp(logFileFlagNames[opt], "overlapQuality") != 0))
+              (strcasecmp(logFileFlagNames[opt], "overlapQuality") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "happiness") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "setParentAndHang") != 0))
             logFileFlags |= flg;
         fnd = true;
       }

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.3 2010-12-06 18:59:00 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.4 2010-12-17 09:55:56 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -89,6 +89,7 @@ extern uint64 LOG_MATE_SPLIT_ANALYSIS;
 extern uint64 LOG_MATE_SPLIT_DISCONTINUOUS;
 extern uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS;
 extern uint64 LOG_MATE_SPLIT_COVERAGE_PLOT;
+extern uint64 LOG_SET_PARENT_AND_HANG;
 extern uint64 LOG_STDERR;
 
 extern uint64 LOG_PLACE_FRAG;
