@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.7 2010-12-16 03:27:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.8 2010-12-17 11:38:59 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -522,8 +522,8 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
       bgnMean /= numPlace;
       endMean /= numPlace;
 
-      op.position.bgn = (int32)bgnMean;
-      op.position.end = (int32)endMean;
+      op.position.bgn = (int32)((nReverse == 0) ? bgnMean : endMean);
+      op.position.end = (int32)((nReverse == 0) ? endMean : bgnMean);
 
       for (uint32 oo=os; oo<oe; oo++) {
         if ((ovlPlace[oo].position.bgn == 0) &&
