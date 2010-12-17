@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogusness.C,v 1.4 2010-12-14 01:46:35 brianwalenz Exp $";
+const char *mainid = "$Id: bogusness.C,v 1.5 2010-12-17 09:57:12 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -357,10 +357,10 @@ main(int argc, char **argv) {
   loadIdealUnitigs(idealName, ideal);
 
   if (nucmerName)
-    loadNucmer(nucmerName, genome, IIDmap, IIDname, IIDcount, NULL);
+    loadNucmer(nucmerName, genome, IIDmap, IIDname, IIDcount);
 
   if (snapperName)
-    loadSnapper(snapperName, genome, IIDmap, IIDname, IIDcount, NULL);
+    loadSnapper(snapperName, genome, IIDmap, IIDname, IIDcount);
 
 
   sort(genome.begin(), genome.end(), byFragmentID);

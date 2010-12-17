@@ -20,7 +20,7 @@
 #ifndef INCLUDE_AS_BAT_BOGUSUTIL
 #define INCLUDE_AS_BAT_BOGUSUTIL
 
-static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.3 2010-12-14 01:46:35 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.4 2010-12-17 09:57:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,14 +76,12 @@ void loadNucmer(char                      *nucmerName,
                 vector<genomeAlignment>   &genome,
                 map<string, int32>        &IIDmap,
                 vector<string>            &IIDname,
-                vector<uint32>            &IIDcount,
-                FILE                      *outputFile);
+                vector<uint32>            &IIDcount);
 
 void loadSnapper(char                      *snapperName,
                  vector<genomeAlignment>   &genome,
                  map<string, int32>        &IIDmap,
                  vector<string>            &IIDname,
-                 vector<uint32>            &IIDcount,
-                 FILE                      *outputFile);
+                 vector<uint32>            &IIDcount);
 
 #endif  //  INCLUDE_AS_BAT_BOGUSUTIL

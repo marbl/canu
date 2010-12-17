@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.6 2010-12-14 01:46:35 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.7 2010-12-17 09:57:12 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -78,8 +78,7 @@ loadNucmer(char                      *nucmerName,
            vector<genomeAlignment>   &genome,
            map<string, int32>        &IIDmap,
            vector<string>            &IIDname,
-           vector<uint32>            &IIDcount,
-           FILE                      *outputFile) {
+           vector<uint32>            &IIDcount) {
   FILE  *inFile = 0L;
   char   inLine[1024];
 
@@ -133,14 +132,6 @@ loadNucmer(char                      *nucmerName,
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);
 
-    if (outputFile)
-      fprintf(outputFile, "%8d  %8d %8d  %c  %8d %8d  %s\n",
-              A.frgIID,
-              A.frgBgn, A.frgEnd,
-              (A.isReverse) ? 'r' : 'f',
-              A.genBgn, A.genEnd,
-              W[0]);
-
     genome.push_back(A);
 
     fgets(inLine, 1024, inFile);
@@ -157,8 +148,7 @@ loadSnapper(char                      *snapperName,
             vector<genomeAlignment>   &genome,
             map<string, int32>        &IIDmap,
             vector<string>            &IIDname,
-            vector<uint32>            &IIDcount,
-            FILE                      *outputFile) {
+            vector<uint32>            &IIDcount) {
   FILE  *inFile = 0L;
   char   inLine[1024];
 
@@ -208,14 +198,6 @@ loadSnapper(char                      *snapperName,
 
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);
-
-    if (outputFile)
-      fprintf(outputFile, "%8d  %8d %8d  %c  %8d %8d  %s\n",
-              A.frgIID,
-              A.frgBgn, A.frgEnd,
-              (A.isReverse) ? 'r' : 'f',
-              A.genBgn, A.genEnd,
-              W[0]);
 
     genome.push_back(A);
 

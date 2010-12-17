@@ -17,10 +17,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogus.C,v 1.3 2010-12-14 01:46:35 brianwalenz Exp $";
+const char *mainid = "$Id: bogus.C,v 1.4 2010-12-17 09:57:12 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
-
 
 class longestAlignment {
 public:
@@ -41,97 +40,81 @@ public:
 };
 
 
+//  MUCH, much easier to modularize the code if all this stuff is globally available.
 
-int
-main(int argc, char **argv) {
-  char  *nucmerName   = 0L;
-  char  *snapperName  = 0L;
-  char  *refName = 0L;
-  char  *outputPrefix   = 0L;
+char    *refhdr = NULL;
+char    *refseq = NULL;
+char    *refano = NULL;
+int32    reflen = 0;
+
+vector<longestAlignment>   longest;
+vector<genomeAlignment>    genome;
+map<string, int32>         IIDmap;       //  Maps an ID string to an IID.
+vector<string>             IIDname;      //  Maps an IID to an ID string.
+vector<uint32>             IIDcount;     //  Maps an IID to the number of alignments
+
+intervalList  REPT;
+intervalList  UNIQ;
+
+bool         *REPTvalid = NULL;
+bool         *UNIQvalid = NULL;
+
+
+
+void
+loadReferenceSequence(char *refName) {
+  FILE    *F      = fopen(refName, "r");
+
+  refhdr = new char [1024];
+  refseq = new char [16 * 1024 * 1024];
+  refano = new char [16 * 1024 * 1024];
+
+  fgets(refhdr,             1024, F);
+  fgets(refseq, 16 * 1026 * 1024, F);
+
+  fclose(F);
+
+  chomp(refhdr);
+  chomp(refseq);
+
+  for (uint32 i=0; refhdr[i]; i++) {
+    refhdr[i] = refhdr[i+1];
+    if (isspace(refhdr[i]))
+      refhdr[i] = 0;
+  }
+
+  reflen = strlen(refseq);
+}
+
+
+void
+writeInputsAsGFF3(char *outputPrefix) {
   char   outputName[FILENAME_MAX];
-  FILE  *outputFile = 0L;
+  FILE  *outputFile;
 
-  //  When comparing coords to if two alignments span the same piece of the fragment,
-  //  allow (twice) this much slop in the comparison.  E.g., Abgn +- 5 == Bbgn
-  //
-  int32  alignWobble  = 5;
-
-  //  When constructing the unique coverage map, trim each read by this amount, on each end, to
-  //  simulate the minimum overlap length needed by unitigger.  This amount is automagically added
-  //  back in on output.
-  int32  minOverlap   = 40;
-
-  //  When testing if a repeat alignment is contained in a non-repeat alignment, the repeat must
-  //  start at least this many bases from the end of the non-repeat alignment.  In other words, a
-  //  fragment with a repeat in the middle can be uniquely placed (by overlaps) with only 20 bases of
-  //  unique sequence on the end.
-  int32  uniqEnd      = 40;
-
-
-  int arg=1;
-  int err=0;
-  while (arg < argc) {
-    if        (strcmp(argv[arg], "-nucmer") == 0) {
-      nucmerName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-snapper") == 0) {
-      snapperName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-reference") == 0) {
-      refName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-output") == 0) {
-      outputPrefix = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-wobble") == 0) {
-      alignWobble = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-overlap") == 0) {
-      minOverlap = atoi(argv[++arg]);
-
-    } else {
-      err++;
-    }
-    arg++;
-  }
-  if ((nucmerName == 0L) && (snapperName == 0L))
-    fprintf(stderr, "ERROR: No input matches supplied (either -nucmer or -snapper).\n"), err++;
-  if (refName == 0L)
-    fprintf(stderr, "ERROR: No reference sequence supplied (-reference).\n"), err++;
-  if (outputPrefix == 0L)
-    fprintf(stderr, "ERROR: No output prefix supplied (-output).\n"), err++;
-  if (err) {
-    exit(1);
-  }
-
-  vector<longestAlignment>   longest;
-  vector<genomeAlignment>    genome;
-  map<string, int32>         IIDmap;       //  Maps an ID string to an IID.
-  vector<string>             IIDname;      //  Maps an IID to an ID string.
-  vector<uint32>             IIDcount;     //  Maps an IID to the number of alignments
-
-  //  Load all the matches into genomeAlignment.  Generate longestAlignment for each fragment.
-  //  genomeAlignment::isLognest and genomeAlignment::isRepeat are computed later.
-
-  sprintf(outputName, "%s.inputs", outputPrefix);
+  sprintf(outputName, "%s.inputs.gff3", outputPrefix);
   outputFile = fopen(outputName, "w");
+  
+  fprintf(outputFile, "##gff-version 3\n");
 
-  if (nucmerName)
-    loadNucmer(nucmerName, genome, IIDmap, IIDname, IIDcount, outputFile);
-
-  if (snapperName)
-    loadSnapper(snapperName, genome, IIDmap, IIDname, IIDcount, outputFile);
+  for (uint32 i=0; i<genome.size(); i++)
+    fprintf(outputFile, "%s\t.\tmatch\t%d\t%d\t.\t%c\t.\tID=align%08d-frag%08d;Name=%s;Note=%d-%d\n",
+            refhdr,                                //  reference name
+            genome[i].genBgn,                      //  begin position in base-based
+            genome[i].genEnd,                      //  end position
+            (genome[i].isReverse) ? '-' : '+',     //  strand
+            i,                                     //  ID - match id
+            genome[i].frgIID,                      //  ID - frag id
+            IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+            genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
 
   fclose(outputFile);
+}
 
 
-  //  Process the matches fragment by fragment.  Find the longest, count the number
-  //  of duplicates of the longest match, label as repeat/unique.
 
-  sprintf(outputName, "%s.processing", outputPrefix);
-  outputFile = fopen(outputName, "w");
-
-  sort(genome.begin(), genome.end(), byFragmentID);
+void
+processMatches(int32 alignWobble, int32 minOverlap, int32 uniqEnd) {
 
   longest.resize(IIDname.size());
 
@@ -142,8 +125,6 @@ main(int argc, char **argv) {
     while ((end < genome.size()) &&
            (genome[bgn].frgIID == genome[end].frgIID))
       end++;
-
-    //fprintf(stderr, "%d bgn %d end %d\n", frgIID, bgn, end);
 
     //  Find the longest alignment.  Set 'num' to zero, we'll fill it out correctly in a minute.
     for (uint32 i=bgn; i<end; i++) {
@@ -218,10 +199,6 @@ main(int argc, char **argv) {
 
       assert(LONG != 0L);
 
-      fprintf(outputFile, "TRIM longest %8d to %8d %8d\n",
-              frgIID,
-              longest[frgIID].rptBgn, longest[frgIID].rptEnd);
-
       if (longest[frgIID].rptBgn > 0)
         addAlignment(genome,
                      LONG->frgIID, 0,
@@ -240,19 +217,18 @@ main(int argc, char **argv) {
 
     bgn = end;
   }  //  Over all matches, by fragment
-
-  fclose(outputFile);
-
-
-  sort(genome.begin(), genome.end(), byGenomePosition);
+}
 
 
-  //  Find the spanned repeats.  For eacn non-repeat fragment, search forward for any repeats that
-  //  it spans.  Actually, we just do any fragment that it spans, so a fragment could be non-repeat
-  //  and spanned.
-  //
-  //  We assume that if a read is spanned by a repeat, that read is also a repeat.
-  //
+//  Find the spanned repeats.  For eacn non-repeat fragment, search forward for any repeats that
+//  it spans.  Actually, we just do any fragment that it spans, so a fragment could be non-repeat
+//  and spanned.
+//
+//  We assume that if a read is spanned by a repeat, that read is also a repeat.
+//
+void
+findSpannedMatches(int32 uniqEnd) {
+
   for (uint32 uniq=0; uniq<genome.size(); uniq++) {
     if (genome[uniq].isRepeat == true)
       continue;
@@ -269,16 +245,26 @@ main(int argc, char **argv) {
         genome[test].isSpanned = true;
     }
   }
+}
 
 
-  //  Now, throw all the non-spanned repeats into an intervalList, squash them to get intervals,
-  //  and report the repeat regions.
 
-  sprintf(outputName, "%s.intervalLog", outputPrefix);
-  outputFile = fopen(outputName, "w");
+void
+buildIntervals(char *outputPrefix, int32 minOverlap) {
+  char  outputName[FILENAME_MAX];
 
-  intervalList  REPT;
-  intervalList  UNIQ;
+  sprintf(outputName, "%s.inputs.span.gff3", outputPrefix);
+  FILE *SPANoutputFile = fopen(outputName, "w");
+
+  sprintf(outputName, "%s.inputs.rept.gff3", outputPrefix);
+  FILE *REPToutputFile = fopen(outputName, "w");
+
+  sprintf(outputName, "%s.inputs.uniq.gff3", outputPrefix);
+  FILE *UNIQoutputFile = fopen(outputName, "w");
+
+  fprintf(SPANoutputFile, "##gff-version 3\n");
+  fprintf(REPToutputFile, "##gff-version 3\n");
+  fprintf(UNIQoutputFile, "##gff-version 3\n");
 
   for (uint32 i=0; i<genome.size(); i++) {
     int32  frgIID = genome[i].frgIID;
@@ -288,23 +274,39 @@ main(int argc, char **argv) {
     int32  len = genome[i].genEnd - genome[i].genBgn;
 
     if (genome[i].isSpanned == true) {
-      if (outputFile)
-        fprintf(outputFile, "SPAN frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
-                frgIID,
-                genome[i].frgBgn, genome[i].frgEnd,
-                genome[i].isReverse ? 'r' : 'f',
-                genome[i].genBgn, genome[i].genEnd);
+      fprintf(SPANoutputFile, "\n");
+      fprintf(SPANoutputFile, "#SPAN frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
+              frgIID,
+              genome[i].frgBgn, genome[i].frgEnd,
+              genome[i].isReverse ? 'r' : 'f',
+              genome[i].genBgn, genome[i].genEnd);
+      fprintf(SPANoutputFile, "%s\t.\tmatch\t%d\t%d\t.\t%c\t.\tID=SPAN%08d-frag%08d;Name=%s;Note=%d-%d\n",
+              refhdr,                                //  reference name
+              genome[i].genBgn, genome[i].genEnd,    //  reference position
+              (genome[i].isReverse) ? '-' : '+',     //  strand
+              i,                                     //  ID - match id
+              genome[i].frgIID,                      //  ID - frag id
+              IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+              genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
       continue;
     }
 
     if (genome[i].isRepeat == true) {
       REPT.add(genome[i].genBgn, len);
-      if (outputFile)
-        fprintf(outputFile, "REPT frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
-                frgIID,
-                genome[i].frgBgn, genome[i].frgEnd,
-                genome[i].isReverse ? 'r' : 'f',
-                genome[i].genBgn, genome[i].genEnd);
+      fprintf(REPToutputFile, "\n");
+      fprintf(REPToutputFile, "#REPT frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
+              frgIID,
+              genome[i].frgBgn, genome[i].frgEnd,
+              genome[i].isReverse ? 'r' : 'f',
+              genome[i].genBgn, genome[i].genEnd);
+      fprintf(REPToutputFile, "%s\t.\tmatch\t%d\t%d\t.\t%c\t.\tID=REPT%08d-frag%08d;Name=%s;Note=%d-%d\n",
+              refhdr,                                //  reference name
+              genome[i].genBgn, genome[i].genEnd,    //  reference position
+              (genome[i].isReverse) ? '-' : '+',     //  strand
+              i,                                     //  ID - match id
+              genome[i].frgIID,                      //  ID - frag id
+              IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+              genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
       continue;
     }
 
@@ -324,30 +326,40 @@ main(int argc, char **argv) {
     UNIQ.add(genome[i].genBgn + frgOff + minOverlap,
              len);
 
-    if (outputFile)
-      fprintf(outputFile, "UNIQ frgIID %8d frg %8d,%8d rev %c gen %8d,%8d mod %8d,%8d\n",
-              frgIID,
-              genome[i].frgBgn, genome[i].frgEnd,
-              genome[i].isReverse ? 'r' : 'f',
-              genome[i].genBgn, genome[i].genEnd,
-              genome[i].genBgn + frgOff + minOverlap,
-              genome[i].genBgn + frgOff + minOverlap + len);
+    fprintf(UNIQoutputFile, "\n");
+    fprintf(UNIQoutputFile, "#UNIQ frgIID %8d frg %8d,%8d rev %c gen %8d,%8d mod %8d,%8d\n",
+            frgIID,
+            genome[i].frgBgn, genome[i].frgEnd,
+            genome[i].isReverse ? 'r' : 'f',
+            genome[i].genBgn, genome[i].genEnd,
+            genome[i].genBgn + frgOff + minOverlap,
+            genome[i].genBgn + frgOff + minOverlap + len);
+    fprintf(UNIQoutputFile, "%s\t.\tmatch\t%d\t%d\t.\t%c\t.\tID=UNIQ%08d-frag%08d;Name=%s;Note=%d-%d\n",
+            refhdr,                                //  reference name
+            genome[i].genBgn, genome[i].genEnd,    //  reference position
+            (genome[i].isReverse) ? '-' : '+',     //  strand
+            i,                                     //  ID - match id
+            genome[i].frgIID,                      //  ID - frag id
+            IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+            genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
   }
 
-  fclose(outputFile);
+  fclose(SPANoutputFile);
+  fclose(REPToutputFile);
+  fclose(UNIQoutputFile);
+}
 
-  REPT.merge();
-  UNIQ.merge();
 
-  bool         *REPTvalid = new bool [REPT.numberOfIntervals()];
-  bool         *UNIQvalid = new bool [UNIQ.numberOfIntervals()];
+
+void
+  markWeak(void) {
+  REPTvalid = new bool [REPT.numberOfIntervals()];
+  UNIQvalid = new bool [UNIQ.numberOfIntervals()];
 
   for (uint32 i=0; i<REPT.numberOfIntervals(); i++)
     REPTvalid[i] = true;
   for (uint32 i=0; i<UNIQ.numberOfIntervals(); i++)
     UNIQvalid[i] = true;
-
-  //  Search for exceptions -- one completely contained in the other
 
   int32   UNIQexceptions=0;
   int32   REPTexceptions=0;
@@ -356,30 +368,147 @@ main(int argc, char **argv) {
     for (uint32 iu=0; iu<UNIQ.numberOfIntervals(); iu++) {
       if ((REPT.lo(ir) <= UNIQ.lo(iu)) &&
           (UNIQ.hi(iu) <= REPT.hi(ir))) {
-        fprintf(stderr, "EXCEPTION:  UNIQ %ld,%ld len=%ld ct=%d contained in REPT %ld,%ld len=%ld ct=%d\n",
-                UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.ct(iu),
-                REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.ct(ir));
+        //fprintf(stderr, "EXCEPTION:  UNIQ %ld,%ld len=%ld ct=%d contained in REPT %ld,%ld len=%ld ct=%d\n",
+        //        UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.ct(iu),
+        //        REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.ct(ir));
         UNIQvalid[iu] = false;
         UNIQexceptions++;
       }
       if ((UNIQ.lo(iu) <= REPT.lo(ir)) &&
           (REPT.hi(ir) <= UNIQ.hi(iu))) {
-        fprintf(stderr, "EXCEPTION:  REPT %ld,%ld len=%ld  ct=%d contained in UNIQ %ld,%ld len=%ld ct=%d\n",
-                REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.ct(ir),
-                UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.ct(iu));
+        //fprintf(stderr, "EXCEPTION:  REPT %ld,%ld len=%ld  ct=%d contained in UNIQ %ld,%ld len=%ld ct=%d\n",
+        //        REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.ct(ir),
+        //        UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.ct(iu));
         REPTvalid[ir] = false;
         REPTexceptions++;
       }
     }
   }
 
-  fprintf(stderr, "Found %d REPT intervals, and %d REPT exceptions.\n", REPT.numberOfIntervals() - REPTexceptions, REPTexceptions);
-  fprintf(stderr, "Found %d UNIQ intervals, and %d UNIQ exceptions.\n", UNIQ.numberOfIntervals() - UNIQexceptions, UNIQexceptions);
+  fprintf(stderr, "Found %d REPT intervals, and %d REPT weak intervals.\n", REPT.numberOfIntervals() - REPTexceptions, REPTexceptions);
+  fprintf(stderr, "Found %d UNIQ intervals, and %d UNIQ weak intervals.\n", UNIQ.numberOfIntervals() - UNIQexceptions, UNIQexceptions);
+}
 
-  //  DEBUG (I guess) report the intervals.
+
+
+
+int
+main(int argc, char **argv) {
+  char  *nucmerName     = 0L;
+  char  *snapperName    = 0L;
+  char  *refName        = 0L;
+  char  *outputPrefix   = 0L;
+
+  //  When comparing coords to if two alignments span the same piece of the fragment,
+  //  allow (twice) this much slop in the comparison.  E.g., Abgn +- 5 == Bbgn
+  //
+  int32  alignWobble  = 5;
+
+  //  When constructing the unique coverage map, trim each read by this amount, on each end, to
+  //  simulate the minimum overlap length needed by unitigger.  This amount is automagically added
+  //  back in on output.
+  int32  minOverlap   = 40;
+
+  //  When testing if a repeat alignment is contained in a non-repeat alignment, the repeat must
+  //  start at least this many bases from the end of the non-repeat alignment.  In other words, a
+  //  fragment with a repeat in the middle can be uniquely placed (by overlaps) with only 20 bases of
+  //  unique sequence on the end.
+  int32  uniqEnd      = 40;
+
+
+  int arg=1;
+  int err=0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-nucmer") == 0) {
+      nucmerName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-snapper") == 0) {
+      snapperName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-reference") == 0) {
+      refName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-output") == 0) {
+      outputPrefix = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-wobble") == 0) {
+      alignWobble = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-overlap") == 0) {
+      minOverlap = atoi(argv[++arg]);
+
+    } else {
+      err++;
+    }
+    arg++;
+  }
+  if ((nucmerName == 0L) && (snapperName == 0L))
+    fprintf(stderr, "ERROR: No input matches supplied (either -nucmer or -snapper).\n"), err++;
+  if (refName == 0L)
+    fprintf(stderr, "ERROR: No reference sequence supplied (-reference).\n"), err++;
+  if (outputPrefix == 0L)
+    fprintf(stderr, "ERROR: No output prefix supplied (-output).\n"), err++;
+  if (err) {
+    exit(1);
+  }
+
+
+  //  Load the reference sequence.  ASSUMES it is all on one line!
+
+  loadReferenceSequence(refName);
+
+  //  Load all the matches into genomeAlignment.  Generate longestAlignment for each fragment.
+  //  genomeAlignment::isLognest and genomeAlignment::isRepeat are computed later.
+
+  if (nucmerName)
+    loadNucmer(nucmerName, genome, IIDmap, IIDname, IIDcount);
+
+  if (snapperName)
+    loadSnapper(snapperName, genome, IIDmap, IIDname, IIDcount);
+
+  writeInputsAsGFF3(outputPrefix);
+
+  //  Process the matches fragment by fragment.  Find the longest, count the number
+  //  of duplicates of the longest match, label as repeat/unique.
+
+  sort(genome.begin(), genome.end(), byFragmentID);
+
+  processMatches(alignWobble, minOverlap, uniqEnd);
+
+  sort(genome.begin(), genome.end(), byGenomePosition);
+
+  findSpannedMatches(uniqEnd);
+
+  //  Now, throw all the non-spanned repeats into an intervalList, squash them to get intervals,
+  //  and report the repeat regions.
+
+  buildIntervals(outputPrefix, minOverlap);
+
+  REPT.merge();
+  UNIQ.merge();
+
+
+  //  Search for exceptions -- one completely contained in the other
+
+  markWeak();
+
+  //
+  //  Write the output
+  //
+
+  char   outputName[FILENAME_MAX];
 
   sprintf(outputName, "%s.intervals", outputPrefix);
-  outputFile = fopen(outputName, "w");
+  FILE *outputFile = fopen(outputName, "w");
+
+  sprintf(outputName, "%s.intervals.rept.gff3", outputPrefix);
+  FILE *reptOutputFile = fopen(outputName, "w");
+
+  sprintf(outputName, "%s.intervals.uniq.gff3", outputPrefix);
+  FILE *uniqOutputFile = fopen(outputName, "w");
+
+  fprintf(reptOutputFile, "##gff-version 3\n");
+  fprintf(uniqOutputFile, "##gff-version 3\n");
 
   for (uint32 ir=0, iu=0; ((ir < REPT.numberOfIntervals()) ||
                            (iu < UNIQ.numberOfIntervals())); ) {
@@ -392,101 +521,45 @@ main(int argc, char **argv) {
               REPT.hi(ir),
               REPT.ct(ir),
               (REPTvalid[ir]) ? "" : " weak");
+
+      if (REPTvalid[ir])
+        fprintf(reptOutputFile, "%s\t.\tmatch\t%ld\t%ld\t.\t+\t.\tID=REPT%04d;Name=REPT%04d\n",
+                refhdr,
+                REPT.lo(ir), REPT.hi(ir),
+                ir, ir);
+      else
+        fprintf(reptOutputFile, "%s\t.\tmatch\t%ld\t%ld\t.\t+\t.\tID=REPT%04d;Name=REPT%04dweak\n",
+                refhdr,
+                REPT.lo(ir), REPT.hi(ir),
+                ir, ir);
+
       ir++;
+
     } else {
       fprintf(outputFile, "%8ld %8ld UNIQ %d%s\n",
               UNIQ.lo(iu) - minOverlap,
               UNIQ.hi(iu) + minOverlap,
               UNIQ.ct(iu),
               (UNIQvalid[iu]) ? "" : " separation");
-      iu++;
-    }
-  }
 
-  fclose(outputFile);
-
-  //  Load the reference sequence.  ASSUMES it is all on one line!
-
-  FILE    *F      = fopen(refName, "r");
-  char    *refhdr = new char [1024];
-  char    *refseq = new char [16 * 1024 * 1024];
-  char    *refano = new char [16 * 1024 * 1024];
-  int32    reflen = 0;
-
-  fgets(refhdr,             1024, F);
-  fgets(refseq, 16 * 1026 * 1024, F);
-
-  fclose(F);
-
-  reflen = strlen(refseq);
-
-  //  Label the reference with REPEAT or UNIQUE, output fasta.  (yes, this is pointless)
-
-  for (int32 p=0; p<reflen; p++)
-    refano[p] = 'G';
-
-  for (uint32 i=0; i<UNIQ.numberOfIntervals(); i++) {
-    assert(UNIQ.lo(i) >= 0);
-    assert(UNIQ.hi(i) <= reflen);
-    assert(UNIQ.lo(i) < UNIQ.hi(i));
-
-    if (UNIQvalid[i] == false)
-      continue;
-
-    for (int32 p=UNIQ.lo(i); p<UNIQ.hi(i); p++)
-      refano[p] = 'U';
-  }
-
-  for (uint32 i=0; i<REPT.numberOfIntervals(); i++) {
-    assert(REPT.lo(i) >= 0);
-    assert(REPT.hi(i) <= reflen);
-    assert(REPT.lo(i) < REPT.hi(i));
-
-    if (REPTvalid[i] == false)
-      continue;
-
-    for (int32 p=REPT.lo(i); p<REPT.hi(i); p++)
-      refano[p] = 'R';
-  }
-
-  //  Output a multifasta of ideal unitigs.
-
-  sprintf(outputName, "%s.fasta", outputPrefix);
-  outputFile = fopen(outputName, "w");
-
-  for (uint32 ir=0, iu=0; ((ir < REPT.numberOfIntervals()) ||
-                           (iu < UNIQ.numberOfIntervals())); ) {
-    int64  lor = (ir < REPT.numberOfIntervals()) ? REPT.lo(ir) : 999999999;
-    int64  lou = (iu < UNIQ.numberOfIntervals()) ? UNIQ.lo(iu) : 999999999;
-
-    if (lor < lou) {
-      if (REPTvalid[ir] == true) {
-        char save = refseq[REPT.hi(ir)];
-
-        refseq[REPT.hi(ir)] = 0;
-        fprintf(outputFile, ">utg%08dr\n%s\n",
-                ir + iu,
-                refseq + REPT.lo(ir));
-        refseq[REPT.hi(ir)] = save;
-      }
-
-      ir++;
-    }
-
-    if (lou < lor) {
-      if (UNIQvalid[iu] == true) {
-        char save = refseq[UNIQ.hi(iu)];
-
-        refseq[UNIQ.hi(iu)] = 0;
-        fprintf(outputFile, ">utg%08du\n%s\n",
-                ir + iu,
-                refseq + UNIQ.lo(iu));
-        refseq[UNIQ.hi(iu)] = save;
-      }
+      if (UNIQvalid[iu])
+        fprintf(uniqOutputFile, "%s\t.\tmatch\t%ld\t%ld\t.\t+\t.\tID=UNIQ%04d;Name=UNIQ%04d\n",
+                refhdr,
+                UNIQ.lo(iu), UNIQ.hi(iu),
+                iu, iu);
+      else
+        fprintf(uniqOutputFile, "%s\t.\tmatch\t%ld\t%ld\t.\t+\t.\tID=UNIQ%04d;Name=UNIQ%04dweak\n",
+                refhdr,
+                UNIQ.lo(iu), UNIQ.hi(iu),
+                iu, iu);
 
       iu++;
     }
   }
 
   fclose(outputFile);
+
+  //  See CVS version 1.3 for writing rept/uniq fasta
+
+  return(0);
 }
