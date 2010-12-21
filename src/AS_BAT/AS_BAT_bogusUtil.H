@@ -20,7 +20,7 @@
 #ifndef INCLUDE_AS_BAT_BOGUSUTIL
 #define INCLUDE_AS_BAT_BOGUSUTIL
 
-static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.4 2010-12-17 09:57:12 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.5 2010-12-21 19:45:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,5 +83,10 @@ void loadSnapper(char                      *snapperName,
                  map<string, int32>        &IIDmap,
                  vector<string>            &IIDname,
                  vector<uint32>            &IIDcount);
+
+void loadReferenceSequence(char     *refName,
+                           char    *&refhdr,
+                           char    *&refseq,
+                           int32    &reflen);
 
 #endif  //  INCLUDE_AS_BAT_BOGUSUTIL

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogus.C,v 1.4 2010-12-17 09:57:12 brianwalenz Exp $";
+const char *mainid = "$Id: bogus.C,v 1.5 2010-12-21 19:45:18 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -44,7 +44,6 @@ public:
 
 char    *refhdr = NULL;
 char    *refseq = NULL;
-char    *refano = NULL;
 int32    reflen = 0;
 
 vector<longestAlignment>   longest;
@@ -59,56 +58,25 @@ intervalList  UNIQ;
 bool         *REPTvalid = NULL;
 bool         *UNIQvalid = NULL;
 
+int32        *REPTvalidParent = NULL;
+int32        *UNIQvalidParent = NULL;
 
-
-void
-loadReferenceSequence(char *refName) {
-  FILE    *F      = fopen(refName, "r");
-
-  refhdr = new char [1024];
-  refseq = new char [16 * 1024 * 1024];
-  refano = new char [16 * 1024 * 1024];
-
-  fgets(refhdr,             1024, F);
-  fgets(refseq, 16 * 1026 * 1024, F);
-
-  fclose(F);
-
-  chomp(refhdr);
-  chomp(refseq);
-
-  for (uint32 i=0; refhdr[i]; i++) {
-    refhdr[i] = refhdr[i+1];
-    if (isspace(refhdr[i]))
-      refhdr[i] = 0;
-  }
-
-  reflen = strlen(refseq);
-}
-
+FILE         *gffOutput      = NULL;
+FILE         *intervalOutput = NULL;
 
 void
 writeInputsAsGFF3(char *outputPrefix) {
-  char   outputName[FILENAME_MAX];
-  FILE  *outputFile;
-
-  sprintf(outputName, "%s.inputs.gff3", outputPrefix);
-  outputFile = fopen(outputName, "w");
-  
-  fprintf(outputFile, "##gff-version 3\n");
 
   for (uint32 i=0; i<genome.size(); i++)
-    fprintf(outputFile, "%s\t.\tmatch\t%d\t%d\t.\t%c\t.\tID=align%08d-frag%08d;Name=%s;Note=%d-%d\n",
+    fprintf(gffOutput, "%s\t.\tbogus_raw_input\t%d\t%d\t.\t%c\t.\tID=align%08d-frag%08d\n",  //  ;Name=%s;Note=%d-%d
             refhdr,                                //  reference name
             genome[i].genBgn,                      //  begin position in base-based
             genome[i].genEnd,                      //  end position
             (genome[i].isReverse) ? '-' : '+',     //  strand
             i,                                     //  ID - match id
-            genome[i].frgIID,                      //  ID - frag id
-            IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
-            genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
-
-  fclose(outputFile);
+            genome[i].frgIID);                     //  ID - frag id
+  //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+  //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
 }
 
 
@@ -251,20 +219,6 @@ findSpannedMatches(int32 uniqEnd) {
 
 void
 buildIntervals(char *outputPrefix, int32 minOverlap) {
-  char  outputName[FILENAME_MAX];
-
-  sprintf(outputName, "%s.inputs.span.gff3", outputPrefix);
-  FILE *SPANoutputFile = fopen(outputName, "w");
-
-  sprintf(outputName, "%s.inputs.rept.gff3", outputPrefix);
-  FILE *REPToutputFile = fopen(outputName, "w");
-
-  sprintf(outputName, "%s.inputs.uniq.gff3", outputPrefix);
-  FILE *UNIQoutputFile = fopen(outputName, "w");
-
-  fprintf(SPANoutputFile, "##gff-version 3\n");
-  fprintf(REPToutputFile, "##gff-version 3\n");
-  fprintf(UNIQoutputFile, "##gff-version 3\n");
 
   for (uint32 i=0; i<genome.size(); i++) {
     int32  frgIID = genome[i].frgIID;
@@ -274,39 +228,43 @@ buildIntervals(char *outputPrefix, int32 minOverlap) {
     int32  len = genome[i].genEnd - genome[i].genBgn;
 
     if (genome[i].isSpanned == true) {
-      fprintf(SPANoutputFile, "\n");
-      fprintf(SPANoutputFile, "#SPAN frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
+#if 0
+      fprintf(gffOutput, "\n");
+      fprintf(gffOutput, "#SPAN frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
               frgIID,
               genome[i].frgBgn, genome[i].frgEnd,
               genome[i].isReverse ? 'r' : 'f',
               genome[i].genBgn, genome[i].genEnd);
-      fprintf(SPANoutputFile, "%s\t.\tmatch\t%d\t%d\t.\t%c\t.\tID=SPAN%08d-frag%08d;Name=%s;Note=%d-%d\n",
+#endif
+      fprintf(gffOutput, "%s\t.\tbogus_span_input\t%d\t%d\t.\t%c\t.\tID=SPAN%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
               refhdr,                                //  reference name
               genome[i].genBgn, genome[i].genEnd,    //  reference position
               (genome[i].isReverse) ? '-' : '+',     //  strand
               i,                                     //  ID - match id
-              genome[i].frgIID,                      //  ID - frag id
-              IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
-              genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
+              genome[i].frgIID);                     //  ID - frag id
+      //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+      //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
       continue;
     }
 
     if (genome[i].isRepeat == true) {
       REPT.add(genome[i].genBgn, len);
-      fprintf(REPToutputFile, "\n");
-      fprintf(REPToutputFile, "#REPT frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
+#if 0
+      fprintf(gffOutput, "\n");
+      fprintf(gffOutput, "#REPT frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
               frgIID,
               genome[i].frgBgn, genome[i].frgEnd,
               genome[i].isReverse ? 'r' : 'f',
               genome[i].genBgn, genome[i].genEnd);
-      fprintf(REPToutputFile, "%s\t.\tmatch\t%d\t%d\t.\t%c\t.\tID=REPT%08d-frag%08d;Name=%s;Note=%d-%d\n",
+#endif
+      fprintf(gffOutput, "%s\t.\tbogus_rept_input\t%d\t%d\t.\t%c\t.\tID=REPT%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
               refhdr,                                //  reference name
               genome[i].genBgn, genome[i].genEnd,    //  reference position
               (genome[i].isReverse) ? '-' : '+',     //  strand
               i,                                     //  ID - match id
-              genome[i].frgIID,                      //  ID - frag id
-              IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
-              genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
+              genome[i].frgIID);                     //  ID - frag id
+      //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+      //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
       continue;
     }
 
@@ -326,40 +284,45 @@ buildIntervals(char *outputPrefix, int32 minOverlap) {
     UNIQ.add(genome[i].genBgn + frgOff + minOverlap,
              len);
 
-    fprintf(UNIQoutputFile, "\n");
-    fprintf(UNIQoutputFile, "#UNIQ frgIID %8d frg %8d,%8d rev %c gen %8d,%8d mod %8d,%8d\n",
+#if 0
+    fprintf(gffOutput, "\n");
+    fprintf(gffOutput, "#UNIQ frgIID %8d frg %8d,%8d rev %c gen %8d,%8d mod %8d,%8d\n",
             frgIID,
             genome[i].frgBgn, genome[i].frgEnd,
             genome[i].isReverse ? 'r' : 'f',
             genome[i].genBgn, genome[i].genEnd,
             genome[i].genBgn + frgOff + minOverlap,
             genome[i].genBgn + frgOff + minOverlap + len);
-    fprintf(UNIQoutputFile, "%s\t.\tmatch\t%d\t%d\t.\t%c\t.\tID=UNIQ%08d-frag%08d;Name=%s;Note=%d-%d\n",
+#endif
+    fprintf(gffOutput, "%s\t.\tbogus_uniq_input\t%d\t%d\t.\t%c\t.\tID=UNIQ%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
             refhdr,                                //  reference name
             genome[i].genBgn, genome[i].genEnd,    //  reference position
             (genome[i].isReverse) ? '-' : '+',     //  strand
             i,                                     //  ID - match id
-            genome[i].frgIID,                      //  ID - frag id
-            IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
-            genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
+            genome[i].frgIID);                     //  ID - frag id
+    //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+    //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
   }
-
-  fclose(SPANoutputFile);
-  fclose(REPToutputFile);
-  fclose(UNIQoutputFile);
 }
 
 
 
 void
-  markWeak(void) {
+markWeak(void) {
   REPTvalid = new bool [REPT.numberOfIntervals()];
   UNIQvalid = new bool [UNIQ.numberOfIntervals()];
 
-  for (uint32 i=0; i<REPT.numberOfIntervals(); i++)
+  REPTvalidParent = new int32 [REPT.numberOfIntervals()];
+  UNIQvalidParent = new int32 [UNIQ.numberOfIntervals()];
+
+  for (uint32 i=0; i<REPT.numberOfIntervals(); i++) {
     REPTvalid[i] = true;
-  for (uint32 i=0; i<UNIQ.numberOfIntervals(); i++)
+    REPTvalidParent[i] = 0;
+  }
+  for (uint32 i=0; i<UNIQ.numberOfIntervals(); i++) {
     UNIQvalid[i] = true;
+    UNIQvalidParent[i] = 0;
+  }
 
   int32   UNIQexceptions=0;
   int32   REPTexceptions=0;
@@ -372,6 +335,7 @@ void
         //        UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.ct(iu),
         //        REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.ct(ir));
         UNIQvalid[iu] = false;
+        UNIQvalidParent[iu] = ir;
         UNIQexceptions++;
       }
       if ((UNIQ.lo(iu) <= REPT.lo(ir)) &&
@@ -380,6 +344,7 @@ void
         //        REPT.lo(ir), REPT.hi(ir), REPT.hi(ir) - REPT.lo(ir), REPT.ct(ir),
         //        UNIQ.lo(iu), UNIQ.hi(iu), UNIQ.hi(iu) - UNIQ.lo(iu), UNIQ.ct(iu));
         REPTvalid[ir] = false;
+        REPTvalidParent[ir] = iu;
         REPTexceptions++;
       }
     }
@@ -452,10 +417,21 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+  {
+    char   outputName[FILENAME_MAX];
+
+    sprintf(outputName, "%s.intervals", outputPrefix);
+    intervalOutput = fopen(outputName, "w");
+
+    sprintf(outputName, "%s.gff3", outputPrefix);
+    gffOutput = fopen(outputName, "w");
+  
+    fprintf(gffOutput, "##gff-version 3\n");
+  }
 
   //  Load the reference sequence.  ASSUMES it is all on one line!
 
-  loadReferenceSequence(refName);
+  loadReferenceSequence(refName, refhdr, refseq, reflen);
 
   //  Load all the matches into genomeAlignment.  Generate longestAlignment for each fragment.
   //  genomeAlignment::isLognest and genomeAlignment::isRepeat are computed later.
@@ -496,68 +472,55 @@ main(int argc, char **argv) {
   //  Write the output
   //
 
-  char   outputName[FILENAME_MAX];
-
-  sprintf(outputName, "%s.intervals", outputPrefix);
-  FILE *outputFile = fopen(outputName, "w");
-
-  sprintf(outputName, "%s.intervals.rept.gff3", outputPrefix);
-  FILE *reptOutputFile = fopen(outputName, "w");
-
-  sprintf(outputName, "%s.intervals.uniq.gff3", outputPrefix);
-  FILE *uniqOutputFile = fopen(outputName, "w");
-
-  fprintf(reptOutputFile, "##gff-version 3\n");
-  fprintf(uniqOutputFile, "##gff-version 3\n");
-
   for (uint32 ir=0, iu=0; ((ir < REPT.numberOfIntervals()) ||
                            (iu < UNIQ.numberOfIntervals())); ) {
     int64  lor = (ir < REPT.numberOfIntervals()) ? REPT.lo(ir) : 999999999;
     int64  lou = (iu < UNIQ.numberOfIntervals()) ? UNIQ.lo(iu) : 999999999;
 
     if (lor < lou) {
-      fprintf(outputFile, "%8ld %8ld REPT %d%s\n",
+      fprintf(intervalOutput, "%8ld %8ld REPT %d%s\n",
               REPT.lo(ir),
               REPT.hi(ir),
               REPT.ct(ir),
               (REPTvalid[ir]) ? "" : " weak");
 
       if (REPTvalid[ir])
-        fprintf(reptOutputFile, "%s\t.\tmatch\t%ld\t%ld\t.\t+\t.\tID=REPT%04d;Name=REPT%04d\n",
+        fprintf(gffOutput, "%s\t.\tbogus_rept_interval\t%ld\t%ld\t.\t.\t.\tID=REPT%04d\n",
                 refhdr,
                 REPT.lo(ir), REPT.hi(ir),
-                ir, ir);
+                ir);
       else
-        fprintf(reptOutputFile, "%s\t.\tmatch\t%ld\t%ld\t.\t+\t.\tID=REPT%04d;Name=REPT%04dweak\n",
+        fprintf(gffOutput, "%s\t.\tbogus_weak_interval\t%ld\t%ld\t.\t.\t.\tParent=UNIQ%04d\n",
                 refhdr,
                 REPT.lo(ir), REPT.hi(ir),
-                ir, ir);
+                REPTvalidParent[ir]);
 
       ir++;
 
     } else {
-      fprintf(outputFile, "%8ld %8ld UNIQ %d%s\n",
+      fprintf(intervalOutput, "%8ld %8ld UNIQ %d%s\n",
               UNIQ.lo(iu) - minOverlap,
               UNIQ.hi(iu) + minOverlap,
               UNIQ.ct(iu),
               (UNIQvalid[iu]) ? "" : " separation");
 
       if (UNIQvalid[iu])
-        fprintf(uniqOutputFile, "%s\t.\tmatch\t%ld\t%ld\t.\t+\t.\tID=UNIQ%04d;Name=UNIQ%04d\n",
+        fprintf(gffOutput, "%s\t.\tbogus_uniq_interval\t%ld\t%ld\t.\t.\t.\tID=UNIQ%04d\n",
                 refhdr,
                 UNIQ.lo(iu), UNIQ.hi(iu),
-                iu, iu);
+                iu);
       else
-        fprintf(uniqOutputFile, "%s\t.\tmatch\t%ld\t%ld\t.\t+\t.\tID=UNIQ%04d;Name=UNIQ%04dweak\n",
+        fprintf(gffOutput, "%s\t.\tbogus_sepr_interval\t%ld\t%ld\t.\t.\t.\tParent=REPT%04d\n",
                 refhdr,
                 UNIQ.lo(iu), UNIQ.hi(iu),
-                iu, iu);
+                UNIQvalidParent[iu]);
 
       iu++;
     }
   }
 
-  fclose(outputFile);
+  fclose(gffOutput);
+  fclose(intervalOutput);
 
   //  See CVS version 1.3 for writing rept/uniq fasta
 

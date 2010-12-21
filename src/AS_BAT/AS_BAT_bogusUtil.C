@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.7 2010-12-17 09:57:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.8 2010-12-21 19:45:18 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -208,3 +208,34 @@ loadSnapper(char                      *snapperName,
 
   fclose(inFile);
 }
+
+
+
+void
+loadReferenceSequence(char     *refName,
+                      char    *&refhdr,
+                      char    *&refseq,
+                      int32    &reflen) {
+
+  FILE    *F      = fopen(refName, "r");
+
+  refhdr = new char [1024];
+  refseq = new char [16 * 1024 * 1024];
+
+  fgets(refhdr,             1024, F);
+  fgets(refseq, 16 * 1026 * 1024, F);
+
+  fclose(F);
+
+  chomp(refhdr);
+  chomp(refseq);
+
+  for (uint32 i=0; refhdr[i]; i++) {
+    refhdr[i] = refhdr[i+1];
+    if (isspace(refhdr[i]))
+      refhdr[i] = 0;
+  }
+
+  reflen = strlen(refseq);
+}
+

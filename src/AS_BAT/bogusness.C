@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogusness.C,v 1.5 2010-12-17 09:57:12 brianwalenz Exp $";
+const char *mainid = "$Id: bogusness.C,v 1.6 2010-12-21 19:45:18 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -50,6 +50,7 @@ char *statuses[4] = { "BEGINSin", "ENDSin", "CONTAINS", "CONTAINED" };
 
 
 
+
 class bogusResult {
 public:
   bogusResult(const char  *_utgID,
@@ -57,6 +58,7 @@ public:
               int32 _alignNum, int32 _alignTotal,
               int32 _utgBgn, int32 _utgEnd,
               int32 _genBgn, int32 _genEnd,
+              bool  _isReverse,
               int32 _status,
               int32 _type,
               int32 _idlNum,
@@ -80,6 +82,7 @@ public:
 
     genBgn     = _genBgn;
     genEnd     = _genEnd;
+    isReverse  = _isReverse;
 
     status     = _status;
     type       = _type;
@@ -114,6 +117,7 @@ public:
 
   int32   genBgn;
   int32   genEnd;
+  bool    isReverse;
 
   int32   status;
   int32   type;
@@ -178,6 +182,22 @@ public:
   char   type;
 };
 #endif
+
+
+char    *refhdr = NULL;
+char    *refseq = NULL;
+char    *refano = NULL;
+int32    reflen = 0;
+
+vector<idealUnitig>        ideal;
+
+vector<genomeAlignment>    genome;
+map<string, int32>         IIDmap;       //  Maps an ID string to an IID.
+vector<string>             IIDname;      //  Maps an IID to an ID string.
+vector<uint32>             IIDcount;     //  Maps an IID to the number of alignments
+
+vector<bogusResult>        results;
+
 
 
 void
@@ -319,16 +339,10 @@ main(int argc, char **argv) {
   char                      *nucmerName   = 0L;
   char                      *snapperName  = 0L;
   char                      *idealName = 0L;
-
-  vector<idealUnitig>        ideal;
-
-  vector<genomeAlignment>    genome;
-  map<string, int32>         IIDmap;       //  Maps an ID string to an IID.
-  vector<string>             IIDname;      //  Maps an IID to an ID string.
-  vector<uint32>             IIDcount;     //  Maps an IID to the number of alignments
-
-  vector<bogusResult>        results;
-
+  char                      *refName = 0L;
+  char                      *outputPrefix = 0L;
+  char                       outputName[FILENAME_MAX];
+  
   int arg=1;
   int err=0;
   while (arg < argc) {
@@ -341,20 +355,29 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-ideal") == 0) {
       idealName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-reference") == 0) {
+      refName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-output") == 0) {
+      outputPrefix = argv[++arg];
+
     } else {
       err++;
     }
     arg++;
   }
-  if ((nucmerName == 0L) && (snapperName == 0L))
+  if ((nucmerName == 0L) && (snapperName == 0L) || (refName == 0L) || (outputPrefix == 0L))
     fprintf(stderr, "ERROR: No input matches supplied (either -nucmer or -snapper).\n"), err++;
   if (idealName == 0L)
     fprintf(stderr, "ERROR: No ideal unitigs supplied (-ideal).\n"), err++;
+  if (outputPrefix == 0L)
+    fprintf(stderr, "ERROR: No output prefix supplied (-output).\n"), err++;
   if (err) {
     exit(1);
   }
 
   loadIdealUnitigs(idealName, ideal);
+  loadReferenceSequence(refName, refhdr, refseq, reflen);
 
   if (nucmerName)
     loadNucmer(nucmerName, genome, IIDmap, IIDname, IIDcount);
@@ -364,6 +387,12 @@ main(int argc, char **argv) {
 
 
   sort(genome.begin(), genome.end(), byFragmentID);
+
+
+  sprintf(outputName, "%s.gff3", outputPrefix);
+  FILE *gffOutput = fopen(outputName, "w");
+
+  fprintf(gffOutput, "##gff-version 3\n");
 
 
 
@@ -408,7 +437,37 @@ main(int argc, char **argv) {
       }
     }
 
-    //  Copy whatever is left over to a list of 'covering' alignments
+    //  Copy whatever is left over to a list of 'covering' alignments (and also write to the gff3 output)
+
+    bool   foundData = false;
+    int32  spanBgn   = 0;
+    int32  spanEnd   = 0;
+
+    for (uint32 i=bgn; i<end; i++) {
+      if (genome[i].isDeleted)
+        //  [i] contained
+        continue;
+
+      if (foundData == false) {
+        foundData = true;
+        spanBgn   = genome[i].genBgn;
+        spanEnd   = genome[i].genEnd;
+      } else {
+        spanBgn   = MIN(spanBgn, genome[i].genBgn);
+        spanEnd   = MAX(spanEnd, genome[i].genEnd);
+      }
+    }
+
+    if (foundData == false) {
+      //  And if we didn't 'foundData', then we won't add anything into 'cover' below, and the rest
+      //  of this iteration does nothing.  We could just immediately to the end of the loop (about
+      //  100 lines down), or just get out of here right now.
+      bgn = end;
+      continue;
+    }
+
+    fprintf(gffOutput, "%s\t.\tbogusness_span\t%d\t%d\t.\t.\t.\tID=%s\n",
+            refhdr, spanBgn, spanEnd, IIDname[frgIID].c_str());
 
     for (uint32 i=bgn; i<end; i++) {
       genomeAlignment  &I = genome[i];
@@ -418,7 +477,11 @@ main(int argc, char **argv) {
         continue;
     
       cover.push_back(I);
+
+      fprintf(gffOutput, "%s\t.\tbogusness_match\t%d\t%d\t.\t%c\t.\tParent=%s\n",
+              refhdr, I.genBgn, I.genEnd, (I.isReverse) ? '-' : '+', IIDname[frgIID].c_str());
     }
+
 
     //  Attempt to classify
 
@@ -444,6 +507,7 @@ main(int argc, char **argv) {
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
                                         cover[c].genBgn, cover[c].genEnd,
+                                        cover[c].isReverse,
                                         STATUS_CONTAINED,
                                         ideal[i].type,
                                         i,
@@ -464,6 +528,7 @@ main(int argc, char **argv) {
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
                                         cover[c].genBgn, cover[c].genEnd,
+                                        cover[c].isReverse,
                                         STATUS_CONTAINED,
                                         ideal[i].type,
                                         i,
@@ -478,6 +543,7 @@ main(int argc, char **argv) {
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
                                         cover[c].genBgn, cover[c].genEnd,
+                                        cover[c].isReverse,
                                         STATUS_CONTAINS,
                                         ideal[i].type,
                                         i,
@@ -492,6 +558,7 @@ main(int argc, char **argv) {
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
                                         cover[c].genBgn, cover[c].genEnd,
+                                        cover[c].isReverse,
                                         STATUS_BEGINSin,
                                         ideal[i].type,
                                         i,
@@ -506,6 +573,7 @@ main(int argc, char **argv) {
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
                                         cover[c].genBgn, cover[c].genEnd,
+                                        cover[c].isReverse,
                                         STATUS_ENDSin,
                                         ideal[i].type,
                                         i,
@@ -521,10 +589,14 @@ main(int argc, char **argv) {
   
   sort(results.begin(), results.end());
 
+
+  sprintf(outputName, "%s.out", outputPrefix);
+  FILE *resultsOut = fopen(outputName, "w");
+
   for (uint32 i=0; i<results.size(); i++) {
     bogusResult *bi = &results[i];
 
-    fprintf(stdout, "| %s || %d of %d || %d-%d || %d-%d || %s || %s || %05d || %d-%d || %dbp || %.2f%% || %.2f%%\n",
+    fprintf(resultsOut, "| %s || %d of %d || %d-%d || %d-%d || %s || %s || %05d || %d-%d || %dbp || %.2f%% || %.2f%%\n",
             bi->utgID,
             bi->alignNum, bi->alignTotal,
             bi->utgBgn, bi->utgEnd,
@@ -536,6 +608,9 @@ main(int argc, char **argv) {
             bi->alignLen,
             bi->utgCov, bi->idlCov);
   }
+
+  fclose(gffOutput);
+  fclose(resultsOut);
 
   ////////////////////////////////////////
   //
