@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.33 2010-11-29 17:30:49 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.34 2011-01-03 01:21:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -107,6 +107,7 @@ void
 buildStore(char *storeName, 
            char *gkpName, 
            uint64 memoryLimit, 
+           uint32 fileLimit,
            uint32 nThreads, 
            uint32 doFilterOBT, 
            uint32 fileListLen, 
@@ -207,40 +208,47 @@ buildStore(char *storeName,
   //  to be flipped, and so mer overlaps count the true number.
   //  Maybe.
   //
-  uint64  numOverlaps         = 0;
   uint64  iidPerBucket        = 0;
 
-  if (fileList[0][0] != '-') {
-    for (uint32 i=0; i<fileListLen; i++) {
-      uint64  no = AS_UTL_sizeOfFile(fileList[i]);
-      if (no == 0)
-        fprintf(stderr, "No overlaps found (or file not found) in '%s'.\n", fileList[i]);
-      
-      numOverlaps += 2 * no / sizeof(OVSoverlap);
-    }
+  if (fileLimit > 0) {
+    iidPerBucket = maxIID / fileLimit;
 
-    assert(numOverlaps > 0);
-
-    //  Why the +1 below?  Consider the case when the number of overlaps is less than the number of
-    //  fragments.  This value is used to figure out how many IIDs we can fit into a single bucket,
-    //  and making it too large means we'll get maybe one more bucket and the buckets will be smaller.
-    //  Yeah, we probably could have just used ceil.
-    //
-    double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(OVSoverlap);
-    double  overlapsPerIID      = (double)numOverlaps / (double)maxIID;
-
-    iidPerBucket                = (uint64)(overlapsPerBucket / overlapsPerIID) + 1;
-
-    fprintf(stderr, "For %.3f million overlaps in "F_U64"MB memory, I'll put "F_U64" IID's (%.3f million overlaps) per bucket.\n",
-            numOverlaps / 1000000.0,
-            memoryLimit / (uint64)1048576,
-            iidPerBucket,
-            overlapsPerBucket / 1000000.0);
   } else {
-    iidPerBucket = maxIID / 100;
-    fprintf(stderr, "Using stdin; cannot size buckets properly.  Using 100 buckets, "F_U64" IIDs per bucket.  Good luck!\n",
-            iidPerBucket);
-  }
+    if (fileList[0][0] != '-') {
+      uint64  numOverlaps = 0;
+
+      for (uint32 i=0; i<fileListLen; i++) {
+        uint64  no = AS_UTL_sizeOfFile(fileList[i]);
+        if (no == 0)
+          fprintf(stderr, "No overlaps found (or file not found) in '%s'.\n", fileList[i]);
+
+        numOverlaps += 2 * no / sizeof(OVSoverlap);
+      }
+
+      assert(numOverlaps > 0);
+
+      //  Why the +1 below?  Consider the case when the number of overlaps is less than the number of
+      //  fragments.  This value is used to figure out how many IIDs we can fit into a single bucket,
+      //  and making it too large means we'll get maybe one more bucket and the buckets will be smaller.
+      //  Yeah, we probably could have just used ceil.
+      //
+      double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(OVSoverlap);
+      double  overlapsPerIID      = (double)numOverlaps / (double)maxIID;
+
+      iidPerBucket                = (uint64)(overlapsPerBucket / overlapsPerIID) + 1;
+
+      fprintf(stderr, "For %.3f million overlaps in "F_U64"MB memory, I'll put "F_U64" IID's (%.3f million overlaps) per bucket.\n",
+              numOverlaps / 1000000.0,
+              memoryLimit / (uint64)1048576,
+              iidPerBucket,
+              overlapsPerBucket / 1000000.0);
+    } else {
+      iidPerBucket = maxIID / 100;
+      fprintf(stderr, "Using stdin; cannot size buckets properly.  Using 100 buckets, "F_U64" IIDs per bucket.  Good luck!\n",
+              iidPerBucket);
+    }
+  }  //  End of memoryLimit
+
 
   uint32                   dumpFileMax = sysconf(_SC_OPEN_MAX);
   BinaryOverlapFile      **dumpFile    = (BinaryOverlapFile **)safe_calloc(sizeof(BinaryOverlapFile *), dumpFileMax);
@@ -371,17 +379,6 @@ buildStore(char *storeName,
     }
 
     AS_OVS_closeBinaryOverlapFile(inputFile);
-
-#if 0
-    //  This was VERY useful for creating a VERY big store.  As each
-    //  file was finished, we could (manually) delete them.  (Yes, I
-    //  had an offline backup of what I deleted).
-    {
-      char newname[1024];
-      sprintf(newname, "%s.loaded", fileList[i]);
-      rename(fileList[i], newname);
-    }
-#endif
   }
 
   for (uint32 i=0; i<dumpFileMax; i++)
@@ -414,7 +411,6 @@ buildStore(char *storeName,
 
   for (uint32 i=0; i<dumpFileMax; i++) {
     char                name[FILENAME_MAX];
-    uint32              x;
     BinaryOverlapFile  *bof = NULL;
 
     if (dumpLength[i] == 0)
@@ -429,13 +425,15 @@ buildStore(char *storeName,
     fprintf(stderr, "reading %s (%ld)\n", name, time(NULL) - beginTime);
 
     bof = AS_OVS_openBinaryOverlapFile(name, FALSE);
-    x   = 0;
-    while (AS_OVS_readOverlap(bof, overlapsort + x))
-      x++;
+
+    uint64 numOvl = 0;
+    while (AS_OVS_readOverlap(bof, overlapsort + numOvl))
+      numOvl++;
+
     AS_OVS_closeBinaryOverlapFile(bof);
 
-    assert(x == dumpLength[i]);
-    assert(x <= dumpLengthMax);
+    assert(numOvl == dumpLength[i]);
+    assert(numOvl <= dumpLengthMax);
 
     //  There's no real advantage to saving this file until after we
     //  write it out.  If we crash anywhere during the build, we are
@@ -448,7 +446,7 @@ buildStore(char *storeName,
     qsort_mt(overlapsort, dumpLength[i], sizeof(OVSoverlap), OVSoverlap_sort, nThreads, 16 * 1024 * 1024);
 
     fprintf(stderr, "writing %s (%ld)\n", name, time(NULL) - beginTime);
-    for (x=0; x<dumpLength[i]; x++)
+    for (uint64 x=0; x<dumpLength[i]; x++)
       AS_OVS_writeOverlapToStore(storeFile, overlapsort + x);
   }
 

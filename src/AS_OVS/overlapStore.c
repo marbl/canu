@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.28 2010-10-01 13:59:43 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.29 2011-01-03 01:21:43 brianwalenz Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -53,6 +53,7 @@ main(int argc, char **argv) {
   uint32          gs_into     = 5;
 
   uint64          memoryLimit = 512 * 1024 * 1024;
+  uint32          fileLimit   = 0;
   uint32          nThreads    = 4;
   uint32          doFilterOBT = 0;
   vector<char *>  fileList;
@@ -147,6 +148,11 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-M") == 0) {
       memoryLimit  = atoi(argv[++arg]);  //  convert first, then multiply so we don't
       memoryLimit *= 1024 * 1024;        //  overflow whatever type atoi() is.
+      fileLimit    = 0;
+
+    } else if (strcmp(argv[arg], "-F") == 0) {
+      fileLimit    = atoi(argv[++arg]);
+      memoryLimit  = 0;
 
     } else if (strcmp(argv[arg], "-g") == 0) {
       gkpName = argv[++arg];
@@ -199,7 +205,7 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((operation == OP_NONE) || (storeName == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -c storeName [-M x (MB)] [-t threads] [-g gkpStore] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -c storeName [-M x (MB) | -F files] [-t threads] [-g gkpStore] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
     fprintf(stderr, "       %s -m storeName mergeName\n", argv[0]);
     fprintf(stderr, "       %s -d storeName [-B] [-E erate] [-b beginIID] [-e endIID]\n", argv[0]);
     fprintf(stderr, "       %s -q aiid biid storeName\n", argv[0]);
@@ -216,7 +222,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "CREATION - create a new store from raw overlap files\n");
     fprintf(stderr, "  -O           Filter overlaps for OBT.\n");
-    fprintf(stderr, "  -M x         Use 'x'MB memory for sorting overlaps.\n");
+    fprintf(stderr, "  -M x         Use 'x'MB memory for sorting overlaps (conflicts with -F).\n");
+    fprintf(stderr, "  -F x         Use 'x' files for sorting overlaps (conflicts with -M).\n");
     fprintf(stderr, "  -t t         Use 't' threads for sorting overlaps.\n");
     fprintf(stderr, "  -L f         Read overlaps from files listed in 'f'.\n");
     fprintf(stderr, "  -i x         Ignore overlaps to closure reads; x is:\n");
@@ -265,7 +272,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_BUILD:
-      buildStore(storeName, gkpName, memoryLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt);
+      buildStore(storeName, gkpName, memoryLimit, fileLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt);
       break;
     case OP_MERGE:
       mergeStore(storeName, fileList[0]);
