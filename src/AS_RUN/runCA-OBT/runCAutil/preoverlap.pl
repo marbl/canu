@@ -116,7 +116,7 @@ sub perfectTrimming {
     }
 
     if (! -e "$gkpStore/reads.updated") {
-        runCommand($wrk, "$bin/gatekeeper -E $gkpStore/reads.update.errors --edit $gkpStore/reads.update $gkpStore > $gkpStore/reads.update.out 2> $gkpStore/reads.update.err") and die;
+        runCommand($wrk, "$bin/gatekeeper --edit $gkpStore/reads.update $gkpStore > $gkpStore/reads.update.out 2> $gkpStore/reads.update.err") and die;
         touch "$gkpStore/reads.updated";
     }
 }
@@ -199,14 +199,15 @@ sub preoverlap {
         $cmd .= " -o $wrk/$asm.gkpStore.BUILDING ";
         $cmd .= " -T " if (getGlobal("doOverlapBasedTrimming"));
         $cmd .= " -F " if (getGlobal("gkpFixInsertSizes"));
-        $cmd .= " -E $wrk/$asm.gkpStore.errorLog ";
         $cmd .= "$gkpInput ";
         $cmd .= "> $wrk/$asm.gkpStore.err 2>&1";
         if (runCommand($wrk, $cmd)) {
             caFailure("gatekeeper failed", "$wrk/$asm.gkpStore.err");
         }
 
-        rename "$wrk/$asm.gkpStore.BUILDING", "$wrk/$asm.gkpStore";
+        rename "$wrk/$asm.gkpStore.BUILDING",                "$wrk/$asm.gkpStore";
+        rename "$wrk/$asm.gkpStore.BUILDING.errorLog",       "$wrk/$asm.gkpStore.errorLog";
+        rename "$wrk/$asm.gkpStore.BUILDING.illuminaUIDmap", "$wrk/$asm.gkpStore.illuminaUIDmap";
         unlink "$asm.gkpStore.err";
     }
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.89 2010-10-25 08:58:26 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.90 2011-01-03 05:20:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,12 +36,15 @@ const char *mainid = "$Id: AS_GKP_main.c,v 1.89 2010-10-25 08:58:26 brianwalenz 
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
 
-char            *progName  = NULL;
+char            *progName       = NULL;
 
-gkStore         *gkpStore  = NULL;
-gkFragment      *gkFrag1   = NULL;
-gkFragment      *gkFrag2   = NULL;
-FILE            *errorFP   = NULL;
+gkStore         *gkpStore       = NULL;
+gkFragment      *gkFrag1        = NULL;
+gkFragment      *gkFrag2        = NULL;
+FILE            *errorFP        = NULL;
+
+char             illuminaUIDmapName[FILENAME_MAX];
+FILE            *illuminaUIDmap = NULL;
 
 static
 void
@@ -295,8 +298,6 @@ constructIIDdump(char  *gkpStoreName,
   gkFragment  fr;
   gkStream   *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
 
-  int         i;
-
   if (iidToDump == NULL)
     iidToDump = (char *)safe_calloc(numTotal, sizeof(char));
 
@@ -353,14 +354,14 @@ constructIIDdump(char  *gkpStoreName,
     //fprintf(stderr, "randFraction %d %d\n", dumpRandSingNum, dumpRandMateNum);
   }
 
-  for (i=0; (i < dumpRandSingNum) && (candidatesSLen > 0); i++) {
+  for (uint32 i=0; (i < dumpRandSingNum) && (candidatesSLen > 0); i++) {
     int  x = lrand48() % candidatesSLen;
     iidToDump[candidatesS[x]] = 1;
     candidatesSLen--;
     candidatesS[x] = candidatesS[candidatesSLen];
   }
 
-  for (i=0; (i < dumpRandMateNum) && (candidatesMLen > 0); i += 2) {
+  for (uint32 i=0; (i < dumpRandMateNum) && (candidatesMLen > 0); i += 2) {
     int  x = lrand48() % candidatesMLen;
     iidToDump[candidatesA[x]] = 1;
     iidToDump[candidatesB[x]] = 1;
@@ -404,7 +405,6 @@ main(int argc, char **argv) {
   char            *vectorClearFile    = NULL;
   int              assembler          = AS_ASSEMBLER_GRANDE;
   int              firstFileArg       = 0;
-  char            *errorFile          = NULL;
   int              fixInsertSizes     = 0;
 
   //  Options for partitioning
@@ -468,8 +468,6 @@ main(int argc, char **argv) {
       firstFileArg    = 1;  // gets us around the input file sanity check, unused otherwise
     } else if (strcmp(argv[arg], "-T") == 0) {
       assembler = AS_ASSEMBLER_OBT;
-    } else if (strcmp(argv[arg], "-E") == 0) {
-      errorFile = argv[++arg];
     } else if (strcmp(argv[arg], "-F") == 0) {
       fixInsertSizes = 1;
     } else if (strcmp(argv[arg], "-P") == 0) {
@@ -483,7 +481,6 @@ main(int argc, char **argv) {
       uidFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-iid") == 0) {
       iidFileName = argv[++arg];
-
     } else if (strcmp(argv[arg], "-randommated") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
       dumpRandMateNum  = atoi(argv[++arg]) * 2;
@@ -648,7 +645,7 @@ main(int argc, char **argv) {
       case DUMP_LASTFRG:
         {
           gkStore *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
-          fprintf(stdout, "Last frag in store is iid = "F_S64"\n", gkp->gkStore_getNumFragments());
+          fprintf(stdout, "Last frag in store is iid = %d\n", gkp->gkStore_getNumFragments());
           delete gkp;
         }
         break;
@@ -688,14 +685,18 @@ main(int argc, char **argv) {
   gkFrag1->gkFragment_enableGatekeeperMode(gkpStore);
   gkFrag2->gkFragment_enableGatekeeperMode(gkpStore);
 
-  if (errorFile) {
-    errno = 0;
-    errorFP = fopen(errorFile, "w");
-    if (errno) {
-      fprintf(stderr, "%s: cannot open error file '%s': %s\n", progName, errorFile, strerror(errno));
-      exit(1);
-    }
+
+  sprintf(illuminaUIDmapName, "%s.errorLog", gkpStoreName);
+
+  errno = 0;
+  errorFP = fopen(illuminaUIDmapName, "w");
+  if (errno) {
+    fprintf(stderr, "%s: cannot open error file '%s': %s\n", progName, illuminaUIDmapName, strerror(errno));
+    exit(1);
   }
+
+  sprintf(illuminaUIDmapName, "%s.illuminaUIDmap", gkpStoreName);
+
 
   for (; firstFileArg < argc; firstFileArg++) {
     FILE            *inFile            = NULL;
@@ -763,12 +764,15 @@ main(int argc, char **argv) {
 
   delete gkpStore;
 
-  if (errorFile)
+  if (errorFP != stdout)
     //  Close it if it is a file
     fclose(errorFP);
   else
     //  Or flush it; it is stdout and summarizeErrors writes to stderr
     fflush(errorFP);
+
+  if (illuminaUIDmap)
+    fclose(illuminaUIDmap);
 
   return(AS_GKP_summarizeErrors());
 }

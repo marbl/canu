@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.13 2010-10-25 09:12:14 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.14 2011-01-03 05:20:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -362,6 +362,15 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
   fprintf(stderr, "Processing illumina reads from '%s'\n", lname);
   fprintf(stderr, "                           and '%s'\n", rname);
 
+  if (illuminaUIDmap == NULL) {
+    errno = 0;
+    illuminaUIDmap = fopen(illuminaUIDmapName, "w");
+    if (errno) {
+      fprintf(stderr, "cannot open illumina UID map file '%s': %s\n", illuminaUIDmapName, strerror(errno));
+      exit(1);
+    }
+  }
+
   FILE *lfile = NULL;
   bool  lpipe = openFile(lname, lfile);
   FILE *rfile = NULL;
@@ -391,15 +400,20 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
       gkpStore->gkStore_addFragment(&lfrg->fr);
       gkpStore->gkStore_addFragment(&rfrg->fr);
 
+      fprintf(illuminaUIDmap, F_U64"\t%s\t"F_U64"\t%s\n", lUID, lfrg->snam+1, rUID, rfrg->snam+1);
 
     } else if (lfrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Only add the left fragment.
       gkpStore->gkStore_addFragment(&lfrg->fr);
 
+      fprintf(illuminaUIDmap, F_U64"\t%s\n", lUID, lfrg->snam+1);
+
 
     } else if (rfrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Only add the right fragment.
       gkpStore->gkStore_addFragment(&rfrg->fr);
+
+      fprintf(illuminaUIDmap, F_U64"\t%s\n", rUID, rfrg->snam+1);
 
 
     } else {
@@ -421,6 +435,15 @@ void
 loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
   fprintf(stderr, "Processing illumina reads from '%s'.\n", uname);
 
+  if (illuminaUIDmap == NULL) {
+    errno = 0;
+    illuminaUIDmap = fopen(illuminaUIDmapName, "w");
+    if (errno) {
+      fprintf(stderr, "cannot open illumina UID map file '%s': %s\n", illuminaUIDmapName, strerror(errno));
+      exit(1);
+    }
+  }
+
   FILE *ufile = NULL;
   bool  upipe = openFile(uname, ufile);
 
@@ -436,6 +459,8 @@ loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient)
     if (ufrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Add a fragment.
       gkpStore->gkStore_addFragment(&ufrg->fr);
+
+      fprintf(illuminaUIDmap, F_U64"\t%s\n", uUID, ufrg->snam+1);
 
     } else {
       //  Junk read, do nothing.

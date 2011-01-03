@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.59 2010-10-25 09:12:14 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.60 2011-01-03 05:20:38 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.59 2010-10-25 09:12:14 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.60 2011-01-03 05:20:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -43,6 +43,8 @@ extern gkStore     *gkpStore;
 extern gkFragment  *gkFrag1;
 extern gkFragment  *gkFrag2;
 extern FILE        *errorFP;
+extern char         illuminaUIDmapName[FILENAME_MAX];
+extern FILE        *illuminaUIDmap;
 
 int
 Check_DistanceMesg(DistanceMesg     *dst_mesg,
