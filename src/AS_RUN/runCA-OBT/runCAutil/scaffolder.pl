@@ -251,7 +251,6 @@ sub updateDistanceRecords ($) {
     my $gkpErrorFile = "$wrk/$thisDir/gkp.distupdate.err";
     $cmd  = "$bin/gatekeeper ";
     $cmd .= " -a -o $wrk/$asm.gkpStore ";
-    $cmd .= " -E $gkpErrorFile";
     $cmd .= " $wrk/$thisDir/stat/scaffold_final.distupdate.dst ";
     $cmd .= " $wrk/$thisDir/stat/contig_final.distupdate.dst ";
     $cmd .= " > $wrk/$thisDir/cgw.distupdate.err 2>&1";
