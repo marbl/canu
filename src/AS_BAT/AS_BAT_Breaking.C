@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.3 2011-01-03 03:16:02 brianwalenz Exp $";
 
 #include "AS_BAT_Breaking.H"
 
@@ -30,8 +30,8 @@ static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.2 2010-12-06 08:03:48 bri
 //  large break points were (I suspect) analyzed to see if many short break points were piling up in
 //  one region.  If so, one was selected and accepted into the list of final break points.
 
-static const int MIN_BREAK_FRAGS = 1;
-static const int MIN_BREAK_LENGTH = 500;
+static const int MIN_BREAK_FRAGS   = 1;
+static const int MIN_BREAK_LENGTH  = 500;
 
 
 void
@@ -53,7 +53,7 @@ filterBreakPoints(Unitig *tig,
 
 UnitigVector *
 breakUnitigAt(Unitig *tig,
-                           UnitigBreakPoints &breaks) {
+              UnitigBreakPoints &breaks) {
 
   if (breaks.empty())
     return NULL;
@@ -72,10 +72,10 @@ breakUnitigAt(Unitig *tig,
   //  explicitly remove them from the original unitig).  After all splits are done, we'll go back
   //  and place the contains again.
 
-  UnitigVector *newTigs = new UnitigVector();
-  Unitig       *newTig  = NULL;
-  int32         offset  = 0;
-  uint32        bpCur   = 0;  //  Current break point in the breaks list
+  UnitigVector *newTigs   = new UnitigVector();
+  Unitig       *newTig    = NULL;
+  int32         offset    = 0;
+  uint32        bpCur     = 0;  //  Current break point in the breaks list
 
   for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
     ufNode  frg         = tig->ufpath[fi];
@@ -160,8 +160,25 @@ breakUnitigAt(Unitig *tig,
   }
 
 
+  //  Bubbles can cause the above to make disconnected unitigs.  In this example, the fragment has
+  //  no containment overlap (higher error than allowed) but is still placed as a contained fragment
+  //  by bubble popping.
+  //
+  //  A-------------------------
+  //           B---------
+  //  intersect^           C-------------------
+  //
+  //
+  //  This pattern is denoting (possibly) that we transitioned from unique sequence to repeat
+  //  sequence.  This argues that we should eject it to a singleton, hoping that we'll later put
+  //  in in the repeat unitig.
+  //
+  //  The algorithm will create a new unitig starting with B, and put C into there too.  The gap
+  //  causes consensus to fail.  To resolve, we search for and split such unitigs.
+
   //  Finally, add back in contains.
 
+  //  Both of those are done in the main loop, in bogart.C, after all splitting is done.
 
   return(newTigs);
 }

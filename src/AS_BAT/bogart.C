@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.4 2010-12-17 09:55:56 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.5 2011-01-03 03:16:02 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -34,6 +34,7 @@ const char *mainid = "$Id: bogart.C,v 1.4 2010-12-17 09:55:56 brianwalenz Exp $"
 #include "AS_BAT_IntersectBubble.H"
 #include "AS_BAT_IntersectSplit.H"
 #include "AS_BAT_Breaking.H"
+#include "AS_BAT_SplitDiscontinuous.H"
 #include "AS_BAT_Joining.H"
 #include "AS_BAT_SetParentAndHang.H"
 #include "AS_BAT_ArrivalRate.H"
@@ -439,7 +440,9 @@ main (int argc, char * argv []) {
   setLogFile(output_prefix, "intersectionBreaking");
 
   breakUnitigs(unitigs, output_prefix, breakIntersections);
-  placeContainsUsingBestOverlaps(unitigs);
+
+  splitDiscontinuousUnitigs(unitigs);       //  Clean up splitting problems.
+  placeContainsUsingBestOverlaps(unitigs);  //  Add back any contained fragments we remvoed.
 
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "intersectionBreaking");

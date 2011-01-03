@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.3 2011-01-03 03:16:02 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -31,6 +31,8 @@ static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.2 2010-12-06 08
 //  After splitting and ejecting some contains, check for discontinuous unitigs.
 //
 void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
+
+  fprintf(logFile, "==> SPLIT DISCONTINUOUS\n");
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig  *tig = unitigs[ti];
