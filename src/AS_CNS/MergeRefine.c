@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeRefine.c,v 1.2 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeRefine.c,v 1.3 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -56,9 +56,9 @@ MergeCompatible(int32 cid) {
 
   //  If both columns have a non-gap, we cannot merge.
 
-  while (cbead->down != - 1) {
+  while (cbead->down.isValid()) {
     cbead = GetBead(beadStore,cbead->down);
-    if (cbead->next != -1) {
+    if (cbead->next.isValid()) {
       Bead *mbead =  GetBead(beadStore, cbead->next);
       if ((*Getchar(sequenceStore,cbead->soffset) != '-') &&
           (*Getchar(sequenceStore,mbead->soffset) != '-'))
@@ -83,10 +83,10 @@ MergeCompatible(int32 cid) {
   //  right) to column (on the left).
 
   cbead = GetBead(beadStore,column->call);
-  while (cbead->down != - 1) {
+  while (cbead->down.isValid()) {
     cbead = GetBead(beadStore,cbead->down);
 
-    if (cbead->next != -1) {
+    if (cbead->next.isValid()) {
       Bead *mbead =  GetBead(beadStore, cbead->next);
 
       //fprintf(stderr, "merge? %c -- %c\n",
@@ -119,7 +119,7 @@ MergeCompatible(int32 cid) {
 
     //fprintf(stderr, "loop depth=%d gap=%d\n", GetDepth(merge_column), GetBaseCount(&merge_column->base_count,'-'));
 
-    while (mcall->down != -1) {
+    while (mcall->down.isValid()) {
       Bead *mbead = GetBead(beadStore, mcall->down);
 
       //  If the mbead is not a gap, move it over to the left column,
@@ -136,8 +136,8 @@ MergeCompatible(int32 cid) {
         //        mbead->column_index);
 
         // heal wound left by lateral removal
-        if (mbead->prev != -1 ) GetBead(beadStore,mbead->prev)->next = mbead->next;
-        if (mbead->next != -1 ) GetBead(beadStore,mbead->next)->prev = mbead->prev;
+        if (mbead->prev.isValid() ) GetBead(beadStore,mbead->prev)->next = mbead->next;
+        if (mbead->next.isValid() ) GetBead(beadStore,mbead->next)->prev = mbead->prev;
 
         UnAlignBeadFromColumn(mbead->boffset);
         ClearBead(mbead->boffset);
@@ -146,15 +146,15 @@ MergeCompatible(int32 cid) {
 
     // heal wound left by lateral removal of mcall
     //
-    if (mcall->prev != -1 ) GetBead(beadStore,mcall->prev)->next = mcall->next;
-    if (mcall->next != -1 ) GetBead(beadStore,mcall->next)->prev = mcall->prev;
+    if (mcall->prev.isValid() ) GetBead(beadStore,mcall->prev)->next = mcall->next;
+    if (mcall->next.isValid() ) GetBead(beadStore,mcall->next)->prev = mcall->prev;
 
     ClearBead(mcall->boffset);
 
     // reset column pointers to bypass the removed column
     //
-    if (merge_column->prev > -1 ) GetColumn(columnStore,merge_column->prev)->next = merge_column->next;
-    if (merge_column->next > -1 ) GetColumn(columnStore,merge_column->next)->prev = merge_column->prev;
+    if (merge_column->prev != -1) GetColumn(columnStore,merge_column->prev)->next = merge_column->next;
+    if (merge_column->next != -1) GetColumn(columnStore,merge_column->next)->prev = merge_column->prev;
 
     //ClearColumn();
   }
@@ -171,7 +171,7 @@ MergeCompatible(int32 cid) {
 
 void
 MergeRefine(int32 mid, VA_TYPE(IntMultiVar) *v_list,
-            int32 utg_alleles, CNS_Options *opp, int get_scores) {
+            int32 utg_alleles, CNS_Options *opp, int32 get_scores) {
   int32   cid = 0;
   MANode *ma  = GetMANode(manodeStore,mid);
 
@@ -182,7 +182,7 @@ MergeRefine(int32 mid, VA_TYPE(IntMultiVar) *v_list,
   //  column (MergeCompatible removes the column that gets merged into
   //  the current column).
   //
-  for (cid=ma->first; cid!=-1; ){
+  for (cid=ma->first; cid != -1; ){
     if (MergeCompatible(cid) == 0)
       cid = GetColumn(columnStore,cid)->next;
   }
@@ -190,7 +190,7 @@ MergeRefine(int32 mid, VA_TYPE(IntMultiVar) *v_list,
   {
     IntMultiVar *vl=NULL;
     int32 nv=0;
-    int make_v_list=0;
+    int32 make_v_list=0;
 
     if (utg_alleles)
       make_v_list = 1;

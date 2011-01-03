@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.11 2010-09-20 19:45:15 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.12 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -461,7 +461,7 @@ main (int argc, char **argv) {
     } else {
       tigStore = new MultiAlignStore(tigName);
 
-      for (uint32 v=1; v<tigVers; v++)
+      for (int32 v=1; v<tigVers; v++)
         tigStore->nextVersion();
     }
 

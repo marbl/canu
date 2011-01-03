@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: SeqAn_CNS.c,v 1.9 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: SeqAn_CNS.c,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -52,7 +52,7 @@ char *replace_str(char *str, char *orig, char *rep)
     return str;
   }
 
-  int len = p-str;
+  int32 len = p-str;
   strncpy(buffer, str, len);
   buffer[p-str] = '\0';
 
@@ -73,8 +73,8 @@ void getFileName(char *prefix, char * wrkDir, char *fileName, char *result) {
 
 char * readMultiLine(FILE* inFile) {
    char * result = (char *) safe_malloc(sizeof(char)*AS_SEQAN_MAX_BUFFER_LENGTH);
-   int position = 0;
-   int resultSize = AS_SEQAN_MAX_BUFFER_LENGTH;
+   int32 position = 0;
+   int32 resultSize = AS_SEQAN_MAX_BUFFER_LENGTH;
 
    while (!feof(inFile)) {
       if ((position + AS_SEQAN_MAX_LINE_LENGTH) > resultSize) {
@@ -129,7 +129,7 @@ void updateRecord(IntUnitigMesg *ium_mesg, char * inFile, char *seqAn, char * pr
    ium_mesg->quality[ium_mesg->length] = '\0';
 
    //update read data
-   int currRead = 0;
+   int32 currRead = 0;
    char line[AS_SEQAN_MAX_RESULT_LENGTH];
    char resultFile[AS_SEQAN_MAX_BUFFER_LENGTH];
    getFileName(prefix, wrkDir, AS_SEQAN_RESULT, resultFile);
@@ -173,8 +173,7 @@ void updateRecord(IntUnitigMesg *ium_mesg, char * inFile, char *seqAn, char * pr
          char *dlnStr = line+AS_SEQAN_MAX_HEADER_LENGTH;
 
          ium_mesg->f_list[currRead].delta = (int32 *)safe_malloc(sizeof(int32) * ium_mesg->f_list[currRead].delta_length);
-         int i = 0;
-         while (i < ium_mesg->f_list[currRead].delta_length) {
+         while (int32 i < ium_mesg->f_list[currRead].delta_length) {
             ium_mesg->f_list[currRead].delta[i] = (int32) strtol(dlnStr,&dlnStr,10);
             i++;
          }
@@ -197,7 +196,7 @@ void updateICMRecord(IntConConMesg *icm_mesg, char * inFile, char *seqAn, char *
    icm_mesg->quality[icm_mesg->length] = '\0';
 
    //update read data
-   int currRead = 0;
+   int32 currRead = 0;
    char line[AS_SEQAN_MAX_RESULT_LENGTH];
    char resultFile[AS_SEQAN_MAX_BUFFER_LENGTH];
    getFileName(prefix, wrkDir, AS_SEQAN_RESULT, resultFile);
@@ -242,7 +241,7 @@ void updateICMRecord(IntConConMesg *icm_mesg, char * inFile, char *seqAn, char *
          char *dlnStr = line+AS_SEQAN_MAX_HEADER_LENGTH;
 
          icm_mesg->pieces[currRead].delta = (int32 *)safe_malloc(sizeof(int32) * icm_mesg->pieces[currRead].delta_length);
-         int i = 0;
+         int32 i = 0;
          while (i < icm_mesg->pieces[currRead].delta_length) {
             icm_mesg->pieces[currRead].delta[i] = (int32) strtol(dlnStr,&dlnStr,10);
             i++;
@@ -278,7 +277,7 @@ void updateICMRecord(IntConConMesg *icm_mesg, char * inFile, char *seqAn, char *
             char *dlnStr = del+AS_SEQAN_MAX_HEADER_LENGTH;
    
             icm_mesg->unitigs[currRead].delta = (int32 *)safe_malloc(sizeof(int32) * icm_mesg->unitigs[currRead].delta_length);
-            int i = 0;
+            int32 i = 0;
             while (i < icm_mesg->unitigs[currRead].delta_length) {
                icm_mesg->unitigs[currRead].delta[i] = (int32) strtol(dlnStr,&dlnStr,10);
                i++;
@@ -291,20 +290,21 @@ void updateICMRecord(IntConConMesg *icm_mesg, char * inFile, char *seqAn, char *
    fclose(tempOut);
 }
 
-int main(int argc, char **argv) {
-   int arg = 1;
-   int err = 0;
-   int hlp = 0;
+int32
+main(int32 argc, char **argv) {
+   int32 arg = 1;
+   int32 err = 0;
+   int32 hlp = 0;
 
    char * gkpStoreName  = NULL;
-   int    gkpStorePart  = 0;
+   int32  gkpStorePart  = 0;
    char * msgFile       = NULL;
    char * outputFileName= NULL;
    char * seqAn         = NULL;
    char * wrkDir        = NULL;
    char * seqStoreName  = NULL;
-   int    seqStoreVer   = 0;
-   int    seqStorePart  = 0;     
+   int32  seqStoreVer   = 0;
+   int32  seqStorePart  = 0;     
 
    argc = AS_configure(argc, argv);
 
@@ -353,10 +353,10 @@ int main(int argc, char **argv) {
    char *prefix = outputFileName;
    getFileName(prefix, wrkDir, AS_SEQAN_INPUT_NAME, fileName);
 
-   int i = 0;
+   int32 i = 0;
    
    while ((EOF != ReadProtoMesg_AS(infp, &pmesg))) {
-      int freeMem = 0;
+      int32 freeMem = 0;
      
       if (pmesg->t == MESG_IUM) {
          IntUnitigMesg *ium_mesg = (IntUnitigMesg *)pmesg->m;         
@@ -367,10 +367,10 @@ int main(int argc, char **argv) {
             for (i =0; i < ium_mesg->num_frags; i++) {
                // get the fragment sequence
                gkpStore->gkStore_getFragment(ium_mesg->f_list[i].ident, &fr, GKFRAGMENT_QLT);
-               unsigned int   clrBeg = fr.gkFragment_getClearRegionBegin();
-               unsigned int   clrEnd = fr.gkFragment_getClearRegionEnd  ();
-               char          *seqStart = fr.gkFragment_getSequence();
-               char          *seq      = seqStart+clrBeg;
+               uint32   clrBeg = fr.gkFragment_getClearRegionBegin();
+               uint32   clrEnd = fr.gkFragment_getClearRegionEnd  ();
+               char    *seqStart = fr.gkFragment_getSequence();
+               char     *seq      = seqStart+clrBeg;
 
                seq[clrEnd] = 0;
                AS_UTL_writeFastA(tempReads,
@@ -406,10 +406,10 @@ int main(int argc, char **argv) {
             for (i =0; i < icm_mesg->num_pieces; i++) {
                // get the fragment sequence
                gkpStore->gkStore_getFragment(icm_mesg->pieces[i].ident, &fr, GKFRAGMENT_QLT);
-               unsigned int   clrBeg   = fr.gkFragment_getClearRegionBegin();
-               unsigned int   clrEnd   = fr.gkFragment_getClearRegionEnd  ();
-               char          *seqStart = fr.gkFragment_getSequence();
-               char          *seq      = seqStart+clrBeg;
+               uint32   clrBeg   = fr.gkFragment_getClearRegionBegin();
+               uint32   clrEnd   = fr.gkFragment_getClearRegionEnd  ();
+               char    *seqStart = fr.gkFragment_getSequence();
+               char    *seq      = seqStart+clrBeg;
 
                seq[clrEnd] = 0;
                AS_UTL_writeFastA(tempReads,

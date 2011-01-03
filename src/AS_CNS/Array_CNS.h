@@ -22,21 +22,21 @@
 #ifndef AS_CNS_ARRAY_INCLUDE
 #define AS_CNS_ARRAY_INCLUDE
 
-static const char *rcsid_AS_CNS_ARRAY_INCLUDE = "$Id: Array_CNS.h,v 1.13 2009-09-07 07:40:57 brianwalenz Exp $";
+static const char *rcsid_AS_CNS_ARRAY_INCLUDE = "$Id: Array_CNS.h,v 1.14 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 
 int
 IMP2Array(IntMultiPos *frags,
-          int num_frags,
-          int length,
+          int32 num_frags,
+          int32 length,
           gkStore *frag_store,
-          int *depth,
+          int32 *depth,
           char ***multia,
-          int ***id_array,
-          int ***ori_array,
-          int show_cel_status,
+          int32 ***id_array,
+          int32 ***ori_array,
+          int32 show_cel_status,
           uint32 clrrng_flag);
 
 #endif

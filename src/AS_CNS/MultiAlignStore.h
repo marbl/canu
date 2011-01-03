@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
-static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.8 2010-09-24 02:33:47 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.9 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -132,7 +132,7 @@ public:
 
   bool                       isDeleted(int32 maID, bool isUnitig);
 
-  int                        getUnitigCoverageStat(int32 maID);
+  int32                      getUnitigCoverageStat(int32 maID);
   double                     getUnitigMicroHetProb(int32 maID);
   UnitigStatus               getUnitigStatus(int32 maID);
   UnitigFUR                  getUnitigFUR(int32 maID);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.8 2009-10-28 17:25:12 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.9 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -74,12 +74,12 @@ PlaceFragments(int32 fid,
     int32  bbgn = (bimp->position.bgn < bimp->position.end ? bimp->position.bgn : bimp->position.end);
     int32  abgn = (aiup->position.bgn < aiup->position.end ? aiup->position.bgn : aiup->position.end);
 
-    int fcomplement = afrag->complement;
-    int bcomplement = (belem->position.bgn < belem->position.end) ? 0 : 1;
+    int32 fcomplement = afrag->complement;
+    int32 bcomplement = (belem->position.bgn < belem->position.end) ? 0 : 1;
 
-    int           ahang = 0;
-    int           bhang = 0;
-    int           ovl   = 0;
+    int32           ahang = 0;
+    int32           bhang = 0;
+    int32           ovl   = 0;
     OverlapType   otype;
 
     //  all of fid's component frags will be aligned to it (not to
@@ -128,12 +128,12 @@ PlaceFragments(int32 fid,
         fprintf(stderr, "Not placing fragment %d into unitig %d because the positions (%d, %d) do not match (%d, %d)\n",
                 belem->idx.fragment.frgIdent, afrag->iid,
                 bimp->position.bgn, bimp->position.end,
-                ahang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead))->column_index)->ma_index,
-                bhang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead+afrag->length-1))->column_index)->ma_index+1);
+                ahang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead.get()                ))->column_index)->ma_index,
+                bhang + GetColumn(columnStore,(GetBead(beadStore,afrag->firstbead.get()+afrag->length-1))->column_index)->ma_index+1);
       continue;
     }
 
-    int blid = AppendFragToLocalStore(belem->idx.fragment.frgType,
+    int32 blid = AppendFragToLocalStore(belem->idx.fragment.frgType,
                                       belem->idx.fragment.frgIdent,
                                       (bcomplement != fcomplement),
                                       belem->idx.fragment.frgContained,
@@ -147,7 +147,7 @@ PlaceFragments(int32 fid,
       //if (!GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, DP_Compare,              DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE) &&
       //  !GetAlignmentTrace(afrag->lid, 0, blid, &ahang, &bhang, ovl, trace, &otype, Local_Overlap_AS_forCNS, DONT_SHOW_OLAP, 0, AS_CONSENSUS, AS_CNS_ERROR_RATE)) {
 
-      Bead   *afirst = GetBead(beadStore, afrag->firstbead + ahang);
+      Bead   *afirst = GetBead(beadStore, afrag->firstbead.get() + ahang);
       Column *col    = GetColumn(columnStore, afirst->column_index);
       MANode *manode = GetMANode(manodeStore, col->ma_id);
 
@@ -171,10 +171,10 @@ MultiAlignContig(MultiAlignT  *ma,
                  gkStore      *UNUSED,
                  CNS_PrintKey  printwhat,
                  CNS_Options  *opp) {
-  uint32        num_bases     = 0;
-  uint32        num_unitigs   = GetNumIntUnitigPoss(ma->u_list);
-  uint32        num_frags     = GetNumIntMultiPoss(ma->f_list);
-  uint32        num_columns   = 0;
+  int32        num_bases     = 0;
+  int32        num_unitigs   = GetNumIntUnitigPoss(ma->u_list);
+  int32        num_frags     = GetNumIntMultiPoss(ma->f_list);
+  int32        num_columns   = 0;
 
   IntMultiPos  *flist    = GetIntMultiPos(ma->f_list, 0);
   IntUnitigPos *ulist    = GetIntUnitigPos(ma->u_list, 0);
@@ -182,7 +182,7 @@ MultiAlignContig(MultiAlignT  *ma,
 
   SeqInterval  *offsets       = (SeqInterval *) safe_calloc(num_unitigs,sizeof(SeqInterval));
 
-  for (uint32 i=0;i<num_unitigs;i++) {
+  for (int32 i=0;i<num_unitigs;i++) {
     int32 flen   = (ulist[i].position.bgn < ulist[i].position.end) ? (ulist[i].position.end < ulist[i].position.bgn) : (ulist[i].position.bgn - ulist[i].position.end);
     num_bases   += flen + 2 * AS_CNS_ERROR_RATE * flen;
 
@@ -193,7 +193,7 @@ MultiAlignContig(MultiAlignT  *ma,
     //        ma->maID, ulist[i].ident, ulist[i].position.bgn, ulist[i].position.end);
   }
 
-  for (uint32 i=0;i<num_frags;i++) {
+  for (int32 i=0;i<num_frags;i++) {
     int32 flen   = (flist[i].position.bgn < flist[i].position.end) ? (flist[i].position.end < flist[i].position.bgn) : (flist[i].position.bgn - flist[i].position.end);
     num_bases   += flen + 2 * AS_CNS_ERROR_RATE * flen;
   }
@@ -203,7 +203,7 @@ MultiAlignContig(MultiAlignT  *ma,
   fragmentMap   = CreateScalarHashTable_AS();
   fragmentToIMP = CreateScalarHashTable_AS();
 
-  for (uint32 i=0; i<num_frags; i++) {
+  for (int32 i=0; i<num_frags; i++) {
 
     //  Add all fragments in the contigs f_list to the fragmentMap.  This tells us if a fragment is
     //  not placed in a surrogate (because they aren't in the contigs f_list, but will appear in a
@@ -219,7 +219,7 @@ MultiAlignContig(MultiAlignT  *ma,
     InsertInHashTable_AS(fragmentToIMP, flist[i].ident, 0, (uint64)&flist[i], 0);
   }
 
-  for (uint32 i=0;i<num_unitigs;i++) {
+  for (int32 i=0;i<num_unitigs;i++) {
     uint32 complement = (ulist[i].position.bgn<ulist[i].position.end)?0:1;
     uint32 fid = AppendFragToLocalStore(AS_UNITIG,
                                  ulist[i].ident,
@@ -231,7 +231,7 @@ MultiAlignContig(MultiAlignT  *ma,
   }
 
   if (DUMP_UNITIGS_IN_MULTIALIGNCONTIG > 0) {
-    for (uint32 i=0; i<num_unitigs; i++) {
+    for (int32 i=0; i<num_unitigs; i++) {
       Fragment *f = GetFragment(fragmentStore,i);
       char     *s = Getchar(sequenceStore,f->sequence);
       fprintf(stderr, ">unitig-%d\n%s\n", f->iid, s);
@@ -251,25 +251,25 @@ MultiAlignContig(MultiAlignT  *ma,
 
   VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_NORMAL_LEN+1);
 
-  for (uint32 i=1;i<num_unitigs;i++) {
+  for (int32 i=1;i<num_unitigs;i++) {
     Fragment *afrag = NULL;
     Fragment *bfrag = GetFragment(fragmentStore,i);
 
-    int    ahang  = 0;
-    int    bhang  = 0;
-    int    ovl    = 0;
-    int    alid   = 0;
-    int    blid   = bfrag->lid;
+    int32    ahang  = 0;
+    int32    bhang  = 0;
+    int32    ovl    = 0;
+    int32    alid   = 0;
+    int32    blid   = bfrag->lid;
 
     OverlapType otype;
 
-    int olap_success  = 0;
-    int try_contained = 0;
-    int align_to      = i - 1;
+    int32 olap_success  = 0;
+    int32 try_contained = 0;
+    int32 align_to      = i - 1;
 
     Fragment *afrag_first = NULL;
-    int       ahang_first = 0;
-    int       bhang_first = 0;
+    int32       ahang_first = 0;
+    int32       bhang_first = 0;
 
     while (!olap_success) {
     nextFrag:
@@ -375,7 +375,7 @@ MultiAlignContig(MultiAlignT  *ma,
         //  Dang, we're really screwed.  Nobody overlapped with us.
         //  Cross our fingers and find the closest end point.
         //
-        int   maxOvl = -offsets[blid].bgn;
+        int32   maxOvl = -offsets[blid].bgn;
 
         //if (VERBOSE_MULTIALIGN_OUTPUT)
         //  fprintf(stderr, "MultiAlignContig:  YIKES!  Your unitig doesn't overlap with anything!  Picking the closest thing!\n");

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.255 2010-09-23 20:34:51 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.256 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -69,7 +69,7 @@ VA_TYPE(Fragment) *fragmentStore = NULL;
 VA_TYPE(Column)   *columnStore   = NULL;
 VA_TYPE(MANode)   *manodeStore   = NULL;
 
-int thisIsConsensus = 0;
+int32 thisIsConsensus = 0;
 
 //
 // Convenience arrays for misc. fragment information
@@ -82,22 +82,22 @@ VA_TYPE(CNS_AlignedContigElement) *fragment_positions = NULL;
 
 int64 gaps_in_alignment = 0;
 
-int allow_neg_hang         = 0;
+int32 allow_neg_hang         = 0;
 
 
 // Variables used to compute general statistics
 
-int NumColumnsInUnitigs = 0;
-int NumRunsOfGapsInUnitigReads = 0;
-int NumGapsInUnitigs = 0;
-int NumColumnsInContigs = 0;
-int NumRunsOfGapsInContigReads = 0;
-int NumGapsInContigs = 0;
-int NumAAMismatches = 0; // mismatches b/w consensi of two different alleles
-int NumVARRecords = 0;
-int NumVARStringsWithFlankingGaps = 0;
-int NumUnitigRetrySuccess = 0;
-int contig_id = 0;
+int32 NumColumnsInUnitigs = 0;
+int32 NumRunsOfGapsInUnitigReads = 0;
+int32 NumGapsInUnitigs = 0;
+int32 NumColumnsInContigs = 0;
+int32 NumRunsOfGapsInContigReads = 0;
+int32 NumGapsInContigs = 0;
+int32 NumAAMismatches = 0; // mismatches b/w consensi of two different alleles
+int32 NumVARRecords = 0;
+int32 NumVARStringsWithFlankingGaps = 0;
+int32 NumUnitigRetrySuccess = 0;
+int32 contig_id = 0;
 
 //
 //  Tables to facilitate SNP Basecalling
@@ -105,7 +105,7 @@ int contig_id = 0;
 
 double EPROB[CNS_MAX_QV-CNS_MIN_QV+1] = {0};  // prob of error for each quality value
 double PROB[CNS_MAX_QV-CNS_MIN_QV+1]  = {0};  // prob of correct call for each quality value (1-eprob)
-int    RINDEX[RINDEXMAX]              = {0};
+int32    RINDEX[RINDEXMAX]              = {0};
 
 char ALPHABET[6] = {'-','a','c','g','t','n'};
 
@@ -147,18 +147,18 @@ uint32 AMASK[5] = {013607700741, // -
 //  we try to align in MultiAlignContig().  Was useful for
 //  debugging bad layout.
 //
-int DUMP_UNITIGS_IN_MULTIALIGNCONTIG = 0;
+int32 DUMP_UNITIGS_IN_MULTIALIGNCONTIG = 0;
 
 // Be noisy when doing multi alignments - this used to be a #ifdef,
 // which made it difficult to switch on in the middle of a debug.
 //
-int VERBOSE_MULTIALIGN_OUTPUT = 0;
+int32 VERBOSE_MULTIALIGN_OUTPUT = 0;
 
 //  If non-zero, we'll force-abut unitigs that don't align together.
 //  Typically, these are caused by microscopic overlaps between
 //  unitigs -- certainly less than 20bp long.
 //
-int FORCE_UNITIG_ABUT = 0;
+int32 FORCE_UNITIG_ABUT = 0;
 
 
 //  This is called in ResetStores -- which is called before any
@@ -166,7 +166,7 @@ int FORCE_UNITIG_ABUT = 0;
 static
 void
 InitializeAlphTable(void) {
-  int i;
+  int32 i;
 
   if (RINDEX[0] == 31)
     return;
@@ -177,7 +177,7 @@ InitializeAlphTable(void) {
   for(i=0; i<CNS_NP; i++)
     RINDEX[(int)RALPHABET[i]] = i;
 
-  int qv=CNS_MIN_QV;
+  int32 qv=CNS_MIN_QV;
 
   for (i=0; i<CNS_MAX_QV-CNS_MIN_QV+1; i++) {
     EPROB[i]= pow(10, -qv/10.);
@@ -195,7 +195,7 @@ InitializeAlphTable(void) {
 //external
 int
 IncBaseCount(BaseCount *b, char c) {
-  int i= RINDEX[c];
+  int32 i= RINDEX[c];
   if (c == 'N' || c == 'n' ) i=5;
   b->depth++;
   if( i<0 || i>5 ){
@@ -208,7 +208,7 @@ IncBaseCount(BaseCount *b, char c) {
 //external
 int
 DecBaseCount(BaseCount *b, char c) {
-  int i= RINDEX[c];
+  int32 i= RINDEX[c];
   if (c == 'N' || c == 'n' ) i=5;
   b->depth--;
   if( i<0 || i>5 ){
@@ -221,7 +221,7 @@ DecBaseCount(BaseCount *b, char c) {
 //external
 int
 GetBaseCount(BaseCount *b, char c) {
-  int i= RINDEX[c];
+  int32 i= RINDEX[c];
   if (c == 'N' || c == 'n' ) i=5;
   return b->count[i];
 }
@@ -247,7 +247,7 @@ ResetBaseCount(BaseCount *b) {
 //external
 void
 ShowBaseCount(BaseCount *b) {
-  int i;
+  int32 i;
   fprintf(stderr,"%d total\n",b->depth);
   for (i=0;i<CNS_NALPHABET;i++) {
     fprintf(stderr,"%c\t",ALPHABET[i]);
@@ -262,7 +262,7 @@ ShowBaseCount(BaseCount *b) {
 //external
 void
 ShowBaseCountPlain(FILE *out,BaseCount *b) {
-  int i;
+  int32 i;
   fprintf(out,"%d\t",b->depth);
   for (i=0;i<CNS_NALPHABET;i++) {
     fprintf(out,"%d\t",b->count[i]);
@@ -271,9 +271,9 @@ ShowBaseCountPlain(FILE *out,BaseCount *b) {
 
 //external
 char
-GetMaxBaseCount(BaseCount *b,int start_index) {  // start at 1 to disallow gap
-  int max_index = start_index,i;
-  int tied = 0,tie_breaker,max_tie=0;
+GetMaxBaseCount(BaseCount *b,int32 start_index) {  // start at 1 to disallow gap
+  int32 max_index = start_index,i;
+  int32 tied = 0,tie_breaker,max_tie=0;
   for (i=start_index;i<CNS_NALPHABET-1;i++) {
     if (b->count[i] > b->count[max_index] ) {
       max_index = i;
@@ -301,14 +301,14 @@ GetMaxBaseCount(BaseCount *b,int start_index) {  // start at 1 to disallow gap
 //external
 void
 CheckColumnBaseCount(Column *c) {
-  int counts[256] = {0};
+  int32 counts[256] = {0};
 
   if (c->next == -1)
     return;
 
   Bead *cbead = GetBead(beadStore,c->call);
 
-  while (cbead->down != - 1) {
+  while (cbead->down.isValid()) {
     cbead = GetBead(beadStore,cbead->down);
     counts[*Getchar(sequenceStore,cbead->soffset)]++;
   }
@@ -366,7 +366,7 @@ GetMANodeLength(int32 mid) {
 void
 SeedMAWithFragment(int32 mid,
                    int32 fid,
-                   int quality,
+                   int32 quality,
                    CNS_Options *opp) {
   Fragment *fragment = GetFragment(fragmentStore,fid);
   assert(fragment != NULL);
@@ -379,7 +379,7 @@ SeedMAWithFragment(int32 mid,
   CreateFragmentBeadIterator(fid, &fi);
 
   // bid is the offset of the Bead seeding the column
-  int32 bid = NextFragmentBead(&fi);
+  beadIdx bid = NextFragmentBead(&fi);
 
   Bead   *bead   = GetBead(beadStore,bid);
   Column *column = CreateColumn(bid);
@@ -391,7 +391,7 @@ SeedMAWithFragment(int32 mid,
 
   int32 cid = column->lid;
 
-  while ( (bid = NextFragmentBead(&fi)) != -1 )
+  while ( (bid = NextFragmentBead(&fi)) .isValid() )
     cid = ColumnAppend(cid, bid);
 
   fragment->manode=mid;
@@ -406,10 +406,10 @@ SeedMAWithFragment(int32 mid,
 int
 GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality) {
   ConsensusBeadIterator bi;
-  Bead *bead;
-  int32 bid;
-  int length=GetMANodeLength(mid);
-  int i=0;
+  Bead   *bead;
+  beadIdx  bid;
+  int32   length=GetMANodeLength(mid);
+  int32   i=0;
 
   ResetVA_char(sequence);
   EnableRangeVA_char(sequence,length+1);
@@ -419,7 +419,7 @@ GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality) {
 
   CreateConsensusBeadIterator(mid, &bi);
 
-  while ( (bid = NextConsensusBead(&bi)) != -1 ) {
+  while ( (bid = NextConsensusBead(&bi)) .isValid() ) {
     bead = GetBead(beadStore,bid);
     SetVA_char(sequence,i,Getchar(sequenceStore,bead->soffset));
     SetVA_char(quality,i,Getchar(qualityStore,bead->soffset));
@@ -432,8 +432,8 @@ GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality) {
 //  Used in GetMANodePositions
 static
 int32
-GetFragmentDeltas(int32 fid, VA_TYPE(int32) *deltas, int length) {
-  int32                bid;
+GetFragmentDeltas(int32 fid, VA_TYPE(int32) *deltas, int32 length) {
+  beadIdx               bid;
   FragmentBeadIterator fi;
   int32                index = 0;
   int32                added = 0;
@@ -442,7 +442,7 @@ GetFragmentDeltas(int32 fid, VA_TYPE(int32) *deltas, int length) {
 
   //  index < length eliminates any endgaps from the delta list KAR, 09/19/02
 
-  while (((bid = NextFragmentBead(&fi)) != -1) && (index < length)) {
+  while (((bid = NextFragmentBead(&fi)) .isValid()) && (index < length)) {
     if (*Getchar(sequenceStore, GetBead(beadStore,bid)->soffset) == '-') {
       Appendint32(deltas, &index);
       added++;
@@ -478,8 +478,8 @@ GetMANodePositions(int32        mid,
 
     assert(fragment->manode == mid);
 
-    int32 bgn = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead                       ))->column_index)->ma_index;
-    int32 end = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead + fragment->length - 1))->column_index)->ma_index + 1;
+    int32 bgn = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead.get()                       ))->column_index)->ma_index;
+    int32 end = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead.get() + fragment->length - 1))->column_index)->ma_index + 1;
 
     if (fragment->type == AS_READ) {
       if (FALSE == ExistsInHashTable_AS (fragmentMap, fragment->iid, 0))
@@ -578,33 +578,32 @@ CreateColumnBeadIterator(int32 cid,ColumnBeadIterator *bi) {
 }
 
 //external
-int32
+beadIdx
 NextColumnBead(ColumnBeadIterator *bi) {
-  int32 nid;
-  Bead *bead;
-  if (bi->bead == -1 ) {
-    return -1;
+  beadIdx nid;
+
+  if (bi->bead.isValid()) {
+    Bead *bead = GetBead(beadStore, bi->bead);
+    nid = bead->down;
+    bi->bead = nid;
   }
-  bead = GetBead(beadStore, bi->bead);
-  nid = bead->down;
-  bi->bead = nid;
   return nid;
 }
 
 
 
 //external
-int
+void
 NullifyFragmentBeadIterator(FragmentBeadIterator *bi) {
   bi->fragment = *GetFragment(fragmentStore,0);
-  bi->bead = -2;
-  return 1;
+  bi->bead     = beadIdx();
+  bi->isNull   = true;
 }
 
 //external
-int
+int32
 IsNULLIterator(FragmentBeadIterator *bi) {
-  return ( bi->bead == -2 );
+  return(bi->isNull);
 }
 
 //external
@@ -613,20 +612,20 @@ CreateFragmentBeadIterator(int32 fid,FragmentBeadIterator *bi) {
   Fragment *fragment = GetFragment(fragmentStore,fid);
   assert(fragment != NULL);
   bi->fragment = *fragment;
-  bi->bead = bi->fragment.firstbead;
+  bi->bead     = bi->fragment.firstbead;
+  bi->isNull   = false;
 }
 
 //external
-int32
+beadIdx
 NextFragmentBead(FragmentBeadIterator *bi) {
-  int32 nid;
-  Bead *bead;
-  if (bi->bead == -1 ) {
-    return -1;
+  beadIdx nid;
+  assert(bi->isNull == false);
+  if (bi->bead.isValid()) {
+    Bead *bead = GetBead(beadStore, bi->bead);
+    nid = bead->boffset;
+    bi->bead = bead->next;
   }
-  bead = GetBead(beadStore, bi->bead);
-  nid = bead->boffset;
-  bi->bead = bead->next;
   return nid;
 }
 
@@ -642,16 +641,14 @@ CreateConsensusBeadIterator(int32 mid,ConsensusBeadIterator *bi) {
 }
 
 //external
-int32
+beadIdx
 NextConsensusBead(ConsensusBeadIterator *bi) {
-  int32 nid;
-  Bead *bead;
-  if (bi->bead == -1 ) {
-    return -1;
+  beadIdx nid;
+  if (bi->bead.isValid()) {
+    Bead *bead = GetBead(beadStore, bi->bead);
+    nid = bead->boffset;
+    bi->bead = bead->next;
   }
-  bead = GetBead(beadStore, bi->bead);
-  nid = bead->boffset;
-  bi->bead = bead->next;
   return nid;
 }
 
@@ -664,16 +661,16 @@ NextConsensusBead(ConsensusBeadIterator *bi) {
 //
 //external
 void
-ClearBead(int32 bid) {
+ClearBead(beadIdx bid) {
   Bead *b = GetBead(beadStore,bid);
 
-  b->boffset      = -1;
-  b->soffset      = -1;
+  b->boffset      = beadIdx();
+  b->soffset      = seqIdx();
   b->foffset      = -1;
-  b->prev         = -1;
-  b->next         = -1;
-  b->up           = -1;
-  b->down         = -1;
+  b->prev         = beadIdx();
+  b->next         = beadIdx();
+  b->up           = beadIdx();
+  b->down         = beadIdx();
   b->frag_index   = -1;
   b->column_index = -1;
 }
@@ -681,7 +678,7 @@ ClearBead(int32 bid) {
 
 //external
 void
-AlignBeadToColumn(int32 cid, int32 bid, char *label) {
+AlignBeadToColumn(int32 cid, beadIdx bid, char *label) {
   Column *column=GetColumn(columnStore,cid);
   Bead *call = GetBead(beadStore,column->call);
   Bead *first = GetBead(beadStore,call->down);
@@ -704,12 +701,12 @@ AlignBeadToColumn(int32 cid, int32 bid, char *label) {
 // remove bid from it's column, returning the next bead up in the column
 //
 //external
-int32
-UnAlignBeadFromColumn(int32 bid) {
+beadIdx
+UnAlignBeadFromColumn(beadIdx bid) {
   Bead *bead = GetBead(beadStore,bid);
 
-  if (bead->column_index == -1 )
-    return -1;
+  if (bead->column_index == -1)
+    return beadIdx();
 
   Column *column = GetColumn(columnStore,bead->column_index);
   Bead   *upbead = GetBead(beadStore,bead->up);
@@ -717,7 +714,7 @@ UnAlignBeadFromColumn(int32 bid) {
 
   upbead->down = bead->down;
 
-  if (bead->down != -1 )
+  if (bead->down.isValid() )
     GetBead(beadStore, bead->down)->up = upbead->boffset;
 
   DecBaseCount(&column->base_count,bchar);
@@ -726,8 +723,8 @@ UnAlignBeadFromColumn(int32 bid) {
   fprintf(stderr, "UnAlignBeadFromColumn()-- frag=%d bead=%d leaving column=%d\n", bead->frag_index, bead->boffset, bead->column_index);
 #endif
 
-  bead->up = -1;
-  bead->down = -1;
+  bead->up   = beadIdx();
+  bead->down = beadIdx();
   bead->column_index = -1;
 
   return upbead->boffset;
@@ -735,23 +732,23 @@ UnAlignBeadFromColumn(int32 bid) {
 
 
 //external
-int32
-UnAlignTrailingGapBeads(int32 bid) {
+beadIdx
+UnAlignTrailingGapBeads(beadIdx bid) {
   // remove bid from it's column, returning the prev or next bead in the fragment
   Bead *bead = GetBead(beadStore,bid);
   Bead *upbead,*prevbead,*nextbead;
-  int32 anchor;
+  beadIdx anchor;
   Column *column;
   char bchar;
 
   // find direction to remove
   anchor = bead->prev;
-  while ( bead->next != -1 && *Getchar(sequenceStore,(GetBead(beadStore,bead->next))->soffset) == '-' ) {
+  while ( bead->next.isValid() && *Getchar(sequenceStore,(GetBead(beadStore,bead->next))->soffset) == '-' ) {
     bead = GetBead(beadStore,bead->next);
   }
-  if (bead->next != -1 ) {
+  if (bead->next.isValid() ) {
     anchor = bead->next;
-    while (bead->prev != -1 && *Getchar(sequenceStore,(GetBead(beadStore,bead->prev))->soffset) == '-' ) {
+    while (bead->prev.isValid() && *Getchar(sequenceStore,(GetBead(beadStore,bead->prev))->soffset) == '-' ) {
       bead = GetBead(beadStore,bead->prev);
     }
   }
@@ -764,7 +761,7 @@ UnAlignTrailingGapBeads(int32 bid) {
       assert(0);
     }
     upbead->down = bead->down;
-    if (bead->down != -1 ) {
+    if (bead->down.isValid() ) {
       GetBead(beadStore, bead->down)->up = upbead->boffset;
     }
     DecBaseCount(&column->base_count,bchar);
@@ -773,18 +770,18 @@ UnAlignTrailingGapBeads(int32 bid) {
     fprintf(stderr, "UnAlignTrailingGapBeads()-- frag=%d bead=%d leaving column=%d\n", bead->frag_index, bead->boffset, bead->column_index);
 #endif
 
-    bead->up = -1;
-    bead->down = -1;
+    bead->up   = beadIdx();
+    bead->down = beadIdx();
     bead->column_index = -1;
-    if ( bead->next == -1 ) {
+    if ( bead->next.isInvalid() ) {
       prevbead = GetBead(beadStore,bead->prev);
-      prevbead->next = -1;
-      bead->prev = -1;
+      prevbead->next = beadIdx();
+      bead->prev = beadIdx();
       bead = GetBead(beadStore,prevbead->boffset);
     } else {
       nextbead = GetBead(beadStore,bead->next);
-      nextbead->prev = -1;
-      bead->next = -1;
+      nextbead->prev = beadIdx();
+      bead->next = beadIdx();
       bead = GetBead(beadStore,nextbead->boffset);
     }
   }
@@ -794,7 +791,7 @@ UnAlignTrailingGapBeads(int32 bid) {
 
 //external
 void
-LateralExchangeBead(int32 lid, int32 rid) {
+LateralExchangeBead(beadIdx lid, beadIdx rid) {
   Bead rtmp; // this is just some tmp space for the swap
 
   //  This function swaps the contents of two beads, ensuring that
@@ -819,10 +816,10 @@ LateralExchangeBead(int32 lid, int32 rid) {
 
   {
     Bead *ibead   = leftbead;
-    int   failure = 0;
-    int   limit   = 20;
+    int32   failure = 0;
+    int32   limit   = 20;
 
-    while (ibead->next > -1) {
+    while (ibead->next.isValid()) {
       ibead = GetBead(beadStore,ibead->next);
 
       if (ibead->boffset == rid)
@@ -835,16 +832,16 @@ LateralExchangeBead(int32 lid, int32 rid) {
     if (failure) {
       ibead = leftbead;
 
-      while (ibead->next > -1) {
+      while (ibead->next.isValid()) {
         ibead = GetBead(beadStore,ibead->next);
 
-        fprintf(stderr, "bead %c boffset=%d prev=%d next=%d up=%d down=%d fragindex=%d colulmnindex=%d\n",
+        fprintf(stderr, "bead %c boffset="F_U64" prev="F_U64" next="F_U64" up="F_U64" down="F_U64" fragindex=%d colulmnindex=%d\n",
                 *Getchar(sequenceStore,ibead->soffset),
-                ibead->boffset,
-                ibead->prev,
-                ibead->next,
-                ibead->up,
-                ibead->down,
+                (uint64)ibead->boffset.get(),
+                (uint64)ibead->prev.get(),
+                (uint64)ibead->next.get(),
+                (uint64)ibead->up.get(),
+                (uint64)ibead->down.get(),
                 ibead->frag_index,
                 ibead->column_index);
 
@@ -855,8 +852,9 @@ LateralExchangeBead(int32 lid, int32 rid) {
           break;
       }
 
-      fprintf(stderr, "LateralExchangeBead can't exchange bead %d with %d; bases in between!\n",
-              lid, rid);
+      fprintf(stderr, "LateralExchangeBead can't exchange bead "F_U64" with "F_U64"; bases in between!\n",
+              (uint64)lid.get(),
+              (uint64)rid.get());
       assert(failure == 0);
     }
   }
@@ -867,25 +865,25 @@ LateralExchangeBead(int32 lid, int32 rid) {
   rightbead->down = leftbead->down;
   rightbead->prev = leftbead->prev;
   rightbead->next = leftbead->next;
-  if ( rightbead->up != -1 ) (GetBead(beadStore,rightbead->up))->down = rid;
-  if ( rightbead->down != -1)  (GetBead(beadStore,rightbead->down))->up = rid;
-  if ( rightbead->prev != -1)  (GetBead(beadStore,rightbead->prev))->next = rid;
+  if ( rightbead->up.isValid() ) (GetBead(beadStore,rightbead->up))->down = rid;
+  if ( rightbead->down.isValid())  (GetBead(beadStore,rightbead->down))->up = rid;
+  if ( rightbead->prev.isValid())  (GetBead(beadStore,rightbead->prev))->next = rid;
 
   leftbead->up = rtmp.up;
   leftbead->down = rtmp.down;
   leftbead->next = rtmp.next;
   leftbead->prev = rtmp.prev;
-  if ( leftbead->up != -1 ) (GetBead(beadStore,leftbead->up))->down = lid;
-  if ( leftbead->down != -1)  (GetBead(beadStore,leftbead->down))->up = lid;
-  if ( leftbead->next != -1)  (GetBead(beadStore,leftbead->next))->prev = lid;
+  if ( leftbead->up.isValid() ) (GetBead(beadStore,leftbead->up))->down = lid;
+  if ( leftbead->down.isValid())  (GetBead(beadStore,leftbead->down))->up = lid;
+  if ( leftbead->next.isValid())  (GetBead(beadStore,leftbead->next))->prev = lid;
 
   // now, handle separately cases of a) left and right are adjacent, and b) gaps intervene
   if ( rtmp.prev == lid) {
     rightbead->next = lid;
     leftbead->prev = rid;
   } else {
-    if ( rightbead->next != -1)  (GetBead(beadStore,rightbead->next))->prev = rid;
-    if ( leftbead->prev != -1)  (GetBead(beadStore,leftbead->prev))->next = lid;
+    if ( rightbead->next.isValid())  (GetBead(beadStore,rightbead->next))->prev = rid;
+    if ( leftbead->prev.isValid())  (GetBead(beadStore,leftbead->prev))->next = lid;
   }
 
   rightbead->column_index = leftbead->column_index;
@@ -901,26 +899,26 @@ LateralExchangeBead(int32 lid, int32 rid) {
 
 
 //external
-int32
-AppendGapBead(int32 bid) {
+beadIdx
+AppendGapBead(beadIdx bid) {
   // The gap will appear immediately following bid
   Bead *prev = GetBead(beadStore,bid);
   Bead bead;
   char base='-';
   char qv;
 
-  bead.boffset = GetNumBeads(beadStore);
-  bead.soffset = GetNumchars(sequenceStore);
+  bead.boffset.set(GetNumBeads(beadStore));
+  bead.soffset.set(GetNumchars(sequenceStore));
   bead.foffset = prev->foffset+1;
-  bead.up = -1;
-  bead.down = -1;
+  bead.up = beadIdx();
+  bead.down = beadIdx();
   bead.frag_index = prev->frag_index;
   bead.column_index = -1;
   bead.next = prev->next;
   bead.prev = prev->boffset;
   prev->next = bead.boffset;
   qv = *Getchar(qualityStore,prev->soffset);
-  if (bead.next != -1 ) {
+  if (bead.next.isValid() ) {
     Bead *next = GetBead(beadStore,bead.next);
     char nqv = *Getchar(qualityStore,next->soffset);
     next->prev = bead.boffset;
@@ -937,8 +935,8 @@ AppendGapBead(int32 bid) {
 }
 
 //external
-int32
-PrependGapBead(int32 bid) {
+beadIdx
+PrependGapBead(beadIdx bid) {
   // The gap will appear immediately before bid
   Bead *next = GetBead(beadStore,bid);
   Bead bead;
@@ -947,18 +945,18 @@ PrependGapBead(int32 bid) {
 
   assert(next->frag_index >= 0);
 
-  bead.boffset = GetNumBeads(beadStore);
-  bead.soffset = GetNumchars(sequenceStore);
+  bead.boffset.set(GetNumBeads(beadStore));
+  bead.soffset.set(GetNumchars(sequenceStore));
   bead.foffset = next->foffset;
-  bead.up = -1;
-  bead.down = -1;
+  bead.up = beadIdx();
+  bead.down = beadIdx();
   bead.frag_index = next->frag_index;
   bead.column_index = -1;
   bead.next = bid;
   bead.prev = next->prev;
   next->prev = bead.boffset;
   qv = *Getchar(qualityStore,next->soffset);
-  if (bead.prev != -1 ) {
+  if (bead.prev.isValid() ) {
     Bead *prev = GetBead(beadStore,bead.prev);
     char nqv = *Getchar(qualityStore,prev->soffset);
     prev->next = bead.boffset;
@@ -981,7 +979,7 @@ PrependGapBead(int32 bid) {
 //
 //external
 Column *
-CreateColumn(int32 bid) {
+CreateColumn(beadIdx bid) {
   Column column;
   Bead call;
   Bead *head;
@@ -991,16 +989,16 @@ CreateColumn(int32 bid) {
   column.lid = GetNumColumns(columnStore);
   column.prev = -1;
   column.next = -1;
-  column.call = GetNumBeads(beadStore);
+  column.call.set(GetNumBeads(beadStore));
   column.ma_index = -1;
   ResetBaseCount(&column.base_count);
   call.boffset = column.call;
   call.foffset = 0;
-  call.soffset = GetNumchars(sequenceStore);
+  call.soffset.set(GetNumchars(sequenceStore));
   call.down = bid;
-  call.up = -1;
-  call.prev = -1;
-  call.next = -1;
+  call.up = beadIdx();
+  call.prev = beadIdx();
+  call.next = beadIdx();
   call.frag_index = -1;
   call.column_index = column.lid;
   AppendVA_Bead(beadStore,&call);
@@ -1012,7 +1010,7 @@ CreateColumn(int32 bid) {
   IncBaseCount(&column.base_count,*Getchar(sequenceStore,head->soffset));
   AppendVA_Column(columnStore, &column);
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "CreateColumn()-- Added consensus call bead=%d to column=%d for existing bead=%d\n", call.boffset, column.lid, head->boffset);
+  fprintf(stderr, "CreateColumn()-- Added consensus call bead="F_BEADIDX" to column="F_BEADIDX" for existing bead="F_BEADIDX"\n", call.boffset, column.lid, head->boffset);
 #endif
   return GetColumn(columnStore, column.lid);
 }
@@ -1036,11 +1034,11 @@ AddColumnToMANode(int32 ma, Column column) {
 
 //external
 int32
-ColumnAppend(int32 cid, int32 bid) {
+ColumnAppend(int32 cid, beadIdx bid) {
   // bid is the offset of the Bead seeding the column
 
   ColumnBeadIterator ci;
-  int32 nid;
+  beadIdx nid;
 
   Bead *bead = GetBead(beadStore,bid);
   assert(bead != NULL);
@@ -1049,7 +1047,7 @@ ColumnAppend(int32 cid, int32 bid) {
   assert(column != NULL);
 
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "ColumnAppend()-- adding column %d for bid=%d after column cid=%d\n", column->lid, bid, cid);
+  fprintf(stderr, "ColumnAppend()-- adding column "F_BEADIDX" for bid="F_BEADIDX" after column cid=%d\n", column->lid, bid, cid);
 #endif
 
   Bead   *call     = GetBead(beadStore,column->call);
@@ -1066,14 +1064,14 @@ ColumnAppend(int32 cid, int32 bid) {
   if (column->next != -1)
     GetColumn(columnStore,column->next)->prev = column->lid;
 
-  if (call->next != -1)
+  if (call->next.isValid())
     GetBead(beadStore,call->next)->prev = call->boffset;
 
   CreateColumnBeadIterator(cid, &ci);
 
-  while ( (nid = NextColumnBead(&ci)) != -1 ) {
+  while ( (nid = NextColumnBead(&ci)).isValid() ) {
     bead = GetBead(beadStore,nid);
-    if ((bead->next != -1) &&
+    if ((bead->next.isValid()) &&
         (bead->next != bid))
       AlignBeadToColumn(column->lid, AppendGapBead(nid), "ColumnAppend()");
   }
@@ -1085,24 +1083,25 @@ ColumnAppend(int32 cid, int32 bid) {
 
 
 //external -- unused, but looks handy
+#if 0
 void
-ShowColumn(int32 cid) {
+ShowColumn(beadIdx cid) {
   Column *column = GetColumn(columnStore,cid);
   Bead *call;
   Bead *bead;
   FragType type;
   UnitigType utype;
   ColumnBeadIterator ci;
-  int32 bid;
+  beadIdx bid;
 
   CreateColumnBeadIterator(cid,&ci);
 
   call = GetBead(beadStore,column->call);
-  fprintf(stderr,"\nstore_index: %-20d ( prev: %d next: %d)\n",column->lid,column->prev,column->next);
+  fprintf(stderr,"\nstore_index: %-20d ( prev: "F_BEADIDX" next: "F_BEADIDX")\n",column->lid,column->prev,column->next);
   fprintf(stderr,"ma_index:    %-20d\n",column->ma_index);
   fprintf(stderr,"------------------\n");
   fprintf(stderr,"composition:\n");
-  while ( (bid = NextColumnBead(&ci)) != -1 ) {
+  while ( (bid = NextColumnBead(&ci)).isValid() ) {
     bead = GetBead(beadStore,bid);
     type = GetFragment(fragmentStore,bead->frag_index)->type;
     utype = GetFragment(fragmentStore,bead->frag_index)->utype;
@@ -1125,7 +1124,7 @@ ShowColumn(int32 cid) {
   fprintf(stderr,"------------------\n");
   fprintf(stderr,"call:        %c /%c\n",toupper(*Getchar(sequenceStore,call->soffset)),*Getchar(qualityStore,call->soffset));
 }
-
+#endif
 
 
 ////////////////////////////////////////
@@ -1304,9 +1303,9 @@ SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
 
 int32
 AppendFragToLocalStore(FragType          type,
-                       int               iid,
-                       int               complement,
-                       int               contained,
+                       int32               iid,
+                       int32               complement,
+                       int32               contained,
                        UnitigType        utype) {
 
   char seqbuffer[AS_READ_MAX_NORMAL_LEN+1];
@@ -1315,7 +1314,7 @@ AppendFragToLocalStore(FragType          type,
   static VA_TYPE(char) *ungappedSequence = NULL;
   static VA_TYPE(char) *ungappedQuality  = NULL;
   Fragment fragment;
-  uint clr_bgn, clr_end;
+  uint32 clr_bgn, clr_end;
   static gkFragment fsread;  //  static for performance only
   MultiAlignT *uma = NULL;
 
@@ -1396,9 +1395,8 @@ AppendFragToLocalStore(FragType          type,
   fragment.deleted = 0;
   fragment.manode = -1;
 
-  fragment.sequence  = GetNumchars(sequenceStore);
-  fragment.quality   = GetNumchars(qualityStore);
-  fragment.firstbead = GetNumBeads(beadStore);
+  fragment.sequence.set(GetNumchars(sequenceStore));
+  fragment.firstbead.set(GetNumBeads(beadStore));
 
   AppendRangechar(sequenceStore, fragment.length + 1, sequence);
   AppendRangechar(qualityStore,  fragment.length + 1, quality);
@@ -1406,35 +1404,35 @@ AppendFragToLocalStore(FragType          type,
   {
     Bead bead;
 
-    int32 boffset = fragment.firstbead;
-    int32 soffset = fragment.sequence;
-    int32 foffset;
+    beadIdx boffset = fragment.firstbead;
+    seqIdx  soffset = fragment.sequence;
+    int32  foffset;
 
-    bead.boffset      = -1;
-    bead.soffset      = -1;
+    bead.boffset      = beadIdx();
+    bead.soffset      = seqIdx();
     bead.foffset      = -1;
-    bead.prev         = -1;
-    bead.next         = -1;
-    bead.up           = -1;
-    bead.down         = -1;
+    bead.prev         = beadIdx();
+    bead.next         = beadIdx();
+    bead.up           = beadIdx();
+    bead.down         = beadIdx();
     bead.frag_index   = fragment.lid;
     bead.column_index = -1;
 
     for (foffset = 0; foffset < fragment.length; foffset++ ) {
       bead.foffset = foffset;
-      bead.boffset = boffset + foffset;
-      bead.soffset = soffset + foffset;
+      bead.boffset.set(boffset.get() + foffset);
+      bead.soffset.set(soffset.get() + foffset);
 
-      bead.next = bead.boffset + 1;
-      bead.prev = bead.boffset - 1;
+      bead.next.set(bead.boffset.get() + 1);
+      bead.prev.set(bead.boffset.get() - 1);
 
       if (foffset == fragment.length - 1)
-        bead.next = -1;
+        bead.next = beadIdx();
 
       if (foffset == 0)
-        bead.prev = -1;
+        bead.prev = beadIdx();
 
-      SetVA_Bead(beadStore, bead.boffset, &bead);
+      SetBead(beadStore, bead.boffset.get(), &bead);
     }
   }
 
@@ -1455,13 +1453,12 @@ AppendFragToLocalStore(FragType          type,
 //
 //external
 void
-AllocateDistMatrix(VarRegion  *vreg, int init) {
-  int j, k;
+AllocateDistMatrix(VarRegion  *vreg, int32 init) {
 
-  vreg->dist_matrix = (int **)safe_calloc(vreg->nr, sizeof(int *));
-  for (j=0; j<vreg->nr; j++) {
-      vreg->dist_matrix[j] = (int *)safe_calloc(vreg->nr, sizeof(int));
-      for (k=0; k<vreg->nr; k++)
+  vreg->dist_matrix = (int32 **)safe_calloc(vreg->nr, sizeof(int32 *));
+  for (int32 j=0; j<vreg->nr; j++) {
+      vreg->dist_matrix[j] = (int32 *)safe_calloc(vreg->nr, sizeof(int));
+      for (int32 k=0; k<vreg->nr; k++)
         vreg->dist_matrix[j][k] = init;
     }
 }
@@ -1472,11 +1469,10 @@ AllocateDistMatrix(VarRegion  *vreg, int init) {
 //external
 void
 OutputDistMatrix(FILE *fout, VarRegion  *vreg) {
-  int j, k;
 
   fprintf(fout, "Distance matrix=\n");
-  for (j=0; j<vreg->nr; j++) {
-      for (k=0; k<vreg->nr; k++)
+  for (int32 j=0; j<vreg->nr; j++) {
+      for (int32 k=0; k<vreg->nr; k++)
         fprintf(fout, " %d", vreg->dist_matrix[j][k]);
       fprintf(fout, "\n");
     }
@@ -1488,9 +1484,9 @@ OutputDistMatrix(FILE *fout, VarRegion  *vreg) {
 //  Used in PopulateDistMatrix
 static
 int
-GetDistanceBetweenReads(char *read1, char *read2, int len) {
-  int i, j, k, uglen1=0, uglen2=0, uglen;
-  int dist, gapped_dist = 0, ungapped_dist = 0;
+GetDistanceBetweenReads(char *read1, char *read2, int32 len) {
+  int32 i, j, k, uglen1=0, uglen2=0, uglen;
+  int32 dist, gapped_dist = 0, ungapped_dist = 0;
   char *ugread1 = (char*)safe_malloc(len*sizeof(char));
   char *ugread2 = (char*)safe_malloc(len*sizeof(char));
 
@@ -1528,8 +1524,8 @@ GetDistanceBetweenReads(char *read1, char *read2, int len) {
 
 //external
 void
-PopulateDistMatrix(Read *reads, int len, VarRegion  *vreg) {
-  int i, j;
+PopulateDistMatrix(Read *reads, int32 len, VarRegion  *vreg) {
+  int32 i, j;
 
   // Update the matrix
   for (i=0; i<vreg->nr; i++) {
@@ -1545,7 +1541,7 @@ PopulateDistMatrix(Read *reads, int len, VarRegion  *vreg) {
 //external
 void
 OutputReads(FILE *fout, Read *reads, int32 nr, int32 width) {
-  int i, j;
+  int32 i, j;
   fprintf(fout, "\nReads =\n");
 
   for (i=0; i<nr; i++) {
@@ -1560,7 +1556,7 @@ OutputReads(FILE *fout, Read *reads, int32 nr, int32 width) {
 //external
 void
 OutputAlleles(FILE *fout, VarRegion *vreg) {
-  int i, j;
+  int32 i, j;
   fprintf(fout,   "Outputting alleles:\n");
   fprintf(fout,   "nr= %d na= %d nca= %d\n", vreg->nr, vreg->na, vreg->nca);
   fprintf(fout,   "Num_reads= ");
@@ -1575,8 +1571,8 @@ OutputAlleles(FILE *fout, VarRegion *vreg) {
   for (i=0; i<vreg->na; i++) {
       fprintf(fout,   "   Allele order= %d, id= %d:\n", i, vreg->alleles[i].id);
       for (j=0; j<vreg->alleles[i].num_reads; j++) {
-          int k, read_id = vreg->alleles[i].read_ids[j];
-          int len = vreg->end-vreg->beg;
+          int32 k, read_id = vreg->alleles[i].read_ids[j];
+          int32 len = vreg->end-vreg->beg;
           fprintf(fout,   "    %d   ", read_id);
           for (k=0; k<len; k++)
             fprintf(fout,   "%c", vreg->reads[read_id].bases[k]);
@@ -1590,8 +1586,8 @@ OutputAlleles(FILE *fout, VarRegion *vreg) {
 //external
 void
 AllocateMemoryForReads(Read **reads, int32 nr, int32 len,
-                       int default_qv) {
-  int i, j;
+                       int32 default_qv) {
+  int32 i, j;
 
   assert(nr > 0);
 
@@ -1600,7 +1596,7 @@ AllocateMemoryForReads(Read **reads, int32 nr, int32 len,
       (*reads)[i].allele_id = -1;
       (*reads)[i].ave_qv = 0.;
       (*reads)[i].bases = (char *)safe_malloc(len*sizeof(char));
-      (*reads)[i].qvs   = (int  *)safe_malloc(len*sizeof(int ));
+      (*reads)[i].qvs   = (int32  *)safe_malloc(len*sizeof(int32 ));
       for(j=0; j<len; j++) {
           (*reads)[i].bases[j] = '-';
           (*reads)[i].qvs[j] = default_qv;
@@ -1612,7 +1608,7 @@ AllocateMemoryForReads(Read **reads, int32 nr, int32 len,
 //external
 void
 AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na) {
-  int j;
+  int32 j;
 
   assert(nr > 0);
 
@@ -1621,7 +1617,7 @@ AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na) {
   for (j=0; j<nr; j++) {
       (*alleles)[j].id = -1;
       (*alleles)[j].weight = 0;
-      (*alleles)[j].read_ids = (int *)safe_calloc(nr, sizeof(int));
+      (*alleles)[j].read_ids = (int32 *)safe_calloc(nr, sizeof(int));
       (*alleles)[j].read_iids = (int32 *)safe_calloc(nr, sizeof(int32));
     }
 }
@@ -1631,11 +1627,11 @@ AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na) {
 //external
  void
 SortAllelesByLength(Allele *alleles, int32 num_alleles, Read *reads) {
-  int i, j, best_id;
+  int32 i, j, best_id;
   Allele temp;
 
   for (i=0; i<num_alleles; i++) {
-      int best_uglen = alleles[i].uglen;
+      int32 best_uglen = alleles[i].uglen;
       best_id = -1;
       for (j=i+1; j<num_alleles; j++) {
           if (best_uglen  < alleles[j].uglen ) {
@@ -1652,7 +1648,7 @@ SortAllelesByLength(Allele *alleles, int32 num_alleles, Read *reads) {
   // Update allele_id of reads
   for (i=0; i<num_alleles; i++) {
       for (j=0; j<alleles[i].num_reads; j++) {
-          int read_id = alleles[i].read_ids[j];
+          int32 read_id = alleles[i].read_ids[j];
           reads[read_id].allele_id = i;
         }
     }
@@ -1663,11 +1659,11 @@ SortAllelesByLength(Allele *alleles, int32 num_alleles, Read *reads) {
 //external
  void
 SortAllelesByWeight(Allele *alleles, int32 num_alleles, Read *reads) {
-  int i, j, best_id;
+  int32 i, j, best_id;
   Allele temp;
 
   for (i=0; i<num_alleles; i++) {
-      int best_weight = alleles[i].weight;
+      int32 best_weight = alleles[i].weight;
       best_id = -1;
       for (j=i+1; j<num_alleles; j++) {
           if (best_weight < alleles[j].weight) {
@@ -1684,7 +1680,7 @@ SortAllelesByWeight(Allele *alleles, int32 num_alleles, Read *reads) {
   // Update allele_id of reads
   for (i=0; i<num_alleles; i++) {
       for (j=0; j<alleles[i].num_reads; j++) {
-          int read_id = alleles[i].read_ids[j];
+          int32 read_id = alleles[i].read_ids[j];
           reads[read_id].allele_id = i;
         }
     }
@@ -1694,8 +1690,8 @@ SortAllelesByWeight(Allele *alleles, int32 num_alleles, Read *reads) {
 // between two "phased" VAR records
 //external
 void
-SortAllelesByMapping(Allele *alleles, int32 nca, Read *reads, int *allele_map) {
-  int i, j, k;
+SortAllelesByMapping(Allele *alleles, int32 nca, Read *reads, int32 *allele_map) {
+  int32 i, j, k;
   Allele temp;
 
   for (i=0; i<nca; i++) {
@@ -1717,7 +1713,7 @@ SortAllelesByMapping(Allele *alleles, int32 nca, Read *reads, int *allele_map) {
   for (i=0; i<nca; i++) {
       alleles[i].id = i;
       for (j=0; j<alleles[i].num_reads; j++) {
-          int read_id = alleles[i].read_ids[j];
+          int32 read_id = alleles[i].read_ids[j];
           reads[read_id].allele_id = i;
         }
     }
@@ -1732,8 +1728,8 @@ SortAllelesByMapping(Allele *alleles, int32 nca, Read *reads, int *allele_map) {
  */
 //external
 void
-ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca, int **dist_matrix) {
-  int aid, anr, row, col;
+ClusterReads(Read *reads, int32 nr, Allele *alleles, int32 *na, int32 *nca, int32 **dist_matrix) {
+  int32 aid, anr, row, col;
 
   *na = 0;
 

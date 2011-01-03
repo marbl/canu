@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: Array_CNS.c,v 1.25 2010-08-06 22:09:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: Array_CNS.c,v 1.26 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -39,7 +39,7 @@ static const char *rcsid = "$Id: Array_CNS.c,v 1.25 2010-08-06 22:09:00 brianwal
 
 typedef struct LaneNode {
   IntMultiPos *read;
-  int read_length;
+  int32 read_length;
   char *sequence;
   char *quality;
   struct LaneNode *prev;
@@ -49,7 +49,7 @@ typedef struct LaneNode {
 typedef struct Lane {
   struct LaneNode *first;
   struct LaneNode *last;
-  int lastcol;
+  int32 lastcol;
 } Lane;
 
 VA_DEF(Lane)
@@ -81,7 +81,7 @@ freeLaneNode(LaneNode *node) {
 static
 int
 PushLaneNode(LaneNode *new_lane_node, Lane *lane) {
-  int leftpos = (new_lane_node->read->position.bgn<new_lane_node->read->position.end) ?
+  int32 leftpos = (new_lane_node->read->position.bgn<new_lane_node->read->position.end) ?
     new_lane_node->read->position.bgn : new_lane_node->read->position.end;
   if (leftpos < lane->lastcol+3) return 0;
   if ( lane->last == NULL ) {
@@ -139,21 +139,21 @@ IntMultiPositionCmp(const void *l, const void *m) {
 
 int
 IMP2Array(IntMultiPos *all_frags,
-          int num_pieces,
-          int length,
+          int32 num_pieces,
+          int32 length,
           gkStore *frag_store,
-          int *depth,
+          int32 *depth,
           char ***array,
-          int ***id_array,
-          int ***ori_array,
-          int show_cel_status,
+          int32 ***id_array,
+          int32 ***ori_array,
+          int32 show_cel_status,
           uint32 clrrng_flag) {
   char **multia = NULL;
-  int **ia = NULL;
-  int **oa = NULL;
-  int lane_depth = 32;
+  int32 **ia = NULL;
+  int32 **oa = NULL;
+  int32 lane_depth = 32;
   Lane *lane;
-  int rc;
+  int32 rc;
 
   VA_TYPE(Lane) *Packed = (VA_TYPE(Lane) *)CreateVA_Lane(lane_depth);
 
@@ -218,7 +218,7 @@ IMP2Array(IntMultiPos *all_frags,
 
   {
     IntMultiPos *read;
-    int col,cols;
+    int32 col,cols;
     char *srow,*qrow;
     char laneformat[40];
 
@@ -239,14 +239,14 @@ IMP2Array(IntMultiPos *all_frags,
 
       multia = (char **)safe_malloc(2*(*depth)*sizeof(char *));
 
-      ia = (int **)safe_malloc((*depth) * sizeof(int *));
-      oa = (int **)safe_malloc((*depth) * sizeof(int *));
+      ia = (int32 **)safe_malloc((*depth) * sizeof(int32 *));
+      oa = (int32 **)safe_malloc((*depth) * sizeof(int32 *));
 
       sprintf(laneformat,"%%%ds",length);
 
       for (int32 i=0; i<(*depth); i++) {
-        ia[i] = (int *) safe_malloc(length * sizeof(int));
-        oa[i] = (int *) safe_malloc(length * sizeof(int));
+        ia[i] = (int32 *) safe_malloc(length * sizeof(int));
+        oa[i] = (int32 *) safe_malloc(length * sizeof(int));
         for (int32 j=0;j<length;j++) {
           ia[i][j] = 0;
           oa[i][j] = 0;
@@ -260,7 +260,7 @@ IMP2Array(IntMultiPos *all_frags,
       }
 
       for (int32 i=0; i<(*depth); i++) {
-        int lastcol,firstcol,seglen;
+        int32 lastcol,firstcol,seglen;
         srow = multia[2*i];
         qrow = multia[2*i+1];
         lane = GetLane(Packed,i);
@@ -297,8 +297,8 @@ IMP2Array(IntMultiPos *all_frags,
 
         // now, set the ids
         for (LaneNode *new_mlp=lane->first; new_mlp != NULL; new_mlp = new_mlp->next) {
-          int lastcol;
-          int orient=0;
+          int32 lastcol;
+          int32 orient=0;
           read = new_mlp->read;
           firstcol = read->position.bgn;
           if (read->position.bgn>read->position.end) {

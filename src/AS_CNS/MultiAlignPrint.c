@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.8 2010-08-06 22:05:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.9 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -35,19 +35,19 @@ void
 PrintMultiAlignT(FILE *out,
 	         MultiAlignT *ma,
 	         gkStore *frag_store,
-	         int show_qv,
-	         int dots,
+	         int32 show_qv,
+	         int32 dots,
                  uint32 clrrng_flag)  {
 
   char frgTypeDisplay;
   FragType frgTypeData;
-  int depth;
-  int rc,i;
-  int window;
-  int length;
+  int32 depth;
+  int32 rc,i;
+  int32 window;
+  int32 length;
   char **multia=NULL;
-  int **idarray;
-  int **oriarray;
+  int32 **idarray;
+  int32 **oriarray;
   char *consensus = Getchar(ma->consensus,0);
   char *quality   = Getchar(ma->quality,0);
 
@@ -78,14 +78,14 @@ PrintMultiAlignT(FILE *out,
 
   fprintf(out,"<<< begin Contig %d >>>",ma->maID);;
 
-  int ungapped=1;
-  int tick=1;
+  int32 ungapped=1;
+  int32 tick=1;
 
   for (window=0;window<length;) {
-    int row_id=0;
-    int rowind=0;
-    int orient=0;
-    int rowlen=0;
+    int32 row_id=0;
+    int32 rowind=0;
+    int32 orient=0;
+    int32 rowlen=0;
     char *rowchar=consensus+window;
 
     fprintf(out, "\n");
@@ -120,7 +120,7 @@ PrintMultiAlignT(FILE *out,
     fprintf(out,"___________________________________________________________________________________________________________________________________\n");
 
     for (i=0;i<depth;i++) {
-      int j;
+      int32 j;
 
       if (multia[2*i] == NULL)
         continue;
@@ -140,7 +140,7 @@ PrintMultiAlignT(FILE *out,
       }
 
       {
-        int last = (window+99< length-1)?window+99:length-1;
+        int32 last = (window+99< length-1)?window+99:length-1;
         if ( *(idarray[i]+last) == 0 ) {
           row_id = *(idarray[i]+window);
           orient = *(oriarray[i]+window);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ctgcns.C,v 1.9 2009-12-10 04:23:03 brianwalenz Exp $";
+const char *mainid = "$Id: ctgcns.C,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -48,7 +48,8 @@ main (int argc, char **argv) {
   CNS_PrintKey printwhat=CNS_STATS_ONLY;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                          CNS_OPTIONS_MIN_ANCHOR_DEFAULT };
+                          CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
+                          CNS_OPTIONS_DO_PHASING_DEFAULT };
 
   //  Comminucate to MultiAlignment_CNS.c that we are doing consensus and not cgw.
   thisIsConsensus = 1;

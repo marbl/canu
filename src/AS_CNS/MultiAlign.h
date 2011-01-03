@@ -22,7 +22,7 @@
 #ifndef MULTIALIGN_H
 #define MULTIALIGN_H
 
-static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.9 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
@@ -90,8 +90,8 @@ bool         LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in);
 void         PrintMultiAlignT(FILE *out,
                               MultiAlignT *ma,
                               gkStore *gkp_store,
-                              int show_qv,
-                              int dots,
+                              int32 show_qv,
+                              int32 dots,
                               uint32 clrrng_flag);
 
 static
@@ -143,9 +143,8 @@ static
 IntUnitigPos *
 GetBendUnitigPos(MultiAlignT *ma) {
   long length = GetMultiAlignLength(ma);
-  int  i;
 
-  for(i = GetNumIntUnitigPoss(ma->u_list) - 1; i>=0; i--) {
+  for (int32 i = GetNumIntUnitigPoss(ma->u_list) - 1; i>=0; i--) {
     IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
     if (MAX(pos->position.bgn, pos->position.end) == length)
       return(pos);

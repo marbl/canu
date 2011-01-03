@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: BaseCall.c,v 1.3 2010-08-19 05:28:07 brianwalenz Exp $";
+static char *rcsid = "$Id: BaseCall.c,v 1.4 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,39 +35,39 @@ static char *rcsid = "$Id: BaseCall.c,v 1.3 2010-08-19 05:28:07 brianwalenz Exp 
 VA_DEF(int16)
 
 int
-BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
-         int target_allele, char *cons_base, int verbose, int get_scores,
+BaseCall(int32 cid, int32 quality, double *var, VarRegion  *vreg,
+         int32 target_allele, char *cons_base, int32 verbose, int32 get_scores,
          CNS_Options *opp) {
   /* NOTE: negative target_allele means the the alleles will be used */
 
   Column *column=GetColumn(columnStore,cid);
   Bead *call = GetBead(beadStore, column->call);
   Bead *bead;
-  int best_read_base_count[CNS_NP]  = {0};
-  int other_read_base_count[CNS_NP] = {0};
-  int guide_base_count[CNS_NP]      = {0};
+  int32 best_read_base_count[CNS_NP]  = {0};
+  int32 other_read_base_count[CNS_NP] = {0};
+  int32 guide_base_count[CNS_NP]      = {0};
 
   char bases[CNS_NALPHABET] = {'-', 'A', 'C', 'G', 'T', 'N'};
-  int best_read_qv_count[CNS_NP] = {0};
-  int other_read_qv_count[CNS_NP] = {0};
-  int highest_qv[CNS_NP] = {0};
-  int highest2_qv[CNS_NP] = {0};
+  int32 best_read_qv_count[CNS_NP] = {0};
+  int32 other_read_qv_count[CNS_NP] = {0};
+  int32 highest_qv[CNS_NP] = {0};
+  int32 highest2_qv[CNS_NP] = {0};
 
-  int b_read_depth=0, o_read_depth=0, guide_depth=0;
-  int score=0;
-  int bi, bi_cons;
-  int32 bid;
+  int32 b_read_depth=0, o_read_depth=0, guide_depth=0;
+  int32 score=0;
+  int32 bi, bi_cons=0;
+  beadIdx bid;
   int32 iid = 0;
   char cqv, cbase;
-  int qv = 0;
+  int32 qv = 0;
   static  double cw[CNS_NP];      // "consensus weight" for a given base
   static  double tau[CNS_NP];
-  int            tauValid = 0;
+  int32            tauValid = 0;
   FragType type;
   UnitigType utype;
   ColumnBeadIterator ci;
-  int used_surrogate=0;
-  int sum_qv_cbase=0, sum_qv_all=0;
+  int32 used_surrogate=0;
+  int32 sum_qv_cbase=0, sum_qv_all=0;
 
   vreg->nb = 0;
 
@@ -87,23 +87,23 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
   *var = 0.;
   if (quality > 0)
     {
-      static int guides_alloc=0;
+      static int32 guides_alloc=0;
       static VarArrayBead  *guides;
       static VarArrayBead  *b_reads;
       static VarArrayBead  *o_reads;
       static VarArrayint16 *tied;
       uint32 bmask;
-      int    num_b_reads, num_o_reads, num_guides;
+      int32    num_b_reads, num_o_reads, num_guides;
       Bead  *gb;
-      int    cind;
+      int32    cind;
       double tmpqv;
       int16  bi;
-      int    b_read_count = 0;
-      int    frag_cov=0;
+      int32    b_read_count = 0;
+      int32    frag_cov=0;
       int16  max_ind=0;
       double max_cw=0.0;   // max of "consensus weights" of all bases
       double normalize=0.;
-      int    nr=0, max_nr=128;
+      int32    nr=0, max_nr=128;
 
       if (!guides_alloc) {
         guides = CreateVA_Bead(16);
@@ -127,7 +127,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
       //      - those corresponding to the reads of the best allele,
       //      - those corresponding to the reads of the other allele and
       //      - those corresponding to non-read fragments (aka guides)
-      while ( (bid = NextColumnBead(&ci)) != -1)
+      while ( (bid = NextColumnBead(&ci)).isValid())
         {
           bead =  GetBead(beadStore,bid);
           cbase = *Getchar(sequenceStore,bead->soffset);    // current base
@@ -147,7 +147,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
               (type == AS_EXTR)   ||
               (type == AS_TRNR))
             {
-              int k;
+              int32 k;
 
               for (k=0; k<vreg->nr; k++)
                 if (iid == vreg->iids[k])
@@ -480,12 +480,12 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
     }
   else if (quality == 0 )
     {
-      int max_count=0,max_index=-1,tie_count=0;
-      int tie_breaker, max_tie, i;
+      int32 max_count=0,max_index=-1,tie_count=0;
+      int32 tie_breaker, max_tie, i;
 
       CreateColumnBeadIterator(cid, &ci);
 
-      while ( (bid = NextColumnBead(&ci)) != -1 ) {
+      while ( (bid = NextColumnBead(&ci)).isValid() ) {
         bead = GetBead(beadStore,bid);
         cbase = *Getchar(sequenceStore,bead->soffset);
         qv = (int) ( *Getchar(qualityStore, bead->soffset)-'0');

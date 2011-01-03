@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.56 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.57 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -35,17 +35,17 @@ static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h
 //  This is probably broken, or extremely inefficient, as of Nov 4 2007.
 #undef PRINTUIDS
 
-extern int DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
-extern int VERBOSE_MULTIALIGN_OUTPUT;
+extern int32 DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
+extern int32 VERBOSE_MULTIALIGN_OUTPUT;
 
 #define CNS_OPTIONS_SPLIT_ALLELES_DEFAULT  1
 #define CNS_OPTIONS_MIN_ANCHOR_DEFAULT    11
 #define CNS_OPTIONS_DO_PHASING_DEFAULT     1
 
 typedef struct {
-  int split_alleles;
-  int smooth_win;
-  int do_phasing;
+  int32 split_alleles;
+  int32 smooth_win;
+  int32 do_phasing;
 } CNS_Options;
 
 typedef enum {
@@ -75,20 +75,20 @@ MultiAlignT *ReplaceEndUnitigInContig(uint32,
                                       int,
                                       CNS_Options *opp);
 
-int MultiAlignUnitig(MultiAlignT *,
-                     gkStore *,
-                     CNS_PrintKey,
-                     CNS_Options *opp);
+int32 MultiAlignUnitig(MultiAlignT *,
+                       gkStore *,
+                       CNS_PrintKey,
+                       CNS_Options *opp);
 
 
-int MultiAlignContig(MultiAlignT *,
-                     gkStore *,
-                     CNS_PrintKey,
-                     CNS_Options *opp);
+int32 MultiAlignContig(MultiAlignT *,
+                       gkStore *,
+                       CNS_PrintKey,
+                       CNS_Options *opp);
 
 
 //  Options to things in MultiAligment_CNS.c
 
-extern int allow_neg_hang;
+extern int32 allow_neg_hang;
 
 #endif

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: PrintAlignment.c,v 1.1 2009-05-29 17:29:19 brianwalenz Exp $";
+static char *rcsid = "$Id: PrintAlignment.c,v 1.2 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -34,7 +34,7 @@ static char *rcsid = "$Id: PrintAlignment.c,v 1.1 2009-05-29 17:29:19 brianwalen
 
 
 //  Width of PrintAlignment output
-int ALNPAGEWIDTH=100;
+int32 ALNPAGEWIDTH=100;
 
 
 void
@@ -65,11 +65,11 @@ PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what) 
   char *sequence, *quality;
   char pc;
   FragmentBeadIterator *read_it;
-  int32 bid;
+  beadIdx bid;
   Bead *bead;
   Fragment *fragment;
   SeqInterval *positions;
-  int dots=0;
+  int32 dots=0;
 
   if(what == CNS_VIEW_UNITIG)what=CNS_DOTS;
   if (what != CNS_CONSENSUS && what != CNS_DOTS && what != CNS_NODOTS && what != CNS_VERBOSE ) return;
@@ -111,15 +111,15 @@ PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what) 
   types = (char *) safe_calloc(num_frags,sizeof(char));
   positions = (SeqInterval *) safe_calloc(num_frags,sizeof(SeqInterval));
   for (i=0;i<num_frags;i++) {
-    int bgn_column;
-    int end_column;
+    int32 bgn_column;
+    int32 end_column;
     fragment = GetFragment(fragmentStore,i);
     if ( fragment->deleted || fragment->manode != mid) {
       fids[i] = 0;
       continue;
     }
-    bgn_column = (GetBead(beadStore,fragment->firstbead))->column_index;
-    end_column = (GetBead(beadStore,fragment->firstbead+fragment->length-1))->column_index;
+    bgn_column = (GetBead(beadStore,fragment->firstbead                         ))->column_index;
+    end_column = (GetBead(beadStore,fragment->firstbead.get()+fragment->length-1))->column_index;
 #ifdef PRINTUIDS
     if(fragment->type==AS_READ){
       fids[i] = fragment->uid;
@@ -153,7 +153,7 @@ PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what) 
             while ( GetColumn(columnStore,(bead=GetBead(beadStore,bid))->column_index)->ma_index < wi ) {
               bid = NextFragmentBead(&read_it[i]);
             }
-            if ( bid > -1 ) {
+            if (bid.isValid()) {
               pc = *Getchar(sequenceStore,(GetBead(beadStore,bid))->soffset);
               if (dots == 1) {
                 // check whether matches consensus, and make it a dot if so
@@ -176,7 +176,7 @@ PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what) 
         }
         if ( ! IsNULLIterator(&read_it[i]) ) {
           bid = NextFragmentBead(&read_it[i]);
-          if ( bid > -1 ) {
+          if (bid.isValid()) {
             pc = *Getchar(sequenceStore,(GetBead(beadStore,bid))->soffset);
             if (dots == 1 ) {
               // check whether matches consensus, and make it a dot if so

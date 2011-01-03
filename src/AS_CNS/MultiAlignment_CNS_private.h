@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.15 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.16 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -74,22 +74,22 @@ typedef enum {
 
 
 typedef struct {
-  int      id;
+  int32    id;
   int32    iid;
   char    *bases;      // gapped sequence
-  int     *qvs;        // quality values
+  int32   *qvs;        // quality values
   double   ave_qv;
-  int      allele_id;
-  int      uglen;      // ungapped length
+  int32    allele_id;
+  int32    uglen;      // ungapped length
 } Read;
 
 typedef struct {
-  int    id;
-  int    num_reads;
-  int   *read_ids;
-  int   *read_iids;
-  int    weight;
-  int    uglen;      // ungapped length
+  int32  id;
+  int32  num_reads;
+  int32 *read_ids;
+  int32 *read_iids;
+  int32  weight;
+  int32  uglen;      // ungapped length
 } Allele;
 
 typedef struct {
@@ -100,7 +100,7 @@ typedef struct {
   int32    end;         // position of the right boundary
   int32    nr;          // number of reads in the region of variation
   int32    max_nr;
-  int      nb;          // number of "current" bases
+  int32    nb;          // number of "current" bases
   int32    na;          // total number of detected alleles
   int32    nca;         // number of confirmed alleles
   char    *curr_bases;  // dim = nr
@@ -147,19 +147,83 @@ typedef struct {
 VA_DEF(CNS_AlignedContigElement)
 
 
+
+
+//  This class is designed to prevent spurious assignment to anything except other beadIdx.  A
+//  method is provided to explicitly set the value, but doing "beadIdx b = 4" will not work.
+//
+//  operator size_t -- used for automatically converting to an int for use in GetBead().
+//  set()           -- force a setting
+//  isInvalid()     -- test if the bead has a valid index
+//
+//  Ideally, 'operator size_t' would go away, since it could be hiding some bad usage,
+//  like 'int32 bid = someOtherBeadIdx', but there are 192 instances of GetBead() and I
+//  don't currently feel like tracking those down -- it'll be easier to replace the
+//  beadStore with a real class.
+//
+class beadIdx {
+public:
+  beadIdx()  { _idx = 0xffffffff; };
+  ~beadIdx() {                            };
+
+  //operator const size_t () { return(_idx); };
+
+  void   set(size_t forcedIdx) { _idx = forcedIdx; };
+  uint32 get(void)             { return(_idx); };
+
+  bool   isInvalid(void) { return(_idx == 0xffffffff); };
+  bool   isValid(void)   { return(_idx != 0xffffffff); };
+
+  bool   operator!=(beadIdx that) const  { return(_idx != that._idx); };
+  bool   operator==(beadIdx that) const  { return(_idx == that._idx); };
+private:
+  uint32   _idx;
+};
+
+class seqIdx {
+public:
+  seqIdx()  { _idx = 0xffffffff; };
+  ~seqIdx() {                            };
+
+  operator const size_t () { return(_idx); };
+
+  void   set(size_t forcedIdx) { _idx = forcedIdx; };
+  uint32 get(void)             { return(_idx); };
+
+  bool   isInvalid(void) { return(_idx == 0xffffffff); };
+  bool   isValid(void)   { return(_idx != 0xffffffff); };
+
+  bool   operator!=(seqIdx that) const  { return(_idx != that._idx); };
+  bool   operator==(seqIdx that) const  { return(_idx == that._idx); };
+private:
+  uint32   _idx;
+};
+
+
+
+
+
+//VA_DEF(beadIdx)
+
 typedef struct {
-  int32 boffset; // Location in BeadStore
-  int32 soffset; // Location in sequence/qualityStores
-  int32 foffset; // Location in Fragment sequence
-  int32 prev;
-  int32 next;
-  int32 up;
-  int32 down;  // navigation in multialignment (global offsets)
-  int32 frag_index; // Location of containing fragment in fragmentStore
-  int32 column_index; // Location of alignment column in columnStore
+  beadIdx boffset; // Location in BeadStore
+  seqIdx  soffset; // Location in sequence/qualityStores
+  int32  foffset; // Location in Fragment sequence
+  beadIdx prev;
+  beadIdx next;
+  beadIdx up;
+  beadIdx down;  // navigation in multialignment (global offsets)
+  int32  frag_index; // Location of containing fragment in fragmentStore
+  int32  column_index; // Location of alignment column in columnStore
 } Bead;
 
 VA_DEF(Bead)
+
+inline
+Bead*
+GetBead(VA_TYPE(Bead) *beadStore, beadIdx bid) {
+  return(GetBead(beadStore, bid.get()));
+}
 
 
 typedef struct {
@@ -169,19 +233,18 @@ typedef struct {
 #ifdef PRINTUIDS
   uint64 uid;
 #endif
-  int32 lid;            // index in sequence/quality/fragment store
-  int32 length;
-  int complement;
-  int container_iid;    // if non-zero, the iid of our container
-  int is_contained;     // if non-zero, consensus detected this fragment is contained
-  int deleted;
-  int manode;
-  int32 sequence;       // global index of first sequence character
-  int32 quality;        // global index of first quality character
-  int32 firstbead;      // global index of first "bead"
-  int32 n_components;   // number of component frags (in case of "unitig" Fragments)
-  int32 components;     // global index of first component frag
-  char *source;         // consensus just carried this through - no mods
+  int32   lid;            // index in sequence/quality/fragment store
+  int32   length;
+  int32   complement;
+  int32   container_iid;    // if non-zero, the iid of our container
+  int32   is_contained;     // if non-zero, consensus detected this fragment is contained
+  int32   deleted;
+  int32   manode;
+  seqIdx   sequence;       // global index of first sequence character
+  beadIdx firstbead;      // global index of first "bead"
+  int32   n_components;   // number of component frags (in case of "unitig" Fragments)
+  int32   components;     // global index of first component frag
+  char   *source;         // consensus just carried this through - no mods
 } Fragment;
 
 VA_DEF(Fragment)
@@ -193,12 +256,12 @@ typedef struct {
 } BaseCount;
 
 typedef struct {
-  int32 lid;  // index in columnStore
-  int32 call; // global offset in beadStore;
-  int32 next;
-  int32 prev; // navigation in columnStore;
-  int32 ma_id;     // MANode membership;
-  int32 ma_index;  // index in MANode; // refreshed only periodically // seems to also be gapped position in the align
+  int32     lid;  // index in columnStore
+  beadIdx   call; // global offset in beadStore;
+  int32     next;
+  int32     prev; // navigation in columnStore;
+  int32     ma_id;     // MANode membership;
+  int32     ma_index;  // index in MANode; // refreshed only periodically // seems to also be gapped position in the align
   BaseCount base_count;
 } Column;
 
@@ -208,10 +271,10 @@ VA_DEF(Column)
 //  This is the basic multialignment atom: A collection (possibly
 //  empty) of columns given by their offsets in the global columnStore
 typedef struct {
-  int32 lid;      // MANode id in the manodeStore
-  int32 iid;      // MANode's iid
-  int32 first;
-  int32 last;
+  int32  lid;      // MANode id in the manodeStore
+  int32  iid;      // MANode's iid
+  int32  first;
+  int32  last;
   VA_TYPE(int32) *columns;
 } MANode;
 
@@ -221,17 +284,18 @@ VA_DEF(MANode)
 
 typedef struct {
   Column column;
-  int32 bead;
+  beadIdx bead;
 } ColumnBeadIterator;
 
 typedef struct {
   Fragment fragment;
-  int32 bead;
+  beadIdx   bead;
+  bool     isNull;
 } FragmentBeadIterator;
 
 typedef struct {
   int32 manode_id;
-  int32 bead;
+  beadIdx bead;
 } ConsensusBeadIterator;
 
 
@@ -243,31 +307,15 @@ typedef enum {
 } ShiftStatus;
 
 typedef struct {
-  int32 start_column, end_column, rows, columns, window_width;
+  int32 start_column;
+  int32 end_column;
+  int32 rows;
+  int32 columns;
+  int32 window_width;
   ShiftStatus shift;
   char *beads;
   char *calls;
 } Abacus;
-
-typedef struct {
-  int32 ident;
-  int32 length;
-  float coverage_stat;
-  int32 left;
-  int32 right;
-  UnitigType type;
-} UnitigData;
-
-VA_DEF(UnitigData)
-
-typedef struct {
-  int32 ident;
-  int32 length;
-  int32 num_contig_pairs;
-  int32 contig_pairs;
-} ScaffoldData;
-
-VA_DEF(ScaffoldData)
 
 
 
@@ -292,29 +340,29 @@ extern VA_TYPE(CNS_AlignedContigElement) *fragment_positions;
 
 extern double EPROB[CNS_MAX_QV-CNS_MIN_QV+1];
 extern double PROB[CNS_MAX_QV-CNS_MIN_QV+1];
-extern int    RINDEX[RINDEXMAX];
+extern int32  RINDEX[RINDEXMAX];
 extern char   ALPHABET[6];
 extern char   RALPHABET[CNS_NP];
 extern char   RALPHABETC[CNS_NP];
 extern double TAU_MISMATCH;
 extern uint32 AMASK[5];
 
-extern int thisIsConsensus;
+extern int32 thisIsConsensus;
 
-extern int NumColumnsInUnitigs;
-extern int NumRunsOfGapsInUnitigReads;
-extern int NumGapsInUnitigs;
-extern int NumColumnsInContigs;
-extern int NumRunsOfGapsInContigReads;
-extern int NumGapsInContigs;
-extern int NumAAMismatches;
-extern int NumVARRecords;
-extern int NumVARStringsWithFlankingGaps;
-extern int NumUnitigRetrySuccess;
+extern int32 NumColumnsInUnitigs;
+extern int32 NumRunsOfGapsInUnitigReads;
+extern int32 NumGapsInUnitigs;
+extern int32 NumColumnsInContigs;
+extern int32 NumRunsOfGapsInContigReads;
+extern int32 NumGapsInContigs;
+extern int32 NumAAMismatches;
+extern int32 NumVARRecords;
+extern int32 NumVARStringsWithFlankingGaps;
+extern int32 NumUnitigRetrySuccess;
 
-extern int DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
-extern int VERBOSE_MULTIALIGN_OUTPUT;
-extern int FORCE_UNITIG_ABUT;
+extern int32 DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
+extern int32 VERBOSE_MULTIALIGN_OUTPUT;
+extern int32 FORCE_UNITIG_ABUT;
 
 //  Functions used by lots of pieces internally to AS_CNS.  Defined in
 //  MultiAlgnment_CNS.c.
@@ -336,7 +384,7 @@ ShowBaseCount(BaseCount *b);
 void
 ShowBaseCountPlain(FILE *out,BaseCount *b);
 char
-GetMaxBaseCount(BaseCount *b,int start_index);
+GetMaxBaseCount(BaseCount *b, int32 start_index);
 void
 CheckColumnBaseCount(Column *c);
 
@@ -349,7 +397,7 @@ GetMANodeLength(int32 mid);
 void
 SeedMAWithFragment(int32 mid,
                    int32 fid,
-                   int quality,
+                   int32 quality,
                    CNS_Options *opp);
 int
 GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality);
@@ -358,42 +406,42 @@ GetMANodePositions(int32 mid, MultiAlignT *ma);
 
 void
 CreateColumnBeadIterator(int32 cid,ColumnBeadIterator *bi);
-int32
+beadIdx
 NextColumnBead(ColumnBeadIterator *bi);
-int
+void
 NullifyFragmentBeadIterator(FragmentBeadIterator *bi);
 int
 IsNULLIterator(FragmentBeadIterator *bi);
 void
 CreateFragmentBeadIterator(int32 fid,FragmentBeadIterator *bi);
-int32
+beadIdx
 NextFragmentBead(FragmentBeadIterator *bi);
 void
 CreateConsensusBeadIterator(int32 mid,ConsensusBeadIterator *bi);
-int32
+beadIdx
 NextConsensusBead(ConsensusBeadIterator *bi);
 
 void
-ClearBead(int32 bid);
+ClearBead(beadIdx bid);
 void
-AlignBeadToColumn(int32 cid, int32 bid, char *label);
-int32
-UnAlignBeadFromColumn(int32 bid);
-int32
-UnAlignTrailingGapBeads(int32 bid);
+AlignBeadToColumn(int32 cid, beadIdx bid, char *label);
+beadIdx
+UnAlignBeadFromColumn(beadIdx bid);
+beadIdx
+UnAlignTrailingGapBeads(beadIdx bid);
 void
-LateralExchangeBead(int32 lid, int32 rid);
-int32
-AppendGapBead(int32 bid);
-int32
-PrependGapBead(int32 bid);
+LateralExchangeBead(beadIdx lid, beadIdx rid);
+beadIdx
+AppendGapBead(beadIdx bid);
+beadIdx
+PrependGapBead(beadIdx bid);
 
 Column *
-CreateColumn(int32 bid);
+CreateColumn(beadIdx bid);
 void
 AddColumnToMANode(int32 ma, Column column);
 int32
-ColumnAppend(int32 cid, int32 bid);
+ColumnAppend(int32 cid, beadIdx bid);
 void
 ShowColumn(int32 cid);
 
@@ -401,24 +449,24 @@ void
 ResetStores(int32 num_bases, int32 num_frags, int32 num_columns);
 int32
 AppendFragToLocalStore(FragType          type,
-                       int               iid,
-                       int               complement,
-                       int               contained,
+                       int32             iid,
+                       int32             complement,
+                       int32             contained,
                        UnitigType        utype);
 
 void
-AllocateDistMatrix(VarRegion  *vreg, int init);
+AllocateDistMatrix(VarRegion  *vreg, int32 init);
 void
 OutputDistMatrix(FILE *fout, VarRegion  *vreg);
 void
-PopulateDistMatrix(Read *reads, int len, VarRegion  *vreg);
+PopulateDistMatrix(Read *reads, int32 len, VarRegion  *vreg);
 void
 OutputReads(FILE *fout, Read *reads, int32 nr, int32 width);
 void
 OutputAlleles(FILE *fout, VarRegion *vreg);
 void
 AllocateMemoryForReads(Read **reads, int32 nr, int32 len,
-                       int default_qv);
+                       int32 default_qv);
 void
 AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na);
 void
@@ -426,9 +474,9 @@ SortAllelesByLength(Allele *alleles, int32 num_alleles, Read *reads);
 void
 SortAllelesByWeight(Allele *alleles, int32 num_alleles, Read *reads);
 void
-SortAllelesByMapping(Allele *alleles, int32 nca, Read *reads, int *allele_map);
+SortAllelesByMapping(Allele *alleles, int32 nca, Read *reads, int32 *allele_map);
 void
-ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca, int **dist_matrix);
+ClusterReads(Read *reads, int32 nr, Allele *alleles, int32 *na, int32 *nca, int32 **dist_matrix);
 
 
 //
@@ -439,12 +487,12 @@ AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
              CNS_Options *opp);
 
 int
-RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
-              IntMultiVar **v_list, int make_v_list, int get_scores);
+RefreshMANode(int32 mid, int32 quality, CNS_Options *opp, int32 *nvars,
+              IntMultiVar **v_list, int32 make_v_list, int32 get_scores);
 
 void
 ApplyAlignment(int32 afid,
-               int32 alen, int32 *aindex,
+               int32 alen, beadIdx *aindex,
                int32 bfid,
                int32 ahang,
                int32 *trace);
@@ -454,7 +502,7 @@ PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what);
 
 void
 MergeRefine(int32 mid, VA_TYPE(IntMultiVar) *v_list,
-            int32 utg_alleles, CNS_Options *opp, int get_scores);
+            int32 utg_alleles, CNS_Options *opp, int32 get_scores);
 
 
 int
@@ -467,8 +515,8 @@ GetAlignmentTrace(int32                      afid,
                   VA_TYPE(int32)            *trace,
                   OverlapType               *otype,
                   AS_ALN_Aligner            *alignFunction,
-                  int                        show_olap,
-                  int                        allow_big_endgaps,
+                  int32                      show_olap,
+                  int32                      allow_big_endgaps,
                   GetAlignmentTraceContext   alignment_context,
                   double                     input_erate);
 
@@ -482,11 +530,11 @@ GetAlignmentTraceDriver(Fragment                    *afrag,
                         VA_TYPE(int32)              *trace,
                         OverlapType                 *otype,
                         GetAlignmentTraceContext     alignment_context,
-                        int                          max_gap);
+                        int32                        max_gap);
 
 int
-BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
-         int target_allele, char *cons_base, int verbose, int get_scores,
+BaseCall(int32 cid, int32 quality, double *var, VarRegion  *vreg,
+         int32 target_allele, char *cons_base, int32 verbose, int32 get_scores,
          CNS_Options *opp);
 
 #endif

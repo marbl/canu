@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeMultiAligns.c,v 1.9 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeMultiAligns.c,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -102,10 +102,10 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
   VA_TYPE(int32) *trace = CreateVA_int32(AS_READ_MAX_NORMAL_LEN);
 
   for (int32 i=1; i<num_contigs; i++) {
-    int           ahang,bhang,ovl;
-    OverlapType   otype;
-    int           olap_success=0;
-    int            try_contained=0;
+    int32          ahang,bhang,ovl;
+    OverlapType    otype;
+    int32          olap_success=0;
+    int32          try_contained=0;
     Fragment      *afrag = NULL;
     Fragment      *bfrag = GetFragment(fragmentStore,i);
 
@@ -266,8 +266,8 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
         fprintf(stderr, "left=%d right=%d bgn=%d end=%d\n", left, right, bgn, end);
 #endif
 
-      left  = GetColumn(columnStore, GetBead(beadStore,cfrag->firstbead + left)   ->column_index)->ma_index;
-      right = GetColumn(columnStore, GetBead(beadStore,cfrag->firstbead + right-1)->column_index)->ma_index +1;
+      left  = GetColumn(columnStore, GetBead(beadStore,cfrag->firstbead.get() + left)   ->column_index)->ma_index;
+      right = GetColumn(columnStore, GetBead(beadStore,cfrag->firstbead.get() + right-1)->column_index)->ma_index +1;
 
       int32 tmp = bgn;
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.32 2010-09-23 20:39:46 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.33 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,23 +38,23 @@ static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.32 2010-09-23 20:39:46 brianwa
 
 static
 int
-MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
-             int show_cel_status) {
+MANode2Array(MANode *ma, int32 *depth, char ***array, int32 ***id_array,
+             int32 show_cel_status) {
   char **multia;
-  int **ia;
-  int length = GetNumColumns(ma->columns);
+  int32 **ia;
+  int32 length = GetNumColumns(ma->columns);
   // find max column depth.
-  int max_depth=0;
-  int col_depth;
-  int column_index;
+  int32 max_depth=0;
+  int32 col_depth;
+  int32 column_index;
   Column *col;
   char laneformat[40];
-  int num_frags=GetNumFragments(fragmentStore);
+  int32 num_frags=GetNumFragments(fragmentStore);
   Fragment *frag;
-  int fid;
-  int *rowptr,*row_assign;
-  int ir,fbgn,fend;
-  int i;
+  int32 fid;
+  int32 *rowptr,*row_assign;
+  int32 ir,fbgn,fend;
+  int32 i;
   *depth =  0;
   for (column_index = ma->first;column_index != -1;  ) {
     col = GetColumn(columnStore, column_index);
@@ -65,17 +65,16 @@ MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
     column_index = col->next;
   }
   *depth = 2*max_depth; // rough estimate. first pack rows, then adjust to actual consumed rows
-  rowptr = (int *)safe_malloc((*depth)*sizeof(int));
-  row_assign = (int *)safe_malloc(num_frags*sizeof(int));
+  rowptr = (int32 *)safe_malloc((*depth)*sizeof(int));
+  row_assign = (int32 *)safe_malloc(num_frags*sizeof(int));
   for (ir=0;ir<*depth;ir++) rowptr[ir] = 0;
   for (ir=0;ir<num_frags;ir++) row_assign[ir] = -1;
   frag = GetFragment(fragmentStore,0);
   // setup the packing
   for ( fid=0;fid<num_frags;fid++ ) {
     if ( frag->type != AS_UNITIG ) {
-      fbgn = GetColumn(columnStore,(GetBead(beadStore,frag->firstbead))->column_index)->ma_index;
-      fend = GetColumn(columnStore,
-                       (GetBead(beadStore,frag->firstbead+frag->length-1))->column_index)->ma_index+1;
+      fbgn = GetColumn(columnStore, (GetBead(beadStore,frag->firstbead                     ))->column_index)->ma_index;
+      fend = GetColumn(columnStore, (GetBead(beadStore,frag->firstbead.get()+frag->length-1))->column_index)->ma_index+1;
       for (ir=0;ir<*depth;ir++) {
         if (fbgn <  rowptr[ir] ) continue;
         rowptr[ir] = fend;
@@ -85,7 +84,7 @@ MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
       if (row_assign[fid] <= -1)
         {
           *depth += max_depth;
-          rowptr = (int *)safe_realloc(rowptr, (*depth)*sizeof(int));
+          rowptr = (int32 *)safe_realloc(rowptr, (*depth)*sizeof(int));
           fid--;
           continue;
         }
@@ -103,11 +102,11 @@ MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
   if ( max_depth == 0 ) max_depth = ir;
   *depth = max_depth;
   multia = (char **)safe_malloc(2*(*depth)*sizeof(char *));
-  ia = (int **)safe_malloc((*depth)*sizeof(int *));
+  ia = (int32 **)safe_malloc((*depth)*sizeof(int32 *));
   sprintf(laneformat,"%%%ds",length);
-  {int j;
+  {int32 j;
     for (i=0;i<(*depth);i++) {
-      ia[i] = (int *) safe_malloc( length*sizeof(int));
+      ia[i] = (int32 *) safe_malloc( length*sizeof(int));
       for (j=0;j<length;j++) ia[i][j] = 0;
     }
   }
@@ -119,10 +118,10 @@ MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
   {
     Bead *fb;
     FragmentBeadIterator fi;
-    int bid;
+    beadIdx bid;
     char bc,bq;
     Column *bcolumn;
-    int ma_index;
+    int32 ma_index;
 
     frag = GetFragment(fragmentStore,0);
     for ( fid=0;fid<num_frags;fid++ ) {
@@ -133,7 +132,7 @@ MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
 
         CreateFragmentBeadIterator(fid,&fi);
 
-        while ( (bid = NextFragmentBead(&fi)) != -1 ) {
+        while ( (bid = NextFragmentBead(&fi)) .isValid() ) {
           fb = GetBead(beadStore,bid);
           bc = *Getchar(sequenceStore,fb->soffset);
           bq = *Getchar(qualityStore,fb->soffset);
@@ -193,23 +192,23 @@ public:
     safe_free(frankensteinBof);
   };
 
-  int  initialize(void); 
+  int32  initialize(void); 
 
   void reportStartingWork(void);
   void reportFailure(void);
 
-  int  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
+  int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
 
-  int  computePositionFromParent(void);
-  int  computePositionFromContainer(void);
-  int  computePositionFromLayout(void);
-  int  computePositionFromAlignment(void);
+  int32  computePositionFromParent(void);
+  int32  computePositionFromContainer(void);
+  int32  computePositionFromLayout(void);
+  int32  computePositionFromAlignment(void);
 
   void rebuildFrankensteinFromConsensus(void);
 
-  int  alignFragmentToFragments(void);
+  int32  alignFragmentToFragments(void);
 
-  int  alignFragment(void);
+  int32  alignFragment(void);
   void applyAlignment(int32 frag_aiid=-1, int32 frag_ahang=0, int32 *frag_trace=NULL);
 
   void rebuildFrankensteinFromFragment(void);
@@ -246,7 +245,7 @@ private:
   int32           frankensteinLen;
   int32           frankensteinMax;
   char           *frankenstein;
-  int32          *frankensteinBof;
+  beadIdx         *frankensteinBof;
 };
 
 
@@ -310,7 +309,7 @@ unitigConsensus::initialize(void) {
   frankensteinLen = 0;
   frankensteinMax = 1024 * 1024;
   frankenstein    = (char *)safe_malloc(sizeof(char) * frankensteinMax);
-  frankensteinBof = (int32 *)safe_malloc(sizeof(int32) * frankensteinMax);
+  frankensteinBof = (beadIdx *)safe_malloc(sizeof(beadIdx) * frankensteinMax);
 
   for (int32 i=0; i<numfrags; i++) {
     int32 complement = (fraglist[i].position.bgn < fraglist[i].position.end) ? 0 : 1;
@@ -356,7 +355,7 @@ unitigConsensus::initialize(void) {
 
   //  Save columns
   {
-    int32   bidx = GetFragment(fragmentStore, 0)->firstbead;
+    beadIdx bidx = GetFragment(fragmentStore, 0)->firstbead;
     Bead   *bead = GetBead(beadStore, bidx);
 
     while (bead) {
@@ -365,11 +364,11 @@ unitigConsensus::initialize(void) {
 
       frankensteinLen++;
 
-      bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next);
+      bead = (bead->next.isInvalid()) ? NULL : GetBead(beadStore, bead->next);
     }
 
     frankenstein   [frankensteinLen] = 0;
-    frankensteinBof[frankensteinLen] = -1;
+    frankensteinBof[frankensteinLen] = beadIdx();
 
     placed[0].bgn = 0;
     placed[0].end = frankensteinLen;
@@ -654,7 +653,7 @@ unitigConsensus::rebuildFrankensteinFromConsensus(void) {
   //  fragment bead anymore.
 
   ConsensusBeadIterator  bi;
-  int32                  bid;
+  beadIdx                bid;
 
   int32                  gapToUngapLen = 0;
 
@@ -662,7 +661,7 @@ unitigConsensus::rebuildFrankensteinFromConsensus(void) {
 
   frankensteinLen = 0;
 
-  while ((bid = NextConsensusBead(&bi)) != -1) {
+  while ((bid = NextConsensusBead(&bi)) .isValid()) {
     Bead *bead = GetBead(beadStore, bid);
     char  cnsc = *Getchar(sequenceStore, bead->soffset);
 
@@ -677,7 +676,7 @@ unitigConsensus::rebuildFrankensteinFromConsensus(void) {
   }
 
   frankenstein   [frankensteinLen] = 0;
-  frankensteinBof[frankensteinLen] = -1;
+  frankensteinBof[frankensteinLen] = beadIdx();
 
   //fprintf(stderr, "AFTER REBUILD %s\n", frankenstein);
 
@@ -711,7 +710,7 @@ unitigConsensus::rebuildFrankensteinFromConsensus(void) {
     if ((placed[i].bgn != 0) || (placed[i].end != 0)) {
       Fragment *frg  = GetFragment(fragmentStore, i);
       Bead     *frst = GetBead(beadStore, frg->firstbead);
-      Bead     *last = GetBead(beadStore, frg->firstbead + frg->length - 1);
+      Bead     *last = GetBead(beadStore, frg->firstbead.get() + frg->length - 1);
 
       int32     frstIdx = GetColumn(columnStore, frst->column_index)->ma_index;
       int32     lastIdx = GetColumn(columnStore, last->column_index)->ma_index;
@@ -1066,20 +1065,20 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
   //  frankenstein, and so we must also update the fragment position mapping array.
 
   if (bhang > 0) {
-    int32   bidx = frankensteinBof[frankensteinLen-1];
+    beadIdx  bidx = frankensteinBof[frankensteinLen-1];
     Bead   *bead = GetBead(beadStore, bidx);
 
-    while (bead->down != -1)
+    while (bead->down.isValid())
       bead = GetBead(beadStore, bead->down);
 
     while ((bead) && (bead->frag_index != tiid))
-      bead = (bead->up == -1) ? NULL : GetBead(beadStore, bead->up);
+      bead = (bead->up.isInvalid()) ? NULL : GetBead(beadStore, bead->up);
 
     assert((bead) && (bead->frag_index == tiid));  //  Never found the correct fragment?!?
 
-    for (bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next);
+    for (bead = (bead->next.isInvalid()) ? NULL : GetBead(beadStore, bead->next);
          bead;
-         bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next)) {
+         bead = (bead->next.isInvalid()) ? NULL : GetBead(beadStore, bead->next)) {
       char ch = *Getchar(sequenceStore, bead->soffset);
       if (ch != '-') {
         frankenstein   [frankensteinLen] = ch;
@@ -1097,7 +1096,7 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
     }
 
     frankenstein   [frankensteinLen] = 0;
-    frankensteinBof[frankensteinLen] = -1;
+    frankensteinBof[frankensteinLen] = beadIdx();
   }  //  End of extending to the right.
 
 
@@ -1117,7 +1116,7 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
     //  Zero out the new stuff, temporarily.
     for (int32 x=0; x<-ahang; x++) {
       frankenstein   [x] = 0;
-      frankensteinBof[x] = -1;
+      frankensteinBof[x] = beadIdx();
     }
 
     //  Adjust positions.
@@ -1127,24 +1126,24 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
       //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", x, fraglist[x].ident, placed[x].bgn, placed[x].end);
     }
 
-    int32   bidx = frankensteinBof[-ahang];
-    Bead   *bead = GetBead(beadStore, bidx);
+    beadIdx   bidx = frankensteinBof[-ahang];
+    Bead     *bead = GetBead(beadStore, bidx);
 
     //  This should be either the first bead in frankenstein, or, if frankenstein was rebuilt from
     //  consensus in the past, it should be a consensus bead (at the top of the column).
 
-    assert((bead->prev == -1) ||  //  Should be the first bead in the frankenstein
-           (bead->up   == -1));
+    assert((bead->prev.isInvalid()) ||  //  Should be the first bead in the frankenstein
+           (bead->up  .isInvalid()));
 
-    while (bead->down != -1)
+    while (bead->down.isValid())
       bead = GetBead(beadStore, bead->down);
 
     while ((bead) && (bead->frag_index != tiid))
-      bead = (bead->up == -1) ? NULL : GetBead(beadStore, bead->up);
+      bead = (bead->up.isInvalid()) ? NULL : GetBead(beadStore, bead->up);
 
     assert((bead) && (bead->frag_index == tiid));  //  Never found the correct fragment?!?
 
-    while (bead->prev != -1) {
+    while (bead->prev.isValid()) {
       //fprintf(stderr, "prev bead: boffset %d prev %d\n", bead->boffset, bead->prev);
       bead = GetBead(beadStore, bead->prev);
     }
@@ -1225,21 +1224,21 @@ unitigConsensus::rebuildFrankensteinFromFragment(void) {
   //  the first column with this read.
 
   //  Move to the bottom of the column....
-  while ((bead) && (bead->down != -1))
+  while ((bead) && (bead->down.isValid()))
     bead = GetBead(beadStore, bead->down);
 
   //  Then search up for the fragment we just aligned.
   while ((bead) && (bead->frag_index != tiid))
-    bead = (bead->up == -1) ? NULL : GetBead(beadStore, bead->up);
+    bead = (bead->up.isInvalid()) ? NULL : GetBead(beadStore, bead->up);
 
   assert(bead);
 
   //  Move to the start of the fragment.
-  while ((bead) && (bead->prev != -1))
+  while ((bead) && (bead->prev.isValid()))
     bead = GetBead(beadStore, bead->prev);
 
   assert(bead);
-  assert(bead->prev == -1);
+  assert(bead->prev.isInvalid());
   assert(bead->frag_index == tiid);
 
   //  Trim back frankenstein until just before the start of the fragment.
@@ -1252,7 +1251,7 @@ unitigConsensus::rebuildFrankensteinFromFragment(void) {
   //  And append bases for this fragment.
   for (;
        bead;
-       bead = (bead->next == -1) ? NULL : GetBead(beadStore, bead->next)) {
+       bead = (bead->next.isInvalid()) ? NULL : GetBead(beadStore, bead->next)) {
     char ch = *Getchar(sequenceStore, bead->soffset);
 
     if (ch != '-') {
@@ -1272,7 +1271,7 @@ unitigConsensus::rebuildFrankensteinFromFragment(void) {
   }
 
   frankenstein   [frankensteinLen] = 0;
-  frankensteinBof[frankensteinLen] = -1;
+  frankensteinBof[frankensteinLen] = beadIdx();
 }
 
 
@@ -1333,9 +1332,9 @@ unitigConsensus::generateConsensus(CNS_PrintKey     printwhat) {
   //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
   //  to load sequence and quality for every fragment, and that's too expensive.
   {
-    int    depth  = 0;
+    int32    depth  = 0;
     char **multia = NULL;
-    int  **id_array = NULL;
+    int32  **id_array = NULL;
 
     MANode2Array(manode, &depth, &multia, &id_array,0);
 

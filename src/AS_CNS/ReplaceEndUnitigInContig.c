@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.9 2009-10-26 13:20:26 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -37,9 +37,8 @@ static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.9 2009-10-26 13:20:26 
 static
 void
 PrintIMPInfo(FILE *print, int32 nfrags, IntMultiPos *imps) {
-  int i;
   uint32 bgn,end;
-  for (i=0;i<nfrags;i++) {
+  for (int32 i=0;i<nfrags;i++) {
     bgn=imps->position.bgn;
     end=imps->position.end;
     if ( bgn < end )
@@ -54,9 +53,8 @@ PrintIMPInfo(FILE *print, int32 nfrags, IntMultiPos *imps) {
 static
 void
 PrintIUPInfo(FILE *print, int32 nfrags, IntUnitigPos *iups) {
-  int i;
   uint32 bgn,end;
-  for (i=0;i<nfrags;i++) {
+  for (int32 i=0;i<nfrags;i++) {
     bgn=iups->position.bgn;
     end=iups->position.end;
     if ( bgn < end )
@@ -71,19 +69,19 @@ PrintIUPInfo(FILE *print, int32 nfrags, IntUnitigPos *iups) {
 MultiAlignT *
 ReplaceEndUnitigInContig(uint32 contig_iid,
                          uint32 unitig_iid,
-                         int extendingLeft,
+                         int32 extendingLeft,
                          CNS_Options *opp) {
   int32 cid,tid; // local id of contig (cid), and unitig(tid)
   int32 aid,bid;
-  int i,num_unitigs;
+  int32 i,num_unitigs;
   MultiAlignT *oma;
   MultiAlignT *cma;
   IntUnitigPos *u_list;
   IntMultiPos *f_list;
   IntMultiVar  *v_list;
-  int append_left=0;
-  int num_frags=0;
-  int complement=0;
+  int32 append_left=0;
+  int32 num_frags=0;
+  int32 complement=0;
   MANode *ma;
   Fragment *cfrag;
   Fragment *tfrag = NULL;
@@ -140,19 +138,19 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
   ResetVA_int32(trace);
 
   {
-    int ahang,bhang,pos_offset=0;
-    int tigs_adjusted_pos=0;
+    int32 ahang,bhang,pos_offset=0;
+    int32 tigs_adjusted_pos=0;
     OverlapType otype;
-    int olap_success=0;
+    int32 olap_success=0;
     cfrag=GetFragment(fragmentStore,cid);
     for(i=0;i<num_unitigs;i++) {
       uint32 id=u_list[i].ident;
       if ( id == unitig_iid ) {
-        int bgn=u_list[i].position.bgn;
-        int end=u_list[i].position.end;
-        int complement_tmp=(bgn<end)?0:1;
-        int left=(complement_tmp)?end:bgn;
-        int right=(complement_tmp)?bgn:end;
+        int32 bgn=u_list[i].position.bgn;
+        int32 end=u_list[i].position.end;
+        int32 complement_tmp=(bgn<end)?0:1;
+        int32 left=(complement_tmp)?end:bgn;
+        int32 right=(complement_tmp)?bgn:end;
         complement=complement_tmp;
         tid = AppendFragToLocalStore(AS_UNITIG,
                                      id,
@@ -185,7 +183,7 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
         SeedMAWithFragment(ma->lid,aid,0, opp);
 
         //  The expected length of this alignment is always the length of the original unitig.
-        int ovl = right - left;
+        int32 ovl = right - left;
 
         olap_success = GetAlignmentTrace(aid, 0, bid, &ahang, &bhang, ovl, trace, &otype, DP_Compare, DONT_SHOW_OLAP, 0, GETALIGNTRACE_MERGE, AS_CGW_ERROR_RATE);
 
@@ -238,15 +236,15 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
     CNS_AlignedContigElement *tcomponents;
     CNS_AlignedContigElement *contig_component;
     CNS_AlignedContigElement *aligned_component;
-    int ifrag=0;
-    int iunitig=0;
+    int32 ifrag=0;
+    int32 iunitig=0;
     IntMultiPos *imp;
     IntUnitigPos *iup;
     Fragment *frag;
-    int ci=0;
-    int tc=0; //unitig component index
+    int32 ci=0;
+    int32 tc=0; //unitig component index
     int32 bgn,end,left,right,tmp;
-    int range_bgn=0,range_end=0,new_tig=0;
+    int32 range_bgn=0,range_end=0,new_tig=0;
     components=GetCNS_AlignedContigElement(fragment_positions,cfrag->components);
     tcomponents=GetCNS_AlignedContigElement(fragment_positions,tfrag->components);
     // make adjustments to positions
@@ -306,10 +304,8 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
       //    left = 0;
       //    right = frag->length;
       //}
-      left = GetColumn(columnStore,
-                       GetBead(beadStore,frag->firstbead + left)->column_index)->ma_index;
-      right= GetColumn(columnStore,
-                       GetBead(beadStore,frag->firstbead + right-1)->column_index)->ma_index + 1;
+      left = GetColumn(columnStore, GetBead(beadStore,frag->firstbead.get() + left   )->column_index)->ma_index;
+      right= GetColumn(columnStore, GetBead(beadStore,frag->firstbead.get() + right-1)->column_index)->ma_index + 1;
       tmp = bgn;
       bgn = (bgn<end)?left:right;
       end = (tmp<end)?right:left;

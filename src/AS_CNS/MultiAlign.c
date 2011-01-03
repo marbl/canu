@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.17 2010-10-04 08:51:43 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.18 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -29,6 +29,7 @@ static const char *rcsid = "$Id: MultiAlign.c,v 1.17 2010-10-04 08:51:43 brianwa
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
 #include "MultiAlignment_CNS.h"
+#include "MultiAlignment_CNS_private.h"
 
 #include "AS_UTL_splitToWords.H"
 
@@ -590,7 +591,7 @@ GetMultiAlignUngappedOffsets(MultiAlignT *ma,
 
   if (ma) {
     char *c = Getchar(ma->consensus, 0);
-    int   u = 0;
+    int32 u = 0;
 
     while (*c != 0) {
       Appendint32(ungappedOffsets, &u);
@@ -609,7 +610,7 @@ CompareUnitigPos (const void *c1, const void *c2) {
   IntUnitigPos *u1 = (IntUnitigPos *)c1;
   IntUnitigPos *u2 = (IntUnitigPos *)c2;
 
-  int diff = (MIN(u1->position.bgn, u1->position.end) -
+  int32 diff = (MIN(u1->position.bgn, u1->position.end) -
               MIN(u2->position.bgn, u2->position.end));
   if (diff)
     return diff;

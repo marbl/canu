@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.4 2010-06-09 15:34:54 skoren Exp $";
+static char *rcsid = "$Id: AbacusRefine.c,v 1.5 2011-01-03 03:07:16 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -71,41 +71,38 @@ GetAbacus(Abacus *a, int32 i, int32 j) {
 static
 void
 SetAbacus(Abacus *a, int32 i, int32 j, char c) {
-  int32 offset = i*(a->columns+2)+j+1;
-  if(i<0 || i>a->rows-1){
+  int32 offset = i * (a->columns+2) + j + 1;
+
+  if ((i == -1) || (i > a->rows-1)) {
     fprintf(stderr, "i=%d j=%d a->rows=%d\n", i, j, a->rows);
     fprintf(stderr, "SetAbacus attempt to write beyond row range");
     assert(0);
   }
-  if(j<0 || j>a->columns-1){
+
+  if ((j == -1) || (j > a->columns-1)) {
     fprintf(stderr, "i=%d j=%d a->columns=%d\n", i, j, a->columns);
     fprintf(stderr, "SetAbacus attempt to write beyond column range");
     assert(0);
   }
+
   a->beads[offset] = c;
 }
 
 
 static
-int
+void
 ResetCalls(Abacus *a) {
-  int j;
-  for (j=0;j<a->columns;j++) {
+  for (int32 j=0;j<a->columns;j++)
     a->calls[j] = 'n';
-  }
-  return 1;
 }
 
 
 static
-int
-ResetIndex(VA_TYPE(int32) * indices, int n) {
+void
+ResetIndex(VA_TYPE(int32) * indices, int32 n) {
   int32 value=0;
-  int i;
-  for( i=0;i<n;i++) {
+  for(int32 i=0;i<n;i++)
     SetVA_int32(indices,i,&value);
-  }
-  return 1;
 }
 
 
@@ -114,16 +111,17 @@ Abacus *
 CreateAbacus(int32 mid, int32 from, int32 end) {
   // from,and end are ids of the first and last columns in the columnStore
   Abacus             *abacus;
-  int32               columns=1, rows=0, i, j, bid, orig_columns, set_column;
+  beadIdx              bid;
+  int32               columns=1, rows=0, i, j, orig_columns, set_column;
   Column             *column,*last;
   ColumnBeadIterator  bi;
   Bead               *bead;
   MANode             *ma;
 #define  MAX_MID_COLUMN_NUM 100
-  static int                 mid_column_points[MAX_MID_COLUMN_NUM] = { 75, 150};
+  static int32        mid_column_points[MAX_MID_COLUMN_NUM] = { 75, 150};
   Column             *mid_column[MAX_MID_COLUMN_NUM] = { NULL, NULL };
-  int                 next_mid_column=0;
-  int                 max_mid_columns = 0;
+  int32               next_mid_column=0;
+  int32               max_mid_columns = 0;
 
   //  Macaque, using overlap based trimming, needed mid_column points
   //  at rather small intervals to pass.  Even without OBT, macaque
@@ -193,7 +191,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
 
   CreateColumnBeadIterator(column->lid, &bi);
 
-  while ( (bid = NextColumnBead(&bi)) != -1 ) {
+  while ( (bid = NextColumnBead(&bi)).isValid() ) {
     bead = GetBead(beadStore,bid);
     rows++;
     SetVA_int32(abacus_indices,bead->frag_index,&rows);
@@ -201,7 +199,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
 
   CreateColumnBeadIterator(last->lid, &bi);
 
-  while ( (bid = NextColumnBead(&bi)) != -1 ) {
+  while ( (bid = NextColumnBead(&bi)).isValid() ) {
     bead = GetBead(beadStore,bid);
     if ( *Getint32(abacus_indices,bead->frag_index) == 0 ) {
       rows++;
@@ -223,7 +221,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
     if (mid_column[i] != NULL) {
       CreateColumnBeadIterator(mid_column[i]->lid, &bi);
 
-      while ((bid = NextColumnBead(&bi)) != -1) {
+      while ((bid = NextColumnBead(&bi)).isValid()) {
         bead = GetBead(beadStore,bid);
         if ( *Getint32(abacus_indices,bead->frag_index) == 0 ) {
           rows++;
@@ -254,7 +252,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
     CreateColumnBeadIterator(column->lid, &bi);
 
     set_column = columns+orig_columns;
-    while ( (bid = NextColumnBead(&bi)) != -1 ) {
+    while ( (bid = NextColumnBead(&bi)).isValid() ) {
       bead = GetBead(beadStore,bid);
       SetAbacus(abacus, *Getint32(abacus_indices,bead->frag_index)-1,
                 set_column, *Getchar(sequenceStore,bead->soffset));
@@ -309,16 +307,11 @@ CloneAbacus(Abacus *abacus) {
 static
 void
 ShowAbacus(Abacus *abacus) {
-  int32 i;
   char form[10];
   sprintf(form,"%%%d.%ds\n",abacus->columns,abacus->columns);
-#if  0
-  fprintf(stderr, "form = %s\n", form);
-#endif
   fprintf(stderr,"\nstart column: %d\n",abacus->start_column);
-  for (i=0;i<abacus->rows;i++) {
+  for (int32 i=0;i<abacus->rows;i++)
     fprintf(stderr,form,GetAbacus(abacus,i,0));
-  }
   fprintf(stderr,"\n");
   fprintf(stderr,form,abacus->calls);
 }
@@ -330,17 +323,17 @@ ShowAbacus(Abacus *abacus) {
   //
 static
 int32
-ScoreAbacus(Abacus *abacus, int *cols) {
+ScoreAbacus(Abacus *abacus, int32 *cols) {
   BaseCount *counts;
-  int score=0;
+  int32 score=0;
   char b;
-  int i,j;
+
   counts = (BaseCount *) safe_calloc(abacus->columns,sizeof(BaseCount));
   memset(counts,'\0',abacus->columns*sizeof(BaseCount));
   *cols=0;
 
-  for (i=0;i<abacus->rows;i++) {
-    for (j=0;j<abacus->columns;j++) {
+  for (int32 i=0;i<abacus->rows;i++) {
+    for (int32 j=0;j<abacus->columns;j++) {
       b = *GetAbacus(abacus,i,j);
       if ( b == '-' ) {
         if ( j>0 && j < abacus->columns-1) {
@@ -355,7 +348,7 @@ ScoreAbacus(Abacus *abacus, int *cols) {
     }
   }
   // now, for each column, generate the majority call
-  for (j=0;j<abacus->columns;j++) {
+  for (int32 j=0;j<abacus->columns;j++) {
     if ( GetBaseCount(&counts[j],'-') + GetBaseCount(&counts[j],'n') == counts[j].depth ) {
       // null (all-gap) column. Flag with an 'n' basecall
       abacus->calls[j] = 'n';
@@ -377,10 +370,9 @@ int32
 AffineScoreAbacus(Abacus *abacus) {
   // This simply counts the number of opened gaps, to be used in tie breaker
   //   of edit scores.
-  int score=0;
+  int32 score=0;
   char b;
-  int i,j;
-  int start_column, end_column;
+  int32 start_column, end_column;
 
   if (abacus->shift == LEFT_SHIFT)
     {
@@ -398,10 +390,10 @@ AffineScoreAbacus(Abacus *abacus) {
       end_column   = 2*abacus->columns/3;
     }
 
-  for (i=0;i<abacus->rows;i++)
+  for (int32 i=0;i<abacus->rows;i++)
     {
-      int in_gap=0;
-      for (j=start_column;j<end_column;j++)
+      int32 in_gap=0;
+      for (int32 j=start_column;j<end_column;j++)
         {
           b = *GetAbacus(abacus,i,j);
           //      if ( abacus->calls[j] != 'n')
@@ -429,25 +421,24 @@ AffineScoreAbacus(Abacus *abacus) {
 
 static
 int
-MergeAbacus(Abacus *abacus, int merge_dir) {
+MergeAbacus(Abacus *abacus, int32 merge_dir) {
   // sweep through abacus from left to right
   // testing for Level 1 (neighbor) merge compatibility of each column
   // with right neighbor and merge if compatible
   //
   //  GD: this code will merge practically any
-  int  i, j, k;
-  int  mergeok, next_column_good, curr_column_good;
-  char prev, curr, next;
-  int  last_non_null = abacus->columns-1;
-  int  first_non_null = 0;
-  int  columns_merged = 0;
+  int32  mergeok, next_column_good, curr_column_good;
+  char   prev, curr, next;
+  int32  last_non_null = abacus->columns-1;
+  int32 first_non_null = 0;
+  int32 columns_merged = 0;
 
   // determine the rightmost and leftmost columns
   // not totally composed of gaps
-  for (j=abacus->columns-1;j>0;j--)
+  for (int32 j=abacus->columns-1;j>0;j--)
     {
-      int null_column = 1;
-      for (i=0; i<abacus->rows; i++) {
+      int32 null_column = 1;
+      for (int32 i=0; i<abacus->rows; i++) {
         curr = *GetAbacus(abacus,i,j);
         if (curr != '-') null_column = 0;
       }
@@ -455,12 +446,13 @@ MergeAbacus(Abacus *abacus, int merge_dir) {
         break;
       last_non_null = j;
     }
-  for (j=0; j<abacus->columns;j++)
+  for (int32 j=0; j<abacus->columns;j++)
     {
-      int null_column = 1;
-      for (i=0; i<abacus->rows; i++) {
+      int32 null_column = 1;
+      for (int32 i=0; i<abacus->rows; i++) {
         curr = *GetAbacus(abacus,i,j);
-        if (curr != '-') null_column = 0;
+        if (curr != '-')
+          null_column = 0;
       }
       if (!null_column)
         break;
@@ -472,12 +464,12 @@ MergeAbacus(Abacus *abacus, int merge_dir) {
 #endif
   if (merge_dir < 0)
     {
-      for (j=0;j<last_non_null;j++)
+      for (int32 j=0;j<last_non_null;j++)
         {
-          int num_gaps=0, num_ns=0;
+          int32 num_gaps=0, num_ns=0;
           mergeok = 1;
           next_column_good = -1;
-          for (i=0;i<abacus->rows;i++)
+          for (int32 i=0;i<abacus->rows;i++)
             {
               curr = *GetAbacus(abacus,i,j);
               next = *GetAbacus(abacus,i,j+1);
@@ -503,7 +495,7 @@ MergeAbacus(Abacus *abacus, int merge_dir) {
           if (mergeok && next_column_good >= 0 && num_gaps > num_ns)
             {
               columns_merged++;
-              for (i=0;i<abacus->rows;i++) {
+              for (int32 i=0;i<abacus->rows;i++) {
                 curr = *GetAbacus(abacus,i,j  );
                 next = *GetAbacus(abacus,i,j+1);
                 if (curr == 'n' && next == 'n')
@@ -519,13 +511,13 @@ MergeAbacus(Abacus *abacus, int merge_dir) {
               // The entire j+1-th column now contains only gaps or n's
               // Remove it by shifting all the subsequent columns
               // one position to the left
-              for (i=0;i<abacus->rows;i++)
+              for (int32 i=0;i<abacus->rows;i++)
                 {
                   curr = *GetAbacus(abacus,i,j  );
                   next = *GetAbacus(abacus,i,j+1);
                   if (curr == 'n' && next == 'n')
                     continue;
-                  for (k=j+1; k<last_non_null; k++)
+                  for (int32 k=j+1; k<last_non_null; k++)
                     {
                       next= *GetAbacus(abacus,i,k+1);
                       SetAbacus(abacus, i, k, next);
@@ -539,12 +531,12 @@ MergeAbacus(Abacus *abacus, int merge_dir) {
     }
   else /* merge_dir > 0 */
     {
-      for (j=last_non_null-1; j>first_non_null; j--)
+      for (int32 j=last_non_null-1; j>first_non_null; j--)
         {
-          int num_gaps=0, num_ns=0;
+          int32 num_gaps=0, num_ns=0;
           mergeok = 1;
           curr_column_good = -1;
-          for (i=0;i<abacus->rows;i++)
+          for (int32 i=0;i<abacus->rows;i++)
             {
               curr = *GetAbacus(abacus,i,j);
               next = *GetAbacus(abacus,i,j+1);
@@ -570,7 +562,7 @@ MergeAbacus(Abacus *abacus, int merge_dir) {
           if (mergeok && curr_column_good >= 0 && num_gaps > num_ns)
             {
               columns_merged++;
-              for (i=0;i<abacus->rows;i++) {
+              for (int32 i=0;i<abacus->rows;i++) {
                 curr = *GetAbacus(abacus,i,j  );
                 next = *GetAbacus(abacus,i,j+1);
                 if (curr == 'n' && next == 'n')
@@ -585,13 +577,13 @@ MergeAbacus(Abacus *abacus, int merge_dir) {
               // The entire j-th column contains gaps
               // Remove it by shifting all the previous columns
               // one position to the right
-              for (i=0;i<abacus->rows;i++)
+              for (int32 i=0;i<abacus->rows;i++)
                 {
                   curr = *GetAbacus(abacus,i,j  );
                   next = *GetAbacus(abacus,i,j+1);
                   if (curr == 'n' && next == 'n')
                     continue;
-                  for (k=j; k>first_non_null; k--)
+                  for (int32 k=j; k>first_non_null; k--)
                     {
                       prev = *GetAbacus(abacus,i,k-1);
                       SetAbacus(abacus, i, k, prev);
@@ -617,24 +609,22 @@ MergeAbacus(Abacus *abacus, int merge_dir) {
  */
 
 static
-int32
+void
 RefineOrigAbacus(Abacus *abacus, VarRegion vreg) {
-  int32 i, j, k, l;
-  int32 il;
-  char c, call;
+
   ResetCalls(abacus);
 
-  for (j=abacus->window_width; j<2*abacus->window_width; j++)
+  for (int32 j=abacus->window_width; j<2*abacus->window_width; j++)
     {
       // Look through confirmed alleles only
-      for (k=0; k<vreg.nca; k++)
+      for (int32 k=0; k<vreg.nca; k++)
         {
           // Line number corresponding to the last read in allele
-          il = vreg.alleles[k].read_ids[vreg.alleles[k].num_reads-1];
-          c  = *GetAbacus(abacus, il, j);
-          for (l=0; l<vreg.alleles[k].num_reads-1; l++)
+          int32 il = vreg.alleles[k].read_ids[vreg.alleles[k].num_reads-1];
+          char  c  = *GetAbacus(abacus, il, j);
+          for (int32 l=0; l<vreg.alleles[k].num_reads-1; l++)
             {
-              i = vreg.alleles[k].read_ids[l];
+              int32 i = vreg.alleles[k].read_ids[l];
               SetAbacus(abacus, i, j, c);
             }
         }
@@ -643,7 +633,7 @@ RefineOrigAbacus(Abacus *abacus, VarRegion vreg) {
 
 static
 int32
-LeftShift(Abacus *abacus, VarRegion vreg, int *lcols) {
+LeftShift(Abacus *abacus, VarRegion vreg, int32 *lcols) {
   // lcols is the number of non-null columns in result
   int32 i, j, k, l, ccol, pcol;
   char c, call;
@@ -659,8 +649,8 @@ LeftShift(Abacus *abacus, VarRegion vreg, int *lcols) {
       fprintf(stderr, "   Reads:\n");
       for (j=0; j<vreg.alleles[i].num_reads; j++)
         {
-          int k, read_id = vreg.alleles[i].read_ids[j];
-          int len = vreg.end-vreg.beg;
+          int32 k, read_id = vreg.alleles[i].read_ids[j];
+          int32 len = vreg.end-vreg.beg;
           fprintf(stderr, "    %d   ", read_id);
           for (k=0; k<len; k++)
             fprintf(stderr, "%c", vreg.reads[read_id].bases[k]);
@@ -739,7 +729,7 @@ LeftShift(Abacus *abacus, VarRegion vreg, int *lcols) {
 
 static
 int32
-RightShift(Abacus *abacus, VarRegion vreg, int *rcols) {
+RightShift(Abacus *abacus, VarRegion vreg, int32 *rcols) {
  // rcols is the number of non-null columns in result
   int32 i, j, k, l, ccol, pcol;
   char c, call;
@@ -755,8 +745,8 @@ RightShift(Abacus *abacus, VarRegion vreg, int *rcols) {
       fprintf(stderr, "   Reads:\n");
       for (j=0; j<vreg.alleles[i].num_reads; j++)
         {
-          int k, read_id = vreg.alleles[i].read_ids[j];
-          int len = vreg.end-vreg.beg;
+          int32 k, read_id = vreg.alleles[i].read_ids[j];
+          int32 len = vreg.end-vreg.beg;
           fprintf(stderr, "    %d   ", read_id);
           for (k=0; k<len; k++)
             fprintf(stderr, "%c", vreg.reads[read_id].bases[k]);
@@ -811,14 +801,14 @@ RightShift(Abacus *abacus, VarRegion vreg, int *rcols) {
 
 static
 int32
-MixedShift(Abacus *abacus, int *mcols, VarRegion  vreg, int lpos, int rpos,
-                 char *tmpl, int long_allele, int short_allele) {
+MixedShift(Abacus *abacus, int32 *mcols, VarRegion  vreg, int32 lpos, int32 rpos,
+                 char *tmpl, int32 long_allele, int32 short_allele) {
   // lcols is the number of non-null columns in result
   int32 i, j, k, l, ccol, pcol;
   char c, call;
   ResetCalls(abacus);
   int32 window_beg, window_end;
-  int shift =0;
+  int32 shift =0;
 
   if (abacus->shift == LEFT_SHIFT)
     {
@@ -969,7 +959,7 @@ MixedShift(Abacus *abacus, int *mcols, VarRegion  vreg, int lpos, int rpos,
 
 static
 void
-LeftEndShiftBead(int32 bid, int32 eid) {
+LeftEndShiftBead(beadIdx bid, beadIdx eid) {
   //  Relationship must be one of:
   //
   //  a) end gap moving left:
@@ -985,7 +975,7 @@ LeftEndShiftBead(int32 bid, int32 eid) {
   //         ^________________/
 
   Bead *shift = GetBead(beadStore,eid);
-  int32 aid = (GetBead(beadStore,bid))->prev;
+  beadIdx aid = (GetBead(beadStore,bid))->prev;
   assert(shift != NULL);
   if ( *Getchar(sequenceStore,shift->soffset) != '-' ) {
     // assume first and internal characters are gaps
@@ -999,7 +989,7 @@ LeftEndShiftBead(int32 bid, int32 eid) {
 
 static
 void
-RightEndShiftBead(int32 bid, int32 eid) {
+RightEndShiftBead(beadIdx bid, beadIdx eid) {
   //  Relationship must be one of:
   //
   //  a) end gap moving left:
@@ -1015,8 +1005,8 @@ RightEndShiftBead(int32 bid, int32 eid) {
   //       \________________^
 
   Bead *shift = GetBead(beadStore,bid);
-  int32 aid = (GetBead(beadStore,eid))->next;
-  int32 rid;
+  beadIdx aid = (GetBead(beadStore,eid))->next;
+  beadIdx rid;
   assert(shift != NULL);
   if ( *Getchar(sequenceStore,shift->soffset) != '-' ) {
     // assume last and internal characters are gaps
@@ -1034,7 +1024,7 @@ RightEndShiftBead(int32 bid, int32 eid) {
 static
 void
 GetAbacusBaseCount(Abacus *a, BaseCount *b) {
-  int j;
+  int32 j;
   ResetBaseCount(b);
   for (j=0;j<a->columns;j++) {
     IncBaseCount(b,a->calls[j]);
@@ -1050,7 +1040,7 @@ ColumnMismatch(Column *c) {
 
 static
 char
-GetBase(int s) {
+GetBase(int32 s) {
   return *Getchar(sequenceStore,s);
 }
 
@@ -1058,13 +1048,13 @@ static
 void
 ApplyAbacus(Abacus *a, CNS_Options *opp) {
   Column    *column;
-  int        columns=0;
+  int32        columns=0;
   char       a_entry;
   double     fict_var;   // variation is a column
   VarRegion  vreg;
 
-  int32 bid = -1;  //  ALWAYS the id of bead
-  int32 eid = -1;  //  ALWAYS the id of exch
+  beadIdx bid;  //  ALWAYS the id of bead
+  beadIdx eid;  //  ALWAYS the id of exch
 
   Bead *bead = NULL;
   Bead *exch = NULL;
@@ -1085,7 +1075,7 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
 
       // Update all beads in a given column
 
-      while (bid != -1) {
+      while (bid.isValid()) {
         bead = GetBead(beadStore,bid);
         a_entry = *GetAbacus(a, *Getint32(abacus_indices,bead->frag_index) - 1, columns);
 
@@ -1122,9 +1112,9 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
 #endif
 
           while (a_entry != *Getchar(sequenceStore,exch->soffset)) {
-            int eidp = exch->next;
+            beadIdx eidp = exch->next;
 
-            if (exch->next == -1) {
+            if (exch->next.isInvalid()) {
               eidp = AppendGapBead(exch->boffset);
               bead = GetBead(beadStore, bid);
               exch = GetBead(beadStore, eid);
@@ -1141,7 +1131,7 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
               fprintf(stderr, "5; bid=%d eid=%d\n", bid, eid);
 #endif
 
-              int cid = column->lid;
+              int32 cid = column->lid;
               ColumnAppend(exch->column_index,eidp);
               column = GetColumn(columnStore, cid);
             }
@@ -1179,7 +1169,7 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
 
 #ifdef DEBUG_APPLYABACUS
         fprintf(stderr,"New bid is %d (%c), from %d down\n",
-                bid, (bid > -1)?*Getchar(sequenceStore,GetBead(beadStore,bid)->soffset):'n',
+                bid, (bid.isValid()) ? *Getchar(sequenceStore,GetBead(beadStore,bid)->soffset) : 'n',
                 eid);
 #endif
       }
@@ -1201,7 +1191,7 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
     while (columns<a->window_width) {
       bid = GetBead(beadStore,column->call)->down;
 
-      while (bid != -1) {
+      while (bid.isValid()) {
         bead = GetBead(beadStore,bid);
         a_entry = *GetAbacus(a, *Getint32(abacus_indices,bead->frag_index) - 1, a->columns-columns-1);
 
@@ -1222,9 +1212,9 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
           }
 
           while (a_entry != *Getchar(sequenceStore,exch->soffset)) {
-            int eidp = exch->prev;
+            beadIdx eidp = exch->prev;
 
-            if (exch->prev == -1) {
+            if (exch->prev.isInvalid()) {
               eidp = PrependGapBead(exch->boffset);
               bead = GetBead(beadStore, bid);
               exch = GetBead(beadStore, eid);
@@ -1234,7 +1224,7 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
               bead = GetBead(beadStore, bid);
               exch = GetBead(beadStore, eid);
 
-              int cid = column->lid;
+              int32 cid = column->lid;
               ColumnAppend(GetColumn(columnStore,exch->column_index)->prev,eidp);
               column = GetColumn(columnStore, cid);
             }
@@ -1274,12 +1264,12 @@ ApplyAbacus(Abacus *a, CNS_Options *opp) {
 
 static
 int
-IdentifyWindow(Column **start_column, int *stab_bgn, CNS_RefineLevel level) {
+IdentifyWindow(Column **start_column, int32 *stab_bgn, CNS_RefineLevel level) {
   Column *stab;
   Column *pre_start;
-  int win_length=1;
-  int rc=0;
-  int gap_count=0;
+  int32 win_length=1;
+  int32 rc=0;
+  int32 gap_count=0;
   char poly;
   *stab_bgn = (*start_column)->next;
   stab = GetColumn(columnStore,*stab_bgn);
@@ -1369,11 +1359,11 @@ IdentifyWindow(Column **start_column, int *stab_bgn, CNS_RefineLevel level) {
         start_column
       */
       {
-        int cum_mm=0;
-        int stab_mm=0;
-        int stab_gaps=0;
-        int stab_width=0;
-        int stab_bases=0;
+        int32 cum_mm=0;
+        int32 stab_mm=0;
+        int32 stab_gaps=0;
+        int32 stab_width=0;
+        int32 stab_bases=0;
         Column *stab_end;
 
         cum_mm = ColumnMismatch(*start_column);
@@ -1392,9 +1382,9 @@ IdentifyWindow(Column **start_column, int *stab_bgn, CNS_RefineLevel level) {
           //  Floating point 'instability' here?
           while( (double)stab_mm/(double)stab_bases > 0.02 ||  //  CNS_SEQUENCING_ERROR_EST
                  (double)stab_gaps/(double)stab_bases > .25  ){
-            int mm=ColumnMismatch(stab);
-            int gp=GetColumnBaseCount(stab,'-');
-            int bps=GetDepth(stab);
+            int32 mm=ColumnMismatch(stab);
+            int32 gp=GetColumnBaseCount(stab,'-');
+            int32 bps=GetDepth(stab);
             // move stab column ahead
             if ( stab_end->next != -1 ) {
               stab_mm+=ColumnMismatch(stab_end);
@@ -1427,9 +1417,7 @@ IdentifyWindow(Column **start_column, int *stab_bgn, CNS_RefineLevel level) {
 static
 void
 ShowCalls(Abacus *abacus) {
-  int j;
-  //  fprintf(stderr, "Calls=\n");
-  for (j=0;j<abacus->columns;j++)
+  for (int32 j=0;j<abacus->columns;j++)
     fprintf(stderr, "%c", abacus->calls[j]);
   fprintf(stderr, "\n");
 }
@@ -1437,7 +1425,7 @@ ShowCalls(Abacus *abacus) {
 static
  void
 GetReadsForAbacus(Read *reads, Abacus *abacus) {
-  int i, j, shift=0;
+  int32 i, j, shift=0;
   char base;
 
 #if 0
@@ -1469,25 +1457,24 @@ static
  void
 GetConsensusForAbacus(VarRegion  *vreg, Read *reads, Abacus *abacus,
                       char ***consensus) {
-  int i, j;
   char bases[CNS_NALPHABET] = {'-', 'A', 'C', 'G', 'T', 'N'};
   // Allocate memory for consensus
   *consensus = (char **)safe_malloc(2 * sizeof(char *));
-  for (i=0; i<2; i++) {
+  for (int32 i=0; i<2; i++) {
     (*consensus)[i] = (char *)safe_malloc(3*abacus->window_width * sizeof(char));
-    for (j=0; j<3*abacus->window_width; j++)
+    for (int32 j=0; j<3*abacus->window_width; j++)
       (*consensus)[i][j] = '-';
   }
 
   // Call consensus
-  for (i=0; i<3*abacus->window_width; i++)
+  for (int32 i=0; i<3*abacus->window_width; i++)
     {
-      int bcount0[CNS_NALPHABET] = {0};
-      int bcount1[CNS_NALPHABET] = {0};
-      int best_count0=0, second_best_count0=0;
-      int best_count1=0, second_best_count1=0;
-      char cbase0, cbase1;
-      for (j=0; j<abacus->rows; j++) {
+      int32 bcount0[CNS_NALPHABET] = {0};
+      int32 bcount1[CNS_NALPHABET] = {0};
+      int32 best_count0=0, second_best_count0=0;
+      int32 best_count1=0, second_best_count1=0;
+      char cbase0=0, cbase1=0;
+      for (int32 j=0; j<abacus->rows; j++) {
 #if 0
         fprintf(stderr, " reads[%d][%d]= %c\n", j, i, reads[j].bases[i]);
 #endif
@@ -1499,7 +1486,7 @@ GetConsensusForAbacus(VarRegion  *vreg, Read *reads, Abacus *abacus,
               bcount1[base2int(reads[j].bases[i])]++;
           }
       }
-      for (j=0; j<CNS_NALPHABET; j++) {
+      for (int32 j=0; j<CNS_NALPHABET; j++) {
         if (best_count0 < bcount0[j]) {
           second_best_count0 = best_count0;
           best_count0 = bcount0[j];
@@ -1510,7 +1497,7 @@ GetConsensusForAbacus(VarRegion  *vreg, Read *reads, Abacus *abacus,
           second_best_count0  = bcount0[j];
         }
       }
-      for (j=0; j<CNS_NALPHABET; j++) {
+      for (int32 j=0; j<CNS_NALPHABET; j++) {
         if (best_count1 < bcount1[j]) {
           second_best_count1 = best_count1;
           best_count1 = bcount1[j];
@@ -1535,20 +1522,19 @@ GetConsensusForAbacus(VarRegion  *vreg, Read *reads, Abacus *abacus,
 /* Create ungapped consensus sequences and map them to gapped consensus sequences */
 static
  void
-MapConsensus(int ***imap, char **consensus,  char ***ugconsensus,
-             int len, int *uglen) {
-  int i, j, k;
+MapConsensus(int32 ***imap, char **consensus,  char ***ugconsensus,
+             int32 len, int32 *uglen) {
   uglen[0] = uglen[1] = 0;
   *ugconsensus = (char **)safe_malloc(2*sizeof(char *));
-  *imap        = (int  **)safe_malloc(2*sizeof(int  *));
-  for (i=0; i<2; i++)
+  *imap        = (int32  **)safe_malloc(2*sizeof(int32  *));
+  for (int32 i=0; i<2; i++)
     {
       (*ugconsensus)[i] = (char *)safe_malloc(len*sizeof(char));
-      (*imap)[i]        = (int  *)safe_malloc(len*sizeof(int ));
-      for (j=0; j<len; j++)
+      (*imap)[i]        = (int32  *)safe_malloc(len*sizeof(int32 ));
+      for (int32 j=0; j<len; j++)
         (*imap)[i][j] = j;
-      k=0;
-      for (j=0; j<len; j++)
+      int32 k=0;
+      for (int32 j=0; j<len; j++)
         {
           if (consensus[i][j] != '-')
             {
@@ -1564,18 +1550,17 @@ MapConsensus(int ***imap, char **consensus,  char ***ugconsensus,
 /* Count gaps in the short and long consensus sequences */
 static
  void
-CountGaps(char **consensus, int len, int *gapcount) {
-  int i, j, first_base, last_base;
+CountGaps(char **consensus, int32 len, int32 *gapcount) {
 
-  for (i=0; i<2; i++)
+  for (int32 i=0; i<2; i++)
     {
-      last_base = len-1;
+      int32 last_base = len-1;
       while ((last_base > 0) && (consensus[i][last_base] == '-'))
         last_base--;
 
       gapcount[i] = 0;
-      first_base = -1;
-      for (j=0; j<last_base + 1; j++)
+      int32 first_base = -1;
+      for (int32 j=0; j<last_base + 1; j++)
         {
           if (consensus[i][j] != '-')
             first_base = j;
@@ -1599,9 +1584,9 @@ CountGaps(char **consensus, int len, int *gapcount) {
 */
 static
  void
-FindAdjustedLeftBounds(int *adjleft, char **ugconsensus, int *uglen,
-                       int short_allele, int long_allele) {
-  int   s, l;
+FindAdjustedLeftBounds(int32 *adjleft, char **ugconsensus, int32 *uglen,
+                       int32 short_allele, int32 long_allele) {
+  int32   s, l;
   char *ps, *pl;
 
   adjleft[short_allele] = uglen[short_allele]-1;
@@ -1632,9 +1617,9 @@ FindAdjustedLeftBounds(int *adjleft, char **ugconsensus, int *uglen,
 
 static
  void
-FindAdjustedRightBounds(int *adjright,  char **ugconsensus, int *uglen,
-                        int short_allele, int long_allele) {
-  int   s, l;
+FindAdjustedRightBounds(int32 *adjright,  char **ugconsensus, int32 *uglen,
+                        int32 short_allele, int32 long_allele) {
+  int32   s, l;
   char *ps, *pl;
 
   adjright[short_allele] = uglen[short_allele]-1;
@@ -1669,9 +1654,9 @@ FindAdjustedRightBounds(int *adjright,  char **ugconsensus, int *uglen,
 
 static
  void
-GetLeftScore(char **ugconsensus, int *uglen, int **imap, int *adjleft,
-             int short_allele, int long_allele, int *maxscore, int *maxpos) {
-  int i, score = 0;
+GetLeftScore(char **ugconsensus, int32 *uglen, int32 **imap, int32 *adjleft,
+             int32 short_allele, int32 long_allele, int32 *maxscore, int32 *maxpos) {
+  int32 i, score = 0;
 
   *maxscore = 0;
   *maxpos   = adjleft[short_allele];
@@ -1679,8 +1664,8 @@ GetLeftScore(char **ugconsensus, int *uglen, int **imap, int *adjleft,
   while ((i < uglen[short_allele] - adjleft[short_allele]) &&
          (i < uglen[ long_allele] - adjleft[ long_allele]))
     {
-      int lpos = i + adjleft[long_allele];
-      int spos = i + adjleft[short_allele];
+      int32 lpos = i + adjleft[long_allele];
+      int32 spos = i + adjleft[short_allele];
       if (ugconsensus[short_allele][spos] == ugconsensus[long_allele][lpos])
         score++;
       else
@@ -1698,9 +1683,9 @@ GetLeftScore(char **ugconsensus, int *uglen, int **imap, int *adjleft,
 
 static
  void
-GetRightScore(char **ugconsensus, int *uglen, int **imap, int *adjright,
-              int short_allele, int long_allele, int *maxscore, int *maxpos) {
-  int i, j, score = 0;
+GetRightScore(char **ugconsensus, int32 *uglen, int32 **imap, int32 *adjright,
+              int32 short_allele, int32 long_allele, int32 *maxscore, int32 *maxpos) {
+  int32 i, j, score = 0;
 
   *maxscore = 0;
   *maxpos   = uglen[short_allele]-1-adjright[short_allele];
@@ -1709,8 +1694,8 @@ GetRightScore(char **ugconsensus, int *uglen, int **imap, int *adjright,
   while ((j >= adjright[short_allele]) &&
          (i >= adjright[ long_allele]))
     {
-      int lpos = i - adjright[long_allele];
-      int spos = j - adjright[short_allele];
+      int32 lpos = i - adjright[long_allele];
+      int32 spos = j - adjright[short_allele];
       if (ugconsensus[short_allele][spos] == ugconsensus[long_allele][lpos])
         score++;
       else
@@ -1732,8 +1717,8 @@ GetRightScore(char **ugconsensus, int *uglen, int **imap, int *adjright,
 
 static
  void
-AdjustShiftingInterfaces(int *lpos, int *rpos, int lscore, int rscore,
-                         int *adjleft, int *adjright, int long_allele, int short_allele) {
+AdjustShiftingInterfaces(int32 *lpos, int32 *rpos, int32 lscore, int32 rscore,
+                         int32 *adjleft, int32 *adjright, int32 long_allele, int32 short_allele) {
 #if 0
   fprintf(stderr, "\nlpos=%d rpos=%d lscore=%d rscore=%d \n", *lpos, *rpos, lscore, rscore);
   fprintf(stderr, "adjleft = %d %d  adjright= %d %d \n", adjleft[0], adjleft[1],
@@ -1776,10 +1761,10 @@ AdjustShiftingInterfaces(int *lpos, int *rpos, int lscore, int rscore,
 
 static
 void
-  GetTemplateForAbacus(char **tmpl, char **consensus, int len,
-                           char **ugconsensus, int *uglen, int lpos, int rpos, int **imap,
-                           int *adjleft, int *adjright, int short_allele, int long_allele) {
-  int i, j;
+  GetTemplateForAbacus(char **tmpl, char **consensus, int32 len,
+                           char **ugconsensus, int32 *uglen, int32 lpos, int32 rpos, int32 **imap,
+                           int32 *adjleft, int32 *adjright, int32 short_allele, int32 long_allele) {
+  int32 i, j;
 
   *tmpl = (char *)safe_malloc(len*sizeof(char));
   for (i=0; i<len; i++)
@@ -1791,8 +1776,8 @@ void
          (i < uglen[short_allele] - adjleft[short_allele]) &&
          (i < uglen[ long_allele] - adjleft[ long_allele]))
     {
-      int lpos = i + adjleft[long_allele];
-      int spos = i + adjleft[short_allele];
+      int32 lpos = i + adjleft[long_allele];
+      int32 spos = i + adjleft[short_allele];
       if ((ugconsensus[short_allele][spos] != ugconsensus[long_allele][lpos]) &&
           ((*tmpl)[imap[long_allele][lpos]] != '-'))
         (*tmpl)[imap[long_allele][lpos]] = 'n';
@@ -1854,16 +1839,14 @@ void
 
 static
 int
- RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
+ RefineWindow(MANode *ma, Column *start_column, int32 stab_bgn,
                  CNS_Options *opp ) {
-  int orig_columns=0, left_columns=0, right_columns=0, best_columns=0;
+  int32 orig_columns=0, left_columns=0, right_columns=0, best_columns=0;
   // Mismatch, gap and total scores:
   int32 orig_mm_score=0, left_mm_score=0, right_mm_score=0, best_mm_score=0;
-  int32 orig_gap_score=0, left_gap_score=0, right_gap_score=0,
-    best_gap_score = 0;
-  int32 orig_total_score, left_total_score, right_total_score,
-    best_total_score;
-  int32 max_element = 0, score_reduction;
+  int32 orig_gap_score=0, left_gap_score=0, right_gap_score=0, best_gap_score = 0;
+  int32 orig_total_score, left_total_score, right_total_score, best_total_score;
+  int32 max_element = 0, score_reduction = 0;
   BaseCount abacus_count;
   Abacus *left_abacus, *orig_abacus, *right_abacus, *best_abacus;
   VarRegion  vreg;
@@ -2004,12 +1987,12 @@ int
   ShowAbacus(best_abacus);
 #endif
   {
-    int i, j;
+    int32 i, j;
     char  **consensus=NULL, **ugconsensus=NULL, *tmpl=NULL;
-    int   **imap=NULL, uglen[2]={0,0}, adjleft[2]={-1,-1}, adjright[2]={-1,-1};
-    int     gapcount[2], short_allele=-1, long_allele=-1;
-    int     lscore=0, rscore=0, lpos=-1, rpos=-1;
-    int     mixed_columns=0;
+    int32   **imap=NULL, uglen[2]={0,0}, adjleft[2]={-1,-1}, adjright[2]={-1,-1};
+    int32     gapcount[2], short_allele=-1, long_allele=-1;
+    int32     lscore=0, rscore=0, lpos=-1, rpos=-1;
+    int32     mixed_columns=0;
     int32   mixed_mm_score=0, mixed_gap_score=0;
     Abacus *mixed_abacus=NULL;
 
@@ -2042,8 +2025,7 @@ int
         DeleteAbacus(right_abacus);
         if (vreg.nr > 0)
           {
-            int j;
-            for (j=0; j<vreg.nr; j++)
+            for (int32 j=0; j<vreg.nr; j++)
               {
                 safe_free(vreg.alleles[j].read_ids);
                 safe_free(vreg.alleles[j].read_iids);
@@ -2076,8 +2058,7 @@ int
         DeleteAbacus(right_abacus);
         if (vreg.nr > 0)
           {
-            int j;
-            for (j=0; j<vreg.nr; j++)
+            for (int32 j=0; j<vreg.nr; j++)
               {
                 safe_free(vreg.alleles[j].read_ids);
                 safe_free(vreg.alleles[j].read_iids);
@@ -2177,17 +2158,14 @@ int
     //      OutputDistMatrix(stderr, &vreg);
 
 #if 0
-    {
-      int j;
       fprintf(stderr, "Consensus0 =\n");
-      for (j=0; j<3*best_abacus->window_width; j++)
+      for (int32 j=0; j<3*best_abacus->window_width; j++)
         fprintf(stderr, "%c", consensus[0][j]);
       fprintf(stderr, "\n\n");
       fprintf(stderr, "Consensus1 =\n");
-      for (j=0; j<3*best_abacus->window_width; j++)
+      for (int32 j=0; j<3*best_abacus->window_width; j++)
         fprintf(stderr, "%c", consensus[1][j]);
       fprintf(stderr, "\n\n");
-    }
 #endif
 
     /* Otherwise, try to do a more sophisticated shift:
@@ -2219,8 +2197,7 @@ int
     }
     if (vreg.nr > 0)
       {
-        int j;
-        for (j=0; j<vreg.nr; j++)
+        for (int32 j=0; j<vreg.nr; j++)
           {
             safe_free(vreg.alleles[j].read_ids);
             safe_free(vreg.alleles[j].read_iids);
@@ -2256,7 +2233,7 @@ int
   int32 orig_length = ma_length;
   int32 refined_length = orig_length;
   Column *start_column;
-  int i;
+  int32 i;
 
   if(from < 0 || from > ma_length-1){
     fprintf(stderr, "AbacusRefine range (from) invalid");
@@ -2275,7 +2252,7 @@ int
 
   while (start_column->lid != eid)
     {
-      int window_width = IdentifyWindow(&start_column,&stab_bgn, level);
+      int32 window_width = IdentifyWindow(&start_column,&stab_bgn, level);
       // start_column stands as the candidate for first column in window
       // look for window start and stop
 
@@ -2288,13 +2265,13 @@ int
           // refine in window
           if ( start_column->prev == -1 ) {
             // if start_column->prev == -1, insert a gap column for maneuvering room
-            int32 newbead;
+            beadIdx newbead;
             Bead *firstbead;
             firstbead = GetBead(beadStore,GetBead(beadStore,start_column->call)->down);
             newbead   = AppendGapBead(firstbead->boffset);
             firstbead = GetBead(beadStore,GetBead(beadStore,start_column->call)->down);
-            fprintf(stderr,"Adding gapbead %d after %d to add abacus room for abacus abutting left of multialignment\n",
-                    newbead, firstbead->boffset);
+            fprintf(stderr,"Adding gapbead "F_U64" after "F_U64" to add abacus room for abacus abutting left of multialignment\n",
+                    (uint64)newbead.get(), (uint64)firstbead->boffset.get());
             ColumnAppend(firstbead->column_index,newbead);
           }
 
