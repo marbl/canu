@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.7 2010-10-25 10:11:11 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.8 2011-01-03 05:19:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -246,6 +246,8 @@ main(int argc, char **argv) {
 
   for (int32 i=0; i<fastqLen; i++)
     addFeature(&libMesg, "illuminaSequence", fastq[i]);
+
+  addFeature(&libMesg, "doMerBasedTrimming", "1");
 
   //  Emit the VER and LIB messages.  Enable version 2, write the LIB, switch back to version 1.
 
