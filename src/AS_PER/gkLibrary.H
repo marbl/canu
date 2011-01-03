@@ -58,7 +58,7 @@ public:
     spareUN1                  = 0;
     spareUTG                  = 0;
     forceBOGunitigger         = 0;
-    shortOverlapModel		  = 0;
+    shortOverlapModel         = 0;
     isNotRandom               = 0;
     spareALN                  = 0;
     doNotTrustHomopolymerRuns = 0;
@@ -95,7 +95,8 @@ public:
   uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 -> trust 'em
 
   //  OBT options
-  uint64         spareOBT:55;                  //  Spare for OBT changes
+  uint64         spareOBT:54;                  //  Spare for OBT changes
+  uint64         doMerBasedTrimming:1;         //  Default 0 -> do not use mer based trimming
   uint64         doRemoveDuplicateReads:1;     //  Default 0 -> do not search for and remove duplicates
   uint64         doNotQVTrim:1;                //  Default 0 -> do initial qv trimming in OBT
   uint64         goodBadQVThreshold:6;         //  Default 0 -> threshold is 12 in initialTrim.C

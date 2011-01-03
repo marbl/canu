@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.10 2010-10-25 10:11:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.11 2011-01-03 03:21:20 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -68,8 +68,8 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
     if      (strcasecmp(fea, "forceBOGunitigger") == 0)
       forceBOGunitigger = decodeBoolean("forceBOGunitigger", val);
 
-    else if      (strcasecmp(fea, "shortOverlapModel") == 0)
-    	shortOverlapModel = decodeBoolean("shortOverlapModel", val);
+    else if (strcasecmp(fea, "shortOverlapModel") == 0)
+      shortOverlapModel = decodeBoolean("shortOverlapModel", val);
 
     else if (strcasecmp(fea, "isNotRandom") == 0)
       isNotRandom = decodeBoolean("isNotRandom", val);
@@ -79,6 +79,9 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
       doNotTrustHomopolymerRuns = decodeBoolean("doNotTrustHomopolymerRuns", val);
 
     //  OBT options
+    else if (strcasecmp(fea, "doMerBasedTrimming") == 0)
+      doMerBasedTrimming = decodeBoolean("doMerBasedTrimming", val);
+
     else if (strcasecmp(fea, "doRemoveDuplicateReads") == 0)
       doRemoveDuplicateReads = decodeBoolean("doRemoveDuplicateReads", val);
 
@@ -185,6 +188,14 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
   }
 
   //  OBT options
+  if (doMerBasedTrimming || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "doMerBasedTrimming");
+    sprintf(val[nf], "%d", doMerBasedTrimming);
+    nf++;
+  }
+
   if (doRemoveDuplicateReads || alwaysEncode) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
