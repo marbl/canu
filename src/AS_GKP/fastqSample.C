@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSample.C,v 1.2 2010-04-02 06:14:58 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSample.C,v 1.3 2011-01-04 05:56:24 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdint.h>
@@ -240,15 +240,19 @@ main(int argc, char **argv) {
 
   int i=0;
   int s=0;
-  for (; !feof(Ai); i++) {
-    Ar.read(Ai);
-    Br.read(Bi);
 
+  Ar.read(Ai);
+  Br.read(Bi);
+
+  for (; !feof(Ai); i++) {
     if (save[i]) {
       Ar.write(Ao);
       Br.write(Bo);
       s++;
     }
+
+    Ar.read(Ai);
+    Br.read(Bi);
   }
 
   if (i > NUMREADS) {
