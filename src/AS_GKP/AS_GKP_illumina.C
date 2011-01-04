@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.14 2011-01-03 05:20:38 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.15 2011-01-04 20:11:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +30,7 @@ static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.14 2011-01-03 05:20:38 br
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
 #include "AS_UTL_reverseComplement.h"
+#include "AS_UTL_fasta.h"
 
 #define FASTQ_SANGER    0
 #define FASTQ_SOLEXA    1
@@ -37,6 +38,10 @@ static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.14 2011-01-03 05:20:38 br
 
 #define FASTQ_INNIE     0
 #define FASTQ_OUTTIE    1
+
+#define FASTQ_TRIM_JUNK
+
+static int *isValidACGTN = NULL;
 
 class ilFragment {
  public:
@@ -165,25 +170,28 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
   if (fastqOrient == FASTQ_OUTTIE)
     reverseComplement(fr->sstr, fr->qstr, slen);
 
+  //  Make sure there aren't any bogus letters
+
+  for (uint32 i=0; i<slen; i++)
+    if (isValidACGTN[fr->sstr[i]] == 0) {
+      fr->sstr[i] = 'N';
+      fr->qstr[i] = '0';
+    }
+
   //  Trim crap off the ends.
 
+#ifdef FASTQ_TRIM_JUNK
   while ((fr->qstr[clrR-1] < '6') && (clrR > 1))
     clrR--;
 
   while ((fr->qstr[clrL] < '6') && (clrL < clrR))
     clrL++;
+#endif
 
   assert(clrL <= clrR);
 
   if (clrR - clrL < AS_READ_MIN_LEN)
     return(0);
-
-  //  Make sure there aren't any bogus letters
-
-  for (uint32 i=0; i<slen; i++)
-    if (fr->sstr[i] == '.')
-      return(0);
-
 
   //  Construct a UID for this read
   //
@@ -479,6 +487,8 @@ void
 checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
   uint32  fastqType   = FASTQ_SOLEXA;
   uint32  fastqOrient = FASTQ_INNIE;
+
+  isValidACGTN = AS_UTL_getValidACGTN();
 
   //  Search for the type of the reads.
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
