@@ -77,13 +77,13 @@ sub merTrim {
 
     meryl();
 
+    my $mbtBatchSize = getGlobal("mbtBatchSize");
+    my $mbtJobs      = int($numFrags / $mbtBatchSize) + (($numFrags % $mbtBatchSize == 0) ? 0 : 1);
+
+    my $merSize      = getGlobal("obtMerSize");
+    my $merComp      = 0;  # getGlobal("merCompression");
+
     if (! -e "$wrk/0-mertrim/mertrim.sh") {
-        my $mbtBatchSize = getGlobal("mbtBatchSize");
-        my $mbtJobs      = int($numFrags / $mbtBatchSize) + (($numFrags % $mbtBatchSize == 0) ? 0 : 1);
-
-        my $merSize      = getGlobal("obtMerSize");
-        my $merComp      = 0;  # getGlobal("merCompression");
-
         open(F, "> $wrk/0-mertrim/mertrim.sh") or caFailure("can't open '$wrk/0-mertrim/mertrim.sh'", undef);
         print F "#!" . getGlobal("shell") . "\n";
         print F "\n";
