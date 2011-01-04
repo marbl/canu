@@ -138,6 +138,12 @@ sub setGlobal ($$) {
         return;
     }
 
+    if ($var eq "merThreshold") {
+        setGlobal("obtMerThreshold", $val);
+        setGlobal("ovlMerThreshold", $val);
+        return;
+    }
+
     if ($var eq "overlapper") {
         setGlobal("obtOverlapper", $val);
         setGlobal("ovlOverlapper", $val);
@@ -226,6 +232,9 @@ sub setDefaults () {
     $global{"scriptOnGrid"}                = 0;
     $synops{"scriptOnGrid"}                = "Enable SGE for runCA (and unitigger, scaffolder, other sequential phases)";
 
+    $global{"mbtOnGrid"}                   = 1;
+    $synops{"mbtOnGrid"}                   = "Enable SGE for mer-based trimming computations";
+
     $global{"ovlOnGrid"}                   = 1;
     $synops{"ovlOnGrid"}                   = "Enable SGE for overlap computations";
 
@@ -249,6 +258,9 @@ sub setDefaults () {
 
     $global{"sgeScript"}                   = undef;
     $synops{"sgeScript"}                   = "SGE options applied to runCA jobs (and unitigger, scaffolder, other sequential phases)";
+
+    $global{"sgeMerTrim"}                  = undef;
+    $synops{"sgeMerTrim"}                  = "SGE options applied to mer-based trimming jobs";
 
     $global{"sgeOverlap"}                  = undef;
     $synops{"sgeOverlap"}                  = "SGE options applied to overlap computation jobs";
@@ -305,6 +317,12 @@ sub setDefaults () {
 
     $global{"doMerBasedTrimming"}          = 0;
     $synops{"doMerBasedTrimming"}          = "Enable the Mer Based Trimming module";
+
+    $global{"mbtBatchSize"}                = 1000000;
+    $synops{"mbtBatchSize"}                = "Process this many fragments per merTrim batch";
+
+    $global{"mbtConcurrency"}              = 1;
+    $synops{"mbtConcurrency"}              = "If not SGE, number of mer-based trimming processes to run at the same time";
 
     #####  Overlapper
 

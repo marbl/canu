@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.8 2010-11-02 07:51:41 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.9 2011-01-04 05:57:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,12 +89,22 @@ public:
     gkRead  = new gkStore(gkpPath, FALSE, FALSE);
     gkWrite = (doUpdate) ? new gkStore(gkpPath, FALSE, TRUE) : NULL;
 
-    tBgn = 1;
-    tCur = 1;
-    tEnd = gkRead->gkStore_getNumFragments();
+    if (tBgn == 0) {
+      tBgn = 1;
+      tEnd = gkRead->gkStore_getNumFragments();
+    }
 
-    fprintf(stderr, "enabling clear range.\n");
-    gkRead->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
+    tCur = tBgn;
+
+    if (tBgn >= tEnd)
+      fprintf(stderr, "ERROR: invalid range:  -b ("F_U32") >= -e ("F_U32").\n",
+              tBgn, tEnd), exit(1);
+    if (tEnd > gkRead->gkStore_getNumFragments())
+      fprintf(stderr, "ERROR: invalid range:  -e ("F_U32") > num frags ("F_U32").\n",
+              tEnd, gkRead->gkStore_getNumFragments()), exit(1);
+
+    //fprintf(stderr, "enabling clear range.\n");
+    //gkWrite->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
 
     fprintf(stderr, "loading mer database.\n");
     edb    = new existDB(merCountsFile, merSize, existDBnoFlags, EXISTDB_MIN_COUNT, ~0);
@@ -156,6 +166,7 @@ public:
     corrSeq    = NULL;
     corrQlt    = NULL;
     seqMap     = NULL;
+    ms         = NULL;
 
     disconnect = NULL;
     deletion   = NULL;
@@ -1080,13 +1091,19 @@ mertrimReader(void *G) {
   mertrimGlobalData    *g = (mertrimGlobalData  *)G;
   mertrimComputation   *s = NULL;
 
-  if (g->tCur <= g->tEnd) {
+  while ((g->tCur <= g->tEnd) &&
+         (s == NULL)) {
     s = new mertrimComputation();
 
     g->gkRead->gkStore_getFragment(g->tCur, &s->fr, GKFRAGMENT_QLT);
     g->tCur++;
 
-    s->initialize(g);
+    if (g->gkRead->gkStore_getLibrary(s->fr.gkFragment_getLibraryIID())->doMerBasedTrimming) {
+      s->initialize(g);
+    } else {
+      delete s;
+      s = NULL;
+    }
   }
 
   return(s);
@@ -1167,6 +1184,18 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       g->numThreads = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      g->tBgn = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      g->tEnd = atoi(argv[++arg]);
+
+#if 0
+      //  UPDATES DO NOT WORK
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      g->doUpdate = false;
+#endif
 
     } else if (strcmp(argv[arg], "-v") == 0) {
       g->beVerbose = true;

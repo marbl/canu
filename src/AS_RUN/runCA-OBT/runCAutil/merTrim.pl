@@ -1,137 +1,220 @@
 use strict;
 
+
+
+sub findMBTFailures ($) {
+    my $mbtJobs  = shift @_;
+    my $failures = 0;
+
+    for (my $i=1; $i<=$mbtJobs; $i++) {
+        my $jobid = substr("0000" . $i, -4);
+        if (-e "$wrk/0-mertrim/$asm.merTrim.\$jobid.log.WORKING") {
+            $failures++;
+        }
+    }
+
+    return $failures;
+}
+
+sub findMBTSuccess ($) {
+    my $mbtJobs  = shift @_;
+    my $successes= 0;
+
+    for (my $i=1; $i<=$mbtJobs; $i++) {
+        my $jobid = substr("0000" . $i, -4);
+        if (-e "$wrk/0-mertrim/$asm.merTrim.\$jobid.log") {
+            $successes++;
+        }
+    }
+
+    return($successes == $mbtJobs);
+}
+
+
+
+
 sub merTrim {
 
-    return if (getGlobal("doMerBasedTrimming") == 0);
-    return if (getGlobal("doOverlapBasedTrimming") == 1);
+    #return if (getGlobal("doMerBasedTrimming") == 0);
+    return if (getGlobal("doOverlapBasedTrimming") == 0);
     return if (getGlobal("ovlOverlapper") eq "umd");
 
     #  Skip mer based trimming if it is done, or if the ovlStore already exists.
     #
-    goto alldone if (-e "$wrk/0-overlaptrim/mertrim.success");
+    goto alldone if (-e "$wrk/0-mertrim/mertrim.success");
     goto alldone if (-d "$wrk/$asm.ovlStore");
 
-    system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
-    system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
+    system("mkdir $wrk/0-mertrim")         if (! -d "$wrk/0-mertrim");
 
+    my $bin = getBinDirectory();
 
-    if (! -e "$wrk/0-overlaptrim/$asm.merTrimLog") {
-        meryl();
-
-        my $merSize     = getGlobal("obtMerSize");
-        my $merComp     = 0;  # getGlobal("merCompression");
-
-        my $bin = getBinDirectory();
-        my $cmd;
-        $cmd  = "$bin/merTrim \\\n";
-        $cmd .= " -g  $wrk/$asm.gkpStore \\\n";
-        $cmd .= " -m  $merSize \\\n";
-        $cmd .= " -c  $merComp \\\n";
-        $cmd .= " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
-        $cmd .= " -l  $wrk/0-overlaptrim/$asm.merTrimLog \\\n";
-        $cmd .= " >  $wrk/0-overlaptrim/$asm.merTrim.err 2>&1\n";
-
-        stopBefore("initialTrim", $cmd);
-
-        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            caFailure("mer trimming failed", "$wrk/0-overlaptrim/$asm.merTrim.err");
-        }
-
-        touch("$wrk/0-overlaptrim/$asm.merTrimLog");
-    }
-
-
-
-    #  Compute overlaps, if we don't have them already
+    #  Decide if any libraries request mer based trimming.  There is a simpler method to get
+    #  this (see unitigger.pl), but for unity with overlapTrim.pl, we count the number
+    #  of libraries that want MBT.
     #
-    if (! -e "$wrk/0-overlaptrim/$asm.obtStore") {
-        createOverlapJobs("trim");
-        checkOverlap("trim");
+    my $mbtNeeded = 0;
 
-        #  Sort the overlaps -- this also duplicates each overlap so that
-        #  all overlaps for a fragment A are localized.
+    open(F, "$bin/gatekeeper -nouid -dumplibraries $wrk/$asm.gkpStore |");
+    while (<F>) {
+        $mbtNeeded++ if (m/doMerBasedTrimming.*=.*1/);
+    }
+    close(F);
 
-        if (runCommand("$wrk/0-overlaptrim",
-                       "find $wrk/0-overlaptrim-overlap -follow \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.obtStore.list")) {
-            caFailure("failed to generate a list of all the overlap files", undef);
-        }
+    if ($mbtNeeded == 0) {
+        touch("$wrk/0-mertrim/mertrim.success");
+        goto alldone;
+    }
 
-        my $bin = getBinDirectory();
-        my $cmd;
-        $cmd  = "$bin/overlapStore ";
-        $cmd .= " -O ";
-        $cmd .= " -c $wrk/0-overlaptrim/$asm.obtStore.BUILDING ";
-        $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " -M " . getGlobal('ovlStoreMemory');
-        $cmd .= " -L $wrk/0-overlaptrim/$asm.obtStore.list";
-        $cmd .= " > $wrk/0-overlaptrim/$asm.obtStore.err 2>&1";
+    #
+    #  Run mer trim on the grid.
+    #
+    #  Well, we'd LIKE to run it on the grid, but can't.  merTrim updates the gkpStore
+    #  after each fragment it processes, so we can't (reliably) have multiple processes
+    #  running at the same time.  We could make merTrim write a log of changes, then apply
+    #  then when all processes are done.  I'm not sure there will be any benefit -- we'll still
+    #  have one giant process that needs to read/write the whole gkpStore.
+    #
 
-        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            caFailure("failed to build the obt store", "$wrk/0-overlaptrim/$asm.obtStore.err");
-        }
+    meryl();
 
-        rename "$wrk/0-overlaptrim/$asm.obtStore.BUILDING", "$wrk/0-overlaptrim/$asm.obtStore";
+    if (! -e "$wrk/0-mertrim/mertrim.sh") {
+        my $mbtBatchSize = getGlobal("mbtBatchSize");
+        my $mbtJobs      = int($numFrags / $mbtBatchSize) + (($numFrags % $mbtBatchSize == 0) ? 0 : 1);
 
-        #  Delete overlaps unless we're told to save them, or we need to dedup.
-        if ((getGlobal("saveOverlaps") == 0) && (getGlobal("doDeDuplication") == 0)) {
-            open(F, "< $wrk/0-overlaptrim/$asm.obtStore.list");
-            while (<F>) {
-                chomp;
-                unlink $_;
+        my $merSize      = getGlobal("obtMerSize");
+        my $merComp      = 0;  # getGlobal("merCompression");
+
+        open(F, "> $wrk/0-mertrim/mertrim.sh") or caFailure("can't open '$wrk/0-mertrim/mertrim.sh'", undef);
+        print F "#!" . getGlobal("shell") . "\n";
+        print F "\n";
+        print F "perl='/usr/bin/env perl'\n";
+        print F "\n";
+        print F "jobid=\$SGE_TASK_ID\n";
+        print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
+        print F "  jobid=\$1\n";
+        print F "fi\n";
+        print F "if [ x\$jobid = x ]; then\n";
+        print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+        print F "  exit 1\n";
+        print F "fi\n";
+        print F "\n";
+        print F "jobid=`printf %04d \$jobid`\n";
+        print F "minid=`expr \$jobid \\* $mbtBatchSize - $mbtBatchSize + 1`\n";
+        print F "maxid=`expr \$jobid \\* $mbtBatchSize`\n";
+        print F "\n";
+        print F "if [ \$maxid -gt $numFrags ] ; then\n";
+        print F "  maxid=$numFrags\n";
+        print F "fi\n";
+        print F "\n";
+        print F "if [ \$minid -gt \$maxid ] ; then\n";
+        print F "  echo Job partitioning error -- minid=\$minid maxid=\$maxid.\n";
+        print F "  exit\n";
+        print F "fi\n";
+        print F "\n";
+        print F "if [ -e $wrk/0-mertrim/$asm.merTrim.\$jobid.log ]; then\n";
+        print F "  echo Job previously completed successfully.\n";
+        print F "  exit\n";
+        print F "fi\n";
+        print F "\n";
+
+        print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
+        print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
+        print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
+        print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+
+        print F getBinDirectoryShellCode();
+
+        print F "\$bin/merTrim \\\n";
+        print F " -b  \$minid \\\n";
+        print F " -e  \$maxid \\\n";
+        print F " -g  $wrk/$asm.gkpStore \\\n";
+        print F " -m  $merSize \\\n";
+        print F " -c  $merComp \\\n";
+        print F " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
+        print F " -l  $wrk/0-mertrim/$asm.merTrim.\$jobid.log.WORKING \\\n";
+        print F " >   $wrk/0-mertrim/$asm.merTrim.\$jobid.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "mv $wrk/0-mertrim/$asm.merTrim.\$jobid.log.WORKING $wrk/0-mertrim/$asm.merTrim.\$jobid.log\n";
+        print F "\n";
+        print F "exit 0\n";
+        close(F);
+
+        system("chmod +x $wrk/0-mertrim/mertrim.sh");
+    }
+
+    stopBefore("initialTrim", undef);
+
+    #  Don't try to rerun failures.
+    #
+    #  FAILUREHELPME
+    #
+    if (findMBTFailures($mbtJobs) > 0) {
+        caFailure("merTrim failed.  See *.err in $wrk/0-mertrim", undef);
+    }
+
+    #  Submit to the grid (or tell the user to do it), or just run
+    #  things here
+    #
+    if (findMBTSuccess($mbtJobs) == 0) {
+        if (getGlobal("useGrid") && getGlobal("mbtOnGrid")) {
+            my $sge        = getGlobal("sge");
+            my $sgeName    = getGlobal("sgeName");
+            my $sgeMerTrim = getGlobal("sgeMerTrim");
+
+            $sgeName = "_$sgeName" if (defined($sgeName));
+
+            my $SGE;
+            $SGE  = "qsub $sge $sgeMerTrim -cwd -N mbt_$asm$sgeName \\\n";
+            $SGE .= "  -t 1-$mbtJobs \\\n";
+            $SGE .= "  -j y -o $wrk/0-mertrim/$asm.merTrim.\$TASK_ID.err \\\n";
+            $SGE .= "  $wrk/0-mertrim/mertrim.sh\n";
+
+            submitBatchJobs($SGE, "mbt_$asm$sgeName");
+            exit(0);
+        } else {
+            for (my $i=1; $i<=$mbtJobs; $i++) {
+                my $out = substr("0000" . $i, -4);
+                &scheduler::schedulerSubmit("$wrk/0-mertrim/mertrim.sh $i > $wrk/0-mertrim/$asm.merTrim.err 2>&1");
             }
-            close(F);
+            
+            &scheduler::schedulerSetNumberOfProcesses(getGlobal("mbtConcurrency"));
+            &scheduler::schedulerFinish();
         }
+    }
 
-        rmrf("$wrk/0-overlaptrim/$asm.obtStore.list");
-        rmrf("$wrk/0-overlaptrim/$asm.obtStore.err");
+    #  Make sure everything finished ok.
+    #
+    #  FAILUREHELPME
+    #
+    if (findMBTFailures($mbtJobs) > 0) {
+        caFailure("merTrim failed.  See *.err in $wrk/0-mertrim", undef);
     }
 
 
+    if (runCommand($wrk, "find $wrk/0-mertrim -name \\*.merTrim.\\*.log -print > $wrk/0-mertrim/$asm.merTrim.list")) {
+        caFailure("failed to generate a list of all the merTrim results", undef);
+    }
 
-
-    if (! -e "$wrk/0-overlaptrim/$asm.overlapMask.err") {
-        my $bin = getBinDirectory();
+    {
         my $cmd;
-        $cmd  = "$bin/overlapMask \\\n";
-        $cmd .= " -gkp $wrk/$asm.gkpStore \\\n";
-        $cmd .= " -ovs $wrk/0-overlaptrim/$asm.obtStore \\\n";
-        $cmd .= " > $wrk/0-overlaptrim/$asm.overlapMask.err 2>&1";
 
-        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            caFailure("mer trim masking failed", "$wrk/0-overlaptrim/$asm.overlapMask.err");
+        $cmd  = "$bin/merTrimApply \\\n";
+        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -L $wrk/0-mertrim/$asm.merTrim.list \\\n";
+        $cmd .= " -l $wrk/0-mertrim/$asm.merTrimLog \\\n";
+        $cmd .= " > $wrk/0-mertrim/$asm.merTrim.err 2>&1";
+
+        if (runCommand($wrk, $cmd)) {
+            rename "$wrk/0-mertrim/$asm.merTrimLog", "$wrk/0-mertrim/$asm.merTrimLog.FAILED";
+            caError("merTrimApply failed", "$wrk/0-mertrim/$asm.merTrim.err");
         }
     }
 
-
-    if (getGlobal("doChimeraDetection") ne 'off') {
-        if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
-            (! -e "$wrk/0-overlaptrim/$asm.chimera.report.bz2")) {
-            my $bin = getBinDirectory();
-            my $cmd;
-            $cmd  = "$bin/chimera \\\n";
-            $cmd .= " -gkp $wrk/$asm.gkpStore \\\n";
-            $cmd .= " -ovs $wrk/0-overlaptrim/$asm.obtStore \\\n";
-            $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary \\\n";
-            $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report \\\n";
-            $cmd .= " -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
-            $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
-
-            stopBefore("chimeraDetection", $cmd);
-
-            if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-                rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
-                caFailure("chimera cleaning failed", "$wrk/0-overlaptrim/$asm.chimera.err");
-            }
-        }
-    }
-
-
-
-    touch("$wrk/0-overlaptrim/mertrim.success");
+    touch("$wrk/0-mertrim/mertrim.success");
 
   alldone:
-    stopAfter("overlapBasedTrimming");
-    stopAfter("OBT");
+    #stopAfter("overlapBasedTrimming");
+    #stopAfter("OBT");
 }
 
 1;

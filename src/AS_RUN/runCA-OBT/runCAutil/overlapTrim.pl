@@ -3,7 +3,7 @@ use strict;
 sub overlapTrim {
 
     return if (getGlobal("doOverlapBasedTrimming") == 0);
-    return if (getGlobal("doMerBasedTrimming") == 1);
+    #return if (getGlobal("doMerBasedTrimming") == 1);
     return if (getGlobal("ovlOverlapper") eq "umd");
 
     #  Skip overlap based trimming if it is done, or if the ovlStore already exists.
@@ -14,29 +14,25 @@ sub overlapTrim {
     system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
 
+    my $bin = getBinDirectory();
 
     #  Disable dedup, unless reads request it.  This avoids an expensive ovlStore build.
     #
     if (getGlobal("doDeDuplication") != 0) {
-        my $bin = getBinDirectory();
-
         setGlobal("doDeDuplication", 0);
 
         if (system("$bin/gatekeeper -isfeatureset 0 doRemoveDuplicateReads $wrk/$asm.gkpStore") == 0) {
-           setGlobal("doDeDuplication", 1);   
+            setGlobal("doDeDuplication", 1);   
         }
     }
 
-    #  Do an initial overly-permissive quality trimming, intersected
-    #  with any known vector trimming.  This is skipped if mer based trimming is enabled.
     #
-#
-#  TESTING:  DO NOT DO THIS IF WE HAVE MER TRIMMED
-#
-if (getGlobal("doMerBasedTrimming") == 0) {
+    #  Do an initial overly-permissive quality trimming, intersected with any known vector trimming.
+    #  This step also applies any clear range computed by MBT.
+    #
+
     if ((! -e "$wrk/0-overlaptrim/$asm.initialTrimLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.initialTrimLog.bz2")) {
-        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/initialTrim \\\n";
         $cmd .= " -log $wrk/0-overlaptrim/$asm.initialTrimLog \\\n";
@@ -53,10 +49,29 @@ if (getGlobal("doMerBasedTrimming") == 0) {
 
         unlink "0-overlaptrim/$asm.initialTrim.err";
     }
-}
 
+    #
+    #  Decide if any libraries request overlap based trimming -- if all libraries are
+    #  asking for mer based trimming, we can skip OBT.
+    #
+
+    my $obtNeeded = 0;
+
+    open(F, "$bin/gatekeeper -nouid -dumplibraries $wrk/$asm.gkpStore |");
+    while (<F>) {
+        $obtNeeded++ if (m/doMerBasedTrimming.*=.*0/);
+    }
+    close(F);
+
+    if ($obtNeeded == 0) {
+        touch("$wrk/0-overlaptrim/overlaptrim.success");
+        goto alldone;
+    }
+
+    #
     #  Compute overlaps, if we don't have them already
     #
+
     if (! -e "$wrk/0-overlaptrim/$asm.obtStore") {
         createOverlapJobs("trim");
         checkOverlap("trim");
@@ -69,7 +84,6 @@ if (getGlobal("doMerBasedTrimming") == 0) {
             caFailure("failed to generate a list of all the overlap files", undef);
         }
 
-        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/overlapStore ";
         $cmd .= " -O ";
@@ -99,16 +113,12 @@ if (getGlobal("doMerBasedTrimming") == 0) {
         rmrf("$wrk/0-overlaptrim/$asm.obtStore.err");
     }
 
-
+    #
     #  Deduplicate?
     #
-#
-#  TESTING:  DO NOT DO THIS IF WE HAVE MER TRIMMED
-#
-if (getGlobal("doMerBasedTrimming") == 0) {
+
     if ((getGlobal("doDeDuplication") != 0) &&
         (! -e "$wrk/0-overlaptrim/$asm.deduplicate.summary")) {
-        my $bin = getBinDirectory();
         my $cmd;
 
         if (! -e "$wrk/0-overlaptrim/$asm.dupStore") {
@@ -161,13 +171,14 @@ if (getGlobal("doMerBasedTrimming") == 0) {
         }
     }
 
+    #
     #  Consolidate the overlaps, listing all overlaps for a single
     #  fragment on a single line.  These are still iid's.
+    #
 
     if ((! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated") &&
         (! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated.bz2")) {
 
-        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/consolidate \\\n";
         $cmd .= " -ovs $wrk/0-overlaptrim/$asm.obtStore \\\n";
@@ -188,7 +199,6 @@ if (getGlobal("doMerBasedTrimming") == 0) {
 
     if ((! -e "$wrk/0-overlaptrim/$asm.mergeLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.mergeLog.bz2")) {
-        my $bin = getBinDirectory();
         my $cmd;
         $cmd  = "$bin/merge-trimming \\\n";
         $cmd .= "-log $wrk/0-overlaptrim/$asm.mergeLog \\\n";
@@ -204,12 +214,11 @@ if (getGlobal("doMerBasedTrimming") == 0) {
             caFailure("failed to merge trimming", "$wrk/0-overlaptrim/$asm.merge.err");
         }
     }
-}
+
 
     if (getGlobal("doChimeraDetection") ne 'off') {
         if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
             (! -e "$wrk/0-overlaptrim/$asm.chimera.report.bz2")) {
-            my $bin = getBinDirectory();
             my $cmd;
             $cmd  = "$bin/chimera \\\n";
             $cmd .= " -gkp $wrk/$asm.gkpStore \\\n";

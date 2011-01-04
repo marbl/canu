@@ -63,9 +63,9 @@ endif
 ifdef KMER
   MERYLSOURCE      = meryl.C
   MERYLOBJECTS     = meryl.o AS_MER_gkpStore_to_FastABase.o AS_MER_gkpStoreChain.o
-  SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C overmerry.C merTrim.C estimate-mer-threshold.C AS_MER_gkpStore_to_FastABase.C AS_MER_gkpStoreChain.C
+  SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C overmerry.C merTrim.C merTrimApply.C estimate-mer-threshold.C AS_MER_gkpStore_to_FastABase.C AS_MER_gkpStoreChain.C
   OBJECTS          = $(SOURCES:.C=.o)
-  CXX_PROGS        = meryl mercy overmerry merTrim estimate-mer-threshold
+  CXX_PROGS        = meryl mercy overmerry merTrim merTrimApply estimate-mer-threshold
   INC_IMPORT_DIRS += $(KMER)/include
   LIB_IMPORT_DIRS += $(KMER)/lib
   KMERLIBS         = libmerylguts.a libkmer.a libmeryl.a libseq.a libbio.a libutil.a
@@ -111,4 +111,5 @@ meryl:                  $(MERYLOBJECTS)                                         
 mercy:                  mercy.o                                                 libCA.a $(KMERLIBS)
 overmerry:              overmerry.o              AS_MER_gkpStore_to_FastABase.o libCA.a $(KMERLIBS)
 merTrim:                merTrim.o                AS_MER_gkpStore_to_FastABase.o libCA.a $(KMERLIBS)
+merTrimApply:           merTrimApply.o                                          libCA.a $(KMERLIBS)
 estimate-mer-threshold: estimate-mer-threshold.o AS_MER_gkpStore_to_FastABase.o libCA.a $(KMERLIBS)

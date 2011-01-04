@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.26 2010-10-04 08:51:44 brianwalenz Exp $";
+const char *mainid = "$Id: initialTrim.C,v 1.27 2011-01-04 05:57:22 brianwalenz Exp $";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
@@ -93,6 +93,7 @@ main(int argc, char **argv) {
   uint32        finR = 0;
 
   uint32        stat_immutable      = 0;
+  uint32        stat_merTrimOnly    = 0;
   uint32        stat_donttrim       = 0;
   uint32        stat_alreadyDeleted = 0;
   uint32        stat_noVecClr       = 0;
@@ -106,7 +107,7 @@ main(int argc, char **argv) {
   if (logFile)
     fprintf(logFile, "uid,iid\torigL\torigR\tqltL\tqltR\tvecL\tvecR\tfinalL\tfinalR\tdeleted?\n");
 
-  for (uint32 iid=1; iid<=gkpStore->gkStore_getNumFragments(); iid++) {
+  for (int32 iid=1; iid<=gkpStore->gkStore_getNumFragments(); iid++) {
     gkpStore->gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
 
     if (fr.gkFragment_getLibraryIID() != 0) {
@@ -120,6 +121,11 @@ main(int argc, char **argv) {
 
     if ((lr) && (lr->doNotOverlapTrim)) {
       stat_immutable++;
+      continue;
+    }
+
+    if ((lr) && (lr->doMerBasedTrimming)) {
+      stat_merTrimOnly++;
       continue;
     }
 
@@ -201,6 +207,7 @@ main(int argc, char **argv) {
 
   fprintf(stdout, "Fragments with:\n");
   fprintf(stdout, " no changes allowed:           "F_U32"\n", stat_immutable);
+  fprintf(stdout, " no QV trim allowed (MBT):     "F_U32"\n", stat_merTrimOnly);
   fprintf(stdout, " no QV trim allowed:           "F_U32"\n", stat_donttrim);
   fprintf(stdout, " already deleted               "F_U32"\n", stat_alreadyDeleted);
   fprintf(stdout, " no vector clear range known:  "F_U32" (trimed to quality clear)\n", stat_noVecClr);
