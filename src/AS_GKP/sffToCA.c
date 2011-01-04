@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.49 2010-11-17 15:32:35 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.50 2011-01-04 20:09:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -913,7 +913,10 @@ removeDuplicateReads(void) {
     uint32 seqLen   = fr.gkFragment_getSequenceLength();
     uint64 hash     = 0;
 
-    assert(seqLen >= DEDUP_SPAN);
+    if (seqLen < DEDUP_SPAN)
+      //  Dedup not possible on such a short read.  Formerly was an assert,
+      //  until some crazy user wanted to use short reads.
+      continue;
 
 #if DEDUP_SPAN == 48
     //  Our "hash" is just the spaced seed "101" (repeating).  It
