@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.33 2011-01-03 03:07:16 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.34 2011-01-04 18:55:19 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -531,9 +531,12 @@ unitigConsensus::computePositionFromLayout(void) {
   if (thickestLen <= 0)
     return(false);
 
+  placed[tiid].bgn = ahang;
+  placed[tiid].end = bhang + frankensteinLen;
+
   if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
     fprintf(stderr, "PLACE(3)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
-            ahang, bhang + frankensteinLen, ahang, bhang, frankensteinLen);
+            placed[tiid].bgn, placed[tiid].end, ahang, bhang, frankensteinLen);
 
   return(true);
 }
@@ -1532,7 +1535,7 @@ MultiAlignUnitig(MultiAlignT     *ma,
       goto returnFailure;
     }
 
-    fprintf(stderr, "MultiAlignUnitig()-- WARNING!  Failures resolved for unitig %d.  Attampt consensus again.\n", ma->maID);
+    fprintf(stderr, "MultiAlignUnitig()-- WARNING!  Failures resolved for unitig %d.  Attempt consensus again.\n", ma->maID);
 
     //  Fixed the placements.  Try again.
 
