@@ -430,10 +430,10 @@ mspManager::setScoreThreshold(int K, int interspecies) {
 }
 
 void
-mspManager::addHit_(char *genSeq, char *estSeq,
-                    int   genLen, int   estLen,
-                    int   genPos, int   estPos,
-                    mss_t MSS) {
+mspManager::addHit_(char  *genSeq, char *estSeq,
+                    int    genLen, int   estLen,
+                    int    genPos, int   estPos,
+                    mss_t &MSS) {
   char *genBeg = 0L;
   char *estBeg = 0L;
   char *genEnd = 0L;

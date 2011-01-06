@@ -125,13 +125,6 @@ struct hash_table {
   int                 nodesused;
 };
 
-typedef struct positions {
-    int    begin;
-    int    end;
-    int    width;
-    int    result_shifts;
-} position_t;
-
 
 private:
   mspManager        _mspManager;
@@ -589,9 +582,9 @@ public:
     spacedSeedInt = globalParams->_spacedSeedInt;
     spacedSeedExt = globalParams->_spacedSeedExt;
 
-    spacedSeedMSS    =  masks_shifts(spacedSeed);
-    spacedSeedIntMSS =  masks_shifts(spacedSeedInt);
-    spacedSeedExtMSS =  masks_shifts(spacedSeedExt);
+    spacedSeedMSS    =  mss_t(spacedSeed);
+    spacedSeedIntMSS =  mss_t(spacedSeedInt);
+    spacedSeedExtMSS =  mss_t(spacedSeedExt);
 
     spliceModel   = globalParams->_spliceModel;
 

@@ -112,10 +112,10 @@ public:
   //  add a single unextended hit to the list.
   //  this will do extensions if we haven't already extended through it.
   //
-  void  addHit(char *genSeq, char *estSeq,
-               int   genLen, int   estLen,
-               int   genPos, int   estPos,
-               mss_t MSS) {
+  void  addHit(char  *genSeq, char *estSeq,
+               int    genLen, int   estLen,
+               int    genPos, int   estPos,
+               mss_t &MSS) {
 
 #if 0
     //  We'd like to tie this into DEBUG_EXTENSION, but I want
@@ -144,10 +144,10 @@ public:
                       char  *s2);
 
 private:
-  void  addHit_(char *genSeq, char *estSeq,
-                int   genLen, int   estLen,
-                int   genPos, int   estPos,
-                mss_t MSS);
+  void  addHit_(char  *genSeq, char *estSeq,
+                int    genLen, int   estLen,
+                int    genPos, int   estPos,
+                mss_t &MSS);
 
   bool           _sorted;
 
