@@ -403,7 +403,7 @@ doPolishDP(searcherState       *state,
       e._numMatchesN       = 0;
       e._percentIdentity   = 0;
       e._intronOrientation = SIM4_INTRON_NONE;
-      e._estAlignment      = match.alignA;
+      e._estAlignment      = match.alignA;  //  'e' DOES NOT own this, must reset the pointer later.
       e._genAlignment      = match.alignB;
 
       p.s4p_updateAlignmentScores();
@@ -455,7 +455,18 @@ doPolishDP(searcherState       *state,
         }
         successes  &= successMask;
       }
+
+      //  Before sim4polish and sim4polishExon go out of scope, reset the pointers.  Ugly, but needs
+      //  to be done else the destructors try to delete things it doesn't own (alignments) or
+      //  allocated on the stack (sim4polishExon).
+      p._estDefLine   = 0L;
+      p._genDefLine   = 0L;
+      p._exons        = 0L;
+      e._estAlignment = 0L;
+      e._genAlignment = 0L;
     }
+
+    delete GENseq;
   }  //  over all hits
 }
 
