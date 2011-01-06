@@ -354,5 +354,7 @@ doPolishS4(searcherState       *state,
                   elapsedTime);
     }
 #endif
+
+    delete GENseq;
   }  //  over all hits
 }
