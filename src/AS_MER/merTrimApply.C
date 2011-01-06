@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrimApply.C,v 1.1 2011-01-04 05:57:22 brianwalenz Exp $";
+const char *mainid = "$Id: merTrimApply.C,v 1.2 2011-01-06 19:52:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,7 +81,7 @@ main(int argc, char **argv) {
 
   gkpStore = new gkStore(gkpStoreName, FALSE, TRUE);
 
-  //gkpStore->gkStore_metadataCaching(true);
+  gkpStore->gkStore_metadataCaching(true);
   gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
 
   //  Over every result file, read each line, change the clear range.
