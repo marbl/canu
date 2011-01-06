@@ -85,6 +85,15 @@ static const char *AS_READ_TYPE_NAMES[4] = { "ERROR", "PACKED", "NORMAL", "STROB
 //  The three types are encapsulated in the gkFragment, which is the only supported access
 //  mechanism.
 //
+class  gkPackedSequence {
+private:
+  char             enc[AS_READ_MAX_PACKED_LEN];
+
+  friend class gkFragment;
+  friend class gkStore;
+  friend class gkStream;
+};
+
 class gkPackedFragment {
 private:
   AS_UID           readUID;
@@ -105,7 +114,7 @@ private:
 #error gkPackedFragment size wrong
 #endif
 
-  char             enc[AS_READ_MAX_PACKED_LEN];
+  //char             enc[AS_READ_MAX_PACKED_LEN];
 
   friend class gkFragment;
   friend class gkStore;

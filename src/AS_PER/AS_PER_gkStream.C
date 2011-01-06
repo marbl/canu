@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStream.C,v 1.6 2009-10-28 17:27:29 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStream.C,v 1.7 2011-01-06 19:41:34 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -33,6 +33,7 @@ gkStream::gkStream(gkStore *gkp_, AS_IID beginIID_, AS_IID endIID_, uint32 flags
   endIID  = 0;
 
   fpk = NULL;
+  qpk = NULL;
 
   fnm = NULL;
   snm = NULL;
@@ -47,6 +48,7 @@ gkStream::gkStream(gkStore *gkp_, AS_IID beginIID_, AS_IID endIID_, uint32 flags
 
 gkStream::~gkStream() {
   closeStream(fpk);
+  closeStream(qpk);
 
   closeStream(fnm);
   closeStream(snm);
@@ -72,6 +74,7 @@ gkStream::reset(AS_IID bgnIID_, AS_IID endIID_) {
   //  Close any open streams, we'll open them again as needed.
 
   closeStream(fpk);  fpk = NULL;
+  closeStream(qpk);  qpk = NULL;
 
   closeStream(fnm);  fnm = NULL;
   closeStream(snm);  snm = NULL;
@@ -94,8 +97,10 @@ gkStream::reset(AS_IID bgnIID_, AS_IID endIID_) {
 
   if (valPK) {
     fpk = openStream(gkp->fpk);
+    qpk = openStream(gkp->qpk);
 
     resetStream(fpk, bgnPK, endPK);
+    resetStream(qpk, bgnPK, endPK);
   }
 
   if (valNM) {

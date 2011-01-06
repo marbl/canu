@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.1 2009-10-28 17:27:29 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.2 2011-01-06 19:41:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +39,7 @@ static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.1 2009-10-28 17:27:29 
 void
 gkStore::gkStore_loadPartition(uint32 partition) {
   char       name[FILENAME_MAX];
-  int        i, f, e;
+  int64      i, f, e;
 
   assert(partmap    == NULL);
   assert(isCreating == 0);
@@ -60,6 +60,8 @@ gkStore::gkStore_loadPartition(uint32 partition) {
 
   sprintf(name,"%s/fpk.%03d", storePath, partnum);
   partfpk = loadStorePartial(name, 0, 0);
+  sprintf(name,"%s/qpk.%03d", storePath, partnum);
+  partqpk = loadStorePartial(name, 0, 0);
 
   sprintf(name,"%s/fnm.%03d", storePath, partnum);
   partfnm = loadStorePartial(name, 0, 0);
@@ -79,9 +81,7 @@ gkStore::gkStore_loadPartition(uint32 partition) {
   e = getLastElemStore(partfpk);
   for (i=f; i<=e; i++) {
     gkPackedFragment *p = (gkPackedFragment *)getIndexStorePtr(partfpk, i);
-    if (InsertInHashTable_AS(partmap,
-                             (uint64)p->readIID, 0,
-                             (INTPTR)(p), 0) != HASH_SUCCESS)
+    if (InsertInHashTable_AS(partmap, (uint64)p->readIID, 0, i, 0) != HASH_SUCCESS)
       assert(0);
   }
 
@@ -89,9 +89,7 @@ gkStore::gkStore_loadPartition(uint32 partition) {
   e = getLastElemStore(partfnm);
   for (i=f; i<=e; i++) {
     gkNormalFragment *p = (gkNormalFragment *)getIndexStorePtr(partfnm, i);
-    if (InsertInHashTable_AS(partmap,
-                             (uint64)p->readIID, 0,
-                             (INTPTR)(p), 0) != HASH_SUCCESS)
+    if (InsertInHashTable_AS(partmap, (uint64)p->readIID, 0, i, 0) != HASH_SUCCESS)
       assert(0);
   }
 
@@ -99,9 +97,7 @@ gkStore::gkStore_loadPartition(uint32 partition) {
   e = getLastElemStore(partfsb);
   for (i=f; i<=e; i++) {
     gkStrobeFragment *p = (gkStrobeFragment *)getIndexStorePtr(partfsb, i);
-    if (InsertInHashTable_AS(partmap,
-                             (uint64)p->readIID, 0,
-                             (INTPTR)(p), 0) != HASH_SUCCESS)
+    if (InsertInHashTable_AS(partmap, (uint64)p->readIID, 0, i, 0) != HASH_SUCCESS)
       assert(0);
   }
 }
@@ -143,6 +139,7 @@ gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
 
     if (fr.type == GKFRAGMENT_PACKED) {
       appendIndexStore(gkpart[p]->partfpk, &fr.fr.packed);
+      appendIndexStore(gkpart[p]->partqpk,  fr.enc);
     }
 
 
@@ -150,9 +147,9 @@ gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
       fr.fr.normal.seqOffset = -1;
       fr.fr.normal.qltOffset = getLastElemStore(gkpart[p]->partqnm) + 1;
 
-      appendIndexStore(gkpart[p]->partfnm, &fr.fr.normal);
+      //encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
 
-      encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
+      appendIndexStore(gkpart[p]->partfnm, &fr.fr.normal);
       appendStringStore(gkpart[p]->partqnm, fr.enc, fr.fr.normal.seqLen);
     }
 
@@ -161,9 +158,9 @@ gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
       fr.fr.strobe.seqOffset = -1;
       fr.fr.strobe.qltOffset = getLastElemStore(gkpart[p]->partqsb) + 1;
 
-      appendIndexStore(gkpart[p]->partfsb, &fr.fr.strobe);
+      //encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
 
-      encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
+      appendIndexStore(gkpart[p]->partfsb, &fr.fr.strobe);
       appendStringStore(gkpart[p]->partqsb, fr.enc, fr.fr.strobe.seqLen);
     }
   }

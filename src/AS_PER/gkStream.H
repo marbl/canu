@@ -22,6 +22,7 @@ private:
   AS_IID             endIID;
 
   StreamStruct      *fpk;
+  StreamStruct      *qpk;
 
   StreamStruct      *fnm;
   StreamStruct      *snm;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_load.C,v 1.1 2009-10-28 17:27:29 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_load.C,v 1.2 2011-01-06 19:41:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,6 +64,7 @@ gkStore::gkStore_load(AS_IID bgnIID, AS_IID endIID, int flags) {
 
   if (valPK) {
     fpk = convertStoreToPartialMemoryStore(fpk, bgnPK, endPK);
+    qpk = convertStoreToPartialMemoryStore(qpk, bgnPK, endPK);
   }
 
   if (valNM) {

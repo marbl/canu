@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.35 2010-10-25 08:47:29 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.36 2011-01-06 19:41:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -321,24 +321,24 @@ off_t ftello(FILE *stream );
 #define AS_READ_MAX_PACKED_LEN_BITS       8
 #define AS_READ_MAX_NORMAL_LEN_BITS       11
 
-//  AS_READ_MAX_NORMAL_LEN must be set as below.  It is tempting to make this shorter, but that WILL
-//  NOT work.  It ends up corrupting data.
+//  AS_READ_MAX_NORMAL_LEN should be a multiple of 8, only to keep things aligned.
+//  The total size for storing a single fragment is '24 + n' (as of gkFragment.H r1.8).
+//    128 bytes of data allows for length of  104 bases
+//    160 bytes of data allows for length of  136 bases
+//    192 bytes of data allows for length of  168 bases
 //
-//  There are better values for PACKED_LEN than the power-of-two:
-//     72 yields a  96 byte structure.
-//    104 yields a 128 byte structure.
-//    136 yields a 160 byte structure.
-//    168 yields a 192 byte structure.
-//  The formula (gkFragment.H r1.8) is 24 + n.
-//
-//  Compare againsta  gkNormalFragment of fixed size 48 bytes + 10 bits per base.
+//  Compare against a gkNormalFragment of fixed size 48 bytes + 10 bits per base.
 //    128 bytes of data allows for length of  64 bases
 //    160 bytes of data allows for length of  89 bases
 //    192 bytes of data allows for length of 115 bases
 //  The formula (gkFragment.H r1.8) is 48 + 10/8 * n.
-//    
+//
+//  The catch is that gkPackedFragment always allocates this much space, regardless of the actual
+//  length of a fragment, where gkNormalFragment only allocates as much space as used by the
+//  sequence.
+//
 #define AS_READ_MIN_LEN                   64
-#define AS_READ_MAX_PACKED_LEN            104
+#define AS_READ_MAX_PACKED_LEN            136
 #define AS_READ_MAX_NORMAL_LEN            ((1 << AS_READ_MAX_NORMAL_LEN_BITS) - 1)
 
 #define AS_OVERLAP_MIN_LEN                40

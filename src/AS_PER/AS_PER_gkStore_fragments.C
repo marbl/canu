@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.2 2010-03-05 03:34:07 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.3 2011-01-06 19:41:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,20 +45,28 @@ gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
 
   fr->gkp = this;
 
-  //  Get this out of the way first, it's a complete special case.
-  //  It's also the easy case.  ;-)
-  //
+  if (fr->enc == NULL) {
+    fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+    fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+    fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
+  }
+
+  uint32  seqLen = fr->gkFragment_getSequenceLength();
+
   if (fr->type == GKFRAGMENT_PACKED) {
     fr->hasSEQ = 1;
     fr->hasQLT = 1;
 
-    if (fr->enc == NULL) {
-      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-    }
+    if (partmap)
+      getIndexStore(partqpk, (int32)LookupValueInHashTable_AS(partmap, fr->fr.packed.readIID, 0), fr->enc);
+    else if (gst == NULL)
+      getIndexStore(qpk, fr->tiid, fr->enc);
+    else
+      nextStream(gst->qpk, fr->enc, 0, NULL);
 
-    decodeSequenceQuality(fr->fr.packed.enc, fr->seq, fr->qlt);
+    decodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
+    assert(fr->seq[seqLen] == 0);
+    assert(fr->qlt[seqLen] == 0);
 
     return;
   }
@@ -66,34 +74,20 @@ gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
   uint32  actLen = 0;
   int64   nxtOff = 0;
 
-  uint32  seqLen = fr->gkFragment_getSequenceLength();
   int64   seqOff = fr->gkFragment_getSequenceOffset();
-
-  uint32  qltLen = fr->gkFragment_getQualityLength();
   int64   qltOff = fr->gkFragment_getQualityOffset();
-
-  StoreStruct  *store  = NULL;
-  StreamStruct *stream = NULL;
-
 
   if (flags == GKFRAGMENT_SEQ) {
     fr->hasSEQ = 1;
 
-    if (fr->enc == NULL) {
-      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-    }
-
     assert(partmap == NULL);
 
-    if (gst == NULL) {
-      store = (fr->type == GKFRAGMENT_NORMAL) ? snm : ssb;
-      getStringStore(store, seqOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
-    } else {
-      stream = (fr->type == GKFRAGMENT_NORMAL) ? gst->snm : gst->ssb;
-      nextStream(stream, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen);
-    }
+    if (gst == NULL)
+      getStringStore((fr->type == GKFRAGMENT_NORMAL) ? snm : ssb,
+                     seqOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
+    else
+      nextStream((fr->type == GKFRAGMENT_NORMAL) ? gst->snm : gst->ssb,
+                 fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen);
 
     decodeSequence(fr->enc, fr->seq, seqLen);
 
@@ -105,24 +99,15 @@ gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
     fr->hasSEQ = 1;
     fr->hasQLT = 1;
 
-    if (fr->enc == NULL) {
-      fr->enc = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->seq = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-      fr->qlt = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_NORMAL_LEN + 1);
-    }
-
-    if (partmap) {
-      store = (fr->type == GKFRAGMENT_NORMAL) ? partqnm : partqsb;
-      getStringStore(store, qltOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
-    } else if (gst == NULL) {
-      store = (fr->type == GKFRAGMENT_NORMAL) ? qnm : qsb;
-      getStringStore(store, qltOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
-    } else {
-      stream = (fr->type == GKFRAGMENT_NORMAL) ? gst->qnm : gst->qsb;
-      nextStream(stream, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen);
-    }
-
-    //fr->enc[actLen] = 0;
+    if (partmap)
+      getStringStore((fr->type == GKFRAGMENT_NORMAL) ? partqnm : partqsb,
+                     qltOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
+    else if (gst == NULL)
+      getStringStore((fr->type == GKFRAGMENT_NORMAL) ? qnm : qsb,
+                     qltOff, fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen, &nxtOff);
+    else
+      nextStream((fr->type == GKFRAGMENT_NORMAL) ? gst->qnm : gst->qsb,
+                 fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen);
 
     decodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
     assert(fr->seq[seqLen] == 0);
@@ -147,23 +132,22 @@ gkStore::gkStore_getFragment(AS_IID iid, gkFragment *fr, int32 flags) {
   if (partmap) {
     //  If partitioned, we have everything in memory.  This is keyed
     //  off of the global IID.
-    void *p = (void *)(INTPTR)LookupValueInHashTable_AS(partmap, iid, 0);
 
-    if (p == NULL)
+    if (ExistsInHashTable_AS(partmap, iid, 0) == FALSE)
       fprintf(stderr, "getFrag()-- ERROR!  IID "F_IID" not in partition!\n", iid);
-    assert(p != NULL);
+    assert(ExistsInHashTable_AS(partmap, iid, 0) == TRUE);
 
     assert(fr->isGKP == 0);
 
     switch (fr->type) {
       case GKFRAGMENT_PACKED:
-        memcpy(&fr->fr.packed, p, sizeof(gkPackedFragment));
+        memcpy(&fr->fr.packed, getIndexStorePtr(partfpk, (int32)LookupValueInHashTable_AS(partmap, iid, 0)), sizeof(gkPackedFragment));
         break;
       case GKFRAGMENT_NORMAL:
-        memcpy(&fr->fr.normal, p, sizeof(gkNormalFragment));
+        memcpy(&fr->fr.normal, getIndexStorePtr(partfnm, (int32)LookupValueInHashTable_AS(partmap, iid, 0)), sizeof(gkNormalFragment));
         break;
       case GKFRAGMENT_STROBE:
-        memcpy(&fr->fr.strobe, p, sizeof(gkStrobeFragment));
+        memcpy(&fr->fr.strobe, getIndexStorePtr(partfsb, (int32)LookupValueInHashTable_AS(partmap, iid, 0)), sizeof(gkStrobeFragment));
         break;
     }
 
@@ -377,10 +361,11 @@ gkStore::gkStore_addFragment(gkFragment *fr) {
       assert(fr->seq[fr->fr.packed.seqLen] == 0);
       assert(fr->qlt[fr->fr.packed.seqLen] == 0);
 
-      encodeSequenceQuality(fr->fr.packed.enc, fr->seq, fr->qlt);
-
       gkStore_setUIDtoIID(fr->fr.packed.readUID, fr->fr.packed.readIID, AS_IID_FRG);
       appendIndexStore(fpk, &fr->fr.packed);
+
+      encodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
+      appendIndexStore(qpk, fr->enc);
 
       gkStore_addIIDtoTypeMap(iid, GKFRAGMENT_PACKED, fr->tiid);
       break;

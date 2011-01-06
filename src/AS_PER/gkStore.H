@@ -13,6 +13,7 @@ public:
   uint64    gkVersion;
 
   uint32    gkLibrarySize;
+  uint32    gkPackedSequenceSize;
   uint32    gkPackedFragmentSize;
   uint32    gkNormalFragmentSize;
   uint32    gkStrobeFragmentSize;
@@ -217,6 +218,7 @@ public:    //  Sigh, public needed for AS_GKP.
 
 private:
   StoreStruct             *fpk;  //  Packed fragments
+  StoreStruct             *qpk;
 
   StoreStruct             *fnm;  //  Normal fragments
   StoreStruct             *snm;
@@ -266,7 +268,7 @@ private:
   //
   int32                    partnum;
 
-  StoreStruct             *partfpk;
+  StoreStruct             *partfpk, *partqpk;
   StoreStruct             *partfnm, *partqnm;
   StoreStruct             *partfsb, *partqsb;
 

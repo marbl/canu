@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.19 2010-03-25 14:31:52 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.20 2011-01-06 19:41:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +37,7 @@ static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.19 2010-03-25 14:31:52 brianwale
 #include "AS_UTL_fileIO.h"
 
 
-#define AS_GKP_CURRENT_VERSION    6
+#define AS_GKP_CURRENT_VERSION    7
 
 
 gkStore::gkStore() {
@@ -67,6 +67,8 @@ gkStore::gkStore(const char *path, int partition) {
 
   sprintf(name,"%s/fpk.%03d", storePath, partnum);
   partfpk = createIndexStore(name, "partfpk", sizeof(gkPackedFragment), 1);
+  sprintf(name,"%s/qpk.%03d", storePath, partnum);
+  partqpk = createIndexStore(name, "partqpk", sizeof(gkPackedSequence), 1);
 
   sprintf(name,"%s/fnm.%03d", storePath, partnum);
   partfnm = createIndexStore(name, "partfnm", sizeof(gkNormalFragment), 1);
@@ -138,12 +140,14 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
   }
 
   if ((inf.gkLibrarySize        != sizeof(gkLibrary)) ||
+      (inf.gkPackedSequenceSize != sizeof(gkPackedSequence)) ||
       (inf.gkPackedFragmentSize != sizeof(gkPackedFragment)) ||
       (inf.gkNormalFragmentSize != sizeof(gkNormalFragment)) ||
       (inf.gkStrobeFragmentSize != sizeof(gkStrobeFragment)) ||
       (inf.readMaxLenBits       != AS_READ_MAX_NORMAL_LEN_BITS)) {
     fprintf(stderr, "gkStore_open()--  ERROR!  Incorrect element sizes; code and store are incompatible.\n");
     fprintf(stderr, "  gkLibrary:                    store %5d   code %5d bytes\n", inf.gkLibrarySize, (int)sizeof(gkLibrary));
+    fprintf(stderr, "  gkPackedSequence:             store %5d   code %5d bytes\n", inf.gkPackedSequenceSize, (int)sizeof(gkPackedSequence));
     fprintf(stderr, "  gkPackedFragment:             store %5d   code %5d bytes\n", inf.gkPackedFragmentSize, (int)sizeof(gkPackedFragment));
     fprintf(stderr, "  gkNormalFragment:             store %5d   code %5d bytes\n", inf.gkNormalFragmentSize, (int)sizeof(gkNormalFragment));
     fprintf(stderr, "  gkStrobeFragment:             store %5d   code %5d bytes\n", inf.gkStrobeFragmentSize, (int)sizeof(gkStrobeFragment));
@@ -165,6 +169,8 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
 
   sprintf(name,"%s/fpk", storePath);
   fpk   = openStore(name, mode);
+  sprintf(name,"%s/qpk", storePath);
+  qpk   = openStore(name, mode);
 
   sprintf(name,"%s/fnm", storePath);
   fnm   = openStore(name, mode);
@@ -196,7 +202,7 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
   STRtoUID = NULL;
   doNotLoadUIDs = doNotUseUIDs;
 
-  if ((NULL == fpk) ||
+  if ((NULL == fpk) || (NULL == qpk) ||
       (NULL == fnm) || (NULL == snm) || (NULL == qnm) ||
       (NULL == fsb) || (NULL == ssb) || (NULL == qsb) ||
       (NULL == lib) || (NULL == uid) || (NULL == plc)) {
@@ -226,6 +232,7 @@ gkStore::gkStore_create(void) {
   inf.gkMagic              = 1;
   inf.gkVersion            = AS_GKP_CURRENT_VERSION;
   inf.gkLibrarySize        = sizeof(gkLibrary);
+  inf.gkPackedSequenceSize = sizeof(gkPackedSequence);
   inf.gkPackedFragmentSize = sizeof(gkPackedFragment);
   inf.gkNormalFragmentSize = sizeof(gkNormalFragment);
   inf.gkStrobeFragmentSize = sizeof(gkStrobeFragment);
@@ -248,6 +255,8 @@ gkStore::gkStore_create(void) {
 
   sprintf(name,"%s/fpk", storePath);
   fpk = createIndexStore(name, "fpk", sizeof(gkPackedFragment), 1);
+  sprintf(name,"%s/qpk", storePath);
+  qpk = createIndexStore(name, "qpk", sizeof(gkPackedSequence), 1);
 
   sprintf(name,"%s/fnm", storePath);
   fnm = createIndexStore(name, "fnm", sizeof(gkNormalFragment), 1);
@@ -359,6 +368,7 @@ gkStore::~gkStore() {
   }
 
   closeStore(fpk);
+  closeStore(qpk);
 
   closeStore(fnm);
   closeStore(snm);
@@ -389,6 +399,7 @@ gkStore::~gkStore() {
   safe_free(IIDtoTIID);
 
   closeStore(partfpk);
+  closeStore(partqpk);
   closeStore(partfnm);
   closeStore(partfsb);
   closeStore(partqnm);
@@ -410,6 +421,7 @@ gkStore::gkStore_clear(void) {
   memset(&inf, 0, sizeof(gkStoreInfo));
 
   fpk = NULL;
+  qpk = NULL;
 
   fnm = NULL;
   snm = NULL;
@@ -439,7 +451,7 @@ gkStore::gkStore_clear(void) {
 
   partnum = 0;
 
-  partfpk = NULL;
+  partfpk = partqpk = NULL;
   partfnm = partqnm = NULL;
   partfsb = partqsb = NULL;
 
@@ -457,6 +469,7 @@ gkStore::gkStore_delete(void) {
   //  files from disk.  It does not handle a partitioned store.
 
   closeStore(fpk);
+  closeStore(qpk);
 
   closeStore(fnm);
   closeStore(snm);
@@ -482,6 +495,7 @@ gkStore::gkStore_delete(void) {
   safe_free(IIDtoTIID);
 
   closeStore(partfpk);
+  closeStore(partqpk);
   closeStore(partfnm);
   closeStore(partfsb);
   closeStore(partqnm);
@@ -494,6 +508,7 @@ gkStore::gkStore_delete(void) {
   sprintf(name,"%s/inf", storePath);  unlink(name);
 
   sprintf(name,"%s/fpk", storePath);  unlink(name);
+  sprintf(name,"%s/qpk", storePath);  unlink(name);
 
   sprintf(name,"%s/fnm", storePath);  unlink(name);
   sprintf(name,"%s/snm", storePath);  unlink(name);
