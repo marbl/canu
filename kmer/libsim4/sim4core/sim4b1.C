@@ -19,8 +19,6 @@ Sim4::SIM4(int            *dist_ptr,
   Exon   *tmp_block=0L;
   Exon   *tmp_block1=0L;
 
-  struct edit_script_list *Script_head;
-
   *dist_ptr = 0;
   *Exons    = 0L;
   *pA = 0;
@@ -301,16 +299,19 @@ Sim4::SIM4(int            *dist_ptr,
   }
 
   /* decreasingly; script will be in reverse order */
+
+  struct edit_script_list *Shead = NULL;
+
   flip_list(&Lblock, &Rblock); 
-  pluri_align(dist_ptr, Lblock, &Script_head, st); 
+  pluri_align(dist_ptr, Lblock, &Shead, st); 
   flip_list(&Lblock, &Rblock);      /* increasingly */
 
   *pT = 0;
   *pA = 0;
-  if (Script_head) {
+  if (Shead) {
     if (globalParams->_ignorePolyTails) {
-      remove_polyT_front(&Script_head, Lblock, _genSeq, _estSeq, pT); 
-      remove_polyA_back(&Script_head, Lblock, _genSeq, _estSeq, _estLen, pA);
+      remove_polyT_front(&Shead, Lblock, _genSeq, _estSeq, pT); 
+      remove_polyA_back(&Shead, Lblock, _genSeq, _estSeq, _estLen, pA);
 
       if (*pA || *pT)
         updateStatistics(Lblock, st);
@@ -328,5 +329,5 @@ Sim4::SIM4(int            *dist_ptr,
 
   //  Memory leak when Script_head == 0L -- see pluri_align, too!
 
-  return(Script_head);
+  return(Shead);
 }
