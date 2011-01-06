@@ -550,9 +550,11 @@ Sim4::run(sim4command *cmd) {
 
   fail:
 
-    //  These are now garbage collected
-    //if (fAligns)  free_align(fAligns);
-    //if (rAligns)  free_align(rAligns);
+    //  These are NOT garbage collected!
+    if (fAligns)  free_align(fAligns);
+    if (rAligns)  free_align(rAligns);
+
+    //  These ARE garbage collected
     //freeExonList(fExons);
     //freeExonList(rExons);
 
