@@ -510,7 +510,7 @@ mspManager::addHit_(char  *genSeq, char *estSeq,
 
     sum += _match;
     if (*estTmp != *genTmp)
-      sum -= (transition[*estTmp][*genTmp] ? _imatchdiff : _vmatchdiff);
+      sum -= (transitionFunction(*estTmp, *genTmp) ? _imatchdiff : _vmatchdiff);
 
     estTmp++;
     genTmp++;
@@ -531,7 +531,7 @@ mspManager::addHit_(char  *genSeq, char *estSeq,
   for (int x=0; x<MSS.seedLength; x++) {
     middle_sum += _match;
     if (*genTmp != *estTmp)
-      middle_sum -= (transition[*estTmp][*genTmp] ? _imatchdiff : _vmatchdiff);
+      middle_sum -= (transitionFunction(*estTmp, *genTmp) ? _imatchdiff : _vmatchdiff);
 
     //fprintf(stderr, "%c %c\n", *genTmp, *estTmp);
 
@@ -579,7 +579,7 @@ mspManager::addHit_(char  *genSeq, char *estSeq,
     genTmp--;
     sum += _match;
     if (*estTmp != *genTmp)
-      sum -= (transition[*estTmp][*genTmp] ? _imatchdiff : _vmatchdiff);
+      sum -= (transitionFunction(*estTmp, *genTmp) ? _imatchdiff : _vmatchdiff);
 
     if (sum > right_sum) {
       right_sum = sum;

@@ -31,9 +31,31 @@ public:
   mspManager();
   ~mspManager();
 
-  void   setParameters(int match, int imismatch, int vmismatch, double percenterror, int wordextallow) {
-    int i, j;
 
+  //  Returns true if x=a and y=g     x=g and y=a
+  //                  x=c and y=t     x=t and y=c
+  //
+  //  This used to be an array of size [256][256], that was initialized on each construction of this
+  //  object.  That was killing performance in snapper.
+  //
+  int    transitionFunction(int x, int y) {
+    int xa = ((x == 'a') || (x == 'A'));
+    int xc = ((x == 'c') || (x == 'C'));
+    int xg = ((x == 'g') || (x == 'G'));
+    int xt = ((x == 't') || (x == 'T'));
+
+    int ya = ((y == 'a') || (y == 'A'));
+    int yc = ((y == 'c') || (y == 'C'));
+    int yg = ((y == 'g') || (y == 'G'));
+    int yt = ((y == 't') || (y == 'T'));
+
+    return((xa && yg) ||
+           (xg && ya) ||
+           (xc && yt) ||
+           (xt && yc));
+  }; 
+
+  void   setParameters(int match, int imismatch, int vmismatch, double percenterror, int wordextallow) {
     _imismatch        = imismatch;
     _vmismatch        = vmismatch;
     _match            = match;
@@ -41,20 +63,6 @@ public:
     _vmatchdiff       = match - vmismatch;
     _percentError     = percenterror;
     _wordExtAllow     = wordextallow;
-
-    for (i=0; i<256; i++)
-     for (j=0; j<256; j++)
-       transition[i][j] = 0;
-
-    transition[(int)'A'][(int)'G'] = transition[(int)'a'][(int)'g'] = 1;
-    transition[(int)'a'][(int)'G'] = transition[(int)'A'][(int)'g'] = 1;
-    transition[(int)'G'][(int)'A'] = transition[(int)'g'][(int)'a'] = 1;
-    transition[(int)'g'][(int)'A'] = transition[(int)'G'][(int)'a'] = 1;
-    transition[(int)'C'][(int)'T'] = transition[(int)'c'][(int)'t'] = 1;
-    transition[(int)'c'][(int)'T'] = transition[(int)'C'][(int)'t'] = 1;
-    transition[(int)'T'][(int)'C'] = transition[(int)'t'][(int)'c'] = 1;
-    transition[(int)'t'][(int)'C'] = transition[(int)'T'][(int)'c'] = 1;
-
   };
 
   void   setExonSource(exonManager *em) {
@@ -169,12 +177,6 @@ private:
   int            _vmismatch;
   int            _imatchdiff;
   int            _vmatchdiff;
-
-  int            transition[256][256];
-
-#ifdef __APPLE__
-  int            _pad1;
-#endif
 
   double         _percentError;
   int            _wordExtAllow;
