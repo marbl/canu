@@ -222,13 +222,14 @@ palloc(size_t size) {
 
 
 void
-pdumppalloc(void) {
-  pallocnode *n = _palloc_stuff._nl;
+pdumppalloc(void *handle) {
+  pallocroot  *root = (pallocroot *)handle;
+  pallocnode *n = root->_nl;
   fprintf(stderr, "palloc dump\n");
-  fprintf(stderr, ""sizetFMT" bytes per block\n", _palloc_stuff._bs);
+  fprintf(stderr, ""sizetFMT" bytes per block\n", root->_bs);
   while (n != 0L) {
     fprintf(stderr, "%p: currentPosition: "sizetFMT" bytes used%s\n",
-            n, n->_cp, (n == _palloc_stuff._cn) ? ", current block" : "");
+            n, n->_cp, (n == root->_cn) ? ", current block" : "");
     n = n->_nx;
   }
 }

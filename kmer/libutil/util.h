@@ -254,7 +254,7 @@ size_t  pgetblocksize(void);
 //
 //  psetdebug() enables reporting of allocations.
 //
-void    pdumppalloc(void);
+void    pdumppalloc(void *handle);
 void    psetdebug(int on);
 
 
