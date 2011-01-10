@@ -98,8 +98,8 @@ sweatShop::sweatShop(void*(*loaderfcn)(void *G),
   _loaderQueueMax   = 10240;
   _loaderBatchSize  = 1;
   _workerBatchSize  = 1;
-  _writerQueueSize  = 128;
-  _writerQueueMax   = 1280;
+  _writerQueueSize  = 4096;
+  _writerQueueMax   = 10240;
 
   _numberOfWorkers  = 2;
 
@@ -248,8 +248,6 @@ sweatShop::worker(sweatShopWorker *workerData) {
     while (_numberOutput + _writerQueueSize < _numberComputed)
       nanosleep(&naptime, 0L);
 
-    //fprintf(stderr, "Worker %0x16p starting.\n", workerData);
-
     //  Grab the next state.  We don't grab it if it's the last in the
     //  queue (else we would fall off the end) UNLESS it really is the
     //  last one.
@@ -271,6 +269,13 @@ sweatShop::worker(sweatShopWorker *workerData) {
     err = pthread_mutex_unlock(&_stateMutex);
     if (err != 0)
       fprintf(stderr, "sweatShop::worler()--  Failed to lock mutex (%d).  Fail.\n", err), exit(1);
+
+
+    if (workerData->workerQueueLen == 0) {
+      //  No work, sleep a bit to prevent thrashing the mutex and resume.
+      nanosleep(&naptime, 0L);
+      continue;
+    }
 
     //  Execute
     //
@@ -312,7 +317,7 @@ sweatShop::writer(void) {
       //  Wait for a slow computation.
       struct timespec   naptime;
       naptime.tv_sec      = 0;
-      naptime.tv_nsec     = 50000000ULL;
+      naptime.tv_nsec     = 5000000ULL;
 
       //fprintf(stderr, "Writer waits for slow thread at "u64bitFMT".\n", _numberOutput);
       nanosleep(&naptime, 0L);
@@ -320,7 +325,7 @@ sweatShop::writer(void) {
       //  Wait for the input.
       struct timespec   naptime;
       naptime.tv_sec      = 0;
-      naptime.tv_nsec     = 50000000ULL;
+      naptime.tv_nsec     = 5000000ULL;
 
       //fprintf(stderr, "Writer waits for all threads at "u64bitFMT".\n", _numberOutput);
       nanosleep(&naptime, 0L);
@@ -423,9 +428,11 @@ sweatShop::run(void *user, bool beVerbose) {
   pthread_t           threadIDloader;
   pthread_t           threadIDwriter;
   pthread_t           threadIDstats;
+#if 0
   int                 threadSchedPolicy = 0;
   struct sched_param  threadSchedParamDef;
   struct sched_param  threadSchedParamMax;
+#endif
   int                 err = 0;
 
   _globalUserData = user;
@@ -464,6 +471,7 @@ sweatShop::run(void *user, bool beVerbose) {
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (joinable): %s.\n", strerror(err)), exit(1);
 
+#if 0
   err = pthread_attr_getschedparam(&threadAttr, &threadSchedParamDef);
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (get default param): %s.\n", strerror(err)), exit(1);
@@ -471,6 +479,7 @@ sweatShop::run(void *user, bool beVerbose) {
   err = pthread_attr_getschedparam(&threadAttr, &threadSchedParamMax);
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (get max param): %s.\n", strerror(err)), exit(1);
+#endif
 
   //  SCHED_RR needs root privs to run on FreeBSD.
   //
@@ -478,6 +487,7 @@ sweatShop::run(void *user, bool beVerbose) {
   //if (err)
   //  fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (sched policy): %s.\n", strerror(err)), exit(1);
 
+#if 0
   err = pthread_attr_getschedpolicy(&threadAttr, &threadSchedPolicy);
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to configure pthreads (sched policy): %s.\n", strerror(err)), exit(1);
@@ -492,6 +502,7 @@ sweatShop::run(void *user, bool beVerbose) {
   err = pthread_attr_setschedparam(&threadAttr, &threadSchedParamMax);
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to set loader priority: %s.\n", strerror(err)), exit(1);
+#endif
 
   err = pthread_create(&threadIDloader, &threadAttr, _sweatshop_loaderThread, this);
   if (err)
@@ -509,9 +520,11 @@ sweatShop::run(void *user, bool beVerbose) {
 
   //  Start the statistics and writer
 
+#if 0
   err = pthread_attr_setschedparam(&threadAttr, &threadSchedParamMax);
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to set status and writer priority: %s.\n", strerror(err)), exit(1);
+#endif
 
   err = pthread_create(&threadIDstats,  &threadAttr, _sweatshop_statusThread, this);
   if (err)
@@ -523,9 +536,11 @@ sweatShop::run(void *user, bool beVerbose) {
 
   //  And some labor
 
+#if 0
   err = pthread_attr_setschedparam(&threadAttr, &threadSchedParamDef);
   if (err)
     fprintf(stderr, "sweatShop::run()--  Failed to set worker priority: %s.\n", strerror(err)), exit(1);
+#endif
 
   for (u32bit i=0; i<_numberOfWorkers; i++) {
     err = pthread_create(&_workerData[i].threadID, &threadAttr, _sweatshop_workerThread, _workerData + i);
