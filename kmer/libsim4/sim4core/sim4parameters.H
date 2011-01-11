@@ -3,8 +3,9 @@
 
 #include "mspManager.H"
 #include "sim4defines.H"
-#include "ckalloc.H"
 #include "../sim4polish/sim4polish.H"
+
+#define SPACED_SEED_MAX_LEN  64
 
 class sim4parameters {
 public:
@@ -70,7 +71,8 @@ public:
   };
 
   void  setSpacedSeed(char *z) {
-    _spacedSeed = strsave(z);
+    assert(strlen(z) < SPACED_SEED_MAX_LEN);
+    strcpy(_spacedSeed, z);
     _isSetSpacedSeed = true;
   };
 
@@ -104,9 +106,9 @@ public:
          _spliceModel = SPLICE_GENESPLICER;
 
       if (_isSetSpacedSeed == false)
-         _spacedSeed = strsave(DEFAULT_SPACED_SEED);
-      _spacedSeedInt = strsave(DEFAULT_SPACED_SEED_INT);
-      _spacedSeedExt = strsave(DEFAULT_SPACED_SEED_EXT);
+        strcpy(_spacedSeed, DEFAULT_SPACED_SEED);
+      strcpy(_spacedSeedInt, DEFAULT_SPACED_SEED_INT);
+      strcpy(_spacedSeedExt, DEFAULT_SPACED_SEED_EXT);
 
     } else {
       _percentError =  0.20;
@@ -147,12 +149,6 @@ private:
   bool          _dontForceCanonicalSplicing;
   bool          _forceStrandPrediction;
 
-#ifdef __APPLE__
-  int           _pad1;
-  bool          _pad2;
-  bool          _pad3;
-#endif
-
   bool          _ignorePolyTails;
   double        _polyTailPercent;
 
@@ -170,9 +166,9 @@ private:
   int           _wordSizeInt;
   int           _wordSizeExt;
 
-  char         *_spacedSeed;
-  char         *_spacedSeedInt;
-  char         *_spacedSeedExt;
+  char          _spacedSeed[SPACED_SEED_MAX_LEN];
+  char          _spacedSeedInt[SPACED_SEED_MAX_LEN];
+  char          _spacedSeedExt[SPACED_SEED_MAX_LEN];
   bool          _isSetSpacedSeed;
 
   int           _spliceModel;
@@ -197,11 +193,6 @@ private:
   bool          _interspecies;
 
   sim4polishStyle _style;
-
-#ifdef __APPLE__
-  bool          _pad4[3];
-  u32bit        _pad5;
-#endif
 
   double        _percentError;
   int           _match;

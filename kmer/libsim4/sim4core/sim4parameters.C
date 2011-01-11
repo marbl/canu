@@ -34,9 +34,10 @@ sim4parameters::sim4parameters() {
 
     _slideIntrons               = true;
 
-    _spacedSeed                 = "111111111111";
-    _spacedSeedInt              = "11111111";
-    _spacedSeedExt              = "1111111111";
+    strcpy(_spacedSeed,    "111111111111");
+    strcpy(_spacedSeedInt, "11111111");
+    strcpy(_spacedSeedExt, "1111111111");
+
     _isSetSpacedSeed            = false;
 
     _spliceModel                = DEFAULT_SPLICE_MODEL;
@@ -51,5 +52,5 @@ sim4parameters::sim4parameters() {
 }
 
 sim4parameters::~sim4parameters() {
-    pthread_mutex_destroy(&_splice_mutex);
+  pthread_mutex_destroy(&_splice_mutex);
 }
