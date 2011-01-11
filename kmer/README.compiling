@@ -3,8 +3,9 @@ This guide tells how to compile and install the software.
 ----------------------------------------
 Quick Instructions:
 
-% sh configure
 % gmake install
+
+There!  That wasn't tough at all, was it!?
 
 The software is compiled in place, and installed into a directory named
 after the OS/architecture, for example, Linux-amd64.
@@ -50,9 +51,15 @@ Version 3.80 works, but needs to be patched.  See build/patches/README.
 ----------
 1)  Configuration
 
-% sh configure.sh
+This is optional.  It allows compilation for debuging  and profiliing.
+
+% sh configure.sh [debug | profile]
 
 Supplying 'debug' as an argument will build debuggable executables.
+
+Supplying 'profile' as an argument will build profiling executables.
+
+Not all architectures support profiling.
 
 If configure.sh reports that your architecture is unsupported, you'll
 have to port...or force it to use, say, linux with "configure.sh
@@ -67,16 +74,16 @@ in an unusual location, edit the script.
 
 % gmake
 
+gmake v 3.81 or higher is REQUIRED.
+
 If this crashes or returns
         gmake: *** No rule to make target `.all', needed by `all'.  Stop.
-then you unfortunately need to update your gmake to version 3.81, or
-you can patch version 3.80 using the directions in
-build/patches/README
+then you unfortunately need to update your gmake to version 3.81.
 
 ----------
 3)  Installation
 
-A 'make install' will copy all the executables into an OS/architecture
+'gmake install' will copy all the executables into an OS/architecture
 specific 'bin' directory, for example, into FreeBSD-amd64/bin or
 Linux-i686/bin.  ESTmapper and ATAC/A2Amapper are NOT installed by this
 process.
@@ -91,7 +98,7 @@ This will copy the ATAC/A2Amapper binaries to 'location/bin' and
 ----------
 4)  Other build targets
 
-A 'make clean' will remove the object files, leaving the binaries.
+'gmake clean' will remove the object files, leaving the binaries.
 
-A 'make real-clean' will remove all traces of a build, leaving you
-with only a few files more than a freshly checked out copy.
+'gmake real-clean' will remove all traces of a build, leaving you
+with (hopefully) a virgin copy of the software.
