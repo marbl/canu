@@ -1,5 +1,0 @@
-
-
-$/.TEX_PS := $/makefile.ps
-
-$/.DOC/ :=build-system/
