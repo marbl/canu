@@ -3,8 +3,6 @@
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
 LIBSEQ/     :=$(call MakePath,$/../libseq/)
-LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
-LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
 src  := $/cleanPolishes.C \
