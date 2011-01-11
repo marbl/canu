@@ -339,9 +339,13 @@ Sim4::sync_slide_intron(int in_w, Exon *first, Exon *last, int spl_model, sim4_s
     t0 = t1;
   }
 
-  Glist = (splice_t **)calloc(ni + 1, sizeof(splice_t *));
-  Clist = (splice_t **)calloc(ni + 1, sizeof(splice_t *));
-  oris  = (char *)calloc(ni + 1, sizeof(char));
+  Glist = (splice_t **)ckalloc((ni + 1) * sizeof(splice_t *));
+  Clist = (splice_t **)ckalloc((ni + 1) * sizeof(splice_t *));
+  oris  = (char *)     ckalloc((ni + 1) * sizeof(char));
+
+  memset(Glist, 0, (ni + 1) * sizeof(splice_t *));
+  memset(Clist, 0, (ni + 1) * sizeof(splice_t *));
+  memset(oris,  0, (ni + 1) * sizeof(char));
 
   if ((Glist == 0L) || (Clist == 0L) || (oris == 0L)) {
     fprintf(stderr, "Can't allocate memory for sync_slide_intron() with %d exons.\n", ni);

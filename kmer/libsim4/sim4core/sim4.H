@@ -21,7 +21,6 @@
 #include "sim4defines.H"
 #include "glimmerSplice.H"
 #include "sim4b1_s.H"
-#include "ckalloc.H"
 
 #include "../sim4polish/sim4polish.H"
 #include "../sim4polish/sim4polishList.H"
@@ -133,6 +132,8 @@ private:
 
   sim4parameters   *globalParams;
 
+  void             *_pallochandle;
+
   char       *_genSeq;
   char       *_estSeq;
 
@@ -194,6 +195,11 @@ private:
 
   //  Functions from Xtend1.c
   //
+  typedef  struct ValNode {
+    void           *data;
+    struct ValNode *next;
+  } *ValNodePtr;
+
   void free_coords(coords ***val, int size) { 
     for(int i=0; i<size; ++i) 
       ckfree(val[i]);
@@ -218,6 +224,8 @@ private:
     }
   };
 
+  void   Xextend_link_to_data_list(void *data, ValNodePtr *head, ValNodePtr *prev);
+  void   Xextend_ValNodeFreeData(ValNodePtr data_list);
   int    Xextend_bw(char *,char *,int,int,int,int,int *,int *);
   int    Xextend_fw(char *,char *,int,int,int,int,int *,int *);
 
@@ -536,6 +544,8 @@ public:
   Sim4(sim4parameters *p) {
     globalParams = p;
 
+    _pallochandle = pallochandle(64 * 1024);
+
     _genSeq = 0L;
     _estSeq = 0L;
     _genLen = 0;
@@ -562,7 +572,6 @@ public:
                               globalParams->_percentError,
                               wordExtensionAllowance);
     _mspManager.setExonSource(&_exonManager);
-
 
     //  wordSize      -- for finding initial seeds
     //  wordSizeInt -- for extending seeds between seeds
@@ -612,26 +621,32 @@ public:
     thashtable.nodesused = 0;
 
     _accurateSequences = false;
-
-
-    mem_init();
-
   };
 
   ~Sim4() {
+    //pdumppalloc(_pallochandle);
+    pfree2(_pallochandle);
+    pfreehandle(_pallochandle);
+
     delete [] phashtable.nextPos;
     delete [] phashtable.nodes;
 
     delete [] thashtable.nextPos;
     delete [] thashtable.nodes;
-
-    mem_end();
-
   };
 
   sim4polishList *run(sim4command *cmd);
 
+  void  *ckalloc(size_t size) {
+    return(palloc2(size, _pallochandle));
+  };
+
+  void   ckfree(void *) {
+  };
+
 };
+
+
 
 
 #endif  //  SIM4_H

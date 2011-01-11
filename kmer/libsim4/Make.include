@@ -10,7 +10,6 @@ s4csrc := $/sim4core/sim4command.C \
           $/sim4core/sim4string.C \
           $/sim4core/Xtend1.C \
           $/sim4core/align.C \
-          $/sim4core/ckalloc.C \
           $/sim4core/exon.H \
           $/sim4core/exon_cores.C \
           $/sim4core/extend.C \

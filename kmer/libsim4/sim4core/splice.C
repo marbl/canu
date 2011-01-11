@@ -8,9 +8,9 @@
 #define S4_SPAN              0
 /* #define MAX_SPAN            80   Now defined in sim4.H */ 
 
-static int   spl_encode[256] = { 0 };
-static int   rev_compl[256] = { 0 };
-static int   spliceInit = 0;
+static int   spl_encode[256] = {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0,  0,  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  3,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 0 };
+static int   rev_compl[256]  = { 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 71, 84, 84, 84, 67, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 65, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 71, 84, 84, 84, 67, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 65, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84, 84 };
+static int   spliceInit      = 0;
 
 int const gt[5][5] = {{0, 0, 0, 2, 0},
                       {0, 0, 0, 2, 0},
@@ -61,48 +61,40 @@ Sim4::loadGlimmerModel (char *train_dir)
 {
    char filename[1000];
 
-   if (!initGlimmerModel) { /* LLL is this still needed? Yes, since it is initialized in the class Sim4*/
-      sprintf(filename, "%s/%s", train_dir, Glimmer_posDonModelPath);
-      readModel (&donor_pos_model, filename);
+   if (initGlimmerModel)
+     return;
 
-      sprintf(filename, "%s/%s", train_dir, Glimmer_negDonModelPath);
-      readModel (&donor_neg_model, filename);
+   /* LLL is this still needed? Yes, since it is initialized in the class Sim4*/
 
-      sprintf(filename, "%s/%s", train_dir, Glimmer_posAccModelPath);
-      readModel (&acceptor_pos_model, filename);
+   sprintf(filename, "%s/%s", train_dir, Glimmer_posDonModelPath);
+   readModel (&donor_pos_model, filename);
 
-      sprintf(filename, "%s/%s", train_dir, Glimmer_negAccModelPath);
-      readModel (&acceptor_neg_model, filename);
+   sprintf(filename, "%s/%s", train_dir, Glimmer_negDonModelPath);
+   readModel (&donor_neg_model, filename);
 
-      donor_pos_model_len = getModelLength (donor_pos_model);
-      donor_neg_model_len = getModelLength (donor_neg_model);
-      acceptor_pos_model_len = getModelLength (acceptor_pos_model);
-      acceptor_neg_model_len = getModelLength (acceptor_neg_model);
+   sprintf(filename, "%s/%s", train_dir, Glimmer_posAccModelPath);
+   readModel (&acceptor_pos_model, filename);
 
-      if (donor_pos_model_len!=donor_neg_model_len)
-         fatal ("ERROR:  Positive and negative donor model lengths differ\n");
-      if (acceptor_pos_model_len!=acceptor_neg_model_len)
-         fatal ("ERROR:  Positive and negative acceptor model lengths differ\n");
+   sprintf(filename, "%s/%s", train_dir, Glimmer_negAccModelPath);
+   readModel (&acceptor_neg_model, filename);
 
-      initGlimmerModel = 1;
-   }
+   donor_pos_model_len = getModelLength (donor_pos_model);
+   donor_neg_model_len = getModelLength (donor_neg_model);
+   acceptor_pos_model_len = getModelLength (acceptor_pos_model);
+   acceptor_neg_model_len = getModelLength (acceptor_neg_model);
 
-   return;
+   if (donor_pos_model_len!=donor_neg_model_len)
+     fatal ("ERROR:  Positive and negative donor model lengths differ\n");
+   if (acceptor_pos_model_len!=acceptor_neg_model_len)
+     fatal ("ERROR:  Positive and negative acceptor model lengths differ\n");
 
+   initGlimmerModel = 1;
 }
 
 double
 Sim4::ScoreDonor_Glimmer (char *asegment, char *train_dir)
 {
    double  pos_score, neg_score, diff;
-
-#if 0
-   /* LLL moved to loadGlimmerModel */
-   if (!initGlimmerModel) {
-      loadGlimmerModel(train_dir);
-      initGlimmerModel = 1;
-   }
-#endif
 
    pos_score = Score_Window (donor_pos_model, asegment, GLIMMER_XSPAN);
    neg_score = Score_Window (donor_neg_model, asegment, GLIMMER_XSPAN);
@@ -117,14 +109,6 @@ double
 Sim4::ScoreAcceptor_Glimmer (char *asegment, char *train_dir)
 {
    double  pos_score, neg_score, diff;
-
-#if 0
-   // LLL moved to loadGlimmerModel */
-   if (!initGlimmerModel) {
-      loadGlimmerModel(train_dir);
-      initGlimmerModel = 1;
-   }
-#endif
 
    pos_score = Score_Window (acceptor_pos_model, asegment, GLIMMER_ISPAN);
    neg_score = Score_Window (acceptor_neg_model, asegment, GLIMMER_ISPAN);
@@ -155,31 +139,60 @@ Sim4::new_splice(char c, int xs, int xe, int ys, int ye, double score, splice_t 
 void
 Sim4::splice_init(int spl_model)
 {
-   int i;
+   if (spliceInit)
+     return;
+
+#if 0
+   //  Enable this to generate the spl_encode and rev_compl data
+   //  initialized at the top of this file.
+
+   for (int i=0; i<256; spl_encode[i]=0, rev_compl[i]='T', i++)
+     ;
+
+   spl_encode[(int)'A'] = spl_encode[(int)'a'] = 0;
+   spl_encode[(int)'C'] = spl_encode[(int)'c'] = 1;
+   spl_encode[(int)'G'] = spl_encode[(int)'g'] = 2;
+   spl_encode[(int)'T'] = spl_encode[(int)'t'] = 3;
+   
+   rev_compl[(int)'A'] = rev_compl[(int)'a'] = 'T';
+   rev_compl[(int)'C'] = rev_compl[(int)'c'] = 'G';
+   rev_compl[(int)'G'] = rev_compl[(int)'g'] = 'C';
+   rev_compl[(int)'T'] = rev_compl[(int)'t'] = 'A';
+
+   for (int i=0; i<256; i++)
+     fprintf(stdout, "%2d, ", spl_encode[i]);
+   fprintf(stdout, "\n");
+   for (int i=0; i<256; i++)
+     fprintf(stdout, "%2d, ", rev_compl[i]);
+   fprintf(stdout, "\n");
+
+   exit(1);
+#endif
+
+   if ((spl_model != SPLICE_GENESPLICER) &&
+       (spl_model != SPLICE_GLIMMER)) {
+     spliceInit = 1;
+     return;
+   }
+
+   //  This really needs to be moved out of the Sim4 class.  Sim4 should take as a parameter
+   //  the model to use, which should be initialized by the client -- before it starts doing
+   //  any sim4 work.
 
    pthread_mutex_lock(&(globalParams->_splice_mutex));
 
-   if (!spliceInit) {
+   if (spliceInit == 1)
+     //  We blocked on the mutex, and someone else loaded the data for us.
+     return;
 
-       for (i=0; i<256; spl_encode[i]=0, rev_compl[i]='T', i++);
+   if (spl_model == SPLICE_GENESPLICER)
+     loadGeneSplicerModel();
 
-       spl_encode[(int)'A'] = spl_encode[(int)'a'] = 0;
-       spl_encode[(int)'C'] = spl_encode[(int)'c'] = 1;
-       spl_encode[(int)'G'] = spl_encode[(int)'g'] = 2;
-       spl_encode[(int)'T'] = spl_encode[(int)'t'] = 3;
+   if (spl_model == SPLICE_GLIMMER)
+     loadGlimmerModel(Glimmer_TRAIN_DIR);
 
-       rev_compl[(int)'A'] = rev_compl[(int)'a'] = 'T';
-       rev_compl[(int)'C'] = rev_compl[(int)'c'] = 'G';
-       rev_compl[(int)'G'] = rev_compl[(int)'g'] = 'C';
-       rev_compl[(int)'T'] = rev_compl[(int)'t'] = 'A';
+   spliceInit = 1;
 
-       if (spl_model == SPLICE_GENESPLICER) 
-          loadGeneSplicerModel();
-       else if (spl_model == SPLICE_GLIMMER)
-          loadGlimmerModel(Glimmer_TRAIN_DIR);
-
-       spliceInit = 1;
-   }
    pthread_mutex_unlock(&(globalParams->_splice_mutex));
 }
 

@@ -128,28 +128,20 @@ private:
 
   //  For external seeding
   //
-  struct externalSeed {
+  class externalSeed {
+  public:
     u32bit    _GENposition;
     u32bit    _ESTposition;
     u32bit    _length;
-  };
 
-  int                   _externalSeedsCompare(const void *a, const void *b) {
-    const externalSeed *A = *((const externalSeed * const *)a);
-    const externalSeed *B = *((const externalSeed * const *)b);
-
-    if (A->_GENposition < B->_GENposition)
-      return(-1);
-    if (A->_GENposition > B->_GENposition)
-      return(1);
-    return(0);
+    bool       operator<(const externalSeed &that) const {
+      return(_GENposition < that._GENposition);
+    };
   };
 
   u32bit                _externalSeedsLen;
   u32bit                _externalSeedsMax;
   externalSeed         *_externalSeeds;
-
-  friend int sortExternalSeedsCompare(const void *, const void *);
 };
 
 

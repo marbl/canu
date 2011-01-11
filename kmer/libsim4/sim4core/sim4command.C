@@ -4,6 +4,9 @@
 
 #include "sim4command.H"
 
+#include <algorithm>
+
+using namespace std;
 
 
 //  Run a single EST against a genomic range
@@ -254,7 +257,7 @@ sim4command::addSeed(u32bit GENpos, u32bit ESTpos, u32bit length) {
 
   if (_externalSeedsLen >= _externalSeedsMax) {
     if (_externalSeedsMax == 0)
-      _externalSeedsMax = 8192;
+      _externalSeedsMax = 256;
     _externalSeedsMax *= 2;
     externalSeed *n = new externalSeed [_externalSeedsMax];
     memcpy(n, _externalSeeds, sizeof(externalSeed) * _externalSeedsLen);
@@ -272,20 +275,8 @@ sim4command::addSeed(u32bit GENpos, u32bit ESTpos, u32bit length) {
 }
 
 
-int
-sortExternalSeedsCompare(const void *a, const void *b) {
-  sim4command::externalSeed *A = ((sim4command::externalSeed *)a);
-  sim4command::externalSeed *B = ((sim4command::externalSeed *)b);
-
-  if (A->_GENposition < B->_GENposition)
-    return(-1);
-  if (A->_GENposition > B->_GENposition)
-    return(1);
-  return(0);
-}
 
 void
 sim4command::sortExternalSeeds(void) {
-  //fprintf(stderr, "Sorting "u32bitFMT" external seeds.\n", _externalSeedsLen);
-  qsort(_externalSeeds, _externalSeedsLen, sizeof(externalSeed), sortExternalSeedsCompare);
+  sort(_externalSeeds, _externalSeeds + _externalSeedsLen);
 }
