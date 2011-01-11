@@ -1,9 +1,9 @@
 # -*- makefile -*-
 
-LIBUTL/     :=$(call MakePath,$/../../libutil/)
-LIBBIO/     :=$(call MakePath,$/../../libbio/)
-LIBSEQ/     :=$(call MakePath,$/../../libseq/)
-LIBATAC/    :=$(call MakePath,$/../libatac/)
+LIBUTL/     :=$(realpath $/../../libutil/)/
+LIBBIO/     :=$(realpath $/../../libbio/)/
+LIBSEQ/     :=$(realpath $/../../libseq/)/
+LIBATAC/    :=$(realpath $/../libatac/)/
 
 $/.CXX_SRCS := $/lengthFilter.C
 $/.CXX_EXES := $/lengthFilter

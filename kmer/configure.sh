@@ -451,14 +451,6 @@ CFLAGS_PYTHON     := $CFLAGS_PYTHON
 WITHOUT           := $WITHOUT_ATAC
 EOF
 
-if [ ! -e ./makepath ] ; then
-  echo "include Make.compilers"       >> makepath-makefile
-  echo "makepath: build/makepath.c"   >> makepath-makefile
-  echo "	\${CC} \${CFLAGS} \${CLDFLAGS} -o ./makepath build/makepath.c \${CLIBS}" >> makepath-makefile
-  gmake -f makepath-makefile
-  rm -f makepath-makefile
-fi
-
 echo "Configured."
 
 #cat Make.compilers

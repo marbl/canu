@@ -39,51 +39,6 @@ else
  include ${MAKEFILE/}Make.compilers
 endif
 
-########################################
-###
-### a VERY experimental hack for pathnames
-###
-MAKECWD:=$(shell pwd)
-
-## define the function MakePath which, when invoked as
-# $(call MakePath,P)
-# returns the "shortest" (no redundant '..'s) relative path to
-# P from the current directory [directory of invocation].
-
-
-## find a makepath utility and get it compiled as C or scripted
-## as perl or BUST!
-
-ifneq ($(shell ${MAKEFILE/}makepath .),)
-
-  define MakePath
-$(shell ${MAKEFILE/}makepath $1 ${MAKECWD})
-  endef
-
-else
-
-  $(warning building makepath ${CC} ${CFLAGS} ${CLDFLAGS} -o ${MAKEFILE/}makepath ${MAKEFILE/}makepath.c ${CLIBS})
-
-  $(shell ${CC} ${CFLAGS} ${CLDFLAGS} -o ${MAKEFILE/}makepath ${MAKEFILE/}makepath.c ${CLIBS})
-
-  ifneq ($(shell ${MAKEFILE/}makepath .),)
-
-    define MakePath
-$(shell ${MAKEFILE/}makepath $1 ${MAKECWD})
-    endef
-
-  else
-
-    $(error Aborting this build due to lack of makepath support.)
-
-  endif
-
-endif
-###
-### end of experimental hack for pathnames
-###
-########################################
-
 
 ##### non-recursive make magic
 # all directories which have been included

@@ -1,7 +1,7 @@
 # -*- makefile -*-
 
-LIBUTL/ :=$(call MakePath,$/../../libutil/)
-LIBBIO/ :=$(call MakePath,$/../../libbio/)
+LIBUTL/ :=$(realpath $/../../libutil/))/
+LIBBIO/ :=$(realpath $/../../libbio/))/
 
 src     :=$/sim4polish.C \
           $/sim4polish-copy.C \

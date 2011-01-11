@@ -1,8 +1,8 @@
 # -*- makefile -*-
 
-LIBUTL/     :=$(call MakePath,$/../libutil/)
-LIBBIO/     :=$(call MakePath,$/../libbio/)
-LIBSEQ/     :=$(call MakePath,$/../libseq/)
+LIBUTL/     :=$(realpath $/../libutil/)/
+LIBBIO/     :=$(realpath $/../libbio/)/
+LIBSEQ/     :=$(realpath $/../libseq/)/
 
 $/.CXX_SRCS   := $/libmeryl.C
 $/.CXX_INCS   := $/libmeryl.H

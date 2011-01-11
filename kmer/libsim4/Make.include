@@ -1,9 +1,9 @@
 # -*- makefile -*-
 
-LIBUTL/ :=$(call MakePath,$/../libutil/)
-LIBBIO/ :=$(call MakePath,$/../libbio/)
-LIBSEQ/ :=$(call MakePath,$/../libseq/)
-LIBS4P/ :=$(call MakePath,$/sim4polish/)
+LIBUTL/ :=$(realpath $/../libutil/)/
+LIBBIO/ :=$(realpath $/../libbio/)/
+LIBSEQ/ :=$(realpath $/../libseq/)/
+LIBS4P/ :=$(realpath $/sim4polish/)/
 
 s4csrc := $/sim4core/sim4command.C \
           $/sim4core/sim4parameters.C \

@@ -1,11 +1,11 @@
 # -*- makefile -*-
 
-LIBUTL/     :=$(call MakePath,$/../libutil/)
-LIBBIO/     :=$(call MakePath,$/../libbio/)
-LIBSEQ/     :=$(call MakePath,$/../libseq/)
-LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
-LIBKMER/    :=$(call MakePath,$/../libkmer/)
-LIBSIM4/    :=$(call MakePath,$/../libsim4/)
+LIBUTL/     :=$(realpath $/../libutil/)/
+LIBBIO/     :=$(realpath $/../libbio/)/
+LIBSEQ/     :=$(realpath $/../libseq/)/
+LIBMERYL/   :=$(realpath $/../libmeryl/)/
+LIBKMER/    :=$(realpath $/../libkmer/)/
+LIBSIM4/    :=$(realpath $/../libsim4/)/
 
 src      := $/searchGENOME.C \
             $/configuration.C \

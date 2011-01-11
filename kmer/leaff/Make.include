@@ -1,8 +1,8 @@
 # -*- makefile -*-
 
-LIBUTL/     :=$(call MakePath,$/../libutil/)
-LIBBIO/     :=$(call MakePath,$/../libbio/)
-LIBSEQ/     :=$(call MakePath,$/../libseq/)
+LIBUTL/     :=$(realpath $/../libutil/)/
+LIBBIO/     :=$(realpath $/../libbio/)/
+LIBSEQ/     :=$(realpath $/../libseq/)/
 
 $/.CXX_SRCS  :=$/leaff.C $/blocks.C $/dups.C $/gc.C $/partition.C $/simseq.C $/stats.C
 $/.CXX_EXES  :=$/leaff

@@ -1,6 +1,6 @@
 # -*- makefile -*-
 
-LIBUTL/     :=$(call MakePath,$/../../libutil/)
+LIBUTL/     :=$(realpath $/../../libutil/)/
 MTDIR/      :=${LIBUTL/}mt19937ar/
 
 $/.C_EXES     := $/mt19937ar-test

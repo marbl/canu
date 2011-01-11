@@ -1,11 +1,11 @@
 # -*- makefile -*-
 
-LIBBIO/       :=$/libbio/
-LIBSEQ/       :=$/libseq/
-LIBKMER/      :=$/libkmer/
-LIBMERYL/     :=$/libmeryl/
-LIBSIM4/      :=$/libsim4/
-LIBUTL/       :=$/libutl/
+LIBBIO/       :=$(realpath $/libbio/)/
+LIBSEQ/       :=$(realpath $/libseq/)/
+LIBKMER/      :=$(realpath $/libkmer/)/
+LIBMERYL/     :=$(realpath $/libmeryl/)/
+LIBSIM4/      :=$(realpath $/libsim4/)/
+LIBUTL/       :=$(realpath $/libutl/)/
 
 $(eval $(call Include,$/ESTmapper/))
 

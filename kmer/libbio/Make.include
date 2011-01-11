@@ -1,7 +1,7 @@
 # -*- makefile -*-
 
-LIBUTL/     :=$(call MakePath,$/../libutil/)
-LIBSEQ/     :=$(call MakePath,$/../libseq/)
+LIBUTL/     :=$(realpath $/../libutil/)/
+LIBSEQ/     :=$(realpath $/../libseq/)/
 
 src    := $/alphabet.c \
           $/alphabet.h \

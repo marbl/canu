@@ -1,9 +1,9 @@
 # -*- makefile -*-
 
-LIBUTL/     :=$(call MakePath,$/../libutil/)
-LIBBIO/     :=$(call MakePath,$/../libbio/)
-LIBSEQ/     :=$(call MakePath,$/../libseq/)
-LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
+LIBUTL/     :=$(realpath $/../libutil/)/
+LIBBIO/     :=$(realpath $/../libbio/)/
+LIBSEQ/     :=$(realpath $/../libseq/)/
+LIBMERYL/   :=$(realpath $/../libmeryl/)/
 
 src := $/existDB-create-from-fasta.C \
        $/existDB-create-from-meryl.C \

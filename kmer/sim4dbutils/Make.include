@@ -1,9 +1,9 @@
 # -*- makefile -*-
 
-LIBUTL/     :=$(call MakePath,$/../libutil/)
-LIBBIO/     :=$(call MakePath,$/../libbio/)
-LIBSEQ/     :=$(call MakePath,$/../libseq/)
-LIBSIM4/    :=$(call MakePath,$/../libsim4/)
+LIBUTL/     :=$(realpath $/../libutil/)/
+LIBBIO/     :=$(realpath $/../libbio/)/
+LIBSEQ/     :=$(realpath $/../libseq/)/
+LIBSIM4/    :=$(realpath $/../libsim4/)/
 
 src  := $/cleanPolishes.C \
         $/fixPolishesIID.C \
