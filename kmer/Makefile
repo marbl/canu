@@ -8,36 +8,13 @@
 
 default:   all
 
-# kind of useful for debugging
-# this target just prints out the directories traversed,
-# the non-recursive includes found and a bunch of targets
-debug:
-	@echo DIRS ${//}
-	@echo RECS ${//-RECURSIVE}
-	@echo ALL_C_EXES ${ALL_C_EXES}
-	@echo ALL_C_LIBS ${ALL_C_LIBS}
-	@echo ALL_CXX_EXES ${ALL_CXX_EXES}
-	@echo ALL_CXX_LIBS ${ALL_CXX_LIBS}
-	@echo ALL_CXX_SHLIBS ${ALL_CXX_SHLIBS}
-	@echo INSTALL ${INSTALL/}
+MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
 
-## loading Make.compilers
-# Compiler information and options.
-# Always get it from the same directory as this makefile.
-# Note: I should really change the name of Make.compilers to
-#       Makeconf or Make.config or something like that.
-ifndef MAKEFILE/
-  MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
-endif
-ifndef MAKEFILE/
-  MAKEFILE/ := ./
+ifneq ($(shell ls -d ${MAKEFILE/}/Make.compilers 2> /dev/null), ${MAKEFILE/}/Make.compilers)
+  MAKECOMPILERSNOTHING := $(shell ${MAKEFILE/}configure.sh)
 endif
 
-ifdef MAKE_COMPILERS
- include ${MAKE_COMPILERS}
-else
- include ${MAKEFILE/}Make.compilers
-endif
+include ${MAKEFILE/}Make.compilers
 
 
 ##### non-recursive make magic

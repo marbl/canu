@@ -27,4 +27,4 @@ $(eval $(call Include,${LIBBIO/}))
 $(eval $(call Include,${LIBSEQ/}))
 $(eval $(call Include,${LIBUTL/}))
 
-$/.REAL-CLEAN     := $/Make.compilers $/Make.rules $/Makefile $/makepath $/makepath.c
+$/.REAL-CLEAN     := $/Make.compilers
