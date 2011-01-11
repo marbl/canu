@@ -4,6 +4,7 @@ LIBUTL/     :=$(realpath $/../../libutil/)/
 LIBBIO/     :=$(realpath $/../../libbio/)/
 LIBSEQ/     :=$(realpath $/../../libseq/)/
 LIBATAC/    :=$(realpath $/../libatac/)/
+THIS/       :=$(realpath $/)/
 
 $/.CXX_SRCS := $/overlap.C $/overlap-sort.C $/overlap-printAnno.C $/overlap-find.C
 $/.CXX_EXES := $/overlap
@@ -25,10 +26,10 @@ $/overlap:   $/overlap.o \
 
 $/overlap-process1.o: CXXFLAGS+=-DINDEX=1 -DNAME=process1 -DPOS1=pos1 -DPOS2=pos2 -DLEN2=len2
 $/overlap-process1.C: $/overlap-process.C
-	ln -f ${/}overlap-process.C ${/}overlap-process1.C
+	ln -f ${THIS/}overlap-process.C ${THIS/}overlap-process1.C
 
 $/overlap-process2.o: CXXFLAGS+=-DINDEX=2 -DNAME=process2 -DPOS1=pos2 -DPOS2=pos1 -DLEN2=len1
 $/overlap-process2.C: $/overlap-process.C
-	ln -f ${/}overlap-process.C ${/}overlap-process2.C
+	ln -f ${THIS/}overlap-process.C ${THIS/}overlap-process2.C
 
 $(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBUTL/})
