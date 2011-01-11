@@ -1,0 +1,210 @@
+LEAFF, leaff - sequence library utilities and applications
+
+Described in the publication:
+
+B. Walenz, L. Florea (2010) Sim4db and leaff: Utilities for fast batch
+spliced alignment and sequence indexing, submitted.
+
+
+Copyright (C) 2002, and GNU GPL,       PE Corporation (NY) through the Celera Genomics Group
+Copyright (C) 2003-2004, and GNU GPL,  Applied Biosystems
+Copyright (C) 2004-2010, and GNU GPL,  Brian Walenz
+
+Includes portions copyright from:
+
+kmer  - Copyright (C) 2004-2010, and GNU GPL, by Brian Walenz
+
+=======================================================================
+
+Content:
+I.   What is leaff?
+II.  Guide to using leaff
+III. Examples
+IV.  Terms of use
+V.   Support
+
+I.   What is leaff?
+
+LEAFF (Let's Extract Anything From Fasta) is a utility program for
+working with multi-fasta files. In addition to providing random access
+to the base level, it includes several analysis functions.
+
+II.  Guide to using leaff
+
+leaff [-f fasta-file] [options]
+
+SOURCE FILES
+   -f file:     use sequence in 'file' (-F is also allowed for historical reasons)
+   -A file:     read actions from 'file'
+
+SOURCE FILE EXAMINATION
+   -d:          print the number of sequences in the fasta
+   -i name:     print an index, labelling the source 'name'
+
+OUTPUT OPTIONS
+   -6 <#>:      insert a newline every 60 letters
+                  (if the next arg is a number, newlines are inserted every
+                  n letters, e.g., -6 80.  Disable line breaks with -6 0,
+                  or just don't use -6!)
+   -e beg end:  Print only the bases from position 'beg' to position 'end'
+                  (space based, relative to the FORWARD sequence!)  If
+                  beg == end, then the entire sequence is printed.  It is an
+                  error to specify beg > end, or beg > len, or end > len.
+   -ends n      Print n bases from each end of the sequence.  One input
+                  sequence generates two output sequences, with '_5' or '_3'
+                  appended to the ID.  If 2n >= length of the sequence, the
+                  sequence itself is printed, no ends are extracted (they
+                  overlap).
+   -C:          complement the sequences
+   -H:          DON'T print the defline
+   -h:          Use the next word as the defline ("-H -H" will reset to the
+                  original defline
+   -R:          reverse the sequences
+   -u:          uppercase all bases
+
+SEQUENCE SELECTION
+   -G n s l:    print n randomly generated sequences, 0 < s <= length <= l
+   -L s l:      print all sequences such that s <= length < l
+   -N l h:      print all sequences such that l <= % N composition < h
+                  (NOTE 0.0 <= l < h < 100.0)
+                  (NOTE that you cannot print sequences with 100% N
+                   This is a useful bug).
+   -q file:     print sequences from the seqid list in 'file'
+   -r num:      print 'num' randomly picked sequences
+   -s seqid:    print the single sequence 'seqid'
+   -S f l:      print all the sequences from ID 'f' to 'l' (inclusive)
+   -W:          print all sequences (do the whole file)
+
+LONGER HELP
+   -help analysis
+   -help examples
+
+ANALYSIS FUNCTIONS
+   --findduplicates a.fasta
+                Reports sequences that are present more than once.  Output
+                is a list of pairs of deflines, separated by a newline.
+
+   --mapduplicates a.fasta b.fasta
+                Builds a map of IIDs from a.fasta and b.fasta that have
+                identical sequences.  Format is "IIDa <-> IIDb"
+
+   --md5 a.fasta:
+                Don't print the sequence, but print the md5 checksum
+                (of the entire sequence) followed by the entire defline.
+
+   --partition     prefix [ n[gmk]bp | n ] a.fasta
+   --partitionmap         [ n[gmk]bp | n ] a.fasta
+                Partition the sequences into roughly equal size pieces of
+                size nbp, nkbp, nmbp or ngbp; or into n roughly equal sized
+                parititions.  Sequences larger that the partition size are
+                in a partition by themself.  --partitionmap writes a
+                description of the partition to stdout; --partiton creates
+                a fasta file 'prefix-###.fasta' for each partition.
+                Example: -F some.fasta --partition parts 130mbp
+                         -F some.fasta --partition parts 16
+
+   --segment prefix n a.fasta
+                Splits the sequences into n files, prefix-###.fasta.
+                Sequences are not reordered; the first n sequences are in
+                the first file, the next n in the second file, etc.
+
+   --gccontent a.fasta
+                Reports the GC content over a sliding window of
+                3, 5, 11, 51, 101, 201, 501, 1001, 2001 bp.
+
+   --testindex a.fasta
+                Test the index of 'file'.  If index is up-to-date, leaff
+                exits successfully, else, leaff exits with code 1.  If an
+                index file is supplied, that one is tested, otherwise, the
+                default index file name is used.
+
+   --dumpblocks a.fasta
+                Generates a list of the blocks of N and non-N.  Output
+                format is 'base seq# beg end len'.  'N 84 483 485 2' means
+                that a block of 2 N's starts at space-based position 483
+                in sequence ordinal 84.  A '.' is the end of sequence
+                marker.
+
+   --errors L N C P a.fasta
+                For every sequence in the input file, generate new
+                sequences including simulated sequencing errors.
+                L -- length of the new sequence.  If zero, the length
+                     of the original sequence will be used.
+                N -- number of subsequences to generate.  If L=0, all
+                     subsequences will be the same, and you should use
+                     C instead.
+                C -- number of copies to generate.  Each of the N
+                     subsequences will have C copies, each with different
+                     errors.
+                P -- probability of an error.
+
+                HINT: to simulate ESTs from genes, use L=500, N=10, C=10
+                         -- make C=10 sequencer runs of N=10 EST sequences
+                            of length 500bp each.
+                      to simulate mRNA from genes, use L=0, N=10, C=10
+                      to simulate reads from genomes, use L=800, N=10, C=1
+                         -- of course, N= should be increased to give the
+                            appropriate depth of coverage
+
+   --stats a.fasta
+                Reports size statistics; number, N50, sum, largest.
+
+   --seqstore out.seqStore
+                Converts the input file (-f) to a seqStore file (for instance,
+                for use with the Celera assembler or sim4db).
+
+
+NOTES:
+1. Please note that options are ORDER DEPENDENT. Sequences are printed
+   whenever a SEQUENCE SELECTION option occurs on the command line. OUTPUT
+   OPTIONS are not reset when a sequence is printed.
+2. SEQUENCES are numbered starting at ZERO, not one! 
+
+
+III. Examples
+
+1. Print the first 10 bases of the fourth sequence in file 'genes': 
+	leaff -f genes -e 0 10 -s 3
+
+2. Print the first 10 bases of the fourth and fifth sequences: 
+	leaff -f genes -e 0 10 -s 3 -s 4
+
+3.  Print the fourth and fifth sequences reverse complemented, and the sixth
+    sequence forward. The second set of -R -C toggle off reverse-complement: 
+	leaff -f genes -R -C -s 3 -s 4 -R -C -s 5
+
+4.  Convert file 'genes' to a seqStore 'genes.seqStore'. 
+	leaff -f genes --seqstore genes.seqStore
+
+
+IV. Terms of use
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received (LICENSE.txt) a copy of the GNU General
+Public License along with this program; if not, you can obtain one from
+http://www.gnu.org/licenses/gpl.txt or by writing to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+V.  Support 
+
+Brian Walenz (brianwalenz@users.sourceforge.net).  Please check the
+parent project's Sourceforge page at http://kmer.sourceforge.net for
+details and updates.
+
+
+Last updated: Nov 16, 2010
+License for more details.
+
+You should have received (LICENSE.txt) a copy of the GNU General
+Public License along with this program; if not, you can obtain one from
+http://www.gnu.org/licenses/gp

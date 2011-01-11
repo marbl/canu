@@ -1,0 +1,316 @@
+sim4db - batch spliced alignment of cDNA (EST, mRNA) sequences to a
+         target genome, of the same or a related species
+
+Described in the publication: 
+
+B. Walenz, L. Florea (2010) Sim4db and leaff: Utilities for fast batch
+spliced alignment and sequence indexing, submitted.
+
+
+Copyright (C) 2002, and GNU GPL,       PE Corporation (NY) through the Celera Genomics Group
+Copyright (C) 2003-2004, and GNU GPL,  Applied Biosystems
+Copyright (C) 2004-2009, and GNU GPL,  Brian Walenz
+Copyright (C) 2010, and GNU GPL,       Brian Walenz, Liliana Florea
+
+Includes portions copyright from:
+
+kmer       - Copyright (C) 2005-2010, and GNU GPL, by Brian Walenz
+sim4       - Copyright (C) 1998-2003, and GNU GPL, by Liliana Florea
+sim4cc     - Copyright (C) 2009-2010, and GNU GPL, by Liliana Florea and Leming Zhou
+GeneSplicer- Copyright (C) 2001-2009, and GNU GPL, by Mihaela Pertea 
+Glimmer    - Copyright (C) 1998-2009, and GNU GPL, by Arthur Delcher
+
+=======================================================================
+
+Content:
+I.   What is sim4db?
+II.  Command line usage
+III. Input/Output
+IV.  Affiliated tools
+V.   Terms of use
+VI.  Support
+
+I.   What is sim4db?
+
+Sim4db performs fast batch alignment of large cDNA (EST, mRNA) sequence
+sets to a set of eukaryotic genomic regions. It uses the sim4 and sim4cc
+algorithms to determine the alignments, but incorporates a fast sequence
+indexing and retrieval mechanism, implemented in the sister package
+'leaff', to speedily process large volumes of sequences.
+
+While sim4db produces alignments in the same way as sim4 or sim4cc, it
+has additional features to make it more amenable for use with whole-genome
+annotation pipelines. A script file can be used to group pairings between
+cDNAs and their corresponding genomic regions, to be aligned as one run
+and using the same set of parameters. Sim4db also optionally reports more
+than one alignment for the same cDNA within a genomic region, as long
+as they meet user-defined criteria such as minimum length, percentage
+sequence identity or coverage. This feature is instrumental in finding
+all alignments of a gene family at one locus. Lastly, the output is
+presented either as custom sim4db alignments or as GFF3 gene features.
+
+II. Command line usage
+
+A simple command line invocation:
+
+sim4db -genomic g.fasta -cdna c.fasta -scr script -output o.sim4db
+
+where:
+   - 'c.fasta' and 'g.fasta' are the multi-fasta cDNA and genome sequence files
+   - 'script' is a script file indicating individual alignments to be computed
+   - output in sim4db format will be sent to the file 'o.sim4db' ('-' for standard output)
+
+
+A more complex invocation:
+
+sim4db -genomic g.fasta -cdna c.fasta -output o.sim4db [options]
+
+Salient options:
+       -cdna         use these cDNA sequences (multi-fasta file)
+       -genomic      use these genomic sequences (multi-fasta file)
+       -script       use this script file
+       -pairwise     sequentially align pairs of sequences
+
+                     If none of the '-script' and '-pairwise' options
+                     is specified, sim4db performs all-against-all
+                     alignments between pairs of cDNA and genomic sequences.
+
+       -output       write output to this file
+       -gff3         report output in GFF3 format
+       -interspecies use sim4cc for inter-species alignments (default sim4)
+
+Filter options:
+       -mincoverage  iteratively find all exon models with the specified
+                     minimum PERCENT COVERAGE
+       -minidentity  iteratively find all exon models with the specified
+                     minimum PERCENT EXON IDENTITY
+       -minlength    iteratively find all exon models with the specified
+                     minimum ABSOLUTE COVERAGE (number of bp matched)
+                     (default 0)
+       -alwaysreport always report <number> exon models, even if they
+                     are below the quality thresholds
+
+         If no mincoverage or minidentity or minlength is given, only
+         the best exon model is returned. This is the DEFAULT operation.
+
+         You will probably want to specify ALL THREE of mincoverage,
+         minidentity and minlength!  Don't assume the default values
+         are what you want!
+
+         You will DEFINITELY want to specify at least one of mincoverage,
+         minidentity and minlength with alwaysreport!  If you don't,
+         mincoverage will be set to 90 and minidentity to 95 -- to reduce
+         the number of spurious matches when a good match is found.
+
+Auxiliary options: 
+       -nodeflines   don't include the defline in the sim4db output
+       -alignments   print alignments
+
+       -polytails    DON'T mask poly-A and poly-T tails
+       -cut          trim marginal exons if A/T % > x (poly-AT tails)
+
+       -noncanonical don't force canonical splice sites
+       -splicemodel  use the following splice model: 0 - original sim4;
+                     1 - GeneSplicer; 2 - Glimmer;  options 1 and 2 are
+                     only available with '-interspecies'.
+                     Default for sim4 is 0, and for sim4cc is 1.
+                      
+       -forcestrand  Force the strand prediction to always be
+                     one of 'forward' or 'reverse'
+
+Execution options:
+       -threads      Use n threads.
+       -touch        create this file when the program finishes execution
+
+Debugging options:
+       -v            print status to stderr while running
+       -V            print script lines (stderr) as they are being processed
+
+Developer options:
+       -Z            set the spaced seed pattern
+       -H            set the relink weight factor (H=1000 recommended for mRNAs)
+       -K            set the first MSP threshold
+       -C            set the second MSP threshold
+       -Ma           set the limit of the number of MSPs allowed
+       -Mp           same, as percentage of bases in cDNA
+                     NOTE:  If used, both -Ma and -Mp must be specified!
+
+
+III. Input/Output
+
+For a typical run, sim4db takes as input two multi-fasta files containing
+the cDNAs and the genome, respectively, and optionally a script describing
+a set of pairings among the sequences.  Alignments are determined using
+the program sim4 (default) for same-species comparisons, or sim4cc when
+the '-interspecies' option is set. The output is reported in the compact
+sim4db format (default), or in GFF3 format with the '-gff3' option.
+Utilities for filtering, merging, sorting and processing polishes in
+these formats, and for converting between the two formats (lossy),
+are included with the package and described in section IV below.
+
+A. The input script file format
+ 
+[-f|-r] -e ESTidx -D GENidx GENlo GENhi
+where:
+cDNAidx        internal index of the cDNA in the input cDNA fasta file
+               (0..#cDNAseqs-1)
+GENidx         internal index of the genomic sequence in the input genome
+               file (0..#GENseqs-1)
+-f             use the cDNA sequence as is
+-r             use the reverse complement of the cDNA sequence
+GENlo, GENhi   begin and end coordinates of the target genomic region;
+               coordinates are 0-based
+
+
+Example:
+-f -e 61728 -D 0 2370482 2375224
+-r -e 61730 -D 0 6723331 6757701
+-r -e 61734 -D 1 8428517 8432981
+-f -e 61736 -D 3 4600260 4637694
+etc.
+
+For best performance, the script should be sorted by the genomic
+sequence index.
+
+
+B. The sim4db output format
+
+sim4begin
+cDNAidx[cDNAlen-pA-pT] GENidx[GENoff-GENlen] <M-N-O-P-S>
+edef=cDNA defline
+ddef=genomic defline
+cDNAbgn1-cDNAend1 (GENbgn1-GENend1) <M-N-P> intronOri
+cDNAbgn2-cDNAend2 (GENbgn2-GENend2) <M-N-P> intronOri
+...
+cDNAbgnn-cDNAendn (GENbgnn-GENendn) <M-N-P> intronOri
+cDNA alignment sequence for exon #1
+genomic alignment sequence for exon #1
+cDNA alignment sequence for exon #2
+genomic alignment sequence for exon #2
+...
+cDNA alignment sequence for exon #n
+genomic alignment sequence for exon #n
+sim4end
+
+where:
+cDNAidx     internal index of the cDNA in the input cDNA fasta file
+cDNAlen     length of the cDNA sequence
+pA(T)wi     length of polyA(T) tail detected and masked
+GENidx      internal index of the genomic sequence in the genome fasta file
+GENoff      offset to the beginning of the genomic region containing the signal
+GENlen      length of the genomic region containing the signal
+M           number of nucleotide matches in the alignment
+N           number of matching N's in the alignment
+P           percent sequence identity of the alignment
+O           match orientation:
+
+    * forward    - the cDNA sequence aligns to the genomic sequence directly
+    * complement - the reverse complement of the cDNA sequence matches
+                   the genomic sequence; this is the equivalent of the
+                   sim4 '(complement)' output line
+
+S           strand predicted based on the splice signals and alignment quality:
+
+    * forward    - predicted forward strand
+    * reverse    - predicted reverse strand
+    * unknown    - strand unknown (because of low alignment quality,
+                   single exon match, or weak splice signals)
+
+cDNAbgni    start position of exon i in the cDNA sequence
+cDNAendi    end position of exon i in the cDNA sequence
+GENbgni     start position of exon i in the genomic sequence (interval GENlo-GENhi)
+GENendi     end position of exon i in the genomic sequence (interval GENlo-GENhi)
+M           number of nucleotide matches in the alignment
+N           number of matching N's in the alignment
+P           percent sequence identity of the alignment
+intronOri   predicted orientation of the intron:
+
+    * -> forward (i.e., GT-AG-like splice signals)
+    * <- reverse (i.e., CT-AC-like splice signals)
+    * -- ambiguous
+    * == gap (unaligned portion) in the cDNA sequence
+
+Exon coordinates are nucleotide based, starting from 1. Genomic
+coordinates are always in the original sequence, while the cDNA
+coordinates will refer to positions in the reverse complement of the
+sequence if the match orientation is indicated as 'complement'.
+
+Lowercase letters in the alignment lines indicate positions with
+matching nucleotides, '-' indicate gaps in the corresponding sequence,
+and uppercase letters mark either substitutions, or gaps in the other
+sequence. Alignments are OPTIONAL. 
+
+Example:
+
+sim4begin
+61728[685-0-21] 0[2370482-4742] <651-0-97-forward-reverse>
+edef=gb|CA807305 D. melanogaster cDNA 3' similar to CT12127, mRNA sequence
+ddef=arm_2L
+22-337 (2372455-2372770) <313-0-99> <-
+338-584 (2372830-2373076) <238-0-95> <-
+585-685 (2373134-2373234) <100-0-99>
+gtaaaaaTttctgtttatta...gggcgaccagaagtcaatcag
+gtaaaaaGttctgtttatta...gggcgaccagaagtcaatcag
+ggtaacttgtccttGggtgc...ccacaccgGctccca-ttcgcgtAtc
+ggtaacttgtccttTggtgc...ccacaccgCctcccaGttcgcgtTtc
+tgcaagcggtcgacatgagg...cttaaAgcgctggta
+tgcaagcggtcgacatgagg...cttaaCgcgctggta
+sim4end
+
+C. The GFF3 output format
+
+The same example as before:
+
+0:arm_2L	sim4db	mRNA	2372455	2373234	97	-	.	ID=sim4db10;Name=61728:gb|CA807305;Target=61728:gb|CA807305 22 685 +;pA=0;pT=21;genRegion=2370482-2375224
+0:arm_2L	sim4db	exon	2372455	2372770	99	-	.	Parent=sim4db10;Target=61728:gb|CA807305 22 337 +;Gap=M316;nMatches=313;intron=<-
+0:arm_2L	sim4db	exon	2372830	2373076	95	-	.	Parent=sim4db10;Target=61728:gb|CA807305 338 584 +;Gap=M74 D1 M2 I1 M160 D1 M10;nMatches=238;intron=<-
+0:arm_2L	sim4db	exon	2373134	2373234	99	-	.	Parent=sim4db10;Target=61728:gb|CA807305 585 685 +;Gap=M101;nMatches=100
+
+(Columns are tab-separated.)
+
+IV. Affiliated tools
+
+The 'sim4dbutils' package contains a range of utilities to work with
+sim4db-generated alignment files, of particular note being:
+
+convertPolishes - convert between the two formats. With GFF3->sim4db
+                  conversion, alignments will be lost.
+filterPolishes  - filter alignments based on minimum percentage sequence
+                  identity, coverage and length.
+mergePolishes   - merge alignments from multiple files (also concatenates
+                  the cDNA fasta files)
+sortPolishes    - sort alignments by cDNA or genomic sequence index,
+                  using a limited amount of memory if needed.
+
+
+V. Terms of use
+
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your
+option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received (LICENSE.txt) a copy of the GNU General
+Public License along with this program; if not, you can obtain one from
+http://www.gnu.org/licenses/gpl.txt or by writing to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+
+VI. Support 
+
+Brian Walenz (high-throughput; brianwalenz@users.sourceforge.net) and
+Liliana Florea (sim4/sim4cc; florea@users.sourceforge.net). Please
+check the parent project's Sourceforge page at http://kmer.sourceforge.net
+for details and updates.
+
+
+Last updated: Nov 16, 2010
+ GNU General
+Public License along with this program; if not, you can obtain one from
+http://www.gnu.org/licenses/gpl.txt or by writing to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 

@@ -1,5 +1,25 @@
+This guide tells how to compile and install the software.
 
-How to build:
+----------------------------------------
+Quick Instructions:
+
+% sh configure
+% gmake install
+
+The software is compiled in place, and installed into a directory named
+after the OS/architecture, for example, Linux-amd64.
+
+ESTmapper and A2Amapper are NOT installed by this process; see section 3
+below.
+
+----------------------------------------
+Detailed Instructions:
+
+0)  Required Software
+1)  Configuration
+2)  Compilation
+3)  Installation
+4)  Other build targets
 
 ----------
 0)  Required software
@@ -12,7 +32,7 @@ python and gmake.
 Python (http://www.python.org/) is a freely available programming
 language.  It is frequently installed by many OS installations.
 
-Version 2.4 is recommended.
+Version 2.4+ is recommended.
 Version 2.3 has seen limited testing and seems to work.
 Version 2.2 might work, but is unsupported.
 
@@ -28,7 +48,7 @@ Version 3.81 is strongly recommended.
 Version 3.80 works, but needs to be patched.  See build/patches/README.
 
 ----------
-1)  Create machine dependent configuration files.
+1)  Configuration
 
 % sh configure.sh
 
@@ -43,7 +63,7 @@ to install python, version 2.3 or 2.4.  If you have pyhton installed
 in an unusual location, edit the script.
 
 ----------
-2)  Build
+2)  Compilation
 
 % gmake
 
@@ -54,11 +74,12 @@ you can patch version 3.80 using the directions in
 build/patches/README
 
 ----------
-3)  Install things, other build targets
+3)  Installation
 
-A 'make install' will copy all the executables into an architecture
-specific 'bin' directory, for example, into freebsd/bin or linux/bin.
-ESTmapper and ATAC/A2Amapper are NOT installed by this process.
+A 'make install' will copy all the executables into an OS/architecture
+specific 'bin' directory, for example, into FreeBSD-amd64/bin or
+Linux-i686/bin.  ESTmapper and ATAC/A2Amapper are NOT installed by this
+process.
 
 To install ESTmapper, 'cd ESTmapper && sh install.sh location'.  This
 will copy the ESTmapper binaries to 'location/bin' and 'location/lib'.
@@ -74,7 +95,3 @@ A 'make clean' will remove the object files, leaving the binaries.
 
 A 'make real-clean' will remove all traces of a build, leaving you
 with only a few files more than a freshly checked out copy.
-
-
-bpw
-Wed Jan  3 03:32:35 EST 2007
