@@ -1,34 +1,29 @@
-\documentclass[letterpaper]{article}
 
-\usepackage{fullpage}
-
-\begin{document}
-
-\section{Overview of the proposed new IR build system}
+== Overview of the proposed new IR build system ==
 
 The proposed buld system for IR projects is defined by the set of
-files under \verb+cds/IR/build+.  These files consist of a \verb+Makefile+
+files under <tt>cds/IR/build</tt>.  These files consist of a <tt>Makefile</tt>
 and several ancillary files which provide platform specific and file
 type specific definitions and rules.
 
-The build itself is always directed through the one \verb+Makefile+ in
-the build directory.  What I describe hereafter as {\em the build} is
-really \verb+gmake+ is invoked with this \verb+Makefile+, either from
-within the \verb+cds/IR/build+ directory or referrenced explicitly
-with a \verb+-f+ option to \verb+gmake+.
+The build itself is always directed through the one <tt>Makefile</tt> in
+the build directory.  What I describe hereafter as '''the build''' is
+really <tt>gmake</tt> is invoked with this <tt>Makefile</tt>, either from
+within the <tt>cds/IR/build</tt> directory or referrenced explicitly
+with a <tt>-f</tt> option to <tt>gmake</tt>.
 
 When the build is started, the ancillary files are examined to
 establish definitions, rules, and to provide a naming utility.  The
-build then looks for a file named \verb+Make.include+ in the directory
-of invocation.  This \verb+Make.include+ files should contain build
+build then looks for a file named <tt>Make.include</tt> in the directory
+of invocation.  This <tt>Make.include</tt> files should contain build
 information for files pertinent to its directory and possibly the
-inclusions of other \verb+Make.include+ files in lower directories.
+inclusions of other <tt>Make.include</tt> files in lower directories.
 It is only after the tree (and it better be a tree or something very
-bad will happen) of \verb+Make.include+'s is read that any building
+bad will happen) of <tt>Make.include</tt>'s is read that any building
 starts, so that full dependency information is available before any
 action is taken.
 
-Automatic include files such as the \verb+*.d+ files which typically
+Automatic include files such as the <tt>*.d</tt> files which typically
 hold C and C++ dependencies are included, possibly after being rebuilt
 (if a build rule exists for them and if they do not exist or are out of
 date).  Thus, the first actions of the build is typically the creation of
@@ -41,32 +36,34 @@ variables which are defined to be targets by the build rules.  It
 is possible to subgoal the building at a file or directory level of
 granularity.
 
-\section{Invoking the build system}
+== Invoking the build system ==
 
 There are two different directories which are of importance in the
 build system.  The first is the fixed build directory,
-\verb+cds/IR/build/+, which holds the \verb+Makefile+, ancillary
+<tt>cds/IR/build/</tt>, which holds the <tt>Makefile</tt>, ancillary
 files, and the installed files.  The second directory of importance is
-the directory of invocation, the place where \verb+gmake+ is executed.
-These two directories coincide when one executes \verb+gmake+ from the
+the directory of invocation, the place where <tt>gmake</tt> is executed.
+These two directories coincide when one executes <tt>gmake</tt> from the
 build directory.  Keep these things distinct because all inclusions
 start from and all actions take place in the directory of invocation,
 not the build directory.
 
-The first \verb+Make.include+ is read in the directory of invocation.
-If the convention has been followed of having \verb+Make.include+
+The first <tt>Make.include</tt> is read in the directory of invocation.
+If the convention has been followed of having <tt>Make.include</tt>
 files in every node of the source tree which refer only to
-subdirectories, then only those \verb+Make.include+ files at the
+subdirectories, then only those <tt>Make.include</tt> files at the
 directory of invocation and lower will be read into the build system.
 This means that automatic rebuilding of dependencies external to the
 directory of invocation will not be handled fully (files will not be
 updated, but they will be found if they exist).  Thus, if one wishes
 to focus one's attention to a single subdirectory to build in, one
 should make the subdirectory the directory of invocation.
-\begin{verbatim}
+
+<pre>
 $ cd that/subdir/
 $ gmake -f ${cvs}/cds/IR/build/Makefile all
-\end{verbatim}
+</pre>
+
 This will result in much less work that the build will have to do in
 order to figure out what actions to take, because it will examine fewer
 constraints.
@@ -74,10 +71,12 @@ constraints.
 On the other hand, if one invokes from a higher directory, then
 any sibling dependencies of the target will be properly examined and
 necessary actions at that level will be taken.
-\begin{verbatim}
+
+<pre>
 $ cd ${cvs}/cds/IR/build
 $ gmake that/subdir/.all
-\end{verbatim}
+</pre>
+
 This will result in all the subgoals in a subdirectory (and lower)
 being built, with any necessary updates of other directories being
 handled automatically.  All rules which can be found are examined
@@ -85,175 +84,233 @@ although only those actions necessary for the given subtarget(s) are
 taken.
 
 By default, the build system builds all things under the
-\verb+${cvs}/cds/IR+ tree which are currently checked out and which
-support the build system by providing \verb+Make.include+ files.
-\begin{verbatim}
+<tt>${cvs}/cds/IR</tt> tree which are currently checked out and which
+support the build system by providing <tt>Make.include</tt> files.
+
+<pre>
 $ cd ${cvs}/cds/IR/build
 $ gmake
-\end{verbatim}
+</pre>
 
-The targets currently supported by the build system are\\
-\begin{tabular}{ll}
-\verb+all+ & build all subgoals\\
-\verb+clean+ & remove subgoals\\
-\verb+depends-clean+ & remove any automatically generated dependency (\verb+*.d+)files\\
-\verb+real-clean+ & do both \verb+depends-clean+ and \verb+clean+\\
-\verb+install+ & do all and copy subgoals and other files to the install subdirectory of the build directory\\
-\verb+ls+ & do '\verb+ls -l+' of subgoals\\
-\end{tabular}\\
+The targets currently supported by the build system are
+
+{| class="wikitable" border="1"
+|-
+| <tt>all</tt>           || build all subgoals
+|-
+| <tt>clean</tt>         || remove subgoals
+|-
+| <tt>depends-clean</tt> || remove any automatically generated dependency (<tt>*.d</tt>)files
+|-
+| <tt>real-clean</tt>    || do both <tt>depends-clean</tt> and <tt>clean</tt>
+|-
+| <tt>install</tt>       || do all and copy subgoals and other files to the install subdirectory of the build directory
+|-
+| <tt>ls</tt>            || do '<tt>ls -l</tt>' of subgoals
+|-
+|}
+
 These targets are also supported in a subtarget specific form, such as
-\verb+that/subdir/.install+.
+<tt>that/subdir/.install</tt>.
 
 The compile options can be modified for debugging, profiling, or
-compile with GNU compilers, or modifying the installation directory.\\
-\begin{tabular}{ll}
-\verb+WITH_OPT=debug+ & compile with no optimization and maximum debugging\\
-\verb+WITH_OPT=profile+ & compile for profiling with optimization and minimal debugging\\
-\verb+WITH_GNU=1+ & compile with gnu compilers\\
-\verb+WITH_THREADS=1+ & compile with threading enabled\\
-\verb+INSTALL_TAG=<foo>+ & append \verb+-<foo>+ to the name of the install directory\\
-\verb+MAKE_COMPILERS=<foo>+ & use the file \verb+<foo>+ in place of \verb+Make.compilers+ (this option is of dubious value).
-\verb+WITHOUT='dir1/ dir2/' & cancel the inclusion of any \verb+Make.include+ files in the given directories (another dubious option).
-\end{tabular}\\
-These options go on the \verb+gmake+ command line.
-\begin{verbatim}
+compile with GNU compilers, or modifying the installation directory.
+
+{| class="wikitable" border="1"
+|-
+| <tt>WITH_OPT=debug</tt>       || compile with no optimization and maximum debugging
+|-
+| <tt>WITH_OPT=profile</tt>     || compile for profiling with optimization and minimal debugging
+|-
+| <tt>WITH_GNU=1</tt>           || compile with gnu compilers
+|-
+| <tt>WITH_THREADS=1</tt>       || compile with threading enabled
+|-
+| <tt>INSTALL_TAG=<foo></tt>    || append <tt>-<foo></tt> to the name of the install directory
+|-
+| <tt>MAKE_COMPILERS=<foo></tt> || use the file <tt><foo></tt> in place of <tt>Make.compilers</tt> (this option is of dubious value).
+|-
+| <tt>WITHOUT='dir1/ dir2/'</tt>|| cancel the inclusion of any <tt>Make.include</tt> files in the given directories (another dubious option).
+|-
+|}
+
+These options go on the <tt>gmake</tt> command line.
+
+<pre>
 $ gmake WITH_OPT=debug WITH_GNU=1 INSTALL_TAG=release all
-\end{verbatim}
+</pre>
 
-\section{Anatomy of a Make.include}
+== Anatomy of a Make.include ==
 
-\verb+Make.include+ files define variables which hold names of files,
+<tt>Make.include</tt> files define variables which hold names of files,
 and they are not
 necessarily sitting in the same place where the build is invoked.  With
 these two considerations, there is defined, for each
-\verb+Make.include+ file a variable named by the single character
-'\verb+/+' which holds the relative path of the current directory.
+<tt>Make.include</tt> file a variable named by the single character
+'<tt>/</tt>' which holds the relative path of the current directory.
 Any file in the current directory can be referenced by prepending
-\verb+$/+ to it.  The contents of \verb+/+ ought to be unique in the
-namespace of the build, so any variable defined as \verb+$/.MYVAR+
+<tt>$/</tt> to it.  The contents of <tt>/</tt> ought to be unique in the
+namespace of the build, so any variable defined as <tt>$/.MYVAR</tt>
 cannot conflict with any other variable in the build namespace (re-using
 the syntax of hidden files for variables may be a bad thing, but it
 has not caused problems yet).
 
-So, a simple \verb+Make.include+ might look like:
-\begin{verbatim}
+So, a simple <tt>Make.include</tt> might look like:
+
+<pre>
 $/.C_SRCS := $/hello.c
 $/.C_EXES := $/hello
 $/hello: $/hello.o
 $/.CLEAN  := $/*.o
-\end{verbatim}
+</pre>
 
-Note, the use of the 'verb+:=+' assignment instead of the '\verb+=+'
-assignment.  The reason for this, is that \verb+gmake+ has two {\em flavors}
+Note, the use of the 'verb+:=+' assignment instead of the '<tt>=</tt>'
+assignment.  The reason for this, is that <tt>gmake</tt> has two '''flavors'''
 of variable, the traditional one, which is lazily evaluated, defined by
-'\verb+=+', and one which is imediately evaluated, defined by '\verb+:=+'.
-If the RHS of the \verb+$/.C_SRCS+ assignment were to be lazily
-evaluated, then the \verb+$/+ component of the name would expand to
-whatever value \verb+/+ holds at the end of the whole traversal
+'<tt>=</tt>', and one which is imediately evaluated, defined by '<tt>:=</tt>'.
+If the RHS of the <tt>$/.C_SRCS</tt> assignment were to be lazily
+evaluated, then the <tt>$/</tt> component of the name would expand to
+whatever value <tt>/</tt> holds at the end of the whole traversal
 (which is an empty string if everything goes right).  This would
-produce errors.  I recommend the use of '\verb+:=+' in just about
+produce errors.  I recommend the use of '<tt>:=</tt>' in just about
 every possible case, unless you are trying to be tricky on purpose.
 
-There are a number of special variables, used on a per-\verb+/+
-basis by the \verb+Make.rules+ ancillary file.  These variables can
-be assigned to in the \verb+Make.include+ files to specify the various
+There are a number of special variables, used on a per-<tt>/</tt>
+basis by the <tt>Make.rules</tt> ancillary file.  These variables can
+be assigned to in the <tt>Make.include</tt> files to specify the various
 types of files and the actions required to build them.  The current
-list of variables is as follows:\\
-\begin{tabular}{ll}
-\verb+$/.C_SRCS+ & C sources which need to have their dependencies analyzed\\
-\verb+$/.C_INCS+ & C header files\\
-\verb+$/.C_LIBS+ & C library subgoals\\
-\verb+$/.C_SHLIBS+ & C shared library subgoals\\
-\verb+$/.C_EXES+ & C program subgoals\\
-\verb+$/.CXX_<x>+ & same as \verb+$/.C_<x>+ but for C++\\
-\verb+$/.TEX_PS+ & Postscript subgoals to be built from \LaTeX files\\
-\verb+$/.TEX_PDF+ & PDF subgoals to be built from \LaTeX files\\
-\verb+$/.SHARES+  & a catchall category for things which are just to be copied\\
-\verb+$/.SH_LIBS+ & sh script libraries\\
-\verb+$/.SH_EXES+ & sh script executables\\
-\verb+$/.PERL_LIBS+ & Perl script libraries\\
-\verb+$/.PERL_EXES+ & Perl script executables\\
-\verb+$/.PY_LIBS+ & Python script libraries\\
-\verb+$/.PY_EXES+ & Python script executables\\
-\verb+$/.LIB/+  & subdirectory of \verb+lib/+ where \verb+$/.C_LIBS+ and \verb+$/.CXX_LIBS+ are installed\\
-\verb+$/.INCLUDE/+  & subdirectory of \verb+include/+ where \verb+$/.C_INCS+ and \verb+$/.CXX_INCS+ are installed\\
-\verb+$/.DOC/+  & subdirectory of \verb+doc/+ where \verb+$/.TEX_PS+ and \verb+$/.TEX_PDF+ are installed\\
-\verb+$/.SHARE/+  & subdirectory of \verb+share/+ where \verb+$/.SHARES+ are installed\\
-\verb+$/.SH_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.SH_LIBS+ are installed\\
-\verb+$/.PERL_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.PERL_LIBS+ are installed\\
-\verb+$/.PY_LIB/+  & subdirectory of \verb+scripts/+ where \verb+$/.PY_LIBS+ are installed\\
-\verb+$/.CLEAN+ & files and patterns to be removed during a \verb+clean+\\
-\verb+$/.REAL-CLEAN+ & files and patterns to be removed during a \verb+real-clean+\\
-\end{tabular}\\
+list of variables is as follows:
+
+{| class="wikitable" border="1"
+|-
+| <tt>$/.C_SRCS</tt> || C sources which need to have their dependencies analyzed
+|-
+| <tt>$/.C_INCS</tt> || C header files
+|-
+| <tt>$/.C_LIBS</tt> || C library subgoals
+|-
+| <tt>$/.C_SHLIBS</tt> || C shared library subgoals
+|-
+| <tt>$/.C_EXES</tt> || C program subgoals
+|-
+| <tt>$/.CXX_<x></tt> || same as <tt>$/.C_<x></tt> but for C++
+|-
+| <tt>$/.TEX_PS</tt> || Postscript subgoals to be built from LaTeX files
+|-
+| <tt>$/.TEX_PDF</tt> || PDF subgoals to be built from LaTeX files
+|-
+| <tt>$/.SHARES</tt>  || a catchall category for things which are just to be copied
+|-
+| <tt>$/.SH_LIBS</tt> || sh script libraries
+|-
+| <tt>$/.SH_EXES</tt> || sh script executables
+|-
+| <tt>$/.PERL_LIBS</tt> || Perl script libraries
+|-
+| <tt>$/.PERL_EXES</tt> || Perl script executables
+|-
+| <tt>$/.PY_LIBS</tt> || Python script libraries
+|-
+| <tt>$/.PY_EXES</tt> || Python script executables
+|-
+| <tt>$/.LIB/</tt>  || subdirectory of <tt>lib/</tt> where <tt>$/.C_LIBS</tt> and <tt>$/.CXX_LIBS</tt> are installed
+|-
+| <tt>$/.INCLUDE/</tt>  || subdirectory of <tt>include/</tt> where <tt>$/.C_INCS</tt> and <tt>$/.CXX_INCS</tt> are installed
+|-
+| <tt>$/.DOC/</tt>  || subdirectory of <tt>doc/</tt> where <tt>$/.TEX_PS</tt> and <tt>$/.TEX_PDF</tt> are installed
+|-
+| <tt>$/.SHARE/</tt>  || subdirectory of <tt>share/</tt> where <tt>$/.SHARES</tt> are installed
+|-
+| <tt>$/.SH_LIB/</tt>  || subdirectory of <tt>scripts/</tt> where <tt>$/.SH_LIBS</tt> are installed
+|-
+| <tt>$/.PERL_LIB/</tt>  || subdirectory of <tt>scripts/</tt> where <tt>$/.PERL_LIBS</tt> are installed
+|-
+| <tt>$/.PY_LIB/</tt>  || subdirectory of <tt>scripts/</tt> where <tt>$/.PY_LIBS</tt> are installed
+|-
+| <tt>$/.CLEAN</tt> || files and patterns to be removed during a <tt>clean</tt>
+|-
+| <tt>$/.REAL-CLEAN</tt> || files and patterns to be removed during a <tt>real-clean</tt>
+|-
+|}
+
 Note: while the current build system removes all subgoals, intermediate
 files are not removed automatically.  If C/C++ programs are being build
-then patterns like \verb+$/*.o+ should be put in the \verb+$/.CLEAN+ variable
+then patterns like <tt>$/*.o</tt> should be put in the <tt>$/.CLEAN</tt> variable
 or they will not get removed.  It is debatable whether this should be left
-up to each \verb+Make.include+ file to take care of on its own.
+up to each <tt>Make.include</tt> file to take care of on its own.
 
 There are a couple of routine tasks which are done in a fashion a
 little unusual to those accustomed to more traditional uses of make.
 One of these tasks is the specification of additional
 flags used when building the C/C++ programs.  For C programs, this is
-done by adding to the \verb+CFLAGS+ variable in a target specific
+done by adding to the <tt>CFLAGS</tt> variable in a target specific
 manner.
-\begin{verbatim}
+
+<pre>
 $/myprogram.o $/myprogram.c.d: CFLAGS += -DTEST -I/usr/local/lib
-\end{verbatim}
+</pre>
+
 If you wish to have this take effect for all files defined in the
-current \verb+Make.include+ you can use a pattern rule.
-\begin{verbatim}
+current <tt>Make.include</tt> you can use a pattern rule.
+
+<pre>
 $/%.o $/%.d: CFLAGS +=-DTEST -I/usr/local/lib
-\end{verbatim}
-One {\em gotcha} is in the use of locally defined variables
-(like anything involving \verb+$/+).  It seems
+</pre>
+
+One '''gotcha''' is in the use of locally defined variables
+(like anything involving <tt>$/</tt>).  It seems
 that any variable expansion on the target specific '+=' is
 delayed until after all rules have been traversed, at which point
-\verb+$/+ is very likely to have the wrong value.  This does not
-happen with a target specific '\verb+:=+' so it may be a bug in what is
-a fairly new \verb+gmake+ feature.  The work-around invokes another
-fairly new \verb+gmake+ feature.
-\begin{verbatim}
+<tt>$/</tt> is very likely to have the wrong value.  This does not
+happen with a target specific '<tt>:=</tt>' so it may be a bug in what is
+a fairly new <tt>gmake</tt> feature.  The work-around invokes another
+fairly new <tt>gmake</tt> feature.
+
+<pre>
 $(eval $/%.o $/%.d: CFLAGS +=-I$/include)
-\end{verbatim}
+</pre>
 
 The second routine task is that of specifying external libraries to
 link to when building C/C++ executables.  If the libraries are
-external to the whole build, then one would use the usual \verb+-L-l+
+external to the whole build, then one would use the usual <tt>-L-l</tt>
 flags in a target specific variable modification.
-\begin{verbatim}
+
+<pre>
 $/myprogram: CLDFLAGS+=-L/usr/local/foodir
 $/myprogram: CLIBS +=-lfoo
-\end{verbatim}
+</pre>
+
 One must again wrap any variable expressions which are likely to
 be overwritten by other includes
-with \verb+$(eval )+ to force imediate variable expansion.  If the
-library is being built by the build system, using the \verb+-L-l+ flags would
-create a {\em dependency leak}, as the build system would not know
+with <tt>$(eval )</tt> to force imediate variable expansion.  If the
+library is being built by the build system, using the <tt>-L-l</tt> flags would
+create a '''dependency leak''', as the build system would not know
 that the library must be updated before the link.
 To avoid creating this leak, one should do the more explicit dependency.
-\begin{verbatim}
+
+<pre>
 $/myprogram: ${THELIBDIR/}libfoo.a
-\end{verbatim}
+</pre>
+
 Here no variable expansion needs to be forced, since dependency lines
-expand variables imediately.  By making it a dependent, \verb+libfoo.a+
-will appear in the series of arguments to the linker for \verb+$/myprogram+
+expand variables imediately.  By making it a dependent, <tt>libfoo.a</tt>
+will appear in the series of arguments to the linker for <tt>$/myprogram</tt>
 and the leak avoided.
 
-\subsection{Two examples}
+=== Two examples ===
 
-Here is a walkthrough of the \verb+Make.include+ for
-\verb+AtacPipeline+, which builds a variety of executables and
+Here is a walkthrough of the <tt>Make.include</tt> for
+<tt>AtacPipeline</tt>, which builds a variety of executables and
 libraries.
 
-\begin{verbatim}
-$/.CXX_EXES :=$/heavyChains
-
+<pre>
+$/.CXX_EXES   :=$/heavyChains
 $/.CXX_SHLIBS :=$/localAlignerInterfacemodule.so $/halignmodule.so $/hellomodule.so
-\end{verbatim}
+</pre>
+
 One program and three shared libraries are subgoals to be created.
 
-\begin{verbatim}
+<pre>
 $/.CXX_SRCS:=$/GF_ALN_dpaligner.cc $/GF_ALN_local.cc \
   $/GF_ALN_overlap.cc $/GF_ALN_qvaligner.cc \
   $/GF_ALN_loverlapper.cc $/GF_ALN_pieceOlap.cc \
@@ -261,27 +318,32 @@ $/.CXX_SRCS:=$/GF_ALN_dpaligner.cc $/GF_ALN_local.cc \
   $/heavyChains.cc \
   $/localAlignerInterface.cc $/localAlignerInterfacemodule.cc \
   $/hellomodule.cc $/byemodule.cc $/holignmodule.cc
-\end{varbatim}
+</pre>
+
 The source files are declared.
 
-\begin{verbatim}
+<pre>
 $/.CLEAN  := $/*.o $/*.pyc
-\end{verbatim}
-Since this directory will build both C++ programs and python programs,
-intermediates for both must be \verb+clean+-ed.
+</pre>
 
-\begin{verbatim}
+Since this directory will build both C++ programs and python programs,
+intermediates for both must be <tt>clean</tt>-ed.
+
+<pre>
 $/.PY_EXES :=$/AtacDriver.py
 $/.PY_LIBS :=$(filter-out ${$/.PY_EXES},$(wildcard $/*.py))
-\end{verbatim}
+</pre>
+
 A python executable is declared and the python libraries are any file in
 this directory ending in '.py' which is not on the list of executables.
-\begin{verbatim}
-$/.PY_LIB/ :=AtacPipeline/
-\end{verbatim}
-The python libraries are to be installed under \verb+scripts/AtacPipeline+.
 
-\begin{verbatim}
+<pre>
+$/.PY_LIB/ :=AtacPipeline/
+</pre>
+
+The python libraries are to be installed under <tt>scripts/AtacPipeline</tt>.
+
+<pre>
 $/heavyChains   :  $/heavyChains.o
 
 $/localAlignerInterfacemodule.so : \
@@ -293,43 +355,48 @@ $/localAlignerInterfacemodule.so : \
 $/hellomodule.so: $/hellomodule.o
 
 $/halignmodule.so: $/halignmodule.o $/halign.o
-\end{verbatim}
+</pre>
+
 The linking dependencies for each of the targets is specified.
 
-\begin{verbatim}
+<pre>
 $(eval $/%.d $/%.o: CXXFLAGS+=${PYINC})
-\end{verbatim}
+</pre>
+
 The shared libraries being built are actually python extensions, so they
-will be including python header files.  The \verb+${PYINC}+ path is
-specified in the \verb+Make.compilers+ directory and is not expected to
-change (so the \verb+$(eval )+ wrapper is a bit paranoid, but harmless).
+will be including python header files.  The <tt>${PYINC}</tt> path is
+specified in the <tt>Make.compilers</tt> directory and is not expected to
+change (so the <tt>$(eval )</tt> wrapper is a bit paranoid, but harmless).
 
 There are some extra flags which are needed for building python
 extensions at the end of this file when on AIX, but they are very
 exceptional, and an explanation of there here is of little value.
-\begin{verbatim}
+
+<pre>
 $(eval $/localAlignerInterfacemodule.so: AIX_SHLIB_FLAGS+=-einitlocalAlignerInterface -Wl,-bI:$/AIX_python-module-exports)
 $(eval $/halignmodule.so: AIX_SHLIB_FLAGS+=-einithalign -Wl,-bI:$/AIX_python-module-exports)
 $(eval $/hellomodule.so: AIX_SHLIB_FLAGS+=-einithello -Wl,-bI:$/AIX_python-module-exports)
-\end{verbatim}
+</pre>
 
-Our next example is the \verb+Make.include+ for
-\verb+MatchExtender+ which builds a series of C++ programs which
+Our next example is the <tt>Make.include</tt> for
+<tt>MatchExtender</tt> which builds a series of C++ programs which
 depend on external libraries.
 
-\begin{verbatim}
+<pre>
 FRAMEWORK/  :=$(call MakePath,$/../Framework/)
 RASCAL/     :=$(call MakePath,$/../../../RASCAL/src/)
-\end{verbatim}
-External paths are defined by the \verb+MakePath+ function.  This
+</pre>
+
+External paths are defined by the <tt>MakePath</tt> function.  This
 function is explained later.
 
-\begin{verbatim}
+<pre>
 $/.CXX_EXES := $/testFastaReader $/MatchExtender $/MismatchCounter
-\end{verbatim}
+</pre>
+
 Three C++ programs are to be built.
 
-\begin{verbatim}
+<pre>
 ind_src  := $/IndexedFastaReader.cc
 test_src := $/testFastaReader.cc
 mch_src  := $/MEMatch.cc
@@ -337,125 +404,144 @@ me_src   := $/MatchExtenderAtac.cc $/MatchExtender.cc
 mc_src   := $/MismatchCounterAtac.cc $/MismatchCounter.cc
 
 $/.CXX_SRCS := ${ind_src} ${test_src} ${mch_src} ${me_src}
-\end{verbatim}
+</pre>
+
 The sources are partitioned into four groups.
 
-\begin{verbatim}
+<pre>
 $/.CLEAN :=$/*.o $/*~ $/core
-\end{verbatim}
-On a \verb+clean+ we remove object files, emacs backups, and any cores.
+</pre>
 
-\begin{verbatim}
+On a <tt>clean</tt> we remove object files, emacs backups, and any cores.
+
+<pre>
 $/testFastaReader: ${ind_src:.cc=.o} ${test_src:.cc=.o}
 $/MatchExtender:   ${ind_src:.cc=.o} ${mch_src:.cc=.o} ${me_src:.cc=.o} 
 $/MismatchCounter:   ${ind_src:.cc=.o} ${mch_src:.cc=.o} ${mc_src:.cc=.o} 
-\end{verbatim}
+</pre>
+
 Program dependencies are defined as combinations of the various
 groups defined above, with their '.cc' extensions turned to '.o'.
 
-\begin{verbatim}
+<pre>
 ${$/.CXX_EXES}: \
   ${RASCAL/}seq/libRASCAL_seq.a ${RASCAL/}base/libRASCAL_base.a \
   ${FRAMEWORK/}libATAC.a
 
 $(eval $/%.d $/%.o:   CXXFLAGS+=-I${RASCAL/}. -I${FRAMEWORK/}.)
-\end{verbatim}
+</pre>
+
 All programs must link to several external libraries and use their
 header files.
 
-\subsection{The Include function}
+=== The Include function ===
 
-The build system has wrapped the usual \verb+include+ syntax of
-\verb+gmake+ with a function called \verb+Include+ which can be
-invoked from within a \verb+Make.include+ file.
-\begin{verbatim}
+The build system has wrapped the usual <tt>include</tt> syntax of
+<tt>gmake</tt> with a function called <tt>Include</tt> which can be
+invoked from within a <tt>Make.include</tt> file.
+
+<pre>
 $(eval $(call Include,$/subdir1/ $/subdir2/))
-\end{verbatim}
-Its effect is to check if there exists a \verb+Make.include+ file
+</pre>
+
+Its effect is to check if there exists a <tt>Make.include</tt> file
 in each of its directory arguments, and if so, to traverse that file.
-The contents of those \verb+Make.include+ files are evaluated
-and added to the current build definitions.  The variable \verb+/+ is pushed
+The contents of those <tt>Make.include</tt> files are evaluated
+and added to the current build definitions.  The variable <tt>/</tt> is pushed
 and popped appropriately.
 
-\subsection{The MakePath function}
+=== The MakePath function ===
 
-The build system supplies a function \verb+MakePath+ which is
-meant to be called in \verb+Make.include+ files to canonicalize pathnames.
-The problem it addresses is the one of \verb+gmake+'s inability to recognize
-the sameness of expressions like \verb+src/../src/foo+ and \verb+src/foo+.
+The build system supplies a function <tt>MakePath</tt> which is
+meant to be called in <tt>Make.include</tt> files to canonicalize pathnames.
+The problem it addresses is the one of <tt>gmake</tt>'s inability to recognize
+the sameness of expressions like <tt>src/../src/foo</tt> and <tt>src/foo</tt>.
 
 Suppose we had a set of files and directories as follows:
-\begin{verbatim}
+
+<pre>
 X/
   Make.include Y/ Z/
 X/Y/
   Make.include y.c
 X/Z/
   Make.include z.c
-\end{verbatim}
-Where we build a library \verb+liby.a+ in \verb+Y/+ which is needed to
-compile the program \verb+z+ in \verb+Z/+.  The contents of
-\verb+X/Make.include+ is
-\begin{verbatim}
+</pre>
+
+Where we build a library <tt>liby.a</tt> in <tt>Y/</tt> which is needed to
+compile the program <tt>z</tt> in <tt>Z/</tt>.  The contents of
+<tt>X/Make.include</tt> is
+
+<pre>
 $(eval $(call Include, $/Y/ $/Z/))
-\end{verbatim}
-and the contents of \verb+Y/Make.include+ is
-\begin{verbatim}
+</pre>
+
+and the contents of <tt>Y/Make.include</tt> is
+
+<pre>
 $/.C_SRCS :=$/y.c
 $/.C_LIBS :=$/liby.a
 $/liby.a: $/y.o
-\end{verbatim}
-Then a natural choice for \verb+Z/Make.include+ would be
-\begin{verbatim}
+</pre>
+
+Then a natural choice for <tt>Z/Make.include</tt> would be
+
+<pre>
 ${Y/}  :=$/../Y/
 $/.C_SRCS :=$/z.c
 $/.C_EXES :=$/z
 $/z: $/z.o ${Y/}liby.a
-\end{verbatim}
-If \verb+liby.a+ is already built by the time \verb+z+ is
+</pre>
+
+If <tt>liby.a</tt> is already built by the time <tt>z</tt> is
 built, then there is no problem.  If not then, and if the build
-is invoked in \verb+Z/+, one will get some error about not
-knowing how to build \verb+../Y/liby.a+, which is to be expected.
-However, if the build is invoked in \verb+X/+ then one gets
-a similar error about not knowing how to build \verb+X/../Y/liby.a+.
-The build, invoked from \verb+X/+, does know how to build \verb+Y/liby.a+,
-but does not understand that \verb+X/../Y/liby.a+ is the same thing.
+is invoked in <tt>Z/</tt>, one will get some error about not
+knowing how to build <tt>../Y/liby.a</tt>, which is to be expected.
+However, if the build is invoked in <tt>X/</tt> then one gets
+a similar error about not knowing how to build <tt>X/../Y/liby.a</tt>.
+The build, invoked from <tt>X/</tt>, does know how to build <tt>Y/liby.a</tt>,
+but does not understand that <tt>X/../Y/liby.a</tt> is the same thing.
 
 The function
-\begin{verbatim}
+
+<pre>
 $(call MakePath,P)
-\end{verbatim}
-takes a path \verb+P+ to an existing directory and returns the
-shortest (redundant dots and double dots collapsed) path to \verb+P+
+</pre>
+
+takes a path <tt>P</tt> to an existing directory and returns the
+shortest (redundant dots and double dots collapsed) path to <tt>P</tt>
 relative to the directory of invocation, in a fashion consistent with
 the pathname conventions used elsewhere in the build system (trailing
 '/' and '.' referred to by an empty string).
 
-Thus, the right version of the \verb+Z/Make.include+ file is,
-\begin{verbatim}
+Thus, the right version of the <tt>Z/Make.include</tt> file is,
+
+<pre>
 ${Y/}  :=$(call MakePath,$/../Y/)
 $/.C_SRCS :=$/z.c
 $/.C_EXES :=$/z
 $/z: $/z.o ${Y/}liby.a
-\end{verbatim}
-\verb+MakePath+ will issue a warning if the directory sought
+</pre>
+
+<tt>MakePath</tt> will issue a warning if the directory sought
 is not found, and return an empty string.
 
-The current implementation of the \verb+MakePath+ function is kind of
+The current implementation of the <tt>MakePath</tt> function is kind of
 kludgey, involving a shell-call to either a C program or a PERL
 program.  I have not found a better implementation yet for this
 functionality.
 
-\subsection{Legacy builds}
+=== Legacy builds ===
 
 It is inevitable, because some parts of the code tree
 came from external sources or are complicated legacy codes, that one
-wants to still be able to integrate the usual {\em recursive make}
+wants to still be able to integrate the usual '''recursive make'''
 procedure for some directory which circumvents the build system
 and its dependency checking.
 
-Here is an example of a simple \verb+Make.include+ which does this.
-\begin{verbatim}
+Here is an example of a simple <tt>Make.include</tt> which does this.
+
+<pre>
 $(eval $(call MakeRecursive))
 
 $/md5lib/md5c.o: $/.all
@@ -467,88 +553,94 @@ $/.real-clean $/.clean:
         cd `dirname $@` && ${MAKE} clean
 
 $/.install:
-\end{verbatim}
+</pre>
+
 The first line calls a special build system function,
-\verb+MakeRecursive+ which declares that this \verb+Make.include+ file
+<tt>MakeRecursive</tt> which declares that this <tt>Make.include</tt> file
 is opting out of the usual build system and will define its own
 subtargets.  The next line announces a target being supplied,
-the \verb+$/md5lib/md5c.o+ object file.  This is optional, but
+the <tt>$/md5lib/md5c.o</tt> object file.  This is optional, but
 gives the build system some idea of how to order multiple recursive
 makes based on possible mutual dependencies.  The next lines specify
-rules for subdirectory specific subtargets (\verb+all+, \verb+clean+,
-\verb+real-clean+, \verb+install+) all of which are mandatory for
-recursive \verb+Make.include+'s.  Each of these rules is just a
+rules for subdirectory specific subtargets (<tt>all</tt>, <tt>clean</tt>,
+<tt>real-clean</tt>, <tt>install</tt>) all of which are mandatory for
+recursive <tt>Make.include</tt>'s.  Each of these rules is just a
 recursive build invocation after changing into the appropriate
 directory, or an empty rule, signifying no action.
 
 
-\section{Anatomy of the Makefile}
+== Anatomy of the Makefile ==
 
-Here we go line by line through the \verb+Makefile+ (CVS revision
+Here we go line by line through the <tt>Makefile</tt> (CVS revision
 1.29) and discuss the function of every part.
 
-\begin{verbatim}
+<pre>
 default:   all
-\end{verbatim}
-First a default target is created.  The first goal listed is always
-the default target.  Typically people use \verb+all+ for this.  Since
-we do not know what verb+all+ will mean until much later in the file,
-we can not define \verb+all+ yet.
+</pre>
 
-\begin{verbatim}
+First a default target is created.  The first goal listed is always
+the default target.  Typically people use <tt>all</tt> for this.  Since
+we do not know what verb+all+ will mean until much later in the file,
+we can not define <tt>all</tt> yet.
+
+<pre>
 ifndef MAKEFILE/
   MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
 endif
-\end{verbatim}
+</pre>
+
 The auxiliiary files are looked for in the directory where the
-\verb+Makefile+ was found.  We extract this information from the
-built-in variable \verb+MAKEFILE_LIST+.  The \verb+MAKEFILE/+ variable
+<tt>Makefile</tt> was found.  We extract this information from the
+built-in variable <tt>MAKEFILE_LIST</tt>.  The <tt>MAKEFILE/</tt> variable
 points to the build directory.
 
-\begin{verbatim}
+<pre>
 ifdef MAKE_COMPILERS
  include ${MAKE_COMPILERS}
 else
  include ${MAKEFILE/}Make.compilers
 endif
-\end{verbatim}
-We load the \verb+Make.compilers+ file, which is more of a
+</pre>
+
+We load the <tt>Make.compilers</tt> file, which is more of a
 configuration file, since it contains definitions not just of the
 compilers but also of basic utilities and of locations of important
 libraries such as X11 and LAPACK.  One design goal was to have
 all platform specifics captured by a single file so
 that porting to a new platform would require only the adjustment
 of this file.  This file can be overridden by a user supplied
-\verb+MAKE_COMPILERS+ argument, though it is probably a mistake
+<tt>MAKE_COMPILERS</tt> argument, though it is probably a mistake
 to use this feature as anything but a temporary device.
 
-\begin{verbatim}
+<pre>
 include ${MAKEFILE/}Make.path
-\end{verbatim}
-The \verb+Make.path+ file supplies a crucial utility in canonicalizing
+</pre>
+
+The <tt>Make.path</tt> file supplies a crucial utility in canonicalizing
 directory names.
 
 We now begin the directory traversal part, where subdirectories are
 explored and build information is collected.
 
-\begin{verbatim}
+<pre>
 //           :=
 /            :=
 //-RECURSIVE    :=
 define MakeRecursive
 //-RECURSIVE :=$$/.
 endef
-\end{verbatim}
-Three important variables are being initialized here.  The variable
-\verb+//+ holds the list of all directories which have been traversed
-which have not opted out of the build system.  The directories are
-kept in {\em dotted} form (i.e. \verb+.+, \verb+subdir/.+).  The
-\verb+//-RECURSIVE+ variable holds those directories (in dotted form)
-which have been traversed and have opted out of the build system.  The
-variable \verb+/+ is the current relative path variable, which is
-meant to be used by traversed \verb+Make.include+ files.
+</pre>
 
-\begin{verbatim}
+Three important variables are being initialized here.  The variable
+<tt>//</tt> holds the list of all directories which have been traversed
+which have not opted out of the build system.  The directories are
+kept in '''dotted''' form (i.e. <tt>.</tt>, <tt>subdir/.</tt>).  The
+<tt>//-RECURSIVE</tt> variable holds those directories (in dotted form)
+which have been traversed and have opted out of the build system.  The
+variable <tt>/</tt> is the current relative path variable, which is
+meant to be used by traversed <tt>Make.include</tt> files.
+
+<pre>
 define Include
  $(foreach x,$(strip ${1}),$(call Include_File,$x))
 endef
@@ -571,23 +663,25 @@ ifndef WITHOUT
   WITHOUT:=
 endif
 WITHOUT_:=$(patsubst %,%.,$(strip ${WITHOUT}))
-\end{verbatim}
-The normal \verb+include+ syntax is wrapped in a function which will
-maintain \verb+/+ properly while adding newly traversed directories to
-\verb+//+ and keeping track of who is who's children (kept in
-\verb+$/.SUBS+).  Each directory
-is traversed if its \verb+Make.include+ file exists and is not on
-a set of special suppressed directories (contained in the \verb+${WITHOUT}+).  Traversed directories
-have their \verb+Make.include+ files included.  Within those
-\verb+Make.include+ files, \verb+/+ will hold the relative path
-to the directory.  The \verb+Include+ function is meant for external
-use, while the \verb+Include_File+ is a technicality and should not
+</pre>
+
+The normal <tt>include</tt> syntax is wrapped in a function which will
+maintain <tt>/</tt> properly while adding newly traversed directories to
+<tt>//</tt> and keeping track of who is who's children (kept in
+<tt>$/.SUBS</tt>).  Each directory
+is traversed if its <tt>Make.include</tt> file exists and is not on
+a set of special suppressed directories (contained in the <tt>${WITHOUT}</tt>).  Traversed directories
+have their <tt>Make.include</tt> files included.  Within those
+<tt>Make.include</tt> files, <tt>/</tt> will hold the relative path
+to the directory.  The <tt>Include</tt> function is meant for external
+use, while the <tt>Include_File</tt> is a technicality and should not
 be employed except within this file.
 
-\begin{verbatim}
+<pre>
 $(eval $(call Include_File,$/))
-\end{verbatim}
-We include the \verb+Make.include+ file which sits in the directory
+</pre>
+
+We include the <tt>Make.include</tt> file which sits in the directory
 of invocation (as opposed to the one in the build directory).  Since traversal
 starts in this directory, the only build information which
 will be considered is that from this directory and its descendants,
@@ -595,71 +689,75 @@ allowing a user to build within a limited source directory, if they
 do not which to check lateral dependencies for some reason (e.g.
 efficiency).
 
-\begin{verbatim}
+<pre>
 //            :=$(filter-out ${//-RECURSIVE},${//})
-\end{verbatim}
-After traversal, \verb+//+ holds all directories which have been
+</pre>
+
+After traversal, <tt>//</tt> holds all directories which have been
 traversed.  We now remove from it all those paths which have opted
-out.  At this point, \verb+//+ holds those traversed directories which are
+out.  At this point, <tt>//</tt> holds those traversed directories which are
 considered to be properly participating in the build and
-\verb+//-RECURSIVE+ holds those which will be built in a more or less
-{\em legacy} fashion.  At this point, \verb+/+ should be an
+<tt>//-RECURSIVE</tt> holds those which will be built in a more or less
+'''legacy''' fashion.  At this point, <tt>/</tt> should be an
 empty string (even though it does appear below).
 
 A second design goal was the separation of the specification of
-build rules from the primary \verb+Makefile+ so that new file types
+build rules from the primary <tt>Makefile</tt> so that new file types
 and build commands could be added to the build system by appending
-them to \verb+Make.rules+.  Actions are dictated by file types.
+them to <tt>Make.rules</tt>.  Actions are dictated by file types.
 
-\begin{verbatim}
+<pre>
 __SUBGOALS__=
 __DEPGOALS__=
-\end{verbatim}
-The \verb+__SUBGOALS__+ variable is intended to hold all those targets
-which must be made for the \verb+all+ target.  The \verb+__DEPGOALS__+
+</pre>
+
+The <tt>__SUBGOALS__</tt> variable is intended to hold all those targets
+which must be made for the <tt>all</tt> target.  The <tt>__DEPGOALS__</tt>
 holds patterns for automatic dependency files which are to be included.
 These variables will be
 dynamically scoped (the one exception we make to the usual static scoping).
 This allows for a variable capture which we exploit later.  The
-\verb+__SUBGOALS__+ and \verb+__DEPGOALS__+ variables are
-appended to in the \verb+Make.rules+ file.
+<tt>__SUBGOALS__</tt> and <tt>__DEPGOALS__</tt> variables are
+appended to in the <tt>Make.rules</tt> file.
 
-\begin{verbatim}
+<pre>
 -include ${MAKEFILE/}Make.rules
-\end{verbatim}
-If the \verb+Make.rules+ file exists in the directory of the 
-\verb+Makefile+ then it is included.  If it does not exist, the system will
-use the default rules built-in to \verb+make+, which have a
+</pre>
+
+If the <tt>Make.rules</tt> file exists in the directory of the 
+<tt>Makefile</tt> then it is included.  If it does not exist, the system will
+use the default rules built-in to <tt>make</tt>, which have a
 chance of working right (a snowball's chance in hell).
 
-\begin{verbatim}
+<pre>
 $(eval DEPENDS:=$(foreach x,${//},$(call __DEPGOALS__,$x)))
 ifneq ($(strip ${DEPENDS}),)
   ifeq ($(filter %-clean,${MAKECMDGOALS}),)
     include ${DEPENDS}
   endif
 endif
-\end{verbatim}
-The \verb+__DEPGOALS__+ pattern is evaluated on every directory and
-expanded into a set of files in the variable \verb+DEPENDS+.  Unless
-one of the command goals of the build contains the suffix \verb+-clean+
-(\verb+real-clean+ or \verb+depends-clean+, but not \verb+clean+),
-these files will be included.  The {\em clean} conditional exists to
+</pre>
+
+The <tt>__DEPGOALS__</tt> pattern is evaluated on every directory and
+expanded into a set of files in the variable <tt>DEPENDS</tt>.  Unless
+one of the command goals of the build contains the suffix <tt>-clean</tt>
+(<tt>real-clean</tt> or <tt>depends-clean</tt>, but not <tt>clean</tt>),
+these files will be included.  The '''clean''' conditional exists to
 prevent certain kind of wedged conditions the build system could get
 in as well as allowing the clean targets to be processed without a
-building of any automatically created \verb+DEPENDS+ files.
+building of any automatically created <tt>DEPENDS</tt> files.
 
 We now define the standard make targets, which are applied to all
-subdirectory targets.  The basic target, \verb+TARG+ is also defined
-on a per-subdirectory basis with targets of the form \verb+$/.TARG+
-with \verb+TARG+ being nearly an alias for \verb+.TARG+ (aside from
-\verb+//-RECURSIVE+ directories).  This allows
+subdirectory targets.  The basic target, <tt>TARG</tt> is also defined
+on a per-subdirectory basis with targets of the form <tt>$/.TARG</tt>
+with <tt>TARG</tt> being nearly an alias for <tt>.TARG</tt> (aside from
+<tt>//-RECURSIVE</tt> directories).  This allows
 the user to selectively build only those subgoals which are in a
-single directory.  Target \verb+TARG+ for \verb+//-RECURSIVE+ builds are
-done before the \verb+$/.TARG+ target.  Building all legacy targets
+single directory.  Target <tt>TARG</tt> for <tt>//-RECURSIVE</tt> builds are
+done before the <tt>$/.TARG</tt> target.  Building all legacy targets
 first seems like a good idea.
 
-\begin{verbatim}
+<pre>
 clean:         ${//-RECURSIVE:.=.clean}      $/.clean
 define .RULE-clean
 ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
@@ -668,16 +766,17 @@ ${1:.=.clean}: $${${1:.=.SUBS}:.=.clean}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-clean,$x)))
-\end{verbatim}
-The \verb+clean+ target executes for recursive directories first
-and then for \verb+.clean+.  The \verb+$/.clean+ target for
-each subdirectory depends on the \verb+$/.clean+ target of its
-children and executes by removing those files or patterns which were listed
-in the \verb+$/.CLEAN+ variable of that directory, any subgoals of
-that directory, and any temporary compiler files which may have been
-created in that directory (e.g. \verb+so_locations/+).
+</pre>
 
-\begin{verbatim}
+The <tt>clean</tt> target executes for recursive directories first
+and then for <tt>.clean</tt>.  The <tt>$/.clean</tt> target for
+each subdirectory depends on the <tt>$/.clean</tt> target of its
+children and executes by removing those files or patterns which were listed
+in the <tt>$/.CLEAN</tt> variable of that directory, any subgoals of
+that directory, and any temporary compiler files which may have been
+created in that directory (e.g. <tt>so_locations/</tt>).
+
+<pre>
 depends-clean:                            $/.depends-clean
 ${//-RECURSIVE:.=.depends-clean}:
 define .RULE-depends-clean
@@ -686,12 +785,13 @@ ${1:.=.depends-clean}: $${${1:.=.SUBS}:.=.depends-clean}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-depends-clean,$x)))
-\end{verbatim}
-Similar to \verb+clean+ only we remove only dependency files which
-may have been built to satisfy the \verb+include ${DEPENDS}+ line
+</pre>
+
+Similar to <tt>clean</tt> only we remove only dependency files which
+may have been built to satisfy the <tt>include ${DEPENDS}</tt> line
 previous.
 
-\begin{verbatim}
+<pre>
 real-clean:    ${//-RECURSIVE:.=.real-clean} $/.real-clean
 define .RULE-real-clean
 ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
@@ -702,30 +802,32 @@ ${1:.=.real-clean}: $${${1:.=.SUBS}:.=.real-clean}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-real-clean,$x)))
-\end{verbatim}
-A combination of the previous two \verb+clean+ targets.
+</pre>
 
-\begin{verbatim}
+A combination of the previous two <tt>clean</tt> targets.
+
+<pre>
 all:           ${//-RECURSIVE:.=.all}        $/.all
 define .RULE-all
 ${1:.=.all}: $${${1:.=.SUBS}:.=.all} ${__SUBGOALS__}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-all,$x)))
-\end{verbatim}
-The \verb+all+ target depends on all subdirectory \verb+all+'s
+</pre>
+
+The <tt>all</tt> target depends on all subdirectory <tt>all</tt>'s
 and all subgoals for this directory.
 
-The last major section of the \verb+Makefile+ is the installer.
+The last major section of the <tt>Makefile</tt> is the installer.
 Installation currently proceeds by depending on the subgoals
 and upon a copy of those built subgoals to a special directory,
-\verb+INSTALL/+ which is determined in the \verb+Make.compilers+
+<tt>INSTALL/</tt> which is determined in the <tt>Make.compilers</tt>
 file.  Because different directories may wish to do different
-kinds of pre and post installation actions, the \verb+.install+
+kinds of pre and post installation actions, the <tt>.install</tt>
 targets have been written to provide a number of hooks.  It is
-up to the \verb+Make.rules+ file to make use of those hooks.
+up to the <tt>Make.rules</tt> file to make use of those hooks.
 
-\begin{verbatim}
+<pre>
 ${//-RECURSIVE:.=.install-copy}:
 install-copy:       ${//-RECURSIVE:.=.install-copy}    $/.install-copy
 define .RULE-install-copy
@@ -733,41 +835,43 @@ ${1:.=.install-copy}: $${${1:.=.SUBS}:.=.install-copy}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy,$x)))
-\end{verbatim}
-All \verb+.install+ targets have a \verb+.install-copy+ target defined
-which depends on the \verb+.install-copy+'s of the children.  A dummy
+</pre>
+
+All <tt>.install</tt> targets have a <tt>.install-copy</tt> target defined
+which depends on the <tt>.install-copy</tt>'s of the children.  A dummy
 target is defined for legacy builds to prevent certain kinds of
 build problems, but it is never normally invoked.
 
-\begin{verbatim}
+<pre>
 install:       ${//-RECURSIVE:.=.install}    $/.install
 define .RULE-install
 ${1:.=.install}: ${1:.=.all} ${1:.=.install-copy}
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install,$x)))
-\end{verbatim}
+</pre>
+
 An install in a directory is equivalent to doing an install in
 the legacy directories, a build in the current directory (and
 its children) and an install copy in the current directory
 (and its children).
 
 The benefit of this separation of tasks for install is that
-the \verb+install-copy+ phase of the build can be invoked as a
+the <tt>install-copy</tt> phase of the build can be invoked as a
 separate target to selectively copy targets into the install
 directory, whcih might be needed in some special cases.  One
-major disadvantage of this separation is that because \verb+install-copy+
-does not depend on \verb+all+, a multithreaded invocation of
-\verb+gmake+ (i.e. \verb+gmake -j4+) is not guarranteed to perform
-\verb+install-copy+ after \verb+all+.
+major disadvantage of this separation is that because <tt>install-copy</tt>
+does not depend on <tt>all</tt>, a multithreaded invocation of
+<tt>gmake</tt> (i.e. <tt>gmake -j4</tt>) is not guarranteed to perform
+<tt>install-copy</tt> after <tt>all</tt>.
 
-\section{Anatomy of the Make.rules}
+== Anatomy of the Make.rules ==
 
 The execution of commands other than cleaning commands is determined
-by the file \verb+Make.rules+ (cvs revision 1.25).  This file defines
+by the file <tt>Make.rules</tt> (cvs revision 1.25).  This file defines
 file types and actions to be taken to rebuild files.
 
-\begin{verbatim}
+<pre>
 define .FUN-install-copy
 	@ files='$$(strip $1)'; dirs='$$(strip $2)'; \
 	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
@@ -816,24 +920,26 @@ define .FUN-install-copy-script
 	  done ; \
         fi
 endef
-\end{verbatim}
+</pre>
+
 These are three similar helper functions.
 The first of these copies its first
-argument, \verb+files+, into all of the directories specified in the
-second argument, \verb+dirs+ (which are assumed to be subdirs of
-\verb+INSTALL/+).  It checks for existence and tries to create
+argument, <tt>files</tt>, into all of the directories specified in the
+second argument, <tt>dirs</tt> (which are assumed to be subdirs of
+<tt>INSTALL/</tt>).  It checks for existence and tries to create
 directories as it needs.  The second function is similar to the first
 but it is for executable binaries, which require a special suffix
-(e.g. \verb+.exe+) on some platforms.  The third function is similar to the
-first, but it also takes a third argument \verb+sheb+ which is the
-{\em shebang} line for a script.  It replaces the shebang line of the
-contents of the \verb+sheb+ variable.
+(e.g. <tt>.exe</tt>) on some platforms.  The third function is similar to the
+first, but it also takes a third argument <tt>sheb</tt> which is the
+'''shebang''' line for a script.  It replaces the shebang line of the
+contents of the <tt>sheb</tt> variable.
 
 The rest of the file is the set of rule blocks, each block dealing with
 a certain file type.
 
 The first section, which is the largest, is the one for C and C++.
-\begin{verbatim}
+
+<pre>
 __DEPGOALS__     +=                 $$(patsubst %,%.d,$${${1:.=.C_SRCS}})
 ALL_C_DEPS       :=$(foreach x,${//},$(patsubst %,%.d,${${x:.=.C_SRCS}}))
 ${ALL_C_DEPS}:%.d:%
@@ -849,16 +955,17 @@ ${ALL_CXX_DEPS}:%.d:%
 	 dir=`echo $< | sed -e's~[^/]*$$~~'`; \
 	  ${CXXDEP} ${CXXDEPFLAGS} ${CXXFLAGS} $< | \
 	  sed -e"/:/s!^!$${dir}!" > $@
-\end{verbatim}
+</pre>
+
 This section specifies the compiler dependencies which must be
 detected.  Dependency files are made for all source files
-(set to \verb+$/.C_SRCS+ and \verb+$/.CXX_SRCS+ presumably in
-the \verb+$/Make.include+ file).  These
-names are added to the \verb+___DEPGOALS__+ to be included later
-in the \verb+Makefile+.  We also have the rule for constructing
+(set to <tt>$/.C_SRCS</tt> and <tt>$/.CXX_SRCS</tt> presumably in
+the <tt>$/Make.include</tt> file).  These
+names are added to the <tt>___DEPGOALS__</tt> to be included later
+in the <tt>Makefile</tt>.  We also have the rule for constructing
 dependency files from source files.
 
-\begin{verbatim}
+<pre>
 .PRECIOUS: %.o
 
 %.o: %.c
@@ -873,11 +980,12 @@ dependency files from source files.
 %.o: %.C
 	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} -o $@ -c $<
 
-\end{verbatim}
+</pre>
+
 Pattern-driven rules are specified for several kinds of
 object code builds.
 
-\begin{verbatim}
+<pre>
 ALL_C_EXES   :=$(strip $(foreach x,${//},${${x:.=.C_EXES}}))
 ${ALL_C_EXES}:
 	${-CC} ${CC} ${CLDFLAGS} -o $@ $+ ${CLIBS}
@@ -887,11 +995,12 @@ ALL_CXX_EXES :=$(strip $(foreach x,${//},${${x:.=.CXX_EXES}}))
 ${ALL_CXX_EXES}:
 	${-CXX} ${CXX} ${CXXLDFLAGS} -o $@ $+ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.CXX_EXES}}
-\end{verbatim}
-We add to the subgoals the executable programs \verb+$/.C_EXES+ and
-\verb+$/.CXX_EXES+.  They are constructed by a link command.
+</pre>
 
-\begin{verbatim}
+We add to the subgoals the executable programs <tt>$/.C_EXES</tt> and
+<tt>$/.CXX_EXES</tt>.  They are constructed by a link command.
+
+<pre>
 define .RULE-install-copy-C-CXX-EXES
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-EXES}
 ${1:.=.install-copy-C-CXX-EXES}:
@@ -899,11 +1008,12 @@ ${1:.=.install-copy-C-CXX-EXES}:
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-EXES,$x)))
-\end{verbatim}
-We add to each \verb+.install-copy+ rule the action that executable
-binaries be copied to the subdirectory \verb+bin/+.
+</pre>
 
-\begin{verbatim}
+We add to each <tt>.install-copy</tt> rule the action that executable
+binaries be copied to the subdirectory <tt>bin/</tt>.
+
+<pre>
 ALL_C_LIBS   :=$(strip $(foreach x,${//},${${x:.=.C_LIBS}}))
 ${ALL_C_LIBS}:
 	${-CC} ${RM} $@ && ${AR} ${ARFLAGS} $@ $^
@@ -923,16 +1033,17 @@ ALL_CXX_SHLIBS   :=$(strip $(foreach x,${//},${${x:.=.CXX_SHLIBS}}))
 ${ALL_CXX_SHLIBS}:
 	${-CXX} ${RM} $@ && ${CXX} ${CXXLDFLAGS} ${SHLIB_FLAGS} ${${_OS_}_SHLIB_FLAGS} -o $@ $^ ${CXXLIBS}
 __SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
-\end{verbatim}
+</pre>
+
 Additional C,C++ subgoals include libraries and shared libraries.  It is
 unfortunate that AIX has a fairly different means of producing shared
 libraries than other operating systems.  This is the only place in the
-rules where the \verb+_OS_+ variable (defined in \verb+Make.compilers+)
+rules where the <tt>_OS_</tt> variable (defined in <tt>Make.compilers</tt>)
 is a factor in determining the rule.  If more situations
 like this arise, it may be necessary to redesign the interactions
-between \verb+Make.rules+ and \verb+Make.compilers+.
+between <tt>Make.rules</tt> and <tt>Make.compilers</tt>.
 
-\begin{verbatim}
+<pre>
 define .RULE-install-copy-C-CXX-LIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
 ${1:.=.install-copy-C-CXX-LIBS}:
@@ -950,13 +1061,14 @@ ${1:.=.install-copy-CXX-SHLIBS}:
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-CXX-SHLIBS,$x)))
-\end{verbatim}
-Libraries and shared libraries are copied to the subdirectory
-\verb+lib/$/.LIB/+, i.e. to \verb+lib/+ or some subdirectory of
-\verb+lib/+ specified by the  variable \verb+$/.LIB/+, which is
-presumably set in the \verb+$/Make.include+.
+</pre>
 
-\begin{verbatim}
+Libraries and shared libraries are copied to the subdirectory
+<tt>lib/$/.LIB/</tt>, i.e. to <tt>lib/</tt> or some subdirectory of
+<tt>lib/</tt> specified by the  variable <tt>$/.LIB/</tt>, which is
+presumably set in the <tt>$/Make.include</tt>.
+
+<pre>
 define .RULE-install-copy-C-CXX-INCS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-INCS}
 ${1:.=.install-copy-C-CXX-INCS}:
@@ -965,14 +1077,16 @@ ${1:.=.install-copy-C-CXX-INCS}:
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
-\end{verbatim}
-If include files are defined in \verb+$/.C_INCS+ or \verb+$/.CXX_INCS+
-then these are copied directly to \verb+include/+ or one of its
-subdirectories, specified by \verb+$/.INCLUDE/+.
+</pre>
+
+If include files are defined in <tt>$/.C_INCS</tt> or <tt>$/.CXX_INCS</tt>
+then these are copied directly to <tt>include/</tt> or one of its
+subdirectories, specified by <tt>$/.INCLUDE/</tt>.
 
 There is a section which builds ps and pdf documents from
-\LaTeX files.
-\begin{verbatim}
+LaTeX files.
+
+<pre>
 %.dvi: %.tex
 	${-LATEX} cd `dirname $<` && ${LATEX} `basename $<` && ${LATEX} `basename $<`
 
@@ -981,10 +1095,11 @@ There is a section which builds ps and pdf documents from
 
 %.bbl: %.aux
 	${-LATEX} cd `dirname $<` && ${BIBTEX} `basename ${<:.aux=}`
-\end{verbatim}
-These are the commands to invoke \LaTeX, based on file pattern.
+</pre>
 
-\begin{verbatim}
+These are the commands to invoke LaTeX, based on file pattern.
+
+<pre>
 ALL_TEX_PS    :=$(strip $(foreach x,${//},${${x:.=.TEX_PS}}))
 ALL_TEX_PDF   :=$(strip $(foreach x,${//},${${x:.=.TEX_PDF}}))
 
@@ -994,12 +1109,13 @@ ${ALL_TEX_PS} ${ALL_TEX_PDF:.pdf=.ps}: %.ps: %.dvi
 ${ALL_TEX_PDF}: %.pdf: %.ps
 	${-LATEX} ${PS2PDF} $< $@
 __SUBGOALS__+=$${${1:.=.TEX_PS}} $${${1:.=.TEX_PDF}}
-\end{verbatim}
-The \verb+$/.TEX_PS+ and \verb+$/.TEX_PDF+ files are added to the
+</pre>
+
+The <tt>$/.TEX_PS</tt> and <tt>$/.TEX_PDF</tt> files are added to the
 subgoals.  The commands to actually construct ps and pdf files 
 have been defined.
 
-\begin{verbatim}
+<pre>
 define .RULE-install-copy-TEX_PSPDF
 ${1:.=.install-copy}: ${1:.=.install-copy-TEX_PSPDF}
 ${1:.=.install-copy-TEX_PSPDF}:
@@ -1008,11 +1124,12 @@ ${1:.=.install-copy-TEX_PSPDF}:
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-TEX_PSPDF,$x)))
-\end{verbatim}
-The ps and pdf files are copied to \verb+doc/+ or the
-\verb+$/.DOC/+ subdirectory of \verb+doc/+.
+</pre>
 
-\begin{verbatim}
+The ps and pdf files are copied to <tt>doc/</tt> or the
+<tt>$/.DOC/</tt> subdirectory of <tt>doc/</tt>.
+
+<pre>
 define .RULE-install-copy-PYTHON
 ${1:.=.install-copy}: ${1:.=.install-copy-PYTHON}
 ${1:.=.install-copy-PYTHON}:
@@ -1024,18 +1141,19 @@ ${1:.=.install-copy-PYTHON}:
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
-\end{verbatim}
-Python scripts require only copying, but with the shebang mangling
-on the \verb+$/.PY_EXES+ files.  The \verb+$/.PY_EXES+ files get
-copied (and shebang-ed) to \verb+scripts/+, and the
-\verb+$/.PY_LIBS+ get copied to \verb+lib/$/.PY_LIB/+.
+</pre>
 
-Similar versions of this rule block exist for \verb+perl+ and \verb+sh+
+Python scripts require only copying, but with the shebang mangling
+on the <tt>$/.PY_EXES</tt> files.  The <tt>$/.PY_EXES</tt> files get
+copied (and shebang-ed) to <tt>scripts/</tt>, and the
+<tt>$/.PY_LIBS</tt> get copied to <tt>lib/$/.PY_LIB/</tt>.
+
+Similar versions of this rule block exist for <tt>perl</tt> and <tt>sh</tt>
 libraries and executables.
 
-\section{Anatomy of Make.compilers}
+== Anatomy of Make.compilers ==
 
-The \verb+Make.compilers+ file (cvs revision 1.50) sets many platform
+The <tt>Make.compilers</tt> file (cvs revision 1.50) sets many platform
 dependent variables as well as compiling modes such as debugging or
 profiling.  Additionally, the paths for various libraries and
 utilities are set.  The first part of the file ascertains the platform
@@ -1045,7 +1163,7 @@ or mode.  This will not be a line by line walkthrough.  Instead we
 will list important variables being set and what they mean for the
 other parts of the build system.
 
-\begin{verbatim}
+<pre>
 VALID_OPERATING_SYSTEM:=$(strip \
     TRU64  \
     AIX    \
@@ -1058,15 +1176,16 @@ VALID_OPERATING_SYSTEM:=$(strip \
     Linux|RH9 \
     default|I-will-take-my-chances \
 )
-\end{verbatim}
+</pre>
+
 Our current thinking is that a platform consists of both an operating
 system and possible additional specifications.  In our current work
 situation, the admins have defined an environment variable called
-\verb+OPERATING_SYSTEM+ for us which we now use as a platform
+<tt>OPERATING_SYSTEM</tt> for us which we now use as a platform
 identifier, despite the obvious misuse of the word.  This variable defines
 those values of that variable which the build system will respect.
 
-\begin{verbatim}
+<pre>
 ifdef OPERATING_SYSTEM
   ifneq ($(filter ${OPERATING_SYSTEM},${VALID_OPERATING_SYSTEM}),)
     _OS|FULL_:=${OPERATING_SYSTEM}
@@ -1086,22 +1205,23 @@ OPERATING_SYSTEM to a recognized value, possibly after editing the \
 Make.compilers file of the build system.  Currently, the recognized values \
 for OPERATING_SYSTEM are: ${VALID_OPERATING_SYSTEM}  )
 endif
-\end{verbatim}
-The \verb+OPERATING_SYSTEM+ variable is parsed into its major identifier,
-in \verb+_OS_+ and its full identifier \verb+_OS|FULL_+.  This allows us
-to create conditions for the machine architecture based on \verb+_OS_+
-as well as for the specific installation and auxilliary packages on the
-platform based on \verb+_OS|FULL_+.
+</pre>
 
-If the \verb+OPERATING_SYSTEM+ variable is not set correctly, then the
+The <tt>OPERATING_SYSTEM</tt> variable is parsed into its major identifier,
+in <tt>_OS_</tt> and its full identifier <tt>_OS|FULL_</tt>.  This allows us
+to create conditions for the machine architecture based on <tt>_OS_</tt>
+as well as for the specific installation and auxilliary packages on the
+platform based on <tt>_OS|FULL_</tt>.
+
+If the <tt>OPERATING_SYSTEM</tt> variable is not set correctly, then the
 build will abort.  We chose this as opposed to some default behavior because
-we figured that if \verb+OPERATING_SYSTEM+ was left unset or there was
+we figured that if <tt>OPERATING_SYSTEM</tt> was left unset or there was
 some error in its value, that building with the default definitions, instead
 of being alerted to the problem harshly, would waste a lot of time.
 If the user really wants all default behavior, a value of
-\verb+OPERATING_SYSTEM+ exists for that.
+<tt>OPERATING_SYSTEM</tt> exists for that.
 
-\begin{verbatim}
+<pre>
 _CC_:=
 ifdef WITH_GNU
   _CC_:=-gcc
@@ -1119,45 +1239,50 @@ _THR_:=
 ifdef WITH_THREADS
   _THR_:=-threaded
 endif
-\end{verbatim}
-If \verb+_CC_+ is set to '-gcc'
+</pre>
+
+If <tt>_CC_</tt> is set to '-gcc'
 then GNU compilers will be used, and if it is empty and native
 compilers will be used.
-There are three \verb+_OPT_+ modes: 'debug', 'profile',
-and '' (normal).  There is also a \verb+_THR_+ variable which determines
+There are three <tt>_OPT_</tt> modes: 'debug', 'profile',
+and '' (normal).  There is also a <tt>_THR_</tt> variable which determines
 if the applications are to be compiled with threading.  A user wishing
 to build with profiling and threading enabled would do something like
-\begin{verbatim}
+
+<pre>
 $ gmake WITH_OPT=profile WITH_THREADS=1
-\end{verbatim}
+</pre>
+
 to turn these options on.  One could also set these variable in the
 environment.
 
-\begin{verbatim}
+<pre>
 # allow additional tag for install directories
 ifdef INSTALL_TAG
   INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}-${INSTALL_TAG}/
 else
   INSTALL/:=${MAKEFILE/}${_OS_}${_CC_}${_OPT_}${_THR_}/
 endif
-\end{verbatim}
-The \verb+INSTALL/+ directory is set.  It is based on the location
-of the \verb+Makefile+ and the given tags.
-If the user has defined a the variable \verb+INSTALL_TAG+ than this
-will be added to the \verb+INSTALL/+ directory.
+</pre>
 
-\begin{verbatim}
+The <tt>INSTALL/</tt> directory is set.  It is based on the location
+of the <tt>Makefile</tt> and the given tags.
+If the user has defined a the variable <tt>INSTALL_TAG</tt> than this
+will be added to the <tt>INSTALL/</tt> directory.
+
+<pre>
 CCDEP		 :=gcc
 CXXDEP		 :=g++
 CDEPFLAGS        :=-MM -MG
 CXXDEPFLAGS      :=-MM -MG
-\end{verbatim}
+</pre>
+
 The GNU compilers have much more sophisticated dependency producers than
 the native compilers, so we will use them for all architectures.  In
 theory this could cause bugs due to the mismatch between depends and
 build compilers.  In practice, it does not.
 
-\begin{verbatim}
+<pre>
 -CC:=
 -CXX:=
 CC:=gcc
@@ -1173,39 +1298,43 @@ CXXLIBS:=-lm
 SHLIB_FLAGS:=-shared
 C_TMP_COMPILE:=
 CXX_TMP_COMPILE:=
-\end{verbatim}
+</pre>
+
 Each block begins with the declaration of the variables to be defined
 in that block, set to their default values.
-The \verb+CFLAGS,CXX_FLAGS+
+The <tt>CFLAGS,CXX_FLAGS</tt>
 variables are those compile flags which are needed by bith the
 dependency check and by the actual compile such as
-include paths.  The \verb+CFLAGS_COMPILE+
-and \verb+CXXFLAGS_COMPILE+ flags are those which are only needed by
+include paths.  The <tt>CFLAGS_COMPILE</tt>
+and <tt>CXXFLAGS_COMPILE</tt> flags are those which are only needed by
 the actual compile, not by the dependency checker, like debugging
-and profiling flags.  The \verb+CLDFLAGS,CXXLDFLAGS+ are the flags
+and profiling flags.  The <tt>CLDFLAGS,CXXLDFLAGS</tt> are the flags
 for the compiler when functioning as a loader and are placed on
 the loader command line ahead of the object files.  The
-\verb+CLIBS,CXXLIBS+ are placed on the loader command line after the
+<tt>CLIBS,CXXLIBS</tt> are placed on the loader command line after the
 object files.  The role of each of these flags is made clear from the
-\verb+Make.rules+ file, where they are used.
+<tt>Make.rules</tt> file, where they are used.
 
-The \verb+-VAR+ variables prefix all action lines of a given category.
+The <tt>-VAR</tt> variables prefix all action lines of a given category.
 They are designed to allow the build to ignore errors in those actions.
 This was motivated primarily by the fact that some systems did not have
-some key packages installed like \LaTeX.
-\begin{verbatim}
+some key packages installed like LaTeX.
+
+<pre>
 ifeq (${_OS|FULL_},SunOS|francisco's)
   -LATEX :=-
 endif
-\end{verbatim}
-This causes a \verb+-+ to appear before any one of the actions in the
-\LaTeX section of the \verb+Make.rules+ file.  That \verb+-+ will cause
+</pre>
+
+This causes a <tt>-</tt> to appear before any one of the actions in the
+LaTeX section of the <tt>Make.rules</tt> file.  That <tt>-</tt> will cause
 the build to ignore any errors in the execution of those actions.
 
-The \verb+Make.compilers+ file is not just about defining the compilers
+The <tt>Make.compilers</tt> file is not just about defining the compilers
 and interpreters on the system.  It is also used to make available certain
 architecture dependent package locations.
-\begin{verbatim}
+
+<pre>
 CFLAGS_LAPACK   :=-DFTN_UNDERSCORE -DFTN_LOWERCASE
 CLDFLAGS_LAPACK :=-L/usr/local/lib
 CLIBS_LAPACK    :=-llapack -lblas -lm
@@ -1231,15 +1360,16 @@ endif
 CXXFLAGS_LAPACK   :=${CFLAGS_LAPACK}
 CXXLDFLAGS_LAPACK :=${CLDFLAGS_LAPACK}
 CXXLIBS_LAPACK    :=${CLIBS_LAPACK}
-\end{verbatim}
+</pre>
+
 Some modules use LAPACK.  Although these variables do not get used
 in any of the rules of the build system, we define them in 
-\verb+Make.compilers+ so that they can be used in the various
-\verb+Make.include+ files which need LAPACK.  This is one case
-there the \verb+_OS|FULL_+ is useful, since different platforms
+<tt>Make.compilers</tt> so that they can be used in the various
+<tt>Make.include</tt> files which need LAPACK.  This is one case
+there the <tt>_OS|FULL_</tt> is useful, since different platforms
 install LAPACK in all sorts of ways.
 
-\begin{verbatim}
+<pre>
 PYTHON    :=$(shell which python)
 PYTHON_FLAGS :=
 CFLAGS_PY    :=-I/usr/local/include/python
@@ -1255,14 +1385,16 @@ ifeq (${_OS_},cygwin)
   CFLAGS_PY :=-I/usr/include/python2.3
 endif
 CXXFLAGS_PY :=${CFLAGS_PY}
-\end{verbatim}
+</pre>
+
 Python and its paths for the known architectures are determined here.  On
 unknown architectures we guess where python is based on the user's path.
 
-\section{Acknowledgements}
+== Acknowledgements ==
 
 The guilty parties who gave me advice are Nathan Edwards, Dan Fasulo,
 Bjarni Halldorsson, and Clark Mobarry.
 
-\end{document}
+== Author ==
 
+Ross Lippert, ripper@..., 17 Oct 2003.
