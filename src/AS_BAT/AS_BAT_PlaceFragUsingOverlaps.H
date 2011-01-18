@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.2 2010-12-16 03:27:13 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.3 2011-01-18 22:36:35 brianwalenz Exp $";
 
 class overlapPlacement {
 public:
@@ -44,20 +44,6 @@ public:
   };
   ~overlapPlacement() {
   };
-
-  //  Sort by:
-  //    tigID
-  //    orientation
-  //    position
-#if 0
-  bool operator<(const overlapPlacement &that) const {
-    if (tigID != that.tigID)
-      return(tigID < that.tigID);
-    if (isReverse(position) != isReverse(that.position))
-      return(isReverse(position) < isReverse(that.position));
-    return(position < that.position);
-  };
-#endif
 
 public:
   uint32            frgID;      //  ID of the fragment this position is for.
