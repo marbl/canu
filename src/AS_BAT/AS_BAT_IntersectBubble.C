@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.6 2011-01-06 19:13:35 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.7 2011-01-18 22:36:10 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -457,20 +457,25 @@ popIntersectionBubble(UnitigVector &unitigs,
   uint32  fIdx = 0;
   uint32  lIdx = shortTig->ufpath.size() - 1;
 
-  //  We'd like to claim that all unitigs begin with a non-contained fragment, but zombie fragments (promoted to a unitig)
-  //  violate this.  So, we could then claim that unitigs with more than one fragment begin with a non-contained fragment.  But
-  //  and zombie that has a bubble popped into it violate this (bubbles 
+  //  We'd like to claim that all unitigs begin with a non-contained fragment, but zombie fragments
+  //  (contained fragments that are in a circular containment relationship) violate this.  So, we
+  //  could then claim that unitigs with more than one fragment begin with a non-contained fragment.
+  //  But any zombie that has a bubble popped into it violate this.
+  //
+  //  We hope that any unitig that doesn't start with a non-contained fragment won't be a bubble, in
+  //  particular, that there won't be non-contained fragments somewhere in that unitig.
 
-  //  Zombie fragments (circular containments) violate this constraint.  So we just ignore it for
-  //  singleton unitigs, and completely skip searching for the last non-contained in that case.
-
-
-  if (shortTig->ufpath.size() > 1) {
-    assert(OG->isContained(shortTig->ufpath[fIdx].ident) == false);
-
-    while (OG->isContained(shortTig->ufpath[lIdx].ident) == true)
-      lIdx--;
+  if (OG->isContained(shortTig->ufpath[fIdx].ident) == true) {
+    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments STARTS WITH A CONTAINED FRAGMENT %d\n",
+            shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
+            shortTig->ufpath[fIdx].ident);
+    return(false);
   }
+
+  //  Now, find the last non-contained fragment.
+
+  while ((lIdx > 0) && (OG->isContained(shortTig->ufpath[lIdx].ident) == true))
+    lIdx--;
 
   ufNode  fFrg = shortTig->ufpath[fIdx];  //  NOTE:  A COPY, not a pointer or reference.
   ufNode  lFrg = shortTig->ufpath[lIdx];  //         These get modified.
