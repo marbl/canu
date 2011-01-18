@@ -22,8 +22,10 @@
 #ifndef INCLUDE_AS_BAT_PLACEZOMBIES
 #define INCLUDE_AS_BAT_PLACEZOMBIES
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEZOMBIES = "$Id: AS_BAT_PlaceZombies.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEZOMBIES = "$Id: AS_BAT_PlaceZombies.H,v 1.2 2011-01-18 22:37:22 brianwalenz Exp $";
 
-void placeZombies(UnitigVector &unitigs);
+void
+placeZombies(UnitigVector &unitigs,
+             OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit);
 
 #endif  //  INCLUDE_AS_BAT_PLACEZOMBIES

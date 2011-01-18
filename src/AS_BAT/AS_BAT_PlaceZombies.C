@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.3 2011-01-18 22:37:22 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -29,46 +29,45 @@ static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.2 2010-12-06 08:03:48
 #include "AS_BAT_PlaceZombies.H"
 
 
-//  Zombies are either caused by a bug (hope not) or by a contained fragment being contained in something that
-//  is eventually contained in the original fragment.  A contains B, B contains C....and C contains A.
+//  Zombies are caused by a fragment being contained in a fragment that is eventually contained in
+//  the original fragment -- circular containmnents.
+//
+//  Here we detect Zombies, and reset their best container to something that is already placed.
 
 void
-placeZombies(UnitigVector &unitigs) {
+placeZombies(UnitigVector &unitigs,
+             OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit) {
 
   fprintf(logFile, "==> SEARCHING FOR ZOMBIES\n");
 
   uint32 *inUnitig   = new uint32 [FI->numFragments()+1];
   int     numZombies = 0;
 
-  //  Mark fragments as dead.
-  //
+  //  Mark fragments as dead, then unmark them if they are in a real living unitig.
+
   for (uint32 i=0; i<FI->numFragments()+1; i++)
     inUnitig[i] = noUnitig;
 
-  //  ZZZzzzzaapaapppp!  IT'S ALIVE!
-  //
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig  *utg = unitigs[ti];
 
     if (utg == NULL)
       continue;
 
-    for (uint32 fi=0; fi<utg->ufpath.size(); fi++) {
-      ufNode  *frag = &utg->ufpath[fi];
-
-      inUnitig[frag->ident] = utg->id();
-    }
+    for (uint32 fi=0; fi<utg->ufpath.size(); fi++)
+      inUnitig[utg->ufpath[fi].ident] = utg->id();
   }
 
-  //  Anything still dead?
-  //
+  //  For anything not in a living unitig, reload the overlaps and find a new container.
+  //  (NOT IMPLEMENTED - for now we just move these to new singleton unitigs).
+
   for (uint32 i=0; i<FI->numFragments()+1; i++) {
     if (FI->fragmentLength(i) == 0)
       //  Deleted fragment
       continue;
 
     if (inUnitig[i] != noUnitig)
-      //  Valid fragment in a unitig, other errors caught in checkUnitigMembership()
+      //  Valid fragment in a unitig
       continue;
 
     Unitig      *utg = new Unitig(false);
