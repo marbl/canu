@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.8 2011-01-03 05:19:08 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.9 2011-01-18 22:35:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -181,12 +181,13 @@ main(int argc, char **argv) {
   gkl.mean                       = insertSize;
   gkl.stddev                     = insertStdDev;
 
+  gkl.shortOverlapModel		 = 1;
   gkl.forceBOGunitigger          = 1;
-  gkl.shortOverlapModel		     = 1;
   gkl.isNotRandom                = 0;
 
   gkl.doNotTrustHomopolymerRuns  = 0;
 
+  gkl.doMerBasedTrimming         = 1;
   gkl.doRemoveDuplicateReads     = 0;
   gkl.doNotQVTrim                = 0;
   gkl.goodBadQVThreshold         = 0;
@@ -246,8 +247,6 @@ main(int argc, char **argv) {
 
   for (int32 i=0; i<fastqLen; i++)
     addFeature(&libMesg, "illuminaSequence", fastq[i]);
-
-  addFeature(&libMesg, "doMerBasedTrimming", "1");
 
   //  Emit the VER and LIB messages.  Enable version 2, write the LIB, switch back to version 1.
 
