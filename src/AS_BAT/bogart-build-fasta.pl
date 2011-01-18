@@ -8,6 +8,10 @@ my $REF      = "../../AE015924.fasta";
 my $withSGE  = 0;
 my $withPart = 0;
 
+if (scalar(@ARGV) == 0) {
+    die "usage: $0 [-sge] [-partition] PREFIX.tigStore REFERENCE.FASTA\n";
+}
+
 while (scalar(@ARGV) > 0) {
     if ($ARGV[0] eq "-sge") {
         $withSGE = 1;
@@ -17,16 +21,24 @@ while (scalar(@ARGV) > 0) {
 
     } else {
         $FILE = $ARGV[0];
+        $REF  = $ARGV[1];
+        shift @ARGV;
     }
 
     shift @ARGV;
 }
 
+if ($FILE =~ m/^(.*).tigStore/) {
+    $FILE = $1;
+}
+
 if ($FILE =~ m/^(.*)\.\d\d\d\./) {
     $prefix = $1;
 } else {
-    die "Failed to find prefix in '$FILE'\n";
+    die "Failed to find prefix in '$FILE', expecting PREFIX.###.tigStore.\n";
 }
+
+die "Failed to find reference '$REF'\n" if (! -e $REF);
 
 my %detected1;
 my %detected2;
