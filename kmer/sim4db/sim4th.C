@@ -582,6 +582,8 @@ main(int argc, char **argv) {
   ss->setNumberOfWorkers(numThreads);
   ss->run(0L, beVerbose);
 
+  delete ss;
+
   //  Only close the file if it isn't stdout
   //
   if (strcmp(outputFileName, "-") != 0)
@@ -592,6 +594,8 @@ main(int argc, char **argv) {
 
   delete scriptFile;
 
+  delete ESTs;
+  delete GENs;
 
   exit(0);
 }
