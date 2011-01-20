@@ -38,23 +38,15 @@ u32bit  minQuality        = 95;
 
 sim4polishWriter *W = 0L;
 
-void
-printSummary(void) {
-  fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\r",
-          statOneMatch,
-          statConsistent, consistentTie, consistentMatches, consistentIdentity, consistentNot,
-          statInconsistent,
-          statUnique, statLost);
-}
 
 
 void
-pickBestSlave(sim4polish **p, u32bit pNum) {
+pickUniqueSlave(sim4polish **p, u32bit pNum) {
   u32bit        identitym = 0, nmatchesm = 0;  //  Best score for the mList
   u32bit        identityi = 0, nmatchesi = 0;  //  Best score the the iList
   u32bit        matchi = 0,    matchm = 0;
 
-  //  Difficult choice here....
+ //  Difficult choice here....
   //
   if (pNum == 1) {
     statOneMatch++;
@@ -167,8 +159,88 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
   } else {
     statLost++;
   }
+}
 
-  //printSummary();
+
+
+
+
+//  Delete all matches that are spanned, report everything else.
+//  Matches that are close ties in span, but are clearly lower quality are deleted.
+//
+void
+pickCoveringSlave(sim4polish **p, u32bit pNum) {
+  u32bit  ibgn, iend, jbgn, jend;
+
+
+  for (u32bit i=0; i<pNum; i++) {
+    if (p[i] == NULL)
+      continue;
+
+    if (p[i]->_matchOrientation == SIM4_MATCH_FORWARD) {
+      ibgn = p[i]->_exons[0]._estFrom - 1;
+      iend = p[i]->_exons[0]._estTo;
+    } else {
+      ibgn = p[i]->_estLen - p[i]->_exons[0]._estTo;
+      iend = p[i]->_estLen - p[i]->_exons[0]._estFrom + 1;
+    }
+
+    assert(p[i]->_numExons == 1);
+
+    for (u32bit j=i+1; j<pNum; j++) {
+      if (p[j] == NULL)
+        continue;
+
+      if (p[j]->_matchOrientation == SIM4_MATCH_FORWARD) {
+        jbgn = p[j]->_exons[0]._estFrom - 1;
+        jend = p[j]->_exons[0]._estTo;
+      } else {
+        jbgn = p[j]->_estLen - p[j]->_exons[0]._estTo;
+        jend = p[j]->_estLen - p[j]->_exons[0]._estFrom + 1;
+      }
+
+      //  i contained in j
+      //         ----
+      //       ---------
+      if ((jbgn <= ibgn) && (iend <= jend)) {
+        delete p[i];  p[i] = NULL;
+        break;  //  This i is finished.
+      }
+
+      //  j contained in i
+      //       ---------
+      //         ----
+      if ((ibgn <= jbgn) && (jend <= iend)) {
+        delete p[j];  p[j] = NULL;
+        continue;  //  This j is finished.
+      }
+
+      // i almost contained in j
+      //      ----                    ----
+      //       ---------  OR   ----------
+      if (((jbgn <= ibgn + 5) && (iend <= jend)) ||
+          ((jbgn <= ibgn)     && (iend <= jend + 5))) {
+        delete p[i];  p[i] = NULL;
+        break;  //  This i is finished.
+      }
+
+      // j almost contained in i
+      //       ---------  OR   ----------
+      //      ----                    ----
+      if (((ibgn <= jbgn + 5) && (jend <= iend)) ||
+          ((ibgn <= jbgn)     && (jend <= iend + 5))) {
+        delete p[j];  p[j] = NULL;
+        continue;  //  This j is finished.
+      }
+    }
+  }
+  
+  for (u32bit i=0; i<pNum; i++) {
+    if (p[i] == NULL)
+      continue;
+
+    W->writeAlignment(p[i]);
+  }
 }
 
 
@@ -180,9 +252,12 @@ pickBestSlave(sim4polish **p, u32bit pNum) {
 //  destroy polishes when we're done.
 //
 void
-pickBest(sim4polish **p, u32bit pNum) {
+pickUnique(sim4polish **p, u32bit pNum, bool doCovering) {
 
-  pickBestSlave(p, pNum);
+  if (doCovering)
+    pickCoveringSlave(p, pNum);
+  else
+    pickUniqueSlave(p, pNum);
 
   for (u32bit i=0; i<pNum; i++)
     delete p[i];
@@ -193,20 +268,24 @@ pickBest(sim4polish **p, u32bit pNum) {
 
 int
 main(int argc, char **argv) {
+  bool         doCovering   = false;
   u32bit       pNum         = 0;
-  u32bit       pAlloc       = 8388608;
+  u32bit       pAlloc       = 1048576;
   u32bit       estID        = ~u32bitZERO;
 
   sim4polishStyle  style = sim4polishStyleDefault;
 
   int arg = 1;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-n", 2) == 0) {
-      pAlloc = strtou32bit(argv[++arg], 0L);
+    if        (strncmp(argv[arg], "-c", 2) == 0) {
+      doCovering = true;
+
     } else if (strncmp(argv[arg], "-q", 2) == 0) {
       qualityDifference = strtou32bit(argv[++arg], 0L);
+
     } else if (strcmp(argv[arg], "-gff3") == 0) {
       style = sim4polishGFF3;
+
     } else {
       fprintf(stderr, "unknown option: %s\n", argv[arg]);
     }
@@ -214,7 +293,7 @@ main(int argc, char **argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, "usage: %s [-n numPolishes] [-q qualDiff] [-gff3] < file > file\n", argv[0]);
+    fprintf(stderr, "usage: %s [-q qualDiff] [-gff3] < file > file\n", argv[0]);
 
     if (isatty(fileno(stdin)))
       fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
@@ -236,7 +315,7 @@ main(int argc, char **argv) {
 
   while (R->nextAlignment(q)) {
     if ((q->_estID != estID) && (pNum > 0)) {
-      pickBest(p, pNum);
+      pickUnique(p, pNum, doCovering);
       pNum  = 0;
     }
 
@@ -255,10 +334,15 @@ main(int argc, char **argv) {
   }
 
   if (pNum > 0)
-    pickBest(p, pNum);
+    pickUnique(p, pNum, doCovering);
 
-  printSummary();
-  fprintf(stderr, "\n");
+#if 0
+  fprintf(stderr, "Uni:"u32bitFMTW(8)" Con:"u32bitFMTW(8)" (T:"u32bitFMTW(8)" M:"u32bitFMTW(8)" I:"u32bitFMTW(8)" N:"u32bitFMTW(8)") Inc:"u32bitFMTW(8)" -- Save:"u32bitFMTW(8)" Lost:"u32bitFMTW(8)"\n",
+          statOneMatch,
+          statConsistent, consistentTie, consistentMatches, consistentIdentity, consistentNot,
+          statInconsistent,
+          statUnique, statLost);
+#endif
 
   delete [] p;
 
