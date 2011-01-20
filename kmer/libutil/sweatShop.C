@@ -347,6 +347,10 @@ sweatShop::writer(void) {
 }
 
 
+//  This thread not only shows a status message, but it also updates the critical shared variable
+//  _numberComputed.  Worker threads use this to throttle themselves.  Thus, even if _showStatus is
+//  not set, and this thread doesn't _appear_ to be doing anything useful....it is.
+//
 void*
 sweatShop::status(void) {
 
