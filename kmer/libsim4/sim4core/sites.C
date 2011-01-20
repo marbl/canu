@@ -106,7 +106,7 @@ Sim4::loadGeneSplicerModel()
 
   if(!readtdon) {
    
-    tdon = (tree *) ckalloc(sizeof(tree));
+    tdon = (tree *) malloc(sizeof(tree));
     if (tdon == NULL) {fprintf(stderr,"Memory allocation for tree failure.\n"); abort();}
    
     donmax=readtree(this, DONOR_TREE, tdon, 0);
@@ -115,7 +115,7 @@ Sim4::loadGeneSplicerModel()
     // alloc memory for the tables
     Don_Positive_Table=Load4dim(this,donmax,DONOR_LEN,ALPHABET_SIZE,markov_len);
     Don_Negative_Table=Load4dim(this,donmax,DONOR_LEN,ALPHABET_SIZE,markov_len);
-    Don_Tables_Loaded=(int *) ckalloc(donmax*sizeof(int));
+    Don_Tables_Loaded=(int *) malloc(donmax*sizeof(int));
     if(Don_Tables_Loaded == NULL) {
       fprintf(stderr,"Memory allocation for donor site tables failed.\n");
       abort();
@@ -126,7 +126,7 @@ Sim4::loadGeneSplicerModel()
   if(!readtacc) {
    
     // read the structure of the acceptor tree
-    tacc = (tree *) ckalloc(sizeof(tree));
+    tacc = (tree *) malloc(sizeof(tree));
     if (tacc == NULL) {fprintf(stderr," Memory allocation for tree failure.\n"); abort();}
     accmax=readtree(this, ACCEPTOR_TREE, tacc, 0);
 
@@ -142,7 +142,7 @@ Sim4::loadGeneSplicerModel()
     // alloc memory for the tables
     Acc_Positive_Table=Load4dim(this,accmax,ACCEPTOR_LEN,ALPHABET_SIZE,markov_len);
     Acc_Negative_Table=Load4dim(this,accmax,ACCEPTOR_LEN,ALPHABET_SIZE,markov_len);
-    Acc_Tables_Loaded=(int *) ckalloc(accmax*sizeof(int));
+    Acc_Tables_Loaded=(int *) malloc(accmax*sizeof(int));
     if(Acc_Tables_Loaded == NULL) {
       fprintf(stderr,"Memory allocation for acceptor site tables failed.\n");
       abort();
@@ -151,7 +151,7 @@ Sim4::loadGeneSplicerModel()
   }
 }
 
-#if 0
+#if 1
 //  This stuff is now garbage collected.
 void free4dim(float ****ptr,int d1, int d2, int d3)
 {
@@ -161,15 +161,15 @@ void free4dim(float ****ptr,int d1, int d2, int d3)
     for(j=0;j<d2;j++) {
       for(k=0;k<d3;k++) {
 	if(ptr[i][j][k] != NULL ) 
-          ckfree(ptr[i][j][k]);
+          free(ptr[i][j][k]);
       }
       if(ptr[i][j] != NULL ) 
-        ckfree(ptr[i][j]);
+        free(ptr[i][j]);
     }
     if(ptr[i] != NULL ) 
-      ckfree(ptr[i]);
+      free(ptr[i]);
   }
-  ckfree(ptr);
+  free(ptr);
 }
 
 
@@ -178,7 +178,7 @@ void freetree(tree *t)
   if(t==NULL) return;
   freetree(t->left);
   freetree(t->right);
-  ckfree(t);
+  free(t);
   t=NULL;
 }
 #endif
@@ -188,19 +188,19 @@ Sim4::UnLoadSites_GeneSplicer()
 {
   int i;
 
-  //  Garbage collected!
-  //if(readtacc) {
-  //  free4dim(Acc_Positive_Table,accmax,ACCEPTOR_LEN,ALPHABET_SIZE);
-  //  free4dim(Acc_Negative_Table,accmax,ACCEPTOR_LEN,ALPHABET_SIZE);
-  //  if(Acc_Tables_Loaded  != NULL ) ckfree(Acc_Tables_Loaded);
-  //}
+  //  Garbage collected! (not  yet - needs palloc)
+  if(readtacc) {
+    free4dim(Acc_Positive_Table,accmax,ACCEPTOR_LEN,ALPHABET_SIZE);
+    free4dim(Acc_Negative_Table,accmax,ACCEPTOR_LEN,ALPHABET_SIZE);
+    if(Acc_Tables_Loaded  != NULL ) free(Acc_Tables_Loaded);
+  }
 
-  //  Garbage collected!
-  //if(readtdon) {
-  //  free4dim(Don_Positive_Table,donmax,DONOR_LEN,ALPHABET_SIZE);
-  //  free4dim(Don_Negative_Table,donmax,DONOR_LEN,ALPHABET_SIZE);
-  //  if(Don_Tables_Loaded != NULL ) ckfree(Don_Tables_Loaded);
-  //}
+  //  Garbage collected! (not yet - needs palloc)
+  if(readtdon) {
+    free4dim(Don_Positive_Table,donmax,DONOR_LEN,ALPHABET_SIZE);
+    free4dim(Don_Negative_Table,donmax,DONOR_LEN,ALPHABET_SIZE);
+    if(Don_Tables_Loaded != NULL ) free(Don_Tables_Loaded);
+  }
 
 #ifdef DEBUG
   printf("tacc:\n");
@@ -208,9 +208,9 @@ Sim4::UnLoadSites_GeneSplicer()
   printf("\n");
 #endif
 
-  //  Garbage collected!
-  //if(readtacc) 
-  //  freetree(tacc);
+  //  Garbage collected! (not yet - needs palloc)
+  if(readtacc) 
+    freetree(tacc);
 
 #ifdef DEBUG
   printf("tdon:\n");
@@ -218,9 +218,9 @@ Sim4::UnLoadSites_GeneSplicer()
   printf("\n");
 #endif
 
-  //  Garbage collected!
-  //if(readtdon)
-  //  freetree(tdon);
+  //  Garbage collected! (not yet - needs palloc)
+  if(readtdon)
+    freetree(tdon);
 
   readtacc=FALSE;
   readtdon=FALSE;
@@ -235,25 +235,25 @@ float ****Load4dim(Sim4 *S4, int d1, int d2, int d3, int d4)
   int i,j,k;
   float ****ptr;
   
-  ptr = (float ****) S4->ckalloc(d1 * sizeof(float ***));
+  ptr = (float ****) malloc(d1 * sizeof(float ***));
   if(ptr==NULL) {
     fprintf(stderr,"Memory allocation for splice site tables failed.\n");
     abort();
   }
   for(i=0;i<d1;i++) {
-    ptr[i] = (float ***) S4->ckalloc(d2 * sizeof(float **));
+    ptr[i] = (float ***) malloc(d2 * sizeof(float **));
     if(ptr[i]==NULL) {
       fprintf(stderr,"Memory allocation for splice site tables failed.\n");
       abort();
     }
     for(j=0;j<d2;j++) {
-      ptr[i][j] = (float **) S4->ckalloc(d3*sizeof(float *));
+      ptr[i][j] = (float **) malloc(d3*sizeof(float *));
       if(ptr[i][j]==NULL) {
 	fprintf(stderr,"Memory allocation for splice site tables failed.\n");
 	abort();
       }
       for(k=0;k<d3;k++) {
-	ptr[i][j][k] = (float *) S4->ckalloc(d4*sizeof(float));
+	ptr[i][j][k] = (float *) malloc(d4*sizeof(float));
 	if(ptr[i][j][k]==NULL) {
 	  fprintf(stderr,"Memory allocation for splice site tables failed.\n");
 	  abort();
@@ -301,7 +301,7 @@ Sim4::ScoreAcceptor_GeneSplicer(char *Data)
   if(!readtacc) {
     
     // read the structure of the acceptor tree 
-    tacc = (tree *) ckalloc(sizeof(tree));
+    tacc = (tree *) malloc(sizeof(tree));
     if (tacc == NULL) {fprintf(stderr," Memory allocation for tree failure.\n"); abort();}
     accmax=readtree(this, ACCEPTOR_TREE, tacc, 0);
 
@@ -317,7 +317,7 @@ Sim4::ScoreAcceptor_GeneSplicer(char *Data)
     // alloc memory for the tables
     Acc_Positive_Table=Load4dim(this, accmax,ACCEPTOR_LEN,ALPHABET_SIZE,markov_len);
     Acc_Negative_Table=Load4dim(this, accmax,ACCEPTOR_LEN,ALPHABET_SIZE,markov_len);
-    Acc_Tables_Loaded=(int *) ckalloc(accmax*sizeof(int));
+    Acc_Tables_Loaded=(int *) malloc(accmax*sizeof(int));
     if(Acc_Tables_Loaded == NULL) {
       fprintf(stderr,"Memory allocation for acceptor site tables failed.\n");
       abort();
@@ -395,7 +395,7 @@ Sim4::ScoreDonor_GeneSplicer(char *Data)
 
   if(!readtdon) {
     
-    tdon = (tree *) ckalloc(sizeof(tree));
+    tdon = (tree *) malloc(sizeof(tree));
     if (tdon == NULL) {fprintf(stderr,"Memory allocation for tree failure.\n"); abort();}
     
     donmax=readtree(this, DONOR_TREE, tdon, 0);
@@ -404,7 +404,7 @@ Sim4::ScoreDonor_GeneSplicer(char *Data)
     // alloc memory for the tables
     Don_Positive_Table=Load4dim(this, donmax,DONOR_LEN,ALPHABET_SIZE,markov_len);
     Don_Negative_Table=Load4dim(this, donmax,DONOR_LEN,ALPHABET_SIZE,markov_len);
-    Don_Tables_Loaded=(int *) ckalloc(donmax*sizeof(int));
+    Don_Tables_Loaded=(int *) malloc(donmax*sizeof(int));
     if(Don_Tables_Loaded == NULL) {
       fprintf(stderr,"Memory allocation for donor site tables failed.\n");
       abort();
@@ -504,7 +504,7 @@ int readtree(Sim4 *S4, char *line, tree *t, int start)
  if(line[i]=='(') 
    {
      i=find(line,i+1);
-     t->left = (tree *) S4->ckalloc(sizeof(tree));
+     t->left = (tree *) malloc(sizeof(tree));
      if (t->left == NULL) {fprintf(stderr,"Memory allocation for tree failure.\n"); abort();}
      val=readtree(S4,line,t->left,n);
      if(val>valmax) valmax=val;
@@ -514,7 +514,7 @@ int readtree(Sim4 *S4, char *line, tree *t, int start)
  if(line[i]=='(') 
    {
      i=find(line,i+1);
-     t->right = (tree *) S4->ckalloc(sizeof(tree));
+     t->right = (tree *) malloc(sizeof(tree));
      if (t->right == NULL) {
        fprintf(stderr,"Memory allocation for tree failure.\n"); 
        abort();

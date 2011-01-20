@@ -167,9 +167,9 @@ Sim4::get_dist(int i1, int j1, int i2, int j2, int limit)
 #endif
 
                 /* Free working vectors */
-                free(SS+lower);
-                free(DD+lower);
-                free(II+lower-1);
+                ckfree(SS+lower);
+                ckfree(DD+lower);
+                ckfree(II+lower-1);
                 return 0;
         }
 
@@ -191,9 +191,9 @@ Sim4::get_dist(int i1, int j1, int i2, int j2, int limit)
 #endif
 
                         /* Free working vectors */
-                        free(SS+lower);
-                        free(DD+lower);
-                        free(II+lower-1);
+                        ckfree(SS+lower);
+                        ckfree(DD+lower);
+                        ckfree(II+lower-1);
                         return c;
                 }
         }
@@ -731,12 +731,12 @@ printf("k=%d, SS=%d, RS=%d, DD=%d, RD=%d, II=%d, RI=%d\n",k,SS[k],RS[k],DD[k],RD
         }
 
         /* Free working vectors */
-        free(SS+lower);
-        free(DD+lower);
-        free(II+lower-1);
-        free(RS+rlower);
-        free(RD+rlower-1);
-        free(RI+rlower);
+        ckfree(SS+lower);
+        ckfree(DD+lower);
+        ckfree(II+lower-1);
+        ckfree(RS+rlower);
+        ckfree(RD+rlower-1);
+        ckfree(RI+rlower);
 
         if (flag) {
                 /* Find a path from (i1,j1,type1) to (mi,mj,mtype) */
