@@ -8,7 +8,8 @@ sub findMBTFailures ($) {
 
     for (my $i=1; $i<=$mbtJobs; $i++) {
         my $jobid = substr("0000" . $i, -4);
-        if (-e "$wrk/0-mertrim/$asm.merTrim.\$jobid.log.WORKING") {
+        if (-e "$wrk/0-mertrim/$asm.merTrim.$jobid.log.WORKING") {
+            #print STDERR "FAILURE $wrk/0-mertrim/$asm.merTrim.$jobid.log.WORKING\n";
             $failures++;
         }
     }
@@ -22,7 +23,8 @@ sub findMBTSuccess ($) {
 
     for (my $i=1; $i<=$mbtJobs; $i++) {
         my $jobid = substr("0000" . $i, -4);
-        if (-e "$wrk/0-mertrim/$asm.merTrim.\$jobid.log") {
+        if (-e "$wrk/0-mertrim/$asm.merTrim.$jobid.log") {
+            #print STDERR "SUCCESS $wrk/0-mertrim/$asm.merTrim.$jobid.log\n";
             $successes++;
         }
     }
@@ -166,7 +168,7 @@ sub merTrim {
             my $SGE;
             $SGE  = "qsub $sge $sgeMerTrim -cwd -N mbt_$asm$sgeName \\\n";
             $SGE .= "  -t 1-$mbtJobs \\\n";
-            $SGE .= "  -j y -o $wrk/0-mertrim/$asm.merTrim.\$TASK_ID.err \\\n";
+            $SGE .= "  -j y -o $wrk/0-mertrim/$asm.merTrim.\\\$TASK_ID.sge.err \\\n";
             $SGE .= "  $wrk/0-mertrim/mertrim.sh\n";
 
             submitBatchJobs($SGE, "mbt_$asm$sgeName");
