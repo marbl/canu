@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.10 2010-10-04 08:51:44 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.11 2011-01-25 09:11:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +84,7 @@ public:
   uint64   libraryIID:11;
 
   uint64   clrbeg:AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   frglen:AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   clrlen:AS_READ_MAX_NORMAL_LEN_BITS;
 
   AS_UID   readUID;
 
@@ -107,7 +107,7 @@ loadFragments(gkStore *gkp) {
     frag[iid].matePatternLeft  = 0;
     frag[iid].isDeleted        = fr.gkFragment_getIsDeleted() ? 1 : 0;
     frag[iid].clrbeg           = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
-    frag[iid].frglen           = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTINITIAL);
+    frag[iid].clrlen           = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTINITIAL);
     frag[iid].mateIID          = fr.gkFragment_getMateIID();
     frag[iid].libraryIID       = fr.gkFragment_getLibraryIID();
 
@@ -177,8 +177,8 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
     int32  aend     = ae + frag[ovl->a_iid].clrbeg;
     int32  bend     = be + frag[ovl->b_iid].clrbeg;
     int32  bhang    = bend - aend;
-    int32  aenddiff = frag[ovl->a_iid].frglen - ae;
-    int32  benddiff = frag[ovl->b_iid].frglen - be;
+    int32  aenddiff = frag[ovl->a_iid].clrlen - ae;
+    int32  benddiff = frag[ovl->b_iid].clrlen - be;
 
     double error    = AS_OVS_decodeQuality(ovl->dat.obt.erate);
 
@@ -208,7 +208,7 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
       //
       continue;
 
-    //  For unmated reads, delete if it is a near perfect prefix of somethng else.
+    //  For unmated reads, delete if it is a near perfect prefix of something else.
     //
     //  Since these are partial overlaps, we need to check both that the overlap covers about the
     //  same piece of each fragment, and that it extends to the start of each fragment.
@@ -222,7 +222,7 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
           (bbegdiff <= FRAG_HANG_SLOP) &&
           (aenddiff <= FRAG_HANG_SLOP) && (bhang >= 0) &&
           (error    <= 0.025)) {
-        fprintf(reportFile, "Delete %s,%u DUPof %s,%u (a %d,%d  b %d,%d  hang %d,%d  diff %d,%d  error %f\n",
+        fprintf(reportFile, "Delete %s,%u DUPof %s,%u  a %d,%d  b %d,%d  hang %d,%d  diff %d,%d  error %f\n",
                 AS_UID_toString(frag[ovl->a_iid].readUID), ovl->a_iid,
                 AS_UID_toString(frag[ovl->b_iid].readUID), ovl->b_iid,
                 abeg, aend,
