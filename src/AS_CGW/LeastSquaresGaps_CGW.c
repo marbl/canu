@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.41 2010-08-12 19:19:48 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.42 2011-01-25 21:26:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -693,7 +693,7 @@ void ReportRecomputeData(RecomputeData *data, FILE *stream){
 }
 
 RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
-                                                  CIScaffoldT *scaffold,
+                                                  CDS_CID_t scaffoldID,
                                                   int allowOrderChanges,
                                                   int forceNonOverlaps,
                                                   int verbose){
@@ -737,6 +737,8 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
   data.gapSizeVariance = NULL;
   data.gapsToComputeGaps = NULL;
   data.computeGapsToGaps = NULL;
+
+  CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaffoldID);
 
   CheckInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0, 0, FALSE);
 
@@ -1358,6 +1360,8 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                      CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
                      AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);
                                
+                     scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaffoldID);
+
                      if(GetNodeOrient(toDelete).isForward()){
                        firstOffset = toDelete->offsetAEnd;
                      }else{
@@ -2276,7 +2280,8 @@ void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
         int i;
         for(i = 0; i < 100; i++){
           CheckLSScaffoldWierdnesses("BEFORE", graph, scaffold);
-          status =  RecomputeOffsetsInScaffold(graph, scaffold, TRUE, forceNonOverlaps, verbose);
+          status =  RecomputeOffsetsInScaffold(graph, sID, TRUE, forceNonOverlaps, verbose);
+          scaffold = GetCIScaffoldT(graph->CIScaffolds, sID);
 
           if(status == RECOMPUTE_CONTIGGED_CONTAINMENTS || status == RECOMPUTE_FAILED_CONTIG_DELETED) {
             // We want to restart from the top of the loop, including edge marking

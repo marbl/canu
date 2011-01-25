@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.45 2010-12-08 12:40:53 skoren Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.46 2011-01-25 21:26:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -299,7 +299,7 @@ typedef enum {
   clones are set.
 */
 RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *sgraph,
-                                                  CIScaffoldT *scaffold,
+                                                  CDS_CID_t scaffoldID,
                                                   int allowOrderChanges,
                                                   int forceNonOverlaps,
                                                   int verbose);

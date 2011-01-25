@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.50 2010-08-19 05:28:06 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.51 2011-01-25 21:26:56 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1449,7 +1449,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 #endif
 
 
-      status = RecomputeOffsetsInScaffold(sgraph, scaffold, TRUE, TRUE /* was FALSE*/,FALSE);
+      status = RecomputeOffsetsInScaffold(sgraph, scaffold->id, TRUE, TRUE /* was FALSE*/,FALSE);
       if (status != RECOMPUTE_OK) {
         fprintf(stderr, "RecomputeOffsetsInScaffold failed (%d) for scaffold "F_CID " in CheckScaffolds\n",
                 status, sid);

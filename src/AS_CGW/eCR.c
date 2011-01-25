@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.57 2010-02-17 01:32:58 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.58 2011-01-25 21:26:56 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1061,7 +1061,7 @@ main(int argc, char **argv) {
                                              ALL_EDGES));
 
         status = RecomputeOffsetsInScaffold(ScaffoldGraph,
-                                            GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
+                                            sid,
                                             TRUE, TRUE, FALSE);
       }
     }

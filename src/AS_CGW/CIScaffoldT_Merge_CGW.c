@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.59 2010-12-08 12:40:53 skoren Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.60 2011-01-25 21:26:56 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -3178,8 +3178,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 #endif
 
         status = RecomputeOffsetsInScaffold(ScaffoldGraph,
-                                            GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                                         newScaffoldID),
+                                            newScaffoldID,
                                             TRUE, TRUE, FALSE);
         recomputeIteration++;
       }
