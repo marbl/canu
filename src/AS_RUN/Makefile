@@ -34,7 +34,6 @@ SCRIPTS = runCA \
           qcCompare \
           tampaCompare \
           mummerCompare \
-          glen_est_truncadjusted.pl \
           caqc.pl \
           caqc_help.ini \
           caqc-diff.pl \
@@ -91,10 +90,6 @@ tampaCompare: testing/tampaCompare.pl
 
 mummerCompare: testing/mummerCompare.pl
 	@cp testing/mummerCompare.pl $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-glen_est_truncadjusted.pl: dataQC/$@
-	@cp dataQC/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 fragmentDepth: fragmentDepth.o libCA.a
