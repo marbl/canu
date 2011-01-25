@@ -39,11 +39,7 @@ SCRIPTS = runCA \
           caqc_help.ini \
           caqc-diff.pl \
           ca2ace.pl \
-          asmToAGP.pl \
-          spec/OBT.specFile \
-          spec/noOBT.specFile \
-          spec/noVec.specFile \
-          spec/metaGenomic.specFile
+          asmToAGP.pl
 
 
 # Include for AS project rules
@@ -52,30 +48,11 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
 
-RUNCAOBTUTIL = runCA-OBT/runCAutil/checkOverlap.pl \
-               runCA-OBT/runCAutil/createConsensusJobs.pl \
-               runCA-OBT/runCAutil/merOverlapper.pl \
-               runCA-OBT/runCAutil/merTrim.pl \
-               runCA-OBT/runCAutil/createOverlapJobs.pl \
-               runCA-OBT/runCAutil/createOverlapStore.pl \
-               runCA-OBT/runCAutil/createPostUnitiggerConsensus.pl \
-               runCA-OBT/runCAutil/meryl.pl \
-               runCA-OBT/runCAutil/overlapCorrection.pl \
-               runCA-OBT/runCAutil/overlapTrim.pl \
-               runCA-OBT/runCAutil/preoverlap.pl \
-               runCA-OBT/runCAutil/shred.pl \
-               runCA-OBT/runCAutil/scaffolder.pl \
-               runCA-OBT/runCAutil/terminate.pl \
-               runCA-OBT/runCAutil/cleaner.pl \
-               runCA-OBT/runCAutil/unitigger.pl \
-	       runCA-OBT/runCAutil/umdOverlapper.pl \
-	       runCA-OBT/runCAutil/vectorTrim.pl \
-	       runCA-OBT/runCAutil/toggler.pl
+RUNCAOBTUTIL =
 
-runCA: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
-	@cat runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
+runCA: runCA.pl
+	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
-	@ln -fs $@ $(LOCAL_BIN)/runCA-OBT.pl
 
 TIGR: asmQC/TIGR
 	@cp -r $< $(LOCAL_BIN)
@@ -119,12 +96,6 @@ mummerCompare: testing/mummerCompare.pl
 glen_est_truncadjusted.pl: dataQC/$@
 	@cp dataQC/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
-
-spec:
-	@mkdir $(LOCAL_BIN)/spec
-
-spec/%.specFile: spec runCA-OBT/spec/%.specFile
-	@cp runCA-OBT/$@ $(LOCAL_BIN)/spec
 
 fragmentDepth: fragmentDepth.o libCA.a
 
