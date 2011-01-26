@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.90 2011-01-03 05:20:38 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.91 2011-01-26 04:39:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -605,10 +605,6 @@ main(int argc, char **argv) {
   iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction, dumpRandLength);
 
   if (dump != DUMP_NOTHING) {
-    if (dumpDoNotUseUIDs == 1) {
-      fprintf(stderr, "WARNING: Output selected to exclude UIDs, an NA will be output instead of UID values.\n");
-    }
-    
     int exitVal = 0;
    
     switch (dump) {
