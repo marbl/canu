@@ -240,6 +240,14 @@ sub setDefaults () {
     $global{"cgwErrorRate"}                = 0.10;
     $synops{"cgwErrorRate"}                = "Unitigs/Contigs are not merged if they align above this error rate";
 
+    #####  Minimums
+
+    $global{"frgMinLen"}                   = 64;
+    $synops{"frgMinLen"}                   = "Fragments shorter than this are discarded";
+
+    $global{"ovlMinLen"}                   = 40;
+    $synops{"ovlMinLen"}                   = "Overlaps shorter than this are not computed or used";
+
     #####  Stopping conditions
 
     $global{"stopBefore"}                  = undef;
@@ -597,7 +605,7 @@ sub setDefaults () {
 
     if (exists($ENV{'AS_OVL_ERROR_RATE'})) {
         setGlobal("ovlErrorRate", $ENV{'AS_OVL_ERROR_RATE'});
-        print STDERR "ovlErrorRate $ENV{'AS_OVL_ERROR_RATE'} (from \$AS_OVL_ERROR_RATE)\n";
+        print STDERR "ENV: ovlErrorRate $ENV{'AS_OVL_ERROR_RATE'} (from \$AS_OVL_ERROR_RATE)\n";
     }
 
     if (exists($ENV{'AS_CGW_ERROR_RATE'})) {
@@ -608,6 +616,16 @@ sub setDefaults () {
     if (exists($ENV{'AS_CNS_ERROR_RATE'})) {
         setGlobal("cnsErrorRate", $ENV{'AS_CNS_ERROR_RATE'});
         print STDERR "ENV: cnsErrorRate $ENV{'AS_CNS_ERROR_RATE'} (from \$AS_CNS_ERROR_RATE)\n";
+    }
+
+    if (exists($ENV{'AS_READ_MIN_LEN'})) {
+        setGlobal("frgMinLen", $ENV{'AS_READ_MIN_LEN'});
+        print STDERR "ENV: frgMinLen $ENV{'AS_READ_MIN_LEN'} (from \$AS_READ_MIN_LEN)\n";
+    }
+
+    if (exists($ENV{'AS_OVERLAP_MIN_LEN'})) {
+        setGlobal("ovlMinLen", $ENV{'AS_OVERLAP_MIN_LEN'});
+        print STDERR "ENV: ovlMinLen $ENV{'AS_OVL_MIN_LEN'} (from \$AS_OVL_MIN_LEN)\n";
     }
 }
 
@@ -870,9 +888,13 @@ sub setParameters () {
     if ($cnsER > $cgwER) {
         caFailure("cnsErrorRate is $cnsER, this MUST be <= cgwErrorRate ($cgwER)", undef);
     }
+
     $ENV{'AS_OVL_ERROR_RATE'} = $ovlER;
     $ENV{'AS_CGW_ERROR_RATE'} = $cgwER;
     $ENV{'AS_CNS_ERROR_RATE'} = $cnsER;
+
+    $ENV{'AS_READ_MIN_LEN'}    = getGlobal("frgMinLen");
+    $ENV{'AS_OVERLAP_MIN_LEN'} = getGlobal("ovlMinLen");
 
     if ((getGlobal("doOverlapBasedTrimming") == 1) &&
         (getGlobal("doMerBasedTrimming") == 1)) {

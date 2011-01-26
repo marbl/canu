@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.17 2009-11-26 02:53:33 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.18 2011-01-26 04:50:08 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -38,10 +38,16 @@ static const char *rcsid = "$Id: AS_global.c,v 1.17 2009-11-26 02:53:33 brianwal
 //  Nonsense values, mostly for making sure everybody that uses an
 //  error rate calls AS_configure() at startup.
 
-double AS_OVL_ERROR_RATE = -90.0;
-double AS_CGW_ERROR_RATE = -90.0;
-double AS_CNS_ERROR_RATE = -90.0;
-double AS_MAX_ERROR_RATE =   0.25;
+double AS_OVL_ERROR_RATE   = -90.0;
+double AS_CGW_ERROR_RATE   = -90.0;
+double AS_CNS_ERROR_RATE   = -90.0;
+double AS_MAX_ERROR_RATE   =   0.25;
+
+//  Historical Sanger defaults.  Seem to work well with 454 and Illumina,
+//  but occasionally they need to be reduced (for, say, 50bp Illumina reads).
+
+uint32 AS_READ_MIN_LEN     = 64;
+uint32 AS_OVERLAP_MIN_LEN  = 40;
 
 //  EVERY main program should define mainid.  The release manager
 //  should fill in releaseid with the release name.
@@ -95,6 +101,14 @@ AS_configure(int argc, char **argv) {
   if (p)
     AS_CNS_ERROR_RATE = atof(p);
 
+  p = getenv("AS_READ_MIN_LEN");
+  if (p)
+    AS_READ_MIN_LEN = atoi(p);
+
+  p = getenv("AS_OVERLAP_MIN_LEN");
+  if (p)
+    AS_OVERLAP_MIN_LEN = atoi(p);
+
   //
   //  Command line
   //
@@ -118,6 +132,22 @@ AS_configure(int argc, char **argv) {
 
     } else if (strcasecmp(argv[i], "--cnsErrorRate") == 0) {
       AS_CNS_ERROR_RATE = atof(argv[i+1]);
+      for (j=i+2; j<argc; j++)
+        argv[j-2] = argv[j];
+      argv[--argc] = NULL;
+      argv[--argc] = NULL;
+      i--;
+
+    } else if (strcasecmp(argv[i], "--frgMinLen") == 0) {
+      AS_READ_MIN_LEN = atoi(argv[i+1]);
+      for (j=i+2; j<argc; j++)
+        argv[j-2] = argv[j];
+      argv[--argc] = NULL;
+      argv[--argc] = NULL;
+      i--;
+
+    } else if (strcasecmp(argv[i], "--ovlMinLen") == 0) {
+      AS_OVERLAP_MIN_LEN = atoi(argv[i+1]);
       for (j=i+2; j<argc; j++)
         argv[j-2] = argv[j];
       argv[--argc] = NULL;
@@ -153,6 +183,13 @@ AS_configure(int argc, char **argv) {
     fprintf(stderr, "%s: ERROR:  Invalid AS_CNS_ERROR_RATE (%0.2f); should be between 0.0 and %0.2f\n",
             argv[0], AS_CNS_ERROR_RATE, AS_MAX_ERROR_RATE), exit(1);
 
+  if (AS_READ_MIN_LEN < 1)
+    AS_READ_MIN_LEN = 1;
+
+  if (AS_OVERLAP_MIN_LEN < 1)
+    AS_OVERLAP_MIN_LEN = 1;
+
+#if 0
   if (AS_OVL_ERROR_RATE != 0.06)
     fprintf(stderr, "%s: AS_configure()-- AS_OVL_ERROR_RATE set to %0.2f\n", argv[0], AS_OVL_ERROR_RATE);
 
@@ -161,6 +198,7 @@ AS_configure(int argc, char **argv) {
 
   if (AS_CNS_ERROR_RATE != 0.06)
     fprintf(stderr, "%s: AS_configure()-- AS_CNS_ERROR_RATE set to %0.2f\n", argv[0], AS_CNS_ERROR_RATE);
+#endif
 
   //
   //  Logging.

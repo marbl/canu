@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.36 2011-01-06 19:41:34 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.37 2011-01-26 04:50:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -337,11 +337,8 @@ off_t ftello(FILE *stream );
 //  length of a fragment, where gkNormalFragment only allocates as much space as used by the
 //  sequence.
 //
-#define AS_READ_MIN_LEN                   64
 #define AS_READ_MAX_PACKED_LEN            136
 #define AS_READ_MAX_NORMAL_LEN            ((1 << AS_READ_MAX_NORMAL_LEN_BITS) - 1)
-
-#define AS_OVERLAP_MIN_LEN                40
 
 //  AS_OVL controls both overlapper and bubble popping
 
@@ -352,6 +349,10 @@ extern double AS_MAX_ERROR_RATE;
 
 #define AS_READ_ERROR_RATE         AS_OVL_ERROR_RATE
 #define AS_GUIDE_ERROR_RATE        AS_OVL_ERROR_RATE
+
+extern uint32 AS_READ_MIN_LEN;
+extern uint32 AS_OVERLAP_MIN_LEN;
+
 
 int AS_configure(int argc, char **argv);
 
