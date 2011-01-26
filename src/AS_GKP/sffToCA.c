@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.51 2011-01-25 09:12:42 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.52 2011-01-26 04:49:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,9 +42,6 @@ const char *mainid = "$Id: sffToCA.c,v 1.51 2011-01-25 09:12:42 brianwalenz Exp 
 //  assembler minimum (which could be 30bp).
 //
 #define DEDUP_SPAN            48
-#define FRAG_MIN_LEN          MAX(AS_READ_MIN_LEN, DEDUP_SPAN)
-#define MATE_MIN_LEN              AS_READ_MIN_LEN
-
 
 #define CLEAR_ALL        0x00
 #define CLEAR_454        0x01
@@ -675,7 +672,7 @@ processRead(sffHeader *h,
 
 
   if ((r->clip_quality_left > r->clip_quality_right) ||
-      (r->number_of_bases - h->key_length < FRAG_MIN_LEN)) {
+      (r->number_of_bases - h->key_length < AS_READ_MIN_LEN)) {
     //  Reads too short will never be of any use, and they're not loaded.
     //
     //  The first test catches reads that 454 decided are completely trash.
@@ -901,7 +898,7 @@ removeDuplicateReads(void) {
   map['G'] = map['g'] = 0x02;
   map['T'] = map['t'] = 0x03;
 
-  fprintf(stderr, "removeDuplicateReads()-- from %d to %d\n", 1, gkpStore->gkStore_getNumFragments() + 1);
+  fprintf(stderr, "removeDuplicateReads()-- from %d to %d\n", 1, gkpStore->gkStore_getNumFragments());
 
   fr.gkFragment_enableGatekeeperMode(gkpStore);
 
@@ -1280,8 +1277,8 @@ processMate(gkFragment *fr,
   //
 
   if ((fractionalAlignment == true) &&
-      (lSize < MATE_MIN_LEN) &&
-      (rSize < MATE_MIN_LEN)) {
+      (lSize < AS_READ_MIN_LEN) &&
+      (rSize < AS_READ_MIN_LEN)) {
     //  Both halves are too short, delete the whole read.
     fprintf(logFile, "Linker detected in '%s' at %d-%d.  Remaining portions too small, delete the whole read.\n",
             AS_UID_toString(fr->gkFragment_getReadUID()), 
@@ -1294,7 +1291,7 @@ processMate(gkFragment *fr,
   bool  chopLeft = false;
 
   if ((fractionalAlignment == true) &&
-      (lSize < MATE_MIN_LEN))
+      (lSize < AS_READ_MIN_LEN))
     chopLeft = true;
 
   if ((fractionalAlignment == true) &&
@@ -1351,7 +1348,7 @@ processMate(gkFragment *fr,
   bool  chopRight = false;
 
   if ((fractionalAlignment == true) &&
-      (rSize < MATE_MIN_LEN))
+      (rSize < AS_READ_MIN_LEN))
     chopRight = true;
 
   if ((fractionalAlignment == true) &&
@@ -1404,8 +1401,8 @@ processMate(gkFragment *fr,
   //
 
   if (functionalAlignment == true) {
-    assert(lSize >= MATE_MIN_LEN);
-    assert(rSize >= MATE_MIN_LEN);
+    assert(lSize >= AS_READ_MIN_LEN);
+    assert(rSize >= AS_READ_MIN_LEN);
 
     //  0.  Copy the fragments to new mated fragments
     //      CANNOT just copy fr over m1 -- that nukes seq/qlt pointers!
@@ -1513,7 +1510,7 @@ processMate(gkFragment *fr,
       char  *qlt = m2->gkFragment_getQuality();
 
       assert(al.endJ >= 0);
-      assert(rSize > 0);
+      assert(rSize >= 0);
 
       memmove(seq, fr->gkFragment_getSequence() + al.endJ, rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd));
       memmove(qlt, fr->gkFragment_getQuality()  + al.endJ, rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd));
@@ -2164,6 +2161,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "Failed to close '%s': %s\n", logName, strerror(errno)), exit(1);
 
   writeStatistics(argv, argc, firstFileArg, frgName, haveLinker, linker, search, stsName);
+
+  fprintf(stderr, "Finished.\n");
 
   return(0);
 }
