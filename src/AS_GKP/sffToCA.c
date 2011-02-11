@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.52 2011-01-26 04:49:03 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.53 2011-02-11 04:15:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,6 @@ const char *mainid = "$Id: sffToCA.c,v 1.52 2011-01-26 04:49:03 brianwalenz Exp 
 char *TRIM_NAMES[4]  = { "none", "soft", "hard", "chop" };
 
 #define AS_LINKER_MAX_SEQS       50
-#define AS_LINKER_CUSTOM_OFFSET  24
 
 gkStore         *gkpStore    = NULL;
 FILE            *logFile     = NULL;
@@ -1121,9 +1120,8 @@ processMate(gkFragment *fr,
             char        *linker[AS_LINKER_MAX_SEQS],
             int          search[AS_LINKER_MAX_SEQS]) {
 
-  alignLinker_s  al;
-
-  memset(&al, 0, sizeof(alignLinker_s));
+  alignLinker_s  al = {0};  //  Winning alignment
+  alignLinker_s  wk = {0};  //  Scratch alignment
 
   //  They either both have to be there, or both not there.
   assert(((m1 == NULL) && (m2 == NULL)) ||
@@ -1163,17 +1161,12 @@ processMate(gkFragment *fr,
   //  There is probably some loss of sensitivity.
   //  However, a read with multiple linker hits is suspect anyway.
 
-  for (uint32 linkerID=0; ((linkerID < AS_LINKER_MAX_SEQS) &&
-                           (functionalAlignment == false) &&
-                           (fractionalAlignment == false) &&
-                           (minimalAlignment    == false)); linkerID++) {
+  for (uint32 linkerID=0; linkerID < AS_LINKER_MAX_SEQS; linkerID++) {
 
     if (search[linkerID] == false)
       continue;
 
     assert(linker[linkerID] != NULL);
-
-    uint32   linkerLength = strlen(linker[linkerID]);
 
     char    *seq      = fr->gkFragment_getSequence();
     char     stopBase = seq[fr->clrEnd];
@@ -1185,78 +1178,118 @@ processMate(gkFragment *fr,
                 linker[linkerID],
                 seq + fr->clrBgn,
                 globalMatrix->h_matrix,
-                &al,
+                &wk,
                 FALSE, FALSE, 0, 0);
 
     seq[fr->clrEnd] = stopBase;
 
-    lSize = al.begJ;
-    rSize = al.lenB - al.endJ;
+    assert(wk.begJ >= 0);
+    assert(wk.lenB >= wk.endJ);
 
-    assert(al.begJ >= 0);
-    assert(al.lenB >= al.endJ);
+    wk.begJ += fr->clrBgn;  //  Because we trimmed out the bases at the start
+    wk.endJ += fr->clrBgn;  //  when aligning above.
 
-    al.begJ += fr->clrBgn;
-    al.endJ += fr->clrBgn;
-   
-    assert(lSize <= fr->gkFragment_getSequenceLength());
-    assert(rSize <= fr->gkFragment_getSequenceLength());
+#if 1
+    fprintf(logFile, "%s -- I %3d-%3d J %3d-%3d alignLen %d matches %d %0.2f %0.2f %0.2f\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()),
+            wk.begI, wk.endI,
+            wk.begJ, wk.endJ,
+            wk.alignLen,
+            wk.matches,
+            wk.pIdentity, wk.pCoverageA, wk.pCoverageB);
+#endif
 
-    //  Scan the alignment, compute a percent identity.
-
-    uint32  nGapA     = 0;
-    uint32  nGapB     = 0;
-    uint32  nMatch    = 0;
-    uint32  nMismatch = 0;
-
-    for (uint32 i=0; globalMatrix->h_alignA[i]; i++) {
-      if      (globalMatrix->h_alignA[i] == '-')
-        nGapA++;
-      else if (globalMatrix->h_alignB[i] == '-')
-        nGapB++;
-      else if (globalMatrix->h_alignA[i] == globalMatrix->h_alignB[i])
-        nMatch++;
-      else
-        nMismatch++;
+    if (al.pCoverageA > wk.pCoverageA) {
+      //  Scratch alignment is shorter than the currently best alignment.  Don't keep it.
+#if 0
+      fprintf(logFile, "%s -- shorter.\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()));
+#endif
+      continue;
     }
 
-    double  pIdentity = (double)(nMatch) / (double)(nGapA + nGapB + nMatch + nMismatch);
-    double  pCoverage = (double)(al.endI - al.begI) / (double)(linkerLength);
+    if ((al.pCoverageA == wk.pCoverageA) &&
+        (al.pIdentity   > wk.pIdentity)) {
+      //  Scratch alignment is same length, but lower identity.  Don't keep it.
+#if 0
+      fprintf(logFile, "%s -- crappier.\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()));
+#endif
+      continue;
+    }
 
-    if ((pIdentity >= pIdentitySplit) &&
-        (pCoverage >= pCoverageSplit)) {
+    //  Scratch alignment is higher coverage than the one we saved.
+    //
+    //  One would hope that longer is better, but not always.
+    //
+    //  alignLen 14 matches 12 %id 0.86 %cv 0.39 -- MINIMAL
+    //  alignLen 28 matches 19 %id 0.68 %cv 0.72 -- GARBAGE
+    //
+    //  We'll refuse to demote categories -- if we have found a FRACTIONAL, we'll
+    //  never save a MINIMAL, even if it is longer.
+    //
+    //  We assume that a longer FUNCTIONAL is always better.  This could mean we take a 90%id 80%cv
+    //  match over a 99%id 50%cv match.  As short as these are, they're probably the same thing
+    //  anyway (linker is a near-palindrome) or multiple copies of the same linker.
+
+    if        ((wk.pIdentity        >= pIdentitySplit) &&
+               (wk.pCoverageA       >= pCoverageSplit)) {
       //  These get split into mates!
+#if 0
+      fprintf(logFile, "%s -- FUNCTIONAL.\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()));
+#endif
       minimalAlignment    = true;
       fractionalAlignment = true; 
       functionalAlignment = true;
-    } 
-    
-    if ((pIdentity >= pIdentityTrim) &&
-        (pCoverage >= pCoverageTrim)) {
+      al = wk;
+
+    } else if ((wk.pIdentity        >= pIdentityTrim) &&
+               (wk.pCoverageA       >= pCoverageTrim) &&
+               (functionalAlignment == false)) {
       //  These get trimmed to fragments, keeping the larger half.
+#if 0
+      fprintf(logFile, "%s -- FRACTIONAL.\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()));
+#endif
       minimalAlignment    = true;
       fractionalAlignment = true; 
-    }
+      assert(functionalAlignment == false);
+      al = wk;
 
-    if ((pIdentity >= pIdentityDetect) &&
-        (pCoverage >= pCoverageDetect)) { 
+    } else if ((wk.pIdentity        >= pIdentityDetect) &&
+               (wk.pCoverageA       >= pCoverageDetect) &&
+               (fractionalAlignment == false)) { 
          //  These are passed to OBT.
+#if 0
+      fprintf(logFile, "%s -- MINIMAL.\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()));
+#endif
       minimalAlignment    = true;
+      assert(fractionalAlignment == false);
+      assert(functionalAlignment == false);
+      al = wk;
+
+    } else {
+      //  Just ignore the rest of the pathetic little matches and hope they go away.
     }
 
-    //  Just ignore the rest of the pathetic little matches and hope they go away.
-
-    //fprintf(logFile, "ProcessMate(%s) found (minimal,fractional,functional) = (%d,%d,%d).\n", AS_UID_toString(fr->gkFragment_getReadUID()), minimalAlignment,fractionalAlignment,functionalAlignment); 
-    //fprintf(logFile, "  clr %dm%d alignLen %d matches %d lSize %d rSize %d\n", fr->clrBgn, fr->clrEnd, al.alignLen, al.matches, lSize, rSize);
-    //fprintf(logFile, "  I %3d-%3d %s\n", al.begI, al.endI, globalMatrix->h_alignA);
-    //fprintf(logFile, "  J %3d-%3d %s\n", al.begJ, al.endJ, globalMatrix->h_alignB);
-  }
+  }  //  END OF FINDING AN ALIGNMENT
   
 
-  if (minimalAlignment == false) {
+  if (minimalAlignment == false)
     //  No match after trying all possible linkers.  Signal no change to read.
     return(false);
-  }
+
+  assert(al.matches    > 0);
+  assert(al.pIdentity  > 0);
+  assert(al.pCoverageA > 0);
+
+  lSize = al.begJ           - fr->clrBgn;
+  rSize = al.lenB - al.endJ - fr->clrBgn;;
+
+  assert(lSize <= fr->gkFragment_getSequenceLength());
+  assert(rSize <= fr->gkFragment_getSequenceLength());
 
 
   if ((fractionalAlignment == true) &&
@@ -1268,7 +1301,6 @@ processMate(gkFragment *fr,
     fprintf(logFile, "  J %3d-%3d %s\n", al.begJ, al.endJ, globalMatrix->h_alignB);
     return(true);
   }
-
 
   //
   //  First handle cases where the linker -- either a fractional or a functional linker -- is too
@@ -1953,25 +1985,35 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-linker") == 0) {
       arg++;
 
-      if      (strcasecmp(argv[arg], "flx") == 0) {
+      if        (strcasecmp(argv[arg], "flx") == 0) {
         search[0]    = TRUE;
         haveLinker   = TRUE;
-      }
-      else if (strcasecmp(argv[arg], "titanium") == 0) {
+
+      } else if (strcasecmp(argv[arg], "titanium") == 0) {
         search[1]    = TRUE;
         search[2]    = TRUE;
         haveLinker   = TRUE;
-      }
-      else {
-        int start = AS_LINKER_CUSTOM_OFFSET;
-        if (AS_UTL_isValidSequence(argv[arg], strlen(argv[arg]))) {
-          linker[start]      = argv[arg];
-          search[start++]    = TRUE;
-          haveLinker         = TRUE;
-        } else {
-          invalidLinkerSeq     = TRUE;
+
+      } else if (AS_UTL_isValidSequence(argv[arg], strlen(argv[arg]))) {
+        uint32 i=0;
+
+        for (i=3; i<AS_LINKER_MAX_SEQS; i++) {
+          if (search[i] == FALSE) {
+            linker[i]  = argv[arg];
+            search[i]  = TRUE;
+            haveLinker = TRUE;
+            break;
+          }
+        }
+
+        if (i == AS_LINKER_MAX_SEQS+1) {
+          fprintf(stderr, "WARNING:  Too many linker sequences present.  Ignoring '%s'\n", argv[arg]);
           err++;
         }
+
+      } else {
+        invalidLinkerSeq     = TRUE;
+        err++;
       }
 
     } else if (strcmp(argv[arg], "-linkersplit") == 0) {

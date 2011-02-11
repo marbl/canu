@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.15 2010-11-16 23:07:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.16 2011-02-11 04:15:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -83,14 +83,14 @@ alignLinker(char           *alignA,
   int   lenA = strlen(stringA);
   int   lenB = strlen(stringB);
 
+  memset(a, 0, sizeof(alignLinker_s));
+
   //  Definition of the box we want to do dynamic programming in.
   int   i, ibgn, iend;
   int   j, jbgn, jend;
 
-  if ((lenA > AS_READ_MAX_NORMAL_LEN) || (lenB > AS_READ_MAX_NORMAL_LEN)) {
-    a->alignLen = 0;
+  if ((lenA > AS_READ_MAX_NORMAL_LEN) || (lenB > AS_READ_MAX_NORMAL_LEN))
     return;
-  }
 
   //  Set the edges.
 
@@ -161,7 +161,6 @@ alignLinker(char           *alignA,
         (jend < jbgn)) {
       //fprintf(stderr, "WARNING:  bgn: %d,%d  end: %d,%d  lens: %d,%d  hangs: %d,%d\n",
       //        ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
-      a->alignLen = 0;
       return;
     }
 
@@ -382,9 +381,14 @@ alignLinker(char           *alignA,
     M[endI][endJ].score = 0;
   }
 
-  int  alignLen  = 0;
-  int  matches   = 0;
-  int  terminate = 0;
+  int32  alignLen  = 0;
+
+  int32  nGapA     = 0;
+  int32  nGapB     = 0;
+  int32  nMatch    = 0;
+  int32  nMismatch = 0;
+
+  int32  terminate = 0;
 
   while (terminate == 0) {
     switch (M[curI][curJ].action) {
@@ -398,10 +402,11 @@ alignLinker(char           *alignA,
         if (alignA[alignLen] == alignB[alignLen]) {
           alignA[alignLen] = tolower(alignA[alignLen]);
           alignB[alignLen] = tolower(alignB[alignLen]);
-          matches++;
+          nMatch++;
         } else {
           alignA[alignLen] = toupper(alignA[alignLen]);
           alignB[alignLen] = toupper(alignB[alignLen]);
+          nMismatch++;
         }
 
         curI--;
@@ -413,12 +418,14 @@ alignLinker(char           *alignA,
         alignB[alignLen] = stringB[curJ-1];
         curJ--;
         alignLen++;
+        nGapA++;
         break;
       case GAPB:
         alignA[alignLen] = stringA[curI-1];
         alignB[alignLen] = '-';
         curI--;
         alignLen++;
+        nGapB++;
         break;
     }
   }
@@ -428,12 +435,15 @@ alignLinker(char           *alignA,
 
   reverse(alignA, alignB, alignLen);
 
-  a->matches  = matches;
-  a->alignLen = alignLen;
-  a->begI     = curI;
-  a->begJ     = curJ;
-  a->endI     = endI;
-  a->endJ     = endJ;
-  a->lenA     = lenA;
-  a->lenB     = lenB;
+  a->matches    = nMatch;
+  a->alignLen   = alignLen;
+  a->begI       = curI;
+  a->begJ       = curJ;
+  a->endI       = endI;
+  a->endJ       = endJ;
+  a->lenA       = lenA;
+  a->lenB       = lenB;
+  a->pIdentity  = (double)(nMatch) / (double)(nGapA + nGapB + nMatch + nMismatch);
+  a->pCoverageA = (double)(a->endI - a->begI) / (double)(lenA);
+  a->pCoverageB = (double)(a->endJ - a->begJ) / (double)(lenB);
 }

@@ -22,7 +22,7 @@
 #ifndef AS_ALN_BRUTEFORCEDP
 #define AS_ALN_BRUTEFORCEDP
 
-static const char *rcsid_AS_ALN_BRUTEFORCEDP = "$Id: AS_ALN_bruteforcedp.h,v 1.7 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid_AS_ALN_BRUTEFORCEDP = "$Id: AS_ALN_bruteforcedp.h,v 1.8 2011-02-11 04:15:03 brianwalenz Exp $";
 
 
 typedef struct {
@@ -32,11 +32,15 @@ typedef struct {
 
 
 typedef struct {
-  int   matches;
-  int   alignLen;
-  int   begI, begJ;
-  int   endI, endJ;
-  int   lenA, lenB;
+  int32   matches;
+  int32   alignLen;
+  int32   begI, begJ;
+  int32   endI, endJ;
+  int32   lenA, lenB;
+
+  double  pIdentity;
+  double  pCoverageA;
+  double  pCoverageB;
 } alignLinker_s;
 
 
