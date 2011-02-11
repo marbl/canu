@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.91 2011-01-26 04:39:32 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.92 2011-02-11 05:48:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,7 +85,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "    gatekeeper -randomsubset 1 0.25 -dumpfrg my.gkpStore > random25.frg\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  Dump fasta sequence for the UIDs in 'uidFile'\n");
-  fprintf(stdout, "    gatekeeper -uid uidFile -dumpfastaseq -dumpfrg my.gkpStore > file.fasta\n");
+  fprintf(stdout, "    gatekeeper -uid uidFile -dumpfastaseq file -dumpfrg my.gkpStore\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  -----------------------------------\n");
   fprintf(stdout, "  [selection of what objects to dump]\n");
@@ -112,32 +112,32 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  ----------------\n");
   fprintf(stdout, "  [format of dump]\n");
   fprintf(stdout, "  ----------------\n");
-  fprintf(stdout, "  -dumpinfo              print information on the store\n");
-  fprintf(stdout, "    -lastfragiid         just print the last IID in the store\n");
-  fprintf(stdout, "  -dumplibraries         dump all library records\n");
-  fprintf(stdout, "  -dumpfragments         dump fragment info, no sequence\n");
-  fprintf(stdout, "    -withsequence          ...and include sequence\n");
-  fprintf(stdout, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
-  fprintf(stdout, "  -dumpfasta[seq|qlt]    dump fragment sequence or quality, as fasta format\n");
-  fprintf(stdout, "    -allreads              ...all reads, regardless of deletion status (deleted are lowercase)\n");
-  fprintf(stdout, "    -allbases              ...all bases (lowercase for non-clear)\n");
-  fprintf(stdout, "    -decoded               ...quality as integers ('20 21 19')\n");
-  fprintf(stdout, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
-  fprintf(stdout, "  -dumpfrg               extract LIB, FRG and LKG messages\n");
-  fprintf(stdout, "    -allreads              ...all reads, regardless of deletion status\n");
-  fprintf(stdout, "    -donotfixmates         ...only extract the fragments given, do not add in\n");
-  fprintf(stdout, "                              missing mated reads\n");
-  fprintf(stdout, "    -clear <clr>           ...use clear range <clr>, default=LATEST\n");
-  fprintf(stdout, "    -format2               ...extract using frg format version 2\n");
-  fprintf(stdout, "  -dumpnewbler <prefix>  extract LIB, FRG and LKG messages, write in a\n");
-  fprintf(stdout, "                         format appropriate for Newbler.  This will create\n");
-  fprintf(stdout, "                         files 'prefix.fna' and 'prefix.fna.qual'.  Options\n");
-  fprintf(stdout, "                         -donotfixmates and -clear also apply.\n");
-  fprintf(stdout, "  -dumpfastq <prefix>    extract LIB, FRG and LKG messages, write in FastQ format.  Currently\n");
-  fprintf(stdout, "                         this works only on a store with one library as all the mated reads\n");
-  fprintf(stdout, "                         are dumped into a single file. This will create files 'prefix.paired.fastq',\n");
-  fprintf(stdout, "                         'prefix.1.fastq', 'prefix.2.fastq' and 'prefix.unmated.fastq' for unmated\n");
-  fprintf(stdout, "                         reads. Options -donotfixmates and -clear also apply.\n");
+  fprintf(stdout, "  -dumpinfo                  print information on the store\n");
+  fprintf(stdout, "    -lastfragiid             just print the last IID in the store\n");
+  fprintf(stdout, "  -dumplibraries             dump all library records\n");
+  fprintf(stdout, "  -dumpfragments             dump fragment info, no sequence\n");
+  fprintf(stdout, "    -withsequence              ...and include sequence\n");
+  fprintf(stdout, "    -clear <clr>               ...in clear range <clr>, default=LATEST\n");
+  fprintf(stdout, "  -dumpfasta <prefix>        dump fragment sequence and quality into <p.fasta> and <p.fasta.qual>\n");
+  fprintf(stdout, "    -allreads                  ...all reads, regardless of deletion status (deleted are lowercase)\n");
+  fprintf(stdout, "    -allbases                  ...all bases (lowercase for non-clear)\n");
+  fprintf(stdout, "    -decoded                   ...quality as integers ('20 21 19')\n");
+  fprintf(stdout, "    -clear <clr>               ...in clear range <clr>, default=LATEST\n");
+  fprintf(stdout, "  -dumpfrg                   extract LIB, FRG and LKG messages\n");
+  fprintf(stdout, "    -allreads                  ...all reads, regardless of deletion status\n");
+  fprintf(stdout, "    -donotfixmates             ...only extract the fragments given, do not add in\n");
+  fprintf(stdout, "                                  missing mated reads\n");
+  fprintf(stdout, "    -clear <clr>               ...use clear range <clr>, default=LATEST\n");
+  fprintf(stdout, "    -format2                   ...extract using frg format version 2\n");
+  fprintf(stdout, "  -dumpnewbler <prefix>      extract LIB, FRG and LKG messages, write in a\n");
+  fprintf(stdout, "                             format appropriate for Newbler.  This will create\n");
+  fprintf(stdout, "                             files 'prefix.fna' and 'prefix.fna.qual'.  Options\n");
+  fprintf(stdout, "                             -donotfixmates and -clear also apply.\n");
+  fprintf(stdout, "  -dumpfastq <prefix>        extract LIB, FRG and LKG messages, write in FastQ format.  Currently\n");
+  fprintf(stdout, "                             this works only on a store with one library as all the mated reads\n");
+  fprintf(stdout, "                             are dumped into a single file. This will create files 'prefix.paired.fastq',\n");
+  fprintf(stdout, "                             'prefix.1.fastq', 'prefix.2.fastq' and 'prefix.unmated.fastq' for unmated\n");
+  fprintf(stdout, "                             reads. Options -donotfixmates and -clear also apply.\n");
 
 
   fprintf(stdout, "\n");
@@ -422,14 +422,10 @@ main(int argc, char **argv) {
   int              dumpWithSequence  = 0;
   int              dumpAllReads      = 0;
   int              dumpClear         = AS_READ_CLEAR_LATEST;
-  int              dumpFRGClear      = AS_READ_CLEAR_LATEST;
-  int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
   int              dumpAllBases      = 0;
-  int              dumpFastaQuality  = 0;
   int              doNotFixMates     = 0;
   int              dumpFormat        = 1;
-  char            *newblerPrefix     = NULL;
-  char            *fastqPrefix     = NULL;  
+  char            *dumpPrefix        = NULL;
   uint32           dumpRandLib       = 0;  //  0 means "from any library"
   uint32           dumpRandMateNum   = 0;
   uint32           dumpRandSingNum   = 0;  //  Not a command line option
@@ -515,34 +511,27 @@ main(int argc, char **argv) {
       dumpWithSequence = 1;
     } else if (strcmp(argv[arg], "-clear") == 0) {
       dumpClear      = gkStore_decodeClearRegionLabel(argv[++arg]);
-      dumpFRGClear   = dumpClear;
-      dumpFastaClear = dumpClear;
       if (dumpClear == AS_READ_CLEAR_ERROR) {
         fprintf(stderr, "%s: -clear %s is not a valid clear range.\n", argv[0], argv[arg]);
         exit(0);
       }
     } else if (strcmp(argv[arg], "-format2") == 0) {
       dumpFormat = 2;
-    } else if (strcmp(argv[arg], "-dumpfastaseq") == 0) {
-      dump = DUMP_FASTA;
-      dumpFastaQuality = 0;
-    } else if (strcmp(argv[arg], "-dumpfastaqlt") == 0) {
-      dump = DUMP_FASTA;
-      dumpFastaQuality = 1;
+    } else if (strcmp(argv[arg], "-dumpfasta") == 0) {
+      dump       = DUMP_FASTA;
+      dumpPrefix = argv[++arg];
     } else if (strcmp(argv[arg], "-allreads") == 0) {
       dumpAllReads = 1;
     } else if (strcmp(argv[arg], "-allbases") == 0) {
       dumpAllBases = 1;
-    } else if (strcmp(argv[arg], "-decoded") == 0) {
-      dumpFastaQuality = 2;
     } else if (strcmp(argv[arg], "-dumpfrg") == 0) {
       dump = DUMP_FRG;
     } else if (strcmp(argv[arg], "-dumpnewbler") == 0) {
-      dump = DUMP_NEWBLER;
-      newblerPrefix = argv[++arg];
+      dump       = DUMP_NEWBLER;
+      dumpPrefix = argv[++arg];
     } else if (strcmp(argv[arg], "-dumpfastq") == 0) {
-      dump = DUMP_FASTQ;
-      fastqPrefix = argv[++arg];
+      dump       = DUMP_FASTQ;
+      dumpPrefix = argv[++arg];
     } else if (strcmp(argv[arg], "-isfeatureset") == 0 ) {
       dump = DUMP_FEATURE;
       featureLibIID = atoi(argv[++arg]);
@@ -622,21 +611,22 @@ main(int argc, char **argv) {
                                 dumpDoNotUseUIDs);
         break;
       case DUMP_FASTA:
-        dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID, iidToDump,
+        dumpGateKeeperAsFasta(gkpStoreName, dumpPrefix, begIID, endIID, iidToDump,
+                              doNotFixMates,
                               dumpAllReads, dumpAllBases,
-                              dumpFastaClear,
-                              dumpFastaQuality);
+                              dumpClear);
         break;
       case DUMP_FRG:
         dumpGateKeeperAsFRG(gkpStoreName, dumpFormat, begIID, endIID, iidToDump,
                             doNotFixMates,
                             dumpAllReads,
-                            dumpFRGClear);
+                            dumpClear);
         break;
       case DUMP_NEWBLER:
-        dumpGateKeeperAsNewbler(gkpStoreName, newblerPrefix, begIID, endIID, iidToDump,
+        dumpGateKeeperAsNewbler(gkpStoreName, dumpPrefix, begIID, endIID, iidToDump,
                                 doNotFixMates,
-                                dumpFRGClear);
+                                dumpAllReads, dumpAllBases,
+                                dumpClear);
         break;
       case DUMP_LASTFRG:
         {
@@ -646,9 +636,10 @@ main(int argc, char **argv) {
         }
         break;
       case DUMP_FASTQ:
-        dumpGateKeeperAsFastQ(gkpStoreName, fastqPrefix, begIID, endIID, iidToDump,
+        dumpGateKeeperAsFastQ(gkpStoreName, dumpPrefix, begIID, endIID, iidToDump,
                               doNotFixMates,
-                              dumpFRGClear);
+                              dumpAllReads, dumpAllBases,
+                              dumpClear);
         break;
       case DUMP_FEATURE:
          exitVal = (dumpGateKeeperIsFeatureSet(gkpStoreName, featureLibIID, featureName) == 0);
