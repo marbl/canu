@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.25 2010-12-16 03:33:32 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.26 2011-02-11 18:13:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -306,6 +306,11 @@ AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 max
   //
   if (ovs->offset.a_iid > ovs->lastIIDrequested)
     return(0);
+
+  //  Just a query?  Return the number of overlaps we'd want to read
+
+  if ((overlaps == NULL) || (maxOverlaps == 0))
+    return(ovs->offset.numOlaps);
 
   //  Read all the overlaps for this ID.
 
