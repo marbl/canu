@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.15 2011-01-04 20:11:01 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.16 2011-02-11 02:59:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -299,7 +299,7 @@ readQSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fa
   sprintf(fr->qnam, "+%s:%s:%s:%s:%s#%s/%s", v[0], v[2], v[3], v[4], v[5], v[6], v[7]);
   sprintf(fr->qstr, "%s", v[9]);
 
-  return(processSeq(N, fr, end, fastqType, fastqType));
+  return(processSeq(N, fr, end, fastqType, fastqOrient));
 }
 
 
@@ -321,7 +321,7 @@ readSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fas
   if (feof(F))
     return(0);
 
-  return(processSeq(N, fr, end, fastqType, fastqType));
+  return(processSeq(N, fr, end, fastqType, fastqOrient));
 }
 
 
@@ -367,8 +367,11 @@ openFile(char *name, FILE *&file) {
 static
 void
 loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
-  fprintf(stderr, "Processing illumina reads from '%s'\n", lname);
-  fprintf(stderr, "                           and '%s'\n", rname);
+  fprintf(stderr, "Processing %s %s reads from:\n",
+          (fastqOrient == FASTQ_INNIE) ? "INNIE" : "OUTTIE",
+          (fastqType   == FASTQ_ILLUMINA) ? "ILLUMINA 1.3+" : ((fastqType == FASTQ_SANGER) ? "SANGER" : "SOLEXA pre-1.3"));
+  fprintf(stderr, "      '%s'\n", lname);
+  fprintf(stderr, "  and '%s'\n", rname);
 
   if (illuminaUIDmap == NULL) {
     errno = 0;
@@ -494,15 +497,15 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
     if (strcasecmp(lib_mesg->features[i], "illuminaFastQType") == 0) {
       if (strcasecmp(lib_mesg->values[i], "sanger") == 0) {
-        fprintf(stderr, "Type set to SANGER.\n");
+        //fprintf(stderr, "Type set to SANGER.\n");
         fastqType = FASTQ_SANGER;
       }
       if (strcasecmp(lib_mesg->values[i], "solexa") == 0) {
-        fprintf(stderr, "Type set to SOLEXA, pre-1.3.\n");
+        //fprintf(stderr, "Type set to SOLEXA pre-1.3.\n");
         fastqType = FASTQ_SOLEXA;
       }
       if (strcasecmp(lib_mesg->values[i], "illumina") == 0) {
-        fprintf(stderr, "Type set to ILLUMINA 1.3+.\n");
+        //fprintf(stderr, "Type set to ILLUMINA 1.3+.\n");
         fastqType = FASTQ_ILLUMINA;
       }
     }
@@ -512,11 +515,11 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
     if (strcasecmp(lib_mesg->features[i], "illuminaOrientation") == 0) {
       if (strcasecmp(lib_mesg->values[i], "innie") == 0) {
-        fprintf(stderr, "Orientation set to INNIE.\n");
+        //fprintf(stderr, "Orientation set to INNIE.\n");
         fastqOrient = FASTQ_INNIE;
       }
       if (strcasecmp(lib_mesg->values[i], "outtie") == 0) {
-        fprintf(stderr, "Orientation set to OUTTIE.\n");
+        //fprintf(stderr, "Orientation set to OUTTIE.\n");
         fastqOrient = FASTQ_OUTTIE;
       }
     }
