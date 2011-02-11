@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.8 2010-12-21 19:45:18 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.9 2011-02-11 03:25:37 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -28,11 +28,11 @@ byFragmentID(const genomeAlignment &A, const genomeAlignment &B) {
 
 bool
 byGenomePosition(const genomeAlignment &A, const genomeAlignment &B) {
-  if (A.genBgn < B.genBgn)
+  if (A.chnBgn < B.chnBgn)
     //  A clearly before B.
     return(true);
 
-  if (A.genBgn > B.genBgn)
+  if (A.chnBgn > B.chnBgn)
     //  A clearly after B.
     return(false);
 
@@ -51,17 +51,21 @@ byGenomePosition(const genomeAlignment &A, const genomeAlignment &B) {
 
 void
 addAlignment(vector<genomeAlignment>   &genome,
-             int32  frgIID, int32  frgLen,
+             int32  frgIID,
              int32  frgBgn, int32  frgEnd, bool  isReverse,
+             int32  chnBgn, int32  chnEnd,
+             int32  genIID,
              int32  genBgn, int32  genEnd) {
   genomeAlignment  A;
 
   A.frgIID    = frgIID;
-  A.frgLen    = frgLen;
   A.frgBgn    = frgBgn;
   A.frgEnd    = frgEnd;
+  A.genIID    = genIID;
   A.genBgn    = genBgn;
   A.genEnd    = genEnd;
+  A.chnBgn    = chnBgn;
+  A.chnEnd    = chnEnd;
   A.isReverse = isReverse;
   A.isSpanned = false;
   A.isRepeat  = true;
@@ -74,11 +78,12 @@ addAlignment(vector<genomeAlignment>   &genome,
 
 
 void
-loadNucmer(char                      *nucmerName,
-           vector<genomeAlignment>   &genome,
-           map<string, int32>        &IIDmap,
-           vector<string>            &IIDname,
-           vector<uint32>            &IIDcount) {
+loadNucmer(char                       *nucmerName,
+           vector<genomeAlignment>    &genome,
+           map<string, int32>         &IIDmap,
+           vector<string>             &IIDname,
+           vector<referenceSequence>  &refList,
+           map<string,uint32>         &refMap) {
   FILE  *inFile = 0L;
   char   inLine[1024];
 
@@ -101,22 +106,24 @@ loadNucmer(char                      *nucmerName,
   while (!feof(inFile)) {
     splitToWords     W(inLine);
     genomeAlignment  A;
-    string           ID = W[12];
+    string           fID = W[12];
+    string           gID = W[11];
 
-    if (IIDmap.find(ID) == IIDmap.end()) {
-      IIDname.push_back(ID);
-      IIDcount.push_back(0);
-      IIDmap[ID] = IIDname.size() - 1;
+    if (IIDmap.find(fID) == IIDmap.end()) {
+      IIDname.push_back(fID);
+      IIDmap[fID] = IIDname.size() - 1;
     }
 
     //  Unlike snapper, these are already in base-based coords.
 
-    A.frgIID    = IIDmap[ID];
-    A.frgLen    = 0;
+    A.frgIID    = IIDmap[fID];
     A.frgBgn    = W(3);
     A.frgEnd    = W(4);
+    A.genIID    = refMap[gID];
     A.genBgn    = W(0);
     A.genEnd    = W(1);
+    A.chnBgn    = refList[A.genIID].rschnBgn + A.genBgn;
+    A.chnEnd    = refList[A.genIID].rschnBgn + A.genEnd;
     A.isReverse = false;
     A.isSpanned = false;
     A.isRepeat  = true;
@@ -126,8 +133,6 @@ loadNucmer(char                      *nucmerName,
       A.frgEnd    = W(3);
       A.isReverse = true;
     }
-
-    IIDcount[A.frgIID]++;
 
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);
@@ -144,11 +149,12 @@ loadNucmer(char                      *nucmerName,
 
 
 void
-loadSnapper(char                      *snapperName,
-            vector<genomeAlignment>   &genome,
-            map<string, int32>        &IIDmap,
-            vector<string>            &IIDname,
-            vector<uint32>            &IIDcount) {
+loadSnapper(char                       *snapperName,
+            vector<genomeAlignment>    &genome,
+            map<string, int32>         &IIDmap,
+            vector<string>             &IIDname,
+            vector<referenceSequence>  &refList,
+            map<string,uint32>         &refMap) {
   FILE  *inFile = 0L;
   char   inLine[1024];
 
@@ -164,26 +170,28 @@ loadSnapper(char                      *snapperName,
   while (!feof(inFile)) {
     splitToWords     W(inLine);
     genomeAlignment  A;
-    string           ID = W[0];
+    string           fID = W[0];
+    string           gID = W[5];
 
     if (strncmp(inLine, "cDNAid", 6) == 0)
       //  Skip header lines.
       goto nextLine;
 
-    if (IIDmap.find(ID) == IIDmap.end()) {
-      IIDname.push_back(ID);
-      IIDcount.push_back(0);
-      IIDmap[ID] = IIDname.size() - 1;
+    if (IIDmap.find(fID) == IIDmap.end()) {
+      IIDname.push_back(fID);
+      IIDmap[fID] = IIDname.size() - 1;
     }
 
     //  "+1" -- Convert from space-based coords to base-based coords.
 
-    A.frgIID    = IIDmap[ID];
-    A.frgLen    = 0;
+    A.frgIID    = IIDmap[fID];
     A.frgBgn    = W(3) + 1;
     A.frgEnd    = W(4);
+    A.genIID    = refMap[gID];
     A.genBgn    = W(6) + 1;
     A.genEnd    = W(7);
+    A.chnBgn    = refList[A.genIID].rschnBgn + A.genBgn;
+    A.chnEnd    = refList[A.genIID].rschnBgn + A.genEnd;
     A.isReverse = false;
     A.isSpanned = false;
     A.isRepeat  = true;
@@ -193,8 +201,6 @@ loadSnapper(char                      *snapperName,
       A.frgEnd    = W(3);
       A.isReverse = true;
     }
-
-    IIDcount[A.frgIID]++;
 
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);
@@ -212,30 +218,52 @@ loadSnapper(char                      *snapperName,
 
 
 void
-loadReferenceSequence(char     *refName,
-                      char    *&refhdr,
-                      char    *&refseq,
-                      int32    &reflen) {
+loadReferenceSequence(char                       *refName,
+                      vector<referenceSequence>  &refList,
+                      map<string,uint32>         &refMap) {
+  int32     reflen = 0;
+  int32     refiid = 0;
 
-  FILE    *F      = fopen(refName, "r");
+  errno = 0;
 
-  refhdr = new char [1024];
-  refseq = new char [16 * 1024 * 1024];
+  FILE     *F      = fopen(refName, "r");
 
-  fgets(refhdr,             1024, F);
-  fgets(refseq, 16 * 1026 * 1024, F);
+  if (errno)
+    fprintf(stderr, "Failed to open reference sequences in '%s': %s\n", refName, strerror(errno)), exit(1);
 
-  fclose(F);
+  char     *refhdr = new char [1024];
+  char     *refseq = new char [16 * 1024 * 1024];
 
-  chomp(refhdr);
-  chomp(refseq);
+  fgets(refhdr,             1024, F);   chomp(refhdr);
+  fgets(refseq, 16 * 1026 * 1024, F);   chomp(refseq);
 
-  for (uint32 i=0; refhdr[i]; i++) {
-    refhdr[i] = refhdr[i+1];
-    if (isspace(refhdr[i]))
-      refhdr[i] = 0;
+  while (!feof(F)) {
+    if (refhdr[0] != '>') {
+      fprintf(stderr, "ERROR: reference sequences must be one per line.\n");
+      exit(1);
+    }
+
+    for (uint32 i=0; refhdr[i]; i++) {
+      refhdr[i] = refhdr[i+1];  //  remove '>'
+      if (isspace(refhdr[i]))   //  stop at first space
+        refhdr[i] = 0;
+    }
+
+    int32  rl = strlen(refseq);
+
+    refMap[refhdr] = refiid;
+
+    refList.push_back(referenceSequence(reflen, reflen + rl,
+                                        rl,
+                                        refhdr));
+
+    reflen += rl + 1024;
+    refiid++;
+
+    fgets(refhdr,             1024, F);   chomp(refhdr);
+    fgets(refseq, 16 * 1026 * 1024, F);   chomp(refseq);
   }
 
-  reflen = strlen(refseq);
+  fclose(F);
 }
 

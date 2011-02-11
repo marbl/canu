@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogus.C,v 1.5 2010-12-21 19:45:18 brianwalenz Exp $";
+const char *mainid = "$Id: bogus.C,v 1.6 2011-02-11 03:25:37 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -42,9 +42,8 @@ public:
 
 //  MUCH, much easier to modularize the code if all this stuff is globally available.
 
-char    *refhdr = NULL;
-char    *refseq = NULL;
-int32    reflen = 0;
+vector<referenceSequence>  refList;
+map<string,uint32>         refMap;
 
 vector<longestAlignment>   longest;
 vector<genomeAlignment>    genome;
@@ -64,25 +63,27 @@ int32        *UNIQvalidParent = NULL;
 FILE         *gffOutput      = NULL;
 FILE         *intervalOutput = NULL;
 
+
+static
 void
 writeInputsAsGFF3(char *outputPrefix) {
 
-  for (uint32 i=0; i<genome.size(); i++)
+  for (uint32 i=0; i<genome.size(); i++) {
     fprintf(gffOutput, "%s\t.\tbogus_raw_input\t%d\t%d\t.\t%c\t.\tID=align%08d-frag%08d\n",  //  ;Name=%s;Note=%d-%d
-            refhdr,                                //  reference name
-            genome[i].genBgn,                      //  begin position in base-based
-            genome[i].genEnd,                      //  end position
-            (genome[i].isReverse) ? '-' : '+',     //  strand
-            i,                                     //  ID - match id
-            genome[i].frgIID);                     //  ID - frag id
-  //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
-  //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
+            refList[genome[i].genIID].rsrefName,        //  reference name
+            genome[i].genBgn,                           //  begin position in base-based
+            genome[i].genEnd,                           //  end position
+            (genome[i].isReverse) ? '-' : '+',          //  strand
+            i,                                          //  ID - match id
+            genome[i].frgIID);                          //  ID - frag id
+  }
 }
 
 
 
+static
 void
-processMatches(int32 alignWobble, int32 minOverlap, int32 uniqEnd) {
+processMatches(int32 alignWobble, int32 uniqEnd) {
 
   longest.resize(IIDname.size());
 
@@ -169,15 +170,21 @@ processMatches(int32 alignWobble, int32 minOverlap, int32 uniqEnd) {
 
       if (longest[frgIID].rptBgn > 0)
         addAlignment(genome,
-                     LONG->frgIID, 0,
+                     LONG->frgIID,
                      0, longest[frgIID].rptBgn, false,
+                     LONG->chnBgn,
+                     LONG->chnBgn + longest[frgIID].rptBgn,
+                     LONG->genIID,
                      LONG->genBgn,
                      LONG->genBgn + longest[frgIID].rptBgn);
 
       if (longest[frgIID].rptEnd < LONG->frgEnd)
         addAlignment(genome,
-                     LONG->frgIID, 0,
+                     LONG->frgIID,
                      longest[frgIID].rptEnd, LONG->frgEnd, false,
+                     LONG->chnBgn + longest[frgIID].rptEnd,
+                     LONG->chnBgn + LONG->frgEnd,
+                     LONG->genIID,
                      LONG->genBgn + longest[frgIID].rptEnd,
                      LONG->genBgn + LONG->frgEnd);
 
@@ -188,12 +195,14 @@ processMatches(int32 alignWobble, int32 minOverlap, int32 uniqEnd) {
 }
 
 
+
 //  Find the spanned repeats.  For eacn non-repeat fragment, search forward for any repeats that
 //  it spans.  Actually, we just do any fragment that it spans, so a fragment could be non-repeat
 //  and spanned.
 //
 //  We assume that if a read is spanned by a repeat, that read is also a repeat.
 //
+static
 void
 findSpannedMatches(int32 uniqEnd) {
 
@@ -204,12 +213,12 @@ findSpannedMatches(int32 uniqEnd) {
       continue;
 
     for (uint32 test = uniq + 1; ((test < genome.size()) &&
-                                  (genome[test].genBgn <= genome[uniq].genEnd)); test++) {
-      assert(genome[uniq].genBgn <= genome[test].genBgn);
-      assert(genome[uniq].genBgn <= genome[test].genEnd);
+                                  (genome[test].chnBgn <= genome[uniq].chnEnd)); test++) {
+      assert(genome[uniq].chnBgn <= genome[test].chnBgn);
+      assert(genome[uniq].chnBgn <= genome[test].chnEnd);
 
-      if ((genome[uniq].genBgn + uniqEnd <= genome[test].genBgn) &&
-          (genome[test].genEnd           <= genome[uniq].genEnd - uniqEnd))
+      if ((genome[uniq].chnBgn + uniqEnd <= genome[test].chnBgn) &&
+          (genome[test].chnEnd           <= genome[uniq].chnEnd - uniqEnd))
         genome[test].isSpanned = true;
     }
   }
@@ -217,15 +226,17 @@ findSpannedMatches(int32 uniqEnd) {
 
 
 
+static
 void
-buildIntervals(char *outputPrefix, int32 minOverlap) {
+buildIntervals(char *outputPrefix, int32 fragTrim, bool includeRaw) {
 
   for (uint32 i=0; i<genome.size(); i++) {
     int32  frgIID = genome[i].frgIID;
     int32  bgnOff = longest[frgIID].rptBgn;
     int32  endOff = longest[frgIID].frgLen - longest[frgIID].rptEnd;
     int32  frgOff = (genome[i].isReverse) ? endOff : bgnOff;
-    int32  len = genome[i].genEnd - genome[i].genBgn;
+    int32  len    = genome[i].chnEnd - genome[i].chnBgn;
+    char  *refhdr = refList[genome[i].genIID].rsrefName;
 
     if (genome[i].isSpanned == true) {
 #if 0
@@ -236,19 +247,20 @@ buildIntervals(char *outputPrefix, int32 minOverlap) {
               genome[i].isReverse ? 'r' : 'f',
               genome[i].genBgn, genome[i].genEnd);
 #endif
-      fprintf(gffOutput, "%s\t.\tbogus_span_input\t%d\t%d\t.\t%c\t.\tID=SPAN%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
-              refhdr,                                //  reference name
-              genome[i].genBgn, genome[i].genEnd,    //  reference position
-              (genome[i].isReverse) ? '-' : '+',     //  strand
-              i,                                     //  ID - match id
-              genome[i].frgIID);                     //  ID - frag id
+      if (includeRaw)
+        fprintf(gffOutput, "%s\t.\tbogus_span_input\t%d\t%d\t.\t%c\t.\tID=SPAN%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
+                refhdr,                                //  reference name
+                genome[i].genBgn, genome[i].genEnd,    //  reference position
+                (genome[i].isReverse) ? '-' : '+',     //  strand
+                i,                                     //  ID - match id
+                genome[i].frgIID);                     //  ID - frag id
       //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
       //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
       continue;
     }
 
     if (genome[i].isRepeat == true) {
-      REPT.add(genome[i].genBgn, len);
+      REPT.add(genome[i].chnBgn, len);
 #if 0
       fprintf(gffOutput, "\n");
       fprintf(gffOutput, "#REPT frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
@@ -257,12 +269,13 @@ buildIntervals(char *outputPrefix, int32 minOverlap) {
               genome[i].isReverse ? 'r' : 'f',
               genome[i].genBgn, genome[i].genEnd);
 #endif
-      fprintf(gffOutput, "%s\t.\tbogus_rept_input\t%d\t%d\t.\t%c\t.\tID=REPT%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
-              refhdr,                                //  reference name
-              genome[i].genBgn, genome[i].genEnd,    //  reference position
-              (genome[i].isReverse) ? '-' : '+',     //  strand
-              i,                                     //  ID - match id
-              genome[i].frgIID);                     //  ID - frag id
+      if (includeRaw)
+        fprintf(gffOutput, "%s\t.\tbogus_rept_input\t%d\t%d\t.\t%c\t.\tID=REPT%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
+                refhdr,                                //  reference name
+                genome[i].genBgn, genome[i].genEnd,    //  reference position
+                (genome[i].isReverse) ? '-' : '+',     //  strand
+                i,                                     //  ID - match id
+                genome[i].frgIID);                     //  ID - frag id
       //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
       //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
       continue;
@@ -276,12 +289,12 @@ buildIntervals(char *outputPrefix, int32 minOverlap) {
 
     len -= bgnOff;
     len -= endOff;
-    len -= 2 * minOverlap;
+    len -= fragTrim * 2;
 
     if (len <= 0)
       continue;
 
-    UNIQ.add(genome[i].genBgn + frgOff + minOverlap,
+    UNIQ.add(genome[i].chnBgn + frgOff + fragTrim,
              len);
 
 #if 0
@@ -291,15 +304,16 @@ buildIntervals(char *outputPrefix, int32 minOverlap) {
             genome[i].frgBgn, genome[i].frgEnd,
             genome[i].isReverse ? 'r' : 'f',
             genome[i].genBgn, genome[i].genEnd,
-            genome[i].genBgn + frgOff + minOverlap,
-            genome[i].genBgn + frgOff + minOverlap + len);
+            genome[i].genBgn + frgOff + fragTrim,
+            genome[i].genBgn + frgOff + fragTrim + len);
 #endif
-    fprintf(gffOutput, "%s\t.\tbogus_uniq_input\t%d\t%d\t.\t%c\t.\tID=UNIQ%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
-            refhdr,                                //  reference name
-            genome[i].genBgn, genome[i].genEnd,    //  reference position
-            (genome[i].isReverse) ? '-' : '+',     //  strand
-            i,                                     //  ID - match id
-            genome[i].frgIID);                     //  ID - frag id
+    if (includeRaw)
+      fprintf(gffOutput, "%s\t.\tbogus_uniq_input\t%d\t%d\t.\t%c\t.\tID=UNIQ%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
+              refhdr,                                //  reference name
+              genome[i].genBgn, genome[i].genEnd,    //  reference position
+              (genome[i].isReverse) ? '-' : '+',     //  strand
+              i,                                     //  ID - match id
+              genome[i].frgIID);                     //  ID - frag id
     //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
     //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
   }
@@ -359,10 +373,12 @@ markWeak(void) {
 
 int
 main(int argc, char **argv) {
-  char  *nucmerName     = 0L;
-  char  *snapperName    = 0L;
-  char  *refName        = 0L;
-  char  *outputPrefix   = 0L;
+  uint32   nucmerNamesLen  = 0;
+  uint32   snapperNamesLen = 0;
+  char    *nucmerNames[1024];
+  char    *snapperNames[1024];
+  char    *refName             = 0L;
+  char    *outputPrefix        = 0L;
 
   //  When comparing coords to if two alignments span the same piece of the fragment,
   //  allow (twice) this much slop in the comparison.  E.g., Abgn +- 5 == Bbgn
@@ -372,7 +388,7 @@ main(int argc, char **argv) {
   //  When constructing the unique coverage map, trim each read by this amount, on each end, to
   //  simulate the minimum overlap length needed by unitigger.  This amount is automagically added
   //  back in on output.
-  int32  minOverlap   = 40;
+  int32  fragTrim     = 40 / 2;
 
   //  When testing if a repeat alignment is contained in a non-repeat alignment, the repeat must
   //  start at least this many bases from the end of the non-repeat alignment.  In other words, a
@@ -380,15 +396,19 @@ main(int argc, char **argv) {
   //  unique sequence on the end.
   int32  uniqEnd      = 40;
 
+  //  Loading jbrowse with all the raw input reads on large(r) genomes either
+  //  fails, or takes forever.  This disables the raw read output.
+  bool   includeRaw = true;
+
 
   int arg=1;
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-nucmer") == 0) {
-      nucmerName = argv[++arg];
+      nucmerNames[nucmerNamesLen++] = argv[++arg];
 
     } else if (strcmp(argv[arg], "-snapper") == 0) {
-      snapperName = argv[++arg];
+      snapperNames[snapperNamesLen++] = argv[++arg];
 
     } else if (strcmp(argv[arg], "-reference") == 0) {
       refName = argv[++arg];
@@ -400,14 +420,17 @@ main(int argc, char **argv) {
       alignWobble = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-overlap") == 0) {
-      minOverlap = atoi(argv[++arg]);
+      fragTrim = atoi(argv[++arg]) / 2;
+
+    } else if (strcmp(argv[arg], "-noraw") == 0) {
+      includeRaw = false;
 
     } else {
       err++;
     }
     arg++;
   }
-  if ((nucmerName == 0L) && (snapperName == 0L))
+  if ((nucmerNamesLen == 0) && (snapperNamesLen == 0))
     fprintf(stderr, "ERROR: No input matches supplied (either -nucmer or -snapper).\n"), err++;
   if (refName == 0L)
     fprintf(stderr, "ERROR: No reference sequence supplied (-reference).\n"), err++;
@@ -420,36 +443,47 @@ main(int argc, char **argv) {
   {
     char   outputName[FILENAME_MAX];
 
+    errno = 0;
+
     sprintf(outputName, "%s.intervals", outputPrefix);
     intervalOutput = fopen(outputName, "w");
+
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n",
+              outputName, strerror(errno)), exit(1);
 
     sprintf(outputName, "%s.gff3", outputPrefix);
     gffOutput = fopen(outputName, "w");
   
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n",
+              outputName, strerror(errno)), exit(1);
+
     fprintf(gffOutput, "##gff-version 3\n");
   }
 
   //  Load the reference sequence.  ASSUMES it is all on one line!
 
-  loadReferenceSequence(refName, refhdr, refseq, reflen);
+  loadReferenceSequence(refName, refList, refMap);
 
   //  Load all the matches into genomeAlignment.  Generate longestAlignment for each fragment.
   //  genomeAlignment::isLognest and genomeAlignment::isRepeat are computed later.
 
-  if (nucmerName)
-    loadNucmer(nucmerName, genome, IIDmap, IIDname, IIDcount);
+  for (uint32 nn=0; nn<nucmerNamesLen; nn++)
+    loadNucmer(nucmerNames[nn], genome, IIDmap, IIDname, refList, refMap);
 
-  if (snapperName)
-    loadSnapper(snapperName, genome, IIDmap, IIDname, IIDcount);
+  for (uint32 nn=0; nn<snapperNamesLen; nn++)
+    loadSnapper(snapperNames[nn], genome, IIDmap, IIDname, refList, refMap);
 
-  writeInputsAsGFF3(outputPrefix);
+  //if (includeRaw)
+  //  writeInputsAsGFF3(outputPrefix);
 
   //  Process the matches fragment by fragment.  Find the longest, count the number
   //  of duplicates of the longest match, label as repeat/unique.
 
   sort(genome.begin(), genome.end(), byFragmentID);
 
-  processMatches(alignWobble, minOverlap, uniqEnd);
+  processMatches(alignWobble, uniqEnd);
 
   sort(genome.begin(), genome.end(), byGenomePosition);
 
@@ -458,7 +492,7 @@ main(int argc, char **argv) {
   //  Now, throw all the non-spanned repeats into an intervalList, squash them to get intervals,
   //  and report the repeat regions.
 
-  buildIntervals(outputPrefix, minOverlap);
+  buildIntervals(outputPrefix, fragTrim, includeRaw);
 
   REPT.merge();
   UNIQ.merge();
@@ -474,46 +508,64 @@ main(int argc, char **argv) {
 
   for (uint32 ir=0, iu=0; ((ir < REPT.numberOfIntervals()) ||
                            (iu < UNIQ.numberOfIntervals())); ) {
-    int64  lor = (ir < REPT.numberOfIntervals()) ? REPT.lo(ir) : 999999999;
-    int64  lou = (iu < UNIQ.numberOfIntervals()) ? UNIQ.lo(iu) : 999999999;
+
+    //  UNIQ regions are offset by fragTrim on each side
+
+    int64  lor = (ir < REPT.numberOfIntervals()) ? REPT.lo(ir)            : 999999999;
+    int64  lou = (iu < UNIQ.numberOfIntervals()) ? UNIQ.lo(iu) - fragTrim : 999999999;
+
+
+    //  Search the refList for the reference sequence we are in.  We should never span reference
+    //  sequences (which isn't tested, as we only know the low coordinate at this time).
+
+    char  *refhdr = NULL;
+    int64  refbgn = 0;
+    int64  refend = 0;
+    int64  refcnt = 0;
 
     if (lor < lou) {
-      fprintf(intervalOutput, "%8ld %8ld REPT %d%s\n",
-              REPT.lo(ir),
-              REPT.hi(ir),
-              REPT.ct(ir),
-              (REPTvalid[ir]) ? "" : " weak");
+      for (uint32 rr=0; rr<refList.size(); rr++)
+        if ((refList[rr].rschnBgn <= lor) && (lor <= refList[rr].rschnEnd)) {
+          refhdr = refList[rr].rsrefName;
+          refbgn = REPT.lo(ir) - refList[rr].rschnBgn;
+          refend = REPT.hi(ir) - refList[rr].rschnBgn;
+          refcnt = REPT.ct(ir);
+        }
+
+      assert(refcnt != 0);
+
+      fprintf(intervalOutput, "%s\t%8ld\t%8ld\tREPT\t%ld%s\n",
+              refhdr, refbgn, refend, refcnt, (REPTvalid[ir]) ? "" : " weak");
 
       if (REPTvalid[ir])
         fprintf(gffOutput, "%s\t.\tbogus_rept_interval\t%ld\t%ld\t.\t.\t.\tID=REPT%04d\n",
-                refhdr,
-                REPT.lo(ir), REPT.hi(ir),
-                ir);
+                refhdr, refbgn, refend, ir);
       else
         fprintf(gffOutput, "%s\t.\tbogus_weak_interval\t%ld\t%ld\t.\t.\t.\tParent=UNIQ%04d\n",
-                refhdr,
-                REPT.lo(ir), REPT.hi(ir),
-                REPTvalidParent[ir]);
+                refhdr, refbgn, refend, REPTvalidParent[ir]);
 
       ir++;
 
     } else {
-      fprintf(intervalOutput, "%8ld %8ld UNIQ %d%s\n",
-              UNIQ.lo(iu) - minOverlap,
-              UNIQ.hi(iu) + minOverlap,
-              UNIQ.ct(iu),
-              (UNIQvalid[iu]) ? "" : " separation");
+      for (uint32 rr=0; rr<refList.size(); rr++)
+        if ((refList[rr].rschnBgn <= lou) && (lou <= refList[rr].rschnEnd)) {
+          refhdr = refList[rr].rsrefName;
+          refbgn = UNIQ.lo(iu) - fragTrim - refList[rr].rschnBgn;
+          refend = UNIQ.hi(iu) + fragTrim - refList[rr].rschnBgn;
+          refcnt = UNIQ.ct(iu);
+        }
+
+      assert(refcnt != 0);
+
+      fprintf(intervalOutput, "%s\t%8ld\t%8ld\tUNIQ\t%ld%s\n",
+              refhdr, refbgn, refend, refcnt, (UNIQvalid[iu]) ? "" : " separation");
 
       if (UNIQvalid[iu])
         fprintf(gffOutput, "%s\t.\tbogus_uniq_interval\t%ld\t%ld\t.\t.\t.\tID=UNIQ%04d\n",
-                refhdr,
-                UNIQ.lo(iu), UNIQ.hi(iu),
-                iu);
+                refhdr, refbgn, refend, iu);
       else
         fprintf(gffOutput, "%s\t.\tbogus_sepr_interval\t%ld\t%ld\t.\t.\t.\tParent=REPT%04d\n",
-                refhdr,
-                UNIQ.lo(iu), UNIQ.hi(iu),
-                UNIQvalidParent[iu]);
+                refhdr, refbgn, refend, UNIQvalidParent[iu]);
 
       iu++;
     }

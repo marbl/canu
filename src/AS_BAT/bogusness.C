@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogusness.C,v 1.6 2010-12-21 19:45:18 brianwalenz Exp $";
+const char *mainid = "$Id: bogusness.C,v 1.7 2011-02-11 03:25:37 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -57,6 +57,8 @@ public:
               int32 _utgIID,
               int32 _alignNum, int32 _alignTotal,
               int32 _utgBgn, int32 _utgEnd,
+              int32 _chnBgn, int32 _chnEnd,
+              int32 _genIID,
               int32 _genBgn, int32 _genEnd,
               bool  _isReverse,
               int32 _status,
@@ -80,6 +82,10 @@ public:
     utgBgn     = _utgBgn;
     utgEnd     = _utgEnd;
 
+    chnBgn     = _chnBgn;
+    chnEnd     = _chnEnd;
+
+    genIID     = _genIID;
     genBgn     = _genBgn;
     genEnd     = _genEnd;
     isReverse  = _isReverse;
@@ -99,9 +105,9 @@ public:
   };
 
   bool operator<(const bogusResult &that) const {
-    if (genBgn < that.genBgn)
+    if (chnBgn < that.chnBgn)
       return(true);
-    if (genBgn > that.genBgn)
+    if (chnBgn > that.chnBgn)
       return(false);
     return(idlBgn < that.idlBgn);
   };
@@ -115,6 +121,10 @@ public:
   int32   utgBgn;
   int32   utgEnd;
 
+  int32   chnBgn;    //  Position in the chained reference
+  int32   chnEnd;
+
+  int32   genIID;      //  Position in the actual reference (for output)
   int32   genBgn;
   int32   genEnd;
   bool    isReverse;
@@ -156,45 +166,15 @@ public:
 };
 
 
-#if 0
-class actualUnitig {
-public:
-  actualUnitig() {
-    bgn  = 0;
-    end  = 0;
-    type = 0;
-  };
 
-  actualUnitig(int32 b, int32 e, char t) {
-    bgn  = b;
-    end  = e;
-    type = t;
-  };
-
-  ~actualUnitig() {
-  };
-
-  int32  bgn;
-  int32  end;
-  int32  unitigID;
-  int32  alignNum;
-  int32  alignMax;
-  char   type;
-};
-#endif
-
-
-char    *refhdr = NULL;
-char    *refseq = NULL;
-char    *refano = NULL;
-int32    reflen = 0;
+vector<referenceSequence>  refList;
+map<string,uint32>         refMap;
 
 vector<idealUnitig>        ideal;
 
 vector<genomeAlignment>    genome;
 map<string, int32>         IIDmap;       //  Maps an ID string to an IID.
 vector<string>             IIDname;      //  Maps an IID to an ID string.
-vector<uint32>             IIDcount;     //  Maps an IID to the number of alignments
 
 vector<bogusResult>        results;
 
@@ -220,16 +200,17 @@ loadIdealUnitigs(char *idealName,
 
     S.split(L);
 
-    if        (strcmp(S[2], "REPT") == 0)
+    if        (strcmp(S[3], "REPT") == 0)
       t = (S.numWords() == 4) ? IDEAL_REPT : IDEAL_UNIQWEAK;
 
-    else if (strcmp(S[2], "UNIQ") == 0)
+    else if (strcmp(S[3], "UNIQ") == 0)
       t = (S.numWords() == 4) ? IDEAL_UNIQ : IDEAL_REPTUNIQ;
 
     else
       fprintf(stderr, "Unknown type in '%s'\n", L), exit(1);
 
-    ideal.push_back(idealUnitig(S(0), S(1), t));
+#warning ONLY WORKS ON ONE REFERENCE
+    ideal.push_back(idealUnitig(S(1), S(2), t));
 
     fgets(L, 1024, F);
   }
@@ -251,10 +232,10 @@ isUnitigContained(int32  frgIID,
                   double &ufrac,
                   double &ifrac) {
 
-  if ((ideal.bgn    <= cover.genBgn) &&
+  if ((ideal.bgn    <= cover.chnBgn) &&
       (cover.genEnd <= ideal.end)) {
-    alen  = cover.genEnd - cover.genBgn;
-    ulen  = cover.genEnd - cover.genBgn;
+    alen  = cover.genEnd - cover.chnBgn;
+    ulen  = cover.genEnd - cover.chnBgn;
     ilen  = ideal.end - ideal.bgn;
     ufrac = 100.0 * alen / ulen;
     ifrac = 100.0 * alen / ilen;
@@ -273,10 +254,10 @@ isUnitigContaining(int32  frgIID,
                    double &ufrac,
                    double &ifrac) {
 
-  if ((cover.genBgn <= ideal.bgn) &&
-      (ideal.end    <= cover.genEnd)) {
+  if ((cover.chnBgn <= ideal.bgn) &&
+      (ideal.end      <= cover.chnEnd)) {
     alen  = ideal.end - ideal.bgn;
-    ulen  = cover.genEnd - cover.genBgn;
+    ulen  = cover.chnEnd - cover.chnBgn;
     ilen  = ideal.end - ideal.bgn;
     ufrac = 100.0 * alen / ulen;
     ifrac = 100.0 * alen / ilen;
@@ -295,10 +276,10 @@ isUnitigEnding(int32  frgIID,
                double &ufrac,
                double &ifrac) {
 
-  if ((cover.genBgn <= ideal.bgn) &&
-      (ideal.bgn    <= cover.genEnd)) {
-    alen  = cover.genEnd - ideal.bgn;
-    ulen  = cover.genEnd - cover.genBgn;
+  if ((cover.chnBgn <= ideal.bgn) &&
+      (ideal.bgn      <= cover.chnEnd)) {
+    alen  = cover.chnEnd - ideal.bgn;
+    ulen  = cover.chnEnd - cover.chnBgn;
     ilen  = ideal.end - ideal.bgn;
     ufrac = 100.0 * alen / ulen;
     ifrac = 100.0 * alen / ilen;
@@ -317,10 +298,10 @@ isUnitigBeginning(int32  frgIID,
                   double &ufrac,
                   double &ifrac) {
 
-  if ((cover.genBgn <= ideal.end) &&
-      (ideal.end    <= cover.genEnd)) {
-    alen  = ideal.end - cover.genBgn;
-    ulen  = cover.genEnd - cover.genBgn;
+  if ((cover.chnBgn <= ideal.end) &&
+      (ideal.end      <= cover.chnEnd)) {
+    alen  = ideal.end - cover.chnBgn;
+    ulen  = cover.chnEnd - cover.chnBgn;
     ilen  = ideal.end - ideal.bgn;
     ufrac = 100.0 * alen / ulen;
     ifrac = 100.0 * alen / ilen;
@@ -336,21 +317,25 @@ isUnitigBeginning(int32  frgIID,
 
 int
 main(int argc, char **argv) {
-  char                      *nucmerName   = 0L;
-  char                      *snapperName  = 0L;
-  char                      *idealName = 0L;
-  char                      *refName = 0L;
-  char                      *outputPrefix = 0L;
-  char                       outputName[FILENAME_MAX];
-  
+  uint32   nucmerNamesLen  = 0;
+  uint32   snapperNamesLen = 0;
+  char    *nucmerNames[1024];
+  char    *snapperNames[1024];
+  char    *idealName = 0L;
+  char    *refName = 0L;
+  char    *outputPrefix = 0L;
+
+  FILE    *gffOutput     = 0L;
+  FILE    *resultsOutput = 0L;
+
   int arg=1;
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-nucmer") == 0) {
-      nucmerName = argv[++arg];
+      nucmerNames[nucmerNamesLen++] = argv[++arg];
 
     } else if (strcmp(argv[arg], "-snapper") == 0) {
-      snapperName = argv[++arg];
+      snapperNames[snapperNamesLen++] = argv[++arg];
 
     } else if (strcmp(argv[arg], "-ideal") == 0) {
       idealName = argv[++arg];
@@ -366,8 +351,10 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((nucmerName == 0L) && (snapperName == 0L) || (refName == 0L) || (outputPrefix == 0L))
+  if ((nucmerNamesLen == 0) && (snapperNamesLen == 0L))
     fprintf(stderr, "ERROR: No input matches supplied (either -nucmer or -snapper).\n"), err++;
+  if (refName == 0L)
+    fprintf(stderr, "ERROR: No referece supplied (-reference).\n"), err++;
   if (idealName == 0L)
     fprintf(stderr, "ERROR: No ideal unitigs supplied (-ideal).\n"), err++;
   if (outputPrefix == 0L)
@@ -376,24 +363,42 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+
+  {
+    char   outputName[FILENAME_MAX];
+
+    errno = 0;
+
+    sprintf(outputName, "%s.bogusness", outputPrefix);
+    resultsOutput = fopen(outputName, "w");
+
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n",
+              outputName, strerror(errno)), exit(1);
+
+    sprintf(outputName, "%s.gff3", outputPrefix);
+    gffOutput = fopen(outputName, "w");
+  
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for writing: %s\n",
+              outputName, strerror(errno)), exit(1);
+
+    fprintf(gffOutput, "##gff-version 3\n");
+  }
+
+
   loadIdealUnitigs(idealName, ideal);
-  loadReferenceSequence(refName, refhdr, refseq, reflen);
+  loadReferenceSequence(refName, refList, refMap);
 
-  if (nucmerName)
-    loadNucmer(nucmerName, genome, IIDmap, IIDname, IIDcount);
 
-  if (snapperName)
-    loadSnapper(snapperName, genome, IIDmap, IIDname, IIDcount);
+  for (uint32 nn=0; nn<nucmerNamesLen; nn++)
+    loadNucmer(nucmerNames[nn], genome, IIDmap, IIDname, refList, refMap);
+
+  for (uint32 nn=0; nn<snapperNamesLen; nn++)
+    loadSnapper(snapperNames[nn], genome, IIDmap, IIDname, refList, refMap);
 
 
   sort(genome.begin(), genome.end(), byFragmentID);
-
-
-  sprintf(outputName, "%s.gff3", outputPrefix);
-  FILE *gffOutput = fopen(outputName, "w");
-
-  fprintf(gffOutput, "##gff-version 3\n");
-
 
 
   for (uint32 bgn=0, lim=genome.size(); bgn<lim; ) {
@@ -430,44 +435,76 @@ main(int argc, char **argv) {
           //  [j] already deleted
           continue;
 
-        if ((I.frgBgn <= J.frgBgn) &&
-            (J.frgEnd <= I.frgEnd))
+        if ((I.frgBgn < J.frgBgn) &&
+            (J.frgEnd < I.frgEnd))
           //  J contained in I.
           J.isDeleted = true;
       }
     }
 
-    //  Copy whatever is left over to a list of 'covering' alignments (and also write to the gff3 output)
+    //  Write to the gff3 output.
 
-    bool   foundData = false;
-    int32  spanBgn   = 0;
-    int32  spanEnd   = 0;
+    {
+      bool    *foundData = new bool   [refList.size()];
+      int32   *spanBgn   = new int32  [refList.size()];
+      int32   *spanEnd   = new int32  [refList.size()];
+      char   **spanHdr   = new char * [refList.size()];
 
-    for (uint32 i=bgn; i<end; i++) {
-      if (genome[i].isDeleted)
-        //  [i] contained
-        continue;
+      for (uint32 i=0; i<refList.size(); i++) {
+        foundData[i] = false;
+        spanBgn[i]   = 0;
+        spanEnd[i]   = 0;
+        spanHdr[i]   = NULL;
+      }
+
+      for (uint32 i=bgn; i<end; i++) {
+        if (genome[i].isDeleted)
+          //  [i] contained
+          continue;
+
+        int32 iid = genome[i].genIID;
+
+        if (foundData[iid] == false) {
+          foundData[iid] = true;
+          spanBgn[iid]   = genome[i].genBgn;  //  OUTPUT: find the span on this reference
+          spanEnd[iid]   = genome[i].genEnd;
+          spanHdr[iid]   = refList[genome[i].genIID].rsrefName;
+        } else {
+          spanBgn[iid]   = MIN(spanBgn[iid], genome[i].genBgn);
+          spanEnd[iid]   = MAX(spanEnd[iid], genome[i].genEnd);
+        }
+      }
 
       if (foundData == false) {
-        foundData = true;
-        spanBgn   = genome[i].genBgn;
-        spanEnd   = genome[i].genEnd;
-      } else {
-        spanBgn   = MIN(spanBgn, genome[i].genBgn);
-        spanEnd   = MAX(spanEnd, genome[i].genEnd);
+        //  And if we didn't 'foundData', then we won't add anything into 'cover' below, and the rest
+        //  of this iteration does nothing.  We could just immediately to the end of the loop (about
+        //  100 lines down), or just get out of here right now.
+        bgn = end;
+        continue;
       }
+
+      for (uint32 iid=0; iid<refList.size(); iid++)
+        fprintf(gffOutput, "%s\t.\tbogusness_span\t%d\t%d\t.\t.\t.\tID=%s\n",
+                spanHdr[iid], spanBgn[iid], spanEnd[iid], IIDname[frgIID].c_str());
+
+      for (uint32 i=bgn; i<end; i++) {
+        genomeAlignment  &I = genome[i];
+
+        if (I.isDeleted)
+          //  [i] contained
+          continue;
+    
+        fprintf(gffOutput, "%s\t.\tbogusness_match\t%d\t%d\t.\t%c\t.\tParent=%s\n",
+                refList[I.genIID].rsrefName, I.genBgn, I.genEnd, (I.isReverse) ? '-' : '+', IIDname[frgIID].c_str());
+      }
+
+      delete [] foundData;
+      delete [] spanBgn;
+      delete [] spanEnd;
+      delete [] spanHdr;
     }
 
-    if (foundData == false) {
-      //  And if we didn't 'foundData', then we won't add anything into 'cover' below, and the rest
-      //  of this iteration does nothing.  We could just immediately to the end of the loop (about
-      //  100 lines down), or just get out of here right now.
-      bgn = end;
-      continue;
-    }
-
-    fprintf(gffOutput, "%s\t.\tbogusness_span\t%d\t%d\t.\t.\t.\tID=%s\n",
-            refhdr, spanBgn, spanEnd, IIDname[frgIID].c_str());
+    //  Copy whatever is left over to a list of 'covering' alignments.
 
     for (uint32 i=bgn; i<end; i++) {
       genomeAlignment  &I = genome[i];
@@ -475,12 +512,10 @@ main(int argc, char **argv) {
       if (I.isDeleted)
         //  [i] contained
         continue;
-    
-      cover.push_back(I);
 
-      fprintf(gffOutput, "%s\t.\tbogusness_match\t%d\t%d\t.\t%c\t.\tParent=%s\n",
-              refhdr, I.genBgn, I.genEnd, (I.isReverse) ? '-' : '+', IIDname[frgIID].c_str());
+      cover.push_back(I);
     }
+
 
 
     //  Attempt to classify
@@ -506,6 +541,8 @@ main(int argc, char **argv) {
           results.push_back(bogusResult(IIDname[frgIID].c_str(), frgIID,
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
+                                        cover[c].chnBgn, cover[c].chnEnd,
+                                        cover[c].genIID,
                                         cover[c].genBgn, cover[c].genEnd,
                                         cover[c].isReverse,
                                         STATUS_CONTAINED,
@@ -527,6 +564,8 @@ main(int argc, char **argv) {
           results.push_back(bogusResult(IIDname[frgIID].c_str(), frgIID,
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
+                                        cover[c].chnBgn, cover[c].chnEnd,
+                                        cover[c].genIID,
                                         cover[c].genBgn, cover[c].genEnd,
                                         cover[c].isReverse,
                                         STATUS_CONTAINED,
@@ -542,6 +581,8 @@ main(int argc, char **argv) {
           results.push_back(bogusResult(IIDname[frgIID].c_str(), frgIID,
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
+                                        cover[c].chnBgn, cover[c].chnEnd,
+                                        cover[c].genIID,
                                         cover[c].genBgn, cover[c].genEnd,
                                         cover[c].isReverse,
                                         STATUS_CONTAINS,
@@ -557,6 +598,8 @@ main(int argc, char **argv) {
           results.push_back(bogusResult(IIDname[frgIID].c_str(), frgIID,
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
+                                        cover[c].chnBgn, cover[c].chnEnd,
+                                        cover[c].genIID,
                                         cover[c].genBgn, cover[c].genEnd,
                                         cover[c].isReverse,
                                         STATUS_BEGINSin,
@@ -572,6 +615,8 @@ main(int argc, char **argv) {
           results.push_back(bogusResult(IIDname[frgIID].c_str(), frgIID,
                                         c+1, cover.size(),
                                         cover[c].frgBgn, cover[c].frgEnd,
+                                        cover[c].chnBgn, cover[c].chnEnd,
+                                        cover[c].genIID,
                                         cover[c].genBgn, cover[c].genEnd,
                                         cover[c].isReverse,
                                         STATUS_ENDSin,
@@ -590,16 +635,14 @@ main(int argc, char **argv) {
   sort(results.begin(), results.end());
 
 
-  sprintf(outputName, "%s.out", outputPrefix);
-  FILE *resultsOut = fopen(outputName, "w");
-
   for (uint32 i=0; i<results.size(); i++) {
     bogusResult *bi = &results[i];
 
-    fprintf(resultsOut, "| %s || %d of %d || %d-%d || %d-%d || %s || %s || %05d || %d-%d || %dbp || %.2f%% || %.2f%%\n",
+    fprintf(resultsOutput, "| %s || %d of %d || %d-%d || %s || %d-%d || %s || %s || %05d || %d-%d || %dbp || %.2f%% || %.2f%%\n",
             bi->utgID,
             bi->alignNum, bi->alignTotal,
             bi->utgBgn, bi->utgEnd,
+            refList[bi->genIID].rsrefName,
             bi->genBgn, bi->genEnd,
             statuses[bi->status],
             types[bi->type],
@@ -610,7 +653,7 @@ main(int argc, char **argv) {
   }
 
   fclose(gffOutput);
-  fclose(resultsOut);
+  fclose(resultsOutput);
 
   ////////////////////////////////////////
   //
@@ -714,8 +757,8 @@ main(int argc, char **argv) {
       //  j contained in i AND j the maximal alignment -- A BUBBLE!
       //
       if ((i != j) &&
-          (gi->genBgn <= gj->genBgn) &&
-          (gj->genEnd <= gi->genEnd) &&
+          (gi->chnBgn <= gj->chnBgn) &&
+          (gj->chnEnd <= gi->chnEnd) &&
           (gj->frgBgn == bgn[gj->frgIID]) &&
           (gj->frgEnd == end[gj->frgIID])) {
         bub[gj->frgIID]++;

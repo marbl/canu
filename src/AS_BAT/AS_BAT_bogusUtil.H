@@ -20,7 +20,7 @@
 #ifndef INCLUDE_AS_BAT_BOGUSUTIL
 #define INCLUDE_AS_BAT_BOGUSUTIL
 
-static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.5 2010-12-21 19:45:18 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.6 2011-02-11 03:25:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,18 +42,22 @@ using namespace std;
 class genomeAlignment {
 public:
   genomeAlignment() {
-    frgIID = frgLen = frgBgn = frgEnd = 0;
+    frgIID = frgBgn = frgEnd = 0;
+    genIID = 0;
     genBgn = genEnd = 0;
     isDeleted = isReverse = isSpanned = isRepeat = false;
-  }
+  };
 
   int32   frgIID;
-  int32   frgLen;  //  UNUSED
   int32   frgBgn;
   int32   frgEnd;
 
+  int32   genIID;      //  Position in the actual sequence
   int32   genBgn;
   int32   genEnd;
+
+  int32   chnBgn;      //  Position in the chained sequences
+  int32   chnEnd;
 
   bool    isDeleted;  //  Used by bogusness
 
@@ -63,30 +67,51 @@ public:
 };
 
 
+class referenceSequence {
+public:
+  referenceSequence(int32 cb, int32 ce, int32 rl, char *cn) {
+    rschnBgn = cb;
+    rschnEnd = ce;
+    rsrefLen = rl;
+    assert(strlen(cn) < 256);
+    strcpy(rsrefName, cn);
+  };
+
+  int32  rschnBgn;
+  int32  rschnEnd;
+  int32  rsrefLen;
+  char   rsrefName[256];
+};
+
+
 bool byFragmentID(const genomeAlignment &A, const genomeAlignment &B);
 bool byGenomePosition(const genomeAlignment &A, const genomeAlignment &B);
 
 
 void addAlignment(vector<genomeAlignment>   &genome,
-                  int32  frgIID, int32  frgLen,
+                  int32  frgIID,
                   int32  frgBgn, int32  frgEnd, bool  isReverse,
+                  int32  chnBgn, int32  chnEnd,
+                  int32  genIID,
                   int32  genBgn, int32  genEnd);
 
-void loadNucmer(char                      *nucmerName,
-                vector<genomeAlignment>   &genome,
-                map<string, int32>        &IIDmap,
-                vector<string>            &IIDname,
-                vector<uint32>            &IIDcount);
+void loadNucmer(char                       *nucmerName,
+                vector<genomeAlignment>    &genome,
+                map<string, int32>         &IIDmap,
+                vector<string>             &IIDname,
+                vector<referenceSequence>  &refList,
+                map<string,uint32>         &refMap);
 
-void loadSnapper(char                      *snapperName,
-                 vector<genomeAlignment>   &genome,
-                 map<string, int32>        &IIDmap,
-                 vector<string>            &IIDname,
-                 vector<uint32>            &IIDcount);
+void loadSnapper(char                       *snapperName,
+                 vector<genomeAlignment>    &genome,
+                 map<string, int32>         &IIDmap,
+                 vector<string>             &IIDname,
+                 vector<referenceSequence>  &refList,
+                 map<string,uint32>         &refMap);
 
-void loadReferenceSequence(char     *refName,
-                           char    *&refhdr,
-                           char    *&refseq,
-                           int32    &reflen);
+void
+loadReferenceSequence(char                       *refName,
+                      vector<referenceSequence>  &refList,
+                      map<string,uint32>         &refMap);
 
 #endif  //  INCLUDE_AS_BAT_BOGUSUTIL
