@@ -153,11 +153,9 @@ while (!eof(STDIN)) {
         print "src:\n";
         print "convert-v1-to-v2\n";
         print ".\n";
-        print "nft:5\n";
+        print "nft:3\n";
         print "fea:\n";
         print "doNotTrustHomopolymerRuns=0\n";
-        print "hpsIsFlowGram=0\n";
-        print "hpsIsPeakSpacing=0\n";
         print "doNotOverlapTrim=$noOBT\n";
         print "isNotRandom=0\n";
         print ".\n";
