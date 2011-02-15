@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.3 2010-12-13 08:00:52 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.4 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -30,137 +30,8 @@ static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.3 2010-12-13 08:00:
 
 
 
-class intersectionEvidence {
-public:
-  intersectionEvidence() {
-    frag5tig = 0;
-    frag3tig = 0;
 
-    frag5confirmed = false;
-    frag3confirmed = false;
-
-    frag5self = false;
-    frag3self = false;
-  };
-  ~intersectionEvidence() {
-  };
-
-
-  BestEdgeOverlap   edge5;    //  fragID of the frag on our 5' best overlap
-  BestEdgeOverlap   edge3;    //
-
-  uint32   frag5tig;          //  tigID the frag on our 5' best overlap is in
-  uint32   frag3tig;          //
-
-  uint32   frag5confirmed:1;  //  true if our 5' end is confirmed by a best overlap in the same unitig
-  uint32   frag3confirmed:1;  //
-
-  uint32   frag5self:1;       //  true if our 5' end is intersecting the same unitig
-  uint32   frag3self:1;
-};
-
-
-
-class intersectionPoint {
-public:
-  intersectionPoint() {
-    isectFrg  = 0;
-    isect3p   = false;
-
-    sourceFrg = 0;
-    source3p  = false;
-
-    isSelf    = false;
-  };
-  intersectionPoint(BestEdgeOverlap edge, uint32 sId, bool s3p, bool self) {
-    isectFrg  = edge.fragId();
-    isect3p   = edge.frag3p();
-
-    sourceFrg = sId;
-    source3p  = s3p;
-
-    isSelf    = self;
-
-    //fprintf(stderr, "intersectionPoint()-- %d/%c' from %d/%c' self=%d\n",
-    //        isectFrg,  isect3p  ? '3' : '5',
-    //        sourceFrg, source3p ? '3' : '5',
-    //        isSelf);
-  };
-  ~intersectionPoint() {
-  };
-
-  bool operator<(const intersectionPoint that) const {
-    return(isectFrg < that.isectFrg);
-  };
-
-  uint32   isectFrg;  //  Fragment that is intersected into, we split on this.
-  bool     isect3p;   //  True if we intersected onto the 3' end of the fragment.
-
-  uint32   sourceFrg;
-  bool     source3p;
-
-  bool     isSelf;
-};
-
-
-
-static
-void
-writeBreakOVL(FILE             *breakFile,
-              uint32            aFrag,
-              uint32            bFrag,
-              bool              best3p,
-              BestEdgeOverlap  *bestEdge) {
-  GenericMesg  pmesg;
-  OverlapMesg  omesg;
-
-  if (breakFile == NULL)
-    return;
-
-  omesg.aifrag          = aFrag;  //inFrag;
-  omesg.bifrag          = bFrag;  ///f->ident;
-  omesg.ahg             = bestEdge->ahang();
-  omesg.bhg             = bestEdge->bhang();
-  omesg.orientation.setIsUnknown();
-  omesg.overlap_type    = AS_DOVETAIL;
-  omesg.quality         = 0.0;
-  omesg.min_offset      = 0;
-  omesg.max_offset      = 0;
-  omesg.polymorph_ct    = 0;
-  omesg.alignment_trace = NULL;
-#ifdef AS_MSG_USE_OVL_DELTA
-  omesg.alignment_delta = NULL;
-#endif
-
-  if ((best3p == false) && (bestEdge->frag3p() == false))
-    omesg.orientation.setIsOuttie();
-  if ((best3p == false) && (bestEdge->frag3p() == true))
-    omesg.orientation.setIsAnti();
-  if ((best3p == true) && (bestEdge->frag3p() == false))
-    omesg.orientation.setIsNormal();
-  if ((best3p == true) && (bestEdge->frag3p() == true))
-    omesg.orientation.setIsInnie();
-
-  pmesg.t = MESG_OVL;
-  pmesg.m = &omesg;
-
-  WriteProtoMesg_AS(breakFile, &pmesg);
-}
-
-
-
-void
-breakUnitigs(UnitigVector &unitigs,
-             char         *output_prefix,
-             bool          enableIntersectionBreaking) {
-
-  fprintf(logFile, "==> BREAKING UNITIGS.\n");
-
-  //
-  //  Analyze tigs for intersections
-  //
-
-  vector<intersectionPoint>   isects;
+intersectionList::intersectionList(UnitigVector &unitigs) {
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig             *tig = unitigs[ti];
@@ -262,7 +133,7 @@ breakUnitigs(UnitigVector &unitigs,
     }
 
     //
-    //  Dump.
+    //  Build the list.
     //
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
@@ -270,39 +141,23 @@ breakUnitigs(UnitigVector &unitigs,
 
       if ((evidence[fi].frag5tig != 0) &&
           (evidence[fi].frag5tig != tig->id()) &&
-          (evidence[fi].frag5confirmed == false)) {
-        if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
-          fprintf(logFile, "INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d\n",
-                  tig->id(), frg->ident, 5, evidence[fi].frag5tig, evidence[fi].edge5.fragId(), evidence[fi].edge5.frag3p() ? 3 : 5);
+          (evidence[fi].frag5confirmed == false))
         isects.push_back(intersectionPoint(evidence[fi].edge5, frg->ident, false, false));
-      }
 
       if ((evidence[fi].frag5tig == tig->id()) &&
           (evidence[fi].frag5self == true) &&
-          (evidence[fi].frag5confirmed == false)) {
-        if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
-          fprintf(logFile, "INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d (SELF)\n",
-                  tig->id(), frg->ident, 5, evidence[fi].frag5tig, evidence[fi].edge5.fragId(), evidence[fi].edge5.frag3p() ? 3 : 5);
+          (evidence[fi].frag5confirmed == false))
         isects.push_back(intersectionPoint(evidence[fi].edge5, frg->ident, false, true));
-      }
 
       if ((evidence[fi].frag3tig != 0) &&
           (evidence[fi].frag3tig != tig->id()) &&
-          (evidence[fi].frag3confirmed == false)) {
-        if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
-          fprintf(logFile, "INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d\n",
-                  tig->id(), frg->ident, 3, evidence[fi].frag3tig, evidence[fi].edge3.fragId(), evidence[fi].edge3.frag3p() ? 3 : 5);
+          (evidence[fi].frag3confirmed == false))
         isects.push_back(intersectionPoint(evidence[fi].edge3, frg->ident, true, false));
-      }
 
       if ((evidence[fi].frag3tig == tig->id()) &&
           (evidence[fi].frag3self == true) &&
-          (evidence[fi].frag3confirmed == false)) {
-        if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
-          fprintf(logFile, "INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d (SELF)\n",
-                  tig->id(), frg->ident, 3, evidence[fi].frag3tig, evidence[fi].edge3.fragId(), evidence[fi].edge3.frag3p() ? 3 : 5);
+          (evidence[fi].frag3confirmed == false))
         isects.push_back(intersectionPoint(evidence[fi].edge3, frg->ident, true, true));
-      }
     }
 
     delete [] evidence;
@@ -313,15 +168,55 @@ breakUnitigs(UnitigVector &unitigs,
 
   std::sort(isects.begin(), isects.end());
 
-  map<uint32,uint32>  isectsMap;
+  //  Terminate the intersection list with a sentinal intersection.  This is CRITICAL
+  //  to the way we iterate over intersections.
 
-  for (uint32 i=0; i<isects.size(); i++)
+  isects.push_back(intersectionPoint(BestEdgeOverlap(), 0, true, true));
+
+  //  Build a map from fragment id to the first intersection in the list.
+
+  for (uint32 i=0; i<isects.size(); i++) {
+    isectsNum[isects[i].isectFrg]++;
+
     if (isectsMap.find(isects[i].isectFrg) == isectsMap.end())
       isectsMap[isects[i].isectFrg] = i;
+  }
+}
+
+
+intersectionList::~intersectionList() {
+}
+
+
+void
+intersectionList::logIntersections(void) {
+
+  for (uint32 ii=0; ii<isects.size(); ii++) {
+    intersectionPoint  *isect = &isects[ii];
+
+    fprintf(logFile, "INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d\n",
+            Unitig::fragIn(isect->isectFrg), isect->isectFrg, isect->isect3p ? 3 : 5,
+            Unitig::fragIn(isect->invadFrg), isect->invadFrg, isect->invad3p ? 3 : 5);
+  }
+}
+
+
+
+
+
+void
+breakUnitigs(UnitigVector &unitigs,
+             char         *output_prefix,
+             bool          enableIntersectionBreaking) {
+
+  fprintf(logFile, "==> BREAKING UNITIGS.\n");
+
+  intersectionList  *ilist = new intersectionList(unitigs);
 
   //  Stop when we've seen all current unitigs.  Replace tiMax
   //  in the for loop below with unitigs.size() to recursively
   //  split unitigs.
+
   uint32 tiMax = unitigs.size();
 
   for (uint32 ti=0; ti<tiMax; ti++) {
@@ -333,29 +228,24 @@ breakUnitigs(UnitigVector &unitigs,
     UnitigBreakPoints   breaks;
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
-      ufNode  *frg = &tig->ufpath[fi];
+      ufNode             *frg   = &tig->ufpath[fi];
+      intersectionPoint  *isect = ilist->getIntersection(frg->ident, 0);
 
-      //  Find the first piece
-
-      if (isectsMap.find(frg->ident) == isectsMap.end())
+      if (isect == NULL)
         continue;
 
-      uint32 ii = isectsMap[frg->ident];
-      assert(isects[ii].isectFrg == frg->ident);
-      assert(tig->id() == Unitig::fragIn(isects[ii].isectFrg));
-
-      for (; (isects[ii].isectFrg == frg->ident) &&
-             (ii < isects.size()); ii++) {
-        //fprintf(stderr, "ii=%d isectFrg=%d sourceFrg=%d\n", ii, isects[ii].isectFrg, isects[ii].sourceFrg);
+      for (; isect->isectFrg == frg->ident; isect++) {
+        assert(tig->id() == Unitig::fragIn(isect->isectFrg));
 
         //  Grab the invading unitig
-        Unitig *inv = unitigs[Unitig::fragIn(isects[ii].sourceFrg)];
-        assert(inv->id() == Unitig::fragIn(isects[ii].sourceFrg));
+
+        Unitig *inv = unitigs[Unitig::fragIn(isect->invadFrg)];
+        assert(inv->id() == Unitig::fragIn(isect->invadFrg));
 
         //  Grab the best edges off the invading fragment.
 
-        BestEdgeOverlap  *best5 = OG->getBestEdgeOverlap(isects[ii].sourceFrg, false);
-        BestEdgeOverlap  *best3 = OG->getBestEdgeOverlap(isects[ii].sourceFrg, true);
+        BestEdgeOverlap  *best5 = OG->getBestEdgeOverlap(isect->invadFrg, false);
+        BestEdgeOverlap  *best3 = OG->getBestEdgeOverlap(isect->invadFrg, true);
 
         //  Check if the incoming tig is a spur, and we should just ignore it immediately
 
@@ -364,8 +254,8 @@ breakUnitigs(UnitigVector &unitigs,
              (best3->fragId() == 0))) {
           if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
             fprintf(logFile, "unitig %d frag %d end %c' into unitig %d frag %d end %c' -- IS A SPUR, skip it\n",
-                    inv->id(), isects[ii].sourceFrg, isects[ii].source3p ? '3' : '5',
-                    tig->id(), isects[ii].isectFrg,  isects[ii].isect3p  ? '3' : '5');
+                    inv->id(), isect->invadFrg, isect->invad3p ? '3' : '5',
+                    tig->id(), isect->isectFrg, isect->isect3p ? '3' : '5');
           continue;
         }
 
@@ -373,12 +263,12 @@ breakUnitigs(UnitigVector &unitigs,
             
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
           fprintf(logFile, "unitig %d frag %d end %c' into unitig %d frag %d end %c'\n",
-                  inv->id(), isects[ii].sourceFrg, isects[ii].source3p ? '3' : '5',
-                  tig->id(), isects[ii].isectFrg,  isects[ii].isect3p  ? '3' : '5');
+                  inv->id(), isect->invadFrg, isect->invad3p ? '3' : '5',
+                  tig->id(), isect->isectFrg, isect->isect3p ? '3' : '5');
 
-        breaks.push_back(UnitigBreakPoint(isects[ii].isectFrg, isects[ii].isect3p, frg->position,
+        breaks.push_back(UnitigBreakPoint(isect->isectFrg, isect->isect3p, frg->position,
                                           fi, tig->ufpath.size() - fi - 1,
-                                          isects[ii].sourceFrg, isects[ii].source3p,
+                                          isect->invadFrg, isect->invad3p,
                                           inv->getLength(),
                                           inv->ufpath.size()));
       }  //  Over all incoming fragments

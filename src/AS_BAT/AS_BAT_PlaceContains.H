@@ -22,11 +22,10 @@
 #ifndef INCLUDE_AS_BAT_PLACECONTAINS
 #define INCLUDE_AS_BAT_PLACECONTAINS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACECONTAINS = "$Id: AS_BAT_PlaceContains.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACECONTAINS = "$Id: AS_BAT_PlaceContains.H,v 1.2 2011-02-15 08:10:11 brianwalenz Exp $";
 
 void placeContainsUsingBestOverlaps(UnitigVector &unitigs);
-void placeContainsUsingAllOverlaps(OverlapStore *ovlStoreUniq,
-                                   OverlapStore *ovlStoreRept,
+void placeContainsUsingAllOverlaps(UnitigVector &unitigs,
                                    bool   withMatesToNonContained,
                                    bool   withMatesToUnambiguousContain);
 

@@ -22,7 +22,9 @@
 #ifndef INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.3 2011-01-18 22:36:35 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.4 2011-02-15 08:10:11 brianwalenz Exp $";
+
+#include "AS_BAT_OverlapCache.H"
 
 class overlapPlacement {
 public:
@@ -89,8 +91,6 @@ overlapPlacement_byCluster(const overlapPlacement &A, const overlapPlacement &B)
 bool
 placeFragUsingOverlaps(UnitigVector &unitigs,
                        uint32 fid,
-                       OverlapStore *ovlStoreUniq,
-                       OverlapStore *ovlStoreRept,
                        vector<overlapPlacement> &placements);
 
 #endif  //  INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS

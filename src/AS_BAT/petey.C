@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: petey.C,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+const char *mainid = "$Id: petey.C,v 1.2 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -39,6 +39,7 @@ const char *mainid = "$Id: petey.C,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
 
 
 FragmentInfo     *FI  = 0L;
+OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
 InsertSizes      *IS  = 0L;
@@ -311,7 +312,8 @@ main (int argc, char * argv []) {
   OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
   FI = new FragmentInfo(gkpStore, output_prefix);
-  OG = new BestOverlapGraph(ovlStoreUniq, ovlStoreRept, erate, elimit, output_prefix);
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept);
+  OG = new BestOverlapGraph(erate, elimit, output_prefix);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
 

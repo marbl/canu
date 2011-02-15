@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.4 2010-12-17 09:55:56 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.5 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -40,6 +40,8 @@ using namespace std;
 #include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
 
+#include "AS_BAT_OverlapCache.H"
+
 const uint32  noUnitig = 0xffffffff;
 
 ////////////////////////////////////////
@@ -53,11 +55,13 @@ const uint32  noUnitig = 0xffffffff;
 ////////////////////////////////////////
 
 class FragmentInfo;
+class OverlapCache;
 class BestOverlapGraph;
 class ChunkGraph;
 class InsertSizes;
 
 extern FragmentInfo     *FI;
+extern OverlapCache     *OC;
 extern BestOverlapGraph *OG;
 extern ChunkGraph       *CG;
 extern InsertSizes      *IS;
@@ -162,6 +166,28 @@ private:
 };
 
 
+//  Swiped from AS_OVS_overlap.h, modified to take a BAToverlap instead of an OVSoverlap.
+
+static
+uint32
+AS_BAT_overlapAEndIs5prime(const BAToverlap& olap) {
+  return((olap.a_hang < 0) && (olap.b_hang < 0));
+}
+
+static
+uint32
+AS_BAT_overlapAEndIs3prime(const BAToverlap& olap) {
+  return((olap.a_hang > 0) && (olap.b_hang > 0));
+}
+
+static
+uint32
+AS_BAT_overlapBEndIs3prime(const BAToverlap& olap) {
+  return((AS_BAT_overlapAEndIs5prime(olap) && (olap.flipped == false)) ||
+         (AS_BAT_overlapAEndIs3prime(olap) && (olap.flipped == true)));
+}
+
+
 class BestEdgeOverlap {
 public:
   BestEdgeOverlap() {
@@ -173,11 +199,11 @@ public:
   ~BestEdgeOverlap() {
   };
 
-  void    set(OVSoverlap const &olap) {
+  void    set(BAToverlap const &olap) {
     _id    = olap.b_iid;
-    _e3p   = AS_OVS_overlapBEndIs3prime(olap);
-    _ahang = olap.dat.ovl.a_hang;
-    _bhang = olap.dat.ovl.b_hang;
+    _e3p   = AS_BAT_overlapBEndIs3prime(olap);
+    _ahang = olap.a_hang;
+    _bhang = olap.b_hang;
   };
 
   void    set(uint32 id, bool e3p, int32 ahang, int32 bhang) {

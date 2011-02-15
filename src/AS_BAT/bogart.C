@@ -17,31 +17,42 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.6 2011-01-18 22:37:22 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.7 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_ChunkGraph.H"
 #include "AS_BAT_Unitig.H"
 
+#include "AS_BAT_OverlapCache.H"
+
 #include "AS_BAT_InsertSizes.H"
+
+#define MERGESPLITJOIN
 
 #include "AS_BAT_PopulateUnitig.H"
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_EvaluateMates.H"
 #include "AS_BAT_PlaceContains.H"
 #include "AS_BAT_PlaceZombies.H"
+
+#ifndef MERGESPLITJOIN
 #include "AS_BAT_IntersectBubble.H"
 #include "AS_BAT_IntersectSplit.H"
 #include "AS_BAT_Breaking.H"
 #include "AS_BAT_SplitDiscontinuous.H"
 #include "AS_BAT_Joining.H"
+#else
+#include "AS_BAT_MergeSplitJoin.H"
+#endif
+
 #include "AS_BAT_SetParentAndHang.H"
 #include "AS_BAT_ArrivalRate.H"
 #include "AS_BAT_Outputs.H"
 
 
 FragmentInfo     *FI  = 0L;
+OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
 InsertSizes      *IS  = 0L;
@@ -331,9 +342,13 @@ main (int argc, char * argv []) {
   OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
   FI = new FragmentInfo(gkpStore, output_prefix);
-  OG = new BestOverlapGraph(ovlStoreUniq, ovlStoreRept, erate, elimit, output_prefix);
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept);
+  OG = new BestOverlapGraph(erate, elimit, output_prefix);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
+
+  AS_OVS_closeOverlapStore(ovlStoreUniq);  ovlStoreUniq = NULL;
+  AS_OVS_closeOverlapStore(ovlStoreRept);  ovlStoreRept = NULL;
 
   UnitigVector   unitigs;
 
@@ -391,19 +406,19 @@ main (int argc, char * argv []) {
   setLogFile(output_prefix, "placeContainsZombies");
 
   placeContainsUsingBestOverlaps(unitigs);
-  //placeContainsUsingAllOverlaps(ovlStoreUniq,
-  //                              ovlStoreRept,
-  //                              bool withMatesToNonContained,
+  //placeContainsUsingAllOverlaps(bool withMatesToNonContained,
   //                              bool withMatesToUnambiguousContain);
 
-  placeZombies(unitigs,
-               ovlStoreUniq, ovlStoreRept, erate, elimit);
+  placeZombies(unitigs, erate, elimit);
 
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "placeContainsZombies");
   reportUnitigs(unitigs, output_prefix, "placeContainsZombies");
   evaluateMates(unitigs, output_prefix, "placeContainsZombies");
 
+
+
+#ifndef MERGESPLITJOIN
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -419,8 +434,8 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "bubblePopping");
 
-  popIntersectionBubbles(unitigs, ovlStoreUniq, ovlStoreRept);  //  Well supported as of Wed 13 Oct
-  popMateBubbles(unitigs, ovlStoreUniq, ovlStoreRept);          //  Exploratory as of Wed 13 Oct
+  popIntersectionBubbles(unitigs);  //  Well supported as of Wed 13 Oct
+  popMateBubbles(unitigs);          //  Exploratory as of Wed 13 Oct
 
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "bubblePopping");
@@ -462,6 +477,21 @@ main (int argc, char * argv []) {
 
   //  Maybe another round of bubble popping as above.
 
+#else
+
+  setLogFile(output_prefix, "mergeSplitJoin");
+
+  mergeSplitJoin(unitigs);
+
+  placeContainsUsingBestOverlaps(unitigs);
+
+  checkUnitigMembership(unitigs);
+  reportOverlapsUsed(unitigs, output_prefix, "joinUnitigs");
+  reportUnitigs(unitigs, output_prefix, "joinUnitigs");
+  evaluateMates(unitigs, output_prefix, "joinUnitigs");
+
+#endif
+
   //  OUTPUT
 
   setLogFile(output_prefix, "setParentAndHang");
@@ -479,11 +509,10 @@ main (int argc, char * argv []) {
   delete IS;
   delete CG;
   delete OG;
+  delete OC;
   delete FI;
 
   delete gkpStore;
-  AS_OVS_closeOverlapStore(ovlStoreUniq);
-  AS_OVS_closeOverlapStore(ovlStoreRept);
 
   for (uint32  ti=0; ti<unitigs.size(); ti++)
     delete unitigs[ti];

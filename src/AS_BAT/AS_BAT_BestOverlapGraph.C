@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.4 2010-12-07 00:25:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.5 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -40,12 +40,9 @@ const uint64 ogVersionNumber = 2;
 //     bog at the time.  It might be useful to save the gatekeeper information too.
 
 
-BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
-                                   OverlapStore        *ovlStoreRept,
-                                   double               AS_UTG_ERROR_RATE,
+BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
                                    double               AS_UTG_ERROR_LIMIT,
                                    const char          *prefix) {
-  OVSoverlap olap;
 
   _best5 = new BestEdgeOverlap [FI->numFragments() + 1];
   _best3 = new BestEdgeOverlap [FI->numFragments() + 1];
@@ -82,38 +79,44 @@ BestOverlapGraph::BestOverlapGraph(OverlapStore        *ovlStoreUniq,
   memset(_best5score, 0, sizeof(uint64) * (FI->numFragments() + 1));
   memset(_best3score, 0, sizeof(uint64) * (FI->numFragments() + 1));
 
-  AS_OVS_resetRangeOverlapStore(ovlStoreUniq);
-  while  (AS_OVS_readOverlapFromStore(ovlStoreUniq, &olap, AS_OVS_TYPE_OVL)) {
-    scoreContainment(olap);
-  }
+  //  PASS 1:  Find containments.
+  //
+  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-  if (ovlStoreRept) {
-    AS_OVS_resetRangeOverlapStore(ovlStoreRept);
-    while  (AS_OVS_readOverlapFromStore(ovlStoreRept, &olap, AS_OVS_TYPE_OVL)) {
-      scoreContainment(olap);
+    for (uint32 ii=0; ii<no; ii++) {
+#if 0
+      fprintf(stderr, "ovl fi=%d ii=%d %d,%d %u %u %f %u %u\n",
+              fi, ii,
+              ovl[ii].a_hang,
+              ovl[ii].b_hang,
+              ovl[ii].flipped,
+              ovl[ii].errorRaw,
+              ovl[ii].error,
+              ovl[ii].a_iid,
+              ovl[ii].b_iid);
+#endif
+      scoreContainment(ovl[ii]);
     }
   }
 
+  //  PASS 2:  Find dovetails.
+  //
   //  Until we get a list of the fragments that are contained, we must make two passes
-  //  through the ovlStore.  The first pass really just marks fragments as contained,
+  //  through the overlaps.  The first pass really just marks fragments as contained,
   //  the second pass can then load the overlaps.  The issue is that we cannot load
   //  as a best edge an overlap between a non-contained and a contained fragment.  The
   //  only way to see if that fragment (the B fragment, for argument) is contained is
   //  to load all its overlaps -- and so if A < B, we won't know if B is contained until
   //  too late.
 
-  AS_OVS_resetRangeOverlapStore(ovlStoreUniq);
-  while  (AS_OVS_readOverlapFromStore(ovlStoreUniq, &olap, AS_OVS_TYPE_OVL)) {
-    //scoreContainment(olap);
-    scoreEdge(olap);
-  }
+  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-  if (ovlStoreRept) {
-    AS_OVS_resetRangeOverlapStore(ovlStoreRept);
-    while  (AS_OVS_readOverlapFromStore(ovlStoreRept, &olap, AS_OVS_TYPE_OVL)) {
-      //scoreContainment(olap);
-      scoreEdge(olap);
-    }
+    for (uint32 ii=0; ii<no; ii++)
+      scoreEdge(ovl[ii]);
   }
 
   delete [] _bestCscore;
@@ -179,20 +182,20 @@ BestOverlapGraph::~BestOverlapGraph(){
 
 
 void
-BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {
+BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
 
   if (isOverlapBadQuality(olap))
     //  Yuck.  Don't want to use this crud.
     return;
 
-  if ((olap.dat.ovl.a_hang == 0) &&
-      (olap.dat.ovl.b_hang == 0) &&
+  if ((olap.a_hang == 0) &&
+      (olap.b_hang == 0) &&
       (olap.a_iid > olap.b_iid))
     //  Exact!  Each contains the other.  Make the lower IID the container.
     return;
 
-  if ((olap.dat.ovl.a_hang < 0) ||
-      (olap.dat.ovl.b_hang > 0))
+  if ((olap.a_hang < 0) ||
+      (olap.b_hang > 0))
     //  We only save if A contains B.
     return;
 
@@ -204,9 +207,9 @@ BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {
   if (newScr > _bestCscore[olap.b_iid]) {
     c->container         = olap.a_iid;
     c->isContained       = true;
-    c->sameOrientation   = olap.dat.ovl.flipped ? false : true;
-    c->a_hang            = olap.dat.ovl.a_hang;
-    c->b_hang            = olap.dat.ovl.b_hang;
+    c->sameOrientation   = olap.flipped ? false : true;
+    c->a_hang            = olap.a_hang;
+    c->b_hang            = olap.b_hang;
 
     _bestCscore[olap.b_iid] = newScr;
   }
@@ -215,14 +218,14 @@ BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {
 
 
 void
-BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
+BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
   if (isOverlapBadQuality(olap))
     //  Yuck.  Don't want to use this crud.
     return;
 
-  if (((olap.dat.ovl.a_hang >= 0) && (olap.dat.ovl.b_hang <= 0)) ||
-      ((olap.dat.ovl.a_hang <= 0) && (olap.dat.ovl.b_hang >= 0)))
+  if (((olap.a_hang >= 0) && (olap.b_hang <= 0)) ||
+      ((olap.a_hang <= 0) && (olap.b_hang >= 0)))
     //  Skip containment overlaps.
     return;
 
@@ -232,7 +235,7 @@ BestOverlapGraph::scoreEdge(const OVSoverlap& olap) {
     return;
 
   uint64           newScr = scoreOverlap(olap);
-  bool             a3p    = AS_OVS_overlapAEndIs3prime(olap);
+  bool             a3p    = AS_BAT_overlapAEndIs3prime(olap);
   BestEdgeOverlap *best   = getBestEdgeOverlap(olap.a_iid, a3p);
   uint64          *score  = (a3p) ? (_best3score + olap.a_iid) : (_best5score + olap.a_iid);
 

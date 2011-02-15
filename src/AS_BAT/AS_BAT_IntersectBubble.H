@@ -22,16 +22,10 @@
 #ifndef INCLUDE_AS_BAT_INTERSECTBUBBLE
 #define INCLUDE_AS_BAT_INTERSECTBUBBLE
 
-static const char *rcsid_INCLUDE_AS_BAT_INTERSECTBUBBLE = "$Id: AS_BAT_IntersectBubble.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_INTERSECTBUBBLE = "$Id: AS_BAT_IntersectBubble.H,v 1.2 2011-02-15 08:10:11 brianwalenz Exp $";
 
-void popIntersectionBubbles(UnitigVector &unitigs,
-                            OverlapStore *ovlStoreUniq,
-                            OverlapStore *ovlStoreRept);
-void popMateBubbles(UnitigVector &unitigs,
-                    OverlapStore *ovlStoreUniq,
-                    OverlapStore *ovlStoreRept);
-void popOverlapBubbles(UnitigVector &unitigs,
-                       OverlapStore *ovlStoreUniq,
-                       OverlapStore *ovlStoreRept);
+void popIntersectionBubbles(UnitigVector &unitigs);
+void popMateBubbles(UnitigVector &unitigs);
+void popOverlapBubbles(UnitigVector &unitigs);
 
 #endif  //  INCLUDE_AS_BAT_INTERSECTBUBBLE

@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef INCLUDE_AS_BAT_PLACEZOMBIES
-#define INCLUDE_AS_BAT_PLACEZOMBIES
+#ifndef INCLUDE_AS_BAT_MERGESPLITJOIN
+#define INCLUDE_AS_BAT_MERGESPLITJOIN
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEZOMBIES = "$Id: AS_BAT_PlaceZombies.H,v 1.3 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_MERGESPLITJOIN = "$Id: AS_BAT_MergeSplitJoin.H,v 1.1 2011-02-15 08:10:11 brianwalenz Exp $";
 
 void
-placeZombies(UnitigVector &unitigs, double erate, double elimit);
+mergeSplitJoin(UnitigVector &unitigs);
 
-#endif  //  INCLUDE_AS_BAT_PLACEZOMBIES
+#endif  //  INCLUDE_AS_BAT_MERGESPLITJOIN

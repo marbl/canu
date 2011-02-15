@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.3 2011-01-18 22:37:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.4 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -35,8 +35,7 @@ static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.3 2011-01-18 22:37:22
 //  Here we detect Zombies, and reset their best container to something that is already placed.
 
 void
-placeZombies(UnitigVector &unitigs,
-             OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit) {
+placeZombies(UnitigVector &unitigs, double erate, double elimit) {
 
   fprintf(logFile, "==> SEARCHING FOR ZOMBIES\n");
 

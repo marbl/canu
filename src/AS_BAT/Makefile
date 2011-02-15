@@ -39,8 +39,10 @@ BAT_SOURCES = AS_BAT_ArrivalRate.C \
               AS_BAT_MateBubble.C \
               AS_BAT_MateChecker.C \
               AS_BAT_MateLocation.C \
+              AS_BAT_MergeSplitJoin.C \
               AS_BAT_MoveContains.C \
               AS_BAT_Outputs.C \
+              AS_BAT_OverlapCache.C \
               AS_BAT_PlaceContains.C \
               AS_BAT_PlaceFragUsingOverlaps.C \
               AS_BAT_PlaceZombies.C \
@@ -53,10 +55,10 @@ BAT_SOURCES = AS_BAT_ArrivalRate.C \
               AS_BAT_Unitig.C
 BAT_OBJECTS = $(BAT_SOURCES:.C=.o)
 
-SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C $(BAT_SOURCES)
-OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o $(BAT_OBJECTS)
+SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C $(BAT_SOURCES)
+OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o $(BAT_OBJECTS)
 
-CXX_PROGS   = bogart bogus bogusness
+CXX_PROGS   = bogart bogus bogusness classifyMates
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -68,3 +70,4 @@ bogart:              bogart.o       $(BAT_OBJECTS) libCA.a
 petey:               petey.o        $(BAT_OBJECTS) libCA.a
 bogus:               bogus.o                       libCA.a AS_BAT_bogusUtil.o
 bogusness:           bogusness.o                   libCA.a AS_BAT_bogusUtil.o
+classifyMates:       classifyMates.o               libCA.a

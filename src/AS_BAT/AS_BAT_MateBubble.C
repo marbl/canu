@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MateBubble.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MateBubble.C,v 1.3 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -29,17 +29,7 @@ static const char *rcsid = "$Id: AS_BAT_MateBubble.C,v 1.2 2010-12-06 08:03:48 b
 
 
 void
-popMateBubbles(UnitigVector &unitigs,
-               OverlapStore *ovlStoreUniq,
-               OverlapStore *ovlStoreRept) {
-
-#define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
-
-  uint32      ovlMax = MAX_OVERLAPS_PER_FRAG;
-  uint32      ovlLen = 0;
-  OVSoverlap *ovl    = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * ovlMax);
-  uint32     *ovlCnt = (uint32     *)safe_malloc(sizeof(uint32)     * AS_READ_MAX_NORMAL_LEN);
-
+popMateBubbles(UnitigVector &unitigs) {
   uint32      nBubblePopped   = 0;
   uint32      nBubbleTooBig   = 0;
   uint32      nBubbleConflict = 0;

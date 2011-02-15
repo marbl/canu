@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.8 2010-12-17 11:38:59 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.9 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -41,49 +41,8 @@ static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.8 2010-12-1
 //
 
 
-
-static
 bool
-loadOverlaps(ufNode        &frag,
-             OVSoverlap   *&ovl,
-             uint32        &ovlLen,
-             OverlapStore  *ovlStoreUniq,
-             OverlapStore  *ovlStoreRept) {
-  uint32  ovlMax = 0;
-
-  if (ovlStoreUniq) {
-    AS_OVS_setRangeOverlapStore(ovlStoreUniq, frag.ident, frag.ident);
-    ovlMax += AS_OVS_numOverlapsInRange(ovlStoreUniq);
-  }
-
-  if (ovlStoreRept) {
-    AS_OVS_setRangeOverlapStore(ovlStoreRept, frag.ident, frag.ident);
-    ovlMax += AS_OVS_numOverlapsInRange(ovlStoreRept);
-  }
-
-  if (ovlMax == 0)
-    return(false);
-
-  ovl = new OVSoverlap [ovlMax];
-
-  if (ovlStoreUniq)
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlStoreUniq, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
-
-  if (ovlStoreRept)
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlStoreRept, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
-
-  assert(ovlLen == ovlMax);
-
-  if (logFileFlagSet(LOG_PLACE_FRAG))
-    fprintf(logFile, "placeFragUsingOverlaps()-- frag %d has %d overlaps\n", frag.ident, ovlLen);
-
-  return(true);
-}
-
-
-
-bool
-placeAcontainsB(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op) {
+placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) {
   BestContainment  best;
 
   //  The placeFrag() function is expecting the overlap to be from the container to the us fragment,
@@ -92,9 +51,9 @@ placeAcontainsB(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op
 
   best.container       = ovl.b_iid;  //  Not really the container...
   best.isContained     = false;      //  ...so mark this as a false BestContainment
-  best.a_hang          = ovl.dat.ovl.flipped ? ovl.dat.ovl.b_hang : -ovl.dat.ovl.a_hang;
-  best.b_hang          = ovl.dat.ovl.flipped ? ovl.dat.ovl.a_hang : -ovl.dat.ovl.b_hang;
-  best.sameOrientation = ovl.dat.ovl.flipped ? false : true;
+  best.a_hang          = ovl.flipped ? ovl.b_hang : -ovl.a_hang;
+  best.b_hang          = ovl.flipped ? ovl.a_hang : -ovl.b_hang;
+  best.sameOrientation = ovl.flipped ? false : true;
 
   if (utg->placeFrag(frag, &best) == false)
     return(false);
@@ -102,9 +61,9 @@ placeAcontainsB(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op
   op.frgID       = frag.ident;
   op.tigID       = utg->id();
   op.position    = frag.position;
-  op.errors      = FI->fragmentLength(ovl.b_iid) * AS_OVS_decodeQuality(ovl.dat.ovl.corr_erate);
-  op.covered.bgn = ovl.dat.ovl.a_hang;
-  op.covered.end = FI->fragmentLength(ovl.a_iid) + ovl.dat.ovl.b_hang;
+  op.errors      = FI->fragmentLength(ovl.b_iid) * ovl.error;
+  op.covered.bgn = ovl.a_hang;
+  op.covered.end = FI->fragmentLength(ovl.a_iid) + ovl.b_hang;
   op.aligned     = op.covered.end - op.covered.bgn;
 
   assert(op.covered.bgn < op.covered.end);
@@ -120,7 +79,7 @@ placeAcontainsB(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op
     if (logFileFlagSet(LOG_PLACE_FRAG))
       fprintf(logFile, "placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d DISALLOWED\n",
               frag.ident, utg->id(), frag.position.bgn, frag.position.end,
-              ovl.a_iid, ovl.b_iid, ovl.dat.ovl.a_hang, ovl.dat.ovl.b_hang, ovl.dat.ovl.flipped,
+              ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
     op = overlapPlacement();
@@ -130,7 +89,7 @@ placeAcontainsB(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op
     if (logFileFlagSet(LOG_PLACE_FRAG))
       fprintf(logFile, "placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d\n",
               frag.ident, utg->id(), frag.position.bgn, frag.position.end,
-              ovl.a_iid, ovl.b_iid, ovl.dat.ovl.a_hang, ovl.dat.ovl.b_hang, ovl.dat.ovl.flipped,
+              ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
   }
@@ -141,14 +100,14 @@ placeAcontainsB(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op
 
 
 bool
-placeBcontainsA(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op) {
+placeBcontainsA(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) {
   BestContainment  best;
 
   best.container       = ovl.b_iid;
   best.isContained     = true;
-  best.a_hang          = ovl.dat.ovl.flipped ? ovl.dat.ovl.b_hang : -ovl.dat.ovl.a_hang;
-  best.b_hang          = ovl.dat.ovl.flipped ? ovl.dat.ovl.a_hang : -ovl.dat.ovl.b_hang;
-  best.sameOrientation = ovl.dat.ovl.flipped ? false : true;
+  best.a_hang          = ovl.flipped ? ovl.b_hang : -ovl.a_hang;
+  best.b_hang          = ovl.flipped ? ovl.a_hang : -ovl.b_hang;
+  best.sameOrientation = ovl.flipped ? false : true;
 
   if (utg->placeFrag(frag, &best) == false)
     return(false);
@@ -156,7 +115,7 @@ placeBcontainsA(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op
   op.frgID       = frag.ident;
   op.tigID       = utg->id();
   op.position    = frag.position;
-  op.errors      = FI->fragmentLength(ovl.a_iid) * AS_OVS_decodeQuality(ovl.dat.ovl.corr_erate);
+  op.errors      = FI->fragmentLength(ovl.a_iid) * ovl.error;
   op.covered.bgn = 0;
   op.covered.end = FI->fragmentLength(ovl.a_iid);
   op.aligned     = op.covered.end - op.covered.bgn;
@@ -169,7 +128,7 @@ placeBcontainsA(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op
     if (logFileFlagSet(LOG_PLACE_FRAG))
       fprintf(logFile, "placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d DISALLOWED\n",
               frag.ident, utg->id(), frag.position.bgn, frag.position.end,
-              ovl.a_iid, ovl.b_iid, ovl.dat.ovl.a_hang, ovl.dat.ovl.b_hang, ovl.dat.ovl.flipped,
+              ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
     op = overlapPlacement();
@@ -179,7 +138,7 @@ placeBcontainsA(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op
     if (logFileFlagSet(LOG_PLACE_FRAG))
       fprintf(logFile, "placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d\n",
               frag.ident, utg->id(), frag.position.bgn, frag.position.end,
-              ovl.a_iid, ovl.b_iid, ovl.dat.ovl.a_hang, ovl.dat.ovl.b_hang, ovl.dat.ovl.flipped,
+              ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
   }
@@ -190,10 +149,10 @@ placeBcontainsA(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op
 
 
 bool
-placeDovetail(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op) {
+placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) {
   BestEdgeOverlap   best;
   int32             plac3, plac5;
-  int32             aend3p = AS_OVS_overlapAEndIs3prime(ovl);
+  int32             aend3p = AS_BAT_overlapAEndIs3prime(ovl);
 
   best.set(ovl);
 
@@ -201,15 +160,15 @@ placeDovetail(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op) 
                      frag, plac3, (aend3p ? &best : NULL)) == false)
     return(false);
 
-  uint32  olen = OG->olapLength(ovl.a_iid, ovl.b_iid, ovl.dat.ovl.a_hang, ovl.dat.ovl.b_hang);
+  uint32  olen = OG->olapLength(ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang);
   uint32  flen = FI->fragmentLength(ovl.a_iid);
 
   op.frgID       = frag.ident;
   op.tigID       = utg->id();
   op.position    = frag.position;
-  op.errors      = olen * AS_OVS_decodeQuality(ovl.dat.ovl.corr_erate);
-  op.covered.bgn = (ovl.dat.ovl.a_hang < 0) ?    0 : ovl.dat.ovl.a_hang;
-  op.covered.end = (ovl.dat.ovl.b_hang > 0) ? flen : ovl.dat.ovl.b_hang + flen;
+  op.errors      = olen * ovl.error;
+  op.covered.bgn = (ovl.a_hang < 0) ?    0 : ovl.a_hang;
+  op.covered.end = (ovl.b_hang > 0) ? flen : ovl.b_hang + flen;
   op.aligned     = op.covered.end - op.covered.bgn;
 
   assert(op.covered.bgn < op.covered.end);
@@ -220,7 +179,7 @@ placeDovetail(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op) 
     if (logFileFlagSet(LOG_PLACE_FRAG))
       fprintf(logFile, "placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d DISALLOWED\n",
               frag.ident, utg->id(), frag.position.bgn, frag.position.end,
-              ovl.a_iid, ovl.b_iid, ovl.dat.ovl.a_hang, ovl.dat.ovl.b_hang, ovl.dat.ovl.flipped,
+              ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
     op = overlapPlacement();
@@ -230,7 +189,7 @@ placeDovetail(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op) 
     if (logFileFlagSet(LOG_PLACE_FRAG))
       fprintf(logFile, "placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d\n",
               frag.ident, utg->id(), frag.position.bgn, frag.position.end,
-              ovl.a_iid, ovl.b_iid, ovl.dat.ovl.a_hang, ovl.dat.ovl.b_hang, ovl.dat.ovl.flipped,
+              ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
   }
@@ -247,8 +206,6 @@ placeDovetail(Unitig *utg, ufNode &frag, OVSoverlap &ovl, overlapPlacement &op) 
 bool
 placeFragUsingOverlaps(UnitigVector &unitigs,
                        uint32        fid,
-                       OverlapStore *ovlStoreUniq,
-                       OverlapStore *ovlStoreRept,
                        vector<overlapPlacement> &placements) {
 
   assert(fid > 0);
@@ -268,17 +225,13 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
   placements.clear();
 
   uint32      ovlLen = 0;
-  OVSoverlap *ovl    = NULL;
-
-  if (loadOverlaps(frag, ovl, ovlLen, ovlStoreUniq, ovlStoreRept) == false)
-    return(false);
+  BAToverlap *ovl    = OC->getOverlaps(frag.ident, ovlLen);
 
   overlapPlacement   *ovlPlace = new overlapPlacement[ovlLen];
   uint32              nFragmentsNotPlaced = 0;
 
   for (uint32 i=0; i<ovlLen; i++)
     ovlPlace[i] = overlapPlacement();
-
 
   for (uint32 i=0; i<ovlLen; i++) {
     int32             utgID = Unitig::fragIn(ovl[i].b_iid);
@@ -294,12 +247,12 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
     //  Depending on the type of overlap (containment vs dovetail), place the fragment relative to
     //  the other fragment.
 
-    if        ((ovl[i].dat.ovl.a_hang >= 0) && (ovl[i].dat.ovl.b_hang <= 0)) {
+    if        ((ovl[i].a_hang >= 0) && (ovl[i].b_hang <= 0)) {
       //  A (us) contains B (the other fragment)
       if (placeAcontainsB(utg, frag, ovl[i], ovlPlace[i]) == false)
         nFragmentsNotPlaced++;
 
-    } else if ((ovl[i].dat.ovl.a_hang <= 0) && (ovl[i].dat.ovl.b_hang >= 0)) {
+    } else if ((ovl[i].a_hang <= 0) && (ovl[i].b_hang >= 0)) {
       //  A (us) is contained in B (the other fragment)
       if (placeBcontainsA(utg, frag, ovl[i], ovlPlace[i]) == false)
         nFragmentsNotPlaced++;
@@ -314,10 +267,11 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
 
   //  For whatever reason, the fragment placement routines failed to place a fragment using an overlap.
   //  This shouldn't happen, but if it does, it is hardly fatal.
+#if 0
   if (nFragmentsNotPlaced > 0)
     if (logFileFlagSet(LOG_PLACE_FRAG))
       fprintf(logFile, "placeFragUsingOverlaps()-- WARNING: Failed to place %d fragments\n", nFragmentsNotPlaced);
-
+#endif
 
   //  Sort all the placements.  Any overlap we couldn't place is automatically in Unitig 0, the
   //  invalid unitig.  Sort order is by unitig ID, then by orientation, then by position.
@@ -552,6 +506,7 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
 
       if        ((op.bgnStdDev > allowableStdDev) ||
                  (op.endStdDev > allowableStdDev)) {
+#if 0
         if (logFileFlagSet(LOG_PLACE_FRAG))
           fprintf(logFile, "placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (+- %.2f,%.2f) -- cov %.2f (%d,%d) errors %.2f aligned %d novl %d -- INVALID standard deviation too large (min %0.2f)\n",
                   op.frgID, op.tigID, op.position.bgn, op.position.end, op.bgnStdDev, op.endStdDev,
@@ -560,9 +515,11 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
                   op.aligned,
                   oe - os,
                   allowableStdDev);
+#endif
 
       } else {
         placements.push_back(op);
+#if 0
         if (logFileFlagSet(LOG_PLACE_FRAG))
           fprintf(logFile, "placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (+- %.2f,%.2f) -- cov %.2f (%d,%d) errors %.2f aligned %d novl %d\n",
                   op.frgID, op.tigID, op.position.bgn, op.position.end, op.bgnStdDev, op.endStdDev,
@@ -570,6 +527,7 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
                   op.errors,
                   op.aligned,
                   oe - os);
+#endif
       }
 
       os = oe;
@@ -582,7 +540,6 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
   }
 
   delete [] ovlPlace;
-  delete [] ovl;
 
   return(true);
 }

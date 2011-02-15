@@ -1,0 +1,132 @@
+
+/*
+ * Definitions for jbrowse to show BOGUS and BOGUSNESS results.
+ */
+
+ */
+ * BOGUS classes
+ */
+
+.frag_align {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #AAA;
+}
+.plus-frag_align {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #EB2A2A;
+}
+.minus-frag_align {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #2AEB2A; 
+}
+div.frag_align-hist {
+    position: absolute;
+    background-color: #ddd;
+    border-color: #555;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+
+
+.rept_interval {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #1010bb;
+}
+.uniq_interval {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #10bb10;
+}
+.weak_interval {
+    position: absolute;
+    height: 8px;
+    margin-top: -3px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    border-color: #bb1010;
+    border-style: solid;
+    border-width: 1px;
+}
+.sepr_interval {
+    position: absolute;
+    height: 8px;
+    margin-top: -3px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    border-color: #bb1010;
+    border-style: solid;
+    border-width: 1px;
+}
+
+
+/*
+ *  BOGUSNESS classes
+ */
+
+.bogusness_span {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #AAA;
+}
+.plus-bogusness_match {
+    position: absolute;
+    height: 8px;
+    margin-top: -2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #ee2222;
+}
+.minus-bogusness_match {
+    position: absolute;
+    height: 8px;
+    margin-top: -2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #22ee22;
+}
+
+

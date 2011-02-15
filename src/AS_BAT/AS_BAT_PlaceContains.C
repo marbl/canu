@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceContains.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceContains.C,v 1.3 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -90,8 +90,6 @@ placeContainsUsingBestOverlaps(UnitigVector &unitigs) {
 
 void
 placeContainsUsingAllOverlaps(UnitigVector &unitigs,
-                              OverlapStore *ovlStoreUniq,
-                              OverlapStore *ovlStoreRept,
                               bool   withMatesToNonContained,
                               bool   withMatesToUnambiguousContain) {
 

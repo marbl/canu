@@ -19,12 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.7 2011-01-18 22:36:10 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.8 2011-02-15 08:10:11 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_PlaceFragUsingOverlaps.H"
+
+#include "AS_BAT_OverlapCache.H"
 
 #include "AS_BAT_IntersectBubble.H"
 
@@ -76,9 +78,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
                         Unitig *bubble,
                         ufNode &lFrg, BestEdgeOverlap *lEnd,
                         ufNode &rFrg, BestEdgeOverlap *rEnd,
-                        Unitig *larger,
-                        OverlapStore *ovlStoreUniq,
-                        OverlapStore *ovlStoreRept) {
+                        Unitig *larger) {
 
   //  Compute placement of the two fragments.  Compare the size against the bubble.
 
@@ -125,7 +125,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, lFrg.ident, ovlStoreUniq, ovlStoreRept, placements);
+  placeFragUsingOverlaps(unitigs, lFrg.ident, placements);
   for (uint32 i=0; i<placements.size(); i++) {
     if (placements[i].tigID != larger->id())
       continue;
@@ -158,7 +158,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, rFrg.ident, ovlStoreUniq, ovlStoreRept, placements);
+  placeFragUsingOverlaps(unitigs, rFrg.ident, placements);
   for (uint32 i=0; i<placements.size(); i++) {
     if (placements[i].tigID != larger->id())
       continue;
@@ -276,9 +276,7 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
                                     Unitig *bubble,
                                     ufNode &lFrg,
                                     ufNode &rFrg,
-                                    Unitig *larger,
-                                    OverlapStore *ovlStoreUniq,
-                                    OverlapStore *ovlStoreRept) {
+                                    Unitig *larger) {
 
   //  Method:
   //
@@ -299,7 +297,7 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
   for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
     ufNode *frg = &bubble->ufpath[fi];
 
-    placeFragUsingOverlaps(unitigs, frg->ident, ovlStoreUniq, ovlStoreRept, placements[fi]);
+    placeFragUsingOverlaps(unitigs, frg->ident, placements[fi]);
 
     //  Initialize the final placement to be bad, so we can pick the best.
     correctPlace[fi].fCoverage = 0.0;
@@ -446,9 +444,7 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
 static
 bool
 popIntersectionBubble(UnitigVector &unitigs, 
-                      Unitig       *shortTig,
-                      OverlapStore *ovlStoreUniq,
-                      OverlapStore *ovlStoreRept) {
+                      Unitig       *shortTig) {
 
   //  Search for edges.  For a bubble to exist, either the first or last non-contained fragment
   //  must have an edge to the 'merge' unitig it is a bubble of.  Ideally, both the first and
@@ -547,13 +543,13 @@ popIntersectionBubble(UnitigVector &unitigs,
 
   Unitig *mergeTig = (fUtg == 0) ? unitigs[lUtg] : unitigs[fUtg];
 
-  if (validateBubbleWithEdges(unitigs, shortTig, fFrg, fEdge, lFrg, lEdge, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
+  if (validateBubbleWithEdges(unitigs, shortTig, fFrg, fEdge, lFrg, lEdge, mergeTig) == false) {
     fprintf(logFile, "popBubbles()-- failed to validate edges for bubble unitig %d into larger unitig %d\n",
             shortTig->id(), mergeTig->id());
     return(false);
   }
 
-  if (validateBubbleFragmentsWithOverlaps(unitigs, shortTig, fFrg, lFrg, mergeTig, ovlStoreUniq, ovlStoreRept) == false) {
+  if (validateBubbleFragmentsWithOverlaps(unitigs, shortTig, fFrg, lFrg, mergeTig) == false) {
     fprintf(logFile, "popBubbles()-- failed to validate fragments for bubble unitig %d into larger unitig %d\n",
             shortTig->id(), mergeTig->id());
     return(false);
@@ -569,7 +565,7 @@ popIntersectionBubble(UnitigVector &unitigs,
 
 
 void
-popIntersectionBubbles(UnitigVector &unitigs, OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
+popIntersectionBubbles(UnitigVector &unitigs) {
   uint32          nFrgToMerge      = 1;
   uint32          nFrgToMergeMax   = 500;
 
@@ -601,7 +597,7 @@ popIntersectionBubbles(UnitigVector &unitigs, OverlapStore *ovlStoreUniq, Overla
         //  popIntersectionBubble() returns false if the shortTig cannot be merged.  It returns true
         //  if the shortTig was merged, or might be merged after some other merge.
         //
-        if (popIntersectionBubble(unitigs, shortTig, ovlStoreUniq, ovlStoreRept)) {
+        if (popIntersectionBubble(unitigs, shortTig)) {
           if (unitigs[ti]) {
             tryAgain.push_back(ti);
           } else {
@@ -633,7 +629,7 @@ popIntersectionBubbles(UnitigVector &unitigs, OverlapStore *ovlStoreUniq, Overla
         if (shortTig == NULL)
           continue;
 
-        if (popIntersectionBubble(unitigs, shortTig, ovlStoreUniq, ovlStoreRept)) {
+        if (popIntersectionBubble(unitigs, shortTig)) {
           if (unitigs[tryAgain[ta]] == NULL) {
             nBubblePopped++;
             nBubbleFixed++;
