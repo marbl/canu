@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.5 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.6 2011-02-15 08:31:48 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -111,8 +111,8 @@ isReverse(SeqInterval pos) {
 inline
 bool
 operator==(SeqInterval a, SeqInterval b) {
-  return((a.bgn == b.bgn) && (a.end == b.end) ||
-         (a.bgn == b.end) && (a.end == b.bgn));
+  return(((a.bgn == b.bgn) && (a.end == b.end)) ||
+         ((a.bgn == b.end) && (a.end == b.bgn)));
 }
 
 inline
