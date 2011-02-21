@@ -19,13 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.9 2011-01-18 22:35:32 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.10 2011-02-21 04:04:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <assert.h>
-//#include <ctype.h>
-//#include <sys/stat.h>
+#include <unistd.h>
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -108,7 +106,7 @@ main(int argc, char **argv) {
     err++;
   if ((strcasecmp(type, "sanger") != 0) && (strcasecmp(type, "solexa") != 0) && (strcasecmp(type, "illumina") != 0))
     err++;
-  if (fastq == 0L)
+  if (fastqLen == 0)
     err++;
 
   if (err) {
@@ -148,7 +146,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR:  No library name supplied with -libraryname.\n");
     if ((strcasecmp(type, "sanger") != 0) && (strcasecmp(type, "solexa") != 0) && (strcasecmp(type, "illumina") != 0))
       fprintf(stderr, "ERROR:  Invalid type '%s' supplied with -type.\n", type);
-    if (fastq == 0L)
+    if (fastqLen == 0)
       fprintf(stderr, "ERROR:  No reads supplied with -fastq.\n");
 
     exit(1);
@@ -171,6 +169,59 @@ main(int argc, char **argv) {
 
   if (err)
     exit(1);
+
+  //  Check that all the read files exist, and that the paths are absolute.
+
+  int32   fastqPathErrors = 0;
+
+  for (int32 i=0; i<fastqLen; i++) {
+    char   *f1  = fastq[i];
+    char   *f2  = strrchr(fastq[i], ',');
+    char    cwd[FILENAME_MAX];
+
+    getcwd(cwd, FILENAME_MAX);
+
+    if (f2) {
+      *f2 = 0;
+      f2++;
+    }
+
+    if ((f1) && (AS_UTL_fileExists(f1, FALSE, FALSE) == false))
+      fprintf(stderr, "ERROR: fastq file '%s' doesn't exist.\n", f1), fastqPathErrors++;
+
+    if ((f2) && (AS_UTL_fileExists(f2, FALSE, FALSE) == false))
+      fprintf(stderr, "ERROR: fastq file '%s' doesn't exist.\n", f2), fastqPathErrors++;
+
+    if ((f1) && (f1[0] != '/')) {
+      char *n1 = new char [FILENAME_MAX];
+      sprintf(n1, "%s/%s", cwd, f1);
+      f1 = n1;
+
+      if (AS_UTL_fileExists(f1, FALSE, FALSE) == false)
+        fprintf(stderr, "ERROR: absolute-path fastq file '%s' doesn't exist.\n", f1), fastqPathErrors++;
+    }
+
+    if ((f2) && (f2[0] != '/')) {
+      char *n2 = new char [FILENAME_MAX];
+      sprintf(n2, "%s/%s", cwd, f2);
+      f2 = n2;
+
+      if (AS_UTL_fileExists(f2, FALSE, FALSE) == false)
+        fprintf(stderr, "ERROR: absolute-path fastq file '%s' doesn't exist.\n", f2), fastqPathErrors++;
+    }
+
+    char *n = new char [FILENAME_MAX + FILENAME_MAX];
+
+    if (f2)
+      sprintf(n, "%s,%s", f1, f2);
+    else
+      sprintf(n, "%s", f1);
+
+    fastq[i] = n;
+  }
+
+  if (fastqPathErrors)
+    fprintf(stderr, "ERROR: some fastq files not found.\n"), exit(1);
 
   //  Construct the library
 
