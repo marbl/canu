@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.1 2011-02-22 00:30:00 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.2 2011-02-22 06:14:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -246,20 +246,13 @@ makeMP(char   *seq,
       //  Successfully washed away non-biotin marked sequences, make MP
       //    Shift the fragment by randomGaussian() with mean slen / 2
 
-      int32 shift = randomGaussian(slen / 2, slen / 12);
-      //fprintf(stdout, "%d\n", shift);
+      int32 shift = randomGaussian(slen / 2, slen / (2 * mpJunction));
 
-      //  Scale the shfit by mpJunction???
-
-      if (shift < 0) {
-        fprintf(stderr, "WARNING:  out of bounds shift %d\n", shift);
+      if (shift < 0)
         shift = 0;
-      }
 
-      if (shift > slen) {
-        fprintf(stderr, "WARNING:  out of bounds shift %d\n", shift);
+      if (shift > slen)
         shift = slen;
-      }
 
       //  Put 'shift' bases from the end of the insert on the start of sh[],
       //  and then fill the remaining of sh[] with the beginning of the insert.
@@ -289,28 +282,28 @@ makeMP(char   *seq,
       char  type;
 
       type = 't';
-      if (shift < readLen)         type = 'a';
-      if (shift > slen - readLen)  type = 'b';
+      if (shift  < readLen)         type = 'a';
+      if (shift == 0)               type = 'A';
+      if (shift  > slen - readLen)  type = 'b';
+      if (shift == slen)            type = 'B';
 
-      if (type == 't') {
 #ifdef FASTA
-        fprintf(output1, ">%cMP_%d_%d-%d_%d/%d/%d/1\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
-        fprintf(output1, "%s\n", s1);
+      fprintf(output1, ">%cMP_%d_%d-%d_%d/%d/%d/1\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output1, "%s\n", s1);
 
-        fprintf(output2, ">%cMP_%d_%d-%d_%d/%d/%d/2\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
-        fprintf(output2, "%s\n", s2);
+      fprintf(output2, ">%cMP_%d_%d-%d_%d/%d/%d/2\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output2, "%s\n", s2);
 #else
-        fprintf(output1, "@%cMP_%d_%d-%d_%d/%d/%d/1\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
-        fprintf(output1, "%s\n", s1);
-        fprintf(output1, "+\n");
-        fprintf(output1, "%s\n", q1);
+      fprintf(output1, "@%cMP_%d_%d-%d_%d/%d/%d/1\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output1, "%s\n", s1);
+      fprintf(output1, "+\n");
+      fprintf(output1, "%s\n", q1);
 
-        fprintf(output2, "@%cMP_%d_%d-%d_%d/%d/%d/2\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
-        fprintf(output2, "%s\n", s2);
-        fprintf(output2, "+\n");
-        fprintf(output2, "%s\n", q2);
+      fprintf(output2, "@%cMP_%d_%d-%d_%d/%d/%d/2\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output2, "%s\n", s2);
+      fprintf(output2, "+\n");
+      fprintf(output2, "%s\n", q2);
 #endif
-      }
     }
   }
 }
@@ -342,7 +335,7 @@ main(int argc, char **argv) {
   int32      mpShearSize    = 0;
   int32      mpShearStdDev  = 0;
   double     mpEnrichment   = 1.0;   //  success rate of washing away paired-end fragments
-  double     mpJunction     = 1.0;   //  normal distributed junction location
+  double     mpJunction     = 3.0;   //  normally distributed junction location
 
   char      *outputPrefix   = NULL;
   char       outputName[FILENAME_MAX];
@@ -418,11 +411,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "                  apart.  The circularized insert is then sheared into fragments of size\n");
     fprintf(stderr, "                  'shearSize +- shearStdDev'.  With probability 'enrichment' the fragment\n");
     fprintf(stderr, "                  containing the junction is used to form the pair of reads.  The junction\n");
-    fprintf(stderr, "                  location is normally distributed through this fragment, with 6 std.dev equal\n");
-    fprintf(stderr, "                  to the size of the fragment.  Reads that cross the junction will occur; the\n");
-    fprintf(stderr, "                  number of such reads depends on the size of the read and the shear size.\n");
-    fprintf(stderr, "                  The 'junction' parameter has no effect.\n");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "                  location is normally distributed through this fragment, with mean 'shearSize/2'\n");
+    fprintf(stderr, "                  and std.dev 'shearSize/2/junction'.  With a 500bp fragment, and 100bp reads,\n");
+    fprintf(stderr, "                  junction=3 will give about 6% chimeric reads.\n");
     fprintf(stderr, "\n");
 
     if (fastaName == NULL)
