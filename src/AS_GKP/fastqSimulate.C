@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.2 2011-02-22 06:14:45 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.3 2011-02-22 22:01:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,6 +120,7 @@ makeSequences(char    *frag,
 void
 makePE(char   *seq,
        int32   seqLen,
+       FILE   *output,
        FILE   *output1,
        FILE   *output2,
        int32   readLen,
@@ -153,6 +154,16 @@ makePE(char   *seq,
 
     //  Output sequences, with a descriptive ID
 
+    fprintf(output, "@PE_%d_%d-%d/1\n", np, bgn, bgn+len);
+    fprintf(output, "%s\n", s1);
+    fprintf(output, "+\n");
+    fprintf(output, "%s\n", q1);
+
+    fprintf(output, "@PE_%d_%d-%d/2\n", np, bgn, bgn+len);
+    fprintf(output, "%s\n", s2);
+    fprintf(output, "+\n");
+    fprintf(output, "%s\n", q2);
+
     fprintf(output1, "@PE_%d_%d-%d/1\n", np, bgn, bgn+len);
     fprintf(output1, "%s\n", s1);
     fprintf(output1, "+\n");
@@ -177,6 +188,7 @@ makePE(char   *seq,
 void
 makeMP(char   *seq,
        int32   seqLen,
+       FILE   *output,
        FILE   *output1,
        FILE   *output2,
        int32   readLen,
@@ -224,13 +236,16 @@ makeMP(char   *seq,
 
       //  Output sequences, with a descriptive ID
 
-#ifdef FASTA
-      fprintf(output1, ">fMP_%d_%d-%d/1\n", np, sbgn, sbgn+slen);
-      fprintf(output1, "%s\n", s1);
+      fprintf(output, "@fMP_%d_%d-%d/1\n", np, sbgn, sbgn+slen);
+      fprintf(output, "%s\n", s1);
+      fprintf(output, "+\n");
+      fprintf(output, "%s\n", q1);
 
-      fprintf(output2, ">fMP_%d_%d-%d/2\n", np, sbgn, sbgn+slen);
-      fprintf(output2, "%s\n", s2);
-#else
+      fprintf(output, "@fMP_%d_%d-%d/2\n", np, sbgn, sbgn+slen);
+      fprintf(output, "%s\n", s2);
+      fprintf(output, "+\n");
+      fprintf(output, "%s\n", q2);
+
       fprintf(output1, "@fMP_%d_%d-%d/1\n", np, sbgn, sbgn+slen);
       fprintf(output1, "%s\n", s1);
       fprintf(output1, "+\n");
@@ -240,7 +255,6 @@ makeMP(char   *seq,
       fprintf(output2, "%s\n", s2);
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);
-#endif
 
     } else {
       //  Successfully washed away non-biotin marked sequences, make MP
@@ -287,13 +301,16 @@ makeMP(char   *seq,
       if (shift  > slen - readLen)  type = 'b';
       if (shift == slen)            type = 'B';
 
-#ifdef FASTA
-      fprintf(output1, ">%cMP_%d_%d-%d_%d/%d/%d/1\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
-      fprintf(output1, "%s\n", s1);
+      fprintf(output, "@%cMP_%d_%d-%d_%d/%d/%d/1\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output, "%s\n", s1);
+      fprintf(output, "+\n");
+      fprintf(output, "%s\n", q1);
 
-      fprintf(output2, ">%cMP_%d_%d-%d_%d/%d/%d/2\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
-      fprintf(output2, "%s\n", s2);
-#else
+      fprintf(output, "@%cMP_%d_%d-%d_%d/%d/%d/2\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output, "%s\n", s2);
+      fprintf(output, "+\n");
+      fprintf(output, "%s\n", q2);
+
       fprintf(output1, "@%cMP_%d_%d-%d_%d/%d/%d/1\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output1, "%s\n", s1);
       fprintf(output1, "+\n");
@@ -303,7 +320,6 @@ makeMP(char   *seq,
       fprintf(output2, "%s\n", s2);
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);
-#endif
     }
   }
 }
@@ -339,6 +355,7 @@ main(int argc, char **argv) {
 
   char      *outputPrefix   = NULL;
   char       outputName[FILENAME_MAX];
+  FILE      *output         = NULL;
   FILE      *output1        = NULL;
   FILE      *output2        = NULL;
 
@@ -453,20 +470,17 @@ main(int argc, char **argv) {
 
   errno = 0;
 
-#ifdef FASTA
-  sprintf(outputName, "%s.1.fasta", outputPrefix);
-#else
+  sprintf(outputName, "%s.fastq", outputPrefix);
+  output = fopen(outputName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
+
   sprintf(outputName, "%s.1.fastq", outputPrefix);
-#endif
   output1 = fopen(outputName, "w");
   if (errno)
     fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
 
-#ifdef FASTA
-  sprintf(outputName, "%s.2.fasta", outputPrefix);
-#else
   sprintf(outputName, "%s.2.fastq", outputPrefix);
-#endif
   output2 = fopen(outputName, "w");
   if (errno)
     fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
@@ -526,15 +540,16 @@ main(int argc, char **argv) {
   //
 
   if (peEnable)
-    makePE(seq, seqLen, output1, output2, readLen, readPairs, peShearSize, peShearStdDev);
+    makePE(seq, seqLen, output, output1, output2, readLen, readPairs, peShearSize, peShearStdDev);
 
   if (mpEnable)
-    makeMP(seq, seqLen, output1, output2, readLen, readPairs, mpInsertSize, mpInsertStdDev, mpShearSize, mpShearStdDev, mpEnrichment, mpJunction);
+    makeMP(seq, seqLen, output, output1, output2, readLen, readPairs, mpInsertSize, mpInsertStdDev, mpShearSize, mpShearStdDev, mpEnrichment, mpJunction);
 
   //
   //
   //
 
+  fclose(output);
   fclose(output1);
   fclose(output2);
 
