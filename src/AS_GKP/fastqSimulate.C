@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.3 2011-02-22 22:01:12 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.4 2011-02-24 09:18:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -430,7 +430,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "                  containing the junction is used to form the pair of reads.  The junction\n");
     fprintf(stderr, "                  location is normally distributed through this fragment, with mean 'shearSize/2'\n");
     fprintf(stderr, "                  and std.dev 'shearSize/2/junction'.  With a 500bp fragment, and 100bp reads,\n");
-    fprintf(stderr, "                  junction=3 will give about 6% chimeric reads.\n");
+    fprintf(stderr, "                  junction=3 will give about 6%% chimeric reads.\n");
     fprintf(stderr, "\n");
 
     if (fastaName == NULL)
