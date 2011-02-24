@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.34 2011-01-04 18:55:19 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.35 2011-02-24 09:48:41 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -880,8 +880,8 @@ unitigConsensus::alignFragmentToFragments(void) {
     if ((placed[qiid].bgn == 0) && (placed[qiid].end == 0))
       continue;
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-      fprintf(stderr, "alignFragmentToFragment()--  Testing vs %d\n", fraglist[qiid].ident);
+    //if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    //  fprintf(stderr, "alignFragmentToFragment()--  Testing vs %d\n", fraglist[qiid].ident);
 
     char      *aseq = Getchar(sequenceStore, GetFragment(fragmentStore, qiid)->sequence);
     char      *bseq = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);
@@ -889,12 +889,13 @@ unitigConsensus::alignFragmentToFragments(void) {
     int32      alen = GetFragment(fragmentStore, qiid)->length;
     int32      blen = GetFragment(fragmentStore, tiid)->length;
 
-#if 0
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM) {
-      fprintf(stderr, "A idx=%d id=%d len=%d %s\n", qiid, fraglist[qiid].ident, alen, aseq);
-      fprintf(stderr, "B idx=%d id=%d len=%d %s\n", tiid, fraglist[tiid].ident, blen, bseq);
-    }
-#endif
+    //  Lots of useless diagnostics here.
+
+    //if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM) {
+    //  fprintf(stderr, "A idx=%d id=%d len=%d %s\n", qiid, fraglist[qiid].ident, alen, aseq);
+    //  fprintf(stderr, "B idx=%d id=%d len=%d %s\n", tiid, fraglist[tiid].ident, blen, bseq);
+    //}
+
     //  Go fishing for an alignment.
 
     if (O == NULL) {
@@ -905,10 +906,10 @@ unitigConsensus::alignFragmentToFragments(void) {
                      0,
                      AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
                      AS_FIND_ALIGN);
-      if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
-        fprintf(stderr, "DP_Compare found:\n");
-        PrintALNoverlap(stderr, aseq, bseq, O);
-      }
+      //if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
+      //  fprintf(stderr, "DP_Compare found:\n");
+      //  PrintALNoverlap(stderr, aseq, bseq, O);
+      //}
     }
 
     if (O == NULL) {
@@ -919,10 +920,10 @@ unitigConsensus::alignFragmentToFragments(void) {
                                   0,
                                   AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
                                   AS_FIND_ALIGN);
-      if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
-        fprintf(stderr, "Local_Overlap found:\n");
-        PrintALNoverlap(stderr, aseq, bseq, O);
-      }
+      //if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
+      //  fprintf(stderr, "Local_Overlap found:\n");
+      //  PrintALNoverlap(stderr, aseq, bseq, O);
+      //}
     }
 
     if (O == NULL) {
@@ -933,45 +934,45 @@ unitigConsensus::alignFragmentToFragments(void) {
                                     0,
                                     AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
                                     AS_FIND_ALIGN);
-      if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
-        fprintf(stderr, "Optimal_Overlap found:\n");
-        PrintALNoverlap(stderr, aseq, bseq, O);
-      }
+      //if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
+      //  fprintf(stderr, "Optimal_Overlap found:\n");
+      //  PrintALNoverlap(stderr, aseq, bseq, O);
+      //}
     }
 
     if (O == NULL) {
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-        fprintf(stderr, "alignFragmentToFragment()-- No alignment found.\n");
+      //if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      //  fprintf(stderr, "alignFragmentToFragment()-- No alignment found.\n");
       continue;
     }
 
     //  Negative ahang?  Nope, don't want it.
     if (O->begpos < 0) {
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-        fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- begpos = %d.\n", O->begpos);
+      //if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      //  fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- begpos = %d.\n", O->begpos);
       continue;
     }
 
     //  Positive bhang and not the last fragment?  Nope, don't want it.
     if ((O->endpos > 0) && (placed[qiid].end != frankensteinLen)) {
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-        fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- endpos = %d.\n", O->endpos);
+      //if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      //  fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- endpos = %d.\n", O->endpos);
       continue;
     }
 
     //  Too noisy?  Nope, don't want it.
     if (((double)O->diffs / (double)O->length) > AS_CNS_ERROR_RATE) {
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-        fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- erate %f > max allowed %f.\n",
-                (double)O->diffs / (double)O->length, AS_CNS_ERROR_RATE);
+      //if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      //  fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- erate %f > max allowed %f.\n",
+      //          (double)O->diffs / (double)O->length, AS_CNS_ERROR_RATE);
       continue;
     }
 
     //  Too short?  Nope, don't want it.
     if (O->length < AS_OVERLAP_MIN_LEN) {
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-        fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- too short %d < min allowed %d.\n",
-                O->length, AS_OVERLAP_MIN_LEN);
+      //if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      //  fprintf(stderr, "alignFragmentToFragment()-- No alignment found -- too short %d < min allowed %d.\n",
+      //          O->length, AS_OVERLAP_MIN_LEN);
       continue;
     }
 
