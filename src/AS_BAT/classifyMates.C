@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.1 2011-02-15 08:10:11 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.2 2011-02-28 17:18:06 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -35,8 +35,8 @@ bool   VERBOSE4 = false;
 bool   VERBOSE5 = false;
 
 uint32 MINPATHLENGTH  = 100;
-uint32 MAXPATHLENGTH  = 700;
-uint32 MAXPATHDEPTH   =  12;
+uint32 MAXPATHLENGTH  = 500;
+uint32 MAXPATHDEPTH   =   4;
 
 
 class fragmentInfo {
@@ -115,15 +115,16 @@ public:
   //
   //  conrDist - Container overlaps (A contains B), likewise.
 
-#define NDIST  5
+#define NDISTD  2  //  Number of dovetail edges off each end
+#define NDISTC  5  //  Number of contains for each end
 
-  int32   doveDist5arr[NDIST];  //  scratch array for finding the nth largest distance
-  int32   coneDist5arr[NDIST];
-  int32   conrDist5arr[NDIST];
+  int32   doveDist5arr[NDISTD];  //  scratch array for finding the nth largest distance
+  int32   coneDist5arr[NDISTC];
+  int32   conrDist5arr[NDISTC];
 
-  int32   doveDist3arr[NDIST];
-  int32   coneDist3arr[NDIST];
-  int32   conrDist3arr[NDIST];
+  int32   doveDist3arr[NDISTD];
+  int32   coneDist3arr[NDISTC];
+  int32   conrDist3arr[NDISTC];
 
   int32   doveDist5;     //  minimum distance we should be saving
   int32   coneDist5;
@@ -135,24 +136,26 @@ public:
 
 
 
-  //  Save the N largest values
+  //  Save the N largest values - sorted largest to smallest
   void    saveDistMax(int32 *darr, int32  dist) {
 
-    if (dist < darr[NDIST-1])
+    assert(dist >= 0);
+
+    if (dist < darr[NDISTD-1])
       //  Distance less than the smallest distance we want to keep, don't save
       return;
 
     //  We either want to save a new distance, pushing the last one off of the array,
     //  or notice that we've already saved this distance and leave the array alone.
 
-    for (int32 i=0; i<NDIST; i++) {
+    for (int32 i=0; i<NDISTD; i++) {
       if (darr[i] == dist)
         //  Saved it already.
         return;
 
       if (darr[i] < dist) {
         //  Save at i, push i and following down one slot.
-        for (int32 j=NDIST-1; j>i; j--)
+        for (int32 j=NDISTD-1; j>i; j--)
           darr[j] = darr[j-1];
         darr[i] = dist;
         return;
@@ -165,24 +168,26 @@ public:
 
 
 
-  //  Save the N smallest values
+  //  Save the N smallest values - sorted smallest to largest
   void    saveDistMin(int32 *darr, int32  dist) {
 
-    if (dist > darr[NDIST-1])
-      //  Distance less than the smallest distance we want to keep, don't save
+    assert(dist >= 0);
+
+    if (dist > darr[NDISTC-1])
+      //  Distance more than the biggest distance we want to keep, don't save
       return;
 
     //  We either want to save a new distance, pushing the last one off of the array,
     //  or notice that we've already saved this distance and leave the array alone.
 
-    for (int32 i=0; i<NDIST; i++) {
+    for (int32 i=0; i<NDISTC; i++) {
       if (darr[i] == dist)
         //  Saved it already.
         return;
 
       if (darr[i] > dist) {
         //  Save at i, push i and following down one slot.
-        for (int32 j=NDIST-1; j>i; j--)
+        for (int32 j=NDISTC-1; j>i; j--)
           darr[j] = darr[j-1];
         darr[i] = dist;
         return;
@@ -202,13 +207,12 @@ public:
     if (ovlLen == 0)
       return;
 
-    memset(doveDist5arr, 0, sizeof(int32) * NDIST);
-    memset(coneDist5arr, 0, sizeof(int32) * NDIST);
-    memset(conrDist5arr, 0, sizeof(int32) * NDIST);
-
-    memset(doveDist3arr, 0, sizeof(int32) * NDIST);
-    memset(coneDist3arr, 0, sizeof(int32) * NDIST);
-    memset(conrDist3arr, 0, sizeof(int32) * NDIST);
+    for (int32 i=0; i<NDISTD; i++)
+      doveDist5arr[i] = doveDist3arr[i] = INT32_MIN;
+    for (int32 i=0; i<NDISTC; i++) {
+      coneDist5arr[i] = coneDist3arr[i] = INT32_MAX;
+      conrDist5arr[i] = conrDist3arr[i] = INT32_MAX;
+    }
 
     for (uint32 i=0; i<ovlLen; i++) {
       int32  ah = ovl[i].dat.ovl.a_hang;
@@ -239,19 +243,21 @@ public:
       }
     }
 
-    doveDist5 = doveDist5arr[NDIST-1];
-    coneDist5 = coneDist5arr[NDIST-1];
-    conrDist5 = conrDist5arr[NDIST-1];
+    doveDist5 = doveDist5arr[NDISTD-1];
+    coneDist5 = coneDist5arr[NDISTC-1];
+    conrDist5 = conrDist5arr[NDISTC-1];
 
-    doveDist3 = doveDist3arr[NDIST-1];
-    coneDist3 = coneDist3arr[NDIST-1];
-    conrDist3 = conrDist3arr[NDIST-1];
+    doveDist3 = doveDist3arr[NDISTD-1];
+    coneDist3 = coneDist3arr[NDISTC-1];
+    conrDist3 = conrDist3arr[NDISTC-1];
 
+#if 0
     fprintf(stderr, "IID %8d  dove %3d,%3d  cone %3d,%3d  conr %3d,%3d\n",
             ovl[0].a_iid,
             doveDist5, doveDist3,
             coneDist5, coneDist3,
             conrDist5, conrDist3);
+#endif
   };
 };
 
@@ -409,21 +415,33 @@ main(int argc, char **argv) {
 
       if        (AS_OVS_overlapAEndIs5prime(ovl[i])) {
         //  ah < 0 && bh < 0
-        if (dist->doveDist5 >= fb - -ah)   saveOverlap = true;
+        if (dist->doveDist5 <= fb - -ah) {
+          saveOverlap = true;
+        }
 
       } else if (AS_OVS_overlapAEndIs3prime(ovl[i])) {
         //  ah > 0 && bh > 0
-        if (dist->doveDist3 >= fb -  bh)   saveOverlap = true;
+        if (dist->doveDist3 <= fb -  bh) {
+          saveOverlap = true;
+        }
 
       } else if (AS_OVS_overlapAIsContained(ovl[i])) {
         //  ah <= 0 && bh >= 0
-        if (dist->coneDist5 <= -ah)   saveOverlap = true;
-        if (dist->coneDist3 <=  bh)   saveOverlap = true;
+        if (dist->coneDist5 >= -ah) {
+          saveOverlap = true;
+        }
+        if (dist->coneDist3 >=  bh) {
+          saveOverlap = true;
+        }
 
       } else if (AS_OVS_overlapAIsContainer(ovl[i])) {
         //  ah >= 0 && bh <= 0
-        if (dist->conrDist5 <=  ah)   saveOverlap = true;
-        if (dist->conrDist3 <= -bh)   saveOverlap = true;
+        if (dist->conrDist5 >=  ah) {
+          saveOverlap = true;
+        }
+        if (dist->conrDist3 >= -bh) {
+          saveOverlap = true;
+        }
 
       } else {
         assert(0);
@@ -561,53 +579,57 @@ main(int argc, char **argv) {
         bool          n5p3 = (novl->flipped) ? (!path5p3[pathDepth]) : (path5p3[pathDepth]);    //  Next fragment orientation;
         uint32        nlen = 0;                                                                 //  New length of the path, if zero, can't extend
 
-
-
-
-        //  BUG BUG BUG BUG BUG
-        //
-        //  if niid is the target, and it is contained, we never get to it from here.
-        //  we require that we hit target via a dovetail overlap ONLY
-
-
-
-
         if (VERBOSE3)
           fprintf(stderr, "TRY  %5u/%s -> %5u/%s.\n",
                   pathIID[pathDepth], (path5p3[pathDepth] == true) ? "5'3'" : "3'5'",
                   niid,               (n5p3               == true) ? "5'3'" : "3'5'");
 
-
-
         //  Frag is forward, overlap is same, hang is positive
-        if ((path5p3[pathDepth] == true) && (novl->flipped == false) && (novl->bhang > 0)) {
+        if ((path5p3[pathDepth] == true) && (novl->flipped == false)) {
           nlen = pathLen[pathDepth] + novl->bhang;
           assert(n5p3 == true);
         }
 
         //  Frag is forward, overlap is flipped, hang is positive
-        if ((path5p3[pathDepth] == true) && (novl->flipped == true) && (novl->bhang > 0)) {
+        if ((path5p3[pathDepth] == true) && (novl->flipped == true)) {
           nlen = pathLen[pathDepth] + novl->bhang;
           assert(n5p3 == false);
         }
 
         //  Frag is reverse, overlap is same, hang is positive
-        if ((path5p3[pathDepth] == false) && (novl->flipped == false) && (-novl->ahang > 0)) {
+        if ((path5p3[pathDepth] == false) && (novl->flipped == false)) {
           nlen = pathLen[pathDepth] + -novl->ahang;
           assert(n5p3 == false);
         }
 
         //  Frag is reverse, overlap is flipped, hang is positive
-        if ((path5p3[pathDepth] == false) && (novl->flipped == true) && (-novl->ahang > 0)) {
+        if ((path5p3[pathDepth] == false) && (novl->flipped == true)) {
           nlen = pathLen[pathDepth] + -novl->ahang;
           assert(n5p3 == true);
+        }
+
+        //
+        //  Are we _now_ finished?  This duplicates the test above, and ALSO tests contained
+        //  overlaps that we do not extend into (when nlen <= pathLen).
+        //
+
+        if ((niid == fi[iid].mateIID) &&
+            (n5p3 == true) &&
+            (nlen >= MINPATHLENGTH) &&
+            (nlen <= MAXPATHLENGTH)) {
+          fprintf(resultsFile, "Path from %d/%s to %d/%s found at depth %d of length %d.\n",
+                  iid, (path5p3[1] == true) ? "5'3'" : "3'5'", 
+                  niid, (n5p3 == true) ? "5'3'" : "3'5'", pathDepth+1, nlen);
+          pathFound = true;
+          pathDepth = 1;
+          break;
         }
 
         //
         //  If the length is not too large, extend into it, otherwise, try the next fragment.
         //
 
-        if ((nlen      >  0) &&
+        if ((nlen      >  pathLen[pathDepth]) &&
             (nlen      <= MAXPATHLENGTH) &&
             (pathDepth <= MAXPATHDEPTH)) {
           pathDepth++;
