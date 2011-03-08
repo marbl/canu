@@ -1,4 +1,4 @@
-const char *mainid = "$Id: markUniqueUnique.c,v 1.10 2010-12-13 03:40:56 brianwalenz Exp $";
+const char *mainid = "$Id: markUniqueUnique.c,v 1.11 2011-03-08 21:21:24 skoren Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -218,8 +218,9 @@ int main (int argc, char *argv[]) {
    MultiAlignStore *tigStore = new MultiAlignStore(tigStoreName, tigStoreVers, 0, 0, TRUE, TRUE);
 
    for (uint32 i = 0; i < tigStore->numUnitigs(); i++) {
-     uint32 *ret      = Getuint32(surrogateCount, i);
-     uint32 *atScfEnd = Getuint32(surrogateAtScaffoldEnds, i);
+      uint32 *ret      = Getuint32(surrogateCount, i);
+      uint32 *atScfEnd = Getuint32(surrogateAtScaffoldEnds, i);
+      uint32 *length   = Getuint32(unitigLength, i);
 
       bool toggled = false;
                      
@@ -233,7 +234,7 @@ int main (int argc, char *argv[]) {
       }   
 
       // special case, mark non-singleton unitigs as unique if we are given no instances
-      else if (numInstances == 0 && (*Getint32(unitigLength, i)) >= minLength && tigStore->getNumFrags(i, TRUE) > 1) {
+      else if (numInstances == 0 && (length != NULL && (*length) >= minLength) && tigStore->getNumFrags(i, TRUE) > 1) {
          toggled = TRUE;
       }
       
