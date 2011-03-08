@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.60 2011-02-11 05:16:14 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.61 2011-03-08 21:03:22 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -394,7 +394,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
 
   char  fname[FILENAME_MAX];  sprintf(fname, "%s.fasta",      prefix);
   char  qname[FILENAME_MAX];  sprintf(qname, "%s.fasta.qv",   prefix);
-  char  Qname[FILENAME_MAX];  sprintf(qname, "%s.fasta.qual", prefix);
+  char  Qname[FILENAME_MAX];  sprintf(Qname, "%s.fasta.qual", prefix);
 
   errno = 0;
   FILE *f = fopen(fname, "w");
