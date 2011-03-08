@@ -19,13 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.102 2010-10-27 09:03:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.103 2011-03-08 21:18:38 skoren Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
 #include "AS_BOG_MateLocation.hh"
-
-#include "AS_OVL_overlap.h"  //  For DEFAULT_MIN_OLAP_LEN
 
 
 
@@ -412,7 +410,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
             //  frag.
             //
             if ((NULL_SEQ_LOC == overlap) ||
-                (diff < DEFAULT_MIN_OLAP_LEN) ||
+                (diff < AS_OVERLAP_MIN_LEN) ||
                 (OG->isContained(frag.ident) && !OG->containHaveEdgeTo(frag.ident, tig->ufpath[np].ident))) {
 
               uint32 frag3p = true;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.63 2010-08-30 07:12:38 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.64 2011-03-08 21:17:23 skoren Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.63 2010-08-30 07:12:38 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.63 2010-08-30 07:12:38 brianwalenz Exp $
- * $Revision: 1.63 $
+ * $Id: AS_OVL_overlap_common.h,v 1.64 2011-03-08 21:17:23 skoren Exp $
+ * $Revision: 1.64 $
 */
 
 
@@ -236,7 +236,7 @@ static int64  Kmer_Hits_With_Olap_Ct = 0;
 static int64  Kmer_Hits_Without_Olap_Ct = 0;
 static uint64  * Loc_ID = NULL;
     //  Locale ID field of each frag in hash table if in  Contig_Mode .
-static int  Min_Olap_Len = DEFAULT_MIN_OLAP_LEN;
+static int  Min_Olap_Len = AS_OVERLAP_MIN_LEN;
 static int64  Multi_Overlap_Ct = 0;
 static String_Ref_t  * Next_Ref = NULL;
 static int  Full_ProtoIO_Output = FALSE;
@@ -537,6 +537,10 @@ main(int argc, char **argv) {
   fprintf (stderr, "### Bucket size = " F_SIZE_T " bytes\n", sizeof (Hash_Bucket_t));
   fprintf (stderr, "### Read error rate = %.2f%%\n", 100.0 * AS_READ_ERROR_RATE);
   fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE);
+
+  // set the minimum overlap from the global settings
+  // if one is supplied as a command-line argument, this setting will get overwritten below
+  Min_Olap_Len = AS_OVERLAP_MIN_LEN;
 
   {
     int err=0;

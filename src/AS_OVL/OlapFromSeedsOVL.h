@@ -33,15 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.23 2009-10-30 18:55:36 skoren Exp $
- * $Revision: 1.23 $
+ * $Id: OlapFromSeedsOVL.h,v 1.24 2011-03-08 21:17:23 skoren Exp $
+ * $Revision: 1.24 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
 
-static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.23 2009-10-30 18:55:36 skoren Exp $";
+static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.24 2011-03-08 21:17:23 skoren Exp $";
 
 //**ALD determine if use new code to analyze true multialignments
 #define  USE_NEW_STUFF  1
@@ -78,8 +78,6 @@ static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1
   //  Default value for  End_Exclude_Len
 #define  DEFAULT_KMER_LEN            9
   //  Default value for  Kmer_Len
-#define  DEFAULT_MIN_OLAP_LEN        AS_OVERLAP_MIN_LEN
-  //  Default value for  Min_Olap_Len
 #define  DEFAULT_NUM_PTHREADS        2
   //  Default number of pthreads to use
 #define  DEFAULT_VOTE_QUALIFY_LEN    9
@@ -329,7 +327,7 @@ static int  Kmer_Len = DEFAULT_KMER_LEN;
   // Length of minimum exact match in overlap to confirm base pairs
 static int32  Lo_Frag_IID;
   // Internal ID of first fragment in frag store to process
-static int  Min_Olap_Len = DEFAULT_MIN_OLAP_LEN;
+static int  Min_Olap_Len = AS_OVERLAP_MIN_LEN;
   // The minimum number of bp in each read to report an overlap
 static time_t  Now;
   // Used to get current time

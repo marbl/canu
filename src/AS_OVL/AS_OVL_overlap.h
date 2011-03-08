@@ -26,15 +26,15 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.35 2010-08-19 05:28:07 brianwalenz Exp $
- * $Revision: 1.35 $
+ * $Id: AS_OVL_overlap.h,v 1.36 2011-03-08 21:17:23 skoren Exp $
+ * $Revision: 1.36 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
 
-static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.35 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.36 2011-03-08 21:17:23 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -305,8 +305,6 @@ static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.35 2010-0
     //  When calculating the  Hi_Hit_Limit  based on genome length, etc,
     //  don't set it below this
 #define  MIN_INTERSECTION        10
-    //  Minimum number of bases periodic overlaps must have in common
-#define  DEFAULT_MIN_OLAP_LEN            AS_OVERLAP_MIN_LEN
     //  Minimum length of match region to be worth reporting
 #define  MIN_OLAP_OUTSIDE_SCREEN 30
     //  Minimum number of bases outside of screened regions
