@@ -145,15 +145,28 @@ Sim4::get_dist(int i1, int j1, int i2, int j2, int limit)
         goal_diag = j2-i2;
 
         if (goal_diag > upper || goal_diag < lower) {
-                printf("The two sequences are not really similar.(1 %d; %d %d %d %d)\n", limit, i1, j1, i2, j2);
-                printf("Please try exact phase 1 method\n.");
-                exit(1);
+                fprintf(stderr, "The two sequences are not really similar.(1 %d; %d %d %d %d)\n", limit, i1, j1, i2, j2);
+                fprintf(stderr, "Please try exact phase 1 method\n.");
+
+#ifndef CHECK_BOUNDS
+                /* Free working vectors */
+                ckfree(SS+lower);
+                ckfree(DD+lower);
+                ckfree(II+lower-1);
+#endif
+                return -1;
         }
 
         /* Allocate space for forward vectors */
+#ifdef CHECK_BOUNDS
+        boundedIntArray SS(lower, upper-lower+1);
+        boundedIntArray DD(lower, upper-lower+2);
+        boundedIntArray II(lower-1, upper-lower+2);
+#else
         SS = (int *)ckalloc((upper-lower+1)*sizeof(int)) - lower;
         DD = (int *)ckalloc((upper-lower+2)*sizeof(int)) - lower;
         II = (int *)ckalloc((upper-lower+2)*sizeof(int)) - lower + 1;
+#endif
 
         /* Initialization */
         for (k=lower; k<=upper; ++k) SS[k] = -99999;
@@ -166,10 +179,12 @@ Sim4::get_dist(int i1, int j1, int i2, int j2, int limit)
                 printf("get_dist = %d\n", 0);
 #endif
 
+#ifndef CHECK_BOUNDS
                 /* Free working vectors */
                 ckfree(SS+lower);
                 ckfree(DD+lower);
                 ckfree(II+lower-1);
+#endif
                 return 0;
         }
 
@@ -190,21 +205,22 @@ Sim4::get_dist(int i1, int j1, int i2, int j2, int limit)
                         printf("get_dist = %d\n", c);
 #endif
 
+#ifndef CHECK_BOUNDS
                         /* Free working vectors */
                         ckfree(SS+lower);
                         ckfree(DD+lower);
                         ckfree(II+lower-1);
+#endif
                         return c;
                 }
         }
 
         /* Ran out of distance limit */
-        printf("Two sequences are not really similar.\n");
-        printf("Please try exact phase 1.\n");
-        exit(1);
+        fprintf(stderr, "Two sequences are not really similar.\n");
+        fprintf(stderr, "Please try exact phase 1.\n");
+
+        return -1;
 }
-
-
 
 
 void
