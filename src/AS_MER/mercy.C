@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: mercy.C,v 1.5 2009-05-12 17:25:31 brianwalenz Exp $";
+const char *mainid = "$Id: mercy.C,v 1.6 2011-03-15 03:16:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,8 +67,8 @@ findMode(char *name) {
     M->nextMer();
   }
 
-  u32bit  mi = 2;
-  for (u32bit i=2; i<16384; i++)
+  u32bit  mi = 16;
+  for (u32bit i=mi; i<16384; i++)
     if (H[i] > H[mi])
       mi = i;
 
@@ -234,14 +234,12 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-af") == 0) {  //  All frags
       ++arg;
-      //AFmode = findMode(argv[arg]);
-      AFmode = 8;
+      AFmode = findMode(argv[arg]);
       AF = new merylStreamReader(argv[arg]);
       AF->nextMer();
     } else if (strcmp(argv[arg], "-tf") == 0) {  //  Trimmed frags
       ++arg;
-      //TFmode = findMode(argv[arg]);
-      TFmode = 8;
+      TFmode = findMode(argv[arg]);
       TF = new merylStreamReader(argv[arg]);
       TF->nextMer();
     } else if (strcmp(argv[arg], "-ac") == 0) {  //  All contigs
