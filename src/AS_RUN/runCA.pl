@@ -2730,7 +2730,7 @@ sub merTrim {
 
         if (runCommand($wrk, $cmd)) {
             rename "$wrk/0-mertrim/$asm.merTrimLog", "$wrk/0-mertrim/$asm.merTrimLog.FAILED";
-            caError("merTrimApply failed", "$wrk/0-mertrim/$asm.merTrim.err");
+            caFailure("merTrimApply failed", "$wrk/0-mertrim/$asm.merTrim.err");
         }
     }
 
@@ -3475,9 +3475,9 @@ sub checkOverlap {
         } elsif (getGlobal("obtOverlapper") eq "mer") {
             checkMerOverlapper($isTrim);
         } elsif (getGlobal("obtOverlapper") eq "umd") {
-            caError("checkOverlap() wanted to check umd overlapper for obt?\n");
+            caFailure("checkOverlap() wanted to check umd overlapper for obt?\n");
         } else {
-            caError("checkOverlap() unknown obt overlapper?\n");
+            caFailure("checkOverlap() unknown obt overlapper?\n");
         }
     } else {
         return if (-d "$wrk/$asm.ovlStore");
@@ -3488,7 +3488,7 @@ sub checkOverlap {
         } elsif (getGlobal("ovlOverlapper") eq "umd") {
             #  Nop.
         } else {
-            caError("checkOverlap() unknown ovl overlapper?\n");
+            caFailure("checkOverlap() unknown ovl overlapper?\n");
         }
     }
 }
