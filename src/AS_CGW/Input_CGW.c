@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.71 2010-09-23 08:47:58 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.72 2011-03-17 04:42:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,11 +112,19 @@ int ProcessInput(int optind, int argc, char *argv[]){
 
   for (int32 i=0; i<ScaffoldGraph->tigStore->numUnitigs(); i++) {
     MultiAlignT   *uma = ScaffoldGraph->tigStore->loadMultiAlign(i, TRUE);
-    MultiAlignT   *cma = CopyMultiAlignT(NULL, uma);
+
+    if (uma == NULL) {
+      fprintf(stderr, "WARNING:  Unitig %d does not exist.\n", i);
+      continue;
+    }
+
+    assert(i == uma->maID);
 
     if (1 != GetNumIntUnitigPoss(uma->u_list))
       fprintf(stderr, "ERROR:  Unitig %d has no placement; probably not run through consensus.\n", uma->maID);
     assert(1 == GetNumIntUnitigPoss(uma->u_list));
+
+    MultiAlignT   *cma = CopyMultiAlignT(NULL, uma);
 
     ScaffoldGraph->tigStore->insertMultiAlign(cma, FALSE, TRUE);
 
