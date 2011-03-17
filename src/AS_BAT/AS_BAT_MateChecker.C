@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MateChecker.C,v 1.4 2011-03-08 21:18:58 skoren Exp $";
+static const char *rcsid = "$Id: AS_BAT_MateChecker.C,v 1.5 2011-03-17 05:33:36 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -129,15 +129,15 @@ findPeakBad(int32 *badGraph,
 
 
 // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
-UnitigBreakPoints* computeMateCoverage(Unitig* tig,
-                                       MateLocation *mates,
-                                       int badMateBreakThreshold) {
+vector<breakPoint> *computeMateCoverage(Unitig* tig,
+                                        MateLocation *mates,
+                                        int badMateBreakThreshold) {
   int tigLen = tig->getLength();
 
   vector<SeqInterval> *fwdBads = findPeakBad(mates->badFwd, tigLen, badMateBreakThreshold);
   vector<SeqInterval> *revBads = findPeakBad(mates->badRev, tigLen, badMateBreakThreshold);
 
-  UnitigBreakPoints* breaks = new UnitigBreakPoints();
+  vector<breakPoint>  *breaks = new vector<breakPoint>;
 
   if ((fwdBads->size() == 0) &&
       (revBads->size() == 0)) {
@@ -357,10 +357,7 @@ UnitigBreakPoints* computeMateCoverage(Unitig* tig,
             fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #1.\n",
                     tig->id(), frag.ident, loc.bgn, loc.end);
 
-          breaks->push_back(UnitigBreakPoint(frag.ident, frag3p, frag.position,
-                                             0, 0,
-                                             0, false,
-                                             100000, 10));
+          breaks->push_back(breakPoint(frag.ident, frag3p, true, false));
         }
       }
 
@@ -395,10 +392,7 @@ UnitigBreakPoints* computeMateCoverage(Unitig* tig,
                 fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #2.\n",
                         tig->id(), frag.ident, loc.bgn, loc.end);
 
-              breaks->push_back(UnitigBreakPoint(frag.ident, frag3p, loc,
-                                                 0, 0,
-                                                 0, false,
-                                                 100001, 11));
+              breaks->push_back(breakPoint(frag.ident, frag3p, true, false));
 
               if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
                 fprintf(logFile,"Might make frg %d singleton, end %d size %u pos %d,%d\n",

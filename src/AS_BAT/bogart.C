@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.7 2011-02-15 08:10:11 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.8 2011-03-17 05:33:36 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -44,6 +44,7 @@ const char *mainid = "$Id: bogart.C,v 1.7 2011-02-15 08:10:11 brianwalenz Exp $"
 #include "AS_BAT_Joining.H"
 #else
 #include "AS_BAT_MergeSplitJoin.H"
+#include "AS_BAT_SplitDiscontinuous.H"
 #endif
 
 #include "AS_BAT_SetParentAndHang.H"
@@ -482,13 +483,13 @@ main (int argc, char * argv []) {
   setLogFile(output_prefix, "mergeSplitJoin");
 
   mergeSplitJoin(unitigs);
-
+  splitDiscontinuousUnitigs(unitigs);       //  Clean up splitting problems.
   placeContainsUsingBestOverlaps(unitigs);
 
   checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "joinUnitigs");
-  reportUnitigs(unitigs, output_prefix, "joinUnitigs");
-  evaluateMates(unitigs, output_prefix, "joinUnitigs");
+  reportOverlapsUsed(unitigs, output_prefix, "mergeSplitJoin");
+  reportUnitigs(unitigs, output_prefix, "mergeSplitJoin");
+  evaluateMates(unitigs, output_prefix, "mergeSplitJoin");
 
 #endif
 

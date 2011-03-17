@@ -62,6 +62,11 @@ if [ ! -e $OUT.ideal.fasta ] ; then
     -output    $OUT.ideal
 fi
 
+if [ ! -e $OUT.ideal.fasta ] ; then
+  echo "No fasta output from bogus, not mapping to reference."
+  exit
+fi
+
 if [ ! -e $OUT.ideal.delta ] ; then
   nucmer --maxmatch --coords -p $OUT.ideal \
     $REF \

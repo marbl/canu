@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.9 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.10 2011-03-17 05:33:36 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -29,7 +29,7 @@ static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.9 2011-02-1
 
 #include "AS_UTL_intervalList.H"
 
-#define LOG_PLACE
+#define VERBOSE
 
 //  Given an implicit fragment -- a ufNode with only the 'ident' set -- this will compute the
 //  best placement for the fragment in an existing unitig.  ALL overlaps are used, not just
@@ -59,6 +59,7 @@ placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
     return(false);
 
   op.frgID       = frag.ident;
+  op.ovlID       = ovl.b_iid;
   op.tigID       = utg->id();
   op.position    = frag.position;
   op.errors      = FI->fragmentLength(ovl.b_iid) * ovl.error;
@@ -68,6 +69,17 @@ placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
 
   assert(op.covered.bgn < op.covered.end);
 
+  //  Compute the portion of the unitig that is actually verified by
+  //  the overlap.
+
+  if (op.position.bgn < op.position.end) {
+    op.verified.bgn = op.position.bgn + op.covered.bgn;
+    op.verified.end = op.position.bgn + op.covered.end;
+  } else {
+    op.verified.bgn = op.position.bgn - op.covered.bgn;
+    op.verified.end = op.position.bgn - op.covered.end;
+  }
+
   //  Disallow any placements that exceed the boundary of the unitig.  These cannot be confirmed
   //  by overlaps and might be wrong.  Sample cases:
   //    o  sticking a unique/repeat fragment onto a repeat (leaving the unique uncovered)
@@ -75,20 +87,20 @@ placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
 
   if ((MIN(op.position.bgn, op.position.end) < 0) ||
       (MAX(op.position.bgn, op.position.end) > utg->getLength())) {
-#if 0
+#ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d DISALLOWED\n",
-              frag.ident, utg->id(), frag.position.bgn, frag.position.end,
+      fprintf(logFile, "placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
+              frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
     op = overlapPlacement();
 
   } else {
-#if 0
+#ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d\n",
-              frag.ident, utg->id(), frag.position.bgn, frag.position.end,
+      fprintf(logFile, "placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
+              frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
@@ -113,6 +125,7 @@ placeBcontainsA(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
     return(false);
 
   op.frgID       = frag.ident;
+  op.ovlID       = ovl.b_iid;
   op.tigID       = utg->id();
   op.position    = frag.position;
   op.errors      = FI->fragmentLength(ovl.a_iid) * ovl.error;
@@ -122,22 +135,25 @@ placeBcontainsA(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
 
   assert(op.covered.bgn < op.covered.end);
 
+  op.verified.bgn = op.position.bgn;
+  op.verified.end = op.position.end;
+
   if ((MIN(op.position.bgn, op.position.end) < 0) ||
       (MAX(op.position.bgn, op.position.end) > utg->getLength())) {
-#if 0
+#ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d DISALLOWED\n",
-              frag.ident, utg->id(), frag.position.bgn, frag.position.end,
+      fprintf(logFile, "placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
+              frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
     op = overlapPlacement();
 
   } else {
-#if 0
+#ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d\n",
-              frag.ident, utg->id(), frag.position.bgn, frag.position.end,
+      fprintf(logFile, "placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
+              frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
@@ -164,6 +180,7 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
   uint32  flen = FI->fragmentLength(ovl.a_iid);
 
   op.frgID       = frag.ident;
+  op.ovlID       = ovl.b_iid;
   op.tigID       = utg->id();
   op.position    = frag.position;
   op.errors      = olen * ovl.error;
@@ -173,22 +190,30 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
 
   assert(op.covered.bgn < op.covered.end);
 
+  if (op.position.bgn < op.position.end) {
+    op.verified.bgn = op.position.bgn + op.covered.bgn;
+    op.verified.end = op.position.bgn + op.covered.end;
+  } else {
+    op.verified.bgn = op.position.bgn - op.covered.bgn;
+    op.verified.end = op.position.bgn - op.covered.end;
+  }
+
   if ((MIN(op.position.bgn, op.position.end) < 0) ||
       (MAX(op.position.bgn, op.position.end) > utg->getLength())) {
-#if 0
+#ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d DISALLOWED\n",
-              frag.ident, utg->id(), frag.position.bgn, frag.position.end,
+      fprintf(logFile, "placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
+              frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
     op = overlapPlacement();
 
   } else {
-#if 0
+#ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d from overlap ident %d %d hang %ld %ld flipped %ld covered %d,%d\n",
-              frag.ident, utg->id(), frag.position.bgn, frag.position.end,
+      fprintf(logFile, "placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
+              frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
 #endif
@@ -382,16 +407,17 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
 
     sort(ovlPlace + bgn, ovlPlace + end, overlapPlacement_byCluster);
 
-#if 0
-    for (uint32 oo=bgn; oo<end; oo++)
-      fprintf(logFile, "overlapPlacement[%03d] = frg %d tig %d position %d,%d errors %.2f covered %d,%d aligned %d\n",
-              oo,
-              ovlPlace[oo].frgID,
-              ovlPlace[oo].tigID,
-              ovlPlace[oo].position.bgn, ovlPlace[oo].position.end,
-              ovlPlace[oo].errors,
-              ovlPlace[oo].covered.bgn,  ovlPlace[oo].covered.end,
-              ovlPlace[oo].aligned);
+#ifdef VERBOSE
+    if (logFileFlagSet(LOG_PLACE_FRAG))
+      for (uint32 oo=bgn; oo<end; oo++)
+        fprintf(logFile, "overlapPlacement[%03d] = frg %d tig %d position %d,%d errors %.2f covered %d,%d aligned %d\n",
+                oo,
+                ovlPlace[oo].frgID,
+                ovlPlace[oo].tigID,
+                ovlPlace[oo].position.bgn, ovlPlace[oo].position.end,
+                ovlPlace[oo].errors,
+                ovlPlace[oo].covered.bgn,  ovlPlace[oo].covered.end,
+                ovlPlace[oo].aligned);
 #endif
 
     //  Run through each 'cluster' and compute the placement.
@@ -418,12 +444,17 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
       //              by (max-min) overlap position.
 
       op.frgID = frag.ident;
+      op.ovlID = ovlPlace[os].ovlID;
       op.tigID = ovlPlace[os].tigID;
 
       op.fCoverage   = 0.0;
 
       op.errors      = 0.0;
       op.aligned     = 0;
+
+      op.verified.bgn = ovlPlace[os].verified.bgn;
+      op.verified.end = ovlPlace[os].verified.end;
+
       op.covered.bgn = ovlPlace[os].covered.bgn;
       op.covered.end = ovlPlace[os].covered.end;
 
@@ -435,6 +466,7 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
 
         op.errors      += ovlPlace[oo].errors;
         op.aligned     += ovlPlace[oo].aligned;
+
         op.covered.bgn  = MIN(op.covered.bgn, ovlPlace[oo].covered.bgn);
         op.covered.end  = MAX(op.covered.end, ovlPlace[oo].covered.end);
 
@@ -447,6 +479,54 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
       assert((nReverse == 0) || (nForward == 0));
 
       op.fCoverage = (op.covered.end - op.covered.bgn) / (double)FI->fragmentLength(op.frgID);
+
+      //  Find the first and last fragment in the unitig that we overlap with.
+      //
+      //  The first fragment is easy.  We can run through the list of overlaps, ask the unitig for
+      //  the ordinal of each fragment, and return the lowest.
+      //
+      //  The last fragment is similar, but we need to return the highest ordinal that is also the
+      //  longest.  (In the first fragment case, we are guaranteed by the construction of the unitig
+      //  to have the earliest fragment position).
+
+      Unitig *target = unitigs[op.tigID];
+
+      uint32  firstOrdinal  = UINT32_MAX;
+      uint32  firstPosition = UINT32_MAX;
+      uint32  lastOrdinal   = 0;
+      uint32  lastPosition  = 0;
+
+      FragmentEnd  firstEnd;
+      FragmentEnd  lastEnd;
+
+      for (uint32 oo=os; oo<oe; oo++) {
+        uint32   ordinal = target->pathPosition(ovlPlace[oo].ovlID);
+        ufNode  &ovlFrg  = target->ufpath[ordinal];
+        uint32   minPos  = MIN(ovlFrg.position.bgn, ovlFrg.position.end);
+        uint32   maxPos  = MAX(ovlFrg.position.bgn, ovlFrg.position.end);
+
+        if (((minPos  <  firstPosition)) ||
+            ((minPos  <= firstPosition) && (ordinal < firstOrdinal))) {
+          firstOrdinal  = ordinal;
+          firstPosition = minPos;
+          firstEnd      = FragmentEnd(ovlFrg.ident, (ovlFrg.position.bgn < ovlFrg.position.end));
+        }
+
+        if (((maxPos  >  lastPosition)) ||
+            ((maxPos  >= lastPosition) && (ordinal > lastOrdinal))) {
+          lastOrdinal  = ordinal;
+          lastPosition = minPos;
+          lastEnd      = FragmentEnd(ovlFrg.ident, (ovlFrg.position.end < ovlFrg.position.bgn));
+        }
+      }
+
+      if (nForward > 0) {
+        op.frag5p = firstEnd;
+        op.frag3p = lastEnd;
+      } else {
+        op.frag5p = lastEnd;
+        op.frag3p = firstEnd;
+      }
 
       //  Compute mean and stddev placement.
 
@@ -463,11 +543,22 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
           continue;
 
         if (ovlPlace[oo].position.bgn < ovlPlace[oo].position.end) {
+          assert(ovlPlace[oo].verified.bgn < ovlPlace[oo].verified.end);
+
           bgnMean += ovlPlace[oo].position.bgn;
           endMean += ovlPlace[oo].position.end;
+
+          op.verified.bgn  = MIN(op.verified.bgn, ovlPlace[oo].verified.bgn);
+          op.verified.end  = MAX(op.verified.end, ovlPlace[oo].verified.end);
+
         } else {
+          assert(ovlPlace[oo].verified.bgn >= ovlPlace[oo].verified.end);
+
           bgnMean += ovlPlace[oo].position.end;
           endMean += ovlPlace[oo].position.bgn;
+
+          op.verified.bgn  = MAX(op.verified.bgn, ovlPlace[oo].verified.bgn);
+          op.verified.end  = MIN(op.verified.end, ovlPlace[oo].verified.end);
         }
 
         numPlace++;
@@ -496,13 +587,12 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
       op.bgnStdDev = sqrt(op.bgnStdDev / numPlace);
       op.endStdDev = sqrt(op.endStdDev / numPlace);
 
-      //op.position.bgn = (op.nReverse > 0) ? UP.hi(il) : UP.lo(il);
-      //op.position.end = (op.nReverse > 0) ? UP.lo(il) : UP.hi(il);
-
-      double allowableStdDev = MAX(2.0, 0.03 * FI->fragmentLength(op.frgID));
-
+      //  Filter out bogus placements.
+      //
       //  This placement is invalid if the std.dev is too high on either end.
       //  This placement is invalid if both nReverse and nForward are more than zero.
+
+      double allowableStdDev = MAX(2.0, 0.03 * FI->fragmentLength(op.frgID));
 
       if        ((op.bgnStdDev > allowableStdDev) ||
                  (op.endStdDev > allowableStdDev)) {

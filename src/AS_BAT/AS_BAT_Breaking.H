@@ -22,61 +22,77 @@
 #ifndef INCLUDE_AS_BAT_BREAKING
 #define INCLUDE_AS_BAT_BREAKING
 
-static const char *rcsid_INCLUDE_AS_BAT_BREAKING = "$Id: AS_BAT_Breaking.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BREAKING = "$Id: AS_BAT_Breaking.H,v 1.2 2011-03-17 05:33:36 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
 
+//  What to do with contained fragments at the split point?
+//
+//  ejectContains -- eject all contains from the unitig, client is expected to
+//  place them again.
+//
+//  keepContains -- contains that are associated with the fragEnd are moved to
+//  the new unitig.  There are five cases:
+//
+//  A #-----------------*
+//  1   ------                           - contained in A
+//  2        -------                     - contained in A, dovetail to B
+//  B          -----------------------
+//  3             ------                 - contained in A, contained in B
+//  4                 -------            - dovetail to A, contained in B
+//  5                       -------      - contained in B
+//
+//  If the break point is at #:
+//    keepContains == true  -- 1, 2, 3 will move with A.
+//    keepContains == false -- 1, 2    will move with A.
+//
+//  If the break point is at *:
+//    keepContains == true  -- 1, 2, 3 will move with A.
+//    keepContains == false -- 1, 2    will move with A.
+//
 
-struct UnitigBreakPoint {
-  FragmentEnd fragEnd;          // frag id and which end to break on
-  SeqInterval fragPos;          // coordinates in unitig (used to get fwd/rev)
-
-  int         fragsBefore;      // number of frags before the break fragment
-  int         fragsAfter;       // number of frags after the break fragment
-
-  FragmentEnd inEnd;            // frag id of the incoming unitig
-
-  int         inSize;           // the size of the incoming unitig
-  int         inFrags;          // the number of fragments in incoming unitig
-
-  UnitigBreakPoint() {
-    fragEnd      = FragmentEnd();
-    fragPos.bgn  = 0;
-    fragPos.end  = 0;
-
-    fragsBefore  = 0;
-    fragsAfter   = 0;
-
-    inEnd        = FragmentEnd();
-    inSize       = 0;
-    inFrags      = 0;
+class breakPoint {
+public:
+  breakPoint() {
+    fragEnd             = FragmentEnd();
+    ejectContains       = false;
+    keepContains        = false;
+    break5p             = false;
+    break3p             = false;
+    rememberLastTig     = false;
+    searchDiscontinuous = false;
   };
 
-  UnitigBreakPoint(uint32 isectFrg, bool isect3p, SeqInterval isectPos,
-                   uint32 frgsBefore, uint32 frgsAfter,
-                   uint32 invaderFrg, bool invader3p,
-                   uint32 invaderTigLen,
-                   uint32 invaderTigFrags) {
-    fragEnd      = FragmentEnd(isectFrg, isect3p);
-    fragPos      = isectPos;
-
-    fragsBefore  = frgsBefore;
-    fragsAfter   = frgsAfter;
-
-    inEnd        = FragmentEnd(invaderFrg, invader3p);
-    inSize       = invaderTigLen;
-    inFrags      = invaderTigFrags;
+  breakPoint(uint32 isectFrg, bool isect3p, bool eject, bool keep) {
+    fragEnd             = FragmentEnd(isectFrg, isect3p);
+    ejectContains       = eject;
+    keepContains        = keep;
+    break5p             = false;
+    break3p             = false;
+    rememberLastTig     = false;
+    searchDiscontinuous = false;
   };
+
+  bool operator<(breakPoint const that) const {
+    return(fragEnd < that.fragEnd);
+  };
+
+public:
+  FragmentEnd fragEnd;
+
+  bool        ejectContains;
+  bool        keepContains;
+
+  bool        break5p;
+  bool        break3p;
+  bool        rememberLastTig;
+  bool        searchDiscontinuous;
 };
 
 
-typedef std::vector<UnitigBreakPoint> UnitigBreakPoints;
-
-void
-filterBreakPoints(Unitig *, UnitigBreakPoints &);
 
 UnitigVector *
-breakUnitigAt(Unitig *, UnitigBreakPoints &);
+breakUnitigAt(Unitig *tig, vector<breakPoint> &breaks);
 
 #endif //  INCLUDE_AS_BAT_BREAKING

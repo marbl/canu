@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.4 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.5 2011-03-17 05:33:36 brianwalenz Exp $";
 
 #include "AS_BAT_OverlapCache.H"
 
@@ -30,10 +30,17 @@ class overlapPlacement {
 public:
   overlapPlacement() {
     frgID                 = 0;
-
+    ovlID                 = 0;
+    
     tigID                 = 0;
     position.bgn          = 0;
     position.end          = 0;
+
+    verified.bgn          = 0;
+    verified.end          = 0;
+
+    bgnStdDev             = 0.0;
+    endStdDev             = 0.0;
 
     clusterID             = 0;
 
@@ -43,15 +50,21 @@ public:
     aligned               = 0;
     covered.bgn           = 0;
     covered.end           = 0;
+
+    frag5p                = FragmentEnd();
+    frag3p                = FragmentEnd();
   };
   ~overlapPlacement() {
   };
 
 public:
   uint32            frgID;      //  ID of the fragment this position is for.
+  uint32            ovlID;      //  ID if the fragment we used to place this frag.
 
   uint32            tigID;      //  Unitig ID of this placement
   SeqInterval       position;   //  Unitig position of this placement
+
+  SeqInterval       verified;   //  Unitig position of this placement, verified by overlaps
 
   double            bgnStdDev;  //  Standard deviation of position.bgn
   double            endStdDev;  //  Standard deviation of position.end
@@ -63,6 +76,9 @@ public:
   double            errors;     //  number of errors in alignments
   uint32            aligned;    //  number of bases in alignments
   SeqInterval       covered;    //  Position of the overlap on the read
+
+  FragmentEnd       frag5p;     //  First unitig fragment that supports this placement
+  FragmentEnd       frag3p;     //  Last unitig fragment that supports this placement
 };
 
 

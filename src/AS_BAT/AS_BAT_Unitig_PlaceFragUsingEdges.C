@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig_PlaceFragUsingEdges.C,v 1.2 2010-12-05 00:05:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig_PlaceFragUsingEdges.C,v 1.3 2011-03-17 05:33:36 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -91,6 +91,7 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     bidx3     = -1;
 
   }
+
   //  Now, just compute the placement based on edges that exist.
 
   if ((bestedge5) && (bidx5 != -1)) {

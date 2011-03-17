@@ -19,166 +19,290 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.3 2011-01-03 03:16:02 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.4 2011-03-17 05:33:36 brianwalenz Exp $";
 
 #include "AS_BAT_Breaking.H"
 
 #include "AS_BAT_BestOverlapGraph.H"
 
-//  The original version was filtering breakpoints.  It was accepting any break point with more than
-//  MIN_BREAK_FRAGS fragments and longer than MIN_BREAK_LENGTH.  The shorter ones in between two
-//  large break points were (I suspect) analyzed to see if many short break points were piling up in
-//  one region.  If so, one was selected and accepted into the list of final break points.
+//  The four cases we must handle:
+//
+//  -------------------------A
+//        --
+//              ---------------------------
+//                  ------
+//                    B----------------------------
+//                        ---
+//                                  ------
+//
+//  When at A:
+//    keepContains == true  -- Remember lastUnitig, and the coordinate of A.
+//                             Any fragment that ends before A is placed in lastUnitig.
+//                             When a fragment begins after A, we can forget lastUnitig.
+//
+//    keepContains == false -- Remember lastUnitig. and the coordinate of A.
+//                             Search forward until the first fragment that starts after A,
+//                             search for any gaps in the layout.  Move all fragments before
+//                             the last gap to lastUnitig.  Gap is defined as being less
+//                             than an overlap of overlap.
+//
+//  When at B:
+//    keepContains == true  -- Do nothing special.
+//
+//    keepContains == false -- Same as "A: keepContains == true".
+//
+//  UGLIES:
+//
+//    1) When A and B are on the same fragment, both breakPoints must have set keepContains
+//       consistently.  This could arise if the fragment is a chimera.  In this case, we definitely
+//       do not want to keep contains.  So, instead of asserting (we'll probably do that, just to
+//       see if this occurs) we'll set keepContains only if ALL breakpoints request it.
+//
+//    2) Rapid fire breakpoints.  When breakpoints closely follow each other -- specificially when
+//       the fragments they break on are overlapping -- the meaning of keepContains becomes horribly
+//       confused.  The algorithm will keep lastTig updated to the last break point seen.  The
+//       picture above (without trying) shows this case.  The tiny fragment second from the end is
+//       contained in both A and B.  It will end up with B if that is keepContains=true, regardless
+//       of what A said.
 
-static const int MIN_BREAK_FRAGS   = 1;
-static const int MIN_BREAK_LENGTH  = 500;
 
+static
+bool
+processBreakpoints(vector<breakPoint>       &breaks,
+                   map<uint32, breakPoint>  &breakMap) {
+  bool ejectContains = false;
 
-void
-filterBreakPoints(Unitig *tig,
-                               UnitigBreakPoints &breaks) {
+  for (uint32 bp=0; bp<breaks.size(); bp++) {
+    uint32  fid = breaks[bp].fragEnd.fragId();
 
-  UnitigBreakPoints  newBreaks;
+    //fprintf(logFile, "found break %u/%c' eject=%d keep=%d\n",
+    //        breaks[bp].fragEnd.fragId(), (breaks[bp].fragEnd.frag3p() ? '3' : '5'),
+    //        breaks[bp].ejectContains, breaks[bp].keepContains);
 
-  for (uint32 i=0; i<breaks.size(); i++)
-    if ((breaks[i].inFrags > MIN_BREAK_FRAGS) &&
-        (breaks[i].inSize  > MIN_BREAK_LENGTH))
-      newBreaks.push_back(breaks[i]);
+    if (breakMap.find(fid) == breakMap.end()) {
+      breakMap[fid] = breaks[bp];
 
-  breaks = newBreaks;
+      ejectContains              |= breaks[bp].ejectContains;
+      breakMap[fid].break3p       = (breaks[bp].fragEnd.frag3p() == true);
+      breakMap[fid].break5p       = (breaks[bp].fragEnd.frag3p() == false);
+
+    } else {
+      ejectContains              |= breaks[bp].ejectContains;
+      breakMap[fid].break3p      |= (breaks[bp].fragEnd.frag3p() == true);
+      breakMap[fid].break5p      |= (breaks[bp].fragEnd.frag3p() == false);
+      breakMap[fid].keepContains &= breaks[bp].keepContains;
+    }
+  }
+
+  return(ejectContains);
 }
+
+
+static
+bool
+isBreakpoint(ufNode &frg,
+             map<uint32, breakPoint> &breakMap,
+             bool &break5p, bool &break3p,
+             bool &rememberLastTig,
+             bool &searchDiscontinuous) {
+
+  if (breakMap.find(frg.ident) == breakMap.end())
+    return(false);
+
+  breakPoint &bp = breakMap[frg.ident];
+
+  assert(bp.fragEnd.fragId() == frg.ident);
+
+  fprintf(logFile, "BREAK %u %d/%d\n",
+          bp.fragEnd.fragId(), bp.break3p, bp.break5p);
+
+  break3p             = bp.break3p;
+  break5p             = bp.break5p;
+  rememberLastTig     = false;
+  searchDiscontinuous = false;
+
+  bool    frgReversed = (frg.position.end < frg.position.bgn);
+  bool    isFarEnd    = false;
+
+  if (((break3p == true) && (frgReversed == false)) ||
+      ((break5p == true) && (frgReversed == true)))
+    isFarEnd = true;
+
+  //  Remember the lastTig if we are case A (isFarEnd == true) and keepContains is true,
+  //  of if we are case B (isFarEnd == false) and keepContains is false.
+  if (isFarEnd == bp.keepContains)
+    rememberLastTig = true;
+
+  //  Do the painful search for disconnects if we are case A and keepContains is false.
+  if ((isFarEnd == true) && (bp.keepContains == false))
+    searchDiscontinuous = true;
+
+  return(true);
+}
+
+
+
 
 
 
 
 UnitigVector *
 breakUnitigAt(Unitig *tig,
-              UnitigBreakPoints &breaks) {
+              vector<breakPoint> &breaks) {
 
   if (breaks.empty())
     return NULL;
 
-  //  Contained fragments provide a huge headache when splitting a unitig.  We just don't know where
-  //  to put them:
-  //
-  //  ------------------------------>
-  //            <------------------------------------
-  //                  --------->
-  //
-  //  If we split at either point, we cannot easily tell if we should keep the contain with the
-  //  forward or with the reverse fragment.
-  //
-  //  To resolve this, we simply do not place contained fragments in a new unitig (and we must
-  //  explicitly remove them from the original unitig).  After all splits are done, we'll go back
-  //  and place the contains again.
+  UnitigVector *newTigs    = new UnitigVector();
 
-  UnitigVector *newTigs   = new UnitigVector();
-  Unitig       *newTig    = NULL;
-  int32         offset    = 0;
-  uint32        bpCur     = 0;  //  Current break point in the breaks list
+  // we cannot predict the number of new unitigs created from the number of break points.  to
+  // prevent infinite splitting loops, we need to count the number of new unitigs we create here,
+  // and return 'no work done' if only one new unitig is created (aka, if we just copied all
+  // fragments from the old unitig to the new unitig)
+
+  Unitig       *lastTig    = NULL;  //  For saving contained frags in the last unitig constructed.
+  int32         lastOffset = 0;
+  int32         lastLength = 0;
+
+  Unitig       *saveTig    = NULL;  //  The last unitig constructed.
+  int32         saveOffset = 0;
+
+  Unitig       *currTig    = NULL;  //  The current unitig being constructed.  Not guaranteed to exist.
+  int32         currOffset = 0;
+
+  uint32        tigsCreated = 0;
+
+  //  Examine the break points.  Merge multiple break points on a single fragment together.  Put the
+  //  break points into a map -- without this, we'd need to make sure the break points are sorted in
+  //  the same order as the fragments in the unitig.
+
+  map<uint32, breakPoint>  breakMap;
+
+  bool ejectContains = processBreakpoints(breaks, breakMap);
 
   for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
     ufNode  frg         = tig->ufpath[fi];
     bool    frgReversed = (frg.position.end < frg.position.bgn);
 
-    bool    break5p     = false;
-    bool    break3p     = false;
+    bool    break5p             = false;
+    bool    break3p             = false;
+    bool    rememberLastTig     = false;
+    bool    searchDiscontinuous = false;
 
-    if (OG->isContained(frg.ident)) {
+    if (ejectContains && OG->isContained(frg.ident)) {
       Unitig::removeFrag(frg.ident);
       continue;
     }
 
-    //  Current fragment is the one we want to break on.  Figure out which ends to break on.
+    //  Current fragment is the one we want to break on.  Figure out which end(s) to break on -- we
+    //  might (stupidly) have requested to break on both ends -- and if we should be remembering
+    //  lastTig.
 
-    if (frg.ident == breaks[bpCur].fragEnd.fragId()) {
-      break3p   = (breaks[bpCur].fragEnd.frag3p() == true);
-      break5p   = (breaks[bpCur].fragEnd.frag3p() == false);
+    if (isBreakpoint(frg,
+                     breakMap,
+                     break5p, break3p,
+                     rememberLastTig,
+                     searchDiscontinuous)) {
+      fprintf(logFile, "NEW BREAK at frag %u 5p=%d 3p=%d remember=%d search=%d\n",
+              frg.ident, break5p, break3p, rememberLastTig, searchDiscontinuous);
 
-      bpCur++;
+      lastTig    = NULL;
+      lastOffset = 0;
+      lastLength = 0;
 
-      while (((bpCur < breaks.size()) &&
-              (frg.ident == breaks[bpCur].fragEnd.fragId()))) {
-        break3p |= (breaks[bpCur].fragEnd.frag3p() == true);
-        break5p |= (breaks[bpCur].fragEnd.frag3p() == false);
-        bpCur++;
+      if ((rememberLastTig) && (saveTig != NULL)) {
+        lastTig    = saveTig;
+        lastOffset = saveOffset;
+        lastLength = saveOffset + saveTig->getLength();
+      }
+
+      //  Should we clear saveTig?  This is always set to the last unitig created.  It is
+      //  possible to get two breakpoints with no unitig creation (break at the high end of one
+      //  fragment, and the low end of the next fragment) in which case we still want to have
+      //  the last unitig...and not NULL...saved.  So, no, don't clear.
+      //
+      //saveTig    = NULL;
+      //saveOffset = 0;
+
+      if (searchDiscontinuous) {
       }
     }
 
-    //  Move this fragment to a new unitig, possibly creating a new one for it, and maybe even
-    //  forgetting about the new unitig after the fragment is added.
 
-    if        (break5p && break3p) {
-      //  Break at both ends, this fragment ends up as a singleton.
+    //  If both break5p and break3p, this fragment is ejected to a singleton.  This is an easy case,
+    //  and we'll get it out of the way.
 
-      newTig = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));  //  always make a new unitig, we put a frag in it now
-      newTigs->push_back(newTig);
-      offset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
+    if ((break5p == true) &&
+        (break3p == true)) {
+      saveTig    = currTig    = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
-      newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      newTigs->push_back(currTig);
+      currTig->addFrag(frg, currOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
 
-      newTig = NULL;
+      currTig = NULL;
 
+      continue;
+    }
 
-    } else if ((break5p && (frgReversed == false)) ||
-               (break3p && (frgReversed == true))) {
-      //  Break at left end, this fragment starts a new unitig.
+    //  If neither break and we're saving contains, add to the last unitig.
 
-      newTig = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));  //  always make a new unitig, we put a frag in it now
-      newTigs->push_back(newTig);
-      offset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
+    if ((break5p == false) &&
+        (break3p == false) &&
+        (lastTig) &&
+        (frg.position.bgn < lastLength) &&
+        (frg.position.end < lastLength)) {
+      lastTig->addFrag(frg, lastOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      continue;
+    }
 
-      newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+    //  If neither break, just add the fragment to the existing unitig.
 
+    if ((break5p == false) &&
+        (break3p == false)) {
+      if (currTig == NULL) {
+        saveTig    = currTig    = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
+        saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
-    } else if ((break5p && (frgReversed == true)) ||
-               (break3p && (frgReversed == false))) {
-      //  Break at right end, this fragment ends the existing unitig (which might not even exist).
-
-      if (newTig == NULL) {
-        newTig = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
-        newTigs->push_back(newTig);
-        offset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
+        newTigs->push_back(currTig);
       }
 
-      newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      currTig->addFrag(frg, currOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      continue;
+    }
 
-      newTig = NULL;
+    //  Breaking at the left end of the fragment.  This fragment starts a new unitig.
 
+    if ((break5p && (frgReversed == false)) ||
+        (break3p && (frgReversed == true))) {
+      saveTig    = currTig    = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
-    } else {
-      //  Don't break, just add to the existing unitig (which might not even exist).
+      newTigs->push_back(currTig);
+      currTig->addFrag(frg, currOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
 
-      if (newTig == NULL) {
-        newTig = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
-        newTigs->push_back(newTig);
-        offset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
+      continue;
+    }
+
+    //  Breaking at the right end of the fragment.  This fragment ends the existing unitig (which
+    //  might not even exist).
+
+    if ((break5p && (frgReversed == true)) ||
+        (break3p && (frgReversed == false))) {
+      if (currTig == NULL) {
+        saveTig    = currTig    = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
+        saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
+
+        newTigs->push_back(currTig);
       }
 
-      newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      currTig->addFrag(frg, currOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+
+      currTig = NULL;
+
+      continue;
     }
   }
-
-
-  //  Bubbles can cause the above to make disconnected unitigs.  In this example, the fragment has
-  //  no containment overlap (higher error than allowed) but is still placed as a contained fragment
-  //  by bubble popping.
-  //
-  //  A-------------------------
-  //           B---------
-  //  intersect^           C-------------------
-  //
-  //
-  //  This pattern is denoting (possibly) that we transitioned from unique sequence to repeat
-  //  sequence.  This argues that we should eject it to a singleton, hoping that we'll later put
-  //  in in the repeat unitig.
-  //
-  //  The algorithm will create a new unitig starting with B, and put C into there too.  The gap
-  //  causes consensus to fail.  To resolve, we search for and split such unitigs.
-
-  //  Finally, add back in contains.
-
-  //  Both of those are done in the main loop, in bogart.C, after all splitting is done.
 
   return(newTigs);
 }

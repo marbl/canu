@@ -3,13 +3,13 @@
 use strict;
 
 my $prefix;
-my $FILE     = "test.004.buildUnitigs";
-my $REF      = "../../AE015924.fasta";
+my $FILE     = undef;
+my $REF      = undef;
 my $withSGE  = 0;
 my $withPart = 0;
 
 if (scalar(@ARGV) == 0) {
-    die "usage: $0 [-sge] [-partition] PREFIX.tigStore REFERENCE.FASTA\n";
+    die "usage: $0 [-sge] [-partition] PREFIX.tigStore REFERENCE.fasta\n";
 }
 
 while (scalar(@ARGV) > 0) {
@@ -27,6 +27,9 @@ while (scalar(@ARGV) > 0) {
 
     shift @ARGV;
 }
+
+die "Must supply 'PREFIX.tigStore' as first non-option argument.\n" if (!defined($FILE));
+die "Must supply 'REFERENCE.fasta' as second non-option argument.\n" if (!defined($REF));
 
 if ($FILE =~ m/^(.*).tigStore/) {
     $FILE = $1;

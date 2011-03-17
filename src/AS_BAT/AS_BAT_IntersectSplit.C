@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.4 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.5 2011-03-17 05:33:36 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -28,6 +28,19 @@ static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.4 2011-02-15 08:10:
 
 #include "AS_BAT_IntersectSplit.H"
 
+
+//  The original version was filtering breakpoints.  It was accepting any break point with more than
+//  MIN_BREAK_FRAGS fragments and longer than MIN_BREAK_LENGTH.  The shorter ones in between two
+//  large break points were (I suspect) analyzed to see if many short break points were piling up in
+//  one region.  If so, one was selected and accepted into the list of final break points.
+//
+//  This filtering was implemented as the first step in breakUnitigAt().  This turned
+//  a (supposedly) general purpose unitig breaker into very special case.  And added a ton
+//  of complexity to the UnitigBreakPoint structure -- it needed to keep all the info needed
+//  for filtering.
+
+static const int MIN_BREAK_FRAGS   = 1;
+static const int MIN_BREAK_LENGTH  = 500;
 
 
 
@@ -225,7 +238,7 @@ breakUnitigs(UnitigVector &unitigs,
     if (tig == NULL)
       continue;
 
-    UnitigBreakPoints   breaks;
+    vector<breakPoint>   breaks;
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode             *frg   = &tig->ufpath[fi];
@@ -259,18 +272,16 @@ breakUnitigs(UnitigVector &unitigs,
           continue;
         }
 
-        //  
-            
-        if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
-          fprintf(logFile, "unitig %d frag %d end %c' into unitig %d frag %d end %c'\n",
-                  inv->id(), isect->invadFrg, isect->invad3p ? '3' : '5',
-                  tig->id(), isect->isectFrg, isect->isect3p ? '3' : '5');
+        //  Keep only significant intersections
 
-        breaks.push_back(UnitigBreakPoint(isect->isectFrg, isect->isect3p, frg->position,
-                                          fi, tig->ufpath.size() - fi - 1,
-                                          isect->invadFrg, isect->invad3p,
-                                          inv->getLength(),
-                                          inv->ufpath.size()));
+        if ((inv->getLength()   > MIN_BREAK_LENGTH) &&
+            (inv->ufpath.size() > MIN_BREAK_FRAGS)) {
+          if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
+            fprintf(logFile, "unitig %d frag %d end %c' into unitig %d frag %d end %c'\n",
+                    inv->id(), isect->invadFrg, isect->invad3p ? '3' : '5',
+                    tig->id(), isect->isectFrg, isect->isect3p ? '3' : '5');
+          breaks.push_back(breakPoint(isect->isectFrg, isect->isect3p, true, false));
+        }
       }  //  Over all incoming fragments
 
       //  If this is the last fragment, terminate the break point list with a 'fakeEnd' (in AS_BAT_Breaking.cc) break point
@@ -278,44 +289,42 @@ breakUnitigs(UnitigVector &unitigs,
 
       if ((fi+1 == tig->ufpath.size()) &&
           (breaks.size() > 0)) {
-        breaks.push_back(UnitigBreakPoint(frg->ident, (frg->position.bgn < frg->position.end), frg->position,
-                                          fi, 0,
-                                          0, false,
-                                          std::numeric_limits<int>::max(),
-                                          0));
+        breaks.push_back(breakPoint(frg->ident, (frg->position.bgn < frg->position.end), true, false));
       }
     }  //  Over all fragments in the unitig
 
-    //  If there are break points in the list, filter and break.
 
-    if (breaks.size() > 0) {
-      filterBreakPoints(tig, breaks);
+    if (breaks.size() == 0)
+      continue;
 
-      //  Report where breaks occur.  'breaks' is a list, not a vector.
-      if (logFileFlagSet(LOG_INTERSECTION_BREAKING) ||
-          logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
-        for (uint32 i=0; i<breaks.size(); i++)
-          fprintf(logFile, "BREAK unitig %d at position %d,%d from inSize %d inFrags %d.\n",
-                  tig->id(),
-                  breaks[i].fragPos.bgn,
-                  breaks[i].fragPos.end,
-                  breaks[i].inSize,
-                  breaks[i].inFrags);
+    //  Report where breaks occur.  'breaks' is a list, not a vector.
+#if 0
+    //  We've lost the fields in breaks[i] -- but the reports above aren't updated yet.
+    if (logFileFlagSet(LOG_INTERSECTION_BREAKING) ||
+        logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
+      for (uint32 i=0; i<breaks.size(); i++)
+        fprintf(logFile, "BREAK unitig %d at position %d,%d from inSize %d inFrags %d.\n",
+                tig->id(),
+                breaks[i].fragPos.bgn,
+                breaks[i].fragPos.end,
+                breaks[i].inSize,
+                breaks[i].inFrags);
+#endif
 
-      //  Actually do the breaking.
-      if (enableIntersectionBreaking) {
-        UnitigVector* newUs = breakUnitigAt(tig, breaks);
+    //  Actually do the breaking.
+    if (enableIntersectionBreaking) {
+      UnitigVector* newUs = breakUnitigAt(tig, breaks);
 
-        if (newUs != NULL) {
-          delete tig;
-          unitigs[ti] = NULL;
-          unitigs.insert(unitigs.end(), newUs->begin(), newUs->end());
-        }
+      if (newUs != NULL) {
+        unitigs[tig->id()] = NULL;
+        delete tig;
 
-        delete newUs;
+        unitigs.insert(unitigs.end(), newUs->begin(), newUs->end());
       }
 
-      breaks.clear();
+      delete newUs;
     }
+
+    breaks.clear();
   }  //  Over all unitigs
 }
