@@ -3475,9 +3475,9 @@ sub checkOverlap {
         } elsif (getGlobal("obtOverlapper") eq "mer") {
             checkMerOverlapper($isTrim);
         } elsif (getGlobal("obtOverlapper") eq "umd") {
-            caFailure("checkOverlap() wanted to check umd overlapper for obt?\n");
+            caFailure("checkOverlap() wanted to check umd overlapper for obt?\n", undef);
         } else {
-            caFailure("checkOverlap() unknown obt overlapper?\n");
+            caFailure("checkOverlap() unknown obt overlapper?\n", undef);
         }
     } else {
         return if (-d "$wrk/$asm.ovlStore");
@@ -3488,7 +3488,7 @@ sub checkOverlap {
         } elsif (getGlobal("ovlOverlapper") eq "umd") {
             #  Nop.
         } else {
-            caFailure("checkOverlap() unknown ovl overlapper?\n");
+            caFailure("checkOverlap() unknown ovl overlapper?\n", undef);
         }
     }
 }
