@@ -9,8 +9,8 @@ LIBUTL/       :=$(realpath $/libutl/)/
 
 $(eval $(call Include,$/ESTmapper/))
 
-#$(eval $(call Include,$/atac-driver/))
-#$(eval $(call Include,$/seatac/))
+$(eval $(call Include,$/atac-driver/))
+$(eval $(call Include,$/seatac/))
 
 $(eval $(call Include,$/leaff/))
 $(eval $(call Include,$/meryl/))
