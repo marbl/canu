@@ -10,15 +10,13 @@
 
 int
 main(int argc, char **argv) {
-  bool     beVerbose    = false;
   u32bit   genomeLength = 0;
 
   int arg = 1;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-v", 2) == 0) {
-      beVerbose = true;
-    } else if (strncmp(argv[arg], "-l", 2) == 0) {
-      genomeLength = strtou32bit(argv[arg], 0L);
+    if (strncmp(argv[arg], "-l", 2) == 0) {
+      genomeLength = strtou32bit(argv[++arg], 0L);
+
     } else {
       fprintf(stderr, "Unknown arg '%s'\n", argv[arg]);
     }
