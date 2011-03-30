@@ -221,7 +221,11 @@ merylArgs::clear(void) {
   numMersEstimated   = 0;
   numMersActual      = 0;
 
+  numBasesActual     = 0;
+
   mersPerBatch       = 0;
+  basesPerBatch      = 0;
+
   numBuckets         = 0;
   numBuckets_log2    = 0;
   merDataWidth       = 0;

@@ -40,15 +40,16 @@ merStream::rebuild(void) {
 
 
 void
-merStream::setRange(u64bit beg, u64bit end) {
+merStream::setBaseRange(u64bit beg, u64bit end) {
 
   assert(beg < end);
 
-  //  We can't tell the seqStore when to stop; while we could compute
-  //  the span of a spaced seed, we cannot compute it for a compressed
-  //  seed.  We need to stop iterating when the beginning of the mer
-  //  reaches the requested end.
-  //
+  //fprintf(stderr, "merStream::setBaseRange()-- from "u64bitFMT" to "u64bitFMT".\n", beg, end);
+
+  //  We can't tell the seqStore when to stop; while we could compute the span of a spaced seed, we
+  //  cannot compute it for a compressed seed.  We need to stop iterating when the beginning of the
+  //  mer reaches the requested end.
+
   _ss->setRange(beg, ~u64bitZERO);
 
   _beg = beg;
@@ -65,9 +66,9 @@ merStream::approximateNumberOfMers(void) {
   u64bit  approx = _end - _beg;
   u64bit  k      = _kb->merSize();
 
-  //  If we don't know the range, sum all the sequence lengths,
-  //  otherwise, it's just the length from begin to end.
-  //
+  //  If we don't know the range, sum all the sequence lengths, otherwise, it's just the length from
+  //  begin to end.
+
   if (_end == ~u64bitZERO) {
     approx = u64bitZERO;
 

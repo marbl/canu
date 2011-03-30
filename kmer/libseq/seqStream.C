@@ -19,8 +19,8 @@ seqStream::seqStream(const char *filename) {
   _idxLen            = _file->getNumberOfSequences();
   _idx               = new seqStreamIndex [_idxLen + 1];
 
-  fprintf(stderr, "seqStream::seqStream()--  Allocating "u64bitFMT"MB for seqStreamIndex on "u64bitFMT" sequences.\n",
-          _idxLen * sizeof(seqStreamIndex) / 1024 / 1024, _idxLen);
+  //fprintf(stderr, "seqStream::seqStream()--  Allocating "u64bitFMT"MB for seqStreamIndex on "u64bitFMT" sequences.\n",
+  //        _idxLen * sizeof(seqStreamIndex) / 1024 / 1024, _idxLen);
 
   _seqNumOfPos       = 0L;
 
@@ -144,7 +144,7 @@ seqStream::tradeSpaceForTime(void) {
   u32bit  i = 0;
   u32bit  s = 0;
 
-  fprintf(stderr, "Allocating "u32bitFMT" u32bits for seqNumOfPos.\n", _lengthOfSequences);
+  //fprintf(stderr, "Allocating "u32bitFMT" u32bits for seqNumOfPos.\n", _lengthOfSequences);
 
   _seqNumOfPos = new u32bit [_lengthOfSequences];
 

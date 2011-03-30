@@ -57,7 +57,11 @@ public:
   u64bit            numMersEstimated;
   u64bit            numMersActual;
 
+  u64bit            numBasesActual;
+
   u64bit            mersPerBatch;
+  u64bit            basesPerBatch;
+
   u64bit            numBuckets;
   u32bit            numBuckets_log2;
   u32bit            merDataWidth;

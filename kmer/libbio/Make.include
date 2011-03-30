@@ -10,6 +10,7 @@ src    := $/alphabet.c \
           $/bio++.H \
           $/bio.h \
           $/halign.c \
+          $/kmer.C \
           $/kmer.H \
           $/kmerhuge.H \
           $/kmeriface.H \

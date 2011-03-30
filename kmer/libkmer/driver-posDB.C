@@ -258,7 +258,7 @@ main(int argc, char **argv) {
   }
 
   if ((merBegin > 0) || (merEnd < numMers))
-    MS->setRange(merBegin, merEnd);
+    MS->setBaseRange(merBegin, merEnd);
 
   existDB *maskDB = 0L;
   if (maskF) {

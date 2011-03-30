@@ -24,6 +24,10 @@ main(int argc, char **argv) {
   u32bit   merSize        = 22;
   u32bit   merCompression = 1;
 
+  bool     doForward      = true;
+  bool     doReverse      = false;
+  bool     doCanonical    = false;
+
   speedCounter        *C = 0L;
   merStream           *M = 0L;
   merylStreamWriter   *W = 0L;
@@ -39,12 +43,36 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-i") == 0) {
       inName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-o") == 0) {
       otName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      merSize = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      doForward   = true;
+      doReverse   = false;
+      doCanonical = false;
+
+    } else if (strcmp(argv[arg], "-r") == 0) {
+      doForward   = false;
+      doReverse   = true;
+      doCanonical = false;
+
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      doForward   = false;
+      doReverse   = false;
+      doCanonical = true;
+
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      merCompression = atoi(argv[++arg]);
+
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
     }
+
     arg++;
   }
   if (inName == 0L) {
@@ -82,13 +110,16 @@ main(int argc, char **argv) {
                     true, true);
   //M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
 
-  //  See meryl/build.C:415 if you ever want to do something other than canonical
-
   while (M->nextMer()) {
-    if (M->theFMer() <= M->theRMer())
+    if (doForward)
       theMers[theMersLen++] = M->theFMer();
-    else
+
+    if (doReverse)
       theMers[theMersLen++] = M->theRMer();
+
+    if (doCanonical)
+      theMers[theMersLen++] = (M->theFMer() <= M->theRMer()) ? M->theFMer() : M->theRMer();
+
     C->tick();
   }
 

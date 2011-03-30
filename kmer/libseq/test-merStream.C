@@ -187,7 +187,7 @@ testMerStream(kMerBuilder *KB, u32bit numSeq, char sep, u32bit sepLen) {
 
     //fprintf(stderr, "subsets - "u32bitFMT"-"u32bitFMT"\n", beg, end);
 
-    MS->setRange(beg, end);
+    MS->setBaseRange(beg, end);
 
     err += testMerStreamOperation(MS, beg, end, sepLen);
     MS->rewind();

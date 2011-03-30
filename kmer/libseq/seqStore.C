@@ -39,8 +39,8 @@ seqStore::seqStore() {
 
 
 seqStore::~seqStore() {
-  if ((_filename) && (_filename[0] != 0))
-    fprintf(stderr, "Closing seqStore '%s'\n", _filename);
+  //if ((_filename) && (_filename[0] != 0))
+  //  fprintf(stderr, "Closing seqStore '%s'\n", _filename);
   delete    _bpf;
   delete [] _index;
   delete [] _block;
@@ -317,9 +317,9 @@ seqStore::loadIndex(void) {
 
   fread(&_header,   sizeof(seqStoreHeader), 1, F);
 
-  fprintf(stderr, "seqStore::seqStore()--  Allocating space for "u32bitFMT" sequences ("u64bitFMT"MB)\n", _header._numberOfSequences, _header._numberOfSequences * sizeof(seqStoreIndex) / 1024 / 1024);
-  fprintf(stderr, "seqStore::seqStore()--  Allocating space for "u32bitFMT" blocks    ("u64bitFMT"MB)\n", _header._numberOfBlocks,    _header._numberOfBlocks    * sizeof(seqStoreBlock) / 1024 / 1024);
-  fprintf(stderr, "seqStore::seqStore()--  Allocating space for "u32bitFMT" labels    ("u64bitFMT"MB)\n", _header._namesLength,       _header._namesLength       * sizeof(char)          / 1024 / 1024);
+  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "u32bitFMT" sequences ("u64bitFMT"MB)\n", _header._numberOfSequences, _header._numberOfSequences * sizeof(seqStoreIndex) / 1024 / 1024);
+  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "u32bitFMT" blocks    ("u64bitFMT"MB)\n", _header._numberOfBlocks,    _header._numberOfBlocks    * sizeof(seqStoreBlock) / 1024 / 1024);
+  //fprintf(stderr, "seqStore::seqStore()--  Allocating space for "u32bitFMT" labels    ("u64bitFMT"MB)\n", _header._namesLength,       _header._namesLength       * sizeof(char)          / 1024 / 1024);
 
   _index = new seqStoreIndex [_header._numberOfSequences];
   _block = new seqStoreBlock [_header._numberOfBlocks];
@@ -450,12 +450,14 @@ constructSeqStore(char *filename, seqCache *inputseq) {
       INDX[nSequences]._seqLength   = sic->sequenceLength();
       INDX[nSequences]._block       = BLOKlen;
 
+#if 0
       fprintf(stderr, "ADD SEQUENCE hdr pos=%u len=%u seq pos=%u len=%u blok=%u\n",
               INDX[nSequences]._hdrPosition,
               INDX[nSequences]._hdrLength,
               INDX[nSequences]._seqPosition,
               INDX[nSequences]._seqLength,
               INDX[nSequences]._block);              
+#endif
 
       if (sic->sequenceLength() > SEQSTOREBLOCK_MAXPOS)
         fprintf(stderr, "constructSeqStore()-- sequence %s too long, must be shorter than %llu Gbp.\n",

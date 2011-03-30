@@ -231,11 +231,15 @@ prepareBatch(merylArgs *args) {
   }
 
   {
-    merStream *merstr = new merStream(new kMerBuilder(args->merSize),
-                                      new seqStream(args->inputFile),
-                                      true, true);
+    seqStream *seqstr = new seqStream(args->inputFile);
 
-    args->numMersActual = merstr->approximateNumberOfMers() + 1;
+    args->numBasesActual = 0;
+    for (u32bit i=0; i<seqstr->numberOfSequences(); i++)
+      args->numBasesActual += seqstr->lengthOf(i);
+
+    merStream *merstr = new merStream(new kMerBuilder(args->merSize), seqstr, true, true);
+
+    args->numMersActual  = merstr->approximateNumberOfMers() + 1;
 
     delete merstr;
   }
@@ -281,6 +285,10 @@ prepareBatch(merylArgs *args) {
       fprintf(stderr, "Have NO LIMITS!: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
   }
 
+  args->basesPerBatch = (u64bit)ceil((double)args->numBasesActual / (double)args->segmentLimit);
+  if (args->beVerbose)
+    fprintf(stderr, "basesPerBatch = "u64bitFMT"\n", args->basesPerBatch);
+
   //  Choose the optimal number of buckets to reduce memory usage.
   //  Yes, this is already done in estimateNumMersInMemorySize() (but
   //  not saved) and we need to do it for the other cases anyway.
@@ -291,8 +299,8 @@ prepareBatch(merylArgs *args) {
   //  second mer is at position 1, and the end of the second mer is at
   //  position 2.
   //
-  args->bucketPointerWidth = logBaseTwo64(args->mersPerBatch + 1);
-  args->numBuckets_log2    = optimalNumberOfBuckets(args->merSize, args->mersPerBatch, args->positionsEnabled);
+  args->bucketPointerWidth = logBaseTwo64(args->basesPerBatch + 1);
+  args->numBuckets_log2    = optimalNumberOfBuckets(args->merSize, args->basesPerBatch, args->positionsEnabled);
   args->numBuckets         = (u64bitONE << args->numBuckets_log2);
   args->merDataWidth       = args->merSize * 2 - args->numBuckets_log2;
   //args->bucketPointerMask  = u64bitMASK(args->numBuckets_log2);
@@ -301,6 +309,7 @@ prepareBatch(merylArgs *args) {
   if (args->merDataWidth > SORTED_LIST_WIDTH * 64) {
     fprintf(stderr, "  numMersActual      = "u64bitFMT"\n", args->numMersActual);
     fprintf(stderr, "  mersPerBatch       = "u64bitFMT"\n", args->mersPerBatch);
+    fprintf(stderr, "  basesPerBatch      = "u64bitFMT"\n", args->basesPerBatch);
     fprintf(stderr, "  numBuckets         = "u64bitFMT" ("u32bitFMT" bits)\n", args->numBuckets, args->numBuckets_log2);
     fprintf(stderr, "  bucketPointerWidth = "u32bitFMT"\n", args->bucketPointerWidth);
     fprintf(stderr, "  merDataWidth       = "u32bitFMT"\n", args->merDataWidth);
@@ -317,6 +326,7 @@ prepareBatch(merylArgs *args) {
               args->segmentLimit);
     fprintf(stderr, "  numMersActual      = "u64bitFMT"\n", args->numMersActual);
     fprintf(stderr, "  mersPerBatch       = "u64bitFMT"\n", args->mersPerBatch);
+    fprintf(stderr, "  basesPerBatch      = "u64bitFMT"\n", args->basesPerBatch);
     fprintf(stderr, "  numBuckets         = "u64bitFMT" ("u32bitFMT" bits)\n", args->numBuckets, args->numBuckets_log2);
     fprintf(stderr, "  bucketPointerWidth = "u32bitFMT"\n", args->bucketPointerWidth);
     fprintf(stderr, "  merDataWidth       = "u32bitFMT"\n", args->merDataWidth);
@@ -366,18 +376,18 @@ runSegment(merylArgs *args, u64bit segment) {
   //
   if (args->beVerbose)
     fprintf(stderr, " Allocating "u64bitFMT"MB for mer storage ("u32bitFMT" bits wide).\n",
-            (args->mersPerBatch * args->merDataWidth + 64) >> 23, args->merDataWidth);
+            (args->basesPerBatch * args->merDataWidth + 64) >> 23, args->merDataWidth);
 
   //  Mer storage - if mers are bigger than 32, we allocate full
   //  words.  The last allocation is always a bitPacked array.
 
   for (u64bit mword=0, width=args->merDataWidth; width > 0; ) {
     if (width >= 64) {
-      merDataArray[mword] = new u64bit [ args->mersPerBatch + 1 ];
+      merDataArray[mword] = new u64bit [ args->basesPerBatch + 1 ];
       width -= 64;
       mword++;
     } else {
-      merDataArray[mword] = new u64bit [ (args->mersPerBatch * width + 64) >> 6 ];
+      merDataArray[mword] = new u64bit [ (args->basesPerBatch * width + 64) >> 6 ];
       width  = 0;
     }
   }
@@ -385,8 +395,8 @@ runSegment(merylArgs *args, u64bit segment) {
   if (args->positionsEnabled) {
     if (args->beVerbose)
       fprintf(stderr, " Allocating "u64bitFMT"MB for mer position storage.\n",
-              (args->mersPerBatch * 32 + 32) >> 23);
-    merPosnArray = new u32bit [ args->mersPerBatch + 1 ];
+              (args->basesPerBatch * 32 + 32) >> 23);
+    merPosnArray = new u32bit [ args->basesPerBatch + 1 ];
   }
 
   if (args->beVerbose)
@@ -404,16 +414,19 @@ runSegment(merylArgs *args, u64bit segment) {
 
   //  Position the mer stream at the start of this segments' mers.
   //  The last segment goes until the stream runs out of mers,
-  //  everybody else does args->mersPerBatch mers.
+  //  everybody else does args->basesPerBatch mers.
 
   C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
   M = new merStream(new kMerBuilder(args->merSize, args->merComp),
                     new seqStream(args->inputFile),
                     true, true);
-  M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
+  M->setBaseRange(args->basesPerBatch * segment, args->basesPerBatch * segment + args->basesPerBatch);
+
+  char mstring[256];
 
   if (args->doForward) {
     while (M->nextMer()) {
+      //fprintf(stderr, "FMER %s\n", M->theFMer().merToString(mstring));
       bucketSizes[ args->hash(M->theFMer()) ]++;
       C->tick();
     }
@@ -421,6 +434,7 @@ runSegment(merylArgs *args, u64bit segment) {
 
   if (args->doReverse) {
     while (M->nextMer()) {
+      //fprintf(stderr, "RMER %s\n", M->theRMer().merToString(mstring));
       bucketSizes[ args->hash(M->theRMer()) ]++;
       C->tick();
     }
@@ -428,10 +442,13 @@ runSegment(merylArgs *args, u64bit segment) {
 
   if (args->doCanonical) {
     while (M->nextMer()) {
-      if (M->theFMer() <= M->theRMer())
+      if (M->theFMer() <= M->theRMer()) {
+        //fprintf(stderr, "FMER %s\n", M->theFMer().merToString(mstring));
         bucketSizes[ args->hash(M->theFMer()) ]++;
-      else
+      } else {
+        //fprintf(stderr, "RMER %s\n", M->theRMer().merToString(mstring));
         bucketSizes[ args->hash(M->theRMer()) ]++;
+      }
       C->tick();
     }
   }
@@ -478,7 +495,7 @@ runSegment(merylArgs *args, u64bit segment) {
   M = new merStream(new kMerBuilder(args->merSize, args->merComp),
                     new seqStream(args->inputFile),
                     true, true);
-  M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
+  M->setBaseRange(args->basesPerBatch * segment, args->basesPerBatch * segment + args->basesPerBatch);
 
   while (M->nextMer()) {
 

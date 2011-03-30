@@ -179,7 +179,7 @@ doSearch(searcherState       *state,
                                                    new seqStream(GENseq->sequence(), GENseq->sequenceLength()),
                                                    false, true);
 
-      MS->setRange(GENlo, GENhi);
+      MS->setBaseRange(GENlo, GENhi);
 
       positionDB           *PS     = new positionDB(MS, config._KBmerSize, 0, 0L, 0L, 0L, 0, 0, 0, 0, false);
       hitMatrix            *HM     = new hitMatrix(qry->seq->sequenceLength(),
