@@ -128,8 +128,7 @@ helpAnalysis(char *program) {
   fprintf(stderr, "\n");
   fprintf(stderr, "   --segment prefix n a.fasta\n");
   fprintf(stderr, "                Splits the sequences into n files, prefix-###.fasta.\n");
-  fprintf(stderr, "                Sequences are not reordered; the first n sequences are in\n");
-  fprintf(stderr, "                the first file, the next n in the second file, etc.\n");
+  fprintf(stderr, "                Sequences are not reordered.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "   --gccontent a.fasta\n");
   fprintf(stderr, "                Reports the GC content over a sliding window of\n");
