@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.12 2010-09-03 20:36:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.13 2011-03-31 15:23:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,38 +186,46 @@ AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap) {
 
 
 
-int
-AS_OVS_convertMERdumpToOVSoverlap(char *line, OVSoverlap *olap) {
-  char *ptrs[16] = {0};
-  int   items    = stringSplit(line, ptrs, 16);
 
-  if (items == 9) {
-    olap->a_iid  = atoi(ptrs[0]);
-    olap->b_iid  = atoi(ptrs[1]);
 
-    olap->dat.mer.palindrome         = (ptrs[2][0] == 'p');
-    olap->dat.mer.fwd                = (ptrs[2][0] == 'f');
-    olap->dat.mer.compression_length = atoi(ptrs[3]);
-    olap->dat.mer.a_pos              = atoi(ptrs[4]);
-    olap->dat.mer.b_pos              = atoi(ptrs[5]);
-    olap->dat.mer.k_count            = atoi(ptrs[6]);
-    olap->dat.mer.k_len              = atoi(ptrs[7]);
-    olap->dat.mer.type               = AS_OVS_TYPE_OBT;
-
-  } else {
-    fprintf(stderr, "AS_OVS_convertMERdumpToOVSoverlap()-- invalid line (%d items):", items);
-    for (uint32 i=0; i<items; i++)
-      fprintf(stderr, " %s", ptrs[i]);
-    fprintf(stderr, "\n");
-
-    return(false);
+char *
+AS_OVS_toString(char *outstr, OVSoverlap &olap) {
+  
+  switch (olap.dat.ovl.type) {
+    case AS_OVS_TYPE_OVL:
+      sprintf(outstr, "%8d %8d  %c  %5"F_S64P" %5"F_S64P"  %4.2f  %4.2f\n",
+              olap.a_iid,
+              olap.b_iid,
+              olap.dat.ovl.flipped ? 'I' : 'N',
+              olap.dat.ovl.a_hang,
+              olap.dat.ovl.b_hang,
+              AS_OVS_decodeQuality(olap.dat.ovl.orig_erate) * 100.0,
+              AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100.0);
+      break;
+    case AS_OVS_TYPE_OBT:
+      sprintf(outstr, "%7d %7d  %c  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"  %5.2f\n",
+              olap.a_iid, olap.b_iid,
+              olap.dat.obt.fwd ? 'f' : 'r',
+              olap.dat.obt.a_beg,
+              olap.dat.obt.a_end,
+              olap.dat.obt.b_beg,
+              (olap.dat.obt.b_end_hi << 9) | (olap.dat.obt.b_end_lo),
+              AS_OVS_decodeQuality(olap.dat.obt.erate) * 100.0);
+      break;
+    case AS_OVS_TYPE_MER:
+      sprintf(outstr, "%7d %7d  %c  "F_U64"  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"\n",
+              olap.a_iid, olap.b_iid,
+              olap.dat.mer.palindrome ? 'p' : (olap.dat.mer.fwd ? 'f' : 'r'),
+              olap.dat.mer.compression_length,
+              olap.dat.mer.a_pos,
+              olap.dat.mer.b_pos,
+              olap.dat.mer.k_count,
+              olap.dat.mer.k_len);
+      break;
+    case AS_OVS_TYPE_UNS:
+    default:
+      break;
   }
 
-  assert(olap->dat.mer.a_pos   == atoi(ptrs[5]));
-  assert(olap->dat.mer.b_pos   == atoi(ptrs[6]));
-  assert(olap->dat.mer.k_count == atoi(ptrs[7]));
-  assert(olap->dat.mer.k_len   == atoi(ptrs[8]));
-
-  return(true);
+  return(outstr);
 }
-

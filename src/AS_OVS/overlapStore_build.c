@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.34 2011-01-03 01:21:43 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.35 2011-03-31 15:23:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,9 +42,147 @@ static const char *rcsid = "$Id: overlapStore_build.c,v 1.34 2011-01-03 01:21:43
 
 #include "overlapStore.h"
 
+#include <math.h>
+
 #include <vector>
 
 using namespace std;
+
+static
+uint64
+computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, uint32 fileListLen, char **fileList) {
+  uint64  numOverlaps = 0;
+
+  if (fileLimit > 0) {
+    uint64  iidPerBucket = (uint64)ceil((double)maxIID / (double)fileLimit);
+
+    fprintf(stderr, "Explicit bucket count supplied, memory sizing disabled.  I'll put "F_U64" IIDs into each of "F_U32" buckets.\n",
+            iidPerBucket, fileLimit);
+    return(iidPerBucket);
+  }
+
+  if (fileList[0][0] == '-') {
+    fileLimit = sysconf(_SC_OPEN_MAX) - 16;
+    uint64  iidPerBucket = (uint64)ceil((double)maxIID / (double)fileLimit);
+
+    fprintf(stderr, "Reading overlaps from stdin, memory sizing disabled.  I'll put "F_U64" IIDs into each of "F_U32" buckets.\n",
+            iidPerBucket, fileLimit);
+    return(iidPerBucket);
+  }
+
+  fprintf(stderr, "Scanning overlap files to count the number of overlaps.\n");
+
+  for (uint32 i=0; i<fileListLen; i++) {
+    uint64  no = AS_UTL_sizeOfFile(fileList[i]);
+    if (no == 0)
+      fprintf(stderr, "WARNING:  No overlaps found (or file not found) in '%s'.\n", fileList[i]);
+
+    numOverlaps += 2 * no / sizeof(OVSoverlap);
+  }
+
+  fprintf(stderr, "Found %.3f million overlaps.\n", numOverlaps / 1000000.0);
+  assert(numOverlaps > 0);
+
+  //  Why the +1 below?  Consider the case when the number of overlaps is less than the number of
+  //  fragments.  This value is used to figure out how many IIDs we can fit into a single bucket,
+  //  and making it too large means we'll get maybe one more bucket and the buckets will be smaller.
+  //  Yeah, we probably could have just used ceil.
+  //
+  double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(OVSoverlap);
+  double  overlapsPerIID      = (double)numOverlaps / (double)maxIID;
+
+  uint64  iidPerBucket        = (uint64)(overlapsPerBucket / overlapsPerIID) + 1;
+
+  fileLimit = maxIID / iidPerBucket + 1;
+
+  fprintf(stderr, "Memory limit "F_U64"MB upplied.  I'll put "F_U64" IIDs (%.3f million overlaps) into each of "F_U32" buckets.\n",
+          numOverlaps / 1000000.0,
+          memoryLimit / (uint64)1048576,
+          iidPerBucket,
+          overlapsPerBucket / 1000000.0,
+          fileLimit);
+
+  return(iidPerBucket);
+}
+
+
+
+
+static
+void
+markLoad(OverlapStore *storeFile, uint32 maxIID, char *&skipFragment, uint32 *&iidToLib) {
+  gkStream    *gks = new gkStream(storeFile->gkp, 0, 0, GKFRAGMENT_INF);
+  gkFragment   fr;
+
+  fprintf(stderr, "Reading gatekeeper to build a map from fragment ID to library ID.\n");
+
+  skipFragment = new char [maxIID];
+  iidToLib     = new uint32 [maxIID];
+
+  memset(skipFragment, 0, sizeof(char)   * maxIID);
+  memset(iidToLib,     0, sizeof(uint32) * maxIID);
+
+  while (gks->next(&fr))
+    iidToLib[fr.gkFragment_getReadIID()] = fr.gkFragment_getLibraryIID();
+
+  delete gks;
+}
+
+
+static
+void
+markOBT(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
+  uint64  numMarked = 0;
+
+  if (skipFragment == NULL)
+    return;
+
+  fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
+
+  for (uint64 iid=0; iid<maxIID; iid++) {
+    gkLibrary *L = storeFile->gkp->gkStore_getLibrary(iidToLib[iid]);
+
+    if (L == NULL)
+      continue;
+
+    if (L->doNotOverlapTrim == 1) {
+      numMarked++;
+      skipFragment[iid] = true;
+    }
+  }
+
+  fprintf(stderr, "Marked %lu fragments.\n", numMarked);
+}
+
+
+static
+void
+markDUP(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
+  uint64  numMarked = 0;
+
+  if (skipFragment == NULL)
+    return;
+
+  fprintf(stderr, "Marking fragments to skip deduplication.\n");
+
+  for (uint64 iid=0; iid<maxIID; iid++) {
+    gkLibrary *L = storeFile->gkp->gkStore_getLibrary(iidToLib[iid]);
+
+    if (L == NULL)
+      continue;
+
+    if (L->doRemoveDuplicateReads == 0) {
+      numMarked++;
+      skipFragment[iid] = true;
+    }
+  }
+
+  fprintf(stderr, "Marked %lu fragments.\n", numMarked);
+}
+
+
+
+
 
 int
 OVSoverlap_sort(const void *a, const void *b) {
@@ -60,6 +198,7 @@ OVSoverlap_sort(const void *a, const void *b) {
 }
 
 
+static
 void
 writeToDumpFile(OVSoverlap          *overlap,
                 BinaryOverlapFile  **dumpFile,
@@ -71,16 +210,16 @@ writeToDumpFile(OVSoverlap          *overlap,
   uint32 df = overlap->a_iid / iidPerBucket;
 
   if (df >= dumpFileMax) {
+    char   olapstring[256];
+    
     fprintf(stderr, "\n");
     fprintf(stderr, "Too many bucket files when adding overlap:\n");
-    fprintf(stderr, "  %d %d  %c  "F_U64" "F_U64"  "F_U64" "F_U64"  %f.2\n",
-            overlap->a_iid, overlap->b_iid,
-            overlap->dat.obt.fwd ? 'f' : 'r',
-            overlap->dat.obt.a_beg,
-            overlap->dat.obt.a_end,
-            overlap->dat.obt.b_beg,
-            (overlap->dat.obt.b_end_hi << 9) | overlap->dat.obt.b_end_lo,
-            AS_OVS_decodeQuality(overlap->dat.obt.erate) * 100.0);
+    fprintf(stderr, "  %s\n", AS_OVS_toString(olapstring, *overlap));
+    fprintf(stderr, "\n");
+    fprintf(stderr, "bucket       = "F_U32"\n", df);
+    fprintf(stderr, "iidPerBucket = "F_U32"\n", iidPerBucket);
+    fprintf(stderr, "dumpFileMax  = "F_U32"\n", dumpFileMax);
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "This might be a corrupt input file, or maybe you simply need to supply more\n");
     fprintf(stderr, "memory with the runCA option ovlStoreMemory.\n");
@@ -128,75 +267,6 @@ buildStore(char *storeName,
 
   uint64  maxIID              = storeFile->gkp->gkStore_getNumFragments() + 1;
 
-  //  Read the gkStore to determine which fragments we care about.
-  //
-  //  If doFilterOBT == 0, we care about all overlaps (we're not processing for OBT).
-  //
-  //  If doFilterOBT == 1, then we care about overlaps where either fragment is in a doNotOBT == 0
-  //  library.
-  //
-  //  If doFilterOBT == 2, then we care about overlaps where both fragments are in the same
-  //  library, and that library is marked doRemoveDuplicateReads == 1
-
-  char          *skipFragment = NULL;
-  uint32        *iidToLib     = NULL;
-
-  uint64 skipOBT1LQ      = 0;
-  uint64 skipOBT2HQ      = 0;
-  uint64 skipOBT2LIB     = 0;
-  uint64 skipOBT2NODEDUP = 0;
-
-  if (doFilterOBT != 0) {
-    gkStream    *gks = new gkStream(storeFile->gkp, 0, 0, GKFRAGMENT_INF);
-    gkFragment   fr;
-
-    skipFragment = new char [maxIID];
-    iidToLib     = new uint32 [maxIID];
-
-    memset(skipFragment, 0, sizeof(char)   * maxIID);
-    memset(iidToLib,     0, sizeof(uint32) * maxIID);
-
-    while (gks->next(&fr))
-      iidToLib[fr.gkFragment_getReadIID()] = fr.gkFragment_getLibraryIID();
-
-    delete gks;
-  }
-
-  if (doFilterOBT == 1) {
-    uint64  numMarked = 0;
-
-    for (uint64 iid=0; iid<maxIID; iid++) {
-      gkLibrary *L = storeFile->gkp->gkStore_getLibrary(iidToLib[iid]);
-
-      if (L == NULL)
-        continue;
-
-      if (L->doNotOverlapTrim == 1) {
-        numMarked++;
-        skipFragment[iid] = true;
-      }
-    }
-
-    fprintf(stderr, "Marked %lu fragments.\n", numMarked);
-  }
-
-  if (doFilterOBT == 2) {
-    uint64  numMarked = 0;
-
-    for (uint64 iid=0; iid<maxIID; iid++) {
-      gkLibrary *L = storeFile->gkp->gkStore_getLibrary(iidToLib[iid]);
-
-      if (L == NULL)
-        continue;
-
-      if (L->doRemoveDuplicateReads == 0) {
-        numMarked++;
-        skipFragment[iid] = true;
-      }
-    }
-
-    fprintf(stderr, "Marked %lu fragments.\n", numMarked);
-  }
 
   //  Decide on some sizes.  We need to decide on how many IID's to
   //  put in each bucket.  Except for running out of file descriptors
@@ -208,51 +278,49 @@ buildStore(char *storeName,
   //  to be flipped, and so mer overlaps count the true number.
   //  Maybe.
   //
-  uint64  iidPerBucket        = 0;
+  uint64                   iidPerBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileListLen, fileList);
 
-  if (fileLimit > 0) {
-    iidPerBucket = maxIID / fileLimit;
+  uint32                   dumpFileMax  = sysconf(_SC_OPEN_MAX) - 16;
+  BinaryOverlapFile      **dumpFile     = (BinaryOverlapFile **)safe_calloc(sizeof(BinaryOverlapFile *), dumpFileMax);
+  uint64                  *dumpLength   = (uint64 *)safe_calloc(sizeof(uint64), dumpFileMax);
 
-  } else {
-    if (fileList[0][0] != '-') {
-      uint64  numOverlaps = 0;
+  if (maxIID / iidPerBucket + 1 >= dumpFileMax) {
+    fprintf(stderr, "ERROR:\n");
+    fprintf(stderr, "ERROR:  Operating system limit of %d open files.  The current -M and -F settings\n", dumpFileMax);
+    fprintf(stderr, "ERROR:  will need to create %d files to construct the store.\n", maxIID / iidPerBucket);
+    fprintf(stderr, "ERROR:  Increase runCA option ovlStoreMemory.\n");
+    exit(1);
+  }
 
-      for (uint32 i=0; i<fileListLen; i++) {
-        uint64  no = AS_UTL_sizeOfFile(fileList[i]);
-        if (no == 0)
-          fprintf(stderr, "No overlaps found (or file not found) in '%s'.\n", fileList[i]);
+  //  Read the gkStore to determine which fragments we care about.
+  //
+  //  If doFilterOBT == 0, we care about all overlaps (we're not processing for OBT).
+  //
+  //  If doFilterOBT == 1, then we care about overlaps where either fragment is in a doNotOBT == 0
+  //  library.
+  //
+  //  If doFilterOBT == 2, then we care about overlaps where both fragments are in the same
+  //  library, and that library is marked doRemoveDuplicateReads == 1
 
-        numOverlaps += 2 * no / sizeof(OVSoverlap);
-      }
+  char    *skipFragment = NULL;
+  uint32  *iidToLib     = NULL;
 
-      assert(numOverlaps > 0);
+  uint64   skipOBT1LQ      = 0;
+  uint64   skipOBT2HQ      = 0;
+  uint64   skipOBT2LIB     = 0;
+  uint64   skipOBT2NODEDUP = 0;
 
-      //  Why the +1 below?  Consider the case when the number of overlaps is less than the number of
-      //  fragments.  This value is used to figure out how many IIDs we can fit into a single bucket,
-      //  and making it too large means we'll get maybe one more bucket and the buckets will be smaller.
-      //  Yeah, we probably could have just used ceil.
-      //
-      double  overlapsPerBucket   = (double)memoryLimit / (double)sizeof(OVSoverlap);
-      double  overlapsPerIID      = (double)numOverlaps / (double)maxIID;
+  if (doFilterOBT != 0)
+    markLoad(storeFile, maxIID, skipFragment, iidToLib);
 
-      iidPerBucket                = (uint64)(overlapsPerBucket / overlapsPerIID) + 1;
+  if (doFilterOBT == 1)
+    markOBT(storeFile, maxIID, skipFragment, iidToLib);
 
-      fprintf(stderr, "For %.3f million overlaps in "F_U64"MB memory, I'll put "F_U64" IID's (%.3f million overlaps) per bucket.\n",
-              numOverlaps / 1000000.0,
-              memoryLimit / (uint64)1048576,
-              iidPerBucket,
-              overlapsPerBucket / 1000000.0);
-    } else {
-      iidPerBucket = maxIID / 100;
-      fprintf(stderr, "Using stdin; cannot size buckets properly.  Using 100 buckets, "F_U64" IIDs per bucket.  Good luck!\n",
-              iidPerBucket);
-    }
-  }  //  End of memoryLimit
+  if (doFilterOBT == 2)
+    markDUP(storeFile, maxIID, skipFragment, iidToLib);
 
 
-  uint32                   dumpFileMax = sysconf(_SC_OPEN_MAX);
-  BinaryOverlapFile      **dumpFile    = (BinaryOverlapFile **)safe_calloc(sizeof(BinaryOverlapFile *), dumpFileMax);
-  uint64                  *dumpLength  = (uint64 *)safe_calloc(sizeof(uint64), dumpFileMax);
+  
 
   for (uint32 i=0; i<fileListLen; i++) {
     BinaryOverlapFile  *inputFile;
@@ -272,16 +340,10 @@ buildStore(char *storeName,
           (fovrlap.b_iid == 0) ||
           (fovrlap.a_iid >= maxIID) ||
           (fovrlap.b_iid >= maxIID)) {
-        fprintf(stderr, "ERROR:  Overlap has IDs out of range (maxIID "F_U64"), possibly corrupt input data.\n",
-                maxIID);
-        fprintf(stderr, "  %d %d  %c  "F_U64" "F_U64"  "F_U64" "F_U64"  %f.2\n",
-                fovrlap.a_iid, fovrlap.b_iid,
-                fovrlap.dat.obt.fwd ? 'f' : 'r',
-                fovrlap.dat.obt.a_beg,
-                fovrlap.dat.obt.a_end,
-                fovrlap.dat.obt.b_beg,
-                (fovrlap.dat.obt.b_end_hi << 9) | fovrlap.dat.obt.b_end_lo,
-                AS_OVS_decodeQuality(fovrlap.dat.obt.erate) * 100.0);
+        char ovlstr[256];
+
+        fprintf(stderr, "Overlap has IDs out of range (maxIID "F_U64"), possibly corrupt input data.\n", maxIID);
+        fprintf(stderr, "  %s\n", AS_OVS_toString(ovlstr, fovrlap));
         exit(1);
       }
 

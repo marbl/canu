@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAP_H
 #define AS_OVS_OVERLAP_H
 
-static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.14 2010-10-09 02:15:50 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.15 2011-03-31 15:23:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"  //  pretty heavy just to get OverlapMesg.
@@ -189,7 +189,7 @@ void  AS_OVS_convertOverlapMesgToOVSoverlap(OverlapMesg *omesg, OVSoverlap *ovs)
 int   AS_OVS_convertOVLdumpToOVSoverlap(char *line, OVSoverlap *olap);
 int   AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap);
 
-
+char *AS_OVS_toString(char *outstr, OVSoverlap &olap);
 
 
 static

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: convertOverlap.c,v 1.22 2010-09-03 20:36:45 brianwalenz Exp $";
+const char *mainid = "$Id: convertOverlap.c,v 1.23 2011-03-31 15:23:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,53 +74,13 @@ void
 toASCII(void) {
   BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(NULL, FALSE);
   OVSoverlap          olap;
+  char                olapstring[256];
 
-  while (AS_OVS_readOverlap(input, &olap)) {
-    switch (olap.dat.ovl.type) {
-      case AS_OVS_TYPE_OVL:
-        fprintf(stdout, "%8d %8d  %c  %5"F_S64P" %5"F_S64P"  %4.2f  %4.2f\n",
-                olap.a_iid,
-                olap.b_iid,
-                olap.dat.ovl.flipped ? 'I' : 'N',
-                olap.dat.ovl.a_hang,
-                olap.dat.ovl.b_hang,
-                AS_OVS_decodeQuality(olap.dat.ovl.orig_erate) * 100.0,
-                AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100.0);
-        break;
-      case AS_OVS_TYPE_OBT:
-        fprintf(stdout, "%7d %7d  %c  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"  %5.2f\n",
-                olap.a_iid, olap.b_iid,
-                olap.dat.obt.fwd ? 'f' : 'r',
-                olap.dat.obt.a_beg,
-                olap.dat.obt.a_end,
-                olap.dat.obt.b_beg,
-                (olap.dat.obt.b_end_hi << 9) | (olap.dat.obt.b_end_lo),
-                AS_OVS_decodeQuality(olap.dat.obt.erate) * 100.0);
-        break;
-      case AS_OVS_TYPE_MER:
-        fprintf(stdout, "%7d %7d  %c  "F_U64"  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"\n",
-                olap.a_iid, olap.b_iid,
-                olap.dat.mer.palindrome ? 'p' : (olap.dat.mer.fwd ? 'f' : 'r'),
-                olap.dat.mer.compression_length,
-                olap.dat.mer.a_pos,
-                olap.dat.mer.b_pos,
-                olap.dat.mer.k_count,
-                olap.dat.mer.k_len);
-        break;
-      case AS_OVS_TYPE_UNS:
-        break;
-      default:
-        fprintf(stderr, "ERROR: Unknown overlap type in input.  Invalid overlap file?\n");
-        exit(1);
-        break;
-    }
-  }
+  while (AS_OVS_readOverlap(input, &olap))
+    fprintf(stdout, "%s\n", AS_OVS_toString(olapstring, olap));
 
   AS_OVS_closeBinaryOverlapFile(input);
 }
-
-
-
 
 
 
