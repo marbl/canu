@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.16 2011-02-11 02:59:22 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.17 2011-03-31 15:25:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -181,10 +181,10 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
   //  Trim crap off the ends.
 
 #ifdef FASTQ_TRIM_JUNK
-  while ((fr->qstr[clrR-1] < '6') && (clrR > 1))
+  while ((clrR > 0) && (fr->qstr[clrR-1] < '6'))
     clrR--;
 
-  while ((fr->qstr[clrL] < '6') && (clrL < clrR))
+  while ((clrL < clrR) && (fr->qstr[clrL] < '6'))
     clrL++;
 #endif
 
