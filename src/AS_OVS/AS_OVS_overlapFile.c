@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.17 2011-03-31 15:59:17 skoren Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.18 2011-04-02 03:44:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,20 +33,11 @@ static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.17 2011-03-31 15:59:17
 static void AS_OVS_initializeBOF(BinaryOverlapFile *bof, int isInternal, int isOutput) {
   assert(bof != NULL);
 
-  bof->bufferLen  = 0;
-#if AS_OVS_NWORDS > 2
-  // pick a number such that we are divisible by our overlap sizes and close to 1MB 
-  uint32 LCM = (sizeof(OVSoverlapINT) / AS_OVS_WORD_SIZE) * (sizeof(OVSoverlap) / AS_OVS_WORD_SIZE);
-  uint32 multValue = (uint32) (16384 * 12 / LCM);
-  multValue++;
+  uint32  lcf = (AS_OVS_NWORDS + 1) * (AS_OVS_NWORDS + 2);
 
-  // now we have the value to mulitply
-  bof->bufferPos  = multValue * LCM;
-  bof->bufferMax  = multValue * LCM;
-#else
-  bof->bufferPos  = 16384 * 12;
-  bof->bufferMax  = 16384 * 12;
-#endif
+  bof->bufferLen  = 0;
+  bof->bufferPos  = ((4 * 1048576) / (lcf * sizeof(uint32))) * lcf;
+  bof->bufferMax  = ((4 * 1048576) / (lcf * sizeof(uint32))) * lcf;
   bof->buffer     = (uint32 *)safe_malloc(sizeof(uint32) * bof->bufferMax);
   bof->isOutput   = isOutput;
   bof->isSeekable = FALSE;
@@ -54,12 +45,16 @@ static void AS_OVS_initializeBOF(BinaryOverlapFile *bof, int isInternal, int isO
   bof->isInternal = isInternal;
   bof->file       = NULL;
 
-  //  The size of the buffer MUST be divisible by our two overlap sizes, otherwise
-  //  our writer will lose data.  We carefully chose 16384*12 to be
-  //  close to a 1MB buffer.
-  //
-  assert((bof->bufferMax % (sizeof(OVSoverlapINT) / AS_OVS_WORD_SIZE)) == 0);
-  assert((bof->bufferMax % (sizeof(OVSoverlap) / AS_OVS_WORD_SIZE)) == 0);
+  //  The size of the buffer MUST be divisible by our two overlap sizes, otherwise our writer will
+  //  lose data.  We carefully chose a size that also gives us a 4MB buffer.
+
+  if ((bof->bufferMax % (AS_OVS_NWORDS + 1)) != 0)
+    fprintf(stderr, "ERROR: bufferMax="F_U32" AS_OVS_NWORDS=%d\n", bof->bufferMax, AS_OVS_NWORDS);
+  assert((bof->bufferMax % (AS_OVS_NWORDS + 1)) == 0);
+
+  if ((bof->bufferMax % (AS_OVS_NWORDS + 2)) != 0)
+    fprintf(stderr, "ERROR: bufferMax="F_U32" AS_OVS_NWORDS=%d\n", bof->bufferMax, AS_OVS_NWORDS);
+  assert((bof->bufferMax % (AS_OVS_NWORDS + 2)) == 0);
 }
 
 BinaryOverlapFile *
@@ -221,11 +216,11 @@ AS_OVS_seekOverlap(BinaryOverlapFile *bof, uint32 overlap) {
 
   assert(bof->isSeekable == TRUE);
 
-  //  Move to the correct spot, and force a load on the next read
-  uint32_t ovlSize = (bof->isInternal ? sizeof(OVSoverlapINT) / AS_OVS_WORD_SIZE : sizeof(OVSoverlap) / AS_OVS_WORD_SIZE);
+  //  Move to the correct spot, and force a load on the next readOverlap by setting the position to
+  //  the end of the buffer.
 
   AS_UTL_fseek(bof->file,
-               (off_t)overlap * sizeof(uint32) * (ovlSize),
+               (off_t)overlap * sizeof(uint32) * ((bof->isInternal) ? (AS_OVS_NWORDS + 1) : (AS_OVS_NWORDS + 2)),
                SEEK_SET);
   bof->bufferPos = bof->bufferLen;
 }
