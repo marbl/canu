@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.25 2011-03-08 21:03:05 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.26 2011-04-04 23:25:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -495,20 +495,6 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         if (verbose)
           fprintf(stdout, "lib uid %s forceBOGunitigger %c -> %c\n",
                   AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.forceBOGunitigger) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "shortOverlapModel") == 0) {
-        uint32 o = gklr.shortOverlapModel;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.shortOverlapModel = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.shortOverlapModel = 0;
-        else {
-          fprintf(stderr, "invalid lib shortOverlapModel flag in edit line: '%s'\n", L);
-          errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "lib uid %s shortOverlapModel %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.shortOverlapModel) ? 'T' : 'F');
       } else if (strcasecmp(ACT, "isNotRandom") == 0) {
         uint32 o = gklr.isNotRandom;
         if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))

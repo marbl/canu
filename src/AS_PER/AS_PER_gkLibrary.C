@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.11 2011-01-03 03:21:20 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.12 2011-04-04 23:25:19 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -67,9 +67,6 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
     //  Unitigger options
     if      (strcasecmp(fea, "forceBOGunitigger") == 0)
       forceBOGunitigger = decodeBoolean("forceBOGunitigger", val);
-
-    else if (strcasecmp(fea, "shortOverlapModel") == 0)
-      shortOverlapModel = decodeBoolean("shortOverlapModel", val);
 
     else if (strcasecmp(fea, "isNotRandom") == 0)
       isNotRandom = decodeBoolean("isNotRandom", val);
@@ -159,14 +156,6 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
     sprintf(fea[nf], "forceBOGunitigger");
     sprintf(val[nf], "%d", forceBOGunitigger);
-    nf++;
-  }
-
-  if (shortOverlapModel || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "shortOverlapModel");
-    sprintf(val[nf], "%d", shortOverlapModel);
     nf++;
   }
 

@@ -58,7 +58,6 @@ public:
     spareUN1                  = 0;
     spareUTG                  = 0;
     forceBOGunitigger         = 0;
-    shortOverlapModel         = 0;
     isNotRandom               = 0;
     spareALN                  = 0;
     doNotTrustHomopolymerRuns = 0;
@@ -85,8 +84,7 @@ public:
   uint64         spareUN1;
 
   //  Unitigger options
-  uint64         spareUTG:61;                  //  Spare for unitigger changes
-  uint64         shortOverlapModel:1;          //  Default 0 -> rely only on overlap error rate not raw count of mismatches
+  uint64         spareUTG:62;                  //  Spare for unitigger changes
   uint64         forceBOGunitigger:1;          //  Default 0 -> allow any unitigger
   uint64         isNotRandom:1;                //  Default 0 -> fragments in here are random
 

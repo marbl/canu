@@ -243,9 +243,6 @@ sub setDefaults () {
     $global{"utgMergeErrorLimit"}          = 5.25;
     $synops{"utgMergeErrorLimit"}          = "Overlaps at or below this number of errors are used to construct unitigs (BOGART)";
 
-    $global{"utgShortOverlapModelDefault"} = 2.5;
-    $synops{"utgShortOverlapModelDefault"} = "If short overlap model is used, the default number of errors used to construct unitigs";
-
     $global{"cnsErrorRate"}                = 0.06;
     $synops{"cnsErrorRate"}                = "Consensus expects alignments at about this error rate";
 
@@ -4124,16 +4121,6 @@ sub unitigger () {
 
             if (system("$bin/gatekeeper -isfeatureset 0 forceBOGunitigger $wrk/$asm.gkpStore") == 0) {
                setGlobal("unitigger", "bog");
-            }
-        }
-        
-        #  Default to overlap error %, unless the gkpStore says otherwise.
-        #
-        if (!defined(getGlobal("utgErrorLimit"))) {
-            setGlobal("utgErrorLimit", 0);
-
-            if (system("$bin/gatekeeper -isfeatureset 0 shortOverlapModel $wrk/$asm.gkpStore") == 0) {
-                setGlobal("utgErrorLimit", getGlobal("utgShortOverlapModelDefault"));
             }
         }
 
