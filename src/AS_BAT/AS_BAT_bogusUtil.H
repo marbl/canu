@@ -20,7 +20,7 @@
 #ifndef INCLUDE_AS_BAT_BOGUSUTIL
 #define INCLUDE_AS_BAT_BOGUSUTIL
 
-static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.6 2011-02-11 03:25:37 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.7 2011-04-04 14:24:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +45,7 @@ public:
     frgIID = frgBgn = frgEnd = 0;
     genIID = 0;
     genBgn = genEnd = 0;
+    identity = 0.0;
     isDeleted = isReverse = isSpanned = isRepeat = false;
   };
 
@@ -59,7 +60,9 @@ public:
   int32   chnBgn;      //  Position in the chained sequences
   int32   chnEnd;
 
-  bool    isDeleted;  //  Used by bogusness
+  double  identity;    //  Percent identity of the alignment
+
+  bool    isDeleted;   //  Used by bogusness
 
   bool    isReverse;
   bool    isSpanned;
@@ -92,6 +95,7 @@ void addAlignment(vector<genomeAlignment>   &genome,
                   int32  frgIID,
                   int32  frgBgn, int32  frgEnd, bool  isReverse,
                   int32  chnBgn, int32  chnEnd,
+                  double identity,
                   int32  genIID,
                   int32  genBgn, int32  genEnd);
 

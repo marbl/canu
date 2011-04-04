@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogus.C,v 1.6 2011-02-11 03:25:37 brianwalenz Exp $";
+const char *mainid = "$Id: bogus.C,v 1.7 2011-04-04 14:24:00 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -174,6 +174,7 @@ processMatches(int32 alignWobble, int32 uniqEnd) {
                      0, longest[frgIID].rptBgn, false,
                      LONG->chnBgn,
                      LONG->chnBgn + longest[frgIID].rptBgn,
+                     LONG->identity,
                      LONG->genIID,
                      LONG->genBgn,
                      LONG->genBgn + longest[frgIID].rptBgn);
@@ -184,6 +185,7 @@ processMatches(int32 alignWobble, int32 uniqEnd) {
                      longest[frgIID].rptEnd, LONG->frgEnd, false,
                      LONG->chnBgn + longest[frgIID].rptEnd,
                      LONG->chnBgn + LONG->frgEnd,
+                     LONG->identity,
                      LONG->genIID,
                      LONG->genBgn + longest[frgIID].rptEnd,
                      LONG->genBgn + LONG->frgEnd);
@@ -501,6 +503,12 @@ main(int argc, char **argv) {
   //  Search for exceptions -- one completely contained in the other
 
   markWeak();
+
+  //  Extend UNIQ to cover gaps in alignments.
+  //  Extend REPT to cover gaps in alignments.
+  //  Merge adjacent/overlapping UNIQ-UNIQ or REPT-REPT intervals.
+
+
 
   //
   //  Write the output

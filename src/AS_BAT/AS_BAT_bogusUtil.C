@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.9 2011-02-11 03:25:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.10 2011-04-04 14:24:00 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -54,6 +54,7 @@ addAlignment(vector<genomeAlignment>   &genome,
              int32  frgIID,
              int32  frgBgn, int32  frgEnd, bool  isReverse,
              int32  chnBgn, int32  chnEnd,
+             double identity,
              int32  genIID,
              int32  genBgn, int32  genEnd) {
   genomeAlignment  A;
@@ -66,6 +67,7 @@ addAlignment(vector<genomeAlignment>   &genome,
   A.genEnd    = genEnd;
   A.chnBgn    = chnBgn;
   A.chnEnd    = chnEnd;
+  A.identity  = identity;
   A.isReverse = isReverse;
   A.isSpanned = false;
   A.isRepeat  = true;
@@ -124,6 +126,7 @@ loadNucmer(char                       *nucmerName,
     A.genEnd    = W(1);
     A.chnBgn    = refList[A.genIID].rschnBgn + A.genBgn;
     A.chnEnd    = refList[A.genIID].rschnBgn + A.genEnd;
+    A.identity  = atof(W[9]);
     A.isReverse = false;
     A.isSpanned = false;
     A.isRepeat  = true;
@@ -192,6 +195,7 @@ loadSnapper(char                       *snapperName,
     A.genEnd    = W(7);
     A.chnBgn    = refList[A.genIID].rschnBgn + A.genBgn;
     A.chnEnd    = refList[A.genIID].rschnBgn + A.genEnd;
+    A.identity  = atof(W[8]);
     A.isReverse = false;
     A.isSpanned = false;
     A.isRepeat  = true;

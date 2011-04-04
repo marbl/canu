@@ -2,19 +2,67 @@
 
 use strict;
 
-my $prefix = undef;  # "test.004.buildUnitigs";
-my $REF    = undef;  #
-my $IDEAL  = undef;  # "../../ideal/porphyromonas_gingivalis_w83.flx.fragment.E9T0MN001.ideal.intervals";
+my $prefix = undef;    #  output file name prefix
+my $SEQ    = undef;    #  input sequences, fasta
+my $REF    = undef;    #  input reference, fasta
+my $IDEAL  = undef;    #  input ideal, output from bogus, *.ideal.intervals
 
-$prefix = $ARGV[0]  if (scalar(@ARGV) > 0);
-$REF    = $ARGV[1]  if (scalar(@ARGV) > 1);
-$IDEAL  = $ARGV[2]  if (scalar(@ARGV) > 2);
+while (scalar(@ARGV) > 0) {
+    my $arg = shift @ARGV;
 
-die "Must supply 'PREFIX' as first non-option argument.\n"           if (!defined($prefix));
-die "Must supply 'REF.fasta' as second non-option argument.\n"       if (!defined($REF));
-die "Must supply 'IDEAL.intervals' as third non-option argument.\n"  if (!defined($IDEAL));
+    if ($arg eq "-prefix") {
+        $prefix = shift @ARGV;
 
-if (! -e "$prefix.bogus.out") {
+    } elsif ($arg eq "-sequence") {
+        $SEQ = shift @ARGV;
+
+    } elsif ($arg eq "-reference") {
+        $REF = shift @ARGV;
+
+    } elsif ($arg eq "-ideal") {
+        $IDEAL = shift @ARGV;
+
+    } else {
+        die "Unknown option '$arg'\n";
+    }
+}
+if (!defined($prefix) || !defined($SEQ) || !defined($REF) || !defined($IDEAL)) {
+    print STDERR "usage: $0 -prefix P -sequence A.fasta -reference R.fasta -ideal I.ideal.intervals\n";
+    exit(1);
+}
+
+#
+#  Map assembly to reference
+#
+
+print STDERR "Running nucmer\n";
+if (! -e "$prefix.delta") {
+    my $cmd;
+
+    $cmd .= "nucmer";
+    $cmd .= " --maxmatch --coords -p $prefix";
+    $cmd .= " $REF";
+    $cmd .= " $SEQ";
+
+    system($cmd);
+}
+
+if (! -e "$prefix.png") {
+    my $cmd;
+
+    $cmd .= "mummerplot";
+    $cmd .= " --layout --filter -p $prefix -t png";
+    #$cmd .= " --layout          -p $prefix -t png";
+    $cmd .= " $prefix.delta";
+
+    system($cmd);
+}
+
+#
+#  Run bogusness on that mapping
+#
+
+if (! -e "$prefix.bogusness.out") {
     my $cmd;
 
     $cmd  = "bogusness \\\n";
@@ -26,6 +74,10 @@ if (! -e "$prefix.bogus.out") {
 
     system($cmd);
 }
+
+#
+#  Build wiki-friendly output
+#
 
 my $lastUtg;
 

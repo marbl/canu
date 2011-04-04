@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogusness.C,v 1.7 2011-02-11 03:25:37 brianwalenz Exp $";
+const char *mainid = "$Id: bogusness.C,v 1.8 2011-04-04 14:24:00 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -435,9 +435,12 @@ main(int argc, char **argv) {
           //  [j] already deleted
           continue;
 
-        if ((I.frgBgn < J.frgBgn) &&
-            (J.frgEnd < I.frgEnd))
-          //  J contained in I.
+        //  If J is contained in I, mark J as deleted.
+
+        if (((I.frgBgn <  J.frgBgn) && (J.frgEnd <  I.frgEnd)) ||
+            ((I.frgBgn <= J.frgBgn) && (J.frgEnd <  I.frgEnd)) ||
+            ((I.frgBgn <  J.frgBgn) && (J.frgEnd <= I.frgEnd)) ||
+            ((I.frgBgn <= J.frgBgn) && (J.frgEnd <= I.frgEnd) && (J.identity <  I.identity)))
           J.isDeleted = true;
       }
     }
@@ -655,6 +658,11 @@ main(int argc, char **argv) {
   fclose(gffOutput);
   fclose(resultsOutput);
 
+
+
+
+
+
   ////////////////////////////////////////
   //
   //  Attempt to analyze the result.
@@ -804,18 +812,6 @@ main(int argc, char **argv) {
   delete [] typ;
 
   ////////////////////////////////////////////////////////////////////////////////
-  //  
-
-
-
-
-
-
-
-
-
-
-
 
   //  Write a 'nice' report.
 
