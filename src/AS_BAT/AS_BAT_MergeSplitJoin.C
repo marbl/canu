@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.2 2011-03-17 05:33:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.3 2011-04-04 14:25:31 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -45,6 +45,10 @@ static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.2 2011-03-17 05:33:
 #define SPURIOUS_REPEAT_THRESHOLD 5
 
 #define STUPID_REPEAT_SIZE 100
+
+//  Define this to waste effort and return all placements for fragments.  This will just fail
+//  asserts here, but they're easy to rearrange and avoid.
+#define RETURN_ALL_PLACEMENTS 0
 
 class repeatUniqueJunction {
 public:
@@ -231,10 +235,10 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, fFrg.ident, placements);
+  placeFragUsingOverlaps(unitigs, (RETURN_ALL_PLACEMENTS) ? NULL : target, fFrg.ident, placements);
   for (uint32 i=0; i<placements.size(); i++) {
-    if (placements[i].tigID != target->id())
-      continue;
+    assert(placements[i].tigID == target->id());
+    if (placements[i].tigID != target->id()) continue;
 
     if (placements[i].fCoverage < 0.99)
       continue;
@@ -260,10 +264,10 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, lFrg.ident, placements);
+  placeFragUsingOverlaps(unitigs, (RETURN_ALL_PLACEMENTS) ? NULL : target, lFrg.ident, placements);
   for (uint32 i=0; i<placements.size(); i++) {
-    if (placements[i].tigID != target->id())
-      continue;
+    assert(placements[i].tigID == target->id());
+    if (placements[i].tigID != target->id()) continue;
 
     if (placements[i].fCoverage < 0.99)
       continue;
@@ -393,7 +397,7 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
   for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
     ufNode *frg = &bubble->ufpath[fi];
 
-    placeFragUsingOverlaps(unitigs, frg->ident, placements[fi]);
+    placeFragUsingOverlaps(unitigs, (RETURN_ALL_PLACEMENTS) ? NULL : target, frg->ident, placements[fi]);
 
     //  Initialize the final placement to be bad, so we can pick the best.
     correctPlace[fi].fCoverage = 0.0;
@@ -424,7 +428,6 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
 
   for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
     uint32  nNotPlaced = 0;
-    uint32  nNotPlacedInTarget = 0;
     uint32  nNotPlacedInCorrectPosition = 0;
     uint32  nNotPlacedFully = 0;
     uint32  nNotOriented = 0;
@@ -442,10 +445,8 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
       requireFullAlignment = false;
 
     for (uint32 pl=0; pl<placements[fi].size(); pl++) {
-      if (placements[fi][pl].tigID != target->id()) {
-        nNotPlacedInTarget++;
-        continue;
-      }
+      assert(placements[fi][pl].tigID == target->id());
+      if (placements[fi][pl].tigID != target->id()) continue;
 
       int32  minP = MIN(placements[fi][pl].position.bgn, placements[fi][pl].position.end);
       int32  maxP = MAX(placements[fi][pl].position.bgn, placements[fi][pl].position.end);
@@ -495,8 +496,8 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
     } else {
       //  We currently require ALL fragments to be well placed, so we can abort on the first fragment that
       //  fails.
-      //fprintf(logFile, "popBubbles()--   Failed to place frag %d notPlaced %d notPlacedInTarget %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
-      //        bubble->ufpath[fi].ident, nNotPlaced, nNotPlacedInTarget, nNotPlacedInCorrectPosition, nNotPlacedFully, nNotOriented);
+      //fprintf(logFile, "popBubbles()--   Failed to place frag %d notPlaced %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
+      //        bubble->ufpath[fi].ident, nNotPlaced, nNotPlacedInCorrectPosition, nNotPlacedFully, nNotOriented);
       break;
     }
   }
@@ -694,7 +695,7 @@ markRepeats(UnitigVector &unitigs,
 
     vector<overlapPlacement>  op;
 
-    placeFragUsingOverlaps(unitigs, iid, op);
+    placeFragUsingOverlaps(unitigs, (RETURN_ALL_PLACEMENTS) ? NULL : target, iid, op);
 
     //  placeFragUsingOverlaps() returns the expected placement for this fragment in 'position', and
     //  the amount of the fragment covered by evidence in 'covered'.
@@ -703,9 +704,10 @@ markRepeats(UnitigVector &unitigs,
     //  evidence.
 
     for (uint32 pl=0; pl<op.size(); pl++) {
-      if (op[pl].tigID != target->id())
-        //  No worries, just not placed in the unitig we're looking at.
-        continue;
+      assert(op[pl].tigID == target->id());
+      if (op[pl].tigID != target->id()) continue;
+
+      //fprintf(logFile, "markRepeats()-- op[%3d] tig %d fCoverage %f\n", pl, op[pl].tigID, op[pl].fCoverage);
 
       if (op[pl].fCoverage > 0.99)
         //  No worries, fully placed.
@@ -1064,7 +1066,7 @@ void
 mergeSplitJoin(UnitigVector &unitigs) {
 
   //logFileFlags |= LOG_PLACE_FRAG;
-  logFileFlags &= ~LOG_PLACE_FRAG;
+  //logFileFlags &= ~LOG_PLACE_FRAG;
 
   //  BUILD A LIST OF ALL INTERSECTIONS - build a reverse mapping of all BestEdges that are between
   //  unitigs.  For each fragment, we want to have a list of the incoming edges from other unitigs.
@@ -1126,6 +1128,15 @@ mergeSplitJoin(UnitigVector &unitigs) {
 
   //  MERGE LEFTOVERS - these are the leftover pieces after repeats/chimera are split.  Hopefully
   //  they'll just be low coverage spurs
+
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig        *target = unitigs[ti];
+
+    if (target == NULL)
+      continue;
+
+    mergeBubbles(unitigs, target, ilist);
+  }
 
   delete ilist;
 

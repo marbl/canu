@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.8 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.9 2011-04-04 14:25:31 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -80,6 +80,8 @@ validateBubbleWithEdges(UnitigVector &unitigs,
                         ufNode &rFrg, BestEdgeOverlap *rEnd,
                         Unitig *larger) {
 
+  assert(0);
+
   //  Compute placement of the two fragments.  Compare the size against the bubble.
 
   ufNode lFrgN = lFrg;
@@ -125,17 +127,13 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, lFrg.ident, placements);
+  placeFragUsingOverlaps(unitigs, larger, lFrg.ident, placements);
   for (uint32 i=0; i<placements.size(); i++) {
-    if (placements[i].tigID != larger->id())
-      continue;
+    assert(placements[i].tigID == larger->id());
+    if (placements[i].tigID != larger->id()) continue;
 
     if (placements[i].fCoverage < 0.99)
       continue;
-
-    //if ((placements[i].nForward > 0) &&
-    //    (placements[i].nReverse > 0))
-    //  continue;
 
     if (placements[i].errors / placements[i].aligned < lFrgPlacement.errors / lFrgPlacement.aligned)
       lFrgPlacement = placements[i];
@@ -158,17 +156,13 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   placements.clear();
 
-  placeFragUsingOverlaps(unitigs, rFrg.ident, placements);
+  placeFragUsingOverlaps(unitigs, larger, rFrg.ident, placements);
   for (uint32 i=0; i<placements.size(); i++) {
-    if (placements[i].tigID != larger->id())
-      continue;
+    assert(placements[i].tigID == larger->id());
+    if (placements[i].tigID != larger->id()) continue;
 
     if (placements[i].fCoverage < 0.99)
       continue;
-
-    //if ((placements[i].nForward > 0) &&
-    //    (placements[i].nReverse > 0))
-    //  continue;
 
     if (placements[i].errors / placements[i].aligned < rFrgPlacement.errors / rFrgPlacement.aligned)
       rFrgPlacement = placements[i];
@@ -278,6 +272,8 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
                                     ufNode &rFrg,
                                     Unitig *larger) {
 
+  assert(0);
+
   //  Method:
   //
   //  * Call placeFragUsingOverlaps() for every fragment.  Save the placements returned.
@@ -297,7 +293,7 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
   for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
     ufNode *frg = &bubble->ufpath[fi];
 
-    placeFragUsingOverlaps(unitigs, frg->ident, placements[fi]);
+    placeFragUsingOverlaps(unitigs, larger, frg->ident, placements[fi]);
 
     //  Initialize the final placement to be bad, so we can pick the best.
     correctPlace[fi].fCoverage = 0.0;
@@ -328,7 +324,6 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
 
   for (uint32 fi=0; fi<bubble->ufpath.size(); fi++) {
     uint32  nNotPlaced = 0;
-    uint32  nNotPlacedInLarger = 0;
     uint32  nNotPlacedInCorrectPosition = 0;
     uint32  nNotPlacedFully = 0;
     uint32  nNotOriented = 0;
@@ -346,10 +341,8 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
       requireFullAlignment = false;
 
     for (uint32 pl=0; pl<placements[fi].size(); pl++) {
-      if (placements[fi][pl].tigID != larger->id()) {
-        nNotPlacedInLarger++;
-        continue;
-      }
+      assert(placements[fi][pl].tigID == larger->id());
+      if (placements[fi][pl].tigID != larger->id()) continue;
 
       int32  minP = MIN(placements[fi][pl].position.bgn, placements[fi][pl].position.end);
       int32  maxP = MAX(placements[fi][pl].position.bgn, placements[fi][pl].position.end);
@@ -397,8 +390,8 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
     if (correctPlace[fi].fCoverage > 0)
       nCorrect++;
     else
-      fprintf(logFile, "popBubbles()-- Failed to place frag %d notPlaced %d notPlacedInLarger %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
-              bubble->ufpath[fi].ident, nNotPlaced, nNotPlacedInLarger, nNotPlacedInCorrectPosition, nNotPlacedFully, nNotOriented);
+      fprintf(logFile, "popBubbles()-- Failed to place frag %d notPlaced %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
+              bubble->ufpath[fi].ident, nNotPlaced, nNotPlacedInCorrectPosition, nNotPlacedFully, nNotOriented);
   }
 
   if (nCorrect != bubble->ufpath.size())

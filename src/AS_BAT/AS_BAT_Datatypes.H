@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.6 2011-02-15 08:31:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.7 2011-04-04 14:25:31 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -113,6 +113,13 @@ bool
 operator==(SeqInterval a, SeqInterval b) {
   return(((a.bgn == b.bgn) && (a.end == b.end)) ||
          ((a.bgn == b.end) && (a.end == b.bgn)));
+}
+
+inline
+bool
+operator!=(SeqInterval a, SeqInterval b) {
+  return(((a.bgn != b.bgn) || (a.end != b.end)) &&
+         ((a.bgn != b.end) || (a.end != b.bgn)));
 }
 
 inline

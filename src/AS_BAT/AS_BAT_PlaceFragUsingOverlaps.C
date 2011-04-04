@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.10 2011-03-17 05:33:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.11 2011-04-04 14:25:31 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -229,8 +229,9 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
 
 
 bool
-placeFragUsingOverlaps(UnitigVector &unitigs,
-                       uint32        fid,
+placeFragUsingOverlaps(UnitigVector             &unitigs,
+                       Unitig                   *target,
+                       uint32                    fid,
                        vector<overlapPlacement> &placements) {
 
   assert(fid > 0);
@@ -267,6 +268,10 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
     if (utgID == 0)
       //  Fragment not in a unitig yet -- possibly this is a contained fragment that we haven't
       //  placed yet, or have temporarily removed it from a unitig.
+      continue;
+
+    if ((target != NULL) && (target != utg))
+      //  Requested placement in a specific unitig, and this isn't it.
       continue;
 
     //  Depending on the type of overlap (containment vs dovetail), place the fragment relative to
@@ -410,8 +415,7 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
 #ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
       for (uint32 oo=bgn; oo<end; oo++)
-        fprintf(logFile, "overlapPlacement[%03d] = frg %d tig %d position %d,%d errors %.2f covered %d,%d aligned %d\n",
-                oo,
+        fprintf(logFile, "overlapPlacement  frg %d tig %d position %d,%d errors %.2f covered %d,%d aligned %d\n",
                 ovlPlace[oo].frgID,
                 ovlPlace[oo].tigID,
                 ovlPlace[oo].position.bgn, ovlPlace[oo].position.end,
@@ -489,7 +493,7 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
       //  longest.  (In the first fragment case, we are guaranteed by the construction of the unitig
       //  to have the earliest fragment position).
 
-      Unitig *target = unitigs[op.tigID];
+      Unitig *destTig = unitigs[op.tigID];
 
       uint32  firstOrdinal  = UINT32_MAX;
       uint32  firstPosition = UINT32_MAX;
@@ -500,10 +504,13 @@ placeFragUsingOverlaps(UnitigVector &unitigs,
       FragmentEnd  lastEnd;
 
       for (uint32 oo=os; oo<oe; oo++) {
-        uint32   ordinal = target->pathPosition(ovlPlace[oo].ovlID);
-        ufNode  &ovlFrg  = target->ufpath[ordinal];
+        uint32   ordinal = destTig->pathPosition(ovlPlace[oo].ovlID);
+        ufNode  &ovlFrg  = destTig->ufpath[ordinal];
         uint32   minPos  = MIN(ovlFrg.position.bgn, ovlFrg.position.end);
         uint32   maxPos  = MAX(ovlFrg.position.bgn, ovlFrg.position.end);
+
+        //fprintf(logFile, "placeFragUsingOverlaps()-- PickEnds ordinal %d tigFrg %d pos %d,%d\n",
+        //        ordinal, ovlFrg.ident, minPos, maxPos);
 
         if (((minPos  <  firstPosition)) ||
             ((minPos  <= firstPosition) && (ordinal < firstOrdinal))) {

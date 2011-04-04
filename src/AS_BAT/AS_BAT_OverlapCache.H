@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.1 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.2 2011-04-04 14:25:31 brianwalenz Exp $";
 
 
 #if (AS_OVS_HNGBITS + AS_OVS_HNGBITS + 1 > 32)
@@ -62,11 +62,11 @@ struct BAToverlap {
 
 class OverlapCache {
 public:
-  OverlapCache(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept);
+  OverlapCache(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double maxErate, double elimit);
   ~OverlapCache();
 
-  void         computeErateMaps(void);
-  void         loadOverlaps(void);
+  void         computeErateMaps(double erate, double elimit);
+  void         loadOverlaps(double erate, double elimit);
 
   BAToverlap  *getOverlaps(uint32 fragIID, uint32 &numOverlaps);
 

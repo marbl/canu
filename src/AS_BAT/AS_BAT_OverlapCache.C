@@ -19,14 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.1 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.2 2011-04-04 14:25:31 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
 
 
-OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept) {
-  _storMax = 128 * 1024 * 1024;  //  At 8B each, this is 1GB
+OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double erate, double elimit) {
+  _storMax = 128 * 1024 * 1024;  //  At 8B each, this is 1GB.  ON SMALL ASSEMBLIES THIS IS NEVER FULLY USED!
   _storLen = 0;
   _stor    = new BAToverlapInt [_storMax];
 
@@ -50,8 +50,8 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRep
   _ovlStoreUniq = ovlStoreUniq;
   _ovlStoreRept = ovlStoreRept;
 
-  computeErateMaps();
-  loadOverlaps();
+  computeErateMaps(erate, elimit);
+  loadOverlaps(erate, elimit);
 }
 
 
@@ -93,7 +93,7 @@ OverlapCache::~OverlapCache() {
 //  convert to .error, and we create BATerate for all valid OVSerate values.
 //
 void
-OverlapCache::computeErateMaps(void) {
+OverlapCache::computeErateMaps(double erate, double elimit) {
   _OVSerate = new uint32 [1 << AS_OVS_ERRBITS];
   _BATerate = new double [1 << AS_BAT_ERRBITS];
 
@@ -109,8 +109,10 @@ OverlapCache::computeErateMaps(void) {
 
 
 void
-OverlapCache::loadOverlaps(void) {
+OverlapCache::loadOverlaps(double erate, double elimit) {
   uint32   numOvl = 0;
+
+  uint32   maxOVSErate = AS_OVS_encodeQuality(erate);
 
   assert(_ovlStoreRept == NULL);
   assert(_ovlStoreUniq != NULL);
@@ -123,37 +125,59 @@ OverlapCache::loadOverlaps(void) {
   //  be in contiguous memory.
   
   while (1) {
+
+    //  Ask the store how many overlaps exist for this fragment.
     numOvl = AS_OVS_readOverlapsFromStore(_ovlStoreUniq, NULL, 0, AS_OVS_TYPE_ANY);
 
     if (numOvl == 0)
       //  No overlaps?  We're at the end of the store.
       break;
 
+    //  Resize temporary storage space to hold all these overlaps.
     while (_ovsMax <= numOvl) {
       _ovsMax *= 2;
       delete [] _ovs;
       _ovs = new OVSoverlap [_ovsMax];
     }
 
-    if (_storLen + numOvl > _storMax) {
+    //  Actually load the overlaps.
+    uint32  no = AS_OVS_readOverlapsFromStore(_ovlStoreUniq, _ovs, _ovsMax, AS_OVS_TYPE_ANY);
+    uint32  ns = 0;
+
+    //  Count how many overlaps we would keep.
+    for (uint32 ii=0; ii<no; ii++)
+      if (_ovs[ii].dat.ovl.corr_erate <= maxOVSErate)
+        ns++;
+
+    //  Resize the permament storage space for overlaps.
+    if (_storLen + ns > _storMax) {
       _storLen = 0;
       _stor    = new BAToverlapInt [_storMax];
       _heaps.push_back(_stor);
     }
 
-    uint32  no = AS_OVS_readOverlapsFromStore(_ovlStoreUniq, _ovs, _ovsMax, AS_OVS_TYPE_ANY);
-
+    //  Save a pointer to the start of the overlaps for this fragment, and the number of overlaps
+    //  that exist.
     _cachePtr[_ovs[0].a_iid] = _stor + _storLen;
-    _cacheLen[_ovs[0].a_iid] = no;
+    _cacheLen[_ovs[0].a_iid] = ns;
 
-    for (uint32 ii=0; ii<no; ii++, _storLen++) {
+    //  Finally, append the overlaps to the storage.
+    for (uint32 ii=0; ii<no; ii++) {
+      if (_ovs[ii].dat.ovl.corr_erate > maxOVSErate)
+        continue;
+
       _stor[_storLen].error   = _OVSerate[_ovs[ii].dat.ovl.corr_erate];
       _stor[_storLen].a_hang  = _ovs[ii].dat.ovl.a_hang;
       _stor[_storLen].b_hang  = _ovs[ii].dat.ovl.b_hang;
       _stor[_storLen].flipped = _ovs[ii].dat.ovl.flipped;
       _stor[_storLen].b_iid   = _ovs[ii].b_iid;
+
+      _storLen++;
     }
   }
+
+  delete [] _ovs;
+  _ovs = NULL;
 }
 
 

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.8 2011-03-17 05:33:36 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.9 2011-04-04 14:25:31 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -148,9 +148,12 @@ main (int argc, char * argv []) {
   char      *ovlStoreReptPath       = NULL;
   char      *tigStorePath           = NULL;
 
-  double    erate                   = 0.015;
-  double    elimit                  = 0.0;
-  long      genome_size             = 0;
+  double    erateGraph              = 0.020;
+  double    elimitGraph             = 2.0;
+  double    erateMerge              = 0.045;
+  double    elimitMerge             = 4.0;
+
+  uint64    genomeSize              = 0;
 
   int       fragment_count_target   = 0;
   char     *output_prefix           = NULL;
@@ -193,14 +196,20 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-J") == 0) {
       enableJoining = true;
 
-    } else if (strcmp(argv[arg], "-e") == 0) {
-      erate = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-eg") == 0) {
+      erateGraph = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-E") == 0) {
-      elimit = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-Eg") == 0) {
+      elimitGraph = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-em") == 0) {
+      erateMerge = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-Em") == 0) {
+      elimitMerge = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-s") == 0) {
-      genome_size = atol(argv[++arg]);
+      genomeSize = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-D") == 0) {
       uint32  opt = 0;
@@ -255,9 +264,13 @@ main (int argc, char * argv []) {
     arg++;
   }
 
-  if ((erate < 0.0) || (AS_MAX_ERROR_RATE < erate))
+  if ((erateGraph < 0.0) || (AS_MAX_ERROR_RATE < erateGraph))
     err++;
-  if (elimit < 0.0)
+  if (elimitGraph < 0.0)
+    err++;
+  if ((erateMerge < 0.0) || (AS_MAX_ERROR_RATE < erateMerge))
+    err++;
+  if (elimitMerge < 0.0)
     err++;
   if (output_prefix == NULL)
     err++;
@@ -290,8 +303,14 @@ main (int argc, char * argv []) {
     fprintf(stderr, " \n");
     fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig if either of\n");
     fprintf(stderr, "                    the following conditions hold:\n");
-    fprintf(stderr, "  -e 0.015   no more than 0.015 fraction (1.5%%) error\n");
-    fprintf(stderr, "  -E 0       no more than 0 errors\n");
+    fprintf(stderr, "  When constructing the Best Overlap Graph and Promiscuous Unitigs ('g'raph):\n");
+    fprintf(stderr, "    -eg 0.020   no more than 0.020 fraction (2.0%%) error\n");
+    fprintf(stderr, "    -Eg 2       no more than 2 errors (useful with short reads)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  When popping bubbles and splitting repeat/unique junctions ('m'erging):\n");
+    fprintf(stderr, "    -em 0.045   no more than 0.045 fraction (4.5%%) error when bubble popping and repeat splitting\n");
+    fprintf(stderr, "    -Em 4       no more than r errors (useful with short reads)\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Debugging and Logging\n");
     fprintf(stderr, "\n");
@@ -300,12 +319,19 @@ main (int argc, char * argv []) {
       fprintf(stderr, "               %s\n", logFileFlagNames[l]);
     fprintf(stderr, "\n");
 
-    if ((erate < 0.0) || (AS_MAX_ERROR_RATE < erate))
-      fprintf(stderr, "Invalid overlap error threshold (-e option); must be between 0.00 and %.2f.\n",
+    if ((erateGraph < 0.0) || (AS_MAX_ERROR_RATE < erateGraph))
+      fprintf(stderr, "Invalid overlap error threshold (-eg option); must be between 0.00 and %.2f.\n",
               AS_MAX_ERROR_RATE);
 
-    if (elimit < 0.0)
-      fprintf(stderr, "Invalid overlap error limit (-E option); must be above 0.\n");
+    if (elimitGraph < 0.0)
+      fprintf(stderr, "Invalid overlap error limit (-Eg option); must be above 0.\n");
+
+    if ((erateMerge < 0.0) || (AS_MAX_ERROR_RATE < erateMerge))
+      fprintf(stderr, "Invalid overlap error threshold (-em option); must be between 0.00 and %.2f.\n",
+              AS_MAX_ERROR_RATE);
+
+    if (elimitMerge < 0.0)
+      fprintf(stderr, "Invalid overlap error limit (-Em option); must be above 0.\n");
 
     if (output_prefix == NULL)
       fprintf(stderr, "No output prefix name (-o option) supplied.\n");
@@ -329,9 +355,11 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Bubble popping        = %s\n", (popBubbles) ? "on" : "off");
   fprintf(stderr, "Intersection breaking = %s\n", (breakIntersections) ? "on" : "off");
   fprintf(stderr, "Intersection joining  = %s\n", (enableJoining) ? "on" : "off");
-  fprintf(stderr, "Error threshold       = %.3f (%.3f%%)\n", erate, erate * 100);
-  fprintf(stderr, "Error limit           = %.3f errors\n", elimit);
-  fprintf(stderr, "Genome Size           = "F_S64"\n", genome_size);
+  fprintf(stderr, "Graph error threshold = %.3f (%.3f%%)\n", erateGraph, erateGraph * 100);
+  fprintf(stderr, "Graph error limit     = %.3f errors\n", elimitGraph);
+  fprintf(stderr, "Merge error threshold = %.3f (%.3f%%)\n", erateMerge, erateMerge * 100);
+  fprintf(stderr, "Merge error limit     = %.3f errors\n", elimitMerge);
+  fprintf(stderr, "Genome Size           = "F_U64"\n", genomeSize);
   fprintf(stderr, "\n");
 
   for (uint64 i=0, j=1; i<64; i++, j<<=1)
@@ -343,8 +371,8 @@ main (int argc, char * argv []) {
   OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
   FI = new FragmentInfo(gkpStore, output_prefix);
-  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept);
-  OG = new BestOverlapGraph(erate, elimit, output_prefix);
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge));
+  OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
 
@@ -410,7 +438,7 @@ main (int argc, char * argv []) {
   //placeContainsUsingAllOverlaps(bool withMatesToNonContained,
   //                              bool withMatesToUnambiguousContain);
 
-  placeZombies(unitigs, erate, elimit);
+  placeZombies(unitigs, erateMerge, elimitMerge);
 
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "placeContainsZombies");
@@ -500,7 +528,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "output");
 
-  float globalARate = getGlobalArrivalRate(unitigs, gkpStore->gkStore_getNumRandomFragments(), genome_size);
+  float globalARate = getGlobalArrivalRate(unitigs, gkpStore->gkStore_getNumRandomFragments(), genomeSize);
   Unitig::setGlobalArrivalRate(globalARate);
 
   writeIUMtoFile(unitigs, output_prefix, tigStorePath, fragment_count_target);

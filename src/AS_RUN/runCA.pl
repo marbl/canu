@@ -4146,8 +4146,10 @@ sub unitigger () {
             $cmd .= " -G $wrk/$asm.gkpStore ";
             $cmd .= " -T $wrk/$asm.tigStore ";
             $cmd .= " -B $B ";
-            $cmd .= " -e $e ";
-            $cmd .= " -E $E ";
+            $cmd .= " -eg $e ";
+            $cmd .= " -Eg $E ";
+            $cmd .= " -em $e ";
+            $cmd .= " -Em $E ";
             $cmd .= " -s $l "   if (defined($l));
             $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
             $cmd .= " -U "      if ($u == 1);
