@@ -226,10 +226,22 @@ sub setDefaults () {
     $synops{"ovlErrorRate"}                = "Overlaps above this error rate are not computed";
 
     $global{"utgErrorRate"}                = 0.015;
-    $synops{"utgErrorRate"}                = "Overlaps above this error rate are not used to construct unitigs";
+    $synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
 
-    $global{"utgErrorLimit"}               = undef;
-    $synops{"utgErrorLimit"}               = "Overlaps with more than this number of errors are not used to construct unitigs";
+    $global{"utgErrorLimit"}               = 2.5;
+    $synops{"utgErrorLimit"}               = "Overlaps at or below this number of errors are used to construct unitigs (BOG and UTG)";
+
+    $global{"utgGraphErrorRate"}           = 0.030;
+    $synops{"utgGraphErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
+
+    $global{"utgGrapgErrorLimit"}          = 3.25;
+    $synops{"utgGraphErrorLimit"}          = "Overlaps at or below this number of errors are used to construct unitigs (BOGART)";
+
+    $global{"utgMergeErrorRate"}           = 0.045;
+    $synops{"utgMergeErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
+
+    $global{"utgMergeErrorLimit"}          = 5.25;
+    $synops{"utgMergeErrorLimit"}          = "Overlaps at or below this number of errors are used to construct unitigs (BOGART)";
 
     $global{"utgShortOverlapModelDefault"} = 2.5;
     $synops{"utgShortOverlapModelDefault"} = "If short overlap model is used, the default number of errors used to construct unitigs";
@@ -4127,9 +4139,13 @@ sub unitigger () {
 
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
-        my $l = getGlobal("utgGenomeSize");
-        my $e = getGlobal("utgErrorRate");
-        my $E = getGlobal("utgErrorLimit");
+        my $l  = getGlobal("utgGenomeSize");
+        my $e  = getGlobal("utgErrorRate");        #  Unitigger and BOG
+        my $E  = getGlobal("utgErrorLimit");
+        my $eg = getGlobal("utgGraphErrorRate");   #  BOGART
+        my $Eg = getGlobal("utgGraphErrorLimit");
+        my $em = getGlobal("utgMergeErrorRate");
+        my $Em = getGlobal("utgMergeErrorLimit");
 
         my $B = int($numFrags / getGlobal("cnsPartitions"));
         $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
@@ -4146,10 +4162,10 @@ sub unitigger () {
             $cmd .= " -G $wrk/$asm.gkpStore ";
             $cmd .= " -T $wrk/$asm.tigStore ";
             $cmd .= " -B $B ";
-            $cmd .= " -eg $e ";
-            $cmd .= " -Eg $E ";
-            $cmd .= " -em $e ";
-            $cmd .= " -Em $E ";
+            $cmd .= " -eg $eg ";
+            $cmd .= " -Eg $Eg ";
+            $cmd .= " -em $em ";
+            $cmd .= " -Em $Em ";
             $cmd .= " -s $l "   if (defined($l));
             $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
             $cmd .= " -U "      if ($u == 1);
