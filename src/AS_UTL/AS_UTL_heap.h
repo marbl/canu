@@ -22,32 +22,32 @@
 #ifndef AS_UTL_HEAP_H
 #define AS_UTL_HEAP_H
 
-static const char *rcsid_AS_UTL_HEAP_H = "$Id: AS_UTL_heap.h,v 1.10 2010-08-16 06:29:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_HEAP_H = "$Id: AS_UTL_heap.h,v 1.11 2011-04-04 19:24:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 
 typedef struct HeapArray {
   void              *array;          // pointer for array of generic objects
-  uint32             nextAvail;      // next available item, in issuing items
+  uint64             nextAvail;      // next available item, in issuing items
   struct HeapArray  *next;           // pointer to next array in linked list
 } HeapArray_AS;
 
 typedef struct {
   HeapArray_AS  *first;           // pointer to first array in set
   HeapArray_AS  *current;         // pointer to active array in set
-  uint32         items_per_block; // number of items to allocate in the next set
+  uint64         items_per_block; // number of items to allocate in the next set
   size_t         item_size;       // number of bytes per item
 } Heap_AS;
 
 typedef struct{
   Heap_AS      *heap;
   HeapArray_AS *array;
-  uint32        item;
+  uint64        item;
 } HeapIterator_AS;
 
-Heap_AS       *AllocateHeap_AS(size_t item_size, size_t items_per_block = 4096);
+Heap_AS       *AllocateHeap_AS(uint64 item_size, uint64 items_per_block = 4096);
 void          *GetHeapItem_AS(Heap_AS *heap);
-void          *GetHeapItems_AS(Heap_AS *heap, size_t num_items);
+void          *GetHeapItems_AS(Heap_AS *heap, uint64 num_items);
 void           FreeHeap_AS(Heap_AS *heap);
 void           ClearHeap_AS(Heap_AS *heap);
 

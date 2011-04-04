@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_heap.c,v 1.11 2010-08-16 06:29:00 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_heap.c,v 1.12 2011-04-04 19:24:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_heap.h"
@@ -32,7 +32,7 @@ static char *rcsid = "$Id: AS_UTL_heap.c,v 1.11 2010-08-16 06:29:00 brianwalenz 
 //  blocks.
 
 Heap_AS *
-AllocateHeap_AS(size_t item_size, size_t items_per_block) {
+AllocateHeap_AS(uint64 item_size, uint64 items_per_block) {
   Heap_AS *heap         = (Heap_AS *)safe_calloc(1, sizeof(Heap_AS));
   heap->items_per_block = items_per_block;
   heap->item_size       = item_size;
@@ -90,13 +90,13 @@ GetHeapItem_AS(Heap_AS *heap) {
     heap->current->next->array = safe_calloc(heap->items_per_block, heap->item_size);
     heap->current              = heap->current->next;
   }
-  size_t  na = heap->item_size * heap->current->nextAvail;
+  uint64  na = heap->item_size * heap->current->nextAvail;
   heap->current->nextAvail += 1;
   return(((char *)heap->current->array) + na);
 }
 
 void *
-GetHeapItems_AS(Heap_AS *heap, size_t num_items) {
+GetHeapItems_AS(Heap_AS *heap, uint64 num_items) {
   if (num_items > heap->items_per_block) {
     //  We'd love to allocate exactly the size needed for just the next block, leaving the
     //  default block size the same, but cannot.  So, we'll just double the items
@@ -115,7 +115,7 @@ GetHeapItems_AS(Heap_AS *heap, size_t num_items) {
     heap->current->next->array = safe_calloc(heap->items_per_block, heap->item_size);
     heap->current              = heap->current->next;
   }
-  size_t  na = heap->item_size * heap->current->nextAvail;
+  uint64  na = heap->item_size * heap->current->nextAvail;
   heap->current->nextAvail += num_items;
   return(((char *)heap->current->array) + na);
 }
