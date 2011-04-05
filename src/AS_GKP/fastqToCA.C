@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.11 2011-04-04 23:25:19 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.12 2011-04-05 01:51:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,6 +61,8 @@ main(int argc, char **argv) {
   char     *orientOuttie     = "outtie";
   char     *orient           = orientInnie;
 
+  bool      interlaced       = false;
+
   char    **fastq            = new char * [argc];
   int32     fastqLen         = 0;
 
@@ -86,6 +88,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-outtie") == 0) {
       orient = orientOuttie;
 
+    } else if (strcmp(argv[arg], "-interlaced") == 0) {
+      interlaced = true;
+
     } else if (strcmp(argv[arg], "-fastq") == 0) {
       fastq[fastqLen++] = argv[++arg];
 
@@ -107,6 +112,8 @@ main(int argc, char **argv) {
   if ((strcasecmp(type, "sanger") != 0) && (strcasecmp(type, "solexa") != 0) && (strcasecmp(type, "illumina") != 0))
     err++;
   if (fastqLen == 0)
+    err++;
+  if ((isMated == false) && (interlaced == true))
     err++;
 
   if (err) {
@@ -134,7 +141,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "                     mates into innie-oriented mates.  This trick only works if all reads are the\n");
     fprintf(stderr, "                     same length.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -fastq A           Single ended reads, in fastq format.\n");
+    fprintf(stderr, "  -interlaced        The paired reads come one after another in a single fastq file.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -fastq A           Single ended or interlaced paired end reads, in fastq format.\n");
     fprintf(stderr, "  -fastq A,B         Paired end reads, in fastq format.\n");
     fprintf(stderr, "\n");
 
@@ -148,6 +157,8 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR:  Invalid type '%s' supplied with -type.\n", type);
     if (fastqLen == 0)
       fprintf(stderr, "ERROR:  No reads supplied with -fastq.\n");
+    if ((isMated == false) && (interlaced == true))
+      fprintf(stderr, "ERROR:  Interlaced reads (-interlaced) must have am insert size (-insertsize).\n");
 
     exit(1);
   }
@@ -161,10 +172,12 @@ main(int argc, char **argv) {
       if (fastq[i][j] == ',')
         ncomma++;
 
-    if ((isMated == true)  && (ncomma != 1))
+    if ((isMated == true)  && (interlaced == false) && (ncomma != 1))
       fprintf(stderr, "ERROR:  Library is mated, but -fastq '%s' doesn't supply exactly two files.\n", fastq[i]), err++;
     if ((isMated == false) && (ncomma != 0))
       fprintf(stderr, "ERROR:  Library is unmated, but -fastq '%s' doesn't supply exactly one file.\n", fastq[i]), err++;
+    if ((interlaced == true) && (ncomma != 0))
+      fprintf(stderr, "ERROR:  Library is interlaced, but -fastq '%s' doesn't supply exactly one file.\n", fastq[i]), err++;
   }
 
   if (err)

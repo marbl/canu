@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.17 2011-03-31 15:25:19 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.18 2011-04-05 01:51:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -370,8 +370,12 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
   fprintf(stderr, "Processing %s %s reads from:\n",
           (fastqOrient == FASTQ_INNIE) ? "INNIE" : "OUTTIE",
           (fastqType   == FASTQ_ILLUMINA) ? "ILLUMINA 1.3+" : ((fastqType == FASTQ_SANGER) ? "SANGER" : "SOLEXA pre-1.3"));
-  fprintf(stderr, "      '%s'\n", lname);
-  fprintf(stderr, "  and '%s'\n", rname);
+  if (lname == rname) {
+    fprintf(stderr, "      '%s' (INTERLACED)\n", lname);
+  } else {
+    fprintf(stderr, "      '%s'\n", lname);
+    fprintf(stderr, "  and '%s'\n", rname);
+  }
 
   if (illuminaUIDmap == NULL) {
     errno = 0;
@@ -382,10 +386,16 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
     }
   }
 
-  FILE *lfile = NULL;
-  bool  lpipe = openFile(lname, lfile);
-  FILE *rfile = NULL;
-  bool  rpipe = openFile(rname, rfile);
+  FILE *lfile = NULL, *rfile = NULL;
+  bool  lpipe = false, rpipe = false;
+
+  if (lname == rname) {
+    lpipe = openFile(lname, lfile);
+    rfile = lfile;
+  } else {
+    lpipe = openFile(lname, lfile);
+    rpipe = openFile(rname, rfile);
+  }
 
   ilFragment  *lfrg = new ilFragment;
   ilFragment  *rfrg = new ilFragment;
@@ -435,8 +445,12 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
   delete lfrg;
   delete rfrg;
 
-  if (lpipe)  pclose(lfile);  else  fclose(lfile);
-  if (rpipe)  pclose(rfile);  else  fclose(rfile);
+  if (lname == rname) {
+    if (lpipe)  pclose(lfile);  else  fclose(lfile);
+  } else {
+    if (lpipe)  pclose(lfile);  else  fclose(lfile);
+    if (rpipe)  pclose(rfile);  else  fclose(rfile);
+  }
 }
 
 
@@ -534,13 +548,15 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
       while ((*sr) && (*sr != ','))
         sr++;
 
-      if (*sr) {
-        *sr = 0;
-        sr++;
+      if (*sr)
+        *sr++ = 0;
+
+      if ((*sr == 0) && (lib_mesg->mean > 0))
+        loadIlluminaReads(sl, sl, false, fastqType, fastqOrient);
+      else if (*sr)
         loadIlluminaReads(sl, sr, false, fastqType, fastqOrient);
-      } else {
+      else
         loadIlluminaReads(sl, false, fastqType, fastqOrient);
-      }
     }
 
     if (strcasecmp(lib_mesg->features[i], "illuminaSequence") == 0) {
@@ -550,13 +566,15 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
       while ((*sr) && (*sr != ','))
         sr++;
 
-      if (*sr) {
-        *sr = 0;
-        sr++;
+      if (*sr)
+        *sr++ = 0;
+
+      if ((*sr == 0) && (lib_mesg->mean > 0))
+        loadIlluminaReads(sl, sl, true, fastqType, fastqOrient);
+      else if (*sr)
         loadIlluminaReads(sl, sr, true, fastqType, fastqOrient);
-      } else {
+      else
         loadIlluminaReads(sl, true, fastqType, fastqOrient);
-      }
     }
   }
 }
