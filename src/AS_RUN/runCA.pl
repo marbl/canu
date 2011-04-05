@@ -234,7 +234,7 @@ sub setDefaults () {
     $global{"utgGraphErrorRate"}           = 0.030;
     $synops{"utgGraphErrorRate"}           = "Overlaps at or below this error rate are used to construct unitigs (BOGART)";
 
-    $global{"utgGrapgErrorLimit"}          = 3.25;
+    $global{"utgGraphErrorLimit"}          = 3.25;
     $synops{"utgGraphErrorLimit"}          = "Overlaps at or below this number of errors are used to construct unitigs (BOGART)";
 
     $global{"utgMergeErrorRate"}           = 0.045;
