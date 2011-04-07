@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.3 2011-04-04 14:25:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.4 2011-04-07 01:56:10 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -48,6 +48,11 @@ static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.3 2011-04-04 14:25:
 
 //  Define this to waste effort and return all placements for fragments.  This will just fail
 //  asserts here, but they're easy to rearrange and avoid.
+//
+//  Note that this returns different data, due to an unstable sort.  In particular, the
+//  overlapPlacement_byCluster sort only cares to group placements by cluster, the ordering within
+//  the cluster is not specified.
+//
 #define RETURN_ALL_PLACEMENTS 0
 
 class repeatUniqueJunction {
@@ -1077,7 +1082,7 @@ mergeSplitJoin(UnitigVector &unitigs) {
 
 #if 0
   {
-    Unitig        *target = unitigs[291];
+    Unitig        *target = unitigs[5];
 
     fprintf(logFile, "popBubbles()-- WORKING on unitig %d/"F_SIZE_T" with %ld fragments.\n",
             target->id(), unitigs.size(), target->ufpath.size());
@@ -1094,6 +1099,9 @@ mergeSplitJoin(UnitigVector &unitigs) {
     Unitig        *target = unitigs[ti];
 
     if (target == NULL)
+      continue;
+
+    if (target->ufpath.size() < 5)
       continue;
 
     fprintf(logFile, "popBubbles()-- WORKING on unitig %d/"F_SIZE_T" with %ld fragments.\n",

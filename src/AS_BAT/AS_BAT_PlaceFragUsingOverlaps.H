@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.6 2011-04-04 14:25:31 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.7 2011-04-07 01:56:10 brianwalenz Exp $";
 
 #include "AS_BAT_OverlapCache.H"
 
@@ -82,14 +82,10 @@ public:
 };
 
 
-//  Sort by:
-//    tigID
-//    orientation
-//    position
+//  Sort by:  tigID, orientation, position
 //
-//  The extra ovlID, aligned and errors are only to break ties.  Without them, byCluster() returns
-//  ties that change the results of RETURN_ALL_PLACEMENTS in AS_BAT_MergeSplitJoin.C
-//
+//  This sort is used to cluster the reads into overlapping regions.  We don't care
+//  about ties.
 inline
 bool
 overlapPlacement_byLocation(const overlapPlacement &A, const overlapPlacement &B) {
@@ -97,22 +93,19 @@ overlapPlacement_byLocation(const overlapPlacement &A, const overlapPlacement &B
     return(A.tigID < B.tigID);
   if (isReverse(A.position) != isReverse(B.position))
     return(isReverse(A.position) < isReverse(B.position));
-  if (A.position != B.position)
-    return(A.position < B.position);
-  if (A.ovlID != B.ovlID)
-    return(A.ovlID < B.ovlID);
-  if (A.aligned != B.aligned)
-    return(A.aligned < B.aligned);
-  return(A.errors < B.errors);
+  return(A.position < B.position);
 }
 
 
+//  Sort by:
+//    cluster
+//
+//  This sort is used to group reads by cluster.  We don't care about ties, but they
+//  can change the results if the input overlaps change.
 inline
 bool
 overlapPlacement_byCluster(const overlapPlacement &A, const overlapPlacement &B) {
-  if (A.clusterID != B.clusterID)
-    return(A.clusterID < B.clusterID);
-  return(overlapPlacement_byLocation(A, B));
+  return(A.clusterID < B.clusterID);
 }
 
 

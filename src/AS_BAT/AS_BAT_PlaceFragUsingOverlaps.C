@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.11 2011-04-04 14:25:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.12 2011-04-07 01:56:10 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -374,15 +374,16 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     bgnPoints.merge();
     endPoints.merge();
 
-    //  Now, assign each placement to a end-pair cluster based on the interval ID that the end point falls in.
+    //  Now, assign each placement to a end-pair cluster based on the interval ID that the end point
+    //  falls in.
     //
     //  count the number of fragments that hit each pair of points.  We can do this two ways:
     //    1)  With a list of point-pairs that we sort and count           -- O(n) size, O(n log n) time
     //    2)  With an array of all point-pairs that we increment directly -- O(p*p) size, O(n) time
     //  Typically, p is small.
     
-    int32   *pointPairCount = new int32 [bgnPoints.numberOfIntervals() * endPoints.numberOfIntervals()];
-    memset(pointPairCount, 0, sizeof(int32) * bgnPoints.numberOfIntervals() * endPoints.numberOfIntervals());
+    //int32   *pointPairCount = new int32 [bgnPoints.numberOfIntervals() * endPoints.numberOfIntervals()];
+    //memset(pointPairCount, 0, sizeof(int32) * bgnPoints.numberOfIntervals() * endPoints.numberOfIntervals());
 
     int32   numBgnPoints = bgnPoints.numberOfIntervals();
     int32   numEndPoints = endPoints.numberOfIntervals();
@@ -408,20 +409,22 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
         }
     }
 
-    //  Sort overlaps based on the bgnCluster/endCluster.
-
+      
     sort(ovlPlace + bgn, ovlPlace + end, overlapPlacement_byCluster);
 
-#ifdef VERBOSE
-    if (logFileFlagSet(LOG_PLACE_FRAG))
-      for (uint32 oo=bgn; oo<end; oo++)
-        fprintf(logFile, "overlapPlacement  frg %d tig %d position %d,%d errors %.2f covered %d,%d aligned %d\n",
-                ovlPlace[oo].frgID,
-                ovlPlace[oo].tigID,
-                ovlPlace[oo].position.bgn, ovlPlace[oo].position.end,
-                ovlPlace[oo].errors,
-                ovlPlace[oo].covered.bgn,  ovlPlace[oo].covered.end,
-                ovlPlace[oo].aligned);
+#if 0
+    fprintf(logFile, "POSTSORT\n");
+    for (uint32 oo=bgn; oo<end; oo++)
+      fprintf(logFile, "overlapPlacement [%d] cluster %d frg %d tig %d position %d,%d errors %.2f covered %d,%d aligned %d\n",
+              oo,
+              ovlPlace[oo].clusterID,
+              ovlPlace[oo].frgID,
+              ovlPlace[oo].tigID,
+              ovlPlace[oo].position.bgn, ovlPlace[oo].position.end,
+              ovlPlace[oo].errors,
+              ovlPlace[oo].covered.bgn,  ovlPlace[oo].covered.end,
+              ovlPlace[oo].aligned);
+    fflush(logFile);
 #endif
 
     //  Run through each 'cluster' and compute the placement.
