@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.26 2011-04-04 23:25:19 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.27 2011-04-07 01:58:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -146,8 +146,8 @@ revertClearRange(char *clearRegionName, char *gkpStoreName) {
     //  clear range to the value it already has?!) but it also updates the latest clear range to
     //  this value, which is what we want to do.
     //
-    if (((br != bl) ||
-        (er != el)) && (br <= er)) {
+    if (((br != bl) || (er != el)) &&
+        (br <= er)) {
       fr.gkFragment_setClearRegion(br, er, which);
       gkpStore->gkStore_setFragment(&fr);
     }
