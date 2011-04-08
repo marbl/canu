@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.12 2011-04-07 01:56:10 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.13 2011-04-08 19:40:07 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -59,7 +59,7 @@ placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
     return(false);
 
   op.frgID       = frag.ident;
-  op.ovlID       = ovl.b_iid;
+  op.refID       = ovl.b_iid;
   op.tigID       = utg->id();
   op.position    = frag.position;
   op.errors      = FI->fragmentLength(ovl.b_iid) * ovl.error;
@@ -75,9 +75,21 @@ placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
   if (op.position.bgn < op.position.end) {
     op.verified.bgn = op.position.bgn + op.covered.bgn;
     op.verified.end = op.position.bgn + op.covered.end;
+
+    if (op.verified.end > op.position.end)
+      op.verified.end = op.position.end;
+
+    assert(op.verified.bgn >= op.position.bgn);
+    assert(op.verified.end <= op.position.end);
   } else {
     op.verified.bgn = op.position.bgn - op.covered.bgn;
     op.verified.end = op.position.bgn - op.covered.end;
+
+    if (op.verified.end < op.position.end)
+      op.verified.end = op.position.end;
+
+    assert(op.verified.end >= op.position.end);
+    assert(op.verified.bgn <= op.position.bgn);
   }
 
   //  Disallow any placements that exceed the boundary of the unitig.  These cannot be confirmed
@@ -125,7 +137,7 @@ placeBcontainsA(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
     return(false);
 
   op.frgID       = frag.ident;
-  op.ovlID       = ovl.b_iid;
+  op.refID       = ovl.b_iid;
   op.tigID       = utg->id();
   op.position    = frag.position;
   op.errors      = FI->fragmentLength(ovl.a_iid) * ovl.error;
@@ -180,7 +192,7 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
   uint32  flen = FI->fragmentLength(ovl.a_iid);
 
   op.frgID       = frag.ident;
-  op.ovlID       = ovl.b_iid;
+  op.refID       = ovl.b_iid;
   op.tigID       = utg->id();
   op.position    = frag.position;
   op.errors      = olen * ovl.error;
@@ -193,9 +205,21 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
   if (op.position.bgn < op.position.end) {
     op.verified.bgn = op.position.bgn + op.covered.bgn;
     op.verified.end = op.position.bgn + op.covered.end;
+
+    if (op.verified.end > op.position.end)
+      op.verified.end = op.position.end;
+
+    assert(op.verified.bgn >= op.position.bgn);
+    assert(op.verified.end <= op.position.end);
   } else {
     op.verified.bgn = op.position.bgn - op.covered.bgn;
     op.verified.end = op.position.bgn - op.covered.end;
+
+    if (op.verified.end < op.position.end)
+      op.verified.end = op.position.end;
+
+    assert(op.verified.end >= op.position.end);
+    assert(op.verified.bgn <= op.position.bgn);
   }
 
   if ((MIN(op.position.bgn, op.position.end) < 0) ||
@@ -451,7 +475,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
       //              by (max-min) overlap position.
 
       op.frgID = frag.ident;
-      op.ovlID = ovlPlace[os].ovlID;
+      op.refID = ovlPlace[os].refID;
       op.tigID = ovlPlace[os].tigID;
 
       op.fCoverage   = 0.0;
@@ -507,7 +531,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
       FragmentEnd  lastEnd;
 
       for (uint32 oo=os; oo<oe; oo++) {
-        uint32   ordinal = destTig->pathPosition(ovlPlace[oo].ovlID);
+        uint32   ordinal = destTig->pathPosition(ovlPlace[oo].refID);
         ufNode  &ovlFrg  = destTig->ufpath[ordinal];
         uint32   minPos  = MIN(ovlFrg.position.bgn, ovlFrg.position.end);
         uint32   maxPos  = MAX(ovlFrg.position.bgn, ovlFrg.position.end);

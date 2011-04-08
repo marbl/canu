@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.7 2011-04-07 01:56:10 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.8 2011-04-08 19:40:07 brianwalenz Exp $";
 
 #include "AS_BAT_OverlapCache.H"
 
@@ -30,7 +30,7 @@ class overlapPlacement {
 public:
   overlapPlacement() {
     frgID                 = 0;
-    ovlID                 = 0;
+    refID                 = 0;
     
     tigID                 = 0;
     position.bgn          = 0;
@@ -59,11 +59,11 @@ public:
 
 public:
   uint32            frgID;      //  ID of the fragment this position is for.
-  uint32            ovlID;      //  ID if the fragment we used to place this frag.
+  uint32            refID;      //  ID if the fragment we used to place this frag (the reference).
 
   uint32            tigID;      //  Unitig ID of this placement
-  SeqInterval       position;   //  Unitig position of this placement
 
+  SeqInterval       position;   //  Unitig position of this placement
   SeqInterval       verified;   //  Unitig position of this placement, verified by overlaps
 
   double            bgnStdDev;  //  Standard deviation of position.bgn

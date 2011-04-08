@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.4 2011-04-07 01:56:10 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.5 2011-04-08 19:40:06 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -802,7 +802,7 @@ markRepeats(UnitigVector &unitigs,
 
 #if 1
       fprintf(logFile, "markRepeats()-- tig frag %8d ovl frag %8d %6d-%6d %5.2f%% tig pos %8d/%c' (%4d) %6d-%6d (%4d) %8d/%c'%s\n",
-              op[pl].ovlID, op[pl].frgID,
+              op[pl].refID, op[pl].frgID,
               op[pl].covered.bgn,
               op[pl].covered.end,
               op[pl].fCoverage * 100.0,
@@ -958,16 +958,16 @@ markRepeats(UnitigVector &unitigs,
 
       //  This placement is one that we care about.
 
-      uint32  ord = target->pathPosition(places[pl].ovlID);
+      uint32  ord = target->pathPosition(places[pl].refID);
       ufNode &frg = target->ufpath[ord];
       uint32  pos = MIN(frg.position.bgn, frg.position.end);
 
-      assert(frg.ident == places[pl].ovlID);
+      assert(frg.ident == places[pl].refID);
 
-      fprintf(logFile, "markRepeats()-- breakPt=%d verified=%d,%d ovlID=%d frgID=%d (tig %d len "F_SIZE_T") frgPos=%d,%d\n",
+      fprintf(logFile, "markRepeats()-- breakPt=%d verified=%d,%d refID=%d frgID=%d (tig %d len "F_SIZE_T") frgPos=%d,%d\n",
               breakPt,
               places[pl].verified.bgn, places[pl].verified.end,
-              places[pl].ovlID,
+              places[pl].refID,
               places[pl].frgID, Unitig::fragIn(places[pl].frgID), unitigs[Unitig::fragIn(places[pl].frgID)]->ufpath.size(),
               frg.position.bgn, frg.position.end);
 
