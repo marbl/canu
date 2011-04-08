@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.61 2011-03-08 21:03:22 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.62 2011-04-08 01:00:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -440,7 +440,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
       continue;
 
     AS_UID  fUID = fr.gkFragment_getReadUID();
-    AS_UID  mUID;
+    AS_UID  mUID = AS_UID_undefined();
 
     if (id2 > 0)
       mUID = gkp->gkStore_getIIDtoUID(id2, AS_IID_FRG);
@@ -469,7 +469,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
         seq[i] = tolower(seq[i]);
     }
 
-    AS_UTL_writeFastA(f, seq, rclr - lclr, 0,
+    AS_UTL_writeFastA(f, seq, len, 0,
                       ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
                       AS_UID_toString(fUID), id1,
                       AS_UID_toString(mUID), id2,
@@ -477,7 +477,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       AS_READ_CLEAR_NAMES[dumpClear], lclr, rclr,
                       fr.gkFragment_getIsDeleted());
 
-    AS_UTL_writeFastA(q, qlt, rclr - lclr, 0,
+    AS_UTL_writeFastA(q, qlt, len, 0,
                       ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
                       AS_UID_toString(fUID), id1,
                       AS_UID_toString(mUID), id2,
@@ -485,7 +485,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       AS_READ_CLEAR_NAMES[dumpClear], lclr, rclr,
                       fr.gkFragment_getIsDeleted());
 
-    AS_UTL_writeQVFastA(Q, qlt, rclr - lclr, 0,
+    AS_UTL_writeQVFastA(Q, qlt, len, 0,
                         ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
                         AS_UID_toString(fUID), id1,
                         AS_UID_toString(mUID), id2,
