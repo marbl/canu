@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.62 2011-04-08 01:00:41 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.63 2011-04-08 01:46:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -463,7 +463,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
     //  bases.
 
     if (dumpAllBases == true) {
-      for (int i=0; i<lclr; i++)
+      for (int i=0; i<=lclr; i++)
         seq[i] = tolower(seq[i]); 
       for (int i=rclr; seq[i]; i++)
         seq[i] = tolower(seq[i]);
