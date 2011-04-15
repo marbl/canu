@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.2 2011-02-28 17:18:06 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.3 2011-04-15 04:24:06 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -25,8 +25,9 @@ const char *mainid = "$Id: classifyMates.C,v 1.2 2011-02-28 17:18:06 brianwalenz
 
 #include <set>
 
-using namespace std;
+#include "sweatShop.H"
 
+using namespace std;
 
 bool   VERBOSE1 = false;
 bool   VERBOSE2 = false;
@@ -34,9 +35,8 @@ bool   VERBOSE3 = false;
 bool   VERBOSE4 = false;
 bool   VERBOSE5 = false;
 
-uint32 MINPATHLENGTH  = 100;
-uint32 MAXPATHLENGTH  = 500;
-uint32 MAXPATHDEPTH   =   4;
+#define NDISTD  6  //  Number of dovetail edges off each end
+#define NDISTC  5  //  Number of contains for each end
 
 
 class fragmentInfo {
@@ -46,7 +46,8 @@ public:
   ~fragmentInfo() {
   };
 
-  uint64  unused      : 16;
+  uint64  unused      : 15;
+  uint64  isBackbone  : 1;
   uint64  doSearch    : 1;
   uint64  clearLength : 15;
   uint64  mateIID     : 32;
@@ -114,9 +115,6 @@ public:
   //             at least this close to the end of the other fragment.
   //
   //  conrDist - Container overlaps (A contains B), likewise.
-
-#define NDISTD  2  //  Number of dovetail edges off each end
-#define NDISTC  5  //  Number of contains for each end
 
   int32   doveDist5arr[NDISTD];  //  scratch array for finding the nth largest distance
   int32   coneDist5arr[NDISTC];
@@ -262,50 +260,152 @@ public:
 };
 
 
-int
-main(int argc, char **argv) {
-  char      *gkpStorePath = NULL;
-  char      *ovlStorePath = NULL;
-  char      *resultsPath  = NULL;
-
-  argc = AS_configure(argc, argv);
-
-  int err = 0;
-  int arg = 1;
-  while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStorePath = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-O") == 0) {
-      ovlStorePath = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-o") == 0) {
-      resultsPath = argv[++arg];
-
-    } else {
-      err++;
-    }
-
-    arg++;
-  }
-  if (gkpStorePath == 0L)
-    fprintf(stderr, "No gatekeeper store (-G) supplied.\n"), err++;
-  if (ovlStorePath == 0L)
-    fprintf(stderr, "No overlap store (-O) supplied.\n"), err++;
-  if (resultsPath == 0L)
-    fprintf(stderr, "No results output (-o) supplied.\n"), err++;
-  if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -o resultsFile\n", argv[0]);
-    exit(1);
-  }
-
-  //  Open this EARLY so we can fail without loading fragments or overlaps.
-  errno = 0;
-  FILE          *resultsFile = fopen(resultsPath, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open results file '%s': %s\n", resultsPath, strerror(errno)), exit(1);
 
 
+
+
+
+
+
+class cmThreadData {
+public:
+  cmThreadData() {
+  };
+  ~cmThreadData() {
+  };
+
+  //  the arrays in cmComputation can be moved here
+};
+
+
+class cmComputation {
+public:
+  cmComputation(uint32 iid_) {
+    iid       = iid_;
+
+    pathDepth = 1;
+    pathFound = false;
+
+    memset(pathIID,  1024 * sizeof(uint32), 0);
+    memset(path5p3,  1024 * sizeof(uint32), 0);
+
+    memset(pathLen,  1024 * sizeof(uint32), 0);
+
+    memset(pathRoot, 1024 * sizeof(overlapInfo *), 0);
+    memset(pathPosn, 1024 * sizeof(uint32), 0);
+    memset(pathMaxp, 1024 * sizeof(uint32), 0);
+  };
+  ~cmComputation() {
+  };
+
+public:
+  uint32         iid;
+
+  uint32         pathDepth;
+  bool           pathFound;
+
+  uint32         pathIID[1024];   //  Fragment here
+  uint32         path5p3[1024];   //  Fragment here is 5' to 3'
+
+  uint32         pathLen[1024];   //  The length, in bp, of the path up till now
+
+  overlapInfo   *pathRoot[1024];  //  Root of the list of overlaps for this iid
+  uint32         pathPosn[1024];  //  Position we are at in the list of overlaps
+  uint32         pathMaxp[1024];  //  Number of ovelerlaps for this iid
+};
+
+
+class cmGlobalData {
+public:
+  cmGlobalData(FILE    *resultsFile_,
+               uint32   pathMin_,
+               uint32   pathMax_,
+               bool     pathInnie_,
+               uint32   depthMax_) {
+
+    resultsFile  = resultsFile_;
+
+    pathMin      = pathMin_;
+    pathMax      = pathMax_;
+    pathInnie    = pathInnie_;
+    depthMax     = depthMax_;
+
+    curFrag      = 0;
+    numFrags     = 0;
+    fi           = 0L;
+
+    oiPos        = 0L;
+    oiLen        = 0L;
+
+    oiStorageMax = 0;
+    oiStorageLen = 0;
+    oiStorageArr = 0L;
+    oiStorage    = 0L;
+  };
+
+  ~cmGlobalData() {
+    for (uint32 i=0; i<oiStorageMax; i++)
+      delete [] oiStorageArr[i];
+
+    delete [] oiPos;
+    delete [] oiLen;
+
+    delete [] oiStorageArr;
+
+    delete [] fi;
+  };
+
+  void   loadFragments(char    *gkpStorePath,
+                       bool     searchLibs,
+                       uint32  *searchLib,
+                       bool     backboneLibs,
+                       uint32  *backboneLib);
+
+  void   loadOverlaps(char   *ovlStorePath);
+
+  void   doSearch(cmComputation  *c,
+                  cmThreadData   *t);
+
+  //  Overlap storage.  Each fragment has an entry in oiPos that points to actual data in an array.
+  //  There are oiLen overlaps at this location.  The array is NOT contiguous.
+  //
+  //  oiStorage is a list of allocated memory.  We don't really need to keep the list around, but
+  //  we'll play nice and clean up at the end.  Each chunk of allocated memory holds a fixed number
+  //  of overlaps -- here, 128 million.  There are 1024 chunks, so we can store 128 billion
+  //  overlaps, far far more than any overlap store we've created (about 3.3TB of data).
+
+public:
+  FILE             *resultsFile;
+
+  uint32            pathMin;
+  uint32            pathMax;
+  bool              pathInnie;
+  uint32            depthMax;
+
+  uint32            curFrag;
+  uint32            numFrags;
+  fragmentInfo     *fi;
+
+  overlapInfo     **oiPos;  //  Pointer to start of overlaps for this frag
+  uint32           *oiLen;  //  Number of overlaps for this frag
+
+  uint32            oiStorageMax;
+  uint32            oiStorageLen;
+  overlapInfo     **oiStorageArr;
+  overlapInfo      *oiStorage;
+};
+
+
+
+
+
+
+void
+cmGlobalData::loadFragments(char    *gkpStorePath,
+                            bool     searchLibs,
+                            uint32  *searchLib,
+                            bool     backboneLibs,
+                            uint32  *backboneLib) {
 
   fprintf(stderr, "LOADING FRAGMENTS...\n");
 
@@ -313,9 +413,8 @@ main(int argc, char **argv) {
   gkStream         *gkpStream = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
   gkFragment        frg;
 
-  uint32            numFrags = gkpStore->gkStore_getNumFragments();
-
-  fragmentInfo     *fi = new fragmentInfo [numFrags + 1];
+  numFrags = gkpStore->gkStore_getNumFragments();
+  fi       = new fragmentInfo [numFrags + 1];
 
   memset(fi, 0, sizeof(fragmentInfo) * (numFrags + 1));
 
@@ -339,24 +438,30 @@ main(int argc, char **argv) {
 
 
     fi[fid].unused      = 0;
-    fi[fid].doSearch    = gkpStore->gkStore_getLibrary(lib)->doMerBasedTrimming;
+    fi[fid].doSearch    = 0;
     fi[fid].clearLength = cllen;
     fi[fid].mateIID     = frg.gkFragment_getMateIID();
+
+    if (searchLibs == false)
+      fi[fid].doSearch = gkpStore->gkStore_getLibrary(lib)->doMerBasedTrimming;
+    else
+      fi[fid].doSearch = searchLib[lib];
+
+    if (backboneLibs == false)
+      fi[fid].isBackbone = true;
+    else
+      fi[fid].isBackbone = backboneLib[lib];
   }
 
   delete gkpStream;
   delete gkpStore;
 
   fprintf(stderr, "LOADING FRAGMENTS...%u fragments loaded.\n", numFrags);
+}
 
 
-  //  Overlap storage.  Each fragment has an entry in oiPos that points to actual data in an array.
-  //  There are oiLen overlaps at this location.  The array is NOT contiguous.
-  //
-  //  oiStorage is a list of allocated memory.  We don't really need to keep the list around, but
-  //  we'll play nice and clean up at the end.  Each chunk of allocated memory holds a fixed number
-  //  of overlaps -- here, 128 million.  There are 1024 chunks, so we can store 128 billion
-  //  overlaps, far far more than any overlap store we've created (about 3.3TB of data).
+void
+cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
   fprintf(stderr, "LOADING OVERLAPS...\n");
 
@@ -367,16 +472,16 @@ main(int argc, char **argv) {
   OVSoverlap       *ovl    = new OVSoverlap [ovlMax];
 
 
-  overlapInfo     **oiPos = new overlapInfo * [numFrags + 1];  //  Pointer to start of overlaps for this frag
-  uint32           *oiLen = new uint32        [numFrags + 1];  //  Number of overlaps for this frag
+  oiPos = new overlapInfo * [numFrags + 1];  //  Pointer to start of overlaps for this frag
+  oiLen = new uint32        [numFrags + 1];  //  Number of overlaps for this frag
 
   memset(oiPos, 0, sizeof(overlapInfo) * (numFrags + 1));
   memset(oiLen, 0, sizeof(uint32)      * (numFrags + 1));
 
-  uint32            oiStorageMax = 1024;
-  uint32            oiStorageLen = 0;
-  overlapInfo     **oiStorageArr = new overlapInfo * [oiStorageMax];
-  overlapInfo      *oiStorage    = 0L;
+  oiStorageMax = 1024;
+  oiStorageLen = 0;
+  oiStorageArr = new overlapInfo * [oiStorageMax];
+  oiStorage    = 0L;
 
   memset(oiStorageArr, 0, sizeof(overlapInfo *) * oiStorageMax);
 
@@ -447,6 +552,14 @@ main(int argc, char **argv) {
         assert(0);
       }
 
+      //  If the user specified libraries for the backbone, ignore this overlap if either fragment
+      //  isn't in the backbone, and neither fragment is one we are searching.
+      //  
+      if (((fi[ovl[i].a_iid].isBackbone == false) || (fi[ovl[i].b_iid].isBackbone == false)) &&
+          (fi[ovl[i].a_iid].doSearch == false) &&
+          (fi[ovl[i].b_iid].doSearch == false))
+        saveOverlap = false;
+
       if (saveOverlap)
         //  Save the overlap, count how many to save so we can get space.
         oiLen[iid]++;
@@ -492,197 +605,336 @@ main(int argc, char **argv) {
 
   AS_OVS_closeOverlapStore(ovlStore);
 
+  delete [] ovl;
+
   fprintf(stderr, "\nLOADING OVERLAPS...%lu overlaps loaded.\n", numOvl);
+}
 
 
-  uint32         pathIID[1024] = {0};   //  Fragment here
-  uint32         path5p3[1024] = {0};   //  Fragment here is 5' to 3'
 
-  uint32         pathLen[1024] = {0};   //  The length, in bp, of the path up till now
+//  Attempt to find a path from the 5' end of this fragment to the 5' end of the next iid
+//         <---- -path- ---->
+//  If we find a path, declare this a PE and not a MP.
+//
+//  The search is depth first, stopping when we find a path, or when the path gets implausibly long.
+//
+void
+cmGlobalData::doSearch(cmComputation *c,
+                       cmThreadData  *t) {
+  bool         pathFound = false;
+  set<uint32>  visited5p3;
+  set<uint32>  visited3p5;
 
-  overlapInfo   *pathRoot[1024] = {0};  //  Root of the list of overlaps for this iid
-  uint32         pathPosn[1024] = {0};  //  Position we are at in the list of overlaps
-  uint32         pathMaxp[1024] = {0};  //  Number of ovelerlaps for this iid
+  //  If pathInnie == false, then we're attempting to find a path for outtie oriented fragments.
+  //  In this case, we start with the first fragment 5p3=false, and need to end with 5p3=true.
 
-  for (uint32 iid=1; iid<=numFrags; iid++) {
-    if (fi[iid].doSearch == false)
-      continue;
+  bool    bgn5p3 = (pathInnie == false) ? false : true;
+  bool    end5p3 = (pathInnie == false) ? true : false;
 
-    if (fi[iid].mateIID < iid)
-      continue;
+  c->pathDepth                  = 1;
 
-    //fprintf(stderr, "SEARCHING fragment %u\n", iid);
+  c->pathIID[c->pathDepth]  = c->iid;
+  c->path5p3[c->pathDepth]  = bgn5p3;
+  c->pathLen[c->pathDepth]  = fi[c->iid].clearLength;
+  c->pathRoot[c->pathDepth] = oiPos[c->iid];
+  c->pathPosn[c->pathDepth] = 0;
+  c->pathMaxp[c->pathDepth] = oiLen[c->iid];
 
-    //  Attempt to find a path from the 5' end of this fragment to the 5' end of the next iid
-    //         <---- -path- ---->
-    //  If we find a path, declare this a PE and not a MP.
-    //
-    //  The search is depth first, stopping when we find a path, or when the path gets implausibly long.
+  //if (VERBOSE1)
+  //  fprintf(stderr, "FRAG %5u/%s with %5u overlaps (len %u).\n",
+  //          iid, (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'", oiLen[iid], c->pathLen[c->pathDepth]);
 
-    bool         pathFound = false;
-    set<uint32>  visited5p3;
-    set<uint32>  visited3p5;
+  while (c->pathDepth > 0) {
+    while (c->pathPosn[c->pathDepth] < c->pathMaxp[c->pathDepth]) {
 
-    uint32       pathDepth = 1;
+      //
+      //  If we've already seen this fragment in this orientation, get out of here.
+      //
 
-    pathIID[pathDepth]  = iid;
-    path5p3[pathDepth]  = false;
-    pathLen[pathDepth]  = fi[iid].clearLength;
-    pathRoot[pathDepth] = oiPos[iid];
-    pathPosn[pathDepth] = 0;
-    pathMaxp[pathDepth] = oiLen[iid];
+      set<uint32> &visited = (c->path5p3[c->pathDepth] == true) ? visited5p3 : visited3p5;
 
-    if (VERBOSE1)
-      fprintf(stderr, "FRAG %5u/%s with %5u overlaps (len %u).\n",
-              iid, (path5p3[pathDepth] == true) ? "5'3'" : "3'5'", oiLen[iid], pathLen[pathDepth]);
+      if (visited.find(c->pathIID[c->pathDepth]) != visited.end()) {
+        //if (VERBOSE2)
+        //  fprintf(stderr, "DONE %5u/%s\n", c->pathIID[c->pathDepth], (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'");
 
-    while (pathDepth > 0) {
-      while (pathPosn[pathDepth] < pathMaxp[pathDepth]) {
-
-        //
-        //  If we've already seen this fragment in this orientation, get out of here.
-        //
-
-        set<uint32> &visited = (path5p3[pathDepth] == true) ? visited5p3 : visited3p5;
-
-        if (visited.find(pathIID[pathDepth]) != visited.end()) {
-          if (VERBOSE2)
-            fprintf(stderr, "DONE %5u/%s\n", pathIID[pathDepth], (path5p3[pathDepth] == true) ? "5'3'" : "3'5'");
-
-          pathPosn[pathDepth]++;
-          continue;
-        }
-
-        //
-        //  Are we finished??
-        //
-
-        if ((pathIID[pathDepth] == fi[iid].mateIID) &&
-            (path5p3[pathDepth] == true) &&
-            (pathLen[pathDepth] >= MINPATHLENGTH) &&
-            (pathLen[pathDepth] <= MAXPATHLENGTH)) {
-          fprintf(resultsFile, "Path from %d/%s to %d/%s found at depth %d of length %d.\n",
-                  iid, (path5p3[1] == true) ? "5'3'" : "3'5'", 
-                  pathIID[pathDepth], (path5p3[pathDepth] == true) ? "5'3'" : "3'5'", pathDepth, pathLen[pathDepth]);
-          pathFound = true;
-          pathDepth = 1;
-          break;
-        }
-
-        //
-        //  Try extending into the fragment at this overlap
-        //
-
-        overlapInfo  *novl = pathRoot[pathDepth] + pathPosn[pathDepth];
-
-        uint32        niid = novl->iid;                                                         //  Next fragment
-        bool          n5p3 = (novl->flipped) ? (!path5p3[pathDepth]) : (path5p3[pathDepth]);    //  Next fragment orientation;
-        uint32        nlen = 0;                                                                 //  New length of the path, if zero, can't extend
-
-        if (VERBOSE3)
-          fprintf(stderr, "TRY  %5u/%s -> %5u/%s.\n",
-                  pathIID[pathDepth], (path5p3[pathDepth] == true) ? "5'3'" : "3'5'",
-                  niid,               (n5p3               == true) ? "5'3'" : "3'5'");
-
-        //  Frag is forward, overlap is same, hang is positive
-        if ((path5p3[pathDepth] == true) && (novl->flipped == false)) {
-          nlen = pathLen[pathDepth] + novl->bhang;
-          assert(n5p3 == true);
-        }
-
-        //  Frag is forward, overlap is flipped, hang is positive
-        if ((path5p3[pathDepth] == true) && (novl->flipped == true)) {
-          nlen = pathLen[pathDepth] + novl->bhang;
-          assert(n5p3 == false);
-        }
-
-        //  Frag is reverse, overlap is same, hang is positive
-        if ((path5p3[pathDepth] == false) && (novl->flipped == false)) {
-          nlen = pathLen[pathDepth] + -novl->ahang;
-          assert(n5p3 == false);
-        }
-
-        //  Frag is reverse, overlap is flipped, hang is positive
-        if ((path5p3[pathDepth] == false) && (novl->flipped == true)) {
-          nlen = pathLen[pathDepth] + -novl->ahang;
-          assert(n5p3 == true);
-        }
-
-        //
-        //  Are we _now_ finished?  This duplicates the test above, and ALSO tests contained
-        //  overlaps that we do not extend into (when nlen <= pathLen).
-        //
-
-        if ((niid == fi[iid].mateIID) &&
-            (n5p3 == true) &&
-            (nlen >= MINPATHLENGTH) &&
-            (nlen <= MAXPATHLENGTH)) {
-          fprintf(resultsFile, "Path from %d/%s to %d/%s found at depth %d of length %d.\n",
-                  iid, (path5p3[1] == true) ? "5'3'" : "3'5'", 
-                  niid, (n5p3 == true) ? "5'3'" : "3'5'", pathDepth+1, nlen);
-          pathFound = true;
-          pathDepth = 1;
-          break;
-        }
-
-        //
-        //  If the length is not too large, extend into it, otherwise, try the next fragment.
-        //
-
-        if ((nlen      >  pathLen[pathDepth]) &&
-            (nlen      <= MAXPATHLENGTH) &&
-            (pathDepth <= MAXPATHDEPTH)) {
-          pathDepth++;
-
-          pathIID[pathDepth]  = niid;
-          path5p3[pathDepth]  = n5p3;
-          pathLen[pathDepth]  = nlen;
-          pathRoot[pathDepth] = oiPos[niid];
-          pathPosn[pathDepth] = 0;
-          pathMaxp[pathDepth] = oiLen[niid];
-
-          if (VERBOSE4)
-            fprintf(stderr, "WALK %5u/%s with %5u overlaps at depth %2u of length %5d.\n",
-                    pathIID[pathDepth], (path5p3[pathDepth] == true) ? "5'3'" : "3'5'",
-                    pathMaxp[pathDepth], pathDepth, pathLen[pathDepth]);
-
-          continue;
-        }
-
-        if (VERBOSE5)
-          fprintf(stderr, "ABRT %5u/%s\n", pathIID[pathDepth], (path5p3[pathDepth] == true) ? "5'3'" : "3'5'");
-
-        //  Move to the next overlap for this fragment.
-        pathPosn[pathDepth]++;
+        c->pathPosn[c->pathDepth]++;
+        continue;
       }
 
-      //  We've exhausted the paths for this fragment.  Mark it finished and back up one.
+      //
+      //  Are we finished??
+      //
 
-      set<uint32> &visited = (path5p3[pathDepth] == true) ? visited5p3 : visited3p5;
-      visited.insert(pathIID[pathDepth]);
+      if ((c->pathIID[c->pathDepth] == fi[c->iid].mateIID) &&
+          (c->path5p3[c->pathDepth] == end5p3) &&
+          (c->pathLen[c->pathDepth] >= pathMin) &&
+          (c->pathLen[c->pathDepth] <= pathMax)) {
+        c->pathFound = true;
+        return;
+      }
 
-      pathDepth--;
-      pathPosn[pathDepth]++;
+      //
+      //  Try extending into the fragment at this overlap
+      //
+
+      overlapInfo  *novl = c->pathRoot[c->pathDepth] + c->pathPosn[c->pathDepth];
+
+      uint32        niid = novl->iid;                                                         //  Next fragment
+      bool          n5p3 = (novl->flipped) ? (!c->path5p3[c->pathDepth]) : (c->path5p3[c->pathDepth]);    //  Next fragment orientation;
+      uint32        nlen = 0;                                                                 //  New length of the path, if zero, can't extend
+
+      //if (VERBOSE3)
+      //  fprintf(stderr, "TRY  %5u/%s -> %5u/%s.\n",
+      //          c->pathIID[c->pathDepth], (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'",
+      //          niid,               (n5p3               == true) ? "5'3'" : "3'5'");
+
+      //  Frag is forward, overlap is same, hang is positive
+      if ((c->path5p3[c->pathDepth] == true) && (novl->flipped == false)) {
+        nlen = c->pathLen[c->pathDepth] + novl->bhang;
+        assert(n5p3 == true);
+      }
+
+      //  Frag is forward, overlap is flipped, hang is positive
+      if ((c->path5p3[c->pathDepth] == true) && (novl->flipped == true)) {
+        nlen = c->pathLen[c->pathDepth] + novl->bhang;
+        assert(n5p3 == false);
+      }
+
+      //  Frag is reverse, overlap is same, hang is positive
+      if ((c->path5p3[c->pathDepth] == false) && (novl->flipped == false)) {
+        nlen = c->pathLen[c->pathDepth] + -novl->ahang;
+        assert(n5p3 == false);
+      }
+
+      //  Frag is reverse, overlap is flipped, hang is positive
+      if ((c->path5p3[c->pathDepth] == false) && (novl->flipped == true)) {
+        nlen = c->pathLen[c->pathDepth] + -novl->ahang;
+        assert(n5p3 == true);
+      }
+
+      //
+      //  Are we _now_ finished?  This duplicates the test above, and ALSO tests contained
+      //  overlaps that we do not extend into (when nlen <= pathLen).
+      //
+
+      if ((niid == fi[c->iid].mateIID) &&
+          (n5p3 == end5p3) &&
+          (nlen >= pathMin) &&
+          (nlen <= pathMax)) {
+        c->pathDepth++;
+
+        c->pathIID[c->pathDepth]  = niid;
+        c->path5p3[c->pathDepth]  = n5p3;
+        c->pathLen[c->pathDepth]  = nlen;
+        c->pathRoot[c->pathDepth] = oiPos[niid];
+        c->pathPosn[c->pathDepth] = 0;
+        c->pathMaxp[c->pathDepth] = oiLen[niid];
+
+        c->pathFound = true;
+        return;
+      }
+
+      //
+      //  If the length is not too large, extend into it, otherwise, try the next fragment.
+      //
+
+      if ((nlen      >  c->pathLen[c->pathDepth]) &&
+          (nlen      <= pathMax) &&
+          (c->pathDepth <= depthMax)) {
+        c->pathDepth++;
+
+        c->pathIID[c->pathDepth]  = niid;
+        c->path5p3[c->pathDepth]  = n5p3;
+        c->pathLen[c->pathDepth]  = nlen;
+        c->pathRoot[c->pathDepth] = oiPos[niid];
+        c->pathPosn[c->pathDepth] = 0;
+        c->pathMaxp[c->pathDepth] = oiLen[niid];
+
+        //if (VERBOSE4)
+        //  fprintf(stderr, "WALK %5u/%s with %5u overlaps at depth %2u of length %5d.\n",
+        //          c->pathIID[c->pathDepth], (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'",
+        //          c->pathMaxp[c->pathDepth], c->pathDepth, c->pathLen[c->pathDepth]);
+
+        continue;
+      }
+
+      //if (VERBOSE5)
+      //  fprintf(stderr, "ABRT %5u/%s\n", c->pathIID[c->pathDepth], (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'");
+
+      //  Move to the next overlap for this fragment.
+      c->pathPosn[c->pathDepth]++;
     }
 
-#if 1
-    if (pathFound == false)
-      fprintf(resultsFile, "Path from %d/%s NOT FOUND.\n",
-              iid, (path5p3[1] == true) ? "5'3'" : "3'5'");
-#endif
+    //  We've exhausted the paths for this fragment.  Mark it finished and back up one.
+
+    set<uint32> &visited = (c->path5p3[c->pathDepth] == true) ? visited5p3 : visited3p5;
+    visited.insert(c->pathIID[c->pathDepth]);
+
+    c->pathDepth--;
+    c->pathPosn[c->pathDepth]++;
   }
+
+  c->pathFound = false;
+  return;
+}
+
+
+
+
+
+
+void
+cmWorker(void *G, void *T, void *S) {
+  cmGlobalData    *g = (cmGlobalData  *)G;
+  cmThreadData    *t = (cmThreadData  *)T;
+  cmComputation   *s = (cmComputation *)S;
+
+  g->doSearch(s, t);
+}
+
+
+void *
+cmReader(void *G) {
+  cmGlobalData    *g = (cmGlobalData  *)G;
+  cmComputation   *s = NULL;
+
+  for (; g->curFrag < g->numFrags; g->curFrag++) {
+    if (g->fi[g->curFrag].doSearch == false)
+      continue;
+
+    if (g->fi[g->curFrag].mateIID == 0)
+      continue;
+
+    if (g->fi[g->curFrag].mateIID < g->curFrag)
+      continue;
+
+    s = new cmComputation(g->curFrag++);
+
+    break;
+  }
+
+  return(s);
+}
+
+
+
+void
+cmWriter(void *G, void *S) {
+  cmGlobalData    *g = (cmGlobalData  *)G;
+  cmComputation   *s = (cmComputation *)S;
+
+  if (s->pathFound == true)
+    fprintf(g->resultsFile, "Path from %d/%s to %d/%s found at depth %d of length %d.\n",
+            s->iid, (s->path5p3[1] == true) ? "5'3'" : "3'5'", 
+            s->pathIID[s->pathDepth], (s->path5p3[s->pathDepth] == true) ? "5'3'" : "3'5'", s->pathDepth, s->pathLen[s->pathDepth]);
+  else
+    fprintf(g->resultsFile, "Path from %d/%s NOT FOUND.\n",
+            s->iid, (s->path5p3[1] == true) ? "5'3'" : "3'5'");
+
+  delete s;
+}
+
+
+
+
+int
+main(int argc, char **argv) {
+  char      *gkpStorePath      = NULL;
+  char      *ovlStorePath      = NULL;
+  char      *resultsPath       = NULL;
+
+  uint32     pathMin           = 500;    //  100
+  uint32     pathMax           = 6000;   //  800
+  bool       pathInnie         = false;  //  require mates to be innie
+
+  uint32     depthMax          = 20;     //  100
+
+  bool       searchLibs        = false;
+  uint32     searchLib[1024]   = {0};
+
+  bool       backboneLibs      = false;
+  uint32     backboneLib[1024] = {0};
+
+  argc = AS_configure(argc, argv);
+
+  int err = 0;
+  int arg = 1;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-G") == 0) {
+      gkpStorePath = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      ovlStorePath = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      resultsPath = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-sl") == 0) {
+      searchLibs = true;
+      searchLib[atoi(argv[++arg])] = 1;
+      
+    } else if (strcmp(argv[arg], "-bl") == 0) {
+      backboneLibs = true;
+      backboneLib[atoi(argv[++arg])] = 1;
+
+    } else if (strcmp(argv[arg], "-min") == 0) {
+      pathMin = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-max") == 0) {
+      pathMax = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-innie") == 0) {
+      pathInnie = true;
+
+    } else if (strcmp(argv[arg], "-outtie") == 0) {
+      pathInnie = false;
+
+    } else if (strcmp(argv[arg], "-depth") == 0) {
+      depthMax = atoi(argv[++arg]);
+
+    } else {
+      fprintf(stderr, "unknown option '%s'\n", argv[arg]);
+      err++;
+    }
+
+    arg++;
+  }
+  if (gkpStorePath == 0L)
+    fprintf(stderr, "No gatekeeper store (-G) supplied.\n"), err++;
+  if (ovlStorePath == 0L)
+    fprintf(stderr, "No overlap store (-O) supplied.\n"), err++;
+  if (resultsPath == 0L)
+    fprintf(stderr, "No results output (-o) supplied.\n"), err++;
+  if (err) {
+    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -o resultsFile\n", argv[0]);
+    exit(1);
+  }
+
+  //  Open this EARLY so we can fail without loading fragments or overlaps.
+  errno = 0;
+  FILE          *resultsFile = fopen(resultsPath, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open results file '%s': %s\n", resultsPath, strerror(errno)), exit(1);
+
+
+  cmGlobalData  *g = new cmGlobalData(resultsFile, pathMin, pathMax, pathInnie, depthMax);
+
+  g->loadFragments(gkpStorePath, searchLibs, searchLib, backboneLibs, backboneLib);
+  g->loadOverlaps(ovlStorePath);
+
+  sweatShop *ss = new sweatShop(cmReader, cmWorker, cmWriter);
+
+  ss->setLoaderQueueSize(16384);
+  ss->setWriterQueueSize(1024);
+
+  ss->setNumberOfWorkers(4);
+
+  for (u32bit w=0; w<4; w++)
+    ss->setThreadData(w, new cmThreadData());  //  these leak
+
+  ss->run(g, true);
 
   fclose(resultsFile);
 
-  for (uint32 i=0; i<oiStorageMax; i++)
-    delete [] oiStorageArr[i];
-
-  delete [] oiStorageArr;
-
-  delete [] oiPos;
-  delete [] oiLen;
-
-  delete [] ovl;
-
-  delete [] fi;
+  delete g;
 }
