@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.3 2011-04-15 04:24:06 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.4 2011-04-15 05:02:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -872,10 +872,32 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-sl") == 0) {
       searchLibs = true;
       searchLib[atoi(argv[++arg])] = 1;
+
+      char *a = argv[arg];
+      char *b = strchr(a, '-');
+
+      if (b) {
+        uint32 bgn = atoi(a);
+        uint32 end = atoi(b+1);
+
+        for (uint32 i=bgn; i<=end; i++)
+          searchLib[i] = 1;
+      }
       
     } else if (strcmp(argv[arg], "-bl") == 0) {
       backboneLibs = true;
       backboneLib[atoi(argv[++arg])] = 1;
+
+      char *a = argv[arg];
+      char *b = strchr(a, '-');
+
+      if (b) {
+        uint32 bgn = atoi(a);
+        uint32 end = atoi(b+1);
+
+        for (uint32 i=bgn; i<=end; i++)
+          backboneLib[i] = 1;
+      }
 
     } else if (strcmp(argv[arg], "-min") == 0) {
       pathMin = atoi(argv[++arg]);
@@ -906,7 +928,19 @@ main(int argc, char **argv) {
   if (resultsPath == 0L)
     fprintf(stderr, "No results output (-o) supplied.\n"), err++;
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -o resultsFile\n", argv[0]);
+    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -o resultsFile ...\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -sl l[-m]    Search for mates in libraries l-m\n");
+    fprintf(stderr, "  -bl l[-m]    Use libraries l-m for searching\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -min m       Mates must be at least m bases apart\n");
+    fprintf(stderr, "  -max m       Mates must be at most m bases apart\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -innie       Mates must be innie\n");
+    fprintf(stderr, "  -outtie      Mates must be outtie\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -depth d     Search to at most d overlaps\n");
+    fprintf(stderr, "\n");
     exit(1);
   }
 
