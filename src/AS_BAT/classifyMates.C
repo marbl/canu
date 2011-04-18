@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.4 2011-04-15 05:02:29 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.5 2011-04-18 01:23:09 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -29,14 +29,8 @@ const char *mainid = "$Id: classifyMates.C,v 1.4 2011-04-15 05:02:29 brianwalenz
 
 using namespace std;
 
-bool   VERBOSE1 = false;
-bool   VERBOSE2 = false;
-bool   VERBOSE3 = false;
-bool   VERBOSE4 = false;
-bool   VERBOSE5 = false;
-
-#define NDISTD  6  //  Number of dovetail edges off each end
-#define NDISTC  5  //  Number of contains for each end
+#define NDISTD   2  //  Number of dovetail edges off each end
+#define NDISTC   8  //  Number of contains for each end
 
 
 class fragmentInfo {
@@ -248,15 +242,7 @@ public:
     doveDist3 = doveDist3arr[NDISTD-1];
     coneDist3 = coneDist3arr[NDISTC-1];
     conrDist3 = conrDist3arr[NDISTC-1];
-
-#if 0
-    fprintf(stderr, "IID %8d  dove %3d,%3d  cone %3d,%3d  conr %3d,%3d\n",
-            ovl[0].a_iid,
-            doveDist5, doveDist3,
-            coneDist5, coneDist3,
-            conrDist5, conrDist3);
-#endif
-  };
+  }
 };
 
 
@@ -317,22 +303,31 @@ public:
 
 class cmGlobalData {
 public:
-  cmGlobalData(FILE    *resultsFile_,
+  cmGlobalData(char    *resultsPath_,
                uint32   pathMin_,
                uint32   pathMax_,
                bool     pathInnie_,
                uint32   depthMax_) {
 
-    resultsFile  = resultsFile_;
+    strcpy(resultsPrefix, resultsPath_);
+
+    //  Open this EARLY so we can fail without loading fragments or overlaps.
+    errno = 0;
+    resultsFile = fopen(resultsPath_, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open results file '%s': %s\n", resultsPath_, strerror(errno)), exit(1);
 
     pathMin      = pathMin_;
     pathMax      = pathMax_;
     pathInnie    = pathInnie_;
     depthMax     = depthMax_;
 
-    curFrag      = 0;
     numFrags     = 0;
     fi           = 0L;
+
+    curFragIID   = 0;
+    minFragIID   = UINT32_MAX;
+    maxFragIID   = 0;
 
     oiPos        = 0L;
     oiLen        = 0L;
@@ -344,6 +339,9 @@ public:
   };
 
   ~cmGlobalData() {
+
+    fclose(resultsFile);
+
     for (uint32 i=0; i<oiStorageMax; i++)
       delete [] oiStorageArr[i];
 
@@ -375,6 +373,7 @@ public:
   //  overlaps, far far more than any overlap store we've created (about 3.3TB of data).
 
 public:
+  char              resultsPrefix[FILENAME_MAX];
   FILE             *resultsFile;
 
   uint32            pathMin;
@@ -382,9 +381,12 @@ public:
   bool              pathInnie;
   uint32            depthMax;
 
-  uint32            curFrag;
   uint32            numFrags;
   fragmentInfo     *fi;
+
+  uint32            curFragIID;
+  uint32            minFragIID;
+  uint32            maxFragIID;
 
   overlapInfo     **oiPos;  //  Pointer to start of overlaps for this frag
   uint32           *oiLen;  //  Number of overlaps for this frag
@@ -418,39 +420,62 @@ cmGlobalData::loadFragments(char    *gkpStorePath,
 
   memset(fi, 0, sizeof(fragmentInfo) * (numFrags + 1));
 
-  //  CHANGE CLEAR RANGE FOR PRODUCTION!  We need some way of asking if
-  //  a clear range exists.  For now, we'll use a not-so-good method.
+  char  cacheName[FILENAME_MAX];
+  sprintf(cacheName, "%s.fi", resultsPrefix);
 
-  while (gkpStream->next(&frg)) {
-    uint32 fid = frg.gkFragment_getReadIID();
-    uint32 lib = frg.gkFragment_getLibraryIID();
+  if (AS_UTL_fileExists(cacheName, FALSE, TRUE)) {
+    fprintf(stderr, "LOADING FRAGMENTS...(from cache)\n");
 
-    uint32  clobt = frg.gkFragment_getClearRegionEnd(AS_READ_CLEAR_OBTCHIMERA);
-    uint32  cllat = frg.gkFragment_getClearRegionEnd(AS_READ_CLEAR_LATEST);
-    uint32  cllen = 0;
+    FILE *F = fopen(cacheName, "r");
+    AS_UTL_safeRead(F, &minFragIID, "minFragIID", sizeof(uint32),       1);
+    AS_UTL_safeRead(F, &maxFragIID, "maxFragIID", sizeof(uint32),       1);
+    AS_UTL_safeRead(F,  fi,         "fi",         sizeof(fragmentInfo), numFrags+1);
+    fclose(F);
+  } else {
+    //  CHANGE CLEAR RANGE FOR PRODUCTION!  We need some way of asking if
+    //  a clear range exists.  For now, we'll use a not-so-good method.
 
-    if ((clobt == 0) && (cllat != 0))
-      //  OBT doesn't exist, but latest does.
-      cllen = frg.gkFragment_getClearRegionLength(AS_READ_CLEAR_LATEST);
-    else
-      //  OBT exists.
-      cllen = frg.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTCHIMERA);
+    while (gkpStream->next(&frg)) {
+      uint32 fid = frg.gkFragment_getReadIID();
+      uint32 lib = frg.gkFragment_getLibraryIID();
 
+      uint32  clobt = frg.gkFragment_getClearRegionEnd(AS_READ_CLEAR_OBTCHIMERA);
+      uint32  cllat = frg.gkFragment_getClearRegionEnd(AS_READ_CLEAR_LATEST);
+      uint32  cllen = 0;
 
-    fi[fid].unused      = 0;
-    fi[fid].doSearch    = 0;
-    fi[fid].clearLength = cllen;
-    fi[fid].mateIID     = frg.gkFragment_getMateIID();
+      if ((clobt == 0) && (cllat != 0))
+        //  OBT doesn't exist, but latest does.
+        cllen = frg.gkFragment_getClearRegionLength(AS_READ_CLEAR_LATEST);
+      else
+        //  OBT exists.
+        cllen = frg.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTCHIMERA);
 
-    if (searchLibs == false)
-      fi[fid].doSearch = gkpStore->gkStore_getLibrary(lib)->doMerBasedTrimming;
-    else
-      fi[fid].doSearch = searchLib[lib];
+      fi[fid].unused      = 0;
+      fi[fid].doSearch    = 0;
+      fi[fid].clearLength = cllen;
+      fi[fid].mateIID     = frg.gkFragment_getMateIID();
 
-    if (backboneLibs == false)
-      fi[fid].isBackbone = true;
-    else
-      fi[fid].isBackbone = backboneLib[lib];
+      if (searchLibs == false)
+        fi[fid].doSearch = gkpStore->gkStore_getLibrary(lib)->doMerBasedTrimming;
+      else
+        fi[fid].doSearch = searchLib[lib];
+
+      if (backboneLibs == false)
+        fi[fid].isBackbone = true;
+      else
+        fi[fid].isBackbone = backboneLib[lib];
+
+      if ((fi[fid].doSearch || fi[fid].isBackbone) && (fid < minFragIID))
+        minFragIID = fid;
+      if ((fi[fid].doSearch || fi[fid].isBackbone) && (maxFragIID < fid))
+        maxFragIID = fid;
+    }
+
+    FILE *F = fopen(cacheName, "w");
+    AS_UTL_safeWrite(F, &minFragIID, "minFragIID", sizeof(uint32),       1);
+    AS_UTL_safeWrite(F, &maxFragIID, "maxFragIID", sizeof(uint32),       1);
+    AS_UTL_safeWrite(F,  fi,         "fi",         sizeof(fragmentInfo), numFrags+1);
+    fclose(F);
   }
 
   delete gkpStream;
@@ -463,14 +488,11 @@ cmGlobalData::loadFragments(char    *gkpStorePath,
 void
 cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
-  fprintf(stderr, "LOADING OVERLAPS...\n");
-
-  OverlapStore     *ovlStore  = AS_OVS_openOverlapStore(ovlStorePath);
+  fprintf(stderr, "LOADING OVERLAPS...for fragments %u to %u\n", minFragIID, maxFragIID);
 
   uint32            ovlMax = 1048576;
   uint32            ovlLen = 1;
   OVSoverlap       *ovl    = new OVSoverlap [ovlMax];
-
 
   oiPos = new overlapInfo * [numFrags + 1];  //  Pointer to start of overlaps for this frag
   oiLen = new uint32        [numFrags + 1];  //  Number of overlaps for this frag
@@ -493,20 +515,38 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
   uint64            numOvl  = 0;
   uint64            numFilt = 0;
 
-  ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
-
   saveDistance     *dist = new saveDistance;
+
+  OverlapStore     *ovlStore  = AS_OVS_openOverlapStore(ovlStorePath);
+
+  AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
+
+  ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
 
   while (ovlLen > 0) {
     //  Filter out overlaps we don't care about.
 
     uint32  iid = ovl[0].a_iid;
 
-    oiPos[iid] = NULL;
-    oiLen[iid] = 0;
+    //  Save if both fragments are in the backbone library.
+    //  Save if one fragment is in the backbone library and the other is in the test library.
+    //  Otherwise, we don't care about this overlap.
+    //
+    uint32  c=0;
 
-    int32  doveDist5 = INT32_MAX, coneDist5 = INT32_MAX, conrDist5 = INT32_MAX;
-    int32  doveDist3 = INT32_MAX, coneDist3 = INT32_MAX, conrDist3 = INT32_MAX;
+    for (uint32 i=0; i<ovlLen; i++) {
+      if (((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true)) ||
+          ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].doSearch   == true)) ||
+          ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true))) {
+        if (c != i)
+          ovl[c] = ovl[i];
+        c++;
+      } else {
+        numFilt++;
+      }
+    }
+
+    ovlLen = c;
 
     dist->compute(fi, ovl, ovlLen);
 
@@ -520,45 +560,29 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
       if        (AS_OVS_overlapAEndIs5prime(ovl[i])) {
         //  ah < 0 && bh < 0
-        if (dist->doveDist5 <= fb - -ah) {
+        if (dist->doveDist5 <= fb - -ah)
           saveOverlap = true;
-        }
 
       } else if (AS_OVS_overlapAEndIs3prime(ovl[i])) {
         //  ah > 0 && bh > 0
-        if (dist->doveDist3 <= fb -  bh) {
+        if (dist->doveDist3 <= fb -  bh)
           saveOverlap = true;
-        }
 
       } else if (AS_OVS_overlapAIsContained(ovl[i])) {
         //  ah <= 0 && bh >= 0
-        if (dist->coneDist5 >= -ah) {
+        if ((dist->coneDist5 >= -ah) ||
+            (dist->coneDist3 >=  bh))
           saveOverlap = true;
-        }
-        if (dist->coneDist3 >=  bh) {
-          saveOverlap = true;
-        }
 
       } else if (AS_OVS_overlapAIsContainer(ovl[i])) {
         //  ah >= 0 && bh <= 0
-        if (dist->conrDist5 >=  ah) {
+        if ((dist->conrDist5 >=  ah) ||
+            (dist->conrDist3 >= -bh))
           saveOverlap = true;
-        }
-        if (dist->conrDist3 >= -bh) {
-          saveOverlap = true;
-        }
 
       } else {
         assert(0);
       }
-
-      //  If the user specified libraries for the backbone, ignore this overlap if either fragment
-      //  isn't in the backbone, and neither fragment is one we are searching.
-      //  
-      if (((fi[ovl[i].a_iid].isBackbone == false) || (fi[ovl[i].b_iid].isBackbone == false)) &&
-          (fi[ovl[i].a_iid].doSearch == false) &&
-          (fi[ovl[i].b_iid].doSearch == false))
-        saveOverlap = false;
 
       if (saveOverlap)
         //  Save the overlap, count how many to save so we can get space.
@@ -567,9 +591,6 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
         //  Don't save overlap, remove the a_iid and we'll filter it out.
         ovl[i].a_iid = 0;
     }
-
-    //fprintf(stderr, "Filtered IID %d from %d overlaps to %d overlaps.\n",
-    //        iid, ovlLen, oiLen[iid]);
 
     //  If not enough space in oiStorage, get more space.
 
@@ -798,17 +819,17 @@ cmReader(void *G) {
   cmGlobalData    *g = (cmGlobalData  *)G;
   cmComputation   *s = NULL;
 
-  for (; g->curFrag < g->numFrags; g->curFrag++) {
-    if (g->fi[g->curFrag].doSearch == false)
+  for (; g->curFragIID < g->numFrags; g->curFragIID++) {
+    if (g->fi[g->curFragIID].doSearch == false)
       continue;
 
-    if (g->fi[g->curFrag].mateIID == 0)
+    if (g->fi[g->curFragIID].mateIID == 0)
       continue;
 
-    if (g->fi[g->curFrag].mateIID < g->curFrag)
+    if (g->fi[g->curFragIID].mateIID < g->curFragIID)
       continue;
 
-    s = new cmComputation(g->curFrag++);
+    s = new cmComputation(g->curFragIID++);
 
     break;
   }
@@ -944,31 +965,22 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  //  Open this EARLY so we can fail without loading fragments or overlaps.
-  errno = 0;
-  FILE          *resultsFile = fopen(resultsPath, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open results file '%s': %s\n", resultsPath, strerror(errno)), exit(1);
-
-
-  cmGlobalData  *g = new cmGlobalData(resultsFile, pathMin, pathMax, pathInnie, depthMax);
+  cmGlobalData  *g = new cmGlobalData(resultsPath, pathMin, pathMax, pathInnie, depthMax);
 
   g->loadFragments(gkpStorePath, searchLibs, searchLib, backboneLibs, backboneLib);
   g->loadOverlaps(ovlStorePath);
 
   sweatShop *ss = new sweatShop(cmReader, cmWorker, cmWriter);
 
-  ss->setLoaderQueueSize(16384);
-  ss->setWriterQueueSize(1024);
+  ss->setLoaderQueueSize(1048576);
+  ss->setWriterQueueSize(65536);
 
-  ss->setNumberOfWorkers(4);
+  ss->setNumberOfWorkers(64);
 
-  for (u32bit w=0; w<4; w++)
+  for (u32bit w=0; w<64; w++)
     ss->setThreadData(w, new cmThreadData());  //  these leak
 
   ss->run(g, true);
-
-  fclose(resultsFile);
 
   delete g;
 }
