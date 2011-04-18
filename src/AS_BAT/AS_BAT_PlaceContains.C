@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceContains.C,v 1.3 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceContains.C,v 1.4 2011-04-18 01:29:57 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -32,6 +32,8 @@ void
 placeContainsUsingBestOverlaps(UnitigVector &unitigs) {
   uint32   fragsPlaced  = 1;
   uint32   fragsPending = 0;
+
+  logFileFlags &= ~LOG_PLACE_FRAG;
 
   while (fragsPlaced > 0) {
     fragsPlaced  = 0;
