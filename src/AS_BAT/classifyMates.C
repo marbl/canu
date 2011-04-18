@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.5 2011-04-18 01:23:09 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.6 2011-04-18 10:38:17 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -29,8 +29,8 @@ const char *mainid = "$Id: classifyMates.C,v 1.5 2011-04-18 01:23:09 brianwalenz
 
 using namespace std;
 
-#define NDISTD   2  //  Number of dovetail edges off each end
-#define NDISTC   8  //  Number of contains for each end
+#define NDISTD  24  //  Number of dovetail edges off each end
+#define NDISTC 100  //  Number of contains for each end
 
 
 class fragmentInfo {
@@ -361,8 +361,9 @@ public:
 
   void   loadOverlaps(char   *ovlStorePath);
 
-  void   doSearch(cmComputation  *c,
-                  cmThreadData   *t);
+  void   doSearchDFS(cmComputation  *c, cmThreadData   *t);
+  void   doSearchBFS(cmComputation  *c, cmThreadData   *t);
+  void   doSearchRFS(cmComputation  *c, cmThreadData   *t);
 
   //  Overlap storage.  Each fragment has an entry in oiPos that points to actual data in an array.
   //  There are oiLen overlaps at this location.  The array is NOT contiguous.
@@ -633,172 +634,42 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
 
 
-//  Attempt to find a path from the 5' end of this fragment to the 5' end of the next iid
-//         <---- -path- ---->
-//  If we find a path, declare this a PE and not a MP.
-//
-//  The search is depth first, stopping when we find a path, or when the path gets implausibly long.
-//
 void
-cmGlobalData::doSearch(cmComputation *c,
-                       cmThreadData  *t) {
-  bool         pathFound = false;
-  set<uint32>  visited5p3;
-  set<uint32>  visited3p5;
+computeNextPlacement(cmComputation *c,
+                     overlapInfo  *&novl,
+                     uint32        &niid,
+                     bool          &n5p3,
+                     uint32        &nlen) {
 
-  //  If pathInnie == false, then we're attempting to find a path for outtie oriented fragments.
-  //  In this case, we start with the first fragment 5p3=false, and need to end with 5p3=true.
-
-  bool    bgn5p3 = (pathInnie == false) ? false : true;
-  bool    end5p3 = (pathInnie == false) ? true : false;
-
-  c->pathDepth                  = 1;
-
-  c->pathIID[c->pathDepth]  = c->iid;
-  c->path5p3[c->pathDepth]  = bgn5p3;
-  c->pathLen[c->pathDepth]  = fi[c->iid].clearLength;
-  c->pathRoot[c->pathDepth] = oiPos[c->iid];
-  c->pathPosn[c->pathDepth] = 0;
-  c->pathMaxp[c->pathDepth] = oiLen[c->iid];
-
-  //if (VERBOSE1)
-  //  fprintf(stderr, "FRAG %5u/%s with %5u overlaps (len %u).\n",
-  //          iid, (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'", oiLen[iid], c->pathLen[c->pathDepth]);
-
-  while (c->pathDepth > 0) {
-    while (c->pathPosn[c->pathDepth] < c->pathMaxp[c->pathDepth]) {
-
-      //
-      //  If we've already seen this fragment in this orientation, get out of here.
-      //
-
-      set<uint32> &visited = (c->path5p3[c->pathDepth] == true) ? visited5p3 : visited3p5;
-
-      if (visited.find(c->pathIID[c->pathDepth]) != visited.end()) {
-        //if (VERBOSE2)
-        //  fprintf(stderr, "DONE %5u/%s\n", c->pathIID[c->pathDepth], (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'");
-
-        c->pathPosn[c->pathDepth]++;
-        continue;
-      }
-
-      //
-      //  Are we finished??
-      //
-
-      if ((c->pathIID[c->pathDepth] == fi[c->iid].mateIID) &&
-          (c->path5p3[c->pathDepth] == end5p3) &&
-          (c->pathLen[c->pathDepth] >= pathMin) &&
-          (c->pathLen[c->pathDepth] <= pathMax)) {
-        c->pathFound = true;
-        return;
-      }
-
-      //
-      //  Try extending into the fragment at this overlap
-      //
-
-      overlapInfo  *novl = c->pathRoot[c->pathDepth] + c->pathPosn[c->pathDepth];
-
-      uint32        niid = novl->iid;                                                         //  Next fragment
-      bool          n5p3 = (novl->flipped) ? (!c->path5p3[c->pathDepth]) : (c->path5p3[c->pathDepth]);    //  Next fragment orientation;
-      uint32        nlen = 0;                                                                 //  New length of the path, if zero, can't extend
-
-      //if (VERBOSE3)
-      //  fprintf(stderr, "TRY  %5u/%s -> %5u/%s.\n",
-      //          c->pathIID[c->pathDepth], (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'",
-      //          niid,               (n5p3               == true) ? "5'3'" : "3'5'");
-
-      //  Frag is forward, overlap is same, hang is positive
-      if ((c->path5p3[c->pathDepth] == true) && (novl->flipped == false)) {
-        nlen = c->pathLen[c->pathDepth] + novl->bhang;
-        assert(n5p3 == true);
-      }
-
-      //  Frag is forward, overlap is flipped, hang is positive
-      if ((c->path5p3[c->pathDepth] == true) && (novl->flipped == true)) {
-        nlen = c->pathLen[c->pathDepth] + novl->bhang;
-        assert(n5p3 == false);
-      }
-
-      //  Frag is reverse, overlap is same, hang is positive
-      if ((c->path5p3[c->pathDepth] == false) && (novl->flipped == false)) {
-        nlen = c->pathLen[c->pathDepth] + -novl->ahang;
-        assert(n5p3 == false);
-      }
-
-      //  Frag is reverse, overlap is flipped, hang is positive
-      if ((c->path5p3[c->pathDepth] == false) && (novl->flipped == true)) {
-        nlen = c->pathLen[c->pathDepth] + -novl->ahang;
-        assert(n5p3 == true);
-      }
-
-      //
-      //  Are we _now_ finished?  This duplicates the test above, and ALSO tests contained
-      //  overlaps that we do not extend into (when nlen <= pathLen).
-      //
-
-      if ((niid == fi[c->iid].mateIID) &&
-          (n5p3 == end5p3) &&
-          (nlen >= pathMin) &&
-          (nlen <= pathMax)) {
-        c->pathDepth++;
-
-        c->pathIID[c->pathDepth]  = niid;
-        c->path5p3[c->pathDepth]  = n5p3;
-        c->pathLen[c->pathDepth]  = nlen;
-        c->pathRoot[c->pathDepth] = oiPos[niid];
-        c->pathPosn[c->pathDepth] = 0;
-        c->pathMaxp[c->pathDepth] = oiLen[niid];
-
-        c->pathFound = true;
-        return;
-      }
-
-      //
-      //  If the length is not too large, extend into it, otherwise, try the next fragment.
-      //
-
-      if ((nlen      >  c->pathLen[c->pathDepth]) &&
-          (nlen      <= pathMax) &&
-          (c->pathDepth <= depthMax)) {
-        c->pathDepth++;
-
-        c->pathIID[c->pathDepth]  = niid;
-        c->path5p3[c->pathDepth]  = n5p3;
-        c->pathLen[c->pathDepth]  = nlen;
-        c->pathRoot[c->pathDepth] = oiPos[niid];
-        c->pathPosn[c->pathDepth] = 0;
-        c->pathMaxp[c->pathDepth] = oiLen[niid];
-
-        //if (VERBOSE4)
-        //  fprintf(stderr, "WALK %5u/%s with %5u overlaps at depth %2u of length %5d.\n",
-        //          c->pathIID[c->pathDepth], (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'",
-        //          c->pathMaxp[c->pathDepth], c->pathDepth, c->pathLen[c->pathDepth]);
-
-        continue;
-      }
-
-      //if (VERBOSE5)
-      //  fprintf(stderr, "ABRT %5u/%s\n", c->pathIID[c->pathDepth], (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'");
-
-      //  Move to the next overlap for this fragment.
-      c->pathPosn[c->pathDepth]++;
-    }
-
-    //  We've exhausted the paths for this fragment.  Mark it finished and back up one.
-
-    set<uint32> &visited = (c->path5p3[c->pathDepth] == true) ? visited5p3 : visited3p5;
-    visited.insert(c->pathIID[c->pathDepth]);
-
-    c->pathDepth--;
-    c->pathPosn[c->pathDepth]++;
+  //  Frag is forward, overlap is same, hang is positive
+  if ((c->path5p3[c->pathDepth] == true) && (novl->flipped == false)) {
+    nlen = c->pathLen[c->pathDepth] + novl->bhang;
+    assert(n5p3 == true);
   }
 
-  c->pathFound = false;
-  return;
+  //  Frag is forward, overlap is flipped, hang is positive
+  if ((c->path5p3[c->pathDepth] == true) && (novl->flipped == true)) {
+    nlen = c->pathLen[c->pathDepth] + novl->bhang;
+    assert(n5p3 == false);
+  }
+
+  //  Frag is reverse, overlap is same, hang is positive
+  if ((c->path5p3[c->pathDepth] == false) && (novl->flipped == false)) {
+    nlen = c->pathLen[c->pathDepth] + -novl->ahang;
+    assert(n5p3 == false);
+  }
+
+  //  Frag is reverse, overlap is flipped, hang is positive
+  if ((c->path5p3[c->pathDepth] == false) && (novl->flipped == true)) {
+    nlen = c->pathLen[c->pathDepth] + -novl->ahang;
+    assert(n5p3 == true);
+  }
 }
 
+
+#include "classifyMates-DFS.C"
+#include "classifyMates-BFS.C"
+#include "classifyMates-RFS.C"
 
 
 
@@ -810,7 +681,7 @@ cmWorker(void *G, void *T, void *S) {
   cmThreadData    *t = (cmThreadData  *)T;
   cmComputation   *s = (cmComputation *)S;
 
-  g->doSearch(s, t);
+  g->doSearchRFS(s, t);
 }
 
 
@@ -975,9 +846,9 @@ main(int argc, char **argv) {
   ss->setLoaderQueueSize(1048576);
   ss->setWriterQueueSize(65536);
 
-  ss->setNumberOfWorkers(64);
+  ss->setNumberOfWorkers(4);
 
-  for (u32bit w=0; w<64; w++)
+  for (u32bit w=0; w<4; w++)
     ss->setThreadData(w, new cmThreadData());  //  these leak
 
   ss->run(g, true);
