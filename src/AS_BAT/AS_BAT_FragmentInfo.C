@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_FragmentInfo.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_FragmentInfo.C,v 1.3 2011-04-18 01:24:38 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -31,6 +31,8 @@ FragmentInfo::FragmentInfo(gkStore *gkpStore, const char *prefix) {
 
   if (load(prefix))
     return;
+
+  fprintf(logFile, "FragmentInfo()-- Loading fragment information\n");
 
   gkStream         *fs = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
   gkFragment        fr;

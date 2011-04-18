@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.2 2011-04-04 14:25:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.3 2011-04-18 01:24:38 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -110,15 +110,18 @@ OverlapCache::computeErateMaps(double erate, double elimit) {
 
 void
 OverlapCache::loadOverlaps(double erate, double elimit) {
-  uint32   numOvl = 0;
-
+  uint64   numTotal    = 0;
+  uint64   numLoaded   = 0;
+  uint32   numFrags    = 0;
+  uint32   numOvl      = 0;
   uint32   maxOVSErate = AS_OVS_encodeQuality(erate);
 
   assert(_ovlStoreRept == NULL);
   assert(_ovlStoreUniq != NULL);
 
-
   AS_OVS_resetRangeOverlapStore(_ovlStoreUniq);
+
+  fprintf(logFile, "OverlapCache()-- Loading overlap information\n");
 
   //  Could probably easily extend to multiple stores.  Needs to interleave the two store
   //  loads, can't do one after the other as we require all overlaps for a single fragment
@@ -128,6 +131,8 @@ OverlapCache::loadOverlaps(double erate, double elimit) {
 
     //  Ask the store how many overlaps exist for this fragment.
     numOvl = AS_OVS_readOverlapsFromStore(_ovlStoreUniq, NULL, 0, AS_OVS_TYPE_ANY);
+
+    numTotal += numOvl;
 
     if (numOvl == 0)
       //  No overlaps?  We're at the end of the store.
@@ -161,6 +166,8 @@ OverlapCache::loadOverlaps(double erate, double elimit) {
     _cachePtr[_ovs[0].a_iid] = _stor + _storLen;
     _cacheLen[_ovs[0].a_iid] = ns;
 
+    numLoaded += ns;
+
     //  Finally, append the overlaps to the storage.
     for (uint32 ii=0; ii<no; ii++) {
       if (_ovs[ii].dat.ovl.corr_erate > maxOVSErate)
@@ -174,7 +181,12 @@ OverlapCache::loadOverlaps(double erate, double elimit) {
 
       _storLen++;
     }
+
+    if ((numFrags++ % 1000000) == 0)
+      fprintf(logFile, "OverlapCache()-- Loading overlap information fragments:%d total:%12"F_U64P" loaded:%12"F_U64P"\n", _ovs[0].a_iid, numTotal, numLoaded);
   }
+
+  fprintf(logFile, "OverlapCache()-- Loading overlap information total:%12"F_U64P" loaded:%12"F_U64P"\n", numTotal, numLoaded);
 
   delete [] _ovs;
   _ovs = NULL;
