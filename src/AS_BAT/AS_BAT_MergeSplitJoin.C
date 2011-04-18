@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.5 2011-04-08 19:40:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.6 2011-04-18 02:00:20 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -712,10 +712,22 @@ markRepeats(UnitigVector &unitigs,
       assert(op[pl].tigID == target->id());
       if (op[pl].tigID != target->id()) continue;
 
-      //fprintf(logFile, "markRepeats()-- op[%3d] tig %d fCoverage %f\n", pl, op[pl].tigID, op[pl].fCoverage);
+      fprintf(logFile, "markRepeats()-- op[%3d] tig %d fCoverage %f position %d %d verified %d %d\n",
+              pl,
+              op[pl].tigID,
+              op[pl].fCoverage,
+              op[pl].position.bgn, op[pl].position.end,
+              op[pl].verified.bgn, op[pl].verified.end);
 
       if (op[pl].fCoverage > 0.99)
         //  No worries, fully placed.
+        continue;
+
+      if ((op[pl].position.bgn < 0) ||
+          (op[pl].position.bgn > target->getLength()) ||
+          (op[pl].position.end < 0) ||
+          (op[pl].position.end > target->getLength()))
+        //  Placed outside the range of the unitig
         continue;
 
       //  Otherwise, placed in the target unitig, at less than perfect coverage.  Compute
