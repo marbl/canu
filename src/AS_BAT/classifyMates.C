@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.6 2011-04-18 10:38:17 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.7 2011-04-19 05:19:41 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -280,6 +280,10 @@ public:
     memset(pathRoot, 1024 * sizeof(overlapInfo *), 0);
     memset(pathPosn, 1024 * sizeof(uint32), 0);
     memset(pathMaxp, 1024 * sizeof(uint32), 0);
+
+    extMax = 1048576;
+    extLen = 0;
+    ext    = new uint32 [extMax];
   };
   ~cmComputation() {
   };
@@ -298,6 +302,10 @@ public:
   overlapInfo   *pathRoot[1024];  //  Root of the list of overlaps for this iid
   uint32         pathPosn[1024];  //  Position we are at in the list of overlaps
   uint32         pathMaxp[1024];  //  Number of ovelerlaps for this iid
+
+  uint32         extMax;          //  Use in RFS
+  uint32         extLen;
+  uint32        *ext;
 };
 
 
@@ -329,8 +337,11 @@ public:
     minFragIID   = UINT32_MAX;
     maxFragIID   = 0;
 
-    oiPos        = 0L;
-    oiLen        = 0L;
+    bbPos        = 0L;
+    bbLen        = 0L;
+
+    tgPos        = 0L;
+    tgLen        = 0L;
 
     oiStorageMax = 0;
     oiStorageLen = 0;
@@ -345,8 +356,11 @@ public:
     for (uint32 i=0; i<oiStorageMax; i++)
       delete [] oiStorageArr[i];
 
-    delete [] oiPos;
-    delete [] oiLen;
+    delete [] bbPos;
+    delete [] bbLen;
+
+    delete [] tgPos;
+    delete [] tgLen;
 
     delete [] oiStorageArr;
 
@@ -361,17 +375,16 @@ public:
 
   void   loadOverlaps(char   *ovlStorePath);
 
+  void   computeNextPlacement(cmComputation *c,
+                              overlapInfo  *&novl,
+                              uint32        &niid,
+                              bool          &n5p3,
+                              uint32        &nlen);
+  bool   testSearch(cmComputation *c, overlapInfo **pos, uint32 *len, bool end5p3);
+
   void   doSearchDFS(cmComputation  *c, cmThreadData   *t);
   void   doSearchBFS(cmComputation  *c, cmThreadData   *t);
   void   doSearchRFS(cmComputation  *c, cmThreadData   *t);
-
-  //  Overlap storage.  Each fragment has an entry in oiPos that points to actual data in an array.
-  //  There are oiLen overlaps at this location.  The array is NOT contiguous.
-  //
-  //  oiStorage is a list of allocated memory.  We don't really need to keep the list around, but
-  //  we'll play nice and clean up at the end.  Each chunk of allocated memory holds a fixed number
-  //  of overlaps -- here, 128 million.  There are 1024 chunks, so we can store 128 billion
-  //  overlaps, far far more than any overlap store we've created (about 3.3TB of data).
 
 public:
   char              resultsPrefix[FILENAME_MAX];
@@ -389,13 +402,16 @@ public:
   uint32            minFragIID;
   uint32            maxFragIID;
 
-  overlapInfo     **oiPos;  //  Pointer to start of overlaps for this frag
-  uint32           *oiLen;  //  Number of overlaps for this frag
+  overlapInfo     **bbPos;  //  Pointer to start of overlaps for this BACKBONE frag
+  uint32           *bbLen;  //  Number of overlaps for this BACKBONE frag
 
-  uint32            oiStorageMax;
-  uint32            oiStorageLen;
-  overlapInfo     **oiStorageArr;
-  overlapInfo      *oiStorage;
+  overlapInfo     **tgPos;  //  Pointer to start of overlaps for this TARGET frag
+  uint32           *tgLen;  //  Number of overlaps for this TARGET frag
+
+  uint32            oiStorageMax;  //  Maximum number of blocks we can allocate.
+  uint32            oiStorageLen;  //  Actual number of blocks allocated.
+  overlapInfo     **oiStorageArr;  //  List of allocated blocks.
+  overlapInfo      *oiStorage;     //  The current block -- doesn't need to be in the class.
 };
 
 
@@ -494,16 +510,28 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
   uint32            ovlMax = 1048576;
   uint32            ovlLen = 1;
   OVSoverlap       *ovl    = new OVSoverlap [ovlMax];
+  bool             *ovlBB  = new bool       [ovlMax];
+  bool             *ovlTG  = new bool       [ovlMax];
+  bool             *ovlDD  = new bool       [ovlMax];
 
-  oiPos = new overlapInfo * [numFrags + 1];  //  Pointer to start of overlaps for this frag
-  oiLen = new uint32        [numFrags + 1];  //  Number of overlaps for this frag
+  bbPos = new overlapInfo * [numFrags + 1];  //  Pointer to start of overlaps for this frag
+  tgPos = new overlapInfo * [numFrags + 1];
 
-  memset(oiPos, 0, sizeof(overlapInfo) * (numFrags + 1));
-  memset(oiLen, 0, sizeof(uint32)      * (numFrags + 1));
+  bbLen = new uint32        [numFrags + 1];  //  Number of overlaps for this frag
+  tgLen = new uint32        [numFrags + 1];
 
-  oiStorageMax = 1024;
+  memset(bbPos, 0, sizeof(overlapInfo) * (numFrags + 1));
+  memset(tgPos, 0, sizeof(overlapInfo) * (numFrags + 1));
+
+  memset(bbLen, 0, sizeof(uint32)      * (numFrags + 1));
+  memset(tgLen, 0, sizeof(uint32)      * (numFrags + 1));
+
+  //  Overlap storage.  Each fragment has an entry in bbPos & tgPos that points to actual data in an
+  //  array.  There are bbLen & tgPos overlaps at this location.  The array is NOT contiguous.
+
+  oiStorageMax = 1024;                              //  Number blocks of memory
   oiStorageLen = 0;
-  oiStorageArr = new overlapInfo * [oiStorageMax];
+  oiStorageArr = new overlapInfo * [oiStorageMax];  //  List of allocated memory
   oiStorage    = 0L;
 
   memset(oiStorageArr, 0, sizeof(overlapInfo *) * oiStorageMax);
@@ -513,8 +541,11 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
   oiStorage = oiStorageArr[0] = new overlapInfo [oiStorageBS];
 
-  uint64            numOvl  = 0;
-  uint64            numFilt = 0;
+  uint64            numTT = 0;  //  Number of overlaps read from disk
+  uint64            numUU = 0;  //  Number of overlaps not backbone and not target
+  uint64            numBB = 0;  //  Number of BB overlaps loaded
+  uint64            numTG = 0;  //  Number of TG overlaps loaded
+  uint64            numDD = 0;  //  Number of overlaps discarded
 
   saveDistance     *dist = new saveDistance;
 
@@ -525,6 +556,8 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
   ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
 
   while (ovlLen > 0) {
+    numTT += ovlLen;
+
     //  Filter out overlaps we don't care about.
 
     uint32  iid = ovl[0].a_iid;
@@ -543,7 +576,7 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
           ovl[c] = ovl[i];
         c++;
       } else {
-        numFilt++;
+        numUU++;
       }
     }
 
@@ -552,50 +585,70 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
     dist->compute(fi, ovl, ovlLen);
 
     for (uint32 i=0; i<ovlLen; i++) {
-      bool  saveOverlap = false;
-
       int32  ah = ovl[i].dat.ovl.a_hang;
       int32  bh = ovl[i].dat.ovl.b_hang;
       int32  fa = fi[ovl[i].a_iid].clearLength;
       int32  fb = fi[ovl[i].b_iid].clearLength;
 
+      ovlBB[i] = false;
+      ovlTG[i] = false;
+      ovlDD[i] = true;
+
+      if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true))
+        ovlBB[i] = true;
+
+      if (((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].doSearch   == true)) ||
+          ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true)))
+        ovlTG[i] = true;
+
       if        (AS_OVS_overlapAEndIs5prime(ovl[i])) {
         //  ah < 0 && bh < 0
         if (dist->doveDist5 <= fb - -ah)
-          saveOverlap = true;
+          ovlDD[i] = false;
 
       } else if (AS_OVS_overlapAEndIs3prime(ovl[i])) {
         //  ah > 0 && bh > 0
         if (dist->doveDist3 <= fb -  bh)
-          saveOverlap = true;
+          ovlDD[i] = false;
 
       } else if (AS_OVS_overlapAIsContained(ovl[i])) {
         //  ah <= 0 && bh >= 0
         if ((dist->coneDist5 >= -ah) ||
-            (dist->coneDist3 >=  bh))
-          saveOverlap = true;
+            (dist->coneDist3 >=  bh)) {
+          ovlBB[i] = false;
+          ovlDD[i] = false;
+        }
 
       } else if (AS_OVS_overlapAIsContainer(ovl[i])) {
         //  ah >= 0 && bh <= 0
         if ((dist->conrDist5 >=  ah) ||
-            (dist->conrDist3 >= -bh))
-          saveOverlap = true;
+            (dist->conrDist3 >= -bh)) {
+          ovlBB[i] = false;
+          ovlDD[i] = false;
+        }
 
       } else {
         assert(0);
       }
 
-      if (saveOverlap)
-        //  Save the overlap, count how many to save so we can get space.
-        oiLen[iid]++;
-      else
-        //  Don't save overlap, remove the a_iid and we'll filter it out.
+      if ((ovlBB[i] == false) && (ovlTG[i] == false))
+        //  Not backbone and not target, so deleted.  This happens for contains
+        //  that are in the backbone.
+        ovlDD[i] = true;
+
+      if      (ovlDD[i]) {
         ovl[i].a_iid = 0;
-    }
+      } else {
+        if (ovlBB[i])
+          bbLen[iid]++;
+        if (ovlTG[i])
+          tgLen[iid]++;
+      }
+    }  //  Over all overlaps
 
     //  If not enough space in oiStorage, get more space.
 
-    if (oiStoragePos + oiLen[iid] > oiStorageBS) {
+    if (oiStoragePos + bbLen[iid] + tgLen[iid] > oiStorageBS) {
       oiStorage = oiStorageArr[oiStorageLen] = new overlapInfo [oiStorageBS];
       oiStorageLen++;
       oiStoragePos = 0;
@@ -603,43 +656,62 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
     //  Add the overlaps.
 
-    oiPos[iid] = oiStorage + oiStoragePos;
+    bbPos[iid] = oiStorage + oiStoragePos;
+    tgPos[iid] = oiStorage + oiStoragePos + bbLen[iid];
+
+    bbLen[iid] = 0;
+    tgLen[iid] = 0;
 
     for (uint32 i=0; i<ovlLen; i++) {
-      if (ovl[i].a_iid == iid) {
-        oiStorage[oiStoragePos++] = overlapInfo(ovl[i]);
-        numOvl++;
+      if (ovlDD[i]) {
+        numDD++;
       } else {
-        numFilt++;
+        if (ovlBB[i]) {
+          bbPos[iid][bbLen[iid]++] = overlapInfo(ovl[i]);
+          numBB++;
+        }
+
+        if (ovlTG[i]) {
+          tgPos[iid][tgLen[iid]++] = overlapInfo(ovl[i]);
+          numTG++;
+        }
       }
     }
+
+    oiStoragePos += bbLen[iid] + tgLen[iid];
 
     assert(oiStoragePos <= oiStorageBS);
 
     ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
 
     if ((iid % 100000) == 0)
-      fprintf(stderr, "LOADING OVERLAPS...at IID %u (%06.2f%%): %lu (%06.2f%%) filtered, %lu (%06.2f%%) loaded.\r",
-              iid,     100.0 * iid     / numFrags,
-              numFilt, 100.0 * numFilt / (numFilt + numOvl),
-              numOvl,  100.0 * numOvl  / (numFilt + numOvl));
+      fprintf(stderr, "LOADING OVERLAPS...at IID %u (%06.2f%%): BB %lu (%06.2f%%) TG %lu (%06.2f%%) DD %lu (%06.2f%%).\r",
+              iid,   100.0 * iid   / numFrags,
+              numBB, 100.0 * numBB / numTT,
+              numTG, 100.0 * numTG / numTT,
+              numDD, 100.0 * numDD / numTT);
   }
 
   AS_OVS_closeOverlapStore(ovlStore);
 
   delete [] ovl;
 
-  fprintf(stderr, "\nLOADING OVERLAPS...%lu overlaps loaded.\n", numOvl);
+  fprintf(stderr, "LOADING OVERLAPS...at IID %u (%06.2f%%): BB %lu (%06.2f%%) TG %lu (%06.2f%%) DD %lu (%06.2f%%).\n",
+          numFrags, 100.0,
+          numBB, 100.0 * numBB / numTT,
+          numTG, 100.0 * numTG / numTT,
+          numDD, 100.0 * numDD / numTT);
+  fprintf(stderr, "LOADING OVERLAPS...%lu overlaps loaded.\n", numBB + numTG);
 }
 
 
 
 void
-computeNextPlacement(cmComputation *c,
-                     overlapInfo  *&novl,
-                     uint32        &niid,
-                     bool          &n5p3,
-                     uint32        &nlen) {
+cmGlobalData::computeNextPlacement(cmComputation *c,
+                                   overlapInfo  *&novl,
+                                   uint32        &niid,
+                                   bool          &n5p3,
+                                   uint32        &nlen) {
 
   //  Frag is forward, overlap is same, hang is positive
   if ((c->path5p3[c->pathDepth] == true) && (novl->flipped == false)) {
@@ -664,6 +736,47 @@ computeNextPlacement(cmComputation *c,
     nlen = c->pathLen[c->pathDepth] + -novl->ahang;
     assert(n5p3 == true);
   }
+}
+
+
+
+
+bool
+cmGlobalData::testSearch(cmComputation  *c,
+                         overlapInfo   **pos,
+                         uint32         *len,
+                         bool            end5p3) {
+
+  uint32  thisIID = c->pathIID[c->pathDepth];
+
+  for (uint32 test=0; test<len[thisIID]; test++) {
+    overlapInfo  *novl = pos[thisIID] + test;
+
+    uint32        niid = novl->iid;                                                         //  Next fragment
+    bool          n5p3 = (novl->flipped) ? (!c->path5p3[c->pathDepth]) : (c->path5p3[c->pathDepth]);    //  Next fragment orientation;
+    uint32        nlen = 0;                                                                 //  New length of the path, if zero, can't extend
+
+    computeNextPlacement(c, novl, niid, n5p3, nlen);
+
+    if ((niid == fi[c->iid].mateIID) &&
+        (n5p3 == end5p3) &&
+        (nlen >= pathMin) &&
+        (nlen <= pathMax)) {
+      c->pathDepth++;
+
+      c->pathIID[c->pathDepth]  = niid;
+      c->path5p3[c->pathDepth]  = n5p3;
+      c->pathLen[c->pathDepth]  = nlen;
+      c->pathRoot[c->pathDepth] = pos[niid];
+      c->pathPosn[c->pathDepth] = 0;
+      c->pathMaxp[c->pathDepth] = len[niid];
+
+      c->pathFound = true;
+
+      return(true);
+    }
+  }
+  return(false);
 }
 
 

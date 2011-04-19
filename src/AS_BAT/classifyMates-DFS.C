@@ -22,15 +22,16 @@ cmGlobalData::doSearchDFS(cmComputation *c,
   c->pathIID[c->pathDepth]  = c->iid;
   c->path5p3[c->pathDepth]  = bgn5p3;
   c->pathLen[c->pathDepth]  = fi[c->iid].clearLength;
-  c->pathRoot[c->pathDepth] = oiPos[c->iid];
+  c->pathRoot[c->pathDepth] = bbPos[c->iid];
   c->pathPosn[c->pathDepth] = 0;
-  c->pathMaxp[c->pathDepth] = oiLen[c->iid];
+  c->pathMaxp[c->pathDepth] = bbLen[c->iid];
 
-  //if (VERBOSE1)
-  //  fprintf(stderr, "FRAG %5u/%s with %5u overlaps (len %u).\n",
-  //          iid, (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'", oiLen[iid], c->pathLen[c->pathDepth]);
-
+  //  While we still have paths to follow
+  //
   while (c->pathDepth > 0) {
+
+    //  Over all overlaps at this depth
+    //
     while (c->pathPosn[c->pathDepth] < c->pathMaxp[c->pathDepth]) {
 
       //
@@ -77,9 +78,9 @@ cmGlobalData::doSearchDFS(cmComputation *c,
         c->pathIID[c->pathDepth]  = niid;
         c->path5p3[c->pathDepth]  = n5p3;
         c->pathLen[c->pathDepth]  = nlen;
-        c->pathRoot[c->pathDepth] = oiPos[niid];
+        c->pathRoot[c->pathDepth] = bbPos[niid];
         c->pathPosn[c->pathDepth] = 0;
-        c->pathMaxp[c->pathDepth] = oiLen[niid];
+        c->pathMaxp[c->pathDepth] = bbLen[niid];
 
         c->pathFound = true;
         return;
@@ -97,9 +98,9 @@ cmGlobalData::doSearchDFS(cmComputation *c,
         c->pathIID[c->pathDepth]  = niid;
         c->path5p3[c->pathDepth]  = n5p3;
         c->pathLen[c->pathDepth]  = nlen;
-        c->pathRoot[c->pathDepth] = oiPos[niid];
+        c->pathRoot[c->pathDepth] = bbPos[niid];
         c->pathPosn[c->pathDepth] = 0;
-        c->pathMaxp[c->pathDepth] = oiLen[niid];
+        c->pathMaxp[c->pathDepth] = bbLen[niid];
 
         //if (VERBOSE4)
         //  fprintf(stderr, "WALK %5u/%s with %5u overlaps at depth %2u of length %5d.\n",
