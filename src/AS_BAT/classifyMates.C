@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.7 2011-04-19 05:19:41 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.8 2011-04-20 04:51:20 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -30,7 +30,7 @@ const char *mainid = "$Id: classifyMates.C,v 1.7 2011-04-19 05:19:41 brianwalenz
 using namespace std;
 
 #define NDISTD  24  //  Number of dovetail edges off each end
-#define NDISTC 100  //  Number of contains for each end
+#define NDISTC   0  //  Number of contains for each end
 
 
 class fragmentInfo {
@@ -111,12 +111,16 @@ public:
   //  conrDist - Container overlaps (A contains B), likewise.
 
   int32   doveDist5arr[NDISTD];  //  scratch array for finding the nth largest distance
+#if NDISTC > 0
   int32   coneDist5arr[NDISTC];
   int32   conrDist5arr[NDISTC];
+#endif
 
   int32   doveDist3arr[NDISTD];
+#if NDISTC > 0
   int32   coneDist3arr[NDISTC];
   int32   conrDist3arr[NDISTC];
+#endif
 
   int32   doveDist5;     //  minimum distance we should be saving
   int32   coneDist5;
@@ -161,6 +165,7 @@ public:
 
 
   //  Save the N smallest values - sorted smallest to largest
+#if NDISTC > 0
   void    saveDistMin(int32 *darr, int32  dist) {
 
     assert(dist >= 0);
@@ -189,6 +194,7 @@ public:
     //  Fail, we should never get here.
     assert(0);
   };
+#endif
 
 
 
@@ -201,10 +207,12 @@ public:
 
     for (int32 i=0; i<NDISTD; i++)
       doveDist5arr[i] = doveDist3arr[i] = INT32_MIN;
+#if NDISTC > 0
     for (int32 i=0; i<NDISTC; i++) {
       coneDist5arr[i] = coneDist3arr[i] = INT32_MAX;
       conrDist5arr[i] = conrDist3arr[i] = INT32_MAX;
     }
+#endif
 
     for (uint32 i=0; i<ovlLen; i++) {
       int32  ah = ovl[i].dat.ovl.a_hang;
@@ -220,6 +228,7 @@ public:
         //  ah > 0 && bh > 0
         saveDistMax(doveDist3arr, fb -  bh);
 
+#if NDISTC > 0
       } else if (AS_OVS_overlapAIsContained(ovl[i])) {
         //  ah <= 0 && bh >= 0
         saveDistMin(coneDist5arr, -ah);
@@ -232,16 +241,21 @@ public:
 
       } else {
         assert(0);
+#endif
       }
     }
 
     doveDist5 = doveDist5arr[NDISTD-1];
+#if NDISTC > 0
     coneDist5 = coneDist5arr[NDISTC-1];
     conrDist5 = conrDist5arr[NDISTC-1];
+#endif
 
     doveDist3 = doveDist3arr[NDISTD-1];
+#if NDISTC > 0
     coneDist3 = coneDist3arr[NDISTC-1];
     conrDist3 = conrDist3arr[NDISTC-1];
+#endif
   }
 };
 
@@ -256,21 +270,7 @@ public:
 class cmThreadData {
 public:
   cmThreadData() {
-  };
-  ~cmThreadData() {
-  };
-
-  //  the arrays in cmComputation can be moved here
-};
-
-
-class cmComputation {
-public:
-  cmComputation(uint32 iid_) {
-    iid       = iid_;
-
-    pathDepth = 1;
-    pathFound = false;
+    pathDepth = 0;
 
     memset(pathIID,  1024 * sizeof(uint32), 0);
     memset(path5p3,  1024 * sizeof(uint32), 0);
@@ -285,14 +285,11 @@ public:
     extLen = 0;
     ext    = new uint32 [extMax];
   };
-  ~cmComputation() {
+  ~cmThreadData() {
+    delete [] ext;
   };
 
-public:
-  uint32         iid;
-
   uint32         pathDepth;
-  bool           pathFound;
 
   uint32         pathIID[1024];   //  Fragment here
   uint32         path5p3[1024];   //  Fragment here is 5' to 3'
@@ -306,6 +303,39 @@ public:
   uint32         extMax;          //  Use in RFS
   uint32         extLen;
   uint32        *ext;
+};
+
+
+class cmComputation {
+public:
+
+  //  If pathInnie == false, then we're attempting to find a path for outtie oriented fragments.
+  //  In this case, we start with the first fragment 5p3=false, and need to end with 5p3=true.
+
+  cmComputation(uint32 iid, uint32 mid, bool innie) {
+    fragIID   = iid;
+    frag5p3   = (innie == false) ? false : true;
+
+    mateIID   = mid;
+    mate5p3   = (innie == false) ? true : false;
+
+    pathFound = false;
+    pathDepth = 0;
+    pathLen   = 0;
+  };
+  ~cmComputation() {
+  };
+
+public:
+  uint32         fragIID;
+  bool           frag5p3;
+
+  uint32         mateIID;   //  Fragment here
+  uint32         mate5p3;   //  Fragment here is 5' to 3'
+
+  bool           pathFound;
+  uint32         pathDepth;
+  uint32         pathLen;   //  The length, in bp, of the path up till now
 };
 
 
@@ -376,11 +406,15 @@ public:
   void   loadOverlaps(char   *ovlStorePath);
 
   void   computeNextPlacement(cmComputation *c,
+                              cmThreadData  *t,
                               overlapInfo  *&novl,
                               uint32        &niid,
                               bool          &n5p3,
                               uint32        &nlen);
-  bool   testSearch(cmComputation *c, overlapInfo **pos, uint32 *len, bool end5p3);
+  bool   testSearch(cmComputation *c,
+                    cmThreadData  *t,
+                    overlapInfo  **pos,
+                    uint32        *len);
 
   void   doSearchDFS(cmComputation  *c, cmThreadData   *t);
   void   doSearchBFS(cmComputation  *c, cmThreadData   *t);
@@ -440,7 +474,7 @@ cmGlobalData::loadFragments(char    *gkpStorePath,
   char  cacheName[FILENAME_MAX];
   sprintf(cacheName, "%s.fi", resultsPrefix);
 
-  if (AS_UTL_fileExists(cacheName, FALSE, TRUE)) {
+  if (AS_UTL_fileExists(cacheName, FALSE, TRUE) && false) {
     fprintf(stderr, "LOADING FRAGMENTS...(from cache)\n");
 
     FILE *F = fopen(cacheName, "r");
@@ -594,11 +628,16 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
       ovlTG[i] = false;
       ovlDD[i] = true;
 
-      if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true))
+      if ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true))
+        //  These are needed to start the search.
         ovlBB[i] = true;
 
-      if (((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].doSearch   == true)) ||
-          ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true)))
+      if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true))
+        //  These overlaps are used to extend a path.
+        ovlBB[i] = true;
+
+      if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].doSearch   == true))
+        //  These are needed to terminate the search.
         ovlTG[i] = true;
 
       if        (AS_OVS_overlapAEndIs5prime(ovl[i])) {
@@ -613,19 +652,19 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
       } else if (AS_OVS_overlapAIsContained(ovl[i])) {
         //  ah <= 0 && bh >= 0
-        if ((dist->coneDist5 >= -ah) ||
-            (dist->coneDist3 >=  bh)) {
-          ovlBB[i] = false;
-          ovlDD[i] = false;
-        }
+        //if ((dist->coneDist5 >= -ah) ||
+        //    (dist->coneDist3 >=  bh)) {
+        ovlBB[i] = false;
+        ovlDD[i] = false;
+        //}
 
       } else if (AS_OVS_overlapAIsContainer(ovl[i])) {
         //  ah >= 0 && bh <= 0
-        if ((dist->conrDist5 >=  ah) ||
-            (dist->conrDist3 >= -bh)) {
-          ovlBB[i] = false;
-          ovlDD[i] = false;
-        }
+        //if ((dist->conrDist5 >=  ah) ||
+        //    (dist->conrDist3 >= -bh)) {
+        ovlBB[i] = false;
+        ovlDD[i] = false;
+        //}
 
       } else {
         assert(0);
@@ -708,32 +747,33 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
 void
 cmGlobalData::computeNextPlacement(cmComputation *c,
+                                   cmThreadData  *t,
                                    overlapInfo  *&novl,
                                    uint32        &niid,
                                    bool          &n5p3,
                                    uint32        &nlen) {
 
   //  Frag is forward, overlap is same, hang is positive
-  if ((c->path5p3[c->pathDepth] == true) && (novl->flipped == false)) {
-    nlen = c->pathLen[c->pathDepth] + novl->bhang;
+  if ((t->path5p3[t->pathDepth] == true) && (novl->flipped == false)) {
+    nlen = t->pathLen[t->pathDepth] + novl->bhang;
     assert(n5p3 == true);
   }
 
   //  Frag is forward, overlap is flipped, hang is positive
-  if ((c->path5p3[c->pathDepth] == true) && (novl->flipped == true)) {
-    nlen = c->pathLen[c->pathDepth] + novl->bhang;
+  if ((t->path5p3[t->pathDepth] == true) && (novl->flipped == true)) {
+    nlen = t->pathLen[t->pathDepth] + novl->bhang;
     assert(n5p3 == false);
   }
 
   //  Frag is reverse, overlap is same, hang is positive
-  if ((c->path5p3[c->pathDepth] == false) && (novl->flipped == false)) {
-    nlen = c->pathLen[c->pathDepth] + -novl->ahang;
+  if ((t->path5p3[t->pathDepth] == false) && (novl->flipped == false)) {
+    nlen = t->pathLen[t->pathDepth] + -novl->ahang;
     assert(n5p3 == false);
   }
 
   //  Frag is reverse, overlap is flipped, hang is positive
-  if ((c->path5p3[c->pathDepth] == false) && (novl->flipped == true)) {
-    nlen = c->pathLen[c->pathDepth] + -novl->ahang;
+  if ((t->path5p3[t->pathDepth] == false) && (novl->flipped == true)) {
+    nlen = t->pathLen[t->pathDepth] + -novl->ahang;
     assert(n5p3 == true);
   }
 }
@@ -743,35 +783,28 @@ cmGlobalData::computeNextPlacement(cmComputation *c,
 
 bool
 cmGlobalData::testSearch(cmComputation  *c,
+                         cmThreadData   *t,
                          overlapInfo   **pos,
-                         uint32         *len,
-                         bool            end5p3) {
+                         uint32         *len) {
 
-  uint32  thisIID = c->pathIID[c->pathDepth];
+  uint32  thisIID = t->pathIID[t->pathDepth];
 
   for (uint32 test=0; test<len[thisIID]; test++) {
     overlapInfo  *novl = pos[thisIID] + test;
 
-    uint32        niid = novl->iid;                                                         //  Next fragment
-    bool          n5p3 = (novl->flipped) ? (!c->path5p3[c->pathDepth]) : (c->path5p3[c->pathDepth]);    //  Next fragment orientation;
-    uint32        nlen = 0;                                                                 //  New length of the path, if zero, can't extend
+    uint32        niid = novl->iid;
+    bool          n5p3 = (novl->flipped) ? (!t->path5p3[t->pathDepth]) : (t->path5p3[t->pathDepth]);
+    uint32        nlen = 0;
 
-    computeNextPlacement(c, novl, niid, n5p3, nlen);
+    computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
-    if ((niid == fi[c->iid].mateIID) &&
-        (n5p3 == end5p3) &&
+    if ((niid == c->mateIID) &&
+        (n5p3 == c->mate5p3) &&
         (nlen >= pathMin) &&
         (nlen <= pathMax)) {
-      c->pathDepth++;
-
-      c->pathIID[c->pathDepth]  = niid;
-      c->path5p3[c->pathDepth]  = n5p3;
-      c->pathLen[c->pathDepth]  = nlen;
-      c->pathRoot[c->pathDepth] = pos[niid];
-      c->pathPosn[c->pathDepth] = 0;
-      c->pathMaxp[c->pathDepth] = len[niid];
-
       c->pathFound = true;
+      c->pathDepth = t->pathDepth + 1;
+      c->pathLen   = nlen;
 
       return(true);
     }
@@ -813,7 +846,9 @@ cmReader(void *G) {
     if (g->fi[g->curFragIID].mateIID < g->curFragIID)
       continue;
 
-    s = new cmComputation(g->curFragIID++);
+    s = new cmComputation(g->curFragIID, g->fi[g->curFragIID].mateIID, g->pathInnie);
+
+    g->curFragIID++;
 
     break;
   }
@@ -826,17 +861,19 @@ cmReader(void *G) {
 void
 cmWriter(void *G, void *S) {
   cmGlobalData    *g = (cmGlobalData  *)G;
-  cmComputation   *s = (cmComputation *)S;
+  cmComputation   *c = (cmComputation *)S;
 
-  if (s->pathFound == true)
+  if (c->pathFound == true)
     fprintf(g->resultsFile, "Path from %d/%s to %d/%s found at depth %d of length %d.\n",
-            s->iid, (s->path5p3[1] == true) ? "5'3'" : "3'5'", 
-            s->pathIID[s->pathDepth], (s->path5p3[s->pathDepth] == true) ? "5'3'" : "3'5'", s->pathDepth, s->pathLen[s->pathDepth]);
+            c->fragIID, (c->frag5p3 == true) ? "5'3'" : "3'5'", 
+            c->mateIID, (c->mate5p3 == true) ? "5'3'" : "3'5'",
+            c->pathDepth,
+            c->pathLen);
   else
     fprintf(g->resultsFile, "Path from %d/%s NOT FOUND.\n",
-            s->iid, (s->path5p3[1] == true) ? "5'3'" : "3'5'");
+            c->fragIID, (c->frag5p3 == true) ? "5'3'" : "3'5'");
 
-  delete s;
+  delete c;
 }
 
 
@@ -876,32 +913,34 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-sl") == 0) {
       searchLibs = true;
-      searchLib[atoi(argv[++arg])] = 1;
 
-      char *a = argv[arg];
+      char *a = argv[++arg];
       char *b = strchr(a, '-');
 
-      if (b) {
-        uint32 bgn = atoi(a);
-        uint32 end = atoi(b+1);
+      b = (b) ? b+1 : a;
 
-        for (uint32 i=bgn; i<=end; i++)
-          searchLib[i] = 1;
+      uint32 bgn = atoi(a);
+      uint32 end = atoi(b);
+
+      for (uint32 i=bgn; i<=end; i++) {
+        fprintf(stderr, "Search only in library %d\n", i);
+        searchLib[i] = 1;
       }
       
     } else if (strcmp(argv[arg], "-bl") == 0) {
       backboneLibs = true;
-      backboneLib[atoi(argv[++arg])] = 1;
 
-      char *a = argv[arg];
+      char *a = argv[++arg];
       char *b = strchr(a, '-');
 
-      if (b) {
-        uint32 bgn = atoi(a);
-        uint32 end = atoi(b+1);
+      b = (b) ? b+1 : a;
 
-        for (uint32 i=bgn; i<=end; i++)
-          backboneLib[i] = 1;
+      uint32 bgn = atoi(a);
+      uint32 end = atoi(b);
+
+      for (uint32 i=bgn; i<=end; i++) {
+        fprintf(stderr, "Search using only library %d\n", i);
+        backboneLib[i] = 1;
       }
 
     } else if (strcmp(argv[arg], "-min") == 0) {
@@ -959,9 +998,9 @@ main(int argc, char **argv) {
   ss->setLoaderQueueSize(1048576);
   ss->setWriterQueueSize(65536);
 
-  ss->setNumberOfWorkers(4);
+  ss->setNumberOfWorkers(1);
 
-  for (u32bit w=0; w<4; w++)
+  for (u32bit w=0; w<1; w++)
     ss->setThreadData(w, new cmThreadData());  //  these leak
 
   ss->run(g, true);

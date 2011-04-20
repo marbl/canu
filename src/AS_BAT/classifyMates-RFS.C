@@ -10,95 +10,89 @@ void
 cmGlobalData::doSearchRFS(cmComputation *c,
                           cmThreadData  *t) {
 
-  //  If pathInnie == false, then we're attempting to find a path for outtie oriented fragments.
-  //  In this case, we start with the first fragment 5p3=false, and need to end with 5p3=true.
-
-  bool    bgn5p3 = (pathInnie == false) ? false : true;
-  bool    end5p3 = (pathInnie == false) ? true : false;
+  //  c is fully initialized by cmComputation()
 
   for (uint32 iter=0; iter<500; iter++) {
-    c->pathDepth = 0;
+    t->pathDepth = 0;
 
-    c->pathIID[c->pathDepth]  = c->iid;
-    c->path5p3[c->pathDepth]  = bgn5p3;
-    c->pathLen[c->pathDepth]  = fi[c->iid].clearLength;
-    c->pathRoot[c->pathDepth] = bbPos[c->iid];
-    c->pathPosn[c->pathDepth] = 0;
-    c->pathMaxp[c->pathDepth] = bbLen[c->iid];
+    t->pathIID[t->pathDepth]  = c->fragIID;
+    t->path5p3[t->pathDepth]  = c->frag5p3;
+    t->pathLen[t->pathDepth]  = fi[c->fragIID].clearLength;
+    t->pathRoot[t->pathDepth] = bbPos[c->fragIID];
+    t->pathPosn[t->pathDepth] = 0;
+    t->pathMaxp[t->pathDepth] = bbLen[c->fragIID];
 
 #if 0
     fprintf(stderr, "PATH [%3d] %d/%s' len %d\n",
-            c->pathDepth,
-            c->pathIID[c->pathDepth],
-            (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'",
-            c->pathLen[c->pathDepth]);
+            t->pathDepth,
+            t->pathIID[t->pathDepth],
+            (t->path5p3[t->pathDepth] == true) ? "5'3'" : "3'5'",
+            t->pathLen[t->pathDepth]);
 #endif
 
     //  Follow random paths until we get too long or too deep.  If we find the answer we immediately
     //  return.  If we don't find the answer we exit the while and do another iteration.
 
-    while ((c->pathLen[c->pathDepth] < pathMax) &&
-           (c->pathDepth             < depthMax)) {
+    while ((t->pathLen[t->pathDepth] < pathMax) &&
+           (t->pathDepth             < depthMax)) {
 
-      if (testSearch(c, tgPos, tgLen, end5p3))
+      if (testSearch(c, t, tgPos, tgLen))
         //  If any of the target overlaps are the answer
         return;
 
       //  Compute which edges extend in the correct direction.
+      //
+      t->extLen = 0;
+      for (uint32 test=0; test<bbLen[t->pathIID[t->pathDepth]]; test++) {
+        overlapInfo  *novl = t->pathRoot[t->pathDepth] + test;
+        uint32        niid = novl->iid;
+        bool          n5p3 = (novl->flipped) ? (!t->path5p3[t->pathDepth]) : (t->path5p3[t->pathDepth]);
+        uint32        nlen = 0;
 
-      c->extLen = 0;
-      for (uint32 test=0; test<bbLen[c->pathIID[c->pathDepth]]; test++) {
-        overlapInfo  *novl = c->pathRoot[c->pathDepth] + test;
-        uint32        niid = novl->iid;                                                         //  Next fragment
-        bool          n5p3 = (novl->flipped) ? (!c->path5p3[c->pathDepth]) : (c->path5p3[c->pathDepth]);    //  Next fragment orientation;
-        uint32        nlen = 0;                                                                 //  New length of the path, if zero, can't extend
+        computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
-        computeNextPlacement(c, novl, niid, n5p3, nlen);
-
-        if (nlen > c->pathLen[c->pathDepth])
-          c->ext[c->extLen++] = test;
+        if (nlen > t->pathLen[t->pathDepth])
+          t->ext[t->extLen++] = test;
       }
 
-      if (c->extLen == 0)
+      if (t->extLen == 0)
         //  If there are no backbone overlaps out of here
         break;
 
-      c->pathPosn[c->pathDepth] = c->ext[lrand48() % c->extLen];
+      t->pathPosn[t->pathDepth] = t->ext[lrand48() % t->extLen];
 
-      overlapInfo  *novl = c->pathRoot[c->pathDepth] + c->pathPosn[c->pathDepth];
-      uint32        niid = novl->iid;                                                         //  Next fragment
-      bool          n5p3 = (novl->flipped) ? (!c->path5p3[c->pathDepth]) : (c->path5p3[c->pathDepth]);    //  Next fragment orientation;
-      uint32        nlen = 0;                                                                 //  New length of the path, if zero, can't extend
+      overlapInfo  *novl = t->pathRoot[t->pathDepth] + t->pathPosn[t->pathDepth];
+      uint32        niid = novl->iid;
+      bool          n5p3 = (novl->flipped) ? (!t->path5p3[t->pathDepth]) : (t->path5p3[t->pathDepth]);
+      uint32        nlen = 0;
 
-      computeNextPlacement(c, novl, niid, n5p3, nlen);
+      computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
-      //
-      //  If this is an extension, go into it, otherwise stop the search.
-      //
+      //  We're guaranteed to always advance the path (unlike DFS) so do it.
 
-      c->pathDepth++;
+      t->pathDepth++;
 
-      c->pathIID[c->pathDepth]  = niid;
-      c->path5p3[c->pathDepth]  = n5p3;
-      c->pathLen[c->pathDepth]  = nlen;
-      c->pathRoot[c->pathDepth] = bbPos[niid];
-      c->pathPosn[c->pathDepth] = 0;
-      c->pathMaxp[c->pathDepth] = bbLen[niid];
+      t->pathIID[t->pathDepth]  = niid;
+      t->path5p3[t->pathDepth]  = n5p3;
+      t->pathLen[t->pathDepth]  = nlen;
+      t->pathRoot[t->pathDepth] = bbPos[niid];
+      t->pathPosn[t->pathDepth] = 0;
+      t->pathMaxp[t->pathDepth] = bbLen[niid];
 
-      assert(c->pathLen[c->pathDepth] > c->pathLen[c->pathDepth-1]);
+      assert(t->pathLen[t->pathDepth] > t->pathLen[t->pathDepth-1]);
 
 #if 0
       fprintf(stderr, "PATH [%3d] %d/%s' len %d%s\n",
-              c->pathDepth,
-              c->pathIID[c->pathDepth],
-              (c->path5p3[c->pathDepth] == true) ? "5'3'" : "3'5'",
-              c->pathLen[c->pathDepth],
-              (c->pathLen[c->pathDepth] < c->pathLen[c->pathDepth-1]) ? "  PATH SHORTER" : "");
+              t->pathDepth,
+              t->pathIID[t->pathDepth],
+              (t->path5p3[t->pathDepth] == true) ? "5'3'" : "3'5'",
+              t->pathLen[t->pathDepth],
+              (t->pathLen[t->pathDepth] < t->pathLen[t->pathDepth-1]) ? "  PATH SHORTER" : "");
 #endif
     }
 
   }  //  Try a bunch of random stabs to find the path
 
-  c->pathFound = false;
-  return;
+  //  Not found.
+  assert(c->pathFound == false);
 }
