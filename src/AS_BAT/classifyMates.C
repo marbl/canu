@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.8 2011-04-20 04:51:20 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.9 2011-04-22 01:27:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -29,8 +29,10 @@ const char *mainid = "$Id: classifyMates.C,v 1.8 2011-04-20 04:51:20 brianwalenz
 
 using namespace std;
 
-#define NDISTD  24  //  Number of dovetail edges off each end
-#define NDISTC   0  //  Number of contains for each end
+#define NDISTD     500  //  Number of dovetail edges off each end
+#define NDISTC       0  //  Number of contains for each end
+
+#define PATH_MAX 16384
 
 
 class fragmentInfo {
@@ -110,13 +112,17 @@ public:
   //
   //  conrDist - Container overlaps (A contains B), likewise.
 
+#if NDISTD > 0
   int32   doveDist5arr[NDISTD];  //  scratch array for finding the nth largest distance
+#endif
 #if NDISTC > 0
   int32   coneDist5arr[NDISTC];
   int32   conrDist5arr[NDISTC];
 #endif
 
+#if NDISTD > 0
   int32   doveDist3arr[NDISTD];
+#endif
 #if NDISTC > 0
   int32   coneDist3arr[NDISTC];
   int32   conrDist3arr[NDISTC];
@@ -133,6 +139,7 @@ public:
 
 
   //  Save the N largest values - sorted largest to smallest
+#if NDISTD > 0
   void    saveDistMax(int32 *darr, int32  dist) {
 
     assert(dist >= 0);
@@ -161,6 +168,7 @@ public:
     //  Fail, we should never get here.
     assert(0);
   };
+#endif
 
 
 
@@ -205,8 +213,10 @@ public:
     if (ovlLen == 0)
       return;
 
+#if NDISTD > 0
     for (int32 i=0; i<NDISTD; i++)
       doveDist5arr[i] = doveDist3arr[i] = INT32_MIN;
+#endif
 #if NDISTC > 0
     for (int32 i=0; i<NDISTC; i++) {
       coneDist5arr[i] = coneDist3arr[i] = INT32_MAX;
@@ -220,6 +230,7 @@ public:
       int32  fa = fi[ovl[i].a_iid].clearLength;
       int32  fb = fi[ovl[i].b_iid].clearLength;
 
+#if NDISTD > 0
       if        (AS_OVS_overlapAEndIs5prime(ovl[i])) {
         //  ah < 0 && bh < 0
         saveDistMax(doveDist5arr, fb - -ah);
@@ -227,6 +238,8 @@ public:
       } else if (AS_OVS_overlapAEndIs3prime(ovl[i])) {
         //  ah > 0 && bh > 0
         saveDistMax(doveDist3arr, fb -  bh);
+      }
+#endif
 
 #if NDISTC > 0
       } else if (AS_OVS_overlapAIsContained(ovl[i])) {
@@ -241,17 +254,21 @@ public:
 
       } else {
         assert(0);
-#endif
       }
+#endif
     }
 
+#if NDISTD > 0
     doveDist5 = doveDist5arr[NDISTD-1];
+#endif
 #if NDISTC > 0
     coneDist5 = coneDist5arr[NDISTC-1];
     conrDist5 = conrDist5arr[NDISTC-1];
 #endif
 
+#if NDISTD > 0
     doveDist3 = doveDist3arr[NDISTD-1];
+#endif
 #if NDISTC > 0
     coneDist3 = coneDist3arr[NDISTC-1];
     conrDist3 = conrDist3arr[NDISTC-1];
@@ -264,22 +281,19 @@ public:
 
 
 
-
-
-
 class cmThreadData {
 public:
   cmThreadData() {
     pathDepth = 0;
 
-    memset(pathIID,  1024 * sizeof(uint32), 0);
-    memset(path5p3,  1024 * sizeof(uint32), 0);
+    memset(pathIID,  PATH_MAX * sizeof(uint32), 0);
+    memset(path5p3,  PATH_MAX * sizeof(uint32), 0);
 
-    memset(pathLen,  1024 * sizeof(uint32), 0);
+    memset(pathLen,  PATH_MAX * sizeof(uint32), 0);
 
-    memset(pathRoot, 1024 * sizeof(overlapInfo *), 0);
-    memset(pathPosn, 1024 * sizeof(uint32), 0);
-    memset(pathMaxp, 1024 * sizeof(uint32), 0);
+    memset(pathRoot, PATH_MAX * sizeof(overlapInfo *), 0);
+    memset(pathPosn, PATH_MAX * sizeof(uint32), 0);
+    memset(pathMaxp, PATH_MAX * sizeof(uint32), 0);
 
     extMax = 1048576;
     extLen = 0;
@@ -291,14 +305,14 @@ public:
 
   uint32         pathDepth;
 
-  uint32         pathIID[1024];   //  Fragment here
-  uint32         path5p3[1024];   //  Fragment here is 5' to 3'
+  uint32         pathIID[PATH_MAX];   //  Fragment here
+  uint32         path5p3[PATH_MAX];   //  Fragment here is 5' to 3'
 
-  uint32         pathLen[1024];   //  The length, in bp, of the path up till now
+  uint32         pathLen[PATH_MAX];   //  The length, in bp, of the path up till now
 
-  overlapInfo   *pathRoot[1024];  //  Root of the list of overlaps for this iid
-  uint32         pathPosn[1024];  //  Position we are at in the list of overlaps
-  uint32         pathMaxp[1024];  //  Number of ovelerlaps for this iid
+  overlapInfo   *pathRoot[PATH_MAX];  //  Root of the list of overlaps for this iid
+  uint32         pathPosn[PATH_MAX];  //  Position we are at in the list of overlaps
+  uint32         pathMaxp[PATH_MAX];  //  Number of ovelerlaps for this iid
 
   uint32         extMax;          //  Use in RFS
   uint32         extLen;
@@ -474,7 +488,7 @@ cmGlobalData::loadFragments(char    *gkpStorePath,
   char  cacheName[FILENAME_MAX];
   sprintf(cacheName, "%s.fi", resultsPrefix);
 
-  if (AS_UTL_fileExists(cacheName, FALSE, TRUE) && false) {
+  if (AS_UTL_fileExists(cacheName, FALSE, TRUE)) {
     fprintf(stderr, "LOADING FRAGMENTS...(from cache)\n");
 
     FILE *F = fopen(cacheName, "r");
@@ -616,7 +630,9 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
     ovlLen = c;
 
+#if 0
     dist->compute(fi, ovl, ovlLen);
+#endif
 
     for (uint32 i=0; i<ovlLen; i++) {
       int32  ah = ovl[i].dat.ovl.a_hang;
@@ -971,6 +987,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "No overlap store (-O) supplied.\n"), err++;
   if (resultsPath == 0L)
     fprintf(stderr, "No results output (-o) supplied.\n"), err++;
+  if (depthMax > PATH_MAX)
+    fprintf(stderr, "Search depth (-depth) limited to %d.\n", PATH_MAX), err++;
   if (err) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -o resultsFile ...\n", argv[0]);
     fprintf(stderr, "\n");
@@ -998,9 +1016,9 @@ main(int argc, char **argv) {
   ss->setLoaderQueueSize(1048576);
   ss->setWriterQueueSize(65536);
 
-  ss->setNumberOfWorkers(1);
+  ss->setNumberOfWorkers(64);
 
-  for (u32bit w=0; w<1; w++)
+  for (u32bit w=0; w<64; w++)
     ss->setThreadData(w, new cmThreadData());  //  these leak
 
   ss->run(g, true);
