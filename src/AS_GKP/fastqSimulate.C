@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.4 2011-02-24 09:18:12 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.5 2011-04-22 01:25:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,7 +80,13 @@ makeSequences(char    *frag,
               char    *q2) {
   double perr = 0.01;
 
+  assert(fragLen > 0);
+  assert(readLen > 0);
+  assert(fragLen > readLen);
+
   //  Build the reads.
+
+  //fprintf(stderr, "makeSequences()-- fragLen=%d readLen=%d\n", fragLen, readLen);
 
   for (int32 p=0, i=0; p<readLen; p++, i++) {
     s1[p] = frag[i];
@@ -224,6 +230,11 @@ makeMP(char   *seq,
     //  Compute the size of the shearing
 
     int32   slen = randomGaussian(mpShearSize, mpShearStdDev);  //  shear size
+
+    if (slen < readLen) {
+      np--;
+      continue;
+    }
 
     //  If we fail the mpEnrichment test, pick a random shearing and return PE reads.
     //  Otherwise, rotate the sequence to circularize and return MP reads.
@@ -431,6 +442,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "                  location is normally distributed through this fragment, with mean 'shearSize/2'\n");
     fprintf(stderr, "                  and std.dev 'shearSize/2/junction'.  With a 500bp fragment, and 100bp reads,\n");
     fprintf(stderr, "                  junction=3 will give about 6%% chimeric reads.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Output QV's are the Sanger spec.\n");
     fprintf(stderr, "\n");
 
     if (fastaName == NULL)
