@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.10 2011-04-28 18:55:28 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.11 2011-04-28 23:28:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -431,9 +431,10 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
     ovlLen = c;
 
-#if 0
-    dist->compute(fi, ovl, ovlLen);
-#endif
+
+    if (dist)
+      dist->compute(fi, ovl, ovlLen);
+
 
     for (uint32 i=0; i<ovlLen; i++) {
       int32  ah = ovl[i].dat.ovl.a_hang;
@@ -459,12 +460,14 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
       if        (AS_OVS_overlapAEndIs5prime(ovl[i])) {
         //  ah < 0 && bh < 0
-        if (dist->doveDist5 <= fb - -ah)
+        if ((dist == NULL) ||
+            (dist->doveDist5 <= fb - -ah))
           ovlDD[i] = false;
 
       } else if (AS_OVS_overlapAEndIs3prime(ovl[i])) {
         //  ah > 0 && bh > 0
-        if (dist->doveDist3 <= fb -  bh)
+        if ((dist == NULL) ||
+            (dist->doveDist3 <= fb -  bh))
           ovlDD[i] = false;
 
       } else if (AS_OVS_overlapAIsContained(ovl[i])) {
@@ -473,7 +476,6 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
         //    (dist->coneDist3 >=  bh)) {
         ovlBB[i] = false;
         ovlDD[i] = false;
-        //}
 
       } else if (AS_OVS_overlapAIsContainer(ovl[i])) {
         //  ah >= 0 && bh <= 0
@@ -481,11 +483,11 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
         //    (dist->conrDist3 >= -bh)) {
         ovlBB[i] = false;
         ovlDD[i] = false;
-        //}
 
       } else {
         assert(0);
       }
+
 
       if ((ovlBB[i] == false) && (ovlTG[i] == false))
         //  Not backbone and not target, so deleted.  This happens for contains
