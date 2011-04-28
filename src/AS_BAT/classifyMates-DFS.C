@@ -10,78 +10,88 @@ cmGlobalData::doSearchDFS(cmComputation *c,
   set<uint32>  visited5p3;
   set<uint32>  visited3p5;
 
-  fprintf(stderr, "SEARCh %d/%s to %d/%s\n",
+  t->pathPos = 0;
+  t->pathAdd = 0;
+
+  if (t->path == NULL) {
+    t->pathMax = depthMax;
+    t->path    = new searchNode [t->pathMax];
+  }
+
+#if 0
+  fprintf(stderr, "SEARCH %d/%s to %d/%s\n",
           c->fragIID, (c->frag5p3 == true) ? "5'3'" : "3'5'", 
           c->mateIID, (c->mate5p3 == true) ? "5'3'" : "3'5'");
+#endif
 
-  t->pathDepth = 1;  //  CRITICAL; end of loop we increment t->pathPosn[t->pathDepth-1]
+  t->pathPos = 1;  //  CRITICAL; end of loop we increment t->pathOPos[t->pathPos-1]
 
-  t->pathIID[t->pathDepth]  = c->fragIID;
-  t->path5p3[t->pathDepth]  = c->frag5p3;
-  t->pathLen[t->pathDepth]  = fi[c->fragIID].clearLength;
-  t->pathRoot[t->pathDepth] = bbPos[c->fragIID];
-  t->pathPosn[t->pathDepth] = 0;
-  t->pathMaxp[t->pathDepth] = bbLen[c->fragIID];
+  t->path[t->pathPos].pIID = c->fragIID;
+  t->path[t->pathPos].p5p3 = c->frag5p3;
+  t->path[t->pathPos].pLen = fi[c->fragIID].clearLength;
+  t->path[t->pathPos].oMax = bbLen[c->fragIID];
+  t->path[t->pathPos].oPos = 0;
+  t->path[t->pathPos].oLst = bbPos[c->fragIID];
 
   //  While we still have paths to follow
   //
-  while (t->pathDepth > 0) {
+  while (t->pathPos > 0) {
 
     //  Over all overlaps at this depth
     //
     for (;
-         t->pathPosn[t->pathDepth] < t->pathMaxp[t->pathDepth];
-         t->pathPosn[t->pathDepth]++) {
+         t->path[t->pathPos].oPos < t->path[t->pathPos].oMax;
+         t->path[t->pathPos].oPos++) {
 
       //  If we've already seen this fragment in this orientation, get out of here.
       //
-      set<uint32> &visited = (t->path5p3[t->pathDepth] == true) ? visited5p3 : visited3p5;
+      set<uint32> &visited = (t->path[t->pathPos].p5p3 == true) ? visited5p3 : visited3p5;
 
-      if (visited.find(t->pathIID[t->pathDepth]) != visited.end())
+      if (visited.find(t->path[t->pathPos].pIID) != visited.end())
         continue;
 
       //  Try extending the fragment at this overlap
       //
-      overlapInfo  *novl = t->pathRoot[t->pathDepth] + t->pathPosn[t->pathDepth];
+      overlapInfo  *novl = t->path[t->pathPos].oLst + t->path[t->pathPos].oPos;
       uint32        niid = novl->iid;
-      bool          n5p3 = (novl->flipped) ? (!t->path5p3[t->pathDepth]) : (t->path5p3[t->pathDepth]);
+      bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
       uint32        nlen = 0;
 
       computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
-      if (nlen < t->pathLen[t->pathDepth])
+      if (nlen < t->path[t->pathPos].pLen)
         //  Went backwards!
         continue;
 
       //  Went forwards.  Save the extension, unless that would put us over the depth limit.
 
-      t->pathDepth++;
+      t->pathPos++;
 
-      t->pathIID[t->pathDepth]  = niid;
-      t->path5p3[t->pathDepth]  = n5p3;
-      t->pathLen[t->pathDepth]  = nlen;
-      t->pathRoot[t->pathDepth] = bbPos[niid];
-      t->pathPosn[t->pathDepth] = 0;
-      t->pathMaxp[t->pathDepth] = bbLen[niid];
+      t->path[t->pathPos].pIID  = niid;
+      t->path[t->pathPos].p5p3  = n5p3;
+      t->path[t->pathPos].pLen  = nlen;
+      t->path[t->pathPos].oMax = bbLen[niid];
+      t->path[t->pathPos].oPos = 0;
+      t->path[t->pathPos].oLst = bbPos[niid];
 
       if (testSearch(c, t, tgPos, tgLen))
         //  If any of the target overlaps are the answer
         return;
 
-      if (t->pathDepth ==  depthMax)
+      if (t->pathPos == depthMax)
         //  End of the line.  Do not pass go.  Proceed directly to, ummm, the next overlap.
-        t->pathDepth--;
+        t->pathPos--;
     }
 
     //  We've exhausted the paths for this fragment.  Mark it finished and back up one.
 
-    set<uint32> &visited = (t->path5p3[t->pathDepth] == true) ? visited5p3 : visited3p5;
-    visited.insert(t->pathIID[t->pathDepth]);
+    set<uint32> &visited = (t->path[t->pathPos].p5p3 == true) ? visited5p3 : visited3p5;
+    visited.insert(t->path[t->pathPos].pIID);
 
-    t->pathDepth--;
+    t->pathPos--;
   }
 
   //  Not found.
-  assert(c->pathFound == false);
+  assert(c->sFound == false);
 }
 

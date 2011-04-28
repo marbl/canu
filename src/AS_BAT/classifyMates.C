@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.9 2011-04-22 01:27:34 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.10 2011-04-28 18:55:28 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -31,8 +31,6 @@ using namespace std;
 
 #define NDISTD     500  //  Number of dovetail edges off each end
 #define NDISTC       0  //  Number of contains for each end
-
-#define PATH_MAX 16384
 
 
 class fragmentInfo {
@@ -73,249 +71,52 @@ public:
 };
 
 
+#include "classifyMates-saveDistance.C"
 
-class
-saveDistance {
+
+class searchNode {
 public:
-  saveDistance() {
-  };
+  uint32         pIID;   //  Fragment here
+  uint32         p5p3;   //  Fragment here is 5' to 3'
 
-  ~saveDistance() {
-  };
+  uint32         pLen;   //  The length, in bp, of the path up till now
 
-  //  We save overlaps based on the size of the overlap.
-  //
-  //  Keep the best and near best overlaps for dovetail overlaps.
-  //
-  //    ------------------------
-  //       ----------------------------- (best)
-  //          ---------------------- (near best)
-  //                 --------------
-  //                     ----------------------------------
-  //                          -----------------------------------
-  //
-  //  Keep containment overlaps that are near the end.
-  //
-  //                     ---------
-  //    ----------------------------- (near the end)
-  //        -------------------------------
-  //            ----------------------------------
-  //                 ------------------------------------ (near the end)
-  //                     --------------------------------------- (near the end)
-  //
-  //  doveDist - Dovetail overlaps with overlap length at least this big are saved.
-  //             The 'near best' above might not be informative, but it is still
-  //             the second best overlap and is kept.
-  //
-  //  coneDist - Containee overlaps (A contained in B) are saved if they are
-  //             at least this close to the end of the other fragment.
-  //
-  //  conrDist - Container overlaps (A contains B), likewise.
-
-#if NDISTD > 0
-  int32   doveDist5arr[NDISTD];  //  scratch array for finding the nth largest distance
-#endif
-#if NDISTC > 0
-  int32   coneDist5arr[NDISTC];
-  int32   conrDist5arr[NDISTC];
-#endif
-
-#if NDISTD > 0
-  int32   doveDist3arr[NDISTD];
-#endif
-#if NDISTC > 0
-  int32   coneDist3arr[NDISTC];
-  int32   conrDist3arr[NDISTC];
-#endif
-
-  int32   doveDist5;     //  minimum distance we should be saving
-  int32   coneDist5;
-  int32   conrDist5;
-
-  int32   doveDist3;
-  int32   coneDist3;
-  int32   conrDist3;
-
-
-
-  //  Save the N largest values - sorted largest to smallest
-#if NDISTD > 0
-  void    saveDistMax(int32 *darr, int32  dist) {
-
-    assert(dist >= 0);
-
-    if (dist < darr[NDISTD-1])
-      //  Distance less than the smallest distance we want to keep, don't save
-      return;
-
-    //  We either want to save a new distance, pushing the last one off of the array,
-    //  or notice that we've already saved this distance and leave the array alone.
-
-    for (int32 i=0; i<NDISTD; i++) {
-      if (darr[i] == dist)
-        //  Saved it already.
-        return;
-
-      if (darr[i] < dist) {
-        //  Save at i, push i and following down one slot.
-        for (int32 j=NDISTD-1; j>i; j--)
-          darr[j] = darr[j-1];
-        darr[i] = dist;
-        return;
-      }
-    }
-
-    //  Fail, we should never get here.
-    assert(0);
-  };
-#endif
-
-
-
-  //  Save the N smallest values - sorted smallest to largest
-#if NDISTC > 0
-  void    saveDistMin(int32 *darr, int32  dist) {
-
-    assert(dist >= 0);
-
-    if (dist > darr[NDISTC-1])
-      //  Distance more than the biggest distance we want to keep, don't save
-      return;
-
-    //  We either want to save a new distance, pushing the last one off of the array,
-    //  or notice that we've already saved this distance and leave the array alone.
-
-    for (int32 i=0; i<NDISTC; i++) {
-      if (darr[i] == dist)
-        //  Saved it already.
-        return;
-
-      if (darr[i] > dist) {
-        //  Save at i, push i and following down one slot.
-        for (int32 j=NDISTC-1; j>i; j--)
-          darr[j] = darr[j-1];
-        darr[i] = dist;
-        return;
-      }
-    }
-
-    //  Fail, we should never get here.
-    assert(0);
-  };
-#endif
-
-
-
-  void   compute(fragmentInfo     *fi,
-                 OVSoverlap       *ovl,
-                 uint32            ovlLen) {
-
-    if (ovlLen == 0)
-      return;
-
-#if NDISTD > 0
-    for (int32 i=0; i<NDISTD; i++)
-      doveDist5arr[i] = doveDist3arr[i] = INT32_MIN;
-#endif
-#if NDISTC > 0
-    for (int32 i=0; i<NDISTC; i++) {
-      coneDist5arr[i] = coneDist3arr[i] = INT32_MAX;
-      conrDist5arr[i] = conrDist3arr[i] = INT32_MAX;
-    }
-#endif
-
-    for (uint32 i=0; i<ovlLen; i++) {
-      int32  ah = ovl[i].dat.ovl.a_hang;
-      int32  bh = ovl[i].dat.ovl.b_hang;
-      int32  fa = fi[ovl[i].a_iid].clearLength;
-      int32  fb = fi[ovl[i].b_iid].clearLength;
-
-#if NDISTD > 0
-      if        (AS_OVS_overlapAEndIs5prime(ovl[i])) {
-        //  ah < 0 && bh < 0
-        saveDistMax(doveDist5arr, fb - -ah);
-
-      } else if (AS_OVS_overlapAEndIs3prime(ovl[i])) {
-        //  ah > 0 && bh > 0
-        saveDistMax(doveDist3arr, fb -  bh);
-      }
-#endif
-
-#if NDISTC > 0
-      } else if (AS_OVS_overlapAIsContained(ovl[i])) {
-        //  ah <= 0 && bh >= 0
-        saveDistMin(coneDist5arr, -ah);
-        saveDistMin(coneDist3arr,  bh);
-        
-      } else if (AS_OVS_overlapAIsContainer(ovl[i])) {
-        //  ah >= 0 && bh <= 0
-        saveDistMin(conrDist5arr,  ah);
-        saveDistMin(conrDist3arr, -bh);
-
-      } else {
-        assert(0);
-      }
-#endif
-    }
-
-#if NDISTD > 0
-    doveDist5 = doveDist5arr[NDISTD-1];
-#endif
-#if NDISTC > 0
-    coneDist5 = coneDist5arr[NDISTC-1];
-    conrDist5 = conrDist5arr[NDISTC-1];
-#endif
-
-#if NDISTD > 0
-    doveDist3 = doveDist3arr[NDISTD-1];
-#endif
-#if NDISTC > 0
-    coneDist3 = coneDist3arr[NDISTC-1];
-    conrDist3 = conrDist3arr[NDISTC-1];
-#endif
-  }
+  uint32         oMax;  //  Number of ovelerlaps for this iid
+  uint32         oPos;  //  Position we are at in the list of overlaps
+  overlapInfo   *oLst;  //  Root of the list of overlaps for this iid
 };
-
-
-
-
 
 
 class cmThreadData {
 public:
   cmThreadData() {
-    pathDepth = 0;
+    pathPos = 0;
+    pathAdd = 0;
+    pathMax = 0;
+    path    = NULL;
 
-    memset(pathIID,  PATH_MAX * sizeof(uint32), 0);
-    memset(path5p3,  PATH_MAX * sizeof(uint32), 0);
-
-    memset(pathLen,  PATH_MAX * sizeof(uint32), 0);
-
-    memset(pathRoot, PATH_MAX * sizeof(overlapInfo *), 0);
-    memset(pathPosn, PATH_MAX * sizeof(uint32), 0);
-    memset(pathMaxp, PATH_MAX * sizeof(uint32), 0);
+    //memset(path, pathMax * sizeof(searchNode), 0);
 
     extMax = 1048576;
     extLen = 0;
     ext    = new uint32 [extMax];
   };
   ~cmThreadData() {
+    delete [] path;
     delete [] ext;
   };
 
-  uint32         pathDepth;
-
-  uint32         pathIID[PATH_MAX];   //  Fragment here
-  uint32         path5p3[PATH_MAX];   //  Fragment here is 5' to 3'
-
-  uint32         pathLen[PATH_MAX];   //  The length, in bp, of the path up till now
-
-  overlapInfo   *pathRoot[PATH_MAX];  //  Root of the list of overlaps for this iid
-  uint32         pathPosn[PATH_MAX];  //  Position we are at in the list of overlaps
-  uint32         pathMaxp[PATH_MAX];  //  Number of ovelerlaps for this iid
-
-  uint32         extMax;          //  Use in RFS
+  //  Use in DFS and BFS.
+  //    In DFS, the path to the node we are searching.
+  //    In BFS, the list of nodes we have/will search.
+  uint32         pathPos;  //  Position of the search in DFS and BFS
+  uint32         pathAdd;  //  Next free spot to add a fragment in BFS
+  uint32         pathMax;  //  Number of nodes we have allocated.
+  searchNode    *path;
+  
+  //  Use in RFS, list of edges out of a node
   uint32         extLen;
+  uint32         extMax;
   uint32        *ext;
 };
 
@@ -333,9 +134,9 @@ public:
     mateIID   = mid;
     mate5p3   = (innie == false) ? true : false;
 
-    pathFound = false;
-    pathDepth = 0;
-    pathLen   = 0;
+    sFound = false;
+    sPos   = 0;
+    sLen   = 0;
   };
   ~cmComputation() {
   };
@@ -347,9 +148,9 @@ public:
   uint32         mateIID;   //  Fragment here
   uint32         mate5p3;   //  Fragment here is 5' to 3'
 
-  bool           pathFound;
-  uint32         pathDepth;
-  uint32         pathLen;   //  The length, in bp, of the path up till now
+  bool           sFound;    //  Did we find an answer?
+  uint32         sPos;      //  If answer, the position we found it at.
+  uint32         sLen;      //  If answer, the length of the path in bp.
 };
 
 
@@ -770,26 +571,26 @@ cmGlobalData::computeNextPlacement(cmComputation *c,
                                    uint32        &nlen) {
 
   //  Frag is forward, overlap is same, hang is positive
-  if ((t->path5p3[t->pathDepth] == true) && (novl->flipped == false)) {
-    nlen = t->pathLen[t->pathDepth] + novl->bhang;
+  if ((t->path[t->pathPos].p5p3 == true) && (novl->flipped == false)) {
+    nlen = t->path[t->pathPos].pLen + novl->bhang;
     assert(n5p3 == true);
   }
 
   //  Frag is forward, overlap is flipped, hang is positive
-  if ((t->path5p3[t->pathDepth] == true) && (novl->flipped == true)) {
-    nlen = t->pathLen[t->pathDepth] + novl->bhang;
+  if ((t->path[t->pathPos].p5p3 == true) && (novl->flipped == true)) {
+    nlen = t->path[t->pathPos].pLen + novl->bhang;
     assert(n5p3 == false);
   }
 
   //  Frag is reverse, overlap is same, hang is positive
-  if ((t->path5p3[t->pathDepth] == false) && (novl->flipped == false)) {
-    nlen = t->pathLen[t->pathDepth] + -novl->ahang;
+  if ((t->path[t->pathPos].p5p3 == false) && (novl->flipped == false)) {
+    nlen = t->path[t->pathPos].pLen + -novl->ahang;
     assert(n5p3 == false);
   }
 
   //  Frag is reverse, overlap is flipped, hang is positive
-  if ((t->path5p3[t->pathDepth] == false) && (novl->flipped == true)) {
-    nlen = t->pathLen[t->pathDepth] + -novl->ahang;
+  if ((t->path[t->pathPos].p5p3 == false) && (novl->flipped == true)) {
+    nlen = t->path[t->pathPos].pLen + -novl->ahang;
     assert(n5p3 == true);
   }
 }
@@ -803,13 +604,13 @@ cmGlobalData::testSearch(cmComputation  *c,
                          overlapInfo   **pos,
                          uint32         *len) {
 
-  uint32  thisIID = t->pathIID[t->pathDepth];
+  uint32  thisIID = t->path[t->pathPos].pIID;
 
   for (uint32 test=0; test<len[thisIID]; test++) {
     overlapInfo  *novl = pos[thisIID] + test;
 
     uint32        niid = novl->iid;
-    bool          n5p3 = (novl->flipped) ? (!t->path5p3[t->pathDepth]) : (t->path5p3[t->pathDepth]);
+    bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
     uint32        nlen = 0;
 
     computeNextPlacement(c, t, novl, niid, n5p3, nlen);
@@ -818,9 +619,9 @@ cmGlobalData::testSearch(cmComputation  *c,
         (n5p3 == c->mate5p3) &&
         (nlen >= pathMin) &&
         (nlen <= pathMax)) {
-      c->pathFound = true;
-      c->pathDepth = t->pathDepth + 1;
-      c->pathLen   = nlen;
+      c->sFound = true;
+      c->sPos = t->pathPos + 1;
+      c->sLen   = nlen;
 
       return(true);
     }
@@ -843,7 +644,9 @@ cmWorker(void *G, void *T, void *S) {
   cmThreadData    *t = (cmThreadData  *)T;
   cmComputation   *s = (cmComputation *)S;
 
-  g->doSearchRFS(s, t);
+  //g->doSearchDFS(s, t);
+  //g->doSearchRFS(s, t);
+  g->doSearchBFS(s, t);
 }
 
 
@@ -879,12 +682,12 @@ cmWriter(void *G, void *S) {
   cmGlobalData    *g = (cmGlobalData  *)G;
   cmComputation   *c = (cmComputation *)S;
 
-  if (c->pathFound == true)
+  if (c->sFound == true)
     fprintf(g->resultsFile, "Path from %d/%s to %d/%s found at depth %d of length %d.\n",
             c->fragIID, (c->frag5p3 == true) ? "5'3'" : "3'5'", 
             c->mateIID, (c->mate5p3 == true) ? "5'3'" : "3'5'",
-            c->pathDepth,
-            c->pathLen);
+            c->sPos,
+            c->sLen);
   else
     fprintf(g->resultsFile, "Path from %d/%s NOT FOUND.\n",
             c->fragIID, (c->frag5p3 == true) ? "5'3'" : "3'5'");
@@ -987,8 +790,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "No overlap store (-O) supplied.\n"), err++;
   if (resultsPath == 0L)
     fprintf(stderr, "No results output (-o) supplied.\n"), err++;
-  if (depthMax > PATH_MAX)
-    fprintf(stderr, "Search depth (-depth) limited to %d.\n", PATH_MAX), err++;
   if (err) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -o resultsFile ...\n", argv[0]);
     fprintf(stderr, "\n");
@@ -1016,9 +817,9 @@ main(int argc, char **argv) {
   ss->setLoaderQueueSize(1048576);
   ss->setWriterQueueSize(65536);
 
-  ss->setNumberOfWorkers(64);
+  ss->setNumberOfWorkers(4);
 
-  for (u32bit w=0; w<64; w++)
+  for (u32bit w=0; w<4; w++)
     ss->setThreadData(w, new cmThreadData());  //  these leak
 
   ss->run(g, true);
