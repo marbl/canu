@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.63 2011-04-08 01:46:38 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.64 2011-04-28 20:31:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -425,7 +425,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
     AS_IID  id2  = fr.gkFragment_getMateIID();
 
     AS_IID  libIID = fr.gkFragment_getLibraryIID();
-    AS_UID  libUID = gkp->gkStore_getLibrary(libIID)->libraryUID;
+    AS_UID  libUID = (libIID > 0) ? gkp->gkStore_getLibrary(libIID)->libraryUID : AS_UID_undefined();
 
     if ((fr.gkFragment_getIsDeleted() == true) && (dumpAllReads == false))
       //  Fragment is deleted, don't dump.
@@ -826,7 +826,7 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
     AS_IID  id2  = fr.gkFragment_getMateIID();
 
     AS_IID  libIID = fr.gkFragment_getLibraryIID();
-    AS_UID  libUID = gkp->gkStore_getLibrary(libIID)->libraryUID;
+    AS_UID  libUID = (libIID > 0) ? gkp->gkStore_getLibrary(libIID)->libraryUID : AS_UID_undefined();
 
     if ((fr.gkFragment_getIsDeleted() == true) && (dumpAllReads == false))
       //  Fragment is deleted, don't dump.
@@ -935,7 +935,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
     AS_IID  id2    = fr.gkFragment_getMateIID();
 
     AS_IID  libIID = fr.gkFragment_getLibraryIID();
-    AS_UID  libUID = gkp->gkStore_getLibrary(libIID)->libraryUID;
+    AS_UID  libUID = (libIID > 0) ? gkp->gkStore_getLibrary(libIID)->libraryUID : AS_UID_undefined();
 
     if ((fr.gkFragment_getIsDeleted() == true) && (dumpAllReads == false))
       //  Fragment is deleted, don't dump.
