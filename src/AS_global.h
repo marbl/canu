@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.37 2011-01-26 04:50:08 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.38 2011-05-02 15:00:48 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -276,7 +276,7 @@ off_t ftello(FILE *stream );
 //  perl's chomp is pretty nice
 //  Not a great place to put this, but it's getting used all over.
 #ifndef chomp
-#define chomp(S)  { char *t=(S); while (*t) t++; t--; while (isspace(*t)) *t--=0; }
+#define chomp(S)  { char *t=(S); while (*t) t++; t--; while (t >= S && isspace(*t)) *t--=0; }
 #endif
 
 #ifndef munch
