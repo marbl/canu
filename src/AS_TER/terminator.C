@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.7 2010-08-06 17:36:43 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.8 2011-05-02 15:01:31 skoren Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -158,9 +158,45 @@ writeMDI(FILE *asmFile, bool doWrite) {
 }
 
 
+void writeAFGFromTigStore(FILE *asmFile, bool doWrite) {
+  GenericMesg       pmesg;
+  AugFragMesg       afg;
+
+  pmesg.m = &afg;
+  pmesg.t = MESG_AFG;
+
+  gkFragment     fr;
+
+  for (uint32 tigID = 0; tigID < ScaffoldGraph->tigStore->numUnitigs(); tigID++) {
+    MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(tigID, TRUE);
+    if (ma == NULL) 
+       continue;
+    
+    for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+       IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
+       ScaffoldGraph->gkpStore->gkStore_getFragment(imp->ident, &fr, GKFRAGMENT_INF);
+       afg.eaccession     = fr.gkFragment_getReadUID();
+       afg.iaccession     = fr.gkFragment_getReadIID();
+       afg.mate_status    = UNASSIGNED_MATE;
+       afg.chaff          = 0;
+       afg.clear_rng.bgn  = fr.gkFragment_getClearRegionBegin();
+       afg.clear_rng.end  = fr.gkFragment_getClearRegionEnd  ();
+
+       if (doWrite)
+          WriteProtoMesg_AS(asmFile, &pmesg);
+
+       FRGmap.add(afg.iaccession, afg.eaccession);
+
+       if ((AS_UID_isString(afg.eaccession) == FALSE) &&
+          (uidMin <= AS_UID_toInteger(afg.eaccession)))
+          uidMin = AS_UID_toInteger(afg.eaccession) + 1;
+    }
+  }
+}
+
 
 void
-writeAFG(FILE *asmFile, bool doWrite) {
+writeAFGFromCGW(FILE *asmFile, bool doWrite) {
   GenericMesg       pmesg;
   AugFragMesg       afg;
 
@@ -204,6 +240,17 @@ writeAFG(FILE *asmFile, bool doWrite) {
 
 
 void
+writeAFG(FILE *asmFile, bool doWrite, bool fromCGW) {
+   if (fromCGW == true) 
+      writeAFGFromCGW(asmFile, doWrite);
+   else
+      writeAFGFromTigStore(asmFile, doWrite);
+}
+
+
+
+
+void
 writeAMP(FILE *asmFile, bool doWrite) {
   GenericMesg           pmesg;
   AugMatePairMesg       amp;
@@ -242,9 +289,56 @@ writeAMP(FILE *asmFile, bool doWrite) {
 }
 
 
+void buildUTGMessage(int32 ID, SnapUnitigMesg *utg) {
+    MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(ID, TRUE);
+    if (ma == NULL) {
+       return;
+    }
+    utg->eaccession    = AS_UID_fromInteger(getUID(uidServer));
+    utg->iaccession    = ID;
+    utg->coverage_stat = ScaffoldGraph->tigStore->getUnitigCoverageStat(ID);
+    utg->microhet_prob = ScaffoldGraph->tigStore->getUnitigMicroHetProb(ID);
+    utg->status        = ScaffoldGraph->tigStore->getUnitigStatus(ID);
+    utg->length        = GetMultiAlignLength(ma);
+    utg->consensus     = Getchar(ma->consensus, 0);
+    utg->quality       = Getchar(ma->quality, 0);
+    utg->forced        = 0;
+    utg->num_frags     = GetNumIntMultiPoss(ma->f_list);
+    utg->num_vars      = 0;
+    utg->f_list        = (SnapMultiPos*)safe_malloc(utg->num_frags * sizeof(SnapMultiPos));
+    utg->v_list        = NULL;
+
+    for (int32 i=0; i<utg->num_frags; i++) {
+      IntMultiPos  *imp = GetIntMultiPos(ma->f_list, i);
+
+      utg->f_list[i].type          = imp->type;
+      utg->f_list[i].eident        = FRGmap.lookup(imp->ident);
+      utg->f_list[i].position      = imp->position;
+      utg->f_list[i].delta_length  = imp->delta_length;
+      utg->f_list[i].delta         = imp->delta;
+    }
+}
+
+void writeUTGFromTigStore(FILE *asmFile, bool doWrite) {
+  GenericMesg         pmesg;
+  SnapUnitigMesg      utg;
+
+  pmesg.m = &utg;
+  pmesg.t = MESG_UTG;
+
+  for (uint32 tigID = 0; tigID < ScaffoldGraph->tigStore->numUnitigs(); tigID++) {
+    buildUTGMessage(tigID, &utg);
+    if (doWrite)
+      WriteProtoMesg_AS(asmFile, &pmesg);
+
+    safe_free(utg.f_list);
+    UTGmap.add(utg.iaccession, utg.eaccession);
+  }
+}
+
 
 void
-writeUTG(FILE *asmFile, bool doWrite) {
+writeUTGFromCGW(FILE *asmFile, bool doWrite) {
   GenericMesg         pmesg;
   SnapUnitigMesg      utg;
 
@@ -266,32 +360,7 @@ writeUTG(FILE *asmFile, bool doWrite) {
     if (ci->type == RESOLVEDREPEATCHUNK_CGW)
       //  Don't write surrogate instances
       continue;
-
-    MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(ci->id, TRUE);
-
-    utg.eaccession    = AS_UID_fromInteger(getUID(uidServer));
-    utg.iaccession    = ci->id;
-    utg.coverage_stat = ScaffoldGraph->tigStore->getUnitigCoverageStat(ci->id);
-    utg.microhet_prob = ScaffoldGraph->tigStore->getUnitigMicroHetProb(ci->id);
-    utg.status        = ScaffoldGraph->tigStore->getUnitigStatus(ci->id);
-    utg.length        = GetMultiAlignLength(ma);
-    utg.consensus     = Getchar(ma->consensus, 0);
-    utg.quality       = Getchar(ma->quality, 0);
-    utg.forced        = 0;
-    utg.num_frags     = GetNumIntMultiPoss(ma->f_list);
-    utg.num_vars      = 0;
-    utg.f_list        = (SnapMultiPos*)safe_malloc(utg.num_frags * sizeof(SnapMultiPos));
-    utg.v_list        = NULL;
-
-    for (int32 i=0; i<utg.num_frags; i++) {
-      IntMultiPos  *imp = GetIntMultiPos(ma->f_list, i);
-
-      utg.f_list[i].type          = imp->type;
-      utg.f_list[i].eident        = FRGmap.lookup(imp->ident);
-      utg.f_list[i].position      = imp->position;
-      utg.f_list[i].delta_length  = imp->delta_length;
-      utg.f_list[i].delta         = imp->delta;
-    }
+    buildUTGMessage(ci->id, &utg);
 
     if (doWrite)
       WriteProtoMesg_AS(asmFile, &pmesg);
@@ -302,6 +371,13 @@ writeUTG(FILE *asmFile, bool doWrite) {
   }
 }
 
+void
+writeUTG(FILE *asmFile, bool doWrite, bool fromCGW) {
+  if (fromCGW == true)
+     writeUTGFromCGW(asmFile, doWrite);
+  else 
+     writeUTGFromTigStore(asmFile, doWrite);
+}
 
 
 void
@@ -913,6 +989,8 @@ int main (int argc, char *argv[]) {
   int32       tigStoreVers             = 0;
   uint64      uidStart                 = 0;
 
+  int32       outputScaffolds          = FALSE;
+
   GlobalData = new Globals_CGW();
 
   argc = AS_configure(argc, argv);
@@ -930,6 +1008,7 @@ int main (int argc, char *argv[]) {
     } else if (strcmp(argv[arg], "-c") == 0) {
       strcpy(GlobalData->outputPrefix, argv[++arg]);
       checkpointVers = atoi(argv[++arg]);
+      outputScaffolds = TRUE;
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       outputPrefix = argv[++arg];
@@ -954,12 +1033,11 @@ int main (int argc, char *argv[]) {
   }
   if ((GlobalData->gkpStoreName[0] == 0) ||
       (GlobalData->tigStoreName[0] == 0) ||
-      (GlobalData->outputPrefix[0] == 0) ||
       (err)) {
     fprintf(stderr, "usage: %s -g gkpStore [-o prefix] [-s firstUID] [-n namespace] [-E server] [-h]\n", argv[0]);
     fprintf(stderr, "  -g gkpStore             mandatory path to the gkpStore\n");
     fprintf(stderr, "  -t tigStore version     mandatory path to the tigStore and version\n");
-    fprintf(stderr, "  -c checkpoint version   mandatory path to a checkpoint and version\n");
+    fprintf(stderr, "  -c checkpoint version   optional path to a checkpoint and version\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -o prefix               write the output here\n");
     fprintf(stderr, "\n");
@@ -975,7 +1053,12 @@ int main (int argc, char *argv[]) {
   if (errno)
     fprintf(stderr, "%s: Couldn't open '%s' for write: %s\n", outputName, strerror(errno)), exit(1);
 
-  LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, checkpointVers, FALSE);
+  // if we have contigs
+  if (outputScaffolds) {
+     LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, checkpointVers, FALSE);
+  } else {
+     ScaffoldGraph = CreateScaffoldGraph(outputPrefix);
+  }
 
   //  Reopen the tigStore used for consensus.
   delete ScaffoldGraph->tigStore;
@@ -984,7 +1067,7 @@ int main (int argc, char *argv[]) {
   fprintf(stderr, "Writing assembly file\n");
 
   writeMDI(asmFile, true);
-  writeAFG(asmFile, true);
+  writeAFG(asmFile, true, outputScaffolds);
 
   //  If uidStart is zero, use the UID server; otherwise, initialize the 'fake uid server' to start
   //  there, or after the last UID used by a fragment.
@@ -992,7 +1075,7 @@ int main (int argc, char *argv[]) {
   uidServer = UIDserverInitialize(256, (uidStart == 0) ? 0 : MAX(uidMin, uidStart));
 
   writeAMP(asmFile, true);
-  writeUTG(asmFile, true);
+  writeUTG(asmFile, true, outputScaffolds);
   writeULK(asmFile, true);
   writeCCO(asmFile, true);
   writeCLK(asmFile, true);
