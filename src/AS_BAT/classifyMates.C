@@ -17,20 +17,18 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.11 2011-04-28 23:28:14 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.12 2011-05-02 20:39:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
 
 #include <set>
+#include <map>
 
 #include "sweatShop.H"
 
 using namespace std;
-
-#define NDISTD     500  //  Number of dovetail edges off each end
-#define NDISTC       0  //  Number of contains for each end
 
 
 class fragmentInfo {
@@ -188,6 +186,9 @@ public:
     tgPos        = 0L;
     tgLen        = 0L;
 
+    gtPos        = 0L;
+    gtLen        = 0L;
+
     oiStorageMax = 0;
     oiStorageLen = 0;
     oiStorageArr = 0L;
@@ -206,6 +207,9 @@ public:
 
     delete [] tgPos;
     delete [] tgLen;
+
+    delete [] gtPos;
+    delete [] gtLen;
 
     delete [] oiStorageArr;
 
@@ -226,6 +230,10 @@ public:
                               uint32        &niid,
                               bool          &n5p3,
                               uint32        &nlen);
+
+  bool   testSearch(cmComputation              *c,
+                    cmThreadData               *t,
+                    map<uint32,overlapInfo*>   &pos);
   bool   testSearch(cmComputation *c,
                     cmThreadData  *t,
                     overlapInfo  **pos,
@@ -256,6 +264,9 @@ public:
 
   overlapInfo     **tgPos;  //  Pointer to start of overlaps for this TARGET frag
   uint32           *tgLen;  //  Number of overlaps for this TARGET frag
+
+  overlapInfo     **gtPos;  //  Same as tgPos, but indexed on the b-frag IID
+  uint32           *gtLen;  //
 
   uint32            oiStorageMax;  //  Maximum number of blocks we can allocate.
   uint32            oiStorageLen;  //  Actual number of blocks allocated.
@@ -361,19 +372,22 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
   OVSoverlap       *ovl    = new OVSoverlap [ovlMax];
   bool             *ovlBB  = new bool       [ovlMax];
   bool             *ovlTG  = new bool       [ovlMax];
-  bool             *ovlDD  = new bool       [ovlMax];
 
   bbPos = new overlapInfo * [numFrags + 1];  //  Pointer to start of overlaps for this frag
   tgPos = new overlapInfo * [numFrags + 1];
+  gtPos = new overlapInfo * [numFrags + 1];
 
   bbLen = new uint32        [numFrags + 1];  //  Number of overlaps for this frag
   tgLen = new uint32        [numFrags + 1];
+  gtLen = new uint32        [numFrags + 1];
 
   memset(bbPos, 0, sizeof(overlapInfo) * (numFrags + 1));
   memset(tgPos, 0, sizeof(overlapInfo) * (numFrags + 1));
+  memset(gtPos, 0, sizeof(overlapInfo) * (numFrags + 1));
 
   memset(bbLen, 0, sizeof(uint32)      * (numFrags + 1));
   memset(tgLen, 0, sizeof(uint32)      * (numFrags + 1));
+  memset(gtLen, 0, sizeof(uint32)      * (numFrags + 1));
 
   //  Overlap storage.  Each fragment has an entry in bbPos & tgPos that points to actual data in an
   //  array.  There are bbLen & tgPos overlaps at this location.  The array is NOT contiguous.
@@ -396,7 +410,11 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
   uint64            numTG = 0;  //  Number of TG overlaps loaded
   uint64            numDD = 0;  //  Number of overlaps discarded
 
+#if NDISTD > 0
   saveDistance     *dist = new saveDistance;
+#else
+  saveDistance     *dist = NULL;
+#endif
 
   OverlapStore     *ovlStore  = AS_OVS_openOverlapStore(ovlStorePath);
 
@@ -437,71 +455,58 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
 
     for (uint32 i=0; i<ovlLen; i++) {
-      int32  ah = ovl[i].dat.ovl.a_hang;
-      int32  bh = ovl[i].dat.ovl.b_hang;
-      int32  fa = fi[ovl[i].a_iid].clearLength;
-      int32  fb = fi[ovl[i].b_iid].clearLength;
 
+      //  By default, keep no BB and no TG overlaps, and delete everything.
       ovlBB[i] = false;
       ovlTG[i] = false;
-      ovlDD[i] = true;
 
+
+      //  Overlaps from a search A-fragment to a backbone B-fragment must always be kept.  These are
+      //  used to initiating the search.
+      //
       if ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true))
-        //  These are needed to start the search.
         ovlBB[i] = true;
 
-      if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true))
-        //  These overlaps are used to extend a path.
-        ovlBB[i] = true;
 
+      //  Overlaps from a backbone A-fragment to a search B-fragment must always be kept.  These are
+      //  used to terminate the search.
+      //
       if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].doSearch   == true))
-        //  These are needed to terminate the search.
         ovlTG[i] = true;
 
-      if        (AS_OVS_overlapAEndIs5prime(ovl[i])) {
-        //  ah < 0 && bh < 0
-        if ((dist == NULL) ||
-            (dist->doveDist5 <= fb - -ah))
-          ovlDD[i] = false;
 
-      } else if (AS_OVS_overlapAEndIs3prime(ovl[i])) {
-        //  ah > 0 && bh > 0
-        if ((dist == NULL) ||
-            (dist->doveDist3 <= fb -  bh))
-          ovlDD[i] = false;
+      //  Overlaps from backbone to backbone are kept if they are dovetail.
+      //
+      if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true)) {
+        int32  ah = ovl[i].dat.ovl.a_hang;
+        int32  bh = ovl[i].dat.ovl.b_hang;
+        int32  fa = fi[ovl[i].a_iid].clearLength;
+        int32  fb = fi[ovl[i].b_iid].clearLength;
 
-      } else if (AS_OVS_overlapAIsContained(ovl[i])) {
-        //  ah <= 0 && bh >= 0
-        //if ((dist->coneDist5 >= -ah) ||
-        //    (dist->coneDist3 >=  bh)) {
-        ovlBB[i] = false;
-        ovlDD[i] = false;
+        if ((AS_OVS_overlapAEndIs5prime(ovl[i])) &&
+            ((dist == NULL) ||
+             (dist->doveDist5 <= fb - -ah)))
+          //  ah < 0 && bh < 0
+          ovlBB[i] = true;
 
-      } else if (AS_OVS_overlapAIsContainer(ovl[i])) {
-        //  ah >= 0 && bh <= 0
-        //if ((dist->conrDist5 >=  ah) ||
-        //    (dist->conrDist3 >= -bh)) {
-        ovlBB[i] = false;
-        ovlDD[i] = false;
-
-      } else {
-        assert(0);
+        if ((AS_OVS_overlapAEndIs3prime(ovl[i])) &&
+            ((dist == NULL) ||
+             (dist->doveDist3 <= fb -  bh)))
+          //  ah > 0 && bh > 0
+          ovlBB[i] = true;
       }
 
+      //  Save or discard the overlap.  We are allowed to save the overlap twice, once as a backbone
+      //  overlap and once as a termination overlap.
 
       if ((ovlBB[i] == false) && (ovlTG[i] == false))
-        //  Not backbone and not target, so deleted.  This happens for contains
-        //  that are in the backbone.
-        ovlDD[i] = true;
-
-      if      (ovlDD[i]) {
         ovl[i].a_iid = 0;
-      } else {
-        if (ovlBB[i])
-          bbLen[iid]++;
-        if (ovlTG[i])
-          tgLen[iid]++;
-      }
+
+      if (ovlBB[i] == true)
+        bbLen[iid]++;
+
+      if (ovlTG[i] == true)
+        tgLen[iid]++;
     }  //  Over all overlaps
 
     //  If not enough space in oiStorage, get more space.
@@ -521,18 +526,18 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
     tgLen[iid] = 0;
 
     for (uint32 i=0; i<ovlLen; i++) {
-      if (ovlDD[i]) {
+      if ((ovlBB[i] == false) && (ovlTG[i] == false)) {
         numDD++;
-      } else {
-        if (ovlBB[i]) {
-          bbPos[iid][bbLen[iid]++] = overlapInfo(ovl[i]);
-          numBB++;
-        }
+      }
 
-        if (ovlTG[i]) {
-          tgPos[iid][tgLen[iid]++] = overlapInfo(ovl[i]);
-          numTG++;
-        }
+      if (ovlBB[i] == true) {
+        bbPos[iid][bbLen[iid]++] = overlapInfo(ovl[i]);
+        numBB++;
+      }
+
+      if (ovlTG[i] == true) {
+        tgPos[iid][tgLen[iid]++] = overlapInfo(ovl[i]);
+        numTG++;
       }
     }
 
@@ -560,7 +565,64 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
           numTG, 100.0 * numTG / numTT,
           numDD, 100.0 * numDD / numTT);
   fprintf(stderr, "LOADING OVERLAPS...%lu overlaps loaded.\n", numBB + numTG);
+
+
+  fprintf(stderr, "INVERTING OVERLAPS.\n");
+
+  //  Invert the TG overlaps to make the GT overlaps.  The current list is indexed on a-fragID, we
+  //  need to index on b-fragID.
+
+  uint64  numGTfrg = 0;
+  uint64  numGTovl = 0;
+
+  //  Count the number of overlaps for each b_iid
+  for (uint32 ii=0; ii<numFrags+1; ii++) {
+    if (tgPos[ii] == NULL)
+      continue;
+
+    for (uint32 jj=0; jj<tgLen[ii]; jj++) {
+      gtLen[ tgPos[ii][jj].iid ]++;
+      numGTovl++;
+    }
+  }
+
+  //  Allocate space for them
+  oiStorage = oiStorageArr[oiStorageLen] = new overlapInfo [numGTovl];
+  oiStorageLen++;
+  oiStoragePos = 0;
+
+  //  Set pointers to the space.  We'll recount as the overlaps are added.
+  for (uint32 ii=0; ii<numFrags+1; ii++) {
+    if (gtLen[ii] == 0)
+      continue;
+
+    gtPos[ii]      = oiStorage + oiStoragePos;  //  Point into the space
+    oiStoragePos  += gtLen[ii];                 //  Reserve the space
+    gtLen[ii]      = 0;                         //  Show we have no overlaps loaded
+  }
+
+  //  Finally, copy the overlaps
+  for (uint32 ii=0; ii<numFrags+1; ii++) {
+    if (tgPos[ii] == NULL)
+      continue;
+
+    numGTfrg++;
+
+    for (uint32 jj=0; jj<tgLen[ii]; jj++) {
+      uint32  iid = tgPos[ii][jj].iid;
+
+      assert(gtPos[iid] != NULL);
+
+      gtPos[iid][gtLen[iid]]     = tgPos[ii][jj];
+      gtPos[iid][gtLen[iid]].iid = ii;
+
+      gtLen[iid]++;
+    }
+  }
+
+  fprintf(stderr, "INVERTING OVERLAPS....%lu frags found.\n", numGTfrg);
 }
+
 
 
 
@@ -601,6 +663,42 @@ cmGlobalData::computeNextPlacement(cmComputation *c,
 
 
 bool
+cmGlobalData::testSearch(cmComputation              *c,
+                         cmThreadData               *t,
+                         map<uint32,overlapInfo*>   &pos) {
+
+  uint32  thisIID = t->path[t->pathPos].pIID;
+
+  map<uint32,overlapInfo*>::iterator  it = pos.find(thisIID);
+
+  if (it == pos.end())
+    return(false);
+
+  //  We are guaranteed by construction that this overlap is to the mate fragment.
+  //  See doSearchBFS.
+
+  overlapInfo  *novl = it->second;
+  uint32        niid = c->mateIID;
+  bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
+  uint32        nlen = 0;
+
+  if (n5p3 != c->mate5p3)
+    return(false);
+
+  computeNextPlacement(c, t, novl, niid, n5p3, nlen);
+
+  if ((nlen < pathMin) ||
+      (nlen > pathMax))
+    return(false);
+
+  c->sFound = true;
+  c->sPos = t->pathPos + 1;
+  c->sLen   = nlen;
+
+  return(true);
+}
+
+bool
 cmGlobalData::testSearch(cmComputation  *c,
                          cmThreadData   *t,
                          overlapInfo   **pos,
@@ -610,16 +708,17 @@ cmGlobalData::testSearch(cmComputation  *c,
 
   for (uint32 test=0; test<len[thisIID]; test++) {
     overlapInfo  *novl = pos[thisIID] + test;
-
     uint32        niid = novl->iid;
     bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
     uint32        nlen = 0;
 
+    if ((niid != c->mateIID) ||
+        (n5p3 != c->mate5p3))
+      continue;
+
     computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
-    if ((niid == c->mateIID) &&
-        (n5p3 == c->mate5p3) &&
-        (nlen >= pathMin) &&
+    if ((nlen >= pathMin) &&
         (nlen <= pathMax)) {
       c->sFound = true;
       c->sPos = t->pathPos + 1;
@@ -819,9 +918,9 @@ main(int argc, char **argv) {
   ss->setLoaderQueueSize(1048576);
   ss->setWriterQueueSize(65536);
 
-  ss->setNumberOfWorkers(4);
+  ss->setNumberOfWorkers(16);
 
-  for (u32bit w=0; w<4; w++)
+  for (u32bit w=0; w<16; w++)
     ss->setThreadData(w, new cmThreadData());  //  these leak
 
   ss->run(g, true);

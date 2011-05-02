@@ -7,8 +7,9 @@
 void
 cmGlobalData::doSearchBFS(cmComputation *c,
                           cmThreadData  *t) {
-  set<uint32>  visited5p3;
-  set<uint32>  visited3p5;
+  set<uint32>               visited5p3;
+  set<uint32>               visited3p5;
+  map<uint32,overlapInfo*>  solution;
 
   //  Allocate nodes for our search.  This lets us search 32 million fragments, and takes 1GB of
   //  memory.  We don't try to do anything fancy like round-robin.  Once we full up the list,
@@ -18,8 +19,21 @@ cmGlobalData::doSearchBFS(cmComputation *c,
   t->pathAdd = 0;
 
   if (t->path == NULL) {
-    t->pathMax = 32 * 1024 * 1024;
+    t->pathMax = 16 * 1024 * 1024;
     t->path    = new searchNode [t->pathMax];
+  }
+
+  //  Build the map from backbone fragment to solution overlap.
+  //
+  //  The map goes from a-fragID to overlap with the mateIID b-frag.  NOTE that we
+  //  DO NOT reset the 'iid' of this overlap to be correct.
+  //
+  {
+    overlapInfo  *pos = gtPos[c->mateIID];
+    uint32        len = gtLen[c->mateIID];
+
+    for (uint32 ii=0; ii<len; ii++)
+      solution[ pos[ii].iid ] = pos + ii;
   }
 
   //  Seed the search with the first fragment
@@ -36,7 +50,9 @@ cmGlobalData::doSearchBFS(cmComputation *c,
   while ((t->pathPos < t->pathMax) &&
          (t->pathPos < t->pathAdd)) {
 
-    if (testSearch(c, t, tgPos, tgLen))
+    if ((pathMin                  <= t->path[t->pathPos].pLen) &&
+        (t->path[t->pathPos].pLen <= pathMax) &&
+        (testSearch(c, t, solution)))  //  tgPos, tgLen for the old slow method
       //  If any of the target overlaps are the answer
       return;
 
