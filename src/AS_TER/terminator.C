@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.8 2011-05-02 15:01:31 skoren Exp $";
+const char *mainid = "$Id: terminator.C,v 1.9 2011-05-04 20:31:33 skoren Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -299,6 +299,7 @@ void buildUTGMessage(int32 ID, SnapUnitigMesg *utg) {
     utg->coverage_stat = ScaffoldGraph->tigStore->getUnitigCoverageStat(ID);
     utg->microhet_prob = ScaffoldGraph->tigStore->getUnitigMicroHetProb(ID);
     utg->status        = ScaffoldGraph->tigStore->getUnitigStatus(ID);
+    utg->status        = (utg->status == AS_UNASSIGNED ? AS_UNIQUE : utg->status);
     utg->length        = GetMultiAlignLength(ma);
     utg->consensus     = Getchar(ma->consensus, 0);
     utg->quality       = Getchar(ma->quality, 0);
