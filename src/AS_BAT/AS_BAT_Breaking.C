@@ -19,11 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.4 2011-03-17 05:33:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.5 2011-05-06 17:30:12 brianwalenz Exp $";
 
 #include "AS_BAT_Breaking.H"
 
 #include "AS_BAT_BestOverlapGraph.H"
+
+#define LOG_ADDUNITIG_BREAKING  1
+#define LOG_ADDFRAG_BREAKING    0
 
 //  The four cases we must handle:
 //
@@ -234,11 +237,11 @@ breakUnitigAt(Unitig *tig,
 
     if ((break5p == true) &&
         (break3p == true)) {
-      saveTig    = currTig    = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      saveTig    = currTig    = new Unitig(LOG_ADDUNITIG_BREAKING);
       saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
       newTigs->push_back(currTig);
-      currTig->addFrag(frg, currOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      currTig->addFrag(frg, currOffset, LOG_ADDFRAG_BREAKING);
 
       currTig = NULL;
 
@@ -252,7 +255,7 @@ breakUnitigAt(Unitig *tig,
         (lastTig) &&
         (frg.position.bgn < lastLength) &&
         (frg.position.end < lastLength)) {
-      lastTig->addFrag(frg, lastOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      lastTig->addFrag(frg, lastOffset, LOG_ADDFRAG_BREAKING);
       continue;
     }
 
@@ -261,13 +264,13 @@ breakUnitigAt(Unitig *tig,
     if ((break5p == false) &&
         (break3p == false)) {
       if (currTig == NULL) {
-        saveTig    = currTig    = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
+        saveTig    = currTig    = new Unitig(LOG_ADDUNITIG_BREAKING);
         saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
         newTigs->push_back(currTig);
       }
 
-      currTig->addFrag(frg, currOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      currTig->addFrag(frg, currOffset, LOG_ADDFRAG_BREAKING);
       continue;
     }
 
@@ -275,11 +278,11 @@ breakUnitigAt(Unitig *tig,
 
     if ((break5p && (frgReversed == false)) ||
         (break3p && (frgReversed == true))) {
-      saveTig    = currTig    = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      saveTig    = currTig    = new Unitig(LOG_ADDUNITIG_BREAKING);
       saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
       newTigs->push_back(currTig);
-      currTig->addFrag(frg, currOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      currTig->addFrag(frg, currOffset, LOG_ADDFRAG_BREAKING);
 
       continue;
     }
@@ -290,13 +293,13 @@ breakUnitigAt(Unitig *tig,
     if ((break5p && (frgReversed == true)) ||
         (break3p && (frgReversed == false))) {
       if (currTig == NULL) {
-        saveTig    = currTig    = new Unitig(logFileFlagSet(LOG_INTERSECTION_BREAKING));
+        saveTig    = currTig    = new Unitig(LOG_ADDUNITIG_BREAKING);
         saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
         newTigs->push_back(currTig);
       }
 
-      currTig->addFrag(frg, currOffset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
+      currTig->addFrag(frg, currOffset, LOG_ADDFRAG_BREAKING);
 
       currTig = NULL;
 
