@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.6 2011-04-18 02:00:20 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.7 2011-05-06 17:32:27 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -712,12 +712,14 @@ markRepeats(UnitigVector &unitigs,
       assert(op[pl].tigID == target->id());
       if (op[pl].tigID != target->id()) continue;
 
+#if 0
       fprintf(logFile, "markRepeats()-- op[%3d] tig %d fCoverage %f position %d %d verified %d %d\n",
               pl,
               op[pl].tigID,
               op[pl].fCoverage,
               op[pl].position.bgn, op[pl].position.end,
               op[pl].verified.bgn, op[pl].verified.end);
+#endif
 
       if (op[pl].fCoverage > 0.99)
         //  No worries, fully placed.
@@ -787,33 +789,34 @@ markRepeats(UnitigVector &unitigs,
       bool  save5 = (uncovered5bgn + UNCOVERED_NOISE_FILTER < uncovered5end);
       bool  save3 = (uncovered3bgn + UNCOVERED_NOISE_FILTER < uncovered3end);
 
-      if (save5 && save3) {
+      if ((save5 == true) && (save3 == true)) {
         //  Ignore this repeat-in-a-fragment alignment.  The only way (I can think of anyway) this could
         //  occur is from an alignment to a short contained fragment.
-        *end5 = FragmentEnd();
-        *end3 = FragmentEnd();
+        continue;
+      }
 
-      } else if (save5) {
-        //  Uncovered bases towards the start of the unitig.
-        //hang5.add(uncovered5bgn, uncovered5end - uncovered5bgn + 1);
-        places.push_back(op[pl]);
+      if ((save5 == false) && (save3 == false)) {
+        //  Ignore this non-overhanging fragment.  It either aligned full length, of didn't have
+        //  enough unaligned for us to care about.
+        continue;
+      }
+
+      //  Save this overlapPlacement for later use.  We've got a valid overhang towards the start of
+      //  the unitig (save5) or the end of the unitig (save3).
+
+      places.push_back(op[pl]);
+
+      if (save5) {
         align5.add(coveredbgn + COVERED_BORDER, coveredend - coveredbgn - 2 * COVERED_BORDER);
         *end3 = FragmentEnd();
 
-      } else if (save3) {
-        //  Uncovered bases towards the end of the unitig.
-        //hang3.add(uncovered3bgn, uncovered3end - uncovered3bgn + 1);
-        places.push_back(op[pl]);
+      } else {
         align3.add(coveredbgn + COVERED_BORDER, coveredend - coveredbgn - 2 * COVERED_BORDER);
         *end5 = FragmentEnd();
-
-      } else {
-        *end5 = FragmentEnd();
-        *end3 = FragmentEnd();
       }
 
 #if 1
-      fprintf(logFile, "markRepeats()-- tig frag %8d ovl frag %8d %6d-%6d %5.2f%% tig pos %8d/%c' (%4d) %6d-%6d (%4d) %8d/%c'%s\n",
+      fprintf(logFile, "markRepeats()-- tig frag %8d ovl frag %8d %6d-%6d %5.2f%% tig pos %8d/%c' (%4d) %6d-%6d (%4d) %8d/%c'\n",
               op[pl].refID, op[pl].frgID,
               op[pl].covered.bgn,
               op[pl].covered.end,
@@ -822,8 +825,7 @@ markRepeats(UnitigVector &unitigs,
               uncovered5end - uncovered5bgn,
               coveredbgn, coveredend,
               uncovered3end - uncovered3bgn,
-              end3->fragId(), (end3->frag5p() ? '5' : '3'),
-              (save5 && save3) ? " ***" : "");
+              end3->fragId(), (end3->frag5p() ? '5' : '3'));
 #endif
     }
   }
@@ -871,11 +873,12 @@ markRepeats(UnitigVector &unitigs,
   //  This is kinda hard....
 
   for (uint32 bp=0; bp<junctions.size(); bp++)
-    fprintf(logFile, "markRepeats()--  junction: %s %6d %s from %d fragments\n",
+    fprintf(logFile, "markRepeats()--  junction: %s %6d %s from %d fragments %d,%d\n",
             junctions[bp].rptLeft ? "repeat" : "unique",
             junctions[bp].point,
             junctions[bp].rptLeft ? "unique" : "repeat",
-            junctions[bp].overlaps);
+            junctions[bp].overlaps,
+            junctions[bp].bgn, junctions[bp].end);
 
 
   //  this is a stupid simple filter.  if there is another junction within STUPID_REPEAT_SIZE, throw
@@ -891,7 +894,9 @@ markRepeats(UnitigVector &unitigs,
     for (uint32 bb=0; bb<junctions.size(); bb++)
       if ((ba != bb) &&
           (lo <= junctions[bb].point) &&
-          (junctions[bb].point <= hi))
+          (junctions[bb].point <= hi) &&
+          (junctions[ba].overlaps < 2 * junctions[bb].overlaps))
+        //  Don't keep [ba] if [bb] is within range of [ba], and if [ba] is not very strong.
         keepIt = false;
 
     if (keepIt) {
@@ -972,12 +977,12 @@ markRepeats(UnitigVector &unitigs,
 
       uint32  ord = target->pathPosition(places[pl].refID);
       ufNode &frg = target->ufpath[ord];
-      uint32  pos = MIN(frg.position.bgn, frg.position.end);
 
       assert(frg.ident == places[pl].refID);
 
-      fprintf(logFile, "markRepeats()-- breakPt=%d verified=%d,%d refID=%d frgID=%d (tig %d len "F_SIZE_T") frgPos=%d,%d\n",
+      fprintf(logFile, "markRepeats()-- breakPt=%d rptLeft=%d verified=%d,%d refID=%d frgID=%d (tig %d len "F_SIZE_T") frgPos=%d,%d\n",
               breakPt,
+              rptLeft,
               places[pl].verified.bgn, places[pl].verified.end,
               places[pl].refID,
               places[pl].frgID, Unitig::fragIn(places[pl].frgID), unitigs[Unitig::fragIn(places[pl].frgID)]->ufpath.size(),
@@ -993,29 +998,37 @@ markRepeats(UnitigVector &unitigs,
       if (rptLeft == false) {
         if (ord > breakOrd) {
           breakOrd = ord;
-          breakPos = pos;
+          breakPos = MIN(frg.position.bgn, frg.position.end);
           breakEnd = FragmentEnd(frg.ident, (frg.position.bgn > frg.position.end));
         }
 
       } else {
         if (ord < breakOrd) {
           breakOrd = ord;
-          breakPos = pos;
+          breakPos = MAX(frg.position.bgn, frg.position.end);
           breakEnd = FragmentEnd(frg.ident, (frg.position.bgn < frg.position.end));
         }
       }
-    }
+    }  //  Over all places[]
 
     if (breakEnd != FragmentEnd()) {
-      fprintf(logFile, "markRepeats()--    %s-%6d-%s %.2f coverage -- BREAK %u/%c'\n",
+      uint32  iid = breakEnd.fragId();
+      uint32  i3p = breakEnd.frag3p();
+      uint32  idx = target->pathPosition(iid);
+      ufNode &frg = target->ufpath[idx];
+
+      fprintf(logFile, "markRepeats()--    %s-%6d-%s %.2f coverage -- BREAK %u/%c' %d,%d real break at %d\n",
               (rptLeft) ? "repeat" : "unique",
               breakPt,
               (rptLeft) ? "unique" : "repeat",
               avgCov,
-              breakEnd.fragId(), breakEnd.frag3p() ? '3' : '5');
+              breakEnd.fragId(), breakEnd.frag3p() ? '3' : '5',
+              frg.position.bgn, frg.position.end,
+              (i3p) ? frg.position.end : frg.position.bgn);
+
       breaks.push_back(breakPoint(breakEnd.fragId(), breakEnd.frag3p(), false, false));
     }
-  }
+  }  //  over all junctions[]
 
   //  All break points added, now just break.
 
@@ -1046,10 +1059,20 @@ markRepeats(UnitigVector &unitigs,
     if ((pos < 100) ||
         (idx < 2) ||
         (pos >= lastStart - 100) ||
-        (idx >= target->ufpath.size() - 2))
-      //fprintf(logFile, "BREAK pos idx=%u pos=%u tigLen idx="F_SIZE_T" pos=%u FILTERED\n",
-      //        idx, pos, target->ufpath.size(), target->getLength());
+        (idx >= target->ufpath.size() - 2)) {
+      fprintf(logFile, "BREAK idx=%u iid=%d %d,%d pos=%u   tigLen idx="F_SIZE_T" len=%u FILTERED\n",
+              idx,
+              iid, frg.position.bgn, frg.position.end,
+              pos,
+              target->ufpath.size(), target->getLength());
       continue;
+    }
+
+    fprintf(logFile, "BREAK idx=%u iid=%d %d,%d pos=%u   tigLen idx="F_SIZE_T" len=%u\n",
+            idx,
+            iid, frg.position.bgn, frg.position.end,
+            pos,
+            target->ufpath.size(), target->getLength());
 
     fbreaks.push_back(breaks[i]);
   }
@@ -1057,9 +1080,21 @@ markRepeats(UnitigVector &unitigs,
   breaks = fbreaks;
 #endif
 
+
+
   UnitigVector *newTigs = breakUnitigAt(target, breaks);
 
   if (newTigs != NULL) {
+
+    fprintf(logFile, "popBubbles()-- SPLIT unitig %d/"F_SIZE_T" of length %u with %ld fragments into %u unitigs:\n",
+            target->id(), unitigs.size(), target->getLength(), target->ufpath.size(),
+            newTigs->size());
+    for (uint32 i=0; i<newTigs->size(); i++)
+      fprintf(logFile, "popBubbles()--   unitig %u of length %u with %ld fragments.\n",
+              (*newTigs)[i]->id(),
+              (*newTigs)[i]->getLength(),
+              (*newTigs)[i]->ufpath.size());
+
     unitigs[target->id()] = NULL;
     delete target;
 
@@ -1107,17 +1142,26 @@ mergeSplitJoin(UnitigVector &unitigs) {
   }
 #endif
 
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+  //  Since we create new unitigs for any of the splits, we need to remember
+  //  where to stop.  We don't want to re-examine any of the split unitigs.
+  //  Reevaluating seems to just trim off a few fragments at the end of the unitig.
+
+  uint32  tiLimit = unitigs.size();
+
+  for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig        *target = unitigs[ti];
 
     if (target == NULL)
       continue;
 
-    if (target->ufpath.size() < 5)
+    if (target->ufpath.size() < 15)
       continue;
 
-    fprintf(logFile, "popBubbles()-- WORKING on unitig %d/"F_SIZE_T" with %ld fragments.\n",
-            target->id(), unitigs.size(), target->ufpath.size());
+    if (target->getLength() < 300)
+      continue;
+
+    fprintf(logFile, "popBubbles()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
+            target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
     //  MERGE BUBBLES - for every unitig with at least one incoming edge (and possibly no edges
     //  to other unitigs) try to merge.  The incoming unitig must NOT extend the current unitig.
