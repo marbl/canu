@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogusness.C,v 1.8 2011-04-04 14:24:00 brianwalenz Exp $";
+const char *mainid = "$Id: bogusness.C,v 1.9 2011-05-06 17:34:03 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -402,8 +402,6 @@ main(int argc, char **argv) {
 
 
   for (uint32 bgn=0, lim=genome.size(); bgn<lim; ) {
-    uint32 frgIID = genome[bgn].frgIID;
-
     vector<genomeAlignment>  cover;
 
     //  Find the range of alignments for a single fragment.
@@ -418,32 +416,55 @@ main(int argc, char **argv) {
     //  unitigs using the genome.
 
     for (uint32 i=bgn; i<end; i++) {
-      genomeAlignment  &I = genome[i];
+      genome[i].isDeleted = false;
+      genome[i].isRepeat  = false;
+    }
 
-      if (I.isDeleted)
-        //  [i] already deleted
+    for (uint32 i=bgn; i<end; i++) {
+      if (genome[i].isDeleted)
         continue;
 
       for (uint32 j=bgn; j<end; j++) {
-        genomeAlignment  &J = genome[j];
-
-        if (i == j)
-          //  We are not contained in ourself
-          continue;
-
-        if (J.isDeleted)
-          //  [j] already deleted
+        if ((i == j) ||
+            (genome[j].isDeleted))
           continue;
 
         //  If J is contained in I, mark J as deleted.
 
-        if (((I.frgBgn <  J.frgBgn) && (J.frgEnd <  I.frgEnd)) ||
-            ((I.frgBgn <= J.frgBgn) && (J.frgEnd <  I.frgEnd)) ||
-            ((I.frgBgn <  J.frgBgn) && (J.frgEnd <= I.frgEnd)) ||
-            ((I.frgBgn <= J.frgBgn) && (J.frgEnd <= I.frgEnd) && (J.identity <  I.identity)))
-          J.isDeleted = true;
+        assert(genome[i].frgBgn < genome[i].frgEnd);
+        assert(genome[j].frgBgn < genome[j].frgEnd);
+
+        if (((genome[i].frgBgn <  genome[j].frgBgn) && (genome[j].frgEnd <  genome[i].frgEnd)) ||
+            ((genome[i].frgBgn <= genome[j].frgBgn) && (genome[j].frgEnd <  genome[i].frgEnd)) ||
+            ((genome[i].frgBgn <  genome[j].frgBgn) && (genome[j].frgEnd <= genome[i].frgEnd)) ||
+            ((genome[i].frgBgn <= genome[j].frgBgn) && (genome[j].frgEnd <= genome[i].frgEnd) && (genome[j].identity <  genome[i].identity)))
+          genome[j].isDeleted = true;
       }
     }
+
+    //  Mark repeats -- mapped at exactly the same unitig coords with exactly the same
+    //  identitiy.  We'll draw these differently; no parent (not exon-like) and in a different
+    //  color.
+
+    for (uint32 i=bgn; i<end; i++) {
+      if (genome[i].isDeleted)
+        continue;
+
+      for (uint32 j=bgn; j<end; j++) {
+        if ((i == j) ||
+            (genome[j].isDeleted))
+          continue;
+
+        if ((genome[i].frgBgn == genome[j].frgBgn) && (genome[j].frgEnd == genome[i].frgEnd)) {
+          //fprintf(stderr, "MARK REPEAT %d %s %d %d -- %d %s %d %d\n",
+          //        i, IIDname[genome[i].frgIID].c_str(), genome[i].frgBgn, genome[i].frgEnd,
+          //        j, IIDname[genome[j].frgIID].c_str(), genome[j].frgBgn, genome[j].frgEnd);
+          genome[i].isRepeat = true;
+          genome[j].isRepeat = true;
+        }
+      }
+    }
+
 
     //  Write to the gff3 output.
 
@@ -460,45 +481,106 @@ main(int argc, char **argv) {
         spanHdr[i]   = NULL;
       }
 
+      //  Find the span of the non-repeat pieces - only used if we aren't 100% repeat.
+
       for (uint32 i=bgn; i<end; i++) {
-        if (genome[i].isDeleted)
-          //  [i] contained
-          continue;
+        if ((genome[i].isDeleted == false) &&
+            (genome[i].isRepeat  == false)) {
+          int32 iid = genome[i].genIID;
 
-        int32 iid = genome[i].genIID;
-
-        if (foundData[iid] == false) {
-          foundData[iid] = true;
-          spanBgn[iid]   = genome[i].genBgn;  //  OUTPUT: find the span on this reference
-          spanEnd[iid]   = genome[i].genEnd;
-          spanHdr[iid]   = refList[genome[i].genIID].rsrefName;
-        } else {
-          spanBgn[iid]   = MIN(spanBgn[iid], genome[i].genBgn);
-          spanEnd[iid]   = MAX(spanEnd[iid], genome[i].genEnd);
+          if (foundData[iid] == false) {
+            foundData[iid] = true;
+            spanBgn[iid]   = genome[i].genBgn;  //  OUTPUT: find the span on this reference
+            spanEnd[iid]   = genome[i].genEnd;
+            spanHdr[iid]   = refList[genome[i].genIID].rsrefName;
+          } else {
+            spanBgn[iid]   = MIN(spanBgn[iid], genome[i].genBgn);
+            spanEnd[iid]   = MAX(spanEnd[iid], genome[i].genEnd);
+          }
         }
       }
 
-      if (foundData == false) {
-        //  And if we didn't 'foundData', then we won't add anything into 'cover' below, and the rest
-        //  of this iteration does nothing.  We could just immediately to the end of the loop (about
-        //  100 lines down), or just get out of here right now.
-        bgn = end;
-        continue;
-      }
+      //  Are we 100% repeat?
 
-      for (uint32 iid=0; iid<refList.size(); iid++)
-        fprintf(gffOutput, "%s\t.\tbogusness_span\t%d\t%d\t.\t.\t.\tID=%s\n",
-                spanHdr[iid], spanBgn[iid], spanEnd[iid], IIDname[frgIID].c_str());
+      bool allRepeat = true;
 
       for (uint32 i=bgn; i<end; i++) {
-        genomeAlignment  &I = genome[i];
+        //fprintf(stderr, "%s del=%d rep=%d %d-%d %d-%d\n",
+        //        IIDname[genome[i].frgIID].c_str(),
+        //        genome[i].isDeleted,
+        //        genome[i].isRepeat,
+        //        genome[i].genBgn, genome[i].genEnd,
+        //        genome[i].frgBgn, genome[i].frgEnd);
+        if ((genome[i].isDeleted == false) &&
+            (genome[i].isRepeat  == false))
+          allRepeat = false;
+      }
 
-        if (I.isDeleted)
-          //  [i] contained
-          continue;
-    
-        fprintf(gffOutput, "%s\t.\tbogusness_match\t%d\t%d\t.\t%c\t.\tParent=%s\n",
-                refList[I.genIID].rsrefName, I.genBgn, I.genEnd, (I.isReverse) ? '-' : '+', IIDname[frgIID].c_str());
+      //  Write unitigs that are entirely repeats without the span, or write
+      //  them with a span, but still labeled as repeat.
+      //
+      if (allRepeat) {
+        //  Ignore the span and draw each match individually.
+        for (uint32 i=bgn; i<end; i++) {
+          if (genome[i].isDeleted)
+            continue;
+
+          fprintf(gffOutput, "%s\t.\tbogusness_repeat\t%d\t%d\t.\t%c\t.\tID=REPEAT-%s-%d-%d-%d-%d;Name=%s-%d-%d-REPEAT\n",
+                  refList[genome[i].genIID].rsrefName,
+                  genome[i].genBgn,
+                  genome[i].genEnd,
+                  (genome[i].isReverse) ? '-' : '+',
+                  IIDname[genome[i].frgIID].c_str(),
+                  genome[i].genBgn, genome[i].genEnd,
+                  genome[i].frgBgn, genome[i].frgEnd,
+                  IIDname[genome[i].frgIID].c_str(), genome[i].frgBgn, genome[i].frgEnd);
+        }
+
+      } else {
+        //  Draw repeats outside the span as repeats.  Draw those in the span as....what
+
+        //  Dump the span.
+        for (uint32 iid=0; iid<refList.size(); iid++)
+          if (foundData[iid])
+            fprintf(gffOutput, "%s\t.\tbogusness_span\t%d\t%d\t.\t.\t.\tID=%s;Name=SPAN-%s-%d-%d\n",
+                    spanHdr[iid], spanBgn[iid], spanEnd[iid],
+                    IIDname[genome[bgn].frgIID].c_str(),
+                    IIDname[genome[bgn].frgIID].c_str(), spanBgn[iid], spanEnd[iid]);
+
+        //  And the unitigs.
+        for (uint32 i=bgn; i<end; i++) {
+          int32 iid = genome[i].genIID;
+
+          if (genome[i].isDeleted)
+            continue;
+
+          if ((spanBgn[iid] <= genome[i].genBgn) && (genome[i].genEnd <= spanEnd[iid])) {
+            //  Alignment within the 'unique' region, draw as a flaw in the unique span if it is labeled repeat
+            //
+            //  XXX   IMPLEMENT ME!
+            //
+            if (genome[i].isRepeat) {
+              fprintf(stderr, "REPEAT at%d %d\n", genome[i].genBgn, genome[i].genEnd);
+            }
+
+            fprintf(gffOutput, "%s\t.\tbogusness_match\t%d\t%d\t.\t%c\t.\tParent=%s;Name=%s-%d-%d\n",
+                    refList[genome[i].genIID].rsrefName,
+                    genome[i].genBgn,
+                    genome[i].genEnd,
+                    (genome[i].isReverse) ? '-' : '+',
+                    IIDname[genome[i].frgIID].c_str(),
+                    IIDname[genome[i].frgIID].c_str(), genome[i].frgBgn, genome[i].frgEnd);
+          } else {
+            //  Alignment outside the 'unique' region, draw as a repeat.
+            fprintf(gffOutput, "%s\t.\tbogusness_repeat\t%d\t%d\t.\t%c\t.\tParent=%s;Name=%s-%d-%d-REPEAT\n",
+                    refList[genome[i].genIID].rsrefName,
+                    genome[i].genBgn,
+                    genome[i].genEnd,
+                    (genome[i].isReverse) ? '-' : '+',
+                    IIDname[genome[i].frgIID].c_str(),
+                    IIDname[genome[i].frgIID].c_str(), genome[i].frgBgn, genome[i].frgEnd);
+          }
+        }
       }
 
       delete [] foundData;
@@ -507,16 +589,12 @@ main(int argc, char **argv) {
       delete [] spanHdr;
     }
 
+
     //  Copy whatever is left over to a list of 'covering' alignments.
 
     for (uint32 i=bgn; i<end; i++) {
-      genomeAlignment  &I = genome[i];
-
-      if (I.isDeleted)
-        //  [i] contained
-        continue;
-
-      cover.push_back(I);
+      if (genome[i].isDeleted == false)
+        cover.push_back(genome[i]);
     }
 
 
@@ -536,6 +614,8 @@ main(int argc, char **argv) {
       //
       //  This was annotated as either CORRECT or EXPLAINED, but that hasn't been useful so far.
       //    (ideal.size() == 1) ? " (CORRECT)" : " (EXPLAINED)");
+
+      uint32  frgIID = genome[bgn].frgIID;
 
       bool explained = false;
 
@@ -660,7 +740,7 @@ main(int argc, char **argv) {
 
 
 
-
+#if 0 // USELESS BROKEN STUFF
 
 
   ////////////////////////////////////////
@@ -835,6 +915,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
   }
 #endif
+
+#endif // USELESS BROKEN STUFF
 
   return(0);
 }
