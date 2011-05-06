@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.19 2010-09-24 02:33:47 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.20 2011-05-06 17:28:07 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -616,8 +616,8 @@ MultiAlignStore::flushCache(void) {
     }
   }
 
-  fprintf(stderr, "MultiAlignStore::flushCache()-- flushed %u unitigs and %u contigs.\n",
-          numUFlushed, numCFlushed);
+  //fprintf(stderr, "MultiAlignStore::flushCache()-- flushed %u unitigs and %u contigs.\n",
+  //        numUFlushed, numCFlushed);
 
 #if 0
   for (uint32 p=0; p<MAX_PART; p++)
@@ -667,7 +667,7 @@ MultiAlignStore::dumpMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, ui
       }
     }
 
-    fprintf(stderr, "MultiAlignStore::dumpMASRfile()-- Writing '%s' partitioned (indxLen=%d masrLen=%d).\n", name, indxLen, masrLen);
+    //fprintf(stderr, "MultiAlignStore::dumpMASRfile()-- Writing '%s' partitioned (indxLen=%d masrLen=%d).\n", name, indxLen, masrLen);
 
     AS_UTL_safeWrite(F, &indxLen, "MASRindxLen", sizeof(uint32),      1);
     AS_UTL_safeWrite(F, &masrLen, "MASRlen",     sizeof(uint32),      1);
@@ -681,7 +681,7 @@ MultiAlignStore::dumpMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, ui
   } else {
     uint32  indxLen = 0;
 
-    fprintf(stderr, "MultiAlignStore::dumpMASRfile()-- Writing '%s' unpartitioned (indxLen=%d masrLen=%d).\n", name, indxLen, L);
+    //fprintf(stderr, "MultiAlignStore::dumpMASRfile()-- Writing '%s' unpartitioned (indxLen=%d masrLen=%d).\n", name, indxLen, L);
 
     AS_UTL_safeWrite(F, &indxLen, "MASRindexLen", sizeof(uint32),      1);
     AS_UTL_safeWrite(F, &L,       "MASRlen",      sizeof(uint32),      1);
