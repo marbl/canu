@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.53 2011-02-11 04:15:03 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.54 2011-05-06 17:41:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1599,7 +1599,10 @@ processMate(gkFragment *fr,
   //
   fr->tntBgn = al.begJ;
   fr->tntEnd = al.endJ;
-  
+
+  //  This MUST return false.  The recursive search above is expecting a 'true' return only if the
+  //  alignment is significant.  detectMates() below is expecting a 'true' return only if something
+  //  changed.
   return(false);
 }
 
