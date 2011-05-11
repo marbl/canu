@@ -19,7 +19,7 @@ cmGlobalData::doSearchBFS(cmComputation *c,
   t->pathAdd = 0;
 
   if (t->path == NULL) {
-    t->pathMax = 16 * 1024 * 1024;
+    t->pathMax = 1024 * 1024;
     t->path    = new searchNode [t->pathMax];
   }
 
@@ -47,14 +47,20 @@ cmGlobalData::doSearchBFS(cmComputation *c,
 
   t->pathAdd++;
 
-  while ((t->pathPos < t->pathMax) &&
-         (t->pathPos < t->pathAdd)) {
+  for (;
+       ((t->pathPos < t->pathMax) &&
+        (t->pathPos < t->pathAdd));
+       t->pathPos++) {
 
     if ((pathMin                  <= t->path[t->pathPos].pLen) &&
         (t->path[t->pathPos].pLen <= pathMax) &&
         (testSearch(c, t, solution)))  //  tgPos, tgLen for the old slow method
       //  If any of the target overlaps are the answer
       return;
+
+    if (t->pathAdd >= t->pathMax)
+      //  No space for more overlaps, abort adding any.
+      continue;
 
     //  Add more fragments to the search.
 
@@ -78,21 +84,29 @@ cmGlobalData::doSearchBFS(cmComputation *c,
         //  Path went backwards.
         continue;
 
-      if (nlen <= pathMax) {
-        t->path[t->pathAdd].pIID = niid;
-        t->path[t->pathAdd].p5p3 = n5p3;
-        t->path[t->pathAdd].pLen = nlen;
-        t->path[t->pathAdd].oMax = 0;
-        t->path[t->pathAdd].oPos = 0;
-        t->path[t->pathAdd].oLst = bbPos[niid];
+      if (nlen > pathMax)
+        //  Path too far, don't add
+        continue;
 
-        t->pathAdd++;
-      }
+      if (t->pathAdd >= t->pathMax)
+        //  No space, don't add
+        continue;
+
+      t->path[t->pathAdd].pIID = niid;
+      t->path[t->pathAdd].p5p3 = n5p3;
+      t->path[t->pathAdd].pLen = nlen;
+      t->path[t->pathAdd].oMax = 0;
+      t->path[t->pathAdd].oPos = 0;
+      t->path[t->pathAdd].oLst = bbPos[niid];
+
+      t->pathAdd++;
     }
-
-    //  Move to the next node in the list.
-    t->pathPos++;
   }
+
+  if (t->pathAdd >= t->pathMax)
+    c->sLimited = true;
+  else
+    c->sExhausted = true;
 
   //  Not found.
   assert(c->sFound == false);

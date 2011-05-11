@@ -3,8 +3,7 @@
 //  Decreasing this value makes the search much much faster, but costs a bit
 //  in sensitivity.
 //
-#define NDISTD     50  //  Number of dovetail edges off each end
-
+#define NDISTD      0  //  Number of dovetail edges off each end
 
 class
 saveDistance {

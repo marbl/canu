@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.12 2011-05-02 20:39:00 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.13 2011-05-11 18:14:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -126,15 +126,17 @@ public:
   //  In this case, we start with the first fragment 5p3=false, and need to end with 5p3=true.
 
   cmComputation(uint32 iid, uint32 mid, bool innie) {
-    fragIID   = iid;
-    frag5p3   = (innie == false) ? false : true;
+    fragIID    = iid;
+    frag5p3    = (innie == false) ? false : true;
 
-    mateIID   = mid;
-    mate5p3   = (innie == false) ? true : false;
+    mateIID    = mid;
+    mate5p3    = (innie == false) ? true : false;
 
-    sFound = false;
-    sPos   = 0;
-    sLen   = 0;
+    sFound     = false;
+    sLimited   = false;
+    sExhausted = false;
+    sPos       = 0;
+    sLen       = 0;
   };
   ~cmComputation() {
   };
@@ -143,12 +145,14 @@ public:
   uint32         fragIID;
   bool           frag5p3;
 
-  uint32         mateIID;   //  Fragment here
-  uint32         mate5p3;   //  Fragment here is 5' to 3'
+  uint32         mateIID;     //  Fragment here
+  uint32         mate5p3;     //  Fragment here is 5' to 3'
 
-  bool           sFound;    //  Did we find an answer?
-  uint32         sPos;      //  If answer, the position we found it at.
-  uint32         sLen;      //  If answer, the length of the path in bp.
+  bool           sFound;      //  Did we find an answer?
+  bool           sLimited;    //  Search stopped due to CPU limits.
+  bool           sExhausted;  //  Search stopped due to no more overlaps.
+  uint32         sPos;        //  If answer, the position we found it at.
+  uint32         sLen;        //  If answer, the length of the path in bp.
 };
 
 
@@ -422,6 +426,8 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
 
   ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
 
+  uint64 maxError = AS_OVS_encodeQuality(3.0);
+
   while (ovlLen > 0) {
     numTT += ovlLen;
 
@@ -436,6 +442,11 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
     uint32  c=0;
 
     for (uint32 i=0; i<ovlLen; i++) {
+      if (ovl[i].dat.ovl.orig_erate > maxError) {
+        numUU++;
+        continue;
+      }
+
       if (((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true)) ||
           ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].doSearch   == true)) ||
           ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true))) {
@@ -790,8 +801,10 @@ cmWriter(void *G, void *S) {
             c->sPos,
             c->sLen);
   else
-    fprintf(g->resultsFile, "Path from %d/%s NOT FOUND.\n",
-            c->fragIID, (c->frag5p3 == true) ? "5'3'" : "3'5'");
+    fprintf(g->resultsFile, "Path from %d/%s NOT FOUND (%s).\n",
+            c->fragIID,
+            (c->frag5p3 == true) ? "5'3'" : "3'5'",
+            (c->sLimited) ? "limited" : "exhausted");
 
   delete c;
 }
