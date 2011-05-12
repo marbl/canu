@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.13 2011-05-11 18:14:39 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.14 2011-05-12 19:58:52 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -93,8 +93,6 @@ public:
     pathMax = 0;
     path    = NULL;
 
-    //memset(path, pathMax * sizeof(searchNode), 0);
-
     extMax = 1048576;
     extLen = 0;
     ext    = new uint32 [extMax];
@@ -159,10 +157,12 @@ public:
 class cmGlobalData {
 public:
   cmGlobalData(char    *resultsPath_,
-               uint32   pathMin_,
-               uint32   pathMax_,
-               bool     pathInnie_,
-               uint32   depthMax_) {
+               uint32   distMin_,
+               uint32   distMax_,
+               bool     innie_,
+               uint32   nodesMax_,
+               uint32   depthMax_,
+               uint32   pathsMax_) {
 
     strcpy(resultsPrefix, resultsPath_);
 
@@ -172,10 +172,13 @@ public:
     if (errno)
       fprintf(stderr, "Failed to open results file '%s': %s\n", resultsPath_, strerror(errno)), exit(1);
 
-    pathMin      = pathMin_;
-    pathMax      = pathMax_;
-    pathInnie    = pathInnie_;
+    distMin      = distMin_;
+    distMax      = distMax_;
+    innie        = innie_;
+
+    nodesMax     = nodesMax_;
     depthMax     = depthMax_;
+    pathsMax     = pathsMax_;
 
     numFrags     = 0;
     fi           = 0L;
@@ -251,10 +254,13 @@ public:
   char              resultsPrefix[FILENAME_MAX];
   FILE             *resultsFile;
 
-  uint32            pathMin;
-  uint32            pathMax;
-  bool              pathInnie;
+  uint32            distMin;
+  uint32            distMax;
+  bool              innie;
+
+  uint32            nodesMax;
   uint32            depthMax;
+  uint32            pathsMax;
 
   uint32            numFrags;
   fragmentInfo     *fi;
@@ -397,7 +403,7 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
   //  array.  There are bbLen & tgPos overlaps at this location.  The array is NOT contiguous.
 
   oiStorageMax = 1024;                              //  Number blocks of memory
-  oiStorageLen = 0;
+  oiStorageLen = 1;
   oiStorageArr = new overlapInfo * [oiStorageMax];  //  List of allocated memory
   oiStorage    = 0L;
 
@@ -569,6 +575,8 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
   AS_OVS_closeOverlapStore(ovlStore);
 
   delete [] ovl;
+  delete [] ovlBB;
+  delete [] ovlTG;
 
   fprintf(stderr, "LOADING OVERLAPS...at IID %u (%06.2f%%): BB %lu (%06.2f%%) TG %lu (%06.2f%%) DD %lu (%06.2f%%).\n",
           numFrags, 100.0,
@@ -698,8 +706,8 @@ cmGlobalData::testSearch(cmComputation              *c,
 
   computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
-  if ((nlen < pathMin) ||
-      (nlen > pathMax))
+  if ((nlen < distMin) ||
+      (nlen > distMax))
     return(false);
 
   c->sFound = true;
@@ -729,8 +737,8 @@ cmGlobalData::testSearch(cmComputation  *c,
 
     computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
-    if ((nlen >= pathMin) &&
-        (nlen <= pathMax)) {
+    if ((nlen >= distMin) &&
+        (nlen <= distMax)) {
       c->sFound = true;
       c->sPos = t->pathPos + 1;
       c->sLen   = nlen;
@@ -742,11 +750,10 @@ cmGlobalData::testSearch(cmComputation  *c,
 }
 
 
+
 #include "classifyMates-DFS.C"
 #include "classifyMates-BFS.C"
 #include "classifyMates-RFS.C"
-
-
 
 
 
@@ -756,10 +763,16 @@ cmWorker(void *G, void *T, void *S) {
   cmThreadData    *t = (cmThreadData  *)T;
   cmComputation   *s = (cmComputation *)S;
 
-  //g->doSearchDFS(s, t);
-  //g->doSearchRFS(s, t);
-  g->doSearchBFS(s, t);
+  if ((g->nodesMax > 0) && (s->sFound == false))
+    g->doSearchBFS(s, t);
+
+  if ((g->depthMax > 0) && (s->sFound == false))
+    g->doSearchDFS(s, t);
+
+  if ((g->pathsMax > 0) && (s->sFound == false))
+    g->doSearchRFS(s, t);
 }
+
 
 
 void *
@@ -777,7 +790,7 @@ cmReader(void *G) {
     if (g->fi[g->curFragIID].mateIID < g->curFragIID)
       continue;
 
-    s = new cmComputation(g->curFragIID, g->fi[g->curFragIID].mateIID, g->pathInnie);
+    s = new cmComputation(g->curFragIID, g->fi[g->curFragIID].mateIID, g->innie);
 
     g->curFragIID++;
 
@@ -818,11 +831,13 @@ main(int argc, char **argv) {
   char      *ovlStorePath      = NULL;
   char      *resultsPath       = NULL;
 
-  uint32     pathMin           = 500;    //  100
-  uint32     pathMax           = 6000;   //  800
-  bool       pathInnie         = false;  //  require mates to be innie
+  uint32     distMin           = 0;
+  uint32     distMax           = 0;
+  bool       innie             = false;  //  require mates to be innie
 
-  uint32     depthMax          = 20;     //  100
+  uint32     nodesMax          = 0;
+  uint32     depthMax          = 0;
+  uint32     pathsMax          = 0;
 
   bool       searchLibs        = false;
   uint32     searchLib[1024]   = {0};
@@ -877,19 +892,23 @@ main(int argc, char **argv) {
       }
 
     } else if (strcmp(argv[arg], "-min") == 0) {
-      pathMin = atoi(argv[++arg]);
+      distMin = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-max") == 0) {
-      pathMax = atoi(argv[++arg]);
+      distMax = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-innie") == 0) {
-      pathInnie = true;
+      innie = true;
 
     } else if (strcmp(argv[arg], "-outtie") == 0) {
-      pathInnie = false;
+      innie = false;
 
-    } else if (strcmp(argv[arg], "-depth") == 0) {
+    } else if (strcmp(argv[arg], "-bfs") == 0) {
+      nodesMax = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-dfs") == 0) {
       depthMax = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-rfs") == 0) {
+      pathsMax = atoi(argv[++arg]);
 
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
@@ -916,12 +935,14 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -innie       Mates must be innie\n");
     fprintf(stderr, "  -outtie      Mates must be outtie\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -depth d     Search to at most d overlaps\n");
+    fprintf(stderr, "  -bfs N       Use 'breadth-first search'; search at most N fragments\n");
+    fprintf(stderr, "  -dfs N       Use 'depth-first search'; search to depth N overlaps\n");
+    fprintf(stderr, "  -rfs N       Use 'random-path search'; search at most N paths\n");
     fprintf(stderr, "\n");
     exit(1);
   }
 
-  cmGlobalData  *g = new cmGlobalData(resultsPath, pathMin, pathMax, pathInnie, depthMax);
+  cmGlobalData  *g = new cmGlobalData(resultsPath, distMin, distMax, innie, nodesMax, depthMax, pathsMax);
 
   g->loadFragments(gkpStorePath, searchLibs, searchLib, backboneLibs, backboneLib);
   g->loadOverlaps(ovlStorePath);

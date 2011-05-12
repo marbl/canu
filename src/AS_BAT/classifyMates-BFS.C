@@ -19,7 +19,7 @@ cmGlobalData::doSearchBFS(cmComputation *c,
   t->pathAdd = 0;
 
   if (t->path == NULL) {
-    t->pathMax = 1024 * 1024;
+    t->pathMax = nodesMax;
     t->path    = new searchNode [t->pathMax];
   }
 
@@ -52,8 +52,8 @@ cmGlobalData::doSearchBFS(cmComputation *c,
         (t->pathPos < t->pathAdd));
        t->pathPos++) {
 
-    if ((pathMin                  <= t->path[t->pathPos].pLen) &&
-        (t->path[t->pathPos].pLen <= pathMax) &&
+    if ((distMin                  <= t->path[t->pathPos].pLen) &&
+        (t->path[t->pathPos].pLen <= distMax) &&
         (testSearch(c, t, solution)))  //  tgPos, tgLen for the old slow method
       //  If any of the target overlaps are the answer
       return;
@@ -84,7 +84,7 @@ cmGlobalData::doSearchBFS(cmComputation *c,
         //  Path went backwards.
         continue;
 
-      if (nlen > pathMax)
+      if (nlen > distMax)
         //  Path too far, don't add
         continue;
 

@@ -5,7 +5,6 @@
 //  The search is depth first, stopping when we find a path, or when the path gets implausibly long.
 //
 
-
 void
 cmGlobalData::doSearchRFS(cmComputation *c,
                           cmThreadData  *t) {
@@ -14,11 +13,11 @@ cmGlobalData::doSearchRFS(cmComputation *c,
   t->pathAdd = 0;
 
   if (t->path == NULL) {
-    t->pathMax = depthMax;
+    t->pathMax = distMax;  //  Can never have more than one overlap per base if distance
     t->path    = new searchNode [t->pathMax];
   }
 
-  for (uint32 iter=0; iter<500; iter++) {
+  for (uint32 iter=0; iter<pathsMax; iter++) {
     t->pathPos = 0;
 
     t->path[t->pathPos].pIID = c->fragIID;
@@ -28,20 +27,10 @@ cmGlobalData::doSearchRFS(cmComputation *c,
     t->path[t->pathPos].oPos = 0;
     t->path[t->pathPos].oLst = bbPos[c->fragIID];
 
-#if 0
-    fprintf(stderr, "PATH [%3d] %d/%s' len %d\n",
-            t->pathPos,
-            t->path[t->pathPos].pIID,
-            (t->path[t->pathPos].p5p3 == true) ? "5'3'" : "3'5'",
-            t->path[t->pathPos].pLen);
-#endif
-
     //  Follow random paths until we get too long or too deep.  If we find the answer we immediately
     //  return.  If we don't find the answer we exit the while and do another iteration.
 
-    while ((t->path[t->pathPos].pLen < pathMax) &&
-           (t->pathPos               < depthMax)) {
-
+    while (t->path[t->pathPos].pLen < distMax) {
       if (testSearch(c, t, tgPos, tgLen))
         //  If any of the target overlaps are the answer
         return;
@@ -76,25 +65,18 @@ cmGlobalData::doSearchRFS(cmComputation *c,
 
       //  We're guaranteed to always advance the path (unlike DFS) so do it.
 
-      t->pathPos++;
+      if (t->pathPos < t->pathMax) {
+        t->pathPos++;
 
-      t->path[t->pathPos].pIID = niid;
-      t->path[t->pathPos].p5p3 = n5p3;
-      t->path[t->pathPos].pLen = nlen;
-      t->path[t->pathPos].oMax = bbLen[niid];
-      t->path[t->pathPos].oPos = 0;
-      t->path[t->pathPos].oLst = bbPos[niid];
+        t->path[t->pathPos].pIID = niid;
+        t->path[t->pathPos].p5p3 = n5p3;
+        t->path[t->pathPos].pLen = nlen;
+        t->path[t->pathPos].oMax = bbLen[niid];
+        t->path[t->pathPos].oPos = 0;
+        t->path[t->pathPos].oLst = bbPos[niid];
+      }
 
       assert(t->path[t->pathPos].pLen > t->path[t->pathPos-1].pLen);
-
-#if 0
-      fprintf(stderr, "PATH [%3d] %d/%s' len %d%s\n",
-              t->pathPos,
-              t->path[t->pathPos].pIID,
-              (t->path[t->pathPos].p5p3 == true) ? "5'3'" : "3'5'",
-              t->path[t->pathPos].pLen,
-              (t->path[t->pathPos].pLen < t->path[t->pathPos-1].pLen) ? "  PATH SHORTER" : "");
-#endif
     }
 
   }  //  Try a bunch of random stabs to find the path

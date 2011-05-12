@@ -13,16 +13,16 @@ cmGlobalData::doSearchDFS(cmComputation *c,
   t->pathPos = 0;
   t->pathAdd = 0;
 
+  //  +3 because:
+  //  [0] is unused -- it's our termination condition
+  //  [1] is the start node
+  //  [2] is the first search node (depth 1)
+  //  [3] is the next search node (the ones we test)
+  //
   if (t->path == NULL) {
-    t->pathMax = depthMax;
+    t->pathMax = depthMax + 3;
     t->path    = new searchNode [t->pathMax];
   }
-
-#if 0
-  fprintf(stderr, "SEARCH %d/%s to %d/%s\n",
-          c->fragIID, (c->frag5p3 == true) ? "5'3'" : "3'5'", 
-          c->mateIID, (c->mate5p3 == true) ? "5'3'" : "3'5'");
-#endif
 
   t->pathPos = 1;  //  CRITICAL; end of loop we increment t->pathOPos[t->pathPos-1]
 
@@ -78,7 +78,7 @@ cmGlobalData::doSearchDFS(cmComputation *c,
         //  If any of the target overlaps are the answer
         return;
 
-      if (t->pathPos == depthMax)
+      if (t->pathPos >= depthMax)
         //  End of the line.  Do not pass go.  Proceed directly to, ummm, the next overlap.
         t->pathPos--;
     }
