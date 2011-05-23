@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.12 2011-04-05 01:51:57 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.13 2011-05-23 19:04:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -251,7 +251,7 @@ main(int argc, char **argv) {
   gkl.doNotTrustHomopolymerRuns  = 0;
 
   gkl.doMerBasedTrimming         = 1;
-  gkl.doRemoveDuplicateReads     = 0;
+  gkl.doRemoveDuplicateReads     = 1;
   gkl.doNotQVTrim                = 0;
   gkl.goodBadQVThreshold         = 0;
   gkl.doNotOverlapTrim           = 0;
