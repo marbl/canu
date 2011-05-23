@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.92 2011-02-11 05:48:13 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.93 2011-05-23 04:57:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -690,8 +690,10 @@ main(int argc, char **argv) {
     GenericMesg     *pmesg             = NULL;
     int              fileIsCompressed  = 0;
 
-    fprintf(stderr, "Starting file '%s' at line " F_U64 ".\n", argv[firstFileArg], GetProtoLineNum_AS());
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Starting file '%s'.\n", argv[firstFileArg]);
 
+    AS_MSG_resetProtoLineNum();
     AS_MSG_setFormatVersion(1);
 
     if        (strcasecmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 3, ".gz") == 0) {

@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.88 2010-08-19 05:28:07 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.89 2011-05-23 04:57:25 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.88 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.89 2011-05-23 04:57:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <time.h>
@@ -515,18 +515,6 @@ VA_DEF(IntElementPos)
 VA_DEF(IntUnitigMesg)  //  Used by unitigger.
 
 
-
-//  Semi-External Routines -- need to be exported for use in AS_MSG,
-//  might be used and/or useful outside AS_MSG.
-
-//  This function will return the line number the input is currently
-//  on.  This function operates correctly only when a single input is
-//  being read.  The return value in all other cases is the sum of the
-//  number of lines read in all proto files thus far.
-//
-uint64 GetProtoLineNum_AS(void);
-
-
 //  Returns a number in the range [1, NUM_OF_REC_TYPES -1]
 //  as a function of the first 3 characters of the passed string.
 //
@@ -538,6 +526,7 @@ const char  *GetMessageName(int type);
 
 //  External Routines
 
+void       AS_MSG_resetProtoLineNum(void);
 void       AS_MSG_setFormatVersion(int format);
 
 int        ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg);

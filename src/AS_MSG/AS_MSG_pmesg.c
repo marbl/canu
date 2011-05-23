@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.56 2010-12-13 06:22:19 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.57 2011-05-23 04:57:25 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -318,6 +318,12 @@ AS_MSG_globalsInitialize(void) {
 }
 
 void
+AS_MSG_resetProtoLineNum(void) {
+  AS_MSG_globalsInitialize();
+  AS_MSG_globals->curLineNum = 0;
+}
+
+void
 AS_MSG_setFormatVersion(int format) {
   AS_MSG_globalsInitialize();
   switch (format) {
@@ -357,14 +363,6 @@ GetMessageName(int type){
     return(NULL);
   return(AS_MSG_globals->CallTable[type].header + 1);
 }
-
-
-uint64
-GetProtoLineNum_AS(void) {
-  AS_MSG_globalsInitialize();
-  return (AS_MSG_globals->curLineNum);
-}
-
 
 
 int
