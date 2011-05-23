@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.14 2011-05-12 19:58:52 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.15 2011-05-23 05:10:45 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -845,6 +845,8 @@ main(int argc, char **argv) {
   bool       backboneLibs      = false;
   uint32     backboneLib[1024] = {0};
 
+  uint32     numThreads        = 4;
+
   argc = AS_configure(argc, argv);
 
   int err = 0;
@@ -910,6 +912,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-rfs") == 0) {
       pathsMax = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      numThreads = atoi(argv[++arg]);
+
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
@@ -952,9 +957,9 @@ main(int argc, char **argv) {
   ss->setLoaderQueueSize(1048576);
   ss->setWriterQueueSize(65536);
 
-  ss->setNumberOfWorkers(16);
+  ss->setNumberOfWorkers(numThreads);
 
-  for (u32bit w=0; w<16; w++)
+  for (u32bit w=0; w<numThreads; w++)
     ss->setThreadData(w, new cmThreadData());  //  these leak
 
   ss->run(g, true);
