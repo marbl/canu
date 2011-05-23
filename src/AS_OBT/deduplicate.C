@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.11 2011-01-25 09:11:50 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.12 2011-05-23 05:02:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -338,7 +338,7 @@ main(int argc, char **argv) {
       gkp = new gkStore(argv[++arg], FALSE, doUpdate);
 
       //  The cache is not enabled, as we don't expect many changes to the store.
-      gkp->gkStore_metadataCaching(false);
+      gkp->gkStore_metadataCaching(true);
 
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL)
