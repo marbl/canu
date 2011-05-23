@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.18 2011-04-05 01:51:57 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.19 2011-05-23 04:55:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -367,7 +367,8 @@ openFile(char *name, FILE *&file) {
 static
 void
 loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
-  fprintf(stderr, "Processing %s %s reads from:\n",
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Processing %s %s QV encoding reads from:\n",
           (fastqOrient == FASTQ_INNIE) ? "INNIE" : "OUTTIE",
           (fastqType   == FASTQ_ILLUMINA) ? "ILLUMINA 1.3+" : ((fastqType == FASTQ_SANGER) ? "SANGER" : "SOLEXA pre-1.3"));
   if (lname == rname) {
@@ -389,7 +390,7 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
   FILE *lfile = NULL, *rfile = NULL;
   bool  lpipe = false, rpipe = false;
 
-  if (lname == rname) {
+  if (strcmp(lname, rname) == 0) {
     lpipe = openFile(lname, lfile);
     rfile = lfile;
   } else {
@@ -421,20 +422,24 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
       gkpStore->gkStore_addFragment(&lfrg->fr);
       gkpStore->gkStore_addFragment(&rfrg->fr);
 
-      fprintf(illuminaUIDmap, F_U64"\t%s\t"F_U64"\t%s\n", lUID, lfrg->snam+1, rUID, rfrg->snam+1);
+      fprintf(illuminaUIDmap, F_U64"\t"F_U32"\t%s\t"F_U64"\t"F_U32"\t%s\n",
+              lUID, nfrg + 1, lfrg->snam+1,
+              rUID, nfrg + 2, rfrg->snam+1);
 
     } else if (lfrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Only add the left fragment.
       gkpStore->gkStore_addFragment(&lfrg->fr);
 
-      fprintf(illuminaUIDmap, F_U64"\t%s\n", lUID, lfrg->snam+1);
+      fprintf(illuminaUIDmap, F_U64"\t"F_U32"\t%s\n",
+              lUID, nfrg + 1, lfrg->snam+1);
 
 
     } else if (rfrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Only add the right fragment.
       gkpStore->gkStore_addFragment(&rfrg->fr);
 
-      fprintf(illuminaUIDmap, F_U64"\t%s\n", rUID, rfrg->snam+1);
+      fprintf(illuminaUIDmap, F_U64"\t"F_U32"\t%s\n",
+              rUID, nfrg + 1, rfrg->snam+1);
 
 
     } else {
@@ -445,7 +450,7 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
   delete lfrg;
   delete rfrg;
 
-  if (lname == rname) {
+  if (strcmp(lname, rname) == 0) {
     if (lpipe)  pclose(lfile);  else  fclose(lfile);
   } else {
     if (lpipe)  pclose(lfile);  else  fclose(lfile);
@@ -485,7 +490,8 @@ loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient)
       //  Add a fragment.
       gkpStore->gkStore_addFragment(&ufrg->fr);
 
-      fprintf(illuminaUIDmap, F_U64"\t%s\n", uUID, ufrg->snam+1);
+      fprintf(illuminaUIDmap, F_U64"\t"F_U32"\t%s\n",
+              uUID, nfrg + 1, ufrg->snam+1);
 
     } else {
       //  Junk read, do nothing.
