@@ -9,6 +9,10 @@
 #    kmer:          snapper2, convertToExtent
 #    wgs-assembler: bogus
 
+
+#  Edit reference to make defline have only one work.  This is necessary because snapper reports the
+#  whole line, but bogus truncates to the first word.
+
 FAS="../FRAGS/porphyromonas_gingivalis_w83.flx.3200bp.0900bp.FJRUAFO0.fasta"
 REF="../AE015924.fasta"
 

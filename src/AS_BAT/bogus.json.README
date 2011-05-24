@@ -10,3 +10,11 @@ In jbrowse/:
 
 NOTE that the reference sequences CANNOT have a space in the defline.  'bogus' will
 silently remove these, but jbrowse will not.
+
+-----
+
+#  SCALING on ZOOM - in json
+
+      "clientConfig": {
+          "labelScale": 1000000
+      }
