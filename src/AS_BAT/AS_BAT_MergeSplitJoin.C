@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.7 2011-05-06 17:32:27 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.8 2011-05-24 05:17:42 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -39,10 +39,10 @@ static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.7 2011-05-06 17:32:
 //  Over every frag in 'target' see if the unitig from any invading fragment can
 //  be merged in.
 
-#define UNCOVERED_NOISE_FILTER 20
-#define COVERED_BORDER         10
-
-#define SPURIOUS_REPEAT_THRESHOLD 5
+#define UNCOVERED_NOISE_FILTER     20
+#define COVERED_BORDER             10
+#define COVERED_REPEAT             10
+#define SPURIOUS_REPEAT_THRESHOLD   5
 
 #define STUPID_REPEAT_SIZE 100
 
@@ -58,19 +58,21 @@ static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.7 2011-05-06 17:32:
 class repeatUniqueJunction {
 public:
   repeatUniqueJunction() {
-    bgn      = 0;
-    end      = 0;
-    point    = 0;
-    overlaps = 0;
-    rptLeft  = false;
+    bgn         = 0;
+    end         = 0;
+    point       = 0;
+    overlaps    = 0;
+    rptLeft     = false;
+    rptInterval = false;
   };
 
-  repeatUniqueJunction(uint32 bgn_, uint32 end_, uint32 point_, uint32 overlaps_, bool rptLeft_) {
-    bgn      = bgn_;
-    end      = end_;
-    point    = point_;
-    overlaps = overlaps_;
-    rptLeft  = rptLeft_;
+  repeatUniqueJunction(uint32 bgn_, uint32 end_, uint32 point_, uint32 overlaps_, bool rptLeft_, bool rptInterval_=false) {
+    bgn         = bgn_;
+    end         = end_;
+    point       = point_;
+    overlaps    = overlaps_;
+    rptLeft     = rptLeft_;
+    rptInterval = rptInterval_;
   };
 
   bool operator<(repeatUniqueJunction const that) const {
@@ -81,7 +83,8 @@ public:
   uint32  end;
   uint32  point;
   uint32  overlaps;
-  bool    rptLeft;  //  Repeat is to the left of the point
+  bool    rptLeft;      //  Repeat is to the left of the point
+  bool    rptInterval;  //  No point here, this is a repeat interval
 };
 
 
@@ -639,48 +642,9 @@ computeAverageCoverage(Unitig *target, int32 bgn, int32 end) {
 
 
 
-//  Build a list of all the fragments that have overlaps to some fragment in this unitig.
-//  Exclude from the list fragments that are already in this unitig.  We expect these fragments
-//  to have multiple overlaps to the unitig, and we want to examine each one only once.
-//
-//  Use placeFragUsingOverlaps() to place each of these fragments.  Ideally, we'd restrict to just
-//  this unitig, but for now we need to filter the results.  Three results:
-//
-//    o Fragment is fully contained in this unitig.  Why isn't it a bubble?  It could be contained
-//      completely in a repeat, and the repeat is in two different unitigs.
-//  
-//    o Fragment is partially aligned.  This could be indicating a repeat or chimera that we should
-//      be splitting.  We save the location of the break, and direction of the unaligned piece.
-//  
-//  After all fragments are 'placed' the list of breaks is examined.
-//
-//    o A chimer will induce about as many breaks as the local depth.  Breaks will be on both
-//      sides of the chimeric point.
-//
-//    o A repeat will have many breaks on one side, and few to none on the other side.
-//
-//    o A spur will look like a repeat, but at the end of a unitig, with few to no fragments
-//      following.
-//
+
 void
-markRepeats(UnitigVector &unitigs,
-            Unitig *target) {
-  set<AS_IID>               ovlFrags;
-
-  //            --------unitig----------
-  //               ----         ----
-  //              /         hangEnd \         (this is not a multiline comment!)
-  //             / hangBgn           \        (neither is this - gcc complains about trailing \)
-  //
-  //intervalList              hang5;   //  Fragments hanging towards the bgn of the unitig.
-  //intervalList              hang3;   //  Fragments hanging towards the end of the unitig.
-  intervalList              align5;  //  Fragments with partial overlaps.
-  intervalList              align3;  //  Fragments with partial overlaps.
-
-  vector<overlapPlacement>  places;
-  vector<breakPoint>        breaks;
-
-  //  Build a list of all the fragments that have overlaps to this unitig.
+markRepeats_buildOverlapList(Unitig *target, set<AS_IID> &ovlFrags) {
 
   for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
     ufNode     *frg   = &target->ufpath[fi];
@@ -692,8 +656,18 @@ markRepeats(UnitigVector &unitigs,
         ovlFrags.insert(ovl[i].b_iid);
     }
   }
+}
 
-  //  For each overlapping fragment, place it and process.
+
+
+void
+markRepeats_placeAndProcessOverlaps(UnitigVector              &unitigs,
+                                    Unitig                    *target,
+                                    set<AS_IID>               &ovlFrags,
+                                    intervalList              &aligned,
+                                    intervalList              &align5,
+                                    intervalList              &align3,
+                                    vector<overlapPlacement>  &places) {
 
   for (set<AS_IID>::iterator it=ovlFrags.begin(); it!=ovlFrags.end(); it++) {
     AS_IID  iid = *it;
@@ -720,6 +694,14 @@ markRepeats(UnitigVector &unitigs,
               op[pl].position.bgn, op[pl].position.end,
               op[pl].verified.bgn, op[pl].verified.end);
 #endif
+
+      //  Save the aligned portion.  This will be used in conjunction with the partially aligned
+      //  fragments to pick out where to split.
+      //
+      if (op[pl].verified.bgn < op[pl].verified.end)
+        aligned.add(op[pl].verified.bgn, op[pl].verified.end - op[pl].verified.bgn);
+      else
+        aligned.add(op[pl].verified.end, op[pl].verified.bgn - op[pl].verified.end);
 
       if (op[pl].fCoverage > 0.99)
         //  No worries, fully placed.
@@ -829,108 +811,149 @@ markRepeats(UnitigVector &unitigs,
 #endif
     }
   }
+}
 
-  align5.merge();
-  align3.merge();
 
-  //  Combine the begin-point and end-pointing repeat/unique junctions into one list.  This will let
-  //  us ignore those that indicate a small repeat spanned by a single fragment, and those that
-  //  are too close to the end of the unitig.
 
-  vector<repeatUniqueJunction>  junctions;
-  vector<repeatUniqueJunction>  junctionss;  //  Yuck.  'junctions' 'saved'
 
-  //  FIRST FILTER -- discard any junctions with too few overlaps.
 
-  //  align5 are those alignments that have an unaligned portion towards the start of the unitig.
-  //  Thus, the repeat will be after the break point (rptLeft == false).  At this time, we don't
-  //  know precisely what the break point will be.  The most conservative guess -- leaving too much
-  //  of the repeat attached to the unique region -- is the hi() coord,
+void
+markRepeats_filterIntervals(Unitig                        *target,
+                            intervalList                  &aligned,
+                            vector<repeatUniqueJunction>  &intervals) {
 
-  for (uint32 i=0; i<align5.numberOfIntervals(); i++)
-    if (align5.ct(i) > SPURIOUS_REPEAT_THRESHOLD)
-      junctions.push_back(repeatUniqueJunction(align5.lo(i) - COVERED_BORDER, align5.hi(i) + COVERED_BORDER,
-                                               align5.hi(i) + COVERED_BORDER,
-                                               align5.ct(i),
-                                               false));
+  for (uint32 i=0; i<aligned.numberOfIntervals(); i++) {
 
-  for (uint32 i=0; i<align3.numberOfIntervals(); i++)
-    if (align3.ct(i) > SPURIOUS_REPEAT_THRESHOLD)
-      junctions.push_back(repeatUniqueJunction(align3.lo(i) - COVERED_BORDER, align3.hi(i) + COVERED_BORDER,
-                                               align3.lo(i) - COVERED_BORDER,
-                                               align3.ct(i),
+    if (aligned.ct(i) <= SPURIOUS_REPEAT_THRESHOLD) {
+      //fprintf(logFile, "markRepeats()--  repeat alignment %u,%u count %u DISCARD - TOO WEAK\n",
+      //        aligned.lo(i), aligned.hi(i), aligned.ct(i));
+      continue;
+    }
+
+    //  Save the interval UNLESS there is a fragment that contains it with enough overhang
+    //  to unambiguously place it in a unitig.
+    ufNode  *containedIn  = NULL;
+
+    for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
+      ufNode     *frg   = &target->ufpath[fi];
+      uint32      bgn   = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
+      uint32      end   = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
+
+      if (end < aligned.lo(i))
+        //  Fragment is before the region.
+        continue;
+
+      if (aligned.hi(i) < bgn)
+        //  Fragment is after the region, we're finished.
+        break;
+
+      if ((bgn + COVERED_REPEAT < aligned.lo(i)) &&
+          (aligned.hi(i)        < end - COVERED_REPEAT)) {
+        //  Fragment contains the region.
+        containedIn  = frg;
+        break;
+      }
+    }
+
+    if (containedIn == NULL) {
+      intervals.push_back(repeatUniqueJunction(aligned.lo(i), aligned.hi(i),
+                                               0,
+                                               aligned.ct(i),
+                                               false,
                                                true));
-
-  if (junctions.size() == 0)
-    //  Nothing interesting aligned.
-    return;
-
-  sort(junctions.begin(), junctions.end());
-
-  fprintf(logFile, "markRepeats()--  unitig %d has %lu interesting intervals:\n", target->id(), junctions.size());
-
-  //  Search for pairs that look like they are covered by a single fragment.
-  //  This is kinda hard....
-
-  for (uint32 bp=0; bp<junctions.size(); bp++)
-    fprintf(logFile, "markRepeats()--  junction: %s %6d %s from %d fragments %d,%d\n",
-            junctions[bp].rptLeft ? "repeat" : "unique",
-            junctions[bp].point,
-            junctions[bp].rptLeft ? "unique" : "repeat",
-            junctions[bp].overlaps,
-            junctions[bp].bgn, junctions[bp].end);
+      fprintf(logFile, "markRepeats()--  repeat alignment %u,%u count %u\n",
+              aligned.lo(i), aligned.hi(i), aligned.ct(i));
+    } else {
+      fprintf(logFile, "markRepeats()--  repeat alignment %u,%u count %u DISCARD - CONTAINED IN FRAGMENT %u %d,%d\n",
+              aligned.lo(i), aligned.hi(i),
+              aligned.ct(i),
+              containedIn->ident,
+              containedIn->position.bgn, containedIn->position.end);
+    }
+  }
+}
 
 
-  //  this is a stupid simple filter.  if there is another junction within STUPID_REPEAT_SIZE, throw
-  //  out BOTH junctions.
-  //
-#if 1
-  for (uint32 ba=0; ba<junctions.size(); ba++) {
+
+
+
+
+
+void
+markRepeats_filterJunctions(Unitig                        *target,
+                            vector<repeatUniqueJunction>  &intervals,
+                            vector<repeatUniqueJunction>  &junctions,
+                            intervalList                  &align,
+                            bool                           is3) {
+
+  for (uint32 ai=0, bi=0; ai<align.numberOfIntervals(); ai++) {
+    if (align.ct(ai) <= SPURIOUS_REPEAT_THRESHOLD)
+      continue;
+
+    repeatUniqueJunction  ruj;
+
+    if (is3 == false)
+      ruj = repeatUniqueJunction(align.lo(ai) - COVERED_BORDER, align.hi(ai) + COVERED_BORDER,
+                                 align.hi(ai) + COVERED_BORDER,
+                                 align.ct(ai),
+                                 false);
+    else
+      ruj = repeatUniqueJunction(align.lo(ai) - COVERED_BORDER, align.hi(ai) + COVERED_BORDER,
+                                 align.lo(ai) - COVERED_BORDER,
+                                 align.ct(ai),
+                                 true);
+
+    //  Try to associate this junction with one of the repeat intervals.  If there is no interval,
+    //  this is NOT a junction we care about.
+
     bool  keepIt = true;
 
-    int32 lo = junctions[ba].point - STUPID_REPEAT_SIZE;
-    int32 hi = junctions[ba].point + STUPID_REPEAT_SIZE;
+    //  Advance the interval until it ends after the point.
+    while ((bi < intervals.size()) &&
+           (intervals[bi].end < ruj.point))
+      bi++;
 
-    for (uint32 bb=0; bb<junctions.size(); bb++)
-      if ((ba != bb) &&
-          (lo <= junctions[bb].point) &&
-          (junctions[bb].point <= hi) &&
-          (junctions[ba].overlaps < 2 * junctions[bb].overlaps))
-        //  Don't keep [ba] if [bb] is within range of [ba], and if [ba] is not very strong.
-        keepIt = false;
+    if (intervals.size() <= bi)
+      //  Ran out of intervals, quit.
+      break;
 
-    if (keepIt) {
-      fprintf(logFile, "SAVE junction: %s %6d %s from %d fragments\n",
-            junctions[ba].rptLeft ? "repeat" : "unique",
-            junctions[ba].point,
-            junctions[ba].rptLeft ? "unique" : "repeat",
-            junctions[ba].overlaps);
-      junctionss.push_back(junctions[ba]);
+    //fprintf(logFile, "point %u against interval %u,%u\n",
+    //        ruj.point, intervals[bi].bgn, intervals[bi].end);
 
-    } else {
-      fprintf(logFile, "JUNK junction: %s %6d %s from %d fragments\n",
-            junctions[ba].rptLeft ? "repeat" : "unique",
-              junctions[ba].point,
-            junctions[ba].rptLeft ? "unique" : "repeat",
-            junctions[ba].overlaps);
+    //  If this point is in the interval, the interval bgn will be lower than the point.  We already
+    //  ensured that the interval end is after the point.
+
+    if (intervals[bi].bgn <= ruj.point) {
+      junctions.push_back(ruj);
+      
+      fprintf(logFile, "markRepeats()--  junction: %s %6d %s from %d fragments %d,%d\n",
+              ruj.rptLeft ? "repeat" : "unique",
+              ruj.point,
+              ruj.rptLeft ? "unique" : "repeat",
+              ruj.overlaps,
+              ruj.bgn, ruj.end);
     }
   }
 
-  junctions = junctionss;
-#endif
+  //fprintf(logFile, "markRepeats()--  unitig %d has %lu interesting intervals:\n", target->id(), junctions.size());
+}
 
 
-  //  For each remaining break point, run through all the placements again.  For any placement that
-  //  overlaps with the breakPoint, find the unitig fragment that we should break at to excise this
-  //  repeat.  The picture is unfortunately hard to draw in ASCII.
+
+
+
+
+void
+markRepeats_locateBreakPoint(Unitig                         *target,
+                             vector<overlapPlacement>       &places,
+                             vector<repeatUniqueJunction>   &junctions,
+                             vector<breakPoint>             &breaks) {
 
   for (uint32 bp=0; bp<junctions.size(); bp++) {
     int32        breakPt = junctions[bp].point;
     bool         rptLeft = junctions[bp].rptLeft;
-    double       avgCov  = computeAverageCoverage(target, breakPt - 10, breakPt + 10); 
 
-    uint32       breakOrd = (rptLeft) ? UINT32_MAX : 0;
-    uint32       breakPos = (rptLeft) ? UINT32_MAX : 0;
+    uint32       breakOrd = (rptLeft) ? 0 : UINT32_MAX;
     FragmentEnd  breakEnd;
 
     for (uint32 pl=0; pl<places.size(); pl++) {
@@ -980,35 +1003,38 @@ markRepeats(UnitigVector &unitigs,
 
       assert(frg.ident == places[pl].refID);
 
-      fprintf(logFile, "markRepeats()-- breakPt=%d rptLeft=%d verified=%d,%d refID=%d frgID=%d (tig %d len "F_SIZE_T") frgPos=%d,%d\n",
+#if 1
+      fprintf(logFile, "markRepeats()-- breakPt=%d rptLeft=%d verified=%d,%d refID=%d frgID=%d frgPos=%d,%d\n",
               breakPt,
               rptLeft,
               places[pl].verified.bgn, places[pl].verified.end,
               places[pl].refID,
-              places[pl].frgID, Unitig::fragIn(places[pl].frgID), unitigs[Unitig::fragIn(places[pl].frgID)]->ufpath.size(),
+              places[pl].frgID,
               frg.position.bgn, frg.position.end);
+#endif
 
-      //  Still thinking about rtpLeft == false, we want to find the last fragment in the unitig
-      //  that supports this placement.  Then we want to break on the low end of that fragment -- if the fragment is
-      //  forward, the low end is the 5' end, if reversed, the low end is 3'.
+      //  Still thinking about rtpLeft == false, we want to find the earliest fragment in the unitig
+      //  that supports this placement.  Then we want to break on the low end of that fragment -- if
+      //  the fragment is forward, the low end is the 5' end, if reversed, the low end is 3'.
       //
-      //  For rptLeft == true, we are looking for the earliest fragment that supports the placement,
+      //  For rptLeft == true, we are looking for the latest fragment that supports the placement,
       //  and we want to split on the high end of the fragment.
 
       if (rptLeft == false) {
-        if (ord > breakOrd) {
+        if (ord < breakOrd) {
           breakOrd = ord;
-          breakPos = MIN(frg.position.bgn, frg.position.end);
           breakEnd = FragmentEnd(frg.ident, (frg.position.bgn > frg.position.end));
+          breakPt  = MIN(frg.position.bgn, frg.position.end);
         }
 
       } else {
-        if (ord < breakOrd) {
+        if (ord > breakOrd) {
           breakOrd = ord;
-          breakPos = MAX(frg.position.bgn, frg.position.end);
           breakEnd = FragmentEnd(frg.ident, (frg.position.bgn < frg.position.end));
+          breakPt  = MAX(frg.position.bgn, frg.position.end);
         }
       }
+
     }  //  Over all places[]
 
     if (breakEnd != FragmentEnd()) {
@@ -1017,6 +1043,9 @@ markRepeats(UnitigVector &unitigs,
       uint32  idx = target->pathPosition(iid);
       ufNode &frg = target->ufpath[idx];
 
+      uint32  realBP  = (i3p) ? frg.position.end : frg.position.bgn;
+      double  avgCov  = computeAverageCoverage(target, realBP - 10, realBP + 10); 
+
       fprintf(logFile, "markRepeats()--    %s-%6d-%s %.2f coverage -- BREAK %u/%c' %d,%d real break at %d\n",
               (rptLeft) ? "repeat" : "unique",
               breakPt,
@@ -1024,18 +1053,149 @@ markRepeats(UnitigVector &unitigs,
               avgCov,
               breakEnd.fragId(), breakEnd.frag3p() ? '3' : '5',
               frg.position.bgn, frg.position.end,
-              (i3p) ? frg.position.end : frg.position.bgn);
+              realBP);
 
-      breaks.push_back(breakPoint(breakEnd.fragId(), breakEnd.frag3p(), false, false));
+      //  keepContains=true -- this break point should be associated with the last 
+      breaks.push_back(breakPoint(breakEnd.fragId(), breakEnd.frag3p(), false, true));
     }
   }  //  over all junctions[]
+}
+
+
+
+
+
+
+
+
+
+//  Build a list of all the fragments that have overlaps to some fragment in this unitig.
+//  Exclude from the list fragments that are already in this unitig.  We expect these fragments
+//  to have multiple overlaps to the unitig, and we want to examine each one only once.
+//
+//  Use placeFragUsingOverlaps() to place each of these fragments.  Ideally, we'd restrict to just
+//  this unitig, but for now we need to filter the results.  Three results:
+//
+//    o Fragment is fully contained in this unitig.  Why isn't it a bubble?  It could be contained
+//      completely in a repeat, and the repeat is in two different unitigs.
+//  
+//    o Fragment is partially aligned.  This could be indicating a repeat or chimera that we should
+//      be splitting.  We save the location of the break, and direction of the unaligned piece.
+//  
+//  After all fragments are 'placed' the list of breaks is examined.
+//
+//    o A chimer will induce about as many breaks as the local depth.  Breaks will be on both
+//      sides of the chimeric point.
+//
+//    o A repeat will have many breaks on one side, and few to none on the other side.
+//
+//    o A spur will look like a repeat, but at the end of a unitig, with few to no fragments
+//      following.
+//
+void
+markRepeats(UnitigVector &unitigs,
+            Unitig *target) {
+
+  set<AS_IID>               ovlFrags;
+
+  intervalList              aligned;
+
+  intervalList              align5;  //  Fragments with partial overlaps.
+  intervalList              align3;  //  Fragments with partial overlaps.
+
+  vector<overlapPlacement>  places;
+
+
+  vector<repeatUniqueJunction>  intervals;
+  vector<breakPoint>            breaks;
+
+  vector<repeatUniqueJunction>  junctionsA;  //  First filtered junctions
+  vector<repeatUniqueJunction>  junctionsB;  //  Second filtered junctions
+
+  //  Build a list of all the fragments that have overlaps to this unitig.
+  markRepeats_buildOverlapList(target, ovlFrags);
+
+  //  For each overlapping fragment, place it and process.
+  markRepeats_placeAndProcessOverlaps(unitigs, target, ovlFrags, aligned, align5, align3, places);
+
+  aligned.merge();
+
+  align5.merge();
+  align3.merge();
+
+  //  Filter out the repeat intervals (in 'aligned') that have too little evidence to
+  //  be a real repeat (low count) or that are spanned by a read in the unitig.
+
+  markRepeats_filterIntervals(target, aligned, intervals);
+
+  //  Combine the begin-point and end-pointing repeat/unique junctions into one list.  This will let
+  //  us ignore those that indicate a small repeat spanned by a single fragment, and those that
+  //  are too close to the end of the unitig.
+
+  //  FIRST FILTER -- discard any junctions with too few overlaps.
+
+  //  align5 are those alignments that have an unaligned portion towards the start of the unitig.
+  //  Thus, the repeat will be after the break point (rptLeft == false).  At this time, we don't
+  //  know precisely what the break point will be.  The most conservative guess -- leaving too much
+  //  of the repeat attached to the unique region -- is the hi() coord,
+  //
+  //  Worth stating again:  THE BREAK POINT SET HERE IS THE FURTHEST FROM THE ACTUAL BREAK POINT.
+  //  We'll later pick the real break point based on overlap evidence.
+
+  markRepeats_filterJunctions(target, intervals, junctionsA, align5, false);
+  markRepeats_filterJunctions(target, intervals, junctionsA, align3, true);
+
+  sort(junctionsA.begin(), junctionsA.end());
+
+  //  this is a stupid simple filter.  if there is another junction within STUPID_REPEAT_SIZE, throw
+  //  out BOTH junctions.
+  //
+#if 0
+  for (uint32 ba=0; ba<junctionsA.size(); ba++) {
+    bool  keepIt = true;
+
+    int32 lo = junctionsA[ba].point - STUPID_REPEAT_SIZE;
+    int32 hi = junctionsA[ba].point + STUPID_REPEAT_SIZE;
+
+    for (uint32 bb=0; bb<junctionsA.size(); bb++)
+      if ((ba != bb) &&
+          (lo <= junctionsA[bb].point) &&
+          (junctionsA[bb].point <= hi) &&
+          (junctionsA[ba].overlaps < 2 * junctionsA[bb].overlaps))
+        //  Don't keep [ba] if [bb] is within range of [ba], and if [ba] is not very strong.
+        keepIt = false;
+
+    if (keepIt) {
+      fprintf(logFile, "SAVE junction: %s %6d %s from %d fragments\n",
+            junctionsA[ba].rptLeft ? "repeat" : "unique",
+            junctionsA[ba].point,
+            junctionsA[ba].rptLeft ? "unique" : "repeat",
+            junctionsA[ba].overlaps);
+      junctionsB.push_back(junctionsA[ba]);
+
+    } else {
+      fprintf(logFile, "JUNK junction: %s %6d %s from %d fragments\n",
+            junctionsA[ba].rptLeft ? "repeat" : "unique",
+              junctionsA[ba].point,
+            junctionsA[ba].rptLeft ? "unique" : "repeat",
+            junctionsA[ba].overlaps);
+    }
+  }
+#endif
+
+
+  //  For each remaining break point, run through all the placements again.  For any placement that
+  //  overlaps with the breakPoint, find the unitig fragment that we should break at to excise this
+  //  repeat.  The picture is unfortunately hard to draw in ASCII.
+
+  markRepeats_locateBreakPoint(target, places, junctionsA, breaks);
 
   //  All break points added, now just break.
 
   //  Until we devise a method for filtering out spurious repeat/unique junctions, we instead
   //  analyze the break points and remove any that are near the end of the unitig.
 
-#if 1
+#if 0
   vector<breakPoint>        fbreaks;
 
   uint32  lastStart = 0;
