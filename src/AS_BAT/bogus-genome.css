@@ -1,0 +1,848 @@
+html, body {
+    height: 98%;
+}
+
+.nav {
+    vertical-align: middle;
+    z-index: 10;
+}
+
+input.icon {
+    display: -moz-inline-stack;
+    display: inline-block;
+    zoom: 1;
+    *display: inline;
+}
+
+div.container {
+    position: absolute;
+    z-index: 0;
+}
+
+div.dragWindow {
+    position:absolute;
+    overflow: hidden;
+    z-index: 1;
+    cursor: url("openhand.cur");
+}
+
+div.locationTrap {
+    position: absolute;
+    background-color: #BDD7FF;
+    border-color: white white #BDD7FF white;
+    border-style: solid;
+    width: 0px;
+    height: 0px;
+    line-height: 0px;
+    z-index: -10;
+}
+
+div.locationThumb {
+    position: absolute;
+    top: 0px;
+    /* if you change this border from 2px, change GenomeView.showTrap */
+    border: 2px solid red;
+    margin: 0px -2px 0px -2px;
+    cursor: url("openhand.cur");
+}
+
+div.locationThumb.dojoMoveItem {
+    cursor: url("closedhand.cur");
+}
+
+div.overview {
+    width: 100%;
+    border-style: solid;
+    border-width: 5px 0px 5px 0px;
+    border-color: #aaa;
+    color:#aaa;
+    font-family: sans-serif;
+    text-align: center;
+    z-index: -5;
+}
+
+div.block {
+    position: absolute;
+    overflow: visible;
+    top: 0px;
+    height: 100%;
+}
+
+div.track {
+    position: absolute;
+    left: 0px;
+    width: 100%;
+    z-index: 5;
+}
+
+.track.dojoDndItemOver {
+    cursor: inherit;
+}
+
+.track.dojoDndItemBefore {
+    border-top: 3px solid #999;
+    margin-top: -3px;
+}
+
+.track.dojoDndItemAfter {
+    border-bottom: 3px solid #999;
+    margin-bottom: -3px;
+}
+
+div#static_track {
+    top: 0px;
+    position: absolute;
+    background-color: #f0f0f0;
+    z-index: 20;
+}
+
+div.gridline {
+    position: absolute;
+    top: 0px;
+    height: 100%;
+    border-style: none none none solid;
+    border-width: 1px;
+    border-color: #ddd;
+}
+
+div.pos-label {
+    position: absolute;
+    left: 0px;
+    background-color: #ddd;
+    z-index: 100;
+    padding: 4px;
+    font-family: sans-serif;
+}
+
+div.overview-pos {
+    position: absolute;
+    left: 0px;
+    color: black;
+    padding-left: 4px;
+    font-family: sans-serif;
+    border-style: solid;
+    border-color: black;
+    border-width: 0px 0px 0px 1px;
+}
+
+div.blank-block {
+    font: sans-serif;
+    position: absolute;
+    overflow: visible;
+    top: 0px;
+    height: 100%;
+    background-color: #eee;
+    z-index: 19;
+}
+
+div.sequence {
+    position: absolute;
+    left: 0px;
+    font-family: monospace;
+    letter-spacing: 2px;
+    padding-left: 2px;
+}
+
+/*
+div.minus-feature:before {
+    content: attr(fName);
+    display: block;
+}
+
+div.plus-feature:before {
+    content: attr(fName);
+    display: inline;
+}
+*/
+
+div.track-label {
+    font-family: sans-serif;
+    z-index: 20;
+    background-color: #BDD7FF;
+    border: 2px #2b434c solid;
+    color: #2b434c;
+    padding: 5px;
+    cursor: pointer;
+}
+
+div.tracklist-label {
+    font-family: sans-serif;
+    z-index: 20;
+    background-color: #BDD7FF;
+    border: 2px #2b434c solid;
+    color: #2b434c;
+    cursor: pointer;
+    padding: 3px;
+}
+
+/* commented for now, multi-select too confusing?
+.tracklist-container.dojoDndItemSelected {
+    background: #ddf;
+}
+
+.tracklist-container.dojoDndItemAnchor {
+    background: #ddf;
+}
+*/
+
+div.tracklist-container {
+    padding: 5px;
+    margin-top: -3px;
+    margin-bottom: -3px;
+}
+
+.tracklist-container.dojoDndItemBefore {
+    border-top: 3px solid #999;
+    padding-top: 2px;
+}
+
+.tracklist-container.dojoDndItemAfter {
+    border-bottom: 3px solid #999;
+    padding-bottom: 2px;
+}
+
+.feature-label {
+    position: absolute;
+    font-family: monospace;
+    border: 0px;
+    margin: -2px 0px 0px 0px;
+    /* padding: 0px 0px 2px 0px; for more space below labels */
+    padding: 0px 0px 0px 0px;
+    /* font-size: 80%; */
+    white-space: nowrap;
+    background-color: #eee;
+    z-index: 10;
+    cursor: pointer;
+}
+
+.basic,
+.plus-basic,
+.minus-basic {
+    position: absolute;
+    cursor: pointer;
+    z-index: 10;
+    min-width: 1px;
+}
+
+div.basic-hist {
+    position: absolute;
+    z-index: 10;
+}
+
+.plus-feature,
+.minus-feature {
+    position:absolute;
+    height: 8px;
+    background-repeat: repeat-x;
+    cursor: pointer;
+    min-width: 1px;
+    z-index: 10;
+}
+
+.plus-feature { background-image: url('img/plus-chevron3.png'); }
+
+.minus-feature { background-image: url('img/minus-chevron3.png'); }
+
+div.feature-hist {
+    position: absolute;
+    background-color: blue;
+    border-color: lightblue;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.plus-feature2,
+.minus-feature2 {
+    position:absolute;
+    height: 15px;
+    background-repeat: repeat-x;
+    cursor: pointer;
+    min-width: 1px;
+    z-index: 10;
+}
+
+.plus-feature2 { background-image: url('img/plus-herringbone16.png'); }
+
+.minus-feature2 { background-image: url('img/minus-herringbone16.png'); }
+
+div.feature2-hist {
+    position: absolute;
+    background-color: #9f9;
+    border-color: #ada;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.plus-feature3,
+.minus-feature3 {
+    position:absolute;
+    height: 8px;
+    background-repeat: repeat-x;
+    cursor: pointer;
+    min-width: 1px;
+    z-index: 10;
+}
+
+.plus-feature3 { background-image: url('img/plus-chevron.png'); }
+
+.minus-feature3 { background-image: url('img/minus-chevron.png'); }
+
+div.feature3-hist {
+    position: absolute;
+    background-color: yellow;
+    border-color: black;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.plus-feature4,
+.minus-feature4 {
+    position:absolute;
+    height: 12px;
+    background-repeat: repeat-x;
+    cursor: pointer;
+    min-width: 1px;
+    z-index: 10;
+}
+
+.plus-feature4 { background-image: url('img/plus-pacman.png'); }
+
+.minus-feature4 { background-image: url('img/minus-pacman.png'); }
+
+div.feature4-hist {
+    position: absolute;
+    background-color: yellow;
+    border-color: black;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.plus-feature5,
+.minus-feature5 {
+    position:absolute;
+    height: 8px;
+    background-repeat: repeat-x;
+    cursor: pointer;
+    min-width: 1px;
+    z-index: 10;
+}
+
+.plus-feature5 { background-image: url('img/plus-chevron2.png'); }
+
+.minus-feature5 { background-image: url('img/minus-chevron2.png'); }
+
+div.feature5-hist {
+    position: absolute;
+    background-color: blue;
+    border-color: lightblue;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+div.exon-hist {
+    position: absolute;
+    background-color: #4B76E8;
+    border-style: solid;
+    border-color: #00f;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.plus-exon,
+.minus-exon {
+    position: absolute;
+    height: 5px;
+    background-color: #4B76E8;
+    border-style: solid;
+    border-color: #00f;
+    border-width: 1px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+div.est-hist {
+    position: absolute;
+    background-color: #ED9185;
+    border-style: solid;
+    border-color: #c33;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.plus-est,
+.minus-est {
+    position: absolute;
+    height: 5px;
+    background-color: #ED9185;
+    border-style: solid;
+    border-color: #c33;
+    border-width: 1px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.plus-dblhelix,
+.minus-dblhelix {
+    position:absolute;
+    height: 11px;
+    background-image: url('img/dblhelix-red.png');
+    background-repeat: repeat-x;
+    min-width: 1px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+div.dblhelix-hist {
+    position: absolute;
+    background-color: #fcc;
+    border-color: #daa;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.plus-helix,
+.minus-helix {
+    position:absolute;
+    height: 12px;
+    background-image: url('img/helix3-green.png');
+    background-repeat: repeat-x;
+    min-width: 1px;
+    cursor: pointer;
+    z-index: 10;
+}
+
+div.helix-hist {
+    position: absolute;
+    background-color: #cfc;
+    border-color: #ada;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.loops {
+    position:absolute;
+    height: 13px;
+    background-image: url('img/loops.png');
+    background-repeat: repeat-x;
+    cursor: pointer;
+}
+
+.plus-cds0, .plus-cds1, .plus-cds2,
+.minus-cds0, .minus-cds1, .minus-cds2 {
+    position:absolute;
+    height: 13px;
+    background-repeat: repeat-x;
+    cursor: pointer;
+    min-width: 1px;
+}
+
+.plus-cds0 { background-image: url('img/plus-cds0.png'); }
+.plus-cds1 { background-image: url('img/plus-cds1.png'); }
+.plus-cds2 { background-image: url('img/plus-cds2.png'); }
+.minus-cds0 { background-image: url('img/minus-cds0.png'); }
+.minus-cds1 { background-image: url('img/minus-cds1.png'); }
+.minus-cds2 { background-image: url('img/minus-cds2.png'); }
+
+div.cds-hist {
+    position: absolute;
+    background-color: #fcc;
+    border-color: #daa;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.topbracket {
+    position:absolute;
+    height: 8px;
+    border-style: solid solid none solid;
+/*    border-width: 2px 2px 0px 2px; */
+    border-width: 2px;
+    border-color: orange;
+/*    margin-top: 2px */
+    cursor: pointer;
+}
+
+.bottombracket {
+    position:absolute;
+    height: 8px;
+    border-style: none solid solid solid;
+    border-width: 2px;
+    border-color: green;
+    cursor: pointer;
+}
+
+.hourglass {
+    position:absolute;
+    height: 0px;
+    border-style: solid;
+    border-width: 6px 3px 6px 3px;
+    cursor: pointer;
+}
+
+.plus-triangle {
+    position:absolute;
+    height: 0px;
+    border-style: solid;
+    border-width: 6px 3px 0px 3px;
+    cursor: pointer;
+}
+
+.minus-triangle {
+    position:absolute;
+    height: 0px;
+    border-style: solid;
+    border-width: 0px 3px 6px 3px;
+    cursor: pointer;
+}
+
+.triangle {
+    position:absolute;
+    height: 0px;
+    border-style: solid;
+    border-width: 6px 0px 0px 0px;
+    cursor: pointer;
+}
+
+.hgred {
+    border-color: #f99 white #f99 white;
+}
+div.hgred-hist {
+    position: absolute;
+    background-color: #daa;
+    border-color: #d44;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.hgblue {
+    border-color: #99f white #99f white;
+}
+div.hgblue-hist {
+    position: absolute;
+    background-color: #aad;
+    border-color: #99f;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.ibeam {
+    position:absolute;
+    height: 2px;
+    background-color: blue;
+    border-style: solid;
+    border-width: 8px 4px 8px 4px;
+    border-color: white blue white blue;
+    cursor: pointer;
+}
+
+div.transcript-hist {
+    position: absolute;
+    background-color: #ddd;
+    border-color: #FF9185;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.transcript,
+.plus-transcript,
+.minus-transcript {
+    position: absolute;
+    height: 4px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+    background-color: #999;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+}
+
+.plus-transcript-arrowhead {
+    position: absolute;
+/*  border stuff seems slow
+    height: 0px;
+    width: 0px;
+    margin-top: -4px;
+    border-style: solid;
+    border-color: white white white #999;
+    border-width: 6px 0px 6px 10px; */
+    margin-top: -4px;
+    width: 12px;
+    height: 12px;
+    background-image: url('img/plus-transcript-head.png');
+    background-repeat: no-repeat;
+}
+
+.minus-transcript-arrowhead {
+    position: absolute;
+/*  border stuff seems slow
+    height: 0px;
+    width: 0px;
+    margin-top: -4px;
+    border-style: solid;
+    border-color: white #999 white white;
+    border-width: 6px 10px 6px 0px; */
+    margin-top: -4px;
+    width: 12px;
+    height: 12px;
+    background-image: url('img/minus-transcript-head.png');
+    background-repeat: no-repeat;
+}
+
+.plus-transcript-CDS,
+.minus-transcript-CDS {
+    position: absolute;
+    height: 12px;
+    margin-top: -4px;
+    background-image: url('img/cds.png');
+    background-repeat: repeat-x;
+/*  border-width: 2px 0px 3px 0px;
+    border-style: solid;
+    border-color: white;
+    background-color: #FF9185;
+    border-style: solid;
+    border-color: #00f;
+    border-width: 1px;*/
+    cursor: pointer;
+    z-index: 10;
+    min-width: 1px;
+}
+
+.plus-transcript-exon,
+.minus-transcript-exon,
+.plus-transcript-UTR, 
+.minus-transcript-UTR,
+.plus-transcript-five_prime_UTR,
+.minus-transcript-five_prime_UTR,
+.plus-transcript-three_prime_UTR,
+.minus-transcript-three_prime_UTR {
+    position: absolute;
+    height: 4px;
+    margin-top: -2px;
+    background-color: #B66;
+    border-style: solid;
+    border-color: #D88;
+    border-width: 2px 0px 2px 0px;
+    z-index: 8;
+    min-width: 1px;
+    cursor: pointer;
+}
+
+.generic_parent,
+.plus-generic_parent,
+.minus-generic_parent {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    background-color: #AAA;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+}
+
+div.generic_parent-hist {
+    position: absolute;
+    background-color: #ddd;
+    border-color: #555;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+.match_part,
+.plus-match_part,
+.minus-match_part {
+    position: absolute;
+    height: 4px;
+    margin-top: -2px;
+    background-color: #66B;
+    border-style: solid;
+    border-color: #88D;
+    border-width: 2px 0px 2px 0px;
+    z-index: 8;
+    min-width: 1px;
+    cursor: pointer;
+}
+
+.generic_part_a,
+.plus-generic_part_a,
+.minus-generic_part_a {
+    position: absolute;
+    height: 4px;
+    margin-top: -2px;
+    background-color: #6B6;
+    border-style: solid;
+    border-color: #8D8;
+    border-width: 2px 0px 2px 0px;
+    z-index: 8;
+    min-width: 1px;
+    cursor: pointer;
+}
+
+/*
+ * Definitions for jbrowse to show BOGUS and BOGUSNESS results.
+ */
+
+ */
+ * BOGUS classes
+ */
+
+.frag_align {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #AAA;
+}
+.plus-frag_align {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #EB2A2A;
+}
+.minus-frag_align {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #2AEB2A; 
+}
+div.frag_align-hist {
+    position: absolute;
+    background-color: #ddd;
+    border-color: #555;
+    border-style: solid;
+    border-width: 1px;
+    z-index: 10;
+}
+
+
+
+.rept_interval {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #1010bb;
+}
+.uniq_interval {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #10bb10;
+}
+.weak_interval {
+    position: absolute;
+    height: 8px;
+    margin-top: -3px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    border-color: #bb1010;
+    border-style: solid;
+    border-width: 1px;
+}
+.sepr_interval {
+    position: absolute;
+    height: 8px;
+    margin-top: -3px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    border-color: #bb1010;
+    border-style: solid;
+    border-width: 1px;
+}
+
+
+/*
+ *  BOGUSNESS classes
+ */
+
+.bogusness_span {
+    position: absolute;
+    height: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #AAA;
+}
+.plus-bogusness_match {
+    position: absolute;
+    height: 8px;
+    margin-top: -2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #ee2222;
+}
+.minus-bogusness_match {
+    position: absolute;
+    height: 8px;
+    margin-top: -2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    background-color: #22ee22;
+}
+
+.plus-bogusness_repeat {
+    position: absolute;
+    height: 8px;
+    margin-top: -2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    border-color: 10bb10;
+    border-style: solid;
+    border-width: 2px;
+    background-color: #ee2222;
+}
+.minus-bogusness_repeat {
+    position: absolute;
+    height: 8px;
+    margin-top: -2px;
+    margin-bottom: 2px;
+    z-index: 6;
+    min-width: 1px;
+    cursor: pointer;
+    border-color: #bb1010;
+    border-style: solid;
+    border-width: 2px;
+    background-color: #22ee22;
+}

@@ -45,7 +45,6 @@
     },
 
 
-
     {
       "track":               "BOGUS_rept_interval",
       "key":                 "BOGUS rept interval",
@@ -53,7 +52,10 @@
       "autocomplete":        "all",
       "class":               "rept_interval",
       "subfeatures":          true,
-      "subfeature_classes": {"bogus_sepr_interval": "sepr_interval"}
+      "subfeature_classes": {"bogus_sepr_interval": "sepr_interval"},
+      "clientConfig": {
+          "labelScale": 1000000
+      }
     },
 
     {
@@ -63,9 +65,11 @@
       "autocomplete":        "all",
       "class":               "uniq_interval",
       "subfeatures":          true,
-      "subfeature_classes": {"bogus_weak_interval": "weak_interval"}
+      "subfeature_classes": {"bogus_weak_interval": "weak_interval"},
+      "clientConfig": {
+          "labelScale": 1000000
+      }
     },
-
 
 
     {
@@ -75,7 +79,18 @@
       "autocomplete":        "all",
       "class":               "bogusness_span",
       "subfeatures":          true,
-      "subfeature_classes": {"bogusness_match": "bogusness_match"}
+      "subfeature_classes": {"bogusness_match": "bogusness_match"},
+      "clientConfig": {
+          "labelScale": 1000000
+      }
+    },
+
+    {
+      "track":               "BOGUSNESS_repeat",
+      "key":                 "BOGUSNESS repeat",
+      "feature":            ["bogusness_repeat"],
+      "autocomplete":        "all",
+      "class":               "bogusness_repeat"
     }
 
   ]
