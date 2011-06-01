@@ -1,12 +1,25 @@
 #!/usr/bin/perl
 
 use strict;
+use FindBin;
 
 my $prefix = undef;    #  output file name prefix
 my $SEQ    = undef;    #  input sequences, fasta
 my $REF    = undef;    #  input reference, fasta
 my $IDEAL  = undef;    #  input ideal, output from bogus, *.ideal.intervals
 my $IGFF3  = undef;    #  input ideal, output from bogus, *.ideal.gff3
+
+#  Assumes this script is NOT installed; it looks to this directory to get
+#  jbrowse source and configs.
+my $src    = $FindBin::Bin;
+
+#  1.2.1: Needs: (same)
+#  1.2:   Needs: Heap::Simple Heap::Simple::Perl Heap::Simple::XS PerlIO::gzip Devel::Size
+#  1.1:   Needs: BioPerl, JSON, JSON::XS
+#
+my $jbrowseVersion = "1.1";
+my $jbrowse        = "$src/jbrowse-$jbrowseVersion.zip\n";
+
 
 while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
@@ -153,13 +166,13 @@ print F "#!/bin/sh\n";
 print F "\n";
 print F "cd $prefix.jbrowse\n";
 print F "\n";
-print F "unzip -q /work/wgs/src/AS_BAT/jbrowse-1.2.1.zip\n";
+print F "unzip -q $jbrowse\n";
 print F "\n";
-print F "mv     jbrowse-1.2.1/* .\n";
-print F "rm -rf jbrowse-1.2.1\n";
+print F "mv     jbrowse-$jbrowseVersion/* jbrowse/* .\n";
+print F "rm -rf jbrowse-$jbrowseVersion\n";
 print F "\n";
-print F "cp -p /work/wgs/src/AS_BAT/bogus-genome.css  genome.css\n";
-print F "cp -p /work/wgs/src/AS_BAT/bogus-genome.json bogus.json\n";
+print F "cp -p $src/bogus-genome.css  genome.css\n";
+print F "cp -p $src/bogus-genome.json bogus.json\n";
 print F "\n";
 print F "ln -s ../$prefix.gff3\n";
 print F "\n";
