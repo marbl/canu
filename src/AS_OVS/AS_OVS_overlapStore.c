@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.26 2011-02-11 18:13:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.27 2011-06-02 13:24:58 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -368,7 +368,7 @@ AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 firstIID, uint32 lastIID) 
   //  those overlaps
 
   if (firstIID >= ovs->ovs.largestIID)
-    firstIID = ovs->ovs.largestIID + 1;
+    firstIID = ovs->ovs.largestIID;
   if (lastIID >= ovs->ovs.largestIID)
     lastIID = ovs->ovs.largestIID;
 
