@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.13 2011-03-31 15:23:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.14 2011-06-02 16:43:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -190,7 +190,10 @@ AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap) {
 
 char *
 AS_OVS_toString(char *outstr, OVSoverlap &olap) {
-  
+
+  //  Even though the b_end_hi | b_end_lo is uint64 in the struct, the result
+  //  of combining them doesn't appear to be 64-bit.  The cast is necessary.
+
   switch (olap.dat.ovl.type) {
     case AS_OVS_TYPE_OVL:
       sprintf(outstr, "%8d %8d  %c  %5"F_S64P" %5"F_S64P"  %4.2f  %4.2f\n",
@@ -209,7 +212,7 @@ AS_OVS_toString(char *outstr, OVSoverlap &olap) {
               olap.dat.obt.a_beg,
               olap.dat.obt.a_end,
               olap.dat.obt.b_beg,
-              (olap.dat.obt.b_end_hi << 9) | (olap.dat.obt.b_end_lo),
+              (uint64)((olap.dat.obt.b_end_hi << 9) | (olap.dat.obt.b_end_lo)),
               AS_OVS_decodeQuality(olap.dat.obt.erate) * 100.0);
       break;
     case AS_OVS_TYPE_MER:
