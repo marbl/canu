@@ -59,12 +59,12 @@ endif
 
 endif
 
-EXE_SOURCES = chimera.C \
-              consolidate.C \
+EXE_SOURCES = initialTrim.C \
               deduplicate.C \
-              initialTrim.C \
-              merge-trimming.C \
-              overlapMask.C \
+              finalTrim.C \
+              finalTrim-largestCovered.C \
+              finalTrim-evidenceBased.C \
+              chimera.C \
               trim.C \
               readOverlap.C \
               removeMateOverlap.C
@@ -75,11 +75,9 @@ OBJECTS     = $(SOURCES:.C=.o) $(LIB_SOURCES:.C=.o)
 LIBRARIES   = libAS_OBT.a libCA.a
 
 CXX_PROGS   = initialTrim \
-              merge-trimming \
-              overlapMask \
-              consolidate \
-              chimera \
               deduplicate \
+              finalTrim \
+              chimera \
               removeMateOverlap
 SCRIPTS =
 ifdef FIGARO
@@ -95,11 +93,9 @@ libAS_OBT.a: $(LIB_SOURCES:.C=.o)
 libCA.a:     $(LIB_SOURCES:.C=.o)
 
 initialTrim:          initialTrim.o       trim.o           libCA.a
-consolidate:          consolidate.o       readOverlap.o    libCA.a
-merge-trimming:       merge-trimming.o    trim.o           libCA.a
-overlapMask:          overlapMask.o       readOverlap.o    libCA.a
-chimera:              chimera.o           readOverlap.o    libCA.a
 deduplicate:          deduplicate.o       readOverlap.o    libCA.a
+finalTrim:            finalTrim.o         trim.o           finalTrim-largestCovered.o  finalTrim-evidenceBased.o  libCA.a 
+chimera:              chimera.o           readOverlap.o    libCA.a
 removeMateOverlap:    removeMateOverlap.o readOverlap.o    libCA.a
 
 figaro: $(FIGARO)/figaro

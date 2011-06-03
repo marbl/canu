@@ -53,22 +53,35 @@ public:
   void gkLibrary_encodeFeaturesCleanup(LibraryMesg *lmesg);
 
   void gkLibrary_clearFeatures(void) {
-    spareUN3                  = 0;
-    spareUN2                  = 0;
-    spareUN1                  = 0;
-    spareUTG                  = 0;
-    forceBOGunitigger         = 0;
-    isNotRandom               = 0;
-    spareALN                  = 0;
-    doNotTrustHomopolymerRuns = 0;
-    spareOBT                  = 0;
-    doRemoveDuplicateReads    = 0;
-    doNotQVTrim               = 0;
-    goodBadQVThreshold        = 0;
-    doNotOverlapTrim          = 0;
-    spareGKP                  = 0;
-    spareLIB                  = 0;
-    orientation               = 0;
+    spareUN3                   = 0;
+    spareUN2                   = 0;
+    spareUN1                   = 0;
+
+    spareUTG                   = 0;
+    forceBOGunitigger          = 0;
+    isNotRandom                = 0;
+
+    spareALN                   = 0;
+    doNotTrustHomopolymerRuns  = 0;
+
+    spareOBT                   = 0;
+    doTrim_initialNone         = 0;
+    doTrim_initialMerBased     = 0;
+    doTrim_initialFlowBased    = 0;
+    doTrim_initialQualityBased = 1;  //  NOTE, NOT ZERO!
+
+    doRemoveDuplicateReads     = 0;
+
+    doTrim_finalLargestCovered = 0;
+    doTrim_finalEvidenceBased  = 1;  //  NOTE, NOT ZERO!
+
+    doRemoveSpurReads          = 1;  //  NOTE, NOT ZERO!
+    doRemoveChimericReads      = 1;  //  NOTE, NOT ZERO!
+
+    spareGKP                   = 0;
+
+    spareLIB                   = 0;
+    orientation                = 0;
   };
 
 private:
@@ -93,12 +106,20 @@ public:
   uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 -> trust 'em
 
   //  OBT options
-  uint64         spareOBT:54;                  //  Spare for OBT changes
-  uint64         doMerBasedTrimming:1;         //  Default 0 -> do not use mer based trimming
-  uint64         doRemoveDuplicateReads:1;     //  Default 0 -> do not search for and remove duplicates
-  uint64         doNotQVTrim:1;                //  Default 0 -> do initial qv trimming in OBT
-  uint64         goodBadQVThreshold:6;         //  Default 0 -> threshold is 12 in initialTrim.C
-  uint64         doNotOverlapTrim:1;           //  Default 0 -> do trimming
+  uint64         spareOBT:55;                  //  Spare for OBT changes
+
+  uint64         doTrim_initialNone:1;         //  Don't trim, use whatever clear range is present
+  uint64         doTrim_initialMerBased:1;     //  For Illumina reads
+  uint64         doTrim_initialFlowBased:1;    //  For 454 reads (NOT IMPLEMENTED)
+  uint64         doTrim_initialQualityBased:1; //  For Sanger reads
+
+  uint64         doRemoveDuplicateReads:1;     //  
+
+  uint64         doTrim_finalLargestCovered:1; //  A simple 'pick the largest covered by overlaps'
+  uint64         doTrim_finalEvidenceBased:1;  //  Pick the most plausible end points based on overlaps
+
+  uint64         doRemoveSpurReads:1;          //  
+  uint64         doRemoveChimericReads:1;      //  
 
   //  Gatekeeper options
   uint64         spareGKP:63;                  //  Spare for gatekeeper changes

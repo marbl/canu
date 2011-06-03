@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.15 2011-05-23 05:10:45 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.16 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -343,7 +343,7 @@ cmGlobalData::loadFragments(char    *gkpStorePath,
       fi[fid].mateIID     = frg.gkFragment_getMateIID();
 
       if (searchLibs == false)
-        fi[fid].doSearch = gkpStore->gkStore_getLibrary(lib)->doMerBasedTrimming;
+        fi[fid].doSearch = gkpStore->gkStore_getLibrary(lib)->doTrim_initialMerBased;
       else
         fi[fid].doSearch = searchLib[lib];
 

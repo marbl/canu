@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.35 2011-03-31 15:23:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.36 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,8 +95,7 @@ computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, uint32 
 
   fileLimit = maxIID / iidPerBucket + 1;
 
-  fprintf(stderr, "Memory limit "F_U64"MB upplied.  I'll put "F_U64" IIDs (%.3f million overlaps) into each of "F_U32" buckets.\n",
-          numOverlaps / 1000000.0,
+  fprintf(stderr, "Memory limit "F_U64"MB supplied.  I'll put "F_U64" IIDs (%.2f million overlaps) into each of "F_U32" buckets.\n",
           memoryLimit / (uint64)1048576,
           iidPerBucket,
           overlapsPerBucket / 1000000.0,
@@ -145,7 +144,11 @@ markOBT(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidT
     if (L == NULL)
       continue;
 
-    if (L->doNotOverlapTrim == 1) {
+    if ((L->doRemoveDuplicateReads     == false) &&
+        (L->doTrim_finalLargestCovered == false) &&
+        (L->doTrim_finalEvidenceBased  == false) &&
+        (L->doRemoveSpurReads          == false) &&
+        (L->doRemoveChimericReads      == false)) {
       numMarked++;
       skipFragment[iid] = true;
     }
@@ -171,7 +174,7 @@ markDUP(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidT
     if (L == NULL)
       continue;
 
-    if (L->doRemoveDuplicateReads == 0) {
+    if (L->doRemoveDuplicateReads == false) {
       numMarked++;
       skipFragment[iid] = true;
     }

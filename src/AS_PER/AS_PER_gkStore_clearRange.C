@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.12 2010-08-19 05:28:07 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.13 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -227,16 +227,16 @@ void
 gkClearRange::gkClearRange_setClearRegion(gkFragment *fr, uint32  begin, uint32  end) {
 
   if (begin > end)
-    fprintf(stderr, "ERROR: fragment '%s' clear begin (%d) > end (%d).\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()), begin, end);
+    fprintf(stderr, "ERROR: fragment %s,%d clear begin (%d) > end (%d).\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getReadIID(), begin, end);
 
   if (begin > fr->gkFragment_getSequenceLength())
-    fprintf(stderr, "ERROR: fragment '%s' clear begin (%d) > sequence length (%d).\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()), begin, fr->gkFragment_getSequenceLength());
+    fprintf(stderr, "ERROR: fragment %s,%d clear begin (%d) > sequence length (%d).\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getReadIID(), begin, fr->gkFragment_getSequenceLength());
 
   if (end   > fr->gkFragment_getSequenceLength())
-    fprintf(stderr, "ERROR: fragment '%s' clear end (%d) > sequence length (%d).\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()), end, fr->gkFragment_getSequenceLength());
+    fprintf(stderr, "ERROR: fragment %s,%d clear end (%d) > sequence length (%d).\n",
+            AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getReadIID(), end, fr->gkFragment_getSequenceLength());
 
   assert(begin <= end);
   assert(begin <= fr->gkFragment_getSequenceLength());

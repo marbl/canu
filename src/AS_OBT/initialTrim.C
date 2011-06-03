@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.27 2011-01-04 05:57:22 brianwalenz Exp $";
+const char *mainid = "$Id: initialTrim.C,v 1.28 2011-06-03 17:34:19 brianwalenz Exp $";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
@@ -32,7 +32,7 @@ const char *mainid = "$Id: initialTrim.C,v 1.27 2011-01-04 05:57:22 brianwalenz 
 #include "AS_PER_gkpStore.h"
 
 #include "trim.H"
-#include "constants.H"
+//#include "constants.H"
 
 int
 main(int argc, char **argv) {
@@ -79,8 +79,8 @@ main(int argc, char **argv) {
 
   gkStore  *gkpStore = new gkStore(gkpName, FALSE, TRUE);
 
-  gkpStore->gkStore_metadataCaching(true);
   gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
+  gkpStore->gkStore_metadataCaching(true);
 
   gkFragment    fr;
   gkLibrary    *lr = NULL;
@@ -92,10 +92,15 @@ main(int argc, char **argv) {
   uint32        finL = 0;
   uint32        finR = 0;
 
-  uint32        stat_immutable      = 0;
-  uint32        stat_merTrimOnly    = 0;
-  uint32        stat_donttrim       = 0;
+  //  One per fragment
   uint32        stat_alreadyDeleted = 0;
+  uint32        stat_noTrimming     = 0;
+  uint32        stat_merBased       = 0;
+  uint32        stat_flowBased      = 0;
+  uint32        stat_qualityBased   = 0;
+  uint32        stat_NOLIBRARY      = 0;  //  DOUBLE COUNTS
+
+  //  One per fragment
   uint32        stat_noVecClr       = 0;
   uint32        stat_noHQnonVec     = 0;
   uint32        stat_HQtrim5        = 0;
@@ -104,8 +109,11 @@ main(int argc, char **argv) {
   uint32        stat_LQtrim3        = 0;
   uint32        stat_tooShort       = 0;
 
+  //  Used to be a library parameter.
+  double        minQuality = qual.lookupNumber(12);
+
   if (logFile)
-    fprintf(logFile, "uid,iid\torigL\torigR\tqltL\tqltR\tvecL\tvecR\tfinalL\tfinalR\tdeleted?\n");
+    fprintf(logFile, "uid,iid\torigL\torigR\tqltL\tqltR\tfinalL\tfinalR\tvecL\tvecR\tdeleted?\n");
 
   for (int32 iid=1; iid<=gkpStore->gkStore_getNumFragments(); iid++) {
     gkpStore->gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
@@ -119,25 +127,30 @@ main(int argc, char **argv) {
       continue;
     }
 
-    if ((lr) && (lr->doNotOverlapTrim)) {
-      stat_immutable++;
+    if ((lr) && (lr->doTrim_initialNone == true)) {
+      stat_noTrimming++;
       continue;
     }
 
-    if ((lr) && (lr->doMerBasedTrimming)) {
-      stat_merTrimOnly++;
+    if ((lr) && (lr->doTrim_initialMerBased == true)) {
+      stat_merBased++;
       continue;
     }
 
-    if ((lr) && (lr->doNotQVTrim)) {
-      stat_donttrim++;
+    if ((lr) && (lr->doTrim_initialFlowBased == true)) {
+      stat_flowBased++;
       qltL = 0;
       qltR = fr.gkFragment_getSequenceLength();
-    } else {
-      double  minQuality = qual.lookupNumber(12);
-      if ((lr) && (lr->goodBadQVThreshold > 0))
-        minQuality = qual.lookupNumber(lr->goodBadQVThreshold);
 
+    } else if ((lr) && (lr->doTrim_initialQualityBased)) {
+      stat_qualityBased++;
+      doTrim(&fr, minQuality, qltL, qltR);
+
+    } else {
+      //  We should be aborting here, read not in a library!
+#warning GET RID OF THESE READS NOT IN A LIBRARY
+      stat_qualityBased++;
+      stat_NOLIBRARY++;
       doTrim(&fr, minQuality, qltL, qltR);
     }
 
@@ -205,11 +218,17 @@ main(int argc, char **argv) {
 
   delete gkpStore;
 
-  fprintf(stdout, "Fragments with:\n");
-  fprintf(stdout, " no changes allowed:           "F_U32"\n", stat_immutable);
-  fprintf(stdout, " no QV trim allowed (MBT):     "F_U32"\n", stat_merTrimOnly);
-  fprintf(stdout, " no QV trim allowed:           "F_U32"\n", stat_donttrim);
-  fprintf(stdout, " already deleted               "F_U32"\n", stat_alreadyDeleted);
+  fprintf(stdout, "Fragments trimmed using:\n");
+  fprintf(stdout, "  alreadyDeleted   "F_U32"\n", stat_alreadyDeleted);
+  fprintf(stdout, "  noTrimming       "F_U32"\n", stat_noTrimming);
+  fprintf(stdout, "  merBased         "F_U32"\n", stat_merBased);
+  fprintf(stdout, "  flowBased        "F_U32"\n", stat_flowBased);
+  fprintf(stdout, "  qualityBased     "F_U32"\n", stat_qualityBased);
+  
+  fprintf(stdout, "Fragments trimmed using:\n");
+  fprintf(stdout, "  NOLIBRARY        "F_U32"\n", stat_NOLIBRARY);
+
+  fprintf(stdout, "Trimming result:\n");
   fprintf(stdout, " no vector clear range known:  "F_U32" (trimed to quality clear)\n", stat_noVecClr);
   fprintf(stdout, " no HQ non-vector sequence:    "F_U32" (deleted)\n", stat_noHQnonVec);
   fprintf(stdout, " HQ vector trimmed:            "F_U32" (trimmed to intersection)\n", stat_HQtrim5 + stat_HQtrim3);

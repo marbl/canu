@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.42 2010-11-17 15:21:37 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.43 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,7 +110,7 @@ uint32   chimeraDetectedLinker   = 0;
 class clear_t {
 public:
   uint64   deleted  :1;
-  uint64   doNotOBT :1;
+  uint64   doFix    :1;
 
   uint64   length   :AS_READ_MAX_NORMAL_LEN_BITS;
   uint64   initL    :AS_READ_MAX_NORMAL_LEN_BITS;
@@ -163,7 +163,7 @@ readClearRanges(gkStore *gkp) {
     }
 
     clear[iid].deleted       = fr.gkFragment_getIsDeleted() ? 1 : 0;
-    clear[iid].doNotOBT      = ((lr) && (lr->doNotOverlapTrim)) ? 1 : 0;
+    clear[iid].doFix         = ((lr) && (lr->doRemoveChimericReads)) ? 1 : 0;
 
     clear[iid].length        = fr.gkFragment_getSequenceLength();
     clear[iid].mergL         = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTMERGE);
@@ -560,7 +560,7 @@ process(const AS_IID           iid,
 
   readsProcessed++;
 
-  if ((doUpdate) && (clear[iid].doNotOBT))
+  if ((doUpdate) && (clear[iid].doFix == false))
     doUpdate = false;
 
   //fprintf(reportFile, "process %s,"F_IID"\n", AS_UID_toString(clear[iid].uid), iid);

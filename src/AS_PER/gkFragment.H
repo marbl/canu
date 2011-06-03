@@ -419,6 +419,7 @@ public:
   void        gkFragment_setIsNonRandom(uint32 i) { assert(isGKP);  gkFragment_set(nonrandom, i); };
 
 private:
+public:
   uint32   type;
   uint32   tiid;
 

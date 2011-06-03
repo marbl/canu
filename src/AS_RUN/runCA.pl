@@ -183,7 +183,6 @@ sub setGlobal ($$) {
 
     #  Update aliases.
 
-    $var = "doMerBasedTrimming"        if ($var eq "doMBT");
     $var = "doOverlapBasedTrimming"    if ($var eq "doOBT");
     $var = "doExtendClearRanges"       if ($var eq "doECR");
 
@@ -355,9 +354,6 @@ sub setDefaults () {
     $synops{"doChimeraDetection"}          = "Enable the OBT chimera detection and cleaning module; 'off', 'normal' or 'aggressive'";
 
     #####  Mer Based Trimming
-
-    $global{"doMerBasedTrimming"}          = 0;
-    $synops{"doMerBasedTrimming"}          = "Enable the Mer Based Trimming module";
 
     $global{"mbtBatchSize"}                = 1000000;
     $synops{"mbtBatchSize"}                = "Process this many fragments per merTrim batch";
@@ -790,7 +786,7 @@ sub setParameters () {
         my @stopBefore = ("meryl",
                           "initialTrim",
                           "deDuplication",
-                          "mergeTrimming",
+                          "finalTrimming",
                           "chimeraDetection",
                           "unitigger",
                           "scaffolder",
@@ -904,11 +900,6 @@ sub setParameters () {
 
     $ENV{'AS_READ_MIN_LEN'}    = getGlobal("frgMinLen");
     $ENV{'AS_OVERLAP_MIN_LEN'} = getGlobal("ovlMinLen");
-
-    if ((getGlobal("doOverlapBasedTrimming") == 1) &&
-        (getGlobal("doMerBasedTrimming") == 1)) {
-        caFailure("Cannot do both overlap based trimming and mer based trimming", undef);
-    }
 }
 
 sub logVersion() {
@@ -2276,7 +2267,7 @@ sub meryl {
     }
 
     $ovlT = runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
-    $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming") || getGlobal("doMerBasedTrimming"));
+    $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming"));
 
     if ((getGlobal("obtMerThreshold") ne $obtT) && (getGlobal("doOverlapBasedTrimming"))) {
         print STDERR "Reset OBT mer threshold from ", getGlobal("obtMerThreshold"), " to $obtT.\n";
@@ -2572,7 +2563,6 @@ sub findMBTSuccess ($) {
 
 sub merTrim {
 
-    #return if (getGlobal("doMerBasedTrimming") == 0);
     return if (getGlobal("doOverlapBasedTrimming") == 0);
     return if (getGlobal("ovlOverlapper") eq "umd");
 
@@ -2591,7 +2581,7 @@ sub merTrim {
 
     open(F, "$bin/gatekeeper -nouid -dumplibraries $wrk/$asm.gkpStore |");
     while (<F>) {
-        $mbtNeeded++ if (m/doMerBasedTrimming.*=.*1/);
+        $mbtNeeded++ if (m/doTrim_initialMerBased.*=.*1/);
     }
     close(F);
 
@@ -3555,7 +3545,6 @@ sub createOverlapStore {
 sub overlapTrim {
 
     return if (getGlobal("doOverlapBasedTrimming") == 0);
-    #return if (getGlobal("doMerBasedTrimming") == 1);
     return if (getGlobal("ovlOverlapper") eq "umd");
 
     #  Skip overlap based trimming if it is done, or if the ovlStore already exists.
@@ -3608,7 +3597,11 @@ sub overlapTrim {
 
     open(F, "$bin/gatekeeper -nouid -dumplibraries $wrk/$asm.gkpStore |");
     while (<F>) {
-        $obtNeeded++ if (m/doMerBasedTrimming.*=.*0/);
+        $obtNeeded++ if (m/doRemoveDuplicateReads.*=.*1/);
+        $obtNeeded++ if (m/doTrim_finalLargestCovered.*=.*1/);
+        $obtNeeded++ if (m/doTrim_finalEvidenceBased.*=.*1/);
+        $obtNeeded++ if (m/doRemoveSpurReads.*=.*1/);
+        $obtNeeded++ if (m/doRemoveChimericReads.*=.*1/);
     }
     close(F);
 
@@ -3718,45 +3711,25 @@ sub overlapTrim {
         }
     }
 
-    #
-    #  Consolidate the overlaps, listing all overlaps for a single
-    #  fragment on a single line.  These are still iid's.
-    #
+    if ((! -e "$wrk/0-overlaptrim/$asm.finalTrim.log") &&
+        (! -e "$wrk/0-overlaptrim/$asm.finalTrim.log.bz2")) {
+        my $erate  = 0.03;
+        my $elimit = 4.5;
 
-    if ((! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated") &&
-        (! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated.bz2")) {
+        $cmd  = "$bin/finalTrim \\\n";
+        $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
+        $cmd .= "  -O $wrk/0-overlaptrim/$asm.obtStore \\\n";
+        $cmd .= "  -e $erate \\\n";
+        $cmd .= "  -E $elimit \\\n";
+        $cmd .= "  -o $wrk/0-overlaptrim/$asm.finalTrim \\\n";
+        $cmd .= "> $wrk/0-overlaptrim/$asm.finalTrim.err 2>&1";
 
-        $cmd  = "$bin/consolidate \\\n";
-        $cmd .= " -ovs $wrk/0-overlaptrim/$asm.obtStore \\\n";
-        $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.consolidated \\\n";
-        $cmd .= "2> $wrk/0-overlaptrim/$asm.ovl.consolidated.err";
-
-        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-          unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated";
-          caFailure("failed to consolidate overlaps", "$wrk/0-overlaptrim/$asm.ovl.consolidated.err");
-        }
-        unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated.err";
-    }
-
-
-    #  We need to have all the overlaps squashed already, in particular so
-    #  that we can get the mode of the 5'mode.  We could do this all in
-    #  core, but that would take lots of space.
-
-    if ((! -e "$wrk/0-overlaptrim/$asm.mergeLog") &&
-        (! -e "$wrk/0-overlaptrim/$asm.mergeLog.bz2")) {
-        $cmd  = "$bin/merge-trimming \\\n";
-        $cmd .= "-log $wrk/0-overlaptrim/$asm.mergeLog \\\n";
-        $cmd .= "-frg $wrk/$asm.gkpStore \\\n";
-        $cmd .= "-ovl $wrk/0-overlaptrim/$asm.ovl.consolidated \\\n";
-        $cmd .= "> $wrk/0-overlaptrim/$asm.merge.err 2>&1";
-
-        stopBefore("mergeTrimming", $cmd);
+        stopBefore("finalTrimming", $cmd);
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            unlink "$wrk/0-overlaptrim/$asm.mergeLog";
-            unlink "$wrk/0-overlaptrim/$asm.mergeLog.stats";
-            caFailure("failed to merge trimming", "$wrk/0-overlaptrim/$asm.merge.err");
+            unlink "$wrk/0-overlaptrim/$asm.finalTrim.log";
+            unlink "$wrk/0-overlaptrim/$asm.finalTrim.stats";
+            caFailure("failed to compute final trimming", "$wrk/0-overlaptrim/$asm.finalTrim.err");
         }
     }
 

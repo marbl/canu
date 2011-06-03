@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.12 2011-04-04 23:25:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.13 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -59,12 +59,13 @@ decodeBoolean(char *feature, char *value) {
 
 void
 gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
-  int f;
-  for (f=0; f<lmesg->num_features; f++) {
+
+  for (uint32 f=0; f<lmesg->num_features; f++) {
     char *fea = lmesg->features[f];
     char *val = lmesg->values[f];
 
     //  Unitigger options
+
     if      (strcasecmp(fea, "forceBOGunitigger") == 0)
       forceBOGunitigger = decodeBoolean("forceBOGunitigger", val);
 
@@ -72,24 +73,77 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
       isNotRandom = decodeBoolean("isNotRandom", val);
 
     //  Alignment options
+
     else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0)
       doNotTrustHomopolymerRuns = decodeBoolean("doNotTrustHomopolymerRuns", val);
 
     //  OBT options
-    else if (strcasecmp(fea, "doMerBasedTrimming") == 0)
-      doMerBasedTrimming = decodeBoolean("doMerBasedTrimming", val);
+
+    else if (strcasecmp(fea, "doTrim_initialNone") == 0)
+      doTrim_initialNone = decodeBoolean("doTrim_initialNone", val);
+    else if (strcasecmp(fea, "doTrim_initialMerBased") == 0)
+      doTrim_initialMerBased = decodeBoolean("doTrim_initialMerBased", val);
+    else if (strcasecmp(fea, "doTrim_initialFlowBased") == 0)
+      doTrim_initialFlowBased = decodeBoolean("doTrim_initialFlowBased", val);
+    else if (strcasecmp(fea, "doTrim_initialQualityBased") == 0)
+      doTrim_initialQualityBased = decodeBoolean("doTrim_initialQualityBased", val);
 
     else if (strcasecmp(fea, "doRemoveDuplicateReads") == 0)
       doRemoveDuplicateReads = decodeBoolean("doRemoveDuplicateReads", val);
 
-    else if (strcasecmp(fea, "doNotQVTrim") == 0)
-      doNotQVTrim = decodeBoolean("doNotQVTrim", val);
+    else if (strcasecmp(fea, "doTrim_finalLargestCovered") == 0)
+      doTrim_finalLargestCovered = decodeBoolean("doTrim_finalLargestCovered", val);
+    else if (strcasecmp(fea, "doTrim_finalEvidenceBased") == 0)
+      doTrim_finalEvidenceBased = decodeBoolean("doTrim_finalEvidenceBased", val);
 
-    else if (strcasecmp(fea, "goodBadQVThreshold") == 0)
-      goodBadQVThreshold = strtoul(val, NULL, 10);
+    else if (strcasecmp(fea, "doRemoveSpurReads") == 0)
+      doRemoveSpurReads = decodeBoolean("doRemoveSpurReads", val);
+    else if (strcasecmp(fea, "doRemoveChimericReads") == 0)
+      doRemoveChimericReads = decodeBoolean("doRemoveChimericReads", val);
 
-    else if (strcasecmp(fea, "doNotOverlapTrim") == 0)
-      doNotOverlapTrim = decodeBoolean("doNotOverlapTrim", val);
+    //  COMPATIBILITY OPTIONS
+    else if (strcasecmp(fea, "doMerBasedTrimming") == 0) {
+      fprintf(stderr, "COMPATIBILITY doMerBasedTrimming\n");
+      if (decodeBoolean("doMerBasedTrimming", val) == 1) {
+        fprintf(stderr, "COMPATIBILITY doMerBasedTrimming\n");
+        doTrim_initialNone         = 0;
+        doTrim_initialMerBased     = 1;
+        doTrim_initialFlowBased    = 0;
+        doTrim_initialQualityBased = 0;
+
+        doTrim_finalLargestCovered = 1;
+        doTrim_finalEvidenceBased  = 0;
+      }
+    }
+    else if (strcasecmp(fea, "doNotQVTrim") == 0) {
+      fprintf(stderr, "COMPATIBILITY doNotQVTrim\n");
+      if (decodeBoolean("doNotQVTrim", val) == 1) {
+        fprintf(stderr, "COMPATIBILITY doNotQVTrim\n");
+        doTrim_initialNone         = 0;
+        doTrim_initialMerBased     = 0;
+        doTrim_initialFlowBased    = 1;
+        doTrim_initialQualityBased = 0;
+
+        doTrim_finalLargestCovered = 0;
+        doTrim_finalEvidenceBased  = 1;
+      }
+    }
+    else if (strcasecmp(fea, "goodBadQVThreshold") == 0) {
+      fprintf(stderr, "COMPATIBILITY doNotOverlapTrim\n");
+    }
+    else if (strcasecmp(fea, "doNotOverlapTrim") == 0) {
+      fprintf(stderr, "COMPATIBILITY doNotOverlapTrim\n");
+      if (decodeBoolean("doNotOverlapTrim", val) == 1) {
+        fprintf(stderr, "COMPATIBILITY doNotOverlapTrim\n");
+        doTrim_initialNone         = 0;
+        doTrim_initialMerBased     = 0;
+        doTrim_initialFlowBased    = 0;
+        doTrim_initialQualityBased = 0;
+
+        doTrim_finalLargestCovered = 0;
+        doTrim_finalEvidenceBased  = 0;
+      }
+    }
 
     //  Gatekeeper options
 
@@ -103,6 +157,7 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
       ;
     else if (strcasecmp(fea, "illuminaSequence") == 0)
       ;
+
     //  Library options (orientation is not a feature, it's part of the library)
 
     else
@@ -122,6 +177,17 @@ gkLibrary::gkLibrary_encodeFeaturesCleanup(LibraryMesg *lmesg) {
   safe_free(lmesg->features);
   safe_free(lmesg->values);
 }
+
+
+
+#define encodeFeature(V)                                 \
+  if (V || alwaysEncode) {                               \
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));    \
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));    \
+    sprintf(fea[nf], #V);                                \
+    sprintf(val[nf], "%d", V);                           \
+    nf++;                                                \
+  }
 
 
 void
@@ -151,71 +217,23 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
   int    alwaysEncode = 1;
 
   //  Unitigger options
-  if (forceBOGunitigger || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "forceBOGunitigger");
-    sprintf(val[nf], "%d", forceBOGunitigger);
-    nf++;
-  }
-
-  if (isNotRandom || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "isNotRandom");
-    sprintf(val[nf], "%d", isNotRandom);
-    nf++;
-  }
-
-  //  Alignment options
-  if (doNotTrustHomopolymerRuns || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "doNotTrustHomopolymerRuns");
-    sprintf(val[nf], "%d", doNotTrustHomopolymerRuns);
-    nf++;
-  }
+  encodeFeature(forceBOGunitigger);
+  encodeFeature(isNotRandom);
+  encodeFeature(doNotTrustHomopolymerRuns);
 
   //  OBT options
-  if (doMerBasedTrimming || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "doMerBasedTrimming");
-    sprintf(val[nf], "%d", doMerBasedTrimming);
-    nf++;
-  }
+  encodeFeature(doTrim_initialNone);
+  encodeFeature(doTrim_initialMerBased);
+  encodeFeature(doTrim_initialFlowBased);
+  encodeFeature(doTrim_initialQualityBased);
 
-  if (doRemoveDuplicateReads || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "doRemoveDuplicateReads");
-    sprintf(val[nf], "%d", doRemoveDuplicateReads);
-    nf++;
-  }
+  encodeFeature(doRemoveDuplicateReads);
 
-  if (doNotQVTrim || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "doNotQVTrim");
-    sprintf(val[nf], "%d", doNotQVTrim);
-    nf++;
-  }
+  encodeFeature(doTrim_finalLargestCovered);
+  encodeFeature(doTrim_finalEvidenceBased);
 
-  if (goodBadQVThreshold || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "goodBadQVThreshold");
-    sprintf(val[nf], "%d", goodBadQVThreshold);
-    nf++;
-  }
-
-  if (doNotOverlapTrim || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "doNotOverlapTrim");
-    sprintf(val[nf], "%d", doNotOverlapTrim);
-    nf++;
-  }
+  encodeFeature(doRemoveSpurReads);
+  encodeFeature(doRemoveChimericReads);
 
   //  Library options (orientation is not a feature, it's part of the library)
 

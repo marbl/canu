@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.13 2011-05-23 19:04:55 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.14 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -250,11 +250,18 @@ main(int argc, char **argv) {
 
   gkl.doNotTrustHomopolymerRuns  = 0;
 
-  gkl.doMerBasedTrimming         = 1;
+  gkl.doTrim_initialNone         = 0;
+  gkl.doTrim_initialMerBased     = 1;
+  gkl.doTrim_initialFlowBased    = 0;
+  gkl.doTrim_initialQualityBased = 0;
+
   gkl.doRemoveDuplicateReads     = 1;
-  gkl.doNotQVTrim                = 0;
-  gkl.goodBadQVThreshold         = 0;
-  gkl.doNotOverlapTrim           = 0;
+
+  gkl.doTrim_finalLargestCovered = 1;
+  gkl.doTrim_finalEvidenceBased  = 0;
+
+  gkl.doRemoveSpurReads          = 1;
+  gkl.doRemoveChimericReads      = 1;
 
   gkl.orientation                = (isMated) ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_UNKNOWN;
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.54 2011-05-06 17:41:38 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.55 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1120,8 +1120,8 @@ processMate(gkFragment *fr,
             char        *linker[AS_LINKER_MAX_SEQS],
             int          search[AS_LINKER_MAX_SEQS]) {
 
-  alignLinker_s  al = {0};  //  Winning alignment
-  alignLinker_s  wk = {0};  //  Scratch alignment
+  alignLinker_s  al = {0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0.0, 0.0};  //  Winning alignment
+  alignLinker_s  wk = {0, 0, 0, 0, 0, 0, 0, 0, 0.0, 0.0, 0.0};  //  Scratch alignment
 
   //  They either both have to be there, or both not there.
   assert(((m1 == NULL) && (m2 == NULL)) ||
@@ -1729,10 +1729,18 @@ addLibrary(char *libraryName,
 
   gkl.doNotTrustHomopolymerRuns  = 1;
 
+  gkl.doTrim_initialNone         = 0;
+  gkl.doTrim_initialMerBased     = 0;
+  gkl.doTrim_initialFlowBased    = 1;
+  gkl.doTrim_initialQualityBased = 0;
+
   gkl.doRemoveDuplicateReads     = 1;
-  gkl.doNotQVTrim                = 1;
-  gkl.goodBadQVThreshold         = 1;
-  gkl.doNotOverlapTrim           = 0;
+
+  gkl.doTrim_finalLargestCovered = 1;
+  gkl.doTrim_finalEvidenceBased  = 0;
+
+  gkl.doRemoveSpurReads          = 1;
+  gkl.doRemoveChimericReads      = 1;
 
   if (haveLinker == FALSE) {
     gkl.mean        = 0;

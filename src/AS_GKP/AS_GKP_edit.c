@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.27 2011-04-07 01:58:23 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.28 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -481,97 +481,41 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
 
       //  Lots of boilerplate here for T/F flags.  Sigh.
 
-      } else if (strcasecmp(ACT, "forceBOGunitigger") == 0) {
-        uint32 o = gklr.forceBOGunitigger;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.forceBOGunitigger = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.forceBOGunitigger = 0;
-        else {
-          fprintf(stderr, "invalid lib forceBOGunitigger flag in edit line: '%s'\n", L);
-          errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "lib uid %s forceBOGunitigger %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.forceBOGunitigger) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "isNotRandom") == 0) {
-        uint32 o = gklr.isNotRandom;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.isNotRandom = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.isNotRandom = 0;
-        else {
-          fprintf(stderr, "invalid lib isNotRandom flag in edit line: '%s'\n", L);
-          errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "lib uid %s isNotRandom %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.isNotRandom) ? 'T' : 'F');
-        allFrags(gkpStore, IID, 'r', gklr.isNotRandom, update, verbose);
-      } else if (strcasecmp(ACT, "doNotTrustHomopolymerRuns") == 0) {
-        uint32 o = gklr.doNotTrustHomopolymerRuns;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.doNotTrustHomopolymerRuns = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.doNotTrustHomopolymerRuns = 0;
-        else {
-          fprintf(stderr, "invalid lib donottrushhomopolymerruns flag in edit line: '%s'\n", L);
-          errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "lib uid %s donottrushhomopolymerruns %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotTrustHomopolymerRuns) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "doRemoveDuplicateReads") == 0) {
-        uint32 o = gklr.doRemoveDuplicateReads;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.doRemoveDuplicateReads = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.doRemoveDuplicateReads = 0;
-        else {
-          fprintf(stderr, "invalid lib doRemoveDuplicateReads flag in edit line: '%s'\n", L);
-          errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "lib uid %s doRemoveDuplicateReads %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doRemoveDuplicateReads) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "doNotQVTrim") == 0) {
-        uint32 o = gklr.doNotQVTrim;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.doNotQVTrim = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.doNotQVTrim = 0;
-        else {
-          fprintf(stderr, "invalid lib doNotQVTrim flag in edit line: '%s'\n", L);
-          errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "lib uid %s doNotQVTrim %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotQVTrim) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "goodBadQVThreshold") == 0) {
-        uint32 o = gklr.goodBadQVThreshold;
-        gklr.goodBadQVThreshold = strtoul(E, NULL, 10);
-        if (verbose)
-          fprintf(stdout, "lib uid %s goodBadQVThreshold %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.goodBadQVThreshold) ? 'T' : 'F');
-      } else if (strcasecmp(ACT, "doNotOverlapTrim") == 0) {
-        uint32 o = gklr.doNotOverlapTrim;
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
-          gklr.doNotOverlapTrim = 1;
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
-          gklr.doNotOverlapTrim = 0;
-        else {
-          fprintf(stderr, "invalid lib doNotOverlapTrim flag in edit line: '%s'\n", L);
-          errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "lib uid %s doNotOverlapTrim %c -> %c\n",
-                  AS_UID_toString(gklr.libraryUID), (o) ? 'T' : 'F', (gklr.doNotOverlapTrim) ? 'T' : 'F');
+#define setBoolean(XX)                                                              \
+      } else if (strcasecmp(ACT, #XX) == 0) {                                       \
+        uint32 o = gklr.XX;                                                         \
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))                   \
+          gklr.XX = 1;                                                              \
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))                   \
+          gklr.XX = 0;                                                              \
+        else {                                                                      \
+          fprintf(stderr, "invalid lib XX flag in edit line: '%s'\n", L);           \
+          errors++;                                                                 \
+          goto nextline;                                                            \
+        }                                                                           \
+        if (verbose)                                                                \
+          fprintf(stdout, "lib uid %s XX %c -> %c\n",                               \
+                  AS_UID_toString(gklr.libraryUID),                                 \
+                  (o) ? 'T' : 'F',                                                  \
+                  (gklr.XX) ? 'T' : 'F');                                           \
+
+      setBoolean(forceBOGunitigger)
+      setBoolean(isNotRandom)
+      setBoolean(doNotTrustHomopolymerRuns)
+
+      setBoolean(doTrim_initialNone)
+      setBoolean(doTrim_initialMerBased)
+      setBoolean(doTrim_initialFlowBased)
+      setBoolean(doTrim_initialQualityBased)
+
+      setBoolean(doRemoveDuplicateReads)
+
+      setBoolean(doTrim_finalLargestCovered)
+      setBoolean(doTrim_finalEvidenceBased)
+
+      setBoolean(doRemoveSpurReads)
+      setBoolean(doRemoveChimericReads)
+
       } else if (strcasecmp(ACT, "orientation") == 0) {
         uint32 o = gklr.orientation;
         uint32 i;

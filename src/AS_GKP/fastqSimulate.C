@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.5 2011-04-22 01:25:58 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.6 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -154,6 +154,11 @@ makePE(char   *seq,
       continue;
     }
 
+    if (len <= readLen) {
+      np--;
+      continue;
+    }
+
     //  Read sequences from the ends.
 
     makeSequences(seq + bgn, len, readLen, s1, q1, s2, q2);
@@ -231,7 +236,7 @@ makeMP(char   *seq,
 
     int32   slen = randomGaussian(mpShearSize, mpShearStdDev);  //  shear size
 
-    if (slen < readLen) {
+    if (slen <= readLen) {
       np--;
       continue;
     }
@@ -247,22 +252,22 @@ makeMP(char   *seq,
 
       //  Output sequences, with a descriptive ID
 
-      fprintf(output, "@fMP_%d_%d-%d/1\n", np, sbgn, sbgn+slen);
+      fprintf(output, "@fPE_%d_%d-%d/1\n", np, sbgn, sbgn+slen);
       fprintf(output, "%s\n", s1);
       fprintf(output, "+\n");
       fprintf(output, "%s\n", q1);
 
-      fprintf(output, "@fMP_%d_%d-%d/2\n", np, sbgn, sbgn+slen);
+      fprintf(output, "@fPE_%d_%d-%d/2\n", np, sbgn, sbgn+slen);
       fprintf(output, "%s\n", s2);
       fprintf(output, "+\n");
       fprintf(output, "%s\n", q2);
 
-      fprintf(output1, "@fMP_%d_%d-%d/1\n", np, sbgn, sbgn+slen);
+      fprintf(output1, "@fPE_%d_%d-%d/1\n", np, sbgn, sbgn+slen);
       fprintf(output1, "%s\n", s1);
       fprintf(output1, "+\n");
       fprintf(output1, "%s\n", q1);
 
-      fprintf(output2, "@fMP_%d_%d-%d/2\n", np, sbgn, sbgn+slen);
+      fprintf(output2, "@fPE_%d_%d-%d/2\n", np, sbgn, sbgn+slen);
       fprintf(output2, "%s\n", s2);
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);

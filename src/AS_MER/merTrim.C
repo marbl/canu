@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.9 2011-01-04 05:57:22 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.10 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1098,7 +1098,7 @@ mertrimReader(void *G) {
     g->gkRead->gkStore_getFragment(g->tCur, &s->fr, GKFRAGMENT_QLT);
     g->tCur++;
 
-    if (g->gkRead->gkStore_getLibrary(s->fr.gkFragment_getLibraryIID())->doMerBasedTrimming) {
+    if (g->gkRead->gkStore_getLibrary(s->fr.gkFragment_getLibraryIID())->doTrim_initialMerBased) {
       s->initialize(g);
     } else {
       delete s;

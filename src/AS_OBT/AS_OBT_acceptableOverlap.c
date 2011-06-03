@@ -19,10 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OBT_acceptableOverlap.c,v 1.2 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OBT_acceptableOverlap.c,v 1.3 2011-06-03 17:34:19 brianwalenz Exp $";
 
 #include "AS_OBT_acceptableOverlap.h"
-#include "constants.H"
 
 int
 AS_OBT_acceptableOverlap(OVSoverlap ol) {
