@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_dump.c,v 1.17 2010-09-03 20:36:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_dump.c,v 1.18 2011-06-03 17:29:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +47,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
   OverlapStore  *ovlStore = AS_OVS_openOverlapStore(ovlName);
   OVSoverlap     overlap;
   uint64         erate     = AS_OVS_encodeQuality(dumpERate / 100.0);
+  char           ovlString[1024];
 
   AS_OVS_setRangeOverlapStore(ovlStore, bgnIID, endIID);
 
@@ -78,15 +79,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
         else
-          fprintf(stdout, "%8d %8d  %c  %5"F_S64P" %5"F_S64P"  %4.2f  %4.2f\n",
-                  overlap.a_iid,
-                  overlap.b_iid,
-                  overlap.dat.ovl.flipped ? 'I' : 'N',
-                  overlap.dat.ovl.a_hang,
-                  overlap.dat.ovl.b_hang,
-                  AS_OVS_decodeQuality(overlap.dat.ovl.orig_erate) * 100.0,
-                  AS_OVS_decodeQuality(overlap.dat.ovl.corr_erate) * 100.0,
-                  overlap.dat.ovl.seed_value);
+          fprintf(stdout, "%s", AS_OVS_toString(ovlString, overlap));
         break;
       case AS_OVS_TYPE_OBT:
         if (overlap.dat.obt.erate > erate)
@@ -98,15 +91,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
         else
-          fprintf(stdout, "%7d %7d  %c  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"  %5.2f\n",
-                  overlap.a_iid,
-                  overlap.b_iid,
-                  overlap.dat.obt.fwd ? 'f' : 'r',
-                  overlap.dat.obt.a_beg,
-                  overlap.dat.obt.a_end,
-                  overlap.dat.obt.b_beg,
-                  (overlap.dat.obt.b_end_hi << 9) | (overlap.dat.obt.b_end_lo),
-                  AS_OVS_decodeQuality(overlap.dat.obt.erate) * 100.0);
+          fprintf(stdout, "%s", AS_OVS_toString(ovlString, overlap));
         break;
       case AS_OVS_TYPE_MER:
         if ((qryIID != 0) && (qryIID != overlap.b_iid))
@@ -115,14 +100,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
         else
-          fprintf(stdout, "%7d %7d  %c  "F_U64"  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"\n",
-                  overlap.a_iid,
-                  overlap.b_iid,
-                  overlap.dat.mer.palindrome ? 'p' : (overlap.dat.mer.fwd ? 'f' : 'r'),
-                  overlap.dat.mer.a_pos,
-                  overlap.dat.mer.b_pos,
-                  overlap.dat.mer.k_count,
-                  overlap.dat.mer.k_len);
+          fprintf(stdout, "%s", AS_OVS_toString(ovlString, overlap));
         break;
       default:
         assert(0);
