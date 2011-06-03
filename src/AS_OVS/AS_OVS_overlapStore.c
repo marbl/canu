@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.28 2011-06-03 12:13:28 skoren Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.29 2011-06-03 17:27:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -363,6 +363,9 @@ void
 AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 firstIID, uint32 lastIID) {
   char            name[FILENAME_MAX];
 
+  if (ovs == NULL)
+    return;
+
   //  make the index be one record per read iid, regardless, then we
   //  can quickly grab the correct record, and seek to the start of
   //  those overlaps
@@ -414,6 +417,9 @@ AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 firstIID, uint32 lastIID) 
 void
 AS_OVS_resetRangeOverlapStore(OverlapStore *ovs) {
   char            name[FILENAME_MAX];
+
+  if (ovs == NULL)
+    return;
 
   rewind(ovs->offsetFile);
 
@@ -698,6 +704,9 @@ AS_OVS_numOverlapsInRange(OverlapStore *ovs) {
   uint64                     len = 0;
   OverlapStoreOffsetRecord  *offsets = NULL;
   uint64                     numolap = 0;
+
+  if (ovs == NULL)
+    return(0);
 
   if (ovs->firstIIDrequested > ovs->lastIIDrequested)
     return(0);
