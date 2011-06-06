@@ -2705,7 +2705,7 @@ sub merTrim {
         } else {
             for (my $i=1; $i<=$mbtJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                schedulerSubmit("$wrk/0-mertrim/mertrim.sh $i > $wrk/0-mertrim/$asm.merTrim.err 2>&1");
+                schedulerSubmit("$wrk/0-mertrim/mertrim.sh $i > $wrk/0-mertrim/$asm.merTrim.$out.err 2>&1");
             }
             
             schedulerSetNumberOfProcesses(getGlobal("mbtConcurrency"));
@@ -2731,11 +2731,11 @@ sub merTrim {
         $cmd .= " -g $wrk/$asm.gkpStore \\\n";
         $cmd .= " -L $wrk/0-mertrim/$asm.merTrim.list \\\n";
         $cmd .= " -l $wrk/0-mertrim/$asm.merTrimLog \\\n";
-        $cmd .= " > $wrk/0-mertrim/$asm.merTrim.err 2>&1";
+        $cmd .= " > $wrk/0-mertrim/$asm.merTrimApply.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
             rename "$wrk/0-mertrim/$asm.merTrimLog", "$wrk/0-mertrim/$asm.merTrimLog.FAILED";
-            caFailure("merTrimApply failed", "$wrk/0-mertrim/$asm.merTrim.err");
+            caFailure("merTrimApply failed", "$wrk/0-mertrim/$asm.merTrimApply.err");
         }
     }
 
