@@ -358,6 +358,9 @@ sub setDefaults () {
     $global{"mbtBatchSize"}                = 1000000;
     $synops{"mbtBatchSize"}                = "Process this many fragments per merTrim batch";
 
+    $global{"mbtThreads"}                  = 4;
+    $synops{"mbtThreads"}                  = "Number of threads to use when computing mer-based trimming";
+
     $global{"mbtConcurrency"}              = 1;
     $synops{"mbtConcurrency"}              = "If not SGE, number of mer-based trimming processes to run at the same time";
 
@@ -2608,6 +2611,8 @@ sub merTrim {
     my $merSize      = getGlobal("obtMerSize");
     my $merComp      = 0;  # getGlobal("merCompression");
 
+    my $mbtThreads   = getGlobal("mbtThreads");
+
     if (! -e "$wrk/0-mertrim/mertrim.sh") {
         open(F, "> $wrk/0-mertrim/mertrim.sh") or caFailure("can't open '$wrk/0-mertrim/mertrim.sh'", undef);
         print F "#!" . getGlobal("shell") . "\n";
@@ -2653,6 +2658,7 @@ sub merTrim {
         print F " -b  \$minid \\\n";
         print F " -e  \$maxid \\\n";
         print F " -g  $wrk/$asm.gkpStore \\\n";
+        print F " -t  $mbtThreads \\\n";
         print F " -m  $merSize \\\n";
         print F " -c  $merComp \\\n";
         print F " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
