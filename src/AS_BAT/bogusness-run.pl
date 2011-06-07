@@ -17,7 +17,7 @@ my $src    = $FindBin::Bin;
 #  1.2:   Needs: Heap::Simple Heap::Simple::Perl Heap::Simple::XS PerlIO::gzip Devel::Size
 #  1.1:   Needs: BioPerl, JSON, JSON::XS
 #
-my $jbrowseVersion = "1.1";
+my $jbrowseVersion = "1.2.1";
 my $jbrowse        = "$src/jbrowse-$jbrowseVersion.zip\n";
 
 
