@@ -3256,112 +3256,44 @@ sub createOverlapJobs($) {
     #  and the stream into $numFrags / $ovlRefBlockSize pieces.  Put
     #  all runs for the same hash into a subdirectory.
 
-    my ($hashBeg, $hashEnd, $refBeg, $refEnd) = (1, 0, 1, 0);
+    my $jobs      = 0;
+    my $batchName = "";
+    my $jobName   = "";
 
-    my $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
-    my $ovlHashBlockSize   = getGlobal("ovlHashBlockSize");
-    my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
+    {
+        my $cmd;
 
-    if (defined($ovlHashBlockLength)) {
-        print STDERR "Partitioning overlap jobs by fragment length.  $ovlHashBlockLength bp per block.\n";
-        open(FL, "$bin/gatekeeper -nouid -dumpfragments -tabular $wrk/$asm.gkpStore |");
-        $_ = <FL>;  #  Header
-    }
+        my $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
+        my $ovlHashBlockSize   = getGlobal("ovlHashBlockSize");
+        my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
 
-    #  Saved for output to ovlopts.pl
-    my @bat;
-    my @job;
-    my @opt;
-
-    #  Number of jobs per batch directory
-    #
-    my $batchMax  = 1000;
-    my $batchSize = 0;
-
-    my $batchName = "001";
-    my $jobName   = "000001";
-
-    #  hashBeg and hashEnd are INCLUSIVE ranges, not C-style ranges.
-
-    while ($hashBeg < $numFrags) {
-        my $maxNumFrags = 0;
-        my $maxLength   = 0;
-
-        if (defined($ovlHashBlockLength)) {
-            die "Partitioning error hashBeg=$hashBeg hashEnd=$hashEnd\n" if ($hashEnd != $hashBeg - 1);
-
-            my $len = 0;
-
-            while (<FL>) {
-                my @v = split '\s+', $_;
-
-                #  Even deleted fragments contribute to the length (by one byte, the terminating zero)
-                $len += $v[11] - $v[10] if ($v[6] == 0);
-                $len += 1;
-                $hashEnd = $v[1];
-
-                last if ($len >= $ovlHashBlockLength);
-            }
-
-            if (eof(FL)) {
-                if ($hashEnd != $numFrags) {
-                    print STDERR "WARNING:  End of initialTrimLog before end of fragments.  hashEnd=$hashEnd numFrags=$numFrags\n";
-                    $hashEnd = $numFrags;
-                }
-            }
-
-            $maxNumFrags = ($maxNumFrags > $hashEnd - $hashBeg + 1) ? ($maxNumFrags) : ($hashEnd - $hashBeg + 1);
-            $maxLength   = ($maxLength   > $len)                    ? ($maxLength)   : ($len);
-
-            print STDERR "Batch $batchName/$jobName from $hashBeg to $hashEnd (", $hashEnd - $hashBeg + 1, " fragments) with length $len\n";
-        } else {
-            $hashEnd = $hashBeg + $ovlHashBlockSize - 1;
-            $hashEnd = $numFrags if ($hashEnd > $numFrags);
+        if ($ovlHashBlockLength > 0) {
+            $ovlHashBlockSize = 0;
         }
 
-        $refBeg = 0;
-        $refEnd = 0;
+        $cmd  = "$bin/overlap_partition \\\n";
+        $cmd .= " -g  $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -bl $ovlHashBlockLength \\\n";
+        $cmd .= " -bs $ovlHashBlockSize \\\n";
+        $cmd .= " -rs $ovlRefBlockSize \\\n";
+        $cmd .= " -o  $wrk/$outDir";
 
-        while ($refBeg < $hashEnd) {
-            $refEnd = $refBeg + $ovlRefBlockSize - 1;
-            $refEnd = $numFrags if ($refEnd > $numFrags);
-
-            push @bat, "$batchName";
-            push @job, "$jobName";
-
-            if (defined($ovlHashBlockLength)) {
-                push @opt, "-h $hashBeg-$hashEnd  -r $refBeg-$refEnd --hashstrings $maxNumFrags --hashdatalen $maxLength";
-            } else {
-                push @opt, "-h $hashBeg-$hashEnd  -r $refBeg-$refEnd";
-            }
-
-            $refBeg = $refEnd + 1;
-
-            $batchSize++;
-            if ($batchSize >= $batchMax) {
-                $batchSize = 0;
-                $batchName++;
-            }
-
-            $jobName++;
+        if (runCommand($wrk, $cmd)) {
+            caFailure("failed partition for overlapper", undef);
         }
 
-        $hashBeg = $hashEnd + 1;
+        open(F, "< $wrk/$outDir/ovlbat") or caFailure("failed partition for overlapper: no ovlbat file found", undef);
+        my @bat = <F>;
+        close(F);
+
+        open(F, "< $wrk/$outDir/ovljob") or caFailure("failed partition for overlapper: no ovljob file found", undef);
+        my @job = <F>;
+        close(F);
+
+        $jobs      = scalar(@job);
+        $batchName = $bat[$jobs-1];  chomp $batchName;
+        $jobName   = $job[$jobs-1];  chomp $jobName;
     }
-
-    open(BAT, "> $wrk/$outDir/ovlbat") or caFailure("failed to open '$wrk/$outDir/ovlbat'", undef);
-    open(JOB, "> $wrk/$outDir/ovljob") or caFailure("failed to open '$wrk/$outDir/ovljob'", undef);
-    open(OPT, "> $wrk/$outDir/ovlopt") or caFailure("failed to open '$wrk/$outDir/ovlopt'", undef);
-
-    foreach my $b (@bat) { print BAT "$b\n"; }
-    foreach my $b (@job) { print JOB "$b\n"; }
-    foreach my $b (@opt) { print OPT "$b\n"; }
-
-    close(BAT);
-    close(JOB);
-    close(OPT);
-
-    my $jobs = scalar(@opt);
 
     print STDERR "Created $jobs overlap jobs.  Last batch '$batchName', last job '$jobName'.\n";
 

@@ -80,10 +80,10 @@ CORRECT_OBJS = $(CORRECT_SRCS:.C=.o)
 LIBSOURCES =  SharedOVL.C
 LIBOBJECTS = $(LIBSOURCES:.C=.o)
 
-SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) $(AS_OVL_CMN_SRCS) $(SEED_OLAP_SRCS) $(CORRECT_SRCS) $(LIBSOURCES)
+SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) overlap_partition.C $(AS_OVL_CMN_SRCS) $(SEED_OLAP_SRCS) $(CORRECT_SRCS) $(LIBSOURCES)
 OBJECTS = $(SOURCES:.Cc=.o)
 
-AS_OVL_PROGS    = overlap overlap_ca
+AS_OVL_PROGS    = overlap overlap_ca overlap_partition
 SEED_OLAP_PROGS = olap-from-seeds
 CORRECT_PROGS   = correct-frags show-corrects correct-olaps cat-corrects cat-erates
 
@@ -131,6 +131,8 @@ correct-olaps:  CorrectOlapsOVL.o AS_OVL_delcher.o $(LIBS)
 
 overlap:    $(AS_OVL_OBJS)    $(AS_OVL_CMN_OBJS) $(LIBS)
 overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS)
+
+overlap_partition: overlap_partition.o $(LIBS)
 
 olap-from-seeds:  OlapFromSeedsOVL.o AS_OVL_delcher.o $(LIBS)
 
