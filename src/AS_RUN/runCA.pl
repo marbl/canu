@@ -381,7 +381,7 @@ sub setDefaults () {
     $global{"ovlConcurrency"}              = 1;
     $synops{"ovlConcurrency"}              = "If not SGE, number of overlapper processes to run at the same time";
 
-    $global{"ovlHashBlockLength"}          = undef;
+    $global{"ovlHashBlockLength"}          = 0;
     $synops{"ovlHashBlockLength"}          = "If set, ignore ovlHashBlockSize, and instead use the sum of fragment length as the block size.  Works only with OBT enabled, requires HUGE_TABLE overlapper";
 
     $global{"ovlHashBlockSize"}            = 200000;
