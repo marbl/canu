@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: finalTrim-evidenceBased.C,v 1.1 2011-06-03 17:34:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: finalTrim-evidenceBased.C,v 1.2 2011-06-13 22:40:05 brianwalenz Exp $";
 
 #include "finalTrim.H"
 #include "finalTrim-consolidate.H"
@@ -138,6 +138,8 @@ evidenceBased(OVSoverlap  *ovl,
     if (co._maxm3c > 8) jend = co._maxm3;
   } else {
     doTrim(&fr, minQuality, jbgn, jend);
+    if (fr.gkFragment_getReadIID() >= 1681680)
+      fprintf(stderr, "TRIM %d %d\n", jbgn, jend);
   }
 
   //  This is a flaw in OBT.  If qvTrimAllowed==false, we can occasionally pick jbgn > jend.  Here is one such example.
@@ -184,11 +186,11 @@ evidenceBased(OVSoverlap  *ovl,
 
   //  Use the intersection of the two QV trims.  If there is no intersection, abort.
   //
-  if ((iend < jbgn) ||
-      (jend < ibgn)) {
+  if ((iend <= jbgn) ||
+      (jend <= ibgn)) {
     fbgn = jbgn;
     fend = jend;
-    strcpy(logMsg, "no overlap between loose QV and strict QV trim");
+    strcpy(logMsg, "\tno overlap between loose QV and strict QV trim");
     return(false);
   }
 
