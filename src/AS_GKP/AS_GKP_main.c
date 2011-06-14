@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.93 2011-05-23 04:57:25 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.94 2011-06-14 03:54:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,7 +128,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "    -donotfixmates             ...only extract the fragments given, do not add in\n");
   fprintf(stdout, "                                  missing mated reads\n");
   fprintf(stdout, "    -clear <clr>               ...use clear range <clr>, default=LATEST\n");
-  fprintf(stdout, "    -format2                   ...extract using frg format version 2\n");
+  fprintf(stdout, "    -legacyformat              ...extract using frg format version 1 (legacy format, for compatibility)\n");
   fprintf(stdout, "  -dumpnewbler <prefix>      extract LIB, FRG and LKG messages, write in a\n");
   fprintf(stdout, "                             format appropriate for Newbler.  This will create\n");
   fprintf(stdout, "                             files 'prefix.fna' and 'prefix.fna.qual'.  Options\n");
@@ -424,7 +424,7 @@ main(int argc, char **argv) {
   int              dumpClear         = AS_READ_CLEAR_LATEST;
   int              dumpAllBases      = 0;
   int              doNotFixMates     = 0;
-  int              dumpFormat        = 1;
+  int              dumpFormat        = 2;
   char            *dumpPrefix        = NULL;
   uint32           dumpRandLib       = 0;  //  0 means "from any library"
   uint32           dumpRandMateNum   = 0;
@@ -515,8 +515,8 @@ main(int argc, char **argv) {
         fprintf(stderr, "%s: -clear %s is not a valid clear range.\n", argv[0], argv[arg]);
         exit(0);
       }
-    } else if (strcmp(argv[arg], "-format2") == 0) {
-      dumpFormat = 2;
+    } else if (strcmp(argv[arg], "-legacyformat") == 0) {
+      dumpFormat = 1;
     } else if (strcmp(argv[arg], "-dumpfasta") == 0) {
       dump       = DUMP_FASTA;
       dumpPrefix = argv[++arg];
