@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: Array_CNS.c,v 1.26 2011-01-03 03:07:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: Array_CNS.c,v 1.27 2011-06-15 16:55:41 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,6 +36,19 @@ static const char *rcsid = "$Id: Array_CNS.c,v 1.26 2011-01-03 03:07:16 brianwal
 #include "UtilsREZ.h"
 #include "MultiAlignment_CNS.h"
 #include "Array_CNS.h"
+
+
+//  When drawing the multialign picture, two rows will be merged if the
+//  fragments on those rows have horizontal distance of at least this value.
+//
+//  If the two rows are:
+//    --------------
+//                     ---------------
+//
+//  They will be merged into a single line:
+//    --------------   ---------------
+//
+#define LANE_SEP  3
 
 typedef struct LaneNode {
   IntMultiPos *read;
@@ -83,7 +96,7 @@ int
 PushLaneNode(LaneNode *new_lane_node, Lane *lane) {
   int32 leftpos = (new_lane_node->read->position.bgn<new_lane_node->read->position.end) ?
     new_lane_node->read->position.bgn : new_lane_node->read->position.end;
-  if (leftpos < lane->lastcol+3) return 0;
+  if (leftpos < lane->lastcol+LANE_SEP) return 0;
   if ( lane->last == NULL ) {
     lane->first = new_lane_node;
     lane->last = new_lane_node;
