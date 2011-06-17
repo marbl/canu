@@ -237,6 +237,7 @@ SUBDIRS = AS_RUN \
           AS_CGB \
           AS_BOG \
           AS_BAT \
+          AS_PBR \
           AS_REZ \
           AS_CNS \
           AS_LIN \
