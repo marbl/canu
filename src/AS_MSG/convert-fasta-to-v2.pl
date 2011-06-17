@@ -53,6 +53,7 @@ my $qltfile;
 my $matefile;
 
 my $is454  = 0;
+my $isPacBio = 0;
 
 my $lib    = undef;
 my $mean   = 0.0;
@@ -86,6 +87,9 @@ while (scalar(@ARGV) > 0) {
 
     } elsif ($arg eq "-454") {
         $is454 = 1;
+
+    } elsif ($arg eq "-pacbio") {
+       $isPacBio = 1;
 
     } elsif ($arg eq "-l") {
         $lib = shift @ARGV;
@@ -159,7 +163,14 @@ if ($is454) {
     print "doRemoveDuplicateReads=1\n";
     print "doNotQVTrim=1\n";
     print "goodBadQVThreshold=1\n";
-} else {
+} elsif ($isPacBio) {
+    print "forceBOGunitigger=1\n";
+    print "doNotTrustHomopolymerRuns=0\n";
+    print "doRemoveDuplicateReads=0\n";
+    print "doNotQVTrim=1\n";
+    print "goodBadQVThreshold=1\n";
+}
+else {
     print "forceBOGunitigger=0\n";
     print "doNotTrustHomopolymerRuns=0\n";
     print "discardReadsWithNs=0\n";

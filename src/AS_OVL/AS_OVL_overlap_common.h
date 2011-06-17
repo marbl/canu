@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.64 2011-03-08 21:17:23 skoren Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.65 2011-06-17 13:03:02 skoren Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.64 2011-03-08 21:17:23 sk
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.64 2011-03-08 21:17:23 skoren Exp $
- * $Revision: 1.64 $
+ * $Id: AS_OVL_overlap_common.h,v 1.65 2011-06-17 13:03:02 skoren Exp $
+ * $Revision: 1.65 $
 */
 
 
@@ -313,6 +313,11 @@ static int  Global_Olap_Ct = 0;
 static int  Global_Unscreened_Ct = 0;
 #endif
 
+static int minLibToHash = 0;
+static int maxLibToHash = 0;
+static int minLibToRef = 0;
+static int maxLibToRef = 0;
+
 /*************************************************************************/
 /* External Global Definitions */
 /*************************************************************************/
@@ -455,7 +460,7 @@ static void  Put_String_In_Hash
 static int  Read_Next_Frag
     (char frag [AS_READ_MAX_NORMAL_LEN + 1], char quality [AS_READ_MAX_NORMAL_LEN + 1],
      gkStream *stream, gkFragment *, Screen_Info_t *,
-     uint32 * last_frag_read);
+     uint32 * last_frag_read, uint32 minLibToRead, uint32 maxLibToRead);
 static void  Read_uint32_List
     (char * file_name, uint32 * * list, int * n);
 static int  Rev_Prefix_Edit_Dist
@@ -513,7 +518,6 @@ Get_Range(char *value, char *flag, int * lo, int * hi) {
   return(0);
 }
 
-
 int
 main(int argc, char **argv) {
   char  bolfile_name[FILENAME_MAX] = {0};
@@ -556,6 +560,22 @@ main(int argc, char **argv) {
       } else if (strcmp(argv[arg], "-h") == 0) {
         err += Get_Range (argv[arg+1], argv[arg], & Lo_Hash_Frag, & Hi_Hash_Frag);
         arg++;
+      } else if (strcmp(argv[arg], "-H") == 0) {
+         if ((isdigit(argv[arg+1][0]) && (argv[arg+1][1] == 0)) ||
+            (isdigit(argv[arg+1][0]) && isdigit(argv[arg+1][1]) && (argv[arg+1][2] == 0))) {
+            minLibToHash = maxLibToHash = atoi(argv[arg+1]);
+         } else {
+            err += Get_Range(argv[arg+1], argv[arg], &minLibToHash, &maxLibToHash);
+         }
+         arg++;
+      } else if (strcmp(argv[arg], "-R") == 0) {
+         if ((isdigit(argv[arg+1][0]) && (argv[arg+1][1] == 0)) ||
+             (isdigit(argv[arg+1][0]) && isdigit(argv[arg+1][1]) && (argv[arg+1][2] == 0))) {
+            minLibToRef = maxLibToRef = atoi(argv[arg]);
+         } else {
+            err += Get_Range(argv[arg+1], argv[arg], &minLibToRef, &maxLibToRef);
+         }
+         arg++;
       } else if (strcmp(argv[arg], "-I") == 0) {
         strcpy(iidlist_file_name, argv[++arg]);
       } else if (strcmp(argv[arg], "-k") == 0) {
@@ -1342,7 +1362,7 @@ int  Build_Hash_Index
              && Hash_Entries < hash_entry_limit
              && (frag_status
                      = Read_Next_Frag (Sequence_Buffer, Quality_Buffer, stream,
-                                       myRead, & screen, & Last_Hash_Frag_Read)))
+                                       myRead, & screen, & Last_Hash_Frag_Read, minLibToHash, maxLibToHash)))
      {
       int  extra, len;
       size_t  new_len;
@@ -3813,7 +3833,7 @@ void  Process_Overlaps
 
    while  ((frag_status
               = Read_Next_Frag (Frag, quality, stream, &WA -> myRead,
-                                & (WA -> screen_info), & last_old_frag_read)))
+                                & (WA -> screen_info), & last_old_frag_read, minLibToRef, maxLibToRef)))
      {
 
       if  (frag_status == DELETED_FRAG)
@@ -3839,7 +3859,6 @@ Kmer_Hits_Ct = 0;
 
            Find_Overlaps (Frag, Len, quality, Curr_String_Num, FORWARD, WA);
 
-
            reverseComplementSequence (Frag, Len);
            Reverse_String (quality, Len);
 
@@ -3856,7 +3875,6 @@ Incr_Distrib (& Kmer_Hits_Dist, Kmer_Hits_Ct);
 
           }
      }
-
 
  if  (Num_PThreads > 1)
    pthread_mutex_lock (& Write_Proto_Mutex);
@@ -4160,7 +4178,8 @@ static int  Read_Next_Frag
      gkStream *stream,
      gkFragment *myRead,
      Screen_Info_t * screen,
-     uint32 * last_frag_read)
+     uint32 * last_frag_read,
+     uint32 minLibToRead, uint32 maxLibToRead)
 
 /* Read the next fragment from fragment stream  stream  and store it in  frag ,
 *  with its quality values in  quality .  Put the read itself in  myRead
@@ -4186,6 +4205,9 @@ static int  Read_Next_Frag
    if  (myRead->gkFragment_getIsDeleted ())
        return (DELETED_FRAG);
 
+   if (minLibToRead != 0 && (myRead->gkFragment_getLibraryIID () < minLibToRead || myRead->gkFragment_getLibraryIID() > maxLibToRead)) {
+       return (DELETED_FRAG);
+    }
 
    //  We got a read!  Lowercase it, adjust the quality, and extract
    //  the clear region.

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.14 2011-06-03 17:34:19 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.15 2011-06-17 13:03:02 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,6 +57,7 @@ main(int argc, char **argv) {
 
   char     *type             = "illumina";
 
+  char     *technology       = "illumina";
   char     *orientInnie      = "innie";
   char     *orientOuttie     = "outtie";
   char     *orient           = orientInnie;
@@ -79,6 +80,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-libraryname") == 0) {
       libraryName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-technology") == 0) {
+       technology = argv[++arg];
+     
     } else if (strcmp(argv[arg], "-type") == 0) {
       type = argv[++arg];
 
@@ -109,6 +113,8 @@ main(int argc, char **argv) {
     err++;
   if (libraryName == 0L)
     err++;
+  if ((strcasecmp(technology, "illumina") != 0) && (strcasecmp(technology, "pacbio") != 0)) 
+     err++;
   if ((strcasecmp(type, "sanger") != 0) && (strcasecmp(type, "solexa") != 0) && (strcasecmp(type, "illumina") != 0))
     err++;
   if (fastqLen == 0)
@@ -245,25 +251,41 @@ main(int argc, char **argv) {
   gkl.mean                       = insertSize;
   gkl.stddev                     = insertStdDev;
 
+  if (strcasecmp(technology, "illumina") == 0) {
+     gkl.doTrim_initialNone         = 0;
+     gkl.doTrim_initialMerBased     = 1;
+     gkl.doTrim_initialFlowBased    = 0;
+     gkl.doTrim_initialQualityBased = 0;
+
+     gkl.doRemoveDuplicateReads     = 1;
+
+     gkl.doTrim_finalLargestCovered = 1;
+     gkl.doTrim_finalEvidenceBased  = 0;
+
+     gkl.doRemoveSpurReads          = 1;
+     gkl.doRemoveChimericReads      = 1;
+
+  } else if (strcasecmp(technology, "pacbio") == 0) {
+     gkl.doConsensusCorrection	 = 1;
+     
+     gkl.doTrim_initialNone         = 0;
+     gkl.doTrim_initialMerBased     = 0;
+     gkl.doTrim_initialFlowBased    = 0;
+     gkl.doTrim_initialQualityBased = 1;
+
+     gkl.doRemoveDuplicateReads     = 0;
+
+     gkl.doTrim_finalLargestCovered = 1;
+     gkl.doTrim_finalEvidenceBased  = 0;
+
+     gkl.doRemoveSpurReads          = 1;
+     gkl.doRemoveChimericReads      = 1;
+  }
+
   gkl.forceBOGunitigger          = 1;
   gkl.isNotRandom                = 0;
-
-  gkl.doNotTrustHomopolymerRuns  = 0;
-
-  gkl.doTrim_initialNone         = 0;
-  gkl.doTrim_initialMerBased     = 1;
-  gkl.doTrim_initialFlowBased    = 0;
-  gkl.doTrim_initialQualityBased = 0;
-
-  gkl.doRemoveDuplicateReads     = 1;
-
-  gkl.doTrim_finalLargestCovered = 1;
-  gkl.doTrim_finalEvidenceBased  = 0;
-
-  gkl.doRemoveSpurReads          = 1;
-  gkl.doRemoveChimericReads      = 1;
-
   gkl.orientation                = (isMated) ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_UNKNOWN;
+  gkl.doNotTrustHomopolymerRuns  = 0;
 
   //  Construct the messages.
 

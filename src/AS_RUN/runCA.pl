@@ -405,6 +405,19 @@ sub setDefaults () {
     $global{"obtMerThreshold"}             = "auto";
     $synops{"obtMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this are ignored";
 
+    $global{"ovlHashLibrary"}              = "0";
+    $synops{"ovlHashLibrary"}              = "Only load hash fragments from specified lib, 0 means all";
+
+    $global{"ovlRefLibrary"}                = 0;
+    $synops{"ovlRefLibrary"}                = "Only load ref fragments from specified lib, 0 means all";
+
+    $global{"obtHashLibrary"}              = "0";
+    $synops{"obtHashLibrary"}              = "Only load hash fragments from specified lib, 0 means all";
+
+    $global{"obtRefLibrary"}                = 0;
+    $synops{"obtRefLibrary"}                = "Only load ref fragments from specified lib, 0 means all";
+
+
     $global{"merCompression"}              = 1;
     $synops{"merCompression"}              = "K-mer size";
 
@@ -3178,6 +3191,16 @@ sub createOverlapJobs($) {
         return;
     }
 
+    my $hashLibrary = 0;
+    my $refLibrary = 0;
+    if ($isTrim eq "trim") {
+       $hashLibrary = getGlobal("obtHashLibrary");
+       $refLibrary = getGlobal("obtRefLibrary");
+    } else {
+       $hashLibrary = getGlobal("ovlHashLibrary");
+       $refLibrary = getGlobal("ovlRefLibrary");
+    }
+
     #  To prevent infinite loops -- stop now if the overlap script
     #  exists.  This will unfortunately make restarting from transient
     #  failures non-trivial.
@@ -3243,6 +3266,7 @@ sub createOverlapJobs($) {
     print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
     print F "  -k $wrk/0-mercounts/$asm.nmers.ovl.fasta \\\n" if ($isTrim ne "trim");
     print F "  -o $wrk/$outDir/\$bat/\$job.ovb.WORKING.gz \\\n";
+    print F " -H $hashLibrary -R $refLibrary \\\n";
     print F "  $wrk/$asm.gkpStore \\\n";
     print F "&& \\\n";
     print F "mv $wrk/$outDir/\$bat/\$job.ovb.WORKING.gz $wrk/$outDir/\$bat/\$job.ovb.gz\n";

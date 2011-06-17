@@ -106,7 +106,7 @@ public:
   uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 -> trust 'em
 
   //  OBT options
-  uint64         spareOBT:55;                  //  Spare for OBT changes
+  uint64         spareOBT:54;                  //  Spare for OBT changes
 
   uint64         doTrim_initialNone:1;         //  Don't trim, use whatever clear range is present
   uint64         doTrim_initialMerBased:1;     //  For Illumina reads
@@ -120,6 +120,8 @@ public:
 
   uint64         doRemoveSpurReads:1;          //  
   uint64         doRemoveChimericReads:1;      //  
+
+  uint64         doConsensusCorrection:1;      //  Default 0 -> fragments should be used with default correction
 
   //  Gatekeeper options
   uint64         spareGKP:63;                  //  Spare for gatekeeper changes

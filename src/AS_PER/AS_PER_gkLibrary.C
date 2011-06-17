@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.13 2011-06-03 17:34:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.14 2011-06-17 13:03:02 skoren Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -145,6 +145,9 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
       }
     }
 
+    else if (strcasecmp(fea, "doConsensusCorrection") == 0)
+       doConsensusCorrection = decodeBoolean("doConsensusCorrection", val);
+
     //  Gatekeeper options
 
     //  Illumina options, just to make it not complain about unknown features
@@ -234,6 +237,14 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
 
   encodeFeature(doRemoveSpurReads);
   encodeFeature(doRemoveChimericReads);
+
+  if (doConsensusCorrection || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "doConsensusCorrection");
+    sprintf(val[nf], "%d", doConsensusCorrection);
+    nf++;
+  }
 
   //  Library options (orientation is not a feature, it's part of the library)
 
