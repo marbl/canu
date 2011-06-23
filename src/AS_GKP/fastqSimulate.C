@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.7 2011-06-23 08:07:38 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.8 2011-06-23 09:21:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -312,15 +312,22 @@ makeMP(char   *seq,
       makeSequences(sh, slen, readLen, s1, q1, s2, q2);
 
       //  Add a marker for the chimeric point.  This unfortunately includes some
-      //  knowledge of makeSequences().
+      //  knowledge of makeSequences(); the second sequence is reverse complemented.
+      //
+      //  In r2, the junction is at position 'shift - (slen - readLen)', but the read
+      //  is reverse complemented, and then the junction covers that base and the one
+      //  previous.
       //
       if ((shift > 0) && (shift < readLen)) {
         q1[shift-1] = QV_BASE + 10;
         q1[shift-0] = QV_BASE + 10;
       }
       if ((shift > slen - readLen) && (shift < slen)) {
-        q2[readLen - (shift-1 + readLen - slen)] = QV_BASE + 10;
-        q2[readLen - (shift-0 + readLen - slen)] = QV_BASE + 10;
+        q2[readLen - (shift + readLen - slen) - 1] = QV_BASE + 10;
+        q2[readLen - (shift + readLen - slen) - 0] = QV_BASE + 10;
+
+        assert((readLen - (shift + readLen - slen)) > 0);
+        assert((readLen - (shift + readLen - slen)) < readLen);
       }
 
       char  type;
