@@ -78,6 +78,8 @@ public:
     doRemoveSpurReads          = 1;  //  NOTE, NOT ZERO!
     doRemoveChimericReads      = 1;  //  NOTE, NOT ZERO!
 
+    doConsensusCorrection      = 0;
+
     spareGKP                   = 0;
 
     spareLIB                   = 0;
