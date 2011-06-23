@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.10 2011-06-03 17:34:19 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.11 2011-06-23 08:17:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,10 +62,8 @@ public:
     compression    = 0;
     numThreads     = 4;
     beVerbose      = false;
-    doUpdate       = false;
 
     gkRead         = NULL;
-    gkWrite        = NULL;
     edb            = NULL;
 
     logFile        = stderr;
@@ -78,7 +76,6 @@ public:
   ~mertrimGlobalData() {
     delete edb;
     delete gkRead;
-    delete gkWrite;
     if (logFile != stderr)
       fclose(logFile);
   };
@@ -87,7 +84,6 @@ public:
 
     fprintf(stderr, "opening gkStore '%s'\n", gkpPath);
     gkRead  = new gkStore(gkpPath, FALSE, FALSE);
-    gkWrite = (doUpdate) ? new gkStore(gkpPath, FALSE, TRUE) : NULL;
 
     if (tBgn == 0) {
       tBgn = 1;
@@ -102,9 +98,6 @@ public:
     if (tEnd > gkRead->gkStore_getNumFragments())
       fprintf(stderr, "ERROR: invalid range:  -e ("F_U32") > num frags ("F_U32").\n",
               tEnd, gkRead->gkStore_getNumFragments()), exit(1);
-
-    //fprintf(stderr, "enabling clear range.\n");
-    //gkWrite->gkStore_enableClearRange(AS_READ_CLEAR_OBTINITIAL);
 
     fprintf(stderr, "loading mer database.\n");
     edb    = new existDB(merCountsFile, merSize, existDBnoFlags, EXISTDB_MIN_COUNT, ~0);
@@ -122,14 +115,12 @@ public:
   uint32        compression;
   uint32        numThreads;
   bool          beVerbose;
-  bool          doUpdate;
 
   FILE         *logFile;
 
   //  Global data
   //
   gkStore      *gkRead;
-  gkStore      *gkWrite;
   existDB      *edb;
 
   //  Input State
@@ -417,19 +408,26 @@ mertrimComputation::analyze(void) {
 
   while (ms->nextMer()) {
     u32bit  posBgn = ms->thePositionInSequence();
-    u32bit  posEnd = ms->thePositionInSequence() + g->merSize - 1;
+    u32bit  posEnd = ms->thePositionInSequence() + g->merSize;
 
-    assert(posEnd < seqLen);
+    //fprintf(stderr, "posBgn %u %d\n", posBgn, posEnd);
+ 
+    assert(posEnd <= seqLen);
 
-    if (g->edb->exists(ms->theCMer()) == true) {
-      for (u32bit add=posBgn; add<posEnd; add++)
-        coverage[add]++;
+    if (g->edb->exists(ms->theCMer()) == false)
+      //  This mer is too weak for us.  SKip it.
+      continue;
 
-      if ((posBgn != 0) && (coverage[posBgn-1] != 0) && (coverage[posBgn] == 0))
-        //  This is an indication that our read is missing a base; there are two mers abutting
-        //  together, with no mer covering the junction.
-        disconnect[posBgn] = 'D';
-    }
+    //  If we aren't the first mer, then there should be coverage for our first base.  If not,
+    //  we have found a correctable error, an uncorrectable error, or a chimeric read.
+    if ((posBgn > 0) &&
+        (coverage[posBgn-1] > 0) && (coverage[posBgn] == 0))
+      disconnect[posBgn-1] = disconnect[posBgn] = 'D';
+
+    //  Add coverage for the good mer.
+    for (u32bit add=posBgn; add<posEnd; add++)
+      coverage[add]++;
+
   }  //  Over all mers
 
   ms->rewind();
@@ -1130,18 +1128,6 @@ mertrimWriter(void *G, void *S) {
       (s->getClrEnd() - s->getClrBgn() < AS_READ_MIN_LEN))
     delFrag = true;
     
-  if (g->doUpdate) {
-    s->fr.gkFragment_setClearRegion(s->getClrBgn(), s->getClrEnd(), AS_READ_CLEAR_OBTINITIAL);
-    g->gkWrite->gkStore_setFragment(&s->fr);
-  }
-
-  if (delFrag) {
-    //resultDeleted++;
-
-    if (g->doUpdate)
-      g->gkWrite->gkStore_delFragment(s->fr.gkFragment_getReadIID(), false);
-  }
-
   if (g->logFile)
     fprintf(g->logFile, "%s,%d\t%d\t%d%s\n",
             AS_UID_toString(s->fr.gkFragment_getReadUID()),
@@ -1190,12 +1176,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       g->tEnd = atoi(argv[++arg]);
-
-#if 0
-      //  UPDATES DO NOT WORK
-    } else if (strcmp(argv[arg], "-U") == 0) {
-      g->doUpdate = false;
-#endif
 
     } else if (strcmp(argv[arg], "-v") == 0) {
       g->beVerbose = true;
