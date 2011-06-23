@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.16 2011-06-03 17:34:19 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.17 2011-06-23 08:19:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -156,7 +156,8 @@ public:
 
 class cmGlobalData {
 public:
-  cmGlobalData(char    *resultsPath_,
+  cmGlobalData(char    *resultsName_,
+               char    *retryName_,
                uint32   distMin_,
                uint32   distMax_,
                bool     innie_,
@@ -164,13 +165,22 @@ public:
                uint32   depthMax_,
                uint32   pathsMax_) {
 
-    strcpy(resultsPrefix, resultsPath_);
+    strcpy(resultsPrefix, resultsName_);
 
     //  Open this EARLY so we can fail without loading fragments or overlaps.
     errno = 0;
-    resultsFile = fopen(resultsPath_, "w");
+    resultsFile = fopen(resultsName_, "w");
     if (errno)
-      fprintf(stderr, "Failed to open results file '%s': %s\n", resultsPath_, strerror(errno)), exit(1);
+      fprintf(stderr, "Failed to open results file '%s': %s\n", resultsName_, strerror(errno)), exit(1);
+
+    if (retryName_) {
+      errno = 0;
+      retryFile = fopen(retryName_, "w");
+      if (errno)
+        fprintf(stderr, "Failed to open retry file '%s': %s\n", retryName_, strerror(errno)), exit(1);
+    } else {
+      retryFile = NULL;
+    }
 
     distMin      = distMin_;
     distMax      = distMax_;
@@ -206,6 +216,9 @@ public:
 
     fclose(resultsFile);
 
+    if (retryFile)
+      fclose(retryFile);
+
     for (uint32 i=0; i<oiStorageMax; i++)
       delete [] oiStorageArr[i];
 
@@ -223,13 +236,13 @@ public:
     delete [] fi;
   };
 
-  void   loadFragments(char    *gkpStorePath,
+  void   loadFragments(char    *gkpStoreName,
                        bool     searchLibs,
                        uint32  *searchLib,
                        bool     backboneLibs,
                        uint32  *backboneLib);
 
-  void   loadOverlaps(char   *ovlStorePath);
+  void   loadOverlaps(char   *ovlStoreName);
 
   void   computeNextPlacement(cmComputation *c,
                               cmThreadData  *t,
@@ -253,6 +266,9 @@ public:
 public:
   char              resultsPrefix[FILENAME_MAX];
   FILE             *resultsFile;
+
+  FILE             *retryFile;
+  uint32            retryLast;
 
   uint32            distMin;
   uint32            distMax;
@@ -290,7 +306,7 @@ public:
 
 
 void
-cmGlobalData::loadFragments(char    *gkpStorePath,
+cmGlobalData::loadFragments(char    *gkpStoreName,
                             bool     searchLibs,
                             uint32  *searchLib,
                             bool     backboneLibs,
@@ -298,7 +314,7 @@ cmGlobalData::loadFragments(char    *gkpStorePath,
 
   fprintf(stderr, "LOADING FRAGMENTS...\n");
 
-  gkStore          *gkpStore  = new gkStore(gkpStorePath, FALSE, FALSE);
+  gkStore          *gkpStore  = new gkStore(gkpStoreName, FALSE, FALSE);
   gkStream         *gkpStream = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
   gkFragment        frg;
 
@@ -369,11 +385,38 @@ cmGlobalData::loadFragments(char    *gkpStorePath,
   delete gkpStore;
 
   fprintf(stderr, "LOADING FRAGMENTS...%u fragments loaded.\n", numFrags);
+
+  if (retryFile != NULL) {
+    char  line[1024];
+
+    fgets(line, 1024, retryFile);
+
+    while (!feof(retryFile)) {
+      char    *num = line + 10;  //  Ignore "Path from ", this is the start of the IID
+      char    *ptr = line + 10;
+
+      while (*ptr != ' ')  //  Advance to the first space - next will be "to" or "NOT"
+        ptr++;             //  if path found or not found resp.
+
+      ptr++;
+
+      //  If 'path found', mark this fragment as a skip.
+      if (*ptr == 't') {
+        uint32   fid = strtoull(ptr, NULL, 10);
+        uint32   mid = fi[fid].mateIID;
+
+        fi[fid].doSearch = false;
+        fi[mid].doSearch = false;
+      }
+
+      fgets(line, 1024, retryFile);
+    } 
+  }
 }
 
 
 void
-cmGlobalData::loadOverlaps(char  *ovlStorePath) {
+cmGlobalData::loadOverlaps(char  *ovlStoreName) {
 
   fprintf(stderr, "LOADING OVERLAPS...for fragments %u to %u\n", minFragIID, maxFragIID);
 
@@ -426,7 +469,7 @@ cmGlobalData::loadOverlaps(char  *ovlStorePath) {
   saveDistance     *dist = NULL;
 #endif
 
-  OverlapStore     *ovlStore  = AS_OVS_openOverlapStore(ovlStorePath);
+  OverlapStore     *ovlStore  = AS_OVS_openOverlapStore(ovlStoreName);
 
   AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
 
@@ -827,9 +870,11 @@ cmWriter(void *G, void *S) {
 
 int
 main(int argc, char **argv) {
-  char      *gkpStorePath      = NULL;
-  char      *ovlStorePath      = NULL;
-  char      *resultsPath       = NULL;
+  char      *gkpStoreName      = NULL;
+  char      *ovlStoreName      = NULL;
+  char      *resultsName       = NULL;
+
+  char      *retryName         = NULL;
 
   uint32     distMin           = 0;
   uint32     distMax           = 0;
@@ -853,13 +898,16 @@ main(int argc, char **argv) {
   int arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStorePath = argv[++arg];
+      gkpStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-O") == 0) {
-      ovlStorePath = argv[++arg];
+      ovlStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-o") == 0) {
-      resultsPath = argv[++arg];
+      resultsName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      numThreads = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-sl") == 0) {
       searchLibs = true;
@@ -912,8 +960,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-rfs") == 0) {
       pathsMax = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-t") == 0) {
-      numThreads = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-retry") == 0) {
+      retryName = argv[++arg];
 
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
@@ -922,35 +970,50 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if (gkpStorePath == 0L)
+  if (gkpStoreName == 0L)
     fprintf(stderr, "No gatekeeper store (-G) supplied.\n"), err++;
-  if (ovlStorePath == 0L)
+  if (ovlStoreName == 0L)
     fprintf(stderr, "No overlap store (-O) supplied.\n"), err++;
-  if (resultsPath == 0L)
+  if (resultsName == 0L)
     fprintf(stderr, "No results output (-o) supplied.\n"), err++;
   if (err) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -o resultsFile ...\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -sl l[-m]    Search for mates in libraries l-m\n");
-    fprintf(stderr, "  -bl l[-m]    Use libraries l-m for searching\n");
+    fprintf(stderr, "  -G gkpStore      Read fragments from here\n");
+    fprintf(stderr, "  -O ovlStore      Read overlaps from here\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -min m       Mates must be at least m bases apart\n");
-    fprintf(stderr, "  -max m       Mates must be at most m bases apart\n");
+    fprintf(stderr, "  -o results       Write results here\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -innie       Mates must be innie\n");
-    fprintf(stderr, "  -outtie      Mates must be outtie\n");
+    fprintf(stderr, "  -t n             Use 'n' compute threads\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -bfs N       Use 'breadth-first search'; search at most N fragments\n");
-    fprintf(stderr, "  -dfs N       Use 'depth-first search'; search to depth N overlaps\n");
-    fprintf(stderr, "  -rfs N       Use 'random-path search'; search at most N paths\n");
+    fprintf(stderr, "  -sl l[-m]        Search for mates in libraries l-m\n");
+    fprintf(stderr, "  -bl l[-m]        Use libraries l-m for searching\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -min m           Mates must be at least m bases apart\n");
+    fprintf(stderr, "  -max m           Mates must be at most m bases apart\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -innie           Mates must be innie\n");
+    fprintf(stderr, "  -outtie          Mates must be outtie\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -bfs N           Use 'breadth-first search'; search at most N fragments\n");
+    fprintf(stderr, "  -dfs N           Use 'depth-first search'; search to depth N overlaps\n");
+    fprintf(stderr, "  -rfs N           Use 'random-path search'; search at most N paths\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -retry results   Do NOT attempt pairs listed as found in these results\n");
+    fprintf(stderr, "                   (That is, search only pairs listed as \"NOT FOUND\")\n");
     fprintf(stderr, "\n");
     exit(1);
   }
 
-  cmGlobalData  *g = new cmGlobalData(resultsPath, distMin, distMax, innie, nodesMax, depthMax, pathsMax);
+  cmGlobalData  *g = new cmGlobalData(resultsName,
+                                      retryName,
+                                      distMin, distMax, innie,
+                                      nodesMax,
+                                      depthMax,
+                                      pathsMax);
 
-  g->loadFragments(gkpStorePath, searchLibs, searchLib, backboneLibs, backboneLib);
-  g->loadOverlaps(ovlStorePath);
+  g->loadFragments(gkpStoreName, searchLibs, searchLib, backboneLibs, backboneLib);
+  g->loadOverlaps(ovlStoreName);
 
   sweatShop *ss = new sweatShop(cmReader, cmWorker, cmWriter);
 
