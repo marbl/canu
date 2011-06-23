@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.6 2011-06-03 17:34:19 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.7 2011-06-23 08:07:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +31,8 @@ const char *mainid = "$Id: fastqSimulate.C,v 1.6 2011-06-03 17:34:19 brianwalenz
 static char reverseComplement[256];
 static char errorBase[256][3];
 
+
+#define QV_BASE  '!'
 
 
 //  Returns random int in range bgn <= x < end.
@@ -90,11 +92,11 @@ makeSequences(char    *frag,
 
   for (int32 p=0, i=0; p<readLen; p++, i++) {
     s1[p] = frag[i];
-    q1[p] = '!' + 39;
+    q1[p] = QV_BASE + 39;
 
     if (drand48() < perr) {
       s1[p] = errorBase[s1[p]][randomUniform(0, 3)];
-      q1[p] = '!' + 2;
+      q1[p] = QV_BASE + 8;
     }
 
     assert(s1[p] != '*');
@@ -102,11 +104,11 @@ makeSequences(char    *frag,
 
   for (int32 p=0, i=fragLen-1; p<readLen; p++, i--) {
     s2[p] = reverseComplement[frag[i]];
-    q2[p] = '!' + 39;
+    q2[p] = QV_BASE + 39;
 
     if (drand48() < perr) {
       s2[p] = errorBase[s2[p]][randomUniform(0, 3)];
-      q2[p] = '!' + 2;
+      q2[p] = QV_BASE + 8;
     }
 
     assert(s2[p] != '*');
@@ -308,6 +310,18 @@ makeMP(char   *seq,
       sh[slen] = 0;
 
       makeSequences(sh, slen, readLen, s1, q1, s2, q2);
+
+      //  Add a marker for the chimeric point.  This unfortunately includes some
+      //  knowledge of makeSequences().
+      //
+      if ((shift > 0) && (shift < readLen)) {
+        q1[shift-1] = QV_BASE + 10;
+        q1[shift-0] = QV_BASE + 10;
+      }
+      if ((shift > slen - readLen) && (shift < slen)) {
+        q2[readLen - (shift-1 + readLen - slen)] = QV_BASE + 10;
+        q2[readLen - (shift-0 + readLen - slen)] = QV_BASE + 10;
+      }
 
       char  type;
 
