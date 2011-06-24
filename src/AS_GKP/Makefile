@@ -34,20 +34,21 @@ GKPSRC    = AS_GKP_buildPartition.C \
             AS_GKP_errors.C \
             AS_GKP_illumina.C
 
-SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC) sffToCA.C fastqToCA.C fastqSample.C fastqSimulate.C upgrade-v6-to-v7.C
+SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC) sffToCA.C fastqToCA.C fastqSample.C fastqSimulate.C upgrade-v6-to-v7.C clearRangeHistogram.C
 OBJECTS   = $(SOURCES:.C=.o)
 LIBRARIES =
-CXX_PROGS = gatekeeper gatekeeperbench sffToCA fastqToCA fastqSample fastqSimulate upgrade-v6-to-v7
+CXX_PROGS = gatekeeper gatekeeperbench sffToCA fastqToCA fastqSample fastqSimulate upgrade-v6-to-v7 clearRangeHistogram
 
 include $(LOCAL_WORK)/src/c_make.as
 
 all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
-gatekeeper:       AS_GKP_main.o $(GKPSRC:.C=.o) libCA.a
-gatekeeperbench:  AS_GKP_bench.o                libCA.a
-sffToCA:          sffToCA.o                     libCA.a
-fastqToCA:        fastqToCA.o                   libCA.a
-fastqSample:      fastqSample.o                 libCA.a
-fastqSimulate:    fastqSimulate.o               libCA.a
-upgrade-v6-to-v7: upgrade-v6-to-v7.o            libCA.a
+gatekeeper:           AS_GKP_main.o $(GKPSRC:.C=.o) libCA.a
+gatekeeperbench:      AS_GKP_bench.o                libCA.a
+sffToCA:              sffToCA.o                     libCA.a
+fastqToCA:            fastqToCA.o                   libCA.a
+fastqSample:          fastqSample.o                 libCA.a
+fastqSimulate:        fastqSimulate.o               libCA.a
+upgrade-v6-to-v7:     upgrade-v6-to-v7.o            libCA.a
+clearRangeHistogram:  clearRangeHistogram.o         libCA.a
