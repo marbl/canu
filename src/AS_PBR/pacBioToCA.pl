@@ -71,6 +71,8 @@ use Cwd;
 use Carp;
 use FileHandle;
 
+use POSIX qw(ceil floor sys_wait_h);
+
 sub makeAbsolute ($) {
     my $val = shift @_;
     if (defined($val) && ($val !~ m!^/!)) {
@@ -256,7 +258,7 @@ my $fastqFile = undef;
 my $correctFile = undef;
 my $partitions = 1;
 my $sge = undef;
-my $consensusConcurrency = 32;
+my $consensusConcurrency = 8;
 my @fragFiles;
 
 my $srcstr;
@@ -316,7 +318,7 @@ my $CA = getBinDirectory();
 my $AMOS = "$CA/../../../AMOS/bin/";
 my $wrk = makeAbsolute("");
 my $asm = "asm";
-my $caSGE = `cat $specFile |grep -P \"sge\\s+=\"`;
+my $caSGE  = `cat $specFile | awk '{if (match(\$1, \"sge\")== 1 && length(\$1) == 3) print \$0}'`;
 chomp($caSGE);
 if (length($caSGE) != 0) {
    if (!defined($sge) || length($sge) == 0) {
@@ -325,6 +327,11 @@ if (length($caSGE) != 0) {
    }
 
    $caSGE = "\"" .$caSGE . " -sync y\" sgePropagateHold=corAsm";
+}
+my $caCNS  = `cat $specFile | awk -F '=' '{if (match(\$1, \"cnsConcurrency\")== 1) print \$2}'`;
+chomp($caCNS);
+if (length($caCNS) != 0) {
+   $consensusConcurrency = $caCNS;
 }
 
 if (! -e "$AMOS/bank-transact") {
@@ -340,7 +347,7 @@ if (! -e "$AMOS/bank-transact") {
       die "AMOS binaries: bank-transact not found in $AMOS\n";
    }
 }
-print STDERR "Starting correction...\n CA: $CA\nAMOS:$AMOS \n";
+print STDERR "Starting correction...\n CA: $CA\nAMOS:$AMOS\n";
 
 my $cmd = "";
 runCommand("$wrk", "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio -fastq " . makeAbsolute($fastqFile) . " > $wrk/pacbio.frg"); 
@@ -403,28 +410,31 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    print F "  exit 1\n";
    print F "fi\n";
    print F "\n";
-   print F "if [ -e \$jobid.success ]; then\n";
+   print F "if [ -e $wrk/temp$libraryname/\$jobid.success ]; then\n";
    print F "   echo Job previously completed successfully.\n";
    print F "else\n";
-   print F "   numLays=`cat $asm" . ".\$jobid.lay |grep \"{LAY\" |wc -l`\n";
+   print F "   numLays=`cat $wrk/temp$libraryname/$asm" . ".\$jobid.lay |grep \"{LAY\" |wc -l`\n";
    print F "   if [ \$numLays == 0 ]; then\n";
-   print F "      touch \$jobid.fasta\n";
-   print F "      touch \$jobid.qual\n";
-   print F "      touch \$jobid.success\n";
+   print F "      touch $wrk/temp$libraryname/\$jobid.fasta\n";
+   print F "      touch $wrk/temp$libraryname/\$jobid.qual\n";
+   print F "      touch $wrk/temp$libraryname/\$jobid.success\n";
    print F "   else\n";
    print F "      $AMOS/bank-transact -b $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk -m $wrk/temp$libraryname/$asm.\$jobid" . ".lay -c > $wrk/temp$libraryname/bank-transact.\$jobid.err 2>&1\n";
-   print F "      $AMOS/make-consensus -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch \$jobid.success\n";
-   print F "      $AMOS/bank2fasta -e -q \$jobid.qual -b " . $asm . ".bnk_partition\$jobid.bnk > \$jobid.fasta\n";
+   print F "      $AMOS/make-consensus -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   print F "      $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
    print F "   fi\n";
    print F "fi\n";
    close(F);
+
+   chmod 0755, "$wrk/temp$libraryname/runPartition.sh";
+
    if (defined($sge)) {
       runCommand("$wrk/temp$libraryname", "qsub $sge -sync y -cwd -N utg_$asm -t 1-$partitions -j y -o /dev/null $wrk/temp$libraryname/runPartition.sh");
    } else {
-      schedulerSetNumberOfProcesses($consensusConcurrency);
       for (my $i = 1; $i <=$partitions; $i++) {
          schedulerSubmit("$wrk/temp$libraryname/runPartition.sh $i");
-      } 
+      }
+      schedulerSetNumberOfProcesses($consensusConcurrency);
       schedulerFinish();
    } 
 }
