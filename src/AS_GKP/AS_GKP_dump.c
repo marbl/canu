@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.64 2011-04-28 20:31:07 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.65 2011-06-25 03:25:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,6 +87,9 @@ dumpGateKeeperInfo(char       *gkpStoreName,
   uint64  readLength        = 0;
   uint64  clearLength       = 0;
 
+  uint32  *lowestIID         = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
+  uint32  *highestIID        = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
+
   uint32  *numActivePerLib   = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
   uint32  *numDeletedPerLib  = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
   uint32  *numMatedPerLib    = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
@@ -95,6 +98,15 @@ dumpGateKeeperInfo(char       *gkpStoreName,
 
   while (fs->next(&fr)) {
     AS_IID     lib = fr.gkFragment_getLibraryIID();
+    AS_IID     iid = fr.gkFragment_getReadIID();
+
+    if (lowestIID[lib] == 0) {
+      lowestIID[lib]  = iid;
+      highestIID[lib] = iid;
+    }
+    if (highestIID[lib] < iid) {
+      highestIID[lib] = iid;
+    }
 
     if (fr.gkFragment_getIsDeleted()) {
       numDeletedFrag++;
@@ -127,23 +139,30 @@ dumpGateKeeperInfo(char       *gkpStoreName,
 
   //  Header
 
-  fprintf(stdout, "LibraryName\tnumActiveFRG\tnumDeletedFRG\tnumMatedFRG\treadLength\tclearLength\n");
+  fprintf(stdout, "libIID\tbgnIID\tendIID\tactive\tdeleted\tmated\ttotLen\tclrLen\tlibName\n");
 
   //  Global
 
-  fprintf(stdout, "GLOBAL\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\n",
-          numActiveFrag, numDeletedFrag, numMatedFrag, readLength, clearLength);
+  fprintf(stdout, "0\t%d\t%d\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\tGLOBAL\n",
+          1, numActiveFrag + numDeletedFrag, numActiveFrag, numDeletedFrag, numMatedFrag, readLength, clearLength);
 
   //  Per Library
 
   for (j=0; j<gkp->gkStore_getNumLibraries() + 1; j++) {
-   if (withoutUIDs == TRUE && j != 0) 
-      fprintf(stdout, "%d\t", j);
-   else
-      fprintf(stdout, "%s\t", (j == 0 ? "LegacyUnmatedReads" : AS_UID_toString(gkp->gkStore_getLibrary(j)->libraryUID)));
+    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\t",
+            j,
+            lowestIID[j],
+            highestIID[j],
+            numActivePerLib[j],
+            numDeletedPerLib[j],
+            numMatedPerLib[j],
+            readLengthPerLib[j],
+            clearLengthPerLib[j]);
 
-    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\n",
-            numActivePerLib[j], numDeletedPerLib[j], numMatedPerLib[j], readLengthPerLib[j], clearLengthPerLib[j]);
+   if (withoutUIDs == TRUE && j != 0) 
+      fprintf(stdout, "N/A\n");
+   else
+      fprintf(stdout, "%s\n", (j == 0 ? "LegacyUnmatedReads" : AS_UID_toString(gkp->gkStore_getLibrary(j)->libraryUID)));
   }
 
   safe_free(numActivePerLib);
