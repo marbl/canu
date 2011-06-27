@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: clearRangeHistogram.C,v 1.1 2011-06-24 12:44:35 brianwalenz Exp $";
+const char *mainid = "$Id: clearRangeHistogram.C,v 1.2 2011-06-27 15:05:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,12 +75,16 @@ main(int argc, char **argv) {
     err++;
   if (outPrefix == NULL)
     err++;
+  if (clearRegion == AS_READ_CLEAR_ERROR)
+    err++;
   if (err) {
     fprintf(stderr, "usage: %s -g gkpStore -l lib [-l lib] -o output-prefix\n", argv[0]);
     if (gkpName == NULL)
       fprintf(stderr, "ERROR:  No gkpStore supplied (-g).\n");
     if (outPrefix == NULL)
       fprintf(stderr, "ERROR:  No output-prefix supplied (-o).\n");
+    if (clearRegion == AS_READ_CLEAR_ERROR)
+      fprintf(stderr, "ERROR:  Invalid clear region (-c).\n");
     exit(1);
   }
 
@@ -113,13 +117,16 @@ main(int argc, char **argv) {
     if (lib[l] == 0)
       continue;
 
+    if (fr.gkFragment_getIsDeleted() == true)
+      continue;
+
     uint32  b = fr.gkFragment_getClearRegionBegin(clearRegion);
     uint32  e = fr.gkFragment_getClearRegionEnd(clearRegion);
 
     if (max < b)
-      max = b+1;
+      max = b;
     if (max < e)
-      max = e+1;
+      max = e;
 
     bgn[l][b]++;
     end[l][e]++;
@@ -168,7 +175,7 @@ main(int argc, char **argv) {
   fprintf(gpbgn, "\n");
   fprintf(gpbgn, "set logscale y\n");
   fprintf(gpbgn, "\n");
-  fprintf(gpbgn, "plot [-10:] \\\n");
+  fprintf(gpbgn, "plot [-10:%u] \\\n", max+10);
 
   for (uint32 l=1, a=1; l<=numLibs; l++) {
     if (lib[l] == 0)
@@ -194,7 +201,7 @@ main(int argc, char **argv) {
   fprintf(gpend, "\n");
   fprintf(gpbgn, "set logscale y\n");
   fprintf(gpend, "\n");
-  fprintf(gpend, "plot [-10:] \\\n");
+  fprintf(gpend, "plot [-10:%u] \\\n", max+10);
 
   for (uint32 l=1, a=1; l<=numLibs; l++) {
     if (lib[l] == 0)
