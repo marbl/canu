@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.8 2011-06-23 09:21:03 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.9 2011-06-27 15:06:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,6 +30,8 @@ const char *mainid = "$Id: fastqSimulate.C,v 1.8 2011-06-23 09:21:03 brianwalenz
 
 static char reverseComplement[256];
 static char errorBase[256][3];
+
+double readErrorRate = 0.01;  //  Fraction error
 
 
 #define QV_BASE  '!'
@@ -80,7 +82,6 @@ makeSequences(char    *frag,
               char    *q1,
               char    *s2,
               char    *q2) {
-  double perr = 0.01;
 
   assert(fragLen > 0);
   assert(readLen > 0);
@@ -94,7 +95,7 @@ makeSequences(char    *frag,
     s1[p] = frag[i];
     q1[p] = QV_BASE + 39;
 
-    if (drand48() < perr) {
+    if (drand48() < readErrorRate) {
       s1[p] = errorBase[s1[p]][randomUniform(0, 3)];
       q1[p] = QV_BASE + 8;
     }
@@ -106,7 +107,7 @@ makeSequences(char    *frag,
     s2[p] = reverseComplement[frag[i]];
     q2[p] = QV_BASE + 39;
 
-    if (drand48() < perr) {
+    if (drand48() < readErrorRate) {
       s2[p] = errorBase[s2[p]][randomUniform(0, 3)];
       q2[p] = QV_BASE + 8;
     }
@@ -415,6 +416,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-x") == 0) {
       readCoverage = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      readErrorRate = atof(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-pe") == 0) {
       if (arg + 2 >= argc) {
         fprintf(stderr, "Not enough args to -pe.\n");
@@ -456,6 +460,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -l len          Create reads of length 'len' bases.\n");
     fprintf(stderr, "  -n np           Create 'np' pairs of reads.\n");
     fprintf(stderr, "  -x cov          Set 'np' to create reads that sample the genome to 'cov' coverage.\n");
+    fprintf(stderr, "  -x err          Reads will contain fraction error 'e' (0.01 == 1% error).\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -pe shearSize shearStdDev\n");
     fprintf(stderr, "                  Create paired-end reads, from fragments of size 'shearSize +- shearStdDev'.\n");
