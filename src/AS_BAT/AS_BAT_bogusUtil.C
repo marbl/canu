@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.10 2011-04-04 14:24:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.11 2011-06-27 19:52:46 jasonmiller9704 Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -220,6 +220,8 @@ loadSnapper(char                       *snapperName,
 }
 
 
+//#define MAX_GENOME_SIZE_INPUT 16 * 1024 * 1024
+#define MAX_GENOME_SIZE_INPUT 100 * 1024 * 1024
 
 void
 loadReferenceSequence(char                       *refName,
@@ -236,10 +238,10 @@ loadReferenceSequence(char                       *refName,
     fprintf(stderr, "Failed to open reference sequences in '%s': %s\n", refName, strerror(errno)), exit(1);
 
   char     *refhdr = new char [1024];
-  char     *refseq = new char [16 * 1024 * 1024];
+  char     *refseq = new char [MAX_GENOME_SIZE_INPUT];
 
   fgets(refhdr,             1024, F);   chomp(refhdr);
-  fgets(refseq, 16 * 1026 * 1024, F);   chomp(refseq);
+  fgets(refseq, MAX_GENOME_SIZE_INPUT, F);   chomp(refseq);
 
   while (!feof(F)) {
     if (refhdr[0] != '>') {
