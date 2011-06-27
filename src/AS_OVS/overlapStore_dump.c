@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_dump.c,v 1.18 2011-06-03 17:29:40 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_dump.c,v 1.19 2011-06-27 17:13:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,7 +79,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
         else
-          fprintf(stdout, "%s", AS_OVS_toString(ovlString, overlap));
+          fprintf(stdout, "%s\n", AS_OVS_toString(ovlString, overlap));
         break;
       case AS_OVS_TYPE_OBT:
         if (overlap.dat.obt.erate > erate)
@@ -91,7 +91,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
         else
-          fprintf(stdout, "%s", AS_OVS_toString(ovlString, overlap));
+          fprintf(stdout, "%s\n", AS_OVS_toString(ovlString, overlap));
         break;
       case AS_OVS_TYPE_MER:
         if ((qryIID != 0) && (qryIID != overlap.b_iid))
@@ -100,7 +100,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
         else
-          fprintf(stdout, "%s", AS_OVS_toString(ovlString, overlap));
+          fprintf(stdout, "%s\n", AS_OVS_toString(ovlString, overlap));
         break;
       default:
         assert(0);

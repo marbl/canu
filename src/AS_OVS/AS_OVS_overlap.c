@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.14 2011-06-02 16:43:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.15 2011-06-27 17:13:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -196,7 +196,7 @@ AS_OVS_toString(char *outstr, OVSoverlap &olap) {
 
   switch (olap.dat.ovl.type) {
     case AS_OVS_TYPE_OVL:
-      sprintf(outstr, "%8d %8d  %c  %5"F_S64P" %5"F_S64P"  %4.2f  %4.2f\n",
+      sprintf(outstr, "%8d %8d  %c  %5"F_S64P" %5"F_S64P"  %4.2f  %4.2f",
               olap.a_iid,
               olap.b_iid,
               olap.dat.ovl.flipped ? 'I' : 'N',
@@ -206,7 +206,7 @@ AS_OVS_toString(char *outstr, OVSoverlap &olap) {
               AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100.0);
       break;
     case AS_OVS_TYPE_OBT:
-      sprintf(outstr, "%7d %7d  %c  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"  %5.2f\n",
+      sprintf(outstr, "%7d %7d  %c  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"  %5.2f",
               olap.a_iid, olap.b_iid,
               olap.dat.obt.fwd ? 'f' : 'r',
               olap.dat.obt.a_beg,
@@ -216,7 +216,7 @@ AS_OVS_toString(char *outstr, OVSoverlap &olap) {
               AS_OVS_decodeQuality(olap.dat.obt.erate) * 100.0);
       break;
     case AS_OVS_TYPE_MER:
-      sprintf(outstr, "%7d %7d  %c  "F_U64"  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"\n",
+      sprintf(outstr, "%7d %7d  %c  "F_U64"  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P,
               olap.a_iid, olap.b_iid,
               olap.dat.mer.palindrome ? 'p' : (olap.dat.mer.fwd ? 'f' : 'r'),
               olap.dat.mer.compression_length,
