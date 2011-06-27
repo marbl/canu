@@ -2,7 +2,7 @@
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that
  * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+ * Copyright (C) 2011, J. Craig Venter Institute.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.1 2011-06-13 03:18:37 brianwalenz Exp $";
+const char *mainid = "$Id: overlap_partition.C,v 1.2 2011-06-27 15:06:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
