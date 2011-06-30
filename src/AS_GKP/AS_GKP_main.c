@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.94 2011-06-14 03:54:55 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.95 2011-06-30 04:01:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,8 +60,6 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "\n");
   fprintf(stdout, "  -T                     do not check minimum length (for OBT)\n");
   fprintf(stdout, "  -F                     fix invalid insert size estimates\n");
-  fprintf(stdout, "\n");
-  fprintf(stdout, "  -E <error.frg>         write errors to this file\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  -v <vector-info>       load vector clear ranges into each read.\n");
   fprintf(stdout, "                         MUST be done on an existing, complete store.\n");
