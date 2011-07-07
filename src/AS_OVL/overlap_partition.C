@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.3 2011-07-05 17:58:08 brianwalenz Exp $";
+const char *mainid = "$Id: overlap_partition.C,v 1.4 2011-07-07 03:25:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -188,7 +188,7 @@ partitionLength(gkStore    *gkp,
       if (refEnd > numFrags)
         refEnd = numFrags;
 
-      outputJob(BAT, JOB, OPT, hashBeg, hashEnd, refBeg, refEnd, hashEnd - hashBeg, len, batchSize, batchName, jobName);
+      outputJob(BAT, JOB, OPT, hashBeg, hashEnd, refBeg, refEnd, hashEnd - hashBeg + 1, len, batchSize, batchName, jobName);
 
       refBeg = refEnd + 1;
     }
