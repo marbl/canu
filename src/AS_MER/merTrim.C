@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.11 2011-06-23 08:17:08 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.12 2011-07-08 22:17:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,8 +41,12 @@ const char *mainid = "$Id: merTrim.C,v 1.11 2011-06-23 08:17:08 brianwalenz Exp 
 
 uint32  VERBOSE = 0;
 
-#define EXISTDB_MIN_COUNT   3
+//  Correction parameters.  Bases with less than MIN_CORRECT evidence are subject to correction.
+//  They will be corrected to something with at least MIN_VERIFIED evidence, or left alone if
+//  the correction is weaker.
 
+#define MIN_CORRECT         6
+#define MIN_VERIFIED        3
 
 #define ALLGOOD 1
 #define ALLCRAP 2
@@ -92,7 +96,7 @@ public:
 
     tCur = tBgn;
 
-    if (tBgn >= tEnd)
+    if (tBgn > tEnd)
       fprintf(stderr, "ERROR: invalid range:  -b ("F_U32") >= -e ("F_U32").\n",
               tBgn, tEnd), exit(1);
     if (tEnd > gkRead->gkStore_getNumFragments())
@@ -100,7 +104,7 @@ public:
               tEnd, gkRead->gkStore_getNumFragments()), exit(1);
 
     fprintf(stderr, "loading mer database.\n");
-    edb    = new existDB(merCountsFile, merSize, existDBnoFlags, EXISTDB_MIN_COUNT, ~0);
+    edb    = new existDB(merCountsFile, merSize, existDBcounts, MIN_VERIFIED, ~0);
   };
 
 public:
@@ -213,7 +217,7 @@ public:
 
     char  letters[4] = { 'A', 'C', 'G', 'T' };
 
-#warning not really replacing N with random ACGT
+    //  Not really replacing N with random ACGT, but good enough for us.
     for (uint32 i=0; i<seqLen; i++)
       if (corrSeq[i] == 'N') {
         corrSeq[i] = letters[i & 0x03];
@@ -328,7 +332,9 @@ mertrimComputation::evaluate(bool postCorrection) {
       continue;
 
     nMersTested++;
+
     if (g->edb->exists(ms->theCMer()))
+      //  kmer exists in the database, assumed to be at least MIN_VERIFIED
       nMersFound++;
   }
 
@@ -461,20 +467,23 @@ mertrimComputation::attemptCorrection(void) {
       return(ALLCRAP);
     assert(seqLen < AS_READ_MAX_NORMAL_LEN);
 
-    //if (coverage[pos] > 0)
-    //  //  Base verified, no need to correct.
-    //  continue;
+    uint32  count = g->edb->count(ms->theCMer());
 
-    if (g->edb->exists(ms->theCMer())) {
+    //fprintf(stderr, "MER at %d is %s has count %d %s\n",
+    //        pos,
+    //        ms->theFMer().merToString(merstring),
+    //        (count >= MIN_CORRECT) ? "CORRECT" : "ERROR",
+    //        count);
+
+    if (count >= MIN_CORRECT)
       //  Mer exists, no need to correct.
-      //fprintf(stderr, "MER at %d is %s AND EXISTS\n", pos, ms->theFMer().merToString(merstring));
       continue;
-    }
 
-    //fprintf(stderr, "MER at %d is %s\n", pos, ms->theFMer().merToString(merstring));
-
-    assert(g->edb->exists(ms->theFMer()) == false);
-    assert(g->edb->exists(ms->theRMer()) == false);
+    //  These asserts are no longer true.  The mer can exist in the table,
+    //  but just at below MIN_CORRECT count.
+    //
+    //assert(g->edb->exists(ms->theFMer()) == false);
+    //assert(g->edb->exists(ms->theRMer()) == false);
 
     //  State the minimum number of mers we'd accept as evidence any change we make is correct.  The
     //  penalty for OVER correcting (too low a threshold) is potentially severe -- we could
@@ -515,11 +524,6 @@ mertrimComputation::attemptCorrection(void) {
       uint32 nT = (corrSeq[pos] != 'T') ? testBaseChange(pos, 'T') : 0;
       uint32 rB = 0;
 
-      if (nA > mNum)  { nR++;  rB = 'A'; }
-      if (nC > mNum)  { nR++;  rB = 'C'; }
-      if (nG > mNum)  { nR++;  rB = 'G'; }
-      if (nT > mNum)  { nR++;  rB = 'T'; }
-
       if (VERBOSE) {
         if (nA > mNum)  fprintf(stderr, "testA at %d -- %d req=%d\n", pos, nA, mNum);
         if (nC > mNum)  fprintf(stderr, "testC at %d -- %d req=%d\n", pos, nC, mNum);
@@ -527,7 +531,33 @@ mertrimComputation::attemptCorrection(void) {
         if (nT > mNum)  fprintf(stderr, "testT at %d -- %d req=%d\n", pos, nT, mNum);
       }  //  VERBOSE
 
+      //  If we found a single perfectly correct choice, ignore all the other solutions.
+
+      nR = 0;
+
+      if (nA == g->merSize)  nR++;
+      if (nC == g->merSize)  nR++;
+      if (nG == g->merSize)  nR++;
+      if (nT == g->merSize)  nR++;
+
+      if (nR == 1) {
+        if (nA != g->merSize)  nA = 0;
+        if (nC != g->merSize)  nC = 0;
+        if (nG != g->merSize)  nG = 0;
+        if (nT != g->merSize)  nT = 0;
+      }
+
+      //  Count the number of viable solutions.
+
+      nR = 0;
+
+      if (nA > mNum)  { nR++;  rB = 'A'; }
+      if (nC > mNum)  { nR++;  rB = 'C'; }
+      if (nG > mNum)  { nR++;  rB = 'G'; }
+      if (nT > mNum)  { nR++;  rB = 'T'; }
+
       //  If we found a single choice, correct it.
+
       if (nR == 1) {
         if (VERBOSE) {
           fprintf(stderr, "Correct read %d at position %d from %c to %c (QV %d)\n",
@@ -556,6 +586,9 @@ mertrimComputation::attemptCorrection(void) {
 #endif
 
         continue;
+
+      } else if (nR > 1) {
+        corrected[pos] = 'X';
       }
     }  //  End of mismatch change test
 
@@ -951,7 +984,6 @@ mertrimComputation::attemptTrimming(void) {
     dump(stderr, "TRIM");
   }  //  VERBOSE
 
-
   return(evaluate(true));
 }
 
@@ -983,46 +1015,38 @@ mertrimComputation::dump(FILE *F, char *label) {
       fprintf(F, "]-");
   }
   fprintf(F, " (QLT)\n");
-  if (coverage) {
-    for (uint32 i=0; i<seqLen; i++) {
-      if (i == clrBgn)
-        fprintf(F, "-[");
-      fprintf(F, "%c", coverage[i] + 'A');
-      if (i+1 == clrEnd)
-        fprintf(F, "]-");
-    }
-    fprintf(F, " (COVERAGE)\n");
+  for (uint32 i=0; i<seqLen; i++) {
+    if (i == clrBgn)
+      fprintf(F, "-[");
+    fprintf(F, "%c", (coverage) ? coverage[i] + 'A' : 'A');
+    if (i+1 == clrEnd)
+      fprintf(F, "]-");
   }
-  if (corrected) {
-    for (uint32 i=0; i<seqLen; i++) {
-      if (i == clrBgn)
-        fprintf(F, "-[");
-      fprintf(F, "%c", (corrected[i]) ? corrected[i] : ' ');
-      if (i+1 == clrEnd)
-        fprintf(F, "]-");
-    }
-    fprintf(F, " (CORRECTIONS)\n");
+  fprintf(F, " (COVERAGE)\n");
+  for (uint32 i=0; i<seqLen; i++) {
+    if (i == clrBgn)
+      fprintf(F, "-[");
+    fprintf(F, "%c", (corrected && corrected[i]) ? corrected[i] : ' ');
+    if (i+1 == clrEnd)
+      fprintf(F, "]-");
   }
-  if (disconnect) {
-    for (uint32 i=0; i<seqLen; i++) {
-      if (i == clrBgn)
-        fprintf(F, "-[");
-      fprintf(F, "%c", (disconnect[i]) ? disconnect[i] : ' ');
-      if (i+1 == clrEnd)
-        fprintf(F, "]-");
-    }
-    fprintf(F, " (DISCONNECTION)\n");
+  fprintf(F, " (CORRECTIONS)\n");
+  for (uint32 i=0; i<seqLen; i++) {
+    if (i == clrBgn)
+      fprintf(F, "-[");
+    fprintf(F, "%c", (disconnect && disconnect[i]) ? disconnect[i] : ' ');
+    if (i+1 == clrEnd)
+      fprintf(F, "]-");
   }
-  if (deletion) {
-    for (uint32 i=0; i<seqLen; i++) {
-      if (i == clrBgn)
-        fprintf(F, "-[");
-      fprintf(F, "%c", (deletion[i]) ? deletion[i] : ' ');
-      if (i+1 == clrEnd)
-        fprintf(F, "]-");
-    }
-    fprintf(F, " (DELETIONS)\n");
+  fprintf(F, " (DISCONNECTION)\n");
+  for (uint32 i=0; i<seqLen; i++) {
+    if (i == clrBgn)
+      fprintf(F, "-[");
+    fprintf(F, "%c", (deletion && deletion[i]) ? deletion[i] : ' ');
+    if (i+1 == clrEnd)
+      fprintf(F, "]-");
   }
+  fprintf(F, " (DELETIONS)\n");
 }
 
 
@@ -1034,6 +1058,10 @@ mertrimWorker(void *G, void *T, void *S) {
   mertrimGlobalData    *g = (mertrimGlobalData  *)G;
   mertrimThreadData    *t = (mertrimThreadData  *)T;
   mertrimComputation   *s = (mertrimComputation *)S;
+
+  if (VERBOSE) {
+    fprintf(stderr, "\nPROCESS\n");
+  }  //  VERBOSE
 
   s->t = t;
 
@@ -1079,8 +1107,10 @@ mertrimWorker(void *G, void *T, void *S) {
 
   //resultUnverified++;
 
-  finished:
-  ;
+ finished:
+  if (VERBOSE) {
+    s->dump(stderr, "FINAL");
+  }  //  VERBOSE
 }
 
 
