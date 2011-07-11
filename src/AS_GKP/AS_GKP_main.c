@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.95 2011-06-30 04:01:45 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.96 2011-07-11 03:19:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -563,7 +563,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "--") == 0) {
       firstFileArg = arg++;
       arg = argc;
-    } else if (argv[arg][0] == '-') {
+    } else if ((argv[arg][0] == '-') && (argv[arg][1] != 0)) {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
     } else {
@@ -687,6 +687,7 @@ main(int argc, char **argv) {
     FILE            *inFile            = NULL;
     GenericMesg     *pmesg             = NULL;
     int              fileIsCompressed  = 0;
+    int              fileIsStdIn       = 0;
 
     fprintf(stderr, "\n");
     fprintf(stderr, "Starting file '%s'.\n", argv[firstFileArg]);
@@ -706,6 +707,9 @@ main(int argc, char **argv) {
       errno = 0;
       inFile = popen(cmd, "r");
       fileIsCompressed = 1;
+    } else if (strcmp(argv[firstFileArg], "-") == 0) {
+      inFile = stdin;
+      fileIsStdIn = 1;
     } else {
       errno = 0;
       inFile = fopen(argv[firstFileArg], "r");
@@ -741,7 +745,7 @@ main(int argc, char **argv) {
       pclose(inFile);
       if (errno)
         fprintf(stderr, "%s: WARNING!  Failed to close '%s': %s\n", progName, argv[firstFileArg], strerror(errno));
-    } else {
+    } else if (fileIsStdIn == 0) {
       fclose(inFile);
     }
   }
