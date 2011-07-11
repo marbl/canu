@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.19 2011-05-23 04:55:49 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.20 2011-07-11 08:05:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,7 +71,9 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
   if (slen < AS_READ_MAX_PACKED_LEN) {
     fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   } else {
-    AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, N, fr->snam);
+    //  If we switch to this format in general, we don't want to keep this warning.
+    //  Remove.
+    //AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, N, fr->snam);
     fr->fr.gkFragment_setType(GKFRAGMENT_NORMAL);
   }
 
@@ -79,6 +81,64 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
 
   fr->fr.gkFragment_setMateIID(0);
   fr->fr.gkFragment_setLibraryIID(0);
+
+  //  Complicated, but fast, parsing of the 'snam' to find clear ranges.
+
+  char   *tok = strtok(fr->snam, " \t");
+
+  uint32   clrL=0, clrR=slen;  //  Defined range, whole read
+  uint32   clvL=1, clvR=0;     //  Undefined range
+  uint32   clmL=1, clmR=0;
+  uint32   tntL=1, tntR=0;
+
+  while (tok != NULL) {
+    if (((tok[0] == 'c') || (tok[0] == 'C')) &&
+        ((tok[1] == 'l') || (tok[1] == 'L')) &&
+        ((tok[2] == 'r') || (tok[2] == 'R'))) {
+      clrL = atoi(tok + 4);
+      while ((*tok) && (*tok != ','))
+        tok++;
+      clrR = atoi(tok + 1);
+    }
+    if (((tok[0] == 'c') || (tok[0] == 'C')) &&
+        ((tok[1] == 'l') || (tok[1] == 'L')) &&
+        ((tok[2] == 'v') || (tok[2] == 'V'))) {
+      clvL = atoi(tok + 4);
+      while ((*tok) && (*tok != ','))
+        tok++;
+      clvR = atoi(tok + 1);
+    }
+    if (((tok[0] == 'm') || (tok[0] == 'M')) &&
+        ((tok[1] == 'a') || (tok[1] == 'A')) &&
+        ((tok[2] == 'x') || (tok[2] == 'X'))) {
+      clmL = atoi(tok + 4);
+      while ((*tok) && (*tok != ','))
+        tok++;
+      clmR = atoi(tok + 1);
+    }
+    if (((tok[0] == 't') || (tok[0] == 'T')) &&
+        ((tok[1] == 'n') || (tok[1] == 'N')) &&
+        ((tok[2] == 't') || (tok[2] == 'T'))) {
+      tntL = atoi(tok + 4);
+      while ((*tok) && (*tok != ','))
+        tok++;
+      tntR = atoi(tok + 1);
+    }
+    if (((tok[0] == 'r') || (tok[0] == 'R')) &&
+        ((tok[1] == 'n') || (tok[1] == 'N')) &&
+        ((tok[2] == 'd') || (tok[2] == 'D')) &&
+        ((tok[4] == 'f') || (tok[4] == 'F'))) {
+      fr->fr.gkFragment_setIsNonRandom(1);
+    }
+
+    tok = strtok(NULL, " \t");
+  }
+
+  if (clrL < 0) clrL = 0;    if (clrR > slen) clrR = slen;
+  if (clvL < 0) clvL = 0;    if (clvR > slen) clvR = slen;
+  if (clmL < 0) clmL = 0;    if (clmR > slen) clmR = slen;
+  if (tntL < 0) tntL = 0;    if (tntR > slen) tntR = slen;
+
 
   //  Clean up what we read.  Remove trailing newline (whoops, already done), truncate read names to
   //  the first word.
@@ -96,8 +156,6 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
     }
 
   //  Check that things are consistent.  Same names, same lengths, etc.
-
-  uint32   clrL=0, clrR=slen;
 
   if (fr->snam[0] != '@') {
     AS_GKP_reportError(AS_GKP_ILL_NOT_SEQ_START_LINE, N, fr->snam);
@@ -245,14 +303,14 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
   fr->fr.clrBgn = clrL;
   fr->fr.clrEnd = clrR;
 
-  fr->fr.maxBgn = 1;  //  No max yet.
-  fr->fr.maxEnd = 0;
+  fr->fr.maxBgn = clmL;
+  fr->fr.maxEnd = clmR;
 
-  fr->fr.vecBgn = 1;  //  There is no vector clear defined for Illumina reads.
-  fr->fr.vecEnd = 0;
+  fr->fr.vecBgn = clvL;
+  fr->fr.vecEnd = clvR;
 
-  fr->fr.tntBgn = 1;  //  Nothing contaminated.
-  fr->fr.tntEnd = 0;
+  fr->fr.tntBgn = tntL;
+  fr->fr.tntEnd = tntR;
 
   return(readUID);
 }
@@ -301,6 +359,7 @@ readQSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fa
 
   return(processSeq(N, fr, end, fastqType, fastqOrient));
 }
+
 
 
 static
@@ -463,7 +522,10 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
 static
 void
 loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
-  fprintf(stderr, "Processing illumina reads from '%s'.\n", uname);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Processing SINGLE-ENDED %s QV encoding reads from:\n",
+          (fastqType   == FASTQ_ILLUMINA) ? "ILLUMINA 1.3+" : ((fastqType == FASTQ_SANGER) ? "SANGER" : "SOLEXA pre-1.3"));
+  fprintf(stderr, "      '%s'\n", uname);
 
   if (illuminaUIDmap == NULL) {
     errno = 0;
