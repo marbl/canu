@@ -19,20 +19,18 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: testHashTable.c,v 1.5 2008-12-05 19:06:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: testHashTable.c,v 1.6 2011-07-11 20:50:39 brianwalenz Exp $";
 
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 #include "AS_global.h"
 #include "AS_UTL_Hash.h"
 
-//  cc -o test -I.. -I. testHashTable.c AS_UTL_Hash.c AS_UTL_heap.c AS_UTL_alloc.c AS_UTL_fileIO.c -lm
+//  g++ -o test -I.. -I. testHashTable.c AS_UTL_Hash.C AS_UTL_heap.C AS_UTL_alloc.C AS_UTL_fileIO.C -lm
 
-#define NUM_ENTRIES  130000000
+#define NUM_ENTRIES  1300000000
 
 int
 main(int argc, char **argv) {

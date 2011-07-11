@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.22 2010-02-17 01:32:59 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.23 2011-07-11 20:50:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -258,6 +258,12 @@ void
 ReallocHashTable_AS(HashTable_AS *htable) {
   HashNode_AS     *node;
   HeapIterator_AS  iterator;
+
+#if 0
+  fprintf(stderr, "ReallocHashTable_AS()-- from "F_U32" to "F_U32" buckets (max nodes: "F_U32" to "F_U32").\n",
+          htable->numBuckets, htable->numBuckets * 2,
+          htable->maxNodes,   htable->maxNodes * 2);
+#endif
 
   htable->freeList      = NULL;
   htable->numBuckets   *= 2;
