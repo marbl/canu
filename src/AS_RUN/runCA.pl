@@ -688,20 +688,22 @@ sub setParametersFromFile ($@) {
         next if (m/^\s*\#/);
         next if (m/^\s*$/);
 
-        if (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
+        if (-e $_) {
+            my $xx = $_;
+            $xx = "$ENV{'PWD'}/$xx" if ($xx !~ m!^/!);
+            if (-e $xx) {
+                push @fragFiles, $xx;
+            } else {
+                setGlobal("help", getGlobal("help") . "File not found '$_' after appending absolute path.\n");
+            }
+        } elsif (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
             my ($var, $val) = ($1, $2);
             $var =~ s/^\s+//; $var =~ s/\s+$//;
             $val =~ s/^\s+//; $val =~ s/\s+$//;
             undef $val if ($val eq "undef");
             setGlobal($var, $val);
         } else {
-            my $xx = $_;
-            $xx = "$ENV{'PWD'}/$xx" if ($xx !~ m!^/!);
-            if (-e $xx) {
-                push @fragFiles, $xx;
-            } else {
-                setGlobal("help", getGlobal("help") . "File not found or invalid specFile line '$_'\n");
-            }
+            setGlobal("help", getGlobal("help") . "File not found or unknown specFile option line '$_'.\n");
         }
     }
     close(F);
