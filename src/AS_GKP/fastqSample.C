@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSample.C,v 1.3 2011-01-04 05:56:24 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSample.C,v 1.4 2011-07-19 06:49:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdint.h>
@@ -73,14 +73,14 @@ main(int argc, char **argv) {
   uint32   *ids  = NULL;
   char     *save = NULL;
 
-  int32  NUMREADS    = 0;        //  Number of mated reads in the input
-  int32  GENOMESIZE  = 0;        //  Size of the genome in bp
-  int32  READLENGTH  = 0;        //  For mated reads, 2x read size
-  int32  COVERAGE    = 0;        //  Desired coverage in output
-  char  *NAME        = NULL;     //  Prefix name
+  uint64    NUMREADS    = 0;        //  Number of mated reads in the input
+  uint64    GENOMESIZE  = 0;        //  Size of the genome in bp
+  uint64    READLENGTH  = 0;        //  For mated reads, 2x read size
+  uint64    COVERAGE    = 0;        //  Desired coverage in output
+  char     *NAME        = NULL;     //  Prefix name
 
-  char   path1[FILENAME_MAX];
-  char   path2[FILENAME_MAX];
+  char      path1[FILENAME_MAX];
+  char      path2[FILENAME_MAX];
 
   int arg=1;
   int err=0;
@@ -124,8 +124,14 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -t T     total number of mate pairs in the input\n");
     fprintf(stderr, "  -g G     genome size\n");
     fprintf(stderr, "  -l L     length of a single read\n");
-    fprintf(stderr, "  -c C     desired coverage in the output frags\n");
+    fprintf(stderr, "  -c C     desired coverage in the output frags (INTEGER ONLY)\n");
     fprintf(stderr, "  -n N     name (prefix) of the reads\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Program will compute the number of pairs of reads to sample to generate\n");
+    fprintf(stderr, "a set with the desired coverage.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "To instead sample a fixed number of pairs, set 'genome size' equal to 'read\n");
+    fprintf(stderr, "length' and specify the number of pairs as 'desired coverage'\n");
     fprintf(stderr, "\n");
     if (NAME == NULL)
       fprintf(stderr, "ERROR: no name supplied with -n.\n");
@@ -140,8 +146,8 @@ main(int argc, char **argv) {
   }
 
   if (NUMREADS == 0) {
-    uint32  Ac = 0;
-    uint32  Bc = 0;
+    uint64  Ac = 0;
+    uint64  Bc = 0;
 
     fprintf(stderr, "Counting the number of reads in the input.\n");
 
@@ -177,10 +183,10 @@ main(int argc, char **argv) {
     NUMREADS = Ac;
   }
 
-  uint32    I = COVERAGE * GENOMESIZE / READLENGTH;
+  uint64    I = COVERAGE * GENOMESIZE / READLENGTH;
 
   if (I > NUMREADS) {
-    fprintf(stderr, "ERROR: not enough reads, %d in input, %d needed, for desired coverage %d.\n",
+    fprintf(stderr, "ERROR: not enough reads, "F_U64" in input, "F_U64" needed, for desired coverage "F_U64".\n",
             NUMREADS, I, COVERAGE);
     exit(1);
   }
@@ -191,22 +197,22 @@ main(int argc, char **argv) {
   srand48(time(NULL));
 
   //  Make a list of IDs, and clear the array that tells us to emit a read.
-  for (int i=0; i<NUMREADS; i++) {
+  for (uint64 i=0; i<NUMREADS; i++) {
     ids[i]  = i;
     save[i] = 0;
   }
 
   //  Randomize the ID list.
-  for (int i=0; i<NUMREADS; i++) {
-    int p = lrand48() % NUMREADS;
-    int a = ids[p];
+  for (uint64 i=0; i<NUMREADS; i++) {
+    uint64 p = (uint64)lrand48() % NUMREADS;
+    uint32 a = ids[p];
 
     ids[p] = ids[i];
     ids[i] = a;
   }
 
   //  Take the first I things from the randomized ID list, mark them as "to be output".
-  for (uint32 i=0; i<I; i++)
+  for (uint64 i=0; i<I; i++)
     save[ids[i]] = 1;
 
   sprintf(path1, "%s.1.fastq", NAME);
@@ -222,8 +228,8 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
 
-  sprintf(path1, "%s.%03dx.1.fastq", NAME, COVERAGE);
-  sprintf(path2, "%s.%03dx.2.fastq", NAME, COVERAGE);
+  sprintf(path1, "%s.%03"F_U64P".1.fastq", NAME, COVERAGE);
+  sprintf(path2, "%s.%03"F_U64P".2.fastq", NAME, COVERAGE);
 
   errno = 0;
   Ao = fopen(path1, "w");
@@ -235,11 +241,11 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
 
-  fprintf(stderr, "Extracting %d mate pairs into %s and %s\n",
+  fprintf(stderr, "Extracting "F_U64" mate pairs into %s and %s\n",
           I, path1, path2);
 
-  int i=0;
-  int s=0;
+  uint64 i=0;
+  uint64 s=0;
 
   Ar.read(Ai);
   Br.read(Bi);
@@ -256,13 +262,13 @@ main(int argc, char **argv) {
   }
 
   if (i > NUMREADS) {
-    fprintf(stderr, "WARNING:  There are %d mates in the input; you claimed there are %d (-t option) mates.\n",
+    fprintf(stderr, "WARNING:  There are "F_U64" mates in the input; you claimed there are "F_U64" (-t option) mates.\n",
             i, NUMREADS);
     fprintf(stderr, "WARNING:  Result is not a random sample of the input file.\n");
   }
 
   if (i < NUMREADS) {
-    fprintf(stderr, "WARNING:  There are %d mates in the input; you claimed there are %d (-t option) mates.\n",
+    fprintf(stderr, "WARNING:  There are "F_U64" mates in the input; you claimed there are "F_U64" (-t option) mates.\n",
             i, NUMREADS);
     fprintf(stderr, "WARNING:  Result is only %f X coverage.\n", (double)s * READLENGTH / GENOMESIZE);
   }
