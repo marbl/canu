@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.13 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.14 2011-07-19 19:42:42 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,16 +44,19 @@ static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.13 2008-10-08 22:03:00 brian
 //
 void *
 safe_calloc(size_t num, size_t len) {
-  void  *p;
+  void  *p = calloc(num, len);
 
-   p = calloc(num, len);
-   if (p == NULL) {
+  if (p == NULL) {
      fprintf(stderr, "Could not calloc memory ("F_SIZE_T" * "F_SIZE_T" bytes = "F_SIZE_T")\n",
              num, len, num*len);
-     if (num == 0 || len == 0)
+
+     if (num == 0 || len == 0) {
          return(NULL);
+     }
+
      assert(p != NULL);
    }
+
    return(p);
 }
 
