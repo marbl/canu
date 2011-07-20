@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.14 2011-07-19 19:42:42 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.15 2011-07-20 03:47:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,72 +36,57 @@ static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.14 2011-07-19 19:42:42 mkote
 //  includes AS_UTL_alloc.h, so we pretend we've already included it.
 //
 #define AS_UTL_ALLOC_H
+
 #include "AS_global.h"
 
 
-// Allocate and return a pointer to an array of  num  elements of
-// len  bytes each.  All are set to 0.  Exit if fai.
-//
 void *
 safe_calloc(size_t num, size_t len) {
+
+  if ((num == 0) || (len == 0))
+    return(NULL);    //  Bail, user didn't request anything.
+
   void  *p = calloc(num, len);
 
-  if (p == NULL) {
-     fprintf(stderr, "Could not calloc memory ("F_SIZE_T" * "F_SIZE_T" bytes = "F_SIZE_T")\n",
-             num, len, num*len);
+  if (p == NULL)
+    fprintf(stderr, "Could not calloc memory ("F_SIZE_T" * "F_SIZE_T" bytes = "F_SIZE_T")\n",
+            num, len, num*len);
+  assert(p != NULL);
 
-     if (num == 0 || len == 0) {
-         return(NULL);
-     }
-
-     assert(p != NULL);
-   }
-
-   return(p);
+  return(p);
 }
 
 
-
-// Allocate and return a pointer to len bytes of memory.
-// Len  bytes each.  Exit if fail.
-//
 void *
 safe_malloc(size_t len) {
-  void  *p;
 
-  p = malloc(len);
-  if (p == NULL) {
+  if (len == 0)
+    return(NULL);    //  Bail, user didn't request anything.
+
+  void  *p = malloc(len);
+
+  if (p == NULL)
     fprintf(stderr, "Could not malloc memory ("F_SIZE_T" bytes)\n", len);
-    assert(p != NULL);
-  }
-
-#undef TRASH_MEMORY_FIRST
-#ifdef TRASH_MEMORY_FIRST
-  memset(p, 0xff, len);
-#endif
+  assert(p != NULL);
 
   return(p);
 }
 
 
-
-
-// Reallocate memory for q to len  bytes and return a pointer
-// to the new memory.  Exit if fail.
-//
 void *
 safe_realloc(void *q, size_t len) {
-  void  *p;
 
-  p = realloc(q, len);
-  if (p == NULL) {
+  if (len == 0)
+    return(NULL);    //  Bail, user didn't request anything.
+
+  void  *p = realloc(q, len);
+
+  if (p == NULL)
     fprintf(stderr, "Could not realloc memory ("F_SIZE_T" bytes)\n", len);
-    assert(p != NULL);
-  }
+  assert(p != NULL);
 
   return(p);
 }
-
 
 
 void
