@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.12 2011-05-23 05:02:30 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.13 2011-07-20 20:01:37 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,7 +49,7 @@ uint32   duplicateMates  = 0;
 
 class olapT {
 public:
-  uint32   biid:30;
+  AS_IID   biid;
   uint32   a:1;
   uint32   b:1;
 };
@@ -78,15 +78,14 @@ public:
     ovllen++;
   };
 
+  AS_IID   mateIID;
+  AS_IID   libraryIID;
+
   uint64   matePatternLeft:1;
   uint64   isDeleted:1;
-  uint64   mateIID:29;
-  uint64   libraryIID:11;
 
   uint64   clrbeg:AS_READ_MAX_NORMAL_LEN_BITS;
   uint64   clrlen:AS_READ_MAX_NORMAL_LEN_BITS;
-
-  AS_UID   readUID;
 
   uint32   ovllen;
   uint32   ovlmax;
@@ -110,8 +109,6 @@ loadFragments(gkStore *gkp) {
     frag[iid].clrlen           = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTINITIAL);
     frag[iid].mateIID          = fr.gkFragment_getMateIID();
     frag[iid].libraryIID       = fr.gkFragment_getLibraryIID();
-
-    frag[iid].readUID          = fr.gkFragment_getReadUID();
 
     frag[iid].ovllen           = 0;
     frag[iid].ovlmax           = 0;
@@ -222,9 +219,9 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
           (bbegdiff <= FRAG_HANG_SLOP) &&
           (aenddiff <= FRAG_HANG_SLOP) && (bhang >= 0) &&
           (error    <= 0.025)) {
-        fprintf(reportFile, "Delete %s,%u DUPof %s,%u  a %d,%d  b %d,%d  hang %d,%d  diff %d,%d  error %f\n",
-                AS_UID_toString(frag[ovl->a_iid].readUID), ovl->a_iid,
-                AS_UID_toString(frag[ovl->b_iid].readUID), ovl->b_iid,
+        fprintf(reportFile, "Delete %u DUPof %u  a %d,%d  b %d,%d  hang %d,%d  diff %d,%d  error %f\n",
+                ovl->a_iid,
+                ovl->b_iid,
                 abeg, aend,
                 bbeg, bend,
                 ahang, bhang,
@@ -285,11 +282,11 @@ processMatedFragments(gkStore *gkp, fragT *frag) {
         //  If the proper overlap pattern is found, delete me.
         if ((frag[iid].ovl[i].a && frag[mid].ovl[j].b) ||
             (frag[iid].ovl[i].b && frag[mid].ovl[j].a)) {
-          fprintf(reportFile, "Delete %s,%d <-> %s,%d DUPof %s,%d <-> %s,%d\n",
-                  AS_UID_toString(frag[iid].readUID), iid,
-                  AS_UID_toString(frag[mid].readUID), mid,
-                  AS_UID_toString(frag[iod].readUID), iod,
-                  AS_UID_toString(frag[jod].readUID), jod);
+          fprintf(reportFile, "Delete %d <-> %d DUPof %d <-> %d\n",
+                  iid,
+                  mid,
+                  iod,
+                  jod);
           duplicateMates++;
           frag[iid].isDeleted = 1;
           frag[mid].isDeleted = 1;
@@ -391,11 +388,11 @@ main(int argc, char **argv) {
 
     if (gkl->doRemoveDuplicateReads == true) {
       if (summaryFile)
-        fprintf(summaryFile, "Checking library %s for duplicates.\n", AS_UID_toString(gkl->libraryUID));
+        fprintf(summaryFile, "Checking library for duplicates.\n");
       nothingToDo = false;
     } else {
       if (summaryFile)
-        fprintf(summaryFile, "Ignoring library %s.\n", AS_UID_toString(gkl->libraryUID));
+        fprintf(summaryFile, "Ignoring library.\n");
     }
   }
 

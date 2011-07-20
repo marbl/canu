@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.28 2011-06-03 17:34:19 brianwalenz Exp $";
+const char *mainid = "$Id: initialTrim.C,v 1.29 2011-07-20 20:01:37 mkotelbajcvi Exp $";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
@@ -73,7 +73,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  A report of the trimming is printed to stdout:\n");
     fprintf(stderr, "    iid originalBegin originalEnd newBegin newEnd\n");
-    fprintf(stderr, "    uid,iid origBegin origEnd qualBegin qualEnd vecBeg vecEnd newBegin newEnd\n");
+    fprintf(stderr, "    iid origBegin origEnd qualBegin qualEnd vecBeg vecEnd newBegin newEnd\n");
     exit(1);
   }
 
@@ -113,7 +113,7 @@ main(int argc, char **argv) {
   double        minQuality = qual.lookupNumber(12);
 
   if (logFile)
-    fprintf(logFile, "uid,iid\torigL\torigR\tqltL\tqltR\tfinalL\tfinalR\tvecL\tvecR\tdeleted?\n");
+    fprintf(logFile, "iid\torigL\torigR\tqltL\tqltR\tfinalL\tfinalR\tvecL\tvecR\tdeleted?\n");
 
   for (int32 iid=1; iid<=gkpStore->gkStore_getNumFragments(); iid++) {
     gkpStore->gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
@@ -202,8 +202,7 @@ main(int argc, char **argv) {
       gkpStore->gkStore_delFragment(iid);
 
     if (logFile)
-      fprintf(logFile, "%s,"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
-              AS_UID_toString(fr.gkFragment_getReadUID()),
+      fprintf(logFile, ""F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
               iid,
               fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_CLR),
               fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_CLR),

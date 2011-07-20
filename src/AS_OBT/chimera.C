@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.43 2011-06-03 17:34:19 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.44 2011-07-20 20:01:37 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,8 +120,6 @@ public:
 
   uint64   tntBeg   :AS_READ_MAX_NORMAL_LEN_BITS;
   uint64   tntEnd   :AS_READ_MAX_NORMAL_LEN_BITS;
-
-  AS_UID   uid;
 };
 
 
@@ -173,8 +171,6 @@ readClearRanges(gkStore *gkp) {
 
     clear[iid].tntBeg        = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT);
     clear[iid].tntEnd        = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT);
-
-    clear[iid].uid           = fr.gkFragment_getReadUID();
   }
 
   delete fs;
@@ -324,7 +320,6 @@ private:
 
 void
 printReport(char          *type,
-            AS_UID         uid,
             AS_IID         iid,
             intervalList  &IL,
             uint32         intervalBeg,
@@ -333,8 +328,8 @@ printReport(char          *type,
             const overlapList  *overlap) {
 
 #ifdef WITH_REPORT_FULL
-  fprintf(reportFile, "%s,"F_IID" %s!  "F_U32" intervals ("F_U32","F_U32").  "F_U32" potential chimeric overlaps (%5.2f%%).\n",
-          AS_UID_toString(uid), iid, type,
+  fprintf(reportFile, ""F_IID" %s!  "F_U32" intervals ("F_U32","F_U32").  "F_U32" potential chimeric overlaps (%5.2f%%).\n",
+          iid, type,
           IL.numberOfIntervals(), intervalBeg, intervalEnd,
           hasPotentialChimera, (double)hasPotentialChimera / (double)overlap->length() * 100);
 
@@ -345,8 +340,7 @@ printReport(char          *type,
 
 
 void
-printLogMessage(AS_UID        uid,
-                AS_IID        iid,
+printLogMessage(AS_IID        iid,
                 uint32        obtBgn,
                 uint32        obtEnd,
                 uint32        intervalBeg,
@@ -355,8 +349,8 @@ printLogMessage(AS_UID        uid,
                 char const   *type,
                 char const   *message) {
 
-  fprintf(reportFile, "%s,"F_IID" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s, gatekeeper store %s.\n",
-          AS_UID_toString(uid), iid, type,
+  fprintf(reportFile, ""F_IID" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s, gatekeeper store %s.\n",
+          iid, type,
           obtBgn, obtEnd,
           intervalBeg, intervalEnd,
           message,
@@ -563,7 +557,7 @@ process(const AS_IID           iid,
   if ((doUpdate) && (clear[iid].doFix == false))
     doUpdate = false;
 
-  //fprintf(reportFile, "process %s,"F_IID"\n", AS_UID_toString(clear[iid].uid), iid);
+  //fprintf(reportFile, "process "F_IID"\n", iid);
 
   uint32           loLinker = clear[iid].tntBeg;
   uint32           hiLinker = clear[iid].tntEnd;
@@ -636,8 +630,8 @@ process(const AS_IID           iid,
     //
     if (isLinker == true) {
 #ifdef DEBUG_ISLINKER
-      fprintf(reportFile, "frag %s,"F_IID" region "F_U32"-"F_U32" isectbefore "F_U32" isect "F_U32" isectafter "F_U32"\n",
-              AS_UID_toString(clear[iid].uid), iid,
+      fprintf(reportFile, "frag "F_IID" region "F_U32"-"F_U32" isectbefore "F_U32" isect "F_U32" isectafter "F_U32"\n",
+              iid,
               loLinker, hiLinker, isectbefore, isect, isectafter);
 #endif
 
@@ -1263,13 +1257,13 @@ process(const AS_IID           iid,
   if (isSpur && isChimera) {
     if (intervalMax < AS_READ_MIN_LEN) {
       bothDeletedSmall++;
-      printLogMessage(clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "BOTH", "New length too small, fragment deleted");
+      printLogMessage(iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "BOTH", "New length too small, fragment deleted");
 
       if (doUpdate)
         gkp->gkStore_delFragment(iid);
     } else {
       bothFixed++;
-      printLogMessage(clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "BOTH", "Length OK");
+      printLogMessage(iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "BOTH", "Length OK");
 
       if (doUpdate) {
         gkFragment fr;
@@ -1278,18 +1272,18 @@ process(const AS_IID           iid,
         gkp->gkStore_setFragment(&fr);
       }
     }
-    printReport("BOTH", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
+    printReport("BOTH", iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
 
   } else if (isSpur) {
     if (intervalMax < AS_READ_MIN_LEN) {
       spurDeletedSmall++;
-      printLogMessage(clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "SPUR", "New length too small, fragment deleted");
+      printLogMessage(iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "SPUR", "New length too small, fragment deleted");
 
       if (doUpdate)
         gkp->gkStore_delFragment(iid);
     } else {
       spurFixed++;
-      printLogMessage(clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "SPUR", "Length OK");
+      printLogMessage(iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "SPUR", "Length OK");
 
       if (doUpdate) {
         gkFragment fr;
@@ -1298,18 +1292,18 @@ process(const AS_IID           iid,
         gkp->gkStore_setFragment(&fr);
       }
     }
-    printReport("SPUR", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
+    printReport("SPUR", iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
 
   } else if (isChimera) {
     if (intervalMax < AS_READ_MIN_LEN) {
       chimeraDeletedSmall++;
-      printLogMessage(clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "New length too small, fragment deleted");
+      printLogMessage(iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "New length too small, fragment deleted");
 
       if (doUpdate)
         gkp->gkStore_delFragment(iid);
     } else {
       chimeraFixed++;
-      printLogMessage(clear[iid].uid, iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Length OK");
+      printLogMessage(iid, ola, ora, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Length OK");
 
       if (doUpdate) {
         gkFragment fr;
@@ -1318,7 +1312,7 @@ process(const AS_IID           iid,
         gkp->gkStore_setFragment(&fr);
       }
     }
-    printReport("CHIMERA", clear[iid].uid, iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
+    printReport("CHIMERA", iid, IL, intervalBeg, intervalEnd, hasPotentialChimera, olist);
   }
 }
 
