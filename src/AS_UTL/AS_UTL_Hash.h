@@ -22,7 +22,7 @@
 #ifndef AS_UTL_HASH_H
 #define AS_UTL_HASH_H
 
-static const char *rcsid_AS_UTL_HASH_H = "$Id: AS_UTL_Hash.h,v 1.13 2009-08-04 11:03:02 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_HASH_H = "$Id: AS_UTL_Hash.h,v 1.14 2011-07-21 06:15:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_heap.h"
@@ -60,14 +60,16 @@ typedef struct HashNode_AS{
 
 
 typedef struct{
-  uint32                   numBuckets;
+  uint64                   numBuckets;  //  Strictly limited to 1<<31, dictated by the width of the hash function
+  uint64                   maxBuckets;
+
   HashNode_AS            **buckets;
   HashNode_AS             *freeList;
 
-  uint32                  numNodes;   //  Number of nodes currently in the table
-  uint32                  maxNodes;   //  Reallocate table when we hit this size
+  uint64                  numNodes;     //  Number of nodes currently in the table
+  uint64                  maxNodes;     //  Reallocate table when we hit this size
 
-  Heap_AS                *nodeheap;   //  Heap of node storage
+  Heap_AS                *nodeheap;     //  Heap of node storage
 
   uint32                  hashmask;
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.24 2011-07-19 19:42:42 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.25 2011-07-21 06:15:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,14 +37,11 @@ static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.24 2011-07-19 19:42:42 mkotelbajcvi
 //
 #define CHECKCOLLISION
 
-#define REALLOCATION_LIMIT 1 << 29
-
-// When reallocating, multiply the current number of buckets and max nodes by this value.
-#define REALLOCATION_MULTIPLE_MIN 2
-#define REALLOCATION_MULTIPLE_MAX 1.2
-
-// Multiple for the maximum load (i.e. maximum # of nodes)
-#define LOAD_MULTIPLE 0.6
+//  Hash table parameters.  We'll build a bigger table when we've loaded the maximum number of nodes
+//  allowed (maxNodes).  This value is determined from the number of hash buckets currently
+//  allocated (numBuckets * LOAD_FACTOR).
+//
+#define LOAD_FACTOR         0.6
 
 //  mix -- mix 3 32-bit values reversibly.
 //
@@ -178,8 +175,8 @@ int
 InsertNodeInHashBucket(HashTable_AS *table,
                        HashNode_AS *newnode) {
 
-  uint32        hashkey = (*table->hash)(newnode->key, newnode->keyLength);
-  uint32          bucket  = hashkey & table->hashmask;
+  uint32       hashkey = (*table->hash)(newnode->key, newnode->keyLength);
+  uint32       bucket  = hashkey & table->hashmask;
   HashNode_AS *node    = table->buckets[bucket];
   HashNode_AS *prevnode;
   int          comparison;
@@ -266,30 +263,29 @@ ReallocHashTable_AS(HashTable_AS *htable) {
   HashNode_AS     *node;
   HeapIterator_AS  iterator;
 
-  uint32 newNumBuckets = htable->numBuckets * ((htable->numBuckets >= REALLOCATION_LIMIT) ? REALLOCATION_MULTIPLE_MAX : REALLOCATION_MULTIPLE_MIN),
-  		 newMaxNodes = htable->maxNodes * ((htable->numBuckets >= REALLOCATION_LIMIT) ? REALLOCATION_MULTIPLE_MAX : REALLOCATION_MULTIPLE_MIN);
+  //  To ensure things stay powers of two, we use shift and not multiply.
 
-  if (newNumBuckets > pow(2, 31))
-  {
-#if 1
-	  fprintf(stderr, "ReallocHashTable_AS()-- new bucket size of "F_U32" greater than max of "F_U32", not expanding capacity.\n", newNumBuckets, pow(2, 31));
-#endif
-
-	  htable->maxNodes = newMaxNodes;
-
-	  return;
-  }
+  uint64 newNumBuckets = htable->numBuckets << 1;
+  uint64 newMaxNodes   = htable->numNodes   << 1;
 
 #if 1
-  fprintf(stderr, "ReallocHashTable_AS()-- from "F_U32" to "F_U32" buckets (max nodes: "F_U32" to "F_U32").\n",
+  fprintf(stderr, "ReallocHashTable_AS()-- from "F_U64" to "F_U64" buckets (max nodes: "F_U64" to "F_U64")%s.\n",
           htable->numBuckets, newNumBuckets,
-          htable->maxNodes, newMaxNodes);
+          htable->maxNodes, newMaxNodes,
+          (newNumBuckets > htable->maxBuckets) ? ": TOO LARGE, DON'T EXPAND." : "");
 #endif
+
+  //  Too many buckets?  Don't rebuild the table, but allow more nodes.
+  if (newNumBuckets > htable->maxBuckets) {
+    htable->maxNodes = newMaxNodes;
+    return;
+  }
 
   htable->freeList      = NULL;
   htable->numBuckets    = newNumBuckets;
   htable->maxNodes      = newMaxNodes;
-  htable->hashmask      = htable->numBuckets - 1;
+  htable->hashmask    <<= 1;
+  htable->hashmask     |= 1;
 
   safe_free(htable->buckets);
   htable->buckets = (HashNode_AS **)safe_calloc(htable->numBuckets, sizeof(HashNode_AS *));
@@ -308,26 +304,33 @@ ReallocHashTable_AS(HashTable_AS *htable) {
 HashTable_AS *
 CreateGenericHashTable_AS(ASHashHashFn  hashfn,
                           ASHashCompFn  compfn) {
-  uint32           size  = 4096;  //  MUST be power of two
+  uint32        size  = 4096;  //  MUST be power of two, otherwise the hashed value breaks.
   HashTable_AS *table = (HashTable_AS *)safe_calloc(1, sizeof(HashTable_AS));
 
-  //  Why are we no longer requesting the user to size the table?  For
-  //  the tables that are large -- the number of fragments -- we
-  //  usually do not know the number in advance.  We used to just
-  //  guess at 1m.  Reallocations up to there are pretty cheap, so
-  //  always defaulting to a size of 4k doesn't cost us much.
+  //  Why are we no longer requesting the user to size the table?  For the tables that are large --
+  //  the number of fragments -- we usually do not know the number in advance.  We used to just
+  //  guess at 1m.  Reallocations up to there are pretty cheap, so always defaulting to a size of 4k
+  //  doesn't cost us much.
+  //
+  //  N.B. 'size=4096' is hardcoded, as is the corresponding 'hashmask' below.
+  //  N.B. 'maxBuckets' is hardcoded; this is an algorithmic limit of the hash table.
+  //
+  //  We could probably go to maxBuckets of 1<<32, but why chance it.
 
   table->numBuckets  = size;
+  table->maxBuckets  = (uint64)1 << 31;
   table->buckets     = (HashNode_AS **)safe_calloc(table->numBuckets, sizeof(HashNode_AS *));
   table->freeList    = NULL;
   table->numNodes    = 0;
-  table->maxNodes    = size * LOAD_MULTIPLE;
+  table->maxNodes    = (uint64)(size * LOAD_FACTOR);
   table->nodeheap    = AllocateHeap_AS(sizeof(HashNode_AS));
-  table->hashmask    = table->numBuckets - 1;
+  table->hashmask    = 0x00000fff;  //  Keyed specifically to 'size' above.
   table->dirty       = 0;
   table->filename[0] = 0;
   table->compare     = compfn;
   table->hash        = hashfn;
+
+  assert(table->hashmask == table->numBuckets - 1);
 
   return(table);
 }
