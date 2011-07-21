@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.12 2011-07-08 22:17:06 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.13 2011-07-21 08:46:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -227,6 +227,10 @@ public:
     clrBgn = 0;
     clrEnd = seqLen;
 
+    suspectedChimer    = false;
+    suspectedChimerBgn = 0;
+    suspectedChimerEnd = 0;
+
     for (uint32 i=0; i<AS_READ_MAX_NORMAL_LEN; i++)
       seqMap[i] = i;
   };
@@ -244,6 +248,8 @@ public:
 
   uint32     BADBASE(uint32 i);
   uint32     attemptTrimming(void);
+
+  void       analyzeChimer(void);
 
   uint32     getNumCorrected(void) {
     uint32 nCorr = 0;
@@ -286,6 +292,10 @@ public:
 
   uint32     clrBgn;
   uint32     clrEnd;
+
+  bool       suspectedChimer;
+  uint32     suspectedChimerBgn;
+  uint32     suspectedChimerEnd;
 
   uint32    *disconnect;  //  per base - a hole before this base
   uint32    *deletion;    //  
@@ -490,9 +500,6 @@ mertrimComputation::attemptCorrection(void) {
     //  insert/delete over and over and over eventually blowing up.  The penalty for UNDER
     //  correcting, however, is that we trim a read too aggressively.
     //
-    //  To make a change, the change must be supported MORE THAN whatever is there, and we'll go
-    //  even further, and set an absolute minimum.
-    //
     //  Being strictly greater than before works for mismatches and deletions.
     //
     //  For insertions, especially insertions in single nucleotide runs, this doesn't work so well.
@@ -503,13 +510,17 @@ mertrimComputation::attemptCorrection(void) {
     //    AAAAAXXXXX: inserting an A before the X's changes the sequence, returning AAAAAAXXXX,
     //                and it is possible (likely) that this new sequence will have a higher count.
     //
-    //  We therefore require that we find at least TWO more good mers before accepting a change
+    //  We therefore require that we find at least TWO more good mers before accepting a change.
     //
+    //  The drawback of this is that we cannot correct two adjacent errors.  The first error
+    //  (the one we're currently working on) is corrected and adds one to the coverage count,
+    //  but then we hit that second error and do not find any more mers.
+
+    //  A solution would be to retry any base we cannot correct and allow a positive change of
+    //  one mer to accept the change.  (in other words, change +1 below to +0).
+
     uint32 mCur = testBaseChange(pos, corrSeq[pos]) + 1;
     uint32 mNum = mCur;
-
-    //if (mCur == 1)
-    //  mNum = (seqLen - pos > g->merSize) ? (g->merSize / 3) : ((seqLen - pos) / 2);
 
     //  This is the number of replacements we found.  If zero, we mark this mer as not confirmed
     //  ('Z').  If more than one, we mark this mer as conflicting ('X').
@@ -988,6 +999,124 @@ mertrimComputation::attemptTrimming(void) {
 }
 
 
+
+void
+mertrimComputation::analyzeChimer(void) {
+
+  //  Examine the coverage for a specific pattern that indicates a chimeric read (or a read with an
+  //  uncorrected error):  a valley in the coverage:  ..../---\./---\
+
+  assert(suspectedChimer    == false);
+  assert(suspectedChimerBgn == 0);
+  assert(suspectedChimerEnd == 0);
+
+  if (coverage == NULL)
+    //  No coverage?  Must have been a perfect read.
+    return;
+
+  int32   floc = 0, rloc = seqLen-1;
+  int32   fcov = coverage[floc];
+  int32   rcov = coverage[rloc];
+
+  //  Search in from the ends while the coverage monotonically increases.
+
+  while ((floc < seqLen) && (fcov <= coverage[floc])) {
+    fcov = coverage[floc];
+    floc++;
+  }
+
+  while ((rloc > 0) && (rcov <= coverage[rloc])) {
+    rcov = coverage[rloc];
+    rloc--;
+  }
+
+  if (rloc <= floc)
+    //  If ranges are flipped, we can stop.  No chimer found.
+    return;
+
+  //  Otherwise, there is a dip in the coverage starting at floc until rloc.  Continue searching in
+  //  while the coverage monotonically drops.
+
+  while ((floc < seqLen) && (fcov >= coverage[floc])) {
+    fcov = coverage[floc];
+    floc++;
+  }
+
+  while ((rloc > 0) && (rcov >= coverage[rloc])) {
+    rcov = coverage[rloc];
+    rloc--;
+  }
+
+  //  The searches always go one too far.  This backs up the point to be the last monotonically
+  //  decreasing value.
+
+  floc--;
+  rloc++;
+
+  //  If the coverages are different, or if floc < rloc, then we're not at a junction.  Something
+  //  bizarre happened in this read, and there are two valleys instead of one.
+
+  if ((floc < rloc) || (fcov != rcov))
+    return;
+
+  assert(fcov == rcov);
+  assert(floc >= rloc);
+
+  //  By chance, mers will cross the junction.  This will inflate the coverage count.
+  //
+  //  If the coverage is 7, then we've extended past the suspected chimeric junction by 7 bases, and
+  //  there is 0.002% chance this is due to spurious crossing of a chimeric join, so we declare that
+  //  the read is not chimeric.
+  //
+  //  The probability that we're extending past the chimeric region by X bases is 0.25^X:
+  //      0 - 0.25^0 = 100%
+  //      1 - 0.25^1 =  25%
+  //      2 - 0.25^2 =   6.25%
+  //      3 - 0.25^3 =   1.5625%
+  //      4 - 0.25^4 =   0.3906%
+  //      5 - 0.25^5 =   0.0977%
+  //      6 - 0.25^6 =   0.0244%
+  //      7 - 0.25^7 =   0.0061%
+  //      8 - 0.25^8 =   0.0015%
+  //
+  if (fcov > 7)
+    return;
+
+  //  For a true chimeric junction, the pattern we should see is:
+  //
+  //    fcov == rcov == X
+  //    floc == rloc + X     (X is also the number of bases the junction is crossed by)
+  //
+  //  In general, uncorrected errors in the read should not have this pattern; only errors near SNPs
+  //  or in diverged repeats should be spuriously spanned.  The uncorrected error is, by definition,
+  //  different from the real sequence -- where in the chimeric junction case, the base after the
+  //  junction has a 25% chance of being the same as the true next base.
+  //
+  if (floc == rloc + fcov) {
+    suspectedChimer    = true;
+    suspectedChimerBgn = rloc;
+    suspectedChimerEnd = floc;
+    return;
+  }
+
+  //  If the 'loc' pattern isn't met, there must be something else going on.  For example, two
+  //  uncorrected errors closer than the mer size.  However, we see the same pattern if there is an
+  //  uncorrected error near the junction.
+  //
+  //  Do we err on the side of caution and label this as chimeric read??
+  //
+  //  One instance was from two uncorrected errors next to each other.  Not sure why this failed
+  //  to correct.
+
+  fprintf(stderr, "CHIMER?  floc=%d rloc=%d  cov=%d\n",
+          floc, rloc, fcov);
+
+  return;
+}
+
+
+
+
 void
 mertrimComputation::dump(FILE *F, char *label) {
   fprintf(F, "%s read %d len %d (trim %d-%d)\n", label, readIID, seqLen, clrBgn, clrEnd);
@@ -1108,6 +1237,8 @@ mertrimWorker(void *G, void *T, void *S) {
   //resultUnverified++;
 
  finished:
+  s->analyzeChimer();
+
   if (VERBOSE) {
     s->dump(stderr, "FINAL");
   }  //  VERBOSE
@@ -1145,6 +1276,7 @@ mertrimWriter(void *G, void *S) {
   mertrimComputation   *s = (mertrimComputation *)S;
 
   bool  delFrag = false;
+  char  chimer[256];
 
   //  The get*() functions return positions in the original uncorrected sequence.  They
   //  map from positions in the corrected sequence (which has inserts and deletes) back
@@ -1157,13 +1289,21 @@ mertrimWriter(void *G, void *S) {
   if ((s->getClrEnd() <= s->getClrBgn()) ||
       (s->getClrEnd() - s->getClrBgn() < AS_READ_MIN_LEN))
     delFrag = true;
-    
+
+  if (s->suspectedChimer)
+    sprintf(chimer, "\t(suspected chimeric junction %u-%u)",
+            s->suspectedChimerBgn,
+            s->suspectedChimerEnd);
+  else
+    chimer[0] = 0;
+
   if (g->logFile)
-    fprintf(g->logFile, "%s,%d\t%d\t%d%s\n",
+    fprintf(g->logFile, "%s,%d\t%d\t%d%s%s\n",
             AS_UID_toString(s->fr.gkFragment_getReadUID()),
             s->fr.gkFragment_getReadIID(),
             s->getClrBgn(),
             s->getClrEnd(),
+            chimer,
             delFrag ? "\t(deleted)" : "");
 
   delete s;
