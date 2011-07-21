@@ -22,7 +22,7 @@
 #ifndef AS_UTL_UID_H
 #define AS_UTL_UID_H
 
-static const char *rcsid_AS_UTL_UID_H = "$Id: AS_UTL_UID.h,v 1.6 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_UID_H = "$Id: AS_UTL_UID.h,v 1.7 2011-07-21 05:32:54 brianwalenz Exp $";
 
 #include <string.h>
 
@@ -154,6 +154,11 @@ AS_UID_compare(AS_UID a, AS_UID b) {
   return(0);
 }
 
+inline
+bool
+operator<(AS_UID x, AS_UID y) {
+  return(AS_UID_compare(x, y) == -1);
+}
 
 
 AS_UID  AS_UID_lookup(char *uidstr, char **nxtstr);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputFasta.c,v 1.17 2010-03-22 20:08:19 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputFasta.c,v 1.18 2011-07-21 05:32:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,11 +30,15 @@ const char *mainid = "$Id: asmOutputFasta.c,v 1.17 2010-03-22 20:08:19 brianwale
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_fasta.h"
-#include "AS_UTL_Hash.h"
 #include "AS_UTL_reverseComplement.h"
 
 #include "MultiAlign.h"
 
+#include <map>
+
+using namespace std;
+
+map<AS_UID,AS_IID>  uid2iid;
 
 //  Parameters
 //
@@ -69,7 +73,6 @@ typedef struct {
 int             ctgDataMax = 0;
 ctgData_t     **ctgData    = NULL;
 
-HashTable_AS   *uid2iid;
 
 
 
@@ -196,9 +199,7 @@ processCCO(SnapConConMesg *cco_mesg) {
 
   assert(strlen(cco_mesg->consensus) == cco_mesg->length);
 
-  InsertInHashTable_AS(uid2iid,
-                       AS_UID_toInteger(cco_mesg->eaccession), 0,
-                       cco_mesg->iaccession, 0);
+  uid2iid[cco_mesg->eaccession] = cco_mesg->iaccession;
 
   ctgData_t   *cd = (ctgData_t *)safe_malloc(sizeof(ctgData_t));
 
@@ -291,15 +292,11 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
 
   //  Total length of the scaffold
 
-  ctgIID = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                             AS_UID_toInteger(scf_mesg->contig_pairs[0].econtig1),
-                                             0);
+  ctgIID = uid2iid[scf_mesg->contig_pairs[0].econtig1];
   scfLen = ctgData[ctgIID]->len;
 
   for (i=0; i<scf_mesg->num_contig_pairs; i++) {
-    ctgIID = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                               AS_UID_toInteger(scf_mesg->contig_pairs[i].econtig2),
-                                               0);
+    ctgIID = uid2iid[scf_mesg->contig_pairs[i].econtig2];
     scfLen += computeGapSize(scf_mesg->contig_pairs[i].mean) + ctgData[ctgIID]->len;
   }
 
@@ -309,9 +306,7 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
   char  *scfcns = (char *)safe_malloc(sizeof(char) * (scfLen + 1));
   char  *scfqlt = (char *)safe_malloc(sizeof(char) * (scfLen + 1));
 
-  ctgIID = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                             AS_UID_toInteger(scf_mesg->contig_pairs[0].econtig1),
-                                             0);
+  ctgIID = uid2iid[scf_mesg->contig_pairs[0].econtig1];
 
   memcpy(scfcns + scfPos, ctgData[ctgIID]->cns, ctgData[ctgIID]->len);
   memcpy(scfqlt + scfPos, ctgData[ctgIID]->qlt, ctgData[ctgIID]->len);
@@ -329,9 +324,7 @@ processSCF(SnapScaffoldMesg *scf_mesg) {
     memset(scfqlt + scfPos, '0', gapSize);
     scfPos += gapSize;
 
-    ctgIID = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                               AS_UID_toInteger(scf_mesg->contig_pairs[i].econtig2),
-                                               0);
+    ctgIID = uid2iid[scf_mesg->contig_pairs[i].econtig2];
 
     memcpy(scfcns + scfPos, ctgData[ctgIID]->cns, ctgData[ctgIID]->len);
     memcpy(scfqlt + scfPos, ctgData[ctgIID]->qlt, ctgData[ctgIID]->len);
@@ -456,8 +449,6 @@ main(int argc, char **argv) {
 #endif
     exit(1);
   }
-
-  uid2iid = CreateScalarHashTable_AS();
 
   if (dumpUnitigs) {
     UTGseqout = openOutput(prefix, "%s.utg.fasta");

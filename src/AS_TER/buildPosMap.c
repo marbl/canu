@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.20 2010-11-05 01:37:26 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.21 2011-07-21 05:32:54 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -33,7 +33,11 @@ const char *mainid = "$Id: buildPosMap.c,v 1.20 2010-11-05 01:37:26 brianwalenz 
 
 #include "AS_UTL_splitToWords.H"
 
-HashTable_AS   *uid2iid      = NULL;
+#include <map>
+
+using namespace std;
+
+map<AS_UID,AS_IID>  uid2iid;
 
 #define ORIR 'r'
 #define ORIF 'f'
@@ -304,9 +308,8 @@ processCCO(SnapConConMesg *cco) {
 
   fprintf(len, "%s\t%d\n", AS_UID_toString(cco->eaccession), contigLengthUngap);
 
-  InsertInHashTable_AS(uid2iid,
-                       AS_UID_toInteger(cco->eaccession), 0,
-                       cco->iaccession, 0);
+  uid2iid[cco->eaccession] = cco->iaccession;
+
   if (ctgInfoMax <= cco->iaccession) {
     ctgInfoMax *= 2;
     ctgInfo     = (ctgInfo_t *)safe_realloc(ctgInfo, ctgInfoMax * sizeof(ctgInfo_t));
@@ -435,9 +438,7 @@ processSCF(SnapScaffoldMesg *scf) {
     //  First contig-pair, print the first contig.
     //
     if (i == 0) {
-      ctgIID = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                                 AS_UID_toInteger(scf->contig_pairs[i].econtig1),
-                                                 0);
+      ctgIID = uid2iid[scf->contig_pairs[i].econtig1];
 
       bgn     = scfLen;
       scfLen += ctgInfo[ctgIID].len;
@@ -463,9 +464,7 @@ processSCF(SnapScaffoldMesg *scf) {
     //  the seocnd contig.
     //
     if ((i > 0) || (singleContig == 0)) {
-      ctgIID = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                                 AS_UID_toInteger(scf->contig_pairs[i].econtig2),
-                                                 0);
+      ctgIID = uid2iid[scf->contig_pairs[i].econtig2];
 
       scfLen += computeGapSize(scf->contig_pairs[i].mean);
       bgn     = scfLen;
@@ -535,9 +534,7 @@ transferFrg(FILE *ctg, FILE *scf) {
   while (!feof(ctg)) {
     if (5 == fscanf(ctg, "%s %s %d %d %c ", frgUID, ctgUID, &bgn, &end, &ori)) {
       AS_UID uid = AS_UID_lookup(ctgUID, NULL);
-      AS_IID iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                                     AS_UID_toInteger(uid),
-                                                     0);
+      AS_IID iid = uid2iid[uid];
 
       if (iid > 0) {
         uid  = ctgInfo[iid].scfUID;
@@ -595,9 +592,7 @@ transferVar(FILE *ctg, FILE *scf) {
       int32 end = atoi(W[3]);
 
       AS_UID uid = AS_UID_lookup(W[1], NULL);
-      AS_IID iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                                     AS_UID_toInteger(uid),
-                                                     0);
+      AS_IID iid = uid2iid[uid];
 
       if (iid > 0) {
         uid  = ctgInfo[iid].scfUID;
@@ -669,8 +664,6 @@ int main (int argc, char *argv[]) {
     fprintf(stderr, "\n");
     exit(1);
   }
-
-  uid2iid = CreateScalarHashTable_AS();
 
   ctgInfo = (ctgInfo_t *)safe_calloc(ctgInfoMax, sizeof(ctgInfo_t));
 
@@ -778,8 +771,6 @@ int main (int argc, char *argv[]) {
   fclose(frgscf);
   fclose(utgscf);
   fclose(varscf);
-
-  DeleteHashTable_AS(uid2iid);
 
   exit(0);
 }

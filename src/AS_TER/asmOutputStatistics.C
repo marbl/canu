@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputStatistics.C,v 1.5 2010-01-15 21:30:23 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputStatistics.C,v 1.6 2011-07-21 05:32:54 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -28,6 +28,7 @@ const char *mainid = "$Id: asmOutputStatistics.C,v 1.5 2010-01-15 21:30:23 brian
 #include  <unistd.h>
 #include  <assert.h>
 
+#include  <map>
 #include  <vector>
 #include  <algorithm>
 
@@ -40,8 +41,7 @@ using namespace std;
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 
-
-HashTable_AS      *uid2iid = NULL;
+map<AS_UID,AS_IID>  uid2iid;
 
 vector<uint64>     allScaffolds_contigs;
 vector<uint64>     allScaffolds_bases;
@@ -146,9 +146,7 @@ processAFG(AugFragMesg *afg) {
 
   frgLength[iid] = len;
 
-  InsertInHashTable_AS(uid2iid,
-                       AS_UID_toInteger(afg->eaccession), 0,
-                       afg->iaccession, 0);
+  uid2iid[afg->eaccession] = afg->iaccession;
 
   totalReadsFromAFG++;
 
@@ -263,9 +261,7 @@ void
 processCCOfrags(SnapConConMesg *cco, vector<uint64> &reads) {
 
   for (int32 i=0; i<cco->num_pieces; i++) {
-    uint32  iid = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                                    AS_UID_toInteger(cco->pieces[i].eident),
-                                                    0);
+    uint32  iid = uid2iid[cco->pieces[i].eident];
 
     reads.push_back(frgLength[iid]);
   }
@@ -302,9 +298,7 @@ processCCO(SnapConConMesg *cco) {
   contigLength[iid]  = len;
   contigGCBases[iid] = gc;
 
-  InsertInHashTable_AS(uid2iid,
-                       AS_UID_toInteger(cco->eaccession), 0,
-                       cco->iaccession, 0);
+  uid2iid[cco->eaccession] = cco->iaccession;
 
   //  By definition, a degenerate contig has one unitig and is unplaced.
   //  In reality, those two conditions always occur together.
@@ -370,9 +364,7 @@ processSCF(SnapScaffoldMesg *scf) {
     //  First contig-pair, print the first contig.
     //
     if (i == 0) {
-      AS_IID ctgIID = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                                        AS_UID_toInteger(scf->contig_pairs[i].econtig1),
-                                                        0);
+      AS_IID ctgIID = uid2iid[scf->contig_pairs[i].econtig1];
 
       spanLength += contigLength[ctgIID];
       baseLength += contigLength[ctgIID];
@@ -384,9 +376,7 @@ processSCF(SnapScaffoldMesg *scf) {
     //  the seocnd contig.
     //
     if ((i > 0) || (singleContig == 0)) {
-      AS_IID ctgIID = (AS_IID)LookupValueInHashTable_AS(uid2iid,
-                                                        AS_UID_toInteger(scf->contig_pairs[i].econtig2),
-                                                        0);
+      AS_IID ctgIID = uid2iid[scf->contig_pairs[i].econtig2];
       uint32 gapLen = computeGapSize(scf->contig_pairs[i].mean);
 
       gapLengths.push_back(gapLen);
@@ -539,8 +529,6 @@ generateStatisticsFromASMFile(char *progName, char *asmName) {
   if (errno)
     fprintf(stderr, "%s: failed to open '%s' for reading: %s\n",
             progName, asmName, strerror(errno));
-
-  uid2iid = CreateScalarHashTable_AS();
 
   while(ReadProtoMesg_AS(asmFile, &pmesg) != EOF){
     switch(pmesg->t){
