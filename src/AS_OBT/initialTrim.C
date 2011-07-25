@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.29 2011-07-20 20:01:37 mkotelbajcvi Exp $";
+const char *mainid = "$Id: initialTrim.C,v 1.30 2011-07-25 20:00:47 mkotelbajcvi Exp $";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
@@ -202,7 +202,7 @@ main(int argc, char **argv) {
       gkpStore->gkStore_delFragment(iid);
 
     if (logFile)
-      fprintf(logFile, ""F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
+      fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
               iid,
               fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_CLR),
               fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_CLR),

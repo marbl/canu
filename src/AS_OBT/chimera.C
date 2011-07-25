@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.44 2011-07-20 20:01:37 mkotelbajcvi Exp $";
+const char *mainid = "$Id: chimera.C,v 1.45 2011-07-25 20:00:47 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -328,7 +328,7 @@ printReport(char          *type,
             const overlapList  *overlap) {
 
 #ifdef WITH_REPORT_FULL
-  fprintf(reportFile, ""F_IID" %s!  "F_U32" intervals ("F_U32","F_U32").  "F_U32" potential chimeric overlaps (%5.2f%%).\n",
+  fprintf(reportFile, F_IID" %s!  "F_U32" intervals ("F_U32","F_U32").  "F_U32" potential chimeric overlaps (%5.2f%%).\n",
           iid, type,
           IL.numberOfIntervals(), intervalBeg, intervalEnd,
           hasPotentialChimera, (double)hasPotentialChimera / (double)overlap->length() * 100);
@@ -349,7 +349,7 @@ printLogMessage(AS_IID        iid,
                 char const   *type,
                 char const   *message) {
 
-  fprintf(reportFile, ""F_IID" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s, gatekeeper store %s.\n",
+  fprintf(reportFile, F_IID" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s, gatekeeper store %s.\n",
           iid, type,
           obtBgn, obtEnd,
           intervalBeg, intervalEnd,

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.15 2011-06-17 13:03:02 skoren Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.16 2011-07-25 20:00:47 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -247,6 +247,8 @@ main(int argc, char **argv) {
   gkLibrary         gkl;
 
   gkl.libraryUID                 = AS_UID_load(libraryName);
+
+  strcpy(gkl.libraryName, libraryName);
 
   gkl.mean                       = insertSize;
   gkl.stddev                     = insertStdDev;

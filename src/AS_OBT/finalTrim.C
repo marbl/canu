@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: finalTrim.C,v 1.2 2011-07-20 20:01:37 mkotelbajcvi Exp $";
+const char *mainid = "$Id: finalTrim.C,v 1.3 2011-07-25 20:00:47 mkotelbajcvi Exp $";
 
 #include "finalTrim.H"
 
@@ -371,7 +371,7 @@ main(int argc, char **argv) {
         gkpStore->gkStore_delFragment(iid);
       }
 
-      fprintf(logFile, ""F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tDEL%s\n",
+      fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tDEL%s\n",
               iid,
               ibgn, iend,
               fbgn, fend,
@@ -386,7 +386,7 @@ main(int argc, char **argv) {
     if ((ibgn == fbgn) &&
         (iend == fend)) {
       //  Clear range did not change.
-      fprintf(logFile, ""F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tNOC%s\n",
+      fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tNOC%s\n",
               iid,
               ibgn, iend,
               fbgn, fend,
@@ -401,7 +401,7 @@ main(int argc, char **argv) {
       gkpStore->gkStore_setFragment(&fr);
     }
 
-    fprintf(logFile, ""F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tMOD%s\n",
+    fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\tMOD%s\n",
             iid,
             ibgn, iend,
             fbgn, fend,

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.20 2011-01-06 19:41:34 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.21 2011-07-25 20:00:47 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +37,7 @@ static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.20 2011-01-06 19:41:34 brianwale
 #include "AS_UTL_fileIO.h"
 
 
-#define AS_GKP_CURRENT_VERSION    7
+#define AS_GKP_CURRENT_VERSION    8
 
 
 gkStore::gkStore() {

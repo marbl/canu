@@ -29,10 +29,18 @@
 //  feature.  In general, only clients that act on a feature need to
 //  know about it.
 //
+
+#define LIBRARY_NAME_SIZE 128
+#define LIBRARY_NAME_DEFAULT "UNDEFINED"
+
 class gkLibrary {
 public:
   gkLibrary() {
     libraryUID = AS_UID_undefined();
+
+    memset(libraryName, 0, sizeof(char) * LIBRARY_NAME_SIZE);
+    strcpy(libraryName, LIBRARY_NAME_DEFAULT);
+
     mean       = 0.0;
     stddev     = 0.0;
 
@@ -89,6 +97,7 @@ public:
 private:
 public:
   AS_UID         libraryUID;
+  char           libraryName[LIBRARY_NAME_SIZE];
 
   double         mean;
   double         stddev;

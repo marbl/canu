@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.13 2011-07-20 20:01:37 mkotelbajcvi Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.14 2011-07-25 20:00:47 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -388,11 +388,11 @@ main(int argc, char **argv) {
 
     if (gkl->doRemoveDuplicateReads == true) {
       if (summaryFile)
-        fprintf(summaryFile, "Checking library for duplicates.\n");
+        fprintf(summaryFile, "Checking library %s for duplicates.\n", gkl->libraryName);
       nothingToDo = false;
     } else {
       if (summaryFile)
-        fprintf(summaryFile, "Ignoring library.\n");
+        fprintf(summaryFile, "Ignoring library %s.\n", gkl->libraryName);
     }
   }
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.35 2010-04-29 15:36:10 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.36 2011-07-25 20:00:47 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -139,6 +139,8 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     }
 
     gkpl.libraryUID                 = lib_mesg->eaccession;
+
+    strcpy(gkpl.libraryName, AS_UID_toString(gkpl.libraryUID));
 
     gkpl.mean                       = lib_mesg->mean;
     gkpl.stddev                     = lib_mesg->stddev;
