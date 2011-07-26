@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.36 2010-12-02 21:13:13 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.37 2011-07-26 21:05:01 mkotelbajcvi Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -152,7 +152,7 @@ const int  NORMAL = 1;
 
 typedef  struct
   {
-   int32  a_iid, b_iid;
+   AS_IID a_iid, b_iid;
    signed int  a_hang : 15;
    signed int  b_hang : 15;
    signed int  orient : 2;
@@ -160,22 +160,22 @@ typedef  struct
 
 typedef  struct
   {
-   unsigned  id : 31;
+   AS_IID id;
    unsigned  shredded : 1;
-   int  start;              // position of beginning of sequence in  buffer
+   int  start:31;              // position of beginning of sequence in  buffer
   }  Frag_List_Entry_t;
 
 typedef  struct
   {
    Frag_List_Entry_t  * entry;
    char  * buffer;
-   int  size, ct, buffer_size;
+   uint32  size, ct, buffer_size;
   }  Frag_List_t;
 
 typedef  struct
   {
    int  thread_id;
-   int32  lo_frag, hi_frag;
+   AS_IID lo_frag, hi_frag;
    int64  next_olap;
    gkStream  *frag_stream;
    gkFragment *frag_read;
@@ -230,17 +230,17 @@ static char  * gkpStore_Path = NULL;
 static gkStore  *Internal_gkpStore = NULL;
     // Holds partial frag store to be processed simultanously by
     // multiple threads
-static int32  Lo_Frag_IID = -1;
+static AS_IID Lo_Frag_IID = 0;
     // Internal ID of first fragment in frag store to process
-static int32  Hi_Frag_IID = -1;
+static AS_IID Hi_Frag_IID = 0;
     // Internal ID of last fragment in frag store to process
 static int  Kmer_Len = DEFAULT_KMER_LEN;
     // Length of minimum exact match in overlap to confirm base pairs
 static time_t  Now = 0;
     // Used to get current time
-static int  Num_Frags = 0;
+static uint32 Num_Frags = 0;
     // Number of fragments being corrected
-static int64  Num_Olaps = 0;
+static uint64  Num_Olaps = 0;
     // Number of overlaps being used
 static int  Num_PThreads = DEFAULT_NUM_PTHREADS;
     // Number of pthreads to process overlaps/corrections;
@@ -281,12 +281,12 @@ static void  Display_Alignment
 static void  Display_Frags
     (void);
 static void  Extract_Needed_Frags
-    (gkStore *store, int32 lo_frag, int32 hi_frag,
+    (gkStore *store, AS_IID lo_frag, AS_IID hi_frag,
      Frag_List_t * list, int64 * next_olap);
 static char  Filter
     (char ch);
 static void  Get_Olaps_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int64 * num);
+    (char * path, AS_IID lo_id, AS_IID hi_id, Olap_Info_t * * olap, uint64 * num);
 static void  Init_Frag_List
     (Frag_List_t * list);
 static void  Initialize_Globals
@@ -954,7 +954,7 @@ static void  Display_Frags
 
 
 static void  Extract_Needed_Frags
-    (gkStore *store, int32 lo_frag, int32 hi_frag,
+    (gkStore *store, AS_IID lo_frag, AS_IID hi_frag,
      Frag_List_t * list, int64 * next_olap)
 
 //  Read fragments  lo_frag .. hi_frag  from  store  and save
@@ -968,7 +968,7 @@ static void  Extract_Needed_Frags
    int i;
 #endif
    static gkFragment  frag_read;
-   uint32  frag_iid;
+   AS_IID frag_iid;
    int  bytes_used, total_len, new_total;
    int  extract_ct, stream_ct;
    int  j;
@@ -1097,7 +1097,7 @@ static char  Filter
 
 
 static void  Get_Olaps_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int64 * num)
+    (char * path, AS_IID lo_id, AS_IID hi_id, Olap_Info_t * * olap, uint64 * num)
 
 //  Open overlap store  path  and read from it the overlaps for fragments
 //   lo_id .. hi_id , putting them in  (* olap)  for which space
@@ -1991,7 +1991,7 @@ static void  Read_Olaps
 
   {
    FILE  * fp;
-   int32  a_iid, b_iid;
+   AS_IID a_iid, b_iid;
    int  a_hang, b_hang;
    char  orient [10];
    double  error_rate;
@@ -2109,7 +2109,7 @@ static void  Stream_Old_Frags
      {
       FragType  read_type;
       int32  rev_id;
-      uint32  frag_iid;
+      AS_IID frag_iid;
       unsigned  deleted;
       int  result, shredded;
 
