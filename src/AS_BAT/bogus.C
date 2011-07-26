@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogus.C,v 1.7 2011-04-04 14:24:00 brianwalenz Exp $";
+const char *mainid = "$Id: bogus.C,v 1.8 2011-07-26 21:29:35 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -382,6 +382,11 @@ main(int argc, char **argv) {
   char    *refName             = 0L;
   char    *outputPrefix        = 0L;
 
+  //  Output intervals must be at least minLength bases long, and be formed from at least minFrags
+  //  mappings.
+  uint32   minLength  = 0;
+  uint32   minFrags   = 0;
+
   //  When comparing coords to if two alignments span the same piece of the fragment,
   //  allow (twice) this much slop in the comparison.  E.g., Abgn +- 5 == Bbgn
   //
@@ -427,7 +432,14 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-noraw") == 0) {
       includeRaw = false;
 
+    } else if (strcmp(argv[arg], "-minlength") == 0) {
+      minLength = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-minfrags") == 0) {
+      minFrags = atoi(argv[++arg]);
+
     } else {
+      fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
       err++;
     }
     arg++;
@@ -542,15 +554,17 @@ main(int argc, char **argv) {
 
       assert(refcnt != 0);
 
-      fprintf(intervalOutput, "%s\t%8ld\t%8ld\tREPT\t%ld%s\n",
-              refhdr, refbgn, refend, refcnt, (REPTvalid[ir]) ? "" : " weak");
+      if ((minFrags <= refcnt) && (minLength <= refend - refbgn)) {
+        fprintf(intervalOutput, "%s\t%8ld\t%8ld\tREPT\t%ld%s\n",
+                refhdr, refbgn, refend, refcnt, (REPTvalid[ir]) ? "" : " weak");
 
-      if (REPTvalid[ir])
-        fprintf(gffOutput, "%s\t.\tbogus_rept_interval\t%ld\t%ld\t.\t.\t.\tID=REPT%04d\n",
-                refhdr, refbgn, refend, ir);
-      else
-        fprintf(gffOutput, "%s\t.\tbogus_weak_interval\t%ld\t%ld\t.\t.\t.\tParent=UNIQ%04d\n",
-                refhdr, refbgn, refend, REPTvalidParent[ir]);
+        if (REPTvalid[ir])
+          fprintf(gffOutput, "%s\t.\tbogus_rept_interval\t%ld\t%ld\t.\t.\t.\tID=REPT%04d;fragCount=%ld\n",
+                  refhdr, refbgn, refend, ir, refcnt);
+        else
+          fprintf(gffOutput, "%s\t.\tbogus_weak_interval\t%ld\t%ld\t.\t.\t.\tParent=UNIQ%04d;fragCount=%ld\n",
+                  refhdr, refbgn, refend, REPTvalidParent[ir], refcnt);
+      }
 
       ir++;
 
@@ -565,15 +579,17 @@ main(int argc, char **argv) {
 
       assert(refcnt != 0);
 
-      fprintf(intervalOutput, "%s\t%8ld\t%8ld\tUNIQ\t%ld%s\n",
-              refhdr, refbgn, refend, refcnt, (UNIQvalid[iu]) ? "" : " separation");
+      if ((minFrags <= refcnt) && (minLength <= refend - refbgn)) {
+        fprintf(intervalOutput, "%s\t%8ld\t%8ld\tUNIQ\t%ld%s\n",
+                refhdr, refbgn, refend, refcnt, (UNIQvalid[iu]) ? "" : " separation");
 
-      if (UNIQvalid[iu])
-        fprintf(gffOutput, "%s\t.\tbogus_uniq_interval\t%ld\t%ld\t.\t.\t.\tID=UNIQ%04d\n",
-                refhdr, refbgn, refend, iu);
-      else
-        fprintf(gffOutput, "%s\t.\tbogus_sepr_interval\t%ld\t%ld\t.\t.\t.\tParent=REPT%04d\n",
-                refhdr, refbgn, refend, UNIQvalidParent[iu]);
+        if (UNIQvalid[iu])
+          fprintf(gffOutput, "%s\t.\tbogus_uniq_interval\t%ld\t%ld\t.\t.\t.\tID=UNIQ%04d;fragCount=%ld\n",
+                  refhdr, refbgn, refend, iu, refcnt);
+        else
+          fprintf(gffOutput, "%s\t.\tbogus_sepr_interval\t%ld\t%ld\t.\t.\t.\tParent=REPT%04d;fragCount=%ld\n",
+                  refhdr, refbgn, refend, UNIQvalidParent[iu], refcnt);
+      }
 
       iu++;
     }
