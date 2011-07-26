@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.65 2011-06-17 13:03:02 skoren Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.66 2011-07-26 20:16:26 mkotelbajcvi Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.65 2011-06-17 13:03:02 sk
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.65 2011-06-17 13:03:02 skoren Exp $
- * $Revision: 1.65 $
+ * $Id: AS_OVL_overlap_common.h,v 1.66 2011-07-26 20:16:26 mkotelbajcvi Exp $
+ * $Revision: 1.66 $
 */
 
 
@@ -92,7 +92,7 @@ typedef  enum Overlap_Type
 
 typedef  struct Olap_Info
   {
-   int  s_lo, s_hi, t_lo, t_hi;
+   AS_IID  s_lo, s_hi, t_lo, t_hi;
    double  quality;
    int  delta [AS_READ_MAX_NORMAL_LEN+1];  //  needs only MAX_ERRORS
    int  delta_ct;
@@ -333,7 +333,7 @@ int  Hash_Mask_Bits            = 666;
 double  Max_Hash_Load          = MAX_HASH_LOAD;
 int  Max_Hash_Strings          = 0;
 int  Max_Hash_Data_Len         = 0;
-int  Max_Frags_In_Memory_Store = 0;
+uint32  Max_Frags_In_Memory_Store = 0;
   // The number of fragments to read in a batch when streaming
   // the old reads against the hash table.
 
@@ -367,8 +367,8 @@ gkStore  *OldFragStore;
 gkStore  *BACtigStore;
 char  * Frag_Store_Path;
 char  * BACtig_Store_Path = NULL;
-uint32  * IID_List = NULL;
-int  IID_List_Len = 0;
+AS_IID* IID_List = NULL;
+uint32  IID_List_Len = 0;
 
 pthread_mutex_t  FragStore_Mutex;
 pthread_mutex_t  Write_Proto_Mutex;
@@ -462,7 +462,7 @@ static int  Read_Next_Frag
      gkStream *stream, gkFragment *, Screen_Info_t *,
      uint32 * last_frag_read, uint32 minLibToRead, uint32 maxLibToRead);
 static void  Read_uint32_List
-    (char * file_name, uint32 * * list, int * n);
+    (char * file_name, uint32 * * list, uint32 * n);
 static int  Rev_Prefix_Edit_Dist
     (char *, int, char *, int, int, int *, int *, int *, int *,
      Work_Area_t *);
@@ -3001,8 +3001,8 @@ if  (Contig_Mode)
             || (olap -> s_lo == olap -> t_lo
                    && S_Right_Hang > T_Right_Hang))
        {       // S is on the left
-        ovMesg.aifrag = (Int_Frag_ID_t) S_ID;
-        ovMesg.bifrag = (Int_Frag_ID_t) T_ID;
+        ovMesg.aifrag = S_ID;
+        ovMesg.bifrag = T_ID;
 
         if  (S_Dir == FORWARD)
           ovMesg.orientation.setIsNormal();
@@ -4253,7 +4253,7 @@ static int  Read_Next_Frag
 
 
 static void  Read_uint32_List
-    (char * file_name, uint32 * * list, int * n)
+    (char * file_name, uint32 * * list, uint32 * n)
 
 //  Open  file_name  and use the list of integers in it to build
 //  a sorted (ascending) list of integers in  (* list) .
@@ -4261,7 +4261,7 @@ static void  Read_uint32_List
 
   {
    FILE  * fp = File_Open (file_name, "r");
-   int  num;
+   uint32  num;
 
 
    (* n) = 0;

@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.41 2009-11-02 21:24:54 skoren Exp $
- * $Revision: 1.41 $
+ * $Id: OlapFromSeedsOVL.c,v 1.42 2011-07-26 20:16:26 mkotelbajcvi Exp $
+ * $Revision: 1.42 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.41 2009-11-02 21:24:54 skoren Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.42 2011-07-26 20:16:26 mkotelbajcvi Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -2470,7 +2470,7 @@ static int  Eliminate_Correlated_Diff_Olaps
 
 
 static void  Extract_Needed_Frags
-    (gkStore *store, int32 lo_frag, int32 hi_frag,
+    (gkStore *store, AS_IID lo_frag, AS_IID hi_frag,
      Frag_List_t * list, int * next_olap)
 
 //  Read fragments  lo_frag .. hi_frag  from  store  and save
@@ -2484,7 +2484,7 @@ static void  Extract_Needed_Frags
    int i;
 #endif
    static gkFragment   frag_read;
-   uint32  frag_iid;
+   AS_IID frag_iid;
    int  bytes_used, total_len, new_total;
    int  extract_ct, stream_ct;
    int  j;
@@ -2629,7 +2629,7 @@ static char  Filter
 
 
 static void  Get_Seeds_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t ** olap, int * num)
+    (char * path, AS_IID lo_id, AS_IID hi_id, Olap_Info_t ** olap, uint64 * num)
 
 //  Open overlap store  path  and read from it the overlaps for fragments
 //   lo_id .. hi_id , putting them in  (* olap)  for which space
@@ -3616,7 +3616,8 @@ static void  Output_Olap_From_Diff
     OVSoverlap  overlap = {0};
    double  qual;
    char  dir;
-   int32  a_iid, a_len;
+   AS_IID a_iid;
+   uint32 a_len;
    int  x, y, errors;
 
    a_iid = Lo_Frag_IID + sub;
@@ -4346,7 +4347,7 @@ static void  Read_Seeds
 
   {
    FILE  * fp;
-   int32  a_iid, b_iid;
+   AS_IID a_iid, b_iid;
    int  a_offset, b_offset;
    char  orient [10];
    int  count;
@@ -5572,14 +5573,14 @@ static void  Stream_Old_Frags
         && next_olap < Num_Olaps; i ++)
      {
       int32  rev_id;
-      uint32  frag_iid;
+      AS_IID frag_iid;
       int  raw_len, result, shredded, is_homopoly;
 
       if (Verbose_Level > 2)
         if (i % 1000 == 0)
            printf ("Stream_Old_Frags  i = %7d\n", i);
 
-      frag_iid = (uint32) frag_read.gkFragment_getReadIID ();
+      frag_iid = frag_read.gkFragment_getReadIID ();
       if  (frag_iid < Olap [next_olap] . b_iid)
           continue;
 
@@ -5651,7 +5652,7 @@ void *  Threaded_Process_Stream
 
    for  (i = 0;  i < wa -> frag_list -> ct;  i ++)
      {
-      int32  skip_id = -1;
+	   AS_IID skip_id = 0;
 
       while  (wa -> frag_list -> entry [i] . id > Olap [wa -> next_olap] . b_iid)
         {

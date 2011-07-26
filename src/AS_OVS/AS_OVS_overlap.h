@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAP_H
 #define AS_OVS_OVERLAP_H
 
-static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.16 2011-03-31 15:59:17 skoren Exp $";
+static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.17 2011-07-26 20:16:26 mkotelbajcvi Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"  //  pretty heavy just to get OverlapMesg.
@@ -175,13 +175,13 @@ typedef union {
 } OVSoverlapDAT;
 
 typedef struct {
-  uint32         b_iid;
+  AS_IID         b_iid;
   OVSoverlapDAT  dat;
 } OVSoverlapINT;
 
 typedef struct {
-  uint32         a_iid;
-  uint32         b_iid;
+  AS_IID         a_iid;
+  AS_IID         b_iid;
   OVSoverlapDAT  dat;
 } OVSoverlap;
 

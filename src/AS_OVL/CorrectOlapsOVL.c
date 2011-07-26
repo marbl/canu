@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.41 2010-02-17 01:32:58 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.42 2011-07-26 20:16:26 mkotelbajcvi Exp $";
 
 //  System include files
 
@@ -107,7 +107,7 @@ const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.41 2010-02-17 01:32:58 brianwal
 
 //  Type definitions
 
-typedef  int32  Int_Frag_ID_t;
+typedef  AS_IID  Int_Frag_ID_t;
 
 typedef  struct
   {
@@ -119,8 +119,8 @@ typedef  struct
   {
    char  * sequence;
    Adjust_t  * adjust;
-   int  unitig1, lo1, hi1;
-   int  unitig2, lo2, hi2;
+   AS_IID  unitig1, lo1, hi1;
+   AS_IID  unitig2, lo2, hi2;
    unsigned  keep_right : 1;    // set true if right overlap degree is low
    unsigned  keep_left : 1;     // set true if left overlap degree is low
    int16  adjust_ct;
@@ -128,7 +128,7 @@ typedef  struct
 
 typedef  struct
   {
-   int32   a_iid, b_iid;
+   AS_IID   a_iid, b_iid;
    int16   a_hang, b_hang;
    int32   place;                // position in array before sort
    uint16  corr_erate;
@@ -137,9 +137,9 @@ typedef  struct
 
 typedef  struct
   {
-   unsigned  lo_iid : 31;
-   unsigned  hi_iid : 31;
-   unsigned  confirmed : 1;
+	AS_IID lo_iid;
+	AS_IID hi_iid;
+	char confirmed : 1;
   }  Frag_Pair_t;
 
 typedef  struct
@@ -194,24 +194,24 @@ static char  * gkpStore_Path;
     // Name of directory containing fragment store from which to get fragments
 static int  Half_Len = DEFAULT_HALF_LEN;
     // Number of bases on each side of SNP to vote for change
-static int32  Hi_Frag_IID;
+static AS_IID  Hi_Frag_IID;
     // Internal ID of last fragment in frag store to process
 static int  Hi_Unitig = -1;
     // The highest numbered unitig.
-static unsigned  Highest_Frag = 0;
+static AS_IID  Highest_Frag = 0;
     // The highest numbered fragment in the unitig messages.
-static int  * IUM = NULL;
+static AS_IID* IUM = NULL;
     // Has unitig ID for each fragment.
-static int  IUM_Size = 0;
+static uint32 IUM_Size = 0;
     // Number of entries in  IUM .
 static Int_List_t  * Keep_Pair = NULL;
     // Array holding pairs of unitigs that corrected overlaps imply
     // should overlap.
 static int  Kmer_Len = DEFAULT_KMER_LEN;
     // Length of minimum exact match in overlap to confirm base pairs
-static int32  Lo_Frag_IID;
+static AS_IID Lo_Frag_IID;
     // Internal ID of first fragment in frag store to process
-static int  Num_Frags = 0;
+static uint32 Num_Frags = 0;
     // Number of fragments being corrected
 static uint64  Num_Olaps;
     // Number of overlaps being used
@@ -221,7 +221,7 @@ static uint32  * Olap_Offset = NULL;
     // Indicates the first overlap of each fragment
 static char  * Olap_Path;
     // Name of file containing a sorted list of overlaps
-static int  Olaps_From_Store = FALSE;
+static bool Olaps_From_Store = FALSE;
     // Indicates if overlap info comes from  get-olaps  or from
     // a binary overlap store
 static FILE  * OVL_fp = NULL;
@@ -258,7 +258,7 @@ static void  Display_Alignment
 static void  Display_Frags
     (void);
 static void  Dump_Erate_File
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * olap, uint64 num);
+    (char * path, AS_IID lo_id, AS_IID hi_id, Olap_Info_t * olap, uint64 num);
 static void  Fasta_Print
     (FILE * fp, char * s, char * hdr);
 static char  Filter
@@ -270,7 +270,7 @@ static void  Get_Canonical_Olap_Region
      Adjust_t forw_adj [], int adj_ct,
      int frag_len, char * * a_part, char * * b_part);
 static void  Get_Olaps_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, uint64 * num);
+    (char * path, AS_IID lo_id, AS_IID hi_id, Olap_Info_t * * olap, uint64 * num);
 static int  Hang_Adjust
     (int hang, Adjust_t adjust [], int adjust_ct);
 static void  Initialize_Globals
@@ -716,7 +716,7 @@ static void  Correct_Frags
    int  before_errors = 0, after_errors;
    int  num_corrects = 0;
    int  correcting = FALSE;
-   uint32  iid = 0;
+   AS_IID iid = 0;
 
    fp = File_Open (Correct_File_Path, "rb");
 
@@ -893,7 +893,7 @@ static void  Display_Frags
 
 
 static void  Dump_Erate_File
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * olap, uint64 num)
+    (char * path, AS_IID lo_id, AS_IID hi_id, Olap_Info_t * olap, uint64 num)
 
 //  Create a binary file of new error rates in  path .  The format
 //  is  lo_id , then  hi_id , then  num , followed by an array of  num
@@ -1101,7 +1101,7 @@ static void  Get_Canonical_Olap_Region
 
 
 static void  Get_Olaps_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, uint64 * num)
+    (char * path, AS_IID lo_id, AS_IID hi_id, Olap_Info_t * * olap, uint64 * num)
 
 //  Open overlap store  path  and read from it the overlaps for fragments
 //   lo_id .. hi_id , putting them in  (* olap)  for which space
@@ -1248,7 +1248,7 @@ static void  Keep_Olap
 //  is already in the global  Keep_Pair  list.
 
   {
-   int  a_uni, b_uni, error = FALSE;
+   AS_IID  a_uni, b_uni, error = FALSE;
 
    a_uni = IUM [olap -> a_iid];
    b_uni = IUM [olap -> b_iid];
@@ -1377,7 +1377,7 @@ static int  Olap_In_Unitig
 //  unitigs stored in  Frag .
 
   {
-   int  a_sub, b_sub;
+   AS_IID a_sub, b_sub;
    int  a, b, c, d, p, q;
 
    a_sub = olap -> a_iid - Lo_Frag_IID;
@@ -1468,8 +1468,8 @@ static int  Output_OVL
         outputMesg . m = & ovMesg;
         outputMesg . t = MESG_OVL;
         ovMesg . alignment_trace = NULL;
-        ovMesg . aifrag = (Int_Frag_ID_t) olap -> a_iid;
-        ovMesg . bifrag = (Int_Frag_ID_t) olap -> b_iid;
+        ovMesg . aifrag = olap -> a_iid;
+        ovMesg . bifrag = olap -> b_iid;
         if  (ovMesg . bhg <= 0)
             ovMesg . overlap_type = AS_CONTAINMENT;
         else
@@ -2070,7 +2070,7 @@ static void  Read_Olaps
 
   {
    FILE  * fp;
-   int32  a_iid, b_iid;
+   AS_IID a_iid, b_iid;
    int  a_hang, b_hang;
    char  orient [10];
    double  error_rate;
@@ -2153,7 +2153,7 @@ static void  Redo_Olaps
    Adjust_t  adjust [AS_READ_MAX_NORMAL_LEN];
    int16  adjust_ct;
    int  num_corrects;
-   uint32  correct_iid = 0, next_iid;
+   AS_IID correct_iid = 0, next_iid;
    int  i, j;
 
    lo_frag = Olap [0] . b_iid;
@@ -2173,7 +2173,7 @@ static void  Redo_Olaps
       char *seqptr;
       char  * seq_ptr = seq_buff;
       Adjust_t  * adjust_ptr = adjust;
-      uint32  frag_iid;
+      AS_IID frag_iid;
       unsigned  deleted;
       int  frag_len, result;
 

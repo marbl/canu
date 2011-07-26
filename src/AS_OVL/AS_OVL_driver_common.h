@@ -28,7 +28,7 @@
 #ifndef AS_OVL_DRIVER_COMMON_H
 #define AS_OVL_DRIVER_COMMON_H
 
-static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.29 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.30 2011-07-26 20:16:26 mkotelbajcvi Exp $";
 
 #include  <unistd.h>
 
@@ -45,17 +45,17 @@ static gkFragment  myRead;
 static int  Screen_Blocks_Used;
 static int  Next_Distance_Index;
 static int  Next_Fragment_Index;
-static int  IID_Lo, IID_Hi;
-static int  Frag_Segment_Lo;
-static int  Frag_Segment_Hi;
+static AS_IID  IID_Lo, IID_Hi;
+static AS_IID  Frag_Segment_Lo;
+static AS_IID  Frag_Segment_Hi;
 static int  Batch_Num = 0;
 static time_t  Now;
 
 
 static void *  Choose_And_Process_Stream_Segment (void *);
-static int  Choose_Hi_IID_Sub (uint32 List [], int lo, int n);
+static AS_IID  Choose_Hi_IID_Sub (AS_IID List [], AS_IID lo, AS_IID n);
 void  Cleanup_Work_Area (Work_Area_t * wa);
-static int  ReadFrags (int maxFrags);
+static uint32  ReadFrags (uint32 maxFrags);
 
 
 
@@ -283,15 +283,15 @@ int  OverlapDriver(int argc, char **argv)
 
 /******************************************************************************/
 
-static int  Choose_Hi_IID_Sub
-(uint32 List [], int lo, int n)
+static AS_IID  Choose_Hi_IID_Sub
+(AS_IID List [], AS_IID lo, AS_IID n)
 
 //  Return subscript in range  lo .. n  so that fragment IID's in
 //  that range of  List  are suitable for processing in a round of
 //  overlaps.
 
 {
-  int  i;
+	AS_IID  i;
 
   for  (i = lo + 1;
         i < n
@@ -337,7 +337,7 @@ static void *  Choose_And_Process_Stream_Segment
 
   while  (allDone == 0)
     {
-      int  lo, hi;
+      AS_IID  lo, hi;
 
       if  (Num_PThreads > 1)
         pthread_mutex_lock (& FragStore_Mutex);
@@ -402,8 +402,8 @@ static void *  Choose_And_Process_Stream_Segment
    Read up to maxFrags, but maybe a little less.
 
 */
-static int  ReadFrags
-(int maxFrags)
+static uint32  ReadFrags
+(uint32 maxFrags)
 
 {
   Now = time (NULL);

@@ -33,15 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.24 2011-03-08 21:17:23 skoren Exp $
- * $Revision: 1.24 $
+ * $Id: OlapFromSeedsOVL.h,v 1.25 2011-07-26 20:16:26 mkotelbajcvi Exp $
+ * $Revision: 1.25 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
 
-static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.24 2011-03-08 21:17:23 skoren Exp $";
+static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.25 2011-07-26 20:16:26 mkotelbajcvi Exp $";
 
 //**ALD determine if use new code to analyze true multialignments
 #define  USE_NEW_STUFF  1
@@ -205,7 +205,7 @@ const int  NORMAL = 1;
 
 typedef  struct
   {
-   int32  a_iid, b_iid;
+   AS_IID a_iid, b_iid;
    signed int  a_hang    : AS_OVS_HNGBITS;
    signed int  b_hang    : AS_OVS_HNGBITS;
    signed int  orient    : 2;
@@ -214,7 +214,7 @@ typedef  struct
 
 typedef  struct
   {
-   int32  id;
+   AS_IID id;
    unsigned  trim_5p          : AS_READ_MAX_NORMAL_LEN_BITS;
    unsigned  trim_3p          : AS_READ_MAX_NORMAL_LEN_BITS;
    unsigned  len              : AS_READ_MAX_NORMAL_LEN_BITS;
@@ -233,7 +233,7 @@ typedef  struct
 typedef  struct
   {
    int  thread_id;
-   int32  lo_frag, hi_frag;
+   AS_IID  lo_frag, hi_frag;
    int  next_olap;
    int  failed_olaps;
    gkStream  * frag_stream;
@@ -318,22 +318,22 @@ static char  * gkpStore_Path;
   // Name of directory containing fragment store from which to get fragments
 static unsigned  X_Arg = 0;
   // Set to argument of special X option
-static int32  Hi_Frag_IID;
+static AS_IID Hi_Frag_IID;
   // Internal ID of last fragment in frag store to process
 static gkStore  * Internal_gkpStore;
   // Holds partial frag store to be processed simultanously by
   // multiple threads
 static int  Kmer_Len = DEFAULT_KMER_LEN;
   // Length of minimum exact match in overlap to confirm base pairs
-static int32  Lo_Frag_IID;
+static AS_IID Lo_Frag_IID;
   // Internal ID of first fragment in frag store to process
 static int  Min_Olap_Len = AS_OVERLAP_MIN_LEN;
   // The minimum number of bp in each read to report an overlap
 static time_t  Now;
   // Used to get current time
-static int  Num_Frags;
+static uint32 Num_Frags;
   // Number of fragments being corrected
-static int  Num_Olaps;
+static uint64 Num_Olaps;
   // Number of overlaps being used
 static int  Num_PThreads = DEFAULT_NUM_PTHREADS;
   // Number of pthreads to process overlaps/corrections;
@@ -438,7 +438,7 @@ static int  Eliminate_Correlated_Diff_Olaps
   (int sub, const char * ref, int ref_len, Sequence_Diff_t * dp, int dp_ct,
    int ref_is_homopoly);
 static void  Extract_Needed_Frags
-  (gkStore *store, int32 lo_frag, int32 hi_frag,
+  (gkStore *store, AS_IID lo_frag, AS_IID hi_frag,
    Frag_List_t * list, int * next_olap);
 static char  Filter
   (char ch);

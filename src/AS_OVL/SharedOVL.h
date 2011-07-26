@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.16 2009-10-26 13:20:26 brianwalenz Exp $
- * $Revision: 1.16 $
+ * $Id: SharedOVL.h,v 1.17 2011-07-26 20:16:26 mkotelbajcvi Exp $
+ * $Revision: 1.17 $
 */
 
 
 #ifndef  __SHAREDOVL_H_INCLUDED
 #define  __SHAREDOVL_H_INCLUDED
 
-static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.16 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid_SHAREDOVL_H_INCLUDED = "$Id: SharedOVL.h,v 1.17 2011-07-26 20:16:26 mkotelbajcvi Exp $";
 
 
 #include "AS_OVL_delcher.h"
@@ -151,7 +151,7 @@ typedef struct
 
 typedef struct
   {
-   int32  b_iid;
+   AS_IID b_iid;
    unsigned  a_lo             : AS_READ_MAX_NORMAL_LEN_BITS;
    unsigned  a_hi             : AS_READ_MAX_NORMAL_LEN_BITS;
    unsigned  b_lo             : AS_READ_MAX_NORMAL_LEN_BITS;

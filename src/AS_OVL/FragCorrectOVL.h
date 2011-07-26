@@ -22,7 +22,7 @@
 #ifndef FRAGCORRECTOVL_H
 #define FRAGCORRECTOVL_H
 
-static const char *rcsid_FRAGCORRECTOVL_H = "$Id: FragCorrectOVL.h,v 1.8 2009-10-26 13:20:26 brianwalenz Exp $";
+static const char *rcsid_FRAGCORRECTOVL_H = "$Id: FragCorrectOVL.h,v 1.9 2011-07-26 20:16:26 mkotelbajcvi Exp $";
 
 typedef  enum {
    DELETE,
@@ -39,11 +39,11 @@ typedef  enum {
 }  Vote_Value_t;
 
 typedef  struct {
-  uint64  is_ID       : 1;
-  uint64  pad         : 64 - 1 - 1 - 1 - 32;
-  uint64  keep_left   : 1;    // set true if left overlap degree is low
-  uint64  keep_right  : 1;    // set true if right overlap degree is low
-  uint64  iid         : 32;
+  uint32  is_ID       : 1;
+  uint32  pad         : 32 - 1 - 1 - 1;
+  uint32  keep_left   : 1;    // set true if left overlap degree is low
+  uint32  keep_right  : 1;    // set true if right overlap degree is low
+  AS_IID  iid;
 } Frag_ID_t;
 
 typedef  struct {

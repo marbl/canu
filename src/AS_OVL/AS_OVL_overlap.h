@@ -26,15 +26,15 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.36 2011-03-08 21:17:23 skoren Exp $
- * $Revision: 1.36 $
+ * $Id: AS_OVL_overlap.h,v 1.37 2011-07-26 20:16:26 mkotelbajcvi Exp $
+ * $Revision: 1.37 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
 
-static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.36 2011-03-08 21:17:23 skoren Exp $";
+static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.37 2011-07-26 20:16:26 mkotelbajcvi Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -381,7 +381,7 @@ typedef  FILE *  Input_Stream;
 
 
 typedef  int64  Ext_Frag_ID_t;
-typedef  int32  Int_Frag_ID_t;
+typedef  AS_IID  Int_Frag_ID_t;
 
 typedef  enum Direction_Type
   {FORWARD, REVERSE}  Direction_t;
@@ -481,7 +481,7 @@ typedef  struct Work_Area
 extern int  Hash_Mask_Bits;
 extern int  Max_Hash_Data_Len;
 extern int  Max_Hash_Strings;
-extern int  Max_Frags_In_Memory_Store;
+extern uint32  Max_Frags_In_Memory_Store;
 
 extern int  Contig_Mode;
 extern uint32  Last_Hash_Frag_Read;
@@ -515,8 +515,8 @@ extern char  * Frag_Store_Path;
 extern Output_Stream  Out_Stream;
 extern BinaryOverlapFile  *Out_BOF;
     //  To handle I/O
-extern uint32  * IID_List;
-extern int  IID_List_Len;
+extern AS_IID* IID_List;
+extern uint32  IID_List_Len;
 
 extern pthread_mutex_t  FragStore_Mutex;
 extern pthread_mutex_t  Write_Proto_Mutex;
