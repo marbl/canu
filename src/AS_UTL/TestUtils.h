@@ -19,8 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef AS_UTL_TEST_H
-#define AS_UTL_TEST_H
+#ifndef TEST_UTILS_H
+#define TEST_UTILS_H
 
 #include <assert.h>
 #include <stdio.h>
@@ -28,7 +28,7 @@
 #include <strings.h>
 #include <iostream>
 
-static const char* rcsid = "$Id: TestUtils.h,v 1.1 2011-07-28 04:23:50 mkotelbajcvi Exp $";
+static const char* rcsid_TEST_UTILS_H = "$Id: TestUtils.h,v 1.2 2011-07-28 04:35:33 mkotelbajcvi Exp $";
 
 #define assertFalse(condition, message) \
 	if (condition) \

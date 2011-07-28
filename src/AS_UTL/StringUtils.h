@@ -19,8 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef AS_UTL_STRINGS_H
-#define AS_UTL_STRINGS_H
+#ifndef STRING_UTILS_H
+#define STRING_UTILS_H
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -33,7 +33,7 @@
 #include "AS_global.h"
 #include "AS_UTL_alloc.h"
 
-static const char *rcsid_AS_UTL_STRINGS_H = "$Id: StringUtils.h,v 1.1 2011-07-28 04:23:50 mkotelbajcvi Exp $";
+static const char *rcsid_STRING_UTILS_H = "$Id: StringUtils.h,v 1.2 2011-07-28 04:35:33 mkotelbajcvi Exp $";
 
 static const char* WHITESPACE_CHARS = " \t\n\r";
 
