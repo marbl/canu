@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.22 2009-12-03 01:19:27 brianwalenz Exp $";
+//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.23 2011-07-28 04:23:50 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -261,7 +261,7 @@ AS_UTL_sizeOfFile(const char *path) {
     sprintf(cmd, "gzip -l %s", path);
     F = popen(cmd, "r");
     fscanf(F, " %*s %*s %*s %*s ");
-    fscanf(F, " %*d %lld %*s %*s ", &size);
+    fscanf(F, " %*d %ld %*s %*s ", &size);
     pclose(F);
   } else if (strcasecmp(path+strlen(path)-4, ".bz2") == 0) {
     size = s.st_size * 14 / 10;

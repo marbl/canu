@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.38 2011-05-02 15:00:48 skoren Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.39 2011-07-28 04:23:50 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,6 +87,7 @@ typedef uint8_t  uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
+typedef size_t size;
 
 typedef void *PtrT;
 

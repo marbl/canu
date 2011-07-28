@@ -37,7 +37,9 @@ LIB_SOURCES = AS_UTL_Hash.C \
               AS_UTL_fasta.C \
               AS_UTL_UID.C \
               AS_UTL_reverseComplement.C \
-              AS_UTL_intervalList.C
+              AS_UTL_intervalList.C \
+              ArgumentException.C \
+              StringUtils.C
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
@@ -59,6 +61,11 @@ libCA.a: $(LIB_OBJECTS)
 
 .PHONY: test
 test:
-	cc -O3 -o testHashTable -I.. -I. testHashTable.C AS_UTL_Hash.C AS_UTL_heap.C AS_UTL_alloc.C AS_UTL_fileIO.C -lm
-	cc -O3 -o testRand      -I.. -I. testRand.C      AS_UTL_rand.C                                              -lm
-	cc -O3 -o testVar       -I.. -I. testVar.C       AS_UTL_Var.C                AS_UTL_alloc.C AS_UTL_fileIO.C -lm
+	$(CXX) $(CPPFLAGS) $(CXXDEFS) $(CXXFLAGS) -g \
+		-I. -I.. \
+		-o testStringUtils \
+		testStringUtils.C \
+		ArgumentException.C \
+		AS_UTL_alloc.C \
+		AS_UTL_fileIO.C \
+		StringUtils.C

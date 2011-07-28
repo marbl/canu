@@ -22,12 +22,14 @@
 #ifndef AS_UTL_VAR_H
 #define AS_UTL_VAR_H
 
-static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.20 2009-10-09 02:03:52 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.21 2011-07-28 04:23:50 mkotelbajcvi Exp $";
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <typeinfo>
 
 #include "AS_global.h"
 #include "AS_UTL_alloc.h"
@@ -279,6 +281,5 @@ static void *PopStack_##type (Stack_##type *stack){\
   item = Get##type (stack->stack, (stack->top)--);\
   return *item;\
 }
-
 
 #endif // AS_UTL_VAR_H
