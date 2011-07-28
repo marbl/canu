@@ -21,7 +21,7 @@
 
 #include "StringUtils.h"
 
-static const char *rcsid_AS_UTL_STRINGS_C = "$Id: StringUtils.C,v 1.1 2011-07-28 04:23:50 mkotelbajcvi Exp $";
+static const char *RCSID = "$Id: StringUtils.C,v 1.2 2011-07-28 11:31:00 mkotelbajcvi Exp $";
 
 bool StringUtils::isBlank(const char* str)
 {
@@ -181,7 +181,42 @@ const char* StringUtils::trimEnd(const char* str, size num, const char** toTrim)
 	return NULL;
 }
 
-template<typename T>
+const char* StringUtils::toString(int value)
+{
+	return toString<int>(value);
+}
+
+const char* StringUtils::toString(long value)
+{
+	return toString<long>(value);
+}
+
+const char* StringUtils::toString(float value)
+{
+	return toString<float>(value);
+}
+
+const char* StringUtils::toString(double value)
+{
+	return toString<double>(value);
+}
+
+const char* StringUtils::toString(char value)
+{
+	return toString<char>(value);
+}
+
+template<class T>
+const char* StringUtils::toString(T value)
+{
+	std::ostringstream stream(std::ostringstream::out);
+	
+	stream << value;
+	
+	return stream.str().c_str();
+}
+
+template<class T>
 T* getArgs(size num, T* args, va_list& argsList)
 {
 	T arg;

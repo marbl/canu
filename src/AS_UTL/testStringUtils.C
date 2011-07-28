@@ -57,6 +57,16 @@ void testTrim()
 	assertEquals(std::string(StringUtils::trim("trim1trim2|test|trim2trim1", 2, "trim1", "trim2")), std::string("|test|"), "trimmed string is different");
 }
 
+void testToStringInt()
+{
+	assertEquals(std::string(StringUtils::toString(-1)), std::string("-1"), "string of integer is different");
+}
+
+void testToStringDouble()
+{
+	assertEquals(std::string(StringUtils::toString(-1.0)), std::string("-1"), "string of double is different");
+}
+
 int main(int argc, char** argv)
 {
 	testIsBlankBlankString();
@@ -67,4 +77,7 @@ int main(int argc, char** argv)
 	testTrimStart();
 	testTrimEnd();
 	testTrim();
+	
+	testToStringInt();
+	testToStringDouble();
 }

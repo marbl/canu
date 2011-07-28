@@ -39,6 +39,8 @@ LIB_SOURCES = AS_UTL_Hash.C \
               AS_UTL_reverseComplement.C \
               AS_UTL_intervalList.C \
               ArgumentException.C \
+              AssertionException.C \
+              RuntimeException.C \
               StringUtils.C
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
@@ -66,6 +68,8 @@ test:
 		-o testStringUtils \
 		testStringUtils.C \
 		ArgumentException.C \
+		AssertionException.C \
 		AS_UTL_alloc.C \
 		AS_UTL_fileIO.C \
+		RuntimeException.C \
 		StringUtils.C

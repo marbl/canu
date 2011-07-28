@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.39 2011-07-28 04:23:50 mkotelbajcvi Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.40 2011-07-28 11:31:00 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,10 +91,15 @@ typedef size_t size;
 
 typedef void *PtrT;
 
-#define F_L     "%ld"
-#define F_UL    "%lu"
-#define F_LL   "%lld"
-#define F_ULL  "%llu"
+#define F_C "%c"
+#define F_D "%d"
+#define F_L "%ld"
+#define F_UL "%lu"
+#define F_LL "%lld"
+#define F_ULL "%llu"
+#define F_HF "%h3f"
+#define F_F "%3f"
+#define F_P "%p"
 
 #if ULONG_MAX == 0xffffffff
   // 32-bit architecture

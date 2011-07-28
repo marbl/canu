@@ -19,20 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#include "ArgumentException.h"
+#include "RuntimeException.h"
 
-static const char* RCSID = "$Id: ArgumentException.C,v 1.2 2011-07-28 11:31:00 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: RuntimeException.C,v 1.1 2011-07-28 11:31:00 mkotelbajcvi Exp $";
 
-ArgumentException::ArgumentException(char* name, char* message) throw() 
-	: RuntimeException(message)
+RuntimeException::RuntimeException(const char* message) throw()
 {
-	this->name = name;
+	this->message = (char*)message;
 }
 
-const char* ArgumentException::what() const throw()
+RuntimeException::operator const char*()
 {
-	return (std::string("Argument ") + 
-		((this->name != NULL) ? std::string("(name=") + this->name + ")" : "") + 
-		"exception" +
-		((this->message != NULL ? std::string(": ") + this->message : "."))).c_str();
+	return this->what();
 }

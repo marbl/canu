@@ -19,79 +19,40 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef TEST_UTILS_H
-#define TEST_UTILS_H
+#ifndef TEST_UTILS_H_
+#define TEST_UTILS_H_
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <iostream>
 
-static const char* rcsid_TEST_UTILS_H = "$Id: TestUtils.h,v 1.2 2011-07-28 04:35:33 mkotelbajcvi Exp $";
+#include "AssertionException.h"
+
+static const char* RCSID_TEST_UTILS_H_ = "$Id: TestUtils.h,v 1.3 2011-07-28 11:31:00 mkotelbajcvi Exp $";
 
 #define assertFalse(condition, message) \
 	if (condition) \
 	{ \
-		if (message != NULL) \
-		{ \
-			std::cerr << __FILE__ << ":" << __LINE__ << " " << __ASSERT_FUNCTION << " Assert false failed: " << message; \
-		} \
-		else \
-		{ \
-			std::cerr << __FILE__ << ":" << __LINE__ << " " << __ASSERT_FUNCTION << " Assert false failed."; \
-		} \
-		\
-		exit(EXIT_FAILURE); \
+		throw AssertionException(message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
 	}
 
 #define assertTrue(condition, message) \
 	if (!condition) \
 	{ \
-		if (message != NULL) \
-		{ \
-			std::cerr << __FILE__ << ":" << __LINE__ << " " << __ASSERT_FUNCTION << " Assert true failed: " << message; \
-		} \
-		else \
-		{ \
-			std::cerr << __FILE__ << ":" << __LINE__ << " " << __ASSERT_FUNCTION << " Assert true failed."; \
-		} \
-		\
-		exit(EXIT_FAILURE); \
+		throw AssertionException(message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
 	}
 
 #define assertEquals(obj1, obj2, message) \
 	if (obj1 != obj2) \
 	{ \
-		if (message != NULL) \
-		{ \
-			std::cerr << __FILE__ << ":" << __LINE__ << " " << __ASSERT_FUNCTION << " Assert equals failed: " << message << "\nobj1=" \
-				<< obj1 << "\nobj2=" << obj2; \
-		} \
-		else \
-		{ \
-			std::cerr << __FILE__ << ":" << __LINE__ << " " << __ASSERT_FUNCTION << " Assert equals failed." << "\nobj1=" \
-				<< obj1 << "\nobj2=" << obj2; \
-		} \
-		\
-		exit(EXIT_FAILURE); \
+		throw AssertionException(message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
 	}
 
 #define assertNotEquals(obj1, obj2, message) \
-	if (obj1 != obj2) \
+	if (obj1 == obj2) \
 	{ \
-		if (message != NULL) \
-		{ \
-			std::cerr << __FILE__ << ":" << __LINE__ << " " << __ASSERT_FUNCTION << " Assert not equals failed: " << message << "\nobj1=" \
-				<< obj1 << "\nobj2=" << obj2; \
-		} \
-		else \
-		{ \
-			std::cerr << __FILE__ << ":" << __LINE__ << " " << __ASSERT_FUNCTION << " Assert not equals failed." << "\nobj1=" \
-				<< obj1 << "\nobj2=" << obj2; \
-		} \
-		\
-		exit(EXIT_FAILURE); \
+		throw AssertionException(message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
 	}
 
 #endif

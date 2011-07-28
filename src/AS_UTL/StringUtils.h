@@ -19,23 +19,28 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef STRING_UTILS_H
-#define STRING_UTILS_H
+#ifndef STRING_UTILS_H_
+#define STRING_UTILS_H_
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <exception>
+#include <sstream>
 #include <string>
+#include <typeinfo>
 
 #include "ArgumentException.h"
 #include "AS_global.h"
-#include "AS_UTL_alloc.h"
 
-static const char *rcsid_STRING_UTILS_H = "$Id: StringUtils.h,v 1.2 2011-07-28 04:35:33 mkotelbajcvi Exp $";
+static const char *RCSID_STRING_UTILS_H_ = "$Id: StringUtils.h,v 1.3 2011-07-28 11:31:00 mkotelbajcvi Exp $";
 
-static const char* WHITESPACE_CHARS = " \t\n\r";
+#define WHITESPACE_CHARS " \t\n\r"
+#define NULL_TERMINATOR '\0'
+
+#define DEFAULT_BUFFER_SIZE 256
+#define CHAR_BUFFER_SIZE 2
 
 class StringUtils
 {
@@ -52,9 +57,18 @@ public:
 	static const char* trimStart(const char* str, size num, const char** toTrim);
 	static const char* trimEnd(const char* str, size num, ...);
 	static const char* trimEnd(const char* str, size num, const char** toTrim);
+	
+	static const char* toString(char value);
+	static const char* toString(int value);
+	static const char* toString(long value);
+	static const char* toString(float value);
+	static const char* toString(double value);
+	
+	template<class T>
+	static const char* toString(T value);
 };
 
-template<typename T>
+template<class T>
 T* getArgs(size num, T* args, va_list& argsList);
 
 #endif
