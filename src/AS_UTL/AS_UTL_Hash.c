@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.25 2011-07-21 06:15:29 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.26 2011-07-29 16:35:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -268,7 +268,7 @@ ReallocHashTable_AS(HashTable_AS *htable) {
   uint64 newNumBuckets = htable->numBuckets << 1;
   uint64 newMaxNodes   = htable->numNodes   << 1;
 
-#if 1
+#if 0
   fprintf(stderr, "ReallocHashTable_AS()-- from "F_U64" to "F_U64" buckets (max nodes: "F_U64" to "F_U64")%s.\n",
           htable->numBuckets, newNumBuckets,
           htable->maxNodes, newMaxNodes,
@@ -691,10 +691,8 @@ SaveHashTable_AS(char *name, HashTable_AS *table) {
 
   errno = 0;
   fp = fopen(table->filename, "w");
-  if (errno) {
-    fprintf(stderr, "failed to open HashTable_AS '%s': %s\n", table->filename, strerror(errno));
-    exit(1);
-  }
+  if (errno)
+    fprintf(stderr, "failed to open HashTable_AS '%s': %s\n", table->filename, strerror(errno)), exit(1);
 
   AS_UTL_safeWrite(fp, &table->numBuckets, "SaveHashTable_AS numBuckets", sizeof(uint32), 1);
   AS_UTL_safeWrite(fp, &table->numNodes,   "SaveHashTable_AS numNodes",   sizeof(uint32), 1);
@@ -728,10 +726,8 @@ SaveHashTable_AS(char *name, HashTable_AS *table) {
   AS_UTL_safeWrite(fp, &table->hashmask,   "SaveHashTable_AS hashmask",    sizeof(uint32), 1);
   AS_UTL_safeWrite(fp, &actualNodes,       "SaveHashTable_AS actualNodes", sizeof(uint32), 1);
 
-  if (fclose(fp)) {
-    fprintf(stderr, "SaveHashTable_AS()-- failed to close the hash table file '%s': %s\n", name, strerror(errno));
-    exit(1);
-  }
+  if (fclose(fp))
+    fprintf(stderr, "SaveHashTable_AS()-- failed to close the hash table file '%s': %s\n", name, strerror(errno)), exit(1);
 
   safe_free(databuffer);
 
@@ -756,10 +752,8 @@ LoadHashTable_AS(char *name,
 
   errno = 0;
   fp = fopen(name, "r");
-  if (errno) {
-    fprintf(stderr, "failed to open HashTable_AS '%s': %s\n", name, strerror(errno));
-    exit(1);
-  }
+  if (errno)
+    fprintf(stderr, "failed to open HashTable_AS '%s': %s\n", name, strerror(errno)), exit(1);
 
   AS_UTL_safeRead(fp, &table->numBuckets, "LoadHashTable_AS numBuckets",  sizeof(uint32), 1);
   AS_UTL_safeRead(fp, &table->numNodes,   "LoadHashTable_AS numNodes",    sizeof(uint32), 1);
