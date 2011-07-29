@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.35 2011-02-24 09:48:41 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.36 2011-07-29 01:54:39 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -308,7 +308,7 @@ unitigConsensus::initialize(void) {
 
   frankensteinLen = 0;
   frankensteinMax = 1024 * 1024;
-  frankenstein    = (char *)safe_malloc(sizeof(char) * frankensteinMax);
+  frankenstein    = (char    *)safe_malloc(sizeof(char)    * frankensteinMax);
   frankensteinBof = (beadIdx *)safe_malloc(sizeof(beadIdx) * frankensteinMax);
 
   for (int32 i=0; i<numfrags; i++) {
@@ -1093,10 +1093,12 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
         //  sequence.
       }
 
-      if (frankensteinLen > frankensteinMax) {
-        //  Just being lazy; need to reallocate this.
-        assert(frankensteinLen < frankensteinMax);
+      while (frankensteinLen >= frankensteinMax) {
+        frankensteinMax *= 2;
+        frankenstein     = (char    *)safe_realloc(frankenstein,    sizeof(char)    * frankensteinMax);
+        frankensteinBof  = (beadIdx *)safe_realloc(frankensteinBof, sizeof(beadIdx) * frankensteinMax);
       }
+      assert(frankensteinLen < frankensteinMax);
     }
 
     frankenstein   [frankensteinLen] = 0;
@@ -1105,10 +1107,12 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
 
 
   if (ahang < 0) {
-    if (frankensteinLen + -ahang > frankensteinMax) {
-      //  Just being lazy; need to reallocate this.
-      assert(frankensteinLen + -ahang < frankensteinMax);
+    while (frankensteinLen + -ahang >= frankensteinMax) {
+      frankensteinMax *= 2;
+      frankenstein     = (char    *)safe_realloc(frankenstein,    sizeof(char)    * frankensteinMax);
+      frankensteinBof  = (beadIdx *)safe_realloc(frankensteinBof, sizeof(beadIdx) * frankensteinMax);
     }
+    assert(frankensteinLen + -ahang < frankensteinMax);
 
     //  Make space for the new stuff
     for (int32 x=frankensteinLen; x>=0; x--) {
@@ -1268,10 +1272,12 @@ unitigConsensus::rebuildFrankensteinFromFragment(void) {
       //  Here, ch CAN be a gap, since we're adding in sequence from a multialignment.
     }
 
-    if (frankensteinLen > frankensteinMax) {
-      //  Just being lazy; need to reallocate this.
-      assert(frankensteinLen < frankensteinMax);
+    while (frankensteinLen >= frankensteinMax) {
+      frankensteinMax *= 2;
+      frankenstein     = (char    *)safe_realloc(frankenstein,    sizeof(char)    * frankensteinMax);
+      frankensteinBof  = (beadIdx *)safe_realloc(frankensteinBof, sizeof(beadIdx) * frankensteinMax);
     }
+    assert(frankensteinLen < frankensteinMax);
   }
 
   frankenstein   [frankensteinLen] = 0;
