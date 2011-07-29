@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.60 2011-01-25 21:26:56 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.61 2011-07-29 02:32:15 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -2220,12 +2220,12 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
   if (iSpec->checkForTinyScaffolds &&
       min_scaffold_length < 5000 &&
       length_to_dist < 0.20) {
-    if (verbose)
-      fprintf(stderr,
-              "Scaffolds are too short (%g,%g) relative to edge length (%g)\n",
-              scaffoldA->bpLength.mean,
-              scaffoldB->bpLength.mean,
-              curEdge->distance.mean);
+    fprintf(stderr, "ExamineSEdgeForUsability()-- Scaffolds %d and %d are too short (%d and %d bp) relative to edge length (%d).  Skip.\n",
+            curEdge->idA,
+            curEdge->idB, 
+            scaffoldA->bpLength.mean,
+            scaffoldB->bpLength.mean,
+            curEdge->distance.mean);
     return;
   }
 
