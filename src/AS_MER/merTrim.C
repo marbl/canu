@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.13 2011-07-21 08:46:09 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.14 2011-07-29 02:20:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -244,7 +244,7 @@ public:
   uint32     testBaseChange(uint32 pos, char replacement);
   uint32     testBaseIndel(uint32 pos, char replacement);
 
-  uint32     attemptCorrection(void);
+  uint32     attemptCorrection(bool isReversed);
 
   uint32     BADBASE(uint32 i);
   uint32     attemptTrimming(void);
@@ -448,7 +448,7 @@ mertrimComputation::analyze(void) {
 
   ms->rewind();
 
-  if (VERBOSE) {
+  if (VERBOSE > 1) {
     dump(stderr, "ANALYZE");
   }  //  VERBOSE
 }
@@ -456,7 +456,7 @@ mertrimComputation::analyze(void) {
 
 
 uint32
-mertrimComputation::attemptCorrection(void) {
+mertrimComputation::attemptCorrection(bool isReversed) {
 
   assert(coverage);
   assert(disconnect);
@@ -535,7 +535,7 @@ mertrimComputation::attemptCorrection(void) {
       uint32 nT = (corrSeq[pos] != 'T') ? testBaseChange(pos, 'T') : 0;
       uint32 rB = 0;
 
-      if (VERBOSE) {
+      if (VERBOSE > 2) {
         if (nA > mNum)  fprintf(stderr, "testA at %d -- %d req=%d\n", pos, nA, mNum);
         if (nC > mNum)  fprintf(stderr, "testC at %d -- %d req=%d\n", pos, nC, mNum);
         if (nG > mNum)  fprintf(stderr, "testG at %d -- %d req=%d\n", pos, nG, mNum);
@@ -570,9 +570,14 @@ mertrimComputation::attemptCorrection(void) {
       //  If we found a single choice, correct it.
 
       if (nR == 1) {
-        if (VERBOSE) {
-          fprintf(stderr, "Correct read %d at position %d from %c to %c (QV %d)\n",
-                  readIID, pos, corrSeq[pos], rB, corrQlt[pos]);
+        if (VERBOSE > 0) {
+          fprintf(stderr, "Correct read %d at position %d from %c to %c (QV %d) (%s)\n",
+                  readIID,
+                  (isReversed == false) ? pos : seqLen - pos,
+                  corrSeq[pos],
+                  rB,
+                  corrQlt[pos],
+                  (isReversed == false) ? "fwd" : "rev");
         }  //  VERBOSE
 
         corrSeq[pos] = rB;
@@ -622,7 +627,7 @@ mertrimComputation::attemptCorrection(void) {
       if (nG > mNum)  { nR++;  rB = 'G'; }
       if (nT > mNum)  { nR++;  rB = 'T'; }
 
-      if (VERBOSE) {
+      if (VERBOSE > 2) {
         if (nD > mNum)  fprintf(stderr, "test-- %d -- %d req=%d\n", pos, nD, mNum);
         if (nA > mNum)  fprintf(stderr, "test+A %d -- %d req=%d\n", pos, nA, mNum);
         if (nC > mNum)  fprintf(stderr, "test+C %d -- %d req=%d\n", pos, nC, mNum);
@@ -641,9 +646,14 @@ mertrimComputation::attemptCorrection(void) {
       }
 
       if (nD > mNum) {
-        if (VERBOSE) {
-          fprintf(stderr, "Correct read %d at position %d from %c to DELETE (QV %d)\n",
-                  readIID, pos, corrSeq[pos], corrQlt[pos] - '0');
+        if (VERBOSE > 0) {
+          fprintf(stderr, "Correct read %d at position %d from %c to DELETE (QV %d) (%s)\n",
+                  readIID,
+                  (isReversed == false) ? pos : seqLen - pos,
+                  corrSeq[pos],
+                  corrQlt[pos] - '0',
+                  (isReversed == false) ? "fwd" : "rev");
+
         }  //  VERBOSE
         for (uint32 i=pos; i<seqLen; i++) {
           corrSeq[i] = corrSeq[i+1];
@@ -657,9 +667,13 @@ mertrimComputation::attemptCorrection(void) {
         corrected[pos] = 'D';
 
       } else {
-        if (VERBOSE) {
-          fprintf(stderr, "Correct read %d at position %d INSERT %c\n",
-                  readIID, pos, rB);
+        if (VERBOSE > 0) {
+          fprintf(stderr, "Correct read %d at position %d INSERT %c (%s)\n",
+                  readIID,
+                  (isReversed == false) ? pos : seqLen - pos,
+                  rB,
+                  (isReversed == false) ? "fwd" : "rev");
+
         }  //  VERBOSE
         for (uint32 i=seqLen+1; i>pos; i--) {
           corrSeq[i] = corrSeq[i-1];
@@ -713,7 +727,7 @@ mertrimComputation::attemptCorrection(void) {
 
   }  //  Over all mers
 
-  if (VERBOSE) {
+  if (VERBOSE > 1) {
     dump(stderr, "POSTCORRECT");
   }  //  VERBOSE
 
@@ -885,9 +899,11 @@ mertrimComputation::BADBASE(uint32 i) {
     //  We made a correction.
     return(1);
 
+#if 0
   if (corrQlt[i] - '0' <= 6)
-    //  Low quality base.
+    //  Low quality base - too aggressive?
     return(1);
+#endif
 
   if ((coverage) && ((coverage[i] == 'A') && (corrQlt[i] - '0' < 16)))
     //  Lower quality base, and we couldn't correct it or find it in the mers.
@@ -970,7 +986,7 @@ mertrimComputation::attemptTrimming(void) {
   clrBgn = (lBgn <= seqLen - 2 ? lBgn + 2 : seqLen);
   clrEnd = (lEnd >= 2 ? lEnd - 2 : 0);
 
-  if (VERBOSE) {
+  if (VERBOSE > 2) {
     fprintf(stderr, "TRIM: %d,%d (pre)\n", clrBgn, clrEnd);
   }  //  VERBOSE
 
@@ -990,7 +1006,7 @@ mertrimComputation::attemptTrimming(void) {
     clrEnd = 0;
   }
 
-  if (VERBOSE) {
+  if (VERBOSE > 1) {
     fprintf(stderr, "TRIM: %d,%d (post)\n", clrBgn, clrEnd);
     dump(stderr, "TRIM");
   }  //  VERBOSE
@@ -1214,11 +1230,11 @@ mertrimWorker(void *G, void *T, void *S) {
 
   s->reverse();
   s->analyze();
-  eval = s->attemptCorrection();
+  eval = s->attemptCorrection(true);
 
   s->reverse();
   s->analyze();
-  eval = s->attemptCorrection();
+  eval = s->attemptCorrection(false);
 
   //  Correction worked perfectly, we're done.
   //
