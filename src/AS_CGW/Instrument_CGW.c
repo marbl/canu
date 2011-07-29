@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.48 2010-08-19 05:28:07 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.49 2011-07-29 02:26:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4529,10 +4529,12 @@ CheckFragmentMatePairs(ScaffoldGraphT           *graph,
         //  hopefully contain it), yet we never found the second mate, THEN count that as bad.
         //
         //*numFar++;
+#if 0
         fprintf(stderr, "isBuried-- pos=%d,%d,%c overlap=%d,%d SIZE=%d,%d SCFLEN=%d\n",
                 frag5p, frag3p, fragOrient.toLetter(),
                 (int32)si->ignoreBgn.mean, (int32)si->ignoreEnd.mean,
                 SIZEa, SIZEb, SCFLEN);
+#endif
         AppendVA_FragDetail(msp->missingMate, &fragdetail);
       }
 
@@ -4541,10 +4543,12 @@ CheckFragmentMatePairs(ScaffoldGraphT           *graph,
           (frag3p >= si->ignoreBgn.mean) &&
           (si->ignoreBgn.mean > SIZEb)) {
         //*numFar++;
+#if 0
         fprintf(stderr, "isBuried-- pos=%d,%d,%c overlap=%d,%d SIZE=%d,%d SCFLEN=%d\n",
                 frag5p, frag3p, fragOrient.toLetter(),
                 (int32)si->ignoreBgn.mean, (int32)si->ignoreEnd.mean,
                 SIZEa, SIZEb, SCFLEN);
+#endif
         AppendVA_FragDetail(msp->missingMate, &fragdetail);
       }
     }
