@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.10 2010-10-27 09:58:39 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Instrumentation.cc,v 1.11 2011-07-29 01:30:38 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -37,7 +37,8 @@ UnitigGraph::checkUnitigMembership(void) {
   fprintf(logFile, "checkUnitigMembership()--  numfrags=%d\n", FI->numFragments());
 
   uint32 *inUnitig = new uint32 [FI->numFragments()+1];
-  uint32  logSize[20] = {0};
+  uint32  logSizeMax  = 0;
+  uint32  logSize[64] = {0};
 
   for (uint32 i=0; i<FI->numFragments()+1; i++)
     inUnitig[i] = noUnitig;
@@ -62,7 +63,9 @@ UnitigGraph::checkUnitigMembership(void) {
         len = MAX(len, frg->position.end);
       }
 
-      logSize[ (uint32)(log10(len) / log10(2)) ]++;
+      uint32  ls = (uint32)(log10(len) / log10(2));
+      logSizeMax = (logSizeMax < ls) ? ls : logSizeMax;
+      logSize[ls]++;
     }
   }
 
@@ -85,7 +88,7 @@ UnitigGraph::checkUnitigMembership(void) {
   fprintf(logFile, "checkUnitigMembership()-- nutg=%d nfrg=%d lost=%d found=%d\n", nutg, nfrg, lost, found);
 
   fprintf(logFile, "checkUnitigMembership()-- log2 length histogram:\n");
-  for (uint32 i=5; i<20; i++)
+  for (uint32 i=5; i<=logSizeMax; i++)
     fprintf(logFile, "checkUnitigMembership()-- %2u (%9u-%9u) %u\n", i, (uint32)1 << i, (uint32)1 << (i+1), logSize[i]);
 
   assert(lost == 0);
