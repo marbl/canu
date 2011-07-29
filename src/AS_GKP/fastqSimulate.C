@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.10 2011-07-05 17:59:15 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.11 2011-07-29 01:59:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,7 +45,7 @@ double readErrorRate = 0.01;  //  Fraction error
 //
 int32
 randomUniform(int32 bgn, int32 end) {
-  return((end - bgn) * drand48() + bgn);
+  return((int32)floor((end - bgn) * drand48() + bgn));
 }
 
 
@@ -400,22 +400,22 @@ makeMP(char   *seq,
       if (shift  > slen - readLen)  type = 'b';
       if (shift == slen)            type = 'B';
 
-      fprintf(output, "@%cMP_%d_%d-%d_%d/%d/%d/1\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output, "%s\n", s1);
       fprintf(output, "+\n");
       fprintf(output, "%s\n", q1);
 
-      fprintf(output, "@%cMP_%d_%d-%d_%d/%d/%d/2\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output, "@%cMP_%d_%d@%d-%d_%d/%d/%d/2\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output, "%s\n", s2);
       fprintf(output, "+\n");
       fprintf(output, "%s\n", q2);
 
-      fprintf(output1, "@%cMP_%d_%d-%d_%d/%d/%d/1\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output1, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output1, "%s\n", s1);
       fprintf(output1, "+\n");
       fprintf(output1, "%s\n", q1);
 
-      fprintf(output2, "@%cMP_%d_%d-%d_%d/%d/%d/2\n", type, np, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output2, "@%cMP_%d_%d@%d-%d_%d/%d/%d/2\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output2, "%s\n", s2);
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);
