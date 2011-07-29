@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.20 2011-07-11 08:05:49 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.21 2011-07-29 02:24:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -391,6 +391,13 @@ openFile(char *name, FILE *&file) {
   bool  pipe = false;
 
   errno = 0;
+
+  if (AS_UTL_fileExists(name, FALSE, FALSE) == FALSE) {
+    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", name, strerror(errno));
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, name, strerror(errno));
+    exit(1);
+  }
+
   if        (name == NULL) {
     fprintf(stderr, "ERROR:  Failed to open illumina input file: no name supplied.\n");
     AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, "(no-name-supplied)", "no name supplied");
