@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSample.C,v 1.5 2011-07-19 07:36:01 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSample.C,v 1.6 2011-07-29 01:56:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdint.h>
@@ -241,8 +241,13 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
 
-  sprintf(path1, "%s.%03"F_U64P"x.1.fastq", NAME, COVERAGE);
-  sprintf(path2, "%s.%03"F_U64P"x.2.fastq", NAME, COVERAGE);
+  if (COVERAGE > 0) {
+    sprintf(path1, "%s.%03"F_U64P"x.1.fastq", NAME, COVERAGE);
+    sprintf(path2, "%s.%03"F_U64P"x.2.fastq", NAME, COVERAGE);
+  } else {
+    sprintf(path1, "%s.n="F_U64".1.fastq", NAME, NUMOUTPUT);
+    sprintf(path2, "%s.n="F_U64".2.fastq", NAME, NUMOUTPUT);
+  }
 
   errno = 0;
   Ao = fopen(path1, "w");
