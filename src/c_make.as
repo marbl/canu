@@ -232,6 +232,7 @@ SUBDIRS = AS_RUN \
           AS_OBT \
           AS_MER \
           AS_OVL \
+          AS_OVM \
           AS_OVS \
           AS_ALN \
           AS_CGB \
@@ -243,6 +244,6 @@ SUBDIRS = AS_RUN \
           AS_LIN \
           AS_CGW \
           AS_TER \
-	  AS_ENV \
-	  AS_ARD \
+          AS_ENV \
+          AS_ARD \
           AS_REF

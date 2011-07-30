@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.66 2011-07-26 20:16:26 mkotelbajcvi Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.67 2011-07-30 01:16:05 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,9 +52,12 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.66 2011-07-26 20:16:26 mk
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.66 2011-07-26 20:16:26 mkotelbajcvi Exp $
- * $Revision: 1.66 $
+ * $Id: AS_OVL_overlap_common.h,v 1.67 2011-07-30 01:16:05 brianwalenz Exp $
+ * $Revision: 1.67 $
 */
+
+
+#undef COMPARE
 
 
 /*************************************************************************/
@@ -1087,6 +1090,10 @@ Kmer_Hits_Ct ++;
 
    new_diag = getStringRefOffset(ref) - offset;
 
+#ifdef COMPARE
+  fprintf(stderr, "Add_Match:  offset=%d new_diag=%d\n", offset, new_diag);
+#endif
+
    for  (p = start;  (* p) != 0;  p = & (wa -> Match_Node_Space [(* p)] . Next))
      {
       expected_start = wa -> Match_Node_Space [(* p)] . Start
@@ -1162,6 +1169,10 @@ static void  Add_Overlap
 
   {
    int  i, new_diag;
+
+#ifdef COMPARE
+  fprintf(stderr, "Add_Overlap()  %d %d %d %d qual %f\n", s_lo, s_hi, t_lo, t_hi, qual);
+#endif
 
    if  (Doing_Partial_Overlaps)
      olap += (* ct);
@@ -1407,6 +1418,10 @@ int  Build_Hash_Index
       String_Info [String_Ct] . length = len;
       String_Info [String_Ct] . left_end_screened  = screen . left_end_screened;
       String_Info [String_Ct] . right_end_screened = screen . right_end_screened;
+
+      assert(String_Info [String_Ct] . left_end_screened == FALSE);
+      assert(String_Info [String_Ct] . right_end_screened == FALSE);
+
       new_len = total_len + len + 1;
       extra = new_len % (HASH_KMER_SKIP + 1);
       if  (extra > 0)
@@ -2021,6 +2036,9 @@ static void  Find_Overlaps
         screen_hi = WA -> screen_info . range [0] . end;
        }
 
+   assert(WA->screen_info.left_end_screened == FALSE);
+   assert(WA->screen_info.right_end_screened == FALSE);
+
    Key = 0;
    for  (j = 0;  j < Kmer_Len;  j ++)
      Key |= (uint64) (Bit_Equivalent [(int) * (P ++)]) << (2 * j);
@@ -2038,8 +2056,12 @@ static void  Find_Overlaps
           && Offset <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP)
        {
         Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
-        if  (hi_hits)
+        if  (hi_hits) {
+#ifdef COMPARE
+            fprintf(stderr, "WA left_end_Screened\n");
+#endif
             WA -> screen_info . left_end_screened = TRUE;
+        }
         if  (! getStringRefEmpty(Ref))
           {
            while  (TRUE)
@@ -2097,11 +2119,20 @@ Match_Ct ++;
            Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
            if  (hi_hits)
                {
-                if  (Offset < HOPELESS_MATCH)
+                 if  (Offset < HOPELESS_MATCH) {
+#ifdef COMPARE
+                   fprintf(stderr, "WA left_end_Screened 2\n");
+#endif
                     WA -> screen_info . left_end_screened = TRUE;
-                if  (Frag_Len - Offset - Kmer_Len + 1 < HOPELESS_MATCH)
+                 }
+                 if  (Frag_Len - Offset - Kmer_Len + 1 < HOPELESS_MATCH) {
+#ifdef COMPARE
+                   fprintf(stderr, "WA right_end_Screened\n");
+#endif
                     WA -> screen_info . right_end_screened = TRUE;
+                 }
                }
+
            if  (! getStringRefEmpty(Ref))
              {
               while  (TRUE)
@@ -2166,6 +2197,8 @@ static void  Flip_Screen_Range
 
    if  (screen -> num_matches < 1)
        return;
+
+   assert(0);
 
    for  (i = 0, j = screen -> num_matches - 1;  i < j;  i ++, j --)
      {
@@ -2742,11 +2775,18 @@ static void  Mark_Screened_Ends_Single
    s_num = getStringRefStringNum(ref);
    len = String_Info [s_num] . length;
 
-   if  (getStringRefOffset(ref) < HOPELESS_MATCH)
+   if  (getStringRefOffset(ref) < HOPELESS_MATCH) {
+#ifdef COMPARE
+     fprintf(stderr, "Mark_Screened_Ends_Single()-- %d mark left\n", s_num);
+#endif
        String_Info [s_num] . left_end_screened = TRUE;
-   if  (len - getStringRefOffset(ref) - Kmer_Len + 1 < HOPELESS_MATCH)
+   }
+   if  (len - getStringRefOffset(ref) - Kmer_Len + 1 < HOPELESS_MATCH) {
+#ifdef COMPARE
+     fprintf(stderr, "Mark_Screened_Ends_Single()-- %d mark left\n", s_num);
+#endif
        String_Info [s_num] . right_end_screened = TRUE;
-
+   }
    return;
   }
 
@@ -2931,6 +2971,11 @@ static void  Output_Overlap
 //  S_Dir  indicates the orientation of  S .
 
   {
+
+#ifdef COMPARE
+  fprintf(stderr, "OUTPUT %d/%d %d/%d\n", S_ID, S_Len, T_ID, T_Len);
+#endif
+
    int  S_Right_Hang, T_Right_Hang;
    int  this_diag;
    OverlapMesg ovMesg;
@@ -3512,6 +3557,14 @@ static void  Process_Matches
             is_hopeless = TRUE;
         }
 
+#ifdef COMPARE
+      fprintf(stderr, "IS HOPELESS %d %d %d %d\n",
+              WA -> screen_info . left_end_screened,
+              WA -> screen_info . right_end_screened,
+              t_info.left_end_screened,
+              t_info.right_end_screened);
+#endif
+
       if  (is_hopeless)
         {
           (* Start) = 0;
@@ -3549,6 +3602,10 @@ static void  Process_Matches
         {
           Kind_Of_Olap = Extend_Alignment (Longest_Match, S, S_Len, T, t_len,
                                            & S_Lo, & S_Hi, & T_Lo, & T_Hi, & Errors, WA);
+#ifdef COMPARE
+          fprintf(stderr, "Extend_Alignment S: %d %d %d T %d %d %d kind %d\n",
+                  S_Len, S_Lo, S_Hi, t_len, T_Lo, T_Hi, Kind_Of_Olap);
+#endif
 
           if  (Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
             {
@@ -3560,6 +3617,10 @@ static void  Process_Matches
                   Olap_Len = 1 + OVL_Min_int (S_Hi - S_Lo, T_Hi - T_Lo);
                   Quality = (double) Errors / Olap_Len;
                   scr_sub = Screen_Sub [T_ID - Hash_String_Num_Offset];
+#ifdef COMPARE
+                  fprintf(stderr, "Add_Overlap: scr_sub %d erorrs %d bound %d passes %d\n",
+                          scr_sub, Errors, WA->Error_Bound [Olap_Len], Passes_Screen (T_Lo, T_Hi, scr_sub));
+#endif
                   if  (Errors <= WA -> Error_Bound [Olap_Len]
                        && (scr_sub == 0
                            || Passes_Screen (T_Lo, T_Hi, scr_sub)))
@@ -3608,6 +3669,10 @@ static void  Process_Matches
             Ref = & (Ptr -> Next);
         }
     }
+
+#ifdef COMPARE
+  fprintf(stderr, "distinct_olap_ct = %d\n", distinct_olap_ct);
+#endif
 
   if  (distinct_olap_ct > 0)
     {
@@ -3857,6 +3922,8 @@ Kmer_Hits_Ct = 0;
 
            WA -> A_Olaps_For_Frag = WA -> B_Olaps_For_Frag = 0;
 
+      assert(WA->screen_info.left_end_screened  == FALSE);
+      assert(WA->screen_info.right_end_screened == FALSE);
            Find_Overlaps (Frag, Len, quality, Curr_String_Num, FORWARD, WA);
 
            reverseComplementSequence (Frag, Len);
@@ -3866,6 +3933,8 @@ Kmer_Hits_Ct = 0;
 
            WA -> A_Olaps_For_Frag = WA -> B_Olaps_For_Frag = 0;
 
+      assert(WA->screen_info.left_end_screened  == FALSE);
+      assert(WA->screen_info.right_end_screened == FALSE);
            Find_Overlaps (Frag, Len, quality, Curr_String_Num, REVERSE, WA);
 
 #if  SHOW_STATS
