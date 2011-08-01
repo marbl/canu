@@ -1,27 +1,3 @@
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
-
-#ifndef GKSTORE_H
-#define GKSTORE_H
-
-static const char *rcsid_GKSTORE_H = "$Id: gkStore.H,v 1.14 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
 ////////////////////////////////////////
 //
@@ -205,7 +181,6 @@ public:
 private:
   void           gkStore_loadUIDtoIID(void);
   void           gkStore_loadIIDtoUID(void);
-  static HashTable_AS* gkStore_loadSTRtoUID(StoreStruct* uidStore, HashTable_AS* strToUID);
   void           gkStore_loadSTRtoUID(void);
 
 
@@ -220,7 +195,6 @@ public:
 
   //  The next three functions should only be used by AS_UTL_UID.c (and the null constructor).
   AS_UID         gkStore_getUIDfromString(char *uidstr);
-  static char* gkStore_getUIDstring(StoreStruct* uidStore, AS_UID uid);
   char          *gkStore_getUIDstring(AS_UID uid);
   AS_UID         gkStore_addUID(char *uidstr);
 
@@ -304,5 +278,3 @@ private:
   friend class gkFragment;  //  for clearRange
   friend class gkClearRange;
 };
-
-#endif
