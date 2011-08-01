@@ -21,18 +21,105 @@
 
 #include "StringUtils.h"
 
-static const char *RCSID = "$Id: StringUtils.C,v 1.3 2011-08-01 16:54:03 mkotelbajcvi Exp $";
+static const char *RCSID = "$Id: StringUtils.C,v 1.4 2011-08-01 20:33:35 mkotelbajcvi Exp $";
+
+bool StringUtils::startsWith(const char* str, size num, ...)
+{
+	va_list argsList;
+	va_start(argsList, num);
+	
+	return startsWith(str, num, VarUtils::getArgs(num, new const char*[num], argsList));
+}
+
+bool StringUtils::startsWith(const char* str, size num, const char** toTest)
+{
+	string strObj(str);
+	
+	for (size a = 0; a < num; a++)
+	{
+		string toTestObj(toTest[a]);
+		
+		if (strObj.substr(0, toTestObj.length()) == toTestObj)
+		{
+			return TRUE;
+		}
+	}
+	
+	return FALSE;
+}
+
+bool StringUtils::endsWith(const char* str, size num, ...)
+{
+	va_list argsList;
+	va_start(argsList, num);
+	
+	return endsWith(str, num, VarUtils::getArgs(num, new const char*[num], argsList));
+}
+
+bool StringUtils::endsWith(const char* str, size num, const char** toTest)
+{
+	string strObj(str);
+	
+	for (size a = 0; a < num; a++)
+	{
+		string toTestObj(toTest[a]);
+		
+		if (strObj.substr(strObj.length() - toTestObj.length()) == toTestObj)
+		{
+			return TRUE;
+		}
+	}
+	
+	return FALSE;
+}
+
+const char* StringUtils::concat(size num, ...)
+{
+	va_list argsList;
+	va_start(argsList, num);
+	
+	string str;
+	const char** items = VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char**)), argsList);
+	
+	for (size a = 0; a < num; a++)
+	{
+		str += items[a];
+	}
+	
+	return toString(str);
+}
+
+const char* StringUtils::join(const char* delimiter, size num, ...)
+{
+	va_list argsList;
+	va_start(argsList, num);
+	
+	return join(delimiter, num, VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
+}
+
+const char* StringUtils::join(const char* delimiter, size num, const char** toJoin)
+{
+	string str;
+	
+	for (size a = 0; a < num; a++)
+	{
+		if (!str.empty())
+		{
+			str += delimiter;
+		}
+		
+		str += toJoin[a];
+	}
+	
+	return toString(str);
+}
 
 const char* StringUtils::trim(const char* str, size num, ...)
 {
 	va_list argsList;
 	va_start(argsList, num);
 	
-	const char* trimmedStr = trim(str, num, getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
-	
-	va_end(argsList);
-		
-	return trimmedStr;
+	return trim(str, num, VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
 }
 
 const char* StringUtils::trim(const char* str, size num, const char** toTrim)
@@ -45,11 +132,7 @@ const char* StringUtils::trimStart(const char* str, size num, ...)
 	va_list argsList;
 	va_start(argsList, num);
 	
-	const char* trimmedStr = trimStart(str, num, getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
-	
-	va_end(argsList);
-	
-	return trimmedStr;
+	return trimStart(str, num, VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
 }
 
 const char* StringUtils::trimStart(const char* str, size num, const char** toTrim)
@@ -71,7 +154,7 @@ const char* StringUtils::trimStart(const char* str, size num, const char** toTri
 			}
 		}
 		
-		return strObj.c_str();
+		return toString(strObj);
 	}
 	
 	return NULL;
@@ -82,7 +165,7 @@ const char* StringUtils::trimEnd(const char* str, size num, ...)
 	va_list argsList;
 	va_start(argsList, num);
 	
-	return trimEnd(str, num, getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
+	return trimEnd(str, num, VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
 }
 
 const char* StringUtils::trimEnd(const char* str, size num, const char** toTrim)
@@ -104,37 +187,8 @@ const char* StringUtils::trimEnd(const char* str, size num, const char** toTrim)
 			}
 		}
 		
-		return strObj.c_str();
+		return toString(strObj);
 	}
 	
 	return NULL;
-}
-
-const char* StringUtils::concat(size num, ...)
-{
-	va_list argsList;
-	va_start(argsList, num);
-	
-	string str;
-	const char** items = getArgs(num, (const char**)safe_calloc(num, sizeof(const char**)), argsList);
-	
-	for (size a = 0; a < num; a++)
-	{
-		str += items[a];
-	}
-	
-	return toString(str);
-}
-
-template<class T>
-T* getArgs(size num, T* args, va_list& argsList)
-{
-	T arg;
-	
-	for (size a = 0; (a < num) && ((arg = va_arg(argsList, T)) != NULL); a++)
-	{
-		args[a] = arg;
-	}
-	
-	return args;
 }

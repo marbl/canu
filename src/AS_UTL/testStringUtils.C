@@ -22,10 +22,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <exception>
 #include <string>
+#include <vector>
+
+using namespace std;
 
 #include "StringUtils.h"
 #include "TestUtils.h"
+
+static const char* RCSID = "$Id: testStringUtils.C,v 1.4 2011-08-01 20:33:36 mkotelbajcvi Exp $";
 
 void testIsBlankBlankString()
 {
@@ -42,72 +48,84 @@ void testAreEqual()
 	assertTrue(StringUtils::areEqual("test", "test"), "strings are equal");
 }
 
+void testStartsWith()
+{
+	assertTrue(StringUtils::startsWith("test1test2test3", 2, "test1", "test2"), "starts with failed");
+}
+
+void testEndsWith()
+{
+	assertTrue(StringUtils::endsWith("test1test2test3", 2, "test3", "test2"), "ends with failed");
+}
+
 void testTrimStart()
 {
-	assertEquals(std::string(StringUtils::trimStart("trim1trim2|test", 2, "trim1", "trim2")), std::string("|test"), "start trimmed string is different");
+	assertEquals(string(StringUtils::trimStart("trim1trim2|test", 2, "trim1", "trim2")), string("|test"), "start trimmed string is different");
 }
 
 void testTrimEnd()
 {
-	assertEquals(std::string(StringUtils::trimEnd("test|trim2trim1", 2, "trim1", "trim2")), std::string("test|"), "end trimmed string is different");
+	assertEquals(string(StringUtils::trimEnd("test|trim2trim1", 2, "trim1", "trim2")), string("test|"), "end trimmed string is different");
 }
 
 void testTrim()
 {
-	assertEquals(std::string(StringUtils::trim("trim1trim2|test|trim2trim1", 2, "trim1", "trim2")), std::string("|test|"), "trimmed string is different");
+	assertEquals(string(StringUtils::trim("trim1trim2|test|trim2trim1", 2, "trim1", "trim2")), string("|test|"), "trimmed string is different");
 }
 
 void testToStringUnsigned()
 {
-	assertEquals(std::string(StringUtils::toString((unsigned)1)), std::string("1"), "string of unsigned is different");
+	assertEquals(string(StringUtils::toString((unsigned)1)), string("1"), "string of unsigned is different");
 }
 
 void testToStringUnsignedLong()
 {
-	assertEquals(std::string(StringUtils::toString((unsigned long)1)), std::string("1"), "string of unsigned long is different");
+	assertEquals(string(StringUtils::toString((unsigned long)1)), string("1"), "string of unsigned long is different");
 }
 
 void testToStringInt()
 {
-	assertEquals(std::string(StringUtils::toString(-1)), std::string("-1"), "string of integer is different");
+	assertEquals(string(StringUtils::toString(-1)), string("-1"), "string of integer is different");
 }
 
 void testToStringLong()
 {
-	assertEquals(std::string(StringUtils::toString(-1L)), std::string("-1"), "string of long is different");
+	assertEquals(string(StringUtils::toString(-1L)), string("-1"), "string of long is different");
 }
 
 void testToStringFloat()
 {
-	assertEquals(std::string(StringUtils::toString(-1.0F)), std::string("-1"), "string of float is different");
+	assertEquals(string(StringUtils::toString(-1.0F)), string("-1"), "string of float is different");
 }
 
 void testToStringDouble()
 {
-	assertEquals(std::string(StringUtils::toString(-1.0)), std::string("-1"), "string of double is different");
+	assertEquals(string(StringUtils::toString(-1.0)), string("-1"), "string of double is different");
 }
 
 void testToStringChar()
 {
-	assertEquals(std::string(StringUtils::toString('a')), std::string("a"), "string of char is different");
+	assertEquals(string(StringUtils::toString('a')), string("a"), "string of char is different");
 }
 
 int main(int argc, char** argv)
 {
-	testIsBlankBlankString();
-	testIsBlankNotBlankString();
+	vector<TestFunction> tests;
+	tests.push_back(&testIsBlankBlankString);
+	tests.push_back(&testIsBlankNotBlankString);
+	tests.push_back(&testAreEqual);
+	tests.push_back(&testStartsWith);
+	tests.push_back(&testEndsWith);
+	tests.push_back(&testTrimStart);
+	tests.push_back(&testTrimEnd);
+	tests.push_back(&testTrim);
+	tests.push_back(&testToStringUnsigned);
+	tests.push_back(&testToStringUnsignedLong);
+	tests.push_back(&testToStringInt);
+	tests.push_back(&testToStringLong);
+	tests.push_back(&testToStringFloat);
+	tests.push_back(&testToStringDouble);
+	tests.push_back(&testToStringChar);
 	
-	testAreEqual();
-	
-	testTrimStart();
-	testTrimEnd();
-	testTrim();
-	
-	testToStringUnsigned();
-	testToStringUnsignedLong();
-	testToStringInt();
-	testToStringLong();
-	testToStringFloat();
-	testToStringDouble();
-	testToStringChar();
+	TestUtils::runTests(tests);
 }

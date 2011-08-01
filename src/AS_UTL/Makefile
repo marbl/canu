@@ -40,17 +40,20 @@ LIB_SOURCES = AS_UTL_Hash.C \
               AS_UTL_intervalList.C \
               ArgumentException.C \
               AssertionException.C \
+              FileUtils.C \
               RuntimeException.C \
-              StringUtils.C
+              StringUtils.C \
+              TestUtils.C \
+              VarUtils.C
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
-SOURCES     = $(LIB_SOURCES) testStringUtils.C
+SOURCES     = $(LIB_SOURCES) testFileUtils.C testStringUtils.C
 
 OBJECTS     = $(SOURCES:.C=.o)
 LIBRARIES   = libAS_UTL.a libCA.a
 SCRIPTS     =
-CXX_PROGS   = testStringUtils
+CXX_PROGS   = testFileUtils testStringUtils
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -61,4 +64,5 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 libAS_UTL.a: $(LIB_OBJECTS)
 libCA.a: $(LIB_OBJECTS)
 
+testFileUtils: testFileUtils.o libCA.a
 testStringUtils: testStringUtils.o libCA.a

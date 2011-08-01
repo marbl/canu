@@ -29,13 +29,13 @@
 #include <exception>
 #include <sstream>
 #include <string>
-#include <typeinfo>
 
 using namespace std;
 
 #include "AS_global.h"
+#include "VarUtils.h"
 
-static const char *RCSID_STRING_UTILS_H = "$Id: StringUtils.h,v 1.4 2011-08-01 16:54:03 mkotelbajcvi Exp $";
+static const char *RCSID_STRING_UTILS_H = "$Id: StringUtils.h,v 1.5 2011-08-01 20:33:35 mkotelbajcvi Exp $";
 
 #define NULL_TERMINATOR '\0'
 
@@ -69,7 +69,7 @@ public:
 		return str == NULL;
 	}
 
-	inline static bool isEmpty(std::string str)
+	inline static bool isEmpty(string str)
 	{
 		return str.length() == 0;
 	}
@@ -78,15 +78,23 @@ public:
 	{
 		return (str1 == NULL) ? str2 == NULL : (str2 != NULL) && (strcmp(str1, str2) == 0);
 	}
+	
+	static bool startsWith(const char* str, size num, ...);
+	static bool startsWith(const char* str, size num, const char** toTest);
+	static bool endsWith(const char* str, size num, ...);
+	static bool endsWith(const char* str, size num, const char** toTest);
 
+	static const char* concat(size num, ...);
+	
+	static const char* join(const char* delimiter, size num, ...);
+	static const char* join(const char* delimiter, size num, const char** toJoin);
+	
 	static const char* trim(const char* str, size num, ...);
 	static const char* trim(const char* str, size num, const char** toTrim);
 	static const char* trimStart(const char* str, size num, ...);
 	static const char* trimStart(const char* str, size num, const char** toTrim);
 	static const char* trimEnd(const char* str, size num, ...);
 	static const char* trimEnd(const char* str, size num, const char** toTrim);
-	
-	static const char* concat(size num, ...);
 	
 	inline static const char* toString(unsigned value)
 	{
@@ -160,8 +168,5 @@ public:
 		return str;
 	}
 };
-
-template<class T>
-T* getArgs(size num, T* args, va_list& argsList);
 
 #endif

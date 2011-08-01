@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.3 2011-08-01 16:54:03 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.4 2011-08-01 20:33:30 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +26,9 @@ static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.3 2011-08-01 16:54:03 mk
 #include <time.h>
 #include <string.h>
 #include <map>
+#include <vector>
+
+using namespace std;
 
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
@@ -34,8 +37,6 @@ static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.3 2011-08-01 16:54:03 mk
 #include "AS_UTL_Hash.h"
 #include "StringUtils.h"
 #include "TestUtils.h"
-
-using namespace std;
 
 #define INF_STORE_FILENAME "inf"
 #define LIB_STORE_FILENAME "lib"

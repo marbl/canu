@@ -19,19 +19,25 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef TEST_UTILS_H
-#define TEST_UTILS_H
+#ifndef TESTUTILS_H
+#define TESTUTILS_H
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <vector>
 
+using namespace std;
+
+#include "AS_global.h"
 #include "AssertionException.h"
 #include "AssertionType.h"
 #include "StringUtils.h"
 
-static const char* RCSID_TEST_UTILS_H = "$Id: TestUtils.h,v 1.4 2011-08-01 16:54:03 mkotelbajcvi Exp $";
+static const char* RCSID_TESTUTILS_H = "$Id: TestUtils.h,v 1.5 2011-08-01 20:33:35 mkotelbajcvi Exp $";
+
+typedef void (*TestFunction)();
 
 #define assertFalse(condition, message) \
 	if (condition) \
@@ -80,5 +86,11 @@ static const char* RCSID_TEST_UTILS_H = "$Id: TestUtils.h,v 1.4 2011-08-01 16:54
 	{ \
 		throw AssertionException(ASSERT_NOT_EMPTY, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
 	}
+
+class TestUtils
+{
+public:
+	static void runTests(vector<TestFunction>& tests);
+};
 
 #endif
