@@ -19,8 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef STRING_UTILS_H_
-#define STRING_UTILS_H_
+#ifndef STRING_UTILS_H
+#define STRING_UTILS_H
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -31,25 +31,53 @@
 #include <string>
 #include <typeinfo>
 
-#include "ArgumentException.h"
+using namespace std;
+
 #include "AS_global.h"
 
-static const char *RCSID_STRING_UTILS_H_ = "$Id: StringUtils.h,v 1.3 2011-07-28 11:31:00 mkotelbajcvi Exp $";
+static const char *RCSID_STRING_UTILS_H = "$Id: StringUtils.h,v 1.4 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
-#define WHITESPACE_CHARS " \t\n\r"
 #define NULL_TERMINATOR '\0'
 
-#define DEFAULT_BUFFER_SIZE 256
-#define CHAR_BUFFER_SIZE 2
+#define min(a, b) \
+	(a < b) ? a : b
+
+#define max(a, b) \
+	(a > b) ? a : b
 
 class StringUtils
 {
 public:
-	static bool isBlank(const char* str);
-	static bool isEmpty(const char* str);
-	static bool isEmpty(std::string str);
+	inline static bool isBlank(const char* str)
+	{
+		if (!isEmpty(str))
+		{
+			for (size a = 0; a < strlen(str); a++)
+			{
+				if (!isspace(str[a]))
+				{
+					return false;
+				}
+			}
+		}
+		
+		return true;
+	}
 
-	static bool areEqual(const char* str1, const char* str2);
+	inline static bool isEmpty(const char* str)
+	{
+		return str == NULL;
+	}
+
+	inline static bool isEmpty(std::string str)
+	{
+		return str.length() == 0;
+	}
+
+	inline static bool areEqual(const char* str1, const char* str2)
+	{
+		return (str1 == NULL) ? str2 == NULL : (str2 != NULL) && (strcmp(str1, str2) == 0);
+	}
 
 	static const char* trim(const char* str, size num, ...);
 	static const char* trim(const char* str, size num, const char** toTrim);
@@ -58,14 +86,79 @@ public:
 	static const char* trimEnd(const char* str, size num, ...);
 	static const char* trimEnd(const char* str, size num, const char** toTrim);
 	
-	static const char* toString(char value);
-	static const char* toString(int value);
-	static const char* toString(long value);
-	static const char* toString(float value);
-	static const char* toString(double value);
+	static const char* concat(size num, ...);
 	
-	template<class T>
-	static const char* toString(T value);
+	inline static const char* toString(unsigned value)
+	{
+		ostringstream stream(ostringstream::out);
+		
+		stream << value;
+		
+		return toString(stream.str());
+	}
+
+	inline static const char* toString(unsigned long value)
+	{
+		ostringstream stream(ostringstream::out);
+		
+		stream << value;
+		
+		return toString(stream.str());
+	}
+
+	inline static const char* toString(int value)
+	{
+		ostringstream stream(ostringstream::out);
+		
+		stream << value;
+		
+		return toString(stream.str());
+	}
+
+	inline static const char* toString(long value)
+	{
+		ostringstream stream(ostringstream::out);
+		
+		stream << value;
+		
+		return toString(stream.str());
+	}
+
+	inline static const char* toString(float value)
+	{
+		ostringstream stream(ostringstream::out);
+		
+		stream << value;
+		
+		return toString(stream.str());
+	}
+
+	inline static const char* toString(double value)
+	{
+		ostringstream stream(ostringstream::out);
+		
+		stream << value;
+		
+		return toString(stream.str());
+	}
+
+	inline static const char* toString(char value)
+	{
+		char* str = new char[2];
+		str[0] = value;
+		str[1] = NULL_TERMINATOR;
+		
+		return str;
+	}
+	
+	inline static const char* toString(string value)
+	{
+		char* str = new char[value.length()];
+		
+		strcpy(str, value.c_str());
+		
+		return str;
+	}
 };
 
 template<class T>

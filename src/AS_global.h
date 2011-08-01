@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.40 2011-07-28 11:31:00 mkotelbajcvi Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.41 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,8 +97,13 @@ typedef void *PtrT;
 #define F_UL "%lu"
 #define F_LL "%lld"
 #define F_ULL "%llu"
-#define F_HF "%h3f"
 #define F_F "%3f"
+
+#define F_SIZE_T  "%lu"
+#define F_SIZE_TP  "lu"
+
+#define F_STR "%s"
+
 #define F_P "%p"
 
 #if ULONG_MAX == 0xffffffff
@@ -202,9 +207,6 @@ typedef void *PtrT;
   #define F_U64P   "lu"
   #define F_X64   "%lx"
   #define F_X64P   "lx"
-
-  #define F_SIZE_T  "%lu"
-  #define F_SIZE_TP  "lu"
 
   #ifdef _AIX
     #define F_TIME_T  "%ld"

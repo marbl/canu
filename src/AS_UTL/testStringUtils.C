@@ -57,14 +57,39 @@ void testTrim()
 	assertEquals(std::string(StringUtils::trim("trim1trim2|test|trim2trim1", 2, "trim1", "trim2")), std::string("|test|"), "trimmed string is different");
 }
 
+void testToStringUnsigned()
+{
+	assertEquals(std::string(StringUtils::toString((unsigned)1)), std::string("1"), "string of unsigned is different");
+}
+
+void testToStringUnsignedLong()
+{
+	assertEquals(std::string(StringUtils::toString((unsigned long)1)), std::string("1"), "string of unsigned long is different");
+}
+
 void testToStringInt()
 {
 	assertEquals(std::string(StringUtils::toString(-1)), std::string("-1"), "string of integer is different");
 }
 
+void testToStringLong()
+{
+	assertEquals(std::string(StringUtils::toString(-1L)), std::string("-1"), "string of long is different");
+}
+
+void testToStringFloat()
+{
+	assertEquals(std::string(StringUtils::toString(-1.0F)), std::string("-1"), "string of float is different");
+}
+
 void testToStringDouble()
 {
 	assertEquals(std::string(StringUtils::toString(-1.0)), std::string("-1"), "string of double is different");
+}
+
+void testToStringChar()
+{
+	assertEquals(std::string(StringUtils::toString('a')), std::string("a"), "string of char is different");
 }
 
 int main(int argc, char** argv)
@@ -78,6 +103,11 @@ int main(int argc, char** argv)
 	testTrimEnd();
 	testTrim();
 	
+	testToStringUnsigned();
+	testToStringUnsignedLong();
 	testToStringInt();
+	testToStringLong();
+	testToStringFloat();
 	testToStringDouble();
+	testToStringChar();
 }

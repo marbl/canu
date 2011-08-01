@@ -45,12 +45,12 @@ LIB_SOURCES = AS_UTL_Hash.C \
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
-SOURCES     = $(LIB_SOURCES)
+SOURCES     = $(LIB_SOURCES) testStringUtils.C
 
 OBJECTS     = $(SOURCES:.C=.o)
 LIBRARIES   = libAS_UTL.a libCA.a
 SCRIPTS     =
-CXX_PROGS   =
+CXX_PROGS   = testStringUtils
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -61,15 +61,4 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 libAS_UTL.a: $(LIB_OBJECTS)
 libCA.a: $(LIB_OBJECTS)
 
-.PHONY: test
-test:
-	$(CXX) $(CPPFLAGS) $(CXXDEFS) $(CXXFLAGS) -g \
-		-I. -I.. \
-		-o testStringUtils \
-		testStringUtils.C \
-		ArgumentException.C \
-		AssertionException.C \
-		AS_UTL_alloc.C \
-		AS_UTL_fileIO.C \
-		RuntimeException.C \
-		StringUtils.C
+testStringUtils: testStringUtils.o libCA.a

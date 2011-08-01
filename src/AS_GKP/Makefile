@@ -51,5 +51,5 @@ fastqToCA:            fastqToCA.o                   libCA.a
 fastqSample:          fastqSample.o                 libCA.a
 fastqSimulate:        fastqSimulate.o               libCA.a
 upgrade-v6-to-v7:     upgrade-v6-to-v7.o            libCA.a
-upgrade-v7-to-v8:     upgrade-v7-to-v8.o             libCA.a
+upgrade-v7-to-v8:     upgrade-v7-to-v8.o            libCA.a
 clearRangeHistogram:  clearRangeHistogram.o         libCA.a

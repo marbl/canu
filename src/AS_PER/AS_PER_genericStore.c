@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.32 2009-06-10 18:05:14 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.33 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -320,8 +320,8 @@ getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength, int64 *nex
   //  if there is corruption of some goofy crud, we'll get a bogus
   //  length.
   //
-  assert(*actualLength <= 1048576);
-  assert(offset - s->firstElem + *actualLength + sizeof(uint32) <= s->lastElem);
+  //assert(*actualLength <= 1048576);
+  //assert(offset - s->firstElem + *actualLength + sizeof(uint32) <= s->lastElem);
 
   //  Careful!  Precedence of ? sucks.
   *nextOffset = offset + sizeof(uint32) + ((*actualLength > 0) ? *actualLength + 1 : 0);

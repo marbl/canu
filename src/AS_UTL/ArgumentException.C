@@ -21,18 +21,36 @@
 
 #include "ArgumentException.h"
 
-static const char* RCSID = "$Id: ArgumentException.C,v 1.2 2011-07-28 11:31:00 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: ArgumentException.C,v 1.3 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
-ArgumentException::ArgumentException(char* name, char* message) throw() 
+ArgumentException::ArgumentException(const char* name, const char* message) throw() 
 	: RuntimeException(message)
 {
-	this->name = name;
+	this->name = (char*)name;
 }
 
 const char* ArgumentException::what() const throw()
 {
-	return (std::string("Argument ") + 
-		((this->name != NULL) ? std::string("(name=") + this->name + ")" : "") + 
-		"exception" +
-		((this->message != NULL ? std::string(": ") + this->message : "."))).c_str();
+	string str("Argument ");
+	
+	if (this->name != NULL)
+	{
+		str += "(name=";
+		str += this->name;
+		str += ")";
+	}
+	
+	str += "exception";
+	
+	if (this->message != NULL)
+	{
+		str += ": ";
+		str += this->message;
+	}
+	else
+	{
+		str += ".";
+	}
+	
+	return str.c_str();
 }

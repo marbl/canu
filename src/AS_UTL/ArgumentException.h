@@ -19,8 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENT_EXCEPTION_H_
-#define ARGUMENT_EXCEPTION_H_
+#ifndef ARGUMENT_EXCEPTION_H
+#define ARGUMENT_EXCEPTION_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,12 +29,14 @@
 
 #include "RuntimeException.h"
 
-static const char* RCSID_ARGUMENT_EXCEPTION_H_ = "$Id: ArgumentException.h,v 1.2 2011-07-28 11:31:00 mkotelbajcvi Exp $";
+using namespace std;
+
+static const char* RCSID_ARGUMENT_EXCEPTION_H = "$Id: ArgumentException.h,v 1.3 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
 class ArgumentException : public RuntimeException
 {
 public:
-	ArgumentException(char* name = NULL, char* message = NULL) throw();
+	ArgumentException(const char* name = NULL, const char* message = NULL) throw();
 	
 	virtual const char* what() const throw();
 

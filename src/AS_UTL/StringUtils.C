@@ -21,52 +21,7 @@
 
 #include "StringUtils.h"
 
-static const char *RCSID = "$Id: StringUtils.C,v 1.2 2011-07-28 11:31:00 mkotelbajcvi Exp $";
-
-bool StringUtils::isBlank(const char* str)
-{
-	if (!isEmpty(str))
-	{
-		bool notWhitespace;
-		
-		for (size a = 0; a < strlen(str); a++)
-		{
-			notWhitespace = true;
-			
-			for (size b = 0; b < strlen(WHITESPACE_CHARS); b++)
-			{
-				if (str[a] == WHITESPACE_CHARS[b])
-				{
-					notWhitespace = false;
-					
-					break;
-				}
-			}
-			
-			if (notWhitespace)
-			{
-				return false;
-			}
-		}
-	}
-	
-	return true;
-}
-
-bool StringUtils::isEmpty(const char* str)
-{
-	return str == NULL;
-}
-
-bool StringUtils::isEmpty(std::string str)
-{
-	return str.length() == 0;
-}
-
-bool StringUtils::areEqual(const char* str1, const char* str2)
-{
-	return (str1 == NULL) ? str2 == NULL : (str2 != NULL) && (strcmp(str1, str2) == 0);
-}
+static const char *RCSID = "$Id: StringUtils.C,v 1.3 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
 const char* StringUtils::trim(const char* str, size num, ...)
 {
@@ -99,26 +54,13 @@ const char* StringUtils::trimStart(const char* str, size num, ...)
 
 const char* StringUtils::trimStart(const char* str, size num, const char** toTrim)
 {
-	if (toTrim == NULL)
-	{
-		throw ArgumentException("toTrim", "Array of strings to trim must not be null.");
-	}
-	
 	if (!isEmpty(str))
 	{
-		std::string strObj(str);
+		string strObj(str);
 		
 		for (size a = 0; a < num; a++)
 		{
 			const char* toTrimItem = toTrim[a];
-			
-			if (toTrimItem == NULL)
-			{
-				char error[64];
-				sprintf(error, "String to trim must not be null: index="F_UL, a);
-				
-				throw ArgumentException("toTrim", error);
-			}
 			
 			size toTrimItemLength = strlen(toTrimItem);
 			
@@ -145,26 +87,13 @@ const char* StringUtils::trimEnd(const char* str, size num, ...)
 
 const char* StringUtils::trimEnd(const char* str, size num, const char** toTrim)
 {
-	if (toTrim == NULL)
-	{
-		throw  ArgumentException("toTrim", "Array of strings to trim must not be null.");
-	}
-	
 	if (!isEmpty(str))
 	{
-		std::string strObj(str);
+		string strObj(str);
 		
 		for (size a = 0; a < num; a++)
 		{
 			const char* toTrimItem = toTrim[a];
-			
-			if (toTrimItem == NULL)
-			{
-				char error[64];
-				sprintf(error, "String to trim must not be null: index="F_UL, a);
-
-				throw ArgumentException("toTrim", error);
-			}
 			
 			size toTrimItemLength = strlen(toTrimItem);
 			
@@ -181,39 +110,20 @@ const char* StringUtils::trimEnd(const char* str, size num, const char** toTrim)
 	return NULL;
 }
 
-const char* StringUtils::toString(int value)
+const char* StringUtils::concat(size num, ...)
 {
-	return toString<int>(value);
-}
-
-const char* StringUtils::toString(long value)
-{
-	return toString<long>(value);
-}
-
-const char* StringUtils::toString(float value)
-{
-	return toString<float>(value);
-}
-
-const char* StringUtils::toString(double value)
-{
-	return toString<double>(value);
-}
-
-const char* StringUtils::toString(char value)
-{
-	return toString<char>(value);
-}
-
-template<class T>
-const char* StringUtils::toString(T value)
-{
-	std::ostringstream stream(std::ostringstream::out);
+	va_list argsList;
+	va_start(argsList, num);
 	
-	stream << value;
+	string str;
+	const char** items = getArgs(num, (const char**)safe_calloc(num, sizeof(const char**)), argsList);
 	
-	return stream.str().c_str();
+	for (size a = 0; a < num; a++)
+	{
+		str += items[a];
+	}
+	
+	return toString(str);
 }
 
 template<class T>

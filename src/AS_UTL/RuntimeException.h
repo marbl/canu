@@ -26,9 +26,11 @@
 #include <stdlib.h>
 #include <exception>
 
-static const char* RCSID_RUNTIMEEXCEPTION_H_ = "$Id: RuntimeException.h,v 1.1 2011-07-28 11:31:00 mkotelbajcvi Exp $";
+using namespace std;
 
-class RuntimeException : public std::exception
+static const char* RCSID_RUNTIMEEXCEPTION_H_ = "$Id: RuntimeException.h,v 1.2 2011-08-01 16:54:03 mkotelbajcvi Exp $";
+
+class RuntimeException : public exception
 {
 public:	
 	operator const char*();

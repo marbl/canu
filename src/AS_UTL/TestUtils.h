@@ -19,8 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef TEST_UTILS_H_
-#define TEST_UTILS_H_
+#ifndef TEST_UTILS_H
+#define TEST_UTILS_H
 
 #include <assert.h>
 #include <stdio.h>
@@ -28,31 +28,57 @@
 #include <strings.h>
 
 #include "AssertionException.h"
+#include "AssertionType.h"
+#include "StringUtils.h"
 
-static const char* RCSID_TEST_UTILS_H_ = "$Id: TestUtils.h,v 1.3 2011-07-28 11:31:00 mkotelbajcvi Exp $";
+static const char* RCSID_TEST_UTILS_H = "$Id: TestUtils.h,v 1.4 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
 #define assertFalse(condition, message) \
 	if (condition) \
 	{ \
-		throw AssertionException(message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+		throw AssertionException(ASSERT_FALSE, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
 	}
 
 #define assertTrue(condition, message) \
 	if (!condition) \
 	{ \
-		throw AssertionException(message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+		throw AssertionException(ASSERT_TRUE, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
 	}
 
 #define assertEquals(obj1, obj2, message) \
 	if (obj1 != obj2) \
 	{ \
-		throw AssertionException(message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+		throw AssertionException(ASSERT_EQUALS, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
 	}
 
 #define assertNotEquals(obj1, obj2, message) \
 	if (obj1 == obj2) \
 	{ \
-		throw AssertionException(message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+		throw AssertionException(ASSERT_NOT_EQUALS, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+	}
+
+#define assertNull(obj, message) \
+	if (obj != NULL) \
+	{ \
+		throw AssertionException(ASSERT_NULL, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+	}
+
+#define assertNotNull(obj, message) \
+	if (obj == NULL) \
+	{ \
+		throw AssertionException(ASSERT_NOT_NULL, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+	}
+
+#define assertEmpty(str, message) \
+	if (strlen(str) != 0) \
+	{ \
+		throw AssertionException(ASSERT_EMPTY, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
+	}
+
+#define assertNotEmpty(str, message) \
+	if (strlen(str) == 0) \
+	{ \
+		throw AssertionException(ASSERT_NOT_EMPTY, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
 	}
 
 #endif

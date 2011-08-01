@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.3 2009-12-02 12:52:28 skoren Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.4 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -180,40 +180,56 @@ gkStore::gkStore_rebuildUIDtoIID(void) {
 //
 //  AS_MSG utility functions
 //
-void
-gkStore::gkStore_loadSTRtoUID(void) {  
-  if (doNotLoadUIDs == FALSE) {
-     if (STRtoUID == NULL) {
-       uid = convertStoreToMemoryStore(uid);
-   
-       STRtoUID = CreateStringHashTable_AS();
-   
-       char          *uidptr = NULL;
-       int64          uidoff = 1;
-       int64          nxtoff = 1;
-       uint32         actlen = 0;
-   
-       while ((uidptr = getStringStorePtr(uid, uidoff, &actlen, &nxtoff)) != NULL) {
-         if (strlen(uidptr) != actlen) {
-           int i;
-           fprintf(stderr, "gkStore_loadSTRtoUID()-- string '%s' length %d != stored actlen = %d\n",
-                   uidptr, strlen(uidptr), actlen);
-           for (i=0; i<strlen(uidptr); i++)
-             fprintf(stderr, "[%2d] %3d '%c'\n", i, uidptr[i], uidptr[i]);
-         }
-         assert(strlen(uidptr) == actlen);
-   
-         if (InsertInHashTable_AS(STRtoUID,
-                                  (INTPTR)uidptr, actlen,
-                                  uidoff, 0) == HASH_FAILURE) {
-           fprintf(stderr, "gkStore_loadSTRtoUID()-- failed to insert uid '%s' into store; already there?!\n", uidptr);
-           assert(0);
-         }
-         uidoff = nxtoff;
-       }
-     }
-     assert(STRtoUID != NULL);
-  }
+
+HashTable_AS* gkStore::gkStore_loadSTRtoUID(StoreStruct* uidStore, HashTable_AS* strToUID)
+{
+	if (strToUID == NULL)
+	{
+		uidStore = convertStoreToMemoryStore(uidStore);
+		
+		strToUID = CreateStringHashTable_AS();
+		
+		char          *uidptr = NULL;
+		int64          uidoff = 1;
+		int64          nxtoff = 1;
+		uint32         actlen = 0;
+		
+		while ((uidptr = getStringStorePtr(uidStore, uidoff, &actlen, &nxtoff)) != NULL)
+		{
+			if (strlen(uidptr) != actlen)
+			{
+				fprintf(stderr, "gkStore_loadSTRtoUID()-- string '%s' length %d != stored actlen = %d\n", uidptr, strlen(uidptr), actlen);
+				
+				for (int i=0; i<strlen(uidptr); i++)
+				{
+					fprintf(stderr, "[%2d] %3d '%c'\n", i, uidptr[i], uidptr[i]);
+				}
+			}
+			
+			assert(strlen(uidptr) == actlen);
+			
+			if (InsertInHashTable_AS(strToUID, (INTPTR)uidptr, actlen, uidoff, 0) == HASH_FAILURE) 
+			{
+				fprintf(stderr, "gkStore_loadSTRtoUID()-- failed to insert uid '%s' into store; already there?!\n", uidptr);
+				
+				assert(0);
+			}
+			
+			uidoff = nxtoff;
+		}
+	}
+	
+	assert(strToUID != NULL);
+	
+	return strToUID;
+}
+
+void gkStore::gkStore_loadSTRtoUID()
+{
+	if (doNotLoadUIDs == FALSE)
+	{
+		gkStore_loadSTRtoUID(this->uid, this->STRtoUID);
+	}
 }
 
 
@@ -258,19 +274,31 @@ gkStore::gkStore_getUIDfromString(char *uidstr) {
 
 //  Given an AS_UID, returns a pointer to the string.
 //
-char *
-gkStore::gkStore_getUIDstring(AS_UID u) {
-  char *retval = NULL;
+char* gkStore::gkStore_getUIDstring(StoreStruct* uidStore, AS_UID uidObj)
+{
+	char* uidStr = NULL;
+	
+	if (uidObj.isString)
+	{
+		uint32 actualLength = 0;
+		int64 offset = 0;
+		
+		uidStr = getStringStorePtr(uidStore, uidObj.UID, &actualLength, &offset);
+	}
+	
+	return uidStr;
+}
 
-  if (!doNotLoadUIDs && u.isString) {
-    uint32  actlen = 0;
-    int64   uidoff = 0;
-
-    gkStore_loadSTRtoUID();
-    retval = getStringStorePtr(uid, u.UID, &actlen, &uidoff);
-  }
-
-  return(retval);
+char * gkStore::gkStore_getUIDstring(AS_UID uidObj)
+{
+	if (!this->doNotLoadUIDs)
+	{
+		this->gkStore_loadSTRtoUID();
+		
+		return gkStore_getUIDstring(this->uid, uidObj);
+	}
+	
+	return NULL;
 }
 
 

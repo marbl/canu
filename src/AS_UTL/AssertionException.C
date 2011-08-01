@@ -21,11 +21,12 @@
 
 #include "AssertionException.h"
 
-static const char* RCSID = "$Id: AssertionException.C,v 1.1 2011-07-28 11:31:00 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: AssertionException.C,v 1.2 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
-AssertionException::AssertionException(const char* message, const char* file, int line, const char* function) throw() 
+AssertionException::AssertionException(AssertionType type, const char* message, const char* file, int line, const char* function) throw() 
 	: RuntimeException(message)
 {
+	this->type = type;
 	this->file = (char*)file;
 	this->line = line;
 	this->function = (char*)function;
@@ -33,11 +34,57 @@ AssertionException::AssertionException(const char* message, const char* file, in
 
 const char* AssertionException::what() const throw()
 {
-	return (std::string(((this->file != NULL) ? this->file : UNKNOWN_LOCATION)) + 
-		":" + 
-		((this->line > 0) ? StringUtils::toString(this->line) : UNKNOWN_LOCATION) + 
-		" " + 
-		((this->function != NULL) ? std::string("[") + this->function + "] " : "") + 
-		"Assertion failed" + 
-		((this->message != NULL ? std::string(": ") + this->message : "."))).c_str();
+	string str(((this->file != NULL) ? this->file : UNKNOWN_LOCATION));
+	
+	str += ":";
+	str += (this->line > 0) ? StringUtils::toString(this->line) : UNKNOWN_LOCATION;
+	str += " ";
+	
+	if (this->function != NULL)
+	{
+		str += "[";
+		str += this->function;
+		str += "] ";
+	}
+	
+	str += "Assert ";
+	str += assertionTypeToString(this->type);
+	str += " failed";
+	
+	if (this->message != NULL)
+	{
+		str += ": ";
+		str += this->message;
+	}
+	else
+	{
+		str += ".";
+	}
+	
+	return str.c_str();
+}
+
+const char* AssertionException::assertionTypeToString(AssertionType type)
+{
+	switch (type)
+	{
+		case ASSERT_FALSE:
+			return "false";
+		case ASSERT_TRUE:
+			return "true";
+		case ASSERT_EQUALS:
+			return "equals";
+		case ASSERT_NOT_EQUALS:
+			return "not equals";
+		case ASSERT_NULL:
+			return "null";
+		case ASSERT_NOT_NULL:
+			return "not null";
+		case ASSERT_EMPTY:
+			return "empty";
+		case ASSERT_NOT_EMPTY:
+			return "not empty";
+		default:
+			return NULL;
+	}
 }

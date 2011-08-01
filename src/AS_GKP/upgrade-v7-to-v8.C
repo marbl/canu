@@ -18,26 +18,32 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.2 2011-07-28 02:07:07 brianwalenz Exp $";
+static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.3 2011-08-01 16:54:03 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
 #include <string.h>
-
 #include <map>
-
-using namespace std;
 
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_fileIO.h"
+#include "AS_UTL_Hash.h"
+#include "StringUtils.h"
+#include "TestUtils.h"
+
+using namespace std;
 
 #define INF_STORE_FILENAME "inf"
 #define LIB_STORE_FILENAME "lib"
+#define U2I_STORE_FILENAME "u2i"
+#define UID_STORE_FILENAME "uid"
 #define STORE_RENAME_SUFFIX ".v7-old"
+
+#define AS_IID_LIB 3
 
 class gkLibraryOld
 {
@@ -82,15 +88,6 @@ public:
 	uint64 orientation:3;
 };
 
-map<AS_IID, const char*> dumpMap;
-
-void lookupLibraryName(AS_IID iid, gkLibrary* lib)
-{
-	assert(dumpMap.count(iid) > 0);
-	
-	strcpy(lib->libraryName, dumpMap[iid]);
-}
-
 void processInfoStore(char* oldInfoStorePath, char* infoStorePath)
 {
 	gkStoreInfo info;
@@ -101,7 +98,7 @@ void processInfoStore(char* oldInfoStorePath, char* infoStorePath)
 	
 	if (AS_UTL_safeRead(oldInfoFile, &info, "inf", sizeof(info), 1))
 	{
-		assert(info.gkVersion == 7);
+		assertTrue(info.gkVersion == 7, (string("Store is not version 7: version=") + StringUtils::toString(info.gkVersion)).c_str());
 		
 		info.gkVersion = 8;
 	}
@@ -118,17 +115,21 @@ void processInfoStore(char* oldInfoStorePath, char* infoStorePath)
 	fprintf(stdout, "Information store upgraded to v8:\n%s\n", infoStorePath);
 }
 
-void processLibStore(char* oldLibStorePath, char* libStorePath)
+void processLibStore(map<AS_IID, const char*>& idMap, StoreStruct& oldLibStore, StoreStruct& libStore)
 {
-	StoreStruct* oldLibStore = openStore(oldLibStorePath, "r"),
-			*libStore = createIndexStore(libStorePath, "lib", sizeof(gkLibrary), 1);
+	size oldLibSize = sizeof(gkLibraryOld);
 	
-	for (AS_IID a = getFirstElemStore(oldLibStore); a < getLastElemStore(oldLibStore); a++)
+	for (map<AS_IID, const char*>::iterator iterator = idMap.begin(); iterator != idMap.end(); iterator++)
+	{
+		printf(F_U32"="F_STR"\n", (*iterator).first, (*iterator).second);
+	}
+	
+	for (AS_IID a = 1; a <= idMap.size(); a++)
 	{
 		gkLibraryOld oldLib;
 		gkLibrary lib;
 		
-		getIndexStore(oldLibStore, a, &oldLib);
+		getIndexStore(&oldLibStore, a, &oldLib);
 		
 		lib.libraryUID = oldLib.libraryUID;
 		lib.mean = oldLib.mean;
@@ -157,63 +158,51 @@ void processLibStore(char* oldLibStorePath, char* libStorePath)
 		lib.spareLIB = oldLib.spareLIB;
 		lib.orientation = oldLib.orientation;
 		
-		lookupLibraryName(a, &lib);
+		assertTrue(idMap.count(a) > 0, StringUtils::concat(2, "Library does not contain an UID string: iid=", StringUtils::toString(a)));
 		
-		appendIndexStore(libStore, &lib);
+		strcpy(lib.libraryName, idMap[a]);
+		
+		appendIndexStore(&libStore, &lib);
 		
 		fprintf(stdout, "Appended v8 library:\nlibraryIID="F_U32"\nlibraryName=%s\n", a, lib.libraryName);
 	}
 	
-	closeStore(oldLibStore);
-	closeStore(libStore);
+	closeStore(&oldLibStore);
+	closeStore(&libStore);
 	
-	fprintf(stdout, "Library store upgraded to v8:\n%s\n", libStorePath);
+	fprintf(stdout, "Library store upgraded to v8.\n");
 }
 
-void getDumpMap(char* dumpPath)
-{
-	errno = 0;
+void getIdMap(map<AS_IID, const char*>& idMap, char* uidStorePath, char* u2iStorePath)
+{	
+	HashTable_AS* uidToIidTable = LoadUIDtoIIDHashTable_AS(u2iStorePath);
+	StoreStruct* uidStore = convertStoreToMemoryStore(openStore(uidStorePath, "r"));
+	HashTable_Iterator_AS idIterator;
 	
-	FILE* dumpFile = fopen(dumpPath, "r");
+	InitializeHashTable_Iterator_AS(uidToIidTable, &idIterator);
 	
-	if (errno != 0)
+	uint64 key = 0, value = 0;
+	uint32 valueType = 0;
+	
+	while (NextHashTable_Iterator_AS(&idIterator, &key, &value, &valueType))
 	{
-		fprintf(stderr, "Unable to open dump file for reading:\nfile=%s\nerror=%s\n", dumpPath, strerror(errno));
-		exit(1);
-	}
-	
-	char* dumpLine;
-	bool pastHeader = false;
-	
-	do
-	{
-		dumpLine = new char[10240];
-		
-		fgets(dumpLine, 256, dumpFile);
-		
-		if (dumpLine != NULL)
+		if (valueType == AS_IID_LIB)
 		{
-			if (pastHeader)
-			{
-				if (strlen(dumpLine) > 0)
-				{
-					char* name = strtok(dumpLine, "\t");
-					AS_IID iid = atoi(strtok(NULL, "\t"));
-					
-					dumpMap[iid] = name;
-				}
-			}
-			else
-			{
-				pastHeader = true;
-			}
+			uint32 actualLength = 0;
+			int64 offset = 0;
+			
+			char* strTemp = getStringStorePtr(uidStore, value, &actualLength, &offset);
+			
+			assertTrue(actualLength > 0, StringUtils::concat(2, "UID string must not be empty: iid=", StringUtils::toString(value)));
+			
+			char* str = new char[actualLength];
+			strcpy(str, strTemp);
+			
+			idMap[value] = str;
 		}
 	}
-	while ((dumpLine != NULL) && (strlen(dumpLine) > 0));
 	
-	fclose(dumpFile);
-	
-	fprintf(stdout, "Found %u library item[s] in dump.\n", dumpMap.size());
+	closeStore(uidStore);
 }
 
 char* renameStore(char* storePath)
@@ -262,7 +251,7 @@ int main(int argc, char** argv)
 {
 	if (argc > 1)
 	{
-		char* storePath = NULL, *dumpPath = NULL;
+		char* storePath = NULL;
 		int arg = 1;
 	
 		while (arg < argc)
@@ -270,10 +259,6 @@ int main(int argc, char** argv)
 			if (strcmp(argv[arg], "-s") == 0)
 			{
 				storePath = argv[++arg];
-			}
-			else if (strcmp(argv[arg], "-d") == 0)
-			{
-				dumpPath = argv[++arg];
 			}
 			else
 			{
@@ -296,27 +281,21 @@ int main(int argc, char** argv)
 			exit(1);
 		}
 		
-		if (dumpPath == NULL)
-		{
-			fprintf(stderr, "A dump path must be provided.\n");
-			exit(1);
-		}
-		
-		if (!AS_UTL_fileExists(dumpPath, 0, 1))
-		{
-			fprintf(stderr, "Dump path does not exist: %s\n", dumpPath);
-			exit(1);
-		}
-		
 		char* libStorePath = getSubStorePath(storePath, LIB_STORE_FILENAME), 
 				*infoStorePath = getSubStorePath(storePath, INF_STORE_FILENAME), 
 				*oldLibStorePath = renameStore(libStorePath), 
 				*oldInfoStorePath = renameStore(infoStorePath);
 		
-		getDumpMap(dumpPath);
+		map<AS_IID, const char*> idMap;
 		
-		processLibStore(oldLibStorePath, libStorePath);
+		getIdMap(idMap, getSubStorePath(storePath, UID_STORE_FILENAME), 
+			getSubStorePath(storePath, U2I_STORE_FILENAME));
+		
+		StoreStruct* oldLibStore = convertStoreToMemoryStore(openStore(oldLibStorePath, "r")),
+			*libStore = createIndexStore(libStorePath, "lib", sizeof(gkLibrary), 1);
+		
 		processInfoStore(oldInfoStorePath, infoStorePath);
+		processLibStore(idMap, *oldLibStore, *libStore);
 	}
 	else
 	{
