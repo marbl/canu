@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.4 2011-08-01 20:33:30 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.5 2011-08-01 21:00:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,7 +158,7 @@ void processLibStore(map<AS_IID, const char*>& idMap, StoreStruct& oldLibStore, 
 		lib.UNUSEDusePackedFragments = oldLib.UNUSEDusePackedFragments;
 		lib.spareLIB = oldLib.spareLIB;
 		lib.orientation = oldLib.orientation;
-		
+
 		assertTrue(idMap.count(a) > 0, StringUtils::concat(2, "Library does not contain an UID string: iid=", StringUtils::toString(a)));
 		
 		strcpy(lib.libraryName, idMap[a]);
@@ -182,24 +182,25 @@ void getIdMap(map<AS_IID, const char*>& idMap, char* uidStorePath, char* u2iStor
 	
 	InitializeHashTable_Iterator_AS(uidToIidTable, &idIterator);
 	
-	uint64 key = 0, value = 0;
-	uint32 valueType = 0;
-	
-	while (NextHashTable_Iterator_AS(&idIterator, &key, &value, &valueType))
+	uint64 uidint = 0;
+	uint64 iid = 0;
+	uint32 iidType = 0;
+
+	while (NextHashTable_Iterator_AS(&idIterator, &uidint, &iid, &iidType))
 	{
-		if (valueType == AS_IID_LIB)
+		if (iidType == AS_IID_LIB)
 		{
-			uint32 actualLength = 0;
-			int64 offset = 0;
-			
-			char* strTemp = getStringStorePtr(uidStore, value, &actualLength, &offset);
-			
-			assertTrue(actualLength > 0, StringUtils::concat(2, "UID string must not be empty: iid=", StringUtils::toString(value)));
-			
-			char* str = new char[actualLength];
-			strcpy(str, strTemp);
-			
-			idMap[value] = str;
+			uint32  actualLength = 0;
+			int64   nxtoff       = 1;
+			AS_UID  uid          = AS_UID_fromInteger(uidint);
+			char*   uidName      = getStringStorePtr(uidStore, uid.UID, &actualLength, &nxtoff);
+
+			assertTrue(actualLength == strlen(uidName), StringUtils::concat(2, "UID string stored length ", StringUtils::toString(actualLength), " not same as strlen ", StringUtils::toString(strlen(uidName))));
+			assertTrue(actualLength > 0, StringUtils::concat(2, "UID string must not be empty: iid=", StringUtils::toString(iid)));
+
+			char *str = new char[actualLength + 1];
+			strcpy(str, uidName);
+			idMap[iid] = str;
 		}
 	}
 	
@@ -208,10 +209,11 @@ void getIdMap(map<AS_IID, const char*>& idMap, char* uidStorePath, char* u2iStor
 
 char* renameStore(char* storePath)
 {
-	char* oldStorePath = strdup(storePath);
-	
+	char* oldStorePath = new char [FILENAME_MAX];
+
+	strcpy(oldStorePath, storePath);
 	strcat(oldStorePath, STORE_RENAME_SUFFIX);
-	
+
 	if (!AS_UTL_fileExists(oldStorePath, 0, 1))
 	{
 		fprintf(stdout, "Renaming store:\n%s\n%s\n", storePath, oldStorePath);
@@ -239,7 +241,7 @@ void printUsage(char* executableName)
 
 char* getSubStorePath(char* storePath, char* subStoreFileName)
 {
-	char* subStorePath = new char[strlen(storePath) + strlen(subStoreFileName) + 1];
+	char* subStorePath = new char[strlen(storePath) + 1 + strlen(subStoreFileName) + 1];
 	
 	strcpy(subStorePath, storePath);
 	strcat(subStorePath, "/");
@@ -294,7 +296,10 @@ int main(int argc, char** argv)
 		
 		StoreStruct* oldLibStore = convertStoreToMemoryStore(openStore(oldLibStorePath, "r")),
 			*libStore = createIndexStore(libStorePath, "lib", sizeof(gkLibrary), 1);
-		
+
+		if (oldLibStore->elementSize != libStore->elementSize - sizeof(char) * 128)
+			fprintf(stderr, "ERROR:  store sizes incompatible.\n"), exit(1);
+
 		processInfoStore(oldInfoStorePath, infoStorePath);
 		processLibStore(idMap, *oldLibStore, *libStore);
 	}
