@@ -35,7 +35,11 @@ using namespace std;
 #include "AssertionType.h"
 #include "StringUtils.h"
 
-static const char* RCSID_TESTUTILS_H = "$Id: TestUtils.h,v 1.5 2011-08-01 20:33:35 mkotelbajcvi Exp $";
+static const char* RCSID_TESTUTILS_H = "$Id: TestUtils.h,v 1.6 2011-08-02 03:18:23 brianwalenz Exp $";
+
+#ifndef __ASSERT_FUNCTION
+#define __ASSERT_FUNCTION __func__
+#endif
 
 typedef void (*TestFunction)();
 
