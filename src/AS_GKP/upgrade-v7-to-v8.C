@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.5 2011-08-01 21:00:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.6 2011-08-02 02:25:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,6 @@ using namespace std;
 #define UID_STORE_FILENAME "uid"
 #define STORE_RENAME_SUFFIX ".v7-old"
 
-#define AS_IID_LIB 3
 
 class gkLibraryOld
 {
@@ -97,21 +96,56 @@ void processInfoStore(char* oldInfoStorePath, char* infoStorePath)
 	
 	FILE* oldInfoFile = fopen(oldInfoStorePath, "r");
 	
-	if (AS_UTL_safeRead(oldInfoFile, &info, "inf", sizeof(info), 1))
-	{
-		assertTrue(info.gkVersion == 7, (string("Store is not version 7: version=") + StringUtils::toString(info.gkVersion)).c_str());
-		
-		info.gkVersion = 8;
-	}
-	else
+	if (AS_UTL_safeRead(oldInfoFile, &info, "inf", sizeof(info), 1) == 0)
 	{
 		fprintf(stderr, "Unable to read information store:\nfile=%s\nerror=%s\n", oldInfoStorePath, strerror(errno));
 		exit(1);
-	}
-	
+  }
+
+  if (info.gkVersion != 7)
+  {
+    fprintf(stderr, "Store is version %u, not 7.  Cannot upgrade.\n", info.gkVersion);
+    exit(1);
+  }
+		
+  info.gkVersion     = 8;
+  info.gkLibrarySize = sizeof(gkLibrary);
+
 	FILE* infoFile = fopen(infoStorePath, "w");
 	
 	AS_UTL_safeWrite(infoFile, &info, "inf", sizeof(info), 1);
+
+
+  //  Dump the rest of the data (this is more or less copied from AS_PER_gkStore.C).
+
+  if (!feof(oldInfoFile)) {
+    uint32 nr = info.numPacked + info.numNormal + info.numStrobe + 1;
+    uint32 na = 0;
+    uint32 nb = 0;
+
+    uint8   *IIDtoTYPE = (uint8  *)safe_malloc(sizeof(uint8)  * nr);
+    uint32  *IIDtoTIID = (uint32 *)safe_malloc(sizeof(uint32) * nr);
+
+    na = AS_UTL_safeRead(oldInfoFile, IIDtoTYPE, "gkStore_open:header", sizeof(uint8), nr);
+    nb = AS_UTL_safeRead(oldInfoFile, IIDtoTIID, "gkStore_open:header", sizeof(uint32), nr);
+
+    //  If EOF was hit, and nothing was read, there is no index saved.  Otherwise, something was
+    //  read, and we fail if either was too short.
+
+    if ((feof(oldInfoFile)) && (na == 0) && (nb == 0)) {
+      safe_free(IIDtoTYPE);
+      safe_free(IIDtoTIID);
+    } else if ((na != nr) || (nb != nr)) {
+      fprintf(stderr, "couldn't read the IID maps: %s\n", strerror(errno)), exit(1);
+    }
+
+    AS_UTL_safeWrite(infoFile, IIDtoTYPE, "ioF", sizeof(uint8),  na);
+    AS_UTL_safeWrite(infoFile, IIDtoTIID, "ioF", sizeof(uint32), nb);
+  }
+
+
+  fclose(oldInfoFile);
+  fclose(infoFile);
 	
 	fprintf(stdout, "Information store upgraded to v8:\n%s\n", infoStorePath);
 }
