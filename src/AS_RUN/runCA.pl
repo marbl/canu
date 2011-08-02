@@ -181,6 +181,33 @@ sub setGlobal ($$) {
         $var = "doOverlapBasedTrimming";
     }
 
+    if ($var eq "ovlMemory") {
+        print STDERR "WARNING:  option ovlMemory was replaced with option ovlHashBits.  Using defaults:\n";
+        print STDERR "            2GB -> ovlHashBits=21 ovlHashBlockLength=30000000\n";
+        print STDERR "            4GB -> ovlHashBits=22 ovlHashBlockLength=110000000\n";
+        print STDERR "            8GB -> ovlHashBits=23 ovlHashBlockLength=180000000\n";
+        print STDERR "WARNING:  these values have NOT yet been tested for correct memory size (e.g., '2GB' might use more than 2GB)!\n";
+        if      ($val =~ m/2G/) {
+            $global{"ovlHashBits"}        = 23;
+            $global{"ovlHashBlockLength"} = 30000000;
+        } elsif ($val =~ m/4G/) {
+            $global{"ovlHashBits"}        = 24;
+            $global{"ovlHashBlockLength"} = 110000000;
+        } elsif ($val =~ m/8G/) {
+            $global{"ovlHashBits"}        = 25;
+            $global{"ovlHashBlockLength"} = 180000000;
+        } else {
+            print STDERR "ERROR:    Unknown ovlMemory value '$val'\n";
+            exit(1);
+        }
+        return;
+    }
+
+    if ($var eq "ovlHashBlockSize") {
+        print STDERR "ERROR:  option ovlHashBlockSize was replaced with option ovlHashBlockLength.\n";
+        exit(1);
+    }
+
     #  Update aliases.
 
     $var = "doOverlapBasedTrimming"    if ($var eq "doOBT");
@@ -381,17 +408,17 @@ sub setDefaults () {
     $global{"ovlConcurrency"}              = 1;
     $synops{"ovlConcurrency"}              = "If not SGE, number of overlapper processes to run at the same time";
 
-    $global{"ovlHashBlockLength"}          = 0;
-    $synops{"ovlHashBlockLength"}          = "If set, ignore ovlHashBlockSize, and instead use the sum of fragment length as the block size.  Works only with OBT enabled, requires HUGE_TABLE overlapper";
-
-    $global{"ovlHashBlockSize"}            = 200000;
-    $synops{"ovlHashBlockSize"}            = "Number of fragments to load into the in-core overlap hash table";
+    $global{"ovlHashBlockLength"}          = 100000000;
+    $synops{"ovlHashBlockLength"}          = "Amount of sequence (bp) to load into the overlap hash table";
 
     $global{"ovlRefBlockSize"}             = 2000000;
     $synops{"ovlRefBlockSize"}             = "Number of fragments to search against the hash table per batch";
 
-    $global{"ovlMemory"}                   = "2GB";
-    $synops{"ovlMemory"}                   = "Amount of memory to use for ovl overlaps";
+    $global{"ovlHashBits"}                 = "22";
+    $synops{"ovlHashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 2b per ovlHashBlockLength";
+
+    $global{"ovlHashLoad"}                 = "0.75";
+    $synops{"ovlHashLoad"}                 = "Maximum hash table load.  If set too high table lookups are inefficent; if too low search overhead dominates run time";
 
     $global{"ovlMerSize"}                  = 22;
     $synops{"ovlMerSize"}                  = "K-mer size for seeds in overlaps";
@@ -769,11 +796,11 @@ sub setParameters () {
     if ((getGlobal("doChimeraDetection") ne "off") && (getGlobal("doChimeraDetection") ne "normal") && (getGlobal("doChimeraDetection") ne "aggressive")) {
         caFailure("invalid doChimeraDetection specified (" . getGlobal("doChimeraDetection") . "); must be 'off', 'normal', or 'aggressive'", undef);
     }
-    if ((getGlobal("obtOverlapper") ne "mer") && (getGlobal("obtOverlapper") ne "ovl")) {
-        caFailure("invalid obtOverlapper specified (" . getGlobal("obtOverlapper") . "); must be 'mer' or 'ovl'", undef);
+    if ((getGlobal("obtOverlapper") ne "mer") && (getGlobal("obtOverlapper") ne "ovl") && (getGlobal("obtOverlapper") ne "ovm")) {
+        caFailure("invalid obtOverlapper specified (" . getGlobal("obtOverlapper") . "); must be 'mer' or 'ovl' (or DEVEL_ONLY 'ovm')", undef);
     }
-    if ((getGlobal("ovlOverlapper") ne "mer") && (getGlobal("ovlOverlapper") ne "ovl")) {
-        caFailure("invalid ovlOverlapper specified (" . getGlobal("ovlOverlapper") . "); must be 'mer' or 'ovl'", undef);
+    if ((getGlobal("ovlOverlapper") ne "mer") && (getGlobal("ovlOverlapper") ne "ovl") && (getGlobal("ovlOverlapper") ne "ovm")) {
+        caFailure("invalid ovlOverlapper specified (" . getGlobal("ovlOverlapper") . "); must be 'mer' or 'ovl' (or DEVEL_ONLY 'ovm')", undef);
     }
     if (defined(getGlobal("unitigger")) && (getGlobal("unitigger") ne "utg") && (getGlobal("unitigger") ne "bog") && (getGlobal("unitigger") ne "bogart")) {
         caFailure("invalid unitigger specified (" . getGlobal("unitigger") . "); must be 'utg' or 'bog' or 'bogart'", undef);
@@ -3154,17 +3181,20 @@ sub createOverlapJobs($) {
     caFailure("overlapper needs to know if trimming or assembling", undef) if (!defined($isTrim));
 
     my $ovlThreads        = getGlobal("ovlThreads");
-    my $ovlMemory         = getGlobal("ovlMemory");
+    my $ovlHashBits       = getGlobal("ovlHashBits");
+    my $ovlHashLoad       = getGlobal("ovlHashLoad");
 
     my $outDir  = "1-overlapper";
     my $ovlOpt  = "";
     my $merSize = getGlobal("ovlMerSize");
     my $merComp = getGlobal("merCompression");
+    my $overlap = (getGlobal("ovlOverlapper") eq "ovl") ? "overlap" : "overlapInCore";
 
     if ($isTrim eq "trim") {
         $outDir  = "0-overlaptrim-overlap";
         $ovlOpt  = "-G";
         $merSize = getGlobal("obtMerSize");
+        $overlap = (getGlobal("obtOverlapper") eq "ovl") ? "overlap" : "overlapInCore";
     }
 
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");
@@ -3262,7 +3292,7 @@ sub createOverlapJobs($) {
 
     print F getBinDirectoryShellCode();
 
-    print F "\$bin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
+    print F "\$bin/$overlap $ovlOpt --hashbits $ovlHashBits --hashload $ovlHashLoad -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
     print F "  -k $merSize \\\n";
     print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
@@ -3278,9 +3308,6 @@ sub createOverlapJobs($) {
 
     system("chmod +x $wrk/$outDir/overlap.sh");
 
-    #  We segment the hash into $numFrags / $ovlHashBlockSize pieces,
-    #  and the stream into $numFrags / $ovlRefBlockSize pieces.  Put
-    #  all runs for the same hash into a subdirectory.
 
     my $jobs      = 0;
     my $batchName = "";
@@ -3290,12 +3317,8 @@ sub createOverlapJobs($) {
         my $cmd;
 
         my $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
-        my $ovlHashBlockSize   = getGlobal("ovlHashBlockSize");
+        my $ovlHashBlockSize   = 0;
         my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
-
-        if ($ovlHashBlockLength > 0) {
-            $ovlHashBlockSize = 0;
-        }
 
         $cmd  = "$bin/overlap_partition \\\n";
         $cmd .= " -g  $wrk/$asm.gkpStore \\\n";
@@ -3435,6 +3458,8 @@ sub checkOverlap {
         return if (-d "$wrk/$asm.obtStore");
         if      (getGlobal("obtOverlapper") eq "ovl") {
             checkOverlapper($isTrim);
+        } elsif (getGlobal("obtOverlapper") eq "ovm") {
+            checkOverlapper($isTrim);
         } elsif (getGlobal("obtOverlapper") eq "mer") {
             checkMerOverlapper($isTrim);
         } elsif (getGlobal("obtOverlapper") eq "umd") {
@@ -3445,6 +3470,8 @@ sub checkOverlap {
     } else {
         return if (-d "$wrk/$asm.ovlStore");
         if      (getGlobal("ovlOverlapper") eq "ovl") {
+            checkOverlapper($isTrim);
+        } elsif (getGlobal("ovlOverlapper") eq "ovm") {
             checkOverlapper($isTrim);
         } elsif (getGlobal("ovlOverlapper") eq "mer") {
             checkMerOverlapper($isTrim);
@@ -3743,7 +3770,9 @@ sub overlapCorrection {
 
     system("mkdir $wrk/3-overlapcorrection") if (! -e "$wrk/3-overlapcorrection");
 
-    if ((getGlobal("ovlOverlapper") eq "ovl") && (! -e "$wrk/3-overlapcorrection/frgcorr.sh")) {
+    if (((getGlobal("ovlOverlapper") eq "ovl") &&
+         (getGlobal("ovlOverlapper") eq "ovm")) ||
+        (! -e "$wrk/3-overlapcorrection/frgcorr.sh")) {
         my $batchSize   = getGlobal("frgCorrBatchSize");
         my $numThreads  = getGlobal("frgCorrThreads");
         my $jobs        = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
@@ -3852,7 +3881,7 @@ sub overlapCorrection {
         #  FAILUREHELPME
 
         if ($failedJobs) {
-            if (getGlobal("ovlOverlapper") eq "ovl") {
+            if ((getGlobal("ovlOverlapper") eq "ovl") || (getGlobal("ovlOverlapper") eq "ovm")) {
                 caFailure("$failedJobs overlap jobs failed; remove $wrk/3-overlapcorrection/frgcorr.sh to try again", undef);
             } else {
                 caFailure("$failedJobs overlap jobs failed due to mer overlap seed extension", undef);

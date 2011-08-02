@@ -26,15 +26,15 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.37 2011-07-26 20:16:26 mkotelbajcvi Exp $
- * $Revision: 1.37 $
+ * $Id: AS_OVL_overlap.h,v 1.38 2011-08-02 02:23:46 brianwalenz Exp $
+ * $Revision: 1.38 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
 
-static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.37 2011-07-26 20:16:26 mkotelbajcvi Exp $";
+static const char *rcsid_AS_OVL_OVERLAP_H = "$Id: AS_OVL_overlap.h,v 1.38 2011-08-02 02:23:46 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -484,9 +484,9 @@ extern int  Max_Hash_Strings;
 extern uint32  Max_Frags_In_Memory_Store;
 
 extern int  Contig_Mode;
-extern uint32  Last_Hash_Frag_Read;
-extern int  Lo_Hash_Frag, Hi_Hash_Frag;
-extern int  Lo_Old_Frag, Hi_Old_Frag;
+extern AS_IID  Last_Hash_Frag_Read;
+extern AS_IID  Lo_Hash_Frag, Hi_Hash_Frag;
+extern AS_IID  Lo_Old_Frag, Hi_Old_Frag;
 extern int  Num_PThreads;
 extern int64  Olap_Ct;
 extern int  Table_Ct;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.67 2011-07-30 01:16:05 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.68 2011-08-02 02:23:46 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.67 2011-07-30 01:16:05 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.67 2011-07-30 01:16:05 brianwalenz Exp $
- * $Revision: 1.67 $
+ * $Id: AS_OVL_overlap_common.h,v 1.68 2011-08-02 02:23:46 brianwalenz Exp $
+ * $Revision: 1.68 $
 */
 
 
@@ -95,7 +95,7 @@ typedef  enum Overlap_Type
 
 typedef  struct Olap_Info
   {
-   AS_IID  s_lo, s_hi, t_lo, t_hi;
+   int  s_lo, s_hi, t_lo, t_hi;
    double  quality;
    int  delta [AS_READ_MAX_NORMAL_LEN+1];  //  needs only MAX_ERRORS
    int  delta_ct;
@@ -105,7 +105,7 @@ typedef  struct Olap_Info
   }  Olap_Info_t;
 
 
-//#define HUGE_TABLE_VERSION
+#define HUGE_TABLE_VERSION
 
 #ifdef HUGE_TABLE_VERSION
 
@@ -316,10 +316,10 @@ static int  Global_Olap_Ct = 0;
 static int  Global_Unscreened_Ct = 0;
 #endif
 
-static int minLibToHash = 0;
-static int maxLibToHash = 0;
-static int minLibToRef = 0;
-static int maxLibToRef = 0;
+static AS_IID minLibToHash = 0;
+static AS_IID maxLibToHash = 0;
+static AS_IID minLibToRef = 0;
+static AS_IID maxLibToRef = 0;
 
 /*************************************************************************/
 /* External Global Definitions */
@@ -332,20 +332,20 @@ int64  SV1      = 666;
 int64  SV2      = 666;
 int64  SV3      = 666;
 
-int  Hash_Mask_Bits            = 666;
-double  Max_Hash_Load          = MAX_HASH_LOAD;
-int  Max_Hash_Strings          = 0;
-int  Max_Hash_Data_Len         = 0;
-uint32  Max_Frags_In_Memory_Store = 0;
+int     Hash_Mask_Bits            = 22;
+double  Max_Hash_Load             = MAX_HASH_LOAD;
+int     Max_Hash_Strings          = 100000000 / 800;
+int     Max_Hash_Data_Len         = 100000000;
+uint32  Max_Frags_In_Memory_Store = MAX_OLD_BATCH_SIZE;
   // The number of fragments to read in a batch when streaming
   // the old reads against the hash table.
 
 int  Contig_Mode = FALSE;
-uint32  Last_Hash_Frag_Read;
-int  Lo_Hash_Frag = 0;
-int  Hi_Hash_Frag = INT_MAX;
-int  Lo_Old_Frag = 0;
-int  Hi_Old_Frag = INT_MAX;
+AS_IID  Last_Hash_Frag_Read;
+AS_IID  Lo_Hash_Frag = 0;
+AS_IID  Hi_Hash_Frag = AS_IID_MAX;
+AS_IID  Lo_Old_Frag = 0;
+AS_IID  Hi_Old_Frag = AS_IID_MAX;
 int  Num_PThreads = DEFAULT_NUM_PTHREADS;
 int64  Olap_Ct = 0;
 int  Table_Ct = 0;
@@ -415,7 +415,7 @@ static void  Find_Overlaps
 static void  Flip_Screen_Range
     (Screen_Info_t * screen, int len);
 static int  Get_Range
-    (char * value, char * flag, int * lo, int * hi);
+    (char * value, char * flag, AS_IID * lo, AS_IID * hi);
 static int  Has_Bad_Window
     (char a [], int n, int window_len, int threshold);
 static String_Ref_t  Hash_Find
@@ -493,7 +493,7 @@ static void  Show_SNPs
 
 static
 int
-Get_Range(char *value, char *flag, int * lo, int * hi) {
+Get_Range(char *value, char *flag, AS_IID * lo, AS_IID * hi) {
   char *s = value;
 
   if (*s == '-')
@@ -509,7 +509,7 @@ Get_Range(char *value, char *flag, int * lo, int * hi) {
   s++;
 
   if (*s == 0)
-    *hi = INT_MAX;
+    *hi = AS_IID_MAX;
   else
     *hi = strtol(s, &s, 10);
 
@@ -596,86 +596,8 @@ main(int argc, char **argv) {
       } else if (strcmp(argv[arg], "-m") == 0) {
         Unique_Olap_Per_Pair = FALSE;
       } else if (strcmp(argv[arg], "-M") == 0) {
-        arg++;
-#ifdef CONTIG_OVERLAPPER_VERSION
-        if        (strcmp (argv[arg], "8GB") == 0) {
-          Hash_Mask_Bits    = 24;
-          Max_Hash_Data_Len = 400000000;
-        } else if (strcmp (argv[arg], "4GB") == 0) {
-          Hash_Mask_Bits    = 23;
-          Max_Hash_Data_Len = 180000000;
-        } else if (strcmp (argv[arg], "2GB") == 0) {
-          Hash_Mask_Bits    = 22;
-          Max_Hash_Data_Len = 110000000;  //  Was 75000000
-        } else if (strcmp (argv[arg], "1GB") == 0) {
-          Hash_Mask_Bits    = 21;
-          Max_Hash_Data_Len = 30000000;
-        } else if (strcmp (argv[arg], "256MB") == 0) {
-          Hash_Mask_Bits    = 19;
-          Max_Hash_Data_Len = 6000000;
-        } else {
-          fprintf(stderr, "ERROR:  Unknown memory size '%s'\n", argv[arg]);
-          fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
-          err++;
-        }
-        Max_Hash_Strings  = 3 * Max_Hash_Data_Len / AS_READ_MAX_NORMAL_LEN;
-        if  (Max_Hash_Strings > MAX_STRING_NUM)
-          Max_Hash_Strings = MAX_STRING_NUM;
-        Max_Frags_In_Memory_Store = OVL_Min_int (2 * Max_Hash_Data_Len / AS_READ_MAX_NORMAL_LEN, MAX_OLD_BATCH_SIZE);
-#else
-        if        (strcmp (argv[arg], "16GB") == 0) {
-          if (STRING_NUM_BITS <= 19) {
-            fprintf(stderr, "16GB run module requires STRING_NUM_BITS > 19.\n");
-            exit(1);
-          } else {
-            fprintf(stderr, "\nWARNING:\n");
-            fprintf(stderr, "WARNING:  '-M 16GB' not tuned to use less than 16GB!\n");
-            fprintf(stderr, "WARNING:  It will use more!\n");
-            fprintf(stderr, "WARNING:\n\n");
-          }
-
-          //  Read this if you're considering using -M 16GB.  You
-          //  can up the Hash_Mask_Bits to 25.  The data set BPW
-          //  tested with was highly repetitive, and so 24 was
-          //  actually better, letting 1.5M reads (barely) fit
-          //  into 24GB memory.
-          //
-          //  You'll certainly want to adjust Max_Hash_Strings,
-          //  and Max_Hash_Data_Len; run it once, watch the table
-          //  building results, and then increase/decrease to get
-          //  the table loaded around 70%.
-
-          Hash_Mask_Bits    = 24;
-          Max_Hash_Strings  = 1500000;
-          Max_Hash_Data_Len = 1200000000;
-
-        } else if (strcmp (argv[arg], "8GB") == 0) {
-          Hash_Mask_Bits    = 24;
-          Max_Hash_Strings  = 512000;
-          Max_Hash_Data_Len = 400000000;
-        } else if (strcmp (argv[arg], "4GB") == 0) {
-          Hash_Mask_Bits    = 23;
-          Max_Hash_Strings  = 250000;
-          Max_Hash_Data_Len = 180000000;
-        } else if (strcmp (argv[arg], "2GB") == 0) {
-          Hash_Mask_Bits    = 22;
-          Max_Hash_Strings  = 150000;     //  Was 100000
-          Max_Hash_Data_Len = 110000000;  //  Was 75000000
-        } else if (strcmp (argv[arg], "1GB") == 0) {
-          Hash_Mask_Bits    = 21;
-          Max_Hash_Strings  = 50000;      //  Was 40000
-          Max_Hash_Data_Len = 75000000;   //  Was 30000000
-        } else if (strcmp (argv[arg], "256MB") == 0) {
-          Hash_Mask_Bits    = 19;
-          Max_Hash_Strings  = 10000;
-          Max_Hash_Data_Len = 6000000;
-        } else {
-          fprintf(stderr, "ERROR:  Unknown memory size '%s'\n", argv[arg]);
-          fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
-          err++;
-        }
-        Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
-#endif
+        fprintf(stderr, "-M option is no longer valid.\n");
+        exit(1);
 
       } else if (strcmp(argv[arg], "--hashbits") == 0) {
         Hash_Mask_Bits = atoi(argv[++arg]);
@@ -750,9 +672,6 @@ main(int argc, char **argv) {
       Use_Window_Filter  = FALSE;
       Use_Hopeless_Check = FALSE;
     }
-
-    if (Max_Hash_Strings == 0)
-      fprintf(stderr, "* No memory model supplied; -M needed!\n"), err++;
 
     if (Kmer_Len == 0)
       fprintf(stderr, "* No kmer length supplied; -k needed!\n"), err++;

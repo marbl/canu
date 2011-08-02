@@ -28,7 +28,7 @@
 #ifndef AS_OVL_DRIVER_COMMON_H
 #define AS_OVL_DRIVER_COMMON_H
 
-static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.30 2011-07-26 20:16:26 mkotelbajcvi Exp $";
+static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.31 2011-08-02 02:23:46 brianwalenz Exp $";
 
 #include  <unistd.h>
 
@@ -39,8 +39,8 @@ static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v
 #include  "AS_OVL_overlap.h"
 #include  "AS_UTL_Var.h"
 
-static int64  First_Hash_Frag = -1;
-static int64   Last_Hash_Frag;
+static AS_IID  First_Hash_Frag = 0;
+static AS_IID  Last_Hash_Frag;
 static gkFragment  myRead;
 static int  Screen_Blocks_Used;
 static int  Next_Distance_Index;
@@ -414,7 +414,7 @@ static uint32  ReadFrags
   // set values of global variables  First_Hash_Frag  and  Last_Hash_Frag
   // to indicate the range of fragments to get from that store.
 
-  if  (First_Hash_Frag == -1)    // First time through
+  if  (First_Hash_Frag == 0)    // First time through
     First_Hash_Frag = Lo_Hash_Frag;
   else
     First_Hash_Frag = Last_Hash_Frag + 1;
