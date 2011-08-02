@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.1 2011-07-30 01:16:05 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.2 2011-08-02 02:21:03 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -164,11 +164,11 @@ uint64  SV1      = 666;
 uint64  SV2      = 666;
 uint64  SV3      = 666;
 
-uint32  Hash_Mask_Bits            = 666;
-double  Max_Hash_Load          = MAX_HASH_LOAD;
-uint32  Max_Hash_Strings          = 0;
-uint32  Max_Hash_Data_Len         = 0;
-uint32  Max_Frags_In_Memory_Store = 0;
+uint32  Hash_Mask_Bits            = 22;
+double  Max_Hash_Load             = 0.6;
+uint32  Max_Hash_Strings          = 100000000 / 800;
+uint32  Max_Hash_Data_Len         = 100000000;
+uint32  Max_Frags_In_Memory_Store = MAX_OLD_BATCH_SIZE;
 
 uint32  Last_Hash_Frag_Read;
 uint32  Lo_Hash_Frag = 0;
@@ -176,11 +176,6 @@ uint32  Hi_Hash_Frag = INT_MAX;
 uint32  Lo_Old_Frag = 0;
 uint32  Hi_Old_Frag = INT_MAX;
 uint32  Num_PThreads = 4;
-
-//guidoScreen_Range_t  * Screen_Space;
-
-//guidoint  Screen_Space_Size;
-//guidoint  * Screen_Sub = NULL;
 
 char  Sequence_Buffer [2 * AS_READ_MAX_NORMAL_LEN];
 char  Quality_Buffer [2 * AS_READ_MAX_NORMAL_LEN];
@@ -199,12 +194,8 @@ int64  First_Hash_Frag = -1;
 int64   Last_Hash_Frag;
 gkFragment  myRead;
 
-int  Next_Distance_Index;
-int  Next_Fragment_Index;
-int  Frag_Segment_Lo;
-int  Frag_Segment_Hi;
-int  Batch_Num = 0;
-time_t  Now;
+AS_IID  Frag_Segment_Lo;
+AS_IID  Frag_Segment_Hi;
 
 
 
@@ -217,13 +208,11 @@ void *Choose_And_Process_Stream_Segment(void *ptr) {
   int           allDone = 0;
 
   while  (allDone == 0) {
-    int  lo, hi;
-
     pthread_mutex_lock (& FragStore_Mutex);
 
-    lo = Frag_Segment_Lo;
+    AS_IID lo = Frag_Segment_Lo;
     Frag_Segment_Lo += MAX_FRAGS_PER_THREAD;
-    hi = Frag_Segment_Lo - 1;
+    AS_IID hi = Frag_Segment_Lo - 1;
 
     //  This block doesn't need to be in a mutex, but it's so quick
     //  we just do it rather than exiting and entering a mutex
@@ -352,8 +341,6 @@ OverlapDriver(void) {
   for  (uint32 i = 1;  i < Num_PThreads;  i ++)
     Initialize_Work_Area (thread_wa + i, i);
 
-  Next_Fragment_Index = OldFragStore->gkStore_getNumFragments () + 1;
-
   {
     uint32  id;
 
@@ -419,7 +406,7 @@ OverlapDriver(void) {
         thread_wa [i] . stream_segment = old_stream_segment [i];
         int status = pthread_create (thread_id + i, & attr, Choose_And_Process_Stream_Segment, thread_wa + i);
         if  (status != 0)
-          fprintf (stderr, "pthread_create error at line %d:  %s\n", strerror(status)), exit(1);
+          fprintf (stderr, "pthread_create error:  %s\n", strerror(status)), exit(1);
       }
 
       thread_wa [0] . stream_segment = old_stream_segment [0];
@@ -583,9 +570,6 @@ Initialize_Globals (void) {
       Char_Is_Bad [i] = 1;
   }
 
-  //guidoScreen_Space_Size = Max_Hash_Strings;
-  //guidoScreen_Space = (Screen_Range_t *) safe_malloc (Screen_Space_Size * sizeof (Screen_Range_t));
-
   Hash_Table = (Hash_Bucket_t *) safe_malloc (HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
 
   fprintf (stderr, "### Bytes in hash table = " F_SIZE_T "\n",
@@ -595,9 +579,6 @@ Initialize_Globals (void) {
   String_Info = (Hash_Frag_Info_t *) safe_calloc (Max_Hash_Strings, sizeof (Hash_Frag_Info_t));
   String_Start = (int64 *) safe_calloc (Max_Hash_Strings, sizeof (int64));
   String_Start_Size = Max_Hash_Strings;
-  //guidoScreen_Sub = (int *) safe_calloc (Max_Hash_Strings, sizeof (int));
-
-  return;
 }
 
 

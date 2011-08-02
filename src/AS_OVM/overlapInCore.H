@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static const char *rcsid = "$Id: overlapInCore.H,v 1.1 2011-07-30 01:16:05 brianwalenz Exp $";
+//static const char *rcsid = "$Id: overlapInCore.H,v 1.2 2011-08-02 02:21:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -182,9 +182,6 @@
 
 #define  MAX_OLD_BATCH_SIZE      100000
 //  Most old fragments to read at a time from the fragment store
-
-#define  MAX_HASH_LOAD           0.60
-//  Maximum portion of hash table allowed to be filled
 
 #define  MAX_LINE_LEN            1000
 //  Maximum input line when reading FASTA file
@@ -366,7 +363,8 @@ typedef  enum Overlap_Type
   {NONE, LEFT_BRANCH_PT, RIGHT_BRANCH_PT, DOVETAIL}  Overlap_t;
 
 typedef  struct Olap_Info {
-  int  s_lo, s_hi, t_lo, t_hi;
+  int  s_lo, s_hi;
+  int  t_lo, t_hi;
   double  quality;
   int  delta [AS_READ_MAX_NORMAL_LEN+1];  //  needs only MAX_ERRORS
   int  delta_ct;
@@ -499,10 +497,8 @@ extern pthread_mutex_t  Write_Proto_Mutex;
 extern int64  First_Hash_Frag;
 extern int64   Last_Hash_Frag;
 extern gkFragment  myRead;
-extern int  Next_Distance_Index;
-extern int  Next_Fragment_Index;
-extern int  Frag_Segment_Lo;
-extern int  Frag_Segment_Hi;
+extern AS_IID  Frag_Segment_Lo;
+extern AS_IID  Frag_Segment_Hi;
 extern int  Batch_Num;
 extern time_t  Now;
 
