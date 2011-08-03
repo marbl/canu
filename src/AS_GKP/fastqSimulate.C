@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.11 2011-07-29 01:59:36 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.12 2011-08-03 16:36:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,6 +37,7 @@ static char errorBase[256][3];
 static char validBase[256];
 
 double readErrorRate = 0.01;  //  Fraction error
+bool   allowGaps     = false;
 
 #define QV_BASE  '!'
 
@@ -52,7 +53,7 @@ randomUniform(int32 bgn, int32 end) {
 
 //  Generate a random gaussian using the Marsaglia polar method.
 //
-double
+int32
 randomGaussian(double mean, double stddev) {
   double  u = 0.0;
   double  v = 0.0;
@@ -71,7 +72,7 @@ randomGaussian(double mean, double stddev) {
 
   //  Uniform gaussian is u*r and v*r.  We only use one of these.
 
-  return(mean + u * r * stddev);
+  return((int32)(mean + u * r * stddev));
 }
 
 
@@ -149,26 +150,28 @@ makeSE(char   *seq,
   char   *q1 = new char [readLen + 1];
 
   for (int32 nr=0; nr<numReads; nr++) {
+  trySEagain:
     int32   len = readLen;
     int32   bgn = randomUniform(1, seqLen - len);
     int32   idx = findSequenceIndex(bgn);
     int32   zer = seqStartPositions[idx];
 
-    //  Scan the sequence, if we spanned a sequence break, don't use this pair
+    //  Scan the sequence, if we spanned a sequence break or encounter a block of Ns, don't use this pair
 
     for (int32 i=bgn; i<bgn+len; i++)
-      if (seq[i] == '>')
-        bgn = len = 0;
-
-    if ((bgn == 0) && (len == 0)) {
-      //  Not a valid read.
-      nr--;
-      continue;
-    }
+      if ((seq[i] == '>') ||
+          ((allowGaps == false) && (seq[i] == 'N')))
+        goto trySEagain;
 
     //  Generate the sequence.
 
     makeSequences(seq + bgn, 0, readLen, s1, q1, NULL, NULL);
+
+    //  Make sure the read doesn't contain N's (redundant in this particular case)
+
+    for (int32 i=0; i<readLen; i++)
+      if (s1[i] == 'N')
+        goto trySEagain;
 
     //  Output sequence, with a descriptive ID
 
@@ -199,31 +202,32 @@ makePE(char   *seq,
   char   *q2 = new char [readLen + 1];
 
   for (int32 np=0; np<numPairs; np++) {
+  tryPEagain:
     int32   len = randomGaussian(peShearSize, peShearStdDev);
     int32   bgn = randomUniform(1, seqLen - len);
     int32   idx = findSequenceIndex(bgn);
     int32   zer = seqStartPositions[idx];
 
+    if (len <= readLen)
+      goto tryPEagain;
+
     //  Scan the sequence, if we spanned a sequence break, don't use this pair
 
     for (int32 i=bgn; i<bgn+len; i++)
-      if (seq[i] == '>')
-        bgn = len = 0;
+      if ((seq[i] == '>') ||
+          ((allowGaps == false) && (seq[i] == 'N')))
+        goto tryPEagain;
 
-    if (len == 0) {
-      //  Not a valid shearing.
-      np--;
-      continue;
-    }
-
-    if (len <= readLen) {
-      np--;
-      continue;
-    }
 
     //  Read sequences from the ends.
 
     makeSequences(seq + bgn, len, readLen, s1, q1, s2, q2);
+
+    //  Make sure the reads don't contain N's
+
+    for (int32 i=0; i<readLen; i++)
+      if ((s1[i] == 'N') || (s2[i] == 'N'))
+        goto tryPEagain;
 
     //  Output sequences, with a descriptive ID
 
@@ -270,8 +274,7 @@ makeMP(char   *seq,
        int32   mpInsertStdDev,
        int32   mpShearSize,
        int32   mpShearStdDev,
-       double  mpEnrichment,
-       double  mpJunction) {
+       double  mpEnrichment) {
   char   *s1 = new char [readLen + 1];
   char   *q1 = new char [readLen + 1];
   char   *s2 = new char [readLen + 1];
@@ -279,31 +282,25 @@ makeMP(char   *seq,
   char   *sh = new char [1048576];
 
   for (int32 np=0; np<numPairs; np++) {
+  tryMPagain:
     int32   len = randomGaussian(mpInsertSize, mpInsertStdDev);
     int32   bgn = randomUniform(1, seqLen - len);
     int32   idx = findSequenceIndex(bgn);
     int32   zer = seqStartPositions[idx];
 
+    int32   slen = randomGaussian(mpShearSize, mpShearStdDev);  //  shear size
+
+    if ((len  <= readLen) ||
+        (slen <= readLen))
+      goto tryMPagain;
+
     //  Scan the sequence, if we spanned a sequence break, don't use this pair
 
     for (int32 i=bgn; i<bgn+len; i++)
-      if (seq[i] == '>')
-        bgn = len = 0;
+      if ((seq[i] == '>') ||
+          ((allowGaps == false) && (seq[i] == 'N')))
+        goto tryMPagain;
 
-    if (len == 0) {
-      //  Not a valid shearing.
-      np--;
-      continue;
-    }
-
-    //  Compute the size of the shearing
-
-    int32   slen = randomGaussian(mpShearSize, mpShearStdDev);  //  shear size
-
-    if (slen <= readLen) {
-      np--;
-      continue;
-    }
 
     //  If we fail the mpEnrichment test, pick a random shearing and return PE reads.
     //  Otherwise, rotate the sequence to circularize and return MP reads.
@@ -313,6 +310,12 @@ makeMP(char   *seq,
       int32  sbgn = bgn + randomUniform(0, len - slen);
 
       makeSequences(seq + sbgn, slen, readLen, s1, q1, s2, q2);
+
+      //  Make sure the reads don't contain N's
+
+      for (int32 i=0; i<readLen; i++)
+        if ((s1[i] == 'N') || (s2[i] == 'N'))
+          goto tryMPagain;
 
       //  Output sequences, with a descriptive ID
 
@@ -340,13 +343,13 @@ makeMP(char   *seq,
       //  Successfully washed away non-biotin marked sequences, make MP
       //    Shift the fragment by randomGaussian() with mean slen / 2
 
-      int32 shift = randomGaussian(slen / 2, slen / (2 * mpJunction));
+      int32 shift = randomUniform(0, slen);
 
-      if (shift < 0)
-        shift = 0;
+      assert(shift >= 0);
+      assert(shift <= slen);
 
-      if (shift > slen)
-        shift = slen;
+      if (shift < 0)     shift = 0;
+      if (shift > slen)  shift = slen;
 
       //  Put 'shift' bases from the end of the insert on the start of sh[],
       //  and then fill the remaining of sh[] with the beginning of the insert.
@@ -373,6 +376,12 @@ makeMP(char   *seq,
 
       makeSequences(sh, slen, readLen, s1, q1, s2, q2);
 
+      //  Make sure the reads don't contain N's
+
+      for (int32 i=0; i<readLen; i++)
+        if ((s1[i] == 'N') || (s2[i] == 'N'))
+          goto tryMPagain;
+
       //  Add a marker for the chimeric point.  This unfortunately includes some
       //  knowledge of makeSequences(); the second sequence is reverse complemented.
       //
@@ -396,9 +405,7 @@ makeMP(char   *seq,
 
       type = 't';
       if (shift  < readLen)         type = 'a';
-      if (shift == 0)               type = 'A';
       if (shift  > slen - readLen)  type = 'b';
-      if (shift == slen)            type = 'B';
 
       fprintf(output, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output, "%s\n", s1);
@@ -453,7 +460,6 @@ main(int argc, char **argv) {
   int32      mpShearSize    = 0;
   int32      mpShearStdDev  = 0;
   double     mpEnrichment   = 1.0;   //  success rate of washing away paired-end fragments
-  double     mpJunction     = 3.0;   //  normally distributed junction location
 
   char      *outputPrefix   = NULL;
   char       outputName[FILENAME_MAX];
@@ -483,6 +489,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       readErrorRate = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-allowgaps") == 0) {
+      allowGaps = true;
+
     } else if (strcmp(argv[arg], "-se") == 0) {
       seEnable = true;
 
@@ -497,7 +506,7 @@ main(int argc, char **argv) {
       }
 
     } else if (strcmp(argv[arg], "-mp") == 0) {
-      if (arg + 6 >= argc) {
+      if (arg + 5 >= argc) {
         fprintf(stderr, "Not enough args to -mp.\n");
         err++;
       } else {
@@ -507,7 +516,6 @@ main(int argc, char **argv) {
         mpShearSize    = atoi(argv[++arg]);
         mpShearStdDev  = atoi(argv[++arg]);
         mpEnrichment   = atof(argv[++arg]);
-        mpJunction     = atof(argv[++arg]);
       }
     } else {
       fprintf(stderr, "Unknown arg '%s'\n", argv[arg]);
@@ -530,20 +538,21 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -x cov          Set 'np' to create reads that sample the genome to 'cov' coverage.\n");
     fprintf(stderr, "  -e err          Reads will contain fraction error 'e' (0.01 == 1%% error).\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -allowgaps      Allow pairs to span N regions in the reference.  By default, pairs\n");
+    fprintf(stderr, "                  are not allowed to span a gap.  Reads are never allowed to cover N's.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -se\n");
     fprintf(stderr, "                  Create single-end reads.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -pe shearSize shearStdDev\n");
     fprintf(stderr, "                  Create paired-end reads, from fragments of size 'shearSize +- shearStdDev'.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -mp insertSize insertStdDev shearSize shearStdDev enrichment junction\n");
+    fprintf(stderr, "  -mp insertSize insertStdDev shearSize shearStdDev enrichment\n");
     fprintf(stderr, "                  Create mate-pair reads.  The pairs will be 'insertSize +- insertStdDev'\n");
     fprintf(stderr, "                  apart.  The circularized insert is then sheared into fragments of size\n");
     fprintf(stderr, "                  'shearSize +- shearStdDev'.  With probability 'enrichment' the fragment\n");
     fprintf(stderr, "                  containing the junction is used to form the pair of reads.  The junction\n");
-    fprintf(stderr, "                  location is normally distributed through this fragment, with mean 'shearSize/2'\n");
-    fprintf(stderr, "                  and std.dev 'shearSize/2/junction'.  With a 500bp fragment, and 100bp reads,\n");
-    fprintf(stderr, "                  junction=3 will give about 6%% chimeric reads.\n");
+    fprintf(stderr, "                  location is uniformly distributed through this fragment.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Output QV's are the Sanger spec.\n");
     fprintf(stderr, "\n");
@@ -646,7 +655,7 @@ main(int argc, char **argv) {
 
   fclose(fastaFile);
 
-  seq[seqLen--] = 0;  //  Get rid of that last '>'
+  seq[seqLen] = 0;
 
   fprintf(stderr, "READ sequence of length %d\n", seqLen);
 
@@ -655,7 +664,7 @@ main(int argc, char **argv) {
   //
 
   if (readCoverage > 0) {
-    numReads = readCoverage * seqLen / readLen;
+    numReads = (int32)floor(readCoverage * seqLen / readLen);
     numPairs = numReads / 2;
 
     if (seEnable)
@@ -677,7 +686,7 @@ main(int argc, char **argv) {
     makePE(seq, seqLen, output, output1, output2, readLen, numPairs, peShearSize, peShearStdDev);
 
   if (mpEnable)
-    makeMP(seq, seqLen, output, output1, output2, readLen, numPairs, mpInsertSize, mpInsertStdDev, mpShearSize, mpShearStdDev, mpEnrichment, mpJunction);
+    makeMP(seq, seqLen, output, output1, output2, readLen, numPairs, mpInsertSize, mpInsertStdDev, mpShearSize, mpShearStdDev, mpEnrichment);
 
   //
   //
