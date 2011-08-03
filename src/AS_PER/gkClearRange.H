@@ -18,7 +18,9 @@
 //
 //  2) If there isn't a clear range to load, one will be created and
 //  initialized to the latest, if we're allowed to create.  If we're
-//  not allowed to create, set() fails here.
+//  not allowed to create, set() fails (asserts) here.  Enable creation
+//  with gkStore_enableClearRange(name), which will call
+//  gkClearRange_enableCreate().
 //
 //  3) If not allowed to create, then an invalid clear range is
 //  returned.
