@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.69 2011-08-03 16:39:03 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.70 2011-08-03 23:46:45 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.69 2011-08-03 16:39:03 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.69 2011-08-03 16:39:03 brianwalenz Exp $
- * $Revision: 1.69 $
+ * $Id: AS_OVL_overlap_common.h,v 1.70 2011-08-03 23:46:45 brianwalenz Exp $
+ * $Revision: 1.70 $
 */
 
 
@@ -1307,6 +1307,8 @@ int  Build_Hash_Index
                   else
                     {
                      int  new_size = screen_blocks_used + screen . num_matches;
+
+                     assert(0);
 
                      while  (new_size >= Screen_Space_Size)
                          {
@@ -4179,6 +4181,9 @@ static int  Read_Next_Frag
    char   *seqptr;
    char   *qltptr;
 
+   screen -> num_matches        = 0;
+   screen -> left_end_screened  = FALSE;
+   screen -> right_end_screened = FALSE;
 
    //  BPW says we don't need to mutex this
    success = stream->next (myRead);
@@ -4228,10 +4233,6 @@ static int  Read_Next_Frag
      }
    frag [frag_len] = '\0';
    quality [frag_len] = '\0';
-
-   screen -> num_matches        = 0;
-   screen -> left_end_screened  = FALSE;
-   screen -> right_end_screened = FALSE;
 
    return (VALID_FRAG);
   }
