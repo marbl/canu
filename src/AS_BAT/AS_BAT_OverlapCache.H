@@ -22,13 +22,24 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.2 2011-04-04 14:25:31 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.3 2011-08-03 07:43:34 brianwalenz Exp $";
 
 
 #if (AS_OVS_HNGBITS + AS_OVS_HNGBITS + 1 > 32)
-#error Not enough space in BAToverlap
-#endif
 
+#define AS_BAT_ERRBITS    (64 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1)
+#define AS_BAT_MAX_ERATE  ((1 << AS_BAT_ERRBITS) - 1)
+
+//  For storing overlaps in memory.  8 bytes per overlap.
+struct BAToverlapInt {
+  uint64      error     :AS_BAT_ERRBITS;  //   7 by default
+  int64       a_hang    :AS_OVS_HNGBITS;  //  12 by default
+  int64       b_hang    :AS_OVS_HNGBITS;  //  12 by default
+  uint64      flipped   :1;
+  AS_IID      b_iid;
+};
+
+#else
 
 #define AS_BAT_ERRBITS    (32 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1)
 #define AS_BAT_MAX_ERATE  ((1 << AS_BAT_ERRBITS) - 1)
@@ -41,6 +52,8 @@ struct BAToverlapInt {
   uint32      flipped   :1;
   AS_IID      b_iid;
 };
+
+#endif
 
 
 //  For working with overlaps, 32 bytes per overlap.  This data is copied
