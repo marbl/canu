@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static const char *rcsid = "$Id: overlapInCore.H,v 1.2 2011-08-02 02:21:03 brianwalenz Exp $";
+//static const char *rcsid = "$Id: overlapInCore.H,v 1.3 2011-08-03 16:39:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -337,20 +337,20 @@ typedef  struct Work_Area {
 
   //  Instead of outputting each overlap as we create it, we
   //  buffer them and output blocks of overlaps.
-  int32         overlapsLen;
-  int32         overlapsMax;
+  uint64         overlapsLen;
+  uint64         overlapsMax;
   OVSoverlap   *overlaps;
 
   //  Various stats that used to be global and updated whenever we
   //  output an overlap or finished processing a set of hits.
   //  Needed a mutex to update.
-  int32         Total_Overlaps;
-  int32         Contained_Overlap_Ct;
-  int32         Dovetail_Overlap_Ct;
+  uint64         Total_Overlaps;
+  uint64         Contained_Overlap_Ct;
+  uint64         Dovetail_Overlap_Ct;
 
-  int32         Kmer_Hits_Without_Olap_Ct;
-  int32         Kmer_Hits_With_Olap_Ct;
-  int32         Multi_Overlap_Ct;
+  uint64         Kmer_Hits_Without_Olap_Ct;
+  uint64         Kmer_Hits_With_Olap_Ct;
+  uint64         Multi_Overlap_Ct;
 }  Work_Area_t;
 
 
@@ -430,41 +430,41 @@ extern double  Branch_Error_Value;
 extern char  * Data;
 extern char  * Quality_Data;
 extern size_t  Data_Len;
-extern int  Doing_Partial_Overlaps;
+extern bool  Doing_Partial_Overlaps;
 extern size_t  Extra_Data_Len;
 extern uint64  Extra_Ref_Ct;
 extern String_Ref_t  * Extra_Ref_Space;
-extern uint32  Extra_String_Ct;
-extern int  Extra_String_Subcount;
-extern int  Frag_Olap_Limit;
+extern uint64  Extra_String_Ct;
+extern uint64  Extra_String_Subcount;
+extern uint64  Frag_Olap_Limit;
 extern Check_Vector_t  * Hash_Check_Array;
-extern int  Hash_String_Num_Offset;
+extern uint64  Hash_String_Num_Offset;
 extern Hash_Bucket_t  * Hash_Table;
-extern int  Ignore_Clear_Range;
-extern int64  Kmer_Hits_With_Olap_Ct;
-extern int64  Kmer_Hits_Without_Olap_Ct;
-extern int  Min_Olap_Len;
-extern int64  Multi_Overlap_Ct;
+extern bool  Ignore_Clear_Range;
+extern uint64  Kmer_Hits_With_Olap_Ct;
+extern uint64  Kmer_Hits_Without_Olap_Ct;
+extern int32  Min_Olap_Len;
+extern uint64  Multi_Overlap_Ct;
 extern String_Ref_t  * Next_Ref;
-extern uint32  String_Ct;
+extern uint64  String_Ct;
 extern Hash_Frag_Info_t  * String_Info;
 extern int64  * String_Start;
 extern uint32  String_Start_Size;
-extern int  Unique_Olap_Per_Pair;
+extern bool  Unique_Olap_Per_Pair;
 extern size_t  Used_Data_Len;
-extern int  Use_Hopeless_Check;
-extern int  Use_Window_Filter;
-extern int  Read_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN];
-extern int  Guide_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN];
-extern int  Read_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
-extern int  Guide_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
+extern bool  Use_Hopeless_Check;
+extern bool  Use_Window_Filter;
+extern int32  Read_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN];
+extern int32  Guide_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN];
+extern int32  Read_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
+extern int32  Guide_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
 extern double  Branch_Cost [AS_READ_MAX_NORMAL_LEN + 1];
-extern int  Bit_Equivalent [256];
-extern int  Char_Is_Bad [256];
-extern int64  Hash_Entries;
-extern int64  Total_Overlaps;
-extern int64  Contained_Overlap_Ct;
-extern int64  Dovetail_Overlap_Ct;
+extern int32  Bit_Equivalent [256];
+extern int32  Char_Is_Bad [256];
+extern uint64  Hash_Entries;
+extern uint64  Total_Overlaps;
+extern uint64  Contained_Overlap_Ct;
+extern uint64  Dovetail_Overlap_Ct;
 extern uint32 minLibToHash;
 extern uint32 maxLibToHash;
 extern uint32 minLibToRef;
@@ -478,7 +478,7 @@ extern uint64  SV3;
 extern uint32  Hash_Mask_Bits;
 extern double  Max_Hash_Load;
 extern uint32  Max_Hash_Strings;
-extern uint32  Max_Hash_Data_Len;
+extern uint64  Max_Hash_Data_Len;
 extern uint32  Max_Frags_In_Memory_Store;
 extern uint32  Last_Hash_Frag_Read;
 extern uint32  Lo_Hash_Frag;
@@ -499,8 +499,6 @@ extern int64   Last_Hash_Frag;
 extern gkFragment  myRead;
 extern AS_IID  Frag_Segment_Lo;
 extern AS_IID  Frag_Segment_Hi;
-extern int  Batch_Num;
-extern time_t  Now;
 
 
 

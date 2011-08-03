@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.68 2011-08-02 02:23:46 brianwalenz Exp $";
+const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.69 2011-08-03 16:39:03 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_OVL_overlap.c
@@ -52,8 +52,8 @@ const char *mainid = "$Id: AS_OVL_overlap_common.h,v 1.68 2011-08-02 02:23:46 br
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.68 2011-08-02 02:23:46 brianwalenz Exp $
- * $Revision: 1.68 $
+ * $Id: AS_OVL_overlap_common.h,v 1.69 2011-08-03 16:39:03 brianwalenz Exp $
+ * $Revision: 1.69 $
 */
 
 
@@ -193,10 +193,10 @@ static Distrib_t  String_Olap_Dist, Hits_Per_Olap_Dist, Diag_Dist, Gap_Dist;
 static Distrib_t  Exacts_Per_Olap_Dist, Edit_Depth_Dist, Hash_Hits_Dist;
 #endif
 
-static int64  Bad_Short_Window_Ct = 0;
+static uint64  Bad_Short_Window_Ct = 0;
     //  The number of overlaps rejected because of too many errors in
     //  a small window
-static int64  Bad_Long_Window_Ct = 0;
+static uint64  Bad_Long_Window_Ct = 0;
     //  The number of overlaps rejected because of too many errors in
     //  a long window
 static double  Branch_Match_Value = 0.0;
@@ -209,7 +209,7 @@ static char  * Data = NULL;
 static char  * Quality_Data = NULL;
     //  Stores quality data of fragments in hash table
 static size_t  Data_Len = 0;
-static int  Doing_Partial_Overlaps = FALSE;
+static bool    Doing_Partial_Overlaps = false;
     //  If set true by the G option (G for Granger)
     //  then allow overlaps that do not extend to the end
     //  of either read.
@@ -219,34 +219,34 @@ static size_t  Extra_Data_Len;
     //  added from kmer screening
 static uint64  Extra_Ref_Ct = 0;
 static String_Ref_t  * Extra_Ref_Space = NULL;
-static int  Extra_String_Ct = 0;
+static uint64  Extra_String_Ct = 0;
     //  Number of extra strings of screen kmers added to hash table
-static int  Extra_String_Subcount = 0;
+static uint64  Extra_String_Subcount = 0;
     //  Number of kmers already added to last extra string in hash table
-static int  Frag_Olap_Limit = FRAG_OLAP_LIMIT;
+static uint64  Frag_Olap_Limit = FRAG_OLAP_LIMIT;
     //  Maximum number of overlaps for end of an old fragment against
     //  a single hash table of frags, in each orientation
 static Check_Vector_t  * Hash_Check_Array = NULL;
     //  Bit vector to eliminate impossible hash matches
-static int  Hash_String_Num_Offset = 1;
+static uint64  Hash_String_Num_Offset = 1;
 static Hash_Bucket_t  * Hash_Table;
-static int  Ignore_Clear_Range = FALSE;
+static bool  Ignore_Clear_Range = false;
     //  If true will use entire read sequence, ignoring the
     //  clear range values
-static int  Ignore_Screen_Info = FALSE;
+static bool  Ignore_Screen_Info = false;
     //  If true will ignore screen messages with fragments
-static int64  Kmer_Hits_With_Olap_Ct = 0;
-static int64  Kmer_Hits_Without_Olap_Ct = 0;
+static uint64  Kmer_Hits_With_Olap_Ct = 0;
+static uint64  Kmer_Hits_Without_Olap_Ct = 0;
 static uint64  * Loc_ID = NULL;
     //  Locale ID field of each frag in hash table if in  Contig_Mode .
-static int  Min_Olap_Len = AS_OVERLAP_MIN_LEN;
-static int64  Multi_Overlap_Ct = 0;
+static uint64  Min_Olap_Len = AS_OVERLAP_MIN_LEN;
+static uint64  Multi_Overlap_Ct = 0;
 static String_Ref_t  * Next_Ref = NULL;
-static int  Full_ProtoIO_Output = FALSE;
+static bool  Full_ProtoIO_Output = FALSE;
     //  If set true by -q option, output a single ASCII line
     //  for each overlap in the same format as used by
     //  partial overlaps
-static int  String_Ct;
+static uint64  String_Ct;
     //  Number of fragments in the hash table
 static Hash_Frag_Info_t  * String_Info = NULL;
 static int64  * String_Start = NULL;
@@ -1246,14 +1246,12 @@ int  Build_Hash_Index
   {
    String_Ref_t  ref;
    Screen_Info_t  screen;
-   int64  total_len;
+   uint64  total_len;
    static int64  max_extra_ref_ct = 0;
    static int64  old_ref_len, new_ref_len;
    int  frag_status;
-   int64  i;
-   int  screen_blocks_used = 0;
-   int  hash_entry_limit;
-   int  j;
+   uint64  screen_blocks_used = 0;
+   uint64  hash_entry_limit;
 
    Hash_String_Num_Offset = first_frag_id;
    String_Ct = Extra_String_Ct = 0;
@@ -1448,8 +1446,8 @@ Collision_Ct = 0;
 
    // Coalesce reference chain into adjacent entries in  Extra_Ref_Space
    Extra_Ref_Ct = 0;
-   for  (i = 0;  i < HASH_TABLE_SIZE;  i ++)
-     for  (j = 0;  j < Hash_Table [i] . Entry_Ct;  j ++)
+   for  (int32 i = 0;  i < HASH_TABLE_SIZE;  i ++)
+     for  (int32 j = 0;  j < Hash_Table [i] . Entry_Ct;  j ++)
        {
         ref = Hash_Table [i] . Entry [j];
         if  (! getStringRefLast(ref) && ! getStringRefEmpty(ref))

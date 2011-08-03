@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapInCore-Build_Hash_Index.C,v 1.2 2011-08-02 02:21:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapInCore-Build_Hash_Index.C,v 1.3 2011-08-03 16:39:03 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -378,13 +378,11 @@ Put_String_In_Hash(int i) {
 int
 Build_Hash_Index(gkStream *stream, int32 first_frag_id, gkFragment *myRead) {
   String_Ref_t  ref;
-  int64  total_len;
+  uint64  total_len;
   static int64  max_extra_ref_ct = 0;
   static int64  old_ref_len, new_ref_len;
   int  frag_status;
-  int64  i;
-  int  hash_entry_limit;
-  int  j;
+  uint64   hash_entry_limit;
 
   Hash_String_Num_Offset = first_frag_id;
   String_Ct = Extra_String_Ct = 0;
@@ -395,20 +393,24 @@ Build_Hash_Index(gkStream *stream, int32 first_frag_id, gkFragment *myRead) {
     Data = (char *) safe_realloc (Data, Data_Len);
     Quality_Data = (char *) safe_realloc (Quality_Data, Data_Len);
     old_ref_len = Data_Len / (HASH_KMER_SKIP + 1);
-    Next_Ref = (String_Ref_t *) safe_realloc
-      (Next_Ref, old_ref_len * sizeof (String_Ref_t));
+    Next_Ref = (String_Ref_t *) safe_realloc (Next_Ref, old_ref_len * sizeof (String_Ref_t));
   }
 
   memset (Next_Ref, '\377', old_ref_len * sizeof (String_Ref_t));
   memset (Hash_Table, 0, HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
   memset (Hash_Check_Array, 0, HASH_TABLE_SIZE * sizeof (Check_Vector_t));
 
-  fprintf (stderr, "### Build_Hash:  first_frag_id = %d  Max_Hash_Strings = %d\n",
-           first_frag_id, Max_Hash_Strings);
-
   Extra_Ref_Ct = 0;
   Hash_Entries = 0;
   hash_entry_limit = Max_Hash_Load * HASH_TABLE_SIZE * ENTRIES_PER_BUCKET;
+
+#if 0
+  fprintf(stderr, "HASH LOADING STARTED: fragID   %12"F_U64P"\n", first_frag_id);
+  fprintf(stderr, "HASH LOADING STARTED: strings  %12"F_U64P" out of %12"F_U64P" max.\n", String_Ct, Max_Hash_Strings);
+  fprintf(stderr, "HASH LOADING STARTED: length   %12"F_U64P" out of %12"F_U64P" max.\n", total_len, Max_Hash_Data_Len);
+  fprintf(stderr, "HASH LOADING STARTED: entries  %12"F_U64P" out of %12"F_U64P" max (load %.2f).\n", Hash_Entries, hash_entry_limit,
+          (100.0 * Hash_Entries) / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
+#endif
 
   while  (String_Ct < Max_Hash_Strings
           && total_len < Max_Hash_Data_Len
@@ -457,25 +459,26 @@ Build_Hash_Index(gkStream *stream, int32 first_frag_id, gkFragment *myRead) {
 
     Put_String_In_Hash (String_Ct);
 
-    if ((String_Ct % 100000) == 0)
-      fprintf (stderr, "String_Ct:%d  totalLen:"F_S64"  Hash_Entries:"F_S64"  Load:%.1f%%\n",
-               String_Ct,
-               total_len,
-               Hash_Entries,
-               (100.0 * Hash_Entries) / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
-
     String_Ct ++;
+
+    if ((String_Ct % 100000) == 0)
+      fprintf (stderr, "String_Ct:%12"F_U64P"/%12"F_U64P"  totalLen:%12"F_U64P"/%12"F_U64P"  Hash_Entries:%12"F_U64P"/%12"F_U64P"  Load: %.2f%%\n",
+               String_Ct,    Max_Hash_Strings,
+               total_len,    Max_Hash_Data_Len,
+               Hash_Entries,
+               hash_entry_limit,
+               100.0 * Hash_Entries / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
   }
 
   if  (String_Ct == 0)
     return  0;
 
-  fprintf (stderr, "strings read = %d  total_len = " F_S64 "\n",
-           String_Ct, total_len);
-  Used_Data_Len = total_len;
+  fprintf(stderr, "HASH LOADING STOPPED: strings  %12"F_U64P" out of %12"F_U64P" max.\n", String_Ct, Max_Hash_Strings);
+  fprintf(stderr, "HASH LOADING STOPPED: length   %12"F_U64P" out of %12"F_U64P" max.\n", total_len, Max_Hash_Data_Len);
+  fprintf(stderr, "HASH LOADING STOPPED: entries  %12"F_U64P" out of %12"F_U64P" max (load %.2f).\n", Hash_Entries, hash_entry_limit,
+          100.0 * Hash_Entries / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
 
-  fprintf (stderr, "Hash_Entries = " F_S64 "  Load = %.1f%%\n",
-           Hash_Entries, (100.0 * Hash_Entries) / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
+  Used_Data_Len = total_len;
 
   if  (Extra_Ref_Ct > max_extra_ref_ct) {
     max_extra_ref_ct *= MEMORY_EXPANSION_FACTOR;
@@ -493,8 +496,8 @@ Build_Hash_Index(gkStream *stream, int32 first_frag_id, gkFragment *myRead) {
 
   // Coalesce reference chain into adjacent entries in  Extra_Ref_Space
   Extra_Ref_Ct = 0;
-  for  (i = 0;  i < HASH_TABLE_SIZE;  i ++)
-    for  (j = 0;  j < Hash_Table [i] . Entry_Ct;  j ++) {
+  for  (int32 i = 0;  i < HASH_TABLE_SIZE;  i ++)
+    for  (int32 j = 0;  j < Hash_Table [i] . Entry_Ct;  j ++) {
       ref = Hash_Table [i] . Entry [j];
       if  (! getStringRefLast(ref) && ! getStringRefEmpty(ref)) {
         Extra_Ref_Space [Extra_Ref_Ct] = ref;

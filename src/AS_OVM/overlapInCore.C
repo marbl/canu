@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.2 2011-08-02 02:21:03 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.3 2011-08-03 16:39:03 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -54,7 +54,7 @@ char  * Quality_Data = NULL;
 //  Stores quality data of fragments in hash table
 
 size_t  Data_Len = 0;
-int  Doing_Partial_Overlaps = FALSE;
+bool  Doing_Partial_Overlaps = FALSE;
 //  If set true by the G option (G for Granger)
 //  then allow overlaps that do not extend to the end
 //  of either read.
@@ -66,31 +66,31 @@ size_t  Extra_Data_Len;
 
 uint64  Extra_Ref_Ct = 0;
 String_Ref_t  * Extra_Ref_Space = NULL;
-uint32  Extra_String_Ct = 0;
+uint64  Extra_String_Ct = 0;
 //  Number of extra strings of screen kmers added to hash table
 
-int  Extra_String_Subcount = 0;
+uint64  Extra_String_Subcount = 0;
 //  Number of kmers already added to last extra string in hash table
 
-int  Frag_Olap_Limit = FRAG_OLAP_LIMIT;
+uint64  Frag_Olap_Limit = FRAG_OLAP_LIMIT;
 //  Maximum number of overlaps for end of an old fragment against
 //  a single hash table of frags, in each orientation
 
 Check_Vector_t  * Hash_Check_Array = NULL;
 //  Bit vector to eliminate impossible hash matches
 
-int  Hash_String_Num_Offset = 1;
+uint64  Hash_String_Num_Offset = 1;
 Hash_Bucket_t  * Hash_Table;
-int  Ignore_Clear_Range = FALSE;
+bool  Ignore_Clear_Range = FALSE;
 //  If true will use entire read sequence, ignoring the
 //  clear range values
 
-int64  Kmer_Hits_With_Olap_Ct = 0;
-int64  Kmer_Hits_Without_Olap_Ct = 0;
-int  Min_Olap_Len = AS_OVERLAP_MIN_LEN;
-int64  Multi_Overlap_Ct = 0;
+uint64  Kmer_Hits_With_Olap_Ct = 0;
+uint64  Kmer_Hits_Without_Olap_Ct = 0;
+int32  Min_Olap_Len = AS_OVERLAP_MIN_LEN;
+uint64  Multi_Overlap_Ct = 0;
 String_Ref_t  * Next_Ref = NULL;
-uint32  String_Ct;
+uint64  String_Ct;
 //  Number of fragments in the hash table
 
 Hash_Frag_Info_t  * String_Info = NULL;
@@ -98,7 +98,7 @@ int64  * String_Start = NULL;
 uint32  String_Start_Size = 0;
 //  Number of available positions in  String_Start
 
-int  Unique_Olap_Per_Pair = TRUE;
+bool  Unique_Olap_Per_Pair = TRUE;
 //  If true will allow at most
 //  one overlap output message per oriented fragment pair
 //  Set true by  -u  command-line option; set false by  -m
@@ -107,31 +107,31 @@ size_t  Used_Data_Len = 0;
 //  Number of bytes of Data currently occupied, including
 //  regular strings and extra kmer screen strings
 
-int  Use_Hopeless_Check = TRUE;
+bool  Use_Hopeless_Check = TRUE;
 //  Determines whether check for absence of kmer matches
 //  at the end of a read is used to abort the overlap before
 //  the extension from a single kmer match is attempted.
 
-int  Use_Window_Filter = FALSE;
+bool  Use_Window_Filter = FALSE;
 //  Determines whether check for a window containing too many
 //  errors is used to disqualify overlaps.
 
-int  Read_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN] = {0};
+int32  Read_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN] = {0};
 //  This array [e] is the minimum value of  Edit_Array [e] [d]
 //  to be worth pursuing in edit-distance computations between reads
 //  (only MAX_ERRORS needed)
 
-int  Guide_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN] = {0};
+int32  Guide_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN] = {0};
 //  This array [e] is the minimum value of  Edit_Array [e] [d]
 //  to be worth pursuing in edit-distance computations between guides
 //  (only MAX_ERRORS needed)
 
-int  Read_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
+int32  Read_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
 //  This array [i]  is the maximum number of errors allowed
 //  in a match between reads of length  i , which is
 //  i * AS_READ_ERROR_RATE .
 
-int  Guide_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
+int32  Guide_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
 //  This array [i]  is the maximum number of errors allowed
 //  in a match between guides of length  i , which is
 //  i * AS_GUIDE_ERROR_RATE .
@@ -140,17 +140,17 @@ double  Branch_Cost [AS_READ_MAX_NORMAL_LEN + 1];
 //  Branch_Cost [i]  is the "goodness" of matching i characters
 //  after a single error in determining branch points.
 
-int  Bit_Equivalent [256] = {0};
+int32  Bit_Equivalent [256] = {0};
 //  Table to convert characters to 2-bit integer code
 
-int  Char_Is_Bad [256] = {0};
+int32  Char_Is_Bad [256] = {0};
 //  Table to check if character is not a, c, g or t.
 
-int64  Hash_Entries = 0;
+uint64  Hash_Entries = 0;
 
-int64  Total_Overlaps = 0;
-int64  Contained_Overlap_Ct = 0;
-int64  Dovetail_Overlap_Ct = 0;
+uint64  Total_Overlaps = 0;
+uint64  Contained_Overlap_Ct = 0;
+uint64  Dovetail_Overlap_Ct = 0;
 
 uint32 minLibToHash = 0;
 uint32 maxLibToHash = 0;
@@ -167,7 +167,7 @@ uint64  SV3      = 666;
 uint32  Hash_Mask_Bits            = 22;
 double  Max_Hash_Load             = 0.6;
 uint32  Max_Hash_Strings          = 100000000 / 800;
-uint32  Max_Hash_Data_Len         = 100000000;
+uint64  Max_Hash_Data_Len         = 100000000;
 uint32  Max_Frags_In_Memory_Store = MAX_OLD_BATCH_SIZE;
 
 uint32  Last_Hash_Frag_Read;
@@ -395,9 +395,9 @@ OverlapDriver(void) {
 
       curr_frag_store = new gkStore(Frag_Store_Path, FALSE, FALSE);
       curr_frag_store->gkStore_load(Frag_Segment_Lo, Frag_Segment_Hi, GKFRAGMENT_QLT);
-      assert (0 < Frag_Segment_Lo
-              && Frag_Segment_Lo <= Frag_Segment_Hi
-              && Frag_Segment_Hi <= OldFragStore->gkStore_getNumFragments ());
+      assert(0 < Frag_Segment_Lo);
+      assert(Frag_Segment_Lo <= Frag_Segment_Hi);
+      assert(Frag_Segment_Hi <= OldFragStore->gkStore_getNumFragments ());
 
       for  (uint32 i = 0;  i < Num_PThreads;  i ++)
         old_stream_segment [i] = new gkStream (curr_frag_store, Frag_Segment_Lo, Frag_Segment_Hi, GKFRAGMENT_QLT);
@@ -570,14 +570,23 @@ Initialize_Globals (void) {
       Char_Is_Bad [i] = 1;
   }
 
+  fprintf(stderr, "\n");
+  fprintf(stderr, "HASH_TABLE_SIZE         "F_U32"\n",     HASH_TABLE_SIZE);
+  fprintf(stderr, "sizeof(Hash_Bucket_t)   "F_SIZE_T"\n",  sizeof(Hash_Bucket_t));
+  fprintf(stderr, "hash table size:        "F_U64" GB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 30);
+  fprintf(stderr, "\n");
+
   Hash_Table = (Hash_Bucket_t *) safe_malloc (HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
 
-  fprintf (stderr, "### Bytes in hash table = " F_SIZE_T "\n",
-           HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
+  fprintf(stderr, "check  "F_U64" MB\n", HASH_TABLE_SIZE * sizeof (Check_Vector_t) >> 20);
+  fprintf(stderr, "info   "F_U64" MB\n", Max_Hash_Strings * sizeof (Hash_Frag_Info_t) >> 20);
+  fprintf(stderr, "start  "F_U64" MB\n", Max_Hash_Strings * sizeof (int64) >> 20);
+  fprintf(stderr, "\n");
 
   Hash_Check_Array = (Check_Vector_t *) safe_malloc (HASH_TABLE_SIZE * sizeof (Check_Vector_t));
   String_Info = (Hash_Frag_Info_t *) safe_calloc (Max_Hash_Strings, sizeof (Hash_Frag_Info_t));
   String_Start = (int64 *) safe_calloc (Max_Hash_Strings, sizeof (int64));
+
   String_Start_Size = Max_Hash_Strings;
 }
 
@@ -627,7 +636,6 @@ main(int argc, char **argv) {
   int err=0;
   int arg=1;
   while (arg < argc) {
-
     if (strcmp(argv[arg], "-G") == 0) {
       Doing_Partial_Overlaps = TRUE;
     } else if (strcmp(argv[arg], "-h") == 0) {
@@ -635,28 +643,24 @@ main(int argc, char **argv) {
       arg++;
 
     } else if (strcmp(argv[arg], "-H") == 0) {
-      if ((isdigit(argv[arg+1][0]) && (argv[arg+1][1] == 0)) ||
-          (isdigit(argv[arg+1][0]) && isdigit(argv[arg+1][1]) && (argv[arg+1][2] == 0))) {
-        minLibToHash = maxLibToHash = atoi(argv[arg+1]);
-      } else {
-        err += Get_Range(argv[arg+1], argv[arg], minLibToHash, maxLibToHash);
-      }
       arg++;
+      if ((argv[arg][0] != '-') && (argv[arg][1] != '-'))
+        minLibToHash = maxLibToHash = strtoull(argv[arg], NULL, 10);
+      else
+        err += Get_Range(argv[arg], argv[arg-1], minLibToHash, maxLibToHash);
 
     } else if (strcmp(argv[arg], "-R") == 0) {
-      if ((isdigit(argv[arg+1][0]) && (argv[arg+1][1] == 0)) ||
-          (isdigit(argv[arg+1][0]) && isdigit(argv[arg+1][1]) && (argv[arg+1][2] == 0))) {
-        minLibToRef = maxLibToRef = atoi(argv[arg]);
-      } else {
-        err += Get_Range(argv[arg+1], argv[arg], minLibToRef, maxLibToRef);
-      }
       arg++;
+      if ((argv[arg][0] != '-') && (argv[arg][1] != '-'))
+        minLibToRef = maxLibToRef = strtoull(argv[arg], NULL, 10);
+      else
+        err += Get_Range(argv[arg], argv[arg], minLibToRef, maxLibToRef);
 
     } else if (strcmp(argv[arg], "-k") == 0) {
       arg++;
       if ((isdigit(argv[arg][0]) && (argv[arg][1] == 0)) ||
           (isdigit(argv[arg][0]) && isdigit(argv[arg][1]) && (argv[arg][2] == 0))) {
-        Kmer_Len = atoi(argv[arg]);
+        Kmer_Len = strtoull(argv[arg], NULL, 10);
       } else {
         errno = 0;
         Kmer_Skip_File = fopen(argv[arg], "r");
@@ -673,23 +677,23 @@ main(int argc, char **argv) {
       Unique_Olap_Per_Pair = FALSE;
 
     } else if (strcmp(argv[arg], "--hashbits") == 0) {
-      Hash_Mask_Bits = atoi(argv[++arg]);
+      Hash_Mask_Bits = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "--hashstrings") == 0) {
-      Max_Hash_Strings = atoi(argv[++arg]);
+      Max_Hash_Strings = strtoull(argv[++arg], NULL, 10);
       Max_Frags_In_Memory_Store = MIN (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
 
     } else if (strcmp(argv[arg], "--hashdatalen") == 0) {
-      Max_Hash_Data_Len = atoi(argv[++arg]);
+      Max_Hash_Data_Len = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "--hashload") == 0) {
       Max_Hash_Load = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "--maxreadlen") == 0) {
       //  Quite the gross way to do this, but simple.
-      arg++;
+      uint32 desired = strtoul(argv[++arg], NULL, 10);
       OFFSET_BITS = 1;
-      while ((1 << OFFSET_BITS) < atoi(argv[arg]))
+      while (((uint32)1 << OFFSET_BITS) < desired)
         OFFSET_BITS++;
 
       STRING_NUM_BITS       = 30 - OFFSET_BITS;
@@ -707,7 +711,7 @@ main(int argc, char **argv) {
       arg++;
 
     } else if (strcmp(argv[arg], "-t") == 0) {
-      Num_PThreads = atoi(argv[++arg]);
+      Num_PThreads = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       Unique_Olap_Per_Pair = TRUE;
@@ -832,9 +836,9 @@ main(int argc, char **argv) {
   fprintf(stderr, "OFFSET_MASK         "F_U64"\n", OFFSET_MASK);
   fprintf(stderr, "MAX_STRING_NUM      "F_U64"\n", MAX_STRING_NUM);
   fprintf(stderr, "\n");
-  fprintf(stderr, "Hash_Mask_Bits      %d\n", Hash_Mask_Bits);
-  fprintf(stderr, "Max_Hash_Strings    %d\n", Max_Hash_Strings);
-  fprintf(stderr, "Max_Hash_Data_Len   %d\n", Max_Hash_Data_Len);
+  fprintf(stderr, "Hash_Mask_Bits      "F_U32"\n", Hash_Mask_Bits);
+  fprintf(stderr, "Max_Hash_Strings    "F_U32"\n", Max_Hash_Strings);
+  fprintf(stderr, "Max_Hash_Data_Len   "F_U64"\n", Max_Hash_Data_Len);
   fprintf(stderr, "Max_Hash_Load       %f\n", Max_Hash_Load);
   fprintf(stderr, "Kmer Length         %d\n", (int)Kmer_Len);
   fprintf(stderr, "Min Overlap Length  %d\n", Min_Olap_Len);
