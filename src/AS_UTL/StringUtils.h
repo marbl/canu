@@ -19,14 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef STRING_UTILS_H
-#define STRING_UTILS_H
+#ifndef STRINGUTILS_H
+#define STRINGUTILS_H
 
-#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <exception>
 #include <sstream>
 #include <string>
 
@@ -35,15 +33,9 @@ using namespace std;
 #include "AS_global.h"
 #include "VarUtils.h"
 
-static const char *RCSID_STRING_UTILS_H = "$Id: StringUtils.h,v 1.5 2011-08-01 20:33:35 mkotelbajcvi Exp $";
+static const char *RCSID_STRINGUTILS_H = "$Id: StringUtils.h,v 1.6 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 #define NULL_TERMINATOR '\0'
-
-#define min(a, b) \
-	(a < b) ? a : b
-
-#define max(a, b) \
-	(a > b) ? a : b
 
 class StringUtils
 {

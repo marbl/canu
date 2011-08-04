@@ -19,21 +19,22 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ASSERTION_EXCEPTION_H
-#define ASSERTION_EXCEPTION_H
+#ifndef ASSERTIONEXCEPTION_H
+#define ASSERTIONEXCEPTION_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <string>
 
+using namespace std;
+
 #include "AssertionType.h"
+#include "ExceptionUtils.h"
 #include "RuntimeException.h"
 #include "StringUtils.h"
 
-using namespace std;
-
-static const char* RCSID_ASSERTION_EXCEPTION_H = "$Id: AssertionException.h,v 1.2 2011-08-01 16:54:03 mkotelbajcvi Exp $";
+static const char* RCSID_ASSERTIONEXCEPTION_H = "$Id: AssertionException.h,v 1.3 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 #define UNKNOWN_LOCATION "<unknown>"
 
@@ -42,7 +43,7 @@ class AssertionException : public RuntimeException
 public:
 	AssertionException(AssertionType type, const char* message = NULL, const char* file = NULL, int line = 0, const char* function = NULL) throw();
 	
-	virtual const char* what() const throw();
+	const char* what() const throw();
 
 protected:
 	AssertionType type;

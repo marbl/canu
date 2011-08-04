@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.42 2011-08-01 20:33:36 mkotelbajcvi Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.43 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -385,5 +385,11 @@ int AS_configure(int argc, char **argv);
 // A convenient assert for testing whether ptrs are null
 // without bothering lint
 #define AssertPtr(ptr) (assert((ptr) != NULL))
+
+#define exitFailure() \
+	exit(EXIT_FAILURE)
+
+#define exitSuccess() \
+	exit(EXIT_SUCCESS)
 
 #endif

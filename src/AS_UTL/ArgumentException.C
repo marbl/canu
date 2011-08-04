@@ -21,12 +21,13 @@
 
 #include "ArgumentException.h"
 
-static const char* RCSID = "$Id: ArgumentException.C,v 1.3 2011-08-01 16:54:03 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: ArgumentException.C,v 1.4 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 ArgumentException::ArgumentException(const char* name, const char* message) throw() 
 	: RuntimeException(message)
 {
 	this->name = (char*)name;
+	this->stackTrace = &ExceptionUtils::getStackTrace();
 }
 
 const char* ArgumentException::what() const throw()
@@ -40,17 +41,8 @@ const char* ArgumentException::what() const throw()
 		str += ")";
 	}
 	
-	str += "exception";
+	str += "exception: ";
+	str += RuntimeException::what();
 	
-	if (this->message != NULL)
-	{
-		str += ": ";
-		str += this->message;
-	}
-	else
-	{
-		str += ".";
-	}
-	
-	return str.c_str();
+	return StringUtils::toString(str);
 }

@@ -19,24 +19,32 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef RUNTIMEEXCEPTION_H_
-#define RUNTIMEEXCEPTION_H_
+#ifndef RUNTIMEEXCEPTION_H
+#define RUNTIMEEXCEPTION_H
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <exception>
+#include <string>
 
 using namespace std;
 
-static const char* RCSID_RUNTIMEEXCEPTION_H_ = "$Id: RuntimeException.h,v 1.2 2011-08-01 16:54:03 mkotelbajcvi Exp $";
+#include "AS_global.h"
+#include "ExceptionUtils.h"
+#include "StringUtils.h"
+
+static const char* RCSID_RUNTIMEEXCEPTION_H = "$Id: RuntimeException.h,v 1.3 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 class RuntimeException : public exception
 {
-public:	
+public:
+	virtual const char* what() const throw();
+	
 	operator const char*();
 
 protected:
 	char* message;
+	StackTrace* stackTrace;
 	
 	RuntimeException(const char* message) throw();
 };

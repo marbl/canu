@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.6 2011-08-02 02:25:09 brianwalenz Exp $";
+static const char *rcsid = "$Id: upgrade-v7-to-v8.C,v 1.7 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,14 +36,12 @@ using namespace std;
 #include "AS_UTL_fileIO.h"
 #include "AS_UTL_Hash.h"
 #include "StringUtils.h"
-#include "TestUtils.h"
 
 #define INF_STORE_FILENAME "inf"
 #define LIB_STORE_FILENAME "lib"
 #define U2I_STORE_FILENAME "u2i"
 #define UID_STORE_FILENAME "uid"
 #define STORE_RENAME_SUFFIX ".v7-old"
-
 
 class gkLibraryOld
 {
@@ -99,54 +97,60 @@ void processInfoStore(char* oldInfoStorePath, char* infoStorePath)
 	if (AS_UTL_safeRead(oldInfoFile, &info, "inf", sizeof(info), 1) == 0)
 	{
 		fprintf(stderr, "Unable to read information store:\nfile=%s\nerror=%s\n", oldInfoStorePath, strerror(errno));
-		exit(1);
-  }
-
-  if (info.gkVersion != 7)
-  {
-    fprintf(stderr, "Store is version %u, not 7.  Cannot upgrade.\n", info.gkVersion);
-    exit(1);
-  }
 		
-  info.gkVersion     = 8;
-  info.gkLibrarySize = sizeof(gkLibrary);
+		exitFailure();
+	}
+
+	if (info.gkVersion != 7)
+	{
+		fprintf(stderr, "Store is version "F_U64", not 7. Cannot upgrade.\n", info.gkVersion);
+		
+		exitFailure();
+	}
+
+	info.gkVersion = 8;
+	info.gkLibrarySize = sizeof(gkLibrary);
 
 	FILE* infoFile = fopen(infoStorePath, "w");
-	
+
 	AS_UTL_safeWrite(infoFile, &info, "inf", sizeof(info), 1);
 
+	//  Dump the rest of the data (this is more or less copied from AS_PER_gkStore.C).
 
-  //  Dump the rest of the data (this is more or less copied from AS_PER_gkStore.C).
+	if (!feof(oldInfoFile))
+	{
+		uint32 nr = info.numPacked + info.numNormal + info.numStrobe + 1;
+		uint32 na = 0;
+		uint32 nb = 0;
 
-  if (!feof(oldInfoFile)) {
-    uint32 nr = info.numPacked + info.numNormal + info.numStrobe + 1;
-    uint32 na = 0;
-    uint32 nb = 0;
+		uint8 *IIDtoTYPE = (uint8 *) safe_malloc(sizeof(uint8) * nr);
+		uint32 *IIDtoTIID = (uint32 *) safe_malloc(sizeof(uint32) * nr);
 
-    uint8   *IIDtoTYPE = (uint8  *)safe_malloc(sizeof(uint8)  * nr);
-    uint32  *IIDtoTIID = (uint32 *)safe_malloc(sizeof(uint32) * nr);
+		na = AS_UTL_safeRead(oldInfoFile, IIDtoTYPE, "gkStore_open:header", sizeof(uint8), nr);
+		nb = AS_UTL_safeRead(oldInfoFile, IIDtoTIID, "gkStore_open:header", sizeof(uint32), nr);
 
-    na = AS_UTL_safeRead(oldInfoFile, IIDtoTYPE, "gkStore_open:header", sizeof(uint8), nr);
-    nb = AS_UTL_safeRead(oldInfoFile, IIDtoTIID, "gkStore_open:header", sizeof(uint32), nr);
+		//  If EOF was hit, and nothing was read, there is no index saved.  Otherwise, something was
+		//  read, and we fail if either was too short.
 
-    //  If EOF was hit, and nothing was read, there is no index saved.  Otherwise, something was
-    //  read, and we fail if either was too short.
+		if ((feof(oldInfoFile)) && (na == 0) && (nb == 0))
+		{
+			safe_free(IIDtoTYPE);
+			safe_free(IIDtoTIID);
+		}
+		else if ((na != nr) || (nb != nr))
+		{
+			fprintf(stderr, "couldn't read the IID maps: %s\n", strerror(errno));
+			
+			exitFailure();
+		}
 
-    if ((feof(oldInfoFile)) && (na == 0) && (nb == 0)) {
-      safe_free(IIDtoTYPE);
-      safe_free(IIDtoTIID);
-    } else if ((na != nr) || (nb != nr)) {
-      fprintf(stderr, "couldn't read the IID maps: %s\n", strerror(errno)), exit(1);
-    }
+		AS_UTL_safeWrite(infoFile, IIDtoTYPE, "ioF", sizeof(uint8), na);
+		AS_UTL_safeWrite(infoFile, IIDtoTIID, "ioF", sizeof(uint32), nb);
+	}
 
-    AS_UTL_safeWrite(infoFile, IIDtoTYPE, "ioF", sizeof(uint8),  na);
-    AS_UTL_safeWrite(infoFile, IIDtoTIID, "ioF", sizeof(uint32), nb);
-  }
+	fclose(oldInfoFile);
+	fclose(infoFile);
 
-
-  fclose(oldInfoFile);
-  fclose(infoFile);
-	
 	fprintf(stdout, "Information store upgraded to v8:\n%s\n", infoStorePath);
 }
 
@@ -193,7 +197,12 @@ void processLibStore(map<AS_IID, const char*>& idMap, StoreStruct& oldLibStore, 
 		lib.spareLIB = oldLib.spareLIB;
 		lib.orientation = oldLib.orientation;
 
-		assertTrue(idMap.count(a) > 0, StringUtils::concat(2, "Library does not contain an UID string: iid=", StringUtils::toString(a)));
+		if (idMap.count(a) == 0)
+		{
+			fprintf(stderr, F_STR""F_U32"\n", "Library does not contain an UID string: iid=", a);
+			
+			exitFailure();
+		}
 		
 		strcpy(lib.libraryName, idMap[a]);
 		
@@ -229,8 +238,19 @@ void getIdMap(map<AS_IID, const char*>& idMap, char* uidStorePath, char* u2iStor
 			AS_UID  uid          = AS_UID_fromInteger(uidint);
 			char*   uidName      = getStringStorePtr(uidStore, uid.UID, &actualLength, &nxtoff);
 
-			assertTrue(actualLength == strlen(uidName), StringUtils::concat(2, "UID string stored length ", StringUtils::toString(actualLength), " not same as strlen ", StringUtils::toString(strlen(uidName))));
-			assertTrue(actualLength > 0, StringUtils::concat(2, "UID string must not be empty: iid=", StringUtils::toString(iid)));
+			if (actualLength != strlen(uidName))
+			{
+				fprintf(stderr, "UID string stored length "F_U32" not same as strlen "F_U64, actualLength, strlen(uidName));
+				
+				exitFailure();
+			}
+			
+			if (actualLength == 0)
+			{
+				fprintf(stderr, "UID string must not be empty: iid="F_U64, iid);
+				
+				exitFailure();
+			}
 
 			char *str = new char[actualLength + 1];
 			strcpy(str, uidName);
@@ -300,7 +320,8 @@ int main(int argc, char** argv)
 			else
 			{
 				fprintf(stderr, "Unknown argument: %s\n", argv[arg]);
-				exit(1);
+				
+				exitFailure();
 			}
 	
 			arg++;
@@ -309,13 +330,15 @@ int main(int argc, char** argv)
 		if (storePath == NULL)
 		{
 			fprintf(stderr, "A store path must be provided.\n");
-			exit(1);
+			
+			exitFailure();
 		}
 		
 		if (!AS_UTL_fileExists(storePath, 1, 1))
 		{
 			fprintf(stderr, "Store path does not exist: %s\n", storePath);
-			exit(1);
+			
+			exitFailure();
 		}
 		
 		char* libStorePath = getSubStorePath(storePath, LIB_STORE_FILENAME), 
@@ -332,8 +355,12 @@ int main(int argc, char** argv)
 			*libStore = createIndexStore(libStorePath, "lib", sizeof(gkLibrary), 1);
 
 		if (oldLibStore->elementSize != libStore->elementSize - sizeof(char) * 128)
-			fprintf(stderr, "ERROR:  store sizes incompatible.\n"), exit(1);
-
+		{
+			fprintf(stderr, "ERROR: store sizes incompatible.\n");
+			
+			exitFailure();
+		}
+		
 		processInfoStore(oldInfoStorePath, infoStorePath);
 		processLibStore(idMap, *oldLibStore, *libStore);
 	}
@@ -342,5 +369,5 @@ int main(int argc, char** argv)
 		printUsage(argv[0]);
 	}
 	
-	exit(0);
+	exitSuccess();
 }

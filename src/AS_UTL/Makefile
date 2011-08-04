@@ -39,7 +39,9 @@ LIB_SOURCES = AS_UTL_Hash.C \
               AS_UTL_reverseComplement.C \
               AS_UTL_intervalList.C \
               ArgumentException.C \
+              Assert.C \
               AssertionException.C \
+              ExceptionUtils.C \
               FileUtils.C \
               RuntimeException.C \
               StringUtils.C \

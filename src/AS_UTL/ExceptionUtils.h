@@ -19,30 +19,40 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+#ifndef EXCEPTIONUTILS_H
+#define EXCEPTIONUTILS_H
+
+#include <features.h>
+
+#if __GLIBC_PREREQ(2, 1)
+#include <execinfo.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <strings.h>
+#include <algorithm>
+#include <exception>
 #include <string>
 
 using namespace std;
 
-#include "RuntimeException.h"
-#include "StringUtils.h"
+#include "AS_global.h"
 
-static const char* RCSID_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.4 2011-08-04 14:34:41 mkotelbajcvi Exp $";
+static const char* RCSID_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.1 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
-class ArgumentException : public RuntimeException
+#define DEFAULT_STACK_TRACE_DEPTH 15
+#define DEFAULT_STACK_TRACE_CALLER "ExceptionUtils"
+
+typedef struct
+{
+	size depth;
+	char** lines;
+} StackTrace;
+
+class ExceptionUtils
 {
 public:
-	ArgumentException(const char* name = NULL, const char* message = NULL) throw();
-	
-	const char* what() const throw();
-
-protected:
-	char* name;
+	static StackTrace& getStackTrace(const char* caller = DEFAULT_STACK_TRACE_CALLER, size depth = DEFAULT_STACK_TRACE_DEPTH);
 };
 
 #endif

@@ -21,7 +21,7 @@
 
 #include "AssertionException.h"
 
-static const char* RCSID = "$Id: AssertionException.C,v 1.2 2011-08-01 16:54:03 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: AssertionException.C,v 1.3 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 AssertionException::AssertionException(AssertionType type, const char* message, const char* file, int line, const char* function) throw() 
 	: RuntimeException(message)
@@ -30,6 +30,7 @@ AssertionException::AssertionException(AssertionType type, const char* message, 
 	this->file = (char*)file;
 	this->line = line;
 	this->function = (char*)function;
+	this->stackTrace = &ExceptionUtils::getStackTrace();
 }
 
 const char* AssertionException::what() const throw()
@@ -49,19 +50,10 @@ const char* AssertionException::what() const throw()
 	
 	str += "Assert ";
 	str += assertionTypeToString(this->type);
-	str += " failed";
+	str += " failed: ";
+	str += RuntimeException::what();
 	
-	if (this->message != NULL)
-	{
-		str += ": ";
-		str += this->message;
-	}
-	else
-	{
-		str += ".";
-	}
-	
-	return str.c_str();
+	return StringUtils::toString(str);
 }
 
 const char* AssertionException::assertionTypeToString(AssertionType type)

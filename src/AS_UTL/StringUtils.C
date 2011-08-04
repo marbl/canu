@@ -21,7 +21,7 @@
 
 #include "StringUtils.h"
 
-static const char *RCSID = "$Id: StringUtils.C,v 1.4 2011-08-01 20:33:35 mkotelbajcvi Exp $";
+static const char *RCSID = "$Id: StringUtils.C,v 1.5 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 bool StringUtils::startsWith(const char* str, size num, ...)
 {
@@ -128,7 +128,7 @@ const char* StringUtils::trim(const char* str, size num, const char** toTrim)
 }
 
 const char* StringUtils::trimStart(const char* str, size num, ...)
-{
+{	
 	va_list argsList;
 	va_start(argsList, num);
 	

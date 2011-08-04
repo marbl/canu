@@ -22,7 +22,6 @@
 #ifndef TESTUTILS_H
 #define TESTUTILS_H
 
-#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -31,65 +30,11 @@
 using namespace std;
 
 #include "AS_global.h"
-#include "AssertionException.h"
-#include "AssertionType.h"
 #include "StringUtils.h"
 
-static const char* RCSID_TESTUTILS_H = "$Id: TestUtils.h,v 1.6 2011-08-02 03:18:23 brianwalenz Exp $";
-
-#ifndef __ASSERT_FUNCTION
-#define __ASSERT_FUNCTION __func__
-#endif
+static const char* RCSID_TESTUTILS_H = "$Id: TestUtils.h,v 1.7 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 typedef void (*TestFunction)();
-
-#define assertFalse(condition, message) \
-	if (condition) \
-	{ \
-		throw AssertionException(ASSERT_FALSE, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
-	}
-
-#define assertTrue(condition, message) \
-	if (!condition) \
-	{ \
-		throw AssertionException(ASSERT_TRUE, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
-	}
-
-#define assertEquals(obj1, obj2, message) \
-	if (obj1 != obj2) \
-	{ \
-		throw AssertionException(ASSERT_EQUALS, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
-	}
-
-#define assertNotEquals(obj1, obj2, message) \
-	if (obj1 == obj2) \
-	{ \
-		throw AssertionException(ASSERT_NOT_EQUALS, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
-	}
-
-#define assertNull(obj, message) \
-	if (obj != NULL) \
-	{ \
-		throw AssertionException(ASSERT_NULL, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
-	}
-
-#define assertNotNull(obj, message) \
-	if (obj == NULL) \
-	{ \
-		throw AssertionException(ASSERT_NOT_NULL, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
-	}
-
-#define assertEmpty(str, message) \
-	if (strlen(str) != 0) \
-	{ \
-		throw AssertionException(ASSERT_EMPTY, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
-	}
-
-#define assertNotEmpty(str, message) \
-	if (strlen(str) == 0) \
-	{ \
-		throw AssertionException(ASSERT_NOT_EMPTY, message, __FILE__, __LINE__, __ASSERT_FUNCTION); \
-	}
 
 class TestUtils
 {

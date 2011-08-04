@@ -19,30 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+#include "Assert.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
-#include <string>
-
-using namespace std;
-
-#include "RuntimeException.h"
-#include "StringUtils.h"
-
-static const char* RCSID_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.4 2011-08-04 14:34:41 mkotelbajcvi Exp $";
-
-class ArgumentException : public RuntimeException
-{
-public:
-	ArgumentException(const char* name = NULL, const char* message = NULL) throw();
-	
-	const char* what() const throw();
-
-protected:
-	char* name;
-};
-
-#endif
+static const char* RCSID = "$Id: Assert.C,v 1.1 2011-08-04 14:34:41 mkotelbajcvi Exp $";

@@ -19,30 +19,41 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+#include "ExceptionUtils.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
-#include <string>
+static const char* RCSID = "$Id: ExceptionUtils.C,v 1.1 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
-using namespace std;
-
-#include "RuntimeException.h"
-#include "StringUtils.h"
-
-static const char* RCSID_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.4 2011-08-04 14:34:41 mkotelbajcvi Exp $";
-
-class ArgumentException : public RuntimeException
+StackTrace& ExceptionUtils::getStackTrace(const char* caller, size depth)
 {
-public:
-	ArgumentException(const char* name = NULL, const char* message = NULL) throw();
+	StackTrace* stackTrace = new StackTrace();
+	stackTrace->depth = 0;
+	stackTrace->lines = NULL;
 	
-	const char* what() const throw();
-
-protected:
-	char* name;
-};
-
+#if __GLIBC_PREREQ(2, 1)
+	
+	void** buffer = new void*[depth];
+	size actualDepth = backtrace(buffer, depth);
+	char** lines = backtrace_symbols(buffer, actualDepth);
+	
+	int callerIndex = -1;
+	
+	for (size a = 0; a < actualDepth; a++)
+	{
+		if (callerIndex != -1)
+		{
+			stackTrace->lines[a - callerIndex - 1] = new char[strlen(lines[a]) + 1];
+			strcpy(stackTrace->lines[a - callerIndex - 1], lines[a]);
+		}
+		else if (string(lines[a]).rfind(caller) != string::npos)
+		{
+			callerIndex = a;
+			
+			stackTrace->depth = actualDepth - callerIndex - 1;
+			stackTrace->lines = new char*[stackTrace->depth];
+		}
+	}
+	
 #endif
+	
+	return *stackTrace;
+}

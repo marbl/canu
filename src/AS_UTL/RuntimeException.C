@@ -21,11 +21,28 @@
 
 #include "RuntimeException.h"
 
-static const char* RCSID = "$Id: RuntimeException.C,v 1.1 2011-07-28 11:31:00 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: RuntimeException.C,v 1.2 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 RuntimeException::RuntimeException(const char* message) throw()
 {
 	this->message = (char*)message;
+	this->stackTrace = &ExceptionUtils::getStackTrace();
+}
+
+const char* RuntimeException::what() const throw()
+{
+	string str(this->message);
+	
+	if (this->stackTrace != NULL)
+	{
+		for (size a = 0; a < this->stackTrace->depth; a++)
+		{
+			str += "\n\t";
+			str += this->stackTrace->lines[a];
+		}
+	}
+	
+	return StringUtils::toString(str);
 }
 
 RuntimeException::operator const char*()

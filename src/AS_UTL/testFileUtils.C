@@ -27,14 +27,15 @@
 
 using namespace std;
 
+#include "Assert.h"
 #include "FileUtils.h"
 #include "TestUtils.h"
 
-static const char* RCSID = "$Id: testFileUtils.C,v 1.1 2011-08-01 20:33:36 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: testFileUtils.C,v 1.2 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 void testGetPath()
 {
-	assertEquals(string(FileUtils::getPath(3, "/test1", "//test2", "test3/")), string("/test1/test2/test3/"), "get path was different");
+	Assert::assertTrue(string(FileUtils::getPath(3, "/test1", "//test2", "test3/")) == "/test1/test2/test3/", "get path was different");
 }
 
 int main(int argc, char** argv)

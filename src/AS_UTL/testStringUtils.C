@@ -28,84 +28,85 @@
 
 using namespace std;
 
+#include "Assert.h"
 #include "StringUtils.h"
 #include "TestUtils.h"
 
-static const char* RCSID = "$Id: testStringUtils.C,v 1.4 2011-08-01 20:33:36 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: testStringUtils.C,v 1.5 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 void testIsBlankBlankString()
 {
-	assertTrue(StringUtils::isBlank(" \t\n\r"), "string blank");
+	Assert::assertTrue(StringUtils::isBlank(" \t\n\r"), "string blank");
 }
 
 void testIsBlankNotBlankString()
 {
-	assertFalse(StringUtils::isBlank(" test\t\n\r"), "string not blank");
+	Assert::assertFalse(StringUtils::isBlank(" test\t\n\r"), "string not blank");
 }
 
 void testAreEqual()
 {
-	assertTrue(StringUtils::areEqual("test", "test"), "strings are equal");
+	Assert::assertTrue(StringUtils::areEqual("test", "test"), "strings are equal");
 }
 
 void testStartsWith()
 {
-	assertTrue(StringUtils::startsWith("test1test2test3", 2, "test1", "test2"), "starts with failed");
+	Assert::assertTrue(StringUtils::startsWith("test1test2test3", 2, "test1", "test2"), "starts with failed");
 }
 
 void testEndsWith()
 {
-	assertTrue(StringUtils::endsWith("test1test2test3", 2, "test3", "test2"), "ends with failed");
+	Assert::assertTrue(StringUtils::endsWith("test1test2test3", 2, "test3", "test2"), "ends with failed");
 }
 
 void testTrimStart()
 {
-	assertEquals(string(StringUtils::trimStart("trim1trim2|test", 2, "trim1", "trim2")), string("|test"), "start trimmed string is different");
+	Assert::assertTrue(string(StringUtils::trimStart("trim1trim2|test", 2, "trim1", "trim2")) == "|test", "start trimmed string is different");
 }
 
 void testTrimEnd()
 {
-	assertEquals(string(StringUtils::trimEnd("test|trim2trim1", 2, "trim1", "trim2")), string("test|"), "end trimmed string is different");
+	Assert::assertTrue(string(StringUtils::trimEnd("test|trim2trim1", 2, "trim1", "trim2")) == "test|", "end trimmed string is different");
 }
 
 void testTrim()
 {
-	assertEquals(string(StringUtils::trim("trim1trim2|test|trim2trim1", 2, "trim1", "trim2")), string("|test|"), "trimmed string is different");
+	Assert::assertTrue(string(StringUtils::trim("trim1trim2|test|trim2trim1", 2, "trim1", "trim2")) == "|test|", "trimmed string is different");
 }
 
 void testToStringUnsigned()
 {
-	assertEquals(string(StringUtils::toString((unsigned)1)), string("1"), "string of unsigned is different");
+	Assert::assertTrue(string(StringUtils::toString((unsigned)1)) == "1", "string of unsigned is different");
 }
 
 void testToStringUnsignedLong()
 {
-	assertEquals(string(StringUtils::toString((unsigned long)1)), string("1"), "string of unsigned long is different");
+	Assert::assertTrue(string(StringUtils::toString((unsigned long)1)) == "1", "string of unsigned long is different");
 }
 
 void testToStringInt()
 {
-	assertEquals(string(StringUtils::toString(-1)), string("-1"), "string of integer is different");
+	Assert::assertTrue(string(StringUtils::toString(-1)) == "-1", "string of integer is different");
 }
 
 void testToStringLong()
 {
-	assertEquals(string(StringUtils::toString(-1L)), string("-1"), "string of long is different");
+	Assert::assertTrue(string(StringUtils::toString(-1L)) == "-1", "string of long is different");
 }
 
 void testToStringFloat()
 {
-	assertEquals(string(StringUtils::toString(-1.0F)), string("-1"), "string of float is different");
+	Assert::assertTrue(string(StringUtils::toString(-1.0F)) == "-1", "string of float is different");
 }
 
 void testToStringDouble()
 {
-	assertEquals(string(StringUtils::toString(-1.0)), string("-1"), "string of double is different");
+	Assert::assertTrue(string(StringUtils::toString(-1.0)) == "-1", "string of double is different");
 }
 
 void testToStringChar()
 {
-	assertEquals(string(StringUtils::toString('a')), string("a"), "string of char is different");
+	Assert::assertTrue(string(StringUtils::toString('a')) == "a", "string of char is different");
 }
 
 int main(int argc, char** argv)
