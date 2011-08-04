@@ -22,6 +22,8 @@
 #ifndef ASSERTIONEXCEPTION_H
 #define ASSERTIONEXCEPTION_H
 
+static const char* rcsid_ASSERTIONEXCEPTION_H = "$Id: AssertionException.h,v 1.4 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -34,22 +36,13 @@ using namespace std;
 #include "RuntimeException.h"
 #include "StringUtils.h"
 
-static const char* RCSID_ASSERTIONEXCEPTION_H = "$Id: AssertionException.h,v 1.3 2011-08-04 14:34:41 mkotelbajcvi Exp $";
-
-#define UNKNOWN_LOCATION "<unknown>"
-
 class AssertionException : public RuntimeException
 {
 public:
-	AssertionException(AssertionType type, const char* message = NULL, const char* file = NULL, int line = 0, const char* function = NULL) throw();
-	
-	const char* what() const throw();
+	AssertionException(const char* message = NULL, RuntimeException* cause = NULL, AssertionType type = ASSERT_UNKNOWN) throw();
 
 protected:
 	AssertionType type;
-	char* file;
-	int line;
-	char* function;
 	
 	static const char* assertionTypeToString(AssertionType type);
 };

@@ -19,28 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+static const char* rcsid = "$Id: IllegalStateException.C,v 1.1 2011-08-04 18:18:56 mkotelbajcvi Exp $";
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.5 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+#include "IllegalStateException.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
-#include <string>
-
-using namespace std;
-
-#include "RuntimeException.h"
-#include "StringUtils.h"
-
-class ArgumentException : public RuntimeException
+IllegalStateException::IllegalStateException(const char* message, RuntimeException* cause) throw() 
+	: RuntimeException(message, cause)
 {
-public:
-	ArgumentException(const char* message = NULL, RuntimeException* cause = NULL, const char* name = NULL) throw();
-
-protected:
-	char* name;
-};
-
-#endif
+	this->message = (char*)StringUtils::toString(string("Illegal state: ") + this->message);
+	this->stackTrace = &ExceptionUtils::getStackTrace();
+}

@@ -19,6 +19,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#include "Assert.h"
+static const char* rcsid = "$Id: Assert.C,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
 
-static const char* RCSID = "$Id: Assert.C,v 1.1 2011-08-04 14:34:41 mkotelbajcvi Exp $";
+#include "Assert.h"

@@ -19,9 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#include "TestUtils.h"
+static const char* rcsid = "$Id: TestUtils.C,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
 
-static const char* RCSID = "$Id: TestUtils.C,v 1.1 2011-08-01 20:33:36 mkotelbajcvi Exp $";
+#include "TestUtils.h"
 
 void TestUtils::runTests(vector<TestFunction>& tests)
 {

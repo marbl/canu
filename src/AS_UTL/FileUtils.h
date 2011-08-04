@@ -22,6 +22,8 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
+static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,8 +32,6 @@ using namespace std;
 
 #include "StringUtils.h"
 #include "VarUtils.h"
-
-static const char* RCSID_FILEUTILS_H = "$Id: FileUtils.h,v 1.1 2011-08-01 20:33:36 mkotelbajcvi Exp $";
 
 #define PATH_DELIMITER "/"
 

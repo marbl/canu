@@ -22,9 +22,7 @@
 #ifndef EXCEPTIONUTILS_H
 #define EXCEPTIONUTILS_H
 
-static const char* RCSID_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.2 2011-08-04 17:08:32 brianwalenz Exp $";
-
-#include "AS_global.h"
+static const char* rcsid_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.3 2011-08-04 18:18:56 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +32,7 @@ static const char* RCSID_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.2 2011-08
 
 using namespace std;
 
+#include "AS_global.h"
 
 #if defined(__GLIBC__)
 

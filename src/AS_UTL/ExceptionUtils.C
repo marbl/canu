@@ -19,9 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#include "ExceptionUtils.h"
+static const char* rcsid = "$Id: ExceptionUtils.C,v 1.3 2011-08-04 18:18:56 mkotelbajcvi Exp $";
 
-static const char* RCSID = "$Id: ExceptionUtils.C,v 1.2 2011-08-04 17:08:32 brianwalenz Exp $";
+#include "ExceptionUtils.h"
 
 StackTrace& ExceptionUtils::getStackTrace(const char* caller, size depth)
 {

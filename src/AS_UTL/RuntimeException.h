@@ -22,6 +22,8 @@
 #ifndef RUNTIMEEXCEPTION_H
 #define RUNTIMEEXCEPTION_H
 
+static const char* rcsid_RUNTIMEEXCEPTION_H = "$Id: RuntimeException.h,v 1.4 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <exception>
@@ -33,20 +35,23 @@ using namespace std;
 #include "ExceptionUtils.h"
 #include "StringUtils.h"
 
-static const char* RCSID_RUNTIMEEXCEPTION_H = "$Id: RuntimeException.h,v 1.3 2011-08-04 14:34:41 mkotelbajcvi Exp $";
+#define MAX_CAUSE_DEPTH 2
 
 class RuntimeException : public exception
 {
 public:
 	virtual const char* what() const throw();
 	
+	virtual const char* toString(unsigned depth = 0) const throw();
+	
 	operator const char*();
 
 protected:
 	char* message;
+	RuntimeException* cause;
 	StackTrace* stackTrace;
 	
-	RuntimeException(const char* message) throw();
+	RuntimeException(const char* message = NULL, RuntimeException* cause = NULL) throw();
 };
 
 #endif

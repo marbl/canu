@@ -19,6 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char* rcsid = "$Id: testFileUtils.C,v 1.3 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -30,8 +32,6 @@ using namespace std;
 #include "Assert.h"
 #include "FileUtils.h"
 #include "TestUtils.h"
-
-static const char* RCSID = "$Id: testFileUtils.C,v 1.2 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 void testGetPath()
 {

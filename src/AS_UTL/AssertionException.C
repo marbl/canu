@@ -19,41 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char* rcsid = "$Id: AssertionException.C,v 1.4 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include "AssertionException.h"
 
-static const char* RCSID = "$Id: AssertionException.C,v 1.3 2011-08-04 14:34:41 mkotelbajcvi Exp $";
-
-AssertionException::AssertionException(AssertionType type, const char* message, const char* file, int line, const char* function) throw() 
-	: RuntimeException(message)
+AssertionException::AssertionException(const char* message, RuntimeException* cause, AssertionType type) throw() 
+	: RuntimeException(message, cause)
 {
 	this->type = type;
-	this->file = (char*)file;
-	this->line = line;
-	this->function = (char*)function;
 	this->stackTrace = &ExceptionUtils::getStackTrace();
-}
-
-const char* AssertionException::what() const throw()
-{
-	string str(((this->file != NULL) ? this->file : UNKNOWN_LOCATION));
 	
-	str += ":";
-	str += (this->line > 0) ? StringUtils::toString(this->line) : UNKNOWN_LOCATION;
-	str += " ";
-	
-	if (this->function != NULL)
-	{
-		str += "[";
-		str += this->function;
-		str += "] ";
-	}
-	
-	str += "Assert ";
-	str += assertionTypeToString(this->type);
-	str += " failed: ";
-	str += RuntimeException::what();
-	
-	return StringUtils::toString(str);
+	this->message = (char*)StringUtils::toString(string("Assert ") + assertionTypeToString(this->type) + " failed: " + this->message);
 }
 
 const char* AssertionException::assertionTypeToString(AssertionType type)

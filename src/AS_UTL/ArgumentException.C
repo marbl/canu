@@ -19,30 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char* rcsid = "$Id: ArgumentException.C,v 1.5 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include "ArgumentException.h"
 
-static const char* RCSID = "$Id: ArgumentException.C,v 1.4 2011-08-04 14:34:41 mkotelbajcvi Exp $";
-
-ArgumentException::ArgumentException(const char* name, const char* message) throw() 
-	: RuntimeException(message)
+ArgumentException::ArgumentException(const char* message, RuntimeException* cause, const char* name) throw() 
+	: RuntimeException(message, cause)
 {
 	this->name = (char*)name;
 	this->stackTrace = &ExceptionUtils::getStackTrace();
-}
-
-const char* ArgumentException::what() const throw()
-{
-	string str("Argument ");
 	
-	if (this->name != NULL)
-	{
-		str += "(name=";
-		str += this->name;
-		str += ")";
-	}
-	
-	str += "exception: ";
-	str += RuntimeException::what();
-	
-	return StringUtils::toString(str);
+	this->message = (char*)StringUtils::toString(string("Argument ") + ((this->name != NULL) ? string("(name=") + this->name + ") " : "") + "exception: " + 
+		this->message);
 }

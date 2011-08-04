@@ -19,9 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#include "StringUtils.h"
+static const char* rcsid = "$Id: StringUtils.C,v 1.6 2011-08-04 18:18:56 mkotelbajcvi Exp $";
 
-static const char *RCSID = "$Id: StringUtils.C,v 1.5 2011-08-04 14:34:41 mkotelbajcvi Exp $";
+#include "StringUtils.h"
 
 bool StringUtils::startsWith(const char* str, size num, ...)
 {

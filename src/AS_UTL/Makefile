@@ -43,6 +43,7 @@ LIB_SOURCES = AS_UTL_Hash.C \
               AssertionException.C \
               ExceptionUtils.C \
               FileUtils.C \
+              IllegalStateException.C \
               RuntimeException.C \
               StringUtils.C \
               TestUtils.C \

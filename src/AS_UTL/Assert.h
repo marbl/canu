@@ -22,7 +22,8 @@
 #ifndef ASSERT_H
 #define ASSERT_H
 
-#include <assert.h>
+static const char* rcsid_ASSERT_H = "$Id: Assert.h,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -34,12 +35,6 @@ using namespace std;
 #include "AssertionException.h"
 #include "AssertionType.h"
 
-static const char* RCSID_ASSERT_H = "$Id: Assert.h,v 1.1 2011-08-04 14:34:41 mkotelbajcvi Exp $";
-
-#ifndef __ASSERT_FUNCTION
-#define __ASSERT_FUNCTION __func__
-#endif
-
 class Assert
 {
 public:
@@ -47,7 +42,7 @@ public:
 	{
 		if (condition)
 		{
-			throw AssertionException(ASSERT_FALSE, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_FALSE);
 		}
 	}
 	
@@ -55,7 +50,7 @@ public:
 	{
 		if (!condition)
 		{
-			throw AssertionException(ASSERT_TRUE, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_TRUE);
 		}
 	}
 	
@@ -63,7 +58,7 @@ public:
 	{
 		if (obj != NULL)
 		{
-			throw AssertionException(ASSERT_NULL, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_NULL);
 		}
 	}
 	
@@ -71,7 +66,7 @@ public:
 	{
 		if (obj == NULL)
 		{
-			throw AssertionException(ASSERT_NOT_NULL, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_NOT_NULL);
 		}
 	}
 	
@@ -79,7 +74,7 @@ public:
 	{
 		if (str != NULL)
 		{
-			throw AssertionException(ASSERT_EMPTY, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_EMPTY);
 		}
 	}
 	
@@ -87,7 +82,7 @@ public:
 	{
 		if (!str.empty())
 		{
-			throw AssertionException(ASSERT_EMPTY, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_EMPTY);
 		}
 	}
 	
@@ -95,7 +90,7 @@ public:
 	{
 		if (str == NULL)
 		{
-			throw AssertionException(ASSERT_NOT_EMPTY, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_NOT_EMPTY);
 		}
 	}
 	
@@ -103,7 +98,7 @@ public:
 	{
 		if (str.empty())
 		{
-			throw AssertionException(ASSERT_NOT_EMPTY, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_NOT_EMPTY);
 		}
 	}
 	
@@ -111,7 +106,7 @@ public:
 	{
 		if (obj1 != obj2)
 		{
-			throw AssertionException(ASSERT_EQUALS, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_EQUALS);
 		}
 	}
 	
@@ -119,7 +114,7 @@ public:
 	{
 		if (obj1 == obj2)
 		{
-			throw AssertionException(ASSERT_NOT_EQUALS, message, __FILE__, __LINE__, __ASSERT_FUNCTION);
+			throw AssertionException(message, NULL, ASSERT_NOT_EQUALS);
 		}
 	}
 };

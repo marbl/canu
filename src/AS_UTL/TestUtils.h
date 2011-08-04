@@ -22,6 +22,8 @@
 #ifndef TESTUTILS_H
 #define TESTUTILS_H
 
+static const char* rcsid_TESTUTILS_H = "$Id: TestUtils.h,v 1.8 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -31,8 +33,6 @@ using namespace std;
 
 #include "AS_global.h"
 #include "StringUtils.h"
-
-static const char* RCSID_TESTUTILS_H = "$Id: TestUtils.h,v 1.7 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 typedef void (*TestFunction)();
 

@@ -22,6 +22,8 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.7 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
@@ -32,8 +34,6 @@ using namespace std;
 
 #include "AS_global.h"
 #include "VarUtils.h"
-
-static const char *RCSID_STRINGUTILS_H = "$Id: StringUtils.h,v 1.6 2011-08-04 14:34:41 mkotelbajcvi Exp $";
 
 #define NULL_TERMINATOR '\0'
 

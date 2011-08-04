@@ -22,6 +22,8 @@
 #ifndef VARUTILS_H
 #define VARUTILS_H
 
+static const char* rcsid_VARUTILS_H = "$Id: VarUtils.h,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,8 +31,6 @@
 using namespace std;
 
 #include "AS_global.h"
-
-static const char* RCSID_VARUTILS_H = "$Id: VarUtils.h,v 1.1 2011-08-01 20:33:36 mkotelbajcvi Exp $";
 
 class VarUtils
 {

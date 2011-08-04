@@ -19,27 +19,52 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+static const char* rcsid = "$Id: RuntimeException.C,v 1.3 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+
 #include "RuntimeException.h"
 
-static const char* RCSID = "$Id: RuntimeException.C,v 1.2 2011-08-04 14:34:41 mkotelbajcvi Exp $";
-
-RuntimeException::RuntimeException(const char* message) throw()
+RuntimeException::RuntimeException(const char* message, RuntimeException* cause) throw()
 {
 	this->message = (char*)message;
+	this->cause = cause;
 	this->stackTrace = &ExceptionUtils::getStackTrace();
 }
 
 const char* RuntimeException::what() const throw()
 {
-	string str(this->message);
+	return this->toString();
+}
+
+const char* RuntimeException::toString(unsigned depth) const throw()
+{
+	string str;
 	
-	if (this->stackTrace != NULL)
+	if (depth < MAX_CAUSE_DEPTH)
 	{
-		for (size a = 0; a < this->stackTrace->depth; a++)
+		if (depth > 0)
 		{
-			str += "\n\t";
-			str += this->stackTrace->lines[a];
+			str += "\nCaused by: ";
 		}
+		
+		str += this->message;
+		
+		if (this->stackTrace != NULL)
+		{
+			for (size a = 0; a < this->stackTrace->depth; a++)
+			{
+				str += "\n\t";
+				str += this->stackTrace->lines[a];
+			}
+		}
+		
+		if (this->cause != NULL)
+		{
+			str += this->cause->toString(depth + 1);
+		}
+	}
+	else
+	{
+		str += "\n...";
 	}
 	
 	return StringUtils::toString(str);
@@ -47,5 +72,5 @@ const char* RuntimeException::what() const throw()
 
 RuntimeException::operator const char*()
 {
-	return this->what();
+	return this->toString();
 }

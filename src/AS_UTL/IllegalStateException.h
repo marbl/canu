@@ -19,10 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+#ifndef ILLEGALSTATEEXCEPTION_H
+#define ILLEGALSTATEEXCEPTION_H
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.5 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid_ILLEGALSTATEEXCEPTION_H = "$Id: IllegalStateException.h,v 1.1 2011-08-04 18:18:56 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,16 +31,14 @@ static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.5 2
 
 using namespace std;
 
+#include "ExceptionUtils.h"
 #include "RuntimeException.h"
 #include "StringUtils.h"
 
-class ArgumentException : public RuntimeException
+class IllegalStateException : public RuntimeException
 {
 public:
-	ArgumentException(const char* message = NULL, RuntimeException* cause = NULL, const char* name = NULL) throw();
-
-protected:
-	char* name;
+	IllegalStateException(const char* message = NULL, RuntimeException* cause = NULL) throw();
 };
 
 #endif
