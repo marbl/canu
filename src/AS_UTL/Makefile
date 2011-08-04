@@ -51,12 +51,12 @@ LIB_SOURCES = AS_UTL_Hash.C \
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
-SOURCES     = $(LIB_SOURCES) testFileUtils.C testStringUtils.C
+SOURCES     = $(LIB_SOURCES) testExceptions.C testFileUtils.C testStringUtils.C
 
 OBJECTS     = $(SOURCES:.C=.o)
 LIBRARIES   = libAS_UTL.a libCA.a
 SCRIPTS     =
-CXX_PROGS   = testFileUtils testStringUtils
+CXX_PROGS   = testExceptions testFileUtils testStringUtils
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -67,5 +67,6 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 libAS_UTL.a: $(LIB_OBJECTS)
 libCA.a: $(LIB_OBJECTS)
 
+testExceptions: testExceptions.o libCA.a
 testFileUtils: testFileUtils.o libCA.a
 testStringUtils: testStringUtils.o libCA.a

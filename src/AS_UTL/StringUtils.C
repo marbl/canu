@@ -19,9 +19,43 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: StringUtils.C,v 1.6 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: StringUtils.C,v 1.7 2011-08-04 19:10:59 mkotelbajcvi Exp $";
 
 #include "StringUtils.h"
+
+vector<int> StringUtils::findAll(const char* str, size num, ...)
+{
+	va_list argsList;
+	va_start(argsList, num);
+	
+	return findAll(str, num, VarUtils::getArgs(num, new const char*[num], argsList));
+}
+
+vector<int> StringUtils::findAll(const char* str, size num, const char** toFind)
+{
+	string strObj(str);
+	vector<int> found;
+	
+	for (size a = 0; a < num; a++)
+	{
+		const char* toFindItem = toFind[a];
+		size index = string::npos;
+		
+		do
+		{
+			index += (index != string::npos) ? strlen(toFindItem) : 0;
+			index = strObj.find(toFindItem, index);
+			
+			if (index != string::npos)
+			{
+				found.push_back(index);
+			}
+		}
+		while (index != string::npos);
+	}
+	
+	return found;
+}
 
 bool StringUtils::startsWith(const char* str, size num, ...)
 {

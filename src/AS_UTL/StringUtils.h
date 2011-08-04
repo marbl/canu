@@ -22,13 +22,14 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.7 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.8 2011-08-04 19:10:59 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <strings.h>
 #include <sstream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -40,6 +41,9 @@ using namespace std;
 class StringUtils
 {
 public:
+	static vector<int> findAll(const char* str, size num, ...);
+	static vector<int> findAll(const char* str, size num, const char** toFind);
+	
 	inline static bool isBlank(const char* str)
 	{
 		if (!isEmpty(str))
