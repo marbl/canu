@@ -21,15 +21,13 @@
 
 #include "ExceptionUtils.h"
 
-static const char* RCSID = "$Id: ExceptionUtils.C,v 1.1 2011-08-04 14:34:41 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: ExceptionUtils.C,v 1.2 2011-08-04 17:08:32 brianwalenz Exp $";
 
 StackTrace& ExceptionUtils::getStackTrace(const char* caller, size depth)
 {
 	StackTrace* stackTrace = new StackTrace();
 	stackTrace->depth = 0;
 	stackTrace->lines = NULL;
-	
-#if __GLIBC_PREREQ(2, 1)
 	
 	void** buffer = new void*[depth];
 	size actualDepth = backtrace(buffer, depth);
@@ -52,8 +50,6 @@ StackTrace& ExceptionUtils::getStackTrace(const char* caller, size depth)
 			stackTrace->lines = new char*[stackTrace->depth];
 		}
 	}
-	
-#endif
 	
 	return *stackTrace;
 }

@@ -22,11 +22,9 @@
 #ifndef EXCEPTIONUTILS_H
 #define EXCEPTIONUTILS_H
 
-#include <features.h>
+static const char* RCSID_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.2 2011-08-04 17:08:32 brianwalenz Exp $";
 
-#if __GLIBC_PREREQ(2, 1)
-#include <execinfo.h>
-#endif
+#include "AS_global.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,9 +34,17 @@
 
 using namespace std;
 
-#include "AS_global.h"
 
-static const char* RCSID_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.1 2011-08-04 14:34:41 mkotelbajcvi Exp $";
+#if defined(__GLIBC__)
+
+#include <execinfo.h>
+
+#else
+
+static  int    backtrace(void **buffer, int size) { return(0); }
+static  char **backtrace_symbols(void *const *buffer, int size) { return(NULL); }
+
+#endif
 
 #define DEFAULT_STACK_TRACE_DEPTH 15
 #define DEFAULT_STACK_TRACE_CALLER "ExceptionUtils"
