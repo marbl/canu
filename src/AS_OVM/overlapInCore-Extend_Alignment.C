@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapInCore-Extend_Alignment.C,v 1.1 2011-07-30 01:16:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapInCore-Extend_Alignment.C,v 1.2 2011-08-08 02:25:33 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -85,8 +85,6 @@ Set_Left_Delta (int e, int d, int * leftover, int * t_end, int t_len, Work_Area_
     if  (WA -> Left_Delta_Len == 0)
       (* leftover) ++;
   }
-
-  return;
 }
 
 
@@ -133,8 +131,6 @@ Set_Right_Delta (int e, int d, Work_Area_t * WA) {
     WA -> Right_Delta [k ++]
       = abs (WA -> Delta_Stack [i]) * Sign (WA -> Delta_Stack [i - 1]);
   WA -> Right_Delta_Len --;
-
-  return;
 }
 
 
@@ -142,11 +138,6 @@ Set_Right_Delta (int e, int d, Work_Area_t * WA) {
 
 
 
-
-
-static int  Prefix_Edit_Dist
-(char A [], int m, char T [], int n, int Error_Limit,
- int * A_End, int * T_End, int * Match_To_End, Work_Area_t * WA)
 
 //  Return the minimum number of changes (inserts, deletes, replacements)
 //  needed to match string  A [0 .. (m-1)]  with a prefix of string
@@ -162,12 +153,12 @@ static int  Prefix_Edit_Dist
 //  of at least one string; otherwise, set it false to indicate
 //  a branch point.
 
-{
+
+static
+int
+Prefix_Edit_Dist(char A [], int m, char T [], int n, int Error_Limit,
+                 int * A_End, int * T_End, int * Match_To_End, Work_Area_t * WA) {
   //int  Delta_Stack [MAX_ERRORS];
-#if 0
-  double  Cost_Sum, Min_Cost_Sum;
-  int Adjustment, Cost_Sub;
-#endif
   double  Score, Max_Score;
   int  Max_Score_Len = 0, Max_Score_Best_d = 0, Max_Score_Best_e = 0;
   int  Tail_Len;
@@ -187,112 +178,108 @@ static int  Prefix_Edit_Dist
 
   WA -> Edit_Array [0] [0] = Row;
 
-  if  (Row == m)                              // Exact match
-    {
-      (* A_End) = (* T_End) = m;
-      (* Match_To_End) = TRUE;
-      return  0;
-    }
+  if  (Row == m) {
+    // Exact match
+    (* A_End) = (* T_End) = m;
+    (* Match_To_End) = TRUE;
+    return  0;
+  }
 
   Left = Right = 0;
   Max_Score = 0.0;
-  for  (e = 1;  e <= Error_Limit;  e ++)
-    {
-      Left = MAX (Left - 1, -e);
-      Right = MIN (Right + 1, e);
-      WA -> Edit_Array [e - 1] [Left] = -2;
-      WA -> Edit_Array [e - 1] [Left - 1] = -2;
-      WA -> Edit_Array [e - 1] [Right] = -2;
-      WA -> Edit_Array [e - 1] [Right + 1] = -2;
+  for  (e = 1;  e <= Error_Limit;  e ++) {
+    Left = MAX (Left - 1, -e);
+    Right = MIN (Right + 1, e);
+    WA -> Edit_Array [e - 1] [Left] = -2;
+    WA -> Edit_Array [e - 1] [Left - 1] = -2;
+    WA -> Edit_Array [e - 1] [Right] = -2;
+    WA -> Edit_Array [e - 1] [Right + 1] = -2;
 
-      for  (d = Left;  d <= Right;  d ++)
-        {
-          Row = 1 + WA -> Edit_Array [e - 1] [d];
-          if  ((j = WA -> Edit_Array [e - 1] [d - 1]) > Row)
-            Row = j;
-          if  ((j = 1 + WA -> Edit_Array [e - 1] [d + 1]) > Row)
-            Row = j;
-          while  (Row < m && Row + d < n
-                  && (A [Row] == T [Row + d]
-                      || A [Row] == DONT_KNOW_CHAR
-                      || T [Row + d] == DONT_KNOW_CHAR))
-            Row ++;
+    for  (d = Left;  d <= Right;  d ++) {
+      Row = 1 + WA -> Edit_Array [e - 1] [d];
+      if  ((j = WA -> Edit_Array [e - 1] [d - 1]) > Row)
+        Row = j;
+      if  ((j = 1 + WA -> Edit_Array [e - 1] [d + 1]) > Row)
+        Row = j;
+      while  (Row < m && Row + d < n
+              && (A [Row] == T [Row + d]
+                  || A [Row] == DONT_KNOW_CHAR
+                  || T [Row + d] == DONT_KNOW_CHAR))
+        Row ++;
 
-          WA -> Edit_Array [e] [d] = Row;
+      WA -> Edit_Array [e] [d] = Row;
 
-          if  (Row == m || Row + d == n)
-            {
-              //  Check for branch point here caused by uneven
-              //  distribution of errors
-              Score = Row * Branch_Match_Value - e;
-              // Assumes  Branch_Match_Value
-              //             - Branch_Error_Value == 1.0
-              Tail_Len = Row - Max_Score_Len;
-              if  ((Doing_Partial_Overlaps && Score < Max_Score)
-                   ||  (e > MIN_BRANCH_END_DIST / 2
-                        && Tail_Len >= MIN_BRANCH_END_DIST
-                        && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE))
-                {
-                  (* A_End) = Max_Score_Len;
-                  (* T_End) = Max_Score_Len + Max_Score_Best_d;
-                  Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d, WA);
-                  (* Match_To_End) = FALSE;
-                  return  Max_Score_Best_e;
-                }
-
-              // Force last error to be mismatch rather than insertion
-              if  (Row == m
-                   && 1 + WA -> Edit_Array [e - 1] [d + 1]
-                   == WA -> Edit_Array [e] [d]
-                   && d < Right)
-                {
-                  d ++;
-                  WA -> Edit_Array [e] [d] = WA -> Edit_Array [e] [d - 1];
-                }
-
-              (* A_End) = Row;           // One past last align position
-              (* T_End) = Row + d;
-              Set_Right_Delta (e, d, WA);
-              (* Match_To_End) = TRUE;
-              return  e;
-            }
+      if  (Row == m || Row + d == n) {
+        //  Check for branch point here caused by uneven
+        //  distribution of errors
+        Score = Row * Branch_Match_Value - e;
+        // Assumes  Branch_Match_Value
+        //             - Branch_Error_Value == 1.0
+        Tail_Len = Row - Max_Score_Len;
+        if  ((Doing_Partial_Overlaps && Score < Max_Score)
+             ||  (e > MIN_BRANCH_END_DIST / 2
+                  && Tail_Len >= MIN_BRANCH_END_DIST
+                  && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE)) {
+          (* A_End) = Max_Score_Len;
+          (* T_End) = Max_Score_Len + Max_Score_Best_d;
+          Set_Right_Delta (Max_Score_Best_e, Max_Score_Best_d, WA);
+          (* Match_To_End) = FALSE;
+          return  Max_Score_Best_e;
         }
 
-      while  (Left <= Right && Left < 0
-              && WA -> Edit_Array [e] [Left] < WA -> Edit_Match_Limit [e])
-        Left ++;
-      if  (Left >= 0)
-        while  (Left <= Right
-                && WA -> Edit_Array [e] [Left] + Left < WA -> Edit_Match_Limit [e])
-          Left ++;
-      if  (Left > Right)
-        break;
-      while  (Right > 0
-              && WA -> Edit_Array [e] [Right] + Right < WA -> Edit_Match_Limit [e])
-        Right --;
-      if  (Right <= 0)
-        while  (WA -> Edit_Array [e] [Right] < WA -> Edit_Match_Limit [e])
-          Right --;
-      assert (Left <= Right);
-
-      for  (d = Left;  d <= Right;  d ++)
-        if  (WA -> Edit_Array [e] [d] > Longest)
-          {
-            Best_d = d;
-            Best_e = e;
-            Longest = WA -> Edit_Array [e] [d];
-          }
-
-      Score = Longest * Branch_Match_Value - e;
-      // Assumes  Branch_Match_Value - Branch_Error_Value == 1.0
-      if  (Score > Max_Score)
-        {
-          Max_Score = Score;
-          Max_Score_Len = Longest;
-          Max_Score_Best_d = Best_d;
-          Max_Score_Best_e = Best_e;
+        // Force last error to be mismatch rather than insertion
+        if  (Row == m && 1 + WA -> Edit_Array [e - 1] [d + 1] == WA -> Edit_Array [e] [d] && d < Right) {
+          d ++;
+          WA -> Edit_Array [e] [d] = WA -> Edit_Array [e] [d - 1];
         }
+
+        (* A_End) = Row;           // One past last align position
+        (* T_End) = Row + d;
+        Set_Right_Delta (e, d, WA);
+        (* Match_To_End) = TRUE;
+        return  e;
+      }
     }
+
+    while  (Left <= Right && Left < 0
+            && WA -> Edit_Array [e] [Left] < WA -> Edit_Match_Limit [e])
+      Left ++;
+
+    if  (Left >= 0)
+      while  (Left <= Right
+              && WA -> Edit_Array [e] [Left] + Left < WA -> Edit_Match_Limit [e])
+        Left ++;
+
+    if  (Left > Right)
+      break;
+
+    while  (Right > 0
+            && WA -> Edit_Array [e] [Right] + Right < WA -> Edit_Match_Limit [e])
+      Right --;
+
+    if  (Right <= 0)
+      while  (WA -> Edit_Array [e] [Right] < WA -> Edit_Match_Limit [e])
+        Right --;
+
+    assert (Left <= Right);
+
+    for  (d = Left;  d <= Right;  d ++)
+      if  (WA -> Edit_Array [e] [d] > Longest) {
+        Best_d = d;
+        Best_e = e;
+        Longest = WA -> Edit_Array [e] [d];
+      }
+
+    Score = Longest * Branch_Match_Value - e;
+
+    // Assumes  Branch_Match_Value - Branch_Error_Value == 1.0
+    if  (Score > Max_Score) {
+      Max_Score = Score;
+      Max_Score_Len = Longest;
+      Max_Score_Best_d = Best_d;
+      Max_Score_Best_e = Best_e;
+    }
+  }
 
   (* A_End) = Max_Score_Len;
   (* T_End) = Max_Score_Len + Max_Score_Best_d;
@@ -349,121 +336,114 @@ Rev_Prefix_Edit_Dist (char A [], int m, char T [], int n, int Error_Limit,
 
   WA -> Edit_Array [0] [0] = Row;
 
-  if  (Row == m)
-    {
-      (* A_End) = (* T_End) = - m;
-      (* Leftover) = m;
-      (* Match_To_End) = TRUE;
-      return  0;
-    }
+  if  (Row == m) {
+    (* A_End) = (* T_End) = - m;
+    (* Leftover) = m;
+    (* Match_To_End) = TRUE;
+    return  0;
+  }
 
   Left = Right = 0;
   Max_Score = 0.0;
-  for  (e = 1;  e <= Error_Limit;  e ++)
-    {
-      Left = MAX (Left - 1, -e);
-      Right = MIN (Right + 1, e);
-      WA -> Edit_Array [e - 1] [Left] = -2;
-      WA -> Edit_Array [e - 1] [Left - 1] = -2;
-      WA -> Edit_Array [e - 1] [Right] = -2;
-      WA -> Edit_Array [e - 1] [Right + 1] = -2;
+  for  (e = 1;  e <= Error_Limit;  e ++) {
+    Left = MAX (Left - 1, -e);
+    Right = MIN (Right + 1, e);
+    WA -> Edit_Array [e - 1] [Left] = -2;
+    WA -> Edit_Array [e - 1] [Left - 1] = -2;
+    WA -> Edit_Array [e - 1] [Right] = -2;
+    WA -> Edit_Array [e - 1] [Right + 1] = -2;
 
-      for  (d = Left;  d <= Right;  d ++)
-        {
-          Row = 1 + WA -> Edit_Array [e - 1] [d];
-          if  ((j = WA -> Edit_Array [e - 1] [d - 1]) > Row)
-            Row = j;
-          if  ((j = 1 + WA -> Edit_Array [e - 1] [d + 1]) > Row)
-            Row = j;
-          while  (Row < m && Row + d < n
-                  && (A [- Row] == T [- Row - d]
-                      || A [- Row] == DONT_KNOW_CHAR
-                      || T [- Row - d] == DONT_KNOW_CHAR))
-            Row ++;
+    for  (d = Left;  d <= Right;  d ++) {
+      Row = 1 + WA -> Edit_Array [e - 1] [d];
+      if  ((j = WA -> Edit_Array [e - 1] [d - 1]) > Row)
+        Row = j;
+      if  ((j = 1 + WA -> Edit_Array [e - 1] [d + 1]) > Row)
+        Row = j;
+      while  (Row < m && Row + d < n
+              && (A [- Row] == T [- Row - d]
+                  || A [- Row] == DONT_KNOW_CHAR
+                  || T [- Row - d] == DONT_KNOW_CHAR))
+        Row ++;
 
-          WA -> Edit_Array [e] [d] = Row;
+      WA -> Edit_Array [e] [d] = Row;
 
-          if  (Row == m || Row + d == n)
-            {
+      if  (Row == m || Row + d == n) {
 
-              //  Check for branch point here caused by uneven
-              //  distribution of errors
+        //  Check for branch point here caused by uneven
+        //  distribution of errors
 
-              Score = Row * Branch_Match_Value - e;
-              // Assumes  Branch_Match_Value
-              //             - Branch_Error_Value == 1.0
-              Tail_Len = Row - Max_Score_Len;
-              if  ((Doing_Partial_Overlaps && Score < Max_Score)
-                   || (e > MIN_BRANCH_END_DIST / 2
-                       && Tail_Len >= MIN_BRANCH_END_DIST
-                       && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE))
-                {
-                  (* A_End) = - Max_Score_Len;
-                  (* T_End) = - Max_Score_Len - Max_Score_Best_d;
-                  Set_Left_Delta (Max_Score_Best_e, Max_Score_Best_d,
-                                  Leftover, T_End, n, WA);
-                  (* Match_To_End) = FALSE;
-                  return  Max_Score_Best_e;
-                }
-
-              (* A_End) = - Row;           // One past last align position
-              (* T_End) = - Row - d;
-              Set_Left_Delta (e, d, Leftover, T_End, n, WA);
-              (* Match_To_End) = TRUE;
-              return  e;
-            }
+        Score = Row * Branch_Match_Value - e;
+        // Assumes  Branch_Match_Value
+        //             - Branch_Error_Value == 1.0
+        Tail_Len = Row - Max_Score_Len;
+        if  ((Doing_Partial_Overlaps && Score < Max_Score)
+             || (e > MIN_BRANCH_END_DIST / 2
+                 && Tail_Len >= MIN_BRANCH_END_DIST
+                 && (Max_Score - Score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE)) {
+          (* A_End) = - Max_Score_Len;
+          (* T_End) = - Max_Score_Len - Max_Score_Best_d;
+          Set_Left_Delta (Max_Score_Best_e, Max_Score_Best_d,
+                          Leftover, T_End, n, WA);
+          (* Match_To_End) = FALSE;
+          return  Max_Score_Best_e;
         }
 
-      while  (Left <= Right && Left < 0
-              && WA -> Edit_Array [e] [Left] < WA -> Edit_Match_Limit [e])
-        Left ++;
-      if  (Left >= 0)
-        while  (Left <= Right
-                && WA -> Edit_Array [e] [Left] + Left < WA -> Edit_Match_Limit [e])
-          Left ++;
-      if  (Left > Right)
-        break;
-      while  (Right > 0
-              && WA -> Edit_Array [e] [Right] + Right < WA -> Edit_Match_Limit [e])
-        Right --;
-      if  (Right <= 0)
-        while  (WA -> Edit_Array [e] [Right] < WA -> Edit_Match_Limit [e])
-          Right --;
-      assert (Left <= Right);
-
-      for  (d = Left;  d <= Right;  d ++)
-        if  (WA -> Edit_Array [e] [d] > Longest)
-          {
-            Best_d = d;
-            Best_e = e;
-            Longest = WA -> Edit_Array [e] [d];
-          }
-
-      Score = Longest * Branch_Match_Value - e;
-      // Assumes  Branch_Match_Value - Branch_Error_Value == 1.0
-      if  (Score > Max_Score)
-        {
-          Max_Score = Score;
-          Max_Score_Len = Longest;
-          Max_Score_Best_d = Best_d;
-          Max_Score_Best_e = Best_e;
-        }
+        (* A_End) = - Row;           // One past last align position
+        (* T_End) = - Row - d;
+        Set_Left_Delta (e, d, Leftover, T_End, n, WA);
+        (* Match_To_End) = TRUE;
+        return  e;
+      }
     }
+
+    while  (Left <= Right && Left < 0
+            && WA -> Edit_Array [e] [Left] < WA -> Edit_Match_Limit [e])
+      Left ++;
+
+    if  (Left >= 0)
+      while  (Left <= Right
+              && WA -> Edit_Array [e] [Left] + Left < WA -> Edit_Match_Limit [e])
+        Left ++;
+
+    if  (Left > Right)
+      break;
+
+    while  (Right > 0
+            && WA -> Edit_Array [e] [Right] + Right < WA -> Edit_Match_Limit [e])
+      Right --;
+
+    if  (Right <= 0)
+      while  (WA -> Edit_Array [e] [Right] < WA -> Edit_Match_Limit [e])
+        Right --;
+
+    assert (Left <= Right);
+
+    for  (d = Left;  d <= Right;  d ++)
+      if  (WA -> Edit_Array [e] [d] > Longest) {
+        Best_d = d;
+        Best_e = e;
+        Longest = WA -> Edit_Array [e] [d];
+      }
+
+    Score = Longest * Branch_Match_Value - e;
+
+    // Assumes  Branch_Match_Value - Branch_Error_Value == 1.0
+    if  (Score > Max_Score) {
+      Max_Score = Score;
+      Max_Score_Len = Longest;
+      Max_Score_Best_d = Best_d;
+      Max_Score_Best_e = Best_e;
+    }
+  }
 
   (* A_End) = - Max_Score_Len;
   (* T_End) = - Max_Score_Len - Max_Score_Best_d;
-  Set_Left_Delta (Max_Score_Best_e, Max_Score_Best_d,
-                  Leftover, T_End, n, WA);
+  Set_Left_Delta (Max_Score_Best_e, Max_Score_Best_d, Leftover, T_End, n, WA);
   (* Match_To_End) = FALSE;
   return  Max_Score_Best_e;
 }
 
 
-
-Overlap_t  Extend_Alignment
-(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
- int * S_Lo, int * S_Hi, int * T_Lo, int * T_Hi, int * Errors,
- Work_Area_t * WA)
 
 //  See how far the exact match in  Match  extends.  The match
 //  refers to strings  S  and  T  with lengths  S_Len  and  T_Len ,
@@ -477,7 +457,10 @@ Overlap_t  Extend_Alignment
 //  Set  Errors  to the number of errors in the alignment if it is
 //  a  DOVETAIL  overlap.
 
-{
+Overlap_t
+Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
+                 int * S_Lo, int * S_Hi, int * T_Lo, int * T_Hi, int * Errors,
+                 Work_Area_t * WA) {
   Overlap_t  return_type;
   int  S_Left_Begin, S_Right_Begin, S_Right_Len;
   int  T_Left_Begin, T_Right_Begin, T_Right_Len;
@@ -490,102 +473,91 @@ Overlap_t  Extend_Alignment
   T_Left_Begin = Match -> Offset - 1;
   T_Right_Begin = Match -> Offset + Match -> Len;
   T_Right_Len = T_Len - T_Right_Begin;
-  Total_Olap = MIN (Match -> Start, Match -> Offset)
-    + MIN (S_Right_Len, T_Right_Len)
-    + Match -> Len;
+  Total_Olap = MIN (Match -> Start, Match -> Offset) + MIN (S_Right_Len, T_Right_Len) + Match -> Len;
   Error_Limit = WA -> Error_Bound [Total_Olap];
 
-  if  (S_Right_Len == 0 || T_Right_Len == 0)
-    {
-      Right_Errors = 0;
-      WA -> Right_Delta_Len = 0;
-      (* S_Hi) = (* T_Hi) = 0;
-      Right_Match_To_End = TRUE;
-    }
-  else if  (S_Right_Len <= T_Right_Len)
+  if  (S_Right_Len == 0 || T_Right_Len == 0) {
+    Right_Errors = 0;
+    WA -> Right_Delta_Len = 0;
+    (* S_Hi) = (* T_Hi) = 0;
+    Right_Match_To_End = TRUE;
+
+  } else if  (S_Right_Len <= T_Right_Len) {
     Right_Errors = Prefix_Edit_Dist (S + S_Right_Begin, S_Right_Len,
                                      T + T_Right_Begin, T_Right_Len, Error_Limit,
                                      S_Hi, T_Hi, & Right_Match_To_End, WA);
-  else
-    {
-      Right_Errors = Prefix_Edit_Dist (T + T_Right_Begin, T_Right_Len,
-                                       S + S_Right_Begin, S_Right_Len, Error_Limit,
-                                       T_Hi, S_Hi, & Right_Match_To_End, WA);
-      for  (i = 0;  i < WA -> Right_Delta_Len;  i ++)
-        WA -> Right_Delta [i] *= -1;
-    }
+  } else {
+    Right_Errors = Prefix_Edit_Dist (T + T_Right_Begin, T_Right_Len,
+                                     S + S_Right_Begin, S_Right_Len, Error_Limit,
+                                     T_Hi, S_Hi, & Right_Match_To_End, WA);
+  }
+
+  for  (i = 0;  i < WA -> Right_Delta_Len;  i ++)
+    WA -> Right_Delta [i] *= -1;
 
   (* S_Hi) += S_Right_Begin - 1;
   (* T_Hi) += T_Right_Begin - 1;
 
   assert (Right_Errors <= Error_Limit);
 
-  if  (S_Left_Begin < 0 || T_Left_Begin < 0)
-    {
-      Left_Errors = 0;
-      WA -> Left_Delta_Len = 0;
-      (* S_Lo) = (* T_Lo) = 0;
-      Leftover = 0;
-      Left_Match_To_End = TRUE;
-    }
-  else if  (S_Right_Begin <= T_Right_Begin)
+  if  (S_Left_Begin < 0 || T_Left_Begin < 0) {
+    Left_Errors = 0;
+    WA -> Left_Delta_Len = 0;
+    (* S_Lo) = (* T_Lo) = 0;
+    Leftover = 0;
+    Left_Match_To_End = TRUE;
+  } else if  (S_Right_Begin <= T_Right_Begin) {
     Left_Errors = Rev_Prefix_Edit_Dist (S + S_Left_Begin,
                                         S_Left_Begin + 1, T + T_Left_Begin,
                                         T_Left_Begin + 1,
                                         Error_Limit - Right_Errors,
                                         S_Lo, T_Lo, & Leftover, & Left_Match_To_End,
                                         WA);
-  else
-    {
-      Left_Errors = Rev_Prefix_Edit_Dist (T + T_Left_Begin,
-                                          T_Left_Begin + 1, S + S_Left_Begin,
-                                          S_Left_Begin + 1,
-                                          Error_Limit - Right_Errors,
-                                          T_Lo, S_Lo, & Leftover, & Left_Match_To_End,
-                                          WA);
-      for  (i = 0;  i < WA -> Left_Delta_Len;  i ++)
-        WA -> Left_Delta [i] *= -1;
-    }
+  } else {
+    Left_Errors = Rev_Prefix_Edit_Dist (T + T_Left_Begin,
+                                        T_Left_Begin + 1, S + S_Left_Begin,
+                                        S_Left_Begin + 1,
+                                        Error_Limit - Right_Errors,
+                                        T_Lo, S_Lo, & Leftover, & Left_Match_To_End,
+                                        WA);
+  }
+
+  for  (i = 0;  i < WA -> Left_Delta_Len;  i ++)
+    WA -> Left_Delta [i] *= -1;
 
   (* S_Lo) += S_Left_Begin + 1;        // Check later for branch points
   (* T_Lo) += T_Left_Begin + 1;        // Check later for branch points
 
-  if  (! Right_Match_To_End)
-    {
-      if  (! Doing_Partial_Overlaps)
-        WA -> Left_Delta_Len = 0;
-      if  (! Left_Match_To_End)
-        return_type = NONE;
-      else
-        return_type = RIGHT_BRANCH_PT;
-    }
-  else
-    {
-      if  (! Left_Match_To_End)
-        return_type = LEFT_BRANCH_PT;
-      else
-        return_type = DOVETAIL;
-    }
+  if  (! Right_Match_To_End) {
+    if  (! Doing_Partial_Overlaps)
+      WA -> Left_Delta_Len = 0;
+    if  (! Left_Match_To_End)
+      return_type = NONE;
+    else
+      return_type = RIGHT_BRANCH_PT;
+  } else {
+    if  (! Left_Match_To_End)
+      return_type = LEFT_BRANCH_PT;
+    else
+      return_type = DOVETAIL;
+  }
 
-  if  (return_type == DOVETAIL || Doing_Partial_Overlaps)
-    {
-      (* Errors) = Left_Errors + Right_Errors;
-      assert ((* Errors) <= Error_Limit);
+  if  (return_type == DOVETAIL || Doing_Partial_Overlaps) {
+    (* Errors) = Left_Errors + Right_Errors;
+    assert ((* Errors) <= Error_Limit);
 
-      if  (WA -> Right_Delta_Len > 0)
-        {
-          if  (WA -> Right_Delta [0] > 0)
-            WA -> Left_Delta [WA -> Left_Delta_Len ++]
-              = WA -> Right_Delta [0] + Leftover + Match -> Len;
-          else
-            WA -> Left_Delta [WA -> Left_Delta_Len ++]
-              = WA -> Right_Delta [0] - Leftover - Match -> Len;
-        }
-      for  (i = 1;  i < WA -> Right_Delta_Len;  i ++)
-        WA -> Left_Delta [WA -> Left_Delta_Len ++] = WA -> Right_Delta [i];
+    if  (WA -> Right_Delta_Len > 0) {
+      if  (WA -> Right_Delta [0] > 0)
+        WA -> Left_Delta [WA -> Left_Delta_Len ++]
+          = WA -> Right_Delta [0] + Leftover + Match -> Len;
+      else
+        WA -> Left_Delta [WA -> Left_Delta_Len ++]
+          = WA -> Right_Delta [0] - Leftover - Match -> Len;
     }
+    for  (i = 1;  i < WA -> Right_Delta_Len;  i ++)
+      WA -> Left_Delta [WA -> Left_Delta_Len ++] = WA -> Right_Delta [i];
+  }
 
   return  return_type;
 }
-
 
