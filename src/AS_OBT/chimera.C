@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.45 2011-07-25 20:00:47 mkotelbajcvi Exp $";
+const char *mainid = "$Id: chimera.C,v 1.46 2011-08-08 02:20:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1371,13 +1371,15 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((gkp == 0L) || (ovsprimary == 0L) || (err)) {
-    fprintf(stderr, "usage: %s [-1] -gkp <gkpStore> -ovs <ovsStore> [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s -gkp <gkpStore> -ovs <ovsStore> [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -mininniepair n    trim if at least n pairs of innie frags detect chimer\n");
     fprintf(stderr, "  -minoverhanging n  trim if at least n frags detect chimer\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -summary S         write a summary of the fixes to S\n");
     fprintf(stderr, "  -report R          write a detailed report of the fixes to R\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -test              compute and log, but don't update the store\n");
     fprintf(stderr, "\n");
     exit(1);
   }
