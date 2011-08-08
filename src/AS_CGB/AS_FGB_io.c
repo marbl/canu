@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_io.c,v 1.35 2010-08-19 05:28:06 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_io.c,v 1.36 2011-08-08 02:18:53 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -333,6 +333,17 @@ static void add_overlap_to_graph(Aedge  an_edge,
 
     fprintf(stderr," afr="F_IID" bfr="F_IID" aln=%d bln=%d\n", iafr, ibfr, ialn, ibln);
     fprintf(stderr," avx="F_IID" bvx="F_IID" ahg=%d bhg=%d\n", iavx, ibvx, iahg, ibhg);
+
+    //  Failed on huref8sanger with:
+    //
+    //  INPUT ERROR: aln == ahg
+    //   afr=28861393 bfr=22166408 aln=954 bln=838
+    //   avx=28022007 bvx=21716071 ahg=954 bhg=363
+    //
+    //  In the ovlStore: 28861393 22166408  N    461   343  2.23  2.23
+    //  In the bubbles:  28861393 22166408  N    954   363  1.00  1.00
+    //
+    return;
   }
 
   assert(ialn > iahg);
