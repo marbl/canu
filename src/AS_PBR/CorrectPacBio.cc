@@ -36,27 +36,8 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, The Venter Institute. All rights reserved.
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received (LICENSE.txt) a copy of the GNU General Public
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.1 2011-06-17 12:58:42 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.2 2011-08-10 12:09:43 skoren Exp $";
 
 #include <map>
 #include <set>
@@ -79,6 +60,7 @@ using namespace std;
 #include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PBR_util.hh"
+#include "AS_PER_encodeSequenceQuality.h"
 
 #define  THREAD_STACKSIZE        (16 * 512 * 512)
 const uint8 MAX_COV     = 255;
@@ -86,6 +68,11 @@ const double CUMULATIVE_SUM = 0.95;
 const uint64 MAX_TO_READ = 100000;
 
 map<AS_IID, uint64> *globalFrgToScore;
+
+struct OverlapPos {
+   SeqInterval position;
+   IntFragment_ID ident;
+};
 
 // global variables shared between all threads
 struct PBRThreadGlobals {
@@ -99,10 +86,7 @@ struct PBRThreadGlobals {
    // writable global data (access controlled by globalDataMutex)
    pthread_mutex_t globalDataMutex;
 
-   map<AS_IID, uint32> readsToPrint;
-   map<AS_IID, vector<IntMultiPos> *> correctedTilings;
-   map<AS_IID, map<AS_IID, SeqInterval> *> readBClrs;
-   map<AS_IID, multimap<uint64, AS_IID> > readsToBestMatches;
+   map<AS_IID, uint8> readsToPrint;
 
    // track number of active threads for output of layouts
    stack<pair<AS_IID, AS_IID> > toOutput;
@@ -123,10 +107,12 @@ struct PBRThreadGlobals {
    // read-only variables for thread
    uint8 covCutoff;
    map<AS_IID, uint32> frgToLen;
-   map<AS_IID, uint32> frgToLib;
-   map<AS_IID, map<AS_IID, pair<uint8, uint8> > > readRanking;
-   map<AS_IID, string> frgToSeq;
-   map<AS_IID, string> frgToQlt;
+   map<AS_IID, uint8> frgToLib;
+
+   int fixedMemory;
+   map<AS_IID, char*> frgToEnc;
+   pair<AS_IID, AS_IID> *partitionStarts;
+   uint32 perFile;
 };
 
 // this holds thread-specfic variables (plus a pointer to the global data)
@@ -134,10 +120,12 @@ struct PBRThreadWorkArea {
    uint32 id;
    AS_IID start;
    AS_IID end;
+   uint32 fileStart;
+   uint32 fileEnd;
    PBRThreadGlobals *globals;
 };
 
-bool compare_by_identity (const IntMultiPos &a, const IntMultiPos &b) {
+bool compare_by_identity (const OverlapPos &a, const OverlapPos &b) {
    if (globalFrgToScore == NULL || (*globalFrgToScore)[a.ident] == 0 || (*globalFrgToScore)[b.ident] == 0) {
       fprintf(stderr, "Error: fragment %d or %d does not have a defined score\n", a.ident, b.ident);
       assert(0);
@@ -146,55 +134,81 @@ bool compare_by_identity (const IntMultiPos &a, const IntMultiPos &b) {
    return (*globalFrgToScore)[a.ident] < (*globalFrgToScore)[b.ident];
 }
 
-bool compare_tile ( const IntMultiPos& a, const IntMultiPos& b )
+bool compare_tile ( const OverlapPos& a, const OverlapPos& b )
 {
   return MIN(a.position.bgn, a.position.end) < MIN(b.position.bgn, b.position.end);
 }
 
-static uint32 loadFragments(gkStream *fs, uint32* includeLib, map<AS_IID, uint32>& frgToLen, map<AS_IID, uint32>& frgToLib, map<AS_IID, string> &frgToSeq, map<AS_IID, string> &frgToQlt) {
+static uint32 loadFragments(gkStream *fs, uint32* includeLib, map<AS_IID, uint32>& frgToLen, map<AS_IID, uint8>& frgToLib) {
   gkFragment  fr;
   uint32 counter = 0;
   
   fprintf(stderr, "Streaming fragments\n");
   // figure out which libraries we want to use and store fragment info
   while (fs->next(&fr)) {
+     int32 len = fr.gkFragment_getClearRegionLength();
+
      if (includeLib[fr.gkFragment_getLibraryIID()] == TRUE) {
         frgToLib[fr.gkFragment_getReadIID()] = TRUE;
         counter++;
-     } else {
-        uint32 clrL, clrR;
-        fr.gkFragment_getClearRegion(clrL, clrR);
-        frgToSeq[fr.gkFragment_getReadIID()] = string(fr.gkFragment_getSequence()).substr(clrL, clrR);
-        frgToQlt[fr.gkFragment_getReadIID()] = string(fr.gkFragment_getQuality()).substr(clrL, clrR);
      }
-     frgToLen[fr.gkFragment_getReadIID()] = fr.gkFragment_getClearRegionLength();
+     frgToLen[fr.gkFragment_getReadIID()] = len;
   }
+  return counter;
+}
 
+static uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS_IID, char*> &frgToEnc) {
+  gkFragment  fr;
+  uint32 counter = 0;
+
+  fprintf(stderr, "Loading fragment seq\n");
+  // figure out which libraries we want to use and store fragment info
+  for (map<AS_IID, uint8>::const_iterator i = readsToPrint.begin(); i != readsToPrint.end(); i++) {
+     if (i->second != 0) {
+        fs->gkStore_getFragment(i->first, &fr, GKFRAGMENT_QLT);
+        int32 len = fr.gkFragment_getClearRegionLength();
+        
+        char *seq = fr.gkFragment_getSequence() + fr.gkFragment_getClearRegionBegin();
+        char *qlt = fr.gkFragment_getQuality()  + fr.gkFragment_getClearRegionBegin();
+        seq[len] = 0;
+        qlt[len] = 0;
+        char *enc = new char[len + 1];
+        encodeSequenceQuality(enc, seq, qlt);
+        frgToEnc[fr.gkFragment_getReadIID()] = enc;
+
+        counter++;
+     }
+  }
   return counter;
 }
 
 // partition the work
-static AS_IID partitionWork( uint32 counter, map<AS_IID, uint32>& frgToLib, int numThreads, PBRThreadWorkArea *wa) { 
+static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int numThreads, int partitions, uint32& perFile, PBRThreadWorkArea *wa) { 
   uint32 lastEnd = 0;
   uint32 currThread = 0;
   AS_IID lastFrag = 0;
+  AS_IID firstFrag = 0;
   PBRThreadGlobals* waGlobal = wa[0].globals;
 
   uint32 perThread = (uint32) floor((double)counter / numThreads);
-  fprintf(stderr, "Each thread responsible for %d (%d threads) of %d fragments\n", perThread, numThreads, counter);
+  perFile   = (uint32) floor((double)counter / partitions);
+  fprintf(stderr, "Each thread responsible for %d (%d threads) and each file %d of %d fragments\n", perThread, numThreads, perFile, counter);
 
   counter = 0;
 
-  for(map<AS_IID, uint32>::const_iterator iter = frgToLib.begin(); iter != frgToLib.end(); iter++) {
+  for(map<AS_IID, uint8>::const_iterator iter = frgToLib.begin(); iter != frgToLib.end(); iter++) {
      if (iter->second == TRUE) { 
-        if (counter == 0) { lastEnd = iter->first; }
+        if (counter == 0) { firstFrag = iter->first; lastEnd = iter->first; }
         counter++;
      }
      if (currThread < waGlobal->numThreads -1 ) {
         if ((counter > 0 && counter % perThread == 0)) {
            wa[currThread].start = lastEnd;
            wa[currThread].end = iter->first-1;
+           wa[currThread].fileStart = (uint32) ceil((double)(wa[currThread].start-wa[0].start+1) / perFile);
+           wa[currThread].fileEnd = (uint32) floor((double)(wa[currThread].end-wa[0].start+1) / perFile);
            wa[currThread].id = currThread;
+
            lastEnd = iter->first;
            currThread++;
          }
@@ -204,9 +218,12 @@ static AS_IID partitionWork( uint32 counter, map<AS_IID, uint32>& frgToLib, int 
   // give the rest to the last thread
   wa[currThread].start = lastEnd;
   wa[currThread].end = lastFrag;
+  wa[currThread].fileStart = (uint32) ceil((double)(wa[currThread].start-wa[0].start+1) / perFile);
+  wa[currThread].fileEnd = (uint32) floor((double)(wa[currThread].end-wa[0].start+1) / perFile);
+
   wa[currThread].id = currThread;
 
-  return lastFrag;
+  return firstFrag;
 }
 
 static void *  correctFragments(void *ptr) {
@@ -219,10 +236,8 @@ static void *  correctFragments(void *ptr) {
   OverlapStore *ovs = AS_OVS_openOverlapStore(waGlobal->ovlStoreUniqPath);
 
   // local copies of global variables
-  map<AS_IID, uint32> readsToPrint;
-  map<AS_IID, vector<IntMultiPos> *> correctedTilings;
-  map<AS_IID, map<AS_IID, SeqInterval> *> readBClrs;
-  map<AS_IID, multimap<uint64, AS_IID> > readsToBestMatches;
+  map<AS_IID, uint8> readsToPrint;
+  map<AS_IID, uint32> longReadsToPrint;
 
   uint8  *readCoverage = new uint8[AS_READ_MAX_NORMAL_LEN];
   map<AS_IID, OVSoverlap> frgToBest;
@@ -231,6 +246,24 @@ static void *  correctFragments(void *ptr) {
   uint64 olapCount = 0;
   uint64 ovlPosition = 0;
   OVSoverlap *olaps = NULL;
+
+  // compute the number of files we should be generating
+  char outputName[FILENAME_MAX] = {0};
+  uint32 fileStart = wa->fileStart; 
+  uint32 lastFile = wa->fileEnd;
+  uint32 numFiles = lastFile - fileStart + 1;
+  uint32 perFile = waGlobal->perFile;
+
+  pair<AS_IID, AS_IID> partitionStartEnd;
+  uint32 currOpenID = fileStart;
+  sprintf(outputName, "%s.%d.olaps", waGlobal->prefix, fileStart);
+  errno = 0;
+  FILE *outFile = fopen(outputName, "w");
+  if (errno) {
+     fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
+  }
+  fprintf(stderr, "In thread %d going to output files %d-%d with %d\n", wa->id, fileStart, fileStart + numFiles - 1, perFile);
+  partitionStartEnd.first = wa->start;
 
   // finally stream through the fragments we're correcting and map the best overlaps to them
   // figure out our block of responsibility
@@ -249,8 +282,8 @@ static void *  correctFragments(void *ptr) {
      frgToBest.clear();
      frgToScore.clear();
 
-     map<uint32, IntMultiPos> tile;
-     map<AS_IID, SeqInterval> *bClrs = new map<AS_IID, SeqInterval>();
+     map<uint32, OverlapPos> tile;
+     map<AS_IID, SeqInterval> bClrs;
 
      // read next batch
      if (ovlPosition >= olapCount) {
@@ -316,14 +349,24 @@ static void *  correctFragments(void *ptr) {
            for (uint32 iter = min; iter <= max && waGlobal->globalRepeats == FALSE; iter++) {
               readCoverage[iter]--;
            }
-           readsToPrint[best.b_iid]--;
+           if (longReadsToPrint[best.b_iid] != 0) {
+              longReadsToPrint[best.b_iid]--;
+              if (longReadsToPrint[best.b_iid] < MAX_COV) {
+                 readsToPrint[best.b_iid] = longReadsToPrint[best.b_iid];
+                 longReadsToPrint[best.b_iid] = 0;
+              }
+           } else {
+              readsToPrint[best.b_iid]--;
+           } 
            tile[best.b_iid].position.bgn = tile[best.b_iid].position.end = 0;
         }
         frgToBest[bid] = olap;
         frgToScore[bid] = score; 
         
         SeqInterval pos;
+        pos.bgn = pos.end = 0;
         SeqInterval bClr;
+        bClr.bgn = bClr.end = 0;
         if (olap.dat.ovl.type == AS_OVS_TYPE_OVL) {
            pos.bgn = olap.dat.ovl.a_hang;
            pos.end = alen + olap.dat.ovl.b_hang;
@@ -347,6 +390,7 @@ static void *  correctFragments(void *ptr) {
            bClr.bgn = MIN(olap.dat.obt.b_beg, bend);
            bClr.end = MAX(olap.dat.obt.b_beg, bend);
         }
+        bClrs.insert(pair<AS_IID, SeqInterval>(bid, bClr));
 
         // update end points if necessary
         uint32 len = MAX(pos.bgn, pos.end) - MIN(pos.bgn, pos.end);
@@ -357,14 +401,17 @@ static void *  correctFragments(void *ptr) {
               pos.end = pos.bgn + waGlobal->frgToLen[bid];
           }
         }
-        IntMultiPos tileStr;
+        OverlapPos tileStr;
         tileStr.position = pos;
         tileStr.ident = bid;
-        tileStr.parent = aid;
         tile[bid] = tileStr;
 
-        bClrs->insert(pair<AS_IID, SeqInterval>(bid, bClr));
-        readsToPrint[bid]++;
+        if (readsToPrint[bid] == MAX_COV) {
+           if (longReadsToPrint[bid] == 0) { longReadsToPrint[bid] = MAX_COV; }
+           longReadsToPrint[bid]++;
+        } else {
+           readsToPrint[bid]++;
+        }
 
         uint32 min = MIN(pos.bgn, pos.end);
         uint32 max = MAX(pos.bgn, pos.end);
@@ -373,18 +420,14 @@ static void *  correctFragments(void *ptr) {
         }
      }
 
-     vector<IntMultiPos>* mp = new vector<IntMultiPos>();
-     for (map<uint32, IntMultiPos>::const_iterator iter = tile.begin(); iter != tile.end(); iter++) {
+     vector<OverlapPos> mp; // = new vector<OverlapPos>();
+     for (map<uint32, OverlapPos>::const_iterator iter = tile.begin(); iter != tile.end(); iter++) {
         if (iter->second.position.bgn > 0 || iter->second.position.end > 0) {
-           mp->push_back(iter->second);
-
-           // save the best matches for our ranking
-           uint64 score = frgToScore[iter->second.ident];
-           readsToBestMatches[iter->second.ident].insert(pair<uint64, AS_IID>(score, i));
+           mp.push_back(iter->second);
         }
      }
 
-     if (mp->size() > 0) {
+     if (mp.size() > 0) {
         if (waGlobal->globalRepeats == FALSE) {
            double mean = 0;
            double N = 0;
@@ -404,13 +447,13 @@ static void *  correctFragments(void *ptr) {
               pthread_mutex_lock( &waGlobal->globalDataMutex);
            }
            globalFrgToScore = &frgToScore;
-           stable_sort(mp->begin(), mp->end(), compare_by_identity);
+           stable_sort(mp.begin(), mp.end(), compare_by_identity);
            globalFrgToScore = NULL;
            if (waGlobal->numThreads > 1) {
               pthread_mutex_unlock( &waGlobal->globalDataMutex);
            }
 
-           for (vector<IntMultiPos>::iterator iter = mp->begin(); iter != mp->end(); ) {
+           for (vector<OverlapPos>::iterator iter = mp.begin(); iter != mp.end(); ) {
               uint32 min = MIN(iter->position.bgn, iter->position.end);
               uint32 max = MAX(iter->position.bgn, iter->position.end);
               uint8  max_cov = 0;
@@ -422,8 +465,7 @@ static void *  correctFragments(void *ptr) {
                  readCoverage[coverage] = (readCoverage[coverage] == MAX_COV ? MAX_COV : readCoverage[coverage]+1);
               }
               if (max_cov > (mean * waGlobal->repeatMultiplier)) {
-                 iter = mp->erase(iter);
-                 readsToPrint[iter->ident]--;
+                 iter = mp.erase(iter);
               } else {
                  iter++;
               }
@@ -431,44 +473,46 @@ static void *  correctFragments(void *ptr) {
         }
 
         // now save the tiling
-        stable_sort(mp->begin(), mp->end(), compare_tile);
-        correctedTilings[i] = mp;
-        readBClrs[i] = bClrs;
+        stable_sort(mp.begin(), mp.end(), compare_tile);
+        // write to my file
+        uint32 fileId = fileStart + MIN(numFiles - 1, floor((double)(i - wa->start) / perFile));
+        if (fileId != currOpenID) {
+           partitionStartEnd.second = i;
+fprintf(stderr, "Thread %d set partition %d to be %d-%d\n", wa->id, currOpenID-1, partitionStartEnd.first, partitionStartEnd.second);
+           waGlobal->partitionStarts[currOpenID-1] = partitionStartEnd;
+           partitionStartEnd.first = partitionStartEnd.second = i;
+           fclose(outFile);
+           sprintf(outputName, "%s.%d.olaps", waGlobal->prefix, fileId);
+           errno = 0;
+           outFile = fopen(outputName, "w");
+           if (errno) {
+              fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
+           }
+fprintf(stderr, "For thread %d I'm currently on file %d and need to move to %d\n", wa->id, currOpenID, fileId);
+           currOpenID = fileId;
+        }
+        fprintf(outFile, "LAY\t"F_IID"\t"F_U32"\n", i, mp.size());
+        for (vector<OverlapPos>::const_iterator iter = mp.begin(); iter != mp.end(); iter++) {
+           fprintf(outFile, "TLE\t"F_IID"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n", iter->ident, iter->position.bgn, iter->position.end, bClrs[iter->ident].bgn, bClrs[iter->ident].end); 
+        }
      }
 
      counter++;
    }
+   partitionStartEnd.second = wa->end + 1;
+   waGlobal->partitionStarts[currOpenID-1] = partitionStartEnd;
+fprintf(stderr, "Thread %d set partition %d to be %d-%d\n", wa->id, currOpenID-1, partitionStartEnd.first, partitionStartEnd.second);
+   fclose(outFile);
 
    // finally update the global data
    if (waGlobal->numThreads > 1) {
       pthread_mutex_lock( &waGlobal->globalDataMutex);
    }
-   for (map<AS_IID, uint32>::const_iterator iter = readsToPrint.begin(); iter != readsToPrint.end(); iter++) {
-      waGlobal->readsToPrint[iter->first] += iter->second;
-   }
-   if (waGlobal->numThreads > 1) {
-      pthread_mutex_unlock( &waGlobal->globalDataMutex);
-   }
-
-   if (waGlobal->numThreads > 1) {
-      pthread_mutex_lock( &waGlobal->globalDataMutex);
-   }
-   for (AS_IID i = wa->start; i <= wa->end; i++) {
-      waGlobal->correctedTilings[i] = correctedTilings[i];
-      waGlobal->readBClrs[i] = readBClrs[i];
-   }
-   if (waGlobal->numThreads > 1) {
-      pthread_mutex_unlock( &waGlobal->globalDataMutex);
-   }
-
-   if (waGlobal->numThreads > 1) {
-      pthread_mutex_lock( &waGlobal->globalDataMutex);
-   }
-   for (map<AS_IID, multimap<uint64, AS_IID> >::iterator iter = readsToBestMatches.begin(); iter != readsToBestMatches.end(); iter++) {
-      multimap<uint64, AS_IID> *multMap = &(iter->second);
-      multimap<uint64, AS_IID> *globalMap = &waGlobal->readsToBestMatches[iter->first];
-      for (multimap<uint64, AS_IID>::const_iterator j = multMap->begin(); j != multMap->end(); j++) {
-         globalMap->insert(pair<uint64, AS_IID>(j->first, j->second));
+   for (map<AS_IID, uint8>::iterator iter = readsToPrint.begin(); iter != readsToPrint.end(); iter++) {
+      if (((uint32)waGlobal->readsToPrint[iter->first] + iter->second) > MAX_COV) {
+         waGlobal->readsToPrint[iter->first] = MAX_COV;
+      } else {
+         waGlobal->readsToPrint[iter->first] += iter->second;
       }
    }
    if (waGlobal->numThreads > 1) {
@@ -477,10 +521,8 @@ static void *  correctFragments(void *ptr) {
 
    fprintf(stderr, "Thread shutting down after finishing %d fragments\n", counter);
    delete[] readCoverage;
+   delete[] olaps;
    readsToPrint.clear();
-   correctedTilings.clear();
-   readBClrs.clear();
-   readsToBestMatches.clear();
    AS_OVS_closeOverlapStore(ovs);
 
    return 0;
@@ -506,13 +548,43 @@ void *outputResults(void *ptr) {
         break;
      } else {
         part = waGlobal->toOutput.size();
-fprintf(stderr, "THe thread %d has tootput size of %d and partitiosn %d\n", wa->id, waGlobal->toOutput.size(), waGlobal->partitions);
+fprintf(stderr, "THe thread %d has to output size of %d and partitions %d\n", wa->id, waGlobal->toOutput.size(), waGlobal->partitions);
         bounds = waGlobal->toOutput.top();
         waGlobal->toOutput.pop();
         if (waGlobal->numThreads > 1) {
            pthread_mutex_unlock(&waGlobal->countMutex);
         }
      }
+     part = bounds.first;
+     map<AS_IID, uint8> readsToPrint;
+     map<AS_IID, set<AS_IID> > readRanking;
+     map<AS_IID, char*> frgToEnc;
+
+     char inName[FILENAME_MAX] = {0};
+     sprintf(inName, "%s.%d.olaps", waGlobal->prefix, part);
+     errno = 0;
+     FILE *inFile = fopen(inName, "r");
+     if (errno) {
+        fprintf(stderr, "Couldn't open '%s' for write: %s\n", inName, strerror(errno)); exit(1);
+     }
+
+     char inRankName[FILENAME_MAX] = {0};
+     sprintf(inRankName, "%s.%d.rank", waGlobal->prefix, part);
+     errno = 0;
+     FILE *inRankFile = fopen(inRankName, "r");
+     if (errno) {
+        fprintf(stderr, "Couldn't open %s for read %s\n", inRankName, strerror(errno)); exit(1);
+     }
+     while (!feof(inRankFile)) {
+        AS_IID illumina;
+        AS_IID corrected;
+
+        fscanf(inRankFile, F_IID"\t"F_IID"\n", &illumina, &corrected);
+        readRanking[illumina].insert(corrected);
+     }
+        
+     fclose(inRankFile);
+     
      char outputName[FILENAME_MAX] = {0};
      sprintf(outputName, "%s.%d.lay", waGlobal->prefix, part);
      errno = 0;
@@ -522,30 +594,39 @@ fprintf(stderr, "THe thread %d has tootput size of %d and partitiosn %d\n", wa->
      }
 
      fprintf(stderr, "Thread %d is running and output to file %s range %d-%d\n", wa->id, outputName, bounds.first, bounds.second);
-     map<AS_IID, uint32> readsToPrint;
      uint32 readIID = 0;
+     char seq[AS_READ_MAX_NORMAL_LEN];
+     char qlt[AS_READ_MAX_NORMAL_LEN];
 
-     for (AS_IID i = bounds.first; i <= bounds.second; i++) {
+     while (!feof(inFile)) {
         uint32 readSubID = 1;
+
+        AS_IID i;
+        vector<OverlapPos> mp;
+        map<AS_IID, SeqInterval> bclrs;
+
+        // read in a record 
+        uint32 count = 0;
+        fscanf(inFile, "LAY\t"F_IID"\t"F_U32"\n", &i, &count);  
+        for (uint32 iter = 0; iter < count; iter++) {
+           OverlapPos o;
+           SeqInterval bclr;
+           fscanf(inFile, "TLE\t"F_IID"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n", &o.ident, &o.position.bgn, &o.position.end, &bclr.bgn, &bclr.end);
+           mp.push_back(o);
+           bclrs[o.ident] = bclr;
+        }
+
         stringstream layout (stringstream::in | stringstream::out);
         layout << "{LAY\neid:" << i << "_" << readSubID << "\niid:" << readIID << "\n";
-        uint32 lastEnd = 0;        int32 offset = -1;
+        uint32 lastEnd = 0;
+        int32 offset = -1;
 
-        vector<IntMultiPos>* mp = waGlobal->correctedTilings[i];
-        if (mp == NULL) continue;
-        for (vector<IntMultiPos>::const_iterator iter = mp->begin(); iter != mp->end(); iter++) {
+        // process record
+        for (vector<OverlapPos>::const_iterator iter = mp.begin(); iter != mp.end(); iter++) {
            // skip reads over coverage
-           if (waGlobal->globalRepeats == TRUE && waGlobal->readRanking[iter->ident][i].first > waGlobal->covCutoff) {
+           if (waGlobal->globalRepeats == TRUE && (readRanking[iter->ident].find(i) == readRanking[iter->ident].end())) {
               //fprintf(stderr, "Skipping read %d to correct %d it was at cutoff %d true %d\n", iter->ident, i, waGlobal->readRanking[iter->ident][i].first, waGlobal->readRanking[iter->ident][i].second);
               continue;
-           } else if (waGlobal->globalRepeats == TRUE && waGlobal->readRanking[iter->ident][i].second > waGlobal->covCutoff) {
-              //fprintf(stderr, "Read %d to correct %d is at equal position %d but at true position %d", iter->ident, i, waGlobal->readRanking[iter->ident][i].first, waGlobal->readRanking[iter->ident][i].second);
-              int numInstances = (uint32) floor((double)waGlobal->readsToPrint[iter->ident] / waGlobal->covCutoff);
-              double randDouble = 0;
-              //drand48_r(&rstate, &randDouble);
-              int randVal = 1 + (int) (numInstances * (randDouble / (RAND_MAX + 1.0)));
-              //if (randVal != 1) { continue; }
-              //fprintf(stderr, "\n");
            }
            if (lastEnd != 0 && lastEnd < MIN(iter->position.bgn, iter->position.end)) {
               // close the layout and start a new one because we have a coverage gap
@@ -562,7 +643,9 @@ fprintf(stderr, "THe thread %d has tootput size of %d and partitiosn %d\n", wa->
            if (offset < 0) {
               offset = MIN(iter->position.bgn, iter->position.end);
            }
-           SeqInterval bClr = waGlobal->readBClrs[i]->find(iter->ident)->second; //waGlobal->readBClrs[i][iter->ident];
+           SeqInterval bClr;
+           bClr.bgn = 0;
+           bClr.end = waGlobal->frgToLen[iter->ident];
            uint32 min = MIN(iter->position.bgn, iter->position.end);
            uint32 max = MAX(iter->position.bgn, iter->position.end);
            uint32 length = max - min;
@@ -587,16 +670,30 @@ fprintf(stderr, "THe thread %d has tootput size of %d and partitiosn %d\n", wa->
      }
 
      fprintf(stderr, "Thread %d beginning output of %d reads\n", wa->id, readsToPrint.size());
-     for (map<uint32, uint32>::const_iterator iter = readsToPrint.begin(); iter != readsToPrint.end(); iter++) {
+     if (waGlobal->fixedMemory == TRUE) {
+        if (waGlobal->numThreads > 1) {
+           pthread_mutex_lock(&waGlobal->globalDataMutex);
+        }
+        loadSequence(waGlobal->gkp, readsToPrint, frgToEnc);
+        if (waGlobal->numThreads > 1) {
+           pthread_mutex_unlock(&waGlobal->globalDataMutex);
+        }
+     }
+     map<AS_IID, char*> *theFrgs = (waGlobal->fixedMemory == TRUE ? &frgToEnc : &waGlobal->frgToEnc);
+     for (map<AS_IID, uint8>::const_iterator iter = readsToPrint.begin(); iter != readsToPrint.end(); iter++) {
         if (iter->second == 0) {
            continue;
         }
-        string seq = waGlobal->frgToSeq[iter->first]; //seqCache[cacheRead].substr(clrL, clrR);
-        string qlt = waGlobal->frgToQlt[iter->first]; // qltCache[cacheRead].substr(clrL, clrR);
-
-        fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", 0, waGlobal->frgToLen[iter->first], iter->first, iter->first, qlt.c_str(), seq.c_str());
+        if ((*theFrgs)[iter->first] == 0) {
+           fprintf(stderr, "Error no ID for read %d\n",iter->first);
+        }
+        decodeSequenceQuality((*theFrgs)[iter->first], (char*) &seq, (char *) &qlt);
+        fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", 0, waGlobal->frgToLen[iter->first], iter->first, iter->first, qlt, seq);
      }
-
+     for (map<AS_IID, char*>::iterator iter = frgToEnc.begin(); iter != frgToEnc.end(); iter++) {
+        delete[] iter->second;
+     }
+     frgToEnc.clear();
      fclose(outFile);
   }
   fprintf(stderr, "Done output of thread %d\n", wa->id);
@@ -617,6 +714,7 @@ main (int argc, char * argv []) {
   thread_globals.repeatMultiplier  = 2.0;
   thread_globals.partitions        = 100;
   thread_globals.minLength         = 500;
+  thread_globals.fixedMemory       = FALSE;
   strcpy(thread_globals.prefix, "asm");
 
   argc = AS_configure(argc, argv);
@@ -633,6 +731,9 @@ main (int argc, char * argv []) {
       else
         err++;
 
+    } else if (strcmp(argv[arg], "-m") == 0) {
+       thread_globals.fixedMemory = (atoi(argv[++arg]) != 0 ? TRUE : FALSE);
+       
     } else if (strcmp(argv[arg], "-p") == 0) {
        thread_globals.partitions = atoi(argv[++arg]);
        if (thread_globals.partitions <= 0) { thread_globals.partitions = 1; }
@@ -718,7 +819,8 @@ main (int argc, char * argv []) {
     exit(1);
   }
 
-  // loop through all the pacBio reads
+  // set up global data structures
+  thread_globals.partitionStarts = new pair<AS_IID, AS_IID>[thread_globals.partitions];
   thread_globals.gkp = new gkStore(gkpStorePath, FALSE, FALSE, TRUE);
   uint32 i;
   uint32 *includeLib = new uint32[thread_globals.gkp->gkStore_getNumLibraries() + 1];
@@ -738,9 +840,9 @@ main (int argc, char * argv []) {
 
   // partition data
   thread_wa[0].globals = &thread_globals;
-  gkStream   *fs = new gkStream(thread_globals.gkp, 1, thread_globals.gkp->gkStore_getNumFragments(), GKFRAGMENT_QLT);//INF);
-  uint32 numFrags = loadFragments(fs, includeLib, thread_globals.frgToLen, thread_globals.frgToLib, thread_globals.frgToSeq, thread_globals.frgToQlt);
-  AS_IID lastFrag = partitionWork(numFrags, thread_globals.frgToLib, thread_globals.numThreads, thread_wa);
+  gkStream    *fs = new gkStream(thread_globals.gkp, 1, thread_globals.gkp->gkStore_getNumFragments(), GKFRAGMENT_INF);
+  uint32 numFrags = loadFragments(fs, includeLib, thread_globals.frgToLen, thread_globals.frgToLib);
+  AS_IID firstFrag = partitionWork(numFrags, thread_globals.frgToLib, thread_globals.numThreads, thread_globals.partitions, thread_globals.perFile, thread_wa);
   delete fs;
 
   // create parallel threads 
@@ -775,6 +877,18 @@ main (int argc, char * argv []) {
    // filter repeat reads out 
    fprintf(stderr, "Filtering repeats\n");
 
+   // create files to partition the scores
+   FILE **partitionedScores = new FILE*[thread_globals.partitions];
+   char outputName[FILENAME_MAX] = {0};
+   for (int i = 0; i < thread_globals.partitions; i++) {
+      sprintf(outputName, "%s.%d.rank", thread_globals.prefix, i+1);
+      errno = 0;
+fprintf(stderr, "Trying to open file %d named %s\n", i+1, outputName);
+      partitionedScores[i] = fopen(outputName, "w");
+      if (errno) {
+         fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
+      }
+   }
    if (thread_globals.globalRepeats == TRUE) {
       // compute global coverage of the reads we're correcting
       // the number of mappings each high-identity read has should be equal to the coverage of our data we're correcting, except for repeats
@@ -786,23 +900,13 @@ main (int argc, char * argv []) {
       memset(covHist, 0, (MAX_COV + 1) * sizeof(uint32));
       double prevScore = 0;
 
-      for (map<uint32, uint32>::const_iterator iter = thread_globals.readsToPrint.begin(); iter != thread_globals.readsToPrint.end(); iter++) {
-         if (iter->second > 0) {
+      for (map<AS_IID, uint8>::const_iterator iter = thread_globals.readsToPrint.begin(); iter != thread_globals.readsToPrint.end(); iter++) {
+         if (iter->second != 0) {
              N++;
              double delta = iter->second - mean;
              mean += delta / N;
 
              covHist[MIN(MAX_COV, iter->second)]++;
-
-             uint8 position = 0;
-             uint8 positionAbsolute = 0;
-             // also build the map for this read of its ranking of corrected reads
-             for (multimap<uint64, AS_IID>::const_iterator rank = thread_globals.readsToBestMatches[iter->first].begin(); rank != thread_globals.readsToBestMatches[iter->first].end(); rank++) {
-                position = (position == MAX_COV ? MAX_COV : (prevScore == rank->first ? position : position+1));
-                positionAbsolute = (positionAbsolute == MAX_COV ? MAX_COV : positionAbsolute+1);
-                thread_globals.readRanking[iter->first][rank->second] = pair<uint8, uint8>(position, positionAbsolute);
-                prevScore = rank->first;
-             }   
          }
       }
       double prevRatio = 0;
@@ -816,10 +920,98 @@ main (int argc, char * argv []) {
          runningTotal += covHist[iter];
        }
        if (thread_globals.covCutoff == 0) thread_globals.covCutoff = MAX_COV;
-       thread_globals.readsToBestMatches.clear();
        delete[] covHist;
        fprintf(stderr, "Picking cutoff as %d mean would be %f\n", thread_globals.covCutoff, mean * 2.0);
+
+       // now that we have a cutoff, stream the store and record which pacbio sequences the high-identity sequences should correct
+       OverlapStore *ovs = AS_OVS_openOverlapStore(thread_globals.ovlStoreUniqPath);
+       uint64 olapCount = 0;
+       uint64 ovlPosition = 0;
+       OVSoverlap *olaps = NULL;
+
+       for (map<uint32, uint8>::const_iterator iter = thread_globals.readsToPrint.begin(); iter != thread_globals.readsToPrint.end(); iter++) {
+         if (iter->second == 0) {
+            continue;
+         }
+
+         while (olaps != NULL && ovlPosition < olapCount && olaps[ovlPosition].a_iid < iter->first) {
+            ovlPosition++;
+         }
+
+         if (ovlPosition >= olapCount) {
+            delete[] olaps;
+
+            AS_OVS_setRangeOverlapStore(ovs, iter->first,thread_globals.readsToPrint.rbegin()->first);
+            olapCount = MIN(thread_globals.numThreads*MAX_TO_READ, AS_OVS_numOverlapsInRange(ovs));
+            olaps = new OVSoverlap[olapCount];
+            uint64 read = 0;
+            uint64 last = olapCount;
+            while (read < olapCount && last > 0) {
+               if (AS_OVS_readOverlapsFromStore(ovs, NULL, 0, AS_OVS_TYPE_ANY) <= olapCount - read) {
+                  last = AS_OVS_readOverlapsFromStore(ovs, olaps+read, olapCount-read, AS_OVS_TYPE_ANY);
+                  read+= last;
+               } else {
+                  break;
+               }
+            }
+            olapCount = read;
+            ovlPosition = 0;
+
+            fprintf(stderr, "Loaded %d overlaps\n", olapCount);
+         }
+
+         // build a sorted by score map of all mapping an illumina sequence has
+         multimap<uint64, AS_IID> scoreToReads;
+         uint32 alen = thread_globals.frgToLen[iter->first];
+         for (uint64 rank = ovlPosition; rank < olapCount; rank++, ovlPosition++) {
+            if (olaps[ovlPosition].a_iid > iter->first) {
+               break;
+            }
+            uint32 blen = thread_globals.frgToLen[olaps[rank].b_iid];
+            uint64 currScore = scoreOverlap(olaps[rank], alen, blen, thread_globals.erate, thread_globals.elimit, thread_globals.maxErate);
+            scoreToReads.insert(pair<uint64, AS_IID>(currScore, olaps[rank].b_iid));
+         }
+
+         // now keep only the best cuttoff of those and store them for easy access
+         uint64 lastScore = 0;
+         uint8 position = 0;
+         set<AS_IID> readRanking;
+         for (multimap<uint64, AS_IID>::reverse_iterator rank = scoreToReads.rbegin(); rank != scoreToReads.rend(); rank++) {
+            if (readRanking.find(rank->second) != readRanking.end()) {
+               continue;  // only record each pac bio read at most once
+            }
+            position = (position == MAX_COV ? MAX_COV : (lastScore == rank->first ? position+1 : position+1));
+            if (position > thread_globals.covCutoff) {
+               break;
+            }
+            readRanking.insert(rank->second);
+            lastScore = rank->first;
+          }
+
+          // output the score to the appropriate partition
+          for (set<AS_IID>::iterator j = readRanking.begin(); j != readRanking.end(); j++) {
+             uint32 mpLow = MAX(0, (uint32) ceil((double)((*j)-firstFrag+1) / thread_globals.perFile)-1); 
+             uint32 mpHigh = MAX(0, (uint32) floor((double)((*j)-firstFrag+1) / thread_globals.perFile)-1);
+             if (thread_globals.partitionStarts[mpLow].first <= (*j) && thread_globals.partitionStarts[mpLow].second > (*j)) {
+                fprintf(partitionedScores[mpLow], F_IID"\t"F_IID"\n", iter->first, (*j));
+             } else if (thread_globals.partitionStarts[mpHigh].first <= (*j) && thread_globals.partitionStarts[mpHigh].second > (*j)) {
+                fprintf(partitionedScores[mpHigh], F_IID"\t"F_IID"\n", iter->first, (*j));
+             } else {
+                fprintf(stderr, "ERROR: Could not find appropriate partition for %d though it was either %d or %d but it was neither\n", (*j), mpLow, mpHigh); exit(1);
+             }
+          }
+       }
+       delete[] olaps;
+       AS_OVS_closeOverlapStore(ovs);
+       if (thread_globals.fixedMemory == FALSE) {
+          loadSequence(thread_globals.gkp, thread_globals.readsToPrint, thread_globals.frgToEnc);
+       }
+       thread_globals.readsToPrint.clear();
     }
+    for (int i = 0; i < thread_globals.partitions; i++) {
+      fclose(partitionedScores[i]);
+    }
+    delete[] partitionedScores;
 
     // output our tiling
     delete[] thread_wa;
@@ -828,17 +1020,10 @@ main (int argc, char * argv []) {
     thread_id = new pthread_t[thread_globals.numThreads];
     thread_wa[0].globals = &thread_globals;
     thread_wa[0].id = 0;
+    thread_globals.readsToPrint.clear();
 
-    fprintf(stderr, "Processing a total of %d tilings\n", thread_globals.correctedTilings.size());
-    AS_IID lastEnd = thread_globals.correctedTilings.begin()->first;
-    uint32 perThread = (uint32) floor((double)(lastFrag - lastEnd + 1) / thread_globals.partitions);
     for  (uint32 i = 0;  i < thread_globals.partitions; i++ ) {
-       pair<AS_IID, AS_IID> bounds;
-       bounds.first = lastEnd;
-       bounds.second = lastEnd + perThread - 1;
-       if (i == thread_globals.partitions - 1) bounds.second = lastFrag;
-       thread_globals.toOutput.push(bounds);
-       lastEnd+=perThread;
+       thread_globals.toOutput.push(pair<AS_IID, AS_IID>(i+1, i+1));
     }
     for  (i = 1;  i < thread_globals.numThreads ;  i ++) {
        thread_wa[i].globals = &thread_globals;
@@ -864,12 +1049,11 @@ main (int argc, char * argv []) {
       pthread_mutex_destroy (& thread_globals.gkpMutex);
       pthread_mutex_destroy (& thread_globals.countMutex);
    }
-
-   for (map<AS_IID, vector<IntMultiPos>* >::iterator i = thread_globals.correctedTilings.begin(); i != thread_globals.correctedTilings.end(); i++) {
-     delete thread_globals.correctedTilings[i->first];
-     delete thread_globals.readBClrs[i->first];
+   for (map<AS_IID, char*>::iterator iter = thread_globals.frgToEnc.begin(); iter != thread_globals.frgToEnc.end(); iter++) {
+      delete[] iter->second;
    }
-
+   thread_globals.frgToEnc.clear();
+   delete[] thread_globals.partitionStarts;
    delete[] includeLib;
    delete[] thread_id;
    delete[] thread_wa;
