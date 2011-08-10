@@ -2689,10 +2689,12 @@ sub merTrim {
         print F "fi\n";
         print F "\n";
 
-        print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
-        print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
-        print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
-        print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+        print F "AS_OVL_ERROR_RATE=" , getGlobal("ovlErrorRate"), "\n";
+        print F "AS_CNS_ERROR_RATE=" , getGlobal("cnsErrorRate"), "\n";
+        print F "AS_CGW_ERROR_RATE=" , getGlobal("cgwErrorRate"), "\n";
+        print F "AS_OVERLAP_MIN_LEN=", getGlobal("ovlMinLen"),    "\n";
+        print F "AS_READ_MIN_LEN="   , getGlobal("frgMinLen"),    "\n";
+        print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE AS_OVERLAP_MIN_LEN AS_READ_MIN_LEN\n";
 
         print F getBinDirectoryShellCode();
 
@@ -3285,10 +3287,12 @@ sub createOverlapJobs($) {
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
-    print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
-    print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
-    print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
-    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+    print F "AS_OVL_ERROR_RATE=" , getGlobal("ovlErrorRate"), "\n";
+    print F "AS_CNS_ERROR_RATE=" , getGlobal("cnsErrorRate"), "\n";
+    print F "AS_CGW_ERROR_RATE=" , getGlobal("cgwErrorRate"), "\n";
+    print F "AS_OVERLAP_MIN_LEN=", getGlobal("ovlMinLen"),    "\n";
+    print F "AS_READ_MIN_LEN="   , getGlobal("frgMinLen"),    "\n";
+    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE AS_OVERLAP_MIN_LEN AS_READ_MIN_LEN\n";
 
     print F getBinDirectoryShellCode();
 
