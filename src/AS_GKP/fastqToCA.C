@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.16 2011-07-25 20:00:47 mkotelbajcvi Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.17 2011-08-10 12:10:58 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -270,18 +270,18 @@ main(int argc, char **argv) {
   } else if (strcasecmp(technology, "pacbio") == 0) {
      gkl.doConsensusCorrection	 = 1;
      
-     gkl.doTrim_initialNone         = 0;
+     gkl.doTrim_initialNone         = 1;
      gkl.doTrim_initialMerBased     = 0;
      gkl.doTrim_initialFlowBased    = 0;
-     gkl.doTrim_initialQualityBased = 1;
+     gkl.doTrim_initialQualityBased = 0;
 
      gkl.doRemoveDuplicateReads     = 0;
 
-     gkl.doTrim_finalLargestCovered = 1;
+     gkl.doTrim_finalLargestCovered = 0;
      gkl.doTrim_finalEvidenceBased  = 0;
 
-     gkl.doRemoveSpurReads          = 1;
-     gkl.doRemoveChimericReads      = 1;
+     gkl.doRemoveSpurReads          = 0;
+     gkl.doRemoveChimericReads      = 0;
   }
 
   gkl.forceBOGunitigger          = 1;
