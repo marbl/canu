@@ -9,8 +9,9 @@ void
 cmGlobalData::doSearchRFS(cmComputation *c,
                           cmThreadData  *t) {
 
-  t->pathPos = 0;
-  t->pathAdd = 0;
+  t->pathPos    = 0;
+  t->pathAdd    = 0;
+  t->searchIter = 0;
 
   if (t->path == NULL) {
     t->pathMax = distMax;  //  Can never have more than one overlap per base if distance
@@ -67,6 +68,7 @@ cmGlobalData::doSearchRFS(cmComputation *c,
 
       if (t->pathPos < t->pathMax) {
         t->pathPos++;
+        t->searchIter++;
 
         t->path[t->pathPos].pIID = niid;
         t->path[t->pathPos].p5p3 = n5p3;

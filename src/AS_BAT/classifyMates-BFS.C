@@ -15,8 +15,9 @@ cmGlobalData::doSearchBFS(cmComputation *c,
   //  memory.  We don't try to do anything fancy like round-robin.  Once we full up the list,
   //  we're done.
 
-  t->pathPos = 0;
-  t->pathAdd = 0;
+  t->pathPos    = 0;
+  t->pathAdd    = 0;
+  t->searchIter = 0;
 
   if (t->path == NULL) {
     t->pathMax = nodesMax;
@@ -100,6 +101,7 @@ cmGlobalData::doSearchBFS(cmComputation *c,
       t->path[t->pathAdd].oLst = bbPos[niid];
 
       t->pathAdd++;
+      t->searchIter++;
     }
   }
 

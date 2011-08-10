@@ -17,11 +17,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.17 2011-06-23 08:19:34 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.18 2011-08-10 12:11:59 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
+
+#include <math.h>
 
 #include <set>
 #include <map>
@@ -70,7 +72,7 @@ public:
 
 
 #include "classifyMates-saveDistance.C"
-
+#include "classifyMates-runningTime.C"
 
 class searchNode {
 public:
@@ -88,14 +90,16 @@ public:
 class cmThreadData {
 public:
   cmThreadData() {
-    pathPos = 0;
-    pathAdd = 0;
-    pathMax = 0;
-    path    = NULL;
+    pathPos    = 0;
+    pathAdd    = 0;
+    pathMax    = 0;
+    path       = NULL;
 
-    extMax = 1048576;
-    extLen = 0;
-    ext    = new uint32 [extMax];
+    searchIter = 0;
+
+    extMax     = 1048576;
+    extLen     = 0;
+    ext        = new uint32 [extMax];
   };
   ~cmThreadData() {
     delete [] path;
@@ -109,6 +113,8 @@ public:
   uint32         pathAdd;  //  Next free spot to add a fragment in BFS
   uint32         pathMax;  //  Number of nodes we have allocated.
   searchNode    *path;
+
+  uint32         searchIter;
   
   //  Use in RFS, list of edges out of a node
   uint32         extLen;
@@ -133,7 +139,7 @@ public:
     sFound     = false;
     sLimited   = false;
     sExhausted = false;
-    sPos       = 0;
+    sIter      = 0;
     sLen       = 0;
   };
   ~cmComputation() {
@@ -149,7 +155,7 @@ public:
   bool           sFound;      //  Did we find an answer?
   bool           sLimited;    //  Search stopped due to CPU limits.
   bool           sExhausted;  //  Search stopped due to no more overlaps.
-  uint32         sPos;        //  If answer, the position we found it at.
+  uint32         sIter;       //  If answer, the iteration the search stopped at.
   uint32         sLen;        //  If answer, the length of the path in bp.
 };
 
@@ -298,6 +304,8 @@ public:
   uint32            oiStorageLen;  //  Actual number of blocks allocated.
   overlapInfo     **oiStorageArr;  //  List of allocated blocks.
   overlapInfo      *oiStorage;     //  The current block -- doesn't need to be in the class.
+
+  onlineMeanStdDev  runTime;
 };
 
 
@@ -522,7 +530,7 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
 
 
       //  Overlaps from a search A-fragment to a backbone B-fragment must always be kept.  These are
-      //  used to initiating the search.
+      //  used to initiate the search.
       //
       if ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true))
         ovlBB[i] = true;
@@ -557,7 +565,7 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
       }
 
       //  Save or discard the overlap.  We are allowed to save the overlap twice, once as a backbone
-      //  overlap and once as a termination overlap.
+      //  overlap and once as an initiation/termination overlap.
 
       if ((ovlBB[i] == false) && (ovlTG[i] == false))
         ovl[i].a_iid = 0;
@@ -754,7 +762,7 @@ cmGlobalData::testSearch(cmComputation              *c,
     return(false);
 
   c->sFound = true;
-  c->sPos = t->pathPos + 1;
+  c->sIter  = t->searchIter;
   c->sLen   = nlen;
 
   return(true);
@@ -783,7 +791,7 @@ cmGlobalData::testSearch(cmComputation  *c,
     if ((nlen >= distMin) &&
         (nlen <= distMax)) {
       c->sFound = true;
-      c->sPos = t->pathPos + 1;
+      c->sIter  = t->searchIter;
       c->sLen   = nlen;
 
       return(true);
@@ -851,10 +859,10 @@ cmWriter(void *G, void *S) {
   cmComputation   *c = (cmComputation *)S;
 
   if (c->sFound == true)
-    fprintf(g->resultsFile, "Path from %d/%s to %d/%s found at depth %d of length %d.\n",
+    fprintf(g->resultsFile, "Path from %d/%s to %d/%s found at iter %d of length %d.\n",
             c->fragIID, (c->frag5p3 == true) ? "5'3'" : "3'5'", 
             c->mateIID, (c->mate5p3 == true) ? "5'3'" : "3'5'",
-            c->sPos,
+            c->sIter,
             c->sLen);
   else
     fprintf(g->resultsFile, "Path from %d/%s NOT FOUND (%s).\n",
@@ -862,7 +870,36 @@ cmWriter(void *G, void *S) {
             (c->frag5p3 == true) ? "5'3'" : "3'5'",
             (c->sLimited) ? "limited" : "exhausted");
 
+  g->runTime.addDataPoint(c->sIter);
+
   delete c;
+
+  if (g->runTime.numData() < 1000)
+    //  Not enough data to recompute statistics
+    return;
+
+
+  if ((g->runTime.numData() % 10000) != 0)
+    //  Too soon to recompute statistics
+    return;
+
+  g->runTime.recompute();
+
+  uint32  ci = 0;
+
+  if (g->nodesMax > 0)  ci = g->nodesMax;
+  if (g->depthMax > 0)  ci = g->depthMax;
+  if (g->pathsMax > 0)  ci = g->pathsMax;
+
+  //  If this stuff is normally distributed, 4 stddev will include 99.993666% of the data points.
+  uint32  ni = (ci + g->runTime.mean() + 4 * g->runTime.stddev()) / 2;
+
+  fprintf(stderr, "\nRUNTIME: %f +- %f  min/max %u/%u  RESET iteration limit to %u\n",
+          g->runTime.mean(), g->runTime.stddev(), g->runTime.min(), g->runTime.max(), ni);
+
+  if (g->nodesMax > 0)  g->nodesMax = ni;
+  if (g->depthMax > 0)  g->depthMax = ni;
+  if (g->pathsMax > 0)  g->pathsMax = ni;
 }
 
 

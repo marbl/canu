@@ -10,8 +10,9 @@ cmGlobalData::doSearchDFS(cmComputation *c,
   set<uint32>  visited5p3;
   set<uint32>  visited3p5;
 
-  t->pathPos = 0;
-  t->pathAdd = 0;
+  t->pathPos    = 0;
+  t->pathAdd    = 0;
+  t->searchIter = 0;
 
   //  +3 because:
   //  [0] is unused -- it's our termination condition
@@ -66,6 +67,7 @@ cmGlobalData::doSearchDFS(cmComputation *c,
       //  Went forwards.  Save the extension, unless that would put us over the depth limit.
 
       t->pathPos++;
+      t->searchIter++;
 
       t->path[t->pathPos].pIID  = niid;
       t->path[t->pathPos].p5p3  = n5p3;
