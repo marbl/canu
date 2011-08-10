@@ -155,29 +155,41 @@ if ($mean > 0) {
 print "src:\n";
 print "$srcstr\n";
 print ".\n";
-print "nft:7\n";
-print "fea:\n";
 if ($is454) {
+    print "nft:7\n";
+    print "fea:\n";
     print "forceBOGunitigger=1\n";
     print "doNotTrustHomopolymerRuns=1\n";
     print "doRemoveDuplicateReads=1\n";
     print "doNotQVTrim=1\n";
     print "goodBadQVThreshold=1\n";
+    print "doNotOverlapTrim=$noOBT\n";
 } elsif ($isPacBio) {
+    print "nft:13\n";
+    print "fea:\n";
     print "forceBOGunitigger=1\n";
     print "doNotTrustHomopolymerRuns=0\n";
-    print "doRemoveDuplicateReads=0\n";
-    print "doNotQVTrim=1\n";
-    print "goodBadQVThreshold=1\n";
+    print "doTrim_initialNone=0\n";
+    print "doTrim_initialMerBased=0\n";
+    print "doTrim_initialFlowBased=1\n";
+    print "doTrim_initialQualityBased=0\n";
+    print "doRemoveDuplicateReads=1\n";
+    print "doTrim_finalLargestCovered=1\n";
+    print "doTrim_finalEvidenceBased=0\n";
+    print "doRemoveSpurReads=1\n";
+    print "doRemoveChimericReads=1\n";
+    print "doConsensusCorrection=0\n";
 }
 else {
+    print "nft:7\n";
+    print "fea:\n";
     print "forceBOGunitigger=0\n";
     print "doNotTrustHomopolymerRuns=0\n";
     print "discardReadsWithNs=0\n";
     print "doNotQVTrim=0\n";
     print "deletePerfectPrefixes=0\n";
+    print "doNotOverlapTrim=$noOBT\n";
 }
-print "doNotOverlapTrim=$noOBT\n";
 print "isNotRandom=0\n";
 print ".\n";
 print "}\n";
