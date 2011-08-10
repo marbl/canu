@@ -19,21 +19,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: FileUtils.C,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: FileUtils.C,v 1.3 2011-08-10 20:25:15 mkotelbajcvi Exp $";
 
 #include "FileUtils.h"
 
-const char* FileUtils::getPath(size num, ...)
+const char* FileUtils::getPath(size_t num, ...)
 {
-	va_list argsList;
-	va_start(argsList, num);
+	initArgs(num);
 	
-	return getPath(num, VarUtils::getArgs(num, new const char*[num], argsList));
+	return getPath(num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-const char* FileUtils::getPath(size num, const char** pathParts)
+const char* FileUtils::getPath(size_t num, const char** pathParts)
 {
-	for (size a = 0; a < num; a++)
+	for (size_t a = 0; a < num; a++)
 	{
 		if (a != 0)
 		{

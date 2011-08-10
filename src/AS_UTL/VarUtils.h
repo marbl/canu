@@ -22,7 +22,7 @@
 #ifndef VARUTILS_H
 #define VARUTILS_H
 
-static const char* rcsid_VARUTILS_H = "$Id: VarUtils.h,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid_VARUTILS_H = "$Id: VarUtils.h,v 1.3 2011-08-10 20:25:15 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -32,15 +32,20 @@ using namespace std;
 
 #include "AS_global.h"
 
+#define initArgs(lastStaticArg) \
+	va_list argsList; \
+	va_start(argsList, lastStaticArg)
+
 class VarUtils
 {
 public:
 	template<class T>
-	inline static T* getArgs(size num, T* args, va_list& argsList)
+	inline static T* getArgs(size_t num, va_list& argsList)
 	{
+		T* args = new T[num];
 		T arg;
 		
-		for (size a = 0; (a < num) && ((arg = va_arg(argsList, T)) != NULL); a++)
+		for (size_t a = 0; (a < num) && ((arg = va_arg(argsList, T)) != NULL); a++)
 		{
 			args[a] = arg;
 		}

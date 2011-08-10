@@ -22,7 +22,7 @@
 #ifndef EXCEPTIONUTILS_H
 #define EXCEPTIONUTILS_H
 
-static const char* rcsid_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.3 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.4 2011-08-10 20:25:15 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,8 +31,6 @@ static const char* rcsid_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.3 2011-08
 #include <string>
 
 using namespace std;
-
-#include "AS_global.h"
 
 #if defined(__GLIBC__)
 
@@ -50,14 +48,14 @@ static  char **backtrace_symbols(void *const *buffer, int size) { return(NULL); 
 
 typedef struct
 {
-	size depth;
+	size_t depth;
 	char** lines;
 } StackTrace;
 
 class ExceptionUtils
 {
 public:
-	static StackTrace& getStackTrace(const char* caller = DEFAULT_STACK_TRACE_CALLER, size depth = DEFAULT_STACK_TRACE_DEPTH);
+	static StackTrace& getStackTrace(const char* caller = DEFAULT_STACK_TRACE_CALLER, size_t depth = DEFAULT_STACK_TRACE_DEPTH);
 };
 
 #endif

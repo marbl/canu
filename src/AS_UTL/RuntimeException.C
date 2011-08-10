@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: RuntimeException.C,v 1.3 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: RuntimeException.C,v 1.4 2011-08-10 20:25:15 mkotelbajcvi Exp $";
 
 #include "RuntimeException.h"
 
@@ -50,7 +50,7 @@ const char* RuntimeException::toString(unsigned depth) const throw()
 		
 		if (this->stackTrace != NULL)
 		{
-			for (size a = 0; a < this->stackTrace->depth; a++)
+			for (size_t a = 0; a < this->stackTrace->depth; a++)
 			{
 				str += "\n\t";
 				str += this->stackTrace->lines[a];

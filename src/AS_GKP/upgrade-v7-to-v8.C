@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.8 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.9 2011-08-10 20:25:14 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -156,7 +156,7 @@ void processInfoStore(char* oldInfoStorePath, char* infoStorePath)
 
 void processLibStore(map<AS_IID, const char*>& idMap, StoreStruct& oldLibStore, StoreStruct& libStore)
 {
-	size oldLibSize = sizeof(gkLibraryOld);
+	size_t oldLibSize = sizeof(gkLibraryOld);
 	
 	for (map<AS_IID, const char*>::iterator iterator = idMap.begin(); iterator != idMap.end(); iterator++)
 	{

@@ -22,7 +22,7 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
-static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.3 2011-08-10 20:25:15 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -38,8 +38,8 @@ using namespace std;
 class FileUtils
 {
 public:
-	static const char* getPath(size num, ...);
-	static const char* getPath(size num, const char** pathParts);
+	static const char* getPath(size_t num, ...);
+	static const char* getPath(size_t num, const char** pathParts);
 };
 
 #endif

@@ -19,27 +19,26 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: StringUtils.C,v 1.7 2011-08-04 19:10:59 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: StringUtils.C,v 1.8 2011-08-10 20:25:15 mkotelbajcvi Exp $";
 
 #include "StringUtils.h"
 
-vector<int> StringUtils::findAll(const char* str, size num, ...)
+vector<size_t> StringUtils::findAll(const char* str, size_t num, ...)
 {
-	va_list argsList;
-	va_start(argsList, num);
+	initArgs(num);
 	
-	return findAll(str, num, VarUtils::getArgs(num, new const char*[num], argsList));
+	return findAll(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-vector<int> StringUtils::findAll(const char* str, size num, const char** toFind)
+vector<size_t> StringUtils::findAll(const char* str, size_t num, const char** toFind)
 {
 	string strObj(str);
-	vector<int> found;
+	vector<size_t> found;
 	
-	for (size a = 0; a < num; a++)
+	for (size_t a = 0; a < num; a++)
 	{
 		const char* toFindItem = toFind[a];
-		size index = string::npos;
+		size_t index = string::npos;
 		
 		do
 		{
@@ -57,19 +56,18 @@ vector<int> StringUtils::findAll(const char* str, size num, const char** toFind)
 	return found;
 }
 
-bool StringUtils::startsWith(const char* str, size num, ...)
+bool StringUtils::startsWith(const char* str, size_t num, ...)
 {
-	va_list argsList;
-	va_start(argsList, num);
+	initArgs(num);
 	
-	return startsWith(str, num, VarUtils::getArgs(num, new const char*[num], argsList));
+	return startsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-bool StringUtils::startsWith(const char* str, size num, const char** toTest)
+bool StringUtils::startsWith(const char* str, size_t num, const char** toTest)
 {
 	string strObj(str);
 	
-	for (size a = 0; a < num; a++)
+	for (size_t a = 0; a < num; a++)
 	{
 		string toTestObj(toTest[a]);
 		
@@ -82,19 +80,18 @@ bool StringUtils::startsWith(const char* str, size num, const char** toTest)
 	return FALSE;
 }
 
-bool StringUtils::endsWith(const char* str, size num, ...)
+bool StringUtils::endsWith(const char* str, size_t num, ...)
 {
-	va_list argsList;
-	va_start(argsList, num);
+	initArgs(num);
 	
-	return endsWith(str, num, VarUtils::getArgs(num, new const char*[num], argsList));
+	return endsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-bool StringUtils::endsWith(const char* str, size num, const char** toTest)
+bool StringUtils::endsWith(const char* str, size_t num, const char** toTest)
 {
 	string strObj(str);
 	
-	for (size a = 0; a < num; a++)
+	for (size_t a = 0; a < num; a++)
 	{
 		string toTestObj(toTest[a]);
 		
@@ -107,84 +104,39 @@ bool StringUtils::endsWith(const char* str, size num, const char** toTest)
 	return FALSE;
 }
 
-const char* StringUtils::concat(size num, ...)
+const char* StringUtils::trim(const char* str, size_t num, ...)
 {
-	va_list argsList;
-	va_start(argsList, num);
+	initArgs(num);
 	
-	string str;
-	const char** items = VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char**)), argsList);
-	
-	for (size a = 0; a < num; a++)
-	{
-		str += items[a];
-	}
-	
-	return toString(str);
+	return trim(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-const char* StringUtils::join(const char* delimiter, size num, ...)
-{
-	va_list argsList;
-	va_start(argsList, num);
-	
-	return join(delimiter, num, VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
-}
-
-const char* StringUtils::join(const char* delimiter, size num, const char** toJoin)
-{
-	string str;
-	
-	for (size a = 0; a < num; a++)
-	{
-		if (!str.empty())
-		{
-			str += delimiter;
-		}
-		
-		str += toJoin[a];
-	}
-	
-	return toString(str);
-}
-
-const char* StringUtils::trim(const char* str, size num, ...)
-{
-	va_list argsList;
-	va_start(argsList, num);
-	
-	return trim(str, num, VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
-}
-
-const char* StringUtils::trim(const char* str, size num, const char** toTrim)
+const char* StringUtils::trim(const char* str, size_t num, const char** toTrim)
 {
 	return trimEnd(trimStart(str, num, toTrim), num, toTrim);
 }
 
-const char* StringUtils::trimStart(const char* str, size num, ...)
+const char* StringUtils::trimStart(const char* str, size_t num, ...)
 {	
-	va_list argsList;
-	va_start(argsList, num);
+	initArgs(num);
 	
-	return trimStart(str, num, VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
+	return trimStart(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-const char* StringUtils::trimStart(const char* str, size num, const char** toTrim)
+const char* StringUtils::trimStart(const char* str, size_t num, const char** toTrim)
 {
 	if (!isEmpty(str))
 	{
 		string strObj(str);
 		
-		for (size a = 0; a < num; a++)
+		for (size_t a = 0; a < num; a++)
 		{
-			const char* toTrimItem = toTrim[a];
+			string toTrimItem(toTrim[a]);
 			
-			size toTrimItemLength = strlen(toTrimItem);
-			
-			while ((strObj.length() >= toTrimItemLength) && 
-					areEqual(strObj.substr(0, toTrimItemLength).c_str(), toTrimItem))
+			while ((strObj.length() >= toTrimItem.length()) && 
+					(strObj.substr(0, toTrimItem.length()) == toTrimItem))
 			{
-				strObj = strObj.erase(0, toTrimItemLength);
+				strObj.erase(0, toTrimItem.length());
 			}
 		}
 		
@@ -194,30 +146,27 @@ const char* StringUtils::trimStart(const char* str, size num, const char** toTri
 	return NULL;
 }
 
-const char* StringUtils::trimEnd(const char* str, size num, ...)
+const char* StringUtils::trimEnd(const char* str, size_t num, ...)
 {
-	va_list argsList;
-	va_start(argsList, num);
+	initArgs(num);
 	
-	return trimEnd(str, num, VarUtils::getArgs(num, (const char**)safe_calloc(num, sizeof(const char*)), argsList));
+	return trimEnd(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-const char* StringUtils::trimEnd(const char* str, size num, const char** toTrim)
+const char* StringUtils::trimEnd(const char* str, size_t num, const char** toTrim)
 {
 	if (!isEmpty(str))
 	{
 		string strObj(str);
 		
-		for (size a = 0; a < num; a++)
+		for (size_t a = 0; a < num; a++)
 		{
-			const char* toTrimItem = toTrim[a];
+			string toTrimItem(toTrim[a]);
 			
-			size toTrimItemLength = strlen(toTrimItem);
-			
-			while ((strObj.length() >= toTrimItemLength) && 
-					areEqual((char*)strObj.substr(strObj.length() - toTrimItemLength, toTrimItemLength).c_str(), toTrimItem))
+			while ((strObj.length() >= toTrimItem.length()) && 
+					(strObj.substr(strObj.length() - toTrimItem.length(), toTrimItem.length()) == toTrimItem))
 			{
-				strObj = strObj.erase(strObj.length() - toTrimItemLength);
+				strObj = strObj.erase(strObj.length() - toTrimItem.length());
 			}
 		}
 		

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: testStringUtils.C,v 1.7 2011-08-04 19:10:59 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: testStringUtils.C,v 1.8 2011-08-10 20:25:15 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,12 +36,9 @@ using namespace std;
 
 void testFindAll()
 {
-	vector<int> found = StringUtils::findAll("|test1|test2|test3|", 1, "test");
+	size_t indexes[3] = { 1, 7, 13 };
 	
-	for (size a = 0; a < found.size(); a++)
-	{
-		printf("%i\n", found[a]);
-	}
+	Assert::assertTrue(StringUtils::findAll("|test1|test2|test3|", 1, "test") == vector<size_t>(indexes, indexes + 3), "find all failed");
 }
 
 void testIsBlankBlankString()

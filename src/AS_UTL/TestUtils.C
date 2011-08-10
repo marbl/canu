@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: TestUtils.C,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: TestUtils.C,v 1.3 2011-08-10 20:25:15 mkotelbajcvi Exp $";
 
 #include "TestUtils.h"
 
@@ -27,7 +27,7 @@ void TestUtils::runTests(vector<TestFunction>& tests)
 {
 	unsigned successful = 0, errors = 0;
 	
-	for (size a = 0; a < tests.size(); a++)
+	for (size_t a = 0; a < tests.size(); a++)
 	{
 		try
 		{

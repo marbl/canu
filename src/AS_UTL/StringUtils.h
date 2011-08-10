@@ -22,7 +22,7 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.8 2011-08-04 19:10:59 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.9 2011-08-10 20:25:15 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,14 +41,11 @@ using namespace std;
 class StringUtils
 {
 public:
-	static vector<int> findAll(const char* str, size num, ...);
-	static vector<int> findAll(const char* str, size num, const char** toFind);
-	
 	inline static bool isBlank(const char* str)
 	{
 		if (!isEmpty(str))
 		{
-			for (size a = 0; a < strlen(str); a++)
+			for (size_t a = 0; a < strlen(str); a++)
 			{
 				if (!isspace(str[a]))
 				{
@@ -74,23 +71,42 @@ public:
 	{
 		return (str1 == NULL) ? str2 == NULL : (str2 != NULL) && (strcmp(str1, str2) == 0);
 	}
-	
-	static bool startsWith(const char* str, size num, ...);
-	static bool startsWith(const char* str, size num, const char** toTest);
-	static bool endsWith(const char* str, size num, ...);
-	static bool endsWith(const char* str, size num, const char** toTest);
 
-	static const char* concat(size num, ...);
+	inline static const char* concat(size_t num, ...)
+	{
+		initArgs(num);
+		
+		return concat(num, VarUtils::getArgs<const char*>(num, argsList));
+	}
+
+	inline static const char* concat(size_t num, const char** toConcat)
+	{
+		return join(NULL, num, toConcat);
+	}
 	
-	static const char* join(const char* delimiter, size num, ...);
-	static const char* join(const char* delimiter, size num, const char** toJoin);
-	
-	static const char* trim(const char* str, size num, ...);
-	static const char* trim(const char* str, size num, const char** toTrim);
-	static const char* trimStart(const char* str, size num, ...);
-	static const char* trimStart(const char* str, size num, const char** toTrim);
-	static const char* trimEnd(const char* str, size num, ...);
-	static const char* trimEnd(const char* str, size num, const char** toTrim);
+	inline static const char* join(const char* delimiter, size_t num, ...)
+	{
+		initArgs(num);
+		
+		return join(delimiter, num, VarUtils::getArgs<const char*>(num, argsList));
+	}
+
+	inline static const char* join(const char* delimiter, size_t num, const char** toJoin)
+	{
+		string str;
+		
+		for (size_t a = 0; a < num; a++)
+		{
+			if (!isEmpty(delimiter) && !str.empty())
+			{
+				str += delimiter;
+			}
+			
+			str += toJoin[a];
+		}
+		
+		return toString(str);
+	}
 	
 	inline static const char* toString(unsigned value)
 	{
@@ -163,6 +179,21 @@ public:
 		
 		return str;
 	}
+	
+	static vector<size_t> findAll(const char* str, size_t num, ...);
+	static vector<size_t> findAll(const char* str, size_t num, const char** toFind);
+	
+	static bool startsWith(const char* str, size_t num, ...);
+	static bool startsWith(const char* str, size_t num, const char** toTest);
+	static bool endsWith(const char* str, size_t num, ...);
+	static bool endsWith(const char* str, size_t num, const char** toTest);
+	
+	static const char* trim(const char* str, size_t num, ...);
+	static const char* trim(const char* str, size_t num, const char** toTrim);
+	static const char* trimStart(const char* str, size_t num, ...);
+	static const char* trimStart(const char* str, size_t num, const char** toTrim);
+	static const char* trimEnd(const char* str, size_t num, ...);
+	static const char* trimEnd(const char* str, size_t num, const char** toTrim);
 };
 
 #endif
