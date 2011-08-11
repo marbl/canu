@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: testFileUtils.C,v 1.3 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: testFileUtils.C,v 1.4 2011-08-11 17:34:34 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,13 +29,13 @@ static const char* rcsid = "$Id: testFileUtils.C,v 1.3 2011-08-04 18:18:56 mkote
 
 using namespace std;
 
-#include "Assert.h"
+#include "Asserts.h"
 #include "FileUtils.h"
 #include "TestUtils.h"
 
 void testGetPath()
 {
-	Assert::assertTrue(string(FileUtils::getPath(3, "/test1", "//test2", "test3/")) == "/test1/test2/test3/", "get path was different");
+	Asserts::assertTrue(string(FileUtils::getPath(3, "/test1", "//test2", "test3/")) == "/test1/test2/test3/", "get path was different");
 }
 
 int main(int argc, char** argv)
