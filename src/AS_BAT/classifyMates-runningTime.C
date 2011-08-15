@@ -7,7 +7,7 @@ public:
   onlineMeanStdDev() {
     hMin   = UINT32_MAX;
     hMax   = 0;
-    hAlc   = 0;
+    hAlc   = 65536;
     hDat   = new uint32 [hAlc];
 
     memset(hDat, 0, sizeof(uint32) * hAlc);
@@ -33,7 +33,7 @@ public:
 
     if (dp >= hAlc) {
       while (hAlc <= dp)
-        hAlc++;
+        hAlc *= 2;
 
       uint32  *hNew = new uint32 [hAlc];
 
@@ -74,6 +74,26 @@ public:
 
     s /= hCnt - 1;
     s  = sqrt(s);
+
+#if 0
+    uint32    buckets[101] = {0};
+
+    for (uint32 dp=0; dp<hMax; dp++) {
+      uint32 b = dp * 100 / hMax;
+      if (b > 100) b = 100;
+      buckets[b] += hDat[dp];
+    }
+
+    errno = 0;
+    FILE *F = fopen("distribution", "a");
+    if (errno)
+      fprintf(stderr, "FAILED to open 'distribution': %s\n", strerror(errno)), exit(1);
+    for (uint32 bb=0; bb<100; bb++) {
+      fprintf(F, "%u\t", buckets[bb]);
+    }
+    fprintf(F, "\n");
+    fclose(F);
+#endif
 
     computedMean   = m;
     computedStdDev = s;

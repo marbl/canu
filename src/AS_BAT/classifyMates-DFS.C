@@ -43,20 +43,21 @@ cmGlobalData::doSearchDFS(cmComputation *c,
     for (;
          t->path[t->pathPos].oPos < t->path[t->pathPos].oMax;
          t->path[t->pathPos].oPos++) {
-
-      //  If we've already seen this fragment in this orientation, get out of here.
-      //
-      set<uint32> &visited = (t->path[t->pathPos].p5p3 == true) ? visited5p3 : visited3p5;
-
-      if (visited.find(t->path[t->pathPos].pIID) != visited.end())
-        continue;
-
-      //  Try extending the fragment at this overlap
-      //
       overlapInfo  *novl = t->path[t->pathPos].oLst + t->path[t->pathPos].oPos;
       uint32        niid = novl->iid;
       bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
       uint32        nlen = 0;
+
+      assert(niid == t->path[t->pathPos].pIID);
+
+      set<uint32> &visited = (t->path[t->pathPos].p5p3 == true) ? visited5p3 : visited3p5;
+      if (visited.find(niid) != visited.end())
+        //  Been here already.
+        continue;
+
+      if (fi[niid].isBackbone == false)
+        //  Not a backbone read.
+        continue;
 
       computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 

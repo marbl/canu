@@ -3,51 +3,60 @@
 //  Decreasing this value makes the search much much faster, but costs a bit
 //  in sensitivity.
 //
-#define NDISTD      0  //  Number of dovetail edges off each end
+//  We save overlaps based on the size of the overlap.
+//
+//  Keep the best and near best overlaps for dovetail overlaps.
+//
+//    ------------------------
+//       ----------------------------- (best)
+//          ---------------------- (near best)
+//                 --------------
+//                     ----------------------------------
+//                          -----------------------------------
+//
+//  Keep containment overlaps that are near the end.
+//
+//                     ---------
+//    ----------------------------- (near the end)
+//        -------------------------------
+//            ----------------------------------
+//                 ------------------------------------ (near the end)
+//                     --------------------------------------- (near the end)
+//
+//  doveDist - Dovetail overlaps with overlap length at least this big are saved.
+//             The 'near best' above might not be informative, but it is still
+//             the second best overlap and is kept.
+//
+//  coneDist - Containee overlaps (A contained in B) are saved if they are
+//             at least this close to the end of the other fragment.
+//
+//  conrDist - Container overlaps (A contains B), likewise.
+
+
 
 class
 saveDistance {
 public:
-  saveDistance() {
+  saveDistance(int32 ndist_) {
+    ndist = ndist_;
+
+    doveDist5 = 0;
+    doveDist3 = 0;
+
+    doveDist5arr = new int32 [ndist];
+    doveDist3arr = new int32 [ndist];
   };
 
   ~saveDistance() {
   };
 
-  //  We save overlaps based on the size of the overlap.
-  //
-  //  Keep the best and near best overlaps for dovetail overlaps.
-  //
-  //    ------------------------
-  //       ----------------------------- (best)
-  //          ---------------------- (near best)
-  //                 --------------
-  //                     ----------------------------------
-  //                          -----------------------------------
-  //
-  //  Keep containment overlaps that are near the end.
-  //
-  //                     ---------
-  //    ----------------------------- (near the end)
-  //        -------------------------------
-  //            ----------------------------------
-  //                 ------------------------------------ (near the end)
-  //                     --------------------------------------- (near the end)
-  //
-  //  doveDist - Dovetail overlaps with overlap length at least this big are saved.
-  //             The 'near best' above might not be informative, but it is still
-  //             the second best overlap and is kept.
-  //
-  //  coneDist - Containee overlaps (A contained in B) are saved if they are
-  //             at least this close to the end of the other fragment.
-  //
-  //  conrDist - Container overlaps (A contains B), likewise.
+  int32   ndist;
 
   int32   doveDist5;     //  minimum distance we should be saving
   int32   doveDist3;
 
-  int32   doveDist5arr[(NDISTD > 0) ? NDISTD : 1];  //  scratch array for finding the nth largest distance
-  int32   doveDist3arr[(NDISTD > 0) ? NDISTD : 1];
+  int32  *doveDist5arr;  //  scratch array for finding the nth largest distance
+  int32  *doveDist3arr;
 
 
   //  Save the N largest values - sorted largest to smallest
@@ -55,21 +64,21 @@ public:
 
     assert(dist >= 0);
 
-    if (dist < darr[NDISTD-1])
+    if (dist < darr[ndist-1])
       //  Distance less than the smallest distance we want to keep, don't save
       return;
 
     //  We either want to save a new distance, pushing the last one off of the array,
     //  or notice that we've already saved this distance and leave the array alone.
 
-    for (int32 i=0; i<NDISTD; i++) {
+    for (int32 i=0; i<ndist; i++) {
       if (darr[i] == dist)
         //  Saved it already.
         return;
 
       if (darr[i] < dist) {
         //  Save at i, push i and following down one slot.
-        for (int32 j=NDISTD-1; j>i; j--)
+        for (int32 j=ndist-1; j>i; j--)
           darr[j] = darr[j-1];
         darr[i] = dist;
         return;
@@ -85,11 +94,11 @@ public:
                  OVSoverlap       *ovl,
                  uint32            ovlLen) {
 
-    if (ovlLen == 0)
+    if ((ovlLen == 0) || (ndist == 0))
       return;
 
-    for (int32 i=0; i<NDISTD; i++)
-      doveDist5arr[i] = doveDist3arr[i] = INT32_MIN;
+    memset(doveDist5arr, 0, sizeof(int32) * ndist);
+    memset(doveDist3arr, 0, sizeof(int32) * ndist);
 
     for (uint32 i=0; i<ovlLen; i++) {
       int32  ah = ovl[i].dat.ovl.a_hang;
@@ -107,8 +116,8 @@ public:
       }
     }
 
-    doveDist5 = doveDist5arr[NDISTD-1];
-    doveDist3 = doveDist3arr[NDISTD-1];
+    doveDist5 = doveDist5arr[ndist-1];
+    doveDist3 = doveDist3arr[ndist-1];
   }
 };
 

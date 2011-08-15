@@ -77,6 +77,10 @@ cmGlobalData::doSearchBFS(cmComputation *c,
         //  Been here already.
         continue;
 
+      if (fi[niid].isBackbone == false)
+        //  Not a backbone read
+        continue;
+
       visited.insert(niid);
 
       computeNextPlacement(c, t, novl, niid, n5p3, nlen);

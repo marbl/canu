@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.18 2011-08-10 12:11:59 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.19 2011-08-15 06:16:17 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -169,7 +169,8 @@ public:
                bool     innie_,
                uint32   nodesMax_,
                uint32   depthMax_,
-               uint32   pathsMax_) {
+               uint32   pathsMax_,
+               uint64   memoryLimit_) {
 
     strcpy(resultsPrefix, resultsName_);
 
@@ -211,6 +212,8 @@ public:
 
     gtPos        = 0L;
     gtLen        = 0L;
+
+    memoryLimit  = memoryLimit_;
 
     oiStorageMax = 0;
     oiStorageLen = 0;
@@ -300,6 +303,8 @@ public:
   overlapInfo     **gtPos;  //  Same as tgPos, but indexed on the b-frag IID
   uint32           *gtLen;  //
 
+  uint64            memoryLimit;
+
   uint32            oiStorageMax;  //  Maximum number of blocks we can allocate.
   uint32            oiStorageLen;  //  Actual number of blocks allocated.
   overlapInfo     **oiStorageArr;  //  List of allocated blocks.
@@ -382,11 +387,13 @@ cmGlobalData::loadFragments(char    *gkpStoreName,
         maxFragIID = fid;
     }
 
+#if 0
     FILE *F = fopen(cacheName, "w");
     AS_UTL_safeWrite(F, &minFragIID, "minFragIID", sizeof(uint32),       1);
     AS_UTL_safeWrite(F, &maxFragIID, "maxFragIID", sizeof(uint32),       1);
     AS_UTL_safeWrite(F,  fi,         "fi",         sizeof(fragmentInfo), numFrags+1);
     fclose(F);
+#endif
   }
 
   delete gkpStream;
@@ -428,19 +435,29 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
 
   fprintf(stderr, "LOADING OVERLAPS...for fragments %u to %u\n", minFragIID, maxFragIID);
 
-  uint32            ovlMax = 1048576;
-  uint32            ovlLen = 1;
-  OVSoverlap       *ovl    = new OVSoverlap [ovlMax];
-  bool             *ovlBB  = new bool       [ovlMax];
-  bool             *ovlTG  = new bool       [ovlMax];
+  uint32            ovlMax   = 1048576;
+  uint32            ovlLen   = 1;
+  OVSoverlap       *ovl      = new OVSoverlap [ovlMax];
+  bool             *ovlBB    = new bool       [ovlMax];
+  bool             *ovlTG    = new bool       [ovlMax];
+
+  uint64            memUsed  = 0;
 
   bbPos = new overlapInfo * [numFrags + 1];  //  Pointer to start of overlaps for this frag
   tgPos = new overlapInfo * [numFrags + 1];
   gtPos = new overlapInfo * [numFrags + 1];
 
+  memUsed += 3 * (numFrags + 1) * sizeof(overlapInfo *);
+  if (memUsed > memoryLimit)
+    fprintf(stderr, "\nMemory limit reached, aborting.\n"), exit(1);
+
   bbLen = new uint32        [numFrags + 1];  //  Number of overlaps for this frag
   tgLen = new uint32        [numFrags + 1];
   gtLen = new uint32        [numFrags + 1];
+
+  memUsed += 3 * (numFrags + 1) * sizeof(uint32);
+  if (memUsed > memoryLimit)
+    fprintf(stderr, "\nMemory limit reached, aborting.\n"), exit(1);
 
   memset(bbPos, 0, sizeof(overlapInfo) * (numFrags + 1));
   memset(tgPos, 0, sizeof(overlapInfo) * (numFrags + 1));
@@ -458,6 +475,10 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
   oiStorageArr = new overlapInfo * [oiStorageMax];  //  List of allocated memory
   oiStorage    = 0L;
 
+  memUsed += (oiStorageMax) * sizeof(overlapInfo *);
+  if (memUsed > memoryLimit)
+    fprintf(stderr, "\nMemory limit reached, aborting.\n"), exit(1);
+
   memset(oiStorageArr, 0, sizeof(overlapInfo *) * oiStorageMax);
 
   uint32            oiStorageBS  = 128 * 1024 * 1024;  //  Fixed block size
@@ -465,17 +486,18 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
 
   oiStorage = oiStorageArr[0] = new overlapInfo [oiStorageBS];
 
+  memUsed += (oiStorageBS) * sizeof(overlapInfo);
+  if (memUsed > memoryLimit)
+    fprintf(stderr, "\nMemory limit reached, aborting.\n"), exit(1);
+
   uint64            numTT = 0;  //  Number of overlaps read from disk
   uint64            numUU = 0;  //  Number of overlaps not backbone and not target
   uint64            numBB = 0;  //  Number of BB overlaps loaded
   uint64            numTG = 0;  //  Number of TG overlaps loaded
   uint64            numDD = 0;  //  Number of overlaps discarded
 
-#if NDISTD > 0
-  saveDistance     *dist = new saveDistance;
-#else
-  saveDistance     *dist = NULL;
-#endif
+  saveDistance     *bbDist  = new saveDistance(0);
+  saveDistance     *tgDist  = new saveDistance(2);
 
   OverlapStore     *ovlStore  = AS_OVS_openOverlapStore(ovlStoreName);
 
@@ -518,8 +540,8 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
     ovlLen = c;
 
 
-    if (dist)
-      dist->compute(fi, ovl, ovlLen);
+    bbDist->compute(fi, ovl, ovlLen);
+    tgDist->compute(fi, ovl, ovlLen);
 
 
     for (uint32 i=0; i<ovlLen; i++) {
@@ -528,38 +550,59 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
       ovlBB[i] = false;
       ovlTG[i] = false;
 
+      int32  ah = ovl[i].dat.ovl.a_hang;
+      int32  bh = ovl[i].dat.ovl.b_hang;
+      int32  fa = fi[ovl[i].a_iid].clearLength;
+      int32  fb = fi[ovl[i].b_iid].clearLength;
+
+      bool   d5 = AS_OVS_overlapAEndIs5prime(ovl[i]);
+      bool   d3 = AS_OVS_overlapAEndIs3prime(ovl[i]);
+
 
       //  Overlaps from a search A-fragment to a backbone B-fragment must always be kept.  These are
-      //  used to initiate the search.
+      //  used to initiate the search.  We keep all containment overlaps, and the longest dovetail
+      //  overlap.
       //
-      if ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true))
-        ovlBB[i] = true;
+      if ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true)) {
+        if ((d5 == false) && (d3 == false))
+          //  containment
+          ovlBB[i] = true;
 
+        if ((d5) && (bbDist->doveDist5 <= fb - -ah))
+          //  ah < 0 && bh < 0
+          ovlBB[i] = true;
+
+        if ((d3) && (bbDist->doveDist3 <= fb -  bh))
+          //  ah > 0 && bh > 0
+          ovlBB[i] = true;
+      }
 
       //  Overlaps from a backbone A-fragment to a search B-fragment must always be kept.  These are
-      //  used to terminate the search.
+      //  used to terminate the search.  We keep all containment overlaps, and the longest dovetail
+      //  overlap.
       //
-      if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].doSearch   == true))
-        ovlTG[i] = true;
+      if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].doSearch   == true)) {
+        if ((d5 == false) && (d3 == false))
+          //  containment
+          ovlTG[i] = true;
 
+        if ((d5) && (tgDist->doveDist5 <= fb - -ah))
+          //  ah < 0 && bh < 0
+          ovlTG[i] = true;
+
+        if ((d3) && (tgDist->doveDist3 <= fb -  bh))
+          //  ah > 0 && bh > 0
+          ovlTG[i] = true;
+      }
 
       //  Overlaps from backbone to backbone are kept if they are dovetail.
       //
       if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true)) {
-        int32  ah = ovl[i].dat.ovl.a_hang;
-        int32  bh = ovl[i].dat.ovl.b_hang;
-        int32  fa = fi[ovl[i].a_iid].clearLength;
-        int32  fb = fi[ovl[i].b_iid].clearLength;
-
-        if ((AS_OVS_overlapAEndIs5prime(ovl[i])) &&
-            ((dist == NULL) ||
-             (dist->doveDist5 <= fb - -ah)))
+        if ((d5) && (bbDist->doveDist5 <= fb - -ah))
           //  ah < 0 && bh < 0
           ovlBB[i] = true;
 
-        if ((AS_OVS_overlapAEndIs3prime(ovl[i])) &&
-            ((dist == NULL) ||
-             (dist->doveDist3 <= fb -  bh)))
+        if ((d3) && (bbDist->doveDist3 <= fb -  bh))
           //  ah > 0 && bh > 0
           ovlBB[i] = true;
       }
@@ -583,6 +626,10 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
       oiStorage = oiStorageArr[oiStorageLen] = new overlapInfo [oiStorageBS];
       oiStorageLen++;
       oiStoragePos = 0;
+
+      memUsed += (oiStorageBS) * sizeof(overlapInfo);
+      if (memUsed > memoryLimit)
+        fprintf(stderr, "\nMemory limit reached, aborting.\n"), exit(1);
     }
 
     //  Add the overlaps.
@@ -661,6 +708,10 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
   oiStorageLen++;
   oiStoragePos = 0;
 
+  memUsed += (numGTovl) * sizeof(overlapInfo);
+  if (memUsed > memoryLimit)
+    fprintf(stderr, "\nMemory limit reached, aborting.\n"), exit(1);
+
   //  Set pointers to the space.  We'll recount as the overlaps are added.
   for (uint32 ii=0; ii<numFrags+1; ii++) {
     if (gtLen[ii] == 0)
@@ -691,6 +742,8 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
   }
 
   fprintf(stderr, "INVERTING OVERLAPS....%lu frags found.\n", numGTfrg);
+
+  fprintf(stderr, "LOADING OVERLAPS...%lu GB used.\n", memoryLimit >> 30);
 }
 
 
@@ -879,7 +932,7 @@ cmWriter(void *G, void *S) {
     return;
 
 
-  if ((g->runTime.numData() % 10000) != 0)
+  if ((g->runTime.numData() % 1000) != 0)
     //  Too soon to recompute statistics
     return;
 
@@ -892,7 +945,7 @@ cmWriter(void *G, void *S) {
   if (g->pathsMax > 0)  ci = g->pathsMax;
 
   //  If this stuff is normally distributed, 4 stddev will include 99.993666% of the data points.
-  uint32  ni = (ci + g->runTime.mean() + 4 * g->runTime.stddev()) / 2;
+  uint32  ni = (uint32)floor((ci + g->runTime.mean() + 4 * g->runTime.stddev()) / 2);
 
   fprintf(stderr, "\nRUNTIME: %f +- %f  min/max %u/%u  RESET iteration limit to %u\n",
           g->runTime.mean(), g->runTime.stddev(), g->runTime.min(), g->runTime.max(), ni);
@@ -929,6 +982,8 @@ main(int argc, char **argv) {
 
   uint32     numThreads        = 4;
 
+  uint64     memoryLimit       = 0;
+
   argc = AS_configure(argc, argv);
 
   int err = 0;
@@ -945,6 +1000,12 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       numThreads = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-m") == 0) {
+      memoryLimit  = atoi(argv[++arg]);
+      memoryLimit *= 1024;
+      memoryLimit *= 1024;
+      memoryLimit *= 1024;
 
     } else if (strcmp(argv[arg], "-sl") == 0) {
       searchLibs = true;
@@ -1047,7 +1108,8 @@ main(int argc, char **argv) {
                                       distMin, distMax, innie,
                                       nodesMax,
                                       depthMax,
-                                      pathsMax);
+                                      pathsMax,
+                                      memoryLimit);
 
   g->loadFragments(gkpStoreName, searchLibs, searchLib, backboneLibs, backboneLib);
   g->loadOverlaps(ovlStoreName);

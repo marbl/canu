@@ -19,7 +19,8 @@ cmGlobalData::doSearchRFS(cmComputation *c,
   }
 
   for (uint32 iter=0; iter<pathsMax; iter++) {
-    t->pathPos = 0;
+    t->pathPos= 0;
+    t->searchIter++;
 
     t->path[t->pathPos].pIID = c->fragIID;
     t->path[t->pathPos].p5p3 = c->frag5p3;
@@ -45,6 +46,10 @@ cmGlobalData::doSearchRFS(cmComputation *c,
         bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
         uint32        nlen = 0;
 
+        if (fi[niid].isBackbone == false)
+          //  Not a backbone read
+          continue;
+
         computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
         if (nlen > t->path[t->pathPos].pLen)
@@ -62,13 +67,16 @@ cmGlobalData::doSearchRFS(cmComputation *c,
       bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
       uint32        nlen = 0;
 
+      if (fi[niid].isBackbone == false)
+        //  Not a backbone read
+        continue;
+
       computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
       //  We're guaranteed to always advance the path (unlike DFS) so do it.
 
       if (t->pathPos < t->pathMax) {
         t->pathPos++;
-        t->searchIter++;
 
         t->path[t->pathPos].pIID = niid;
         t->path[t->pathPos].p5p3 = n5p3;
