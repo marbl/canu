@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogus.C,v 1.8 2011-07-26 21:29:35 brianwalenz Exp $";
+const char *mainid = "$Id: bogus.C,v 1.9 2011-08-15 06:11:42 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -387,6 +387,9 @@ main(int argc, char **argv) {
   uint32   minLength  = 0;
   uint32   minFrags   = 0;
 
+  //  Input matches must be at least minIdentity.
+  double   minIdentity = 0;
+
   //  When comparing coords to if two alignments span the same piece of the fragment,
   //  allow (twice) this much slop in the comparison.  E.g., Abgn +- 5 == Bbgn
   //
@@ -438,6 +441,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-minfrags") == 0) {
       minFrags = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-minidentity") == 0) {
+      minIdentity = atof(argv[++arg]);
+
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
       err++;
@@ -484,10 +490,10 @@ main(int argc, char **argv) {
   //  genomeAlignment::isLognest and genomeAlignment::isRepeat are computed later.
 
   for (uint32 nn=0; nn<nucmerNamesLen; nn++)
-    loadNucmer(nucmerNames[nn], genome, IIDmap, IIDname, refList, refMap);
+    loadNucmer(nucmerNames[nn], genome, IIDmap, IIDname, refList, refMap, minIdentity);
 
   for (uint32 nn=0; nn<snapperNamesLen; nn++)
-    loadSnapper(snapperNames[nn], genome, IIDmap, IIDname, refList, refMap);
+    loadSnapper(snapperNames[nn], genome, IIDmap, IIDname, refList, refMap, minIdentity);
 
   //if (includeRaw)
   //  writeInputsAsGFF3(outputPrefix);

@@ -17,9 +17,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.11 2011-06-27 19:52:46 jasonmiller9704 Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.12 2011-08-15 06:11:42 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
+
+#define MAX_GENOME_SIZE_INPUT 256 * 1024 * 1024
+
 
 bool
 byFragmentID(const genomeAlignment &A, const genomeAlignment &B) {
@@ -85,7 +88,8 @@ loadNucmer(char                       *nucmerName,
            map<string, int32>         &IIDmap,
            vector<string>             &IIDname,
            vector<referenceSequence>  &refList,
-           map<string,uint32>         &refMap) {
+           map<string,uint32>         &refMap,
+           double                      minIdentity) {
   FILE  *inFile = 0L;
   char   inLine[1024];
 
@@ -140,8 +144,12 @@ loadNucmer(char                       *nucmerName,
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);
 
+    if (A.identity < minIdentity)
+      goto nextNucmerLine;
+
     genome.push_back(A);
 
+  nextNucmerLine:
     fgets(inLine, 1024, inFile);
     chomp(inLine);
   }
@@ -157,7 +165,8 @@ loadSnapper(char                       *snapperName,
             map<string, int32>         &IIDmap,
             vector<string>             &IIDname,
             vector<referenceSequence>  &refList,
-            map<string,uint32>         &refMap) {
+            map<string,uint32>         &refMap,
+            double                      minIdentity) {
   FILE  *inFile = 0L;
   char   inLine[1024];
 
@@ -178,7 +187,7 @@ loadSnapper(char                       *snapperName,
 
     if (strncmp(inLine, "cDNAid", 6) == 0)
       //  Skip header lines.
-      goto nextLine;
+      goto nextSnapperLine;
 
     if (IIDmap.find(fID) == IIDmap.end()) {
       IIDname.push_back(fID);
@@ -209,9 +218,12 @@ loadSnapper(char                       *snapperName,
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);
 
+    if (A.identity < minIdentity)
+      goto nextSnapperLine;
+
     genome.push_back(A);
 
-  nextLine:
+  nextSnapperLine:
     fgets(inLine, 1024, inFile);
     chomp(inLine);
   }
@@ -220,8 +232,6 @@ loadSnapper(char                       *snapperName,
 }
 
 
-//#define MAX_GENOME_SIZE_INPUT 16 * 1024 * 1024
-#define MAX_GENOME_SIZE_INPUT 100 * 1024 * 1024
 
 void
 loadReferenceSequence(char                       *refName,
@@ -240,7 +250,7 @@ loadReferenceSequence(char                       *refName,
   char     *refhdr = new char [1024];
   char     *refseq = new char [MAX_GENOME_SIZE_INPUT];
 
-  fgets(refhdr,             1024, F);   chomp(refhdr);
+  fgets(refhdr,                  1024, F);   chomp(refhdr);
   fgets(refseq, MAX_GENOME_SIZE_INPUT, F);   chomp(refseq);
 
   while (!feof(F)) {
@@ -266,8 +276,8 @@ loadReferenceSequence(char                       *refName,
     reflen += rl + 1024;
     refiid++;
 
-    fgets(refhdr,             1024, F);   chomp(refhdr);
-    fgets(refseq, 16 * 1026 * 1024, F);   chomp(refseq);
+    fgets(refhdr,                  1024, F);   chomp(refhdr);
+    fgets(refseq, MAX_GENOME_SIZE_INPUT, F);   chomp(refseq);
   }
 
   fclose(F);
