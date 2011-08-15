@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.12 2011-08-03 16:36:57 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.13 2011-08-15 05:12:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,6 +46,9 @@ bool   allowGaps     = false;
 //
 int32
 randomUniform(int32 bgn, int32 end) {
+  if (bgn >= end)
+    fprintf(stderr, "randomUniform()-- ERROR:  invalid range bgn=%d end=%d\n", bgn, end);
+  assert(bgn < end);
   return((int32)floor((end - bgn) * drand48() + bgn));
 }
 
@@ -274,7 +277,8 @@ makeMP(char   *seq,
        int32   mpInsertStdDev,
        int32   mpShearSize,
        int32   mpShearStdDev,
-       double  mpEnrichment) {
+       double  mpEnrichment,
+       bool    mpJunctions) {
   char   *s1 = new char [readLen + 1];
   char   *q1 = new char [readLen + 1];
   char   *s2 = new char [readLen + 1];
@@ -340,13 +344,31 @@ makeMP(char   *seq,
       fprintf(output2, "%s\n", q2);
 
     } else {
-      //  Successfully washed away non-biotin marked sequences, make MP
-      //    Shift the fragment by randomGaussian() with mean slen / 2
+      //  Successfully washed away non-biotin marked sequences, make MP.  Shift the fragment by a
+      //  random amount.  If we are not allowed to make junction reads, the shift must allow at
+      //  least a read-length of sequence on each end.
 
-      int32 shift = randomUniform(0, slen);
+      int32 shift = 0;
 
-      assert(shift >= 0);
-      assert(shift <= slen);
+      if (mpJunctions == true) {
+        shift = randomUniform(0, slen);
+
+        if ((shift < 0) || (shift > slen))
+          fprintf(stderr, "ERROR:  invalid shift %d.\n", shift);
+        assert(shift >= 0);
+        assert(shift <= slen);
+
+      } else {
+        if (slen <= 2 * readLen)
+          //  If the shear size is less than two read lengths there is no way we can
+          //  make a perfect MP pair.  Try again.
+          goto tryMPagain;
+
+        shift = randomUniform(readLen, slen - readLen);
+
+        assert(shift >= readLen);
+        assert(shift <= slen - readLen);
+      }
 
       if (shift < 0)     shift = 0;
       if (shift > slen)  shift = slen;
@@ -407,6 +429,9 @@ makeMP(char   *seq,
       if (shift  < readLen)         type = 'a';
       if (shift  > slen - readLen)  type = 'b';
 
+      if (mpJunctions == false)
+        assert(type == 't');
+
       fprintf(output, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output, "%s\n", s1);
       fprintf(output, "+\n");
@@ -460,6 +485,7 @@ main(int argc, char **argv) {
   int32      mpShearSize    = 0;
   int32      mpShearStdDev  = 0;
   double     mpEnrichment   = 1.0;   //  success rate of washing away paired-end fragments
+  bool       mpJunctions    = true;
 
   char      *outputPrefix   = NULL;
   char       outputName[FILENAME_MAX];
@@ -491,6 +517,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-allowgaps") == 0) {
       allowGaps = true;
+
+    } else if (strcmp(argv[arg], "-nojunction") == 0) {
+      mpJunctions = false;
 
     } else if (strcmp(argv[arg], "-se") == 0) {
       seEnable = true;
@@ -540,6 +569,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -allowgaps      Allow pairs to span N regions in the reference.  By default, pairs\n");
     fprintf(stderr, "                  are not allowed to span a gap.  Reads are never allowed to cover N's.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -nojunction     For -mp, do not create chimeric junction reads.  Create only fully PE or\n");
+    fprintf(stderr, "                  fully MP reads.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -se\n");
     fprintf(stderr, "                  Create single-end reads.\n");
@@ -686,7 +718,7 @@ main(int argc, char **argv) {
     makePE(seq, seqLen, output, output1, output2, readLen, numPairs, peShearSize, peShearStdDev);
 
   if (mpEnable)
-    makeMP(seq, seqLen, output, output1, output2, readLen, numPairs, mpInsertSize, mpInsertStdDev, mpShearSize, mpShearStdDev, mpEnrichment);
+    makeMP(seq, seqLen, output, output1, output2, readLen, numPairs, mpInsertSize, mpInsertStdDev, mpShearSize, mpShearStdDev, mpEnrichment, mpJunctions);
 
   //
   //
