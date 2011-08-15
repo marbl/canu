@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.12 2011-01-03 03:07:16 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.13 2011-08-15 06:17:04 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -413,8 +413,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -B <layout-file>      Construct a new store with unitigs in 'layout-file'.  Store versions\n");
     fprintf(stderr, "                        before that specified on the '-t' option are created but are empty.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -D                    Delete a tig.  The tig is specified with -u or -c.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -R <layout>           Replace a multialign with this one (type and id are from the layout)\n");
     fprintf(stderr, "  -N                    Replace a multialign in the next version of the store.  This option is\n");
