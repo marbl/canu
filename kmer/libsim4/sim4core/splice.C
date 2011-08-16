@@ -179,19 +179,24 @@ Sim4::splice_init(int spl_model)
    //  the model to use, which should be initialized by the client -- before it starts doing
    //  any sim4 work.
 
-   pthread_mutex_lock(&(globalParams->_splice_mutex));
-
    if (spliceInit == 1)
-     //  We blocked on the mutex, and someone else loaded the data for us.
+     //  Data already loaded, no need to involve a mutex here.
      return;
 
-   if (spl_model == SPLICE_GENESPLICER)
-     loadGeneSplicerModel();
+   pthread_mutex_lock(&(globalParams->_splice_mutex));
 
-   if (spl_model == SPLICE_GLIMMER)
-     loadGlimmerModel(Glimmer_TRAIN_DIR);
+   //  If after getting the mutex the data still isn't loaded, load it.  Otherwise, someone
+   //  already loaded the data for us and we just exit.
 
-   spliceInit = 1;
+   if (spliceInit == 0) {
+     if (spl_model == SPLICE_GENESPLICER)
+       loadGeneSplicerModel();
+
+     if (spl_model == SPLICE_GLIMMER)
+       loadGlimmerModel(Glimmer_TRAIN_DIR);
+
+     spliceInit = 1;
+   }
 
    pthread_mutex_unlock(&(globalParams->_splice_mutex));
 }
