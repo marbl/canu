@@ -96,6 +96,7 @@ sweatShop::sweatShop(void*(*loaderfcn)(void *G),
 
   _loaderQueueSize  = 1024;
   _loaderQueueMax   = 10240;
+  _loaderQueueMin   = 4;  //  _numberOfWorkers * 2, reset when that changes
   _loaderBatchSize  = 1;
   _workerBatchSize  = 1;
   _writerQueueSize  = 4096;
@@ -391,12 +392,16 @@ sweatShop::status(void) {
       fflush(stderr);
     }
 
-    //  Readjust queue sizes based on current performance.
+    //  Readjust queue sizes based on current performance, but don't let it
+    //  get too big or small.
     //
     if (_numberComputed > readjustAt) {
       readjustAt       += (u64bit)(2 * cpuPerSec);
       _loaderQueueSize  = (u32bit)(5 * cpuPerSec);
     }
+
+    if (_loaderQueueSize < _loaderQueueMin)
+      _loaderQueueSize = _loaderQueueMin;
 
     if (_loaderQueueSize > _loaderQueueMax)
       _loaderQueueSize = _loaderQueueMax;

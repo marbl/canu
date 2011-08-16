@@ -16,7 +16,10 @@ public:
             void (*writerfcn)(void *G, void *S));
   ~sweatShop();
 
-  void        setNumberOfWorkers(u32bit x) { _numberOfWorkers = x; };
+  void        setNumberOfWorkers(u32bit x) {
+    _numberOfWorkers = x;
+    _loaderQueueMin  = x * 2;
+  };
 
   void        setThreadData(u32bit t, void *x);
 
@@ -61,7 +64,7 @@ private:
 
   bool                   _showStatus;
 
-  u32bit                 _loaderQueueSize, _loaderQueueMax;
+  u32bit                 _loaderQueueSize, _loaderQueueMin, _loaderQueueMax;
   u32bit                 _loaderBatchSize;
   u32bit                 _workerBatchSize;
   u32bit                 _writerQueueSize, _writerQueueMax;
