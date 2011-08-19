@@ -65,17 +65,17 @@ private:
   //
   uint32     pkconfigured;
   uint32     pkdirty;
-  uint32     pkmaxiid;
+  uint64     pkmaxiid;
   uint8     *pk;
 
   uint32     nmconfigured;
   uint32     nmdirty;
-  uint32     nmmaxiid;
+  uint64     nmmaxiid;
   uint16    *nm;
 
   uint32     sbconfigured;
   uint32     sbdirty;
-  uint32     sbmaxiid;
+  uint64     sbmaxiid;
   uint32    *sb;
 
   friend class gkStore;

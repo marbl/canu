@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.13 2011-06-03 17:34:19 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.14 2011-08-19 17:06:58 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -411,7 +411,7 @@ gkClearRange::gkClearRange_makeSpacePacked(AS_IID tiid, uint32 bgn, uint32 end) 
     //  Nobody has used this clear range yet, and we don't want it either.
     return;
 
-  uint32  newpkmaxiid = (pkmaxiid == 0) ? (1048576) : (pkmaxiid * 2);
+  uint64  newpkmaxiid = (pkmaxiid == 0) ? (1048576) : (pkmaxiid * 2);
   uint8  *newpk       = NULL;
 
   while (newpkmaxiid < tiid)
@@ -422,7 +422,7 @@ gkClearRange::gkClearRange_makeSpacePacked(AS_IID tiid, uint32 bgn, uint32 end) 
   if (pkmaxiid > 0)
     memcpy(newpk, pk, sizeof(uint8) * pkmaxiid * 2 + 2);
 
-  for (uint32 i=pkmaxiid; i <= newpkmaxiid; i++) {
+  for (uint64 i=pkmaxiid; i <= newpkmaxiid; i++) {
     newpk[2*i+0] = 1;
     newpk[2*i+1] = 0;
   }
@@ -444,7 +444,7 @@ gkClearRange::gkClearRange_makeSpaceNormal(AS_IID tiid, uint32 bgn, uint32 end) 
   if ((bgn > end) && (nm == NULL))
     return;
 
-  uint32  newnmmaxiid = (nmmaxiid == 0) ? (1048576) : (nmmaxiid * 2);
+  uint64  newnmmaxiid = (nmmaxiid == 0) ? (1048576) : (nmmaxiid * 2);
   uint16  *newnm      = NULL;
 
   while (newnmmaxiid < tiid)
@@ -455,7 +455,7 @@ gkClearRange::gkClearRange_makeSpaceNormal(AS_IID tiid, uint32 bgn, uint32 end) 
   if (nmmaxiid > 0)
     memcpy(newnm, nm, sizeof(uint16) * nmmaxiid * 2 + 2);
 
-  for (uint32 i=nmmaxiid; i <= newnmmaxiid; i++) {
+  for (uint64 i=nmmaxiid; i <= newnmmaxiid; i++) {
     newnm[2*i+0] = 1;
     newnm[2*i+1] = 0;
   }
@@ -477,7 +477,7 @@ gkClearRange::gkClearRange_makeSpaceStrobe(AS_IID tiid, uint32 bgn, uint32 end) 
   if ((bgn > end) && (sb == NULL))
     return;
 
-  uint32  newsbmaxiid = (sbmaxiid == 0) ? (1048576) : (sbmaxiid * 2);
+  uint64  newsbmaxiid = (sbmaxiid == 0) ? (1048576) : (sbmaxiid * 2);
   uint32  *newsb      = NULL;
 
   while (newsbmaxiid < tiid)
@@ -488,7 +488,7 @@ gkClearRange::gkClearRange_makeSpaceStrobe(AS_IID tiid, uint32 bgn, uint32 end) 
   if (sbmaxiid > 0)
     memcpy(newsb, sb, sizeof(uint32) * sbmaxiid * 2 + 2);
 
-  for (uint32 i=sbmaxiid; i <= newsbmaxiid; i++) {
+  for (uint64 i=sbmaxiid; i <= newsbmaxiid; i++) {
     newsb[2*i+0] = 1;
     newsb[2*i+1] = 0;
   }
