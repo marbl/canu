@@ -19,12 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSample.C,v 1.6 2011-07-29 01:56:11 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSample.C,v 1.7 2011-08-19 21:13:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 #include <string.h>
 #include <errno.h>
 
@@ -35,7 +36,7 @@ public:
   aRead() {};
   ~aRead() {};
 
-  void  read(FILE *F) {
+  bool  read(FILE *F) {
     fgets(a, 1024, F);
     fgets(b, 1024, F);
     fgets(c, 1024, F);
@@ -48,6 +49,7 @@ public:
       fprintf(stderr, "  %s", d);
       exit(1);
     }
+    return(feof(F) == false);
   };
   void  write(FILE *F) {
     fputs(a, F);
@@ -82,6 +84,8 @@ main(int argc, char **argv) {
 
   uint64    NUMOUTPUT   = 0;        //  Number of pairs to output
 
+  double    FRACTION    = 0.0;      //  Desired fraction of the input
+
   char      path1[FILENAME_MAX];
   char      path2[FILENAME_MAX];
 
@@ -111,6 +115,9 @@ main(int argc, char **argv) {
       //  Desired coverage
       NUMOUTPUT = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      //  Desired fraction
+      FRACTION = atof(argv[++arg]);
 
     } else {
       err++;
@@ -120,16 +127,16 @@ main(int argc, char **argv) {
   }
   if (NAME == NULL)
     err++;
-  if ((GENOMESIZE == 0) && (NUMOUTPUT == 0))
+  if ((GENOMESIZE == 0) && (COVERAGE != 0))
     err++;
-  if ((READLENGTH == 0) && (NUMOUTPUT == 0))
+  if ((READLENGTH == 0) && (COVERAGE != 0))
     err++;
-  if ((COVERAGE == 0) && (NUMOUTPUT == 0))
+  if ((COVERAGE == 0) && (NUMOUTPUT == 0) && (FRACTION == 0.0))
     err++;
   if (err) {
     fprintf(stderr, "\n");
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
-    fprintf(stderr, "    -n N     name (prefix) of the reads\n");
+    fprintf(stderr, "    -n NAME  name (prefix) of the reads\n");
     fprintf(stderr, "    -t T     total number of mate pairs in the input\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  Method 1: specify desired coverage:\n");
@@ -138,21 +145,26 @@ main(int argc, char **argv) {
     fprintf(stderr, "    -c C     desired coverage in the output reads (INTEGER ONLY)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  Method 2: specify desired number of output pairs\n");
-    fprintf(stderr, "    -p N     generate 2N reads, or N pairs of reads.\n");
+    fprintf(stderr, "    -p N     generate 2N reads, or N pairs of reads\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "Program will compute the number of pairs of reads to sample to generate\n");
-    fprintf(stderr, "a set with the desired coverage.\n");
+    fprintf(stderr, "  Method 3: specify a desired fraction of the input:\n");
+    fprintf(stderr, "    -f F     generate F * T pairs of reads (T as above in -t option)\n");
+    fprintf(stderr, "             0.0 < F <= 1.0\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Samples reads from paired Illumina reads NAME.1.fastq and NAME.2.fastq and outputs:\n");
+    fprintf(stderr, "    NAME.Cx.1.fastq and N.Cx.2.fastq (for coverage based sampling)\n");
+    fprintf(stderr, "    NAME.n=N.1.fastq and N.n=N.2.fastq (for coverage based sampling)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "If -t is not supplied, the number of reads will be counted for you.\n");
     fprintf(stderr, "\n");
     if (NAME == NULL)
       fprintf(stderr, "ERROR: no name supplied with -n.\n");
-    if ((GENOMESIZE == 0) && (NUMOUTPUT == 0))
-      fprintf(stderr, "ERROR: no genome size supplied with -g\n");
-    if ((READLENGTH == 0) && (NUMOUTPUT == 0))
-      fprintf(stderr, "ERROR: no read length supplied with -l\n");
-    if ((COVERAGE == 0) && (NUMOUTPUT == 0))
-      fprintf(stderr, "ERROR: no desired coverage supplied with -c\n");
-    if (NUMOUTPUT == 0)
-      fprintf(stderr, "ERROR: no desired number of pairs to output supplied with -p\n");
+    if ((GENOMESIZE == 0) && (COVERAGE != 0))
+      fprintf(stderr, "ERROR: no genome size supplied with -g (when using -c)\n");
+    if ((READLENGTH == 0) && (COVERAGE != 0))
+      fprintf(stderr, "ERROR: no read length supplied with -l (when using -c)\n");
+    if ((COVERAGE == 0) && (NUMOUTPUT == 0) && (FRACTION == 0.0))
+      fprintf(stderr, "ERROR: no desired coverage, number of fraction supplied with -c, -p or -f\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -176,10 +188,10 @@ main(int argc, char **argv) {
     if (errno)
       fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
 
-    for (Ac=0; !feof(Ai); Ac++)
-      Ar.read(Ai);
-    for (Bc=0; !feof(Bi); Bc++)
-      Ar.read(Bi);
+    while (Ar.read(Ai))
+      Ac++;
+    while (Br.read(Bi))
+      Bc++;
 
     fclose(Ai);
     fclose(Bi);
@@ -195,14 +207,15 @@ main(int argc, char **argv) {
     NUMINPUT = Ac;
   }
 
-  if (NUMOUTPUT == 0)
+  if ((NUMOUTPUT == 0) && (COVERAGE > 0))
     NUMOUTPUT = COVERAGE * GENOMESIZE / READLENGTH;
 
-  if (NUMOUTPUT > NUMINPUT) {
+  if ((NUMOUTPUT == 0) && (FRACTION > 0))
+    NUMOUTPUT = (uint64)floor(FRACTION * NUMINPUT);
+
+  if ((NUMOUTPUT > NUMINPUT) && (COVERAGE > 0))
     fprintf(stderr, "ERROR: not enough reads, "F_U64" in input, "F_U64" needed, for desired coverage "F_U64".\n",
-            NUMINPUT, NUMOUTPUT, COVERAGE);
-    exit(1);
-  }
+            NUMINPUT, NUMOUTPUT, COVERAGE), exit(1);
 
   ids  = new uint32   [NUMINPUT];
   save = new char     [NUMINPUT];
@@ -265,18 +278,14 @@ main(int argc, char **argv) {
   uint64 i=0;
   uint64 s=0;
 
-  Ar.read(Ai);
-  Br.read(Bi);
-
-  for (; !feof(Ai); i++) {
+  while (Ar.read(Ai) && Br.read(Bi)) {
     if (save[i]) {
       Ar.write(Ao);
       Br.write(Bo);
       s++;
     }
 
-    Ar.read(Ai);
-    Br.read(Bi);
+    i++;
   }
 
   if (i > NUMINPUT) {
