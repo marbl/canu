@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.55 2011-06-03 17:34:19 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.56 2011-08-19 20:33:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1285,8 +1285,12 @@ processMate(gkFragment *fr,
   assert(al.pIdentity  > 0);
   assert(al.pCoverageA > 0);
 
-  lSize = al.begJ           - fr->clrBgn;
-  rSize = al.lenB - al.endJ - fr->clrBgn;;
+  //  lenB is the trimmed length of the read.  begJ and endJ are the coordinates in the UNtrimmed
+  //  read.  When computing rSize, add in the clrBgn to convert lenB to the UNtrimmed coordiante of
+  //  the end of the read.
+  //
+  lSize = al.begJ - fr->clrBgn;
+  rSize = al.lenB + fr->clrBgn - al.endJ;
 
   assert(lSize <= fr->gkFragment_getSequenceLength());
   assert(rSize <= fr->gkFragment_getSequenceLength());
