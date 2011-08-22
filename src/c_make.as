@@ -90,6 +90,8 @@ endif
 
 
 
+#  NOTE:  using -pedantic generates many warnings "use of C99 long long integer constant" in kmer
+
 ifeq ($(OSTYPE), FreeBSD)
   ifeq ($(MACHINETYPE), i386)
     ARCH_LDFLAGS    += -pthread -lthr -lm
@@ -98,8 +100,8 @@ ifeq ($(OSTYPE), FreeBSD)
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      = -pthread               -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
-    ARCH_CFLAGS      = -pthread -Wall -Wextra -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -pedantic
+    ARCH_CFLAGS      =  -pthread               -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
+    ARCH_CFLAGS      =  -pthread -Wall -Wextra -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
   endif
 
   ifeq ($(BUILDCOVERAGE), 1)
@@ -143,7 +145,7 @@ ifeq ($(OSTYPE), Darwin)
     else
       ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wshorten-64-to-32  -fast
       ARCH_CfLAGS   += -Wextra
-      ARCH_CFLAGS   += -pedantic
+#     ARCH_CFLAGS   += -pedantic  (see above about pedantic)
       ARCH_LDFLAGS  += -m64 -lm
     endif
   endif
