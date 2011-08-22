@@ -8,6 +8,8 @@ use Cwd;
 use Carp;
 use FileHandle;
 
+use Sys::Hostname;
+
 use POSIX qw(ceil floor sys_wait_h);
 
 my $bin = undef;  #  Path to binaries, set once in main.
@@ -18,7 +20,9 @@ my $asm = undef;  #  Name of our assembly.
 my $numFrags;
 my %global;
 my %synops;
+
 my $commandLineOptions = "";
+my $specLog            = "";
 
 my @specFiles;
 my @specOpts;
@@ -701,13 +705,16 @@ sub setParametersFromFile ($@) {
     #  Client should be ensuring that the file exists before calling this function.
     die "specFile '$specFile' not found.\n"  if (! -e "$specFile");
 
-    print STDERR "#\n";
-    print STDERR "#  Reading options from '$specFile'\n";
-    print STDERR "#\n";
+    $specLog .= "\n";
+    $specLog .= "###\n";
+    $specLog .= "###  Reading options from '$specFile'\n";
+    $specLog .= "###\n";
+    $specLog .= "\n";
+
     open(F, "< $specFile") or caFailure("Couldn't open '$specFile'", undef);
 
     while (<F>) {
-        print STDERR $_;
+        $specLog .= $_;
 
         s/^\s+//;
         s/\s+$//;
@@ -743,13 +750,15 @@ sub setParametersFromCommandLine(@) {
     my @specOpts = @_;
 
     if (scalar(@specOpts) > 0) {
-        print STDERR "#\n";
-        print STDERR "#  Reading options from the command line.\n";
-        print STDERR "#\n";
+        $specLog .= "\n";
+        $specLog .= "###\n";
+        $specLog .= "###  Reading options from the command line.\n";
+        $specLog .= "###\n";
+        $specLog .= "\n";
     }
 
     foreach my $s (@specOpts) {
-        print STDERR "$s\n";
+        $specLog .= "$s\n";
 
         if ($s =~ m/\s*(\w*)\s*=(.*)/) {
             my ($var, $val) = ($1, $2);
@@ -1018,10 +1027,25 @@ sub checkDirectories () {
     system("mkdir -p $wrk") if (! -d $wrk);
     chmod 0755, "$wrk";
 
+    system("mkdir -p $wrk/runCA-logs") if (! -d "$wrk/runCA-logs");
+    chmod 0755, "$wrk/runCA-logs";
+
     $ENV{'AS_RUNCA_DIRECTORY'} = $wrk;
 
     caFailure("directory '$wrk' doesn't exist (-d option) and couldn't be created", undef) if (! -d $wrk);
 }
+
+
+sub outputSpecLog () {
+    my $time = time();
+    my $host = hostname();
+    my $pid  = $$;
+
+    open(F, "> $wrk/runCA-logs/${time}_${host}_${pid}_runCA");
+    print F $specLog;
+    close(F);
+}
+
 
 
 sub findFirstCheckpoint ($) {
@@ -5544,6 +5568,7 @@ if ((getGlobal("scriptOnGrid") == 1) &&
 }
 
 checkDirectories();
+outputSpecLog();
 
 #  If not already on the grid, see if we should be on the grid.
 #  N.B. the arg MUST BE undef.
