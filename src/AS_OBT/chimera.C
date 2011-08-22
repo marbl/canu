@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.46 2011-08-08 02:20:41 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.47 2011-08-22 04:53:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,11 +46,11 @@ const char *mainid = "$Id: chimera.C,v 1.46 2011-08-08 02:20:41 brianwalenz Exp 
 //  WITH_REPORT_FULL will ALL overlap evidence.
 //  REPORT_OVERLAPS  will print the incoming overlaps in the log.
 //
-#undef WITH_REPORT_FULL
-#undef REPORT_OVERLAPS
+#define WITH_REPORT_FULL
+#define REPORT_OVERLAPS
 
-#undef DEBUG_ISLINKER
-#undef DEBUG_INTERVAL
+#define DEBUG_ISLINKER
+#define DEBUG_INTERVAL
 
 
 FILE   *summaryFile = NULL;
@@ -109,17 +109,21 @@ uint32   chimeraDetectedLinker   = 0;
 
 class clear_t {
 public:
-  uint64   deleted  :1;
-  uint64   doFix    :1;
+  uint64   deleted     :1;
+  uint64   doFix       :1;
 
-  uint64   length   :AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   initL    :AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   initR    :AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   mergL    :AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   mergR    :AS_READ_MAX_NORMAL_LEN_BITS;
+  //uint64   tntIsLinker :1;
+  //uint64   tntIsChimer :1;
 
-  uint64   tntBeg   :AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   tntEnd   :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   length      :AS_READ_MAX_NORMAL_LEN_BITS;
+
+  uint64   initL       :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   initR       :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   mergL       :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   mergR       :AS_READ_MAX_NORMAL_LEN_BITS;
+
+  uint64   tntBeg      :AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   tntEnd      :AS_READ_MAX_NORMAL_LEN_BITS;
 };
 
 
@@ -557,25 +561,22 @@ process(const AS_IID           iid,
   if ((doUpdate) && (clear[iid].doFix == false))
     doUpdate = false;
 
-  //fprintf(reportFile, "process "F_IID"\n", iid);
-
   uint32           loLinker = clear[iid].tntBeg;
   uint32           hiLinker = clear[iid].tntEnd;
   bool             isLinker = false;
 
-
-  //  If this read has left over linker from gatekeeper, we need to
-  //  decide, now, if that region is supported by overlaps.  If it
-  //  isn't we need to remove overlaps from here so that it is
-  //  properly detected as chimeric.
+  //  If this read has a region marked as a potential chimeric join (Illumina reads from merTrim),
+  //  or as potential linker (454 mated reads from sffToCA), decide if that region is supported by
+  //  overlaps.  If it isn't we need to remove overlaps from here so that it is properly detected as
+  //  chimeric later on.
   //
-  if (loLinker < hiLinker) {
+  if (loLinker <= hiLinker) {
     uint32  isectbefore = 0;
     uint32  isect       = 0;
     uint32  isectafter  = 0;
 
-    //  Count the number of overlaps intersecting this region, compare
-    //  to the number of overlaps in the surrounding areas.
+    //  Count the number of overlaps intersecting this region, compare to the number of overlaps in
+    //  the surrounding areas.
     //
     //               ---this---
     //               ----------        not isect; doesn't span more than the region
@@ -585,11 +586,9 @@ process(const AS_IID           iid,
     //                          -----  isectafter
     //        -------------            **
     //
-    //  ** - This is trouble.  If this region is genomic dna and not
-    //  linker, we expect to have more than enough true isect to
-    //  notice it.  Ideally, we'd be using the overlap types (as
-    //  above) to notice that this overlap has more sequence spurring
-    //  off because it diagrees with the linker.
+    //  ** - This is trouble.  If this region is genomic dna and not linker, we expect to have more
+    //  than enough true isect to notice it.  Ideally, we'd be using the overlap types (as above) to
+    //  notice that this overlap has more sequence spurring off because it diagrees with the linker.
     //
     for (uint32 i=0; i<olist->length(); i++) {
       overlap2_t  *ovl   = olist->get(i);
@@ -982,10 +981,6 @@ process(const AS_IID           iid,
     chimeraDetectedGap++;
     isChimera = true;
   }
-
-
-
-
 
 
 
