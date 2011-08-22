@@ -55,10 +55,17 @@ BAT_SOURCES = AS_BAT_ArrivalRate.C \
               AS_BAT_Unitig.C
 BAT_OBJECTS = $(BAT_SOURCES:.C=.o)
 
-SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C $(BAT_SOURCES)
-OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o $(BAT_OBJECTS)
+DNC_SOURCES = classifyMates-BFS.C \
+              classifyMates-DFS.C \
+              classifyMates-RFS.C \
+              classifyMates-globalData.C
+DNC_OBJECTS = $(DNC_SOURCES:.C=.o)
 
-CXX_PROGS   = bogart bogus bogusness classifyMates
+
+SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C classifyMatesApply.C $(BAT_SOURCES) $(DNC_SOURCES)
+OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o classifyMatesApply.o $(BAT_OBJECTS) $(DNC_OBJECTS)
+
+CXX_PROGS   = bogart bogus bogusness classifyMates classifyMatesApply
 
 
 
@@ -107,8 +114,9 @@ include $(LOCAL_WORK)/src/c_make.as
 all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 	@test -n nop
 
-bogart:              bogart.o       $(BAT_OBJECTS) libCA.a
-petey:               petey.o        $(BAT_OBJECTS) libCA.a
-bogus:               bogus.o                       libCA.a AS_BAT_bogusUtil.o
-bogusness:           bogusness.o                   libCA.a AS_BAT_bogusUtil.o
-classifyMates:       classifyMates.o               libCA.a libutil.a
+bogart:              bogart.o             $(BAT_OBJECTS) libCA.a
+petey:               petey.o              $(BAT_OBJECTS) libCA.a
+bogus:               bogus.o                             libCA.a AS_BAT_bogusUtil.o
+bogusness:           bogusness.o                         libCA.a AS_BAT_bogusUtil.o
+classifyMates:       classifyMates.o      $(DNC_OBJECTS) libCA.a libutil.a
+classifyMatesApply:  classifyMatesApply.o $(DNC_OBJECTS) libCA.a libutil.a

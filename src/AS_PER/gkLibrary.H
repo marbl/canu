@@ -86,6 +86,9 @@ public:
     doRemoveSpurReads          = 1;  //  NOTE, NOT ZERO!
     doRemoveChimericReads      = 1;  //  NOTE, NOT ZERO!
 
+    //chimeraFromLinker          = 0;
+    //chimeraFromBiotin          = 0;
+
     doConsensusCorrection      = 0;
 
     spareGKP                   = 0;

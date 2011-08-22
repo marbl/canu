@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.14 2011-07-29 02:20:20 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.15 2011-08-22 16:44:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +39,8 @@ const char *mainid = "$Id: merTrim.C,v 1.14 2011-07-29 02:20:20 brianwalenz Exp 
 #include "positionDB.H"
 #include "libmeryl.H"
 
+#include "merTrimResult.H"
+
 uint32  VERBOSE = 0;
 
 //  Correction parameters.  Bases with less than MIN_CORRECT evidence are subject to correction.
@@ -46,7 +48,7 @@ uint32  VERBOSE = 0;
 //  the correction is weaker.
 
 #define MIN_CORRECT         6
-#define MIN_VERIFIED        3
+#define MIN_VERIFIED        2
 
 #define ALLGOOD 1
 #define ALLCRAP 2
@@ -60,17 +62,18 @@ uint32  VERBOSE = 0;
 class mertrimGlobalData {
 public:
   mertrimGlobalData() {
-    gkpPath        = 0L;
-    merCountsFile  = 0L;
-    merSize        = 22;
-    compression    = 0;
-    numThreads     = 4;
-    beVerbose      = false;
+    gkpPath         = 0L;
+    merCountsFile   = 0L;
+    merSize         = 22;
+    compression     = 0;
+    numThreads      = 4;
+    beVerbose       = false;
+    forceCorrection = false;
 
-    gkRead         = NULL;
-    edb            = NULL;
+    gkRead          = NULL;
+    edb             = NULL;
 
-    logFile        = stderr;
+    resFile         = NULL;
 
     tBgn = 0;
     tEnd = 0;
@@ -80,8 +83,8 @@ public:
   ~mertrimGlobalData() {
     delete edb;
     delete gkRead;
-    if (logFile != stderr)
-      fclose(logFile);
+    if (resFile != NULL)
+      fclose(resFile);
   };
 
   void              initialize(void) {
@@ -119,8 +122,9 @@ public:
   uint32        compression;
   uint32        numThreads;
   bool          beVerbose;
+  bool          forceCorrection;
 
-  FILE         *logFile;
+  FILE         *resFile;
 
   //  Global data
   //
@@ -1020,7 +1024,7 @@ void
 mertrimComputation::analyzeChimer(void) {
 
   //  Examine the coverage for a specific pattern that indicates a chimeric read (or a read with an
-  //  uncorrected error):  a valley in the coverage:  ..../---\./---\
+  //  uncorrected error):  a valley in the coverage:  ..../---\./---\...
 
   assert(suspectedChimer    == false);
   assert(suspectedChimerBgn == 0);
@@ -1080,9 +1084,8 @@ mertrimComputation::analyzeChimer(void) {
 
   //  By chance, mers will cross the junction.  This will inflate the coverage count.
   //
-  //  If the coverage is 7, then we've extended past the suspected chimeric junction by 7 bases, and
-  //  there is 0.002% chance this is due to spurious crossing of a chimeric join, so we declare that
-  //  the read is not chimeric.
+  //  Ideally, there is a single base added between the genomic sequences, and so our
+  //  coverage should drop to zero.  Or the chimera is from an abutment and the coverage will be one.
   //
   //  The probability that we're extending past the chimeric region by X bases is 0.25^X:
   //      0 - 0.25^0 = 100%
@@ -1095,7 +1098,10 @@ mertrimComputation::analyzeChimer(void) {
   //      7 - 0.25^7 =   0.0061%
   //      8 - 0.25^8 =   0.0015%
   //
-  if (fcov > 7)
+  //  Unfortunately, we cannot reliably tell how far we've passed the junction from coverage alone.
+  //  We blindly declare that 7 is too high.
+
+  if (fcov >= 6)
     return;
 
   //  For a true chimeric junction, the pattern we should see is:
@@ -1108,6 +1114,7 @@ mertrimComputation::analyzeChimer(void) {
   //  different from the real sequence -- where in the chimeric junction case, the base after the
   //  junction has a 25% chance of being the same as the true next base.
   //
+#warning NOT CORRECT
   if (floc == rloc + fcov) {
     suspectedChimer    = true;
     suspectedChimerBgn = rloc;
@@ -1115,17 +1122,16 @@ mertrimComputation::analyzeChimer(void) {
     return;
   }
 
-  //  If the 'loc' pattern isn't met, there must be something else going on.  For example, two
-  //  uncorrected errors closer than the mer size.  However, we see the same pattern if there is an
-  //  uncorrected error near the junction.
+  //  If the 'loc' pattern isn't met, there must be something else going on.  Do we err on the side
+  //  of caution and label this as chimeric read??
   //
-  //  Do we err on the side of caution and label this as chimeric read??
-  //
-  //  One instance was from two uncorrected errors next to each other.  Not sure why this failed
-  //  to correct.
+  //  Examples:
+  //   * two uncorrected errors next to each other.  We cannot correct these.
+  //   * a pile of bases in the middle of a read with lots of low quality on the end.
+  //     the bases were composed of T's and A's only.
 
-  fprintf(stderr, "CHIMER?  floc=%d rloc=%d  cov=%d\n",
-          floc, rloc, fcov);
+  //fprintf(stderr, "CHIMER?  floc=%d rloc=%d  cov=%d\n",
+  //        floc, rloc, fcov);
 
   return;
 }
@@ -1215,7 +1221,6 @@ mertrimWorker(void *G, void *T, void *S) {
   //  Read is perfect!
   //
   if      (eval == ALLGOOD) {
-    //resultAllGood++;
     goto finished;
   }
 
@@ -1223,7 +1228,6 @@ mertrimWorker(void *G, void *T, void *S) {
   //  is a slight chance it has a 2-copy mer that will pull it in, or maybe the mate will.
   //
   if (eval == ALLCRAP) {
-    //resultAllCrap++;
     s->attemptTrimming();
     goto finished;
   }
@@ -1239,21 +1243,20 @@ mertrimWorker(void *G, void *T, void *S) {
   //  Correction worked perfectly, we're done.
   //
   if ((eval == ALLGOOD) && (s->getNumCorrected() < 4)) {
-    //resultCorrected++;
     goto finished;
   }
 
   eval = s->attemptTrimming();
 
   if ((eval == ALLGOOD) && (s->getNumCorrected() < 4)) {
-    //resultTrimmed++;
     goto finished;
   }
 
-  //resultUnverified++;
 
  finished:
-  s->analyzeChimer();
+
+  //  SKIPPING until the heuristics are worked out.
+  //s->analyzeChimer();
 
   if (VERBOSE) {
     s->dump(stderr, "FINAL");
@@ -1273,7 +1276,8 @@ mertrimReader(void *G) {
     g->gkRead->gkStore_getFragment(g->tCur, &s->fr, GKFRAGMENT_QLT);
     g->tCur++;
 
-    if (g->gkRead->gkStore_getLibrary(s->fr.gkFragment_getLibraryIID())->doTrim_initialMerBased) {
+    if ((g->forceCorrection) ||
+        (g->gkRead->gkStore_getLibrary(s->fr.gkFragment_getLibraryIID())->doTrim_initialMerBased)) {
       s->initialize(g);
     } else {
       delete s;
@@ -1290,9 +1294,7 @@ void
 mertrimWriter(void *G, void *S) {
   mertrimGlobalData    *g = (mertrimGlobalData  *)G;
   mertrimComputation   *s = (mertrimComputation *)S;
-
-  bool  delFrag = false;
-  char  chimer[256];
+  mertrimResult         res;
 
   //  The get*() functions return positions in the original uncorrected sequence.  They
   //  map from positions in the corrected sequence (which has inserts and deletes) back
@@ -1302,25 +1304,22 @@ mertrimWriter(void *G, void *S) {
   assert(s->getClrBgn() <  s->getSeqLen());
   assert(s->getClrEnd() <= s->getSeqLen());
 
+  res.readIID = s->fr.gkFragment_getReadIID();
+
   if ((s->getClrEnd() <= s->getClrBgn()) ||
       (s->getClrEnd() - s->getClrBgn() < AS_READ_MIN_LEN))
-    delFrag = true;
-
-  if (s->suspectedChimer)
-    sprintf(chimer, "\t(suspected chimeric junction %u-%u)",
-            s->suspectedChimerBgn,
-            s->suspectedChimerEnd);
+    res.deleted = true;
   else
-    chimer[0] = 0;
+    res.deleted = false;
 
-  if (g->logFile)
-    fprintf(g->logFile, "%s,%d\t%d\t%d%s%s\n",
-            AS_UID_toString(s->fr.gkFragment_getReadUID()),
-            s->fr.gkFragment_getReadIID(),
-            s->getClrBgn(),
-            s->getClrEnd(),
-            chimer,
-            delFrag ? "\t(deleted)" : "");
+  res.clrBgn  = s->getClrBgn();
+  res.clrEnd  = s->getClrEnd();
+
+  res.chimer  = s->suspectedChimer;
+  res.chmBgn  = s->suspectedChimerBgn;
+  res.chmEnd  = s->suspectedChimerEnd;
+
+  res.writeResult(g->resFile);
 
   delete s;
 }
@@ -1368,12 +1367,15 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE++;
-
-    } else if (strcmp(argv[arg], "-l") == 0) {
+ 
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      g->forceCorrection = true;
+ 
+    } else if (strcmp(argv[arg], "-o") == 0) {
       errno = 0;
-      g->logFile = fopen(argv[++arg], "w");
+      g->resFile = fopen(argv[++arg], "w");
       if (errno)
-        fprintf(stderr, "Failed to open logfile '%s': %s\n", argv[arg], strerror(errno)), exit(1);
+        fprintf(stderr, "Failed to open output file '%s': %s\n", argv[arg], strerror(errno)), exit(1);
 
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
@@ -1391,16 +1393,6 @@ main(int argc, char **argv) {
   g->initialize();
 
   gkFragment   fr;
-
-#if 0
-  uint32       resultAllGood        = 0;  //  All read verified as good
-  uint32       resultAllCrap        = 0;  //  No mers found
-  uint32       resultCorrected      = 0;  //  Only a few bases needed to change to make it good
-  uint32       resultTrimmed        = 0;  //  After trimming off crud, it is now good
-  uint32       resultUnverified     = 0;
-  uint32       resultDeleted        = 0;
-#endif
-
 
 #if 0
   //  DEBUG, non-threaded version.
@@ -1434,16 +1426,6 @@ main(int argc, char **argv) {
     ss->setThreadData(w, new mertrimThreadData(g));  //  these leak
 
   ss->run(g, g->beVerbose);  //  true == verbose
-#endif
-
-
-#if 0
-  fprintf(stderr, "resultAllGood        %d\n", resultAllGood);
-  fprintf(stderr, "resultAllCrap        %d\n", resultAllCrap);
-  fprintf(stderr, "resultCorrected      %d\n", resultCorrected);
-  fprintf(stderr, "resultTrimmed        %d\n", resultTrimmed);
-  fprintf(stderr, "resultUnverified     %d\n", resultUnverified);
-  fprintf(stderr, "resultDeleted        %d\n", resultDeleted);
 #endif
 
   delete g;

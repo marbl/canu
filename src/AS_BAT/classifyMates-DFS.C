@@ -1,3 +1,33 @@
+
+/**************************************************************************
+ * Copyright (C) 2011, J Craig Venter Institute. All rights reserved.
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received (LICENSE.txt) a copy of the GNU General Public
+ * License along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *************************************************************************/
+
+static const char *rcsid = "$Id: classifyMates-DFS.C,v 1.8 2011-08-22 16:44:19 brianwalenz Exp $";
+
+#include "AS_global.h"
+
+#include "classifyMates.H"
+#include "classifyMates-globalData.H"
+
+#include <set>
+using namespace std;
+
+
 //  Attempt to find a path from the 5' end of this fragment to the 5' end of the next iid
 //         <---- -path- ---->
 //  If we find a path, declare this a PE and not a MP.
@@ -95,6 +125,6 @@ cmGlobalData::doSearchDFS(cmComputation *c,
   }
 
   //  Not found.
-  assert(c->sFound == false);
+  assert(c->result.classified == false);
 }
 

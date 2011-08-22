@@ -504,6 +504,14 @@ sub setDefaults () {
     $global{"ovlCorrConcurrency"}          = 4;
     $synops{"ovlCorrConcurrency"}          = "If not SGE, number of overlap error correction processes to run at the same time";
 
+    #####  Illumina MP Classification
+
+    $global{"dncMPlibraries"}              = undef;
+    $synops{"dncMPlibraries"}              = "List of library names to run the 'de novo classifier' on";
+
+    $global{"dncBBlibraries"}              = undef;
+    $synops{"dncBBlibraries"}              = "List of library names to use as the bacbone in the 'de novo classifier'";
+
     #####  Unitigger & BOG Options
 
     $global{"unitigger"}                   = undef;
@@ -842,6 +850,7 @@ sub setParameters () {
                           "deDuplication",
                           "finalTrimming",
                           "chimeraDetection",
+                          "classifyMates",
                           "unitigger",
                           "scaffolder",
                           "CGW",
@@ -876,6 +885,7 @@ sub setParameters () {
                          "OBT",
                          "overlapBasedTrimming",
                          "unitigger",
+                         "classifyMates",
                          "utgcns",
                          "consensusAfterUnitigger",
                          "scaffolder",
@@ -1284,6 +1294,10 @@ sub pleaseExecute ($) {
 sub runCommand ($$) {
     my $dir = shift @_;
     my $cmd = shift @_;
+
+    if (! -d $dir) {
+        caFailure("Directory '$dir' doesn't exist, can't run command.\n", "");
+    }
 
     my $t = localtime();
     my $d = time();
@@ -2605,8 +2619,8 @@ sub findMBTFailures ($) {
 
     for (my $i=1; $i<=$mbtJobs; $i++) {
         my $jobid = substr("0000" . $i, -4);
-        if (-e "$wrk/0-mertrim/$asm.merTrim.$jobid.log.WORKING") {
-            #print STDERR "FAILURE $wrk/0-mertrim/$asm.merTrim.$jobid.log.WORKING\n";
+        if (-e "$wrk/0-mertrim/$asm.$jobid.merTrim.WORKING") {
+            #print STDERR "FAILURE $wrk/0-mertrim/$asm.$jobid.merTrim.WORKING\n";
             $failures++;
         }
     }
@@ -2620,8 +2634,8 @@ sub findMBTSuccess ($) {
 
     for (my $i=1; $i<=$mbtJobs; $i++) {
         my $jobid = substr("0000" . $i, -4);
-        if (-e "$wrk/0-mertrim/$asm.merTrim.$jobid.log") {
-            #print STDERR "SUCCESS $wrk/0-mertrim/$asm.merTrim.$jobid.log\n";
+        if (-e "$wrk/0-mertrim/$asm.$jobid.merTrim") {
+            #print STDERR "SUCCESS $wrk/0-mertrim/$asm.$jobid.merTrim\n";
             $successes++;
         }
     }
@@ -2662,12 +2676,6 @@ sub merTrim {
     #
     #  Run mer trim on the grid.
     #
-    #  Well, we'd LIKE to run it on the grid, but can't.  merTrim updates the gkpStore
-    #  after each fragment it processes, so we can't (reliably) have multiple processes
-    #  running at the same time.  We could make merTrim write a log of changes, then apply
-    #  then when all processes are done.  I'm not sure there will be any benefit -- we'll still
-    #  have one giant process that needs to read/write the whole gkpStore.
-    #
 
     meryl();
 
@@ -2707,7 +2715,7 @@ sub merTrim {
         print F "  exit\n";
         print F "fi\n";
         print F "\n";
-        print F "if [ -e $wrk/0-mertrim/$asm.merTrim.\$jobid.log ]; then\n";
+        print F "if [ -e $wrk/0-mertrim/$asm.\$jobid.merTrim ]; then\n";
         print F "  echo Job previously completed successfully.\n";
         print F "  exit\n";
         print F "fi\n";
@@ -2730,10 +2738,10 @@ sub merTrim {
         print F " -m  $merSize \\\n";
         print F " -c  $merComp \\\n";
         print F " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
-        print F " -l  $wrk/0-mertrim/$asm.merTrim.\$jobid.log.WORKING \\\n";
-        print F " >   $wrk/0-mertrim/$asm.merTrim.\$jobid.err 2>&1 \\\n";
+        print F " -o  $wrk/0-mertrim/$asm.\$jobid.merTrim.WORKING \\\n";
+        print F " >   $wrk/0-mertrim/$asm.\$jobid.err 2>&1 \\\n";
         print F "&& \\\n";
-        print F "mv $wrk/0-mertrim/$asm.merTrim.\$jobid.log.WORKING $wrk/0-mertrim/$asm.merTrim.\$jobid.log\n";
+        print F "mv $wrk/0-mertrim/$asm.\$jobid.merTrim.WORKING $wrk/0-mertrim/$asm.\$jobid.merTrim\n";
         print F "\n";
         print F "exit 0\n";
         close(F);
@@ -2773,7 +2781,7 @@ sub merTrim {
         } else {
             for (my $i=1; $i<=$mbtJobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                schedulerSubmit("$wrk/0-mertrim/mertrim.sh $i > $wrk/0-mertrim/$asm.merTrim.$out.err 2>&1");
+                schedulerSubmit("$wrk/0-mertrim/mertrim.sh $i > $wrk/0-mertrim/$asm.$out.err 2>&1");
             }
             
             schedulerSetNumberOfProcesses(getGlobal("mbtConcurrency"));
@@ -2790,7 +2798,7 @@ sub merTrim {
     }
 
 
-    if (runCommand($wrk, "find $wrk/0-mertrim -name \\*.merTrim.\\*.log -print > $wrk/0-mertrim/$asm.merTrim.list")) {
+    if (runCommand($wrk, "find $wrk/0-mertrim -name \\*.merTrim -print | sort > $wrk/0-mertrim/$asm.merTrim.list")) {
         caFailure("failed to generate a list of all the merTrim results", undef);
     }
 
@@ -4092,6 +4100,182 @@ sub overlapCorrection {
         }
     }
 }
+
+################################################################################
+################################################################################
+################################################################################
+
+sub classifyMates () {
+
+    #  This is configuration hell.  For now, we just ask for the library to classify.
+    #  We could later extend with parallelization, run time, memory, etc, etc.
+    #
+    #  classifyIlluminaBB=<libraryname>,<libraryname>,...
+    #  classifyIlluminaMP=<libraryname>,<libraryname>,...
+
+    my @libsToClassify = split ',', getGlobal("dncMPlibraries");
+    my @backboneToUse  = split ',', getGlobal("dncBBlibraries");
+
+    if ((scalar(@libsToClassify) == 0) ||
+        (scalar(@backboneToUse)  == 0) ||
+        (-e "$wrk/2-classifyMates/classify.success")) {
+        return;
+    }
+
+    system("mkdir $wrk/2-classifyMates") if (! -e "$wrk/2-classifyMates");
+
+    #  Load a map of library name to IID.
+
+    my %libToIID;
+
+    open(F, "$bin/gatekeeper -dumplibraries -tabular $wrk/$asm.gkpStore |");
+    while (<F>) {
+        my @v = split '\s+', $_;
+        $libToIID{$v[0]} = $v[1];
+    }
+    close(F);
+
+    #  Map the backbone library names to a IIDs.
+
+    my $bbIID;
+
+    foreach my $lib (@backboneToUse) {
+        if (defined($bbIID)) {
+            $bbIID .= ",$libToIID{$lib}";
+        } else {
+            $bbIID  = $libToIID{$lib};
+        }
+    }
+
+    #  Build jobs to run.  These are NOT optimal, but building optimal configurations is probably
+    #  impossible.  You can save memory by classifying each MP library seperately, but doing all at
+    #  once is easier.
+    #
+    #  The jobs are built, but they are only templates.  It is up to the user to run them, and
+    #  user could modify the way they are run.
+
+    my @classifyJobs;
+    my $classifiedOutputs = "";
+
+    foreach my $lib (@libsToClassify) {
+        my $mpIID = $libToIID{$lib};
+
+        open(F, "> $wrk/2-classifyMates/classify-$lib.sh");
+        print F "#!/bin/sh\n";
+        print F "\n";
+        print F "\n";
+        print F "if [ ! -e \"$wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000\" ] ; then\n";
+        print F "  $bin/classifyMates \\\n";
+        print F "    -G $wrk/$asm.gkpStore \\\n";
+        print F "    -O $wrk/$asm.ovlStore \\\n";
+        print F "    -t 8 \\\n";
+        print F "    -m 128 \\\n";
+        print F "    -sl $mpIID \\\n";
+        print F "    -bl $bbIID \\\n";
+        print F "    -outtie -min  100 -max 1500 -bfs 100000 \\\n";
+        print F "    -o $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000.WORKING \\\n";
+        print F "  && \\\n";
+        print F "  mv -i \\\n";
+        print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000.WORKING \\\n";
+        print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000\n";
+        print F "fi\n";
+        print F "\n";
+        #print F "\n";
+        #print F "if [ ! -e \"$wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000\" ] ; then\n";
+        #print F "  $bin/classifyMates \\\n";
+        #print F "    -G $wrk/$asm.gkpStore \\\n";
+        #print F "    -O $wrk/$asm.ovlStore \\\n";
+        #print F "    -t 8 \\\n";
+        #print F "    -m 128 \\\n";
+        #print F "    -sl $mpIID \\\n";
+        #print F "    -bl $bbIID \\\n";
+        #print F "    -outtie -min  100 -max 1500 -rfs 10000 \\\n";
+        #print F "    -o $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000.WORKING \\\n";
+        #print F "  && \\\n";
+        #print F "  mv -i \\\n";
+        #print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000.WORKING \\\n";
+        #print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000\n";
+        #print F "fi\n";
+        #print F "\n";
+        #
+        #$classifiedOutputs .= "  -r $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000 \\\n";
+        #
+        #print F "\n";
+        #print F "if [ ! -e \"$wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000\" ] ; then\n";
+        #print F "  $bin/classifyMates \\\n";
+        #print F "    -G $wrk/$asm.gkpStore \\\n";
+        #print F "    -O $wrk/$asm.ovlStore \\\n";
+        #print F "    -t 8 \\\n";
+        #print F "    -m 128 \\\n";
+        #print F "    -sl $mpIID \\\n";
+        #print F "    -bl $bbIID \\\n";
+        #print F "    -innie  -min 1500 -max 9000 -bfs 100000 \\\n";
+        #print F "    -o $wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000.WORKING \\\n";
+        #print F "  && \\\n";
+        #print F "  mv -i \\\n";
+        #print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000.WORKING \\\n";
+        #print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000\n";
+        #print F "fi\n";
+        #
+        #$classifiedOutputs .= "  -r $wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000 \\\n";
+        #
+        print F "if [ ! -e \"$wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000\" ] ; then\n";
+        print F "  exit 1\n";
+        print F "fi\n";
+        print F "\n";
+        print F "exit 0\n";
+        close(F);
+
+        chmod 0755, "$wrk/2-classifyMates/classify-$lib.sh";
+
+        push @classifyJobs, "$wrk/2-classifyMates/classify-$lib.sh";
+        $classifiedOutputs .= "  -r $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000 \\\n";
+    }
+
+    open(F, "> $wrk/2-classifyMates/classify-apply.sh");
+    print F "#!/bin/sh\n";
+    print F "\n";
+    print F "$bin/classifyMatesApply \\\n";
+    print F "  -G $wrk/$asm.gkpStore \\\n";
+    print F "  -p \\\n";
+    print F "$classifiedOutputs";  #  NO INDENTATION!  NO LINE CONTINUATION!  Both are in the string directly.
+    print F "  -o $wrk/2-classifyMates/$asm.classified.gkpStore.edit \\\n";
+    print F "> $wrk/2-classifyMates/$asm.classified.log \\\n";
+    print F "&& \\\n";
+    print F "$bin/gatekeeper --edit \\\n";
+    print F "  $wrk/2-classifyMates/$asm.classified.gkpStore.edit \\\n";
+    print F "  $wrk/$asm.gkpStore \\\n";
+    print F "> $wrk/2-classifyMates/$asm.classified.gkpStore.edit.out \\\n";
+    print F "&& \\\n";
+    print F "touch $wrk/2-classifyMates/classify.success\n";
+    print F "\n";
+    print F "exit 0\n";
+    close(F);
+
+    chmod 0755, "$wrk/2-classifyMates/classify-apply.sh";
+
+    #  Force the stop.  User must run scripts by hand.
+
+    stopBefore("classifyMates", "");
+
+    foreach my $j (@classifyJobs) {
+        if (runCommand("$wrk/2-classifyMates", $j)) {
+            caFailure("failed to run classify mates command $j", undef);
+        }
+    }
+
+    if (runCommand("$wrk/2-classifyMates", "$wrk/2-classifyMates/classify-apply.sh")) {
+        caFailure("failed to apply classify mates results", undef);
+    }
+    if (! -e "$wrk/2-classifyMates/classify.success") {
+        caFailure("classifyMatesApply failed.", "");
+    }
+
+    stopAfter("classifyMates");
+}
+
+
+
 
 ################################################################################
 ################################################################################
@@ -5584,6 +5768,7 @@ createOverlapJobs("normal");
 checkOverlap("normal");
 createOverlapStore();
 overlapCorrection();
+classifyMates();
 unitigger();
 postUnitiggerConsensus();
 scaffolder();
