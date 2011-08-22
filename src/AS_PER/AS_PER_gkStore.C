@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.21 2011-07-25 20:00:47 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.22 2011-08-22 04:41:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -316,6 +316,9 @@ gkStore::gkStore_construct(const char * path, int creatable, int writable, int d
     gkStore_open(writable, doNotUseUIDs);
   } else if (creatable) {
     gkStore_create();
+  } else if (AS_UTL_fileExists(name, FALSE, FALSE)) {
+    fprintf(stderr, "gkStore::gkStore()-- GateKeeper Store '%s' isn't writable.\n", storePath);
+    exit(1);
   } else {
     fprintf(stderr, "gkStore::gkStore()-- GateKeeper Store '%s' doesn't exist.\n", storePath);
     exit(1);
