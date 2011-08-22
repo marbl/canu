@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.15 2011-08-21 18:21:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.16 2011-08-22 04:49:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -299,10 +299,12 @@ gkClearRange::gkClearRange_configurePacked(void) {
 
     fr.type = GKFRAGMENT_PACKED;
 
+    //  Normal clear ranges copy the latest clear range on create.  The 'taint' region is invalid on create.
+
     for (uint32 iid=1; iid<=gkp->inf.numPacked; iid++) {
       getIndexStore(gkp->fpk, iid, &fr.fr.packed);
-      pk[2*iid+0] = fr.gkFragment_getClearRegionBegin();
-      pk[2*iid+1] = fr.gkFragment_getClearRegionEnd();
+      pk[2*iid+0] = (clearType == AS_READ_CLEAR_TNT) ? 1 : fr.gkFragment_getClearRegionBegin();
+      pk[2*iid+1] = (clearType == AS_READ_CLEAR_TNT) ? 0 : fr.gkFragment_getClearRegionEnd();
     }
   } else {
     //  Nothing to configure.  Not told to create, and file doesn't exist.  We'll return the
@@ -345,8 +347,8 @@ gkClearRange::gkClearRange_configureNormal(void) {
 
     for (uint32 iid=1; iid<=gkp->inf.numNormal; iid++) {
       getIndexStore(gkp->fnm, iid, &fr.fr.normal);
-      nm[2*iid+0] = fr.gkFragment_getClearRegionBegin();
-      nm[2*iid+1] = fr.gkFragment_getClearRegionEnd();
+      nm[2*iid+0] = (clearType == AS_READ_CLEAR_TNT) ? 1 : fr.gkFragment_getClearRegionBegin();
+      nm[2*iid+1] = (clearType == AS_READ_CLEAR_TNT) ? 0 : fr.gkFragment_getClearRegionEnd();
     }
   } else {
     //  Nothing to configure.  Not told to create, and file doesn't exist.  We'll return the
@@ -386,8 +388,8 @@ gkClearRange::gkClearRange_configureStrobe(void) {
 
     for (uint32 iid=1; iid<=gkp->inf.numStrobe; iid++) {
       getIndexStore(gkp->fsb, iid, &fr.fr.strobe);
-      sb[2*iid+0] = fr.gkFragment_getClearRegionBegin();
-      sb[2*iid+1] = fr.gkFragment_getClearRegionEnd();
+      sb[2*iid+0] = (clearType == AS_READ_CLEAR_TNT) ? 1 : fr.gkFragment_getClearRegionBegin();
+      sb[2*iid+1] = (clearType == AS_READ_CLEAR_TNT) ? 0 : fr.gkFragment_getClearRegionEnd();
     }
   } else {
     //  Nothing to configure.  Not told to create, and file doesn't exist.  We'll return the
