@@ -34,7 +34,7 @@ print "\n";
 
 print "<HTML>\n";
 print "<P>\n";
-print "<FONT SIZE=+2>" . encode_entities("Results for $thisdate (Finished at $timenow).") . "</FONT>\n";
+print "<font size=4>" . encode_entities("Results for $thisdate (Finished at $timenow).") . "</font>\n";
 print "</P>\n";
 print "\n";
 
@@ -47,43 +47,59 @@ foreach my $asm (@assemblies) {
 
     chomp;
     #  Green!
-    s!SUCCESS!<FONT COLOR=0x00ff00>SUCCESS</FONT>!g;
-    s!same!<FONT COLOR=0x00ff00>same</FONT>!g;
+    s!SUCCESS!<span style=\"color: rgb(0, 255, 0);\">SUCCESS</span>!g;
+    s!same!<span style=\"color: rgb(0, 255, 0);\">same</span>!g;
 
     #  Red
-    s!FAILURE!<FONT COLOR=0xff0000>FAILURE</FONT>!g;
-    s!differs!<FONT COLOR=0xff0000>differs</FONT>!g;
+    s!FAILURE!<span style=\"color: rgb(255, 0, 0);\">FAILURE</span>!g;
+    s!differs!<span style=\"color: rgb(255, 0, 0);\">differs</span>!g;
 
     print "$_<BR>\n";
 }
 
 print "</P>\n";
 
-#print "<HR>\n";
-#print "<P>\n";
-#print "<FONT SIZE=+2>Changes for kmer.</FONT>\n";
-#print "</P>\n";
-#open(F, "< $wrkdir/$thisdate/wgs/kmer.updates");
-#while (<F>) {
-#    chomp;
-#    print encode_entities($_) . "<BR>\n";
-#}
-#close(F);
+print "<HR>\n";
+if ((! -e "$wrkdir/$thisdate/wgs/kmer.updates") || (-z "$wrkdir/$thisdate/wgs/kmer.updates")) {
+    print "<P>\n";
+    print "<font size=4>No changes to kmer.</font>\n";
+    print "</P>\n";
+} else {
+    print "<P>\n";
+    print "<font size=4>Changes for kmer.</font>\n";
+    print "</P>\n";
+    print "<P>\n";
+    open(F, "< $wrkdir/$thisdate/wgs/kmer.updates");
+    while (<F>) {
+        chomp;
+        print encode_entities($_) . "<BR>\n";
+    }
+    close(F);
+    print "</P>\n";
+}
+
+print "<HR>\n";
+if ((! -e "$wrkdir/$thisdate/wgs/src.updates") || (-z "$wrkdir/$thisdate/wgs/src.updates")) {
+    print "<P>\n";
+    print "<font size=+2>No chages to wgs-assembler.</font>\n";
+    print "</P>\n";
+} else {
+    print "<P>\n";
+    print "<font size=+2>Changes for wgs-assembler.</font>\n";
+    print "</P>\n";
+    print "<P>\n";
+    open(F, "< $wrkdir/$thisdate/wgs/src.updates");
+    while (<F>) {
+        chomp;
+        print encode_entities($_) . "<BR>\n";
+    }
+    close(F);
+    print "</P>\n";
+}
 
 #print "<HR>\n";
 #print "<P>\n";
-#print "<FONT SIZE=+2>Changes for wgs-assembler.</FONT>\n";
-#print "</P>\n";
-#open(F, "< $wrkdir/$thisdate/wgs/src.updates");
-#while (<F>) {
-#    chomp;
-#    print encode_entities($_) . "<BR>\n";
-#}
-#close(F);
-
-#print "<HR>\n";
-#print "<P>\n";
-#print "<FONT SIZE=+2>Build Results for kmer.</FONT>\n";
+#print "<font size=+2>Build Results for kmer.</font>\n";
 #print "</P>\n";
 #open(F, "< $wrkdir/$thisdate/wgs/kmer/make.err");
 #while (<F>) {
@@ -94,7 +110,7 @@ print "</P>\n";
 
 #print "<HR>\n";
 #print "<P>\n";
-#print "<FONT SIZE=+2>Build Results for wgs-assembler.</FONT>\n";
+#print "<font size=+2>Build Results for wgs-assembler.</font>\n";
 #print "</P>\n";
 #open(F, "< $wrkdir/$thisdate/wgs/src/make.err");
 #while (<F>) {
@@ -171,6 +187,9 @@ foreach my $asm (@assemblies) {
 sub attachFile ($$) {
     my $fileName   = shift @_;  #  Name of file on disk
     my $attachName = shift @_;  #  Name of file in email
+
+    return  if (! -e $fileName);
+    return  if (-z   $fileName);
 
     print "--Bri_Says_This_Is_The_Boundary\n";
     print "Content-Type: application/octet-stream; name=\"$attachName\"\n";

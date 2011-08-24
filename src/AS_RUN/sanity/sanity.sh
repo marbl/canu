@@ -31,7 +31,7 @@ perl sanity-purge-old.pl purge
 
 
 #  Update the repository.
-#perl sanity.pl rsync
+perl sanity.pl rsync
 
 
 #  Checkout the latest version.
@@ -51,23 +51,20 @@ perl sanity.pl build $date
 #  Let the user pick one to run
 if [ x$grid = x ] ; then
     echo "$date checked out and compiled.  Run some of:"
-    echo "  sh sanity-testgrid.sh     $date"
-    echo "  sh sanity-daily-small.sh  $date"
-    echo "  sh sanity-daily-large.sh  $date"
-    echo "  sh sanity-weekly-dros.sh  $date"
-    echo "  sh sanity-weekly-moore.sh $date"
+    echo "  sh sanity-daily-test.sh   $date"
+    echo "  sh sanity-daily-pging.sh  $date"
 
 else
     nextofft=86400   # one day
     nextofft=604800  # one week
+    nextofft=14400   # four hours
+    nextofft=21600   # six hours
+    nextofft=7200    # two hours
     nextdate=`perl sanity-get-next-date.pl $date $nextofft next`
     nexthold=`perl sanity-get-next-date.pl $date $nextofft hold`
     nextname=`perl sanity-get-next-date.pl $date $nextofft name`
 
-    #sh sanity-daily-test.sh   $date
-
-    sh sanity-daily-small.sh  $date
-    sh sanity-daily-large.sh  $date
+    sh sanity-daily-pging.sh  $date
 
     #if [ `date +%u` = 6] ; then
     #    sh sanity-weekly-dros.sh  $date
@@ -77,7 +74,7 @@ else
     echo "SUBMIT for $nextdate ($nexthold)"
 
     echo \
-    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -l fast -a $nexthold -b n sanity.sh $nextdate grid
+    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
 
-    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -l fast -a $nexthold -b n sanity.sh $nextdate grid
+    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
 fi

@@ -124,7 +124,7 @@ sub parseDate ($) {
     }
     close(F);
 
-    #print STDERR "Working on '$thisdate' -- last found is '$lastdate'.\n";
+    print STDERR "Working on '$thisdate' -- last found is '$lastdate'.\n";
 
     return($thisdate, $lastdate);
 }
@@ -165,8 +165,32 @@ sub checkoutAndLogKmer ($$) {
 
     system("cd $wrkdir/$thisdate/wgs && svn co  -r \"{$thisdatesvn}\" file://$kmersvn/trunk kmer > kmer.checkout.err 2>&1");
 
+    #  This is annoying.  SVN log will report changes inclusive to revisions.  -r 5:9 will report
+    #  changes made in revisions 5 through 9.  When you give it a date, it finds the revision that
+    #  was active on that date.  What we want here, though, is the changes SINCE that date (or,
+    #  since revision 5, up to revision 9).
+    #
+    #  To get around this, we first get the logs, but scan for the lowest and highest revision
+    #  numbers, then dump correctly.
+    #
     if ($lastdate ne "") {
-        system("cd $wrkdir/$thisdate/wgs && svn log -v file://$kmersvn/trunk -r \"{$lastdatesvn}:{$thisdatesvn}\" > kmer.updates");
+        my $loRev;
+        my $hiRev;
+
+        open(F, "cd $wrkdir/$thisdate/wgs && svn log -v file://$kmersvn/trunk -r \"{$lastdatesvn}:{$thisdatesvn}\" |");
+        while (<F>) {
+            if (m/^r(\d+)\s+\|\s+/) {
+                $loRev = $1  if ((!defined($loRev)) || ($1 < $loRev));
+                $hiRev = $1  if ((!defined($hiRev)) || ($hiRev < $1));
+            }
+        }
+        close(F);
+
+        $loRev++  if (defined($loRev));
+            
+        if (defined($loRev) && defined($hiRev) && ($loRev < $hiRev)) {
+            system("cd $wrkdir/$thisdate/wgs && svn log -v file://$kmersvn/trunk -r $loRev:$hiRev > kmer.updates");
+        }
     }
 
     print STDERR "$thisdate checked out!\n";
@@ -401,8 +425,8 @@ sub assemble ($$@) {
     print F "| \\\n";
     print F "tee \"$wrkdir/$thisdate/sanity-all-done.\$1\" \\\n";
     print F "| \\\n";
-    print F "/usr/sbin/sendmail -i -t -F CAtest\n"    if ($site eq "JCVI");
-    #print F "/work/NIGHTLY/ssmtp thebri\@gmail.com\n" if ($site eq "BPWI");
+    print F "/usr/sbin/sendmail -i -t -F CAtest\n"      if ($site eq "JCVI");
+    print F "/usr/local/sbin/ssmtp thebri\@gmail.com\n" if ($site eq "BPWI");
     close(F);
 
     foreach my $s (@spec) {
