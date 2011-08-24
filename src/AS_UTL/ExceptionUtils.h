@@ -22,13 +22,13 @@
 #ifndef EXCEPTIONUTILS_H
 #define EXCEPTIONUTILS_H
 
-static const char* rcsid_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.4 2011-08-10 20:25:15 mkotelbajcvi Exp $";
+static const char* rcsid_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.5 2011-08-24 21:08:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <algorithm>
 #include <exception>
-#include <string>
+#include <string.h>
 
 using namespace std;
 
