@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.29 2011-01-03 01:21:43 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.30 2011-08-24 19:37:28 brianwalenz Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -44,7 +44,7 @@ main(int argc, char **argv) {
   uint32          dumpType    = 0;
 
   uint32          bgnIID      = 0;
-  uint32          endIID      = 1000000000;
+  uint32          endIID      = UINT32_MAX;
   uint32          qryIID      = 0;
 
   uint32          gs_ovlLimit = 100;
