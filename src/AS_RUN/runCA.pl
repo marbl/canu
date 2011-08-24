@@ -552,8 +552,8 @@ sub setDefaults () {
     $global{"stoneLevel"}                  = 2;
     $synops{"stoneLevel"}                  = "EXPERT!";
 
-    $global{"computeInsertSize"}           = 0;
-    $synops{"computeInsertSize"}           = "Compute a scratch scaffolding to estimate insert sizes";
+    $global{"computeInsertSize"}           = undef;
+    $synops{"computeInsertSize"}           = "Compute a scratch scaffolding to estimate insert sizes; default: do only if less than 1 million reads";
 
     $global{"cgwDistanceSampleSize"}       = 100;
     $synops{"cgwDistanceSampleSize"}       = "Require N mates to reestimate insert sizes";
@@ -4815,8 +4815,11 @@ sub scaffolder () {
     #  gatekeeper.  This initial run shouldn't be used for later
     #  CGW'ing.
     #
-    if ((getGlobal("computeInsertSize") == 1) ||
-        (getGlobal("computeInsertSize") == 0) && ($numFrags < 1000000)) {
+    my $cis = getGlobal("computeInsertSize");
+    if (!defined($cis) && ($numFrags < 1000000)) {
+        $cis = 1;
+    }
+    if ($cis == 1) {
         if (! -e "$wrk/6-clonesize/$asm.tigStore") {
             system("mkdir -p $wrk/6-clonesize/$asm.tigStore");
             system("ln -s $wrk/$asm.tigStore/* $wrk/6-clonesize/$asm.tigStore");
