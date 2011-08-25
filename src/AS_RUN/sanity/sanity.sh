@@ -47,8 +47,6 @@ fi
 #  Build it.
 perl sanity.pl build $date
 
-exit
-
 #  Let the user pick one to run
 if [ x$grid = x ] ; then
     echo "$date checked out and compiled.  Run some of:"
