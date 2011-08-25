@@ -40,13 +40,14 @@ perl sanity.pl checkout $date
 
 #  Figure out what was checked out.
 if [ x$date = x ] ; then
-  date=`ls -1d 200?-??-??-???? | tail -n 1`
+  date=`ls -1d 20??-??-??-???? | tail -n 1`
 fi
 
 
 #  Build it.
 perl sanity.pl build $date
 
+exit
 
 #  Let the user pick one to run
 if [ x$grid = x ] ; then
@@ -58,11 +59,13 @@ else
     nextofft=86400   # one day
     nextofft=604800  # one week
     nextofft=14400   # four hours
-    nextofft=21600   # six hours
     nextofft=7200    # two hours
+    nextofft=21600   # six hours
     nextdate=`perl sanity-get-next-date.pl $date $nextofft next`
     nexthold=`perl sanity-get-next-date.pl $date $nextofft hold`
     nextname=`perl sanity-get-next-date.pl $date $nextofft name`
+
+    #  Which tests should we run?  For now, just the simple p.ging
 
     sh sanity-daily-pging.sh  $date
 

@@ -149,7 +149,8 @@ sub checkoutAndLogKmer ($$) {
     my $thisdatesvn;
     my $lastdatesvn;
 
-    my $tz = "-05:00";
+    #  NOT tested with SVN.  The old format was "-04:00"; new format is "-0400".
+    my $tz = `date +%z`;  chomp $tz;
 
     if ($thisdate =~ m/(\d\d\d\d)-(\d\d)-(\d\d)-(\d\d)(\d\d)/) {
         $thisdatesvn = "$1-$2-$3T$4:$5$tz";
@@ -177,6 +178,7 @@ sub checkoutAndLogKmer ($$) {
         my $loRev;
         my $hiRev;
 
+        print "svn log -v file://$kmersvn/trunk -r \"{$lastdatesvn}:{$thisdatesvn}\"\n";
         open(F, "cd $wrkdir/$thisdate/wgs && svn log -v file://$kmersvn/trunk -r \"{$lastdatesvn}:{$thisdatesvn}\" |");
         while (<F>) {
             if (m/^r(\d+)\s+\|\s+/) {
@@ -187,8 +189,11 @@ sub checkoutAndLogKmer ($$) {
         close(F);
 
         $loRev++  if (defined($loRev));
+
+        print STDERR "loRev='$loRev' hiRev='$hiRev'\n";
             
         if (defined($loRev) && defined($hiRev) && ($loRev < $hiRev)) {
+            print "svn log -v file://$kmersvn/trunk -r $loRev:$hiRev\n";
             system("cd $wrkdir/$thisdate/wgs && svn log -v file://$kmersvn/trunk -r $loRev:$hiRev > kmer.updates");
         }
     }
@@ -216,7 +221,7 @@ sub checkoutAndLogCA ($$) {
     my $thisdatecvs;
     my $lastdatecvs;
 
-    my $tz = "EST";
+    my $tz = `date +%z`;  chomp $tz;
 
     if ($thisdate =~ m/(\d\d\d\d)-(\d\d)-(\d\d)-(\d\d)(\d\d)/) {
         $thisdatecvs = "$1-$2-$3 $4:$5 $tz";
@@ -233,9 +238,11 @@ sub checkoutAndLogCA ($$) {
     #  Add -R to cvs options, for read-only repository; breaks on jcvi
     #  cvs; this seems to be a BSD extension?
 
+    #print STDERR "cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 co  -N    -D '$thisdatecvs' $tag src\n";
     system("cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 co  -N    -D '$thisdatecvs' $tag src > src.checkout.err 2>&1");
 
     if ($lastdate ne "") {
+        #print STDERR "cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src\n";
         system("cd $wrkdir/$thisdate/wgs && cvs -r -d $wgscvs -z3 log -N -S -d '$lastdatecvs<$thisdatecvs' src > src.updates.raw");
 
         my $log;
