@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.22 2011-08-22 04:41:26 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.23 2011-08-27 02:33:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -382,6 +382,7 @@ gkStore::~gkStore() {
   closeStore(qsb);
 
   closeStore(lib);
+  delete libNull;
 
   closeStore(uid);
 
@@ -435,6 +436,7 @@ gkStore::gkStore_clear(void) {
   qsb = NULL;
 
   lib = NULL;
+  libNull = new gkLibrary;
 
   uid = NULL;
 

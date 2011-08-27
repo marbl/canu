@@ -113,7 +113,7 @@ public:
   int32      gkStore_getNumFragments(void)       { return(inf.frgLoaded); }
   int32      gkStore_getNumRandomFragments(void) { return(inf.numRandom); }
 
-  gkLibrary *gkStore_getLibrary(int id)                { return((id == 0) ? NULL : (gkLibrary *)getIndexStorePtr(lib, id)); }
+  gkLibrary *gkStore_getLibrary(int id)                { return((id == 0) ? libNull : (gkLibrary *)getIndexStorePtr(lib, id)); }
   void       gkStore_getLibrary(int id, gkLibrary *lb) { getIndexStore(lib, id, lb); };
   void       gkStore_setLibrary(int id, gkLibrary *lb) { setIndexStore(lib, id, lb); }
   void       gkStore_addLibrary(AS_UID u, gkLibrary *lb) {
@@ -229,6 +229,7 @@ private:
   StoreStruct             *qsb;
 
   StoreStruct             *lib;
+  gkLibrary               *libNull;  //  Pointer, because we don't know gkLibrary here
 
   StoreStruct             *uid;
   
