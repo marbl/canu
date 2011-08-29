@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-BFS.C,v 1.8 2011-08-22 16:44:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-BFS.C,v 1.9 2011-08-29 20:58:32 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -40,13 +40,7 @@ cmGlobalData::doSearchBFS(cmComputation *c,
   set<uint32>               visited3p5;
   map<uint32,overlapInfo*>  solution;
 
-  //  Allocate nodes for our search.  This lets us search 32 million fragments, and takes 1GB of
-  //  memory.  We don't try to do anything fancy like round-robin.  Once we full up the list,
-  //  we're done.
-
-  t->pathPos    = 0;
-  t->pathAdd    = 0;
-  t->searchIter = 0;
+  assert(t->searchIter == 0);
 
   if (t->path == NULL) {
     t->pathMax = nodesMax;

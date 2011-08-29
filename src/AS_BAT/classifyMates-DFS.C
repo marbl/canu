@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-DFS.C,v 1.8 2011-08-22 16:44:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-DFS.C,v 1.9 2011-08-29 20:58:32 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -40,9 +40,7 @@ cmGlobalData::doSearchDFS(cmComputation *c,
   set<uint32>  visited5p3;
   set<uint32>  visited3p5;
 
-  t->pathPos    = 0;
-  t->pathAdd    = 0;
-  t->searchIter = 0;
+  assert(t->searchIter == 0);
 
   //  +3 because:
   //  [0] is unused -- it's our termination condition

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-RFS.C,v 1.8 2011-08-22 16:44:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-RFS.C,v 1.9 2011-08-29 20:58:32 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -39,9 +39,7 @@ void
 cmGlobalData::doSearchRFS(cmComputation *c,
                           cmThreadData  *t) {
 
-  t->pathPos    = 0;
-  t->pathAdd    = 0;
-  t->searchIter = 0;
+  assert(t->searchIter == 0);
 
   if (t->path == NULL) {
     t->pathMax = distMax;  //  Can never have more than one overlap per base if distance

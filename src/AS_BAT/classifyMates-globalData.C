@@ -17,14 +17,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.1 2011-08-22 16:44:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.2 2011-08-29 20:58:32 brianwalenz Exp $";
 
 #include "AS_global.h"
 
 #include "classifyMates.H"
 #include "classifyMates-globalData.H"
 
-
+#include <set>
+using namespace std;
 
 cmGlobalData::cmGlobalData(char    *resultsName_,
                            uint32   distMin_,
@@ -155,8 +156,9 @@ cmGlobalData::loadFragments(char    *gkpStoreName,
         cllen = frg.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTCHIMERA);
 
       fi[fid].unused      = 0;
-      fi[fid].end5covered = 0;
-      fi[fid].end3covered = 0;
+      fi[fid].contained   = 0;  //
+      fi[fid].end5covered = 0;  //  Set when loading overlaps
+      fi[fid].end3covered = 0;  //
       fi[fid].isBackbone  = 0;
       fi[fid].doSearch    = 0;
       fi[fid].clearLength = cllen;
@@ -325,17 +327,9 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
       ovlTG[i] = false;
 
 
-      //  Overlaps from a search A-fragment to a backbone B-fragment are kept if a is contained, or
-      //  the dovetail overlap is long.  These are used to initiate the search.
-      //
-      if ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true))
-        if ((cn) ||
-            ((d5) && (bbDist->doveDist5 <= fb - -ah)) ||
-            ((d3) && (bbDist->doveDist3 <= fb -  bh)))
-          ovlBB[i] = true;
-
       //  Overlaps from a backbone A-fragment to a search B-fragment are kept if a is the container
       //  of b, or the dovetail overlap is long.  These are used to terminate the search.
+      //  Documentation calls these "TG (target)"
       //
       if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].doSearch   == true))
         if ((cr) ||
@@ -344,9 +338,20 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
           ovlTG[i] = true;
 
       //  Overlaps from backbone to backbone are kept if they are dovetail and long.
+      //  Documentation calls these "BB (backbone)"
       //
       if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true))
         if (((d5) && (bbDist->doveDist5 <= fb - -ah)) ||
+            ((d3) && (bbDist->doveDist3 <= fb -  bh)))
+          ovlBB[i] = true;
+
+      //  Overlaps from a search A-fragment to a backbone B-fragment are kept if a is contained, or
+      //  the dovetail overlap is long.  These are used to initiate the search.
+      //  Documentation calls these "TB (backbone)"
+      //
+      if ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true))
+        if ((cn) ||
+            ((d5) && (bbDist->doveDist5 <= fb - -ah)) ||
             ((d3) && (bbDist->doveDist3 <= fb -  bh)))
           ovlBB[i] = true;
 
@@ -368,8 +373,9 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
       //  we don't care about this overlap, the a_iid of the overlap is reset to zero, which isn't a
       //  fragment (so we don't actually remember anything).
       //
-      fi[ovl[i].a_iid].end5covered |= (d5 | cn);
-      fi[ovl[i].a_iid].end3covered |= (d3 | cn);
+      fi[ovl[i].a_iid].contained   |= cn;
+      fi[ovl[i].a_iid].end5covered |= d5;
+      fi[ovl[i].a_iid].end3covered |= d3;
 
     }  //  Over all overlaps
 
@@ -609,3 +615,141 @@ cmGlobalData::testSearch(cmComputation  *c,
   return(false);
 }
 
+
+
+//  Returns true if the frag or the mate look like they are spurs.
+bool
+cmGlobalData::testSpur(cmComputation  *c, cmThreadData   *t) {
+
+  if ((fi[c->fragIID].contained == false) &&
+      ((fi[c->fragIID].end5covered == false) || (fi[c->fragIID].end3covered == false)))
+    c->result.fragSpur = true;
+
+  if ((fi[c->mateIID].contained == false) &&
+      ((fi[c->mateIID].end5covered == false) || (fi[c->mateIID].end3covered == false)))
+    c->result.mateSpur = true;
+
+  return(c->result.fragSpur || c->result.mateSpur);
+}
+
+
+
+//  Returns true if the frag or mate look like they are chimeric.  This tests
+//  that there is a pair of overlapping reads overlapping the read:
+//
+//      read         -----------------
+//      backbone ---------------
+//      backbone          --------------------
+//
+//  Or, as the expected case with long backbone reads, that the reads are contained.
+//
+
+uint32 *
+reallocEdge(uint32 *edge, uint32 &max, uint32 len) {
+
+  if (max > len)
+    return(edge);
+
+  delete [] edge;
+
+  while (max < len)
+    max *= 2;
+
+  return(new uint32 [max]);
+}
+
+
+bool
+cmGlobalData::testChimer(uint32 iid, cmThreadData *t) {
+  OVSoverlap  ovl;
+  uint32      containCount = 0;
+  uint32      overlapCount = 0;
+
+  t->edge5 = reallocEdge(t->edge5, t->edge5Max, bbLen[iid]);
+  t->edge3 = reallocEdge(t->edge3, t->edge3Max, bbLen[iid]);
+
+  t->edge5Len = 0;
+  t->edge3Len = 0;
+
+  for (uint32 test=0; test<bbLen[iid]; test++) {
+    overlapInfo  *novl = bbPos[iid] + test;
+    uint32        niid = novl->iid;
+
+    //  Overlaps here are from target (A) to backbone (B).  The backbone ID will be stored in 'iid'
+    //  of the overlap.
+
+    assert(fi[iid].doSearch    == true);
+    assert(fi[niid].isBackbone == true);
+
+    assert(niid != iid);
+
+    //  Figure out which end this overlap is on.  We have nice functions to do this for us...if the overlap is
+    //  an OVSoverlap.
+
+    ovl.dat.ovl.flipped = novl->flipped;
+    ovl.dat.ovl.a_hang  = novl->ahang;
+    ovl.dat.ovl.b_hang  = novl->bhang;
+
+    if (AS_OVS_overlapAIsContained(ovl))
+      //  Backbone contains Target, not chimer.
+      containCount++;
+
+    if (AS_OVS_overlapAEndIs5prime(ovl))
+      t->edge5[t->edge5Len++] = niid;
+
+    if (AS_OVS_overlapAEndIs3prime(ovl))
+      t->edge3[t->edge3Len++] = niid;
+  }
+
+#if 0
+  for (uint32 i=0; i<t->edge5Len || i<t->edge3Len; i++)
+    fprintf(stderr, F_U32"\t"F_U32"\n",
+            (i < t->edge5Len) ? t->edge5[i] : 0,
+            (i < t->edge3Len) ? t->edge3[i] : 0);
+#endif
+
+  //  The hard part.  Find if any pair in (edge5, edge3) have an overlap in the backbone.  We'll
+  //  iterate over all the 5' fragment overlaps, and see if one of those is in the 3' set.
+  //
+  //  We do NOT check if the overlap makes sense, just that it exists.
+
+  set<uint32>  iid3;
+
+  for (uint32 i=0; i<t->edge3Len; i++)
+    iid3.insert(t->edge3[i]);
+
+  for (uint32 i=0; i<t->edge5Len; i++) {
+    uint32 tiid = t->edge5[i];
+
+    for (uint32 test=0; test<bbLen[tiid]; test++) {
+      overlapInfo  *novl = bbPos[tiid] + test;
+
+      if (iid3.count(novl->iid) > 0)
+        overlapCount++;
+    }
+  }
+
+#if 0
+  fprintf(stdout, "IID "F_U32" has "F_U32" overlaps, containCount "F_U32" and overlapCount "F_U32"\n",
+          iid, bbLen[iid], containCount, overlapCount);
+#endif
+
+  return(containCount + overlapCount < 1);
+}
+
+
+bool
+cmGlobalData::testChimers(cmComputation *c, cmThreadData *t) {
+
+  if ((fi[c->fragIID].contained == true) &&
+      (fi[c->fragIID].contained == true))
+    return(false);
+
+  if (testChimer(c->fragIID, t))
+    c->result.fragChimer = true;
+
+  if (testChimer(c->mateIID, t))
+    c->result.mateChimer = true;
+
+  return(c->result.fragChimer || c->result.mateChimer);
+}

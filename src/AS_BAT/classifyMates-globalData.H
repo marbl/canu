@@ -31,7 +31,8 @@ using namespace std;
 
 class fragmentInfo {
 public:
-  uint64  unused      : 13;
+  uint64  unused      : 12;
+  uint64  contained   : 1;
   uint64  end5covered : 1;
   uint64  end3covered : 1;
   uint64  isBackbone  : 1;
@@ -44,6 +45,10 @@ public:
 //  Save distance needs to know fragmentInfo.  Ugly.
 #include "classifyMates-saveDistance.H"
 
+
+#if (AS_OVS_HNGBITS > 15)
+#error Not enough space in classifyMates overlapInfo
+#endif
 
 class overlapInfo {
 public:
@@ -58,11 +63,11 @@ public:
   };
 
   uint32  unused  : 1;
-  uint32  flipped : 1;
-  int32   ahang   : 15;
-  int32   bhang   : 15;
+  uint32  flipped : 1;    //  B-fragment is flipped
+  int32   ahang   : 15;   //
+  int32   bhang   : 15;   //
 
-  uint32 iid;
+  uint32 iid;             //  B-fragment ID
 };
 
 
@@ -86,6 +91,24 @@ public:
 class cmThreadData {
 public:
   cmThreadData() {
+    clear();
+    extMax     = 131072;  //  Overlaps out of a node
+    ext        = new uint32 [extMax];
+
+    edge3Max   = 131072;  //  Overlaps off end of a read
+    edge3      = new uint32 [edge3Max];
+
+    edge5Max   = 131072;
+    edge5      = new uint32 [edge5Max];
+  };
+  ~cmThreadData() {
+    delete [] path;
+    delete [] ext;
+    delete [] edge3;
+    delete [] edge5;
+  };
+
+  void clear(void) {
     pathPos    = 0;
     pathAdd    = 0;
     pathMax    = 0;
@@ -93,18 +116,12 @@ public:
 
     searchIter = 0;
 
-    extMax     = 1048576;
     extLen     = 0;
-    ext        = new uint32 [extMax];
-  };
-  ~cmThreadData() {
-    delete [] path;
-    delete [] ext;
+
+    edge3Len   = 0;
+    edge5Len   = 0;
   };
 
-  //  Use in DFS and BFS.
-  //    In DFS, the path to the node we are searching.
-  //    In BFS, the list of nodes we have/will search.
   uint32         pathPos;  //  Position of the search in DFS and BFS
   uint32         pathAdd;  //  Next free spot to add a fragment in BFS
   uint32         pathMax;  //  Number of nodes we have allocated.
@@ -112,10 +129,17 @@ public:
 
   uint32         searchIter;
   
-  //  Use in RFS, list of edges out of a node
-  uint32         extLen;
+  uint32         extLen;   //  Use in RFS, list of edges out of a node
   uint32         extMax;
   uint32        *ext;
+
+  uint32         edge3Len;  //  Use in testChimer
+  uint32         edge3Max;
+  uint32        *edge3;
+
+  uint32         edge5Len;  //  Use in testChimer
+  uint32         edge5Max;
+  uint32        *edge5;
 };
 
 
@@ -188,9 +212,14 @@ public:
                     overlapInfo  **pos,
                     uint32        *len);
 
-  void   doSearchDFS(cmComputation  *c, cmThreadData   *t);
-  void   doSearchBFS(cmComputation  *c, cmThreadData   *t);
-  void   doSearchRFS(cmComputation  *c, cmThreadData   *t);
+  bool   testSpur(cmComputation *c, cmThreadData *t);
+
+  bool   testChimer(uint32 iid, cmThreadData *t);
+  bool   testChimers(cmComputation *c, cmThreadData *t);
+
+  void   doSearchDFS(cmComputation *c, cmThreadData *t);
+  void   doSearchBFS(cmComputation *c, cmThreadData *t);
+  void   doSearchRFS(cmComputation *c, cmThreadData *t);
 
 public:
   char                      resultsPrefix[FILENAME_MAX];

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.20 2011-08-22 16:44:19 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.21 2011-08-29 20:58:32 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -34,6 +34,14 @@ cmWorker(void *G, void *T, void *S) {
   cmGlobalData    *g = (cmGlobalData  *)G;
   cmThreadData    *t = (cmThreadData  *)T;
   cmComputation   *s = (cmComputation *)S;
+
+  t->clear();
+
+  if (g->testSpur(s, t))
+    return;
+
+  if (g->testChimers(s, t))
+    return;
 
   if ((g->nodesMax > 0) && (s->result.classified == false))
     g->doSearchBFS(s, t);
@@ -144,7 +152,7 @@ main(int argc, char **argv) {
 
   uint32     numThreads        = 4;
 
-  uint64     memoryLimit       = 0;
+  uint64     memoryLimit       = UINT64_MAX;
 
   argc = AS_configure(argc, argv);
 
@@ -242,6 +250,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -o results       Write results here\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -t n             Use 'n' compute threads\n");
+    fprintf(stderr, "  -m m             Use at most 'm' GB memory (default: unlimited)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -sl l[-m]        Search for mates in libraries l-m\n");
     fprintf(stderr, "  -bl l[-m]        Use libraries l-m for searching\n");
