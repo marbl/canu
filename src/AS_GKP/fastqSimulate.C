@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.13 2011-08-15 05:12:32 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.14 2011-08-30 02:57:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,18 +26,24 @@ const char *mainid = "$Id: fastqSimulate.C,v 1.13 2011-08-15 05:12:32 brianwalen
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
+#include "AS_UTL_reverseComplement.h"
 
 #include <vector>
 using namespace std;
 
 vector<int32> seqStartPositions;
 
-static char reverseComplement[256];
+static char revComp[256];
 static char errorBase[256][3];
 static char validBase[256];
 
 double readErrorRate = 0.01;  //  Fraction error
 bool   allowGaps     = false;
+
+const uint32 mpJunctionsNone   = 0;
+const uint32 mpJunctionsNormal = 1;
+const uint32 mpJunctionsAlways = 2;
+
 
 #define QV_BASE  '!'
 
@@ -125,7 +131,7 @@ makeSequences(char    *frag,
     return;
 
   for (int32 p=0, i=fragLen-1; p<readLen; p++, i--) {
-    s2[p] = reverseComplement[frag[i]];
+    s2[p] = revComp[frag[i]];
     q2[p] = (validBase[s2[p]]) ? QV_BASE + 39 : QV_BASE + 2;
 
     if (drand48() < readErrorRate) {
@@ -146,7 +152,8 @@ makeSequences(char    *frag,
 void
 makeSE(char   *seq,
        int32   seqLen,
-       FILE   *output,
+       FILE   *outputI,
+       FILE   *outputC,
        int32   readLen,
        int32   numReads) {
   char   *s1 = new char [readLen + 1];
@@ -178,10 +185,10 @@ makeSE(char   *seq,
 
     //  Output sequence, with a descriptive ID
 
-    fprintf(output, "@SE_%d_%d@%d-%d/1\n", nr, idx, bgn-zer, bgn+len-zer);
-    fprintf(output, "%s\n", s1);
-    fprintf(output, "+\n");
-    fprintf(output, "%s\n", q1);
+    fprintf(outputI, "@SE_%d_%d@%d-%d/1\n", nr, idx, bgn-zer, bgn+len-zer);
+    fprintf(outputI, "%s\n", s1);
+    fprintf(outputI, "+\n");
+    fprintf(outputI, "%s\n", q1);
   }
 
   delete [] s1;
@@ -192,7 +199,8 @@ makeSE(char   *seq,
 void
 makePE(char   *seq,
        int32   seqLen,
-       FILE   *output,
+       FILE   *outputI,
+       FILE   *outputC,
        FILE   *output1,
        FILE   *output2,
        int32   readLen,
@@ -234,15 +242,15 @@ makePE(char   *seq,
 
     //  Output sequences, with a descriptive ID
 
-    fprintf(output, "@PE_%d_%d@%d-%d/1\n", np, idx, bgn-zer, bgn+len-zer);
-    fprintf(output, "%s\n", s1);
-    fprintf(output, "+\n");
-    fprintf(output, "%s\n", q1);
+    fprintf(outputI, "@PE_%d_%d@%d-%d/1\n", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(outputI, "%s\n", s1);
+    fprintf(outputI, "+\n");
+    fprintf(outputI, "%s\n", q1);
 
-    fprintf(output, "@PE_%d_%d@%d-%d/2\n", np, idx, bgn-zer, bgn+len-zer);
-    fprintf(output, "%s\n", s2);
-    fprintf(output, "+\n");
-    fprintf(output, "%s\n", q2);
+    fprintf(outputI, "@PE_%d_%d@%d-%d/2\n", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(outputI, "%s\n", s2);
+    fprintf(outputI, "+\n");
+    fprintf(outputI, "%s\n", q2);
 
     fprintf(output1, "@PE_%d_%d@%d-%d/1\n", np, idx, bgn-zer, bgn+len-zer);
     fprintf(output1, "%s\n", s1);
@@ -253,6 +261,19 @@ makePE(char   *seq,
     fprintf(output2, "%s\n", s2);
     fprintf(output2, "+\n");
     fprintf(output2, "%s\n", q2);
+
+    reverseComplement(s1, q1, readLen);
+    reverseComplement(s2, q2, readLen);
+
+    fprintf(outputC, "@PE_%d_%d@%d-%d/1\n", np, idx, bgn+len-zer, bgn-zer);
+    fprintf(outputC, "%s\n", s1);
+    fprintf(outputC, "+\n");
+    fprintf(outputC, "%s\n", q1);
+
+    fprintf(outputC, "@PE_%d_%d@%d-%d/2\n", np, idx, bgn+len-zer, bgn-zer);
+    fprintf(outputC, "%s\n", s2);
+    fprintf(outputC, "+\n");
+    fprintf(outputC, "%s\n", q2);
   }
 
   delete [] s1;
@@ -268,7 +289,8 @@ makePE(char   *seq,
 void
 makeMP(char   *seq,
        int32   seqLen,
-       FILE   *output,
+       FILE   *outputI,
+       FILE   *outputC,
        FILE   *output1,
        FILE   *output2,
        int32   readLen,
@@ -278,7 +300,7 @@ makeMP(char   *seq,
        int32   mpShearSize,
        int32   mpShearStdDev,
        double  mpEnrichment,
-       bool    mpJunctions) {
+       uint32  mpJunctions) {
   char   *s1 = new char [readLen + 1];
   char   *q1 = new char [readLen + 1];
   char   *s2 = new char [readLen + 1];
@@ -323,15 +345,15 @@ makeMP(char   *seq,
 
       //  Output sequences, with a descriptive ID
 
-      fprintf(output, "@fPE_%d_%d@%d-%d/1\n", np, idx, sbgn-zer, sbgn+slen-zer);
-      fprintf(output, "%s\n", s1);
-      fprintf(output, "+\n");
-      fprintf(output, "%s\n", q1);
+      fprintf(outputI, "@fPE_%d_%d@%d-%d/1\n", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(outputI, "%s\n", s1);
+      fprintf(outputI, "+\n");
+      fprintf(outputI, "%s\n", q1);
 
-      fprintf(output, "@fPE_%d_%d@%d-%d/2\n", np, idx, sbgn-zer, sbgn+slen-zer);
-      fprintf(output, "%s\n", s2);
-      fprintf(output, "+\n");
-      fprintf(output, "%s\n", q2);
+      fprintf(outputI, "@fPE_%d_%d@%d-%d/2\n", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(outputI, "%s\n", s2);
+      fprintf(outputI, "+\n");
+      fprintf(outputI, "%s\n", q2);
 
       fprintf(output1, "@fPE_%d_%d@%d-%d/1\n", np, idx, sbgn-zer, sbgn+slen-zer);
       fprintf(output1, "%s\n", s1);
@@ -343,35 +365,54 @@ makeMP(char   *seq,
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);
 
+      reverseComplement(s1, q1, readLen);
+      reverseComplement(s2, q2, readLen);
+
+      fprintf(outputC, "@fPE_%d_%d@%d-%d/1\n", np, idx, sbgn+slen-zer, sbgn-zer);
+      fprintf(outputC, "%s\n", s1);
+      fprintf(outputC, "+\n");
+      fprintf(outputC, "%s\n", q1);
+
+      fprintf(outputC, "@fPE_%d_%d@%d-%d/2\n", np, idx, sbgn+slen-zer, sbgn-zer);
+      fprintf(outputC, "%s\n", s2);
+      fprintf(outputC, "+\n");
+      fprintf(outputC, "%s\n", q2);
+
     } else {
       //  Successfully washed away non-biotin marked sequences, make MP.  Shift the fragment by a
       //  random amount.  If we are not allowed to make junction reads, the shift must allow at
       //  least a read-length of sequence on each end.
+      //
+      //  If the shear size is less than two read lengths there is no way we can make a perfect MP
+      //  pair.  We allow this case for normal junctions (both reads might be junction reads) but
+      //  disallow it for the other two cases (no junction reads and all junction reads).
 
       int32 shift = 0;
 
-      if (mpJunctions == true) {
+      if (mpJunctions == mpJunctionsNormal) {
         shift = randomUniform(0, slen);
 
-        if ((shift < 0) || (shift > slen))
-          fprintf(stderr, "ERROR:  invalid shift %d.\n", shift);
-        assert(shift >= 0);
-        assert(shift <= slen);
-
-      } else {
+      } else if (mpJunctions == mpJunctionsNone) {
         if (slen <= 2 * readLen)
-          //  If the shear size is less than two read lengths there is no way we can
-          //  make a perfect MP pair.  Try again.
           goto tryMPagain;
 
         shift = randomUniform(readLen, slen - readLen);
 
-        assert(shift >= readLen);
-        assert(shift <= slen - readLen);
+      } else if (mpJunctions == mpJunctionsAlways) {
+        if (slen <= 2 * readLen)
+          goto tryMPagain;
+
+        if (randomUniform(0, 100) < 50)
+          shift = randomUniform(0, readLen);
+        else
+          shift = randomUniform(slen - readLen, slen);
       }
 
-      if (shift < 0)     shift = 0;
-      if (shift > slen)  shift = slen;
+      if ((shift < 0) || (shift > slen))
+        fprintf(stderr, "ERROR:  invalid shift %d.\n", shift);
+      assert(shift >= 0);
+      assert(shift <= slen);
+
 
       //  Put 'shift' bases from the end of the insert on the start of sh[],
       //  and then fill the remaining of sh[] with the beginning of the insert.
@@ -427,20 +468,22 @@ makeMP(char   *seq,
 
       type = 't';
       if (shift  < readLen)         type = 'a';
-      if (shift  > slen - readLen)  type = 'b';
+      if (shift >= slen - readLen)  type = 'b';
 
-      if (mpJunctions == false)
+      if (mpJunctions == mpJunctionsNone)
         assert(type == 't');
+      if (mpJunctions == mpJunctionsAlways)
+        assert(type != 't');
 
-      fprintf(output, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
-      fprintf(output, "%s\n", s1);
-      fprintf(output, "+\n");
-      fprintf(output, "%s\n", q1);
+      fprintf(outputI, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(outputI, "%s\n", s1);
+      fprintf(outputI, "+\n");
+      fprintf(outputI, "%s\n", q1);
 
-      fprintf(output, "@%cMP_%d_%d@%d-%d_%d/%d/%d/2\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
-      fprintf(output, "%s\n", s2);
-      fprintf(output, "+\n");
-      fprintf(output, "%s\n", q2);
+      fprintf(outputI, "@%cMP_%d_%d@%d-%d_%d/%d/%d/2\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(outputI, "%s\n", s2);
+      fprintf(outputI, "+\n");
+      fprintf(outputI, "%s\n", q2);
 
       fprintf(output1, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output1, "%s\n", s1);
@@ -451,6 +494,19 @@ makeMP(char   *seq,
       fprintf(output2, "%s\n", s2);
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);
+
+      reverseComplement(s1, q1, readLen);
+      reverseComplement(s2, q2, readLen);
+
+      fprintf(outputC, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
+      fprintf(outputC, "%s\n", s1);
+      fprintf(outputC, "+\n");
+      fprintf(outputC, "%s\n", q1);
+
+      fprintf(outputC, "@%cMP_%d_%d@%d-%d_%d/%d/%d/2\n", type, np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
+      fprintf(outputC, "%s\n", s2);
+      fprintf(outputC, "+\n");
+      fprintf(outputC, "%s\n", q2);
     }
   }
 }
@@ -485,13 +541,14 @@ main(int argc, char **argv) {
   int32      mpShearSize    = 0;
   int32      mpShearStdDev  = 0;
   double     mpEnrichment   = 1.0;   //  success rate of washing away paired-end fragments
-  bool       mpJunctions    = true;
+  uint32     mpJunctions    = mpJunctionsNormal;
 
   char      *outputPrefix   = NULL;
   char       outputName[FILENAME_MAX];
-  FILE      *output         = NULL;
-  FILE      *output1        = NULL;
-  FILE      *output2        = NULL;
+  FILE      *outputI        = NULL;  //  Interleaved output
+  FILE      *outputC        = NULL;  //  Interleaved output, reverse complemented
+  FILE      *output1        = NULL;  //  A read output
+  FILE      *output2        = NULL;  //  B read output
 
   int arg = 1;
   int err = 0;
@@ -519,7 +576,10 @@ main(int argc, char **argv) {
       allowGaps = true;
 
     } else if (strcmp(argv[arg], "-nojunction") == 0) {
-      mpJunctions = false;
+      mpJunctions = mpJunctionsNone;
+
+    } else if (strcmp(argv[arg], "-alljunction") == 0) {
+      mpJunctions = mpJunctionsAlways;
 
     } else if (strcmp(argv[arg], "-se") == 0) {
       seEnable = true;
@@ -605,13 +665,13 @@ main(int argc, char **argv) {
 
   srand48(time(NULL));
 
-  memset(reverseComplement, '&', sizeof(char) * 256);
+  memset(revComp, '&', sizeof(char) * 256);
 
-  reverseComplement['A'] = 'T';
-  reverseComplement['C'] = 'G';
-  reverseComplement['G'] = 'C';
-  reverseComplement['T'] = 'A';
-  reverseComplement['N'] = 'N';
+  revComp['A'] = 'T';
+  revComp['C'] = 'G';
+  revComp['G'] = 'C';
+  revComp['T'] = 'A';
+  revComp['N'] = 'N';
 
   memset(errorBase, '*', sizeof(char) * 256 * 3);
 
@@ -635,10 +695,24 @@ main(int argc, char **argv) {
 
   errno = 0;
 
-  sprintf(outputName, "%s.%c.fastq", outputPrefix, (seEnable) ? 's' : 'i');
-  output = fopen(outputName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
+  if (seEnable == true) {
+    sprintf(outputName, "%s.s.fastq", outputPrefix);
+    outputI = fopen(outputName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
+  }
+
+  if (seEnable == false) {
+    sprintf(outputName, "%s.i.fastq", outputPrefix);
+    outputI = fopen(outputName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
+
+    sprintf(outputName, "%s.c.fastq", outputPrefix);
+    outputC = fopen(outputName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
+  }
 
   if (peEnable || mpEnable) {
     sprintf(outputName, "%s.1.fastq", outputPrefix);
@@ -712,19 +786,20 @@ main(int argc, char **argv) {
   //
 
   if (seEnable)
-    makeSE(seq, seqLen, output, readLen, numReads);
+    makeSE(seq, seqLen, outputI, outputC, readLen, numReads);
 
   if (peEnable)
-    makePE(seq, seqLen, output, output1, output2, readLen, numPairs, peShearSize, peShearStdDev);
+    makePE(seq, seqLen, outputI, outputC, output1, output2, readLen, numPairs, peShearSize, peShearStdDev);
 
   if (mpEnable)
-    makeMP(seq, seqLen, output, output1, output2, readLen, numPairs, mpInsertSize, mpInsertStdDev, mpShearSize, mpShearStdDev, mpEnrichment, mpJunctions);
+    makeMP(seq, seqLen, outputI, outputC, output1, output2, readLen, numPairs, mpInsertSize, mpInsertStdDev, mpShearSize, mpShearStdDev, mpEnrichment, mpJunctions);
 
   //
   //
   //
 
-  fclose(output);
+  fclose(outputI);
+  fclose(outputC);
 
   if (peEnable || mpEnable) {
     fclose(output1);
