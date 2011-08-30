@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.68 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.69 2011-08-30 12:29:16 mkotelbajcvi Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -40,8 +40,10 @@ static const char *rcsid = "$Id: GapFillREZ.c,v 1.68 2010-08-19 05:28:07 brianwa
 #include <stdio.h>
 #include <assert.h>
 #include <ctype.h>
-#include <math.h>
 #include <float.h>
+#include <cmath>
+#include <ctime>
+
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_fileIO.h"

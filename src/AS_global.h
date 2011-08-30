@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.44 2011-08-10 20:25:15 mkotelbajcvi Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.45 2011-08-30 12:29:16 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -39,6 +39,14 @@ static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.44 2011-08-10 20:25
 #include <float.h>
 #include <inttypes.h>
 #include <time.h>
+
+#include <algorithm>
+#include <map>
+#include <set>
+#include <string>
+#include <vector>
+
+using namespace std;
 
 #include "AS_UTL_alloc.h"
 

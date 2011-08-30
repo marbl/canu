@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.51 2011-01-25 21:26:56 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.52 2011-08-30 12:29:16 mkotelbajcvi Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -26,12 +26,12 @@ static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.51 2011-01-25 21:26:56 brianwal
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <float.h>
 #include <assert.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <cmath>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"

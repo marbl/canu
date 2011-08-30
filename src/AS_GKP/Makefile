@@ -34,10 +34,10 @@ GKPSRC    = AS_GKP_buildPartition.C \
             AS_GKP_errors.C \
             AS_GKP_illumina.C
 
-SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC) sffToCA.C fastqToCA.C fastqSample.C fastqSimulate.C upgrade-v6-to-v7.C upgrade-v7-to-v8.C clearRangeHistogram.C
+SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC) sffToCA.C fastqToCA.C fastqSample.C fastqSimulate.C upgrade-v6-to-v7.C upgrade-v7-to-v8.C clearRangeHistogram.C profileReadErrors.C
 OBJECTS   = $(SOURCES:.C=.o)
 LIBRARIES =
-CXX_PROGS = gatekeeper gatekeeperbench sffToCA fastqToCA fastqSample fastqSimulate upgrade-v6-to-v7 upgrade-v7-to-v8 clearRangeHistogram
+CXX_PROGS = gatekeeper gatekeeperbench sffToCA fastqToCA fastqSample fastqSimulate upgrade-v6-to-v7 upgrade-v7-to-v8 clearRangeHistogram profileReadErrors
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -53,3 +53,4 @@ fastqSimulate:        fastqSimulate.o               libCA.a
 upgrade-v6-to-v7:     upgrade-v6-to-v7.o            libCA.a
 upgrade-v7-to-v8:     upgrade-v7-to-v8.o            libCA.a
 clearRangeHistogram:  clearRangeHistogram.o         libCA.a
+profileReadErrors:    profileReadErrors.o           libCA.a

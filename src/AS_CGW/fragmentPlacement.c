@@ -19,15 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.37 2010-08-24 15:02:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.38 2011-08-30 12:29:16 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <assert.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <cmath>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"

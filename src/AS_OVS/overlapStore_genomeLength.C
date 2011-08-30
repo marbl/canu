@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_genomeLength.C,v 1.1 2010-09-28 17:20:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_genomeLength.C,v 1.2 2011-08-30 12:29:16 mkotelbajcvi Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlap.h"
@@ -27,7 +27,7 @@ static const char *rcsid = "$Id: overlapStore_genomeLength.C,v 1.1 2010-09-28 17
 
 #include "overlapStore.h"
 
-#include <math.h>
+#include <cmath>
 
 //  Estimate the genome length based on overlap statistics.
 //

@@ -22,7 +22,7 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.9 2011-08-10 20:25:15 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.10 2011-08-30 12:29:16 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,7 +69,7 @@ public:
 
 	inline static bool areEqual(const char* str1, const char* str2)
 	{
-		return (str1 == NULL) ? str2 == NULL : (str2 != NULL) && (strcmp(str1, str2) == 0);
+		return (str1 != NULL) && (str2 != NULL) && (strcmp(str1, str2) == 0);
 	}
 
 	inline static const char* concat(size_t num, ...)

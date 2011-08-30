@@ -257,7 +257,7 @@ private:
   //  created 'out of order' (in order: packed first, then normal, then strobe).  See comments in
   //  AS_PER_gkStore_IID.C
   //
-  uint32                   IIDmax;
+  uint64                   IIDmax;
   uint8                   *IIDtoTYPE;
   uint32                  *IIDtoTIID;
 

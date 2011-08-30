@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_IID.C,v 1.1 2009-10-28 17:27:29 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_IID.C,v 1.2 2011-08-30 12:29:16 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,8 +72,8 @@ gkStore::gkStore_decodeTypeFromIID(AS_IID iid, uint32& type, uint32& tiid) {
     tiid = iid - inf.numPacked - inf.numNormal;
 
   } else {
-    fprintf(stderr, "gkStore_decodeTypeFromIID()-- ERROR:  fragment iid %d is out of range.\n", iid);
-    fprintf(stderr, "gkStore_decodeTypeFromIID()--         numPacked=%d numNormal=%d numStrobe=%d\n",
+    fprintf(stderr, "gkStore_decodeTypeFromIID()-- ERROR:  fragment iid %u is out of range.\n", iid);
+    fprintf(stderr, "gkStore_decodeTypeFromIID()--         numPacked=%u numNormal=%u numStrobe=%u\n",
             inf.numPacked, inf.numNormal, inf.numStrobe);
     assert(0);
   }
@@ -98,7 +98,7 @@ gkStore::gkStore_addIIDtoTypeMap(AS_IID iid, uint32 type, uint32 tiid) {
     //  In all cases, we need to scan ALL reads already in the store to create the initial map.
     //  NOTE that fr.type needs to be set for the gkFragment_ calls to work.
 
-    IIDmax    = inf.numPacked + inf.numNormal + inf.numStrobe + 1048576;
+    IIDmax    = min(inf.numPacked + inf.numNormal + inf.numStrobe + (uint64)1048576, (uint64)UINT_MAX);
     IIDtoTYPE = (uint8  *)safe_malloc(sizeof(uint8)  * IIDmax);
     IIDtoTIID = (uint32 *)safe_malloc(sizeof(uint32) * IIDmax);
 
@@ -106,21 +106,21 @@ gkStore::gkStore_addIIDtoTypeMap(AS_IID iid, uint32 type, uint32 tiid) {
     memset(IIDtoTIID, 0xff, sizeof(uint32) * IIDmax);
 
     fr.type = GKFRAGMENT_PACKED;
-    for (int32 i=1; i<=inf.numPacked; i++) {
+    for (uint32 i=1; i<=inf.numPacked; i++) {
       getIndexStore(fpk, i, &fr.fr.packed);
       IIDtoTYPE[fr.gkFragment_getReadIID()] = GKFRAGMENT_PACKED;
       IIDtoTIID[fr.gkFragment_getReadIID()] = i;
     }
 
     fr.type = GKFRAGMENT_NORMAL;
-    for (int32 i=1; i<=inf.numNormal; i++) {
+    for (uint32 i=1; i<=inf.numNormal; i++) {
       getIndexStore(fnm, i, &fr.fr.normal);
       IIDtoTYPE[fr.gkFragment_getReadIID()] = GKFRAGMENT_NORMAL;
       IIDtoTIID[fr.gkFragment_getReadIID()] = i;
     }
 
     fr.type = GKFRAGMENT_STROBE;
-    for (int32 i=1; i<=inf.numStrobe; i++) {
+    for (uint32 i=1; i<=inf.numStrobe; i++) {
       getIndexStore(fsb, i, &fr.fr.strobe);
       IIDtoTYPE[fr.gkFragment_getReadIID()] = GKFRAGMENT_STROBE;
       IIDtoTIID[fr.gkFragment_getReadIID()] = i;
@@ -130,7 +130,7 @@ gkStore::gkStore_addIIDtoTypeMap(AS_IID iid, uint32 type, uint32 tiid) {
   //  Well, at least the task we came here to do is simple.
 
   if (IIDmax <= iid) {
-    IIDmax *= 2;
+    IIDmax = min(IIDmax * 2, (uint64)UINT_MAX);
     IIDtoTYPE = (uint8  *)safe_realloc(IIDtoTYPE, sizeof(uint8)  * IIDmax);
     IIDtoTIID = (uint32 *)safe_realloc(IIDtoTIID, sizeof(uint32) * IIDmax);
   }

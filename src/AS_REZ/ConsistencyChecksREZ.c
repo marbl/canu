@@ -30,15 +30,15 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.18 2010-08-19 05:28:07 brianwalenz Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.19 2011-08-30 12:29:16 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <assert.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <cmath>
 
 #include "ConsistencyChecksREZ.h"
 #include "DataTypesREZ.h"

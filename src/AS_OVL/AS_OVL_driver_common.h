@@ -28,7 +28,7 @@
 #ifndef AS_OVL_DRIVER_COMMON_H
 #define AS_OVL_DRIVER_COMMON_H
 
-static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.31 2011-08-02 02:23:46 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.32 2011-08-30 12:29:16 mkotelbajcvi Exp $";
 
 #include  <unistd.h>
 
@@ -128,7 +128,7 @@ int  OverlapDriver(int argc, char **argv)
     {
       gkStore  *curr_frag_store;
       gkStore  *hash_frag_store;
-      int  highest_old_frag, lowest_old_frag;
+      AS_IID  highest_old_frag, lowest_old_frag;
       int  status;
 
       if  (Contig_Mode)
