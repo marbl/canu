@@ -4140,6 +4140,9 @@ sub classifyMates () {
     my $bbIID;
 
     foreach my $lib (@backboneToUse) {
+        if (!exists($libToIID{$lib})) {
+            caFailure("Backbone library '$lib' doesn't exist in the assembly, classifyMates failed\n", undef);
+        }
         if (defined($bbIID)) {
             $bbIID .= ",$libToIID{$lib}";
         } else {
@@ -4159,6 +4162,10 @@ sub classifyMates () {
 
     foreach my $lib (@libsToClassify) {
         my $mpIID = $libToIID{$lib};
+
+        if (!exists($libToIID{$lib})) {
+            caFailure("Mate pair library '$lib' doesn't exist in the assembly, classifyMates failed\n", undef);
+        }
 
         open(F, "> $wrk/2-classifyMates/classify-$lib.sh");
         print F "#!/bin/sh\n";
@@ -4256,7 +4263,7 @@ sub classifyMates () {
 
     #  Force the stop.  User must run scripts by hand.
 
-    stopBefore("classifyMates", "");
+    stopBefore("classifyMates", undef);
 
     foreach my $j (@classifyJobs) {
         if (runCommand("$wrk/2-classifyMates", $j)) {
