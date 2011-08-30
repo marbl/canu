@@ -432,21 +432,31 @@ progs: $(C_PROGS) $(CXX_PROGS)
 ## So set it to be the target (typically objs, libs, progs, all, ...)
 TGT = $@
 
+# Figuring out the number of parallel make jobs to run
+MAKE_JOBS = 4
+
+ifeq ($(OSTYPE), Linux)
+	MAKE_JOBS = $(shell echo `cat /proc/cpuinfo | egrep -c 'model name'`)
+endif
+
 # The following recurses the subdirectories that exist
 #
 # Remove the "|| exit 1" below if you want to get the original
 # behavior of not stopping on errors.
 #
 define dosubdirs
-echo "* Make Target is " $(TGT);
+echo "* Make Target is" $(TGT); \
+if [[ $(TGT) != "libs" && $(MAKE_JOBS) -gt 1 ]]; then \
+	echo "* Running $(MAKE_JOBS) parallel jobs"; \
+fi; \
 for i in $(SUBDIRS);\
   do \
     if [ -d $$i ]; then \
-      echo "############################## $$i ##############################"  ;\
+      echo "############################## $$i ##############################"; \
       if [ $(TGT) = "libs" ] ; then \
-        $(MAKE) --no-print-directory        -C $$i $(TGT) || exit 1 ;\
+        $(MAKE) --no-print-directory -C $$i $(TGT) || exit 1; \
       else \
-        $(MAKE) --no-print-directory -j 4   -C $$i $(TGT) || exit 1 ;\
+        $(MAKE) --no-print-directory -j $(MAKE_JOBS) -C $$i $(TGT) || exit 1; \
       fi; \
     fi; \
   done;
