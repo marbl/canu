@@ -1670,9 +1670,9 @@ sub preoverlap {
             caFailure("gatekeeper failed", "$wrk/$asm.gkpStore.err");
         }
 
-        rename "$wrk/$asm.gkpStore.BUILDING",                "$wrk/$asm.gkpStore";
-        rename "$wrk/$asm.gkpStore.BUILDING.errorLog",       "$wrk/$asm.gkpStore.errorLog";
-        rename "$wrk/$asm.gkpStore.BUILDING.illuminaUIDmap", "$wrk/$asm.gkpStore.illuminaUIDmap";
+        rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
+        rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
+        rename "$wrk/$asm.gkpStore.BUILDING.fastqUIDmap", "$wrk/$asm.gkpStore.fastqUIDmap";
         unlink "$asm.gkpStore.err";
     }
 
