@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.36 2011-07-25 20:00:47 mkotelbajcvi Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.37 2011-08-30 02:59:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,7 +129,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
       AS_GKP_reportError(AS_GKP_LIB_EXISTS,
                          AS_UID_toString(lib_mesg->eaccession), iid);
       gkpStore->inf.libErrors++;
-      checkLibraryForIlluminaPointers(lib_mesg);
+      checkLibraryForFastQPointers(lib_mesg);
       return(1);
     }
     if (AS_UID_isDefined(lib_mesg->eaccession) == FALSE) {
@@ -163,9 +163,9 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
 
     gkpStore->gkStore_addLibrary(lib_mesg->eaccession, &gkpl);
 
-    //  If this library specifies Illumina reads, load them now.
+    //  If this library specifies fastq reads, load them now.
 
-    checkLibraryForIlluminaPointers(lib_mesg);
+    checkLibraryForFastQPointers(lib_mesg);
 
   } else if (lib_mesg->action == AS_UPDATE) {
     AS_IID     iid = gkpStore->gkStore_getUIDtoIID(lib_mesg->eaccession, NULL);

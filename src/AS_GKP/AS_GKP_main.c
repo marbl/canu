@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.96 2011-07-11 03:19:10 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.97 2011-08-30 02:59:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,8 +43,8 @@ gkFragment      *gkFrag1        = NULL;
 gkFragment      *gkFrag2        = NULL;
 FILE            *errorFP        = NULL;
 
-char             illuminaUIDmapName[FILENAME_MAX];
-FILE            *illuminaUIDmap = NULL;
+char             fastqUIDmapName[FILENAME_MAX];
+FILE            *fastqUIDmap = NULL;
 
 static
 void
@@ -671,16 +671,16 @@ main(int argc, char **argv) {
   gkFrag2->gkFragment_enableGatekeeperMode(gkpStore);
 
 
-  sprintf(illuminaUIDmapName, "%s.errorLog", gkpStoreName);
+  sprintf(fastqUIDmapName, "%s.errorLog", gkpStoreName);
 
   errno = 0;
-  errorFP = fopen(illuminaUIDmapName, "w");
+  errorFP = fopen(fastqUIDmapName, "w");
   if (errno) {
-    fprintf(stderr, "%s: cannot open error file '%s': %s\n", progName, illuminaUIDmapName, strerror(errno));
+    fprintf(stderr, "%s: cannot open error file '%s': %s\n", progName, fastqUIDmapName, strerror(errno));
     exit(1);
   }
 
-  sprintf(illuminaUIDmapName, "%s.illuminaUIDmap", gkpStoreName);
+  sprintf(fastqUIDmapName, "%s.fastqUIDmap", gkpStoreName);
 
 
   for (; firstFileArg < argc; firstFileArg++) {
@@ -762,8 +762,8 @@ main(int argc, char **argv) {
     //  Or flush it; it is stdout and summarizeErrors writes to stderr
     fflush(errorFP);
 
-  if (illuminaUIDmap)
-    fclose(illuminaUIDmap);
+  if (fastqUIDmap)
+    fclose(fastqUIDmap);
 
   return(AS_GKP_summarizeErrors());
 }

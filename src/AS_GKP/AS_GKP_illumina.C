@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.21 2011-07-29 02:24:57 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.22 2011-08-30 02:59:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,10 +134,10 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
     tok = strtok(NULL, " \t");
   }
 
-  if (clrL < 0) clrL = 0;    if (clrR > slen) clrR = slen;
-  if (clvL < 0) clvL = 0;    if (clvR > slen) clvR = slen;
-  if (clmL < 0) clmL = 0;    if (clmR > slen) clmR = slen;
-  if (tntL < 0) tntL = 0;    if (tntR > slen) tntR = slen;
+  if (clrR > slen) clrR = slen;    if (clrL > clrR) clrL = clrR;
+  if (clvR > slen) clvR = slen;    if (clvL > clvR) clvL = clvR;
+  if (clmR > slen) clmR = slen;    if (clmL > clmR) clmL = clmR;
+  if (tntR > slen) tntR = slen;    if (tntL > tntR) tntL = tntR;
 
 
   //  Clean up what we read.  Remove trailing newline (whoops, already done), truncate read names to
@@ -316,51 +316,6 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
 }
 
 
-static
-uint64
-readQSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrient) {
-
-  fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
-  fr->fr.gkFragment_setIsDeleted(1);
-
-  fr->fr.gkFragment_setMateIID(0);
-  fr->fr.gkFragment_setLibraryIID(0);
-
-  fgets(fr->qstr, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->qstr);
-
-  if (feof(F))
-    return(0);
-
-  char *v[32];
-  int   nv = 0;
-  char *p;
-  int   is = 1;
-
-  for (char *p=fr->qstr; *p; p++) {
-    if (isspace(*p)) {
-      *p = 0;
-      is = 1;
-    } else {
-      if (is == 1) {
-        v[nv++] = p;
-        is = 0;
-      }
-    }
-  }
-
-  if (nv != 11)
-    fprintf(stderr, "ERROR:  qseq not in expected format.  Please convert to standard FastQ.\n");
-  assert(nv == 11);
-
-  sprintf(fr->snam, "@%s:%s:%s:%s:%s#%s/%s", v[0], v[2], v[3], v[4], v[5], v[6], v[7]);
-  sprintf(fr->sstr, "%s", v[8]);
-  sprintf(fr->qnam, "+%s:%s:%s:%s:%s#%s/%s", v[0], v[2], v[3], v[4], v[5], v[6], v[7]);
-  sprintf(fr->qstr, "%s", v[9]);
-
-  return(processSeq(N, fr, end, fastqType, fastqOrient));
-}
-
-
 
 static
 uint64
@@ -393,13 +348,13 @@ openFile(char *name, FILE *&file) {
   errno = 0;
 
   if (AS_UTL_fileExists(name, FALSE, FALSE) == FALSE) {
-    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", name, strerror(errno));
+    fprintf(stderr, "ERROR:  Failed to open fastq input file '%s': %s\n", name, strerror(errno));
     AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, name, strerror(errno));
     exit(1);
   }
 
   if        (name == NULL) {
-    fprintf(stderr, "ERROR:  Failed to open illumina input file: no name supplied.\n");
+    fprintf(stderr, "ERROR:  Failed to open fastq input file: no name supplied.\n");
     AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, "(no-name-supplied)", "no name supplied");
     exit(1);
 
@@ -419,7 +374,7 @@ openFile(char *name, FILE *&file) {
   }
 
   if (errno) {
-    fprintf(stderr, "ERROR:  Failed to open illumina input file '%s': %s\n", name, strerror(errno));
+    fprintf(stderr, "ERROR:  Failed to open fastq input file '%s': %s\n", name, strerror(errno));
     AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, name, strerror(errno));
     exit(1);
   }
@@ -432,7 +387,7 @@ openFile(char *name, FILE *&file) {
 
 static
 void
-loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
+loadFastQReads(char *lname, char *rname, uint32 fastqType, uint32 fastqOrient) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Processing %s %s QV encoding reads from:\n",
           (fastqOrient == FASTQ_INNIE) ? "INNIE" : "OUTTIE",
@@ -444,11 +399,11 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
     fprintf(stderr, "  and '%s'\n", rname);
   }
 
-  if (illuminaUIDmap == NULL) {
+  if (fastqUIDmap == NULL) {
     errno = 0;
-    illuminaUIDmap = fopen(illuminaUIDmapName, "w");
+    fastqUIDmap = fopen(fastqUIDmapName, "w");
     if (errno) {
-      fprintf(stderr, "cannot open illumina UID map file '%s': %s\n", illuminaUIDmapName, strerror(errno));
+      fprintf(stderr, "cannot open fastq UID map file '%s': %s\n", fastqUIDmapName, strerror(errno));
       exit(1);
     }
   }
@@ -473,8 +428,8 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
   while (!feof(lfile) && !feof(rfile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 lUID = (isSeq) ? readSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient) : readQSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient);
-    uint64 rUID = (isSeq) ? readSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient) : readQSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient);
+    uint64 lUID = readSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient);
+    uint64 rUID = readSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient);
 
     if       ((lfrg->fr.gkFragment_getIsDeleted() == 0) &&
               (rfrg->fr.gkFragment_getIsDeleted() == 0)) {
@@ -488,7 +443,7 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
       gkpStore->gkStore_addFragment(&lfrg->fr);
       gkpStore->gkStore_addFragment(&rfrg->fr);
 
-      fprintf(illuminaUIDmap, F_U64"\t"F_U32"\t%s\t"F_U64"\t"F_U32"\t%s\n",
+      fprintf(fastqUIDmap, F_U64"\t"F_U32"\t%s\t"F_U64"\t"F_U32"\t%s\n",
               lUID, nfrg + 1, lfrg->snam+1,
               rUID, nfrg + 2, rfrg->snam+1);
 
@@ -496,7 +451,7 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
       //  Only add the left fragment.
       gkpStore->gkStore_addFragment(&lfrg->fr);
 
-      fprintf(illuminaUIDmap, F_U64"\t"F_U32"\t%s\n",
+      fprintf(fastqUIDmap, F_U64"\t"F_U32"\t%s\n",
               lUID, nfrg + 1, lfrg->snam+1);
 
 
@@ -504,7 +459,7 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
       //  Only add the right fragment.
       gkpStore->gkStore_addFragment(&rfrg->fr);
 
-      fprintf(illuminaUIDmap, F_U64"\t"F_U32"\t%s\n",
+      fprintf(fastqUIDmap, F_U64"\t"F_U32"\t%s\n",
               rUID, nfrg + 1, rfrg->snam+1);
 
 
@@ -528,17 +483,17 @@ loadIlluminaReads(char *lname, char *rname, bool isSeq, uint32 fastqType, uint32
 
 static
 void
-loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient) {
+loadFastQReads(char *uname, uint32 fastqType, uint32 fastqOrient) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Processing SINGLE-ENDED %s QV encoding reads from:\n",
           (fastqType   == FASTQ_ILLUMINA) ? "ILLUMINA 1.3+" : ((fastqType == FASTQ_SANGER) ? "SANGER" : "SOLEXA pre-1.3"));
   fprintf(stderr, "      '%s'\n", uname);
 
-  if (illuminaUIDmap == NULL) {
+  if (fastqUIDmap == NULL) {
     errno = 0;
-    illuminaUIDmap = fopen(illuminaUIDmapName, "w");
+    fastqUIDmap = fopen(fastqUIDmapName, "w");
     if (errno) {
-      fprintf(stderr, "cannot open illumina UID map file '%s': %s\n", illuminaUIDmapName, strerror(errno));
+      fprintf(stderr, "cannot open fastq UID map file '%s': %s\n", fastqUIDmapName, strerror(errno));
       exit(1);
     }
   }
@@ -553,13 +508,13 @@ loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient)
   while (!feof(ufile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 uUID = (isSeq) ? readSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient) : readQSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient);
+    uint64 uUID = readSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient);
 
     if (ufrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Add a fragment.
       gkpStore->gkStore_addFragment(&ufrg->fr);
 
-      fprintf(illuminaUIDmap, F_U64"\t"F_U32"\t%s\n",
+      fprintf(fastqUIDmap, F_U64"\t"F_U32"\t%s\n",
               uUID, nfrg + 1, ufrg->snam+1);
 
     } else {
@@ -576,47 +531,43 @@ loadIlluminaReads(char *uname, bool isSeq, uint32 fastqType, uint32 fastqOrient)
 
 
 void
-checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
+checkLibraryForFastQPointers(LibraryMesg *lib_mesg) {
   uint32  fastqType   = FASTQ_SOLEXA;
   uint32  fastqOrient = FASTQ_INNIE;
 
   isValidACGTN = AS_UTL_getValidACGTN();
 
+  for (uint32 i=0; i<lib_mesg->num_features; i++) {
+    if (strncasecmp(lib_mesg->features[i], "illumina", 8) == 0)
+      fprintf(stderr, "ERROR:  Obsolete LIB feature '%s' detected; rebuild your frg.\n",
+              lib_mesg->features[i]), exit(1);
+  }
+
   //  Search for the type of the reads.
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
-    if (strcasecmp(lib_mesg->features[i], "illuminaFastQType") == 0) {
-      if (strcasecmp(lib_mesg->values[i], "sanger") == 0) {
-        //fprintf(stderr, "Type set to SANGER.\n");
+    if (strcasecmp(lib_mesg->features[i], "fastqQualityValues") == 0) {
+      if (strcasecmp(lib_mesg->values[i], "sanger") == 0)
         fastqType = FASTQ_SANGER;
-      }
-      if (strcasecmp(lib_mesg->values[i], "solexa") == 0) {
-        //fprintf(stderr, "Type set to SOLEXA pre-1.3.\n");
+      if (strcasecmp(lib_mesg->values[i], "solexa") == 0)
         fastqType = FASTQ_SOLEXA;
-      }
-      if (strcasecmp(lib_mesg->values[i], "illumina") == 0) {
-        //fprintf(stderr, "Type set to ILLUMINA 1.3+.\n");
+      if (strcasecmp(lib_mesg->values[i], "illumina") == 0)
         fastqType = FASTQ_ILLUMINA;
-      }
     }
   }
 
   //  Search for the orientation of the reads.
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
-    if (strcasecmp(lib_mesg->features[i], "illuminaOrientation") == 0) {
-      if (strcasecmp(lib_mesg->values[i], "innie") == 0) {
-        //fprintf(stderr, "Orientation set to INNIE.\n");
+    if (strcasecmp(lib_mesg->features[i], "fastqOrientation") == 0) {
+      if (strcasecmp(lib_mesg->values[i], "innie") == 0)
         fastqOrient = FASTQ_INNIE;
-      }
-      if (strcasecmp(lib_mesg->values[i], "outtie") == 0) {
-        //fprintf(stderr, "Orientation set to OUTTIE.\n");
+      if (strcasecmp(lib_mesg->values[i], "outtie") == 0)
         fastqOrient = FASTQ_OUTTIE;
-      }
     }
   }
 
   //  Search for and load the reads.
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
-    if (strcasecmp(lib_mesg->features[i], "illuminaQSequence") == 0) {
+    if (strcasecmp(lib_mesg->features[i], "fastqMates") == 0) {
       char *sl = lib_mesg->values[i];
       char *sr = lib_mesg->values[i];
 
@@ -626,15 +577,13 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
       if (*sr)
         *sr++ = 0;
 
-      if ((*sr == 0) && (lib_mesg->mean > 0))
-        loadIlluminaReads(sl, sl, false, fastqType, fastqOrient);
-      else if (*sr)
-        loadIlluminaReads(sl, sr, false, fastqType, fastqOrient);
+      if (*sr == 0)
+        loadFastQReads(sl, sl, fastqType, fastqOrient);
       else
-        loadIlluminaReads(sl, false, fastqType, fastqOrient);
+        loadFastQReads(sl, sr, fastqType, fastqOrient);
     }
 
-    if (strcasecmp(lib_mesg->features[i], "illuminaSequence") == 0) {
+    if (strcasecmp(lib_mesg->features[i], "fastqReads") == 0) {
       char *sl = lib_mesg->values[i];
       char *sr = lib_mesg->values[i];
 
@@ -642,14 +591,9 @@ checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg) {
         sr++;
 
       if (*sr)
-        *sr++ = 0;
+        fprintf(stderr, "ERROR:  Multipe FastQ files given to fastqReads.\n"), exit(1);
 
-      if ((*sr == 0) && (lib_mesg->mean > 0))
-        loadIlluminaReads(sl, sl, true, fastqType, fastqOrient);
-      else if (*sr)
-        loadIlluminaReads(sl, sr, true, fastqType, fastqOrient);
-      else
-        loadIlluminaReads(sl, true, fastqType, fastqOrient);
+      loadFastQReads(sl, fastqType, fastqOrient);
     }
   }
 }

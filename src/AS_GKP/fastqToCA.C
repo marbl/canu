@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.17 2011-08-10 12:10:58 skoren Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.18 2011-08-30 02:59:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,6 +46,60 @@ addFeature(LibraryMesg *libMesg, char *feature, char *value) {
 }
 
 
+int32
+checkFiles(char **names, int32 namesLen) {
+  int32  errors = 0;
+
+  for (int32 i=0; i<namesLen; i++) {
+    char   *f1  = names[i];
+    char   *f2  = strrchr(names[i], ',');
+    char    cwd[FILENAME_MAX];
+
+    getcwd(cwd, FILENAME_MAX);
+
+    if (f2) {
+      *f2 = 0;
+      f2++;
+    }
+
+    if ((f1) && (AS_UTL_fileExists(f1, FALSE, FALSE) == false))
+      fprintf(stderr, "ERROR: fastq file '%s' doesn't exist.\n", f1), errors++;
+
+    if ((f2) && (AS_UTL_fileExists(f2, FALSE, FALSE) == false))
+      fprintf(stderr, "ERROR: fastq file '%s' doesn't exist.\n", f2), errors++;
+
+    if ((f1) && (f1[0] != '/')) {
+      char *n1 = new char [FILENAME_MAX];
+      sprintf(n1, "%s/%s", cwd, f1);
+      f1 = n1;
+
+      if (AS_UTL_fileExists(f1, FALSE, FALSE) == false)
+        fprintf(stderr, "ERROR: absolute-path fastq file '%s' doesn't exist.\n", f1), errors++;
+    }
+
+    if ((f2) && (f2[0] != '/')) {
+      char *n2 = new char [FILENAME_MAX];
+      sprintf(n2, "%s/%s", cwd, f2);
+      f2 = n2;
+
+      if (AS_UTL_fileExists(f2, FALSE, FALSE) == false)
+        fprintf(stderr, "ERROR: absolute-path fastq file '%s' doesn't exist.\n", f2), errors++;
+    }
+
+    char *n = new char [FILENAME_MAX + FILENAME_MAX];
+
+    if (f2)
+      sprintf(n, "%s,%s", f1, f2);
+    else
+      sprintf(n, "%s", f1);
+
+    names[i] = n;
+  }
+
+  return(errors);
+}
+
+
 
 int
 main(int argc, char **argv) {
@@ -55,17 +109,18 @@ main(int argc, char **argv) {
 
   bool      isMated          = false;
 
-  char     *type             = "illumina";
+  char     *type             = "sanger";
 
   char     *technology       = "illumina";
   char     *orientInnie      = "innie";
   char     *orientOuttie     = "outtie";
   char     *orient           = orientInnie;
 
-  bool      interlaced       = false;
+  char    **reads            = new char * [argc];
+  int32     readsLen         = 0;
 
-  char    **fastq            = new char * [argc];
-  int32     fastqLen         = 0;
+  char    **mates            = new char * [argc];
+  int32     matesLen         = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -92,11 +147,11 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-outtie") == 0) {
       orient = orientOuttie;
 
-    } else if (strcmp(argv[arg], "-interlaced") == 0) {
-      interlaced = true;
+    } else if (strcmp(argv[arg], "-reads") == 0) {
+      reads[readsLen++] = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-fastq") == 0) {
-      fastq[fastqLen++] = argv[++arg];
+    } else if (strcmp(argv[arg], "-mates") == 0) {
+      mates[matesLen++] = argv[++arg];
 
     } else {
       fprintf(stderr, "ERROR:  Unknown option '%s'\n", argv[arg]);
@@ -113,131 +168,85 @@ main(int argc, char **argv) {
     err++;
   if (libraryName == 0L)
     err++;
-  if ((strcasecmp(technology, "illumina") != 0) && (strcasecmp(technology, "pacbio") != 0)) 
+  if ((strcasecmp(technology, "sanger") != 0) &&
+      (strcasecmp(technology, "454") != 0) &&
+      (strcasecmp(technology, "illumina") != 0) &&
+      (strcasecmp(technology, "pacbio") != 0)) 
      err++;
-  if ((strcasecmp(type, "sanger") != 0) && (strcasecmp(type, "solexa") != 0) && (strcasecmp(type, "illumina") != 0))
+  if ((strcasecmp(type, "sanger") != 0) &&
+      (strcasecmp(type, "solexa") != 0) &&
+      (strcasecmp(type, "illumina") != 0))
     err++;
-  if (fastqLen == 0)
+  if (readsLen + matesLen == 0)
     err++;
-  if ((isMated == false) && (interlaced == true))
+  if ((isMated == false) && (matesLen > 0))
     err++;
-
   if (err) {
     fprintf(stderr, "usage: %s [-insertsize <mean> <stddev>] [-libraryname <name>]\n", argv[0]);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Writes a CA FRG file consisting of a single LIB message to stdout.  When this file is fed to\n");
-    fprintf(stderr, "gatekeeper, gatekeeper will read fragments from the original fastq files supplied with the\n");
-    fprintf(stderr, "-fastq option.  The full absolute path name must be used for fastq files.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -insertsize i d    Mates are on average i +- d bp apart.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libraryname n     The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -type t            What type of fastq ('illumina' is the default):\n");
+    fprintf(stderr, "  -technology p      What instrument were these reads generated on ('illumina' is the default):\n");
+    fprintf(stderr, "                       'sanger'   -- \n");
+    fprintf(stderr, "                       '454'      -- \n");
+    fprintf(stderr, "                       'illumina' -- \n");
+    fprintf(stderr, "                       'pacbio'   -- \n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -type t            What type of fastq ('sanger' is the default):\n");
     fprintf(stderr, "                       'sanger'   -- QV's are PHRED, offset=33 '!', NCBI SRA data.\n");
     fprintf(stderr, "                       'solexa'   -- QV's are Solexa, early Solexa data.\n");
     fprintf(stderr, "                       'illumina' -- QV's are PHRED, offset=64 '@', Illumina reads from version 1.3 on.\n");
     fprintf(stderr, "                     See Cock, et al., 'The Sanger FASTQ file format for sequences with quality scores, and\n");
     fprintf(stderr, "                     the Solexa/Illumina FASTQ variants', doi:10.1093/nar/gkp1137\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -innie             The paired end reads are 5'-3' <-> 3'-5' (usually for paired-end reads) (default)\n");
+    fprintf(stderr, "  -innie             The paired end reads are 5'-3' <-> 3'-5' (the usual case) (default)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -outtie            The paired end reads are 3'-5' <-> 5'-3' (usually for mate-pair reads)\n");
+    fprintf(stderr, "  -outtie            The paired end reads are 3'-5' <-> 5'-3' (for Illumina Mate Pair reads)\n");
     fprintf(stderr, "                     This switch will reverse-complement every read, transforming outtie-oriented\n");
     fprintf(stderr, "                     mates into innie-oriented mates.  This trick only works if all reads are the\n");
     fprintf(stderr, "                     same length.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -interlaced        The paired reads come one after another in a single fastq file.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -fastq A           Single ended or interlaced paired end reads, in fastq format.\n");
-    fprintf(stderr, "  -fastq A,B         Paired end reads, in fastq format.\n");
+    fprintf(stderr, "  -reads A           Single ended reads, in fastq format.\n");
+    fprintf(stderr, "  -mates A           Mated reads, interlaced, in fastq format.\n");
+    fprintf(stderr, "  -mates A,B         Mated reads, in fastq format.\n");
     fprintf(stderr, "\n");
 
     if ((insertSize == 0) && (insertStdDev >  0))
       fprintf(stderr, "ERROR:  Invalid -insertsize.  Both mean and std.dev must be greater than zero.\n");
     if ((insertSize >  0) && (insertStdDev == 0))
       fprintf(stderr, "ERROR:  Invalid -insertsize.  Both mean and std.dev must be greater than zero.\n");
+
     if (libraryName == 0L)
       fprintf(stderr, "ERROR:  No library name supplied with -libraryname.\n");
-    if ((strcasecmp(type, "sanger") != 0) && (strcasecmp(type, "solexa") != 0) && (strcasecmp(type, "illumina") != 0))
+
+    if ((strcasecmp(technology, "sanger") != 0) &&
+        (strcasecmp(technology, "454") != 0) &&
+        (strcasecmp(technology, "illumina") != 0) &&
+        (strcasecmp(technology, "pacbio") != 0)) 
+      fprintf(stderr, "ERROR:  Invalid technology '%s' supplied with -technology.\n", technology);
+
+    if ((strcasecmp(type, "sanger") != 0) &&
+        (strcasecmp(type, "solexa") != 0) &&
+        (strcasecmp(type, "illumina") != 0))
       fprintf(stderr, "ERROR:  Invalid type '%s' supplied with -type.\n", type);
-    if (fastqLen == 0)
-      fprintf(stderr, "ERROR:  No reads supplied with -fastq.\n");
-    if ((isMated == false) && (interlaced == true))
-      fprintf(stderr, "ERROR:  Interlaced reads (-interlaced) must have am insert size (-insertsize).\n");
+
+    if (readsLen + matesLen == 0)
+      fprintf(stderr, "ERROR:  No reads supplied with -reads or -mates.\n");
+
+    if ((isMated == false) && (matesLen > 0))
+      fprintf(stderr, "ERROR:  Mated reads (-mates) must have am insert size (-insertsize).\n");
 
     exit(1);
   }
-
-  //  Check that all the reads are mated or unmated, as required by the insert size description.
-
-  for (int32 i=0; i<fastqLen; i++) {
-    int32 ncomma = 0;
-
-    for (int32 j=0; fastq[i][j]; j++)
-      if (fastq[i][j] == ',')
-        ncomma++;
-
-    if ((isMated == true)  && (interlaced == false) && (ncomma != 1))
-      fprintf(stderr, "ERROR:  Library is mated, but -fastq '%s' doesn't supply exactly two files.\n", fastq[i]), err++;
-    if ((isMated == false) && (ncomma != 0))
-      fprintf(stderr, "ERROR:  Library is unmated, but -fastq '%s' doesn't supply exactly one file.\n", fastq[i]), err++;
-    if ((interlaced == true) && (ncomma != 0))
-      fprintf(stderr, "ERROR:  Library is interlaced, but -fastq '%s' doesn't supply exactly one file.\n", fastq[i]), err++;
-  }
-
-  if (err)
-    exit(1);
 
   //  Check that all the read files exist, and that the paths are absolute.
 
   int32   fastqPathErrors = 0;
 
-  for (int32 i=0; i<fastqLen; i++) {
-    char   *f1  = fastq[i];
-    char   *f2  = strrchr(fastq[i], ',');
-    char    cwd[FILENAME_MAX];
-
-    getcwd(cwd, FILENAME_MAX);
-
-    if (f2) {
-      *f2 = 0;
-      f2++;
-    }
-
-    if ((f1) && (AS_UTL_fileExists(f1, FALSE, FALSE) == false))
-      fprintf(stderr, "ERROR: fastq file '%s' doesn't exist.\n", f1), fastqPathErrors++;
-
-    if ((f2) && (AS_UTL_fileExists(f2, FALSE, FALSE) == false))
-      fprintf(stderr, "ERROR: fastq file '%s' doesn't exist.\n", f2), fastqPathErrors++;
-
-    if ((f1) && (f1[0] != '/')) {
-      char *n1 = new char [FILENAME_MAX];
-      sprintf(n1, "%s/%s", cwd, f1);
-      f1 = n1;
-
-      if (AS_UTL_fileExists(f1, FALSE, FALSE) == false)
-        fprintf(stderr, "ERROR: absolute-path fastq file '%s' doesn't exist.\n", f1), fastqPathErrors++;
-    }
-
-    if ((f2) && (f2[0] != '/')) {
-      char *n2 = new char [FILENAME_MAX];
-      sprintf(n2, "%s/%s", cwd, f2);
-      f2 = n2;
-
-      if (AS_UTL_fileExists(f2, FALSE, FALSE) == false)
-        fprintf(stderr, "ERROR: absolute-path fastq file '%s' doesn't exist.\n", f2), fastqPathErrors++;
-    }
-
-    char *n = new char [FILENAME_MAX + FILENAME_MAX];
-
-    if (f2)
-      sprintf(n, "%s,%s", f1, f2);
-    else
-      sprintf(n, "%s", f1);
-
-    fastq[i] = n;
-  }
+  fastqPathErrors += checkFiles(reads, readsLen);
+  fastqPathErrors += checkFiles(mates, matesLen);
 
   if (fastqPathErrors)
     fprintf(stderr, "ERROR: some fastq files not found.\n"), exit(1);
@@ -253,41 +262,83 @@ main(int argc, char **argv) {
   gkl.mean                       = insertSize;
   gkl.stddev                     = insertStdDev;
 
-  if (strcasecmp(technology, "illumina") == 0) {
-     gkl.doTrim_initialNone         = 0;
-     gkl.doTrim_initialMerBased     = 1;
-     gkl.doTrim_initialFlowBased    = 0;
-     gkl.doTrim_initialQualityBased = 0;
+  if        (strcasecmp(technology, "sanger") == 0) {
+    gkl.forceBOGunitigger          = 0;
+    gkl.doNotTrustHomopolymerRuns  = 0;
 
-     gkl.doRemoveDuplicateReads     = 1;
+    gkl.doTrim_initialNone         = 0;
+    gkl.doTrim_initialMerBased     = 0;
+    gkl.doTrim_initialFlowBased    = 0;
+    gkl.doTrim_initialQualityBased = 1;
 
-     gkl.doTrim_finalLargestCovered = 1;
-     gkl.doTrim_finalEvidenceBased  = 0;
+    gkl.doRemoveDuplicateReads     = 0;
 
-     gkl.doRemoveSpurReads          = 1;
-     gkl.doRemoveChimericReads      = 1;
+    gkl.doTrim_finalLargestCovered = 0;
+    gkl.doTrim_finalEvidenceBased  = 1;
+
+    gkl.doRemoveSpurReads          = 1;
+    gkl.doRemoveChimericReads      = 1;
+
+  } else if (strcasecmp(technology, "454") == 0) {
+    gkl.forceBOGunitigger          = 1;
+    gkl.doNotTrustHomopolymerRuns  = 1;
+
+    gkl.doConsensusCorrection      = 0;
+
+    gkl.doTrim_initialNone         = 0;
+    gkl.doTrim_initialMerBased     = 0;
+    gkl.doTrim_initialFlowBased    = 1;
+    gkl.doTrim_initialQualityBased = 0;
+
+    gkl.doRemoveDuplicateReads     = 1;
+
+    gkl.doTrim_finalLargestCovered = 1;
+    gkl.doTrim_finalEvidenceBased  = 0;
+
+    gkl.doRemoveSpurReads          = 1;
+    gkl.doRemoveChimericReads      = 1;
+
+  } else if (strcasecmp(technology, "illumina") == 0) {
+    gkl.forceBOGunitigger          = 1;
+    gkl.doNotTrustHomopolymerRuns  = 0;
+
+    gkl.doConsensusCorrection      = 0;
+
+    gkl.doTrim_initialNone         = 0;
+    gkl.doTrim_initialMerBased     = 1;
+    gkl.doTrim_initialFlowBased    = 0;
+    gkl.doTrim_initialQualityBased = 0;
+
+    gkl.doRemoveDuplicateReads     = 1;
+
+    gkl.doTrim_finalLargestCovered = 1;
+    gkl.doTrim_finalEvidenceBased  = 0;
+
+    gkl.doRemoveSpurReads          = 1;
+    gkl.doRemoveChimericReads      = 1;
 
   } else if (strcasecmp(technology, "pacbio") == 0) {
-     gkl.doConsensusCorrection	 = 1;
+    gkl.forceBOGunitigger          = 1;
+    gkl.doNotTrustHomopolymerRuns  = 0;
+
+    gkl.doConsensusCorrection      = 1;
      
-     gkl.doTrim_initialNone         = 1;
-     gkl.doTrim_initialMerBased     = 0;
-     gkl.doTrim_initialFlowBased    = 0;
-     gkl.doTrim_initialQualityBased = 0;
+    gkl.doTrim_initialNone         = 1;
+    gkl.doTrim_initialMerBased     = 0;
+    gkl.doTrim_initialFlowBased    = 0;
+    gkl.doTrim_initialQualityBased = 0;
 
-     gkl.doRemoveDuplicateReads     = 0;
+    gkl.doRemoveDuplicateReads     = 0;
 
-     gkl.doTrim_finalLargestCovered = 0;
-     gkl.doTrim_finalEvidenceBased  = 0;
+    gkl.doTrim_finalLargestCovered = 0;
+    gkl.doTrim_finalEvidenceBased  = 0;
 
-     gkl.doRemoveSpurReads          = 0;
-     gkl.doRemoveChimericReads      = 0;
+    gkl.doRemoveSpurReads          = 0;
+    gkl.doRemoveChimericReads      = 0;
   }
 
-  gkl.forceBOGunitigger          = 1;
   gkl.isNotRandom                = 0;
   gkl.orientation                = (isMated) ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_UNKNOWN;
-  gkl.doNotTrustHomopolymerRuns  = 0;
 
   //  Construct the messages.
 
@@ -333,14 +384,17 @@ main(int argc, char **argv) {
 
   //  Add in the non-standard Illumina features.
 
-  libMesg.features = (char **)safe_realloc(libMesg.features, sizeof(char *) * (libMesg.num_features + 2 + fastqLen));
-  libMesg.values   = (char **)safe_realloc(libMesg.values,   sizeof(char *) * (libMesg.num_features + 2 + fastqLen));
+  libMesg.features = (char **)safe_realloc(libMesg.features, sizeof(char *) * (libMesg.num_features + 2 + readsLen + matesLen));
+  libMesg.values   = (char **)safe_realloc(libMesg.values,   sizeof(char *) * (libMesg.num_features + 2 + readsLen + matesLen));
 
-  addFeature(&libMesg, "illuminaFastQType", type);
-  addFeature(&libMesg, "illuminaOrientation", orient);
+  addFeature(&libMesg, "fastqQualityValues", type);
+  addFeature(&libMesg, "fastqOrientation", orient);
 
-  for (int32 i=0; i<fastqLen; i++)
-    addFeature(&libMesg, "illuminaSequence", fastq[i]);
+  for (int32 i=0; i<readsLen; i++)
+    addFeature(&libMesg, "fastqReads", reads[i]);
+
+  for (int32 i=0; i<matesLen; i++)
+    addFeature(&libMesg, "fastqMates", mates[i]);
 
   //  Emit the VER and LIB messages.  Enable version 2, write the LIB, switch back to version 1.
 
@@ -362,7 +416,8 @@ main(int argc, char **argv) {
 
   gkl.gkLibrary_encodeFeaturesCleanup(&libMesg);
 
-  delete [] fastq;
+  delete [] reads;
+  delete [] mates;
 
   exit(0);
 }

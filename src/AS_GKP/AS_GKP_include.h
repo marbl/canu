@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.61 2011-02-11 05:48:13 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.62 2011-08-30 02:59:31 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.61 2011-02-11 05:48:13 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.62 2011-08-30 02:59:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -43,15 +43,15 @@ extern gkStore     *gkpStore;
 extern gkFragment  *gkFrag1;
 extern gkFragment  *gkFrag2;
 extern FILE        *errorFP;
-extern char         illuminaUIDmapName[FILENAME_MAX];
-extern FILE        *illuminaUIDmap;
+extern char         fastqUIDmapName[FILENAME_MAX];
+extern FILE        *fastqUIDmap;
 
 int
 Check_DistanceMesg(DistanceMesg     *dst_mesg,
                    int                believeInputStdDev);
 
 void
-checkLibraryForIlluminaPointers(LibraryMesg *lib_mesg);
+checkLibraryForFastQPointers(LibraryMesg *lib_mesg);
 
 int
 Check_LibraryMesg(LibraryMesg       *dst_mesg,
