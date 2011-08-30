@@ -22,11 +22,12 @@
 #ifndef VARUTILS_H
 #define VARUTILS_H
 
-static const char* rcsid_VARUTILS_H = "$Id: VarUtils.h,v 1.3 2011-08-10 20:25:15 mkotelbajcvi Exp $";
+static const char* rcsid_VARUTILS_H = "$Id: VarUtils.h,v 1.4 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstdarg>
 
 using namespace std;
 

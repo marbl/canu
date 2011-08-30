@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: StringUtils.C,v 1.8 2011-08-10 20:25:15 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: StringUtils.C,v 1.9 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
 #include "StringUtils.h"
 
@@ -56,11 +56,23 @@ vector<size_t> StringUtils::findAll(const char* str, size_t num, const char** to
 	return found;
 }
 
+bool StringUtils::startsWith(string str, size_t num, ...)
+{
+	initArgs(num);
+	
+	return startsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
+}
+
 bool StringUtils::startsWith(const char* str, size_t num, ...)
 {
 	initArgs(num);
 	
 	return startsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
+}
+
+bool StringUtils::startsWith(string str, size_t num, const char** toTest)
+{
+	return startsWith(str.c_str(), num, toTest);
 }
 
 bool StringUtils::startsWith(const char* str, size_t num, const char** toTest)
@@ -80,11 +92,23 @@ bool StringUtils::startsWith(const char* str, size_t num, const char** toTest)
 	return FALSE;
 }
 
+bool StringUtils::endsWith(string str, size_t num, ...)
+{
+	initArgs(num);
+	
+	return endsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
+}
+
 bool StringUtils::endsWith(const char* str, size_t num, ...)
 {
 	initArgs(num);
 	
 	return endsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
+}
+
+bool StringUtils::endsWith(string str, size_t num, const char** toTest)
+{
+	return endsWith(str.c_str(), num, toTest);
 }
 
 bool StringUtils::endsWith(const char* str, size_t num, const char** toTest)
@@ -104,74 +128,68 @@ bool StringUtils::endsWith(const char* str, size_t num, const char** toTest)
 	return FALSE;
 }
 
-const char* StringUtils::trim(const char* str, size_t num, ...)
+string StringUtils::trim(string& str, size_t num, ...)
 {
 	initArgs(num);
 	
 	return trim(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-const char* StringUtils::trim(const char* str, size_t num, const char** toTrim)
+string StringUtils::trim(string& str, size_t num, const char** toTrim)
 {
-	return trimEnd(trimStart(str, num, toTrim), num, toTrim);
+	trimStart(str, num, toTrim);
+	
+	return trimEnd(str, num, toTrim);
 }
 
-const char* StringUtils::trimStart(const char* str, size_t num, ...)
+string StringUtils::trimStart(string& str, size_t num, ...)
 {	
 	initArgs(num);
 	
 	return trimStart(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-const char* StringUtils::trimStart(const char* str, size_t num, const char** toTrim)
+string StringUtils::trimStart(string& str, size_t num, const char** toTrim)
 {
-	if (!isEmpty(str))
+	if (!str.empty())
 	{
-		string strObj(str);
-		
 		for (size_t a = 0; a < num; a++)
 		{
 			string toTrimItem(toTrim[a]);
 			
-			while ((strObj.length() >= toTrimItem.length()) && 
-					(strObj.substr(0, toTrimItem.length()) == toTrimItem))
+			while ((str.length() >= toTrimItem.length()) && 
+					(str.substr(0, toTrimItem.length()) == toTrimItem))
 			{
-				strObj.erase(0, toTrimItem.length());
+				str.erase(0, toTrimItem.length());
 			}
 		}
-		
-		return toString(strObj);
 	}
 	
-	return NULL;
+	return str;
 }
 
-const char* StringUtils::trimEnd(const char* str, size_t num, ...)
+string StringUtils::trimEnd(string& str, size_t num, ...)
 {
 	initArgs(num);
 	
 	return trimEnd(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-const char* StringUtils::trimEnd(const char* str, size_t num, const char** toTrim)
+string StringUtils::trimEnd(string& str, size_t num, const char** toTrim)
 {
-	if (!isEmpty(str))
+	if (!str.empty())
 	{
-		string strObj(str);
-		
 		for (size_t a = 0; a < num; a++)
 		{
 			string toTrimItem(toTrim[a]);
 			
-			while ((strObj.length() >= toTrimItem.length()) && 
-					(strObj.substr(strObj.length() - toTrimItem.length(), toTrimItem.length()) == toTrimItem))
+			while ((str.length() >= toTrimItem.length()) && 
+					(str.substr(str.length() - toTrimItem.length(), toTrimItem.length()) == toTrimItem))
 			{
-				strObj = strObj.erase(strObj.length() - toTrimItem.length());
+				str = str.erase(str.length() - toTrimItem.length());
 			}
 		}
-		
-		return toString(strObj);
 	}
 	
-	return NULL;
+	return str;
 }

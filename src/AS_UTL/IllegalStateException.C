@@ -19,13 +19,18 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: IllegalStateException.C,v 1.1 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: IllegalStateException.C,v 1.2 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
 #include "IllegalStateException.h"
 
 IllegalStateException::IllegalStateException(const char* message, RuntimeException* cause) throw() 
-	: RuntimeException(message, cause)
+	: RuntimeException(NULL, cause)
 {
-	this->message = (char*)StringUtils::toString(string("Illegal state: ") + this->message);
+	const char* messagePrepend = "Illegal state: ";
+	
+	this->message = new char[strlen(messagePrepend) + strlen(message)];
+	strcpy(this->message, messagePrepend);
+	strcpy(this->message, message);
+	
 	this->stackTrace = &ExceptionUtils::getStackTrace();
 }

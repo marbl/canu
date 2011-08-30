@@ -19,10 +19,39 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: FileUtils.C,v 1.3 2011-08-10 20:25:15 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: FileUtils.C,v 1.4 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
 #include "FileUtils.h"
 
+char* FileUtils::readLine(FILE* file, char* buffer, size_t bufferSize, bool includeNewline)
+{
+	if (file == NULL)
+	{
+		throw ArgumentException("File handle must not be null.");
+	}
+	
+	if (feof(file))
+	{
+		return NULL;
+	}
+	
+	fgets(buffer, bufferSize, file);
+	
+	// TODO: reimplement
+	size_t bufferSizeUsed = strlen(buffer);
+	
+	if (!includeNewline && (bufferSizeUsed > 0) && (buffer[bufferSizeUsed - 1] == NEWLINE))
+	{	
+		buffer[bufferSizeUsed - 1] = NULL_TERMINATOR;
+	}
+	
+	return buffer;
+	
+	//return !includeNewline ? StringUtils::trimEnd(buffer, 2, "\n", "\r") : buffer;
+}
+
+// TODO: reimplement
+/*
 const char* FileUtils::getPath(size_t num, ...)
 {
 	initArgs(num);
@@ -47,3 +76,4 @@ const char* FileUtils::getPath(size_t num, const char** pathParts)
 	
 	return StringUtils::join(PATH_DELIMITER, num, pathParts);
 }
+*/

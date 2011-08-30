@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: RuntimeException.C,v 1.4 2011-08-10 20:25:15 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: RuntimeException.C,v 1.5 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
 #include "RuntimeException.h"
 
@@ -68,6 +68,11 @@ const char* RuntimeException::toString(unsigned depth) const throw()
 	}
 	
 	return StringUtils::toString(str);
+}
+
+const char* RuntimeException::getMessage()
+{
+	return this->message;
 }
 
 RuntimeException::operator const char*()

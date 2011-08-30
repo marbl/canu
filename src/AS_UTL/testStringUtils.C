@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: testStringUtils.C,v 1.9 2011-08-11 17:34:34 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: testStringUtils.C,v 1.10 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,52 +68,72 @@ void testEndsWith()
 
 void testTrimStart()
 {
-	Asserts::assertTrue(string(StringUtils::trimStart("trim1trim2|test", 2, "trim1", "trim2")) == "|test", "start trimmed string is different");
+	string str("trim1trim2|test");
+	
+	Asserts::assertTrue(StringUtils::trimStart(str, 2, "trim1", "trim2") == "|test", "start trimmed string is different");
 }
 
 void testTrimEnd()
 {
-	Asserts::assertTrue(string(StringUtils::trimEnd("test|trim2trim1", 2, "trim1", "trim2")) == "test|", "end trimmed string is different");
+	string str("test|trim2trim1");
+	
+	Asserts::assertTrue(StringUtils::trimEnd(str, 2, "trim1", "trim2") == "test|", "end trimmed string is different");
 }
 
 void testTrim()
 {
-	Asserts::assertTrue(string(StringUtils::trim("trim1trim2|test|trim2trim1", 2, "trim1", "trim2")) == "|test|", "trimmed string is different");
+	string str("trim1trim2|test|trim2trim1");
+	
+	Asserts::assertTrue(StringUtils::trim(str, 2, "trim1", "trim2") == "|test|", "trimmed string is different");
 }
 
 void testToStringUnsigned()
 {
-	Asserts::assertTrue(string(StringUtils::toString((unsigned)1)) == "1", "string of unsigned is different");
+	string str;
+	
+	Asserts::assertTrue(StringUtils::toString((unsigned)1, str) == "1", "string of unsigned is different");
 }
 
 void testToStringUnsignedLong()
 {
-	Asserts::assertTrue(string(StringUtils::toString((unsigned long)1)) == "1", "string of unsigned long is different");
+	string str;
+	
+	Asserts::assertTrue(StringUtils::toString((unsigned long)1, str) == "1", "string of unsigned long is different");
 }
 
 void testToStringInt()
 {
-	Asserts::assertTrue(string(StringUtils::toString(-1)) == "-1", "string of integer is different");
+	string str;
+	
+	Asserts::assertTrue(StringUtils::toString(-1, str) == "-1", "string of integer is different");
 }
 
 void testToStringLong()
 {
-	Asserts::assertTrue(string(StringUtils::toString(-1L)) == "-1", "string of long is different");
+	string str;
+	
+	Asserts::assertTrue(StringUtils::toString(-1L, str) == "-1", "string of long is different");
 }
 
 void testToStringFloat()
 {
-	Asserts::assertTrue(string(StringUtils::toString(-1.0F)) == "-1", "string of float is different");
+	string str;
+	
+	Asserts::assertTrue(StringUtils::toString(-1.0F, str) == "-1", "string of float is different");
 }
 
 void testToStringDouble()
 {
-	Asserts::assertTrue(string(StringUtils::toString(-1.0)) == "-1", "string of double is different");
+	string str;
+	
+	Asserts::assertTrue(StringUtils::toString(-1.0, str) == "-1", "string of double is different");
 }
 
 void testToStringChar()
 {
-	Asserts::assertTrue(string(StringUtils::toString('a')) == "a", "string of char is different");
+	string str;
+	
+	Asserts::assertTrue(StringUtils::toString('a', str) == "a", "string of char is different");
 }
 
 int main(int argc, char** argv)

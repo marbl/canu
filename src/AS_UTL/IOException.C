@@ -19,34 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef FILEUTILS_H
-#define FILEUTILS_H
+#include "IOException.h"
 
-static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.4 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* RCSID = "$Id: IOException.C,v 1.1 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-
-using namespace std;
-
-#include "ArgumentException.h"
-#include "StringUtils.h"
-#include "VarUtils.h"
-
-#define NEWLINE '\n'
-#define PATH_DELIMITER '/'
-
-class FileUtils
+IOException::IOException(const char* message, RuntimeException* cause) throw() 
+	: RuntimeException(message, cause)
 {
-public:
-	static char* readLine(FILE* file, char* buffer, size_t bufferSize, bool includeNewline = false);
-	
-	// TODO: reimplement
-	/*
-	static const char* getPath(size_t num, ...);
-	static const char* getPath(size_t num, const char** pathParts);
-	*/
-};
-
-#endif
+	this->message = (char*)StringUtils::toString(string("IO error: ") + this->message);
+	this->stackTrace = &ExceptionUtils::getStackTrace();
+}

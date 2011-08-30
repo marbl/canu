@@ -19,17 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.18 2011-01-26 04:50:08 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.19 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
 #include "AS_global.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <math.h>
 
 #ifdef X86_GCC_LINUX
 #include <fpu_control.h>

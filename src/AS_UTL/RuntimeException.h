@@ -22,7 +22,7 @@
 #ifndef RUNTIMEEXCEPTION_H
 #define RUNTIMEEXCEPTION_H
 
-static const char* rcsid_RUNTIMEEXCEPTION_H = "$Id: RuntimeException.h,v 1.4 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid_RUNTIMEEXCEPTION_H = "$Id: RuntimeException.h,v 1.5 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,8 +41,8 @@ class RuntimeException : public exception
 {
 public:
 	virtual const char* what() const throw();
-	
 	virtual const char* toString(unsigned depth = 0) const throw();
+	virtual const char* getMessage();
 	
 	operator const char*();
 

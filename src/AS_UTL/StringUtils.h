@@ -22,11 +22,13 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.10 2011-08-30 12:29:16 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.11 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
+#include <stdarg.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <cstdarg>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -41,6 +43,29 @@ using namespace std;
 class StringUtils
 {
 public:
+	inline static bool isUppercase(const char* str)
+	{
+		for (size_t a = 0; a < strlen(str); a++)
+		{
+			if (!isUppercase(str[a]))
+			{
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	inline static bool isUppercase(const char character)
+	{
+		return (character >= 'A') && (character <= 'Z');
+	}
+	
+	inline static bool isBlank(string str)
+	{
+		return isBlank(str.c_str());
+	}
+	
 	inline static bool isBlank(const char* str)
 	{
 		if (!isEmpty(str))
@@ -59,19 +84,14 @@ public:
 
 	inline static bool isEmpty(const char* str)
 	{
-		return str == NULL;
-	}
-
-	inline static bool isEmpty(string str)
-	{
-		return str.length() == 0;
+		return (str == NULL) || strlen(str) == 0;
 	}
 
 	inline static bool areEqual(const char* str1, const char* str2)
 	{
 		return (str1 != NULL) && (str2 != NULL) && (strcmp(str1, str2) == 0);
 	}
-
+	
 	inline static const char* concat(size_t num, ...)
 	{
 		initArgs(num);
@@ -108,69 +128,82 @@ public:
 		return toString(str);
 	}
 	
-	inline static const char* toString(unsigned value)
+	inline static string toString(unsigned value, string& buffer)
 	{
 		ostringstream stream(ostringstream::out);
+		stream.str(buffer);
 		
 		stream << value;
 		
-		return toString(stream.str());
+		return stream.str();
 	}
 
-	inline static const char* toString(unsigned long value)
+	inline static string toString(unsigned long value, string& buffer)
 	{
 		ostringstream stream(ostringstream::out);
+		stream.str(buffer);
 		
 		stream << value;
 		
-		return toString(stream.str());
+		return stream.str();
 	}
 
-	inline static const char* toString(int value)
+	inline static string toString(int value, string& buffer)
 	{
 		ostringstream stream(ostringstream::out);
+		stream.str(buffer);
 		
 		stream << value;
 		
-		return toString(stream.str());
+		return stream.str();
 	}
-
-	inline static const char* toString(long value)
+	
+	inline static string toString(long value, string& buffer)
 	{
 		ostringstream stream(ostringstream::out);
+		stream.str(buffer);
 		
 		stream << value;
 		
-		return toString(stream.str());
+		return stream.str();
 	}
 
-	inline static const char* toString(float value)
+	inline static string toString(float value, string& buffer)
 	{
 		ostringstream stream(ostringstream::out);
+		stream.str(buffer);
 		
 		stream << value;
 		
-		return toString(stream.str());
+		return stream.str();
 	}
 
-	inline static const char* toString(double value)
+	inline static string toString(double value, string& buffer)
 	{
 		ostringstream stream(ostringstream::out);
+		stream.str(buffer);
 		
 		stream << value;
 		
-		return toString(stream.str());
+		return stream.str();
 	}
 
-	inline static const char* toString(char value)
+	inline static string toString(char value, string& buffer)
 	{
+		/*
 		char* str = new char[2];
 		str[0] = value;
 		str[1] = NULL_TERMINATOR;
 		
-		return str;
+		buffer += str;
+		*/
+		
+		buffer += value;
+		
+		return buffer;
 	}
 	
+	// TODO: remove
 	inline static const char* toString(string value)
 	{
 		char* str = new char[value.length()];
@@ -183,17 +216,21 @@ public:
 	static vector<size_t> findAll(const char* str, size_t num, ...);
 	static vector<size_t> findAll(const char* str, size_t num, const char** toFind);
 	
+	static bool startsWith(string str, size_t num, ...);
 	static bool startsWith(const char* str, size_t num, ...);
+	static bool startsWith(string str, size_t num, const char** toTest);
 	static bool startsWith(const char* str, size_t num, const char** toTest);
+	static bool endsWith(string str, size_t num, ...);
 	static bool endsWith(const char* str, size_t num, ...);
+	static bool endsWith(string str, size_t num, const char** toTest);
 	static bool endsWith(const char* str, size_t num, const char** toTest);
 	
-	static const char* trim(const char* str, size_t num, ...);
-	static const char* trim(const char* str, size_t num, const char** toTrim);
-	static const char* trimStart(const char* str, size_t num, ...);
-	static const char* trimStart(const char* str, size_t num, const char** toTrim);
-	static const char* trimEnd(const char* str, size_t num, ...);
-	static const char* trimEnd(const char* str, size_t num, const char** toTrim);
+	static string trim(string& str, size_t num, ...);
+	static string trim(string& str, size_t num, const char** toTrim);
+	static string trimStart(string& str, size_t num, ...);
+	static string trimStart(string& str, size_t num, const char** toTrim);
+	static string trimEnd(string& str, size_t num, ...);
+	static string trimEnd(string& str, size_t num, const char** toTrim);
 };
 
 #endif

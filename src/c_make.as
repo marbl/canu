@@ -65,17 +65,17 @@ include $(LOCAL_WORK)/src/c_make.gen
 ifeq ($(OSTYPE), Linux)
   ifeq ($(MACHINETYPE), i686)
     ARCH_LDFLAGS  += -pthread -lm
-    ARCH_CFLAGS   += -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DX86_GCC_LINUX
+    ARCH_CFLAGS   += -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DX86_GCC_LINUX
     ARCH_LIB       = /usr/X11R6/lib
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_LDFLAGS  += -pthread -lm
-    ARCH_CFLAGS   += -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DX86_GCC_LINUX
+    ARCH_CFLAGS   += -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DX86_GCC_LINUX
     ARCH_LIB       = /usr/lib64 /usr/X11R6/lib64
   endif
   ifeq ($(MACHINETYPE), ia64)
     ARCH_LDFLAGS  += -pthread -lm
-    ARCH_CFLAGS   += -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+    ARCH_CFLAGS   += -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
     ARCH_LIB       = /usr/X11R6/lib
   endif
 
@@ -95,13 +95,13 @@ endif
 ifeq ($(OSTYPE), FreeBSD)
   ifeq ($(MACHINETYPE), i386)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
-    ARCH_CFLAGS      = -pthread       -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
+    ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
+    ARCH_CFLAGS      = -pthread       -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      =  -pthread               -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
-    ARCH_CFLAGS      =  -pthread -Wall -Wextra -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts
+    ARCH_CFLAGS      =  -pthread               -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
+    ARCH_CFLAGS      =  -pthread -Wall -Wextra -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
   endif
 
   ifeq ($(BUILDCOVERAGE), 1)
@@ -140,10 +140,10 @@ ifeq ($(OSTYPE), Darwin)
 
   ifeq ($(MACHINETYPE), i386)
     ifeq ($(BUILDDEBUG), 1)
-      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -g
+      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -g
       ARCH_LDFLAGS  += -m64 -lm
     else
-      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wshorten-64-to-32  -fast
+      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wshorten-64-to-32  -fast
       ARCH_CfLAGS   += -Wextra
 #     ARCH_CFLAGS   += -pedantic  (see above about pedantic)
       ARCH_LDFLAGS  += -m64 -lm

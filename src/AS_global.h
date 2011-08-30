@@ -25,22 +25,23 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.45 2011-08-30 12:29:16 mkotelbajcvi Exp $";
-
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <sys/types.h>
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.46 2011-08-30 23:09:51 mkotelbajcvi Exp $";
 
 #include <assert.h>
-
-#include <limits.h>
-#include <float.h>
-#include <inttypes.h>
+#include <stdarg.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <time.h>
-
 #include <algorithm>
+#include <cerrno>
+#include <cfloat>
+#include <climits>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <exception>
 #include <map>
 #include <set>
 #include <string>
@@ -99,20 +100,13 @@ typedef uint64_t uint64;
 
 typedef void *PtrT;
 
-#define F_C "%c"
-#define F_D "%d"
-#define F_L "%ld"
-#define F_UL "%lu"
-#define F_LL "%lld"
-#define F_ULL "%llu"
-#define F_F "%3f"
-
-#define F_SIZE_T  "%lu"
-#define F_SIZE_TP  "lu"
-
-#define F_STR "%s"
-
 #define F_P "%p"
+#define F_PP "p"
+
+#define F_C "%c"
+#define F_CP "c"
+#define F_STR "%s"
+#define F_STRP "s"
 
 #if ULONG_MAX == 0xffffffff
   // 32-bit architecture
@@ -203,8 +197,8 @@ typedef void *PtrT;
    #include <sys/mode.h>
   #endif
 
-  #define F_S16    "%d"
-  #define F_U16    "%u"
+  #define F_S16    "%hd"
+  #define F_U16    "%hu"
   #define F_S32    "%d"
   #define F_S32P    "d"
   #define F_U32    "%u"
@@ -215,6 +209,14 @@ typedef void *PtrT;
   #define F_U64P   "lu"
   #define F_X64   "%lx"
   #define F_X64P   "lx"
+  
+  #define F_F32 "%f"
+  #define F_F32P "f"
+  #define F_F64 "%lf"
+  #define F_F64P "lf"
+  
+  #define F_SIZE_T F_U64
+  #define F_SIZE_TP F_U64P
 
   #ifdef _AIX
     #define F_TIME_T  "%ld"
