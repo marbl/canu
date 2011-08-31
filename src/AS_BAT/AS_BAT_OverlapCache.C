@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.3 2011-04-18 01:24:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.4 2011-08-31 17:39:47 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -151,7 +151,9 @@ OverlapCache::loadOverlaps(double erate, double elimit) {
 
     //  Count how many overlaps we would keep.
     for (uint32 ii=0; ii<no; ii++)
-      if (_ovs[ii].dat.ovl.corr_erate <= maxOVSErate)
+      if ((_ovs[ii].dat.ovl.corr_erate <= maxOVSErate) &&
+          (FI->fragmentLength(_ovs[ii].a_iid) > 0) &&
+          (FI->fragmentLength(_ovs[ii].b_iid) > 0))
         ns++;
 
     //  Resize the permament storage space for overlaps.
@@ -170,7 +172,9 @@ OverlapCache::loadOverlaps(double erate, double elimit) {
 
     //  Finally, append the overlaps to the storage.
     for (uint32 ii=0; ii<no; ii++) {
-      if (_ovs[ii].dat.ovl.corr_erate > maxOVSErate)
+      if ((_ovs[ii].dat.ovl.corr_erate > maxOVSErate) ||
+          (FI->fragmentLength(_ovs[ii].a_iid) == 0) ||
+          (FI->fragmentLength(_ovs[ii].b_iid) == 0))
         continue;
 
       _stor[_storLen].error   = _OVSerate[_ovs[ii].dat.ovl.corr_erate];
