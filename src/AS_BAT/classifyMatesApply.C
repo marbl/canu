@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMatesApply.C,v 1.1 2011-08-22 16:44:19 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMatesApply.C,v 1.2 2011-08-31 17:42:18 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -30,6 +30,7 @@ class classifyMatesSummary {
 public:
   classifyMatesSummary() {
     isTested = 0;
+    doDelete = 0;
     numNO    = 0;
     numPE    = 0;
     numMP    = 0;
@@ -38,19 +39,27 @@ public:
   void      setTested(void) { isTested = 1; };
   bool      getTested(void) { return(isTested > 0); };
 
-  void      addNO(void) { if (numNO < 1023)  numNO++; };
-  void      addPE(void) { if (numPE < 1023)  numPE++; };
-  void      addMP(void) { if (numMP < 1023)  numMP++; };
+  void      addNO(void) { if (numNO < 255)  numNO++; };
+  void      addPE(void) { if (numPE < 255)  numPE++; };
+  void      addMP(void) { if (numMP < 255)  numMP++; };
 
   uint8     getNO(void) { return(numNO); };
   uint8     getPE(void) { return(numPE); };
   uint8     getMP(void) { return(numMP); };
 
+  void      setDelete(void)  { doDelete = 1; };
+  bool      getDelete(void)  { return(doDelete == 1); };
+
+  void      setUnMate(void)  { doUnMate = 1; };
+  bool      getUnMate(void)  { return(doUnMate == 1); };
+
 private:
-  uint32    isTested : 1;
-  uint32    numNO    : 10;
-  uint32    numPE    : 10;
-  uint32    numMP    : 10;
+  uint32    isTested   : 1;  //  We have attempted classification on this read
+  uint32    doDelete   : 1;  //  Delete the read, it's junk
+  uint32    doUnMate   : 1;  //  Remove the mate edge, it's mate read is junk
+  uint32    numNO      : 8;
+  uint32    numPE      : 8;
+  uint32    numMP      : 8;
 };
 
 
@@ -136,7 +145,7 @@ main(int argc, char **argv) {
   classifyMatesSummary  *results  = new classifyMatesSummary [numFrags + 1];
   classifyMatesResult    result;
 
-  //  For each input file, load the results
+  //  For each input file, load the results.
 
   for (uint32 i=0; i<resultsNamesLen; i++) {
     classifyMatesResultFile  *RF = new classifyMatesResultFile(resultsNames[i]);
@@ -151,11 +160,33 @@ main(int argc, char **argv) {
       results[f].setTested();
       results[m].setTested();
 
+      //  If any single result says the read (or mate) is junk, delete it.
+
+      if ((result.fragSpur     == true) ||
+          (result.fragChimer   == true) ||
+          (result.fragJunction == true)) {
+        results[f].setDelete();
+        results[f].setUnMate();
+        results[m].setUnMate();
+      }
+
+      if ((result.mateSpur     == true) ||
+          (result.mateChimer   == true) ||
+          (result.mateJunction == true)) {
+        results[m].setDelete();
+        results[f].setUnMate();
+        results[m].setUnMate();
+      }
+
+      //  Rembmer if any result failed to classify.  This is for the final accounting summary only.
+
       if (result.classified == false) {
         results[f].addNO();
         results[m].addNO();
         continue;
       }
+
+      //  Otherwise, it must have been classified as either PE or MP.
 
       if (result.innie) {
         results[f].addMP();
@@ -169,6 +200,10 @@ main(int argc, char **argv) {
     delete RF;
   }
 
+  //  Process the classifications.  If any are labeled both PE and MP, remove the mate.
+
+  uint32  numDL = 0;
+  uint32  numUM = 0;
   uint32  numNO = 0;
   uint32  numPE = 0;
   uint32  numMP = 0;
@@ -180,23 +215,37 @@ main(int argc, char **argv) {
     uint32  mp = results[i].getMP();
     uint32  pe = results[i].getPE();
 
-    if     ((mp > 0) && (pe > 0)) {
+    if     (results[i].getDelete()) {
+      fprintf(outputFile, "frg iid "F_U32" isdeleted 1\n", i);
+      fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
+      numUM++;
+      numDL++;
+
+    } else if (results[i].getUnMate()) {
+      fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
+      numUM++;
+
+    } else if ((mp > 0) && (pe > 0)) {
       //fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
       numAB++;
+
     } else if (mp > 0) {
       numMP++;
+
     } else if (pe > 0) {
       fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
       numPE++;
+
     } else if (no > 0) {
       numNO++;
+
     } else {
       numIG++;
     }
   }
 
-  fprintf(stderr, "NO "F_U32" PE "F_U32" MP "F_U32" AB "F_U32" IG "F_U32"\n",
-          numNO, numPE, numMP, numAB, numIG);
+  fprintf(stderr, "NO "F_U32" PE "F_U32" MP "F_U32" AB "F_U32" DL "F_U32" UM "F_U32" IG "F_U32"\n",
+          numNO, numPE, numMP, numAB, numDL, numUM, numIG);
 
   delete [] results;
   delete    gkpStore;
