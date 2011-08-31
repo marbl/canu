@@ -22,7 +22,7 @@
 #ifndef PROFILEREADERRORS_H
 #define PROFILEREADERRORS_H
 
-static const char* rcsid_PROFILEREADERRORS_H = "$Id: profileReadErrors.h,v 1.2 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid_PROFILEREADERRORS_H = "$Id: profileReadErrors.h,v 1.3 2011-08-31 09:10:43 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -87,13 +87,38 @@ typedef struct AlignmentError
 	}
 };
 
-void writeOutput(const char* outputFile, vector< vector<AlignmentError>* >& errorMatrix);
+typedef struct BasePosition
+{
+	size_t position;
+	size_t readsAtPosition;
+	vector<AlignmentError> errors;
+	double readLengthPercent;
+	
+	BasePosition(size_t position)
+	{
+		this->position = position;
+		this->readsAtPosition = 0;
+		this->errors.reserve(INITIAL_ERROR_MATRIX_BUCKET_SIZE);
+		this->readLengthPercent = -1;
+	}
+	
+	void addError(AlignmentError error, uint16 readLength)
+	{
+		this->errors.push_back(error);
+		
+		this->readLengthPercent = (this->readLengthPercent >= -1) ? 
+			(this->readLengthPercent + ((double)this->position / readLength)) / 2 : 
+			((double)this->position / readLength);
+	}
+};
+
+void writeOutput(const char* outputFile, map<AS_IID, uint16>& readMap, vector<BasePosition*>& errorMatrix);
 
 void processReadAlignment(AS_IID readIID, uint16 readLength, const char* readSequence, const char* genomeSequence, 
-	vector< vector<AlignmentError>* >& errorMatrix);
-void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, vector< vector<AlignmentError>* >& errorMatrix);
+	vector<BasePosition*>& errorMatrix);
+void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, vector<BasePosition*>& errorMatrix);
 
-vector<AlignmentError>* getBaseErrorBucket(vector< vector<AlignmentError>* >& errorMatrix, size_t base);
+BasePosition* getBaseErrorBucket(vector<BasePosition*>& errorMatrix, size_t base);
 AS_IID getReadIID(const char* readDefLine);
 uint16 getReadLength(string readInfoLine);
 

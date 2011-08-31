@@ -21,9 +21,9 @@
 
 #include "profileReadErrors.h"
 
-static const char* rcsid = "$Id: profileReadErrors.C,v 1.2 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: profileReadErrors.C,v 1.3 2011-08-31 09:10:43 mkotelbajcvi Exp $";
 
-void writeOutput(const char* outputFile, vector< vector<AlignmentError>* >& errorMatrix)
+void writeOutput(const char* outputFile, map<AS_IID, uint16>& readMap, vector<BasePosition*>& errorMatrix)
 {
 	FILE* outputFileHandle = NULL;
 	
@@ -38,9 +38,13 @@ void writeOutput(const char* outputFile, vector< vector<AlignmentError>* >& erro
 		
 		for (size_t a = 0; a < errorMatrix.size(); a++)
 		{
-			vector<AlignmentError>* baseErrorBucket = errorMatrix[a];
+			BasePosition* baseErrorBucket = errorMatrix[a];
 			
-			fprintf(outputFileHandle, F_U64"\t"F_U64"\n", a + 1, (baseErrorBucket != NULL) ? baseErrorBucket->size() : 0);
+			if (baseErrorBucket != NULL)
+			{
+				fprintf(outputFileHandle, F_U64"\t"F_F64"\t"F_F64"\n", a + 1, (double)baseErrorBucket->errors.size() / baseErrorBucket->readsAtPosition, 
+					baseErrorBucket->readLengthPercent);
+			}
 		}
 		
 		fclose(outputFileHandle);
@@ -61,15 +65,17 @@ void writeOutput(const char* outputFile, vector< vector<AlignmentError>* >& erro
 }
 
 void processReadAlignment(AS_IID readIID, uint16 readLength, const char* readSequence, const char* genomeSequence, 
-	vector< vector<AlignmentError>* >& errorMatrix)
+	vector<BasePosition*>& errorMatrix)
 {
 	char readBase, genomeBase;
+	BasePosition* baseErrorBucket;
 	AlignmentError error;
 	
 	for (size_t a = 0; a < readLength; a++)
 	{
 		try
 		{
+			baseErrorBucket = getBaseErrorBucket(errorMatrix, a);
 			readBase = readSequence[a];
 			
 			if (isBaseCall(readBase))
@@ -80,7 +86,7 @@ void processReadAlignment(AS_IID readIID, uint16 readLength, const char* readSeq
 					
 					genomeBase = genomeSequence[a];
 					
-					if (isBaseCall(genomeBase))
+					if (isBaseError(genomeBase))
 					{
 						error.type = MISMATCH;
 					}
@@ -96,14 +102,24 @@ void processReadAlignment(AS_IID readIID, uint16 readLength, const char* readSeq
 							StringUtils::toString(readIID, readIIDStr) + ": " + genomeBase);
 					}
 					
-					getBaseErrorBucket(errorMatrix, a)->push_back(error);
+					baseErrorBucket->addError(error, readLength);
 				}
+				
+				baseErrorBucket->readsAtPosition++;
 			}
 			else if (isBaseGap(readBase))
 			{
-				getBaseErrorBucket(errorMatrix, a)->push_back(AlignmentError(readIID, DELETION));
+				baseErrorBucket->addError(AlignmentError(readIID, DELETION), readLength);
+				
+				baseErrorBucket->readsAtPosition++;
 			}
-			else if (!isBaseUnknown(readBase) && !iscntrl(readBase))
+			else if (isBaseUnknown(readBase))
+			{
+				baseErrorBucket->addError(AlignmentError(readIID, MISMATCH), readLength);
+				
+				baseErrorBucket->readsAtPosition++;
+			}
+			else if (!iscntrl(readBase))
 			{
 				string baseStr, readIIDStr;
 				
@@ -118,7 +134,7 @@ void processReadAlignment(AS_IID readIID, uint16 readLength, const char* readSeq
 	}
 }
 
-void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, vector< vector<AlignmentError>* >& errorMatrix)
+void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, vector<BasePosition*>& errorMatrix)
 {
 	FILE* snapperFileHandle = NULL;
 	
@@ -259,14 +275,13 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 	}
 }
 
-vector<AlignmentError>* getBaseErrorBucket(vector< vector<AlignmentError>* >& errorMatrix, size_t base)
+BasePosition* getBaseErrorBucket(vector<BasePosition*>& errorMatrix, size_t base)
 {
-	vector<AlignmentError>* baseErrorBucket = errorMatrix[base];
+	BasePosition* baseErrorBucket = errorMatrix[base];
 	
 	if (baseErrorBucket == NULL)
 	{
-		baseErrorBucket = new vector<AlignmentError>();
-		baseErrorBucket->reserve(INITIAL_ERROR_MATRIX_BUCKET_SIZE);
+		baseErrorBucket = new BasePosition(base);
 		
 		if (errorMatrix.size() <= base)
 		{
@@ -358,12 +373,12 @@ int main(int numArgs, char** args)
 			
 			map<AS_IID, uint16> readMap;
 			
-			vector< vector<AlignmentError>* > errorMatrix;
+			vector<BasePosition*> errorMatrix;
 			errorMatrix.reserve(INITIAL_ERROR_MATRIX_SIZE);
 			
 			processSnapperFile(snapperFile, readMap, errorMatrix);
 			
-			writeOutput(outputFile, errorMatrix);
+			writeOutput(outputFile, readMap, errorMatrix);
 		}
 		catch (RuntimeException& e)
 		{
