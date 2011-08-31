@@ -21,7 +21,7 @@
 
 #include "profileReadErrors.h"
 
-static const char* RCSID = "$Id: profileReadErrors.C,v 1.1 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: profileReadErrors.C,v 1.2 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 void writeOutput(const char* outputFile, vector< vector<AlignmentError>* >& errorMatrix)
 {
@@ -33,7 +33,7 @@ void writeOutput(const char* outputFile, vector< vector<AlignmentError>* >& erro
 		
 		if (outputFileHandle == NULL)
 		{
-			throw IOException((string("Unable to open output file: ") + outputFile).c_str());
+			throw IOException(string("Unable to open output file: ") + outputFile);
 		}
 		
 		for (size_t a = 0; a < errorMatrix.size(); a++)
@@ -54,7 +54,7 @@ void writeOutput(const char* outputFile, vector< vector<AlignmentError>* >& erro
 			fclose(outputFileHandle);
 		}
 		
-		fprintf(stderr, F_STR"\n", e.getMessage());
+		fprintf(stderr, F_STR"\n", e.getMessage().c_str());
 		
 		exitFailure();
 	}
@@ -82,18 +82,18 @@ void processReadAlignment(AS_IID readIID, uint16 readLength, const char* readSeq
 					
 					if (isBaseCall(genomeBase))
 					{
-						error.setType(MISMATCH);
+						error.type = MISMATCH;
 					}
 					else if (isBaseGap(genomeBase))
 					{
-						error.setType(INSERTION);
+						error.type = INSERTION;
 					}
 					else
 					{
-						string baseStr, readIIDStr, genomeBaseStr;
+						string baseStr, readIIDStr;
 						
-						throw IllegalStateException(("Unknown genome base at " + StringUtils::toString(a, baseStr) + " in read " + 
-							StringUtils::toString(readIID, readIIDStr) + ": " + StringUtils::toString(genomeBase, genomeBaseStr)).c_str());
+						throw IllegalStateException("Unknown genome base at " + StringUtils::toString(a, baseStr) + " in read " + 
+							StringUtils::toString(readIID, readIIDStr) + ": " + genomeBase);
 					}
 					
 					getBaseErrorBucket(errorMatrix, a)->push_back(error);
@@ -105,15 +105,15 @@ void processReadAlignment(AS_IID readIID, uint16 readLength, const char* readSeq
 			}
 			else if (!isBaseUnknown(readBase) && !iscntrl(readBase))
 			{
-				string baseStr, readIIDStr, readBaseStr;
+				string baseStr, readIIDStr;
 				
-				throw IllegalStateException(("Unknown read base at " + StringUtils::toString(a, baseStr) + " in read " + 
-					StringUtils::toString(readIID, readIIDStr) + ": " + StringUtils::toString(readBase, readBaseStr)).c_str());
+				throw IllegalStateException("Unknown read base at " + StringUtils::toString(a, baseStr) + " in read " + 
+					StringUtils::toString(readIID, readIIDStr) + ": " + readBase);
 			}
 		}
 		catch (RuntimeException& e)
 		{
-			fprintf(stderr, F_STR"\n", e.getMessage());
+			fprintf(stderr, F_STR"\n", e.getMessage().c_str());
 		}
 	}
 }
@@ -128,7 +128,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 		
 		if (snapperFileHandle == NULL)
 		{
-			throw IOException((string("Unable to open snapper alignment file: ") + snapperFile).c_str());
+			throw IOException(string("Unable to open snapper alignment file: ") + snapperFile);
 		}
 		
 		size_t numReads = 0;
@@ -154,7 +154,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 			{
 				string lineNumStr;
 				
-				throw IllegalStateException(("Malformed read section start on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line).c_str());
+				throw IllegalStateException("Malformed read section start on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line);
 			}
 			
 			// Read info
@@ -164,7 +164,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 			{
 				string lineNumStr;
 				
-				throw IllegalStateException(("Missing expected content on line " + StringUtils::toString(lineNum, lineNumStr) + ".").c_str());
+				throw IllegalStateException("Missing expected content on line " + StringUtils::toString(lineNum, lineNumStr) + ".");
 			}
 			
 			readLength = getReadLength(string(line));
@@ -176,7 +176,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 			{
 				string lineNumStr;
 				
-				throw IllegalStateException(("Malformed read definition on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line).c_str());
+				throw IllegalStateException("Malformed read definition on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line);
 			}
 			
 			readIID = getReadIID(line);
@@ -190,7 +190,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 			{
 				string lineNumStr;
 				
-				throw IllegalStateException(("Malformed genome definition on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line).c_str());
+				throw IllegalStateException("Malformed genome definition on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line);
 			}
 			
 			// Alignment info
@@ -200,7 +200,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 			{
 				string lineNumStr;
 				
-				throw IllegalStateException(("Malformed alignment information on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line).c_str());
+				throw IllegalStateException("Malformed alignment information on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line);
 			}
 			
 			// Read sequence
@@ -210,7 +210,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 			{
 				string lineNumStr;
 				
-				throw IllegalStateException(("Malformed read sequence on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line).c_str());
+				throw IllegalStateException("Malformed read sequence on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line);
 			}
 			
 			readSequence = line;
@@ -222,7 +222,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 			{
 				string lineNumStr;
 				
-				throw IllegalStateException(("Malformed genome sequence on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line).c_str());
+				throw IllegalStateException("Malformed genome sequence on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line);
 			}
 			
 			genomeSequence = line;
@@ -236,7 +236,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 			{
 				string lineNumStr;
 				
-				throw IllegalStateException(("Malformed read section end on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line).c_str());
+				throw IllegalStateException("Malformed read section end on line " + StringUtils::toString(lineNum, lineNumStr) + ": " + line);
 			}
 			
 			numReads++;
@@ -253,7 +253,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 			fclose(snapperFileHandle);
 		}
 		
-		fprintf(stderr, F_STR"\n", e.getMessage());
+		fprintf(stderr, F_STR"\n", e.getMessage().c_str());
 		
 		exitFailure();
 	}
@@ -313,59 +313,64 @@ int main(int numArgs, char** args)
 {
 	if (numArgs > 1)
 	{
-		const char* arg, *argValue, *snapperFile = NULL, *outputFile = NULL;
-		int argIndex = 1;
-		
-		while (argIndex < numArgs)
+		try
 		{
-			arg = args[argIndex];
-			argValue = ((argIndex + 1) < numArgs) ? args[argIndex + 1] : NULL;
+			const char* arg, *argValue, *snapperFile = NULL, *outputFile = NULL;
+			int argIndex = 1;
 			
-			if (!StringUtils::isBlank(arg) && (strlen(arg) == 2))
+			while (argIndex < numArgs)
 			{
-				switch (arg[1])
+				arg = args[argIndex];
+				argValue = ((argIndex + 1) < numArgs) ? args[argIndex + 1] : NULL;
+				
+				if (!StringUtils::isBlank(arg) && (strlen(arg) == 2))
 				{
-					case 's':
-						snapperFile = argValue;
-						break;
-					case 'o':
-						outputFile = argValue;
-						break;
-					default:
-						fprintf(stderr, "Unknown option: "F_STR"\n", arg);
-						
-						exitFailure();
-						break;
+					switch (arg[1])
+					{
+						case 's':
+							snapperFile = argValue;
+							break;
+						case 'o':
+							outputFile = argValue;
+							break;
+						default:
+							fprintf(stderr, "Unknown option: "F_STR"\n", arg);
+							
+							exitFailure();
+							break;
+					}
 				}
+				
+				argIndex += 2;
 			}
 			
-			argIndex += 2;
+			if ((snapperFile == NULL) && AS_UTL_fileExists(snapperFile, 0, 1))
+			{
+				throw ArgumentException(string("An existing snapper alignment file must be provided: ") + snapperFile, NULL, "-s");
+			}
+			
+			if (outputFile == NULL)
+			{
+				throw ArgumentException(string("A writable output file must be provided: ") + outputFile, NULL, "-o");
+			}
+			
+			printf("Using files:\n  snapper="F_STR"\n  output="F_STR"\n\n", snapperFile, outputFile);
+			
+			map<AS_IID, uint16> readMap;
+			
+			vector< vector<AlignmentError>* > errorMatrix;
+			errorMatrix.reserve(INITIAL_ERROR_MATRIX_SIZE);
+			
+			processSnapperFile(snapperFile, readMap, errorMatrix);
+			
+			writeOutput(outputFile, errorMatrix);
 		}
-		
-		if ((snapperFile == NULL) && AS_UTL_fileExists(snapperFile, 0, 1))
+		catch (RuntimeException& e)
 		{
-			fprintf(stderr, "An existing snapper alignment file must be provided: "F_STR"\n", snapperFile);
+			fprintf(stderr, F_STR"\n", e.getMessage().c_str());
 			
 			exitFailure();
 		}
-		
-		if (outputFile == NULL)
-		{
-			fprintf(stderr, "A writable output file must be provided: "F_STR"\n", outputFile);
-			
-			exitFailure();
-		}
-		
-		printf("Using files:\n  snapper="F_STR"\n  output="F_STR"\n\n", snapperFile, outputFile);
-		
-		map<AS_IID, uint16> readMap;
-		
-		vector< vector<AlignmentError>* > errorMatrix;
-		errorMatrix.reserve(INITIAL_ERROR_MATRIX_SIZE);
-		
-		processSnapperFile(snapperFile, readMap, errorMatrix);
-		
-		writeOutput(outputFile, errorMatrix);
 	}
 	else
 	{

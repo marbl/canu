@@ -22,10 +22,10 @@
 #ifndef ASSERTIONTYPE_H
 #define ASSERTIONTYPE_H
 
-static const char* rcsid_ASSERTIONTYPE_H = "$Id: AssertionType.h,v 1.2 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid_ASSERTIONTYPE_H = "$Id: AssertionType.h,v 1.3 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 
 typedef enum AssertionType
 {

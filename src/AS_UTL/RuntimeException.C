@@ -19,63 +19,67 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: RuntimeException.C,v 1.5 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: RuntimeException.C,v 1.6 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 #include "RuntimeException.h"
 
 RuntimeException::RuntimeException(const char* message, RuntimeException* cause) throw()
 {
-	this->message = (char*)message;
-	this->cause = cause;
-	this->stackTrace = &ExceptionUtils::getStackTrace();
+	this->initialize(message != NULL ? string(message) : string(), cause);
+}
+
+RuntimeException::RuntimeException(string message, RuntimeException* cause) throw()
+{
+	this->initialize(message, cause);
+}
+
+RuntimeException::~RuntimeException() throw()
+{
 }
 
 const char* RuntimeException::what() const throw()
 {
-	return this->toString();
+	string buffer;
+	
+	return this->toString(buffer).c_str();
 }
 
-const char* RuntimeException::toString(unsigned depth) const throw()
+string RuntimeException::toString(string& buffer, uint32 depth) const throw()
 {
-	string str;
-	
 	if (depth < MAX_CAUSE_DEPTH)
 	{
 		if (depth > 0)
 		{
-			str += "\nCaused by: ";
+			buffer += "\nCaused by: ";
 		}
 		
-		str += this->message;
+		buffer += this->message;
 		
 		if (this->stackTrace != NULL)
 		{
-			for (size_t a = 0; a < this->stackTrace->depth; a++)
+			for (size_t a = 0; a < this->stackTrace->lines.size(); a++)
 			{
-				str += "\n\t";
-				str += this->stackTrace->lines[a];
+				buffer += "\n\t";
+				buffer += this->stackTrace->lines[a];
 			}
 		}
 		
 		if (this->cause != NULL)
 		{
-			str += this->cause->toString(depth + 1);
+			this->cause->toString(buffer, ++depth);
 		}
 	}
 	else
 	{
-		str += "\n...";
+		buffer += "\n...";
 	}
 	
-	return StringUtils::toString(str);
+	return buffer;
 }
 
-const char* RuntimeException::getMessage()
+void RuntimeException::initialize(string message, RuntimeException* cause) throw()
 {
-	return this->message;
-}
-
-RuntimeException::operator const char*()
-{
-	return this->toString();
+	this->message = message;
+	this->cause = cause;
+	this->stackTrace = new StackTrace();
 }

@@ -18,13 +18,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.9 2011-08-10 20:25:14 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.10 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
-#include <time.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <exception>
 #include <map>
 #include <vector>
 

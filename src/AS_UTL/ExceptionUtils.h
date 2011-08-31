@@ -22,16 +22,19 @@
 #ifndef EXCEPTIONUTILS_H
 #define EXCEPTIONUTILS_H
 
-static const char* rcsid_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.6 2011-08-25 02:40:05 brianwalenz Exp $";
+static const char* rcsid_EXCEPTIONUTILS_H = "$Id: ExceptionUtils.h,v 1.7 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <algorithm>
 #include <exception>
 #include <string>
+#include <vector>
 
 using namespace std;
+
+#include "AS_global.h"
 
 #if defined(__GLIBC__)
 
@@ -39,24 +42,33 @@ using namespace std;
 
 #else
 
-static  int    backtrace(void **buffer, int size) { return(0); }
-static  char **backtrace_symbols(void *const *buffer, int size) { return(NULL); }
+static int backtrace(void** buffer, int size) { return 0; }
+static char** backtrace_symbols(void* const* buffer, int size) { return NULL; }
 
 #endif
 
-#define DEFAULT_STACK_TRACE_DEPTH 15
+#define DEFAULT_STACK_TRACE_DEPTH 10
 #define DEFAULT_STACK_TRACE_CALLER "ExceptionUtils"
 
-typedef struct
+typedef struct StackTrace
 {
-	size_t depth;
-	char** lines;
-} StackTrace;
+	vector<string> lines;
+	
+	StackTrace(size_t reserveDepth = DEFAULT_STACK_TRACE_DEPTH)
+	{
+		this->lines.reserve(reserveDepth);
+	}
+};
 
 class ExceptionUtils
 {
 public:
-	static StackTrace& getStackTrace(const char* caller = DEFAULT_STACK_TRACE_CALLER, size_t depth = DEFAULT_STACK_TRACE_DEPTH);
+	static StackTrace getStackTrace(StackTrace& stacktrace, const char* caller = DEFAULT_STACK_TRACE_CALLER, size_t depth = DEFAULT_STACK_TRACE_DEPTH);
+	
+private:
+	ExceptionUtils()
+	{
+	}
 };
 
 #endif

@@ -22,11 +22,11 @@
 #ifndef ASSERTS_H
 #define ASSERTS_H
 
-static const char* rcsid_ASSERTS_H = "$Id: Asserts.h,v 1.1 2011-08-11 17:34:34 mkotelbajcvi Exp $";
+static const char* rcsid_ASSERTS_H = "$Id: Asserts.h,v 1.2 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 
 using namespace std;
@@ -116,6 +116,11 @@ public:
 		{
 			throw AssertionException(message, NULL, ASSERT_NOT_EQUALS);
 		}
+	}
+	
+private:
+	Asserts()
+	{
 	}
 };
 

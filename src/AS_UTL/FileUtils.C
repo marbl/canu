@@ -19,10 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: FileUtils.C,v 1.4 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: FileUtils.C,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 #include "FileUtils.h"
 
+// TODO: reimplement using string
 char* FileUtils::readLine(FILE* file, char* buffer, size_t bufferSize, bool includeNewline)
 {
 	if (file == NULL)
@@ -37,7 +38,6 @@ char* FileUtils::readLine(FILE* file, char* buffer, size_t bufferSize, bool incl
 	
 	fgets(buffer, bufferSize, file);
 	
-	// TODO: reimplement
 	size_t bufferSizeUsed = strlen(buffer);
 	
 	if (!includeNewline && (bufferSizeUsed > 0) && (buffer[bufferSizeUsed - 1] == NEWLINE))
@@ -46,34 +46,37 @@ char* FileUtils::readLine(FILE* file, char* buffer, size_t bufferSize, bool incl
 	}
 	
 	return buffer;
-	
-	//return !includeNewline ? StringUtils::trimEnd(buffer, 2, "\n", "\r") : buffer;
 }
 
-// TODO: reimplement
-/*
-const char* FileUtils::getPath(size_t num, ...)
+string FileUtils::getPath(string& buffer, size_t num, ...)
 {
 	initArgs(num);
 	
-	return getPath(num, VarUtils::getArgs<const char*>(num, argsList));
+	return getPath(buffer, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-const char* FileUtils::getPath(size_t num, const char** pathParts)
+string FileUtils::getPath(string& buffer, size_t num, const char** pathParts)
 {
+	string pathPartStr;
+	
 	for (size_t a = 0; a < num; a++)
 	{
+		pathPartStr = pathParts[a];
+		
 		if (a != 0)
 		{
-			pathParts[a] = StringUtils::trimStart(pathParts[a], 1, PATH_DELIMITER);
+			pathPartStr = StringUtils::trimStart(pathPartStr, 1, PATH_DELIMITER);
 		}
 		
 		if (a < (num - 1))
 		{
-			pathParts[a] = StringUtils::trimEnd(pathParts[a], 1, PATH_DELIMITER);
+			pathPartStr = StringUtils::trimEnd(pathPartStr, 1, PATH_DELIMITER);
 		}
+		
+		pathParts[a] = pathPartStr.c_str();
 	}
 	
-	return StringUtils::join(PATH_DELIMITER, num, pathParts);
+	string delimiterStr;
+	
+	return StringUtils::join(StringUtils::toString(PATH_DELIMITER, delimiterStr).c_str(), buffer, num, pathParts);
 }
-*/

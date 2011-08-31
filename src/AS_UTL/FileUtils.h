@@ -22,11 +22,13 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
-static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.4 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 
 using namespace std;
 
@@ -34,7 +36,6 @@ using namespace std;
 #include "StringUtils.h"
 #include "VarUtils.h"
 
-#define NEWLINE '\n'
 #define PATH_DELIMITER '/'
 
 class FileUtils
@@ -42,11 +43,13 @@ class FileUtils
 public:
 	static char* readLine(FILE* file, char* buffer, size_t bufferSize, bool includeNewline = false);
 	
-	// TODO: reimplement
-	/*
-	static const char* getPath(size_t num, ...);
-	static const char* getPath(size_t num, const char** pathParts);
-	*/
+	static string getPath(string& buffer, size_t num, ...);
+	static string getPath(string& buffer, size_t num, const char** pathParts);
+	
+private:
+	FileUtils()
+	{
+	}
 };
 
 #endif

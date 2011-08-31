@@ -19,37 +19,31 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: ExceptionUtils.C,v 1.4 2011-08-10 20:25:15 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: ExceptionUtils.C,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 #include "ExceptionUtils.h"
 
-StackTrace& ExceptionUtils::getStackTrace(const char* caller, size_t depth)
+StackTrace ExceptionUtils::getStackTrace(StackTrace& stackTrace, const char* caller, size_t depth)
 {
-	StackTrace* stackTrace = new StackTrace();
-	stackTrace->depth = 0;
-	stackTrace->lines = NULL;
-	
 	void** buffer = new void*[depth];
 	size_t actualDepth = backtrace(buffer, depth);
 	char** lines = backtrace_symbols(buffer, actualDepth);
-	
+	string line;
 	int callerIndex = -1;
 	
 	for (size_t a = 0; a < actualDepth; a++)
 	{
+		line = string(lines[a]);
+		
 		if (callerIndex != -1)
 		{
-			stackTrace->lines[a - callerIndex - 1] = new char[strlen(lines[a]) + 1];
-			strcpy(stackTrace->lines[a - callerIndex - 1], lines[a]);
+			stackTrace.lines.push_back(line);
 		}
-		else if (string(lines[a]).rfind(caller) != string::npos)
+		else if (line.rfind(caller) != string::npos)
 		{
 			callerIndex = a;
-			
-			stackTrace->depth = actualDepth - callerIndex - 1;
-			stackTrace->lines = new char*[stackTrace->depth];
 		}
 	}
 	
-	return *stackTrace;
+	return stackTrace;
 }

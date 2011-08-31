@@ -22,11 +22,11 @@
 #ifndef TESTUTILS_H
 #define TESTUTILS_H
 
-static const char* rcsid_TESTUTILS_H = "$Id: TestUtils.h,v 1.8 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid_TESTUTILS_H = "$Id: TestUtils.h,v 1.9 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <vector>
 
 using namespace std;
@@ -40,6 +40,11 @@ class TestUtils
 {
 public:
 	static void runTests(vector<TestFunction>& tests);
+	
+private:
+	TestUtils()
+	{
+	}
 };
 
 #endif

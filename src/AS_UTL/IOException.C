@@ -21,11 +21,25 @@
 
 #include "IOException.h"
 
-static const char* RCSID = "$Id: IOException.C,v 1.1 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: IOException.C,v 1.2 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 IOException::IOException(const char* message, RuntimeException* cause) throw() 
 	: RuntimeException(message, cause)
 {
-	this->message = (char*)StringUtils::toString(string("IO error: ") + this->message);
-	this->stackTrace = &ExceptionUtils::getStackTrace();
+	this->initialize();
+	
+	ExceptionUtils::getStackTrace(*this->stackTrace);
+}
+
+IOException::IOException(string message, RuntimeException* cause) throw() 
+	: RuntimeException(message, cause)
+{
+	this->initialize();
+	
+	ExceptionUtils::getStackTrace(*this->stackTrace);
+}
+
+void IOException::initialize() throw()
+{
+	this->message.insert(0, "IO exception: ");
 }

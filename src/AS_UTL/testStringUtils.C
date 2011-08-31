@@ -19,11 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: testStringUtils.C,v 1.10 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: testStringUtils.C,v 1.11 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <string>
 #include <vector>
@@ -34,11 +34,30 @@ using namespace std;
 #include "StringUtils.h"
 #include "TestUtils.h"
 
+void testConcat()
+{
+	string result;
+	result.resize(256);
+	
+	Asserts::assertTrue(StringUtils::concat(result, F_U32""F_STR, 0, "|test1|") == "0|test1|", "concat failed");
+}
+
 void testFindAll()
 {
-	size_t indexes[3] = { 1, 7, 13 };
+	string str("|test1|test2|test3|");
+	vector<size_t> indexes;
+	size_t expectedIndexes[3] = { 1, 7, 13 };
 	
-	Asserts::assertTrue(StringUtils::findAll("|test1|test2|test3|", 1, "test") == vector<size_t>(indexes, indexes + 3), "find all failed");
+	Asserts::assertTrue(StringUtils::findAll(str, indexes, 1, "test") == vector<size_t>(expectedIndexes, expectedIndexes + 3), "find all failed");
+}
+
+void testSplit()
+{
+	string str("|test1%test2!test3$");
+	vector<string> tokens;
+	string expectedTokens[5] = { string(), string("test1"), string("test2"), string("test3"), string() };
+	
+	Asserts::assertTrue(StringUtils::split(str, tokens, 4, "|", "%", "!", "$") == vector<string>(expectedTokens, expectedTokens + 5), "split failed");
 }
 
 void testIsBlankBlankString()
@@ -139,7 +158,9 @@ void testToStringChar()
 int main(int argc, char** argv)
 {
 	vector<TestFunction> tests;
+	tests.push_back(&testConcat);
 	tests.push_back(&testFindAll);
+	tests.push_back(&testSplit);
 	tests.push_back(&testIsBlankBlankString);
 	tests.push_back(&testIsBlankNotBlankString);
 	tests.push_back(&testAreEqual);

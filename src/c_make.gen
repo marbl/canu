@@ -454,9 +454,9 @@ for i in $(SUBDIRS);\
     if [ -d $$i ]; then \
       echo "############################## $$i ##############################"; \
       if [ $(TGT) = "libs" ] ; then \
-        $(MAKE) --no-print-directory -C $$i $(TGT) || exit 1; \
+        $(MAKE) -s --no-print-directory -C $$i $(TGT) || exit 1; \
       else \
-        $(MAKE) --no-print-directory -j $(MAKE_JOBS) -C $$i $(TGT) || exit 1; \
+        $(MAKE) -s --no-print-directory -j $(MAKE_JOBS) -C $$i $(TGT) || exit 1; \
       fi; \
     fi; \
   done;

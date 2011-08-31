@@ -22,7 +22,7 @@
 #ifndef VARUTILS_H
 #define VARUTILS_H
 
-static const char* rcsid_VARUTILS_H = "$Id: VarUtils.h,v 1.4 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid_VARUTILS_H = "$Id: VarUtils.h,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <cstdio>
@@ -54,6 +54,11 @@ public:
 		va_end(argsList);
 		
 		return args;
+	}
+	
+private:
+	VarUtils()
+	{
 	}
 };
 

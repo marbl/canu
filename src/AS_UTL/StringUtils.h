@@ -22,13 +22,13 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.11 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.12 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdarg>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -38,11 +38,30 @@ using namespace std;
 #include "AS_global.h"
 #include "VarUtils.h"
 
+#define NEWLINE '\n'
 #define NULL_TERMINATOR '\0'
 
 class StringUtils
 {
 public:
+	inline static bool isLowercase(const char* str)
+	{
+		for (size_t a = 0; a < strlen(str); a++)
+		{
+			if (!isLowercase(str[a]))
+			{
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	inline static bool isLowercase(const char character)
+	{
+		return (character >= 'a') && (character <= 'z');
+	}
+	
 	inline static bool isUppercase(const char* str)
 	{
 		for (size_t a = 0; a < strlen(str); a++)
@@ -92,40 +111,39 @@ public:
 		return (str1 != NULL) && (str2 != NULL) && (strcmp(str1, str2) == 0);
 	}
 	
-	inline static const char* concat(size_t num, ...)
+	inline static string concat(string& buffer, const char* format, ...)
 	{
-		initArgs(num);
+		initArgs(format);
 		
-		return concat(num, VarUtils::getArgs<const char*>(num, argsList));
-	}
-
-	inline static const char* concat(size_t num, const char** toConcat)
-	{
-		return join(NULL, num, toConcat);
+		vsprintf((char*)buffer.data(), format, argsList);
+		
+		buffer.assign(buffer.data());
+		
+		va_end(argsList);
+		
+		return buffer;
 	}
 	
-	inline static const char* join(const char* delimiter, size_t num, ...)
+	inline static string join(const char* delimiter, string& buffer, size_t num, ...)
 	{
 		initArgs(num);
 		
-		return join(delimiter, num, VarUtils::getArgs<const char*>(num, argsList));
+		return join(delimiter, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
 	}
-
-	inline static const char* join(const char* delimiter, size_t num, const char** toJoin)
+	
+	inline static string join(const char* delimiter, string& buffer, size_t num, const char** toJoin)
 	{
-		string str;
-		
 		for (size_t a = 0; a < num; a++)
 		{
-			if (!isEmpty(delimiter) && !str.empty())
+			if (!isEmpty(delimiter) && !buffer.empty())
 			{
-				str += delimiter;
+				buffer += delimiter;
 			}
 			
-			str += toJoin[a];
+			buffer += toJoin[a];
 		}
 		
-		return toString(str);
+		return buffer;
 	}
 	
 	inline static string toString(unsigned value, string& buffer)
@@ -190,14 +208,6 @@ public:
 
 	inline static string toString(char value, string& buffer)
 	{
-		/*
-		char* str = new char[2];
-		str[0] = value;
-		str[1] = NULL_TERMINATOR;
-		
-		buffer += str;
-		*/
-		
 		buffer += value;
 		
 		return buffer;
@@ -213,17 +223,22 @@ public:
 		return str;
 	}
 	
-	static vector<size_t> findAll(const char* str, size_t num, ...);
-	static vector<size_t> findAll(const char* str, size_t num, const char** toFind);
+	static vector<string> split(string str, vector<string>& buffer, size_t num, ...);
+	static vector<string> split(string str, vector<string>& buffer, size_t num, const char** delimiters);
 	
-	static bool startsWith(string str, size_t num, ...);
+	static vector<size_t> findAll(const char* str, vector<size_t>& buffer, size_t num, ...);
+	static vector<size_t> findAll(string str, vector<size_t>& buffer, size_t num, ...);
+	static vector<size_t> findAll(const char* str, vector<size_t>& buffer, size_t num, const char** toFind);
+	static vector<size_t> findAll(string str, vector<size_t>& buffer, size_t num, const char** toFind);
+	
 	static bool startsWith(const char* str, size_t num, ...);
-	static bool startsWith(string str, size_t num, const char** toTest);
+	static bool startsWith(string str, size_t num, ...);
 	static bool startsWith(const char* str, size_t num, const char** toTest);
-	static bool endsWith(string str, size_t num, ...);
+	static bool startsWith(string str, size_t num, const char** toTest);
 	static bool endsWith(const char* str, size_t num, ...);
-	static bool endsWith(string str, size_t num, const char** toTest);
+	static bool endsWith(string str, size_t num, ...);
 	static bool endsWith(const char* str, size_t num, const char** toTest);
+	static bool endsWith(string str, size_t num, const char** toTest);
 	
 	static string trim(string& str, size_t num, ...);
 	static string trim(string& str, size_t num, const char** toTrim);
@@ -231,6 +246,11 @@ public:
 	static string trimStart(string& str, size_t num, const char** toTrim);
 	static string trimEnd(string& str, size_t num, ...);
 	static string trimEnd(string& str, size_t num, const char** toTrim);
+	
+private:
+	StringUtils()
+	{
+	}
 };
 
 #endif

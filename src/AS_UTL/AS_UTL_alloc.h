@@ -22,7 +22,7 @@
 #ifndef AS_UTL_ALLOC_H
 #define AS_UTL_ALLOC_H
 
-static const char *rcsid_AS_UTL_ALLOC_H = "$Id: AS_UTL_alloc.h,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_ALLOC_H = "$Id: AS_UTL_alloc.h,v 1.8 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 //
 //  The safe_*alloc routines are the same as the normal routines,
@@ -58,5 +58,8 @@ void  safe_free2(void *);
 #define free(X)       use_safe_free_instead(X)
 
 #endif
+
+#define zero(ptr, length) \
+	memset(ptr, NULL, length)
 
 #endif // AS_UTL_ALLOC_H

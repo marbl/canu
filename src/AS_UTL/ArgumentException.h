@@ -22,11 +22,11 @@
 #ifndef ARGUMENTEXCEPTION_H
 #define ARGUMENTEXCEPTION_H
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.5 2011-08-04 18:18:56 mkotelbajcvi Exp $";
+static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.6 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <strings.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 
 using namespace std;
@@ -38,9 +38,12 @@ class ArgumentException : public RuntimeException
 {
 public:
 	ArgumentException(const char* message = NULL, RuntimeException* cause = NULL, const char* name = NULL) throw();
+	ArgumentException(string message = string(), RuntimeException* cause = NULL, const char* name = NULL) throw();
 
 protected:
-	char* name;
+	const char* name;
+	
+	virtual void initialize(const char* name) throw();
 };
 
 #endif

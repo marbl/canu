@@ -22,11 +22,11 @@
 #ifndef PROFILEREADERRORS_H
 #define PROFILEREADERRORS_H
 
-static const char* RCSID_PROFILEREADERRORS_H = "$Id: profileReadErrors.h,v 1.1 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid_PROFILEREADERRORS_H = "$Id: profileReadErrors.h,v 1.2 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <map>
 #include <string>
@@ -75,38 +75,16 @@ typedef enum AlignmentErrorType
 	UNKNOWN, MISMATCH, INSERTION, DELETION
 };
 
-class AlignmentError
+typedef struct AlignmentError
 {
-public:
+	AS_IID iid;
+	AlignmentErrorType type;
+	
 	AlignmentError(AS_IID iid = 0, AlignmentErrorType type = UNKNOWN)
 	{
 		this->iid = iid;
 		this->type = type;
 	}
-	
-	AS_IID getIID()
-	{
-		return this->iid;
-	}
-	
-	void setIID(AS_IID iid)
-	{
-		this->iid = iid;
-	}
-	
-	AlignmentErrorType getType()
-	{
-		return this->type;
-	}
-	
-	void setType(AlignmentErrorType type)
-	{
-		this->type = type;
-	}
-	
-protected:
-	AS_IID iid;
-	AlignmentErrorType type;
 };
 
 void writeOutput(const char* outputFile, vector< vector<AlignmentError>* >& errorMatrix);

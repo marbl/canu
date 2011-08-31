@@ -22,10 +22,10 @@
 #ifndef RUNTIMEEXCEPTION_H
 #define RUNTIMEEXCEPTION_H
 
-static const char* rcsid_RUNTIMEEXCEPTION_H = "$Id: RuntimeException.h,v 1.5 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid_RUNTIMEEXCEPTION_H = "$Id: RuntimeException.h,v 1.6 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <string>
 
@@ -35,23 +35,44 @@ using namespace std;
 #include "ExceptionUtils.h"
 #include "StringUtils.h"
 
-#define MAX_CAUSE_DEPTH 2
+#define MAX_CAUSE_DEPTH 3
 
 class RuntimeException : public exception
 {
 public:
 	virtual const char* what() const throw();
-	virtual const char* toString(unsigned depth = 0) const throw();
-	virtual const char* getMessage();
+	virtual string toString(string& buffer, uint32 depth = 0) const throw();
+
+	operator const char*()
+	{
+		return this->what();
+	}
 	
-	operator const char*();
+	string getMessage()
+	{
+		return this->message;
+	}
+	
+	RuntimeException* getCause()
+	{
+		return this->cause;
+	}
+	
+	StackTrace* getStackTrace()
+	{
+		return this->stackTrace;
+	}
 
 protected:
-	char* message;
+	string message;
 	RuntimeException* cause;
 	StackTrace* stackTrace;
 	
 	RuntimeException(const char* message = NULL, RuntimeException* cause = NULL) throw();
+	RuntimeException(string message = string(), RuntimeException* cause = NULL) throw();
+	~RuntimeException() throw();
+	
+	virtual void initialize(string message, RuntimeException* cause) throw();
 };
 
 #endif

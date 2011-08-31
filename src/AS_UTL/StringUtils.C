@@ -19,48 +19,90 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: StringUtils.C,v 1.9 2011-08-30 23:09:51 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: StringUtils.C,v 1.10 2011-08-31 06:49:27 mkotelbajcvi Exp $";
 
 #include "StringUtils.h"
 
-vector<size_t> StringUtils::findAll(const char* str, size_t num, ...)
+vector<string> StringUtils::split(string str, vector<string>& buffer, size_t num, ...)
 {
 	initArgs(num);
 	
-	return findAll(str, num, VarUtils::getArgs<const char*>(num, argsList));
+	return split(str, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-vector<size_t> StringUtils::findAll(const char* str, size_t num, const char** toFind)
+vector<string> StringUtils::split(string str, vector<string>& buffer, size_t num, const char** delimiters)
 {
-	string strObj(str);
-	vector<size_t> found;
+	set<size_t> splitIndexes;
 	
 	for (size_t a = 0; a < num; a++)
 	{
-		const char* toFindItem = toFind[a];
+		vector<size_t> delimiterIndexes;
+		
+		findAll(str, delimiterIndexes, 1, delimiters[a]);
+		
+		splitIndexes.insert(delimiterIndexes.begin(), delimiterIndexes.end());
+	}
+	
+	size_t lastSplitIndex = 0, splitLength;
+	
+	for (set<size_t>::iterator iterator = splitIndexes.begin(); iterator != splitIndexes.end(); iterator++)
+	{
+		splitLength = *iterator - lastSplitIndex;
+		splitLength -= (splitLength != 0);
+		
+		buffer.push_back((lastSplitIndex == 0) && (splitLength == 0) ? string() : str.substr(lastSplitIndex + 1, splitLength));
+		
+		lastSplitIndex = *iterator;
+		
+		if (lastSplitIndex + 1 == str.size())
+		{
+			buffer.push_back(string());
+		}
+	}
+	
+	return buffer;
+}
+
+vector<size_t> StringUtils::findAll(const char* str, vector<size_t>& buffer, size_t num, ...)
+{
+	initArgs(num);
+	
+	return findAll(str, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
+}
+
+vector<size_t> StringUtils::findAll(string str, vector<size_t>& buffer, size_t num, ...)
+{
+	initArgs(num);
+	
+	return findAll(str, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
+}
+
+vector<size_t> StringUtils::findAll(const char* str, vector<size_t>& buffer, size_t num, const char** toFind)
+{
+	return findAll(string(str), buffer, num, toFind);
+}
+
+vector<size_t> StringUtils::findAll(string str, vector<size_t>& buffer, size_t num, const char** toFind)
+{
+	for (size_t a = 0; a < num; a++)
+	{
+		const char* toFindStr = toFind[a];
 		size_t index = string::npos;
 		
 		do
 		{
-			index += (index != string::npos) ? strlen(toFindItem) : 0;
-			index = strObj.find(toFindItem, index);
+			index += (index != string::npos) ? strlen(toFindStr) : 0;
+			index = str.find(toFindStr, index);
 			
 			if (index != string::npos)
 			{
-				found.push_back(index);
+				buffer.push_back(index);
 			}
 		}
 		while (index != string::npos);
 	}
 	
-	return found;
-}
-
-bool StringUtils::startsWith(string str, size_t num, ...)
-{
-	initArgs(num);
-	
-	return startsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
+	return buffer;
 }
 
 bool StringUtils::startsWith(const char* str, size_t num, ...)
@@ -70,33 +112,31 @@ bool StringUtils::startsWith(const char* str, size_t num, ...)
 	return startsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-bool StringUtils::startsWith(string str, size_t num, const char** toTest)
+bool StringUtils::startsWith(string str, size_t num, ...)
 {
-	return startsWith(str.c_str(), num, toTest);
+	initArgs(num);
+	
+	return startsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
 bool StringUtils::startsWith(const char* str, size_t num, const char** toTest)
 {
-	string strObj(str);
-	
+	return startsWith(string(str), num, toTest);
+}
+
+bool StringUtils::startsWith(string str, size_t num, const char** toTest)
+{
 	for (size_t a = 0; a < num; a++)
 	{
-		string toTestObj(toTest[a]);
+		string toTestStr(toTest[a]);
 		
-		if (strObj.substr(0, toTestObj.length()) == toTestObj)
+		if (str.substr(0, toTestStr.length()) == toTestStr)
 		{
-			return TRUE;
+			return true;
 		}
 	}
 	
-	return FALSE;
-}
-
-bool StringUtils::endsWith(string str, size_t num, ...)
-{
-	initArgs(num);
-	
-	return endsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
+	return false;
 }
 
 bool StringUtils::endsWith(const char* str, size_t num, ...)
@@ -106,26 +146,31 @@ bool StringUtils::endsWith(const char* str, size_t num, ...)
 	return endsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-bool StringUtils::endsWith(string str, size_t num, const char** toTest)
+bool StringUtils::endsWith(string str, size_t num, ...)
 {
-	return endsWith(str.c_str(), num, toTest);
+	initArgs(num);
+	
+	return endsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
 bool StringUtils::endsWith(const char* str, size_t num, const char** toTest)
 {
-	string strObj(str);
-	
+	return endsWith(string(str), num, toTest);
+}
+
+bool StringUtils::endsWith(string str, size_t num, const char** toTest)
+{
 	for (size_t a = 0; a < num; a++)
 	{
-		string toTestObj(toTest[a]);
+		string toTestStr(toTest[a]);
 		
-		if (strObj.substr(strObj.length() - toTestObj.length()) == toTestObj)
+		if (str.substr(str.length() - toTestStr.length()) == toTestStr)
 		{
-			return TRUE;
+			return true;
 		}
 	}
 	
-	return FALSE;
+	return false;
 }
 
 string StringUtils::trim(string& str, size_t num, ...)
@@ -155,12 +200,12 @@ string StringUtils::trimStart(string& str, size_t num, const char** toTrim)
 	{
 		for (size_t a = 0; a < num; a++)
 		{
-			string toTrimItem(toTrim[a]);
+			string toTrimStr(toTrim[a]);
 			
-			while ((str.length() >= toTrimItem.length()) && 
-					(str.substr(0, toTrimItem.length()) == toTrimItem))
+			while ((str.length() >= toTrimStr.length()) && 
+					(str.substr(0, toTrimStr.length()) == toTrimStr))
 			{
-				str.erase(0, toTrimItem.length());
+				str.erase(0, toTrimStr.length());
 			}
 		}
 	}
@@ -181,12 +226,12 @@ string StringUtils::trimEnd(string& str, size_t num, const char** toTrim)
 	{
 		for (size_t a = 0; a < num; a++)
 		{
-			string toTrimItem(toTrim[a]);
+			string toTrimStr(toTrim[a]);
 			
-			while ((str.length() >= toTrimItem.length()) && 
-					(str.substr(str.length() - toTrimItem.length(), toTrimItem.length()) == toTrimItem))
+			while ((str.length() >= toTrimStr.length()) && 
+					(str.substr(str.length() - toTrimStr.length(), toTrimStr.length()) == toTrimStr))
 			{
-				str = str.erase(str.length() - toTrimItem.length());
+				str.erase(str.length() - toTrimStr.length());
 			}
 		}
 	}
