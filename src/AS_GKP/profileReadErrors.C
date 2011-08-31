@@ -21,7 +21,7 @@
 
 #include "profileReadErrors.h"
 
-static const char* rcsid = "$Id: profileReadErrors.C,v 1.3 2011-08-31 09:10:43 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: profileReadErrors.C,v 1.4 2011-08-31 18:32:05 mkotelbajcvi Exp $";
 
 void writeOutput(const char* outputFile, map<AS_IID, uint16>& readMap, vector<BasePosition*>& errorMatrix)
 {
@@ -36,14 +36,46 @@ void writeOutput(const char* outputFile, map<AS_IID, uint16>& readMap, vector<Ba
 			throw IOException(string("Unable to open output file: ") + outputFile);
 		}
 		
+		fprintf(outputFileHandle, F_STR"\n", 
+			"\"Base\"\t\"Relative Errors (%)\"\t\"Average Read Position (%)\"\t\"% Mismatch\"\t\"% Insertion\"\t\"% Deletion\"");
+		
 		for (size_t a = 0; a < errorMatrix.size(); a++)
 		{
 			BasePosition* baseErrorBucket = errorMatrix[a];
 			
 			if (baseErrorBucket != NULL)
 			{
-				fprintf(outputFileHandle, F_U64"\t"F_F64"\t"F_F64"\n", a + 1, (double)baseErrorBucket->errors.size() / baseErrorBucket->readsAtPosition, 
-					baseErrorBucket->readLengthPercent);
+				size_t numMismatch = 0, numInsertion = 0, numDeletion = 0;
+				
+				for (size_t b = 0; b < baseErrorBucket->errors.size(); b++)
+				{
+					switch (baseErrorBucket->errors[b].type)
+					{
+						case MISMATCH:
+							numMismatch++;
+							break;
+							
+						case INSERTION:
+							numInsertion++;
+							break;
+							
+						case DELETION:
+							numDeletion++;
+							break;
+							
+						default:
+							// TODO: add error
+							break;
+					}
+				}
+				
+				fprintf(outputFileHandle, F_U64"\t"F_F64"\t"F_F64"\t"F_F64"\t"F_F64"\t"F_F64"\n", 
+					a + 1, 
+					(double)baseErrorBucket->errors.size() / baseErrorBucket->readsAtPosition, 
+					baseErrorBucket->readLengthPercent, 
+					(double)numMismatch / baseErrorBucket->errors.size(), 
+					(double)numInsertion / baseErrorBucket->errors.size(), 
+					(double)numDeletion / baseErrorBucket->errors.size());
 			}
 		}
 		
@@ -152,7 +184,7 @@ void processSnapperFile(const char* snapperFile, map<AS_IID, uint16>& readMap, v
 		uint16 readLength;
 		const char* readSequence, *genomeSequence;
 		
-		off_t lineNum = 0;
+		size_t lineNum = 0;
 		char* line;
 		
 		while (!feof(snapperFileHandle))
