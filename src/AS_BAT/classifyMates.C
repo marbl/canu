@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.21 2011-08-29 20:58:32 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.22 2011-08-31 17:42:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -119,8 +119,8 @@ cmWriter(void *G, void *S) {
   //  If this stuff is normally distributed, 4 stddev will include 99.993666% of the data points.
   uint32  ni = (uint32)floor((ci + g->runTime.mean() + 4 * g->runTime.stddev()) / 2);
 
-  fprintf(stderr, "\nRUNTIME: %f +- %f  min/max %u/%u  RESET iteration limit to %u\n",
-          g->runTime.mean(), g->runTime.stddev(), g->runTime.min(), g->runTime.max(), ni);
+  //fprintf(stderr, "\nRUNTIME: %f +- %f  min/max %u/%u  RESET iteration limit to %u\n",
+  //        g->runTime.mean(), g->runTime.stddev(), g->runTime.min(), g->runTime.max(), ni);
 
   if (g->nodesMax > 0)  g->nodesMax = ni;
   if (g->depthMax > 0)  g->depthMax = ni;
@@ -135,6 +135,8 @@ main(int argc, char **argv) {
   char      *gkpStoreName      = NULL;
   char      *ovlStoreName      = NULL;
   char      *resultsName       = NULL;
+
+  double     maxErrorFraction  = 0.045;
 
   uint32     distMin           = 0;
   uint32     distMax           = 0;
@@ -164,6 +166,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-O") == 0) {
       ovlStoreName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      maxErrorFraction = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       resultsName = argv[++arg];
@@ -249,6 +254,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -o results       Write results here\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -e maxError      Use overlaps with less than 'maxError' fraction error (default 0.045)\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -t n             Use 'n' compute threads\n");
     fprintf(stderr, "  -m m             Use at most 'm' GB memory (default: unlimited)\n");
     fprintf(stderr, "\n");
@@ -289,7 +296,7 @@ main(int argc, char **argv) {
                                       memoryLimit);
 
   g->loadFragments(gkpStoreName, searchLibs, searchLib, backboneLibs, backboneLib);
-  g->loadOverlaps(ovlStoreName);
+  g->loadOverlaps(ovlStoreName, maxErrorFraction);
 
   sweatShop *ss = new sweatShop(cmReader, cmWorker, cmWriter);
 

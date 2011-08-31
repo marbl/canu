@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.2 2011-08-29 20:58:32 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.3 2011-08-31 17:42:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -197,9 +197,12 @@ cmGlobalData::loadFragments(char    *gkpStoreName,
 
 
 void
-cmGlobalData::loadOverlaps(char  *ovlStoreName) {
+cmGlobalData::loadOverlaps(char  *ovlStoreName,
+                           double maxErrorFraction) {
 
   fprintf(stderr, "LOADING OVERLAPS...for fragments %u to %u\n", minFragIID, maxFragIID);
+
+  uint64            maxError    = AS_OVS_encodeQuality(maxErrorFraction);
 
   uint32            ovlMax      = 1048576;
   uint32            ovlLen      = 1;
@@ -270,8 +273,6 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName) {
   AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
 
   ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
-
-  uint64 maxError = AS_OVS_encodeQuality(3.0);
 
   while (ovlLen > 0) {
     numTT += ovlLen;

@@ -195,7 +195,8 @@ public:
                        bool     backboneLibs,
                        uint32  *backboneLib);
 
-  void   loadOverlaps(char   *ovlStoreName);
+  void   loadOverlaps(char   *ovlStoreName,
+                      double  maxErrorFraction);
 
   void   computeNextPlacement(cmComputation *c,
                               cmThreadData  *t,
