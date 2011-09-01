@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.3 2011-09-01 18:45:05 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -123,6 +123,31 @@ populateUnitig(UnitigVector &unitigs,
 
   BestEdgeOverlap  *bestedge5 = OG->getBestEdgeOverlap(fi, false);
   BestEdgeOverlap  *bestedge3 = OG->getBestEdgeOverlap(fi, true);
+
+  assert(bestedge5->ahang() <= 0);  //  Best Edges must be dovetail, which makes this test
+  assert(bestedge5->bhang() <= 0);  //  much simpler.
+  assert(bestedge3->ahang() >= 0);
+  assert(bestedge3->bhang() >= 0);
+
+  //  If this fragment is not covered by the two best overlaps we are finished.  We will not follow
+  //  the paths out.  This indicates either low coverage, or a chimeric fragment.  If it is low
+  //  coverage, then the best overlaps will be mutual and we'll recover the same path.  If it is a
+  //  chimeric fragment the overlaps will not be mutual and we will skip this fragment.
+  //
+  //  The amount of our fragment that is covered by the two best overlaps is
+  //
+  //    (fragLen + bestedge5->bhang()) + (fragLen - bestedge3->ahang())
+  //
+  //  If that is not significantly longer than the fragment length, then we will not use this
+  //  fragment as a seed for unitig construction.
+  //
+  uint32  covered = FI->fragmentLength(fi) + bestedge5->bhang() + FI->fragmentLength(fi) - bestedge3->ahang();
+
+  if (covered < FI->fragmentLength(fi) + AS_OVERLAP_MIN_LEN / 2) {
+    fprintf(logFile, "Stopping unitig construction of suspicious frag %d in unitig %d\n",
+            utg->ufpath.back().ident, utg->id());
+    return;
+  }
 
   if (logFileFlagSet(LOG_POPULATE_UNITIG))
     fprintf(logFile, "Adding 5' edges off of frag %d in unitig %d\n",
