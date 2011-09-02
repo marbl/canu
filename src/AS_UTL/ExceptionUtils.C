@@ -19,31 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: ExceptionUtils.C,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: ExceptionUtils.C,v 1.6 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include "ExceptionUtils.h"
 
-StackTrace ExceptionUtils::getStackTrace(StackTrace& stackTrace, const char* caller, size_t depth)
-{
-	void** buffer = new void*[depth];
-	size_t actualDepth = backtrace(buffer, depth);
-	char** lines = backtrace_symbols(buffer, actualDepth);
-	string line;
-	int callerIndex = -1;
-	
-	for (size_t a = 0; a < actualDepth; a++)
-	{
-		line = string(lines[a]);
-		
-		if (callerIndex != -1)
-		{
-			stackTrace.lines.push_back(line);
-		}
-		else if (line.rfind(caller) != string::npos)
-		{
-			callerIndex = a;
-		}
-	}
-	
-	return stackTrace;
-}
+using namespace Utility;

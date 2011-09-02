@@ -19,27 +19,21 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AssertionException.C,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: AssertionException.C,v 1.6 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include "AssertionException.h"
-
-AssertionException::AssertionException(const char* message, RuntimeException* cause, AssertionType type) throw() 
-	: RuntimeException(message, cause)
-{
-	this->initialize(type);
-	
-	ExceptionUtils::getStackTrace(*this->stackTrace);
-}
 
 AssertionException::AssertionException(string message, RuntimeException* cause, AssertionType type) throw() 
 	: RuntimeException(message, cause)
 {
-	this->initialize(type);
+	this->type = type;
 	
-	ExceptionUtils::getStackTrace(*this->stackTrace);
+	this->message.insert(0, "Assert " + assertionTypeToString(this->type) + " failed: ");
+	
+	ExceptionUtils::getStackTrace(*this->stackTrace, "AssertionException");
 }
 
-const char* AssertionException::assertionTypeToString(AssertionType type)
+string AssertionException::assertionTypeToString(AssertionType type)
 {
 	switch (type)
 	{
@@ -62,11 +56,4 @@ const char* AssertionException::assertionTypeToString(AssertionType type)
 		default:
 			return NULL;
 	}
-}
-
-void AssertionException::initialize(AssertionType type) throw()
-{
-	this->type = type;
-	
-	this->message.insert(0, string("Assert ") + assertionTypeToString(this->type) + " failed: ");
 }

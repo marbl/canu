@@ -22,7 +22,7 @@
 #ifndef IOEXCEPTION_H
 #define IOEXCEPTION_H
 
-static const char* rcsid_IOEXCEPTION_H = "$Id: IOException.h,v 1.2 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid_IOEXCEPTION_H = "$Id: IOException.h,v 1.3 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -35,14 +35,12 @@ using namespace std;
 #include "RuntimeException.h"
 #include "StringUtils.h"
 
+using namespace Utility;
+
 class IOException : public RuntimeException
 {
 public:
-	IOException(const char* message = NULL, RuntimeException* cause = NULL) throw();
 	IOException(string message = string(), RuntimeException* cause = NULL) throw();
-	
-protected:
-	virtual void initialize() throw();
 };
 
 #endif

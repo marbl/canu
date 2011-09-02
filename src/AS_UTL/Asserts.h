@@ -22,7 +22,7 @@
 #ifndef ASSERTS_H
 #define ASSERTS_H
 
-static const char* rcsid_ASSERTS_H = "$Id: Asserts.h,v 1.2 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid_ASSERTS_H = "$Id: Asserts.h,v 1.3 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -35,93 +35,96 @@ using namespace std;
 #include "AssertionException.h"
 #include "AssertionType.h"
 
-class Asserts
+namespace Utility
 {
-public:
-	inline static void assertFalse(bool condition, const char* message = NULL)
+	class Asserts
 	{
-		if (condition)
+	public:
+		inline static void assertFalse(bool condition, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_FALSE);
+			if (condition)
+			{
+				throw AssertionException(message, NULL, ASSERT_FALSE);
+			}
 		}
-	}
-	
-	inline static void assertTrue(bool condition, const char* message = NULL)
-	{
-		if (!condition)
+		
+		inline static void assertTrue(bool condition, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_TRUE);
+			if (!condition)
+			{
+				throw AssertionException(message, NULL, ASSERT_TRUE);
+			}
 		}
-	}
-	
-	inline static void assertNull(void* obj, const char* message = NULL)
-	{
-		if (obj != NULL)
+		
+		inline static void assertNull(void* obj, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_NULL);
+			if (obj != NULL)
+			{
+				throw AssertionException(message, NULL, ASSERT_NULL);
+			}
 		}
-	}
-	
-	inline static void assertNotNull(void* obj, const char* message = NULL)
-	{
-		if (obj == NULL)
+		
+		inline static void assertNotNull(void* obj, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_NOT_NULL);
+			if (obj == NULL)
+			{
+				throw AssertionException(message, NULL, ASSERT_NOT_NULL);
+			}
 		}
-	}
-	
-	inline static void assertEmpty(const char* str, const char* message = NULL)
-	{
-		if (str != NULL)
+		
+		inline static void assertEmpty(const char* str, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_EMPTY);
+			if (str != NULL)
+			{
+				throw AssertionException(message, NULL, ASSERT_EMPTY);
+			}
 		}
-	}
-	
-	inline static void assertEmpty(string str, const char* message = NULL)
-	{
-		if (!str.empty())
+		
+		inline static void assertEmpty(string str, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_EMPTY);
+			if (!str.empty())
+			{
+				throw AssertionException(message, NULL, ASSERT_EMPTY);
+			}
 		}
-	}
-	
-	inline static void assertNotEmpty(const char* str, const char* message = NULL)
-	{
-		if (str == NULL)
+		
+		inline static void assertNotEmpty(const char* str, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_NOT_EMPTY);
+			if (str == NULL)
+			{
+				throw AssertionException(message, NULL, ASSERT_NOT_EMPTY);
+			}
 		}
-	}
-	
-	inline static void assertNotEmpty(string str, const char* message = NULL)
-	{
-		if (str.empty())
+		
+		inline static void assertNotEmpty(string str, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_NOT_EMPTY);
+			if (str.empty())
+			{
+				throw AssertionException(message, NULL, ASSERT_NOT_EMPTY);
+			}
 		}
-	}
-	
-	inline static void assertEquals(void* obj1, void* obj2, const char* message = NULL)
-	{
-		if (obj1 != obj2)
+		
+		inline static void assertEquals(void* obj1, void* obj2, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_EQUALS);
+			if (obj1 != obj2)
+			{
+				throw AssertionException(message, NULL, ASSERT_EQUALS);
+			}
 		}
-	}
-	
-	inline static void assertNotEquals(void* obj1, void* obj2, const char* message = NULL)
-	{
-		if (obj1 == obj2)
+		
+		inline static void assertNotEquals(void* obj1, void* obj2, const char* message = NULL)
 		{
-			throw AssertionException(message, NULL, ASSERT_NOT_EQUALS);
+			if (obj1 == obj2)
+			{
+				throw AssertionException(message, NULL, ASSERT_NOT_EQUALS);
+			}
 		}
-	}
-	
-private:
-	Asserts()
-	{
-	}
-};
+		
+	private:
+		Asserts()
+		{
+		}
+	};
+}
 
 #endif

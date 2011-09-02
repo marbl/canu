@@ -19,11 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: FileUtils.C,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: FileUtils.C,v 1.6 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include "FileUtils.h"
 
-// TODO: reimplement using string
+using namespace Utility;
+
+/*
 char* FileUtils::readLine(FILE* file, char* buffer, size_t bufferSize, bool includeNewline)
 {
 	if (file == NULL)
@@ -47,15 +49,114 @@ char* FileUtils::readLine(FILE* file, char* buffer, size_t bufferSize, bool incl
 	
 	return buffer;
 }
+*/
 
-string FileUtils::getPath(string& buffer, size_t num, ...)
+string& FileUtils::readLine(FILE* file, string& buffer, bool includeNewline)
+{
+	// TODO: implement
+	
+	return buffer;
+}
+
+void FileUtils::writeLine(FILE* file, string& buffer)
+{
+	// TODO: implement
+}
+
+bool FileUtils::canRead(FILE* file)
+{
+	// TODO: implement
+	
+	return false;
+}
+
+bool FileUtils::canWrite(FILE* file)
+{
+	// TODO: implement
+	
+	return false;
+}
+
+bool FileUtils::isDirectory(string path)
+{
+	return isType(path, S_IFDIR);
+}
+
+bool FileUtils::isFifo(string path)
+{
+	return isType(path, S_IFIFO);
+}
+
+bool FileUtils::isFile(string path)
+{
+	return isType(path, S_IFREG);
+}
+
+bool FileUtils::isLink(string path)
+{
+	return isType(path, S_IFLNK);
+}
+
+bool FileUtils::isSocket(string path)
+{
+	return isType(path, S_IFSOCK);
+}
+
+bool FileUtils::isType(string path, mode_t type)
+{
+	Stats stats;
+	
+	return getStats(path, stats) && ((stats.st_mode & S_IFMT) == type);
+}
+
+string& FileUtils::getStats(string path, Stats& stats, string& buffer)
+{
+	if (!getStats(path, stats))
+	{
+		buffer += ErrorUtils::getError();
+	}
+	
+	return buffer;
+}
+
+bool FileUtils::getStats(string path, Stats& stats)
+{
+	return exists(path) && (stat(path.c_str(), &stats) != -1);
+}
+
+bool FileUtils::exists(string path)
+{
+	return isAccessible(path, F_OK);
+}
+
+string& FileUtils::isAccessible(string path, int accessFlag, string& buffer)
+{
+	if (!isAccessible(path, accessFlag))
+	{
+		buffer += ErrorUtils::getError();
+	}
+	
+	return buffer;
+}
+
+bool FileUtils::isAccessible(string path, int accessFlag)
+{
+	return isValidPath(path) && (access(path.c_str(), accessFlag) != -1);
+}
+
+bool FileUtils::isValidPath(string path)
+{
+	return path.size() <= FILENAME_MAX;
+}
+
+string& FileUtils::getPath(string& buffer, size_t num, ...)
 {
 	initArgs(num);
 	
 	return getPath(buffer, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-string FileUtils::getPath(string& buffer, size_t num, const char** pathParts)
+string& FileUtils::getPath(string& buffer, size_t num, const char** pathParts)
 {
 	string pathPartStr;
 	
@@ -76,7 +177,5 @@ string FileUtils::getPath(string& buffer, size_t num, const char** pathParts)
 		pathParts[a] = pathPartStr.c_str();
 	}
 	
-	string delimiterStr;
-	
-	return StringUtils::join(StringUtils::toString(PATH_DELIMITER, delimiterStr).c_str(), buffer, num, pathParts);
+	return StringUtils::join(PATH_DELIMITER_STR, buffer, num, pathParts);
 }

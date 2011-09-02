@@ -22,7 +22,7 @@
 #ifndef VARUTILS_H
 #define VARUTILS_H
 
-static const char* rcsid_VARUTILS_H = "$Id: VarUtils.h,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid_VARUTILS_H = "$Id: VarUtils.h,v 1.6 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <cstdio>
@@ -33,33 +33,36 @@ using namespace std;
 
 #include "AS_global.h"
 
-#define initArgs(lastStaticArg) \
-	va_list argsList; \
-	va_start(argsList, lastStaticArg)
-
-class VarUtils
+namespace Utility
 {
-public:
-	template<class T>
-	inline static T* getArgs(size_t num, va_list& argsList)
+	#define initArgs(lastStaticArg) \
+		va_list argsList; \
+		va_start(argsList, lastStaticArg)
+	
+	class VarUtils
 	{
-		T* args = new T[num];
-		T arg;
-		
-		for (size_t a = 0; (a < num) && ((arg = va_arg(argsList, T)) != NULL); a++)
+	public:
+		template<class T>
+		inline static T* getArgs(size_t num, va_list& argsList)
 		{
-			args[a] = arg;
+			T* args = new T[num];
+			T arg;
+			
+			for (size_t a = 0; (a < num) && ((arg = va_arg(argsList, T)) != NULL); a++)
+			{
+				args[a] = arg;
+			}
+			
+			va_end(argsList);
+			
+			return args;
 		}
 		
-		va_end(argsList);
-		
-		return args;
-	}
-	
-private:
-	VarUtils()
-	{
-	}
-};
+	private:
+		VarUtils()
+		{
+		}
+	};
+}
 
 #endif

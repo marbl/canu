@@ -19,31 +19,35 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+#ifndef STREAMUTILS_H
+#define STREAMUTILS_H
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_STREAMUTILS_H = "$Id: StreamUtils.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <string>
+#include <iostream>
 
 using namespace std;
 
-#include "RuntimeException.h"
-#include "StringUtils.h"
+#include "AS_global.h"
+#include "StreamCapture.h"
 
-using namespace Utility;
-
-class ArgumentException : public RuntimeException
+namespace Utility
 {
-public:
-	ArgumentException(string message = string(), RuntimeException* cause = NULL, string name = NULL) throw();
-	virtual ~ArgumentException() throw();
-
-protected:
-	string name;
-};
+	class StreamUtils
+	{
+	public:
+		static StreamCapture& captureStderr(StreamCapture& streamCapture);
+		static StreamCapture& captureStdin(StreamCapture& streamCapture);
+		static StreamCapture& captureStdout(StreamCapture& streamCapture);
+		static StreamCapture& captureStream(ios& stream, StreamCapture& streamCapture);
+		
+	private:
+		StreamUtils()
+		{
+		}
+	};
+}
 
 #endif

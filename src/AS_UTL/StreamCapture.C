@@ -19,31 +19,65 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+static const char* rcsid = "$Id: StreamCapture.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
-
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <string>
-
-using namespace std;
-
-#include "RuntimeException.h"
-#include "StringUtils.h"
+#include "StreamCapture.h"
 
 using namespace Utility;
 
-class ArgumentException : public RuntimeException
+StreamCapture::StreamCapture()
 {
-public:
-	ArgumentException(string message = string(), RuntimeException* cause = NULL, string name = NULL) throw();
-	virtual ~ArgumentException() throw();
+	this->stream = NULL;
+	this->originalBuffer = NULL;
+	this->captureBuffer = NULL;
+	this->capturing = false;
+}
 
-protected:
-	string name;
-};
+StreamCapture::StreamCapture(ios& stream)
+{
+	this->stream = &stream;
+	this->originalBuffer = NULL;
+	this->captureBuffer = NULL;
+	this->capturing = false;
+}
 
-#endif
+StreamCapture::~StreamCapture()
+{
+	if (this->capturing)
+	{
+		this->stopCapture();
+	}
+}
+
+void StreamCapture::startCapture()
+{
+	if (this->stream == NULL)
+	{
+		throw IllegalStateException("Stream to capture must be set.");
+	}
+	
+	if (!this->capturing)
+	{
+		this->captureBuffer = new stringbuf();
+		this->originalBuffer = this->stream->rdbuf(this->captureBuffer);
+		
+		this->capturing = true;
+	}
+}
+
+string StreamCapture::stopCapture()
+{
+	if (this->capturing)
+	{
+		this->stream->rdbuf(this->originalBuffer);
+		
+		this->capturing = false;
+	}
+	
+	return this->getCaptured();
+}
+
+string StreamCapture::getCaptured()
+{
+	return (this->captureBuffer != NULL) ? this->captureBuffer->str() : string();
+}

@@ -19,11 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+static const char* rcsid = "$Id: testErrorUtils.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
-
+#include <cerrno>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -31,19 +29,55 @@ static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2
 
 using namespace std;
 
+#include "AS_global.h"
+#include "Asserts.h"
+#include "ErrorUtils.h"
+#include "ExceptionUtils.h"
 #include "RuntimeException.h"
-#include "StringUtils.h"
+#include "TestUtils.h"
 
 using namespace Utility;
 
-class ArgumentException : public RuntimeException
+class TestErrorUtilsException : public RuntimeException
 {
 public:
-	ArgumentException(string message = string(), RuntimeException* cause = NULL, string name = NULL) throw();
-	virtual ~ArgumentException() throw();
-
-protected:
-	string name;
+	TestErrorUtilsException(string message = string()) throw()
+		: RuntimeException(message, NULL)
+	{
+		ExceptionUtils::getStackTrace(*this->stackTrace, "TestErrorUtilsException");
+	}
 };
 
-#endif
+void testThrowIfError()
+{
+	string message;
+	
+	fopen("non-existant", "r");
+	
+	try
+	{
+		ErrorUtils::throwIfError<TestErrorUtilsException>();
+	}
+	catch (TestErrorUtilsException& e)
+	{
+		message = e.getMessage();
+	}
+	
+	Asserts::assertTrue(message == "No such file or directory", "get error failed");
+}
+
+void testGetError()
+{
+	fopen("non-existant", "r");
+	
+	Asserts::assertTrue(ErrorUtils::getError() == "No such file or directory", "get error failed");
+}
+
+int main(int argc, char** argv)
+{
+	vector<TestFunction> tests;
+	tests.push_back(&testGetError);
+	tests.push_back(&testThrowIfError);
+	
+	TestUtils::runTests(tests);
+}

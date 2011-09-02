@@ -19,31 +19,47 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+#ifndef ALIGNMENTDATAREADER_H
+#define ALIGNMENTDATAREADER_H
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id: AlignmentDataReader.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <string>
+#include <vector>
 
 using namespace std;
 
+#include "AS_global.h"
+#include "AS_UTL_fileIO.h"
+#include "DataException.h"
+#include "FileUtils.h"
+#include "IOException.h"
+#include "ReadAlignment.h"
 #include "RuntimeException.h"
-#include "StringUtils.h"
 
 using namespace Utility;
 
-class ArgumentException : public RuntimeException
+namespace ReadAnalysis
 {
-public:
-	ArgumentException(string message = string(), RuntimeException* cause = NULL, string name = NULL) throw();
-	virtual ~ArgumentException() throw();
-
-protected:
-	string name;
-};
+	static const size_t DEFAULT_READ_ALIGNMENT_RESERVE_SIZE = 10240;
+	
+	class AlignmentDataReader
+	{
+	public:
+		virtual vector<ReadAlignment>& readData(const char* filePath);
+		virtual vector<ReadAlignment>& readData(FILE* stream, const char* filePath = NULL);
+		
+	protected:
+		vector<ReadAlignment> data;
+		FILE* stream;
+		
+		AlignmentDataReader();
+		virtual ~AlignmentDataReader();
+		
+		virtual void processData(FILE* stream, const char* filePath = NULL);
+	};
+}
 
 #endif

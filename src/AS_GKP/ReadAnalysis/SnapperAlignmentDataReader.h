@@ -19,31 +19,28 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+#ifndef SNAPPERALIGNMENTDATAREADER_H
+#define SNAPPERALIGNMENTDATAREADER_H
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <string>
 
 using namespace std;
 
-#include "RuntimeException.h"
-#include "StringUtils.h"
+#include "AlignmentDataReader.h"
+#include "AS_global.h"
 
-using namespace Utility;
-
-class ArgumentException : public RuntimeException
+namespace ReadAnalysis
 {
-public:
-	ArgumentException(string message = string(), RuntimeException* cause = NULL, string name = NULL) throw();
-	virtual ~ArgumentException() throw();
-
-protected:
-	string name;
-};
+	class SnapperAlignmentDataReader : public AlignmentDataReader
+	{
+	public:
+		
+	protected:
+		
+	};
+}
 
 #endif

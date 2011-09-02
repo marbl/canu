@@ -19,18 +19,27 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: StringUtils.C,v 1.10 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: StringUtils.C,v 1.11 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include "StringUtils.h"
 
-vector<string> StringUtils::split(string str, vector<string>& buffer, size_t num, ...)
+using namespace Utility;
+
+vector<string>& StringUtils::split(string str, vector<string>& buffer, size_t num, ...)
 {
 	initArgs(num);
 	
 	return split(str, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-vector<string> StringUtils::split(string str, vector<string>& buffer, size_t num, const char** delimiters)
+vector<string>& StringUtils::split(string str, vector<string>& buffer, const char* delimiter)
+{
+	const char* delimiters[] = { delimiter };
+	
+	return split(str, buffer, 1, delimiters);
+}
+
+vector<string>& StringUtils::split(string str, vector<string>& buffer, size_t num, const char** delimiters)
 {
 	set<size_t> splitIndexes;
 	
@@ -63,26 +72,21 @@ vector<string> StringUtils::split(string str, vector<string>& buffer, size_t num
 	return buffer;
 }
 
-vector<size_t> StringUtils::findAll(const char* str, vector<size_t>& buffer, size_t num, ...)
+vector<size_t>& StringUtils::findAll(string str, vector<size_t>& buffer, size_t num, ...)
 {
 	initArgs(num);
 	
 	return findAll(str, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-vector<size_t> StringUtils::findAll(string str, vector<size_t>& buffer, size_t num, ...)
+vector<size_t>& StringUtils::findAll(string str, vector<size_t>& buffer, const char* toFind)
 {
-	initArgs(num);
+	const char* toFindArr[] = { toFind };
 	
-	return findAll(str, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
+	return findAll(str, buffer, 1, toFindArr);
 }
 
-vector<size_t> StringUtils::findAll(const char* str, vector<size_t>& buffer, size_t num, const char** toFind)
-{
-	return findAll(string(str), buffer, num, toFind);
-}
-
-vector<size_t> StringUtils::findAll(string str, vector<size_t>& buffer, size_t num, const char** toFind)
+vector<size_t>& StringUtils::findAll(string str, vector<size_t>& buffer, size_t num, const char** toFind)
 {
 	for (size_t a = 0; a < num; a++)
 	{
@@ -105,13 +109,6 @@ vector<size_t> StringUtils::findAll(string str, vector<size_t>& buffer, size_t n
 	return buffer;
 }
 
-bool StringUtils::startsWith(const char* str, size_t num, ...)
-{
-	initArgs(num);
-	
-	return startsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
-}
-
 bool StringUtils::startsWith(string str, size_t num, ...)
 {
 	initArgs(num);
@@ -119,9 +116,11 @@ bool StringUtils::startsWith(string str, size_t num, ...)
 	return startsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-bool StringUtils::startsWith(const char* str, size_t num, const char** toTest)
+bool StringUtils::startsWith(string str, const char* toTest)
 {
-	return startsWith(string(str), num, toTest);
+	const char* toTestArr[] = { toTest };
+	
+	return startsWith(str, 1, toTest);
 }
 
 bool StringUtils::startsWith(string str, size_t num, const char** toTest)
@@ -139,13 +138,6 @@ bool StringUtils::startsWith(string str, size_t num, const char** toTest)
 	return false;
 }
 
-bool StringUtils::endsWith(const char* str, size_t num, ...)
-{
-	initArgs(num);
-	
-	return endsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
-}
-
 bool StringUtils::endsWith(string str, size_t num, ...)
 {
 	initArgs(num);
@@ -153,9 +145,11 @@ bool StringUtils::endsWith(string str, size_t num, ...)
 	return endsWith(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-bool StringUtils::endsWith(const char* str, size_t num, const char** toTest)
+bool StringUtils::endsWith(string str, const char* toTest)
 {
-	return endsWith(string(str), num, toTest);
+	const char* toTestArr[] = { toTest };
+	
+	return endsWith(str, 1, toTest);
 }
 
 bool StringUtils::endsWith(string str, size_t num, const char** toTest)
@@ -173,28 +167,42 @@ bool StringUtils::endsWith(string str, size_t num, const char** toTest)
 	return false;
 }
 
-string StringUtils::trim(string& str, size_t num, ...)
+string& StringUtils::trim(string& str, size_t num, ...)
 {
 	initArgs(num);
 	
 	return trim(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-string StringUtils::trim(string& str, size_t num, const char** toTrim)
+string& StringUtils::trim(string& str, const char* toTrim)
+{
+	const char* toTrimArr[] = { toTrim };
+	
+	return trim(str, 1, toTrimArr);
+}
+
+string& StringUtils::trim(string& str, size_t num, const char** toTrim)
 {
 	trimStart(str, num, toTrim);
 	
 	return trimEnd(str, num, toTrim);
 }
 
-string StringUtils::trimStart(string& str, size_t num, ...)
+string& StringUtils::trimStart(string& str, size_t num, ...)
 {	
 	initArgs(num);
 	
 	return trimStart(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-string StringUtils::trimStart(string& str, size_t num, const char** toTrim)
+string& StringUtils::trimStart(string& str, const char* toTrim)
+{
+	const char* toTrimArr[] = { toTrim };
+	
+	return trimStart(str, 1, toTrimArr);
+}
+
+string& StringUtils::trimStart(string& str, size_t num, const char** toTrim)
 {
 	if (!str.empty())
 	{
@@ -213,14 +221,21 @@ string StringUtils::trimStart(string& str, size_t num, const char** toTrim)
 	return str;
 }
 
-string StringUtils::trimEnd(string& str, size_t num, ...)
+string& StringUtils::trimEnd(string& str, size_t num, ...)
 {
 	initArgs(num);
 	
 	return trimEnd(str, num, VarUtils::getArgs<const char*>(num, argsList));
 }
 
-string StringUtils::trimEnd(string& str, size_t num, const char** toTrim)
+string& StringUtils::trimEnd(string& str, const char* toTrim)
+{
+	const char* toTrimArr[] = { toTrim };
+	
+	return trimEnd(str, 1, toTrimArr);
+}
+
+string& StringUtils::trimEnd(string& str, size_t num, const char** toTrim)
 {
 	if (!str.empty())
 	{

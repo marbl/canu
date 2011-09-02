@@ -19,31 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+static const char* rcsid = "$Id: SignalException.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+#include "SignalException.h"
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <string>
-
-using namespace std;
-
-#include "RuntimeException.h"
-#include "StringUtils.h"
-
-using namespace Utility;
-
-class ArgumentException : public RuntimeException
+SignalException::SignalException(int signalNum, string message, RuntimeException* cause) throw() 
+	: RuntimeException(message, cause)
 {
-public:
-	ArgumentException(string message = string(), RuntimeException* cause = NULL, string name = NULL) throw();
-	virtual ~ArgumentException() throw();
-
-protected:
-	string name;
-};
-
-#endif
+	this->signalNum = signalNum;
+	
+	this->message.insert(0, "Signal (" + ErrorUtils::getSignalName(this->signalNum) + "): " + ErrorUtils::getSignalMessage(this->signalNum));
+	
+	ExceptionUtils::getStackTrace(*this->stackTrace, "SignalException");
+}

@@ -22,13 +22,14 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.12 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.13 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <iterator>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -38,219 +39,224 @@ using namespace std;
 #include "AS_global.h"
 #include "VarUtils.h"
 
-#define NEWLINE '\n'
-#define NULL_TERMINATOR '\0'
-
-class StringUtils
+namespace Utility
 {
-public:
-	inline static bool isLowercase(const char* str)
+	static const char NEWLINE = '\n';
+	static const char* NEWLINE_STR = "\n";
+	
+	static const char NULL_TERMINATOR = '\0';
+	static const char* NULL_TERMINATOR_STR = "\0";
+
+	class StringUtils
 	{
-		for (size_t a = 0; a < strlen(str); a++)
+	public:
+		inline static bool isLowercase(string str)
 		{
-			if (!isLowercase(str[a]))
+			for (size_t a = 0; a < str.length(); a++)
 			{
-				return false;
-			}
-		}
-		
-		return true;
-	}
-	
-	inline static bool isLowercase(const char character)
-	{
-		return (character >= 'a') && (character <= 'z');
-	}
-	
-	inline static bool isUppercase(const char* str)
-	{
-		for (size_t a = 0; a < strlen(str); a++)
-		{
-			if (!isUppercase(str[a]))
-			{
-				return false;
-			}
-		}
-		
-		return true;
-	}
-	
-	inline static bool isUppercase(const char character)
-	{
-		return (character >= 'A') && (character <= 'Z');
-	}
-	
-	inline static bool isBlank(string str)
-	{
-		return isBlank(str.c_str());
-	}
-	
-	inline static bool isBlank(const char* str)
-	{
-		if (!isEmpty(str))
-		{
-			for (size_t a = 0; a < strlen(str); a++)
-			{
-				if (!isspace(str[a]))
+				if (!islower(str[a]))
 				{
 					return false;
 				}
 			}
+			
+			return true;
 		}
 		
-		return true;
-	}
-
-	inline static bool isEmpty(const char* str)
-	{
-		return (str == NULL) || strlen(str) == 0;
-	}
-
-	inline static bool areEqual(const char* str1, const char* str2)
-	{
-		return (str1 != NULL) && (str2 != NULL) && (strcmp(str1, str2) == 0);
-	}
-	
-	inline static string concat(string& buffer, const char* format, ...)
-	{
-		initArgs(format);
-		
-		vsprintf((char*)buffer.data(), format, argsList);
-		
-		buffer.assign(buffer.data());
-		
-		va_end(argsList);
-		
-		return buffer;
-	}
-	
-	inline static string join(const char* delimiter, string& buffer, size_t num, ...)
-	{
-		initArgs(num);
-		
-		return join(delimiter, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
-	}
-	
-	inline static string join(const char* delimiter, string& buffer, size_t num, const char** toJoin)
-	{
-		for (size_t a = 0; a < num; a++)
+		inline static bool isUppercase(string str)
 		{
-			if (!isEmpty(delimiter) && !buffer.empty())
+			for (size_t a = 0; a < str.length(); a++)
 			{
-				buffer += delimiter;
+				if (!isupper(str[a]))
+				{
+					return false;
+				}
 			}
 			
-			buffer += toJoin[a];
+			return true;
 		}
 		
-		return buffer;
-	}
+		inline static bool isBlank(string str)
+		{
+			return isBlank(str.c_str());
+		}
+		
+		inline static bool isBlank(const char* str)
+		{
+			if (!isEmpty(str))
+			{
+				for (size_t a = 0; a < strlen(str); a++)
+				{
+					if (!isspace(str[a]))
+					{
+						return false;
+					}
+				}
+			}
+			
+			return true;
+		}
 	
-	inline static string toString(unsigned value, string& buffer)
-	{
-		ostringstream stream(ostringstream::out);
-		stream.str(buffer);
-		
-		stream << value;
-		
-		return stream.str();
-	}
-
-	inline static string toString(unsigned long value, string& buffer)
-	{
-		ostringstream stream(ostringstream::out);
-		stream.str(buffer);
-		
-		stream << value;
-		
-		return stream.str();
-	}
-
-	inline static string toString(int value, string& buffer)
-	{
-		ostringstream stream(ostringstream::out);
-		stream.str(buffer);
-		
-		stream << value;
-		
-		return stream.str();
-	}
+		inline static bool isEmpty(const char* str)
+		{
+			return (str == NULL) || strlen(str) == 0;
+		}
 	
-	inline static string toString(long value, string& buffer)
-	{
-		ostringstream stream(ostringstream::out);
-		stream.str(buffer);
+		inline static bool areEqual(const char* str1, const char* str2)
+		{
+			return (str1 != NULL) && (str2 != NULL) && (strcmp(str1, str2) == 0);
+		}
 		
-		stream << value;
+		inline static string concat(string& buffer, const char* format, ...)
+		{
+			initArgs(format);
+			
+			vsprintf((char*)buffer.data(), format, argsList);
+			
+			buffer.assign(buffer.data());
+			
+			va_end(argsList);
+			
+			return buffer;
+		}
 		
-		return stream.str();
-	}
-
-	inline static string toString(float value, string& buffer)
-	{
-		ostringstream stream(ostringstream::out);
-		stream.str(buffer);
+		// TODO: use strings
+		inline static string& join(const char* delimiter, string& buffer, size_t num, ...)
+		{
+			initArgs(num);
+			
+			return join(delimiter, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
+		}
 		
-		stream << value;
+		// TODO: use strings
+		inline static string& join(const char* delimiter, string& buffer, size_t num, const char** toJoin)
+		{
+			for (size_t a = 0; a < num; a++)
+			{
+				if (!isEmpty(delimiter) && !buffer.empty())
+				{
+					buffer += delimiter;
+				}
+				
+				buffer += toJoin[a];
+			}
+			
+			return buffer;
+		}
 		
-		return stream.str();
-	}
-
-	inline static string toString(double value, string& buffer)
-	{
-		ostringstream stream(ostringstream::out);
-		stream.str(buffer);
+		template<class InputIterator>
+		inline static string& join(string delimiter, string& buffer, InputIterator begin, InputIterator end)
+		{
+			for (; begin != end; begin++)
+			{
+				if (!delimiter.empty() && !buffer.empty())
+				{
+					buffer += delimiter;
+				}
+				
+				buffer += *begin;
+			}
+			
+			return buffer;
+		}
 		
-		stream << value;
-		
-		return stream.str();
-	}
-
-	inline static string toString(char value, string& buffer)
-	{
-		buffer += value;
-		
-		return buffer;
-	}
+		inline static string& toString(unsigned value, string& buffer)
+		{
+			ostringstream stream(ostringstream::out);
+			stream.str(buffer);
+			
+			stream << value;
+			
+			return buffer;
+		}
 	
-	// TODO: remove
-	inline static const char* toString(string value)
-	{
-		char* str = new char[value.length()];
+		inline static string& toString(unsigned long value, string& buffer)
+		{
+			ostringstream stream(ostringstream::out);
+			stream.str(buffer);
+			
+			stream << value;
+			
+			return buffer;
+		}
+	
+		inline static string& toString(int value, string& buffer)
+		{
+			ostringstream stream(ostringstream::out);
+			stream.str(buffer);
+			
+			stream << value;
+			
+			return buffer;
+		}
 		
-		strcpy(str, value.c_str());
+		inline static string& toString(long value, string& buffer)
+		{
+			ostringstream stream(ostringstream::out);
+			stream.str(buffer);
+			
+			stream << value;
+			
+			return buffer;
+		}
+	
+		inline static string& toString(float value, string& buffer)
+		{
+			ostringstream stream(ostringstream::out);
+			stream.str(buffer);
+			
+			stream << value;
+			
+			return buffer;
+		}
+	
+		inline static string& toString(double value, string& buffer)
+		{
+			ostringstream stream(ostringstream::out);
+			stream.str(buffer);
+			
+			stream << value;
+			
+			return buffer;
+		}
+	
+		inline static string& toString(char value, string& buffer)
+		{
+			buffer += value;
+			
+			return buffer;
+		}
 		
-		return str;
-	}
-	
-	static vector<string> split(string str, vector<string>& buffer, size_t num, ...);
-	static vector<string> split(string str, vector<string>& buffer, size_t num, const char** delimiters);
-	
-	static vector<size_t> findAll(const char* str, vector<size_t>& buffer, size_t num, ...);
-	static vector<size_t> findAll(string str, vector<size_t>& buffer, size_t num, ...);
-	static vector<size_t> findAll(const char* str, vector<size_t>& buffer, size_t num, const char** toFind);
-	static vector<size_t> findAll(string str, vector<size_t>& buffer, size_t num, const char** toFind);
-	
-	static bool startsWith(const char* str, size_t num, ...);
-	static bool startsWith(string str, size_t num, ...);
-	static bool startsWith(const char* str, size_t num, const char** toTest);
-	static bool startsWith(string str, size_t num, const char** toTest);
-	static bool endsWith(const char* str, size_t num, ...);
-	static bool endsWith(string str, size_t num, ...);
-	static bool endsWith(const char* str, size_t num, const char** toTest);
-	static bool endsWith(string str, size_t num, const char** toTest);
-	
-	static string trim(string& str, size_t num, ...);
-	static string trim(string& str, size_t num, const char** toTrim);
-	static string trimStart(string& str, size_t num, ...);
-	static string trimStart(string& str, size_t num, const char** toTrim);
-	static string trimEnd(string& str, size_t num, ...);
-	static string trimEnd(string& str, size_t num, const char** toTrim);
-	
-private:
-	StringUtils()
-	{
-	}
-};
+		static vector<string>& split(string str, vector<string>& buffer, size_t num, ...);
+		static vector<string>& split(string str, vector<string>& buffer, const char* delimiter);
+		static vector<string>& split(string str, vector<string>& buffer, size_t num, const char** delimiters);
+		
+		static vector<size_t>& findAll(string str, vector<size_t>& buffer, size_t num, ...);
+		static vector<size_t>& findAll(string str, vector<size_t>& buffer, const char* toFind);
+		static vector<size_t>& findAll(string str, vector<size_t>& buffer, size_t num, const char** toFind);
+		
+		static bool startsWith(string str, size_t num, ...);
+		static bool startsWith(string str, const char* toTest);
+		static bool startsWith(string str, size_t num, const char** toTest);
+		static bool endsWith(string str, size_t num, ...);
+		static bool endsWith(string str, const char* toTest);
+		static bool endsWith(string str, size_t num, const char** toTest);
+		
+		static string& trim(string& str, size_t num, ...);
+		static string& trim(string& str, const char* toTrim);
+		static string& trim(string& str, size_t num, const char** toTrim);
+		static string& trimStart(string& str, size_t num, ...);
+		static string& trimStart(string& str, const char* toTrim);
+		static string& trimStart(string& str, size_t num, const char** toTrim);
+		static string& trimEnd(string& str, size_t num, ...);
+		static string& trimEnd(string& str, const char* toTrim);
+		static string& trimEnd(string& str, size_t num, const char** toTrim);
+		
+	private:
+		StringUtils()
+		{
+		}
+	};
+}
 
 #endif

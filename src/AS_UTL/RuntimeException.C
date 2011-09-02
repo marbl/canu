@@ -19,18 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: RuntimeException.C,v 1.6 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: RuntimeException.C,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include "RuntimeException.h"
 
-RuntimeException::RuntimeException(const char* message, RuntimeException* cause) throw()
-{
-	this->initialize(message != NULL ? string(message) : string(), cause);
-}
-
 RuntimeException::RuntimeException(string message, RuntimeException* cause) throw()
 {
-	this->initialize(message, cause);
+	this->message = message;
+	this->cause = cause;
+	
+	this->stackTrace = new StackTrace();
 }
 
 RuntimeException::~RuntimeException() throw()
@@ -46,7 +44,7 @@ const char* RuntimeException::what() const throw()
 
 string RuntimeException::toString(string& buffer, uint32 depth) const throw()
 {
-	if (depth < MAX_CAUSE_DEPTH)
+	if (depth < DEFAULT_CAUSE_DEPTH)
 	{
 		if (depth > 0)
 		{
@@ -57,10 +55,10 @@ string RuntimeException::toString(string& buffer, uint32 depth) const throw()
 		
 		if (this->stackTrace != NULL)
 		{
-			for (size_t a = 0; a < this->stackTrace->lines.size(); a++)
+			for (size_t a = 0; a < this->stackTrace->getLines().size(); a++)
 			{
 				buffer += "\n\t";
-				buffer += this->stackTrace->lines[a];
+				buffer += this->stackTrace->getLines()[a];
 			}
 		}
 		
@@ -75,11 +73,4 @@ string RuntimeException::toString(string& buffer, uint32 depth) const throw()
 	}
 	
 	return buffer;
-}
-
-void RuntimeException::initialize(string message, RuntimeException* cause) throw()
-{
-	this->message = message;
-	this->cause = cause;
-	this->stackTrace = new StackTrace();
 }

@@ -19,19 +19,25 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: TestUtils.C,v 1.3 2011-08-10 20:25:15 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: TestUtils.C,v 1.4 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include "TestUtils.h"
 
+using namespace Utility;
+
 void TestUtils::runTests(vector<TestFunction>& tests)
 {
-	unsigned successful = 0, errors = 0;
+	ErrorUtils::handleErrorSignals(ErrorUtils::printingSignalHandler);
+	atexit(printResults);
 	
-	for (size_t a = 0; a < tests.size(); a++)
+	runningTests = tests;
+	successful = 0, errors = 0;
+	
+	for (size_t a = 0; a < runningTests.size(); a++)
 	{
 		try
 		{
-			tests[a]();
+			runningTests[a]();
 			
 			successful++;
 		}
@@ -42,6 +48,9 @@ void TestUtils::runTests(vector<TestFunction>& tests)
 			errors++;
 		}
 	}
-	
-	fprintf(stdout, "TESTS FINISHED => "F_U64" total, "F_U32" successful, "F_U32" errors\n", tests.size(), successful, errors);
+}
+
+void TestUtils::printResults()
+{
+	fprintf(stderr, "TESTS FINISHED => "F_U64" total, "F_U64" successful, "F_U64" errors\n", runningTests.size(), successful, errors);
 }

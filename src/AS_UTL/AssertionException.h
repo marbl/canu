@@ -22,7 +22,7 @@
 #ifndef ASSERTIONEXCEPTION_H
 #define ASSERTIONEXCEPTION_H
 
-static const char* rcsid_ASSERTIONEXCEPTION_H = "$Id: AssertionException.h,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid_ASSERTIONEXCEPTION_H = "$Id: AssertionException.h,v 1.6 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -36,18 +36,17 @@ using namespace std;
 #include "RuntimeException.h"
 #include "StringUtils.h"
 
+using namespace Utility;
+
 class AssertionException : public RuntimeException
 {
 public:
-	AssertionException(const char* message = NULL, RuntimeException* cause = NULL, AssertionType type = ASSERT_UNKNOWN) throw();
 	AssertionException(string message = string(), RuntimeException* cause = NULL, AssertionType type = ASSERT_UNKNOWN) throw();
 
 protected:
 	AssertionType type;
 	
-	static const char* assertionTypeToString(AssertionType type);
-	
-	virtual void initialize(AssertionType type) throw();
+	static string assertionTypeToString(AssertionType type);
 };
 
 #endif

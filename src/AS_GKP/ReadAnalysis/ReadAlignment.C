@@ -19,31 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+static const char* rcsid = "$Id: ReadAlignment.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+#include "ReadAlignment.h"
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <string>
+using namespace ReadAnalysis;
 
-using namespace std;
-
-#include "RuntimeException.h"
-#include "StringUtils.h"
-
-using namespace Utility;
-
-class ArgumentException : public RuntimeException
+ReadAlignment::ReadAlignment(size_t index)
 {
-public:
-	ArgumentException(string message = string(), RuntimeException* cause = NULL, string name = NULL) throw();
-	virtual ~ArgumentException() throw();
-
-protected:
-	string name;
-};
-
-#endif
+	this->index = index;
+	this->iid = 0;
+	this->length = 0;
+	this->alignment.first = this->alignment.second = 0;
+	
+	this->sequence.reserve(DEFAULT_READ_ALIGNMENT_SEQUENCE_RESERVE_SIZE);
+	this->genomeSequence.reserve(DEFAULT_READ_ALIGNMENT_SEQUENCE_RESERVE_SIZE);
+}

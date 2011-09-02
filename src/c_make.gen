@@ -345,7 +345,7 @@ clean_lib:
 
 .PHONY: clean_bin
 clean_bin:
-	-cd $(LOCAL_BIN); rm -f $(C_PROGS) $(CXX_PROGS)
+	-cd $(LOCAL_BIN); rm -f $(C_PROGS) $(CXX_PROGS) $(SCRIPT_PROGS)
 
 
 #### Separate source types
@@ -384,7 +384,7 @@ $(CXX_OBJECTS_C): %.o: %.C
 
 #### Missing files are there, we just need to rename them.
 $(CXX_SOURCES_C): %.C:
-	@ln -s $*.c $*.C
+	@ln -f -s $*.c $*.C
 
 $(LIBRARIES):
 	@ echo "################### " $@ "#####################";
@@ -402,6 +402,11 @@ $(CXX_PROGS):
 	@ echo "++++++++++++++++++++ " $@ "++++++++++++++++++++++";
 	cd $(LOCAL_OBJ); \
           $(CXX) -o $(LOCAL_BIN)/$(notdir $@) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+)) $(LD_DIRS) $(LDFLAGS)
+
+$(SCRIPT_PROGS): %.sh:
+	@echo "++++++++++++++++++++ " $@ "++++++++++++++++++++++";
+	@echo "$<"; \
+	@cp "$<" "$(LOCAL_BIN)/$(notdir $@)"
 
 #### For making dependencies
 $(C_DEPS): $(LOCAL_DEP)/%.d: %.c
@@ -423,7 +428,7 @@ objs: $(OBJECTS)
 libs: $(LIBRARIES)
 
 #### Specific target to make progs
-progs: $(C_PROGS) $(CXX_PROGS)
+progs: $(C_PROGS) $(CXX_PROGS) $(SCRIPT_PROGS)
 
 -include $(DEPS)
 
@@ -435,9 +440,9 @@ TGT = $@
 # Figuring out the number of parallel make jobs to run
 MAKE_JOBS = 4
 
-ifeq ($(OSTYPE), Linux)
-	MAKE_JOBS = $(shell echo `cat /proc/cpuinfo | egrep -c 'model name'`)
-endif
+#ifeq ($(OSTYPE), Linux)
+#	MAKE_JOBS = $(shell echo `cat /proc/cpuinfo | egrep -c 'model name'`)
+#endif
 
 # The following recurses the subdirectories that exist
 #

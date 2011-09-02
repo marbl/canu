@@ -19,38 +19,59 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: testExceptions.C,v 1.4 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+#ifndef BASEALIGNMENT_H
+#define BASEALIGNMENT_H
 
+static const char* rcsid_BASEALIGNMENT_H = "$Id: BaseAlignment.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <string>
+#include <map>
 #include <vector>
 
 using namespace std;
 
-#include "ArgumentException.h"
-#include "Asserts.h"
-#include "AssertionException.h"
-#include "IllegalStateException.h"
-#include "StringUtils.h"
-#include "TestUtils.h"
+#include "AlignmentError.h"
+#include "AlignmentErrorType.h"
 
-using namespace Utility;
-
-void testCauseDepth()
+namespace ReadAnalysis
 {
-	vector<size_t> causesSearch;
+	static const size_t DEFAULT_BASE_READ_RESERVE_SIZE = 1536;
+	static const size_t DEFAULT_BASE_ERROR_TYPE_RESERVE_SIZE = 256;
 	
-	Asserts::assertTrue(StringUtils::findAll(ArgumentException("exception1", 
-		new ArgumentException("exception2", new ArgumentException("exception3", NULL, "arg3"), "arg2"), "arg1").what(), 
-		causesSearch, 1, "Caused by: ").size() == (RuntimeException::DEFAULT_CAUSE_DEPTH - 1), "cause depth failed");
+	class BaseAlignment
+	{
+	public:
+		BaseAlignment(size_t position = 0, size_t readReserveSize = DEFAULT_BASE_READ_RESERVE_SIZE, 
+			size_t errorTypeReserveSize = DEFAULT_BASE_ERROR_TYPE_RESERVE_SIZE);
+		
+		void addError(AlignmentError error);
+		vector<AlignmentError>& getErrors(AlignmentErrorType type = UNKNOWN);
+		size_t getNumErrors(AlignmentErrorType type = UNKNOWN);
+		bool hasErrors(AlignmentErrorType type = UNKNOWN);
+		
+		size_t getPosition()
+		{
+			return this->position;
+		}
+		
+		void setPosition(size_t position)
+		{
+			this->position = position;
+		}
+		
+		vector<AS_IID>& getReads()
+		{
+			return this->reads;
+		}
+		
+	protected:
+		size_t position;
+		size_t errorTypeReserveSize;
+		vector<AS_IID> reads;
+		map<AlignmentErrorType, vector<AlignmentError> > errors;
+	};
 }
 
-int main(int argc, char** argv)
-{
-	vector<TestFunction> tests;
-	tests.push_back(&testCauseDepth);
-	
-	TestUtils::runTests(tests);
-}
+#endif

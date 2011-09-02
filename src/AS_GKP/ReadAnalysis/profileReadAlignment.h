@@ -19,31 +19,38 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ARGUMENTEXCEPTION_H
-#define ARGUMENTEXCEPTION_H
+#ifndef PROFILEREADALIGNMENT_H
+#define PROFILEREADALIGNMENT_H
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
+#include <unistd.h>
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
 #include <string>
 
 using namespace std;
 
+#include "ArgumentException.h"
+#include "AS_global.h"
+#include "AS_UTL_fileIO.h"
+#include "ErrorUtils.h"
+#include "IllegalStateException.h"
+#include "ReadAlignmentProfiler.h"
 #include "RuntimeException.h"
-#include "StringUtils.h"
 
+using namespace ReadAnalysis;
 using namespace Utility;
 
-class ArgumentException : public RuntimeException
+typedef struct ProfileReadAlignmentOptions
 {
-public:
-	ArgumentException(string message = string(), RuntimeException* cause = NULL, string name = NULL) throw();
-	virtual ~ArgumentException() throw();
-
-protected:
-	string name;
+	const char* inputFilePath;
+	const char* outputFilePath;
 };
+
+void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** args);
+void printUsage(const char* executableName);
+
+int main(int numArgs, char** args);
 
 #endif

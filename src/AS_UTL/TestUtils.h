@@ -22,29 +22,42 @@
 #ifndef TESTUTILS_H
 #define TESTUTILS_H
 
-static const char* rcsid_TESTUTILS_H = "$Id: TestUtils.h,v 1.9 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid_TESTUTILS_H = "$Id: TestUtils.h,v 1.10 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
+#include <csignal>
 #include <cstring>
 #include <vector>
 
 using namespace std;
 
 #include "AS_global.h"
+#include "ErrorUtils.h"
+#include "ExceptionUtils.h"
 #include "StringUtils.h"
 
-typedef void (*TestFunction)();
-
-class TestUtils
+namespace Utility
 {
-public:
-	static void runTests(vector<TestFunction>& tests);
+	typedef void (*TestFunction)();
 	
-private:
-	TestUtils()
+	static vector<TestFunction> runningTests;
+	static size_t successful;
+	static size_t errors;
+	
+	class TestUtils
 	{
-	}
-};
+	public:
+		static void runTests(vector<TestFunction>& tests);
+		
+	protected:
+		static void printResults();
+		
+	private:
+		TestUtils()
+		{
+		}
+	};
+}
 
 #endif

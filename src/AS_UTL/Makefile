@@ -41,23 +41,28 @@ LIB_SOURCES = AS_UTL_Hash.C \
               ArgumentException.C \
               Asserts.C \
               AssertionException.C \
+              DataException.C \
+              ErrorUtils.C \
               ExceptionUtils.C \
               FileUtils.C \
               IllegalStateException.C \
               IOException.C \
               RuntimeException.C \
+              SignalException.C \
+              StreamCapture.C \
+              StreamUtils.C \
               StringUtils.C \
               TestUtils.C \
               VarUtils.C
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
-SOURCES     = $(LIB_SOURCES) testExceptions.C testFileUtils.C testStringUtils.C
+SOURCES     = $(LIB_SOURCES) testExceptions.C testErrorUtils.C testFileUtils.C testStringUtils.C
 
 OBJECTS     = $(SOURCES:.C=.o)
 LIBRARIES   = libAS_UTL.a libCA.a
 SCRIPTS     =
-CXX_PROGS   = testExceptions testFileUtils testStringUtils
+CXX_PROGS   = testErrorUtils testExceptions testFileUtils testStringUtils
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -68,6 +73,7 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 libAS_UTL.a: $(LIB_OBJECTS)
 libCA.a: $(LIB_OBJECTS)
 
+testErrorUtils: testErrorUtils.o libCA.a
 testExceptions: testExceptions.o libCA.a
 testFileUtils: testFileUtils.o libCA.a
 testStringUtils: testStringUtils.o libCA.a

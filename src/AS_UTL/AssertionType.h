@@ -22,22 +22,25 @@
 #ifndef ASSERTIONTYPE_H
 #define ASSERTIONTYPE_H
 
-static const char* rcsid_ASSERTIONTYPE_H = "$Id: AssertionType.h,v 1.3 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid_ASSERTIONTYPE_H = "$Id: AssertionType.h,v 1.4 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
 
-typedef enum AssertionType
+namespace Utility
 {
-	ASSERT_UNKNOWN,
-	ASSERT_FALSE,
-	ASSERT_TRUE,
-	ASSERT_EQUALS,
-	ASSERT_NOT_EQUALS,
-	ASSERT_NULL,
-	ASSERT_NOT_NULL,
-	ASSERT_EMPTY,
-	ASSERT_NOT_EMPTY
-};
+	typedef enum AssertionType
+	{
+		ASSERT_UNKNOWN,
+		ASSERT_FALSE,
+		ASSERT_TRUE,
+		ASSERT_EQUALS,
+		ASSERT_NOT_EQUALS,
+		ASSERT_NULL,
+		ASSERT_NOT_NULL,
+		ASSERT_EMPTY,
+		ASSERT_NOT_EMPTY
+	};
+}
 
 #endif

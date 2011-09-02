@@ -22,9 +22,11 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
-static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.5 2011-08-31 06:49:27 mkotelbajcvi Exp $";
+static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.6 2011-09-02 14:59:27 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
@@ -33,23 +35,50 @@ static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.5 2011-08-31 06:49:
 using namespace std;
 
 #include "ArgumentException.h"
+#include "ErrorUtils.h"
 #include "StringUtils.h"
 #include "VarUtils.h"
 
-#define PATH_DELIMITER '/'
-
-class FileUtils
+namespace Utility
 {
-public:
-	static char* readLine(FILE* file, char* buffer, size_t bufferSize, bool includeNewline = false);
+	static const char PATH_DELIMITER = '/';
+	static const char* PATH_DELIMITER_STR = "/";
 	
-	static string getPath(string& buffer, size_t num, ...);
-	static string getPath(string& buffer, size_t num, const char** pathParts);
+	typedef struct stat Stats;
 	
-private:
-	FileUtils()
+	class FileUtils
 	{
-	}
-};
+	public:
+		//static char* readLine(FILE* file, char* buffer, size_t bufferSize, bool includeNewline = false);
+		
+		static string& readLine(FILE* file, string& buffer, bool includeNewline = false);
+		static void writeLine(FILE* file, string& buffer);
+		
+		static bool canRead(FILE* file);
+		static bool canWrite(FILE* file);
+		
+		static bool isDirectory(string path);
+		static bool isFifo(string path);
+		static bool isFile(string path);
+		static bool isLink(string path);
+		static bool isSocket(string path);
+		static bool isType(string path, mode_t type);
+		static string& getStats(string path, Stats& stats, string& buffer);
+		static bool getStats(string path, Stats& stats);
+		
+		static bool exists(string path);
+		static string& isAccessible(string path, int accessFlag, string& buffer);
+		static bool isAccessible(string path, int accessFlag);
+		static bool isValidPath(string path);
+		
+		static string& getPath(string& buffer, size_t num, ...);
+		static string& getPath(string& buffer, size_t num, const char** pathParts);
+		
+	private:
+		FileUtils()
+		{
+		}
+	};
+}
 
 #endif
