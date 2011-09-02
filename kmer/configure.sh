@@ -123,9 +123,9 @@ if [ x$python != x ] ; then
   elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3/Python.h ]
   then
     CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3"
-  elif [ -e /usr/local/packages/python/include/python2.4/Python.h ]
+  elif [ -e /usr/local/packages/python/include/python2.6/Python.h ]
   then
-    CFLAGS_PYTHON="-I/usr/local/packages/python/include/python2.4"
+    CFLAGS_PYTHON="-I/usr/local/packages/python/include/python2.6"
   else
     echo "WARNING:  'python' program found, but can't find include file 'Python.h' -- is python installed correctly?"
     echo "WARNING:  Set PYTHONHOME to the directory containing include/Pyhton.h"
