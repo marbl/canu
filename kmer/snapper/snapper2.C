@@ -448,11 +448,14 @@ main(int argc, char **argv) {
 
   ss->setNumberOfWorkers(config._numSearchThreads);
 
+  ss->setWriterQueueSize(16384);
+
   for (u32bit i=0; i<config._numSearchThreads; i++)
     ss->setThreadData(i, new searcherState(i));
 
   ss->run(0L, config._beVerbose);
 
+  delete ss;
 
   if (resultFILE != fileno(stdout))
     close(resultFILE);
