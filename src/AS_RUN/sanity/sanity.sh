@@ -77,5 +77,5 @@ else
     echo \
     qsub -cwd -j y -o $nextdate.err -P 334007 -A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
 
-    qsub -cwd -j y -o $nextdate.err -P 334007 A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
+    qsub -cwd -j y -o $nextdate.err -P 334007 -A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
 fi
