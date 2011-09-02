@@ -264,6 +264,8 @@ doSearch(searcherState       *state,
       delete HM;
       delete PS;
       delete MS;
+
+      delete GENseq;
     }
   }
 
