@@ -28,7 +28,7 @@ fi
 
 #  Remove old versions
 perl sanity-purge-old.pl purge
-
+rm -rf DEL
 
 #  Update the repository.
 perl sanity.pl rsync
@@ -75,7 +75,7 @@ else
     echo "SUBMIT for $nextdate ($nexthold)"
 
     echo \
-    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
+    qsub -cwd -j y -o $nextdate.err -P 334007 -A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
 
-    qsub -cwd -j y -o $nextdate.err -A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
+    qsub -cwd -j y -o $nextdate.err -P 334007 A assembly-nightly -N CAsnty$nextname -a $nexthold -b n sanity.sh $nextdate grid
 fi
