@@ -14,7 +14,7 @@ existDB::createFromMeryl(char const  *prefix,
 
   merylStreamReader *M = new merylStreamReader(prefix);
 
-  bool               beVerbose = true;
+  bool               beVerbose = false;
 
   _hashTable = 0L;
   _buckets   = 0L;
