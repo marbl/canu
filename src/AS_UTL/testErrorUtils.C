@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: testErrorUtils.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: testErrorUtils.C,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
 
 #include <cerrno>
 #include <cstdio>
@@ -32,52 +32,23 @@ using namespace std;
 #include "AS_global.h"
 #include "Asserts.h"
 #include "ErrorUtils.h"
-#include "ExceptionUtils.h"
-#include "RuntimeException.h"
 #include "TestUtils.h"
 
 using namespace Utility;
 
-class TestErrorUtilsException : public RuntimeException
-{
-public:
-	TestErrorUtilsException(string message = string()) throw()
-		: RuntimeException(message, NULL)
-	{
-		ExceptionUtils::getStackTrace(*this->stackTrace, "TestErrorUtilsException");
-	}
-};
-
-void testThrowIfError()
-{
-	string message;
-	
-	fopen("non-existant", "r");
-	
-	try
-	{
-		ErrorUtils::throwIfError<TestErrorUtilsException>();
-	}
-	catch (TestErrorUtilsException& e)
-	{
-		message = e.getMessage();
-	}
-	
-	Asserts::assertTrue(message == "No such file or directory", "get error failed");
-}
-
 void testGetError()
 {
+	string errorStr;
+	
 	fopen("non-existant", "r");
 	
-	Asserts::assertTrue(ErrorUtils::getError() == "No such file or directory", "get error failed");
+	Asserts::assertTrue(ErrorUtils::getError(errorStr) == "No such file or directory", "get error failed");
 }
 
 int main(int argc, char** argv)
 {
 	vector<TestFunction> tests;
 	tests.push_back(&testGetError);
-	tests.push_back(&testThrowIfError);
 	
 	TestUtils::runTests(tests);
 }

@@ -22,14 +22,25 @@
 #ifndef READALIGNMENTPROFILER_H
 #define READALIGNMENTPROFILER_H
 
-static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 using namespace std;
 
+#include "AlignmentError.h"
+#include "AlignmentErrorType.h"
 #include "AS_global.h"
+#include "BaseAlignment.h"
+#include "ErrorUtils.h"
+#include "FileUtils.h"
+#include "ReadAlignment.h"
+#include "StringUtils.h"
+
+using namespace Utility;
 
 namespace ReadAnalysis
 {
@@ -38,8 +49,11 @@ namespace ReadAnalysis
 	public:
 		ReadAlignmentProfiler();
 		
-	protected:
+		void profileData(vector<ReadAlignment>& data);
 		
+	protected:
+		vector<ReadAlignment> data;
+		vector<BaseAlignment> profile;
 	};
 }
 

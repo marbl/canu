@@ -22,8 +22,9 @@
 #ifndef PROFILEREADALIGNMENT_H
 #define PROFILEREADALIGNMENT_H
 
-static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
 
+#include <sys/termios.h>
 #include <unistd.h>
 #include <cstdio>
 #include <cstdlib>
@@ -31,24 +32,34 @@ static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v
 
 using namespace std;
 
+#include "AlignmentDataReader.h"
 #include "ArgumentException.h"
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
 #include "ErrorUtils.h"
+#include "FileUtils.h"
 #include "IllegalStateException.h"
 #include "ReadAlignmentProfiler.h"
 #include "RuntimeException.h"
+#include "SnapperAlignmentDataReader.h"
 
 using namespace ReadAnalysis;
 using namespace Utility;
 
+static const char* STREAM_PATH = "-";
+
 typedef struct ProfileReadAlignmentOptions
 {
-	const char* inputFilePath;
-	const char* outputFilePath;
+	const char* inputPath;
+	const char* outputPath;
+	bool useStdin;
+	bool useStdout;
 };
 
+AlignmentDataReader* getAlignmentDataReader(ProfileReadAlignmentOptions& options);
+
 void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** args);
+bool isPathStream(const char* path);
 void printUsage(const char* executableName);
 
 int main(int numArgs, char** args);

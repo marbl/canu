@@ -22,7 +22,7 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.13 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.14 2011-09-02 22:04:01 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <cstdarg>
@@ -41,8 +41,14 @@ using namespace std;
 
 namespace Utility
 {
-	static const char NEWLINE = '\n';
-	static const char* NEWLINE_STR = "\n";
+	static const char LINE_FEED = '\n';
+	static const char* LINE_FEED_STR = "\n";
+	
+	static const char CARRIAGE_RETURN = '\r';
+	static const char* CARRIAGE_RETURN_STR = "\r";
+	
+	static const char NEWLINE = LINE_FEED;
+	static const char* NEWLINE_STR = LINE_FEED_STR;
 	
 	static const char NULL_TERMINATOR = '\0';
 	static const char* NULL_TERMINATOR_STR = "\0";
@@ -50,6 +56,11 @@ namespace Utility
 	class StringUtils
 	{
 	public:
+		inline static bool isNewline(char character)
+		{
+			return (character == LINE_FEED) || (character == CARRIAGE_RETURN);
+		}
+		
 		inline static bool isLowercase(string str)
 		{
 			for (size_t a = 0; a < str.length(); a++)

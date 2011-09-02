@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: SignalException.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: SignalException.C,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
 
 #include "SignalException.h"
 
@@ -28,7 +28,9 @@ SignalException::SignalException(int signalNum, string message, RuntimeException
 {
 	this->signalNum = signalNum;
 	
-	this->message.insert(0, "Signal (" + ErrorUtils::getSignalName(this->signalNum) + "): " + ErrorUtils::getSignalMessage(this->signalNum));
+	string messageStr;
+	
+	this->message.insert(0, "Signal (" + ErrorUtils::getSignalName(this->signalNum) + "): " + ErrorUtils::getSignalMessage(this->signalNum, messageStr));
 	
 	ExceptionUtils::getStackTrace(*this->stackTrace, "SignalException");
 }

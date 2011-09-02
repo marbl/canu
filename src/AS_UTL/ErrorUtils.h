@@ -22,7 +22,7 @@
 #ifndef ERRORUTILS_H
 #define ERRORUTILS_H
 
-static const char* rcsid_ERRORUTILS_H = "$Id: ErrorUtils.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_ERRORUTILS_H = "$Id: ErrorUtils.h,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
 
 #include <unistd.h>
 #include <cerrno>
@@ -97,52 +97,106 @@ namespace Utility
 	class ErrorUtils
 	{
 	public:
-		template<class E>
-		__inline__ static void throwIfError(string message = string())
+		inline static void handleErrorSignals(sighandler_t signalHandler)
 		{
-			throwIfError<E>(errno, message);
+			handleSignals(ERROR_SIGNALS, signalHandler);
 		}
-		
-		template<class E>
-		__inline__ static void throwIfError(FILE* stream, string message = string())
+
+		inline static void handleExitSignals(sighandler_t signalHandler)
 		{
-			throwIfError<E>(ferror(stream), message);
+			handleSignals(EXIT_SIGNALS, signalHandler);
 		}
-		
-		template<class E>
-		__inline__ static void throwIfError(int errorNum, string message = string())
+
+		inline static void handleSignals(const int* signalNums, sighandler_t signalHandler)
 		{
-			if (ErrorUtils::isError(errorNum))
+			for (size_t a = 0; signalNums[a] != NO_SIGNAL; a++)
 			{
-				throw E(getError(errorNum, message));
+				handleSignal(signalNums[a], signalHandler);
 			}
+		}
+
+		inline static sighandler_t handleSignal(int signalNum, sighandler_t signalHandler)
+		{
+			return signal(signalNum, signalHandler);
+		}
+
+		inline static string& getSignalMessage(int signalNum, string& buffer)
+		{
+			if (isSignal(signalNum))
+			{
+				buffer += strsignal(signalNum);
+			}
+			
+			return buffer;
+		}
+
+		inline static string getSignalName(int signalNum)
+		{
+			return isSignal(signalNum) ? SIGNAL_NAMES[signalNum] : string();
+		}
+
+		inline static bool isSignalIgnored(int signalNum)
+		{
+			return getSignalHandler(signalNum) == SIG_IGN;
+		}
+
+		inline static bool isSignalHandled(int signalNum)
+		{
+			sighandler_t signalHandler = getSignalHandler(signalNum);
+			
+			return (signalHandler != SIG_ERR) && (signalHandler != SIG_IGN) && (signalHandler != SIG_DFL);
+		}
+
+		inline static bool isSignal(int signalNum)
+		{
+			return SIGNAL_NAMES.count(signalNum) != 0;
+		}
+
+		inline static sighandler_t getSignalHandler(int signalNum)
+		{
+			sighandler_t signalHandler = signal(signalNum, tempSignalHandler);
+			signal(signalNum, signalHandler);
+			
+			return signalHandler;
+		}
+
+		inline static string& getError(string& buffer)
+		{
+			return getError(errno, buffer);
+		}
+
+		inline static string& getError(FILE* stream, string& buffer)
+		{
+			return getError(ferror(stream), buffer);
+		}
+
+		inline static string& getError(int errorNum, string& buffer)
+		{
+			if (isError(errorNum))
+			{
+				buffer += strerror(errorNum);
+			}
+			
+			return buffer;
+		}
+
+		inline static bool hasError(FILE* stream)
+		{
+			return isError(ferror(stream));
+		}
+
+		inline static bool hasError()
+		{
+			return isError(errno);
+		}
+
+		inline static bool isError(int errorNum)
+		{
+			return errorNum > NO_ERROR;
 		}
 		
 		static void exceptionSignalHandler(int signalNum);
 		static void printingSignalHandler(int signalNum);
-		
-		static void handleErrorSignals(sighandler_t signalHandler);
-		static void handleExitSignals(sighandler_t signalHandler);
-		static void handleSignals(const int* signalNums, sighandler_t signalHandler);
-		static sighandler_t handleSignal(int signalNum, sighandler_t signalHandler);
-		
-		static string getSignalMessage(int signalNum, string message = string());
-		static string getSignalName(int signalNum);
-		
-		static bool isSignalIgnored(int signalNum);
-		static bool isSignalHandled(int signalNum);
-		static bool isSignal(int signalNum);
-		
-		static sighandler_t getSignalHandler(int signalNum);
-		
-		static string getError(string message = string());
-		static string getError(FILE* stream, string message = string());
-		static string getError(int errorNum, string message = string());
-		
-		static bool hasError();
-		static bool hasError(FILE* stream);
-		
-		static bool isError(int errorNum);
 		
 	protected:
 		static void tempSignalHandler(int signalNum)

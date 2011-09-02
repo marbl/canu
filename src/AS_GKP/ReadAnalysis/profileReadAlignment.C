@@ -19,9 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: profileReadAlignment.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: profileReadAlignment.C,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
 
 #include "profileReadAlignment.h"
+
+AlignmentDataReader* getAlignmentDataReader(ProfileReadAlignmentOptions& options)
+{
+	// TODO: implement alignment data type determination
+	
+	return new SnapperAlignmentDataReader();
+}
 
 void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** args)
 {
@@ -42,10 +49,10 @@ void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** 
 					switch (arg[1])
 					{
 						case 'i':
-							options.inputFilePath = argValue;
+							options.inputPath = argValue;
 							break;
 						case 'o':
-							options.outputFilePath = argValue;
+							options.outputPath = argValue;
 							break;
 						default:
 							throw ArgumentException(string("Unknown option."), NULL, arg);
@@ -56,15 +63,8 @@ void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** 
 				argIndex += 2;
 			}
 			
-			if ((options.inputFilePath == NULL) || (!StringUtils::areEqual(options.inputFilePath, "-") && !AS_UTL_fileExists(options.inputFilePath, 0, 1)))
-			{
-				throw ArgumentException(string("An existing alignment file or '-' for stdin must be specified: ") + options.inputFilePath, NULL, "-i");
-			}
-			
-			if (options.outputFilePath == NULL)
-			{
-				throw ArgumentException(string("A writable output file or '-' for stdout must be specified: ") + options.outputFilePath, NULL, "-o");
-			}
+			options.useStdin = isPathStream(options.inputPath);
+			options.useStdout = isPathStream(options.outputPath);
 		}
 		catch (RuntimeException& e)
 		{
@@ -84,12 +84,17 @@ void printUsage(const char* executableName)
 	fprintf(stdout, "Creates a profile of read alignments by analysing alignment data.\n");
 	fprintf(stdout, "Known alignment data formats: Snapper\n");
 	fprintf(stdout, "\n");
-	fprintf(stdout, "Usage: %s -i <alignment file> -o <output file>\n", executableName);
+	fprintf(stdout, "Usage: %s -i <input path> -o <output path>\n", executableName);
 	fprintf(stdout, "\n");
-	fprintf(stdout, "-i  path to an alignment file or '-' to read stdin\n");
+	fprintf(stdout, "-i  path to an alignment data file or '-' to read stdin\n");
 	fprintf(stdout, "-o  path to an output file or '-' to write to stdout\n");
 	
 	exitSuccess();
+}
+
+bool isPathStream(const char* path)
+{
+	return StringUtils::areEqual(path, STREAM_PATH);
 }
 
 int main(int numArgs, char** args)
@@ -100,6 +105,17 @@ int main(int numArgs, char** args)
 	parseCommandLine(options, numArgs, args);
 	
 	fprintf(stderr, "Using options:\n  input="F_STR"\n  output="F_STR"\n\n", 
-		StringUtils::areEqual(options.inputFilePath, "-") ? "<stdin>" : options.inputFilePath, 
-		StringUtils::areEqual(options.outputFilePath, "-") ? "<stdout>" : options.outputFilePath);
+		options.useStdin ? "<stdin>" : options.inputPath, 
+		options.useStdout ? "<stdout>" : options.outputPath);
+	
+	AlignmentDataReader* reader = getAlignmentDataReader(options);
+	
+	if (options.useStdin)
+	{
+		reader->readData(stdin);
+	}
+	else
+	{
+		reader->readData(options.inputPath);
+	}
 }

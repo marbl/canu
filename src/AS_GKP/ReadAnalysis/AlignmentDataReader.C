@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.2 2011-09-02 22:04:00 mkotelbajcvi Exp $";
 
 #include "AlignmentDataReader.h"
 
@@ -34,74 +34,38 @@ AlignmentDataReader::AlignmentDataReader()
 
 AlignmentDataReader::~AlignmentDataReader()
 {
-	if (this->stream != NULL)
-	{
-		fclose(this->stream);
-		
-		this->stream = NULL;
-	}
+	FileUtils::close(this->stream);
+	
+	this->stream = NULL;
 }
 
-vector<ReadAlignment>& AlignmentDataReader::readData(const char* filePath)
+vector<ReadAlignment>& AlignmentDataReader::readData(string path)
 {
-	try
-	{
-		if ((filePath == NULL) || !AS_UTL_fileExists(filePath, 0, 1))
-		{
-			throw IOException(string("Alignment data file does not exist: ") + filePath);
-		}
-		
-		FILE* stream = fopen(filePath, "r");
-		
-		ErrorUtils::throwIfError<IOException>(stream, string("Alignment data file cannot be opened for reading: ") + filePath);
-		
-		this->readData(stream, filePath);
-		
-		fclose(stream);
-		
-		return this->data;
-	}
-	catch (RuntimeException& e)
-	{
-		if (this->stream != NULL)
-		{
-			fclose(this->stream);
-			
-			this->stream = NULL;
-		}
-		
-		throw e;
-	}
+	this->stream = FileUtils::openRead(path);
+	
+	this->readData(this->stream);
+	
+	FileUtils::close(this->stream);
+	
+	this->stream = NULL;
+	
+	return this->data;
 }
 
-vector<ReadAlignment>& AlignmentDataReader::readData(FILE* stream, const char* filePath)
+vector<ReadAlignment>& AlignmentDataReader::readData(FILE* stream)
 {
-	try
+	this->data.clear();
+	
+	this->stream = stream;
+	
+	if (!FileUtils::canRead(stream))
 	{
-		this->data.clear();
+		string errorStr;
 		
-		this->stream = stream;
-		
-		if ((this->stream == NULL) || feof(this->stream))
-		{
-			throw new IOException((filePath != NULL) ? 
-				string("Alignment data file cannot be read: ") + filePath : 
-				string("Alignment data input stream cannot be read."));
-		}
-		
-		this->processData(stream, filePath);
-		
-		return this->data;
+		throw IOException("Alignment data input stream cannot be read: " + ErrorUtils::getError(stream, errorStr));
 	}
-	catch (RuntimeException& e)
-	{
-		if (this->stream != NULL)
-		{
-			fclose(this->stream);
-			
-			this->stream = NULL;
-		}
-		
-		throw e;
-	}
+	
+	this->processData();
+	
+	return this->data;
 }

@@ -22,24 +22,33 @@
 #ifndef SNAPPERALIGNMENTDATAREADER_H
 #define SNAPPERALIGNMENTDATAREADER_H
 
-static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 using namespace std;
 
 #include "AlignmentDataReader.h"
+#include "AlignmentError.h"
+#include "AlignmentErrorType.h"
 #include "AS_global.h"
+#include "BaseAlignment.h"
+#include "DataException.h"
+#include "ReadAlignment.h"
 
 namespace ReadAnalysis
 {
 	class SnapperAlignmentDataReader : public AlignmentDataReader
 	{
 	public:
+		SnapperAlignmentDataReader();
+		virtual ~SnapperAlignmentDataReader();
 		
 	protected:
-		
+		virtual void processData();
 	};
 }
 

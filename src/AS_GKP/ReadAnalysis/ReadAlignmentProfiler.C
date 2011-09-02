@@ -19,8 +19,21 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: ReadAlignmentProfiler.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: ReadAlignmentProfiler.C,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
 
 #include "ReadAlignmentProfiler.h"
 
+using namespace ReadAnalysis;
 
+ReadAlignmentProfiler::ReadAlignmentProfiler()
+{
+	// TODO: reserve vectors
+}
+
+void ReadAlignmentProfiler::profileData(vector<ReadAlignment>& data)
+{
+	this->data = data;
+	this->profile.clear();
+	
+	// TODO: implement
+}
