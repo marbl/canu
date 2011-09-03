@@ -22,7 +22,7 @@
 #ifndef SNAPPERALIGNMENTDATAREADER_H
 #define SNAPPERALIGNMENTDATAREADER_H
 
-static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
+static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.4 2011-09-03 04:08:27 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -40,14 +40,16 @@ using namespace std;
 
 using namespace Utility;
 
+//0[739-0-0] 0[531669-939] <739-0-100-complement-unknown>
+
 namespace ReadAnalysis
 {
 	static const char* SNAPPER_READ_ALIGNMENT_START = "sim4begin";
 	static const char* SNAPPER_READ_ALIGNMENT_END = "sim4end";
 	
-	static const char* SNAPPER_READ_INFO_FORMAT = F_U64"["F_U64"-"F_STRI;
+	static const char* SNAPPER_READ_INFO_FORMAT = F_U64"["F_U64"-"F_U16I"-"F_U16I"] "F_U16I"["F_U64I"-"F_U64I"] <"F_U64I"-"F_U16I"-"F_U16I"-"F_STRI">";
 	static const char* SNAPPER_READ_DEFINITION_FORMAT = 
-		"edef="F_U64","F_U32I" mate="F_U64","F_U32I" lib="F_STRI","F_U32I" clr="F_STRI","F_U64I","F_U64I" deleted="F_CI;
+		"edef="F_U32","F_U32I" mate="F_U32","F_U32I" lib="F_STRI","F_U32I" clr="F_STRI","F_U64I","F_U64I" deleted="F_CI;
 	static const char* SNAPPER_GENOME_DEFINITION_FORMAT = "ddef="F_STRI;
 	static const char* SNAPPER_ALIGNMENT_INFO_FORMAT = F_U64"-"F_U64" ("F_U64"-"F_U64") <"F_U64I"-"F_U16I"-"F_U16">";
 	

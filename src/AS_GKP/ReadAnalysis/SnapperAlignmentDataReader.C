@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: SnapperAlignmentDataReader.C,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: SnapperAlignmentDataReader.C,v 1.4 2011-09-03 04:08:27 mkotelbajcvi Exp $";
 
 #include "SnapperAlignmentDataReader.h"
 
@@ -98,12 +98,12 @@ void SnapperAlignmentDataReader::processData()
 		// Read sequence
 		line = readLine(this->stream, line, lineNum);
 		
-		readAlign->getSequence().assign(line.begin(), line.end());
+		copy(line.begin(), line.end(), readAlign->getSequence().begin());
 		
 		// Genome sequence
 		line = readLine(this->stream, line, lineNum);
 		
-		readAlign->getGenomeSequence().assign(line.begin(), line.end());
+		copy(line.begin(), line.end(), readAlign->getGenomeSequence().begin());
 		
 		// Read alignment end
 		line = readLine(this->stream, line, lineNum);
@@ -116,5 +116,5 @@ void SnapperAlignmentDataReader::processData()
 		this->data.push_back(readAlign);
 	}
 	
-	fprintf(stderr, "Processed "F_U64" Snapper read alignment[s].\n", this->data.size());
+	fprintf(stderr, "Processed "F_U64" Snapper read alignment[s].\n\n", this->data.size());
 }

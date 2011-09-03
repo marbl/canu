@@ -22,9 +22,8 @@
 #ifndef PROFILEREADALIGNMENT_H
 #define PROFILEREADALIGNMENT_H
 
-static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v 1.3 2011-09-03 04:08:27 mkotelbajcvi Exp $";
 
-#include <sys/termios.h>
 #include <unistd.h>
 #include <cstdio>
 #include <cstdlib>
