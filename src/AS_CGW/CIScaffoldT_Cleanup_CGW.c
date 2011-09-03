@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.68 2010-08-19 05:28:06 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.69 2011-09-03 07:36:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -383,8 +383,8 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 
     /* We exclude containment since we handle it elsewhere */
     InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES,
-			  GRAPH_EDGE_RAW_ONLY|GRAPH_EDGE_EXCLUDE_CONTAINMENT,
-			  &edges);
+                          GRAPH_EDGE_RAW_ONLY|GRAPH_EDGE_EXCLUDE_CONTAINMENT,
+                          &edges);
     if(verbose) {
       fprintf(stderr,"* Scanning edges incident on contig "F_CID "\n", pos->ident);
     }
@@ -400,19 +400,19 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       distance1.variance = MAX(edge->distance.variance, 10.0);
       distance2.variance = distance1.variance;
       if(!isOverlapEdge(edge) ||
-	 edge->flags.bits.aContainsB ||
-	 edge->flags.bits.bContainsA ||
-	 otherContig->flags.bits.beingContigged )
-	continue;
+         edge->flags.bits.aContainsB ||
+         edge->flags.bits.bContainsA ||
+         otherContig->flags.bits.beingContigged )
+        continue;
 
 
       if(verbose){
-	fprintf
+        fprintf
           (stderr,
            "* pos "F_CID "  flip:%d edgeOrient:%c beg:"F_S32" end:"F_S32" newContigLength:%g\n",
            pos->ident, flip, edgeOrient.toLetter(), posBgn, posEnd,
            newContig->bpLength.mean);
-	PrintGraphEdge(stderr,
+        PrintGraphEdge(stderr,
                        ScaffoldGraph->ContigGraph,"propogating*I* ",
                        edge, edge->idA);
       }
@@ -531,63 +531,57 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       }
       // Add them to the graph, do NOT insert them.  Keep a list of such edges in collectedEdges
       {
-	ChunkOverlapCheckT olap = {0};
-	// If we don't find either of these edges already in the graph, proceed
-	if(!LookupOverlap(ScaffoldGraph->ContigGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient1, &olap) &&
-	   !LookupOverlap(ScaffoldGraph->ContigGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient2, &olap))
-	  {
-	    EdgeCGW_T *newEdge;
-	    CDS_CID_t eid;
-	    int32  isContainment = (MIN(-distance1.mean,-distance2.mean) > otherContig->bpLength.mean);
+        ChunkOverlapCheckT olap = {0};
+        // If we don't find either of these edges already in the graph, proceed
+        if(!LookupOverlap(ScaffoldGraph->ContigGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient1, &olap) &&
+           !LookupOverlap(ScaffoldGraph->ContigGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient2, &olap)) {
+          EdgeCGW_T *newEdge;
+          CDS_CID_t eid;
+          int32  isContainment = (MIN(-distance1.mean,-distance2.mean) > otherContig->bpLength.mean);
 
-            CDS_CID_t edgeID =
-              GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, edge);
-	    newEdge = GetFreeGraphEdge(ScaffoldGraph->ContigGraph);
-	    eid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
-	    edge = GetGraphEdge(ScaffoldGraph->ContigGraph, edgeID);
-	    AppendCDS_CID_t(CollectedEdges, &eid);
+          CDS_CID_t edgeID =
+            GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, edge);
+          newEdge = GetFreeGraphEdge(ScaffoldGraph->ContigGraph);
+          eid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
+          edge = GetGraphEdge(ScaffoldGraph->ContigGraph, edgeID);
+          AppendCDS_CID_t(CollectedEdges, &eid);
 
-	    newEdge->idA = newContig->id;
-	    newEdge->idB = (edge->idA == contig->id? edge->idB: edge->idA);
-	    newEdge->orient = orient1;
-	    newEdge->distance = distance1;
-	    newEdge->edgesContributing = cnt++;
+          newEdge->idA = newContig->id;
+          newEdge->idB = (edge->idA == contig->id? edge->idB: edge->idA);
+          newEdge->orient = orient1;
+          newEdge->distance = distance1;
+          newEdge->edgesContributing = cnt++;
 
-	    newEdge->flags.bits.bContainsA = FALSE;
-	    newEdge->flags.bits.aContainsB = isContainment;
-	    newEdge->flags.bits.hasContainmentOverlap = isContainment;
-	    newEdge->flags.bits.hasContributingOverlap = !isContainment;
+          newEdge->flags.bits.bContainsA = FALSE;
+          newEdge->flags.bits.aContainsB = isContainment;
+          newEdge->flags.bits.hasContainmentOverlap = isContainment;
+          newEdge->flags.bits.hasContributingOverlap = !isContainment;
 
-	    if(verbose) {
-	      PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,
-                             "    collecting*I* ", newEdge, newEdge->idA);
-            }
+          if (verbose)
+            PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph, "    collecting*I* ", newEdge, newEdge->idA);
 
-	    if(isContainment){
-	      newEdge = GetFreeGraphEdge(ScaffoldGraph->ContigGraph);
-	      eid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
-	      AppendCDS_CID_t(CollectedEdges, &eid);
-	      newEdge->idA = newContig->id;
-	      newEdge->idB = (edge->idA == contig->id? edge->idB: edge->idA);
-	      newEdge->edgesContributing = cnt++;
+          if (isContainment) {
+            newEdge = GetFreeGraphEdge(ScaffoldGraph->ContigGraph);
+            eid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
+            AppendCDS_CID_t(CollectedEdges, &eid);
+            newEdge->idA = newContig->id;
+            newEdge->idB = (edge->idA == contig->id? edge->idB: edge->idA);
+            newEdge->edgesContributing = cnt++;
 
-	      newEdge->orient = orient2;
-	      newEdge->distance = distance2;
-	      newEdge->flags.bits.bContainsA = FALSE;
-	      newEdge->flags.bits.aContainsB = TRUE;
-	      newEdge->flags.bits.hasContainmentOverlap = TRUE;
+            newEdge->orient = orient2;
+            newEdge->distance = distance2;
+            newEdge->flags.bits.bContainsA = FALSE;
+            newEdge->flags.bits.aContainsB = TRUE;
+            newEdge->flags.bits.hasContainmentOverlap = TRUE;
 
-	      if(verbose) {
-		PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,
-                               "    collecting*I* ", newEdge, newEdge->idA);
-              }
-              assert(!newEdge->flags.bits.isDeleted);
-	    }else{
-	      if(verbose){
-		fprintf(stderr,"* ***NOT A CONTAINMENT!!!!\n");
-	      }
-	    }
-	  }
+            if (verbose)
+              PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph, "    collecting*I* ", newEdge, newEdge->idA);
+            assert(!newEdge->flags.bits.isDeleted);
+          } else {
+            if (verbose)
+              fprintf(stderr,"* ***NOT A CONTAINMENT!!!!\n");
+          }
+        }
       }
     }
   }
@@ -624,86 +618,86 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       int merge = FALSE;
       CDS_CID_t last = i == numEdges -1;
       if(currID == NULLINDEX){
-	currID = e->idB;
-	currOrient = e->orient;
-	e->flags.all = 0;
-	AppendCDS_CID_t(TentativeEdges,&eid);
-	i++;
+        currID = e->idB;
+        currOrient = e->orient;
+        e->flags.all = 0;
+        AppendCDS_CID_t(TentativeEdges,&eid);
+        i++;
       }else  if(e->idB == currID &&
                 e->orient == currOrient){
-	e->flags.all = 0;
-	AppendCDS_CID_t(TentativeEdges,&eid);
-	i++;
+        e->flags.all = 0;
+        AppendCDS_CID_t(TentativeEdges,&eid);
+        i++;
       }else{
-	merge = TRUE;
+        merge = TRUE;
       }
 
       if( last && GetNumCDS_CID_ts(TentativeEdges) > 1)
         merge = TRUE;
 
       if(merge){
-	int addedEdges=-2;
+        int addedEdges=-2;
         //The return value of MergeGraphEdges() is the number of edges
         //that this routine appended to the edges array - returns 0
         //when no merging was done and -1 on failure. We will use -2
         //to denote that the routine was never called.
 
-	EdgeCGW_T *ee;
-	int i;
-	if(GetNumCDS_CID_ts(TentativeEdges) == 1){
-	  // keep track of which edges to discard
+        EdgeCGW_T *ee;
+        int i;
+        if(GetNumCDS_CID_ts(TentativeEdges) == 1){
+          // keep track of which edges to discard
 #ifdef DEBUG_DETAILED
           fprintf(stderr,"* Edge "F_CID " to Discarded edges\n",
                   *GetCDS_CID_t(TentativeEdges,0));
 #endif
           AppendCDS_CID_t(DiscardedEdges, GetCDS_CID_t(TentativeEdges,0));
-	}else{
-	  if(GlobalData->debugLevel > 0)
-	    fprintf(stderr,"* Merging "F_CID ","F_CID ",%c   %d edges\n",
+        }else{
+          if(GlobalData->debugLevel > 0)
+            fprintf(stderr,"* Merging "F_CID ","F_CID ",%c   %d edges\n",
                     e->idA, currID, currOrient.toLetter(),
                     (int) GetNumCDS_CID_ts(TentativeEdges));
-	  addedEdges = MergeGraphEdges(ScaffoldGraph->ContigGraph, TentativeEdges);
-	  if(addedEdges> 0){
-	    if(GlobalData->debugLevel > 0)
-	      fprintf(stderr,"* Merging ("F_CID ","F_CID ",%c): Added %d edges!!!\n",
+          addedEdges = MergeGraphEdges(ScaffoldGraph->ContigGraph, TentativeEdges);
+          if(addedEdges> 0){
+            if(GlobalData->debugLevel > 0)
+              fprintf(stderr,"* Merging ("F_CID ","F_CID ",%c): Added %d edges!!!\n",
                       e->idA, currID, currOrient.toLetter(), addedEdges);
 
-	    ee = GetGraphEdge(ScaffoldGraph->ContigGraph, *GetCDS_CID_t(TentativeEdges,0));
-	    ee->flags.bits.bContainsA = FALSE;
-	    ee->flags.bits.aContainsB = TRUE;
-	    ee->flags.bits.hasContainmentOverlap = TRUE;
+            ee = GetGraphEdge(ScaffoldGraph->ContigGraph, *GetCDS_CID_t(TentativeEdges,0));
+            ee->flags.bits.bContainsA = FALSE;
+            ee->flags.bits.aContainsB = TRUE;
+            ee->flags.bits.hasContainmentOverlap = TRUE;
 
-	    for(i = 0; i < addedEdges; i++){
+            for(i = 0; i < addedEdges; i++){
 #ifdef DEBUG_DETAILED
-	      //	      if(GlobalData->debugLevel > 0)
+              //	      if(GlobalData->debugLevel > 0)
               PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,
                              "* Successful merge: ", ee, ee->idA);
 #endif
-	      AppendCDS_CID_t(MergedEdges, GetCDS_CID_t(TentativeEdges,i));
-	    }
-	  }
+              AppendCDS_CID_t(MergedEdges, GetCDS_CID_t(TentativeEdges,i));
+            }
+          }
 #ifdef DEBUG_DETAILED
           fprintf(stderr,"* addedEdges %d total:%d\n",
                   addedEdges, (int) GetNumCDS_CID_ts(TentativeEdges));
 #endif
-	}
+        }
 
-	if(addedEdges > 0)
+        if(addedEdges > 0)
           for(i = addedEdges; i < GetNumCDS_CID_ts(TentativeEdges) ; i++){
             // keep track of which edges to discard
-	    ee = GetGraphEdge(ScaffoldGraph->ContigGraph, *GetCDS_CID_t(TentativeEdges,i));
-	    ee->flags.bits.bContainsA = FALSE;
-	    ee->flags.bits.aContainsB = TRUE;
-	    ee->flags.bits.hasContainmentOverlap = TRUE;
+            ee = GetGraphEdge(ScaffoldGraph->ContigGraph, *GetCDS_CID_t(TentativeEdges,i));
+            ee->flags.bits.bContainsA = FALSE;
+            ee->flags.bits.aContainsB = TRUE;
+            ee->flags.bits.hasContainmentOverlap = TRUE;
 
-	    PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,"To Discarded Edges", ee, ee->idA);
+            PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,"To Discarded Edges", ee, ee->idA);
             AppendCDS_CID_t(DiscardedEdges, GetCDS_CID_t(TentativeEdges,i));
           }
-	currID = NULLINDEX;
-	currOrient.setIsUnknown();
-	ResetVA_CDS_CID_t(TentativeEdges);
-	if(last)
-	  break;
+        currID = NULLINDEX;
+        currOrient.setIsUnknown();
+        ResetVA_CDS_CID_t(TentativeEdges);
+        if(last)
+          break;
       }
 
     }
@@ -715,80 +709,80 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       int32 i;
       EdgeCGW_T *newEdge;
       if(verbose) {
-	fprintf(stderr,"* Discarded the following DISCARDED edges:\n");
+        fprintf(stderr,"* Discarded the following DISCARDED edges:\n");
       }
       for(i = 0; i < GetNumCDS_CID_ts(DiscardedEdges); i++){
-	CDS_CID_t eid;
-	EdgeCGW_T *e;
+        CDS_CID_t eid;
+        EdgeCGW_T *e;
 
-	eid = *GetCDS_CID_t(DiscardedEdges,i);
-	e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
+        eid = *GetCDS_CID_t(DiscardedEdges,i);
+        e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
 
-	//fprintf(stderr,"* i = %d eid = "F_CID "\n", i,eid);
+        //fprintf(stderr,"* i = %d eid = "F_CID "\n", i,eid);
 
-	if(e->flags.bits.isDeleted){
-	  fprintf(stderr,"* i = %d Edge "F_CID " is ALREADY deleted...WIERD!\n", i,eid);
-	}else{
-	  if(verbose) {
-	    PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph," ", e, e->idA);
+        if(e->flags.bits.isDeleted){
+          fprintf(stderr,"* i = %d Edge "F_CID " is ALREADY deleted...WIERD!\n", i,eid);
+        }else{
+          if(verbose) {
+            PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph," ", e, e->idA);
             fprintf(stderr,"* i = %d Edge "F_CID "!\n", i,eid);
           }
-	  FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
-	}
+          FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
+        }
       }
 
 
       if(verbose) {
-	fprintf(stderr,"* Inserting the following MERGED edges:\n");
+        fprintf(stderr,"* Inserting the following MERGED edges:\n");
       }
 
       for(i = 0; i < GetNumCDS_CID_ts(MergedEdges); i++){
-	CDS_CID_t eid= *GetCDS_CID_t(MergedEdges,i);
-	CDS_CID_t neid;
-	EdgeCGW_T *e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
-	ChunkOverlapCheckT olap = {0};
-	int32 delta = MIN((3 * sqrt(e->distance.variance)), 50);
-	CDS_CID_t idA, idB;
-	PairOrient orient;
+        CDS_CID_t eid= *GetCDS_CID_t(MergedEdges,i);
+        CDS_CID_t neid;
+        EdgeCGW_T *e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
+        ChunkOverlapCheckT olap = {0};
+        int32 delta = MIN((3 * sqrt(e->distance.variance)), 50);
+        CDS_CID_t idA, idB;
+        PairOrient orient;
 
-	if(verbose) {
-	  PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,"dp_align check ",
+        if(verbose) {
+          PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,"dp_align check ",
                          e, e->idA);
         }
 
-	idA = e->idA;
-	idB = e->idB;
-	orient = e->orient;
-	if(e->idA > e->idB){
-	  idA = e->idB;
-	  idB = e->idA;
-	  orient = e->orient;
+        idA = e->idA;
+        idB = e->idB;
+        orient = e->orient;
+        if(e->idA > e->idB){
+          idA = e->idB;
+          idB = e->idA;
+          orient = e->orient;
           orient.flip();
-	}
+        }
 
 
-	{
-	  ChunkOverlapCheckT olap = {0};
-	  if(LookupOverlap(ScaffoldGraph->ContigGraph, e->idA, e->idB, e->orient, &olap)){
-	    if(verbose) {
-	      fprintf(stderr,"* Overlap found already...skipping\n");
+        {
+          ChunkOverlapCheckT olap = {0};
+          if(LookupOverlap(ScaffoldGraph->ContigGraph, e->idA, e->idB, e->orient, &olap)){
+            if(verbose) {
+              fprintf(stderr,"* Overlap found already...skipping\n");
             }
-	    FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
-	    continue;
-	  }
-	}
+            FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
+            continue;
+          }
+        }
 
         assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
-	olap = OverlapChunks(ScaffoldGraph->ContigGraph,
+        olap = OverlapChunks(ScaffoldGraph->ContigGraph,
                              idA, idB, orient, // handles suspicious
-			     -e->distance.mean - delta,
-			     -e->distance.mean + delta,
-			     AS_CGW_ERROR_RATE, FALSE);
+                             -e->distance.mean - delta,
+                             -e->distance.mean + delta,
+                             AS_CGW_ERROR_RATE, FALSE);
 
 
 
-	if(olap.overlap == 0 || olap.suspicious){
+        if(olap.overlap == 0 || olap.suspicious){
           if(olap.suspicious){
             fprintf(stderr,"* CIS_C1 SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c) [%d,%d] found ("F_CID ","F_CID ",%c) "F_S32" \n",
                     idA, idB, orient.toLetter(),
@@ -797,61 +791,61 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
                     olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(), olap.overlap);
           }
 
-	  if(verbose) {
-	    fprintf(stderr,"* NO Overlap found!\n");
+          if(verbose) {
+            fprintf(stderr,"* NO Overlap found!\n");
           }
-	  FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
-	  continue;
-	}
+          FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
+          continue;
+        }
 
-	if(verbose) {
-	  fprintf(stderr,"* Looked for [%g,%g] found "F_S32" overlap\n",
+        if(verbose) {
+          fprintf(stderr,"* Looked for [%g,%g] found "F_S32" overlap\n",
                   e->distance.mean - delta,
                   e->distance.mean + delta,
                   olap.overlap);
         }
 
-	newEdge = GetFreeGraphEdge(ScaffoldGraph->ContigGraph);
-	neid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
+        newEdge = GetFreeGraphEdge(ScaffoldGraph->ContigGraph);
+        neid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
 
         //  Refresh the e pointer; GetFreeGraphEdge can reallocate.
-	e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
+        e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
 
-	newEdge->flags.bits.aContainsB = olap.BContainsA || olap.AContainsB;
-	newEdge->flags.bits.bContainsA = FALSE;
-	newEdge->flags.bits.hasContainmentOverlap = olap.BContainsA || olap.AContainsB;
-	newEdge->flags.bits.hasContributingOverlap = !(olap.BContainsA || olap.AContainsB);
+        newEdge->flags.bits.aContainsB = olap.BContainsA || olap.AContainsB;
+        newEdge->flags.bits.bContainsA = FALSE;
+        newEdge->flags.bits.hasContainmentOverlap = olap.BContainsA || olap.AContainsB;
+        newEdge->flags.bits.hasContributingOverlap = !(olap.BContainsA || olap.AContainsB);
 
-	newEdge->idA = e->idA;
-	newEdge->idB = e->idB;
-	newEdge->orient = e->orient;
-	newEdge->distance.mean = e->distance.mean;
-	newEdge->distance.variance = ComputeFudgeVariance(newEdge->distance.mean);
+        newEdge->idA = e->idA;
+        newEdge->idB = e->idB;
+        newEdge->orient = e->orient;
+        newEdge->distance.mean = e->distance.mean;
+        newEdge->distance.variance = ComputeFudgeVariance(newEdge->distance.mean);
 
-	if(newEdge->idA > newEdge->idB){
-	  CDS_CID_t tmp = newEdge->idA;
-	  newEdge->flags.bits.bContainsA = newEdge->flags.bits.aContainsB;
-	  newEdge->flags.bits.aContainsB = FALSE;
-	  newEdge->flags.bits.hasContainmentOverlap = olap.BContainsA || olap.AContainsB;
-	  newEdge->flags.bits.hasContributingOverlap = !(olap.BContainsA || olap.AContainsB);
-	  newEdge->idA = newEdge->idB;
-	  newEdge->idB = tmp;
+        if(newEdge->idA > newEdge->idB){
+          CDS_CID_t tmp = newEdge->idA;
+          newEdge->flags.bits.bContainsA = newEdge->flags.bits.aContainsB;
+          newEdge->flags.bits.aContainsB = FALSE;
+          newEdge->flags.bits.hasContainmentOverlap = olap.BContainsA || olap.AContainsB;
+          newEdge->flags.bits.hasContributingOverlap = !(olap.BContainsA || olap.AContainsB);
+          newEdge->idA = newEdge->idB;
+          newEdge->idB = tmp;
           newEdge->orient.flip();
-	}
-	newEdge->edgesContributing = 1;
+        }
+        newEdge->edgesContributing = 1;
 
-	if(verbose) {
-	  PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,
+        if(verbose) {
+          PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,
                          "Inserting #I# ", newEdge, newEdge->idA);
         }
 
-	InsertGraphEdge(ScaffoldGraph->ContigGraph, neid, FALSE);
+        InsertGraphEdge(ScaffoldGraph->ContigGraph, neid, FALSE);
 
-	// Create an appropriate hash table entry
-	CreateChunkOverlapFromEdge(ScaffoldGraph->ContigGraph, newEdge);
+        // Create an appropriate hash table entry
+        CreateChunkOverlapFromEdge(ScaffoldGraph->ContigGraph, newEdge);
 
 
-	FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
+        FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
       }
     }
   }
@@ -896,7 +890,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
       rawEdge = GetGraphEdge(ScaffoldGraph->ContigGraph, rawEdge->nextRawEdge);
       AssertPtr(rawEdge);
       while(!isOverlapEdge(rawEdge) && rawEdge->nextRawEdge != NULLINDEX)
-	rawEdge = GetGraphEdge(ScaffoldGraph->ContigGraph, rawEdge->nextRawEdge);
+        rawEdge = GetGraphEdge(ScaffoldGraph->ContigGraph, rawEdge->nextRawEdge);
 
     }
     //    PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph, "Propogating: ", rawEdge,contigID);
@@ -906,7 +900,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
     /*****  rawEdge should be propagated to be incident on the new contig!!! ****/
     if(verbose){
       if(first++ == 0)
-	fprintf(stderr,"* Need to propagate the following edges from ("F_CID ",%c) to the new contig's %c End\n",
+        fprintf(stderr,"* Need to propagate the following edges from ("F_CID ",%c) to the new contig's %c End\n",
                 contigID,
                 (contigEnd == A_END?'A':'B'),
                 (newContigEnd == A_END?'A':'B')  );
@@ -962,13 +956,13 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
 
       if(otherCI->id < newContig->id){
         newEdge->orient = newOrient;
-	newEdge->orient.flip();
-	newEdge->idA = otherCI->id;
-	newEdge->idB = newContig->id;
+        newEdge->orient.flip();
+        newEdge->idA = otherCI->id;
+        newEdge->idB = newContig->id;
       }else{
-	newEdge->orient = newOrient;
-	newEdge->idB = otherCI->id;
-	newEdge->idA = newContig->id;
+        newEdge->orient = newOrient;
+        newEdge->idB = otherCI->id;
+        newEdge->idA = newContig->id;
       }
 
       {
@@ -1115,9 +1109,9 @@ void PropagateOverlapsToNewContig(ContigT *contig,
 
 // Insert the new contig into the scaffold, in lieu of the old contigs
 void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TYPE(IntElementPos) *contigPositions,
-				LengthT offsetAEnd, LengthT offsetBEnd,   // The offsets of the two contig Ends
-				LengthT deltaOffsetBEnd                   // The amount to adjust the rest of the scaffold
-				){
+                                LengthT offsetAEnd, LengthT offsetBEnd,   // The offsets of the two contig Ends
+                                LengthT deltaOffsetBEnd                   // The amount to adjust the rest of the scaffold
+                                ){
   int32 i;
   int32 numElements = GetNumIntElementPoss(contigPositions);
   int orientAB = FALSE;
@@ -1138,7 +1132,7 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
 #ifdef DEBUG_DETAILED
   fprintf(stderr,"* Inserting new contig "F_CID " at (%g,%g) "
           "with delta (%g,%g) in place of:\n",
-	  newContig->id, offsetAEnd.mean, offsetBEnd.mean,
+          newContig->id, offsetAEnd.mean, offsetBEnd.mean,
           deltaOffsetBEnd.mean, deltaOffsetBEnd.variance);
 #endif
   for(i = 0; i < numElements; i++){
@@ -1147,10 +1141,10 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
 #ifdef DEBUG_DETAILED
     fprintf(stderr,"* Removing contig "F_CID " "
             "from scaffold "F_CID " prev:"F_CID " next:"F_CID " (%g,%g) (%g,%g) ratio:%g\n",
-	    contig->id, scaffold->id,  contig->AEndNext,contig->BEndNext,
-	    contig->offsetAEnd.mean, contig->offsetAEnd.variance,
-	    contig->offsetBEnd.mean, contig->offsetBEnd.variance,
-	    abs(contig->offsetAEnd.variance - contig->offsetBEnd.variance)
+            contig->id, scaffold->id,  contig->AEndNext,contig->BEndNext,
+            contig->offsetAEnd.mean, contig->offsetAEnd.variance,
+            contig->offsetBEnd.mean, contig->offsetBEnd.variance,
+            abs(contig->offsetAEnd.variance - contig->offsetBEnd.variance)
             /contig->bpLength.variance);
 #endif
     // Remove all of the contigs that were previously scaffolded
@@ -1180,21 +1174,21 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
 
     //fprintf(stderr,"* newContig "F_CID " at AEND offset [%g,%g] \n", newContig->id, newContig->offsetAEnd.mean, newContig->offsetBEnd.mean);
     AddDeltaToScaffoldOffsets(ScaffoldGraph,
-			      scaffold->id,
-			      newContig->id,
-			      TRUE,
-			      FALSE,
-			      offset);
+                              scaffold->id,
+                              newContig->id,
+                              TRUE,
+                              FALSE,
+                              offset);
   }
 
 
   if( newContig->BEndNext != NULLINDEX ){ // contig is in the beginning or middle
     AddDeltaToScaffoldOffsets(ScaffoldGraph,
-			      scaffold->id,
-			      newContig->BEndNext,
-			      TRUE,
-			      FALSE,
-			      deltaOffsetBEnd);
+                              scaffold->id,
+                              newContig->BEndNext,
+                              TRUE,
+                              FALSE,
+                              deltaOffsetBEnd);
   }
   /* Shouldn't need this */
   if(scaffold->bpLength.mean < (maxOffset->mean - minOffset->mean))
@@ -1303,31 +1297,31 @@ int CleanupFailedMergesInScaffolds(ScaffoldGraphT *sgraph){
 
     while(didSomething > 0){
       if(iteration == 0){
-	didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 16 , FALSE);
-	if(didSomething == 0)
-	  break;
-	if(didSomething > 0)
-	  madeChanges = TRUE;
-	//fprintf(stderr,"* Merge failure(16) in scaffold "F_CID " didSomething = %d \n", scaffold->id, didSomething);
+        didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 16 , FALSE);
+        if(didSomething == 0)
+          break;
+        if(didSomething > 0)
+          madeChanges = TRUE;
+        //fprintf(stderr,"* Merge failure(16) in scaffold "F_CID " didSomething = %d \n", scaffold->id, didSomething);
 
-	didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 4 , FALSE);
-	if(didSomething == 0)
-	  break;
-	if(didSomething > 0)
-	  madeChanges = TRUE;
-	//fprintf(stderr,"* Merge failure(4) in scaffold "F_CID " didSomething = %d \n", scaffold->id, didSomething);
+        didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 4 , FALSE);
+        if(didSomething == 0)
+          break;
+        if(didSomething > 0)
+          madeChanges = TRUE;
+        //fprintf(stderr,"* Merge failure(4) in scaffold "F_CID " didSomething = %d \n", scaffold->id, didSomething);
       }
 
       didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 3 , FALSE);
       if(didSomething == 0)
-	break;
+        break;
       if(didSomething > 0)
         madeChanges = TRUE;
       //fprintf(stderr,"* Merge failure(3) in scaffold "F_CID " didSomething = %d iteration %d\n", scaffold->id, didSomething, iteration);
 
       didSomething = CleanupAScaffold(sgraph,scaffold, FALSE, 2 , FALSE);
       if(didSomething > 0)
-	madeChanges = TRUE;
+        madeChanges = TRUE;
       //fprintf(stderr,"* After iteration %d  didSomething = %d\n", iteration, didSomething);
 
       iteration++;
@@ -1358,7 +1352,7 @@ int  DeleteAllSurrogateContigsFromFailedMerges(CIScaffoldT *scaffold,
 
 #if 0
   fprintf(stderr,"* DeleteAllSurrogateContigsFromFailedMerges scaffold "F_CID " contig "F_CID "\n",
-	  scaffold->id, contig->id);
+          scaffold->id, contig->id);
 #endif
 
   if(contig->bpLength.mean > 2000)
@@ -1444,7 +1438,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 
 
     MarkInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-			   maxVariance, TRUE, TRUE, 0,TRUE);
+                           maxVariance, TRUE, TRUE, 0,TRUE);
 
     numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
     if(numComponents>1){
@@ -1510,48 +1504,48 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
       IntElementPos aPos;
       if (((uint32)(contig.maxOffset.mean - trunc(currCI->offsetAEnd.mean)) == actual) ||
           ((uint32)(contig.maxOffset.mean - trunc(currCI->offsetBEnd.mean)) == actual)) {
-         currCI->offsetAEnd.mean -= currCI->offsetDelta.mean;
-         currCI->offsetAEnd.variance -= currCI->offsetDelta.variance;
-         currCI->offsetBEnd.mean -= currCI->offsetDelta.mean;
-         currCI->offsetBEnd.variance -= currCI->offsetDelta.variance;
+        currCI->offsetAEnd.mean -= currCI->offsetDelta.mean;
+        currCI->offsetAEnd.variance -= currCI->offsetDelta.variance;
+        currCI->offsetBEnd.mean -= currCI->offsetDelta.mean;
+        currCI->offsetBEnd.variance -= currCI->offsetDelta.variance;
 
-         int failed = TRUE;
-         fprintf(stderr, "CleanupAScaffold() Processing total multialign of %g\n",(fabs(contig.maxCI->offsetBEnd.mean - contig.maxCI->offsetAEnd.mean) + fabs(currCI->offsetBEnd.mean - currCI->offsetAEnd.mean))); 
+        int failed = TRUE;
+        fprintf(stderr, "CleanupAScaffold() Processing total multialign of %g\n",(fabs(contig.maxCI->offsetBEnd.mean - contig.maxCI->offsetAEnd.mean) + fabs(currCI->offsetBEnd.mean - currCI->offsetAEnd.mean))); 
 
-         actual = IntervalsOverlap(contig.minOffset.mean, contig.maxOffset.mean, currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
-         if (actual >= 0) {
-        	 int32 expected_ahang = (GetNodeOrient(currCI).isForward() ? currCI->offsetAEnd.mean : currCI->offsetBEnd.mean);
-        	 expected_ahang -= (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetAEnd.mean : contig.maxCI->offsetBEnd.mean);
-        	 int32 expected_bhang = (GetNodeOrient(currCI).isForward() ? currCI->offsetBEnd.mean : currCI->offsetAEnd.mean);
-        	 expected_bhang -= (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetBEnd.mean : contig.maxCI->offsetAEnd.mean);
+        actual = IntervalsOverlap(contig.minOffset.mean, contig.maxOffset.mean, currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
+        if (actual >= 0) {
+          int32 expected_ahang = (GetNodeOrient(currCI).isForward() ? currCI->offsetAEnd.mean : currCI->offsetBEnd.mean);
+          expected_ahang -= (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetAEnd.mean : contig.maxCI->offsetBEnd.mean);
+          int32 expected_bhang = (GetNodeOrient(currCI).isForward() ? currCI->offsetBEnd.mean : currCI->offsetAEnd.mean);
+          expected_bhang -= (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetBEnd.mean : contig.maxCI->offsetAEnd.mean);
 
-        	 float maxVar = (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetBEnd.variance : contig.maxCI->offsetAEnd.variance);
-        	 float currVar = (GetNodeOrient(currCI).isForward() ? currCI->offsetAEnd.variance : currCI->offsetBEnd.variance);
-        	 float inferredVar = (maxVar >= 0 ? maxVar : 0);
-        	 inferredVar += (currVar >= 0 ? currVar : 0);
+          float maxVar = (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetBEnd.variance : contig.maxCI->offsetAEnd.variance);
+          float currVar = (GetNodeOrient(currCI).isForward() ? currCI->offsetAEnd.variance : currCI->offsetBEnd.variance);
+          float inferredVar = (maxVar >= 0 ? maxVar : 0);
+          inferredVar += (currVar >= 0 ? currVar : 0);
 
-        	 int32 minOverlap = MAX(CGW_MISSED_OVERLAP, (actual - (3.0 * sqrt(inferredVar))));
-        	 int32 maxOverlap = (actual + (3.0 * sqrt(inferredVar)));
-        	 int32 minAhang = contig.maxCI->bpLength.mean - maxOverlap;
-        	 int32 maxAhang = contig.maxCI->bpLength.mean - minOverlap;
-        	 PairOrient orient = GetChunkPairOrientation(GetNodeOrient(contig.maxCI), GetNodeOrient(currCI));
+          int32 minOverlap = MAX(CGW_MISSED_OVERLAP, (actual - (3.0 * sqrt(inferredVar))));
+          int32 maxOverlap = (actual + (3.0 * sqrt(inferredVar)));
+          int32 minAhang = contig.maxCI->bpLength.mean - maxOverlap;
+          int32 maxAhang = contig.maxCI->bpLength.mean - minOverlap;
+          PairOrient orient = GetChunkPairOrientation(GetNodeOrient(contig.maxCI), GetNodeOrient(currCI));
 
-                 ALNoverlap* ovl = OverlapContigs(contig.maxCI, currCI, &orient, minAhang, maxAhang, FALSE, TRUE, TRUE);
-        	 if (ovl != NULL && ScoreOverlap(ovl, actual, expected_ahang, expected_bhang, AS_CGW_ERROR_RATE, NULL, NULL, NULL) != 0) {
-        		 failed = FALSE;
-        		 fprintf(stderr, "CleanupAScaffold() Undoing jiggling for %d worked.\n", currCI->id);
-        	 }
-         }
+          ALNoverlap* ovl = OverlapContigs(contig.maxCI, currCI, &orient, minAhang, maxAhang, FALSE, TRUE, TRUE);
+          if (ovl != NULL && ScoreOverlap(ovl, actual, expected_ahang, expected_bhang, AS_CGW_ERROR_RATE, NULL, NULL, NULL) != 0) {
+            failed = FALSE;
+            fprintf(stderr, "CleanupAScaffold() Undoing jiggling for %d worked.\n", currCI->id);
+          }
+        }
 
-         if (failed) {
-            fprintf(stderr, "CleanupAScaffold() Error: Undoing jiggle failed multi-align, backing out changes\n", currCI->id);
-            currCI->offsetAEnd.mean += currCI->offsetDelta.mean;
-            currCI->offsetBEnd.mean += currCI->offsetDelta.mean;
-         }
-         currCI->flags.bits.isJiggled = 0;
-         actual = IntervalsOverlap(contig.minOffset.mean, contig.maxOffset.mean, currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
+        if (failed) {
+          fprintf(stderr, "CleanupAScaffold() Error: Undoing jiggle failed multi-align, backing out changes\n", currCI->id);
+          currCI->offsetAEnd.mean += currCI->offsetDelta.mean;
+          currCI->offsetBEnd.mean += currCI->offsetDelta.mean;
+        }
+        currCI->flags.bits.isJiggled = 0;
+        actual = IntervalsOverlap(contig.minOffset.mean, contig.maxOffset.mean, currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
       } else {
-         fprintf(stderr, "CleanupAScaffold() Error: don't know how to unjiggle positions for contig id %d, skipping\n", currCI->id);
+        fprintf(stderr, "CleanupAScaffold() Error: don't know how to unjiggle positions for contig id %d, skipping\n", currCI->id);
       }
     }
     //  artificially break longs merges if != NULLINDEX
@@ -1627,57 +1621,57 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   // Now we have a collection of contigs to build
   // Work through them one at a time
 
-    ContigEndsT *ctg = GetContigEndsT(ContigEnds,0);
-    int32 numContigs = GetNumContigEndsTs(ContigEnds);
+  ContigEndsT *ctg = GetContigEndsT(ContigEnds,0);
+  int32 numContigs = GetNumContigEndsTs(ContigEnds);
 
-    VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(32);
+  VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(32);
 
-    /* Now the ContigEnds VA contains the starts/ends of all the contigs */
-    for(i = 0; i < numContigs; i++){
-      ContigT *contig;
-      IntElementPos contigPos;
-      ResetVA_IntElementPos(ContigPositions);
+  /* Now the ContigEnds VA contains the starts/ends of all the contigs */
+  for(i = 0; i < numContigs; i++){
+    ContigT *contig;
+    IntElementPos contigPos;
+    ResetVA_IntElementPos(ContigPositions);
 
-      ctg = GetContigEndsT(ContigEnds,i);
+    ctg = GetContigEndsT(ContigEnds,i);
 
-      for(contig = GetGraphNode(graph->ContigGraph, ctg->firstCID);
-          contig != NULL;
-          contig = GetGraphNode(graph->ContigGraph, contig->BEndNext))
-        {
-          contigPos.ident = contig->id;
-          contigPos.type = AS_CONTIG;
-          contigPos.position.bgn = contig->offsetAEnd.mean;
-          contigPos.position.end = contig->offsetBEnd.mean;
-          AppendIntElementPos(ContigPositions, &contigPos);
+    for(contig = GetGraphNode(graph->ContigGraph, ctg->firstCID);
+        contig != NULL;
+        contig = GetGraphNode(graph->ContigGraph, contig->BEndNext))
+      {
+        contigPos.ident = contig->id;
+        contigPos.type = AS_CONTIG;
+        contigPos.position.bgn = contig->offsetAEnd.mean;
+        contigPos.position.end = contig->offsetBEnd.mean;
+        AppendIntElementPos(ContigPositions, &contigPos);
 
-          if(contig->id == ctg->lastCID)
-            break;
-        }
-
-      // If there is no merging to be done, continue
-      if(GetNumIntElementPoss(ContigPositions) <= 1)
-        continue;
-
-      mergesAttempted++;
-
-      if(deleteUnmergedSurrogates){  // Just find the all-surrogate, unmerged contigs, and nuke them
-        int32 i;
-        for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
-          IntElementPos *pos = GetIntElementPos(ContigPositions, i);
-          contig = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
-
-          //  XXX: DeleteAllSurrogate..() returns true if it deletes a
-          //  contig, so if it does just one, we set
-          //  allMergesSucceeded to true.  Possibly a bug?
-          //
-          //  Not sure if this ever gets used, though.
-          //
-          allMergesSucceeded |= DeleteAllSurrogateContigsFromFailedMerges(scaffold, contig);
-        }
-      }else{
-        allMergesSucceeded &= CreateAContigInScaffold(scaffold, ContigPositions, ctg->minOffset, ctg->maxOffset);
+        if(contig->id == ctg->lastCID)
+          break;
       }
+
+    // If there is no merging to be done, continue
+    if(GetNumIntElementPoss(ContigPositions) <= 1)
+      continue;
+
+    mergesAttempted++;
+
+    if(deleteUnmergedSurrogates){  // Just find the all-surrogate, unmerged contigs, and nuke them
+      int32 i;
+      for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
+        IntElementPos *pos = GetIntElementPos(ContigPositions, i);
+        contig = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
+
+        //  XXX: DeleteAllSurrogate..() returns true if it deletes a
+        //  contig, so if it does just one, we set
+        //  allMergesSucceeded to true.  Possibly a bug?
+        //
+        //  Not sure if this ever gets used, though.
+        //
+        allMergesSucceeded |= DeleteAllSurrogateContigsFromFailedMerges(scaffold, contig);
+      }
+    }else{
+      allMergesSucceeded &= CreateAContigInScaffold(scaffold, ContigPositions, ctg->minOffset, ctg->maxOffset);
     }
+  }
 
 #ifdef DEBUG_CONNECTEDNESS
   // THE FOLLOWING IS DEBUG CODE
@@ -1794,13 +1788,13 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
     }
 
   if(GetNumIntElementPoss(ContigPositions) > 1) {
-      qsort(GetIntElementPos(ContigPositions,0),
-            GetNumIntElementPoss(ContigPositions),
-            sizeof(IntElementPos),
-            CompareIntElementPosByBgnPos);
-      // set will be shifted to 0 offset in this function
-      retVal = CreateAContigInScaffold(scaffold, ContigPositions, myOffsetAEnd, myOffsetBEnd);
-    }
+    qsort(GetIntElementPos(ContigPositions,0),
+          GetNumIntElementPoss(ContigPositions),
+          sizeof(IntElementPos),
+          CompareIntElementPosByBgnPos);
+    // set will be shifted to 0 offset in this function
+    retVal = CreateAContigInScaffold(scaffold, ContigPositions, myOffsetAEnd, myOffsetBEnd);
+  }
 
   Delete_VA(ContigPositions);
 
