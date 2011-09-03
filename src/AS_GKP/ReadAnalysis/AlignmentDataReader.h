@@ -22,7 +22,7 @@
 #ifndef ALIGNMENTDATAREADER_H
 #define ALIGNMENTDATAREADER_H
 
-static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id: AlignmentDataReader.h,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id: AlignmentDataReader.h,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -45,11 +45,16 @@ namespace ReadAnalysis
 	class AlignmentDataReader
 	{
 	public:
-		virtual vector<ReadAlignment>& readData(string filePath);
-		virtual vector<ReadAlignment>& readData(FILE* stream);
+		virtual vector<ReadAlignment*>& readData(string filePath);
+		virtual vector<ReadAlignment*>& readData(FILE* stream);
+		
+		vector<ReadAlignment*>& getData()
+		{
+			return this->data;
+		}
 		
 	protected:
-		vector<ReadAlignment> data;
+		vector<ReadAlignment*> data;
 		FILE* stream;
 		
 		AlignmentDataReader();

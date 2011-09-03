@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: profileReadAlignment.C,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: profileReadAlignment.C,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include "profileReadAlignment.h"
 
@@ -51,9 +51,11 @@ void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** 
 						case 'i':
 							options.inputPath = argValue;
 							break;
+							
 						case 'o':
 							options.outputPath = argValue;
 							break;
+							
 						default:
 							throw ArgumentException(string("Unknown option."), NULL, arg);
 							break;
@@ -65,6 +67,16 @@ void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** 
 			
 			options.useStdin = isPathStream(options.inputPath);
 			options.useStdout = isPathStream(options.outputPath);
+			
+			if (!options.useStdin && !FileUtils::isReadable(options.inputPath))
+			{
+				throw ArgumentException(string("A readable alignment data file or '-' for stdin must be specified: ") + options.inputPath, NULL, "-i");
+			}
+			
+			if (!options.useStdout && !FileUtils::isWriteable(options.outputPath))
+			{
+				throw ArgumentException(string("A writable output file or '-' for stdout must be specified: ") + options.outputPath, NULL, "-o");
+			}
 		}
 		catch (RuntimeException& e)
 		{
@@ -108,14 +120,27 @@ int main(int numArgs, char** args)
 		options.useStdin ? "<stdin>" : options.inputPath, 
 		options.useStdout ? "<stdout>" : options.outputPath);
 	
-	AlignmentDataReader* reader = getAlignmentDataReader(options);
-	
-	if (options.useStdin)
+	try
 	{
-		reader->readData(stdin);
+		AlignmentDataReader* reader = getAlignmentDataReader(options);
+		
+		if (options.useStdin)
+		{
+			reader->readData(stdin);
+		}
+		else
+		{
+			reader->readData(options.inputPath);
+		}
+		
+		ReadAlignmentProfiler profiler;
+		
+		profiler.profileData(reader->getData());
 	}
-	else
+	catch (RuntimeException& e)
 	{
-		reader->readData(options.inputPath);
+		fprintf(stderr, F_STR"\n", e.getMessage().c_str());
+		
+		exitFailure();
 	}
 }

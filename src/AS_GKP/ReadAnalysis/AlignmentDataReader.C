@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.2 2011-09-02 22:04:00 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include "AlignmentDataReader.h"
 
@@ -39,7 +39,7 @@ AlignmentDataReader::~AlignmentDataReader()
 	this->stream = NULL;
 }
 
-vector<ReadAlignment>& AlignmentDataReader::readData(string path)
+vector<ReadAlignment*>& AlignmentDataReader::readData(string path)
 {
 	this->stream = FileUtils::openRead(path);
 	
@@ -52,7 +52,7 @@ vector<ReadAlignment>& AlignmentDataReader::readData(string path)
 	return this->data;
 }
 
-vector<ReadAlignment>& AlignmentDataReader::readData(FILE* stream)
+vector<ReadAlignment*>& AlignmentDataReader::readData(FILE* stream)
 {
 	this->data.clear();
 	

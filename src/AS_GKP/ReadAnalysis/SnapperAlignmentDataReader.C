@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: SnapperAlignmentDataReader.C,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: SnapperAlignmentDataReader.C,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include "SnapperAlignmentDataReader.h"
 
@@ -36,9 +36,85 @@ SnapperAlignmentDataReader::~SnapperAlignmentDataReader()
 
 void SnapperAlignmentDataReader::processData()
 {
-	fprintf(stderr, "Processing Snapper alignment data ...\n");
+	fprintf(stderr, "Processing Snapper read alignment data ...\n");
 	
-	// TODO: implement
+	size_t lineNum = 0;
+	string line;
 	
-	fprintf(stderr, "Processed "F_U64" Snapper read alignment[s].", this->data.size());
+	ReadAlignment* readAlign;
+	
+	while (FileUtils::canRead(this->stream))
+	{
+		// Read alignment start
+		line = readLine(this->stream, line, lineNum);
+		
+		if (line.empty())
+		{
+			break;
+		}
+		
+		if (line != SNAPPER_READ_ALIGNMENT_START)
+		{
+			throw DataException(line, string("Read alignment start expected."));
+		}
+		
+		// Read info
+		line = readLine(this->stream, line, lineNum);
+		
+		readAlign = new ReadAlignment();
+		
+		if (!sscanf(line.c_str(), SNAPPER_READ_INFO_FORMAT, &readAlign->getIndex(), &readAlign->getLength()))
+		{
+			throw DataException(line, string("Read info expected."));
+		}
+		
+		// Read definition
+		line = readLine(this->stream, line, lineNum);
+		
+		if (!sscanf(line.c_str(), SNAPPER_READ_DEFINITION_FORMAT, &readAlign->getIid(), &readAlign->getMateIid()))
+		{
+			throw DataException(line, string("Read definition expected."));
+		}
+		
+		// Genome definition
+		line = readLine(this->stream, line, lineNum);
+		
+		/*
+		if (!sscanf(line.c_str(), SNAPPER_GENOME_DEFINITION_FORMAT))
+		{
+			throw DataException(line, string("Genome definition expected."));
+		}
+		*/
+		
+		// Alignment info
+		line = readLine(this->stream, line, lineNum);
+		
+		if (!sscanf(line.c_str(), SNAPPER_ALIGNMENT_INFO_FORMAT, &readAlign->getAlignedSegment().first, &readAlign->getAlignedSegment().second, 
+			&readAlign->getAlignment().first, &readAlign->getAlignment().second, &readAlign->getIdentity()))
+		{
+			throw DataException(line, string("Read definition expected."));
+		}
+		
+		// Read sequence
+		line = readLine(this->stream, line, lineNum);
+		
+		readAlign->getSequence().assign(line.begin(), line.end());
+		
+		// Genome sequence
+		line = readLine(this->stream, line, lineNum);
+		
+		readAlign->getGenomeSequence().assign(line.begin(), line.end());
+		
+		// Read alignment end
+		line = readLine(this->stream, line, lineNum);
+		
+		if (line != SNAPPER_READ_ALIGNMENT_END)
+		{
+			throw DataException(line, string("Read alignment end expected."));
+		}
+		
+		this->data.push_back(readAlign);
+	}
+	
+	fprintf(stderr, "Processed "F_U64" Snapper read alignment[s].\n", this->data.size());
 }

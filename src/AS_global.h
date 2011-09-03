@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.47 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.48 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include <assert.h>
 #include <stdarg.h>
@@ -101,13 +101,15 @@ typedef uint64_t uint64;
 
 typedef void *PtrT;
 
-#define F_P "%p"
-#define F_PP "p"
+#define F_P          "%p"
+#define F_PP          "p"
 
-#define F_C "%c"
-#define F_CP "c"
-#define F_STR "%s"
-#define F_STRP "s"
+#define F_C          "%c"
+#define F_CP          "c"
+#define F_CI     "%*"F_CP
+#define F_STR        "%s"
+#define F_STRP        "s"
+#define F_STRI "%*"F_STRP
 
 #if ULONG_MAX == 0xffffffff
   // 32-bit architecture
@@ -198,23 +200,34 @@ typedef void *PtrT;
    #include <sys/mode.h>
   #endif
 
-  #define F_S16    "%hd"
-  #define F_U16    "%hu"
-  #define F_S32    "%d"
-  #define F_S32P    "d"
-  #define F_U32    "%u"
-  #define F_U32P    "u"
-  #define F_S64   "%ld"
-  #define F_S64P   "ld"
-  #define F_U64   "%lu"
-  #define F_U64P   "lu"
-  #define F_X64   "%lx"
-  #define F_X64P   "lx"
+  #define F_S16       "%hd"
+  #define F_S16P       "hd"
+  #define F_S16I "%*"F_S16P
+  #define F_U16       "%hu"
+  #define F_U16P       "hu"
+  #define F_U16I "%*"F_U16P
+  #define F_S32        "%d"
+  #define F_S32P        "d"
+  #define F_S32I "%*"F_S32P
+  #define F_U32        "%u"
+  #define F_U32P        "u"
+  #define F_U32I "%*"F_U32P
+  #define F_S64       "%ld"
+  #define F_S64P       "ld"
+  #define F_S64I  "%*"F_64P
+  #define F_U64       "%lu"
+  #define F_U64P       "lu"
+  #define F_U64I "%*"F_U64P
+  #define F_X64       "%lx"
+  #define F_X64P       "lx"
+  #define F_X64I "%*"F_X64P
   
-  #define F_F32 "%f"
-  #define F_F32P "f"
-  #define F_F64 "%lf"
-  #define F_F64P "lf"
+  #define F_F32        "%f"
+  #define F_F32P        "f"
+  #define F_F32I  "%*"F_32P
+  #define F_F64       "%lf"
+  #define F_F64P       "lf"
+  #define F_F64I   "%*"F64P
   
   #define F_SIZE_T F_U64
   #define F_SIZE_TP F_U64P

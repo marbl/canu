@@ -22,7 +22,7 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
-static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.7 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.8 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include <fcntl.h>
 #include <stdarg.h>
@@ -197,16 +197,30 @@ namespace Utility
 		
 		inline static bool canRead(FILE* stream)
 		{
-			int accessMode = getAccessMode(stream);
-			
-			return ((accessMode == O_RDONLY) || (accessMode == O_RDWR)) && !feof(stream);
+			if (feof(stream))
+			{
+				return false;
+			}
+			else
+			{
+				int accessMode = getAccessMode(stream);
+				
+				return ((accessMode == O_RDONLY) || (accessMode == O_RDWR));
+			}
 		}
 
 		inline static bool canWrite(FILE* stream)
 		{
-			int accessMode = getAccessMode(stream);
-			
-			return ((accessMode == O_WRONLY) || (accessMode == O_RDWR)) && !feof(stream);
+			if (feof(stream))
+			{
+				return false;
+			}
+			else
+			{
+				int accessMode = getAccessMode(stream);
+				
+				return ((accessMode == O_WRONLY) || (accessMode == O_RDWR));
+			}
 		}
 		
 		inline static int getAccessMode(FILE* stream)

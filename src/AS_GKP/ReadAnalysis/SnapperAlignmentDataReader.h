@@ -22,7 +22,7 @@
 #ifndef SNAPPERALIGNMENTDATAREADER_H
 #define SNAPPERALIGNMENTDATAREADER_H
 
-static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -32,15 +32,25 @@ static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDa
 using namespace std;
 
 #include "AlignmentDataReader.h"
-#include "AlignmentError.h"
-#include "AlignmentErrorType.h"
 #include "AS_global.h"
-#include "BaseAlignment.h"
 #include "DataException.h"
+#include "FileUtils.h"
 #include "ReadAlignment.h"
+#include "StringUtils.h"
+
+using namespace Utility;
 
 namespace ReadAnalysis
 {
+	static const char* SNAPPER_READ_ALIGNMENT_START = "sim4begin";
+	static const char* SNAPPER_READ_ALIGNMENT_END = "sim4end";
+	
+	static const char* SNAPPER_READ_INFO_FORMAT = F_U64"["F_U64"-"F_STRI;
+	static const char* SNAPPER_READ_DEFINITION_FORMAT = 
+		"edef="F_U64","F_U32I" mate="F_U64","F_U32I" lib="F_STRI","F_U32I" clr="F_STRI","F_U64I","F_U64I" deleted="F_CI;
+	static const char* SNAPPER_GENOME_DEFINITION_FORMAT = "ddef="F_STRI;
+	static const char* SNAPPER_ALIGNMENT_INFO_FORMAT = F_U64"-"F_U64" ("F_U64"-"F_U64") <"F_U64I"-"F_U16I"-"F_U16">";
+	
 	class SnapperAlignmentDataReader : public AlignmentDataReader
 	{
 	public:
@@ -48,6 +58,17 @@ namespace ReadAnalysis
 		virtual ~SnapperAlignmentDataReader();
 		
 	protected:
+		inline static string& readLine(FILE* stream, string& line, size_t& lineNum)
+		{
+			line = string();
+			
+			FileUtils::readLine(stream, line);
+			
+			lineNum++;
+			
+			return line;
+		}
+		
 		virtual void processData();
 	};
 }

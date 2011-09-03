@@ -22,7 +22,7 @@
 #ifndef READALIGNMENTPROFILER_H
 #define READALIGNMENTPROFILER_H
 
-static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -44,16 +44,45 @@ using namespace Utility;
 
 namespace ReadAnalysis
 {
+	static const size_t DEFAULT_BASES_RESERVE_SIZE = 10240;
+	static const size_t DEFAULT_BASES_RESIZE_FACTOR = 2;
+	
 	class ReadAlignmentProfiler
 	{
 	public:
 		ReadAlignmentProfiler();
 		
-		void profileData(vector<ReadAlignment>& data);
+		inline static bool isBaseCall(const char base)
+		{
+			return (base == 'a') || (base == 'A') || 
+				(base == 'c') || (base == 'C') || 
+				(base == 'g') || (base == 'G') || 
+				(base == 't') || (base == 'T');
+		}
+		
+		inline static bool isBaseError(const char base)
+		{
+			return (base == 'A') || (base == 'C') || 
+				(base == 'G') || (base == 'T');
+		}
+		
+		inline static bool isBaseGap(const char base)
+		{
+			return base == '-';;
+		}
+		
+		inline static bool isBaseUnknown(const char base)
+		{
+			return base == 'N';;
+		}
+		
+		void profileData(vector<ReadAlignment*>& data);
+		
+		BaseAlignment* getBaseAlign(size_t index);
 		
 	protected:
-		vector<ReadAlignment> data;
-		vector<BaseAlignment> profile;
+		vector<ReadAlignment*> data;
+		vector<BaseAlignment*> bases;
 	};
 }
 

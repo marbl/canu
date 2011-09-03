@@ -22,7 +22,7 @@
 #ifndef READALIGNMENT_H
 #define READALIGNMENT_H
 
-static const char* rcsid_READALIGNMENT_H = "$Id: ReadAlignment.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENT_H = "$Id: ReadAlignment.h,v 1.2 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -43,7 +43,7 @@ namespace ReadAnalysis
 	public:
 		ReadAlignment(size_t index = 0);
 		
-		size_t getIndex()
+		size_t& getIndex()
 		{
 			return this->index;
 		}
@@ -53,7 +53,7 @@ namespace ReadAnalysis
 			this->index = index;
 		}
 		
-		AS_IID getIid()
+		AS_IID& getIid()
 		{
 			return this->iid;
 		}
@@ -63,17 +63,17 @@ namespace ReadAnalysis
 			this->iid = iid;
 		}
 		
-		string getName()
+		AS_IID& getMateIid()
 		{
-			return this->name;
+			return this->mateIid;
 		}
 		
-		void setName(string name)
+		void setMateIid(AS_IID mateIid)
 		{
-			this->name = name;
+			this->mateIid = mateIid;
 		}
 		
-		size_t getLength()
+		size_t& getLength()
 		{
 			return this->length;
 		}
@@ -83,7 +83,17 @@ namespace ReadAnalysis
 			this->length = length;
 		}
 		
-		pair<size_t,size_t> getAlignment()
+		pair<size_t,size_t>& getAlignedSegment()
+		{
+			return this->alignedSegment;
+		}
+		
+		void setAlignedSegment(pair<size_t,size_t> alignedSegment)
+		{
+			this->alignedSegment = alignedSegment;
+		}
+		
+		pair<size_t,size_t>& getAlignment()
 		{
 			return this->alignment;
 		}
@@ -103,14 +113,26 @@ namespace ReadAnalysis
 			return this->sequence;
 		}
 		
+		uint16& getIdentity()
+		{
+			return this->identity;
+		}
+		
+		void setIdentity(uint16 identity)
+		{
+			this->identity = identity;
+		}
+		
 	protected:
 		size_t index;
 		AS_IID iid;
-		string name;
+		AS_IID mateIid;
 		size_t length;
+		pair<size_t, size_t> alignedSegment;
 		pair<size_t, size_t> alignment;
 		vector<char> sequence;
 		vector<char> genomeSequence;
+		uint16 identity;
 	};
 }
 

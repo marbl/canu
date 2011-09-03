@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: ReadAlignment.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: ReadAlignment.C,v 1.2 2011-09-03 01:29:50 mkotelbajcvi Exp $";
 
 #include "ReadAlignment.h"
 
@@ -29,8 +29,11 @@ ReadAlignment::ReadAlignment(size_t index)
 {
 	this->index = index;
 	this->iid = 0;
+	this->mateIid = 0;
 	this->length = 0;
+	this->alignedSegment.first = this->alignedSegment.second = 0;
 	this->alignment.first = this->alignment.second = 0;
+	this->identity = 0;
 	
 	this->sequence.reserve(DEFAULT_READ_ALIGNMENT_SEQUENCE_RESERVE_SIZE);
 	this->genomeSequence.reserve(DEFAULT_READ_ALIGNMENT_SEQUENCE_RESERVE_SIZE);
