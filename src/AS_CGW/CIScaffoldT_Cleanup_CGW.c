@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.69 2011-09-03 07:36:12 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.70 2011-09-03 08:13:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -535,16 +535,14 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
         // If we don't find either of these edges already in the graph, proceed
         if(!LookupOverlap(ScaffoldGraph->ContigGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient1, &olap) &&
            !LookupOverlap(ScaffoldGraph->ContigGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient2, &olap)) {
-          EdgeCGW_T *newEdge;
-          CDS_CID_t eid;
-          int32  isContainment = (MIN(-distance1.mean,-distance2.mean) > otherContig->bpLength.mean);
+          int32      isContainment = (MIN(-distance1.mean,-distance2.mean) > otherContig->bpLength.mean);
+          EdgeCGW_T *newEdge       = GetFreeGraphEdge(ScaffoldGraph->ContigGraph);
+          CDS_CID_t  eid           = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
 
-          CDS_CID_t edgeID =
-            GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, edge);
-          newEdge = GetFreeGraphEdge(ScaffoldGraph->ContigGraph);
-          eid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
-          edge = GetGraphEdge(ScaffoldGraph->ContigGraph, edgeID);
           AppendCDS_CID_t(CollectedEdges, &eid);
+
+          uint32 edgeIDX = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, edge);
+          edge = GetGraphEdge(ScaffoldGraph->ContigGraph, edgeIDX);
 
           newEdge->idA = newContig->id;
           newEdge->idB = (edge->idA == contig->id? edge->idB: edge->idA);
@@ -562,6 +560,10 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 
           if (isContainment) {
             newEdge = GetFreeGraphEdge(ScaffoldGraph->ContigGraph);
+
+            //  GetFreeGraphEdge realloc's ContigGraph
+            edge = GetGraphEdge(ScaffoldGraph->ContigGraph, edgeIDX);
+
             eid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
             AppendCDS_CID_t(CollectedEdges, &eid);
             newEdge->idA = newContig->id;
