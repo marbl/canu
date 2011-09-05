@@ -25,13 +25,12 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.48 2011-09-03 01:29:50 mkotelbajcvi Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.49 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include <assert.h>
 #include <stdarg.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <time.h>
 #include <unistd.h>
 #include <algorithm>
 #include <cerrno>
@@ -58,18 +57,17 @@ using namespace std;
 #endif
 
 #ifndef TRUE
-  #define TRUE (1)
+	#define TRUE true
 #endif
 #ifndef FALSE
-  #define FALSE (0)
+	#define FALSE false
 #endif
-
 
 #ifndef MIN
-  #define MIN(a,b)		( ((a) < (b)) ? (a) : (b) )
+	#define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 #ifndef MAX
-  #define MAX(a,b)		( ((a) > (b)) ? (a) : (b) )
+	#define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
 
@@ -409,10 +407,35 @@ int AS_configure(int argc, char **argv);
 // without bothering lint
 #define AssertPtr(ptr) (assert((ptr) != NULL))
 
+#ifndef clock
+extern clock_t clock (void) __THROW;
+#endif
+#ifndef time
+extern time_t time (time_t *__timer) __THROW;
+#endif
+#ifndef CLOCKS_PER_SEC
+extern int64 CLOCKS_PER_SEC;
+#endif
+
 #define exitFailure() \
 	exit(EXIT_FAILURE)
 
 #define exitSuccess() \
 	exit(EXIT_SUCCESS)
+
+static const char LINE_FEED = '\n';
+static const char* LINE_FEED_STR = "\n";
+
+static const char CARRIAGE_RETURN = '\r';
+static const char* CARRIAGE_RETURN_STR = "\r";
+
+static const char NEWLINE = LINE_FEED;
+static const char* NEWLINE_STR = LINE_FEED_STR;
+
+static const char NULL_TERMINATOR = '\0';
+static const char* NULL_TERMINATOR_STR = "\0";
+
+static const char PATH_DELIMITER = '/';
+static const char* PATH_DELIMITER_STR = "/";
 
 #endif

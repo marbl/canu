@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: SnapperAlignmentDataReader.C,v 1.4 2011-09-03 04:08:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: SnapperAlignmentDataReader.C,v 1.5 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include "SnapperAlignmentDataReader.h"
 
@@ -36,6 +36,8 @@ SnapperAlignmentDataReader::~SnapperAlignmentDataReader()
 
 void SnapperAlignmentDataReader::processData()
 {
+	clock_t startClock = clock();
+	
 	fprintf(stderr, "Processing Snapper read alignment data ...\n");
 	
 	size_t lineNum = 0;
@@ -113,8 +115,11 @@ void SnapperAlignmentDataReader::processData()
 			throw DataException(line, string("Read alignment end expected."));
 		}
 		
+		this->processReadAlignmentStats(readAlign);
+		
 		this->data.push_back(readAlign);
 	}
 	
-	fprintf(stderr, "Processed "F_U64" Snapper read alignment[s].\n\n", this->data.size());
+	fprintf(stderr, "Processed "F_U64" Snapper read alignment[s]: time=%.2"F_F64P"s\n", this->data.size(), 
+		(double)(clock() - startClock) / (double)CLOCKS_PER_SEC);
 }

@@ -22,7 +22,7 @@
 #ifndef ASSERTS_H
 #define ASSERTS_H
 
-static const char* rcsid_ASSERTS_H = "$Id: Asserts.h,v 1.3 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_ASSERTS_H = "$Id: Asserts.h,v 1.4 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -40,83 +40,101 @@ namespace Utility
 	class Asserts
 	{
 	public:
-		inline static void assertFalse(bool condition, const char* message = NULL)
+		inline static void assertFalse(bool condition, string message = "")
 		{
 			if (condition)
 			{
-				throw AssertionException(message, NULL, ASSERT_FALSE);
+				throw AssertionException(ASSERT_FALSE, message);
 			}
 		}
 		
-		inline static void assertTrue(bool condition, const char* message = NULL)
+		inline static void assertTrue(bool condition, string message = "")
 		{
 			if (!condition)
 			{
-				throw AssertionException(message, NULL, ASSERT_TRUE);
+				throw AssertionException(ASSERT_TRUE, message);
 			}
 		}
 		
-		inline static void assertNull(void* obj, const char* message = NULL)
+		inline static void assertNull(void* obj, string message = "")
 		{
 			if (obj != NULL)
 			{
-				throw AssertionException(message, NULL, ASSERT_NULL);
+				throw AssertionException(ASSERT_NULL, message);
 			}
 		}
 		
-		inline static void assertNotNull(void* obj, const char* message = NULL)
+		inline static void assertNotNull(void* obj, const char* message = "")
 		{
 			if (obj == NULL)
 			{
-				throw AssertionException(message, NULL, ASSERT_NOT_NULL);
+				throw AssertionException(ASSERT_NOT_NULL, message);
 			}
 		}
 		
-		inline static void assertEmpty(const char* str, const char* message = NULL)
+		inline static void assertEmpty(const char* str, string message = "")
 		{
-			if (str != NULL)
+			if (!StringUtils::isEmpty(str))
 			{
-				throw AssertionException(message, NULL, ASSERT_EMPTY);
+				throw AssertionException(ASSERT_EMPTY, message);
 			}
 		}
 		
-		inline static void assertEmpty(string str, const char* message = NULL)
+		inline static void assertEmpty(string str, string message = "")
 		{
 			if (!str.empty())
 			{
-				throw AssertionException(message, NULL, ASSERT_EMPTY);
+				throw AssertionException(ASSERT_EMPTY, message);
 			}
 		}
 		
-		inline static void assertNotEmpty(const char* str, const char* message = NULL)
+		inline static void assertNotEmpty(const char* str, string message = "")
 		{
-			if (str == NULL)
+			if (StringUtils::isEmpty(str))
 			{
-				throw AssertionException(message, NULL, ASSERT_NOT_EMPTY);
+				throw AssertionException(ASSERT_NOT_EMPTY, message);
 			}
 		}
 		
-		inline static void assertNotEmpty(string str, const char* message = NULL)
+		inline static void assertNotEmpty(string str, string message = "")
 		{
 			if (str.empty())
 			{
-				throw AssertionException(message, NULL, ASSERT_NOT_EMPTY);
+				throw AssertionException(ASSERT_NOT_EMPTY, message);
 			}
 		}
 		
-		inline static void assertEquals(void* obj1, void* obj2, const char* message = NULL)
+		template<class T>
+		inline static void assertEquals(T obj1, T obj2, string message = "")
 		{
 			if (obj1 != obj2)
 			{
-				throw AssertionException(message, NULL, ASSERT_EQUALS);
+				throw AssertionException(ASSERT_EQUALS, message);
 			}
 		}
 		
-		inline static void assertNotEquals(void* obj1, void* obj2, const char* message = NULL)
+		template<class T>
+		inline static void assertNotEquals(T obj1, T obj2, string message = "")
 		{
 			if (obj1 == obj2)
 			{
-				throw AssertionException(message, NULL, ASSERT_NOT_EQUALS);
+				throw AssertionException(ASSERT_NOT_EQUALS, message);
+			}
+		}
+		
+		inline static void assertSame(void* obj1, void* obj2, string message = "")
+		{
+			if (obj1 != obj2)
+			{
+				throw AssertionException(ASSERT_EQUALS, message);
+			}
+		}
+		
+		inline static void assertNotSame(void* obj1, void* obj2, string message = "")
+		{
+			if (obj1 == obj2)
+			{
+				throw AssertionException(ASSERT_NOT_EQUALS, message);
 			}
 		}
 		

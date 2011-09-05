@@ -22,7 +22,7 @@
 #ifndef PROFILEREADALIGNMENT_H
 #define PROFILEREADALIGNMENT_H
 
-static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v 1.3 2011-09-03 04:08:27 mkotelbajcvi Exp $";
+static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include <unistd.h>
 #include <cstdio>
@@ -49,16 +49,24 @@ static const char* STREAM_PATH = "-";
 
 typedef struct ProfileReadAlignmentOptions
 {
-	const char* inputPath;
-	const char* outputPath;
+	ProfileReadAlignmentOptions()
+	{
+		this->useStdin = false;
+		this->useStdout = false;
+		this->verbose = false;
+	}
+	
+	string inputPath;
+	string outputPath;
+	
 	bool useStdin;
 	bool useStdout;
+	
+	bool verbose;
 };
 
-AlignmentDataReader* getAlignmentDataReader(ProfileReadAlignmentOptions& options);
-
 void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** args);
-bool isPathStream(const char* path);
+bool isPathStream(string path);
 void printUsage(const char* executableName);
 
 int main(int numArgs, char** args);

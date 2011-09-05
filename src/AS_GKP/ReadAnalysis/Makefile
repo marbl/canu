@@ -27,6 +27,7 @@ LOCAL_WORK = $(shell cd ../../..; pwd)
 SOURCES_LIB = \
 	AlignmentError.C \
 	AlignmentDataReader.C \
+	AlignmentDataStats.C \
 	BaseAlignment.C \
 	ReadAlignment.C \
 	ReadAlignmentProfiler.C \

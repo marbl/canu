@@ -22,15 +22,18 @@
 #ifndef READALIGNMENTPROFILER_H
 #define READALIGNMENTPROFILER_H
 
-static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <string>
 #include <vector>
 
 using namespace std;
 
+#include "AlignmentDataReader.h"
 #include "AlignmentError.h"
 #include "AlignmentErrorType.h"
 #include "AS_global.h"
@@ -44,13 +47,15 @@ using namespace Utility;
 
 namespace ReadAnalysis
 {
-	static const size_t DEFAULT_BASES_RESERVE_SIZE = 10240;
-	static const size_t DEFAULT_BASES_RESIZE_FACTOR = 2;
+	static const uint16 PROFILE_DATA_PERCENT_INCREMENT = 10;
+	
+	static const char* PROFILE_DATA_OUTPUT_SUMMARY_PREFIX = "#";
 	
 	class ReadAlignmentProfiler
 	{
 	public:
 		ReadAlignmentProfiler();
+		~ReadAlignmentProfiler();
 		
 		inline static bool isBaseCall(const char base)
 		{
@@ -76,13 +81,29 @@ namespace ReadAnalysis
 			return base == 'N';;
 		}
 		
-		void profileData(vector<ReadAlignment*>& data);
+		void writeProfile(string path);
+		void writeProfile(FILE* stream);
+		void profileData(vector<ReadAlignment*>& data, AlignmentDataStats& dataStats);
 		
-		BaseAlignment* getBaseAlign(size_t index);
+		bool& getVerbose()
+		{
+			return this->verbose;
+		}
+		
+		void setVerbose(bool verbose)
+		{
+			this->verbose = verbose;
+		}
 		
 	protected:
+		bool verbose;
 		vector<ReadAlignment*> data;
+		AlignmentDataStats dataStats;
 		vector<BaseAlignment*> bases;
+		FILE* stream;
+		
+		void profileBase(size_t readIndex, size_t baseIndex);
+		void initBases();
 	};
 }
 

@@ -22,7 +22,7 @@
 #ifndef ARGUMENTEXCEPTION_H
 #define ARGUMENTEXCEPTION_H
 
-static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_ARGUMENTEXCEPTION_H = "$Id: ArgumentException.h,v 1.8 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -39,7 +39,7 @@ using namespace Utility;
 class ArgumentException : public RuntimeException
 {
 public:
-	ArgumentException(string message = string(), RuntimeException* cause = NULL, string name = NULL) throw();
+	ArgumentException(string name = "", string message = "", RuntimeException* cause = NULL) throw();
 	virtual ~ArgumentException() throw();
 
 protected:

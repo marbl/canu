@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: FileUtils.C,v 1.7 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: FileUtils.C,v 1.8 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include "FileUtils.h"
 
@@ -53,5 +53,5 @@ string& FileUtils::getPath(string& buffer, size_t num, const char** pathParts)
 		pathParts[a] = pathPartStr.c_str();
 	}
 	
-	return StringUtils::join(PATH_DELIMITER_STR, buffer, num, pathParts);
+	return StringUtils::join(buffer, PATH_DELIMITER_STR, num, pathParts);
 }

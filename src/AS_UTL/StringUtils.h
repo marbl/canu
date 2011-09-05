@@ -22,7 +22,7 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.14 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.15 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <cstdarg>
@@ -41,18 +41,6 @@ using namespace std;
 
 namespace Utility
 {
-	static const char LINE_FEED = '\n';
-	static const char* LINE_FEED_STR = "\n";
-	
-	static const char CARRIAGE_RETURN = '\r';
-	static const char* CARRIAGE_RETURN_STR = "\r";
-	
-	static const char NEWLINE = LINE_FEED;
-	static const char* NEWLINE_STR = LINE_FEED_STR;
-	
-	static const char NULL_TERMINATOR = '\0';
-	static const char* NULL_TERMINATOR_STR = "\0";
-
 	class StringUtils
 	{
 	public:
@@ -131,20 +119,18 @@ namespace Utility
 			return buffer;
 		}
 		
-		// TODO: use strings
-		inline static string& join(const char* delimiter, string& buffer, size_t num, ...)
+		inline static string& join(string& buffer, const string delimiter, size_t num, ...)
 		{
 			initArgs(num);
 			
-			return join(delimiter, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
+			return join(buffer, delimiter, num, VarUtils::getArgs<const char*>(num, argsList));
 		}
 		
-		// TODO: use strings
-		inline static string& join(const char* delimiter, string& buffer, size_t num, const char** toJoin)
+		inline static string& join(string& buffer, const string delimiter, size_t num, const char** toJoin)
 		{
 			for (size_t a = 0; a < num; a++)
 			{
-				if (!isEmpty(delimiter) && !buffer.empty())
+				if (!delimiter.empty() && !buffer.empty())
 				{
 					buffer += delimiter;
 				}
@@ -155,8 +141,8 @@ namespace Utility
 			return buffer;
 		}
 		
-		template<class InputIterator>
-		inline static string& join(string delimiter, string& buffer, InputIterator begin, InputIterator end)
+		template<class T>
+		inline static string& join(string& buffer, const string delimiter, T begin, T end)
 		{
 			for (; begin != end; begin++)
 			{
@@ -170,70 +156,21 @@ namespace Utility
 			
 			return buffer;
 		}
-		
-		inline static string& toString(unsigned value, string& buffer)
-		{
-			ostringstream stream(ostringstream::out);
-			stream.str(buffer);
-			
-			stream << value;
-			
-			return buffer;
-		}
-	
-		inline static string& toString(unsigned long value, string& buffer)
-		{
-			ostringstream stream(ostringstream::out);
-			stream.str(buffer);
-			
-			stream << value;
-			
-			return buffer;
-		}
-	
-		inline static string& toString(int value, string& buffer)
-		{
-			ostringstream stream(ostringstream::out);
-			stream.str(buffer);
-			
-			stream << value;
-			
-			return buffer;
-		}
-		
-		inline static string& toString(long value, string& buffer)
-		{
-			ostringstream stream(ostringstream::out);
-			stream.str(buffer);
-			
-			stream << value;
-			
-			return buffer;
-		}
-	
-		inline static string& toString(float value, string& buffer)
-		{
-			ostringstream stream(ostringstream::out);
-			stream.str(buffer);
-			
-			stream << value;
-			
-			return buffer;
-		}
-	
-		inline static string& toString(double value, string& buffer)
-		{
-			ostringstream stream(ostringstream::out);
-			stream.str(buffer);
-			
-			stream << value;
-			
-			return buffer;
-		}
 	
 		inline static string& toString(char value, string& buffer)
 		{
 			buffer += value;
+			
+			return buffer;
+		}
+		
+		template<class T>
+		inline static string& toString(T value, string& buffer)
+		{
+			ostringstream stream(ostringstream::out);
+			stream.str(buffer);
+			
+			stream << value;
 			
 			return buffer;
 		}

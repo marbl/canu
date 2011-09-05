@@ -19,82 +19,35 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: BaseAlignment.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: BaseAlignment.C,v 1.2 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include "BaseAlignment.h"
 
 using namespace ReadAnalysis;
 
-BaseAlignment::BaseAlignment(size_t position, size_t readReserveSize, size_t errorTypeReserveSize)
+BaseAlignment::BaseAlignment(size_t position, size_t readsReserveSize, size_t errorTypeReserveSize)
 {
 	this->position = position;
-	this->errorTypeReserveSize = errorTypeReserveSize;
 	
-	this->reads.reserve(readReserveSize);
-}
-
-void BaseAlignment::addError(AlignmentError error)
-{
-	this->getErrors(error.getType()).push_back(error);
-}
-
-vector<AlignmentError>& BaseAlignment::getErrors(AlignmentErrorType type)
-{
-	vector<AlignmentError>* typeErrors = (type != UNKNOWN) && this->hasErrors(type) ? &this->errors[type] : NULL;
+	this->reads.reserve(readsReserveSize);
 	
-	if (typeErrors == NULL)
-	{
-		typeErrors = new vector<AlignmentError>();
-		
-		if (type != UNKNOWN)
-		{
-			typeErrors->reserve(this->errorTypeReserveSize);
-			
-			this->errors[type] = *typeErrors;
-		}
-		else
-		{
-			typeErrors->reserve(this->getNumErrors(MISMATCH) + this->getNumErrors(INSERTION) + this->getNumErrors(DELETION));
-			
-			copy(this->errors[MISMATCH].begin(), this->errors[MISMATCH].end(), typeErrors->end());
-			copy(this->errors[INSERTION].begin(), this->errors[INSERTION].end(), typeErrors->end());
-			copy(this->errors[DELETION].begin(), this->errors[DELETION].end(), typeErrors->end());
-		}
-	}
-	
-	return *typeErrors;
+	this->initErrorType(MISMATCH, errorTypeReserveSize);
+	this->initErrorType(INSERTION, errorTypeReserveSize);
+	this->initErrorType(DELETION, errorTypeReserveSize);
 }
 
-size_t BaseAlignment::getNumErrors(AlignmentErrorType type)
+void BaseAlignment::addRead(AS_IID iid)
 {
-	if (type == UNKNOWN)
-	{
-		size_t numErrors = 0;
-		
-		if (this->hasErrors(MISMATCH))
-		{
-			numErrors += this->errors[MISMATCH].size();
-		}
-		
-		if (this->hasErrors(INSERTION))
-		{
-			numErrors += this->errors[INSERTION].size();
-		}
-		
-		if (this->hasErrors(DELETION))
-		{
-			numErrors += this->errors[DELETION].size();
-		}
-		
-		return numErrors;
-	}
-	else
-	{
-		return (this->hasErrors(type) ? this->errors[type].size() : 0);
-	}
+	this->reads.push_back(iid);
 }
 
-bool BaseAlignment::hasErrors(AlignmentErrorType type)
+void BaseAlignment::addError(AlignmentError* error)
 {
-	return !this->errors.empty() && ((type == UNKNOWN) || (this->errors.count(type) != 0) && !this->errors[type].empty());
+	this->errors[error->getType()]->push_back(error);
+}
+
+void BaseAlignment::initErrorType(AlignmentErrorType type, size_t reserveSize)
+{
+	this->errors[type] = new vector<AlignmentError*>();
+	this->errors[type]->reserve(reserveSize);
 }

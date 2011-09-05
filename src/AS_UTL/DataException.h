@@ -22,7 +22,7 @@
 #ifndef DATAEXCEPTION_H
 #define DATAEXCEPTION_H
 
-static const char* rcsid_DATAEXCEPTION_H = "$Id: DataException.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_DATAEXCEPTION_H = "$Id: DataException.h,v 1.2 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -41,7 +41,7 @@ using namespace Utility;
 class DataException : public RuntimeException
 {
 public:
-	DataException(string source = string(), string message = string(), RuntimeException* cause = NULL) throw();
+	DataException(string source = "", string message = "", RuntimeException* cause = NULL) throw();
 	virtual ~DataException() throw();
 	
 protected:

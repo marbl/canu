@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include "AlignmentDataReader.h"
 
@@ -27,6 +27,7 @@ using namespace ReadAnalysis;
 
 AlignmentDataReader::AlignmentDataReader()
 {
+	this->verbose = false;
 	this->stream = NULL;
 	
 	this->data.reserve(DEFAULT_READ_ALIGNMENT_RESERVE_SIZE);
@@ -39,20 +40,28 @@ AlignmentDataReader::~AlignmentDataReader()
 	this->stream = NULL;
 }
 
-vector<ReadAlignment*>& AlignmentDataReader::readData(string path)
+void AlignmentDataReader::readData(string path)
 {
+	if (this->verbose)
+	{
+		fprintf(stderr, "Opening alignment data file stream: "F_STR"\n", path.c_str());
+	}
+	
 	this->stream = FileUtils::openRead(path);
 	
 	this->readData(this->stream);
 	
+	if (this->verbose)
+	{
+		fprintf(stderr, "Closing alignment data file stream: "F_STR"\n", path.c_str());
+	}
+	
 	FileUtils::close(this->stream);
 	
 	this->stream = NULL;
-	
-	return this->data;
 }
 
-vector<ReadAlignment*>& AlignmentDataReader::readData(FILE* stream)
+void AlignmentDataReader::readData(FILE* stream)
 {
 	this->data.clear();
 	
@@ -67,5 +76,12 @@ vector<ReadAlignment*>& AlignmentDataReader::readData(FILE* stream)
 	
 	this->processData();
 	
-	return this->data;
+	this->dataStats.setMeanReadLength(this->dataStats.getMeanReadLength() / this->data.size());
+}
+
+void AlignmentDataReader::processReadAlignmentStats(ReadAlignment* readAlign)
+{
+	this->dataStats.setMinReadLength(min(this->dataStats.getMinReadLength(), readAlign->getLength()));
+	this->dataStats.setMaxReadLength(max(this->dataStats.getMaxReadLength(), readAlign->getLength()));
+	this->dataStats.setMeanReadLength(this->dataStats.getMeanReadLength() + readAlign->getLength());
 }

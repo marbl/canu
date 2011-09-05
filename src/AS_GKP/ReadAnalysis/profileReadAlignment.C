@@ -19,16 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: profileReadAlignment.C,v 1.3 2011-09-03 01:29:50 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: profileReadAlignment.C,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include "profileReadAlignment.h"
-
-AlignmentDataReader* getAlignmentDataReader(ProfileReadAlignmentOptions& options)
-{
-	// TODO: implement alignment data type determination
-	
-	return new SnapperAlignmentDataReader();
-}
 
 void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** args)
 {
@@ -50,19 +43,25 @@ void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** 
 					{
 						case 'i':
 							options.inputPath = argValue;
+							argIndex++;
 							break;
 							
 						case 'o':
 							options.outputPath = argValue;
+							argIndex++;
+							break;
+							
+						case 'v':
+							options.verbose = true;
 							break;
 							
 						default:
-							throw ArgumentException(string("Unknown option."), NULL, arg);
+							throw ArgumentException(arg, "Unknown option.");
 							break;
 					}
 				}
 				
-				argIndex += 2;
+				argIndex++;
 			}
 			
 			options.useStdin = isPathStream(options.inputPath);
@@ -70,17 +69,17 @@ void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** 
 			
 			if (!options.useStdin && !FileUtils::isReadable(options.inputPath))
 			{
-				throw ArgumentException(string("A readable alignment data file or '-' for stdin must be specified: ") + options.inputPath, NULL, "-i");
+				throw ArgumentException("-i", string("A readable alignment data file or '-' for stdin must be specified: ") + options.inputPath);
 			}
 			
 			if (!options.useStdout && !FileUtils::isWriteable(options.outputPath))
 			{
-				throw ArgumentException(string("A writable output file or '-' for stdout must be specified: ") + options.outputPath, NULL, "-o");
+				throw ArgumentException("-o", string("A writable output file or '-' for stdout must be specified: ") + options.outputPath);
 			}
 		}
 		catch (RuntimeException& e)
 		{
-			fprintf(stderr, F_STR"\n", e.getMessage().c_str());
+			fprintf(stderr, F_STR"\n", options.verbose ? e.what() : e.getMessage().c_str());
 			
 			exitFailure();
 		}
@@ -96,17 +95,18 @@ void printUsage(const char* executableName)
 	fprintf(stdout, "Creates a profile of read alignments by analysing alignment data.\n");
 	fprintf(stdout, "Known alignment data formats: Snapper\n");
 	fprintf(stdout, "\n");
-	fprintf(stdout, "Usage: %s -i <input path> -o <output path>\n", executableName);
+	fprintf(stdout, "Usage: %s {-v} -i <input path> -o <output path>\n", executableName);
 	fprintf(stdout, "\n");
 	fprintf(stdout, "-i  path to an alignment data file or '-' to read stdin\n");
 	fprintf(stdout, "-o  path to an output file or '-' to write to stdout\n");
+	fprintf(stdout, "-v  optional, whether to produce verbose log output\n");
 	
 	exitSuccess();
 }
 
-bool isPathStream(const char* path)
+bool isPathStream(string path)
 {
-	return StringUtils::areEqual(path, STREAM_PATH);
+	return path == STREAM_PATH;
 }
 
 int main(int numArgs, char** args)
@@ -116,30 +116,42 @@ int main(int numArgs, char** args)
 	ProfileReadAlignmentOptions options;
 	parseCommandLine(options, numArgs, args);
 	
-	fprintf(stderr, "Using options:\n  input="F_STR"\n  output="F_STR"\n\n", 
-		options.useStdin ? "<stdin>" : options.inputPath, 
-		options.useStdout ? "<stdout>" : options.outputPath);
+	fprintf(stderr, "Using options:\n  verbose="F_STR"\n  input="F_STR"\n  output="F_STR"\n\n", 
+		options.verbose ? "true" : "false", 
+		options.useStdin ? "<stdin>" : options.inputPath.c_str(), 
+		options.useStdout ? "<stdout>" : options.outputPath.c_str());
 	
 	try
 	{
-		AlignmentDataReader* reader = getAlignmentDataReader(options);
+		SnapperAlignmentDataReader reader;
+		reader.setVerbose(options.verbose);
 		
 		if (options.useStdin)
 		{
-			reader->readData(stdin);
+			reader.readData(stdin);
 		}
 		else
 		{
-			reader->readData(options.inputPath);
+			reader.readData(options.inputPath);
 		}
 		
 		ReadAlignmentProfiler profiler;
+		profiler.setVerbose(options.verbose);
 		
-		profiler.profileData(reader->getData());
+		profiler.profileData(reader.getData(), reader.getDataStats());
+		
+		if (options.useStdout)
+		{
+			profiler.writeProfile(stdout);
+		}
+		else
+		{
+			profiler.writeProfile(options.outputPath);
+		}
 	}
 	catch (RuntimeException& e)
 	{
-		fprintf(stderr, F_STR"\n", e.getMessage().c_str());
+		fprintf(stderr, F_STR"\n", options.verbose ? e.what() : e.getMessage().c_str());
 		
 		exitFailure();
 	}

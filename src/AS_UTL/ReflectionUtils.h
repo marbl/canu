@@ -19,27 +19,52 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ILLEGALSTATEEXCEPTION_H
-#define ILLEGALSTATEEXCEPTION_H
+#ifndef REFLECTIONUTILS_H
+#define REFLECTIONUTILS_H
 
-static const char* rcsid_ILLEGALSTATEEXCEPTION_H = "$Id: IllegalStateException.h,v 1.5 2011-09-05 16:49:45 mkotelbajcvi Exp $";
+static const char* rcsid_REFLECTIONUTILS_H = "$Id: ReflectionUtils.h,v 1.1 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
-#include <cstring>
+#include <exception>
 #include <string>
+#include <typeinfo>
 
 using namespace std;
 
-#include "ExceptionUtils.h"
-#include "RuntimeException.h"
+#if defined(__GLIBCXX__)
+#include <cxxabi.h>
 
-using namespace Utility;
+using namespace abi;
+#endif
 
-class IllegalStateException : public RuntimeException
+#include "AS_global.h"
+#include "AS_UTL_alloc.h"
+
+namespace Utility
 {
-public:
-	IllegalStateException(string message = "", RuntimeException* cause = NULL) throw();
-};
+	static const char STACK_ENTRY_MANGLED_NAME_PREFIX = '(';
+	static const char STACK_ENTRY_MANGLED_NAME_SUFFIX = '+';
+	static const char* STACK_ENTRY_OBJECT_DELIMITER = "::";
+	static const char* STACK_ENTRY_FUNCTION_SUFFIX = "()";
+	
+	static const char* STACK_ENTRY_MAIN_NAME = "main";
+	static const char* STACK_ENTRY_LIBC_START_MAIN_NAME = "__libc_start_main";
+	static const char* STACK_ENTRY_GXX_PERSONALITY_NAME = "__gxx_personality_v0";
+	
+	static const size_t INITIAL_DEMANGLING_NAME_BUFFER_SIZE = 128;
+	
+	class ReflectionUtils
+	{
+	public:
+		static bool demangleStackEntry(string& entry, bool includePath = false);
+		static bool demangle(string& name);
+		
+	private:
+		ReflectionUtils()
+		{
+		}
+	};
+}
 
 #endif

@@ -22,7 +22,7 @@
 #ifndef SIGNALEXCEPTION_H
 #define SIGNALEXCEPTION_H
 
-static const char* rcsid_SIGNALEXCEPTION_H = "$Id: SignalException.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_SIGNALEXCEPTION_H = "$Id: SignalException.h,v 1.2 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include <csignal>
 #include <cstdio>
@@ -34,9 +34,8 @@ using namespace std;
 
 #include "AS_UTL_alloc.h"
 #include "ErrorUtils.h"
-#include "ExceptionUtils.h"
 #include "RuntimeException.h"
-#include "StringUtils.h"
+#include "StackTrace.h"
 
 using namespace Utility;
 

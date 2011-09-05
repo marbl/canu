@@ -19,11 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AssertionException.C,v 1.6 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: AssertionException.C,v 1.7 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include "AssertionException.h"
 
-AssertionException::AssertionException(string message, RuntimeException* cause, AssertionType type) throw() 
+AssertionException::AssertionException(AssertionType type, string message, RuntimeException* cause) throw() 
 	: RuntimeException(message, cause)
 {
 	this->type = type;
@@ -41,10 +41,6 @@ string AssertionException::assertionTypeToString(AssertionType type)
 			return "false";
 		case ASSERT_TRUE:
 			return "true";
-		case ASSERT_EQUALS:
-			return "equals";
-		case ASSERT_NOT_EQUALS:
-			return "not equals";
 		case ASSERT_NULL:
 			return "null";
 		case ASSERT_NOT_NULL:
@@ -53,6 +49,14 @@ string AssertionException::assertionTypeToString(AssertionType type)
 			return "empty";
 		case ASSERT_NOT_EMPTY:
 			return "not empty";
+		case ASSERT_EQUALS:
+			return "equals";
+		case ASSERT_NOT_EQUALS:
+			return "not equals";
+		case ASSERT_SAME:
+			return "same";
+		case ASSERT_NOT_SAME:
+			return "not same";
 		default:
 			return NULL;
 	}

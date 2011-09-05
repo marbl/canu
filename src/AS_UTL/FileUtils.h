@@ -22,7 +22,7 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
-static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.8 2011-09-03 01:29:50 mkotelbajcvi Exp $";
+static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.9 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include <fcntl.h>
 #include <stdarg.h>
@@ -35,6 +35,7 @@ static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.8 2011-09-03 01:29:
 
 using namespace std;
 
+#include "AS_global.h"
 #include "ArgumentException.h"
 #include "ErrorUtils.h"
 #include "IOException.h"
@@ -43,9 +44,6 @@ using namespace std;
 
 namespace Utility
 {
-	static const char PATH_DELIMITER = '/';
-	static const char* PATH_DELIMITER_STR = "/";
-	
 	typedef struct stat Stats;
 	
 	typedef enum StreamMode

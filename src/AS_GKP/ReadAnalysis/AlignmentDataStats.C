@@ -19,27 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ILLEGALSTATEEXCEPTION_H
-#define ILLEGALSTATEEXCEPTION_H
+static const char* rcsid = "$Id: AlignmentDataStats.C,v 1.1 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
-static const char* rcsid_ILLEGALSTATEEXCEPTION_H = "$Id: IllegalStateException.h,v 1.5 2011-09-05 16:49:45 mkotelbajcvi Exp $";
+#include "AlignmentDataStats.h"
 
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <string>
+using namespace ReadAnalysis;
 
-using namespace std;
-
-#include "ExceptionUtils.h"
-#include "RuntimeException.h"
-
-using namespace Utility;
-
-class IllegalStateException : public RuntimeException
+AlignmentDataStats::AlignmentDataStats()
 {
-public:
-	IllegalStateException(string message = "", RuntimeException* cause = NULL) throw();
-};
-
-#endif
+	this->minReadLength = UINT64_MAX;
+	this->maxReadLength = 0;
+	this->meanReadLength = 0;
+}

@@ -249,7 +249,7 @@ LOCAL_DEP=$(LOCAL_OS)/dep
 #### defined in an environment variable.
 
 ifneq "$(origin CC)" "environment"
-CC      = gcc
+CC=gcc
 endif
 
 ifneq "$(origin CPPFLAGS)" "environment"
@@ -257,15 +257,15 @@ CPPFLAGS=
 endif
 
 ifneq "$(origin CFLAGS)" "environment"
-CFLAGS  =
+CFLAGS=
 endif
 
 ifneq "$(origin CDEFS)" "environment"
-CDEFS  =
+CDEFS=
 endif
 
 ifneq "$(origin CXX)" "environment"
-CXX	= g++
+CXX=g++
 endif
 
 ifneq "$(origin CXXFLAGS)" "environment"
@@ -277,15 +277,15 @@ ifneq "$(origin CXXDEFS)" "environment"
 endif
 
 ifneq "$(origin AR)" "environment"
-AR      = ar
+AR=ar
 endif
 
 ifneq "$(origin ARFLAGS)" "environment"
-ARFLAGS = rvs
+ARFLAGS=rvs
 endif
 
 ifneq "$(origin LDFLAGS)" "environment"
-LDFLAGS = -rdynamic
+LDFLAGS=-rdynamic
 endif
 
 #### Delete default suffix rules

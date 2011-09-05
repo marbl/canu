@@ -22,7 +22,7 @@
 #ifndef READALIGNMENT_H
 #define READALIGNMENT_H
 
-static const char* rcsid_READALIGNMENT_H = "$Id: ReadAlignment.h,v 1.3 2011-09-03 04:08:27 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENT_H = "$Id: ReadAlignment.h,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -53,6 +53,16 @@ namespace ReadAnalysis
 			this->index = index;
 		}
 		
+		size_t& getLength()
+		{
+			return this->length;
+		}
+		
+		void setLength(size_t length)
+		{
+			this->length = length;
+		}
+		
 		AS_IID& getIid()
 		{
 			return this->iid;
@@ -71,16 +81,6 @@ namespace ReadAnalysis
 		void setMateIid(AS_IID mateIid)
 		{
 			this->mateIid = mateIid;
-		}
-		
-		size_t& getLength()
-		{
-			return this->length;
-		}
-		
-		void setLength(size_t length)
-		{
-			this->length = length;
 		}
 		
 		pair<size_t, size_t>& getAlignedSegment()
@@ -125,9 +125,9 @@ namespace ReadAnalysis
 		
 	protected:
 		size_t index;
+		size_t length;
 		AS_IID iid;
 		AS_IID mateIid;
-		size_t length;
 		pair<size_t, size_t> alignedSegment;
 		pair<size_t, size_t> alignment;
 		vector<char> sequence;

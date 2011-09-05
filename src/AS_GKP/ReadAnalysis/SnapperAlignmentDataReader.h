@@ -22,10 +22,11 @@
 #ifndef SNAPPERALIGNMENTDATAREADER_H
 #define SNAPPERALIGNMENTDATAREADER_H
 
-static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.4 2011-09-03 04:08:27 mkotelbajcvi Exp $";
+static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.5 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
+#include <ctime>
 #include <string>
 #include <vector>
 
@@ -39,8 +40,6 @@ using namespace std;
 #include "StringUtils.h"
 
 using namespace Utility;
-
-//0[739-0-0] 0[531669-939] <739-0-100-complement-unknown>
 
 namespace ReadAnalysis
 {

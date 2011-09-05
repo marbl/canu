@@ -19,27 +19,22 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ILLEGALSTATEEXCEPTION_H
-#define ILLEGALSTATEEXCEPTION_H
+static const char* rcsid = "$Id: StackTrace.C,v 1.1 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
-static const char* rcsid_ILLEGALSTATEEXCEPTION_H = "$Id: IllegalStateException.h,v 1.5 2011-09-05 16:49:45 mkotelbajcvi Exp $";
-
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <string>
-
-using namespace std;
-
-#include "ExceptionUtils.h"
-#include "RuntimeException.h"
+#include "StackTrace.h"
 
 using namespace Utility;
 
-class IllegalStateException : public RuntimeException
+StackTrace::StackTrace(size_t reserveDepth)
 {
-public:
-	IllegalStateException(string message = "", RuntimeException* cause = NULL) throw();
-};
+	this->lines.reserve(reserveDepth);
+}
 
-#endif
+string& StackTrace::toString(string& buffer, const string lineDelimiter, const string indent)
+{
+	buffer += indent;
+	
+	StringUtils::join(buffer, lineDelimiter + indent, this->lines.begin(), this->lines.end());
+	
+	return buffer;
+}

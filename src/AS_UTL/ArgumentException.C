@@ -19,11 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: ArgumentException.C,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: ArgumentException.C,v 1.8 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include "ArgumentException.h"
 
-ArgumentException::ArgumentException(string message, RuntimeException* cause, string name) throw() 
+ArgumentException::ArgumentException(string name, string message, RuntimeException* cause) throw() 
 	: RuntimeException(message, cause)
 {
 	this->name = name;

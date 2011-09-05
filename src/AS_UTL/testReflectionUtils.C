@@ -19,27 +19,36 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ILLEGALSTATEEXCEPTION_H
-#define ILLEGALSTATEEXCEPTION_H
-
-static const char* rcsid_ILLEGALSTATEEXCEPTION_H = "$Id: IllegalStateException.h,v 1.5 2011-09-05 16:49:45 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: testReflectionUtils.C,v 1.1 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <typeinfo>
+#include <vector>
 
 using namespace std;
 
-#include "ExceptionUtils.h"
-#include "RuntimeException.h"
+#include "Asserts.h"
+#include "ReflectionUtils.h"
+#include "TestUtils.h"
 
 using namespace Utility;
 
-class IllegalStateException : public RuntimeException
+void testDemangleTypeName()
 {
-public:
-	IllegalStateException(string message = "", RuntimeException* cause = NULL) throw();
-};
+	string str = typeid(ReflectionUtils).name();
+	
+	ReflectionUtils::demangle(str);
+	
+	Asserts::assertEquals(str, string("Utility::ReflectionUtils"), "demangling type name failed");
+}
 
-#endif
+int main(int argc, char** argv)
+{
+	vector<TestFunction> tests;
+	tests.push_back(&testDemangleTypeName);
+	
+	TestUtils::runTests(tests);
+}

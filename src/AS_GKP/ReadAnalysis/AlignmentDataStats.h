@@ -19,27 +19,59 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ILLEGALSTATEEXCEPTION_H
-#define ILLEGALSTATEEXCEPTION_H
+#ifndef ALIGNMENTDATASTATS_H
+#define ALIGNMENTDATASTATS_H
 
-static const char* rcsid_ILLEGALSTATEEXCEPTION_H = "$Id: IllegalStateException.h,v 1.5 2011-09-05 16:49:45 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATASTATS_H = "$Id: AlignmentDataStats.h,v 1.1 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
-#include <cstdio>
 #include <cstdlib>
-#include <cstring>
-#include <string>
 
 using namespace std;
 
-#include "ExceptionUtils.h"
-#include "RuntimeException.h"
+#include "AS_global.h"
 
-using namespace Utility;
-
-class IllegalStateException : public RuntimeException
+namespace ReadAnalysis
 {
-public:
-	IllegalStateException(string message = "", RuntimeException* cause = NULL) throw();
-};
+	class AlignmentDataStats
+	{
+	public:
+		AlignmentDataStats();
+		
+		size_t getMinReadLength()
+		{
+			return this->minReadLength;
+		}
+		
+		void setMinReadLength(size_t minReadLength)
+		{
+			this->minReadLength = minReadLength;
+		}
+		
+		size_t getMaxReadLength()
+		{
+			return this->maxReadLength;
+		}
+		
+		void setMaxReadLength(size_t maxReadLength)
+		{
+			this->maxReadLength = maxReadLength;
+		}
+		
+		size_t getMeanReadLength()
+		{
+			return this->meanReadLength;
+		}
+		
+		void setMeanReadLength(size_t meanReadLength)
+		{
+			this->meanReadLength = meanReadLength;
+		}
+		
+	protected:
+		size_t minReadLength;
+		size_t maxReadLength;
+		size_t meanReadLength;
+	};
+}
 
 #endif

@@ -22,7 +22,7 @@
 #ifndef RUNTIMEEXCEPTION_H
 #define RUNTIMEEXCEPTION_H
 
-static const char* rcsid_RUNTIMEEXCEPTION_H = "$Id: RuntimeException.h,v 1.7 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_RUNTIMEEXCEPTION_H = "$Id: RuntimeException.h,v 1.8 2011-09-05 16:49:45 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -33,6 +33,7 @@ using namespace std;
 
 #include "AS_global.h"
 #include "ExceptionUtils.h"
+#include "StackTrace.h"
 #include "StringUtils.h"
 
 using namespace Utility;
@@ -70,7 +71,7 @@ protected:
 	RuntimeException* cause;
 	StackTrace* stackTrace;
 	
-	RuntimeException(string message = string(), RuntimeException* cause = NULL) throw();
+	RuntimeException(string message = "", RuntimeException* cause = NULL) throw();
 	~RuntimeException() throw();
 };
 

@@ -22,7 +22,7 @@
 #ifndef BASEALIGNMENT_H
 #define BASEALIGNMENT_H
 
-static const char* rcsid_BASEALIGNMENT_H = "$Id: BaseAlignment.h,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid_BASEALIGNMENT_H = "$Id: BaseAlignment.h,v 1.2 2011-09-05 16:49:44 mkotelbajcvi Exp $";
 
 #include <algorithm>
 #include <cstdio>
@@ -37,19 +37,13 @@ using namespace std;
 
 namespace ReadAnalysis
 {
-	static const size_t DEFAULT_BASE_READ_RESERVE_SIZE = 1536;
-	static const size_t DEFAULT_BASE_ERROR_TYPE_RESERVE_SIZE = 256;
-	
 	class BaseAlignment
 	{
 	public:
-		BaseAlignment(size_t position = 0, size_t readReserveSize = DEFAULT_BASE_READ_RESERVE_SIZE, 
-			size_t errorTypeReserveSize = DEFAULT_BASE_ERROR_TYPE_RESERVE_SIZE);
+		BaseAlignment(size_t position, size_t readsReserveSize, size_t errorTypeReserveSize);
 		
-		void addError(AlignmentError error);
-		vector<AlignmentError>& getErrors(AlignmentErrorType type = UNKNOWN);
-		size_t getNumErrors(AlignmentErrorType type = UNKNOWN);
-		bool hasErrors(AlignmentErrorType type = UNKNOWN);
+		void addRead(AS_IID iid);
+		void addError(AlignmentError* error);
 		
 		size_t getPosition()
 		{
@@ -66,11 +60,17 @@ namespace ReadAnalysis
 			return this->reads;
 		}
 		
+		map<AlignmentErrorType, vector<AlignmentError*>* >& getErrors()
+		{
+			return this->errors;
+		}
+		
 	protected:
 		size_t position;
-		size_t errorTypeReserveSize;
 		vector<AS_IID> reads;
-		map<AlignmentErrorType, vector<AlignmentError> > errors;
+		map<AlignmentErrorType, vector<AlignmentError*>* > errors;
+		
+		void initErrorType(AlignmentErrorType type, size_t reserveSize);
 	};
 }
 
