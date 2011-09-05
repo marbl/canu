@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AlignmentDataStats.C,v 1.1 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: AlignmentDataStats.C,v 1.2 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include "AlignmentDataStats.h"
 
@@ -27,7 +27,53 @@ using namespace ReadAnalysis;
 
 AlignmentDataStats::AlignmentDataStats()
 {
-	this->minReadLength = UINT64_MAX;
+	this->numReads = 0;
+	this->minReadLength = 0;
 	this->maxReadLength = 0;
 	this->meanReadLength = 0;
+}
+
+size_t AlignmentDataStats::getNumReads(size_t baseIndex)
+{
+	vector<AS_IID> reads;
+	
+	return this->getReads(baseIndex, reads).size();
+}
+
+vector<AS_IID>& AlignmentDataStats::getReads(size_t baseIndex, vector<AS_IID>& buffer)
+{
+	vector<AS_IID>* reads;
+	
+	for (map<size_t, vector<AS_IID>*>::iterator iterator = this->readLengthMap.begin(); iterator != this->readLengthMap.end(); iterator++)
+	{
+		if ((*iterator).first >= baseIndex)
+		{
+			reads = (*iterator).second;
+			
+			buffer.insert(buffer.end(), reads->begin(), reads->end());
+		}
+	}
+	
+	return buffer;
+}
+
+void AlignmentDataStats::addRead(ReadAlignment* readAlign)
+{
+	this->numReads++;
+	
+	this->minReadLength = (this->numReads > 1) ? min(this->minReadLength, readAlign->getLength()) : readAlign->getLength();
+	this->maxReadLength = (this->numReads > 1) ? max(this->maxReadLength, readAlign->getLength()) : readAlign->getLength();
+	this->meanReadLength = (this->numReads > 1) ? (double)(this->meanReadLength + readAlign->getLength()) / 2 : (double)readAlign->getLength();
+	
+	size_t readLengthIndex = readAlign->getLength() - 1;
+	vector<AS_IID>* readLengthBucket = this->readLengthMap.count(readLengthIndex) ? this->readLengthMap[readLengthIndex] : NULL;
+	
+	if (readLengthBucket == NULL)
+	{
+		readLengthBucket = new vector<AS_IID>();
+		
+		this->readLengthMap[readLengthIndex] = readLengthBucket;
+	}
+	
+	readLengthBucket->push_back(readAlign->getIid());
 }

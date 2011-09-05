@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: ReadAlignmentProfiler.C,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: ReadAlignmentProfiler.C,v 1.5 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include "ReadAlignmentProfiler.h"
 
@@ -28,7 +28,6 @@ using namespace ReadAnalysis;
 ReadAlignmentProfiler::ReadAlignmentProfiler()
 {
 	this->verbose = false;
-	//this->bases.reserve(DEFAULT_BASES_RESERVE_SIZE);
 }
 
 ReadAlignmentProfiler::~ReadAlignmentProfiler()
@@ -88,21 +87,32 @@ void ReadAlignmentProfiler::writeProfile(FILE* stream)
 	fprintf(stream, F_STR"numBases="F_U64"\n", PROFILE_DATA_OUTPUT_SUMMARY_PREFIX, this->bases.size());
 	
 	fprintf(stream, F_STR"\n", PROFILE_DATA_OUTPUT_SUMMARY_PREFIX);
-	fprintf(stream, F_STR"\"Base\"\t\"# of Reads\"\t\"# of Mismatch\"\t\"# of Insertion\"\t\"# of Deletion\"\n", PROFILE_DATA_OUTPUT_SUMMARY_PREFIX);
+	fprintf(stream, F_STR"""\"Base\"\t\"# of Reads\"\t\"%% of Reads\"\t\"%% of Reads Error\"\t\"# of Mismatch\"\t\"# of Insertion\"\t\"# of Deletion\"\n", 
+		PROFILE_DATA_OUTPUT_SUMMARY_PREFIX);
 	
 	BaseAlignment* baseAlign;
+	size_t numBaseReads, numBaseMismatch, numBaseInsertion, numBaseDeletion;
+	double percentBaseReads, percentBaseReadsError;
 	
 	for (size_t a = 0; a < this->bases.size(); a++)
 	{
 		baseAlign = this->bases[a];
+		numBaseReads = this->dataStats.getNumReads(a);
+		numBaseMismatch = baseAlign->getErrors()[MISMATCH]->size();
+		numBaseInsertion = baseAlign->getErrors()[INSERTION]->size();
+		numBaseDeletion = baseAlign->getErrors()[DELETION]->size();
 		
-		fprintf(stream, F_U64"\t"F_U64"\t"F_U64"\t"F_U64"\t"F_U64"\n", a + 1, baseAlign->getReads().size(), 
-			baseAlign->getErrors()[MISMATCH]->size(), baseAlign->getErrors()[INSERTION]->size(), 
-			baseAlign->getErrors()[DELETION]->size());
+		percentBaseReads = ((double)numBaseReads / (double)numBaseReads) * 100;
+		percentBaseReadsError = ((double)(numBaseMismatch + numBaseInsertion + numBaseDeletion) / (double)numBaseReads) * 100;
+		
+		fprintf(stream, F_U64"\t"F_U64"\t%.3"F_F64P"\t%.3"F_F64P"\t"F_U64"\t"F_U64"\t"F_U64"\n", a + 1, numBaseReads, 
+			percentBaseReads, percentBaseReadsError, numBaseMismatch, numBaseInsertion, numBaseDeletion);
 	}
 	
-	fprintf(stderr, "Wrote profile of "F_U64" base[s]: time=%.2"F_F64P"s\n", this->bases.size(), 
-		(double)(clock() - startClock) / (double)CLOCKS_PER_SEC);
+	string timeStr;
+	
+	fprintf(stderr, "Wrote profile of "F_U64" base[s] in: "F_STR"\n", this->bases.size(), 
+		StringUtils::toString(timeStr, startClock, true).c_str());
 }
 
 void ReadAlignmentProfiler::profileData(vector<ReadAlignment*>& data, AlignmentDataStats& dataStats)
@@ -117,7 +127,7 @@ void ReadAlignmentProfiler::profileData(vector<ReadAlignment*>& data, AlignmentD
 	fprintf(stderr, "Generating profile of "F_U64" base[s]:\n", this->bases.size());
 	
 	ReadAlignment* readAlign;
-	uint16 profiledPercent = 0, lastProfiledPercent = 0;
+	double profiledPercent = 0, lastProfiledPercent = 0;
 	
 	for (size_t a = 0; a < this->data.size(); a++)
 	{
@@ -128,18 +138,20 @@ void ReadAlignmentProfiler::profileData(vector<ReadAlignment*>& data, AlignmentD
 			this->profileBase(a, b);
 		}
 		
-		profiledPercent = (uint16)(((double)a / (double)this->data.size()) * 100.0);
+		profiledPercent = ((double)(a + 1) / (double)this->data.size()) * 100;
 		
 		if (profiledPercent >= (lastProfiledPercent + PROFILE_DATA_PERCENT_INCREMENT))
 		{
-			fprintf(stderr, "\t"F_U16"%% ("F_U64" read alignment[s]) completed ...\n", profiledPercent, a + 1);
+			fprintf(stderr, "\t%.0"F_F64P"%% ("F_U64" read alignment[s]) completed ...\n", profiledPercent, a + 1);
 			
 			lastProfiledPercent = profiledPercent;
 		}
 	}
 	
-	fprintf(stderr, "Generated profile of "F_U64" base[s]: time=%.2"F_F64P"s\n", this->bases.size(), 
-		(double)(clock() - startClock) / (double)CLOCKS_PER_SEC);
+	string timeStr;
+	
+	fprintf(stderr, "Generated profile of "F_U64" base[s] in: "F_STR"\n", this->bases.size(), 
+		StringUtils::toString(timeStr, startClock, true).c_str());
 }
 
 void ReadAlignmentProfiler::profileBase(size_t readIndex, size_t baseIndex)
@@ -171,8 +183,6 @@ void ReadAlignmentProfiler::profileBase(size_t readIndex, size_t baseIndex)
 	{
 		baseAlign->addError(new AlignmentError(readAlign->getIid(), MISMATCH));
 	}
-	
-	baseAlign->addRead(readAlign->getIid());
 }
 
 void ReadAlignmentProfiler::initBases()
@@ -182,8 +192,7 @@ void ReadAlignmentProfiler::initBases()
 	
 	for (size_t a = 0; a < this->bases.capacity(); a++)
 	{
-		// TODO: get reads per base stat to fill readsReserveSize
-		BaseAlignment* baseAlign = new BaseAlignment(a, 1024, this->dataStats.getMaxReadLength() / 3);
+		BaseAlignment* baseAlign = new BaseAlignment(a, this->dataStats.getMaxReadLength() / 3);
 		
 		this->bases.push_back(baseAlign);
 	}

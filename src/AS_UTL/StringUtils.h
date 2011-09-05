@@ -22,13 +22,14 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.15 2011-09-05 16:49:45 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.16 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include <stdarg.h>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <iterator>
 #include <sstream>
 #include <string>
@@ -41,6 +42,15 @@ using namespace std;
 
 namespace Utility
 {
+	static const char* DEFAULT_TO_STRING_CLOCK_DELIMITER = " ";
+	static const size_t MILLESECONDS_IN_SECOND = 1000;
+	static const size_t SECONDS_IN_MINUTE = 60;
+	static const size_t MILLESECONDS_IN_MINUTE = MILLESECONDS_IN_SECOND * SECONDS_IN_MINUTE;
+	static const size_t MINUTES_IN_HOUR = 60;
+	static const size_t MILLESECONDS_IN_HOUR = MILLESECONDS_IN_MINUTE * MINUTES_IN_HOUR;
+	static const size_t HOURS_IN_DAY = 24;
+	static const size_t MILLESECONDS_IN_DAY = MILLESECONDS_IN_HOUR * HOURS_IN_DAY;
+	
 	class StringUtils
 	{
 	public:
@@ -119,6 +129,16 @@ namespace Utility
 			return buffer;
 		}
 		
+		inline static string& delimit(string& buffer, const string delimiter)
+		{
+			if (!delimiter.empty() && !buffer.empty())
+			{
+				buffer += delimiter;
+			}
+			
+			return buffer;
+		}
+		
 		inline static string& join(string& buffer, const string delimiter, size_t num, ...)
 		{
 			initArgs(num);
@@ -130,10 +150,7 @@ namespace Utility
 		{
 			for (size_t a = 0; a < num; a++)
 			{
-				if (!delimiter.empty() && !buffer.empty())
-				{
-					buffer += delimiter;
-				}
+				delimit(buffer, delimiter);
 				
 				buffer += toJoin[a];
 			}
@@ -146,17 +163,72 @@ namespace Utility
 		{
 			for (; begin != end; begin++)
 			{
-				if (!delimiter.empty() && !buffer.empty())
-				{
-					buffer += delimiter;
-				}
+				delimit(buffer, delimiter);
 				
 				buffer += *begin;
 			}
 			
 			return buffer;
 		}
-	
+		
+		inline static string& toString(string& buffer, clock_t value, bool asElapsed = false, string delimiter = DEFAULT_TO_STRING_CLOCK_DELIMITER)
+		{
+			double valueDbl = ((asElapsed ? (double)(clock() - value) : (double)value) / (double)CLOCKS_PER_SEC) * 
+				MILLESECONDS_IN_SECOND;
+			size_t milliseconds, seconds, minutes, hours, days;
+			
+			days = (size_t)(valueDbl / MILLESECONDS_IN_DAY);
+			valueDbl -= (days * MILLESECONDS_IN_DAY);
+			
+			if (days)
+			{
+				delimit(buffer, delimiter);
+				toString(days, buffer);
+				buffer += "d";
+			}
+			
+			hours = (size_t)(valueDbl / MILLESECONDS_IN_HOUR);
+			valueDbl -= (hours * MILLESECONDS_IN_HOUR);
+			
+			if (hours)
+			{
+				delimit(buffer, delimiter);
+				toString(hours, buffer);
+				buffer += "h";
+			}
+			
+			minutes = (size_t)(valueDbl / MILLESECONDS_IN_MINUTE);
+			valueDbl -= (minutes * MILLESECONDS_IN_MINUTE);
+			
+			if (minutes)
+			{
+				delimit(buffer, delimiter);
+				toString(minutes, buffer);
+				buffer += "m";
+			}
+			
+			seconds = (size_t)(valueDbl / MILLESECONDS_IN_SECOND);
+			valueDbl -= (seconds * MILLESECONDS_IN_SECOND);
+			
+			if (seconds)
+			{
+				delimit(buffer, delimiter);
+				toString(seconds, buffer);
+				buffer += "s";
+			}
+			
+			milliseconds = (size_t)valueDbl;
+			
+			if (milliseconds || buffer.empty())
+			{
+				delimit(buffer, delimiter);
+				toString(milliseconds, buffer);
+				buffer += "ms";
+			}
+			
+			return buffer;
+		}
+		
 		inline static string& toString(char value, string& buffer)
 		{
 			buffer += value;
@@ -168,9 +240,10 @@ namespace Utility
 		inline static string& toString(T value, string& buffer)
 		{
 			ostringstream stream(ostringstream::out);
-			stream.str(buffer);
 			
 			stream << value;
+			
+			buffer += stream.str();
 			
 			return buffer;
 		}

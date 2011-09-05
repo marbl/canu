@@ -22,13 +22,16 @@
 #ifndef ALIGNMENTDATASTATS_H
 #define ALIGNMENTDATASTATS_H
 
-static const char* rcsid_ALIGNMENTDATASTATS_H = "$Id: AlignmentDataStats.h,v 1.1 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATASTATS_H = "$Id: AlignmentDataStats.h,v 1.2 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include <cstdlib>
+#include <map>
+#include <vector>
 
 using namespace std;
 
 #include "AS_global.h"
+#include "ReadAlignment.h"
 
 namespace ReadAnalysis
 {
@@ -37,14 +40,18 @@ namespace ReadAnalysis
 	public:
 		AlignmentDataStats();
 		
+		size_t getNumReads(size_t baseIndex);
+		vector<AS_IID>& getReads(size_t baseIndex, vector<AS_IID>& buffer);
+		void addRead(ReadAlignment* readAlign);
+		
+		size_t getNumReads()
+		{
+			return this->numReads;
+		}
+		
 		size_t getMinReadLength()
 		{
 			return this->minReadLength;
-		}
-		
-		void setMinReadLength(size_t minReadLength)
-		{
-			this->minReadLength = minReadLength;
 		}
 		
 		size_t getMaxReadLength()
@@ -52,25 +59,17 @@ namespace ReadAnalysis
 			return this->maxReadLength;
 		}
 		
-		void setMaxReadLength(size_t maxReadLength)
-		{
-			this->maxReadLength = maxReadLength;
-		}
-		
-		size_t getMeanReadLength()
+		double getMeanReadLength()
 		{
 			return this->meanReadLength;
 		}
 		
-		void setMeanReadLength(size_t meanReadLength)
-		{
-			this->meanReadLength = meanReadLength;
-		}
-		
 	protected:
+		size_t numReads;
 		size_t minReadLength;
 		size_t maxReadLength;
-		size_t meanReadLength;
+		double meanReadLength;
+		map<size_t, vector<AS_IID>*> readLengthMap;
 	};
 }
 

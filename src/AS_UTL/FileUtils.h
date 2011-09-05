@@ -22,7 +22,7 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
-static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.9 2011-09-05 16:49:45 mkotelbajcvi Exp $";
+static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.10 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include <fcntl.h>
 #include <stdarg.h>
@@ -233,6 +233,13 @@ namespace Utility
 			return isValidStream(stream) ? fcntl(fileno(stream), F_GETFL, 0) : 0;
 		}
 
+		inline static size_t getSize(string path)
+		{
+			Stats stats;
+			
+			return getStats(path, stats) ? stats.st_size : 0;
+		}
+		
 		inline static bool isDirectory(string path)
 		{
 			return isType(path, S_IFDIR);
@@ -285,9 +292,9 @@ namespace Utility
 			return isAccessible(path, R_OK);
 		}
 		
-		inline static bool isWriteable(string path)
+		inline static bool isWriteable(string path, bool includeNonExistant = true)
 		{
-			return isAccessible(path, W_OK);
+			return (includeNonExistant && !exists(path)) || isAccessible(path, W_OK);
 		}
 		
 		inline static bool exists(string path)

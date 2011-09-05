@@ -22,7 +22,7 @@
 #ifndef READALIGNMENTPROFILER_H
 #define READALIGNMENTPROFILER_H
 
-static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.5 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include <cmath>
 #include <cstdio>
@@ -47,7 +47,7 @@ using namespace Utility;
 
 namespace ReadAnalysis
 {
-	static const uint16 PROFILE_DATA_PERCENT_INCREMENT = 10;
+	static const double PROFILE_DATA_PERCENT_INCREMENT = 10;
 	
 	static const char* PROFILE_DATA_OUTPUT_SUMMARY_PREFIX = "#";
 	

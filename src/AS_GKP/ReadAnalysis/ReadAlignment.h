@@ -22,7 +22,7 @@
 #ifndef READALIGNMENT_H
 #define READALIGNMENT_H
 
-static const char* rcsid_READALIGNMENT_H = "$Id: ReadAlignment.h,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENT_H = "$Id: ReadAlignment.h,v 1.5 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -43,7 +43,7 @@ namespace ReadAnalysis
 	public:
 		ReadAlignment(size_t index = 0);
 		
-		size_t& getIndex()
+		size_t getIndex()
 		{
 			return this->index;
 		}
@@ -53,7 +53,7 @@ namespace ReadAnalysis
 			this->index = index;
 		}
 		
-		size_t& getLength()
+		size_t getLength()
 		{
 			return this->length;
 		}
@@ -63,7 +63,7 @@ namespace ReadAnalysis
 			this->length = length;
 		}
 		
-		AS_IID& getIid()
+		AS_IID getIid()
 		{
 			return this->iid;
 		}
@@ -73,7 +73,7 @@ namespace ReadAnalysis
 			this->iid = iid;
 		}
 		
-		AS_IID& getMateIid()
+		AS_IID getMateIid()
 		{
 			return this->mateIid;
 		}
@@ -83,7 +83,7 @@ namespace ReadAnalysis
 			this->mateIid = mateIid;
 		}
 		
-		pair<size_t, size_t>& getAlignedSegment()
+		pair<size_t, size_t> getAlignedSegment()
 		{
 			return this->alignedSegment;
 		}
@@ -93,7 +93,7 @@ namespace ReadAnalysis
 			this->alignedSegment = alignedSegment;
 		}
 		
-		pair<size_t, size_t>& getAlignment()
+		pair<size_t, size_t> getAlignment()
 		{
 			return this->alignment;
 		}
@@ -101,6 +101,16 @@ namespace ReadAnalysis
 		void setAlignment(pair<size_t, size_t> alignment)
 		{
 			this->alignment = alignment;
+		}
+		
+		uint16 getIdentity()
+		{
+			return this->identity;
+		}
+		
+		void setIdentity(uint16 identity)
+		{
+			this->identity = identity;
 		}
 		
 		vector<char>& getSequence()
@@ -113,16 +123,6 @@ namespace ReadAnalysis
 			return this->sequence;
 		}
 		
-		uint16& getIdentity()
-		{
-			return this->identity;
-		}
-		
-		void setIdentity(uint16 identity)
-		{
-			this->identity = identity;
-		}
-		
 	protected:
 		size_t index;
 		size_t length;
@@ -130,9 +130,9 @@ namespace ReadAnalysis
 		AS_IID mateIid;
 		pair<size_t, size_t> alignedSegment;
 		pair<size_t, size_t> alignment;
+		uint16 identity;
 		vector<char> sequence;
 		vector<char> genomeSequence;
-		uint16 identity;
 	};
 }
 

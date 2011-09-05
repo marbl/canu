@@ -22,7 +22,7 @@
 #ifndef SNAPPERALIGNMENTDATAREADER_H
 #define SNAPPERALIGNMENTDATAREADER_H
 
-static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.5 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.6 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -47,8 +47,10 @@ namespace ReadAnalysis
 	static const char* SNAPPER_READ_ALIGNMENT_END = "sim4end";
 	
 	static const char* SNAPPER_READ_INFO_FORMAT = F_U64"["F_U64"-"F_U16I"-"F_U16I"] "F_U16I"["F_U64I"-"F_U64I"] <"F_U64I"-"F_U16I"-"F_U16I"-"F_STRI">";
-	static const char* SNAPPER_READ_DEFINITION_FORMAT = 
+	static const char* SNAPPER_SANGER_READ_DEFINITION_FORMAT = 
 		"edef="F_U32","F_U32I" mate="F_U32","F_U32I" lib="F_STRI","F_U32I" clr="F_STRI","F_U64I","F_U64I" deleted="F_CI;
+	static const char* SNAPPER_ILLUMINA_READ_DEFINITION_FORMAT = 
+		"edef"F_STRI":"F_U16I":"F_U16I":"F_U32":"F_STRI;
 	static const char* SNAPPER_GENOME_DEFINITION_FORMAT = "ddef="F_STRI;
 	static const char* SNAPPER_ALIGNMENT_INFO_FORMAT = F_U64"-"F_U64" ("F_U64"-"F_U64") <"F_U64I"-"F_U16I"-"F_U16">";
 	
@@ -69,6 +71,16 @@ namespace ReadAnalysis
 			
 			return line;
 		}
+		
+		static void processStart(string line, size_t lineNum);
+		static void processReadInfo(ReadAlignment* readAlign, string line, size_t lineNum);
+		static void processReadDefinition(ReadAlignment* readAlign, string line, size_t lineNum);
+		static void processGenomeDefinition(ReadAlignment* readAlign, string line, size_t lineNum);
+		static void processAlignmentInfo(ReadAlignment* readAlign, string line, size_t lineNum);
+		static void processReadSequence(ReadAlignment* readAlign, string line, size_t lineNum);
+		static void processGenomeSequence(ReadAlignment* readAlign, string line, size_t lineNum);
+		static void processSequence(vector<char>& sequence, string line, size_t lineNum);
+		static void processEnd(string line, size_t lineNum);
 		
 		virtual void processData();
 	};

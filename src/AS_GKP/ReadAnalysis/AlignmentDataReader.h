@@ -22,7 +22,7 @@
 #ifndef ALIGNMENTDATAREADER_H
 #define ALIGNMENTDATAREADER_H
 
-static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id: AlignmentDataReader.h,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id: AlignmentDataReader.h,v 1.5 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -79,7 +79,6 @@ namespace ReadAnalysis
 		virtual ~AlignmentDataReader();
 		
 		virtual void processData() = 0;
-		virtual void processReadAlignmentStats(ReadAlignment* readAlign);
 	};
 }
 

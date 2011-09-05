@@ -19,17 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: testStringUtils.C,v 1.12 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: testStringUtils.C,v 1.13 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <exception>
 #include <string>
 #include <vector>
 
 using namespace std;
 
+#include "AS_global.h"
 #include "Asserts.h"
 #include "StringUtils.h"
 #include "TestUtils.h"
@@ -157,6 +159,14 @@ void testToStringChar()
 	Asserts::assertTrue(StringUtils::toString('a', str) == "a", "string of char is different");
 }
 
+void testToStringClock()
+{
+	string str;
+	
+	Asserts::assertEquals(StringUtils::toString(str, (clock_t)(1.2525 * 60 * 60 * 24 * CLOCKS_PER_SEC)), 
+		string("1d 6h 3m 35s 999ms"), "string of clock is different");
+}
+
 int main(int argc, char** argv)
 {
 	vector<TestFunction> tests;
@@ -178,6 +188,7 @@ int main(int argc, char** argv)
 	tests.push_back(&testToStringFloat);
 	tests.push_back(&testToStringDouble);
 	tests.push_back(&testToStringChar);
+	tests.push_back(&testToStringClock);
 	
 	TestUtils::runTests(tests);
 }

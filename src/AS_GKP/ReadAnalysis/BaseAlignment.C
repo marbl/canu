@@ -19,26 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: BaseAlignment.C,v 1.2 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: BaseAlignment.C,v 1.3 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include "BaseAlignment.h"
 
 using namespace ReadAnalysis;
 
-BaseAlignment::BaseAlignment(size_t position, size_t readsReserveSize, size_t errorTypeReserveSize)
+BaseAlignment::BaseAlignment(size_t position, size_t errorTypeReserveSize)
 {
 	this->position = position;
-	
-	this->reads.reserve(readsReserveSize);
 	
 	this->initErrorType(MISMATCH, errorTypeReserveSize);
 	this->initErrorType(INSERTION, errorTypeReserveSize);
 	this->initErrorType(DELETION, errorTypeReserveSize);
-}
-
-void BaseAlignment::addRead(AS_IID iid)
-{
-	this->reads.push_back(iid);
 }
 
 void BaseAlignment::addError(AlignmentError* error)

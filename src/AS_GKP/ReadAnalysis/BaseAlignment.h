@@ -22,7 +22,7 @@
 #ifndef BASEALIGNMENT_H
 #define BASEALIGNMENT_H
 
-static const char* rcsid_BASEALIGNMENT_H = "$Id: BaseAlignment.h,v 1.2 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid_BASEALIGNMENT_H = "$Id: BaseAlignment.h,v 1.3 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include <algorithm>
 #include <cstdio>
@@ -40,9 +40,8 @@ namespace ReadAnalysis
 	class BaseAlignment
 	{
 	public:
-		BaseAlignment(size_t position, size_t readsReserveSize, size_t errorTypeReserveSize);
+		BaseAlignment(size_t position, size_t errorTypeReserveSize);
 		
-		void addRead(AS_IID iid);
 		void addError(AlignmentError* error);
 		
 		size_t getPosition()
@@ -55,11 +54,6 @@ namespace ReadAnalysis
 			this->position = position;
 		}
 		
-		vector<AS_IID>& getReads()
-		{
-			return this->reads;
-		}
-		
 		map<AlignmentErrorType, vector<AlignmentError*>* >& getErrors()
 		{
 			return this->errors;
@@ -67,7 +61,6 @@ namespace ReadAnalysis
 		
 	protected:
 		size_t position;
-		vector<AS_IID> reads;
 		map<AlignmentErrorType, vector<AlignmentError*>* > errors;
 		
 		void initErrorType(AlignmentErrorType type, size_t reserveSize);

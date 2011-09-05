@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.5 2011-09-05 21:23:26 mkotelbajcvi Exp $";
 
 #include "AlignmentDataReader.h"
 
@@ -75,13 +75,4 @@ void AlignmentDataReader::readData(FILE* stream)
 	}
 	
 	this->processData();
-	
-	this->dataStats.setMeanReadLength(this->dataStats.getMeanReadLength() / this->data.size());
-}
-
-void AlignmentDataReader::processReadAlignmentStats(ReadAlignment* readAlign)
-{
-	this->dataStats.setMinReadLength(min(this->dataStats.getMinReadLength(), readAlign->getLength()));
-	this->dataStats.setMaxReadLength(max(this->dataStats.getMaxReadLength(), readAlign->getLength()));
-	this->dataStats.setMeanReadLength(this->dataStats.getMeanReadLength() + readAlign->getLength());
 }
