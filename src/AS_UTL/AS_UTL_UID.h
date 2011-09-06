@@ -22,9 +22,16 @@
 #ifndef AS_UTL_UID_H
 #define AS_UTL_UID_H
 
-static const char *rcsid_AS_UTL_UID_H = "$Id: AS_UTL_UID.h,v 1.8 2011-07-25 20:00:47 mkotelbajcvi Exp $";
+static const char *rcsid_AS_UTL_UID_H = "$Id: AS_UTL_UID.h,v 1.9 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <string.h>
+#include <cstdio>
+#include <cstdlib>
+
+using namespace std;
+
+#include "AS_global.h"
+
+#define MAX_UID_LENGTH (128)
 
 //  The UID interface.
 //

@@ -21,13 +21,16 @@
 #ifndef AS_UTL_FASTA_H
 #define AS_UTL_FASTA_H
 
-static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.7 2010-03-22 20:08:19 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.8 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+
+using namespace std;
 
 #include "AS_global.h"
+#include "AS_UTL_fileIO.h"
 
 static int    AS_UTL_isspacearray[256] = {0};
 static int    AS_UTL_isvalidACGTN[256] = {0};

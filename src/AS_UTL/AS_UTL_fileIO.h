@@ -22,7 +22,20 @@
 #ifndef AS_UTL_FILEIO_H
 #define AS_UTL_FILEIO_H
 
-static const char *rcsid_AS_UTL_FILEIO_H = "$Id: AS_UTL_fileIO.h,v 1.10 2009-12-03 01:19:27 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_FILEIO_H = "$Id: AS_UTL_fileIO.h,v 1.11 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+using namespace std;
+
+#include "AS_global.h"
 
 //  Provides a safe and reliable mechanism for reading / writing
 //  binary data.

@@ -19,18 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_UID.c,v 1.12 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_UTL_UID.c,v 1.13 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-
-#include "AS_global.h"
+#include "AS_UTL_UID.h"
 #include "AS_PER_gkpStore.h"
 
-#define MAX_UID_LENGTH (128)
-
-static  gkStore *AS_UID_gkp = NULL;
+static gkStore *AS_UID_gkp = NULL;
 
 void
 AS_UID_setGatekeeper(void *gkp) {
@@ -71,11 +65,11 @@ AS_UID_toString(AS_UID uid) {
     char  *uidstr = AS_UID_getGatekeeper()->gkStore_getUIDstring(uid);
 
     if (uidstr)
-      sprintf(retbuffer, "%s", uidstr);
+      sprintf(retbuffer, F_STR, uidstr);
     else
-      sprintf(retbuffer, "CAx%llu", uid.UID);
+      sprintf(retbuffer, "CAx"F_U64, uid.UID);
   } else {
-    sprintf(retbuffer, "%llu", uid.UID);
+    sprintf(retbuffer, F_U64, uid.UID);
   }
 
   return(retbuffer);
@@ -125,13 +119,13 @@ AS_UID_lookup(char *uidstr, char **nxtstr) {
   }
 
   if (len > MAX_UID_LENGTH) {
-    fprintf(stderr, "ERROR:  UID '%s' larger than maximum allowed (%d letters).  FAIL.\n",
+    fprintf(stderr, "ERROR:  UID '"F_STR"' larger than maximum allowed ("F_S32" letters).  FAIL.\n",
             uidstr, MAX_UID_LENGTH);
     exit(1);
   }
 
   if (com > 0) {
-    fprintf(stderr, "ERROR:  UID '%s' contains %d commas.  FAIL.",
+    fprintf(stderr, "ERROR:  UID '"F_STR"' contains "F_S32" commas.  FAIL.",
             uidstr, com);
     exit(1);
   }

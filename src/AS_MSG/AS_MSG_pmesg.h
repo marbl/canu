@@ -18,19 +18,22 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.89 2011-05-23 04:57:25 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.90 2011-09-06 01:11:56 mkotelbajcvi Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.89 2011-05-23 04:57:25 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.90 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <time.h>
+#include <cstdio>
+#include <ctime>
+
+using namespace std;
 
 #include "AS_global.h"
-#include "AS_UTL_Var.h"
 #include "AS_MSG_types.h"
+#include "AS_UTL_UID.h"
+#include "AS_UTL_Var.h"
 
 //
 //  Generic message object handle

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_Var.c,v 1.31 2009-10-09 01:07:46 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Var.c,v 1.32 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package
@@ -34,16 +34,7 @@ static char *rcsid = "$Id: AS_UTL_Var.c,v 1.31 2009-10-09 01:07:46 brianwalenz E
  * arrays.
  */
 
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <assert.h>
-#include <math.h>
-
-#include "AS_global.h"
 #include "AS_UTL_Var.h"
-
-#include "AS_UTL_fileIO.h"
 
 
 //  As a debugging aid (and to torture developers) we can force the VA

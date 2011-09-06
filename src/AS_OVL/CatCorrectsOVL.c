@@ -19,13 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: CatCorrectsOVL.c,v 1.14 2009-08-28 03:43:44 brianwalenz Exp $";
+static char *rcsid = "$Id: CatCorrectsOVL.c,v 1.15 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
 
 #include "AS_global.h"
+#include "AS_UTL_IID.h"
 #include "AS_UTL_fileIO.h"
 #include "FragCorrectOVL.h"
 

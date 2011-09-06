@@ -22,17 +22,20 @@
 #ifndef AS_UTL_VAR_H
 #define AS_UTL_VAR_H
 
-static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.21 2011-07-28 04:23:50 mkotelbajcvi Exp $";
+static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.22 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdarg.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
+#include <cassert>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
 #include <typeinfo>
+
+using namespace std;
 
 #include "AS_global.h"
 #include "AS_UTL_alloc.h"
+#include "AS_UTL_fileIO.h"
 
 //  The number of significant characters used to distinguish a array
 //  element type.

@@ -22,18 +22,19 @@
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.60 2009-08-14 13:37:08 skoren Exp $";
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.61 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
+using namespace std;
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_genericStore.h"
-#include "AS_UTL_Hash.h"
 #include "AS_UTL_fileIO.h"
 
 #define AS_IID_UNK     0

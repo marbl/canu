@@ -18,18 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.26 2011-07-29 16:35:18 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.27 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <math.h>
-#include <assert.h>
-
-#include "AS_global.h"
 #include "AS_UTL_Hash.h"
-#include "AS_UTL_fileIO.h"
 
 //  Debugging targets
 

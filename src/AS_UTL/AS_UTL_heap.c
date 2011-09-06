@@ -19,9 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_heap.c,v 1.12 2011-04-04 19:24:51 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_heap.c,v 1.13 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include "AS_global.h"
 #include "AS_UTL_heap.h"
 
 //  AllocateHeap_AS() returns an empty heap, with items_per_block

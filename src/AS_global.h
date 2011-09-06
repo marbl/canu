@@ -25,14 +25,13 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.49 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.50 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <assert.h>
-#include <stdarg.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <algorithm>
+#include <cassert>
 #include <cerrno>
 #include <cfloat>
 #include <climits>
@@ -51,39 +50,19 @@ using namespace std;
 
 #include "AS_UTL_alloc.h"
 
-#ifdef __alpha
-// used in AS_CNS/Array_CNS.h and AS_CNS/MultiAlignment_CNS.h
-#include <random.h>
-#endif
-
 #ifndef TRUE
-	#define TRUE true
+  #define TRUE true
 #endif
 #ifndef FALSE
-	#define FALSE false
+  #define FALSE false
 #endif
 
 #ifndef MIN
-	#define MIN(a,b) (((a) < (b)) ? (a) : (b))
+  #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 #endif
 #ifndef MAX
-	#define MAX(a,b) (((a) > (b)) ? (a) : (b))
+  #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
-
-
-#ifdef __cplusplus
-  #include <cstdlib>
-#else
-  #include <stdlib.h>
-#endif
-
-#ifndef __cplusplus
-  #ifdef bool
-    #undef bool
-  #endif // bool
-  typedef int bool;
-#endif // cplusplus
-
 
 #ifndef _AIX
   typedef int8_t  int8;
@@ -97,63 +76,94 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 
-typedef void *PtrT;
+typedef void* PtrT;
 
-#define F_P          "%p"
-#define F_PP          "p"
+// Format for wildcard in *scanf functions
+#define F_I           "%*"
 
-#define F_C          "%c"
-#define F_CP          "c"
-#define F_CI     "%*"F_CP
-#define F_STR        "%s"
-#define F_STRP        "s"
-#define F_STRI "%*"F_STRP
+// Pointers
+#define F_P           "%p"
+#define F_PP           "p"
+
+// Characters
+#define F_C           "%c"
+#define F_CP           "c"
+#define F_CI     F_I""F_CP
+
+// Strings
+#define F_STR         "%s"
+#define F_STRP         "s"
+#define F_STRI F_I""F_STRP
 
 #if ULONG_MAX == 0xffffffff
   // 32-bit architecture
 
   #define TRUE32BIT
 
-  typedef uint32   INTPTR;
+  typedef uintptr_t INTPTR;
 
   #ifndef UINT64_MAX
     #define INT64_MAX  LLONG_MAX
     #define UINT64_MAX ULLONG_MAX
   #endif
 
-  #define F_S16     "%d"
-  #define F_U16     "%u"
-  #define F_S32     "%d"
-  #define F_S32P     "d"
-  #define F_U32     "%u"
-  #define F_U32P     "u"
-  #define F_S64   "%lld"
-  #define F_S64P   "lld"
-  #define F_U64   "%llu"
-  #define F_U64P   "llu"
-  #define F_X64   "%llx"
-  #define F_X64P   "llx"
+  // Integers
+  #define F_S16         "%d"
+  #define F_S16P         "d"
+  #define F_S16I F_I""F_S16P
+  #define F_U16         "%u"
+  #define F_U16P         "u"
+  #define F_U16I F_I""F_U16P
+  #define F_S32         "%d"
+  #define F_S32P         "d"
+  #define F_S32I F_I""F_S32P
+  #define F_U32         "%u"
+  #define F_U32P         "u"
+  #define F_U32I F_I""F_U32P
+  #define F_S64       "%lld"
+  #define F_S64P       "lld"
+  #define F_S64I F_I""F_S64P
+  #define F_U64       "%llu"
+  #define F_U64P       "llu"
+  #define F_U64I F_I""F_U64P
+  #define F_X64       "%llx"
+  #define F_X64P       "llx"
+  #define F_X64I F_I""F_X64P
 
-  #define F_SIZE_T   "%u"
-  #define F_SIZE_TP   "u"
+  // Floating points
+  #define F_F32        "%f"
+  #define F_F32P        "f"
+  #define F_F32I F_I""F_32P
+  #define F_F64       F_F32
+  #define F_F64P     F_F32P
+  #define F_F64I     F_F32I
+  
+  // Standard typedefs
+  #define F_SIZE_T     F_U32
+  #define F_SIZE_TP   F_U32P
+  #define F_SIZE_TI   F_U32I
 
-  #define F_TIME_T  "%ld"
-  #define F_TIME_TP  "ld"
+  #define F_TIME_T           "%ld"
+  #define F_TIME_TP           "ld"
+  #define F_TIME_TI F_I""F_TIME_TP
 
-  #define F_PID_T    "%d"
-  #define F_PID_TP    "d"
+  #define F_PID_T      F_S32
+  #define F_PID_TP    F_S32P
+  #define F_PID_TI    F_S32I
 
   #if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 32)
     // off_t is 32-bit
     #error I do not support 32-bit off_t.
-    #define F_OFF_T   "%ld"
-    #define F_OFF_TP   "ld"
+    #define F_OFF_T          "%ld"
+    #define F_OFF_TP          "ld"
+    #define F_OFF_TI F_I""F_OFF_TP
   #endif
 
   // off_t is 64-bit
 
-  #define F_OFF_T   "%lld"
-  #define F_OFF_TP   "lld"
+  #define F_OFF_T   F_S64
+  #define F_OFF_TP F_S64P
+  #define F_OFF_TI F_S64I
 
   #define FILEID_MASK       0xffff000000000000ULL
   #define FILEOFFSET_MASK   0x0000ffffffffffffULL
@@ -185,79 +195,85 @@ typedef void *PtrT;
 
   #define TRUE64BIT
 
-  typedef uint64   INTPTR;
+  typedef uintptr_t INTPTR;
 
   #ifndef UINT64_MAX
     #define INT64_MAX  LONG_MAX
     #define UINT64_MAX ULONG_MAX
   #endif
 
-  // included here for downstream .c files
-  // I don't know if this is needed anywhere else but on the alphas (MP)
-  #ifdef _OSF_SOURCE
-   #include <sys/mode.h>
-  #endif
-
-  #define F_S16       "%hd"
-  #define F_S16P       "hd"
-  #define F_S16I "%*"F_S16P
-  #define F_U16       "%hu"
-  #define F_U16P       "hu"
-  #define F_U16I "%*"F_U16P
-  #define F_S32        "%d"
-  #define F_S32P        "d"
-  #define F_S32I "%*"F_S32P
-  #define F_U32        "%u"
-  #define F_U32P        "u"
-  #define F_U32I "%*"F_U32P
-  #define F_S64       "%ld"
-  #define F_S64P       "ld"
-  #define F_S64I  "%*"F_64P
-  #define F_U64       "%lu"
-  #define F_U64P       "lu"
-  #define F_U64I "%*"F_U64P
-  #define F_X64       "%lx"
-  #define F_X64P       "lx"
-  #define F_X64I "%*"F_X64P
+  // Integers
+  #define F_S16        "%hd"
+  #define F_S16P        "hd"
+  #define F_S16I F_I""F_S16P
+  #define F_U16        "%hu"
+  #define F_U16P        "hu"
+  #define F_U16I F_I""F_U16P
+  #define F_S32         "%d"
+  #define F_S32P         "d"
+  #define F_S32I F_I""F_S32P
+  #define F_U32         "%u"
+  #define F_U32P         "u"
+  #define F_U32I F_I""F_U32P
+  #define F_S64        "%ld"
+  #define F_S64P        "ld"
+  #define F_S64I  F_I""F_64P
+  #define F_U64        "%lu"
+  #define F_U64P        "lu"
+  #define F_U64I F_I""F_U64P
+  #define F_X64        "%lx"
+  #define F_X64P        "lx"
+  #define F_X64I F_I""F_X64P
   
+  // Floating points
   #define F_F32        "%f"
   #define F_F32P        "f"
-  #define F_F32I  "%*"F_32P
+  #define F_F32I F_I""F_32P
   #define F_F64       "%lf"
   #define F_F64P       "lf"
-  #define F_F64I   "%*"F64P
+  #define F_F64I  F_I""F64P
   
-  #define F_SIZE_T F_U64
-  #define F_SIZE_TP F_U64P
+  // Standard typedefs
+  #define F_SIZE_T           F_U64
+  #define F_SIZE_TP         F_U64P
+  #define F_SIZE_TI F_I""F_SIZE_TP
 
   #ifdef _AIX
-    #define F_TIME_T  "%ld"
-    #define F_TIME_TP  "ld"
+    #define F_TIME_T   F_S64
+    #define F_TIME_TP F_S64P
+    #define F_TIME_TI F_S64I
 
-    #define F_PID_T   "%ld"
-    #define F_PID_TP   "ld"
+    #define F_PID_T    F_S64
+    #define F_PID_TP  F_S64P
+    #define F_PID_TI  F_S64I
 
     #ifdef _LARGE_FILES
-      #define F_OFF_T   "%lld"
-      #define F_OFF_TP   "lld"
+      #define F_OFF_T         "%lld"
+      #define F_OFF_TP         "lld"
+      #define F_OFF_TI F_I""F_OFF_TP
     #else
-      #define F_OFF_T   "%ld"
-      #define F_OFF_TP   "ld"
+      #define F_OFF_T   F_S64
+      #define F_OFF_TP F_S64P
+      #define F_OFF_TI F_S64I
     #endif
   #else
     // these are valid for __alpha, perhaps not for others...
-    #define F_TIME_T  "%d"
-    #define F_TIME_TP  "d"
+    #define F_TIME_T   F_S64
+    #define F_TIME_TP F_S64P
+    #define F_TIME_TI F_S64I
 
-    #define F_PID_T   "%d"
-    #define F_PID_TP   "d"
+    #define F_PID_T    F_S32
+    #define F_PID_TP  F_S32P
+    #define F_PID_TI  F_S32I
 
     #ifdef _KERNEL
-      #define F_OFF_T   "%lu"
-      #define F_OFF_TP   "lu"
+      #define F_OFF_T   F_U64
+      #define F_OFF_TP F_U64P
+      #define F_OFF_TI F_U64I
     #else
-      #define F_OFF_T   "%ld"
-      #define F_OFF_TP   "ld"
+      #define F_OFF_T   F_S64
+      #define F_OFF_TP F_S64P
+      #define F_OFF_TI F_S64I
     #endif
   #endif
 
@@ -283,6 +299,8 @@ typedef void *PtrT;
   #define MAX_SEQUENCEDB_CACHE_SIZE      536870912ul
 
 #endif  // 64-bit architecture
+
+// Common to 32-bit and 64-bit architechture
 
 
 #ifdef __alpha
@@ -316,13 +334,6 @@ off_t ftello(FILE *stream );
 #ifndef crunch
 #define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
 #endif
-
-
-#include "AS_UTL_IID.h"
-#include "AS_UTL_UID.h"
-
-
-
 
 
 #define CGB_INVALID_CUTOFF           -12.0f
@@ -406,16 +417,6 @@ int AS_configure(int argc, char **argv);
 // A convenient assert for testing whether ptrs are null
 // without bothering lint
 #define AssertPtr(ptr) (assert((ptr) != NULL))
-
-#ifndef clock
-extern clock_t clock (void) __THROW;
-#endif
-#ifndef time
-extern time_t time (time_t *__timer) __THROW;
-#endif
-#ifndef CLOCKS_PER_SEC
-extern int64 CLOCKS_PER_SEC;
-#endif
 
 #define exitFailure() \
 	exit(EXIT_FAILURE)

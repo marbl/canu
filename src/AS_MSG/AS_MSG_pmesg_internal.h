@@ -22,15 +22,16 @@
 #ifndef AS_MSG_PMESG_INTERNAL_H
 #define AS_MSG_PMESG_INTERNAL_H
 
-static const char *rcsid_AS_MSG_PMESG_INTERNAL_H = "$Id: AS_MSG_pmesg_internal.h,v 1.12 2010-08-16 07:22:28 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INTERNAL_H = "$Id: AS_MSG_pmesg_internal.h,v 1.13 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-#include <time.h>
-#include <ctype.h>
-#include <assert.h>
+#include <cassert>
+#include <cerrno>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+
+using namespace std;
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"

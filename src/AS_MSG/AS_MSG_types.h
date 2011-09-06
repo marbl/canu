@@ -18,18 +18,20 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_types.h,v 1.3 2010-02-17 01:32:58 brianwalenz Exp $   */
+/* $Id: AS_MSG_types.h,v 1.4 2011-09-06 01:11:56 mkotelbajcvi Exp $   */
 
 #ifndef AS_MSG_PMESG_TYPES_H
 #define AS_MSG_PMESG_TYPES_H
 
-static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.3 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.4 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <time.h>
+#include <cstdio>
+#include <ctime>
+
+using namespace std;
 
 #include "AS_global.h"
-#include "AS_UTL_Var.h"
+#include "AS_UTL_IID.h"
 
 typedef AS_IID      IntLibrary_ID;
 typedef AS_IID      IntDist_ID;

@@ -19,16 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fragmentDepth.c,v 1.15 2010-03-22 20:08:13 brianwalenz Exp $";
+const char *mainid = "$Id: fragmentDepth.c,v 1.16 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+
+#include <unistd.h>
+#include <cassert>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+
+using namespace std;
 
 #include "AS_global.h"
+#include "AS_UTL_UID.h"
 #include "AS_UTL_fasta.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <assert.h>
 
 //  A quick hack to compute a histogram of coverage depth using
 //  the runCA-OBT posmap files.

@@ -19,18 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.23 2011-07-28 04:23:50 mkotelbajcvi Exp $";
+//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.24 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <assert.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <errno.h>
-#include <string.h>
-
-#include "AS_global.h"
 #include "AS_UTL_fileIO.h"
 
 //  Report ALL attempts to seek somewhere.

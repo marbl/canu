@@ -22,9 +22,8 @@
 #ifndef STRINGUTILS_H
 #define STRINGUTILS_H
 
-static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.16 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid_STRINGUTILS_H = "$Id: StringUtils.h,v 1.17 2011-09-06 01:11:56 mkotelbajcvi Exp $";
 
-#include <stdarg.h>
 #include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
