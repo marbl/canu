@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.15 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.16 2011-09-06 15:06:31 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -152,18 +152,18 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
 
     //  Illumina options, just to make it not complain about unknown features
 
-    else if (strcasecmp(fea, "illuminaFastQType") == 0)
-    {
-    }
-    else if (strcasecmp(fea, "illuminaOrientation") == 0)
-    {
-    }
-    else if (strcasecmp(fea, "illuminaQSequence") == 0)
-    {
-    }
-    else if (strcasecmp(fea, "illuminaSequence") == 0)
-    {
-    }
+    else if ((strcasecmp(fea, "illuminaFastQType") == 0) ||
+             (strcasecmp(fea, "illuminaOrientation") == 0) ||
+             (strcasecmp(fea, "illuminaQSequence") == 0) ||
+             (strcasecmp(fea, "illuminaSequence") == 0))
+      //  These are now errors, handled by AS_GKP_illumina.C.
+      ;
+
+    else if ((strcasecmp(fea, "fastqQualityValues") == 0) ||
+             (strcasecmp(fea, "fastqOrientation") == 0) ||
+             (strcasecmp(fea, "fastqMates") == 0) ||
+             (strcasecmp(fea, "fastqReads") == 0))
+      ;
 
     //  Library options (orientation is not a feature, it's part of the library)
 
