@@ -231,7 +231,6 @@ SUBDIRS = AS_RUN \
           AS_MSG \
           AS_PER \
           AS_GKP \
-          AS_GKP/ReadAnalysis \
           AS_OBT \
           AS_MER \
           AS_OVL \

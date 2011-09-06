@@ -37,34 +37,16 @@ LIB_SOURCES = AS_UTL_Hash.C \
               AS_UTL_fasta.C \
               AS_UTL_UID.C \
               AS_UTL_reverseComplement.C \
-              AS_UTL_intervalList.C \
-              ArgumentException.C \
-              Asserts.C \
-              AssertionException.C \
-              DataException.C \
-              ErrorUtils.C \
-              ExceptionUtils.C \
-              FileUtils.C \
-              IllegalStateException.C \
-              IOException.C \
-              ReflectionUtils.C \
-              RuntimeException.C \
-              SignalException.C \
-              StackTrace.C \
-              StreamCapture.C \
-              StreamUtils.C \
-              StringUtils.C \
-              TestUtils.C \
-              VarUtils.C
+              AS_UTL_intervalList.C 
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
-SOURCES     = $(LIB_SOURCES) testExceptions.C testErrorUtils.C testFileUtils.C testReflectionUtils.C testStringUtils.C
+SOURCES     = $(LIB_SOURCES) 
 
 OBJECTS     = $(SOURCES:.C=.o)
 LIBRARIES   = libAS_UTL.a libCA.a
 SCRIPTS     =
-CXX_PROGS   = testErrorUtils testExceptions testFileUtils testReflectionUtils testStringUtils
+CXX_PROGS   = 
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
