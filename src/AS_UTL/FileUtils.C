@@ -19,9 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: FileUtils.C,v 1.8 2011-09-05 16:49:45 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: FileUtils.C,v 1.9 2011-09-06 17:14:15 mkotelbajcvi Exp $";
 
 #include "FileUtils.h"
+
+// TEMP: stopgap commit
+#ifdef __APPLE__
+ssize_t getline(char** buffer, size_t* bufferSize, FILE* stream)
+{
+	return -1;
+}
+#endif
 
 using namespace Utility;
 

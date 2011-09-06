@@ -22,10 +22,9 @@
 #ifndef FILEUTILS_H
 #define FILEUTILS_H
 
-static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.10 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid_FILEUTILS_H = "$Id: FileUtils.h,v 1.11 2011-09-06 17:14:15 mkotelbajcvi Exp $";
 
 #include <fcntl.h>
-#include <stdarg.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <cstdarg>
@@ -41,6 +40,11 @@ using namespace std;
 #include "IOException.h"
 #include "StringUtils.h"
 #include "VarUtils.h"
+
+// TEMP: stopgap commit
+#ifdef __APPLE__
+ssize_t getline(char** buffer, size_t* bufferSize, FILE* stream);
+#endif
 
 namespace Utility
 {

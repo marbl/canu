@@ -22,7 +22,7 @@
 #ifndef ERRORUTILS_H
 #define ERRORUTILS_H
 
-static const char* rcsid_ERRORUTILS_H = "$Id: ErrorUtils.h,v 1.3 2011-09-06 15:27:27 mkotelbajcvi Exp $";
+static const char* rcsid_ERRORUTILS_H = "$Id: ErrorUtils.h,v 1.4 2011-09-06 17:14:15 mkotelbajcvi Exp $";
 
 #include <unistd.h>
 #include <cerrno>
@@ -41,6 +41,10 @@ using namespace std;
 #include "SignalException.h"
 #include "StreamUtils.h"
 #include "StringUtils.h"
+
+#ifdef __APPLE__
+typedef void (*sighandler_t)(int)
+#endif
 
 namespace Utility
 {
@@ -63,8 +67,8 @@ namespace Utility
 		signalNameMap[SIGPIPE] = string("SIGPIPE");
 		signalNameMap[SIGALRM] = string("SIGALRM");
 		signalNameMap[SIGTERM] = string("SIGTERM");
-		signalNameMap[SIGSTKFLT] = string("SIGSTKFLT");
-		signalNameMap[SIGCLD] = string("SIGCLD");
+		//signalNameMap[SIGSTKFLT] = string("SIGSTKFLT");
+		//signalNameMap[SIGCLD] = string("SIGCLD");
 		signalNameMap[SIGCHLD] = string("SIGCHLD");
 		signalNameMap[SIGCONT] = string("SIGCONT");
 		signalNameMap[SIGSTOP] = string("SIGSTOP");
@@ -77,11 +81,11 @@ namespace Utility
 		signalNameMap[SIGVTALRM] = string("SIGVTALRM");
 		signalNameMap[SIGPROF] = string("SIGPROF");
 		signalNameMap[SIGWINCH] = string("SIGWINCH");
-		signalNameMap[SIGPOLL] = string("SIGPOLL");
+		//signalNameMap[SIGPOLL] = string("SIGPOLL");
 		signalNameMap[SIGIO] = string("SIGIO");
-		signalNameMap[SIGPWR] = string("SIGPWR");
+		//signalNameMap[SIGPWR] = string("SIGPWR");
 		signalNameMap[SIGSYS] = string("SIGSYS");
-		signalNameMap[SIGUNUSED] = string("SIGUNUSED");
+		//signalNameMap[SIGUNUSED] = string("SIGUNUSED");
 		
 		return signalNameMap;
 	}
@@ -97,17 +101,17 @@ namespace Utility
 	class ErrorUtils
 	{
 	public:
-		inline static void handleErrorSignals(__sighandler_t signalHandler)
+		inline static void handleErrorSignals(sighandler_t signalHandler)
 		{
 			handleSignals(ERROR_SIGNALS, signalHandler);
 		}
 
-		inline static void handleExitSignals(__sighandler_t signalHandler)
+		inline static void handleExitSignals(sighandler_t signalHandler)
 		{
 			handleSignals(EXIT_SIGNALS, signalHandler);
 		}
 
-		inline static void handleSignals(const int* signalNums, __sighandler_t signalHandler)
+		inline static void handleSignals(const int* signalNums, sighandler_t signalHandler)
 		{
 			for (size_t a = 0; signalNums[a] != NO_SIGNAL; a++)
 			{
@@ -115,7 +119,7 @@ namespace Utility
 			}
 		}
 
-		inline static sighandler_t handleSignal(int signalNum, __sighandler_t signalHandler)
+		inline static sighandler_t handleSignal(int signalNum, sighandler_t signalHandler)
 		{
 			return signal(signalNum, signalHandler);
 		}
