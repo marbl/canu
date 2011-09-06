@@ -20,7 +20,7 @@
 #ifndef CLASSIFYMATES_H
 #define CLASSIFYMATES_H
 
-static const char *rcsid_CLASSIFYMATES_H = "$Id: classifyMates.H,v 1.2 2011-08-29 20:58:32 brianwalenz Exp $";
+static const char *rcsid_CLASSIFYMATES_H = "$Id: classifyMates.H,v 1.3 2011-09-06 16:01:06 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -153,8 +153,8 @@ public:
     header.isRFS          = (algorithm == 'r');
     header.iterationLimit = iterationLimit_;
     header.isInnie        = innie_;
-    header.minDistance    = innie_;
-    header.maxDistance    = innie_;
+    header.minDistance    = minDistance_;
+    header.maxDistance    = maxDistance_;
 
     errno = 0;
     F = fopen(filename, "w");
@@ -191,6 +191,14 @@ public:
     AS_UTL_safeRead(F, &result, "classifyMatesResult", sizeof(classifyMatesResult), 1);
     return(!feof(F));
   };
+
+  bool    getAlgorithm_isBFS(void)          { return(header.isBFS   != 0);   };
+  bool    getAlgorithm_isDFS(void)          { return(header.isDFS   != 0);   };
+  bool    getAlgorithm_isRFS(void)          { return(header.isRFS   != 0);   };
+  bool    getAlgorithm_isInnie(void)        { return(header.isInnie != 0);   };
+  uint32  getAlgorithm_iterationLimit(void) { return(header.iterationLimit); };
+  uint32  getAlgorithm_minDistance(void)    { return(header.minDistnace);    };
+  uint32  getAlgorithm_maxDistance(void)    { return(header.maxDistance);    };
 
 private:
   classifyMatesResultFileHeader   header;
