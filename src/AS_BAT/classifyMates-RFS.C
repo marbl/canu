@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-RFS.C,v 1.9 2011-08-29 20:58:32 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-RFS.C,v 1.10 2011-09-06 16:01:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -61,7 +61,8 @@ cmGlobalData::doSearchRFS(cmComputation *c,
     //  return.  If we don't find the answer we exit the while and do another iteration.
 
     while (t->path[t->pathPos].pLen < distMax) {
-      if (testSearch(c, t, tgPos, tgLen))
+      if ((t->path[t->pathPos].pLen >= distMin) &&
+          (testSearch(c, t, tgPos, tgLen)))
         //  If any of the target overlaps are the answer
         return;
 
