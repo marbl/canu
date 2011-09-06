@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.14 2011-06-17 13:03:02 skoren Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.15 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -153,13 +153,17 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
     //  Illumina options, just to make it not complain about unknown features
 
     else if (strcasecmp(fea, "illuminaFastQType") == 0)
-      ;
+    {
+    }
     else if (strcasecmp(fea, "illuminaOrientation") == 0)
-      ;
+    {
+    }
     else if (strcasecmp(fea, "illuminaQSequence") == 0)
-      ;
+    {
+    }
     else if (strcasecmp(fea, "illuminaSequence") == 0)
-      ;
+    {
+    }
 
     //  Library options (orientation is not a feature, it's part of the library)
 
@@ -188,7 +192,7 @@ gkLibrary::gkLibrary_encodeFeaturesCleanup(LibraryMesg *lmesg) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));    \
     val[nf] = (char *)safe_malloc(32 * sizeof(char));    \
     sprintf(fea[nf], #V);                                \
-    sprintf(val[nf], "%d", V);                           \
+    sprintf(val[nf], F_U64, V);                           \
     nf++;                                                \
   }
 
@@ -242,7 +246,7 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));
     val[nf] = (char *)safe_malloc(32 * sizeof(char));
     sprintf(fea[nf], "doConsensusCorrection");
-    sprintf(val[nf], "%d", doConsensusCorrection);
+    sprintf(val[nf], F_U64, doConsensusCorrection);
     nf++;
   }
 

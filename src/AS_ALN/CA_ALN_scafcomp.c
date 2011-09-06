@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.23 2010-08-24 15:02:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.24 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1464,7 +1464,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 	double gapFrac = ((double) (top - (BF->ctgs[i].lft_end+BF->ctgs[i].length))) /
           (double) (BF->gaps[i].gap_length+varwin*BF->gaps[i].gap_var);
 	assert(gapFrac>=0);
-	beg = BF->ctgs[i].lft_end+BF->ctgs[i].length + gapFrac * BF->gaps[i].gap_length;
+	beg = (int32)(BF->ctgs[i].lft_end+BF->ctgs[i].length + gapFrac * BF->gaps[i].gap_length);
 	break;
       }
     }
@@ -1483,7 +1483,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
       if(intoB>bot){
 	double gapFrac = ((double)(intoB-bot)) / (double)(BF->gaps[i].gap_length+varwin*BF->gaps[i].gap_var);
 	assert(gapFrac>=0);
-	end = BF->ctgs[i+1].lft_end - gapFrac * BF->gaps[i].gap_length;
+	end = (int32)(BF->ctgs[i+1].lft_end - gapFrac * BF->gaps[i].gap_length);
 	break;
       }
       i++;

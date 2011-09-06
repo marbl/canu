@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.103 2011-03-08 21:18:38 skoren Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.104 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -146,7 +146,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
   }
 
   if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS)) {
-    fprintf(logFile, "unitig %d with %d fwd and %d rev bads\n",
+    fprintf(logFile, "unitig %d with "F_SIZE_T" fwd and "F_SIZE_T" rev bads\n",
             tig->id(), fwdBads->size(), revBads->size());
     fprintf(logFile, "fwd:");
     for (uint32 i=0; i<fwdBads->size(); i++)
@@ -164,7 +164,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       char  filename[FILENAME_MAX] = {0};
       sprintf(filename, "coverageplot/utg%09u.badCoverage", tig->id());
 
-      fprintf(logFile, "%s -- fwdBads %d revBads %d\n", filename, fwdBads->size(), revBads->size());
+      fprintf(logFile, "%s -- fwdBads "F_SIZE_T" revBads "F_SIZE_T"\n", filename, fwdBads->size(), revBads->size());
 
       if (AS_UTL_fileExists("coverageplot", TRUE, TRUE) == 0)
         AS_UTL_mkdir("coverageplot");
@@ -172,7 +172,7 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
       FILE *F = fopen(filename, "w");
 
       for (uint32 i=0; i<tigLen; i++)
-        fprintf(F, "%u\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+        fprintf(F, "%u\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
                 i,
                 positions.goodGraph[i],
                 positions.badFwdGraph[i],

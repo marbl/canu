@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.44 2010-09-24 02:33:47 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.45 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
@@ -92,7 +92,7 @@ output_the_chunks(Tfragment     *frags,
     assert(ch->iaccession < nchunks);
     partmap[ch->iaccession] = prt_count;
 
-    fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (in partition "F_U32" with "F_S64" frags)\n",
+    fprintf(iidm, "Unitig "F_U32" == IUM "F_U32" (in partition "F_U32" with "F_U32" frags)\n",
             ch->iaccession, ch->iaccession, partmap[ch->iaccession], nf);
 
     for (int32 ivc=0; ivc<ch->num_frags; ivc++) {

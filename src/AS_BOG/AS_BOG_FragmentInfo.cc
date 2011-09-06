@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_FragmentInfo.cc,v 1.2 2010-10-12 22:24:15 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_FragmentInfo.cc,v 1.3 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -196,7 +196,7 @@ FragmentInfo::load(const char *prefix) {
   }
   if (versionNumber != fiVersionNumber) {
     fprintf(logFile, "FragmentInfo()-- File '%s' is version "F_U64", I can only read version "F_U64"; cannot load.\n",
-            versionNumber, fiVersionNumber, name);
+            name, versionNumber, fiVersionNumber);
     fclose(file);
     return(false);
   }

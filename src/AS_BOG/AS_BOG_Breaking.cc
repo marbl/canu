@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.6 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Breaking.cc,v 1.7 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -330,7 +330,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         //  Break at both ends, create a singleton for this fragment.
         //
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING) && newTig)
-          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->ufpath.size());
+          fprintf(logFile, "Done with newTig unitig "F_U32" has "F_SIZE_T" fragments.\n", newTig->id(), newTig->ufpath.size());
 
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
           fprintf(logFile, "Break tig %d at both ends of frag %d\n", tig->id(), breakPoint.fragEnd.fragId());
@@ -343,7 +343,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
 
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING) && newTig)
-          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->ufpath.size());
+          fprintf(logFile, "Done with newTig unitig "F_U32" has "F_SIZE_T" fragments.\n", newTig->id(), newTig->ufpath.size());
 
         newTig = NULL;  //  delay until we need to make it
       }
@@ -354,7 +354,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         //  Break at left end of frg, frg starts new tig
         //
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING) && newTig)
-          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->ufpath.size());
+          fprintf(logFile, "Done with newTig unitig "F_U32" has "F_SIZE_T" fragments.\n", newTig->id(), newTig->ufpath.size());
 
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
           fprintf(logFile,"Break tig %d before frag %d\n", tig->id(), breakPoint.fragEnd.fragId());
@@ -387,7 +387,7 @@ UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig,
         newTig->addFrag(frg, offset, logFileFlagSet(LOG_INTERSECTION_BREAKING));
 
         if (logFileFlagSet(LOG_INTERSECTION_BREAKING) && newTig)
-          fprintf(logFile, "Done with newTig unitig %d has %d fragments.\n", newTig->id(), newTig->ufpath.size());
+          fprintf(logFile, "Done with newTig unitig "F_U32" has "F_SIZE_T" fragments.\n", newTig->id(), newTig->ufpath.size());
 
         newTig = NULL;
 

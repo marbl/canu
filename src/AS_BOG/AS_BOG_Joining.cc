@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.6 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Joining.cc,v 1.7 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -211,7 +211,7 @@ UnitigGraph::joinUnitigs(bool enableJoining) {
       continue;
 
     if (logFileFlagSet(LOG_INTERSECTION_JOINING))
-      fprintf(logFile, "Join from unitig "F_U32" (length %d idx %d/%d) to unitig "F_U32" (length %d idx %d/%d) for a total length of %d\n",
+      fprintf(logFile, "Join from unitig "F_U32" (length %d idx %d/"F_SIZE_T") to unitig "F_U32" (length %d idx %d/"F_SIZE_T") for a total length of "F_U32"\n",
               frUnitigID, join->frLen, frIdx, frUnitig->ufpath.size(),
               toUnitigID, join->toLen, toIdx, toUnitig->ufpath.size(),
               join->combinedLength);

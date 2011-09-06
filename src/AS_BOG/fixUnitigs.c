@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fixUnitigs.c,v 1.6 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: fixUnitigs.c,v 1.7 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -128,7 +128,7 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
         ReplaceInHashTable_AS(ovlBefore,
                               (uint64)ovl[ovlLen].a_iid, sizeof(uint64),
                               (uint64)ovlLen, 0);
-      fprintf(stderr, "%s before overlap for %d (%c) to %d (%c) (%d,%d,%c) at ovl position %d\n",
+      fprintf(stderr, "%s before overlap for %d (%c) to %d (%c) ("F_S64","F_S64",%c) at ovl position %d\n",
               correct ? "save" : "skip",
               ovl[ovlLen].a_iid, afwd ? 'F' : 'R',
               ovl[ovlLen].b_iid, bfwd ? 'F' : 'R',
@@ -143,7 +143,7 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
         ReplaceInHashTable_AS(ovlAfter,
                               (uint64)ovl[ovlLen].a_iid, sizeof(uint64),
                               (uint64)ovlLen, 0);
-      fprintf(stderr, "%s after  overlap for %d (%c) to %d (%c) (%d,%d,%c) at ovl position %d\n",
+      fprintf(stderr, "%s after  overlap for %d (%c) to %d (%c) ("F_S64","F_S64",%c) at ovl position %d\n",
               correct ? "save" : "skip",
               ovl[ovlLen].a_iid, afwd ? 'F' : 'R',
               ovl[ovlLen].b_iid, bfwd ? 'F' : 'R',
@@ -168,7 +168,7 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
         if (testOvl == -1)
           continue;
 
-        fprintf(stderr, "found testFrag = %d testOvl = %d erates %u %u hang %d %d (CONTAIN) slop=%d\n",
+        fprintf(stderr, "found testFrag = %d testOvl = %d erates "F_U64" %u hang "F_S64" "F_S64" (CONTAIN) slop=%d\n",
                 testFrag, testOvl,
                 ovl[testOvl].dat.ovl.orig_erate, consensusCutoff,
                 ovl[testOvl].dat.ovl.a_hang,
@@ -237,7 +237,7 @@ updateFragmentWithParent(IntUnitigMesg *iunitig, int thisFrag, OverlapStore *ovs
         if (bhang < 0)
           continue;
 
-        fprintf(stderr, "found testFrag = %d testOvl = %d erates %u %u hang %d %d (DOVETAIL) slop=%d\n",
+        fprintf(stderr, "found testFrag = %d testOvl = %d erates "F_U64" %u hang "F_S64" "F_S64" (DOVETAIL) slop=%d\n",
                 testFrag, testOvl,
                 ovl[testOvl].dat.ovl.orig_erate, consensusCutoff,
                 ovl[testOvl].dat.ovl.a_hang,

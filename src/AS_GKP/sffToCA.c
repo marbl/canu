@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.56 2011-08-19 20:33:05 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.57 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1367,7 +1367,7 @@ processMate(gkFragment *fr,
     //  Search the trimmed read for more (partial) linker.  If found, we'll nuke the whole read.
 
     if (processMate(fr, NULL, NULL, linker, search)) {
-      fprintf(logFile, "Multiple linker detected in '%s'.  Delete the read.\n",
+      fprintf(logFile, "Multiple linker detected in '"F_STR"' at "F_S32"-"F_S32".  Delete the read.\n",
               AS_UID_toString(fr->gkFragment_getReadUID()), 
               al.begJ, al.endJ);
       fr->gkFragment_setReadUID(AS_UID_undefined());
@@ -1412,7 +1412,7 @@ processMate(gkFragment *fr,
     //  Search the trimmed read for more (partial) linker.  If found, we'll nuke the whole read.
 
     if (processMate(fr, NULL, NULL, linker, search)) {
-      fprintf(logFile, "Multiple linker detected in '%s'.  Delete the read.\n",
+      fprintf(logFile, "Multiple linker detected in '"F_STR"' at "F_S32"-"F_S32".  Delete the read.\n",
               AS_UID_toString(fr->gkFragment_getReadUID()), 
               al.begJ, al.endJ);
       fr->gkFragment_setReadUID(AS_UID_undefined());

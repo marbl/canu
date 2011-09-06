@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceFragUsingOverlaps.cc,v 1.3 2010-10-27 04:15:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_PlaceFragUsingOverlaps.cc,v 1.4 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -269,7 +269,7 @@ UnitigGraph::placeFragUsingOverlaps(ufNode frag,
 
     if (logFileFlagSet(LOG_PLACE_FRAG))
       for (uint32 i=0; i<UP.numberOfIntervals(); i++)
-        fprintf(logFile, "placeFragUsingOverlaps()-- frag %d in unitig %d (len %d nfrags %d) at "F_S64","F_S64" from "F_U32" overlaps\n",
+        fprintf(logFile, "placeFragUsingOverlaps()-- frag %d in unitig %d (len %d nfrags "F_SIZE_T") at "F_S64","F_S64" from "F_U32" overlaps\n",
                 frag.ident,
                 ovlPlace[bgn].tigID, unitigs[ovlPlace[bgn].tigID]->getLength(), unitigs[ovlPlace[bgn].tigID]->ufpath.size(),
                 UP.lo(i),

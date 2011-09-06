@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.9 2010-11-09 19:40:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.10 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -78,7 +78,7 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
     int32          maxNewPos    = INT32_MIN;
 
     if (logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG))
-      fprintf(logFile, "popBubbles()-- try unitig %d of length %d with %d fragments\n",
+      fprintf(logFile, "popBubbles()-- try unitig %d of length %d with "F_SIZE_T" fragments\n",
               shortTig->id(),
               shortTig->getLength(),
               shortTig->ufpath.size());

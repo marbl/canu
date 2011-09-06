@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.5 2011-08-01 22:33:01 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.6 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -196,7 +196,7 @@ gkStore::gkStore_loadSTRtoUID(void) {
        while ((uidptr = getStringStorePtr(uid, uidoff, &actlen, &nxtoff)) != NULL) {
          if (strlen(uidptr) != actlen) {
            int i;
-           fprintf(stderr, "gkStore_loadSTRtoUID()-- string '%s' length %d != stored actlen = %d\n",
+           fprintf(stderr, "gkStore_loadSTRtoUID()-- string '"F_STR"' length "F_SIZE_T" != stored actlen = "F_U32"\n",
                    uidptr, strlen(uidptr), actlen);
            for (i=0; i<strlen(uidptr); i++)
              fprintf(stderr, "[%2d] %3d '%c'\n", i, uidptr[i], uidptr[i]);

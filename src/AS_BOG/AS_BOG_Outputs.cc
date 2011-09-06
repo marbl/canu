@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.8 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.9 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -305,7 +305,7 @@ UnitigGraph::writeCGAtoFile(char *outputprefix, float globalARate) {
   }
 
   fprintf(stats, "Global Arrival Rate: %f\n", globalARate);
-  fprintf(stats, "There were %d unitigs generated.\n", unitigs.size());
+  fprintf(stats, "There were "F_SIZE_T" unitigs generated.\n", unitigs.size());
 
   const int nsample = 500;
   const int nbucket = 500;

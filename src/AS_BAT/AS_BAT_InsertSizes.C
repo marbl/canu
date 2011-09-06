@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_InsertSizes.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_InsertSizes.C,v 1.3 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BAT_InsertSizes.H"
 #include "AS_BAT_Unitig.H"
@@ -126,8 +126,8 @@ InsertSizes::InsertSizes(UnitigVector &unitigs) {
     _distMax[i] = 1048576;
     _dist[i]    = new int32 [_distMax[i]];
 
-    _mean[i]     = FI->mean(i);
-    _stddev[i]   = FI->stddev(i);
+    _mean[i]     = (int32)FI->mean(i);
+    _stddev[i]   = (int32)FI->stddev(i);
     _samples[i]  = FI->numMatesInLib(i);
   }
 

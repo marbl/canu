@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.6 2010-10-27 12:47:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_InsertSizes.cc,v 1.7 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BOG_InsertSizes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -128,8 +128,8 @@ InsertSizes::InsertSizes() {
     _distMax[i] = 1048576;
     _dist[i]    = new int32 [_distMax[i]];
 
-    _mean[i]     = FI->mean(i);
-    _stddev[i]   = FI->stddev(i);
+    _mean[i]     = (int32)FI->mean(i);
+    _stddev[i]   = (int32)FI->stddev(i);
     _samples[i]  = FI->numMatesInLib(i);
   }
 
@@ -170,7 +170,7 @@ InsertSizes::InsertSizes() {
       }
 
     _samples[i] = numPairs;
-    _mean[i]    = (numPairs > 0) ? sum_Dists / numPairs : 0;
+    _mean[i]    = (int32)((numPairs > 0) ? sum_Dists / numPairs : 0);
 
     for (int32 d=0; d<_distLen[i]; d++)
       if ((smallest    <= _dist[i][d]) &&
@@ -178,7 +178,7 @@ InsertSizes::InsertSizes() {
         sumSquares += ((_dist[i][d] - _mean[i]) *
                        (_dist[i][d] - _mean[i]));
 
-    _stddev[i]  = (numPairs > 1) ? sqrt(sumSquares / (numPairs - 1)) : 0.0;
+    _stddev[i]  = (int32)((numPairs > 1) ? sqrt(sumSquares / (numPairs - 1)) : 0.0);
 
     fprintf(logFile, "InsertSizes()-- lib %d mean %d stddev %d samples %d\n", i, _mean[i], _stddev[i], _samples[i]);
   }

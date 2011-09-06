@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.34 2011-08-01 21:59:15 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.35 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +61,7 @@ openStore(const char *path, const char *rw) {
   }
 
   if (1 != AS_UTL_safeRead(fp, s, "openStore", sizeof(StoreStruct), 1)) {
-    fprintf(stderr, "openStore()-- Failed to read the header for store %s.\n");
+    fprintf(stderr, "openStore()-- Failed to read the header for store.\n");
     assert(0);
     exit(1);
   }
@@ -584,8 +584,8 @@ convertStoreToPartialMemoryStore(StoreStruct *source,
                                 sizeof(char),
                                 sourceMaxOffset - sourceOffset);
     if (bytesRead != sourceMaxOffset - sourceOffset) {
-      fprintf(stderr, "convertStoreToPartialMemoryStore()-- failed to convert store (label '%s') to memory store.\n", source->storeLabel);
-      fprintf(stderr, "convertStoreToPartialMemoryStore()-- wanted to read %d bytes, actually read %d.\n", sourceMaxOffset - sourceOffset, bytesRead);
+      fprintf(stderr, "convertStoreToPartialMemoryStore()-- failed to convert store (label '"F_STR"') to memory store.\n", source->storeLabel);
+      fprintf(stderr, "convertStoreToPartialMemoryStore()-- wanted to read "F_S64" bytes, actually read "F_S64".\n", sourceMaxOffset - sourceOffset, bytesRead);
       assert(0);
       exit(1);
     }

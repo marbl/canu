@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.23 2011-08-27 02:33:21 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.24 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,7 +134,7 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
   }
 
   if (inf.gkVersion != AS_GKP_CURRENT_VERSION) {
-    fprintf(stderr, "gkStore_open()-- Invalid version!  Found version %d, code supports version %d.\n",
+    fprintf(stderr, "gkStore_open()-- Invalid version!  Found version "F_U64", code supports version "F_S32".\n",
             inf.gkVersion, AS_GKP_CURRENT_VERSION);
     exit(1);
   }

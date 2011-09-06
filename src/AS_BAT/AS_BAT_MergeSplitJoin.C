@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.8 2011-05-24 05:17:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.9 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -861,10 +861,10 @@ markRepeats_filterIntervals(Unitig                        *target,
                                                aligned.ct(i),
                                                false,
                                                true));
-      fprintf(logFile, "markRepeats()--  repeat alignment %u,%u count %u\n",
+      fprintf(logFile, "markRepeats()--  repeat alignment "F_U64","F_U64" count "F_U32"\n",
               aligned.lo(i), aligned.hi(i), aligned.ct(i));
     } else {
-      fprintf(logFile, "markRepeats()--  repeat alignment %u,%u count %u DISCARD - CONTAINED IN FRAGMENT %u %d,%d\n",
+      fprintf(logFile, "markRepeats()--  repeat alignment "F_U64","F_U64" count "F_U32" DISCARD - CONTAINED IN FRAGMENT "F_U32" "F_S32","F_S32"\n",
               aligned.lo(i), aligned.hi(i),
               aligned.ct(i),
               containedIn->ident,
@@ -1246,7 +1246,7 @@ markRepeats(UnitigVector &unitigs,
 
   if (newTigs != NULL) {
 
-    fprintf(logFile, "popBubbles()-- SPLIT unitig %d/"F_SIZE_T" of length %u with %ld fragments into %u unitigs:\n",
+    fprintf(logFile, "popBubbles()-- SPLIT unitig %d/"F_SIZE_T" of length %u with %ld fragments into "F_SIZE_T" unitigs:\n",
             target->id(), unitigs.size(), target->getLength(), target->ufpath.size(),
             newTigs->size());
     for (uint32 i=0; i<newTigs->size(); i++)

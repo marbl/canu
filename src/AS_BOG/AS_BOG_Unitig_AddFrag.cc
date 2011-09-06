@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig_AddFrag.cc,v 1.3 2010-11-09 19:37:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig_AddFrag.cc,v 1.4 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -52,13 +52,13 @@ Unitig::addFrag(ufNode node, int offset, bool report) {
     int32 pos = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
 
     if (node.contained)
-      fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d) (contained in %d)\n",
+      fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx "F_SIZE_T") (lendiff %d) (contained in %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
               ufpath.size() - 1,
               pos - len,
               node.contained);
     else
-      fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx %d) (lendiff %d)\n",
+      fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx "F_SIZE_T") (lendiff %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
               ufpath.size() - 1,
               pos - len);

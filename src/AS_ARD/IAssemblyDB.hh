@@ -21,7 +21,7 @@
 #ifndef IAssemblyDB_HH
 #define IAssemblyDB_HH
 
-static const char *rcsid_IAssemblyDB_HH = "$Id: IAssemblyDB.hh,v 1.6 2010-08-19 05:28:06 brianwalenz Exp $";
+static const char *rcsid_IAssemblyDB_HH = "$Id: IAssemblyDB.hh,v 1.7 2011-09-06 02:15:18 mkotelbajcvi Exp $";
 
 #include <string>
 #include <IDBOutput.hh>
@@ -48,7 +48,7 @@ namespace AS_ARD {
          IDBOutput * db;
 
       public:
-         IAssemblyDB(IDBOutput * out) : db(out), numMDI(0), numAFG(0), numUTG(0), numULK(0), numCCO(0), numCLK(0), numSCF(0){};
+         IAssemblyDB(IDBOutput * out) : numMDI(0), numAFG(0), numUTG(0), numULK(0), numCCO(0), numCLK(0), numSCF(0), db(out){};
          virtual ~IAssemblyDB() { delete db; };
 
          virtual bool LoadDatabaseFromASMFile(FILE * fi, UIDserver * uid) = 0;
