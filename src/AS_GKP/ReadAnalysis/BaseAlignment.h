@@ -22,7 +22,7 @@
 #ifndef BASEALIGNMENT_H
 #define BASEALIGNMENT_H
 
-static const char* rcsid_BASEALIGNMENT_H = "$Id: BaseAlignment.h,v 1.3 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid_BASEALIGNMENT_H = "$Id: BaseAlignment.h,v 1.4 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include <algorithm>
 #include <cstdio>
@@ -32,6 +32,7 @@ static const char* rcsid_BASEALIGNMENT_H = "$Id: BaseAlignment.h,v 1.3 2011-09-0
 
 using namespace std;
 
+#include "AS_global.h"
 #include "AlignmentError.h"
 #include "AlignmentErrorType.h"
 

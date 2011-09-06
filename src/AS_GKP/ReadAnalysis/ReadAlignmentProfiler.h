@@ -22,7 +22,7 @@
 #ifndef READALIGNMENTPROFILER_H
 #define READALIGNMENTPROFILER_H
 
-static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.5 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.6 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include <cmath>
 #include <cstdio>
@@ -33,10 +33,11 @@ static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h
 
 using namespace std;
 
+#include "AS_global.h"
+#include "AlignmentDataFilter.h"
 #include "AlignmentDataReader.h"
 #include "AlignmentError.h"
 #include "AlignmentErrorType.h"
-#include "AS_global.h"
 #include "BaseAlignment.h"
 #include "ErrorUtils.h"
 #include "FileUtils.h"
@@ -50,6 +51,15 @@ namespace ReadAnalysis
 	static const double PROFILE_DATA_PERCENT_INCREMENT = 10;
 	
 	static const char* PROFILE_DATA_OUTPUT_SUMMARY_PREFIX = "#";
+	
+	typedef enum BasePositionMode
+	{
+		DEFAULT, END_DISTANCE
+	};
+	
+	class ReadAlignmentProfiler;
+	
+	typedef void (ReadAlignmentProfiler::*ErrorAssignmentFunction)(ReadAlignment*, AlignmentError*, size_t);
 	
 	class ReadAlignmentProfiler
 	{
@@ -83,7 +93,8 @@ namespace ReadAnalysis
 		
 		void writeProfile(string path);
 		void writeProfile(FILE* stream);
-		void profileData(vector<ReadAlignment*>& data, AlignmentDataStats& dataStats);
+		void profileData(vector<ReadAlignment*>& data, map<AS_IID, ReadAlignment*>& iidMap, 
+			AlignmentDataStats& dataStats);
 		
 		bool& getVerbose()
 		{
@@ -95,15 +106,33 @@ namespace ReadAnalysis
 			this->verbose = verbose;
 		}
 		
+		BasePositionMode getPositionMode()
+		{
+			return this->positionMode;
+		}
+		
+		void setPositionMode(BasePositionMode positionMode)
+		{
+			this->positionMode = positionMode;
+		}
+		
 	protected:
 		bool verbose;
+		BasePositionMode positionMode;
 		vector<ReadAlignment*> data;
+		map<AS_IID, ReadAlignment*> iidMap;
 		AlignmentDataStats dataStats;
 		vector<BaseAlignment*> bases;
+		ErrorAssignmentFunction errorAssigner;
 		FILE* stream;
 		
 		void profileBase(size_t readIndex, size_t baseIndex);
 		void initBases();
+		
+		void defaultErrorAssigner(ReadAlignment* readAlign, AlignmentError* error, 
+			size_t baseIndex);
+		void endDistanceErrorAssigner(ReadAlignment* readAlign, AlignmentError* error, 
+			size_t baseIndex);
 	};
 }
 

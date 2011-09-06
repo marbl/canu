@@ -19,54 +19,38 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: StringUtils.C,v 1.11 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: StringUtils.C,v 1.12 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include "StringUtils.h"
 
 using namespace Utility;
 
-vector<string>& StringUtils::split(string str, vector<string>& buffer, size_t num, ...)
-{
-	initArgs(num);
-	
-	return split(str, buffer, num, VarUtils::getArgs<const char*>(num, argsList));
-}
-
 vector<string>& StringUtils::split(string str, vector<string>& buffer, const char* delimiter)
 {
-	const char* delimiters[] = { delimiter };
-	
-	return split(str, buffer, 1, delimiters);
-}
+	vector<size_t> delimiterIndexes;
+	findAll(str, delimiterIndexes, delimiter);
 
-vector<string>& StringUtils::split(string str, vector<string>& buffer, size_t num, const char** delimiters)
-{
-	set<size_t> splitIndexes;
+	size_t delimiterLength = strlen(delimiter), delimiterIndex, lastDelimiterIndex = 0;
 	
-	for (size_t a = 0; a < num; a++)
+	for (size_t a = 0; a < delimiterIndexes.size(); a++)
 	{
-		vector<size_t> delimiterIndexes;
+		delimiterIndex = delimiterIndexes[a];
 		
-		findAll(str, delimiterIndexes, 1, delimiters[a]);
+		if ((delimiterIndex - lastDelimiterIndex) == 0)
+		{
+			buffer.push_back("");
+		}
+		else
+		{
+			buffer.push_back(str.substr(lastDelimiterIndex, delimiterIndex - lastDelimiterIndex));
+		}
 		
-		splitIndexes.insert(delimiterIndexes.begin(), delimiterIndexes.end());
+		lastDelimiterIndex = delimiterIndex + delimiterLength;
 	}
 	
-	size_t lastSplitIndex = 0, splitLength;
-	
-	for (set<size_t>::iterator iterator = splitIndexes.begin(); iterator != splitIndexes.end(); iterator++)
+	if (lastDelimiterIndex < str.size())
 	{
-		splitLength = *iterator - lastSplitIndex;
-		splitLength -= (splitLength != 0);
-		
-		buffer.push_back((lastSplitIndex == 0) && (splitLength == 0) ? string() : str.substr(lastSplitIndex + 1, splitLength));
-		
-		lastSplitIndex = *iterator;
-		
-		if (lastSplitIndex + 1 == str.size())
-		{
-			buffer.push_back(string());
-		}
+		buffer.push_back(str.substr(lastDelimiterIndex));
 	}
 	
 	return buffer;

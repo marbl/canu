@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: testStringUtils.C,v 1.13 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: testStringUtils.C,v 1.14 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -57,11 +57,14 @@ void testFindAll()
 
 void testSplit()
 {
+	// TODO: reimplement
+	/*
 	string str("|test1%test2!test3$");
 	vector<string> tokens;
 	string expectedTokens[5] = { string(), string("test1"), string("test2"), string("test3"), string() };
 	
 	Asserts::assertTrue(StringUtils::split(str, tokens, 4, "|", "%", "!", "$") == vector<string>(expectedTokens, expectedTokens + 5), "split failed");
+	*/
 }
 
 void testIsBlankBlankString()

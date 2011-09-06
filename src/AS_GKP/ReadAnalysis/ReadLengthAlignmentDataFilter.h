@@ -19,69 +19,65 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ALIGNMENTDATASTATS_H
-#define ALIGNMENTDATASTATS_H
+#ifndef READLENGTHALIGNMENTDATAFILTER_H
+#define READLENGTHALIGNMENTDATAFILTER_H
 
-static const char* rcsid_ALIGNMENTDATASTATS_H = "$Id: AlignmentDataStats.h,v 1.4 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_READLENGTHALIGNMENTDATAFILTER_H = "$Id: ReadLengthAlignmentDataFilter.h,v 1.1 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
+#include <cstdio>
 #include <cstdlib>
-#include <map>
+#include <string>
 #include <vector>
 
 using namespace std;
 
 #include "AS_global.h"
-#include "AS_UTL_IID.h"
+#include "AlignmentDataFilter.h"
+#include "AlignmentDataStats.h"
 #include "ReadAlignment.h"
+#include "StringUtils.h"
+
+using namespace Utility;
 
 namespace ReadAnalysis
 {
-	class AlignmentDataFilter;
+	static const size_t DEFAULT_MIN_READ_LENGTH = 1;
+	static const size_t DEFAULT_MAX_READ_LENGTH = UINT64_MAX;
 	
-	class AlignmentDataStats
+	class ReadLengthAlignmentDataFilter : public AlignmentDataFilter
 	{
 	public:
-		AlignmentDataStats();
+		ReadLengthAlignmentDataFilter(size_t minLength = DEFAULT_MIN_READ_LENGTH, 
+			size_t maxLength = DEFAULT_MAX_READ_LENGTH, AlignmentDataStats* dataStats = NULL);
+		virtual ~ReadLengthAlignmentDataFilter();
 		
-		size_t getNumFilteredReads(AlignmentDataFilter* filter = NULL);
-		void addFilteredRead(AlignmentDataFilter* filter, AS_IID iid);
+		virtual bool filterReadAlign(ReadAlignment* readAlign);
 		
-		size_t getNumReads(size_t baseIndex);
-		vector<AS_IID>& getReads(size_t baseIndex, vector<AS_IID>& buffer);
-		void addRead(ReadAlignment* readAlign);
+		virtual string toString();
 		
-		size_t getNumReads()
+		size_t getMinLength()
 		{
-			return this->numReads;
+			return this->minLength;
 		}
 		
-		size_t getMinReadLength()
+		void setMinLength(size_t minLength)
 		{
-			return this->minReadLength;
+			this->minLength = minLength;
 		}
 		
-		size_t getMaxReadLength()
+		size_t getMaxLength()
 		{
-			return this->maxReadLength;
+			return this->maxLength;
 		}
 		
-		double getMeanReadLength()
+		void setMaxLength(size_t maxLength)
 		{
-			return this->meanReadLength;
-		}
-		
-		map<AlignmentDataFilter*, vector<AS_IID>*>& getFilteredReadMap()
-		{
-			return this->filteredReadMap;
+			this->maxLength = maxLength;
 		}
 		
 	protected:
-		size_t numReads;
-		size_t minReadLength;
-		size_t maxReadLength;
-		double meanReadLength;
-		map<size_t, vector<AS_IID>*> readLengthMap;
-		map<AlignmentDataFilter*, vector<AS_IID>*> filteredReadMap;
+		size_t minLength;
+		size_t maxLength;
 	};
 }
 

@@ -22,7 +22,7 @@
 #ifndef ALIGNMENTDATAREADER_H
 #define ALIGNMENTDATAREADER_H
 
-static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id: AlignmentDataReader.h,v 1.5 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id: AlignmentDataReader.h,v 1.6 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -31,8 +31,9 @@ static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id: AlignmentDataReader.h,v 1
 
 using namespace std;
 
-#include "AlignmentDataStats.h"
 #include "AS_global.h"
+#include "AlignmentDataFilter.h"
+#include "AlignmentDataStats.h"
 #include "FileUtils.h"
 #include "IOException.h"
 #include "ReadAlignment.h"
@@ -59,9 +60,19 @@ namespace ReadAnalysis
 			this->verbose = verbose;
 		}
 		
+		vector<AlignmentDataFilter*>& getFilters()
+		{
+			return this->filters;
+		}
+		
 		vector<ReadAlignment*>& getData()
 		{
 			return this->data;
+		}
+		
+		map<AS_IID, ReadAlignment*>& getIidMap()
+		{
+			return this->iidMap;
 		}
 		
 		AlignmentDataStats& getDataStats()
@@ -71,14 +82,18 @@ namespace ReadAnalysis
 		
 	protected:
 		bool verbose;
+		vector<AlignmentDataFilter*> filters;
 		FILE* stream;
 		vector<ReadAlignment*> data;
+		map<AS_IID, ReadAlignment*> iidMap;
 		AlignmentDataStats dataStats;
 		
 		AlignmentDataReader();
 		virtual ~AlignmentDataReader();
 		
-		virtual void processData() = 0;
+		virtual void processData();
+		virtual void filterData();
+		virtual bool filterReadAlign(ReadAlignment* readAlign);
 	};
 }
 

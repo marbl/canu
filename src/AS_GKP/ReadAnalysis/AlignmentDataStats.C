@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AlignmentDataStats.C,v 1.2 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: AlignmentDataStats.C,v 1.3 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include "AlignmentDataStats.h"
 
@@ -31,6 +31,42 @@ AlignmentDataStats::AlignmentDataStats()
 	this->minReadLength = 0;
 	this->maxReadLength = 0;
 	this->meanReadLength = 0;
+}
+
+size_t AlignmentDataStats::getNumFilteredReads(AlignmentDataFilter* filter)
+{
+	if (filter != NULL)
+	{
+		return (this->filteredReadMap.count(filter) > 0) ? this->filteredReadMap[filter]->size() : 0;
+	}
+	else
+	{
+		size_t numFilteredReads = 0;
+		
+		for (map<AlignmentDataFilter*, vector<AS_IID>*>::iterator iterator = this->filteredReadMap.begin(); 
+			iterator != this->filteredReadMap.end(); iterator++)
+		{
+			numFilteredReads += (*iterator).second->size();
+		}
+		
+		return numFilteredReads;
+	}
+}
+
+void AlignmentDataStats::addFilteredRead(AlignmentDataFilter* filter, AS_IID iid)
+{
+	vector<AS_IID>* filteredReads;
+	
+	filteredReads = (this->filteredReadMap.count(filter) > 0) ? this->filteredReadMap[filter] : NULL;
+	
+	if (filteredReads == NULL)
+	{
+		filteredReads = new vector<AS_IID>();
+		
+		this->filteredReadMap[filter] = filteredReads;
+	}
+	
+	filteredReads->push_back(iid);
 }
 
 size_t AlignmentDataStats::getNumReads(size_t baseIndex)

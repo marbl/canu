@@ -26,11 +26,13 @@ LOCAL_WORK = $(shell cd ../../..; pwd)
 
 SOURCES_LIB = \
 	AlignmentError.C \
+	AlignmentDataFilter.C \
 	AlignmentDataReader.C \
 	AlignmentDataStats.C \
 	BaseAlignment.C \
 	ReadAlignment.C \
 	ReadAlignmentProfiler.C \
+	ReadLengthAlignmentDataFilter.C \
 	SnapperAlignmentDataReader.C
 
 SOURCES_PROFILE_READ_ALIGNMENT = \

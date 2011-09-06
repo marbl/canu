@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.5 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: AlignmentDataReader.C,v 1.6 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include "AlignmentDataReader.h"
 
@@ -64,6 +64,7 @@ void AlignmentDataReader::readData(string path)
 void AlignmentDataReader::readData(FILE* stream)
 {
 	this->data.clear();
+	this->iidMap.clear();
 	
 	this->stream = stream;
 	
@@ -75,4 +76,63 @@ void AlignmentDataReader::readData(FILE* stream)
 	}
 	
 	this->processData();
+	this->filterData();
+}
+
+void AlignmentDataReader::processData()
+{
+}
+
+void AlignmentDataReader::filterData()
+{
+	for (size_t a = 0; a < this->filters.size(); a++)
+	{
+		this->filters[a]->filterData(this->data);
+	}
+	
+	if (!this->filters.empty())
+	{
+		if (this->verbose)
+		{
+			fprintf(stderr, "Filtered "F_SIZE_T" read alignment[s]:", 
+				this->dataStats.getNumFilteredReads());
+			
+			AlignmentDataFilter* filter;
+			
+			for (size_t a = 0; a < this->filters.size(); a++)
+			{
+				filter = this->filters[a];
+				
+				fprintf(stderr, "\n  "F_STR"="F_SIZE_T, filter->toString().c_str(), this->dataStats.getNumFilteredReads(filter));
+			}
+			
+			fprintf(stderr, "\n");
+		}
+		else
+		{
+			fprintf(stderr, "Filtered "F_SIZE_T" read alignment[s] using "F_SIZE_T" filter[s].\n", 
+				this->dataStats.getNumFilteredReads(), this->filters.size());
+		}
+	}
+	else
+	{
+		fprintf(stderr, "No read alignments were filtered - no filters specified.\n");
+	}
+}
+
+bool AlignmentDataReader::filterReadAlign(ReadAlignment* readAlign)
+{
+	AlignmentDataFilter* filter;
+	
+	for (size_t a = 0; a < this->filters.size(); a++)
+	{
+		filter = this->filters[a];
+		
+		if (filter->filterReadAlign(readAlign))
+		{
+			return true;
+		}
+	}
+	
+	return false;
 }

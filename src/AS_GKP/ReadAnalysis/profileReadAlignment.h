@@ -22,23 +22,27 @@
 #ifndef PROFILEREADALIGNMENT_H
 #define PROFILEREADALIGNMENT_H
 
-static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v 1.4 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char* rcsid_PROFILEREADALIGNMENT_H = "$Id: profileReadAlignment.h,v 1.5 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include <unistd.h>
 #include <cstdio>
 #include <cstdlib>
 #include <string>
+#include <set>
+#include <vector>
 
 using namespace std;
 
+#include "AS_global.h"
+#include "AlignmentDataFilter.h"
 #include "AlignmentDataReader.h"
 #include "ArgumentException.h"
-#include "AS_global.h"
 #include "AS_UTL_fileIO.h"
 #include "ErrorUtils.h"
 #include "FileUtils.h"
 #include "IllegalStateException.h"
 #include "ReadAlignmentProfiler.h"
+#include "ReadLengthAlignmentDataFilter.h"
 #include "RuntimeException.h"
 #include "SnapperAlignmentDataReader.h"
 
@@ -46,27 +50,87 @@ using namespace ReadAnalysis;
 using namespace Utility;
 
 static const char* STREAM_PATH = "-";
+static const char* FILTER_PARAM_DELIMITER = ",";
 
-typedef struct ProfileReadAlignmentOptions
+class ProfileReadAlignmentOptions
 {
+public:
 	ProfileReadAlignmentOptions()
 	{
-		this->useStdin = false;
-		this->useStdout = false;
 		this->verbose = false;
+		this->positionMode = DEFAULT;
 	}
 	
+	static bool isPathStream(string path)
+	{
+		return path == STREAM_PATH;
+	}
+	
+	bool useStdin()
+	{
+		return isPathStream(this->inputPath);
+	}
+	
+	bool useStdout()
+	{
+		return isPathStream(this->outputPath);
+	}
+	
+	bool getVerbose()
+	{
+		return this->verbose;
+	}
+	
+	void setVerbose(bool verbose)
+	{
+		this->verbose = verbose;
+	}
+	
+	vector<string>& getFilterArgs()
+	{
+		return this->filterArgs;
+	}
+	
+	BasePositionMode getPositionMode()
+	{
+		return this->positionMode;
+	}
+	
+	void setPositionMode(BasePositionMode positionMode)
+	{
+		this->positionMode = positionMode;
+	}
+	
+	string getInputPath()
+	{
+		return this->inputPath;
+	}
+	
+	void setInputPath(string inputPath)
+	{
+		this->inputPath = inputPath;
+	}
+	
+	string getOutputPath()
+	{
+		return this->outputPath;
+	}
+	
+	void setOutputPath(string outputPath)
+	{
+		this->outputPath = outputPath;
+	}
+	
+protected:
+	bool verbose;
+	vector<string> filterArgs;
+	BasePositionMode positionMode;
 	string inputPath;
 	string outputPath;
-	
-	bool useStdin;
-	bool useStdout;
-	
-	bool verbose;
 };
 
+void parseFilterArgs(ProfileReadAlignmentOptions& options, vector<AlignmentDataFilter*>& filters);
 void parseCommandLine(ProfileReadAlignmentOptions& options, int numArgs, char** args);
-bool isPathStream(string path);
 void printUsage(const char* executableName);
 
 int main(int numArgs, char** args);

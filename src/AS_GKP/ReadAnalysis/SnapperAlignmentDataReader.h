@@ -22,7 +22,7 @@
 #ifndef SNAPPERALIGNMENTDATAREADER_H
 #define SNAPPERALIGNMENTDATAREADER_H
 
-static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.6 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.7 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
@@ -32,8 +32,8 @@ static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDa
 
 using namespace std;
 
-#include "AlignmentDataReader.h"
 #include "AS_global.h"
+#include "AlignmentDataReader.h"
 #include "DataException.h"
 #include "FileUtils.h"
 #include "ReadAlignment.h"

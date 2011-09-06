@@ -19,17 +19,41 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ALIGNMENTERRORTYPE_H
-#define ALIGNMENTERRORTYPE_H
+static const char* rcsid = "$Id: ReadLengthAlignmentDataFilter.C,v 1.1 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
-static const char* rcsid_ALIGNMENTERRORTYPE_H = "$Id: AlignmentErrorType.h,v 1.2 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+#include "ReadLengthAlignmentDataFilter.h"
 
-namespace ReadAnalysis
+using namespace ReadAnalysis;
+
+ReadLengthAlignmentDataFilter::ReadLengthAlignmentDataFilter(size_t minLength, size_t maxLength, AlignmentDataStats* dataStats)
+	: AlignmentDataFilter(dataStats)
 {
-	typedef enum AlignmentErrorType
-	{
-		UNKNOWN, MISMATCH, INSERTION, DELETION
-	};
+	this->minLength = minLength;
+	this->maxLength = maxLength;
 }
 
-#endif
+ReadLengthAlignmentDataFilter::~ReadLengthAlignmentDataFilter()
+{
+}
+
+bool ReadLengthAlignmentDataFilter::filterReadAlign(ReadAlignment* readAlign)
+{
+	if ((readAlign->getLength() < this->minLength) || (readAlign->getLength() > this->maxLength))
+	{
+		this->recordFilteredRead(readAlign);
+	
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+string ReadLengthAlignmentDataFilter::toString()
+{
+	string minLengthStr, maxLengthStr;
+	
+	return "ReadLengthAlignmentDataFilter (minLength=" + StringUtils::toString(this->minLength, minLengthStr) + 
+		", maxLength=" + StringUtils::toString(this->maxLength, maxLengthStr) + ")";
+}

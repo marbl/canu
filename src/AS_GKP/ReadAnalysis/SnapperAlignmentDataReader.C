@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: SnapperAlignmentDataReader.C,v 1.6 2011-09-05 21:23:26 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: SnapperAlignmentDataReader.C,v 1.7 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include "SnapperAlignmentDataReader.h"
 
@@ -199,12 +199,16 @@ void SnapperAlignmentDataReader::processData()
 		line = readLine(this->stream, line, lineNum);
 		processEnd(line, lineNum);
 		
-		this->dataStats.addRead(readAlign);
-		this->data.push_back(readAlign);
+		if (!this->filterReadAlign(readAlign))
+		{
+			this->dataStats.addRead(readAlign);
+			this->data.push_back(readAlign);
+			this->iidMap[readAlign->getIid()] = readAlign;
+		}
 	}
 	
 	string timeStr;
 	
-	fprintf(stderr, "Processed "F_U64" Snapper read alignment[s] in: "F_STR"\n", this->data.size(), 
+	fprintf(stderr, "Processed "F_SIZE_T" Snapper read alignment[s] in: "F_STR"\n", this->data.size(), 
 		StringUtils::toString(timeStr, startClock, true).c_str());
 }

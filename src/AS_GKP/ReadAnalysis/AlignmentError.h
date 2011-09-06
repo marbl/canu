@@ -22,15 +22,15 @@
 #ifndef ALIGNMENTERROR_H
 #define ALIGNMENTERROR_H
 
-static const char* rcsid_ALIGNMENTERROR_H = "$Id: AlignmentError.h,v 1.2 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTERROR_H = "$Id: AlignmentError.h,v 1.3 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
 #include <cstdio>
 #include <cstdlib>
 
 using namespace std;
 
-#include "AlignmentErrorType.h"
 #include "AS_global.h"
+#include "AlignmentErrorType.h"
 #include "AS_UTL_IID.h"
 
 namespace ReadAnalysis

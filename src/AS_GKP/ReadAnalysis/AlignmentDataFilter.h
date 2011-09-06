@@ -19,16 +19,59 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ALIGNMENTERRORTYPE_H
-#define ALIGNMENTERRORTYPE_H
+#ifndef ALIGNMENTDATAFILTER_H
+#define ALIGNMENTDATAFILTER_H
 
-static const char* rcsid_ALIGNMENTERRORTYPE_H = "$Id: AlignmentErrorType.h,v 1.2 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATAFILTER_H = "$Id: AlignmentDataFilter.h,v 1.1 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+
+#include <cstdio>
+#include <cstdlib>
+#include <map>
+#include <string>
+#include <vector>
+
+using namespace std;
+
+#include "AS_global.h"
+#include "AlignmentDataStats.h"
+#include "AS_UTL_IID.h"
+#include "ReadAlignment.h"
+#include "StringUtils.h"
+
+using namespace Utility;
 
 namespace ReadAnalysis
 {
-	typedef enum AlignmentErrorType
+	class AlignmentDataFilter
 	{
-		UNKNOWN, MISMATCH, INSERTION, DELETION
+	public:
+		virtual bool filterReadAlign(ReadAlignment* readAlign);
+		virtual void filterData(vector<ReadAlignment*>& data);
+		
+		virtual string toString();
+		
+		virtual operator string()
+		{
+			return this->toString();
+		}
+		
+		AlignmentDataStats* getDataStats()
+		{
+			return this->dataStats;
+		}
+		
+		void setDataStats(AlignmentDataStats* dataStats)
+		{
+			this->dataStats = dataStats;
+		}
+		
+	protected:
+		AlignmentDataStats* dataStats;
+		
+		AlignmentDataFilter(AlignmentDataStats* dataStats = NULL);
+		virtual ~AlignmentDataFilter();
+		
+		virtual void recordFilteredRead(ReadAlignment* readAlign);
 	};
 }
 

@@ -19,17 +19,39 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef ALIGNMENTERRORTYPE_H
-#define ALIGNMENTERRORTYPE_H
+static const char* rcsid = "$Id: AlignmentDataFilter.C,v 1.1 2011-09-06 09:47:55 mkotelbajcvi Exp $";
 
-static const char* rcsid_ALIGNMENTERRORTYPE_H = "$Id: AlignmentErrorType.h,v 1.2 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+#include "AlignmentDataFilter.h"
 
-namespace ReadAnalysis
+using namespace ReadAnalysis;
+
+AlignmentDataFilter::AlignmentDataFilter(AlignmentDataStats* dataStats)
 {
-	typedef enum AlignmentErrorType
-	{
-		UNKNOWN, MISMATCH, INSERTION, DELETION
-	};
+	this->dataStats = dataStats;
 }
 
-#endif
+AlignmentDataFilter::~AlignmentDataFilter()
+{
+}
+
+bool AlignmentDataFilter::filterReadAlign(ReadAlignment* readAlign)
+{
+	return false;
+}
+
+void AlignmentDataFilter::filterData(vector<ReadAlignment*>& data)
+{
+}
+
+string AlignmentDataFilter::toString()
+{
+	return "";
+}
+
+void AlignmentDataFilter::recordFilteredRead(ReadAlignment* readAlign)
+{
+	if (this->dataStats != NULL)
+	{
+		this->dataStats->addFilteredRead(this, readAlign->getIid());
+	}
+}
