@@ -22,7 +22,7 @@
 #ifndef ERRORUTILS_H
 #define ERRORUTILS_H
 
-static const char* rcsid_ERRORUTILS_H = "$Id: ErrorUtils.h,v 1.2 2011-09-02 22:04:01 mkotelbajcvi Exp $";
+static const char* rcsid_ERRORUTILS_H = "$Id: ErrorUtils.h,v 1.3 2011-09-06 15:27:27 mkotelbajcvi Exp $";
 
 #include <unistd.h>
 #include <cerrno>
@@ -97,17 +97,17 @@ namespace Utility
 	class ErrorUtils
 	{
 	public:
-		inline static void handleErrorSignals(sighandler_t signalHandler)
+		inline static void handleErrorSignals(__sighandler_t signalHandler)
 		{
 			handleSignals(ERROR_SIGNALS, signalHandler);
 		}
 
-		inline static void handleExitSignals(sighandler_t signalHandler)
+		inline static void handleExitSignals(__sighandler_t signalHandler)
 		{
 			handleSignals(EXIT_SIGNALS, signalHandler);
 		}
 
-		inline static void handleSignals(const int* signalNums, sighandler_t signalHandler)
+		inline static void handleSignals(const int* signalNums, __sighandler_t signalHandler)
 		{
 			for (size_t a = 0; signalNums[a] != NO_SIGNAL; a++)
 			{
@@ -115,7 +115,7 @@ namespace Utility
 			}
 		}
 
-		inline static sighandler_t handleSignal(int signalNum, sighandler_t signalHandler)
+		inline static sighandler_t handleSignal(int signalNum, __sighandler_t signalHandler)
 		{
 			return signal(signalNum, signalHandler);
 		}
@@ -142,7 +142,7 @@ namespace Utility
 
 		inline static bool isSignalHandled(int signalNum)
 		{
-			sighandler_t signalHandler = getSignalHandler(signalNum);
+			__sighandler_t signalHandler = getSignalHandler(signalNum);
 			
 			return (signalHandler != SIG_ERR) && (signalHandler != SIG_IGN) && (signalHandler != SIG_DFL);
 		}
@@ -152,9 +152,9 @@ namespace Utility
 			return SIGNAL_NAMES.count(signalNum) != 0;
 		}
 
-		inline static sighandler_t getSignalHandler(int signalNum)
+		inline static __sighandler_t getSignalHandler(int signalNum)
 		{
-			sighandler_t signalHandler = signal(signalNum, tempSignalHandler);
+			__sighandler_t signalHandler = signal(signalNum, tempSignalHandler);
 			signal(signalNum, signalHandler);
 			
 			return signalHandler;
