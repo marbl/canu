@@ -123,6 +123,21 @@ if [ x$python != x ] ; then
   elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3/Python.h ]
   then
     CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3"
+  elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.4/include/python2.4/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.4/include/python2.4"
+  elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.5/include/python2.5/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.5/include/python2.5"
+  elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6"
+  elif [ -e /usr/local/packages/python/include/python2.4/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/usr/local/packages/python/include/python2.4"
+  elif [ -e /usr/local/packages/python/include/python2.5/Python.h ]
+  then
+    CFLAGS_PYTHON="-I/usr/local/packages/python/include/python2.5"
   elif [ -e /usr/local/packages/python/include/python2.6/Python.h ]
   then
     CFLAGS_PYTHON="-I/usr/local/packages/python/include/python2.6"
