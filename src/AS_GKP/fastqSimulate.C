@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.14 2011-08-30 02:57:17 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.15 2011-09-06 14:22:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -386,11 +386,14 @@ makeMP(char   *seq,
       //  If the shear size is less than two read lengths there is no way we can make a perfect MP
       //  pair.  We allow this case for normal junctions (both reads might be junction reads) but
       //  disallow it for the other two cases (no junction reads and all junction reads).
+      //
+      //  If shift == 0 or shift == slen we end up making a PE pair, so we need
+      //  to be careful.
 
       int32 shift = 0;
 
       if (mpJunctions == mpJunctionsNormal) {
-        shift = randomUniform(0, slen);
+        shift = randomUniform(1, slen);
 
       } else if (mpJunctions == mpJunctionsNone) {
         if (slen <= 2 * readLen)
@@ -403,15 +406,15 @@ makeMP(char   *seq,
           goto tryMPagain;
 
         if (randomUniform(0, 100) < 50)
-          shift = randomUniform(0, readLen);
+          shift = randomUniform(1, readLen);
         else
           shift = randomUniform(slen - readLen, slen);
       }
 
-      if ((shift < 0) || (shift > slen))
+      if ((shift < 1) || (shift >= slen))
         fprintf(stderr, "ERROR:  invalid shift %d.\n", shift);
-      assert(shift >= 0);
-      assert(shift <= slen);
+      assert(shift >  0);
+      assert(shift < slen);
 
 
       //  Put 'shift' bases from the end of the insert on the start of sh[],
@@ -445,35 +448,34 @@ makeMP(char   *seq,
         if ((s1[i] == 'N') || (s2[i] == 'N'))
           goto tryMPagain;
 
-      //  Add a marker for the chimeric point.  This unfortunately includes some
-      //  knowledge of makeSequences(); the second sequence is reverse complemented.
-      //
-      //  In r2, the junction is at position 'shift - (slen - readLen)', but the read
-      //  is reverse complemented, and then the junction covers that base and the one
-      //  previous.
+      //  Label the type of the read
+
+      char type = 't';
+      if (shift  < readLen)         type = 'a';
+      if (shift >= slen - readLen)  type = (type == 'a') ? 'c' : 'b';
+
+      if (mpJunctions == mpJunctionsNone)
+        assert(type == 't');
+      if (mpJunctions == mpJunctionsAlways)
+        assert(type != 't');
+
+      //  Add a marker for the chimeric point.  This unfortunately includes some knowledge of
+      //  makeSequences(); the second sequence is reverse complemented.  In that case, adjust shift
+      //  to the the position in that reverse complemented read.
       //
       if ((shift > 0) && (shift < readLen)) {
         q1[shift-1] = QV_BASE + 10;
         q1[shift-0] = QV_BASE + 10;
       }
       if ((shift > slen - readLen) && (shift < slen)) {
-        q2[readLen - (shift + readLen - slen) - 1] = QV_BASE + 10;
-        q2[readLen - (shift + readLen - slen) - 0] = QV_BASE + 10;
-
         assert((readLen - (shift + readLen - slen)) > 0);
         assert((readLen - (shift + readLen - slen)) < readLen);
+
+        shift = readLen - (shift + readLen - slen);
+
+        q2[shift - 1] = QV_BASE + 10;
+        q2[shift - 0] = QV_BASE + 10;
       }
-
-      char  type;
-
-      type = 't';
-      if (shift  < readLen)         type = 'a';
-      if (shift >= slen - readLen)  type = 'b';
-
-      if (mpJunctions == mpJunctionsNone)
-        assert(type == 't');
-      if (mpJunctions == mpJunctionsAlways)
-        assert(type != 't');
 
       fprintf(outputI, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(outputI, "%s\n", s1);
@@ -645,6 +647,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "                  'shearSize +- shearStdDev'.  With probability 'enrichment' the fragment\n");
     fprintf(stderr, "                  containing the junction is used to form the pair of reads.  The junction\n");
     fprintf(stderr, "                  location is uniformly distributed through this fragment.\n");
+    fprintf(stderr, "                  Reads are labeled as:\n");
+    fprintf(stderr, "                    tMP - a MP pair\n");
+    fprintf(stderr, "                    fMP - a PE pair\n");
+    fprintf(stderr, "                    aMP - a MP pair with junction in the first read\n");
+    fprintf(stderr, "                    bMP - a MP pair with junction in the second read\n");
+    fprintf(stderr, "                    cMP - a MP pair with junction in both reads (the reads overlap)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Output QV's are the Sanger spec.\n");
     fprintf(stderr, "\n");
