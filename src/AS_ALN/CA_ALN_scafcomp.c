@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.24 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: CA_ALN_scafcomp.c,v 1.25 2011-09-06 15:24:42 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1483,7 +1483,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
       if(intoB>bot){
 	double gapFrac = ((double)(intoB-bot)) / (double)(BF->gaps[i].gap_length+varwin*BF->gaps[i].gap_var);
 	assert(gapFrac>=0);
-	end = (int32)(BF->ctgs[i+1].lft_end - gapFrac * BF->gaps[i].gap_length);
+	end = BF->ctgs[i+1].lft_end - gapFrac * BF->gaps[i].gap_length;
 	break;
       }
       i++;
