@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.15 2011-09-06 14:22:17 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.16 2011-09-07 16:05:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -806,8 +806,13 @@ main(int argc, char **argv) {
   //
   //
 
-  fclose(outputI);
-  fclose(outputC);
+  if (seEnable == true)
+    fclose(outputI);
+
+  if (seEnable == false) {
+    fclose(outputI);
+    fclose(outputC);
+  }
 
   if (peEnable || mpEnable) {
     fclose(output1);
