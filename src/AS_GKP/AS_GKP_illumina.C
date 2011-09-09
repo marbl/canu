@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.22 2011-08-30 02:59:31 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.23 2011-09-09 15:21:32 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -538,9 +538,14 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg) {
   isValidACGTN = AS_UTL_getValidACGTN();
 
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
-    if (strncasecmp(lib_mesg->features[i], "illumina", 8) == 0)
-      fprintf(stderr, "ERROR:  Obsolete LIB feature '%s' detected; rebuild your frg.\n",
-              lib_mesg->features[i]), exit(1);
+    if (strncasecmp(lib_mesg->features[i], "illumina", 8) == 0) {
+      fprintf(stderr, "ERROR:  Obsolete LIB feature '%s' detected.\n",
+              lib_mesg->features[i]);
+      fprintf(stderr, "The presence of an obsolete flag indicates that the FRG file was generated ");
+      fprintf(stderr, "by an older version of Celera Assembler.\n");
+      fprintf(stderr, "Please re-generate your FRG file with this version of Celera Assembler.\n");
+      exit(1);
+    }
   }
 
   //  Search for the type of the reads.
