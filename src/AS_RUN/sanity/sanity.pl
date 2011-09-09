@@ -432,7 +432,7 @@ sub assemble ($$@) {
     print F "| \\\n";
     print F "tee \"$wrkdir/$thisdate/sanity-all-done.\$1\" \\\n";
     print F "| \\\n";
-    print F "/usr/sbin/sendmail -i -t -F CAtest\n"      if ($site eq "JCVI");
+    print F "/usr/sbin/sendmail -i -t -f celera_assembler_test\@jcvi.org\n" if ($site eq "JCVI");
     print F "/usr/local/sbin/ssmtp thebri\@gmail.com\n" if ($site eq "BPWI");
     close(F);
 

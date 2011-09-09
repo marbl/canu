@@ -4,7 +4,10 @@
 . $SGE_ROOT/$SGE_CELL/common/settings.sh
 
 #  Needed for old checkouts.  Newer checkouts default to LOCAL.
-export SITE_NAME=JCVI
+#With SITE=JCVI, every EUID is different, so every QC report is different.
+#With default behavior, EUIDs always start at the same number, so QC reports can be identical.
+#We want default bahavior so the summary email reports no differences.
+#export SITE_NAME=JCVI
 
 #
 #  Master controller of nightly sanity checks.  Optional date on command line.
@@ -54,11 +57,12 @@ if [ x$grid = x ] ; then
     echo "  sh sanity-daily-pging.sh  $date"
 
 else
-    nextofft=86400   # one day
     nextofft=604800  # one week
+    nextofft=86400   # one day
     nextofft=14400   # four hours
     nextofft=7200    # two hours
     nextofft=21600   # six hours
+    nextofft=43200   # twelve hours
     nextdate=`perl sanity-get-next-date.pl $date $nextofft next`
     nexthold=`perl sanity-get-next-date.pl $date $nextofft hold`
     nextname=`perl sanity-get-next-date.pl $date $nextofft name`
