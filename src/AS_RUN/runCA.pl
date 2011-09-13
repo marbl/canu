@@ -208,7 +208,8 @@ sub setGlobal ($$) {
     }
 
     if ($var eq "ovlHashBlockSize") {
-        print STDERR "ERROR:  option ovlHashBlockSize was replaced with option ovlHashBlockLength.\n";
+        print STDERR "ERROR:  the runCA option ovlHashBlockSize is not recognized.\n";
+        print STDERR "Try using ovlHashBlockLength instead.\n";
         exit(1);
     }
 
