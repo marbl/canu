@@ -186,29 +186,18 @@ sub setGlobal ($$) {
     }
 
     if ($var eq "ovlMemory") {
-        print STDERR "WARNING:  option ovlMemory was replaced with option ovlHashBits.  Using defaults:\n";
-        print STDERR "            2GB -> ovlHashBits=21 ovlHashBlockLength=30000000\n";
-        print STDERR "            4GB -> ovlHashBits=22 ovlHashBlockLength=110000000\n";
-        print STDERR "            8GB -> ovlHashBits=23 ovlHashBlockLength=180000000\n";
-        print STDERR "WARNING:  these values have NOT yet been tested for correct memory size (e.g., '2GB' might use more than 2GB)!\n";
-        if      ($val =~ m/2G/) {
-            $global{"ovlHashBits"}        = 23;
-            $global{"ovlHashBlockLength"} = 30000000;
-        } elsif ($val =~ m/4G/) {
-            $global{"ovlHashBits"}        = 24;
-            $global{"ovlHashBlockLength"} = 110000000;
-        } elsif ($val =~ m/8G/) {
-            $global{"ovlHashBits"}        = 25;
-            $global{"ovlHashBlockLength"} = 180000000;
-        } else {
-            print STDERR "ERROR:    Unknown ovlMemory value '$val'\n";
-            exit(1);
-        }
-        return;
+        print STDERR "ERROR:  the runCA option ovlMemory is not recognized.\n";
+        print STDERR "This runCA functionality changed in CABOG version 7.\n";
+        print STDERR "Here are suggestions for new runCA option values:\n";
+        print STDERR " ovlHashBits=23 ovlHashBlockLength= 30000000 (replaces ovlMemory=2GB)\n";
+        print STDERR " ovlHashBits=24 ovlHashBlockLength=110000000 (replaces ovlMemory=4GB)\n";
+        print STDERR " ovlHashBits=25 ovlHashBlockLength=180000000 (replaces ovlMemory=8GB)\n";
+	exit(1);
     }
 
     if ($var eq "ovlHashBlockSize") {
         print STDERR "ERROR:  the runCA option ovlHashBlockSize is not recognized.\n";
+        print STDERR "This runCA functionality changed in CABOG version 7.\n";
         print STDERR "Try using ovlHashBlockLength instead.\n";
         exit(1);
     }
