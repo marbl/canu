@@ -134,9 +134,9 @@ public:
   //
   ////////////////////////////////////////
 
-  int32      gkStore_getNumLibraries(void)       { return(inf.libLoaded); }
-  int32      gkStore_getNumFragments(void)       { return(inf.frgLoaded); }
-  int32      gkStore_getNumRandomFragments(void) { return(inf.numRandom); }
+  uint32      gkStore_getNumLibraries(void)       { return(inf.libLoaded); }
+  uint32      gkStore_getNumFragments(void)       { return(inf.frgLoaded); }
+  uint32      gkStore_getNumRandomFragments(void) { return(inf.numRandom); }
 
   gkLibrary *gkStore_getLibrary(int id)                { return((id == 0) ? libNull : (gkLibrary *)getIndexStorePtr(lib, id)); }
   void       gkStore_getLibrary(int id, gkLibrary *lb) { getIndexStore(lib, id, lb); };
