@@ -28,7 +28,7 @@
 #ifndef AS_OVL_DRIVER_COMMON_H
 #define AS_OVL_DRIVER_COMMON_H
 
-static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.32 2011-08-30 12:29:16 mkotelbajcvi Exp $";
+static const char *rcsid_AS_OVL_DRIVER_COMMON_H = "$Id: AS_OVL_driver_common.h,v 1.33 2011-09-15 20:50:09 mkotelbajcvi Exp $";
 
 #include  <unistd.h>
 
@@ -110,7 +110,7 @@ int  OverlapDriver(int argc, char **argv)
 
 
   {
-    int  id;
+    uint32  id;
 
     if  (Lo_Hash_Frag < 1)
       Lo_Hash_Frag = 1;
