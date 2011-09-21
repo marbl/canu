@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.5 2011-01-03 03:07:16 brianwalenz Exp $";
+static char *rcsid = "$Id: AbacusRefine.c,v 1.6 2011-09-21 16:13:25 jasonmiller9704 Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -63,14 +63,14 @@ is_good_base(char b) {
 
 static
 char *
-GetAbacus(Abacus *a, int32 i, int32 j) {
+GetAbacus(AbacusDataStructure *a, int32 i, int32 j) {
   return (a->beads+i*(a->columns+2)+j+1);
 }
 
 
 static
 void
-SetAbacus(Abacus *a, int32 i, int32 j, char c) {
+SetAbacus(AbacusDataStructure *a, int32 i, int32 j, char c) {
   int32 offset = i * (a->columns+2) + j + 1;
 
   if ((i == -1) || (i > a->rows-1)) {
@@ -91,7 +91,7 @@ SetAbacus(Abacus *a, int32 i, int32 j, char c) {
 
 static
 void
-ResetCalls(Abacus *a) {
+ResetCalls(AbacusDataStructure *a) {
   for (int32 j=0;j<a->columns;j++)
     a->calls[j] = 'n';
 }
@@ -107,10 +107,10 @@ ResetIndex(VA_TYPE(int32) * indices, int32 n) {
 
 
 static
-Abacus *
+AbacusDataStructure *
 CreateAbacus(int32 mid, int32 from, int32 end) {
   // from,and end are ids of the first and last columns in the columnStore
-  Abacus             *abacus;
+  AbacusDataStructure             *abacus;
   beadIdx              bid;
   int32               columns=1, rows=0, i, j, orig_columns, set_column;
   Column             *column,*last;
@@ -231,7 +231,7 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
     }
   }
 
-  abacus = (Abacus *) safe_malloc(sizeof(Abacus));
+  abacus = (AbacusDataStructure *) safe_malloc(sizeof(AbacusDataStructure));
   abacus->start_column = from;
   abacus->end_column = last->lid;
   abacus->rows = rows;
@@ -277,19 +277,19 @@ CreateAbacus(int32 mid, int32 from, int32 end) {
 
 static
 void
-DeleteAbacus(Abacus *abacus) {
+DeleteAbacus(AbacusDataStructure *abacus) {
   safe_free(abacus->beads);
   safe_free(abacus->calls);
   safe_free(abacus);
 }
 
 static
-Abacus *
-CloneAbacus(Abacus *abacus) {
-  Abacus *clone;
+AbacusDataStructure *
+CloneAbacus(AbacusDataStructure *abacus) {
+  AbacusDataStructure *clone;
   int32 rows=abacus->rows;
   int32 columns=abacus->columns;
-  clone = (Abacus *) safe_malloc(sizeof(Abacus));
+  clone = (AbacusDataStructure *) safe_malloc(sizeof(AbacusDataStructure));
   clone->beads = (char *) safe_calloc(rows*(columns+2),sizeof(char)); //
   clone->calls = (char *) safe_calloc((columns),sizeof(char));
   clone->rows = rows;
@@ -306,7 +306,7 @@ CloneAbacus(Abacus *abacus) {
 
 static
 void
-ShowAbacus(Abacus *abacus) {
+ShowAbacus(AbacusDataStructure *abacus) {
   char form[10];
   sprintf(form,"%%%d.%ds\n",abacus->columns,abacus->columns);
   fprintf(stderr,"\nstart column: %d\n",abacus->start_column);
@@ -323,7 +323,7 @@ ShowAbacus(Abacus *abacus) {
   //
 static
 int32
-ScoreAbacus(Abacus *abacus, int32 *cols) {
+ScoreAbacus(AbacusDataStructure *abacus, int32 *cols) {
   BaseCount *counts;
   int32 score=0;
   char b;
@@ -367,7 +367,7 @@ ScoreAbacus(Abacus *abacus, int32 *cols) {
 
 static
 int32
-AffineScoreAbacus(Abacus *abacus) {
+AffineScoreAbacus(AbacusDataStructure *abacus) {
   // This simply counts the number of opened gaps, to be used in tie breaker
   //   of edit scores.
   int32 score=0;
@@ -421,7 +421,7 @@ AffineScoreAbacus(Abacus *abacus) {
 
 static
 int
-MergeAbacus(Abacus *abacus, int32 merge_dir) {
+MergeAbacus(AbacusDataStructure *abacus, int32 merge_dir) {
   // sweep through abacus from left to right
   // testing for Level 1 (neighbor) merge compatibility of each column
   // with right neighbor and merge if compatible
@@ -610,7 +610,7 @@ MergeAbacus(Abacus *abacus, int32 merge_dir) {
 
 static
 void
-RefineOrigAbacus(Abacus *abacus, VarRegion vreg) {
+RefineOrigAbacus(AbacusDataStructure *abacus, VarRegion vreg) {
 
   ResetCalls(abacus);
 
@@ -633,7 +633,7 @@ RefineOrigAbacus(Abacus *abacus, VarRegion vreg) {
 
 static
 int32
-LeftShift(Abacus *abacus, VarRegion vreg, int32 *lcols) {
+LeftShift(AbacusDataStructure *abacus, VarRegion vreg, int32 *lcols) {
   // lcols is the number of non-null columns in result
   int32 i, j, k, l, ccol, pcol;
   char c, call;
@@ -729,7 +729,7 @@ LeftShift(Abacus *abacus, VarRegion vreg, int32 *lcols) {
 
 static
 int32
-RightShift(Abacus *abacus, VarRegion vreg, int32 *rcols) {
+RightShift(AbacusDataStructure *abacus, VarRegion vreg, int32 *rcols) {
  // rcols is the number of non-null columns in result
   int32 i, j, k, l, ccol, pcol;
   char c, call;
@@ -801,7 +801,7 @@ RightShift(Abacus *abacus, VarRegion vreg, int32 *rcols) {
 
 static
 int32
-MixedShift(Abacus *abacus, int32 *mcols, VarRegion  vreg, int32 lpos, int32 rpos,
+MixedShift(AbacusDataStructure *abacus, int32 *mcols, VarRegion  vreg, int32 lpos, int32 rpos,
                  char *tmpl, int32 long_allele, int32 short_allele) {
   // lcols is the number of non-null columns in result
   int32 i, j, k, l, ccol, pcol;
@@ -1023,7 +1023,7 @@ RightEndShiftBead(beadIdx bid, beadIdx eid) {
 
 static
 void
-GetAbacusBaseCount(Abacus *a, BaseCount *b) {
+GetAbacusBaseCount(AbacusDataStructure *a, BaseCount *b) {
   int32 j;
   ResetBaseCount(b);
   for (j=0;j<a->columns;j++) {
@@ -1046,7 +1046,7 @@ GetBase(int32 s) {
 
 static
 void
-ApplyAbacus(Abacus *a, CNS_Options *opp) {
+ApplyAbacus(AbacusDataStructure *a, CNS_Options *opp) {
   Column    *column;
   int32        columns=0;
   char       a_entry;
@@ -1416,7 +1416,7 @@ IdentifyWindow(Column **start_column, int32 *stab_bgn, CNS_RefineLevel level) {
 
 static
 void
-ShowCalls(Abacus *abacus) {
+ShowCalls(AbacusDataStructure *abacus) {
   for (int32 j=0;j<abacus->columns;j++)
     fprintf(stderr, "%c", abacus->calls[j]);
   fprintf(stderr, "\n");
@@ -1424,7 +1424,7 @@ ShowCalls(Abacus *abacus) {
 
 static
  void
-GetReadsForAbacus(Read *reads, Abacus *abacus) {
+GetReadsForAbacus(Read *reads, AbacusDataStructure *abacus) {
   int32 i, j, shift=0;
   char base;
 
@@ -1455,7 +1455,7 @@ GetReadsForAbacus(Read *reads, Abacus *abacus) {
 
 static
  void
-GetConsensusForAbacus(VarRegion  *vreg, Read *reads, Abacus *abacus,
+GetConsensusForAbacus(VarRegion  *vreg, Read *reads, AbacusDataStructure *abacus,
                       char ***consensus) {
   char bases[CNS_NALPHABET] = {'-', 'A', 'C', 'G', 'T', 'N'};
   // Allocate memory for consensus
@@ -1848,7 +1848,7 @@ int
   int32 orig_total_score, left_total_score, right_total_score, best_total_score;
   int32 max_element = 0, score_reduction = 0;
   BaseCount abacus_count;
-  Abacus *left_abacus, *orig_abacus, *right_abacus, *best_abacus;
+  AbacusDataStructure *left_abacus, *orig_abacus, *right_abacus, *best_abacus;
   VarRegion  vreg;
 
   orig_abacus = CreateAbacus(ma->lid,start_column->lid,stab_bgn);
@@ -1994,7 +1994,7 @@ int
     int32     lscore=0, rscore=0, lpos=-1, rpos=-1;
     int32     mixed_columns=0;
     int32   mixed_mm_score=0, mixed_gap_score=0;
-    Abacus *mixed_abacus=NULL;
+    AbacusDataStructure *mixed_abacus=NULL;
 
     GetConsensusForAbacus(&vreg, vreg.reads, best_abacus, &consensus);
 #if 0

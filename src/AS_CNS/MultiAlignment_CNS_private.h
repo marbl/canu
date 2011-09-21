@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.16 2011-01-03 03:07:16 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.17 2011-09-21 16:13:25 jasonmiller9704 Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -315,7 +315,7 @@ typedef struct {
   ShiftStatus shift;
   char *beads;
   char *calls;
-} Abacus;
+} AbacusDataStructure;
 
 
 
