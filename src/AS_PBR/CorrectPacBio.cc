@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.2 2011-08-10 12:09:43 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.3 2011-09-23 21:16:23 skoren Exp $";
 
 #include <map>
 #include <set>
@@ -64,7 +64,7 @@ using namespace std;
 
 #define  THREAD_STACKSIZE        (16 * 512 * 512)
 const uint8 MAX_COV     = 255;
-const double CUMULATIVE_SUM = 0.95;
+const double CUMULATIVE_SUM = 0.5; //0.95;
 const uint64 MAX_TO_READ = 100000;
 
 map<AS_IID, uint64> *globalFrgToScore;
@@ -219,7 +219,7 @@ static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int n
   wa[currThread].start = lastEnd;
   wa[currThread].end = lastFrag;
   wa[currThread].fileStart = (uint32) ceil((double)(wa[currThread].start-wa[0].start+1) / perFile);
-  wa[currThread].fileEnd = (uint32) floor((double)(wa[currThread].end-wa[0].start+1) / perFile);
+  wa[currThread].fileEnd = MIN(partitions, (uint32) floor((double)(wa[currThread].end-wa[0].start+1) / perFile));
 
   wa[currThread].id = currThread;
 
@@ -285,6 +285,8 @@ static void *  correctFragments(void *ptr) {
      map<uint32, OverlapPos> tile;
      map<AS_IID, SeqInterval> bClrs;
 
+     map<AS_IID, uint8> toSkip;
+
      // read next batch
      if (ovlPosition >= olapCount) {
         delete[] olaps;
@@ -329,6 +331,30 @@ static void *  correctFragments(void *ptr) {
 
         // figure out what bases the bfrag covers
         if (olap.dat.ovl.type == AS_OVS_TYPE_OVL && (olap.dat.ovl.a_hang < 0 || olap.dat.ovl.b_hang > 0)) {
+           // non contained overlap, dont use these fragments for correction
+           if (frgToScore[bid] != 0) {
+              OVSoverlap best = frgToBest[bid];
+              uint32 min = MIN(tile[best.b_iid].position.bgn, tile[best.b_iid].position.end);
+              uint32 max = MAX(tile[best.b_iid].position.bgn, tile[best.b_iid].position.end);
+              for (uint32 iter = min; iter <= max && waGlobal->globalRepeats == FALSE; iter++) {
+                 readCoverage[iter]--;
+              }
+              if (longReadsToPrint[best.b_iid] != 0) {
+                 longReadsToPrint[best.b_iid]--;
+                 if (longReadsToPrint[best.b_iid] < MAX_COV) {
+                    readsToPrint[best.b_iid] = longReadsToPrint[best.b_iid];
+                    longReadsToPrint[best.b_iid] = 0;
+                 }
+              } else {
+                 readsToPrint[best.b_iid]--;
+              }
+              tile[best.b_iid].position.bgn = tile[best.b_iid].position.end = 0;
+           }
+           toSkip[olap.b_iid] = 1;
+           continue;
+        }
+
+        if (toSkip[bid] != 0) {
            continue;
         }
 
@@ -921,7 +947,7 @@ fprintf(stderr, "Trying to open file %d named %s\n", i+1, outputName);
        }
        if (thread_globals.covCutoff == 0) thread_globals.covCutoff = MAX_COV;
        delete[] covHist;
-       fprintf(stderr, "Picking cutoff as %d mean would be %f\n", thread_globals.covCutoff, mean * 2.0);
+       fprintf(stderr, "Picking cutoff as %d mean would be %f\n", thread_globals.covCutoff, mean);
 
        // now that we have a cutoff, stream the store and record which pacbio sequences the high-identity sequences should correct
        OverlapStore *ovs = AS_OVS_openOverlapStore(thread_globals.ovlStoreUniqPath);
@@ -990,8 +1016,9 @@ fprintf(stderr, "Trying to open file %d named %s\n", i+1, outputName);
 
           // output the score to the appropriate partition
           for (set<AS_IID>::iterator j = readRanking.begin(); j != readRanking.end(); j++) {
-             uint32 mpLow = MAX(0, (uint32) ceil((double)((*j)-firstFrag+1) / thread_globals.perFile)-1); 
-             uint32 mpHigh = MAX(0, (uint32) floor((double)((*j)-firstFrag+1) / thread_globals.perFile)-1);
+             uint32 mpLow = MIN(thread_globals.partitions-1, MAX(0, (uint32) ceil((double)((*j)-firstFrag+1) / thread_globals.perFile)-1)); 
+             uint32 mpHigh= MIN(thread_globals.partitions-1, MAX(0, (uint32) floor((double)((*j)-firstFrag+1) / thread_globals.perFile)-1));
+
              if (thread_globals.partitionStarts[mpLow].first <= (*j) && thread_globals.partitionStarts[mpLow].second > (*j)) {
                 fprintf(partitionedScores[mpLow], F_IID"\t"F_IID"\n", iter->first, (*j));
              } else if (thread_globals.partitionStarts[mpHigh].first <= (*j) && thread_globals.partitionStarts[mpHigh].second > (*j)) {
