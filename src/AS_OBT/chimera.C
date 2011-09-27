@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.47 2011-08-22 04:53:32 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.48 2011-09-27 21:07:54 mkotelbajcvi Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,8 +46,8 @@ const char *mainid = "$Id: chimera.C,v 1.47 2011-08-22 04:53:32 brianwalenz Exp 
 //  WITH_REPORT_FULL will ALL overlap evidence.
 //  REPORT_OVERLAPS  will print the incoming overlaps in the log.
 //
-#define WITH_REPORT_FULL
-#define REPORT_OVERLAPS
+#undef WITH_REPORT_FULL
+#undef REPORT_OVERLAPS
 
 #define DEBUG_ISLINKER
 #define DEBUG_INTERVAL
