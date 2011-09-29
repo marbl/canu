@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.3 2011-09-23 21:16:23 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.4 2011-09-29 17:24:51 skoren Exp $";
 
 #include <map>
 #include <set>
@@ -191,7 +191,7 @@ static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int n
   PBRThreadGlobals* waGlobal = wa[0].globals;
 
   uint32 perThread = (uint32) floor((double)counter / numThreads);
-  perFile   = (uint32) floor((double)counter / partitions);
+  perFile   = (uint32) round((double)counter / partitions);
   fprintf(stderr, "Each thread responsible for %d (%d threads) and each file %d of %d fragments\n", perThread, numThreads, perFile, counter);
 
   counter = 0;
@@ -586,12 +586,23 @@ fprintf(stderr, "THe thread %d has to output size of %d and partitions %d\n", wa
      map<AS_IID, set<AS_IID> > readRanking;
      map<AS_IID, char*> frgToEnc;
 
+     char outputName[FILENAME_MAX] = {0};
+     sprintf(outputName, "%s.%d.lay", waGlobal->prefix, part);
+     errno = 0;
+     FILE *outFile = fopen(outputName, "w");
+     if (errno) {
+        fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
+     }
+
      char inName[FILENAME_MAX] = {0};
      sprintf(inName, "%s.%d.olaps", waGlobal->prefix, part);
      errno = 0;
      FILE *inFile = fopen(inName, "r");
      if (errno) {
-        fprintf(stderr, "Couldn't open '%s' for write: %s\n", inName, strerror(errno)); exit(1);
+        fprintf(stderr, "Couldn't open '%s' for write: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part].first, waGlobal->partitionStarts[part].second); 
+        assert(waGlobal->partitionStarts[part].first == waGlobal->partitionStarts[part].second  && waGlobal->partitionStarts[part].first == 0);
+        fclose(outFile);
+        return 0;
      }
 
      char inRankName[FILENAME_MAX] = {0};
@@ -611,14 +622,6 @@ fprintf(stderr, "THe thread %d has to output size of %d and partitions %d\n", wa
         
      fclose(inRankFile);
      
-     char outputName[FILENAME_MAX] = {0};
-     sprintf(outputName, "%s.%d.lay", waGlobal->prefix, part);
-     errno = 0;
-     FILE *outFile = fopen(outputName, "w");
-     if (errno) {
-        fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
-     }
-
      fprintf(stderr, "Thread %d is running and output to file %s range %d-%d\n", wa->id, outputName, bounds.first, bounds.second);
      uint32 readIID = 0;
      char seq[AS_READ_MAX_NORMAL_LEN];
@@ -909,7 +912,7 @@ main (int argc, char * argv []) {
    for (int i = 0; i < thread_globals.partitions; i++) {
       sprintf(outputName, "%s.%d.rank", thread_globals.prefix, i+1);
       errno = 0;
-fprintf(stderr, "Trying to open file %d named %s\n", i+1, outputName);
+      fprintf(stderr, "Trying to open file %d named %s holding range %d-%d\n", i+1, outputName, thread_globals.partitionStarts[i].first, thread_globals.partitionStarts[i].second);
       partitionedScores[i] = fopen(outputName, "w");
       if (errno) {
          fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
@@ -1018,13 +1021,39 @@ fprintf(stderr, "Trying to open file %d named %s\n", i+1, outputName);
           for (set<AS_IID>::iterator j = readRanking.begin(); j != readRanking.end(); j++) {
              uint32 mpLow = MIN(thread_globals.partitions-1, MAX(0, (uint32) ceil((double)((*j)-firstFrag+1) / thread_globals.perFile)-1)); 
              uint32 mpHigh= MIN(thread_globals.partitions-1, MAX(0, (uint32) floor((double)((*j)-firstFrag+1) / thread_globals.perFile)-1));
+             if (mpLow == mpHigh && mpLow > 0) { mpLow--; }
+             uint32 min = MIN(thread_globals.partitionStarts[mpLow].first, thread_globals.partitionStarts[mpHigh].first);
+             uint32 max = MAX(thread_globals.partitionStarts[mpLow].second, thread_globals.partitionStarts[mpHigh].second);
+             uint32 tmp = MIN(mpLow, mpHigh);
+             mpHigh = MAX(mpLow, mpHigh);
+             mpLow = tmp;
 
              if (thread_globals.partitionStarts[mpLow].first <= (*j) && thread_globals.partitionStarts[mpLow].second > (*j)) {
                 fprintf(partitionedScores[mpLow], F_IID"\t"F_IID"\n", iter->first, (*j));
              } else if (thread_globals.partitionStarts[mpHigh].first <= (*j) && thread_globals.partitionStarts[mpHigh].second > (*j)) {
                 fprintf(partitionedScores[mpHigh], F_IID"\t"F_IID"\n", iter->first, (*j));
              } else {
-                fprintf(stderr, "ERROR: Could not find appropriate partition for %d though it was either %d or %d but it was neither\n", (*j), mpLow, mpHigh); exit(1);
+                bool error = true;
+                if ((*j) < min) {
+                   while (mpLow >= 0 && thread_globals.partitionStarts[mpLow].first > (*j)) {
+                      mpLow--;
+                   }
+                   if (thread_globals.partitionStarts[mpLow].first < (*j) && thread_globals.partitionStarts[mpLow].second > (*j)) {
+                      fprintf(partitionedScores[mpLow], F_IID"\t"F_IID"\n", iter->first, (*j));
+                      error = false;
+                   }
+                } else {
+                   while (mpHigh < thread_globals.partitions && thread_globals.partitionStarts[mpHigh].second <= (*j)) {
+                      mpHigh++;
+                   }
+                   if (thread_globals.partitionStarts[mpHigh].first <= (*j) && thread_globals.partitionStarts[mpHigh].second > (*j)) {
+                      fprintf(partitionedScores[mpHigh], F_IID"\t"F_IID"\n", iter->first, (*j));
+                      error = false;
+                   }
+                }
+                if (error) {
+                   fprintf(stderr, "ERROR: Could not find appropriate partition for %d though it was either %d or %d (%d-%d) and (%d-%d) but it was neither\n", (*j), mpLow, mpHigh, thread_globals.partitionStarts[mpLow].first, thread_globals.partitionStarts[mpLow].second, thread_globals.partitionStarts[mpHigh].first, thread_globals.partitionStarts[mpHigh].second); exit(1);
+                }
              }
           }
        }

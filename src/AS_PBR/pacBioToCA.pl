@@ -238,6 +238,7 @@ my $fastqFile = undef;
 my $correctFile = undef;
 my $partitions = 1;
 my $sge = undef;
+my $submitToGrid = 0;
 my $consensusConcurrency = 8;
 my @fragFiles;
 
@@ -298,7 +299,7 @@ my $CA = getBinDirectory();
 my $AMOS = "$CA/../../../AMOS/bin/";
 my $wrk = makeAbsolute("");
 my $asm = "asm";
-my $caSGE  = `cat $specFile | awk '{if (match(\$1, \"sge\")== 1 && length(\$1) == 3) print \$0}'`;
+my $caSGE  = `cat $specFile | awk '{if (match(\$1, \"sge\")== 1 && length(\$1) == 3 && match(\$1, \"#\") == 0) print \$0}'`;
 chomp($caSGE);
 if (length($caSGE) != 0) {
    if (!defined($sge) || length($sge) == 0) {
@@ -308,6 +309,14 @@ if (length($caSGE) != 0) {
 
    $caSGE = "\"" .$caSGE . " -sync y\" sgePropagateHold=corAsm";
 }
+my $useGrid = `cat $specFile | awk -F '=' '{if (match(\$1, \"useGrid\") == 1 && match(\$1, \"#\") == 0) print \$NF}'`;
+if (length($useGrid) != 0) {
+   $submitToGrid = $useGrid;
+}
+elsif (defined($sge)) {
+   $submitToGrid = 1;
+}
+
 my $caCNS  = `cat $specFile | awk -F '=' '{if (match(\$1, \"cnsConcurrency\")== 1) print \$2}'`;
 chomp($caCNS);
 if (length($caCNS) != 0) {
@@ -330,7 +339,7 @@ if (! -e "$AMOS/bank-transact") {
 print STDERR "Starting correction...\n CA: $CA\nAMOS:$AMOS\n";
 
 my $cmd = "";
-runCommand("$wrk", "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio -fastq " . makeAbsolute($fastqFile) . " > $wrk/pacbio.frg"); 
+runCommand("$wrk", "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio -reads " . makeAbsolute($fastqFile) . " > $wrk/pacbio.frg"); 
 runCommand($wrk, "$CA/runCA -s $specFile -p $asm -d temp$libraryname $caSGE stopAfter=initialStoreBuilding @fragFiles $wrk/pacbio.frg");
 
 # make assumption that we correct using all libraries preceeding pacbio
@@ -363,7 +372,7 @@ $cmd .=   "$caSGE stopAfter=overlapper";
 runCommand($wrk, $cmd);
 
 if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
-   $cmd = "$CA/correctPacBio ";
+   $cmd = "/usr/bin/time $CA/correctPacBio ";
    $cmd .=    "-t $threads ";
    $cmd .=    "-p $partitions ";
    $cmd .=    "-o $asm ";
@@ -408,7 +417,7 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
 
    chmod 0755, "$wrk/temp$libraryname/runPartition.sh";
 
-   if (defined($sge)) {
+   if ($submitToGrid == 1) {
       runCommand("$wrk/temp$libraryname", "qsub $sge -sync y -cwd -N utg_$asm -t 1-$partitions -j y -o /dev/null $wrk/temp$libraryname/runPartition.sh");
    } else {
       for (my $i = 1; $i <=$partitions; $i++) {
