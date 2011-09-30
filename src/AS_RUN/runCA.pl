@@ -189,9 +189,9 @@ sub setGlobal ($$) {
         print STDERR "ERROR:  the runCA option ovlMemory is not recognized.\n";
         print STDERR "This runCA functionality changed in CABOG version 7.\n";
         print STDERR "Here are suggestions for new runCA option values:\n";
-        print STDERR " ovlHashBits=23 ovlHashBlockLength= 30000000 (replaces ovlMemory=2GB)\n";
-        print STDERR " ovlHashBits=24 ovlHashBlockLength=110000000 (replaces ovlMemory=4GB)\n";
-        print STDERR " ovlHashBits=25 ovlHashBlockLength=180000000 (replaces ovlMemory=8GB)\n";
+        print STDERR " ovlHashBits=23\n ovlHashBlockLength= 30000000\n (replaces ovlMemory=2GB)\n";
+        print STDERR " ovlHashBits=24\n ovlHashBlockLength=110000000\n (replaces ovlMemory=4GB)\n";
+        print STDERR " ovlHashBits=25\n ovlHashBlockLength=180000000\n (replaces ovlMemory=8GB)\n";
 	exit(1);
     }
 
