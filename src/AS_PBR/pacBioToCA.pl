@@ -239,8 +239,10 @@ my $correctFile = undef;
 my $partitions = 1;
 my $sge = undef;
 my $submitToGrid = 0;
+my $sgeCorrection = undef;
 my $consensusConcurrency = 8;
 my @fragFiles;
+my $cleanup = 1;
 
 my $srcstr;
 
@@ -277,6 +279,12 @@ while (scalar(@ARGV) > 0) {
     } elsif ($arg eq "-sge") {
        $sge = shift @ARGV;
 
+    } elsif ($arg eq "-sgeCorrection") {
+       $sgeCorrection = shift @ARGV;
+
+    } elsif ($arg eq "-noclean") {
+       $cleanup = 0;
+    
     } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/i) && (-e $arg)) {
        push @fragFiles, $arg;
 
@@ -290,6 +298,7 @@ if (($err) || (scalar(@fragFiles) == 0) || (!defined($fastqFile)) || (!defined($
     print STDERR "  -length                  Minimum length to keep.\n";
     print STDERR "  -partitions              Number of partitions for consensus\n";
     print STDERR "  -sge                     Submit consensus jobs to the grid\n";
+    print STDERR "  -sgeCorrection           Parameters for the correction step for the grid. This should match the threads specified below, for example by using -pe threaded\n";
     print STDERR "  -l libraryname           Name of the library; freeformat text.\n";
     print STDERR "  -t threads               Number of threads to use for correction.\n";
     exit(1);
@@ -308,8 +317,19 @@ if (length($caSGE) != 0) {
    }
 
    $caSGE = "\"" .$caSGE . " -sync y\" sgePropagateHold=corAsm";
+} else {
+   $caSGE = "sge=\"" . " -sync y\" sgePropagateHold=corAsm";
 }
+my $scriptParams = `cat $specFile |awk -F '=' '{if (match(\$1, \"sgeScript\") == 1 && match(\$1, \"#\") == 0) print \$NF}'`;
+chomp($scriptParams);
+if (length($scriptParams) != 0) {
+   if (!defined($sgeCorrection) || length($sgeCorrection) == 0) {
+      $sgeCorrection = $scriptParams;
+   }
+}
+
 my $useGrid = `cat $specFile | awk -F '=' '{if (match(\$1, \"useGrid\") == 1 && match(\$1, \"#\") == 0) print \$NF}'`;
+chomp($useGrid);
 if (length($useGrid) != 0) {
    $submitToGrid = $useGrid;
 }
@@ -372,17 +392,30 @@ $cmd .=   "$caSGE stopAfter=overlapper";
 runCommand($wrk, $cmd);
 
 if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
-   $cmd = "/usr/bin/time $CA/correctPacBio ";
-   $cmd .=    "-t $threads ";
-   $cmd .=    "-p $partitions ";
-   $cmd .=    "-o $asm ";
-   $cmd .=    "-l $length ";
-   $cmd .=    "$repeats ";
-   $cmd .=    "-O $wrk/temp$libraryname/$asm.ovlStore ";
-   $cmd .=    "-G $wrk/temp$libraryname/$asm.gkpStore ";
-   $cmd .=    "-e 0.25 -c 0.25  -E 6.5";
+   open F, "> $wrk/temp$libraryname/runCorrection.sh" or die ("can't open '$wrk/temp$libraryname/runCorrection.sh'");
+   print F "#!" . "/bin/sh\n";
+   print F "\n";
+   print F " if [ -e $wrk/temp$libraryname/$asm.layout.success ]; then\n";
+   print F "    echo Job previously completed successfully.\n";
+   print F " else\n";
+   print F "   $CA/correctPacBio \\\n";
+   print F "      -t $threads \\\n";
+   print F "       -p $partitions \\\n";
+   print F "       -o $asm \\\n";
+   print F "       -l $length \\\n";
+   print F "        $repeats \\\n";
+   print F "        -O $wrk/temp$libraryname/$asm.ovlStore \\\n";
+   print F "        -G $wrk/temp$libraryname/$asm.gkpStore \\\n";
+   print F "        -e 0.25 -c 0.25  -E 6.5 > $wrk/temp$libraryname/$asm.layout.err 2> $wrk/temp$libraryname/$asm.layout.err && touch $wrk/temp$libraryname/$asm.layout.success\n";
+   print F " fi\n";
+   close(F);
+   chmod 0755, "$wrk/temp$libraryname/runCorrection.sh";
 
-   runCommand("$wrk/temp$libraryname", "$cmd > $wrk/temp$libraryname/$asm.layout.err 2> $wrk/temp$libraryname/$asm.layout.err && touch $wrk/temp$libraryname/$asm.layout.success");
+   if ($submitToGrid == 1) {
+      runCommand("$wrk/temp$libraryname", "qsub $sge $sgeCorrection -sync y -cwd -N correct_$asm -j y -o /dev/null $wrk/temp$libraryname/runCorrection.sh");
+   } else {
+      runCommand("$wrk/temp$libraryname", "$wrk/temp$libraryname/runCorrection.sh");
+   }
 }
 
 if (! -e "$wrk/temp$libraryname/runPartition.sh") {
@@ -437,6 +470,10 @@ for (my $i = 1; $i <=$partitions; $i++) {
 runCommand("$wrk/temp$libraryname", "cat [1234567890]*.fasta > corrected.fasta");
 runCommand("$wrk/temp$libraryname", "cat [1234567890]*.qual > corrected.qual");
 runCommand("$wrk", "$CA/convert-fasta-to-v2.pl -pacbio -s $wrk/temp$libraryname/corrected.fasta -q $wrk/temp$libraryname/corrected.qual -l $libraryname > $wrk/$libraryname.frg");
+runCommand("$wrk/temp$libraryname", "cp corrected.fasta $wrk/pacbio.fasta");
+runCommand("$wrk/temp$libraryname", "cp corrected.qual  $wrk/pacbio.qual");
 
 # finally clean up the assembly directory
-#runCommand("$wrk", "rm -rf temp$libraryname");
+if ($cleanup == 1) {
+   runCommand("$wrk", "rm -rf temp$libraryname");
+}
