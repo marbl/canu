@@ -19,14 +19,18 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.6 2011-09-21 16:13:25 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: AbacusRefine.c,v 1.7 2011-10-06 20:40:01 mkotelbajcvi Exp $";
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <math.h>
-#include <ctype.h>
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstdarg>
+#include <cstdio>
+#include <map>
 
+using namespace std;
+
+#include "AS_global.h"
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 #include "MicroHetREZ.h"
@@ -2284,9 +2288,16 @@ int
           //  used 100 here.  Not sure what it should be.
           //
           if ( window_width < MAX_WINDOW_FOR_ABACUS_REFINE )
+          {
             score_reduction += RefineWindow(ma,start_column,stab_bgn, opp);
-
+          }
+          
           start_column = GetColumn(columnStore, stab_bgn);
+          
+          if (IsGappyRegion(ma, start_column, window_width))
+          {
+        	  // TODO: implement fix
+          }
         }
       start_column = GetColumn(columnStore, stab_bgn);
     }
@@ -2294,4 +2305,128 @@ int
   return score_reduction;
 }
 
+bool IsGappyRegion(MANode *multiAlignNode, Column* startColumn, size_t windowWidth)
+{
+	VA_TYPE(char)* consensusSequence = CreateVA_char(0), *consensusQuality = CreateVA_char(0);
+	
+	GetMANodeConsensus(multiAlignNode->lid, consensusSequence, consensusQuality);
+	
+	ssize_t maxGapStartColumnIndex = -1, maxGapSize = -1;
+	double gapRatio;
+	
+	GetMaxConsensusGap(consensusSequence->Elements, multiAlignNode, startColumn, windowWidth, maxGapStartColumnIndex, maxGapSize);
+	
+	if ((maxGapSize >= GAPPY_WINDOW_MIN_CNS_GAPS) && 
+		((gapRatio = (double)maxGapSize / (double)windowWidth) >= GAPPY_WINDOW_MIN_CNS_GAP_RATIO))
+	{
+		Column* maxGapStartColumn = GetColumn(columnStore, maxGapStartColumnIndex);
+		Column* maxGapEndColumn = GetColumn(columnStore, maxGapStartColumn->lid + maxGapSize);
+		
+#ifdef DEBUG_GAPPY_REGION
+		fprintf(stderr, "[Gappy] Found consensus gap in window (multiAlignNodeIid="F_S32"): startColumn="F_S32", endColumn="F_S32", size="
+			F_S64", gapRatio="F_F64"\n", multiAlignNode->iid, maxGapStartColumn->lid, maxGapEndColumn->lid, maxGapSize, gapRatio);
+#endif
+		
+		beadIdx columnBeadIndex = maxGapStartColumn->call, rowBeadIndex;
+		Bead* columnBead, *rowBead;
+		Fragment* read;
+		set<AS_IID> nonGappyReads, gappyReads;
+		
+		while (columnBeadIndex.isValid() && 
+			((columnBead = GetBead(beadStore, columnBeadIndex)) != NULL) && 
+			(columnBead->column_index <= maxGapEndColumn->lid))
+		{
+			rowBeadIndex = columnBeadIndex;
+			rowBead = columnBead;
+			
+			do
+			{
+				if ((read = GetFragment(fragmentStore, rowBead->frag_index)) != NULL)
+				{
+					if ((nonGappyReads.count(read->iid) == 0) && (gappyReads.count(read->iid) == 0))
+					{
+						if (IsGappyRead(read, rowBead, maxGapStartColumn, maxGapEndColumn))
+						{
+							gappyReads.insert(read->iid);
+						}
+						else
+						{
+							nonGappyReads.insert(read->iid);
+						}
+					}
+				}
+			}
+			while ((rowBeadIndex = rowBead->down).isValid() &&
+				((rowBead = GetBead(beadStore, rowBeadIndex)) != NULL));
+			
+			columnBeadIndex = columnBead->next;
+		}
+		
+		double gappyReadRatio;
+		
+		if ((gappyReadRatio = (double)gappyReads.size() / (double)(gappyReads.size() + nonGappyReads.size())) 
+			>= GAPPY_WINDOW_GAPPY_READ_RATIO_THRESHOLD)
+		{
+			fprintf(stderr, "[Gappy] Found gappy region: startColumn="F_S32", endColumn="F_S32", size="F_S64", gappyReadRatio="F_F64"\n", 
+            	maxGapStartColumn->lid, maxGapEndColumn->lid, maxGapSize, gappyReadRatio);
+			
+			return true;
+		}
+	}
+	
+	return false;
+}
 
+bool IsGappyRead(Fragment* read, Bead* rowBead, Column* maxGapStartColumn, Column* maxGapEndColumn)
+{
+	if (read->type == AS_READ)
+	{
+		int32 readStartColumnIndex = rowBead->column_index - rowBead->foffset,
+			readInGapStartColumnIndex = max(readStartColumnIndex, maxGapStartColumn->lid), 
+			readInGapLength = min(readStartColumnIndex + read->length, maxGapEndColumn->lid) - readInGapStartColumnIndex;
+		double baseCallRatio;
+		
+		if ((readInGapLength >= GAPPY_READ_MIN_WINDOWED_SIZE) &&
+			((baseCallRatio = (double)readInGapLength / (double)(maxGapEndColumn->lid - maxGapStartColumn->lid)) < 
+				GAPPY_READ_WINDOWED_BASE_CALL_THRESHOLD))
+		{
+#ifdef DEBUG_GAPPY_REGION
+			fprintf(stderr, "[Gappy] Found gappy read: iid="F_U32", startColumn="F_S32", inGapStartColumn="F_S32", length="F_S32", inGapLength="
+				F_S32", baseCallRatio="F_F64"\n", read->iid, readStartColumnIndex, readInGapStartColumnIndex, read->length, readInGapLength, baseCallRatio);
+#endif
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+void GetMaxConsensusGap(const char* consensusSequence, MANode* multiAlignNode, Column* startColumn, size_t windowWidth, 
+	ssize_t& maxGapStartColumnIndex, ssize_t& maxGapSize)
+{
+	ssize_t gapStartColumnIndex = -1, gapSize = -1;
+	
+	for (size_t a = startColumn->lid - GetColumn(columnStore, multiAlignNode->first)->lid; a <= multiAlignNode->columns->numElements; a++)
+	{
+		if (consensusSequence[a] == '-')
+		{
+			if (gapStartColumnIndex == -1)
+			{
+				gapStartColumnIndex = a;
+			}
+		}
+		else if (gapStartColumnIndex != -1)
+		{
+			gapSize = a - gapStartColumnIndex;
+			
+			if (gapSize > maxGapSize)
+			{
+				maxGapStartColumnIndex = gapStartColumnIndex;
+				maxGapSize = gapSize;
+			}
+			
+			gapSize = -1;
+			gapStartColumnIndex = -1;
+		}
+	}
+}
