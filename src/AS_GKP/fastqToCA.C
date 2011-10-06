@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.18 2011-08-30 02:59:31 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.19 2011-10-06 16:57:32 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -171,6 +171,7 @@ main(int argc, char **argv) {
   if ((strcasecmp(technology, "sanger") != 0) &&
       (strcasecmp(technology, "454") != 0) &&
       (strcasecmp(technology, "illumina") != 0) &&
+      (strcasecmp(technology, "experimental") != 0) &&
       (strcasecmp(technology, "pacbio") != 0)) 
      err++;
   if ((strcasecmp(type, "sanger") != 0) &&
@@ -316,6 +317,25 @@ main(int argc, char **argv) {
 
     gkl.doRemoveSpurReads          = 1;
     gkl.doRemoveChimericReads      = 1;
+
+  } else if (strcasecmp(technology, "experimental") == 0) {  // Jason testing all-Illumina
+    gkl.forceBOGunitigger          = 0;
+    gkl.doNotTrustHomopolymerRuns  = 0;
+
+    gkl.doConsensusCorrection      = 0;
+
+    gkl.doTrim_initialNone         = 0;
+    gkl.doTrim_initialMerBased     = 1;
+    gkl.doTrim_initialFlowBased    = 0;
+    gkl.doTrim_initialQualityBased = 1;
+
+    gkl.doRemoveDuplicateReads     = 0;
+
+    gkl.doTrim_finalLargestCovered = 0;
+    gkl.doTrim_finalEvidenceBased  = 0;
+
+    gkl.doRemoveSpurReads          = 0;
+    gkl.doRemoveChimericReads      = 0;
 
   } else if (strcasecmp(technology, "pacbio") == 0) {
     gkl.forceBOGunitigger          = 1;
