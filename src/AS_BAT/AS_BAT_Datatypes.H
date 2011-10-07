@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.8 2011-09-01 18:44:15 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.9 2011-10-07 07:15:23 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -230,9 +230,15 @@ public:
 
 private:
   uint32            _id;
-  uint32            _e3p:1;    //  Overlap with the 3' end of that fragment
-  int32             _ahang:15;
-  int32             _bhang:15;
+#if AS_OVS_HNGBITS < 16
+  uint32            _e3p   : 1;    //  Overlap with the 3' end of that fragment
+  int32             _ahang : AS_OVS_HNGBITS;
+  int32             _bhang : AS_OVS_HNGBITS;
+#else
+  uint64            _e3p   : 1;
+  int64             _ahang : AS_OVS_HNGBITS;
+  int64             _bhang : AS_OVS_HNGBITS;
+#endif
 };
 
 
@@ -246,10 +252,17 @@ public:
   };
 
   uint32  container;
-  uint32  isContained:1;  //  See comments in AS_BAT_Unitig_PlaceFragmentsUsingEdges.cc
-  uint32  sameOrientation:1;
-  int32   a_hang:15;
-  int32   b_hang:15;
+#if AS_OVS_HNGBITS < 16
+  uint32  isContained     : 1;  //  See comments in AS_BAT_Unitig_PlaceFragmentsUsingEdges.cc
+  uint32  sameOrientation : 1;
+  int32   a_hang          : AS_OVS_HNGBITS;
+  int32   b_hang          : AS_OVS_HNGBITS;
+#else
+  uint64  isContained     : 1;
+  uint64  sameOrientation : 1;
+  int64   a_hang          : AS_OVS_HNGBITS;
+  int64   b_hang          : AS_OVS_HNGBITS;
+#endif
 };
 
 

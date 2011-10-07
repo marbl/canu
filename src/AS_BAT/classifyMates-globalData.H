@@ -45,11 +45,6 @@ public:
 //  Save distance needs to know fragmentInfo.  Ugly.
 #include "classifyMates-saveDistance.H"
 
-
-#if (AS_OVS_HNGBITS > 15)
-#error Not enough space in classifyMates overlapInfo
-#endif
-
 class overlapInfo {
 public:
   overlapInfo() {
@@ -62,10 +57,17 @@ public:
     iid     = ovl.b_iid;
   };
 
+#if AS_OVS_HNGBITS < 16
   uint32  unused  : 1;
-  uint32  flipped : 1;    //  B-fragment is flipped
-  int32   ahang   : 15;   //
-  int32   bhang   : 15;   //
+  uint32  flipped : 1;                //  B-fragment is flipped
+  int32   ahang   : AS_OVS_HNGBITS;   //
+  int32   bhang   : AS_OVS_HNGBITS;   //
+#else
+  uint64  unused  : 1;
+  uint64  flipped : 1;                //  B-fragment is flipped
+  int64   ahang   : AS_OVS_HNGBITS;   //
+  int64   bhang   : AS_OVS_HNGBITS;   //
+#endif
 
   uint32 iid;             //  B-fragment ID
 };
