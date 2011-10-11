@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.256 2011-01-03 03:07:16 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.257 2011-10-11 13:49:00 mkotelbajcvi Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -160,6 +160,10 @@ int32 VERBOSE_MULTIALIGN_OUTPUT = 0;
 //
 int32 FORCE_UNITIG_ABUT = 0;
 
+
+ssize_t previousStaircaseTraceEntry;
+size_t previousStaircaseSize;
+int32 previousStaircaseFragmentId;
 
 //  This is called in ResetStores -- which is called before any
 //  consensus work is done.
@@ -890,10 +894,17 @@ LateralExchangeBead(beadIdx lid, beadIdx rid) {
   leftbead->column_index = rtmp.column_index;
 
   // change basecounts for affected columns
-  DecBaseCount(&leftcolumn->base_count,leftchar);
-  IncBaseCount(&leftcolumn->base_count,rightchar);
-  DecBaseCount(&rightcolumn->base_count,rightchar);
-  IncBaseCount(&rightcolumn->base_count,leftchar);
+  if (leftcolumn != NULL)
+  {
+    DecBaseCount(&leftcolumn->base_count,leftchar);
+    IncBaseCount(&leftcolumn->base_count,rightchar);
+  }
+  
+  if (rightcolumn != NULL)
+  {
+    DecBaseCount(&rightcolumn->base_count,rightchar);
+    IncBaseCount(&rightcolumn->base_count,leftchar);
+  }
 }
 
 
@@ -1174,6 +1185,10 @@ ResetStores(int32 num_bases, int32 num_frags, int32 num_columns) {
   ResetVA_MANode(manodeStore);
 
   gaps_in_alignment = 0;
+  
+  previousStaircaseTraceEntry = 0;
+  previousStaircaseSize = 0;
+  previousStaircaseFragmentId = -1;
 }
 
 

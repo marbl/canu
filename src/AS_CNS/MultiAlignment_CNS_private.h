@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.18 2011-10-06 20:40:01 mkotelbajcvi Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.19 2011-10-11 13:49:00 mkotelbajcvi Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -364,6 +364,12 @@ extern int32 DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
 extern int32 VERBOSE_MULTIALIGN_OUTPUT;
 extern int32 FORCE_UNITIG_ABUT;
 
+#define MIN_STAIRCASE_TRACE_SIZE 2
+
+extern ssize_t previousStaircaseTraceEntry;
+extern size_t previousStaircaseSize;
+extern int32 previousStaircaseFragmentId;
+
 //  Functions used by lots of pieces internally to AS_CNS.  Defined in
 //  MultiAlgnment_CNS.c.
 
@@ -497,6 +503,8 @@ ApplyAlignment(int32 afid,
                int32 ahang,
                int32 *trace);
 
+bool IsStaircaseAlignment(int32 fragmentId, int32* trace);
+
 void
 PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what);
 
@@ -536,17 +544,5 @@ int
 BaseCall(int32 cid, int32 quality, double *var, VarRegion  *vreg,
          int32 target_allele, char *cons_base, int32 verbose, int32 get_scores,
          CNS_Options *opp);
-
-#define GAPPY_READ_MIN_WINDOWED_SIZE 2
-#define GAPPY_READ_WINDOWED_BASE_CALL_THRESHOLD .1
-
-#define GAPPY_WINDOW_MIN_CNS_GAPS 2
-#define GAPPY_WINDOW_MIN_CNS_GAP_RATIO .8
-#define GAPPY_WINDOW_GAPPY_READ_RATIO_THRESHOLD .1
-
-bool IsGappyRegion(MANode* multiAlignNode, Column* startColumn, size_t windowWidth);
-bool IsGappyRead(Fragment* read, Bead* rowBead, Column* maxGapStartColumn, Column* maxGapEndColumn);
-void GetMaxConsensusGap(const char* consensusSequence, MANode* multiAlignNode, Column* startColumn, size_t multiAlign, 
-	ssize_t& maxGapStartColumnIndex, ssize_t& maxGapSize);
 
 #endif
