@@ -25,10 +25,11 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.50 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.51 2011-10-11 17:48:36 skoren Exp $";
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <algorithm>
 #include <cassert>
