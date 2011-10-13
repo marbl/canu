@@ -22,16 +22,18 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.4 2011-10-13 06:23:23 skoren Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.5 2011-10-13 17:16:22 skoren Exp $";
 
 
 #if (AS_OVS_HNGBITS + AS_OVS_HNGBITS + 1 > 32)
 
 #define AS_BAT_ERRBITS    (64 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 2)
 
-#if AS_BAT_ERRBITS > 12
-   #define AS_BAT_ERRBITS    7
+#if AS_BAT_ERRBITS > AS_OVS_ERRBITS
+   #define AS_BAT_ERRBITS    AS_OVS_ERRBITS
    #define AS_BAT_PADBITS    (64 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1 - AS_BAT_ERRBITS)
+#elif AS_BAT_ERRBITS < AS_OVS_ERRBITS
+   #error Insufficient space to store error rate. Please adjust AS_READ_MAX_NORMAL_LEN_BITS to be lower
 #else
    #define AS_BAT_PADBITS    1 
 #endif
