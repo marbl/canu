@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.36 2011-07-29 01:54:39 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.37 2011-10-27 20:11:10 skoren Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -307,7 +307,7 @@ unitigConsensus::initialize(void) {
   assert(manode->lid == 0);
 
   frankensteinLen = 0;
-  frankensteinMax = 1024 * 1024;
+  frankensteinMax = MAX(1024 * 1024, 2 * num_columns);
   frankenstein    = (char    *)safe_malloc(sizeof(char)    * frankensteinMax);
   frankensteinBof = (beadIdx *)safe_malloc(sizeof(beadIdx) * frankensteinMax);
 
