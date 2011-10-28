@@ -228,6 +228,7 @@ sub schedulerFinish {
 }
 
 ################################################################################
+my $MIN_FILES_WITHOUT_PARTITIONS = 20;
 
 my $libraryname = undef;
 my $specFile = undef;
@@ -304,6 +305,21 @@ if (($err) || (scalar(@fragFiles) == 0) || (!defined($fastqFile)) || (!defined($
     exit(1);
 }
 
+#check for valid parameters for requested partitions and threads
+$MIN_FILES_WITHOUT_PARTITIONS += $threads;
+my $limit = `ulimit -Sn`;
+chomp($limit);
+if ($limit - $MIN_FILES_WITHOUT_PARTITIONS <= $partitions) {
+   $partitions = $limit - $MIN_FILES_WITHOUT_PARTITIONS;
+   if ($threads > $partitions) { $threads = $partitions - 1; }
+   print STDERR "Warning: file handle limit of $limit prevents using requested partitions. Reset partitions to $partitions. If you want more partitions, reset the limit and try again.\n";
+}
+if ($partitions <= $threads) {
+   $partitions = $threads + 1;
+   print STDERR "Warning: number of partitions should be > # threads. Adjusted partitions to be $partitions.\n";
+}
+
+print STDOUT "Running with $threads threads and $partitions partitions\n";
 my $CA = getBinDirectory();
 my $AMOS = "$CA/../../../AMOS/bin/";
 my $wrk = makeAbsolute("");
@@ -359,8 +375,8 @@ if (! -e "$AMOS/bank-transact") {
 print STDERR "Starting correction...\n CA: $CA\nAMOS:$AMOS\n";
 
 my $cmd = "";
-runCommand("$wrk", "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio -reads " . makeAbsolute($fastqFile) . " > $wrk/pacbio.frg"); 
-runCommand($wrk, "$CA/runCA -s $specFile -p $asm -d temp$libraryname $caSGE stopAfter=initialStoreBuilding @fragFiles $wrk/pacbio.frg");
+runCommand("$wrk", "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio -reads " . makeAbsolute($fastqFile) . " > $wrk/$libraryname.frg"); 
+runCommand($wrk, "$CA/runCA -s $specFile -p $asm -d temp$libraryname $caSGE stopAfter=initialStoreBuilding @fragFiles $wrk/$libraryname.frg");
 
 # make assumption that we correct using all libraries preceeding pacbio
 # figure out what number of libs we have and what lib is pacbio
@@ -467,11 +483,11 @@ for (my $i = 1; $i <=$partitions; $i++) {
   }
 }
 
-runCommand("$wrk/temp$libraryname", "cat [1234567890]*.fasta > corrected.fasta");
-runCommand("$wrk/temp$libraryname", "cat [1234567890]*.qual > corrected.qual");
+runCommand("$wrk/temp$libraryname", "cat `ls [1234567890]*.fasta |sort -rnk1` > corrected.fasta");
+runCommand("$wrk/temp$libraryname", "cat `ls [1234567890]*.qual |sort -rnk1` > corrected.qual");
 runCommand("$wrk", "$CA/convert-fasta-to-v2.pl -pacbio -s $wrk/temp$libraryname/corrected.fasta -q $wrk/temp$libraryname/corrected.qual -l $libraryname > $wrk/$libraryname.frg");
-runCommand("$wrk/temp$libraryname", "cp corrected.fasta $wrk/pacbio.fasta");
-runCommand("$wrk/temp$libraryname", "cp corrected.qual  $wrk/pacbio.qual");
+runCommand("$wrk/temp$libraryname", "cp corrected.fasta $wrk/$libraryname.fasta");
+runCommand("$wrk/temp$libraryname", "cp corrected.qual  $wrk/$libraryname.qual");
 
 # finally clean up the assembly directory
 if ($cleanup == 1) {
