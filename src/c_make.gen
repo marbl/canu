@@ -451,9 +451,6 @@ MAKE_JOBS = 4
 #
 define dosubdirs
 echo "* Make Target is" $(TGT); \
-if [[ $(TGT) != "libs" && $(MAKE_JOBS) -gt 1 ]]; then \
-	echo "* Running $(MAKE_JOBS) parallel jobs"; \
-fi; \
 for i in $(SUBDIRS);\
   do \
     if [ -d $$i ]; then \
