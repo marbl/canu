@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.11 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.12 2011-11-02 01:56:39 brianwalenz Exp $";
 
 #include <assert.h>
 #include <cstdio>
@@ -36,9 +36,6 @@ using namespace std;
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_fileIO.h"
 #include "AS_UTL_Hash.h"
-#include "StringUtils.h"
-
-using namespace Utility;
 
 #define INF_STORE_FILENAME "inf"
 #define LIB_STORE_FILENAME "lib"
