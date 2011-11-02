@@ -57,8 +57,8 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS)
 libAS_UTL.a: $(LIB_OBJECTS)
 libCA.a: $(LIB_OBJECTS)
 
-testErrorUtils: testErrorUtils.o libCA.a
-testExceptions: testExceptions.o libCA.a
-testFileUtils: testFileUtils.o libCA.a
-testReflectionUtils: testReflectionUtils.o libCA.a
-testStringUtils: testStringUtils.o libCA.a
+.PHONY: test
+test:
+	cc -O3 -o testHashTable -I.. -I. testHashTable.C AS_UTL_Hash.C AS_UTL_heap.C AS_UTL_alloc.C AS_UTL_fileIO.C -lm
+	cc -O3 -o testRand      -I.. -I. testRand.C      AS_UTL_rand.C                                              -lm
+	cc -O3 -o testVar       -I.. -I. testVar.C       AS_UTL_Var.C                AS_UTL_alloc.C AS_UTL_fileIO.C -lm
