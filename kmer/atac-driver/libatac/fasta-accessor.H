@@ -104,7 +104,7 @@ public:
       }
       return(true);
     } else {
-      fprintf(stderr, "FastAAccessor::setReverseComplementRange()-- base="u32bitFMT" and length="u32bitFMT" exceed sequence length of "u32bitFMT"\n",
+      fprintf(stderr, "FastAAccessor::setRange()-- base="u32bitFMT" and length="u32bitFMT" exceed sequence length of "u32bitFMT"\n",
               base, length, _len);
       assert(0);
       return(false);
