@@ -22,21 +22,27 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.5 2011-10-13 17:16:22 skoren Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.6 2011-11-07 03:12:50 brianwalenz Exp $";
 
+//  AS_BAT_ERRBITS stores a reduced-precision overlap error rate using the same method
+//  as used by OverlapStore.  It should be at least 7 bits, and never needs to be more
+//  than AS_OVS_ERRBITS.
+//
+//  AS_OVS_HNGBITS is one more than the read length.  We have no control over it here.
 
-#if (AS_OVS_HNGBITS + AS_OVS_HNGBITS + 1 > 32)
+#define AS_BAT_ERRBITS_MIN  7
+#define AS_BAT_ERRBITS_MAX  AS_OVS_ERRBITS
 
-#define AS_BAT_ERRBITS    (64 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 2)
-
-#if AS_BAT_ERRBITS > AS_OVS_ERRBITS
-   #define AS_BAT_ERRBITS    AS_OVS_ERRBITS
-   #define AS_BAT_PADBITS    (64 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1 - AS_BAT_ERRBITS)
-#elif AS_BAT_ERRBITS < AS_OVS_ERRBITS
-   #error Insufficient space to store error rate. Please adjust AS_READ_MAX_NORMAL_LEN_BITS to be lower
-#else
-   #define AS_BAT_PADBITS    1 
+#if (AS_OVS_HNGBITS_MIN + AS_OVS_HNGBITS + AS_OVS_HNGBITS + 1 > 64)
+#error No space for BAToverlapInt.  Decrease read length AS_READ_MAX_NORMAL_LEN_BITS.
 #endif
+
+//  If not enough space for the minimum number of error bits, bump up to a 64-bit word for overlap
+//  storage.
+
+#if (AS_BAT_ERRBITS_MIN + AS_OVS_HNGBITS + AS_OVS_HNGBITS + 1 > 32)
+
+#define AS_BAT_ERRBITS    MIN((64 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1), AS_BAT_ERRBITS_MAX)
 #define AS_BAT_MAX_ERATE  ((1 << AS_BAT_ERRBITS) - 1)
 
 //  For storing overlaps in memory.  8 bytes per overlap.
@@ -45,13 +51,15 @@ struct BAToverlapInt {
   int64       a_hang    :AS_OVS_HNGBITS;  //  12 by default
   int64       b_hang    :AS_OVS_HNGBITS;  //  12 by default
   uint64      flipped   :1;
-  uint64      pad       :AS_BAT_PADBITS;
   AS_IID      b_iid;
 };
 
 #else
 
-#define AS_BAT_ERRBITS    (32 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1)
+//  Otherwise, there is enough space for the minimum number of bits, so grab as many as we can up to
+//  the maximum we need.
+
+#define AS_BAT_ERRBITS    MIN((32 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1), AS_BAT_ERRBITS_MAX)
 #define AS_BAT_MAX_ERATE  ((1 << AS_BAT_ERRBITS) - 1)
 
 //  For storing overlaps in memory.  8 bytes per overlap.
