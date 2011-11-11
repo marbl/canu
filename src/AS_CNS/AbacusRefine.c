@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.8 2011-10-11 13:49:00 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: AbacusRefine.c,v 1.9 2011-11-11 03:35:56 brianwalenz Exp $";
 
 #include <algorithm>
 #include <cassert>
@@ -2288,9 +2288,7 @@ int
           //  used 100 here.  Not sure what it should be.
           //
           if ( window_width < MAX_WINDOW_FOR_ABACUS_REFINE )
-          {
             score_reduction += RefineWindow(ma,start_column,stab_bgn, opp);
-          }
           
           start_column = GetColumn(columnStore, stab_bgn);
         }
