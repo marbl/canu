@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.37 2011-10-27 20:11:10 skoren Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.38 2011-11-11 14:51:35 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -194,8 +194,8 @@ public:
 
   int32  initialize(void); 
 
-  void reportStartingWork(void);
-  void reportFailure(void);
+  void   reportStartingWork(void);
+  void   reportFailure(void);
 
   int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
 
@@ -204,18 +204,18 @@ public:
   int32  computePositionFromLayout(void);
   int32  computePositionFromAlignment(void);
 
-  void rebuildFrankensteinFromConsensus(void);
+  void   rebuildFrankensteinFromConsensus(bool recomputeConsensus);
 
   int32  alignFragmentToFragments(void);
 
   int32  alignFragment(void);
-  void applyAlignment(int32 frag_aiid=-1, int32 frag_ahang=0, int32 *frag_trace=NULL);
+  void   applyAlignment(int32 frag_aiid=-1, int32 frag_ahang=0, int32 *frag_trace=NULL);
 
-  void rebuildFrankensteinFromFragment(void);
+  void   rebuildFrankensteinFromFragment(void);
 
-  void generateConsensus(CNS_PrintKey     printwhat);
+  void   generateConsensus(CNS_PrintKey     printwhat);
 
-  bool fixFailures(void);
+  bool   fixFailures(void);
 
 private:
   MultiAlignT    *ma;
@@ -409,7 +409,7 @@ unitigConsensus::computePositionFromParent(void) {
       bhang = end - frankensteinLen;
 
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-        fprintf(stderr, "PLACE(1)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+        fprintf(stderr, "computePositionFromParent()-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
                 beg, end, ahang, bhang, frankensteinLen);
 
       //  HACK.  If the positions don't agree, move along.  BOG sometimes supplies the wrong
@@ -423,7 +423,7 @@ unitigConsensus::computePositionFromParent(void) {
       if ((bdiff < 300) && (ediff < 300)) {
         return(true);
       } else {
-        fprintf(stderr, "PLACE(1)-- Change too big; expected %d,%d got %d,%d\n",
+        fprintf(stderr, "computePositionFromParent()-- Change too big; expected %d,%d got %d,%d\n",
                 offsets[tiid].bgn, offsets[tiid].end,
                 beg, end);
         return(false);
@@ -458,7 +458,7 @@ unitigConsensus::computePositionFromContainer(void) {
       bhang = end - frankensteinLen;
 
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-        fprintf(stderr, "PLACE(2)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+        fprintf(stderr, "computePositionFromContainer()-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
                 beg, end, ahang, bhang, frankensteinLen);
 
       return(true);
@@ -488,7 +488,7 @@ unitigConsensus::computePositionFromLayout(void) {
       int32 ooo = MIN(end, frankensteinLen) - beg;
 
 #if 0
-      fprintf(stderr, "beg=%d end=%d frankLen=%d ooo=%d  tiid %d,%d %d,%d  qiid %d,%d %d,%d  mid %d\n",
+      fprintf(stderr, "computePositionFromLayout()-- beg=%d end=%d frankLen=%d ooo=%d  tiid %d,%d %d,%d  qiid %d,%d %d,%d  mid %d\n",
               beg, end, frankensteinLen, ooo,
               placed[tiid].bgn, placed[tiid].end, offsets[tiid].bgn, offsets[tiid].end,
               placed[qiid].bgn, placed[qiid].end, offsets[qiid].bgn, offsets[qiid].end,
@@ -535,7 +535,7 @@ unitigConsensus::computePositionFromLayout(void) {
   placed[tiid].end = bhang + frankensteinLen;
 
   if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-    fprintf(stderr, "PLACE(3)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+    fprintf(stderr, "computePositionFromLayout()-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
             placed[tiid].bgn, placed[tiid].end, ahang, bhang, frankensteinLen);
 
   return(true);
@@ -616,14 +616,14 @@ unitigConsensus::computePositionFromAlignment(void) {
 
   //  Oh crap, no overlap?  Something broke somewhere else.
   if (thickestLen <= 0) {
-    fprintf(stderr, "WARNING:  Overlap found to frankenstein, but no parent fragment found!\n");
-    fprintf(stderr, "  This frag %d placed at %d,%d\n", tiid, placed[tiid].bgn, placed[tiid].end);
+    fprintf(stderr, "computePositionFromAlignment()-- WARNING:  Overlap found to frankenstein, but no parent fragment found!\n");
+    fprintf(stderr, "computePositionFromAlignment()--  This frag %d placed at %d,%d\n", tiid, placed[tiid].bgn, placed[tiid].end);
     //  emit lots more debugging here.
   }
   assert(thickestLen > 0);
 
   if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-    fprintf(stderr, "PLACE(5)-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
+    fprintf(stderr, "computePositionFromAlignment()-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
             ahang, bhang + frankensteinLen, ahang, bhang, frankensteinLen);
 
   return(true);
@@ -631,26 +631,53 @@ unitigConsensus::computePositionFromAlignment(void) {
 
 
 void
-unitigConsensus::rebuildFrankensteinFromConsensus(void) {
+unitigConsensus::rebuildFrankensteinFromConsensus(bool recomputeConsensus) {
 
   if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
     fprintf(stderr, "unitigConsensus()--  Starting rebuildFrankensteinFromConsensus\n");
 
-  //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive, and doesn't
-  //  update the placed[] array...but the changes shouldn't be huge.
+  if (recomputeConsensus == false) {
+    //  For each column, vote for the most common base.
+    int32   cid = manode->first;
+    
+    while (cid  > -1) {
+      Column *column = GetColumn(columnStore, cid);
+      int32   nA = GetColumnBaseCount(column, 'A');
+      int32   nC = GetColumnBaseCount(column, 'C');
+      int32   nG = GetColumnBaseCount(column, 'G');
+      int32   nT = GetColumnBaseCount(column, 'T');
+      int32   n_ = GetColumnBaseCount(column, '-');
+      int32   nn = 0;
 
-  RefreshMANode(manode->lid, 0, opp, NULL, NULL, 0, 0);
+      Bead   *bead = GetBead(beadStore, column->call);
+      char    call = '-';
 
-  //  Are all three needed??
+      if (nA > nn) { nn = nA;  call = 'A'; }
+      if (nC > nn) { nn = nC;  call = 'C'; }
+      if (nG > nn) { nn = nG;  call = 'G'; }
+      if (nT > nn) { nn = nT;  call = 'T'; }
 
-  AbacusRefine(manode,0,-1,CNS_SMOOTH, opp);
-  MergeRefine(manode->lid, NULL, 1, opp, 1);
+      Setchar(sequenceStore, bead->soffset, &call);
 
-  AbacusRefine(manode,0,-1,CNS_POLYX, opp);
-  MergeRefine(manode->lid, NULL, 1, opp, 1);
+      cid = column->next;
+    }
 
-  AbacusRefine(manode,0,-1,CNS_INDEL, opp);
-  MergeRefine(manode->lid, NULL, 1, opp, 1);
+  } else {
+    //  Run abacus to rebuild an intermediate consensus sequence.  VERY expensive, and doesn't
+    //  update the placed[] array...but the changes shouldn't be huge.
+    RefreshMANode(manode->lid, 0, opp, NULL, NULL, 0, 0);
+
+    //  Are all three needed??
+
+    AbacusRefine(manode,0,-1,CNS_SMOOTH, opp);
+    MergeRefine(manode->lid, NULL, 1, opp, 1);
+
+    AbacusRefine(manode,0,-1,CNS_POLYX, opp);
+    MergeRefine(manode->lid, NULL, 1, opp, 1);
+
+    AbacusRefine(manode,0,-1,CNS_INDEL, opp);
+    MergeRefine(manode->lid, NULL, 1, opp, 1);
+  }
 
   //  Extract the consensus sequence.  Note that frankenstein becomes the consensus beads, not a
   //  fragment bead anymore.
@@ -775,7 +802,7 @@ unitigConsensus::alignFragment(void) {
     bhang -= bhang_offset;
 
     if (VERBOSE_MULTIALIGN_OUTPUT)
-      fprintf(stderr, "MultiAlignUnitig()-- Aligning mid fragment %d utgpos %d,%d to frankenstein pos %d,%d (len=%d,%d) ovl %d hang %d,%d\n",
+      fprintf(stderr, "alignFragment()-- Aligning mid fragment %d utgpos %d,%d to frankenstein pos %d,%d (len=%d,%d) ovl %d hang %d,%d\n",
               fraglist[tiid].ident,
               offsets[tiid].bgn,
               offsets[tiid].end,
@@ -1037,7 +1064,7 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
   fraglist[tiid].contained = (ahang < 0) ? 0 : fraglist[tiid].contained;
 
   if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-    fprintf(stderr, "PLACE(4)-- set %d to %d,%d parent %d hang %d,%d contained %d\n",
+    fprintf(stderr, "applyAlignment()-- set %d to %d,%d parent %d hang %d,%d contained %d\n",
             fraglist[tiid].ident,
             placed[tiid].bgn, placed[tiid].end,
             fraglist[tiid].parent,
@@ -1388,7 +1415,7 @@ unitigConsensus::fixFailures(void) {
     return(false);
 
   applyAlignmentAgain:
-    fprintf(stderr, "unitigConsensus::fixFailures()-- FIXING fragment %d from original placement of %d,%d to new placement of %d,%d\n",
+    fprintf(stderr, "fixFailures()-- FIXING fragment %d from original placement of %d,%d to new placement of %d,%d\n",
             fraglist[tiid].ident,
             offsets[tiid].bgn, offsets[tiid].end,
             placed[tiid].bgn, placed[tiid].end);
@@ -1436,7 +1463,7 @@ unitigConsensus::fixFailures(void) {
 
 #if 1
   for (int32 i=0; i<numfrags; i++)
-    fprintf(stderr, "%d ident %d contained %d parent %d %d,%d position %d,%d\n",
+    fprintf(stderr, "fixFailures()-- %d ident %d contained %d parent %d %d,%d position %d,%d\n",
             i,
             fraglist[i].ident,
             fraglist[i].contained,
@@ -1482,12 +1509,12 @@ MultiAlignUnitig(MultiAlignT     *ma,
     if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
-    //if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
 
     if (uc->alignFragmentToFragments())
       continue;
 
-    uc->rebuildFrankensteinFromConsensus();
+    uc->rebuildFrankensteinFromConsensus(true);
 
     if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
@@ -1532,6 +1559,7 @@ MultiAlignUnitig(MultiAlignT     *ma,
     AS_CNS_ERROR_RATE = origErate;
 
     uc->applyAlignment();
+    uc->rebuildFrankensteinFromConsensus(false);
   }
 
   if (failuresToFix) {
