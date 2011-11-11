@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.3 2011-08-03 16:39:03 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.4 2011-11-11 19:17:55 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -238,43 +238,41 @@ void *Choose_And_Process_Stream_Segment(void *ptr) {
 
 
 
-void  Initialize_Work_Area
-(Work_Area_t * WA, int id)
-
 //  Allocate memory for  (* WA)  and set initial values.
 //  Set  thread_id  field to  id .
-
-{
-  int  i, Offset, Del;
+void
+Initialize_Work_Area(Work_Area_t * WA, int id) {
+  uint64  allocated = 0;
 
   WA -> Left_Delta  = (int *)safe_malloc (MAX_ERRORS * sizeof (int));
   WA -> Right_Delta = (int *)safe_malloc (MAX_ERRORS * sizeof (int));
 
   WA -> Delta_Stack = (int *)safe_malloc (MAX_ERRORS * sizeof (int));
 
+  allocated += 3 * MAX_ERRORS * sizeof(int);
+
   WA -> Edit_Space = (int *)safe_malloc ((MAX_ERRORS + 4) * MAX_ERRORS * sizeof (int));
   WA -> Edit_Array = (int **)safe_malloc (MAX_ERRORS * sizeof (int *));
+
+  allocated += (MAX_ERRORS + 4) * MAX_ERRORS * sizeof (int) + MAX_ERRORS * sizeof (int *);
 
   WA -> String_Olap_Size = INIT_STRING_OLAP_SIZE;
   WA -> String_Olap_Space = (String_Olap_t *) safe_malloc (WA -> String_Olap_Size * sizeof (String_Olap_t));
   WA -> Match_Node_Size = INIT_MATCH_NODE_SIZE;
   WA -> Match_Node_Space = (Match_Node_t *) safe_malloc (WA -> Match_Node_Size * sizeof (Match_Node_t));
 
-  fprintf(stderr, "Initialize_Work_Area:  MAX_ERRORS = %d\n", MAX_ERRORS);
+  allocated += WA -> String_Olap_Size * sizeof (String_Olap_t);
+  allocated += WA -> Match_Node_Size * sizeof (Match_Node_t);
 
-  Offset = 2;
-  Del = 6;
-  for  (i = 0;  i < MAX_ERRORS;  i ++)
-    {
-      WA -> Edit_Array [i] = WA -> Edit_Space + Offset;
-      Offset += Del;
-      Del += 2;
-    }
+  int32 Offset = 2;
+  int32 Del = 6;
+  for  (int32 i=0;  i<MAX_ERRORS;  i++) {
+    WA -> Edit_Array [i] = WA -> Edit_Space + Offset;
+    Offset += Del;
+    Del += 2;
+  }
 
   WA -> status = 0;
-
-  //WA -> screen_info . range = (Screen_Range_t *) safe_malloc (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
-
   WA -> thread_id = id;
 
   //  OVSoverlap is 16 bytes, so 1MB of data would store 65536
@@ -284,7 +282,9 @@ void  Initialize_Work_Area
   WA->overlapsMax = 1024 * 1024 / sizeof(OVSoverlap);
   WA->overlaps    = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * WA->overlapsMax);
 
-  return;
+  allocated += sizeof(OVSoverlap) * WA->overlapsMax;
+
+  fprintf(stderr, "Initialize_Work_Area:  MAX_ERRORS=%d  allocated "F_U64"MB\n", MAX_ERRORS, allocated >> 20);
 }
 
 
@@ -573,14 +573,14 @@ Initialize_Globals (void) {
   fprintf(stderr, "\n");
   fprintf(stderr, "HASH_TABLE_SIZE         "F_U32"\n",     HASH_TABLE_SIZE);
   fprintf(stderr, "sizeof(Hash_Bucket_t)   "F_SIZE_T"\n",  sizeof(Hash_Bucket_t));
-  fprintf(stderr, "hash table size:        "F_U64" GB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 30);
+  fprintf(stderr, "hash table size:        "F_U64" MB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
   fprintf(stderr, "\n");
 
   Hash_Table = (Hash_Bucket_t *) safe_malloc (HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
 
-  fprintf(stderr, "check  "F_U64" MB\n", HASH_TABLE_SIZE * sizeof (Check_Vector_t) >> 20);
-  fprintf(stderr, "info   "F_U64" MB\n", Max_Hash_Strings * sizeof (Hash_Frag_Info_t) >> 20);
-  fprintf(stderr, "start  "F_U64" MB\n", Max_Hash_Strings * sizeof (int64) >> 20);
+  fprintf(stderr, "check  "F_U64" MB\n", (HASH_TABLE_SIZE * sizeof (Check_Vector_t) >> 20));
+  fprintf(stderr, "info   "F_U64" MB\n", (Max_Hash_Strings * sizeof (Hash_Frag_Info_t) >> 20));
+  fprintf(stderr, "start  "F_U64" MB\n", (Max_Hash_Strings * sizeof (int64) >> 20));
   fprintf(stderr, "\n");
 
   Hash_Check_Array = (Check_Vector_t *) safe_malloc (HASH_TABLE_SIZE * sizeof (Check_Vector_t));
