@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.257 2011-10-11 13:49:00 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.258 2011-11-11 04:13:45 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -894,17 +894,13 @@ LateralExchangeBead(beadIdx lid, beadIdx rid) {
   leftbead->column_index = rtmp.column_index;
 
   // change basecounts for affected columns
-  if (leftcolumn != NULL)
-  {
-    DecBaseCount(&leftcolumn->base_count,leftchar);
-    IncBaseCount(&leftcolumn->base_count,rightchar);
-  }
-  
-  if (rightcolumn != NULL)
-  {
-    DecBaseCount(&rightcolumn->base_count,rightchar);
-    IncBaseCount(&rightcolumn->base_count,leftchar);
-  }
+  assert(leftcolumn != NULL);
+  DecBaseCount(&leftcolumn->base_count,leftchar);
+  IncBaseCount(&leftcolumn->base_count,rightchar);
+
+  assert(rightcolumn != NULL);
+  DecBaseCount(&rightcolumn->base_count,rightchar);
+  IncBaseCount(&rightcolumn->base_count,leftchar);
 }
 
 
