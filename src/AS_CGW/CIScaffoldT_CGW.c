@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.52 2011-08-30 12:29:16 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.53 2011-11-11 19:16:22 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1499,62 +1499,59 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
 }
 
-void FixupLengthsScaffoldTs(ScaffoldGraphT *sgraph){
+void
+FixupLengthsScaffoldTs(ScaffoldGraphT *sgraph) {
   GraphNodeIterator scaffolds;
   CIScaffoldT *scaffold;
 
   InitGraphNodeIterator(&scaffolds, sgraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
-  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
-    if(scaffold->type != REAL_SCAFFOLD)
+  while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
+    if (scaffold->type != REAL_SCAFFOLD)
       continue;
     FixupLengthScaffoldT(sgraph, scaffold);
   }
-
 }
 
 /* Check means and variance in a single */
-void FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
+void
+FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold) {
   CIScaffoldTIterator CIs;
   ChunkInstanceT *CI;
-  LengthT minOffset, maxOffset;
+  LengthT minOffset;
+  LengthT maxOffset;
   LengthT computedLength;
 
-  minOffset.variance = minOffset.mean = maxOffset.variance = DBL_MAX;
-  maxOffset.mean = -DBL_MAX;
+  minOffset.mean     =  DBL_MAX;
+  minOffset.variance =  DBL_MAX;
+
+  maxOffset.mean     = -DBL_MAX;
+  maxOffset.variance =  DBL_MAX;
 
   InitCIScaffoldTIterator(sgraph, scaffold, TRUE,   FALSE, &CIs);
-  while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
+  while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
 
     assert(CI->scaffoldID == scaffold->id);
 
-    if(CI->offsetAEnd.mean > CI->offsetBEnd.mean){
-      if(CI->offsetAEnd.mean > maxOffset.mean){
-        maxOffset = CI->offsetAEnd;
-      }
-      if(CI->offsetBEnd.mean < minOffset.mean){
-        minOffset = CI->offsetBEnd;
-      }
-    }else{
-      if(CI->offsetBEnd.mean > maxOffset.mean){
-        maxOffset = CI->offsetBEnd;
-      }
-      if(CI->offsetAEnd.mean < minOffset.mean){
-        minOffset = CI->offsetAEnd;
-      }
+    if (CI->offsetAEnd.mean > CI->offsetBEnd.mean) {
+      if (CI->offsetAEnd.mean > maxOffset.mean)  maxOffset = CI->offsetAEnd;
+      if (CI->offsetBEnd.mean < minOffset.mean)  minOffset = CI->offsetBEnd;
+    } else {
+      if (CI->offsetBEnd.mean > maxOffset.mean)  maxOffset = CI->offsetBEnd;
+      if (CI->offsetAEnd.mean < minOffset.mean)  minOffset = CI->offsetAEnd;
     }
   }
-
-  // Do the arithmetic and stats on a pair of LengthTs
-  // If resulting variance is negative assert
 
   computedLength.mean     = maxOffset.mean     - minOffset.mean;
   computedLength.variance = maxOffset.variance - minOffset.variance;
 
-  assert(computedLength.variance >= 0 && computedLength.mean > 0);  // temp change???
+  assert(computedLength.variance >= 0);
+  assert(computedLength.mean     >  0);
 
-  if(computedLength.mean > scaffold->bpLength.mean){
+  if (computedLength.mean > scaffold->bpLength.mean) {
     fprintf(stderr,"* Adjusting scaffold "F_CID " bplength from %g to %g [%g,%g]\n",
-            scaffold->id, scaffold->bpLength.mean, computedLength.mean,
+            scaffold->id,
+            scaffold->bpLength.mean,
+            computedLength.mean,
             minOffset.mean, maxOffset.mean);
 
     scaffold->bpLength = computedLength;
