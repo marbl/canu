@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ApplyAlignment.c,v 1.9 2011-10-11 13:49:00 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: ApplyAlignment.c,v 1.10 2011-11-11 04:10:33 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,7 +33,7 @@ static char *rcsid = "$Id: ApplyAlignment.c,v 1.9 2011-10-11 13:49:00 mkotelbajc
 #include "AS_UTL_reverseComplement.h"
 
 
-#undef  DEBUG_FIND_BEAD
+#undef DEBUG_FIND_BEAD
 #undef DEBUG_ALIGN_GAPS
 #undef DEBUG_ALIGN_POSITION
 #undef DEBUG_ABACUS_ALIGN
@@ -169,7 +169,7 @@ beadIdx
 findBeadInColumn(beadIdx bi, beadIdx fi) {
 
 #ifdef DEBUG_FIND_BEAD
-  fprintf(stderr, "findBeadInColumn bead bi=%d bead fi=%d\n", bi, fi);
+  fprintf(stderr, "findBeadInColumn bead bi=%d bead fi=%d\n", bi.get(), fi.get());
 #endif
 
   if ((fi.isInvalid()) || (bi.isInvalid()))
@@ -178,7 +178,7 @@ findBeadInColumn(beadIdx bi, beadIdx fi) {
   int32 ff = GetBead(beadStore, fi)->frag_index;
 
 #ifdef DEBUG_FIND_BEAD
-  fprintf(stderr, "findBeadInColumn fragindex ff="F_U64"\n", ff);
+  fprintf(stderr, "findBeadInColumn fragindex ff="F_S32"\n", ff);
 #endif
 
   Bead *b = GetBead(beadStore, bi);
@@ -251,7 +251,7 @@ alignGaps(beadIdx *aindex, int32 &apos, int32  alen,
 
 #ifdef DEBUG_ALIGN_GAPS
   fprintf(stderr, "alignGaps()-- apos=%d alen=%d  bpos=%d blen=%d  lasta=%d  lastb=%d\n",
-          apos, alen, bpos, blen, lasta, lastb);
+          apos, alen, bpos, blen, lasta.get(), lastb.get());
 #endif
 
   if (apos >= alen)
@@ -269,7 +269,8 @@ alignGaps(beadIdx *aindex, int32 &apos, int32  alen,
 
   while (nexta != aindex[apos]) {
 #ifdef DEBUG_ALIGN_GAPS
-    fprintf(stderr, "alignGaps()-- lasta=%d  nexta=%d  search for aindex[apos]=%d  \n", lasta, nexta, aindex[apos]);
+    fprintf(stderr, "alignGaps()-- lasta=%d  nexta=%d  search for aindex[apos]=%d  \n",
+            lasta.get(), nexta.get(), aindex[apos].get());
 #endif
 
     lastb = AppendGapBead(lastb);
@@ -308,7 +309,7 @@ alignPosition(beadIdx *aindex, int32 &apos, int32  alen,
 
 #ifdef DEBUG_ALIGN_POSITION
   fprintf(stderr, "alignPosition()-- apos=%d bpos=%d lasta=%d lastb=%d\n",
-          apos, bpos, lasta, lastb);
+          apos, bpos, lasta.get(), lastb.get());
 #endif
 
   alignGaps(aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
@@ -390,7 +391,7 @@ ApplyAlignment(int32 afid,
 
 #ifdef DEBUG_ABACUS_ALIGN
       fprintf(stderr, "ApplyAlignment()-- Prepend column for ahang bead=%d,%c\n",
-              bead->boffset,
+              bead->boffset.get(),
               *Getchar(sequenceStore, bead->soffset));
 #endif
       ColumnPrepend(colp, bindex[bpos++]);
@@ -436,7 +437,7 @@ ApplyAlignment(int32 afid,
         lasta = GetBead(beadStore, aindex[apos])->prev;
         lastb = bindex[bpos];
       } else if (IsStaircaseAlignment(bfid, trace)) {
-    	  // TODO: implement fix
+        // TODO: implement fix
       } else {
         assert(lasta == GetBead(beadStore, aindex[apos])->prev);
         ColumnAppend(GetBead(beadStore, lasta)->column_index,
