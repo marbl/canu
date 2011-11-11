@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.9 2011-01-03 03:07:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.10 2011-11-11 03:35:21 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -28,23 +28,280 @@ static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.9 2011-01-03 03:07:16 bri
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
+#include "AS_UTL_reverseComplement.h"
 #include "MultiAlignment_CNS.h"
-#include "Array_CNS.h"
+
+//  Width of the multialignment display.  100 is convenient for screen display; larger
+//  values work well for display in a web browser.
+//
+#define DISPLAYWIDTH 100
+
+//  Space between fragments on a single line.  If set to a massive value then all
+//  fragments appear on different lines.
+//
+#define LANE_SEP  3
+
+
+
+class LaneNode {
+public:
+  LaneNode() {
+    read      = NULL;
+    readLen   = 0;
+    sequence  = NULL;
+    quality   = NULL;
+    next      = NULL;
+  };
+
+  ~LaneNode() {
+    delete [] sequence;
+    delete [] quality;
+  };
+
+  IntMultiPos      *read;
+  int32             readLen;
+  char             *sequence;
+  char             *quality;
+
+  LaneNode         *next;
+};
+
+
+
+class Lane {
+public:
+  Lane() {
+    first   = NULL;
+    last    = NULL;
+    lastcol = 0;
+  };
+
+  ~Lane() {
+    LaneNode *node = first;
+    LaneNode *next = NULL;
+
+    while (node) {
+      next = node->next;
+      delete node;
+      node = next;
+    }
+  };
+
+  //  Add a node to this lane, if possible.
+  bool addNode(LaneNode *node) {
+    int32 leftpos = node->read->position.end;
+    if (node->read->position.bgn < node->read->position.end)
+      leftpos = node->read->position.bgn;
+
+    if ((lastcol > 0) &&
+        (leftpos < lastcol + LANE_SEP))
+      return(false);
+
+    assert(node->next == NULL);
+
+    if (first == NULL) {
+      first      = node;
+      last       = node;
+    } else {
+      last->next = node;
+      last       = node;
+    }
+
+    lastcol = leftpos + node->read->delta_length + node->readLen;
+
+    return(true);
+  };
+
+  LaneNode         *first;
+  LaneNode         *last;
+  int32             lastcol;
+};
+
+
+
+static
+int
+IntMultiPositionCmp(const void *l, const void *m) {
+  const IntMultiPos *L = (const IntMultiPos *)l;
+  const IntMultiPos *M = (const IntMultiPos *)m;
+
+  int32 ltmp = (L->position.bgn < L->position.end) ? L->position.bgn : L->position.end;
+  int32 mtmp = (M->position.bgn < M->position.end) ? M->position.bgn : M->position.end;
+
+  if (ltmp == mtmp)
+    return 0;
+
+  return((ltmp > mtmp ) ? 1 : -1);
+}
+
+
+#if 0
+class alignArray {
+public:
+  int32    depth;
+  char   **seq;
+  char   **qlt;
+  int32  **IDs;
+  int32  **ori;
+}
+#endif
+
+
+
+static
+void
+IMP2Array(IntMultiPos *imp,
+          int32        impLen,
+          int32        cnsLen,
+          gkStore     *gkp,
+          int32       *depth,
+          char      ***array,
+          int32     ***id_array,
+          int32     ***ori_array,
+          uint32       clrrng_flag) {
+
+  Lane  *lane     = NULL;
+  Lane  *lanes    = new Lane [impLen];
+  int32  lanesLen = 0;
+  int32  lanesPos = 0;
+
+  // Sort the fragments by leftmost position within contig
+  qsort(imp, impLen, sizeof(IntMultiPos), IntMultiPositionCmp);
+
+  //  Load into lanes.
+
+  for (int32 i=0; i<impLen; i++) {
+    gkFragment  fsread;
+    uint32      clr_bgn;
+    uint32      clr_end;
+    LaneNode   *node = new LaneNode();
+
+    gkp->gkStore_getFragment(imp[i].ident, &fsread, GKFRAGMENT_QLT);
+
+    fsread.gkFragment_getClearRegion(clr_bgn, clr_end, clrrng_flag);
+
+    //  Hack fix for dumping multialigns when OBT is not run (see tigStore.C:606)
+    if ((clr_end < clr_bgn) &&
+        (clrrng_flag == AS_READ_CLEAR_OBTCHIMERA))
+      fsread.gkFragment_getClearRegion(clr_bgn, clr_end, AS_READ_CLEAR_CLR);
+
+    if (clr_end < clr_bgn)
+      fprintf(stderr, "ERROR:  Undefined clear range for fragment %d\n", imp[i].ident), exit(1);
+
+    node->read        = &imp[i];
+    node->readLen = clr_end - clr_bgn;
+    node->sequence    = new char [node->readLen + 1];
+    node->quality     = new char [node->readLen + 1];
+
+    memcpy(node->sequence, fsread.gkFragment_getSequence() + clr_bgn, sizeof(char) * node->readLen);
+    memcpy(node->quality,  fsread.gkFragment_getQuality()  + clr_bgn, sizeof(char) * node->readLen);
+
+    node->sequence[node->readLen] = 0;
+    node->quality [node->readLen] = 0;
+
+    if (node->read->position.bgn > node->read->position.end)
+      reverseComplement(node->sequence, node->quality, node->readLen);
+
+    //  Try to add this new node to the lanes.  The last iteration will always succeed, adding the
+    //  node to a fresh empty lane.
+
+    for (lanesPos=0; lanesPos <= lanesLen; lanesPos++)
+      if (lanes[lanesPos].addNode(node))
+        break;
+
+    assert(lanesPos <= lanesLen);
+
+    //  If it is added to the last one, increment our cnsLen.
+
+    if (lanesPos == lanesLen)
+      lanesLen++;
+  }
+
+  //  Process.
+
+  char   **multia = (char **)safe_malloc(2*lanesLen*sizeof(char *));
+
+  for (int32 i=0; i<2*lanesLen; i++) {
+    multia[i] = (char *)safe_malloc((cnsLen + 1) * sizeof(char));
+    memset(multia[i], ' ', cnsLen);
+    multia[i][cnsLen] = 0;
+  }
+
+  int32  **ia = (int32 **)safe_malloc(lanesLen * sizeof(int32 *));
+  int32  **oa = (int32 **)safe_malloc(lanesLen * sizeof(int32 *));
+
+  for (int32 i=0; i<lanesLen; i++) {
+    ia[i] = (int32 *)safe_calloc(cnsLen, sizeof(int32));
+    oa[i] = (int32 *)safe_calloc(cnsLen, sizeof(int32));
+  }
+
+
+  for (int32 i=0; i<lanesLen; i++) {
+    char *srow = multia[2*i];
+    char *qrow = multia[2*i+1];
+
+    assert(lanes[i].first != NULL);
+
+    for (LaneNode *node=lanes[i].first; node != NULL; node = node->next) {
+      int32 firstcol = (node->read->position.bgn < node->read->position.end) ? node->read->position.bgn : node->read->position.end;
+      int32 lastcol  = (node->read->position.bgn < node->read->position.end) ? node->read->position.end : node->read->position.bgn;
+      int32 orient   = (node->read->position.bgn < node->read->position.end) ? 1 : -1;
+
+      //  Set ID and orientation
+
+      for (int32 col=firstcol; col<lastcol; col++) {
+        ia[i][col] = node->read->ident;
+        oa[i][col] = orient;
+      }
+
+      //  Set bases
+
+      int32 col  = firstcol;
+      int32 cols = 0;
+
+      for (int32 j=0; j<node->read->delta_length; j++) {
+        int32 seglen = node->read->delta[j] - ((j > 0) ? node->read->delta[j-1] : 0);
+
+        memcpy(srow + col, node->sequence + cols, seglen);
+        memcpy(qrow + col, node->quality  + cols, seglen);
+
+        col += seglen;
+
+        srow[col] = '-';
+        qrow[col] = '-';
+        col++;
+
+        cols += seglen;
+      }
+
+      memcpy(srow + col, node->sequence + cols, node->readLen - cols);
+      memcpy(qrow + col, node->quality  + cols, node->readLen - cols);
+    }
+  }
+
+  //  Cleanup
+
+  delete [] lanes;
+
+  *array     = multia;
+  *depth     = lanesLen;
+  *id_array  = ia;
+  *ori_array = oa;
+}
+
+
 
 void
 PrintMultiAlignT(FILE *out,
-	         MultiAlignT *ma,
-	         gkStore *frag_store,
-	         int32 show_qv,
-	         int32 dots,
+                 MultiAlignT *ma,
+                 gkStore *frag_store,
+                 int32 show_qv,
+                 int32 dots,
                  uint32 clrrng_flag)  {
 
-  char frgTypeDisplay;
-  FragType frgTypeData;
   int32 depth;
-  int32 rc,i;
+  int32 i;
   int32 window;
-  int32 length;
   char **multia=NULL;
   int32 **idarray;
   int32 **oriarray;
@@ -53,138 +310,149 @@ PrintMultiAlignT(FILE *out,
 
   gkFragment rsp;
 
+  dots = 0;
+
   if ((consensus == NULL) || (consensus[0] == 0)) {
     fprintf(out, "No MultiAlignment to print for tig %d -- no consensus sequence present.\n", ma->maID);
     return;
   }
 
-  length = strlen(consensus);
+  int32 length = strlen(consensus);
 
-  rc = IMP2Array(GetIntMultiPos(ma->f_list,0),
-                 GetNumIntMultiPoss(ma->f_list),
-                 GetNumchars(ma->consensus),
-                 frag_store,
-                 &depth,
-                 &multia,
-                 &idarray,
-                 &oriarray,
-                 0,
-                 clrrng_flag);
-
-  if (rc == 0) {
-    fprintf(out, "No MultiAlignment to print for tig %d -- failed IMP2Array() call.\n", ma->maID);
-    return;
-  }
+  IMP2Array(GetIntMultiPos(ma->f_list,0),
+            GetNumIntMultiPoss(ma->f_list),
+            GetNumchars(ma->consensus),
+            frag_store,
+            &depth,
+            &multia,
+            &idarray,
+            &oriarray,
+            clrrng_flag);
 
   fprintf(out,"<<< begin Contig %d >>>",ma->maID);;
 
-  int32 ungapped=1;
-  int32 tick=1;
+  char  gruler[DISPLAYWIDTH + 200];
+  char  uruler[DISPLAYWIDTH + 200];
+
+  int32 ungapped = 1;
+  int32 tick     = 1;
 
   for (window=0;window<length;) {
-    int32 row_id=0;
-    int32 rowind=0;
-    int32 orient=0;
-    int32 rowlen=0;
-    char *rowchar=consensus+window;
+    int32 row_id  = 0;
+    int32 orient  = 0;
+    int32 rowlen  = (window + DISPLAYWIDTH < length) ? DISPLAYWIDTH : length - window;
 
     fprintf(out, "\n");
     fprintf(out, "\n");
     fprintf(out, "<<<  Contig %d, gapped length: %d  >>>\n",ma->maID, length);
-    fprintf(out, "%d gapped\n",window+1);
-    fprintf(out, "         |         |         |         |         |         |         |         |         |         |\n");
-    fprintf(out, "%d ungapped\n",ungapped+tick-1);
 
-    rowlen = (window+100 < length)?100:length-window;
+    {
+      memset(gruler, 0, DISPLAYWIDTH);
+      memset(uruler, 0, DISPLAYWIDTH);
 
-    for (rowind=0;rowind<rowlen;rowind++,rowchar++){
-      if ( tick==10 ) {
-        ungapped+=10;
-        tick=0;
+      for (int32 rowind=0; rowind<rowlen; rowind++) {
+        if (((window + 1 + rowind) % 25) == 0)
+          sprintf(gruler + rowind, "| GAP=%d", window + 1 + rowind);
+
+        if ((ungapped % 25) == 0)
+          sprintf(uruler + rowind, "| UNG=%d", ungapped);
+
+        if (consensus[window + rowind] != '-')
+          ungapped++;
       }
-      if ( tick==0 && *rowchar!='-') {
-        fprintf(out,"u");
-      } else {
-        fprintf(out," ");
+
+      for (int32 i=0; i<DISPLAYWIDTH; i++) {
+        if (gruler[i] == 0)
+          gruler[i] = ' ';
+        if (uruler[i] == 0)
+          uruler[i] = ' ';
       }
-      if (*rowchar!='-') {
-        tick++;
-      }
+
+      for (int32 i=DISPLAYWIDTH-1; gruler[i] == ' '; i--)
+        gruler[i] = 0;
+      for (int32 i=DISPLAYWIDTH-1; uruler[i] == ' '; i--)
+        uruler[i] = 0;
+
+      fprintf(out, "%s\n", gruler);
+      fprintf(out, "%s\n", uruler);
     }
 
-    fprintf(out,"\n");
-    fprintf(out,"%-100.100s  cns  (uid,iid) type\n", consensus+window);
-    if (show_qv)
-      fprintf(out,"%-100.100s  qlt\n", quality+window);
 
-    fprintf(out,"___________________________________________________________________________________________________________________________________\n");
+    {
+      char save = consensus[window + rowlen];
+      consensus[window+rowlen] = 0;
+      fprintf(out,"%s  cns  (uid,iid) type\n", consensus+window);
+      consensus[window+rowlen] = save;
+    }
+
+    {
+      char save = quality[window + rowlen];
+      quality[window+rowlen] = 0;
+      fprintf(out,"%s  qlt\n", quality+window);
+      quality[window+rowlen] = save;
+    }
 
     for (i=0;i<depth;i++) {
-      int32 j;
+      assert(multia[2*i] != NULL);
 
-      if (multia[2*i] == NULL)
-        continue;
+      //  Change matching bases to '.' or lowercase.
+      //  Count the number of non-blank letters.
 
-      char *nonblank = strpbrk(multia[2*i]+window,"ACGT");
-      if (nonblank == NULL || nonblank - (multia[2*i]+window) > 100)
-        continue;
+      int32  nonBlank = 0;
 
-      for (j=0;j<100;j++) {
-        if ( window+j> length) break;
-        if ( dots && *(multia[2*i]+window+j) == *(consensus+window+j) ) {
-          *(multia[2*i]+window+j) = '.';
-          *(multia[2*i+1]+window+j) = ' ';
-        } else {
-          *(multia[2*i]+window+j) = tolower(*(multia[2*i]+window+j));
+      for (int32 j=0; j<DISPLAYWIDTH; j++) {
+        if (window + j > length)
+          break;
+
+        if (multia[2*i][window+j] == consensus[window+j]) {
+          if (dots) {
+            multia[2*i]  [window+j] = '.';
+            multia[2*i+1][window+j] = ' ';
+          } else {
+            multia[2*i][window+j] = tolower(multia[2*i][window+j]);
+          }
+        }
+
+        if (multia[2*i][window+j] != ' ')
+          nonBlank++;
+
+        if (idarray[i][window + j] > 0) {
+          row_id = idarray[i][window + j];
+          orient = oriarray[i][window + j];
         }
       }
+
+      if (nonBlank == 0)
+        continue;
+
+      //  Figure out the ID and orientation for this block
+
+      frag_store->gkStore_getFragment(row_id, &rsp, GKFRAGMENT_INF);
 
       {
-        int32 last = (window+99< length-1)?window+99:length-1;
-        if ( *(idarray[i]+last) == 0 ) {
-          row_id = *(idarray[i]+window);
-          orient = *(oriarray[i]+window);
-        } else {
-          row_id = *(idarray[i]+last);
-          orient = *(oriarray[i]+last);
-        }
-      }
-
-      // Look up UID for row_id
-      if ( row_id > 0 ) {
-        frag_store->gkStore_getFragment(row_id, &rsp, GKFRAGMENT_INF);
-
-        //getReadType_ReadStruct(rsp, &frgTypeData);
-        //
-        // AS_READ is normally 'R' but for reports, we were asked
-        // to show ' ' for these perponderant normal reads.
-        //
-        //  placeholder for future expansion to different types...
-        //
-        frgTypeData = AS_READ;
-        frgTypeDisplay = ' ';
-
-        fprintf(out, "%-100.100s   %c   (%s,%d) %c\n",
+        char save = multia[2*i][window + DISPLAYWIDTH];
+        multia[2*i][window + DISPLAYWIDTH] = 0;
+        fprintf(out, "%s   %c   (%s,%d)\n",
                 multia[2*i]+window,
                 (orient>0)?'>':'<',
                 AS_UID_toString(rsp.gkFragment_getReadUID()),
-                row_id,
-                frgTypeDisplay);
+                row_id);
+        multia[2*i][window + DISPLAYWIDTH] = save;
+      }
 
-        if (show_qv)
-          fprintf(out, "%-100.100s   %c   (%s,%d) %c\n",
-                  multia[2*i+1]+window,
-                  (orient>0)?'>':'<',
-                  AS_UID_toString(rsp.gkFragment_getReadUID()),
-                  row_id,
-                  frgTypeDisplay);
+      if (show_qv) {
+        char save = multia[2*i+1][window + DISPLAYWIDTH];
+        multia[2*i+1][window + DISPLAYWIDTH] = 0;
+        fprintf(out, "%s\n", multia[2*i+1]+window);
+        multia[2*i+1][window + DISPLAYWIDTH] = save;
       }
     }
-    window+=100;
+
+    window += DISPLAYWIDTH;
   }
   fprintf(out,"\n<<< end Contig %d >>>\n", ma->maID);
 
-  //  Was if (multia)
+
 
   for (i=0;i<2*depth;i++)
     safe_free(multia[i]);

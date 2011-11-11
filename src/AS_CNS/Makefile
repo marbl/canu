@@ -59,8 +59,7 @@ endif
 
 endif
 
-LIB_SOURCES = Array_CNS.C \
-              MultiAlign.C \
+LIB_SOURCES = MultiAlign.C \
               MultiAlignPrint.C \
               MultiAlignStore.C \
               MultiAlignment_CNS.C \
