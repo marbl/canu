@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.38 2011-11-11 14:51:35 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.39 2011-11-14 19:26:45 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -723,6 +723,9 @@ unitigConsensus::rebuildFrankensteinFromConsensus(bool recomputeConsensus) {
     Bead   *bead = GetBead(beadStore, frankensteinBof[i]);
     Column *col  = GetColumn(columnStore, bead->column_index);
 
+    assert(col->ma_index >= 0);
+    assert(col->ma_index < gapToUngapLen);
+
     gapToUngap[col->ma_index] = i;
   }
 
@@ -744,6 +747,9 @@ unitigConsensus::rebuildFrankensteinFromConsensus(bool recomputeConsensus) {
 
       int32     frstIdx = GetColumn(columnStore, frst->column_index)->ma_index;
       int32     lastIdx = GetColumn(columnStore, last->column_index)->ma_index;
+
+      assert(frstIdx >= 0);
+      assert(lastIdx >= 0);
 
       assert(frstIdx < gapToUngapLen);
       assert(lastIdx < gapToUngapLen);
