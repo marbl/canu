@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.258 2011-11-11 04:13:45 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.259 2011-11-15 11:27:20 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -339,11 +339,11 @@ CheckColumnBaseCount(Column *c) {
 MANode *
 CreateMANode(int32 iid) {
   MANode ma;
-  ma.lid     = GetNumMANodes(manodeStore);
-  ma.iid     = iid;
-  ma.first   = -1;
-  ma.last    = -1;
-  ma.columns = CreateVA_int32(GetAllocatedColumns(columnStore));
+  ma.lid        = GetNumMANodes(manodeStore);
+  ma.iid        = iid;
+  ma.first      = -1;
+  ma.last       = -1;
+  ma.columnList = CreateVA_int32(GetAllocatedColumns(columnStore));
 
   AppendVA_MANode(manodeStore, &ma);
 
@@ -354,7 +354,7 @@ CreateMANode(int32 iid) {
 void
 DeleteMANode(int32 iid) {
   // Columns are in the columnStore, not under our control
-  DeleteVA_int32(GetMANode(manodeStore,iid)->columns);
+  DeleteVA_int32(GetMANode(manodeStore,iid)->columnList);
 }
 
 //external
@@ -362,7 +362,7 @@ int32
 GetMANodeLength(int32 mid) {
   MANode *ma = GetMANode(manodeStore,mid);
   if ((ma) == NULL) return -1;
-  return GetNumint32s(ma->columns);
+  return GetNumint32s(ma->columnList);
 }
 
 
@@ -1028,7 +1028,7 @@ void
 AddColumnToMANode(int32 ma, Column column) {
   MANode *manode = GetMANode(manodeStore,ma);
 
-  Appendint32(manode->columns,&column.lid);
+  Appendint32(manode->columnList,&column.lid);
 
   if (column.next == -1 )
     manode->last = column.lid;

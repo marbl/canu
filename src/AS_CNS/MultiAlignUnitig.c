@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.39 2011-11-14 19:26:45 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.40 2011-11-15 11:27:20 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -42,7 +42,7 @@ MANode2Array(MANode *ma, int32 *depth, char ***array, int32 ***id_array,
              int32 show_cel_status) {
   char **multia;
   int32 **ia;
-  int32 length = GetNumColumns(ma->columns);
+  int32 length = GetNumColumns(ma->columnList);
   // find max column depth.
   int32 max_depth=0;
   int32 col_depth;

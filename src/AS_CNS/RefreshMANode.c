@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: RefreshMANode.c,v 1.6 2011-01-03 03:07:16 brianwalenz Exp $";
+static char *rcsid = "$Id: RefreshMANode.c,v 1.7 2011-11-15 11:27:20 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -814,7 +814,7 @@ RefreshMANode(int32 mid, int32 quality, CNS_Options *opp, int32 *nvars,
 
   varf     = (double *)safe_calloc(len_manode, sizeof(double));
   cids     = (int32 *)safe_calloc(len_manode, sizeof(int32));
-  Resetint32(ma->columns);
+  Resetint32(ma->columnList);
   cid = ma->first;
   vreg.nr = -1;
 
@@ -843,10 +843,10 @@ RefreshMANode(int32 mid, int32 quality, CNS_Options *opp, int32 *nvars,
           cids[index] = cid;
         }
       column->ma_index = index;
-      AppendVA_int32(ma->columns, &cid);
+      AppendVA_int32(ma->columnList, &cid);
       // sanity check
       if (index>0) {
-        int32 prev= *Getint32(ma->columns, index-1);
+        int32 prev= *Getint32(ma->columnList, index-1);
         Column *pcol= GetColumn(columnStore, prev);
         if( prev != column->prev ||  pcol->next != column->lid)
           {

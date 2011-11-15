@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.9 2011-11-11 03:35:56 brianwalenz Exp $";
+static char *rcsid = "$Id: AbacusRefine.c,v 1.10 2011-11-15 11:27:20 brianwalenz Exp $";
 
 #include <algorithm>
 #include <cassert>
@@ -2250,8 +2250,8 @@ int
   }
 
   ResetIndex(abacus_indices,GetNumFragments(fragmentStore));
-  sid = *Getint32(ma->columns,from);   // id of the starting column
-  eid = *Getint32(ma->columns,to);     // id of the ending column
+  sid = *Getint32(ma->columnList, from);   // id of the starting column
+  eid = *Getint32(ma->columnList, to);     // id of the ending column
   start_column = GetColumn(columnStore,sid);
 
   while (start_column->lid != eid)

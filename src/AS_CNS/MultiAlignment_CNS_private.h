@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.19 2011-10-11 13:49:00 mkotelbajcvi Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.20 2011-11-15 11:27:20 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -275,7 +275,7 @@ typedef struct {
   int32  iid;      // MANode's iid
   int32  first;
   int32  last;
-  VA_TYPE(int32) *columns;
+  VA_TYPE(int32) *columnList;  //  Used in AbacusRefine to get random access to specific column
 } MANode;
 
 VA_DEF(MANode)
