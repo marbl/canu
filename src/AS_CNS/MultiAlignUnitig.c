@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.40 2011-11-15 11:27:20 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.41 2011-11-15 11:59:12 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -638,8 +638,11 @@ unitigConsensus::rebuildFrankensteinFromConsensus(bool recomputeConsensus) {
 
   if (recomputeConsensus == false) {
     //  For each column, vote for the most common base.
-    int32   cid = manode->first;
+    int32 cid   = manode->first;
+    int32 index = 0;
     
+    Resetint32(manode->columnList);
+
     while (cid  > -1) {
       Column *column = GetColumn(columnStore, cid);
       int32   nA = GetColumnBaseCount(column, 'A');
@@ -658,6 +661,10 @@ unitigConsensus::rebuildFrankensteinFromConsensus(bool recomputeConsensus) {
       if (nT > nn) { nn = nT;  call = 'T'; }
 
       Setchar(sequenceStore, bead->soffset, &call);
+
+      //  This is extracted from RefreshMANode()
+      column->ma_index = index++;
+      AppendVA_int32(manode->columnList, &cid);
 
       cid = column->next;
     }
