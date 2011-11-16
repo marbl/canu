@@ -291,7 +291,7 @@ printSequence(char        *def,
 static
 void
 printSequence(seqInCore *sic) {
-  printSequence(sic->header(), sic->sequence(), 0, sic->sequenceLength());
+  printSequence(sic->header(), sic->sequence(), (begPos!=(u32bit)0) ? begPos:0, (endPos!=~u32bit(0)) ? endPos:sic->sequenceLength());
 }
 
 
@@ -480,7 +480,7 @@ processArray(int argc, char **argv) {
         highID   = t;
       }
 
-      for (u32bit s=lowID; s <= highID; s++)
+      for (u32bit s=lowID; (s <= highID) && (s <= fasta->getNumberOfSequences()); s++)
         printSequence(s);
 
     } else if (strcmp(argv[arg], "-r") == 0) {
@@ -540,7 +540,7 @@ processArray(int argc, char **argv) {
       begPos = strtou32bit(argv[++arg], 0L);
       endPos = strtou32bit(argv[++arg], 0L);
 
-    } else if (strcmp(argv[arg], "-end") == 0) {
+    } else if (strcmp(argv[arg], "-ends") == 0) {
       endExtract = strtou32bit(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-A") == 0) {
