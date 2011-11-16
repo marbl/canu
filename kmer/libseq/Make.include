@@ -6,6 +6,7 @@ LIBSEQ/     :=$(realpath $/../libseq/)/
 
 src    := $/seqFile.H \
           $/fastaFile.H   $/fastaFile.C \
+          $/fastqFile.H   $/fastqFile.C \
           $/fastaStdin.H  $/fastaStdin.C \
           $/seqStore.H    $/seqStore.C \
           $/sffFile.H     $/sffFile.C \

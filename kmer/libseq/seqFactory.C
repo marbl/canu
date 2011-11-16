@@ -2,6 +2,7 @@
 
 #include "fastaStdin.H"
 #include "fastaFile.H"
+#include "fastqFile.H"
 #include "seqStore.H"
 
 seqFactory *seqFactory::me = 0L;
@@ -14,6 +15,7 @@ seqFactory::seqFactory() {
 
   registerFile(new fastaStdin);
   registerFile(new fastaFile);
+  registerFile(new fastqFile);
   registerFile(new seqStore);
   //registerFile(new sffFile);
 }
