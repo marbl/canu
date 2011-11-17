@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.259 2011-11-15 11:27:20 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.260 2011-11-17 08:17:42 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -689,7 +689,8 @@ AlignBeadToColumn(int32 cid, beadIdx bid, char *label) {
   Bead *align = GetBead(beadStore,bid);
 
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "AlignBeadToColumn()-- %s frag=%d bead=%d,%c moving from column=%d to column=%d\n", label, align->frag_index, bid, *Getchar(sequenceStore,align->soffset), align->column_index, cid);
+  fprintf(stderr, "AlignBeadToColumn()-- %s frag=%d bead=%d,%c moving from column=%d to column=%d\n",
+          label, align->frag_index, bid.get(), *Getchar(sequenceStore,align->soffset), align->column_index, cid);
 #endif
 
   align->down         = first->boffset;
@@ -724,7 +725,8 @@ UnAlignBeadFromColumn(beadIdx bid) {
   DecBaseCount(&column->base_count,bchar);
 
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "UnAlignBeadFromColumn()-- frag=%d bead=%d leaving column=%d\n", bead->frag_index, bead->boffset, bead->column_index);
+  fprintf(stderr, "UnAlignBeadFromColumn()-- frag=%d bead=%d leaving column=%d\n",
+          bead->frag_index, bead->boffset.get(), bead->column_index);
 #endif
 
   bead->up   = beadIdx();
@@ -771,7 +773,8 @@ UnAlignTrailingGapBeads(beadIdx bid) {
     DecBaseCount(&column->base_count,bchar);
 
 #ifdef DEBUG_ABACUS_ALIGN
-    fprintf(stderr, "UnAlignTrailingGapBeads()-- frag=%d bead=%d leaving column=%d\n", bead->frag_index, bead->boffset, bead->column_index);
+    fprintf(stderr, "UnAlignTrailingGapBeads()-- frag=%d bead=%d leaving column=%d\n",
+            bead->frag_index, bead->boffset.get(), bead->column_index);
 #endif
 
     bead->up   = beadIdx();
@@ -1017,7 +1020,8 @@ CreateColumn(beadIdx bid) {
   IncBaseCount(&column.base_count,*Getchar(sequenceStore,head->soffset));
   AppendVA_Column(columnStore, &column);
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "CreateColumn()-- Added consensus call bead="F_BEADIDX" to column="F_BEADIDX" for existing bead="F_BEADIDX"\n", call.boffset, column.lid, head->boffset);
+  fprintf(stderr, "CreateColumn()-- Added consensus call bead="F_U32" to column="F_U32" for existing bead="F_U32"\n",
+          call.boffset.get(), column.lid, head->boffset.get());
 #endif
   return GetColumn(columnStore, column.lid);
 }
@@ -1054,7 +1058,8 @@ ColumnAppend(int32 cid, beadIdx bid) {
   assert(column != NULL);
 
 #ifdef DEBUG_ABACUS_ALIGN
-  fprintf(stderr, "ColumnAppend()-- adding column "F_BEADIDX" for bid="F_BEADIDX" after column cid=%d\n", column->lid, bid, cid);
+  fprintf(stderr, "ColumnAppend()-- adding column "F_U32" for bid="F_U32" after column cid=%d\n",
+          column->lid, bid.get(), cid);
 #endif
 
   Bead   *call     = GetBead(beadStore,column->call);
