@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.41 2011-11-15 11:59:12 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.42 2011-11-17 08:23:41 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,6 +35,8 @@ static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.41 2011-11-15 11:59:12 brianwa
 #define SHOW_ALGORITHM         2
 #define SHOW_PLACEMENT_BEFORE  3
 #define SHOW_PLACEMENT         3
+
+#undef DEBUG_AFN
 
 static
 int
@@ -409,11 +411,19 @@ unitigConsensus::computePositionFromParent(void) {
       bhang = end - frankensteinLen;
 
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-        fprintf(stderr, "computePositionFromParent()-- beg,end %d,%d  hangs %d,%d  fLen %d\n",
-                beg, end, ahang, bhang, frankensteinLen);
+        fprintf(stderr, "computePositionFromParent()-- parent %d at %d,%d -- hang %d,%d --> beg,end %d,%d (fLen %d)\n",
+                fraglist[tiid].parent,
+                placed[piid].bgn, placed[piid].end,
+                ahang, bhang,
+                beg, end,
+                frankensteinLen);
 
       //  HACK.  If the positions don't agree, move along.  BOG sometimes supplies the wrong
       //  parent for a read.
+#if 0
+      //  This doesn't really work; we place the read using the placed position of the parent (which
+      //  includes any gaps in the unitig), then expect that to agree with the original placement
+      //  (without gaps).
       int32 bdiff = beg - offsets[tiid].bgn;
       int32 ediff = end - offsets[tiid].end;
 
@@ -428,6 +438,7 @@ unitigConsensus::computePositionFromParent(void) {
                 beg, end);
         return(false);
       }
+#endif
     }
   }
   return(false);
@@ -771,8 +782,6 @@ unitigConsensus::rebuildFrankensteinFromConsensus(bool recomputeConsensus) {
 }
 
 
-
-
 int
 unitigConsensus::alignFragment(void) {
   double        origErate    = AS_CNS_ERROR_RATE;
@@ -782,113 +791,175 @@ unitigConsensus::alignFragment(void) {
   int32         ahang_orig   = ahang;
   int32         bhang_orig   = bhang;
 
-  bool          tryAgain     = true;
+  ALNoverlap  *O           = NULL;
+  double       thresh      = 1e-3;
+  int32        minlen      = AS_OVERLAP_MIN_LEN;
 
-  int32         success      = false;
 
-  Fragment     *bfrag        = GetFragment(fragmentStore, tiid);
-  OverlapType   otype;
+  //  Incoming to here are:
+  //    ahang - the position of our fragment relative to the start of frankenstein
+  //    bhang - the end of the fragment
+  //          - negative means we are contained in frankenstein
+  //          - positive means we extend frankenstein
 
-  //  If we're short, any amount of error is usually enough to make the alignment fail -- 2 errors
-  //  in a 36 base read is very close to the default threshold -- so we immediately scale up the
-  //  erate allowed.
+  int32 ahang_offset = MAX(0, ahang - ahang_extra);  //  Start position in frankenstein
+  int32 bhang_offset = 0;                            //  Truncation of frankenstein
+  int32 bhang_posn   = frankensteinLen;              //  Position in frankenstein that we truncate to
+  char  bhang_base   = 0;                            //  Saved base from frankenstein
+
+  //  If the bhang + extra are negative then we need to truncate frankenstein so we don't align
+  //  to the wrong spot.
   //
-  if (GetFragment(fragmentStore, tiid)->length <= 40)
-    AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE);
-  if (GetFragment(fragmentStore, tiid)->length <= 64)
-    AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 1.5 * AS_CNS_ERROR_RATE);
-
-  while (tryAgain) {
-    int32 ahang_offset = MAX(0, ahang - ahang_extra);
-    int32 bhang_offset = 0;
-    int32 bhang_posn   = frankensteinLen;  //  unless reset in the test below, use only for diagnostic
-    char  bhang_base   = 0;
-
-    if (bhang + bhang_extra < 0) {
-      bhang_offset = bhang + bhang_extra;
-      bhang_posn   = frankensteinLen + bhang_offset;
-      bhang_base   = frankenstein[bhang_posn];
-      frankenstein[bhang_posn] = 0;
-    }
-
-    ahang -= ahang_offset;
-    bhang -= bhang_offset;
-
-    if (VERBOSE_MULTIALIGN_OUTPUT)
-      fprintf(stderr, "alignFragment()-- Aligning mid fragment %d utgpos %d,%d to frankenstein pos %d,%d (len=%d,%d) ovl %d hang %d,%d\n",
-              fraglist[tiid].ident,
-              offsets[tiid].bgn,
-              offsets[tiid].end,
-              ahang_offset, bhang_posn, frankensteinLen, (int)strlen(frankenstein + ahang_offset),
-              ovl,
-              ahang, bhang);
-
-    if (ahang_offset == 0)
-      allow_neg_hang = 1;
-    else
-      allow_neg_hang = 0;
-
-    success = GetAlignmentTraceDriver(NULL, frankenstein + ahang_offset, bfrag, &ahang, &bhang, ovl, trace, &otype, GETALIGNTRACE_UNITIG, 0);
-
-    //  If we've set the base, we've trimmed the end of frankenstein to limit the alignment.  Restore
-    //  it to what it was before.
-    //
-    if (bhang_base)
-      frankenstein[bhang_posn] = bhang_base;
-
-    //  Update the trace to account for the bases in A we ignored in GetAlignmentTrace()....but aren't
-    //  going to ignore when we ApplyAlignment().
-    //
-    for (int32 *t = Getint32(trace, 0); (t != NULL) && (*t != 0); t++)
-      if (*t < 0)
-        *t -= ahang_offset;
-
-    //  If we bumped up against what we trimmed off, keep trying.  This is somewhat rare, and is
-    //  usually caused by a spurious alignment after a fragment is misplaced.
-    //
-    tryAgain = false;
-
-    if ((ahang < 0) && (ahang_offset != 0)) {
-      tryAgain = true;
-      success  = false;
-      ahang_extra *= 2;
-      if (ahang_extra > MAX(1024, 2 * ovl))
-        tryAgain = false;
-    }
-    if ((bhang > 0) && (bhang_offset != 0)) {
-      tryAgain = true;
-      success  = false;
-      bhang_extra *= 2;
-      if (bhang_extra > MAX(1024, 2 * ovl))
-        tryAgain = false;
-    }
-
-    //  If we failed, reset the ahangs back to the original (GetAlignmentTraceDriver could have
-    //  changed them.  If success, adjust for the offsets.
-
-    if (success == false) {
-      ahang = ahang_orig;
-      bhang = bhang_orig;
-    } else {
-      ahang += ahang_offset;
-      bhang += bhang_offset;
-    }
+  if (bhang + bhang_extra < 0) {
+#ifdef DEBUG_AFN
+    fprintf(stderr, "Truncate frankenstein by bhang=%d bhang_extra=%d == %d\n",
+            bhang, bhang_extra, bhang + bhang_extra);
+#endif
+    bhang_offset = bhang + bhang_extra;
+    bhang_posn   = frankensteinLen + bhang_offset;
+    bhang_base   = frankenstein[bhang_posn];
+    frankenstein[bhang_posn] = 0;
   }
 
-  AS_CNS_ERROR_RATE = origErate;
+  ahang -= ahang_offset;  //  We've chopped off the start of frankenstein, so adjust the ahang
+  bhang -= bhang_offset;  //  We've possibly chopped off the end of frankenstein, so allow the fragment to extend by this much more
 
-  //  This might be useless.  computePositionFromAlignment() is setting placed[] for this fragment,
-  //  and I'm not exactly sure if it should be doing that.  I don't see anywhere in this function
-  //  that placed[] is used, but it might be calling something that uses it.
-  //
-  if (success == false) {
-    placed[tiid].bgn = 0;
-    placed[tiid].end = 0;
-    //fprintf(stderr, "placed[%3d] mid %d %d,%d\n", tiid, fraglist[tiid].ident, placed[tiid].bgn, placed[tiid].end);
+  char      *aseq = frankenstein + ahang_offset;
+  int32      alen = bhang_posn - ahang_offset;
+
+
+  char      *bseq = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);  //  The fragment
+  Fragment  *bfrag = GetFragment(fragmentStore, tiid);
+  int32      blen = bfrag->length;
+
+  //  Now just fish for an alignment that is decent.  This is mostly straight from alignFragmentToFragment.
+
+#if 0
+  if (O == NULL) {
+    O = DP_Compare(aseq,
+                   bseq,
+                   0, alen,            //  ahang bounds
+                   alen, blen,         //  ahang, bhang exclusion are unused here
+                   0,
+                   AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
+                   AS_FIND_ALIGN);
+#ifdef DEBUG_AFN
+    if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
+      fprintf(stderr, "DP_Compare found:\n");
+      PrintALNoverlap(stderr, aseq, bseq, O);
+    }
+#endif
   }
 
-  return(success);
+  if (O == NULL) {
+    O = Local_Overlap_AS_forCNS(aseq,
+                                bseq,
+                                0, alen,            //  ahang bounds
+                                alen, blen,         //  ahang, bhang exclusion are unused here
+                                0,
+                                AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
+                                AS_FIND_ALIGN);
+#ifdef DEBUG_AFN
+    if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
+      fprintf(stderr, "Local_Overlap found:\n");
+      PrintALNoverlap(stderr, aseq, bseq, O);
+    }
+#endif
+  }
+#endif
+
+  if (O == NULL) {
+    O = Optimal_Overlap_AS_forCNS(aseq,
+                                  bseq,
+                                  0, alen,            //  ahang bounds are unused here
+                                  alen, blen,         //  ahang, bhang exclusion
+                                  0,
+                                  AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
+                                  AS_FIND_ALIGN);
+#ifdef DEBUG_AFN
+    if ((O) && (VERBOSE_MULTIALIGN_OUTPUT)) {
+      fprintf(stderr, "Optimal_Overlap found:\n");
+      PrintALNoverlap(stderr, aseq, bseq, O);
+    }
+#endif
+  }
+
+  //  Fix up the mess we made.  Restore frankenstein.  Restore the hangs.
+
+  if (bhang_base)
+    frankenstein[bhang_posn] = bhang_base;
+
+  ahang = ahang_orig;
+  bhang = bhang_orig;
+
+
+  if (O == NULL) {
+#ifdef DEBUG_AFN
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      fprintf(stderr, "alignFragment()-- No alignment found.\n");
+#endif
+    return(false);
+  }
+
+  //  Negative ahang?  Nope, don't want it.
+  if (O->begpos < 0) {
+#ifdef DEBUG_AFN
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      fprintf(stderr, "alignFragment()-- No alignment found -- begpos = %d.\n", O->begpos);
+#endif
+    return(false);
+  }
+
+  //  Positive bhang and we trimmed frankenstein?  Nope, don't want it.
+  if ((O->endpos > 0) && (bhang_posn != frankensteinLen)) {
+#ifdef DEBUG_AFN
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      fprintf(stderr, "alignFragment()-- No alignment found -- endpos = %d.\n", O->endpos);
+#endif
+    return(false);
+  }
+
+  //  Too noisy?  Nope, don't want it.
+  if (((double)O->diffs / (double)O->length) > AS_CNS_ERROR_RATE) {
+#ifdef DEBUG_AFN
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      fprintf(stderr, "alignFragment()-- No alignment found -- erate %f > max allowed %f.\n",
+              (double)O->diffs / (double)O->length, AS_CNS_ERROR_RATE);
+#endif
+    return(false);
+  }
+
+  //  Too short?  Nope, don't want it.
+  if (O->length < AS_OVERLAP_MIN_LEN) {
+#ifdef DEBUG_AFN
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      fprintf(stderr, "alignFragment()-- No alignment found -- too short %d < min allowed %d.\n",
+              O->length, AS_OVERLAP_MIN_LEN);
+#endif
+    return(false);
+  }
+
+
+  ahang = ahang_offset + O->begpos;
+  bhang = bhang_offset + O->endpos;
+
+
+  //fprintf(stderr, "alignFragment()-- hangs %d,%d\n", ahang, bhang);
+
+
+  //  Cleanup the trace, copy it to our storage.
+
+  Resetint32(trace);
+
+  for (int32 *t = O->trace; (t != NULL) && (*t != 0); t++) {
+    if (*t < 0)
+      *t -= ahang_offset;
+    AppendVA_int32(trace, t);
+  }
+
+  return(true);
 }
+
 
 
 int
