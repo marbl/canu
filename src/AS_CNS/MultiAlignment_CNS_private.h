@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.20 2011-11-15 11:27:20 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.21 2011-11-17 08:19:59 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -47,7 +47,7 @@ static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS
 
 #undef DEBUG_ABACUS
 #undef DEBUG_ABACUS_ALIGN
-#undef DEBUG_VAR_RECORDS
+#undef DEBUG_VAR_RECORDS  //  BROKEN!
 #undef DEBUG_GET_ALIGNMENT_TRACE
 
 #define MSTRING_SIZE                        3
