@@ -307,8 +307,12 @@ if (($err) || (scalar(@fragFiles) == 0) || (!defined($fastqFile)) || (!defined($
 
 #check for valid parameters for requested partitions and threads
 $MIN_FILES_WITHOUT_PARTITIONS += $threads;
-my $limit = `ulimit -Sn`;
-chomp($limit);
+my $limit = 1024;
+my $sysLimit = `ulimit -Sn`;
+chomp($sysLimit);
+if (defined($sysLimit)) {
+   $limit = $sysLimit;
+}
 if ($limit - $MIN_FILES_WITHOUT_PARTITIONS <= $partitions) {
    $partitions = $limit - $MIN_FILES_WITHOUT_PARTITIONS;
    if ($threads > $partitions) { $threads = $partitions - 1; }
