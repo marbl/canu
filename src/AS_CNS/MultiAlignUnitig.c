@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.43 2011-11-23 06:04:14 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.44 2011-11-23 07:25:38 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -197,8 +197,7 @@ public:
 
   int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
 
-  int32  computePositionFromParent(void);
-  int32  computePositionFromContainer(void);
+  int32  computePositionFromParent(bool doContained);
   int32  computePositionFromLayout(void);
   int32  computePositionFromAlignment(void);
 
@@ -374,46 +373,56 @@ unitigConsensus::initialize(void) {
 
 
 
-//  Place the fragment in the frankenstein using the parent and hangs.  If no parent supplied,
-//  fallback to the positions.
-//
-//   ---------------------------------
-//              |-------------|  piid == afrag
-//                 |----|        i
-//
 int
-unitigConsensus::computePositionFromParent(void) {
+unitigConsensus::computePositionFromParent(bool doContained) {
 
   assert(piid == -1);
 
-  if (fraglist[tiid].parent == 0)
-    return(false);
+  AS_IID parent = (doContained == false) ? fraglist[tiid].parent : fraglist[tiid].contained;
+
+  if (parent == 0)
+    goto computePositionFromParentFail;
+
+  if ((doContained == true) && (fraglist[tiid].parent == fraglist[tiid].contained))
+    //  Already tried the parent, no need to try it again.
+    goto computePositionFromParentFail;
 
   for (piid = tiid-1; piid >= 0; piid--) {
     Fragment *afrag = GetFragment(fragmentStore, piid);
 
-    //  If this is the parent, and the parent is cnspos, compute the placement.
-    if ((fraglist[tiid].parent == afrag->iid) &&
-        ((cnspos[piid].bgn != 0) || (cnspos[piid].end != 0))) {
-      cnspos[tiid].bgn = cnspos[piid].bgn + fraglist[tiid].ahang;
-      cnspos[tiid].end = cnspos[piid].end + fraglist[tiid].bhang;
+    if (parent != afrag->iid)
+      //  Not the parent.
+      continue;
 
-      int32 ovl   = MIN(cnspos[tiid].end, frankensteinLen) - cnspos[tiid].bgn;
-      int32 ahang = cnspos[tiid].bgn;
-      int32 bhang = cnspos[tiid].end - frankensteinLen;
+    if ((cnspos[piid].bgn == 0) &&
+        (cnspos[piid].end == 0))
+      //  Is the parent, but that isn't placed.
+      goto computePositionFromParentFail;
 
+    if ((utgpos[piid].end < utgpos[tiid].bgn) ||
+        (utgpos[tiid].end < utgpos[piid].bgn)) {
+      //  Is the parent, parent is placed, but the parent doesn't agree with the placement.
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-        fprintf(stderr, "computePositionFromParent()-- parent %d at %d,%d -- hang %d,%d --> beg,end %d,%d (fLen %d)\n",
-                fraglist[tiid].parent,
-                cnspos[piid].bgn, cnspos[piid].end,
-                ahang, bhang,
-                cnspos[tiid].bgn, cnspos[tiid].end,
-                frankensteinLen);
-
-      return(true);
+        fprintf(stderr, "computePositionFromParent()-- parent %d at utg %d,%d doesn't agree with my utg %d,%d\n",
+                parent,
+                utgpos[piid].bgn, utgpos[piid].end,
+                utgpos[tiid].bgn, utgpos[tiid].end);
+      goto computePositionFromParentFail;
     }
+
+    cnspos[tiid].bgn = cnspos[piid].bgn + fraglist[tiid].ahang;
+    cnspos[tiid].end = cnspos[piid].end + fraglist[tiid].bhang;
+
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
+      fprintf(stderr, "computePositionFromParent()-- parent %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
+              parent,
+              cnspos[piid].bgn, cnspos[piid].end,
+              cnspos[tiid].bgn, cnspos[tiid].end,
+              frankensteinLen);
+    return(true);
   }
 
+ computePositionFromParentFail:
   cnspos[tiid].bgn = 0;
   cnspos[tiid].end = 0;
 
@@ -424,50 +433,6 @@ unitigConsensus::computePositionFromParent(void) {
   return(false);
 }
 
-
-
-int
-unitigConsensus::computePositionFromContainer(void) {
-
-  assert(piid == -1);
-
-  if (fraglist[tiid].contained == 0)
-    return(false);
-
-  for (piid = tiid-1; piid >= 0; piid--) {
-    Fragment *afrag = GetFragment(fragmentStore, piid);
-
-    //  If this is the container, and the container is cnspos, compute the placement.
-    if ((fraglist[tiid].contained == afrag->iid) &&
-        ((cnspos[piid].bgn != 0) || (cnspos[piid].end != 0))) {
-      cnspos[tiid].bgn = cnspos[piid].bgn + utgpos[tiid].bgn - utgpos[afrag->lid].bgn;
-      cnspos[tiid].end = cnspos[piid].end + utgpos[tiid].end - utgpos[afrag->lid].end;
-
-      int32 ovl   = cnspos[tiid].end - cnspos[tiid].bgn;
-      int32 ahang = cnspos[tiid].bgn;
-      int32 bhang = cnspos[tiid].end - frankensteinLen;
-
-      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-        fprintf(stderr, "computePositionFromContainer()-- container %d at %d,%d -- hang %d,%d --> beg,end %d,%d (fLen %d)\n",
-                fraglist[tiid].contained,
-                cnspos[piid].bgn, cnspos[piid].end,
-                ahang, bhang,
-                cnspos[tiid].bgn, cnspos[tiid].end,
-                frankensteinLen);
-
-      return(true);
-    }
-  }
-
-  cnspos[tiid].bgn = 0;
-  cnspos[tiid].end = 0;
-
-  piid = -1;
-
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-    fprintf(stderr, "computePositionFromContainer()-- Returns fail.\n");
-  return(false);
-}
 
 
 int
@@ -1274,10 +1239,10 @@ unitigConsensus::fixFailures(void) {
     if (VERBOSE_MULTIALIGN_OUTPUT)
       reportStartingWork();
 
-    if (computePositionFromParent()    && alignFragment())  goto applyAlignmentAgain;
-    if (computePositionFromContainer() && alignFragment())  goto applyAlignmentAgain;
-    if (computePositionFromLayout()    && alignFragment())  goto applyAlignmentAgain;
-    if (computePositionFromAlignment() && alignFragment())  goto applyAlignmentAgain;
+    if (computePositionFromParent(false) && alignFragment())  goto applyAlignmentAgain;
+    if (computePositionFromParent(true)  && alignFragment())  goto applyAlignmentAgain;
+    if (computePositionFromLayout()      && alignFragment())  goto applyAlignmentAgain;
+    if (computePositionFromAlignment()   && alignFragment())  goto applyAlignmentAgain;
 
     //  Dang, still failed to align the fragment.
 
@@ -1370,10 +1335,10 @@ MultiAlignUnitig(MultiAlignT     *ma,
     if (VERBOSE_MULTIALIGN_OUTPUT)
       uc->reportStartingWork();
 
-    if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
     if (uc->alignFragmentToFragments())
       continue;
@@ -1382,10 +1347,10 @@ MultiAlignUnitig(MultiAlignT     *ma,
       fprintf(stderr, "MultiAlignUnitig()-- recompute full consensus\n");
     uc->rebuild(true);
 
-    if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
     if (uc->alignFragmentToFragments())
       continue;
@@ -1395,10 +1360,10 @@ MultiAlignUnitig(MultiAlignT     *ma,
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 1.3333 * AS_CNS_ERROR_RATE);
 
-    if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
     if (uc->alignFragmentToFragments())
       continue;
@@ -1408,10 +1373,10 @@ MultiAlignUnitig(MultiAlignT     *ma,
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE);
 
-    if (uc->computePositionFromParent()    && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromContainer() && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromLayout()    && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromAlignment() && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
     if (uc->alignFragmentToFragments())
       continue;
@@ -1434,7 +1399,7 @@ MultiAlignUnitig(MultiAlignT     *ma,
     uc->rebuild(false);
   }
 
-#if 0
+#if 1
   if (failuresToFix) {
     fprintf(stderr, "MultiAlignUnitig()-- WARNING!  Attempting to resolve alignment failures for unitig %d.\n", ma->maID);
 
