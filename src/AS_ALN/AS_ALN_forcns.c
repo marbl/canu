@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.26 2010-08-12 19:19:48 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.27 2011-11-23 05:23:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -499,8 +499,8 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
     for (x=0; x<tp; x++)
       fprintf(stderr, " %d", m->h_trace[x]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "A: %d-%d %d %s\n", al.begI, al.endI, al.lenA, m->h_alignA);
-    fprintf(stderr, "B: %d-%d %d %s\n", al.begJ, al.endJ, al.lenB, m->h_alignB);
+    fprintf(stderr, "A: %4d-%4d %4d %s\n", al.begI, al.endI, al.lenA, m->h_alignA);
+    fprintf(stderr, "B: %4d-%4d %4d %s\n", al.begJ, al.endJ, al.lenB, m->h_alignB);
 #endif
   }
 
