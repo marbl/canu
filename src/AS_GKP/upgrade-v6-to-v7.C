@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: upgrade-v6-to-v7.C,v 1.1 2011-02-24 09:18:31 brianwalenz Exp $";
+static char *rcsid = "$Id: upgrade-v6-to-v7.C,v 1.2 2011-11-29 16:00:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -154,11 +154,15 @@ public:
 int
 main(int argc, char **argv) {
 
+  //  Fail if the backups (or the new file) are already there
+
   if (AS_UTL_fileExists("fpk.original", FALSE, FALSE))
     fprintf(stderr, "fpk backup file exists, cannot proceed (store already converted?)\n"), exit(1);
 
   if (AS_UTL_fileExists("qpk", FALSE, FALSE))
     fprintf(stderr, "qpk file exists, cannot proceed (store already converted?)\n"), exit(1);
+
+  //  Make backups of the originals
 
   errno = 0;
   rename("fpk", "fpk.original");
@@ -169,6 +173,8 @@ main(int argc, char **argv) {
   rename("inf", "inf.original");
   if (errno)
     fprintf(stderr, "Failed to rename 'inf' to 'inf.original': %s\n", strerror(errno)), exit(1);
+
+  //  Make damn sure the originals aren't there.
 
   if (AS_UTL_fileExists("fpk", FALSE, FALSE))
     fprintf(stderr, "fpk file exists, cannot proceed (wanted to overwrite data!)\n"), exit(1);
@@ -315,4 +321,6 @@ main(int argc, char **argv) {
   closeStore(fpkoriginal);
   closeStore(fpk);
   closeStore(qpk);
+
+  exit(0);
 }

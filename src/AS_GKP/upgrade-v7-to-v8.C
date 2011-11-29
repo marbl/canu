@@ -18,18 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.12 2011-11-02 01:56:39 brianwalenz Exp $";
-
-#include <assert.h>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-#include <exception>
-#include <map>
-#include <vector>
-
-using namespace std;
+static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.13 2011-11-29 16:00:07 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
@@ -37,337 +26,242 @@ using namespace std;
 #include "AS_UTL_fileIO.h"
 #include "AS_UTL_Hash.h"
 
-#define INF_STORE_FILENAME "inf"
-#define LIB_STORE_FILENAME "lib"
-#define U2I_STORE_FILENAME "u2i"
-#define UID_STORE_FILENAME "uid"
-#define STORE_RENAME_SUFFIX ".v7-old"
+#include <map>
 
-class gkLibraryOld
-{
+using namespace std;
+
+
+class gkLibraryOriginal {
 public:
-	AS_UID libraryUID;
+  AS_UID libraryUID;
 
-	double mean;
-	double stddev;
+  double mean;
+  double stddev;
 
-	uint64 spareUN3;
-	uint64 spareUN2;
-	uint64 spareUN1;
+  uint64 spareUN3;
+  uint64 spareUN2;
+  uint64 spareUN1;
 
-	uint64 spareUTG:62;
-	uint64 forceBOGunitigger:1;
-	uint64 isNotRandom:1;
+  uint64 spareUTG:62;
+  uint64 forceBOGunitigger:1;
+  uint64 isNotRandom:1;
 
-	uint64 spareALN:63;
-	uint64 doNotTrustHomopolymerRuns:1;
+  uint64 spareALN:63;
+  uint64 doNotTrustHomopolymerRuns:1;
 
-	uint64 spareOBT:54;
+  uint64 spareOBT:54;
 
-	uint64 doTrim_initialNone:1;
-	uint64 doTrim_initialMerBased:1;
-	uint64 doTrim_initialFlowBased:1;
-	uint64 doTrim_initialQualityBased:1;
+  uint64 doTrim_initialNone:1;
+  uint64 doTrim_initialMerBased:1;
+  uint64 doTrim_initialFlowBased:1;
+  uint64 doTrim_initialQualityBased:1;
 
-	uint64 doRemoveDuplicateReads:1;
+  uint64 doRemoveDuplicateReads:1;
 
-	uint64 doTrim_finalLargestCovered:1;
-	uint64 doTrim_finalEvidenceBased:1;
+  uint64 doTrim_finalLargestCovered:1;
+  uint64 doTrim_finalEvidenceBased:1;
 
-	uint64 doRemoveSpurReads:1;
-	uint64 doRemoveChimericReads:1;
+  uint64 doRemoveSpurReads:1;
+  uint64 doRemoveChimericReads:1;
 
-	uint64 doConsensusCorrection:1;
+  uint64 doConsensusCorrection:1;
 
-	uint64 spareGKP:63;
-	uint64 UNUSEDusePackedFragments:1;
+  uint64 spareGKP:63;
+  uint64 UNUSEDusePackedFragments:1;
 
-	uint64 spareLIB:61;
-	uint64 orientation:3;
+  uint64 spareLIB:61;
+  uint64 orientation:3;
 };
 
-void processInfoStore(char* oldInfoStorePath, char* infoStorePath)
-{
-	gkStoreInfo info;
-	
-	errno = 0;
-	
-	FILE* oldInfoFile = fopen(oldInfoStorePath, "r");
-	
-	if (AS_UTL_safeRead(oldInfoFile, &info, "inf", sizeof(info), 1) == 0)
-	{
-		fprintf(stderr, "Unable to read information store:\nfile=%s\nerror=%s\n", oldInfoStorePath, strerror(errno));
-		
-		exitFailure();
-	}
 
-	if (info.gkVersion != 7)
-	{
-		fprintf(stderr, "Store is version "F_U64", not 7. Cannot upgrade.\n", info.gkVersion);
-		
-		exitFailure();
-	}
 
-	info.gkVersion = 8;
-	info.gkLibrarySize = sizeof(gkLibrary);
+int main(int argc, char** argv) {
 
-	FILE* infoFile = fopen(infoStorePath, "w");
+  //  Fail if the backups are already there
 
-	AS_UTL_safeWrite(infoFile, &info, "inf", sizeof(info), 1);
+  if (AS_UTL_fileExists("inf.original", FALSE, FALSE))
+    fprintf(stderr, "inf backup file exists, cannot proceed (store already converted?)\n"), exit(1);
 
-	//  Dump the rest of the data (this is more or less copied from AS_PER_gkStore.C).
+  if (AS_UTL_fileExists("lib.original", FALSE, FALSE))
+    fprintf(stderr, "lib backup file exists, cannot proceed (store already converted?)\n"), exit(1);
 
-	if (!feof(oldInfoFile))
-	{
-		uint32 nr = info.numPacked + info.numNormal + info.numStrobe + 1;
-		uint32 na = 0;
-		uint32 nb = 0;
+  //  Make backups of the originals
 
-		uint8 *IIDtoTYPE = (uint8 *) safe_malloc(sizeof(uint8) * nr);
-		uint32 *IIDtoTIID = (uint32 *) safe_malloc(sizeof(uint32) * nr);
+  errno = 0;
+  rename("inf", "inf.original");
+  if (errno)
+    fprintf(stderr, "Failed to rename 'inf' to 'inf.original': %s\n", strerror(errno)), exit(1);
 
-		na = AS_UTL_safeRead(oldInfoFile, IIDtoTYPE, "gkStore_open:header", sizeof(uint8), nr);
-		nb = AS_UTL_safeRead(oldInfoFile, IIDtoTIID, "gkStore_open:header", sizeof(uint32), nr);
+  errno = 0;
+  rename("lib", "lib.original");
+  if (errno)
+    fprintf(stderr, "Failed to rename 'lib' to 'lib.original': %s\n", strerror(errno)), exit(1);
 
-		//  If EOF was hit, and nothing was read, there is no index saved.  Otherwise, something was
-		//  read, and we fail if either was too short.
+  //  Make damn sure the originals aren't there.
 
-		if ((feof(oldInfoFile)) && (na == 0) && (nb == 0))
-		{
-			safe_free(IIDtoTYPE);
-			safe_free(IIDtoTIID);
-		}
-		else if ((na != nr) || (nb != nr))
-		{
-			fprintf(stderr, "couldn't read the IID maps: %s\n", strerror(errno));
-			
-			exitFailure();
-		}
+  if (AS_UTL_fileExists("inf", FALSE, FALSE))
+    fprintf(stderr, "inf file exists, cannot proceed (wanted to overwrite data!)\n"), exit(1);
 
-		AS_UTL_safeWrite(infoFile, IIDtoTYPE, "ioF", sizeof(uint8), na);
-		AS_UTL_safeWrite(infoFile, IIDtoTIID, "ioF", sizeof(uint32), nb);
-	}
+  if (AS_UTL_fileExists("lib", FALSE, FALSE))
+    fprintf(stderr, "lib file exists, cannot proceed (wanted to overwrite data!)\n"), exit(1);
 
-	fclose(oldInfoFile);
-	fclose(infoFile);
+  //  Update the inf block -- argh, just to change the version (and struct sizes, maybe)
 
-	fprintf(stdout, "Information store upgraded to v8:\n%s\n", infoStorePath);
-}
+  errno = 0;
+  FILE *ioO = fopen("inf.original", "r");
+  if (errno)
+    fprintf(stderr, "failed to open 'inf.original': %s\n", strerror(errno)), exit(1);
 
-void processLibStore(map<AS_IID, const char*>& idMap, StoreStruct& oldLibStore, StoreStruct& libStore)
-{
-	size_t oldLibSize = sizeof(gkLibraryOld);
-	
-	for (map<AS_IID, const char*>::iterator iterator = idMap.begin(); iterator != idMap.end(); iterator++)
-	{
-		printf(F_U32"="F_STR"\n", (*iterator).first, (*iterator).second);
-	}
-	
-	for (AS_IID a = 1; a <= idMap.size(); a++)
-	{
-		gkLibraryOld oldLib;
-		gkLibrary lib;
-		
-		getIndexStore(&oldLibStore, a, &oldLib);
-		
-		lib.libraryUID = oldLib.libraryUID;
-		lib.mean = oldLib.mean;
-		lib.stddev = oldLib.stddev;
-		lib.spareUN3 = oldLib.spareUN3;
-		lib.spareUN2 = oldLib.spareUN2;
-		lib.spareUN1 = oldLib.spareUN1;
-		lib.spareUTG = oldLib.spareUTG;
-		lib.forceBOGunitigger = oldLib.forceBOGunitigger;
-		lib.isNotRandom = oldLib.isNotRandom;
-		lib.spareALN = oldLib.spareALN;
-		lib.doNotTrustHomopolymerRuns = oldLib.doNotTrustHomopolymerRuns;
-		lib.spareOBT = oldLib.spareOBT;
-		lib.doTrim_initialNone = oldLib.doTrim_initialNone;
-		lib.doTrim_initialMerBased = oldLib.doTrim_initialMerBased;
-		lib.doTrim_initialFlowBased = oldLib.doTrim_initialFlowBased;
-		lib.doTrim_initialQualityBased = oldLib.doTrim_initialQualityBased;
-		lib.doRemoveDuplicateReads = oldLib.doRemoveDuplicateReads;
-		lib.doTrim_finalLargestCovered = oldLib.doTrim_finalLargestCovered;
-		lib.doTrim_finalEvidenceBased = oldLib.doTrim_finalEvidenceBased;
-		lib.doRemoveSpurReads = oldLib.doRemoveSpurReads;
-		lib.doRemoveChimericReads = oldLib.doRemoveChimericReads;
-		lib.doConsensusCorrection = oldLib.doConsensusCorrection;
-		lib.spareGKP = oldLib.spareGKP;
-		lib.UNUSEDusePackedFragments = oldLib.UNUSEDusePackedFragments;
-		lib.spareLIB = oldLib.spareLIB;
-		lib.orientation = oldLib.orientation;
+  FILE *ioN = fopen("inf", "w");
+  if (errno)
+    fprintf(stderr, "failed to open 'inf': %s\n", strerror(errno)), exit(1);
 
-		if (idMap.count(a) == 0)
-		{
-			fprintf(stderr, F_STR""F_U32"\n", "Library does not contain an UID string: iid=", a);
-			
-			exitFailure();
-		}
-		
-		strcpy(lib.libraryName, idMap[a]);
-		
-		appendIndexStore(&libStore, &lib);
-		
-		fprintf(stdout, "Appended v8 library:\nlibraryIID="F_U32"\nlibraryName=%s\n", a, lib.libraryName);
-	}
-	
-	closeStore(&oldLibStore);
-	closeStore(&libStore);
-	
-	fprintf(stdout, "Library store upgraded to v8.\n");
-}
+  gkStoreInfo         io;  //  Original
+  gkStoreInfo         in;  //  Updated
 
-void getIdMap(map<AS_IID, const char*>& idMap, char* uidStorePath, char* u2iStorePath)
-{	
-	HashTable_AS* uidToIidTable = LoadUIDtoIIDHashTable_AS(u2iStorePath);
-	StoreStruct* uidStore = convertStoreToMemoryStore(openStore(uidStorePath, "r"));
-	HashTable_Iterator_AS idIterator;
-	
-	InitializeHashTable_Iterator_AS(uidToIidTable, &idIterator);
-	
-	uint64 uidint = 0;
-	uint64 iid = 0;
-	uint32 iidType = 0;
+  if (1 != AS_UTL_safeRead(ioO, &io, "ioO", sizeof(gkStoreInfo), 1))
+    fprintf(stderr, "failed to read 'inf.original': %s\n", strerror(errno)), exit(1);
 
-	while (NextHashTable_Iterator_AS(&idIterator, &uidint, &iid, &iidType))
-	{
-		if (iidType == AS_IID_LIB)
-		{
-			uint32  actualLength = 0;
-			int64   nxtoff       = 1;
-			AS_UID  uid          = AS_UID_fromInteger(uidint);
-			char*   uidName      = getStringStorePtr(uidStore, uid.UID, &actualLength, &nxtoff);
+  assert(io.gkVersion == 7);
 
-			if (actualLength != strlen(uidName))
-			{
-				fprintf(stderr, "UID string stored length "F_U32" not same as strlen "F_U64, actualLength, strlen(uidName));
-				
-				exitFailure();
-			}
-			
-			if (actualLength == 0)
-			{
-				fprintf(stderr, "UID string must not be empty: iid="F_U64, iid);
-				
-				exitFailure();
-			}
+  in               = io;
 
-			char *str = new char[actualLength + 1];
-			strcpy(str, uidName);
-			idMap[iid] = str;
-		}
-	}
-	
-	closeStore(uidStore);
-}
+  in.gkVersion     = 8;
+  in.gkLibrarySize = sizeof(gkLibrary);
 
-char* renameStore(char* storePath)
-{
-	char* oldStorePath = new char [FILENAME_MAX];
+  AS_UTL_safeWrite(ioN, &in, "inf", sizeof(gkStoreInfo), 1);
 
-	strcpy(oldStorePath, storePath);
-	strcat(oldStorePath, STORE_RENAME_SUFFIX);
+  //  Dump the rest of the data (this is more or less copied from AS_PER_gkStore.C).
 
-	if (!AS_UTL_fileExists(oldStorePath, 0, 1))
-	{
-		fprintf(stdout, "Renaming store:\n%s\n%s\n", storePath, oldStorePath);
-	
-		rename(storePath, oldStorePath);
-	}
-	else
-	{
-		fprintf(stdout, "Using existing old store backup:\n%s\n", oldStorePath);
-	}
-	
-	return oldStorePath;
-}
+  if (!feof(ioO)) {
+    uint32 nr = io.numPacked + io.numNormal + io.numStrobe + 1;
+    uint32 na = 0;
+    uint32 nb = 0;
 
-void printUsage(char* executableName)
-{
-	fprintf(stdout, "Usage: %s -s <store path> -d <dump path>\n", executableName);
-	fprintf(stdout, "\n");
-	fprintf(stdout, "-s  path to the gatekeeper store to use\n");
-	fprintf(stdout, "-d  path to the tabular gatekeeper dump\n");
-	fprintf(stdout, "\n");
-	fprintf(stdout, "Upgrades a library store to contain a library name.\n");
-	fprintf(stdout, "Note: this is the main change between v7 and v8 of the store implementation.\n");
-}
+    uint8   *IIDtoTYPE = (uint8  *)safe_malloc(sizeof(uint8)  * nr);
+    uint32  *IIDtoTIID = (uint32 *)safe_malloc(sizeof(uint32) * nr);
 
-char* getSubStorePath(char* storePath, char* subStoreFileName)
-{
-	char* subStorePath = new char[strlen(storePath) + 1 + strlen(subStoreFileName) + 1];
-	
-	strcpy(subStorePath, storePath);
-	strcat(subStorePath, "/");
-	strcat(subStorePath, subStoreFileName);
-	
-	return subStorePath;
-}
+    na = AS_UTL_safeRead(ioO, IIDtoTYPE, "gkStore_open:header", sizeof(uint8), nr);
+    nb = AS_UTL_safeRead(ioO, IIDtoTIID, "gkStore_open:header", sizeof(uint32), nr);
 
-int main(int argc, char** argv)
-{
-	if (argc > 1)
-	{
-		char* storePath = NULL;
-		int arg = 1;
-	
-		while (arg < argc)
-		{
-			if (strcmp(argv[arg], "-s") == 0)
-			{
-				storePath = argv[++arg];
-			}
-			else
-			{
-				fprintf(stderr, "Unknown argument: %s\n", argv[arg]);
-				
-				exitFailure();
-			}
-	
-			arg++;
-		}
-		
-		if (storePath == NULL)
-		{
-			fprintf(stderr, "A store path must be provided.\n");
-			
-			exitFailure();
-		}
-		
-		if (!AS_UTL_fileExists(storePath, 1, 1))
-		{
-			fprintf(stderr, "Store path does not exist: %s\n", storePath);
-			
-			exitFailure();
-		}
-		
-		char* libStorePath = getSubStorePath(storePath, LIB_STORE_FILENAME), 
-				*infoStorePath = getSubStorePath(storePath, INF_STORE_FILENAME), 
-				*oldLibStorePath = renameStore(libStorePath), 
-				*oldInfoStorePath = renameStore(infoStorePath);
-		
-		map<AS_IID, const char*> idMap;
-		
-		getIdMap(idMap, getSubStorePath(storePath, UID_STORE_FILENAME), 
-			getSubStorePath(storePath, U2I_STORE_FILENAME));
-		
-		StoreStruct* oldLibStore = convertStoreToMemoryStore(openStore(oldLibStorePath, "r")),
-			*libStore = createIndexStore(libStorePath, "lib", sizeof(gkLibrary), 1);
+    //  If EOF was hit, and nothing was read, there is no index saved.  Otherwise, something was
+    //  read, and we fail if either was too short.
 
-		if (oldLibStore->elementSize != libStore->elementSize - sizeof(char) * 128)
-		{
-			fprintf(stderr, "ERROR: store sizes incompatible.\n");
-			
-			exitFailure();
-		}
-		
-		processInfoStore(oldInfoStorePath, infoStorePath);
-		processLibStore(idMap, *oldLibStore, *libStore);
-	}
-	else
-	{
-		printUsage(argv[0]);
-	}
-	
-	exitSuccess();
+    if ((feof(ioO)) && (na == 0) && (nb == 0)) {
+      safe_free(IIDtoTYPE);
+      safe_free(IIDtoTIID);
+    } else if ((na != nr) || (nb != nr)) {
+      fprintf(stderr, "couldn't read the IID maps: %s\n", strerror(errno)), exit(1);
+    }
+
+    AS_UTL_safeWrite(ioN, IIDtoTYPE, "ioF", sizeof(uint8),  na);
+    AS_UTL_safeWrite(ioN, IIDtoTIID, "ioF", sizeof(uint32), nb);
+  }
+
+  fclose(ioO);
+  fclose(ioN);
+
+  //
+  //  Load a map of UID/name
+  //
+
+  map<AS_IID, const char*> idMap;
+
+  HashTable_AS          *u2i = LoadUIDtoIIDHashTable_AS("u2i");
+  StoreStruct           *uid = convertStoreToMemoryStore(openStore("uid", "r"));
+  HashTable_Iterator_AS  it;
+ 
+  InitializeHashTable_Iterator_AS(u2i, &it);
+ 
+  uint64 uidint  = 0;
+  uint64 iid     = 0;
+  uint32 iidType = 0;
+
+  while (NextHashTable_Iterator_AS(&it, &uidint, &iid, &iidType)) {
+    if (iidType == AS_IID_LIB) {
+      uint32  actualLength = 0;
+      int64   nxtoff       = 1;
+      AS_UID  uiduid       = AS_UID_fromInteger(uidint);
+
+      if (uiduid.isString) {
+        char   *uidName      = getStringStorePtr(uid, uiduid.UID, &actualLength, &nxtoff);
+        char   *idName       = new char [actualLength + 1];
+
+        assert(actualLength == strlen(uidName));
+        assert(actualLength != 0);
+
+        strcpy(idName, uidName);  //  Stupid const-ness
+        idMap[iid] = idName;
+      } else {
+        char   *idName       = new char [129];
+
+        sprintf(idName, F_U64, uiduid.UID);
+        idMap[iid] = idName;
+      }
+    }
+  }
+ 
+  closeStore(uid);
+
+  //
+  //  Do the conversion
+  //
+
+  StoreStruct *oldLib = convertStoreToMemoryStore(openStore("lib.original", "r"));
+  StoreStruct *newLib = createIndexStore("lib", "lib", sizeof(gkLibrary), 1);
+
+  //  The new lib should be 128 bytes larger than the old one.
+
+  assert(oldLib->elementSize == newLib->elementSize - sizeof(char) * 128);
+
+  //  We should have exactly one idMap per library.
+
+  assert(idMap.size() == oldLib->lastElem - oldLib->firstElem + 1);
+
+  //  Update!
+ 
+  for (AS_IID iid=1; iid<=idMap.size(); iid++) {
+    gkLibraryOriginal lo;
+    gkLibrary         ln;
+  
+    getIndexStore(oldLib, iid, &lo);
+  
+    ln.libraryUID                 = lo.libraryUID;
+    ln.mean                       = lo.mean;
+    ln.stddev                     = lo.stddev;
+    ln.spareUN3                   = lo.spareUN3;
+    ln.spareUN2                   = lo.spareUN2;
+    ln.spareUN1                   = lo.spareUN1;
+    ln.spareUTG                   = lo.spareUTG;
+    ln.forceBOGunitigger          = lo.forceBOGunitigger;
+    ln.isNotRandom                = lo.isNotRandom;
+    ln.spareALN                   = lo.spareALN;
+    ln.doNotTrustHomopolymerRuns  = lo.doNotTrustHomopolymerRuns;
+    ln.spareOBT                   = lo.spareOBT;
+    ln.doTrim_initialNone         = lo.doTrim_initialNone;
+    ln.doTrim_initialMerBased     = lo.doTrim_initialMerBased;
+    ln.doTrim_initialFlowBased    = lo.doTrim_initialFlowBased;
+    ln.doTrim_initialQualityBased = lo.doTrim_initialQualityBased;
+    ln.doRemoveDuplicateReads     = lo.doRemoveDuplicateReads;
+    ln.doTrim_finalLargestCovered = lo.doTrim_finalLargestCovered;
+    ln.doTrim_finalEvidenceBased  = lo.doTrim_finalEvidenceBased;
+    ln.doRemoveSpurReads          = lo.doRemoveSpurReads;
+    ln.doRemoveChimericReads      = lo.doRemoveChimericReads;
+    ln.doConsensusCorrection      = lo.doConsensusCorrection;
+    ln.spareGKP                   = lo.spareGKP;
+    ln.UNUSEDusePackedFragments   = lo.UNUSEDusePackedFragments;
+    ln.spareLIB                   = lo.spareLIB;
+    ln.orientation                = lo.orientation;
+
+    assert(idMap[iid] != NULL);
+
+    strcpy(ln.libraryName, idMap[iid]);
+  
+    appendIndexStore(newLib, &ln);
+  }
+ 
+  closeStore(oldLib);
+  closeStore(newLib);
+
+  exit(0);
 }
