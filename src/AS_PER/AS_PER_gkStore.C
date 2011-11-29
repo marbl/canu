@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.24 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.25 2011-11-29 15:58:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,7 +129,7 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
   fclose(gkpinfo);
 
   if (inf.gkMagic != 1) {
-    fprintf(stderr, "gkStore_open()-- Invalid magic; corrupt %s/inf?\n", name);
+    fprintf(stderr, "gkStore_open()-- Invalid magic; corrupt %s/inf?\n", storePath);
     exit(1);
   }
 
