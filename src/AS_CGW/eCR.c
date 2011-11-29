@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.58 2011-01-25 21:26:56 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.59 2011-11-29 11:50:00 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -925,8 +925,8 @@ main(int argc, char **argv) {
               fprintf(debug.eCRmainFP, "rcontig %8d positioned at %8d, %8d\n",
                       rcontig->id,contigPos.position.bgn, contigPos.position.end);
 
-            LengthT    newOffsetAEnd = {0};
-            LengthT    newOffsetBEnd = {0};
+            LengthT    newOffsetAEnd = {0, 0};
+            LengthT    newOffsetBEnd = {0, 0};
 
             if (lcontigOrientation.isForward())
               newOffsetAEnd.mean = lcontig->offsetAEnd.mean;
@@ -1730,11 +1730,14 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT };
   int         success = FALSE;
 
+  int32       firstFailed = 0;
+
   if (!success)
-    success = MultiAlignUnitig(macopy, ScaffoldGraph->gkpStore, CNS_QUIET, &options);
+    success = MultiAlignUnitig(macopy, ScaffoldGraph->gkpStore, CNS_QUIET, &options, firstFailed);
 
   if (!success) {
-    fprintf(stderr, "WARNING: MultiAlignUnitig failure on unitig %d\n", unitig->id);
+    fprintf(stderr, "WARNING: MultiAlignUnitig failure on unitig %d at fragment index %d\n",
+            unitig->id, firstFailed);
     DeleteMultiAlignT(macopy);  //  We own this.
     //exit(1);
     return FALSE;

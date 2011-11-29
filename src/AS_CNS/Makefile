@@ -81,7 +81,7 @@ LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 
 LOCAL_WORK  = $(shell cd ../..; pwd)
 
-AS_CNS_SRCS = $(LIB_SOURCES) utgcns.C ctgcns.C tigStore.C
+AS_CNS_SRCS = $(LIB_SOURCES) utgcns.C utgcnsfix.C ctgcns.C tigStore.C
 
 AS_CNS_OBJS = $(AS_CNS_SRCS:.C=.o)
 
@@ -89,7 +89,7 @@ SOURCES   = $(AS_CNS_SRCS)
 OBJECTS   = $(AS_CNS_OBJS)
 LIBRARIES = libAS_CNS.a libCA.a
 
-CXX_PROGS = utgcns ctgcns tigStore
+CXX_PROGS = utgcns utgcnsfix ctgcns tigStore
 
 SCRIPTS =
 
@@ -109,6 +109,7 @@ libCA.a:     $(LIB_OBJECTS)
 LIBS =  libCA.a
 
 utgcns:                       utgcns.o                       $(LIBS)
+utgcnsfix:                    utgcnsfix.o                    $(LIBS)
 ctgcns:                       ctgcns.o                       $(LIBS)
 tigStore:                     tigStore.o                     $(LIBS)
 SeqAn_CNS:                    SeqAn_CNS.o                    $(LIBS)

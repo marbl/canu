@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcns.C,v 1.11 2011-01-03 03:07:16 brianwalenz Exp $";
+const char *mainid = "$Id: utgcns.C,v 1.12 2011-11-29 11:50:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -27,10 +27,9 @@ const char *mainid = "$Id: utgcns.C,v 1.11 2011-01-03 03:07:16 brianwalenz Exp $
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
+
 int
 main (int argc, char **argv) {
-  char   tmpName[FILENAME_MAX] = {0};
-
   char  *gkpName = NULL;
 
   char  *tigName = NULL;
@@ -137,9 +136,12 @@ main (int argc, char **argv) {
       if (ma->maID < 0)
         ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
 
-      if (MultiAlignUnitig(ma, gkpStore, printwhat, &options)) {
+      int32 firstFailed = 0;
+
+      if (MultiAlignUnitig(ma, gkpStore, printwhat, &options, firstFailed)) {
       } else {
-        fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
+        fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed at fragment index %d.\n",
+                ma->maID, firstFailed);
         numFailures++;
       }
     }
@@ -182,11 +184,14 @@ main (int argc, char **argv) {
               ma->maID, ma->data.num_unitigs, ma->data.num_frags,
               (exists) ? " - already computed, recomputing" : "");
 
-    if (MultiAlignUnitig(ma, gkpStore, printwhat, &options)) {
+    int32 firstFailed = 0;
+
+    if (MultiAlignUnitig(ma, gkpStore, printwhat, &options, firstFailed)) {
       tigStore->insertMultiAlign(ma, TRUE, FALSE);
       DeleteMultiAlignT(ma);
     } else {
-      fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
+      fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed at fragment index %d.\n",
+              ma->maID, firstFailed);
       numFailures++;
     }
   }

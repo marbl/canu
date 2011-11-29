@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.55 2010-08-19 05:28:07 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.56 2011-11-29 11:50:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -388,7 +388,8 @@ StoreIUMStruct(ScaffoldGraphT *graph,
 
   //  Build the unitig
 
-  int unitigSuccess = MultiAlignUnitig(uma, ScaffoldGraph->gkpStore, CNS_STATS_ONLY, NULL);
+  int32 firstFailed = 0;
+  int unitigSuccess = MultiAlignUnitig(uma, ScaffoldGraph->gkpStore, CNS_STATS_ONLY, NULL, firstFailed);
 
   if (unitigSuccess == 0) {
     fprintf(stderr, "================================================================================\n");

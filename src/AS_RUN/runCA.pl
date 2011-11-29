@@ -409,7 +409,7 @@ sub setDefaults () {
     $synops{"ovlRefBlockSize"}             = "Number of fragments to search against the hash table per batch";
 
     $global{"ovlHashBits"}                 = "22";
-    $synops{"ovlHashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 2b per ovlHashBlockLength";
+    $synops{"ovlHashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ovlHashBlockLength";
 
     $global{"ovlHashLoad"}                 = "0.75";
     $synops{"ovlHashLoad"}                 = "Maximum hash table load.  If set too high table lookups are inefficent; if too low search overhead dominates run time";
@@ -4498,27 +4498,14 @@ sub postUnitiggerConsensus () {
     createPostUnitiggerConsensusJobs();
 
     #
-    #  Check that consensus finished properly
+    #  Run the consensus fixer
     #
 
-    my $failedJobs = 0;
+    my $cmd = "$bin/utgcnsfix -g $wrk/$asm.gkpStore -t $wrk/$asm.tigStore 2 > $wrk/5-consensus/consensus-fix.out 2>&1";
 
-    open(F, "< $wrk/4-unitigger/$asm.partitioningInfo") or caFailure("can't open '$wrk/4-unitigger/$asm.partitioningInfo'", undef);
-    while (<F>) {
-        if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+unitigs\sand\s+(\d+)\s+fragments./) {
-            my $id = substr("000" . $1, -3);
-
-            if (! -e "$wrk/5-consensus/${asm}_$id.success") {
-                print STDERR "$wrk/5-consensus/${asm}_$id failed -- no .success!\n";
-                $failedJobs++;
-            }
-        }
+    if (runCommand("$wrk/5-consensus", $cmd)) {
+        caFailure("Unitig consensus fixer failed", "$wrk/5-consensus/consensus-fix.out");
     }
-    close(F);
-
-    #  FAILUREHELPME
-
-    caFailure("$failedJobs consensusAfterUnitigger jobs failed; remove 5-consensus/consensus.sh to try again", undef) if ($failedJobs);
 
     #  All jobs finished.  Remove the partitioning from the gatekeeper
     #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant

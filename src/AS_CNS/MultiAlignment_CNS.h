@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.57 2011-01-03 03:07:16 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.58 2011-11-29 11:50:00 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -75,16 +75,19 @@ MultiAlignT *ReplaceEndUnitigInContig(uint32,
                                       int,
                                       CNS_Options *opp);
 
-int32 MultiAlignUnitig(MultiAlignT *,
-                       gkStore *,
-                       CNS_PrintKey,
-                       CNS_Options *opp);
+bool
+MultiAlignUnitig(MultiAlignT   *ma,
+                 gkStore       *fragStore,
+                 CNS_PrintKey   printwhat,
+                 CNS_Options   *opp,
+                 int32         &firstFailed);
 
 
-int32 MultiAlignContig(MultiAlignT *,
-                       gkStore *,
-                       CNS_PrintKey,
-                       CNS_Options *opp);
+bool
+MultiAlignContig(MultiAlignT   *ma,
+                 gkStore       *fragStore,
+                 CNS_PrintKey   printwhat,
+                 CNS_Options   *opp);
 
 
 //  Options to things in MultiAligment_CNS.c

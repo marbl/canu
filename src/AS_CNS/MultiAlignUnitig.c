@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.44 2011-11-23 07:25:38 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.45 2011-11-29 11:50:00 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -193,7 +193,7 @@ public:
   int32  initialize(void); 
 
   void   reportStartingWork(void);
-  void   reportFailure(void);
+  void   reportFailure(int32 &firstFailed);
 
   int32  moreFragments(void)  { tiid++;  return (tiid < numfrags); };
 
@@ -264,7 +264,9 @@ unitigConsensus::reportStartingWork(void) {
 
 
 void
-unitigConsensus::reportFailure(void) {
+unitigConsensus::reportFailure(int32 &firstFailed) {
+  if (firstFailed == 0)
+    firstFailed = tiid;
   fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Could not align fragment %d.\n",
           ma->maID, fraglist[tiid].ident);
   //fprintf(stderr, ">frankenstein\n%s\n", frankenstein);
@@ -1314,15 +1316,18 @@ unitigConsensus::fixFailures(void) {
 }
 
 
-int
+bool
 MultiAlignUnitig(MultiAlignT     *ma,
                  gkStore         *fragStore,
                  CNS_PrintKey     printwhat,
-                 CNS_Options     *opp) {
+                 CNS_Options     *opp,
+                 int32           &firstFailed) {
   double             origErate          = AS_CNS_ERROR_RATE;
   bool               failOnFirstFailure = false;
   bool               failuresToFix      = false;
   unitigConsensus   *uc                 = NULL;
+
+  firstFailed = 0;
 
  tryAgain:
   origErate          = AS_CNS_ERROR_RATE;
@@ -1384,7 +1389,7 @@ MultiAlignUnitig(MultiAlignT     *ma,
     //  Failed to align the fragment.  Dang.  Either fail immediately, or keep going expecting to
     //  fix things later.
 
-    uc->reportFailure();
+    uc->reportFailure(firstFailed);
 
     if (failOnFirstFailure)
       goto returnFailure;
@@ -1419,14 +1424,18 @@ MultiAlignUnitig(MultiAlignT     *ma,
 
     goto tryAgain;
   }
+#else
+  if (failuresToFix)
+    goto returnFailure;
 #endif
 
   uc->generateConsensus(printwhat);
 
   delete uc;
-  return(TRUE);
+  assert(firstFailed == 0);
+  return(true);
 
  returnFailure:
   delete uc;
-  return(FALSE);
+  return(false);
 }

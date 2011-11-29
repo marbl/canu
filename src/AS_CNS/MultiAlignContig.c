@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.9 2011-01-03 03:07:16 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.10 2011-11-29 11:50:00 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -166,7 +166,7 @@ PlaceFragments(int32 fid,
 }
 
 
-int
+bool
 MultiAlignContig(MultiAlignT  *ma,
                  gkStore      *UNUSED,
                  CNS_PrintKey  printwhat,
@@ -477,7 +477,7 @@ MultiAlignContig(MultiAlignT  *ma,
   fragmentMap = NULL;
   DeleteHashTable_AS(fragmentToIMP);
   fragmentToIMP = NULL;
-  return(TRUE);
+  return(true);
 
  returnFailure:
   safe_free(offsets);
@@ -486,5 +486,5 @@ MultiAlignContig(MultiAlignT  *ma,
   fragmentMap = NULL;
   DeleteHashTable_AS(fragmentToIMP);
   fragmentToIMP = NULL;
-  return(FALSE);
+  return(false);
 }
