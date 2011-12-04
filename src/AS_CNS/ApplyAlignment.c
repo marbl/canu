@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ApplyAlignment.c,v 1.10 2011-11-11 04:10:33 brianwalenz Exp $";
+static char *rcsid = "$Id: ApplyAlignment.c,v 1.11 2011-12-04 23:40:10 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -33,10 +33,10 @@ static char *rcsid = "$Id: ApplyAlignment.c,v 1.10 2011-11-11 04:10:33 brianwale
 #include "AS_UTL_reverseComplement.h"
 
 
-#undef DEBUG_FIND_BEAD
-#undef DEBUG_ALIGN_GAPS
-#undef DEBUG_ALIGN_POSITION
-#undef DEBUG_ABACUS_ALIGN
+#undef  DEBUG_FIND_BEAD
+#undef  DEBUG_ALIGN_GAPS
+#undef  DEBUG_ALIGN_POSITION
+#undef  DEBUG_ABACUS_ALIGN
 
 //  Add a column before cid, seeded with bead bid.
 //
@@ -249,10 +249,10 @@ alignGaps(beadIdx *aindex, int32 &apos, int32  alen,
   //  row.  There might be gaps already in abacus that we need to add.  We move to the 'x', then
   //  walk along this 'a' fragment adding gaps.
 
-#ifdef DEBUG_ALIGN_GAPS
-  fprintf(stderr, "alignGaps()-- apos=%d alen=%d  bpos=%d blen=%d  lasta=%d  lastb=%d\n",
-          apos, alen, bpos, blen, lasta.get(), lastb.get());
-#endif
+  //#ifdef DEBUG_ALIGN_GAPS
+  //  fprintf(stderr, "alignGaps()-- apos=%d alen=%d  bpos=%d blen=%d  lasta=%d  lastb=%d\n",
+  //          apos, alen, bpos, blen, lasta.get(), lastb.get());
+  //#endif
 
   if (apos >= alen)
     return;
@@ -297,20 +297,20 @@ alignPosition(beadIdx *aindex, int32 &apos, int32  alen,
   assert(apos < alen);
   assert(bpos < blen);
 
-  AlignBeadToColumn(GetBead(beadStore, aindex[apos])->column_index,
-                    bindex[bpos],
-                    label);
+  Bead *bead = GetBead(beadStore, aindex[apos]);
+
+#ifdef DEBUG_ALIGN_POSITION
+  fprintf(stderr, "alignPosition()-- add %c to column %d apos=%d bpos=%d lasta=%d lastb=%d\n",
+          *Getchar(sequenceStore, bead->soffset), bead->column_index, apos, bpos, lasta.get(), lastb.get());
+#endif
+
+  AlignBeadToColumn(bead->column_index, bindex[bpos], label);
 
   lasta = aindex[apos];
   lastb = bindex[bpos];
 
   apos++;
   bpos++;
-
-#ifdef DEBUG_ALIGN_POSITION
-  fprintf(stderr, "alignPosition()-- apos=%d bpos=%d lasta=%d lastb=%d\n",
-          apos, bpos, lasta.get(), lastb.get());
-#endif
 
   alignGaps(aindex, apos, alen, bindex, bpos, blen, lasta, lastb);
 
@@ -432,16 +432,14 @@ ApplyAlignment(int32 afid,
       if ((lasta.isInvalid()) || (bpos == 0)) {
         assert(lasta.isInvalid());
         assert(bpos  == 0);
-        ColumnPrepend(GetBead(beadStore, aindex[apos])->column_index,
-                      bindex[bpos]);
+        ColumnPrepend(GetBead(beadStore, aindex[apos])->column_index, bindex[bpos]);
         lasta = GetBead(beadStore, aindex[apos])->prev;
         lastb = bindex[bpos];
       } else if (IsStaircaseAlignment(bfid, trace)) {
         // TODO: implement fix
       } else {
         assert(lasta == GetBead(beadStore, aindex[apos])->prev);
-        ColumnAppend(GetBead(beadStore, lasta)->column_index,
-                     bindex[bpos]);
+        ColumnAppend(GetBead(beadStore, lasta)->column_index, bindex[bpos]);
         lasta = GetBead(beadStore, lasta)->next;
         lastb = bindex[bpos];
       }
@@ -507,6 +505,10 @@ ApplyAlignment(int32 afid,
   for (int32 rem = MIN(blen - bpos, alen - apos); rem > 0; rem--)
     alignPosition(aindex, apos, alen, bindex, bpos, blen, lasta, lastb, "ApplyAlignment(8)");
 
+  //
+  //  Now just tack on the new sequence
+  //
+
 #ifdef DEBUG_ABACUS_ALIGN
   fprintf(stderr, "Append new sequence:  bpos=%d blen=%d apos=%d alen=%d\n",
           bpos, blen, apos, alen);
@@ -523,12 +525,18 @@ ApplyAlignment(int32 afid,
     for (Column *col = GetColumn(columnStore, ci); col->next != -1; col=GetColumn(columnStore, col->next))
       fprintf(stderr, "ERROR!  Column ci=%d has a next pointer (%d)\n", col->lid, col->next);
 #warning assert skipped until contig consensus gets fixed
-    //assert(GetColumn(columnStore, ci)->next.isInvalid());
+    //assert(GetColumn(columnStore, ci)->next == -1);
 
     //  Add on trailing (dovetail) beads from b
     //
-    for (int32 rem=blen-bpos; rem > 0; rem--)
+    for (int32 rem=blen-bpos; rem > 0; rem--) {
+#ifdef DEBUG_ALIGN_POSITION
+      Bead *bead = GetBead(beadStore, bindex[bpos]);
+      fprintf(stderr, "alignPosition()-- add %c to column %d\n",
+              *Getchar(sequenceStore, bead->soffset), bead->column_index);
+#endif
       ci = ColumnAppend(ci, bindex[bpos++]);
+    }
   }
 
   //CheckColumns();
