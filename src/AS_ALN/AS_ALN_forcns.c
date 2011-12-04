@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.27 2011-11-23 05:23:35 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.28 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -377,8 +377,6 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
   alignLinker_s   al;
 
-  int             allowNs = 0;
-
   if (m == NULL)
     m = (dpMatrix *)safe_malloc(sizeof(dpMatrix));
 
@@ -392,7 +390,6 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   }
   assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
 
- alignLinkerAgain:
   if (opposite)
     reverseComplementSequence(b, strlen(b));
 
@@ -402,14 +399,14 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
               b,
               m->h_matrix,
               &al,
-              TRUE,
-              allowNs,
+              true,   //  Looking for global end-to-end alignments
+              false,  //  Count matches to N as matches
               ahang, bhang);
    if (al.alignLen == 0) {
       return NULL;
    }
 
-#if 0
+#ifdef DEBUG_GENERAL
   fprintf(stderr, "ALIGN %s\n", a);
   fprintf(stderr, "ALIGN %s\n", b);
   fprintf(stderr, "ALIGN %d %d-%d %d-%d opposite=%d\n", al.alignLen, al.begI, al.endI, al.begJ, al.endJ, opposite);
@@ -442,14 +439,8 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   //  check that the extended bits agree with the first fragment,
   //  leaving that up to "does the unitig rebuild".
   //
-  if ((al.begJ != 0) && (al.begI != 0)) {
-
-    //  Allow Ns in the alignment, try one more time.
-    if (++allowNs == 1)
-      goto alignLinkerAgain;
-
+  if ((al.begJ != 0) && (al.begI != 0))
     return(NULL);
-  }
 
   o.begpos  = (al.begI           > 0) ? (al.begI)           : -(al.begJ);
   o.endpos  = (al.lenB - al.endJ > 0) ? (al.lenB - al.endJ) : -(al.lenA - al.endI);
@@ -511,9 +502,6 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
   if ((double)o.diffs / o.length <= erate)
     return(&o);
-  else if (++allowNs == 1)
-    //  Allow Ns in the alignment, try one more time.
-    goto alignLinkerAgain;
-  else
-    return(NULL);
+
+  return(NULL);
 }

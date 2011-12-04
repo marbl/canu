@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.59 2011-11-29 11:50:00 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.60 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1727,17 +1727,17 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
 
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                          CNS_OPTIONS_MIN_ANCHOR_DEFAULT };
+                          CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
+                          CNS_OPTIONS_DO_PHASING_DEFAULT };
+
   int         success = FALSE;
 
-  int32       firstFailed = 0;
-
   if (!success)
-    success = MultiAlignUnitig(macopy, ScaffoldGraph->gkpStore, CNS_QUIET, &options, firstFailed);
+    success = MultiAlignUnitig(macopy, ScaffoldGraph->gkpStore, &options, NULL);
 
   if (!success) {
-    fprintf(stderr, "WARNING: MultiAlignUnitig failure on unitig %d at fragment index %d\n",
-            unitig->id, firstFailed);
+    fprintf(stderr, "WARNING: MultiAlignUnitig failure on unitig %d\n",
+            unitig->id);
     DeleteMultiAlignT(macopy);  //  We own this.
     //exit(1);
     return FALSE;

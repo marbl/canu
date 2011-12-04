@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.260 2011-11-17 08:17:42 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.261 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1350,9 +1350,6 @@ AppendFragToLocalStore(FragType          type,
       strcpy(seqbuffer, fsread.gkFragment_getSequence());
       strcpy(qltbuffer, fsread.gkFragment_getQuality());
 
-#ifdef PRINTUIDS
-      fragment.uid = gkFragment_getReadUID(&fsread);
-#endif
       fragment.type = AS_READ;
       fragment.source = NULL;
       seqbuffer[clr_end] = '\0';

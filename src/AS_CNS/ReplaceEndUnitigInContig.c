@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.11 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -203,7 +203,7 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
         ApplyAlignment(aid, 0, NULL, bid, ahang, Getint32(trace,0));
         RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
 
-        //PrintAlignment(stderr,ma->lid,0,-1,'C');
+        //PrintAlignment(stderr,ma->lid,0,-1);
 
         break;
       }

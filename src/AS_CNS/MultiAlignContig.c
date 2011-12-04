@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.10 2011-11-29 11:50:00 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.11 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -169,7 +169,6 @@ PlaceFragments(int32 fid,
 bool
 MultiAlignContig(MultiAlignT  *ma,
                  gkStore      *UNUSED,
-                 CNS_PrintKey  printwhat,
                  CNS_Options  *opp) {
   int32        num_bases     = 0;
   int32        num_unitigs   = GetNumIntUnitigPoss(ma->u_list);
@@ -433,19 +432,15 @@ MultiAlignContig(MultiAlignT  *ma,
   // their alignments as needed
   RefreshMANode(manode->lid, 0, opp, NULL, NULL, 0, 0);
 
-  if (printwhat == CNS_VERBOSE) {
-    fprintf(stderr,"MultiAlignContig: Initial pairwise induced alignment\n");
-    PrintAlignment(stderr,manode->lid,0,-1,printwhat);
-  }
+  //fprintf(stderr,"MultiAlignContig: Initial pairwise induced alignment\n");
+  //PrintAlignment(stderr,manode->lid,0,-1);
 
   AbacusRefine(manode,0,-1,CNS_SMOOTH, opp);
   MergeRefine(manode->lid, NULL, 0, opp, 1);
   AbacusRefine(manode,0,-1,CNS_POLYX, opp);
 
-  if (printwhat == CNS_VERBOSE) {
-    fprintf(stderr,"MultiAlignContig: POLYX refined alignment\n");
-    PrintAlignment(stderr,manode->lid,0,-1,printwhat);
-  }
+  //fprintf(stderr,"MultiAlignContig: POLYX refined alignment\n");
+  //PrintAlignment(stderr,manode->lid,0,-1);
 
   {
     IntMultiVar  *vl = NULL;
@@ -456,15 +451,11 @@ MultiAlignContig(MultiAlignT  *ma,
     MergeRefine(manode->lid, ma->v_list, 0, opp, 2);
   }
 
+  //fprintf(stderr,"MultiAlignContig: Final refined alignment\n");
+  //PrintAlignment(stderr,manode->lid,0,-1);
 
-  if ((printwhat == CNS_VERBOSE) ||
-      (printwhat == CNS_VIEW_UNITIG)) {
-    fprintf(stderr,"MultiAlignContig: Final refined alignment\n");
-    PrintAlignment(stderr,manode->lid,0,-1,printwhat);
-  }
-
-  if (num_frags == 0)
-    PrintAlignment(stderr,manode->lid,0,-1,printwhat);
+  //if (num_frags == 0)
+  //  PrintAlignment(stderr,manode->lid,0,-1);
 
   GetMANodeConsensus(manode->lid, ma->consensus, ma->quality);
   GetMANodePositions(manode->lid, ma);

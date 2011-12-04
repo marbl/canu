@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.58 2011-11-29 11:50:00 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.59 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -30,10 +30,6 @@ static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h
 
 #include "MultiAlign.h"
 #include "MultiAlignStore.h"
-
-
-//  This is probably broken, or extremely inefficient, as of Nov 4 2007.
-#undef PRINTUIDS
 
 extern int32 DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
 extern int32 VERBOSE_MULTIALIGN_OUTPUT;
@@ -47,18 +43,6 @@ typedef struct {
   int32 smooth_win;
   int32 do_phasing;
 } CNS_Options;
-
-typedef enum {
-  CNS_QUIET       = (int)'Q', // quiet,  print nothing
-  CNS_STATS_ONLY  = (int)'S', // print only 1-line statistic summary
-  CNS_ALIGNMENT   = (int)'A', // print the multialignment, sans CNS
-  CNS_CONSENSUS   = (int)'C', // print the multialignment, with CNS
-  CNS_DOTS        = (int)'D', // print the multialignment, dot format
-  CNS_NODOTS      = (int)'N', // print the multialignment, "nodot" format
-  CNS_EDIT_SCORE  = (int)'E', // print the edit score column by column
-  CNS_VIEW_UNITIG = (int)'U',  // show the unitigs in the contig alignment
-  CNS_VERBOSE     = (int)'V'  // verbose pre-post refinment output
-} CNS_PrintKey;   // determine the format for PrintAlignment
 
 typedef enum {
   CNS_SMOOTH = 1, // only eliminate pairwise construction artifacts
@@ -78,15 +62,13 @@ MultiAlignT *ReplaceEndUnitigInContig(uint32,
 bool
 MultiAlignUnitig(MultiAlignT   *ma,
                  gkStore       *fragStore,
-                 CNS_PrintKey   printwhat,
                  CNS_Options   *opp,
-                 int32         &firstFailed);
+                 int32         *failed);
 
 
 bool
 MultiAlignContig(MultiAlignT   *ma,
                  gkStore       *fragStore,
-                 CNS_PrintKey   printwhat,
                  CNS_Options   *opp);
 
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcnsfix.C,v 1.1 2011-11-29 11:50:00 brianwalenz Exp $";
+const char *mainid = "$Id: utgcnsfix.C,v 1.2 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -38,7 +38,7 @@ main (int argc, char **argv) {
   int32  numFailures = 0;
   int32  numSkipped  = 0;
 
-  CNS_PrintKey printwhat=CNS_STATS_ONLY;
+  bool   showResult = false;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
@@ -63,7 +63,7 @@ main (int argc, char **argv) {
         fprintf(stderr, "invalid tigStore version (-t store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
 
     } else if (strcmp(argv[arg], "-v") == 0) {
-      printwhat = CNS_VIEW_UNITIG;
+      showResult = true;
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE_MULTIALIGN_OUTPUT++;
@@ -93,89 +93,118 @@ main (int argc, char **argv) {
   fprintf(stderr, "Checking unitig consensus for b="F_U32" to e="F_U32"\n", b, e);
 
   for (uint32 i=b; i<e; i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
+    MultiAlignT  *maOrig = tigStore->loadMultiAlign(i, TRUE);
 
-    if (ma == NULL) {
+    if (maOrig == NULL) {
       //  Not in our partition, or deleted.
-      fprintf(stderr, "NULL ma for unitig "F_U32"\n", i);
+      fprintf(stderr, "NULL ma for unitig "F_U32" -- already deleted?\n", i);
       continue;
     }
 
-    if ((ma->consensus != NULL) &&
-        (GetNumchars(ma->consensus) > 1))
+    if ((maOrig->consensus != NULL) &&
+        (GetNumchars(maOrig->consensus) > 1))
       //  Has consensus sequence already.
       continue;
 
-    fprintf(stderr, "MultiAlignUnitig()-- Fixing unitig %d (%d unitigs and %d fragments)\n",
-            ma->maID, ma->data.num_unitigs, ma->data.num_frags);
+    fprintf(stderr, "Evaluating unitig %d (%d fragments)\n",
+            maOrig->maID, maOrig->data.num_frags);
 
-    int32 firstFailed = 0;
+    //  This is a complicated algorithm, but only to make it bullet-proof.  The basic idea
+    //  is to run consensus on the unitig.  Whatever fragments are placed get moved to
+    //  a new unitig, reconsensed, and inserted to the store.  Whatever fragments do not
+    //  get placed are put into the next unitig we loop on.
 
-    while (GetNumIntMultiPoss(ma->f_list) > 0) {
+    MultiAlignT *maTest = CreateEmptyMultiAlignT();
+    MultiAlignT *maNext = CreateEmptyMultiAlignT();
+    MultiAlignT *maFixd = CreateEmptyMultiAlignT();
 
-      //  Compute consensus.  We don't care about the result, just 'firstFailed'.  If
-      //  consensus returns success, set 'firstFailed' to be all fragments in the unitig.
+    maTest->maID = maOrig->maID;  //  For diagnostic output only
+    maNext->maID = maOrig->maID;
+    maFixd->maID = maOrig->maID;
+
+    ReuseClone_VA(maTest->f_list, maOrig->f_list);  //  Copy the fragments to our 'test' unitig
+
+    int32 *failed    = new int32 [GetNumIntMultiPoss(maOrig->f_list)];
+    int32  lastAdded = 0;
+
+    while (GetNumIntMultiPoss(maTest->f_list) > 0) {
+
+      //  Compute consensus.  We don't care about the result, just what fragments failed.
       //
-      if (MultiAlignUnitig(ma, gkpStore, printwhat, &options, firstFailed) == true)
-        firstFailed = GetNumIntMultiPoss(ma->f_list);
+      MultiAlignUnitig(maTest, gkpStore, &options, failed);
 
-      //  Build the 'split' unitig with the 'firstFailed' fragments of 'ma'.
+      //  Build the 'fixed' unitig using the fragments placed in 'test', and the 'next' unitig
+      //  using those not placed.
 
-      MultiAlignT *split = CreateEmptyMultiAlignT();
-      int32        maBgn = firstFailed;
-      int32        maEnd = GetNumIntMultiPoss(ma->f_list);
+    tryAgain:
+      fprintf(stderr, "Fixing unitig %d (%d fragments remain)\n",
+              maOrig->maID, maTest->data.num_frags);
 
-      //  Loop until we find a valid unitig.  It is unlikely that we'll ever actually
-      //  loop here, since we just verified that the first 'maBgn' fragments consensus
-      //  together, but we're trying to be bullet proof here.
+      ResetVA_IntMultiPos(maFixd->f_list);
+      ResetVA_IntMultiPos(maNext->f_list);
 
-      while (firstFailed > 0) {
-        assert(GetNumIntMultiPoss(ma->f_list) >= firstFailed);
+      ResetVA_IntUnitigPos(maFixd->u_list);
+      ResetVA_IntUnitigPos(maNext->u_list);
 
-        //  Copy fragments to the new unitig
-        ResetVA_IntMultiPos(split->f_list);
+      for (uint32 i=0; i < GetNumIntMultiPoss(maTest->f_list); i++) {
+        IntMultiPos *imp = GetIntMultiPos(maTest->f_list, i);
 
-        for (uint32 i=0; i<maBgn; i++)
-          AppendVA_IntMultiPos(split->f_list, GetIntMultiPos(ma->f_list, i));
-
-        //  Make sure it works, and if it does, we keep it.  If not, try again.
-
-        if (MultiAlignUnitig(split, gkpStore, printwhat, &options, firstFailed) == true) {
-          assert(firstFailed == 0);
+        if (failed[i]) {
+          AppendVA_IntMultiPos(maNext->f_list, imp);
+          fprintf(stderr, "  save fragment idx=%d ident=%d for next pass\n", i, imp->ident);
         } else {
-          fprintf(stderr, "MultiAlignUnitig()--  unitig %d failed at fragment index %d.\n",
-                  ma->maID, firstFailed);
-
-          maBgn = firstFailed;
+          AppendVA_IntMultiPos(maFixd->f_list, imp);
+          lastAdded = i;
         }
       }
 
-      assert(maBgn > 0);
-      assert(firstFailed == 0);
-      assert(GetNumIntMultiPoss(split->f_list) > 0);
+      //  Test the fixed unitig.  If it succeeds, a new unitig (with ident maID) is created in the
+      //  multialign, and we proceed to insert this into the store.
+      //
+      //  If it fails, mark, in the original maTest unitig, the last fragment added as failed.  We
+      //  could (probably) figure out which fragments failed and mark just those, but it would (seem
+      //  to) add a lot of complicated (buggy) code.  Plus, we just don't expect anything to
+      //  actually fail.
 
-      //  Guaranteed to have a new unitig now.  Add it to the store.
+      maFixd->maID = tigStore->numUnitigs();
 
-      split->maID = tigStore->numUnitigs();
+      fprintf(stderr, "Testing new unitig %d with %d fragments (%d remain)\n",
+              maFixd->maID, GetNumIntMultiPoss(maFixd->f_list), GetNumIntMultiPoss(maNext->f_list));
 
-      tigStore->insertMultiAlign(split, TRUE, FALSE);
+      assert(GetNumIntMultiPoss(maFixd->f_list) > 0);
 
-      fprintf(stderr, "MultiAlignUnitig()--  Added unitig %d with %d fragments.\n",
-              split->maID, split->data.num_frags);
+      if (MultiAlignUnitig(maFixd, gkpStore, &options, NULL) == false) {
+        fprintf(stderr, "Unitig %d failed, again.\n", maFixd->maID);
 
-      DeleteMultiAlignT(split);
+        failed[lastAdded] = 1;
 
-      //  Update the ma unitig and continue splitting.
+        goto tryAgain;
+      }
 
-      for (int32 i=maBgn; i<maEnd; i++)
-        SetVA_IntMultiPos(ma->f_list, i - maBgn, GetIntMultiPos(ma->f_list, i));
+      //  Add the new unitig to the store (the asserts are duplicated in cgw too).
 
-      ResetToRange_VA(ma->f_list, maEnd - maBgn);
-    }  //  Until the original unitig is empty
+      assert(1 == GetNumIntUnitigPoss(maFixd->u_list));  //  One unitig in the list (data.num_unitigs is updated on insertion)
+      assert(maFixd->maID == GetIntUnitigPos(maFixd->u_list, 0)->ident);  //  Unitig has correct ident
 
-    //  Now mark 'ma' as deleted.
+      tigStore->insertMultiAlign(maFixd, TRUE, FALSE);
 
-    tigStore->deleteMultiAlign(ma->maID, true);
+      fprintf(stderr, "Added unitig %d with %d fragments.\n",
+              maFixd->maID, maFixd->data.num_frags);
+
+      if (showResult)
+        PrintMultiAlignT(stdout, maFixd, gkpStore, false, false, AS_READ_CLEAR_LATEST);
+
+      //  Update the test unitig and continue splitting.
+
+      maFixd->maID = maOrig->maID;  //  For diagnostic output.
+
+      ResetVA_IntMultiPos(maTest->f_list);
+      ReuseClone_VA(maTest->f_list, maNext->f_list);
+    }  //  Until the test unitig is empty
+
+    //  Now mark the original unitig as deleted.
+
+    tigStore->deleteMultiAlign(maOrig->maID, true);
   }
 
  finish:

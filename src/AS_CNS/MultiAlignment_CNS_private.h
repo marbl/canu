@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.21 2011-11-17 08:19:59 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.22 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -230,9 +230,6 @@ typedef struct {
   FragType type;
   UnitigType utype;
   uint32 iid;
-#ifdef PRINTUIDS
-  uint64 uid;
-#endif
   int32   lid;            // index in sequence/quality/fragment store
   int32   length;
   int32   complement;
@@ -506,7 +503,7 @@ ApplyAlignment(int32 afid,
 bool IsStaircaseAlignment(int32 fragmentId, int32* trace);
 
 void
-PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey what);
+PrintAlignment(FILE *print, int32 mid, int32 from, int32 to);
 
 void
 MergeRefine(int32 mid, VA_TYPE(IntMultiVar) *v_list,

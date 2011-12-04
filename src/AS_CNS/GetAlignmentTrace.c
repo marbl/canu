@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.12 2011-01-03 03:07:16 brianwalenz Exp $";
+static char *rcsid = "$Id: GetAlignmentTrace.c,v 1.13 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -822,7 +822,7 @@ GetAlignmentTrace(int32                        afid,
     assert(0);
 
     ReportOverlap(stderr, alignFunction, params, aiid, (afrag) ? afrag->type : AS_CONTIG, biid, bfrag->type, O, ahang_input);
-    PrintALNoverlap(stderr, aseq, bseq, O);
+    PrintALNoverlap("", aseq, bseq, O);
     fprintf(stderr,"GetAlignmentTrace()-- Overlap rejected.  accept=%f lScore=%f (%d vs %d) aScore=%f (%d vs %d) bScore=%f (%d vs %d).\n",
             acceptThreshold,
             lScore, O->length, expected_length,
@@ -851,7 +851,7 @@ GetAlignmentTrace(int32                        afid,
 
   if (show_olap) {
     ReportOverlap(stderr, alignFunction, params, aiid, (afrag) ? afrag->type : AS_CONTIG, biid, bfrag->type, O, ahang_input);
-    PrintALNoverlap(stderr, NULL, NULL, O);  //  Replace with a,b to print the bases in the align
+    PrintALNoverlap("", NULL, NULL, O);  //  Replace with a,b to print the bases in the align
   }
 
   *otype = (O->endpos<0)?AS_CONTAINMENT:AS_DOVETAIL;

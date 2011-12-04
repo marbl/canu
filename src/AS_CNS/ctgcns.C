@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ctgcns.C,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
+const char *mainid = "$Id: ctgcns.C,v 1.11 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -45,7 +45,7 @@ main (int argc, char **argv) {
   int32  numFailures = 0;
   int32  numSkipped  = 0;
 
-  CNS_PrintKey printwhat=CNS_STATS_ONLY;
+  bool   showResult = false;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
@@ -77,7 +77,7 @@ main (int argc, char **argv) {
       forceCompute = true;
 
     } else if (strcmp(argv[arg], "-v") == 0) {
-      printwhat = CNS_VIEW_UNITIG;
+      showResult = true;
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE_MULTIALIGN_OUTPUT++;
@@ -138,7 +138,9 @@ main (int argc, char **argv) {
       if (ma->maID < 0)
         ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
 
-      if (MultiAlignContig(ma, gkpStore, printwhat, &options)) {
+      if (MultiAlignContig(ma, gkpStore, &options)) {
+        if (showResult)
+          PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
       } else {
         fprintf(stderr, "MultiAlignContig()-- contig %d failed.\n", ma->maID);
         numFailures++;
@@ -181,8 +183,10 @@ main (int argc, char **argv) {
 
     FORCE_UNITIG_ABUT = 1;
 
-    if (MultiAlignContig(ma, gkpStore, printwhat, &options)) {
+    if (MultiAlignContig(ma, gkpStore, &options)) {
       tigStore->insertMultiAlign(ma, FALSE, FALSE);
+      if (showResult)
+        PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
       DeleteMultiAlignT(ma);
     } else {
       fprintf(stderr, "MultiAlignContig()-- contig %d failed.\n", ma->maID);

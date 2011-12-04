@@ -22,7 +22,7 @@
 #ifndef AS_ALN_ALIGNERS_H
 #define AS_ALN_ALIGNERS_H
 
-static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.19 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.20 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -49,27 +49,12 @@ typedef struct {
 } ALNoverlap;  //  Former 'Overlap'
 
 
-//  Print an ASCII representation of the alignment between fragments a and
-//  b encoded in align to the file "file".
-//
-//  Within the file AS_ALN_qvaligner.c the defined constant PRINT_WIDTH
-//  (set to 50) controls the number of columns per line in the display
-//  of the alignment.
-//
-void PrintALNoverlapFull(FILE *file, InternalFragMesg *a, InternalFragMesg *b, ALNoverlapFull *align);
+void
+PrintALNoverlap(char *message,
+                char *aseq,
+                char *bseq,
+                ALNoverlap *align);
 
-
-
-/*  Print an ASCII representation of the alignment between fragments a and
-    b encoded in align to the file "file".
-
-    Within the file AS_ALN_qvaligner.c the defined constant PRINT_WIDTH
-    (set to 50) controls the number of columns per line in the display
-    of the alignment.                                                     */
-void PrintALNoverlap(FILE *file, char *aseq, char *bseq, ALNoverlap *align);
-
-
-/* Make a copy of overlap ovl, allocating memory for the copy. */
 ALNoverlap *CopyALNoverlap(ALNoverlap *ovl);
 
 

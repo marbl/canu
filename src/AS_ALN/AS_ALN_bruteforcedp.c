@@ -19,12 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.16 2011-02-11 04:15:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.17 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
 #include "AS_UTL_reverseComplement.h"
 
+#undef DEBUG
 
 #define MATCH            0
 #define GAPA             1
@@ -41,22 +42,20 @@ static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.16 2011-02-11 04:15:0
 
 #define SLOP             10
 
-//  Scores in the dynamic programming matrix are unsigned ints,
-//  currently 30 bits wide.
+//  Scores in the dynamic programming matrix are unsigned ints, currently 30 bits wide.
 //
 //  The smallest score is 0.
 //  The zero score is 2^29 (512 million)
 //  The largest score is 2^30-1 (1 billion).
 //
-//  Edges that we don't want to end up at are initialized to DP_NEGT
-//  (2^28, 256 million) which will take an awful lot of alignment to
-//  make it decent, or to underflow.
+//  Edges that we don't want to end up at are initialized to DP_NEGT (2^28, 256 million) which will
+//  take an awful lot of alignment to make it decent, or to underflow.
 //
-//  Edges that we want to end up at are set to DP_ZERO (2^29, 512
-//  million).
+//  Edges that we want to end up at are set to DP_ZERO (2^29, 512 million).
 
-#define DP_NEGT          (1 << 28)
-#define DP_ZERO          (1 << 29)
+#define DP_NEGT          (1 << 28)  //  A very negative value
+#define DP_ZERO          (1 << 29)  //  Zero
+
 
 //
 //  ahang, bhang represent any sequence to EXCLUDE from the alignmet.  There is a little bit of slop
@@ -104,8 +103,9 @@ alignLinker(char           *alignA,
   }
 #endif
 
-  if (!endToEnd) {
-    //  Looking for best local alignment.  Hitting the start of a sequence is NOT deadly.
+  if (endToEnd == false) {
+    //  Looking for best local alignment.  Hitting the start of a sequence is NOT deadly.  This mode
+    //  is used by sffToCA when searching for linker in reads.
 
     ibgn = 1;
     iend = lenA;
@@ -121,32 +121,31 @@ alignLinker(char           *alignA,
       M[i][j].action = STOP;
     }
 
-  } else if ((ahang == lenA) && (bhang == lenB)) {
-    //  Looking for the best global-ish alignment.  Hitting the start of the I sequence is deadly,
-    //  but J is encouraged.  (This will give us a nice dovetail overlap).
+  } else if ((ahang == 0) &&
+             (bhang == 0)) {
+    //  Looking for the best unrestricted global-ish alignment.
 
     ibgn = 1;
     iend = lenA;
     jbgn = 1;
     jend = lenB;
 
-    for (i=ibgn-1, j=jbgn-1; i<=lenA; i++) {
+    for (i=ibgn-1, j=jbgn-1; i<=iend+1; i++) {
       M[i][j].score  = DP_ZERO;
       M[i][j].action = STOP;
     }
-    for (i=ibgn-1, j=jbgn-1; j<=lenB; j++) {
-      M[i][j].score  = DP_NEGT;
+    for (i=ibgn-1, j=jbgn-1; j<=jend+1; j++) {
+      M[i][j].score  = DP_ZERO;
       M[i][j].action = STOP;
     }
 
   } else {
-    //  Looking for the best global-ish alignment.  Hitting the ends of sequences is deadly, unless
-    //  they are where we expect to end.
+    //  Looking for the best restricted global-ish alignment.  We want to return the highest scoring
+    //  alignment that matches some specific overlap.
     //
-    //  Four cases here (+-ahang, +-bhang).  
-    //
-    //  Plus 1 to the bgn -- zero is for the border.
-    //  Plus 0 to the end -- loops iterate till <=.
+    //  As of Dec 2011, BPW isn't sure it works, and is not something we need to be using in the assembler.
+
+    assert(0);
 
     ibgn = (ahang < 0) ? (1) : (ahang+1);
     iend = (bhang < 0) ? (lenA + bhang) : (lenA);
@@ -159,23 +158,27 @@ alignLinker(char           *alignA,
         (jbgn < 0) || (jend < 0) ||
         (iend < ibgn) ||
         (jend < jbgn)) {
-      //fprintf(stderr, "WARNING:  bgn: %d,%d  end: %d,%d  lens: %d,%d  hangs: %d,%d\n",
-      //        ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
+#ifdef DEBUG
+      fprintf(stderr, "WARNING:  bgn: %d,%d  end: %d,%d  lens: %d,%d  hangs: %d,%d\n",
+              ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
+#endif
       return;
     }
 
-    //fprintf(stderr, "bgn: %d,%d  end: %d,%d  lens: %d,%d  hangs: %d,%d\n", ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
-    //fprintf(stderr, "A: %s\n", stringA);
-    //fprintf(stderr, "B: %s\n", stringB);
+    assert(iend - ibgn > 20);
+    assert(jend - jbgn > 20);
 
-    //  To easily allow a little slip in the starting position, we
-    //  shift the Border of Death a little to the origin.  Ideally, we
-    //  would have instead carved out a little square near the origin,
-    //  which would save us the cost of computing the extra cells
-    //  included in the shift.
+#ifdef DEBUG
+    fprintf(stderr, "bgn: %d,%d  end: %d,%d  lens: %d,%d  hangs: %d,%d\n", ibgn, jbgn, iend, jend, lenA, lenB, ahang, bhang);
+    fprintf(stderr, "A: %s\n", stringA);
+    fprintf(stderr, "B: %s\n", stringB);
+#endif
+
+    //  To easily allow a little slip in the starting position, we shift the Border of Death a
+    //  little to the origin.  Ideally, we would have instead carved out a little square near the
+    //  origin, which would save us the cost of computing the extra cells included in the shift.
     //
-    //  Note that one of ibgn or jbgn is 1 already, and so the
-    //  following changes only one bgn point.
+    //  Note that one of ibgn or jbgn is 1 already, and so the following changes only one bgn point.
 
     ibgn = MAX(1, ibgn - SLOP);
     jbgn = MAX(1, jbgn - SLOP);
@@ -183,10 +186,9 @@ alignLinker(char           *alignA,
     iend = MIN(lenA, lenA + SLOP);
     jend = MIN(lenB, lenB + SLOP);
 
-    //  Border of Death
+    //  Border of Death - we don't want the alignment to reach these points.  If it does, we've
+    //  extended into the unallowed hang.
 
-#if 1
-    //  This should be all that is needed.
     for (i=ibgn-1, j=jbgn-1; i<=iend+1; i++) {
       M[i][j].score  = DP_NEGT;
       M[i][j].action = STOP;
@@ -196,28 +198,9 @@ alignLinker(char           *alignA,
       M[i][j].score  = DP_NEGT;
       M[i][j].action = STOP;
     }
-#endif
 
-#if 0
-    //  Overkill, box in the D.P.
-    for (i=0, j=jbgn-1; i<AS_READ_MAX_NORMAL_LEN; i++) {
-      M[i][j].score  = DP_NEGT;
-      M[i][j].action = STOP;
-      M[i][0].score  = DP_NEGT;
-      M[i][0].action = STOP;
-    }
-
-    for (i-ibgn-1, j=0; j<AS_READ_MAX_NORMAL_LEN; j++) {
-      M[i][j].score  = DP_NEGT;
-      M[i][j].action = STOP;
-      M[0][j].score  = DP_NEGT;
-      M[0][j].action = STOP;
-    }
-#endif
-
-    //  Successful Alignment.  The alignment hits the start of either
-    //  the A or B sequence.  We allow 2*SLOP change in the expected
-    //  alignment start.  The slop "wraps" around the origin:
+    //  Successful Alignment.  The alignment hits the start of either the A or B sequence.  We allow
+    //  2*SLOP change in the expected alignment start.  The slop "wraps" around the origin:
     //
     //   |
     //   |     x = the expected end of alignment
@@ -228,15 +211,13 @@ alignLinker(char           *alignA,
     //   o-------
     //  a aa
     //
-    //  Which means that, in this case, we will allow an alignment
-    //  that was supposed to have a negative ahang to instead have a
-    //  positive ahang.  Simpler case: ahang=0 would insist on an
-    //  alignment going to the origin.  Instead, we allow an alignment
-    //  with a small positive or negative ahang.
+    //  Which means that, in this case, we will allow an alignment that was supposed to have a
+    //  negative ahang to instead have a positive ahang.  Simpler case: ahang=0 would insist on an
+    //  alignment going to the origin.  Instead, we allow an alignment with a small positive or
+    //  negative ahang.
     //
-    //  The 'wrap around' case is needed when the ahang value is
-    //  small.  The extra 2 units of slop are needed to get around the
-    //  origin (see those two gaps between the a's in the figure
+    //  The 'wrap around' case is needed when the ahang value is small.  The extra 2 units of slop
+    //  are needed to get around the origin (see those two gaps between the a's in the figure
     //  above?)
 
     assert((ibgn == 1) || (jbgn == 1));
@@ -288,8 +269,10 @@ alignLinker(char           *alignA,
   int   endI=0, curI=0;
   int   endJ=0, curJ=0;
 
-  //fprintf(stderr, "%d,%d - %d,%d -- ahang,bhang %d,%d  alen,blen %d,%d\n",
-  //        ibgn, jbgn, iend, jend, ahang, bhang, lenA, lenB);
+#ifdef DEBUG
+  fprintf(stderr, "%d,%d - %d,%d -- ahang,bhang %d,%d  alen,blen %d,%d\n",
+          ibgn, jbgn, iend, jend, ahang, bhang, lenA, lenB);
+#endif
 
   assert(ibgn >= 1);
   assert(jbgn >= 1);
@@ -303,26 +286,23 @@ alignLinker(char           *alignA,
       int lf = M[i-1][j].score + GAPSCORE;
       int up = M[i][j-1].score + GAPSCORE;
 
-      //  When finding the alignments, we do not really want to allow
-      //  matches to Ns.  If we do, and one of the sequences has a
-      //  gap, we'll optimally align to the gap instead of the real
-      //  sequence.  However, in AS_ALN_forcns.c, we'll adjust our
-      //  score to not count any alignment to an N as a mismatch.
+      //  When finding the alignments, we do not really want to allow matches to Ns.  If we do, and
+      //  one of the sequences has a gap, we'll optimally align to the gap instead of the real
+      //  sequence.  However, in AS_ALN_forcns.c, we'll adjust our score to not count any alignment
+      //  to an N as a mismatch.
       //
       if (allowNs)
         if ((stringA[i-1] == 'N') || (stringB[j-1] == 'N'))
           ul = M[i-1][j-1].score + MATCHSCORE;
 
       if (endToEnd) {
-        //  Set score to zero; we will then ALWAYS pick an action
-        //  below.
+        //  Set score to the smallest value possible; we will then ALWAYS pick an action below.
         //
         M[i][j].score  = 0;
         M[i][j].action = MATCH;
       } else {
-        //  (i,j) is the beginning of a subsequence, our default
-        //  behavior.  If we're looking for local alignments, make the
-        //  alignment stop here.
+        //  (i,j) is the beginning of a subsequence, our default behavior.  If we're looking for
+        //  local alignments, make the alignment stop here.
         //
         M[i][j].score  = DP_ZERO;
         M[i][j].action = STOP;
@@ -351,9 +331,8 @@ alignLinker(char           *alignA,
     }
   }
 
-  //  If we're not looking for local alignments, scan the end points
-  //  for the best value.  If we are looking for local alignments,
-  //  we've already found and remembered the best end point.
+  //  If we're not looking for local alignments, scan the end points for the best value.  If we are
+  //  looking for local alignments, we've already found and remembered the best end point.
 
   if (endToEnd) {
     scoreMax    = 0;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.21 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.22 2011-12-04 23:46:58 brianwalenz Exp $";
 
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast
@@ -1766,189 +1766,188 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
 
 
 
-#define PRINT_WIDTH  100   /* Width of each line of a printed alignment */
+#define PRINT_WIDTH  1000   /* Width of each line of a printed alignment */
 
 /*** OVERLAP PRINT ROUTINE ***/
 
-/* Print an alignment to file between a and b given in trace (unpacked).
-   Prefix gives the length of the initial prefix of a that is unaligned.  */
 
-static void CNS_PrintAlign(FILE *file, int prefix, int suffix,
-                       char *a, char *b, int *trace)
-{ int i, j, o;
-  static char Abuf[PRINT_WIDTH+1], Bbuf[PRINT_WIDTH+1];
-  static int  Firstime = 1;
-
-  if (Firstime)
-    { Firstime = 0;
-      Abuf[PRINT_WIDTH] = Bbuf[PRINT_WIDTH] = '\0';
-    }
-                                           /* buffer/output next column */
-#define COLUMN(x,y)				\
-{ if (o >= PRINT_WIDTH)				\
-    { fprintf(file,"\n\t%s\n\t%s\n",Abuf, Bbuf);\
-      o = 0;					\
-    }						\
-  Abuf[o] = (x);				\
-  Bbuf[o] = (y);				\
-  o += 1;					\
-}
+static
+void
+CNS_PrintAlign(char   *aO,
+               char   *bO,
+               int32   alnmax,
+               int32   prefix,
+               int32   suffix,
+               char   *a,
+               char   *b,
+               int32  *trace) {
+  int32 o  = 0;
+  int32 i  = 1;
+  int32 j  = 1;
 
   a -= 1;
   b -= 1;
-  o  = 0;
-  i = j = 1;
 
-  if (prefix > 25)
-    { i = prefix-24;
-      prefix = 25;
-    }
-  else if (prefix < -25)
-    { j = (-prefix) - 24;
-      prefix = -25;
-    }
-
-  if (prefix > 0)
-    while (prefix-- > 0)     /* Output unaligned prefix */
-      COLUMN(a[i++],' ')
-  else
-    while (prefix++ < 0)
-      COLUMN(' ',b[j++])
-
-  { int p, c;      /* Output columns of alignment til reach trace end */
-
-    p = 0;
-    while ((c = trace[p++]) != 0)
-      if (c < 0)
-        { c = -c;
-          while (i < c)
-            COLUMN(a[i++],b[j++])
-          COLUMN('-',b[j++])
-        }
-      else
-        { while (j < c)
-            COLUMN(a[i++],b[j++])
-          COLUMN(a[i++],'-')
-        }
+  if (prefix > 25) {
+    i = prefix-24;
+    prefix = 25;
+  } else if (prefix < -25) {
+    j = (-prefix) - 24;
+    prefix = -25;
   }
 
-  if (suffix < 0) suffix = -suffix;
+  if (prefix > 0) {
+    while (prefix-- > 0) {
+      aO[o] = a[i++];
+      bO[o] = ' ';
+      o++;
+    }
+  } else {
+    while (prefix++ < 0) {
+      aO[o] = ' ';
+      bO[o] = b[j++];
+      o++;
+    }
+  }
+
+  /* Output columns of alignment til reach trace end */
+
+  int p=0, c=0;
+
+  while ((c = trace[p++]) != 0) {
+    if (c < 0) {
+      c = -c;
+      while (i < c) {
+        aO[o] = a[i++];
+        bO[o] = b[j++];
+        o++;
+      }
+
+      aO[o] = '-';
+      bO[o] = b[j++];
+      o++;
+    } else {
+      while (j < c) {
+        aO[o] = a[i++];
+        bO[o] = b[j++];
+        o++;
+      }
+      aO[o] = a[i++];
+      bO[o] = '-';
+      o++;
+    }
+  }
+
+  if (suffix < 0)
+    suffix = -suffix;
   if (suffix > 25)
     suffix = 25;
 
-  { int x, y, s;     /* Output remaining column including unaligned suffix */
+  /* Output remaining column including unaligned suffix */
 
-    s = 0;
-    y = 1;
-    while ((x = a[i++]) != 0)
-      { if ((y = b[j++]) != 0)
-          COLUMN(x,y)
-        else
-          { do
-              { COLUMN(x,' ')
-                s += 1;
-              }
-            while ((x = a[i++]) != 0 && s < suffix);
-            break;
-          }
+  int x=0, y=1, s=0;
+
+  while ((x = a[i++]) != 0) {
+    if ((y = b[j++]) != 0) {
+      aO[o] = x;
+      bO[o] = y;
+      o++;
+    } else {
+      do {
+        aO[o] = x;
+        bO[o] = ' ';
+        o++;
+        s++;
       }
-    if (y)
-      while ((y = b[j++]) != 0 && s < suffix)
-        { COLUMN(' ',y)
-          s += 1;
-        }
+      while ((x = a[i++]) != 0 && s < suffix)
+        ;
+      break;
+    }
+  }
+  if (y) {
+    while ((y = b[j++]) != 0 && s < suffix) {
+      aO[o] = ' ';
+      bO[o] = y;
+      o++;
+      s++;
+      }
   }
 
-  fprintf(file,"\n\t%.*s\n",o,Abuf);   /* Print remainder of buffered col.s */
-  fprintf(file,"\t%.*s\n",o,Bbuf);
+  assert(o < alnmax);
+
+  aO[o] = 0;
+  bO[o] = 0;
 }
 
-/* Print an ASCII representation of the overlap in align between fragments
-   a and b to given file.                                                  */
 
-void PrintALNoverlap(FILE *file, char *aseq, char *bseq, ALNoverlap *align)
-{ int sym1, sym2;
+void
+PrintALNoverlap(char *message,
+                char *aseq,
+                char *bseq,
+                ALNoverlap *align) {
 
-  if (align->comp)
-    { sym1 = '<'; sym2 = '-'; }
-  else
-    { sym1 = '-'; sym2 = '>'; }
-  if (align->begpos >= 0)
-    if (align->endpos <= 0)
-      { fprintf(file,"  A -----+------+---->");
-        fprintf(file,"    dif/len = %d/%d = %5.2f%%\n",
-                     align->diffs,align->length,
-                     (100.*align->diffs)/align->length);
-        fprintf(file,"  B %4d %c------%c %-4d\n",
-                     align->begpos,sym1,sym2,-align->endpos);
-      }
-    else
-      { fprintf(file,"  A -----+------> %-4d",align->endpos);
-        fprintf(file,"       dif/len = %d/%d = %5.2f%%\n",
-                     align->diffs,align->length,
-                     (100.*align->diffs)/align->length);
-        fprintf(file,"  B %4d %c------+----%c\n",align->begpos,sym1,sym2);
-      }
-  else
-    if (align->endpos >= 0)
-      { fprintf(file,"  A %4d -------> %-4d",
-                     -align->begpos,align->endpos);
-        fprintf(file,"       dif/len = %d/%d = %5.2f%%\n",
-                     align->diffs,align->length,
-                     (100.*align->diffs)/align->length);
-        fprintf(file,"  B %c----+------+----%c\n",sym1,sym2);
-      }
-    else
-      { fprintf(file,"  A %4d -------+----> A",-align->begpos);
-        fprintf(file,"    dif/len = %d/%d = %5.2f%%\n",
-                     align->diffs,align->length,
-                     (100.*align->diffs)/align->length);
-        fprintf(file,"  B %c----+------%c %-4d\n",sym1,sym2,-align->endpos);
-      }
-  fprintf(file,"\n");
+  char    sym1 = (align->comp) ? '<' : '-';
+  char    sym2 = (align->comp) ? '-' : '>';
 
-  if ((align->trace != NULL) && (aseq != NULL) && (bseq != NULL))
-    { int *trace;
+  int32   alnmax = ((aseq != NULL) ? strlen(aseq) : 0) + ((bseq != NULL) ? strlen(bseq) : 0) + 1;
+  char   *aaln = new char [alnmax];
+  char   *baln = new char [alnmax];
 
-      trace = align->trace;
+  aaln[0] = 0;
+  baln[0] = 0;
 
-#ifdef DEBUG
-      { int i;
+  if ((align->trace != NULL) && (aseq != NULL) && (bseq != NULL)) {
+    if (align->comp)
+      reverseComplementSequence(bseq, strlen(bseq));
+    CNS_PrintAlign(aaln, baln, alnmax, align->begpos, align->endpos, aseq, bseq, align->trace);
+    if (align->comp)
+      reverseComplementSequence(bseq, strlen(bseq));
+  }
 
-        fprintf(file,"\nUncompressed trace:\n");
-        for (i = 0; trace[i] != 0; i++)
-          fprintf(file,"  %3d\n",trace[i]);
-      }
-#endif
+  fprintf(stderr, "%s -- e/l = %d/%d = %5.2f%%\n",
+          message, align->diffs, align->length, 100.0 * align->diffs / align->length);
 
-      if (align->comp)
-        reverseComplementSequence(bseq, strlen(bseq));
-
-      CNS_PrintAlign(file,align->begpos,align->endpos,aseq,bseq,trace);
-
-      if (align->comp)
-        reverseComplementSequence(bseq, strlen(bseq));
+  if (align->begpos >= 0) {
+    if (align->endpos <= 0) {
+      fprintf(stderr, "  A -----+------+---->  [%s]\n", aaln);
+      fprintf(stderr, "  B %4d %c------%c %-4d  [%s]\n", align->begpos, sym1, sym2, -align->endpos, baln);
+    } else {
+      fprintf(stderr, "  A -----+------> %-4d  [%s]\n", align->endpos, aaln);
+      fprintf(stderr, "  B %4d %c------+----%c  [%s]\n", align->begpos, sym1, sym2, baln);
     }
+  } else {
+    if (align->endpos >= 0) {
+      fprintf(stderr, "  A %4d -------> %-4d  [%s]\n", -align->begpos, align->endpos, aaln);
+      fprintf(stderr, "  B %c----+------+----%c  [%s]\n", sym1, sym2, baln);
+    } else {
+      fprintf(stderr, "  A %4d -------+---->  [%s]\n", -align->begpos, aaln);
+      fprintf(stderr, "  B %c----+------%c %-4d  [%s]\n", sym1, sym2, -align->endpos, baln);
+    }
+  }
+
+  delete [] aaln;
+  delete [] baln;
 }
 
-ALNoverlap *CopyALNoverlap(ALNoverlap *ovl)
-{ int      i, len;
-  ALNoverlap *new_ovl;
 
-  new_ovl = (ALNoverlap *) safe_malloc(sizeof(ALNoverlap));
+
+ALNoverlap *
+CopyALNoverlap(ALNoverlap *ovl) {
+  ALNoverlap *new_ovl = (ALNoverlap *) safe_malloc(sizeof(ALNoverlap));
+
   new_ovl->begpos = ovl->begpos;
   new_ovl->endpos = ovl->endpos;
   new_ovl->diffs  = ovl->diffs;
   new_ovl->length = ovl->length;
   new_ovl->comp   = ovl->comp;
 
-  len = 0;
+  int32 len = 0;
   while (ovl->trace[len] != 0)
     len += 1;
 
   new_ovl->trace = (int *) safe_malloc(sizeof(int)*(len+1));
 
-  for (i = 0; i <= len; i++)
+  for (int32 i = 0; i <= len; i++)
     new_ovl->trace[i] = ovl->trace[i];
 
   return (new_ovl);

@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-examineGap.c,v 1.26 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-examineGap.c,v 1.27 2011-12-04 23:46:58 brianwalenz Exp $";
 #include "eCR.h"
 
 #include "GapWalkerREZ.h"  //  FindGapLength
@@ -376,7 +376,8 @@ examineGap(ContigT *lcontig, int lFragIid,
     fprintf(debug.examineGapFP, "initial ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
             overlap->begpos, overlap->endpos, overlap->length, overlap->diffs,
             100.0 * overlap->diffs / overlap->length);
-    PrintALNoverlap(debug.examineGapFP, lcompBuffer, rcompBuffer, overlap);
+    PrintALNoverlap("", lcompBuffer, rcompBuffer, overlap);
+    //debug.examineGapFP
   }
 
   /*
@@ -455,7 +456,8 @@ examineGap(ContigT *lcontig, int lFragIid,
     fprintf(debug.examineGapFP, "post-flap trimming ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
             overlap->begpos, overlap->endpos, overlap->length, overlap->diffs,
             100.0 * overlap->diffs / overlap->length);
-    PrintALNoverlap(debug.examineGapFP, lcompBuffer, rcompBufferTrimmed, overlap);
+    PrintALNoverlap("", lcompBuffer, rcompBufferTrimmed, overlap);
+    //debug.examineGapFP
   }
 
   if (debug.examineGapLV > 0) {

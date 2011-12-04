@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcns.C,v 1.12 2011-11-29 11:50:00 brianwalenz Exp $";
+const char *mainid = "$Id: utgcns.C,v 1.13 2011-12-04 23:46:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -44,7 +44,7 @@ main (int argc, char **argv) {
   int32  numFailures = 0;
   int32  numSkipped  = 0;
 
-  CNS_PrintKey printwhat=CNS_STATS_ONLY;
+  bool   showResult = false;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
@@ -81,7 +81,7 @@ main (int argc, char **argv) {
       forceCompute = true;
 
     } else if (strcmp(argv[arg], "-v") == 0) {
-      printwhat = CNS_VIEW_UNITIG;
+      showResult = true;
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE_MULTIALIGN_OUTPUT++;
@@ -136,12 +136,11 @@ main (int argc, char **argv) {
       if (ma->maID < 0)
         ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
 
-      int32 firstFailed = 0;
-
-      if (MultiAlignUnitig(ma, gkpStore, printwhat, &options, firstFailed)) {
+      if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
+        if (showResult)
+          PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
       } else {
-        fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed at fragment index %d.\n",
-                ma->maID, firstFailed);
+        fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
         numFailures++;
       }
     }
@@ -184,14 +183,13 @@ main (int argc, char **argv) {
               ma->maID, ma->data.num_unitigs, ma->data.num_frags,
               (exists) ? " - already computed, recomputing" : "");
 
-    int32 firstFailed = 0;
-
-    if (MultiAlignUnitig(ma, gkpStore, printwhat, &options, firstFailed)) {
+    if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
       tigStore->insertMultiAlign(ma, TRUE, FALSE);
+      if (showResult)
+        PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
       DeleteMultiAlignT(ma);
     } else {
-      fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed at fragment index %d.\n",
-              ma->maID, firstFailed);
+      fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
       numFailures++;
     }
   }
