@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.88 2010-10-05 16:18:41 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.89 2011-12-04 23:21:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,7 +111,7 @@ void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
   AS_UTL_safeWrite(stream, &graph->tobeFreeEdgeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
   AS_UTL_safeWrite(stream, &graph->freeNodeHead,     "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
   AS_UTL_safeWrite(stream, &graph->tobeFreeNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
-  AS_UTL_safeWrite(stream, &graph->deadNodeHead,     "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
+  AS_UTL_safeWrite(stream, &graph->deadNodeHead,     "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);  //  UNUSED
 }
 
 
@@ -145,7 +145,7 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
   status += AS_UTL_safeRead(stream, &graph->tobeFreeEdgeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
   status += AS_UTL_safeRead(stream, &graph->freeNodeHead,     "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
   status += AS_UTL_safeRead(stream, &graph->tobeFreeNodeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
-  status += AS_UTL_safeRead(stream, &graph->deadNodeHead,     "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
+  status += AS_UTL_safeRead(stream, &graph->deadNodeHead,     "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);  //  UNUSED
   assert(status == 8);
 
   return graph;
@@ -716,10 +716,6 @@ void DeleteGraphNode(GraphCGW_T *graph, NodeCGW_T *node){
 
   // Mark the node dead and
   node->flags.bits.isDead = TRUE;
-  // Add to dead list
-  // When we clean up the hashtable, we'll move it to the free list
-  node->essentialEdgeA = graph->deadNodeHead;
-  graph->deadNodeHead = node->id;
 
   // Unreference the consensus for this contig
   if(graph->type != SCAFFOLD_GRAPH)
@@ -2065,6 +2061,8 @@ void  BuildGraphEdgesDirectly(GraphCGW_T *graph){
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
     if(node->flags.bits.isChaff && GlobalData->ignoreChaffUnitigs)
       continue;
+
+    assert(node->flags.bits.isDead == 0);
 
     BuildGraphEdgesFromMultiAlign(graph,
                                   node,

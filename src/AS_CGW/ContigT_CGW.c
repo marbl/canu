@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.29 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.30 2011-12-04 23:21:29 brianwalenz Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -737,36 +737,6 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 /***************************************************************************/
 
 
-void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
-  ChunkInstanceT *CI = GetGraphNode (graph->CIGraph, cid);
-  ContigT contig;
-
-  //  This function apparently converts a CI node into a Contig node.
-
-  CI->AEndNext = CI->BEndNext = NULLINDEX;
-  CI->info.CI.contigID = cid;
-
-  contig = *CI;
-
-  contig.type = CONTIG_CGW;
-  contig.id = cid;
-  contig.scaffoldID = NULLINDEX;
-  contig.smoothExpectedCID = NULLINDEX;
-  contig.numEssentialA = contig.numEssentialB = 0;
-  contig.essentialEdgeA = contig.essentialEdgeB = NULLINDEX;
-  contig.info.Contig.AEndCI = contig.info.Contig.BEndCI = cid;
-  contig.info.Contig.numCI = 1;
-  contig.indexInScaffold = NULLINDEX;
-  contig.flags.bits.isCI = FALSE;
-  contig.flags.bits.isContig = TRUE;
-  contig.flags.bits.isChaff = CI->flags.bits.isChaff; // this property is inherited
-  contig.flags.bits.isClosure = CI->flags.bits.isClosure; // this property is inherited
-  contig.edgeHead = NULLINDEX;
-
-  SetNodeCGW_T(graph->ContigGraph->nodes, cid, &contig);
-}
-
-
 //#define DEBUG_CONTIG
 void CreateInitialContigEdges(ScaffoldGraphT *graph){
   CIEdgeT *edge, *redge;
@@ -862,48 +832,76 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
 
 }
 
-int BuildInitialContigs(ScaffoldGraphT *graph){
-  CDS_CID_t cid;
+void
+BuildInitialContigs(ScaffoldGraphT *graph) {
   GraphNodeIterator CIs;
-  NodeCGW_T *CI;
+  NodeCGW_T        *CI;
 
   /* Resize the ContigGraph to the same size as the CI Graph */
 
   fprintf(stderr,"* Allocating Contig Graph with %d nodes and %d edges\n",
-	  (int) GetNumGraphNodes(graph->CIGraph),
-          (int) GetNumGraphEdges(graph->CIGraph));
-
-  fflush(NULL);
+          GetNumGraphNodes(graph->CIGraph),
+          GetNumGraphEdges(graph->CIGraph));
 
   // Would be nice if there was a Var_Array function to realloc a Var_Array, without
   // adjusting the number of active elements.
+
   DeleteVA_EdgeCGW_T(graph->ContigGraph->edges);
   DeleteVA_NodeCGW_T(graph->ContigGraph->nodes);
+
   graph->ContigGraph->edges = CreateVA_EdgeCGW_T(GetNumGraphEdges(graph->CIGraph));
   graph->ContigGraph->nodes = CreateVA_NodeCGW_T(GetNumGraphNodes(graph->CIGraph));
 
   EnableRange_VA(graph->ContigGraph->nodes, GetNumGraphNodes(graph->CIGraph));
 
-  for(cid = 0; cid < GetNumGraphNodes(graph->ContigGraph); cid++){
+  for (int32 cid=0; cid < GetNumGraphNodes(graph->ContigGraph); cid++) {
     CI = GetGraphNode(graph->ContigGraph, cid);
-    CI->flags.all = 0;
+
+    CI->flags.all           = 0;
     CI->flags.bits.isContig = TRUE;
-    CI->flags.bits.isDead = TRUE;
+    CI->flags.bits.isDead   = TRUE;
   }
 
   InitGraphNodeIterator(&CIs, graph->CIGraph, GRAPH_NODE_DEFAULT);
-  while((CI = NextGraphNodeIterator(&CIs)) != NULL){
-    /* For each chunk */
-    //  graph->firstContig = GetNumChunkInstanceTs(graph->ChunkInstances);
 
-    CreateInitialContig(graph, CI->id);
+  while ((CI = NextGraphNodeIterator(&CIs)) != NULL){
+    assert(CI->flags.bits.isDead == 0);
+
+    //  cid = CI->id;
+    //ChunkInstanceT *CI = GetGraphNode (graph->CIGraph, CI->id);
+
+    CI->AEndNext                = NULLINDEX;
+    CI->BEndNext                = NULLINDEX;
+    CI->info.CI.contigID        = CI->id;
+
+    ContigT contig = *CI;
+
+    contig.type                 = CONTIG_CGW;
+    contig.id                   = CI->id;
+    contig.scaffoldID           = NULLINDEX;
+    contig.smoothExpectedCID    = NULLINDEX;
+    contig.numEssentialA        = 0;
+    contig.numEssentialB        = 0;
+    contig.essentialEdgeA       = NULLINDEX;
+    contig.essentialEdgeB       = NULLINDEX;
+    contig.info.Contig.AEndCI   = CI->id;
+    contig.info.Contig.BEndCI   = CI->id;
+    contig.info.Contig.numCI    = 1;
+    contig.indexInScaffold      = NULLINDEX;
+    contig.flags.bits.isCI      = FALSE;
+    contig.flags.bits.isContig  = TRUE;
+    contig.flags.bits.isChaff   = CI->flags.bits.isChaff;   // this property is inherited
+    contig.flags.bits.isClosure = CI->flags.bits.isClosure; // this property is inherited
+    contig.edgeHead             = NULLINDEX;
+
+    SetNodeCGW_T(graph->ContigGraph->nodes, contig.id, &contig);
+
+    fprintf(stderr, "BuildInitialContigs()-- Contig %d CI %d\n", contig.id, CI->id);
   }
+
   graph->numContigs = GetNumGraphNodes(graph->ContigGraph);
 
-  // Create the Contig edges from the CIEdges
   CreateInitialContigEdges(graph);
-
-  return TRUE;
 }
 
 int GetConsensus(GraphCGW_T *graph, CDS_CID_t CIindex,

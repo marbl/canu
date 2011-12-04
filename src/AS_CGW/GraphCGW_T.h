@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.46 2010-08-19 05:28:06 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.47 2011-12-04 23:21:29 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -406,7 +406,7 @@ typedef struct{
   CDS_CID_t tobeFreeEdgeHead; // staging area for edges waiting to be moved to the free list
   CDS_CID_t freeNodeHead;
   CDS_CID_t tobeFreeNodeHead; // staging area for nodes waiting to be moved to the free list
-  CDS_CID_t deadNodeHead;
+  CDS_CID_t deadNodeHead;     //  UNUSED
 }GraphCGW_T;
 
 
@@ -459,48 +459,65 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
   NodeCGW_T node;
   memset(&node, 0, sizeof(NodeCGW_T));
 
-  node.id = GetNumGraphNodes(graph);
-  node.flags.all = 0;
-  node.edgeHead = NULLINDEX;
-  node.setID = 0;
+  node.id         = GetNumGraphNodes(graph);
+  node.flags.all  = 0;
+  node.edgeHead   = NULLINDEX;
+  node.setID      = 0;
 
   switch(graph->type){
     case CI_GRAPH:
-      node.type = UNRESOLVEDCHUNK_CGW;
-      node.flags.bits.isCI = TRUE;
-      node.info.CI.contigID = NULLINDEX;
-      node.info.CI.numInstances = 0;
-      node.info.CI.instances.va = NULL;
+      fprintf(stderr, "CreateNewGraphNode()-- CI %d\n", node.id);
+      node.type                      = UNRESOLVEDCHUNK_CGW;
+      node.flags.bits.isCI           = TRUE;
+      node.info.CI.contigID          = NULLINDEX;
+      node.info.CI.numInstances      = 0;
+      node.info.CI.instances.va      = NULL;
       break;
     case CONTIG_GRAPH:
-      node.type = CONTIG_CGW;
-      node.flags.bits.isContig = TRUE;
-      node.info.Contig.AEndCI = node.info.Contig.BEndCI = NULLINDEX;
-      node.info.Contig.numCI = 0;
+      fprintf(stderr, "CreateNewGraphNode()-- Contig %d\n", node.id);
+      node.type                      = CONTIG_CGW;
+      node.flags.bits.isContig       = TRUE;
+      node.info.Contig.AEndCI        = NULLINDEX;
+      node.info.Contig.BEndCI        = NULLINDEX;
+      node.info.Contig.numCI         = 0;
       break;
     case SCAFFOLD_GRAPH:
-      node.type = REAL_SCAFFOLD;
-      node.flags.bits.isScaffold = TRUE;
-      node.info.Scaffold.AEndCI =     node.info.Scaffold.BEndCI = NULLINDEX;
+      fprintf(stderr, "CreateNewGraphNode()-- Scaffold %d\n", node.id);
+      node.type                      = REAL_SCAFFOLD;
+      node.flags.bits.isScaffold     = TRUE;
+      node.info.Scaffold.AEndCI      = NULLINDEX;
+      node.info.Scaffold.BEndCI      = NULLINDEX;
       node.info.Scaffold.numElements = 0;
       break;
     default:
       assert(0);
   }
-  node.scaffoldID = NULLINDEX;
-  node.smoothExpectedCID = NULLINDEX;
-  node.numEssentialA = node.numEssentialB = 0;
-  node.essentialEdgeA = node.essentialEdgeB = NULLINDEX;
-  node.indexInScaffold = NULLINDEX;
-  node.edgeHead = NULLINDEX;
-  node.smoothExpectedCID = 0;
-  node.AEndNext = node.BEndNext = NULLINDEX;
-  node.bpLength.mean = node.bpLength.variance = 0.0;
-  node.offsetAEnd.mean = node.offsetAEnd.variance = 0.0;
-  node.offsetBEnd.mean = node.offsetBEnd.variance = 0.0;
+
+  node.scaffoldID          = NULLINDEX;
+  node.smoothExpectedCID   = NULLINDEX;
+  node.numEssentialA       = 0;
+  node.numEssentialB       = 0;
+  node.essentialEdgeA      = NULLINDEX;
+  node.essentialEdgeB      = NULLINDEX;
+  node.indexInScaffold     = NULLINDEX;
+  node.edgeHead            = NULLINDEX;
+  node.smoothExpectedCID   = 0;
+  node.AEndNext            = NULLINDEX;
+  node.BEndNext            = NULLINDEX;
+
+  node.bpLength.mean       = 0.0;
+  node.bpLength.variance   = 0.0;
+
+  node.offsetAEnd.mean     = 0.0;
+  node.offsetAEnd.variance = 0.0;
+
+  node.offsetBEnd.mean     = 0.0;
+  node.offsetBEnd.variance = 0.0;
+
   //node.aEndCoord = node.bEndCoord = NULLINDEX;
 
   AppendNodeCGW_T(graph->nodes, &node);
+
   return(GetGraphNode(graph, node.id));
 }
 
@@ -815,9 +832,8 @@ static NodeCGW_T *NextGraphNodeIterator(GraphNodeIterator *e){
   NodeCGW_T *retNode = NULL;
 
   if(e->verbose)
-    fprintf(stderr,
-            "* NextGraphNodeIterator prev:" F_CID " curr:" F_CID " next:" F_CID "\n",
-	    e->prev, e->curr, e->next);
+    fprintf(stderr, "* NextGraphNodeIterator prev:" F_CID " curr:" F_CID " next:" F_CID "\n",
+            e->prev, e->curr, e->next);
 
   if(e->next == NULLINDEX){
     if(e->curr != NULLINDEX){ // do this once
@@ -831,40 +847,35 @@ static NodeCGW_T *NextGraphNodeIterator(GraphNodeIterator *e){
 
 
   while(retNode == (NodeCGW_T *)NULL &&
-	(e->next != NULLINDEX)){
+        (e->next != NULLINDEX)){
     NodeCGW_T *node = GetGraphNode(e->graph, e->next);
     int isUniqueEnough = TRUE;
     int isInitialized = FALSE;
     if(!node){
       if(e->verbose)
-	fprintf(stderr,"* Fell off the end at index " F_CID "\n", e->next);
+        fprintf(stderr,"* Fell off the end at index " F_CID "\n", e->next);
       break;
     }
     {
       CDS_CID_t idx = GetVAIndex_NodeCGW_T(e->graph->nodes, node);
-      isInitialized = node->flags.bits.isDead || node->flags.bits.isFree ||
-        (node->id == idx);
+      isInitialized = node->flags.bits.isDead || node->flags.bits.isFree || (node->id == idx);
     }
     if(isInitialized){
       if(e->uniqueOnly){
-	if(node->flags.bits.isContig){
-	  isUniqueEnough = (node->scaffoldID > NULLINDEX ||
-                            node->flags.bits.isUnique);
-	  if(e->verbose & !isUniqueEnough)
-	    fprintf(stderr,
-                    "* Skipping contig " F_CID " since not scaffolded\n",
-		    node->id);
-	}else if(node->flags.bits.isScaffold){
-	  isUniqueEnough = TRUE;
-	}else{
-	  assert(node->flags.bits.isCI);
-	  isUniqueEnough = (node->type == DISCRIMINATORUNIQUECHUNK_CGW ||
+        if(node->flags.bits.isContig){
+          isUniqueEnough = (node->scaffoldID > NULLINDEX || node->flags.bits.isUnique);
+          if(e->verbose & !isUniqueEnough)
+            fprintf(stderr, "* Skipping contig " F_CID " since not scaffolded\n", node->id);
+        }else if(node->flags.bits.isScaffold){
+          isUniqueEnough = TRUE;
+        }else{
+          assert(node->flags.bits.isCI);
+          isUniqueEnough = (node->type == DISCRIMINATORUNIQUECHUNK_CGW ||
                             node->type == UNIQUECHUNK_CGW ||
                             node->flags.bits.isUnique);
-	  if(e->verbose & !isUniqueEnough)
-	    fprintf(stderr,"* Skipping CI " F_CID " since not scaffolded\n",
-		    node->id);
-	}
+          if(e->verbose & !isUniqueEnough)
+            fprintf(stderr,"* Skipping CI " F_CID " since not scaffolded\n", node->id);
+        }
       }
     }
     if(isInitialized &&
@@ -873,7 +884,7 @@ static NodeCGW_T *NextGraphNodeIterator(GraphNodeIterator *e){
        isUniqueEnough ){
       retNode = node;
       if(e->verbose)
-	fprintf(stderr,"* Returning node " F_CID "\n", node->id);
+        fprintf(stderr,"* Returning node " F_CID "\n", node->id);
     }
     e->prev = e->curr;
     e->curr = e->next;

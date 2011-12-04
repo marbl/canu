@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.72 2011-03-17 04:42:15 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.73 2011-12-04 23:21:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -114,15 +114,61 @@ int ProcessInput(int optind, int argc, char *argv[]){
     MultiAlignT   *uma = ScaffoldGraph->tigStore->loadMultiAlign(i, TRUE);
 
     if (uma == NULL) {
+      ChunkInstanceT  CI;
+
       fprintf(stderr, "WARNING:  Unitig %d does not exist.\n", i);
+
+      memset(&CI, 0, sizeof(ChunkInstanceT));
+
+      //  BEWARE!  Magic.  We try to fake the process of ProcessInputUnitig() then DeleteGraphNode().
+
+      CI.id                                  = i;                    //  uma->maID, if only it existed
+
+      CI.bpLength.mean                       = 0;          //  Boilerplate from below, to NULLINDEX
+      CI.bpLength.variance                   = 1.0;
+      CI.edgeHead                            = NULLINDEX;
+      CI.setID                               = NULLINDEX;
+      CI.scaffoldID                          = NULLINDEX;
+      CI.indexInScaffold                     = NULLINDEX;
+      CI.prevScaffoldID                      = NULLINDEX;
+      CI.essentialEdgeA                      = NULLINDEX;
+      CI.essentialEdgeB                      = NULLINDEX;
+      CI.smoothExpectedCID                   = NULLINDEX;
+      CI.BEndNext                            = NULLINDEX;
+      CI.AEndNext                            = NULLINDEX;
+
+      CI.info.CI.contigID                    = NULLINDEX;
+      CI.info.CI.source                      = NULLINDEX;
+
+      CI.flags.bits.isCI                     = TRUE;  //  Crashes NextGraphNodeIterator() if not set.
+      CI.flags.bits.isDead                   = TRUE;  //  DOA.
+
+      //  Mark this as a unique CI, to prevent it from being used in stones.  Stones crashes on
+      //  these empty unitigs.
+
+      CI.flags.bits.isUnique                 = 1;
+      CI.type                                = DISCRIMINATORUNIQUECHUNK_CGW;
+
+      //  And while we're at it, just mark it chaff too.
+
+      CI.flags.bits.isChaff                  = TRUE;
+
+      //  Add it to the graph.
+
+      SetChunkInstanceT(ScaffoldGraph->CIGraph->nodes, CI.id, &CI);
+
       continue;
     }
 
     assert(i == uma->maID);
 
     if (1 != GetNumIntUnitigPoss(uma->u_list))
-      fprintf(stderr, "ERROR:  Unitig %d has no placement; probably not run through consensus.\n", uma->maID);
+      fprintf(stderr, "ERROR:  Unitig %d has no placement; probably not run through consensus.\n", i);
     assert(1 == GetNumIntUnitigPoss(uma->u_list));
+
+    if (i != GetIntUnitigPos(uma->u_list, 0)->ident)
+      fprintf(stderr, "ERROR:  Unitig %d has incorrect unitig ident; error in utgcns or utgcnsfix or manual fixes to unitig.\n", i);
+    assert(i == GetIntUnitigPos(uma->u_list, 0)->ident);
 
     MultiAlignT   *cma = CopyMultiAlignT(NULL, uma);
 

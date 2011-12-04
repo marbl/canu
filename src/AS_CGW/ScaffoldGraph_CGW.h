@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.46 2011-01-25 21:26:56 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.47 2011-12-04 23:21:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -219,14 +219,8 @@ int BuildContigs(ScaffoldGraphT *graph);
 #endif
 
 
-// Create a contig for each CI
-// Create all of the merged/raw CIEdges for the graph of Contigs
-int BuildInitialContigs(ScaffoldGraphT *graph);
-
-#if 1
-/* Construct the Contig Edges from the CIEdges */
-int BuildContigEdges(ScaffoldGraphT *graph);
-#endif
+void BuildInitialContigs(ScaffoldGraphT *graph);
+int  BuildContigEdges(ScaffoldGraphT *graph);
 
 
 /*

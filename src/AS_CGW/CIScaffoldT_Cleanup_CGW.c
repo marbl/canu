@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.71 2011-09-04 01:01:57 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.72 2011-12-04 23:21:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1974,10 +1974,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   //  We have a multialign, create a new contig.
 
   ContigT *contig = CreateNewGraphNode(ScaffoldGraph->ContigGraph);
-
-#ifdef DEBUG_CREATEACONTIG
   fprintf(stderr,"* Create a contig "F_CID " in scaffold "F_CID "\n", contig->id, scaffold->id);
-#endif
 
   newMultiAlign->maID = contig->id;
 

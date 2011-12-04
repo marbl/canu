@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.56 2011-11-29 11:50:00 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.57 2011-12-04 23:21:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -734,11 +734,19 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
 
   for (int32 i=0; i<numUnitigsBefore; i++) {
     ChunkInstanceT *ci = GetGraphNode(graph->CIGraph, i);
+
+    if (ci->flags.bits.isDead)
+      continue;
+
     MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(ci->id, TRUE);
 
     // NOTE: add discriminator statistic checks?
 
-    if(GetMultiAlignLength(ma) < minLength)
+    //if (ma == NULL)
+    //  //  Shouldn't happen; should be marked dead; continue to a crash.
+    //  continue;
+
+    if (GetMultiAlignLength(ma) < minLength)
       continue;
 
     int32 minBase, maxBase;
