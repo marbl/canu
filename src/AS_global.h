@@ -25,27 +25,24 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.51 2011-10-11 17:48:36 skoren Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.52 2011-12-04 23:29:56 brianwalenz Exp $";
 
-#include <sys/stat.h>
-#include <sys/types.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <algorithm>
-#include <cassert>
-#include <cerrno>
-#include <cfloat>
-#include <climits>
-#include <cstdarg>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <ctime>
-#include <exception>
-#include <map>
-#include <set>
-#include <string>
-#include <vector>
+#include <string.h>
+#include <limits.h>
+#include <float.h>
+#include <ctype.h>
+
+#include <assert.h>
+#include <errno.h>
+#include <time.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 using namespace std;
 
@@ -418,26 +415,5 @@ int AS_configure(int argc, char **argv);
 // A convenient assert for testing whether ptrs are null
 // without bothering lint
 #define AssertPtr(ptr) (assert((ptr) != NULL))
-
-#define exitFailure() \
-	exit(EXIT_FAILURE)
-
-#define exitSuccess() \
-	exit(EXIT_SUCCESS)
-
-static const char LINE_FEED = '\n';
-static const char* LINE_FEED_STR = "\n";
-
-static const char CARRIAGE_RETURN = '\r';
-static const char* CARRIAGE_RETURN_STR = "\r";
-
-static const char NEWLINE = LINE_FEED;
-static const char* NEWLINE_STR = LINE_FEED_STR;
-
-static const char NULL_TERMINATOR = '\0';
-static const char* NULL_TERMINATOR_STR = "\0";
-
-static const char PATH_DELIMITER = '/';
-static const char* PATH_DELIMITER_STR = "/";
 
 #endif
