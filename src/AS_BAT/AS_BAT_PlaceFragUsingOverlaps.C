@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.13 2011-04-08 19:40:07 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.14 2011-12-05 22:56:22 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -188,7 +188,7 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
                      frag, plac3, (aend3p ? &best : NULL)) == false)
     return(false);
 
-  uint32  olen = OG->olapLength(ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang);
+  uint32  olen = FI->overlapLength(ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang);
   uint32  flen = FI->fragmentLength(ovl.a_iid);
 
   op.frgID       = frag.ident;

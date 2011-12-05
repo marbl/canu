@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAPSTORE_H
 #define AS_OVS_OVERLAPSTORE_H
 
-static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.15 2009-12-01 22:25:20 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.16 2011-12-05 22:56:22 brianwalenz Exp $";
 
 #include <stdio.h>
 
@@ -93,6 +93,7 @@ void               AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 low, ui
 void               AS_OVS_resetRangeOverlapStore(OverlapStore *ovs);
 
 uint64             AS_OVS_numOverlapsInRange(OverlapStore *ovs);
+uint32 *           AS_OVS_numOverlapsPerFrag(OverlapStore *ovs);
 
 static
 uint32             AS_OVS_lastFragInStore(OverlapStore *ovs) {

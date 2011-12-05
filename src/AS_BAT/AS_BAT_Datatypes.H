@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.9 2011-10-07 07:15:23 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.10 2011-12-05 22:56:22 brianwalenz Exp $";
 
 #include <map>
 #include <set>
@@ -285,6 +285,38 @@ public:
 
   uint32  numMatesInLib(uint32 iid) { return(_numMatesInLib[iid]); };
 
+  uint32  overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
+    int32  ooff = 0;
+    int32  alen = fragmentLength(a_iid);
+    int32  blen = fragmentLength(b_iid);
+    int32  aovl = 0;
+    int32  bovl = 0;
+
+    if (a_hang < 0) {
+      //  b_hang < 0      ?     ----------  :     ----
+      //                  ?  ----------     :  ----------
+      //
+      aovl = (b_hang < 0) ? (alen + b_hang) : (alen);
+      bovl = (b_hang < 0) ? (blen + a_hang) : (blen + a_hang - b_hang);
+    } else {
+      //  b_hang < 0      ?  ----------              :  ----------
+      //                  ?     ----                 :     ----------
+      //
+      aovl = (b_hang < 0) ? (alen - a_hang + b_hang) : (alen - a_hang);
+      bovl = (b_hang < 0) ? (blen)                   : (blen - b_hang);
+    }
+
+    assert(aovl > 0);
+    assert(bovl > 0);
+    assert(aovl <= alen);
+    assert(bovl <= blen);
+
+    //  AVE does not work.      return((uint32)((aovl, bovl)/2));
+    //  MAX does not work.      return((uint32)MAX(aovl, bovl));
+
+    return(aovl);
+  };
+
 private:
   void      save(const char *prefix);
   bool      load(const char *prefix);
@@ -302,7 +334,6 @@ private:
   uint32  *_numFragsInLib;
   uint32  *_numMatesInLib;
 };
-
 
 #endif
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.29 2011-06-03 17:27:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.30 2011-12-05 22:56:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,13 +129,13 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   }
 
   if (ovs->ovs.ovsVersion != AS_OVS_CURRENT_VERSION) {
-    fprintf(stderr, "ERROR:  Wrong overlapStore version; this code supports only version %d.  %s is version %d.\n",
+    fprintf(stderr, "ERROR:  Wrong overlapStore version; this code supports only version %d.  %s is version "F_U64".\n",
             AS_OVS_CURRENT_VERSION, path, ovs->ovs.ovsVersion);
     exit(1);
   }
 
   if (ovs->ovs.maxReadLenInBits != AS_READ_MAX_NORMAL_LEN_BITS) {
-    fprintf(stderr, "ERROR:  Wrong AS_READ_MAX_NORMAL_LEN_BITS; this code supports only %d bits.  %s has %d bits.\n",
+    fprintf(stderr, "ERROR:  Wrong AS_READ_MAX_NORMAL_LEN_BITS; this code supports only %d bits.  %s has "F_U64" bits.\n",
             AS_READ_MAX_NORMAL_LEN_BITS, path, ovs->ovs.maxReadLenInBits);
     exit(1);
   }
@@ -723,14 +723,58 @@ AS_OVS_numOverlapsInRange(OverlapStore *ovs) {
   len = ovs->lastIIDrequested - ovs->firstIIDrequested + 1;
   offsets = (OverlapStoreOffsetRecord *)safe_malloc(sizeof(OverlapStoreOffsetRecord) * len);
 
-  if (len != AS_UTL_safeRead(ovs->offsetFile, offsets, "AS_OVS_numOverlapsInRange",
-                             sizeof(OverlapStoreOffsetRecord), len)) {
+  if (len != AS_UTL_safeRead(ovs->offsetFile, offsets, "AS_OVS_numOverlapsInRange", sizeof(OverlapStoreOffsetRecord), len)) {
     fprintf(stderr, "AS_OVS_numOverlapsInRange()-- short read on offsets!\n");
     exit(1);
   }
 
   for (i=0; i<len; i++)
     numolap += offsets[i].numOlaps;
+
+  safe_free(offsets);
+
+  AS_UTL_fseek(ovs->offsetFile, originalposition, SEEK_SET);
+
+  return(numolap);
+}
+
+
+
+uint32 *
+AS_OVS_numOverlapsPerFrag(OverlapStore *ovs) {
+  size_t                     originalposition = 0;
+  uint64                     i = 0;
+  uint64                     len = 0;
+  OverlapStoreOffsetRecord  *offsets = NULL;
+  uint32                    *numolap = NULL;
+
+  if (ovs == NULL)
+    return(0);
+
+  if (ovs->firstIIDrequested > ovs->lastIIDrequested)
+    return(0);
+
+  originalposition = AS_UTL_ftell(ovs->offsetFile);
+
+  AS_UTL_fseek(ovs->offsetFile, (size_t)ovs->firstIIDrequested * sizeof(OverlapStoreOffsetRecord), SEEK_SET);
+
+  //  Even if we're doing a whole human-size store, this allocation is
+  //  (a) temporary and (b) only 512MB.  The only current consumer of
+  //  this code is FragCorrectOVL.c, which doesn't run on the whole
+  //  human, it runs on ~24 pieces, which cuts this down to < 32MB.
+
+  len = ovs->lastIIDrequested - ovs->firstIIDrequested + 1;
+
+  offsets = (OverlapStoreOffsetRecord *)safe_malloc(sizeof(OverlapStoreOffsetRecord) * len);
+  numolap = (uint32                   *)safe_malloc(sizeof(uint32)                   * len);
+
+  if (len != AS_UTL_safeRead(ovs->offsetFile, offsets, "AS_OVS_numOverlapsInRange", sizeof(OverlapStoreOffsetRecord), len)) {
+    fprintf(stderr, "AS_OVS_numOverlapsInRange()-- short read on offsets!\n");
+    exit(1);
+  }
+
+  for (i=0; i<len; i++)
+    numolap[i] = offsets[i].numOlaps;
 
   safe_free(offsets);
 

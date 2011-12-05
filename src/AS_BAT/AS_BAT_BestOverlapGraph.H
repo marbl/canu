@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id: AS_BAT_BestOverlapGraph.H,v 1.3 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id: AS_BAT_BestOverlapGraph.H,v 1.4 2011-12-05 22:56:22 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -103,7 +103,7 @@ struct BestOverlapGraph {
     //  orig erate is 0% but we 'correct' it to something more than 0%.  Regardless, we probably
     //  want to be using the corrected erate here.
 
-    double olen = olapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
+    double olen = FI->overlapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
     double nerr = olen * olap.error;
 
     assert(nerr >= 0);
@@ -166,43 +166,10 @@ struct BestOverlapGraph {
     //  Dovetails - the length of the overlap is the score, but we bias towards lower error.
     //  (again, shift AFTER assigning to avoid overflows)
     //
-    leng   = olapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
+    leng   = FI->overlapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
     leng <<= (2 * AS_OVS_ERRBITS);
 
     return(leng | corr | orig);
-  };
-
-
-  uint32  olapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
-    int32  ooff = 0;
-    int32  alen = FI->fragmentLength(a_iid);
-    int32  blen = FI->fragmentLength(b_iid);
-    int32  aovl = 0;
-    int32  bovl = 0;
-
-    if (a_hang < 0) {
-      //  b_hang < 0      ?     ----------  :     ----
-      //                  ?  ----------     :  ----------
-      //
-      aovl = (b_hang < 0) ? (alen + b_hang) : (alen);
-      bovl = (b_hang < 0) ? (blen + a_hang) : (blen + a_hang - b_hang);
-    } else {
-      //  b_hang < 0      ?  ----------              :  ----------
-      //                  ?     ----                 :     ----------
-      //
-      aovl = (b_hang < 0) ? (alen - a_hang + b_hang) : (alen - a_hang);
-      bovl = (b_hang < 0) ? (blen)                   : (blen - b_hang);
-    }
-
-    assert(aovl > 0);
-    assert(bovl > 0);
-    assert(aovl <= alen);
-    assert(bovl <= blen);
-
-    //  AVE does not work.      return((uint32)((aovl, bovl)/2));
-    //  MAX does not work.      return((uint32)MAX(aovl, bovl));
-
-    return(aovl);
   };
 
 

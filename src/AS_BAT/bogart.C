@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.9 2011-04-04 14:25:31 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.10 2011-12-05 22:56:22 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -153,6 +153,7 @@ main (int argc, char * argv []) {
   double    erateMerge              = 0.045;
   double    elimitMerge             = 4.0;
 
+  uint64    ovlCacheMemory          = UINT64_MAX;
   uint64    genomeSize              = 0;
 
   int       fragment_count_target   = 0;
@@ -207,6 +208,9 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-Em") == 0) {
       elimitMerge = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-M") == 0) {
+      ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
 
     } else if (strcmp(argv[arg], "-s") == 0) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
@@ -299,7 +303,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -J         Enable EXPERIMENTAL long unitig joining.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -b         Break promisciuous unitigs at unitig intersection points\n");
-    fprintf(stderr, "  -m 7       Break a unitig if a region has more than 7 bad mates\n");
     fprintf(stderr, " \n");
     fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig if either of\n");
     fprintf(stderr, "                    the following conditions hold:\n");
@@ -311,6 +314,9 @@ main (int argc, char * argv []) {
     fprintf(stderr, "    -em 0.045   no more than 0.045 fraction (4.5%%) error when bubble popping and repeat splitting\n");
     fprintf(stderr, "    -Em 4       no more than r errors (useful with short reads)\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "Overlap Storage\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -M gb    Use at most 'gb' gigabytes of memory for storing overlaps.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Debugging and Logging\n");
     fprintf(stderr, "\n");
@@ -371,7 +377,7 @@ main (int argc, char * argv []) {
   OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
   FI = new FragmentInfo(gkpStore, output_prefix);
-  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge));
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory);
   OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;

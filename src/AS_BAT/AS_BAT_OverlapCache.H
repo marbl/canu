@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.6 2011-11-07 03:12:50 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.7 2011-12-05 22:56:22 brianwalenz Exp $";
 
 //  AS_BAT_ERRBITS stores a reduced-precision overlap error rate using the same method
 //  as used by OverlapStore.  It should be at least 7 bits, and never needs to be more
@@ -45,7 +45,7 @@ static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache
 #define AS_BAT_ERRBITS    MIN((64 - AS_OVS_HNGBITS - AS_OVS_HNGBITS - 1), AS_BAT_ERRBITS_MAX)
 #define AS_BAT_MAX_ERATE  ((1 << AS_BAT_ERRBITS) - 1)
 
-//  For storing overlaps in memory.  8 bytes per overlap.
+//  For storing overlaps in memory.  12 bytes per overlap.
 struct BAToverlapInt {
   uint64      error     :AS_BAT_ERRBITS;  //   7 by default
   int64       a_hang    :AS_OVS_HNGBITS;  //  12 by default
@@ -93,26 +93,40 @@ struct BAToverlap {
 
 class OverlapCache {
 public:
-  OverlapCache(OverlapStore *ovlStoreUniq, OverlapStore *ovlStoreRept, double maxErate, double elimit);
+  OverlapCache(OverlapStore *ovlStoreUniq,
+               OverlapStore *ovlStoreRept,
+               double maxErate,
+               double elimit,
+               uint64 maxMemory);
   ~OverlapCache();
 
+  void         computeOverlapLimit(void);
   void         computeErateMaps(double erate, double elimit);
+
+  uint32       filterOverlaps(uint32 maxOVSerate, uint32 no);
+
   void         loadOverlaps(double erate, double elimit);
 
   BAToverlap  *getOverlaps(uint32 fragIID, uint32 &numOverlaps);
 
 private:
+  uint64                  _memLimit;
+  uint64                  _memUsed;
+
   uint32                  _storMax;  //  Size of the heap
   uint32                  _storLen;  //  Position we are at in this heap
-  BAToverlapInt          *_stor;     //  Pointer to the heap (probably the last thin on _heaps)
+  BAToverlapInt          *_stor;     //  Pointer to the heap (probably the last thing on _heaps)
 
   vector<BAToverlapInt*>  _heaps;
 
   BAToverlapInt         **_cachePtr; //  Mapping of frag iid to overlaps stored in the heap
   uint32                 *_cacheLen; //  Number of overlaps per frag iid
 
+  uint32                  _maxPer;   //  Maximum number of overlaps to load for a single fragment
+
   uint32                  _ovsMax;   //  For loading overlaps
   OVSoverlap             *_ovs;      //  
+  uint32                 *_ovsSco;   //
 
   uint32                  _batMax;   //  For returning overlaps
   BAToverlap             *_bat;      //  
