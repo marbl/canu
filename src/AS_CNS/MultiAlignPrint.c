@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.10 2011-11-11 03:35:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.11 2011-12-06 20:33:26 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -222,8 +222,8 @@ IMP2Array(IntMultiPos *imp,
   char   **multia = (char **)safe_malloc(2*lanesLen*sizeof(char *));
 
   for (int32 i=0; i<2*lanesLen; i++) {
-    multia[i] = (char *)safe_malloc((cnsLen + 1) * sizeof(char));
-    memset(multia[i], ' ', cnsLen);
+    multia[i] = (char *)safe_malloc((cnsLen + 1 + DISPLAYWIDTH) * sizeof(char));
+    memset(multia[i], ' ', cnsLen + DISPLAYWIDTH);
     multia[i][cnsLen] = 0;
   }
 
