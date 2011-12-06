@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.5 2011-12-05 22:56:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.6 2011-12-06 03:47:10 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -133,14 +133,22 @@ OverlapCache::~OverlapCache() {
 void
 OverlapCache::computeOverlapLimit(void) {
 
+  //  AS_OVS_numOverlapsPerFrag returns an array that starts at firstIIDrequested.  This is usually
+  //  1, unless the first fragment has no overlaps.  This is a terrible interface.
+
   AS_OVS_resetRangeOverlapStore(_ovlStoreUniq);
 
-  uint32 *numPer = AS_OVS_numOverlapsPerFrag(_ovlStoreUniq);
+  uint32  frstFrag = _ovlStoreUniq->firstIIDrequested;
+  uint32  lastFrag = _ovlStoreUniq->lastIIDrequested;
+  uint32  totlFrag = lastFrag - frstFrag + 1;
 
-  //  numPer[0] is the number of overlaps for frag IID=1, which is plan ol' inconvenient.
-  assert(_ovlStoreUniq->firstIIDrequested == 1);
+  fprintf(stderr, "OverlapCache()-- Loading number of overlaps per fragment ["F_U32" to "F_U32"]\n", frstFrag, lastFrag);
+  uint32 *numPer    = AS_OVS_numOverlapsPerFrag(_ovlStoreUniq);
 
-  _maxPer  = (_memLimit - _memUsed) / FI->numFragments() / sizeof(BAToverlapInt);
+  _maxPer = (_memLimit - _memUsed) / (FI->numFragments() * sizeof(BAToverlapInt));
+
+  fprintf(stderr, "OverlapCache()--  ("F_U64" - "F_U64") / "F_U64"    numFrags = "F_U32"\n",
+          _memLimit, _memUsed, sizeof(BAToverlapInt), FI->numFragments());
 
   if (_maxPer < 10)
     fprintf(stderr, "OverlapCache()-- ERROR: not enough memory to load overlaps (_maxPer="F_U32").\n", _maxPer), exit(1);
@@ -148,44 +156,77 @@ OverlapCache::computeOverlapLimit(void) {
   uint64  totalLoad  = 0;  //  Total overlaps we would load at this threshold
 
   uint32  numBelow   = 0;  //  Number below the threshold
-  uint32  numBelowS  = 0;  //  Amount of space wasted beacuse of this
-
+  uint64  numBelowS  = 0;  //  Amount of space wasted beacuse of this
+  uint32  numEqual   = 0;
   uint32  numAbove   = 0;  //  Number of fragments above the threshold
 
-  for (uint32 i=1; i<=FI->numFragments(); i++) {
-    if (numPer[i-1] < _maxPer) {
-      numBelow++;
-      numBelowS  += _maxPer - numPer[i-1];
-      totalLoad  += numPer[i-1];
+  uint32  lastMax    = 0;
+
+  uint32  adjust     = 1;
+
+  while (adjust > 0) {
+    totalLoad = 0;
+    numBelow  = 0;
+    numBelowS = 0;
+    numEqual  = 0;
+    numAbove  = 0;
+
+    for (uint32 i=0; i<totlFrag; i++) {
+      if (numPer[i] < _maxPer) {
+        numBelow++;
+        numBelowS  += _maxPer - MAX(lastMax, numPer[i]);
+        totalLoad  += numPer[i];
+
+      } else if (numPer[i] == _maxPer) {
+        numEqual++;
+        totalLoad  += _maxPer;
+
+      } else {
+        numAbove++;
+        totalLoad  += _maxPer;
+      }
+    }
+
+    adjust = 0;
+
+    if (_memUsed + totalLoad * sizeof(BAToverlapInt) < _memLimit) {
+      adjust = (numAbove == 0) ? (0) : (numBelowS / numAbove);
+
+      lastMax  = _maxPer;
+      _maxPer += adjust;
+
+      fprintf(stderr, "OverlapCache()-- Adjust from _maxPer="F_U32" to _maxPer="F_U32" (numBelow="F_U32" numEqual="F_U32" numAbove="F_U32" totalLoad="F_U64" -- "F_U64" + "F_U64" < "F_U64"\n",
+              lastMax,
+              _maxPer,
+              numBelow,
+              numEqual,
+              numAbove,
+              totalLoad,
+              _memUsed, totalLoad * sizeof(BAToverlapInt), _memLimit);
+
     } else {
-      numAbove++;
-      totalLoad  += _maxPer;
+      _maxPer = lastMax;
     }
   }
 
-  int32 adjust = (numAbove == 0) ? 0 : numBelowS / numAbove;
-
-  fprintf(stderr, "OverlapCache()-- Adjust from _maxPer="F_U32" to _maxPer="F_U32" (numBelow="F_U32" numAbove="F_U32" totalLoad="F_U64"\n",
-          _maxPer,
-          _maxPer + adjust,
-          numBelow,
-          numAbove,
-          totalLoad);
-
-  _maxPer += adjust;
-
-  //  Recompute statistics
+  //  Recompute final statistics
 
   totalLoad = 0;
   numBelow  = 0;
   numBelowS = 0;
+  numEqual  = 0;
   numAbove  = 0;
 
-  for (uint32 i=1; i<=FI->numFragments(); i++) {
-    if (numPer[i-1] < _maxPer) {
+  for (uint32 i=0; i<totlFrag; i++) {
+    if (numPer[i] < _maxPer) {
       numBelow++;
-      numBelowS  += _maxPer - numPer[i-1];
-      totalLoad  += numPer[i-1];
+      numBelowS  += _maxPer - numPer[i];
+      totalLoad  += numPer[i];
+
+    } else if (numPer[i] == _maxPer) {
+      numEqual++;
+      totalLoad  += _maxPer;
+
     } else {
       numAbove++;
       totalLoad  += _maxPer;
@@ -194,12 +235,12 @@ OverlapCache::computeOverlapLimit(void) {
 
   //  Report
 
-
   fprintf(stderr, "\n");
   fprintf(stderr, "OverlapCache()-- blockSize   = "F_U32" ("F_U64"MB)\n", _storMax, (_storMax * sizeof(BAToverlapInt)) >> 20);
   fprintf(stderr, "\n");
   fprintf(stderr, "OverlapCache()-- _maxPer     = "F_U32" overlaps/frag\n", _maxPer);
   fprintf(stderr, "OverlapCache()-- numBelow    = "F_U32"\n", numBelow);
+  fprintf(stderr, "OverlapCache()-- numEqual    = "F_U32"\n", numEqual);
   fprintf(stderr, "OverlapCache()-- numAbove    = "F_U32"\n", numAbove);
   fprintf(stderr, "OverlapCache()-- totalLoad   = "F_U64"\n", totalLoad);
   fprintf(stderr, "\n");
