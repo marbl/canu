@@ -502,7 +502,7 @@ sub setDefaults () {
     $global{"dncBBlibraries"}              = undef;
     $synops{"dncBBlibraries"}              = "List of library names to use as the bacbone in the 'de novo classifier'";
 
-    #####  Unitigger & BOG Options
+    #####  Unitigger & BOG & bogart Options
 
     $global{"unitigger"}                   = undef;
     $synops{"unitigger"}                   = "Which unitig algorithm to use; utg (if no SFF files) or bog (Best Overlap Graph, if SFF files)";
@@ -521,6 +521,9 @@ sub setDefaults () {
 
     $global{"bogBadMateDepth"}             = 7;
     $synops{"bogBadMateDepth"}             = "EXPERT!";
+
+    $global{"batMemory"}                   = undef;
+    $synops{"batMemory"}                   = "Approximate maximum memory usage for loading overlaps, in gigabytes, default is unlimited";
 
     #####  Scaffolder Options
 
@@ -4301,13 +4304,14 @@ sub unitigger () {
 
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
-        my $l  = getGlobal("utgGenomeSize");
-        my $e  = getGlobal("utgErrorRate");        #  Unitigger and BOG
-        my $E  = getGlobal("utgErrorLimit");
-        my $eg = getGlobal("utgGraphErrorRate");   #  BOGART
-        my $Eg = getGlobal("utgGraphErrorLimit");
-        my $em = getGlobal("utgMergeErrorRate");
-        my $Em = getGlobal("utgMergeErrorLimit");
+        my $l   = getGlobal("utgGenomeSize");
+        my $e   = getGlobal("utgErrorRate");        #  Unitigger and BOG
+        my $E   = getGlobal("utgErrorLimit");
+        my $eg  = getGlobal("utgGraphErrorRate");   #  BOGART
+        my $Eg  = getGlobal("utgGraphErrorLimit");
+        my $em  = getGlobal("utgMergeErrorRate");
+        my $Em  = getGlobal("utgMergeErrorLimit");
+        my $mem = getGlobal("batMemory");
 
         my $B = int($numFrags / getGlobal("cnsPartitions"));
         $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
@@ -4331,6 +4335,7 @@ sub unitigger () {
             $cmd .= " -s $l "   if (defined($l));
             $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
             $cmd .= " -U "      if ($u == 1);
+            $cmd .= " -M $mem " if (defined($mem));
             $cmd .= " -o $wrk/4-unitigger/$asm ";
             $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
         } elsif ($unitigger eq "bog") {
