@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.5 2011-10-28 22:02:45 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.6 2011-12-06 22:59:43 skoren Exp $";
 
 #include <map>
 #include <set>
@@ -330,7 +330,7 @@ static void *  correctFragments(void *ptr) {
         }
 
         // figure out what bases the bfrag covers
-        if (olap.dat.ovl.type == AS_OVS_TYPE_OVL && (olap.dat.ovl.a_hang < 0 || olap.dat.ovl.b_hang > 0)) {
+        if (olap.dat.ovl.type == AS_OVS_TYPE_OVL && (olap.dat.ovl.a_hang <= 0 || olap.dat.ovl.b_hang >= 0)) {
            // non contained overlap, dont use these fragments for correction
            if (frgToScore[bid] != 0) {
               OVSoverlap best = frgToBest[bid];
@@ -997,6 +997,12 @@ main (int argc, char * argv []) {
                break;
             }
             uint32 blen = thread_globals.frgToLen[olaps[rank].b_iid];
+            if (isOlapBad(olaps[ovlPosition], alen, blen, thread_globals.erate, thread_globals.elimit, thread_globals.maxErate)) {
+               continue;
+            }
+            if (olaps[ovlPosition].dat.ovl.type == AS_OVS_TYPE_OVL && (olaps[ovlPosition].dat.ovl.a_hang > 0 || olaps[ovlPosition].dat.ovl.b_hang < 0)) {
+               continue;
+            }
             uint64 currScore = scoreOverlap(olaps[rank], alen, blen, thread_globals.erate, thread_globals.elimit, thread_globals.maxErate);
             scoreToReads.insert(pair<uint64, AS_IID>(currScore, olaps[rank].b_iid));
          }
