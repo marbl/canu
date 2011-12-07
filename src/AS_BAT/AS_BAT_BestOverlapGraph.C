@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.5 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.6 2011-12-07 04:13:30 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -194,24 +194,31 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
     //  Exact!  Each contains the other.  Make the lower IID the container.
     return;
 
-  if ((olap.a_hang < 0) ||
-      (olap.b_hang > 0))
-    //  We only save if A contains B.
+  if ((olap.a_hang > 0) ||
+      (olap.b_hang < 0))
+    //  We only save if A is the contained fragment.
     return;
 
   uint64           newScr = scoreOverlap(olap);
-  BestContainment      *c = &_bestC[olap.b_iid];
+  BestContainment      *c = &_bestC[olap.a_iid];
 
   assert(newScr > 0);
 
-  if (newScr > _bestCscore[olap.b_iid]) {
-    c->container         = olap.a_iid;
+  //  The previous version (1.5) saved if A contained B.  This was breaking the overlap filtering,
+  //  because long A fragments containing short B fragments would have those containment overlaps
+  //  filtered out.  Version 1.6 reversed what is saved here so that the containment overlap is
+  //  associated with the A fragment (the containee).
+  //
+  //  The hangs will transform the container coordinates into the containee cordinates.
+
+  if (newScr > _bestCscore[olap.a_iid]) {
+    c->container         = olap.b_iid;
     c->isContained       = true;
     c->sameOrientation   = olap.flipped ? false : true;
-    c->a_hang            = olap.a_hang;
-    c->b_hang            = olap.b_hang;
+    c->a_hang            =  olap.flipped ? olap.b_hang : -olap.a_hang;
+    c->b_hang            =  olap.flipped ? olap.a_hang : -olap.b_hang;
 
-    _bestCscore[olap.b_iid] = newScr;
+    _bestCscore[olap.a_iid] = newScr;
   }
 }
 
