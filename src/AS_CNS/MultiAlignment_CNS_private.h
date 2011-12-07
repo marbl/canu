@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.22 2011-12-04 23:46:58 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.23 2011-12-07 04:16:07 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -361,12 +361,6 @@ extern int32 DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
 extern int32 VERBOSE_MULTIALIGN_OUTPUT;
 extern int32 FORCE_UNITIG_ABUT;
 
-#define MIN_STAIRCASE_TRACE_SIZE 2
-
-extern ssize_t previousStaircaseTraceEntry;
-extern size_t previousStaircaseSize;
-extern int32 previousStaircaseFragmentId;
-
 //  Functions used by lots of pieces internally to AS_CNS.  Defined in
 //  MultiAlgnment_CNS.c.
 
@@ -499,8 +493,6 @@ ApplyAlignment(int32 afid,
                int32 bfid,
                int32 ahang,
                int32 *trace);
-
-bool IsStaircaseAlignment(int32 fragmentId, int32* trace);
 
 void
 PrintAlignment(FILE *print, int32 mid, int32 from, int32 to);

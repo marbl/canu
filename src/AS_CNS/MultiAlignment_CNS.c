@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.261 2011-12-04 23:46:58 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.262 2011-12-07 04:16:07 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -160,10 +160,6 @@ int32 VERBOSE_MULTIALIGN_OUTPUT = 0;
 //
 int32 FORCE_UNITIG_ABUT = 0;
 
-
-ssize_t previousStaircaseTraceEntry;
-size_t previousStaircaseSize;
-int32 previousStaircaseFragmentId;
 
 //  This is called in ResetStores -- which is called before any
 //  consensus work is done.
@@ -1186,10 +1182,6 @@ ResetStores(int32 num_bases, int32 num_frags, int32 num_columns) {
   ResetVA_MANode(manodeStore);
 
   gaps_in_alignment = 0;
-  
-  previousStaircaseTraceEntry = 0;
-  previousStaircaseSize = 0;
-  previousStaircaseFragmentId = -1;
 }
 
 

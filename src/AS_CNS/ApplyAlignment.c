@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ApplyAlignment.c,v 1.11 2011-12-04 23:40:10 brianwalenz Exp $";
+static char *rcsid = "$Id: ApplyAlignment.c,v 1.12 2011-12-07 04:16:07 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -435,8 +435,6 @@ ApplyAlignment(int32 afid,
         ColumnPrepend(GetBead(beadStore, aindex[apos])->column_index, bindex[bpos]);
         lasta = GetBead(beadStore, aindex[apos])->prev;
         lastb = bindex[bpos];
-      } else if (IsStaircaseAlignment(bfid, trace)) {
-        // TODO: implement fix
       } else {
         assert(lasta == GetBead(beadStore, aindex[apos])->prev);
         ColumnAppend(GetBead(beadStore, lasta)->column_index, bindex[bpos]);
@@ -545,51 +543,4 @@ ApplyAlignment(int32 afid,
   if (bfid >= 0)  safe_free(bindex);
 
   //bfrag->manode = afrag->manode;
-}
-
-bool IsStaircaseAlignment(int32 fragmentId, int32* trace)
-{
-	if (previousStaircaseFragmentId != fragmentId)
-	{
-		ssize_t traceEntry = 0;
-		size_t traceSize = 0;
-		
-		for (size_t a = 0; trace[a] != 0; a++)
-		{
-			if (traceEntry != 0)
-			{
-				if (traceEntry != trace[a])
-				{
-					traceEntry = traceSize = 0;
-					
-					break;
-				}
-			}
-			else
-			{
-				traceEntry = trace[a];
-			}
-			
-			traceSize++;
-		}
-		
-		if ((traceEntry != 0) && (traceSize >= MIN_STAIRCASE_TRACE_SIZE) )
-		{
-			bool isStaircase = (previousStaircaseTraceEntry == traceEntry) && (previousStaircaseSize == traceSize);
-			
-			if (isStaircase)
-			{
-				fprintf(stderr, "[Staircase] Found staircase while aligning fragment (iid="F_U32"): entry="F_S64", size="F_SIZE_T"\n", 
-					GetFragment(fragmentStore, fragmentId)->iid, traceEntry, traceSize);
-			}
-			
-			previousStaircaseTraceEntry = traceEntry;
-			previousStaircaseSize = traceSize;
-			previousStaircaseFragmentId = fragmentId;
-			
-			//return isStaircase;
-		}
-	}
-	
-	return false;
 }
