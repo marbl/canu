@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.10 2011-11-15 11:27:20 brianwalenz Exp $";
+static char *rcsid = "$Id: AbacusRefine.c,v 1.11 2011-12-08 00:24:36 brianwalenz Exp $";
 
 #include <algorithm>
 #include <cassert>
@@ -1180,7 +1180,7 @@ ApplyAbacus(AbacusDataStructure *a, CNS_Options *opp) {
 
       //  End of update; call base now.
 
-      BaseCall(column->lid, 1, &fict_var, &vreg, -1, &base, 0, 0, opp);
+      BaseCall(column->lid, 1, &fict_var, &vreg, -1, &base, 0, opp);
 
       column = GetColumn(columnStore,column->next);
       columns++;
@@ -1259,7 +1259,7 @@ ApplyAbacus(AbacusDataStructure *a, CNS_Options *opp) {
 #endif
       }
 
-      BaseCall(column->lid, 1, &fict_var, &vreg, -1, &base, 0, 0, opp);
+      BaseCall(column->lid, 1, &fict_var, &vreg, -1, &base, 0, opp);
       column = GetColumn(columnStore,column->prev);
       columns++;
     }
