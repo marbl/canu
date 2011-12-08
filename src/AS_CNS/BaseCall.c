@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: BaseCall.c,v 1.5 2011-12-08 00:24:36 brianwalenz Exp $";
+static char *rcsid = "$Id: BaseCall.c,v 1.6 2011-12-08 00:56:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -91,6 +91,8 @@ BaseCall(int32 cid,
   CreateColumnBeadIterator(cid, &ci);
 
   *var = 0.;
+
+  assert((quality == 0) || (quality == 1));
 
   if (quality > 0) {
     static int32 guides_alloc=0;
@@ -509,15 +511,5 @@ BaseCall(int32 cid,
     for (bi=0;bi<CNS_NALPHABET;bi++)
       if (bi != RINDEX[cbase])
         score += best_read_base_count[bi]+guide_base_count[bi];
-
-  } else if (quality == -1 ) {
-    // here, just promote the aligned fragment's seq and quality to the basecall
-    char bqv;
-    bid = NextColumnBead(&ci);
-    bead =  GetBead(beadStore,bid);
-    cbase = *Getchar(sequenceStore, bead->soffset);
-    bqv  = *Getchar(qualityStore,bead->soffset);
-    Setchar(sequenceStore, call->soffset, &cbase);
-    Setchar(qualityStore, call->soffset, &bqv);
   }
 }

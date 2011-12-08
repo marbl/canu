@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.25 2011-12-08 00:24:36 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.26 2011-12-08 00:56:30 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -396,7 +396,6 @@ GetMANodeLength(int32 mid);
 void
 SeedMAWithFragment(int32 mid,
                    int32 fid,
-                   int32 quality,
                    CNS_Options *opp);
 int
 GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality);

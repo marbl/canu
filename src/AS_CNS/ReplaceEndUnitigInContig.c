@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.11 2011-12-04 23:46:58 brianwalenz Exp $";
+static char *rcsid = "$Id: ReplaceEndUnitigInContig.c,v 1.12 2011-12-08 00:56:30 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -180,7 +180,7 @@ ReplaceEndUnitigInContig(uint32 contig_iid,
           ahang = left;
           bhang = GetFragment(fragmentStore,tid)->length - (right-left);
         }
-        SeedMAWithFragment(ma->lid,aid,0, opp);
+        SeedMAWithFragment(ma->lid, aid, opp);
 
         //  The expected length of this alignment is always the length of the original unitig.
         int32 ovl = right - left;

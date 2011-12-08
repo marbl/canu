@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeMultiAligns.c,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeMultiAligns.c,v 1.11 2011-12-08 00:56:28 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -93,7 +93,7 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
 
   MANode *manode = CreateMANode(cpositions[0].ident);
 
-  SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid,0,opp);
+  SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid,opp);
 
   // Now, loop on remaining fragments, aligning to:
   //    a)  containing frag (if contained)

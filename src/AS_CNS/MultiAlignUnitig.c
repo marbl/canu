@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.46 2011-12-04 23:46:58 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.47 2011-12-08 00:56:28 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -357,7 +357,7 @@ unitigConsensus::initialize(int32 *failed) {
     //          fraglist[i].ident, fraglist[i].position.bgn, fraglist[i].position.end, ma->maID, fid);
   }
 
-  SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid,0, opp);
+  SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid, opp);
 
   if (failed)
     failed[0] = false;

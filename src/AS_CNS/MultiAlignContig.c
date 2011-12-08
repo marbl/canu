@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.12 2011-12-08 00:12:18 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.13 2011-12-08 00:56:28 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -233,7 +233,7 @@ MultiAlignContig(MultiAlignT  *ma,
 
   // Seed multiAlignment with 1st fragment of 1st unitig
 
-  SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid, 0, opp);
+  SeedMAWithFragment(manode->lid, GetFragment(fragmentStore,0)->lid, opp);
   PlaceFragments(GetFragment(fragmentStore,0)->lid, ulist + GetFragment(fragmentStore,0)->lid, opp);
 
   // Now, loop on remaining fragments, aligning to:

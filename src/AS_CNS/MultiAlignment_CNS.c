@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.263 2011-12-08 00:12:18 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.264 2011-12-08 00:56:29 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -360,7 +360,6 @@ GetMANodeLength(int32 mid) {
 void
 SeedMAWithFragment(int32 mid,
                    int32 fid,
-                   int32 quality,
                    CNS_Options *opp) {
   Fragment *fragment = GetFragment(fragmentStore,fid);
   assert(fragment != NULL);
@@ -390,10 +389,7 @@ SeedMAWithFragment(int32 mid,
 
   fragment->manode=mid;
 
-  if (quality > 0)
-    RefreshMANode(mid, quality, opp, NULL, NULL, 1, 0);
-  else
-    RefreshMANode(mid, quality, opp, NULL, NULL, 0, 0);
+  RefreshMANode(mid, 0, opp, NULL, NULL, 0, 0);
 }
 
 //external
