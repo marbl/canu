@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.6 2011-12-06 22:59:43 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.7 2011-12-08 14:49:45 skoren Exp $";
 
 #include <map>
 #include <set>
@@ -602,7 +602,7 @@ fprintf(stderr, "THe thread %d has to output size of %d and partitions %d\n", wa
         fprintf(stderr, "Couldn't open '%s' for write: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part].first, waGlobal->partitionStarts[part].second); 
         assert(waGlobal->partitionStarts[part-1].first == waGlobal->partitionStarts[part-1].second  && waGlobal->partitionStarts[part-1].first == 0);
         fclose(outFile);
-        return 0;
+        continue;
      }
 
      char inRankName[FILENAME_MAX] = {0};
