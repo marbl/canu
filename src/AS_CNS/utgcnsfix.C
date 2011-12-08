@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcnsfix.C,v 1.2 2011-12-04 23:46:58 brianwalenz Exp $";
+const char *mainid = "$Id: utgcnsfix.C,v 1.3 2011-12-08 00:11:35 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -168,7 +168,7 @@ main (int argc, char **argv) {
 
       maFixd->maID = tigStore->numUnitigs();
 
-      fprintf(stderr, "Testing new unitig %d with %d fragments (%d remain)\n",
+      fprintf(stderr, "Testing new unitig %d with "F_SIZE_T" fragments ("F_SIZE_T" remain)\n",
               maFixd->maID, GetNumIntMultiPoss(maFixd->f_list), GetNumIntMultiPoss(maNext->f_list));
 
       assert(GetNumIntMultiPoss(maFixd->f_list) > 0);
