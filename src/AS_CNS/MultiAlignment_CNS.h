@@ -21,7 +21,7 @@
 #ifndef MULTIALIGNMENT_CNS_INCLUDE
 #define MULTIALIGNMENT_CNS_INCLUDE
 
-static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.59 2011-12-04 23:46:58 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h,v 1.60 2011-12-08 00:12:19 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -31,8 +31,10 @@ static const char *rcsid_MULTIALIGNMENT_CNS_INCLUDE = "$Id: MultiAlignment_CNS.h
 #include "MultiAlign.h"
 #include "MultiAlignStore.h"
 
-extern int32 DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
-extern int32 VERBOSE_MULTIALIGN_OUTPUT;
+extern uint32 VERBOSE_MULTIALIGN_OUTPUT;
+
+extern uint32 MULTIALIGN_PRINT_WIDTH;       //  In MultiAlignPrint.c
+extern uint32 MULTIALIGN_PRINT_SPACING;
 
 #define CNS_OPTIONS_SPLIT_ALLELES_DEFAULT  1
 #define CNS_OPTIONS_MIN_ANCHOR_DEFAULT    11

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.13 2011-08-15 06:17:04 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.14 2011-12-08 00:12:19 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -371,6 +371,12 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-N") == 0) {
       replaceInPlace = FALSE;
 
+    } else if (strcmp(argv[arg], "-w") == 0) {
+      MULTIALIGN_PRINT_WIDTH = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      MULTIALIGN_PRINT_SPACING = atoi(argv[++arg]);
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -418,6 +424,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -N                    Replace a multialign in the next version of the store.  This option is\n");
     fprintf(stderr, "                        rarely useful, but is needed if the version of the store to add a multialign\n");
     fprintf(stderr, "                        does not exist.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -w width              For printing multialigns, the width of the page and spacing between\n");
+    fprintf(stderr, "  -s spacing            reads on the same line.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     exit(1);
   }

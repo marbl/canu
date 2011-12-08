@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.23 2011-12-07 04:16:07 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.24 2011-12-08 00:12:19 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -357,9 +357,11 @@ extern int32 NumVARRecords;
 extern int32 NumVARStringsWithFlankingGaps;
 extern int32 NumUnitigRetrySuccess;
 
-extern int32 DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
-extern int32 VERBOSE_MULTIALIGN_OUTPUT;
-extern int32 FORCE_UNITIG_ABUT;
+extern uint32 VERBOSE_MULTIALIGN_OUTPUT;
+extern uint32 FORCE_UNITIG_ABUT;
+
+extern uint32 MULTIALIGN_PRINT_WIDTH;
+extern uint32 MULTIALIGN_PRINT_SPACING;
 
 //  Functions used by lots of pieces internally to AS_CNS.  Defined in
 //  MultiAlgnment_CNS.c.

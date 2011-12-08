@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.262 2011-12-07 04:16:07 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.263 2011-12-08 00:12:18 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -143,22 +143,16 @@ uint32 AMASK[5] = {013607700741, // -
 
 
 
-//  Define this to dump multifasta to stderr of the unitigs
-//  we try to align in MultiAlignContig().  Was useful for
-//  debugging bad layout.
-//
-int32 DUMP_UNITIGS_IN_MULTIALIGNCONTIG = 0;
-
 // Be noisy when doing multi alignments - this used to be a #ifdef,
 // which made it difficult to switch on in the middle of a debug.
 //
-int32 VERBOSE_MULTIALIGN_OUTPUT = 0;
+uint32 VERBOSE_MULTIALIGN_OUTPUT = 0;
 
 //  If non-zero, we'll force-abut unitigs that don't align together.
 //  Typically, these are caused by microscopic overlaps between
 //  unitigs -- certainly less than 20bp long.
 //
-int32 FORCE_UNITIG_ABUT = 0;
+uint32 FORCE_UNITIG_ABUT = 0;
 
 
 //  This is called in ResetStores -- which is called before any

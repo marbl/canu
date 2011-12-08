@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.11 2011-12-04 23:46:58 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.12 2011-12-08 00:12:18 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -227,14 +227,6 @@ MultiAlignContig(MultiAlignT  *ma,
                                  ulist[i].type);
     offsets[fid].bgn = complement?ulist[i].position.end:ulist[i].position.bgn;
     offsets[fid].end = complement?ulist[i].position.bgn:ulist[i].position.end;
-  }
-
-  if (DUMP_UNITIGS_IN_MULTIALIGNCONTIG > 0) {
-    for (int32 i=0; i<num_unitigs; i++) {
-      Fragment *f = GetFragment(fragmentStore,i);
-      char     *s = Getchar(sequenceStore,f->sequence);
-      fprintf(stderr, ">unitig-%d\n%s\n", f->iid, s);
-    }
   }
 
   MANode *manode = CreateMANode(ma->maID);

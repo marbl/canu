@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.11 2011-12-06 20:33:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.12 2011-12-08 00:12:18 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -34,12 +34,12 @@ static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.11 2011-12-06 20:33:26 br
 //  Width of the multialignment display.  100 is convenient for screen display; larger
 //  values work well for display in a web browser.
 //
-#define DISPLAYWIDTH 100
+uint32 MULTIALIGN_PRINT_WIDTH = 100;
 
 //  Space between fragments on a single line.  If set to a massive value then all
 //  fragments appear on different lines.
 //
-#define LANE_SEP  3
+uint32 MULTIALIGN_PRINT_SPACING = 3;
 
 
 
@@ -94,7 +94,7 @@ public:
       leftpos = node->read->position.bgn;
 
     if ((lastcol > 0) &&
-        (leftpos < lastcol + LANE_SEP))
+        (leftpos < lastcol + MULTIALIGN_PRINT_SPACING))
       return(false);
 
     assert(node->next == NULL);
@@ -222,8 +222,8 @@ IMP2Array(IntMultiPos *imp,
   char   **multia = (char **)safe_malloc(2*lanesLen*sizeof(char *));
 
   for (int32 i=0; i<2*lanesLen; i++) {
-    multia[i] = (char *)safe_malloc((cnsLen + 1 + DISPLAYWIDTH) * sizeof(char));
-    memset(multia[i], ' ', cnsLen + DISPLAYWIDTH);
+    multia[i] = (char *)safe_malloc((cnsLen + 1 + MULTIALIGN_PRINT_WIDTH) * sizeof(char));
+    memset(multia[i], ' ', cnsLen + MULTIALIGN_PRINT_WIDTH);
     multia[i][cnsLen] = 0;
   }
 
@@ -331,8 +331,8 @@ PrintMultiAlignT(FILE *out,
 
   fprintf(out,"<<< begin Contig %d >>>",ma->maID);;
 
-  char  gruler[DISPLAYWIDTH + 200];
-  char  uruler[DISPLAYWIDTH + 200];
+  char  gruler[MULTIALIGN_PRINT_WIDTH + 200];
+  char  uruler[MULTIALIGN_PRINT_WIDTH + 200];
 
   int32 ungapped = 1;
   int32 tick     = 1;
@@ -340,15 +340,15 @@ PrintMultiAlignT(FILE *out,
   for (window=0;window<length;) {
     int32 row_id  = 0;
     int32 orient  = 0;
-    int32 rowlen  = (window + DISPLAYWIDTH < length) ? DISPLAYWIDTH : length - window;
+    int32 rowlen  = (window + MULTIALIGN_PRINT_WIDTH < length) ? MULTIALIGN_PRINT_WIDTH : length - window;
 
     fprintf(out, "\n");
     fprintf(out, "\n");
     fprintf(out, "<<<  Contig %d, gapped length: %d  >>>\n",ma->maID, length);
 
     {
-      memset(gruler, 0, DISPLAYWIDTH);
-      memset(uruler, 0, DISPLAYWIDTH);
+      memset(gruler, 0, MULTIALIGN_PRINT_WIDTH);
+      memset(uruler, 0, MULTIALIGN_PRINT_WIDTH);
 
       for (int32 rowind=0; rowind<rowlen; rowind++) {
         if (((window + 1 + rowind) % 25) == 0)
@@ -361,16 +361,16 @@ PrintMultiAlignT(FILE *out,
           ungapped++;
       }
 
-      for (int32 i=0; i<DISPLAYWIDTH; i++) {
+      for (int32 i=0; i<MULTIALIGN_PRINT_WIDTH; i++) {
         if (gruler[i] == 0)
           gruler[i] = ' ';
         if (uruler[i] == 0)
           uruler[i] = ' ';
       }
 
-      for (int32 i=DISPLAYWIDTH-1; gruler[i] == ' '; i--)
+      for (int32 i=MULTIALIGN_PRINT_WIDTH-1; gruler[i] == ' '; i--)
         gruler[i] = 0;
-      for (int32 i=DISPLAYWIDTH-1; uruler[i] == ' '; i--)
+      for (int32 i=MULTIALIGN_PRINT_WIDTH-1; uruler[i] == ' '; i--)
         uruler[i] = 0;
 
       fprintf(out, "%s\n", gruler);
@@ -400,7 +400,7 @@ PrintMultiAlignT(FILE *out,
 
       int32  nonBlank = 0;
 
-      for (int32 j=0; j<DISPLAYWIDTH; j++) {
+      for (int32 j=0; j<MULTIALIGN_PRINT_WIDTH; j++) {
         if (window + j > length)
           break;
 
@@ -430,25 +430,25 @@ PrintMultiAlignT(FILE *out,
       frag_store->gkStore_getFragment(row_id, &rsp, GKFRAGMENT_INF);
 
       {
-        char save = multia[2*i][window + DISPLAYWIDTH];
-        multia[2*i][window + DISPLAYWIDTH] = 0;
+        char save = multia[2*i][window + MULTIALIGN_PRINT_WIDTH];
+        multia[2*i][window + MULTIALIGN_PRINT_WIDTH] = 0;
         fprintf(out, "%s   %c   (%s,%d)\n",
                 multia[2*i]+window,
                 (orient>0)?'>':'<',
                 AS_UID_toString(rsp.gkFragment_getReadUID()),
                 row_id);
-        multia[2*i][window + DISPLAYWIDTH] = save;
+        multia[2*i][window + MULTIALIGN_PRINT_WIDTH] = save;
       }
 
       if (show_qv) {
-        char save = multia[2*i+1][window + DISPLAYWIDTH];
-        multia[2*i+1][window + DISPLAYWIDTH] = 0;
+        char save = multia[2*i+1][window + MULTIALIGN_PRINT_WIDTH];
+        multia[2*i+1][window + MULTIALIGN_PRINT_WIDTH] = 0;
         fprintf(out, "%s\n", multia[2*i+1]+window);
-        multia[2*i+1][window + DISPLAYWIDTH] = save;
+        multia[2*i+1][window + MULTIALIGN_PRINT_WIDTH] = save;
       }
     }
 
-    window += DISPLAYWIDTH;
+    window += MULTIALIGN_PRINT_WIDTH;
   }
   fprintf(out,"\n<<< end Contig %d >>>\n", ma->maID);
 
