@@ -2961,7 +2961,9 @@ sub merOverlapper($) {
     print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
-    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+    print F "AS_OVERLAP_MIN_LEN=", getGlobal("ovlMinLen"),    "\n";
+    print F "AS_READ_MIN_LEN="   , getGlobal("frgMinLen"),    "\n";
+    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE AS_OVERLAP_MIN_LEN AS_READ_MIN_LEN\n";
     print F "\n";
     print F "if [ ! -d $wrk/$outDir/seeds ]; then\n";
     print F "  mkdir $wrk/$outDir/seeds\n";
@@ -3022,7 +3024,9 @@ sub merOverlapper($) {
     print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
-    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+    print F "AS_OVERLAP_MIN_LEN=", getGlobal("ovlMinLen"),    "\n";
+    print F "AS_READ_MIN_LEN="   , getGlobal("frgMinLen"),    "\n";
+    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE AS_OVERLAP_MIN_LEN AS_READ_MIN_LEN\n";
     print F "\n";
     print F "if [ ! -d $wrk/$outDir/olaps ]; then\n";
     print F "  mkdir $wrk/$outDir/olaps\n";
@@ -3833,7 +3837,9 @@ sub overlapCorrection {
         print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
         print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
         print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
-        print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+        print F "AS_OVERLAP_MIN_LEN=", getGlobal("ovlMinLen"),    "\n";
+        print F "AS_READ_MIN_LEN="   , getGlobal("frgMinLen"),    "\n";
+        print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE AS_OVERLAP_MIN_LEN AS_READ_MIN_LEN\n";
         print F "\n";
         print F "if [ -e $wrk/3-overlapcorrection/\$jobid.frgcorr ] ; then\n";
         print F "  echo Job previously completed successfully.\n";
@@ -4439,7 +4445,9 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
-    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+    print F "AS_OVERLAP_MIN_LEN=", getGlobal("ovlMinLen"),    "\n";
+    print F "AS_READ_MIN_LEN="   , getGlobal("frgMinLen"),    "\n";
+    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE AS_OVERLAP_MIN_LEN AS_READ_MIN_LEN\n";
 
     print F getBinDirectoryShellCode();
 
@@ -4729,7 +4737,9 @@ sub eCR ($$$) {
                 print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
                 print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
                 print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
-                print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+                print F "AS_OVERLAP_MIN_LEN=", getGlobal("ovlMinLen"),    "\n";
+                print F "AS_READ_MIN_LEN="   , getGlobal("frgMinLen"),    "\n";
+                print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE AS_OVERLAP_MIN_LEN AS_READ_MIN_LEN\n";
                 print F "\n";
                 print F "$bin/extendClearRanges \\\n";
                 print F " -g $wrk/$asm.gkpStore \\\n";
@@ -4935,7 +4945,9 @@ sub createPostScaffolderConsensusJobs () {
     print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
     print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
     print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
-    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+    print F "AS_OVERLAP_MIN_LEN=", getGlobal("ovlMinLen"),    "\n";
+    print F "AS_READ_MIN_LEN="   , getGlobal("frgMinLen"),    "\n";
+    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE AS_OVERLAP_MIN_LEN AS_READ_MIN_LEN\n";
 
     print F getBinDirectoryShellCode();
 
