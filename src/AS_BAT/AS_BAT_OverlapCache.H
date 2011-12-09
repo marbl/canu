@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.7 2011-12-05 22:56:22 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.8 2011-12-09 23:02:32 brianwalenz Exp $";
 
 //  AS_BAT_ERRBITS stores a reduced-precision overlap error rate using the same method
 //  as used by OverlapStore.  It should be at least 7 bits, and never needs to be more
@@ -126,7 +126,7 @@ private:
 
   uint32                  _ovsMax;   //  For loading overlaps
   OVSoverlap             *_ovs;      //  
-  uint32                 *_ovsSco;   //
+  uint64                 *_ovsSco;   //
 
   uint32                  _batMax;   //  For returning overlaps
   BAToverlap             *_bat;      //  
