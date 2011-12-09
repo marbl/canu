@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.7 2011-12-07 04:14:52 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.8 2011-12-09 20:34:06 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -355,12 +355,17 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
 #error not enough space to store overlsp score
 #endif
 
+#define SALT_BITS (32 - AS_READ_MAX_NORMAL_LEN_BITS - AS_OVS_ERRBITS)
+#define SALT_MASK ((1 << SALT_BITS) - 1)
+
+  //fprintf(stderr, "SALT_BITS %d SALT_MASK 0x%08x\n", SALT_BITS, SALT_MASK);
+
   for (uint32 ii=0; ii<no; ii++) {
     _ovsSco[ii]   = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
     _ovsSco[ii] <<= AS_OVS_ERRBITS;
     _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & (mask);
-    _ovsSco[ii] <<= 8;
-    _ovsSco[ii]  |= ii & 0xff;
+    _ovsSco[ii] <<= SALT_BITS;
+    _ovsSco[ii]  |= ii & SALT_MASK;
 
     if ((_ovs[ii].dat.ovl.corr_erate > maxOVSerate) ||
         (FI->fragmentLength(_ovs[ii].a_iid) == 0) ||
