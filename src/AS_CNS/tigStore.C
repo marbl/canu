@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.14 2011-12-08 00:12:19 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.15 2011-12-09 01:55:35 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -613,7 +613,7 @@ main (int argc, char **argv) {
         DumpMultiAlignForHuman(stdout, ma, tigIsUnitig);
 
       if (dumpFlags & DUMP_MULTIALIGN)
-        PrintMultiAlignT(stdout, ma, gkpStore, showQV, showDots, AS_READ_CLEAR_OBTCHIMERA);
+        PrintMultiAlignT(stdout, ma, gkpStore, showQV, showDots, (tigIsUnitig) ? AS_READ_CLEAR_OBTCHIMERA : AS_READ_CLEAR_LATEST);
     }
   }
 
