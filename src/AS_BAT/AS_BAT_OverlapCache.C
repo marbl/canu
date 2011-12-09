@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.8 2011-12-09 20:34:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.9 2011-12-09 21:37:18 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -76,13 +76,13 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
 
   _ovsMax  = 1 * 1024 * 1024;  //  At 16B each, this is 16MB
   _ovs     = new OVSoverlap [_ovsMax];
-  _ovsSco  = new uint32     [_ovsMax];
+  _ovsSco  = new uint64     [_ovsMax];
 
   _batMax  = 1 * 1024 * 1024;  //  At 8B each, this is 8MB
   _bat     = new BAToverlap [_batMax];
 
   _memUsed += _ovsMax * sizeof(OVSoverlap);
-  _memUsed += _ovsMax * sizeof(uint32);
+  _memUsed += _ovsMax * sizeof(uint64);
   _memUsed += _batMax * sizeof(BAToverlap);
 
   _OVSerate     = NULL;
@@ -335,7 +335,7 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
     return(ns);
   }
 
-  memset(_ovsSco, 0, sizeof(uint32) * no);
+  memset(_ovsSco, 0, sizeof(uint64) * no);
 
   //  A simple filter based on quality; keep if good.
 #if 0
@@ -349,21 +349,17 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
   uint32  maxLen = 0;
   uint32  minLen = UINT32_MAX;
 
-  uint32  mask = (1 << AS_OVS_ERRBITS) - 1;
+  uint64  ERR_MASK = (1 << AS_OVS_ERRBITS) - 1;
 
-#if (AS_READ_MAX_NORMAL_LEN_BITS + AS_OVS_ERRBITS + 8 > 32)
-#error not enough space to store overlsp score
-#endif
-
-#define SALT_BITS (32 - AS_READ_MAX_NORMAL_LEN_BITS - AS_OVS_ERRBITS)
-#define SALT_MASK ((1 << SALT_BITS) - 1)
+  uint32  SALT_BITS = (64 - AS_READ_MAX_NORMAL_LEN_BITS - AS_OVS_ERRBITS);
+  uint64  SALT_MASK = ((1 << SALT_BITS) - 1);
 
   //fprintf(stderr, "SALT_BITS %d SALT_MASK 0x%08x\n", SALT_BITS, SALT_MASK);
 
   for (uint32 ii=0; ii<no; ii++) {
     _ovsSco[ii]   = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
     _ovsSco[ii] <<= AS_OVS_ERRBITS;
-    _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & (mask);
+    _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
     _ovsSco[ii] <<= SALT_BITS;
     _ovsSco[ii]  |= ii & SALT_MASK;
 
@@ -377,14 +373,14 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
   //  
   sort(_ovsSco, _ovsSco + no);
 
-  uint32  cutoff = _ovsSco[no - _maxPer];
+  uint64  cutoff = _ovsSco[no - _maxPer];
 
   for (uint32 ii=0; ii<no; ii++) {
     _ovsSco[ii]   = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
     _ovsSco[ii] <<= AS_OVS_ERRBITS;
-    _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & (mask);
-    _ovsSco[ii] <<= 8;
-    _ovsSco[ii]  |= ii & 0xff;
+    _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
+    _ovsSco[ii] <<= SALT_BITS;
+    _ovsSco[ii]  |= ii & SALT_MASK;
 
     if ((_ovs[ii].dat.ovl.corr_erate > maxOVSerate) ||
         (FI->fragmentLength(_ovs[ii].a_iid) == 0) ||
@@ -443,14 +439,14 @@ OverlapCache::loadOverlaps(double erate, double elimit) {
     //  Resize temporary storage space to hold all these overlaps.
     while (_ovsMax <= numOvl) {
       _memUsed -= (_ovsMax) * sizeof(OVSoverlap);
-      _memUsed -= (_ovsMax) * sizeof(uint32);
+      _memUsed -= (_ovsMax) * sizeof(uint64);
       _ovsMax *= 2;
       delete [] _ovs;
       delete [] _ovsSco;
       _ovs    = new OVSoverlap [_ovsMax];
-      _ovsSco = new uint32     [_ovsMax];
+      _ovsSco = new uint64     [_ovsMax];
       _memUsed += (_ovsMax) * sizeof(OVSoverlap);
-      _memUsed += (_ovsMax) * sizeof(uint32);
+      _memUsed += (_ovsMax) * sizeof(uint64);
     }
 
     //  Actually load the overlaps.
