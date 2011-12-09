@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.12 2011-12-08 00:12:18 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignPrint.c,v 1.13 2011-12-09 01:56:52 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -189,7 +189,7 @@ IMP2Array(IntMultiPos *imp,
       fprintf(stderr, "ERROR:  Undefined clear range for fragment %d\n", imp[i].ident), exit(1);
 
     node->read        = &imp[i];
-    node->readLen = clr_end - clr_bgn;
+    node->readLen     = clr_end - clr_bgn;
     node->sequence    = new char [node->readLen + 1];
     node->quality     = new char [node->readLen + 1];
 
@@ -261,6 +261,10 @@ IMP2Array(IntMultiPos *imp,
 
       for (int32 j=0; j<node->read->delta_length; j++) {
         int32 seglen = node->read->delta[j] - ((j > 0) ? node->read->delta[j-1] : 0);
+
+        if (cols + seglen >= node->readLen)
+          fprintf(stderr, "ERROR:  Clear ranges not correct.\n");
+        assert(cols + seglen < node->readLen);
 
         memcpy(srow + col, node->sequence + cols, seglen);
         memcpy(qrow + col, node->quality  + cols, seglen);
@@ -347,8 +351,8 @@ PrintMultiAlignT(FILE *out,
     fprintf(out, "<<<  Contig %d, gapped length: %d  >>>\n",ma->maID, length);
 
     {
-      memset(gruler, 0, MULTIALIGN_PRINT_WIDTH);
-      memset(uruler, 0, MULTIALIGN_PRINT_WIDTH);
+      memset(gruler, 0, MULTIALIGN_PRINT_WIDTH + 200);
+      memset(uruler, 0, MULTIALIGN_PRINT_WIDTH + 200);
 
       for (int32 rowind=0; rowind<rowlen; rowind++) {
         if (((window + 1 + rowind) % 25) == 0)
@@ -368,9 +372,9 @@ PrintMultiAlignT(FILE *out,
           uruler[i] = ' ';
       }
 
-      for (int32 i=MULTIALIGN_PRINT_WIDTH-1; gruler[i] == ' '; i--)
+      for (int32 i=MULTIALIGN_PRINT_WIDTH-1; (i >= 0) && (gruler[i] == ' '); i--)
         gruler[i] = 0;
-      for (int32 i=MULTIALIGN_PRINT_WIDTH-1; uruler[i] == ' '; i--)
+      for (int32 i=MULTIALIGN_PRINT_WIDTH-1; (i >= 0) && (uruler[i] == ' '); i--)
         uruler[i] = 0;
 
       fprintf(out, "%s\n", gruler);
