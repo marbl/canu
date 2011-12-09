@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: RefreshMANode.c,v 1.8 2011-12-08 00:24:36 brianwalenz Exp $";
+static char *rcsid = "$Id: RefreshMANode.c,v 1.9 2011-12-09 02:59:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -662,7 +662,7 @@ PopulateVARRecord(int32           is_phased,
           char    cbase    = 0;
 
           // Set the consensus quality and base
-          BaseCall(cid, 1, &fict_var, &vreg, -1, &cbase, 0, opp);
+          BaseCall(cid, 1, fict_var, &vreg, -1, cbase, 0, opp);
           Setchar(sequenceStore, call->soffset, &base[al]);
         }
       } else {
@@ -816,7 +816,6 @@ RefreshMANode(int32 mid, int32 quality, CNS_Options *opp, int32 *nvars,
   cids     = (int32 *)safe_calloc(len_manode, sizeof(int32));
   Resetint32(ma->columnList);
   cid = ma->first;
-  vreg.nr = -1;
 
   if (get_scores > 0) {
     prev_bases = (char  *)safe_malloc(max_prev_nr*sizeof(char ));
@@ -838,7 +837,7 @@ RefreshMANode(int32 mid, int32 quality, CNS_Options *opp, int32 *nvars,
             }
           // Call consensus using all alleles
           // The goal is to detect a variation at a given position
-          BaseCall(cid, quality, &(varf[index]), &vreg, -1, &cbase, get_scores, opp);
+          BaseCall(cid, quality, varf[index], &vreg, -1, cbase, get_scores, opp);
           cids[index] = cid;
         }
       column->ma_index = index;

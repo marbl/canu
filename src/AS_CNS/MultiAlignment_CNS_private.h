@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.26 2011-12-08 00:56:30 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.27 2011-12-09 02:59:56 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -531,13 +531,13 @@ GetAlignmentTraceDriver(Fragment                    *afrag,
                         int32                        max_gap);
 
 void
-BaseCall(int32 cid,
-         int32 quality,
-         double *var,
-         VarRegion  *vreg,
-         int32 target_allele,
-         char *cons_base,
-         int32 get_scores,
+BaseCall(int32        cid,
+         bool         highQuality,
+         double      &var,
+         VarRegion   *vreg,
+         int32        target_allele,
+         char        &cons_base,
+         int32        get_scores,
          CNS_Options *opp);
 
 #endif
