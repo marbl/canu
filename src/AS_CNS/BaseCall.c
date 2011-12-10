@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: BaseCall.c,v 1.7 2011-12-09 02:59:56 brianwalenz Exp $";
+static char *rcsid = "$Id: BaseCall.c,v 1.8 2011-12-10 00:01:40 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -206,11 +206,11 @@ BaseCallQuality(int32        cid,
     if (qv == 0)
       qv += 5;    /// HUH?!!
 
-    tau[0] *= (base == '-') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[1] *= (base == 'A') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[2] *= (base == 'C') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[3] *= (base == 'G') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[4] *= (base == 'T') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
+    tau[0] += (base == '-') ? PROB[qv] : EPROB[qv];
+    tau[1] += (base == 'A') ? PROB[qv] : EPROB[qv];
+    tau[2] += (base == 'C') ? PROB[qv] : EPROB[qv];
+    tau[3] += (base == 'G') ? PROB[qv] : EPROB[qv];
+    tau[4] += (base == 'T') ? PROB[qv] : EPROB[qv];
 
     consensusQV = qv;
   }
@@ -232,11 +232,11 @@ BaseCallQuality(int32        cid,
     if (qv == 0)
       qv += 5;
 
-    tau[0] *= (base == '-') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[1] *= (base == 'A') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[2] *= (base == 'C') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[3] *= (base == 'G') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[4] *= (base == 'T') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
+    tau[0] += (base == '-') ? PROB[qv] : EPROB[qv];
+    tau[1] += (base == 'A') ? PROB[qv] : EPROB[qv];
+    tau[2] += (base == 'C') ? PROB[qv] : EPROB[qv];
+    tau[3] += (base == 'G') ? PROB[qv] : EPROB[qv];
+    tau[4] += (base == 'T') ? PROB[qv] : EPROB[qv];
 
     consensusQV = qv;
   }
@@ -258,11 +258,11 @@ BaseCallQuality(int32        cid,
     if (qv == 0)
       qv += 5;
 
-    tau[0] *= (base == '-') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[1] *= (base == 'A') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[2] *= (base == 'C') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[3] *= (base == 'G') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
-    tau[4] *= (base == 'T') ? PROB[qv] : (TAU_MISMATCH * EPROB[qv]);
+    tau[0] += (base == '-') ? PROB[qv] : EPROB[qv];
+    tau[1] += (base == 'A') ? PROB[qv] : EPROB[qv];
+    tau[2] += (base == 'C') ? PROB[qv] : EPROB[qv];
+    tau[3] += (base == 'G') ? PROB[qv] : EPROB[qv];
+    tau[4] += (base == 'T') ? PROB[qv] : EPROB[qv];
 
     consensusQV = qv;
   }
@@ -283,16 +283,43 @@ BaseCallQuality(int32        cid,
     return;
   }
 
+  //  Do we need to scale before normalizing?  Anything out of bounds?  We'll try to scale the small
+  //  values up to DBL_MIN without making the large values larger than DBL_MAX.  If we end up with
+  //  some values still too small, oh well.  We have a winner (the large value) anyway!
+
+  double  scaleValue = 0.0;
+
+  double  minValue   = log(DBL_MIN);
+  double  maxValue   = log(DBL_MAX);
+
+  double  minTau = DBL_MAX;
+  double  maxTau = DBL_MIN;
+
+  minTau = MIN(minTau, tau[0]);
+  minTau = MIN(minTau, tau[1]);
+  minTau = MIN(minTau, tau[2]);
+  minTau = MIN(minTau, tau[3]);
+  minTau = MIN(minTau, tau[4]);
+
+  maxTau = MAX(maxTau, tau[0]);
+  maxTau = MAX(maxTau, tau[1]);
+  maxTau = MAX(maxTau, tau[2]);
+  maxTau = MAX(maxTau, tau[3]);
+  maxTau = MAX(maxTau, tau[4]);
+
+  if (minTau < minValue)
+    scaleValue = minValue - minTau;
+
+  if (maxTau + scaleValue > maxValue)
+    scaleValue = maxValue - maxTau;
+
+  tau[0] = exp(tau[0] + scaleValue);
+  tau[1] = exp(tau[1] + scaleValue);
+  tau[2] = exp(tau[2] + scaleValue);
+  tau[3] = exp(tau[3] + scaleValue);
+  tau[4] = exp(tau[4] + scaleValue);
 
   double  normalize = 0.0;
-
-#if 0
-  if (tau[0] < DBL_MIN)   tau[0] = DBL_MIN;
-  if (tau[1] < DBL_MIN)   tau[1] = DBL_MIN;
-  if (tau[2] < DBL_MIN)   tau[2] = DBL_MIN;
-  if (tau[3] < DBL_MIN)   tau[3] = DBL_MIN;
-  if (tau[4] < DBL_MIN)   tau[4] = DBL_MIN;
-#endif
 
   cw[0] = tau[0] * 0.2;    normalize += cw[0];
   cw[1] = tau[1] * 0.2;    normalize += cw[1];

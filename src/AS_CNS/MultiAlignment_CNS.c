@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.264 2011-12-08 00:56:29 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.265 2011-12-10 00:01:40 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -160,23 +160,19 @@ uint32 FORCE_UNITIG_ABUT = 0;
 static
 void
 InitializeAlphTable(void) {
-  int32 i;
 
   if (RINDEX[0] == 31)
     return;
 
-  for (i=0; i<RINDEXMAX; i++)
+  for (int32 i=0; i<RINDEXMAX; i++)
     RINDEX[i] = 31;
 
-  for(i=0; i<CNS_NP; i++)
+  for (int32 i=0; i<CNS_NP; i++)
     RINDEX[(int)RALPHABET[i]] = i;
 
-  int32 qv=CNS_MIN_QV;
-
-  for (i=0; i<CNS_MAX_QV-CNS_MIN_QV+1; i++) {
-    EPROB[i]= pow(10, -qv/10.);
-    PROB[i] = (1.0 - EPROB[i]);
-    qv++;
+  for (int32 i=0, qv=CNS_MIN_QV; i<CNS_MAX_QV-CNS_MIN_QV+1; i++, qv++) {
+    EPROB[i]= log(TAU_MISMATCH * pow(10, -qv/10.0));
+    PROB[i] = log(1.0 - pow(10, -qv/10.0));
   }
 }
 
