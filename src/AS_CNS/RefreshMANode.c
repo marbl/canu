@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: RefreshMANode.c,v 1.9 2011-12-09 02:59:56 brianwalenz Exp $";
+static char *rcsid = "$Id: RefreshMANode.c,v 1.10 2011-12-12 20:21:13 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -964,21 +964,23 @@ RefreshMANode(int32 mid, int32 quality, CNS_Options *opp, int32 *nvars,
           /* Set the end of smoothed VAR region to the 1st position with svarf == 0 */
           if (opp->smooth_win > 0)
             {
-              while ((svend < len_manode-1) && (svarf[svend] > ZERO_PLUS))
+              while ((svend < len_manode) && (svarf[svend] > ZERO_PLUS))
                 svend++;
             }
-          else if (svend < len_manode-1)
+          else if (svend < len_manode)
             svend++;
 
           /* Set the end of unsmoothed VAR region to the 1st position with varf == 0 */
           vreg.end = vreg.beg;
           if (opp->smooth_win > 0)
             {
-              while (vreg.end < len_manode-1 && varf[vreg.end] > ZERO_PLUS)
+              while (vreg.end < len_manode && varf[vreg.end] > ZERO_PLUS)
                 vreg.end++;
             }
-          else if (svend < len_manode-1)
+          else if (vreg.end < len_manode)
             vreg.end++;
+
+          assert(vreg.beg < vreg.end);
 
           // Store iids of all the reads in current region
           vreg.nr = 0;
