@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.6 2011-12-07 04:13:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.7 2011-12-12 20:22:39 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -44,6 +44,10 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
                                    double               AS_UTG_ERROR_LIMIT,
                                    const char          *prefix) {
 
+  fprintf(logFile, "BestOverlapGraph-- allocating best edges ("F_U64"MB) and containments ("F_U64"MB)\n",
+          ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20),
+          ((1 * sizeof(BestContainment) * (FI->numFragments() + 1)) >> 20));
+
   _best5 = new BestEdgeOverlap [FI->numFragments() + 1];
   _best3 = new BestEdgeOverlap [FI->numFragments() + 1];
   _bestC = new BestContainment [FI->numFragments() + 1];
@@ -63,11 +67,12 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
   mismatchLimit   = AS_UTG_ERROR_LIMIT;
 
-  if (load(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT)) {
-    logFileOrder++;  //  To keep indices the same on log names
-    setLogFile(prefix, NULL);
-    return;
-  }
+  //  Not useful anymore.  This just saves the best overlaps, but we need all overlaps.
+  //if (load(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT)) {
+  //  logFileOrder++;  //  To keep indices the same on log names
+  //  setLogFile(prefix, NULL);
+  //  return;
+  //}
 
   setLogFile(prefix, "bestoverlapgraph");
 
@@ -170,7 +175,8 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
     }
   }
 
-  save(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT);
+  //  Not useful anymore.  This just saves the best overlaps, but we need all overlaps.
+  //save(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT);
 }
 
 BestOverlapGraph::~BestOverlapGraph(){
@@ -262,6 +268,8 @@ void
 BestOverlapGraph::save(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT) {
   char name[FILENAME_MAX];
 
+  assert(0);
+
   sprintf(name, "%s.bog", prefix);
 
   assert(_best5score == NULL);
@@ -295,6 +303,8 @@ BestOverlapGraph::save(const char *prefix, double AS_UTG_ERROR_RATE, double AS_U
 bool
 BestOverlapGraph::load(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT) {
   char name[FILENAME_MAX];
+
+  assert(0);
 
   sprintf(name, "%s.bog", prefix);
 

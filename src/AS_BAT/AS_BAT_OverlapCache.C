@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.9 2011-12-09 21:37:18 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.10 2011-12-12 20:22:39 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -29,7 +29,8 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
                            OverlapStore *ovlStoreRept,
                            double erate,
                            double elimit,
-                           uint64 memlimit) {
+                           uint64 memlimit,
+                           uint32 maxOverlaps) {
 
   _memLimit = memlimit;
   _memUsed = 0;
@@ -73,6 +74,8 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
 
   memset(_cachePtr, 0, sizeof(BAToverlapInt *) * (FI->numFragments() + 1));
   memset(_cacheLen, 0, sizeof(uint32)          * (FI->numFragments() + 1));
+
+  _maxPer  = maxOverlaps;
 
   _ovsMax  = 1 * 1024 * 1024;  //  At 16B each, this is 16MB
   _ovs     = new OVSoverlap [_ovsMax];
@@ -143,10 +146,18 @@ OverlapCache::~OverlapCache() {
 void
 OverlapCache::computeOverlapLimit(void) {
 
-  //  AS_OVS_numOverlapsPerFrag returns an array that starts at firstIIDrequested.  This is usually
-  //  1, unless the first fragment has no overlaps.  This is a terrible interface.
+
+  if (_maxPer < UINT32_MAX) {
+    //  -N supplied on the command line, use that instead.
+    fprintf(stderr, "OverlapCache()-- _maxPer     = "F_U32" overlaps/frag (from command line)\n", _maxPer);
+    return;
+  }
 
   AS_OVS_resetRangeOverlapStore(_ovlStoreUniq);
+
+  //  AS_OVS_numOverlapsPerFrag returns an array that starts at firstIIDrequested.  This is usually
+  //  1, unless the first fragment has no overlaps.  In that case, firstIIDrequested will be the
+  //  first fragment with overlaps.  This is a terrible interface.
 
   uint32  frstFrag = _ovlStoreUniq->firstIIDrequested;
   uint32  lastFrag = _ovlStoreUniq->lastIIDrequested;
@@ -349,10 +360,10 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
   uint32  maxLen = 0;
   uint32  minLen = UINT32_MAX;
 
-  uint64  ERR_MASK = (1 << AS_OVS_ERRBITS) - 1;
+  uint64  ERR_MASK = ((uint64)1 << AS_OVS_ERRBITS) - 1;
 
   uint32  SALT_BITS = (64 - AS_READ_MAX_NORMAL_LEN_BITS - AS_OVS_ERRBITS);
-  uint64  SALT_MASK = ((1 << SALT_BITS) - 1);
+  uint64  SALT_MASK = (((uint64)1 << SALT_BITS) - 1);
 
   //fprintf(stderr, "SALT_BITS %d SALT_MASK 0x%08x\n", SALT_BITS, SALT_MASK);
 

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.10 2011-12-05 22:56:22 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.11 2011-12-12 20:22:39 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -154,6 +154,7 @@ main (int argc, char * argv []) {
   double    elimitMerge             = 4.0;
 
   uint64    ovlCacheMemory          = UINT64_MAX;
+  uint32    ovlCacheLimit           = UINT32_MAX;
   uint64    genomeSize              = 0;
 
   int       fragment_count_target   = 0;
@@ -211,6 +212,9 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-M") == 0) {
       ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
+
+    } else if (strcmp(argv[arg], "-N") == 0) {
+      ovlCacheLimit   = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-s") == 0) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
@@ -317,6 +321,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "Overlap Storage\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -M gb    Use at most 'gb' gigabytes of memory for storing overlaps.\n");
+    fprintf(stderr, "    -N num   Load at most 'num' overlaps per read.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Debugging and Logging\n");
     fprintf(stderr, "\n");
@@ -377,7 +382,7 @@ main (int argc, char * argv []) {
   OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
   FI = new FragmentInfo(gkpStore, output_prefix);
-  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory);
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory, ovlCacheLimit);
   OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
