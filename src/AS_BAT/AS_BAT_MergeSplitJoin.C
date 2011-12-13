@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.9 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.10 2011-12-13 05:26:52 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -797,7 +797,7 @@ markRepeats_placeAndProcessOverlaps(UnitigVector              &unitigs,
         *end5 = FragmentEnd();
       }
 
-#if 1
+#if 0
       fprintf(logFile, "markRepeats()-- tig frag %8d ovl frag %8d %6d-%6d %5.2f%% tig pos %8d/%c' (%4d) %6d-%6d (%4d) %8d/%c'\n",
               op[pl].refID, op[pl].frgID,
               op[pl].covered.bgn,
