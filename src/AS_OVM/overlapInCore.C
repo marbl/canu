@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.4 2011-11-11 19:17:55 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.5 2011-12-13 05:10:12 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -342,7 +342,7 @@ OverlapDriver(void) {
     Initialize_Work_Area (thread_wa + i, i);
 
   {
-    uint32  id;
+    AS_IID  id;
 
     if  (Lo_Hash_Frag < 1)
       Lo_Hash_Frag = 1;
@@ -377,8 +377,8 @@ OverlapDriver(void) {
         Last_Hash_Frag = Last_Hash_Frag_Read;
       }
 
-    uint32 lowest_old_frag  = 1;
-    uint32 highest_old_frag = OldFragStore->gkStore_getNumFragments ();
+    AS_IID lowest_old_frag  = 1;
+    AS_IID highest_old_frag = OldFragStore->gkStore_getNumFragments ();
 
     if  (lowest_old_frag < Lo_Old_Frag)
       lowest_old_frag = Lo_Old_Frag;
