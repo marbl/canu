@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.265 2011-12-10 00:01:40 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.266 2011-12-13 03:51:41 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -468,16 +468,20 @@ GetMANodePositions(int32        mid,
     int32 end = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead.get() + fragment->length - 1))->column_index)->ma_index + 1;
 
     if (fragment->type == AS_READ) {
-      if (FALSE == ExistsInHashTable_AS (fragmentMap, fragment->iid, 0))
-        //  Fragment is not in the contig f_list; is in a surrogate.
-        continue;
 
-      if (1 != LookupValueInHashTable_AS (fragmentMap, fragment->iid, 0))
-        //  Attempting to place a surrogate fragment more than once.
-        continue;
+      //  Not valid for unitig consensus.
+      if (fragmentMap) {
+        if (FALSE == ExistsInHashTable_AS (fragmentMap, fragment->iid, 0))
+          //  Fragment is not in the contig f_list; is in a surrogate.
+          continue;
 
-      //  Indicate we've placed the fragment.
-      ReplaceInHashTable_AS(fragmentMap, fragment->iid, 0, 2, 0);
+        if (1 != LookupValueInHashTable_AS (fragmentMap, fragment->iid, 0))
+          //  Attempting to place a surrogate fragment more than once.
+          continue;
+
+        //  Indicate we've placed the fragment.
+        ReplaceInHashTable_AS(fragmentMap, fragment->iid, 0, 2, 0);
+      }
 
       IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
 
@@ -521,13 +525,18 @@ GetMANodePositions(int32        mid,
       continue;
 
     if (fragment->type == AS_READ) {
-      if (FALSE == ExistsInHashTable_AS(fragmentMap, fragment->iid, 0))
-        continue;
 
-      // all of the contig's fragments should've had their value set to 2 in previous block
+      //  Not valid for unitig consensus
 
-      assert(2 == LookupValueInHashTable_AS(fragmentMap, fragment->iid, 0));
-      DeleteFromHashTable_AS(fragmentMap, fragment->iid, 0);
+      if (fragmentMap) {
+        if (FALSE == ExistsInHashTable_AS(fragmentMap, fragment->iid, 0))
+          continue;
+
+        // all of the contig's fragments should've had their value set to 2 in previous block
+
+        assert(2 == LookupValueInHashTable_AS(fragmentMap, fragment->iid, 0));
+        DeleteFromHashTable_AS(fragmentMap, fragment->iid, 0);
+      }
 
       IntMultiPos *imp = GetIntMultiPos(ma->f_list, n_frags++);
 
