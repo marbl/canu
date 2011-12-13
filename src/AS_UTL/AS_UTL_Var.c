@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_Var.c,v 1.32 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: AS_UTL_Var.c,v 1.33 2011-12-13 04:56:56 brianwalenz Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package
@@ -339,7 +339,7 @@ void
 LoadFromFile_VA(FILE *fp,
                 VarArrayType *va) {
 
-  FileVarArrayType    vat = {0};
+  FileVarArrayType    vat = {0, 0, 0, 0, {0}};
 
   if (1 != AS_UTL_safeRead(fp, &vat, "LoadFromFile_VA (vat)", sizeof(FileVarArrayType), 1))
     fprintf(stderr, "LoadFromFile_VA()-- Failed to read vat\n"), exit(1);
@@ -358,7 +358,7 @@ VarArrayType *
 CreateFromFile_VA(FILE *fp,
                   const char *thetype) {
 
-  FileVarArrayType    vat = {0};
+  FileVarArrayType    vat = {0, 0, 0, 0, {0}};
   VarArrayType       *va  = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
 
   if (1 != AS_UTL_safeRead(fp, &vat, "CreateFromFile_VA (vat)", sizeof(FileVarArrayType), 1))
@@ -388,7 +388,7 @@ CreateFromFile_VA(FILE *fp,
 
 
 size_t CopyToFile_VA(VarArrayType *va,FILE *fp){
-  FileVarArrayType vat = {0};
+  FileVarArrayType vat = {0, 0, 0, 0, {0}};
 
   assert(fp != NULL);
   assert(va != NULL);
@@ -426,7 +426,7 @@ LoadFromMemory_VA(char *&memory,
 
   assert(memory != NULL);
 
-  FileVarArrayType    vat = {0};
+  FileVarArrayType    vat = {0, 0, 0, 0, {0}};
 
   memcpy(&vat, memory, sizeof(FileVarArrayType));
   memory += sizeof(FileVarArrayType);
@@ -456,7 +456,7 @@ CreateFromMemory_VA(char *&memory,
 
   assert(memory != NULL);
 
-  FileVarArrayType    vat = {0};
+  FileVarArrayType    vat = {0, 0, 0, 0, {0}};
   VarArrayType       *va  = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
 
   memcpy(&vat, memory, sizeof(FileVarArrayType));
@@ -504,7 +504,7 @@ CopyToMemory_VA(VarArrayType *va,
   assert(va->numElements == 0 || va->Elements != NULL);
   assert(va->sizeofElement > 0);
 
-  FileVarArrayType vat = {0};
+  FileVarArrayType vat = {0, 0, 0, 0, {0}};
 
   vat.Elements           = 0;
   vat.sizeofElement      = va->sizeofElement;
