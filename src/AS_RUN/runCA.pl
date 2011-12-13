@@ -903,7 +903,7 @@ sub setParameters () {
     {
         caFailure("can't find 'gatekeeper' program in $bin.  Possibly incomplete installation", undef) if (! -x "$bin/gatekeeper");
         caFailure("can't find 'meryl' program in $bin.  Possibly incomplete installation", undef)      if (! -x "$bin/meryl");
-        caFailure("can't find 'overlap' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlap");
+        caFailure("can't find 'overlap' program in $bin.  Possibly incomplete installation", undef)    if (! -x "$bin/overlapInCore");
         caFailure("can't find 'unitigger' program in $bin.  Possibly incomplete installation", undef)  if (! -x "$bin/unitigger");
         caFailure("can't find 'cgw' program in $bin.  Possibly incomplete installation", undef)        if (! -x "$bin/cgw");
         caFailure("can't find 'utgcns' program in $bin.  Possibly incomplete installation", undef)     if (! -x "$bin/utgcns");
@@ -3219,13 +3219,13 @@ sub createOverlapJobs($) {
     my $ovlOpt  = "";
     my $merSize = getGlobal("ovlMerSize");
     my $merComp = getGlobal("merCompression");
-    my $overlap = (getGlobal("ovlOverlapper") eq "ovl") ? "overlap" : "overlapInCore";
+    my $overlap = "overlapInCore";
 
     if ($isTrim eq "trim") {
         $outDir  = "0-overlaptrim-overlap";
         $ovlOpt  = "-G";
         $merSize = getGlobal("obtMerSize");
-        $overlap = (getGlobal("obtOverlapper") eq "ovl") ? "overlap" : "overlapInCore";
+        $overlap = "overlapInCore";
     }
 
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");

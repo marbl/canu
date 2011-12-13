@@ -62,13 +62,7 @@ ifdef UMD_OVL
   AS_SCRIPTS = runUMDOverlapper overlapPipeline dataWorkReduced
 endif
 
-AS_OVL_CA_SRCS = AS_OVL_overlap_ca.C  AS_OVL_driver_ca.C
-AS_OVL_CA_OBJS = $(AS_OVL_CA_SRCS:.C=.o)
-
-AS_OVL_SRCS = AS_OVL_overlap.C AS_OVL_driver.C
-AS_OVL_OBJS = $(AS_OVL_SRCS:.C=.o)
-
-AS_OVL_CMN_SRCS = AS_OVL_delcher.C
+AS_OVL_CMN_SRCS = AS_OVL_delcher.C SharedOVL.C
 AS_OVL_CMN_OBJS = $(AS_OVL_CMN_SRCS:.C=.o)
 
 SEED_OLAP_SRCS = OlapFromSeedsOVL.C
@@ -77,20 +71,15 @@ SEED_OLAP_OBJS = $(SEED_OLAP_SRCS:.C=.o)
 CORRECT_SRCS = FragCorrectOVL.C ShowCorrectsOVL.C CorrectOlapsOVL.C CatCorrectsOVL.C CatEratesOVL.C
 CORRECT_OBJS = $(CORRECT_SRCS:.C=.o)
 
-LIBSOURCES =  SharedOVL.C
-LIBOBJECTS = $(LIBSOURCES:.C=.o)
-
-SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) overlap_partition.C $(AS_OVL_CMN_SRCS) $(SEED_OLAP_SRCS) $(CORRECT_SRCS) $(LIBSOURCES)
+SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) overlap_partition.C $(AS_OVL_CMN_SRCS) $(SEED_OLAP_SRCS) $(CORRECT_SRCS)
 OBJECTS = $(SOURCES:.Cc=.o)
 
-AS_OVL_PROGS    = overlap overlap_ca overlap_partition
+AS_OVL_PROGS    = overlap_partition
 SEED_OLAP_PROGS = olap-from-seeds
 CORRECT_PROGS   = correct-frags show-corrects correct-olaps cat-corrects cat-erates
 
 CXX_PROGS  = $(AS_OVL_PROGS) $(SEED_OLAP_PROGS) $(CORRECT_PROGS)
 SCRIPTS    = $(AS_SCRIPTS)
-LIBRARIES  = libAS_OVL.a
-LIBRARIES += libCA.a
 LIBS       = libCA.a
 
 include $(LOCAL_WORK)/src/c_make.as
@@ -114,12 +103,8 @@ endif
 ifeq ($(OSTYPE), Darwin)
 endif
 
-
-all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
+all:    $(OBJECTS) $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
-
-libAS_OVL.a: $(LIBOBJECTS) AS_OVL_delcher.o
-libCA.a:     $(LIBOBJECTS) AS_OVL_delcher.o
 
 show-corrects:  ShowCorrectsOVL.o AS_OVL_delcher.o $(LIBS)
 update-erates:  UpdateEratesOVL.o AS_OVL_delcher.o $(LIBS)
@@ -129,12 +114,9 @@ cat-erates:     CatEratesOVL.o    AS_OVL_delcher.o $(LIBS)
 correct-frags:  FragCorrectOVL.o  AS_OVL_delcher.o $(LIBS)
 correct-olaps:  CorrectOlapsOVL.o AS_OVL_delcher.o $(LIBS)
 
-overlap:    $(AS_OVL_OBJS)    $(AS_OVL_CMN_OBJS) $(LIBS)
-overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS)
-
 overlap_partition: overlap_partition.o $(LIBS)
 
-olap-from-seeds:  OlapFromSeedsOVL.o AS_OVL_delcher.o $(LIBS)
+olap-from-seeds:  OlapFromSeedsOVL.o AS_OVL_delcher.o SharedOVL.o $(LIBS)
 
 
 runUMDOverlapper: $(UMD_OVL)/runUMDOverlapper.perl
