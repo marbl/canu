@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig_PlaceFragUsingEdges.C,v 1.3 2011-03-17 05:33:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig_PlaceFragUsingEdges.C,v 1.4 2011-12-13 05:22:04 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -131,9 +131,6 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
       fend = parent->position.bgn - ahang;
     }
 
-    assert(pbgn < pend);
-    assert(fbgn < fend);
-
     //  Since we don't know the true length of the overlap, if we use just the hangs to place a
     //  fragment, we typically shrink fragments well below their actual length.  In one case, we
     //  shrank a container enough that the containee was placed in the unitig backwards.
@@ -169,6 +166,17 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
         fend = pend + 1;
       }
     }
+
+    if (pbgn >= pend)
+      fprintf(stderr, "ERROR: parent placement inconsistent iid=%d %d,%d\n",
+              parent->ident, parent->position.bgn, parent->position.end);
+    if (fbgn >= fend)
+      fprintf(stderr, "ERROR: placement inconsistent parent=%d %d,%d hang %d,%d this %d %d,%d\n",
+              parent->ident, parent->position.bgn, parent->position.end,
+              ahang, bhang,
+              frag5.ident, fbgn, fend);
+    assert(pbgn < pend);
+    assert(fbgn < fend);
 
 
     //  The new frag is reverse if:
@@ -225,9 +233,6 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
       fend = parent->position.bgn - ahang;
     }
 
-    assert(pbgn < pend);
-    assert(fbgn < fend);
-
 #warning not knowing the overlap length really hurts.
     fend = fbgn + FI->fragmentLength(frag3.ident);
 
@@ -253,6 +258,17 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
         fend = pend + 1;
       }
     }
+
+    if (pbgn >= pend)
+      fprintf(stderr, "ERROR: parent placement inconsistent iid=%d %d,%d\n",
+              parent->ident, parent->position.bgn, parent->position.end);
+    if (fbgn >= fend)
+      fprintf(stderr, "ERROR: placement inconsistent parent=%d %d,%d hang %d,%d this %d %d,%d\n",
+              parent->ident, parent->position.bgn, parent->position.end,
+              ahang, bhang,
+              frag3.ident, fbgn, fend);
+    assert(pbgn < pend);
+    assert(fbgn < fend);
 
 
     //  The new frag is reverse if:
