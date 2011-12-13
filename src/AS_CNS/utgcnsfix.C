@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcnsfix.C,v 1.3 2011-12-08 00:11:35 brianwalenz Exp $";
+const char *mainid = "$Id: utgcnsfix.C,v 1.4 2011-12-13 03:50:22 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -35,8 +35,9 @@ main (int argc, char **argv) {
   char  *tigName = NULL;
   int32  tigVers = -1;
 
-  int32  numFailures = 0;
-  int32  numSkipped  = 0;
+  AS_IID bgnID = 0;
+  AS_IID onlID = UINT32_MAX;
+  AS_IID endID = UINT32_MAX;
 
   bool   showResult = false;
 
@@ -61,6 +62,9 @@ main (int argc, char **argv) {
 
       if (tigVers <= 0)
         fprintf(stderr, "invalid tigStore version (-t store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
+
+    } else if (strcmp(argv[arg], "-u") == 0) {
+      onlID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-v") == 0) {
       showResult = true;
@@ -87,12 +91,17 @@ main (int argc, char **argv) {
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
   tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, TRUE, FALSE, FALSE);
 
-  uint32  b = 0;
-  uint32  e = tigStore->numUnitigs();
+  bgnID = 0;
+  endID = tigStore->numUnitigs();
 
-  fprintf(stderr, "Checking unitig consensus for b="F_U32" to e="F_U32"\n", b, e);
+  if (onlID < endID) {
+    bgnID = onlID;
+    endID = onlID + 1;
+  }
+  
+  fprintf(stderr, "Checking unitig consensus for b="F_U32" to e="F_U32"\n", bgnID, endID);
 
-  for (uint32 i=b; i<e; i++) {
+  for (uint32 i=bgnID; i<endID; i++) {
     MultiAlignT  *maOrig = tigStore->loadMultiAlign(i, TRUE);
 
     if (maOrig == NULL) {
@@ -177,7 +186,7 @@ main (int argc, char **argv) {
         fprintf(stderr, "Unitig %d failed, again.\n", maFixd->maID);
 
         failed[lastAdded] = 1;
-
+        assert(0);
         goto tryAgain;
       }
 
@@ -209,13 +218,6 @@ main (int argc, char **argv) {
 
  finish:
   delete tigStore;
-
-  if (numFailures) {
-    fprintf(stderr, "WARNING:  Total number of unitig failures = %d\n", numFailures);
-    fprintf(stderr, "\n");
-    fprintf(stderr, "Consensus did NOT finish successfully.\n");
-    return(1);
-  }
 
   fprintf(stderr, "Consensus finished successfully.  Bye.\n");
   return(0);
