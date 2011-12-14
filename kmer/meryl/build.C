@@ -313,7 +313,7 @@ prepareBatch(merylArgs *args) {
     fprintf(stderr, "  numBuckets         = "u64bitFMT" ("u32bitFMT" bits)\n", args->numBuckets, args->numBuckets_log2);
     fprintf(stderr, "  bucketPointerWidth = "u32bitFMT"\n", args->bucketPointerWidth);
     fprintf(stderr, "  merDataWidth       = "u32bitFMT"\n", args->merDataWidth);
-    fprintf(stderr, "Sorry!  merSize too big!  Increase KMER_WORDS to count more than %d-mers.\n", 32 * KMER_WORDS);
+    fprintf(stderr, "Sorry!  merSize too big!  Increase KMER_WORDS in libbio.kmer.H\n");
     exit(1);
   }
 

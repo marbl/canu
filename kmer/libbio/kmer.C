@@ -110,6 +110,10 @@ kMerBuilder::kMerBuilder(u32bit ms, u32bit cm, char *tm) {
   }
 
 
+  if (_merSize > KMER_WORDS * 32)
+    fprintf(stderr, "kMer size too large; increase KMER_WORDS in libbio/kmer.H\n"), exit(1);
+
+
   _compressionLength = new u32bit [_merSize];
 
   for (u32bit z=0; z<_merSize; z++)
