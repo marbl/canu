@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.89 2011-12-04 23:21:29 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.90 2011-12-14 14:15:17 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2788,7 +2788,16 @@ void ComputeMatePairDetailedStatus(void) {
         frag->flags.bits.mateDetail = NO_MATE;
         continue;
       }
-      assert(mate->mate_iid == mp->ident);
+      if (mate->mate_iid != mp->ident) {
+	fprintf (stderr, "ERROR: The gkpStore appears corrupt!\n");
+	fprintf (stderr, "INFO: Expect (mate(mate(read))==read.\n");
+	fprintf (stderr, "INFO: Alignment %d of %d references read IID %d\n", i, numFrags, mp->ident);
+	fprintf (stderr, "INFO: Retrieved read IID %d\n", frag->read_iid);
+	fprintf (stderr, "INFO: That read references mate %d\n", frag->mate_iid);
+	fprintf (stderr, "INFO: Retrieved read IID %d\n", mate->read_iid);
+	fprintf (stderr, "INFO: That read references mate  %d\n", mate->mate_iid);
+	assert(mate->mate_iid == mp->ident);
+      }
       if(frag->flags.bits.isChaff) {
         if (mate->flags.bits.isChaff) {
           if (mate->flags.bits.mateDetail != BOTH_CHAFF_MATE) {
