@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: BaseCall.c,v 1.8 2011-12-10 00:01:40 brianwalenz Exp $";
+static char *rcsid = "$Id: BaseCall.c,v 1.9 2011-12-15 18:39:40 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -272,7 +272,7 @@ BaseCallQuality(int32        cid,
   if ((bNum == 0) &&
       (oNum == 0) &&
       (gNum == 0)) {
-    fprintf(stderr, "No coverage for column=%d.  Assume it's an N in a single coverage area.\n", cid);
+    //fprintf(stderr, "No coverage for column=%d.  Assume it's an N in a single coverage area.\n", cid);
 
     consensusBase = 'N';
     consensusQV   = '0';
