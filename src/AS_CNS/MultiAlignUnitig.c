@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.48 2011-12-15 02:13:41 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.49 2011-12-15 18:20:33 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -882,8 +882,6 @@ unitigConsensus::alignFragment(void) {
   int32 frankEnd     = frankensteinLen;                       //  Truncation of frankenstein
   char  frankEndBase = 0;                                     //  Saved base from frankenstein
 
-  char  endBase = 0;
-
   bool  allowAhang   = false;
   bool  allowBhang   = true;
   bool  tryAgain     = false;
@@ -911,10 +909,12 @@ unitigConsensus::alignFragment(void) {
   Fragment  *bfrag = GetFragment(fragmentStore, tiid);
   int32      blen  = bfrag->length;
 
-  endBase = bseq[blen - endTrim];
-  bseq[blen - endTrim] = 0;
+  assert(endTrim < blen);
+  assert(endTrim >= 0);
 
-  //  Now just fish for an alignment that is decent.  This is mostly straight from alignFragmentToFragment.
+  int32 fragBgn      = 0;
+  int32 fragEnd      = blen - endTrim;
+  char  fragEndBase  = bseq[fragEnd];
 
   if (O == NULL) {
     O = Optimal_Overlap_AS_forCNS(aseq,
@@ -938,20 +938,19 @@ unitigConsensus::alignFragment(void) {
     tryAgain = true;
     O = NULL;
   }
-  if ((O) && (O->endpos < 0) && (endBase != 0)) {
+  if ((O) && (O->endpos < 0) && (endTrim > 0)) {
     endTrim -= -O->endpos + 10;
+    if (endTrim < 20)
+      endTrim = 0;
     tryAgain = true;
     O = NULL;
   }
   if (rejectAlignment(allowBhang, allowAhang, O))
     O = NULL;
 
-  //  Restore the base we might have removed from frankenstein.
-  if (frankEndBase)
-    frankenstein[frankEnd] = frankEndBase;
-
-  if (endBase)
-    bseq[blen - endTrim] = endBase;
+  //  Restore the bases we might have removed.
+  if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
+  if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
 
   if (O) {
     Resetint32(trace);
