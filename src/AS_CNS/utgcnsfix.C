@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcnsfix.C,v 1.4 2011-12-13 03:50:22 brianwalenz Exp $";
+const char *mainid = "$Id: utgcnsfix.C,v 1.5 2011-12-15 02:07:57 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -115,7 +115,7 @@ main (int argc, char **argv) {
       //  Has consensus sequence already.
       continue;
 
-    fprintf(stderr, "Evaluating unitig %d (%d fragments)\n",
+    fprintf(stderr, "\nEvaluating unitig %d (%d fragments)\n",
             maOrig->maID, maOrig->data.num_frags);
 
     //  This is a complicated algorithm, but only to make it bullet-proof.  The basic idea
@@ -146,8 +146,8 @@ main (int argc, char **argv) {
       //  using those not placed.
 
     tryAgain:
-      fprintf(stderr, "Fixing unitig %d (%d fragments remain)\n",
-              maOrig->maID, maTest->data.num_frags);
+      fprintf(stderr, "\nFixing unitig %d (%d fragments remain)\n",
+              maOrig->maID, GetNumIntMultiPoss(maTest->f_list));
 
       ResetVA_IntMultiPos(maFixd->f_list);
       ResetVA_IntMultiPos(maNext->f_list);
@@ -186,7 +186,7 @@ main (int argc, char **argv) {
         fprintf(stderr, "Unitig %d failed, again.\n", maFixd->maID);
 
         failed[lastAdded] = 1;
-        assert(0);
+        //assert(0);
         goto tryAgain;
       }
 
@@ -198,7 +198,7 @@ main (int argc, char **argv) {
       tigStore->insertMultiAlign(maFixd, TRUE, FALSE);
 
       fprintf(stderr, "Added unitig %d with %d fragments.\n",
-              maFixd->maID, maFixd->data.num_frags);
+              maFixd->maID, GetNumIntMultiPoss(maFixd->f_list));
 
       if (showResult)
         PrintMultiAlignT(stdout, maFixd, gkpStore, false, false, AS_READ_CLEAR_LATEST);
