@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.47 2011-12-08 00:56:28 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.48 2011-12-15 02:13:41 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,10 +27,14 @@ static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.47 2011-12-08 00:56:28 brianwa
 #include <math.h>
 #include <ctype.h>
 
+#include <set>
+
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 #include "MicroHetREZ.h"
 #include "AS_UTL_reverseComplement.h"
+
+using namespace std;
 
 #define SHOW_ALGORITHM         2
 #define SHOW_PLACEMENT_BEFORE  3
@@ -161,8 +165,9 @@ class unitigConsensus {
 public:
   unitigConsensus(MultiAlignT *ma_, CNS_Options *opp_) {
     ma       = ma_;
-    fraglist = GetVA_IntMultiPos(ma->f_list, 0);
     numfrags = GetNumIntMultiPoss(ma->f_list);
+    fraglist = GetVA_IntMultiPos(ma->f_list, 0);
+    fragback = NULL;
     opp      = opp_;
     trace    = NULL;
     manode   = NULL;
@@ -175,16 +180,14 @@ public:
     frankensteinMax = 0;
     frankenstein    = NULL;
     frankensteinBof = NULL;
-
-    fragmentMap = CreateScalarHashTable_AS();
   };
 
   ~unitigConsensus() {
     DeleteVA_int32(trace);
-    DeleteHashTable_AS(fragmentMap);  fragmentMap = NULL;
     if (manode)
       DeleteMANode(manode->lid);
 
+    safe_free(fragback);
     safe_free(utgpos);
     safe_free(cnspos);
     safe_free(frankenstein);
@@ -211,11 +214,13 @@ public:
   void   applyAlignment(int32 frag_aiid=-1, int32 frag_ahang=0, int32 *frag_trace=NULL);
 
   void   generateConsensus(void);
+  void   restoreUnitig(void);
 
 private:
   MultiAlignT    *ma;
-  IntMultiPos    *fraglist;
   int32           numfrags;
+  IntMultiPos    *fraglist;
+  IntMultiPos    *fragback;
 
   CNS_Options    *opp;
 
@@ -288,9 +293,13 @@ unitigConsensus::initialize(int32 *failed) {
   if (numfrags == 0)
     return(false);
 
+  fragback = (IntMultiPos *)safe_malloc(sizeof(IntMultiPos) * numfrags);
+
   for (int32 i=0; i<numfrags; i++) {
     if (failed != NULL)
       failed[i]  = true;
+
+    fragback[i] = fraglist[i];
 
     int32 flen   = (fraglist[i].position.bgn < fraglist[i].position.end) ? (fraglist[i].position.end < fraglist[i].position.bgn) : (fraglist[i].position.bgn - fraglist[i].position.end);
     num_bases   += (int32)ceil(flen + 2 * AS_CNS_ERROR_RATE * flen);
@@ -317,6 +326,8 @@ unitigConsensus::initialize(int32 *failed) {
   frankenstein    = (char    *)safe_malloc(sizeof(char)    * frankensteinMax);
   frankensteinBof = (beadIdx *)safe_malloc(sizeof(beadIdx) * frankensteinMax);
 
+  set<AS_IID>  dupFrag;
+
   for (int32 i=0; i<numfrags; i++) {
     int32 complement = (fraglist[i].position.bgn < fraglist[i].position.end) ? 0 : 1;
     int32 fid;
@@ -327,11 +338,12 @@ unitigConsensus::initialize(int32 *failed) {
       return(false);
     }
 
-    if (HASH_SUCCESS != InsertInHashTable_AS(fragmentMap,fraglist[i].ident, 0, 1, 0)) {
+    if (dupFrag.find(fraglist[i].ident) != dupFrag.end()) {
       fprintf(stderr, "MultiAlignUnitig()-- Unitig %d FAILED.  Fragment %d is a duplicate.\n",
               ma->maID, fraglist[i].ident);
       return(false);
     }
+    dupFrag.insert(fraglist[i].ident);
 
     // This guy allocates and initializes the beads for each fragment.  Beads are not fully inserted
     // in the abacus here.
@@ -672,16 +684,19 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
     int32   nn = 0;
 
     Bead   *bead = GetBead(beadStore, column->call);
-    char    call = '-';
+    char    call = 'N';
 
     if (nA > nn) { nn = nA;  call = 'A'; }
     if (nC > nn) { nn = nC;  call = 'C'; }
     if (nG > nn) { nn = nG;  call = 'G'; }
     if (nT > nn) { nn = nT;  call = 'T'; }
-    if (nN > nn) { nn = nN;  call = 'N'; }
-    if (n_ > nn) { nn = n_;  call = 'N'; }
+    //if (nN > nn) { nn = nN;  call = 'N'; }
+    //if (n_ > nn) { nn = n_;  call = 'N'; }
 
-    assert(call != '-');
+    //  Call should have been a gap, but we'll instead pick the most prevalant base, but lowercase
+    //  it.  This is used by the dynamic programming alignment.
+    if (n_ > nn)
+      call = tolower(call);
 
     Setchar(sequenceStore, bead->soffset, &call);
 
@@ -839,14 +854,35 @@ unitigConsensus::alignFragment(void) {
   if (bgnExtra < 10) bgnExtra = 10;
   if (endExtra < 10) endExtra = 10;
 
+  //  And compute how much extra fragment sequence to align to.  We want to trim off some
+  //  of the bhang sequence to prevent false alignments.  We trim off all of the bhang sequence,
+  //  except for 6% of the aligned length.
+  //
+  //  Actual example:  the real alignment should be this:
+  //
+  //  CGGCAGCCACCCCATCCGGGAGGGAGATGGGGGGGTCAGCCCCCCGCCCGGCCAGCCG
+  //            CCCATCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCCGCCAGCCGCTCCGTCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCGGCCAGCCGCCCC
+  //
+  //  Instead, this higher scoring (longer) and noiser alignment was found.
+  //
+  //                                                   CGGCAGCCACCCCATCCGGGAGGGAGATGGGGGGGTCAGCCCCCCGCCCGGCCAGCCG
+  //            CCCATCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCCGCCAGCCGCTCCGTCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCGGCCAGCCGCCCC
+  //
+  int32 endTrim = (cnspos[tiid].end - frankensteinLen) - (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].end - cnspos[tiid].bgn));
+
+  if (endTrim < 20)  endTrim = 0;
+
+
  alignFragmentAgain:
   if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d\n",
-            bgnExtra, endExtra);
+    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d and endTrim=%d\n",
+            bgnExtra, endExtra, endTrim);
 
   int32 frankBgn     = MAX(0, cnspos[tiid].bgn - bgnExtra);   //  Start position in frankenstein
   int32 frankEnd     = frankensteinLen;                       //  Truncation of frankenstein
   char  frankEndBase = 0;                                     //  Saved base from frankenstein
+
+  char  endBase = 0;
 
   bool  allowAhang   = false;
   bool  allowBhang   = true;
@@ -875,6 +911,9 @@ unitigConsensus::alignFragment(void) {
   Fragment  *bfrag = GetFragment(fragmentStore, tiid);
   int32      blen  = bfrag->length;
 
+  endBase = bseq[blen - endTrim];
+  bseq[blen - endTrim] = 0;
+
   //  Now just fish for an alignment that is decent.  This is mostly straight from alignFragmentToFragment.
 
   if (O == NULL) {
@@ -890,12 +929,19 @@ unitigConsensus::alignFragment(void) {
     }
   }
   if ((O) && (O->begpos < 0) && (frankBgn > 0)) {
-    bgnExtra += 2 * -O->begpos;
+    bgnExtra += -O->begpos + 10;
     tryAgain = true;
+    O = NULL;
   }
   if ((O) && (O->endpos > 0) && (allowBhang == false)) {
-    endExtra += 2 * O->endpos;
+    endExtra += O->endpos + 10;
     tryAgain = true;
+    O = NULL;
+  }
+  if ((O) && (O->endpos < 0) && (endBase != 0)) {
+    endTrim -= -O->endpos + 10;
+    tryAgain = true;
+    O = NULL;
   }
   if (rejectAlignment(allowBhang, allowAhang, O))
     O = NULL;
@@ -903,6 +949,9 @@ unitigConsensus::alignFragment(void) {
   //  Restore the base we might have removed from frankenstein.
   if (frankEndBase)
     frankenstein[frankEnd] = frankEndBase;
+
+  if (endBase)
+    bseq[blen - endTrim] = endBase;
 
   if (O) {
     Resetint32(trace);
@@ -1078,6 +1127,15 @@ unitigConsensus::generateConsensus(void) {
 }
 
 
+//  When the unitig fails, we should restore the layout to what it was - the parent and hangs are
+//  modified whenever a fragment is placed (in method rebuild()).
+//
+void
+unitigConsensus::restoreUnitig(void) {
+  memcpy(fraglist, fragback, sizeof(IntMultiPos) * numfrags);
+}
+
+
 
 bool
 MultiAlignUnitig(MultiAlignT     *ma,
@@ -1160,6 +1218,8 @@ MultiAlignUnitig(MultiAlignT     *ma,
 
  returnFailure:
   fprintf(stderr, "MultiAlignUnitig()-- unitig %d FAILED.\n", ma->maID);
+
+  uc->restoreUnitig();
 
   delete uc;
   return(false);

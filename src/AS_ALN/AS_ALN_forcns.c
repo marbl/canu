@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.28 2011-12-04 23:46:58 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.29 2011-12-15 02:13:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -468,16 +468,25 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
 
       //  Count the differences.
       //
-      if (m->h_alignA[x] != m->h_alignB[x])
-        o.diffs++;
-
-      //  But allow N's as matches.  If either letter is N, then the
-      //  other letter is NOT N (if both letters were N, both would be
-      //  lowercase n, representing a match).  This just subtracts out
-      //  the diff we added in above.
+      //  But allow N's and lowercase as matches.  If either letter is N, then the other letter is
+      //  NOT N (if both letters were N, both would be lowercase n, representing a match).  This
+      //  just subtracts out the diff we added in above.
       //
-      if ((m->h_alignA[x] == 'N') || (m->h_alignB[x] == 'N'))
-        o.diffs--;
+      bool  diff   = false;
+      bool  ignore = false;
+
+      if (toupper(m->h_alignA[x]) != toupper(m->h_alignB[x]))
+        diff = true;
+
+      if ((m->h_alignA[x] == 'N') || (m->h_alignA[x] == 'n') ||
+          (m->h_alignB[x] == 'N') || (m->h_alignB[x] == 'n'))
+        ignore = true;
+
+      if (islower(m->h_alignA[x]) && (m->h_alignB[x] == '-'))
+        ignore = true;
+
+      if ((diff == true) && (ignore == false))
+        o.diffs++;
 
       bp++;
       ap++;

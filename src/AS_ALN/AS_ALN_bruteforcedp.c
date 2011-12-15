@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.17 2011-12-04 23:46:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.18 2011-12-15 02:13:41 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -283,17 +283,54 @@ alignLinker(char           *alignA,
       //  Pick the max of these
 
       int ul = M[i-1][j-1].score + ((stringA[i-1] == stringB[j-1]) ? MATCHSCORE : MISMATCHSCORE);
-      int lf = M[i-1][j].score + GAPSCORE;
-      int up = M[i][j-1].score + GAPSCORE;
+      int lf = M[i-1][j].score + GAPSCORE;  //  Gap in B
+      int up = M[i][j-1].score + GAPSCORE;  //  Gap in A
 
-      //  When finding the alignments, we do not really want to allow matches to Ns.  If we do, and
-      //  one of the sequences has a gap, we'll optimally align to the gap instead of the real
-      //  sequence.  However, in AS_ALN_forcns.c, we'll adjust our score to not count any alignment
-      //  to an N as a mismatch.
+      //  When computing unitig consensus, the N letter is used to indicate a gap.  This might be a
+      //  match, or it might be a mismatch.  We just don't know.  Don't count it as anything.  This
+      //  should be extended to allow ambiguitity codes -- but that then needs base calling support.
       //
       if (allowNs)
-        if ((stringA[i-1] == 'N') || (stringB[j-1] == 'N'))
+        if ((stringA[i-1] == 'N') ||
+            (stringA[i-1] == 'n') ||
+            (stringB[j-1] == 'N') ||
+            (stringB[j-1] == 'n'))
           ul = M[i-1][j-1].score + MATCHSCORE;
+
+      //  For unitig consensus, if the consensus sequence (stringA) is lowercase, count it as a
+      //  match, otherwise ignore the gap it induces in stringB.
+      //  
+      if (stringA[i-1] == 'a')
+        if (stringB[j-1] == 'A')
+          ul = M[i-1][j-1].score + MATCHSCORE;
+        else {
+          ul = M[i-1][j-1].score;
+          lf = M[i-1][j].score;
+        }
+
+      if (stringA[i-1] == 'c')
+        if (stringB[j-1] == 'C')
+          ul = M[i-1][j-1].score + MATCHSCORE;
+        else {
+          ul = M[i-1][j-1].score;
+          lf = M[i-1][j].score;
+        }
+
+      if (stringA[i-1] == 'g')
+        if (stringB[j-1] == 'G')
+          ul = M[i-1][j-1].score + MATCHSCORE;
+        else {
+          ul = M[i-1][j-1].score;
+          lf = M[i-1][j].score;
+        }
+
+      if (stringA[i-1] == 't')
+        if (stringB[j-1] == 'T')
+          ul = M[i-1][j-1].score + MATCHSCORE;
+        else {
+          ul = M[i-1][j-1].score;
+          lf = M[i-1][j].score;
+        }
 
       if (endToEnd) {
         //  Set score to the smallest value possible; we will then ALWAYS pick an action below.
