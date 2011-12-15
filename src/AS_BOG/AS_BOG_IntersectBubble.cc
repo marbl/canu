@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.10 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: AS_BOG_IntersectBubble.cc,v 1.11 2011-12-15 00:48:10 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -489,42 +489,37 @@ UnitigGraph::popIntersectionBubbles(OverlapStore *ovlStoreUniq, OverlapStore *ov
           fprintf(logFile, "popBubbles()--  Failed to completely merge unitig %d into unitig %d.\n",
                   shortTig->id(), mergeTig->id());
         tryAgain = false;
-        assert(0);
       }
     }
+
+    //  Reorder fragments in the merged unitig
 
     mergeTig->sort();
 
-#if 0
-  {
-    bool screwedUp = false;
+    //  Shatter what remains, and mark the unitig as dead.
 
-    for (uint32 fi=0; fi<mergeTig->ufpath.size(); fi++)
-      if (mergeTig->pathPosition(mergeTig->ufpath[fi].ident) != fi)
-        screwedUp = true;
+    for (uint32 fi=0; fi<shortTig->ufpath.size(); fi++) {
+      ufNode  *frag = &shortTig->ufpath[fi];
 
-    if (screwedUp) {
-      fprintf(logFile, "WARNING: PATH POSITION MESSED UP in unitig %d\n", mergeTig->id());
+      if (shortTig->fragIn(frag->ident) != shortTig->id())
+        continue;
 
-      for (uint32 fi=0; fi<mergeTig->ufpath.size(); fi++) {
-        ufNode *ix = &mergeTig->ufpath[fi];
+      Unitig   *singTig  = new Unitig(logFileFlagSet(LOG_INTERSECTION_BUBBLES));
 
-        fprintf(logFile, "          path[%4d,%4d] is frag %d %d,%d\n",
-                fi, mergeTig->pathPosition(ix->ident),
-                ix->ident, ix->position.bgn, ix->position.end);
-      }
+      if (logFileFlagSet(LOG_INTERSECTION_BUBBLES))
+        fprintf(logFile, "popBubbles()-- Shattering fragment %d from unitig %d into new unitig %d\n",
+                frag->ident, shortTig->id(), singTig->id());
 
-      assert(0);
+      frag->contained = 0;
+
+      singTig->addFrag(*frag, -MIN(frag->position.bgn, frag->position.end), false);
+
+      unitigs.push_back(singTig);
+      shortTig = unitigs[ti];  //  Reset the pointer; unitigs might be reallocated
     }
-  }
-#endif
 
-    //  Mark this unitig as dead if we fully merged it.
-
-    if (isStuck == false) {
-      unitigs[ti] = NULL;
-      delete shortTig;
-    }
+    unitigs[ti] = NULL;
+    delete shortTig;
   }  //  over all unitigs
 
   delete [] ovl;
