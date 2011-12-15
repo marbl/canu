@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.44 2011-12-15 02:13:41 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.45 2011-12-15 02:17:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,7 +45,7 @@ static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.44 2011-12-15 02:13:41 bri
 
 #undef NEG_GAP_VARIANCE_PROBLEM_FIXED  /* if undef'ed, allow processing to continue despite a negative gap variance */
 
-#define TEST_FIXUPMISORDER
+#undef TEST_FIXUPMISORDER
 
 
 #define MAX_ABSOLUTE_SLOP 10000
