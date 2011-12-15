@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.27 2011-12-09 02:59:56 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.28 2011-12-15 19:54:30 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -290,11 +290,6 @@ typedef struct {
   bool     isNull;
 } FragmentBeadIterator;
 
-typedef struct {
-  int32 manode_id;
-  beadIdx bead;
-} ConsensusBeadIterator;
-
 
 typedef enum {
   LEFT_SHIFT  = (int) 'L', // Left Shifted
@@ -414,10 +409,6 @@ void
 CreateFragmentBeadIterator(int32 fid,FragmentBeadIterator *bi);
 beadIdx
 NextFragmentBead(FragmentBeadIterator *bi);
-void
-CreateConsensusBeadIterator(int32 mid,ConsensusBeadIterator *bi);
-beadIdx
-NextConsensusBead(ConsensusBeadIterator *bi);
 
 void
 ClearBead(beadIdx bid);

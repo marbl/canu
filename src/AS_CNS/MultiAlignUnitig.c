@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.49 2011-12-15 18:20:33 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.50 2011-12-15 19:54:30 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -664,14 +664,12 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
   //  For each column, vote for the consensus base to use.  Ideally, if we just computed the full
   //  consensus, we'd use that and just replace gaps with N.
 
-  //  Why are gaps replaced with N?  This lets us use the base in aligning (gaps get squished out)
-  //  which lets us add fragments to the bead structure better -- e.g., we don't get gap-after-gap
-  //  errors.
-
   int32 cid   = manode->first;
   int32 index = 0;
     
   Resetint32(manode->columnList);
+
+  frankensteinLen = 0;
 
   while (cid  > -1) {
     Column *column = GetColumn(columnStore, cid);
@@ -698,34 +696,9 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
     if (n_ > nn)
       call = tolower(call);
 
+    assert(call != '-');
+
     Setchar(sequenceStore, bead->soffset, &call);
-
-    //  This is extracted from RefreshMANode()
-    column->ma_index = index++;
-    AppendVA_int32(manode->columnList, &cid);
-
-    cid = column->next;
-  }
-
-  //  Extract the consensus sequence.  Frankenstein is ponting to a consensus bead, not a fragment bead.
-
-  ConsensusBeadIterator  bi;
-  beadIdx                bid;
-
-  int32                  gapToUngapLen = 0;
-
-  CreateConsensusBeadIterator(manode->lid, &bi);
-
-  frankensteinLen = 0;
-
-  while ((bid = NextConsensusBead(&bi)) .isValid()) {
-    Bead *bead = GetBead(beadStore, bid);
-    char  cnsc = *Getchar(sequenceStore, bead->soffset);
-
-    gapToUngapLen++;
-
-    if (cnsc == '-')
-      continue;
 
     while (frankensteinLen >= frankensteinMax) {
       frankensteinMax *= 2;
@@ -734,44 +707,21 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
     }
     assert(frankensteinLen < frankensteinMax);
 
-    frankenstein   [frankensteinLen] = cnsc;
+    frankenstein   [frankensteinLen] = call;
     frankensteinBof[frankensteinLen] = bead->boffset;
     frankensteinLen++;
+
+    //  This is extracted from RefreshMANode()
+    column->ma_index = index++;
+    AppendVA_int32(manode->columnList, &cid);
+
+    cid = column->next;
   }
 
   frankenstein   [frankensteinLen] = 0;
   frankensteinBof[frankensteinLen] = beadIdx();
 
-  //fprintf(stderr, "AFTER REBUILD %s\n", frankenstein);
-
-  //  Update the positions.  This is the same method as used by GetMANodePositions to update the
-  //  unitig f_list at the end, except we need to translate the ma_index from gapped to ungapped
-  //  coordinates.
-
-  int32  *gapToUngap = new int32 [gapToUngapLen];
-
-  for (int32 i=0; i<gapToUngapLen; i++)
-    gapToUngap[i] = -1;
-
-  for (int32 i=0; i<frankensteinLen; i++) {
-    Bead   *bead = GetBead(beadStore, frankensteinBof[i]);
-    Column *col  = GetColumn(columnStore, bead->column_index);
-
-    assert(col->ma_index >= 0);
-    assert(col->ma_index < gapToUngapLen);
-
-    gapToUngap[col->ma_index] = i;
-  }
-
-  for (int32 lg=0, i=0; i<gapToUngapLen; i++) {
-    if (gapToUngap[i] == -1)
-      gapToUngap[i] = lg;
-    else
-      lg = gapToUngap[i];
-  }
-
   //  Update the position of each fragment in the consensus sequence.
-  //  with, skip it.
 
   for (int32 i=0; i<=tiid; i++) {
     if ((cnspos[i].bgn == 0) &&
@@ -783,17 +733,11 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
     Bead     *frst = GetBead(beadStore, frg->firstbead);
     Bead     *last = GetBead(beadStore, frg->firstbead.get() + frg->length - 1);
 
-    int32     frstIdx = GetColumn(columnStore, frst->column_index)->ma_index;
-    int32     lastIdx = GetColumn(columnStore, last->column_index)->ma_index;
+    cnspos[i].bgn = GetColumn(columnStore, frst->column_index)->ma_index;
+    cnspos[i].end = GetColumn(columnStore, last->column_index)->ma_index + 1;
 
-    assert(frstIdx >= 0);
-    assert(lastIdx >= 0);
-
-    assert(frstIdx < gapToUngapLen);
-    assert(lastIdx < gapToUngapLen);
-
-    cnspos[i].bgn = gapToUngap[frstIdx];
-    cnspos[i].end = gapToUngap[lastIdx] + 1;
+    assert(cnspos[i].bgn >= 0);
+    assert(cnspos[i].end > cnspos[i].bgn);
   }
 
   //  Finally, update the parent/hang of the fragment we just placed.
@@ -807,8 +751,6 @@ unitigConsensus::rebuild(bool recomputeFullConsensus) {
   }
 
   piid = -1;
-
-  delete [] gapToUngap;
 
   if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALIGNMENTS)
     PrintAlignment(stderr, manode->lid, 0, -1);

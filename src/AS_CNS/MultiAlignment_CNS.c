@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.266 2011-12-13 03:51:41 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignment_CNS.c,v 1.267 2011-12-15 19:54:30 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -391,11 +391,7 @@ SeedMAWithFragment(int32 mid,
 //external
 int
 GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality) {
-  ConsensusBeadIterator bi;
-  Bead   *bead;
-  beadIdx  bid;
   int32   length=GetMANodeLength(mid);
-  int32   i=0;
 
   ResetVA_char(sequence);
   EnableRangeVA_char(sequence,length+1);
@@ -403,13 +399,15 @@ GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *quality) {
   ResetVA_char(quality);
   EnableRangeVA_char(quality,length+1);
 
-  CreateConsensusBeadIterator(mid, &bi);
+  Column   *col = GetColumn(columnStore, GetMANode(manodeStore, mid)->first);
+  beadIdx   bid = col->call;
 
-  while ( (bid = NextConsensusBead(&bi)) .isValid() ) {
-    bead = GetBead(beadStore,bid);
-    SetVA_char(sequence,i,Getchar(sequenceStore,bead->soffset));
-    SetVA_char(quality,i,Getchar(qualityStore,bead->soffset));
-    i++;
+  for (int32 i=0; bid.isValid(); i++) {
+    Bead *bead = GetBead(beadStore, bid);
+    SetVA_char(sequence, i, Getchar(sequenceStore, bead->soffset));
+    SetVA_char(quality,  i, Getchar(qualityStore,  bead->soffset));
+
+    bid = bead->next;
   }
   return length;
 }
@@ -616,29 +614,6 @@ beadIdx
 NextFragmentBead(FragmentBeadIterator *bi) {
   beadIdx nid;
   assert(bi->isNull == false);
-  if (bi->bead.isValid()) {
-    Bead *bead = GetBead(beadStore, bi->bead);
-    nid = bead->boffset;
-    bi->bead = bead->next;
-  }
-  return nid;
-}
-
-
-
-//external
-void
-CreateConsensusBeadIterator(int32 mid,ConsensusBeadIterator *bi) {
-  Column *first = GetColumn(columnStore,(GetMANode(manodeStore,mid))->first);
-  assert(first != NULL);
-  bi->manode_id = mid;
-  bi->bead = first->call;
-}
-
-//external
-beadIdx
-NextConsensusBead(ConsensusBeadIterator *bi) {
-  beadIdx nid;
   if (bi->bead.isValid()) {
     Bead *bead = GetBead(beadStore, bi->bead);
     nid = bead->boffset;
