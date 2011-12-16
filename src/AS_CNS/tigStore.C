@@ -19,21 +19,23 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.15 2011-12-09 01:55:35 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.16 2011-12-16 03:21:45 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
 #include "MultiAlignStore.h"
+#include "MultiAlignMatePairAnalysis.H"
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
-#define DUMP_PROPERTIES      0x01
-#define DUMP_FRAGS           0x02
-#define DUMP_UNITIGS         0x04
-#define DUMP_CONSENSUS       0x08
-#define DUMP_CONSENSUSGAPPED 0x10
-#define DUMP_LAYOUT          0x20
-#define DUMP_MULTIALIGN      0x40
+#define DUMP_PROPERTIES       1
+#define DUMP_FRAGS            2
+#define DUMP_UNITIGS          3
+#define DUMP_CONSENSUS        4
+#define DUMP_CONSENSUSGAPPED  5
+#define DUMP_LAYOUT           6
+#define DUMP_MULTIALIGN       7
+#define DUMP_MATEPAIR         8
 
 #define OPERATION_UNITIGLIST  1
 #define OPERATION_CONTIGLIST  2
@@ -257,6 +259,7 @@ dumpConsensus(MultiAlignStore *tigStore,
 
 
 
+
 int
 main (int argc, char **argv) {
   char          tmpName[FILENAME_MAX] = {0};
@@ -275,9 +278,10 @@ main (int argc, char **argv) {
   bool          replaceInPlace = TRUE;
   char         *buildName      = NULL;
   MultiAlignT  *ma             = NULL;
-
   int           showQV         = 0;
   int           showDots       = 1;
+
+  matePairAnalysis  *mpa       = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -318,26 +322,29 @@ main (int argc, char **argv) {
       dumpType = OPERATION_TIG;
 
       if      (strncmp(argv[arg], "properties", 1) == 0)
-        dumpFlags |= DUMP_PROPERTIES;
+        dumpFlags = DUMP_PROPERTIES;
 
       else if (strncmp(argv[arg], "frags", 1) == 0)
-        dumpFlags |= DUMP_FRAGS;
+        dumpFlags = DUMP_FRAGS;
 
       else if (strncmp(argv[arg], "unitigs", 1) == 0)
-        dumpFlags |= DUMP_UNITIGS;
+        dumpFlags = DUMP_UNITIGS;
 
       else if (strncmp(argv[arg], "consensus", 1) == 0)
-        dumpFlags |= DUMP_CONSENSUS;
+        dumpFlags = DUMP_CONSENSUS;
 
       else if (strncmp(argv[arg], "consensusgapped", 1) == 0)
-        dumpFlags |= DUMP_CONSENSUSGAPPED;
+        dumpFlags = DUMP_CONSENSUSGAPPED;
 
       else if (strncmp(argv[arg], "layout", 1) == 0)
-        dumpFlags |= DUMP_LAYOUT;
+        dumpFlags = DUMP_LAYOUT;
 
-      else if (strncmp(argv[arg], "multialign", 1) == 0)
-        dumpFlags |= DUMP_MULTIALIGN;
+      else if (strncmp(argv[arg], "multialign", 2) == 0)
+        dumpFlags = DUMP_MULTIALIGN;
 
+      else if (strncmp(argv[arg], "matepair", 2) == 0)
+        dumpFlags = DUMP_MATEPAIR;
+      
       else
         fprintf(stderr, "%s: Unknown dump option '-d %s'\n", argv[0], argv[arg]);
 
@@ -412,6 +419,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "     consensusgapped    ...the consensus sequence, with gaps as indicated in the multialignment\n");
     fprintf(stderr, "     layout             ...the layout\n");
     fprintf(stderr, "     multialign         ...the full multialignment\n");
+    fprintf(stderr, "     matepair prefix    ...an analysis of the mate pairs (histograms in prefix.##.name.dat)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -E <editFile>         Change properties of multialigns\n");
@@ -588,38 +596,49 @@ main (int argc, char **argv) {
       end = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
     }
 
+    if (dumpFlags == DUMP_MATEPAIR)
+      mpa = new matePairAnalysis(gkpName);
+
     for (tigID=bgn; tigID<end; tigID++) {
       ma = tigStore->loadMultiAlign(tigID, tigIsUnitig);
 
       if (ma == NULL)
         continue;
 
-      if (dumpFlags & DUMP_PROPERTIES)
+      if (dumpFlags == DUMP_PROPERTIES)
         dumpProperties(tigStore, tigID, tigIsUnitig, ma);
 
-      if (dumpFlags & DUMP_FRAGS)
+      if (dumpFlags == DUMP_FRAGS)
         dumpFrags(tigStore, tigID, tigIsUnitig, ma);
 
-      if (dumpFlags & DUMP_UNITIGS)
+      if (dumpFlags == DUMP_UNITIGS)
         dumpUnitigs(tigStore, tigID, tigIsUnitig, ma);
 
-      if (dumpFlags & DUMP_CONSENSUS)
+      if (dumpFlags == DUMP_CONSENSUS)
         dumpConsensus(tigStore, tigID, tigIsUnitig, ma, false);
 
-      if (dumpFlags & DUMP_CONSENSUSGAPPED)
+      if (dumpFlags == DUMP_CONSENSUSGAPPED)
         dumpConsensus(tigStore, tigID, tigIsUnitig, ma, true);
 
-      if (dumpFlags & DUMP_LAYOUT)
+      if (dumpFlags == DUMP_LAYOUT)
         DumpMultiAlignForHuman(stdout, ma, tigIsUnitig);
 
-      if (dumpFlags & DUMP_MULTIALIGN)
+      if (dumpFlags == DUMP_MULTIALIGN)
         PrintMultiAlignT(stdout, ma, gkpStore, showQV, showDots, (tigIsUnitig) ? AS_READ_CLEAR_OBTCHIMERA : AS_READ_CLEAR_LATEST);
+
+      if (dumpFlags == DUMP_MATEPAIR)
+        mpa->evaluateTig(ma);
     }
   }
 
+  if (mpa)
+    mpa->summarize(tigName);
+
+  delete mpa;
 
   delete gkpStore;
   delete tigStore;
+
 
   exit(0);
 }
