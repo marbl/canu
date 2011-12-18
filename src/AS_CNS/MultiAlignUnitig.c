@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.50 2011-12-15 19:54:30 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.51 2011-12-18 06:57:38 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -408,10 +408,11 @@ unitigConsensus::computePositionFromParent(bool doContained) {
   AS_IID parent = (doContained == false) ? fraglist[tiid].parent : fraglist[tiid].contained;
 
   if (parent == 0)
+    //  No parent?!  Damn.
     goto computePositionFromParentFail;
 
   if ((doContained == true) && (fraglist[tiid].parent == fraglist[tiid].contained))
-    //  Already tried the parent, no need to try it again.
+    //  Already tried the parent, no need to try it again; silently return.
     goto computePositionFromParentFail;
 
   for (piid = tiid-1; piid >= 0; piid--) {
@@ -430,7 +431,7 @@ unitigConsensus::computePositionFromParent(bool doContained) {
         (utgpos[tiid].end < utgpos[piid].bgn)) {
       //  Is the parent, parent is placed, but the parent doesn't agree with the placement.
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-        fprintf(stderr, "computePositionFromParent()-- parent %d at utg %d,%d doesn't agree with my utg %d,%d\n",
+        fprintf(stderr, "computePositionFromParent()-- parent %d at utg %d,%d doesn't agree with my utg %d,%d.  FAIL\n",
                 parent,
                 utgpos[piid].bgn, utgpos[piid].end,
                 utgpos[tiid].bgn, utgpos[tiid].end);
@@ -455,8 +456,6 @@ unitigConsensus::computePositionFromParent(bool doContained) {
 
   piid = -1;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-    fprintf(stderr, "computePositionFromParent()-- Returns fail.\n");
   return(false);
 }
 
@@ -479,12 +478,14 @@ unitigConsensus::computePositionFromLayout(void) {
 
       int32 ooo = MIN(cnspos[tiid].end, frankensteinLen) - cnspos[tiid].bgn;
 
+#if 0
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
         fprintf(stderr, "computePositionFromLayout()-- layout %d at utg %d,%d cns %d,%d --> utg %d,%d cns %d,%d -- overlap %d\n",
                 fraglist[qiid].ident,
                 utgpos[qiid].bgn, utgpos[qiid].end, cnspos[qiid].bgn, cnspos[qiid].end,
                 utgpos[tiid].bgn, utgpos[tiid].end, cnspos[tiid].bgn, cnspos[tiid].end,
                 ooo);
+#endif
 
       //  Occasionally we see an overlap in the original placement (utgpos overlap) by after
       //  adjusting our fragment to the frankenstein position, we no longer have an overlap.  This
@@ -535,8 +536,6 @@ unitigConsensus::computePositionFromLayout(void) {
 
   piid = -1;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-    fprintf(stderr, "computePositionFromLayout()-- Returns fail (not found or not thick enough).\n");
   return(false);
 }
 
@@ -637,8 +636,6 @@ unitigConsensus::computePositionFromAlignment(void) {
 
   piid = -1;
 
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-    fprintf(stderr, "computePositionFromAlignment()-- Returns fail.\n");
   return(false);
 }
 
@@ -763,10 +760,6 @@ unitigConsensus::alignFragment(void) {
   int32         bgnExtra     = 0;
   int32         endExtra     = 0;
 
-  ALNoverlap  *O           = NULL;
-  double       thresh      = 1e-3;
-  int32        minlen      = AS_OVERLAP_MIN_LEN;
-
   assert((cnspos[tiid].bgn != 0) || (cnspos[tiid].end != 0));
   assert(piid != -1);
 
@@ -816,10 +809,6 @@ unitigConsensus::alignFragment(void) {
 
 
  alignFragmentAgain:
-  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d and endTrim=%d\n",
-            bgnExtra, endExtra, endTrim);
-
   int32 frankBgn     = MAX(0, cnspos[tiid].bgn - bgnExtra);   //  Start position in frankenstein
   int32 frankEnd     = frankensteinLen;                       //  Truncation of frankenstein
   char  frankEndBase = 0;                                     //  Saved base from frankenstein
@@ -827,6 +816,10 @@ unitigConsensus::alignFragment(void) {
   bool  allowAhang   = false;
   bool  allowBhang   = true;
   bool  tryAgain     = false;
+
+  if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    fprintf(stderr, "alignFragment()-- Allow bgnExtra=%d and endExtra=%d (frankBgn=%d frankEnd=%d) and endTrim=%d\n",
+            bgnExtra, endExtra, frankBgn, frankEnd, endTrim);
 
   //  If the expected fragment begin position plus any extra slop is still the begin of the
   //  consensus sequence, we allow the fragment to hang over the end.
@@ -857,6 +850,12 @@ unitigConsensus::alignFragment(void) {
   int32 fragBgn      = 0;
   int32 fragEnd      = blen - endTrim;
   char  fragEndBase  = bseq[fragEnd];
+
+  bseq[fragEnd] = 0;
+
+  ALNoverlap  *O           = NULL;
+  double       thresh      = 1e-3;
+  int32        minlen      = AS_OVERLAP_MIN_LEN;
 
   if (O == NULL) {
     O = Optimal_Overlap_AS_forCNS(aseq,
@@ -978,8 +977,10 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
   
   if (frag_aiid >= 0) {
     //  Aligned to a fragent
+    assert(0);
+    //  Left in because this was a useful invocation of ApplyAlignment -- but it might now be useless
     if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-      fprintf(stderr, "applyAlignment()-- frag_aiid=%d frag_ahang=%d\n", frag_aiid, frag_ahang);
+      fprintf(stderr, "applyAlignment()-- aligned to fragment -- frag_aiid=%d frag_ahang=%d\n", frag_aiid, frag_ahang);
     ApplyAlignment(frag_aiid,
                    0, NULL,
                    tiid,
@@ -987,8 +988,8 @@ unitigConsensus::applyAlignment(int32 frag_aiid, int32 frag_ahang, int32 *frag_t
 
   } else {
     //  Aligned to frankenstein
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-      fprintf(stderr, "applyAlignment()-- frankenstein\n");
+    //if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+    //  fprintf(stderr, "applyAlignment()-- aligned to frankenstein\n");
     ApplyAlignment(-1,
                    frankensteinLen, frankensteinBof,
                    tiid,
@@ -1084,7 +1085,6 @@ MultiAlignUnitig(MultiAlignT     *ma,
                  CNS_Options     *opp,
                  int32           *failed) {
   double             origErate          = AS_CNS_ERROR_RATE;
-  bool               failOnFirstFailure = false;
   bool               failuresToFix      = false;
   unitigConsensus   *uc                 = NULL;
 
@@ -1104,24 +1104,6 @@ MultiAlignUnitig(MultiAlignT     *ma,
     if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
     if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-      fprintf(stderr, "MultiAlignUnitig()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 1.3333 * AS_CNS_ERROR_RATE));
-    AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 1.3333 * AS_CNS_ERROR_RATE);
-
-    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
-
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-      fprintf(stderr, "MultiAlignUnitig()-- recompute full consensus\n");
-    uc->rebuild(true);
-
-    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
-    if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
-
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
       fprintf(stderr, "MultiAlignUnitig()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE));
 
     AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE);
@@ -1131,13 +1113,33 @@ MultiAlignUnitig(MultiAlignT     *ma,
     if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
 
+    AS_CNS_ERROR_RATE = origErate;
+
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      fprintf(stderr, "MultiAlignUnitig()-- recompute full consensus\n");
+
+    uc->rebuild(true);
+
+    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
+
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+      fprintf(stderr, "MultiAlignUnitig()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 4.0 * AS_CNS_ERROR_RATE));
+
+    AS_CNS_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, 4.0 * AS_CNS_ERROR_RATE);
+
+    if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
+    if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
+
     //  Failed to align the fragment.  Dang.
 
+    AS_CNS_ERROR_RATE = origErate;
+
     uc->reportFailure(failed);
-
-    if (failOnFirstFailure)
-      goto returnFailure;
-
     failuresToFix = true;
     continue;
 
