@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.58 2011-12-04 23:46:58 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.59 2011-12-18 07:05:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -672,12 +672,6 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
   //  Now, add all the new unitigs.
 
   for (int i=0; i<utgNum; i++) {
-#ifdef DEBUG
-    if (utg[i].n_frags == 0)
-      fprintf(stderr, "EMPTY UNITIG\n");
-    if (utg[i].n_frags > 0)
-      fprintf(stderr, "NEW UNITIG with %d fragments\n", utg[i].n_frags);
-#endif
     if (utg[i].n_frags > 0)
       StoreIUMStruct(graph, utg + i, isUnitig, egfar);
 
