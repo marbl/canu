@@ -32,8 +32,8 @@
 #define AS_READ_ORIENT_NORMAL     0x03
 #define AS_READ_ORIENT_ANTINORMAL 0x04
 
-static const char *AS_READ_ORIENT_NAMES[4] = {
-  "U", "I", "O", "N",
+static const char *AS_READ_ORIENT_NAMES[5] = {
+  "U", "I", "O", "N", "A"
 };
 
 
