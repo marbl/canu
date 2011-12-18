@@ -62,10 +62,10 @@ DNC_SOURCES = classifyMates-BFS.C \
 DNC_OBJECTS = $(DNC_SOURCES:.C=.o)
 
 
-SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C classifyMatesApply.C $(BAT_SOURCES) $(DNC_SOURCES)
-OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o classifyMatesApply.o $(BAT_OBJECTS) $(DNC_OBJECTS)
+SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C classifyMatesApply.C splitUnitigs.C $(BAT_SOURCES) $(DNC_SOURCES)
+OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o classifyMatesApply.o splitUnitigs.o $(BAT_OBJECTS) $(DNC_OBJECTS)
 
-CXX_PROGS   = bogart bogus bogusness classifyMates classifyMatesApply
+CXX_PROGS   = bogart bogus bogusness classifyMates classifyMatesApply splitUnitigs
 
 
 
@@ -120,3 +120,4 @@ bogus:               bogus.o                             libCA.a AS_BAT_bogusUti
 bogusness:           bogusness.o                         libCA.a AS_BAT_bogusUtil.o
 classifyMates:       classifyMates.o      $(DNC_OBJECTS) libCA.a libutil.a
 classifyMatesApply:  classifyMatesApply.o $(DNC_OBJECTS) libCA.a libutil.a
+splitUnitigs:        splitUnitigs.o                      libCA.a
