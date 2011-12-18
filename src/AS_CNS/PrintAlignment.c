@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: PrintAlignment.c,v 1.3 2011-12-04 23:46:58 brianwalenz Exp $";
+static char *rcsid = "$Id: PrintAlignment.c,v 1.4 2011-12-18 06:53:30 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -149,7 +149,7 @@ PrintAlignment(FILE *print, int32 mid, int32 from, int32 to) {
             else
               pc = toupper(pc);
 
-            fprintf(print,"%c",tolower(pc));
+            fprintf(print, "%c", pc);
 
           } else {
             fprintf(print," ");
