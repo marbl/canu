@@ -20,7 +20,7 @@
 #ifndef MULTIALIGNMATEPAIRANALYSIS
 #define MULTIALIGNMATEPAIRANALYSIS
 
-static const char *rcsid_MULTIALIGNMATEPAIRANALYSIS = "$Id: MultiAlignMatePairAnalysis.H,v 1.1 2011-12-16 03:21:45 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMATEPAIRANALYSIS = "$Id: MultiAlignMatePairAnalysis.H,v 1.2 2011-12-18 07:04:08 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -38,10 +38,17 @@ public:
   ~matePairAnalysis();
 
   void         evaluateTig(MultiAlignT *ma);
-  void         summarize(char *prefix);
+  void         finalize(void);
 
+  void         printSummary(FILE *out);
+  void         drawPlots(char *prefix);
+
+  double       mean(uint32 libid);
+  double       stddev(uint32 libid);
+
+private:
   gkStore     *gkpStore;
-  mpaLibrary **libdata;
+  mpaLibrary  *libdata;
 
   AS_IID      *pairing;
   AS_IID      *library;

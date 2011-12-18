@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.16 2011-12-16 03:21:45 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.17 2011-12-18 07:04:08 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -631,10 +631,12 @@ main (int argc, char **argv) {
     }
   }
 
-  if (mpa)
-    mpa->summarize(tigName);
-
-  delete mpa;
+  if (mpa) {
+    mpa->finalize();
+    mpa->printSummary(stdout);
+    mpa->drawPlots(tigName);
+    delete mpa;
+  }
 
   delete gkpStore;
   delete tigStore;

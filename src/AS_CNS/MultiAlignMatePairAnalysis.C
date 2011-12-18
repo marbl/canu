@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.1 2011-12-16 03:21:45 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.2 2011-12-18 07:04:08 brianwalenz Exp $";
 
 #include "MultiAlignMatePairAnalysis.H"
 
@@ -31,64 +31,69 @@ static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.1 2011-12-16 0
 using namespace std;
 
 
-#define MPA_ORIENT_INNIE      0x00
-#define MPA_ORIENT_OUTTIE     0x01
-#define MPA_ORIENT_NORMAL     0x02
-#define MPA_ORIENT_ANTINORMAL 0x03
+class mpaLibraryData {
+public:
+  mpaLibraryData() {
+    median      = 0;
+    oneThird    = 0;
+    twoThird    = 0;
 
-const char MPA_ORIENT_NAMES[4] = { 'I', 'O', 'N', 'A' };
+    approxStd   = 0;
+
+    biggest     = 0;
+    smallest    = 0;
+
+    numSamples  = 0;
+    mean        = 0;
+    stddev      = 0;
+
+    externHappy = 0;
+    externSad   = 0;
+  };
+
+  ~mpaLibraryData() {
+  };
+
+  void    finalize(void);
+  void    printSummary(FILE *output, int32 libOrient, gkLibrary *library);
+
+  int32   median;
+  int32   oneThird;
+  int32   twoThird;
+
+  double  approxStd;
+
+  int32   biggest;
+  int32   smallest;
+
+  uint64  numSamples;
+  double  mean;
+  double  stddev;
+
+  //  For externally mated fragments, happy?
+  uint64  externHappy;
+  uint64  externSad;
+
+  //  Distances, one per pair orientation
+  vector<int32>   dist;
+};
+
 
 class mpaLibrary {
 public:
-  mpaLibrary(gkLibrary *lib) {
-    library    = lib;
-
-    strcpy(libraryName, lib->libraryName);
-
-    origMean   = lib->mean;
-    origStdDev = lib->stddev;
-
-    newSamples = 0;
-    newMean    = 0;
-    newStdDev  = 0;
-
-    for (uint32 i=0; i<4; i++) {
-      externHappy[i] = 0;
-      externSad[i]   = 0;
-    }
-  };
-
-  ~mpaLibrary() {
-  };
-
   gkLibrary      *library;
-  char            libraryName[LIBRARY_NAME_SIZE];
-
-  double          origMean;
-  double          origStdDev;
-
-  uint64          newSamples;
-  double          newMean;
-  double          newStdDev;
-
-  //  For externally mated fragments, happy?
-  uint64          externHappy[4];
-  uint64          externSad[4];
-
-  //  Distances, one per pair orientation
-  vector<int32>   dist[4];
+  mpaLibraryData  orient[5];
 };
-
 
 
 
 matePairAnalysis::matePairAnalysis(char *gkpName) {
 
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
-  libdata  = new mpaLibrary * [gkpStore->gkStore_getNumLibraries() + 1];
+  libdata  = new mpaLibrary [gkpStore->gkStore_getNumLibraries() + 1];
 
   for (uint32 i=0; i<gkpStore->gkStore_getNumLibraries() + 1; i++)
-    libdata[i] = new mpaLibrary(gkpStore->gkStore_getLibrary(i));
+    libdata[i].library = gkpStore->gkStore_getLibrary(i);
 
   pairing = new AS_IID [gkpStore->gkStore_getNumFragments() + 1];
   library = new AS_IID [gkpStore->gkStore_getNumFragments() + 1];
@@ -112,15 +117,10 @@ matePairAnalysis::matePairAnalysis(char *gkpName) {
 
 
 matePairAnalysis::~matePairAnalysis() {
-
-  for (uint32 i=0; i<gkpStore->gkStore_getNumLibraries() + 1; i++)
-    delete libdata[i];
   delete [] libdata;
-
   delete [] pairing;
   delete [] library;
-
-  delete gkpStore;
+  delete    gkpStore;
 }
 
 
@@ -152,10 +152,10 @@ matePairAnalysis::evaluateTig(MultiAlignT *ma) {
       continue;
 
     AS_IID      libiid    = library[frg->ident];
-    mpaLibrary *lib       = libdata[libiid];
+    mpaLibrary *lib       = libdata + libiid;
     uint32      liborient = lib->library->orientation;
-    int32       libmin    = lib->origMean - 3 * lib->origStdDev;
-    int32       libmax    = lib->origMean + 3 * lib->origStdDev;
+    int32       libmin    = lib->library->mean - 3 * lib->library->stddev;
+    int32       libmax    = lib->library->mean + 3 * lib->library->stddev;
 
     bool        frgforward = (frg->position.bgn < frg->position.end);
     int32       frgmin     = MIN(frg->position.bgn, frg->position.end);
@@ -169,13 +169,13 @@ matePairAnalysis::evaluateTig(MultiAlignT *ma) {
           break;
 
         case AS_READ_ORIENT_INNIE:
-          if (frgforward == true)   ((frgmin < maLen - libmax) ? lib->externSad[MPA_ORIENT_INNIE] : lib->externHappy[MPA_ORIENT_INNIE])++;
-          if (frgforward == false)  ((frgmin >         libmax) ? lib->externSad[MPA_ORIENT_INNIE] : lib->externHappy[MPA_ORIENT_INNIE])++;
+          if (frgforward == true)   ((frgmin < maLen - libmax) ? lib->orient[AS_READ_ORIENT_INNIE].externSad : lib->orient[AS_READ_ORIENT_INNIE].externHappy)++;
+          if (frgforward == false)  ((frgmin >         libmax) ? lib->orient[AS_READ_ORIENT_INNIE].externSad : lib->orient[AS_READ_ORIENT_INNIE].externHappy)++;
           break;
 
         case AS_READ_ORIENT_OUTTIE:
-          if (frgforward == false)   ((frgmin < maLen - libmax) ? lib->externSad[MPA_ORIENT_OUTTIE] : lib->externHappy[MPA_ORIENT_OUTTIE])++;
-          if (frgforward == true)    ((frgmin >         libmax) ? lib->externSad[MPA_ORIENT_OUTTIE] : lib->externHappy[MPA_ORIENT_OUTTIE])++;
+          if (frgforward == false)   ((frgmin < maLen - libmax) ? lib->orient[AS_READ_ORIENT_OUTTIE].externSad : lib->orient[AS_READ_ORIENT_OUTTIE].externHappy)++;
+          if (frgforward == true)    ((frgmin >         libmax) ? lib->orient[AS_READ_ORIENT_OUTTIE].externSad : lib->orient[AS_READ_ORIENT_OUTTIE].externHappy)++;
           break;
 
         case AS_READ_ORIENT_NORMAL:
@@ -206,24 +206,116 @@ matePairAnalysis::evaluateTig(MultiAlignT *ma) {
     int32 distance = matmax - frgmin;
     
     if        ((frgforward == true)  && (matforward == false)) {
-      lib->dist[MPA_ORIENT_INNIE].push_back(distance);
+      lib->orient[AS_READ_ORIENT_INNIE].dist.push_back(distance);
 
     } else if ((frgforward == false) && (matforward == true)) {
-      lib->dist[MPA_ORIENT_OUTTIE].push_back(distance);
+      lib->orient[AS_READ_ORIENT_OUTTIE].dist.push_back(distance);
 
     } else if ((frgforward == true)  && (matforward == true)) {
-      lib->dist[MPA_ORIENT_NORMAL].push_back(distance);
+      lib->orient[AS_READ_ORIENT_NORMAL].dist.push_back(distance);
 
     } else {//((frgforward == false) && (matforward == false))
-      lib->dist[MPA_ORIENT_ANTINORMAL].push_back(distance);
+      lib->orient[AS_READ_ORIENT_ANTINORMAL].dist.push_back(distance);
     }
   }
 }
 
 
 
+
 void
-matePairAnalysis::summarize(char *prefix) {
+mpaLibraryData::finalize(void) {
+
+  if (dist.size() == 0)
+    return;
+
+  sort(dist.begin(), dist.end());
+
+  median    = dist[dist.size() * 1 / 2];
+  oneThird  = dist[dist.size() * 1 / 3];
+  twoThird  = dist[dist.size() * 2 / 3];
+
+  approxStd = MAX(median - oneThird, twoThird - median);
+
+  biggest   = median + approxStd * 5;
+  smallest  = median - approxStd * 5;
+
+  for (uint64 x=0; x<dist.size(); x++)
+    if ((smallest  <= dist[x]) &&
+        (dist[x]   <= biggest)) {
+      numSamples += 1;
+      mean    += dist[x];
+    }
+
+  if (numSamples == 0)
+    return;
+
+  mean   = mean / numSamples;
+  stddev = 0.0;
+
+  for (uint64 x=0; x<dist.size(); x++)
+    if ((smallest  <= dist[x]) &&
+        (dist[x]   <= biggest))
+      stddev += (dist[x] - mean) * (dist[x] - mean);
+          
+  if (numSamples > 1)
+    stddev = sqrt(stddev / (numSamples - 1));
+}
+
+
+void
+matePairAnalysis::finalize(void) {
+  for (uint32 li=1; li<gkpStore->gkStore_getNumLibraries() + 1; li++) {
+    libdata[li].orient[0].finalize();  //  Unoriented
+    libdata[li].orient[1].finalize();  //  Innie
+    libdata[li].orient[2].finalize();  //  Outtie
+    libdata[li].orient[3].finalize();  //  Normal
+    libdata[li].orient[4].finalize();  //  Antinormal
+  }
+}
+
+
+
+void
+mpaLibraryData::printSummary(FILE *output, int32 libOrient, gkLibrary *library) {
+  if (dist.size() == 0)
+    return;
+
+  if (library->orientation == libOrient)
+    fprintf(stderr, "%9.2f +- %8.2f -> %9.2f +- %8.2f %s "F_U64"/"F_U64" samples external happy "F_U64" sad "F_U64"\n",
+            library->mean, library->stddev,
+            mean,  stddev,
+            AS_READ_ORIENT_NAMES[libOrient],
+            numSamples,
+            dist.size(),
+            externHappy,
+            externSad);
+    else
+      fprintf(stderr, "%9s +- %8s -> %9.2f +- %8.2f %s "F_U64"/"F_U64" samples\n",
+              "N/A", "N/A",
+              mean,  stddev,
+              AS_READ_ORIENT_NAMES[libOrient],
+              numSamples,
+              dist.size());
+}
+
+
+
+void
+matePairAnalysis::printSummary(FILE *output) {
+  for (uint32 li=1; li<gkpStore->gkStore_getNumLibraries() + 1; li++) {
+    libdata[li].orient[0].printSummary(output, 0, libdata[li].library);  //  Unoriented
+    libdata[li].orient[1].printSummary(output, 1, libdata[li].library);  //  Innie
+    libdata[li].orient[2].printSummary(output, 2, libdata[li].library);  //  Outtie
+    libdata[li].orient[3].printSummary(output, 3, libdata[li].library);  //  Normal
+    libdata[li].orient[4].printSummary(output, 4, libdata[li].library);  //  Antinormal
+  }
+}
+
+
+
+void
+matePairAnalysis::drawPlots(char *prefix) {
   char   datName[FILENAME_MAX];
 
   if (prefix[strlen(prefix)-1] == '/')
@@ -235,92 +327,30 @@ matePairAnalysis::summarize(char *prefix) {
   if (errno)
     fprintf(stderr, "ERROR:  Failed to open '%s': %s\n", datName, strerror(errno)), exit(1);
 
+
   for (uint32 li=1; li<gkpStore->gkStore_getNumLibraries() + 1; li++) {
-    mpaLibrary *ld = libdata[li];
-
-    fprintf(stderr, "%s\n", ld->library->libraryName);
-
-    ld->newSamples = 0;
-    ld->newMean    = 0;
-    ld->newStdDev  = 0;
+    mpaLibrary *ld = libdata + li;
 
     for (uint32 oi=0; oi<4; oi++) {
-      vector<int32>   &dist = ld->dist[oi];
-      uint32           np   = dist.size();
+      mpaLibraryData  *data = ld->orient + oi;
 
-      if (np == 0)
+      if (data->dist.size() == 0)
         continue;
 
-      sort(dist.begin(), dist.end());
-
-      int32  median    = dist[np * 1 / 2];
-      int32  oneThird  = dist[np * 1 / 3];
-      int32  twoThird  = dist[np * 2 / 3];
-
-      int32  approxStd = MAX(median - oneThird, twoThird - median);
-
-      int32  biggest   = median + approxStd * 5;
-      int32  smallest  = median - approxStd * 5;
-
-      int64  newSamples = 0;
-      double newMean    = 0;
-      double newStdDev  = 0;
-
-      for (uint64 x=0; x<dist.size(); x++)
-        if ((smallest  <= dist[x]) &&
-            (dist[x]   <= biggest)) {
-          newSamples += 1;
-          newMean    += dist[x];
-        }
-
-      if (newSamples == 0)
-        continue;
-
-      newMean   = newMean / newSamples;
-      newStdDev = 0.0;
-
-      for (uint64 x=0; x<dist.size(); x++)
-        if ((smallest  <= dist[x]) &&
-            (dist[x]   <= biggest))
-          newStdDev += (dist[x] - newMean) * (dist[x] - newMean);
-          
-      if (newSamples > 1)
-        newStdDev = sqrt(newStdDev / (newSamples - 1));
-
-      if (((ld->library->orientation == AS_READ_ORIENT_INNIE)      && (oi == MPA_ORIENT_INNIE)) ||
-          ((ld->library->orientation == AS_READ_ORIENT_OUTTIE)     && (oi == MPA_ORIENT_OUTTIE)) ||
-          ((ld->library->orientation == AS_READ_ORIENT_NORMAL)     && (oi == MPA_ORIENT_NORMAL)) ||
-          ((ld->library->orientation == AS_READ_ORIENT_ANTINORMAL) && (oi == MPA_ORIENT_ANTINORMAL)))
-        fprintf(stderr, "%9.2f +- %8.2f -> %9.2f +- %8.2f %c "F_U64"/"F_U64" samples external happy "F_U64" sad "F_U64"\n",
-                ld->origMean, ld->origStdDev,
-                newMean,  newStdDev,
-                MPA_ORIENT_NAMES[oi],
-                newSamples,
-                dist.size(),
-                ld->externHappy[oi],
-                ld->externSad[oi]);
-      else
-        fprintf(stderr, "%9s +- %8s -> %9.2f +- %8.2f %c "F_U64"/"F_U64" samples\n",
-                "N/A", "N/A",
-                newMean,  newStdDev,
-                MPA_ORIENT_NAMES[oi],
-                newSamples,
-                dist.size());
-
-      sprintf(datName, "%s.%03d.%c.%s.dat",
-              prefix, li, MPA_ORIENT_NAMES[oi], ld->library->libraryName);
+      sprintf(datName, "%s.%03d.%s.%s.dat",
+              prefix, li, AS_READ_ORIENT_NAMES[oi], ld->library->libraryName);
       errno = 0;
       FILE *dat = fopen(datName, "w");
       if (errno)
         fprintf(stderr, "ERROR:  Failed to open '%s': %s\n", datName, strerror(errno)), exit(1);
 
-      int32  step = (biggest - smallest) / 100;
-      int32  min  = dist[0];
-      int32  max  = dist[0] + step;
+      int32  step = (data->biggest - data->smallest) / 100;
+      int32  min  = data->dist[0];
+      int32  max  = data->dist[0] + step;
       int32  num  = 0;
 
-      for (uint64 x=0; x<dist.size(); x++) {
-        if (dist[x] < max) {
+      for (uint64 x=0; x<data->dist.size(); x++) {
+        if (data->dist[x] < max) {
           num++;
         } else {
           fprintf(dat, "%d\t%.1f\t%d\t%d\n", min, (min + max) / 2.0, max, num);
@@ -336,13 +366,7 @@ matePairAnalysis::summarize(char *prefix) {
       fprintf(gp, "set terminal png\n");
       fprintf(gp, "set output \"%s.png\"\n", datName);
       fprintf(gp, "set title \"%s bucketSize=%d\"\n", ld->library->libraryName, step);
-      fprintf(gp, "plot \"%s\" using 2:4 with lines title \"%s %c\"\n", datName, ld->library->libraryName, MPA_ORIENT_NAMES[oi]);
-      fprintf(gp, "\n");
-      fprintf(gp, "\n");
-      fprintf(gp, "\n");
-      fprintf(gp, "\n");
-      fprintf(gp, "\n");
-      fprintf(gp, "\n");
+      fprintf(gp, "plot \"%s\" using 2:4 with lines title \"%s %s\"\n", datName, ld->library->libraryName, AS_READ_ORIENT_NAMES[oi]);
       fprintf(gp, "\n");
     }
   }
@@ -351,4 +375,20 @@ matePairAnalysis::summarize(char *prefix) {
 
   sprintf(datName, "gnuplot < %s.gp", prefix);
   system(datName);
+}
+
+
+
+double
+matePairAnalysis::mean(uint32 libid) {
+  mpaLibrary  *l = libdata + libid;
+  return(l->orient[l->library->orientation].mean);
+}
+
+
+
+double
+matePairAnalysis::stddev(uint32 libid) {
+  mpaLibrary  *l = libdata + libid;
+  return(l->orient[l->library->orientation].stddev);
 }
