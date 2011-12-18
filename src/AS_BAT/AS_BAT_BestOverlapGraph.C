@@ -19,10 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.7 2011-12-12 20:22:39 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.8 2011-12-18 08:14:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
+#include "AS_BAT_Unitig.H"
 
 const uint64 ogMagicNumber   = 0x72476c764f747362llu;  //  'bstOvlGr'
 const uint64 ogVersionNumber = 2;
@@ -205,6 +206,11 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
     //  We only save if A is the contained fragment.
     return;
 
+  if ((Unitig::fragIn(olap.a_iid) != 0) ||
+      (Unitig::fragIn(olap.b_iid) != 0))
+    //  We only save if both fragments are not assembled
+    return;
+
   uint64           newScr = scoreOverlap(olap);
   BestContainment      *c = &_bestC[olap.a_iid];
 
@@ -245,6 +251,11 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
   if ((isContained(olap.a_iid) == true) ||
       (isContained(olap.b_iid) == true))
     //  Skip contained fragments.
+    return;
+
+  if ((Unitig::fragIn(olap.a_iid) != 0) ||
+      (Unitig::fragIn(olap.b_iid) != 0))
+    //  Skip already assembled fragments.
     return;
 
   uint64           newScr = scoreOverlap(olap);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.10 2011-12-13 05:26:52 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.11 2011-12-18 08:14:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -413,8 +413,9 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
     correctPlace[fi].aligned   = 1;
   }
 
-  //  Some bizarre cases -- possibly only from bad data -- confound any logical attempt at finding the min/max extents.  Yes, even though
-  //  this should work, it doesn't.  Or maybe it's just broken and I haven't seen how.
+  //  Some bizarre cases -- possibly only from bad data -- confound any logical attempt at finding
+  //  the min/max extents.  Yes, even though this should work, it doesn't.  Or maybe it's just
+  //  broken and I haven't seen how.
   //
   //int32  minE = (fFrg.position.bgn < lFrg.position.bgn) ? MIN(fFrg.position.bgn, fFrg.position.end) : MIN(lFrg.position.bgn, lFrg.position.end);
   //int32  maxE = (fFrg.position.bgn < lFrg.position.bgn) ? MAX(lFrg.position.bgn, lFrg.position.end) : MAX(fFrg.position.bgn, fFrg.position.end);
@@ -567,6 +568,11 @@ mergeBubbles(UnitigVector &unitigs, Unitig *target, intersectionList *ilist) {
       //  Grab the potential bubble unitig
 
       Unitig *bubble = unitigs[Unitig::fragIn(isect->invadFrg)];
+
+      if (bubble == NULL)
+        //  Whoops!  Unitig was repeat/unique split and the repeats shattered
+        continue;
+
       assert(bubble->id() == Unitig::fragIn(isect->invadFrg));
 
       if (bubble->id() == target->id())
@@ -947,7 +953,8 @@ void
 markRepeats_locateBreakPoint(Unitig                         *target,
                              vector<overlapPlacement>       &places,
                              vector<repeatUniqueJunction>   &junctions,
-                             vector<breakPoint>             &breaks) {
+                             vector<breakPoint>             &breaks,
+                             set<AS_IID>                    &repeatFrags) {
 
   for (uint32 bp=0; bp<junctions.size(); bp++) {
     int32        breakPt = junctions[bp].point;
@@ -1055,6 +1062,16 @@ markRepeats_locateBreakPoint(Unitig                         *target,
               frg.position.bgn, frg.position.end,
               realBP);
 
+      if (rptLeft == false) {
+        //  The fragment before idx is the last fragment in the repeat unitig
+        if (idx > 0)
+          repeatFrags.insert(target->ufpath[idx-1].ident);
+      } else {
+        //  The fragment after idx is the first fragment in the repeat unitig
+        if (idx < target->ufpath.size() - 1)
+          repeatFrags.insert(target->ufpath[idx+1].ident);
+      }
+
       //  keepContains=true -- this break point should be associated with the last 
       breaks.push_back(breakPoint(breakEnd.fragId(), breakEnd.frag3p(), false, true));
     }
@@ -1094,7 +1111,8 @@ markRepeats_locateBreakPoint(Unitig                         *target,
 //
 void
 markRepeats(UnitigVector &unitigs,
-            Unitig *target) {
+            Unitig *target,
+            bool shatterRepeats) {
 
   set<AS_IID>               ovlFrags;
 
@@ -1111,6 +1129,8 @@ markRepeats(UnitigVector &unitigs,
 
   vector<repeatUniqueJunction>  junctionsA;  //  First filtered junctions
   vector<repeatUniqueJunction>  junctionsB;  //  Second filtered junctions
+
+  set<AS_IID>                   repeatFrags;  //  Frag IIDs of the first/last fragment in a repeat unitig
 
   //  Build a list of all the fragments that have overlaps to this unitig.
   markRepeats_buildOverlapList(target, ovlFrags);
@@ -1188,7 +1208,7 @@ markRepeats(UnitigVector &unitigs,
   //  overlaps with the breakPoint, find the unitig fragment that we should break at to excise this
   //  repeat.  The picture is unfortunately hard to draw in ASCII.
 
-  markRepeats_locateBreakPoint(target, places, junctionsA, breaks);
+  markRepeats_locateBreakPoint(target, places, junctionsA, breaks, repeatFrags);
 
   //  All break points added, now just break.
 
@@ -1240,12 +1260,9 @@ markRepeats(UnitigVector &unitigs,
   breaks = fbreaks;
 #endif
 
-
-
   UnitigVector *newTigs = breakUnitigAt(target, breaks);
 
   if (newTigs != NULL) {
-
     fprintf(logFile, "popBubbles()-- SPLIT unitig %d/"F_SIZE_T" of length %u with %ld fragments into "F_SIZE_T" unitigs:\n",
             target->id(), unitigs.size(), target->getLength(), target->ufpath.size(),
             newTigs->size());
@@ -1260,9 +1277,28 @@ markRepeats(UnitigVector &unitigs,
 
     unitigs.insert(unitigs.end(), newTigs->begin(), newTigs->end());
   }
+
+  //  Last step.  Find all the repeat unitigs and shatter them into fragments (not singleton unitigs)
+  //  so we can later re-BOG just the repeats.
+
+  if (shatterRepeats) {
+    for (set<AS_IID>::iterator it=repeatFrags.begin(); it!=repeatFrags.end(); it++) {
+      AS_IID   iid = *it;
+      uint32   ti  = Unitig::fragIn(iid);
+      Unitig  *rpt = unitigs[ti];
+
+      if ((ti == 0) || (rpt == NULL))
+        //  Already shattered?
+        continue;
+
+      for (uint32 fi=0; fi<rpt->ufpath.size(); fi++)
+        rpt->removeFrag(rpt->ufpath[fi].ident);
+
+      unitigs[ti] = NULL;
+      delete rpt;
+    }
+  }
 }
-
-
 
 
 
@@ -1275,7 +1311,7 @@ markChimera(UnitigVector &unitigs,
 
 
 void
-mergeSplitJoin(UnitigVector &unitigs) {
+mergeSplitJoin(UnitigVector &unitigs, bool shatterRepeats) {
 
   //logFileFlags |= LOG_PLACE_FRAG;
   //logFileFlags &= ~LOG_PLACE_FRAG;
@@ -1337,7 +1373,7 @@ mergeSplitJoin(UnitigVector &unitigs) {
     //  MARK REPEATS and CHIMERA - using just overlaps, look for fragments that are partially
     //  covered by this unitig.
 
-    markRepeats(unitigs, target);
+    markRepeats(unitigs, target, shatterRepeats);
     markChimera(unitigs, target);
   }
 

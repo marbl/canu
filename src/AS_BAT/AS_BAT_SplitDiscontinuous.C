@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.3 2011-01-03 03:16:02 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.4 2011-12-18 08:14:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -89,16 +89,25 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
             (splitFrags[0].contained != 0)) {
 
           Unitig           *dangler  = unitigs[tig->fragIn(splitFrags[0].contained)];
-          BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
 
-          assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
+          //  If the parent isn't in a unitig, we must have shattered the repeat unitig it was in.
+          //  Do the same here.
 
-          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-            fprintf(logFile, "Dangling contained fragment %d in unitig %d -> move them to container unitig %d\n",
-                    splitFrags[0].ident, tig->id(), dangler->id());
+          if (dangler == NULL) {
+            Unitig::removeFrag(splitFrags[0].ident);
 
-          dangler->addContainedFrag(splitFrags[0].ident, bestcont, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
-          assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
+          } else {
+            assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
+
+            if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
+              fprintf(logFile, "Dangling contained fragment %d in unitig %d -> move them to container unitig %d\n",
+                      splitFrags[0].ident, tig->id(), dangler->id());
+
+            BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
+
+            dangler->addContainedFrag(splitFrags[0].ident, bestcont, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
+            assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
+          }
 
         } else {
           Unitig *dangler = new Unitig(logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));

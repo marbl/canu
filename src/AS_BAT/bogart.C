@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.11 2011-12-12 20:22:39 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.12 2011-12-18 08:14:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -28,24 +28,14 @@ const char *mainid = "$Id: bogart.C,v 1.11 2011-12-12 20:22:39 brianwalenz Exp $
 
 #include "AS_BAT_InsertSizes.H"
 
-#define MERGESPLITJOIN
-
 #include "AS_BAT_PopulateUnitig.H"
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_EvaluateMates.H"
 #include "AS_BAT_PlaceContains.H"
 #include "AS_BAT_PlaceZombies.H"
 
-#ifndef MERGESPLITJOIN
-#include "AS_BAT_IntersectBubble.H"
-#include "AS_BAT_IntersectSplit.H"
-#include "AS_BAT_Breaking.H"
-#include "AS_BAT_SplitDiscontinuous.H"
-#include "AS_BAT_Joining.H"
-#else
 #include "AS_BAT_MergeSplitJoin.H"
 #include "AS_BAT_SplitDiscontinuous.H"
-#endif
 
 #include "AS_BAT_SetParentAndHang.H"
 #include "AS_BAT_ArrivalRate.H"
@@ -160,9 +150,7 @@ main (int argc, char * argv []) {
   int       fragment_count_target   = 0;
   char     *output_prefix           = NULL;
 
-  bool      popBubbles              = false;
-  bool      breakIntersections      = false;
-  bool      enableJoining           = false;
+  bool      shatterRepeats          = false;
 
   argc = AS_configure(argc, argv);
 
@@ -189,14 +177,11 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigStorePath = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-U") == 0) {
-      popBubbles = true;
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      genomeSize = strtoull(argv[++arg], NULL, 10);
 
-    } else if (strcmp(argv[arg], "-b") == 0) {
-      breakIntersections = true;
-
-    } else if (strcmp(argv[arg], "-J") == 0) {
-      enableJoining = true;
+    } else if (strcmp(argv[arg], "-R") == 0) {
+      shatterRepeats = true;
 
     } else if (strcmp(argv[arg], "-eg") == 0) {
       erateGraph = atof(argv[++arg]);
@@ -215,9 +200,6 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-N") == 0) {
       ovlCacheLimit   = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-s") == 0) {
-      genomeSize = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-D") == 0) {
       uint32  opt = 0;
@@ -303,11 +285,10 @@ main (int argc, char * argv []) {
     fprintf(stderr, "             to try to estimate the genome size based on the constructed\n");
     fprintf(stderr, "             unitig lengths.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -U         Enable EXPERIMENTAL short unitig merging (aka bubble popping).\n");
-    fprintf(stderr, "  -J         Enable EXPERIMENTAL long unitig joining.\n");
+    fprintf(stderr, "Algorithm Options\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -b         Break promisciuous unitigs at unitig intersection points\n");
-    fprintf(stderr, " \n");
+    fprintf(stderr, "  -R         Shatter and rebuild repeat unitigs\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig if either of\n");
     fprintf(stderr, "                    the following conditions hold:\n");
     fprintf(stderr, "  When constructing the Best Overlap Graph and Promiscuous Unitigs ('g'raph):\n");
@@ -363,9 +344,6 @@ main (int argc, char * argv []) {
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Bubble popping        = %s\n", (popBubbles) ? "on" : "off");
-  fprintf(stderr, "Intersection breaking = %s\n", (breakIntersections) ? "on" : "off");
-  fprintf(stderr, "Intersection joining  = %s\n", (enableJoining) ? "on" : "off");
   fprintf(stderr, "Graph error threshold = %.3f (%.3f%%)\n", erateGraph, erateGraph * 100);
   fprintf(stderr, "Graph error limit     = %.3f errors\n", elimitGraph);
   fprintf(stderr, "Merge error threshold = %.3f (%.3f%%)\n", erateMerge, erateMerge * 100);
@@ -381,7 +359,14 @@ main (int argc, char * argv []) {
   OverlapStore     *ovlStoreUniq = AS_OVS_openOverlapStore(ovlStoreUniqPath);
   OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
+  UnitigVector      unitigs;
+
   FI = new FragmentInfo(gkpStore, output_prefix);
+
+  // Initialize where we've been to nowhere, and create the non-existent 0th unitig.
+  Unitig::resetFragUnitigMap(FI->numFragments());
+  unitigs.push_back(NULL);
+
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory, ovlCacheLimit);
   OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix);
   CG = new ChunkGraph(output_prefix);
@@ -390,11 +375,7 @@ main (int argc, char * argv []) {
   AS_OVS_closeOverlapStore(ovlStoreUniq);  ovlStoreUniq = NULL;
   AS_OVS_closeOverlapStore(ovlStoreRept);  ovlStoreRept = NULL;
 
-  UnitigVector   unitigs;
 
-  // Initialize where we've been to nowhere, and create the non-existent 0th unitig.
-  Unitig::resetFragUnitigMap(FI->numFragments());
-  unitigs.push_back(NULL);
 
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -456,72 +437,38 @@ main (int argc, char * argv []) {
   reportUnitigs(unitigs, output_prefix, "placeContainsZombies");
   evaluateMates(unitigs, output_prefix, "placeContainsZombies");
 
-
-
-#ifndef MERGESPLITJOIN
-
-  ////////////////////////////////////////////////////////////////////////////////
-  //
-  //  Search for bubbles/staples.  Two methods so far.
-  //
-  //  1) By using best overlaps off the end of a small unitig that intersect a larger unitig to give
-  //  an approximate placement, then using overlaps to place fragments into the larger unitig.
-  //
-  //  2) By using mates to give an approximate placement, then using overlaps to place fragments.
-  //
-  //  3) By blindly searching.  For each small unitig, attempt to place it using overlaps.  If the
-  //  placement is consistent, the bubble is popped.  Works if there is no mate and no intersection.
-
-  setLogFile(output_prefix, "bubblePopping");
-
-  popIntersectionBubbles(unitigs);  //  Well supported as of Wed 13 Oct
-  popMateBubbles(unitigs);          //  Exploratory as of Wed 13 Oct
-
-  checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "bubblePopping");
-  reportUnitigs(unitigs, output_prefix, "bubblePopping");
-  evaluateMates(unitigs, output_prefix, "bubblePopping");
-
-  ////////////////////////////////////////////////////////////////////////////////
-  //
-  //  Search for intersection breaks and joins.  These are cases where we extended a BOG unitig into
-  //  a spur, and fell off the best overlap path.  We hope to trim off the spur end, join the two
-  //  unitigs into one, and maybe fold back the spur as a bubble.
-  //
-  //  We don't know how to handle contains when we split a unitig.  The splitting proceedure removes
-  //  contains from unitigs that are split (it does NOT put them in singleton unitigs, it just
-  //  removes them as if they were never placed), so after splitting we must do placeContains()
-  //  again.
-
-  setLogFile(output_prefix, "intersectionBreaking");
-
-  breakUnitigs(unitigs, output_prefix, breakIntersections);
-
-  splitDiscontinuousUnitigs(unitigs);       //  Clean up splitting problems.
-  placeContainsUsingBestOverlaps(unitigs);  //  Add back any contained fragments we remvoed.
-
-  checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "intersectionBreaking");
-  reportUnitigs(unitigs, output_prefix, "intersectionBreaking");
-  evaluateMates(unitigs, output_prefix, "intersectionBreaking");
-
-  setLogFile(output_prefix, "joinUnitigs");
-
-  joinUnitigs(unitigs, enableJoining);
-  placeContainsUsingBestOverlaps(unitigs);
-
-  checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "joinUnitigs");
-  reportUnitigs(unitigs, output_prefix, "joinUnitigs");
-  evaluateMates(unitigs, output_prefix, "joinUnitigs");
-
-  //  Maybe another round of bubble popping as above.
-
-#else
-
   setLogFile(output_prefix, "mergeSplitJoin");
 
-  mergeSplitJoin(unitigs);
+  mergeSplitJoin(unitigs, shatterRepeats);
+
+  //  rebuildRepeatUnitigs()
+  if (shatterRepeats) {
+    BestOverlapGraph  *OGsave = OG;
+    ChunkGraph        *CGsave = CG;
+
+    OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix);
+    CG = new ChunkGraph(output_prefix);
+
+    setLogFile(output_prefix, "buildRepeatUnitigs");
+    fprintf(logFile, "==> BUILDING REPEAT UNITIGS from %d fragments.\n", FI->numFragments());
+
+    for (uint32 fi=CG->nextFragByChunkLength(); fi>0; fi=CG->nextFragByChunkLength())
+      populateUnitig(unitigs, fi);
+
+    fprintf(logFile, "==> BUILDING REPEAT UNITIGS catching missed fragments.\n");
+
+    for (uint32 fi=1; fi <= FI->numFragments(); fi++)
+      populateUnitig(unitigs, fi);
+
+    delete OG;
+    delete CG;
+
+    OG = OGsave;
+    CG = CGsave;
+  }
+
+  placeContainsUsingBestOverlaps(unitigs);
+
   splitDiscontinuousUnitigs(unitigs);       //  Clean up splitting problems.
   placeContainsUsingBestOverlaps(unitigs);
 
@@ -529,8 +476,6 @@ main (int argc, char * argv []) {
   reportOverlapsUsed(unitigs, output_prefix, "mergeSplitJoin");
   reportUnitigs(unitigs, output_prefix, "mergeSplitJoin");
   evaluateMates(unitigs, output_prefix, "mergeSplitJoin");
-
-#endif
 
   //  OUTPUT
 
