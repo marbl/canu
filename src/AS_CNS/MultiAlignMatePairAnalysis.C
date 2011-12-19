@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.2 2011-12-18 07:04:08 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.3 2011-12-19 00:51:47 brianwalenz Exp $";
 
 #include "MultiAlignMatePairAnalysis.H"
 
@@ -55,6 +55,7 @@ public:
   };
 
   void    finalize(void);
+  void    writeUpdate(FILE *output, int32 libOrient, gkLibrary *library);
   void    printSummary(FILE *output, int32 libOrient, gkLibrary *library);
 
   int32   median;
@@ -131,8 +132,12 @@ void
 matePairAnalysis::evaluateTig(MultiAlignT *ma) {
   map<AS_IID, uint32>  fragIdx;
   uint32               numFrag = GetNumIntMultiPoss(ma->f_list);
-  uint32               maLen   = 0;
+  int32                maLen   = 0;
 
+  //  We could use GetMultiAlignLength(ma), but we need to go throught the list of
+  //  fragments anyway (to build the fragIdx map) and we'll just find the length
+  //  at the same time.
+  //
   for (uint32 i=0; i<numFrag; i++) {
     IntMultiPos *frg = GetIntMultiPos(ma->f_list, i);
 
@@ -304,6 +309,7 @@ mpaLibraryData::printSummary(FILE *output, int32 libOrient, gkLibrary *library) 
 void
 matePairAnalysis::printSummary(FILE *output) {
   for (uint32 li=1; li<gkpStore->gkStore_getNumLibraries() + 1; li++) {
+    fprintf(output, "\n%s\n", libdata[li].library->libraryName);
     libdata[li].orient[0].printSummary(output, 0, libdata[li].library);  //  Unoriented
     libdata[li].orient[1].printSummary(output, 1, libdata[li].library);  //  Innie
     libdata[li].orient[2].printSummary(output, 2, libdata[li].library);  //  Outtie
@@ -313,6 +319,41 @@ matePairAnalysis::printSummary(FILE *output) {
 }
 
 
+void
+mpaLibraryData::writeUpdate(FILE *output, int32 libOrient, gkLibrary *library) {
+  if (dist.size() == 0)
+    return;
+
+  if ((library->orientation == libOrient) &&
+      (numSamples >= 100))
+    fprintf(output, "lib uid %s distance %.2f %.2f\n", library->libraryName, mean, stddev);
+}
+
+
+
+void
+matePairAnalysis::writeUpdate(char *prefix) {
+  char   datName[FILENAME_MAX];
+
+  if (prefix[strlen(prefix)-1] == '/')
+    prefix[strlen(prefix)-1] = 0;
+
+  sprintf(datName, "%s.distupdate", prefix);
+  errno = 0;
+  FILE *F = fopen(datName, "w");
+  if (errno)
+    fprintf(stderr, "ERROR:  Failed to open '%s': %s\n", datName, strerror(errno)), exit(1);
+
+  for (uint32 li=1; li<gkpStore->gkStore_getNumLibraries() + 1; li++) {
+    libdata[li].orient[0].writeUpdate(F, 0, libdata[li].library);  //  Unoriented
+    libdata[li].orient[1].writeUpdate(F, 1, libdata[li].library);  //  Innie
+    libdata[li].orient[2].writeUpdate(F, 2, libdata[li].library);  //  Outtie
+    libdata[li].orient[3].writeUpdate(F, 3, libdata[li].library);  //  Normal
+    libdata[li].orient[4].writeUpdate(F, 4, libdata[li].library);  //  Antinormal
+  }
+
+  fclose(F);
+}
 
 void
 matePairAnalysis::drawPlots(char *prefix) {

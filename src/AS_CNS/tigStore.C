@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.17 2011-12-18 07:04:08 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.18 2011-12-19 00:51:47 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -282,6 +282,7 @@ main (int argc, char **argv) {
   int           showDots       = 1;
 
   matePairAnalysis  *mpa       = NULL;
+  char              *mpaPrefix = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -384,6 +385,9 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       MULTIALIGN_PRINT_SPACING = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      mpaPrefix = argv[++arg];
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -419,7 +423,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "     consensusgapped    ...the consensus sequence, with gaps as indicated in the multialignment\n");
     fprintf(stderr, "     layout             ...the layout\n");
     fprintf(stderr, "     multialign         ...the full multialignment\n");
-    fprintf(stderr, "     matepair prefix    ...an analysis of the mate pairs (histograms in prefix.##.name.dat)\n");
+    fprintf(stderr, "     matepair           ...an analysis of the mate pairs\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -E <editFile>         Change properties of multialigns\n");
@@ -433,10 +437,14 @@ main (int argc, char **argv) {
     fprintf(stderr, "                        rarely useful, but is needed if the version of the store to add a multialign\n");
     fprintf(stderr, "                        does not exist.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -w width              For printing multialigns, the width of the page and spacing between\n");
-    fprintf(stderr, "  -s spacing            reads on the same line.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  For '-d multialign':\n");
+    fprintf(stderr, "  -w width              Width of the page.\n");
+    fprintf(stderr, "  -s spacing            Spacing between reads on the same line.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  For '-d matepair':\n");
+    fprintf(stderr, "  -o prefix             Output files will be written to 'prefix.*' in the current directory.\n");
+    fprintf(stderr, "                        (defaults to 'tigStore' (the -t option) if not set.)\n");
     exit(1);
   }
 
@@ -596,8 +604,11 @@ main (int argc, char **argv) {
       end = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
     }
 
-    if (dumpFlags == DUMP_MATEPAIR)
+    if (dumpFlags == DUMP_MATEPAIR) {
       mpa = new matePairAnalysis(gkpName);
+      if (mpaPrefix == NULL)
+        mpaPrefix = tigName;
+    }
 
     for (tigID=bgn; tigID<end; tigID++) {
       ma = tigStore->loadMultiAlign(tigID, tigIsUnitig);
@@ -634,7 +645,8 @@ main (int argc, char **argv) {
   if (mpa) {
     mpa->finalize();
     mpa->printSummary(stdout);
-    mpa->drawPlots(tigName);
+    mpa->writeUpdate(mpaPrefix);
+    mpa->drawPlots(mpaPrefix);
     delete mpa;
   }
 

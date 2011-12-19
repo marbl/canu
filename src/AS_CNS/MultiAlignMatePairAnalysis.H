@@ -20,7 +20,7 @@
 #ifndef MULTIALIGNMATEPAIRANALYSIS
 #define MULTIALIGNMATEPAIRANALYSIS
 
-static const char *rcsid_MULTIALIGNMATEPAIRANALYSIS = "$Id: MultiAlignMatePairAnalysis.H,v 1.2 2011-12-18 07:04:08 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMATEPAIRANALYSIS = "$Id: MultiAlignMatePairAnalysis.H,v 1.3 2011-12-19 00:51:47 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -41,6 +41,7 @@ public:
   void         finalize(void);
 
   void         printSummary(FILE *out);
+  void         writeUpdate(char *prefix);
   void         drawPlots(char *prefix);
 
   double       mean(uint32 libid);
