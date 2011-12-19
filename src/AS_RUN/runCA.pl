@@ -4505,21 +4505,108 @@ sub createPostUnitiggerConsensusJobs (@) {
 
 
 sub postUnitiggerConsensus () {
+    my $cmd;
+
+    return if (-e "$wrk/5-consensus/consensus.success");
 
     system("mkdir $wrk/5-consensus") if (! -d "$wrk/5-consensus");
 
-    goto alldone if (-e "$wrk/5-consensus/consensus.success");
-
-    createPostUnitiggerConsensusJobs();
+    #  NOT IDEAL.  We assume that jobs are finished if the script exists.  We need
+    #  better logic in createPostUnitiggerConsensusJobs() to tell if the job crashed.
+    #
+    if (! -e "$wrk/5-consensus/consensus.sh") {
+        createPostUnitiggerConsensusJobs();
+    }
 
     #
     #  Run the consensus fixer
     #
 
-    my $cmd = "$bin/utgcnsfix -g $wrk/$asm.gkpStore -t $wrk/$asm.tigStore 2 > $wrk/5-consensus/consensus-fix.out 2>&1";
+    if (! -e "$wrk/5-consensus/consensus-fix.out") {
+        $cmd  = "$bin/utgcnsfix \\\n";
+        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -t $wrk/$asm.tigStore 2 \\\n";
+        $cmd .= "> $wrk/5-consensus/consensus-fix.out 2>&1";
 
-    if (runCommand("$wrk/5-consensus", $cmd)) {
-        caFailure("Unitig consensus fixer failed", "$wrk/5-consensus/consensus-fix.out");
+        if (runCommand("$wrk/5-consensus", $cmd)) {
+            rename "$wrk/5-consensus/consensus-fix.out", "$wrk/5-consensus/consensus-fix.out.FAILED";
+            caFailure("Unitig consensus fixer failed", "$wrk/5-consensus/consensus-fix.out");
+        }
+    }
+
+    #
+    #  Estimate insert size estimates
+    #
+
+    if (! -e "$wrk/5-consensus-insert-sizes/estimates.out") {
+        system("mkdir $wrk/5-consensus-insert-sizes") if (! -d "$wrk/5-consensus-insert-sizes");
+        system("ln -s $wrk/$asm.tigStore $wrk/5-consensus-insert-sizes/$asm.tigStore");
+
+        $cmd  = "$bin/tigStore \\\n";
+        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -t $wrk/5-consensus-insert-sizes/$asm.tigStore 3 \\\n";
+        $cmd .= " -d matepair -U \\\n";
+        $cmd .= "> $wrk/5-consensus-insert-sizes/estimates.out 2>&1";
+
+        if (runCommand("$wrk/5-consensus-insert-sizes", $cmd)) {
+            caFailure("Insert size estimation failed", "$wrk/5-consensus-insert-sizes/estimates.out");
+        }
+    }
+
+    #
+    #  Update estimates in gatekeeper
+    #
+
+    if (! -e "$wrk/5-consensus-insert-sizes/updates.err") {
+        if (! -e "$wrk/5-consensus-insert-sizes/$asm.tigStore.distupdate") {
+            rename "$wrk/5-consensus-insert-sizes/estimates.out", "$wrk/5-consensus-insert-sizes/estimates.out.FAILED";
+            caFailure("Failed to find insert size estimates", "$wrk/5-consensus-insert-sizes/estimates.out.FAILED");
+        }
+
+        $cmd  = "$bin/gatekeeper \\\n";
+        $cmd .= " --edit $wrk/5-consensus-insert-sizes/$asm.tigStore.distupdate \\\n";
+        $cmd .= "        $wrk/$asm.gkpStore \\\n";
+        $cmd .= "> $wrk/5-consensus-insert-sizes/updates.err 2>&1";
+
+        if (runCommand("$wrk/5-consensus-insert-sizes", $cmd)) {
+            rename "$wrk/5-consensus-insert-sizes/updates.err", "$wrk/5-consensus-insert-sizes/updates.err.FAILED";
+            caFailure("Insert size updates failed", "$wrk/5-consensus-insert-sizes/updates.err.FAILED");
+        }
+    }
+
+    #
+    #  Run the chimeric unitig splitter
+    #
+
+    if (! -e "$wrk/5-consensus-split/splitUnitigs.out") {
+        system("mkdir $wrk/5-consensus-split") if (! -d "$wrk/5-consensus-split");
+        system("ln -s $wrk/$asm.tigStore $wrk/5-consensus-split/$asm.tigStore");
+
+        $cmd  = "$bin/splitUnitigs \\\n";
+        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -t $wrk/$asm.tigStore 3 \\\n";
+        $cmd .= "> $wrk/5-consensus-split/splitUnitigs.out 2>&1";
+
+        if (runCommand("$wrk/5-consensus-split", $cmd)) {
+            rename "$wrk/5-consensus-split/splitUnitigs.out", "$wrk/5-consensus-split/splitUnitigs.out.FAILED";
+            caFailure("Unitig consensus fixer failed", "$wrk/5-consensus-split/splitUnitigs.out.FAILED");
+        }
+    }
+
+    #
+    #  And the fixer, again
+    #
+
+    if (! -e "$wrk/5-consensus-split/consensus-fix.out") {
+        $cmd  = "$bin/utgcnsfix \\\n";
+        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -t $wrk/$asm.tigStore 4 \\\n";
+        $cmd .= "> $wrk/5-consensus-split/consensus-fix.out 2>&1";
+
+        if (runCommand("$wrk/5-consensus-split", $cmd)) {
+            rename "$wrk/5-consensus-split/consensus-fix.out", "$wrk/5-consensus-split/consensus-fix.out.FAILED";
+            caFailure("Unitig consensus fixer failed", "$wrk/5-consensus-split/consensus-fix.out.FAILED");
+        }
     }
 
     #  All jobs finished.  Remove the partitioning from the gatekeeper

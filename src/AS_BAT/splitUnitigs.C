@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: splitUnitigs.C,v 1.1 2011-12-18 08:13:22 brianwalenz Exp $";
+const char *mainid = "$Id: splitUnitigs.C,v 1.2 2011-12-19 02:20:06 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -35,9 +35,10 @@ using namespace std;
 #define READ_TRIM_BASES          (AS_OVERLAP_MIN_LEN / 2 - 1)
 #define MAX_SEQUENCE_COVERAGE     1
 #define MIN_BAD_CLONE_COVERAGE    3
-#define MAX_GOOD_CLONE_COVERAGE   0
+#define MAX_GOOD_CLONE_COVERAGE   1
 #define LN_2                      0.693147
 
+#define CGW_CUTOFF 5
 
 //gkStore          *gkpStore     = NULL;
 //MultiAlignStore  *tigStore     = NULL;
@@ -82,6 +83,7 @@ createReadCoverageMap(uint32       *rc,
 
     //  Undo the offsets if we're near the end of a unitig where we expect coverage to be low.
 
+#if 1
     if ((i < 5) || (maxPos < minSplit)) {
       minPos -= READ_TRIM_BASES;
       maxPos += READ_TRIM_BASES;
@@ -94,6 +96,7 @@ createReadCoverageMap(uint32       *rc,
 
     minPos = MAX(0, minPos);
     maxPos = MIN(maLen, maxPos);
+#endif
 
     incrementInterval(rc, minPos, maxPos);
   }
@@ -113,8 +116,8 @@ createCloneCoverageMapExternal(uint32       *gcc,
 
   gkLibrary *lib       = gkpStore->gkStore_getLibrary(library[imp->ident]);
   uint32     liborient = lib->orientation;
-  int32      distMin   = lib->mean - 3 * lib->stddev;
-  int32      distMax   = lib->mean + 3 * lib->stddev;
+  int32      distMin   = lib->mean - CGW_CUTOFF * lib->stddev;
+  int32      distMax   = lib->mean + CGW_CUTOFF * lib->stddev;
 
   switch (liborient) {
     case AS_READ_ORIENT_UNKNOWN:
@@ -164,8 +167,8 @@ createCloneCoverageMapInternal(uint32       *gcc,
 
   gkLibrary *lib       = gkpStore->gkStore_getLibrary(library[imp->ident]);
   uint32     liborient = lib->orientation;
-  int32      distMin   = lib->mean - 3 * lib->stddev;
-  int32      distMax   = lib->mean + 3 * lib->stddev;
+  int32      distMin   = lib->mean - CGW_CUTOFF * lib->stddev;
+  int32      distMax   = lib->mean + CGW_CUTOFF * lib->stddev;
 
   int32  distance = matmax - frgmin;
 
@@ -275,18 +278,18 @@ main(int argc, char **argv) {
   AS_IID     onlID     = UINT32_MAX;
   AS_IID     endID     = UINT32_MAX;
 
-  uint32     minLength = UINT32_MAX;
-  uint32     minSplit  = UINT32_MAX;
+  int32      minLength = INT32_MAX;
+  int32      minSplit  = INT32_MAX;
 
   argc = AS_configure(argc, argv);
 
   int err = 0;
   int arg = 1;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
+    if        (strcmp(argv[arg], "-g") == 0) {
       gkpName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-T") == 0) {
+    } else if (strcmp(argv[arg], "-t") == 0) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
 
@@ -303,10 +306,10 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -G gkpStore -T tigStore version\n", argv[0]);
+    fprintf(stderr, "usage: %s -g gkpStore -t tigStore version\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -G         Mandatory path to a gkpStore.\n");
-    fprintf(stderr, "  -T         Mandatory path to a tigStore (can exist or not).\n");
+    fprintf(stderr, "  -g         Mandatory path to a gkpStore.\n");
+    fprintf(stderr, "  -t         Mandatory path to a tigStore (can exist or not).\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "No gatekeeper store (-G option) supplied.\n");
@@ -348,11 +351,16 @@ main(int argc, char **argv) {
   for (uint32 i=1; i<gkpStore->gkStore_getNumLibraries() + 1; i++) {
     gkLibrary *lib  = gkpStore->gkStore_getLibrary(i);
 
+    fprintf(stderr, "LIB %d %f +- %f\n", i, lib->mean, lib->stddev);
+
     if (lib->mean > 0) {
-      minLength = MIN(minLength, lib->mean + 3 * lib->stddev);
-      minSplit  = MIN(minSplit,  lib->mean - 3 * lib->stddev);
+      minLength = MIN(minLength, lib->mean + CGW_CUTOFF * lib->stddev);
+      minSplit  = MIN(minSplit,  lib->mean - CGW_CUTOFF * lib->stddev);
     }
   }
+
+  fprintf(stderr, "minLength = %d\n", minLength);
+  fprintf(stderr, "minSplit = %d\n", minSplit);
 
   //  Over every unitig, analyze and maybe split
 
@@ -375,15 +383,14 @@ main(int argc, char **argv) {
 
   for (uint32 i=bgnID; i<endID; i++) {
     MultiAlignT  *maOrig = tigStore->loadMultiAlign(i, TRUE);
-    uint32        maLen  = GetMultiAlignLength(maOrig);
 
     if (maOrig == NULL)
       continue;
 
+    uint32        maLen  = GetMultiAlignLength(maOrig);
+
     if (maLen < minLength)
       continue;
-
-    //
 
     while (rcMax < maLen) {
       rcMax *= 2;
@@ -396,17 +403,30 @@ main(int argc, char **argv) {
 
     createReadCoverageMap(rc, maOrig, maLen, minSplit);
 
-    //  Pick out a thick region in the middle to analyze - ignore low coverage
-    //  at the end of the unitig
+    //  Pick out a thick region in the middle to analyze - ignore low coverage at the end of the
+    //  unitig.
+    //
+    //  We tried ignoring the ends with no good clone coverage, but found plenty of examples where
+    //  we'd want to trim off those ends.  Example: no good clone coverage, a hump of read coverage
+    //  that drops back to one, and bad clone coverage.
+    //
+    //  The original would skip single coverage regions only.  This wasn't working as a single
+    //  contain, or overlap would make it stop.  We'd then split on the next 1-coverage area,
+    //  trimming off a single read (or two or three) that likely isn't a problem.  There was some
+    //  magic in the original that somehow skipped these bad splits; I couldn't find it.
 
     uint32 minBase = READ_TRIM_BASES;
     uint32 maxBase = maLen - READ_TRIM_BASES;
     uint32 curBase = 0;
 
-    while ((minBase < maLen - READ_TRIM_BASES) && (rc[minBase] <= 1))
+    //while ((minBase < maLen - READ_TRIM_BASES) && (gcc[minBase] == 0))
+    //  minBase++;
+    while ((minBase < maLen - READ_TRIM_BASES) && (rc[minBase] <= 2))
       minBase++;
 
-    while ((maxBase > READ_TRIM_BASES) && (rc[maxBase] <= 1))
+    //while ((maxBase > READ_TRIM_BASES) && (gcc[maxBase] == 1))
+    //  maxBase--;
+    while ((maxBase > READ_TRIM_BASES) && (rc[maxBase] <= 2))
       maxBase--;
 
     //  Find a first candidate interval
@@ -479,6 +499,36 @@ main(int argc, char **argv) {
       intervals.push_back(interval);
     }
 
+    if (intervals.size() == 0)
+      fprintf(stderr, "Found no intervals for unitig %d\n", maOrig->maID);
+
+    if (intervals.size() <= 1)
+      continue;
+
+#if 1
+    {
+      char  N[FILENAME_MAX];
+      FILE *F;
+
+      sprintf(N, "splitUnitigs-%08d.dat", maOrig->maID);
+      F = fopen(N, "w");
+      for (uint32 i=0; i<maLen; i++)
+        fprintf(F, "%d\t%u\t%u\t%u\n", i, rc[i], bcc[i], gcc[i]);
+      fclose(F);
+
+      sprintf(N, "splitUnitigs-%08d.gp", maOrig->maID);
+      F = fopen(N, "w");
+      fprintf(F, "set terminal png\n");
+      fprintf(F, "set output \"splitUnitigs-%08d.png\"\n", maOrig->maID);
+      fprintf(F, "plot \"splitUnitigs-%08d.dat\" using 1:2 with lines title \"RC\", \"splitUnitigs-%08d.dat\" using 1:3 with lines title \"BCC\", \"splitUnitigs-%08d.dat\" using 1:4 with lines title \"GCC\"\n",
+            maOrig->maID, maOrig->maID, maOrig->maID);
+      fclose(F);
+
+      sprintf(N, "gnuplot < splitUnitigs-%08d.gp", maOrig->maID);
+      system(N);
+    }
+#endif
+
     //  Be nice and report the intervals
 
     for (uint32 i=0; i<intervals.size(); i++)
@@ -493,10 +543,19 @@ main(int argc, char **argv) {
     //  break is, so this is the best we can do to isolate it (other than shattering).  The second
     //  pass moves fragments from the original layout to new unitigs as long as they're contiguous.
 
-    MultiAlignT  **maNew = new MultiAlignT * [intervals.size()];
+    //  One stupid case needs to be cleaned up.  The first (few) fragments in a good region could be
+    //  contained by the fragment in the bad region, and not actially connected to the good region.
+    //  This is handled using maBgn/maEnd when a fragment is added to a good region.
 
-    for (uint32 i=0; i<intervals.size(); i++)
+    MultiAlignT  **maNew = new MultiAlignT * [intervals.size()];
+    int32         *maBgn = new int32 [intervals.size()];
+    int32         *maEnd = new int32 [intervals.size()];
+
+    for (uint32 i=0; i<intervals.size(); i++) {
       maNew[i] = CreateEmptyMultiAlignT();
+      maBgn[i] = maLen;
+      maEnd[i] = 0;
+    }
 
     uint32 n = GetNumIntMultiPoss(maOrig->f_list);
 
@@ -506,9 +565,9 @@ main(int argc, char **argv) {
       if (imp->ident == 0)
         continue;
 
-      uint32       minpos = MIN(imp->position.bgn, imp->position.end);
-      uint32       maxpos = MAX(imp->position.bgn, imp->position.end);
-      uint32       dest   = UINT32_MAX;
+      int32       minpos = MIN(imp->position.bgn, imp->position.end);
+      int32       maxpos = MAX(imp->position.bgn, imp->position.end);
+      int32       dest   = INT32_MAX;
 
       //  Search for a destination bad unitig for this fragment.
       for (uint32 ii=0; ii<intervals.size(); ii++)
@@ -520,6 +579,8 @@ main(int argc, char **argv) {
       //  If the fragment touched a bad interval, dest is set, and we move the fragment to that new unitig.
       if (dest < intervals.size()) {
         AppendVA_IntMultiPos(maNew[dest]->f_list, imp);
+        maBgn[dest] = MIN(maBgn[dest], minpos);
+        maEnd[dest] = MAX(maEnd[dest], maxpos);
         imp->ident = 0;
         continue;
       }
@@ -531,9 +592,43 @@ main(int argc, char **argv) {
           break;
         }
 
+
+      //  If the new fragment doesn't overlap with what is already in this interval, and the stuff in this
+      //  interval does overlap with the previous interval, move it all there.
+      if ((dest > 0) &&
+          (maEnd[dest] - AS_OVERLAP_MIN_LEN <= minpos) &&
+          (maBgn[dest]                      <= maEnd[dest-1] - AS_OVERLAP_MIN_LEN)) {
+
+        fprintf(stderr, "Fixing contains.\n");
+
+        for (uint32 iii=0; iii<GetNumIntMultiPoss(maNew[dest]->f_list); iii++) {
+          IntMultiPos *ttt = GetIntMultiPos(maNew[dest]->f_list, iii);
+
+          AppendVA_IntMultiPos(maNew[dest-1]->f_list, ttt);
+
+          fprintf(stderr, " prev %d,%d -- %d %d,%d (no overlap to new %d,%d)\n",
+                  maBgn[dest], maEnd[dest],
+                  ttt->ident, ttt->position.bgn, ttt->position.end,
+                  minpos, maxpos);
+
+          maBgn[dest-1] = MIN(ttt->position.bgn, maBgn[dest-1]);
+          maBgn[dest-1] = MIN(ttt->position.end, maBgn[dest-1]);
+
+          maEnd[dest-1] = MAX(ttt->position.bgn, maEnd[dest-1]);
+          maEnd[dest-1] = MAX(ttt->position.end, maEnd[dest-1]);
+        }
+
+        ResetToRange_VA(maNew[dest]->f_list, 0);
+        maBgn[dest] = maLen;
+        maEnd[dest] = 0;
+      }
+
+
       //  If it touched a good interval, move it there.
       if (dest < intervals.size()) {
         AppendVA_IntMultiPos(maNew[dest]->f_list, imp);
+        maBgn[dest] = MIN(maBgn[dest], minpos);
+        maEnd[dest] = MAX(maEnd[dest], maxpos);
         imp->ident = 0;
         continue;
       }
@@ -542,10 +637,13 @@ main(int argc, char **argv) {
       assert(0);
     }
 
-    //  Run these through consensus, and add to the store.
+
+    //  Run these through consensus (if the original had a consensus sequence) and add to the store.
 
     for (uint32 i=0; i<intervals.size(); i++) {
       if (GetNumIntMultiPoss(maNew[i]->f_list) == 0)
+        //  Possibly a tiny good interval between two bad intervals.  Not sure how this would occur
+        //  though.
         continue;
 
       maNew[i]->maID = tigStore->numUnitigs();
@@ -553,10 +651,9 @@ main(int argc, char **argv) {
       fprintf(stderr, "Creating new unitig %d with "F_SIZE_T" fragments\n",
               maNew[i]->maID, GetNumIntMultiPoss(maNew[i]->f_list));
 
-      if (MultiAlignUnitig(maNew[i], gkpStore, &options, NULL) == false)
-        fprintf(stderr, "  Unitig %d FAILED.\n", maNew[i]->maID);
-
-      //  Add the new unitig to the store (the asserts are duplicated in cgw too).
+      if (GetNumchars(maOrig->consensus) > 1)
+        if (MultiAlignUnitig(maNew[i], gkpStore, &options, NULL) == false)
+          fprintf(stderr, "  Unitig %d FAILED.\n", maNew[i]->maID);
 
       tigStore->insertMultiAlign(maNew[i], TRUE, FALSE);
 
@@ -564,6 +661,10 @@ main(int argc, char **argv) {
     }
 
     delete [] maNew;
+
+    //  Now mark the original unitig as deleted.
+
+    tigStore->deleteMultiAlign(maOrig->maID, true);
   }
 
   delete [] rc;

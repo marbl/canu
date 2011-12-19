@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.54 2011-11-29 11:50:00 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.55 2011-12-19 02:20:06 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -286,7 +286,7 @@ ScaffoldGraphT *CreateScaffoldGraph(char *name) {
 
   strcpy(sgraph->name, name);
 
-  sgraph->tigStore      = tigStore = new MultiAlignStore(GlobalData->tigStoreName, 3, 0, 0, TRUE, FALSE);
+  sgraph->tigStore      = tigStore = new MultiAlignStore(GlobalData->tigStoreName, 5, 0, 0, TRUE, FALSE);
 
   sgraph->CIGraph       = CreateGraphCGW(CI_GRAPH, 16 * 1024, 16 * 1024);
   sgraph->ContigGraph   = CreateGraphCGW(CONTIG_GRAPH, 1, 1);
