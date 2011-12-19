@@ -22,7 +22,7 @@
 #ifndef MULTIALIGN_H
 #define MULTIALIGN_H
 
-static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.11 2011-12-19 00:34:20 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
@@ -94,63 +94,8 @@ void         PrintMultiAlignT(FILE *out,
                               int32 dots,
                               uint32 clrrng_flag);
 
-static
-size_t
-GetMultiAlignTMemorySize(MultiAlignT *ma) {
-  size_t size = 0;
-  if (ma)
-    size = (GetMemorySize_VA(ma->consensus) * 2 +
-            GetMemorySize_VA(ma->fdelta) +
-            GetMemorySize_VA(ma->f_list) +
-            GetMemorySize_VA(ma->udelta) +
-            GetMemorySize_VA(ma->u_list) +
-            GetMemorySize_VA(ma->v_list));
-  return(size);
-}
-
-
-
-static
-int32
-GetMultiAlignLength(MultiAlignT *ma) {
-  // don't include the space for the null character
-  return((int32)GetNumchars(ma->consensus) - 1);
-}
-
-static
-int32
-GetMultiAlignUngappedLength(MultiAlignT *ma) {
-  int32   u = 0;
-  char   *c = Getchar(ma->consensus,0);
-
-  while (*c) {
-    if (*c != '-')
-      u++;
-    c++;
-  }
-  return(u);
-}
-
-
-
-static
-IntUnitigPos *
-GetAendUnitigPos(MultiAlignT *ma) {
-  return(GetIntUnitigPos(ma->u_list,0));
-}
-
-static
-IntUnitigPos *
-GetBendUnitigPos(MultiAlignT *ma) {
-  long length = GetMultiAlignLength(ma);
-
-  for (int32 i = GetNumIntUnitigPoss(ma->u_list) - 1; i>=0; i--) {
-    IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
-    if (MAX(pos->position.bgn, pos->position.end) == length)
-      return(pos);
-  }
-  return(NULL);
-}
+int32        GetMultiAlignLength(MultiAlignT *ma);
+int32        GetMultiAlignUngappedLength(MultiAlignT *ma);
 
 #endif //  MULTIALIGN_H
 

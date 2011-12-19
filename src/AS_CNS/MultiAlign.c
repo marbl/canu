@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.18 2011-01-03 03:07:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.19 2011-12-19 00:34:20 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -985,3 +985,33 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
   return(true);
 }
 
+
+
+int32
+GetMultiAlignLength(MultiAlignT *ma) {
+  int32  len = (int32)GetNumchars(ma->consensus) - 1;  //  Getnumchars() includes the terminating nul.
+
+  if (len <= 0) {
+    for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+      IntMultiPos *frg = GetIntMultiPos(ma->f_list, i);
+
+      len = MAX(len, frg->position.bgn);
+      len = MAX(len, frg->position.end);
+    }
+  }
+
+  return(len);
+}
+
+
+
+int32
+GetMultiAlignUngappedLength(MultiAlignT *ma) {
+  int32   u = 0;
+
+  for (char *c = Getchar(ma->consensus,0); *c != 0; c++)
+    if (*c != '-')
+      u++;
+
+  return(u);
+}
