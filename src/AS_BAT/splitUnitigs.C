@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: splitUnitigs.C,v 1.2 2011-12-19 02:20:06 brianwalenz Exp $";
+const char *mainid = "$Id: splitUnitigs.C,v 1.3 2011-12-20 10:15:38 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -312,10 +312,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -t         Mandatory path to a tigStore (can exist or not).\n");
 
     if (gkpName == NULL)
-      fprintf(stderr, "No gatekeeper store (-G option) supplied.\n");
+      fprintf(stderr, "No gatekeeper store (-g option) supplied.\n");
 
     if (tigName == NULL)
-      fprintf(stderr, "No output tigStore (-T option) supplied.\n");
+      fprintf(stderr, "No output tigStore (-t option) supplied.\n");
 
     exit(1);
   }
