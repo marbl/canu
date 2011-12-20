@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.11 2011-12-20 09:04:09 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.12 2011-12-20 21:58:46 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -110,11 +110,10 @@ IIDtoUIDmap    SCFmap;
 
 void
 writeMDI(FILE *asmFile, bool doWrite) {
-  GenericMesg           pmesg;
   SnapMateDistMesg      mdi;
+  GenericMesg           pmesg = { &mdi, MESG_MDI };
 
-  pmesg.m = &mdi;
-  pmesg.t = MESG_MDI;
+  fprintf(stderr, "writeMDI()--\n");
 
   for (int32 i=1; i<GetNumDistTs(ScaffoldGraph->Dists); i++){
     DistT *dptr = GetDistT(ScaffoldGraph->Dists, i);
@@ -160,37 +159,35 @@ writeMDI(FILE *asmFile, bool doWrite) {
 
 
 void writeAFGFromTigStore(FILE *asmFile, bool doWrite) {
-  GenericMesg       pmesg;
   AugFragMesg       afg;
+  GenericMesg       pmesg = { &afg, MESG_AFG };
+  gkFragment        fr;
 
-  pmesg.m = &afg;
-  pmesg.t = MESG_AFG;
-
-  gkFragment     fr;
+  fprintf(stderr, "writeAFGFromTigStore()--\n");
 
   for (uint32 tigID = 0; tigID < ScaffoldGraph->tigStore->numUnitigs(); tigID++) {
     MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(tigID, TRUE);
     if (ma == NULL) 
-       continue;
+      continue;
     
     for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
-       IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
-       ScaffoldGraph->gkpStore->gkStore_getFragment(imp->ident, &fr, GKFRAGMENT_INF);
-       afg.eaccession     = fr.gkFragment_getReadUID();
-       afg.iaccession     = fr.gkFragment_getReadIID();
-       afg.mate_status    = UNASSIGNED_MATE;
-       afg.chaff          = 0;
-       afg.clear_rng.bgn  = fr.gkFragment_getClearRegionBegin();
-       afg.clear_rng.end  = fr.gkFragment_getClearRegionEnd  ();
+      IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
+      ScaffoldGraph->gkpStore->gkStore_getFragment(imp->ident, &fr, GKFRAGMENT_INF);
+      afg.eaccession     = fr.gkFragment_getReadUID();
+      afg.iaccession     = fr.gkFragment_getReadIID();
+      afg.mate_status    = UNASSIGNED_MATE;
+      afg.chaff          = 0;
+      afg.clear_rng.bgn  = fr.gkFragment_getClearRegionBegin();
+      afg.clear_rng.end  = fr.gkFragment_getClearRegionEnd  ();
 
-       if (doWrite)
-          WriteProtoMesg_AS(asmFile, &pmesg);
+      if (doWrite)
+        WriteProtoMesg_AS(asmFile, &pmesg);
 
-       FRGmap.add(afg.iaccession, afg.eaccession);
+      FRGmap.add(afg.iaccession, afg.eaccession);
 
-       if ((AS_UID_isString(afg.eaccession) == FALSE) &&
+      if ((AS_UID_isString(afg.eaccession) == FALSE) &&
           (uidMin <= AS_UID_toInteger(afg.eaccession)))
-          uidMin = AS_UID_toInteger(afg.eaccession) + 1;
+        uidMin = AS_UID_toInteger(afg.eaccession) + 1;
     }
   }
 }
@@ -198,14 +195,12 @@ void writeAFGFromTigStore(FILE *asmFile, bool doWrite) {
 
 void
 writeAFGFromCGW(FILE *asmFile, bool doWrite) {
-  GenericMesg       pmesg;
   AugFragMesg       afg;
+  GenericMesg       pmesg = { &afg, MESG_AFG };
+  gkFragment        fr;
+  gkStream         *fs = new gkStream(ScaffoldGraph->gkpStore, 0, 0, GKFRAGMENT_INF);
 
-  pmesg.m = &afg;
-  pmesg.t = MESG_AFG;
-
-  gkFragment     fr;
-  gkStream      *fs = new gkStream(ScaffoldGraph->gkpStore, 0, 0, GKFRAGMENT_INF);
+  fprintf(stderr, "writeAFGFromCGW()--\n");
 
   for (int32 i=1; i<GetNumCIFragTs(ScaffoldGraph->CIFrags); i++) {
     CIFragT  *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, i);
@@ -242,10 +237,10 @@ writeAFGFromCGW(FILE *asmFile, bool doWrite) {
 
 void
 writeAFG(FILE *asmFile, bool doWrite, bool fromCGW) {
-   if (fromCGW == true) 
-      writeAFGFromCGW(asmFile, doWrite);
-   else
-      writeAFGFromTigStore(asmFile, doWrite);
+  if (fromCGW == true) 
+    writeAFGFromCGW(asmFile, doWrite);
+  else
+    writeAFGFromTigStore(asmFile, doWrite);
 }
 
 
@@ -253,11 +248,10 @@ writeAFG(FILE *asmFile, bool doWrite, bool fromCGW) {
 
 void
 writeAMP(FILE *asmFile, bool doWrite) {
-  GenericMesg           pmesg;
   AugMatePairMesg       amp;
+  GenericMesg           pmesg = { &amp, MESG_AMP };
 
-  pmesg.m = &amp;
-  pmesg.t = MESG_AMP;
+  fprintf(stderr, "writeAMP()--\n");
 
   for (int32 i=1; i<GetNumCIFragTs(ScaffoldGraph->CIFrags); i++) {
     CIFragT            *cif1 = GetCIFragT(ScaffoldGraph->CIFrags, i);
@@ -291,44 +285,44 @@ writeAMP(FILE *asmFile, bool doWrite) {
 
 
 bool buildUTGMessage(int32 ID, SnapUnitigMesg *utg) {
-    MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(ID, TRUE);
-    if (ma == NULL)
-      return(false);
+  MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(ID, TRUE);
 
-    utg->eaccession    = AS_UID_fromInteger(getUID(uidServer));
-    utg->iaccession    = ID;
-    utg->coverage_stat = ScaffoldGraph->tigStore->getUnitigCoverageStat(ID);
-    utg->microhet_prob = ScaffoldGraph->tigStore->getUnitigMicroHetProb(ID);
-    utg->status        = ScaffoldGraph->tigStore->getUnitigStatus(ID);
-    utg->status        = (utg->status == AS_UNASSIGNED ? AS_UNIQUE : utg->status);
-    utg->length        = GetMultiAlignLength(ma);
-    utg->consensus     = Getchar(ma->consensus, 0);
-    utg->quality       = Getchar(ma->quality, 0);
-    utg->forced        = 0;
-    utg->num_frags     = GetNumIntMultiPoss(ma->f_list);
-    utg->num_vars      = 0;
-    utg->f_list        = (SnapMultiPos*)safe_malloc(utg->num_frags * sizeof(SnapMultiPos));
-    utg->v_list        = NULL;
+  if (ma == NULL)
+    return(false);
 
-    for (int32 i=0; i<utg->num_frags; i++) {
-      IntMultiPos  *imp = GetIntMultiPos(ma->f_list, i);
+  utg->eaccession    = AS_UID_fromInteger(getUID(uidServer));
+  utg->iaccession    = ID;
+  utg->coverage_stat = ScaffoldGraph->tigStore->getUnitigCoverageStat(ID);
+  utg->microhet_prob = ScaffoldGraph->tigStore->getUnitigMicroHetProb(ID);
+  utg->status        = ScaffoldGraph->tigStore->getUnitigStatus(ID);
+  utg->status        = (utg->status == AS_UNASSIGNED ? AS_UNIQUE : utg->status);
+  utg->length        = GetMultiAlignLength(ma);
+  utg->consensus     = Getchar(ma->consensus, 0);
+  utg->quality       = Getchar(ma->quality, 0);
+  utg->forced        = 0;
+  utg->num_frags     = GetNumIntMultiPoss(ma->f_list);
+  utg->num_vars      = 0;
+  utg->f_list        = (SnapMultiPos*)safe_malloc(utg->num_frags * sizeof(SnapMultiPos));
+  utg->v_list        = NULL;
 
-      utg->f_list[i].type          = imp->type;
-      utg->f_list[i].eident        = FRGmap.lookup(imp->ident);
-      utg->f_list[i].position      = imp->position;
-      utg->f_list[i].delta_length  = imp->delta_length;
-      utg->f_list[i].delta         = imp->delta;
-    }
+  for (int32 i=0; i<utg->num_frags; i++) {
+    IntMultiPos  *imp = GetIntMultiPos(ma->f_list, i);
 
-    return(true);
+    utg->f_list[i].type          = imp->type;
+    utg->f_list[i].eident        = FRGmap.lookup(imp->ident);
+    utg->f_list[i].position      = imp->position;
+    utg->f_list[i].delta_length  = imp->delta_length;
+    utg->f_list[i].delta         = imp->delta;
+  }
+
+  return(true);
 }
 
 void writeUTGFromTigStore(FILE *asmFile, bool doWrite) {
-  GenericMesg         pmesg;
   SnapUnitigMesg      utg;
+  GenericMesg         pmesg = { &utg, MESG_UTG };
 
-  pmesg.m = &utg;
-  pmesg.t = MESG_UTG;
+  fprintf(stderr, "writeUTGFromTigStore()--\n");
 
   for (uint32 tigID = 0; tigID < ScaffoldGraph->tigStore->numUnitigs(); tigID++) {
     if (buildUTGMessage(tigID, &utg)) {
@@ -344,14 +338,12 @@ void writeUTGFromTigStore(FILE *asmFile, bool doWrite) {
 
 void
 writeUTGFromCGW(FILE *asmFile, bool doWrite) {
-  GenericMesg         pmesg;
   SnapUnitigMesg      utg;
-
-  pmesg.m = &utg;
-  pmesg.t = MESG_UTG;
-
+  GenericMesg         pmesg = { &utg, MESG_UTG };
   GraphNodeIterator   unitigs;
   ChunkInstanceT     *ci;
+
+  fprintf(stderr, "writeUTGFromCGW()--\n");
 
   InitGraphNodeIterator(&unitigs, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
   while ((ci = NextGraphNodeIterator(&unitigs)) != NULL) {
@@ -380,22 +372,20 @@ writeUTGFromCGW(FILE *asmFile, bool doWrite) {
 void
 writeUTG(FILE *asmFile, bool doWrite, bool fromCGW) {
   if (fromCGW == true)
-     writeUTGFromCGW(asmFile, doWrite);
-  else 
-     writeUTGFromTigStore(asmFile, doWrite);
+    writeUTGFromCGW(asmFile, doWrite);
+  else
+    writeUTGFromTigStore(asmFile, doWrite);
 }
 
 
 void
 writeULK(FILE *asmFile, bool doWrite) {
-  GenericMesg          pmesg;
   SnapUnitigLinkMesg   ulk;
+  GenericMesg          pmesg = { & ulk, MESG_ULK };
+  GraphNodeIterator    nodes;
+  ChunkInstanceT      *ci;
 
-  pmesg.m = &ulk;
-  pmesg.t = MESG_ULK;
-
-  GraphNodeIterator  nodes;
-  ChunkInstanceT    *ci;
+  fprintf(stderr, "writeULK()--\n");
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
   while ((ci = NextGraphNodeIterator(&nodes)) != NULL) {
@@ -407,8 +397,8 @@ writeULK(FILE *asmFile, bool doWrite) {
     if (ci->flags.bits.isChaff)
       continue;
 
-    GraphEdgeIterator	edges;
-    CIEdgeT		*edge, *redge;
+    GraphEdgeIterator  edges;
+    CIEdgeT    *edge, *redge;
 
     InitGraphEdgeIterator(ScaffoldGraph->CIGraph, ci->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
     while ((edge = NextGraphEdgeIterator(&edges)) != NULL) {
@@ -441,7 +431,7 @@ writeULK(FILE *asmFile, bool doWrite) {
       uint32  edgeTotal = ulk.num_contributing;
 
       if ((edgeTotal == 1) && (ulk.overlap_type == AS_OVERLAP))
-	// don't output pure overlap edges
+        // don't output pure overlap edges
         continue;
 
       // Look through the fragment pairs in this edge to decide the status of the link.
@@ -471,7 +461,7 @@ writeULK(FILE *asmFile, bool doWrite) {
 
         else
           numUnknown++;
-        }
+      }
 
       if (numBad > 0)
         ulk.status = AS_BAD;
@@ -530,14 +520,12 @@ writeULK(FILE *asmFile, bool doWrite) {
 
 void
 writeCCO(FILE *asmFile, bool doWrite) {
-  GenericMesg         pmesg;
   SnapConConMesg      cco;
-
-  pmesg.m = &cco;
-  pmesg.t = MESG_CCO;
-
+  GenericMesg         pmesg = { &cco, MESG_CCO };
   GraphNodeIterator   contigs;
-  ContigT	     *contig;
+  ContigT             *contig;
+
+  fprintf(stderr, "writeCCO()--\n");
 
   InitGraphNodeIterator(&contigs, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while ((contig = NextGraphNodeIterator(&contigs)) != NULL) {
@@ -664,14 +652,12 @@ SurrogatedSingleUnitigContig(NodeCGW_T* contig) {
 
 void
 writeCLK(FILE *asmFile, bool doWrite) {
-  GenericMesg			pmesg;
-  SnapContigLinkMesg		clk;
-
-  pmesg.m = &clk;
-  pmesg.t = MESG_CLK;
-
+  SnapContigLinkMesg     clk;
+  GenericMesg            pmesg = { &clk, MESG_CLK };
   GraphNodeIterator      nodes;
   ContigT               *ctg;
+
+  fprintf(stderr, "writeCLK()--\n");
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while ((ctg = NextGraphNodeIterator(&nodes)) != NULL) {
@@ -682,19 +668,19 @@ writeCLK(FILE *asmFile, bool doWrite) {
     if (SurrogatedSingleUnitigContig(ctg))
       continue;
 
-    GraphEdgeIterator	edges;
-    CIEdgeT		*edge, *redge;
+    GraphEdgeIterator  edges;
+    CIEdgeT    *edge, *redge;
 
     InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, ctg->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
 
       if (edge->idA != ctg->id)
-	continue;
+        continue;
 
       ContigT *mate = GetGraphNode(ScaffoldGraph->ContigGraph, edge->idB);
 
       if(mate->flags.bits.isChaff)
-	continue;
+        continue;
 
       if (SurrogatedSingleUnitigContig(mate))
         continue;
@@ -738,47 +724,47 @@ writeCLK(FILE *asmFile, bool doWrite) {
       if ((edgeTotal == 1) &&
           (clk.overlap_type == AS_OVERLAP) &&
           (GlobalData->outputOverlapOnlyContigEdges == FALSE))
-          // don't output pure overlap edges
-	continue;
+        // don't output pure overlap edges
+        continue;
 
       clk.jump_list = (SnapMate_Pairs *)safe_malloc(sizeof(SnapMate_Pairs) * edgeTotal);
 
       if (edge->flags.bits.isRaw) {
-	assert(edgeTotal == 1);
+        assert(edgeTotal == 1);
 
-	if (clk.overlap_type == AS_NO_OVERLAP) {
-	  clk.jump_list[edgeCount].in1  = FRGmap.lookup(edge->fragA);
-	  clk.jump_list[edgeCount].in2  = FRGmap.lookup(edge->fragB);
+        if (clk.overlap_type == AS_NO_OVERLAP) {
+          clk.jump_list[edgeCount].in1  = FRGmap.lookup(edge->fragA);
+          clk.jump_list[edgeCount].in2  = FRGmap.lookup(edge->fragB);
           clk.jump_list[edgeCount].type.setIsMatePair();
-	} else {
-	  assert(GlobalData->outputOverlapOnlyContigEdges);
-	  clk.jump_list[edgeCount].in1  = AS_UID_undefined();
+        } else {
+          assert(GlobalData->outputOverlapOnlyContigEdges);
+          clk.jump_list[edgeCount].in1  = AS_UID_undefined();
           clk.jump_list[edgeCount].in2  = AS_UID_undefined();
-	  clk.jump_list[edgeCount].type.setIsOverlap();
-	}
+          clk.jump_list[edgeCount].type.setIsOverlap();
+        }
 
         edgeCount++;
 
       } else {
-	redge = edge;
+        redge = edge;
 
-	assert(redge->nextRawEdge != NULLINDEX); // must have >= 1 raw edge
+        assert(redge->nextRawEdge != NULLINDEX); // must have >= 1 raw edge
 
-	while (redge->nextRawEdge != NULLINDEX) {
-	  redge = GetGraphEdge(ScaffoldGraph->ContigGraph, redge->nextRawEdge);
+        while (redge->nextRawEdge != NULLINDEX) {
+          redge = GetGraphEdge(ScaffoldGraph->ContigGraph, redge->nextRawEdge);
 
-	  if (isOverlapEdge(redge)) {
+          if (isOverlapEdge(redge)) {
             // overlap edges don't count
             edgeTotal--;
-	    continue;
+            continue;
           }
 
-	  clk.jump_list[edgeCount].in1  = FRGmap.lookup(redge->fragA);
-	  clk.jump_list[edgeCount].in2  = FRGmap.lookup(redge->fragB);
+          clk.jump_list[edgeCount].in1  = FRGmap.lookup(redge->fragA);
+          clk.jump_list[edgeCount].in2  = FRGmap.lookup(redge->fragB);
           clk.jump_list[edgeCount].type.setIsMatePair();
 
           edgeCount++;
-	}
+        }
       }
 
       assert(edgeCount == edgeTotal);
@@ -795,14 +781,12 @@ writeCLK(FILE *asmFile, bool doWrite) {
 
 void
 writeSCF(FILE *asmFile, bool doWrite) {
-  GenericMesg			pmesg;
-  SnapScaffoldMesg		scf;
-
-  pmesg.m = &scf;
-  pmesg.t = MESG_SCF;
-
+  SnapScaffoldMesg    scf;
+  GenericMesg         pmesg = { &scf, MESG_SCF };
   GraphNodeIterator   scaffolds;
   CIScaffoldT        *scaffold;
+
+  fprintf(stderr, "writeSCF()--\n");
 
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
   while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
@@ -816,7 +800,7 @@ writeSCF(FILE *asmFile, bool doWrite) {
     scf.num_contig_pairs = scaffold->info.Scaffold.numElements - 1;
     scf.contig_pairs     = (SnapContigPairs *)safe_malloc(sizeof(SnapContigPairs) * scaffold->info.Scaffold.numElements);
 
-    CIScaffoldTIterator	    contigs;
+    CIScaffoldTIterator      contigs;
     ChunkInstanceT         *contigCurr;
     ChunkInstanceT         *contigLast;
 
@@ -899,19 +883,17 @@ writeSCF(FILE *asmFile, bool doWrite) {
 void
 writeSLK(FILE *asmFile, bool doWrite) {
   SnapScaffoldLinkMesg slk;
-  GenericMesg          pmesg;
+  GenericMesg          pmesg = { &slk, MESG_SLK };
+  GraphNodeIterator    scaffolds;
+  CIScaffoldT         *scaffold;
+  CIScaffoldT         *scafmate;
 
-  pmesg.m = &slk;
-  pmesg.t = MESG_SLK;
-
-  GraphNodeIterator scaffolds;
-  CIScaffoldT      *scaffold;
-  CIScaffoldT      *scafmate;
+  fprintf(stderr, "writeSCF()--\n");
 
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
   while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
-    GraphEdgeIterator	 edges;
-    CIEdgeT		*edge;
+    GraphEdgeIterator   edges;
+    CIEdgeT    *edge;
     CIEdgeT             *redge;
 
     InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaffold->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
@@ -941,7 +923,7 @@ writeSLK(FILE *asmFile, bool doWrite) {
       slk.jump_list = (SnapMate_Pairs *)safe_malloc(sizeof(SnapMate_Pairs) * slk.num_contributing);
 
       if (edge->flags.bits.isRaw) {
-        assert(edgeTotal <= 1);		// sanity check
+        assert(edgeTotal <= 1);    // sanity check
 
         if (edgeTotal == 1) {
           slk.jump_list[edgeCount].in1 = FRGmap.lookup(edge->fragA);
@@ -1061,9 +1043,9 @@ int main (int argc, char *argv[]) {
 
   // if we have contigs
   if (outputScaffolds) {
-     LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, checkpointVers, FALSE);
+    LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix, checkpointVers, FALSE);
   } else {
-     ScaffoldGraph = CreateScaffoldGraph(outputPrefix);
+    ScaffoldGraph = CreateScaffoldGraph(outputPrefix);
   }
 
   //  Reopen the tigStore used for consensus.
