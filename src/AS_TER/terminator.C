@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.10 2011-08-24 16:36:45 mkotelbajcvi Exp $";
+const char *mainid = "$Id: terminator.C,v 1.11 2011-12-20 09:04:09 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -77,8 +77,9 @@ public:
   AS_UID lookup(AS_IID iid) {
     if (iid < len)
       return(map[iid]);
-    fprintf(stderr, "Unknown IID %d\n", iid);  //  What a terrible error message
-    exit(1);
+    fprintf(stderr, "Unknown IID %d (only %d IIDs)\n", iid, len);  //  What a terrible error message
+    assert(iid < len);
+    return(AS_UID_undefined());
   };
 
   void   dump(char *label, FILE *F) {
@@ -289,11 +290,11 @@ writeAMP(FILE *asmFile, bool doWrite) {
 }
 
 
-void buildUTGMessage(int32 ID, SnapUnitigMesg *utg) {
+bool buildUTGMessage(int32 ID, SnapUnitigMesg *utg) {
     MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(ID, TRUE);
-    if (ma == NULL) {
-       return;
-    }
+    if (ma == NULL)
+      return(false);
+
     utg->eaccession    = AS_UID_fromInteger(getUID(uidServer));
     utg->iaccession    = ID;
     utg->coverage_stat = ScaffoldGraph->tigStore->getUnitigCoverageStat(ID);
@@ -318,6 +319,8 @@ void buildUTGMessage(int32 ID, SnapUnitigMesg *utg) {
       utg->f_list[i].delta_length  = imp->delta_length;
       utg->f_list[i].delta         = imp->delta;
     }
+
+    return(true);
 }
 
 void writeUTGFromTigStore(FILE *asmFile, bool doWrite) {
@@ -328,12 +331,13 @@ void writeUTGFromTigStore(FILE *asmFile, bool doWrite) {
   pmesg.t = MESG_UTG;
 
   for (uint32 tigID = 0; tigID < ScaffoldGraph->tigStore->numUnitigs(); tigID++) {
-    buildUTGMessage(tigID, &utg);
-    if (doWrite)
-      WriteProtoMesg_AS(asmFile, &pmesg);
+    if (buildUTGMessage(tigID, &utg)) {
+      if (doWrite)
+        WriteProtoMesg_AS(asmFile, &pmesg);
 
-    safe_free(utg.f_list);
-    UTGmap.add(utg.iaccession, utg.eaccession);
+      safe_free(utg.f_list);
+      UTGmap.add(utg.iaccession, utg.eaccession);
+    }
   }
 }
 
@@ -361,6 +365,7 @@ writeUTGFromCGW(FILE *asmFile, bool doWrite) {
     if (ci->type == RESOLVEDREPEATCHUNK_CGW)
       //  Don't write surrogate instances
       continue;
+
     buildUTGMessage(ci->id, &utg);
 
     if (doWrite)
@@ -1052,7 +1057,7 @@ int main (int argc, char *argv[]) {
   errno = 0;
   asmFile = fopen(outputName, "w");
   if (errno)
-    fprintf(stderr, "%s: Couldn't open '%s' for write: %s\n", outputName, strerror(errno)), exit(1);
+    fprintf(stderr, "%s: Couldn't open '%s' for write: %s\n", argv[0], outputName, strerror(errno)), exit(1);
 
   // if we have contigs
   if (outputScaffolds) {
