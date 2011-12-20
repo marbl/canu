@@ -4609,6 +4609,22 @@ sub postUnitiggerConsensus () {
         }
     }
 
+    #
+    #  And finally, compute the coverage stat for all unitigs
+    #
+
+    if (! -e "$wrk/5-consensus/computeCoverageStat.out") {
+        $cmd  = "$bin/computeCoverageStat \\\n";
+        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+        $cmd .= " -t $wrk/$asm.tigStore 4 \\\n";
+        $cmd .= "> $wrk/5-consensus/computeCoverageStat.out 2>&1";
+
+        if (runCommand("$wrk/5-consensus", $cmd)) {
+            rename "$wrk/5-consensus/computeCoverageStat.out", "$wrk/5-consensus/computeCoverageStat.out.FAILED";
+            caFailure("Unitig consensus fixer failed", "$wrk/5-consensus/computeCoverageStat.out.FAILED");
+        }
+    }
+
     #  All jobs finished.  Remove the partitioning from the gatekeeper
     #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant
     #  of someone asking for a partition that isn't there -- it'll
