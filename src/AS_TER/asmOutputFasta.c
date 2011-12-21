@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputFasta.c,v 1.18 2011-07-21 05:32:54 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputFasta.c,v 1.19 2011-12-21 00:52:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,31 +128,36 @@ degap(char *seq, char *qlt) {
 
 void
 processIUM(IntUnitigMesg *ium_mesg) {
-  assert(ium_mesg->length == strlen(ium_mesg->consensus));
-  assert(ium_mesg->consensus[ium_mesg->length] == '\0');
 
-  int len = degap(ium_mesg->consensus, ium_mesg->quality);
+  int32 len = strlen(ium_mesg->consensus);
+
+  if (len != ium_mesg->length)
+    fprintf(stderr, "processIUM()-- ERROR unitig %d consensus string length %d != length %d\n",
+            ium_mesg->iaccession, len, ium_mesg->length);
+  assert(len == ium_mesg->length);
+
+  len = degap(ium_mesg->consensus, ium_mesg->quality);
 
   if ((UTGseqout) && (ium_mesg->num_frags > minNumFragsInUnitig)) {
     AS_UTL_writeFastA(UTGseqout,
                       ium_mesg->consensus, len, 70,
                       ">ium"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
                       ium_mesg->iaccession,
-                      strlen(ium_mesg->consensus),
+                      len,
                       ium_mesg->num_frags,
                       ium_mesg->coverage_stat);
     AS_UTL_writeFastA(UTGqltout,
                       ium_mesg->quality, len, 70,
                       ">ium"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
                       ium_mesg->iaccession,
-                      strlen(ium_mesg->consensus),
+                      len,
                       ium_mesg->num_frags,
                       ium_mesg->coverage_stat);
     AS_UTL_writeQVFastA(UTGquaout,
                         ium_mesg->quality, len, 20,
                         ">ium"F_IID" length=%d num_frags="F_IID" Astat=%.2f\n",
                         ium_mesg->iaccession,
-                        strlen(ium_mesg->consensus),
+                        len,
                         ium_mesg->num_frags,
                         ium_mesg->coverage_stat);
   }
@@ -162,31 +167,36 @@ processIUM(IntUnitigMesg *ium_mesg) {
 
 void
 processUTG(SnapUnitigMesg  *utg_mesg) {
-  assert(utg_mesg->length == strlen(utg_mesg->consensus));
-  assert(utg_mesg->consensus[utg_mesg->length] == '\0');
 
-  int len = degap(utg_mesg->consensus, utg_mesg->quality);
+  int32 len = strlen(utg_mesg->consensus);
+
+  if (len != utg_mesg->length)
+    fprintf(stderr, "processUTG()-- ERROR unitig %d consensus string length %d != length %d\n",
+            utg_mesg->iaccession, len, utg_mesg->length);
+  assert(len == utg_mesg->length);
+
+  len = degap(utg_mesg->consensus, utg_mesg->quality);
 
   if ((UTGseqout) && (utg_mesg->num_frags > minNumFragsInUnitig)) {
     AS_UTL_writeFastA(UTGseqout,
                       utg_mesg->consensus, len, 70,
                       ">utg%s length=%d num_frags="F_IID" Astat=%.2f\n",
                       AS_UID_toString(utg_mesg->eaccession),
-                      strlen(utg_mesg->consensus),
+                      len,
                       utg_mesg->num_frags,
                       utg_mesg->coverage_stat);
     AS_UTL_writeFastA(UTGqltout,
                       utg_mesg->quality, len, 70,
                       ">utg%s length=%d num_frags="F_IID" Astat=%.2f\n",
                       AS_UID_toString(utg_mesg->eaccession),
-                      strlen(utg_mesg->consensus),
+                      len,
                       utg_mesg->num_frags,
                       utg_mesg->coverage_stat);
     AS_UTL_writeQVFastA(UTGquaout,
                         utg_mesg->quality, len, 20,
                         ">utg%s length=%d num_frags="F_IID" Astat=%.2f\n",
                         AS_UID_toString(utg_mesg->eaccession),
-                        strlen(utg_mesg->consensus),
+                        len,
                         utg_mesg->num_frags,
                         utg_mesg->coverage_stat);
   }
@@ -197,7 +207,12 @@ processUTG(SnapUnitigMesg  *utg_mesg) {
 void
 processCCO(SnapConConMesg *cco_mesg) {
 
-  assert(strlen(cco_mesg->consensus) == cco_mesg->length);
+  int32 len = strlen(cco_mesg->consensus);
+
+  if (len != cco_mesg->length)
+    fprintf(stderr, "processCCO()-- ERROR contig %d consensus string length %d != length %d\n",
+            cco_mesg->iaccession, len, cco_mesg->length);
+  assert(len == cco_mesg->length);
 
   uid2iid[cco_mesg->eaccession] = cco_mesg->iaccession;
 
