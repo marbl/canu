@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: BaseCall.c,v 1.9 2011-12-15 18:39:40 brianwalenz Exp $";
+static char *rcsid = "$Id: BaseCall.c,v 1.10 2011-12-22 00:13:51 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,7 +32,9 @@ static char *rcsid = "$Id: BaseCall.c,v 1.9 2011-12-15 18:39:40 brianwalenz Exp 
 #include "MicroHetREZ.h"
 #include "AS_UTL_reverseComplement.h"
 
-VA_DEF(int16)
+#include <vector>
+
+using namespace std;
 
 
 void
@@ -89,9 +91,9 @@ BaseCallQuality(int32        cid,
   char    consensusBase = '-';
   char    consensusQV   = '0';
 
-  Bead   *bReads[2048];  uint32  bNum = 0;  uint32  bBaseCount[CNS_NP] = {0};  uint32  bQVSum[CNS_NP] = {0};
-  Bead   *oReads[2048];  uint32  oNum = 0;  uint32  oBaseCount[CNS_NP] = {0};  uint32  oQVSum[CNS_NP] = {0};
-  Bead   *gReads[2048];  uint32  gNum = 0;  uint32  gBaseCount[CNS_NP] = {0};  uint32  gQVSum[CNS_NP] = {0};
+  vector<Bead *>  bReads;  uint32  bBaseCount[CNS_NP] = {0};  uint32  bQVSum[CNS_NP] = {0};
+  vector<Bead *>  oReads;  uint32  oBaseCount[CNS_NP] = {0};  uint32  oQVSum[CNS_NP] = {0};
+  vector<Bead *>  gReads;  uint32  gBaseCount[CNS_NP] = {0};  uint32  gQVSum[CNS_NP] = {0};
 
   double  cw[5]    = { 0.0, 0.0, 0.0, 0.0, 0.0 };      // "consensus weight" for a given base
   double  tau[5]   = { 1.0, 1.0, 1.0, 1.0, 1.0 };
@@ -111,6 +113,7 @@ BaseCallQuality(int32        cid,
   ColumnBeadIterator cbi;
 
   CreateColumnBeadIterator(cid, &cbi);
+
 
   // Scan a column of aligned bases (=beads).
   // Sort the beads into three groups:
@@ -136,7 +139,7 @@ BaseCallQuality(int32        cid,
       assert(type == AS_UNITIG);
       gBaseCount[baseIdx]++;
       gQVSum[baseIdx] += qv;
-      gReads[gNum++] = bead;
+      gReads.push_back(bead);
       continue;
     }
 
@@ -176,11 +179,11 @@ BaseCallQuality(int32        cid,
           (vreg->reads[vregidx].allele_id == target_allele)))) { // use the best allele
       bBaseCount[baseIdx]++;
       bQVSum[baseIdx] += qv;
-      bReads[bNum++] = bead;
+      bReads.push_back(bead);
     } else {
       oBaseCount[baseIdx]++;
       oQVSum[baseIdx] += qv;
-      oReads[oNum++] = bead;
+      oReads.push_back(bead);
     }
 
     //  Remember the two highest QVs
@@ -196,7 +199,7 @@ BaseCallQuality(int32        cid,
 
   //  Compute tau based on guides
   //
-  for (int32 cind = 0; cind < gNum; cind++) {
+  for (uint32 cind = 0; cind < gReads.size(); cind++) {
     Bead *gb   = gReads[cind];
     char  base = *Getchar(sequenceStore,gb->soffset);
     int32 qv   = *Getchar(qualityStore, gb->soffset) - '0';
@@ -217,12 +220,12 @@ BaseCallQuality(int32        cid,
 
   //  If others, reset.
   //
-  if (oNum > 0)
+  if (oReads.size() > 0)
     tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
 
   //  Compute tau based on others
   //
-  for (int32 cind=0; cind<oNum; cind++) {
+  for (uint32 cind=0; cind<oReads.size(); cind++) {
     Bead  *gb   = oReads[cind];
     char   base = *Getchar(sequenceStore, gb->soffset);
     int32  qv   = *Getchar(qualityStore,  gb->soffset) - '0';
@@ -243,12 +246,12 @@ BaseCallQuality(int32        cid,
 
   //  If real reads, reset.
   //
-  if (bNum > 0)
+  if (bReads.size() > 0)
     tau[0] = tau[1] = tau[2] = tau[3] = tau[4] = 1.0;
 
   //  Compute tau based on real reads.
   //
-  for (int32 cind=0; cind<bNum; cind++) {
+  for (uint32 cind=0; cind<bReads.size(); cind++) {
     Bead  *gb   = bReads[cind];
     char   base = *Getchar(sequenceStore, gb->soffset);
     int32  qv   = *Getchar(qualityStore,  gb->soffset) - '0';
@@ -269,9 +272,9 @@ BaseCallQuality(int32        cid,
 
   //  Occasionally we get a single read of coverage, and the base is an N, which we ignored above.
   //
-  if ((bNum == 0) &&
-      (oNum == 0) &&
-      (gNum == 0)) {
+  if ((bReads.size() == 0) &&
+      (oReads.size() == 0) &&
+      (gReads.size() == 0)) {
     //fprintf(stderr, "No coverage for column=%d.  Assume it's an N in a single coverage area.\n", cid);
 
     consensusBase = 'N';
