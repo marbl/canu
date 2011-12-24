@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMatesApply.C,v 1.2 2011-08-31 17:42:18 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMatesApply.C,v 1.3 2011-12-24 06:55:18 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -210,7 +210,7 @@ main(int argc, char **argv) {
   uint32  numAB = 0;
   uint32  numIG = 0;
 
-  for (uint32 i=1; i<numFrags; i++) {
+  for (uint32 i=1; i<=numFrags; i++) {
     uint32  no = results[i].getNO();
     uint32  mp = results[i].getMP();
     uint32  pe = results[i].getPE();
