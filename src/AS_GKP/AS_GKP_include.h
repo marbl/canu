@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.62 2011-08-30 02:59:31 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.63 2011-12-29 06:19:34 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.62 2011-08-30 02:59:31 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.63 2011-12-29 06:19:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -138,7 +138,7 @@ dumpGateKeeperIsFeatureSet(char       *gkpStoreName,
                            AS_IID     featureLibIID,
                            char      *featureName);
 
-int
+void
 Build_Partition(char      *gatekeeperName,
                 char      *partitionFile,
                 int32      flags);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_buildPartition.c,v 1.14 2009-06-10 18:05:13 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_buildPartition.c,v 1.15 2011-12-29 06:19:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@ static char const *rcsid = "$Id: AS_GKP_buildPartition.c,v 1.14 2009-06-10 18:05
 
 
 
-int
+void
 Build_Partition(char      *gatekeeperName,
                 char      *partitionFile,
                 int32      flags) {
