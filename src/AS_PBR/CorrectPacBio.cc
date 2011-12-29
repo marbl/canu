@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.9 2011-12-29 09:49:47 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -55,7 +55,7 @@ const char *mainid = "$Id: CorrectPacBio.cc,v 1.8 2011-12-29 09:26:03 brianwalen
 //#include <iostream>
 //#include <cmath>
 //#include <limits>
-//#include <algorithm>
+#include <algorithm>
 //#include <string>
 #include <sstream>
 

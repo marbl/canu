@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.11 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.12 2011-12-29 09:49:47 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -37,8 +37,7 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   _memLimit = memlimit;
   _memUsed = 0;
 
-  //#if HAVE_SYSCTL && defined HW_PHYSMEM
-#if 1
+#ifdef HW_PHYSMEM
   uint64  physMemory = 0;
 
   int     mib[2] = { CTL_HW, HW_PHYSMEM };
@@ -339,7 +338,7 @@ OverlapCache::computeErateMaps(double erate, double elimit) {
   for (uint32 i=0; i<1 << AS_OVS_ERRBITS; i++)
     _OVSerate[i] = (uint32)floor((1 << AS_BAT_ERRBITS) * log(i) / log(1 << AS_OVS_ERRBITS));
 
-  assert(_OVSerate[1 << AS_OVS_ERRBITS - 1] < 1 << AS_BAT_ERRBITS);
+  assert(_OVSerate[(1 << AS_OVS_ERRBITS) - 1] < 1 << AS_BAT_ERRBITS);
 
   for (uint32 i=1 << AS_OVS_ERRBITS; i--; )
     _BATerate[_OVSerate[i]] = AS_OVS_decodeQuality(i);
