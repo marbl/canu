@@ -28,7 +28,7 @@ $/.PY_LIBS    := $/python/AtacDriver.py \
                  $/python/squeezeIntraRunGaps.py
 
 
-$/.CLEAN      := $/*.o $/*.so $/python/*.pyc
+$/.CLEAN      := $/*.o $/*/*.o $/*.so $/python/*.pyc
 
 $/localalign/localAlignerInterfacemodule.o: $/localalign/localAlignerInterfacemodule.C
 	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} ${CFLAGS_PYTHON} -o $@ -c $<
