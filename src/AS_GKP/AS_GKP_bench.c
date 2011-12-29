@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_bench.c,v 1.12 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_bench.c,v 1.13 2011-12-29 06:11:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,10 +57,10 @@ static
 void
 printrusage(char *gkpName, double startTime) {
 #if defined(__FreeBSD__) || defined(__APPLE__)
-  struct   statfs  sf = {0};
+  struct   statfs  sf;
 #endif
-  struct   utsname un = {0};
-  struct   rusage  ru = {0};
+  struct   utsname un;
+  struct   rusage  ru;
 
 #if defined(__FreeBSD__) || defined(__APPLE__)
   errno = 0;

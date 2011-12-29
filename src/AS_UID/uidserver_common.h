@@ -273,7 +273,7 @@ sendMessage(int32 fd, UIDserverMessage *mesg) {
 int32
 connectToServer(char *serverName, char *serverPort) {
   int32                   scid     = 0;
-  struct addrinfo         hints    = {0};
+  struct addrinfo         hints;
   struct addrinfo        *servinfo = NULL;
   struct addrinfo        *servloop = NULL;
 

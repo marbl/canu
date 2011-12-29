@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.6 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.7 2011-12-29 06:08:39 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -90,7 +90,7 @@ gkStore::gkStore_loadIIDtoUID(void) {
 
   frgUID = (uint64 *)safe_calloc(inf.frgLoaded + 1, sizeof(uint64));
 
-  HashTable_Iterator_AS   iterator  = {0};
+  HashTable_Iterator_AS   iterator;
   uint64                  key       = 0;
   uint64                  value     = 0;
   uint32                  valuetype = 0;

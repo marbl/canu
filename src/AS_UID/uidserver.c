@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: uidserver.c,v 1.2 2009-11-24 16:20:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: uidserver.c,v 1.3 2011-12-29 06:07:44 brianwalenz Exp $";
 
 #include "uidserver_common.h"
 
@@ -34,14 +34,13 @@ static const char *rcsid = "$Id: uidserver.c,v 1.2 2009-11-24 16:20:29 brianwale
 static
 void
 initializeServer(void) {
-
-  errno = 0;
-
-  struct addrinfo       hints    = {0};
+  struct addrinfo       hints;
   struct addrinfo      *servinfo = NULL;
   struct addrinfo      *servloop = NULL;
 
   //  Create a connection for communication
+
+  memset(&hints, 0, sizeof hints);
 
   hints.ai_family    = AF_UNSPEC;
   hints.ai_socktype  = SOCK_STREAM;
@@ -145,8 +144,10 @@ runServer(void) {
   //  Block until we get a connection
 
   {
-    struct sockaddr_in   sockdata = {0};
+    struct sockaddr_in   sockdata;
     socklen_t            socksize = sizeof(struct sockaddr_in);
+
+    memset(&sockdata, 0, socksize);
 
     clientSocket = accept(serverSocket, (struct sockaddr *)&sockdata, &socksize);
   }
@@ -158,8 +159,8 @@ runServer(void) {
 
   //  Read the client request
 
-  UIDserverMessage  request  = {0};
-  UIDserverMessage  response = {0};
+  UIDserverMessage  request  = {0, 0, 0, 0};
+  UIDserverMessage  response = {0, 0, 0, 0};
 
   if (recvMessage(clientSocket, &request)) {
     logError(LOG_ERR, "runServer bogus message %d %d %d %d\n",
@@ -292,7 +293,7 @@ main(int32 argc, char** argv) {
 
   //   Send a kill message to the server specified on the command line.
   if (action == ACTION_KILL) {
-    UIDserverMessage        mesg     = {0};
+    UIDserverMessage        mesg     = {0, 0, 0, 0};
 
     mesg.message = UIDserverMessage_SHUTDOWN;
     mesg.bgnUID  = 0;
