@@ -11,7 +11,7 @@ $| = 1;
 use strict;
 use FindBin;
 use Config;  #  for @signame
-use lib "$FindBin::Bin/util";
+use lib "$FindBin::Bin/../lib";
 
 use scheduler;
 

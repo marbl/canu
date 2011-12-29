@@ -11,10 +11,11 @@ $(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBSEQ/} -I${LIBSIM
 $/.CXX_SRCS  := $/mergeCounts.C $/terminate.C
 $/.CXX_EXES  := $/mergeCounts   $/terminate
 
+$/.PERL_EXES := $/ESTmapper.pl $/configureESTmapper.pl $/runConcurrently.pl
+$/.PERL_LIBS := $/scheduler.pm
+
 $/mergeCounts:         $/mergeCounts.o
 $/terminate:           $/terminate.o           ${LIBSIM4/}libsim4.a ${LIBSEQ/}libseq.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/mergeCounts $/terminate
-
-all:  $/mergeCounts $/terminate

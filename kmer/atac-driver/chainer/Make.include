@@ -1,13 +1,48 @@
-$(eval $(call MakeRecursive))
+# -*- makefile -*-
 
-$/.all:
-	cd `dirname $@` && ${MAKE} all
+$/.CXX_SRCS   := $/localalign/GF_ALN_dpaligner.C \
+                 $/localalign/GF_ALN_local.C \
+                 $/localalign/GF_ALN_overlap.C \
+                 $/localalign/GF_ALN_loverlapper.C \
+                 $/localalign/GF_ALN_pieceOlap.C \
+                 $/localalign/localAlignerInterfacemodule.C \
+                 $/halign/halign.C \
+                 $/halign/halignmodule.C
 
-$/.install:
-	cd `dirname $@` && ${MAKE} install
+$/.CXX_SHLIBS := $/localAlignerInterfacemodule.so \
+                 $/halignmodule.so
 
-$/.clean:
-	cd `dirname $@` && ${MAKE} clean
+$/.PY_EXES    := $/python/AtacDriver.py
+$/.PY_LIBS    := $/python/AtacDriver.py \
+                 $/python/AtacFile.py \
+                 $/python/DNA.py \
+                 $/python/IdxStore.py \
+                 $/python/MatchRecord.py \
+                 $/python/MyFile.py \
+                 $/python/PerfectRuns.py \
+                 $/python/TrimMatchOverlaps.py \
+                 $/python/UniqueFilter.py \
+                 $/python/dedashMatches.py \
+                 $/python/fillIntraRunGaps.py \
+                 $/python/mkstats.py \
+                 $/python/squeezeIntraRunGaps.py
 
-$/.real-clean:
-	cd `dirname $@` && ${MAKE} real-clean
+
+$/.CLEAN      := $/*.o $/*.so $/python/*.pyc
+
+$/localalign/localAlignerInterfacemodule.o: $/localalign/localAlignerInterfacemodule.C
+	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} ${CFLAGS_PYTHON} -o $@ -c $<
+
+$/localAlignerInterfacemodule.so: $/localalign/GF_ALN_dpaligner.o \
+                                  $/localalign/GF_ALN_local.o \
+                                  $/localalign/GF_ALN_overlap.o \
+                                  $/localalign/GF_ALN_loverlapper.o \
+                                  $/localalign/GF_ALN_pieceOlap.o \
+                                  $/localalign/localAlignerInterfacemodule.o
+
+$/halign/halignmodule.o: $/halign/halignmodule.C
+	${-CXX} ${CXX} ${CXXFLAGS} ${CXXFLAGS_COMPILE} ${CFLAGS_PYTHON} -o $@ -c $<
+
+$/halignmodule.so:                $/halign/halign.o \
+                                  $/halign/halignmodule.o
+

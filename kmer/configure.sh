@@ -77,81 +77,63 @@ fi
 #  used by atac-driver/chainer only.
 #
 
+PYTHON=
 CFLAGS_PYTHON=
 
 if [ x$PYTHONHOME != x ] ; then
   python=`echo $PYTHONHOME | cut -d: -f 1`
+  PYTHON=$python/bin/python
 else
   python=`which python`
+  PYTHON=$python
   if [ x$python != x ] ; then
     python=`dirname $python`
     python=`dirname $python`
   fi
 fi
 
+
 if [ x$python != x ] ; then
-  if [ -e $python/include/python2.6/Python.h ]
-  then
-    CFLAGS_PYTHON="-I$python/include/python2.6"
-  elif [ -e $python/include/python2.5/Python.h ]
-  then
-    CFLAGS_PYTHON="-I$python/include/python2.5"
-  elif [ -e $python/include/python2.4/Python.h ]
-  then
-    CFLAGS_PYTHON="-I$python/include/python2.4"
-  elif [ -e $python/include/python2.3/Python.h ]
-  then
-    CFLAGS_PYTHON="-I$python/include/python2.3"
-  elif [ -e $python/include/python2.2/Python.h ]
-  then
-    CFLAGS_PYTHON="-I$python/include/python2.2"
-  elif [ -e /usr/local/include/python2.6/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/usr/local/include/python2.6"
-  elif [ -e /usr/local/include/python2.5/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/usr/local/include/python2.5"
-  elif [ -e /usr/local/include/python2.4/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/usr/local/include/python2.4"
-  elif [ -e /usr/local/include/python2.3/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/usr/local/include/python2.3"
-  elif [ -e /usr/local/include/python2.2/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/usr/local/include/python2.2"
-  elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3"
-  elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.4/include/python2.4/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.4/include/python2.4"
-  elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.5/include/python2.5/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.5/include/python2.5"
-  elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6"
-  elif [ -e /usr/local/packages/python/include/python2.4/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/usr/local/packages/python/include/python2.4"
-  elif [ -e /usr/local/packages/python/include/python2.5/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/usr/local/packages/python/include/python2.5"
-  elif [ -e /usr/local/packages/python/include/python2.6/Python.h ]
-  then
-    CFLAGS_PYTHON="-I/usr/local/packages/python/include/python2.6"
-  else
-    echo "WARNING:  'python' program found, but can't find include file 'Python.h' -- is python installed correctly?"
-    echo "WARNING:  Set PYTHONHOME to the directory containing include/Pyhton.h"
-  fi
+  for p in $python/include/python2.6 \
+           $python/include/python2.5 \
+           $python/include/python2.4 \
+           $python/include/python2.3 \
+           $python/include/python2.2 \
+           /usr/local/include/python2.6 \
+           /usr/local/include/python2.5 \
+           /usr/local/include/python2.4 \
+           /usr/local/include/python2.3 \
+           /usr/local/include/python2.2 \
+           /System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3 \
+           /System/Library/Frameworks/Python.framework/Versions/2.4/include/python2.4 \
+           /System/Library/Frameworks/Python.framework/Versions/2.5/include/python2.5 \
+           /System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6 \
+           /usr/local/packages/python/include/python2.6 \
+           /usr/local/packages/python/include/python2.5 \
+           /usr/local/packages/python/include/python2.4 ; do
+    echo "Testing '$p'"
+    if [ -e $p/Python.h ] ; then
+      CFLAGS_PYTHON="$p"
+      break
+    fi
+  done
 else
   echo "WARNING:  'python' program not found."
 fi
 
-if [ x$CFLAGS_PYTHON = x ] ; then
-  echo "WARNING:  Will not build ATAC."
+if [ ! -e $PYTHON ] ; then
+  echo "WARNING:  Python program not found at '$PYTHON'.  Will not build ATAC."
   WITHOUT_ATAC="atac-driver/ seatac/"
+else
+  echo "Pyhton executable found in '$PYTHON'"
+fi
+  
+if [ x$CFLAGS_PYTHON = x ] ; then
+  echo "WARNING:  Python development environment not found.  Will not build ATAC."
+  WITHOUT_ATAC="atac-driver/ seatac/"
+else
+  echo "Pyhton libraries  found in '$CFLAGS_PYTHON'"
+  CFLAGS_PYTHON="-I$CFLAGS_PYTHON"
 fi
 
 #
@@ -462,6 +444,7 @@ CCDEP		  := gcc -MM -MG
 CXXDEP	          := g++ -MM -MG
 CLIBS             += -lm -lbz2
 CXXLIBS           += -lm -lbz2
+PYTHON            := $PYTHON
 CFLAGS_PYTHON     := $CFLAGS_PYTHON
 WITHOUT           := $WITHOUT_ATAC
 EOF

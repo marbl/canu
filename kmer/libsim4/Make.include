@@ -66,7 +66,9 @@ $/.CXX_LIBS   := $/libsim4.a
 
 $/.CLEAN      := $/*.o $/sim4core/*.o $/sim4polish/*.o
 
-$/.CXX_LIBS   :=$/libsim4.a
+$/.CXX_LIBS   := $/libsim4.a
+
+$/.PERL_LIBS  := $/sim4polish/sim4polish.pm
 
 $/libsim4.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o}
 

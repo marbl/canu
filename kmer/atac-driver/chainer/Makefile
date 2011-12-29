@@ -7,48 +7,48 @@
 
 include ../../Make.compilers
 
-SOURCE  = localalign/GF_ALN_dpaligner.C \
-          localalign/GF_ALN_local.C \
-          localalign/GF_ALN_overlap.C \
-          localalign/GF_ALN_loverlapper.C \
-          localalign/GF_ALN_pieceOlap.C \
-          localalign/localAlignerInterfacemodule.C \
-          halign/halign.C \
-          halign/halignmodule.C
+SOURCE  = $/localalign/GF_ALN_dpaligner.C \
+          $/localalign/GF_ALN_local.C \
+          $/localalign/GF_ALN_overlap.C \
+          $/localalign/GF_ALN_loverlapper.C \
+          $/localalign/GF_ALN_pieceOlap.C \
+          $/localalign/localAlignerInterfacemodule.C \
+          $/halign/halign.C \
+          $/halign/halignmodule.C
 
-PY_EXES = python/AtacDriver.py \
-          python/AtacFile.py \
-          python/DNA.py \
-          python/IdxStore.py \
-          python/MatchRecord.py \
-          python/MyFile.py \
-          python/PerfectRuns.py \
-          python/TrimMatchOverlaps.py \
-          python/UniqueFilter.py \
-          python/dedashMatches.py \
-          python/fillIntraRunGaps.py \
-          python/mkstats.py \
-          python/squeezeIntraRunGaps.py
+PY_EXES = $/python/AtacDriver.py \
+          $/python/AtacFile.py \
+          $/python/DNA.py \
+          $/python/IdxStore.py \
+          $/python/MatchRecord.py \
+          $/python/MyFile.py \
+          $/python/PerfectRuns.py \
+          $/python/TrimMatchOverlaps.py \
+          $/python/UniqueFilter.py \
+          $/python/dedashMatches.py \
+          $/python/fillIntraRunGaps.py \
+          $/python/mkstats.py \
+          $/python/squeezeIntraRunGaps.py
 
-all:     localAlignerInterfacemodule.so halignmodule.so
+all:     $/localAlignerInterfacemodule.so $/halignmodule.so
 
-install: localAlignerInterfacemodule.so halignmodule.so
+install: $/localAlignerInterfacemodule.so $/halignmodule.so
 
 clean:
-	rm -f */*.o *.so python/*.pyc
+	rm -f $/*/*.o $/*.so $/python/*.pyc
 real-clean:
-	rm -f */*.o *.so python/*.pyc
+	rm -f $/*/*.o $/*.so $/python/*.pyc
 
-localAlignerInterfacemodule.so:   localalign/GF_ALN_dpaligner.o \
-                                  localalign/GF_ALN_local.o \
-                                  localalign/GF_ALN_overlap.o \
-                                  localalign/GF_ALN_loverlapper.o \
-                                  localalign/GF_ALN_pieceOlap.o \
-                                  localalign/localAlignerInterfacemodule.o
-	$(CXX) $(CXXSHARED) -o $@ $^
+$/.CXX_SHLIBS  := $/localAlignerInterfacemodule.so $/halignmodule.so
 
-halignmodule.so: halign/halignmodule.o halign/halign.o
-	$(CXX) $(CXXSHARED) -o $@ $^
+localAlignerInterfacemodule.so:   $/localalign/GF_ALN_dpaligner.o \
+                                  $/localalign/GF_ALN_local.o \
+                                  $/localalign/GF_ALN_overlap.o \
+                                  $/localalign/GF_ALN_loverlapper.o \
+                                  $/localalign/GF_ALN_pieceOlap.o \
+                                  $/localalign/localAlignerInterfacemodule.o
+
+halignmodule.so: $/halign/halignmodule.o $/halign/halign.o
 
 %.o: %.C
 	$(CXX) -fPIC $(CFLAGS_COMPILE) $(CFLAGS_PYTHON) -o $@ -c $<

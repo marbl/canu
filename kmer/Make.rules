@@ -69,6 +69,7 @@ define .FUN-install-copy-shlib
         fi
 endef
 # use this one for executable scripts with #!  substitution
+#	        echo ":Mangling $$$${F} to $$$${Fout}:" ;
 define .FUN-install-copy-script
 	@ files='$$(strip $1)'; dirs='$$(strip $2)'; sheb='$$(strip $3)'; \
 	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
@@ -76,18 +77,17 @@ define .FUN-install-copy-script
 	    if [ -f $$$${F} ] ; then \
 	      for D in $$$${dirs} ; do \
 	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
-	        echo ":Mangling $$$${F} to $$$${Fout}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
 	        rm -f $$$${Fout} && cp -fp $$$${F} $$$${Fout} ; \
 	        chmod ugo+x $$$${Fout} && \
 	        ${PERL} -npi \
-	           -e"if(0==\$$$$i++){s|^#!.*|#! $$$${sheb}|}" $$$${Fout}; \
+	           -e"if(0==\$$$$i++){s|^#!.*|#!$$$${sheb}|}" $$$${Fout}; \
 	      done ; \
 	    fi ; \
 	  done ; \
         fi
 endef
- 
+
 
 ############################################################
 # C and C++ stuff
@@ -150,7 +150,6 @@ __SUBGOALS__+=$${${1:.=.CXX_EXES}}
 define .RULE-install-copy-C-CXX-EXES
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-EXES}
 ${1:.=.install-copy-C-CXX-EXES}:
-# all exes go to bin
 	$(call .FUN-install-copy-exe,$${${1:.=.C_EXES}} $${${1:.=.CXX_EXES}},bin/)
 
 endef
@@ -184,9 +183,7 @@ __SUBGOALS__+=$${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}
 define .RULE-install-copy-C-CXX-LIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-LIBS}
 ${1:.=.install-copy-C-CXX-LIBS}:
-# all libs go to lib/${.LIB/}
-	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}}, \
-                                 lib/$${${1.=.LIB/}})
+	$(call .FUN-install-copy,$${${1:.=.C_LIBS}} $${${1:.=.CXX_LIBS}}, lib/$${${1.=.LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-LIBS,$x)))
@@ -194,10 +191,7 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-LIBS,$x)))
 define .RULE-install-copy-C-CXX-SHLIBS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-SHLIBS}
 ${1:.=.install-copy-C-CXX-SHLIBS}:
-# all shlibs go to lib/${.LIB/}
-	$(call .FUN-install-copy-shlib,\
-                                 $${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}, \
-                                 lib/$${${1.=.LIB/}})
+	$(call .FUN-install-copy-shlib, $${${1:.=.C_SHLIBS}} $${${1:.=.CXX_SHLIBS}}, lib/$${${1.=.LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-SHLIBS,$x)))
@@ -207,9 +201,7 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-SHLIBS,$x)))
 define .RULE-install-copy-C-CXX-INCS
 ${1:.=.install-copy}: ${1:.=.install-copy-C-CXX-INCS}
 ${1:.=.install-copy-C-CXX-INCS}:
-# all includes go to include/${.INCLUDE/}
-	$(call .FUN-install-copy,$${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}}, \
-                                 include/$${${1:.=.INCLUDE/}})
+	$(call .FUN-install-copy,$${${1:.=.C_INCS}} $${${1:.=.CXX_INCS}}, include/$${${1:.=.INCLUDE/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-C-CXX-INCS,$x)))
@@ -268,20 +260,11 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-TEX_PSPDF,$x)))
 # different here.
 #__SUBGOALS__+=$${${1:.=.PY_EXES}} $${${1:.=.PY_LIBS}}
 
-   # install rules for python scripts
-
 define .RULE-install-copy-PYTHON
 ${1:.=.install-copy}: ${1:.=.install-copy-PYTHON}
 ${1:.=.install-copy-PYTHON}:
-# python exes goto scripts with shebang added
-# bpw likes then in bin instead
-	$(call .FUN-install-copy-script,$${${1:.=.PY_EXES}},\
-                                         bin/,\
-                                         ${PYTHON} ${PYTHON_FLAGS})
-# python libs goto scripts
-# bpw likes then in bin instead
-	$(call .FUN-install-copy,$${${1:.=.PY_LIBS}}, \
-                                 bin/$${${1:.=.PY_LIB/}})
+	$(call .FUN-install-copy-script, $${${1:.=.PY_EXES}}, bin/, ${PYTHON} ${PYTHON_FLAGS})
+	$(call .FUN-install-copy,        $${${1:.=.PY_LIBS}}, lib/$${${1:.=.PY_LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
@@ -293,18 +276,11 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-PYTHON,$x)))
 # Same sort of spiel as python
 #__SUBGOALS__+=$${${1:.=.PERL_EXES}} $${${1:.=.PERL_LIBS}}
 
-   # install rules for perl scripts
-
 define .RULE-install-copy-PERL
 ${1:.=.install-copy}: ${1:.=.install-copy-PERL}
 ${1:.=.install-copy-PERL}:
-# perl exes goto scripts with shebang added
-	$(call .FUN-install-copy-script,$${${1:.=.PERL_EXES}},\
-                                         bin/,\
-                                         ${PERL} ${PERL_FLAGS})
-# perl libs goto scripts
-	$(call .FUN-install-copy,$${${1:.=.PERL_LIBS}}, \
-                                 bin/$${${1:.=.PERL_LIB/}})
+	$(call .FUN-install-copy-script, $${${1:.=.PERL_EXES}}, bin/, ${PERL} ${PERL_FLAGS})
+	$(call .FUN-install-copy,        $${${1:.=.PERL_LIBS}}, lib/$${${1:.=.PERL_LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-PERL,$x)))
@@ -315,18 +291,11 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-PERL,$x)))
 # Same sort of spiel as python
 #__SUBGOALS__+=$${${1:.=.SH_EXES}} $${${1:.=.SH_LIBS}}
 
-   # install rules for sh scripts
-
 define .RULE-install-copy-SH
 ${1:.=.install-copy}: ${1:.=.install-copy-SH}
 ${1:.=.install-copy-SH}:
-# sh exes goto scripts with shebang added
-	$(call .FUN-install-copy-script,$${${1:.=.SH_EXES}},\
-                                         bin/,\
-                                         ${SH} ${SH_FLAGS})
-# sh libs goto scripts
-	$(call .FUN-install-copy,$${${1:.=.SH_LIBS}}, \
-                                 bin/$${${1:.=.SH_LIB/}})
+	$(call .FUN-install-copy-script, $${${1:.=.SH_EXES}}, bin/, ${SH} ${SH_FLAGS})
+	$(call .FUN-install-copy,        $${${1:.=.SH_LIBS}}, lib/$${${1:.=.SH_LIB/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-SH,$x)))
@@ -341,8 +310,7 @@ $(eval $(foreach x,${//},$(call .RULE-install-copy-SH,$x)))
 define .RULE-install-copy-SHARE
 ${1:.=.install-copy}: ${1:.=.install-copy-SHARE}
 ${1:.=.install-copy-SHARE}:
-	$(call .FUN-install-copy,$${${1:.=.SHARES}}, \
-                                 share/$${${1:.=.SHARE/}})
+	$(call .FUN-install-copy,$${${1:.=.SHARES}}, share/$${${1:.=.SHARE/}})
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-SHARE,$x)))

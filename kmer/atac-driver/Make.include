@@ -12,3 +12,6 @@ $(eval $(call Include,$/uniqueFilter/))
 $(eval $(call Include,$/clumpMaker/))
 $(eval $(call Include,$/chainer/))
 $(eval $(call Include,$/chimera/))
+
+$/.PERL_EXES  := $/atac.pl \
+                 $/makeplot.pl
