@@ -639,7 +639,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       } else {
         char  line[128];
 
-        sprintf(line, "-%c -e "u32bitFMT" -D "u64bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+        sprintf(line, "-%c -e "u32bitFMT" -D "u32bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
                 isReverse ? 'r' : 'f', _qsIdx,
                 config._dbSTREAM->IIDOf(currentSeq),
                 dsLow, dsHigh, IL->sumOfLengths(), ML, _qsMers);

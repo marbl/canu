@@ -108,7 +108,7 @@ makeTempFile(char *path) {
 
 
 void*
-mapFile(const char *filename, size_t *length, char mode) {
+mapFile(const char *filename, u64bit *length, char mode) {
   void        *ptr = 0L;
   struct stat  sb;
   int          f;
@@ -159,7 +159,7 @@ mapFile(const char *filename, size_t *length, char mode) {
 
 
 void
-unmapFile(void *addr, size_t length) {
+unmapFile(void *addr, u64bit length) {
 #ifdef __sun
   //  This might work in general, but sun definitely needs the cast.
   //

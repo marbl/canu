@@ -460,11 +460,11 @@ constructSeqStore(char *filename, seqCache *inputseq) {
 #endif
 
       if (sic->sequenceLength() > SEQSTOREBLOCK_MAXPOS)
-        fprintf(stderr, "constructSeqStore()-- sequence %s too long, must be shorter than %llu Gbp.\n",
+        fprintf(stderr, "constructSeqStore()-- sequence %s too long, must be shorter than "u64bitFMT" Gbp.\n",
                 sic->header(), SEQSTOREBLOCK_MAXPOS / 1024 / 1024 / 1024), exit(1);
 
       if (sic->getIID() > SEQSTOREBLOCK_MAXPOS)
-        fprintf(stderr, "constructSeqStore()-- too many sequences, must be fewer than %llu.\n",
+        fprintf(stderr, "constructSeqStore()-- too many sequences, must be fewer than "u64bitFMT".\n",
                 SEQSTOREBLOCK_MAXIID), exit(1);
 
       if (NAMElen + sic->headerLength() + 1 > NAMEmax) {

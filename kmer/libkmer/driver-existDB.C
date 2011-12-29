@@ -99,9 +99,9 @@ testExhaustive(char *filename, char *merylname, u32bit merSize) {
   while (M->nextMer()) {
     if (E->exists(M->theFMer())) {
       expected++;
-      fprintf(DUMP, "0x%016lx\n", (u64bit)M->theFMer());
+      fprintf(DUMP, u64bitHEX"\n", (u64bit)M->theFMer());
     } else {
-      fprintf(DUMP, "0x%016lx MISSED!\n", (u64bit)M->theFMer());
+      fprintf(DUMP, u64bitHEX" MISSED!\n", (u64bit)M->theFMer());
     }
   }
 
@@ -115,7 +115,7 @@ testExhaustive(char *filename, char *merylname, u32bit merSize) {
   for (u64bit m = u64bitMASK(2 * merSize); m--; ) {
     if (E->exists(m)) {
       found++;
-      fprintf(DUMP, "0x%016lx\n", m);
+      fprintf(DUMP, u64bitHEX"\n", m);
     }
     C->tick();
   }

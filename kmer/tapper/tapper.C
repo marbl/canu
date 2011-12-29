@@ -1045,13 +1045,13 @@ int
 main(int argc, char **argv) {
   tapperGlobalData  *g = new tapperGlobalData();
 
-  fprintf(stderr, "sizeof(tapperResultIndex) --       %d\n", sizeof(tapperResultIndex));
-  fprintf(stderr, "sizeof(tapperResultQV) --          %d\n", sizeof(tapperResultQV));
-  fprintf(stderr, "sizeof(tapperResultFragment) --    %d\n", sizeof(tapperResultFragment));
-  fprintf(stderr, "sizeof(tapperResultMated) --       %d\n", sizeof(tapperResultMated));
-  fprintf(stderr, "sizeof(tapperResultTangled) --     %d\n", sizeof(tapperResultTangled));
-  fprintf(stderr, "sizeof(tapperHit) --               %d\n", sizeof(tapperHit));
-  fprintf(stderr, "sizeof(tapperTag) --               %d\n", sizeof(tapperTag));
+  fprintf(stderr, "sizeof(tapperResultIndex) --       "sizetFMT"\n", sizeof(tapperResultIndex));
+  fprintf(stderr, "sizeof(tapperResultQV) --          "sizetFMT"\n", sizeof(tapperResultQV));
+  fprintf(stderr, "sizeof(tapperResultFragment) --    "sizetFMT"\n", sizeof(tapperResultFragment));
+  fprintf(stderr, "sizeof(tapperResultMated) --       "sizetFMT"\n", sizeof(tapperResultMated));
+  fprintf(stderr, "sizeof(tapperResultTangled) --     "sizetFMT"\n", sizeof(tapperResultTangled));
+  fprintf(stderr, "sizeof(tapperHit) --               "sizetFMT"\n", sizeof(tapperHit));
+  fprintf(stderr, "sizeof(tapperTag) --               "sizetFMT"\n", sizeof(tapperTag));
 
   int arg=1;
   int err=0;

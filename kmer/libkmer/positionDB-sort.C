@@ -34,7 +34,7 @@ positionDB::sortAndRepackBucket(u64bit b) {
   u32bit le = (u32bit)(ed - st);
 
   if (ed < st)
-    fprintf(stdout, "ERROR: Bucket %10lu starts at %10lu ends at %10lu?\n", b, st, ed);
+    fprintf(stdout, "ERROR: Bucket "u64bitFMT" starts at "u64bitFMT" ends at "u64bitFMT"?\n", b, st, ed);
 
   if (le == 0)
     return;

@@ -1,64 +1,72 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+//  ISO C99 says that to get INT32_MAX et al, these must be defined. (7.18.2, 7.18.4, 7.8.1)
+#define __STDC_CONSTANT_MACROS
+#define __STDC_LIMIT_MACROS
+#define __STDC_FORMAT_MACROS
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <ctype.h>
 
+#include <inttypes.h>
 
 //  Useful types.
 //
 //  *MASK(x) is only defined for unsigned types, with x != 0 and less
 //  than the datawidth.
 
+typedef uint64_t       u64bit;
+typedef uint32_t       u32bit;
+typedef uint16_t       u16bit;
+typedef uint8_t         u8bit;
+
+typedef int64_t        s64bit;
+typedef int32_t        s32bit;
+typedef int16_t        s16bit;
+typedef int8_t          s8bit;
+
+
 #if defined(__alpha) || defined(_AIX) || defined(__LP64__) || defined(_LP64)
 #define TRUE64BIT
+#define  u64bitNUMBER(X) X ## LU
+#define  u32bitNUMBER(X) X ## U
+#else
+#define  u64bitNUMBER(X) X ## LLU
+#define  u32bitNUMBER(X) X ## LU
 #endif
 
-#ifdef TRUE64BIT
 
-//  Generic 64-bit platform
+#define  sizetFMT        "%zd"
 
-typedef unsigned long       u64bit;
-typedef unsigned int        u32bit;
-typedef signed long         s64bit;
-typedef signed int          s32bit;
-typedef unsigned short      u16bit;
-typedef signed short        s16bit;
-typedef unsigned char       u8bit;
-typedef signed char         s8bit;
-
-#define  sizetFMT        "%zu"
-
-#define  u64bitNUMBER(X) X ## LU
-#define  u64bitZERO      (0x0000000000000000LU)
-#define  u64bitONE       (0x0000000000000001LU)
-#define  u64bitMAX       (0xffffffffffffffffLU)
+#define  u64bitZERO      u64bitNUMBER(0x0000000000000000)
+#define  u64bitONE       u64bitNUMBER(0x0000000000000001)
+#define  u64bitMAX       u64bitNUMBER(0xffffffffffffffff)
 #define  u64bitMASK(X)   ((~u64bitZERO) >> (64 - (X)))
-#define  u64bitFMTW(X)   "%" #X "lu"
-#define  u64bitFMT       "%lu"
-#define  u64bitHEX       "0x%016lx"
-#define  s64bitFMTW(X)   "%" #X "ld"
-#define  s64bitFMT       "%ld"
+#define  u64bitFMTW(X)   "%" #X PRIu64
+#define  u64bitFMT       "%"PRIu64
+#define  u64bitHEX       "0x%016"PRIx64
+#define  s64bitFMTW(X)   "%" #X PRId64
+#define  s64bitFMT       "%"PRId64
 
-#define  u32bitNUMBER(X) X ## U
-#define  u32bitZERO      (0x00000000U)
-#define  u32bitONE       (0x00000001U)
-#define  u32bitMAX       (0xffffffffU)
+#define  u32bitZERO      u32bitNUMBER(0x00000000)
+#define  u32bitONE       u32bitNUMBER(0x00000001)
+#define  u32bitMAX       u32bitNUMBER(0xffffffff)
 #define  u32bitMASK(X)   ((~u32bitZERO) >> (32 - (X)))
-#define  u32bitFMTW(X)   "%" #X "u"
-#define  u32bitFMT       "%u"
-#define  u32bitHEX       "0x%08x"
-#define  s32bitFMTW(X)   "%" #X "d"
-#define  s32bitFMT       "%d"
+#define  u32bitFMTW(X)   "%" #X PRIu32
+#define  u32bitFMT       "%"PRIu32
+#define  u32bitHEX       "0x%08"PRIx32
+#define  s32bitFMTW(X)   "%" #X PRId32
+#define  s32bitFMT       "%"PRId32
 
 #define  u16bitZERO      (0x0000)
 #define  u16bitONE       (0x0001)
 #define  u16bitMAX       (0xffff)
 #define  u16bitMASK(X)   ((~u16bitZERO) >> (16 - (X)))
-#define  u16bitFMTW(X)   "%" #X "hu"
-#define  u16bitFMT       "%hu"
+#define  u16bitFMTW(X)   "%" #X PRIu16
+#define  u16bitFMT       "%"PRIu16
 
 #define  u8bitZERO       (0x00)
 #define  u8bitONE        (0x01)
@@ -68,58 +76,6 @@ typedef signed char         s8bit;
 #define  strtou32bit(N,O) (u32bit)strtoul(N, O, 10)
 #define  strtou64bit(N,O) (u64bit)strtoul(N, O, 10)
 
-#else
-
-//  Generic 32-bit platform
-
-typedef unsigned long long  u64bit;
-typedef unsigned long       u32bit;
-typedef signed long long    s64bit;
-typedef signed long         s32bit;
-typedef unsigned short      u16bit;
-typedef signed short        s16bit;
-typedef unsigned char       u8bit;
-typedef signed char         s8bit;
-
-#define  sizetFMT        "%zu"
-
-#define  u64bitNUMBER(X) X ## LLU
-#define  u64bitZERO      (0x0000000000000000LLU)
-#define  u64bitONE       (0x0000000000000001LLU)
-#define  u64bitMAX       (0xffffffffffffffffLLU)
-#define  u64bitMASK(X)   ((~u64bitZERO) >> (64 - (X)))
-#define  u64bitFMTW(X)   "%" #X "llu"
-#define  u64bitFMT       "%llu"
-#define  u64bitHEX       "0x%016llx"
-#define  s64bitFMTW(X)   "%" #X "lld"
-#define  s64bitFMT       "%lld"
-
-#define  u32bitNUMBER(X) X ## LU
-#define  u32bitZERO      (0x00000000LU)
-#define  u32bitONE       (0x00000001LU)
-#define  u32bitMAX       (0xffffffffLU)
-#define  u32bitMASK(X)   ((~u32bitZERO) >> (32 - (X)))
-#define  u32bitFMTW(X)   "%" #X "lu"
-#define  u32bitFMT       "%lu"
-#define  u32bitHEX       "0x%08lx"
-#define  s32bitFMTW(X)   "%" #X "ld"
-#define  s32bitFMT       "%ld"
-
-#define  u16bitZERO      (0x0000)
-#define  u16bitONE       (0x0001)
-#define  u16bitMAX       (0xffff)
-#define  u16bitMASK(X)   ((~u16bitZERO) >> (16 - (X)))
-#define  u16bitFMT       "%hd"
-
-#define  u8bitZERO       (0x00)
-#define  u8bitONE        (0x01)
-#define  u8bitMAX        (0xff)
-#define  u8bitMASK(X)    ((~u8bitZERO) >> (8 - (X)))
-
-#define  strtou32bit(N,O) (u32bit)strtoul(N, O, 10)
-#define  strtou64bit(N,O) (u64bit)strtoull(N, O, 10)
-
-#endif  //  TRUE64BIT
 
 
 
@@ -165,12 +121,12 @@ int   isHuman(FILE *F);
 //
 void*
 mapFile(const char *filename,
-        size_t     *length,
+        u64bit     *length,
         char        mode);
 
 void
 unmapFile(void     *addr,
-          size_t    length);
+          u64bit    length);
 
 
 

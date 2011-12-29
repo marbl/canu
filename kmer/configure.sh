@@ -161,7 +161,7 @@ case $target in
 #  OS-X, optimized
 #
 CC                := $CC
-SHLIB_FLAGS       := -dynamiclib
+SHLIB_FLAGS       := -dynamiclib -undefined dynamic_lookup
 CFLAGS_COMPILE    := -fast -fPIC -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CLDFLAGS          := -m64
 CLIBS             := 
@@ -169,7 +169,7 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -fast -fPIC -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CXXLDFLAGS        := -m64
 CXXLIBS           := 
-CXXSHARED         := -Wl,-r -dynamic
+LDFLAGS_PYTHON    := -bundle -framework CoreFoundation -framework Python -dynamic
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -181,7 +181,7 @@ EOF
 #  OS-X, debug
 #
 CC                := $CC
-SHLIB_FLAGS       := -dynamiclib
+SHLIB_FLAGS       := -dynamiclib -undefined dynamic_lookup
 CFLAGS_COMPILE    := -g3 -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CLDFLAGS          := -m64
 CLIBS             := 
@@ -189,37 +189,7 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -g3 -m64 -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
 CXXLDFLAGS        := -m64
 CXXLIBS           := 
-CXXSHARED         := -Wl,-r -dynamic
-ARFLAGS           := ruvs
-INSTALL/          := $target/
-EOF
-    ;;
-  Darwin-ppc)
-    rm -f Make.compilers
-    cat <<EOF > Make.compilers
-# -*- makefile -*-
-#  OS-X, optimized
-#
-#  Using this usually generates internal compiler errors: -mpowerpc64
-#    FIXED with the "November 2004" update!
-#  Using this breaks dynamic library building:  -mdynamic-no-pic
-#    We could have instead included -fPIC on the compile line.
-#
-# -malign-natural changes the size of structures compared to -g.
-# -Wpadded supposedly warns when this happens.
-#
-FAST              := -fast -fPIC
-FAST              := -O3 -funroll-loops -fstrict-aliasing -fsched-interblock -falign-loops=16 -falign-jumps=16 -falign-functions=16 -falign-jumps-max-skip=15 -falign-loops-max-skip=15 -malign-natural -ffast-math -mpowerpc-gpopt -force_cpusubtype_ALL -fstrict-aliasing -mtune=G5 -mcpu=G5
-CC                := $CC
-SHLIB_FLAGS       := -dynamiclib
-CFLAGS_COMPILE    := \$(FAST) -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CLDFLAGS          := 
-CLIBS             := 
-CXX               := $CXX
-CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_REENTRANT -D_THREAD_SAFE -Wall -Wno-char-subscripts
-CXXLDFLAGS        := 
-CXXLIBS           := 
-CXXSHARED         := -Wl,-r -dynamic
+LDFLAGS_PYTHON    := -bundle -framework CoreFoundation -framework Python -dynamic
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -238,7 +208,6 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -O3 -fPIC -pthread -D_REENTRANT -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := -pthread -lthr
-CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -257,7 +226,6 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -g -pthread -D_REENTRANT -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual -Wcast-align -Wwrite-strings -Wconversion
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := -pthread -lthr
-CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -276,7 +244,6 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -pg -O3 -pthread -D_REENTRANT -fPIC -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CXXLDFLAGS        := -pg -L/usr/local/lib
 CXXLIBS           := -pthread -lthr
-CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -295,7 +262,6 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := -pthread -ldl
-CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -314,7 +280,6 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := -pthread -ldl
-CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -333,7 +298,6 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := -pthread -ldl
-CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -352,7 +316,6 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -pg -m64 -fPIC -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := -pthread -ldl
-CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -371,7 +334,6 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 -D_THREAD_SAFE -pthread -fmessage-length=0 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := -pthread -ldl
-CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
@@ -402,7 +364,6 @@ CXX               := $CXX
 CXXFLAGS_COMPILE  := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer 
 CXXLDFLAGS        := 
 CXXLIBS           := -lpthread -lrt
-CXXSHARED         := -shared
 ARFLAGS           := ruv
 INSTALL/          := $target/
 EOF
