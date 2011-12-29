@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: CatCorrectsOVL.c,v 1.15 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: CatCorrectsOVL.c,v 1.16 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -81,7 +81,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "%s: Failed to open input file list '%s': %s\n", argv[0], inFilesPath, strerror(errno)), exit(1);
 
   Correction_Output_t  msg;
-  uint64               prev_id = 0;
+  AS_IID               prev_id = 0;
 
   while (fgets(inFileName, FILENAME_MAX, inFiles)) {
     chomp(inFileName);
@@ -94,7 +94,7 @@ main(int argc, char **argv) {
     while (AS_UTL_safeRead(inF, &msg, "correction", sizeof(Correction_Output_t), 1) == 1) {
       if  (msg.frag.is_ID) {
         if (msg.frag.iid <= prev_id) {
-          fprintf(stderr, "ERROR; frag IDs out of order.  Got "F_U64" after "F_U64" in file %s.\n",
+          fprintf(stderr, "ERROR; frag IDs out of order.  Got "F_IID" after "F_IID" in file %s.\n",
                   msg.frag.iid, prev_id, inFileName);
           exit(1);
         }

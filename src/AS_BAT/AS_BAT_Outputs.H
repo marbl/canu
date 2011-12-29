@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_OUTPUTS
 #define INCLUDE_AS_BAT_OUTPUTS
 
-static const char *rcsid_INCLUDE_AS_BAT_OUTPUTS = "$Id: AS_BAT_Outputs.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OUTPUTS = "$Id: AS_BAT_Outputs.H,v 1.2 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "MultiAlignStore.h"
 
@@ -30,6 +30,6 @@ void unitigToMA(MultiAlignT *ma, uint32 iumiid, Unitig *utg);
 
 void writeIUMtoFile(UnitigVector &unitigs, char *fileprefix, char *tigStorePath, uint32 fragment_count_target, bool isFinal=true);
 void writeOVLtoFile(UnitigVector &unitigs, char *fileprefix);
-void writeCGAtoFile(UnitigVector &unitigs, char *fileprefix, float globalARate);
+void writeCGAtoFile(UnitigVector &unitigs, char *fileprefix, double globalARate);
 
 #endif  //  INCLUDE_AS_BAT_OUTPUTS

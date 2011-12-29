@@ -19,22 +19,22 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: getAssembly.cc,v 1.12 2009-10-06 02:35:29 brianwalenz Exp $";
+const char *mainid = "$Id: getAssembly.cc,v 1.13 2011-12-29 09:26:03 brianwalenz Exp $";
 
 /*************************************************************************/
 /* Local include files */
 /*************************************************************************/
-#ifdef SYBASE
-extern "C" {
-   #include <ctpublic.h>
-   #include <unistd.h>
-}
-#endif
 
 #include "AS_global.h"
 #include "SYS_UIDclient.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Hash.h"
+
+#ifdef SYBASE
+extern "C" {
+   #include <ctpublic.h>
+}
+#endif
 
 #include <iostream>
 #include <string>

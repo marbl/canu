@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-examineGap.c,v 1.27 2011-12-04 23:46:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-examineGap.c,v 1.28 2011-12-29 09:26:03 brianwalenz Exp $";
 #include "eCR.h"
 
 #include "GapWalkerREZ.h"  //  FindGapLength
@@ -214,9 +214,9 @@ examineGap(ContigT *lcontig, int lFragIid,
 
   if (debug.examineGapLV > 0) {
     if (lFragIid != -1)
-      fprintf(debug.examineGapFP, "lFrag:%d clr:%d,%d len: %d\n%s\n", lFragIid, lclr_bgn, lclr_end, strlen(lFragSeqBuffer), lFragSeqBuffer);
+      fprintf(debug.examineGapFP, "lFrag:%d clr:%d,%d len: "F_SIZE_T"\n%s\n", lFragIid, lclr_bgn, lclr_end, strlen(lFragSeqBuffer), lFragSeqBuffer);
     if (rFragIid != -1)
-      fprintf(debug.examineGapFP, "rFrag:%d clr:%d,%d len: %d\n%s\n", rFragIid, rclr_bgn, rclr_end, strlen(rFragSeqBuffer), rFragSeqBuffer);
+      fprintf(debug.examineGapFP, "rFrag:%d clr:%d,%d len: "F_SIZE_T"\n%s\n", rFragIid, rclr_bgn, rclr_end, strlen(rFragSeqBuffer), rFragSeqBuffer);
   }
 
   ////////////////////////////////////////
@@ -255,7 +255,7 @@ examineGap(ContigT *lcontig, int lFragIid,
   lcompBuffer[ i ] = 0;
 
   if (debug.examineGapLV > 0) {
-    fprintf(debug.examineGapFP, "lcompBuffer:  len:%d   lFragContigOverlapLength:%d lcontigBaseStart:%d lcontigBasesUsed:%d\n",
+    fprintf(debug.examineGapFP, "lcompBuffer:  len:"F_SIZE_T"   lFragContigOverlapLength:%d lcontigBaseStart:%d lcontigBasesUsed:%d\n",
             strlen(lcompBuffer), lFragContigOverlapLength, lcontigBaseStart, lcontigBasesUsed);
   }
 
@@ -463,11 +463,11 @@ examineGap(ContigT *lcontig, int lFragIid,
   if (debug.examineGapLV > 0) {
     fprintf(debug.examineGapFP, "found overlap between frags %d and %d, length = %d\n",
             lFragIid, rFragIid, overlap->length);
-    fprintf(debug.examineGapFP, "ahang + overlap->length: %d, strlen(lcompBuffer): %d, diff: %d\n",
+    fprintf(debug.examineGapFP, "ahang + overlap->length: %d, strlen(lcompBuffer): "F_SIZE_T", diff: "F_SIZE_T"\n",
             overlap->begpos + overlap->length,
             strlen(lcompBuffer),
             overlap->begpos + overlap->length - strlen(lcompBuffer));
-    fprintf(debug.examineGapFP, "overlap->length + bhang: %d, strlen(rcompBufferTrimmed): %d, diff: %d\n",
+    fprintf(debug.examineGapFP, "overlap->length + bhang: %d, strlen(rcompBufferTrimmed): "F_SIZE_T", diff: "F_SIZE_T"\n",
             overlap->length + overlap->endpos,
             strlen(rcompBufferTrimmed),
             overlap->length + overlap->endpos - strlen(rcompBufferTrimmed));

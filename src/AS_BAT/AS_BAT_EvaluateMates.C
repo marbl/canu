@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_EvaluateMates.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_EvaluateMates.C,v 1.3 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_MateLocation.H"
@@ -91,7 +91,7 @@ evaluateMates(UnitigVector &unitigs, const char *output_prefix, const char *name
 
   fprintf(logFile, "==> MATE HAPPINESS\n");
   fprintf(logFile, "\n");
-  fprintf(logFile, "unmated          %10"F_S64P"\n", nunmated);
+  fprintf(logFile, "unmated          "F_S64"\n", nunmated);
   fprintf(logFile, "\n");
   fprintf(logFile, "                  dove-dove  dove-cont  cont-cont\n");
   fprintf(logFile, "happy            %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", ngood[0],            ngood[1],            ngood[2]);

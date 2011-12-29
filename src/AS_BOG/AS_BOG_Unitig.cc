@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.33 2010-10-11 03:43:44 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_Unitig.cc,v 1.34 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -31,7 +31,7 @@ uint32  Unitig::_nextId       = 1;
 uint32* Unitig::_inUnitig     = NULL;
 uint32* Unitig::_pathPosition = NULL;
 
-float   Unitig::_globalArrivalRate = -1;
+double   Unitig::_globalArrivalRate = -1;
 
 
 Unitig::Unitig(bool report){
@@ -97,7 +97,7 @@ ufNode Unitig::getLastBackboneNode(uint32 &prevID) {
 
 
 
-float Unitig::getAvgRho(void){
+double Unitig::getAvgRho(void){
 
   if(ufpath.size() == 1)
     _avgRho = 1;
@@ -142,19 +142,19 @@ float Unitig::getAvgRho(void){
 
 
 
-void Unitig::setGlobalArrivalRate(float global_arrival_rate){
+void Unitig::setGlobalArrivalRate(double global_arrival_rate){
   _globalArrivalRate = global_arrival_rate;
 }
 
-void Unitig::setLocalArrivalRate(float local_arrival_rate){
+void Unitig::setLocalArrivalRate(double local_arrival_rate){
 
-  if ( local_arrival_rate < std::numeric_limits<float>::epsilon())
+  if ( local_arrival_rate < std::numeric_limits<double>::epsilon())
     _localArrivalRate = 0;
   else
     _localArrivalRate = local_arrival_rate;
 }
 
-float Unitig::getLocalArrivalRate(void){
+double Unitig::getLocalArrivalRate(void){
   if (_localArrivalRate != -1 )
     return _localArrivalRate;
   setLocalArrivalRate((getNumFrags() - 1) / getAvgRho());
@@ -162,8 +162,8 @@ float Unitig::getLocalArrivalRate(void){
 }
 
 
-float Unitig::getCovStat(void){
-  const float ln2=0.69314718055994530941723212145818;
+double Unitig::getCovStat(void){
+  const double ln2=0.69314718055994530941723212145818;
 
   // Note that we are using numFrags in this calculation.
   //   If the fragments in the unitig are not randomly sampled
@@ -176,7 +176,7 @@ float Unitig::getCovStat(void){
   //if(_globalArrivalRate == -1)
   //  fprintf(logFile, "You have not set the _globalArrivalRate variable.\n");
 
-  float covStat = 0.0;
+  double covStat = 0.0;
 
   if (_globalArrivalRate > 0.0)
     covStat = (getAvgRho() * _globalArrivalRate) - (ln2 * (getNumFrags() - 1));

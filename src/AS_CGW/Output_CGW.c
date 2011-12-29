@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.50 2010-09-24 02:33:47 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.51 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -175,7 +175,7 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
   errno = 0;
   part = fopen(partName, "w");
   if (errno) {
-    fprintf(stderr, "Couldn't open '%s' for writing; NO CONTIGS WRITTEN: %s\n", strerror(errno));
+    fprintf(stderr, "Couldn't open '%s' for writing; NO CONTIGS WRITTEN: %s\n", partName, strerror(errno));
     return;
   }
 
@@ -183,7 +183,7 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
   errno = 0;
   pari = fopen(partName, "w");
   if (errno) {
-    fprintf(stderr, "Couldn't open '%s' for writing; NO CONTIGS WRITTEN: %s\n", strerror(errno));
+    fprintf(stderr, "Couldn't open '%s' for writing; NO CONTIGS WRITTEN: %s\n", partName, strerror(errno));
     return;
   }
 

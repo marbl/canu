@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.60 2011-12-04 23:46:58 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.61 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1120,10 +1120,10 @@ main(int argc, char **argv) {
   fprintf(stderr, "           noOverlapFound: %d\n", noOverlapFound);
 
   if (numGapsClosed > 0)
-    fprintf(stderr, "            avgOlapLength: %.2f\n", (float) totalOlapLength / numGapsClosed);
-  fprintf(stderr, "         stddevOlapLength: %.2f\n", (float) sqrt(totalOlapVariance));
+    fprintf(stderr, "            avgOlapLength: %.2f\n", (double) totalOlapLength / numGapsClosed);
+  fprintf(stderr, "         stddevOlapLength: %.2f\n", (double) sqrt(totalOlapVariance));
   if (numGapsClosed > 0)
-    fprintf(stderr, "             avgOlapDiffs: %.2f\n", (float) totalOlapDiffs / numGapsClosed);
+    fprintf(stderr, "             avgOlapDiffs: %.2f\n", (double) totalOlapDiffs / numGapsClosed);
   fprintf(stderr, "          surrogatesOnEnd: %d\n", surrogatesOnEnd);
   fprintf(stderr, "\n");
   fprintf(stderr, "             CONTIG_BASES: %d\n", CONTIG_BASES);

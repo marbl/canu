@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: analyzeBest.C,v 1.1 2010-10-09 14:05:54 brianwalenz Exp $";
+const char *mainid = "$Id: analyzeBest.C,v 1.2 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -145,7 +145,7 @@ main(int argc, char **argv) {
   for (uint32 i=0; i<numLib+1; i++) {
     double tot = fragPerLib[i] + deldPerLib[i];
 
-    fprintf(stderr, "%-8u %-30s %8lu %8lu (%4.1f%%)  %8lu (%4.1f%%)  %8lu (%4.1f%%)  %8lu (%4.1f%%)  %8lu (%4.1f%%)  %8lu (%4.1f%%)  %8lu (%4.1f%%)\n",
+    fprintf(stderr, "%-8u %-30s %8"F_U64P" %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)  %8"F_U64P" (%4.1f%%)\n",
             i,
             (i == 0) ? "(none)" : AS_UID_toString(gkp->gkStore_getLibrary(i)->libraryUID),
             fragPerLib[i],

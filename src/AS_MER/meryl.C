@@ -21,20 +21,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: meryl.C,v 1.7 2009-08-11 04:48:32 brianwalenz Exp $";
+const char *mainid = "$Id: meryl.C,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
+#include "AS_global.h"
 
 #include "bio++.H"
 #include "meryl.H"
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 #include "AS_MER_gkpStoreChain.H"
-
-#include "AS_global.h"
 
 //
 //  This is a SHADOW COPY!  The main really exists in kmer/meryl/meryl.C!

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.59 2011-12-18 07:05:59 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitChunks_CGW.c,v 1.60 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -333,7 +333,7 @@ void
 StoreIUMStruct(ScaffoldGraphT *graph,
                IUMStruct *is,
                int isUnitig,
-               float egfar) {
+               double egfar) {
   int32 rho = 0;
 
   MultiAlignT *uma = CreateEmptyMultiAlignT();
@@ -418,7 +418,7 @@ StoreIUMStruct(ScaffoldGraphT *graph,
 
 
 static
-float
+double
 EstimateGlobalFragmentArrivalRate(ChunkInstanceT *ci, MultiAlignT *ma) {
   int32  numRF = 0;
   int32  rho   = 0;
@@ -472,7 +472,7 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
 
   assert(isUnitig);  // not implemented for contigs yet
 
-  float egfar = EstimateGlobalFragmentArrivalRate(ci, ma);
+  double egfar = EstimateGlobalFragmentArrivalRate(ci, ma);
 
   fprintf(stderr, "Splitting %s "F_CID " into as many as %d %s at intervals:",
           (isUnitig ? "unitig" : "contig"), ma->maID,

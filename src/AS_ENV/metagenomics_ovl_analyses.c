@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: metagenomics_ovl_analyses.c,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: metagenomics_ovl_analyses.c,v 1.12 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -732,7 +732,7 @@ int main (int argc, char *argv[]){
 
   while  (AS_OVS_readOverlapFromStore(ovlStore, &olap, AS_OVS_TYPE_OVL)) {
     if(debug>0){
-      fprintf (stderr,"    %8d %8d %c %5d %5d %4.1f %4.1f\n",
+      fprintf (stderr,"    %8d %8d %c %5"F_S64P" %5"F_S64P" %4.1f %4.1f\n",
                olap.a_iid,
                olap.b_iid,
                olap.dat.ovl.flipped ? 'I' : 'N',
@@ -757,7 +757,7 @@ int main (int argc, char *argv[]){
       init_frg();
     }
     if(deletionStatus[olap.a_iid]||deletionStatus[olap.b_iid]){
-      fprintf (stderr,"Deleted(%d,%d):    %8d %8d %c %5d %5d %4.1f %4.1f\n",
+      fprintf (stderr,"Deleted(%d,%d):    %8d %8d %c %5"F_S64P" %5"F_S64P" %4.1f %4.1f\n",
 	       deletionStatus[olap.a_iid],
 	       deletionStatus[olap.b_iid],
                olap.a_iid,

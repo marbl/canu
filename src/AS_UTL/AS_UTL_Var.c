@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_Var.c,v 1.33 2011-12-13 04:56:56 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_UTL_Var.c,v 1.34 2011-12-29 09:26:03 brianwalenz Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package
@@ -330,7 +330,7 @@ ReadVA(FILE *fp, VarArrayType *va, FileVarArrayType *vat) {
     size_t numRead = AS_UTL_safeRead(fp, va->Elements, "LoadFromFile_VA", va->sizeofElement, va->numElements);
 
     if (va->numElements != numRead)
-      fprintf(stderr, "ReadVA()-- Short read from va <%s>; expected "F_S64" elements, read "F_S64" elements.\n",
+      fprintf(stderr, "ReadVA()-- Short read from va <%s>; expected "F_SIZE_T" elements, read "F_SIZE_T" elements.\n",
               va->typeofElement, va->numElements, numRead), exit(1);
   }
 }

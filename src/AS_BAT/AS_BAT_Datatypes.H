@@ -22,7 +22,12 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.10 2011-12-05 22:56:22 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.11 2011-12-29 09:26:03 brianwalenz Exp $";
+
+#include "AS_global.h"
+#include "AS_MSG_pmesg.h"
+#include "AS_OVS_overlapStore.h"
+#include "AS_PER_gkpStore.h"
 
 #include <map>
 #include <set>
@@ -34,11 +39,6 @@ static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1
 #include <algorithm>
 
 using namespace std;
-
-#include "AS_global.h"
-#include "AS_MSG_pmesg.h"
-#include "AS_OVS_overlapStore.h"
-#include "AS_PER_gkpStore.h"
 
 #include "AS_BAT_OverlapCache.H"
 

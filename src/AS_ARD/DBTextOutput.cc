@@ -19,12 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: DBTextOutput.cc,v 1.13 2010-02-17 01:32:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: DBTextOutput.cc,v 1.14 2011-12-29 09:26:03 brianwalenz Exp $";
+
+#include "AS_global.h"
+#include "DBTextOutput.hh"
 
 #include <iostream>
-#include <assert.h>
 
-#include "DBTextOutput.hh"
 
 using AS_ARD::DBTextOutput;
 
@@ -81,8 +82,8 @@ uint64 DBTextOutput::storeAssembly(
 bool DBTextOutput::storeMDI2DB (
          AS_UID erefines,
          IntDist_ID irefines,
-         float mean,
-         float stddev,
+         double mean,
+         double stddev,
          int32 min,
          int32 max) {
    std::cerr << "MDI: "
@@ -118,8 +119,8 @@ bool DBTextOutput::storeUTG2DB (
          AS_UID eaccession,
          IntFragment_ID iaccession,
          const char * source,
-         float microhet_prob,
-         float coverage_stat,
+         double microhet_prob,
+         double coverage_stat,
          UnitigStatus status,
          int32 length,
          const char * consensus,
@@ -171,8 +172,8 @@ bool DBTextOutput::storeULK2DB (
          PairOrient orientation,
          UnitigOverlapType overlap_type,
          int32 is_possible_chimera,
-         float mean_distance,
-         float std_deviation,
+         double mean_distance,
+         double std_deviation,
          int32 num_contributing,
          PlacementStatusType status) {
    std::cerr << "ULK: "
@@ -367,8 +368,8 @@ bool DBTextOutput::storeCLK2DB(
                   PairOrient orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  float mean_distance,
-                  float std_deviation,
+                  double mean_distance,
+                  double std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status) {
    std::cerr << assemblyID << "\t"
@@ -394,7 +395,7 @@ bool DBTextOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 n
    return true;
 }
 
-bool DBTextOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, PairOrient orient) {
+bool DBTextOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, double mean, double stddev, PairOrient orient) {
    //TODO: warning using 0 as ciid for CTP
    std::cerr << assemblyID << "\t"
                   << AS_UID_toInteger(ctpID) << "\t"

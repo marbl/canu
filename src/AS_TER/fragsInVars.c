@@ -19,14 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fragsInVars.c,v 1.4 2009-05-12 17:25:31 brianwalenz Exp $";
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
-#include <errno.h>
-#include <ctype.h>
+const char *mainid = "$Id: fragsInVars.c,v 1.5 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -342,28 +335,28 @@ main(int argc, char **argv) {
       if ((frags[fp].beg < vars[vp].beg) &&
           (frags[fp].end > vars[vp].end)) {
         //  var is contained in frag.
-        fprintf(stdout, "FRAG\t"F_U64"\t"F_U64"\t"F_U32"\t"F_U32" COMPLETE\n",
+        fprintf(stdout, "FRAG\t"F_U64"\t"F_U64"\t"F_U64"\t"F_U64" COMPLETE\n",
                 frags[fp].fid, frags[fp].sid, frags[fp].beg, frags[fp].end);
         fV++;
 
       } else if ((frags[fp].beg < vars[vp].beg) &&
                  (frags[fp].end > vars[vp].beg)) {
         //  var hangs off right end of frag
-        fprintf(stdout, "FRAG\t"F_U64"\t"F_U64"\t"F_U32"\t"F_U32" PARTIAL_RIGHT\n",
+        fprintf(stdout, "FRAG\t"F_U64"\t"F_U64"\t"F_U64"\t"F_U64" PARTIAL_RIGHT\n",
                 frags[fp].fid, frags[fp].sid, frags[fp].beg, frags[fp].end);
         fR++;
 
       } else if ((frags[fp].beg < vars[vp].end) &&
                  (frags[fp].end > vars[vp].end)) {
         //  var hangs off left end of frag
-        fprintf(stdout, "FRAG\t"F_U64"\t"F_U64"\t"F_U32"\t"F_U32" PARTIAL_LEFT\n",
+        fprintf(stdout, "FRAG\t"F_U64"\t"F_U64"\t"F_U64"\t"F_U64" PARTIAL_LEFT\n",
                 frags[fp].fid, frags[fp].sid, frags[fp].beg, frags[fp].end);
         fL++;
 
       } else if ((frags[fp].end > vars[vp].beg) &&
                  (frags[fp].beg < vars[vp].end)) {
         //  frag is contained in var
-        fprintf(stdout, "FRAG\t"F_U64"\t"F_U64"\t"F_U32"\t"F_U32" CONTAINED\n",
+        fprintf(stdout, "FRAG\t"F_U64"\t"F_U64"\t"F_U64"\t"F_U64" CONTAINED\n",
                 frags[fp].fid, frags[fp].sid, frags[fp].beg, frags[fp].end);
         fC++;
       }

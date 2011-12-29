@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.3 2011-08-31 17:42:40 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.4 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -423,7 +423,7 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
     ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
 
     if ((iid % 100000) == 0)
-      fprintf(stderr, "LOADING OVERLAPS...at IID %u (%06.2f%%): BB %lu (%06.2f%%) TG %lu (%06.2f%%) DD %lu (%06.2f%%).\r",
+      fprintf(stderr, "LOADING OVERLAPS...at IID "F_U32" (%06.2f%%): BB "F_U64" (%06.2f%%) TG "F_U64" (%06.2f%%) DD "F_U64" (%06.2f%%).\r",
               iid,   100.0 * iid   / numFrags,
               numBB, 100.0 * numBB / numTT,
               numTG, 100.0 * numTG / numTT,
@@ -436,12 +436,12 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
   delete [] ovlBB;
   delete [] ovlTG;
 
-  fprintf(stderr, "LOADING OVERLAPS...at IID %u (%06.2f%%): BB %lu (%06.2f%%) TG %lu (%06.2f%%) DD %lu (%06.2f%%).\n",
+  fprintf(stderr, "LOADING OVERLAPS...at IID "F_U32" (%06.2f%%): BB "F_U64" (%06.2f%%) TG "F_U64" (%06.2f%%) DD "F_U64" (%06.2f%%).\n",
           numFrags, 100.0,
           numBB, 100.0 * numBB / numTT,
           numTG, 100.0 * numTG / numTT,
           numDD, 100.0 * numDD / numTT);
-  fprintf(stderr, "LOADING OVERLAPS...%lu overlaps loaded.\n", numBB + numTG);
+  fprintf(stderr, "LOADING OVERLAPS..."F_U64" overlaps loaded.\n", numBB + numTG);
 
 
   fprintf(stderr, "INVERTING OVERLAPS.\n");
@@ -501,9 +501,9 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
     }
   }
 
-  fprintf(stderr, "INVERTING OVERLAPS....%lu frags found.\n", numGTfrg);
+  fprintf(stderr, "INVERTING OVERLAPS...."F_U64" frags found.\n", numGTfrg);
 
-  fprintf(stderr, "LOADING OVERLAPS...%lu GB used.\n", memoryUsed >> 30);
+  fprintf(stderr, "LOADING OVERLAPS..."F_U64" GB used.\n", memoryUsed >> 30);
 }
 
 

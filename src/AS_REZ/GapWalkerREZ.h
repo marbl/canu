@@ -22,7 +22,7 @@
 #ifndef GAPWALKER_REZ_H
 #define GAPWALKER_REZ_H
 
-static const char *rcsid_GAPWALKER_REZ_H = "$Id: GapWalkerREZ.h,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_GAPWALKER_REZ_H = "$Id: GapWalkerREZ.h,v 1.9 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "DataTypesREZ.h"
 
@@ -110,13 +110,13 @@ int Stop_At_Path_Bit_Set(ChunkInstanceT *,
 // of the edge mate going out from <cid>. better edges
 // have lower score
 //
-float Edge_Quality_GW(CIEdgeT *,
+double Edge_Quality_GW(CIEdgeT *,
 		      CDS_CID_t);
 
 //
 // No_Quality() returns always 1.0
 //
-float No_Quality(CIEdgeT *,
+double No_Quality(CIEdgeT *,
 		 CDS_CID_t);
 
 
@@ -124,12 +124,12 @@ float No_Quality(CIEdgeT *,
 // The bayesian quality approach.
 // if theres is only a matelink it returns a better (= lower) value than for any overlap
 //
-float Bayesian_Quality(CIEdgeT *edge, CDS_CID_t cid);
+double Bayesian_Quality(CIEdgeT *edge, CDS_CID_t cid);
 
 //
 // A quality function for walking shredded BACs.
 // It relies on the overlap length and the edge->quality field
-float Bac_Walking_Quality(CIEdgeT *edge, CDS_CID_t cid);
+double Bac_Walking_Quality(CIEdgeT *edge, CDS_CID_t cid);
 
 
 // -------
@@ -150,7 +150,7 @@ void Visit_Subgraph(chunk_subgraph *,
 		    CDS_CID_t,
 		    int,
 		    LengthT *,
-		    float (*)(CIEdgeT *, CDS_CID_t),
+		    double (*)(CIEdgeT *, CDS_CID_t),
 		    int (*)(ChunkInstanceT *, CDS_CID_t, chunk_subgraph *));
 
 
@@ -166,7 +166,7 @@ void Visit_Subgraph(chunk_subgraph *,
 // Notes:
 //   * <level> should be set to 0 (correspond to the depth level)
 //
-//   * the <quality()> function takes an edge and should evaluate to a float score
+//   * the <quality()> function takes an edge and should evaluate to a double score
 //     (see Edge_Quality2() as example)
 //
 //   * the <terminate()> function tells the procedure when to stop
@@ -190,15 +190,15 @@ int Find_Greedy_Path(chunk_subgraph *,
 		     LengthT,
 		     int,
 		     int,
-		     float (*)(CIEdgeT *, CDS_CID_t),
-		     float qualityThresh,
+		     double (*)(CIEdgeT *, CDS_CID_t),
+		     double qualityThresh,
 		     int (*)(ChunkInstanceT *, CDS_CID_t, chunk_subgraph *),
 		     int,
 		     int,
 		     long*,
 		     long,
-		     float*,
-		     float*);
+		     double*,
+		     double*);
 
 
 //
@@ -216,7 +216,7 @@ int Find_Greedy_Path(chunk_subgraph *,
 //   length of the path is consistent with the gap length
 
 int Inter_Scaffold_Gap_Walker(CDS_CID_t, CDS_CID_t,
-			      float (*)(CIEdgeT *, CDS_CID_t));
+			      double (*)(CIEdgeT *, CDS_CID_t));
 
 
 //
@@ -242,9 +242,9 @@ int Inter_Scaffold_Gap_Walker(CDS_CID_t, CDS_CID_t,
 chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph *,
 					   CDS_CID_t,
 					   CIScaffoldTIterator * CIs,
-					   float (*)(CIEdgeT *, CDS_CID_t),
-					   float qualityThresh,int* hops, long* calls,
-					   float *tooShort, float *tooLong);
+					   double (*)(CIEdgeT *, CDS_CID_t),
+					   double qualityThresh,int* hops, long* calls,
+					   double *tooShort, double *tooLong);
 
 
 //
@@ -255,7 +255,7 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph *,
 void Shortest_Path(chunk_subgraph *,
 		   CDS_CID_t,
 		   CDS_CID_t,
-		   float (*)(CIEdgeT *, CDS_CID_t));
+		   double (*)(CIEdgeT *, CDS_CID_t));
 
 
 //
@@ -275,7 +275,7 @@ void Dijkstra(chunk_subgraph *,
 	      CDS_CID_t,
 	      CDS_CID_t,
 	      int,
-	      float (*)(CIEdgeT *, CDS_CID_t));
+	      double (*)(CIEdgeT *, CDS_CID_t));
 
 //
 // Compute_Outdegree() computes the outdegree of each side of each

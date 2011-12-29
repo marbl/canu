@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.20 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg2.c,v 1.21 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,8 +47,8 @@ Read_LIB_Mesg(FILE *fin) {
   lmesg.eaccession = GetUID("acc:",fin);
 
   if (lmesg.action == AS_UPDATE) {
-    GET_FIELD(lmesg.mean,   "mea:%f","mean field");
-    GET_FIELD(lmesg.stddev, "std:%f","stddev field");
+    GET_FIELD(lmesg.mean,   "mea:%lf","mean field");
+    GET_FIELD(lmesg.stddev, "std:%lf","stddev field");
   }
 
   lmesg.num_features = 0;
@@ -56,8 +56,8 @@ Read_LIB_Mesg(FILE *fin) {
   if ((lmesg.action == AS_ADD) || (lmesg.action == AS_IGNORE)) {
     lmesg.link_orient = DecodePairOrient(GetType("ori:%c","orientation",fin));
 
-    GET_FIELD(lmesg.mean,"mea:%f","mean field");
-    GET_FIELD(lmesg.stddev ,"std:%f","stddev field");
+    GET_FIELD(lmesg.mean,"mea:%lf","mean field");
+    GET_FIELD(lmesg.stddev ,"std:%lf","stddev field");
 
     lmesg.source   = GetText("src:",fin,FALSE);
 

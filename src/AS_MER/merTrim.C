@@ -19,17 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.15 2011-08-22 16:44:19 brianwalenz Exp $";
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <algorithm>
+const char *mainid = "$Id: merTrim.C,v 1.16 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
+
+#include <algorithm>
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 

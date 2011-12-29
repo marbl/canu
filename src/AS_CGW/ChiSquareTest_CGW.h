@@ -22,14 +22,14 @@
 #ifndef ChiSquareTest_CGW_H
 #define ChiSquareTest_CGW_H
 
-static const char *rcsid_ChiSquareTest_CGW_H = "$Id: ChiSquareTest_CGW.h,v 1.7 2010-01-17 07:11:14 brianwalenz Exp $";
+static const char *rcsid_ChiSquareTest_CGW_H = "$Id: ChiSquareTest_CGW.h,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
 
 /* Data structures for clustering edges based on Chi Squared tests on
    combinations of edges */
 
 typedef struct { // Stores the scores of Chi Squared tests on sets
   // of edges plus the resulting  statistics of the merged set
-  float score; // Chi Squared score
+  double score; // Chi Squared score
   LengthT distance; // The statistics of the merged set
   unsigned int passed:1; // whether the score exceeded the defined threshold
 }Chi2ResultT;
@@ -37,13 +37,13 @@ typedef struct { // Stores the scores of Chi Squared tests on sets
 typedef struct { // Data structure to pass to Chi Squared Compute subroutine
   // to avoid recomputing the weighted mean and inverse variance
   LengthT distance; // The statistics of an input to the test
-  float weightedMean;
-  float inverseVariance;
+  double weightedMean;
+  double inverseVariance;
 }Chi2ComputeT;
 
 typedef struct { // Stores the score of pairwise Chi Squared tests on pairs
   // of clusters plus the resulting cluster statistics if the pair is merged
-  float score; // Chi Squared score
+  double score; // Chi Squared score
   LengthT distance; // The statistics of the merged cluster
   int rowIndex; // The smaller cluster index
   int colIndex; // The larger cluster index
@@ -62,11 +62,11 @@ typedef struct ClusterChi2{ // The statistics of a cluster
   LengthT distance; // The statistics of a cluster
 }ClusterChi2T;
 
-static int PairwiseChiSquare(float mean1, float variance1,
-                             float mean2, float variance2,
+static int PairwiseChiSquare(double mean1, double variance1,
+                             double mean2, double variance2,
                              LengthT *distance,
-                             float *chiSquaredValue,
-                             float chiSquaredThreshold){
+                             double *chiSquaredValue,
+                             double chiSquaredThreshold){
 
   //  Negative variance in GOS III was causing significant problems.  These used to be asserts, now
   //  we just fail the test.
@@ -87,10 +87,10 @@ static int PairwiseChiSquare(float mean1, float variance1,
   variance1 = 1.0 / variance1;
   variance2 = 1.0 / variance2;
 
-  float compVariance = 1.0 / (variance1 + variance2);
-  float compMean     = ((mean1 * variance1) + (mean2 * variance2)) * compVariance;
+  double compVariance = 1.0 / (variance1 + variance2);
+  double compMean     = ((mean1 * variance1) + (mean2 * variance2)) * compVariance;
 
-  float chiSquared  = ((mean1 - compMean) * (mean1 - compMean) * variance1 +
+  double chiSquared  = ((mean1 - compMean) * (mean1 - compMean) * variance1 +
                        (mean2 - compMean) * (mean2 - compMean) * variance2);
 
   *chiSquaredValue = chiSquared;

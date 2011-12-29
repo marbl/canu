@@ -21,7 +21,10 @@
 #ifndef SQLOutput_H
 #define SQLOutput_H
 
-static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.11 2010-02-12 20:33:02 brianwalenz Exp $";
+static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.12 2011-12-29 09:26:03 brianwalenz Exp $";
+
+#include "AS_global.h"
+#include "AS_UTL_Hash.h"
 
 #include <iostream>
 #include "IDBOutput.hh"
@@ -30,8 +33,6 @@ static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.11 2010-02-12 20:3
 extern "C" {
    #include <ctpublic.h>
 }
-
-#include "AS_UTL_Hash.h"
 
 namespace AS_ARD {
    class SQLOutput : public IDBOutput {
@@ -78,8 +79,8 @@ protected:
          virtual bool storeMDI2DB (
                   AS_UID erefines,
                   IntDist_ID irefines,
-                  float mean,
-                  float stddev,
+                  double mean,
+                  double stddev,
                   int32 min,
                   int32 max);
          virtual bool storeAFG2DB (
@@ -93,8 +94,8 @@ protected:
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   const char * source,
-                  float microhet_prob,
-                  float coverage_stat,
+                  double microhet_prob,
+                  double coverage_stat,
                   UnitigStatus status,
                   int32 length,
                   const char * consensus,
@@ -116,8 +117,8 @@ protected:
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   int32 is_possible_chimera,
-                  float mean_distance,
-                  float std_deviation,
+                  double mean_distance,
+                  double std_deviation,
                   int32 num_contributing,
                   PlacementStatusType status);
          virtual bool storeLKList2DB(int jmpType, AS_UID utgID, AS_UID ulkID);
@@ -172,12 +173,12 @@ protected:
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  float mean_distance,
-                  float std_deviation,
+                  double mean_distance,
+                  double std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status);
          virtual bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
-         virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);
+         virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, double mean, double stddev, ChunkOrientationType orient);
          virtual bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
          virtual bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd);
 

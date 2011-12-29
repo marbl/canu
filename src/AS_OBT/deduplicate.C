@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.14 2011-07-25 20:00:47 mkotelbajcvi Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.15 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -319,7 +319,7 @@ deleteFragments(gkStore *gkp, fragT *frag) {
 
 int
 main(int argc, char **argv) {
-  uint32             errorLimit   = errorLimit = AS_OVS_encodeQuality(DEFAULT_ERATE);
+  uint32             errorLimit   = AS_OVS_encodeQuality(DEFAULT_ERATE);
   gkStore           *gkp          = 0L;
   OverlapStore      *ovsprimary   = 0L;
   OverlapStore      *ovssecondary = 0L;

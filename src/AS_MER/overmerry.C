@@ -19,16 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overmerry.C,v 1.40 2010-09-03 19:53:05 brianwalenz Exp $";
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <algorithm>
+const char *mainid = "$Id: overmerry.C,v 1.41 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_OVS_overlapStore.h"
+
+#include <algorithm>
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
@@ -528,7 +525,7 @@ ovmWorker(void *G, void *T, void *S) {
   ovmThreadData    *t = (ovmThreadData  *)T;
   ovmComputation   *s = (ovmComputation *)S;
 
-  OVSoverlap        overlap = {0};
+  OVSoverlap        overlap;
 
   merStream        *sMSTR  = new merStream(t->qKB,
                                            new seqStream(s->seq + s->beg, s->end - s->beg),
@@ -668,7 +665,7 @@ ovmWorker(void *G, void *T, void *S) {
   //
   for (u32bit i=0; i<t->hitsLen; i++) {
     if (i != t->hitsLen) {
-      fprintf(stderr, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\n",
+      fprintf(stderr, u32bitFMT"\t"F_U64"\t"u32bitFMT"\t"F_U64"\t%c\t"u32bitFMT"\n",
               t->hits[i].dat.val.tseq, t->hits[i].dat.val.tpos,
               s->iid,  t->hits[i].dat.val.qpos,
               t->hits[i].dat.val.pal ? 'p' : (t->hits[i].dat.val.fwd ? 'f' : 'r'),
@@ -678,8 +675,12 @@ ovmWorker(void *G, void *T, void *S) {
 #endif
 
 
+  //  Make sure all the bits we never touch are zero
+  memset(&overlap, 0, sizeof(OVSoverlap));
+
+
   for (u32bit i=0; i<t->hitsLen; ) {
-    //fprintf(stderr, "FILTER STARTS i="u32bitFMT" tseq="u64bitFMT" tpos="u64bitFMT" qpos="u64bitFMT"\n",
+    //fprintf(stderr, "FILTER STARTS i="u32bitFMT" tseq="F_U64" tpos="F_U64" qpos="F_U64"\n",
     //          i, t->hits[i].dat.val.tseq, t->hits[i].dat.val.tpos, t->hits[i].dat.val.qpos);
 
     //  By the definition of our sort, the least common mer is the
@@ -747,7 +748,7 @@ ovmWorker(void *G, void *T, void *S) {
     //
     u64bit  lastiid = t->hits[i].dat.val.tseq;
     while ((i < t->hitsLen) && (t->hits[i].dat.val.tseq == lastiid)) {
-      //fprintf(stderr, "FILTER OUT i="u32bitFMT" tseq="u64bitFMT" tpos="u64bitFMT" qpos="u64bitFMT"\n",
+      //fprintf(stderr, "FILTER OUT i="u32bitFMT" tseq="F_U64" tpos="F_U64" qpos="F_U64"\n",
       //        i, t->hits[i].dat.val.tseq, t->hits[i].dat.val.tpos, t->hits[i].dat.val.qpos);
       i++;
     }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.18 2010-08-12 19:19:48 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_Bubble.c,v 1.19 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -385,7 +385,7 @@ AS_CGB_Bubble_List_t
 AS_CGB_Bubble_find_bubbles(Tfragment *frags, Tedge *edges, int sz, int age,
 			   int max_outdegree)
 {
-  BubGraph bg = {0};
+  BubGraph bg;
   AS_CGB_Bubble_List_t result = NULL;
 
   BG_initialize(&bg, frags, edges);

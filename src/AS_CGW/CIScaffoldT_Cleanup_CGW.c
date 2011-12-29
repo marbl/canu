@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.72 2011-12-04 23:21:29 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.73 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -96,7 +96,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
       PairOrient edgeOrient = GetEdgeOrientationWRT(edge,contig->id);
       PairOrient orient;
-      LengthT distance;
+      LengthT distance={0,0};
       ContigT *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == contig->id? edge->idB:edge->idA));
       int32 overlap;
 
@@ -237,7 +237,8 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
         newEdge->edgesContributing = 1;
 
         {
-          ChunkOverlapCheckT olap = {0};
+          ChunkOverlapCheckT olap;
+          memset(&olap, 0, sizeof(ChunkOverlapCheckT));
           if(LookupOverlap(ScaffoldGraph->ContigGraph, newEdge->idA, newEdge->idB, newEdge->orient, &olap)){
             FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph, eid);
             continue;
@@ -392,7 +393,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
       PairOrient edgeOrient = GetEdgeOrientationWRT(edge,contig->id);
       PairOrient orient1, orient2;
-      LengthT distance1, distance2;
+      LengthT distance1={0,0}, distance2={0,0};
       ContigT *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == contig->id? edge->idB:edge->idA));
       int32 overlap;
       double maxDistance;
@@ -531,7 +532,8 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       }
       // Add them to the graph, do NOT insert them.  Keep a list of such edges in collectedEdges
       {
-        ChunkOverlapCheckT olap = {0};
+        ChunkOverlapCheckT olap;
+        memset(&olap, 0, sizeof(ChunkOverlapCheckT));
         // If we don't find either of these edges already in the graph, proceed
         if(!LookupOverlap(ScaffoldGraph->ContigGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient1, &olap) &&
            !LookupOverlap(ScaffoldGraph->ContigGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient2, &olap)) {
@@ -744,10 +746,12 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
         CDS_CID_t eid= *GetCDS_CID_t(MergedEdges,i);
         CDS_CID_t neid;
         EdgeCGW_T *e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
-        ChunkOverlapCheckT olap = {0};
+        ChunkOverlapCheckT olap;
         int32 delta = MIN((3 * sqrt(e->distance.variance)), 50);
         CDS_CID_t idA, idB;
         PairOrient orient;
+
+        memset(&olap, 0, sizeof(ChunkOverlapCheckT));
 
         if(verbose) {
           PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,"dp_align check ",
@@ -766,7 +770,8 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 
 
         {
-          ChunkOverlapCheckT olap = {0};
+          ChunkOverlapCheckT olap;
+          memset(&olap, 0, sizeof(ChunkOverlapCheckT));
           if(LookupOverlap(ScaffoldGraph->ContigGraph, e->idA, e->idB, e->orient, &olap)){
             if(verbose) {
               fprintf(stderr,"* Overlap found already...skipping\n");
@@ -970,7 +975,8 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
       }
 
       {
-        ChunkOverlapCheckT olap = {0};
+        ChunkOverlapCheckT olap;
+        memset(&olap, 0, sizeof(ChunkOverlapCheckT));
         if(LookupOverlap(ScaffoldGraph->ContigGraph, newEdge->idA, newEdge->idB, newEdge->orient, &olap)){
           fprintf(stderr,"\t* Overlap already exists ("F_CID ","F_CID ",%c)...skip\n",
                   newEdge->idA, newEdge->idB, newEdge->orient.toLetter());
@@ -1437,7 +1443,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   // THE FOLLOWING IS DEBUG CODE
   // MAKE SURE WE DIDN'T DISCONNECT THE SCAFFOLD
   {
-    float maxVariance = 1000000.0;// useGuides ? 100000000000.0 : 1000000.0;
+    double maxVariance = 1000000.0;// useGuides ? 100000000000.0 : 1000000.0;
     int numComponents;
 
 
@@ -1523,9 +1529,9 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
           int32 expected_bhang = (GetNodeOrient(currCI).isForward() ? currCI->offsetBEnd.mean : currCI->offsetAEnd.mean);
           expected_bhang -= (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetBEnd.mean : contig.maxCI->offsetAEnd.mean);
 
-          float maxVar = (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetBEnd.variance : contig.maxCI->offsetAEnd.variance);
-          float currVar = (GetNodeOrient(currCI).isForward() ? currCI->offsetAEnd.variance : currCI->offsetBEnd.variance);
-          float inferredVar = (maxVar >= 0 ? maxVar : 0);
+          double maxVar = (GetNodeOrient(contig.maxCI).isForward() ? contig.maxCI->offsetBEnd.variance : contig.maxCI->offsetAEnd.variance);
+          double currVar = (GetNodeOrient(currCI).isForward() ? currCI->offsetAEnd.variance : currCI->offsetBEnd.variance);
+          double inferredVar = (maxVar >= 0 ? maxVar : 0);
           inferredVar += (currVar >= 0 ? currVar : 0);
 
           int32 minOverlap = MAX(CGW_MISSED_OVERLAP, (actual - (3.0 * sqrt(inferredVar))));
@@ -1542,7 +1548,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
         }
 
         if (failed) {
-          fprintf(stderr, "CleanupAScaffold() Error: Undoing jiggle failed multi-align, backing out changes\n", currCI->id);
+          fprintf(stderr, "CleanupAScaffold() Error: Undoing jiggle fpr %d failed multi-align, backing out changes\n", currCI->id);
           currCI->offsetAEnd.mean += currCI->offsetDelta.mean;
           currCI->offsetBEnd.mean += currCI->offsetDelta.mean;
         }
@@ -1681,7 +1687,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   // THE FOLLOWING IS DEBUG CODE
   // MAKE SURE WE DIDN'T DISCONNECT THE SCAFFOLD
   {
-    float maxVariance = 1000000.0;//useGuides ? 100000000000.0 : 1000000.0;
+    double maxVariance = 1000000.0;//useGuides ? 100000000000.0 : 1000000.0;
     int numComponents;
     MarkInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
                            maxVariance, TRUE, TRUE, 0,TRUE);
@@ -2543,7 +2549,7 @@ RemoveSurrogateDuplicates(void) {
 
     if (curChunk->info.CI.numInstances > 2) {
       if (curChunk->info.CI.numInstances != GetNumCDS_CID_ts(curChunk->info.CI.instances.va))
-        fprintf(stderr, "RemoveSurrogateDuplicates()-- CI.numInstances=%d != instances.va=%d\n",
+        fprintf(stderr, "RemoveSurrogateDuplicates()-- CI.numInstances=%d != instances.va="F_SIZE_T"\n",
                 curChunk->info.CI.numInstances,
                 GetNumCDS_CID_ts(curChunk->info.CI.instances.va));
       assert(curChunk->info.CI.numInstances == GetNumCDS_CID_ts(curChunk->info.CI.instances.va));

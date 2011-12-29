@@ -19,15 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.14 2010-02-17 01:32:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ARD_database.cc,v 1.15 2011-12-29 09:26:03 brianwalenz Exp $";
+
+#include "AS_global.h"
+#include "AS_ARD_database.hh"
 
 #include <iostream>
 #include <string>
-
-#include <math.h>
-#include <assert.h>
-
-#include "AS_ARD_database.hh"
 
 //#define DEBUG_AS_ARD
 #define MAX_DELTA_CHARS 10
@@ -384,7 +382,7 @@ bool AS_ARD_database::addSCF2SDB(SnapScaffoldMesg * scf) {
 bool AS_ARD_database::addCTP2DB(AS_UID scfID, SnapContigPairs * ctp, int32 &scfLen) {
    bool result = false;
    AS_UID ctpID = AS_UID_fromInteger(getUID(this->uids));
-   float stddev = ctp->stddev;
+   double stddev = ctp->stddev;
    if (ctp->stddev != ctp->stddev) {
       stddev = 0;
       std::cerr << "WARNING: stddev was nan, replaced with 0" << std::endl;

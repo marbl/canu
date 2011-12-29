@@ -22,7 +22,12 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.51 2010-10-27 09:58:39 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.52 2011-12-29 09:26:03 brianwalenz Exp $";
+
+#include "AS_global.h"
+#include "AS_MSG_pmesg.h"
+#include "AS_OVS_overlapStore.h"
+#include "AS_PER_gkpStore.h"
 
 #include <map>
 #include <set>
@@ -35,10 +40,6 @@ static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 
 
 using namespace std;
 
-#include "AS_global.h"
-#include "AS_MSG_pmesg.h"
-#include "AS_OVS_overlapStore.h"
-#include "AS_PER_gkpStore.h"
 
 ////////////////////////////////////////
 

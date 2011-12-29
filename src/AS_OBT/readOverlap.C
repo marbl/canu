@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: readOverlap.C,v 1.3 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: readOverlap.C,v 1.4 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "readOverlap.H"
 
@@ -38,11 +38,6 @@ readOverlap(OverlapStore *ovsprimary,
   if (ovssecondary && !oks)
     oks = AS_OVS_readOverlapFromStore(ovssecondary, &ovls, AS_OVS_TYPE_OBT);
 
-  //  Read neither, return null
-  if (!okp && !oks)
-    return(NULL);
-
-  //  Have both, pick one.
   if (okp && oks) {
     if (ovlp.a_iid <= ovls.a_iid) {
       okp = 0;
@@ -51,17 +46,16 @@ readOverlap(OverlapStore *ovsprimary,
       oks = 0;
       return(&ovls);
     }
-  }
 
-  //  Only one.
-
-  if (okp) {
+  } else if (okp) {
     okp = 0;
     return(&ovlp);
-  }
 
-  if (oks) {
+  } else if (oks) {
     oks = 0;
     return(&ovls);
   }
+
+  //  Read neither, return null
+  return(NULL);
 }

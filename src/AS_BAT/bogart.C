@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.12 2011-12-18 08:14:34 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.13 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -484,7 +484,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "output");
 
-  float globalARate = getGlobalArrivalRate(unitigs, gkpStore->gkStore_getNumRandomFragments(), genomeSize);
+  double globalARate = getGlobalArrivalRate(unitigs, gkpStore->gkStore_getNumRandomFragments(), genomeSize);
   Unitig::setGlobalArrivalRate(globalARate);
 
   writeIUMtoFile(unitigs, output_prefix, tigStorePath, fragment_count_target);

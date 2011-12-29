@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.42 2011-07-26 20:16:26 mkotelbajcvi Exp $
- * $Revision: 1.42 $
+ * $Id: OlapFromSeedsOVL.c,v 1.43 2011-12-29 09:26:03 brianwalenz Exp $
+ * $Revision: 1.43 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.42 2011-07-26 20:16:26 mkotelbajcvi Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.43 2011-12-29 09:26:03 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -73,9 +73,7 @@ int  main
 
    if  (Verbose_Level > 2)
        {
-        int  i;
-
-        for  (i = 0;  i < Num_Olaps;  i ++)
+        for  (uint64 i = 0;  i < Num_Olaps;  i ++)
           printf ("%8d %8d %5d %5d  %c\n",
                   Olap [i] . a_iid, Olap [i] . b_iid,
                   Olap [i] . a_hang, Olap [i] . b_hang,
@@ -84,7 +82,7 @@ int  main
 
    if  (Num_Olaps > 0)
        {
-        fprintf (stderr, "Before Stream_Old_Frags  Num_Olaps = %d\n", Num_Olaps);
+        fprintf (stderr, "Before Stream_Old_Frags  Num_Olaps = "F_U64"\n", Num_Olaps);
         if  (Num_PThreads > 0)
             Threaded_Stream_Old_Frags ();
           else
@@ -633,8 +631,7 @@ static void  Analyze_Diffs
 //  each one.
 
   {
-   FILE  * fp;
-   int  i;
+   FILE  * fp = NULL;
 
 //**ALD
 // Eventually needs to be multi-threaded, probably in the same way that
@@ -644,7 +641,7 @@ static void  Analyze_Diffs
      fp = File_Open (Correction_Filename, "wb");
 
    fprintf (stderr, "Start analyzing multi-alignments  Num_Frags = %d\n", Num_Frags);
-   for (i = 0; i < Num_Frags; i ++)
+   for (int32 i = 0; i < Num_Frags; i ++)
      Analyze_Frag (fp, i);
 
    if (Doing_Corrections)
@@ -1327,7 +1324,7 @@ static int  Code_To_Char
   {
    char  * s = "acgt-";
 
-   if (code < 0 || 4 < code)
+   if (4 < code)
      {
       fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
       fprintf (stderr, "Bad code %u\n", code);
@@ -1644,11 +1641,10 @@ static void  Determine_Homopoly_Corrections
    char  ch, hp_ch = 'x';
    int  hp_width = 0;   // number of consecutive positions in seq for
                         // the current homopolymer
-   int  hp_len, new_hp_len, ch_ct, diff, tot;
+   int  hp_len=0, new_hp_len=0, ch_ct=0, diff=0, tot=0;
    int  hp_ct = 0, hp_sum = 0;
-   int  i, j, k;
 
-   for (i = 0; i < len; i ++)
+   for (int32 i = 0, j = 0; i < len; i ++)
      {
       correct [i] = ' ';
       ch = Homopoly_Should_Be (seq [i], vote + i, & ch_ct, & tot);
@@ -1661,17 +1657,16 @@ static void  Determine_Homopoly_Corrections
               // not included in the votes
             diff = new_hp_len - hp_len;
 //**ALD
-if (0)
-{
+#if 0
  double  x = (1.0 * hp_sum) / hp_ct;
  printf ("%3d:  %c  hp_ct=%d  hp_sum=%d  hp_len=%d  diff=%d  hp_width=%d  x=%.3f\n",
       j, seq [j], hp_ct, hp_sum, hp_len, diff, hp_width, x);
-}
+#endif
             if ((diff < 0) && (hp_width > 1) && ((new_hp_len > 0) || (vote [j] . mutab)))
               {  // delete (- diff) copies of hp_ch preceding here
 //**ALD
 //printf (" .. delete %d copies of %c in %d..%d\n", - diff, hp_ch, j, i - 1);
-               for (k = i - 1; k >= j && diff < 0; k --)
+               for (int32 k = i - 1; k >= j && diff < 0; k --)
                  if (seq [k] == hp_ch && correct [k] == ' ')
                    {
                     correct [k] = '-';
@@ -1682,7 +1677,7 @@ if (0)
               {  // insert diff copies of hp_ch after j
 //**ALD
 //printf (" .. insert %d copies of %c int %d..%d\n", diff, hp_ch, j, i - 1);
-               for (k = j; k < i && diff > 0; k ++)
+               for (int32 k = j; k < i && diff > 0; k ++)
                  if (seq [k] == '-' && correct [k] == ' ')
                    {
                     correct [k] = hp_ch;
@@ -1723,7 +1718,7 @@ if (0)
 
    // Output corrections
    Output_Correction_Header (fp, sub);
-   for (i = j = 0; i < len; i ++)
+   for (int32 i = 0, j = 0; i < len; i ++)
      {
       if (seq [i] != '-')
         j ++;
@@ -2670,7 +2665,7 @@ static void  Get_Seeds_From_Store
 
        if (Verbose_Level > 1)
          {
-          printf ("olap %7u %7u %2u %c %c %5u %5u %4u %4u %2u\n",
+           printf ("olap %7u %7u %2"F_U64P" %c %c %5"F_U64P" %5"F_U64P" %4"F_U64P" %4"F_U64P" %2"F_U64P"\n",
                ovl . a_iid, ovl . b_iid,
                ovl . dat . mer . compression_length,
                (ovl . dat . mer . fwd ? 'f' : 'r'),
@@ -2701,7 +2696,7 @@ static char  Homopoly_Should_Be
 // NOTE:  votes do NOT include character  curr  itself.
 
   {
-   char  mx_ch;
+   char  mx_ch=0;
    int  curr_ct, mx_ct, curr_score, mx_score, mx_sub;
    int  i;
 
@@ -2835,10 +2830,6 @@ static void  Initialize_Globals
       case BINARY_FILE :
         Binary_OVL_Output_fp = AS_OVS_createBinaryOverlapFile (OVL_Output_Path, FALSE);
         break;
-      case OVL_STORE :
-        fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
-        fprintf (stderr, "Directly outputting overlaps to binary store not permitted\n");
-        exit(1);
      }
 
    // only (MAX_ERRORS + 4) * MAX_ERRORS needed
@@ -3613,12 +3604,15 @@ static void  Output_Olap_From_Diff
 // Output the overlap described in  dp  which is wrt read  Frag [sub] .
 
   {
-    OVSoverlap  overlap = {0};
+    OVSoverlap  overlap;
    double  qual;
    char  dir;
    AS_IID a_iid;
    uint32 a_len;
    int  x, y, errors;
+
+  //  Make sure all the bits we never touch are zero
+  memset(&overlap, 0, sizeof(OVSoverlap));
 
    a_iid = Lo_Frag_IID + sub;
    if (Asymmetric_Olaps && dp -> b_iid <= a_iid)
@@ -4195,6 +4189,8 @@ static void  Process_Seed
    b_hi = b_lo + new_b_end;
 
 #if USE_NEW_STUFF
+   memset(&diff, 0, sizeof(Sequence_Diff_t));
+
    diff . a_lo = a_lo;
    diff . a_hi = a_hi;
    diff . b_lo = b_lo;
@@ -5448,7 +5444,7 @@ static char  Standard_Should_Be
 // NOTE:  votes do NOT include character  curr  itself.
 
   {
-   char  mx_ch;
+   char  mx_ch=0;
    int  curr_ct, mx_ct, curr_score, mx_score, mx_sub;
    int  i;
 

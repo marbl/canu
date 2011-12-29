@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.19 2011-08-30 12:29:16 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.20 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -664,8 +664,8 @@ static void combine_two_distrib(LengthT dist1, LengthT dist2, LengthT *cDist){
   // note that we take the stdDev field instead of directly the variance
   // field, as some LengthT structs have it not set.
 
-  //  float v1 = dist1.stdDev*dist1.stdDev;
-  //  float v2 = dist2.stdDev*dist2.stdDev;  // Bug was fixed by Saul
+  //  double v1 = dist1.stdDev*dist1.stdDev;
+  //  double v2 = dist2.stdDev*dist2.stdDev;  // Bug was fixed by Saul
 
   double v1 = dist1.variance;
   double v2 = dist2.variance;
@@ -727,7 +727,7 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
   SequenceOrient orientA, orientB;
   // The orientation of the two chunks
 
-  float relError=0.0;
+  double relError=0.0;
   // the relative error of the assumed overlap and the computed
 
   estimate_gap_distrib(&cidA,&cidB,&dist);
@@ -772,7 +772,7 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
 		      cidA.chunk_id, cidB.chunk_id, orientation.toLetter(),
 		      olap->spec.cidA, olap->spec.cidB, olap->spec.orientation.toLetter());
    }else if(olap->overlap > 0){
-     relError = fabs((float)(olap->overlap+dist.mean)/(float)olap->overlap);
+     relError = fabs((double)(olap->overlap+dist.mean)/(double)olap->overlap);
    }
    else
      relError = 2*AS_REZ_MAX_REL_ERROR;

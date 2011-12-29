@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: exploreGapStructure.c,v 1.21 2009-10-05 22:49:42 brianwalenz Exp $";
+const char *mainid = "$Id: exploreGapStructure.c,v 1.22 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,10 +76,10 @@ main (int argc , char * argv[] ) {
 
   for (sid = 0; sid < GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid++) {
     CIScaffoldTIterator CIs;
-    CIScaffoldT * scaff;
-    ContigT *contig;
-    float endPrev;
-    float varPrev;
+    CIScaffoldT * scaff = NULL;
+    ContigT *contig = NULL;
+    double endPrev = -1;
+    double varPrev = 0;
 
     scaff = GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid);
 
@@ -91,9 +91,9 @@ main (int argc , char * argv[] ) {
     fprintf(stdout,"Working on scaffold %d\n",sid);
 
     InitCIScaffoldTIterator( ScaffoldGraph, scaff, TRUE, FALSE, &CIs);
-    endPrev=-1;
+
     while ( (contig = NextCIScaffoldTIterator( &CIs )) != NULL) {
-      float begThis,varThis;
+      double begThis,varThis;
 
       if(contig->offsetAEnd.mean<contig->offsetBEnd.mean){
         begThis=contig->offsetAEnd.mean;
@@ -103,7 +103,7 @@ main (int argc , char * argv[] ) {
         varThis=contig->offsetBEnd.variance;
       }
 
-      if (endPrev != -1)
+      if (endPrev >= 0)
         fprintf(stdout,"  gap size %f , %f\n", begThis-endPrev, sqrt(varThis-varPrev));
 
       MultiAlignT  *newma = NULL;

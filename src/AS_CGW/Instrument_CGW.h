@@ -22,7 +22,7 @@
 #ifndef INSTRUMENT_CGW_H
 #define INSTRUMENT_CGW_H
 
-static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.15 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.16 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <math.h>
 
@@ -32,7 +32,7 @@ static const char *rcsid_INSTRUMENT_CGW_H = "$Id: Instrument_CGW.h,v 1.15 2010-0
 #include "InputDataTypes_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 
-VA_DEF(float)
+VA_DEF(double)
 VA_DEF(IntContigPairs)
 
 /*
@@ -102,12 +102,12 @@ typedef struct
   int32  numNegatives;
   int32  numPositives;
   int32  num;
-  float sumOfSquares;
-  float min;
-  float minNegative;
-  float max;
-  float mean;
-  float stddev;
+  double sumOfSquares;
+  double min;
+  double minNegative;
+  double max;
+  double mean;
+  double stddev;
 } InstrumenterStatistics;
 
 
@@ -142,16 +142,16 @@ typedef enum
 typedef struct
 {
   CDS_CID_t   fragIID;
-  float fragOffset5p;
+  double fragOffset5p;
   CDS_CID_t   fragChunkIID;
   CDS_CID_t   mateIID;
-  float mateOffset5p;
+  double mateOffset5p;
   CDS_CID_t   mateChunkIID;
   CDS_CID_t   libIID;
   FragType    type;
 #ifdef TRACK_3P
-  float fragOffset3p;
-  float mateOffset3p;
+  double fragOffset3p;
+  double mateOffset3p;
 #endif
 } MateDetail;
 VA_DEF(MateDetail)
@@ -164,7 +164,7 @@ typedef struct
 {
   CDS_CID_t  iid;
   FragType    type;
-  float offset5p;
+  double offset5p;
 } FragDetail;
 VA_DEF(FragDetail)
 
@@ -228,8 +228,8 @@ typedef MateInstrumenter * MateInstrumenterP;
 typedef struct SurrogateFragLocation
 {
   CDS_CID_t contig;
-  float offset5p;
-  float offset3p;
+  double offset5p;
+  double offset3p;
   struct SurrogateFragLocation *nextSFL;
 } SurrogateFragLocation;
 
@@ -291,7 +291,7 @@ VA_DEF(InstrumenterBreakpoint)
 typedef struct
 {
   int32        numPairs;
-  float        distPref;
+  double        distPref;
   PairOrient   orientPref;
 } InstrumenterContigPair;
 VA_DEF(InstrumenterContigPair)
@@ -299,8 +299,8 @@ VA_DEF(InstrumenterContigPair)
 typedef struct
 {
   CDS_CID_t       id;
-  float           offset;
-  float           length;
+  double           offset;
+  double           length;
   SequenceOrient  orient;
 } ContigPlacement;
 VA_DEF(ContigPlacement)
@@ -310,7 +310,7 @@ typedef struct
   CDS_CID_t    contig1;
   int32        size1;
   CDS_CID_t    contig2;
-  float        dist;
+  double        dist;
   PairOrient   orient;
 } CP_Index;
 VA_DEF(CP_Index)
@@ -402,11 +402,11 @@ typedef struct
   SequenceOrient orientation;
 
   // unitig counting/sizing
-  VA_TYPE(float) * unitigSizes;
+  VA_TYPE(double) * unitigSizes;
   InstrumenterStatistics unitigSizeStats;
 
   // surrogate counting/sizing
-  VA_TYPE(float) * surrogateSizes;
+  VA_TYPE(double) * surrogateSizes;
   InstrumenterStatistics surrogateSizeStats;
 
   // simple counts of (some) fragment types
@@ -445,18 +445,18 @@ typedef struct
   uint32 options;
 
   // scaffold & above level of aggregation
-  float size;
+  double size;
 
   // gap counting & sizes
-  VA_TYPE(float) * scaffoldGapSizes;
+  VA_TYPE(double) * scaffoldGapSizes;
   InstrumenterStatistics scaffoldGapSizeStats;
 
   // inferred edge stddevs to detect scaffold zippering problem
   // these will tend to increase/decrease
-  VA_TYPE(float) * inferredEdgeStddevs;
+  VA_TYPE(double) * inferredEdgeStddevs;
 
   // contig counting & sizes
-  VA_TYPE(float) * contigSizes;
+  VA_TYPE(double) * contigSizes;
   InstrumenterStatistics contigSizeStats;
 
   // for instrumenting each contig
@@ -508,18 +508,18 @@ typedef struct
   int32 numInUnresolvedChunks;
 
   // singleton scaffold counting & sizes (single contig, multiple unitig)
-  VA_TYPE(float) * singletonScaffoldSizes;
+  VA_TYPE(double) * singletonScaffoldSizes;
   InstrumenterStatistics singletonScaffoldSizeStats;
   VA_TYPE(int32) * unitigsPerSingletonScaffold;
   InstrumenterStatistics unitigsPerSingletonStats;
 
   // degenerate scaffold counting & sizes (single contig, single unitig)
-  VA_TYPE(float) * degenerateScaffoldSizes;
+  VA_TYPE(double) * degenerateScaffoldSizes;
   InstrumenterStatistics degenerateScaffoldSizeStats;
   int32 numDegenerateScaffoldsWithoutReads;
 
   // scaffold counting & sizes
-  VA_TYPE(float) * scaffoldSizes;
+  VA_TYPE(double) * scaffoldSizes;
   InstrumenterStatistics scaffoldSizeStats;
 
   // for aggregating scaffold-level data
@@ -561,8 +561,8 @@ int InstrumentContig(ScaffoldGraphT * graph,
                      SurrogateTracker * st,
                      ChunkInstanceT * contig,
                      ContigInstrumenter * ci,
-                     float aEnd,
-                     float bEnd);
+                     double aEnd,
+                     double bEnd);
 void ComputeContigInstrumenterStats(ScaffoldGraphT * graph,
                                     ContigInstrumenter * ci);
 void PrintContigInstrumenter(ScaffoldGraphT * graph,

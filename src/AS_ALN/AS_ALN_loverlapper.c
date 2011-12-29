@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.27 2011-09-06 14:15:58 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: AS_ALN_loverlapper.c,v 1.28 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -222,7 +222,7 @@ static void print_piece(Local_Overlap *O,int piece,char *aseq,char *bseq){
 static
 int
 compressChain(Local_Overlap *O, int i) {
-  int I, j, k;
+  int I=0, j=0, k=0;
 
   //  Compress out any deleted segments.  Assumes the last piece is
   //  never deleted.

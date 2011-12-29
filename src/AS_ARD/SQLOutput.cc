@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SQLOutput.cc,v 1.14 2010-02-12 20:33:02 brianwalenz Exp $";
+static const char *rcsid = "$Id: SQLOutput.cc,v 1.15 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #ifdef SYBASE
 
@@ -109,8 +109,8 @@ uint64 SQLOutput::storeAssembly(
 bool SQLOutput::storeMDI2DB (
          AS_UID erefines,
          IntDist_ID irefines,
-         float mean,
-         float stddev,
+         double mean,
+         double stddev,
          int32 min,
          int32 max) {
 
@@ -175,8 +175,8 @@ bool SQLOutput::storeUTG2DB (
          AS_UID eaccession,
          IntFragment_ID iaccession,
          const char * source,
-         float microhet_prob,
-         float coverage_stat,
+         double microhet_prob,
+         double coverage_stat,
          UnitigStatus status,
          int32 length,
          const char * consensus,
@@ -256,8 +256,8 @@ bool SQLOutput::storeULK2DB (
          ChunkOrientationType orientation,
          UnitigOverlapType overlap_type,
          int32 is_possible_chimera,
-         float mean_distance,
-         float std_deviation,
+         double mean_distance,
+         double std_deviation,
          int32 num_contributing,
          PlacementStatusType status) {
    char cmd[IDBConnection::MAX_STR_LEN];
@@ -632,8 +632,8 @@ bool SQLOutput::storeCLK2DB(
                   ChunkOrientationType orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  float mean_distance,
-                  float std_deviation,
+                  double mean_distance,
+                  double std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status) {
    char cmd[IDBConnection::MAX_STR_LEN];   
@@ -688,7 +688,7 @@ bool SQLOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_
    return true;
 }
 
-bool SQLOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient) {
+bool SQLOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, double mean, double stddev, ChunkOrientationType orient) {
    char cmd[IDBConnection::MAX_STR_LEN];
 
    uint64 scf = static_cast<uint64>(LookupValueInHashTable_AS(SCF_UID_to_MSGID, AS_UID_toInteger(scfID), 0));

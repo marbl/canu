@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.29 2010-08-24 15:02:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.30 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -474,17 +474,17 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
   ChunkInstanceT * contig;
   LengthT thisLeft;
   LengthT thisRight;
-  LengthT lastRight;
+  LengthT lastRight={0,0};
   int contigCount = 0;
   int isA = (sEdge->idA == scaffold->id) ? TRUE : FALSE;
-  float thinEdge = -(sEdge->distance.mean +
+  double thinEdge = -(sEdge->distance.mean +
                      INTERLEAVE_CUTOFF *
                      sqrt((double) sEdge->distance.variance));
-  float thickEdge = -(sEdge->distance.mean -
+  double thickEdge = -(sEdge->distance.mean -
                       INTERLEAVE_CUTOFF *
                       sqrt((double) sEdge->distance.variance));
-  float osMin;
-  float osMax;
+  double osMin;
+  double osMax;
   double varDelta;
 
   /*
@@ -645,10 +645,10 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
       if(contigCount > 0) {
         Scaffold_Gap * gap =
           GetVA_Scaffold_Gap(ss->pools->gapPool, contigCount - 1);
-        float minGapCoord = thinEdge + lastRight.mean -
+        double minGapCoord = thinEdge + lastRight.mean -
           INTERLEAVE_CUTOFF * sqrt((double) lastRight.variance) -
           scaffold->bpLength.mean + 0.5;
-        float maxGapCoord = thickEdge + thisLeft.mean +
+        double maxGapCoord = thickEdge + thisLeft.mean +
           INTERLEAVE_CUTOFF * sqrt((double) thisLeft.variance) -
           scaffold->bpLength.mean + 0.5;
         if(minGapCoord < 0 && maxGapCoord > 0) {
@@ -1243,17 +1243,17 @@ AdjustNonOverlappingContigsLeftToRight(Scaffold_Tig * contigsA,
       ia++;
     else
       {
-        float preExpansionA;  // expansion of gap A already
-        float addExpansionA;  // additional expansion of gap A to fit contig B
-        float compressionA;   // compression of gap A to fit contig A in gap B
-        float preExpansionB;
-        float addExpansionB;
-        float compressionB;
+        double preExpansionA;  // expansion of gap A already
+        double addExpansionA;  // additional expansion of gap A to fit contig B
+        double compressionA;   // compression of gap A to fit contig A in gap B
+        double preExpansionB;
+        double addExpansionB;
+        double compressionB;
         // yes, gap_var is actually used as stddev in Align_Scaffold()
-        float stddevGapA = gapsA[ia-1].gap_var;
-        float stddevGapB = gapsB[ib-1].gap_var;
-        float deltaAB;
-        float deltaBA;
+        double stddevGapA = gapsA[ia-1].gap_var;
+        double stddevGapB = gapsB[ib-1].gap_var;
+        double deltaAB;
+        double deltaBA;
 
         // expansion of gaps from tentative placement
         preExpansionA = ComputeCurrentGapExpansion(contigsA, gapsA, ia - 1);
@@ -1313,8 +1313,8 @@ PlaceContigsBetweenOverlapSets(COSData * cosLeft,
     Iterate over contigs between contig overlap sets & place them
   */
   int ia, ib;
-  float sumStddevsA = 0;
-  float sumStddevsB = 0;
+  double sumStddevsA = 0;
+  double sumStddevsB = 0;
 
   /*
     Make initial placement of contigs to determine difference between
@@ -1741,17 +1741,17 @@ PlaceContigsLeftOfFirstOverlapSet(COSData * cos,
       ib--;
     else
       {
-        float preExpansionA;  // expansion of gap A already
-        float addExpansionA;  // additional expansion of gap A to fit contig B
-        float compressionA;   // compression of gap A to fit contig A in gap B
-        float preExpansionB;
-        float addExpansionB;
-        float compressionB;
+        double preExpansionA;  // expansion of gap A already
+        double addExpansionA;  // additional expansion of gap A to fit contig B
+        double compressionA;   // compression of gap A to fit contig A in gap B
+        double preExpansionB;
+        double addExpansionB;
+        double compressionB;
         // yes, gap_var is actually used as stddev in Align_Scaffold()
-        float stddevGapA = gapsA[ia].gap_var;
-        float stddevGapB = gapsB[ib].gap_var;
-        float deltaAB;
-        float deltaBA;
+        double stddevGapA = gapsA[ia].gap_var;
+        double stddevGapB = gapsB[ib].gap_var;
+        double deltaAB;
+        double deltaBA;
 
         /*
           the two contigs  overlap each other.
@@ -1807,8 +1807,8 @@ AdjustScaffoldContigPositions(CIScaffoldT * scaffold,
                               Scaffold_Tig * contigs,
                               int numContigs,
                               int isAB) {
-  float offset;
-  float scaffoldLength;
+  double offset;
+  double scaffoldLength;
   CIScaffoldTIterator contigIterator;
 
   offset = contigs[0].lft_end;
@@ -2098,7 +2098,7 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
   CDS_CID_t idA;
   CDS_CID_t idB;
   PairOrient orient;
-  static SEdgeT mySEdge = {0};
+  static SEdgeT mySEdge;
   double newEdgeMean;
 
   idA = sEdge->idA;

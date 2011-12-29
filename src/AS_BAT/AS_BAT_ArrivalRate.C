@@ -19,23 +19,23 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_ArrivalRate.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_ArrivalRate.C,v 1.3 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
 
-float getGlobalArrivalRate(UnitigVector &unitigs,
+double getGlobalArrivalRate(UnitigVector &unitigs,
                            long total_random_frags_in_genome,
                            long genome_size){
 
   if (genome_size != 0)
-    return((float)total_random_frags_in_genome / (float)genome_size);
+    return((double)total_random_frags_in_genome / (double)genome_size);
 
-  float globalArrivalRate;
-  float total_rho=0, avg_rho;
-  float total_arrival_frags=0;
+  double globalArrivalRate;
+  double total_rho=0, avg_rho;
+  double total_arrival_frags=0;
   size_t rho_gt_10000 = 0;
 
   // Go through all the unitigs to sum rho and unitig arrival frags
@@ -50,7 +50,7 @@ float getGlobalArrivalRate(UnitigVector &unitigs,
     if (avg_rho > 10000.0)
       rho_gt_10000 += (size_t)avg_rho / 10000;
 
-    float unitig_random_frags = tig->getNumRandomFrags();
+    double unitig_random_frags = tig->getNumRandomFrags();
     if (--unitig_random_frags < 0)
       unitig_random_frags = 0;
 
@@ -64,14 +64,14 @@ float getGlobalArrivalRate(UnitigVector &unitigs,
 
   // Now recalculate based on big unitigs, copied from AS_CGB/AS_CGB_cgb.c
   if (rho_gt_10000 * 20000 > total_rho) {
-    float  min_10_local_arrival_rate          = globalArrivalRate;
-    float  median_local_arrival_rate          = globalArrivalRate;
-    float  max_local_arrival_rate             = globalArrivalRate;
-    float  recalibrated_fragment_arrival_rate = globalArrivalRate;
+    double  min_10_local_arrival_rate          = globalArrivalRate;
+    double  median_local_arrival_rate          = globalArrivalRate;
+    double  max_local_arrival_rate             = globalArrivalRate;
+    double  recalibrated_fragment_arrival_rate = globalArrivalRate;
     uint32 num_arrival_rates=0;
     uint32 median_index;
 
-    std::vector<float> arrival_rate_array(rho_gt_10000);
+    std::vector<double> arrival_rate_array(rho_gt_10000);
 
     for (uint32 ti=0; ti<unitigs.size(); ti++) {
       Unitig  *tig = unitigs[ti];
@@ -82,7 +82,7 @@ float getGlobalArrivalRate(UnitigVector &unitigs,
       avg_rho = tig->getAvgRho();
       if (avg_rho > 10000.0) {
         uint32 num_10000 = (size_t)avg_rho / 10000;
-        float  local_arrival_rate = tig->getNumRandomFrags() / avg_rho;
+        double  local_arrival_rate = tig->getNumRandomFrags() / avg_rho;
 
         for(uint32 i=0;i<num_10000;i++){
           assert(i < rho_gt_10000);
@@ -90,8 +90,8 @@ float getGlobalArrivalRate(UnitigVector &unitigs,
           num_arrival_rates++;
         }
         if(num_arrival_rates > 0){
-          float tmp_fragment_arrival_rate, max_diff_arrival_rate;
-          float prev_arrival_rate, cur_arrival_rate, diff_arrival_rate;
+          double tmp_fragment_arrival_rate, max_diff_arrival_rate;
+          double prev_arrival_rate, cur_arrival_rate, diff_arrival_rate;
           int max_diff_index;
           std::sort(arrival_rate_array.begin(),arrival_rate_array.end());
           min_10_local_arrival_rate = arrival_rate_array[num_arrival_rates / 10];

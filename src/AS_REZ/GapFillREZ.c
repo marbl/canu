@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.69 2011-08-30 12:29:16 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.70 2011-12-29 09:26:03 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -36,13 +36,6 @@ static const char *rcsid = "$Id: GapFillREZ.c,v 1.69 2011-08-30 12:29:16 mkotelb
  * Notes:
  *
  *************************************************/
-
-#include <stdio.h>
-#include <assert.h>
-#include <ctype.h>
-#include <float.h>
-#include <cmath>
-#include <ctime>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -320,7 +313,7 @@ typedef  struct
   int  num_tlaps;
   int  num_ulaps;
   int  num_rlaps;
-  float  source_variance;
+  double  source_variance;
   // Variance of the end of the unique chunk that this edge
   // passes over, and hence the variance that induces the variance
   // on  left_end  and  right_end  below.
@@ -356,7 +349,7 @@ typedef  struct
   int  insert_scaff;
   LengthT  left_end, right_end;
   int  gap;
-  float  edge_quality;
+  double  edge_quality;
   int  cover_stat;
   int  link_ct;
   Stack_Entry_t  stack_val;
@@ -429,7 +422,7 @@ static void  Add_Gap_Ends(Scaffold_Fill_t * fill_chunks);
 static void  Add_Join_Entry(int cid, int scaff1, int scaff2,
                             LengthT a_end1, LengthT b_end1, LengthT a_end2, LengthT b_end2,
                             LengthT left_end, LengthT right_end, int flipped,
-                            int gap, float edge_quality, int cover_stat, int link_ct,
+                            int gap, double edge_quality, int cover_stat, int link_ct,
                             Stack_Entry_t stack_val);
 static void  Adjust_By_Ref_Variance(Scaffold_Fill_t * fill_chunks);
 static void  Adjust_By_Ref_Variance_One_Scaffold(Scaffold_Fill_t * fill_chunks, int scaff_id);
@@ -444,7 +437,7 @@ static void  Analyze_Rock_Fill(FILE * fp, Scaffold_Fill_t * fill_chunks);
 static void  Analyze_Stone_Fill(FILE * fp, Scaffold_Fill_t * fill_chunks);
 #endif
 static int  Assign_To_Gap(int cid, LengthT left_end, LengthT right_end, int gap, int scaff_id,
-                          int flipped, Scaffold_Fill_t * fill_chunks, float edge_quality,
+                          int flipped, Scaffold_Fill_t * fill_chunks, double edge_quality,
                           int cover_stat, int link_ct, char id, int isClosure);
 static int  Between(double a, double b, double lo, double hi);
 static void  Build_Path_Subgraph(int start_sub, int target_sub, Gap_Chunk_t * node [], int num_nodes,
@@ -496,7 +489,7 @@ static void  Eliminate_Encumbered_Uniques(Scaffold_Fill_t * fill);
 static void  Eliminate_Encumbered_Uniques_One_Scaffold(Scaffold_Fill_t * fill, int scaff_id);
 static int  Estimate_Chunk_Ends(VA_TYPE(Stack_Entry_t) * stackva, int stack_beg, int stack_end,
                                 LengthT * left_end, LengthT * right_end, ChunkInstanceT * chunk,
-                                float * edge_quality, Scaffold_Fill_t * fill_chunks,
+                                double * edge_quality, Scaffold_Fill_t * fill_chunks,
                                 int * gap, int * scaff_id, int * allowed_bad_links);
 static void  Fixup_Chunk_End_Variances(LengthT * left_end, LengthT * right_end, double diff);
 void  Force_Increasing_Variances(void);
@@ -762,8 +755,8 @@ fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in 
    
    // inefficient, can we not look through all scaffolds/gaps   
    uint32 j = 0;      
-   LengthT start,end;
-   uint32 bestScfID, bestGap;
+   LengthT start={0,0},end={0,0};
+   uint32 bestScfID=0, bestGap=0;
    uint32 bestLinks = 0;
 
    if (!place_repeats && badLinks != 0) {
@@ -801,7 +794,7 @@ fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in 
                }   
                // placing uniques more than once is bad
                if (cover_stat >= GlobalData->cgbDefinitelyUniqueCutoff && numActuallyPlaced > 1) {
-                  fprintf(stderr, "Place_Closure_Chunk(): Multiply placing unique contig %d with cover_stat %f\n", cid, cover_stat);
+                  fprintf(stderr, "Place_Closure_Chunk(): Multiply placing unique contig %d with cover_stat %d\n", cid, cover_stat);
                }
                copy_letter++;
             } else {
@@ -976,7 +969,7 @@ static void  Add_Join_Entry
 (int cid, int scaff1, int scaff2,
  LengthT a_end1, LengthT b_end1, LengthT a_end2, LengthT b_end2,
  LengthT left_end, LengthT right_end, int flipped, int gap,
- float edge_quality, int cover_stat, int link_ct,
+ double edge_quality, int cover_stat, int link_ct,
  Stack_Entry_t stack_val)
 
 //  Append to global  Scaff_Join  an entry that chunk  cid  had evidence
@@ -1674,7 +1667,7 @@ static void  Analyze_Stone_Fill
 
 static int  Assign_To_Gap
 (int cid, LengthT left_end, LengthT right_end, int gap, int scaff_id,
- int flipped, Scaffold_Fill_t * fill_chunks, float edge_quality,
+ int flipped, Scaffold_Fill_t * fill_chunks, double edge_quality,
  int cover_stat, int link_ct, char id, int isClosure)
 
 //  Assign this chunk with id =  cid  to gap number  gap
@@ -2954,7 +2947,7 @@ static void  Check_Scaffold_Join
 {
   Stack_Entry_t  save;
   ContigT  * contig;
-  float  edge_quality1, edge_quality2;
+  double  edge_quality1, edge_quality2;
   int  bad_allowed, consistent;
   LengthT  left_end1, right_end1, left_end2, right_end2;
   LengthT  a_end1, b_end1, a_end2, b_end2;
@@ -3348,7 +3341,8 @@ static void  Choose_Safe_Chunks
               if  (IsUnique (other_chunk) && !IsSurrogate(other_chunk))
                 {
                   assert (other_chunk -> scaffoldID > NULLINDEX);
-                  Stack_Entry_t  nobj  = {0};
+                  Stack_Entry_t  nobj;
+                  memset(&nobj, 0, sizeof(Stack_Entry_t));
                   nobj . chunk_id = other_chunk -> id;
                   nobj . edge     = edge;
                   //ADDTOVA
@@ -3384,7 +3378,7 @@ static void  Choose_Safe_Chunks
             {
               int  bad_allowed, bad_links, consistent, good_total;
               LengthT  left_end, right_end;
-              float  edge_quality;
+              double  edge_quality;
 
               consistent = Check_Scaffold_and_Orientation
                 (cid, stackva, & good_total,
@@ -3743,7 +3737,8 @@ static void  Choose_Stones
               if  (IsUnique (other_chunk))
                 {
                   assert(other_chunk->scaffoldID > NULLINDEX);
-                  Stack_Entry_t  nobj  = {0};
+                  Stack_Entry_t  nobj;
+                  memset(&nobj, 0, sizeof(Stack_Entry_t));
                   nobj . chunk_id = other_chunk -> id;
                   nobj . edge     = edge;
                   //ADDTOVA
@@ -3780,7 +3775,7 @@ static void  Choose_Stones
           else if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
               LengthT  left_end, right_end;
-              float  edge_quality;              
+              double  edge_quality;              
               int  bad_allowed, consistent;
               int  i, j;
 
@@ -3888,13 +3883,13 @@ static void  Choose_Stones
 
 
 
-float  CIEdge_Quality
+double  CIEdge_Quality
 (CIEdgeT  * edge)
 
 //  Return a value that indicates the reliability of the edge mate
 //  (* edge) .
 {
-  float  val;
+  double  val;
 
   if  (isProbablyBogusEdge (edge))
     return  0.001;
@@ -5595,7 +5590,7 @@ static void  Eliminate_Encumbered_Uniques_One_Scaffold
 static int  Estimate_Chunk_Ends
 (VA_TYPE(Stack_Entry_t) * stackva, int stack_beg, int stack_end,
  LengthT * left_end, LengthT * right_end, ChunkInstanceT * chunk,
- float * edge_quality, Scaffold_Fill_t * fill_chunks,
+ double * edge_quality, Scaffold_Fill_t * fill_chunks,
  int * gap, int * scaff_id, int * allowed_bad_links)
 
 //  Set  (* left_end)  and  (* right_end)  to best estimates of
@@ -7681,8 +7676,8 @@ static int  Might_Overlap
   if  (Interval_Intersection (a_lo - slop, a_hi + slop,
                               b_lo, b_hi))
     {
-      (* max_ahang) = (int) rint (MIN (a_len, b_lo - a_lo + abs (slop)));
-      (* min_ahang) = (int) rint (MAX (- b_len, b_lo - a_lo - abs (slop)));
+      (* max_ahang) = (int) rint (MIN (a_len, b_lo - a_lo + fabs (slop)));
+      (* min_ahang) = (int) rint (MAX (- b_len, b_lo - a_lo - fabs (slop)));
       return  TRUE;
     }
 
@@ -8825,7 +8820,7 @@ static void  Print_Frag_Info
       assert (ident == frag -> read_iid);
       fprintf (fp,
                "    %7" F_CIDP " [%5.0f,%5.0f]",
-               ident, ident,
+               ident,
                frag -> offset5p . mean, frag -> offset3p . mean);
 
       if  (frag -> flags . bits . hasMate == 1 && frag -> mate_iid != 0)
@@ -8925,7 +8920,8 @@ static void  Print_Potential_Fill_Chunks
               if  (IsUnique (other_chunk))
                 {
                   assert(other_chunk->scaffoldID > NULLINDEX);
-                  Stack_Entry_t  nobj  = {0};
+                  Stack_Entry_t  nobj;
+                  memset(&nobj, 0, sizeof(Stack_Entry_t));
                   nobj . chunk_id = other_chunk -> id;
                   nobj . edge     = edge;
                   //ADDTOVA
@@ -11527,7 +11523,7 @@ static int  Violates_Scaff_Edges
   CIScaffoldT  * scaffold1, * scaffold2;
   GraphEdgeIterator  SEdges;
   SEdgeT  * edge;
-  LengthT  gap;
+  LengthT  gap = {0, 0};
   int  found_supporting_edge, trust_edge;
 
   // Check if there is an edge consistent with p's info

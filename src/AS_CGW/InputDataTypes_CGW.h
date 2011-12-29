@@ -22,7 +22,7 @@
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
 
-static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.25 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.26 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -116,7 +116,7 @@ typedef struct {
   int32         min;             // Calculated, from contigs
   int32         max;             // Calculated, from contigs
   int32         bnum;            // number of buckets
-  float         bsize;           // size of buckets
+  double        bsize;           // size of buckets
   int32        *histogram;
   int32         lower;
   int32         upper;

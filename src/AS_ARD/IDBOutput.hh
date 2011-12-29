@@ -21,10 +21,12 @@
 #ifndef IDBOutput_HH
 #define IDBOutput_HH
 
-static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.14 2010-08-19 05:28:06 brianwalenz Exp $";
+static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.15 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
+
+#include <string>
 
 namespace AS_ARD {
    //#define ULK_TYPE 0
@@ -46,8 +48,8 @@ namespace AS_ARD {
          virtual bool storeMDI2DB (
                   AS_UID erefines,
                   IntDist_ID irefines,
-                  float mean,
-                  float stddev,
+                  double mean,
+                  double stddev,
                   int32 min,
                   int32 max) = 0;
 
@@ -63,8 +65,8 @@ namespace AS_ARD {
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   const char * source,
-                  float microhet_prob,
-                  float coverage_stat,
+                  double microhet_prob,
+                  double coverage_stat,
                   UnitigStatus status,
                   int32 length,
                   const char * consensus,
@@ -88,8 +90,8 @@ namespace AS_ARD {
                   PairOrient orientation,
                   UnitigOverlapType overlap_type,
                   int32 is_possible_chimera,
-                  float mean_distance,
-                  float std_deviation,
+                  double mean_distance,
+                  double std_deviation,
                   int32 num_contributing,
                   PlacementStatusType status) = 0;
 
@@ -155,14 +157,14 @@ namespace AS_ARD {
                   PairOrient orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  float mean_distance,
-                  float std_deviation,
+                  double mean_distance,
+                  double std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status) = 0;
 
          virtual bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs) = 0;
 
-         virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, PairOrient orient) = 0;
+         virtual bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, double mean, double stddev, PairOrient orient) = 0;
          virtual bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) = 0;
          virtual bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd) = 0;
 

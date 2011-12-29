@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: computeCoverageStat.C,v 1.1 2011-12-20 10:16:02 brianwalenz Exp $";
+const char *mainid = "$Id: computeCoverageStat.C,v 1.2 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -394,9 +394,9 @@ main(int argc, char **argv) {
 #ifdef ADJUST_FOR_PARTIAL_EXCESS
     //  Straight from AS_CGB_all.h, not refactored
     if(rho>0&&global_fragment_arrival_rate>0.f){
-      float lambda = global_fragment_arrival_rate * rho;
-      float zscore = ((number_of_randomly_sampled_fragments_in_chunk -1)-lambda) / sqrt(lambda);
-      float p = .5 - erf(zscore/sqrt2)*.5;
+      double lambda = global_fragment_arrival_rate * rho;
+      double zscore = ((number_of_randomly_sampled_fragments_in_chunk -1)-lambda) / sqrt(lambda);
+      double p = .5 - erf(zscore/sqrt2)*.5;
       if(coverage_statistic>5 && p < .001){
         fprintf(stderr,"Standard unitigger a-stat is %f, but only %e chance of this great an excess of fragments: obs = %d, expect = %g rho = " F_S64 " Will reset a-stat to 1.5\n",
                 coverage_statistic,p,

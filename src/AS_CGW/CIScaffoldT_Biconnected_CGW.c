@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.17 2010-08-19 05:28:06 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.18 2011-12-29 09:26:03 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -44,6 +44,10 @@ static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.17 2010-08-19 05:28
 #include "CommonREZ.h"
 #include "Stats_CGW.h"   // for collecting scaffold merging stats
 
+#include <stack>
+
+using namespace std;
+
 /****************************************************************************/
 /* IsScaffold2EdgeConnected is intended to identify the case where a single mate link
    is all that holds a scaffold together.  Basically we are looking for a 'bridge' edge,
@@ -56,22 +60,16 @@ static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.17 2010-08-19 05:28
 */
 
 
-/* Create a parametrized stack of PtrT variables */
-
-VA_DEF(PtrT)
-STACK_DEF(PtrT)
-
 /****** Stolen from LEDA _bicomponents.c
         For a detailed reference, see "Computer Algorithms" , Horowitz,Sahni, Rajesekaran pg 335.
 ********/
 static void bcc_dfs(ScaffoldGraphT *sgraph,
                     ContigT **contigs, ContigT *contig,
                     int32 *dfsnum, int32 *lowpt, int32 *father,
-                    Stack_PtrT *stack, int32 *count1, int32 *count2,
+                    stack<NodeCGW_T *> &ptrts, int32 *count1, int32 *count2,
                     int32 *numBridges);
 
 
-static Stack_PtrT *Stack = NULL;
 
 int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
   int         numElements = scaffold->info.Scaffold.numElements;
@@ -87,14 +85,7 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
   int num_isolated = 0;
   int32 numBridges = 0;
 
-
-  if(Stack == NULL){
-    Stack = CreateStack_PtrT(numElements);
-  }else{
-    ResetStack_PtrT(Stack);
-  }
-
-
+  stack<NodeCGW_T *>  ptrts;
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &Nodes);
 
@@ -160,12 +151,12 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
                 "* Pushing on stack and calling dfs for node " F_CID "\n",
                 contig->id);
 #endif
-        PushStack_PtrT(Stack, contig);
-        bcc_dfs(ScaffoldGraph, contigs, contig,  dfsnum, lowpt, father, Stack, &count1, &count2, &numBridges);
+        ptrts.push(contig);
+        bcc_dfs(ScaffoldGraph, contigs, contig,  dfsnum, lowpt, father, ptrts, &count1, &count2, &numBridges);
 #ifdef DEBUG
         fprintf(stderr,"* Popping stack for contig " F_CID "\n", contig->id);
 #endif
-        PopStack_PtrT(Stack);
+        ptrts.pop();
       }
     }
   }
@@ -185,7 +176,7 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
 static void bcc_dfs(ScaffoldGraphT *sgraph,
                     ContigT **contigs, ContigT *contig,
                     int32 *dfsnum, int32 *lowpt, int32 *father,
-                    Stack_PtrT *stack,
+                    stack<NodeCGW_T *> &ptrts,
 		    int32 *count1, int32 *count2, int32 *numBridges){
   CDS_CID_t contigNum = contig->info.Contig.contigNum;
   GraphEdgeIterator Edges;
@@ -216,7 +207,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
 
     if(dfsnum[otherNum] == NULLINDEX){ // haven't seen it yet
       dfsnum[otherNum] = ++(*count1);
-      PushStack_PtrT(stack, otherContig);
+      ptrts.push(otherContig);
       father[otherNum] = contigNum;
 
 #ifdef DEBUG
@@ -224,7 +215,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
               otherContig->id,otherNum,dfsnum[otherNum],father[otherNum]);
 #endif
 
-      bcc_dfs(sgraph, contigs, otherContig,  dfsnum, lowpt, father,stack, count1, count2, numBridges);
+      bcc_dfs(sgraph, contigs, otherContig,  dfsnum, lowpt, father, ptrts, count1, count2, numBridges);
       lowpt[contigNum] = MIN(lowpt[contigNum], lowpt[otherNum]);
     }else{
       lowpt[contigNum] = MIN(lowpt[contigNum], dfsnum[otherNum]);
@@ -242,7 +233,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
 
     do{
       GraphEdgeIterator Edges2;
-      NodeCGW_T *w = (NodeCGW_T *)PopStack_PtrT(stack);
+      NodeCGW_T *w = ptrts.top();  ptrts.pop();
       EdgeCGW_T *edge2;
 
       wNum = w->info.Contig.contigNum;

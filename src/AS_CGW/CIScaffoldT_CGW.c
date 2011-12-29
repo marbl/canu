@@ -18,20 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.53 2011-11-11 19:16:22 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.54 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
 #undef DEBUG_SPLIT
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <float.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <cmath>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -498,7 +489,7 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
   int middle = TRUE;
   int aend = FALSE;
   int bend = FALSE;
-  LengthT base;
+  LengthT base = {0,0};
   LengthT maxoffset = (CI->offsetAEnd.mean < CI->offsetBEnd.mean? CI->offsetBEnd:CI->offsetAEnd);
 
 #if 0
@@ -579,7 +570,7 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
     bnext->AEndNext = CI->AEndNext;
     anext->BEndNext = CI->BEndNext;
 
-    if(abs(maxoffset.mean - ciScaffold->bpLength.mean) < 100){
+    if(fabs(maxoffset.mean - ciScaffold->bpLength.mean) < 100){
       SetCIScaffoldTLength(ScaffoldGraph, ciScaffold, TRUE);
     }
 

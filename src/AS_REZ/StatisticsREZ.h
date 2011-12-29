@@ -22,7 +22,7 @@
 #ifndef STATISTICS_REZ_H
 #define STATISTICS_REZ_H
 
-static const char *rcsid_STATISTICS_REZ_H = "$Id: StatisticsREZ.h,v 1.8 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_STATISTICS_REZ_H = "$Id: StatisticsREZ.h,v 1.9 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <assert.h>
@@ -72,8 +72,8 @@ typedef struct
   // the second the actual length of a walked gap. For unwalked gaps
   // this is set to {0.0,0.0}
 
-  float bestTooShort;
-  float bestTooLong;
+  double bestTooShort;
+  double bestTooLong;
 
   int exploredEdges;
   // the number of explored edges in a gap

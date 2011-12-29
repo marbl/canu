@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.54 2011-08-30 12:29:16 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.55 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -180,7 +180,7 @@ void DestroyChunkOverlapper(ChunkOverlapperT *chunkOverlapper){
 static
 void
 printChunkOverlapCheckT(char *label, ChunkOverlapCheckT *olap) {
-  fprintf(stderr, "%s %d,%d,%c - min/max %d/%d %d/%d erate %f flags %d%d%d%d%d overlap %d hang %d,%d qual %d offset %d,%d\n",
+  fprintf(stderr, "%s %d,%d,%c - min/max %d/%d %d/%d erate %f flags %d%d%d%d%d overlap %d hang %d,%d qual %f offset %d,%d\n",
           label,
           olap->spec.cidA, olap->spec.cidB, olap->spec.orientation.toLetter(),
           olap->minOverlap, olap->maxOverlap,
@@ -379,12 +379,14 @@ InitCanonicalOverlapSpec(CDS_CID_t           cidA,
 //external
 void
 CreateChunkOverlapFromEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
-  ChunkOverlapCheckT olap  = {0};
+  ChunkOverlapCheckT olap;
   double             delta = sqrt(edge->distance.variance) * 3.0;
 
   assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
   InitCanonicalOverlapSpec(edge->idA, edge->idB, edge->orient, &olap.spec);
+
+  memset(&olap, 0, sizeof(ChunkOverlapCheckT));
 
   olap.computed      = TRUE;
   olap.overlap       = -edge->distance.mean;
@@ -452,7 +454,7 @@ static
 void FillChunkOverlapWithOVL(GraphCGW_T   *graph,
                              OverlapMesg  *ovl) {
 
-  ChunkOverlapCheckT  olap = {0};
+  ChunkOverlapCheckT  olap;
 
   CIFragT            *cifraga, *cifragb;
 
@@ -705,11 +707,11 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
 void CollectChunkOverlap(GraphCGW_T *graph,
                          CDS_CID_t cidA, CDS_CID_t cidB,
                          PairOrient orientation,
-                         float   meanOverlap, float   deltaOverlap,
-                         float   quality, int bayesian,
+                         double   meanOverlap, double   deltaOverlap,
+                         double   quality, int bayesian,
                          int fromCGB,
 			 int verbose){
-  ChunkOverlapCheckT canOlap={0}, *olap;
+  ChunkOverlapCheckT canOlap, *olap;
   int32 delta;
   int32 minOverlap,maxOverlap;
 
@@ -722,6 +724,8 @@ void CollectChunkOverlap(GraphCGW_T *graph,
     // There is no chance that these overlap!
     return;
   }
+
+  memset(&canOlap, 0, sizeof(ChunkOverlapCheckT));
 
   // Create a canonical representation of the overlap
   InitCanonicalOverlapSpec(cidA, cidB, orientation, &canOlap.spec);
@@ -1034,7 +1038,7 @@ static
 int checkChunkOverlapCheckT(ChunkOverlapCheckT *co1,
                             int32 minOverlap,
                             int32 maxOverlap,
-                            float errorRate)
+                            double errorRate)
 {
   if( co1->errorRate != errorRate )
     return FALSE;
@@ -1053,7 +1057,7 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
                                   PairOrient orientation,
                                   int32 minOverlap,
                                   int32 maxOverlap,
-                                  float errorRate,
+                                  double errorRate,
                                   int insertGraphEdges)
 {
   /* this function takes two chunks cidA and cidB, their orientation
@@ -1073,10 +1077,11 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
   ChunkOverlapCheckT *lookup;
   // This pointer holds the return value of LookupCanonicalOverlap
 
-  ChunkOverlapCheckT olap = {0};
+  ChunkOverlapCheckT olap;
   // This is a temporary variable. The return value will be in lookup
   // or the pointer returned by the lookup following the insert
 
+  memset(&olap, 0, sizeof(ChunkOverlapCheckT));
 
   isCanonical = InitCanonicalOverlapSpec(cidA,cidB,orientation,&olap.spec);
   // initalize olap with the chunk IDs and their orientation and record
@@ -1336,7 +1341,6 @@ void AddUnitigOverlaps(GraphCGW_T *graph,
   }
 
   GenericMesg  *pmesg = NULL;
-  OverlapMesg   omesg = {0};
 
   while (ReadProtoMesg_AS(F, &pmesg) != EOF) {
     if (pmesg->t == MESG_OVL) {

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Outputs.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Outputs.C,v 1.3 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -297,7 +297,7 @@ writeOVLtoFile(UnitigVector &unitigs,
 void
 writeCGAtoFile(UnitigVector &unitigs,
                char         *outputprefix,
-               float         globalARate) {
+               double        globalARate) {
   char  filename[FILENAME_MAX] = {0};
   sprintf(filename, "%s.cga.0", outputprefix);
 

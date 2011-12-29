@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.49 2010-08-16 06:47:17 brianwalenz Exp $";
+static char *rcsid= "$Id: AS_MSG_pmesg1.c,v 1.50 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -287,8 +287,8 @@ Read_DST_Mesg(FILE *fin) {
   if ((dmesg.action == AS_ADD) ||
       (dmesg.action == AS_UPDATE) ||
       (dmesg.action == AS_IGNORE)) {
-    GET_FIELD(dmesg.mean,   "mea:%f", "mean field");
-    GET_FIELD(dmesg.stddev, "std:%f", "stddev field");
+    GET_FIELD(dmesg.mean,   "mea:%lf", "mean field");
+    GET_FIELD(dmesg.stddev, "std:%lf", "stddev field");
   }
 
   GetEOM(fin);
@@ -388,7 +388,7 @@ static void *Read_OVL_Mesg(FILE *fin)
 
   GET_FIELD(omesg.ahg,"ahg:"F_S32,"a-hang field");
   GET_FIELD(omesg.bhg,"bhg:"F_S32,"b-hang field");
-  GET_FIELD(omesg.quality,"qua:%f","quality field");
+  GET_FIELD(omesg.quality,"qua:%lf","quality field");
   GET_FIELD(omesg.min_offset,"mno:"F_S32,"min-offset field");
   GET_FIELD(omesg.max_offset,"mxo:"F_S32,"max-offset field");
   GET_FIELD(omesg.polymorph_ct,"pct:"F_S32,"poly-count field");
@@ -456,7 +456,7 @@ static void *Read_UOM_Mesg(FILE *fin)
   GET_FIELD(mesg.best_overlap_length,"len:"F_S32,"best overlap");
   GET_FIELD(mesg.min_overlap_length,"min:"F_S32,"min overlap");
   GET_FIELD(mesg.max_overlap_length,"max:"F_S32,"max overlap");
-  GET_FIELD(mesg.quality,"qua:%f","quality field");
+  GET_FIELD(mesg.quality,"qua:%lf","quality field");
   GetEOM(fin);
   return(&mesg);
 }
@@ -586,8 +586,8 @@ Read_IUM_Mesg(FILE *fin) {
   int				i;
 
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession field");
-  GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");
-  GET_FIELD(mesg.microhet_prob,"mhp:%f","microhet prob");
+  GET_FIELD(mesg.coverage_stat,"cov:%lf","coverage stat");
+  GET_FIELD(mesg.microhet_prob,"mhp:%lf","microhet prob");
   mesg.status = (UnitigStatus)GetType("sta:%1[UCNSX]","status", fin);
 
   // flag for handling unitig
@@ -630,8 +630,8 @@ Read_IUL_Mesg(FILE *fin) {
   mesg.orientation  = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
-  GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
-  GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
+  GET_FIELD(mesg.mean_distance,"mea:%lf","mean distance");
+  GET_FIELD(mesg.std_deviation,"std:%lf","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
@@ -664,8 +664,8 @@ Read_ICL_Mesg(FILE *fin) {
   mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
-  GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
-  GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
+  GET_FIELD(mesg.mean_distance,"mea:%lf","mean distance");
+  GET_FIELD(mesg.std_deviation,"std:%lf","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
@@ -696,8 +696,8 @@ Read_ISL_Mesg(FILE *fin) {
   GET_FIELD(mesg.iscaffold1,"sc1:"F_IID,"scaffold 1 field");
   GET_FIELD(mesg.iscaffold2,"sc2:"F_IID,"scaffold 2 field");
   mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
-  GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
-  GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
+  GET_FIELD(mesg.mean_distance,"mea:%lf","mean distance");
+  GET_FIELD(mesg.std_deviation,"std:%lf","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
     fprintf(stderr, "ERROR: ISL expecting 'jls:' at line "F_U64", got '%s' instead.\n",
@@ -743,8 +743,8 @@ static void Read_ICP_Mesg(FILE *fin, IntContigPairs *icp)
 {
   GET_FIELD(icp->contig1,"ct1:"F_IID,"contig 1 id");
   GET_FIELD(icp->contig2,"ct2:"F_IID,"contig 2 id");
-  GET_FIELD(icp->mean,"mea:%f","mean distance");
-  GET_FIELD(icp->stddev,"std:%f","standard deviation");
+  GET_FIELD(icp->mean,"mea:%lf","mean distance");
+  GET_FIELD(icp->stddev,"std:%lf","standard deviation");
   icp->orient = DecodePairOrient(GetType("ori:%1[NAIOU]","link orientation", fin));
   GetEOM(fin);
 }
@@ -782,8 +782,8 @@ Read_IMD_Mesg(FILE *fin) {
   int				i;
 
   GET_FIELD(mesg.refines,"ref:"F_IID,"distance id");
-  GET_FIELD(mesg.mean,"mea:%f","mean distance");
-  GET_FIELD(mesg.stddev,"std:%f","standard deviation");
+  GET_FIELD(mesg.mean,"mea:%lf","mean distance");
+  GET_FIELD(mesg.stddev,"std:%lf","standard deviation");
   GET_FIELD(mesg.min,"min:"F_S32,"min distance");
   GET_FIELD(mesg.max,"max:"F_S32,"max distance");
   GET_FIELD(mesg.num_buckets,"buc:"F_S32,"number of buckets");
@@ -975,8 +975,8 @@ Read_CTP_Mesg(FILE *fin, SnapContigPairs *icp) {
   icp->econtig1 = GetUID("ct1:",fin);
   icp->econtig2 = GetUID("ct2:",fin);
 
-  GET_FIELD(icp->mean,"mea:%f","mean distance");
-  GET_FIELD(icp->stddev,"std:%f","standard deviation");
+  GET_FIELD(icp->mean,"mea:%lf","mean distance");
+  GET_FIELD(icp->stddev,"std:%lf","standard deviation");
   icp->orient = DecodePairOrient(GetType("ori:%1[NAIOU]","link orientation", fin));
   GetEOM(fin);
 }
@@ -990,8 +990,8 @@ Read_UTG_Mesg(FILE *fin) {
 
   mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
 
-  GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");
-  GET_FIELD(mesg.microhet_prob,"mhp:%f","microhet prob");
+  GET_FIELD(mesg.coverage_stat,"cov:%lf","coverage stat");
+  GET_FIELD(mesg.microhet_prob,"mhp:%lf","microhet prob");
   mesg.status = (UnitigStatus)GetType("sta:%1[UCNSX]","status", fin);
 
   GET_FIELD(mesg.length,"len:"F_S32,"length field");
@@ -1028,8 +1028,8 @@ static void *Read_ULK_Mesg(FILE *fin) {
   mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
-  GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
-  GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
+  GET_FIELD(mesg.mean_distance,"mea:%lf","mean distance");
+  GET_FIELD(mesg.std_deviation,"std:%lf","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
@@ -1117,8 +1117,8 @@ static void *Read_CLK_Mesg(FILE *fin)
   mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
   mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
-  GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
-  GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
+  GET_FIELD(mesg.mean_distance,"mea:%lf","mean distance");
+  GET_FIELD(mesg.std_deviation,"std:%lf","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
@@ -1151,8 +1151,8 @@ static void *Read_SLK_Mesg(FILE *fin)
   mesg.escaffold2 = GetUID("sc2:",fin);
 
   mesg.orientation = DecodePairOrient(GetType("ori:%1[NAOI]","orientation", fin));
-  GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
-  GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
+  GET_FIELD(mesg.mean_distance,"mea:%lf","mean distance");
+  GET_FIELD(mesg.std_deviation,"std:%lf","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
   if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
     fprintf(stderr, "ERROR: SLK expecting 'jls:' at line "F_U64", got '%s' instead.\n",
@@ -1201,8 +1201,8 @@ static void *Read_MDI_Mesg(FILE *fin)
   int				i;
 
   mesg.erefines = GetUIDIID("ref:",&mesg.irefines,fin);
-  GET_FIELD(mesg.mean,"mea:%f","mean distance");
-  GET_FIELD(mesg.stddev,"std:%f","standard deviation");
+  GET_FIELD(mesg.mean,"mea:%lf","mean distance");
+  GET_FIELD(mesg.stddev,"std:%lf","standard deviation");
   GET_FIELD(mesg.min,"min:"F_S32,"min distance");
   GET_FIELD(mesg.max,"max:"F_S32,"max distance");
   GET_FIELD(mesg.num_buckets,"buc:"F_S32,"number of buckets");

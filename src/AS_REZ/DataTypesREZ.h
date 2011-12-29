@@ -22,7 +22,7 @@
 #ifndef DATA_TYPES_REZ_H
 #define DATA_TYPES_REZ_H
 
-static const char *rcsid_DATA_TYPES_REZ_H = "$Id: DataTypesREZ.h,v 1.11 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_DATA_TYPES_REZ_H = "$Id: DataTypesREZ.h,v 1.12 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -42,7 +42,7 @@ typedef  struct
    int  cover_stat, link_ct;
    int32  len;
    LengthT  start, end;      // Relative to scaffold coordinates
-   float  avg_edge_quality;  // Average quality of edge mates used to determine
+   double  avg_edge_quality;  // Average quality of edge mates used to determine
                              // the start and  end positions of this chunk
    double  reference_variance;  // Variance to add back to  start  and  end
                                // variances to make relative to scaffold start
@@ -214,7 +214,7 @@ typedef struct {
     visited : 1,                 // TRUE if visited (correspond to GREY of CLR)
     done : 1,                    // TRUE if is done (correspond to BLACK of CLR)
     path_bit : 1;                // TRUE if this node is on some path
-  float
+  double
     d,                           // shortest path distance from the source (sum of the weight on the edges)
     d_neck;                      // bootleneck distance (stores the "worst" edge on the path 'till here)
   LengthT
@@ -274,7 +274,7 @@ typedef struct {
     * edge;
   int
     orientation;     // orientation in 0..3 code (see or2num() )
-  float
+  double
     quality;         // quality value
 } edge_quality;
 
@@ -304,7 +304,7 @@ typedef struct {
 typedef struct {
   int
     bcc;         // bcc id
-  float
+  double
     unique_prop; // unique proportion
 } bcc_prop;
 

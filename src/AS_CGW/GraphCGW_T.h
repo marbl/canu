@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.47 2011-12-04 23:21:29 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.48 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_ALN_aligners.h"
@@ -50,7 +50,7 @@ typedef struct {
   PairOrient orient; // Orientation of idA <-> idB, BE CAREFUL IF YOU WANT idB<->idA
   //
   int32 edgesContributing;
-  float quality;   // Used to order edges by decreasing quality (quality = 0.0 is the best, 1.0 is the worst)
+  double quality;   // Used to order edges by decreasing quality (quality = 0.0 is the best, 1.0 is the worst)
 
   union{
     int64 all;  // Used for overlap, repeatoverlap, tandemOverlap, etc
@@ -133,7 +133,7 @@ typedef struct {
   CDS_CID_t prevALink; // prev edge involving cidA, -1 if none
   CDS_CID_t prevBLink; // prev edge involving cidB, -1 if none
 
-  float   minDistance;  /* negative implies potential overlap
+  double  minDistance;  /* negative implies potential overlap
                          * This Field is overloaded to store the distance.mean when
                          * the flag MeanChangedByWalk is true.  The function RestoreEdgeMeans
                          * restores the value and unsets the flag.
@@ -266,7 +266,7 @@ typedef struct{
       CDS_CID_t BEndCI; // Index of Chunk Instance at B End of Scaffold
       int32 numElements; // If containsCIs, these are CIs, else they are Contigs
       /*** Info computed by RecomputeScaffoldPositions ***/
-      float   leastSquareError;   // Measure of chi-squared of computed positions
+      double  leastSquareError;   // Measure of chi-squared of computed positions
       int32 numLeastSquareClones; // Relates to degrees of freedom for chi-square calculation
       /*** Info computed by MarkInternaledges ***/
       int32 internalEdges;  // Number of merged edges (not including UNTRUSTED) that are internal to scaffold
@@ -349,11 +349,11 @@ typedef struct {
 typedef struct {
   ChunkOverlapSpecT spec;
 
-  int32  minOverlap;
-  int32  maxOverlap;
-  int32  cgbMinOverlap;
-  int32  cgbMaxOverlap;
-  float        errorRate;
+  int32   minOverlap;
+  int32   maxOverlap;
+  int32   cgbMinOverlap;
+  int32   cgbMaxOverlap;
+  double  errorRate;
 
   // This is what we found
   uint32       computed:1;
@@ -363,12 +363,12 @@ typedef struct {
   uint32       suspicious:1;
   uint32       unused:26;
 
-  int32  overlap;  // The overlaplength if there is an overlap, 0 otherwise
-  int32  ahg;
-  int32  bhg;
-  float        quality;
-  int32  min_offset;
-  int32  max_offset;
+  int32   overlap;  // The overlaplength if there is an overlap, 0 otherwise
+  int32   ahg;
+  int32   bhg;
+  double  quality;
+  int32   min_offset;
+  int32   max_offset;
 } ChunkOverlapCheckT;
 
 typedef struct {
@@ -1179,7 +1179,7 @@ CDS_CID_t AddGraphEdge( GraphCGW_T *graph,
                         CDS_CID_t fidA, CDS_CID_t fidB,
                         CDS_CID_t dist,
                         LengthT distance,
-                        float   quality,
+                        double   quality,
                         int32 fudgeDistance,
                         PairOrient orientation,
                         int isInducedByUnknownOrientation,
@@ -1424,8 +1424,8 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
 void CollectChunkOverlap(GraphCGW_T *graph,
                          CDS_CID_t cidA, CDS_CID_t cidB,
                          PairOrient orientation,
-                         float   meanOverlap, float   deltaOverlap,
-                         float   quality, int bayesian,
+                         double   meanOverlap, double   deltaOverlap,
+                         double   quality, int bayesian,
                          int fromCGB,
 			 int verbose);
 
@@ -1440,7 +1440,7 @@ ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
                                  PairOrient orientation,
                                  int32 minOverlap,
                                  int32 maxOverlap,
-                                 float errorRate,
+                                 double errorRate,
                                  int insertGraphEdges);
 
 ALNoverlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,

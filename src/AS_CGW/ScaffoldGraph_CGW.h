@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.47 2011-12-04 23:21:29 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.48 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -451,8 +451,8 @@ void SetContigScaffoldIds(ContigT *contig, CDS_CID_t scaffoldID);
 */
 void MarkInternalEdgeStatus(ScaffoldGraphT *graph,
                             CIScaffoldT *scaffold,
-                            float pairwiseChiSquaredThreshhold,
-                            float maxVariance,
+                            double pairwiseChiSquaredThreshhold,
+                            double maxVariance,
                             int markTrusted,
                             int markUntrusted,
                             int doNotChange,
@@ -500,13 +500,13 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
                                     PairOrient edgeOrient,
                                     double inferredMean,
                                     double inferredVariance,
-                                    float *chiSquaredValue,
-                                    float chiSquareThreshold, int *alternate,
+                                    double *chiSquaredValue,
+                                    double chiSquareThreshold, int *alternate,
                                     int verbose);
 
 void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
-                             float pairwiseChiSquaredThreshhold,
-                             float maxVariance,
+                             double pairwiseChiSquaredThreshhold,
+                             double maxVariance,
                              int doNotChange, int verbose);
 
 int CheckForContigs(ScaffoldGraphT *sgraph,

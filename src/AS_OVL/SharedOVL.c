@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SharedOVL.c,v 1.15 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid = "$Id: SharedOVL.c,v 1.16 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include  "SharedOVL.h"
 
@@ -132,7 +132,7 @@ int  Fwd_Banded_Homopoly_Prefix_Match
    int  max_score_best_row, max_score_best_col;
    int  max_score_hpscore, max_score_errs;
    int  indent [AS_READ_MAX_NORMAL_LEN], width [AS_READ_MAX_NORMAL_LEN];
-   int  best_row, best_col, best_score, best_errors=0;
+   int  best_row=0, best_col=0, best_score=0, best_errors=0;
    int  cutoff_score, global_best, last_row = 0;
    int  te, ts;  // temporary values for errors and score
    int  i, j;
@@ -401,7 +401,7 @@ int  Fwd_Homopoly_Prefix_Match
 
   {
    Homopoly_Match_Entry_t  * ep;
-   int  best_end_d, best_end_e, best_end_score;
+   int  best_end_d=0, best_end_e=0, best_end_score=0;
    double  ratio, best_ratio, best_end_ratio;
    int  from, lowest_score, score, shorter;
    int  row, left, right;
@@ -1257,7 +1257,7 @@ int  Rev_Homopoly_Match_Start
 
   {
    Homopoly_Match_Entry_t  * ep;
-   int  best_end_d, best_end_e, best_end_score;
+   int  best_end_d=0, best_end_e=0, best_end_score=0;
    double  ratio, best_ratio, best_end_ratio;
    double  max_score, partial_score;
    int  max_score_len, max_score_best_d, max_score_best_e;
@@ -1779,10 +1779,10 @@ void  Set_Fwd_Banded_Delta
 // Set  (* delta_len)  to the number of entries in  delta .
 
   {
-   Alignment_Cell_t  * curr;
+   Alignment_Cell_t  * curr=NULL;
    int  first = 1;
-   int  ct, d_len, offset, sign;
-   int  i, j, r, c;
+   int  ct=0, d_len=0, offset=0, sign=1;
+   int  i=0, j=0, r=0, c=0;
 
    // get offset to start
    offset = 0;

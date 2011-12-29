@@ -22,7 +22,7 @@
 #ifndef AS_UTL_HISTOGRAM_H
 #define AS_UTL_HISTOGRAM_H
 
-static const char *rcsid_AS_UTL_HISTOGRAM_H = "$Id: AS_UTL_histogram.h,v 1.7 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_HISTOGRAM_H = "$Id: AS_UTL_histogram.h,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -183,11 +183,14 @@ AS_UTL_histogramShow(AS_UTL_histogram *h, FILE *F, char *label) {
   int64   max, min;
   int64   rng, i;
 
-  uint64  valFull[16][3] = {0};
-  uint64  valZoom[16][3] = {0};
+  uint64  valFull[16][3];
+  uint64  valZoom[16][3];
   uint64  valFullMax = 0;
   uint64  valZoomMax = 0;
   uint64  numBins = 16;  //  Note hardcoded in valFull and valZoom!
+
+  memset(valFull, 0, sizeof(uint64) * 16 * 3);
+  memset(valZoom, 0, sizeof(uint64) * 16 * 3);
 
   fprintf(F, "\n");
   fprintf(F, "%s\n", label);
@@ -251,14 +254,14 @@ AS_UTL_histogramShow(AS_UTL_histogram *h, FILE *F, char *label) {
 
   for (i=0; i<valFullMax || i<valZoomMax; i++) {
     if (i < valFullMax) {
-      fprintf(F, "%6llu - %6llu : %6llu    ",
+      fprintf(F, "%6"F_U64P" - %6"F_U64P" : %6"F_U64P"    ",
               valFull[i][0], valFull[i][1], valFull[i][2]);
     } else {
       fprintf(F, "                            ");
     }
 
     if (i < valZoomMax) {
-      fprintf(F, "%6llu - %6llu : %6llu\n",
+      fprintf(F, "%6"F_U64P" - %6"F_U64P" : %6"F_U64P"\n",
               valZoom[i][0], valZoom[i][1], valZoom[i][2]);
     } else {
       fprintf(F, "\n");

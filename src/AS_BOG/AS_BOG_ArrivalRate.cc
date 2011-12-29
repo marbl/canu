@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_ArrivalRate.cc,v 1.4 2010-09-30 05:50:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_ArrivalRate.cc,v 1.5 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -30,14 +30,14 @@ static const char *rcsid = "$Id: AS_BOG_ArrivalRate.cc,v 1.4 2010-09-30 05:50:17
 
 
 
-float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long genome_size){
+double UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long genome_size){
 
   if (genome_size != 0)
-    return((float)total_random_frags_in_genome / (float)genome_size);
+    return((double)total_random_frags_in_genome / (double)genome_size);
 
-  float globalArrivalRate;
-  float total_rho=0, avg_rho;
-  float total_arrival_frags=0;
+  double globalArrivalRate;
+  double total_rho=0, avg_rho;
+  double total_arrival_frags=0;
   size_t rho_gt_10000 = 0;
 
   // Go through all the unitigs to sum rho and unitig arrival frags
@@ -54,7 +54,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
     if (avg_rho > 10000.0)
       rho_gt_10000 += (size_t)avg_rho / 10000;
 
-    float unitig_random_frags = (*iter)->getNumRandomFrags();
+    double unitig_random_frags = (*iter)->getNumRandomFrags();
     if (--unitig_random_frags < 0)
       unitig_random_frags = 0;
 
@@ -68,13 +68,13 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
 
   // Now recalculate based on big unitigs, copied from AS_CGB/AS_CGB_cgb.c
   if (rho_gt_10000 * 20000 > total_rho) {
-    float min_10_local_arrival_rate          = globalArrivalRate;
-    float median_local_arrival_rate          = globalArrivalRate;
-    float max_local_arrival_rate             = globalArrivalRate;
-    float recalibrated_fragment_arrival_rate = globalArrivalRate;
+    double min_10_local_arrival_rate          = globalArrivalRate;
+    double median_local_arrival_rate          = globalArrivalRate;
+    double max_local_arrival_rate             = globalArrivalRate;
+    double recalibrated_fragment_arrival_rate = globalArrivalRate;
     size_t num_arrival_rates=0;
     int median_index;
-    std::vector<float> arrival_rate_array(rho_gt_10000);
+    std::vector<double> arrival_rate_array(rho_gt_10000);
 
     for( iter=unitigs.begin(); iter!=unitigs.end(); iter++) {
       if (*iter == NULL)
@@ -82,7 +82,7 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
       avg_rho = (*iter)->getAvgRho();
       if (avg_rho > 10000.0) {
         const int num_10000 = (size_t)avg_rho / 10000;
-        const float local_arrival_rate =
+        const double local_arrival_rate =
           (*iter)->getNumRandomFrags() / avg_rho;
         assert(num_10000 > 0);
         for(uint32 i=0;i<num_10000;i++){
@@ -91,8 +91,8 @@ float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long 
           num_arrival_rates++;
         }
         if(num_arrival_rates > 0){
-          float tmp_fragment_arrival_rate, max_diff_arrival_rate;
-          float prev_arrival_rate, cur_arrival_rate, diff_arrival_rate;
+          double tmp_fragment_arrival_rate, max_diff_arrival_rate;
+          double prev_arrival_rate, cur_arrival_rate, diff_arrival_rate;
           int max_diff_index;
           std::sort(arrival_rate_array.begin(),arrival_rate_array.end());
           min_10_local_arrival_rate = arrival_rate_array[num_arrival_rates / 10];

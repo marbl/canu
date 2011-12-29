@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.104 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.105 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -150,11 +150,11 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
             tig->id(), fwdBads->size(), revBads->size());
     fprintf(logFile, "fwd:");
     for (uint32 i=0; i<fwdBads->size(); i++)
-      fprintf(logFile, " %d,%d", tig->id(), i, (*fwdBads)[i].bgn, (*fwdBads)[i].end);
+      fprintf(logFile, " %d,%d", (*fwdBads)[i].bgn, (*fwdBads)[i].end);
     fprintf(logFile, "\n");
     fprintf(logFile, "rev:");
     for (uint32 i=0; i<revBads->size(); i++)
-      fprintf(logFile, " %d,%d", tig->id(), i, (*revBads)[i].bgn, (*revBads)[i].end);
+      fprintf(logFile, " %d,%d", (*revBads)[i].bgn, (*revBads)[i].end);
     fprintf(logFile, "\n");
   }
 

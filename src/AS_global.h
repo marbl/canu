@@ -25,16 +25,30 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.52 2011-12-04 23:29:56 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.53 2011-12-29 09:26:03 brianwalenz Exp $";
+
+//  ISO C99 says that to get INT32_MAX et al, these must be defined. (7.18.2, 7.18.4, 7.8.1)
+#ifndef __STDC_CONSTANT_MACROS
+#define __STDC_CONSTANT_MACROS
+#endif
+#ifndef __STDC_LIMIT_MACROS
+#define __STDC_LIMIT_MACROS
+#endif
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
+#include <limits.h>
 #include <unistd.h>
 #include <string.h>
-#include <limits.h>
-#include <float.h>
 #include <ctype.h>
+
+#include <float.h>
+#include <math.h>
 
 #include <assert.h>
 #include <errno.h>
@@ -43,8 +57,6 @@ static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.52 2011-12-04 23:29
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
-using namespace std;
 
 #include "AS_UTL_alloc.h"
 
@@ -62,12 +74,10 @@ using namespace std;
   #define MAX(a,b) (((a) > (b)) ? (a) : (b))
 #endif
 
-#ifndef _AIX
-  typedef int8_t  int8;
-  typedef int16_t int16;
-  typedef int32_t int32;
-  typedef int64_t int64;
-#endif
+typedef int8_t  int8;
+typedef int16_t int16;
+typedef int32_t int32;
+typedef int64_t int64;
 
 typedef uint8_t  uint8;
 typedef uint16_t uint16;
@@ -76,8 +86,9 @@ typedef uint64_t uint64;
 
 typedef void* PtrT;
 
-// Format for wildcard in *scanf functions
-#define F_I           "%*"
+#ifndef UINT32_MAX
+#error UINT32_MAX not defined; if new code, AS_globa.h must be first include
+#endif
 
 // Pointers
 #define F_P           "%p"
@@ -86,237 +97,69 @@ typedef void* PtrT;
 // Characters
 #define F_C           "%c"
 #define F_CP           "c"
-#define F_CI     F_I""F_CP
+#define F_CI         "%*c"
 
 // Strings
 #define F_STR         "%s"
 #define F_STRP         "s"
-#define F_STRI F_I""F_STRP
+#define F_STRI       "%*s"
 
+// Integers
+#define F_S16    "%"PRId16
+#define F_S16P      PRId16
+#define F_S16I  "%*"PRId16
+#define F_U16    "%"PRIu16
+#define F_U16P      PRIu16
+#define F_U16I  "%*"PRIu16
+#define F_S32    "%"PRId32
+#define F_S32P      PRId32
+#define F_S32I  "%*"PRId32
+#define F_U32    "%"PRIu32
+#define F_U32P      PRIu32
+#define F_U32I  "%*"PRIu32
+#define F_S64    "%"PRId64
+#define F_S64P      PRId64
+#define F_S64I  "%*"PRId64
+#define F_U64    "%"PRIu64
+#define F_U64P      PRIu64
+#define F_U64I  "%*"PRIu64
+#define F_X64    "%"PRIx64
+#define F_X64P      PRIx64
+#define F_X64I  "%*"PRIx64
+
+// Floating points
+#define F_F32         "%f"
+#define F_F32P         "f"
+#define F_F32I       "%*f"
+#define F_F64        "%lf"
+#define F_F64P        "lf"
+#define F_F64I      "%*lf"
+
+// Standard typedefs
+#define F_SIZE_T     "%zd"
+#define F_SIZE_TP     "zd"
+#define F_SIZE_TI   "%*zd"
+
+#define F_OFF_T     F_S64
+#define F_OFF_TP    F_S64P
+#define F_OFF_TI    F_S64I
+
+typedef uintptr_t INTPTR;
+
+
+//  These are used to pad various structs to specific sizes
 #if ULONG_MAX == 0xffffffff
-  // 32-bit architecture
-
-  #define TRUE32BIT
-
-  typedef uintptr_t INTPTR;
-
-  #ifndef UINT64_MAX
-    #define INT64_MAX  LLONG_MAX
-    #define UINT64_MAX ULLONG_MAX
-  #endif
-
-  // Integers
-  #define F_S16         "%d"
-  #define F_S16P         "d"
-  #define F_S16I F_I""F_S16P
-  #define F_U16         "%u"
-  #define F_U16P         "u"
-  #define F_U16I F_I""F_U16P
-  #define F_S32         "%d"
-  #define F_S32P         "d"
-  #define F_S32I F_I""F_S32P
-  #define F_U32         "%u"
-  #define F_U32P         "u"
-  #define F_U32I F_I""F_U32P
-  #define F_S64       "%lld"
-  #define F_S64P       "lld"
-  #define F_S64I F_I""F_S64P
-  #define F_U64       "%llu"
-  #define F_U64P       "llu"
-  #define F_U64I F_I""F_U64P
-  #define F_X64       "%llx"
-  #define F_X64P       "llx"
-  #define F_X64I F_I""F_X64P
-
-  // Floating points
-  #define F_F32        "%f"
-  #define F_F32P        "f"
-  #define F_F32I F_I""F_32P
-  #define F_F64       F_F32
-  #define F_F64P     F_F32P
-  #define F_F64I     F_F32I
-  
-  // Standard typedefs
-  #define F_SIZE_T     F_U32
-  #define F_SIZE_TP   F_U32P
-  #define F_SIZE_TI   F_U32I
-
-  #define F_TIME_T           "%ld"
-  #define F_TIME_TP           "ld"
-  #define F_TIME_TI F_I""F_TIME_TP
-
-  #define F_PID_T      F_S32
-  #define F_PID_TP    F_S32P
-  #define F_PID_TI    F_S32I
-
-  #if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 32)
-    // off_t is 32-bit
-    #error I do not support 32-bit off_t.
-    #define F_OFF_T          "%ld"
-    #define F_OFF_TP          "ld"
-    #define F_OFF_TI F_I""F_OFF_TP
-  #endif
-
-  // off_t is 64-bit
-
-  #define F_OFF_T   F_S64
-  #define F_OFF_TP F_S64P
-  #define F_OFF_TI F_S64I
-
-  #define FILEID_MASK       0xffff000000000000ULL
-  #define FILEOFFSET_MASK   0x0000ffffffffffffULL
-  #define LOCALE_OFFSET            10000000000ULL  // 10^10 > 2^32
-
-  //========== SIMULATOR-specific
-  // Fix initial creation time & uid in celsim to support regression testing
-  // time stamp of batch message in first dros file...
-  #define CREATION_TIME      915170460L
-  // UID of first frag in first dros input file...
-  #define FIRST_UID     17000001585819ULL
-
-  //========== CGB-specific
-  #define CGB_MULTIPLIER               1000
-
-  //========== CGW-specific
-  // Used in cgw: 1024^3
-  #define MAX_SEQUENCEDB_SIZE        1073741824UL
-  // Used in cgw: 256 * 1024^2
-  #define MAX_SEQUENCEDB_CACHE_SIZE   268435456UL
-
-#endif  // 32-bit architecture
-
-
-
-
-#if ULONG_MAX == 0xffffffffffffffff
-  // 64-bit architecture
-
-  #define TRUE64BIT
-
-  typedef uintptr_t INTPTR;
-
-  #ifndef UINT64_MAX
-    #define INT64_MAX  LONG_MAX
-    #define UINT64_MAX ULONG_MAX
-  #endif
-
-  // Integers
-  #define F_S16        "%hd"
-  #define F_S16P        "hd"
-  #define F_S16I F_I""F_S16P
-  #define F_U16        "%hu"
-  #define F_U16P        "hu"
-  #define F_U16I F_I""F_U16P
-  #define F_S32         "%d"
-  #define F_S32P         "d"
-  #define F_S32I F_I""F_S32P
-  #define F_U32         "%u"
-  #define F_U32P         "u"
-  #define F_U32I F_I""F_U32P
-  #define F_S64        "%ld"
-  #define F_S64P        "ld"
-  #define F_S64I  F_I""F_64P
-  #define F_U64        "%lu"
-  #define F_U64P        "lu"
-  #define F_U64I F_I""F_U64P
-  #define F_X64        "%lx"
-  #define F_X64P        "lx"
-  #define F_X64I F_I""F_X64P
-  
-  // Floating points
-  #define F_F32        "%f"
-  #define F_F32P        "f"
-  #define F_F32I F_I""F_32P
-  #define F_F64       "%lf"
-  #define F_F64P       "lf"
-  #define F_F64I  F_I""F64P
-  
-  // Standard typedefs
-  #define F_SIZE_T           F_U64
-  #define F_SIZE_TP         F_U64P
-  #define F_SIZE_TI F_I""F_SIZE_TP
-
-  #ifdef _AIX
-    #define F_TIME_T   F_S64
-    #define F_TIME_TP F_S64P
-    #define F_TIME_TI F_S64I
-
-    #define F_PID_T    F_S64
-    #define F_PID_TP  F_S64P
-    #define F_PID_TI  F_S64I
-
-    #ifdef _LARGE_FILES
-      #define F_OFF_T         "%lld"
-      #define F_OFF_TP         "lld"
-      #define F_OFF_TI F_I""F_OFF_TP
-    #else
-      #define F_OFF_T   F_S64
-      #define F_OFF_TP F_S64P
-      #define F_OFF_TI F_S64I
-    #endif
-  #else
-    // these are valid for __alpha, perhaps not for others...
-    #define F_TIME_T   F_S64
-    #define F_TIME_TP F_S64P
-    #define F_TIME_TI F_S64I
-
-    #define F_PID_T    F_S32
-    #define F_PID_TP  F_S32P
-    #define F_PID_TI  F_S32I
-
-    #ifdef _KERNEL
-      #define F_OFF_T   F_U64
-      #define F_OFF_TP F_U64P
-      #define F_OFF_TI F_U64I
-    #else
-      #define F_OFF_T   F_S64
-      #define F_OFF_TP F_S64P
-      #define F_OFF_TI F_S64I
-    #endif
-  #endif
-
-  #define FILEID_MASK       0xffff000000000000UL
-  #define FILEOFFSET_MASK   0x0000ffffffffffffUL
-  #define LOCALE_OFFSET            10000000000UL  // 10^10 > 2^32
-
-  //========== SIMULATOR-specific
-  // Fix initial creation time & uid in celsim to support regression testing
-  // time stamp of batch message in first dros file...
-  #define CREATION_TIME      915170460
-  // UID of first frag in first dros input file...
-  #define FIRST_UID     17000001585819UL
-
-  //========== CGB-specific
-  #define CGB_MULTIPLIER            1000
-
-  //========== CGW-specific
-  // Used in cgw: 2 * 1024^3
-  #define MAX_SEQUENCEDB_SIZE           2147483648ul
-
-  // Used in cgw: 2 * 256 * 1024^2
-  #define MAX_SEQUENCEDB_CACHE_SIZE      536870912ul
-
-#endif  // 64-bit architecture
-
-// Common to 32-bit and 64-bit architechture
-
-
-#ifdef __alpha
-//  BPW hates doing this, but, well, its needed on our OSF1 V5.1 box.
-int   fseeko(FILE *stream, off_t offset, int whence );
-off_t ftello(FILE *stream );
+#define TRUE32BIT
+#else
+#define TRUE64BIT
 #endif
 
-//  OSF1 doesn't know UINT32_MAX or INT32_MAX or INT32_MIN.
-#ifndef UINT32_MAX
-  #define UINT32_MAX UINT_MAX
+
+#if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 32)
+#error I do not support 32-bit off_t.
 #endif
-#ifndef INT32_MAX
-  #define INT32_MAX INT_MAX
-#endif
-#ifndef INT32_MIN
-  #define INT32_MIN INT_MIN
-#endif
+
+
 
 
 //  perl's chomp is pretty nice
@@ -334,14 +177,16 @@ off_t ftello(FILE *stream );
 #endif
 
 
+#define CGB_MULTIPLIER            1000
+
 #define CGB_INVALID_CUTOFF           -12.0f
-// A threshold value for Gene^s coverage statistic. Values BELOW this value
+// A threshold value for Gene's coverage statistic. Values BELOW this value
 // have never been known to associated with unitigs with fragments that ARE
 // not contiguous in the genome. They are guaranteed REPEATS.
 
 #define CGB_UNIQUE_CUTOFF            10.0f
 //#define CGB_UNIQUE_CUTOFF            12.0f
-// A threshold value for Gene^s coverage statistic. Values above this value
+// A threshold value for Gene's coverage statistic. Values above this value
 // have never been known to associated with unitigs with fragments that are
 // not contiguous in the genome.
 

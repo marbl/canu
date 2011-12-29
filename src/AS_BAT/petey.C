@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: petey.C,v 1.6 2011-12-12 20:22:39 brianwalenz Exp $";
+const char *mainid = "$Id: petey.C,v 1.7 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -134,7 +134,7 @@ main (int argc, char * argv []) {
 
   double    erate                   = 0.015;
   double    elimit                  = 0.0;
-  long      genome_size             = 0;
+  uint64    genome_size             = 0;
 
   int       fragment_count_target   = 0;
   char     *output_prefix           = NULL;
@@ -300,7 +300,7 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Bad mate threshold    = %d\n", badMateBreakThreshold);
   fprintf(stderr, "Error threshold       = %.3f (%.3f%%)\n", erate, erate * 100);
   fprintf(stderr, "Error limit           = %.3f errors\n", elimit);
-  fprintf(stderr, "Genome Size           = "F_S64"\n", genome_size);
+  fprintf(stderr, "Genome Size           = "F_U64"\n", genome_size);
   fprintf(stderr, "\n");
 
   for (uint64 i=0, j=1; i<64; i++, j<<=1)
@@ -430,7 +430,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "output");
 
-  float globalARate = getGlobalArrivalRate(unitigs, gkpStore->gkStore_getNumRandomFragments(), genome_size);
+  double globalARate = getGlobalArrivalRate(unitigs, gkpStore->gkStore_getNumRandomFragments(), genome_size);
   Unitig::setGlobalArrivalRate(globalARate);
 
   writeIUMtoFile(unitigs, output_prefix, tigStorePath, fragment_count_target);

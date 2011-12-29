@@ -18,15 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.32 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.33 2011-12-29 09:26:03 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
 #define INSTRUMENT_TRANS_REDUCED
-
-#include <stdlib.h>
-#include <math.h>
-#include <float.h>
 
 #include "AS_global.h"
 #include "AS_UTL_heap.h"
@@ -159,7 +155,7 @@ FoundTransitiveEdgePath(ScaffoldGraphT *graph,
                         ChunkInstanceT *thisCI,      //  Where we are now
                         uint32          recurseDepth,
                         uint64          recurseSize) {
-  float             chiSquaredValue = 0.0;
+  double             chiSquaredValue = 0.0;
 
   assert(!isSloppyEdge(edge));
 
@@ -182,21 +178,21 @@ FoundTransitiveEdgePath(ScaffoldGraphT *graph,
   //
   if (thisCI == endCI)
     return((edgeOrient == pathOrient) &&
-           (PairwiseChiSquare((float)path->distance.mean,
-                              (float)path->distance.variance,
-                              (float)edge->distance.mean,
-                              (float)edge->distance.variance, (LengthT *)NULL,
-                              &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW)));
+           (PairwiseChiSquare((double)path->distance.mean,
+                              (double)path->distance.variance,
+                              (double)edge->distance.mean,
+                              (double)edge->distance.variance, (LengthT *)NULL,
+                              &chiSquaredValue, (double)PAIRWISECHI2THRESHOLD_CGW)));
 
   //  Not at the end, but if the current path is longer than we are, and this is too long, return
   //  failure.
   //
   if ((path->distance.mean > edge->distance.mean) &&
-      (!PairwiseChiSquare((float)path->distance.mean,
-                          (float)path->distance.variance,
-                          (float)edge->distance.mean,
-                          (float)edge->distance.variance, (LengthT *)NULL,
-                          &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW)))
+      (!PairwiseChiSquare((double)path->distance.mean,
+                          (double)path->distance.variance,
+                          (double)edge->distance.mean,
+                          (double)edge->distance.variance, (LengthT *)NULL,
+                          &chiSquaredValue, (double)PAIRWISECHI2THRESHOLD_CGW)))
     return(FALSE);
 
   //  Not at the end, but if the current CI has too many outgoing edges, we'll abort now.  It might
@@ -418,14 +414,14 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
           double                 BMean     = Bhop1->distance.mean     + BmidCI->bpLength.mean     + Bhop2->distance.mean;
           double                 BVariance = Bhop1->distance.variance + BmidCI->bpLength.variance + Bhop2->distance.variance;
 
-          float   chiSquaredValue = 0.0;
+          double   chiSquaredValue = 0.0;
 
           if ((AendCI == BendCI) &&
               (AendOri == BendOri) &&
-              (PairwiseChiSquare((float)AMean, (float)AVariance,
-                                 (float)BMean, (float)BVariance,
+              (PairwiseChiSquare((double)AMean, (double)AVariance,
+                                 (double)BMean, (double)BVariance,
                                  (LengthT *)NULL, &chiSquaredValue,
-                                 (float)PAIRWISECHI2THRESHOLD_CGW))) {
+                                 (double)PAIRWISECHI2THRESHOLD_CGW))) {
             Ahop1->flags.bits.isConfirmed = TRUE;
             Ahop2->flags.bits.isConfirmed = TRUE;
             Bhop1->flags.bits.isConfirmed = TRUE;
@@ -559,14 +555,14 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
                             ChunkInstanceT *sourceCI, CDS_CID_t targetId,
                             PairOrient edgeOrient,
                             double inferredMean, double inferredVariance,
-                            float *returnChiSquaredValue,
-                            float chiSquareThreshold, int *isEssential) {
+                            double *returnChiSquaredValue,
+                            double chiSquareThreshold, int *isEssential) {
   GraphEdgeIterator edges;
   CIEdgeT *edge;
   CIEdgeT *bestEdge = (CIEdgeT *)NULL;
   int overlapEdgeExists = FALSE;
   int end;
-  float chiSquaredValue, bestChiSquaredValue = FLT_MAX;
+  double chiSquaredValue, bestChiSquaredValue = FLT_MAX;
 
   *isEssential = FALSE;
   /* Search all orientations in case an essential edge exists between
@@ -602,11 +598,11 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
         return((CIEdgeT *)NULL);
 
     }else // If the orientation is 'right', check for Chi Square compatibility
-    if (PairwiseChiSquare((float)inferredMean, (float)inferredVariance,
-                          (float)bestEdge->distance.mean,
-                          (float)bestEdge->distance.variance,
+    if (PairwiseChiSquare((double)inferredMean, (double)inferredVariance,
+                          (double)bestEdge->distance.mean,
+                          (double)bestEdge->distance.variance,
                           (LengthT *)NULL, &chiSquaredValue,
-                          (float)chiSquareThreshold)) {
+                          (double)chiSquareThreshold)) {
       *returnChiSquaredValue = chiSquaredValue;
       return(bestEdge);
     }else{ // If right orientation, but not chi square compatible
@@ -688,12 +684,12 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
 
     if ((otherCID == targetId) &&
         (GetEdgeOrientationWRT(edge, sourceCI->id) == edgeOrient) &&
-        PairwiseChiSquare((float)inferredMean,
-                          (float)inferredVariance,
-                          (float)edge->distance.mean,
-                          (float)edge->distance.variance,
+        PairwiseChiSquare((double)inferredMean,
+                          (double)inferredVariance,
+                          (double)edge->distance.mean,
+                          (double)edge->distance.variance,
                           (LengthT *)NULL, &chiSquaredValue,
-                          (float)chiSquareThreshold)) {
+                          (double)chiSquareThreshold)) {
       if (bestEdge == (CIEdgeT *)NULL ||
           (chiSquaredValue < bestChiSquaredValue)) {
         bestEdge = edge;
@@ -933,7 +929,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       CDS_CID_t inferredEdgeIndex;
       double inferredMean, inferredVariance;
       LengthT inferredDistance;
-      float chiSquaredValue;
+      double chiSquaredValue;
       PairOrient inferredEdgeOrient;
       PairOrient targetEdgeOrient;
       int isOverlapInferred = FALSE;
@@ -956,7 +952,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                                                  (targetEdge->idA == thisCI->id) ? targetEdge->idB :
                                                  targetEdge->idA,
                                                  inferredEdgeOrient, inferredMean, inferredVariance,
-                                                 &chiSquaredValue, (float)PAIRWISECHI2THRESHOLD_CGW,
+                                                 &chiSquaredValue, (double)PAIRWISECHI2THRESHOLD_CGW,
                                                  &existingIsEssential);
       targetEdge = GetGraphEdge(graph->ContigGraph, *branchTarget); // FindEdgeBetweenCIsChiSquare may cause edges to realloc
       if (existingEdge != (CIEdgeT *)NULL) {
@@ -992,10 +988,10 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
         if ( inferredVariance > FLT_MAX ) inferredVariance = FLT_MAX;  // hack instituted on 5/15/01 to help mouse_20010508
 #endif
 
-        if (!PairwiseChiSquare((float)inferredMean, (float)inferredVariance,
-                               (float)(- CGW_MISSED_OVERLAP), (float)1.0,
+        if (!PairwiseChiSquare((double)inferredMean, (double)inferredVariance,
+                               (double)(- CGW_MISSED_OVERLAP), (double)1.0,
                                (LengthT *)NULL, &chiSquaredValue,
-                               (float)PAIRWISECHI2THRESHOLD_CGW)) {
+                               (double)PAIRWISECHI2THRESHOLD_CGW)) {
           failedInfer = TRUE;
           break;
         }

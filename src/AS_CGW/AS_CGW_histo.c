@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_histo.c,v 1.9 2008-10-08 22:02:55 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_histo.c,v 1.10 2011-12-29 09:26:03 brianwalenz Exp $";
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -96,7 +96,7 @@ void aggregateChunks(DataType *aa,int i,DataType *bb) {
 #define PRINT_FIELD(field) \
 	  data->sum_##field, \
 	  scan_data->sum_##field,  \
-	  (aggr_data->sum_##field == 0?0:((float)scan_data->sum_##field)/(((float)aggr_data->sum_##field))), \
+	  (aggr_data->sum_##field == 0?0:((double)scan_data->sum_##field)/(((double)aggr_data->sum_##field))), \
 	  data->min_##field , \
 	  (data->nsamples > 0 ? data->sum_##field / data->nsamples : 0), \
 	  data->max_##field
@@ -143,7 +143,7 @@ void printChunks(FILE *fout,
 	  PRINT_FIELD(uedges),
 	  PRINT_FIELD(oedges),
 	  PRINT_FIELD_ALT(ratio),
-          (float)data->min_bases/(float)data->min_span,
-          (float)data->sum_bases/(float)data->sum_span,
-          (float)data->max_bases/(float)data->max_span);
+          (double)data->min_bases/(double)data->min_span,
+          (double)data->sum_bases/(double)data->sum_span,
+          (double)data->max_bases/(double)data->max_span);
 }

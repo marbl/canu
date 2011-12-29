@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.36 2011-06-03 17:34:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.37 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -154,7 +154,7 @@ markOBT(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidT
     }
   }
 
-  fprintf(stderr, "Marked %lu fragments.\n", numMarked);
+  fprintf(stderr, "Marked "F_U64" fragments.\n", numMarked);
 }
 
 
@@ -180,7 +180,7 @@ markDUP(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidT
     }
   }
 
-  fprintf(stderr, "Marked %lu fragments.\n", numMarked);
+  fprintf(stderr, "Marked "F_U64" fragments.\n", numMarked);
 }
 
 
@@ -290,7 +290,7 @@ buildStore(char *storeName,
   if (maxIID / iidPerBucket + 1 >= dumpFileMax) {
     fprintf(stderr, "ERROR:\n");
     fprintf(stderr, "ERROR:  Operating system limit of %d open files.  The current -M and -F settings\n", dumpFileMax);
-    fprintf(stderr, "ERROR:  will need to create %d files to construct the store.\n", maxIID / iidPerBucket);
+    fprintf(stderr, "ERROR:  will need to create "F_U64" files to construct the store.\n", maxIID / iidPerBucket);
     fprintf(stderr, "ERROR:  Increase runCA option ovlStoreMemory.\n");
     exit(1);
   }
@@ -452,10 +452,10 @@ buildStore(char *storeName,
   fprintf(stderr, "bucketizing DONE!\n");
 
   fprintf(stderr, "overlaps skipped:\n");
-  fprintf(stderr, "%16lu OBT - low quality\n", skipOBT1LQ);
-  fprintf(stderr, "%16lu DUP - non-duplicate overlap\n", skipOBT2HQ);
-  fprintf(stderr, "%16lu DUP - different library\n", skipOBT2LIB);
-  fprintf(stderr, "%16lu DUP - dedup not requested\n", skipOBT2NODEDUP);
+  fprintf(stderr, "%16"F_U64P" OBT - low quality\n", skipOBT1LQ);
+  fprintf(stderr, "%16"F_U64P" DUP - non-duplicate overlap\n", skipOBT2HQ);
+  fprintf(stderr, "%16"F_U64P" DUP - different library\n", skipOBT2LIB);
+  fprintf(stderr, "%16"F_U64P" DUP - dedup not requested\n", skipOBT2NODEDUP);
 
   delete [] skipFragment;  skipFragment = NULL;
   delete [] iidToLib;      iidToLib     = NULL;

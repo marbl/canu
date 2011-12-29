@@ -22,7 +22,7 @@
 #ifndef AS_UTL_VAR_H
 #define AS_UTL_VAR_H
 
-static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.22 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.23 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <cassert>
 #include <cstdarg>
@@ -246,43 +246,5 @@ static void LoadFromMemoryVA_ ## Type (char *&memory, VA_TYPE(Type) *va){\
 static size_t CopyToMemoryVA_ ## Type (VA_TYPE(Type) *va, char *&memory){\
  return CopyToMemory_VA(va,memory);\
 }\
-
-
-
-/*** Parametrized Stack Type Implemented with VAs ***/
-
-#define STACK_DEF(type)\
-typedef struct{\
-  VA_TYPE(type) *stack;\
-  int top;\
-}Stack_##type;\
-\
-static Stack_##type *CreateStack_##type (int size){\
-  Stack_##type *n = (Stack_##type *)safe_calloc(1, sizeof(Stack_##type ));\
-  n->stack = CreateVA_##type (size);\
-  n->top = NULLINDEX; \
-  return n;\
-}\
-\
-static void DeleteStack_##type(Stack_##type *stack){\
-  DeleteVA_##type (stack->stack);\
-  safe_free(stack);\
-}\
-static void ResetStack_##type(Stack_##type *stack){\
-  ResetVA_##type (stack->stack);\
-  stack->top = NULLINDEX;\
-}\
-static void PushStack_##type (Stack_##type *stack, void *item){\
-  Set##type (stack->stack, ++(stack->top), &item);\
-}\
-\
-static void *PopStack_##type (Stack_##type *stack){\
-  void **item;\
-\
-  if(stack->top < 0)\
-    return NULL;\
-  item = Get##type (stack->stack, (stack->top)--);\
-  return *item;\
-}
 
 #endif // AS_UTL_VAR_H

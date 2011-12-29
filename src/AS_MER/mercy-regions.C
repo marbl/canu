@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: mercy-regions.C,v 1.5 2010-10-04 08:51:43 brianwalenz Exp $";
+const char *mainid = "$Id: mercy-regions.C,v 1.6 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -282,23 +282,23 @@ main(int argc, char **argv) {
           if ((lo <= Ii->lo(ii)) && (Ii->lo(ii) < hi)) {
             beg = Id->de(id);
           } else {
-            fprintf(stderr, "failed to find begin "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
+            fprintf(stderr, "failed to find begin "F_U64" "F_U64" -- "F_U64" "F_U64" "F_U32"\n",
                     Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->de(id));
             if (id > 0)
-              fprintf(stderr, "                     "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
+              fprintf(stderr, "                     "F_U64" "F_U64" -- "F_U64" "F_U64" "F_U32"\n",
                       Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->de(id-1));
             //exit(1);
           }
         }
 
-        //fprintf(stderr, "testing end        "F_U32" "F_U32" -- "F_U32" "F_U32"\n",
+        //fprintf(stderr, "testing end        "F_U64" "F_U64" -- "F_U64" "F_U64"\n",
         //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
 
         //  High points can be equal.
         while ((id < Id->numberOfIntervals()) &&
                (Id->hi(id) < Ii->hi(ii))) {
           id++;
-          //fprintf(stderr, "testing end (m)    "F_U32" "F_U32" -- "F_U32" "F_U32"\n",
+          //fprintf(stderr, "testing end (m)    "F_U64" "F_U64" -- "F_U64" "F_U64"\n",
           //        Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id));
         }
         if (id < Id->numberOfIntervals()) {
@@ -309,10 +309,10 @@ main(int argc, char **argv) {
           if ((lo < Ii->hi(ii)) && (Ii->hi(ii) <= hi)) {
             end = Id->de(id);
           } else {
-            fprintf(stderr, "failed to find end "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
+            fprintf(stderr, "failed to find end "F_U64" "F_U64" -- "F_U64" "F_U64" "F_U32"\n",
                     Ii->lo(ii), Ii->hi(ii), Id->lo(id), Id->hi(id), Id->de(id));
             if (id > 0)
-              fprintf(stderr, "                     "F_U32" "F_U32" -- "F_U32" "F_U32" "F_U32"\n",
+              fprintf(stderr, "                     "F_U64" "F_U64" -- "F_U64" "F_U64" "F_U32"\n",
                       Ii->lo(ii), Ii->hi(ii), Id->lo(id-1), Id->hi(id-1), Id->de(id-1));
             //exit(1);
           }
@@ -321,7 +321,7 @@ main(int argc, char **argv) {
         badBegDepth[beg]++;
         badEndDepth[end]++;
 
-        fprintf(stdout, F_U64"\t"F_U32"\t"F_U32"\tdepth="F_U32","F_U32"\n",
+        fprintf(stdout, F_U64"\t"F_U64"\t"F_U64"\tdepth="F_U32","F_U32"\n",
                 uid, Ii->lo(ii), Ii->hi(ii), beg, end);
 
         if ((beg < 32) && (end < 32))

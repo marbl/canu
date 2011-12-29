@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.61 2011-07-29 02:32:15 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.62 2011-12-29 09:26:03 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -43,7 +43,7 @@ static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.61 2011-07-29 02:32:15 br
 #include "InterleavedMerging.h"
 
 
-#define SCAFFOLD_MERGE_CHI2_THRESHHOLD (2.f*(float)PAIRWISECHI2THRESHOLD_CGW)
+#define SCAFFOLD_MERGE_CHI2_THRESHHOLD (2.f*(double)PAIRWISECHI2THRESHOLD_CGW)
 
 #define PREFERRED_GAP_SIZE  (-500)
 
@@ -51,7 +51,7 @@ static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.61 2011-07-29 02:32:15 br
 
 #define CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD MIN_EDGES
 
-#define EDGE_QUANTA 5
+#define EDGE_QUANTA 5.0
 #define OVERLAP_QUANTA -10000.
 
 #define EDGE_STRENGTH_FACTOR  MIN_EDGES
@@ -410,29 +410,29 @@ SetOrderInfoForGap(OrderCIsTmpT *orderAnchor, int32 index,
   orderAnchor[index].gapDelta.variance += gapEndVariance;
   orderAnchor[index].gapDelta.variance -= anchorGap.variance;
   if (pathFromA && pathFromB) {
-    if ((gapBeginMean < - (float)CGW_MISSED_OVERLAP) &&
-        (gapEndMean < - (float)CGW_MISSED_OVERLAP)) {
+    if ((gapBeginMean < - (double)CGW_MISSED_OVERLAP) &&
+        (gapEndMean < - (double)CGW_MISSED_OVERLAP)) {
       orderAnchor[index].gapBeginOffset.mean = gapBeginMean;
       orderAnchor[index].gapDelta.mean = (gapBeginMean + insertSize.mean +
                                           gapEndMean) - anchorGap.mean;
-    }else if (gapBeginMean < - (float)CGW_MISSED_OVERLAP) {
+    }else if (gapBeginMean < - (double)CGW_MISSED_OVERLAP) {
       orderAnchor[index].gapBeginOffset.mean = gapBeginMean;
       deltaMean = (gapBeginMean + insertSize.mean) - anchorGap.mean;
-      if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+      if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
         orderAnchor[index].gapDelta.mean = 0.0;
       } else {
         orderAnchor[index].gapDelta.mean = deltaMean -
-          (float)CGW_MISSED_OVERLAP;
+          (double)CGW_MISSED_OVERLAP;
       }
-    }else if (gapEndMean < - (float)CGW_MISSED_OVERLAP) {
+    }else if (gapEndMean < - (double)CGW_MISSED_OVERLAP) {
       deltaMean = (gapEndMean + insertSize.mean) - anchorGap.mean;
-      if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+      if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
         orderAnchor[index].gapDelta.mean = 0.0;
         orderAnchor[index].gapBeginOffset.mean = - deltaMean;
       } else {
         orderAnchor[index].gapDelta.mean = deltaMean -
-          (float)CGW_MISSED_OVERLAP;
-        orderAnchor[index].gapBeginOffset.mean = - (float)CGW_MISSED_OVERLAP;
+          (double)CGW_MISSED_OVERLAP;
+        orderAnchor[index].gapBeginOffset.mean = - (double)CGW_MISSED_OVERLAP;
       }
     } else {
       deltaMean = (gapBeginMean + insertSize.mean + gapEndMean) -
@@ -445,94 +445,94 @@ SetOrderInfoForGap(OrderCIsTmpT *orderAnchor, int32 index,
         orderAnchor[index].gapBeginOffset.mean = gapBeginMean -
           (deltaMean * ratioStdDev);
         if (orderAnchor[index].gapBeginOffset.mean <
-            - (float)CGW_MISSED_OVERLAP) {
-          orderAnchor[index].gapBeginOffset.mean = - (float)CGW_MISSED_OVERLAP;
+            - (double)CGW_MISSED_OVERLAP) {
+          orderAnchor[index].gapBeginOffset.mean = - (double)CGW_MISSED_OVERLAP;
         }
         deltaMean = (orderAnchor[index].gapBeginOffset.mean + insertSize.mean)
           - anchorGap.mean;
-        if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+        if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
           orderAnchor[index].gapDelta.mean = 0.0;
         } else {
           orderAnchor[index].gapBeginOffset.mean -= deltaMean -
-            (float)CGW_MISSED_OVERLAP;
+            (double)CGW_MISSED_OVERLAP;
           if (orderAnchor[index].gapBeginOffset.mean <
-              - (float)CGW_MISSED_OVERLAP) {
+              - (double)CGW_MISSED_OVERLAP) {
             orderAnchor[index].gapBeginOffset.mean =
-              - (float)CGW_MISSED_OVERLAP;
+              - (double)CGW_MISSED_OVERLAP;
           }
           deltaMean = (orderAnchor[index].gapBeginOffset.mean +
                        insertSize.mean) - anchorGap.mean;
-          if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+          if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
             orderAnchor[index].gapDelta.mean = 0.0;
           } else {
             orderAnchor[index].gapDelta.mean = deltaMean -
-              (float)CGW_MISSED_OVERLAP;
+              (double)CGW_MISSED_OVERLAP;
           }
         }
       }
     }
   }else if (pathFromA) {
-    if (gapBeginMean < - (float)CGW_MISSED_OVERLAP) {
+    if (gapBeginMean < - (double)CGW_MISSED_OVERLAP) {
       orderAnchor[index].gapBeginOffset.mean = gapBeginMean;
       deltaMean = (gapBeginMean + insertSize.mean) - anchorGap.mean;
-      if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+      if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
         orderAnchor[index].gapDelta.mean = 0.0;
       } else {
         orderAnchor[index].gapDelta.mean = deltaMean -
-          (float)CGW_MISSED_OVERLAP;
+          (double)CGW_MISSED_OVERLAP;
       }
     } else {
       deltaMean = (gapBeginMean + insertSize.mean) - anchorGap.mean;
       orderAnchor[index].gapBeginOffset.mean = gapBeginMean;
-      if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+      if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
         orderAnchor[index].gapDelta.mean = 0.0;
       } else {
         orderAnchor[index].gapBeginOffset.mean -= deltaMean -
-          (float)CGW_MISSED_OVERLAP;
+          (double)CGW_MISSED_OVERLAP;
         if (orderAnchor[index].gapBeginOffset.mean <
-            - (float)CGW_MISSED_OVERLAP) {
+            - (double)CGW_MISSED_OVERLAP) {
           orderAnchor[index].gapBeginOffset.mean =
-            - (float)CGW_MISSED_OVERLAP;
+            - (double)CGW_MISSED_OVERLAP;
         }
         deltaMean = (orderAnchor[index].gapBeginOffset.mean +
                      insertSize.mean) - anchorGap.mean;
-        if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+        if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
           orderAnchor[index].gapDelta.mean = 0.0;
         } else {
           orderAnchor[index].gapDelta.mean = deltaMean -
-            (float)CGW_MISSED_OVERLAP;
+            (double)CGW_MISSED_OVERLAP;
         }
       }
     }
   }else if (pathFromB) {
-    if (gapEndMean < - (float)CGW_MISSED_OVERLAP) {
+    if (gapEndMean < - (double)CGW_MISSED_OVERLAP) {
       deltaMean = (gapEndMean + insertSize.mean) - anchorGap.mean;
-      if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+      if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
         orderAnchor[index].gapDelta.mean = 0.0;
         orderAnchor[index].gapBeginOffset.mean = - deltaMean;
       } else {
         orderAnchor[index].gapDelta.mean = deltaMean -
-          (float)CGW_MISSED_OVERLAP;
-        orderAnchor[index].gapBeginOffset.mean = - (float)CGW_MISSED_OVERLAP;
+          (double)CGW_MISSED_OVERLAP;
+        orderAnchor[index].gapBeginOffset.mean = - (double)CGW_MISSED_OVERLAP;
       }
     } else {
       deltaMean = (gapEndMean + insertSize.mean) - anchorGap.mean;
-      if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+      if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
         orderAnchor[index].gapDelta.mean = 0.0;
         orderAnchor[index].gapBeginOffset.mean = - deltaMean;
       } else {
-        gapEndMean -= deltaMean - (float)CGW_MISSED_OVERLAP;
-        if (gapEndMean < - (float)CGW_MISSED_OVERLAP) {
-          gapEndMean = - (float)CGW_MISSED_OVERLAP;
+        gapEndMean -= deltaMean - (double)CGW_MISSED_OVERLAP;
+        if (gapEndMean < - (double)CGW_MISSED_OVERLAP) {
+          gapEndMean = - (double)CGW_MISSED_OVERLAP;
         }
         deltaMean = (gapEndMean + insertSize.mean) - anchorGap.mean;
-        if (deltaMean <= (float)CGW_MISSED_OVERLAP) {
+        if (deltaMean <= (double)CGW_MISSED_OVERLAP) {
           orderAnchor[index].gapDelta.mean = 0.0;
           orderAnchor[index].gapBeginOffset.mean = - deltaMean;
         } else {
           orderAnchor[index].gapDelta.mean = deltaMean -
-            (float)CGW_MISSED_OVERLAP;
-          orderAnchor[index].gapBeginOffset.mean = - (float)CGW_MISSED_OVERLAP;
+            (double)CGW_MISSED_OVERLAP;
+          orderAnchor[index].gapBeginOffset.mean = - (double)CGW_MISSED_OVERLAP;
         }
       }
     }
@@ -595,6 +595,8 @@ TouchesMarkedScaffolds(SEdgeT *curEdge) {
       return TRUE;
     }
   }
+  assert(0);
+  return(FALSE);
 }
 
 
@@ -1182,7 +1184,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
                  int checkForTinyScaffolds,
                  int32 verbose) {
   int isEdgeFromA = (edgeToC->idA == scaffoldA->id) || (edgeToC->idB == scaffoldA->id);
-  float chiSquaredValue;
+  double chiSquaredValue;
   LengthT gap;
   LengthT alternateGap;
   SEdgeT *otherEdgeToC = NULL;
@@ -1303,10 +1305,10 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
 
   // If we found an edge from A (B) to C, then test its length
   if (otherEdgeToC) {
-    if (!PairwiseChiSquare((float)otherEdgeToC->distance.mean,
-                           (float)otherEdgeToC->distance.variance,
-                           (float)gap.mean,
-                           (float)gap.variance, (LengthT *)NULL,
+    if (!PairwiseChiSquare((double)otherEdgeToC->distance.mean,
+                           (double)otherEdgeToC->distance.variance,
+                           (double)gap.mean,
+                           (double)gap.variance, (LengthT *)NULL,
                            &chiSquaredValue, SCAFFOLD_MERGE_CHI2_THRESHHOLD)) { // fails Chi-square
       if (verbose) {
         fprintf(stderr,"* 2 DoesScaffoldCFit fails pairwise chi square %f\n", chiSquaredValue);
@@ -1331,22 +1333,22 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
   }
 
   // C need not overlap with B
-  if (PairwiseChiSquare((float)gap.mean,
-                        (float)gap.variance,
-                        (float)-CGW_MISSED_OVERLAP,
-                        (float)1.0, (LengthT *)NULL,
+  if (PairwiseChiSquare((double)gap.mean,
+                        (double)gap.variance,
+                        (double)-CGW_MISSED_OVERLAP,
+                        (double)1.0, (LengthT *)NULL,
                         &chiSquaredValue, SCAFFOLD_MERGE_CHI2_THRESHHOLD)) { // passes Chi-square
     if (verbose)
-      fprintf(stderr,"* gap.mean is chi-squ compatible with  %g +/- %g ... returning TRUE\n", (float)-CGW_MISSED_OVERLAP, 1.0);
+      fprintf(stderr,"* gap.mean is chi-squ compatible with  %g +/- %g ... returning TRUE\n", (double)-CGW_MISSED_OVERLAP, 1.0);
     needNotOverlap = TRUE;
     // If this is a one sided edge, see if the alternate placement is also compatible with
     // a no overlap scenario.  If so, bail.
     if (edgeToC->flags.bits.isProbablyBogus) {
-      if (PairwiseChiSquare((float)alternateGap.mean,
-                            (float)alternateGap.variance,
-                            (float)-CGW_MISSED_OVERLAP,
-                            (float)1.0, (LengthT *)NULL,
-                            &chiSquaredValue, (float)SCAFFOLD_MERGE_CHI2_THRESHHOLD)) { // passes Chi-square
+      if (PairwiseChiSquare((double)alternateGap.mean,
+                            (double)alternateGap.variance,
+                            (double)-CGW_MISSED_OVERLAP,
+                            (double)1.0, (LengthT *)NULL,
+                            &chiSquaredValue, (double)SCAFFOLD_MERGE_CHI2_THRESHHOLD)) { // passes Chi-square
         if (verbose)
           fprintf(stderr,"* One sided edge failed alternate chi square test\n");
         return FALSE;
@@ -1356,7 +1358,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
   } else {
     needNotOverlap = FALSE;
     if (verbose)
-      fprintf(stderr,"* gap.mean is NOT chi-squ compatible with  %g +/- %g ... \n", (float)-CGW_MISSED_OVERLAP, 1.0);
+      fprintf(stderr,"* gap.mean is NOT chi-squ compatible with  %g +/- %g ... \n", (double)-CGW_MISSED_OVERLAP, 1.0);
   }
 
 
@@ -1379,7 +1381,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
     overlapEdge = FindOverlapEdgeChiSquare(ScaffoldGraph, endNodeA, endNodeB->id,
                                            edgeEndsOrient, edgeToC->distance.mean,
                                            edgeToC->distance.variance, &chiSquaredValue,
-                                           (float)SCAFFOLD_MERGE_CHI2_THRESHHOLD, &alternate, verbose);
+                                           (double)SCAFFOLD_MERGE_CHI2_THRESHHOLD, &alternate, verbose);
 
     // assert(!alternate); // shouldn't get the wrong orientation, should we? What about interleaving?
     if (alternate)
@@ -1404,7 +1406,7 @@ DoesScaffoldCFit(CIScaffoldT *scaffoldA,
                         overlapEdge->distance.mean,
                         overlapEdge->distance.variance,
                         (LengthT *)NULL,
-                        &chiSquaredValue, (float)SCAFFOLD_MERGE_CHI2_THRESHHOLD)) { // passes Chi-square
+                        &chiSquaredValue, (double)SCAFFOLD_MERGE_CHI2_THRESHHOLD)) { // passes Chi-square
 
     SaveEdgeMeanForLater(edgeToC);
     edgeToC->distance.mean = overlapEdge->distance.mean;
@@ -1605,13 +1607,13 @@ AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
         edge->quality = edge->edgesContributing + edgeB->edgesContributing;
         edgeB->quality = -1.0;
         // If we have a singleton from each side, we accept this
-        if (edge->quality +0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
+        if (edge->quality +0.1 >= (double)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
           AppendPtrT(mergedEdges, (void **) &edge);
 
       } else {
         edgeB->quality = edge->edgesContributing + edgeB->edgesContributing;
         edge->quality = -1.0;
-        if (edge->quality + 0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
+        if (edge->quality + 0.1 >= (double)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
           AppendPtrT(mergedEdges, (void **) &edge);
         
         AppendPtrT(mergedEdges, (void **)&edgeB);
@@ -1901,8 +1903,8 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
                              CIScaffoldT                *scaffoldB,
                              ScaffoldInstrumenter       *si,
                              VA_TYPE(MateInstrumenterP) *MIs,
-                             float                       minSatisfied,
-                             float                       maxDelta) {
+                             double                       minSatisfied,
+                             double                       maxDelta) {
 
   assert(si != NULL);
 
@@ -2039,7 +2041,8 @@ SaveBadScaffoldMergeEdge(SEdgeT * edge,
 
   InitCanonicalOverlapSpec(edge->idA, edge->idB, edge->orient, &spec);
   if ((lookup = LookupCanonicalOverlap(overlapper, &spec)) == NULL) {
-    ChunkOverlapCheckT olap = {0};
+    ChunkOverlapCheckT olap;
+    memset(&olap, 0, sizeof(ChunkOverlapCheckT));
     // create
     FillChunkOverlapWithEdge(edge, &olap);
     olap.minOverlap = (int32)(-edge->distance.mean - delta);
@@ -2114,7 +2117,7 @@ AbuttingWillWork(SEdgeT * curEdge,
                  CIScaffoldT * scaffoldB,
                  InterleavingSpec * iSpec) {
   int isAbuttable = FALSE;
-  float chiSquaredValue;
+  double chiSquaredValue;
 
   if (curEdge->distance.mean >= -CGW_MISSED_OVERLAP)
     return TRUE;
@@ -2220,7 +2223,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
   if (iSpec->checkForTinyScaffolds &&
       min_scaffold_length < 5000 &&
       length_to_dist < 0.20) {
-    fprintf(stderr, "ExamineSEdgeForUsability()-- Scaffolds %d and %d are too short (%d and %d bp) relative to edge length (%d).  Skip.\n",
+    fprintf(stderr, "ExamineSEdgeForUsability()-- Scaffolds %d and %d are too short (%.0f and %.0f bp) relative to edge length (%.0f).  Skip.\n",
             curEdge->idA,
             curEdge->idB, 
             scaffoldA->bpLength.mean,
@@ -2381,7 +2384,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
       NodeCGW_T *endNodeA, *endNodeB;
       double aGapSize, bGapSize;
       EdgeCGW_T *overlapEdge;
-      float chiSquaredValue;
+      double chiSquaredValue;
       int alternate;
 
       TranslateScaffoldOverlapToContigOverlap(scaffoldA, scaffoldB, mergeEdge->orient, &endNodeA, &endNodeB, &orientEndNodeA, &orientEndNodeB, &edgeEndsOrient,
@@ -2390,7 +2393,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
       overlapEdge = FindOverlapEdgeChiSquare(ScaffoldGraph, endNodeA, endNodeB->id,
                                              edgeEndsOrient, mergeEdge->distance.mean,
                                              mergeEdge->distance.variance, &chiSquaredValue,
-                                             (float)SCAFFOLD_MERGE_CHI2_THRESHHOLD, &alternate, verbose);
+                                             (double)SCAFFOLD_MERGE_CHI2_THRESHHOLD, &alternate, verbose);
       if (overlapEdge == (EdgeCGW_T *)NULL) {
         double minSizeScaffoldA = scaffoldA->bpLength.mean -
           (MAX_SLOP_IN_STD * sqrt(scaffoldA->bpLength.variance));
@@ -2541,7 +2544,7 @@ ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
       NodeCGW_T *endNodeA, *endNodeB;
       double aGapSize, bGapSize;
       EdgeCGW_T *overlapEdge = NULL;
-      float chiSquaredValue;
+      double chiSquaredValue;
       int alternate = FALSE;
 
       TranslateScaffoldOverlapToContigOverlap(scaffoldA, scaffoldB,
@@ -2789,7 +2792,7 @@ int
 BuildSEdgesForMerging(ScaffoldGraphT * graph,
                       VA_TYPE(PtrT) ** sEdges,
                       VA_TYPE(PtrT) ** overlapSEdges,
-                      float * minWeightThreshold,
+                      double * minWeightThreshold,
                       int adjustThreshold,
                       InterleavingSpec * iSpec,
                       int32 verbose) {
@@ -3228,7 +3231,7 @@ MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
 
   int32  mergedSomething    = TRUE;
   int32  iterations         = 0;
-  float  minWeightThreshold = 0.0;
+  double  minWeightThreshold = 0.0;
   time_t lastCkpTime        = time(0) - 90 * 60;
 
   //  Create a scaffold edge for every inter-scaffold contig edge, then merge compatible ones

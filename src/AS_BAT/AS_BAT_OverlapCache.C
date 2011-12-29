@@ -19,11 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.10 2011-12-12 20:22:39 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.11 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
 
+#include <sys/types.h>
+#include <sys/sysctl.h>
 
 OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
                            OverlapStore *ovlStoreRept,
@@ -35,15 +37,35 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   _memLimit = memlimit;
   _memUsed = 0;
 
-  uint64  physPages = sysconf(_SC_PHYS_PAGES);
-  uint64  pageSize  = sysconf(_SC_PAGESIZE);
+  //#if HAVE_SYSCTL && defined HW_PHYSMEM
+#if 1
+  uint64  physMemory = 0;
+
+  int     mib[2] = { CTL_HW, HW_PHYSMEM };
+  size_t  len    = sizeof(uint64);
+
+  errno = 0;
+
+  if (sysctl(mib, 2, &physMemory, &len, NULL, 0) != 0)
+    //  failed to get memory size, so what?
+    fprintf(stderr, "sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
+
+  if (len != sizeof(uint64))
+    //  wasn't enough space, so what?
+    fprintf(stderr, "sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
+
+#else
+  uint64  physPages  = sysconf(_SC_PHYS_PAGES);
+  uint64  pageSize   = sysconf(_SC_PAGESIZE);
+  uint64  physMemory = physPages * pageSize;
 
   fprintf(stderr, "PHYS_PAGES = "F_U64"\n", physPages);
   fprintf(stderr, "PAGE_SIZE  = "F_U64"\n", pageSize);
-  fprintf(stderr, "MEMORY     = "F_U64"\n", pageSize * physPages);
+  fprintf(stderr, "MEMORY     = "F_U64"\n", physMemory);
+#endif
 
   if (_memLimit == UINT64_MAX)
-    _memLimit = pageSize * physPages;
+    _memLimit = physMemory;
 
   //  Decide on the default block size.  We want to use large blocks (to reduce the number of
   //  allocations, and load on the allocator) but not so large that we can't fit nicely.
@@ -173,7 +195,7 @@ OverlapCache::computeOverlapLimit(void) {
 
   _maxPer = (_memLimit - _memUsed) / (FI->numFragments() * sizeof(BAToverlapInt));
 
-  fprintf(stderr, "OverlapCache()--  Initial guess at _maxPer="F_U64" (max of "F_U64") from (memLimit="F_U64" - memUsed="F_U64") / (numFrags="F_U32" * sizeof(OVL)="F_U64")\n",
+  fprintf(stderr, "OverlapCache()--  Initial guess at _maxPer="F_U32" (max of "F_U32") from (memLimit="F_U64" - memUsed="F_U64") / (numFrags="F_U32" * sizeof(OVL)="F_SIZE_T")\n",
           _maxPer, numPerMax, _memLimit, _memUsed, FI->numFragments(), sizeof(BAToverlapInt));
 
   if (_maxPer < 10)
@@ -268,7 +290,7 @@ OverlapCache::computeOverlapLimit(void) {
   //  Report
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "OverlapCache()-- blockSize   = "F_U32" ("F_U64"MB)\n", _storMax, (_storMax * sizeof(BAToverlapInt)) >> 20);
+  fprintf(stderr, "OverlapCache()-- blockSize   = "F_U32" ("F_SIZE_T"MB)\n", _storMax, (_storMax * sizeof(BAToverlapInt)) >> 20);
   fprintf(stderr, "\n");
   fprintf(stderr, "OverlapCache()-- _maxPer     = "F_U32" overlaps/frag\n", _maxPer);
   fprintf(stderr, "OverlapCache()-- numBelow    = "F_U32"\n", numBelow);

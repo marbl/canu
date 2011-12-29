@@ -22,8 +22,8 @@
 #ifndef INCLUDE_AS_BAT_ARRIVALRATE
 #define INCLUDE_AS_BAT_ARRIVALRATE
 
-static const char *rcsid_INCLUDE_AS_BAT_ARRIVALRATE = "$Id: AS_BAT_ArrivalRate.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_ARRIVALRATE = "$Id: AS_BAT_ArrivalRate.H,v 1.2 2011-12-29 09:26:03 brianwalenz Exp $";
 
-float getGlobalArrivalRate(UnitigVector &unitigs, long total_random_frags_in_genome=0, long genome_size=0);
+double getGlobalArrivalRate(UnitigVector &unitigs, long total_random_frags_in_genome=0, long genome_size=0);
 
 #endif  //  INCLUDE_AS_BAT_ARRIVALRATE

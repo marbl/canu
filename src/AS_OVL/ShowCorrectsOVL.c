@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: ShowCorrectsOVL.c,v 1.13 2009-05-21 02:24:37 brianwalenz Exp $
- * $Revision: 1.13 $
+ * $Id: ShowCorrectsOVL.c,v 1.14 2011-12-29 09:26:03 brianwalenz Exp $
+ * $Revision: 1.14 $
 */
 
-static char *rcsid = "$Id: ShowCorrectsOVL.c,v 1.13 2009-05-21 02:24:37 brianwalenz Exp $";
+static char *rcsid = "$Id: ShowCorrectsOVL.c,v 1.14 2011-12-29 09:26:03 brianwalenz Exp $";
 
 
 //  System include files
@@ -96,7 +96,7 @@ int  main
                   msg . frag . keep_right ? "KR" : "  ");
         else
           {
-           printf (" %4u ", msg . corr . pos);
+           printf (" %4"F_U64P" ", msg . corr . pos);
            switch  ((Vote_Value_t) msg . corr . type)
              {
               case  EXTENSION :

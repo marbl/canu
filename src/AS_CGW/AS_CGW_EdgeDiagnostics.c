@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.28 2010-08-19 05:28:06 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.29 2011-12-29 09:26:03 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -182,7 +182,7 @@ void ComputeFrag5pToChunkEnd(ScaffoldGraphT * graph,
                              LengthT * distFromEnd,
                              ChunkInstanceT * chunk)
 {
-  LengthT offset5p;
+  LengthT offset5p = {0,0};
   SequenceOrient fragOrient;
 
   GetFragment5pAndOrientationInChunk(graph, frag, &offset5p, &fragOrient,
@@ -201,7 +201,7 @@ void ComputeFragToChunkEndForEdge(ScaffoldGraphT * graph,
                                   LengthT * distFromEnd,
                                   ChunkInstanceT * chunk)
 {
-  LengthT offset5p;
+  LengthT offset5p = {0,0};
   SequenceOrient fragOrient;
 
   GetFragment5pAndOrientationInChunk(graph, frag, &offset5p, &fragOrient,
@@ -243,7 +243,9 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
   LengthT distFromAChunkEnd;
   LengthT distFromBChunkEnd;
   LengthT distBetweenChunks;
-  float distVariance = dist->sigma * dist->sigma;
+  double distVariance = dist->sigma * dist->sigma;
+
+  memset(edge, 0, sizeof(EdgeCGW_T));
 
   // determine distance from 5p of fragment to relevant end of CI
   ComputeFragToChunkEndForEdge(graph, fragA,
@@ -700,17 +702,17 @@ int CheckAllContigOrientationsInAllScaffolds(ScaffoldGraphT * graph,
 
 #define DIFFERENT_EDGE_FACTOR    0.1f
 
-int CompareEdgeFloats(float   edgeFloat,
-                      float   fragsFloat,
+int CompareEdgeDoubles(double   edgeDouble,
+                      double   fragsDouble,
                       char * message)
 {
-  float   delta = fabs(edgeFloat - fragsFloat);
+  double   delta = fabs(edgeDouble - fragsDouble);
   if(delta > 1.f &&
-     (delta > fabs(edgeFloat) * DIFFERENT_EDGE_FACTOR ||
-      delta > fabs(fragsFloat) * DIFFERENT_EDGE_FACTOR))
+     (delta > fabs(edgeDouble) * DIFFERENT_EDGE_FACTOR ||
+      delta > fabs(fragsDouble) * DIFFERENT_EDGE_FACTOR))
     {
       fprintf(stderr, "!!!!!!! Edge %s not supported by fragment matepairs: %.2f (edge) vs. %.2f (frags)\n",
-              message, edgeFloat, fragsFloat);
+              message, edgeDouble, fragsDouble);
       return 1;
     }
   return 0;
@@ -720,14 +722,14 @@ int CompareEdgeFloats(float   edgeFloat,
 int CompareEdgeMeans(EdgeCGW_T * edge1,
                      EdgeCGW_T * edge2)
 {
-  return(CompareEdgeFloats(edge1->distance.mean, edge2->distance.mean, "means"));
+  return(CompareEdgeDoubles(edge1->distance.mean, edge2->distance.mean, "means"));
 }
 
 
 int CompareEdgeVariances(EdgeCGW_T * edge1,
                          EdgeCGW_T * edge2)
 {
-  return(CompareEdgeFloats(edge1->distance.variance, edge2->distance.variance, "variances"));
+  return(CompareEdgeDoubles(edge1->distance.variance, edge2->distance.variance, "variances"));
 }
 
 
@@ -765,7 +767,7 @@ int CheckAllEdgesForChunk(ScaffoldGraphT * graph,
 {
   GraphEdgeIterator edges;
   CIEdgeT * edge;
-  EdgeCGW_T myEdge = {0};
+  EdgeCGW_T myEdge;
   int retVal = 0;
 
   switch(chunk->type)
@@ -871,10 +873,10 @@ void ValidateAllContigEdges(ScaffoldGraphT * graph, int fixBadOnes)
 typedef struct
 {
   CDS_CID_t   scaffoldID;
-  float       minOffsetScaffoldB;
-  float       maxOffsetScaffoldB;
-  float       minOffset;
-  float       maxOffset;
+  double       minOffsetScaffoldB;
+  double       maxOffsetScaffoldB;
+  double       minOffset;
+  double       maxOffset;
   PairOrient  orient;
   int         orientationsConsistent;
   int         weight;
@@ -954,8 +956,8 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
           DistT * dist = GetDistT(graph->Dists, edge->distIndex);
           CIScaffoldT * scaffoldB = GetCIScaffoldT(graph->CIScaffolds,
                                                    chunkB->scaffoldID);
-          LengthT offsetA;
-          LengthT offsetB;
+          LengthT offsetA = {0,0};
+          LengthT offsetB = {0,0};
           SequenceOrient orientA;
           SequenceOrient orientB;
           ScfLink * link;

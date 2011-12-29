@@ -20,13 +20,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputStatistics.C,v 1.6 2011-07-21 05:32:54 brianwalenz Exp $";
+const char *mainid = "$Id: asmOutputStatistics.C,v 1.7 2011-12-29 09:26:03 brianwalenz Exp $";
 
-#include  <stdio.h>
-#include  <stdlib.h>
-#include  <string.h>
-#include  <unistd.h>
-#include  <assert.h>
+#include "AS_global.h"
+#include "AS_PER_gkpStore.h"
 
 #include  <map>
 #include  <vector>
@@ -38,8 +35,6 @@ using namespace std;
 #define F00U         "%"F_U64P
 #define UNDEFINED  (uint64)0
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
 
 map<AS_UID,AS_IID>  uid2iid;
 

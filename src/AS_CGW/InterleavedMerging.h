@@ -22,7 +22,7 @@
 #ifndef INTERLEAVED_MERGING_H
 #define INTERLEAVED_MERGING_H
 
-static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.13 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.14 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -84,8 +84,8 @@ typedef struct {
   int contigNow;
   int checkForTinyScaffolds;
   int checkAbutting;
-  float minSatisfied;     // 0 to 1 - .98 or so?
-  float maxDelta;         // 0 to 1 - .01 or so?
+  double minSatisfied;     // 0 to 1 - .98 or so?
+  double maxDelta;         // 0 to 1 - .01 or so?
   VA_TYPE(MateInstrumenterP) *MIs;
   ChunkOverlapperT * badSEdges;
 } InterleavingSpec;

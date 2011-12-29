@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cgb.c,v 1.30 2010-08-12 19:19:48 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_cgb.c,v 1.31 2011-12-29 09:26:03 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -753,7 +753,9 @@ fill_a_chunk_starting_at(const int pass,
 
   assert(nfrag_in_chunk > 0);
 
-  AChunkMesg ch = {0};
+  AChunkMesg ch;
+
+  memset(&ch, 0, sizeof(AChunkMesg));
 
   ch.iaccession   = ichunk;
   ch.bp_length    = nbase_essential_in_chunk;

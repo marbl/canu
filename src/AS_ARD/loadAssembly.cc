@@ -19,21 +19,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: loadAssembly.cc,v 1.5 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id: loadAssembly.cc,v 1.6 2011-12-29 09:26:03 brianwalenz Exp $";
 
-#include <iostream>
-
-/*************************************************************************/
-/* Local include files */
-/*************************************************************************/
-
-#include <unistd.h>
 #include "AS_global.h"
 #include "SYS_UIDclient.h"
 
 #include "AS_ARD_database.hh"
 #include "IDBOutput.hh"
 #include "DBTextOutput.hh"
+
+#include <iostream>
+
+/*************************************************************************/
+/* Local include files */
+/*************************************************************************/
 
 #ifdef SYBASE
    #include "BCPOutput.hh"

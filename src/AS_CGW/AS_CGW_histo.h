@@ -22,7 +22,7 @@
 #ifndef AS_CGW_HISTO_H
 #define AS_CGW_HISTO_H
 
-static const char *rcsid_AS_CGW_HISTO_H = "$Id: AS_CGW_histo.h,v 1.4 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_AS_CGW_HISTO_H = "$Id: AS_CGW_histo.h,v 1.5 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <assert.h>
 
@@ -46,9 +46,9 @@ typedef struct {
   int sum_oedges;
   int min_oedges;
   int max_oedges;
-  float sum_ratio;
-  float min_ratio;
-  float max_ratio;
+  double sum_ratio;
+  double min_ratio;
+  double max_ratio;
   int sum_nScaffolds;
   int min_nScaffolds;
   int max_nScaffolds;
@@ -63,10 +63,10 @@ typedef struct {
 static void SetChunkAggregate(ChunkAggregate *ca, int bases, int span, int uEdges,
 			      int cEdges, int oEdges, int wcEdges,
 			      int nScaffolds, int nScaffoldsConfirmed, int nScaffoldsProblem){
-  float ratio;
+  double ratio;
   AssertPtr(ca);
   assert(bases != 0 && span != 0);
-  ratio = (float)bases/(float)span;
+  ratio = (double)bases/(double)span;
   ca->nsamples = 1;
   ca->sum_bases = ca->min_bases = ca->max_bases = bases;
   ca->sum_span = ca->min_span = ca->max_span = span;

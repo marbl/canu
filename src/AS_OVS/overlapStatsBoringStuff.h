@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTOREBORINGSTUFF_H
 #define OVERLAPSTOREBORINGSTUFF_H
 
-static const char *rcsid_OVERLAPSTOREBORINGSTUFF_H = "$Id: overlapStatsBoringStuff.h,v 1.5 2009-06-10 18:05:14 brianwalenz Exp $";
+static const char *rcsid_OVERLAPSTOREBORINGSTUFF_H = "$Id: overlapStatsBoringStuff.h,v 1.6 2011-12-29 09:26:03 brianwalenz Exp $";
 
     ////////////////////////////////////////
     //
@@ -292,7 +292,7 @@ computeRepeatModels(OverlapStore *ovs, gkStore *gkp) {
       exit(1);
     }
 
-    fprintf(file, "repeatThreshold = %d\n", rm[i].repeatThreshold);
+    fprintf(file, "repeatThreshold = "F_U64"\n", rm[i].repeatThreshold);
 
     sprintf(label, "Lib "F_IID" 5'", i);
     AS_UTL_histogramShow(&rm[i].hist5, file, label);

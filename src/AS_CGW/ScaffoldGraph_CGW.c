@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.57 2011-12-20 22:55:17 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.58 2011-12-29 09:26:03 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -236,7 +236,7 @@ void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph){
   int scaffolded = 0;
   LengthT NullLength = {0,0.0};
   CIScaffoldT CIScaffold;
-  GraphNodeIterator nodes = {0};
+  GraphNodeIterator nodes;
   NodeCGW_T *CI;
 
   memset(&CIScaffold, 0, sizeof(CIScaffoldT));

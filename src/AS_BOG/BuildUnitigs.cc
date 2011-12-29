@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.86 2010-10-27 09:58:39 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.87 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -121,7 +121,7 @@ main (int argc, char * argv []) {
 
   double    erate                   = 0.015;
   double    elimit                  = 0.0;
-  long      genome_size             = 0;
+  uint64    genome_size             = 0;
 
   int       fragment_count_target   = 0;
   char     *output_prefix           = NULL;
@@ -296,7 +296,7 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Bad mate threshold    = %d\n", badMateBreakThreshold);
   fprintf(stderr, "Error threshold       = %.3f (%.3f%%)\n", erate, erate * 100);
   fprintf(stderr, "Error limit           = %.3f errors\n", elimit);
-  fprintf(stderr, "Genome Size           = "F_S64"\n", genome_size);
+  fprintf(stderr, "Genome Size           = "F_U64"\n", genome_size);
   fprintf(stderr, "\n");
   fprintf(stderr, "sizeof(ufPath)        = %d\n", (int)sizeof(ufPath));
   fprintf(stderr, "\n");
@@ -325,7 +325,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "output");
 
-  float globalARate = UG->getGlobalArrivalRate(gkpStore->gkStore_getNumRandomFragments(), genome_size);
+  double globalARate = UG->getGlobalArrivalRate(gkpStore->gkStore_getNumRandomFragments(), genome_size);
   Unitig::setGlobalArrivalRate(globalARate);
 
   UG->writeIUMtoFile(output_prefix, tigStorePath, fragment_count_target);

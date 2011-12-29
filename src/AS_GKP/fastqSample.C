@@ -19,17 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSample.C,v 1.7 2011-08-19 21:13:10 brianwalenz Exp $";
-
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <time.h>
-#include <math.h>
-#include <string.h>
-#include <errno.h>
+const char *mainid = "$Id: fastqSample.C,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
+
 
 class aRead {
 public:

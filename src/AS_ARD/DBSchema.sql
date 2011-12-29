@@ -329,8 +329,8 @@ CREATE TABLE dbo.CLK (
 	clk_ovt        char(1)      NULL,
 	clk_ipc        bit      NOT NULL,
 	clk_gui        bit      NOT NULL,
-	clk_mea        float(16)     NULL,
-	clk_std        float(16)     NULL,
+	clk_mea        double(16)     NULL,
+	clk_std        double(16)     NULL,
 	clk_num        int          NULL,
 	clk_sta        char(1)      NULL
 )
@@ -516,8 +516,8 @@ CREATE TABLE dbo.CTP (
 	ctp_EUID       char(32)     NULL,
 	ctp_CIID       uint         NULL,
 	ctp_scf_MSG_ID bigint       NULL,
-	ctp_mea        float(16)     NULL,
-	ctp_std        float(16)     NULL,
+	ctp_mea        double(16)     NULL,
+	ctp_std        double(16)     NULL,
 	ctp_ori        char(1)      NULL
 )
 LOCK DATAPAGES
@@ -738,8 +738,8 @@ CREATE TABLE dbo.MDI (
 	mdi_AssemblyID bigint       NULL,
 	mdi_EUID       char(32)     NULL,
 	mdi_CIID       uint         NULL,
-	mdi_mea        float(16)     NULL,
-	mdi_std        float(16)     NULL,
+	mdi_mea        double(16)     NULL,
+	mdi_std        double(16)     NULL,
 	mdi_min        int          NULL,
 	mdi_max        int          NULL,
     CONSTRAINT fk_MDI_Assembly FOREIGN KEY (mdi_AssemblyID) REFERENCES dbo.Assembly (ID)
@@ -779,8 +779,8 @@ CREATE TABLE dbo.UTG (
 	utg_EUID       char(32)          NULL,
 	utg_CIID       uint              NULL,
 	utg_src        varchar(255)      NULL,
-	utg_mhp        float(16)         NULL,
-	utg_cov        float(16)         NULL,
+	utg_mhp        double(16)         NULL,
+	utg_cov        double(16)         NULL,
 	utg_sta        char(1)           NULL,
 	utg_abp        int               NULL,
 	utg_bbp        int               NULL,
@@ -955,8 +955,8 @@ CREATE TABLE dbo.ULK (
 	ulk_ori        char(1)      NULL,
 	ulk_ovt        char(1)      NULL,
 	ulk_ipc        bit      NOT NULL,
-	ulk_mea        float(16)     NULL,
-	ulk_std        float(16)     NULL,
+	ulk_mea        double(16)     NULL,
+	ulk_std        double(16)     NULL,
 	ulk_num        int          NULL,
 	ulk_sta        char(1)      NULL
 )

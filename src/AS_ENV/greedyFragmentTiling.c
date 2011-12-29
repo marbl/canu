@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: greedyFragmentTiling.c,v 1.20 2009-09-12 22:35:58 brianwalenz Exp $";
+const char *mainid = "$Id: greedyFragmentTiling.c,v 1.21 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -91,7 +91,7 @@ void setup_stores(char *OVL_Store_Path, char *Gkp_Store_Path){
 
 //WAS: void print_olap(Long_Olap_Data_t olap){
 void print_olap(OVSoverlap olap){
-  printf ("    %8d %8d %c %5d %5d %4.1f %4.1f\n",
+  printf ("    %8d %8d %c %5"F_S64P" %5"F_S64P" %4.1f %4.1f\n",
 	  olap . a_iid,
 	  olap . b_iid,
 	  olap . dat . ovl . flipped ? 'I' : 'N',
@@ -419,6 +419,9 @@ OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd,
         upperB = get_95pct_upper(olenB, AS_OVS_decodeQuality(b.dat . ovl . orig_erate)+.0009);
       }
 
+      //  BPW - unfinished?!
+      assert(0);
+      return(a);
 
       }
       break;
@@ -913,7 +916,7 @@ int main (int argc , char * argv[] ) {
     }
     sampleFile = fopen(sampleFileName,"r");
     assert(sampleFile!=NULL);
-    while(fscanf(sampleFile, "%s "F_IID,&uidstr,&smp)==2){
+    while(fscanf(sampleFile, "%s "F_IID, &uidstr, &smp)==2){
       uid = AS_UID_load(uidstr);
       AS_IID iid=uid2iid(uid);
       if(iid>0) iid2sample[iid]=smp;

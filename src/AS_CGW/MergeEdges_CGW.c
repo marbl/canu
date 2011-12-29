@@ -18,21 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.30 2010-04-17 03:21:00 brianwalenz Exp $";
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <float.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-
-#define C_SORT
-
-#ifndef C_SORT
-#include <algorithm>
-#endif
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.31 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -43,6 +29,12 @@ static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.30 2010-04-17 03:21:00 brianwale
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ChiSquareTest_CGW.h"
+
+#define C_SORT
+
+#ifndef C_SORT
+#include <algorithm>
+#endif
 
 /* Check that another fragment besides the terminal fragment extends
    by at least the minimal detectable amount into the overlap region. */
@@ -169,12 +161,12 @@ static int ConfirmOverlap(GraphCGW_T *graph,
 #define FPMIN 1.0e-30
 
 static
-float
-gser(float a, float x) {
-  float gln = lgammaf(a);
-  float ap  = a;
-  float del = 1.0 / a;
-  float sum = del;
+double
+gser(double a, double x) {
+  double gln = lgammaf(a);
+  double ap  = a;
+  double del = 1.0 / a;
+  double sum = del;
   int32 n   = 1;
 
   for (n=1; n<=ITMAX; n++) {
@@ -197,15 +189,15 @@ gser(float a, float x) {
 }
 
 static
-float
-gcf(float a, float x) {
-  float gln = lgammaf(a);
-  float b   = x + 1.0 - a;
-  float c   = 1.0 / FPMIN;
-  float d   = 1.0 / b;
-  float h   = d;
-  float an  = 0;
-  float del = 0;
+double
+gcf(double a, double x) {
+  double gln = lgammaf(a);
+  double b   = x + 1.0 - a;
+  double c   = 1.0 / FPMIN;
+  double d   = 1.0 / b;
+  double h   = d;
+  double an  = 0;
+  double del = 0;
   int32 i   = 1;
 
   for (i=1; i<=ITMAX; i++) {
@@ -234,8 +226,8 @@ gcf(float a, float x) {
 }
 
 static
-float
-gammq(float a, float x) {
+double
+gammq(double a, double x) {
 
  assert(a >  0.0);
  assert(x >= 0.0);
@@ -263,7 +255,7 @@ ComputeChiSquared(Chi2ComputeT *edges,
                   int           numEdges,
                   CDS_CID_t     skip,
                   LengthT      *distance,
-                  float        *score) {
+                  double        *score) {
   double  cumScore           = 0.0;
   double  cumWeightedMean    = 0.0;
   double  cumInverseVariance = 0.0;
@@ -500,7 +492,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
   int confirmable;
   CIEdgeT *overlapEdge;
   LengthT distance;
-  float chiSquareScore;
+  double chiSquareScore;
   Chi2ComputeT *edgeChi2ComputePtr;
 
   Chi2ComputeT *edgeChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges * sizeof(*edgeChi2Compute));
@@ -579,7 +571,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
   if(numEdges > 2){
     /* Check to see if any set of the inputEdges of size numEdges - 1 passes
        the Chi Squared Test and if so merge the set with the best score. */
-    float minScore;
+    double minScore;
     CDS_CID_t skipEdgeIndex;
     Chi2ResultT  *edgeChi2ResultPtr;
     VA_TYPE(CDS_CID_t) *clusterEdges = CreateVA_CDS_CID_t(numEdges);
@@ -700,13 +692,13 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 	/* passed indicates that this pair of clusters exceeded the threshold
 	   for passing the pairwise Chi Squared Test. */
 	pairClusterScoreChi2Ptr->passed =
-	  PairwiseChiSquare((float)edgeClusterChi2Ptr->distance.mean,
+	  PairwiseChiSquare((double)edgeClusterChi2Ptr->distance.mean,
 			    edgeClusterChi2Ptr->distance.variance,
-			    (float)(edgeChi2Compute + colIndex)->distance.mean,
+			    (double)(edgeChi2Compute + colIndex)->distance.mean,
 			    (edgeChi2Compute + colIndex)->distance.variance,
 			    &(pairClusterScoreChi2Ptr->distance),
 			    &(pairClusterScoreChi2Ptr->score),
-			    (float)PAIRWISECHI2THRESHOLD_CGW);
+			    (double)PAIRWISECHI2THRESHOLD_CGW);
 	/* We want all of the clusters to try to pass the full chi squared test so we set this to TRUE */
 	pairClusterScoreChi2Ptr->passed = TRUE;
       }
@@ -793,13 +785,13 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 	    colIndex;
 	  if(rowClusterScoreChi2Ptr->active){
 	    rowClusterScoreChi2Ptr->passed =
-	      PairwiseChiSquare((float)edgeClusterChi2Ptr->distance.mean,
+	      PairwiseChiSquare((double)edgeClusterChi2Ptr->distance.mean,
 				edgeClusterChi2Ptr->distance.variance,
-				(float)rowClusterChi2Ptr->distance.mean,
+				(double)rowClusterChi2Ptr->distance.mean,
 				rowClusterChi2Ptr->distance.variance,
 				&(rowClusterScoreChi2Ptr->distance),
 				&(rowClusterScoreChi2Ptr->score),
-				(float)PAIRWISECHI2THRESHOLD_CGW);
+				(double)PAIRWISECHI2THRESHOLD_CGW);
 	    /* We want all of the clusters to try to pass the full chi squared test so we set this to TRUE */
 	    rowClusterScoreChi2Ptr->passed = TRUE;
 	  }
@@ -811,13 +803,13 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 	  edgeClusterChi2Ptr = edgeClusterChi2 + colIndex;
 	  if(rowClusterScoreChi2Ptr->active){
 	    rowClusterScoreChi2Ptr->passed =
-	      PairwiseChiSquare((float)edgeClusterChi2Ptr->distance.mean,
+	      PairwiseChiSquare((double)edgeClusterChi2Ptr->distance.mean,
 				edgeClusterChi2Ptr->distance.variance,
-				(float)rowClusterChi2Ptr->distance.mean,
+				(double)rowClusterChi2Ptr->distance.mean,
 				rowClusterChi2Ptr->distance.variance,
 				&(rowClusterScoreChi2Ptr->distance),
 				&(rowClusterScoreChi2Ptr->score),
-				(float)PAIRWISECHI2THRESHOLD_CGW);
+				(double)PAIRWISECHI2THRESHOLD_CGW);
 	    /* We want all of the clusters to try to pass the full chi squared test so we set this to TRUE */
 	    rowClusterScoreChi2Ptr->passed = TRUE;
 	  }

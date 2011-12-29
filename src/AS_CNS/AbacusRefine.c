@@ -19,23 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AbacusRefine.c,v 1.12 2011-12-09 02:59:56 brianwalenz Exp $";
-
-#include <algorithm>
-#include <cassert>
-#include <cmath>
-#include <cstdarg>
-#include <cstdio>
-#include <map>
-
-using namespace std;
+static char *rcsid = "$Id: AbacusRefine.c,v 1.13 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
-#include "MicroHetREZ.h"
-#include "AS_UTL_reverseComplement.h"
-
 
 static
 int

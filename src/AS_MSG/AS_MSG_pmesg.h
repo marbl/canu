@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.90 2011-09-06 01:11:56 mkotelbajcvi Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.91 2011-12-29 09:26:03 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.90 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.91 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <cstdio>
 #include <ctime>
@@ -116,8 +116,8 @@ typedef struct {
 typedef struct {
   ActionType   action;
   AS_UID       eaccession;
-  float        mean;
-  float        stddev;
+  double       mean;
+  double       stddev;
   char        *source;
   PairOrient   link_orient;
   uint32       num_features;
@@ -128,30 +128,30 @@ typedef struct {
 typedef struct {
   ActionType   action;
   AS_UID       eaccession;
-  float        mean;
-  float        stddev;
+  double       mean;
+  double       stddev;
 } DistanceMesg;  //  DST, only version 1
 
 typedef struct {
-  ActionType   		action;
+  ActionType       action;
   uint32                version;
-  AS_UID     		eaccession;
+  AS_UID         eaccession;
   AS_UID                library_uid;     //  only version 2
   IntLibrary_ID         library_iid;     //  only version 2
   AS_UID                plate_uid;       //  only version 2
   uint32                plate_location;  //  only version 2
-  FragType     		type;            //  only version 1
+  FragType         type;            //  only version 1
   uint32                is_random;       //  only version 2
   char                  status_code;     //  only version 2
-  SeqInterval  		clear_rng;
-  SeqInterval  		clear_vec;       //  only version 2
-  SeqInterval  		clear_max;       //  only version 2
+  SeqInterval      clear_rng;
+  SeqInterval      clear_vec;       //  only version 2
+  SeqInterval      clear_max;       //  only version 2
   SeqInterval           contamination;   //  only version 2
-  char        		*source;
-  char        		*sequence;
-  char        		*quality;
+  char            *source;
+  char            *sequence;
+  char            *quality;
   char                  *hps;            //  only version 2
-  IntFragment_ID   	iaccession;
+  IntFragment_ID     iaccession;
 } FragMesg;  //  FRG
 
 typedef FragMesg InternalFragMesg;
@@ -161,7 +161,7 @@ typedef struct {
   int32            ahg, bhg;
   PairOrient       orientation;
   OverlapType      overlap_type;
-  float            quality;
+  double           quality;
   int32            min_offset, max_offset;
   int32            polymorph_ct;
   int32            *alignment_trace;
@@ -173,20 +173,20 @@ typedef struct {
 } OverlapMesg;  //  OVL
 
 typedef struct {
-  IntChunk_ID		chunk1;
-  IntChunk_ID     	chunk2;
+  IntChunk_ID    chunk1;
+  IntChunk_ID       chunk2;
   PairOrient            orient;
-  UnitigOverlapType	overlap_type;
+  UnitigOverlapType  overlap_type;
   int32                 best_overlap_length;
   int32                 min_overlap_length;
   int32                 max_overlap_length;
-  float                 quality;
+  double                quality;
 } UnitigOverlapMesg;  //  UOM
 
 typedef struct {
   IntChunk_ID     iaccession;
   int32           bp_length;
-  float           coverage_stat;
+  double          coverage_stat;
   int32           num_frags;
   int32           a_degree;
   int32           b_degree;
@@ -258,14 +258,14 @@ typedef struct {
 
 typedef struct {
   IntChunk_ID     iaccession;
-  float           coverage_stat;
-  float           microhet_prob;
+  double          coverage_stat;
+  double          microhet_prob;
   UnitigStatus    status;
   UnitigFUR       unique_rept;
   int32           length;
   char            *consensus;
   char            *quality;
-  int32		  forced;
+  int32      forced;
   int32           num_frags;
   IntMultiPos    *f_list;
 } IntUnitigMesg;  //  IUM
@@ -289,7 +289,7 @@ typedef struct {
   int32                      length;
   char                       *consensus;
   char                       *quality;
-  int32		             forced;
+  int32                 forced;
   int32                      num_pieces;
   int32                      num_unitigs;
   int32                      num_vars;
@@ -304,39 +304,39 @@ typedef struct {
 } IntMate_Pairs;
 
 typedef struct {
-  IntChunk_ID		unitig1;
-  IntChunk_ID		unitig2;
+  IntChunk_ID    unitig1;
+  IntChunk_ID    unitig2;
   PairOrient            orientation;
-  UnitigOverlapType	overlap_type;
-  int32			is_possible_chimera;
-  float  		mean_distance;
-  float  		std_deviation;
-  int32			num_contributing;
-  PlacementStatusType	status;
-  IntMate_Pairs		*jump_list;
+  UnitigOverlapType  overlap_type;
+  int32      is_possible_chimera;
+  double     mean_distance;
+  double     std_deviation;
+  int32      num_contributing;
+  PlacementStatusType  status;
+  IntMate_Pairs    *jump_list;
 } IntUnitigLinkMesg;  //  IUL
 
 typedef struct {
-  IntChunk_ID		contig1;
-  IntChunk_ID		contig2;
+  IntChunk_ID    contig1;
+  IntChunk_ID    contig2;
   PairOrient            orientation;
-  UnitigOverlapType	overlap_type;
-  int32			is_possible_chimera;
-  float  		mean_distance;
-  float  		std_deviation;
-  int32			num_contributing;
-  PlacementStatusType	status;
-  IntMate_Pairs		*jump_list;
+  UnitigOverlapType  overlap_type;
+  int32      is_possible_chimera;
+  double     mean_distance;
+  double     std_deviation;
+  int32      num_contributing;
+  PlacementStatusType  status;
+  IntMate_Pairs    *jump_list;
 } IntContigLinkMesg;  //  ICL
 
 typedef struct {
-  IntScaffold_ID	iscaffold1;
-  IntScaffold_ID	iscaffold2;
+  IntScaffold_ID  iscaffold1;
+  IntScaffold_ID  iscaffold2;
   PairOrient            orientation;
-  float  		mean_distance;
-  float  		std_deviation;
-  int32			num_contributing;
-  IntMate_Pairs		*jump_list;
+  double     mean_distance;
+  double     std_deviation;
+  int32      num_contributing;
+  IntMate_Pairs    *jump_list;
 } InternalScaffoldLinkMesg;  //  ISL
 
 typedef struct {
@@ -371,25 +371,25 @@ typedef struct {
 
 typedef struct {
   IntDist_ID  refines;
-  float       mean;
-  float       stddev;
-  int32	      min;
-  int32	      max;
-  int32	      num_buckets;
+  double      mean;
+  double      stddev;
+  int32        min;
+  int32        max;
+  int32        num_buckets;
   int32       *histogram;
 } IntMateDistMesg;  //  IMD
 
 typedef struct {
-  IntContig_ID		contig1;
-  IntContig_ID		contig2;
-  float  		mean;
-  float  		stddev;
+  IntContig_ID    contig1;
+  IntContig_ID    contig2;
+  double     mean;
+  double     stddev;
   PairOrient            orient;
 } IntContigPairs;  //  ICP
 
 typedef struct {
   IntScaffold_ID  iaccession;
-  int32		  num_contig_pairs;
+  int32      num_contig_pairs;
   IntContigPairs  *contig_pairs;
 } IntScaffoldMesg;  //  ISF
 
@@ -408,13 +408,13 @@ typedef struct {
 typedef struct {
   AS_UID          eaccession;  // changed in comparison to internal message
   IntChunk_ID     iaccession;
-  float           coverage_stat;
-  float           microhet_prob;
+  double          coverage_stat;
+  double          microhet_prob;
   UnitigStatus    status;
   int32           length;
   char            *consensus;
   char            *quality;
-  int32		  forced;
+  int32      forced;
   int32           num_frags;
   int32           num_vars;
   SnapMultiPos    *f_list;// changed in comparison to internal message
@@ -427,15 +427,15 @@ typedef struct {
 } SnapMate_Pairs;
 
 typedef struct {
-  AS_UID   		eunitig1;
-  AS_UID   		eunitig2;
+  AS_UID       eunitig1;
+  AS_UID       eunitig2;
   PairOrient            orientation;
-  UnitigOverlapType	overlap_type;
-  int32			is_possible_chimera;
-  float  		mean_distance;
-  float  		std_deviation;
-  int32			num_contributing;
-  PlacementStatusType	status;
+  UnitigOverlapType  overlap_type;
+  int32      is_possible_chimera;
+  double     mean_distance;
+  double     std_deviation;
+  int32      num_contributing;
+  PlacementStatusType  status;
   SnapMate_Pairs       *jump_list; // changed in comparison to internal message
 } SnapUnitigLinkMesg;  //  ULK
 
@@ -456,52 +456,52 @@ typedef struct {
 } SnapConConMesg;  //  CCO
 
 typedef struct {
-  AS_UID   		econtig1; // changed in comparison to internal message
-  AS_UID   		econtig2; // changed in comparison to internal message
+  AS_UID       econtig1; // changed in comparison to internal message
+  AS_UID       econtig2; // changed in comparison to internal message
   PairOrient            orientation;
-  UnitigOverlapType	overlap_type;
-  int32			is_possible_chimera;
-  float  		mean_distance;
-  float  		std_deviation;
-  int32			num_contributing;
-  PlacementStatusType	status;
-  SnapMate_Pairs	*jump_list; // changed in comparison to internal message
+  UnitigOverlapType  overlap_type;
+  int32      is_possible_chimera;
+  double     mean_distance;
+  double     std_deviation;
+  int32      num_contributing;
+  PlacementStatusType  status;
+  SnapMate_Pairs  *jump_list; // changed in comparison to internal message
 } SnapContigLinkMesg;  //  CLK
 
 typedef struct {
   AS_UID                escaffold1;
   AS_UID                escaffold2;
   PairOrient            orientation;
-  float  		mean_distance;
-  float  		std_deviation;
-  int32			num_contributing;
-  SnapMate_Pairs	*jump_list;
+  double     mean_distance;
+  double     std_deviation;
+  int32      num_contributing;
+  SnapMate_Pairs  *jump_list;
 } SnapScaffoldLinkMesg;  //  SLK
 
 typedef struct {
-  AS_UID   		econtig1; // changed in comparison to internal message
-  AS_UID   		econtig2; // changed in comparison to internal message
-  float  		mean;
-  float  		stddev;
+  AS_UID       econtig1; // changed in comparison to internal message
+  AS_UID       econtig2; // changed in comparison to internal message
+  double     mean;
+  double     stddev;
   PairOrient            orient;
 } SnapContigPairs;  //  CTP
 
 typedef struct {
   AS_UID                eaccession;
   IntScaffold_ID        iaccession;
-  int32			num_contig_pairs;
-  SnapContigPairs   	*contig_pairs; // changed in comparison to internal message
+  int32      num_contig_pairs;
+  SnapContigPairs     *contig_pairs; // changed in comparison to internal message
 } SnapScaffoldMesg;  //  SCF
 
 typedef struct {
-  AS_UID   		erefines; // changed in comparison to internal message
-  IntDist_ID		irefines; // changed in comparison to internal message
-  float			mean;
-  float			stddev;
-  int32			min;
-  int32			max;
-  int32			num_buckets;
-  int32			*histogram;
+  AS_UID       erefines; // changed in comparison to internal message
+  IntDist_ID    irefines; // changed in comparison to internal message
+  double    mean;
+  double    stddev;
+  int32      min;
+  int32      max;
+  int32      num_buckets;
+  int32      *histogram;
 } SnapMateDistMesg;  //  MDI
 
 typedef struct EndOfFileMesgTag {

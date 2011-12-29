@@ -20,12 +20,11 @@
 #ifndef INCLUDE_AS_BAT_BOGUSUTIL
 #define INCLUDE_AS_BAT_BOGUSUTIL
 
-static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.8 2011-08-15 06:11:42 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.9 2011-12-29 09:26:03 brianwalenz Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <errno.h>
-#include <string.h>
+#include "AS_global.h"
+#include "AS_UTL_splitToWords.H"
+#include "AS_UTL_intervalList.H"
 
 #include <string>
 #include <vector>
@@ -33,10 +32,6 @@ static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1
 #include <algorithm>
 
 using namespace std;
-
-#include "AS_global.h"
-#include "AS_UTL_splitToWords.H"
-#include "AS_UTL_intervalList.H"
 
 
 class genomeAlignment {

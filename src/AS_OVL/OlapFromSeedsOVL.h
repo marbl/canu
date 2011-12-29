@@ -33,15 +33,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.25 2011-07-26 20:16:26 mkotelbajcvi Exp $
- * $Revision: 1.25 $
+ * $Id: OlapFromSeedsOVL.h,v 1.26 2011-12-29 09:26:03 brianwalenz Exp $
+ * $Revision: 1.26 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
 
-static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.25 2011-07-26 20:16:26 mkotelbajcvi Exp $";
+static const char *rcsid_OLAPFROMSEEDS_H_INCLUDED = "$Id: OlapFromSeedsOVL.h,v 1.26 2011-12-29 09:26:03 brianwalenz Exp $";
 
 //**ALD determine if use new code to analyze true multialignments
 #define  USE_NEW_STUFF  1
@@ -253,7 +253,7 @@ typedef  struct
   }  Thread_Work_Area_t;
 
 typedef enum
-  {TEXT_FILE, BINARY_FILE, OVL_STORE}  OVL_Output_t;
+  {TEXT_FILE, BINARY_FILE}  OVL_Output_t;
 
 
 

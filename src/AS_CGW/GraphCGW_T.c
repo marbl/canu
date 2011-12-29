@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.90 2011-12-14 14:15:17 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.91 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,8 +173,8 @@ void DeleteGraphCGW(GraphCGW_T *graph){
 
 /* Diagnostic */
 size_t ReportMemorySizeGraphCGW(GraphCGW_T *graph, FILE *stream){
-  char *nodeName;
-  char *edgeName;
+  char *nodeName = NULL;
+  char *edgeName = NULL;
   size_t totalMemorySize = 0;
 
   switch(graph->type){
@@ -658,6 +658,7 @@ void FreeGraphEdgeByEID(GraphCGW_T *graph, CDS_CID_t eid){
 
 // Initialize a Graph Edge
 void InitGraphEdge(EdgeCGW_T *edge){
+  memset(edge, 0, sizeof(EdgeCGW_T));
   edge->idA = edge->idB = NULLINDEX;
   edge->flags.all = 0;
   edge->nextALink = edge->nextBLink = NULLINDEX;
@@ -673,7 +674,8 @@ EdgeCGW_T *GetFreeGraphEdge(GraphCGW_T *graph){
   EdgeCGW_T *freeEdge = GetGraphEdge(graph, graph->freeEdgeHead);
 
   if (freeEdge == NULL) {
-    EdgeCGW_T edge = {0};
+    EdgeCGW_T edge;
+    memset(&edge, 0, sizeof(EdgeCGW_T));
     AppendEdgeCGW_T(graph->edges, &edge);
     freeEdge = GetGraphEdge(graph, GetNumGraphEdges(graph) - 1);
   } else {
@@ -1053,7 +1055,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
                        CDS_CID_t fragidA, CDS_CID_t fragidB,
                        CDS_CID_t dist,
                        LengthT distance,
-                       float   quality,
+                       double   quality,
                        int32 fudgeDistance,
                        PairOrient orientation,
                        int isInducedByUnknownOrientation,
@@ -1742,7 +1744,7 @@ int FragOffsetAndOrientation(CIFragT     *frag,
 
                              )
 {
-  LengthT offset3p, offset5p;
+  LengthT offset3p={0,0}, offset5p={0,0};
   assert(frag && chunk && chunkOffset && chunkOrient && extremal);
 
   if(chunk->flags.bits.isCI){
@@ -1906,8 +1908,8 @@ CreateGraphEdge(GraphCGW_T *graph,
                 int inducedByUnknownOrientation,
                 GraphEdgeStatT *stat,
                 int buildAll) {
-  int isCI;
-  NodeCGW_T *node, *mnode;
+  int isCI=0;
+  NodeCGW_T *node=NULL, *mnode=NULL;
   CDS_CID_t fragID = GetVAIndex_CIFragT(ScaffoldGraph->CIFrags, frag);
   CDS_CID_t mfragID = GetVAIndex_CIFragT(ScaffoldGraph->CIFrags, mfrag);
   LengthT ciOffset, mciOffset, distance;
@@ -2563,7 +2565,6 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
   if(copyAllOverlaps) {
     GraphEdgeIterator edges;
     EdgeCGW_T *edge;
-    EdgeCGW_T copyOfEdge = {0};
 
     // copyOfEdge - Bug fix by Jason Miller, 5/26/06.
     // The call to GetFreeGraphEdge can realloc the graph.
@@ -2579,7 +2580,7 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
         CDS_CID_t eid;
         CDS_CID_t otherCID = (edge->idA == oldID ? edge->idB : edge->idA);
 
-        copyOfEdge = *edge;
+        EdgeCGW_T copyOfEdge = *edge;
         newEdge = GetFreeGraphEdge(graph); // has side effects!
         eid = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
 
@@ -3642,7 +3643,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
         samples    = Getint32(dworkSamples[i],0);
 
         for (j=0; j<numSamples ; j++) {
-          int32 binNum = (samples[j] - dupd->min) / (float)dupd->bsize;
+          int32 binNum = (samples[j] - dupd->min) / (double)dupd->bsize;
 
           binNum = MIN(binNum, dupd->bnum - 1);
           binNum = MAX(binNum,0);
@@ -3908,7 +3909,7 @@ void  CheckSurrogateUnitigs() {
       continue;
 
     if (curChunk->info.CI.numInstances != GetNumCDS_CID_ts(curChunk->info.CI.instances.va))
-      fprintf(stderr, "CheckSurrogateUnitigs()--  CI.numInstances=%d != instances.va=%d\n",
+      fprintf(stderr, "CheckSurrogateUnitigs()--  CI.numInstances=%d != instances.va="F_SIZE_T"\n",
               curChunk->info.CI.numInstances,
               GetNumCDS_CID_ts(curChunk->info.CI.instances.va));
     assert(curChunk->info.CI.numInstances != GetNumCDS_CID_ts(curChunk->info.CI.instances.va));

@@ -18,17 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.45 2011-12-15 02:17:58 brianwalenz Exp $";
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <limits.h>
-#include <float.h>
-#include <cmath>
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.46 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -230,14 +220,14 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
                                     PairOrient edgeOrient,
                                     double inferredMean,
                                     double inferredVariance,
-                                    float *chiSquaredValue,
-                                    float chiSquareThreshold,
+                                    double *chiSquaredValue,
+                                    double chiSquareThreshold,
                                     int *alternate, int verbose){
   GraphEdgeIterator edges;
   EdgeCGW_T *edge;
   EdgeCGW_T *bestEdge = (EdgeCGW_T *)NULL;
   int end;
-  float bestChiSquaredValue = FLT_MAX;
+  double bestChiSquaredValue = FLT_MAX;
 
   *alternate = FALSE;
 
@@ -254,11 +244,11 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
     if((otherCID == targetId) && isOverlapEdge(edge) &&
        !isContainmentEdge(edge) ){// deal with these later
       if(GetEdgeOrientationWRT(edge, sourceCI->id) == edgeOrient){
-        if(PairwiseChiSquare((float)inferredMean, (float)inferredVariance,
-                             (float)edge->distance.mean,
-                             (float)((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
+        if(PairwiseChiSquare((double)inferredMean, (double)inferredVariance,
+                             (double)edge->distance.mean,
+                             (double)((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
                              (LengthT *)NULL, chiSquaredValue,
-                             (float)chiSquareThreshold)){
+                             (double)chiSquareThreshold)){
           if(bestEdge == (EdgeCGW_T *)NULL ||
              (*chiSquaredValue < bestChiSquaredValue)){
             bestEdge = edge;
@@ -304,25 +294,25 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
   // Create an appropriate hash table entry
   CreateChunkOverlapFromEdge(ScaffoldGraph->ContigGraph, edge);
 
-  if (PairwiseChiSquare((float)inferredMean, (float)inferredVariance,
+  if (PairwiseChiSquare((double)inferredMean, (double)inferredVariance,
                         effectiveOlap,
-                        (float)((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
+                        (double)((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
                         (LengthT *)NULL, chiSquaredValue,
-                        (float)chiSquareThreshold)) {
+                        (double)chiSquareThreshold)) {
     *alternate = olap.suspicious;
     return(edge);
   }
 
   fprintf(stderr,"* Failed pairwise test between (%g, %g) and (%g,%g) not returning edge ("F_CID ","F_CID ",%c) %g\n",
-          inferredMean, inferredVariance, effectiveOlap, (float) ((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
+          inferredMean, inferredVariance, effectiveOlap, (double) ((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
           edge->idA, edge->idB, edge->orient.toLetter(), edge->distance.mean);
 
   return((EdgeCGW_T *)NULL);
 }
 
 void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
-                             float pairwiseChiSquaredThreshhold,
-                             float maxVariance,
+                             double pairwiseChiSquaredThreshhold,
+                             double maxVariance,
                              int doNotChange, int verbose){
   CIScaffoldTIterator CIs;
   /* Iterate over all of the CIEdges */
@@ -366,8 +356,8 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                      (isA? edge->idB: edge->idA));
       PairOrient edgeOrient;
       SequenceOrient thisCIorient, otherCIorient;
-      LengthT gapDistance;
-      float chiSquareResult;
+      LengthT gapDistance={0,0};
+      double chiSquareResult;
 
       /* We do not want to check edges with certain
          labels as specified in the doNotChange mask. */
@@ -475,9 +465,9 @@ void CheckInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
           DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,TRUE);
           DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,FALSE);
         }
-      }else if(!PairwiseChiSquare((float)gapDistance.mean,
+      }else if(!PairwiseChiSquare((double)gapDistance.mean,
                                   gapDistance.variance,
-                                  (float)edge->distance.mean,
+                                  (double)edge->distance.mean,
                                   edge->distance.variance,
                                   (LengthT *)NULL, &chiSquareResult,
                                   pairwiseChiSquaredThreshhold)){
@@ -1262,7 +1252,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             (thisCI = NextCIScaffoldTIterator(&CIs)) != NULL;
             prevCI = thisCI, gapIndex++){
           PairOrient edgeOrient;
-          float chiSquaredValue;
+          double chiSquaredValue;
           EdgeCGW_T *overlapEdge;
           if(gapsToComputeGaps[gapIndex] == NULLINDEX){
             continue;
@@ -1290,7 +1280,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                                                  edgeOrient, gapSize[gapIndex],
                                                  gapSizeVariance[gapIndex],
                                                  &chiSquaredValue,
-                                                 (float)PAIRWISECHI2THRESHOLD_CGW,
+                                                 (double)PAIRWISECHI2THRESHOLD_CGW,
                                                  &alternate, verbose);
 
          if(GlobalData->removeNonOverlapingContigsFromScaffold && overlapEdge == (EdgeCGW_T *)NULL){
@@ -1301,8 +1291,8 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             CDS_CID_t    startingCI          = thisCI->id;
             NodeCGW_T   *skippedCI           = thisCI;
             int32        startingGapIndex    = gapIndex;
-            float        currGapSize         = gapSize[gapIndex];
-            float        currGapSizeVariance = gapSizeVariance[gapIndex];
+            double        currGapSize         = gapSize[gapIndex];
+            double        currGapSizeVariance = gapSizeVariance[gapIndex];
             
             while (overlapEdge == (EdgeCGW_T *)NULL) {
                currGapSize += thisCI->bpLength.mean + gapSize[gapIndex+1];
@@ -1317,7 +1307,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                                                       edgeOrient, currGapSize,
                                                       currGapSizeVariance,
                                                       &chiSquaredValue,
-                                                      (float)PAIRWISECHI2THRESHOLD_CGW,
+                                                      (double)PAIRWISECHI2THRESHOLD_CGW,
                                                       &alternate, verbose);
                if (overlapEdge) {
                   edgeOrient = GetChunkPairOrientation(GetNodeOrient(skippedCI), GetNodeOrient(thisCI));
@@ -1325,7 +1315,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                                                          edgeOrient, gapSize[startingGapIndex+1],
                                                          gapSizeVariance[startingGapIndex+1],
                                                          &chiSquaredValue,
-                                                         (float)PAIRWISECHI2THRESHOLD_CGW,
+                                                         (double)PAIRWISECHI2THRESHOLD_CGW,
                                                          &alternate, verbose);
                   if (skippedToNextEdge != NULL)
                      overlapEdge = NULL;
@@ -1489,7 +1479,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
               fprintf(stderr,"GapChange Gap(%d:%d) CIs: "F_CID ","F_CID " new:(%f,%f) old(%f,%f)\n",
                       gapsToComputeGaps[gapIndex], gapIndex,
                       prevCI->id, thisCI->id,
-                      (float)(- CGW_MISSED_OVERLAP), newVariance,
+                      (double)(- CGW_MISSED_OVERLAP), newVariance,
                       gapSize[gapIndex], gapSizeVariance[gapIndex]);
 
             //
@@ -1515,7 +1505,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             hardConstraintSet = TRUE;
             continue;
           }
-          if(abs(overlapEdge->distance.mean - gapSize[gapIndex]) >
+          if(fabs(overlapEdge->distance.mean - gapSize[gapIndex]) >
              MAX_OVERLAP_SLOP_CGW){
             computeGapsToGaps[computeGapIndex] = gapIndex;
             gapsToComputeGaps[gapIndex] = computeGapIndex;
@@ -1666,8 +1656,8 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 }
 
 void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
-                            float pairwiseChiSquaredThreshhold,
-                            float maxVariance,
+                            double pairwiseChiSquaredThreshhold,
+                            double maxVariance,
                             int markTrusted, int markUntrusted,
                             int doNotChange,
                             int operateOnMerged){
@@ -1728,8 +1718,8 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                      (isA? edge->idB: edge->idA));
       PairOrient edgeOrient;
       SequenceOrient thisCIorient, otherCIorient;
-      LengthT gapDistance;
-      float chiSquareResult;
+      LengthT gapDistance={0,0};
+      double chiSquareResult;
 
 
       if (debug.markInternalEdgeStatusLV > 1)
@@ -1840,9 +1830,9 @@ void MarkInternalEdgeStatus(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                       TENTATIVE_UNTRUSTED_EDGE_STATUS);
         continue;
       }
-      if(!PairwiseChiSquare((float)gapDistance.mean,
+      if(!PairwiseChiSquare((double)gapDistance.mean,
                             gapDistance.variance,
-                            (float)edge->distance.mean,
+                            (double)edge->distance.mean,
                             edge->distance.variance,
                             (LengthT *)NULL, &chiSquareResult,
                             pairwiseChiSquaredThreshhold)){
@@ -1937,7 +1927,7 @@ static int EdgeAndGapAreVaguelyCompatible(double distDiff,
   if(diffVar<0){
     fprintf(stderr,"WARNING: variance difference is negative -- probably trouble with variances after interleaving\n");
   }
-  if(abs(distDiff)/sqrt(abs(diffVar))>maxSigmaSlop)return FALSE;
+  if(fabs(distDiff)/sqrt(fabs(diffVar))>maxSigmaSlop)return FALSE;
   return TRUE;
 }
 
@@ -1971,8 +1961,8 @@ int IsInternalEdgeStatusVaguelyOK(EdgeCGW_T *edge,CDS_CID_t thisCIid){
                  (isA? edge->idB: edge->idA));
   PairOrient edgeOrient;
   SequenceOrient thisCIorient, otherCIorient;
-  LengthT gapDistance;
-  float chiSquareResult;
+  LengthT gapDistance={0,0};
+  double chiSquareResult = 0;
 
   /* We only want to label edges between CIs in the same scaffold; this is up to the caller. */
   if(otherCI->scaffoldID != thisCI->scaffoldID){

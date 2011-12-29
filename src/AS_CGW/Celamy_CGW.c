@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Celamy_CGW.c,v 1.26 2009-10-05 22:49:42 brianwalenz Exp $";
+static char *rcsid = "$Id: Celamy_CGW.c,v 1.27 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,7 +200,7 @@ drawSurrogateFrags(FILE *fout, ContigT *ctg, int globallyReversed,int AEndCoord)
     if (utgchk->flags.bits.isStoneSurrogate ||
         utgchk->flags.bits.isWalkSurrogate) {
 
-      ChunkInstanceT *utg = GetGraphNode(ScaffoldGraph->CIGraph, utg->info.CI.baseID);
+      ChunkInstanceT *utg = GetGraphNode(ScaffoldGraph->CIGraph, utgchk->info.CI.baseID);
 
       MultiAlignT *unitig = ScaffoldGraph->tigStore->loadMultiAlign(utg->id, TRUE);
       IntMultiPos *f_list = GetIntMultiPos(unitig->f_list,0);
@@ -239,7 +239,7 @@ drawSurrogateFrags(FILE *fout, ContigT *ctg, int globallyReversed,int AEndCoord)
             findOverlapsOffEnds(f_list[j].ident, &numRightEndOvls, &numLeftEndOvls, &rightEndOvls, &leftEndOvls);
 
           fprintf(fout,"%dCtgSurro%drand%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d Overlaps L/R %d/%d details: %s / %s\n",
-                  ctg->id, f_list[j].ident, lrand48() % 9999,
+                  ctg->id, f_list[j].ident, (int)(lrand48() % 9999),
                   frgAEnd,
                   surroColor,
                   frgBEnd,
@@ -255,7 +255,7 @@ drawSurrogateFrags(FILE *fout, ContigT *ctg, int globallyReversed,int AEndCoord)
 
 	} else {
           fprintf(fout,"%dCtgSurro%drand%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d\n",
-                  ctg->id, f_list[j].ident, lrand48() % 9999,
+                  ctg->id, f_list[j].ident, (int)(lrand48() % 9999),
                   frgAEnd,
                   surroColor,
                   frgBEnd,
@@ -447,7 +447,8 @@ CelamyScaffold(FILE        *fout,
               CIaCoord,
               CONTIG_COLOUR,
               CIbCoord,
-              CONTIG_ROW);
+              CONTIG_ROW,
+              scaffold->id, contigID);
     }
 
     if (contigMin == contigMax) {

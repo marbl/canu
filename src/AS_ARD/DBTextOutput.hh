@@ -21,8 +21,9 @@
 #ifndef DBTextOutput_HH
 #define DBTextOutput_HH
 
-static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.12 2010-08-19 05:28:06 brianwalenz Exp $";
+static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.13 2011-12-29 09:26:03 brianwalenz Exp $";
 
+#include "AS_global.h"
 #include "IDBOutput.hh"
 
 namespace AS_ARD {
@@ -51,8 +52,8 @@ namespace AS_ARD {
          bool storeMDI2DB (
                   AS_UID erefines,
                   IntDist_ID irefines,
-                  float mean,
-                  float stddev,
+                  double mean,
+                  double stddev,
                   int32 min,
                   int32 max);
          bool storeAFG2DB (
@@ -66,8 +67,8 @@ namespace AS_ARD {
                   AS_UID eaccession,
                   IntFragment_ID iaccession,
                   const char * source,
-                  float microhet_prob,
-                  float coverage_stat,
+                  double microhet_prob,
+                  double coverage_stat,
                   UnitigStatus status,
                   int32 length,
                   const char * consensus,
@@ -89,8 +90,8 @@ namespace AS_ARD {
                   PairOrient orientation,
                   UnitigOverlapType overlap_type,
                   int32 is_possible_chimera,
-                  float mean_distance,
-                  float std_deviation,
+                  double mean_distance,
+                  double std_deviation,
                   int32 num_contributing,
                   PlacementStatusType status);
          bool storeLKList2DB(int type, AS_UID ulkID, AS_UID utgID);
@@ -146,12 +147,12 @@ namespace AS_ARD {
                   PairOrient orientation,
                   UnitigOverlapType overlap_type,
                   uint32 is_possible_chimera,
-                  float mean_distance,
-                  float std_deviation,
+                  double mean_distance,
+                  double std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status);
          bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
-         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, PairOrient orient);
+         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, double mean, double stddev, PairOrient orient);
          bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
          bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, int32 ctgStart, int32 ctgEnd);
 

@@ -19,20 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.51 2011-12-18 06:57:38 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.52 2011-12-29 09:26:03 brianwalenz Exp $";
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <math.h>
-#include <ctype.h>
-
-#include <set>
-
+#include "AS_global.h"
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 #include "MicroHetREZ.h"
 #include "AS_UTL_reverseComplement.h"
+
+#include <set>
 
 using namespace std;
 

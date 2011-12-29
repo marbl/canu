@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.30 2011-08-24 19:37:28 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.31 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -28,7 +28,7 @@ const char *mainid = "$Id: overlapStore.c,v 1.30 2011-08-24 19:37:28 brianwalenz
 #include <ctype.h>
 #include <unistd.h>  //  sysconf()
 
-#include <vector>;
+#include <vector>
 
 using namespace std;
 

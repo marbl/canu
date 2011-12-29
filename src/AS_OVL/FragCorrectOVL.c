@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.37 2011-07-26 21:05:01 mkotelbajcvi Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.38 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -218,7 +218,7 @@ static int  Failed_Olaps = 0;
 static Frag_Info_t  * Frag = NULL;
     // Sequence and vote information for current range of fragments
     // being corrected
-static Frag_List_t  Frag_List = {0};
+static Frag_List_t  Frag_List = {NULL, NULL, 0, 0, 0};
     // List of ids and sequences of fragments with overlaps to fragments
     // in  Frag .  Allows simultaneous access by threads.
 static gkStore  *gkpStore = NULL;

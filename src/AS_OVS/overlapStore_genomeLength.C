@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_genomeLength.C,v 1.2 2011-08-30 12:29:16 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: overlapStore_genomeLength.C,v 1.3 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlap.h"
@@ -200,7 +200,7 @@ estimateGenomeLength(char    *ovlName,
   ////////////////////////////////////////
 
   uint64         avgFragLength = 0;
-  uint64         numFrag       = 0;
+  uint32         numFrag       = 0;
 
   gkStore       *gkpStore = new gkStore(gkpName, FALSE, FALSE);
 

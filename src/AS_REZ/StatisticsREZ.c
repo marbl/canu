@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: StatisticsREZ.c,v 1.11 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: StatisticsREZ.c,v 1.12 2011-12-29 09:26:03 brianwalenz Exp $";
 
 /****************************************************************************************
  *  StatisticsRez.c
@@ -29,12 +29,6 @@ static const char *rcsid = "$Id: StatisticsREZ.c,v 1.11 2008-10-08 22:03:00 bria
  *  contains functions to write and read statistics files for Repeat Rez
  *
  ****************************************************************************************/
-
-#include <stdio.h>
-#include <math.h>
-#include <float.h>
-#include <stdlib.h>
-#include <assert.h>
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -273,49 +267,49 @@ void print_scaffold_walk_stat_struct(ScaffoldWalkStatisticsT* ws, FILE* file, in
     int bigTotal     = ws->bigGapsWalked+ws->bigGapsNotWalked;
     int total        = negativTotal+smallTotal+bigTotal;
 
-    float negativNotWalkedPercent = 0.0;
-    float smallNotWalkedPercent   = 0.0;
-    float bigNotWalkedPercent     = 0.0;
-    float totalNotWalkedPercent   = 0.0;
-    float negativWalkedPercent    = 0.0;
-    float smallWalkedPercent      = 0.0;
-    float bigWalkedPercent        = 0.0;
-    float totalWalkedPercent      = 0.0;
-    float totalWalkedBpsPercent   = 0.0;
-    float totalNotWalkedBpsPercent   = 0.0;
+    double negativNotWalkedPercent = 0.0;
+    double smallNotWalkedPercent   = 0.0;
+    double bigNotWalkedPercent     = 0.0;
+    double totalNotWalkedPercent   = 0.0;
+    double negativWalkedPercent    = 0.0;
+    double smallWalkedPercent      = 0.0;
+    double bigWalkedPercent        = 0.0;
+    double totalWalkedPercent      = 0.0;
+    double totalWalkedBpsPercent   = 0.0;
+    double totalNotWalkedBpsPercent   = 0.0;
 
     if( negativTotal > 0)
-      negativNotWalkedPercent = 100.0 * (float) ws->negativGapsNotWalked / (float) negativTotal;
+      negativNotWalkedPercent = 100.0 * (double) ws->negativGapsNotWalked / (double) negativTotal;
 
     if( smallTotal > 0)
-      smallNotWalkedPercent = 100.0 *(float) ws->smallGapsNotWalked / (float) smallTotal;
+      smallNotWalkedPercent = 100.0 *(double) ws->smallGapsNotWalked / (double) smallTotal;
 
     if( bigTotal > 0)
-      bigNotWalkedPercent = 100.0 * (float) ws->bigGapsNotWalked / (float) bigTotal;
+      bigNotWalkedPercent = 100.0 * (double) ws->bigGapsNotWalked / (double) bigTotal;
 
     if( negativTotal > 0)
-      negativWalkedPercent = 100.0 * (float) ws->negativGapsWalked / (float) negativTotal;
+      negativWalkedPercent = 100.0 * (double) ws->negativGapsWalked / (double) negativTotal;
 
     if( smallTotal > 0)
-      smallWalkedPercent = 100.0 * (float) ws->smallGapsWalked / (float) smallTotal;
+      smallWalkedPercent = 100.0 * (double) ws->smallGapsWalked / (double) smallTotal;
 
     if( bigTotal > 0)
-      bigWalkedPercent = 100.0 * (float) ws->bigGapsWalked / (float) bigTotal;
+      bigWalkedPercent = 100.0 * (double) ws->bigGapsWalked / (double) bigTotal;
 
     if( total > 0)
-      totalWalkedPercent    = 100.0 * ( (float) ws->negativGapsWalked +
-				(float) ws->smallGapsWalked +
-				(float) ws->bigGapsWalked ) / (float) total;
+      totalWalkedPercent    = 100.0 * ( (double) ws->negativGapsWalked +
+				(double) ws->smallGapsWalked +
+				(double) ws->bigGapsWalked ) / (double) total;
     if( total > 0)
-      totalNotWalkedPercent = 100.0 * ( (float) ws->negativGapsNotWalked +
-				(float) ws->smallGapsNotWalked +
-				(float) ws->bigGapsNotWalked ) / (float) total;
+      totalNotWalkedPercent = 100.0 * ( (double) ws->negativGapsNotWalked +
+				(double) ws->smallGapsNotWalked +
+				(double) ws->bigGapsNotWalked ) / (double) total;
 
     if( ws->bpsNotWalked+ws->bpsWalked > 0)
-      totalNotWalkedBpsPercent = 100.0 * ( (float) ws->bpsNotWalked / (float) (ws->bpsNotWalked+ws->bpsWalked));
+      totalNotWalkedBpsPercent = 100.0 * ( (double) ws->bpsNotWalked / (double) (ws->bpsNotWalked+ws->bpsWalked));
 
     if( ws->bpsNotWalked+ws->bpsWalked > 0)
-      totalWalkedBpsPercent = 100.0 * ( (float) ws->bpsWalked / (float) (ws->bpsNotWalked+ws->bpsWalked));
+      totalWalkedBpsPercent = 100.0 * ( (double) ws->bpsWalked / (double) (ws->bpsNotWalked+ws->bpsWalked));
 
     fprintf(file,"Number of negativ     gaps walked/not walked/total = %5d/%5d/%5d\n",ws->negativGapsWalked,ws->negativGapsNotWalked,negativTotal);
     fprintf(file,"Percentage of negativ gaps walked/not walked       = %2.2f/%2.2f\n",negativWalkedPercent,negativNotWalkedPercent);

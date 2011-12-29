@@ -37,22 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.7 2011-12-08 14:49:45 skoren Exp $";
-
-#include <map>
-#include <set>
-#include <list>
-#include <vector>
-#include <stack>
-#include <iostream>
-#include <cmath>
-#include <limits>
-#include <algorithm>
-#include <string>
-#include <sstream>
-#include <pthread.h>
-
-using namespace std;
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -61,6 +46,22 @@ using namespace std;
 #include "AS_PER_gkpStore.h"
 #include "AS_PBR_util.hh"
 #include "AS_PER_encodeSequenceQuality.h"
+
+#include <map>
+#include <set>
+//#include <list>
+#include <vector>
+#include <stack>
+//#include <iostream>
+//#include <cmath>
+//#include <limits>
+//#include <algorithm>
+//#include <string>
+#include <sstream>
+
+#include <pthread.h>
+
+using namespace std;
 
 #define  THREAD_STACKSIZE        (16 * 512 * 512)
 const uint8 MAX_COV     = 255;
@@ -311,7 +312,7 @@ static void *  correctFragments(void *ptr) {
         }
         olapCount = read;
         ovlPosition = 0;
-        fprintf(stderr, "Thread %d loaded %llu overlaps\n", wa->id, olapCount);
+        fprintf(stderr, "Thread %d loaded "F_U64" overlaps\n", wa->id, olapCount);
      }
 
      for (; ovlPosition < olapCount; ovlPosition++) {
@@ -517,7 +518,7 @@ fprintf(stderr, "Thread %d set partition %d to be %d-%d\n", wa->id, currOpenID-1
 fprintf(stderr, "For thread %d I'm currently on file %d and need to move to %d\n", wa->id, currOpenID, fileId);
            currOpenID = fileId;
         }
-        fprintf(outFile, "LAY\t"F_IID"\t"F_U32"\n", i, mp.size());
+        fprintf(outFile, "LAY\t"F_IID"\t"F_SIZE_T"\n", i, mp.size());
         for (vector<OverlapPos>::const_iterator iter = mp.begin(); iter != mp.end(); iter++) {
            fprintf(outFile, "TLE\t"F_IID"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n", iter->ident, iter->position.bgn, iter->position.end, bClrs[iter->ident].bgn, bClrs[iter->ident].end); 
         }
@@ -574,7 +575,7 @@ void *outputResults(void *ptr) {
         break;
      } else {
         part = waGlobal->toOutput.size();
-fprintf(stderr, "THe thread %d has to output size of %d and partitions %d\n", wa->id, waGlobal->toOutput.size(), waGlobal->partitions);
+fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %d\n", wa->id, waGlobal->toOutput.size(), waGlobal->partitions);
         bounds = waGlobal->toOutput.top();
         waGlobal->toOutput.pop();
         if (waGlobal->numThreads > 1) {
@@ -698,7 +699,7 @@ fprintf(stderr, "THe thread %d has to output size of %d and partitions %d\n", wa
         fprintf(stderr, "Finished processing read %d subsegments %d\n", i, readSubID);
      }
 
-     fprintf(stderr, "Thread %d beginning output of %d reads\n", wa->id, readsToPrint.size());
+     fprintf(stderr, "Thread %d beginning output of "F_SIZE_T" reads\n", wa->id, readsToPrint.size());
      if (waGlobal->fixedMemory == TRUE) {
         if (waGlobal->numThreads > 1) {
            pthread_mutex_lock(&waGlobal->globalDataMutex);
@@ -726,6 +727,7 @@ fprintf(stderr, "THe thread %d has to output size of %d and partitions %d\n", wa
      fclose(outFile);
   }
   fprintf(stderr, "Done output of thread %d\n", wa->id);
+  return(NULL);
 }
 
 int
@@ -986,7 +988,7 @@ main (int argc, char * argv []) {
             olapCount = read;
             ovlPosition = 0;
 
-            fprintf(stderr, "Loaded %d overlaps\n", olapCount);
+            fprintf(stderr, "Loaded "F_U64" overlaps\n", olapCount);
          }
 
          // build a sorted by score map of all mapping an illumina sequence has

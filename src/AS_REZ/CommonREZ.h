@@ -22,7 +22,7 @@
 #ifndef COMMONREZ_H
 #define COMMONREZ_H
 
-static const char *rcsid_COMMONREZ_H = "$Id: CommonREZ.h,v 1.10 2008-12-16 22:33:52 skoren Exp $";
+static const char *rcsid_COMMONREZ_H = "$Id: CommonREZ.h,v 1.11 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "DataTypesREZ.h"
 
@@ -58,7 +58,7 @@ extern FILE  * Cam_File;
 char *  CGB_Type_As_String
     (unsigned int t);
 
-float  CIEdge_Quality
+double  CIEdge_Quality
     (CIEdgeT *);
 
 int  Find_Olap_Path

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStats.c,v 1.12 2009-10-26 13:20:26 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStats.c,v 1.13 2011-12-29 09:26:03 brianwalenz Exp $";
 
 //  install.packages(c("akima"))
 //
@@ -183,9 +183,9 @@ finalize_FragmentEnds(gkStore *gkp, RepeatModel *rm, FragmentEndData *red, char 
     return;
 
   for (i=0; i<3; i++) {
-    AS_UTL_histogramCompute(&red->overlapLength[i]);
-    AS_UTL_histogramCompute(&red->errorRates[i]);
-    AS_UTL_histogram3dCompute(&red->lengthError[i]);
+    AS_UTL_histogramCompute(red->overlapLength + i);
+    AS_UTL_histogramCompute(red->errorRates + i);
+    AS_UTL_histogram3dCompute(red->lengthError + i);
   }
 
 
@@ -336,7 +336,7 @@ finalize_LibraryRandomness(gkStore *gkp, RepeatModel *rm, LibraryOverlapData *ov
    uint64 numReads = ovl->readsSeen->numNodes;
 
    fprintf(F, "Total overlaps: %ld\tcontained: %ld\tcontained percent: %.2f\n", ovl->totalOverlaps, ovl->contained, 100*(ovl->contained/(double)ovl->totalOverlaps));
-   fprintf(F, "Overlaps per lib in [libID] [% reads] format\n");
+   fprintf(F, "Overlaps per lib in [libID] [%% reads] format\n");
    for (i = 0; i < numLibraries; i++) {
       fprintf(F, "%d\t%.2f\n", i, 100*(ovl->readsPerLibrary[i]/(double)numReads));
    }
@@ -355,7 +355,7 @@ finalize_LibraryRandomness(gkStore *gkp, RepeatModel *rm, LibraryOverlapData *ov
             double actual = (overlaps/(double)uncontained);
             double diffRatio = (overlaps - expectedCount) / expectedCount;
 
-            fprintf(F, "%d\t%d\t%.2f\t%d\t%.2f\n", i, j, expectedCount, overlaps, diffRatio*100);
+            fprintf(F, "%d\t%d\t%.2f\t"F_U64"\t%.2f\n", i, j, expectedCount, overlaps, diffRatio*100);
          }
       }
    }
@@ -406,7 +406,7 @@ main(int argc, char **argv) {
 
     AS_OVS_readOverlapFromStore(ovs, &ovl, AS_OVS_TYPE_ANY);
     if (ovl.dat.ovl.type != AS_OVS_TYPE_OVL) {
-      fprintf(stderr, "%s: stats only supported for OVL type overlaps.\n");
+      fprintf(stderr, "stats only supported for OVL type overlaps.\n");
       exit(1);
     }
   }

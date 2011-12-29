@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcnsfix.C,v 1.5 2011-12-15 02:07:57 brianwalenz Exp $";
+const char *mainid = "$Id: utgcnsfix.C,v 1.6 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -146,7 +146,7 @@ main (int argc, char **argv) {
       //  using those not placed.
 
     tryAgain:
-      fprintf(stderr, "\nFixing unitig %d (%d fragments remain)\n",
+      fprintf(stderr, "\nFixing unitig %d ("F_SIZE_T" fragments remain)\n",
               maOrig->maID, GetNumIntMultiPoss(maTest->f_list));
 
       ResetVA_IntMultiPos(maFixd->f_list);
@@ -197,7 +197,7 @@ main (int argc, char **argv) {
 
       tigStore->insertMultiAlign(maFixd, TRUE, FALSE);
 
-      fprintf(stderr, "Added unitig %d with %d fragments.\n",
+      fprintf(stderr, "Added unitig %d with "F_SIZE_T" fragments.\n",
               maFixd->maID, GetNumIntMultiPoss(maFixd->f_list));
 
       if (showResult)

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.38 2011-08-30 12:29:16 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.39 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -467,7 +467,7 @@ int matePlacedIn(CIFragT *frg, CDS_CID_t sid){
 static
 int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT **mateChunk){
   CGWMateIterator mates;
-  CDS_CID_t linkIID, mateiid;
+  CDS_CID_t linkIID=0, mateiid=0;
   CDS_CID_t placedIn = NULLINDEX;
   InitCGWMateIterator(&mates,frg->read_iid,ALL_MATES,NULL);
   while(NextCGWMateIterator(&mates,&linkIID)){

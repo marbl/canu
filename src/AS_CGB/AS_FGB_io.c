@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_io.c,v 1.36 2011-08-08 02:18:53 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_io.c,v 1.37 2011-12-29 09:26:03 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -383,7 +383,9 @@ static void add_overlap_to_graph(Aedge  an_edge,
 #endif
 
   {
-    Aedge  the_raw_new_edge = {0};
+    Aedge  the_raw_new_edge;
+
+    memset(&the_raw_new_edge, 0, sizeof(Aedge));
 
     the_raw_new_edge.avx = iavx;
     the_raw_new_edge.asx = iasx;
@@ -657,7 +659,9 @@ void process_ovl_store(char * OVL_Store_Path,
         (afr_to_avx[olap.a_iid] != AS_CGB_NOT_SEEN_YET) &&
         (afr_to_avx[olap.b_iid] != AS_CGB_NOT_SEEN_YET)) {
 
-      Aedge  e = {0};
+      Aedge  e;
+
+      memset(&e, 0, sizeof(Aedge));
 
       int improper = (((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang <  0)) ||
                       ((olap.dat.ovl.a_hang == 0) && (olap.dat.ovl.b_hang <  0)) ||
@@ -761,7 +765,9 @@ void input_messages_from_a_file(BinaryOverlapFile *bof,
     //  A_frag  >>>>>>>>>>
     //  B_frag  >>>>>>>>>>
 
-    Aedge        e = {0};
+    Aedge        e;
+
+    memset(&e, 0, sizeof(Aedge));
 
     int improper = (((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang <  0)) ||
                     ((olap.dat.ovl.a_hang == 0) && (olap.dat.ovl.b_hang <  0)) ||

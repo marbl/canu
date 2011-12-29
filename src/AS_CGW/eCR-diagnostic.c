@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static const char *rcsid = "$Id: eCR-diagnostic.c,v 1.9 2009-10-05 22:49:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: eCR-diagnostic.c,v 1.10 2011-12-29 09:26:03 brianwalenz Exp $";
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
 
@@ -53,7 +53,7 @@ DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
 
     MultiAlignT  *uma = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id, TRUE);
 
-    fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n",
+    fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10"F_SIZE_TP")\n",
             unitig->id, pos->position.bgn, pos->position.end,
             abs(pos->position.bgn - pos->position.end),
             strlen(Getchar(uma->consensus, 0)));
@@ -70,7 +70,7 @@ DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
 
 void
 DumpUnitigInfo(char *label, NodeCGW_T *unitig) {
-  int            i, j;
+  int            j;
   MultiAlignT   *uma;
   IntUnitigPos  *pos;
 
@@ -81,9 +81,9 @@ DumpUnitigInfo(char *label, NodeCGW_T *unitig) {
   }
 
   uma = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id, TRUE);
-  pos = GetIntUnitigPos(uma->u_list, i);
+  pos = GetIntUnitigPos(uma->u_list, 0);
 
-  fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n",
+  fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10"F_SIZE_TP")\n",
           unitig->id, pos->position.bgn, pos->position.end,
           abs(pos->position.bgn - pos->position.end),
           strlen(Getchar(uma->consensus, 0)));

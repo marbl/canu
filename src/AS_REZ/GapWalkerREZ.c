@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapWalkerREZ.c,v 1.15 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapWalkerREZ.c,v 1.16 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "InputDataTypes_CGW.h"
@@ -30,8 +30,8 @@ FindGapLength(ChunkInstanceT * lchunk,
               ChunkInstanceT * rchunk,
               int verbose) {
   LengthT gapSize;
-  float lchunkMaxOffset, lchunkMaxVariance;
-  float rchunkMinOffset, rchunkMinVariance;
+  double lchunkMaxOffset, lchunkMaxVariance;
+  double rchunkMinOffset, rchunkMinVariance;
 
   if (lchunk->offsetAEnd.mean < lchunk->offsetBEnd.mean) {
     lchunkMaxOffset = lchunk->offsetBEnd.mean;

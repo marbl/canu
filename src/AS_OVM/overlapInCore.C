@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.5 2011-12-13 05:10:12 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.6 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -573,14 +573,14 @@ Initialize_Globals (void) {
   fprintf(stderr, "\n");
   fprintf(stderr, "HASH_TABLE_SIZE         "F_U32"\n",     HASH_TABLE_SIZE);
   fprintf(stderr, "sizeof(Hash_Bucket_t)   "F_SIZE_T"\n",  sizeof(Hash_Bucket_t));
-  fprintf(stderr, "hash table size:        "F_U64" MB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
+  fprintf(stderr, "hash table size:        "F_SIZE_T" MB\n",  (HASH_TABLE_SIZE * sizeof(Hash_Bucket_t)) >> 20);
   fprintf(stderr, "\n");
 
   Hash_Table = (Hash_Bucket_t *) safe_malloc (HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
 
-  fprintf(stderr, "check  "F_U64" MB\n", (HASH_TABLE_SIZE * sizeof (Check_Vector_t) >> 20));
-  fprintf(stderr, "info   "F_U64" MB\n", (Max_Hash_Strings * sizeof (Hash_Frag_Info_t) >> 20));
-  fprintf(stderr, "start  "F_U64" MB\n", (Max_Hash_Strings * sizeof (int64) >> 20));
+  fprintf(stderr, "check  "F_SIZE_T" MB\n", (HASH_TABLE_SIZE * sizeof (Check_Vector_t) >> 20));
+  fprintf(stderr, "info   "F_SIZE_T" MB\n", (Max_Hash_Strings * sizeof (Hash_Frag_Info_t) >> 20));
+  fprintf(stderr, "start  "F_SIZE_T" MB\n", (Max_Hash_Strings * sizeof (int64) >> 20));
   fprintf(stderr, "\n");
 
   Hash_Check_Array = (Check_Vector_t *) safe_malloc (HASH_TABLE_SIZE * sizeof (Check_Vector_t));

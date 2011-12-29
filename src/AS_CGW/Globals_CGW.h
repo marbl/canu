@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.35 2010-12-08 12:40:53 skoren Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.36 2011-12-29 09:26:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -43,7 +43,7 @@ public:
   int    stoneLevel;
 
   uint32 shatterLevel;
-  float  mergeScaffoldMissingMates;
+  double mergeScaffoldMissingMates;
 
   int    minSamplesForOverride;
 
@@ -57,7 +57,7 @@ public:
   int    cgbUniqueCutoff;
   int    cgbDefinitelyUniqueCutoff;
   int    cgbApplyMicrohetCutoff;
-  float  cgbMicrohetProb;
+  double cgbMicrohetProb;
 
   int    doInterleavedScaffoldMerging;
   int    allowDemoteMarkedUnitigs;
