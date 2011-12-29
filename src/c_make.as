@@ -100,8 +100,8 @@ ifeq ($(OSTYPE), FreeBSD)
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      =  -pthread               -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
-    ARCH_CFLAGS      =  -pthread -Wall -Wextra -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
+    ARCH_CFLAGS      =  -pthread               -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+    ARCH_CFLAGS      =  -pthread -Wall -Wextra -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
   endif
 
   ifeq ($(BUILDCOVERAGE), 1)
@@ -143,8 +143,9 @@ ifeq ($(OSTYPE), Darwin)
       ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -g
       ARCH_LDFLAGS  += -m64 -lm
     else
-      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wshorten-64-to-32  -fast
-      ARCH_CfLAGS   += -Wextra
+#  Wow, -Wshorten-64-to-32  is tough
+      ARCH_CFLAGS   += -fPIC -m64 -fmessage-length=0 -D_THREAD_SAFE       -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -fast
+#     ARCH_CFLAGS   += -Wextra
 #     ARCH_CFLAGS   += -pedantic  (see above about pedantic)
       ARCH_LDFLAGS  += -m64 -lm
     endif
