@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: computeCoverageStat.C,v 1.2 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: computeCoverageStat.C,v 1.3 2011-12-30 07:59:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -110,6 +110,14 @@ computeRho(MultiAlignT *ma) {
     }
   }
 
+  if (minBgn != 0) {
+    fprintf(stderr, "ERROR: unitig %d doesn't begin at zero.  Layout:\n", ma->maID);
+    for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+      IntMultiPos  *frg = GetIntMultiPos(ma->f_list, i);
+      fprintf(stderr, "  %10"F_IIDP" %5"F_U32P" %5"F_U32P"\n",
+              frg->ident, frg->position.bgn, frg->position.end);
+    }
+  }
   assert(minBgn == 0);
 
   fwdRho = fwdRho - minBgn;
