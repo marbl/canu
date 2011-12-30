@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.31 2011-12-29 09:26:03 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.32 2011-12-30 07:58:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -372,7 +372,7 @@ Optimal_Overlap_AS_forCNS(char *a, char *b,
   if (m == NULL) {
     m = (dpMatrix *)safe_malloc(sizeof(dpMatrix));
     memset(&o, 0, sizeof(ALNoverlap));
-    memset(&m, 0, sizeof(dpMatrix));
+    memset( m, 0, sizeof(dpMatrix));
   }
 
   if (VERBOSE_MULTIALIGN_OUTPUT >= 3)
