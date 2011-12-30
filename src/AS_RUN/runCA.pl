@@ -4589,7 +4589,7 @@ sub postUnitiggerConsensus () {
 
         if (runCommand("$wrk/5-consensus-split", $cmd)) {
             rename "$wrk/5-consensus-split/splitUnitigs.out", "$wrk/5-consensus-split/splitUnitigs.out.FAILED";
-            caFailure("Unitig consensus fixer failed", "$wrk/5-consensus-split/splitUnitigs.out.FAILED");
+            caFailure("Unitig splitter failed", "$wrk/5-consensus-split/splitUnitigs.out.FAILED");
         }
     }
 
@@ -4605,7 +4605,7 @@ sub postUnitiggerConsensus () {
 
         if (runCommand("$wrk/5-consensus-split", $cmd)) {
             rename "$wrk/5-consensus-split/consensus-fix.out", "$wrk/5-consensus-split/consensus-fix.out.FAILED";
-            caFailure("Unitig consensus fixer failed", "$wrk/5-consensus-split/consensus-fix.out.FAILED");
+            caFailure("Unitig consensus fixer (post split) failed", "$wrk/5-consensus-split/consensus-fix.out.FAILED");
         }
     }
 
@@ -4616,12 +4616,12 @@ sub postUnitiggerConsensus () {
     if (! -e "$wrk/5-consensus/computeCoverageStat.out") {
         $cmd  = "$bin/computeCoverageStat \\\n";
         $cmd .= " -g $wrk/$asm.gkpStore \\\n";
-        $cmd .= " -t $wrk/$asm.tigStore 4 \\\n";
+        $cmd .= " -t $wrk/$asm.tigStore 5 \\\n";
         $cmd .= "> $wrk/5-consensus/computeCoverageStat.out 2>&1";
 
         if (runCommand("$wrk/5-consensus", $cmd)) {
             rename "$wrk/5-consensus/computeCoverageStat.out", "$wrk/5-consensus/computeCoverageStat.out.FAILED";
-            caFailure("Unitig consensus fixer failed", "$wrk/5-consensus/computeCoverageStat.out.FAILED");
+            caFailure("Unitig coverage stat computation failed", "$wrk/5-consensus/computeCoverageStat.out.FAILED");
         }
     }
 
