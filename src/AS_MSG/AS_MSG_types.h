@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_types.h,v 1.4 2011-09-06 01:11:56 mkotelbajcvi Exp $   */
+/* $Id: AS_MSG_types.h,v 1.5 2012-01-03 09:55:08 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_TYPES_H
 #define AS_MSG_PMESG_TYPES_H
 
-static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.4 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.5 2012-01-03 09:55:08 brianwalenz Exp $";
 
 #include <cstdio>
 #include <ctime>
@@ -59,11 +59,15 @@ public:
     return(linkType);
   };
 
-  bool  isMatePair(void)     { return(linkType == 'M'); };
-  bool  isOverlap(void)      { return(linkType == 'X'); };  //  Really should be 'O', but that changes the asm
+  bool  isMatePair(void)     { assert(linkType != 0);  return(linkType == 'M'); };
+  bool  isOverlap(void)      { assert(linkType != 0);  return(linkType == 'X'); };  //  Really should be 'O', but that changes the asm
 
   void  setIsMatePair(void)  { linkType = 'M'; };
   void  setIsOverlap(void)   { linkType = 'X'; };
+
+  bool  isValid(void) {
+    return(linkType != 0);
+  };
 
 private:
   char  linkType;
@@ -91,11 +95,11 @@ public:
 
   char  toLetter(void)       { return(orient); };
 
-  bool  isInnie(void)        { return(orient == 'I'); };
-  bool  isOuttie(void)       { return(orient == 'O'); };
-  bool  isNormal(void)       { return(orient == 'N'); };
-  bool  isAnti(void)         { return(orient == 'A'); };
-  bool  isUnknown(void)      { return(orient == 'U'); };
+  bool  isInnie(void)        { assert(orient != 0);  return(orient == 'I'); };
+  bool  isOuttie(void)       { assert(orient != 0);  return(orient == 'O'); };
+  bool  isNormal(void)       { assert(orient != 0);  return(orient == 'N'); };
+  bool  isAnti(void)         { assert(orient != 0);  return(orient == 'A'); };
+  bool  isUnknown(void)      { assert(orient != 0);  return(orient == 'U'); };
 
   void  setIsInnie(void)     { orient = 'I'; };
   void  setIsOuttie(void)    { orient = 'O'; };
@@ -103,10 +107,10 @@ public:
   void  setIsAnti(void)      { orient = 'A'; };
   void  setIsUnknown(void)   { orient = 'U'; };
 
-  bool  isAB_BA(void)        { return(orient == 'I'); };
-  bool  isBA_AB(void)        { return(orient == 'O'); };
-  bool  isAB_AB(void)        { return(orient == 'N'); };
-  bool  isBA_BA(void)        { return(orient == 'A'); };
+  bool  isAB_BA(void)        { assert(orient != 0);  return(orient == 'I'); };
+  bool  isBA_AB(void)        { assert(orient != 0);  return(orient == 'O'); };
+  bool  isAB_AB(void)        { assert(orient != 0);  return(orient == 'N'); };
+  bool  isBA_BA(void)        { assert(orient != 0);  return(orient == 'A'); };
 
   void  setIsAB_BA(void)     { orient = 'I'; };
   void  setIsBA_AB(void)     { orient = 'O'; };
@@ -114,6 +118,8 @@ public:
   void  setIsBA_BA(void)     { orient = 'A'; };
 
   void  invert(void) {
+    assert(orient != 0);  
+
     switch (orient) {
       case 'I': orient = 'O'; break;
       case 'O': orient = 'I'; break;
@@ -135,8 +141,20 @@ public:
     }
   };
 
-  bool  operator==(const PairOrient that) { return(orient == that.orient); };
-  bool  operator!=(const PairOrient that) { return(orient != that.orient); };
+  bool  operator==(const PairOrient that) {
+    assert(orient      != 0);
+    assert(that.orient != 0);
+    return(orient == that.orient);
+  };
+  bool  operator!=(const PairOrient that) {
+    assert(orient      != 0);
+    assert(that.orient != 0);
+    return(orient != that.orient);
+  };
+
+  bool  isValid(void) {
+    return(orient != 0);
+  };
 
 private:
   char  orient;
@@ -159,31 +177,37 @@ public:
 
   char  toLetter(void)       { return(orient); };
 
-  bool  isForward(void)      { return(orient == 'F'); };
-  bool  isReverse(void)      { return(orient == 'R'); };
-  bool  isUnknown(void)      { return(orient == 'U'); };
+  bool  isForward(void)      { assert(orient != 0);  return(orient == 'F'); };
+  bool  isReverse(void)      { assert(orient != 0);  return(orient == 'R'); };
+  bool  isUnknown(void)      { assert(orient != 0);  return(orient == 'U'); };
 
   void  setIsForward(bool f=true)   { orient = (f) ? 'F' : 'R'; };
   void  setIsReverse(bool r=true)   { orient = (r) ? 'R' : 'F'; };
   void  setIsUnknown(void)          { orient =       'U';       };
 
-#if 0
-  bool  isA_B(void)          { return(orient == 'F'); };
-  bool  isB_A(void)          { return(orient == 'R'); };
-
-  void  setIsA_B(void)       { orient = 'F'; };
-  void  setIsB_A(void)       { orient = 'R'; };
-#endif
-
   void  flip(void) {
+    assert(orient != 0);  
+
     switch (orient) {
       case 'F': orient = 'R'; break;
       case 'R': orient = 'F'; break;
     }
   };
 
-  bool  operator==(const SequenceOrient that) { return(orient == that.orient); };
-  bool  operator!=(const SequenceOrient that) { return(orient != that.orient); };
+  bool  operator==(const SequenceOrient that) {
+    assert(orient      != 0);
+    assert(that.orient != 0);
+    return(orient == that.orient);
+  };
+  bool  operator!=(const SequenceOrient that) {
+    assert(orient      != 0);
+    assert(that.orient != 0);
+    return(orient != that.orient);
+  };
+
+  bool  isValid(void) {
+    return(orient != 0);
+  };
 
 private:
   char  orient;
