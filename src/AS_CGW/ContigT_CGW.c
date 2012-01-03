@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.30 2011-12-04 23:21:29 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.31 2012-01-03 09:57:55 brianwalenz Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -896,7 +896,7 @@ BuildInitialContigs(ScaffoldGraphT *graph) {
 
     SetNodeCGW_T(graph->ContigGraph->nodes, contig.id, &contig);
 
-    fprintf(stderr, "BuildInitialContigs()-- Contig %d CI %d\n", contig.id, CI->id);
+    //fprintf(stderr, "BuildInitialContigs()-- Contig %d CI %d\n", contig.id, CI->id);
   }
 
   graph->numContigs = GetNumGraphNodes(graph->ContigGraph);
