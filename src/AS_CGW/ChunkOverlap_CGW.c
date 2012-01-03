@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.55 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.56 2012-01-03 09:57:01 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -384,9 +384,9 @@ CreateChunkOverlapFromEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
 
   assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
-  InitCanonicalOverlapSpec(edge->idA, edge->idB, edge->orient, &olap.spec);
-
   memset(&olap, 0, sizeof(ChunkOverlapCheckT));
+
+  InitCanonicalOverlapSpec(edge->idA, edge->idB, edge->orient, &olap.spec);
 
   olap.computed      = TRUE;
   olap.overlap       = -edge->distance.mean;
@@ -585,6 +585,7 @@ void FillChunkOverlapWithOVL(GraphCGW_T   *graph,
 //external
 ChunkOverlapCheckT *LookupCanonicalOverlap(ChunkOverlapperT *chunkOverlapper,
                                            ChunkOverlapSpecT *spec){
+  assert(spec->orientation.isValid() == true);
   return (ChunkOverlapCheckT *)(INTPTR)LookupValueInHashTable_AS(chunkOverlapper->hashTable,
                                                                  (uint64)(INTPTR)spec,
                                                                  sizeof(ChunkOverlapSpecT));
