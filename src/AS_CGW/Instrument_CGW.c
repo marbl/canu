@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.50 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.51 2012-01-03 10:01:27 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "Instrument_CGW.h"
@@ -4987,14 +4987,12 @@ void FinishIntScaffoldMesg(IntScaffoldMesg * isf,
                            VA_TYPE(IntContigPairs) * icps)
 {
   isf->num_contig_pairs = GetNumVA_IntContigPairs(icps);
-  if(isf->num_contig_pairs == 0)
-    isf->contig_pairs = NULL;
-  else
-    {
-      isf->contig_pairs = (IntContigPairs *)safe_malloc(isf->num_contig_pairs * sizeof(IntContigPairs));
-      memcpy(isf->contig_pairs, GetVA_IntContigPairs(icps, 0),
-             isf->num_contig_pairs * sizeof(IntContigPairs));
-    }
+  isf->contig_pairs     = NULL;
+
+  if (isf->num_contig_pairs > 0) {
+    isf->contig_pairs = (IntContigPairs *)safe_malloc(isf->num_contig_pairs * sizeof(IntContigPairs));
+    memcpy(isf->contig_pairs, GetVA_IntContigPairs(icps, 0), isf->num_contig_pairs * sizeof(IntContigPairs));
+  }
 }
 
 
@@ -5006,130 +5004,100 @@ void FreeIntScaffoldMesg(IntScaffoldMesg * isf)
 }
 
 
-int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
-                                         CIScaffoldT * scaffold,
-                                         ScaffoldInstrumenter * si,
-                                         IntScaffoldMesg * isf)
-{
+int
+BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
+                                     CIScaffoldT * scaffold,
+                                     ScaffoldInstrumenter * si,
+                                     IntScaffoldMesg * isf) {
+
   CIScaffoldTIterator CIsTemp;
+
   VA_TYPE(IntContigPairs) * icps = CreateVA_IntContigPairs(1000);
-  assert(icps != NULL);
 
   isf->iaccession = scaffold->id;
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIsTemp);
-  while( NextCIScaffoldTIterator(&CIsTemp) && CIsTemp.next != NULLINDEX)
-    {
-      double gapSize;
-      double currVariance;
-      PairOrient pairwiseOrient;
-      ContigT * lContig;
-      ContigT * rContig;
-      EdgeCGW_T * edge;
-      CDS_CID_t thisID;
-      int thisEnd;
 
-      // get the left contig
-      if((lContig = GetGraphNode(graph->ContigGraph, CIsTemp.curr)) == NULL)
-        {
-          fprintf(stderr, "Left contig "F_CID " does not exist in the graph!\n",
-                  CIsTemp.curr);
-          return 1;
-        }
-      // get the right contig
-      if((rContig = GetGraphNode(graph->ContigGraph, CIsTemp.next)) == NULL)
-        {
-          fprintf(stderr, "Right contig "F_CID " does not exist in the graph!\n",
-                  CIsTemp.next);
-          return 1;
-        }
+  while (NextCIScaffoldTIterator(&CIsTemp) && CIsTemp.next != NULLINDEX) {
+    PairOrient pairwiseOrient;
+    double     gapSize;
+    double     gapVari;
 
-      // capture gap information between curr & next in si
-      if(lContig->offsetAEnd.mean < lContig->offsetBEnd.mean)
-        {
-          if(rContig->offsetAEnd.mean < rContig->offsetBEnd.mean)
-            {
-              pairwiseOrient.setIsAB_AB();
-              gapSize = rContig->offsetAEnd.mean - lContig->offsetBEnd.mean;
-              currVariance =
-                rContig->offsetAEnd.variance - lContig->offsetBEnd.variance;
-            }
-          else
-            {
-              pairwiseOrient.setIsAB_BA();
-              gapSize = rContig->offsetBEnd.mean - lContig->offsetBEnd.mean;
-              currVariance =
-                rContig->offsetBEnd.variance - lContig->offsetBEnd.variance;
-            }
-        }
-      else
-        {
-          if(rContig->offsetAEnd.mean < rContig->offsetBEnd.mean)
-            {
-              pairwiseOrient.setIsBA_AB();
-              gapSize = rContig->offsetAEnd.mean - lContig->offsetAEnd.mean;
-              currVariance =
-                rContig->offsetAEnd.variance - lContig->offsetAEnd.variance;
-            }
-          else
-            {
-              pairwiseOrient.setIsBA_BA();
-              gapSize = rContig->offsetBEnd.mean - lContig->offsetAEnd.mean;
-              currVariance =
-                rContig->offsetBEnd.variance - lContig->offsetAEnd.variance;
-            }
-        }
+    ContigT *lContig = GetGraphNode(graph->ContigGraph, CIsTemp.curr);
+    ContigT *rContig = GetGraphNode(graph->ContigGraph, CIsTemp.next);
 
-      /*
-        if(gapSize < 0.0
-        && ((-gapSize < lContig->bpLength.mean + 0.5 && -gapSize + 0.5 > lContig->bpLength.mean)
-        || (-gapSize < rContig->bpLength.mean + 0.5 && -gapSize + 0.5 > rContig->bpLength.mean))
-        )
-        {
-        fprintf(stderr, "\n*****Found contigLength = -gapSize:\n");
-        fprintf(stderr, "***** ID: "F_CID ", length %.2f, gap = %.2f, ID: "F_CID ", length %.2f\n\n",
-        CIsTemp.curr, lContig->bpLength.mean, gapSize, CIsTemp.next, rContig->bpLength.mean);
-        }
-      */
-
-      // set some temporary variables that get changed in AddICP
-      thisID = CIsTemp.curr;
-      thisEnd = (pairwiseOrient.isAB_AB() || pairwiseOrient.isAB_BA()) ? 2 : 1;
-
-      {
-        EdgeCGW_T myEdge;
-
-        memset(&myEdge, 0, sizeof(EdgeCGW_T));
-
-        myEdge.idA = CIsTemp.curr;
-        myEdge.idB = CIsTemp.next;
-        myEdge.distance.mean = gapSize;
-        myEdge.distance.variance = currVariance;
-        myEdge.orient = pairwiseOrient;
-        edge = &myEdge;
-      }
-      // add to set of ICPs
-      AddICP(icps, &thisID, &thisEnd, edge);
+    if (lContig == NULL) {
+      fprintf(stderr, "Left contig "F_CID " does not exist in the graph!\n", CIsTemp.curr);
+      return(1);
     }
+    if(rContig == NULL) {
+      fprintf(stderr, "Right contig "F_CID " does not exist in the graph!\n", CIsTemp.next);
+      return(1);
+    }
+
+    // capture gap information between curr & next in si
+    if (lContig->offsetAEnd.mean < lContig->offsetBEnd.mean) {
+      if (rContig->offsetAEnd.mean < rContig->offsetBEnd.mean) {
+        pairwiseOrient.setIsAB_AB();
+        gapSize = rContig->offsetAEnd.mean - lContig->offsetBEnd.mean;
+        gapVari = rContig->offsetAEnd.variance - lContig->offsetBEnd.variance;
+      } else {
+        pairwiseOrient.setIsAB_BA();
+        gapSize = rContig->offsetBEnd.mean - lContig->offsetBEnd.mean;
+        gapVari = rContig->offsetBEnd.variance - lContig->offsetBEnd.variance;
+      }
+    } else {
+      if (rContig->offsetAEnd.mean < rContig->offsetBEnd.mean) {
+        pairwiseOrient.setIsBA_AB();
+        gapSize = rContig->offsetAEnd.mean - lContig->offsetAEnd.mean;
+        gapVari = rContig->offsetAEnd.variance - lContig->offsetAEnd.variance;
+      } else {
+        pairwiseOrient.setIsBA_BA();
+        gapSize = rContig->offsetBEnd.mean - lContig->offsetAEnd.mean;
+        gapVari = rContig->offsetBEnd.variance - lContig->offsetAEnd.variance;
+      }
+    }
+
+    // set some temporary variables that get changed in AddICP
+    CDS_CID_t  thisID  = CIsTemp.curr;
+    int32      thisEnd = (pairwiseOrient.isAB_AB() || pairwiseOrient.isAB_BA()) ? 2 : 1;
+
+    EdgeCGW_T myEdge;
+
+    memset(&myEdge, 0, sizeof(EdgeCGW_T));
+
+    myEdge.idA               = CIsTemp.curr;
+    myEdge.idB               = CIsTemp.next;
+    myEdge.distance.mean     = gapSize;
+    myEdge.distance.variance = gapVari;
+    myEdge.orient            = pairwiseOrient;
+
+    // add to set of ICPs
+    AddICP(icps, &thisID, &thisEnd, &myEdge);
+  }
 
   // At this point, if there are no contig pairs, need to create one
-  if(GetNumVA_IntContigPairs(icps) == 0)
-    {
-      EdgeCGW_T myEdge;
-      IntContigPairs icp;
+  if (GetNumVA_IntContigPairs(icps) == 0) {
+    EdgeCGW_T      myEdge;
+    IntContigPairs icp;
 
-      memset(&myEdge, 0, sizeof(EdgeCGW_T));
-      memset(&icp,    0, sizeof(IntContigPairs));
+    memset(&myEdge, 0, sizeof(EdgeCGW_T));
+    memset(&icp,    0, sizeof(IntContigPairs));
 
-      myEdge.idA = myEdge.idB = CIsTemp.curr;
-      myEdge.distance.mean = myEdge.distance.variance = 0.0f;
-      myEdge.orient.setIsAB_AB();
-      PopulateICP(&icp, CIsTemp.curr, &myEdge);
-      AppendVA_IntContigPairs(icps, &icp);
-    }
+    myEdge.idA           = myEdge.idB = CIsTemp.curr;
+    myEdge.distance.mean = myEdge.distance.variance = 0.0f;
+
+    myEdge.orient.setIsAB_AB();
+
+    PopulateICP(&icp, CIsTemp.curr, &myEdge);
+    AppendVA_IntContigPairs(icps, &icp);
+  }
+
   FinishIntScaffoldMesg(isf, icps);
+
   DeleteVA_IntContigPairs(icps);
-  return 0;
+
+  return(0);
 }
 
 
