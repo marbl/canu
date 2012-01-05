@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ctgcns.C,v 1.11 2011-12-04 23:46:58 brianwalenz Exp $";
+const char *mainid = "$Id: ctgcns.C,v 1.12 2012-01-05 18:29:43 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -125,6 +125,8 @@ main (int argc, char **argv) {
     e = ctgTest + 1;
   }
 
+  FORCE_UNITIG_ABUT = 1;
+
   if (ctgFile != NULL) {
     errno = 0;
     FILE         *F = fopen(ctgFile, "r");
@@ -180,8 +182,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments)%s\n",
             ma->maID, ma->data.num_unitigs, ma->data.num_frags,
             (exists) ? " - already computed, recomputing" : "");
-
-    FORCE_UNITIG_ABUT = 1;
 
     if (MultiAlignContig(ma, gkpStore, &options)) {
       tigStore->insertMultiAlign(ma, FALSE, FALSE);
