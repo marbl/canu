@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignContig.c,v 1.13 2011-12-08 00:56:28 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignContig.c,v 1.14 2012-01-05 18:30:50 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -394,17 +394,20 @@ MultiAlignContig(MultiAlignT  *ma,
       fprintf(stderr, "MultiAlignContig:  Forcing abut between afrag %d (%c) and bfrag %d (%c) in contig %d.\n",
               afrag->iid, afrag->type, bfrag->iid, bfrag->type, ma->maID);
 
-      //  If our ahang is too big, force a 20bp overlap.
+      //  Force a 1bp overlap.  We'd like to strictly abut, but ApplyAlignment() requires that there
+      //  be an overlap, and removing checks for that seem like a bad idea.
       //
-      if (ahang + 20 > afrag->length) {
-        //fprintf(stderr, "MultiAlignContig: RESET ahang from %d to %d\n", ahang, afrag->length-20);
-        ahang = afrag->length - 20;
-      }
-
-      //  And now, after all this work, we probably will just die in
-      //  ApplyAlignment() ten lines below.  Too bad.....
+      ahang = afrag->length - 1;
 
       otype = AS_DOVETAIL;
+
+      int32 zero = 0;
+
+      ResetVA_int32(trace);
+      AppendVA_int32(trace, &zero);
+
+      assert(*Getint32(trace,0) == 0);
+      assert(GetNumint32s(trace) == 1);
     }
 #endif
 
