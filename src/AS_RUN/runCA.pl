@@ -5643,7 +5643,7 @@ sub toggler () {
     if (! -e "$wrk/$toggledDir/$asm.tigStore") {
         system("mkdir $wrk/$toggledDir/$asm.tigStore") ;
 
-        system("ln -s $wrk/$asm.tigStore/*v00[12]* $wrk/$toggledDir/$asm.tigStore/");
+        system("ln -s $wrk/$asm.tigStore/*v00[12345]* $wrk/$toggledDir/$asm.tigStore/");
     }
 
     system("ln -s $wrk/4-unitigger $wrk/$toggledDir") if (! -e "$wrk/$toggledDir/4-unitigger");
@@ -5654,7 +5654,7 @@ sub toggler () {
     if (! -e "$wrk/$toggledDir/toggled.success") {
         $cmd  = "$bin/markUniqueUnique ";
         $cmd .= " -a $wrk/9-terminator/$asm.asm ";
-        $cmd .= " -t $wrk/$toggledDir/$asm.tigStore 2 ";
+        $cmd .= " -t $wrk/$toggledDir/$asm.tigStore 5 ";
         $cmd .= " -l $minLength ";
         $cmd .= " -n $numInstances ";
         $cmd .= " -d $maxDistance ";
