@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.3 2011-12-19 00:51:47 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.4 2012-01-05 16:25:45 brianwalenz Exp $";
 
 #include "MultiAlignMatePairAnalysis.H"
 
@@ -159,8 +159,8 @@ matePairAnalysis::evaluateTig(MultiAlignT *ma) {
     AS_IID      libiid    = library[frg->ident];
     mpaLibrary *lib       = libdata + libiid;
     uint32      liborient = lib->library->orientation;
-    int32       libmin    = lib->library->mean - 3 * lib->library->stddev;
-    int32       libmax    = lib->library->mean + 3 * lib->library->stddev;
+    int32       libmin    = (int32)floor(lib->library->mean - 3 * lib->library->stddev);
+    int32       libmax    = (int32)floor(lib->library->mean + 3 * lib->library->stddev);
 
     bool        frgforward = (frg->position.bgn < frg->position.end);
     int32       frgmin     = MIN(frg->position.bgn, frg->position.end);
@@ -242,8 +242,8 @@ mpaLibraryData::finalize(void) {
 
   approxStd = MAX(median - oneThird, twoThird - median);
 
-  biggest   = median + approxStd * 5;
-  smallest  = median - approxStd * 5;
+  biggest   = (int32)floor(median + approxStd * 5);
+  smallest  = (int32)floor(median - approxStd * 5);
 
   for (uint64 x=0; x<dist.size(); x++)
     if ((smallest  <= dist[x]) &&
@@ -385,7 +385,7 @@ matePairAnalysis::drawPlots(char *prefix) {
       if (errno)
         fprintf(stderr, "ERROR:  Failed to open '%s': %s\n", datName, strerror(errno)), exit(1);
 
-      int32  step = (data->biggest - data->smallest) / 100;
+      int32  step = MAX(1, ((data->biggest - data->smallest) / 100));
       int32  min  = data->dist[0];
       int32  max  = data->dist[0] + step;
       int32  num  = 0;
@@ -400,6 +400,8 @@ matePairAnalysis::drawPlots(char *prefix) {
           num = 0;
         }
       }
+
+      fprintf(dat, "%d\t%.1f\t%d\t%d\n", min, (min + max) / 2.0, max, num);
 
       fclose(dat);
     
