@@ -22,9 +22,23 @@
 #ifndef INCLUDE_AS_BAT_MERGESPLITJOIN
 #define INCLUDE_AS_BAT_MERGESPLITJOIN
 
-static const char *rcsid_INCLUDE_AS_BAT_MERGESPLITJOIN = "$Id: AS_BAT_MergeSplitJoin.H,v 1.2 2011-12-18 08:14:34 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_MERGESPLITJOIN = "$Id: AS_BAT_MergeSplitJoin.H,v 1.3 2012-01-05 16:29:26 brianwalenz Exp $";
 
 void
 mergeSplitJoin(UnitigVector &unitigs, bool shatterRepeats);
+
+void
+extendByMates(UnitigVector &unitigs,
+              double        erateGraph,
+              double        elimitGraph);
+
+void
+reconstructRepeats(UnitigVector &unitigs,
+                   double        erateGraph,
+                   double        elimitGraph);
+
+void
+promoteToSingleton(UnitigVector &unitigs, bool enablePromoteToSingleton);
+
 
 #endif  //  INCLUDE_AS_BAT_MERGESPLITJOIN

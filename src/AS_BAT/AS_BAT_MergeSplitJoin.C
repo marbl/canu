@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.11 2011-12-18 08:14:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.12 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -774,20 +774,19 @@ markRepeats_placeAndProcessOverlaps(UnitigVector              &unitigs,
         uncovered3end = 0;
       }
 
+      //  Set flags indicating (true) if the unaligned portion on that end is significant enough to
+      //  be trusted as a real unaligned piece.
+      //
+      //  If both are true, this looks like a short repeat in a long fragment.  The only way (I can
+      //  think of anyway) this could occur is from an alignment to a short contained fragment.
+      //
+      //  If both are false, the fragment has aligned fully.
+
       bool  save5 = (uncovered5bgn + UNCOVERED_NOISE_FILTER < uncovered5end);
       bool  save3 = (uncovered3bgn + UNCOVERED_NOISE_FILTER < uncovered3end);
 
-      if ((save5 == true) && (save3 == true)) {
-        //  Ignore this repeat-in-a-fragment alignment.  The only way (I can think of anyway) this could
-        //  occur is from an alignment to a short contained fragment.
+      if (save5 == save3)
         continue;
-      }
-
-      if ((save5 == false) && (save3 == false)) {
-        //  Ignore this non-overhanging fragment.  It either aligned full length, of didn't have
-        //  enough unaligned for us to care about.
-        continue;
-      }
 
       //  Save this overlapPlacement for later use.  We've got a valid overhang towards the start of
       //  the unitig (save5) or the end of the unitig (save3).
@@ -1388,15 +1387,6 @@ mergeSplitJoin(UnitigVector &unitigs, bool shatterRepeats) {
 
   //  MERGE LEFTOVERS - these are the leftover pieces after repeats/chimera are split.  Hopefully
   //  they'll just be low coverage spurs
-
-  for (uint32 ti=0; ti<unitigs.size(); ti++) {
-    Unitig        *target = unitigs[ti];
-
-    if (target == NULL)
-      continue;
-
-    mergeBubbles(unitigs, target, ilist);
-  }
 
   delete ilist;
 

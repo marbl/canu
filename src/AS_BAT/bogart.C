@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.13 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.14 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -133,24 +133,27 @@ setLogFile(const char *prefix, const char *name) {
 
 int
 main (int argc, char * argv []) {
-  char      *gkpStorePath           = NULL;
-  char      *ovlStoreUniqPath       = NULL;
-  char      *ovlStoreReptPath       = NULL;
-  char      *tigStorePath           = NULL;
+  char      *gkpStorePath            = NULL;
+  char      *ovlStoreUniqPath        = NULL;
+  char      *ovlStoreReptPath        = NULL;
+  char      *tigStorePath            = NULL;
 
-  double    erateGraph              = 0.020;
-  double    elimitGraph             = 2.0;
-  double    erateMerge              = 0.045;
-  double    elimitMerge             = 4.0;
+  double    erateGraph               = 0.020;
+  double    elimitGraph              = 2.0;
+  double    erateMerge               = 0.045;
+  double    elimitMerge              = 4.0;
 
-  uint64    ovlCacheMemory          = UINT64_MAX;
-  uint32    ovlCacheLimit           = UINT32_MAX;
-  uint64    genomeSize              = 0;
+  uint64    ovlCacheMemory           = UINT64_MAX;
+  uint32    ovlCacheLimit            = UINT32_MAX;
+  uint64    genomeSize               = 0;
 
-  int       fragment_count_target   = 0;
-  char     *output_prefix           = NULL;
+  int       fragment_count_target    = 0;
+  char     *output_prefix            = NULL;
 
-  bool      shatterRepeats          = false;
+  bool      enableShatterRepeats     = false;
+  bool      enableExtendByMates      = false;
+  bool      enableReconstructRepeats = false;
+  bool      enablePromoteToSingleton = true;
 
   argc = AS_configure(argc, argv);
 
@@ -180,8 +183,19 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       genomeSize = strtoull(argv[++arg], NULL, 10);
 
+    } else if (strcmp(argv[arg], "-SR") == 0) {
+      enableShatterRepeats     = true;
+
     } else if (strcmp(argv[arg], "-R") == 0) {
-      shatterRepeats = true;
+      enableShatterRepeats     = true;
+      enableReconstructRepeats = true;
+
+    } else if (strcmp(argv[arg], "-E") == 0) {
+      enableShatterRepeats     = true;
+      enableExtendByMates      = true;
+
+    } else if (strcmp(argv[arg], "-DP") == 0) {
+      enablePromoteToSingleton = false;
 
     } else if (strcmp(argv[arg], "-eg") == 0) {
       erateGraph = atof(argv[++arg]);
@@ -287,7 +301,12 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Algorithm Options\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -R         Shatter and rebuild repeat unitigs\n");
+    fprintf(stderr, "  -SR        Shatter repeats.  Enabled with -R and -E; if neither are supplied,\n");
+    fprintf(stderr, "               repeat fragments are promoted to singleton unitigs (unless -DP).\n");
+    fprintf(stderr, "  -R         Shatter repeats, rebuild\n");
+    fprintf(stderr, "  -E         Shatter repeats, extend unique unitigs\n");
+    fprintf(stderr, "  -DP        When -R or -E, don't promote shattered leftovers to unitigs.\n");
+    fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig if either of\n");
     fprintf(stderr, "                    the following conditions hold:\n");
@@ -391,6 +410,9 @@ main (int argc, char * argv []) {
   for (uint32 fi=CG->nextFragByChunkLength(); fi>0; fi=CG->nextFragByChunkLength())
     populateUnitig(unitigs, fi);
 
+  delete CG;
+  CG = NULL;
+
   //setLogFile(output_prefix, "buildUnitigs-MissedFragments");
   fprintf(logFile, "==> BUILDING UNITIGS catching missed fragments.\n");
 
@@ -439,38 +461,31 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "mergeSplitJoin");
 
-  mergeSplitJoin(unitigs, shatterRepeats);
+  mergeSplitJoin(unitigs, enableShatterRepeats);
 
-  //  rebuildRepeatUnitigs()
-  if (shatterRepeats) {
-    BestOverlapGraph  *OGsave = OG;
-    ChunkGraph        *CGsave = CG;
+  //if (enableShatterRepeats) {
+  //  //  If my best overlap is to somewhere else, split the unitig I am in
+  //  splitIntersectingUnitigs();
+  //}
 
-    OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix);
-    CG = new ChunkGraph(output_prefix);
-
-    setLogFile(output_prefix, "buildRepeatUnitigs");
-    fprintf(logFile, "==> BUILDING REPEAT UNITIGS from %d fragments.\n", FI->numFragments());
-
-    for (uint32 fi=CG->nextFragByChunkLength(); fi>0; fi=CG->nextFragByChunkLength())
-      populateUnitig(unitigs, fi);
-
-    fprintf(logFile, "==> BUILDING REPEAT UNITIGS catching missed fragments.\n");
-
-    for (uint32 fi=1; fi <= FI->numFragments(); fi++)
-      populateUnitig(unitigs, fi);
-
-    delete OG;
-    delete CG;
-
-    OG = OGsave;
-    CG = CGsave;
+  if (enableExtendByMates) {
+    assert(enableShatterRepeats);
+    setLogFile(output_prefix, "extendMates");
+    extendByMates(unitigs, erateGraph, elimitGraph);
   }
 
-  placeContainsUsingBestOverlaps(unitigs);
+  if (enableReconstructRepeats) {
+    assert(enableShatterRepeats);
+    setLogFile(output_prefix, "reconstructRepeats");
+    reconstructRepeats(unitigs, erateGraph, elimitGraph);
+  }
+
+  setLogFile(output_prefix, "cleanup");
 
   splitDiscontinuousUnitigs(unitigs);       //  Clean up splitting problems.
   placeContainsUsingBestOverlaps(unitigs);
+
+  promoteToSingleton(unitigs, enablePromoteToSingleton);
 
   checkUnitigMembership(unitigs);
   reportOverlapsUsed(unitigs, output_prefix, "mergeSplitJoin");

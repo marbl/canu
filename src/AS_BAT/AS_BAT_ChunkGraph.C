@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_ChunkGraph.C,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_ChunkGraph.C,v 1.2 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_ChunkGraph.H"
@@ -30,7 +30,8 @@ ChunkGraph::ChunkGraph(const char *output_prefix) {
 
   setLogFile(output_prefix, "ChunkGraph");
 
-  _maxFragment     = FI->numFragments();
+  _maxFragment = FI->numFragments();
+  _restrict    = NULL;
 
   _pathLen         = new uint32      [_maxFragment * 2 + 2];
   _chunkLength     = new ChunkLength [_maxFragment];
@@ -41,6 +42,11 @@ ChunkGraph::ChunkGraph(const char *output_prefix) {
 
   for (uint32 fid=1; fid <= _maxFragment; fid++) {
     if (OG->isContained(fid))
+      continue;
+
+    if (OG->isSuspicious(fid))
+      //  Fragment is suspicious.  We won't seed a BOG from it, and populateUnitig will make only a
+      //  singleton.
       continue;
 
     _chunkLength[fid-1].fragId = fid;
@@ -55,31 +61,80 @@ ChunkGraph::ChunkGraph(const char *output_prefix) {
 }
 
 
+
+ChunkGraph::ChunkGraph(set<AS_IID> *restrict) {
+
+  _maxFragment = 0;
+  _restrict    = restrict;
+
+  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++)
+    _idMap[*it] = _maxFragment++;
+
+  _pathLen         = new uint32      [_maxFragment * 2 + 2];
+  _chunkLength     = new ChunkLength [_maxFragment];
+  _chunkLengthIter = 0;
+
+  memset(_pathLen,     0, sizeof(uint32)      * (_maxFragment * 2 + 2));
+  memset(_chunkLength, 0, sizeof(ChunkLength) * (_maxFragment));
+
+  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    uint32  fid = *it;          //  Actual fragment ID
+    uint32  fit = _idMap[fid];  //  Local array index
+
+    if (OG->isContained(fid))
+      continue;
+
+    _chunkLength[fit].fragId = fid;
+    _chunkLength[fit].cnt    = (countFullWidth(FragmentEnd(fid, false)) +
+                                countFullWidth(FragmentEnd(fid, true)));
+  }
+
+  delete [] _pathLen;
+  _pathLen = NULL;
+
+  std::sort(_chunkLength, _chunkLength + _maxFragment);
+}
+
+
+
+
+uint64
+ChunkGraph::getIndex(FragmentEnd e) {
+  if (_restrict == NULL)
+    return(e.fragId() * 2 + e.frag3p());
+
+  return(_idMap[e.fragId()] * 2 + e.frag3p());
+}
+
+
 uint32
 ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
+  uint64   firstIdx = getIndex(firstEnd);
 
-  assert(firstEnd.index() < _maxFragment * 2 + 2);
+  assert(firstIdx < _maxFragment * 2 + 2);
 
-  if (_pathLen[firstEnd.index()] > 0)
-    return _pathLen[firstEnd.index()];
+  if (_pathLen[firstIdx] > 0)
+    return _pathLen[firstIdx];
 
   uint32                length = 0;
   std::set<FragmentEnd> seen;
   FragmentEnd           lastEnd = firstEnd;
+  uint64                lastIdx = firstIdx;
 
   //  Until we run off the chain, or we hit a fragment with a known length, compute the length FROM
   //  THE START.
   //
-  while ((lastEnd.fragId() != 0) &&
-         (_pathLen[lastEnd.index()] == 0)) {
+  while ((lastIdx != 0) &&
+         (_pathLen[lastIdx] == 0)) {
 
     seen.insert(lastEnd);
 
-    _pathLen[lastEnd.index()] = ++length;
+    _pathLen[lastIdx] = ++length;
 
     //  Follow the path of lastEnd
 
     lastEnd = OG->followOverlap(lastEnd);
+    lastIdx = getIndex(lastEnd);
   }
 
   //  Check why we stopped.  Three cases:
@@ -100,16 +155,19 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
 
   } else if (seen.find(lastEnd) != seen.end()) {
     //  Case 3, a cycle.
-    uint32      cycleLen = length - _pathLen[lastEnd.index()] + 1;
+    uint32      cycleLen = length - _pathLen[lastIdx] + 1;
     FragmentEnd currEnd  = lastEnd;
+    uint64      currIdx  = lastIdx;
+
     do {
-      _pathLen[currEnd.index()] = cycleLen;
+      _pathLen[currIdx] = cycleLen;
       currEnd = OG->followOverlap(currEnd);
+      currIdx = getIndex(currEnd);
     } while (lastEnd != currEnd);
 
   } else {
     //  Case 2, an existing path.
-    length += _pathLen[lastEnd.index()];
+    length += _pathLen[lastIdx];
   }
 
   //  Our return value is now whatever count we're at.
@@ -120,21 +178,24 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
   //  or at the start of any existing path.
   //
   FragmentEnd currEnd = firstEnd;
+  uint64      currIdx = firstIdx;
 
   while (currEnd != lastEnd) {
-    _pathLen[currEnd.index()] = length--;
+    _pathLen[currIdx] = length--;
     currEnd = OG->followOverlap(currEnd);
+    currIdx = getIndex(currEnd);
   }
 
   if (logFileFlagSet(LOG_CHUNK_GRAPH)) {
     seen.clear();
 
     currEnd = firstEnd;
+    currIdx = firstIdx;
 
     fprintf(logFile, "PATH from %d,%d length %d:",
             firstEnd.fragId(),
             (firstEnd.frag3p()) ? 3 : 5,
-            _pathLen[firstEnd.index()]);
+            _pathLen[firstIdx]);
 
     while ((currEnd.fragId() != 0) &&
            (seen.find(currEnd) == seen.end())) {
@@ -146,24 +207,25 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
       fprintf(logFile, " %d,%d(%d)",
               currEnd.fragId(),
               (currEnd.frag3p()) ? 3 : 5,
-              _pathLen[currEnd.index()]);
+              _pathLen[currIdx]);
 
       currEnd = OG->followOverlap(currEnd);
+      currIdx = getIndex(currEnd);
     }
 
     if (seen.find(currEnd) != seen.end())
       fprintf(logFile, " CYCLE %d,%d(%d)",
               currEnd.fragId(),
               (currEnd.frag3p()) ? 3 : 5,
-              _pathLen[currEnd.index()]);
+              _pathLen[currIdx]);
 
     fprintf(logFile, "\n");
   }
 
-  if (lengthMax != _pathLen[firstEnd.index()])
+  if (lengthMax != _pathLen[firstIdx])
     fprintf(logFile, "ERROR: lengthMax %d _pathLen[] %d\n",
-            lengthMax, _pathLen[firstEnd.index()]);
-  assert(lengthMax == _pathLen[firstEnd.index()]);
+            lengthMax, _pathLen[firstIdx]);
+  assert(lengthMax == _pathLen[firstIdx]);
 
-  return(_pathLen[firstEnd.index()]);
+  return(_pathLen[firstIdx]);
 }

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_CHUNKGRAPH
 #define INCLUDE_AS_BAT_CHUNKGRAPH
 
-static const char *rcsid_INCLUDE_AS_BAT_CHUNKGRAPH = "$Id: AS_BAT_ChunkGraph.H,v 1.1 2010-11-24 01:03:31 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_CHUNKGRAPH = "$Id: AS_BAT_ChunkGraph.H,v 1.2 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -44,23 +44,32 @@ public:
 class ChunkGraph {
 public:
   ChunkGraph(const char *output_prefix);
+  ChunkGraph(set<AS_IID> *restrict);
   ~ChunkGraph(void) {
     delete [] _chunkLength;
   };
 
   uint32 nextFragByChunkLength(void) {
-    if (_chunkLengthIter < _maxFragment)
-      return(_chunkLength[_chunkLengthIter++].fragId);
-    return(0);
+    if (_chunkLengthIter >= _maxFragment)
+      return(0);
+    return(_chunkLength[_chunkLengthIter++].fragId);
   };
 
 private:
+  uint64 getIndex(FragmentEnd e);
   uint32 countFullWidth(FragmentEnd firstEnd);
 
-  uint32              _maxFragment;
+  uint64              _maxFragment;
+
+  //  The usual case, for a chunk graph of all fragments.
   ChunkLength        *_chunkLength;
   uint32              _chunkLengthIter;
   uint32             *_pathLen;
+
+  //  For a chunk graph of a single unitig plus some extra fragments.
+  //  This maps the AS_IID to an index in the arrays above.
+  map<AS_IID,uint32>  _idMap;
+  set<AS_IID>        *_restrict;
 };
 
 #endif

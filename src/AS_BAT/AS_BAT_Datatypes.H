@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.11 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.12 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -150,7 +150,6 @@ public:
   uint32  fragId(void)  const { return(_id); };
   bool    frag3p(void)  const { return(_e3p == true);  };
   bool    frag5p(void)  const { return(_e3p == false); };
-  uint32  index(void)   const { return(_id * 2 + _e3p); };
 
   bool operator==(FragmentEnd const that) const {
     return((fragId() == that.fragId()) && (frag3p() == that.frag3p()));
@@ -247,6 +246,11 @@ private:
 class BestContainment{
 public:
   BestContainment() {
+    container       = 0;
+    isContained     = false;
+    sameOrientation = false;
+    a_hang          = 0;
+    b_hang          = 0;
   };
   ~BestContainment() {
   };
@@ -315,6 +319,12 @@ public:
     //  MAX does not work.      return((uint32)MAX(aovl, bovl));
 
     return(aovl);
+  };
+
+  //  For DIAGNOSTIC ONLY.  Mark this fragment as 'deleted' so checkUnitigMembership() will pass
+  //  when we ignore fragments.  The resuting assembly will fail in CGW.
+  void    markAsIgnore(uint32 iid) {
+    _fragLength[iid] = 0;
   };
 
 private:

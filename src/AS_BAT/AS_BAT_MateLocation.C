@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MateLocation.C,v 1.3 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MateLocation.C,v 1.4 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -307,7 +307,13 @@ MateLocation::buildHappinessGraphs(UnitigVector &unitigs) {
     int32 frgEnd = loc.mlePos1.end;
     int32 frgLen = (frgBgn < frgEnd) ? (frgEnd - frgBgn) : (frgBgn - frgEnd);
 
-    int32 nContained  = (OG->getBestContainer(loc.mleFrgID1) != NULL) + (OG->getBestContainer(loc.mleFrgID2) != NULL);
+    int32 nContained  = 0;
+
+    if (OG->getBestContainer(loc.mleFrgID1)->isContained == true)
+      nContained++;
+
+    if (OG->getBestContainer(loc.mleFrgID2)->isContained == true)
+      nContained++;
 
     if ((matLen >= MIN(badMaxInter, badMaxIntra)) ||
         (frgLen >= MIN(badMaxInter, badMaxIntra)))

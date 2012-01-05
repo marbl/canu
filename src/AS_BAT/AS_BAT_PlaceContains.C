@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceContains.C,v 1.4 2011-04-18 01:29:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceContains.C,v 1.5 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -45,7 +45,7 @@ placeContainsUsingBestOverlaps(UnitigVector &unitigs) {
       BestContainment *bestcont = OG->getBestContainer(fid);
       Unitig          *utg;
 
-      if (bestcont == NULL)
+      if (bestcont->isContained == false)
         //  Not a contained fragment.
         continue;
 
@@ -88,6 +88,43 @@ placeContainsUsingBestOverlaps(UnitigVector &unitigs) {
   }
 }
 
+
+
+void
+placeContainsUsingBestOverlaps(Unitig *target, set<AS_IID> *fragments) {
+  uint32   fragsPlaced  = 1;
+
+  logFileFlags &= ~LOG_PLACE_FRAG;
+
+  while (fragsPlaced > 0) {
+    fragsPlaced  = 0;
+
+    for (set<AS_IID>::iterator it=fragments->begin(); it != fragments->end(); it++) {
+      AS_IID           fid      = *it;
+      BestContainment *bestcont = OG->getBestContainer(fid);
+
+      if ((bestcont->isContained == false) ||
+          (Unitig::fragIn(fid) != 0) ||
+          (Unitig::fragIn(bestcont->container) == 0) ||
+          (Unitig::fragIn(bestcont->container) != target->id()))
+        //  Not a contained fragment OR
+        //  Containee already placed OR
+        //  Container not placed (yet) OR
+        //  Containee not in the target unitig
+        continue;
+
+      target->addContainedFrag(fid, bestcont, false);
+
+      if (target->id() != Unitig::fragIn(fid))
+        fprintf(logFile, "placeContainsUsingBestOverlaps()-- FAILED to add frag %d to unitig %d.\n", fid, bestcont->container);
+      assert(target->id() == Unitig::fragIn(fid));
+
+      fragsPlaced++;
+    }
+  }
+
+  target->sort();
+}
 
 
 void

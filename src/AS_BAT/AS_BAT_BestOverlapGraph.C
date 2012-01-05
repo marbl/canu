@@ -19,43 +19,140 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.8 2011-12-18 08:14:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.9 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
 #include "AS_BAT_Unitig.H"
 
-const uint64 ogMagicNumber   = 0x72476c764f747362llu;  //  'bstOvlGr'
-const uint64 ogVersionNumber = 2;
+#include "AS_UTL_intervalList.H"
 
-//  Checkpointing will save the best overlap graph after it is loaded from the overlap store.  It
-//  seems to be working, but is missing a few features:
-//
-//  1) It has no version number of any other verification of the data (like, is this a checkpoint
-//     file).
-//
-//  2) It doesn't remember the erate/elimit used when reading overlaps.  Changing these command line
-//     parameters with a checkpoint file will result in the original overlaps being used.
-//
-//  3) It doesn't checkpoint _enough_ (maybe).  It is storing only best overlaps, not the state of
-//     bog at the time.  It might be useful to save the gatekeeper information too.
 
 
 BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
                                    double               AS_UTG_ERROR_LIMIT,
                                    const char          *prefix) {
 
-  fprintf(logFile, "BestOverlapGraph-- allocating best edges ("F_U64"MB) and containments ("F_U64"MB)\n",
+  setLogFile(prefix, "bestoverlapgraph");
+
+  fprintf(logFile, "BestOverlapGraph-- allocating best edges ("F_SIZE_T"MB) and containments ("F_SIZE_T"MB)\n",
           ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20),
           ((1 * sizeof(BestContainment) * (FI->numFragments() + 1)) >> 20));
 
-  _best5 = new BestEdgeOverlap [FI->numFragments() + 1];
-  _best3 = new BestEdgeOverlap [FI->numFragments() + 1];
-  _bestC = new BestContainment [FI->numFragments() + 1];
+  assert(AS_UTG_ERROR_RATE >= 0.0);
+  assert(AS_UTG_ERROR_RATE <= AS_MAX_ERROR_RATE);
 
-  memset(_best5, 0, sizeof(BestEdgeOverlap) * (FI->numFragments() + 1));
-  memset(_best3, 0, sizeof(BestEdgeOverlap) * (FI->numFragments() + 1));
-  memset(_bestC, 0, sizeof(BestContainment) * (FI->numFragments() + 1));
+  assert(AS_CNS_ERROR_RATE >= 0.0);
+  assert(AS_CNS_ERROR_RATE <= AS_MAX_ERROR_RATE);
+
+  _bestA = new BestOverlaps [FI->numFragments() + 1];
+  _scorA = new BestScores   [FI->numFragments() + 1];
+
+  memset(_bestA, 0, sizeof(BestOverlaps) * (FI->numFragments() + 1));
+  memset(_scorA, 0, sizeof(BestScores)   * (FI->numFragments() + 1));
+
+  _restrict = NULL;
+
+  mismatchCutoff  = AS_OVS_encodeQuality(AS_UTG_ERROR_RATE);
+  consensusCutoff = AS_OVS_encodeQuality(AS_CNS_ERROR_RATE);
+
+  mismatchLimit   = AS_UTG_ERROR_LIMIT;
+
+  //  PASS 0:  Find suspicious fragments.  For any found, mark as suspicious and don't allow
+  //  these to be best overlaps.
+
+  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, no);
+
+    bool          verified = false;
+    intervalList  IL;
+
+    uint32        fLen = FI->fragmentLength(fi);
+
+    for (uint32 ii=0; (ii<no) && (verified == false); ii++) {
+      if (isOverlapBadQuality(ovl[ii]))
+        //  Yuck.  Don't want to use this crud.
+        continue;
+
+      if      ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang <= 0))
+        //  Left side dovetail
+        IL.add(0, fLen + ovl[ii].b_hang);
+
+      else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang >= 0))
+        //  Right side dovetail
+        IL.add(ovl[ii].a_hang, fLen - ovl[ii].a_hang);
+
+      else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang <= 0))
+        //  I contain the other
+        IL.add(ovl[ii].a_hang, fLen - ovl[ii].a_hang - ovl[ii].b_hang);
+
+      else if ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang >= 0))
+        //  I am contained and thus now perfectly good!
+        verified = true;
+
+      else
+        //  Huh?  Coding error.
+        assert(0);
+    }
+
+    if (verified == false) {
+      IL.merge();
+      verified = (IL.numberOfIntervals() == 1);
+    }
+
+    if (verified == false) {
+      if (no > 0)
+        fprintf(logFile, "BestOverlapGraph()-- frag "F_U32" is suspicious ("F_U32" overlaps).\n", fi, no);
+      _suspicious.insert(fi);
+    }
+  }
+
+  //  PASS 1:  Find containments.
+
+  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, no);
+
+    for (uint32 ii=0; ii<no; ii++)
+      scoreContainment(ovl[ii]);
+  }
+
+  //  PASS 2:  Find dovetails.
+
+  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
+    uint32      no  = 0;
+    BAToverlap *ovl = OC->getOverlaps(fi, no);
+
+    for (uint32 ii=0; ii<no; ii++)
+      scoreEdge(ovl[ii]);
+  }
+
+  //  Remove temporary scoring data
+
+  delete [] _scorA;
+  _scorA = NULL;
+
+  //  Remove dovetail overlaps for contained fragments.
+
+  for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
+    if (isContained(fi) == true) {
+      getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
+      getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
+    }
+  }
+
+  reportBestEdges();
+
+  setLogFile(prefix, NULL);
+}
+
+
+
+
+BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
+                                   double               AS_UTG_ERROR_LIMIT,
+                                   set<AS_IID>         *restrict) {
 
   assert(AS_UTG_ERROR_RATE >= 0.0);
   assert(AS_UTG_ERROR_RATE <= AS_MAX_ERROR_RATE);
@@ -68,56 +165,40 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
   mismatchLimit   = AS_UTG_ERROR_LIMIT;
 
-  //  Not useful anymore.  This just saves the best overlaps, but we need all overlaps.
-  //if (load(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT)) {
-  //  logFileOrder++;  //  To keep indices the same on log names
-  //  setLogFile(prefix, NULL);
-  //  return;
-  //}
+  _bestA = NULL;
+  _scorA = NULL;
 
-  setLogFile(prefix, "bestoverlapgraph");
+  _bestM.clear();
+  _scorM.clear();
 
-  _bestCscore = new uint64 [FI->numFragments() + 1];
-  _best5score = new uint64 [FI->numFragments() + 1];
-  _best3score = new uint64 [FI->numFragments() + 1];
+  _restrict = restrict;
 
-  memset(_bestCscore, 0, sizeof(uint64) * (FI->numFragments() + 1));
-  memset(_best5score, 0, sizeof(uint64) * (FI->numFragments() + 1));
-  memset(_best3score, 0, sizeof(uint64) * (FI->numFragments() + 1));
+  //  PASS 0:  Load the map (necessary?)
+
+#if 0
+  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    AS_IID      fi  = *it;
+
+    _bestM[fi].insert();
+    _scorM[fi].insert();
+  }
+#endif
 
   //  PASS 1:  Find containments.
-  //
-  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
+
+  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    AS_IID      fi  = *it;
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-    for (uint32 ii=0; ii<no; ii++) {
-#if 0
-      fprintf(stderr, "ovl fi=%d ii=%d %d,%d %u %u %f %u %u\n",
-              fi, ii,
-              ovl[ii].a_hang,
-              ovl[ii].b_hang,
-              ovl[ii].flipped,
-              ovl[ii].errorRaw,
-              ovl[ii].error,
-              ovl[ii].a_iid,
-              ovl[ii].b_iid);
-#endif
+    for (uint32 ii=0; ii<no; ii++)
       scoreContainment(ovl[ii]);
-    }
   }
 
   //  PASS 2:  Find dovetails.
-  //
-  //  Until we get a list of the fragments that are contained, we must make two passes
-  //  through the overlaps.  The first pass really just marks fragments as contained,
-  //  the second pass can then load the overlaps.  The issue is that we cannot load
-  //  as a best edge an overlap between a non-contained and a contained fragment.  The
-  //  only way to see if that fragment (the B fragment, for argument) is contained is
-  //  to load all its overlaps -- and so if A < B, we won't know if B is contained until
-  //  too late.
 
-  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
+  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    AS_IID      fi  = *it;
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
 
@@ -125,66 +206,72 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
       scoreEdge(ovl[ii]);
   }
 
-  delete [] _bestCscore;
-  delete [] _best5score;
-  delete [] _best3score;
+  //  Remove temporary scoring data
 
-  _bestCscore = NULL;
-  _best5score = NULL;
-  _best3score = NULL;
+  _scorM.clear();
 
   //  Remove dovetail overlaps for contained fragments.
 
-  for (uint32 id=1; id<FI->numFragments() + 1; id++) {
-    if (isContained(id) == true) {
-      getBestEdgeOverlap(id, false)->set(0, 0, 0, 0);
-      getBestEdgeOverlap(id, true) ->set(0, 0, 0, 0);
+  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    AS_IID      fi  = *it;
+
+    if (isContained(fi) == true) {
+      getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
+      getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
     }
   }
+}
 
-  setLogFile(prefix, NULL);
 
-  //  Diagnostic.  Dump the best edges, count the number of contained reads, etc.
-  {
-    FILE *BC = fopen("best.contains", "w");
-    FILE *BE = fopen("best.edges", "w");
-    FILE *BS = fopen("best.singletons", "w");
 
-    if ((BC) && (BE)) {
-      fprintf(BC, "#fragId\tlibId\tmated\tbestCont\n");
-      fprintf(BE, "#fragId\tlibId\tbest5\tbest3\n");
-      fprintf(BS, "#fragId\tlibId\tmated\n");
 
-      for (uint32 id=1; id<FI->numFragments() + 1; id++) {
-        BestContainment *bestcont  = getBestContainer(id);
-        BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
-        BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-        if (bestcont)
-          fprintf(BC, "%u\t%u\t%c\t%u\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
-        else if ((bestedge5->fragId() > 0) || (bestedge3->fragId() > 0))
-          fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\n", id, FI->libraryIID(id),
-                  bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
-                  bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5');
-        else
-          fprintf(BS, "%u\t%u\t%c\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f');
 
-      }
 
-      fclose(BC);
-      fclose(BE);
+
+
+
+
+
+
+
+
+
+void
+BestOverlapGraph::reportBestEdges(void) {
+  FILE *BC = fopen("best.contains", "w");
+  FILE *BE = fopen("best.edges", "w");
+  FILE *BS = fopen("best.singletons", "w");
+
+  if ((BC) && (BE) && (BS)) {
+    fprintf(BC, "#fragId\tlibId\tmated\tbestCont\n");
+    fprintf(BE, "#fragId\tlibId\tbest5\tbest3\n");
+    fprintf(BS, "#fragId\tlibId\tmated\n");
+
+    for (uint32 id=1; id<FI->numFragments() + 1; id++) {
+      BestContainment *bestcont  = getBestContainer(id);
+      BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
+      BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
+
+      if (bestcont->isContained)
+        fprintf(BC, "%u\t%u\t%c\t%u\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
+      else if ((bestedge5->fragId() > 0) || (bestedge3->fragId() > 0))
+        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\n", id, FI->libraryIID(id),
+                bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
+                bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5');
+      else
+        fprintf(BS, "%u\t%u\t%c\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f');
+
     }
+
+    fclose(BC);
+    fclose(BE);
+    fclose(BS);
   }
-
-  //  Not useful anymore.  This just saves the best overlaps, but we need all overlaps.
-  //save(prefix, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT);
 }
 
-BestOverlapGraph::~BestOverlapGraph(){
-  delete[] _best5;
-  delete[] _best3;
-  delete[] _bestC;
-}
+
+
 
 
 
@@ -193,6 +280,10 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
 
   if (isOverlapBadQuality(olap))
     //  Yuck.  Don't want to use this crud.
+    return;
+
+  if (isOverlapRestricted(olap))
+    //  Whoops, don't want this overlap for this BOG
     return;
 
   if ((olap.a_hang == 0) &&
@@ -206,13 +297,7 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
     //  We only save if A is the contained fragment.
     return;
 
-  if ((Unitig::fragIn(olap.a_iid) != 0) ||
-      (Unitig::fragIn(olap.b_iid) != 0))
-    //  We only save if both fragments are not assembled
-    return;
-
   uint64           newScr = scoreOverlap(olap);
-  BestContainment      *c = &_bestC[olap.a_iid];
 
   assert(newScr > 0);
 
@@ -223,14 +308,19 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
   //
   //  The hangs will transform the container coordinates into the containee cordinates.
 
-  if (newScr > _bestCscore[olap.a_iid]) {
+  if (newScr > bestCscore(olap.a_iid)) {
+    BestContainment   *c = getBestContainer(olap.a_iid);
+
     c->container         = olap.b_iid;
     c->isContained       = true;
     c->sameOrientation   = olap.flipped ? false : true;
-    c->a_hang            =  olap.flipped ? olap.b_hang : -olap.a_hang;
-    c->b_hang            =  olap.flipped ? olap.a_hang : -olap.b_hang;
+    c->a_hang            = olap.flipped ? olap.b_hang : -olap.a_hang;
+    c->b_hang            = olap.flipped ? olap.a_hang : -olap.b_hang;
 
-    _bestCscore[olap.a_iid] = newScr;
+    //fprintf(stderr, "set best for %d from "F_U64" to "F_U64"\n",
+    //        olap.a_iid, bestCscore(olap.a_iid), newScr);
+
+    bestCscore(olap.a_iid) = newScr;
   }
 }
 
@@ -243,6 +333,14 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Yuck.  Don't want to use this crud.
     return;
 
+  if (isOverlapRestricted(olap))
+    //  Whoops, don't want this overlap for this BOG
+    return;
+
+  if (isSuspicious(olap.b_iid))
+    //  Whoops, don't want this overlap for this BOG
+    return;
+
   if (((olap.a_hang >= 0) && (olap.b_hang <= 0)) ||
       ((olap.a_hang <= 0) && (olap.b_hang >= 0)))
     //  Skip containment overlaps.
@@ -253,124 +351,136 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
     //  Skip contained fragments.
     return;
 
-  if ((Unitig::fragIn(olap.a_iid) != 0) ||
-      (Unitig::fragIn(olap.b_iid) != 0))
-    //  Skip already assembled fragments.
-    return;
-
   uint64           newScr = scoreOverlap(olap);
   bool             a3p    = AS_BAT_overlapAEndIs3prime(olap);
   BestEdgeOverlap *best   = getBestEdgeOverlap(olap.a_iid, a3p);
-  uint64          *score  = (a3p) ? (_best3score + olap.a_iid) : (_best5score + olap.a_iid);
+  uint64          &score  = (a3p) ? (best3score(olap.a_iid)) : (best5score(olap.a_iid));
 
   assert(newScr > 0);
 
-  if (newScr <= *score)
+  if (newScr <= score)
     return;
 
   best->set(olap);
 
-  *score = newScr;
+  score = newScr;
 }
 
 
 
-void
-BestOverlapGraph::save(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT) {
-  char name[FILENAME_MAX];
-
-  assert(0);
-
-  sprintf(name, "%s.bog", prefix);
-
-  assert(_best5score == NULL);
-  assert(_best3score == NULL);
-  assert(_bestCscore == NULL);
-
-  errno = 0;
-  FILE *file = fopen(name, "w");
-  if (errno) {
-    fprintf(logFile, "BestOverlapGraph-- Failed to open '%s' for writing: %s\n", name, strerror(errno));
-    fprintf(logFile, "BestOverlapGraph-- Will not save best overlap graph to cache.\n");
-    return;
-  }
-
-  fprintf(logFile, "BestOverlapGraph()-- Saving overlap graph to '%s'.\n",
-          name);
-
-  AS_UTL_safeWrite(file, &ogMagicNumber,      "magicnumber",   sizeof(uint64),              1);
-  AS_UTL_safeWrite(file, &ogVersionNumber,    "versionnumber", sizeof(uint64),              1);
-
-  AS_UTL_safeWrite(file, &AS_UTG_ERROR_RATE,  "errorRate",     sizeof(double),              1);
-  AS_UTL_safeWrite(file, &AS_UTG_ERROR_LIMIT, "errorLimit",    sizeof(double),              1);
-
-  AS_UTL_safeWrite(file, _best5, "best overlaps 5", sizeof(BestEdgeOverlap), FI->numFragments() + 1);
-  AS_UTL_safeWrite(file, _best3, "best overlaps 3", sizeof(BestEdgeOverlap), FI->numFragments() + 1);
-  AS_UTL_safeWrite(file, _bestC, "best contains C", sizeof(BestContainment), FI->numFragments() + 1);
-
-  fclose(file);
-}
 
 bool
-BestOverlapGraph::load(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT) {
-  char name[FILENAME_MAX];
+BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
 
-  assert(0);
+  if ((FI->fragmentLength(olap.a_iid) == 0) ||
+      (FI->fragmentLength(olap.b_iid) == 0))
+    //  The overlap is bad if it involves deleted fragments.  Shouldn't happen in a normal
+    //  assembly, but sometimes us users want to delete fragments after overlaps are generated.
+    return(true);
 
-  sprintf(name, "%s.bog", prefix);
-
-  errno = 0;
-  FILE *file = fopen(name, "r");
-  if (errno)
-    return(false);
-
-  assert(_best5 != NULL);
-  assert(_best3 != NULL);
-  assert(_bestC != NULL);
-
-  uint64 magicNumber;
-  uint64 versionNumber;
-
-  AS_UTL_safeRead(file, &magicNumber,   "magicnumber",   sizeof(uint64), 1);
-  AS_UTL_safeRead(file, &versionNumber, "versionnumber", sizeof(uint64), 1);
-
-  if (magicNumber != ogMagicNumber) {
-    fprintf(logFile, "BestOverlapGraph()-- File '%s' is not a best overlap graph; cannot load graph.\n", name);
-    fclose(file);
-    return(false);
-  }
-  if (versionNumber != ogVersionNumber) {
-    fprintf(logFile, "BestOverlapGraph()-- File '%s' is version "F_U64", I can only read version "F_U64"; cannot load graph.\n",
-            name, versionNumber, ogVersionNumber);
-    fclose(file);
+  //  The overlap is GOOD (false == not bad) if the corrected error rate is below the requested
+  //  erate.
+  //
+  if (olap.error <= mismatchCutoff) {
+    if (logFileFlags & LOG_OVERLAP_QUALITY)
+      fprintf(logFile, "OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
+              olap.a_iid, olap.b_iid,
+              olap.flipped ? 'A' : 'N',
+              olap.a_hang,
+              olap.b_hang,
+              olap.error);
     return(false);
   }
 
-  fprintf(logFile, "BestOverlapGraph()-- Loading overlap graph from '%s'.\n", name);
+  //  If we didn't allow fixed-number-of-errors, the overlap is now bad.  Just a slight
+  //  optimization.
+  //
+  if (mismatchLimit <= 0)
+    return(true);
 
-  double  eRate  = 0.0;
-  double  eLimit = 0.0;
+  //  There are a few cases where the orig_erate is _better_ than the corr_erate.  That is, the
+  //  orig erate is 0% but we 'correct' it to something more than 0%.  Regardless, we probably
+  //  want to be using the corrected erate here.
 
-  AS_UTL_safeRead(file, &eRate,  "errorRate",     sizeof(double), 1);
-  AS_UTL_safeRead(file, &eLimit, "errorLimit",    sizeof(double), 1);
+  double olen = FI->overlapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
+  double nerr = olen * olap.error;
 
-  if (eRate  != AS_UTG_ERROR_RATE)
-    fprintf(logFile, "BestOverlapGraph()-- Saved graph in '%s' has error rate %f, this run is expecting error rate %f; cannot load graph.\n",
-            name, eRate, AS_UTG_ERROR_RATE);
-  if (eLimit != AS_UTG_ERROR_LIMIT)
-    fprintf(logFile, "BestOverlapGraph()-- Saved graph in '%s' has error limit %f, this run is expecting error limit %f; cannot load graph.\n",
-            name, eLimit, AS_UTG_ERROR_LIMIT);
-  if ((eRate  != AS_UTG_ERROR_RATE) ||
-      (eLimit != AS_UTG_ERROR_LIMIT)) {
-    fclose(file);
+  assert(nerr >= 0);
+
+  if (nerr <= mismatchLimit) {
+    if (logFileFlags & LOG_OVERLAP_QUALITY)
+      fprintf(logFile, "OVERLAP SAVED:    %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
+              olap.a_iid, olap.b_iid,
+              olap.flipped ? 'A' : 'N',
+              olap.a_hang,
+              olap.b_hang,
+              olap.error,
+              olen, nerr);
     return(false);
   }
 
-  AS_UTL_safeRead(file, _best5, "best overlaps", sizeof(BestEdgeOverlap), FI->numFragments() + 1);
-  AS_UTL_safeRead(file, _best3, "best overlaps", sizeof(BestEdgeOverlap), FI->numFragments() + 1);
-  AS_UTL_safeRead(file, _bestC, "best contains", sizeof(BestContainment), FI->numFragments() + 1);
-
-  fclose(file);
-
+  if (logFileFlags & LOG_OVERLAP_QUALITY)
+    fprintf(logFile, "OVERLAP REJECTED: %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
+            olap.a_iid, olap.b_iid,
+            olap.flipped ? 'A' : 'N',
+            olap.a_hang,
+            olap.b_hang,
+            olap.error,
+            olen, nerr);
   return(true);
+}
+
+
+//  If no restrictions are known, this overlap is useful if both fragments are not in a unitig
+//  already.  Otherwise, we are restricted to just a specific set of fragments (usually a single
+//  unitig and all the mated reads).  The overlap is useful if both fragments are in the set.
+//
+bool
+BestOverlapGraph::isOverlapRestricted(const BAToverlap &olap) {
+
+  if (_restrict == NULL) {
+    if ((Unitig::fragIn(olap.a_iid) == 0) &&
+        (Unitig::fragIn(olap.b_iid) == 0))
+      return(false);
+    else
+      return(true);
+  }
+
+  if ((_restrict->count(olap.a_iid) != 0) &&
+      (_restrict->count(olap.b_iid) != 0))
+    return(false);
+  else
+    return(true);
+}
+
+
+uint64
+BestOverlapGraph::scoreOverlap(const BAToverlap& olap) {
+
+  //  BPW's newer new score.  For the most part, we use the length of the overlap, but we also
+  //  want to break ties with the higher quality overlap:
+  //    The high bits are the length of the overlap.
+  //    The next are the corrected error rate.
+  //    The last are the original error rate.
+  //
+  uint64  leng = 0;
+  uint64  corr = AS_BAT_MAX_ERATE - olap.errorRaw;
+  uint64  orig = AS_BAT_MAX_ERATE - 0;
+
+  //  Shift AFTER assigning to a 64-bit value to avoid overflows.
+  corr <<= AS_OVS_ERRBITS;
+
+  //  Containments - the length of the overlaps are all the same.  We return the quality.
+  //
+  if (((olap.a_hang >= 0) && (olap.b_hang <= 0)) ||
+      ((olap.a_hang <= 0) && (olap.b_hang >= 0)))
+    return(corr | orig);
+
+  //  Dovetails - the length of the overlap is the score, but we bias towards lower error.
+  //  (again, shift AFTER assigning to avoid overflows)
+  //
+  leng   = FI->overlapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
+  leng <<= (2 * AS_OVS_ERRBITS);
+
+  return(leng | corr | orig);
 }

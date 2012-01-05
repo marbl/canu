@@ -22,21 +22,55 @@
 #ifndef INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id: AS_BAT_BestOverlapGraph.H,v 1.4 2011-12-05 22:56:22 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id: AS_BAT_BestOverlapGraph.H,v 1.5 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
+#include "AS_BAT_Unitig.H"
+
+class BestOverlaps {
+public:
+  BestEdgeOverlap     _best5;
+  BestEdgeOverlap     _best3;
+  BestContainment     _bestC;
+};
 
 
-struct BestOverlapGraph {
-  BestOverlapGraph(double erate, double elimit, const char *prefix);
-  ~BestOverlapGraph();
+class BestScores {
+public:
+  BestScores() {
+    _best5score = 0;
+    _best3score = 0;
+    _bestCscore = 0;
+  };
+
+  uint64  _best5score;
+  uint64  _best3score;
+  uint64  _bestCscore;
+};
+
+
+
+class BestOverlapGraph {
+public:
+  BestOverlapGraph(double erate,
+                   double elimit,
+                   const char *prefix);
+
+  BestOverlapGraph(double erate,
+                   double elimit,
+                   set<AS_IID> *restrict);
+
+  ~BestOverlapGraph() {
+    delete [] _bestA;
+    delete [] _scorA;
+  };
 
   //  Given a fragment UINT32 and which end, returns pointer to
   //  BestOverlap node.
-  BestEdgeOverlap *getBestEdgeOverlap(uint32 frag_id, bool threePrime) {
-    if (threePrime)
-      return(_best3 + frag_id);
-    return(_best5 + frag_id);
+  BestEdgeOverlap *getBestEdgeOverlap(uint32 fragid, bool threePrime) {
+    if (_bestA)
+      return((threePrime) ? (&_bestA[fragid]._best3) : (&_bestA[fragid]._best5));
+    return((threePrime) ? (&_bestM[fragid]._best3) : (&_bestM[fragid]._best5));
   };
 
   // given a FragmentEnd sets it to the next FragmentEnd after following the
@@ -51,149 +85,67 @@ struct BestOverlapGraph {
   };
 
   bool isContained(const uint32 fragid) {
-    return(_bestC[fragid].isContained);
+    if (_bestA)
+      return(_bestA[fragid]._bestC.isContained);
+    return(_bestM[fragid]._bestC.isContained);
+  };
+
+  bool isSuspicious(const uint32 fragid) {
+    return(_suspicious.count(fragid) > 0);
   };
 
   // Given a containee, returns pointer to BestContainment record
   BestContainment *getBestContainer(const uint32 fragid) {
-    return((isContained(fragid)) ? &_bestC[fragid] : NULL);
+    if (_bestA)
+      return(&_bestA[fragid]._bestC);
+    return(&_bestM[fragid]._bestC);
   };
 
+  void      reportBestEdges(void);
 
-  bool    isOverlapBadQuality(const BAToverlap& olap) {
+private:
+  bool     isOverlapBadQuality(const BAToverlap& olap);
+  bool     isOverlapRestricted(const BAToverlap &olap);
+  uint64   scoreOverlap(const BAToverlap& olap);
 
-    //  The overlap is ALWAYS bad if the original error rate is above what we initially required
-    //  overlaps to be at.  We shouldn't have even seen this overlap.  This is a bug in the
-    //  overlapper.
-    //
-#if 0
-    if (olap.dat.ovl.orig_erate > consensusCutoff)
-      return(true);
-#endif
+private:
+  void     scoreContainment(const BAToverlap& olap);
+  void     scoreEdge(const BAToverlap& olap);
 
-    if ((FI->fragmentLength(olap.a_iid) == 0) ||
-        (FI->fragmentLength(olap.b_iid) == 0))
-      //  The overlap is bad if it involves deleted fragments.  Shouldn't happen in a normal
-      //  assembly, but sometimes us users want to delete fragments after overlaps are generated.
-      return(true);
-
-    //  The overlap is GOOD (false == not bad) if the corrected error rate is below the requested
-    //  erate.
-    //
-    if (olap.error <= mismatchCutoff) {
-      if (logFileFlags & LOG_OVERLAP_QUALITY)
-        fprintf(logFile, "OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f %.3f\n",
-                olap.a_iid, olap.b_iid,
-                olap.flipped ? 'A' : 'N',
-                olap.a_hang,
-                olap.b_hang,
-                olap.error, 0.0);
-      //AS_OVS_decodeQuality(olap.orig_erate),
-      //AS_OVS_decodeQuality(olap.corr_erate));
-      return(false);
-    }
-
-    //  If we didn't allow fixed-number-of-errors, the overlap is now bad.  Just a slight
-    //  optimization.
-    //
-    if (mismatchLimit <= 0)
-      return(true);
-
-    //  There are a few cases where the orig_erate is _better_ than the corr_erate.  That is, the
-    //  orig erate is 0% but we 'correct' it to something more than 0%.  Regardless, we probably
-    //  want to be using the corrected erate here.
-
-    double olen = FI->overlapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
-    double nerr = olen * olap.error;
-
-    assert(nerr >= 0);
-
-    if (nerr <= mismatchLimit) {
-      if (logFileFlags & LOG_OVERLAP_QUALITY)
-        fprintf(logFile, "OVERLAP SAVED:    %d %d %c  hangs "F_S32" "F_S32" err %.3f %.3f olen %f nerr %f\n",
-                olap.a_iid, olap.b_iid,
-                olap.flipped ? 'A' : 'N',
-                olap.a_hang,
-                olap.b_hang,
-                olap.error, 0.0,
-                //AS_OVS_decodeQuality(olap.orig_erate),
-                //AS_OVS_decodeQuality(olap.corr_erate),
-                olen, nerr);
-      return(false);
-    }
-
-    if (logFileFlags & LOG_OVERLAP_QUALITY)
-      fprintf(logFile, "OVERLAP REJECTED: %d %d %c  hangs "F_S32" "F_S32" err %.3f %.3f olen %f nerr %f\n",
-              olap.a_iid, olap.b_iid,
-              olap.flipped ? 'A' : 'N',
-              olap.a_hang,
-              olap.b_hang,
-              olap.error, 0.0,
-              //AS_OVS_decodeQuality(olap.orig_erate),
-              //AS_OVS_decodeQuality(olap.corr_erate),
-              olen, nerr);
-    return(true);
+private:
+  uint64  &bestCscore(AS_IID id) {
+    if (_scorA)
+      return(_scorA[id]._bestCscore);
+    return(_scorM[id]._bestCscore);
   };
 
-  uint64  scoreOverlap(const BAToverlap& olap) {
-
-    //  BPW's newer new score.  For the most part, we use the length of the overlap, but we also
-    //  want to break ties with the higher quality overlap.
-    //
-    //  The high 20 bits are the length of the overlap.
-    //  The next 12 are the corrected error rate.
-    //  The last 12 are the original error rate.
-    //
-    //  (Well, 12 == AS_OVS_ERRBITS)
-
-    //  Checked already!
-    //if (isOverlapBadQuality(olap))
-    //  return(0);
-
-    uint64  leng = 0;
-    uint64  corr = AS_BAT_MAX_ERATE - olap.errorRaw;  //(AS_OVS_MAX_ERATE - olap.corr_erate);
-    uint64  orig = AS_BAT_MAX_ERATE - 0;              //(AS_OVS_MAX_ERATE - olap.orig_erate);
-
-    //  Shift AFTER assigning to a 64-bit value to avoid overflows.
-    corr <<= AS_OVS_ERRBITS;
-
-    //  Containments - the length of the overlaps are all the same.  We return the quality.
-    //
-    if (((olap.a_hang >= 0) && (olap.b_hang <= 0)) ||
-        ((olap.a_hang <= 0) && (olap.b_hang >= 0)))
-      return(corr | orig);
-
-    //  Dovetails - the length of the overlap is the score, but we bias towards lower error.
-    //  (again, shift AFTER assigning to avoid overflows)
-    //
-    leng   = FI->overlapLength(olap.a_iid, olap.b_iid, olap.a_hang, olap.b_hang);
-    leng <<= (2 * AS_OVS_ERRBITS);
-
-    return(leng | corr | orig);
+  uint64  &best5score(AS_IID id) {
+    if (_scorA)
+      return(_scorA[id]._best5score);
+    return(_scorM[id]._best5score);
   };
 
+  uint64  &best3score(AS_IID id) {
+    if (_scorA)
+      return(_scorA[id]._best3score);
+    return(_scorM[id]._best3score);
+  };
 
 private:
-  void scoreContainment(const BAToverlap& olap);
-  void scoreEdge(const BAToverlap& olap);
+  BestOverlaps              *_bestA;
+  BestScores                *_scorA;
 
-private:
-  void save(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT);
-  bool load(const char *prefix, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT);
+  set<AS_IID>                _suspicious;
 
-private:
-  BestEdgeOverlap     *_best5;
-  BestEdgeOverlap     *_best3;
-  BestContainment     *_bestC;
+  map<AS_IID, BestOverlaps>  _bestM;
+  map<AS_IID, BestScores>    _scorM;
 
-  uint64              *_best5score;
-  uint64              *_best3score;
-  uint64              *_bestCscore;
+  set<AS_IID>               *_restrict;
 
 public:
-  uint64 mismatchCutoff;
-  uint64 consensusCutoff;
-  double mismatchLimit;
+  uint64                      mismatchCutoff;
+  uint64                      consensusCutoff;
+  double                      mismatchLimit;
 }; //BestOverlapGraph
 
 

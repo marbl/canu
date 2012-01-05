@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_SetParentAndHang.C,v 1.3 2010-12-17 09:55:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_SetParentAndHang.C,v 1.4 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -58,7 +58,7 @@ setParentAndHang(UnitigVector &unitigs) {
 
       BestContainment *bestcont  = OG->getBestContainer(frg->ident);
 
-      if (bestcont) {
+      if (bestcont->isContained == true) {
         if (utg->fragIn(bestcont->container) == utg->id()) {
           int32   pi   = utg->pathPosition(bestcont->container);
           ufNode *par  = &utg->ufpath[pi];

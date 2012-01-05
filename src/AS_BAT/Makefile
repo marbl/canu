@@ -30,6 +30,7 @@ BAT_SOURCES = AS_BAT_ArrivalRate.C \
               AS_BAT_Breaking.C \
               AS_BAT_ChunkGraph.C \
               AS_BAT_EvaluateMates.C \
+              AS_BAT_ExtendByMates.C \
               AS_BAT_FragmentInfo.C \
               AS_BAT_Instrumentation.C \
               AS_BAT_IntersectBubble.C \
@@ -47,6 +48,8 @@ BAT_SOURCES = AS_BAT_ArrivalRate.C \
               AS_BAT_PlaceFragUsingOverlaps.C \
               AS_BAT_PlaceZombies.C \
               AS_BAT_PopulateUnitig.C \
+              AS_BAT_PromoteToSingleton.C \
+              AS_BAT_ReconstructRepeats.C \
               AS_BAT_SetParentAndHang.C \
               AS_BAT_SplitDiscontinuous.C \
               AS_BAT_Unitig_AddAndPlaceFrag.C \

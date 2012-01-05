@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.3 2011-09-01 18:45:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.4 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -141,13 +141,21 @@ populateUnitig(UnitigVector &unitigs,
   //  If that is not significantly longer than the fragment length, then we will not use this
   //  fragment as a seed for unitig construction.
   //
+
+  if (OG->isSuspicious(fi))
+    return;
+
+#if 0
   uint32  covered = FI->fragmentLength(fi) + bestedge5->bhang() + FI->fragmentLength(fi) - bestedge3->ahang();
 
+  //  This breaks unitigs at 0x best-coverage regions.  There might be a contain that spans (joins)
+  //  the two best overlaps to verify the fragment, but we can't easily tell right now.
   if (covered < FI->fragmentLength(fi) + AS_OVERLAP_MIN_LEN / 2) {
     fprintf(logFile, "Stopping unitig construction of suspicious frag %d in unitig %d\n",
             utg->ufpath.back().ident, utg->id());
     return;
   }
+#endif
 
   if (logFileFlagSet(LOG_POPULATE_UNITIG))
     fprintf(logFile, "Adding 5' edges off of frag %d in unitig %d\n",

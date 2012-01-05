@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Instrumentation.C,v 1.3 2011-07-29 01:30:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Instrumentation.C,v 1.4 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -148,7 +148,7 @@ reportOverlapsUsed(UnitigVector &unitigs, const char *prefix, const char *name) 
           BestContainment *bestcont  = OG->getBestContainer(ooo->ident);
 
           uint32           bestident  = 0;
-          if (bestcont)
+          if (bestcont->isContained)
             bestident = bestcont->container;
 
           bool isBest = ((frg->ident == bestident) ||

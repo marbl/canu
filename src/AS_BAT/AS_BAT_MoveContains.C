@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.3 2010-12-06 18:59:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.4 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -62,7 +62,7 @@ void moveContains(UnitigVector &unitigs) {
       MateLocationEntry  mloc       = positions.getById(frg->ident);
 
       uint32  thisFrgID = frg->ident;
-      uint32  contFrgID = (bestcont) ? bestcont->container : 0;
+      uint32  contFrgID = (bestcont->isContained == true) ? bestcont->container : 0;
       uint32  mateFrgID = FI->mateIID(frg->ident);
 
       uint32  thisUtgID = thisUnitig->fragIn(thisFrgID);

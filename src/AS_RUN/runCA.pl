@@ -522,8 +522,11 @@ sub setDefaults () {
     $global{"bogBadMateDepth"}             = 7;
     $synops{"bogBadMateDepth"}             = "EXPERT!";
 
-    $global{"batShatterRepeats"}           = 0;
-    $synops{"batShatterRepeats"}           = "Shatter and rebuild unitigs labeled repeat";
+    $global{"batRebuildRepeats"}           = 0;
+    $synops{"batRebuildRepeats"}           = "Shatter repeats, rebuild more stringently";
+
+    $global{"batMateExtension"}            = 0;
+    $synops{"batMateExtension"}            = "Shatter repeats, extend unique unitigs with mates (leaves repeats shattered)";
 
     $global{"batMemory"}                   = undef;
     $synops{"batMemory"}                   = "Approximate maximum memory usage for loading overlaps, in gigabytes, default is unlimited";
@@ -4342,7 +4345,8 @@ sub unitigger () {
             $cmd .= " -em $em ";
             $cmd .= " -Em $Em ";
             $cmd .= " -s $l "   if (defined($l));
-            $cmd .= " -R "      if (getGlobal("batShatterRepeats") == 1);
+            $cmd .= " -R "      if (getGlobal("batRebuildRepeats") == 1);
+            $cmd .= " -E "      if (getGlobal("batMateExtension") == 1);
             $cmd .= " -M $mem " if (defined($mem));
             $cmd .= " -o $wrk/4-unitigger/$asm ";
             $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";

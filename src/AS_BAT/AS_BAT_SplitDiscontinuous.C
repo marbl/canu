@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.4 2011-12-18 08:14:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.5 2012-01-05 16:29:26 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -104,6 +104,8 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
                       splitFrags[0].ident, tig->id(), dangler->id());
 
             BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
+
+            assert(bestcont->isContained == true);
 
             dangler->addContainedFrag(splitFrags[0].ident, bestcont, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
             assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
