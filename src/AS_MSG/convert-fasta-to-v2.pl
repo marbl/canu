@@ -38,12 +38,9 @@ use strict;
 
 my $vec;
 my %clv;
-my %clq;  #  Currently, we never have this info
 
 my $clvFound = 0;
 my $clvNotFound = 0;
-my $clqFound = 0;
-my $clqNotFound = 0;
 
 my $noOBT = 0;
 my $isNCBIqv = 0;
@@ -224,24 +221,32 @@ while (defined($seq) && defined($qlt)) {
     print ".\n";
     print "hps:\n";
     print ".\n";
+
+    my $rLen = length($seq);
+    my $qLen = length($qlt);
+
+    die "ERROR:  read $seqid has sequence length ($rLen) not equal quality length ($qLen).\n" if ($rLen != $qLen);
+
     if (defined($clv{$seqid})) {
+        my @vc   = split ',', $clv{$seqid};
+
+        if ($vc[0] < 0) {
+            print STDERR "WARNING:  read $seqid (length $rLen) has invalid vector clear begin ($clv{$seqid}); adjusted.\n";
+            $vc[0] = 0;
+        }
+        if ($rLen < $vc[1]) {
+            print STDERR "WARNING:  read $seqid (length $rLen) has invalid vector clear end ($clv{$seqid}); adjusted.\n";
+            $vc[1] = $rLen;
+        }
+
         $clvFound++;
-        print "clv:$clv{$seqid}\n";
+        print "clv:$vc[0],$vc[1]\n";
     } else {
         $clvNotFound++;
     }
-    if (defined($clq{$seqid})) {
-        $clqFound++;
-        print "clq:$clq{$seqid}\n";
-    } else {
-        $clqNotFound++;
-    }
+
     print "clr:0,", length($seq), "\n";
     print "}\n";
-
-    if (length($seq) != length($qlt)) {
-        die "Length of sequence (" . length($seq) . ") and quality (" . length($qlt) . ") do not agree for $seqid.\n";
-    }
 
     ($seqid, $seq) = readFasta();
     ($qltid, $qlt) = readQual();
@@ -287,8 +292,6 @@ print "}\n";
 if (defined(%clv) && ($clvNotFound > 0)) {
     print STDERR "Updated $clvFound vector clear ranges ($clvNotFound NOT updated).\n";
 }
-
-#print STDERR "Updated $clqFound quality clear ranges ($clqNotFound NOT updated).\n";
 
 
 #
