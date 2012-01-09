@@ -28,19 +28,19 @@ SOURCES    = AS_MSG_pmesg.C AS_MSG_pmesg1.C AS_MSG_pmesg2.C remove_fragment.C Ex
 OBJECTS    = $(SOURCES:.C=.o)
 CXX_PROGS  = remove_fragment extractmessages
 LIBRARIES  = libAS_MSG.a libCA.a
-SCRIPTS    = convert-fasta-to-v2.pl convert-v1-to-v2.pl tracedb-to-frg.pl
+SCRIPTS    = convert-fasta-to-v2.pl tracedb-to-frg.pl
 
-
-# Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
-	@cp -f convert-fasta-to-v2.pl $(LOCAL_BIN)
+	@cp -f convert-fasta-to-v2.pl $(LOCAL_BIN)/
+	@cp -f convert-fasta-to-v2.pl $(LOCAL_BIN)/fastaToCA
+	@cp -f tracedb-to-frg.pl      $(LOCAL_BIN)/
+	@cp -f tracedb-to-frg.pl      $(LOCAL_BIN)/tracearchiveToCA
 	@chmod 775 $(LOCAL_BIN)/convert-fasta-to-v2.pl
-	@cp convert-v1-to-v2.pl $(LOCAL_BIN)
-	@chmod 775 $(LOCAL_BIN)/convert-v1-to-v2.pl
-	@cp tracedb-to-frg.pl $(LOCAL_BIN)
+	@chmod 775 $(LOCAL_BIN)/fastaToCA
 	@chmod 775 $(LOCAL_BIN)/tracedb-to-frg.pl
+	@chmod 775 $(LOCAL_BIN)/tracearchiveToCA
 
 libAS_MSG.a:       AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
 libCA.a:           AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
