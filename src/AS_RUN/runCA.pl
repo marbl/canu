@@ -5764,6 +5764,16 @@ sub cleaner () {
 
 setDefaults();
 
+#  Check for the presence of a -options switch BEFORE we do any work.
+#  This lets us print the default values of options.
+
+foreach my $arg (@ARGV) {
+    if ($arg eq "-options") {
+        setGlobal("options", 1);
+        printHelp();
+    }
+}
+
 #  At some pain, we stash the original options for later use.  We need
 #  to use these when we resubmit ourself to SGE.  We can't simply dump
 #  all of @ARGV into here, because we need to fix up relative paths.
@@ -5787,7 +5797,8 @@ while (scalar(@ARGV)) {
         setGlobal("version", 1);
 
     } elsif ($arg eq "-options") {
-        setGlobal("options", 1);
+        #  Do nothing.  Handled above, but we still need to process it here.
+        #setGlobal("options", 1);
 
     } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/i) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
