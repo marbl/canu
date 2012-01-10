@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.57 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.58 2012-01-10 03:05:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1911,6 +1911,84 @@ dumpFragFile(char *outName, FILE *outFile) {
 }
 
 
+
+
+void
+dumpFastQFiles(char *outPrefix) {
+  gkFragment        fr;
+  char              outName[FILENAME_MAX];
+
+  sprintf(outName, "%s.1.fastq", outPrefix);
+  FILE   *outA = fopen(outName, "w");
+
+  sprintf(outName, "%s.2.fastq", outPrefix);
+  FILE   *outB = fopen(outName, "w");
+
+  sprintf(outName, "%s.u.fastq", outPrefix);
+  FILE   *outU = fopen(outName, "w");
+
+  FILE   *outX;
+
+  //  This assumes that mate pairs are adjacent in the gkpStore.
+
+  gkStream *fs = new gkStream(gkpStore, 0, 0, GKFRAGMENT_QLT);
+
+  while (fs->next(&fr)) {
+    if (fr.gkFragment_getIsDeleted())
+      continue;
+
+    if (fr.gkFragment_getMateIID() == 0) {
+      //  Unmated fragment.
+      outX = outU;
+      //st.fragmentsOutput++;  COUNTED in dumpFrgFiles
+
+    } else if (fr.gkFragment_getReadIID() < fr.gkFragment_getMateIID()) {
+      //  Mated fragment (matesOutput counts MATES not READS).
+      outX = outA;
+      //st.matesOutput++;  COUNTED in dumpFrgFiles
+
+    } else {
+      outX = outB;
+    }
+
+    AS_UTL_writeFastQ(outX,
+                      fr.gkFragment_getSequence(), fr.gkFragment_getSequenceLength(),
+                      fr.gkFragment_getQuality(),  fr.gkFragment_getSequenceLength(),
+                      "@%s clr=%d,%d clv=%d,%d max=%d,%d tnt=%d,%d rnd=t\n",
+                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_CLR),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_CLR),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT));
+  }
+
+  delete fs;
+
+  fclose(outA);
+  fclose(outB);
+  fclose(outU);
+
+
+  gkLibrary  gkl;
+
+  gkpStore->gkStore_getLibrary(1, &gkl);
+
+  fprintf(stderr, "fastqToCA \\\n");
+  fprintf(stderr, "  -insertsize %.0f %.0f \\\n", gkl.mean, gkl.stddev);
+  fprintf(stderr, "  -libraryname %s \\\n", AS_UID_toString(gkl.libraryUID));
+  fprintf(stderr, "  -technology 454 \\\n");
+  fprintf(stderr, "  -type sanger \\\n");
+  fprintf(stderr, "  -innie \\\n");
+  fprintf(stderr, "  -reads %s.u.fastq \\\n", outPrefix);
+  fprintf(stderr, "  -mates %s.1.fastq,%s.2.fastq\n", outPrefix, outPrefix);
+}
+
+
+
 int
 main(int argc, char **argv) {
   int       insertSize       = 0;
@@ -2202,6 +2280,7 @@ main(int argc, char **argv) {
     detectMates(linker, search);
 
   dumpFragFile(frgName, frgFile);
+  dumpFastQFiles(oPrefix);
 
   gkpStore->gkStore_delete();
   delete gkpStore;
