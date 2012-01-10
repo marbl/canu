@@ -1698,6 +1698,8 @@ sub preoverlap {
 
     print STDERR "numFrags = $numFrags\n";
 
+    caFailure("gatekeeper failed to add fragments", "$wrk/$asm.gkpStore.err")  if ($numFrags == 0);
+
   stopafter:
     stopAfter("initialStoreBuilding");
 }
@@ -4149,9 +4151,9 @@ sub classifyMates () {
             caFailure("Backbone library '$lib' doesn't exist in the assembly, classifyMates failed\n", undef);
         }
         if (defined($bbIID)) {
-            $bbIID .= ",$libToIID{$lib}";
+            $bbIID .= " -bl $libToIID{$lib}";
         } else {
-            $bbIID  = $libToIID{$lib};
+            $bbIID  = "$libToIID{$lib}";
         }
     }
 
