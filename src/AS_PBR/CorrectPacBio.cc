@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.9 2011-12-29 09:49:47 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.10 2012-01-11 16:32:26 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -331,7 +331,7 @@ static void *  correctFragments(void *ptr) {
         }
 
         // figure out what bases the bfrag covers
-        if (olap.dat.ovl.type == AS_OVS_TYPE_OVL && (olap.dat.ovl.a_hang <= 0 || olap.dat.ovl.b_hang >= 0)) {
+        if (olap.dat.ovl.type == AS_OVS_TYPE_OVL && (olap.dat.ovl.a_hang < 0 || olap.dat.ovl.b_hang > 0)) {
            // non contained overlap, dont use these fragments for correction
            if (frgToScore[bid] != 0) {
               OVSoverlap best = frgToBest[bid];
