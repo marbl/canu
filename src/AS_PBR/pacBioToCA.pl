@@ -230,6 +230,7 @@ sub schedulerFinish {
 ################################################################################
 my $MIN_FILES_WITHOUT_PARTITIONS = 20;
 
+my $shortReads = undef;
 my $libraryname = undef;
 my $specFile = undef;
 my $length = 500;
@@ -257,6 +258,9 @@ while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
     if      ($arg eq "-s") {
         $specFile = shift @ARGV;
+
+    } elsif ($arg eq "-shortReads") {
+        $shortReads = 1;
 
     } elsif ($arg eq "-length") {
         $length = shift @ARGV;
@@ -462,8 +466,19 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    print F "      touch $wrk/temp$libraryname/\$jobid.success\n";
    print F "   else\n";
    print F "      $AMOS/bank-transact -b $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk -m $wrk/temp$libraryname/$asm.\$jobid" . ".lay -c > $wrk/temp$libraryname/bank-transact.\$jobid.err 2>&1\n";
-   print F "      $AMOS/make-consensus -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
-   print F "      $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
+   if (defined($shortReads) && $shortReads == 1) {
+   print F "      $AMOS/make-consensus -e 0.03 -w 5 -x $wrk/temp$libraryname/\$jobid.excluded -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   } else {
+   print F "      $AMOS/make-consensus -x $wrk/temp$libraryname/\$jobid.excluded -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   }
+   print F "      if test -e $wrk/temp$libraryname/\$jobid.success ; then\n";
+   print F "         $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
+   print F "      else\n";
+   print F "         rm -rf $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk\n";
+   print F "         $AMOS/bank-transact -b $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk -m $wrk/temp$libraryname/$asm.\$jobid" . ".lay -c > $wrk/temp$libraryname/bank-transact.\$jobid.err 2>&1\n";
+   print F "         $AMOS/make-consensus -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
+   print F "         $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
+   print F "      fi\n";
    print F "   fi\n";
    print F "fi\n";
    close(F);
