@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.12 2011-12-29 09:49:47 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.13 2012-01-11 17:22:29 skoren Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -49,9 +49,13 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
     //  failed to get memory size, so what?
     fprintf(stderr, "sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
 
-  if (len != sizeof(uint64))
-    //  wasn't enough space, so what?
-    fprintf(stderr, "sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
+  if (len != sizeof(uint64)) {
+    mib[1] = HW_MEMSIZE;
+    len = sizeof(uint64);
+    if (sysctl(mib, 2, &physMemory, &len, NULL, 0) != 0 || len != sizeof(uint64))
+       //  wasn't enough space, so what?
+       fprintf(stderr, "sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
+  }
 
 #else
   uint64  physPages  = sysconf(_SC_PHYS_PAGES);
