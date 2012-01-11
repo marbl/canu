@@ -272,10 +272,10 @@ sub setDefaults () {
     #####  Minimums
 
     $global{"frgMinLen"}                   = 64;
-    $synops{"frgMinLen"}                   = "Fragments shorter than this are discarded";
+    $synops{"frgMinLen"}                   = "Fragments shorter than this length are not loaded into the assembler";
 
     $global{"ovlMinLen"}                   = 40;
-    $synops{"ovlMinLen"}                   = "Overlaps shorter than this are not computed or used";
+    $synops{"ovlMinLen"}                   = "Overlaps shorter than this length are not computed";
 
     #####  Stopping conditions
 
@@ -307,9 +307,6 @@ sub setDefaults () {
 
     $global{"cnsOnGrid"}                   = 1;
     $synops{"cnsOnGrid"}                   = "Enable SGE for consensus";
-
-    $global{"maxGridJobSize"}              = undef;
-    $synops{"maxGridJobSize"}              = "";
 
     $global{"sge"}                         = undef;
     $synops{"sge"}                         = "SGE options applied to all SGE jobs";
@@ -412,7 +409,7 @@ sub setDefaults () {
     $synops{"ovlHashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ovlHashBlockLength";
 
     $global{"ovlHashLoad"}                 = "0.75";
-    $synops{"ovlHashLoad"}                 = "Maximum hash table load.  If set too high table lookups are inefficent; if too low search overhead dominates run time";
+    $synops{"ovlHashLoad"}                 = "Maximum hash table load.  If set too high, table lookups are inefficent; if too low, search overhead dominates run time";
 
     $global{"ovlMerSize"}                  = 22;
     $synops{"ovlMerSize"}                  = "K-mer size for seeds in overlaps";
@@ -569,14 +566,14 @@ sub setDefaults () {
     $global{"kickOutNonOvlContigs"}        = 0;
     $synops{"kickOutNonOvlContigs"}        = "Allow kicking out a contig placed in a scaffold by mate pairs that has no overlaps to both its left and right neighbor contigs. EXPERT!\n";
 
-    $global{"doUnjiggleWhenMerging"}        = 0;
-    $synops{"doUnjiggleWhenMerging"}        = "After inserting rocks/stones try shifting contig positions back to their original location when computing overlaps to see if they overlap with the rock/stone and allow them to merge if they do. EXPERT!\n";
+    $global{"doUnjiggleWhenMerging"}       = 0;
+    $synops{"doUnjiggleWhenMerging"}       = "After inserting rocks/stones try shifting contig positions back to their original location when computing overlaps to see if they overlap with the rock/stone and allow them to merge if they do. EXPERT!\n";
     
-    $global{"cgwContigShatterWeight"}		= 0;
-    $synops{"cgwContigShatterWeight"}		= "When starting from a checkpoint, for any contig connected to its scaffold by a link with less than cgwContigShatterWeight, remove it and place it into a singleton scaffold. EXPERT!\n";
+    $global{"cgwContigShatterWeight"}      = 0;
+    $synops{"cgwContigShatterWeight"}      = "When starting from a checkpoint, for any contig connected to its scaffold by a link with less than cgwContigShatterWeight, remove it and place it into a singleton scaffold. EXPERT!\n";
 
-    $global{"cgwMergeMissingThreshold"}		= 0;
-    $synops{"cgwMergeMissingThreshold"}		= "When merging scaffolds, missing mates are those mates that should fall within the merged scaffold but do not. In metagenomics, this may not be the case for a conserved region within strains as the mates are missing because they are in a different strain. This is a value between 0 and 1 to specify the percentage of missing mates (relative to good mates) to ignore. A value of -1 means ignore all missing mates when merging. EXPERT!\n";
+    $global{"cgwMergeMissingThreshold"}    = 0;
+    $synops{"cgwMergeMissingThreshold"}    = "When merging scaffolds, missing mates are those mates that should fall within the merged scaffold but do not. In metagenomics, this may not be the case for a conserved region within strains as the mates are missing because they are in a different strain. This is a value between 0 and 1 to specify the percentage of missing mates (relative to good mates) to ignore. A value of -1 means ignore all missing mates when merging. EXPERT!\n";
     
     #####  Consensus Options
 
