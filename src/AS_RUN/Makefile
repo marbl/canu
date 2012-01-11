@@ -30,13 +30,9 @@ OBJECTS = fragmentDepth.o markUniqueUnique.o
 CXX_PROGS = fragmentDepth markUniqueUnique
 
 SCRIPTS = runCA \
-          assemblyCompare \
-          qcCompare \
-          tampaCompare \
-          mummerCompare \
+          mergeqc.pl \
           caqc.pl \
           caqc_help.ini \
-          caqc-diff.pl \
           ca2ace.pl \
           asmToAGP.pl
 
@@ -64,10 +60,6 @@ caqc.pl: asmQC/caqc.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
-caqc-diff.pl: asmQC/caqc-diff.pl
-	@cp $< $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
 ca2ace.pl: asmQC/ca2ace.pl TIGR
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
@@ -76,20 +68,8 @@ asmToAGP.pl: asmQC/asmToAGP.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
-assemblyCompare: testing/assemblyCompare.pl
-	@cp testing/assemblyCompare.pl $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-qcCompare: testing/qcCompare.pl
-	@cp testing/qcCompare.pl $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-tampaCompare: testing/tampaCompare.pl
-	@cp testing/tampaCompare.pl $(LOCAL_BIN)/$@
-	@chmod 775 $(LOCAL_BIN)/$@
-
-mummerCompare: testing/mummerCompare.pl
-	@cp testing/mummerCompare.pl $(LOCAL_BIN)/$@
+mergeqc.pl: asmQC/mergeqc.pl
+	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 fragmentDepth: fragmentDepth.o libCA.a
