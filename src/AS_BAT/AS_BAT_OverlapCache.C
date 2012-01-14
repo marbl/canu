@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.13 2012-01-11 17:22:29 skoren Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.14 2012-01-14 13:27:50 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -50,9 +50,11 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
     fprintf(stderr, "sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
 
   if (len != sizeof(uint64)) {
+#ifdef HW_MEMSIZE
     mib[1] = HW_MEMSIZE;
     len = sizeof(uint64);
     if (sysctl(mib, 2, &physMemory, &len, NULL, 0) != 0 || len != sizeof(uint64))
+#endif
        //  wasn't enough space, so what?
        fprintf(stderr, "sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
   }
