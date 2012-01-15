@@ -2804,11 +2804,11 @@ sub merTrim {
         $cmd  = "$bin/merTrimApply \\\n";
         $cmd .= " -g $wrk/$asm.gkpStore \\\n";
         $cmd .= " -L $wrk/0-mertrim/$asm.merTrim.list \\\n";
-        $cmd .= " -l $wrk/0-mertrim/$asm.merTrimLog \\\n";
+        $cmd .= " -l $wrk/0-mertrim/$asm.merTrim.log \\\n";
         $cmd .= " > $wrk/0-mertrim/$asm.merTrimApply.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
-            rename "$wrk/0-mertrim/$asm.merTrimLog", "$wrk/0-mertrim/$asm.merTrimLog.FAILED";
+            rename "$wrk/0-mertrim/$asm.merTrim.log", "$wrk/0-mertrim/$asm.merTrim.log.FAILED";
             caFailure("merTrimApply failed", "$wrk/0-mertrim/$asm.merTrimApply.err");
         }
     }
@@ -3599,18 +3599,18 @@ sub overlapTrim {
     #  This step also applies any clear range computed by MBT.
     #
 
-    if ((! -e "$wrk/0-overlaptrim/$asm.initialTrimLog") &&
-        (! -e "$wrk/0-overlaptrim/$asm.initialTrimLog.bz2")) {
+    if ((! -e "$wrk/0-overlaptrim/$asm.initialTrim.log") &&
+        (! -e "$wrk/0-overlaptrim/$asm.initialTrim.log.bz2")) {
         $cmd  = "$bin/initialTrim \\\n";
-        $cmd .= " -log $wrk/0-overlaptrim/$asm.initialTrimLog \\\n";
+        $cmd .= " -log $wrk/0-overlaptrim/$asm.initialTrim.log \\\n";
         $cmd .= " -frg $wrk/$asm.gkpStore \\\n";
-        $cmd .= " >  $wrk/0-overlaptrim/$asm.initialTrim.report \\\n";
+        $cmd .= " >  $wrk/0-overlaptrim/$asm.initialTrim.summary \\\n";
         $cmd .= " 2> $wrk/0-overlaptrim/$asm.initialTrim.err ";
 
         stopBefore("initialTrim", $cmd);
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.FAILED";
+            rename "$wrk/0-overlaptrim/$asm.initialTrim.log", "$wrk/0-overlaptrim/$asm.initialTrim.log.FAILED";
             caFailure("initial trimming failed", "$wrk/0-overlaptrim/$asm.initialTrim.err");
         }
 
@@ -3728,7 +3728,7 @@ sub overlapTrim {
         $cmd .= "-gkp     $wrk/$asm.gkpStore \\\n";
         $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.obtStore \\\n";
         $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.dupStore \\\n";
-        $cmd .= "-report  $wrk/0-overlaptrim/$asm.deduplicate.report \\\n";
+        $cmd .= "-report  $wrk/0-overlaptrim/$asm.deduplicate.log \\\n";
         $cmd .= "-summary $wrk/0-overlaptrim/$asm.deduplicate.summary \\\n";
         $cmd .= "> $wrk/0-overlaptrim/$asm.deduplicate.err 2>&1";
 
@@ -3764,20 +3764,20 @@ sub overlapTrim {
 
 
     if (getGlobal("doChimeraDetection") ne 'off') {
-        if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
-            (! -e "$wrk/0-overlaptrim/$asm.chimera.report.bz2")) {
+        if ((! -e "$wrk/0-overlaptrim/$asm.chimera.log") &&
+            (! -e "$wrk/0-overlaptrim/$asm.chimera.log.bz2")) {
             $cmd  = "$bin/chimera \\\n";
             $cmd .= " -gkp $wrk/$asm.gkpStore \\\n";
             $cmd .= " -ovs $wrk/0-overlaptrim/$asm.obtStore \\\n";
             $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary \\\n";
-            $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report \\\n";
+            $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.log \\\n";
             $cmd .= " -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
             $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
 
             stopBefore("chimeraDetection", $cmd);
 
             if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-                rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
+                rename "$wrk/0-overlaptrim/$asm.chimera.log", "$wrk/0-overlaptrim/$asm.chimera.log.FAILED";
                 caFailure("chimera cleaning failed", "$wrk/0-overlaptrim/$asm.chimera.err");
             }
         }
@@ -4628,18 +4628,9 @@ sub postUnitiggerConsensus () {
         }
     }
 
-    #  All jobs finished.  Remove the partitioning from the gatekeeper
-    #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant
-    #  of someone asking for a partition that isn't there -- it'll
-    #  fallback to the complete store.  So, if you happen to want to
-    #  run consensus again, it'll still work, just a little slower.
+    #  All jobs finished.  Remove the partitioning from the gatekeeper store.
     #
-    #  (This block appears in both createPostUnitiggerConsensus.pl and createConsensusJobs.pl)
-    #
-    system("rm -f $wrk/$asm.gkpStore/frg.[0-9][0-9][0-9]");
-    system("rm -f $wrk/$asm.gkpStore/hps.[0-9][0-9][0-9]");
-    system("rm -f $wrk/$asm.gkpStore/qlt.[0-9][0-9][0-9]");
-    system("rm -f $wrk/$asm.gkpStore/src.[0-9][0-9][0-9]");
+    #system("rm -f $wrk/$asm.gkpStore/???.[0-9][0-9][0-9]");
 
     touch("$wrk/5-consensus/consensus.success");
 
@@ -5145,18 +5136,9 @@ sub postScaffolderConsensus () {
     #
     caFailure("$failedJobs consensusAfterScaffolder jobs failed; remove 8-consensus/consensus.sh to try again", undef) if ($failedJobs);
 
-    #  All jobs finished.  Remove the partitioning from the gatekeeper
-    #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant
-    #  of someone asking for a partition that isn't there -- it'll
-    #  fallback to the complete store.  So, if you happen to want to
-    #  run consensus again, it'll still work, just a little slower.
+    #  All jobs finished.  Remove the partitioning from the gatekeeper store.
     #
-    #  (This block appears in both createPostUnitiggerConsensus.pl and createConsensusJobs.pl)
-    #
-    system("rm -f $wrk/$asm.gkpStore/frg.[0-9][0-9][0-9]");
-    system("rm -f $wrk/$asm.gkpStore/hps.[0-9][0-9][0-9]");
-    system("rm -f $wrk/$asm.gkpStore/qlt.[0-9][0-9][0-9]");
-    system("rm -f $wrk/$asm.gkpStore/src.[0-9][0-9][0-9]");
+    #system("rm -f $wrk/$asm.gkpStore/???.[0-9][0-9][0-9]");
 
     touch("$wrk/8-consensus/consensus.success");
 
