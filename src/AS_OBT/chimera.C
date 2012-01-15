@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.48 2011-09-27 21:07:54 mkotelbajcvi Exp $";
+const char *mainid = "$Id: chimera.C,v 1.49 2012-01-15 03:44:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,8 +49,8 @@ const char *mainid = "$Id: chimera.C,v 1.48 2011-09-27 21:07:54 mkotelbajcvi Exp
 #undef WITH_REPORT_FULL
 #undef REPORT_OVERLAPS
 
-#define DEBUG_ISLINKER
-#define DEBUG_INTERVAL
+#undef DEBUG_ISLINKER
+#undef DEBUG_INTERVAL
 
 
 FILE   *summaryFile = NULL;
