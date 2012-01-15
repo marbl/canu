@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig.C,v 1.3 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig.C,v 1.4 2012-01-15 23:49:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -31,13 +31,9 @@ uint32  Unitig::_nextId       = 1;
 uint32* Unitig::_inUnitig     = NULL;
 uint32* Unitig::_pathPosition = NULL;
 
-double   Unitig::_globalArrivalRate = -1;
-
 
 Unitig::Unitig(bool report){
-  _localArrivalRate = -1;
   _length           =  0;
-  _avgRho           = -1;
   _id               = _nextId++;
 
   if (report)
@@ -93,96 +89,6 @@ ufNode Unitig::getLastBackboneNode(uint32 &prevID) {
 }
 
 
-
-
-
-
-double Unitig::getAvgRho(void){
-
-  if(ufpath.size() == 1)
-    _avgRho = 1;
-  if(_avgRho!=-1)
-    return(_avgRho);
-
-
-  // We will compute the average rho.
-  //
-  // Since rho is the length(unitig) - length(last fragment),
-  //   and the length(last fragment) is ambiguous depending on which
-  //   direction we are walking the unitig from.  We will take the average
-  //   of the rhos through both directions.
-
-  if (ufpath.empty())
-    return 1;
-
-  // Get first fragment's length
-  int32 ident1         = ufpath[0].ident;
-  int32 first_frag_len = FI->fragmentLength(ident1);
-  assert(first_frag_len > 0);
-
-  // Get last fragment's length
-  int32 ident2        = ufpath[ufpath.size()-1].ident;
-  int32 last_frag_len = FI->fragmentLength(ident2);
-  assert(last_frag_len > 0);
-
-  // Get average of first and last fragment lengths
-  double avg_frag_len = (last_frag_len + first_frag_len)/2.0;
-
-  // Compute average rho
-  long unitig_length=getLength();
-  _avgRho = unitig_length - avg_frag_len;
-
-  if (_avgRho <= 0 ) {
-    //fprintf(logFile, "Negative Rho ident1 "F_IID" ident2 "F_IID" unitig_length %d first_frag_len %d last_frag_len %d avg_frag_len %f\n",
-    //        ident1, ident2, unitig_length, first_frag_len, last_frag_len, avg_frag_len);
-    _avgRho = 1;
-  }
-  return(_avgRho);
-}
-
-
-
-void Unitig::setGlobalArrivalRate(double global_arrival_rate){
-  _globalArrivalRate = global_arrival_rate;
-}
-
-void Unitig::setLocalArrivalRate(double local_arrival_rate){
-
-  if ( local_arrival_rate < std::numeric_limits<double>::epsilon())
-    _localArrivalRate = 0;
-  else
-    _localArrivalRate = local_arrival_rate;
-}
-
-double Unitig::getLocalArrivalRate(void){
-  if (_localArrivalRate != -1 )
-    return _localArrivalRate;
-  setLocalArrivalRate((getNumFrags() - 1) / getAvgRho());
-  return _localArrivalRate;
-}
-
-
-double Unitig::getCovStat(void){
-  const double ln2=0.69314718055994530941723212145818;
-
-  // Note that we are using numFrags in this calculation.
-  //   If the fragments in the unitig are not randomly sampled
-  //   from the genome, this calculation will be wrong.
-  //   Ie. if fragments being assembled are from a locally
-  //   sequenced batch, the region may look artificially repetitive.
-  //   The value should really be "number of randomly sampled
-  //   fragments in the unitig".
-
-  //if(_globalArrivalRate == -1)
-  //  fprintf(logFile, "You have not set the _globalArrivalRate variable.\n");
-
-  double covStat = 0.0;
-
-  if (_globalArrivalRate > 0.0)
-    covStat = (getAvgRho() * _globalArrivalRate) - (ln2 * (getNumFrags() - 1));
-
-  return(covStat);
-}
 
 
 void Unitig::reverseComplement(bool doSort) {

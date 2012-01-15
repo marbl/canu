@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.87 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: BuildUnitigs.cc,v 1.88 2012-01-15 23:49:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -121,7 +121,6 @@ main (int argc, char * argv []) {
 
   double    erate                   = 0.015;
   double    elimit                  = 0.0;
-  uint64    genome_size             = 0;
 
   int       fragment_count_target   = 0;
   char     *output_prefix           = NULL;
@@ -173,9 +172,6 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-m") == 0) {
       badMateBreakThreshold = -atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-s") == 0) {
-      genome_size = atol(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-D") == 0) {
       uint32  opt = 0;
@@ -243,10 +239,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -B b       Target number of fragments per tigStore (consensus) partition\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -s size    If the genome size is set to 0, this will cause the unitigger\n");
-    fprintf(stderr, "             to try to estimate the genome size based on the constructed\n");
-    fprintf(stderr, "             unitig lengths.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  -U         Enable EXPERIMENTAL short unitig merging (aka bubble popping).\n");
     fprintf(stderr, "  -J         Enable EXPERIMENTAL long unitig joining.\n");
     fprintf(stderr, "\n");
@@ -296,7 +288,6 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Bad mate threshold    = %d\n", badMateBreakThreshold);
   fprintf(stderr, "Error threshold       = %.3f (%.3f%%)\n", erate, erate * 100);
   fprintf(stderr, "Error limit           = %.3f errors\n", elimit);
-  fprintf(stderr, "Genome Size           = "F_U64"\n", genome_size);
   fprintf(stderr, "\n");
   fprintf(stderr, "sizeof(ufPath)        = %d\n", (int)sizeof(ufPath));
   fprintf(stderr, "\n");
@@ -325,12 +316,8 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "output");
 
-  double globalARate = UG->getGlobalArrivalRate(gkpStore->gkStore_getNumRandomFragments(), genome_size);
-  Unitig::setGlobalArrivalRate(globalARate);
-
   UG->writeIUMtoFile(output_prefix, tigStorePath, fragment_count_target);
   UG->writeOVLtoFile(output_prefix);
-  UG->writeCGAtoFile(output_prefix, globalARate);
 
   delete IS;
   delete UG;

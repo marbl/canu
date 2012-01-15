@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.14 2012-01-05 16:29:26 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.15 2012-01-15 23:49:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -38,7 +38,6 @@ const char *mainid = "$Id: bogart.C,v 1.14 2012-01-05 16:29:26 brianwalenz Exp $
 #include "AS_BAT_SplitDiscontinuous.H"
 
 #include "AS_BAT_SetParentAndHang.H"
-#include "AS_BAT_ArrivalRate.H"
 #include "AS_BAT_Outputs.H"
 
 
@@ -145,7 +144,6 @@ main (int argc, char * argv []) {
 
   uint64    ovlCacheMemory           = UINT64_MAX;
   uint32    ovlCacheLimit            = UINT32_MAX;
-  uint64    genomeSize               = 0;
 
   int       fragment_count_target    = 0;
   char     *output_prefix            = NULL;
@@ -179,9 +177,6 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigStorePath = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-s") == 0) {
-      genomeSize = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-SR") == 0) {
       enableShatterRepeats     = true;
@@ -295,10 +290,6 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -B b       Target number of fragments per tigStore (consensus) partition\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -s size    If the genome size is set to 0, this will cause the unitigger\n");
-    fprintf(stderr, "             to try to estimate the genome size based on the constructed\n");
-    fprintf(stderr, "             unitig lengths.\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "Algorithm Options\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -SR        Shatter repeats.  Enabled with -R and -E; if neither are supplied,\n");
@@ -367,7 +358,6 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Graph error limit     = %.3f errors\n", elimitGraph);
   fprintf(stderr, "Merge error threshold = %.3f (%.3f%%)\n", erateMerge, erateMerge * 100);
   fprintf(stderr, "Merge error limit     = %.3f errors\n", elimitMerge);
-  fprintf(stderr, "Genome Size           = "F_U64"\n", genomeSize);
   fprintf(stderr, "\n");
 
   for (uint64 i=0, j=1; i<64; i++, j<<=1)
@@ -499,12 +489,8 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "output");
 
-  double globalARate = getGlobalArrivalRate(unitigs, gkpStore->gkStore_getNumRandomFragments(), genomeSize);
-  Unitig::setGlobalArrivalRate(globalARate);
-
   writeIUMtoFile(unitigs, output_prefix, tigStorePath, fragment_count_target);
   writeOVLtoFile(unitigs, output_prefix);
-  writeCGAtoFile(unitigs, output_prefix, globalARate);
 
   delete IS;
   delete CG;

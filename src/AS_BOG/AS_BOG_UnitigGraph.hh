@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.84 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIGGRAPH = "$Id: AS_BOG_UnitigGraph.hh,v 1.85 2012-01-15 23:49:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_Unitig.hh"
@@ -108,9 +108,6 @@ struct UnitigGraph{
 
   void writeIUMtoFile(char *fileprefix, char *tigStorePath, uint32 fragment_count_target, bool isFinal=true);
   void writeOVLtoFile(char *fileprefix);
-  void writeCGAtoFile(char *fileprefix, double globalARate);
-
-  double getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 
   void breakUnitigs(ContainerMap &cMap, char *output_prefix, bool enableIntersectionBreaking);
   void joinUnitigs(bool enableJoining);

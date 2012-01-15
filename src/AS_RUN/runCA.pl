@@ -504,7 +504,7 @@ sub setDefaults () {
     $global{"unitigger"}                   = undef;
     $synops{"unitigger"}                   = "Which unitig algorithm to use; utg (if no SFF files) or bog (Best Overlap Graph, if SFF files)";
 
-    $global{"utgGenomeSize"}               = undef;
+    $global{"utgGenomeSize"}               = 0;
     $synops{"utgGenomeSize"}               = "An estimate of the size of the genome; decides if unitigs are unique or repeats";
 
     $global{"utgBubblePopping"}            = 1;
@@ -4315,7 +4315,6 @@ sub unitigger () {
 
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
-        my $l   = getGlobal("utgGenomeSize");
         my $e   = getGlobal("utgErrorRate");        #  Unitigger and BOG
         my $E   = getGlobal("utgErrorLimit");
         my $eg  = getGlobal("utgGraphErrorRate");   #  BOGART
@@ -4343,7 +4342,6 @@ sub unitigger () {
             $cmd .= " -Eg $Eg ";
             $cmd .= " -em $em ";
             $cmd .= " -Em $Em ";
-            $cmd .= " -s $l "   if (defined($l));
             $cmd .= " -R "      if (getGlobal("batRebuildRepeats") == 1);
             $cmd .= " -E "      if (getGlobal("batMateExtension") == 1);
             $cmd .= " -M $mem " if (defined($mem));
@@ -4359,7 +4357,6 @@ sub unitigger () {
             $cmd .= " -B $B ";
             $cmd .= " -e $e ";
             $cmd .= " -E $E ";
-            $cmd .= " -s $l "   if (defined($l));
             $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
             $cmd .= " -m $bmd " if (defined($bmd));
             $cmd .= " -U "      if ($u == 1);
@@ -4373,7 +4370,6 @@ sub unitigger () {
             $cmd .= " -B $B ";
             $cmd .= " -e $e ";
             $cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
-            $cmd .= " -l $l " if defined($l);
             $cmd .= " -d 1 -x 1 -z 10 -j 5 -U $u ";
             $cmd .= " -o $wrk/4-unitigger/$asm ";
             $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
@@ -4615,16 +4611,25 @@ sub postUnitiggerConsensus () {
     #
     #  And finally, compute the coverage stat for all unitigs
     #
+    my $l = getGlobal("utgGenomeSize");
 
-    if (! -e "$wrk/5-consensus/computeCoverageStat.out") {
+    if (! -e "$wrk/5-consensus-coverage-stat/computeCoverageStat.err") {
+        system("mkdir $wrk/5-consensus-coverage-stat") if (! -d "$wrk/5-consensus-coverage-stat");
+
         $cmd  = "$bin/computeCoverageStat \\\n";
         $cmd .= " -g $wrk/$asm.gkpStore \\\n";
         $cmd .= " -t $wrk/$asm.tigStore 5 \\\n";
-        $cmd .= "> $wrk/5-consensus/computeCoverageStat.out 2>&1";
+        $cmd .= " -s $l \\\n" if defined($l);
+        $cmd .= " -o $wrk/5-consensus-coverage-stat/$asm \\\n";
+        $cmd .= "> $wrk/5-consensus-coverage-stat/computeCoverageStat.err 2>&1";
 
-        if (runCommand("$wrk/5-consensus", $cmd)) {
-            rename "$wrk/5-consensus/computeCoverageStat.out", "$wrk/5-consensus/computeCoverageStat.out.FAILED";
-            caFailure("Unitig coverage stat computation failed", "$wrk/5-consensus/computeCoverageStat.out.FAILED");
+        if (runCommand("$wrk/5-consensus-coverage-stat", $cmd)) {
+            rename "$wrk/5-consensus-coverage-stat/computeCoverageStat.err", "$wrk/5-consensus-coverage-stat/computeCoverageStat.err.FAILED";
+            caFailure("Unitig coverage stat computation failed", "$wrk/5-consensus-coverage-stat/computeCoverageStat.err.FAILED");
+        }
+
+        if (-d "$wrk/7-0-CGW") {
+            caFailure("Unitig coverage stat updated, but there is a scaffolding already started.  Remove old scaffold directories to proceed.", "");
         }
     }
 

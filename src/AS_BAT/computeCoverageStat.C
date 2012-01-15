@@ -17,16 +17,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: computeCoverageStat.C,v 1.3 2011-12-30 07:59:34 brianwalenz Exp $";
+const char *mainid = "$Id: computeCoverageStat.C,v 1.4 2012-01-15 23:49:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "MultiAlign.h"
 #include "MultiAlignStore.h"
 
-//#include <map>
-//#include <set>
-//#include <vector>
+#include "AS_CGB_histo.h"
+
 #include <algorithm>
 
 using namespace std;
@@ -123,6 +122,9 @@ computeRho(MultiAlignT *ma) {
   fwdRho = fwdRho - minBgn;
   revRho = maxEnd - revRho;
 
+  assert(fwdRho >= 0);
+  assert(revRho >= 0);
+
   //  AS_CGB is using the begin of the last fragment as rho
 
   return((fwdRho + revRho) / 2.0);
@@ -147,6 +149,7 @@ numRandomFragments(MultiAlignT *ma) {
 
 double
 getGlobalArrivalRate(MultiAlignStore *tigStore,
+                     FILE            *outSTA,
                      uint64           genomeSize) {
   double   globalRate = 0;
   double   recalRate  = 0;
@@ -184,16 +187,15 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
   if (sumRho > 0)
     globalRate = totalNF / sumRho;
 
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Supplied genome size           "F_U64"\n", genomeSize);
-  fprintf(stderr, "Calculated Global Arrival rate %f\n", globalRate);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "sumRho        %.0f\n", sumRho);
-  fprintf(stderr, "totalRandom   "F_U64"\n", totalRandom);
-  fprintf(stderr, "totalNF       "F_U64"\n", totalNF);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Computed genome size:       %.2f\n", totalRandom / globalRate);
-  fprintf(stderr, "\n");
+  fprintf(outSTA, "\n");
+  fprintf(outSTA, "Calculated Global Arrival rate:   %f\n", globalRate);
+  fprintf(outSTA, "\n");
+  fprintf(outSTA, "sumRho:                           %.0f\n", sumRho);
+  fprintf(outSTA, "totalRandomFrags:                 "F_U64"\n", totalRandom);
+  fprintf(outSTA, "\n");
+  fprintf(outSTA, "Supplied genome size              "F_U64"\n", genomeSize);
+  fprintf(outSTA, "Computed genome size:             %.2f\n", totalRandom / globalRate);
+  fprintf(outSTA, "\n");
 
   if (genomeSize > 0)
     return(globalRate);
@@ -216,9 +218,9 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
     if (rho <= 10000)
       continue;
 
-    int32  numRandom        = numRandomFragments(ma);
-    double localArrivalRate = numRandom / rho;
-    uint32  rhoDiv10k       = rho / 10000;
+    int32   numRandom        = numRandomFragments(ma);
+    double  localArrivalRate = numRandom / rho;
+    uint32  rhoDiv10k        = rho / 10000;
 
     assert(0 < rhoDiv10k);
 
@@ -273,7 +275,7 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
 
   delete [] ar;
 
-  fprintf(stderr, "Calculated Global Arrival rate %f (reestimated)\n", globalRate);
+  fprintf(outSTA, "Calculated Global Arrival rate:   %f (reestimated)\n", globalRate);
 
   return(globalRate);
 }
@@ -287,12 +289,20 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
 
 int
 main(int argc, char **argv) {
-  char      *gkpName   = NULL;
-  char      *tigName   = NULL;
-  int32      tigVers   = -1;
+  char             *gkpName      = NULL;
+  char             *tigName      = NULL;
+  int32             tigVers      = -1;
 
-  AS_IID bgnID = 0;
-  AS_IID endID = 0;
+  int64             genomeSize   = 0;
+
+  char              outName[FILENAME_MAX];
+  char             *outPrefix = NULL;
+  FILE             *outCGA = NULL;
+  FILE             *outLOG = NULL;
+  FILE             *outSTA = NULL;
+
+  AS_IID            bgnID = 0;
+  AS_IID            endID = 0;
 
   MultiAlignStore  *tigStore = NULL;
   gkStore          *gkpStore = NULL;
@@ -308,6 +318,12 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-t") == 0) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      genomeSize = atol(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      outPrefix = argv[++arg];
 
     } else {
       err++;
@@ -326,12 +342,17 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -g         Mandatory path to a gkpStore.\n");
     fprintf(stderr, "  -t         Mandatory path to a tigStore (can exist or not).\n");
+    fprintf(stderr, "  -s         Optional genome size.\n");
+    fprintf(stderr, "  -o         Output prefix; will create prefix.cga.0.\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "No gatekeeper store (-g option) supplied.\n");
 
     if (tigName == NULL)
-      fprintf(stderr, "No output tigStore (-t option) supplied.\n");
+      fprintf(stderr, "No input tigStore (-t option) supplied.\n");
+
+    if (outPrefix == NULL)
+      fprintf(stderr, "No output prefix (-o option) supplied.\n");
 
     exit(1);
   }
@@ -342,9 +363,35 @@ main(int argc, char **argv) {
   if (endID == 0)
     endID = tigStore->numUnitigs();
 
+  errno = 0;
+
+  sprintf(outName, "%s.cga.0", outPrefix);
+
+  outCGA = fopen(outName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
+
+  sprintf(outName, "%s.log", outPrefix);
+
+  outLOG = fopen(outName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
+
+  fprintf(outLOG, "tigID\trho\tcovStat\tarrDist\n");
+
+  sprintf(outName, "%s.stats", outPrefix);
+
+  outSTA = fopen(outName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", outName, strerror(errno)), exit(1);
+
+
+
+  //
+  //  Load fragment data
+  //
+
   double  globalRate     = 0;
-  uint64  globalRandom   = 0;
-  uint64  genomeSize     = 0;
 
   isNonRandom = new bool   [gkpStore->gkStore_getNumFragments() + 1];
   fragLength  = new uint32 [gkpStore->gkStore_getNumFragments() + 1];
@@ -358,45 +405,57 @@ main(int argc, char **argv) {
     isNonRandom[iid] = fr.gkFragment_getIsNonRandom();
     fragLength[iid]  = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTCHIMERA);
 
-    if ((fr.gkFragment_getIsDeleted() == false) &&
-        (isNonRandom[iid] == false))
-      globalRandom++;
-
     if ((iid % 10000000) == 0)
       fprintf(stderr, "Loading fragment information %9d out of %9d\n", iid, gkpStore->gkStore_getNumFragments());
   }
   
   delete fs;
 
-  //  Need to do this at least to count the number of random fragments in
-  //  non-singleton unitigs.
   //
-  globalRate = getGlobalArrivalRate(tigStore, genomeSize);
+  //  Compute global arrival rate.  This ain't cheap.
+  //
 
+  globalRate = getGlobalArrivalRate(tigStore, outSTA, genomeSize);
+
+  //
+  //  Compute coverage stat for each unitig, populate histograms, write logging.
+  //
+
+  MyHistoDataType  z;
+
+  memset(&z, 0, sizeof(MyHistoDataType));
+
+  Histogram_t *len = create_histogram(500, 500, 0, TRUE);
+  Histogram_t *cvg = create_histogram(500, 500, 0, TRUE);
+  Histogram_t *arv = create_histogram(500, 500, 0, TRUE);
+
+  extend_histogram(len, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
+  extend_histogram(cvg, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
+  extend_histogram(arv, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
 
   for (uint32 i=bgnID; i<endID; i++) {
     MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
 
     if (ma == NULL)
       continue;
-  }
 
-
-  for (uint32 i=bgnID; i<endID; i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
-
-    if (ma == NULL)
-      continue;
-
-    double  covStat   = 0.0;
-    double  rho       = computeRho(ma);
+    int32   tigLength = GetMultiAlignLength(ma);
+    int32   numFrags  = GetNumIntMultiPoss(ma->f_list);
     int32   numRandom = numRandomFragments(ma);
 
-    //fprintf(stderr, "unitig %d rho %.0f\n", ma->maID, rho);
+    double  rho       = computeRho(ma);
+
+    double  covStat   = 0.0;
+    double  arrDist   = 0.0;
+
+    if (numRandom > 1)
+      arrDist = rho / (numRandom - 1);
 
     if ((numRandom > 0) &&
         (globalRate > 0.0))
-      covStat = (rho * globalRate) - (ln2 * numRandom);
+      covStat = (rho * globalRate) - (ln2 * (numRandom - 1));
+
+    fprintf(outLOG, F_U32"\t%.2f\t%.2f\t%.2f\n", ma->maID, rho, covStat, arrDist);
 
 #undef ADJUST_FOR_PARTIAL_EXCESS
 #ifdef ADJUST_FOR_PARTIAL_EXCESS
@@ -406,7 +465,7 @@ main(int argc, char **argv) {
       double zscore = ((number_of_randomly_sampled_fragments_in_chunk -1)-lambda) / sqrt(lambda);
       double p = .5 - erf(zscore/sqrt2)*.5;
       if(coverage_statistic>5 && p < .001){
-        fprintf(stderr,"Standard unitigger a-stat is %f, but only %e chance of this great an excess of fragments: obs = %d, expect = %g rho = " F_S64 " Will reset a-stat to 1.5\n",
+        fprintf(outSTA, "Standard unitigger a-stat is %f, but only %e chance of this great an excess of fragments: obs = %d, expect = %g rho = " F_S64 " Will reset a-stat to 1.5\n",
                 coverage_statistic,p,
                 number_of_randomly_sampled_fragments_in_chunk-1,
                 lambda,rho);
@@ -415,16 +474,52 @@ main(int argc, char **argv) {
     }
 #endif
 
-#if 0
-    if (tigStore->getUnitigCoverageStat(ma->maID) != (int32)covStat)
-      fprintf(stderr, "unitig %d coverage stat from %d to %f\n",
-              ma->maID,
-              tigStore->getUnitigCoverageStat(ma->maID),
-              covStat);
-#endif
+    z.nsamples     = 1;
+    z.sum_frags    = z.min_frags    = z.max_frags    = numFrags;
+    z.sum_bp       = z.min_bp       = z.max_bp       = tigLength;
+    z.sum_rho      = z.min_rho      = z.max_rho      = rho;
+    z.sum_discr    = z.min_discr    = z.max_discr    = covStat;
+    z.sum_arrival  = z.min_arrival  = z.max_arrival  = arrDist;
+    z.sum_rs_frags = z.min_rs_frags = z.max_rs_frags = numRandom;
+    z.sum_nr_frags = z.min_nr_frags = z.max_nr_frags = 0;
+
+    add_to_histogram(len, tigLength, &z);
+    add_to_histogram(cvg, covStat,   &z);
+    add_to_histogram(arv, arrDist,   &z);
 
     tigStore->setUnitigCoverageStat(ma->maID, covStat);
   }
+
+
+  fprintf(outCGA, "\n");
+  fprintf(outCGA, "\n");
+  fprintf(outCGA, "Unitig Length\n");
+  fprintf(outCGA, "label\tsum\tcummulative\tcummulative   min  average  max\n");
+  fprintf(outCGA, "     \t   \t sum       \t fraction\n");
+  print_histogram(outCGA, len, 0, 1);
+
+  fprintf(outCGA, "\n");
+  fprintf(outCGA, "\n");
+  fprintf(outCGA, "Unitig Coverage Stat\n");
+  fprintf(outCGA, "label\tsum\tcummulative\tcummulative   min  average  max\n");
+  fprintf(outCGA, "     \t   \t sum       \t fraction\n");
+  print_histogram(outCGA, cvg, 0, 1);
+
+  fprintf(outCGA, "\n");
+  fprintf(outCGA, "\n");
+  fprintf(outCGA, "Unitig Arrival Distance\n");
+  fprintf(outCGA, "label\tsum\tcummulative\tcummulative   min  average  max\n");
+  fprintf(outCGA, "     \t   \t sum       \t fraction\n");
+  print_histogram(outCGA, arv, 0, 1);
+
+  free_histogram(len);
+  free_histogram(cvg);
+  free_histogram(arv);
+
+
+
+  fclose(outCGA);
+  fclose(outLOG);
 
 
   delete [] isNonRandom;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cga.c,v 1.25 2010-02-04 21:52:59 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_CGB_cga.c,v 1.26 2012-01-15 23:49:34 brianwalenz Exp $";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation
@@ -1502,7 +1502,7 @@ chunk_graph_analysis(THeapGlobals *heapva,
                      gkStore *gkp) {
   char strtmp2[FILENAME_MAX];
 
-  sprintf(strtmp2,"%s.cga.0",rg->Output_Graph_Store_Prefix);
+  sprintf(strtmp2,"%s.cga.0.deprecated",rg->Output_Graph_Store_Prefix);
   FILE *fcga = fopen(strtmp2, "w");
 
   sprintf(strtmp2,"%s.cam.0",rg->Output_Graph_Store_Prefix);
@@ -1510,6 +1510,10 @@ chunk_graph_analysis(THeapGlobals *heapva,
 
   sprintf(strtmp2,"%s.cus.0",rg->Output_Graph_Store_Prefix);
   FILE *fcus = fopen(strtmp2, "w");
+
+  fprintf(fcga, "\nWARNING:  This report is deprecated.  It does not compute the coverage\n");
+  fprintf(fcga, "stat (astat) correctly - it ignores the runCA option utgGenomeSize.  See\n");
+  fprintf(fcga, "5-consensus-coverage-stat/*cga.0 for the up-to-date report.\n\n");
 
   analyze_the_fragment_overlap_graph(fcga,
                                      heapva->frags,

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_UNITIG
 #define INCLUDE_AS_BOG_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.22 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_UNITIG = "$Id: AS_BOG_Unitig.hh,v 1.23 2012-01-15 23:49:34 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -69,14 +69,6 @@ struct Unitig{
 
   void sort(void);
   void reverseComplement(bool doSort=true);
-
-  // Accessor methods
-
-  double getAvgRho(void);
-  static void setGlobalArrivalRate(double global_arrival_rate);
-  void setLocalArrivalRate(double local_arrival_rate);
-  double getLocalArrivalRate(void);
-  double getCovStat(void);
 
   // getNumRandomFrags() is a placeholder, random frags should not
   // contain guides, or other fragments that are not randomly sampled
@@ -127,13 +119,10 @@ struct Unitig{
   ufPath   ufpath;
 
 private:
-  double   _avgRho;
   int32    _length;
-  double   _localArrivalRate;
   uint32   _id;
 
   static uint32  _nextId;
-  static double   _globalArrivalRate;
   static uint32 *_inUnitig;      //  Maps a fragment iid to a unitig id.
   static uint32 *_pathPosition;  //  Maps a fragment iid to an index in the dovetail path
 };

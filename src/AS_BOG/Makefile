@@ -25,8 +25,7 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-BOG_SOURCES = AS_BOG_ArrivalRate.cc \
-              AS_BOG_BestOverlapGraph.cc \
+BOG_SOURCES = AS_BOG_BestOverlapGraph.cc \
               AS_BOG_Breaking.cc \
               AS_BOG_ChunkGraph.cc \
               AS_BOG_EvaluateMates.cc \

@@ -25,8 +25,7 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-BAT_SOURCES = AS_BAT_ArrivalRate.C \
-              AS_BAT_BestOverlapGraph.C \
+BAT_SOURCES = AS_BAT_BestOverlapGraph.C \
               AS_BAT_Breaking.C \
               AS_BAT_ChunkGraph.C \
               AS_BAT_EvaluateMates.C \
