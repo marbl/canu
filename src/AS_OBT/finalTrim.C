@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: finalTrim.C,v 1.3 2011-07-25 20:00:47 mkotelbajcvi Exp $";
+const char *mainid = "$Id: finalTrim.C,v 1.4 2012-01-15 04:17:53 brianwalenz Exp $";
 
 #include "finalTrim.H"
 
@@ -274,6 +274,8 @@ main(int argc, char **argv) {
 
   logFile = fopen(logName, "w");
   sumFile = fopen(sumName, "w");
+
+  fprintf(logFile, "iid\tinitL\tinitR\tfinalL\tfinalR\tmessage (DEL=deleted NOC=no change MOD=modified)\n");
 
   uint32      ovlLen       = 0;
   uint32      ovlMax       = 64 * 1024;
