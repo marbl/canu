@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.10 2012-01-11 16:32:26 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.11 2012-01-17 17:35:39 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -152,6 +152,8 @@ static uint32 loadFragments(gkStream *fs, uint32* includeLib, map<AS_IID, uint32
      if (includeLib[fr.gkFragment_getLibraryIID()] == TRUE) {
         frgToLib[fr.gkFragment_getReadIID()] = TRUE;
         counter++;
+     } else {
+        frgToLib[fr.gkFragment_getReadIID()] = FALSE;
      }
      frgToLen[fr.gkFragment_getReadIID()] = len;
   }
