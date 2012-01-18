@@ -19,11 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.16 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.17 2012-01-18 02:55:44 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
 #include "AS_PER_gkpStore.h"
+#include "AS_PER_encodeSequenceQuality.h"  //  QUALITY_MAX, QV conversion
 #include "AS_OVS_overlapStore.h"
 
 #include <algorithm>
@@ -60,7 +61,11 @@ class mertrimGlobalData {
 public:
   mertrimGlobalData() {
     gkpPath         = 0L;
+    fqInputPath     = 0L;
+    fqOutputPath    = 0L;
+
     merCountsFile   = 0L;
+
     merSize         = 22;
     compression     = 0;
     numThreads      = 4;
@@ -68,40 +73,96 @@ public:
     forceCorrection = false;
 
     gkRead          = NULL;
+
+    fqInput         = NULL;
+    fqOutput        = NULL;
+    fqLog           = NULL;
+
     edb             = NULL;
 
+    resPath         = NULL;
     resFile         = NULL;
 
-    tBgn = 0;
-    tEnd = 0;
-    tCur = 0;
+    gktBgn          = 0;
+    gktEnd          = 0;
+    gktCur          = 0;
   };
 
   ~mertrimGlobalData() {
-    delete edb;
     delete gkRead;
+
+    if (fqInput)
+      fclose(fqInput);
+    if (fqOutput)
+      fclose(fqOutput);
+    if (fqLog)
+      fclose(fqLog);
+
+    delete edb;
+
     if (resFile != NULL)
       fclose(resFile);
   };
 
-  void              initialize(void) {
+  void              initializeGatekeeper(void) {
+
+    if (gkpPath == NULL)
+      return;
 
     fprintf(stderr, "opening gkStore '%s'\n", gkpPath);
     gkRead  = new gkStore(gkpPath, FALSE, FALSE);
 
-    if (tBgn == 0) {
-      tBgn = 1;
-      tEnd = gkRead->gkStore_getNumFragments();
+    if (gktBgn == 0) {
+      gktBgn = 1;
+      gktEnd = gkRead->gkStore_getNumFragments();
     }
 
-    tCur = tBgn;
+    gktCur = gktBgn;
 
-    if (tBgn > tEnd)
+    if (gktBgn > gktEnd)
       fprintf(stderr, "ERROR: invalid range:  -b ("F_U32") >= -e ("F_U32").\n",
-              tBgn, tEnd), exit(1);
-    if (tEnd > gkRead->gkStore_getNumFragments())
+              gktBgn, gktEnd), exit(1);
+    if (gktEnd > gkRead->gkStore_getNumFragments())
       fprintf(stderr, "ERROR: invalid range:  -e ("F_U32") > num frags ("F_U32").\n",
-              tEnd, gkRead->gkStore_getNumFragments()), exit(1);
+              gktEnd, gkRead->gkStore_getNumFragments()), exit(1);
+
+    errno = 0;
+    resFile = fopen(resPath, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open output file '%s': %s\n", resPath, strerror(errno)), exit(1);
+  };
+
+  void              initializeFASTQ(void) {
+
+    if (fqInputPath == NULL)
+      return;
+
+    if (fqOutputPath == NULL)
+      return;
+
+    errno = 0;
+    fqInput = fopen(fqInputPath, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open output file '%s': %s\n", fqInputPath, strerror(errno)), exit(1);
+
+    errno = 0;
+    fqOutput = fopen(fqOutputPath, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open output file '%s': %s\n", fqOutputPath, strerror(errno)), exit(1);
+
+    char fqName[FILENAME_MAX];
+
+    sprintf(fqName, "%s.log", fqOutputPath);
+
+    errno = 0;
+    fqLog = fopen(fqName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open output file '%s': %s\n", fqName, strerror(errno)), exit(1);
+  };
+
+  void              initialize(void) {
+    initializeGatekeeper();
+    initializeFASTQ();
 
     fprintf(stderr, "loading mer database.\n");
     edb    = new existDB(merCountsFile, merSize, existDBcounts, MIN_VERIFIED, ~0);
@@ -112,6 +173,8 @@ public:
   //  Command line parameters
   //
   char         *gkpPath;
+  char         *fqInputPath;
+  char         *fqOutputPath;
 
   char         *merCountsFile;
 
@@ -121,18 +184,24 @@ public:
   bool          beVerbose;
   bool          forceCorrection;
 
+  char         *resPath;
   FILE         *resFile;
 
   //  Global data
   //
   gkStore      *gkRead;
+
+  FILE         *fqInput;
+  FILE         *fqOutput;
+  FILE         *fqLog;
+
   existDB      *edb;
 
   //  Input State
   //
-  uint32        tBgn;
-  uint32        tCur;
-  uint32        tEnd;
+  uint32        gktBgn;
+  uint32        gktCur;
+  uint32        gktEnd;
 };
 
 
@@ -157,6 +226,8 @@ public:
 class mertrimComputation {
 public:
   mertrimComputation() {
+    readName   = NULL;
+
     origSeq    = NULL;
     origQlt    = NULL;
     corrSeq    = NULL;
@@ -170,6 +241,7 @@ public:
     corrected  = NULL;
   }
   ~mertrimComputation() {
+    delete [] readName;
     delete [] origSeq;
     delete [] origQlt;
     delete [] corrSeq;
@@ -183,18 +255,21 @@ public:
     delete [] corrected;
   }
 
-  void   initialize(mertrimGlobalData *g_) {
+
+  void   initializeGatekeeper(mertrimGlobalData *g_) {
     g  = g_;
 
     readIID = fr.gkFragment_getReadIID();
     seqLen  = fr.gkFragment_getSequenceLength();
 
-    origSeq = new char   [AS_READ_MAX_NORMAL_LEN];
-    origQlt = new char   [AS_READ_MAX_NORMAL_LEN];
-    corrSeq = new char   [AS_READ_MAX_NORMAL_LEN];
-    corrQlt = new char   [AS_READ_MAX_NORMAL_LEN];
+    readName = NULL;
 
-    seqMap  = new uint32 [AS_READ_MAX_NORMAL_LEN];
+    origSeq  = new char   [AS_READ_MAX_NORMAL_LEN];
+    origQlt  = new char   [AS_READ_MAX_NORMAL_LEN];
+    corrSeq  = new char   [AS_READ_MAX_NORMAL_LEN];
+    corrQlt  = new char   [AS_READ_MAX_NORMAL_LEN];
+
+    seqMap   = new uint32 [AS_READ_MAX_NORMAL_LEN];
 
     nMersExpected = 0;
     nMersTested   = 0;
@@ -235,6 +310,90 @@ public:
     for (uint32 i=0; i<AS_READ_MAX_NORMAL_LEN; i++)
       seqMap[i] = i;
   };
+
+
+  bool    initializeFASTQ(mertrimGlobalData *g_) {
+    g  = g_;
+
+    readIID = 0;
+    seqLen  = 0;
+
+    readName = new char   [1024];
+
+    origSeq  = new char   [AS_READ_MAX_NORMAL_LEN];
+    origQlt  = new char   [AS_READ_MAX_NORMAL_LEN];
+    corrSeq  = new char   [AS_READ_MAX_NORMAL_LEN];
+    corrQlt  = new char   [AS_READ_MAX_NORMAL_LEN];
+
+    seqMap   = new uint32 [AS_READ_MAX_NORMAL_LEN];
+
+    nMersExpected = 0;
+    nMersTested   = 0;
+    nMersFound    = 0;
+
+    ms = NULL;
+
+    disconnect = NULL;
+    deletion   = NULL;
+    coverage   = NULL;
+
+    corrected  = NULL;
+
+    fgets(readName, 1024,                   g->fqInput);
+    fgets(origSeq,  AS_READ_MAX_NORMAL_LEN, g->fqInput);
+    fgets(origQlt,  AS_READ_MAX_NORMAL_LEN, g->fqInput);  //  qv name line, ignored
+    fgets(origQlt,  AS_READ_MAX_NORMAL_LEN, g->fqInput);
+
+    if (feof(g->fqInput))
+      return(false);
+
+    chomp(readName);
+    chomp(origSeq);
+    chomp(origQlt);
+
+    //  Adjust QVs to CA encoding.  ASSUMES SANGER QV.
+
+#warning ASSUMING SANGER QV ENCODING
+
+    for (uint32 i=0; origQlt[i]; i++) {
+      if (origQlt[i] < '!')
+        origQlt[i] = '!';
+      origQlt[i] -= '!';
+      if (origQlt[i] > QUALITY_MAX)
+        origQlt[i] = QUALITY_MAX;
+      origQlt[i] += '0';
+    }
+
+    strcpy(corrSeq, origSeq);
+    strcpy(corrQlt, origQlt);
+
+    //  Replace Ns with a random low-quality base.  This is necessary, since the mer routines
+    //  will not make a mer for N, and we never see it to correct it.
+
+    char  letters[4] = { 'A', 'C', 'G', 'T' };
+
+    //  Not really replacing N with random ACGT, but good enough for us.
+    for (uint32 i=0; i<seqLen; i++)
+      if (corrSeq[i] == 'N') {
+        corrSeq[i] = letters[i & 0x03];
+        corrQlt[i] = '0';
+      }
+
+    seqLen = strlen(origSeq);
+
+    clrBgn = 0;
+    clrEnd = seqLen;
+
+    suspectedChimer    = false;
+    suspectedChimerBgn = 0;
+    suspectedChimerEnd = 0;
+
+    for (uint32 i=0; i<AS_READ_MAX_NORMAL_LEN; i++)
+      seqMap[i] = i;
+
+    return(true);
+  };
+
 
   uint32     evaluate(bool postCorrection);
 
@@ -277,6 +436,8 @@ public:
 
   AS_IID     readIID;
   uint32     seqLen;
+
+  char      *readName;
 
   char      *origSeq;
   char      *origQlt;
@@ -1261,21 +1422,20 @@ mertrimWorker(void *G, void *T, void *S) {
 }
 
 
-void *
-mertrimReader(void *G) {
-  mertrimGlobalData    *g = (mertrimGlobalData  *)G;
+mertrimComputation *
+mertrimReaderGatekeeper(mertrimGlobalData *g) {
   mertrimComputation   *s = NULL;
 
-  while ((g->tCur <= g->tEnd) &&
+  while ((g->gktCur <= g->gktEnd) &&
          (s == NULL)) {
     s = new mertrimComputation();
 
-    g->gkRead->gkStore_getFragment(g->tCur, &s->fr, GKFRAGMENT_QLT);
-    g->tCur++;
+    g->gkRead->gkStore_getFragment(g->gktCur, &s->fr, GKFRAGMENT_QLT);
+    g->gktCur++;
 
     if ((g->forceCorrection) ||
         (g->gkRead->gkStore_getLibrary(s->fr.gkFragment_getLibraryIID())->doTrim_initialMerBased)) {
-      s->initialize(g);
+      s->initializeGatekeeper(g);
     } else {
       delete s;
       s = NULL;
@@ -1286,20 +1446,38 @@ mertrimReader(void *G) {
 }
 
 
+mertrimComputation *
+mertrimReaderFASTQ(mertrimGlobalData *g) {
+  mertrimComputation   *s = new mertrimComputation();
+
+  if (s->initializeFASTQ(g) == false) {
+    delete s;
+    s = NULL;
+  }
+
+  return(s);
+}
+
+
+void *
+mertrimReader(void *G) {
+  mertrimGlobalData    *g = (mertrimGlobalData  *)G;
+  mertrimComputation   *s = NULL;
+
+  if (g->gkRead)
+    s = mertrimReaderGatekeeper(g);
+
+  if (g->fqInput)
+    s = mertrimReaderFASTQ(g);
+
+  return(s);
+}
+
+
 
 void
-mertrimWriter(void *G, void *S) {
-  mertrimGlobalData    *g = (mertrimGlobalData  *)G;
-  mertrimComputation   *s = (mertrimComputation *)S;
+mertrimWriterGatekeeper(mertrimGlobalData *g, mertrimComputation *s) {
   mertrimResult         res;
-
-  //  The get*() functions return positions in the original uncorrected sequence.  They
-  //  map from positions in the corrected sequence (which has inserts and deletes) back
-  //  to the original sequence.
-  //
-  assert(s->getClrBgn() <= s->getClrEnd());
-  assert(s->getClrBgn() <  s->getSeqLen());
-  assert(s->getClrEnd() <= s->getSeqLen());
 
   res.readIID = s->fr.gkFragment_getReadIID();
 
@@ -1317,6 +1495,45 @@ mertrimWriter(void *G, void *S) {
   res.chmEnd  = s->suspectedChimerEnd;
 
   res.writeResult(g->resFile);
+}
+
+
+void
+mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
+
+  fprintf(g->fqLog, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\n",
+          s->getClrBgn(),
+          s->getClrEnd(),
+          s->suspectedChimer,
+          s->suspectedChimerBgn,
+          s->suspectedChimerEnd,
+          s->readName);
+
+  fprintf(g->fqOutput, "%s\n%s\n+\n%s\n",
+          s->readName,
+          s->corrSeq,
+          s->corrQlt);
+}
+
+
+void
+mertrimWriter(void *G, void *S) {
+  mertrimGlobalData    *g = (mertrimGlobalData  *)G;
+  mertrimComputation   *s = (mertrimComputation *)S;
+
+  //  The get*() functions return positions in the original uncorrected sequence.  They
+  //  map from positions in the corrected sequence (which has inserts and deletes) back
+  //  to the original sequence.
+  //
+  assert(s->getClrBgn() <= s->getClrEnd());
+  assert(s->getClrBgn() <  s->getSeqLen());
+  assert(s->getClrEnd() <= s->getSeqLen());
+
+  if (g->resFile)
+    mertrimWriterGatekeeper(g, s);
+
+  if (g->fqOutput)
+    mertrimWriterFASTQ(g, s);
 
   delete s;
 }
@@ -1342,6 +1559,9 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-g") == 0) {
       g->gkpPath = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-F") == 0) {
+      g->fqInputPath = argv[++arg];
+
     } else if (strcmp(argv[arg], "-m") == 0) {
       g->merSize = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
@@ -1354,10 +1574,10 @@ main(int argc, char **argv) {
       g->numThreads = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-b") == 0) {
-      g->tBgn = atoi(argv[++arg]);
+      g->gktBgn = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-e") == 0) {
-      g->tEnd = atoi(argv[++arg]);
+      g->gktEnd = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-v") == 0) {
       g->beVerbose = true;
@@ -1369,10 +1589,8 @@ main(int argc, char **argv) {
       g->forceCorrection = true;
  
     } else if (strcmp(argv[arg], "-o") == 0) {
-      errno = 0;
-      g->resFile = fopen(argv[++arg], "w");
-      if (errno)
-        fprintf(stderr, "Failed to open output file '%s': %s\n", argv[arg], strerror(errno)), exit(1);
+      g->fqOutputPath = argv[++arg];
+      g->resPath      = argv[arg];
 
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
@@ -1380,7 +1598,10 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((g->gkpPath == 0L) || (err)) {
+  if ((g->gkpPath == 0L) && (g->fqInputPath == 0L))
+    err++;
+
+  if (err) {
     fprintf(stderr, "usage: %s -g gkpStore -m merSize -mc merCountsFile [-v]\n", argv[0]);
     exit(1);
   }
