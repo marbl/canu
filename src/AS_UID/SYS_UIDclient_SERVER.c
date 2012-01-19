@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SYS_UIDclient_SERVER.c,v 1.1 2009-11-23 00:31:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: SYS_UIDclient_SERVER.c,v 1.2 2012-01-19 03:07:58 brianwalenz Exp $";
 
 #include "uidserver_common.h"
 
@@ -33,8 +33,8 @@ SYS_UIDset_euid_namespace(const char * namespaceName) {
 
 uint64
 getGUIDBlock(int guidRequestSize) {
-  UIDserverMessage        mesg     = {0};
-  UIDserverMessage        resp     = {0};
+  UIDserverMessage        mesg     = {0, 0, 0, 0};
+  UIDserverMessage        resp     = {0, 0, 0, 0};
 
   mesg.message = UIDserverMessage_REQUEST;
   mesg.bgnUID  = 0;
