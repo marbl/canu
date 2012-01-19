@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.16 2011-09-07 16:05:37 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.17 2012-01-19 02:41:42 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -526,7 +526,7 @@ main(int argc, char **argv) {
   int32      seqLen = 0;
   char      *seq    = NULL;
 
-  int32      readLen        = 0;    //  Length of read to generate
+  int32      readLen        = 100;  //  Length of read to generate
   int32      numReads       = 0;    //  Number of reads to generate, constant
   int32      numPairs       = 0;    //  Number of pairs to generate, constant (= numReads / 2)
   double     readCoverage   = 0.0;  //  Number of pairs to generate, based on length of sequence
