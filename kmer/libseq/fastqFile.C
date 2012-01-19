@@ -181,7 +181,7 @@ fastqFile::getSequence(u32bit iid,
     fprintf(stderr, "fastqFile::getSequence(full)-- ERROR1: In %s, expected '@' at beginning of defline, got '%c' instead.\n",
             _filename, x), exit(1);
 
-  //  Skip the '>' in the defline
+  //  Skip the '@' in the defline
   x = _rb->read();
 
   //  Skip whitespace between the '@' and the defline
@@ -226,6 +226,17 @@ fastqFile::getSequence(u32bit iid,
     x = _rb->read();
   }
   s[sLen] = 0;
+
+  //  Skip the rest of the QV id line and then the entire QV line.
+
+  x = _rb->read();
+  assert((_rb->eof() == true) || (x == '+'));
+
+  while ((_rb->eof() == false) && (x != '\r') && (x != '\n'))
+    x = _rb->read();
+  x = _rb->read();
+  while ((_rb->eof() == false) && (x != '\r') && (x != '\n'))
+    x = _rb->read();
 
   _nextID++;
 
@@ -534,7 +545,16 @@ fastqFile::constructIndex(void) {
 
     indexLen++;
 
-    //  Load the '@' for the next iteration.
+    //  Skip the rest of the QV def line, then the entire QV line, then load the '@' for the next sequence.
+
+    x = ib.read();
+    assert((ib.eof() == true) || (x == '+'));
+
+    while ((ib.eof() == false) && (x != '\r') && (x != '\n'))
+      x = ib.read();
+    x = ib.read();
+    while ((ib.eof() == false) && (x != '\r') && (x != '\n'))
+      x = ib.read();
     while ((ib.eof() == false) && (x != '@'))
       x = ib.read();
   }
