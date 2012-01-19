@@ -42,11 +42,15 @@ main(int argc, char **argv) {
 
   speedCounter *C = new speedCounter(" Examining: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1ffffff, beVerbose);
 
-#define MAXA 500
-#define MAXB 100
+#define MAXA 150
+#define MAXB 150
 
   double   heatraw[MAXA][MAXB];
   double   heatsca[MAXA][MAXB];
+
+  for (u32bit i=0; i<MAXA; i++)
+    for (u32bit j=0; j<MAXB; j++)
+      heatraw[i][j] = heatsca[i][j] = 0;
 
   A->nextMer();
   B->nextMer();
@@ -102,25 +106,25 @@ main(int argc, char **argv) {
 
   //  Scale each row to be between 0 and 1
 
+#if 0
   for (u32bit j=0; j<MAXB; j++) {
     double  mina = heatraw[0][j];
     double  maxa = heatraw[0][j];
 
-    for (u32bit i=0; i<MAXA; i++) {
-      if (maxa < heatraw[i][j])
-        maxa = heatraw[i][j];
-      if (heatraw[i][j] < mina)
-        mina = heatraw[i][j];
+    for (u32bit ii=0; ii<MAXA; ii++) {
+      if (maxa < heatraw[ii][j])
+        maxa = heatraw[ii][j];
+      if (heatraw[ii][j] < mina)
+        mina = heatraw[ii][j];
     }
 
     for (u32bit i=0; i<MAXA; i++)
       heatsca[i][j] = (heatraw[i][j] - mina) / (maxa - mina);
   }
+#endif
 
 
-  for (u32bit i=0; i<MAXA; i++) {
-    for (u32bit j=0; j<MAXB; j++) {
-      fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t%f\t%f\n", i, j, log(heatraw[i][j]), heatsca[i][j]);
-    }
-  }
+  for (u32bit i=0; i<MAXA; i++)
+    for (u32bit j=0; j<MAXB; j++)
+      fprintf(stdout, u32bitFMT"\t"u32bitFMT"\t%f\n", i, j, log(heatraw[i][j]));
 }
