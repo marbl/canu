@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.23 2011-09-09 15:21:32 jasonmiller9704 Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.24 2012-01-23 19:43:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +39,7 @@ static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.23 2011-09-09 15:21:32 ja
 #define FASTQ_INNIE     0
 #define FASTQ_OUTTIE    1
 
-#define FASTQ_TRIM_JUNK
+#undef FASTQ_TRIM_JUNK
 
 static int *isValidACGTN = NULL;
 
