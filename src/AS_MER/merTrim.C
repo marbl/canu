@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.18 2012-01-19 02:43:32 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.19 2012-01-23 06:42:54 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -53,42 +53,53 @@ uint32  VERBOSE = 0;
 class mertrimGlobalData {
 public:
   mertrimGlobalData() {
-    gkpPath              = 0L;
-    fqInputPath          = 0L;
-    fqOutputPath         = 0L;
+    gkpPath                   = 0L;
+    fqInputPath               = 0L;
+    fqOutputPath              = 0L;
 
-    merCountsFile        = 0L;
+    merCountsFile             = 0L;
 
-    merSize              = 22;
-    compression          = 0;
-    numThreads           = 4;
+    merSize                   = 22;
+    compression               = 0;
+    numThreads                = 4;
 
-    beVerbose            = false;
-    forceCorrection      = false;
-    correctMismatch      = true;
-    correctIndel         = true;
+    beVerbose                 = false;
+    forceCorrection           = false;
+    correctMismatch           = true;
+    correctIndel              = true;
 
-    actualCoverage       = 0;          //  Estimate of coverage
-    minCorrectFraction   = 1.0 / 3.0;  //  Base can be corrected if less than 1/3 coverage
-    minCorrect           = 0;          //
-    minVerifiedFraction  = 1.0 / 4.0;  //  Base can be corrected to something with only 1/4 coverage
-    minVerified          = 0;          //
-    trimCoverage         = 1;          //  Trim ends with less than this coverage in kmer
+    actualCoverage            = 0;          //  Estimate of coverage
+    minCorrectFraction        = 1.0 / 3.0;  //  Base can be corrected if less than 1/3 coverage
+    minCorrect                = 0;          //
+    minVerifiedFraction       = 1.0 / 4.0;  //  Base can be corrected to something with only 1/4 coverage
+    minVerified               = 0;          //
 
-    gkRead               = NULL;
+    endTrimDefault            = true;
+    endTrimNum                = 2;
 
-    fqInput              = NULL;
-    fqOutput             = NULL;
-    fqLog                = NULL;
+    endTrimWinScale[0]        = 0.50;
+    endTrimErrAllow[0]        = 2;
 
-    edb                  = NULL;
+    endTrimWinScale[1]        = 0.25;
+    endTrimErrAllow[0]        = 0;
 
-    resPath              = NULL;
-    resFile              = NULL;
+    discardZeroCoverage       = false;
+    discardImperfectCoverage  = false;
 
-    gktBgn               = 0;
-    gktEnd               = 0;
-    gktCur               = 0;
+    gkRead                    = NULL;
+
+    fqInput                   = NULL;
+    fqOutput                  = NULL;
+    fqLog                     = NULL;
+
+    edb                       = NULL;
+
+    resPath                   = NULL;
+    resFile                   = NULL;
+
+    gktBgn                    = 0;
+    gktEnd                    = 0;
+    gktCur                    = 0;
   };
 
   ~mertrimGlobalData() {
@@ -232,6 +243,14 @@ public:
   char         *resPath;
   FILE         *resFile;
 
+  bool          endTrimDefault;
+  uint32        endTrimNum;
+  double        endTrimWinScale[16];
+  uint32        endTrimErrAllow[16];
+
+  bool          discardZeroCoverage;
+  bool          discardImperfectCoverage;
+
   //  Global data
   //
   gkStore      *gkRead;
@@ -241,7 +260,6 @@ public:
   uint32        minCorrect;
   double        minVerifiedFraction;
   uint32        minVerified;
-  uint32        trimCoverage;
 
   FILE         *fqInput;
   FILE         *fqOutput;
@@ -288,7 +306,6 @@ public:
     ms         = NULL;
 
     disconnect = NULL;
-    deletion   = NULL;
     coverage   = NULL;
     corrected  = NULL;
   }
@@ -302,7 +319,6 @@ public:
     delete    ms;
 
     delete [] disconnect;
-    delete [] deletion;
     delete [] coverage;
     delete [] corrected;
   }
@@ -311,17 +327,18 @@ public:
   void   initializeGatekeeper(mertrimGlobalData *g_) {
     g  = g_;
 
-    readIID = fr.gkFragment_getReadIID();
-    seqLen  = fr.gkFragment_getSequenceLength();
+    readIID  = fr.gkFragment_getReadIID();
+    seqLen   = fr.gkFragment_getSequenceLength();
+    allocLen = seqLen + seqLen;
 
     readName = NULL;
 
-    origSeq  = new char   [AS_READ_MAX_NORMAL_LEN];
-    origQlt  = new char   [AS_READ_MAX_NORMAL_LEN];
-    corrSeq  = new char   [AS_READ_MAX_NORMAL_LEN];
-    corrQlt  = new char   [AS_READ_MAX_NORMAL_LEN];
+    origSeq  = new char   [allocLen];
+    origQlt  = new char   [allocLen];
+    corrSeq  = new char   [allocLen];
+    corrQlt  = new char   [allocLen];
 
-    seqMap   = new uint32 [AS_READ_MAX_NORMAL_LEN];
+    seqMap   = new uint32 [allocLen];
 
     nMersExpected = 0;
     nMersTested   = 0;
@@ -330,9 +347,7 @@ public:
     ms = NULL;
 
     disconnect = NULL;
-    deletion   = NULL;
     coverage   = NULL;
-
     corrected  = NULL;
 
     strcpy(origSeq, fr.gkFragment_getSequence());
@@ -355,13 +370,15 @@ public:
     clrBgn = 0;
     clrEnd = seqLen;
 
-    isCompleteJunk     = (seqLen < g->merSize);
+    gapInConfirmedKmers   = false;
+    hasNoConfirmedKmers   = false;
+    imperfectKmerCoverage = false;
 
-    suspectedChimer    = false;
-    suspectedChimerBgn = 0;
-    suspectedChimerEnd = 0;
+    suspectedChimer       = false;
+    suspectedChimerBgn    = 0;
+    suspectedChimerEnd    = 0;
 
-    for (uint32 i=0; i<AS_READ_MAX_NORMAL_LEN; i++)
+    for (uint32 i=0; i<allocLen; i++)
       seqMap[i] = i;
   };
 
@@ -369,17 +386,18 @@ public:
   bool    initializeFASTQ(mertrimGlobalData *g_) {
     g  = g_;
 
-    readIID = g->gktCur++;
-    seqLen  = 0;
+    readIID  = g->gktCur++;
+    seqLen   = 0;
+    allocLen = AS_READ_MAX_NORMAL_LEN + 1;  //  Used for seq/qlt storage only
 
     readName = new char   [1024];
 
-    origSeq  = new char   [AS_READ_MAX_NORMAL_LEN];
-    origQlt  = new char   [AS_READ_MAX_NORMAL_LEN];
-    corrSeq  = new char   [AS_READ_MAX_NORMAL_LEN];
-    corrQlt  = new char   [AS_READ_MAX_NORMAL_LEN];
+    origSeq  = new char   [allocLen];
+    origQlt  = new char   [allocLen];
+    corrSeq  = new char   [allocLen];
+    corrQlt  = new char   [allocLen];
 
-    seqMap   = new uint32 [AS_READ_MAX_NORMAL_LEN];
+    seqMap   = new uint32 [allocLen];
 
     nMersExpected = 0;
     nMersTested   = 0;
@@ -388,15 +406,13 @@ public:
     ms = NULL;
 
     disconnect = NULL;
-    deletion   = NULL;
     coverage   = NULL;
-
     corrected  = NULL;
 
-    fgets(readName, 1024,                   g->fqInput);
-    fgets(origSeq,  AS_READ_MAX_NORMAL_LEN, g->fqInput);
-    fgets(origQlt,  AS_READ_MAX_NORMAL_LEN, g->fqInput);  //  qv name line, ignored
-    fgets(origQlt,  AS_READ_MAX_NORMAL_LEN, g->fqInput);
+    fgets(readName, 1024,     g->fqInput);
+    fgets(origSeq,  allocLen, g->fqInput);
+    fgets(origQlt,  allocLen, g->fqInput);  //  qv name line, ignored
+    fgets(origQlt,  allocLen, g->fqInput);
 
     if (feof(g->fqInput))
       return(false);
@@ -404,8 +420,6 @@ public:
     chomp(readName);
     chomp(origSeq);
     chomp(origQlt);
-
-    seqLen = strlen(origSeq);
 
     //  Adjust QVs to CA encoding.
 
@@ -437,47 +451,28 @@ public:
         corrQlt[i] = '0';
       }
 
-    //  Trim off low quality ends
-
-    while ((seqLen > 0) && (corrQlt[seqLen-1] < '0' + 5)) {
-      seqLen--;
-      origSeq[seqLen] = corrSeq[seqLen] = 0;
-      origQlt[seqLen] = corrQlt[seqLen] = 0;
-    }
-
-    uint32 offset = 0;
-
-    while ((corrQlt[offset]) && (corrQlt[offset] < '0' + 5))
-      offset++;
-
-    if (offset > 0) {
-      for (uint32 i=0; i<seqLen; i++) {
-        origSeq[i] = origSeq[i + offset];
-        origQlt[i] = origQlt[i + offset];
-        corrSeq[i] = corrSeq[i + offset];
-          corrQlt[i] = corrQlt[i + offset];
-      }
-    }
-
-    seqLen = strlen(origSeq);
+    seqLen   = strlen(origSeq);
+    allocLen = seqLen + seqLen;
 
     clrBgn = 0;
     clrEnd = seqLen;
 
-    isCompleteJunk     = (seqLen < g->merSize);
+    gapInConfirmedKmers   = false;
+    hasNoConfirmedKmers   = false;
+    imperfectKmerCoverage = false;
 
-    suspectedChimer    = false;
-    suspectedChimerBgn = 0;
-    suspectedChimerEnd = 0;
+    suspectedChimer       = false;
+    suspectedChimerBgn    = 0;
+    suspectedChimerEnd    = 0;
 
-    for (uint32 i=0; i<AS_READ_MAX_NORMAL_LEN; i++)
+    for (uint32 i=0; i<allocLen; i++)
       seqMap[i] = i;
 
     return(true);
   };
 
 
-  uint32     evaluate(bool postCorrection);
+  uint32     evaluate(void);
 
   void       reverse(void);
   void       analyze(void);
@@ -486,10 +481,11 @@ public:
   uint32     testBaseChange(uint32 pos, char replacement);
   uint32     testBaseIndel(uint32 pos, char replacement);
 
-  uint32     attemptCorrection(bool isReversed);
+  void       attemptCorrection(bool isReversed);
 
-  uint32     BADBASE(uint32 i);
-  uint32     attemptTrimming(bool forCorrection);
+  void       attemptTrimming(void);
+  void       attemptTrimming5End(uint32 *errorPos, uint32 endWindow, uint32 endAllowed);
+  void       attemptTrimming3End(uint32 *errorPos, uint32 endWindow, uint32 endAllowed);
 
   void       analyzeChimer(void);
 
@@ -518,6 +514,7 @@ public:
 
   AS_IID     readIID;
   uint32     seqLen;
+  uint32     allocLen;
 
   char      *readName;
 
@@ -537,20 +534,18 @@ public:
   uint32     clrBgn;
   uint32     clrEnd;
 
-  bool       isCompleteJunk;
+  bool       gapInConfirmedKmers;
+  bool       hasNoConfirmedKmers;
+  bool       imperfectKmerCoverage;
 
   bool       suspectedChimer;
   uint32     suspectedChimerBgn;
   uint32     suspectedChimerEnd;
 
   uint32    *disconnect;  //  per base - a hole before this base
-  uint32    *deletion;    //  
   uint32    *coverage;    //  per base - mer coverage
 
-  //  per base: C - this base corrected
-  //            A - this base failed to be corrected, no answer
-  //            X - this base failed to be corrected, conflicts
-  uint32    *corrected;
+  uint32    *corrected;   //  per base - type of correction here
 
   uint32     nHole;  //  Number of spaces (between bases) with no mer coverage
   uint32     nCorr;  //  Number of bases corrected
@@ -566,10 +561,7 @@ public:
 //  Scan the sequence, counting the number of kmers verified.  If we find all of them, we're done.
 //  
 uint32
-mertrimComputation::evaluate(bool postCorrection) {
-
-  if (isCompleteJunk)
-    return(ALLCRAP);
+mertrimComputation::evaluate(void) {
 
   if (ms == NULL)
     ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
@@ -601,9 +593,11 @@ mertrimComputation::evaluate(bool postCorrection) {
     //  All mers confirmed, read is 100% verified!
     return(ALLGOOD);
 
-  if (nMersFound == 0)
+  if (nMersFound == 0) {
     //  No kMers confirmed, read is 100% garbage (or 100% unique).
+    hasNoConfirmedKmers = true;
     return(ALLCRAP);
+  }
 
   //  Attempt correction.
   return(ATTEMPTCORRECTION);
@@ -653,19 +647,13 @@ mertrimComputation::reverse(void) {
 void
 mertrimComputation::analyze(void) {
 
-  if (coverage == 0L)
-    coverage   = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
+  if (coverage == NULL)
+    coverage = new uint32 [allocLen];
+  if (disconnect == NULL)
+    disconnect = new uint32 [allocLen];
 
-  if (disconnect == 0L)
-    disconnect = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
-
-  if (corrected == 0L) {
-    corrected  = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
-    memset(corrected, 0, sizeof(uint32) * (AS_READ_MAX_NORMAL_LEN + 1));
-  }
-
-  memset(coverage,   0, sizeof(uint32) * (AS_READ_MAX_NORMAL_LEN + 1));
-  memset(disconnect, 0, sizeof(uint32) * (AS_READ_MAX_NORMAL_LEN + 1));
+  memset(coverage,   0, sizeof(uint32) * (allocLen));
+  memset(disconnect, 0, sizeof(uint32) * (allocLen));
 
   assert(ms != NULL);
 
@@ -697,15 +685,19 @@ mertrimComputation::analyze(void) {
 
   ms->rewind();
 
-  if (VERBOSE > 1) {
+  if (VERBOSE > 1)
     dump(stderr, "ANALYZE");
-  }  //  VERBOSE
 }
 
 
 
-uint32
+void
 mertrimComputation::attemptCorrection(bool isReversed) {
+
+  if (corrected == NULL) {
+    corrected = new uint32 [allocLen];
+    memset(corrected, 0, sizeof(uint32) * (allocLen));
+  }
 
   assert(coverage);
   assert(disconnect);
@@ -716,16 +708,7 @@ mertrimComputation::attemptCorrection(bool isReversed) {
   ms->rewind();
 
   while (ms->nextMer()) {
-    uint32 pos = ms->thePositionInSequence() + g->merSize - 1;
-
-    //  Sometimes, we see long bogus 454 reads.  Gatekeeper will trim these to 2043 bases, leaving us
-    //  no space to insert bases.  If this happens, well, there isn't a whole lot we can really do,
-    //  and we'll just return ALLCRAP.
-
-    if (seqLen >= AS_READ_MAX_NORMAL_LEN)
-      return(ALLCRAP);
-    assert(seqLen < AS_READ_MAX_NORMAL_LEN);
-
+    uint32  pos   = ms->thePositionInSequence() + g->merSize - 1;
     uint32  count = g->edb->count(ms->theCMer());
 
     //fprintf(stderr, "MER at %d is %s has count %d %s\n",
@@ -862,13 +845,17 @@ mertrimComputation::attemptCorrection(bool isReversed) {
 
     nR = 0;
 
-    if (g->correctIndel) {
+    if ((g->correctIndel) &&
+        (g->merSize     < pos) &&
+        (pos            < seqLen - g->merSize)) {
       uint32 nD = testBaseIndel(pos, '-');
       uint32 nA = testBaseIndel(pos, 'A');
       uint32 nC = testBaseIndel(pos, 'C');
       uint32 nG = testBaseIndel(pos, 'G');
       uint32 nT = testBaseIndel(pos, 'T');
       char   rB = 0;
+
+      mNum += g->merSize / 3;
 
       if (nD > mNum)  { nR++;  rB = '-'; }
       if (nA > mNum)  { nR++;  rB = 'A'; }
@@ -884,10 +871,8 @@ mertrimComputation::attemptCorrection(bool isReversed) {
         if (nT > mNum)  fprintf(stderr, "test+T %d -- %d req=%d\n", pos, nT, mNum);
       }  //  VERBOSE
 
-      if (nR == 0) {
-        //corrected[pos] = 'Z';  (don't mark this, use coverage[] instead
+      if (nR == 0)
         continue;
-      }
 
       if (nR > 1) {
         corrected[pos] = 'X';
@@ -979,10 +964,6 @@ mertrimComputation::attemptCorrection(bool isReversed) {
   if (VERBOSE > 1) {
     dump(stderr, "POSTCORRECT");
   }  //  VERBOSE
-
-  analyze();
-
-  return(evaluate(true));
 }
 
 
@@ -1131,149 +1112,161 @@ mertrimComputation::testBaseIndel(uint32 pos, char replacement) {
 
 
 
-//  A BADBASE is one that was:
-//
-//  o Corrected by an base change, insert or delete.
-//  o Has very very low quality, at or below QV 6 == 25% chance of error.
-//  o Has lower quality (QV of 16 == 2.5% chance of error), and is marked as being corrected.
-//    The marking here should be either "mer wasn't found" or "correction was conflicting", but we
-//    don't actually care what the mark says.
-//
-//  We don't want to trust many of these bases close together.
-//
-uint32
-mertrimComputation::BADBASE(uint32 i) {
+void
+mertrimComputation::attemptTrimming5End(uint32 *errorPos, uint32 endWindow, uint32 errAllow) {
 
-  if ((corrected) && ((corrected[i] == 'C') || (corrected[i] == 'I') || (corrected[i] == 'D')))
-    //  We made a correction.
-    return(1);
+  for (bool doTrim = true; doTrim; ) {
+    uint32  endFound   = 0;
+    uint32  endTrimPos = 0;
 
-#if 0
-  if (corrQlt[i] - '0' <= 6)
-    //  Low quality base - too aggressive?
-    return(1);
-#endif
+    uint32   bgn = clrBgn;
+    uint32   end = clrBgn + endWindow;
 
-  if ((coverage) && ((coverage[i] == 'A') && (corrQlt[i] - '0' < 16)))
-    //  Lower quality base, and we couldn't correct it or find it in the mers.
-    return(1);
+    if (end > clrEnd)
+      end = clrEnd;
 
-  return(0);
+    for (uint32 i=bgn; i<end; i++) {
+      if (errorPos[i]) {
+        endFound++;
+        endTrimPos = i + 1;
+      }
+    }
+
+    if (VERBOSE > 1)
+      fprintf(stderr, "BGNTRIM found=%u pos=%u from %u to %u\n",
+              endFound, endTrimPos,
+              clrBgn, clrBgn + endWindow);
+
+    if (endFound > errAllow)
+      clrBgn = endTrimPos;
+
+    else
+      doTrim = false;
+  }
 }
 
-uint32
-mertrimComputation::attemptTrimming(bool forCorrection) {
 
-  //  Any 5-base window with more two or more errors or low quality.  Trim to the inner-most.
+void
+mertrimComputation::attemptTrimming3End(uint32 *errorPos, uint32 endWindow, uint32 errAllow) {
 
-  if (isCompleteJunk == true)
-    return(0);
+  for (bool doTrim = true; doTrim; ) {
+    uint32  endFound   = 0;
+    uint32  endTrimPos = clrEnd;
 
-  if (corrected == NULL) {
-    corrected  = new uint32 [AS_READ_MAX_NORMAL_LEN + 1];
-    memset(corrected,  0, sizeof(uint32) * (AS_READ_MAX_NORMAL_LEN + 1));
-  }
+    uint32   bgn = clrBgn;
+    uint32   end = clrEnd;
 
-  //  Compute the number of errors in each 5-base window.
-  //
-  //  In general, wErr[i] = B[i-2] + B[i-1] + B[i] + B[i+1] + B[i+2].
-  //
-  uint32  wErr[AS_READ_MAX_NORMAL_LEN] = {0};
+    if (clrBgn + endWindow <= clrEnd)
+      bgn = clrEnd - endWindow;
 
-  wErr[0] = BADBASE(0) + BADBASE(1) + BADBASE(2);
-  wErr[1] = wErr[0] + BADBASE(3);
-  wErr[2] = wErr[1] + BADBASE(4);
+    assert(bgn >= clrBgn);
+    assert(bgn <= clrEnd);
 
-  for (uint32 i=3; i<seqLen-2; i++)
-    wErr[i] = wErr[i-1] - BADBASE(i-3) + BADBASE(i+2);
-
-  wErr[seqLen-2] = wErr[seqLen-3] - BADBASE(seqLen-4);
-  wErr[seqLen-1] = wErr[seqLen-2] - BADBASE(seqLen-3);
-
-#if 0
-  fprintf(stderr, "B=");
-  for (uint32 i=0; i<seqLen; i++) {
-    fprintf(stderr, "%d", BADBASE(i));
-  }
-  fprintf(stderr, "\nW=");
-  for (uint32 i=0; i<seqLen; i++) {
-    fprintf(stderr, "%d", wErr[i]);
-  }
-  fprintf(stderr, "\n");
-#endif
-
-  //  Find the largest region with < 2 errors.  Whenever we hit a region with
-  //  two errors, clear the old region (saving it if it was the biggest).
-
-  uint32  lBgn=0, lEnd=0;  //  Largest found so far
-  uint32  tBgn=2, tEnd=2;  //  The one we're looking at
-
-  for (uint32 i=2; i<seqLen-2; i++) {
-
-    if (wErr[i] >= 2) {
-      //  Lots of errors in this window, save any good region found so far.
-      if (tEnd - tBgn > lEnd - lBgn) {
-        lBgn = tBgn;
-        lEnd = tEnd;
+    for (int32 i=bgn; i<end; i++) {
+      if (errorPos[i]) {
+        endFound++;
+        if (i < endTrimPos)
+          endTrimPos = i;
       }
-      //  Any good region must start at least at the next position.
-      tBgn = i+1;
-      tEnd = i+1;
-
-    } else {
-      //  Good window, extend any existing region.
-      tEnd = i;
     }
+
+    if (VERBOSE > 1)
+      fprintf(stderr, "ENDTRIM found=%u pos=%u from %u to %u\n",
+              endFound, endTrimPos,
+              clrEnd - endWindow, clrEnd);
+
+    if (endFound > errAllow)
+      clrEnd = endTrimPos;
+
+    else
+      doTrim = false;
   }
+}
 
-  //  Save any remaining window.
-  if (tEnd - tBgn > lEnd - lBgn) {
-    lBgn = tBgn;
-    lEnd = tEnd;
-  }
 
-  //  The (pre) clear range is jsut the largest window found, but trimmed back (into potentially
-  //  good sequence) to the end/start of the window.
-  //  limit to valid sequences
-  clrBgn = (lBgn <= seqLen - 2 ? lBgn + 2 : seqLen);
-  clrEnd = (lEnd >= 2 ? lEnd - 2 : 0);
+void
+mertrimComputation::attemptTrimming(void) {
 
-  if (forCorrection) {
-    clrBgn = 0;
-    clrEnd = seqLen;
-  }
-
-  if (VERBOSE > 2) {
-    fprintf(stderr, "TRIM: %d,%d (before adjust)\n", clrBgn, clrEnd);
-  }  //  VERBOSE
-
-  //  Adjust borders to the first bad base.  This undoes the (pre) window trimming.  Remember,
-  //  clrBgn includes the base (and so we must conditionally move ahead one), clrEnd does not.
-
-  while ((clrBgn > 0) && (BADBASE(clrBgn) == false))
-    clrBgn--;
-  if (BADBASE(clrBgn) == true)
-    clrBgn++;
-
-  while ((clrEnd < seqLen) && (BADBASE(clrEnd) == false))
-    clrEnd++;
-
-  while ((clrBgn < clrEnd) && (coverage) && (coverage[clrBgn] < g->trimCoverage))
-    clrBgn++;
-  while ((clrEnd > clrBgn) && (coverage) && (coverage[clrEnd-1] < g->trimCoverage))
-    clrEnd--;
-
-  if (clrBgn >= clrEnd) {
+  //  Just bail if the read is all junk.  Nothing to do here.
+  //
+  if (hasNoConfirmedKmers) {
     clrBgn = 0;
     clrEnd = 0;
+    return;
+  }
+
+  assert(coverage != NULL);
+
+  //  Lop off the ends with no confirmed kmers
+  //
+  while ((clrBgn < clrEnd) && (coverage[clrBgn] == 0))
+    clrBgn++;
+
+  while ((clrEnd > clrBgn) && (coverage[clrEnd-1] == 0))
+    clrEnd--;
+
+
+  //  True if there is an error at position i.
+  //
+  uint32  *errorPos = new uint32 [seqLen];
+
+  for (uint32 i=0; i<seqLen; i++) {
+    errorPos[i] = ((corrected[i] == 'C') || (corrected[i] == 'I') || (corrected[i] == 'D'));
+  }
+
+
+  //  If there are more than 'errAllow' corrections in the last 'winScale' (x kmerSize) bases of the
+  //  read, trim all the errors off.
+
+  for (uint32 i=0; i<g->endTrimNum; i++) {
+    //fprintf(stderr, "endTrim: %f %u\n", g->endTrimWinScale[i], g->endTrimErrAllow[i]);
+    attemptTrimming5End(errorPos, g->merSize * g->endTrimWinScale[i], g->endTrimErrAllow[i]);
+    attemptTrimming3End(errorPos, g->merSize * g->endTrimWinScale[i], g->endTrimErrAllow[i]);
+  }
+
+  delete [] errorPos;
+
+  //  If there are zero coverage areas in the interior, trash the whole read.
+
+  if (g->discardZeroCoverage == true) {
+    for (uint32 i=clrBgn; i<clrEnd; i++)
+      if (coverage[i] == 0)
+        gapInConfirmedKmers = true;
+  }
+
+  //  If the coverage isn't perfect (ramp up, constant, ramp down), trash the whole read.
+
+  if (g->discardImperfectCoverage == true) {
+    uint32  bgn = clrBgn;
+    uint32  end = clrEnd - 1;
+
+    while ((bgn + 1 < end) && (coverage[bgn] < coverage[bgn+1]))
+      bgn++;
+
+    while ((bgn + 1 < end) && (coverage[end-1] > coverage[end]))
+      end--;
+
+    uint32  bgnc = coverage[bgn];
+    uint32  endc = coverage[end];
+
+    if (VERBOSE)
+      fprintf(stderr, "IMPERFECT: bgn=%u %u  end=%u %u\n",
+              bgn, bgnc,
+              end, endc);
+
+    if (bgnc != endc)
+      imperfectKmerCoverage = true;
+
+    else
+      for (uint32 i=bgn; i<=end; i++)
+        if (coverage[i] != bgnc)
+          imperfectKmerCoverage = true;
   }
 
   if (VERBOSE > 1) {
     fprintf(stderr, "TRIM: %d,%d (post)\n", clrBgn, clrEnd);
     dump(stderr, "TRIM");
   }  //  VERBOSE
-
-  return(evaluate(true));
 }
 
 
@@ -1448,14 +1441,6 @@ mertrimComputation::dump(FILE *F, char *label) {
       fprintf(F, "]-");
   }
   fprintf(F, " (DISCONNECTION)\n");
-  for (uint32 i=0; i<seqLen; i++) {
-    if (i == clrBgn)
-      fprintf(F, "-[");
-    fprintf(F, "%c", (deletion && deletion[i]) ? deletion[i] : ' ');
-    if (i+1 == clrEnd)
-      fprintf(F, "]-");
-  }
-  fprintf(F, " (DELETIONS)\n");
 }
 
 
@@ -1468,57 +1453,37 @@ mertrimWorker(void *G, void *T, void *S) {
   mertrimThreadData    *t = (mertrimThreadData  *)T;
   mertrimComputation   *s = (mertrimComputation *)S;
 
-  if (VERBOSE) {
+  if (VERBOSE)
     fprintf(stderr, "\nPROCESS\n");
-  }  //  VERBOSE
 
   s->t = t;
 
-  uint32  eval = s->evaluate(false);
+  uint32  eval = s->evaluate();
 
-  //  Read is perfect!
-  //
-  if      (eval == ALLGOOD) {
-    goto finished;
+  //  Attempt correction if there are kmers to correct from.
+
+  if (eval == ATTEMPTCORRECTION) {
+    s->reverse();
+    s->analyze();
+    s->attemptCorrection(true);
+
+    s->reverse();
+    s->analyze();
+    s->attemptCorrection(false);
   }
 
-  //  Read had NO mers found.  We'll let it through, but it might just end up a singleton.  There
-  //  is a slight chance it has a 2-copy mer that will pull it in, or maybe the mate will.
-  //
-  if (eval == ALLCRAP) {
-    s->attemptTrimming(false);
-    goto finished;
+  //  Attempt trimming if the read wasn't perfect
+
+  if (eval != ALLGOOD) {
+    s->analyze();
+    s->attemptTrimming();
   }
-
-  s->reverse();
-  s->analyze();
-  eval = s->attemptCorrection(true);
-
-  s->reverse();
-  s->analyze();
-  eval = s->attemptCorrection(false);
-
-  //  Correction worked perfectly, we're done.
-  //
-  if ((eval == ALLGOOD) && (s->getNumCorrected() < 4)) {
-    goto finished;
-  }
-
-  eval = s->attemptTrimming((g->fqOutput != NULL));
-
-  if ((eval == ALLGOOD) && (s->getNumCorrected() < 4)) {
-    goto finished;
-  }
-
-
- finished:
 
   //  SKIPPING until the heuristics are worked out.
   //s->analyzeChimer();
 
-  if (VERBOSE) {
+  if (VERBOSE)
     s->dump(stderr, "FINAL");
-  }  //  VERBOSE
 }
 
 
@@ -1601,47 +1566,94 @@ mertrimWriterGatekeeper(mertrimGlobalData *g, mertrimComputation *s) {
 void
 mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
 
-  fprintf(g->fqLog, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\n",
-          s->getClrBgn(),
-          s->getClrEnd(),
+  //  Note that getClrBgn/getClrEnd return positions in the ORIGINAL read, not the correct read.
+  //  DO NOT USE HERE!
+
+  uint32   seqOffset = 0;
+  char     label[16];
+
+  if ((s->suspectedChimer       == false) &&
+      (s->hasNoConfirmedKmers   == false) &&
+      (s->gapInConfirmedKmers   == false) &&
+      (s->imperfectKmerCoverage == false)) {
+    strcpy(label, "CLEAN");  //  Free of chimer!
+
+    seqOffset = s->clrBgn;
+
+    s->corrSeq[s->clrEnd] = 0;
+    s->corrQlt[s->clrEnd] = 0;
+
+  } else if (s->hasNoConfirmedKmers == true) {
+    strcpy(label, "NOKMER");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+
+  } else if (s->gapInConfirmedKmers == true) {
+    strcpy(label, "GAPKMER");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+
+  } else if (s->imperfectKmerCoverage == true) {
+    strcpy(label, "IMPERFECTKMER");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+
+  } else if (s->suspectedChimerBgn - s->clrBgn >= AS_READ_MIN_LEN) {
+    strcpy(label, "MP");  //  Junction read, longest portion would make an MP pair
+
+    seqOffset = s->clrBgn;
+
+    s->corrSeq[s->suspectedChimerBgn] = 0;
+    s->corrQlt[s->suspectedChimerBgn] = 0;
+
+  } else if (s->clrEnd - s->suspectedChimerEnd >= AS_READ_MIN_LEN) {
+    strcpy(label, "PE");  //  Junction read, longest portion would make a PE pair
+
+    seqOffset = s->suspectedChimerEnd;
+
+    s->corrSeq[s->clrEnd] = 0;
+    s->corrQlt[s->clrEnd] = 0;
+
+  } else {
+    strcpy(label, "SHORT1");//  Junction read, neither side is long enough to save, so save nothing.
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+  }
+
+  if (strlen(s->corrSeq + seqOffset) < 64) {
+    strcpy(label, "SHORT2");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+  }
+
+  fprintf(g->fqLog, F_U32"\t"F_U32"\tchimer="F_U32"\t"F_U32"\t"F_U32"\t%s\t%s\n",
+          s->clrBgn,
+          s->clrEnd,
           s->suspectedChimer,
           s->suspectedChimerBgn,
           s->suspectedChimerEnd,
+          label,
           s->readName);
 
   //  Convert from CA QV to Sanger QV
   for (uint32 i=0; s->corrQlt[i]; i++) {
     s->corrQlt[i] -= '0';
     s->corrQlt[i] += '!';
-  }
-
-  //  If read is suspected chimer (junction) then we want to keep the 5' end if at all possible.
-  //  This will save the MP pair.
-  //
-  //  If the 5' end is too small, try to make a PE pair by saving the 3' end.
-  //
-  //  If that is too small, just output the 5' end (too small) to keep the pairing correct.
-
-  uint32   seqOffset = 0;
-  char     label[16];
-
-  if (s->suspectedChimer) {
-    if        (s->suspectedChimerBgn >= AS_READ_MIN_LEN) {
-      strcpy(label, "MP");
-      s->corrSeq[s->suspectedChimerBgn] = 0;
-      s->corrQlt[s->suspectedChimerBgn] = 0;
-
-    } else if (s->seqLen - s->suspectedChimerEnd >= AS_READ_MIN_LEN) {
-      strcpy(label, "PE");
-      seqOffset = s->suspectedChimerEnd;
-
-    } else {
-      strcpy(label, "SHORT");
-      s->corrSeq[s->suspectedChimerBgn] = 0;
-      s->corrQlt[s->suspectedChimerBgn] = 0;
-    }
-  } else {
-    strcpy(label, "CLEAN");
   }
 
   fprintf(g->fqOutput, "%s type=%s\n%s\n+\n%s\n",
@@ -1738,8 +1750,18 @@ main(int argc, char **argv) {
         g->minVerifiedFraction = 0;
       }
 
-    } else if (strcmp(argv[arg], "-trimcoverage") == 0) {
-      g->trimCoverage = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-endtrim") == 0) {
+      if (g->endTrimDefault == true)
+        g->endTrimNum = 0;
+      g->endTrimWinScale[g->endTrimNum] = atof(argv[++arg]);
+      g->endTrimErrAllow[g->endTrimNum] = atoi(argv[++arg]);
+      g->endTrimNum++;
+
+    } else if (strcmp(argv[arg], "-discardzero") == 0) {
+      g->discardZeroCoverage = true;
+
+    } else if (strcmp(argv[arg], "-discardimperfect") == 0) {
+      g->discardImperfectCoverage = true;
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       g->forceCorrection = true;
@@ -1767,6 +1789,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s -g gkpStore -m merSize -mc merCountsFile [-v]\n", argv[0]);
     exit(1);
   }
+
+  fprintf(stderr, "zerocoverage: %d\n", g->discardZeroCoverage);
+  fprintf(stderr, "imperfect:    %d\n", g->discardImperfectCoverage);
 
   gkpStoreFile::registerFile();
 
