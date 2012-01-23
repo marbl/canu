@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.19 2012-01-23 06:42:54 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.20 2012-01-23 17:29:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -855,7 +855,7 @@ mertrimComputation::attemptCorrection(bool isReversed) {
       uint32 nT = testBaseIndel(pos, 'T');
       char   rB = 0;
 
-      mNum += g->merSize / 3;
+      mNum += 2;
 
       if (nD > mNum)  { nR++;  rB = '-'; }
       if (nA > mNum)  { nR++;  rB = 'A'; }
