@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_io.c,v 1.37 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_io.c,v 1.38 2012-01-24 22:47:08 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -290,6 +290,21 @@ static void add_overlap_to_graph(Aedge  an_edge,
   }
 #endif
 
+  // If either of the fragments referenced in the overlap have
+  // been deleted, then ignore this overlap during input.
+  if((get_del_fragment(frags,iavx) == TRUE) ||
+     (get_del_fragment(frags,ibvx) == TRUE) )
+    return;
+
+  // If either of the fragments referenced in the overlap has been
+  // marked as removed by breaker, set the edge label (well, no, just
+  // delete the overlap)
+  if((get_lab_fragment(frags,iavx) == AS_CGB_REMOVED_BREAKER_FRAG) ||
+     (get_lab_fragment(frags,ibvx) == AS_CGB_REMOVED_BREAKER_FRAG) ) {
+    // ines=AS_CGB_REMOVED_BY_BREAKER;
+    return;  // Remove the overlap from the graph.
+  }
+
   // Are iafr and ibfr in the range of previously read records?
   assert(iafr != ibfr); // No self-overlaps.
   assert(iafr > 0);     // Pointing to an undefined vertex?
@@ -347,24 +362,10 @@ static void add_overlap_to_graph(Aedge  an_edge,
   }
 
   assert(ialn > iahg);
-  assert(ibln > ibhg);
+  assert(ibln > ibhg); 
   assert(ialn > -ibhg);
   assert(ibln > -iahg);
 
-  // If either of the fragments referenced in the overlap have
-  // been deleted, then ignore this overlap during input.
-  if((get_del_fragment(frags,iavx) == TRUE) ||
-     (get_del_fragment(frags,ibvx) == TRUE) )
-    return;
-
-  // If either of the fragments referenced in the overlap has been
-  // marked as removed by breaker, set the edge label (well, no, just
-  // delete the overlap)
-  if((get_lab_fragment(frags,iavx) == AS_CGB_REMOVED_BREAKER_FRAG) ||
-     (get_lab_fragment(frags,ibvx) == AS_CGB_REMOVED_BREAKER_FRAG) ) {
-    // ines=AS_CGB_REMOVED_BY_BREAKER;
-    return;  // Remove the overlap from the graph.
-  }
 
   // Note that we can not count overlaps to deleted and removed
   // fragments.  Contained and spur fragments still have potential
