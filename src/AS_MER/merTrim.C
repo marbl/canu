@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.20 2012-01-23 17:29:48 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.21 2012-01-24 21:40:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -370,6 +370,7 @@ public:
     clrBgn = 0;
     clrEnd = seqLen;
 
+    garbageInInput        = false;
     gapInConfirmedKmers   = false;
     hasNoConfirmedKmers   = false;
     imperfectKmerCoverage = false;
@@ -421,11 +422,14 @@ public:
     chomp(origSeq);
     chomp(origQlt);
 
-    //  Adjust QVs to CA encoding.
+    //  Adjust QVs to CA encoding, bases to upper case, and non-acgt to acgt.
 
 #warning ASSUMING SANGER QV ENCODING
 
     for (uint32 i=0; origQlt[i]; i++) {
+      if ('a' <= origSeq[i])
+        origSeq[i] += 'A' - 'a';
+
       if (origQlt[i] < '!')
         origQlt[i] = '!';
       origQlt[i] -= '!';
@@ -442,11 +446,16 @@ public:
     //  Replace Ns with a random low-quality base.  This is necessary, since the mer routines
     //  will not make a mer for N, and we never see it to correct it.
 
-    char  letters[4] = { 'A', 'C', 'G', 'T' };
+    uint32  numReplace = 0;
+    char    letters[4] = { 'A', 'C', 'G', 'T' };
 
     //  Not really replacing N with random ACGT, but good enough for us.
     for (uint32 i=0; corrSeq[i]; i++)
-      if (corrSeq[i] == 'N') {
+      if ((corrSeq[i] != 'A') &&
+          (corrSeq[i] != 'C') &&
+          (corrSeq[i] != 'G') &&
+          (corrSeq[i] != 'T')) {
+        numReplace++;
         corrSeq[i] = letters[i & 0x03];
         corrQlt[i] = '0';
       }
@@ -457,6 +466,7 @@ public:
     clrBgn = 0;
     clrEnd = seqLen;
 
+    garbageInInput        = false;
     gapInConfirmedKmers   = false;
     hasNoConfirmedKmers   = false;
     imperfectKmerCoverage = false;
@@ -467,6 +477,12 @@ public:
 
     for (uint32 i=0; i<allocLen; i++)
       seqMap[i] = i;
+
+    if (numReplace >= AS_OVL_ERROR_RATE * seqLen) {
+      garbageInInput = true;
+      clrBgn = 0;
+      clrEnd = 0;
+    }
 
     return(true);
   };
@@ -534,6 +550,7 @@ public:
   uint32     clrBgn;
   uint32     clrEnd;
 
+  bool       garbageInInput;
   bool       gapInConfirmedKmers;
   bool       hasNoConfirmedKmers;
   bool       imperfectKmerCoverage;
@@ -562,6 +579,9 @@ public:
 //  
 uint32
 mertrimComputation::evaluate(void) {
+
+  if (garbageInInput == true)
+    return(ALLCRAP);
 
   if (ms == NULL)
     ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
@@ -647,6 +667,11 @@ mertrimComputation::reverse(void) {
 void
 mertrimComputation::analyze(void) {
 
+  if (ms == NULL)
+    return;
+
+  ms->rewind();
+
   if (coverage == NULL)
     coverage = new uint32 [allocLen];
   if (disconnect == NULL)
@@ -654,10 +679,6 @@ mertrimComputation::analyze(void) {
 
   memset(coverage,   0, sizeof(uint32) * (allocLen));
   memset(disconnect, 0, sizeof(uint32) * (allocLen));
-
-  assert(ms != NULL);
-
-  ms->rewind();
 
   while (ms->nextMer()) {
     u32bit  posBgn = ms->thePositionInSequence();
@@ -1189,7 +1210,8 @@ mertrimComputation::attemptTrimming(void) {
 
   //  Just bail if the read is all junk.  Nothing to do here.
   //
-  if (hasNoConfirmedKmers) {
+  if ((garbageInInput) ||
+      (hasNoConfirmedKmers)) {
     clrBgn = 0;
     clrEnd = 0;
     return;
@@ -1573,6 +1595,7 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
   char     label[16];
 
   if ((s->suspectedChimer       == false) &&
+      (s->garbageInInput        == false) &&
       (s->hasNoConfirmedKmers   == false) &&
       (s->gapInConfirmedKmers   == false) &&
       (s->imperfectKmerCoverage == false)) {
@@ -1583,8 +1606,16 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
     s->corrSeq[s->clrEnd] = 0;
     s->corrQlt[s->clrEnd] = 0;
 
+  } else if (s->garbageInInput == true) {
+    strcpy(label, "DEL-GARBAGE");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+
   } else if (s->hasNoConfirmedKmers == true) {
-    strcpy(label, "NOKMER");
+    strcpy(label, "DEL-NO-KMER");
 
     seqOffset = 0;
 
@@ -1592,7 +1623,7 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
     s->corrQlt[0] = 0;
 
   } else if (s->gapInConfirmedKmers == true) {
-    strcpy(label, "GAPKMER");
+    strcpy(label, "DEL-ZERO-COV");
 
     seqOffset = 0;
 
@@ -1600,8 +1631,7 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
     s->corrQlt[0] = 0;
 
   } else if (s->imperfectKmerCoverage == true) {
-    strcpy(label, "IMPERFECTKMER");
-
+    strcpy(label, "DEL-INPERFECT-COV");
     seqOffset = 0;
 
     s->corrSeq[0] = 0;
@@ -1624,16 +1654,7 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
     s->corrQlt[s->clrEnd] = 0;
 
   } else {
-    strcpy(label, "SHORT1");//  Junction read, neither side is long enough to save, so save nothing.
-
-    seqOffset = 0;
-
-    s->corrSeq[0] = 0;
-    s->corrQlt[0] = 0;
-  }
-
-  if (strlen(s->corrSeq + seqOffset) < 64) {
-    strcpy(label, "SHORT2");
+    strcpy(label, "MP-PE-SHORT");//  Junction read, neither side is long enough to save, so save nothing.
 
     seqOffset = 0;
 
