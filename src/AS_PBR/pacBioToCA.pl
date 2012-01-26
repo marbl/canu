@@ -344,11 +344,17 @@ if (length($caSGE) != 0) {
 } else {
    $caSGE = "sge=\"" . " -sync y\" sgePropagateHold=corAsm";
 }
-my $scriptParams = `cat $specFile |awk -F '=' '{if (match(\$1, \"sgeScript\") == 1 && match(\$1, \"#\") == 0) print \$NF}'`;
+my $scriptParams = `cat $specFile |awk -F '=' '{if (match(\$1, \"sgeScript\") == 1 && match(\$1, \"#\") == 0) print \$0}'`;
 chomp($scriptParams);
 if (length($scriptParams) != 0) {
    if (!defined($sgeCorrection) || length($sgeCorrection) == 0) {
-      $sgeCorrection = $scriptParams;
+      if ($scriptParams =~ m/\s*(\w*)\s*=([^#]*)#*.*$/) {
+         my ($var, $val) = ($1, $2);
+         $var =~ s/^\s+//; $var =~ s/\s+$//;
+         $val =~ s/^\s+//; $val =~ s/\s+$//;
+
+         $sgeCorrection = $val;
+      }
    }
 }
 
