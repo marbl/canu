@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.6 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.7 2012-01-27 03:17:54 mcschatz Exp $";
 
 #include "overlapInCore.H"
 
@@ -87,7 +87,7 @@ bool  Ignore_Clear_Range = FALSE;
 
 uint64  Kmer_Hits_With_Olap_Ct = 0;
 uint64  Kmer_Hits_Without_Olap_Ct = 0;
-int32  Min_Olap_Len = AS_OVERLAP_MIN_LEN;
+int32  Min_Olap_Len = 0;
 uint64  Multi_Overlap_Ct = 0;
 String_Ref_t  * Next_Ref = NULL;
 uint64  String_Ct;
@@ -632,6 +632,7 @@ main(int argc, char **argv) {
   char  * p;
 
   argc = AS_configure(argc, argv);
+  Min_Olap_Len = AS_OVERLAP_MIN_LEN; // set after configure
 
   int err=0;
   int arg=1;
