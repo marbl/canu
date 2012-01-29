@@ -36,8 +36,8 @@ SOURCES = AS_PER_genericStore.C \
           AS_PER_gkStore_load.C \
           AS_PER_gkStore_partition.C \
           AS_PER_gkStream.C \
-          AS_PER_encodeSequenceQuality.C \
-          AS_PER_asmStore.C
+          AS_PER_encodeSequenceQuality.C
+
 OBJECTS = $(SOURCES:.C=.o)
 
 LIBRARIES = libAS_PER.a libCA.a
