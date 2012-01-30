@@ -346,6 +346,9 @@ sub setDefaults () {
     $global{"gkpFixInsertSizes"}           = 1;
     $synops{"gkpFixInsertSizes"}           = "Update stddev to 0.10 * mean if it is too large";
 
+    $global{"gkpAllowInefficientStorage"}  = 0;
+    $synops{"gkpAllowInefficientStorage"}  = "Allow mis-ordered reads in gkpStore; storage is inefficient and memory consuming";
+
     #####  Vector Trimming
 
     $global{"vectorIntersect"}             = undef;
@@ -1117,6 +1120,21 @@ sub getNumberOfFragsInStore ($$) {
         close(F);
 
         $numFrags = $1 if (m/^Last frag in store is iid = (\d+)$/);
+
+        #  Check that the store is efficient
+
+        my $typeMapSize = (-s "$wrk/$asm.gkpStore/inf") / 1024 / 1024;
+
+        if (($typeMapSize > 128) && (getGlobal("gkpAllowInefficientStorage") == 0)) {
+            $typeMapSize = int($typeMapSize * 3);
+
+            my $err;
+            $err .= "reads ordered inefficiently.  reorder (illumina first) or use\n";
+            $err .= "gkpAllowInefficientStorage=1.  note that overlap jobs will use\n";
+            $err .= "an additional $typeMapSize mb memory per job.";
+
+            caFailure($err, "$wrk/$asm.gkpStore.err");
+        }
     }
 
     return($numFrags);
@@ -1662,6 +1680,7 @@ sub preoverlap {
         $cmd .= " -F " if (getGlobal("gkpFixInsertSizes"));
         $cmd .= "$gkpInput ";
         $cmd .= "> $wrk/$asm.gkpStore.err 2>&1";
+
         if (runCommand($wrk, $cmd)) {
             caFailure("gatekeeper failed", "$wrk/$asm.gkpStore.err");
         }
@@ -1669,7 +1688,6 @@ sub preoverlap {
         rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
         rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
         rename "$wrk/$asm.gkpStore.BUILDING.fastqUIDmap", "$wrk/$asm.gkpStore.fastqUIDmap";
-        unlink "$asm.gkpStore.err";
     }
 
     perfectTrimming();

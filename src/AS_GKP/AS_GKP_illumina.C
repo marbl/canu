@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.24 2012-01-23 19:43:36 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.25 2012-01-30 14:17:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,6 +39,7 @@ static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.24 2012-01-23 19:43:36 br
 #define FASTQ_INNIE     0
 #define FASTQ_OUTTIE    1
 
+//  This seems to ALWAYS be a bad idea.
 #undef FASTQ_TRIM_JUNK
 
 static int *isValidACGTN = NULL;
@@ -55,7 +56,7 @@ class ilFragment {
 
 static
 uint64
-processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrient) {
+processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrient, bool allowPacked) {
 
   chomp(fr->snam);
   chomp(fr->sstr);
@@ -68,14 +69,11 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
   //  Determine if this should be a PACKED or a NORMAL fragment.  PACKED is definitely
   //  preferred for assemblies that are using most reads of a single length.
 
-  if (slen < AS_READ_MAX_PACKED_LEN) {
+  if ((slen < AS_READ_MAX_PACKED_LEN) &&
+      (allowPacked == true))
     fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
-  } else {
-    //  If we switch to this format in general, we don't want to keep this warning.
-    //  Remove.
-    //AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, N, fr->snam);
+  else
     fr->fr.gkFragment_setType(GKFRAGMENT_NORMAL);
-  }
 
   fr->fr.gkFragment_setIsDeleted(1);
 
@@ -319,7 +317,7 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
 
 static
 uint64
-readSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrient) {
+readSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrient, bool allowPacked) {
 
   fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   fr->fr.gkFragment_setIsDeleted(1);
@@ -335,7 +333,7 @@ readSeq(FILE *F, char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fas
   if (feof(F))
     return(0);
 
-  return(processSeq(N, fr, end, fastqType, fastqOrient));
+  return(processSeq(N, fr, end, fastqType, fastqOrient, allowPacked));
 }
 
 
@@ -387,7 +385,7 @@ openFile(char *name, FILE *&file) {
 
 static
 void
-loadFastQReads(char *lname, char *rname, uint32 fastqType, uint32 fastqOrient) {
+loadFastQReads(char *lname, char *rname, uint32 fastqType, uint32 fastqOrient, bool allowPacked) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Processing %s %s QV encoding reads from:\n",
           (fastqOrient == FASTQ_INNIE) ? "INNIE" : "OUTTIE",
@@ -428,8 +426,8 @@ loadFastQReads(char *lname, char *rname, uint32 fastqType, uint32 fastqOrient) {
   while (!feof(lfile) && !feof(rfile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 lUID = readSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient);
-    uint64 rUID = readSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient);
+    uint64 lUID = readSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient, allowPacked);
+    uint64 rUID = readSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient, allowPacked);
 
     if       ((lfrg->fr.gkFragment_getIsDeleted() == 0) &&
               (rfrg->fr.gkFragment_getIsDeleted() == 0)) {
@@ -483,7 +481,7 @@ loadFastQReads(char *lname, char *rname, uint32 fastqType, uint32 fastqOrient) {
 
 static
 void
-loadFastQReads(char *uname, uint32 fastqType, uint32 fastqOrient) {
+loadFastQReads(char *uname, uint32 fastqType, uint32 fastqOrient, bool allowPacked) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Processing SINGLE-ENDED %s QV encoding reads from:\n",
           (fastqType   == FASTQ_ILLUMINA) ? "ILLUMINA 1.3+" : ((fastqType == FASTQ_SANGER) ? "SANGER" : "SOLEXA pre-1.3"));
@@ -508,7 +506,7 @@ loadFastQReads(char *uname, uint32 fastqType, uint32 fastqOrient) {
   while (!feof(ufile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 uUID = readSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient);
+    uint64 uUID = readSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient, allowPacked);
 
     if (ufrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Add a fragment.
@@ -534,6 +532,7 @@ void
 checkLibraryForFastQPointers(LibraryMesg *lib_mesg) {
   uint32  fastqType   = FASTQ_SOLEXA;
   uint32  fastqOrient = FASTQ_INNIE;
+  bool    allowPacked = true;
 
   isValidACGTN = AS_UTL_getValidACGTN();
 
@@ -545,6 +544,17 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg) {
       fprintf(stderr, "by an older version of Celera Assembler.\n");
       fprintf(stderr, "Please re-generate your FRG file with this version of Celera Assembler.\n");
       exit(1);
+    }
+  }
+
+  //  Search for forced normal - we technically should grab the library from gatekeeper
+  //  and use the flag there, but this is easier.
+  for (uint32 i=0; i<lib_mesg->num_features; i++) {
+    if (strcasecmp(lib_mesg->features[i], "forceLongReadFormat") == 0) {
+      if ((lib_mesg->values[i][0] == '1') ||
+          (lib_mesg->values[i][0] == 't') ||
+          (lib_mesg->values[i][0] == 'T'))
+        allowPacked = false;
     }
   }
 
@@ -583,9 +593,9 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg) {
         *sr++ = 0;
 
       if (*sr == 0)
-        loadFastQReads(sl, sl, fastqType, fastqOrient);
+        loadFastQReads(sl, sl, fastqType, fastqOrient, allowPacked);
       else
-        loadFastQReads(sl, sr, fastqType, fastqOrient);
+        loadFastQReads(sl, sr, fastqType, fastqOrient, allowPacked);
     }
 
     if (strcasecmp(lib_mesg->features[i], "fastqReads") == 0) {
@@ -598,7 +608,7 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg) {
       if (*sr)
         fprintf(stderr, "ERROR:  Multipe FastQ files given to fastqReads.\n"), exit(1);
 
-      loadFastQReads(sl, fastqType, fastqOrient);
+      loadFastQReads(sl, fastqType, fastqOrient, allowPacked);
     }
   }
 }

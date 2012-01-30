@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.16 2011-09-06 15:06:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.17 2012-01-30 14:17:40 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -150,6 +150,9 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
 
     //  Gatekeeper options
 
+    else if (strcasecmp(fea, "forceLongReadFormat") == 0)
+      forceLongReadFormat = decodeBoolean("forceLongReadFormat", val);
+
     //  Illumina options, just to make it not complain about unknown features
 
     else if ((strcasecmp(fea, "illuminaFastQType") == 0) ||
@@ -192,7 +195,7 @@ gkLibrary::gkLibrary_encodeFeaturesCleanup(LibraryMesg *lmesg) {
     fea[nf] = (char *)safe_malloc(32 * sizeof(char));    \
     val[nf] = (char *)safe_malloc(32 * sizeof(char));    \
     sprintf(fea[nf], #V);                                \
-    sprintf(val[nf], F_U64, V);                           \
+    sprintf(val[nf], F_U64, V);                          \
     nf++;                                                \
   }
 
@@ -242,13 +245,10 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
   encodeFeature(doRemoveSpurReads);
   encodeFeature(doRemoveChimericReads);
 
-  if (doConsensusCorrection || alwaysEncode) {
-    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
-    val[nf] = (char *)safe_malloc(32 * sizeof(char));
-    sprintf(fea[nf], "doConsensusCorrection");
-    sprintf(val[nf], F_U64, doConsensusCorrection);
-    nf++;
-  }
+  encodeFeature(doConsensusCorrection);
+
+  //  GKP options
+  encodeFeature(forceLongReadFormat);
 
   //  Library options (orientation is not a feature, it's part of the library)
 

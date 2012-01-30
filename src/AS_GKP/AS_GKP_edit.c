@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.29 2011-06-17 13:03:02 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.30 2012-01-30 14:17:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -517,6 +517,9 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
       setBoolean(doRemoveChimericReads)
  
       setBoolean(doConsensusCorrection)
+
+      setBoolean(forceLongReadFormat)
+
       } else if (strcasecmp(ACT, "orientation") == 0) {
         uint32 o = gklr.orientation;
         uint32 i;

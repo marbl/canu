@@ -92,6 +92,7 @@ public:
     doConsensusCorrection      = 0;
 
     spareGKP                   = 0;
+    forceLongReadFormat        = 0;
 
     spareLIB                   = 0;
     orientation                = 0;
@@ -139,7 +140,7 @@ public:
 
   //  Gatekeeper options
   uint64         spareGKP:63;                  //  Spare for gatekeeper changes
-  uint64         UNUSEDusePackedFragments:1;   //  Default 0 -> don't store gkPackedFragment types
+  uint64         forceLongReadFormat:1;        //  Default 0 -> store as PACKED if possible
 
   //  Library options
   uint64         spareLIB:61;                  //  Spare for library changes

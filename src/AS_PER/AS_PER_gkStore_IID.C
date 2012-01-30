@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_IID.C,v 1.3 2011-11-29 15:10:19 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_IID.C,v 1.4 2012-01-30 14:17:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,14 +86,16 @@ gkStore::gkStore_addIIDtoTypeMap(AS_IID iid, uint32 type, uint32 tiid) {
   //  Bail if we've got nothing to do.
 
   if (((IIDtoTYPE == NULL) && (type == GKFRAGMENT_PACKED) && (inf.numNormal + inf.numStrobe == 0)) ||
-      ((IIDtoTYPE == NULL) && (type == GKFRAGMENT_NORMAL) && (inf.numPacked + inf.numStrobe == 0)) ||
-      ((IIDtoTYPE == NULL) && (type == GKFRAGMENT_STROBE) && (inf.numPacked + inf.numNormal == 0)))
+      ((IIDtoTYPE == NULL) && (type == GKFRAGMENT_NORMAL) && (inf.numStrobe == 0)) ||
+      ((IIDtoTYPE == NULL) && (type == GKFRAGMENT_STROBE)))
     return;
 
   //  Ugh.  Something to do.
 
   if (IIDtoTYPE == NULL) {
     gkFragment  fr;
+
+    fprintf(stderr, "gkStore_addIIDtoTypeMap()--  Creating type map.  This is an inefficient store now.\n");
 
     //  In all cases, we need to scan ALL reads already in the store to create the initial map.
     //  NOTE that fr.type needs to be set for the gkFragment_ calls to work.
