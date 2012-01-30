@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.4 2011-07-07 03:25:32 brianwalenz Exp $";
+const char *mainid = "$Id: overlap_partition.C,v 1.5 2012-01-30 19:53:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,12 +88,45 @@ outputJob(FILE   *BAT,
 
 
 
+uint32 *
+loadFragmentLengths(gkStore *gkp) {
+  uint32     numFrags = gkp->gkStore_getNumFragments();
+  uint32    *fragLen  = new uint32 [numFrags + 1];
+
+  fprintf(stderr, "Loading lengths of "F_U32" fragments ("F_SIZE_T"mb)\n",
+          numFrags, (numFrags * sizeof(uint32)) >> 20);
+
+  memset(fragLen, 0, sizeof(uint32) * (numFrags + 1));
+
+  gkFragment  fr;
+  gkStream   *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
+
+  for (uint32 ii=1; ii<=numFrags; ii++) {
+    fs->next(&fr);
+
+    assert(fr.gkFragment_getReadIID() == ii);
+
+    if (fr.gkFragment_getIsDeleted() == false)
+      fragLen[ii] = fr.gkFragment_getClearRegionLength();
+
+    if ((ii % 1048576) == 0)
+      fprintf(stderr, "Loading lengths at "F_U32" out of "F_U32"\n",
+              ii, numFrags);
+  }
+
+  delete fs;
+
+  return(fragLen);
+}
+
+
 void
 partitionFrags(gkStore    *gkp,
                FILE       *BAT,
                FILE       *JOB,
                FILE       *OPT,
                uint32      ovlHashBlockSize,
+               uint32      ovlRefBlockLength,
                uint32      ovlRefBlockSize) {
   uint32  hashBeg = 1;
   uint32  hashEnd = 0;
@@ -106,6 +139,10 @@ partitionFrags(gkStore    *gkp,
   uint32  jobName   = 1;
 
   uint32     numFrags = gkp->gkStore_getNumFragments();
+  uint32    *fragLen  = NULL;
+
+  if (ovlRefBlockLength > 0)
+    fragLen = loadFragmentLengths(gkp);
 
   while (hashBeg < numFrags) {
     hashEnd = hashBeg + ovlHashBlockSize - 1;
@@ -117,7 +154,17 @@ partitionFrags(gkStore    *gkp,
     refEnd = 0;
 
     while (refBeg < hashEnd) {
-      refEnd = refBeg + ovlRefBlockSize - 1;
+      uint32  refLen  = 0;
+
+      if (ovlRefBlockLength > 0) {
+        do {
+          refEnd++;
+          refLen += fragLen[refEnd];
+        } while ((refLen < ovlRefBlockLength) && (refEnd < numFrags));
+
+      } else {
+        refEnd = refBeg + ovlRefBlockSize - 1;
+      }
 
       if (refEnd > numFrags)
         refEnd = numFrags;
@@ -141,6 +188,7 @@ partitionLength(gkStore    *gkp,
                 FILE       *JOB,
                 FILE       *OPT,
                 uint32      ovlHashBlockLength,
+                uint32      ovlRefBlockLength,
                 uint32      ovlRefBlockSize) {
   uint32  hashBeg = 1;
   uint32  hashEnd = 0;
@@ -153,29 +201,22 @@ partitionLength(gkStore    *gkp,
   uint32  jobName   = 1;
 
   uint32     numFrags = gkp->gkStore_getNumFragments();
+  uint32    *fragLen  = loadFragmentLengths(gkp);
 
   gkFragment  fr;
   gkStream   *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
 
   while (hashBeg < numFrags) {
-    uint32  len    = 0;
+    uint32  hashLen = 0;
 
     assert(hashEnd == hashBeg - 1);
 
+    //  Non deleted fragments contribute one byte per untrimmed base,
+    //  and every fragment contributes one more byte for the terminating zero.
     do {
-      if (fs->next(&fr) == false)
-        break;
-
-      hashEnd = fr.gkFragment_getReadIID();
-
-      //  Non deleted fragments contribute one byte per untrimmed base
-      if (fr.gkFragment_getIsDeleted() == false)
-        len += fr.gkFragment_getClearRegionLength();
-
-      //  Even deleted fragments contribute one byte (the terminating zero)
-      len += 1;
-
-    } while (len < ovlHashBlockLength);
+      hashEnd++;
+      hashLen += fragLen[hashEnd] + 1;
+    } while ((hashLen < ovlHashBlockLength) && (hashEnd < numFrags));
 
     assert(hashEnd <= numFrags);
 
@@ -183,12 +224,22 @@ partitionLength(gkStore    *gkp,
     refEnd = 0;
 
     while (refBeg < hashEnd) {
-      refEnd = refBeg + ovlRefBlockSize - 1;
+      uint32  refLen = 0;
+
+      if (ovlRefBlockLength > 0) {
+        do {
+          refEnd++;
+          refLen += fragLen[refEnd];
+        } while ((refLen < ovlRefBlockLength) && (refEnd < numFrags));
+
+      } else {
+        refEnd = refBeg + ovlRefBlockSize - 1;
+      }
 
       if (refEnd > numFrags)
         refEnd = numFrags;
 
-      outputJob(BAT, JOB, OPT, hashBeg, hashEnd, refBeg, refEnd, hashEnd - hashBeg + 1, len, batchSize, batchName, jobName);
+      outputJob(BAT, JOB, OPT, hashBeg, hashEnd, refBeg, refEnd, hashEnd - hashBeg + 1, hashLen, batchSize, batchName, jobName);
 
       refBeg = refEnd + 1;
     }
@@ -213,6 +264,7 @@ main(int argc, char **argv) {
 
   uint32           ovlHashBlockLength  = 0;
   uint32           ovlHashBlockSize    = 0;
+  uint32           ovlRefBlockLength   = 0;
   uint32           ovlRefBlockSize     = 0;
 
   int arg = 1;
@@ -227,6 +279,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-bs") == 0) {
       ovlHashBlockSize   = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-rl") == 0) {
+      ovlRefBlockLength  = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-rs") == 0) {
       ovlRefBlockSize    = atoi(argv[++arg]);
@@ -248,6 +303,9 @@ main(int argc, char **argv) {
   if ((ovlHashBlockLength > 0) && (ovlHashBlockSize > 0))
     fprintf(stderr, "ERROR:  At most one of -bl and -bs can be non-zero.\n"), exit(1);
 
+  if ((ovlRefBlockLength > 0) && (ovlRefBlockSize > 0))
+    fprintf(stderr, "ERROR:  At most one of -rl and -rs can be non-zero.\n"), exit(1);
+
   gkStore   *gkp      = new gkStore(gkpStoreName, FALSE, FALSE, true);
 
   errno = 0;
@@ -268,9 +326,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "Failed to open '%s': %s\n", outputName, strerror(errno)), exit(1);
 
   if (ovlHashBlockLength == 0)
-    partitionFrags(gkp, BAT, JOB, OPT, ovlHashBlockSize, ovlRefBlockSize);
+    partitionFrags(gkp, BAT, JOB, OPT, ovlHashBlockSize, ovlRefBlockLength, ovlRefBlockSize);
   else
-    partitionLength(gkp, BAT, JOB, OPT, ovlHashBlockLength, ovlRefBlockSize);
+    partitionLength(gkp, BAT, JOB, OPT, ovlHashBlockLength, ovlRefBlockLength, ovlRefBlockSize);
 
   fclose(BAT);
   fclose(JOB);

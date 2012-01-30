@@ -408,6 +408,9 @@ sub setDefaults () {
     $global{"ovlRefBlockSize"}             = 2000000;
     $synops{"ovlRefBlockSize"}             = "Number of fragments to search against the hash table per batch";
 
+    $global{"ovlRefBlockLength"}           = 0;
+    $synops{"ovlRefBlockLength"}           = "Amount of sequence (bp) to search against the hash table per batch";
+
     $global{"ovlHashBits"}                 = "22";
     $synops{"ovlHashBits"}                 = "Width of the kmer hash.  Width 22=1gb, 23=2gb, 24=4gb, 25=8gb.  Plus 10b per ovlHashBlockLength";
 
@@ -3375,12 +3378,18 @@ sub createOverlapJobs($) {
         my $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
         my $ovlHashBlockSize   = 0;
         my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
+        my $ovlRefBlockLength  = getGlobal("ovlRefBlockLength");
+
+        if (($ovlRefBlockSize > 0) && ($ovlRefBlockLength > 0)) {
+            caFailure("can't set both ovlRefBlockSize and ovlRefBlockLength", undef);
+        }
 
         $cmd  = "$bin/overlap_partition \\\n";
         $cmd .= " -g  $wrk/$asm.gkpStore \\\n";
         $cmd .= " -bl $ovlHashBlockLength \\\n";
         $cmd .= " -bs $ovlHashBlockSize \\\n";
         $cmd .= " -rs $ovlRefBlockSize \\\n";
+        $cmd .= " -rl $ovlRefBlockLength \\\n";
         $cmd .= " -o  $wrk/$outDir";
 
         if (runCommand($wrk, $cmd)) {
