@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapInCore-Build_Hash_Index.C,v 1.4 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapInCore-Build_Hash_Index.C,v 1.5 2012-01-30 19:28:02 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -220,6 +220,9 @@ Mark_Skip_Kmers(void) {
       exit (1);
     }
     line [len] = '\0';
+
+    //if ((ct % 200000) == 0)
+    //  fprintf(stderr, "Loaded skip %10d '%s'\n", ct/2, line);
 
     key = 0;
     for  (i = 0;  i < len;  i ++) {

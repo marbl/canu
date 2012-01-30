@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.7 2012-01-27 03:17:54 mcschatz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.8 2012-01-30 19:28:02 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -369,6 +369,8 @@ OverlapDriver(void) {
     Build_Hash_Index (hashStream, First_Hash_Frag, &myRead);
     delete hashStream;
 
+    fprintf(stderr, "Index built.\n");
+
     if  (Last_Hash_Frag_Read < Last_Hash_Frag)
       {
         fprintf (stderr, "!!! Hash table did not read all frags\n");
@@ -392,6 +394,8 @@ OverlapDriver(void) {
       Frag_Segment_Hi = Frag_Segment_Lo + Max_Frags_In_Memory_Store - 1;
       if  (Frag_Segment_Hi > highest_old_frag)
         Frag_Segment_Hi = highest_old_frag;
+
+      fprintf(stderr, "Starting "F_U32" "F_U32"\n", Frag_Segment_Lo, Frag_Segment_Hi);
 
       curr_frag_store = new gkStore(Frag_Store_Path, FALSE, FALSE);
       curr_frag_store->gkStore_load(Frag_Segment_Lo, Frag_Segment_Hi, GKFRAGMENT_QLT);
