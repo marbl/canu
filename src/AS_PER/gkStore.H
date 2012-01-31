@@ -150,9 +150,9 @@ public:
   void      gkStore_decodeTypeFromIID(AS_IID iid, uint32& type, uint32& tiid);
   void      gkStore_addIIDtoTypeMap(AS_IID iid, uint32 type, uint32 tiid);
   void      gkStore_computeRanges(AS_IID  bgnIID, AS_IID  endIID,
-                                  uint32 &bgnPK,  uint32 &endPK,  uint32 &valPK,
-                                  uint32 &bgnNM,  uint32 &endNM,  uint32 &valNM,
-                                  uint32 &bgnSB,  uint32 &endSB,  uint32 &valSB);
+                                  int64 &bgnPK,  int64 &endPK,  int64 &valPK,
+                                  int64 &bgnNM,  int64 &endNM,  int64 &valNM,
+                                  int64 &bgnSB,  int64 &endSB,  int64 &valSB);
 
   void      gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags);
 

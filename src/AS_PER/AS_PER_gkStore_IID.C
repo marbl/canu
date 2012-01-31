@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_IID.C,v 1.4 2012-01-30 14:17:40 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_IID.C,v 1.5 2012-01-31 07:09:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -152,17 +152,17 @@ gkStore::gkStore_addIIDtoTypeMap(AS_IID iid, uint32 type, uint32 tiid) {
 //
 void
 gkStore::gkStore_computeRanges(AS_IID  bgnIID, AS_IID  endIID,
-                               uint32 &bgnPK,  uint32 &endPK,  uint32 &valPK,
-                               uint32 &bgnNM,  uint32 &endNM,  uint32 &valNM,
-                               uint32 &bgnSB,  uint32 &endSB,  uint32 &valSB) {
+                               int64 &bgnPK,  int64 &endPK,  int64 &valPK,
+                               int64 &bgnNM,  int64 &endNM,  int64 &valNM,
+                               int64 &bgnSB,  int64 &endSB,  int64 &valSB) {
   uint32  stType    = 0;
   uint32  stTiid    = 0;
   uint32  edType    = 0;
   uint32  edTiid    = 0;
 
-  bgnPK = ~0;  endPK = 0;  valPK = 0;
-  bgnNM = ~0;  endNM = 0;  valNM = 0;
-  bgnSB = ~0;  endSB = 0;  valSB = 0;
+  bgnPK = INT64_MAX;  endPK = INT64_MAX;  valPK = 0;
+  bgnNM = INT64_MAX;  endNM = INT64_MAX;  valNM = 0;
+  bgnSB = INT64_MAX;  endSB = INT64_MAX;  valSB = 0;
 
   if (IIDtoTYPE == NULL) {
     gkStore_decodeTypeFromIID(bgnIID, stType, stTiid);

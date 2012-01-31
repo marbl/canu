@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.35 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.36 2012-01-31 07:09:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -216,10 +216,18 @@ createStringStore(const char *path, const char *storeLabel) {
 
 void
 getIndexStore(StoreStruct *s, int64 index, void *buffer) {
-  int64 offset = computeOffset(s,index);
 
   assert(s->storeType == INDEX_STORE);
-  assert(index > 0);
+
+  if (index == STREAM_FROMSTART)
+    index = s->firstElem;
+  if (index == STREAM_UNTILEND)
+    index = s->lastElem;
+
+  assert(s->firstElem <= index);
+  assert(s->lastElem >= index);
+
+  int64 offset = computeOffset(s, index);
 
   if (s->memoryBuffer) {
     memcpy(buffer, s->memoryBuffer + offset, s->elementSize);

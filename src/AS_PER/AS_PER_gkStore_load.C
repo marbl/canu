@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_load.C,v 1.2 2011-01-06 19:41:34 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_load.C,v 1.3 2012-01-31 07:09:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,9 +40,9 @@ static char *rcsid = "$Id: AS_PER_gkStore_load.C,v 1.2 2011-01-06 19:41:34 brian
 
 void
 gkStore::gkStore_load(AS_IID bgnIID, AS_IID endIID, int flags) {
-  uint32  bgnPK=0, endPK=0, valPK=0;
-  uint32  bgnNM=0, endNM=0, valNM=0;
-  uint32  bgnSB=0, endSB=0, valSB=0;
+  int64  bgnPK=0, endPK=0, valPK=0;
+  int64  bgnNM=0, endNM=0, valNM=0;
+  int64  bgnSB=0, endSB=0, valSB=0;
 
   //  Position the metadata stream -- this code is similar to gkStream::reset.
 
