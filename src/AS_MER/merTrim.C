@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.24 2012-01-31 16:57:50 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.25 2012-01-31 21:19:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -61,6 +61,7 @@ public:
     merSize                   = 22;
 
     merCountsFile             = 0L;
+    merCountsState            = 0L;
     adapCountsFile            = 0L;
 
     compression               = 0;  //  Does not work!
@@ -95,9 +96,8 @@ public:
     fqOutput                  = NULL;
     fqLog                     = NULL;
 
-    edb                       = NULL;
-    gdb                       = NULL;
-    adb                       = NULL;
+    genomicDB                 = NULL;
+    adapterDB                 = NULL;
 
     resPath                   = NULL;
     resFile                   = NULL;
@@ -117,8 +117,8 @@ public:
     if (fqLog)
       fclose(fqLog);
 
-    delete gdb;
-    delete adb;
+    delete genomicDB;
+    delete adapterDB;
 
     if (resFile != NULL)
       fclose(resFile);
@@ -225,12 +225,21 @@ public:
 
     if (adapCountsFile) {
       fprintf(stderr, "loading adapter mer database.\n");
-      adb    = new existDB(adapCountsFile, merSize, existDBcounts, 0, ~0);
+      adapterDB = new existDB(adapCountsFile, merSize, existDBcounts, 0, ~0);
     }
 
-    if (merCountsFile) {
-      fprintf(stderr, "loading genome mer database.\n");
-      gdb    = new existDB(merCountsFile, merSize, existDBcounts, minVerified, ~0);
+
+    if ((merCountsState) &&
+        (AS_UTL_fileExists(merCountsState, FALSE, TRUE))) {
+      fprintf(stderr, "loading genome mer database (from cache).\n");
+      genomicDB = new existDB(merCountsState);
+
+    } else if (merCountsFile) {
+      fprintf(stderr, "loading genome mer database (from meryl).\n");
+      genomicDB = new existDB(merCountsFile, merSize, existDBcounts, minVerified, ~0);
+
+      if (merCountsState)
+        genomicDB->saveState(merCountsState);
     }
   };
 
@@ -245,6 +254,7 @@ public:
   uint32        merSize;
 
   char         *merCountsFile;
+  char         *merCountsState;
   char         *adapCountsFile;
 
   uint32        compression;
@@ -280,9 +290,8 @@ public:
   FILE         *fqOutput;
   FILE         *fqLog;
 
-  existDB      *edb;  //  The database used during the correction methods
-  existDB      *gdb;  //  For genomic kmers
-  existDB      *adb;  //  For adapter kmers
+  existDB      *genomicDB;
+  existDB      *adapterDB;
 
   //  Input State
   //
@@ -321,12 +330,14 @@ public:
     corrQlt    = NULL;
     seqMap     = NULL;
 
-    gms        = NULL;
+    rMS        = NULL;
 
     disconnect = NULL;
     coverage   = NULL;
     adapter    = NULL;
     corrected  = NULL;
+
+    eDB        = NULL;
   }
   ~mertrimComputation() {
     delete [] readName;
@@ -336,7 +347,7 @@ public:
     delete [] corrQlt;
     delete [] seqMap;
 
-    delete    gms;
+    delete    rMS;
 
     delete [] disconnect;
     delete [] coverage;
@@ -365,12 +376,14 @@ public:
     nMersTested   = 0;
     nMersFound    = 0;
 
-    gms = NULL;
+    rMS = NULL;
 
     disconnect = NULL;
     coverage   = NULL;
     adapter    = NULL;
     corrected  = NULL;
+
+    eDB        = NULL;
 
     strcpy(origSeq, fr.gkFragment_getSequence());
     strcpy(origQlt, fr.gkFragment_getQuality());
@@ -432,12 +445,14 @@ public:
     nMersTested   = 0;
     nMersFound    = 0;
 
-    gms = NULL;
+    rMS = NULL;
 
     disconnect = NULL;
     coverage   = NULL;
     adapter    = NULL;
     corrected  = NULL;
+
+    eDB        = NULL;
 
     fgets(readName, 1024,     g->fqInput);
     fgets(origSeq,  allocLen, g->fqInput);
@@ -575,7 +590,7 @@ public:
   uint32     nMersTested;
   uint32     nMersFound;
 
-  merStream *gms;  //  kmers in the read, for searching against genomic kmers
+  merStream *rMS;  //  kmers in the read, for searching against genomic kmers
 
   uint32     clrBgn;
   uint32     clrEnd;
@@ -600,6 +615,8 @@ public:
   uint32    *adapter;     //  per base - mer coverage in adapter kmers
   uint32    *corrected;   //  per base - type of correction here
 
+  existDB   *eDB;
+
   uint32     nHole;  //  Number of spaces (between bases) with no mer coverage
   uint32     nCorr;  //  Number of bases corrected
   uint32     nFail;  //  Number of bases uncorrected because no answer found
@@ -623,28 +640,28 @@ mertrimComputation::evaluate(void) {
   if (garbageInInput == true)
     return(ALLCRAP);
 
-  if (gms == NULL)
-    gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+  if (rMS == NULL)
+    rMS = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
-  gms->rewind();
+  rMS->rewind();
 
   nMersExpected = clrEnd - clrBgn - g->merSize + 1;
   nMersTested   = 0;
   nMersFound    = 0;
 
-  while ((gms->nextMer()) &&
-         (gms->thePositionInSequence() + g->merSize - 1 < clrEnd)) {
-    if (gms->thePositionInSequence() < clrBgn)
+  while ((rMS->nextMer()) &&
+         (rMS->thePositionInSequence() + g->merSize - 1 < clrEnd)) {
+    if (rMS->thePositionInSequence() < clrBgn)
       //  Mer before the clear range begins.
       continue;
 
-    if (clrEnd <= gms->thePositionInSequence() + g->merSize - 1)
+    if (clrEnd <= rMS->thePositionInSequence() + g->merSize - 1)
       //  Mer after the clear range ends
       continue;
 
     nMersTested++;
 
-    if (g->edb->exists(gms->theCMer()))
+    if (eDB->exists(rMS->theCMer()))
       //  kmer exists in the database, assumed to be at least g->minVerified
       nMersFound++;
   }
@@ -679,8 +696,8 @@ mertrimComputation::reverse(void) {
   clrBgn = ce;
   clrEnd = cb;
 
-  delete gms;
-  gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+  delete rMS;
+  rMS = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
   if (corrected) {
     s = corrected;
@@ -721,10 +738,10 @@ mertrimComputation::reverse(void) {
 void
 mertrimComputation::analyze(void) {
 
-  if (gms == NULL)
+  if (rMS == NULL)
     return;
 
-  gms->rewind();
+  rMS->rewind();
 
   if (coverage == NULL)
     coverage = new uint32 [allocLen];
@@ -734,13 +751,13 @@ mertrimComputation::analyze(void) {
   memset(coverage,   0, sizeof(uint32) * (allocLen));
   memset(disconnect, 0, sizeof(uint32) * (allocLen));
 
-  while (gms->nextMer()) {
-    u32bit  posBgn = gms->thePositionInSequence();
-    u32bit  posEnd = gms->thePositionInSequence() + g->merSize;
+  while (rMS->nextMer()) {
+    u32bit  posBgn = rMS->thePositionInSequence();
+    u32bit  posEnd = rMS->thePositionInSequence() + g->merSize;
 
     assert(posEnd <= seqLen);
 
-    if (g->edb->exists(gms->theCMer()) == false)
+    if (eDB->exists(rMS->theCMer()) == false)
       //  This mer is too weak for us.  SKip it.
       continue;
 
@@ -756,7 +773,7 @@ mertrimComputation::analyze(void) {
 
   }  //  Over all mers
 
-  gms->rewind();
+  rMS->rewind();
 
   if (VERBOSE > 1)
     dump("ANALYZE");
@@ -836,16 +853,16 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
   //  change the state of the kMerBuilder associated with the merStream, and we can't do that.
 
 #ifdef USE_MERSTREAM_REBUILD
-  gms->rebuild();
+  rMS->rebuild();
 #else
-  pos = gms->thePositionInSequence();
+  pos = rMS->thePositionInSequence();
 
-  delete gms;
-  gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
-  gms->nextMer();
+  delete rMS;
+  rMS = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+  rMS->nextMer();
 
-  while (pos != gms->thePositionInSequence())
-    gms->nextMer();
+  while (pos != rMS->thePositionInSequence())
+    rMS->nextMer();
 #endif
 
   return(true);
@@ -960,18 +977,18 @@ mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
   //  mers tell us to do so).
 
 #ifdef USE_MERSTREAM_REBUILD
-  gms->rebuild();
+  rMS->rebuild();
 #else
-  pos = gms->thePositionInSequence();
+  pos = rMS->thePositionInSequence();
 
-  delete gms;
-  gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+  delete rMS;
+  rMS = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
   analyze();
 
-  gms->nextMer();
-  while (pos != gms->thePositionInSequence())
-    gms->nextMer();
+  rMS->nextMer();
+  while (pos != rMS->thePositionInSequence())
+    rMS->nextMer();
 #endif
 
   return(true);
@@ -988,18 +1005,18 @@ mertrimComputation::searchAdapter(bool isReversed) {
     memset(corrected, 0, sizeof(uint32) * (allocLen));
   }
 
-  if (gms == NULL)
-    gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+  if (rMS == NULL)
+    rMS = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
-  gms->rewind();
+  rMS->rewind();
 
   //  A combination of evaluate() and attemptCorrection().  Find any adapter kmers in the
   //  read, do any corrections, then mark (in array 'adapter' the location of those adapter
   //  bases
 
-  while (gms->nextMer()) {
-    uint32  pos   = gms->thePositionInSequence() + g->merSize - 1;
-    uint32  count = g->edb->count(gms->theCMer());
+  while (rMS->nextMer()) {
+    uint32  pos   = rMS->thePositionInSequence() + g->merSize - 1;
+    uint32  count = eDB->count(rMS->theCMer());
 
     if (count >= 1) {
       //  Mer exists, no need to correct.
@@ -1037,12 +1054,12 @@ mertrimComputation::scoreAdapter(void) {
   containsAdapterBgn = seqLen;
   containsAdapterEnd = 0;
 
-  gms->rewind();
+  rMS->rewind();
 
-  while (gms->nextMer()) {
-    uint32  bgn   = gms->thePositionInSequence();
+  while (rMS->nextMer()) {
+    uint32  bgn   = rMS->thePositionInSequence();
     uint32  end   = bgn + g->merSize - 1;
-    uint32  count = g->edb->count(gms->theCMer());
+    uint32  count = eDB->count(rMS->theCMer());
 
     if (count == 0)
       continue;
@@ -1078,17 +1095,17 @@ mertrimComputation::attemptCorrection(bool isReversed) {
   assert(disconnect);
   assert(corrected);
 
-  assert(gms != NULL);
+  assert(rMS != NULL);
 
-  gms->rewind();
+  rMS->rewind();
 
-  while (gms->nextMer()) {
-    uint32  pos   = gms->thePositionInSequence() + g->merSize - 1;
-    uint32  count = g->edb->count(gms->theCMer());
+  while (rMS->nextMer()) {
+    uint32  pos   = rMS->thePositionInSequence() + g->merSize - 1;
+    uint32  count = eDB->count(rMS->theCMer());
 
     //log.add("MER at %d is %s has count %d %s\n",
     //        pos,
-    //        gms->theFMer().merToString(merstring),
+    //        rMS->theFMer().merToString(merstring),
     //        (count >= g->minCorrect) ? "CORRECT" : "ERROR",
     //        count);
 
@@ -1166,10 +1183,10 @@ mertrimComputation::testBases(char *bases, uint32 basesLen) {
     R.mask(false);
 
     if (F < R) {
-      if (g->edb->exists(F))
+      if (eDB->exists(F))
         numConfirmed++;
     } else {
-      if (g->edb->exists(R))
+      if (eDB->exists(R))
         numConfirmed++;
     }
   }
@@ -1203,7 +1220,7 @@ mertrimComputation::testBaseChange(uint32 pos, char replacement) {
 
     //  Test
     for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
-      if (g->edb->exists(localms->theCMer()))
+      if (eDB->exists(localms->theCMer()))
         oldConfirmed++;
 
     delete localms;
@@ -1266,7 +1283,7 @@ mertrimComputation::testBaseIndel(uint32 pos, char replacement) {
 
     //  Test
     for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
-      if (g->edb->exists(localms->theCMer()))
+      if (existDB->exists(localms->theCMer()))
         oldConfirmed++;
 
     delete localms;
@@ -1396,20 +1413,22 @@ mertrimComputation::attemptTrimming(void) {
       if ((adapter[i] > 0) && (i < containsAdapterBgn))
         containsAdapterBgn = i;
       if ((adapter[i] > 0) && (containsAdapterEnd < i))
-        containsAdapterEnd = i;
+        containsAdapterEnd = i + 1;
     }
+
+    if (containsAdapterBgn < clrBgn)
+      containsAdapterBgn = clrBgn;
+    if (clrEnd < containsAdapterEnd)
+      containsAdapterEnd = clrEnd;
 
     uint32  bgnClear = containsAdapterBgn - clrBgn;
     uint32  endClear = clrEnd - containsAdapterEnd;
 
-    if (containsAdapterBgn < clrBgn)
-      bgnClear = 0;
-    if (clrEnd > containsAdapterEnd)
-      endClear = 0;
-
     if (bgnClear > endClear)
+      //  Start is bigger
       clrEnd = containsAdapterBgn;
     else
+      //  End is bigger
       clrBgn = containsAdapterEnd;
     
     if (clrBgn >= clrEnd) {
@@ -1630,7 +1649,7 @@ mertrimComputation::dump(char *label) {
   for (uint32 i=0; origSeq[i]; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
     logLine[logPos++] = origSeq[i];
-    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
+    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
   strcpy(logLine + logPos, " (ORI)\n");
   log.add(logLine);
@@ -1639,7 +1658,7 @@ mertrimComputation::dump(char *label) {
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
     logLine[logPos++] = corrSeq[i];
-    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
+    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
   strcpy(logLine + logPos, " (SEQ)\n");
   log.add(logLine);
@@ -1648,7 +1667,7 @@ mertrimComputation::dump(char *label) {
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
     logLine[logPos++] = corrQlt[i];
-    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
+    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
   strcpy(logLine + logPos, " (QLT)\n");
   log.add(logLine);
@@ -1657,7 +1676,7 @@ mertrimComputation::dump(char *label) {
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
     logLine[logPos++] = (coverage) ? coverage[i] + 'A' : 'A';
-    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
+    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
   strcpy(logLine + logPos, " (COVERAGE)\n");
   log.add(logLine);
@@ -1666,7 +1685,7 @@ mertrimComputation::dump(char *label) {
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
     logLine[logPos++] = (corrected && corrected[i]) ? corrected[i] : ' ';
-    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
+    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
   strcpy(logLine + logPos, " (CORRECTIONS)\n");
   log.add(logLine);
@@ -1675,7 +1694,7 @@ mertrimComputation::dump(char *label) {
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
     logLine[logPos++] = (disconnect && disconnect[i]) ? disconnect[i] : ' ';
-    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
+    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
   strcpy(logLine + logPos, " (DISCONNECTION)\n");
   log.add(logLine);
@@ -1684,7 +1703,7 @@ mertrimComputation::dump(char *label) {
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
     logLine[logPos++] = (adapter && adapter[i]) ? adapter[i] + 'A' : ' ';
-    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
+    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
   strcpy(logLine + logPos, " (ADAPTER)\n");
   log.add(logLine);
@@ -1702,7 +1721,7 @@ mertrimWorker(void *G, void *T, void *S) {
 
   s->t = t;
 
-  g->edb = g->gdb;
+  s->eDB = g->genomicDB;
 
   uint32  eval = s->evaluate();
 
@@ -1722,8 +1741,8 @@ mertrimWorker(void *G, void *T, void *S) {
   //  up the clear ranges we set in scoreAdapter().
 
   if ((eval != ALLCRAP) &&
-      (g->adb != NULL)) {
-    g->edb = g->adb;
+      (g->adapterDB != NULL)) {
+    s->eDB = g->adapterDB;
 
     s->searchAdapter(false);
     s->reverse();
@@ -1733,7 +1752,7 @@ mertrimWorker(void *G, void *T, void *S) {
 
     s->scoreAdapter();
 
-    g->edb = g->gdb;
+    s->eDB = g->genomicDB;
   }
 
   //  Attempt trimming if the read wasn't perfect
@@ -2029,6 +2048,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-mc") == 0) {
       g->merCountsFile = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-mcstate") == 0) {
+      g->merCountsState = argv[++arg];
 
     } else if (strcmp(argv[arg], "-mC") == 0) {
       g->adapCountsFile = argv[++arg];
