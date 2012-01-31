@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.22 2012-01-31 09:31:11 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.23 2012-01-31 15:18:24 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -668,6 +668,12 @@ mertrimComputation::reverse(void) {
 
   reverseComplement(corrSeq, corrQlt, seqLen);
 
+  uint32  cb = seqLen - clrBgn;
+  uint32  ce = seqLen - clrEnd;
+
+  clrBgn = ce;
+  clrEnd = cb;
+
   delete gms;
   gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
@@ -893,7 +899,8 @@ mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
     for (uint32 i=pos; i<seqLen; i++) {
       corrSeq[i] = corrSeq[i+1];
       corrQlt[i] = corrQlt[i+1];
-      adapter[i] = adapter[i+1];
+      if (adapter)
+        adapter[i] = adapter[i+1];
       seqMap[i]  = seqMap[i+1];
     }
 
@@ -914,12 +921,15 @@ mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
     for (uint32 i=seqLen+1; i>pos; i--) {
       corrSeq[i] = corrSeq[i-1];
       corrQlt[i] = corrQlt[i-1];
-      adapter[i] = adapter[i+1];
+      if (adapter)
+        adapter[i] = adapter[i-1];
       seqMap[i]  = seqMap[i-1];
     }
 
     corrSeq[pos] = rB;
     corrQlt[pos] = '5';
+    if (adapter)
+      adapter[pos] = 0;
     seqMap[pos]  = seqMap[pos-1];
 
     seqLen++;
@@ -988,18 +998,20 @@ mertrimComputation::searchAdapter(bool isReversed) {
     uint32  pos   = gms->thePositionInSequence() + g->merSize - 1;
     uint32  count = g->edb->count(gms->theCMer());
 
-    containsAdapter = true;
-
-    if (count >= 1)
+    if (count >= 1) {
       //  Mer exists, no need to correct.
+      containsAdapter = true;
       continue;
+    }
 
     uint32 mNum = testBaseChange(pos, corrSeq[pos]) + 1;
 
     //  Test if we can repair the sequence with a single base change.
     if (g->correctMismatch)
-      if (correctMismatch(pos, mNum, isReversed))
+      if (correctMismatch(pos, mNum, isReversed)) {
+        containsAdapter = true;
         containsAdapterFixed++;
+      }
   }
 }
 
@@ -1011,18 +1023,22 @@ mertrimComputation::scoreAdapter(void) {
   if (containsAdapter == false)
     return;
 
-  if (adapter == NULL) {
-    adapter = new uint32 [allocLen];
-    memset(adapter, 0, sizeof(uint32) * (allocLen));
-  }
+  assert(adapter == NULL);
 
-  containsAdapterBgn = UINT32_MAX;
+  adapter = new uint32 [allocLen];
+  memset(adapter, 0, sizeof(uint32) * (allocLen));
+
+  assert(clrBgn == 0);
+  assert(clrEnd == seqLen);
+
+  containsAdapterBgn = seqLen;
   containsAdapterEnd = 0;
 
   gms->rewind();
 
   while (gms->nextMer()) {
-    uint32  pos   = gms->thePositionInSequence() + g->merSize - 1;
+    uint32  bgn   = gms->thePositionInSequence();
+    uint32  end   = bgn + g->merSize - 1;
     uint32  count = g->edb->count(gms->theCMer());
 
     if (count == 0)
@@ -1030,29 +1046,19 @@ mertrimComputation::scoreAdapter(void) {
 
     containsAdapterCount++;
 
-    containsAdapterBgn = MIN(containsAdapterBgn, pos - g->merSize + 1);
-    containsAdapterEnd = MAX(containsAdapterEnd, pos + 1);
+    containsAdapterBgn = MIN(containsAdapterBgn, bgn);
+    containsAdapterEnd = MAX(containsAdapterEnd, end + 1);
 
-    fprintf(stderr, "ADAPTER at "F_U32" ["F_U32","F_U32"]\n",
-            pos, containsAdapterBgn, containsAdapterEnd);
+    if (VERBOSE > 1)
+      fprintf(stderr, "ADAPTER at "F_U32","F_U32" ["F_U32","F_U32"]\n",
+              bgn, end, containsAdapterBgn, containsAdapterEnd);
 
-    for (uint32 a=pos - g->merSize + 1; a<=pos; a++)
+    for (uint32 a=bgn; a<=end; a++)
       adapter[a]++;
   }
 
-  uint32  bgnClear = containsAdapterBgn - clrBgn;
-  uint32  endClear = clrEnd - containsAdapterEnd;
-
-  assert(clrBgn == 0);
-  assert(clrEnd == seqLen);
-
-  assert(containsAdapterBgn >= clrBgn);
-  assert(clrEnd >= containsAdapterEnd);
-
-  if (bgnClear > endClear)
-    clrEnd = containsAdapterBgn;
-  else
-    clrBgn = containsAdapterEnd;
+  if (VERBOSE)
+    dump(stderr, "ADAPTERSEARCH");
 }
 
 
@@ -1360,9 +1366,56 @@ mertrimComputation::attemptTrimming(void) {
     return;
   }
 
+  if ((clrBgn == 0) &&
+      (clrEnd == 0))
+    return;
+
   assert(coverage != NULL);
 
+
   //  Lop off the ends with no confirmed kmers
+  //
+  while ((clrBgn < clrEnd) && (coverage[clrBgn] == 0))
+    clrBgn++;
+
+  while ((clrEnd > clrBgn) && (coverage[clrEnd-1] == 0))
+    clrEnd--;
+
+
+  //  Deal with adapter.  We'll pick the biggest end that is adapter free for our sequence.
+  //  If both ends have adapter, so be it; the read gets trashed.
+
+  if (containsAdapter) {
+    containsAdapterBgn = seqLen;
+    containsAdapterEnd = 0;
+
+    for (uint32 i=0; i<seqLen; i++) {
+      if ((adapter[i] > 0) && (i < containsAdapterBgn))
+        containsAdapterBgn = i;
+      if ((adapter[i] > 0) && (containsAdapterEnd < i))
+        containsAdapterEnd = i;
+    }
+
+    uint32  bgnClear = containsAdapterBgn - clrBgn;
+    uint32  endClear = clrEnd - containsAdapterEnd;
+
+    if (containsAdapterBgn < clrBgn)
+      bgnClear = 0;
+    if (clrEnd > containsAdapterEnd)
+      endClear = 0;
+
+    if (bgnClear > endClear)
+      clrEnd = containsAdapterBgn;
+    else
+      clrBgn = containsAdapterEnd;
+    
+    if (clrBgn >= clrEnd) {
+      clrBgn = 0;
+      clrEnd = 0;
+    }
+  }
+
+  //  Lop off the ends with no confirmed kmers (again)
   //
   while ((clrBgn < clrEnd) && (coverage[clrBgn] == 0))
     clrBgn++;
@@ -1375,9 +1428,8 @@ mertrimComputation::attemptTrimming(void) {
   //
   uint32  *errorPos = new uint32 [seqLen];
 
-  for (uint32 i=0; i<seqLen; i++) {
+  for (uint32 i=0; i<seqLen; i++)
     errorPos[i] = ((corrected[i] == 'C') || (corrected[i] == 'I') || (corrected[i] == 'D'));
-  }
 
 
   //  If there are more than 'errAllow' corrections in the last 'winScale' (x kmerSize) bases of the
@@ -1401,7 +1453,9 @@ mertrimComputation::attemptTrimming(void) {
 
   //  If the coverage isn't perfect (ramp up, constant, ramp down), trash the whole read.
 
-  if (g->discardImperfectCoverage == true) {
+  if ((g->discardImperfectCoverage == true) &&
+      (clrBgn < clrEnd) &&
+      (clrEnd > 0)) {
     uint32  bgn = clrBgn;
     uint32  end = clrEnd - 1;
 
@@ -1642,7 +1696,20 @@ mertrimWorker(void *G, void *T, void *S) {
 
   uint32  eval = s->evaluate();
 
-  //  Search for linker/adapter.
+  //  Attempt correction if there are kmers to correct from.
+
+  if (eval == ATTEMPTCORRECTION) {
+    s->analyze();
+    s->attemptCorrection(false);
+    s->reverse();
+
+    s->analyze();
+    s->attemptCorrection(true);
+    s->reverse();
+  }
+
+  //  Search for linker/adapter.  This needs to be after correction, since indel screws
+  //  up the clear ranges we set in scoreAdapter().
 
   if ((eval != ALLCRAP) &&
       (g->adb != NULL)) {
@@ -1657,21 +1724,6 @@ mertrimWorker(void *G, void *T, void *S) {
     s->scoreAdapter();
 
     g->edb = g->gdb;
-
-    if (VERBOSE)
-      s->dump(stderr, "ADAPTERSEARCH");
-  }
-
-  //  Attempt correction if there are kmers to correct from.
-
-  if (eval == ATTEMPTCORRECTION) {
-    s->analyze();
-    s->attemptCorrection(false);
-    s->reverse();
-
-    s->analyze();
-    s->attemptCorrection(true);
-    s->reverse();
   }
 
   //  Attempt trimming if the read wasn't perfect
@@ -1925,7 +1977,6 @@ mertrimWriter(void *G, void *S) {
   //  to the original sequence.
   //
   assert(s->getClrBgn() <= s->getClrEnd());
-  //assert(s->getClrBgn() <  s->getSeqLen());
   assert(s->getClrEnd() <= s->getSeqLen());
 
   if (g->resFile)
