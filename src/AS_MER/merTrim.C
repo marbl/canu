@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.23 2012-01-31 15:18:24 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.24 2012-01-31 16:57:50 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -36,6 +36,7 @@ const char *mainid = "$Id: merTrim.C,v 1.23 2012-01-31 15:18:24 brianwalenz Exp 
 #include "existDB.H"
 #include "positionDB.H"
 #include "libmeryl.H"
+#include "logMsg.H"
 
 #include "merTrimResult.H"
 
@@ -549,7 +550,7 @@ public:
   uint32     getClrEnd(void) { return(seqMap[clrEnd]); };
   uint32     getSeqLen(void) { return(seqMap[seqLen]); };
 
-  void       dump(FILE *F, char *label);
+  void       dump(char *label);
 
   //  Public for the writer.
   gkFragment           fr;
@@ -605,6 +606,8 @@ public:
   uint32     nConf;  //  Number of bases uncorrected because multiple answers found
 
   char       merstring[256];
+
+  logMsg     log;
 };
 
 
@@ -614,6 +617,8 @@ public:
 //  
 uint32
 mertrimComputation::evaluate(void) {
+
+  log.add("\nPROCESS\n");
 
   if (garbageInInput == true)
     return(ALLCRAP);
@@ -733,8 +738,6 @@ mertrimComputation::analyze(void) {
     u32bit  posBgn = gms->thePositionInSequence();
     u32bit  posEnd = gms->thePositionInSequence() + g->merSize;
 
-    //fprintf(stderr, "posBgn %u %d\n", posBgn, posEnd);
- 
     assert(posEnd <= seqLen);
 
     if (g->edb->exists(gms->theCMer()) == false)
@@ -756,7 +759,7 @@ mertrimComputation::analyze(void) {
   gms->rewind();
 
   if (VERBOSE > 1)
-    dump(stderr, "ANALYZE");
+    dump("ANALYZE");
 }
 
 
@@ -773,10 +776,10 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
   uint32 nR = 0;
 
   if (VERBOSE > 2) {
-    if (nA > mNum)  fprintf(stderr, "testA at %d -- %d req=%d\n", pos, nA, mNum);
-    if (nC > mNum)  fprintf(stderr, "testC at %d -- %d req=%d\n", pos, nC, mNum);
-    if (nG > mNum)  fprintf(stderr, "testG at %d -- %d req=%d\n", pos, nG, mNum);
-    if (nT > mNum)  fprintf(stderr, "testT at %d -- %d req=%d\n", pos, nT, mNum);
+    if (nA > mNum)  log.add("testA at %d -- %d req=%d\n", pos, nA, mNum);
+    if (nC > mNum)  log.add("testC at %d -- %d req=%d\n", pos, nC, mNum);
+    if (nG > mNum)  log.add("testG at %d -- %d req=%d\n", pos, nG, mNum);
+    if (nT > mNum)  log.add("testT at %d -- %d req=%d\n", pos, nT, mNum);
   }  //  VERBOSE
 
   //  If we found a single perfectly correct choice, ignore all the other solutions.
@@ -815,7 +818,7 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
   //  One solution!  Correct it.
 
   if (VERBOSE > 0) {
-    fprintf(stderr, "Correct read %d at position %d from %c to %c (QV %d) (%s)\n",
+    log.add("Correct read %d at position %d from %c to %c (QV %d) (%s)\n",
             readIID,
             (isReversed == false) ? pos : seqLen - pos,
             corrSeq[pos],
@@ -867,11 +870,11 @@ mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
   if (nT > mNum)  { nR++;  rB = 'T'; }
 
   if (VERBOSE > 2) {
-    if (nD > mNum)  fprintf(stderr, "test-- %d -- %d req=%d\n", pos, nD, mNum);
-    if (nA > mNum)  fprintf(stderr, "test+A %d -- %d req=%d\n", pos, nA, mNum);
-    if (nC > mNum)  fprintf(stderr, "test+C %d -- %d req=%d\n", pos, nC, mNum);
-    if (nG > mNum)  fprintf(stderr, "test+G %d -- %d req=%d\n", pos, nG, mNum);
-    if (nT > mNum)  fprintf(stderr, "test+T %d -- %d req=%d\n", pos, nT, mNum);
+    if (nD > mNum)  log.add("test-- %d -- %d req=%d\n", pos, nD, mNum);
+    if (nA > mNum)  log.add("test+A %d -- %d req=%d\n", pos, nA, mNum);
+    if (nC > mNum)  log.add("test+C %d -- %d req=%d\n", pos, nC, mNum);
+    if (nG > mNum)  log.add("test+G %d -- %d req=%d\n", pos, nG, mNum);
+    if (nT > mNum)  log.add("test+T %d -- %d req=%d\n", pos, nT, mNum);
   }  //  VERBOSE
 
   if (nR == 0)
@@ -888,7 +891,7 @@ mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
 
   if (nD > mNum) {
     if (VERBOSE > 0) {
-      fprintf(stderr, "Correct read %d at position %d from %c to DELETE (QV %d) (%s)\n",
+      log.add("Correct read %d at position %d from %c to DELETE (QV %d) (%s)\n",
               readIID,
               (isReversed == false) ? pos : seqLen - pos,
               corrSeq[pos],
@@ -911,7 +914,7 @@ mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
 
   } else {
     if (VERBOSE > 0) {
-      fprintf(stderr, "Correct read %d at position %d INSERT %c (%s)\n",
+      log.add("Correct read %d at position %d INSERT %c (%s)\n",
               readIID,
               (isReversed == false) ? pos : seqLen - pos,
               rB,
@@ -1050,7 +1053,7 @@ mertrimComputation::scoreAdapter(void) {
     containsAdapterEnd = MAX(containsAdapterEnd, end + 1);
 
     if (VERBOSE > 1)
-      fprintf(stderr, "ADAPTER at "F_U32","F_U32" ["F_U32","F_U32"]\n",
+      log.add("ADAPTER at "F_U32","F_U32" ["F_U32","F_U32"]\n",
               bgn, end, containsAdapterBgn, containsAdapterEnd);
 
     for (uint32 a=bgn; a<=end; a++)
@@ -1058,7 +1061,7 @@ mertrimComputation::scoreAdapter(void) {
   }
 
   if (VERBOSE)
-    dump(stderr, "ADAPTERSEARCH");
+    dump("ADAPTERSEARCH");
 }
 
 
@@ -1083,7 +1086,7 @@ mertrimComputation::attemptCorrection(bool isReversed) {
     uint32  pos   = gms->thePositionInSequence() + g->merSize - 1;
     uint32  count = g->edb->count(gms->theCMer());
 
-    //fprintf(stderr, "MER at %d is %s has count %d %s\n",
+    //log.add("MER at %d is %s has count %d %s\n",
     //        pos,
     //        gms->theFMer().merToString(merstring),
     //        (count >= g->minCorrect) ? "CORRECT" : "ERROR",
@@ -1132,7 +1135,7 @@ mertrimComputation::attemptCorrection(bool isReversed) {
   }
 
   if (VERBOSE > 1) {
-    dump(stderr, "POSTCORRECT");
+    dump("POSTCORRECT");
   }  //  VERBOSE
 }
 
@@ -1212,7 +1215,7 @@ mertrimComputation::testBaseChange(uint32 pos, char replacement) {
   corrSeq[pos] = originalBase;
 
   //if (numConfirmed > 0)
-  //  fprintf(stderr, "testBaseChange() pos=%d replacement=%c confirmed=%d\n",
+  //  log.add("testBaseChange() pos=%d replacement=%c confirmed=%d\n",
   //          pos, replacement, numConfirmed);
 
   return(numConfirmed);
@@ -1273,7 +1276,7 @@ mertrimComputation::testBaseIndel(uint32 pos, char replacement) {
 #endif
 
   //if (numConfirmed > 0)
-  //  fprintf(stderr, "testBaseIndel() pos=%d replacement=%c confirmed=%d\n",
+  //  log.add("testBaseIndel() pos=%d replacement=%c confirmed=%d\n",
   //          pos, replacement, numConfirmed);
 
   return(numConfirmed);
@@ -1303,7 +1306,7 @@ mertrimComputation::attemptTrimming5End(uint32 *errorPos, uint32 endWindow, uint
     }
 
     if (VERBOSE > 1)
-      fprintf(stderr, "BGNTRIM found=%u pos=%u from %u to %u\n",
+      log.add("BGNTRIM found=%u pos=%u from %u to %u\n",
               endFound, endTrimPos,
               clrBgn, clrBgn + endWindow);
 
@@ -1341,7 +1344,7 @@ mertrimComputation::attemptTrimming3End(uint32 *errorPos, uint32 endWindow, uint
     }
 
     if (VERBOSE > 1)
-      fprintf(stderr, "ENDTRIM found=%u pos=%u from %u to %u\n",
+      log.add("ENDTRIM found=%u pos=%u from %u to %u\n",
               endFound, endTrimPos,
               clrEnd - endWindow, clrEnd);
 
@@ -1436,7 +1439,7 @@ mertrimComputation::attemptTrimming(void) {
   //  read, trim all the errors off.
 
   for (uint32 i=0; i<g->endTrimNum; i++) {
-    //fprintf(stderr, "endTrim: %f %u\n", g->endTrimWinScale[i], g->endTrimErrAllow[i]);
+    //log.add("endTrim: %f %u\n", g->endTrimWinScale[i], g->endTrimErrAllow[i]);
     attemptTrimming5End(errorPos, g->merSize * g->endTrimWinScale[i], g->endTrimErrAllow[i]);
     attemptTrimming3End(errorPos, g->merSize * g->endTrimWinScale[i], g->endTrimErrAllow[i]);
   }
@@ -1469,7 +1472,7 @@ mertrimComputation::attemptTrimming(void) {
     uint32  endc = coverage[end];
 
     if (VERBOSE)
-      fprintf(stderr, "IMPERFECT: bgn=%u %u  end=%u %u\n",
+      log.add("IMPERFECT: bgn=%u %u  end=%u %u\n",
               bgn, bgnc,
               end, endc);
 
@@ -1490,8 +1493,8 @@ mertrimComputation::attemptTrimming(void) {
   }
 
   if (VERBOSE > 1) {
-    fprintf(stderr, "TRIM: %d,%d (post)\n", clrBgn, clrEnd);
-    dump(stderr, "TRIM");
+    log.add("TRIM: %d,%d (post)\n", clrBgn, clrEnd);
+    dump("TRIM");
   }  //  VERBOSE
 }
 
@@ -1607,7 +1610,7 @@ mertrimComputation::analyzeChimer(void) {
   //   * a pile of bases in the middle of a read with lots of low quality on the end.
   //     the bases were composed of T's and A's only.
 
-  //fprintf(stderr, "CHIMER?  floc=%d rloc=%d  cov=%d\n",
+  //log.add("CHIMER?  floc=%d rloc=%d  cov=%d\n",
   //        floc, rloc, fcov);
 
   return;
@@ -1617,64 +1620,74 @@ mertrimComputation::analyzeChimer(void) {
 
 
 void
-mertrimComputation::dump(FILE *F, char *label) {
-  fprintf(F, "%s read %d len %d (trim %d-%d)\n", label, readIID, seqLen, clrBgn, clrEnd);
+mertrimComputation::dump(char *label) {
+  char    *logLine = new char [seqLen + seqLen];
+  uint32   logPos = 0;
+
+  log.add("%s read %d len %d (trim %d-%d)\n", label, readIID, seqLen, clrBgn, clrEnd);
+
+  logPos = 0;
   for (uint32 i=0; origSeq[i]; i++) {
-    if (i == clrBgn)
-      fprintf(F, "-[");
-    fprintf(F, "%c", origSeq[i]);
-    if (i+1 == clrEnd)
-      fprintf(F, "]-");
+    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    logLine[logPos++] = origSeq[i];
+    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
   }
-  fprintf(F, " (ORI)\n");
+  strcpy(logLine + logPos, " (ORI)\n");
+  log.add(logLine);
+
+  logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
-    if (i == clrBgn)
-      fprintf(F, "-[");
-    fprintf(F, "%c", corrSeq[i]);
-    if (i+1 == clrEnd)
-      fprintf(F, "]-");
+    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    logLine[logPos++] = corrSeq[i];
+    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
   }
-  fprintf(F, " (SEQ)\n");
+  strcpy(logLine + logPos, " (SEQ)\n");
+  log.add(logLine);
+
+  logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
-    if (i == clrBgn)
-      fprintf(F, "-[");
-    fprintf(F, "%c", corrQlt[i]);
-    if (i+1 == clrEnd)
-      fprintf(F, "]-");
+    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    logLine[logPos++] = corrQlt[i];
+    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
   }
-  fprintf(F, " (QLT)\n");
+  strcpy(logLine + logPos, " (QLT)\n");
+  log.add(logLine);
+
+  logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
-    if (i == clrBgn)
-      fprintf(F, "-[");
-    fprintf(F, "%c", (coverage) ? coverage[i] + 'A' : 'A');
-    if (i+1 == clrEnd)
-      fprintf(F, "]-");
+    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    logLine[logPos++] = (coverage) ? coverage[i] + 'A' : 'A';
+    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
   }
-  fprintf(F, " (COVERAGE)\n");
+  strcpy(logLine + logPos, " (COVERAGE)\n");
+  log.add(logLine);
+
+  logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
-    if (i == clrBgn)
-      fprintf(F, "-[");
-    fprintf(F, "%c", (corrected && corrected[i]) ? corrected[i] : ' ');
-    if (i+1 == clrEnd)
-      fprintf(F, "]-");
+    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    logLine[logPos++] = (corrected && corrected[i]) ? corrected[i] : ' ';
+    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
   }
-  fprintf(F, " (CORRECTIONS)\n");
+  strcpy(logLine + logPos, " (CORRECTIONS)\n");
+  log.add(logLine);
+
+  logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
-    if (i == clrBgn)
-      fprintf(F, "-[");
-    fprintf(F, "%c", (disconnect && disconnect[i]) ? disconnect[i] : ' ');
-    if (i+1 == clrEnd)
-      fprintf(F, "]-");
+    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    logLine[logPos++] = (disconnect && disconnect[i]) ? disconnect[i] : ' ';
+    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
   }
-  fprintf(F, " (DISCONNECTION)\n");
+  strcpy(logLine + logPos, " (DISCONNECTION)\n");
+  log.add(logLine);
+
+  logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
-    if (i == clrBgn)
-      fprintf(F, "-[");
-    fprintf(F, "%c", (adapter && adapter[i]) ? adapter[i] + 'A' : ' ');
-    if (i+1 == clrEnd)
-      fprintf(F, "]-");
+    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    logLine[logPos++] = (adapter && adapter[i]) ? adapter[i] + 'A' : ' ';
+    if (i+1 == clrEnd) { logLine[logPos++] = '['; logLine[logPos++] = '-'; }
   }
-  fprintf(F, " (ADAPTER)\n");
+  strcpy(logLine + logPos, " (ADAPTER)\n");
+  log.add(logLine);
 }
 
 
@@ -1686,9 +1699,6 @@ mertrimWorker(void *G, void *T, void *S) {
   mertrimGlobalData    *g = (mertrimGlobalData  *)G;
   mertrimThreadData    *t = (mertrimThreadData  *)T;
   mertrimComputation   *s = (mertrimComputation *)S;
-
-  if (VERBOSE)
-    fprintf(stderr, "\nPROCESS\n");
 
   s->t = t;
 
@@ -1737,7 +1747,7 @@ mertrimWorker(void *G, void *T, void *S) {
   //s->analyzeChimer();
 
   if (VERBOSE)
-    s->dump(stderr, "FINAL");
+    s->dump("FINAL");
 }
 
 
@@ -1964,6 +1974,8 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
           label,
           s->corrSeq + seqOffset,
           s->corrQlt + seqOffset);
+
+  s->log.fwrite(stderr);
 }
 
 
@@ -2092,9 +2104,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s -g gkpStore -m merSize -mc merCountsFile [-v]\n", argv[0]);
     exit(1);
   }
-
-  fprintf(stderr, "zerocoverage: %d\n", g->discardZeroCoverage);
-  fprintf(stderr, "imperfect:    %d\n", g->discardImperfectCoverage);
 
   gkpStoreFile::registerFile();
 
