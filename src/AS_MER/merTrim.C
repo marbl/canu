@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.21 2012-01-24 21:40:40 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.22 2012-01-31 09:31:11 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -57,10 +57,12 @@ public:
     fqInputPath               = 0L;
     fqOutputPath              = 0L;
 
-    merCountsFile             = 0L;
-
     merSize                   = 22;
-    compression               = 0;
+
+    merCountsFile             = 0L;
+    adapCountsFile            = 0L;
+
+    compression               = 0;  //  Does not work!
     numThreads                = 4;
 
     beVerbose                 = false;
@@ -93,6 +95,8 @@ public:
     fqLog                     = NULL;
 
     edb                       = NULL;
+    gdb                       = NULL;
+    adb                       = NULL;
 
     resPath                   = NULL;
     resFile                   = NULL;
@@ -112,7 +116,8 @@ public:
     if (fqLog)
       fclose(fqLog);
 
-    delete edb;
+    delete gdb;
+    delete adb;
 
     if (resFile != NULL)
       fclose(resFile);
@@ -217,8 +222,15 @@ public:
     if (minVerifiedFraction > 0)
       minVerified = (int)floor(minVerifiedFraction * actualCoverage);
 
-    fprintf(stderr, "loading mer database.\n");
-    edb    = new existDB(merCountsFile, merSize, existDBcounts, minVerified, ~0);
+    if (adapCountsFile) {
+      fprintf(stderr, "loading adapter mer database.\n");
+      adb    = new existDB(adapCountsFile, merSize, existDBcounts, 0, ~0);
+    }
+
+    if (merCountsFile) {
+      fprintf(stderr, "loading genome mer database.\n");
+      gdb    = new existDB(merCountsFile, merSize, existDBcounts, minVerified, ~0);
+    }
   };
 
 public:
@@ -229,9 +241,11 @@ public:
   char         *fqInputPath;
   char         *fqOutputPath;
 
-  char         *merCountsFile;
-
   uint32        merSize;
+
+  char         *merCountsFile;
+  char         *adapCountsFile;
+
   uint32        compression;
   uint32        numThreads;
 
@@ -265,7 +279,9 @@ public:
   FILE         *fqOutput;
   FILE         *fqLog;
 
-  existDB      *edb;
+  existDB      *edb;  //  The database used during the correction methods
+  existDB      *gdb;  //  For genomic kmers
+  existDB      *adb;  //  For adapter kmers
 
   //  Input State
   //
@@ -303,10 +319,12 @@ public:
     corrSeq    = NULL;
     corrQlt    = NULL;
     seqMap     = NULL;
-    ms         = NULL;
+
+    gms        = NULL;
 
     disconnect = NULL;
     coverage   = NULL;
+    adapter    = NULL;
     corrected  = NULL;
   }
   ~mertrimComputation() {
@@ -316,10 +334,12 @@ public:
     delete [] corrSeq;
     delete [] corrQlt;
     delete [] seqMap;
-    delete    ms;
+
+    delete    gms;
 
     delete [] disconnect;
     delete [] coverage;
+    delete [] adapter;
     delete [] corrected;
   }
 
@@ -344,10 +364,11 @@ public:
     nMersTested   = 0;
     nMersFound    = 0;
 
-    ms = NULL;
+    gms = NULL;
 
     disconnect = NULL;
     coverage   = NULL;
+    adapter    = NULL;
     corrected  = NULL;
 
     strcpy(origSeq, fr.gkFragment_getSequence());
@@ -374,6 +395,12 @@ public:
     gapInConfirmedKmers   = false;
     hasNoConfirmedKmers   = false;
     imperfectKmerCoverage = false;
+
+    containsAdapter       = false;
+    containsAdapterCount  = false;
+    containsAdapterFixed  = false;
+    containsAdapterBgn    = false;
+    containsAdapterEnd    = false;
 
     suspectedChimer       = false;
     suspectedChimerBgn    = 0;
@@ -404,10 +431,11 @@ public:
     nMersTested   = 0;
     nMersFound    = 0;
 
-    ms = NULL;
+    gms = NULL;
 
     disconnect = NULL;
     coverage   = NULL;
+    adapter    = NULL;
     corrected  = NULL;
 
     fgets(readName, 1024,     g->fqInput);
@@ -471,6 +499,12 @@ public:
     hasNoConfirmedKmers   = false;
     imperfectKmerCoverage = false;
 
+    containsAdapter       = false;
+    containsAdapterCount  = false;
+    containsAdapterFixed  = false;
+    containsAdapterBgn    = false;
+    containsAdapterEnd    = false;
+
     suspectedChimer       = false;
     suspectedChimerBgn    = 0;
     suspectedChimerEnd    = 0;
@@ -497,6 +531,12 @@ public:
   uint32     testBaseChange(uint32 pos, char replacement);
   uint32     testBaseIndel(uint32 pos, char replacement);
 
+  bool       correctMismatch(uint32 pos, uint32 mNum, bool isReversed);
+  bool       correctIndel(uint32 pos, uint32 mNum, bool isReversed);
+
+  void       searchAdapter(bool isReversed);
+  void       scoreAdapter(void);
+
   void       attemptCorrection(bool isReversed);
 
   void       attemptTrimming(void);
@@ -504,17 +544,6 @@ public:
   void       attemptTrimming3End(uint32 *errorPos, uint32 endWindow, uint32 endAllowed);
 
   void       analyzeChimer(void);
-
-  uint32     getNumCorrected(void) {
-    uint32 nCorr = 0;
-
-    if (corrected)
-      for (uint32 pos=clrBgn; pos<clrEnd; pos++)
-        if ((corrected[pos] == 'C') || (corrected[pos] == 'D') || (corrected[pos] == 'I'))
-          nCorr++;
-
-    return(nCorr);
-  };
 
   uint32     getClrBgn(void) { return(seqMap[clrBgn]); };
   uint32     getClrEnd(void) { return(seqMap[clrEnd]); };
@@ -545,7 +574,7 @@ public:
   uint32     nMersTested;
   uint32     nMersFound;
 
-  merStream *ms;
+  merStream *gms;  //  kmers in the read, for searching against genomic kmers
 
   uint32     clrBgn;
   uint32     clrEnd;
@@ -555,13 +584,19 @@ public:
   bool       hasNoConfirmedKmers;
   bool       imperfectKmerCoverage;
 
+  bool       containsAdapter;       //  Read hits adapter kmers
+  uint32     containsAdapterCount;  //  Number of uncorrected adapter kmers hit
+  uint32     containsAdapterFixed;  //  Number of corrected adapter kmers hit
+  uint32     containsAdapterBgn;    //  Location of adapter
+  uint32     containsAdapterEnd;    //  Location of adapter
+
   bool       suspectedChimer;
   uint32     suspectedChimerBgn;
   uint32     suspectedChimerEnd;
 
   uint32    *disconnect;  //  per base - a hole before this base
   uint32    *coverage;    //  per base - mer coverage
-
+  uint32    *adapter;     //  per base - mer coverage in adapter kmers
   uint32    *corrected;   //  per base - type of correction here
 
   uint32     nHole;  //  Number of spaces (between bases) with no mer coverage
@@ -583,28 +618,28 @@ mertrimComputation::evaluate(void) {
   if (garbageInInput == true)
     return(ALLCRAP);
 
-  if (ms == NULL)
-    ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+  if (gms == NULL)
+    gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
-  ms->rewind();
+  gms->rewind();
 
   nMersExpected = clrEnd - clrBgn - g->merSize + 1;
   nMersTested   = 0;
   nMersFound    = 0;
 
-  while ((ms->nextMer()) &&
-         (ms->thePositionInSequence() + g->merSize - 1 < clrEnd)) {
-    if (ms->thePositionInSequence() < clrBgn)
+  while ((gms->nextMer()) &&
+         (gms->thePositionInSequence() + g->merSize - 1 < clrEnd)) {
+    if (gms->thePositionInSequence() < clrBgn)
       //  Mer before the clear range begins.
       continue;
 
-    if (clrEnd <= ms->thePositionInSequence() + g->merSize - 1)
+    if (clrEnd <= gms->thePositionInSequence() + g->merSize - 1)
       //  Mer after the clear range ends
       continue;
 
     nMersTested++;
 
-    if (g->edb->exists(ms->theCMer()))
+    if (g->edb->exists(gms->theCMer()))
       //  kmer exists in the database, assumed to be at least g->minVerified
       nMersFound++;
   }
@@ -633,8 +668,8 @@ mertrimComputation::reverse(void) {
 
   reverseComplement(corrSeq, corrQlt, seqLen);
 
-  delete ms;
-  ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+  delete gms;
+  gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
 
   if (corrected) {
     s = corrected;
@@ -644,6 +679,17 @@ mertrimComputation::reverse(void) {
       if (*s == 'X')  *s = 0;
       if (*S == 'X')  *S = 0;
 
+      c    = *s;
+      *s++ =  *S;
+      *S-- =  c;
+    }
+  }
+
+  if (adapter) {
+    s = adapter;
+    S = adapter + seqLen - 1;
+
+    while (s < S) {
       c    = *s;
       *s++ =  *S;
       *S-- =  c;
@@ -661,16 +707,13 @@ mertrimComputation::reverse(void) {
 }
 
 
-//  Analyze the read.  Annotate with the depth of mer coverage.  This lets us identify
-//  mismatches/insertions (though we cannot distinguish thses) and deletions.
-//
 void
 mertrimComputation::analyze(void) {
 
-  if (ms == NULL)
+  if (gms == NULL)
     return;
 
-  ms->rewind();
+  gms->rewind();
 
   if (coverage == NULL)
     coverage = new uint32 [allocLen];
@@ -680,15 +723,15 @@ mertrimComputation::analyze(void) {
   memset(coverage,   0, sizeof(uint32) * (allocLen));
   memset(disconnect, 0, sizeof(uint32) * (allocLen));
 
-  while (ms->nextMer()) {
-    u32bit  posBgn = ms->thePositionInSequence();
-    u32bit  posEnd = ms->thePositionInSequence() + g->merSize;
+  while (gms->nextMer()) {
+    u32bit  posBgn = gms->thePositionInSequence();
+    u32bit  posEnd = gms->thePositionInSequence() + g->merSize;
 
     //fprintf(stderr, "posBgn %u %d\n", posBgn, posEnd);
  
     assert(posEnd <= seqLen);
 
-    if (g->edb->exists(ms->theCMer()) == false)
+    if (g->edb->exists(gms->theCMer()) == false)
       //  This mer is too weak for us.  SKip it.
       continue;
 
@@ -704,10 +747,312 @@ mertrimComputation::analyze(void) {
 
   }  //  Over all mers
 
-  ms->rewind();
+  gms->rewind();
 
   if (VERBOSE > 1)
     dump(stderr, "ANALYZE");
+}
+
+
+
+
+
+bool
+mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
+  uint32 nA = (corrSeq[pos] != 'A') ? testBaseChange(pos, 'A') : 0;
+  uint32 nC = (corrSeq[pos] != 'C') ? testBaseChange(pos, 'C') : 0;
+  uint32 nG = (corrSeq[pos] != 'G') ? testBaseChange(pos, 'G') : 0;
+  uint32 nT = (corrSeq[pos] != 'T') ? testBaseChange(pos, 'T') : 0;
+  uint32 rB = 0;
+  uint32 nR = 0;
+
+  if (VERBOSE > 2) {
+    if (nA > mNum)  fprintf(stderr, "testA at %d -- %d req=%d\n", pos, nA, mNum);
+    if (nC > mNum)  fprintf(stderr, "testC at %d -- %d req=%d\n", pos, nC, mNum);
+    if (nG > mNum)  fprintf(stderr, "testG at %d -- %d req=%d\n", pos, nG, mNum);
+    if (nT > mNum)  fprintf(stderr, "testT at %d -- %d req=%d\n", pos, nT, mNum);
+  }  //  VERBOSE
+
+  //  If we found a single perfectly correct choice, ignore all the other solutions.
+
+  if (nA == g->merSize)  nR++;
+  if (nC == g->merSize)  nR++;
+  if (nG == g->merSize)  nR++;
+  if (nT == g->merSize)  nR++;
+
+  if (nR == 1) {
+    if (nA != g->merSize)  nA = 0;
+    if (nC != g->merSize)  nC = 0;
+    if (nG != g->merSize)  nG = 0;
+    if (nT != g->merSize)  nT = 0;
+  }
+
+  //  Count the number of viable solutions.
+
+  nR = 0;
+
+  if (nA > mNum)  { nR++;  rB = 'A'; }
+  if (nC > mNum)  { nR++;  rB = 'C'; }
+  if (nG > mNum)  { nR++;  rB = 'G'; }
+  if (nT > mNum)  { nR++;  rB = 'T'; }
+
+  if (nR == 0)
+    //  No solutions.
+    return(false);
+
+  if (nR > 1) {
+    //  Multiple solutions.
+    corrected[pos] = 'X';
+    return(false);
+  }
+
+  //  One solution!  Correct it.
+
+  if (VERBOSE > 0) {
+    fprintf(stderr, "Correct read %d at position %d from %c to %c (QV %d) (%s)\n",
+            readIID,
+            (isReversed == false) ? pos : seqLen - pos,
+            corrSeq[pos],
+            rB,
+            corrQlt[pos],
+            (isReversed == false) ? "fwd" : "rev");
+  }  //  VERBOSE
+
+  corrSeq[pos] = rB;
+
+  corrected[pos] = 'C';
+
+  //  Rebuild the merStream to use the corrected sequence, then move to the same position in
+  //  the sequence.  This is done because we cannot simply change the string -- we need to
+  //  change the state of the kMerBuilder associated with the merStream, and we can't do that.
+
+#ifdef USE_MERSTREAM_REBUILD
+  gms->rebuild();
+#else
+  pos = gms->thePositionInSequence();
+
+  delete gms;
+  gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+  gms->nextMer();
+
+  while (pos != gms->thePositionInSequence())
+    gms->nextMer();
+#endif
+
+  return(true);
+}
+
+
+
+bool
+mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
+  uint32 nD = testBaseIndel(pos, '-');
+  uint32 nA = testBaseIndel(pos, 'A');
+  uint32 nC = testBaseIndel(pos, 'C');
+  uint32 nG = testBaseIndel(pos, 'G');
+  uint32 nT = testBaseIndel(pos, 'T');
+  char   rB = 0;
+  uint32 nR = 0;
+
+  if (nD > mNum)  { nR++;  rB = '-'; }
+  if (nA > mNum)  { nR++;  rB = 'A'; }
+  if (nC > mNum)  { nR++;  rB = 'C'; }
+  if (nG > mNum)  { nR++;  rB = 'G'; }
+  if (nT > mNum)  { nR++;  rB = 'T'; }
+
+  if (VERBOSE > 2) {
+    if (nD > mNum)  fprintf(stderr, "test-- %d -- %d req=%d\n", pos, nD, mNum);
+    if (nA > mNum)  fprintf(stderr, "test+A %d -- %d req=%d\n", pos, nA, mNum);
+    if (nC > mNum)  fprintf(stderr, "test+C %d -- %d req=%d\n", pos, nC, mNum);
+    if (nG > mNum)  fprintf(stderr, "test+G %d -- %d req=%d\n", pos, nG, mNum);
+    if (nT > mNum)  fprintf(stderr, "test+T %d -- %d req=%d\n", pos, nT, mNum);
+  }  //  VERBOSE
+
+  if (nR == 0)
+    //  No solutions.
+    return(false);
+
+  if (nR > 1) {
+    //  Multiple solutions.
+    corrected[pos] = 'X';
+    return(false);
+  }
+
+  //  One solution.  Make a correction.  Either a deletion or an insert.
+
+  if (nD > mNum) {
+    if (VERBOSE > 0) {
+      fprintf(stderr, "Correct read %d at position %d from %c to DELETE (QV %d) (%s)\n",
+              readIID,
+              (isReversed == false) ? pos : seqLen - pos,
+              corrSeq[pos],
+              corrQlt[pos] - '0',
+              (isReversed == false) ? "fwd" : "rev");
+
+    }  //  VERBOSE
+    for (uint32 i=pos; i<seqLen; i++) {
+      corrSeq[i] = corrSeq[i+1];
+      corrQlt[i] = corrQlt[i+1];
+      adapter[i] = adapter[i+1];
+      seqMap[i]  = seqMap[i+1];
+    }
+
+    seqLen--;
+    clrEnd--;
+
+    corrected[pos] = 'D';
+
+  } else {
+    if (VERBOSE > 0) {
+      fprintf(stderr, "Correct read %d at position %d INSERT %c (%s)\n",
+              readIID,
+              (isReversed == false) ? pos : seqLen - pos,
+              rB,
+              (isReversed == false) ? "fwd" : "rev");
+
+    }  //  VERBOSE
+    for (uint32 i=seqLen+1; i>pos; i--) {
+      corrSeq[i] = corrSeq[i-1];
+      corrQlt[i] = corrQlt[i-1];
+      adapter[i] = adapter[i+1];
+      seqMap[i]  = seqMap[i-1];
+    }
+
+    corrSeq[pos] = rB;
+    corrQlt[pos] = '5';
+    seqMap[pos]  = seqMap[pos-1];
+
+    seqLen++;
+    clrEnd++;
+
+    corrected[pos] = 'I';
+  }
+
+  //  Rebuild the merstream.  When we call analyze() the stream gets rewound.  If we do not
+  //  restore our position, it is possible to get stuck in an infinite loop, inserting and
+  //  deleting the same base over and over.  This happens because we don't explicitly require
+  //  that the mer we are at be found, just that we find enough mers to make the change.
+  //
+  //  So, on the next pass through, we'd encounter the same mer we didn't find before, attempt
+  //  to change it again, and possibly delete the base we inserted.
+  //
+  //  test+A 57 -- 6 req=2
+  //  Correct read 6 at position 57 INSERT A
+  //
+  //  test-- 58 -- 3 req=2
+  //  Correct read 6 at position 58 from A to DELETE (QV 5)
+  //
+  //  The first time through, we insert an A (with 6 mers agreeing).  The second time through,
+  //  since we didn't fix the mer we were at, our choice is to delete the base we inserted (3
+  //  mers tell us to do so).
+
+#ifdef USE_MERSTREAM_REBUILD
+  gms->rebuild();
+#else
+  pos = gms->thePositionInSequence();
+
+  delete gms;
+  gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+
+  analyze();
+
+  gms->nextMer();
+  while (pos != gms->thePositionInSequence())
+    gms->nextMer();
+#endif
+
+  return(true);
+}
+
+
+
+
+void
+mertrimComputation::searchAdapter(bool isReversed) {
+
+  if (corrected == NULL) {
+    corrected = new uint32 [allocLen];
+    memset(corrected, 0, sizeof(uint32) * (allocLen));
+  }
+
+  if (gms == NULL)
+    gms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
+
+  gms->rewind();
+
+  //  A combination of evaluate() and attemptCorrection().  Find any adapter kmers in the
+  //  read, do any corrections, then mark (in array 'adapter' the location of those adapter
+  //  bases
+
+  while (gms->nextMer()) {
+    uint32  pos   = gms->thePositionInSequence() + g->merSize - 1;
+    uint32  count = g->edb->count(gms->theCMer());
+
+    containsAdapter = true;
+
+    if (count >= 1)
+      //  Mer exists, no need to correct.
+      continue;
+
+    uint32 mNum = testBaseChange(pos, corrSeq[pos]) + 1;
+
+    //  Test if we can repair the sequence with a single base change.
+    if (g->correctMismatch)
+      if (correctMismatch(pos, mNum, isReversed))
+        containsAdapterFixed++;
+  }
+}
+
+
+
+void
+mertrimComputation::scoreAdapter(void) {
+
+  if (containsAdapter == false)
+    return;
+
+  if (adapter == NULL) {
+    adapter = new uint32 [allocLen];
+    memset(adapter, 0, sizeof(uint32) * (allocLen));
+  }
+
+  containsAdapterBgn = UINT32_MAX;
+  containsAdapterEnd = 0;
+
+  gms->rewind();
+
+  while (gms->nextMer()) {
+    uint32  pos   = gms->thePositionInSequence() + g->merSize - 1;
+    uint32  count = g->edb->count(gms->theCMer());
+
+    if (count == 0)
+      continue;
+
+    containsAdapterCount++;
+
+    containsAdapterBgn = MIN(containsAdapterBgn, pos - g->merSize + 1);
+    containsAdapterEnd = MAX(containsAdapterEnd, pos + 1);
+
+    fprintf(stderr, "ADAPTER at "F_U32" ["F_U32","F_U32"]\n",
+            pos, containsAdapterBgn, containsAdapterEnd);
+
+    for (uint32 a=pos - g->merSize + 1; a<=pos; a++)
+      adapter[a]++;
+  }
+
+  uint32  bgnClear = containsAdapterBgn - clrBgn;
+  uint32  endClear = clrEnd - containsAdapterEnd;
+
+  assert(clrBgn == 0);
+  assert(clrEnd == seqLen);
+
+  assert(containsAdapterBgn >= clrBgn);
+  assert(clrEnd >= containsAdapterEnd);
+
+  if (bgnClear > endClear)
+    clrEnd = containsAdapterBgn;
+  else
+    clrBgn = containsAdapterEnd;
 }
 
 
@@ -724,29 +1069,23 @@ mertrimComputation::attemptCorrection(bool isReversed) {
   assert(disconnect);
   assert(corrected);
 
-  assert(ms != NULL);
+  assert(gms != NULL);
 
-  ms->rewind();
+  gms->rewind();
 
-  while (ms->nextMer()) {
-    uint32  pos   = ms->thePositionInSequence() + g->merSize - 1;
-    uint32  count = g->edb->count(ms->theCMer());
+  while (gms->nextMer()) {
+    uint32  pos   = gms->thePositionInSequence() + g->merSize - 1;
+    uint32  count = g->edb->count(gms->theCMer());
 
     //fprintf(stderr, "MER at %d is %s has count %d %s\n",
     //        pos,
-    //        ms->theFMer().merToString(merstring),
+    //        gms->theFMer().merToString(merstring),
     //        (count >= g->minCorrect) ? "CORRECT" : "ERROR",
     //        count);
 
     if (count >= g->minCorrect)
       //  Mer exists, no need to correct.
       continue;
-
-    //  These asserts are no longer true.  The mer can exist in the table,
-    //  but just at below g->minCorrect count.
-    //
-    //assert(g->edb->exists(ms->theFMer()) == false);
-    //assert(g->edb->exists(ms->theRMer()) == false);
 
     //  State the minimum number of mers we'd accept as evidence any change we make is correct.  The
     //  penalty for OVER correcting (too low a threshold) is potentially severe -- we could
@@ -768,219 +1107,23 @@ mertrimComputation::attemptCorrection(bool isReversed) {
     //  The drawback of this is that we cannot correct two adjacent errors.  The first error
     //  (the one we're currently working on) is corrected and adds one to the coverage count,
     //  but then we hit that second error and do not find any more mers.
-
+    //
     //  A solution would be to retry any base we cannot correct and allow a positive change of
     //  one mer to accept the change.  (in other words, change +1 below to +0).
 
-    uint32 mCur = testBaseChange(pos, corrSeq[pos]) + 1;
-    uint32 mNum = mCur;
-
-    //  This is the number of replacements we found.  If zero, we mark this mer as not confirmed
-    //  ('Z').  If more than one, we mark this mer as conflicting ('X').
-    //
-    uint32 nR = 0;
+    uint32 mNum = testBaseChange(pos, corrSeq[pos]) + 1;
 
     //  Test if we can repair the sequence with a single base change.
-    if (g->correctMismatch) {
-      uint32 nA = (corrSeq[pos] != 'A') ? testBaseChange(pos, 'A') : 0;
-      uint32 nC = (corrSeq[pos] != 'C') ? testBaseChange(pos, 'C') : 0;
-      uint32 nG = (corrSeq[pos] != 'G') ? testBaseChange(pos, 'G') : 0;
-      uint32 nT = (corrSeq[pos] != 'T') ? testBaseChange(pos, 'T') : 0;
-      uint32 rB = 0;
-
-      if (VERBOSE > 2) {
-        if (nA > mNum)  fprintf(stderr, "testA at %d -- %d req=%d\n", pos, nA, mNum);
-        if (nC > mNum)  fprintf(stderr, "testC at %d -- %d req=%d\n", pos, nC, mNum);
-        if (nG > mNum)  fprintf(stderr, "testG at %d -- %d req=%d\n", pos, nG, mNum);
-        if (nT > mNum)  fprintf(stderr, "testT at %d -- %d req=%d\n", pos, nT, mNum);
-      }  //  VERBOSE
-
-      //  If we found a single perfectly correct choice, ignore all the other solutions.
-
-      nR = 0;
-
-      if (nA == g->merSize)  nR++;
-      if (nC == g->merSize)  nR++;
-      if (nG == g->merSize)  nR++;
-      if (nT == g->merSize)  nR++;
-
-      if (nR == 1) {
-        if (nA != g->merSize)  nA = 0;
-        if (nC != g->merSize)  nC = 0;
-        if (nG != g->merSize)  nG = 0;
-        if (nT != g->merSize)  nT = 0;
-      }
-
-      //  Count the number of viable solutions.
-
-      nR = 0;
-
-      if (nA > mNum)  { nR++;  rB = 'A'; }
-      if (nC > mNum)  { nR++;  rB = 'C'; }
-      if (nG > mNum)  { nR++;  rB = 'G'; }
-      if (nT > mNum)  { nR++;  rB = 'T'; }
-
-      //  If we found a single choice, correct it.
-
-      if (nR == 1) {
-        if (VERBOSE > 0) {
-          fprintf(stderr, "Correct read %d at position %d from %c to %c (QV %d) (%s)\n",
-                  readIID,
-                  (isReversed == false) ? pos : seqLen - pos,
-                  corrSeq[pos],
-                  rB,
-                  corrQlt[pos],
-                  (isReversed == false) ? "fwd" : "rev");
-        }  //  VERBOSE
-
-        corrSeq[pos] = rB;
-
-        corrected[pos] = 'C';
-
-        //  Rebuild the merStream to use the corrected sequence, then move to the same position in
-        //  the sequence.  This is done because we cannot simply change the string -- we need to
-        //  change the state of the kMerBuilder associated with the merStream, and we can't do that.
-
-#ifdef USE_MERSTREAM_REBUILD
-        ms->rebuild();
-#else
-        pos = ms->thePositionInSequence();
-
-        delete ms;
-        ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
-        ms->nextMer();
-
-        while (pos != ms->thePositionInSequence())
-          ms->nextMer();
-#endif
-
+    if (g->correctMismatch)
+      if (correctMismatch(pos, mNum, isReversed))
         continue;
-
-      } else if (nR > 1) {
-        corrected[pos] = 'X';
-      }
-    }  //  End of mismatch change test
-
-    //  Since we couldn't correct the single-base mismatch, see if it is an insertion or a deletion
-    //  in the read.
-
-    nR = 0;
 
     if ((g->correctIndel) &&
         (g->merSize     < pos) &&
-        (pos            < seqLen - g->merSize)) {
-      uint32 nD = testBaseIndel(pos, '-');
-      uint32 nA = testBaseIndel(pos, 'A');
-      uint32 nC = testBaseIndel(pos, 'C');
-      uint32 nG = testBaseIndel(pos, 'G');
-      uint32 nT = testBaseIndel(pos, 'T');
-      char   rB = 0;
-
-      mNum += 2;
-
-      if (nD > mNum)  { nR++;  rB = '-'; }
-      if (nA > mNum)  { nR++;  rB = 'A'; }
-      if (nC > mNum)  { nR++;  rB = 'C'; }
-      if (nG > mNum)  { nR++;  rB = 'G'; }
-      if (nT > mNum)  { nR++;  rB = 'T'; }
-
-      if (VERBOSE > 2) {
-        if (nD > mNum)  fprintf(stderr, "test-- %d -- %d req=%d\n", pos, nD, mNum);
-        if (nA > mNum)  fprintf(stderr, "test+A %d -- %d req=%d\n", pos, nA, mNum);
-        if (nC > mNum)  fprintf(stderr, "test+C %d -- %d req=%d\n", pos, nC, mNum);
-        if (nG > mNum)  fprintf(stderr, "test+G %d -- %d req=%d\n", pos, nG, mNum);
-        if (nT > mNum)  fprintf(stderr, "test+T %d -- %d req=%d\n", pos, nT, mNum);
-      }  //  VERBOSE
-
-      if (nR == 0)
+        (pos            < seqLen - g->merSize))
+      if (correctIndel(pos, mNum + 2, isReversed))
         continue;
-
-      if (nR > 1) {
-        corrected[pos] = 'X';
-        continue;
-      }
-
-      if (nD > mNum) {
-        if (VERBOSE > 0) {
-          fprintf(stderr, "Correct read %d at position %d from %c to DELETE (QV %d) (%s)\n",
-                  readIID,
-                  (isReversed == false) ? pos : seqLen - pos,
-                  corrSeq[pos],
-                  corrQlt[pos] - '0',
-                  (isReversed == false) ? "fwd" : "rev");
-
-        }  //  VERBOSE
-        for (uint32 i=pos; i<seqLen; i++) {
-          corrSeq[i] = corrSeq[i+1];
-          corrQlt[i] = corrQlt[i+1];
-          seqMap[i]  = seqMap[i+1];
-        }
-
-        seqLen--;
-        clrEnd--;
-
-        corrected[pos] = 'D';
-
-      } else {
-        if (VERBOSE > 0) {
-          fprintf(stderr, "Correct read %d at position %d INSERT %c (%s)\n",
-                  readIID,
-                  (isReversed == false) ? pos : seqLen - pos,
-                  rB,
-                  (isReversed == false) ? "fwd" : "rev");
-
-        }  //  VERBOSE
-        for (uint32 i=seqLen+1; i>pos; i--) {
-          corrSeq[i] = corrSeq[i-1];
-          corrQlt[i] = corrQlt[i-1];
-          seqMap[i]  = seqMap[i-1];
-        }
-
-        corrSeq[pos] = rB;
-        corrQlt[pos] = '5';
-        seqMap[pos]  = seqMap[pos-1];
-
-        seqLen++;
-        clrEnd++;
-
-        corrected[pos] = 'I';
-      }
-
-      //  Rebuild the merstream.  When we call analyze() the stream gets rewound.  If we do not
-      //  restore our position, it is possible to get stuck in an infinite loop, inserting and
-      //  deleting the same base over and over.  This happens because we don't explicitly require
-      //  that the mer we are at be found, just that we find enough mers to make the change.
-      //
-      //  So, on the next pass through, we'd encounter the same mer we didn't find before, attempt
-      //  to change it again, and possibly delete the base we inserted.
-      //
-      //  test+A 57 -- 6 req=2
-      //  Correct read 6 at position 57 INSERT A
-      //
-      //  test-- 58 -- 3 req=2
-      //  Correct read 6 at position 58 from A to DELETE (QV 5)
-      //
-      //  The first time through, we insert an A (with 6 mers agreeing).  The second time through,
-      //  since we didn't fix the mer we were at, our choice is to delete the base we inserted (3
-      //  mers tell us to do so).
-
-#ifdef USE_MERSTREAM_REBUILD
-      ms->rebuild();
-#else
-      pos = ms->thePositionInSequence();
-
-      delete ms;
-      ms = new merStream(t->kb, new seqStream(corrSeq, seqLen), false, true);
-
-      analyze();
-
-      ms->nextMer();
-      while (pos != ms->thePositionInSequence())
-        ms->nextMer();
-#endif
-    }  //  End of indel change test
-
-  }  //  Over all mers
+  }
 
   if (VERBOSE > 1) {
     dump(stderr, "POSTCORRECT");
@@ -1285,6 +1428,13 @@ mertrimComputation::attemptTrimming(void) {
           imperfectKmerCoverage = true;
   }
 
+  //  Make sense of the clear ranges.  If they're invalid, reset to 0,0.
+
+  if (clrBgn >= clrEnd) {
+    clrBgn = 0;
+    clrEnd = 0;
+  }
+
   if (VERBOSE > 1) {
     fprintf(stderr, "TRIM: %d,%d (post)\n", clrBgn, clrEnd);
     dump(stderr, "TRIM");
@@ -1463,6 +1613,14 @@ mertrimComputation::dump(FILE *F, char *label) {
       fprintf(F, "]-");
   }
   fprintf(F, " (DISCONNECTION)\n");
+  for (uint32 i=0; i<seqLen; i++) {
+    if (i == clrBgn)
+      fprintf(F, "-[");
+    fprintf(F, "%c", (adapter && adapter[i]) ? adapter[i] + 'A' : ' ');
+    if (i+1 == clrEnd)
+      fprintf(F, "]-");
+  }
+  fprintf(F, " (ADAPTER)\n");
 }
 
 
@@ -1480,18 +1638,40 @@ mertrimWorker(void *G, void *T, void *S) {
 
   s->t = t;
 
+  g->edb = g->gdb;
+
   uint32  eval = s->evaluate();
+
+  //  Search for linker/adapter.
+
+  if ((eval != ALLCRAP) &&
+      (g->adb != NULL)) {
+    g->edb = g->adb;
+
+    s->searchAdapter(false);
+    s->reverse();
+
+    s->searchAdapter(true);
+    s->reverse();
+
+    s->scoreAdapter();
+
+    g->edb = g->gdb;
+
+    if (VERBOSE)
+      s->dump(stderr, "ADAPTERSEARCH");
+  }
 
   //  Attempt correction if there are kmers to correct from.
 
   if (eval == ATTEMPTCORRECTION) {
-    s->reverse();
-    s->analyze();
-    s->attemptCorrection(true);
-
-    s->reverse();
     s->analyze();
     s->attemptCorrection(false);
+    s->reverse();
+
+    s->analyze();
+    s->attemptCorrection(true);
+    s->reverse();
   }
 
   //  Attempt trimming if the read wasn't perfect
@@ -1592,82 +1772,132 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
   //  DO NOT USE HERE!
 
   uint32   seqOffset = 0;
-  char     label[16];
+  char     label[256];
 
-  if ((s->suspectedChimer       == false) &&
-      (s->garbageInInput        == false) &&
-      (s->hasNoConfirmedKmers   == false) &&
-      (s->gapInConfirmedKmers   == false) &&
-      (s->imperfectKmerCoverage == false)) {
-    strcpy(label, "CLEAN");  //  Free of chimer!
+  label[0] = 0;
 
-    seqOffset = s->clrBgn;
-
-    s->corrSeq[s->clrEnd] = 0;
-    s->corrQlt[s->clrEnd] = 0;
-
-  } else if (s->garbageInInput == true) {
-    strcpy(label, "DEL-GARBAGE");
+  if (s->garbageInInput == true) {
+    strcat(label, "DEL-GARBAGE");
 
     seqOffset = 0;
 
     s->corrSeq[0] = 0;
     s->corrQlt[0] = 0;
 
-  } else if (s->hasNoConfirmedKmers == true) {
-    strcpy(label, "DEL-NO-KMER");
-
-    seqOffset = 0;
-
-    s->corrSeq[0] = 0;
-    s->corrQlt[0] = 0;
-
-  } else if (s->gapInConfirmedKmers == true) {
-    strcpy(label, "DEL-ZERO-COV");
-
-    seqOffset = 0;
-
-    s->corrSeq[0] = 0;
-    s->corrQlt[0] = 0;
-
-  } else if (s->imperfectKmerCoverage == true) {
-    strcpy(label, "DEL-INPERFECT-COV");
-    seqOffset = 0;
-
-    s->corrSeq[0] = 0;
-    s->corrQlt[0] = 0;
-
-  } else if (s->suspectedChimerBgn - s->clrBgn >= AS_READ_MIN_LEN) {
-    strcpy(label, "MP");  //  Junction read, longest portion would make an MP pair
-
-    seqOffset = s->clrBgn;
-
-    s->corrSeq[s->suspectedChimerBgn] = 0;
-    s->corrQlt[s->suspectedChimerBgn] = 0;
-
-  } else if (s->clrEnd - s->suspectedChimerEnd >= AS_READ_MIN_LEN) {
-    strcpy(label, "PE");  //  Junction read, longest portion would make a PE pair
-
-    seqOffset = s->suspectedChimerEnd;
-
-    s->corrSeq[s->clrEnd] = 0;
-    s->corrQlt[s->clrEnd] = 0;
-
-  } else {
-    strcpy(label, "MP-PE-SHORT");//  Junction read, neither side is long enough to save, so save nothing.
-
-    seqOffset = 0;
-
-    s->corrSeq[0] = 0;
-    s->corrQlt[0] = 0;
+    goto outputFastq;
   }
 
-  fprintf(g->fqLog, F_U32"\t"F_U32"\tchimer="F_U32"\t"F_U32"\t"F_U32"\t%s\t%s\n",
+  if (s->hasNoConfirmedKmers == true) {
+    strcat(label, "DEL-NO-KMER");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+
+    goto outputFastq;
+  }
+
+  if (s->gapInConfirmedKmers == true) {
+    strcat(label, "DEL-ZERO-COV");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+
+    goto outputFastq;
+  }
+
+  if (s->imperfectKmerCoverage == true) {
+    strcat(label, "DEL-INPERFECT-COV");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+
+    goto outputFastq;
+  }
+
+  if ((s->suspectedChimer       == false) &&
+      (s->containsAdapter       == false)) {
+    strcat(label, "CLEAN");
+
+    seqOffset = s->clrBgn;
+
+    s->corrSeq[s->clrEnd] = 0;
+    s->corrQlt[s->clrEnd] = 0;
+
+    goto outputFastq;
+  }
+
+  if ((s->containsAdapter == true) &&
+      (s->suspectedChimer == false)) {
+    strcat(label, "ADAPTERTRIM");
+
+    seqOffset = s->clrBgn;
+
+    s->corrSeq[s->clrEnd] = 0;
+    s->corrQlt[s->clrEnd] = 0;
+
+    goto outputFastq;
+  }
+
+  if ((s->containsAdapter == false) &&
+      (s->suspectedChimer == true)) {
+    if (s->suspectedChimerBgn - s->clrBgn >= AS_READ_MIN_LEN) {
+      strcpy(label, "MP");  //  Junction read, longest portion would make an MP pair
+
+      seqOffset = s->clrBgn;
+
+      s->corrSeq[s->suspectedChimerBgn] = 0;
+      s->corrQlt[s->suspectedChimerBgn] = 0;
+
+    } else if (s->clrEnd - s->suspectedChimerEnd >= AS_READ_MIN_LEN) {
+      strcpy(label, "PE");  //  Junction read, longest portion would make a PE pair
+
+      seqOffset = s->suspectedChimerEnd;
+
+      s->corrSeq[s->clrEnd] = 0;
+      s->corrQlt[s->clrEnd] = 0;
+
+    } else {
+      strcpy(label, "MP-PE-SHORT");//  Junction read, neither side is long enough to save, so save nothing.
+
+      seqOffset = 0;
+
+      s->corrSeq[0] = 0;
+      s->corrQlt[0] = 0;
+    }
+
+    goto outputFastq;
+  }
+
+  assert(s->suspectedChimer);
+  assert(s->containsAdapter);
+
+  strcpy(label, "JUNCTION+ADAPTER");
+
+  seqOffset = 0;
+
+  s->corrSeq[0] = 0;
+  s->corrQlt[0] = 0;
+
+
+
+ outputFastq:
+  fprintf(g->fqLog, F_U32"\t"F_U32"\tchimer\t%c\t"F_U32"\t"F_U32"\tadapter\t%c\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\t%s\n",
           s->clrBgn,
           s->clrEnd,
-          s->suspectedChimer,
+          s->suspectedChimer ? 't' : 'f',
           s->suspectedChimerBgn,
           s->suspectedChimerEnd,
+          s->containsAdapter ? 't' : 'f',
+          s->containsAdapterCount,
+          s->containsAdapterFixed,
+          s->containsAdapterBgn,
+          s->containsAdapterEnd,
           label,
           s->readName);
 
@@ -1733,11 +1963,12 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-m") == 0) {
       g->merSize = atoi(argv[++arg]);
-    } else if (strcmp(argv[arg], "-c") == 0) {
-      g->compression = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-mc") == 0) {
       g->merCountsFile = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-mC") == 0) {
+      g->adapCountsFile = argv[++arg];
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       g->numThreads = atoi(argv[++arg]);
