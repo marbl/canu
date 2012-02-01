@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.65 2011-06-25 03:25:47 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.66 2012-02-01 20:20:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -355,7 +355,7 @@ adjustBeginEndAddMates(gkStore *gkp,
   }
 
   libToDump = (int32  *)safe_calloc(gkp->gkStore_getNumLibraries() + 1, sizeof(int));
-  frgUID    = (AS_UID *)safe_calloc(endIID+1,                           sizeof(AS_UID));
+  frgUID    = (AS_UID *)safe_calloc(gkp->gkStore_getNumFragments() + 1, sizeof(AS_UID));
 
   gkStream   *fs = new gkStream(gkp, begIID, endIID, GKFRAGMENT_INF);
   gkFragment  fr;
@@ -554,7 +554,7 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
     endIID = gkp->gkStore_getNumFragments();
 
   if (iidToDump == NULL) {
-    iidToDump = (char *)safe_calloc(endIID + 1, sizeof(char));
+    iidToDump = (char *)safe_calloc(gkp->gkStore_getNumFragments() + 1, sizeof(char));
     for (i=begIID; i<=endIID; i++)
       iidToDump[i] = 1;
   }
@@ -566,7 +566,7 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
 
   libToDump = (int    *)safe_calloc(gkp->gkStore_getNumLibraries() + 1, sizeof(int));
   libUID    = (AS_UID *)safe_calloc(gkp->gkStore_getNumLibraries() + 1, sizeof(AS_UID));
-  frgUID    = (AS_UID *)safe_calloc(endIID+1,                         sizeof(AS_UID));
+  frgUID    = (AS_UID *)safe_calloc(gkp->gkStore_getNumFragments() + 1, sizeof(AS_UID));
 
   fs = new gkStream(gkp, begIID, endIID, GKFRAGMENT_INF);
 
