@@ -34,6 +34,7 @@ LIB_SOURCES = AS_UTL_Hash.C \
               AS_UTL_alloc.C \
               AS_UTL_fileIO.C \
               AS_UTL_qsort_mt.C \
+              AS_UTL_qsort_mtGES.C \
               AS_UTL_fasta.C \
               AS_UTL_UID.C \
               AS_UTL_reverseComplement.C \
