@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTORE_H
 #define OVERLAPSTORE_H
 
-static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.19 2011-01-03 01:21:43 brianwalenz Exp $";
+static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.20 2012-02-01 20:12:35 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +36,26 @@ typedef  enum
 
 void
 buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 fileLimit, uint32 nThreads, uint32 doFilterOBT, uint32 fileListLen, char **fileList, Ovl_Skip_Type_t ovlSkipOpt);
+
+void
+buildStoreGES(char *storeName, char *gkpName, uint64 memoryLimit, uint32 fileLimit, uint32 nThreads, uint32 doFilterOBT, uint32 fileListLen, char **fileList, Ovl_Skip_Type_t ovlSkipOpt);
+
+void
+BucketizeOvlGES(char *storeName, char *gkpName, uint64 memoryLimit,  uint32 fileLimit,
+               uint32 nThreads,  uint32 doFilterOBT, uint32 fileListLen,  char **fileList,
+               Ovl_Skip_Type_t ovlSkipOpt, uint32 index);
+
+void
+mergeBucketsGES(char *storeName,  char *gkpName,  uint64 memoryLimit,  uint32 fileLimit,  uint32 fileListLen, 
+           char **fileList,uint32 index );
+
+void
+sortMergedBucketGES(char *storeName, char *gkpName, uint64 memoryLimit,  uint32 fileLimit,
+	            uint32 nThreads, uint32 fileListLen, char **fileList,  uint32 index);
+
+void
+buildStoreIndexGES(char *storeName,   char *gkpName,   uint64 memoryLimit,  uint32 fileLimit, uint32 nThreads, 
+           uint32 fileListLen,  char **fileList );
 
 void
 mergeStore(char *storeName, char *mergeName);

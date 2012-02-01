@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_dump.c,v 1.19 2011-06-27 17:13:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_dump.c,v 1.20 2012-02-01 20:12:35 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,6 +54,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
   while (AS_OVS_readOverlapFromStore(ovlStore, &overlap, AS_OVS_TYPE_ANY) == TRUE) {
     switch (overlap.dat.ovl.type) {
       case AS_OVS_TYPE_OVL:
+
         if (overlap.dat.ovl.corr_erate > erate)
             continue;
 
@@ -75,6 +76,7 @@ dumpStore(char *ovlName, uint32 dumpBinary, double dumpERate, uint32 dumpType, u
         if (((dumpType & DUMP_CONTAINED) == 0) &&
             (overlap.dat.ovl.a_hang <= 0) && (overlap.dat.ovl.b_hang >= 0))
           continue;
+
 
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);

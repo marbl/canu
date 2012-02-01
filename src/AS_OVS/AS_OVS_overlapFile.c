@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.18 2011-04-02 03:44:39 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.19 2012-02-01 20:12:35 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,6 +61,37 @@ BinaryOverlapFile *
 AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
   char     cmd[1024 + FILENAME_MAX];
 
+/* BinaryOverlapFile:  structure looks like this:
+typedef struct {
+	int           bufferLen;    //  length of valid data in the buffer
+	int           bufferPos;    //  position the read is at in the buffer
+	int           bufferMax;    //  allocated size of the buffer
+	uint32       *buffer;
+	int           isOutput;     //  if true, we can AS_OVS_writeOverlap()
+	int           isSeekable;   //  if true, we can AS_OVS_seekOverlap()
+	int           isPopened;    //  if true, we need to pclose()
+	int           isInternal;   //  if true, 3 words per overlap, else 4
+	FILE         *file;
+} BinaryOverlapFile;
+
+After init it looks like this:
+
+AS_OVS_NWORDS is either 2 or 3;
+
+lcf= 12 or 20
+
+{0,
+1048572 or 1048560
+1048572 or 1048560
+[uint32,...,],
+False,
+False,
+False,
+False, 
+null
+}
+*/
+
   BinaryOverlapFile   *bof = (BinaryOverlapFile *)safe_malloc(sizeof(BinaryOverlapFile));
   AS_OVS_initializeBOF(bof, isInternal, FALSE);
 
@@ -87,6 +118,20 @@ AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
             name, strerror(errno));
     exit(1);
   }
+
+/*
+ * Files are .gz format  and are opened via gzip -dc |  compressed to standard out
+{0,
+1048572 or 1048560
+1048572 or 1048560
+[uint32,...,],
+False,
+False,   ===> If its opened from a file its seekable.
+true,  ===> If it was opened from a pipe it is not seekable.
+False, 
+Now a file pointer
+}
+*/
 
   return(bof);
 }

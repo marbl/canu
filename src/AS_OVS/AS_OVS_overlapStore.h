@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAPSTORE_H
 #define AS_OVS_OVERLAPSTORE_H
 
-static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.16 2011-12-05 22:56:22 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.17 2012-02-01 20:12:35 gesims Exp $";
 
 #include <stdio.h>
 
@@ -81,6 +81,7 @@ OverlapStore      *AS_OVS_openOverlapStorePrivate(const char *name, int useBacku
 void               AS_OVS_closeOverlapStore(OverlapStore *ovs);
 void               AS_OVS_restoreBackup(OverlapStore *ovs);
 
+
 #define            AS_OVS_openOverlapStore(N)  AS_OVS_openOverlapStorePrivate((N), FALSE, FALSE)
 
 //  Read the next overlap from the store.  Return value is the number of overlaps read.
@@ -105,5 +106,6 @@ uint32             AS_OVS_lastFragInStore(OverlapStore *ovs) {
 
 OverlapStore      *AS_OVS_createOverlapStore(const char *name, int failOnExist);
 void               AS_OVS_writeOverlapToStore(OverlapStore *ovs, OVSoverlap *olap);
+void               AS_OVS_writeOverlapDumpToStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 maxOverlapsThisFile);
 
 #endif  //  AS_OVS_OVERLAPSTORE_H
