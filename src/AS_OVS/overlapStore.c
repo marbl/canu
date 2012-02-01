@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.31 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.32 2012-02-01 20:10:52 gesims Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -40,6 +40,13 @@ main(int argc, char **argv) {
   uint32          clearRegion = AS_READ_CLEAR_ERROR;
 
   uint32          dumpBinary  = FALSE;
+  uint32 optimizedStoreCreate = FALSE;
+  uint32 optimizedOvlBucketize= FALSE;
+  uint32 optimizedMergeBuckets= FALSE;
+  uint32 optimizedSortMergedBuckets = FALSE;
+  uint32 optimizedBuildIndexFile = FALSE;
+  uint32 workingOvlDumpIndex  = 0;
+  uint32 workingBucketIndex  = 0;
   double          dumpERate   = 100.0;
   uint32          dumpType    = 0;
 
@@ -157,6 +164,24 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-g") == 0) {
       gkpName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      optimizedOvlBucketize = TRUE;
+      workingOvlDumpIndex = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-W") == 0) {
+      optimizedSortMergedBuckets = TRUE;
+      workingBucketIndex = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-P") == 0) {
+      optimizedStoreCreate = TRUE;
+      
+    } else if (strcmp(argv[arg], "-I") == 0) {
+      optimizedBuildIndexFile = TRUE;
+
+    } else if (strcmp(argv[arg], "-Y") == 0) {
+      optimizedMergeBuckets = TRUE;
+      workingBucketIndex = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-L") == 0) {
       char *line;
 
@@ -221,6 +246,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -G  estimate genome length\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "CREATION - create a new store from raw overlap files\n");
+    fprintf(stderr, "  -P           (alpha) Optimized overlapstore create.\n");
+    fprintf(stderr, "  -U x         (alpha) Optimized grid enabled bucketizer (bucketize xth overlap file)\n");
+    fprintf(stderr, "  -Y x         (alpha) Merge buckets from grid enabled bucketizer");
+    fprintf(stderr, "  -W x         (alpha) Sort bucket (sort xth Bucket) and dump to storefile.\n");
+    fprintf(stderr, "  -I           (alpha) Create index of all storefile buckets.\n");
     fprintf(stderr, "  -O           Filter overlaps for OBT.\n");
     fprintf(stderr, "  -M x         Use 'x'MB memory for sorting overlaps (conflicts with -F).\n");
     fprintf(stderr, "  -F x         Use 'x' files for sorting overlaps (conflicts with -M).\n");
@@ -272,7 +302,21 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_BUILD:
-      buildStore(storeName, gkpName, memoryLimit, fileLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt);
+      if (optimizedOvlBucketize) {
+	   fprintf(stderr,"Using optimized grid enabled bucketizer\n");
+           BucketizeOvlGES(storeName, gkpName, memoryLimit, fileLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt, workingOvlDumpIndex );
+      } else if (optimizedMergeBuckets) {
+           mergeBucketsGES(storeName, gkpName, memoryLimit, fileLimit, fileList.size(), &fileList[0],workingBucketIndex );
+      } else if (optimizedSortMergedBuckets) {
+          sortMergedBucketGES(storeName, gkpName, memoryLimit, fileLimit,nThreads, fileList.size(), &fileList[0], workingBucketIndex );
+      } else if (optimizedBuildIndexFile) {
+          buildStoreIndexGES(storeName, gkpName, memoryLimit, fileLimit, nThreads, fileList.size(), &fileList[0]);	  
+      } else if (optimizedStoreCreate) { 
+	   fprintf(stderr,"Using optimized store build\n");
+           buildStoreGES(storeName, gkpName, memoryLimit, fileLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt);
+      } else {	
+           buildStore(storeName, gkpName, memoryLimit, fileLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt);
+      }
       break;
     case OP_MERGE:
       mergeStore(storeName, fileList[0]);
