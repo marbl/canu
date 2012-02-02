@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.141 2010-10-27 09:58:39 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_UnitigGraph.cc,v 1.142 2012-02-02 09:11:21 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -96,6 +96,9 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   reportOverlapsUsed(output_prefix, "buildUnitigs");
   reportUnitigs(output_prefix, "buildUnitigs");
 
+  //  DON'T POP BUBBLES
+  //goto skipSteps;
+
   if (enableBubblePopping) {
     setLogFile(output_prefix, "bubblePopping");
     popIntersectionBubbles(ovlStoreUniq, ovlStoreRept);
@@ -104,11 +107,17 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
     reportUnitigs(output_prefix, "bubblePopping");
   }
 
+  //  DON'T BREAK INTERSECTIONS
+  //goto skipSteps;
+
   //  If enabled, break unitigs.  If not enabled, report on breaks.
   setLogFile(output_prefix, "intersectionBreaking");
   breakUnitigs(cMap, output_prefix, enableIntersectionBreaking);
   reportOverlapsUsed(output_prefix, "intersectionBreaking");
   reportUnitigs(output_prefix, "intersectionBreaking");
+
+  //  DON'T REJOIN INTERSECTIONS
+  //goto skipSteps;
 
   //  If enabled, join unitigs.  If not enabled, report on joins.
   //  (not supported, just crashes if called and not enabled)
@@ -123,38 +132,11 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   //setLogFile(output_prefix, "intersectionBreaking");
   //breakUnitigs(cMap, output_prefix, false);
 
-#if 0
-  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
-    ufNode frag;
-
-    if (Unitig::fragIn(fid) > 0)
-      //  Fragment placed already.
-      continue;
-
-    frag.ident = fid;
-
-    placeFragUsingOverlaps(frag, ovlStoreUniq, ovlStoreRept);
-  }
-#endif
-
+ skipSteps:
   setLogFile(output_prefix, "placeContains");
   placeContainsUsingBestOverlaps();
   reportOverlapsUsed(output_prefix, "placeContains");
   reportUnitigs(output_prefix, "placeContains");
-
-#if 0
-  for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
-    ufNode frag;
-
-    if (OG->getBestContainer(fid) == NULL)
-      //  Dovetail node, don't try to re-place it
-      continue;
-
-    frag.ident = fid;
-
-    placeFragUsingOverlaps(frag, ovlStoreUniq, ovlStoreRept);
-  }
-#endif
 
   setLogFile(output_prefix, "placeZombies");
   placeZombies();
@@ -162,6 +144,9 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   reportUnitigs(output_prefix, "placeZombies");
 
   //checkUnitigMembership();
+
+  //  DONT DO BUBBLES OR SPLITTING
+  //return;
 
   if (enableBubblePopping) {
     setLogFile(output_prefix, "bubblePopping");
@@ -172,6 +157,9 @@ UnitigGraph::build(OverlapStore *ovlStoreUniq,
   }
 
   checkUnitigMembership();
+
+  //  DON'T DO MATE BASED SPLITTING
+  //return;
 
   ////////////////////////////////////////////////////////////////////////////////
   //
