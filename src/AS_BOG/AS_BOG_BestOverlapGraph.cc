@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.84 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.85 2012-02-02 09:12:54 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -205,11 +205,11 @@ void BestOverlapGraph::scoreContainment(const OVSoverlap& olap) {
       ((olap.dat.ovl.a_hang >=   0) && (olap.dat.ovl.b_hang <= 10)))
     _bestC[olap.b_iid].olapsLen++;
 
-  //  In the case of no hang, make the lower frag the container
+  //  In the case of no hang, make the higher frag the container
   //
   if ((olap.dat.ovl.a_hang == 0) &&
       (olap.dat.ovl.b_hang == 0) &&
-      (olap.a_iid > olap.b_iid))
+      (olap.a_iid < olap.b_iid))
     return;
 
   //  We only care if A contains B.
