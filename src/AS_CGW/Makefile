@@ -37,7 +37,6 @@ CGW_SOURCES =     AS_CGW_main.C \
 
 #  Not all of these are external, most are probably private to cgw itself.
 CGW_LIB_SOURCES = Globals_CGW.C \
-                  AS_CGW_EdgeDiagnostics.C \
                   CIEdgeT_CGW.C \
                   CIScaffoldT_Biconnected_CGW.C \
                   CIScaffoldT_CGW.C \

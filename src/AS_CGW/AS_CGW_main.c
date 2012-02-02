@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.86 2011-12-19 02:20:06 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.87 2012-02-02 21:01:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,11 +42,6 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.86 2011-12-19 02:20:06 brianwalenz 
 #define POPULATE_COC_HASHTABLE 0
 #endif
 
-//  If -1, do not test or fix edges.  If 0, test but do not fix.  If
-//  1, test and fix edges.
-//
-#define FIX_CONTIG_EDGES -1
-
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
@@ -63,7 +58,6 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.86 2011-12-19 02:20:06 brianwalenz 
 #include "Stats_CGW.h"
 #include "AS_ALN_aligners.h"
 #include "Instrument_CGW.h"
-#include "AS_CGW_EdgeDiagnostics.h"
 #include "fragmentPlacement.h"  //  for resolveSurrogates()
 
 
@@ -399,8 +393,6 @@ main(int argc, char **argv) {
     if(GlobalData->debugLevel > 0)
       DumpContigs(stderr,ScaffoldGraph, FALSE);
 
-    ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-
     // Transitive reduction of ContigGraph followed by construction of SEdges
     RebuildScaffolds(ScaffoldGraph, TRUE);
 
@@ -469,7 +461,6 @@ main(int argc, char **argv) {
 
     /* First we try to merge Scaffolds agressively */
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_DURING_1ST_SCAFF_MERGE, FALSE);
-    ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
     CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -516,8 +507,6 @@ main(int argc, char **argv) {
     Throw_Stones(GlobalData->outputPrefix, GlobalData->stoneLevel, FALSE);
     CheckCIScaffoldTs(ScaffoldGraph);
 
-    ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
     fprintf(stderr, "---Checking contig orders after Throw_Stones\n\n");
     CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
@@ -544,7 +533,6 @@ main(int argc, char **argv) {
 
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_DURING_2ND_SCAFF_MERGE, FALSE);
 
-    ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
     CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -591,7 +579,6 @@ main(int argc, char **argv) {
     int partial_stones = Throw_Stones(GlobalData->outputPrefix, GlobalData->stoneLevel, TRUE);
 
     CheckCIScaffoldTs (ScaffoldGraph);
-    ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
 
     //ScaffoldGraph->tigStore->flushCache();
 
@@ -620,7 +607,6 @@ main(int argc, char **argv) {
 
     CheckCIScaffoldTs (ScaffoldGraph);
     int contained_stones = Toss_Contained_Stones (GlobalData->outputPrefix, GlobalData->stoneLevel, 0);
-    ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
     CheckCIScaffoldTs (ScaffoldGraph);
     fprintf (stderr, "**** Finished Final Contained Stones level %d ****\n", GlobalData->stoneLevel);
 
@@ -660,8 +646,6 @@ main(int argc, char **argv) {
 
     // Try to cleanup failed merges, and if we do, generate a checkpoint
     if(CleanupFailedMergesInScaffolds(ScaffoldGraph)){
-      ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-
       // This call deletes surrogate-only contigs that failed to merge
       if(CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, TRUE)){
 
@@ -669,7 +653,6 @@ main(int argc, char **argv) {
         fprintf(stderr, "---Checking contig orders after final cleanup\n\n");
         CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
 #endif
-        ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
       }
       CheckpointScaffoldGraph(CHECKPOINT_AFTER_FINAL_CLEANUP, "after final cleanup");
     }
