@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.70 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.71 2012-02-02 09:07:11 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -5814,8 +5814,6 @@ int  Fill_Gaps
   char  filename [FILENAME_MAX];
   Scaffold_Fill_t  * fill_chunks;
   static int  iteration = 0;
-  clock_t  start_time, stop_time;
-  time_t  now;
   int  i;
   int  inserted = 0;
 
@@ -5846,11 +5844,6 @@ int  Fill_Gaps
   fprintf (stderr, "### Fill_Gaps iteration #%d\n", iteration);
 
   iteration++;
-
-  now = time (NULL);
-  fprintf (stderr, "### Start Rocks iteration #%d   %s\n",
-           iteration, ctime (& now));
-  start_time = clock ();
 
   AS_UTL_mkdir("rezlog");
   sprintf(filename, "rezlog/rez.i%02d.log", iteration);
@@ -6090,13 +6083,6 @@ int  Fill_Gaps
   Free_Global_Arrays ();
 
   UnJigglePositions();
-
-  now = time (NULL);
-  fprintf (stderr, "### Finish Rocks iteration #%d   %s\n",
-           iteration, ctime (& now));
-  stop_time = clock ();
-  fprintf (stderr, "### cpu time = %.1f sec\n",
-           (double) (stop_time - start_time) / CLOCKS_PER_SEC);
 
   return inserted;     // <*** Change this back ***>
 }
@@ -6600,8 +6586,6 @@ int  Hurl_Contained_Rocks
   char  filename [FILENAME_MAX];
   Scaffold_Fill_t  * fill_chunks;
   static int  iteration = 0;
-  clock_t  start_time, stop_time;
-  time_t  now;
   int  i;
   int  inserted = 0;
 
@@ -6633,11 +6617,6 @@ int  Hurl_Contained_Rocks
   Contained_Only_Switch = TRUE;
 
   iteration++;
-
-  now = time (NULL);
-  fprintf (stderr, "### Start Contained Rocks iteration #%d   %s\n",
-           iteration, ctime (& now));
-  start_time = clock ();
 
   AS_UTL_mkdir("rezlog");
   sprintf(filename, "rezlog/crocks.i%02d.log", iteration);
@@ -6754,13 +6733,6 @@ int  Hurl_Contained_Rocks
 
   Free_Fill_Array (fill_chunks);
   Free_Global_Arrays ();
-
-  now = time (NULL);
-  fprintf (stderr, "### Finish Contained Rocks iteration #%d   %s\n",
-           iteration, ctime (& now));
-  stop_time = clock ();
-  fprintf (stderr, "### cpu time = %.1f sec\n",
-           (double) (stop_time - start_time) / CLOCKS_PER_SEC);
 
   return inserted;
 }
@@ -10768,18 +10740,11 @@ int  Show_Reads_In_Gaps
 {
   FILE  * fp;
   Scaffold_Fill_t  * fill_stones;
-  clock_t  start_time, stop_time;
-  time_t  now;
   int  i, scaff_id;
 
   Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
   if (Num_Scaffolds == 0)
     return 0;
-
-  now = time (NULL);
-  fprintf (stderr, "### Start Show_Reads_In_Gaps at %s\n",
-           ctime (& now));
-  start_time = clock ();
 
 #if  TEST_HOPELESS_SCAFFS
   Hopeless_False_Mask = '\373';
@@ -10833,13 +10798,6 @@ int  Show_Reads_In_Gaps
 
   Free_Fill_Array (fill_stones);
   Free_Global_Arrays ();
-
-  now = time (NULL);
-  fprintf (stderr, "### Finish Show_Reads_In_Gaps at %s\n",
-           ctime (& now));
-  stop_time = clock ();
-  fprintf (stderr, "### cpu time = %.1f sec\n",
-           (double) (stop_time - start_time) / CLOCKS_PER_SEC);
 
   return  0;
 }
@@ -10921,8 +10879,6 @@ int Throw_Stones
   char  filename [FILENAME_MAX];
   Scaffold_Fill_t  * fill_stones;
   static int  iteration = 0;
-  clock_t  start_time, stop_time;
-  time_t  now;
   int  inserted = 0, total_stones = 0;
   int  stones_last_chkpt = 0;
   int  i, scaff_id;
@@ -10954,11 +10910,6 @@ int Throw_Stones
   fprintf (stderr, "### Throw_Stones iteration #%d\n", iteration);
 
   iteration++;
-
-  now = time (NULL);
-  fprintf (stderr, "### Start Stones iteration #%d   %s\n",
-           iteration, ctime (& now));
-  start_time = clock ();
 
   AS_UTL_mkdir("rezlog");
   sprintf(filename, "rezlog/stone.i%02d.log", iteration);
@@ -11176,13 +11127,6 @@ int Throw_Stones
   Free_Fill_Array (fill_stones);
   Free_Global_Arrays ();
 
-  now = time (NULL);
-  fprintf (stderr, "### Finish Stones iteration #%d   %s\n",
-           iteration, ctime (& now));
-  stop_time = clock ();
-  fprintf (stderr, "### cpu time = %.1f sec\n",
-           (double) (stop_time - start_time) / CLOCKS_PER_SEC);
-
   Use_Partial_Stone_Paths = FALSE;
 
   return inserted;
@@ -11295,8 +11239,6 @@ int  Toss_Contained_Stones
   char  filename [FILENAME_MAX];
   Scaffold_Fill_t  * fill_stones;
   static int  iteration = 0;
-  clock_t  start_time, stop_time;
-  time_t  now;
   int  i;
   int  inserted = 0;
 
@@ -11330,11 +11272,6 @@ int  Toss_Contained_Stones
   Contained_Only_Switch = TRUE;
 
   iteration++;
-
-  now = time (NULL);
-  fprintf (stderr, "### Start Contained Stones iteration #%d   %s\n",
-           iteration, ctime (& now));
-  start_time = clock ();
 
   AS_UTL_mkdir("rezlog");
 #if VERBOSE || SHOW_OLAP_DETAILS
@@ -11462,13 +11399,6 @@ int  Toss_Contained_Stones
 
   Free_Fill_Array (fill_stones);
   Free_Global_Arrays ();
-
-  now = time (NULL);
-  fprintf (stderr, "### Finish Contained Stones iteration #%d   %s\n",
-           iteration, ctime (& now));
-  stop_time = clock ();
-  fprintf (stderr, "### cpu time = %.1f sec\n",
-           (double) (stop_time - start_time) / CLOCKS_PER_SEC);
 
   Single_Fragment_Only = FALSE;
 
