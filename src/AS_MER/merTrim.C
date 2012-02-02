@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.25 2012-01-31 21:19:48 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.26 2012-02-02 09:08:42 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -163,7 +163,7 @@ public:
     errno = 0;
     fqInput = fopen(fqInputPath, "r");
     if (errno)
-      fprintf(stderr, "Failed to open output file '%s': %s\n", fqInputPath, strerror(errno)), exit(1);
+      fprintf(stderr, "Failed to open input file '%s': %s\n", fqInputPath, strerror(errno)), exit(1);
 
     errno = 0;
     fqOutput = fopen(fqOutputPath, "w");
