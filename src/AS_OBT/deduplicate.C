@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.15 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.16 2012-02-02 01:58:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,8 +105,15 @@ loadFragments(gkStore *gkp) {
 
     frag[iid].matePatternLeft  = 0;
     frag[iid].isDeleted        = fr.gkFragment_getIsDeleted() ? 1 : 0;
-    frag[iid].clrbeg           = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
-    frag[iid].clrlen           = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTINITIAL);
+
+    if (fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL) < fr.gkFragment_getClearRegionEnd(AS_READ_CLEAR_OBTINITIAL)) {
+      frag[iid].clrbeg           = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
+      frag[iid].clrlen           = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTINITIAL);
+    } else {
+      frag[iid].clrbeg           = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_CLR);
+      frag[iid].clrlen           = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_CLR);
+    }
+
     frag[iid].mateIID          = fr.gkFragment_getMateIID();
     frag[iid].libraryIID       = fr.gkFragment_getLibraryIID();
 
