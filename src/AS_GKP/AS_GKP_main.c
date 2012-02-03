@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.98 2012-02-03 10:22:05 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.99 2012-02-03 13:53:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -404,7 +404,7 @@ main(int argc, char **argv) {
   int              assembler          = AS_ASSEMBLER_GRANDE;
   int              firstFileArg       = 0;
   int              fixInsertSizes     = 0;
-  int              packedLength       = 150;
+  int              packedLength       = 160;
 
   //  Options for partitioning
   //
