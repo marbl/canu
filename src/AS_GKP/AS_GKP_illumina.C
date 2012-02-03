@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.27 2012-02-03 10:22:05 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.28 2012-02-03 19:55:51 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -180,14 +180,27 @@ processSeq(char       *N,
     return(0);
   }
 
-  //  Convert QVs
+  //  Convert QVs and check for errors
+  //
+  //  Sanger       range from ! to I
+  //  Solexa       range from ; to h (with '@' == QV 0)
+  //  Illumina 1.3 range from @ to h
+  //  Illumina 1.5 range from B to h (B = Read Segment QC Indicator)
+  //  Illumina 1.8 range from ! to J
+
+  uint32 QVerrors = 0;
 
   if (fastqType == FASTQ_SANGER) {
     for (uint32 i=0; fr->qstr[i]; i++) {
       if (fr->qstr[i] < '!') {
-        AS_GKP_reportError(AS_GKP_ILL_BAD_QV, fr->snam, fr->qstr[i], "sanger");
-        return(0);
+        QVerrors++;
+        fr->qstr[i] = '!';
       }
+      if ('I' < fr->qstr[i]) {
+        QVerrors++;
+        fr->qstr[i] = 'I';
+      }
+
       fr->qstr[i] -= '!';
       if (fr->qstr[i] > QUALITY_MAX)
         fr->qstr[i] = QUALITY_MAX;
@@ -198,9 +211,13 @@ processSeq(char       *N,
   if (fastqType == FASTQ_SOLEXA) {
     double qs;
     for (uint32 i=0; fr->qstr[i]; i++) {
-      if (fr->qstr[i] < ';') {
-        AS_GKP_reportError(AS_GKP_ILL_BAD_QV, fr->snam, fr->qstr[i], "solexa");
-        return(0);
+      if (fr->qstr[i] < '@') {
+        QVerrors++;
+        fr->qstr[i] = '@';
+      }
+      if ('h' < fr->qstr[i]) {
+        QVerrors++;
+        fr->qstr[i] = ';';
       }
       qs  = fr->qstr[i];
       qs -= '@';
@@ -215,8 +232,12 @@ processSeq(char       *N,
   if (fastqType == FASTQ_ILLUMINA) {
     for (uint32 i=0; fr->qstr[i]; i++) {
       if (fr->qstr[i] < '@') {
-        AS_GKP_reportError(AS_GKP_ILL_BAD_QV, fr->snam, fr->qstr[i], "illumina");
-        return(0);
+        QVerrors++;
+        fr->qstr[i] = '@';
+      }
+      if ('h' < fr->qstr[i]) {
+        QVerrors++;
+        fr->qstr[i] = 'h';
       }
       fr->qstr[i] -= '@';
       if (fr->qstr[i] > QUALITY_MAX)
@@ -224,6 +245,10 @@ processSeq(char       *N,
       fr->qstr[i] += '0';
     }
   }
+
+  if (QVerrors > 0)
+    AS_GKP_reportError(AS_GKP_ILL_BAD_QV, fr->snam, QVerrors);
+
 
   //  Reverse the read if it is from an outtie pair.  This ONLY works if the reads are the same
   //  length throughout the library.  WE DO NOT CHECK THAT IS SO.
