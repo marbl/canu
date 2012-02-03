@@ -1,0 +1,95 @@
+The OverlapStore_build.c, overlapStore.c and AS_UTL/qsort_mtGES.C sources
+contain several optimizations made by Gregory E. Sims for the purposes of
+breaking up overlapstore from a multi-threaded sort to a Sun Grid Engine
+enabled process.  Instead of invoking overlapStore as usual one calls the
+overlapStore executable in three phases:
+
+1.  Bucketize the raw gzipped overlap output from overlapper
+
+This generates up to 1024 a_iid ranged buckets created in an individual
+folder which corresponds to the index of the original gzipped overlap files (i.e. the
+original overlap partitions).  The the buckets for the ith overlap partition
+will be placed in the directory overlapstore/000iunsorted.
+
+Assuming there are 510 overlapper partitions and the assembly 'test' is in the $ASM dir,
+here is a SGE submit script  command to perform the distributed bucketizing using 
+the -U argument and a job array.
+
+$ cat bucketize.sh
+
+#!/usr/bin/env sh
+ASM=/path/to/asm/dir
+overlapStore \
+-c $ASM/test.ovlStore.BUILDING \
+-g $ASM/test.gkpStore \
+-U $SGE_TASK_ID \
+-i 0 \
+-M 1024 \
+-L $ASM/test.ovlStore.list \
+2> $ASM/test.ovlStore.$SGE_TASK_ID.err
+
+qsub -P $PROJECT -t 1-510 -cwd ./bucketize.sh
+
+
+2.  Sort the buckets.
+
+The same a_iid ranged bucket is read across all
+overlap partitions and merged into a single in-memory array.  This is
+then sorted by a_iid and b_iid -- which is then dumped to the overlap store
+as a sorted partition.  In this example below 138 buckets were created 
+(far less than the maximum 1024).  For each overlap store partition an
+index and ovs file is created.
+
+$ cat sortBuckets.sh
+
+#!/usr/bin/env sh
+ASM=/path/to/asm/dir
+overlapStore \
+-c $ASM/test.ovlStore.BUILDING \
+-g $ASM/test.gkpStore \
+-W $SGE_TASK_ID \
+-i 0 \
+-M 1024 \
+-L $ASM/test.ovlStore.list \
+2> $ASM/test.ovlStore.$SGE_TASK_ID.err
+
+qsub -P $PROJECT -t 1-138 -cwd ./sortBuckets.sh
+
+
+3. Create an a_iid keyed index indicating the file and offset location for the overlaps
+for a_iid with all other fragments.  The individual index files are concatenated (accounting
+for possible gaps in a_iids between different files), and the total number of overlaps
+is found by reading the individual ovs files and outputing a final ovs file.
+
+$ cat indexStore.sh
+
+#!/usr/bin/env sh
+ASM=/path/to/asm/dir
+overlapStore \
+-c $ASM/test.ovlStore.BUILDING \
+-g $ASM/test.gkpStore \
+-I  \
+-i 0 \
+-M 1024 \
+-L $ASM/test.ovlStore.list \
+2> $ASM/test.ovlStore.err
+
+./indexStore.sh
+
+
+
+This method produces an overlap store which is entire compatible with the previous
+method of generating an overlap store.  The contents of the store were validated
+by randomly sampling 100,000 overlaps from an original store (i.e. a store produced
+using the original Celera 7 methods) from the GAGE H. Sapien Chr14 dataset, and validating that 
+the output of a query of both the original store format and the new store format 
+produced identical results.  The output of this command
+
+overlapStore -q A B Storename
+(A=Overlap A id, B=Overlap B id)
+
+substituting the locations of 'Storename' for the locations of the two store variants
+were identical for both forms of overlap store.
+
+
+
