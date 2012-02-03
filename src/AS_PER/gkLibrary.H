@@ -92,7 +92,7 @@ public:
     doConsensusCorrection      = 0;
 
     spareGKP                   = 0;
-    forceLongReadFormat        = 0;
+    forceShortReadFormat       = 0;
 
     spareLIB                   = 0;
     orientation                = 0;
@@ -140,7 +140,7 @@ public:
 
   //  Gatekeeper options
   uint64         spareGKP:63;                  //  Spare for gatekeeper changes
-  uint64         forceLongReadFormat:1;        //  Default 0 -> store as PACKED if possible
+  uint64         forceShortReadFormat:1;       //  Default 0 -> store as long reads
 
   //  Library options
   uint64         spareLIB:61;                  //  Spare for library changes

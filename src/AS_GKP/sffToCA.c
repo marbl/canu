@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.59 2012-01-30 14:17:40 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.60 2012-02-03 21:47:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1748,7 +1748,7 @@ addLibrary(char *libraryName,
 
   gkl.doConsensusCorrection      = 0;
 
-  gkl.forceLongReadFormat        = 1;
+  gkl.forceShortReadFormat       = 0;
 
   if (haveLinker == FALSE) {
     gkl.mean        = 0;

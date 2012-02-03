@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.20 2012-01-30 14:17:40 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.21 2012-02-03 21:47:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -282,7 +282,7 @@ main(int argc, char **argv) {
 
     gkl.doConsensusCorrection      = 0;
 
-    gkl.forceLongReadFormat        = 1;
+    gkl.forceShortReadFormat       = 0;
 
   } else if (strcasecmp(technology, "454") == 0) {
     gkl.forceBOGunitigger          = 1;
@@ -303,7 +303,7 @@ main(int argc, char **argv) {
 
     gkl.doConsensusCorrection      = 0;
 
-    gkl.forceLongReadFormat        = 1;
+    gkl.forceShortReadFormat       = 0;
 
   } else if (strcasecmp(technology, "illumina") == 0) {
     gkl.forceBOGunitigger          = 1;
@@ -324,7 +324,7 @@ main(int argc, char **argv) {
 
     gkl.doConsensusCorrection      = 0;
 
-    gkl.forceLongReadFormat        = 0;
+    gkl.forceShortReadFormat       = 1;
 
   } else if (strcasecmp(technology, "experimental") == 0) {  // Jason testing all-Illumina
     gkl.forceBOGunitigger          = 0;
@@ -345,7 +345,7 @@ main(int argc, char **argv) {
 
     gkl.doConsensusCorrection      = 0;
 
-    gkl.forceLongReadFormat        = 1;
+    gkl.forceShortReadFormat       = 0;
 
   } else if (strcasecmp(technology, "pacbio") == 0) {
     gkl.forceBOGunitigger          = 1;
@@ -366,7 +366,7 @@ main(int argc, char **argv) {
 
     gkl.doConsensusCorrection      = 1;
     
-    gkl.forceLongReadFormat        = 1;
+    gkl.forceShortReadFormat       = 0;
   }
 
   gkl.isNotRandom                = 0;

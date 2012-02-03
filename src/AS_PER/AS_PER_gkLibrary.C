@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.17 2012-01-30 14:17:40 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.18 2012-02-03 21:47:58 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -150,8 +150,8 @@ gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
 
     //  Gatekeeper options
 
-    else if (strcasecmp(fea, "forceLongReadFormat") == 0)
-      forceLongReadFormat = decodeBoolean("forceLongReadFormat", val);
+    else if (strcasecmp(fea, "forceShortReadFormat") == 0)
+      forceShortReadFormat = decodeBoolean("forceShortReadFormat", val);
 
     //  Illumina options, just to make it not complain about unknown features
 
@@ -248,7 +248,7 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
   encodeFeature(doConsensusCorrection);
 
   //  GKP options
-  encodeFeature(forceLongReadFormat);
+  encodeFeature(forceShortReadFormat);
 
   //  Library options (orientation is not a feature, it's part of the library)
 

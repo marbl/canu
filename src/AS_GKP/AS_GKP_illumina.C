@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.28 2012-02-03 19:55:51 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.29 2012-02-03 21:47:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +61,7 @@ processSeq(char       *N,
            char        end,
            uint32      fastqType,
            uint32      fastqOrient,
-           bool        allowPacked,
+           bool        forcePacked,
            uint32      packedLength) {
 
   chomp(fr->snam);
@@ -77,14 +77,24 @@ processSeq(char       *N,
 
   fr->fr.gkFragment_clear();
 
-  if ((slen <= packedLength) &&
-      (allowPacked == true))
+  if (forcePacked == true)
     fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
   else
     fr->fr.gkFragment_setType(GKFRAGMENT_NORMAL);
 
   fr->fr.gkFragment_setIsDeleted(1);
 
+  //  If we're packed, make sure the length is appropriate
+
+  if ((forcePacked) &&
+      (slen > packedLength)) {
+    AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, fr->snam, slen, packedLength);
+    fr->sstr[packedLength] = 0;
+    fr->qstr[packedLength] = 0;
+    slen = packedLength;
+    qlen = packedLength;
+  }
+      
   //  Complicated, but fast, parsing of the 'snam' to find clear ranges.
 
   char   *tok = strtok(fr->snam, " \t");
@@ -353,7 +363,7 @@ readSeq(FILE       *F,
         char        end,
         uint32      fastqType,
         uint32      fastqOrient,
-        bool        allowPacked,
+        bool        forcePacked,
         uint32      packedLength) {
 
   fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
@@ -370,7 +380,7 @@ readSeq(FILE       *F,
   if (feof(F))
     return(0);
 
-  return(processSeq(N, fr, end, fastqType, fastqOrient, allowPacked, packedLength));
+  return(processSeq(N, fr, end, fastqType, fastqOrient, forcePacked, packedLength));
 }
 
 
@@ -426,7 +436,7 @@ loadFastQReads(char    *lname,
                char    *rname,
                uint32   fastqType,
                uint32   fastqOrient,
-               bool     allowPacked,
+               bool     forcePacked,
                uint32   packedLength) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Processing %s %s QV encoding reads from:\n",
@@ -468,8 +478,8 @@ loadFastQReads(char    *lname,
   while (!feof(lfile) && !feof(rfile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 lUID = readSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient, allowPacked, packedLength);
-    uint64 rUID = readSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient, allowPacked, packedLength);
+    uint64 lUID = readSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient, forcePacked, packedLength);
+    uint64 rUID = readSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient, forcePacked, packedLength);
 
     if       ((lfrg->fr.gkFragment_getIsDeleted() == 0) &&
               (rfrg->fr.gkFragment_getIsDeleted() == 0)) {
@@ -526,7 +536,7 @@ void
 loadFastQReads(char    *uname,
                uint32   fastqType,
                uint32   fastqOrient,
-               bool     allowPacked,
+               bool     forcePacked,
                uint32   packedLength) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Processing SINGLE-ENDED %s QV encoding reads from:\n",
@@ -552,7 +562,7 @@ loadFastQReads(char    *uname,
   while (!feof(ufile)) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 uUID = readSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient, allowPacked, packedLength);
+    uint64 uUID = readSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient, forcePacked, packedLength);
 
     if (ufrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Add a fragment.
@@ -578,7 +588,7 @@ void
 checkLibraryForFastQPointers(LibraryMesg *lib_mesg, uint32 packedLength) {
   uint32  fastqType   = FASTQ_SOLEXA;
   uint32  fastqOrient = FASTQ_INNIE;
-  bool    allowPacked = true;
+  bool    forcePacked = false;
 
   isValidACGTN = AS_UTL_getValidACGTN();
 
@@ -596,11 +606,11 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg, uint32 packedLength) {
   //  Search for forced normal - we technically should grab the library from gatekeeper
   //  and use the flag there, but this is easier.
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
-    if (strcasecmp(lib_mesg->features[i], "forceLongReadFormat") == 0) {
+    if (strcasecmp(lib_mesg->features[i], "forceShortReadFormat") == 0) {
       if ((lib_mesg->values[i][0] == '1') ||
           (lib_mesg->values[i][0] == 't') ||
           (lib_mesg->values[i][0] == 'T'))
-        allowPacked = false;
+        forcePacked = true;
     }
   }
 
@@ -639,9 +649,9 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg, uint32 packedLength) {
         *sr++ = 0;
 
       if (*sr == 0)
-        loadFastQReads(sl, sl, fastqType, fastqOrient, allowPacked, packedLength);
+        loadFastQReads(sl, sl, fastqType, fastqOrient, forcePacked, packedLength);
       else
-        loadFastQReads(sl, sr, fastqType, fastqOrient, allowPacked, packedLength);
+        loadFastQReads(sl, sr, fastqType, fastqOrient, forcePacked, packedLength);
     }
 
     if (strcasecmp(lib_mesg->features[i], "fastqReads") == 0) {
@@ -654,7 +664,7 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg, uint32 packedLength) {
       if (*sr)
         fprintf(stderr, "ERROR:  Multipe FastQ files given to fastqReads.\n"), exit(1);
 
-      loadFastQReads(sl, fastqType, fastqOrient, allowPacked, packedLength);
+      loadFastQReads(sl, fastqType, fastqOrient, forcePacked, packedLength);
     }
   }
 }
