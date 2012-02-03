@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.37 2011-08-30 02:59:31 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.38 2012-02-03 10:22:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +46,7 @@ Check_DistanceMesg(DistanceMesg    *dst_mesg,
   lmesg.features     = NULL;
   lmesg.values       = NULL;
 
-  return(Check_LibraryMesg(&lmesg, fixInsertSizes));
+  return(Check_LibraryMesg(&lmesg, fixInsertSizes, 0));
 }
 
 
@@ -111,7 +111,8 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
 
 int
 Check_LibraryMesg(LibraryMesg      *lib_mesg,
-                  int                fixInsertSizes) {
+                  int                fixInsertSizes,
+                  uint32             packedLength) {
 
   gkLibrary  gkpl;
 
@@ -129,7 +130,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
       AS_GKP_reportError(AS_GKP_LIB_EXISTS,
                          AS_UID_toString(lib_mesg->eaccession), iid);
       gkpStore->inf.libErrors++;
-      checkLibraryForFastQPointers(lib_mesg);
+      checkLibraryForFastQPointers(lib_mesg, packedLength);
       return(1);
     }
     if (AS_UID_isDefined(lib_mesg->eaccession) == FALSE) {
@@ -165,7 +166,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
 
     //  If this library specifies fastq reads, load them now.
 
-    checkLibraryForFastQPointers(lib_mesg);
+    checkLibraryForFastQPointers(lib_mesg, packedLength);
 
   } else if (lib_mesg->action == AS_UPDATE) {
     AS_IID     iid = gkpStore->gkStore_getUIDtoIID(lib_mesg->eaccession, NULL);

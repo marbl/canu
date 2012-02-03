@@ -98,21 +98,13 @@ static const char *AS_READ_TYPE_NAMES[4] = { "ERROR", "PACKED", "NORMAL", "STROB
 //
 //  There are three types of fragments:
 //
-//  Short  -- less than 256 bp.
+//  Packed -- less than 256 bp.
 //  Normal -- up to 1048575 bases, but set at compile time.
 //  Strobe -- for future use.
 //
 //  The three types are encapsulated in the gkFragment, which is the only supported access
 //  mechanism.
 //
-class  gkPackedSequence {
-private:
-  char             enc[AS_READ_MAX_PACKED_LEN];
-
-  friend class gkFragment;
-  friend class gkStore;
-  friend class gkStream;
-};
 
 class gkPackedFragment {
 private:
@@ -133,8 +125,6 @@ private:
 #if 4 + 1 + 1 + 2 + 3 * AS_READ_MAX_PACKED_LEN_BITS != 32
 #error gkPackedFragment size wrong
 #endif
-
-  //char             enc[AS_READ_MAX_PACKED_LEN];
 
   friend class gkFragment;
   friend class gkStore;

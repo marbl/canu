@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.25 2011-11-29 15:58:41 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.26 2012-02-03 10:22:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,46 +39,12 @@ static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.25 2011-11-29 15:58:41 brianwale
 
 #define AS_GKP_CURRENT_VERSION    8
 
-
 gkStore::gkStore() {
 
   gkStore_clear();
 
   uid      = createStringStore(NULL, "uid");
   STRtoUID = CreateStringHashTable_AS();
-}
-
-
-
-gkStore::gkStore(const char *path, int partition) {
-  char       name[FILENAME_MAX];
-
-  gkStore_clear();
-
-  if ((path == NULL) || (path[0] == 0)) {
-    fprintf(stderr, "gkStore::gkStore()--  ERROR!  Empty gkpStore path supplied.\n");
-    exit(1);
-  }
-
-  strcpy(storePath, path);
-
-  assert(partition > 0);
-  partnum = partition;
-
-  sprintf(name,"%s/fpk.%03d", storePath, partnum);
-  partfpk = createIndexStore(name, "partfpk", sizeof(gkPackedFragment), 1);
-  sprintf(name,"%s/qpk.%03d", storePath, partnum);
-  partqpk = createIndexStore(name, "partqpk", sizeof(gkPackedSequence), 1);
-
-  sprintf(name,"%s/fnm.%03d", storePath, partnum);
-  partfnm = createIndexStore(name, "partfnm", sizeof(gkNormalFragment), 1);
-  sprintf(name,"%s/qnm.%03d", storePath, partnum);
-  partqnm = createStringStore(name, "partqnm");
-
-  sprintf(name,"%s/fsb.%03d", storePath, partnum);
-  partfsb = createIndexStore(name, "partfsb", sizeof(gkStrobeFragment), 1);
-  sprintf(name,"%s/qsb.%03d", storePath, partnum);
-  partqsb = createStringStore(name, "partqsb");
 }
 
 
@@ -140,14 +106,12 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
   }
 
   if ((inf.gkLibrarySize        != sizeof(gkLibrary)) ||
-      (inf.gkPackedSequenceSize != sizeof(gkPackedSequence)) ||
       (inf.gkPackedFragmentSize != sizeof(gkPackedFragment)) ||
       (inf.gkNormalFragmentSize != sizeof(gkNormalFragment)) ||
       (inf.gkStrobeFragmentSize != sizeof(gkStrobeFragment)) ||
       (inf.readMaxLenBits       != AS_READ_MAX_NORMAL_LEN_BITS)) {
     fprintf(stderr, "gkStore_open()--  ERROR!  Incorrect element sizes; code and store are incompatible.\n");
     fprintf(stderr, "  gkLibrary:                    store %5d   code %5d bytes\n", inf.gkLibrarySize, (int)sizeof(gkLibrary));
-    fprintf(stderr, "  gkPackedSequence:             store %5d   code %5d bytes\n", inf.gkPackedSequenceSize, (int)sizeof(gkPackedSequence));
     fprintf(stderr, "  gkPackedFragment:             store %5d   code %5d bytes\n", inf.gkPackedFragmentSize, (int)sizeof(gkPackedFragment));
     fprintf(stderr, "  gkNormalFragment:             store %5d   code %5d bytes\n", inf.gkNormalFragmentSize, (int)sizeof(gkNormalFragment));
     fprintf(stderr, "  gkStrobeFragment:             store %5d   code %5d bytes\n", inf.gkStrobeFragmentSize, (int)sizeof(gkStrobeFragment));
@@ -212,10 +176,20 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
 }
 
 
-void
-gkStore::gkStore_create(void) {
+gkStore::gkStore(const char *path, uint32 packedLength) {
   char  name[FILENAME_MAX];
   FILE  *gkpinfo;
+
+  gkStore_clear();
+
+  if (packedLength > AS_READ_MAX_PACKED_LEN)
+    fprintf(stderr, "gkStore::gkStore()--  ERROR!  Packed length (gatekeeper -pl) too large; must be no more than %d.\n",
+            AS_READ_MAX_PACKED_LEN), exit(1);
+
+  if ((path == NULL) || (path[0] == 0))
+    fprintf(stderr, "gkStore::gkStore()--  ERROR!  Empty gkpStore path supplied.\n"), exit(1);
+
+  strcpy(storePath, path);
 
   isReadOnly      = 0;
   isCreating      = 1;
@@ -232,7 +206,7 @@ gkStore::gkStore_create(void) {
   inf.gkMagic              = 1;
   inf.gkVersion            = AS_GKP_CURRENT_VERSION;
   inf.gkLibrarySize        = sizeof(gkLibrary);
-  inf.gkPackedSequenceSize = sizeof(gkPackedSequence);
+  inf.gkPackedSequenceSize = packedLength + 1;
   inf.gkPackedFragmentSize = sizeof(gkPackedFragment);
   inf.gkNormalFragmentSize = sizeof(gkNormalFragment);
   inf.gkStrobeFragmentSize = sizeof(gkStrobeFragment);
@@ -256,7 +230,7 @@ gkStore::gkStore_create(void) {
   sprintf(name,"%s/fpk", storePath);
   fpk = createIndexStore(name, "fpk", sizeof(gkPackedFragment), 1);
   sprintf(name,"%s/qpk", storePath);
-  qpk = createIndexStore(name, "qpk", sizeof(gkPackedSequence), 1);
+  qpk = createIndexStore(name, "qpk", sizeof(char) * inf.gkPackedSequenceSize, 1);
 
   sprintf(name,"%s/fnm", storePath);
   fnm = createIndexStore(name, "fnm", sizeof(gkNormalFragment), 1);
@@ -294,11 +268,18 @@ gkStore::gkStore_create(void) {
   IIDmax    = 0;
   IIDtoTYPE = NULL;
   IIDtoTIID = NULL;
+
+  //  Configure external clear ranges.
+  clearRange = new gkClearRange * [AS_READ_CLEAR_NUM];
+
+  for (uint32 i=0; i<AS_READ_CLEAR_NUM; i++)
+    clearRange[i] = new gkClearRange(this, i, FALSE);
+
+  AS_UID_setGatekeeper(this);
 }
 
 
-void
-gkStore::gkStore_construct(const char * path, int creatable, int writable, int doNotUseUIDs) {
+gkStore::gkStore(const char *path, int creatable, int writable, int doNotUseUIDs) {
   char   name[FILENAME_MAX];
 
   gkStore_clear();
@@ -308,14 +289,14 @@ gkStore::gkStore_construct(const char * path, int creatable, int writable, int d
     exit(1);
   }
 
+  assert(creatable == 0);
+
   strcpy(storePath, path);
 
   sprintf(name,"%s/inf", storePath);
 
-  if ((AS_UTL_fileExists(name, FALSE, writable)) && (creatable == 0)) {
+  if (AS_UTL_fileExists(name, FALSE, writable)) {
     gkStore_open(writable, doNotUseUIDs);
-  } else if (creatable) {
-    gkStore_create();
   } else if (AS_UTL_fileExists(name, FALSE, FALSE)) {
     fprintf(stderr, "gkStore::gkStore()-- GateKeeper Store '%s' isn't writable.\n", storePath);
     exit(1);
@@ -331,15 +312,6 @@ gkStore::gkStore_construct(const char * path, int creatable, int writable, int d
     clearRange[i] = new gkClearRange(this, i, FALSE);
 
   AS_UID_setGatekeeper(this);
-}
-
-
-gkStore::gkStore(const char *path, int creatable, int writable) {
-   gkStore_construct(path, creatable, writable, FALSE);
-}
-
-gkStore::gkStore(const char *path, int creatable, int writable, int doNotUseUIDs) {
-  gkStore_construct(path, creatable, writable, doNotUseUIDs);
 }
 
 

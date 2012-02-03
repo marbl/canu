@@ -91,22 +91,21 @@ public:
 };
 
 
+//gkStore *
+//gkStoreConstruct(const char *path, uint32 packedLength);
+
 class gkStore {
 private:
-  gkStore(const char *path, int partnum);
-
   void         gkStore_open(int writable) { gkStore_open(writable, 1); }
   void         gkStore_open(int writable, int doNotUseUIDs);
-  void         gkStore_create(void);
+  //void         gkStore_create(const char *path, uint32 packedLength);
 
   void         gkStore_clear(void);
   
-  void         gkStore_construct(const char * path, int creatable, int writable, int doNotUseUIDs);
-
 public:
   gkStore();
-  gkStore(const char *path, int creatable, int writable);
-  gkStore(const char *path, int creatable, int writable, int doNotUseUIDs);
+  gkStore(const char *path, uint32 packedLength);
+  gkStore(const char *path, int creatable, int writable, int doNotUseUIDs=0);
   ~gkStore();
 
   //  The 'name' of this gkpStore.

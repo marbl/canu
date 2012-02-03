@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.4 2011-12-12 16:25:30 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.5 2012-02-03 10:22:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -110,13 +110,15 @@ gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
                  fr->enc, AS_READ_MAX_NORMAL_LEN, &actLen);
 
     decodeSequenceQuality(fr->enc, fr->seq, fr->qlt);
-    if (fr->seq[seqLen] != 0 || fr->qlt[seqLen] != 0) {
-      fprintf(stderr, "ERROR: Gatekeeper store may be corrupt!\n");
-      fprintf(stderr, "INFO: Gatekeeper fragment sequence or quality is not null terminated!\n");
-      fprintf(stderr, "INFO: Fragment UID=%s IID="F_IID" \n", 
-	      AS_UID_toString(fr->gkFragment_getReadUID()), fr->gkFragment_getReadIID());
-      fprintf(stderr, "INFO: Expected null at seq[%d], found %c\n", seqLen, fr->seq[seqLen]); 
-      fprintf(stderr, "INFO: Expected null at qlt[%d], found %c\n", seqLen, fr->qlt[seqLen]); 
+
+    if ((fr->seq[seqLen] != 0) ||
+        (fr->qlt[seqLen] != 0)) {
+      fprintf(stderr, "gkStore_getFragmentData()- Potential gkpStore corruption.\n");
+      fprintf(stderr, "gkStore_getFragmentData()- Fragment "F_IID" reports length %d, but seq/qlt report length %d/%d.\n",
+              fr->gkFragment_getReadIID(),
+              seqLen,
+              strlen(fr->seq),
+              strlen(fr->qlt));
     }
     assert(fr->seq[seqLen] == 0);
     assert(fr->qlt[seqLen] == 0);

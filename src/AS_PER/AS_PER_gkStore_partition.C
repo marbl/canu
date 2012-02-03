@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.2 2011-01-06 19:41:34 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.3 2012-02-03 10:22:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -106,69 +106,92 @@ gkStore::gkStore_loadPartition(uint32 partition) {
 
 void
 gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
+  char              name[FILENAME_MAX];
   gkFragment        fr;
 
   assert(partmap    == NULL);
   assert(isReadOnly == 1);
   assert(isCreating == 0);
 
-  //  Create the partitions by opening N copies of the gatekeeper store,
-  //  and telling each one to make a partition.
-  //
-  gkStore **gkpart = new gkStore * [maxPart + 1];
+  //  Create the partitions by opening N copies of the data stores,
+  //  and writing data to each.
+
+  StoreStruct  **partfpk = new StoreStruct * [maxPart];
+  StoreStruct  **partqpk = new StoreStruct * [maxPart];
+
+  StoreStruct  **partfnm = new StoreStruct * [maxPart];
+  StoreStruct  **partqnm = new StoreStruct * [maxPart];
+
+  StoreStruct  **partfsb = new StoreStruct * [maxPart];
+  StoreStruct  **partqsb = new StoreStruct * [maxPart];
 
   AS_PER_setBufferSize(512 * 1024);
 
-  for (uint32 i=1; i<=maxPart; i++)
-    gkpart[i] = new gkStore (storePath, i);
+  for (uint32 i=0; i<=maxPart; i++) {
+    sprintf(name,"%s/fpk.%03d", storePath, partnum);
+    partfpk[i] = createIndexStore(name, "partfpk", sizeof(gkPackedFragment), 1);
+    sprintf(name,"%s/qpk.%03d", storePath, partnum);
+    partqpk[i] = createIndexStore(name, "partqpk", sizeof(char) * inf.gkPackedSequenceSize, 1);
 
-  //  And, finally, add stuff to each partition.
-  //
+    sprintf(name,"%s/fnm.%03d", storePath, partnum);
+    partfnm[i] = createIndexStore(name, "partfnm", sizeof(gkNormalFragment), 1);
+    sprintf(name,"%s/qnm.%03d", storePath, partnum);
+    partqnm[i] = createStringStore(name, "partqnm");
+
+    sprintf(name,"%s/fsb.%03d", storePath, partnum);
+    partfsb[i] = createIndexStore(name, "partfsb", sizeof(gkStrobeFragment), 1);
+    sprintf(name,"%s/qsb.%03d", storePath, partnum);
+    partqsb[i] = createStringStore(name, "partqsb");
+  }
+
   for (uint32 iid=1; iid<=gkStore_getNumFragments(); iid++) {
-    int p;
-
     gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
 
-    p = partitionMap[iid];
+    int32 p = partitionMap[iid];
 
-    //  Check it's actually partitioned.  Deleted reads won't get
-    //  assigned to a partition.
     if (p < 1)
+      //  Deleted reads are not assigned a partition; skip them
       continue;
 
-
     if (fr.type == GKFRAGMENT_PACKED) {
-      appendIndexStore(gkpart[p]->partfpk, &fr.fr.packed);
-      appendIndexStore(gkpart[p]->partqpk,  fr.enc);
+      appendIndexStore(partfpk[p], &fr.fr.packed);
+      appendIndexStore(partqpk[p],  fr.enc);
     }
 
 
     if (fr.type == GKFRAGMENT_NORMAL) {
       fr.fr.normal.seqOffset = -1;
-      fr.fr.normal.qltOffset = getLastElemStore(gkpart[p]->partqnm) + 1;
+      fr.fr.normal.qltOffset = getLastElemStore(partqnm[p]) + 1;
 
-      //encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
-
-      appendIndexStore(gkpart[p]->partfnm, &fr.fr.normal);
-      appendStringStore(gkpart[p]->partqnm, fr.enc, fr.fr.normal.seqLen);
+      appendIndexStore(partfnm[p], &fr.fr.normal);
+      appendStringStore(partqnm[p], fr.enc, fr.fr.normal.seqLen);
     }
 
 
     if (fr.type == GKFRAGMENT_STROBE) {
       fr.fr.strobe.seqOffset = -1;
-      fr.fr.strobe.qltOffset = getLastElemStore(gkpart[p]->partqsb) + 1;
+      fr.fr.strobe.qltOffset = getLastElemStore(partqsb[p]) + 1;
 
-      //encodeSequenceQuality(fr.enc, fr.seq, fr.qlt);
-
-      appendIndexStore(gkpart[p]->partfsb, &fr.fr.strobe);
-      appendStringStore(gkpart[p]->partqsb, fr.enc, fr.fr.strobe.seqLen);
+      appendIndexStore(partfsb[p], &fr.fr.strobe);
+      appendStringStore(partqsb[p], fr.enc, fr.fr.strobe.seqLen);
     }
   }
 
   //  cleanup -- close all the stores
 
-  for (uint32 i=1; i<=maxPart; i++)
-    delete gkpart[i];
+  for (uint32 i=1; i<=maxPart; i++) {
+    closeStore(partfpk[i]);
+    closeStore(partqpk[i]);
+    closeStore(partfnm[i]);
+    closeStore(partqnm[i]);
+    closeStore(partfsb[i]);
+    closeStore(partqsb[i]);
+  }
 
-  delete gkpart;
+  delete [] partfpk;
+  delete [] partqpk;
+  delete [] partfnm;
+  delete [] partqnm;
+  delete [] partfsb;
+  delete [] partqsb;
 }

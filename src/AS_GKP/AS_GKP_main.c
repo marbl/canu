@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.97 2011-08-30 02:59:31 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.98 2012-02-03 10:22:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -404,6 +404,7 @@ main(int argc, char **argv) {
   int              assembler          = AS_ASSEMBLER_GRANDE;
   int              firstFileArg       = 0;
   int              fixInsertSizes     = 0;
+  int              packedLength       = 150;
 
   //  Options for partitioning
   //
@@ -447,6 +448,8 @@ main(int argc, char **argv) {
   int hlp = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-a") == 0) {
+      fprintf(stderr, "ERROR: -a (append) not currently supported\n");
+      exit(1);
       append = 1;
     } else if (strcmp(argv[arg], "-b") == 0) {
       begIID = atoi(argv[++arg]);
@@ -466,6 +469,9 @@ main(int argc, char **argv) {
       fixInsertSizes = 1;
     } else if (strcmp(argv[arg], "-P") == 0) {
       partitionFile = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-pl") == 0) {
+      packedLength = atoi(argv[++arg]);
 
       //  Except for -b and -e, all the dump options are below.
 
@@ -658,7 +664,7 @@ main(int argc, char **argv) {
   if (append)
     gkpStore = new gkStore(gkpStoreName, FALSE, TRUE);
   else
-    gkpStore = new gkStore(gkpStoreName, TRUE, TRUE);
+    gkpStore = new gkStore(gkpStoreName, packedLength);
 
   //  This is a special case for gatekeeper; we never call
   //  gkStore_getFragment() and so we never set up the gkFragment.
@@ -725,7 +731,7 @@ main(int argc, char **argv) {
       if        (pmesg->t == MESG_DST) {
         Check_DistanceMesg((DistanceMesg *)pmesg->m, fixInsertSizes);
       } else if (pmesg->t == MESG_LIB) {
-        Check_LibraryMesg((LibraryMesg *)pmesg->m, fixInsertSizes);
+        Check_LibraryMesg((LibraryMesg *)pmesg->m, fixInsertSizes, packedLength);
       } else if (pmesg->t == MESG_FRG) {
         Check_FragMesg((FragMesg *)pmesg->m, assembler);
       } else if (pmesg->t == MESG_LKG) {
