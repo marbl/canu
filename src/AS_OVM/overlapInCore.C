@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.8 2012-01-30 19:28:02 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.9 2012-02-03 08:57:49 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -170,11 +170,11 @@ uint32  Max_Hash_Strings          = 100000000 / 800;
 uint64  Max_Hash_Data_Len         = 100000000;
 uint32  Max_Frags_In_Memory_Store = MAX_OLD_BATCH_SIZE;
 
-uint32  Last_Hash_Frag_Read;
-uint32  Lo_Hash_Frag = 0;
-uint32  Hi_Hash_Frag = INT_MAX;
-uint32  Lo_Old_Frag = 0;
-uint32  Hi_Old_Frag = INT_MAX;
+AS_IID  Last_Hash_Frag_Read;
+AS_IID  Lo_Hash_Frag = 0;
+AS_IID  Hi_Hash_Frag = AS_IID_MAX;
+AS_IID  Lo_Old_Frag  = 0;
+AS_IID  Hi_Old_Frag  = AS_IID_MAX;
 uint32  Num_PThreads = 4;
 
 char  Sequence_Buffer [2 * AS_READ_MAX_NORMAL_LEN];
@@ -190,8 +190,8 @@ char  * Frag_Store_Path;
 pthread_mutex_t  FragStore_Mutex;
 pthread_mutex_t  Write_Proto_Mutex;
 
-int64  First_Hash_Frag = -1;
-int64   Last_Hash_Frag;
+AS_IID      First_Hash_Frag = 0;
+AS_IID      Last_Hash_Frag  = 0;
 gkFragment  myRead;
 
 AS_IID  Frag_Segment_Lo;
@@ -293,10 +293,15 @@ Initialize_Work_Area(Work_Area_t * WA, int id) {
 
 static
 bool
-ReadFrags(int maxFrags) {
+ReadFrags(AS_IID maxFrags) {
 
-  if  (First_Hash_Frag == -1)
-    // First time through
+  assert(First_Hash_Frag >= 0);
+  assert(Last_Hash_Frag  >= 0);
+
+  //assert(First_Hash_Frag <= maxFrags);
+  //assert(Last_Hash_Frag  <= maxFrags);
+
+  if  (First_Hash_Frag == 0)
     First_Hash_Frag = Lo_Hash_Frag;
   else
     First_Hash_Frag = Last_Hash_Frag + 1;

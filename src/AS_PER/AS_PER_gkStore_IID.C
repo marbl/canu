@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_IID.C,v 1.5 2012-01-31 07:09:21 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_IID.C,v 1.6 2012-02-03 08:57:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -160,9 +160,13 @@ gkStore::gkStore_computeRanges(AS_IID  bgnIID, AS_IID  endIID,
   uint32  edType    = 0;
   uint32  edTiid    = 0;
 
-  bgnPK = INT64_MAX;  endPK = INT64_MAX;  valPK = 0;
-  bgnNM = INT64_MAX;  endNM = INT64_MAX;  valNM = 0;
-  bgnSB = INT64_MAX;  endSB = INT64_MAX;  valSB = 0;
+  bgnPK = INT64_MAX;  endPK = INT64_MIN;  valPK = 0;
+  bgnNM = INT64_MAX;  endNM = INT64_MIN;  valNM = 0;
+  bgnSB = INT64_MAX;  endSB = INT64_MIN;  valSB = 0;
+
+  assert(bgnIID >= 1);
+  assert(bgnIID <= endIID);
+  assert(endIID <= gkStore_getNumFragments());
 
   if (IIDtoTYPE == NULL) {
     gkStore_decodeTypeFromIID(bgnIID, stType, stTiid);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static const char *rcsid = "$Id: overlapInCore.H,v 1.3 2011-08-03 16:39:03 brianwalenz Exp $";
+//static const char *rcsid = "$Id: overlapInCore.H,v 1.4 2012-02-03 08:57:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -479,12 +479,12 @@ extern uint32  Hash_Mask_Bits;
 extern double  Max_Hash_Load;
 extern uint32  Max_Hash_Strings;
 extern uint64  Max_Hash_Data_Len;
-extern uint32  Max_Frags_In_Memory_Store;
-extern uint32  Last_Hash_Frag_Read;
-extern uint32  Lo_Hash_Frag;
-extern uint32  Hi_Hash_Frag;
-extern uint32  Lo_Old_Frag;
-extern uint32  Hi_Old_Frag;
+extern AS_IID  Max_Frags_In_Memory_Store;
+extern AS_IID  Last_Hash_Frag_Read;
+extern AS_IID  Lo_Hash_Frag;
+extern AS_IID  Hi_Hash_Frag;
+extern AS_IID  Lo_Old_Frag;
+extern AS_IID  Hi_Old_Frag;
 extern uint32  Num_PThreads;
 extern char  Sequence_Buffer [2 * AS_READ_MAX_NORMAL_LEN];
 extern char  Quality_Buffer [2 * AS_READ_MAX_NORMAL_LEN];
@@ -494,8 +494,8 @@ extern gkStore  *OldFragStore;
 extern char  * Frag_Store_Path;
 extern pthread_mutex_t  FragStore_Mutex;
 extern pthread_mutex_t  Write_Proto_Mutex;
-extern int64  First_Hash_Frag;
-extern int64   Last_Hash_Frag;
+extern AS_IID  First_Hash_Frag;
+extern AS_IID  Last_Hash_Frag;
 extern gkFragment  myRead;
 extern AS_IID  Frag_Segment_Lo;
 extern AS_IID  Frag_Segment_Hi;
@@ -511,7 +511,7 @@ Read_Next_Frag(char frag [AS_READ_MAX_NORMAL_LEN + 1],
                char quality [AS_READ_MAX_NORMAL_LEN + 1],
                gkStream *stream,
                gkFragment *myRead,
-               uint32 * last_frag_read,
+               AS_IID * last_frag_read,
                uint32 minLibToRead, uint32 maxLibToRead);
 
 
