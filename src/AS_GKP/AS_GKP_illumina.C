@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.25 2012-01-30 14:17:40 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.26 2012-02-03 09:18:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,6 +69,8 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
   //  Determine if this should be a PACKED or a NORMAL fragment.  PACKED is definitely
   //  preferred for assemblies that are using most reads of a single length.
 
+  fr->fr.gkFragment_clear();
+
   if ((slen < AS_READ_MAX_PACKED_LEN) &&
       (allowPacked == true))
     fr->fr.gkFragment_setType(GKFRAGMENT_PACKED);
@@ -76,9 +78,6 @@ processSeq(char *N, ilFragment *fr, char end, uint32 fastqType, uint32 fastqOrie
     fr->fr.gkFragment_setType(GKFRAGMENT_NORMAL);
 
   fr->fr.gkFragment_setIsDeleted(1);
-
-  fr->fr.gkFragment_setMateIID(0);
-  fr->fr.gkFragment_setLibraryIID(0);
 
   //  Complicated, but fast, parsing of the 'snam' to find clear ranges.
 

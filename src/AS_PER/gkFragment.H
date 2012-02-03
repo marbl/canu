@@ -438,6 +438,8 @@ public:
   void        gkFragment_setIsDeleted(uint32 i)   { assert(isGKP);  gkFragment_set(deleted, i); };
   void        gkFragment_setIsNonRandom(uint32 i) { assert(isGKP);  gkFragment_set(nonrandom, i); };
 
+  void        gkFragment_clear(void)              { memset(&fr, 0, sizeof(gkFragmentData)); };
+
 private:
 public:
   uint32   type;
