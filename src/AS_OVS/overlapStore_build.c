@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.38 2012-02-01 20:12:35 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.39 2012-02-03 14:20:23 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -622,6 +622,111 @@ index--;
 
 //
 
+
+void
+sortDistributedBucketGES(char *storeName, 
+           char *gkpName, 
+           uint64 memoryLimit, 
+           uint32 fileLimit,
+           uint32 nThreads, 
+           uint32 fileListLen, 
+           char **fileList, 
+           uint32 index) {
+
+
+  time_t  beginTime = time(NULL);
+
+   // Subtract 1 since SGE job arrays are 1-based index.
+
+   index--;
+
+  if (gkpName == NULL) {
+    fprintf(stderr, "overlapStore: The '-g gkpName' parameter is required.\n");
+    exit(1);
+  }
+
+  OverlapStore    *storeFile = AS_OVS_createOverlapStore(storeName, TRUE);
+
+  storeFile->gkp = new gkStore(gkpName, FALSE, FALSE);
+
+  uint64  maxIID              = storeFile->gkp->gkStore_getNumFragments() + 1;
+  uint64  iidPerBucket        = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileListLen, fileList);
+  uint32                   dumpFileMax  = sysconf(_SC_OPEN_MAX) - 16;
+  uint64                   dumpLengthMax;
+  uint64                  *dumpLength   = (uint64 *)safe_calloc(sizeof(uint64), dumpFileMax);
+
+  // Determine size of overlap array needed.
+  // Will be some of all paritions with index 'index'
+  // in partitions across fileList
+  
+  char name[FILENAME_MAX];
+  char nameMigrate[FILENAME_MAX];
+  struct stat st;
+  dumpLengthMax=0;
+
+  // Get size of the final merged and sorted file
+  for (uint32 i=0; i<fileListLen; i++) {
+        sprintf(name, "%s/unsorted%04d/tmp.sort.%03d", storeName,i,index);
+  	if ((stat(name, &st))==0) {
+	dumpLengthMax += (st.st_size / sizeof(OVSoverlap));
+	dumpLength[i]=  (st.st_size / sizeof(OVSoverlap));
+	} else {
+		dumpLength[i]=0;
+	}
+  }
+
+  OVSoverlap         *overlapsort = NULL;
+  overlapsort = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * dumpLengthMax);
+  BinaryOverlapFile  *bof = NULL;
+  uint64 numOvl = 0;
+  for (uint32 i=0; i<fileListLen; i++) {
+
+	if (dumpLength[i] == 0 ) {
+		continue;
+	}
+
+  	fprintf(stderr, "Concatenating unsorted temporary partitions %u.\n",i);
+    	fprintf(stderr, "Concatenating dumpfile partition %u.%u to unsorted dump.\n",i,index);
+        sprintf(name, "%s/unsorted%04d/tmp.sort.%03d", storeName,i,index);
+
+        bof = AS_OVS_openBinaryOverlapFile(name, FALSE);
+	while (AS_OVS_readOverlap(bof, overlapsort + numOvl))
+		numOvl++;
+
+         AS_OVS_closeBinaryOverlapFile(bof);
+  }
+    assert(numOvl == dumpLengthMax);
+
+    fprintf(stderr, "sorting %s (%ld)\n", name, time(NULL) - beginTime);
+    qsort_mtGES(overlapsort, numOvl, sizeof(OVSoverlap), OVSoverlap_sortGES, nThreads, 16 * 1024 * 1024);
+
+
+    // Migrate sorted dump files to store format
+    sprintf(nameMigrate, "%s/%04d", storeName, index+1);
+    fprintf(stderr, "Migrating sorted overlap dump %s to %s (%ld)\n", name,nameMigrate,time(NULL) - beginTime);
+    bof = AS_OVS_createBinaryOverlapFile(nameMigrate,TRUE); //Create overlaps with only b_iid.
+
+    for (uint64 j=0; j < numOvl; j++) {  //<= or < ?
+    	AS_OVS_writeOverlap(bof, overlapsort+j);
+    }
+
+    AS_OVS_closeBinaryOverlapFile(bof);    
+
+    // Leave index building for later.
+
+    AS_OVS_writeOverlapDumpToStore2(storeName,overlapsort, numOvl,index);
+    fprintf(stderr, "Done migrating %s (%ld)\n", name,time(NULL) - beginTime);
+
+  AS_OVS_closeOverlapStore(storeFile);
+
+  safe_free(overlapsort);
+
+  exit(0);
+}
+
+
+
+
 void
 sortMergedBucketGES(char *storeName, 
            char *gkpName, 
@@ -813,6 +918,144 @@ buildStoreIndexGES(char *storeName,
   exit(0);
 }
 
+
+
+void
+buildStoreIndexGES2(char *storeName, 
+           char *gkpName, 
+           uint64 memoryLimit, 
+           uint32 fileLimit,
+           uint32 nThreads, 
+           uint32 fileListLen, 
+           char **fileList ) { 
+
+  if (gkpName == NULL) {
+    fprintf(stderr, "overlapStore: The '-g gkpName' parameter is required.\n");
+    exit(1);
+  }
+
+  OverlapStore    *storeFile = AS_OVS_createOverlapStore(storeName, TRUE);
+
+  storeFile->gkp = new gkStore(gkpName, FALSE, FALSE);
+
+  uint64  maxIID              = storeFile->gkp->gkStore_getNumFragments() + 1;
+
+  uint64                   iidPerBucket = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileListLen, fileList);
+
+  uint32                   dumpFileMax  = sysconf(_SC_OPEN_MAX) - 16;
+  uint64                  dumpLengthMax=0;
+  uint64                  *dumpLength   = (uint64 *)safe_calloc(sizeof(uint64), dumpFileMax);
+
+  if (maxIID / iidPerBucket + 1 >= dumpFileMax) {
+    fprintf(stderr, "ERROR:\n");
+    fprintf(stderr, "ERROR:  Operating system limit of %d open files.  The current -M and -F settings\n", dumpFileMax);
+    fprintf(stderr, "ERROR:  will need to create "F_U64" files to construct the store.\n", maxIID / iidPerBucket);
+    fprintf(stderr, "ERROR:  Increase runCA option ovlStoreMemory.\n");
+    exit(1);
+  }
+
+  struct stat st;
+  char                name[FILENAME_MAX];
+  char                name_append[FILENAME_MAX];
+  FILE * fp_app;
+  FILE * fp_tmp;
+  char buffer[1024];
+  int32 nr;
+  int32 nw;
+  OverlapStoreInfo ovs;
+  uint32 lastHighestIID=0;
+  uint32 highestFileIndex=0;
+
+OverlapStoreOffsetRecord missing;
+
+missing.offset=0;
+missing.numOlaps=0;
+
+
+  for (uint32 i=0; i<dumpFileMax; i++) {
+  // Get size of file
+	  sprintf(name, "%s/%04d.idx", storeName, i);
+	  // concatenate index files to create master index
+	  // determine smallest/largest overlap id, number of overlaps
+	  if (stat(name, &st)==0 ) {
+		  dumpLength[i] = st.st_size;
+	          highestFileIndex=i;
+	   } else { 
+              dumpLength[i]=0;
+	   }
+
+	if (dumpLength[i] == 0 ) {
+		fprintf(stderr,"Skipping %04d.idx -- not found. (OK -- not all %u buckets may used).\n",i,dumpFileMax);
+		continue;
+        }	
+
+	if ((fp_tmp=fopen(name,"r")) == NULL) {
+    		fprintf(stderr, "Missing index %04d.idx\n",i);
+		exit(EXIT_FAILURE);
+	}
+
+        sprintf(name_append, "%s/idx", storeName);
+	if ((fp_app=fopen(name_append,"a")) == NULL) {
+    		fprintf(stderr, "Error opening %s.\n",name);
+		exit(EXIT_FAILURE);
+	}
+
+
+	//get stats for ovs to compile master list
+	  sprintf(name, "%s/%04d.ovs", storeName, i);
+	  FILE * fp_ovs = fopen(name,"r");
+	  fread(&ovs,sizeof(OverlapStoreInfo),1,fp_ovs);
+	   
+
+          if (storeFile->ovs.smallestIID > ovs.smallestIID)
+		  storeFile->ovs.smallestIID = ovs.smallestIID;
+	  if (storeFile->ovs.largestIID < ovs.largestIID)
+	          storeFile->ovs.largestIID = ovs.largestIID;
+
+	 storeFile->ovs.numOverlapsTotal+=ovs.numOverlapsTotal;
+
+	 fprintf(stderr,"lasthighest %u current smallest: %lu\n",lastHighestIID,ovs.smallestIID);
+	 if (ovs.smallestIID != 1) {
+         // Fill gaps if necessary
+	 while (lastHighestIID < ovs.smallestIID ) {
+		missing.a_iid=lastHighestIID;
+		missing.fileno=i+1;
+	        fprintf(stderr,"adding gap lasthighest %u current smallest: %lu\n",lastHighestIID,ovs.smallestIID);
+		if ((fwrite(&missing,sizeof(OverlapStoreOffsetRecord),1,fp_app))!=1){
+			fprintf(stderr,"write file error.\n");
+			exit(1);
+		}
+		lastHighestIID++;
+	 }
+	 }
+
+	//append file
+	while(feof(fp_tmp)==0){	
+	 	if((nr=fread(buffer,sizeof(char),1024,fp_tmp))!=1024){
+			if(ferror(fp_tmp)!=0){
+				fprintf(stderr,"read file error.\n");
+				exit(1);
+			} else if(feof(fp_tmp)!=0);
+		}
+		if((nw=fwrite(buffer,sizeof(char),nr,fp_app))!=nr){
+			fprintf(stderr,"write file error.\n");
+			exit(1);
+		}
+	}
+
+	lastHighestIID=ovs.largestIID; 
+
+	fclose(fp_tmp);
+	fclose(fp_app);
+  }
+
+  // Set all the OVS info necessary here:
+  storeFile->currentFileIndex=(highestFileIndex+1);
+
+  AS_OVS_closeOverlapStore(storeFile);
+
+  exit(0);
+}
 
 
 

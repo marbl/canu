@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAPSTORE_H
 #define AS_OVS_OVERLAPSTORE_H
 
-static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.17 2012-02-01 20:12:35 gesims Exp $";
+static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.18 2012-02-03 14:20:23 gesims Exp $";
 
 #include <stdio.h>
 
@@ -107,5 +107,6 @@ uint32             AS_OVS_lastFragInStore(OverlapStore *ovs) {
 OverlapStore      *AS_OVS_createOverlapStore(const char *name, int failOnExist);
 void               AS_OVS_writeOverlapToStore(OverlapStore *ovs, OVSoverlap *olap);
 void               AS_OVS_writeOverlapDumpToStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 maxOverlapsThisFile);
+void               AS_OVS_writeOverlapDumpToStore2(char * ovstore, OVSoverlap *overlap, uint32 maxOverlapsThisFile,uint32 index);
 
 #endif  //  AS_OVS_OVERLAPSTORE_H

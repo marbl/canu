@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.32 2012-02-01 20:10:52 gesims Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.33 2012-02-03 14:20:23 gesims Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -178,10 +178,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-I") == 0) {
       optimizedBuildIndexFile = TRUE;
 
-    } else if (strcmp(argv[arg], "-Y") == 0) {
-      optimizedMergeBuckets = TRUE;
-      workingBucketIndex = atoi(argv[++arg]);
-
     } else if (strcmp(argv[arg], "-L") == 0) {
       char *line;
 
@@ -247,9 +243,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "CREATION - create a new store from raw overlap files\n");
     fprintf(stderr, "  -P           (alpha) Optimized overlapstore create.\n");
-    fprintf(stderr, "  -U x         (alpha) Optimized grid enabled bucketizer (bucketize xth overlap file)\n");
-    fprintf(stderr, "  -Y x         (alpha) Merge buckets from grid enabled bucketizer");
-    fprintf(stderr, "  -W x         (alpha) Sort bucket (sort xth Bucket) and dump to storefile.\n");
+    fprintf(stderr, "  -U x         (alpha) Optimized grid enabled bucketizer  (bucketize xth overlap file)\n");
+    fprintf(stderr, "  -W x         (alpha) Sort buckets created with -U and dump to storefile.\n");
     fprintf(stderr, "  -I           (alpha) Create index of all storefile buckets.\n");
     fprintf(stderr, "  -O           Filter overlaps for OBT.\n");
     fprintf(stderr, "  -M x         Use 'x'MB memory for sorting overlaps (conflicts with -F).\n");
@@ -305,12 +300,10 @@ main(int argc, char **argv) {
       if (optimizedOvlBucketize) {
 	   fprintf(stderr,"Using optimized grid enabled bucketizer\n");
            BucketizeOvlGES(storeName, gkpName, memoryLimit, fileLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt, workingOvlDumpIndex );
-      } else if (optimizedMergeBuckets) {
-           mergeBucketsGES(storeName, gkpName, memoryLimit, fileLimit, fileList.size(), &fileList[0],workingBucketIndex );
       } else if (optimizedSortMergedBuckets) {
-          sortMergedBucketGES(storeName, gkpName, memoryLimit, fileLimit,nThreads, fileList.size(), &fileList[0], workingBucketIndex );
+          sortDistributedBucketGES(storeName, gkpName, memoryLimit, fileLimit,nThreads, fileList.size(), &fileList[0], workingBucketIndex );
       } else if (optimizedBuildIndexFile) {
-          buildStoreIndexGES(storeName, gkpName, memoryLimit, fileLimit, nThreads, fileList.size(), &fileList[0]);	  
+          buildStoreIndexGES2(storeName, gkpName, memoryLimit, fileLimit, nThreads, fileList.size(), &fileList[0]);	  
       } else if (optimizedStoreCreate) { 
 	   fprintf(stderr,"Using optimized store build\n");
            buildStoreGES(storeName, gkpName, memoryLimit, fileLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt);
