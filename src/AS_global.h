@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.53 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.54 2012-02-03 11:54:12 brianwalenz Exp $";
 
 //  ISO C99 says that to get INT32_MAX et al, these must be defined. (7.18.2, 7.18.4, 7.8.1)
 #ifndef __STDC_CONSTANT_MACROS
@@ -205,30 +205,14 @@ typedef uintptr_t INTPTR;
 #define AS_READ_MAX_PACKED_LEN_BITS       8
 #define AS_READ_MAX_NORMAL_LEN_BITS       11
 
-//  AS_READ_MAX_NORMAL_LEN should be a multiple of 8, only to keep things aligned.
-//  The total size for storing a single fragment is '24 + n' (as of gkFragment.H r1.8).
-//    128 bytes of data allows for length of  104 bases
-//    160 bytes of data allows for length of  136 bases
-//    192 bytes of data allows for length of  168 bases
-//
-//  Compare against a gkNormalFragment of fixed size 48 bytes + 10 bits per base.
-//    128 bytes of data allows for length of  64 bases
-//    160 bytes of data allows for length of  89 bases
-//    192 bytes of data allows for length of 115 bases
-//  The formula (gkFragment.H r1.8) is 48 + 10/8 * n.
-//
-//  The catch is that gkPackedFragment always allocates this much space, regardless of the actual
-//  length of a fragment, where gkNormalFragment only allocates as much space as used by the
-//  sequence.
-//
-#define AS_READ_MAX_PACKED_LEN            136
+#define AS_READ_MAX_PACKED_LEN            ((1 << AS_READ_MAX_PACKED_LEN_BITS) - 1)
 #define AS_READ_MAX_NORMAL_LEN            ((1 << AS_READ_MAX_NORMAL_LEN_BITS) - 1)
 
 //  AS_OVL controls both overlapper and bubble popping
 
 extern double AS_OVL_ERROR_RATE;
-extern double AS_CGW_ERROR_RATE;  //  former CGW_DP_ERATE
-extern double AS_CNS_ERROR_RATE;  //  former CNS_DP_ERATE
+extern double AS_CGW_ERROR_RATE;
+extern double AS_CNS_ERROR_RATE;
 extern double AS_MAX_ERROR_RATE;
 
 #define AS_READ_ERROR_RATE         AS_OVL_ERROR_RATE
