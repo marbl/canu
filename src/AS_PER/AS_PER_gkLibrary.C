@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.18 2012-02-03 21:47:58 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.19 2012-02-06 08:28:26 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -58,121 +58,128 @@ decodeBoolean(char *feature, char *value) {
 
 
 void
+gkLibrary::gkLibrary_setFeature(char *fea, char *val) {
+
+  //  Unitigger options
+
+  if      (strcasecmp(fea, "forceBOGunitigger") == 0)
+    forceBOGunitigger = decodeBoolean("forceBOGunitigger", val);
+
+  else if (strcasecmp(fea, "isNotRandom") == 0)
+    isNotRandom = decodeBoolean("isNotRandom", val);
+
+  //  Alignment options
+
+  else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0)
+    doNotTrustHomopolymerRuns = decodeBoolean("doNotTrustHomopolymerRuns", val);
+
+  //  OBT options
+
+  else if (strcasecmp(fea, "doTrim_initialNone") == 0)
+    doTrim_initialNone = decodeBoolean("doTrim_initialNone", val);
+  else if (strcasecmp(fea, "doTrim_initialMerBased") == 0)
+    doTrim_initialMerBased = decodeBoolean("doTrim_initialMerBased", val);
+  else if (strcasecmp(fea, "doTrim_initialFlowBased") == 0)
+    doTrim_initialFlowBased = decodeBoolean("doTrim_initialFlowBased", val);
+  else if (strcasecmp(fea, "doTrim_initialQualityBased") == 0)
+    doTrim_initialQualityBased = decodeBoolean("doTrim_initialQualityBased", val);
+
+  else if (strcasecmp(fea, "doRemoveDuplicateReads") == 0)
+    doRemoveDuplicateReads = decodeBoolean("doRemoveDuplicateReads", val);
+
+  else if (strcasecmp(fea, "doTrim_finalLargestCovered") == 0)
+    doTrim_finalLargestCovered = decodeBoolean("doTrim_finalLargestCovered", val);
+  else if (strcasecmp(fea, "doTrim_finalEvidenceBased") == 0)
+    doTrim_finalEvidenceBased = decodeBoolean("doTrim_finalEvidenceBased", val);
+
+  else if (strcasecmp(fea, "doRemoveSpurReads") == 0)
+    doRemoveSpurReads = decodeBoolean("doRemoveSpurReads", val);
+  else if (strcasecmp(fea, "doRemoveChimericReads") == 0)
+    doRemoveChimericReads = decodeBoolean("doRemoveChimericReads", val);
+
+  //  COMPATIBILITY OPTIONS
+  else if (strcasecmp(fea, "doMerBasedTrimming") == 0) {
+    fprintf(stderr, "COMPATIBILITY doMerBasedTrimming\n");
+    if (decodeBoolean("doMerBasedTrimming", val) == 1) {
+      fprintf(stderr, "COMPATIBILITY doMerBasedTrimming\n");
+      doTrim_initialNone         = 0;
+      doTrim_initialMerBased     = 1;
+      doTrim_initialFlowBased    = 0;
+      doTrim_initialQualityBased = 0;
+
+      doTrim_finalLargestCovered = 1;
+      doTrim_finalEvidenceBased  = 0;
+    }
+  }
+  else if (strcasecmp(fea, "doNotQVTrim") == 0) {
+    fprintf(stderr, "COMPATIBILITY doNotQVTrim\n");
+    if (decodeBoolean("doNotQVTrim", val) == 1) {
+      fprintf(stderr, "COMPATIBILITY doNotQVTrim\n");
+      doTrim_initialNone         = 0;
+      doTrim_initialMerBased     = 0;
+      doTrim_initialFlowBased    = 1;
+      doTrim_initialQualityBased = 0;
+
+      doTrim_finalLargestCovered = 0;
+      doTrim_finalEvidenceBased  = 1;
+    }
+  }
+  else if (strcasecmp(fea, "goodBadQVThreshold") == 0) {
+    fprintf(stderr, "COMPATIBILITY doNotOverlapTrim\n");
+  }
+  else if (strcasecmp(fea, "doNotOverlapTrim") == 0) {
+    fprintf(stderr, "COMPATIBILITY doNotOverlapTrim\n");
+    if (decodeBoolean("doNotOverlapTrim", val) == 1) {
+      fprintf(stderr, "COMPATIBILITY doNotOverlapTrim\n");
+      doTrim_initialNone         = 0;
+      doTrim_initialMerBased     = 0;
+      doTrim_initialFlowBased    = 0;
+      doTrim_initialQualityBased = 0;
+
+      doTrim_finalLargestCovered = 0;
+      doTrim_finalEvidenceBased  = 0;
+    }
+  }
+
+  else if (strcasecmp(fea, "doConsensusCorrection") == 0)
+    doConsensusCorrection = decodeBoolean("doConsensusCorrection", val);
+
+  //  Gatekeeper options
+
+  else if (strcasecmp(fea, "forceShortReadFormat") == 0)
+    forceShortReadFormat = decodeBoolean("forceShortReadFormat", val);
+
+  //  Illumina options, just to make it not complain about unknown features
+
+  else if ((strcasecmp(fea, "illuminaFastQType") == 0) ||
+           (strcasecmp(fea, "illuminaOrientation") == 0) ||
+           (strcasecmp(fea, "illuminaQSequence") == 0) ||
+           (strcasecmp(fea, "illuminaSequence") == 0))
+    //  These are now errors, handled by AS_GKP_illumina.C.
+    ;
+
+  else if ((strcasecmp(fea, "fastqQualityValues") == 0) ||
+           (strcasecmp(fea, "fastqOrientation") == 0) ||
+           (strcasecmp(fea, "fastqMates") == 0) ||
+           (strcasecmp(fea, "fastqReads") == 0))
+    ;
+
+  //  Library options (orientation is not a feature, it's part of the library)
+
+  else
+    fprintf(stderr, "gkLibrary_decodeFeatures()-- found feature '%s' but don't understand it.\n",
+            fea);
+}
+
+
+void
 gkLibrary::gkLibrary_decodeFeatures(LibraryMesg *lmesg) {
 
   for (uint32 f=0; f<lmesg->num_features; f++) {
     char *fea = lmesg->features[f];
     char *val = lmesg->values[f];
 
-    //  Unitigger options
-
-    if      (strcasecmp(fea, "forceBOGunitigger") == 0)
-      forceBOGunitigger = decodeBoolean("forceBOGunitigger", val);
-
-    else if (strcasecmp(fea, "isNotRandom") == 0)
-      isNotRandom = decodeBoolean("isNotRandom", val);
-
-    //  Alignment options
-
-    else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0)
-      doNotTrustHomopolymerRuns = decodeBoolean("doNotTrustHomopolymerRuns", val);
-
-    //  OBT options
-
-    else if (strcasecmp(fea, "doTrim_initialNone") == 0)
-      doTrim_initialNone = decodeBoolean("doTrim_initialNone", val);
-    else if (strcasecmp(fea, "doTrim_initialMerBased") == 0)
-      doTrim_initialMerBased = decodeBoolean("doTrim_initialMerBased", val);
-    else if (strcasecmp(fea, "doTrim_initialFlowBased") == 0)
-      doTrim_initialFlowBased = decodeBoolean("doTrim_initialFlowBased", val);
-    else if (strcasecmp(fea, "doTrim_initialQualityBased") == 0)
-      doTrim_initialQualityBased = decodeBoolean("doTrim_initialQualityBased", val);
-
-    else if (strcasecmp(fea, "doRemoveDuplicateReads") == 0)
-      doRemoveDuplicateReads = decodeBoolean("doRemoveDuplicateReads", val);
-
-    else if (strcasecmp(fea, "doTrim_finalLargestCovered") == 0)
-      doTrim_finalLargestCovered = decodeBoolean("doTrim_finalLargestCovered", val);
-    else if (strcasecmp(fea, "doTrim_finalEvidenceBased") == 0)
-      doTrim_finalEvidenceBased = decodeBoolean("doTrim_finalEvidenceBased", val);
-
-    else if (strcasecmp(fea, "doRemoveSpurReads") == 0)
-      doRemoveSpurReads = decodeBoolean("doRemoveSpurReads", val);
-    else if (strcasecmp(fea, "doRemoveChimericReads") == 0)
-      doRemoveChimericReads = decodeBoolean("doRemoveChimericReads", val);
-
-    //  COMPATIBILITY OPTIONS
-    else if (strcasecmp(fea, "doMerBasedTrimming") == 0) {
-      fprintf(stderr, "COMPATIBILITY doMerBasedTrimming\n");
-      if (decodeBoolean("doMerBasedTrimming", val) == 1) {
-        fprintf(stderr, "COMPATIBILITY doMerBasedTrimming\n");
-        doTrim_initialNone         = 0;
-        doTrim_initialMerBased     = 1;
-        doTrim_initialFlowBased    = 0;
-        doTrim_initialQualityBased = 0;
-
-        doTrim_finalLargestCovered = 1;
-        doTrim_finalEvidenceBased  = 0;
-      }
-    }
-    else if (strcasecmp(fea, "doNotQVTrim") == 0) {
-      fprintf(stderr, "COMPATIBILITY doNotQVTrim\n");
-      if (decodeBoolean("doNotQVTrim", val) == 1) {
-        fprintf(stderr, "COMPATIBILITY doNotQVTrim\n");
-        doTrim_initialNone         = 0;
-        doTrim_initialMerBased     = 0;
-        doTrim_initialFlowBased    = 1;
-        doTrim_initialQualityBased = 0;
-
-        doTrim_finalLargestCovered = 0;
-        doTrim_finalEvidenceBased  = 1;
-      }
-    }
-    else if (strcasecmp(fea, "goodBadQVThreshold") == 0) {
-      fprintf(stderr, "COMPATIBILITY doNotOverlapTrim\n");
-    }
-    else if (strcasecmp(fea, "doNotOverlapTrim") == 0) {
-      fprintf(stderr, "COMPATIBILITY doNotOverlapTrim\n");
-      if (decodeBoolean("doNotOverlapTrim", val) == 1) {
-        fprintf(stderr, "COMPATIBILITY doNotOverlapTrim\n");
-        doTrim_initialNone         = 0;
-        doTrim_initialMerBased     = 0;
-        doTrim_initialFlowBased    = 0;
-        doTrim_initialQualityBased = 0;
-
-        doTrim_finalLargestCovered = 0;
-        doTrim_finalEvidenceBased  = 0;
-      }
-    }
-
-    else if (strcasecmp(fea, "doConsensusCorrection") == 0)
-       doConsensusCorrection = decodeBoolean("doConsensusCorrection", val);
-
-    //  Gatekeeper options
-
-    else if (strcasecmp(fea, "forceShortReadFormat") == 0)
-      forceShortReadFormat = decodeBoolean("forceShortReadFormat", val);
-
-    //  Illumina options, just to make it not complain about unknown features
-
-    else if ((strcasecmp(fea, "illuminaFastQType") == 0) ||
-             (strcasecmp(fea, "illuminaOrientation") == 0) ||
-             (strcasecmp(fea, "illuminaQSequence") == 0) ||
-             (strcasecmp(fea, "illuminaSequence") == 0))
-      //  These are now errors, handled by AS_GKP_illumina.C.
-      ;
-
-    else if ((strcasecmp(fea, "fastqQualityValues") == 0) ||
-             (strcasecmp(fea, "fastqOrientation") == 0) ||
-             (strcasecmp(fea, "fastqMates") == 0) ||
-             (strcasecmp(fea, "fastqReads") == 0))
-      ;
-
-    //  Library options (orientation is not a feature, it's part of the library)
-
-    else
-      fprintf(stderr, "gkLibrary_decodeFeatures()-- found feature '%s' but don't understand it.\n",
-              fea);
+    gkLibrary_setFeature(fea, val);
   }
 }
 

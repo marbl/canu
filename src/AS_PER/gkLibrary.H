@@ -98,6 +98,8 @@ public:
     orientation                = 0;
   };
 
+  void gkLibrary_setFeature(char *fea, char *val);
+
 private:
 public:
   AS_UID         libraryUID;
