@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.66 2012-02-01 20:20:50 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.67 2012-02-06 08:26:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -984,19 +984,17 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
       //  Unmated read, dump to the unmated reads file.
       //
       AS_UTL_writeFastQ(u, seq, len, qlt, len,
-                        "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
-                        //  ID
+                        "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                         AS_UID_toString(fr.gkFragment_getReadUID()),
-                        //  template
-                        (id1 < id2) ? id1 : id2,
-                        (id1 < id2) ? id2 : id1,
-                        //  dir
-                        'U',
-                        //  library
-                        AS_UID_toString(libUID),
-                        //  trim
-                        lclr,
-                        rclr);
+                        fr.gkFragment_getClearRegionBegin(dumpClear),
+                        fr.gkFragment_getClearRegionEnd  (dumpClear),
+                        fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
+                        fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
+                        fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
+                        fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
+                        fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
+                        fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                        fr.gkFragment_getIsNonRandom() ? 't' : 'f');
       continue;
     }
 
@@ -1007,35 +1005,30 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
 
     //  Write the first fragment (twice).
     AS_UTL_writeFastQ(a, seq, len, qlt, len,
-                      "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
-                      //  ID
+                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()),
-                      //  template
-                      (id1 < id2) ? id1 : id2,
-                      (id1 < id2) ? id2 : id1,
-                      //  dir
-                      (id1 < id2) ? 'F' : 'R',
-                      //  library
-                      AS_UID_toString(libUID),
-                      //  trim
-                      lclr,
-                      rclr);
+                      fr.gkFragment_getClearRegionBegin(dumpClear),
+                      fr.gkFragment_getClearRegionEnd  (dumpClear),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                      fr.gkFragment_getIsNonRandom() ? 't' : 'f');
 
     AS_UTL_writeFastQ(p, seq, len, qlt, len,
-                      "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
-                      //  ID
+                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()),
-                      //  template
-                      (id1 < id2) ? id1 : id2,
-                      (id1 < id2) ? id2 : id1,
-                      //  dir
-                      (id1 < id2) ? 'F' : 'R',
-                      //  library
-                      AS_UID_toString(libUID),
-                      //  trim
-                      lclr,
-                      rclr);
-
+                      fr.gkFragment_getClearRegionBegin(dumpClear),
+                      fr.gkFragment_getClearRegionEnd  (dumpClear),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                      fr.gkFragment_getIsNonRandom() ? 't' : 'f');
 
     //  Grab the second fragment.
 
@@ -1053,35 +1046,30 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
 
     //  Write the second fragment (twice).
     AS_UTL_writeFastQ(b, seq, len, qlt, len,
-                      "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
-                      //  ID
+                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()),
-                      //  template
-                      (id1 < id2) ? id1 : id2,
-                      (id1 < id2) ? id2 : id1,
-                      //  dir
-                      (id1 < id2) ? 'R' : 'F',
-                      //  library
-                      AS_UID_toString(libUID),
-                      //  trim
-                      lclr,
-                      rclr);
+                      fr.gkFragment_getClearRegionBegin(dumpClear),
+                      fr.gkFragment_getClearRegionEnd  (dumpClear),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                      fr.gkFragment_getIsNonRandom() ? 't' : 'f');
 
-    AS_UTL_writeFastQ(p,
-                      seq, len, qlt, len,
-                      "@%s template=%d+%d dir=%c library=%s trim=%d-%d\n",
-                      //  ID
+    AS_UTL_writeFastQ(p, seq, len, qlt, len,
+                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()),
-                      //  template
-                      (id1 < id2) ? id1 : id2,
-                      (id1 < id2) ? id2 : id1,
-                      //  dir
-                      (id1 < id2) ? 'R' : 'F',
-                      //  library
-                      AS_UID_toString(libUID),
-                      //  trim
-                      lclr,
-                      rclr);
+                      fr.gkFragment_getClearRegionBegin(dumpClear),
+                      fr.gkFragment_getClearRegionEnd  (dumpClear),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
+                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
+                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                      fr.gkFragment_getIsNonRandom() ? 't' : 'f');
 
     //  Mark the pair as dumped.  This is a cheap way around testing if we've already dumped a pair.
     //
