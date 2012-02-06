@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.99 2012-02-03 13:53:22 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.100 2012-02-06 08:20:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -448,8 +448,6 @@ main(int argc, char **argv) {
   int hlp = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-a") == 0) {
-      fprintf(stderr, "ERROR: -a (append) not currently supported\n");
-      exit(1);
       append = 1;
     } else if (strcmp(argv[arg], "-b") == 0) {
       begIID = atoi(argv[++arg]);
@@ -662,6 +660,7 @@ main(int argc, char **argv) {
 
 
   if (append)
+    //  used for updating distances after cgw
     gkpStore = new gkStore(gkpStoreName, FALSE, TRUE);
   else
     gkpStore = new gkStore(gkpStoreName, packedLength);
