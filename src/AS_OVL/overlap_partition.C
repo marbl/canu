@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.6 2012-02-07 04:39:21 brianwalenz Exp $";
+const char *mainid = "$Id: overlap_partition.C,v 1.7 2012-02-07 04:59:45 brianwalenz Exp $";
 
 #if 0
 #include <stdio.h>
@@ -72,13 +72,13 @@ outputJob(FILE   *BAT,
   if (maxNumFrags == 0) {
     fprintf(OPT, "-h "F_U32"-"F_U32" -r "F_U32"-"F_U32"\n",
             hashBeg, hashEnd, refBeg, refEnd);
-    fprintf(stderr, "HASH %10d-%10d  REFR %10d-%10d\n",
-            hashBeg, hashEnd, refBeg, refEnd);
+    fprintf(stderr, "HASH %10d-%10d  REFR %10d-%10d JOB %d\n",
+            hashBeg, hashEnd, refBeg, refEnd, jobName);
   } else {
     fprintf(OPT, "-h "F_U32"-"F_U32" -r "F_U32"-"F_U32" --hashstrings "F_U32" --hashdatalen "F_U32"\n",
             hashBeg, hashEnd, refBeg, refEnd, maxNumFrags, maxLength);
-    fprintf(stderr, "HASH %10d-%10d  REFR %10d-%10d  STRINGS %10d  BASES %10d\n",
-            hashBeg, hashEnd, refBeg, refEnd, maxNumFrags, maxLength);
+    fprintf(stderr, "HASH %10d-%10d  REFR %10d-%10d  STRINGS %10d  BASES %10d JOB %d\n",
+            hashBeg, hashEnd, refBeg, refEnd, maxNumFrags, maxLength, jobName);
   }
   refBeg = refEnd + 1;
 
@@ -400,15 +400,16 @@ main(int argc, char **argv) {
       gkpStoreName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-bl") == 0) {
-      ovlHashBlockLength = strtoll(argv[++arg], NULL, 10);
+      ovlHashBlockLength = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-bs") == 0) {
-      ovlHashBlockSize   = strtoll(argv[++arg], NULL, 10);
+      ovlHashBlockSize   = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-rl") == 0) {
-      ovlRefBlockLength  = strtoll(argv[++arg], NULL, 10);
+      ovlRefBlockLength  = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-rs") == 0) {
+      ovlRefBlockSize    = strtoull(argv[++arg], NULL, 10);
       ovlRefBlockSize    = strtoll(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-H") == 0) {
@@ -438,6 +439,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "ERROR:  At most one of -rl and -rs can be non-zero.\n"), exit(1);
 
   gkStore   *gkp      = new gkStore(gkpStoreName, FALSE, FALSE, true);
+
+  gkp->gkStore_metadataCaching(true);
 
   errno = 0;
 
