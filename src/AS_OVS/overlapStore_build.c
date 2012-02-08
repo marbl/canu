@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.39 2012-02-03 14:20:23 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.40 2012-02-08 04:35:41 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -650,10 +650,11 @@ sortDistributedBucketGES(char *storeName,
   storeFile->gkp = new gkStore(gkpName, FALSE, FALSE);
 
   uint64  maxIID              = storeFile->gkp->gkStore_getNumFragments() + 1;
-  uint64  iidPerBucket        = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileListLen, fileList);
+  //uint64  iidPerBucket        = computeIIDperBucket(fileLimit, memoryLimit, maxIID, fileListLen, fileList);
   uint32                   dumpFileMax  = sysconf(_SC_OPEN_MAX) - 16;
-  uint64                   dumpLengthMax;
-  uint64                  *dumpLength   = (uint64 *)safe_calloc(sizeof(uint64), dumpFileMax);
+  uint64                   dumpLengthMax = 0ULL;
+  uint64                  *dumpLength   = (uint64 *)safe_calloc(sizeof(uint64), fileListLen);
+
 
   // Determine size of overlap array needed.
   // Will be some of all paritions with index 'index'
@@ -662,38 +663,41 @@ sortDistributedBucketGES(char *storeName,
   char name[FILENAME_MAX];
   char nameMigrate[FILENAME_MAX];
   struct stat st;
-  dumpLengthMax=0;
 
   // Get size of the final merged and sorted file
   for (uint32 i=0; i<fileListLen; i++) {
         sprintf(name, "%s/unsorted%04d/tmp.sort.%03d", storeName,i,index);
   	if ((stat(name, &st))==0) {
-	dumpLengthMax += (st.st_size / sizeof(OVSoverlap));
-	dumpLength[i]=  (st.st_size / sizeof(OVSoverlap));
+	dumpLengthMax += (uint64) (st.st_size / sizeof(OVSoverlap));
+	dumpLength[i]= (uint64) (st.st_size / sizeof(OVSoverlap));
+	fprintf(stderr,"File length of %04d.%03d is %lu\n",i,index,dumpLength[i]);
 	} else {
-		dumpLength[i]=0;
+		fprintf(stderr,"File %04d.%03d Not found (OK).\n",i,index);
+		fprintf(stderr,"Size: %lu.\n",dumpLength[i]);
 	}
   }
 
-  OVSoverlap         *overlapsort = NULL;
+  OVSoverlap         *overlapsort;
   overlapsort = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * dumpLengthMax);
-  BinaryOverlapFile  *bof = NULL;
+  BinaryOverlapFile  *bof;
   uint64 numOvl = 0;
   for (uint32 i=0; i<fileListLen; i++) {
-
-	if (dumpLength[i] == 0 ) {
+  
+	if (dumpLength[i] == 0ULL ) {
 		continue;
-	}
-
+        }
+	
   	fprintf(stderr, "Concatenating unsorted temporary partitions %u.\n",i);
     	fprintf(stderr, "Concatenating dumpfile partition %u.%u to unsorted dump.\n",i,index);
+	fprintf(stderr, "Size of file is %lu\n",dumpLength[i]);
         sprintf(name, "%s/unsorted%04d/tmp.sort.%03d", storeName,i,index);
 
         bof = AS_OVS_openBinaryOverlapFile(name, FALSE);
 	while (AS_OVS_readOverlap(bof, overlapsort + numOvl))
 		numOvl++;
 
-         AS_OVS_closeBinaryOverlapFile(bof);
+        AS_OVS_closeBinaryOverlapFile(bof);
+	
   }
     assert(numOvl == dumpLengthMax);
 
@@ -907,7 +911,7 @@ buildStoreIndexGES(char *storeName,
     rename(name,nameMigrate);
 
     fprintf(stderr, "Creating index for %s (%ld)\n", nameMigrate,time(NULL) - beginTime);
-    fprintf(stderr, "Overlaps this file: %u \n", numOvl);
+    fprintf(stderr, "Overlaps this file: %lu \n", numOvl);
     AS_OVS_writeOverlapDumpToStore(storeFile, overlapsort, dumpLength[i]);
     fprintf(stderr, "Done migrating %s (%ld)\n", name,time(NULL) - beginTime);
   }
