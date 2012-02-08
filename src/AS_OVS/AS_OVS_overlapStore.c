@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.32 2012-02-03 14:20:23 gesims Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.33 2012-02-08 19:29:19 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -896,14 +896,15 @@ AS_OVS_writeOverlapDumpToStore2(char * storename,OVSoverlap *overlap, uint32 max
 		if (ovs.largestIID < overlap[i].a_iid)
      			ovs.largestIID = overlap[i].a_iid;
 
-
 		//  Put the index to disk, filling any gaps
 		if ((offset.numOlaps != 0) && (offset.a_iid != overlap[i].a_iid)) {
 
 			while (missing.a_iid < offset.a_iid) {
+
 				missing.fileno    = offset.fileno;
 				missing.offset    = offset.offset;
 				missing.numOlaps  = 0;
+
 				AS_UTL_safeWrite(offsetFile,
 						&missing,
 						"AS_OVS_writeOverlapToStore offset",
@@ -932,6 +933,29 @@ AS_OVS_writeOverlapDumpToStore2(char * storename,OVSoverlap *overlap, uint32 max
 		ovs.numOverlapsTotal++;
 		overlapsThisFile++;
 	}
+
+          //write final a_iid index
+	while (missing.a_iid < offset.a_iid) {
+
+		missing.fileno    = offset.fileno;
+		missing.offset    = offset.offset;
+		missing.numOlaps  = 0;
+
+		AS_UTL_safeWrite(offsetFile,
+				&missing,
+				"AS_OVS_writeOverlapToStore offset",
+				sizeof(OverlapStoreOffsetRecord),
+				1);
+		missing.a_iid++;
+	}
+
+	AS_UTL_safeWrite(offsetFile,
+			&offset,
+			"AS_OVS_writeOverlapToStore offset",
+			sizeof(OverlapStoreOffsetRecord),
+			1);
+
+
     	fprintf(stderr,"Done building index for dumpfile %d.\n",currentFileIndex);
 	fclose(offsetFile);
 
