@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.60 2012-02-03 21:47:58 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.61 2012-02-10 17:44:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2269,7 +2269,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkpStore = new gkStore(gkpName, TRUE, TRUE);
+  gkpStore = new gkStore(gkpName, 0);
   gkpStore->gkStore_metadataCaching(true);
 
   addLibrary(libraryName, insertSize, insertStdDev, haveLinker);
