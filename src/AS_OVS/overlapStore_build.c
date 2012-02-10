@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.42 2012-02-10 19:58:54 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.43 2012-02-10 20:21:00 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -618,7 +618,7 @@ sortDistributedBucketGES(char *storeName,
   	fprintf(stderr, "Concatenating unsorted temporary partitions %u.\n",i);
     	fprintf(stderr, "Concatenating dumpfile partition %u.%u to unsorted dump.\n",i,index);
 	fprintf(stderr, "Size of file is %lu\n",dumpLength[i]);
-        sprintf(name, "%s/unsorted%04d/tmp.sort.%03d", storeName,i,index);
+        sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,i,index);
 
         bof = AS_OVS_openBinaryOverlapFile(name, FALSE);
 	while (AS_OVS_readOverlap(bof, overlapsort + numOvl))
