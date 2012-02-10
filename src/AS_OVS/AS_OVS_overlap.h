@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAP_H
 #define AS_OVS_OVERLAP_H
 
-static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.17 2011-07-26 20:16:26 mkotelbajcvi Exp $";
+static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.18 2012-02-10 19:58:54 gesims Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"  //  pretty heavy just to get OverlapMesg.
@@ -73,6 +73,16 @@ static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.17 2011-0
 #if AS_READ_MAX_NORMAL_LEN_BITS < 13
 
 #define AS_OVS_NWORDS     2
+
+
+//  
+//  orig_erate > 4% throw out
+//  print error message. 
+//   macro(corr_erate)
+//   AS_OVS_encodeQuality(Q) 
+//   encode error rate macro2(0.04): 
+//
+
 
 struct OVSoverlapOVL {
     uint64  datpad1            :64 - 1 - 2 * AS_OVS_HNGBITS - 2 * AS_OVS_ERRBITS - 8 - 2;

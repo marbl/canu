@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.41 2012-02-08 19:29:20 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.42 2012-02-10 19:58:54 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -298,7 +298,7 @@ writeToDumpFileGES(OVSoverlap          *overlap,
 	    exit(1);
     	}
 
-    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d", storeName,index, df);
+    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,index, df);
     dumpFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE);
     dumpLength[df] = 0;
   }
@@ -377,6 +377,10 @@ index--;
   uint64   skipOBT2HQ      = 0;
   uint64   skipOBT2LIB     = 0;
   uint64   skipOBT2NODEDUP = 0;
+  uint64   skipERRATE = 0;
+
+  uint64   errateErrorThresh = 0;
+  errateErrorThresh=AS_OVS_encodeQuality(0.04);
 
   if (doFilterOBT != 0)
     markLoad(storeFile, maxIID, skipFragment, iidToLib);
@@ -408,6 +412,12 @@ index--;
         fprintf(stderr, "  %s\n", AS_OVS_toString(ovlstr, fovrlap));
         exit(1);
       }
+   
+      // Filtering for error rate
+     if (fovrlap.dat.ovl.orig_erate > errateErrorThresh ) {
+	skipERRATE++;
+	continue;
+     }
 
       //  If filtering for OBT, skip the crap.
       if ((doFilterOBT == 1) && (AS_OBT_acceptableOverlap(fovrlap) == 0)) {
@@ -516,6 +526,7 @@ index--;
   fprintf(stderr, "%16"F_U64P" DUP - non-duplicate overlap\n", skipOBT2HQ);
   fprintf(stderr, "%16"F_U64P" DUP - different library\n", skipOBT2LIB);
   fprintf(stderr, "%16"F_U64P" DUP - dedup not requested\n", skipOBT2NODEDUP);
+  fprintf(stderr, "%16"F_U64P" ERRATE - 4%% error threshold\n", skipERRATE);
 
   delete [] skipFragment;  skipFragment = NULL;
   delete [] iidToLib;      iidToLib     = NULL;
@@ -566,13 +577,27 @@ sortDistributedBucketGES(char *storeName,
   char name[FILENAME_MAX];
   char nameMigrate[FILENAME_MAX];
   struct stat st;
+  char runstr[1024];
+  FILE * pp;
+  uint64 uncompressed_size;
 
   // Get size of the final merged and sorted file
   for (uint32 i=0; i<fileListLen; i++) {
-        sprintf(name, "%s/unsorted%04d/tmp.sort.%03d", storeName,i,index);
+        sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,i,index);
   	if ((stat(name, &st))==0) {
-	dumpLengthMax += (uint64) (st.st_size / sizeof(OVSoverlap));
-	dumpLength[i]= (uint64) (st.st_size / sizeof(OVSoverlap));
+		// Sorry this is a total hack -- but its fastest and easiest way
+		// to get the size of the uncompressed file (no gzipping is actuallly
+		// done just a metadata query.
+		sprintf(runstr,"gzip -l %s | tail -n +2 | awk '{print $2}' ",name);
+		if ((pp=popen(runstr,"r")) == NULL ) 
+			fprintf(stderr,"Error getting uncompressed file size of %s",name);
+		if (fscanf(pp,"%lu",&uncompressed_size) != 1) 
+			fprintf(stderr,"Error parsing gzip -l output for file size %s",name);
+		pclose(pp);
+	dumpLengthMax += (uint64) (uncompressed_size / sizeof(OVSoverlap));
+	dumpLength[i]= (uint64) (uncompressed_size / sizeof(OVSoverlap));
+//	dumpLengthMax += (uint64) (st.st_size / sizeof(OVSoverlap));
+//	dumpLength[i]= (uint64) (st.st_size / sizeof(OVSoverlap));
 	fprintf(stderr,"File length of %04d.%03d is %lu\n",i,index,dumpLength[i]);
 	} else {
 		fprintf(stderr,"File %04d.%03d Not found (OK).\n",i,index);
@@ -600,7 +625,7 @@ sortDistributedBucketGES(char *storeName,
 		numOvl++;
 
         AS_OVS_closeBinaryOverlapFile(bof);
-	
+  	unlink(name);
   }
     assert(numOvl == dumpLengthMax);
 
@@ -627,7 +652,7 @@ sortDistributedBucketGES(char *storeName,
   AS_OVS_closeOverlapStore(storeFile);
 
   safe_free(overlapsort);
-
+  
   exit(0);
 }
 
