@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.5 2012-02-12 05:25:52 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.6 2012-02-12 06:06:20 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -176,6 +176,10 @@ cmGlobalData::loadFragments(char        *gkpStoreName,
         minFragIID = fid;
       if ((fi[fid].doSearch || fi[fid].isBackbone) && (maxFragIID < fid))
         maxFragIID = fid;
+
+      if ((fid % 10000000) == 0)
+        fprintf(stderr, "LOADING FRAGMENTS...at IID "F_U32".\r",
+                fid);
     }
 
 #if 0
@@ -418,7 +422,22 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
     assert(oiStoragePos <= oiStorageBS);
 
-    ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
+    minFragIID++;
+
+    if ((fi[minFragIID].isBackbone == false) &&
+        (fi[minFragIID].doSearch   == false)) {
+
+      while ((fi[minFragIID].isBackbone == false) &&
+             (fi[minFragIID].doSearch   == false) &&
+             minFragIID < maxFragIID)
+        minFragIID++;
+
+      if (minFragIID < maxFragIID) {
+        fprintf(stderr, "\nLOADING OVERLAPS....reset range to "F_IID","F_IID"\n",
+                minFragIID, maxFragIID);
+        AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
+      }
+    }
 
     if ((iid % 100000) == 0)
       fprintf(stderr, "LOADING OVERLAPS...at IID "F_U32" (%06.2f%%): BB "F_U64" (%06.2f%%) TG "F_U64" (%06.2f%%) DD "F_U64" (%06.2f%%).\r",
