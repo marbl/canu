@@ -17,9 +17,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.22 2011-08-31 17:42:40 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.23 2012-02-12 05:25:52 brianwalenz Exp $";
 
 #include "AS_global.h"
+#include "AS_UTL_decodeRange.H"
 #include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
 
@@ -132,29 +133,26 @@ cmWriter(void *G, void *S) {
 
 int
 main(int argc, char **argv) {
-  char      *gkpStoreName      = NULL;
-  char      *ovlStoreName      = NULL;
-  char      *resultsName       = NULL;
+  char       *gkpStoreName      = NULL;
+  char       *ovlStoreName      = NULL;
+  char       *resultsName       = NULL;
 
-  double     maxErrorFraction  = 0.045;
+  double      maxErrorFraction  = 0.045;
 
-  uint32     distMin           = 0;
-  uint32     distMax           = 0;
-  bool       innie             = false;  //  require mates to be innie
+  uint32      distMin           = 0;
+  uint32      distMax           = 0;
+  bool        innie             = false;  //  require mates to be innie
 
-  uint32     nodesMax          = 0;
-  uint32     depthMax          = 0;
-  uint32     pathsMax          = 0;
+  uint32      nodesMax          = 0;
+  uint32      depthMax          = 0;
+  uint32      pathsMax          = 0;
 
-  bool       searchLibs        = false;
-  uint32     searchLib[1024]   = {0};
+  set<AS_IID> searchLibs;
+  set<AS_IID> backboneLibs;
 
-  bool       backboneLibs      = false;
-  uint32     backboneLib[1024] = {0};
+  uint32      numThreads        = 4;
 
-  uint32     numThreads        = 4;
-
-  uint64     memoryLimit       = UINT64_MAX;
+  uint64      memoryLimit       = UINT64_MAX;
 
   argc = AS_configure(argc, argv);
 
@@ -183,36 +181,10 @@ main(int argc, char **argv) {
       memoryLimit *= 1024;
 
     } else if (strcmp(argv[arg], "-sl") == 0) {
-      searchLibs = true;
-
-      char *a = argv[++arg];
-      char *b = strchr(a, '-');
-
-      b = (b) ? b+1 : a;
-
-      uint32 bgn = atoi(a);
-      uint32 end = atoi(b);
-
-      for (uint32 i=bgn; i<=end; i++) {
-        fprintf(stderr, "Search only in library %d\n", i);
-        searchLib[i] = 1;
-      }
+      AS_UTL_decodeRange(argv[++arg], searchLibs);
       
     } else if (strcmp(argv[arg], "-bl") == 0) {
-      backboneLibs = true;
-
-      char *a = argv[++arg];
-      char *b = strchr(a, '-');
-
-      b = (b) ? b+1 : a;
-
-      uint32 bgn = atoi(a);
-      uint32 end = atoi(b);
-
-      for (uint32 i=bgn; i<=end; i++) {
-        fprintf(stderr, "Search using only library %d\n", i);
-        backboneLib[i] = 1;
-      }
+      AS_UTL_decodeRange(argv[++arg], backboneLibs);
 
     } else if (strcmp(argv[arg], "-min") == 0) {
       distMin = atoi(argv[++arg]);
@@ -295,7 +267,7 @@ main(int argc, char **argv) {
                                       pathsMax,
                                       memoryLimit);
 
-  g->loadFragments(gkpStoreName, searchLibs, searchLib, backboneLibs, backboneLib);
+  g->loadFragments(gkpStoreName, searchLibs, backboneLibs);
   g->loadOverlaps(ovlStoreName, maxErrorFraction);
 
   sweatShop *ss = new sweatShop(cmReader, cmWorker, cmWriter);

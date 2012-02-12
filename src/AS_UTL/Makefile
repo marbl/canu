@@ -38,7 +38,8 @@ LIB_SOURCES = AS_UTL_Hash.C \
               AS_UTL_fasta.C \
               AS_UTL_UID.C \
               AS_UTL_reverseComplement.C \
-              AS_UTL_intervalList.C 
+              AS_UTL_intervalList.C \
+              AS_UTL_decodeRange.C
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
 

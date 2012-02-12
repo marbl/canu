@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.4 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.5 2012-02-12 05:25:52 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -108,11 +108,9 @@ cmGlobalData::~cmGlobalData() {
 
 
 void
-cmGlobalData::loadFragments(char    *gkpStoreName,
-                            bool     searchLibs,
-                            uint32  *searchLib,
-                            bool     backboneLibs,
-                            uint32  *backboneLib) {
+cmGlobalData::loadFragments(char        *gkpStoreName,
+                            set<AS_IID> &searchLibs,
+                            set<AS_IID> &backboneLibs) {
 
   fprintf(stderr, "LOADING FRAGMENTS...\n");
 
@@ -164,15 +162,15 @@ cmGlobalData::loadFragments(char    *gkpStoreName,
       fi[fid].clearLength = cllen;
       fi[fid].mateIID     = frg.gkFragment_getMateIID();
 
-      if (searchLibs == false)
+      if (searchLibs.size() == 0)
         fi[fid].doSearch = gkpStore->gkStore_getLibrary(lib)->doTrim_initialMerBased;
       else
-        fi[fid].doSearch = searchLib[lib];
+        fi[fid].doSearch = (searchLibs.count(lib) > 0);
 
-      if (backboneLibs == false)
+      if (backboneLibs.size() == 0)
         fi[fid].isBackbone = true;
       else
-        fi[fid].isBackbone = backboneLib[lib];
+        fi[fid].isBackbone = (backboneLibs.count(lib) > 0);
 
       if ((fi[fid].doSearch || fi[fid].isBackbone) && (fid < minFragIID))
         minFragIID = fid;

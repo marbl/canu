@@ -19,10 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.9 2012-02-03 08:57:49 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.10 2012-02-12 05:25:52 brianwalenz Exp $";
 
 #include "overlapInCore.H"
-
+#include "AS_UTL_decodeRange.H"
 
 
 
@@ -295,12 +295,6 @@ static
 bool
 ReadFrags(AS_IID maxFrags) {
 
-  assert(First_Hash_Frag >= 0);
-  assert(Last_Hash_Frag  >= 0);
-
-  //assert(First_Hash_Frag <= maxFrags);
-  //assert(Last_Hash_Frag  <= maxFrags);
-
   if  (First_Hash_Frag == 0)
     First_Hash_Frag = Lo_Hash_Frag;
   else
@@ -368,21 +362,13 @@ OverlapDriver(void) {
             && First_Hash_Frag <= Last_Hash_Frag
             && Last_Hash_Frag  <= OldFragStore->gkStore_getNumFragments ());
 
-    fprintf(stderr, "Build_Hash_Index from "F_S64" to "F_S64"\n", First_Hash_Frag, Last_Hash_Frag);
+    fprintf(stderr, "Build_Hash_Index from "F_IID" to "F_IID"\n", First_Hash_Frag, Last_Hash_Frag);
 
     gkStream *hashStream = new gkStream (hash_frag_store, First_Hash_Frag, Last_Hash_Frag, GKFRAGMENT_QLT);
     Build_Hash_Index (hashStream, First_Hash_Frag, &myRead);
     delete hashStream;
 
     fprintf(stderr, "Index built.\n");
-
-    if  (Last_Hash_Frag_Read < Last_Hash_Frag)
-      {
-        fprintf (stderr, "!!! Hash table did not read all frags\n");
-        fprintf (stderr, "    Read " F_U32 " instead of " F_S64 "\n",
-                 Last_Hash_Frag_Read, Last_Hash_Frag);
-        Last_Hash_Frag = Last_Hash_Frag_Read;
-      }
 
     AS_IID lowest_old_frag  = 1;
     AS_IID highest_old_frag = OldFragStore->gkStore_getNumFragments ();
@@ -601,36 +587,6 @@ Initialize_Globals (void) {
 
 
 
-static
-int
-Get_Range(char *value, char *flag, uint32 &lo, uint32 &hi) {
-  char *s = value;
-
-  if (*s == '-')
-    lo = 0;
-  else
-    lo = strtol(s, &s, 10);
-
-  if (*s != '-') {
-    fprintf(stderr, "ERROR:  No hyphen in %s range '%s'\n", flag, value);
-    return(1);
-  }
-
-  s++;
-
-  if (*s == 0)
-    hi = INT_MAX;
-  else
-    hi = strtol(s, &s, 10);
-
-  if (lo > hi) {
-    fprintf (stderr, "ERROR:  Numbers reversed in %s range '%s'\n", flag, value);
-    return(1);
-  }
-
-  return(0);
-}
-
 
 
 int
@@ -649,22 +605,13 @@ main(int argc, char **argv) {
     if (strcmp(argv[arg], "-G") == 0) {
       Doing_Partial_Overlaps = TRUE;
     } else if (strcmp(argv[arg], "-h") == 0) {
-      err += Get_Range (argv[arg+1], argv[arg], Lo_Hash_Frag, Hi_Hash_Frag);
-      arg++;
+      AS_UTL_decodeRange(argv[++arg], Lo_Hash_Frag, Hi_Hash_Frag);
 
     } else if (strcmp(argv[arg], "-H") == 0) {
-      arg++;
-      if ((argv[arg][0] != '-') && (argv[arg][1] != '-'))
-        minLibToHash = maxLibToHash = strtoull(argv[arg], NULL, 10);
-      else
-        err += Get_Range(argv[arg], argv[arg-1], minLibToHash, maxLibToHash);
+      AS_UTL_decodeRange(argv[++arg], minLibToHash, maxLibToHash);
 
     } else if (strcmp(argv[arg], "-R") == 0) {
-      arg++;
-      if ((argv[arg][0] != '-') && (argv[arg][1] != '-'))
-        minLibToRef = maxLibToRef = strtoull(argv[arg], NULL, 10);
-      else
-        err += Get_Range(argv[arg], argv[arg], minLibToRef, maxLibToRef);
+      AS_UTL_decodeRange(argv[++arg], minLibToRef, maxLibToRef);
 
     } else if (strcmp(argv[arg], "-k") == 0) {
       arg++;
@@ -717,8 +664,7 @@ main(int argc, char **argv) {
       strcpy(Outfile_Name, argv[++arg]);
 
     } else if (strcmp(argv[arg], "-r") == 0) {
-      err += Get_Range (argv[arg+1], argv[arg], Lo_Old_Frag, Hi_Old_Frag);
-      arg++;
+      AS_UTL_decodeRange(argv[++arg], Lo_Old_Frag, Hi_Old_Frag);
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       Num_PThreads = strtoull(argv[++arg], NULL, 10);

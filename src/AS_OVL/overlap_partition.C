@@ -19,38 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.8 2012-02-12 02:50:35 brianwalenz Exp $";
-
-#if 0
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <ctype.h>
-#endif
+const char *mainid = "$Id: overlap_partition.C,v 1.9 2012-02-12 05:25:52 brianwalenz Exp $";
 
 #include "AS_global.h"
-//#include "AS_PER_genericStore.h"
+#include "AS_UTL_decodeRange.H"
 #include "AS_PER_gkpStore.h"
-//#include "AS_UTL_fileIO.h"
-//#include "AS_MSG_pmesg.h"
-//#include "AS_GKP_include.h"
-
-#include <set>
-
-using namespace std;
 
 
 //  Reads gkpStore, outputs four files:
 //    ovlbat - batch names
 //    ovljob - job names
 //    ovlopt - overlapper options
-//    ovlinf - (unused)
 
 uint32  batchMax = 1000;
-
 
 void
 outputJob(FILE   *BAT,
@@ -340,40 +321,6 @@ partitionLength(gkStore      *gkp,
 
 
 
-void
-decodeRange(char *range, set<uint32> &lib) {
-  char    *ap = range, *bp = NULL;
-  uint32   av = 0,      bv = 0;
-
-  while (*ap != 0) {
-    av = strtoul(ap, &ap, 10);
-
-    if        (*ap == ',') {
-      ap++;
-      lib.insert(av);
-      //fprintf(stderr, "added "F_U32" to set.\n", av);
-
-    } else if (*ap == '-') {
-      ap++;
-      bv = strtoul(ap, &ap, 10);
-
-      if (*ap == ',')
-        ap++;
-
-      for (uint32 xx=av; xx<=bv; xx++) {
-        lib.insert(xx);
-        //fprintf(stderr, "added "F_U32" to set.\n", xx);
-      }
-
-    } else if (*ap != 0) {
-      fprintf(stderr, "ERROR: invalid range '%s'\n", range);
-      exit(1);
-    }
-  }
-}
-
-
-
 int
 main(int argc, char **argv) {
   char            *gkpStoreName        = NULL;
@@ -411,10 +358,10 @@ main(int argc, char **argv) {
       ovlRefBlockSize    = strtoull(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-H") == 0) {
-      decodeRange(argv[++arg], libToHash);
+      AS_UTL_decodeRange(argv[++arg], libToHash);
 
     } else if (strcmp(argv[arg], "-R") == 0) {
-      decodeRange(argv[++arg], libToRef);
+      AS_UTL_decodeRange(argv[++arg], libToRef);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       outputPrefix = argv[++arg];

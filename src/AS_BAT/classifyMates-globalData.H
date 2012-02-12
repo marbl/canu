@@ -27,6 +27,7 @@
 #include "classifyMates-runningTime.H"
 
 #include <map>
+#include <set>
 using namespace std;
 
 class fragmentInfo {
@@ -191,11 +192,9 @@ public:
                uint64   memoryLimit_);
   ~cmGlobalData();
 
-  void   loadFragments(char    *gkpStoreName,
-                       bool     searchLibs,
-                       uint32  *searchLib,
-                       bool     backboneLibs,
-                       uint32  *backboneLib);
+  void   loadFragments(char         *gkpStoreName,
+                       set<AS_IID>  &searchLib,
+                       set<AS_IID>  &backboneLib);
 
   void   loadOverlaps(char   *ovlStoreName,
                       double  maxErrorFraction);
