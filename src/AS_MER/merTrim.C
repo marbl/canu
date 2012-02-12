@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.26 2012-02-02 09:08:42 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.27 2012-02-12 05:24:41 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -635,7 +635,8 @@ public:
 uint32
 mertrimComputation::evaluate(void) {
 
-  log.add("\nPROCESS\n");
+  if (VERBOSE > 1)
+    log.add("\nPROCESS\n");
 
   if (garbageInInput == true)
     return(ALLCRAP);
