@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.7 2012-02-07 04:59:45 brianwalenz Exp $";
+const char *mainid = "$Id: overlap_partition.C,v 1.8 2012-02-12 02:50:35 brianwalenz Exp $";
 
 #if 0
 #include <stdio.h>
@@ -390,11 +390,10 @@ main(int argc, char **argv) {
   set<uint32>      libToHash;
   set<uint32>      libToRef;
 
-  int arg = 1;
-  int err = 0;
-
   AS_configure(argc, argv);
 
+  int arg = 1;
+  int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-g") == 0) {
       gkpStoreName = argv[++arg];
@@ -410,7 +409,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-rs") == 0) {
       ovlRefBlockSize    = strtoull(argv[++arg], NULL, 10);
-      ovlRefBlockSize    = strtoll(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-H") == 0) {
       decodeRange(argv[++arg], libToHash);
@@ -422,6 +420,7 @@ main(int argc, char **argv) {
       outputPrefix = argv[++arg];
 
     } else {
+      fprintf(stderr, "ERROR:  Unknown option '%s'\n", arg[argv]);
       err++;
     }
 
