@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.3 2012-02-03 10:22:05 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.4 2012-02-13 18:06:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,14 +116,14 @@ gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
   //  Create the partitions by opening N copies of the data stores,
   //  and writing data to each.
 
-  StoreStruct  **partfpk = new StoreStruct * [maxPart];
-  StoreStruct  **partqpk = new StoreStruct * [maxPart];
+  StoreStruct  **partfpk = new StoreStruct * [maxPart + 1];
+  StoreStruct  **partqpk = new StoreStruct * [maxPart + 1];
 
-  StoreStruct  **partfnm = new StoreStruct * [maxPart];
-  StoreStruct  **partqnm = new StoreStruct * [maxPart];
+  StoreStruct  **partfnm = new StoreStruct * [maxPart + 1];
+  StoreStruct  **partqnm = new StoreStruct * [maxPart + 1];
 
-  StoreStruct  **partfsb = new StoreStruct * [maxPart];
-  StoreStruct  **partqsb = new StoreStruct * [maxPart];
+  StoreStruct  **partfsb = new StoreStruct * [maxPart + 1];
+  StoreStruct  **partqsb = new StoreStruct * [maxPart + 1];
 
   AS_PER_setBufferSize(512 * 1024);
 
@@ -179,7 +179,7 @@ gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
 
   //  cleanup -- close all the stores
 
-  for (uint32 i=1; i<=maxPart; i++) {
+  for (uint32 i=0; i<=maxPart; i++) {
     closeStore(partfpk[i]);
     closeStore(partqpk[i]);
     closeStore(partfnm[i]);
