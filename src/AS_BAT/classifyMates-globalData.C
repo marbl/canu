@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.6 2012-02-12 06:06:20 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.7 2012-02-13 08:32:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -119,8 +119,29 @@ cmGlobalData::loadFragments(char        *gkpStoreName,
   gkFragment        frg;
 
   numFrags = gkpStore->gkStore_getNumFragments();
-  fi       = new fragmentInfo [numFrags + 1];
+  numLibs  = gkpStore->gkStore_getNumLibraries();
 
+  uint32    *isBB = new uint32 [numLibs + 1];
+  uint32    *isSS = new uint32 [numLibs + 1];
+
+  for (uint32 i=0; i<=numLibs; i++) {
+    isSS[i] = isBB[i] = 0;
+
+    if ((searchLibs.size() == 0) || (searchLibs.count(i)   > 0))
+      isSS[i] = 1;
+
+    if ((backboneLibs.size() == 0) || (backboneLibs.count(i) > 0))
+      isBB[i] = 1;
+
+    if (isSS[i] && isBB[i])
+      fprintf(stderr, "library '%s' will be used as evidence AND classified.\n", gkpStore->gkStore_getLibrary(i)->libraryName);
+    else if (isSS[i])
+      fprintf(stderr, "library '%s' will be classified.\n", gkpStore->gkStore_getLibrary(i)->libraryName);
+    else if (isBB[i])
+      fprintf(stderr, "library '%s' will be used as evidence.\n", gkpStore->gkStore_getLibrary(i)->libraryName);
+  }
+
+  fi       = new fragmentInfo [numFrags + 1];
   memset(fi, 0, sizeof(fragmentInfo) * (numFrags + 1));
 
   char  cacheName[FILENAME_MAX];
@@ -132,8 +153,31 @@ cmGlobalData::loadFragments(char        *gkpStoreName,
     FILE *F = fopen(cacheName, "r");
     AS_UTL_safeRead(F, &minFragIID, "minFragIID", sizeof(uint32),       1);
     AS_UTL_safeRead(F, &maxFragIID, "maxFragIID", sizeof(uint32),       1);
-    AS_UTL_safeRead(F,  fi,         "fi",         sizeof(fragmentInfo), numFrags+1);
+    AS_UTL_safeRead(F,  isSS,       "isSS",       sizeof(uint32),       numLibs + 1);
+    AS_UTL_safeRead(F,  isBB,       "isBB",       sizeof(uint32),       numLibs + 1);
+    AS_UTL_safeRead(F,  fi,         "fi",         sizeof(fragmentInfo), numFrags + 1);
     fclose(F);
+
+    uint32  errs = 0;
+
+    for (uint32 i=0; i<=numLibs; i++) {
+      if (isSS[i] != ((searchLibs.size() == 0) || (searchLibs.count(i)   > 0)))
+        errs++;
+      if (isBB[i] != ((backboneLibs.size() == 0) || (backboneLibs.count(i) > 0)))
+        errs++;
+    }
+
+    if (errs) {
+      fprintf(stderr, "LOADING FRAGMENTS...backbone or search libraries changed; rebuilding map.\n");
+
+      for (uint32 fid=0; fid<=numFrags; fid++) {
+        uint32   lib = fi[fid].libIID;
+
+        fi[fid].isBackbone  = isBB[lib];
+        fi[fid].doSearch    = isSS[lib];
+      }
+    }
+
   } else {
     //  CHANGE CLEAR RANGE FOR PRODUCTION!  We need some way of asking if
     //  a clear range exists.  For now, we'll use a not-so-good method.
@@ -153,24 +197,18 @@ cmGlobalData::loadFragments(char        *gkpStoreName,
         //  OBT exists.
         cllen = frg.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTCHIMERA);
 
-      fi[fid].unused      = 0;
+      fi[fid].libIID      = lib;
       fi[fid].contained   = 0;  //
       fi[fid].end5covered = 0;  //  Set when loading overlaps
       fi[fid].end3covered = 0;  //
-      fi[fid].isBackbone  = 0;
-      fi[fid].doSearch    = 0;
+      fi[fid].isBackbone  = isBB[lib];
+      fi[fid].doSearch    = isSS[lib];
       fi[fid].clearLength = cllen;
       fi[fid].mateIID     = frg.gkFragment_getMateIID();
 
-      if (searchLibs.size() == 0)
-        fi[fid].doSearch = gkpStore->gkStore_getLibrary(lib)->doTrim_initialMerBased;
-      else
-        fi[fid].doSearch = (searchLibs.count(lib) > 0);
-
-      if (backboneLibs.size() == 0)
-        fi[fid].isBackbone = true;
-      else
-        fi[fid].isBackbone = (backboneLibs.count(lib) > 0);
+      assert(fi[fid].libIID      == lib);
+      assert(fi[fid].clearLength == cllen);
+      assert(fi[fid].mateIID     == frg.gkFragment_getMateIID());
 
       if ((fi[fid].doSearch || fi[fid].isBackbone) && (fid < minFragIID))
         minFragIID = fid;
@@ -182,13 +220,13 @@ cmGlobalData::loadFragments(char        *gkpStoreName,
                 fid);
     }
 
-#if 0
     FILE *F = fopen(cacheName, "w");
     AS_UTL_safeWrite(F, &minFragIID, "minFragIID", sizeof(uint32),       1);
     AS_UTL_safeWrite(F, &maxFragIID, "maxFragIID", sizeof(uint32),       1);
-    AS_UTL_safeWrite(F,  fi,         "fi",         sizeof(fragmentInfo), numFrags+1);
+    AS_UTL_safeWrite(F,  isSS,       "isSS",       sizeof(uint32),       numLibs + 1);
+    AS_UTL_safeWrite(F,  isBB,       "isBB",       sizeof(uint32),       numLibs + 1);
+    AS_UTL_safeWrite(F,  fi,         "fi",         sizeof(fragmentInfo), numFrags + 1);
     fclose(F);
-#endif
   }
 
   delete gkpStream;
@@ -260,6 +298,8 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
   memoryUsed += (oiStorageBS) * sizeof(overlapInfo);
   if (memoryUsed > memoryLimit)
     fprintf(stderr, "\nMemory limit reached, aborting.\n"), exit(1);
+
+  uint64            numFG = 0;  //  Number of fragments processed
 
   uint64            numTT = 0;  //  Number of overlaps read from disk
   uint64            numUU = 0;  //  Number of overlaps not backbone and not target
@@ -422,7 +462,7 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
     assert(oiStoragePos <= oiStorageBS);
 
-    minFragIID++;
+    minFragIID = iid + 1;
 
     if ((fi[minFragIID].isBackbone == false) &&
         (fi[minFragIID].doSearch   == false)) {
@@ -433,18 +473,20 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
         minFragIID++;
 
       if (minFragIID < maxFragIID) {
-        fprintf(stderr, "\nLOADING OVERLAPS....reset range to "F_IID","F_IID"\n",
+        fprintf(stderr, "LOADING OVERLAPS....reset range to "F_IID","F_IID"\n",
                 minFragIID, maxFragIID);
         AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
       }
     }
 
-    if ((iid % 100000) == 0)
-      fprintf(stderr, "LOADING OVERLAPS...at IID "F_U32" (%06.2f%%): BB "F_U64" (%06.2f%%) TG "F_U64" (%06.2f%%) DD "F_U64" (%06.2f%%).\r",
+    if ((++numFG % 3000000) == 0)
+      fprintf(stderr, "LOADING OVERLAPS...at IID "F_U32" (%06.2f%%): BB "F_U64" (%06.2f%%) TG "F_U64" (%06.2f%%) DD "F_U64" (%06.2f%%).\n",
               iid,   100.0 * iid   / numFrags,
               numBB, 100.0 * numBB / numTT,
               numTG, 100.0 * numTG / numTT,
               numDD, 100.0 * numDD / numTT);
+
+    ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
   }
 
   AS_OVS_closeOverlapStore(ovlStore);

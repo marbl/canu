@@ -32,7 +32,7 @@ using namespace std;
 
 class fragmentInfo {
 public:
-  uint64  unused      : 12;
+  uint64  libIID      : 12;
   uint64  contained   : 1;
   uint64  end5covered : 1;
   uint64  end3covered : 1;
@@ -236,6 +236,7 @@ public:
   uint32                    pathsMax;
 
   uint32                    numFrags;
+  uint32                    numLibs;
   fragmentInfo             *fi;
 
   uint32                    curFragIID;
