@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.44 2012-02-13 15:56:26 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.45 2012-02-13 19:22:34 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -635,7 +635,7 @@ sortDistributedBucketGES(char *storeName,
 
     // Migrate sorted dump files to store format
     sprintf(nameMigrate, "%s/%04d", storeName, index+1);
-    fprintf(stderr, "Migrating sorted overlap dumps to %s (%ld)\n", nameMigrate,time(NULL) - beginTime);
+    fprintf(stderr, "Migrating sorted overlap dump to %s (%ld)\n", nameMigrate,time(NULL) - beginTime);
     bof = AS_OVS_createBinaryOverlapFile(nameMigrate,TRUE); //Create overlaps with only b_iid.
 
     for (uint64 j=0; j < numOvl; j++) {  //<= or < ?
@@ -653,18 +653,16 @@ sortDistributedBucketGES(char *storeName,
 
   fprintf(stderr,"Now beginning cleanup of partitions\n");
   for (uint32 i=0; i<fileListLen; i++) {
-  
 	if (dumpLength[i] == 0ULL ) {
 		continue;
         }
-	
         sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,i,index);
   	fprintf(stderr, "Cleaning up %s.\n",name);
   	unlink(name);
   }
 
 
-
+  fprintf(stderr,"Done.\n");
 
   safe_free(overlapsort);
   
