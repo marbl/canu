@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.45 2012-02-13 19:22:34 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.46 2012-02-13 19:38:14 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -658,7 +658,7 @@ sortDistributedBucketGES(char *storeName,
         }
         sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,i,index);
   	fprintf(stderr, "Cleaning up %s.\n",name);
-  	unlink(name);
+  //	unlink(name);
   }
 
 
