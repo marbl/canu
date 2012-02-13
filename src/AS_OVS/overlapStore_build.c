@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.43 2012-02-10 20:21:00 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.44 2012-02-13 15:56:26 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -650,6 +650,21 @@ sortDistributedBucketGES(char *storeName,
     fprintf(stderr, "Done migrating %s (%ld)\n", name,time(NULL) - beginTime);
 
   AS_OVS_closeOverlapStore(storeFile);
+
+  fprintf(stderr,"Now beginning cleanup of partitions\n");
+  for (uint32 i=0; i<fileListLen; i++) {
+  
+	if (dumpLength[i] == 0ULL ) {
+		continue;
+        }
+	
+        sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,i,index);
+  	fprintf(stderr, "Cleaning up %s.\n",name);
+  	unlink(name);
+  }
+
+
+
 
   safe_free(overlapsort);
   
