@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.23 2012-02-12 05:25:52 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.24 2012-02-13 11:41:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -70,6 +70,9 @@ cmReader(void *G) {
 
     if (g->fi[g->curFragIID].mateIID < g->curFragIID)
       continue;
+
+    if (g->curFragIID > 50000)
+      return(NULL);
 
     s = new cmComputation(g->curFragIID, g->fi[g->curFragIID].mateIID, g->innie);
 
@@ -274,6 +277,9 @@ main(int argc, char **argv) {
 
   ss->setLoaderQueueSize(1048576);
   ss->setWriterQueueSize(65536);
+
+  ss->setLoaderBatchSize(128);
+  ss->setWorkerBatchSize(128);
 
   ss->setNumberOfWorkers(numThreads);
 

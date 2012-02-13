@@ -95,6 +95,10 @@ class cmThreadData {
 public:
   cmThreadData() {
     clear();
+
+    pathMax    = 0;
+    path       = NULL;
+
     extMax     = 131072;  //  Overlaps out of a node
     ext        = new uint32 [extMax];
 
@@ -114,8 +118,8 @@ public:
   void clear(void) {
     pathPos    = 0;
     pathAdd    = 0;
-    pathMax    = 0;
-    path       = NULL;
+    //pathMax    = 0;      //  NO!  We reuse this!
+    //path       = NULL;
 
     searchIter = 0;
 

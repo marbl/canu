@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.7 2012-02-13 08:32:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.8 2012-02-13 11:41:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -231,6 +231,9 @@ cmGlobalData::loadFragments(char        *gkpStoreName,
 
   delete gkpStream;
   delete gkpStore;
+
+  delete [] isBB;
+  delete [] isSS;
 
   fprintf(stderr, "LOADING FRAGMENTS...%u fragments loaded.\n", numFrags);
 }
@@ -464,19 +467,16 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
     minFragIID = iid + 1;
 
-    if ((fi[minFragIID].isBackbone == false) &&
-        (fi[minFragIID].doSearch   == false)) {
+    while ((minFragIID < maxFragIID) &&
+           (fi[minFragIID].isBackbone == false) &&
+           (fi[minFragIID].doSearch   == false))
+      minFragIID++;
 
-      while ((fi[minFragIID].isBackbone == false) &&
-             (fi[minFragIID].doSearch   == false) &&
-             minFragIID < maxFragIID)
-        minFragIID++;
-
-      if (minFragIID < maxFragIID) {
-        fprintf(stderr, "LOADING OVERLAPS....reset range to "F_IID","F_IID"\n",
-                minFragIID, maxFragIID);
-        AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
-      }
+    if ((minFragIID < maxFragIID) &&
+        (minFragIID > iid + 1)) {
+      fprintf(stderr, "LOADING OVERLAPS....reset range to "F_IID","F_IID"\n",
+              minFragIID, maxFragIID);
+      AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
     }
 
     if ((++numFG % 3000000) == 0)
@@ -494,6 +494,9 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
   delete [] ovl;
   delete [] ovlBB;
   delete [] ovlTG;
+
+  delete bbDist;
+  delete tgDist;
 
   fprintf(stderr, "LOADING OVERLAPS...at IID "F_U32" (%06.2f%%): BB "F_U64" (%06.2f%%) TG "F_U64" (%06.2f%%) DD "F_U64" (%06.2f%%).\n",
           numFrags, 100.0,
