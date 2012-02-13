@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_decodeRange.C,v 1.1 2012-02-12 05:25:52 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_UTL_decodeRange.C,v 1.2 2012-02-13 08:30:41 brianwalenz Exp $";
 
 #include "AS_UTL_decodeRange.H"
 
@@ -32,8 +32,11 @@ AS_UTL_decodeRange(char *range, set<uint64> &ranges) {
   while (*ap != 0) {
     av = strtoull(ap, &ap, 10);
 
-    if        (*ap == ',') {
+    if (*ap == ',') {
       ap++;
+      ranges.insert(av);
+
+    } else if (*ap == 0) {
       ranges.insert(av);
 
     } else if (*ap == '-') {
@@ -62,13 +65,16 @@ AS_UTL_decodeRange(char *range, set<uint32> &ranges) {
   while (*ap != 0) {
     av = strtoul(ap, &ap, 10);
 
-    if        (*ap == ',') {
+    if (*ap == ',') {
       ap++;
+      ranges.insert(av);
+
+    } else if (*ap == 0) {
       ranges.insert(av);
 
     } else if (*ap == '-') {
       ap++;
-      bv = strtoul(ap, &ap, 10);
+      bv = strtoull(ap, &ap, 10);
 
       for (uint32 xx=av; xx<=bv; xx++)
         ranges.insert(xx);
