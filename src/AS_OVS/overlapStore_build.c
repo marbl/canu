@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.46 2012-02-13 19:38:14 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.47 2012-02-13 19:44:06 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -580,6 +580,8 @@ sortDistributedBucketGES(char *storeName,
   char runstr[1024];
   FILE * pp;
   uint64 uncompressed_size;
+  uint32 ctr=0;
+
 
   // Get size of the final merged and sorted file
   for (uint32 i=0; i<fileListLen; i++) {
@@ -599,11 +601,20 @@ sortDistributedBucketGES(char *storeName,
 //	dumpLengthMax += (uint64) (st.st_size / sizeof(OVSoverlap));
 //	dumpLength[i]= (uint64) (st.st_size / sizeof(OVSoverlap));
 	fprintf(stderr,"File length of %04d.%03d is %lu\n",i,index,dumpLength[i]);
+	ctr++;
 	} else {
 		fprintf(stderr,"File %04d.%03d Not found (OK).\n",i,index);
 		fprintf(stderr,"Size: %lu.\n",dumpLength[i]);
 	}
   }
+
+  if (ctr == 0 ) {
+	fprintf(stderr,"WARNING: found ZERO partitions with bucket %d !\n",index);
+  } else {
+	fprintf(stderr,"Found %d partitions with bucket index %d\n",ctr,index);
+  }
+
+
 
   OVSoverlap         *overlapsort;
   overlapsort = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * dumpLengthMax);
@@ -651,15 +662,15 @@ sortDistributedBucketGES(char *storeName,
 
   AS_OVS_closeOverlapStore(storeFile);
 
-  fprintf(stderr,"Now beginning cleanup of partitions\n");
-  for (uint32 i=0; i<fileListLen; i++) {
-	if (dumpLength[i] == 0ULL ) {
-		continue;
-        }
-        sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,i,index);
-  	fprintf(stderr, "Cleaning up %s.\n",name);
+  fprintf(stderr,"Will not cleanup of partitions.\n");
+ // for (uint32 i=0; i<fileListLen; i++) {
+//	if (dumpLength[i] == 0ULL ) {
+//		continue;
+  //      }
+  //      sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,i,index);
+ // 	fprintf(stderr, "Cleaning up %s.\n",name);
   //	unlink(name);
-  }
+  //}
 
 
   fprintf(stderr,"Done.\n");
