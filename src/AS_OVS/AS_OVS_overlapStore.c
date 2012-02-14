@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.33 2012-02-08 19:29:19 gesims Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.34 2012-02-14 15:33:58 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +28,7 @@ static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.33 2012-02-08 19:29:1
 #include <errno.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <limits.h>
 
 #include "AS_OVS_overlapStore.h"
 #include "AS_OVS_overlapFile.h"
@@ -105,7 +106,7 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   ovs->ovs.ovsMagic              = 1;
   ovs->ovs.ovsVersion            = AS_OVS_CURRENT_VERSION;
   ovs->ovs.numOverlapsPerFile    = 0;  //  not used for reading
-  ovs->ovs.smallestIID           = 1000000000;
+  ovs->ovs.smallestIID           = UINT_MAX;
   ovs->ovs.largestIID            = 0;
   ovs->ovs.numOverlapsTotal      = 0;
   ovs->ovs.highestFileIndex      = 0;
@@ -585,7 +586,7 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
   ovs->ovs.ovsMagic              = 1;
   ovs->ovs.ovsVersion            = AS_OVS_CURRENT_VERSION;
   ovs->ovs.numOverlapsPerFile    = 1024 * 1024 * 1024 / sizeof(OVSoverlapINT);
-  ovs->ovs.smallestIID           = 1000000000;
+  ovs->ovs.smallestIID           = UINT_MAX;
   ovs->ovs.largestIID            = 0;
   ovs->ovs.numOverlapsTotal      = 0;
   ovs->ovs.highestFileIndex      = 0;
@@ -871,7 +872,7 @@ AS_OVS_writeOverlapDumpToStore2(char * storename,OVSoverlap *overlap, uint32 max
 	ovs.ovsMagic = 1;
 	ovs.ovsVersion= AS_OVS_CURRENT_VERSION;
         ovs.numOverlapsPerFile    = 1024 * 1024 * 1024 / sizeof(OVSoverlapINT);
-        ovs.smallestIID           = 1000000000;
+        ovs.smallestIID           = UINT_MAX;
         ovs.largestIID            = 0;
         ovs.numOverlapsTotal      = 0;
         ovs.highestFileIndex      = 0;
