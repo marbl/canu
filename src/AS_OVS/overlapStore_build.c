@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.48 2012-02-14 16:41:31 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.49 2012-02-14 20:14:19 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -609,7 +609,9 @@ sortDistributedBucketGES(char *storeName,
   }
 
   if (ctr == 0 ) {
-	fprintf(stderr,"WARNING: found ZERO partitions with bucket %d !\n",index);
+	fprintf(stderr,"Error: found ZERO partitions with bucket %d !\n",index);
+	fprintf(stderr,"More often than not this is an error!\n");
+	exit(1);
   } else {
 	fprintf(stderr,"Found %d partitions with bucket index %d\n",ctr,index);
   }
