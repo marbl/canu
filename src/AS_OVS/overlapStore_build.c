@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.47 2012-02-13 19:44:06 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.48 2012-02-14 16:41:31 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -636,7 +636,6 @@ sortDistributedBucketGES(char *storeName,
 		numOvl++;
 
         AS_OVS_closeBinaryOverlapFile(bof);
-  	unlink(name);
   }
     assert(numOvl == dumpLengthMax);
 
