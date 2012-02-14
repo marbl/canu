@@ -389,8 +389,11 @@ if (! -e "$AMOS/bank-transact") {
 print STDERR "Starting correction...\n CA: $CA\nAMOS:$AMOS\n";
 
 my $cmd = "";
-runCommand("$wrk", "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio -reads " . makeAbsolute($fastqFile) . " > $wrk/$libraryname.frg"); 
-runCommand($wrk, "$CA/runCA -s $specFile -p $asm -d temp$libraryname $caSGE stopAfter=initialStoreBuilding @fragFiles $wrk/$libraryname.frg");
+if (! -e "temp$libraryname") {
+   runCommand("$wrk", "mkdir temp$libraryname");
+}
+runCommand("$wrk", "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio -reads " . makeAbsolute($fastqFile) . " > $wrk/temp$libraryname/$libraryname.frg"); 
+runCommand($wrk, "$CA/runCA -s $specFile -p $asm -d temp$libraryname $caSGE stopAfter=initialStoreBuilding @fragFiles $wrk/temp$libraryname/$libraryname.frg");
 
 # make assumption that we correct using all libraries preceeding pacbio
 # figure out what number of libs we have and what lib is pacbio
