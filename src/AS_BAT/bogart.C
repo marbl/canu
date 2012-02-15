@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.15 2012-01-15 23:49:34 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.16 2012-02-15 03:41:08 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -453,22 +453,33 @@ main (int argc, char * argv []) {
 
   mergeSplitJoin(unitigs, enableShatterRepeats);
 
-  //if (enableShatterRepeats) {
-  //  //  If my best overlap is to somewhere else, split the unitig I am in
-  //  splitIntersectingUnitigs();
-  //}
-
   if (enableExtendByMates) {
     assert(enableShatterRepeats);
     setLogFile(output_prefix, "extendMates");
+
     extendByMates(unitigs, erateGraph, elimitGraph);
+
+    reportOverlapsUsed(unitigs, output_prefix, "extendMates");
+    reportUnitigs(unitigs, output_prefix, "extendMates");
+    evaluateMates(unitigs, output_prefix, "extendMates");
   }
 
   if (enableReconstructRepeats) {
     assert(enableShatterRepeats);
     setLogFile(output_prefix, "reconstructRepeats");
+
     reconstructRepeats(unitigs, erateGraph, elimitGraph);
+
+    reportOverlapsUsed(unitigs, output_prefix, "reconstructRepeats");
+    reportUnitigs(unitigs, output_prefix, "reconstructRepeats");
+    evaluateMates(unitigs, output_prefix, "reconstructRepeats");
   }
+
+  checkUnitigMembership(unitigs);
+
+  reportOverlapsUsed(unitigs, output_prefix, "mergeSplitJoin");
+  reportUnitigs(unitigs, output_prefix, "mergeSplitJoin");
+  evaluateMates(unitigs, output_prefix, "mergeSplitJoin");
 
   setLogFile(output_prefix, "cleanup");
 
@@ -478,9 +489,6 @@ main (int argc, char * argv []) {
   promoteToSingleton(unitigs, enablePromoteToSingleton);
 
   checkUnitigMembership(unitigs);
-  reportOverlapsUsed(unitigs, output_prefix, "mergeSplitJoin");
-  reportUnitigs(unitigs, output_prefix, "mergeSplitJoin");
-  evaluateMates(unitigs, output_prefix, "mergeSplitJoin");
 
   //  OUTPUT
 

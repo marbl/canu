@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.9 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.10 2012-02-15 03:41:08 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -53,14 +53,12 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
   _restrict = NULL;
 
-  mismatchCutoff  = AS_OVS_encodeQuality(AS_UTG_ERROR_RATE);
-  consensusCutoff = AS_OVS_encodeQuality(AS_CNS_ERROR_RATE);
-
+  mismatchCutoff  = AS_UTG_ERROR_RATE;
   mismatchLimit   = AS_UTG_ERROR_LIMIT;
 
   //  PASS 0:  Find suspicious fragments.  For any found, mark as suspicious and don't allow
   //  these to be best overlaps.
-
+#if 0
   for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
     uint32      no  = 0;
     BAToverlap *ovl = OC->getOverlaps(fi, no);
@@ -107,6 +105,7 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
       _suspicious.insert(fi);
     }
   }
+#endif
 
   //  PASS 1:  Find containments.
 
@@ -160,9 +159,7 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
   assert(AS_CNS_ERROR_RATE >= 0.0);
   assert(AS_CNS_ERROR_RATE <= AS_MAX_ERROR_RATE);
 
-  mismatchCutoff  = AS_OVS_encodeQuality(AS_UTG_ERROR_RATE);
-  consensusCutoff = AS_OVS_encodeQuality(AS_CNS_ERROR_RATE);
-
+  mismatchCutoff  = AS_UTG_ERROR_RATE;
   mismatchLimit   = AS_UTG_ERROR_LIMIT;
 
   _bestA = NULL;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.14 2011-12-05 22:56:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.15 2012-02-15 03:41:08 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -84,6 +84,9 @@ placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
   } else {
     op.verified.bgn = op.position.bgn - op.covered.bgn;
     op.verified.end = op.position.bgn - op.covered.end;
+
+    if (op.position.bgn < op.covered.bgn)
+      op.verified.bgn = 0;
 
     if (op.verified.end < op.position.end)
       op.verified.end = op.position.end;
@@ -255,7 +258,7 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
 bool
 placeFragUsingOverlaps(UnitigVector             &unitigs,
                        Unitig                   *target,
-                       uint32                    fid,
+                       AS_IID                    fid,
                        vector<overlapPlacement> &placements) {
 
   assert(fid > 0);
@@ -539,6 +542,17 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
         //fprintf(logFile, "placeFragUsingOverlaps()-- PickEnds ordinal %d tigFrg %d pos %d,%d\n",
         //        ordinal, ovlFrg.ident, minPos, maxPos);
 
+        //  For a normal dovetail alignment, this is pretty straight forward.  We pick the
+        //  end we align to.
+        //
+        //  For spur alignments (repeat detection) it is backwards to what we want.  More comments
+        //  in repeatJunctionEvidence::repeatJunctionEvidence().
+        //
+        //         \                        /
+        //          -----alignedfragment----
+        //          ------....    .....-----
+        //
+
         if (((minPos  <  firstPosition)) ||
             ((minPos  <= firstPosition) && (ordinal < firstOrdinal))) {
           firstOrdinal  = ordinal;
@@ -666,4 +680,89 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
   delete [] ovlPlace;
 
   return(true);
+}
+
+
+
+
+void
+placeUnmatedFragInBestLocation(UnitigVector   &unitigs,
+                               AS_IID          fid) {
+  ufNode                    frg;
+  vector<overlapPlacement>  op;
+
+  frg.ident             = fid;
+  frg.contained         = 0;
+  frg.parent            = 0;
+  frg.ahang             = 0;
+  frg.bhang             = 0;
+  frg.position.bgn      = 0;
+  frg.position.end      = FI->fragmentLength(fid);
+  frg.containment_depth = 0;
+
+  placeFragUsingOverlaps(unitigs, NULL, fid, op);
+
+  //  Pick the lowest error placement, and of those lowest, the least aligned region.
+
+  double  minError = DBL_MAX;
+  uint32  minAlign = UINT32_MAX;
+  uint32  bp       = UINT32_MAX;
+
+  for (uint32 pl=0; pl<op.size(); pl++) {
+    if (op[pl].fCoverage < 0.99)
+      continue;
+
+    double e = op[pl].errors / op[pl].aligned;
+
+    if ((e < minError) ||
+        ((e <= minError) && (op[pl].aligned < minAlign))) {
+      minError = e;
+      minAlign = op[pl].aligned;
+      bp       = pl;
+    }
+  }
+
+  //  No placement?  New unitig!
+
+  if (bp == UINT32_MAX) {
+    Unitig  *sing = new Unitig(false);
+    sing->addFrag(frg, 0, false);
+    unitigs.push_back(sing);
+    return;
+  }
+
+  //  Place the frag in the unitig at the spot.
+
+  Unitig  *tig = unitigs[op[bp].tigID];
+
+  frg.position.bgn = op[bp].position.bgn;
+  frg.position.end = op[bp].position.end;
+
+  tig->addFrag(frg, 0, false);
+  tig->bubbleSortLastFrag();
+}
+
+
+void
+placeMatedFragInBestLocation(UnitigVector   &unitigs,
+                             AS_IID          fid,
+                             AS_IID          mid) {
+  placeUnmatedFragInBestLocation(unitigs, fid);
+}
+
+
+void
+placeFragInBestLocation(UnitigVector   &unitigs,
+                        AS_IID          fid) {
+
+  if (Unitig::fragIn(fid) != 0)
+    //  Already placed.
+    return;
+
+  AS_IID  mid = FI->mateIID(fid);
+
+  if (mid == 0)
+    placeUnmatedFragInBestLocation(unitigs, fid);
+  else
+    placeMatedFragInBestLocation(unitigs, fid, mid);
 }

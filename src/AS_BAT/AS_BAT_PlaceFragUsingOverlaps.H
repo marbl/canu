@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.8 2011-04-08 19:40:07 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.9 2012-02-15 03:41:08 brianwalenz Exp $";
 
 #include "AS_BAT_OverlapCache.H"
 
@@ -112,7 +112,12 @@ overlapPlacement_byCluster(const overlapPlacement &A, const overlapPlacement &B)
 bool
 placeFragUsingOverlaps(UnitigVector             &unitigs,
                        Unitig                   *target,
-                       uint32                    fid,
+                       AS_IID                    fid,
                        vector<overlapPlacement> &placements);
+
+void
+placeFragInBestLocation(UnitigVector   &unitigs,
+                        AS_IID          fid);
+
 
 #endif  //  INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS

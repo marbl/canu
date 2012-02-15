@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.4 2012-01-15 23:49:34 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.5 2012-02-15 03:41:08 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -76,6 +76,8 @@ struct Unitig {
   void addFrag(ufNode node, int offset=0, bool report=false);
   bool addContainedFrag(int32 fid, BestContainment *bestcont, bool report=false);
   bool addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *bestedge3, bool report=false);
+
+  void bubbleSortLastFrag(void);
 
   static void removeFrag(int32 fid) {
     _inUnitig[fid] = 0;

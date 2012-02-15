@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig_AddFrag.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig_AddFrag.C,v 1.3 2012-02-15 03:41:08 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -89,31 +89,32 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
 
   addFrag(frag, 0, report);
 
-#if 0
-  //  Bump that new fragment up to be in the correct spot -- we can't
-  //  use the sort() method on Unitig, since we lost the
-  //  containPartialOrder.
-  //
-  int             i = ufpath.size() - 1;
-  ufNode   *f = &ufpath.front();
-
-  //  Only needed if the frag we just added (i) begins before the second to last frag.
-
-  if (MIN(f[i].position.bgn, f[i].position.end) < MIN(f[i-1].position.bgn, f[i-1].position.end)) {
-    ufNode          containee    = f[i];
-    int             containeeMin = MIN(containee.position.bgn, containee.position.end);
-
-    while ((i > 0) &&
-           (containee.contained != f[i-1].ident) &&
-           (containeeMin < MIN(f[i-1].position.bgn, f[i-1].position.end))) {
-      f[i] = f[i-1];
-      i--;
-    }
-
-    f[i] = containee;
-  }
-#endif
-
   return(true);
 }
 
+
+
+//  Percolate the last fragment to the correct spot in the list.
+void
+Unitig::bubbleSortLastFrag(void) {
+  uint32   previd  = ufpath.size() - 2;
+  uint32   lastid  = ufpath.size() - 1;
+
+  ufNode   last    = ufpath[lastid];
+  uint32   lastbgn = MIN(last.position.bgn, last.position.end);
+
+  while ((lastid > 0) &&
+         (lastbgn < MIN(ufpath[previd].position.bgn, ufpath[previd].position.end))) {
+    ufpath[lastid] = ufpath[previd];
+
+    _pathPosition[ufpath[lastid].ident] = lastid;
+
+    lastid--;
+    previd--;
+  }
+
+  _pathPosition[last.ident] = lastid;
+
+  if (lastid < ufpath.size() - 1)
+    ufpath[lastid] = last;
+}

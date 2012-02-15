@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.5 2011-05-06 17:30:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.6 2012-02-15 03:41:08 brianwalenz Exp $";
 
 #include "AS_BAT_Breaking.H"
 
@@ -116,8 +116,8 @@ isBreakpoint(ufNode &frg,
 
   assert(bp.fragEnd.fragId() == frg.ident);
 
-  fprintf(logFile, "BREAK %u %d/%d\n",
-          bp.fragEnd.fragId(), bp.break3p, bp.break5p);
+  //fprintf(logFile, "BREAK %u %d/%d\n",
+  //        bp.fragEnd.fragId(), bp.break3p, bp.break5p);
 
   break3p             = bp.break3p;
   break5p             = bp.break5p;
@@ -206,8 +206,8 @@ breakUnitigAt(Unitig *tig,
                      break5p, break3p,
                      rememberLastTig,
                      searchDiscontinuous)) {
-      fprintf(logFile, "NEW BREAK at frag %u 5p=%d 3p=%d remember=%d search=%d\n",
-              frg.ident, break5p, break3p, rememberLastTig, searchDiscontinuous);
+      //fprintf(logFile, "NEW BREAK at frag %u 5p=%d 3p=%d remember=%d search=%d\n",
+      //        frg.ident, break5p, break3p, rememberLastTig, searchDiscontinuous);
 
       lastTig    = NULL;
       lastOffset = 0;
@@ -237,7 +237,7 @@ breakUnitigAt(Unitig *tig,
 
     if ((break5p == true) &&
         (break3p == true)) {
-      saveTig    = currTig    = new Unitig(LOG_ADDUNITIG_BREAKING);
+      saveTig    = currTig    = new Unitig(false);  //  LOG_ADDUNITIG_BREAKING);
       saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
       newTigs->push_back(currTig);
@@ -264,7 +264,7 @@ breakUnitigAt(Unitig *tig,
     if ((break5p == false) &&
         (break3p == false)) {
       if (currTig == NULL) {
-        saveTig    = currTig    = new Unitig(LOG_ADDUNITIG_BREAKING);
+        saveTig    = currTig    = new Unitig(false);  //  LOG_ADDUNITIG_BREAKING);
         saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
         newTigs->push_back(currTig);
@@ -278,7 +278,7 @@ breakUnitigAt(Unitig *tig,
 
     if ((break5p && (frgReversed == false)) ||
         (break3p && (frgReversed == true))) {
-      saveTig    = currTig    = new Unitig(LOG_ADDUNITIG_BREAKING);
+      saveTig    = currTig    = new Unitig(false);  //  LOG_ADDUNITIG_BREAKING);
       saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
       newTigs->push_back(currTig);
@@ -293,7 +293,7 @@ breakUnitigAt(Unitig *tig,
     if ((break5p && (frgReversed == true)) ||
         (break3p && (frgReversed == false))) {
       if (currTig == NULL) {
-        saveTig    = currTig    = new Unitig(LOG_ADDUNITIG_BREAKING);
+        saveTig    = currTig    = new Unitig(false);  //  LOG_ADDUNITIG_BREAKING);
         saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
         newTigs->push_back(currTig);

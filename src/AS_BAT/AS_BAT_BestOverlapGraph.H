@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id: AS_BAT_BestOverlapGraph.H,v 1.5 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id: AS_BAT_BestOverlapGraph.H,v 1.6 2012-02-15 03:41:08 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -143,8 +143,7 @@ private:
   set<AS_IID>               *_restrict;
 
 public:
-  uint64                      mismatchCutoff;
-  uint64                      consensusCutoff;
+  double                      mismatchCutoff;
   double                      mismatchLimit;
 }; //BestOverlapGraph
 
