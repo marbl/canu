@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.9 2012-02-15 04:42:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.10 2012-02-15 06:58:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -185,6 +185,11 @@ cmGlobalData::loadFragments(char        *gkpStoreName,
 
         fi[fid].isBackbone  = isBB[lib];
         fi[fid].doSearch    = isSS[lib];
+
+        if ((fi[fid].doSearch || fi[fid].isBackbone) && (fid < minFragIID))
+          minFragIID = fid;
+        if ((fi[fid].doSearch || fi[fid].isBackbone) && (maxFragIID < fid))
+          maxFragIID = fid;
 
         if ((fid > 0) && (fi[fid-1].isBackbone == 0) && (fi[fid].isBackbone == 1))
           fprintf(stderr, "  frag "F_U32" start of lib %s is now backbone.\n", fid, gkpStore->gkStore_getLibrary(lib)->libraryName);
