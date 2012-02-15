@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.15 2012-02-15 06:55:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.16 2012-02-15 07:47:52 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -72,7 +72,7 @@ getMemorySize(void) {
   fprintf(stderr, "PAGE_SIZE  = "F_U64"\n", pageSize);
   fprintf(stderr, "MEMORY     = "F_U64"\n", physMemory);
 
-  return(physMemory)
+  return(physMemory);
 }
 
 #endif
