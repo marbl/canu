@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.17 2012-02-15 06:55:34 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.18 2012-02-15 07:52:08 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -215,6 +215,7 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-create") == 0) {
       onlySave = true;
+      doSave   = true;
 
     } else if (strcmp(argv[arg], "-save") == 0) {
       doSave = true;
