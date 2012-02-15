@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.8 2012-02-13 11:41:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.9 2012-02-15 04:42:42 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -170,11 +170,31 @@ cmGlobalData::loadFragments(char        *gkpStoreName,
     if (errs) {
       fprintf(stderr, "LOADING FRAGMENTS...backbone or search libraries changed; rebuilding map.\n");
 
+      for (uint32 i=0; i<=numLibs; i++) {
+        isSS[i] = isBB[i] = 0;
+
+        if ((searchLibs.size() == 0) || (searchLibs.count(i)   > 0))
+          isSS[i] = 1;
+
+        if ((backboneLibs.size() == 0) || (backboneLibs.count(i) > 0))
+          isBB[i] = 1;
+      }
+      
       for (uint32 fid=0; fid<=numFrags; fid++) {
         uint32   lib = fi[fid].libIID;
 
         fi[fid].isBackbone  = isBB[lib];
         fi[fid].doSearch    = isSS[lib];
+
+        if ((fid > 0) && (fi[fid-1].isBackbone == 0) && (fi[fid].isBackbone == 1))
+          fprintf(stderr, "  frag "F_U32" start of lib %s is now backbone.\n", fid, gkpStore->gkStore_getLibrary(lib)->libraryName);
+        if ((fid > 0) && (fi[fid-1].isBackbone == 1) && (fi[fid].isBackbone == 0))
+          fprintf(stderr, "  frag "F_U32" end of lib %s is last backbone.\n", fid-1, gkpStore->gkStore_getLibrary(lib)->libraryName);
+
+        if ((fid > 0) && (fi[fid-1].doSearch == 0) && (fi[fid].doSearch == 1))
+          fprintf(stderr, "  frag "F_U32" start of lib %s is searchable.\n", fid, gkpStore->gkStore_getLibrary(lib)->libraryName);
+        if ((fid > 0) && (fi[fid-1].doSearch == 1) && (fi[fid].doSearch == 0))
+          fprintf(stderr, "  frag "F_U32" end of lib %s is last searchable.\n", fid-1, gkpStore->gkStore_getLibrary(lib)->libraryName);
       }
     }
 
