@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.9 2011-12-12 20:22:39 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.10 2012-02-15 06:55:34 brianwalenz Exp $";
 
 //  AS_BAT_ERRBITS stores a reduced-precision overlap error rate using the same method
 //  as used by OverlapStore.  It should be at least 7 bits, and never needs to be more
@@ -95,10 +95,13 @@ class OverlapCache {
 public:
   OverlapCache(OverlapStore *ovlStoreUniq,
                OverlapStore *ovlStoreRept,
+               const char *prefix,
                double maxErate,
                double elimit,
                uint64 maxMemory,
-               uint32 maxOverlaps);
+               uint32 maxOverlaps,
+               bool onlysave,
+               bool dosave);
   ~OverlapCache();
 
   void         computeOverlapLimit(void);
@@ -106,9 +109,13 @@ public:
 
   uint32       filterOverlaps(uint32 maxOVSerate, uint32 no);
 
-  void         loadOverlaps(double erate, double elimit);
+  void         loadOverlaps(double erate, double elimit, const char *prefix, bool onlySave, bool doSave);
 
   BAToverlap  *getOverlaps(uint32 fragIID, uint32 &numOverlaps);
+
+private:
+  bool         load(const char *prefix, double erate, double elimit, uint64 memlimit, uint32 maxOverlaps);
+  void         save(const char *prefix, double erate, double elimit, uint64 memlimit, uint32 maxOverlaps);
 
 private:
   uint64                  _memLimit;

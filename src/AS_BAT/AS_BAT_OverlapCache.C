@@ -19,25 +19,23 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.14 2012-01-14 13:27:50 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.15 2012-02-15 06:55:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
 
 #include <sys/types.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include <sys/sysctl.h>
 
-OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
-                           OverlapStore *ovlStoreRept,
-                           double erate,
-                           double elimit,
-                           uint64 memlimit,
-                           uint32 maxOverlaps) {
-
-  _memLimit = memlimit;
-  _memUsed = 0;
+uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
 
 #ifdef HW_PHYSMEM
+
+uint64
+getMemorySize(void) {
   uint64  physMemory = 0;
 
   int     mib[2] = { CTL_HW, HW_PHYSMEM };
@@ -59,7 +57,13 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
        fprintf(stderr, "sysctl() failed to return CTL_HW, HW_PHYSMEM: %s\n", strerror(errno)), exit(1);
   }
 
+  return(physMemory);
+}
+
 #else
+
+uint64
+getMemorySize(void) {
   uint64  physPages  = sysconf(_SC_PHYS_PAGES);
   uint64  pageSize   = sysconf(_SC_PAGESIZE);
   uint64  physMemory = physPages * pageSize;
@@ -67,10 +71,32 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   fprintf(stderr, "PHYS_PAGES = "F_U64"\n", physPages);
   fprintf(stderr, "PAGE_SIZE  = "F_U64"\n", pageSize);
   fprintf(stderr, "MEMORY     = "F_U64"\n", physMemory);
+
+  return(physMemory)
+}
+
 #endif
 
+
+
+OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
+                           OverlapStore *ovlStoreRept,
+                           const char *prefix,
+                           double erate,
+                           double elimit,
+                           uint64 memlimit,
+                           uint32 maxOverlaps,
+                           bool onlySave,
+                           bool doSave) {
+
+  if (load(prefix, erate, elimit, memlimit, maxOverlaps) == true)
+    return;
+
+  _memLimit = memlimit;
+  _memUsed = 0;
+
   if (_memLimit == UINT64_MAX)
-    _memLimit = physMemory;
+    _memLimit = getMemorySize();
 
   //  Decide on the default block size.  We want to use large blocks (to reduce the number of
   //  allocations, and load on the allocator) but not so large that we can't fit nicely.
@@ -129,7 +155,13 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
 
   computeOverlapLimit();
   computeErateMaps(erate, elimit);
-  loadOverlaps(erate, elimit);
+  loadOverlaps(erate, elimit, prefix, onlySave, doSave);
+
+  if (doSave == true)
+    save(prefix, erate, elimit, memlimit, maxOverlaps);
+
+  if ((doSave == true) && (onlySave == true))
+    fprintf(stderr, "Exiting; only requested to build the overlap graph.\n"), exit(0);
 }
 
 
@@ -445,12 +477,26 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
 
 
 void
-OverlapCache::loadOverlaps(double erate, double elimit) {
+OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool onlySave, bool doSave) {
   uint64   numTotal    = 0;
   uint64   numLoaded   = 0;
   uint32   numFrags    = 0;
   uint32   numOvl      = 0;
   uint32   maxOVSerate = AS_OVS_encodeQuality(erate);
+
+  FILE    *ovlDat = NULL;
+
+  if (doSave == true) {
+    char     name[FILENAME_MAX];
+
+    sprintf(name, "%s.ovlCacheDat", prefix);
+
+    fprintf(stderr, "Saving overlaps to '%s'.\n", name);
+
+    ovlDat = fopen(name, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s' for write: %s\n", name, strerror(errno)), exit(1);
+  }
 
   assert(_ovlStoreUniq != NULL);
   assert(_ovlStoreRept == NULL);
@@ -494,6 +540,12 @@ OverlapCache::loadOverlaps(double erate, double elimit) {
     //  Resize the permament storage space for overlaps.
     if ((_storLen + ns > _storMax) ||
         (_stor == NULL)) {
+
+      if ((ovlDat) && (_storLen > 0))
+        AS_UTL_safeWrite(ovlDat, _stor, "_stor", sizeof(BAToverlapInt), _storLen);
+      if (onlySave)
+        delete [] _stor;
+
       _storLen = 0;
       _stor    = new BAToverlapInt [_storMax];
       _heaps.push_back(_stor);
@@ -529,6 +581,14 @@ OverlapCache::loadOverlaps(double erate, double elimit) {
     if ((numFrags++ % 1000000) == 0)
       fprintf(logFile, "OverlapCache()-- Loading overlap information fragments:%d total:%12"F_U64P" loaded:%12"F_U64P"\n", _ovs[0].a_iid, numTotal, numLoaded);
   }
+
+  if ((ovlDat) && (_storLen > 0))
+    AS_UTL_safeWrite(ovlDat, _stor, "_stor", sizeof(BAToverlapInt), _storLen);
+  if (onlySave)
+    delete [] _stor;
+
+  if (ovlDat)
+    fclose(ovlDat);
 
   fprintf(logFile, "OverlapCache()-- Loading overlap information total:%12"F_U64P" loaded:%12"F_U64P"\n", numTotal, numLoaded);
 
@@ -566,4 +626,147 @@ OverlapCache::getOverlaps(uint32 fragIID, uint32 &numOverlaps) {
   }
 
   return(_bat);
+}
+
+
+
+
+
+
+bool
+OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memlimit, uint32 maxOverlaps) {
+  char     name[FILENAME_MAX];
+  FILE    *file;
+  size_t   numRead;
+
+  sprintf(name, "%s.ovlCache", prefix);
+  if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
+    return(false);
+
+  fprintf(stderr, "Loading graph from '%s'.\n", name);
+
+  errno = 0;
+
+  file = fopen(name, "r");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
+
+  uint64   magic      = ovlCacheMagic;
+  uint32   baterrbits = AS_BAT_ERRBITS;
+  uint32   ovserrbits = AS_OVS_ERRBITS;
+  uint32   ovshngbits = AS_OVS_HNGBITS;
+
+  AS_UTL_safeRead(file, &magic,      "overlapCache_magic",      sizeof(uint64), 1);
+  AS_UTL_safeRead(file, &baterrbits, "overlapCache_baterrbits", sizeof(uint32), 1);
+  AS_UTL_safeRead(file, &ovserrbits, "overlapCache_ovserrbits", sizeof(uint32), 1);
+  AS_UTL_safeRead(file, &ovshngbits, "overlapCache_ovshngbits", sizeof(uint32), 1);
+
+  if (magic != ovlCacheMagic)
+    fprintf(stderr, "ERROR:  File '%s' isn't a bogart ovlCache.\n", name), exit(1);
+
+  AS_UTL_safeRead(file, &_memLimit, "overlapCache_memLimit", sizeof(uint64), 1);
+  AS_UTL_safeRead(file, &_memUsed, "overlapCache_memUsed", sizeof(uint64), 1);
+
+  AS_UTL_safeRead(file, &_maxPer, "overlapCache_maxPer", sizeof(uint32), 1);
+  AS_UTL_safeRead(file, &_batMax, "overlapCache_batMax", sizeof(uint32), 1);
+
+  _bat = new BAToverlap [_batMax];
+
+  _OVSerate = new uint32 [1 << AS_OVS_ERRBITS];
+  _BATerate = new double [1 << AS_BAT_ERRBITS];
+
+  AS_UTL_safeRead(file,  _OVSerate, "overlapCache_OVSerate", sizeof(uint32), 1 << AS_OVS_ERRBITS);
+  AS_UTL_safeRead(file,  _BATerate, "overlapCache_BATerate", sizeof(double), 1 << AS_BAT_ERRBITS);
+
+  _cachePtr = new BAToverlapInt * [FI->numFragments() + 1];
+  _cacheLen = new uint32          [FI->numFragments() + 1];
+
+  numRead = AS_UTL_safeRead(file,  _cacheLen, "overlapCache_cacheLen", sizeof(uint32), FI->numFragments() + 1);
+
+  if (numRead != FI->numFragments() + 1)
+    fprintf(stderr, "Short read loading graph '%s'.  Fail.\n", name), exit(1);
+
+  _ovlStoreUniq = NULL;
+  _ovlStoreRept = NULL;
+
+  fclose(file);
+
+  //  Memory map the overlaps
+
+  sprintf(name, "%s.ovlCacheDat", prefix);
+  //file = fopen(name, "r");
+  //if (errno)
+  //  fprintf(stderr, "Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
+
+  //uint64  length;
+  //_stor = mapFile(name, &length, 'r');
+
+#ifndef O_LARGEFILE
+#define O_LARGEFILE 0
+#endif
+
+  errno = 0;
+  int fd = open(name, O_RDONLY | O_LARGEFILE);
+  if (errno)
+    fprintf(stderr, "Couldn't open '%s' for mapping: %s", name, strerror(errno)), exit(1);
+
+  struct stat  sb;
+
+  fstat(fd, &sb);
+  if (errno)
+    fprintf(stderr, "Couldn't stat '%s': %s", name, strerror(errno)), exit(1);
+
+  _stor = (BAToverlapInt *)mmap(0L, sb.st_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, (off_t)0);
+  if (errno)
+    fprintf(stderr, "Couldn't mmap '%s': %s", name, strerror(errno)), exit(1);
+
+  close(fd);
+
+  //  Update pointers into the overlaps
+
+  _cachePtr[0] = _stor;
+  for (uint32 i=1; i<FI->numFragments() + 1; i++)
+    _cachePtr[i] = _cachePtr[i-1] + _cacheLen[i-1];
+
+  return(true);
+}
+
+
+void
+OverlapCache::save(const char *prefix, double erate, double elimit, uint64 memlimit, uint32 maxOverlaps) {
+  char  name[FILENAME_MAX];
+  FILE *file;
+
+  sprintf(name, "%s.ovlCache", prefix);
+
+  fprintf(stderr, "Saving graph to '%s'.\n", name);
+
+  errno = 0;
+
+  file = fopen(name, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+
+  uint64   magic      = ovlCacheMagic;
+  uint32   baterrbits = AS_BAT_ERRBITS;
+  uint32   ovserrbits = AS_OVS_ERRBITS;
+  uint32   ovshngbits = AS_OVS_HNGBITS;
+
+  AS_UTL_safeWrite(file, &magic,      "overlapCache_magic",      sizeof(uint64), 1);
+  AS_UTL_safeWrite(file, &baterrbits, "overlapCache_baterrbits", sizeof(uint32), 1);
+  AS_UTL_safeWrite(file, &ovserrbits, "overlapCache_ovserrbits", sizeof(uint32), 1);
+  AS_UTL_safeWrite(file, &ovshngbits, "overlapCache_ovshngbits", sizeof(uint32), 1);
+
+  AS_UTL_safeWrite(file, &_memLimit, "overlapCache_memLimit", sizeof(uint64), 1);
+  AS_UTL_safeWrite(file, &_memUsed, "overlapCache_memUsed", sizeof(uint64), 1);
+
+  AS_UTL_safeWrite(file, &_maxPer, "overlapCache_maxPer", sizeof(uint32), 1);
+  AS_UTL_safeWrite(file, &_batMax, "overlapCache_batMax", sizeof(uint32), 1);
+
+  AS_UTL_safeWrite(file,  _OVSerate, "overlapCache_OVSerate", sizeof(uint32), 1 << AS_OVS_ERRBITS);
+  AS_UTL_safeWrite(file,  _BATerate, "overlapCache_BATerate", sizeof(double), 1 << AS_BAT_ERRBITS);
+
+  AS_UTL_safeWrite(file,  _cacheLen, "overlapCache_cacheLen", sizeof(uint32), FI->numFragments() + 1);
+
+  fclose(file);
 }

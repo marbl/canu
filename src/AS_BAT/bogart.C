@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.16 2012-02-15 03:41:08 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.17 2012-02-15 06:55:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -145,6 +145,9 @@ main (int argc, char * argv []) {
   uint64    ovlCacheMemory           = UINT64_MAX;
   uint32    ovlCacheLimit            = UINT32_MAX;
 
+  bool      onlySave                 = false;
+  bool      doSave                   = false;
+
   int       fragment_count_target    = 0;
   char     *output_prefix            = NULL;
 
@@ -209,6 +212,12 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-N") == 0) {
       ovlCacheLimit   = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-create") == 0) {
+      onlySave = true;
+
+    } else if (strcmp(argv[arg], "-save") == 0) {
+      doSave = true;
 
     } else if (strcmp(argv[arg], "-D") == 0) {
       uint32  opt = 0;
@@ -314,9 +323,13 @@ main (int argc, char * argv []) {
     fprintf(stderr, "    -M gb    Use at most 'gb' gigabytes of memory for storing overlaps.\n");
     fprintf(stderr, "    -N num   Load at most 'num' overlaps per read.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "    -create  Only create the overlap graph, save to disk and quit.\n");
+    fprintf(stderr, "    -save    Save the overlap graph to disk, and continue.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "Debugging and Logging\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -D <name>  enable logging/debugging for a specific component.\n");
+    fprintf(stderr, "  -d <name>  disable logging/debugging for a specific component.\n");
     for (uint32 l=0; logFileFlagNames[l]; l++)
       fprintf(stderr, "               %s\n", logFileFlagNames[l]);
     fprintf(stderr, "\n");
@@ -376,7 +389,7 @@ main (int argc, char * argv []) {
   Unitig::resetFragUnitigMap(FI->numFragments());
   unitigs.push_back(NULL);
 
-  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory, ovlCacheLimit);
+  OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
   OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
