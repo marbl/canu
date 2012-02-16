@@ -24,6 +24,8 @@
 #include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
 
+#include "memoryMappedFile.H"
+
 #include "classifyMates-runningTime.H"
 
 #include <map>
@@ -196,12 +198,29 @@ public:
                uint64   memoryLimit_);
   ~cmGlobalData();
 
+  bool   load(set<AS_IID>  &searchLibs,
+              set<AS_IID>  &backboneLibs,
+              double        maxErrorFraction);
+  void   save(void);
+
+  void   buildBBSSmap(gkStore     *gkpStore,
+                      set<AS_IID> &searchLibs,
+                      set<AS_IID> &backboneLibs);
+
   void   loadFragments(char         *gkpStoreName,
-                       set<AS_IID>  &searchLib,
-                       set<AS_IID>  &backboneLib);
+                       set<AS_IID>  &searchLibs,
+                       set<AS_IID>  &backboneLibs);
+
+
+  void   allocateOverlapPointers(void);
+  void   allocateOverlapStorage(void);
+
+  void   resetOverlapStoreRange(OverlapStore *ovlStore,
+                                AS_IID curFragIID, AS_IID &minFragIID, AS_IID &maxFragIID);
 
   void   loadOverlaps(char   *ovlStoreName,
                       double  maxErrorFraction);
+  void   loadOverlaps_invert(void);
 
   void   computeNextPlacement(cmComputation *c,
                               cmThreadData  *t,
@@ -239,13 +258,17 @@ public:
   uint32                    depthMax;
   uint32                    pathsMax;
 
+  memoryMappedFile         *cmDat;
+  memoryMappedFile         *cmOvl;
+
   uint32                    numFrags;
   uint32                    numLibs;
   fragmentInfo             *fi;
 
   uint32                    curFragIID;
-  uint32                    minFragIID;
-  uint32                    maxFragIID;
+
+  uint32                   *isBB;
+  uint32                   *isSS;
 
   overlapInfo             **bbPos;  //  Pointer to start of overlaps for this BACKBONE frag
   uint32                   *bbLen;  //  Number of overlaps for this BACKBONE frag
@@ -257,6 +280,7 @@ public:
   uint32                   *gtLen;  //
 
   uint64                    memoryLimit;
+  uint64                    memoryUsed;
 
   uint32                    oiStorageMax;  //  Maximum number of blocks we can allocate.
   uint32                    oiStorageLen;  //  Actual number of blocks allocated.

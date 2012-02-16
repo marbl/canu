@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.25 2012-02-15 04:41:27 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.26 2012-02-16 20:14:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -267,8 +267,13 @@ main(int argc, char **argv) {
                                       pathsMax,
                                       memoryLimit);
 
-  g->loadFragments(gkpStoreName, searchLibs, backboneLibs);
-  g->loadOverlaps(ovlStoreName, maxErrorFraction);
+  if (g->load(searchLibs,
+              backboneLibs,
+              maxErrorFraction) == false) {
+    g->loadFragments(gkpStoreName, searchLibs, backboneLibs);
+    g->loadOverlaps(ovlStoreName, maxErrorFraction);
+    g->save();
+  }
 
   sweatShop *ss = new sweatShop(cmReader, cmWorker, cmWriter);
 
