@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.16 2012-02-15 07:47:52 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.17 2012-02-18 22:36:22 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -492,6 +492,8 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
     sprintf(name, "%s.ovlCacheDat", prefix);
 
     fprintf(stderr, "Saving overlaps to '%s'.\n", name);
+
+    errno = 0;
 
     ovlDat = fopen(name, "w");
     if (errno)
