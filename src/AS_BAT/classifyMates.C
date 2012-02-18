@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.26 2012-02-16 20:14:26 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.27 2012-02-18 22:37:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -94,9 +94,14 @@ cmWriter(void *G, void *S) {
   //  categorites where we found a result (either the other mate pair correctly, or a gap in
   //  coverage).
   //
-  if ((c->result.classified == true) ||
-      (c->result.exhausted  == true))
+  //  EDIT - don't use 'exhausted'.  It's a non-result.
+  //
+  if (c->result.classified == true) {
     g->runTime.addDataPoint(c->result.iteration);
+  } else {
+    delete c;
+    return;
+  }
 
   delete c;
 
@@ -118,10 +123,12 @@ cmWriter(void *G, void *S) {
   if (g->pathsMax > 0)  ci = g->pathsMax;
 
   //  If this stuff is normally distributed, 4 stddev will include 99.993666% of the data points.
+  //  The new limit is the average of the old limit and the current performance.
   uint32  ni = (uint32)floor((ci + g->runTime.mean() + 4 * g->runTime.stddev()) / 2);
 
-  //fprintf(stderr, "\nRUNTIME: %f +- %f  min/max %u/%u  RESET iteration limit to %u\n",
-  //        g->runTime.mean(), g->runTime.stddev(), g->runTime.min(), g->runTime.max(), ni);
+  if ((g->runTime.numData() % 10000) == 0)
+    fprintf(stderr, "\nRUNTIME: %f +- %f  min/max %u/%u  RESET iteration limit to %u\n",
+            g->runTime.mean(), g->runTime.stddev(), g->runTime.min(), g->runTime.max(), ni);
 
   if (g->nodesMax > 0)  g->nodesMax = ni;
   if (g->depthMax > 0)  g->depthMax = ni;

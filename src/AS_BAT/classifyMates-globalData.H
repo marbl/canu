@@ -92,26 +92,66 @@ public:
 
 
 
+class bits {
+public:
+  bits(uint64 num) {
+    ba = new uint32 [num / 32 + 1];
+    memset(ba, 0, sizeof(uint32) * (num / 32 + 1));
+  };
+  ~bits() {
+    delete [] ba;
+  };
+
+  bool      isSet(uint64 x) {
+    uint64 wrd = (x >> 5);
+    uint64 bit = (x     ) & 0x000000000000001fllu;
+
+    return((ba[wrd] >> bit) & 0x00000001llu);
+  };
+
+  void      set(uint64 x) {
+    uint64 wrd = (x >> 5);
+    uint64 bit = (x     ) & 0x000000000000001fllu;
+
+    ba[wrd] = ba[wrd] | (0x00000001llu << bit);
+  };
+
+  void      clear(uint64 x) {
+    uint64 wrd = (x >> 5);
+    uint64 bit = (x     ) & 0x000000000000001fllu;
+
+    ba[wrd] = ba[wrd] & ~(0x00000001llu << bit);
+  };
+
+private:
+  uint32   *ba;
+};
+
+
+
 
 class cmThreadData {
 public:
   cmThreadData() {
     clear();
 
-    pathMax    = 0;
-    path       = NULL;
+    pathMax      = 0;
+    path         = NULL;
 
-    extMax     = 131072;  //  Overlaps out of a node
-    ext        = new uint32 [extMax];
+    solutionSet  = NULL;
 
-    edge3Max   = 131072;  //  Overlaps off end of a read
-    edge3      = new uint32 [edge3Max];
+    extMax       = 131072;  //  Overlaps out of a node
+    ext          = new uint32 [extMax];
 
-    edge5Max   = 131072;
-    edge5      = new uint32 [edge5Max];
+    edge3Max     = 131072;  //  Overlaps off end of a read
+    edge3        = new uint32 [edge3Max];
+
+    edge5Max     = 131072;
+    edge5        = new uint32 [edge5Max];
   };
   ~cmThreadData() {
     delete [] path;
+    delete [] solutionSet;
     delete [] ext;
     delete [] edge3;
     delete [] edge5;
@@ -135,6 +175,14 @@ public:
   uint32         pathAdd;  //  Next free spot to add a fragment in BFS
   uint32         pathMax;  //  Number of nodes we have allocated.
   searchNode    *path;
+
+  bits          *solutionSet;
+
+  bits          *visited5p3bits;
+  bits          *visited3p5bits;
+  uint32         visitedListMax;
+  uint32         visitedListLen;
+  uint32        *visitedList;
 
   uint32         searchIter;
   
@@ -185,7 +233,6 @@ public:
 
 
 
-
 class cmGlobalData {
 public:
   cmGlobalData(char    *resultsName_,
@@ -230,8 +277,7 @@ public:
                               uint32        &nlen);
 
   bool   testSearch(cmComputation              *c,
-                    cmThreadData               *t,
-                    map<uint32,overlapInfo*>   &pos);
+                    cmThreadData               *t);
   bool   testSearch(cmComputation *c,
                     cmThreadData  *t,
                     overlapInfo  **pos,
@@ -260,6 +306,7 @@ public:
 
   memoryMappedFile         *cmDat;
   memoryMappedFile         *cmOvl;
+  memoryMappedFile         *cmInv;
 
   uint32                    numFrags;
   uint32                    numLibs;

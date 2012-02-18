@@ -20,7 +20,7 @@
 #ifndef AS_UTL_MEMORYMAPPEDFILE_H
 #define AS_UTL_MEMORYMAPPEDFILE_H
 
-//static const char *rcsid = "$Id: memoryMappedFile.H,v 1.1 2012-02-16 20:14:26 brianwalenz Exp $";
+//static const char *rcsid = "$Id: memoryMappedFile.H,v 1.2 2012-02-18 22:37:39 brianwalenz Exp $";
 
 #include <sys/types.h>
 #include <fcntl.h>
@@ -36,88 +36,75 @@ using namespace std;
 #define O_LARGEFILE 0
 #endif
 
+//  Note that the BSD's are able to map to an arbitrary position in the file,
+//  but the Linux's can only map to multiples of pagesize.  Thus, this class
+//  maps the whole file into address space, then passes out pointers to
+//  pieces in it.  This is slightly unfortunate, because array out-of-bounds
+//  will not be caught.  To be fair, on the BSD's the file is mapped to a length
+//  that is a multiple of pagesize, so it would take a big out-of-bounds to fail.
+
 class memoryMappedFile {
 public:
   memoryMappedFile(const char *name_, size_t offset_=0) {
 
-    strcpy(name, name_);
+    strcpy(nm, name_);
 
     errno = 0;
-    fd = open(name, O_RDONLY | O_LARGEFILE);
+    fd = open(nm, O_RDONLY | O_LARGEFILE);
     if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Couldn't open '%s' for mapping: %s", name, strerror(errno)), exit(1);
+      fprintf(stderr, "memoryMappedFile()-- Couldn't open '%s' for mapping: %s", nm, strerror(errno)), exit(1);
 
     struct stat  sb;
 
     fstat(fd, &sb);
     if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Couldn't stat '%s': %s", name, strerror(errno)), exit(1);
+      fprintf(stderr, "memoryMappedFile()-- Couldn't stat '%s': %s", nm, strerror(errno)), exit(1);
 
-    totalLength = sb.st_size;
+    ln = sb.st_size;
+    co = offset_;
 
-    currentOffset = offset_;
+    pt = mmap(0L, ln, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+    if (errno)
+      fprintf(stderr, "memoryMappedFile()-- Couldn't mmap '%s': %s", nm, strerror(errno)), exit(1);
+
+    close(fd);
   };
 
 
   ~memoryMappedFile() {
-    map<void *, size_t>::iterator  it;
-
-    for (it=addressToLength.begin(); it != addressToLength.end(); it++)
-      if (it->second > 0)
-        munmap(it->first, it->second);
-
-    close(fd);
+    munmap(pt, ln);
   };
 
 
   void  *get(size_t offset_, size_t length_) {
 
     if (length_ == 0)
-      length_ = totalLength - offset_;
+      length_ = ln - offset_;
 
-    if (offset_ + length_ > totalLength)
+    if (offset_ + length_ > ln)
       fprintf(stderr, "memoryMappedFile()-- Requested "F_SIZE_T" bytes at position "F_SIZE_T" in file '%s', but only "F_SIZE_T" bytes in file.\n",
-              length_, offset_, name, totalLength), exit(1);
+              length_, offset_, nm, ln), exit(1);
 
-    void *ptr = mmap(0L, length_, PROT_READ, MAP_FILE | MAP_SHARED, fd, offset_);
-    if (errno)
-      fprintf(stderr, "memoryMappedFile()-- Requested "F_SIZE_T" bytes at position "F_SIZE_T" in file '%s' (length "F_SIZE_T" bytes) failed: %s\n",
-              length_, offset_, name, totalLength, strerror(errno)), exit(1);
+    co = offset_ + length_;
 
-    addressToLength[ptr] = length_;
-
-    currentOffset = offset_ + length_;
-
-    return(ptr);
+    return((char *)pt + offset_);
   };
 
 
   void *get(size_t length_) {
-    return(get(currentOffset, length_));
+    return(get(co, length_));
   };
 
-
-  bool   release(void *ptr) {
-    size_t   length = addressToLength[ptr];
-
-    if (length == 0)
-      return(false);
-
-    munmap(ptr, length);
-
-    addressToLength[ptr] = 0;
-    return(true);
-  };
 
 private:
-  char                    name[FILENAME_MAX];
+  char                    nm[FILENAME_MAX];
 
   int                     fd;
-  size_t                  totalLength;
 
-  size_t                  currentOffset;
+  size_t                  ln;
+  size_t                  co;
 
-  map<void *, size_t>     addressToLength;
+  void                   *pt;
 };
 
 #endif  //  AS_UTL_MEMORYMAPPEDFILE_H

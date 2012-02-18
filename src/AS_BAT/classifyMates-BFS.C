@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-BFS.C,v 1.9 2011-08-29 20:58:32 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-BFS.C,v 1.10 2012-02-18 22:37:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -36,29 +36,31 @@ using namespace std;
 void
 cmGlobalData::doSearchBFS(cmComputation *c,
                           cmThreadData  *t) {
-  set<uint32>               visited5p3;
-  set<uint32>               visited3p5;
-  map<uint32,overlapInfo*>  solution;
+
+  uint32 statBack=0, statFar=0;
 
   assert(t->searchIter == 0);
 
   if (t->path == NULL) {
-    t->pathMax = nodesMax;
-    t->path    = new searchNode [t->pathMax];
+    t->pathMax        = nodesMax;
+    t->path           = new searchNode [t->pathMax];
+
+    t->solutionSet    = new bits(numFrags + 1);
+
+    t->visited5p3bits = new bits(numFrags + 1);
+    t->visited3p5bits = new bits(numFrags + 1);
+
+    t->visitedListMax = 16 * 1024 * 1024;
+    t->visitedList    = new uint32 [t->visitedListMax];
   }
 
-  //  Build the map from backbone fragment to solution overlap.
-  //
-  //  The map goes from a-fragID to overlap with the mateIID b-frag.  NOTE that we
-  //  DO NOT reset the 'iid' of this overlap to be correct.
-  //
-  {
-    overlapInfo  *pos = gtPos[c->mateIID];
-    uint32        len = gtLen[c->mateIID];
+  t->visitedListLen = 0;
 
-    for (uint32 ii=0; ii<len; ii++)
-      solution[ pos[ii].iid ] = pos + ii;
-  }
+  //  Build the map from backbone fragment to solution overlap.  The map goes from a-fragID to
+  //  overlap with the mateIID b-frag.
+
+  for (uint32 ii=0; ii<gtLen[c->mateIID]; ii++)
+    t->solutionSet->set(gtPos[c->mateIID][ii].iid);
 
   //  Seed the search with the first fragment
 
@@ -78,9 +80,9 @@ cmGlobalData::doSearchBFS(cmComputation *c,
 
     if ((distMin                  <= t->path[t->pathPos].pLen) &&
         (t->path[t->pathPos].pLen <= distMax) &&
-        (testSearch(c, t, solution)))  //  tgPos, tgLen for the old slow method
+        (testSearch(c, t)))  //  tgPos, tgLen for the old slow method
       //  If any of the target overlaps are the answer
-      return;
+      goto returnBFS;
 
     if (t->pathAdd >= t->pathMax)
       //  No space for more overlaps, abort adding any.
@@ -88,37 +90,46 @@ cmGlobalData::doSearchBFS(cmComputation *c,
 
     //  Add more fragments to the search.
 
-    for (uint32 o=0; o < bbLen[t->path[t->pathPos].pIID]; o++) {
+    for (uint32 o=0;
+         ((t->pathAdd < t->pathMax) &&
+          (o < bbLen[t->path[t->pathPos].pIID])); o++) {
       overlapInfo  *novl = t->path[t->pathPos].oLst + o;
       uint32        niid = novl->iid;
       bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
       uint32        nlen = 0;
 
-      set<uint32> &visited = (t->path[t->pathPos].p5p3 == true) ? visited5p3 : visited3p5;
-
-      if (visited.find(niid) != visited.end())
-        //  Been here already.
-        continue;
-
       if (fi[niid].isBackbone == false)
         //  Not a backbone read
         continue;
 
-      visited.insert(niid);
-
       computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
-      if (nlen <= t->path[t->pathPos].pLen)
+      if (nlen <= t->path[t->pathPos].pLen) {
         //  Path went backwards.
+        statBack++;
         continue;
+      }
 
-      if (nlen > distMax)
+      if (nlen > distMax) {
         //  Path too far, don't add
+        statFar++;
+        continue;
+      }
+
+
+      bits  *visited = (t->path[t->pathPos].p5p3 == true) ? t->visited5p3bits : t->visited3p5bits;
+
+      if (visited->isSet(niid) == true)
+        //  Been here already.
         continue;
 
-      if (t->pathAdd >= t->pathMax)
-        //  No space, don't add
-        continue;
+      visited->set(niid);
+
+      t->visitedList[t->visitedListLen++] = niid;
+
+
+
+
 
       t->path[t->pathAdd].pIID = niid;
       t->path[t->pathAdd].p5p3 = n5p3;
@@ -139,5 +150,18 @@ cmGlobalData::doSearchBFS(cmComputation *c,
 
   //  Not found.
   assert(c->result.classified == false);
+
+ returnBFS:
+
+  //fprintf(stderr, "size: "F_U32" -- back "F_U32" far "F_U32"\n",
+  //        t->visitedListLen, statBack, statFar);
+
+  for (uint32 ii=0; ii<t->visitedListLen; ii++) {
+    t->visited5p3bits->clear(t->visitedList[ii]);
+    t->visited3p5bits->clear(t->visitedList[ii]);
+  }
+
+  for (uint32 ii=0; ii<gtLen[c->mateIID]; ii++)
+    t->solutionSet->clear( gtPos[c->mateIID][ii].iid );
 }
 

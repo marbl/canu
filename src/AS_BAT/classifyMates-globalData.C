@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.11 2012-02-16 20:14:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.12 2012-02-18 22:37:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -100,11 +100,11 @@ cmGlobalData::~cmGlobalData() {
   for (uint32 i=0; i<oiStorageMax; i++)
     delete [] oiStorageArr[i];
 
-  if (cmDat->release(fi))     fi    = NULL;
-  if (cmDat->release(bbLen))  bbLen = NULL;
-  if (cmDat->release(tgLen))  tgLen = NULL;
-
-  //cmOvl->release(-- not saved --);
+  if (cmDat) {
+    fi    = NULL;
+    bbLen = NULL;
+    tgLen = NULL;
+  }
 
   delete cmDat;
   delete cmOvl;
@@ -166,6 +166,8 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
 
   uint32  errs = 0;
 
+  fprintf(stderr, "CHECKING FRAGMENTS...\n");
+
   for (uint32 i=0; i<=numLibs; i++) {
     if (isSS[i] != ((searchLibs.size() == 0) || (searchLibs.count(i)   > 0)))
       errs++;
@@ -180,12 +182,17 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
 
   //  No easy way around this.  Allocate space for the pointers, but not the lengths.
 
+  fprintf(stderr, "ALLOCATING...\n");
+
   allocateOverlapPointers();
 
   delete [] bbLen;
   delete [] tgLen;
+  delete [] gtLen;
 
   //  Map in the fragment data...
+
+  fprintf(stderr, "MAPPING FILES...\n");
 
   sprintf(cacheName, "%s.cmdat", resultsPrefix);
   cmDat = new memoryMappedFile(cacheName, 2 * sizeof(uint32) + 2 * (numLibs + 1) * sizeof(uint32));
@@ -193,6 +200,7 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
   fi    = (fragmentInfo *)cmDat->get((numFrags + 1) * sizeof(fragmentInfo));
   bbLen = (uint32       *)cmDat->get((numFrags + 1) * sizeof(uint32));
   tgLen = (uint32       *)cmDat->get((numFrags + 1) * sizeof(uint32));
+  gtLen = (uint32       *)cmDat->get((numFrags + 1) * sizeof(uint32));
 
   //  ...and the overlap data
 
@@ -202,14 +210,27 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
   overlapInfo *oiRoot = (overlapInfo *)cmOvl->get(0, 0);
   overlapInfo *oiNext = oiRoot;
 
+  sprintf(cacheName, "%s.cminv", resultsPrefix);
+  cmInv = new memoryMappedFile(cacheName);
+
+  overlapInfo *gtRoot = (overlapInfo *)cmInv->get(0);
+  overlapInfo *gtNext = gtRoot;
+
+
+
   //  Then rebuild the pointers to overlaps
 
   fprintf(stderr, "LOADING OVERLAPS...(from cache)\n");
 
-  uint64  numTG = 0;
   uint64  numBB = 0;
+  uint64  numTG = 0;
+  uint64  numGT = 0;
 
   for (uint32 ii=0; ii<numFrags+1; ii++) {
+    bbPos[ii] = NULL;
+    tgPos[ii] = NULL;
+    gtPos[ii] = NULL;
+
     if (bbLen[ii] > 0) {
       bbPos[ii] = oiNext;
       oiNext += bbLen[ii];
@@ -221,12 +242,20 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
       oiNext += tgLen[ii];
       numTG  += tgLen[ii];
     }
+
+    if (gtLen[ii] > 0) {
+      gtPos[ii] = gtNext;
+      gtNext += gtLen[ii];
+      numGT  += gtLen[ii];
+    }
+
+    if ((ii % 100000000) == 0)
+      fprintf(stderr, ".."F_U32"\n", ii);
   }
 
-  fprintf(stderr, "LOADING OVERLAPS...found "F_U64" BB overlaps and "F_U64" TG overlaps.\n",
-          numBB, numTG);
+  fprintf(stderr, "LOADING OVERLAPS...found "F_U64" BB overlaps and "F_U64" TG overlaps and "F_U64" GT overlaps.\n",
+          numBB, numTG, numGT);
 
-  loadOverlaps_invert();
 
 
 #if 0
@@ -285,6 +314,19 @@ cmGlobalData::save(void) {
   AS_UTL_safeWrite(F,  fi,         "fi",         sizeof(fragmentInfo), numFrags + 1);
   AS_UTL_safeWrite(F,  bbLen,      "bbLen",      sizeof(uint32),       numFrags + 1);
   AS_UTL_safeWrite(F,  tgLen,      "tgLen",      sizeof(uint32),       numFrags + 1);
+  AS_UTL_safeWrite(F,  gtLen,      "gtLen",      sizeof(uint32),       numFrags + 1);
+
+  fclose(F);
+
+
+  sprintf(cacheName, "%s.cminv", resultsPrefix);
+
+  errno = 0;
+  F = fopen(cacheName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open overlap storage file '%s' for writing: %s\n", cacheName, strerror(errno)), exit(1);
+
+  AS_UTL_safeWrite(F, oiStorage, "oiStorage", sizeof(overlapInfo), oiStoragePos);
 
   fclose(F);
 }
@@ -393,25 +435,16 @@ cmGlobalData::allocateOverlapPointers(void) {
   if (bbPos == NULL) {
     bbPos = new overlapInfo * [numFrags + 1];  //  Pointer to start of overlaps for this frag
     bbLen = new uint32 [numFrags + 1];         //  Number of overlaps for this frag
-
-    memset(bbPos, 0, sizeof(overlapInfo *) * (numFrags + 1));
-    memset(bbLen, 0, sizeof(uint32)        * (numFrags + 1));
   }
 
   if (tgPos == NULL) {
     tgPos = new overlapInfo * [numFrags + 1];
     tgLen = new uint32 [numFrags + 1];
-
-    memset(tgPos, 0, sizeof(overlapInfo *) * (numFrags + 1));
-    memset(tgLen, 0, sizeof(uint32)        * (numFrags + 1));
   }
 
   if (gtPos == NULL) {
     gtPos = new overlapInfo * [numFrags + 1];
     gtLen = new uint32 [numFrags + 1];
-
-    memset(gtPos, 0, sizeof(overlapInfo *) * (numFrags + 1));
-    memset(gtLen, 0, sizeof(uint32)        * (numFrags + 1));
   }
 }
 
@@ -480,6 +513,12 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
   allocateOverlapPointers();
   allocateOverlapStorage();
+
+  memset(bbPos, 0, sizeof(overlapInfo *) * (numFrags + 1));
+  memset(bbLen, 0, sizeof(uint32)        * (numFrags + 1));
+
+  memset(tgPos, 0, sizeof(overlapInfo *) * (numFrags + 1));
+  memset(tgLen, 0, sizeof(uint32)        * (numFrags + 1));
 
   uint32            oiStorageBS  = 128 * 1024 * 1024;  //  Fixed block size
   uint32            oiStoragePos = 0;                  //  Position in the current block
@@ -630,6 +669,8 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
       if ((oiFile) && (oiStoragePos > 0))
         AS_UTL_safeWrite(oiFile, oiStorage, "oiStorage", sizeof(overlapInfo), oiStoragePos);
 
+      delete [] oiStorage;
+
       oiStorage = oiStorageArr[oiStorageLen] = new overlapInfo [oiStorageBS];
       oiStorageLen++;
       oiStoragePos = 0;
@@ -741,12 +782,9 @@ cmGlobalData::loadOverlaps_invert(void) {
 
   //  Set pointers to the space.  We'll recount as the overlaps are added.
   for (uint32 ii=0; ii<numFrags+1; ii++) {
-    if (gtLen[ii] == 0)
-      continue;
-
-    gtPos[ii]      = oiStorage + oiStoragePos;  //  Point into the space
-    oiStoragePos  += gtLen[ii];                 //  Reserve the space
-    gtLen[ii]      = 0;                         //  Show we have no overlaps loaded
+    gtPos[ii]      = (gtLen[ii] == 0) ? NULL : oiStorage + oiStoragePos;  //  Point into the space
+    oiStoragePos  += gtLen[ii];                                           //  Reserve the space
+    gtLen[ii]      = 0;                                                   //  Show we have no overlaps loaded
   }
 
   //  Finally, copy the overlaps
@@ -788,19 +826,19 @@ cmGlobalData::computeNextPlacement(cmComputation *c,
   if ((t->path[t->pathPos].p5p3 == true) && (novl->flipped == false)) {
     nlen = t->path[t->pathPos].pLen + novl->bhang;
     assert(n5p3 == true);
-  }
+  } else
 
   //  Frag is forward, overlap is flipped, hang is positive
   if ((t->path[t->pathPos].p5p3 == true) && (novl->flipped == true)) {
     nlen = t->path[t->pathPos].pLen + novl->bhang;
     assert(n5p3 == false);
-  }
+  } else
 
   //  Frag is reverse, overlap is same, hang is positive
   if ((t->path[t->pathPos].p5p3 == false) && (novl->flipped == false)) {
     nlen = t->path[t->pathPos].pLen + -novl->ahang;
     assert(n5p3 == false);
-  }
+  } else
 
   //  Frag is reverse, overlap is flipped, hang is positive
   if ((t->path[t->pathPos].p5p3 == false) && (novl->flipped == true)) {
@@ -814,20 +852,26 @@ cmGlobalData::computeNextPlacement(cmComputation *c,
 
 bool
 cmGlobalData::testSearch(cmComputation              *c,
-                         cmThreadData               *t,
-                         map<uint32,overlapInfo*>   &pos) {
+                         cmThreadData               *t) {
 
   uint32  thisIID = t->path[t->pathPos].pIID;
 
-  map<uint32,overlapInfo*>::iterator  it = pos.find(thisIID);
-
-  if (it == pos.end())
+  if (t->solutionSet->isSet(thisIID) == false)
     return(false);
 
   //  We are guaranteed by construction that this overlap is to the mate fragment.
   //  See doSearchBFS.
 
-  overlapInfo  *novl = it->second;
+  overlapInfo  *pos = gtPos[c->mateIID];
+  uint32        len = gtLen[c->mateIID];
+  uint32        iii = 0;
+
+  while ((iii<len) && (thisIID != pos[iii].iid))
+    iii++;
+
+  assert(iii < len);
+
+  overlapInfo  *novl = pos + iii;
   uint32        niid = c->mateIID;
   bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
   uint32        nlen = 0;
