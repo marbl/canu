@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-BFS.C,v 1.10 2012-02-18 22:37:39 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-BFS.C,v 1.11 2012-02-19 16:30:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -36,8 +36,6 @@ using namespace std;
 void
 cmGlobalData::doSearchBFS(cmComputation *c,
                           cmThreadData  *t) {
-
-  uint32 statBack=0, statFar=0;
 
   assert(t->searchIter == 0);
 
@@ -104,18 +102,13 @@ cmGlobalData::doSearchBFS(cmComputation *c,
 
       computeNextPlacement(c, t, novl, niid, n5p3, nlen);
 
-      if (nlen <= t->path[t->pathPos].pLen) {
+      if (nlen <= t->path[t->pathPos].pLen)
         //  Path went backwards.
-        statBack++;
         continue;
-      }
 
-      if (nlen > distMax) {
+      if (nlen > distMax)
         //  Path too far, don't add
-        statFar++;
         continue;
-      }
-
 
       bits  *visited = (t->path[t->pathPos].p5p3 == true) ? t->visited5p3bits : t->visited3p5bits;
 
@@ -126,10 +119,6 @@ cmGlobalData::doSearchBFS(cmComputation *c,
       visited->set(niid);
 
       t->visitedList[t->visitedListLen++] = niid;
-
-
-
-
 
       t->path[t->pathAdd].pIID = niid;
       t->path[t->pathAdd].p5p3 = n5p3;
@@ -152,9 +141,6 @@ cmGlobalData::doSearchBFS(cmComputation *c,
   assert(c->result.classified == false);
 
  returnBFS:
-
-  //fprintf(stderr, "size: "F_U32" -- back "F_U32" far "F_U32"\n",
-  //        t->visitedListLen, statBack, statFar);
 
   for (uint32 ii=0; ii<t->visitedListLen; ii++) {
     t->visited5p3bits->clear(t->visitedList[ii]);
