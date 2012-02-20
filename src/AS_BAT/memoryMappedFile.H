@@ -20,7 +20,7 @@
 #ifndef AS_UTL_MEMORYMAPPEDFILE_H
 #define AS_UTL_MEMORYMAPPEDFILE_H
 
-//static const char *rcsid = "$Id: memoryMappedFile.H,v 1.2 2012-02-18 22:37:39 brianwalenz Exp $";
+//static const char *rcsid = "$Id: memoryMappedFile.H,v 1.3 2012-02-20 01:53:38 brianwalenz Exp $";
 
 #include <sys/types.h>
 #include <fcntl.h>
@@ -63,7 +63,7 @@ public:
     ln = sb.st_size;
     co = offset_;
 
-    pt = mmap(0L, ln, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+    pt = mmap(0L, ln, PROT_READ | PROT_WRITE, MAP_FILE | MAP_PRIVATE, fd, 0);
     if (errno)
       fprintf(stderr, "memoryMappedFile()-- Couldn't mmap '%s': %s", nm, strerror(errno)), exit(1);
 
