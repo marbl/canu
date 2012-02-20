@@ -28,8 +28,8 @@
 
 using namespace std;
 
-void  AS_UTL_decodeRange(char *range, set<uint64> &range);
-void  AS_UTL_decodeRange(char *range, set<uint32> &range);
+void  AS_UTL_decodeRange(char *range, set<uint64> &ranges);
+void  AS_UTL_decodeRange(char *range, set<uint32> &ranges);
 
 void  AS_UTL_decodeRange(char *range, uint64 &lo, uint64 &hi);
 void  AS_UTL_decodeRange(char *range, uint32 &lo, uint32 &hi);
