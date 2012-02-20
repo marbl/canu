@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.13 2012-02-19 16:30:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.14 2012-02-20 01:54:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -165,20 +165,37 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
 
   fprintf(stderr, "LOADING FRAGMENTS...%u fragments loaded.\n", numFrags);
 
-  //  Check for a change in libraries.  For now, no changes are allowed.  It might be possible
-  //  to allow removing search libraries (the overlaps remain, but we ignore them when searching).  With much
-  //  more effort, maybe we can break the overlaps into three pieces (BB, TG and GT) and reload just the subset
-  //  that changes.
+  //  Check for a change in libraries.
 
   uint32  errs = 0;
+  uint32  fixs = 0;
 
   fprintf(stderr, "CHECKING FRAGMENTS...\n");
 
   for (uint32 i=0; i<=numLibs; i++) {
-    if (isSS[i] != ((searchLibs.size() == 0) || (searchLibs.count(i)   > 0)))
-      errs++;
-    if (isBB[i] != ((backboneLibs.size() == 0) || (backboneLibs.count(i) > 0)))
-      errs++;
+    if (isBB[i] != ((backboneLibs.size() == 0) || (backboneLibs.count(i) > 0))) {
+      if (isBB[i] == false) {
+        //  Not in data file, but requested on command line, uh oh!
+        fprintf(stderr, "ERROR: Library "F_U32" is not in the backbone data.\n", i);
+        errs++;
+      } else {
+        //  In the data file, but not requested in the compute.  Fix it!
+        fprintf(stderr, "Library "F_U32" will be excluded from the backbone.\n", i);
+        fixs++;
+        isBB[i] = false;
+      }
+    }
+
+    if (isSS[i] != ((searchLibs.size() == 0) || (searchLibs.count(i)   > 0))) {
+      if (isSS[i] == false) {
+        fprintf(stderr, "ERROR: Library "F_U32" is not in the search data.\n", i);
+        errs++;
+      } else {
+        fprintf(stderr, "Library "F_U32" will be excluded from the search.\n", i);
+        fixs++;
+        isSS[i] = false;
+      }
+    }
   }
 
   if (errs) {
@@ -207,6 +224,19 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
   bbLen = (uint32       *)cmDat->get((numFrags + 1) * sizeof(uint32));
   tgLen = (uint32       *)cmDat->get((numFrags + 1) * sizeof(uint32));
   gtLen = (uint32       *)cmDat->get((numFrags + 1) * sizeof(uint32));
+
+  //  Update the fragment flags
+
+  if (fixs) {
+    fprintf(stderr, "UPDATING FRAGMENT FLAGS...\n");
+
+    for (uint32 fid=0; fid<=numFrags; fid++) {
+      uint32   lib = fi[fid].libIID;
+
+      fi[fid].isBackbone = isBB[lib];
+      fi[fid].doSearch   = isSS[lib];
+    }
+  }
 
   //  ...and the overlap data
 
