@@ -80,10 +80,10 @@ ifeq ($(OSTYPE), Linux)
   endif
 
   ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS  += -g 
+    ARCH_CFLAGS  += -g
     ARCH_LDFLAGS +=
   else
-    ARCH_CFLAGS  += -O2
+    ARCH_CFLAGS  += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     ARCH_LDFLAGS += -Wl,-O1
   endif
 endif
