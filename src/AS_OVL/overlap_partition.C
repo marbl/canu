@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.9 2012-02-12 05:25:52 brianwalenz Exp $";
+const char *mainid = "$Id: overlap_partition.C,v 1.10 2012-02-21 00:31:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -235,9 +235,9 @@ partitionLength(gkStore      *gkp,
                 FILE         *BAT,
                 FILE         *JOB,
                 FILE         *OPT,
-                uint32        ovlHashBlockLength,
-                uint32        ovlRefBlockLength,
-                uint32        ovlRefBlockSize,
+                uint64        ovlHashBlockLength,
+                uint64        ovlRefBlockLength,
+                uint64        ovlRefBlockSize,
                 set<uint32>  &libToHash,
                 set<uint32>  &libToRef) {
   AS_IID  hashMin = 1;
@@ -383,6 +383,9 @@ main(int argc, char **argv) {
 
   if ((ovlRefBlockLength > 0) && (ovlRefBlockSize > 0))
     fprintf(stderr, "ERROR:  At most one of -rl and -rs can be non-zero.\n"), exit(1);
+
+  fprintf(stderr, "HASH: "F_U64" reads or "F_U64" length.\n", ovlHashBlockSize, ovlHashBlockLength);
+  fprintf(stderr, "REF:  "F_U64" reads or "F_U64" length.\n", ovlRefBlockSize,  ovlRefBlockLength);
 
   gkStore   *gkp      = new gkStore(gkpStoreName, FALSE, FALSE, true);
 
