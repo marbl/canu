@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.13 2011-12-21 00:52:19 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.14 2012-02-21 00:30:37 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -60,7 +60,7 @@ public:
   };
 
   void   add(AS_IID iid, AS_UID uid) {
-    if (iid >= max) {
+    while (iid >= max) {
       max *= 2;
       AS_UID *M = new AS_UID [max];
       memcpy(M, map, sizeof(AS_UID) * len);
