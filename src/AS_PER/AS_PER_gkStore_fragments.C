@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.5 2012-02-03 10:22:05 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.6 2012-02-21 00:36:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +53,9 @@ gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
 
   uint32  seqLen = fr->gkFragment_getSequenceLength();
 
-  if (fr->type == GKFRAGMENT_PACKED) {
+  if ((fr->type == GKFRAGMENT_PACKED) &&
+      (flags == GKFRAGMENT_SEQ) ||
+      (flags == GKFRAGMENT_QLT)) {
     fr->hasSEQ = 1;
     fr->hasQLT = 1;
 
