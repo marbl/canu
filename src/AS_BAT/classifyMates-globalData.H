@@ -66,7 +66,7 @@ public:
   int32   ahang   : AS_OVS_HNGBITS;   //
   int32   bhang   : AS_OVS_HNGBITS;   //
 #else
-  uint64  unused  : 32 - 1 - AS_OVS_HNGBITS - AS_OVS_HNGBITS;
+  uint64  unused  : 64 - 1 - AS_OVS_HNGBITS - AS_OVS_HNGBITS;
   uint64  flipped : 1;                //  B-fragment is flipped
   int64   ahang   : AS_OVS_HNGBITS;   //
   int64   bhang   : AS_OVS_HNGBITS;   //
