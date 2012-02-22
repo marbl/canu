@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.18 2012-02-15 07:52:08 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.19 2012-02-22 19:16:36 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -128,6 +128,20 @@ setLogFile(const char *prefix, const char *name) {
   //fprintf(logFile, "setLogFile()-- Search for '%s' in unitigger.err for messages before/after this file.\n", logFileName);
 }
 
+
+void
+resetLogFile(const char *prefix, const char *name) {
+  char  logFileName[FILENAME_MAX];
+
+  if (logFileFlagSet(LOG_STDERR))
+    //  Write everything to stderr
+    return;
+
+  sprintf(logFileName, "%s.%03u.%s.log", prefix, logFileOrder, name);
+
+  if (AS_UTL_sizeOfFile(logFileName) > 512 * 1024 * 1024)
+    setLogFile(prefix, name);
+}
 
 
 int
@@ -465,7 +479,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, "mergeSplitJoin");
 
-  mergeSplitJoin(unitigs, enableShatterRepeats);
+  mergeSplitJoin(unitigs, output_prefix, enableShatterRepeats);
 
   if (enableExtendByMates) {
     assert(enableShatterRepeats);

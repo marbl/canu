@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.12 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.13 2012-02-22 19:16:36 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -69,6 +69,7 @@ extern InsertSizes      *IS;
 ////////////////////////////////////////
 
 void  setLogFile(const char *prefix, const char *name);
+void  resetLogFile(const char *prefix, const char *name);
 
 #define logFileFlagSet(L) ((logFileFlags & L) == L)
 
