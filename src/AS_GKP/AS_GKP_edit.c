@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.31 2012-02-03 21:47:58 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.32 2012-02-22 21:58:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -249,6 +249,8 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
   int              verbose  = 1;
 
   gkpStore = new gkStore(gkpStoreName, FALSE, update);
+
+  gkpStore->gkStore_metadataCaching(true);
 
   AS_IID           lastElem = gkpStore->gkStore_getNumFragments() + 1;
 
