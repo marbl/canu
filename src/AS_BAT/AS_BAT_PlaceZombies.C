@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.4 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.5 2012-02-22 19:15:00 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -74,10 +74,15 @@ placeZombies(UnitigVector &unitigs, double erate, double elimit) {
 
     frg.ident             = i;
     frg.contained         = 0;
-    frg.containment_depth = 0;
+    frg.parent            = 0;
+
+    frg.ahang             = 0;
+    frg.bhang             = 0;
 
     frg.position.bgn      = 0;
     frg.position.end      = FI->fragmentLength(i);
+
+    frg.containment_depth = 0;
 
     utg->addFrag(frg, 0, false);
     unitigs.push_back(utg);
