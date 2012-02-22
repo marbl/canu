@@ -22,7 +22,9 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.10 2012-02-15 06:55:34 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.11 2012-02-22 19:16:18 brianwalenz Exp $";
+
+#include "memoryMappedFile.H"
 
 //  AS_BAT_ERRBITS stores a reduced-precision overlap error rate using the same method
 //  as used by OverlapStore.  It should be at least 7 bits, and never needs to be more
@@ -126,6 +128,8 @@ private:
   BAToverlapInt          *_stor;     //  Pointer to the heap (probably the last thing on _heaps)
 
   vector<BAToverlapInt*>  _heaps;
+
+  memoryMappedFile       *_cacheMMF;
 
   BAToverlapInt         **_cachePtr; //  Mapping of frag iid to overlaps stored in the heap
   uint32                 *_cacheLen; //  Number of overlaps per frag iid

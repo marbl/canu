@@ -19,16 +19,20 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.17 2012-02-18 22:36:22 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.18 2012-02-22 19:16:18 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
 
+#include "memoryMappedFile.H"
+
+#if 0
 #include <sys/types.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/sysctl.h>
+#endif
 
 uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
 
@@ -120,6 +124,8 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   _storLen  = 0;
   _stor     = NULL;
 
+  _cacheMMF = NULL;
+
   _cachePtr = new BAToverlapInt * [FI->numFragments() + 1];
   _cacheLen = new uint32          [FI->numFragments() + 1];
 
@@ -166,6 +172,11 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
 
 
 OverlapCache::~OverlapCache() {
+
+  if (_cacheMMF) {
+    _stor = NULL;
+    delete _cacheMMF;
+  }
 
   delete [] _BATerate;
   delete [] _OVSerate;
@@ -491,13 +502,13 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
 
     sprintf(name, "%s.ovlCacheDat", prefix);
 
-    fprintf(stderr, "Saving overlaps to '%s'.\n", name);
+    fprintf(stderr, "OverlapCache()-- Saving overlaps to '%s'.\n", name);
 
     errno = 0;
 
     ovlDat = fopen(name, "w");
     if (errno)
-      fprintf(stderr, "Failed to open '%s' for write: %s\n", name, strerror(errno)), exit(1);
+      fprintf(stderr, "OverlapCache()-- Failed to open '%s' for write: %s\n", name, strerror(errno)), exit(1);
   }
 
   assert(_ovlStoreUniq != NULL);
@@ -645,13 +656,13 @@ OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memli
   if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
     return(false);
 
-  fprintf(stderr, "Loading graph from '%s'.\n", name);
+  fprintf(stderr, "OverlapCache()-- Loading graph from '%s'.\n", name);
 
   errno = 0;
 
   file = fopen(name, "r");
   if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
+    fprintf(stderr, "OverlapCache()-- Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
 
   uint64   magic      = ovlCacheMagic;
   uint32   baterrbits = AS_BAT_ERRBITS;
@@ -664,7 +675,7 @@ OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memli
   AS_UTL_safeRead(file, &ovshngbits, "overlapCache_ovshngbits", sizeof(uint32), 1);
 
   if (magic != ovlCacheMagic)
-    fprintf(stderr, "ERROR:  File '%s' isn't a bogart ovlCache.\n", name), exit(1);
+    fprintf(stderr, "OverlapCache()-- ERROR:  File '%s' isn't a bogart ovlCache.\n", name), exit(1);
 
   AS_UTL_safeRead(file, &_memLimit, "overlapCache_memLimit", sizeof(uint64), 1);
   AS_UTL_safeRead(file, &_memUsed, "overlapCache_memUsed", sizeof(uint64), 1);
@@ -686,7 +697,7 @@ OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memli
   numRead = AS_UTL_safeRead(file,  _cacheLen, "overlapCache_cacheLen", sizeof(uint32), FI->numFragments() + 1);
 
   if (numRead != FI->numFragments() + 1)
-    fprintf(stderr, "Short read loading graph '%s'.  Fail.\n", name), exit(1);
+    fprintf(stderr, "OverlapCache()-- Short read loading graph '%s'.  Fail.\n", name), exit(1);
 
   _ovlStoreUniq = NULL;
   _ovlStoreRept = NULL;
@@ -703,32 +714,88 @@ OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memli
   //uint64  length;
   //_stor = mapFile(name, &length, 'r');
 
-#ifndef O_LARGEFILE
-#define O_LARGEFILE 0
-#endif
+  _cacheMMF = new memoryMappedFile(name);
 
-  errno = 0;
-  int fd = open(name, O_RDONLY | O_LARGEFILE);
-  if (errno)
-    fprintf(stderr, "Couldn't open '%s' for mapping: %s", name, strerror(errno)), exit(1);
-
-  struct stat  sb;
-
-  fstat(fd, &sb);
-  if (errno)
-    fprintf(stderr, "Couldn't stat '%s': %s", name, strerror(errno)), exit(1);
-
-  _stor = (BAToverlapInt *)mmap(0L, sb.st_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, (off_t)0);
-  if (errno)
-    fprintf(stderr, "Couldn't mmap '%s': %s", name, strerror(errno)), exit(1);
-
-  close(fd);
+  _stor     = (BAToverlapInt *)_cacheMMF->get(0);
 
   //  Update pointers into the overlaps
 
   _cachePtr[0] = _stor;
-  for (uint32 i=1; i<FI->numFragments() + 1; i++)
-    _cachePtr[i] = _cachePtr[i-1] + _cacheLen[i-1];
+  for (uint32 fi=1; fi<FI->numFragments() + 1; fi++)
+    _cachePtr[fi] = _cachePtr[fi-1] + _cacheLen[fi-1];
+
+  bool    doCleaning = false;
+  uint64  nOvl = 0;
+
+  for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
+    nOvl += _cacheLen[fi];
+
+    if ((FI->fragmentLength(fi) == 0) &&
+        (_cacheLen[fi] > 0))
+      doCleaning = true;
+
+    if (_cacheLen[fi] == 0)
+      _cachePtr[fi] = NULL;
+  }
+
+  //  For each fragment, remove any overlaps to deleted fragments.
+
+  fprintf(logFile, "OverlapCache()-- Loaded "F_U64" overlaps.\n", nOvl);
+
+  if (doCleaning) {
+    uint64   nDel = 0;
+    uint64   nMod = 0;
+    uint64   nOvl = 0;
+
+    fprintf(logFile, "OverlapCache()-- Freshly deleted fragments detected.  Cleaning overlaps.\n");
+
+    char  N[FILENAME_MAX];
+
+    sprintf(N, "%s.overlapsRemoved.log", prefix);
+
+    errno = 0;
+    FILE *F = fopen(N, "w");
+    if (errno)
+      fprintf(stderr, "OverlapCache()--  Failed to open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+
+    for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
+      if ((FI->fragmentLength(fi) == 0) &&
+          (_cacheLen[fi] > 0)) {
+        nDel++;
+        fprintf(F, "Removing "F_U32" overlaps from deleted deleted fragment "F_U32"\n", _cacheLen[fi], fi);
+        _cachePtr[fi] = NULL;
+        _cacheLen[fi] = 0;
+      }
+
+      uint32  on = 0;
+
+      for (uint32 oi=0; oi<_cacheLen[fi]; oi++) {
+        uint32  iid = _cachePtr[fi][oi].b_iid;
+        bool    del = (FI->fragmentLength(iid) == 0);
+
+        if ((del == false) &&
+            (on < oi))
+          _cachePtr[fi][on] = _cachePtr[fi][oi];
+
+        if (del == false)
+          on++;
+      }
+
+      if (_cacheLen[fi] != on) {
+        nMod++;
+        nOvl += _cacheLen[fi] - on;
+        fprintf(F, "Removing "F_U32" overlaps from living fragment "F_U32"\n", _cacheLen[fi] - on, fi);
+        memset(_cachePtr[fi] + on, 0xff, (_cacheLen[fi] - on) * (sizeof(BAToverlapInt)));
+      }
+
+      _cacheLen[fi] = on;
+    }
+
+    fclose(F);
+
+    fprintf(stderr, "OverlapCache()-- Removed all overlaps from "F_U64" deleted fragments.  Removed "F_U64" overlaps from "F_U64" alive fragments.\n",
+            nDel, nOvl, nMod);
+  }
 
   return(true);
 }
@@ -741,13 +808,13 @@ OverlapCache::save(const char *prefix, double erate, double elimit, uint64 memli
 
   sprintf(name, "%s.ovlCache", prefix);
 
-  fprintf(stderr, "Saving graph to '%s'.\n", name);
+  fprintf(stderr, "OverlapCache()-- Saving graph to '%s'.\n", name);
 
   errno = 0;
 
   file = fopen(name, "w");
   if (errno)
-    fprintf(stderr, "Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+    fprintf(stderr, "OverlapCache()-- Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
 
   uint64   magic      = ovlCacheMagic;
   uint32   baterrbits = AS_BAT_ERRBITS;
