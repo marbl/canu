@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.26 2012-02-03 10:22:04 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.27 2012-02-22 21:59:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -134,31 +134,31 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
   sprintf(name,"%s/fpk", storePath);
   fpk   = openStore(name, mode);
   sprintf(name,"%s/qpk", storePath);
-  qpk   = openStore(name, mode);
+  qpk   = openStore(name, "r");
 
   sprintf(name,"%s/fnm", storePath);
   fnm   = openStore(name, mode);
   sprintf(name,"%s/snm", storePath);
-  snm   = openStore(name, mode);
+  snm   = openStore(name, "r");
   sprintf(name,"%s/qnm", storePath);
-  qnm   = openStore(name, mode);
+  qnm   = openStore(name, "r");
 
   sprintf(name,"%s/fsb", storePath);
   fsb   = openStore(name, mode);
   sprintf(name,"%s/ssb", storePath);
-  ssb   = openStore(name, mode);
+  ssb   = openStore(name, "r");
   sprintf(name,"%s/qsb", storePath);
-  qsb   = openStore(name, mode);
+  qsb   = openStore(name, "r");
 
   sprintf(name,"%s/lib", storePath);
   lib   = openStore(name, mode);
   lib   = convertStoreToMemoryStore(lib);
 
   sprintf(name,"%s/uid", storePath);
-  uid    = openStore(name, mode);
+  uid    = openStore(name, "r");
 
   sprintf(name, "%s/plc", storePath);
-  plc    = openStore(name, mode);
+  plc    = openStore(name, "r");
   plc    = convertStoreToMemoryStore(plc); 
 
   //  UIDtoIID and STRtoUID are loaded on demand.
