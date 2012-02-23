@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.32 2012-02-22 21:58:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.33 2012-02-23 01:58:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,26 +166,28 @@ revertClearRange(char *clearRegionName, char *gkpStoreName) {
 
 static
 void
-setClear(gkFragment *fr, char *E, uint32 which, int update, int verbose) {
+setClear(AS_IID IID, char *E, uint32 which, int update, int verbose) {
   uint32 bo, eo, bn, en;
 
-  //  Code used to exist to update "ALL" clear ranges, but that makes
-  //  no sense (I hope) any more.  This was used by toggleAndRun, but
-  //  now we can just nuke the appropriate clear range files in the
-  //  store.
+  gkFragment fr;
+
+  gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
 
   bn = strtoul(E, &E, 10);
   munch(E);
   en = strtoul(E, &E, 10);
 
-  fr->gkFragment_getClearRegion(bo, eo, which);
-  fr->gkFragment_setClearRegion(bn, en, which);
+  fr.gkFragment_getClearRegion(bo, eo, which);
+  fr.gkFragment_setClearRegion(bn, en, which);
 
   if (verbose)
     fprintf(stdout, "frg uid %s %s %d %d -> %d %d\n",
-            AS_UID_toString(fr->gkFragment_getReadUID()),
+            AS_UID_toString(fr.gkFragment_getReadUID()),
             AS_READ_CLEAR_NAMES[which],
             bo, eo, bn, en);
+
+  if (update)
+    gkpStore->gkStore_setFragment(&fr);
 }
 
 
@@ -236,6 +238,250 @@ allFrags(gkStore *gkpStore,
     }
   }
 }
+
+
+
+
+static
+bool
+edit_mateiid(AS_IID     IID,
+             char      *ACT,
+             char      *VAL,
+               char      *LIN,
+             bool       update,
+             bool       verbose) {
+  gkFragment fr;
+
+  gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
+
+  AS_IID    o = fr.gkFragment_getMateIID();
+  AS_IID    n = AS_IID_fromString(VAL, &VAL);
+
+  fr.gkFragment_setMateIID(n);
+
+  if (verbose)
+    fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID"\n",
+            AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getMateIID());
+
+  if (update)
+    gkpStore->gkStore_setFragment(&fr);
+
+  if ((n == 0) && (o != 0)) {
+    gkpStore->gkStore_getFragment(o, &fr, GKFRAGMENT_INF);
+
+    fr.gkFragment_setMateIID(0);
+
+    if (verbose)
+      fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID"\n",
+              AS_UID_toString(fr.gkFragment_getReadUID()), IID, fr.gkFragment_getMateIID());
+
+    if (update)
+      gkpStore->gkStore_setFragment(&fr);
+  }
+
+  return(true);
+}
+
+
+static
+bool
+edit_mateuid(AS_IID     IID,
+             char      *ACT,
+             char      *VAL,
+               char      *LIN,
+             bool       update,
+             bool       verbose) {
+  gkFragment fr;
+
+  gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
+
+  AS_IID    o = fr.gkFragment_getMateIID();
+  AS_UID    n = AS_UID_lookup(VAL, &VAL);
+  fr.gkFragment_setMateIID(gkpStore->gkStore_getUIDtoIID(n, NULL));
+  if (verbose)
+    fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID" mateuid %s\n",
+            AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getMateIID(), AS_UID_toString(n));
+
+  if (update)
+    gkpStore->gkStore_setFragment(&fr);
+
+  return(true);
+}
+
+
+static
+bool
+edit_readuid(AS_IID     IID,
+             char      *ACT,
+             char      *VAL,
+               char      *LIN,
+             bool       update,
+             bool       verbose) {
+  gkFragment fr;
+
+  gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
+
+  AS_UID    o = fr.gkFragment_getReadUID();
+  fr.gkFragment_setReadUID(AS_UID_lookup(VAL, &VAL));  //  I _really_ hope you know what you're doing
+  if (verbose)
+    fprintf(stdout, "frg iid "F_IID" readuid %s -> %s\n",
+            fr.gkFragment_getReadIID(), AS_UID_toString(o), AS_UID_toString(fr.gkFragment_getReadUID()));
+
+  if (update)
+    gkpStore->gkStore_setFragment(&fr);
+
+  return(true);
+}
+
+
+static
+bool
+edit_libiid(AS_IID     IID,
+            char      *ACT,
+            char      *VAL,
+               char      *LIN,
+            bool       update,
+            bool       verbose) {
+  gkFragment fr;
+
+  gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
+
+  AS_IID    o = fr.gkFragment_getLibraryIID();
+  fr.gkFragment_setLibraryIID(AS_IID_fromString(VAL, &VAL));
+  if (verbose)
+    fprintf(stdout, "frg uid %s libiid "F_IID" -> libiid "F_IID"\n",
+            AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getLibraryIID());
+
+  if (update)
+    gkpStore->gkStore_setFragment(&fr);
+
+  return(true);
+}
+
+
+static
+bool
+edit_libuid(AS_IID     IID,
+            char      *ACT,
+            char      *VAL,
+               char      *LIN,
+            bool       update,
+            bool       verbose) {
+  gkFragment fr;
+
+  gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
+
+  AS_IID    o = fr.gkFragment_getLibraryIID();
+  AS_UID    n = AS_UID_lookup(VAL, &VAL);
+  fr.gkFragment_setLibraryIID(gkpStore->gkStore_getUIDtoIID(n, NULL));
+  if (verbose)
+    fprintf(stdout, "frg uid %s libiid "F_IID" -> libiid "F_IID" libuid %s\n",
+            AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getLibraryIID(), AS_UID_toString(n));
+
+  if (update)
+    gkpStore->gkStore_setFragment(&fr);
+
+  return(true);
+}
+
+
+static
+bool
+edit_isnonrandom(AS_IID     IID,
+                 char      *ACT,
+                 char      *VAL,
+                 char      *LIN,
+                 bool       update,
+                 bool       verbose) {
+  gkFragment fr;
+
+  gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
+
+  uint32 o = fr.gkFragment_getIsNonRandom();
+  if      ((VAL[0] == '1') || (VAL[0] == 't') || (VAL[0] == 'T')) {
+    fr.gkFragment_setIsNonRandom(1);
+  } else if ((VAL[0] == '0') || (VAL[0] == 'f') || (VAL[0] == 'F')) {
+    fr.gkFragment_setIsNonRandom(0);
+  } else {
+    fprintf(stderr, "invalid frg isnonrandom flag in edit line: '%s'\n", LIN);
+    return(false);
+  }
+  if (verbose)
+    fprintf(stdout, "frg uid %s isnonrandom "F_U32" -> "F_U32"\n",
+            AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getIsNonRandom());
+
+  if (update)
+    gkpStore->gkStore_setFragment(&fr);
+
+  return(true);
+}
+
+
+static
+bool
+edit_isdeleted(AS_IID     IID,
+               char      *ACT,
+               char      *VAL,
+               char      *LIN,
+               bool       update,
+               bool       verbose) {
+  gkFragment fr;
+
+  gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
+
+  uint32 o = fr.gkFragment_getIsDeleted();
+  if      ((VAL[0] == '1') || (VAL[0] == 't') || (VAL[0] == 'T')) {
+    fr.gkFragment_setIsDeleted(1);
+  } else if ((VAL[0] == '0') || (VAL[0] == 'f') || (VAL[0] == 'F')) {
+    fr.gkFragment_setIsDeleted(0);
+  } else {
+    fprintf(stderr, "invalid frg isdeleted flag in edit line: '%s'\n", LIN);
+    return(false);
+  }
+  if (verbose)
+    fprintf(stdout, "frg uid %s isdeleted "F_U32" -> "F_U32"\n",
+            AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getIsDeleted());
+
+  if (update)
+    gkpStore->gkStore_setFragment(&fr);
+
+  return(true);
+}
+
+
+static
+bool
+edit_orientation(AS_IID     IID,
+                 char      *ACT,
+                 char      *VAL,
+                 char      *LIN,
+                 bool       update,
+                 bool       verbose) {
+  gkFragment fr;
+
+  gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
+
+  uint32 o = fr.gkFragment_getOrientation();
+  uint32 i;
+  for (i=0; i<5; i++)
+    if (tolower(AS_READ_ORIENT_NAMES[i][0]) == tolower(VAL[0])) {
+      fr.gkFragment_setOrientation(i);
+      break;
+    }
+  if (i == 5) {
+    fprintf(stderr, "invalid frg orientation in edit line: '%s'\n", LIN);
+    return(false);
+  }
+  if (verbose)
+    fprintf(stdout, "frg uid %s orientation %s -> %s\n",
+            AS_UID_toString(fr.gkFragment_getReadUID()), AS_READ_ORIENT_NAMES[o], AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()]);
+
+  if (update)
+    gkpStore->gkStore_setFragment(&fr);
+
+  return(true);
+}
+
 
 
 
@@ -346,8 +592,6 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
     //fprintf(stderr, "ACT='%s' E='%s'\n", ACT, E);
 
     if (isFRG) {
-      gkFragment fr;
-      fr.gkFragment_enableGatekeeperMode(gkpStore);
 
       if (IID > gkpStore->gkStore_getNumFragments()) {
         fprintf(stderr, "invalid frg iid "F_IID" in edit line: '%s'\n", IID, L);
@@ -355,96 +599,47 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
         goto nextline;
       }
 
-      gkpStore->gkStore_getFragment(IID, &fr, GKFRAGMENT_INF);
-
       uint32  clr = gkStore_decodeClearRegionLabel(ACT);
 
       if        (clr != AS_READ_CLEAR_ERROR) {
-        setClear(&fr, E, clr, update, verbose);
+        setClear(IID, E, clr, update, verbose);
+
       } else if (strcasecmp(ACT, "mateiid") == 0) {
-        AS_IID    o = fr.gkFragment_getMateIID();
-        fr.gkFragment_setMateIID(AS_IID_fromString(E, &E));
-        if (verbose)
-          fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID"\n",
-                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getMateIID());
+        if (edit_mateiid(IID, ACT, E, L, update, verbose) == false)
+          errors++;
+
       } else if (strcasecmp(ACT, "mateuid") == 0) {
-        AS_IID    o = fr.gkFragment_getMateIID();
-        AS_UID    n = AS_UID_lookup(E, &E);
-        fr.gkFragment_setMateIID(gkpStore->gkStore_getUIDtoIID(n, NULL));
-        if (verbose)
-          fprintf(stdout, "frg uid %s mateiid "F_IID" -> mateiid "F_IID" mateuid %s\n",
-                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getMateIID(), AS_UID_toString(n));
+        if (edit_mateuid(IID, ACT, E, L, update, verbose) == false)
+          errors++;
+
       } else if (strcasecmp(ACT, "readuid") == 0) {
-        AS_UID    o = fr.gkFragment_getReadUID();
-        fr.gkFragment_setReadUID(AS_UID_lookup(E, &E));  //  I _really_ hope you know what you're doing
-        if (verbose)
-          fprintf(stdout, "frg iid "F_IID" readuid %s -> %s\n",
-                  fr.gkFragment_getReadIID(), AS_UID_toString(o), AS_UID_toString(fr.gkFragment_getReadUID()));
+        if (edit_readuid(IID, ACT, E, L, update, verbose) == false)
+          errors++;
+
       } else if (strcasecmp(ACT, "libiid") == 0) {
-        AS_IID    o = fr.gkFragment_getLibraryIID();
-        fr.gkFragment_setLibraryIID(AS_IID_fromString(E, &E));
-        if (verbose)
-          fprintf(stdout, "frg uid %s libiid "F_IID" -> libiid "F_IID"\n",
-                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getLibraryIID());
+        if (edit_libiid(IID, ACT, E, L, update, verbose) == false)
+          errors++;
+
       } else if (strcasecmp(ACT, "libuid") == 0) {
-        AS_IID    o = fr.gkFragment_getLibraryIID();
-        AS_UID    n = AS_UID_lookup(E, &E);
-        fr.gkFragment_setLibraryIID(gkpStore->gkStore_getUIDtoIID(n, NULL));
-        if (verbose)
-          fprintf(stdout, "frg uid %s libiid "F_IID" -> libiid "F_IID" libuid %s\n",
-                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getLibraryIID(), AS_UID_toString(n));
+        if (edit_libuid(IID, ACT, E, L, update, verbose) == false)
+          errors++;
+
       } else if (strcasecmp(ACT, "isnonrandom") == 0) {
-        uint32 o = fr.gkFragment_getIsNonRandom();
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T')) {
-          fr.gkFragment_setIsNonRandom(1);
-        } else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F')) {
-          fr.gkFragment_setIsNonRandom(0);
-        } else {
-          fprintf(stderr, "invalid frg isnonrandom flag in edit line: '%s'\n", L);
+        if (edit_isnonrandom(IID, ACT, E, L, update, verbose) == false)
           errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "frg uid %s isnonrandom "F_U32" -> "F_U32"\n",
-                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getIsNonRandom());
+
       } else if (strcasecmp(ACT, "isdeleted") == 0) {
-        uint32 o = fr.gkFragment_getIsDeleted();
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T')) {
-          fr.gkFragment_setIsDeleted(1);
-        } else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F')) {
-          fr.gkFragment_setIsDeleted(0);
-        } else {
-          fprintf(stderr, "invalid frg isdeleted flag in edit line: '%s'\n", L);
+        if (edit_isdeleted(IID, ACT, E, L, update, verbose) == false)
           errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "frg uid %s isdeleted "F_U32" -> "F_U32"\n",
-                  AS_UID_toString(fr.gkFragment_getReadUID()), o, fr.gkFragment_getIsDeleted());
+
       } else if (strcasecmp(ACT, "orientation") == 0) {
-        uint32 o = fr.gkFragment_getOrientation();
-        uint32 i;
-        for (i=0; i<5; i++)
-          if (tolower(AS_READ_ORIENT_NAMES[i][0]) == tolower(E[0])) {
-            fr.gkFragment_setOrientation(i);
-            break;
-          }
-        if (i == 5) {
-          fprintf(stderr, "invalid frg orientation in edit line: '%s'\n", L);
+        if (edit_orientation(IID, ACT, E, L, update, verbose) == false)
           errors++;
-          goto nextline;
-        }
-        if (verbose)
-          fprintf(stdout, "frg uid %s orientation %s -> %s\n",
-                  AS_UID_toString(fr.gkFragment_getReadUID()), AS_READ_ORIENT_NAMES[o], AS_READ_ORIENT_NAMES[fr.gkFragment_getOrientation()]);
+
       } else {
         fprintf(stderr, "invalid frg action in edit line: '%s'\n", L);
         errors++;
-        goto nextline;
       }
-
-      if (update)
-        gkpStore->gkStore_setFragment(&fr);
     }
 
     if (isLIB) {
@@ -481,48 +676,48 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
           fprintf(stdout, "lib uid %s distance %f %f -> %f %f\n",
                   AS_UID_toString(gklr.libraryUID), m, s, gklr.mean, gklr.stddev);
 
-      //  Lots of boilerplate here for T/F flags.  Sigh.
+        //  Lots of boilerplate here for T/F flags.  Sigh.
 
-#define setBoolean(XX)                                                              \
-      } else if (strcasecmp(ACT, #XX) == 0) {                                       \
-        uint32 o = gklr.XX;                                                         \
-        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))                   \
-          gklr.XX = 1;                                                              \
-        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))                   \
-          gklr.XX = 0;                                                              \
-        else {                                                                      \
-          fprintf(stderr, "invalid lib XX flag in edit line: '%s'\n", L);           \
-          errors++;                                                                 \
-          goto nextline;                                                            \
-        }                                                                           \
-        if (verbose)                                                                \
-          fprintf(stdout, "lib uid %s XX %c -> %c\n",                               \
-                  AS_UID_toString(gklr.libraryUID),                                 \
-                  (o) ? 'T' : 'F',                                                  \
-                  (gklr.XX) ? 'T' : 'F');                                           \
+#define setBoolean(XX)                                                  \
+        } else if (strcasecmp(ACT, #XX) == 0) {                         \
+          uint32 o = gklr.XX;                                           \
+          if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))     \
+            gklr.XX = 1;                                                \
+          else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))     \
+            gklr.XX = 0;                                                \
+          else {                                                        \
+            fprintf(stderr, "invalid lib XX flag in edit line: '%s'\n", L); \
+            errors++;                                                   \
+            goto nextline;                                              \
+          }                                                             \
+          if (verbose)                                                  \
+            fprintf(stdout, "lib uid %s XX %c -> %c\n",                 \
+                    AS_UID_toString(gklr.libraryUID),                   \
+                    (o) ? 'T' : 'F',                                    \
+                    (gklr.XX) ? 'T' : 'F');                             \
 
-      setBoolean(forceBOGunitigger)
-      setBoolean(isNotRandom)
-      setBoolean(doNotTrustHomopolymerRuns)
+        setBoolean(forceBOGunitigger)
+          setBoolean(isNotRandom)
+          setBoolean(doNotTrustHomopolymerRuns)
 
-      setBoolean(doTrim_initialNone)
-      setBoolean(doTrim_initialMerBased)
-      setBoolean(doTrim_initialFlowBased)
-      setBoolean(doTrim_initialQualityBased)
+          setBoolean(doTrim_initialNone)
+          setBoolean(doTrim_initialMerBased)
+          setBoolean(doTrim_initialFlowBased)
+          setBoolean(doTrim_initialQualityBased)
 
-      setBoolean(doRemoveDuplicateReads)
+          setBoolean(doRemoveDuplicateReads)
 
-      setBoolean(doTrim_finalLargestCovered)
-      setBoolean(doTrim_finalEvidenceBased)
+          setBoolean(doTrim_finalLargestCovered)
+          setBoolean(doTrim_finalEvidenceBased)
 
-      setBoolean(doRemoveSpurReads)
-      setBoolean(doRemoveChimericReads)
+          setBoolean(doRemoveSpurReads)
+          setBoolean(doRemoveChimericReads)
  
-      setBoolean(doConsensusCorrection)
+          setBoolean(doConsensusCorrection)
 
-      setBoolean(forceShortReadFormat)
+          setBoolean(forceShortReadFormat)
 
-      } else if (strcasecmp(ACT, "orientation") == 0) {
+          } else if (strcasecmp(ACT, "orientation") == 0) {
         uint32 o = gklr.orientation;
         uint32 i;
         for (i=0; i<5; i++)
