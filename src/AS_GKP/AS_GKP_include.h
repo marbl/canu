@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.64 2012-02-03 10:22:05 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.65 2012-02-23 19:12:25 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.64 2012-02-03 10:22:05 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.65 2012-02-23 19:12:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -100,7 +100,8 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       int         doNotFixMates,
                       int         dumpAllReads,
                       int         dumpAllBases,
-                      int         dumpClear);
+                      int         dumpClear,
+                      int         withoutUIDs);
 
 void
 dumpGateKeeperAsFRG(char       *gkpStoreName,
@@ -110,7 +111,8 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
                     char       *iidToDump,
                     int         doNotFixMates,
                     int         dumpAllReads,
-                    int         dumpFRGClear);
+                    int         dumpFRGClear,
+                    int         withoutUIDs);
 
 void
 dumpGateKeeperAsNewbler(char       *gkpStoreName,
@@ -121,7 +123,8 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
                         int         doNotFixMates,
                         int         dumpAllReads,
                         int         dumpAllBases,
-                        int         dumpClear);
+                        int         dumpClear,
+                        int         withoutUIDs);
 
 void
 dumpGateKeeperAsFastQ(char       *gkpStoreName,
@@ -132,7 +135,8 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       int         doNotFixMates,
                       int         dumpAllReads,
                       int         dumpAllBases,
-                      int         dumpClear);
+                      int         dumpClear,
+                      int         withoutUIDs);
 
 int
 dumpGateKeeperIsFeatureSet(char       *gkpStoreName,

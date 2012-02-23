@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.67 2012-02-06 08:26:33 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.68 2012-02-23 19:12:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -339,7 +339,8 @@ adjustBeginEndAddMates(gkStore *gkp,
                        int32  *&libToDump,
                        char   *&iidToDump,
                        AS_UID *&frgUID,
-                       int      doNotFixMates) {
+                       int      doNotFixMates,
+                       int      withoutUIDs) {
 
   if (begIID < 1)
     begIID = 1;
@@ -355,7 +356,9 @@ adjustBeginEndAddMates(gkStore *gkp,
   }
 
   libToDump = (int32  *)safe_calloc(gkp->gkStore_getNumLibraries() + 1, sizeof(int));
-  frgUID    = (AS_UID *)safe_calloc(gkp->gkStore_getNumFragments() + 1, sizeof(AS_UID));
+
+  if (withoutUIDs == 0)
+    frgUID    = (AS_UID *)safe_calloc(gkp->gkStore_getNumFragments() + 1, sizeof(AS_UID));
 
   gkStream   *fs = new gkStream(gkp, begIID, endIID, GKFRAGMENT_INF);
   gkFragment  fr;
@@ -365,7 +368,8 @@ adjustBeginEndAddMates(gkStore *gkp,
   fprintf(stderr, "Scanning store to find libraries used.\n");
 
   while (fs->next(&fr)) {
-    frgUID[fr.gkFragment_getReadIID()] = fr.gkFragment_getReadUID();
+    if (withoutUIDs == 0)
+      frgUID[fr.gkFragment_getReadIID()] = fr.gkFragment_getReadUID();
 
     if (iidToDump[fr.gkFragment_getReadIID()]) {
       libToDump[fr.gkFragment_getLibraryIID()]++;
@@ -403,13 +407,14 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       int         doNotFixMates,
                       int         dumpAllReads,
                       int         dumpAllBases,
-                      int         dumpClear) {
+                      int         dumpClear,
+                      int         withoutUIDs) {
 
   gkStore   *gkp       = new gkStore(gkpStoreName, FALSE, FALSE);
   int32     *libToDump = NULL;
   AS_UID    *frgUID    = NULL;
 
-  adjustBeginEndAddMates(gkp, begIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates);
+  adjustBeginEndAddMates(gkp, begIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, withoutUIDs);
 
   char  fname[FILENAME_MAX];  sprintf(fname, "%s.fasta",      prefix);
   char  qname[FILENAME_MAX];  sprintf(qname, "%s.fasta.qv",   prefix);
@@ -458,11 +463,15 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
       //  Fragment has null or invalid clear range, don't dump.
       continue;
 
-    AS_UID  fUID = fr.gkFragment_getReadUID();
+    AS_UID  fUID = AS_UID_undefined();
     AS_UID  mUID = AS_UID_undefined();
 
-    if (id2 > 0)
-      mUID = gkp->gkStore_getIIDtoUID(id2, AS_IID_FRG);
+    if (withoutUIDs == 0) {
+      fUID = fr.gkFragment_getReadUID();
+
+      if (id2 > 0)
+        mUID = gkp->gkStore_getIIDtoUID(id2, AS_IID_FRG);
+    }
 
     char *seq = fr.gkFragment_getSequence() + ((dumpAllBases == false) ? fr.gkFragment_getClearRegionBegin(dumpClear) : 0);
     char *qlt = fr.gkFragment_getQuality()  + ((dumpAllBases == false) ? fr.gkFragment_getClearRegionBegin(dumpClear) : 0);
@@ -527,7 +536,8 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
                     char       *iidToDump,
                     int         doNotFixMates,
                     int         dumpAllReads,
-                    int         dumpFRGClear) {
+                    int         dumpFRGClear,
+                    int         withoutUIDs) {
   gkFragment        fr;
   gkStream       *fs = NULL;
 
@@ -809,13 +819,14 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
                         int         doNotFixMates,
                         int         dumpAllReads,
                         int         dumpAllBases,
-                        int         dumpClear) {
+                        int         dumpClear,
+                        int         withoutUIDs) {
 
   gkStore   *gkp       = new gkStore(gkpStoreName, FALSE, FALSE);
   int32     *libToDump = NULL;
   AS_UID    *frgUID    = NULL;
 
-  adjustBeginEndAddMates(gkp, begIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates);
+  adjustBeginEndAddMates(gkp, begIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, withoutUIDs);
 
   char  fname[FILENAME_MAX];  sprintf(fname, "%s.fna",      prefix);
   char  qname[FILENAME_MAX];  sprintf(qname, "%s.fna.qual", prefix);
@@ -908,13 +919,14 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       int         doNotFixMates,
                       int         dumpAllReads,
                       int         dumpAllBases,
-                      int         dumpClear) {
+                      int         dumpClear,
+                      int         withoutUIDs) {
 
   gkStore   *gkp       = new gkStore(gkpStoreName, FALSE, FALSE);
   int32     *libToDump = NULL;
   AS_UID    *frgUID    = NULL;
 
-  adjustBeginEndAddMates(gkp, begIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates);
+  adjustBeginEndAddMates(gkp, begIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, withoutUIDs);
 
   char  aname[FILENAME_MAX];  sprintf(aname, "%s.1.fastq",       prefix);
   char  bname[FILENAME_MAX];  sprintf(bname, "%s.2.fastq",       prefix);

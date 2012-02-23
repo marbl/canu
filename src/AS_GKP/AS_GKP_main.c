@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.100 2012-02-06 08:20:04 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.101 2012-02-23 19:12:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -616,19 +616,22 @@ main(int argc, char **argv) {
         dumpGateKeeperAsFasta(gkpStoreName, dumpPrefix, begIID, endIID, iidToDump,
                               doNotFixMates,
                               dumpAllReads, dumpAllBases,
-                              dumpClear);
+                              dumpClear,
+                              dumpDoNotUseUIDs);
         break;
       case DUMP_FRG:
         dumpGateKeeperAsFRG(gkpStoreName, dumpFormat, begIID, endIID, iidToDump,
                             doNotFixMates,
                             dumpAllReads,
-                            dumpClear);
+                            dumpClear,
+                            dumpDoNotUseUIDs);
         break;
       case DUMP_NEWBLER:
         dumpGateKeeperAsNewbler(gkpStoreName, dumpPrefix, begIID, endIID, iidToDump,
                                 doNotFixMates,
                                 dumpAllReads, dumpAllBases,
-                                dumpClear);
+                                dumpClear,
+                                dumpDoNotUseUIDs);
         break;
       case DUMP_LASTFRG:
         {
@@ -641,7 +644,8 @@ main(int argc, char **argv) {
         dumpGateKeeperAsFastQ(gkpStoreName, dumpPrefix, begIID, endIID, iidToDump,
                               doNotFixMates,
                               dumpAllReads, dumpAllBases,
-                              dumpClear);
+                              dumpClear,
+                              dumpDoNotUseUIDs);
         break;
       case DUMP_FEATURE:
          exitVal = (dumpGateKeeperIsFeatureSet(gkpStoreName, featureLibIID, featureName) == 0);
