@@ -2158,6 +2158,8 @@ sub runMeryl ($$$$$$) {
     my $merType      = shift @_;
     my $merDump      = shift @_;
 
+    system("mkdir $wrk/0-mercounts") if (! -d "$wrk/0-mercounts");
+
     #  The fasta file we should be creating.
     my $ffile = "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
 
@@ -2191,7 +2193,7 @@ sub runMeryl ($$$$$$) {
 
         if (! -e "$ofile.mcdat") {
             my $merylMemory  = getGlobal("merylMemory");
-	    my $merylThreads = getGlobal("merylThreads");
+            my $merylThreads = getGlobal("merylThreads");
 
             if ($merylMemory !~ m/^-/) {
                 $merylMemory = "-memory $merylMemory";
@@ -2335,7 +2337,6 @@ sub runMeryl ($$$$$$) {
 }
 
 sub meryl {
-    system("mkdir $wrk/0-mercounts") if (! -d "$wrk/0-mercounts");
 
     if (getGlobal("ovlOverlapper") eq "umd") {
         caFailure("meryl attempted to compute mer counts for the umd overlapper", undef);
@@ -2696,15 +2697,15 @@ sub merTrim {
     #  Run mer trim on the grid.
     #
 
-    meryl();
-
     my $mbtBatchSize = getGlobal("mbtBatchSize");
     my $mbtJobs      = int($numFrags / $mbtBatchSize) + (($numFrags % $mbtBatchSize == 0) ? 0 : 1);
 
     my $merSize      = getGlobal("obtMerSize");
-    my $merComp      = 0;  # getGlobal("merCompression");
+    my $merComp      = 0;  # getGlobal("merCompression");  --  DOES NOT WORK WITH merTrim
 
     my $mbtThreads   = getGlobal("mbtThreads");
+
+    runMeryl($merSize, $merComp, "-C", "auto", "mbt", 0);
 
     if (! -e "$wrk/0-mertrim/mertrim.sh") {
         open(F, "> $wrk/0-mertrim/mertrim.sh") or caFailure("can't open '$wrk/0-mertrim/mertrim.sh'", undef);
@@ -2755,7 +2756,6 @@ sub merTrim {
         print F " -g  $wrk/$asm.gkpStore \\\n";
         print F " -t  $mbtThreads \\\n";
         print F " -m  $merSize \\\n";
-        print F " -c  $merComp \\\n";
         print F " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
         print F " -o  $wrk/0-mertrim/$asm.\$jobid.merTrim.WORKING \\\n";
         print F " >   $wrk/0-mertrim/$asm.\$jobid.err 2>&1 \\\n";
