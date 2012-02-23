@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.36 2012-01-31 07:09:21 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.37 2012-02-23 16:40:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -143,8 +143,6 @@ createIndexStore(const char *path, const char *storeLabel, int32 elementSize, in
   s->lastWasWrite    = 0;
 
   if (path) {
-    assert(strlen(path) < FILENAME_MAX);
-
     errno = 0;
     s->fp = fopen(path, "w+");
     if (errno) {
@@ -189,8 +187,6 @@ createStringStore(const char *path, const char *storeLabel) {
   s->lastWasWrite    = 0;
 
   if (path) {
-    assert(strlen(path) < FILENAME_MAX);
-
     errno = 0;
     s->fp = fopen(path, "w+");
     if (errno) {
@@ -223,6 +219,13 @@ getIndexStore(StoreStruct *s, int64 index, void *buffer) {
     index = s->firstElem;
   if (index == STREAM_UNTILEND)
     index = s->lastElem;
+
+  if (s->firstElem > index)
+    fprintf(stderr, "getIndexStore()--  ERROR: firstElem="F_S64" > index="F_S64"\n",
+            s->firstElem, index);
+  if (s->lastElem < index)
+    fprintf(stderr, "getIndexStore()--  ERROR: lastElem="F_S64" < index="F_S64"\n",
+            s->lastElem, index);
 
   assert(s->firstElem <= index);
   assert(s->lastElem >= index);
@@ -264,15 +267,27 @@ getStringStore(StoreStruct *s, int64 offset, char *buffer, uint32 maxLength, uin
 
   buffer[0] = 0;
 
+  if (offset <= 0)
+    fprintf(stderr, "getStringStore()-- ERROR offset="F_S64"\n", offset);
   assert(s->storeType == STRING_STORE);
   assert(offset > 0);
 
   actualOffset = offset - s->firstElem;
 
+  if (actualOffset > s->lastElem)
+    fprintf(stderr, "getStringStore()-- ERROR actualOffset="F_S64" > lastElem="F_S64"\n",
+            actualOffset, s->lastElem);
   assert(actualOffset <= s->lastElem);
 
   if (s->memoryBuffer) {
     memcpy(&length, s->memoryBuffer + actualOffset + sizeof(StoreStruct), sizeof(uint32));
+
+    if (length > maxLength)
+      fprintf(stderr, "getStringStore()-- ERROR: length="F_U32" > maxLength="F_S64"\n",
+              length, maxLength);
+    if (length + actualOffset + sizeof(uint32) > s->lastElem)
+      fprintf(stderr, "getStringStore()-- ERROR: length="F_U32" actualOffset="F_S64" > lastElem="F_S64"\n",
+              length, actualOffset, s->lastElem);
 
     assert(length <= maxLength);
     assert(length + actualOffset + sizeof(uint32) <= s->lastElem);
@@ -289,6 +304,13 @@ getStringStore(StoreStruct *s, int64 offset, char *buffer, uint32 maxLength, uin
       assert(0);
       exit(1);
     }
+
+    if (length > maxLength)
+      fprintf(stderr, "getStringStore()-- ERROR: length="F_U32" > maxLength="F_S64"\n",
+              length, maxLength);
+    if (length + actualOffset + sizeof(uint32) > s->lastElem)
+      fprintf(stderr, "getStringStore()-- ERROR: length="F_U32" actualOffset="F_S64" > lastElem="F_S64"\n",
+              length, actualOffset, s->lastElem);
 
     assert(length <= maxLength);
     assert(length + actualOffset + sizeof(uint32) <= s->lastElem);
@@ -327,7 +349,14 @@ getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength, int64 *nex
   //  There's no real reason for asserting this, just in the hope that
   //  if there is corruption of some goofy crud, we'll get a bogus
   //  length.
-  //
+
+  if (*actualLength > 1048576)
+    fprintf(stderr, "getStringStorePtr()-- ERROR: actualLength="F_U32"\n",
+            *actualLength);
+  if (offset - s->firstElem + *actualLength + sizeof(uint32) > s->lastElem)
+    fprintf(stderr, "getStringStorePtr()-- ERROR: offset="F_S64" firstElem="F_S64" actualLength="F_U32" > lastElem="F_S64"\n",
+            offset, s->firstElem, *actualLength, s->lastElem);
+
   assert(*actualLength <= 1048576);
   assert(offset - s->firstElem + *actualLength + sizeof(uint32) <= s->lastElem);
 
@@ -342,6 +371,13 @@ getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength, int64 *nex
 
 void
 setIndexStore(StoreStruct *s, int64 index, void *element) {
+
+  if (s->firstElem > index)
+    fprintf(stderr, "setIndexStore()-- ERROR: firstElem="F_S64" index="F_S64"\n", s->firstElem, index);
+  if (s->lastElem < index)
+    fprintf(stderr, "setIndexStore()-- ERROR: lastElem="F_S64" index="F_S64"\n", s->lastElem, index);
+  if (index <= 0)
+    fprintf(stderr, "setIndexStore()-- ERROR: index="F_S64"\n", index);
 
   assert(s->readOnly == FALSE);
   assert(s->firstElem <= index);
