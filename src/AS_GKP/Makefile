@@ -34,10 +34,10 @@ GKPSRC    = AS_GKP_buildPartition.C \
             AS_GKP_errors.C \
             AS_GKP_illumina.C
 
-SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC) sffToCA.C fastqToCA.C fastqSample.C fastqSimulate.C gkpStoreDumpFASTQ.C gkpStoreCreate.C
+SOURCES   = AS_GKP_main.C AS_GKP_bench.C $(GKPSRC) sffToCA.C fastqToCA.C fastqSample.C fastqSimulate.C fastqAnalyze.C gkpStoreDumpFASTQ.C gkpStoreCreate.C
 OBJECTS   = $(SOURCES:.C=.o)
 LIBRARIES =
-CXX_PROGS = gatekeeper gatekeeperbench sffToCA fastqToCA fastqSample fastqSimulate gkpStoreDumpFASTQ gkpStoreCreate
+CXX_PROGS = gatekeeper gatekeeperbench sffToCA fastqToCA fastqSample fastqSimulate fastqAnalyze gkpStoreDumpFASTQ gkpStoreCreate
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -50,5 +50,6 @@ sffToCA:              sffToCA.o                     libCA.a
 fastqToCA:            fastqToCA.o                   libCA.a
 fastqSample:          fastqSample.o                 libCA.a
 fastqSimulate:        fastqSimulate.o               libCA.a
+fastqAnalyze:         fastqAnalyze.o                libCA.a
 gkpStoreDumpFASTQ:    gkpStoreDumpFASTQ.o           libCA.a
 gkpStoreCreate:       gkpStoreCreate.o              libCA.a
