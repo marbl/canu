@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqAnalyze.C,v 1.1 2012-02-25 03:22:21 brianwalenz Exp $";
+const char *mainid = "$Id: fastqAnalyze.C,v 1.2 2012-02-25 22:45:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -81,8 +81,6 @@ main(int argc, char **argv) {
   if ((originalIsSolexa   == false) &&
       (originalIsIllumina == false) &&
       (originalIsSanger   == false)) {
-    fprintf(stderr, "ANALYZING '%s'\n", inName);
-
     errno = 0;
     FILE *F = fopen(inName, "r");
     if (errno)
@@ -157,11 +155,15 @@ main(int argc, char **argv) {
 
     fclose(F);
 
-    if (isNotSanger    == false)  fprintf(stderr, "  SANGER\n");
-    if (isNotSolexa    == false)  fprintf(stderr, "  SOLEXA\n");
-    if (isNotIllumina3 == false)  fprintf(stderr, "  ILLUMINA 1.3+\n");
-    if (isNotIllumina5 == false)  fprintf(stderr, "  ILLUMINA 1.5+\n");
-    if (isNotIllumina8 == false)  fprintf(stderr, "  ILLUMINA 1.8+\n");
+    fprintf(stdout, "%s --", inName);
+
+    if (isNotSanger    == false)  fprintf(stdout, " SANGER");
+    if (isNotSolexa    == false)  fprintf(stdout, " SOLEXA");
+    if (isNotIllumina3 == false)  fprintf(stdout, " ILLUMINA 1.3+");
+    if (isNotIllumina5 == false)  fprintf(stdout, " ILLUMINA 1.5+");
+    if (isNotIllumina8 == false)  fprintf(stdout, " ILLUMINA 1.8+");
+
+    fprintf(stdout, "\n");
 
     if (isNotSanger    == false)  originalIsSanger   = true;
     if (isNotSolexa    == false)  originalIsSolexa   = true;
