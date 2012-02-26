@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.27 2012-02-12 05:24:41 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.28 2012-02-26 05:54:57 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -89,6 +89,8 @@ public:
 
     discardZeroCoverage       = false;
     discardImperfectCoverage  = false;
+
+    trimImperfectCoverage     = true;
 
     gkRead                    = NULL;
 
@@ -218,10 +220,12 @@ public:
     }
 
     if (minCorrectFraction > 0)
-      minCorrect = (int)floor(minCorrectFraction * actualCoverage);
+      minCorrect = (uint32)floor(minCorrectFraction * actualCoverage);
 
     if (minVerifiedFraction > 0)
-      minVerified = (int)floor(minVerifiedFraction * actualCoverage);
+      minVerified = (uint32)floor(minVerifiedFraction * actualCoverage);
+
+    fprintf(stderr, "Use minCorrect="F_U32" minVerified="F_U32"\n", minCorrect, minVerified);
 
     if (adapCountsFile) {
       fprintf(stderr, "loading adapter mer database.\n");
@@ -275,6 +279,8 @@ public:
 
   bool          discardZeroCoverage;
   bool          discardImperfectCoverage;
+
+  bool          trimImperfectCoverage;
 
   //  Global data
   //
@@ -475,10 +481,13 @@ public:
         origSeq[i] += 'A' - 'a';
 
       if (origQlt[i] < '!')
-        origQlt[i] = '!';
+        fprintf(stderr, "ERROR: invalid QV '%c' (%d) in read '%s': '%s'\n",
+                origQlt[i], origQlt[i], readName, origQlt);
+      if ('J' < origQlt[i])
+        fprintf(stderr, "ERROR: invalid QV '%c' (%d) in read '%s': '%s'\n",
+                origQlt[i], origQlt[i], readName, origQlt);
+
       origQlt[i] -= '!';
-      if (origQlt[i] > QUALITY_MAX)
-        origQlt[i] = QUALITY_MAX;
       origQlt[i] += '0';
     }
 
@@ -828,21 +837,41 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
     return(false);
 
   if (nR > 1) {
-    //  Multiple solutions.
-    corrected[pos] = 'X';
-    return(false);
+    //  Multiple solutions.  Pick the most common.  If we don't do this, the confirmed kmer
+    //  coverage drops at this location, and we trim the read.  This would result in
+    //  zero coverage at every variation.
+
+    uint32  mm = MAX(MAX(nA, nC), MAX(nG, nT));
+
+    if (nA == mm)   { rB = 'A'; }
+    if (nC == mm)   { rB = 'C'; }
+    if (nG == mm)   { rB = 'G'; }
+    if (nT == mm)   { rB = 'T'; }
+
+    //corrected[pos] = 'X';
+    //return(false);
   }
 
   //  One solution!  Correct it.
 
   if (VERBOSE > 0) {
-    log.add("Correct read %d at position %d from %c to %c (QV %d) (%s)\n",
-            readIID,
-            (isReversed == false) ? pos : seqLen - pos,
-            corrSeq[pos],
-            rB,
-            corrQlt[pos],
-            (isReversed == false) ? "fwd" : "rev");
+    if (nR > 1)
+      log.add("Correct read %d at position %d from %c to %c (QV %d) (%s) (multiple choices nA=%d nC=%d nG=%d nT=%d)\n",
+              readIID,
+              (isReversed == false) ? pos : seqLen - pos,
+              corrSeq[pos],
+              rB,
+              corrQlt[pos],
+              (isReversed == false) ? "fwd" : "rev",
+              nA, nC, nG, nT);
+    else
+      log.add("Correct read %d at position %d from %c to %c (QV %d) (%s)\n",
+              readIID,
+              (isReversed == false) ? pos : seqLen - pos,
+              corrSeq[pos],
+              rB,
+              corrQlt[pos],
+              (isReversed == false) ? "fwd" : "rev");
   }  //  VERBOSE
 
   corrSeq[pos] = rB;
@@ -1393,13 +1422,13 @@ mertrimComputation::attemptTrimming(void) {
 
   assert(coverage != NULL);
 
-
-  //  Lop off the ends with no confirmed kmers
+  //  Lop off the ends with no confirmed kmers or a QV less than 3.  The Illumina '2' qv ('B' in
+  //  Illumina 1.5+ encodings) is defined as "rest of read is < QV 15; do not use".
   //
-  while ((clrBgn < clrEnd) && (coverage[clrBgn] == 0))
+  while ((clrBgn < clrEnd) && ((coverage[clrBgn] == 0) || (corrQlt[clrBgn] < '3')))
     clrBgn++;
 
-  while ((clrEnd > clrBgn) && (coverage[clrEnd-1] == 0))
+  while ((clrEnd > clrBgn) && ((coverage[clrEnd-1] == 0) || (corrQlt[clrEnd-1] < '3')))
     clrEnd--;
 
 
@@ -1459,7 +1488,6 @@ mertrimComputation::attemptTrimming(void) {
   //  read, trim all the errors off.
 
   for (uint32 i=0; i<g->endTrimNum; i++) {
-    //log.add("endTrim: %f %u\n", g->endTrimWinScale[i], g->endTrimErrAllow[i]);
     attemptTrimming5End(errorPos, g->merSize * g->endTrimWinScale[i], g->endTrimErrAllow[i]);
     attemptTrimming3End(errorPos, g->merSize * g->endTrimWinScale[i], g->endTrimErrAllow[i]);
   }
@@ -1503,6 +1531,80 @@ mertrimComputation::attemptTrimming(void) {
       for (uint32 i=bgn; i<=end; i++)
         if (coverage[i] != bgnc)
           imperfectKmerCoverage = true;
+  }
+
+  //  If the coverage isn't perfect (see above), trim out the ends that make it imperfect.
+  //  This leaves interior imperfect regions, but there should be enough to get
+  //  an overlap on either end.
+
+  if ((g->trimImperfectCoverage == true) &&
+      (clrBgn < clrEnd) &&
+      (clrEnd > 0)) {
+    uint32  bgn = clrBgn;
+    uint32  end = clrEnd - 1;
+
+    //  Search from the ends in until we find the highest coverage.
+
+    while ((bgn <= end) && (coverage[bgn] < g->merSize - 4))
+      bgn++;
+
+    while ((bgn <= end) && (coverage[end] < g->merSize - 4))
+      end--;
+
+    end++;
+
+    //  Check that everything between is nice and high.  Why the -2?  This lets
+    //  us tolerate one or two 'missing' kmers.
+
+    uint32  mbgn = bgn;  //  Maximal bgn/end region
+    uint32  mend = bgn;
+
+    uint32  tbgn = bgn;  //  Currently testing region
+    uint32  tend = bgn;
+
+    while (tend < end) {
+      if (coverage[tend] < g->merSize - 4) {
+        if ((mend - mbgn) < (tend - tbgn)) {
+          mbgn = tbgn;
+          mend = tend;
+        }
+
+        tbgn = tend + 1;  //  Next region starts on the next position.
+      }
+
+      tend++;
+    }
+
+    //  If we found a sub region, reset to it (after remembering to check the last sub region).
+
+    if (mbgn < mend) {
+      if ((mend - mbgn) < (tend - tbgn)) {
+        mbgn = tbgn;
+        mend = tend;
+      }
+
+      if (VERBOSE)
+        log.add("Reset clr from %d,%d to %d,%d\n", bgn, end, mbgn, mend);
+
+      bgn = mbgn;
+      end = mend;
+    }
+
+    //  Then search towards the ends, as long as the coverage is strictly decreasing.
+
+    if (bgn < end) {
+      while ((bgn > clrBgn) && (coverage[bgn-1] < coverage[bgn]))
+        bgn--;
+
+      while ((end < clrEnd) && (coverage[end] < coverage[end-1]))
+        end++;
+
+    } else {
+      imperfectKmerCoverage = true;
+    }
+
+    clrBgn = bgn;
+    clrEnd = end;
   }
 
   //  Make sense of the clear ranges.  If they're invalid, reset to 0,0.
@@ -1995,6 +2097,8 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
           s->corrSeq + seqOffset,
           s->corrQlt + seqOffset);
 
+  if (VERBOSE)
+    s->log.add("RESULT: %s\n", label);
   s->log.fwrite(stderr);
 }
 
@@ -2070,7 +2174,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE++;
- 
+
     } else if (strcmp(argv[arg], "-coverage") == 0) {
       g->actualCoverage = atoi(argv[++arg]);
 
@@ -2100,6 +2204,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-discardimperfect") == 0) {
       g->discardImperfectCoverage = true;
+
+    } else if (strcmp(argv[arg], "-notrimimperfect") == 0) {
+      g->trimImperfectCoverage = false;
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       g->forceCorrection = true;
