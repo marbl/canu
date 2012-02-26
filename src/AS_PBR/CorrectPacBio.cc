@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.11 2012-01-17 17:35:39 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.12 2012-02-26 06:03:46 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -186,12 +186,19 @@ static uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS
 }
 
 // partition the work
-static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int numThreads, int partitions, uint32& perFile, PBRThreadWorkArea *wa) { 
+static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int &numThreads, int &partitions, uint32& perFile, PBRThreadWorkArea *wa) { 
   uint32 lastEnd = 0;
   uint32 currThread = 0;
   AS_IID lastFrag = 0;
   AS_IID firstFrag = 0;
   PBRThreadGlobals* waGlobal = wa[0].globals;
+
+  if (partitions > counter) { 
+     partitions = counter;
+  }
+  if (numThreads > counter) { 
+     numThreads = counter;
+  }
 
   uint32 perThread = (uint32) floor((double)counter / numThreads);
   perFile   = (uint32) round((double)counter / partitions);
