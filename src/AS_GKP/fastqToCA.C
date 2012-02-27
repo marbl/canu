@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.21 2012-02-03 21:47:58 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.22 2012-02-27 02:44:12 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -172,7 +172,8 @@ main(int argc, char **argv) {
       (strcasecmp(technology, "454") != 0) &&
       (strcasecmp(technology, "illumina") != 0) &&
       (strcasecmp(technology, "experimental") != 0) &&
-      (strcasecmp(technology, "pacbio") != 0)) 
+      (strcasecmp(technology, "pacbio") != 0) &&
+      (strcasecmp(technology, "pacbio-long") != 0))
      err++;
   if ((strcasecmp(type, "sanger") != 0) &&
       (strcasecmp(type, "solexa") != 0) &&
@@ -194,6 +195,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "                       '454'      -- \n");
     fprintf(stderr, "                       'illumina' -- \n");
     fprintf(stderr, "                       'pacbio'   -- \n");
+    fprintf(stderr, "                       'pacbio-long' -- \n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -type t            What type of fastq ('sanger' is the default):\n");
     fprintf(stderr, "                       'sanger'   -- QV's are PHRED, offset=33 '!', NCBI SRA data.\n");
@@ -225,7 +227,8 @@ main(int argc, char **argv) {
     if ((strcasecmp(technology, "sanger") != 0) &&
         (strcasecmp(technology, "454") != 0) &&
         (strcasecmp(technology, "illumina") != 0) &&
-        (strcasecmp(technology, "pacbio") != 0)) 
+        (strcasecmp(technology, "pacbio") != 0) &&
+        (strcasecmp(technology, "pacbio-long") != 0)) 
       fprintf(stderr, "ERROR:  Invalid technology '%s' supplied with -technology.\n", technology);
 
     if ((strcasecmp(type, "sanger") != 0) &&
@@ -348,6 +351,27 @@ main(int argc, char **argv) {
     gkl.forceShortReadFormat       = 0;
 
   } else if (strcasecmp(technology, "pacbio") == 0) {
+    gkl.forceBOGunitigger          = 1;
+    gkl.doNotTrustHomopolymerRuns  = 0;
+
+    gkl.doTrim_initialNone         = 0;
+    gkl.doTrim_initialMerBased     = 0;
+    gkl.doTrim_initialFlowBased    = 1;
+    gkl.doTrim_initialQualityBased = 0;
+
+    gkl.doRemoveDuplicateReads     = 1;
+
+    gkl.doTrim_finalLargestCovered = 1;
+    gkl.doTrim_finalEvidenceBased  = 0;
+
+    gkl.doRemoveSpurReads          = 1;
+    gkl.doRemoveChimericReads      = 1;
+
+    gkl.doConsensusCorrection      = 1;
+   
+    gkl.forceShortReadFormat       = 0;
+  }
+  else if (strcasecmp(technology, "pacbio-long") == 0) {
     gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 0;
 
