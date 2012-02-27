@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.29 2012-02-03 21:47:58 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.30 2012-02-27 22:45:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -206,10 +206,10 @@ processSeq(char       *N,
         QVerrors++;
         fr->qstr[i] = '!';
       }
-      if ('I' < fr->qstr[i]) {
-        QVerrors++;
-        fr->qstr[i] = 'I';
-      }
+      //if ('I' < fr->qstr[i]) {
+      //  QVerrors++;
+      //  fr->qstr[i] = 'I';
+      //}
 
       fr->qstr[i] -= '!';
       if (fr->qstr[i] > QUALITY_MAX)
@@ -225,10 +225,10 @@ processSeq(char       *N,
         QVerrors++;
         fr->qstr[i] = '@';
       }
-      if ('h' < fr->qstr[i]) {
-        QVerrors++;
-        fr->qstr[i] = ';';
-      }
+      //if ('h' < fr->qstr[i]) {
+      //  QVerrors++;
+      //  fr->qstr[i] = ';';
+      //}
       qs  = fr->qstr[i];
       qs -= '@';
       qs /= 10.0;
@@ -245,10 +245,10 @@ processSeq(char       *N,
         QVerrors++;
         fr->qstr[i] = '@';
       }
-      if ('h' < fr->qstr[i]) {
-        QVerrors++;
-        fr->qstr[i] = 'h';
-      }
+      //if ('h' < fr->qstr[i]) {
+      //  QVerrors++;
+      //  fr->qstr[i] = 'h';
+      //}
       fr->qstr[i] -= '@';
       if (fr->qstr[i] > QUALITY_MAX)
         fr->qstr[i] = QUALITY_MAX;

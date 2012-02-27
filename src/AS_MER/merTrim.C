@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.28 2012-02-26 05:54:57 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.29 2012-02-27 22:45:57 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -483,9 +483,10 @@ public:
       if (origQlt[i] < '!')
         fprintf(stderr, "ERROR: invalid QV '%c' (%d) in read '%s': '%s'\n",
                 origQlt[i], origQlt[i], readName, origQlt);
-      if ('J' < origQlt[i])
-        fprintf(stderr, "ERROR: invalid QV '%c' (%d) in read '%s': '%s'\n",
-                origQlt[i], origQlt[i], readName, origQlt);
+      //  Our Sanger reads (dumped as fastq from gkpStore) have QV's higher than this.
+      //if ('J' < origQlt[i])
+      //  fprintf(stderr, "ERROR: invalid QV '%c' (%d) in read '%s': '%s'\n",
+      //          origQlt[i], origQlt[i], readName, origQlt);
 
       origQlt[i] -= '!';
       origQlt[i] += '0';
