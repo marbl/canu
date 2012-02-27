@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.12 2012-02-26 06:03:46 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.13 2012-02-27 02:40:42 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -188,6 +188,7 @@ static uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS
 // partition the work
 static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int &numThreads, int &partitions, uint32& perFile, PBRThreadWorkArea *wa) { 
   uint32 lastEnd = 0;
+  uint32 lastFile = 0;
   uint32 currThread = 0;
   AS_IID lastFrag = 0;
   AS_IID firstFrag = 0;
@@ -217,6 +218,9 @@ static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int &
            wa[currThread].end = iter->first-1;
            wa[currThread].fileStart = (uint32) ceil((double)(wa[currThread].start-wa[0].start+1) / perFile);
            wa[currThread].fileEnd = (uint32) floor((double)(wa[currThread].end-wa[0].start+1) / perFile);
+           if (wa[currThread].fileStart <= lastFile) { wa[currThread].fileStart = lastFile + 1; }
+           if (wa[currThread].fileEnd < wa[currThread].fileStart) { wa[currThread].fileEnd = wa[currThread].fileStart; }
+           lastFile = MAX(wa[currThread].fileStart, wa[currThread].fileEnd);
            wa[currThread].id = currThread;
 
            lastEnd = iter->first;
@@ -230,6 +234,8 @@ static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int &
   wa[currThread].end = lastFrag;
   wa[currThread].fileStart = (uint32) ceil((double)(wa[currThread].start-wa[0].start+1) / perFile);
   wa[currThread].fileEnd = MIN(partitions, (uint32) floor((double)(wa[currThread].end-wa[0].start+1) / perFile));
+  if (wa[currThread].fileStart <= lastFile) { wa[currThread].fileStart = lastFile + 1; }
+  if (wa[currThread].fileEnd < wa[currThread].fileStart) { wa[currThread].fileEnd = MIN(partitions, wa[currThread].fileStart); }
 
   wa[currThread].id = currThread;
 
