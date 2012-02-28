@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.29 2012-02-27 22:45:57 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.30 2012-02-28 00:09:21 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -436,7 +436,7 @@ public:
 
     readIID  = g->gktCur++;
     seqLen   = 0;
-    allocLen = AS_READ_MAX_NORMAL_LEN + 1;  //  Used for seq/qlt storage only
+    allocLen = AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 1;  //  Used for seq/qlt storage only
 
     readName = new char   [1024];
 
@@ -1983,40 +1983,6 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
     goto outputFastq;
   }
 
-  if (s->gapInConfirmedKmers == true) {
-    strcat(label, "DEL-ZERO-COV");
-
-    seqOffset = 0;
-
-    s->corrSeq[0] = 0;
-    s->corrQlt[0] = 0;
-
-    goto outputFastq;
-  }
-
-  if (s->imperfectKmerCoverage == true) {
-    strcat(label, "DEL-INPERFECT-COV");
-
-    seqOffset = 0;
-
-    s->corrSeq[0] = 0;
-    s->corrQlt[0] = 0;
-
-    goto outputFastq;
-  }
-
-  if ((s->suspectedChimer       == false) &&
-      (s->containsAdapter       == false)) {
-    strcat(label, "CLEAN");
-
-    seqOffset = s->clrBgn;
-
-    s->corrSeq[s->clrEnd] = 0;
-    s->corrQlt[s->clrEnd] = 0;
-
-    goto outputFastq;
-  }
-
   if ((s->containsAdapter == true) &&
       (s->suspectedChimer == false)) {
     strcat(label, "ADAPTERTRIM");
@@ -2055,6 +2021,40 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
       s->corrSeq[0] = 0;
       s->corrQlt[0] = 0;
     }
+
+    goto outputFastq;
+  }
+
+  if (s->gapInConfirmedKmers == true) {
+    strcat(label, "DEL-ZERO-COV");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+
+    goto outputFastq;
+  }
+
+  if (s->imperfectKmerCoverage == true) {
+    strcat(label, "DEL-INPERFECT-COV");
+
+    seqOffset = 0;
+
+    s->corrSeq[0] = 0;
+    s->corrQlt[0] = 0;
+
+    goto outputFastq;
+  }
+
+  if ((s->suspectedChimer       == false) &&
+      (s->containsAdapter       == false)) {
+    strcat(label, "CLEAN");
+
+    seqOffset = s->clrBgn;
+
+    s->corrSeq[s->clrEnd] = 0;
+    s->corrQlt[s->clrEnd] = 0;
 
     goto outputFastq;
   }
