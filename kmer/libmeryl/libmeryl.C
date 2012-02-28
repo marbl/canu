@@ -239,8 +239,18 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _numDistinct    = u64bitZERO;
   _numTotal       = u64bitZERO;
 
+  _thisMerIsBits  = false;
+  _thisMerIskMer  = false;
+
   _thisMer.setMerSize(_merSizeInBits >> 1);
   _thisMer.clear();
+
+  _thisMerPre     = u64bitZERO;
+  _thisMerMer     = u64bitZERO;
+
+  _thisMerPreSize = prefixSize;
+  _thisMerMerSize = 2 * merSize - prefixSize;
+
   _thisMerCount   = u64bitZERO;
 
   for (u32bit i=0; i<16; i++)
@@ -348,15 +358,31 @@ merylStreamWriter::writeMer(void) {
   if (_histogramMaxValue < _thisMerCount)
     _histogramMaxValue = _thisMerCount;
 
-  if (_thisMerCount == 1) {
-    _thisMer.writeToBitPackedFile(_DAT, _merDataSize);
-    setDATnumber(1);
-    _thisBucketSize++;
-    _numUnique++;
-  } else if (_thisMerCount > 1) {
-    _thisMer.writeToBitPackedFile(_DAT, _merDataSize);
-    setDATnumber(_thisMerCount);
-    _thisBucketSize++;
+  assert((_thisMerIsBits == false) || (_thisMerIskMer == false));
+
+  if (_thisMerIsBits) {
+    if (_thisMerCount == 1) {
+      _DAT->putBits(_thisMerMer, _thisMerMerSize);
+      setDATnumber(1);
+      _thisBucketSize++;
+      _numUnique++;
+    } else {
+      _DAT->putBits(_thisMerMer, _thisMerMerSize);
+      setDATnumber(_thisMerCount);
+      _thisBucketSize++;
+    }
+
+  } else {
+    if (_thisMerCount == 1) {
+      _thisMer.writeToBitPackedFile(_DAT, _merDataSize);
+      setDATnumber(1);
+      _thisBucketSize++;
+      _numUnique++;
+    } else if (_thisMerCount > 1) {
+      _thisMer.writeToBitPackedFile(_DAT, _merDataSize);
+      setDATnumber(_thisMerCount);
+      _thisBucketSize++;
+    }
   }
 }
 
@@ -365,6 +391,11 @@ merylStreamWriter::writeMer(void) {
 void
 merylStreamWriter::addMer(kMer &mer, u32bit count, u32bit *positions) {
   u64bit  val;
+
+  if (_thisMerIskMer == false) {
+    _thisMerIskMer = true;
+    assert(_thisMerIsBits == false);
+  }
 
   //  Fail if we see a smaller mer than last time.
   //
@@ -413,5 +444,47 @@ merylStreamWriter::addMer(kMer &mer, u32bit count, u32bit *positions) {
   //  Remember the new mer for the next time
   //
   _thisMer      = mer;
+  _thisMerCount = count;
+}
+
+
+
+void
+merylStreamWriter::addMer(u64bit prefix,  u32bit prefixBits,
+                          u64bit mer,     u32bit merBits,
+                          u32bit count,
+                          u32bit *positions) {
+
+  if (_thisMerIsBits == false) {
+    _thisMerIsBits = true;
+    assert(_thisMerIskMer == false);
+  }
+
+  assert(prefixBits           == _prefixSize);
+  assert(prefixBits           == _thisMerPreSize);
+  assert(merBits              == _thisMerMerSize);
+  assert(prefixBits + merBits == _merSizeInBits);
+
+  if ((prefix <  _thisMerPre) ||
+      (prefix <= _thisMerPre) && (mer < _thisMerMer)) {
+    assert(0);
+  }
+
+  if ((prefix == _thisMerPre) &&
+      (mer    == _thisMerMer)) {
+    _thisMerCount += count;
+    return;
+  }
+
+  writeMer();
+
+  while (_thisBucket < prefix) {
+    setIDXnumber(_thisBucketSize);
+    _thisBucketSize = 0;
+    _thisBucket++;
+  }
+
+  _thisMerPre   = prefix;
+  _thisMerMer   = mer;
   _thisMerCount = count;
 }

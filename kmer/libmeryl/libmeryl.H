@@ -115,6 +115,11 @@ public:
   ~merylStreamWriter();
 
   void                    addMer(kMer &mer, u32bit count=1, u32bit *positions=0L);
+  void                    addMer(u64bit prefix, u32bit prefixBits,
+                                 u64bit mer,    u32bit merBits,
+                                 u32bit count=1,
+                                 u32bit *positions=0L);
+
 private:
   void                    writeMer(void);
 
@@ -163,7 +168,17 @@ private:
   u64bit                 _histogramMaxValue;   // highest count ever seen
   u64bit                *_histogram;
 
+  bool                   _thisMerIsBits;
+  bool                   _thisMerIskMer;
+
   kMer                   _thisMer;
+
+  u64bit                 _thisMerPre;
+  u64bit                 _thisMerMer;
+
+  u32bit                 _thisMerPreSize;
+  u32bit                 _thisMerMerSize;
+
   u64bit                 _thisMerCount;
 };
 
