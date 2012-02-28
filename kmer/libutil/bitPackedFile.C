@@ -27,6 +27,8 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset, bool forceTruncate
   _pos    = u64bitZERO;
   _bit    = u64bitZERO;
 
+  memset(_bfr, 0, sizeof(u64bit) * _bfrmax);
+
   _inCore         = false;
   _bfrDirty       = false;
   _forceFirstLoad = false;
