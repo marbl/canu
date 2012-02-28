@@ -236,7 +236,7 @@ main(int argc, char **argv) {
     u32bit  numTooLongQueries  = 0;
     u32bit  numOKQueries         = 0;
     for (u32bit i=0; i<numberOfQueries; i++) {
-      if      (qsFASTA->getSequenceLength(i) <= config._discardExonLength)
+      if      (qsFASTA->getSequenceLength(i) < config._discardExonLength)
         numTooShortQueries++;
       else if (qsFASTA->getSequenceLength(i) >= (u64bitONE << 22))
         numTooLongQueries++;
