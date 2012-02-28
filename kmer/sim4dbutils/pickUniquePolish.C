@@ -293,7 +293,14 @@ main(int argc, char **argv) {
   }
 
   if (isatty(fileno(stdin))) {
-    fprintf(stderr, "usage: %s [-q qualDiff] [-gff3] < file > file\n", argv[0]);
+    fprintf(stderr, "usage: %s [-q qualDiff] [-c] [-1] [-gff3] < file > file\n", argv[0]);
+    fprintf(stderr, "  -q qualDiff    Only report alignments where the best is qualDiff better\n");
+    fprintf(stderr, "                 in percent identity and coverage\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -c             Only report alignments that are not contained in some\n");
+    fprintf(stderr, "                 other alignment (e.g., the smallest set of alignments\n");
+    fprintf(stderr, "                 that will cover the query fragment\n");
+    fprintf(stderr, "\n");
 
     if (isatty(fileno(stdin)))
       fprintf(stderr, "error: I cannot read polishes from the terminal!\n\n");
