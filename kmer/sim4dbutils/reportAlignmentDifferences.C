@@ -106,6 +106,12 @@ main(int argc, char **argv) {
     for (u32bit exon=0; exon<p->_numExons; exon++) {
       sim4polishExon *e = p->_exons + exon;
 
+      //  Fail if there are no alignments.
+
+      if ((e->_estAlignment == 0L) ||
+          (e->_genAlignment == 0L))
+        fprintf(stderr, "FAIL:  Input has no alignment strings (-aligns option in snapper2).\n"), exit(1);
+
       //  Parse the alignment to find ungapped blocks
 
       u32bit  aPos = 0;                //  Position in the alignment
@@ -181,7 +187,7 @@ main(int argc, char **argv) {
   fprintf(GNU, "set title \"Fraction error per base for '%s'\"\n", inName);
   fprintf(GNU, "set xlabel \"Base position\"\n");
   fprintf(GNU, "set ylabel \"Fraction error\"\n");
-  fprintf(GNU, "plot [][0:0.1] \\\n");
+  fprintf(GNU, "plot [][0:0.04] \\\n");
   fprintf(GNU, "  \"%s\" using 1:4  with lines title \"nTot\", \\\n", datName);
   fprintf(GNU, "  \"%s\" using 1:6  with lines title \"nDel\", \\\n", datName);
   fprintf(GNU, "  \"%s\" using 1:8  with lines title \"nIns\", \\\n", datName);
