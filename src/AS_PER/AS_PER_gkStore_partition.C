@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.4 2012-02-13 18:06:33 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.5 2012-02-29 00:23:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,19 +128,19 @@ gkStore::gkStore_buildPartitions(short *partitionMap, uint32 maxPart) {
   AS_PER_setBufferSize(512 * 1024);
 
   for (uint32 i=0; i<=maxPart; i++) {
-    sprintf(name,"%s/fpk.%03d", storePath, partnum);
+    sprintf(name,"%s/fpk.%03d", storePath, i);
     partfpk[i] = createIndexStore(name, "partfpk", sizeof(gkPackedFragment), 1);
-    sprintf(name,"%s/qpk.%03d", storePath, partnum);
+    sprintf(name,"%s/qpk.%03d", storePath, i);
     partqpk[i] = createIndexStore(name, "partqpk", sizeof(char) * inf.gkPackedSequenceSize, 1);
 
-    sprintf(name,"%s/fnm.%03d", storePath, partnum);
+    sprintf(name,"%s/fnm.%03d", storePath, i);
     partfnm[i] = createIndexStore(name, "partfnm", sizeof(gkNormalFragment), 1);
-    sprintf(name,"%s/qnm.%03d", storePath, partnum);
+    sprintf(name,"%s/qnm.%03d", storePath, i);
     partqnm[i] = createStringStore(name, "partqnm");
 
-    sprintf(name,"%s/fsb.%03d", storePath, partnum);
+    sprintf(name,"%s/fsb.%03d", storePath, i);
     partfsb[i] = createIndexStore(name, "partfsb", sizeof(gkStrobeFragment), 1);
-    sprintf(name,"%s/qsb.%03d", storePath, partnum);
+    sprintf(name,"%s/qsb.%03d", storePath, i);
     partqsb[i] = createStringStore(name, "partqsb");
   }
 
