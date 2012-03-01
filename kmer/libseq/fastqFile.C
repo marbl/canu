@@ -174,7 +174,7 @@ fastqFile::getSequence(u32bit iid,
   while ((_rb->eof() == false) && (whitespaceSymbol[x] == true))
     x = _rb->read();
 
-  //  We should be at a '>' character now.  Fail if not.
+  //  We should be at a '@' character now.  Fail if not.
   if (_rb->eof())
     return(false);
   if (x != '@')
@@ -207,7 +207,7 @@ fastqFile::getSequence(u32bit iid,
     x = _rb->read();
 
   //  Copy the sequence, until EOF or the start of the QV bases.
-  while ((_rb->eof() == false) && (_rb->peek() != '+')) {
+  while ((_rb->eof() == false) && (x != '+')) {
     if (whitespaceSymbol[x] == false) {
       s[sLen++] = x;
       if (sLen >= sMax) {
@@ -229,7 +229,7 @@ fastqFile::getSequence(u32bit iid,
 
   //  Skip the rest of the QV id line and then the entire QV line.
 
-  x = _rb->read();
+  //x = _rb->read();
   assert((_rb->eof() == true) || (x == '+'));
 
   while ((_rb->eof() == false) && (x != '\r') && (x != '\n'))
@@ -458,7 +458,7 @@ fastqFile::constructIndex(void) {
 
     //  Save info - ib's position is correctly at the first letter in
     //  the defline (which might be whitespace), but the reader
-    //  expects our position to be at the '>' -- hence the -1.
+    //  expects our position to be at the '@' -- hence the -1.
     seqStart = ib.tell() - 1;
     seqLen   = 0;
     namePos  = namesLen;
@@ -513,7 +513,7 @@ fastqFile::constructIndex(void) {
 #endif
 
     //  Count sequence length
-    while ((ib.eof() == false) && (ib.peek() != '+')) {
+    while ((ib.eof() == false) && (x != '+')) {
 #ifdef DEBUGINDEX
       fprintf(stderr, "seqlen %s %c\n", (whitespaceSymbol[x] == false) ? "save" : "skip", x);
 #endif
@@ -528,6 +528,7 @@ fastqFile::constructIndex(void) {
     //  Save to the index.
 
     if (indexLen >= indexMax) {
+      fprintf(stderr, "REALLOC len="u32bitFMT" from "u32bitFMT" to "u32bitFMT"\n", indexLen, indexMax, indexMax * 2);
       indexMax *= 2;
       fastqFileIndex *et = new fastqFileIndex[indexMax];
       memcpy(et, _index, sizeof(fastqFileIndex) * indexLen);
@@ -538,6 +539,15 @@ fastqFile::constructIndex(void) {
     _index[indexLen]._seqPosition = seqStart;
     _index[indexLen]._seqLength   = seqLen;
 
+    if ((indexLen * sizeof(fastqFileIndex) > 131000) &&
+        (indexLen * sizeof(fastqFileIndex) < 131200))
+      fprintf(stderr, "INDEX pos="u64bitFMT" iid="u32bitFMT" len="u32bitFMT" pos="u64bitFMT"\n",
+              indexLen * sizeof(fastqFileIndex), indexLen, seqLen, seqStart);
+#if 0
+    fprintf(stderr, "INDEX iid="u32bitFMT" len="u32bitFMT" pos="u64bitFMT"\n",
+            indexLen, _index[indexLen]._seqLength, _index[indexLen]._seqPosition);
+#endif
+
 #ifdef DEBUG
     fprintf(stderr, "INDEX iid="u32bitFMT" len="u32bitFMT" pos="u64bitFMT"\n",
             indexLen, seqLen, seqStart);
@@ -547,7 +557,7 @@ fastqFile::constructIndex(void) {
 
     //  Skip the rest of the QV def line, then the entire QV line, then load the '@' for the next sequence.
 
-    x = ib.read();
+    //x = ib.read();
     assert((ib.eof() == true) || (x == '+'));
 
     while ((ib.eof() == false) && (x != '\r') && (x != '\n'))
