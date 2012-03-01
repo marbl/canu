@@ -30,6 +30,7 @@ OBJECTS = fragmentDepth.o markUniqueUnique.o
 CXX_PROGS = fragmentDepth markUniqueUnique
 
 SCRIPTS = runCA \
+          runCA-dedupe \
           mergeqc.pl \
           caqc.pl \
           caqc_help.ini \
@@ -46,6 +47,10 @@ all: $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
 RUNCAOBTUTIL =
 
 runCA: runCA.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+runCA-dedupe: runCA-dedupe.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
