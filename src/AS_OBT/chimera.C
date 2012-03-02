@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.49 2012-01-15 03:44:59 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.50 2012-03-02 19:46:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1330,9 +1330,7 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
       gkp = new gkStore(argv[++arg], FALSE, doUpdate);
-
-      //  The cache is not enabled, as we don't expect many changes to the store.
-      //gkp->gkStore_metadataCaching(false);
+      gkp->gkStore_metadataCaching(false);
 
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL)
