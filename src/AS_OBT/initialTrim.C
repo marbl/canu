@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.30 2011-07-25 20:00:47 mkotelbajcvi Exp $";
+const char *mainid = "$Id: initialTrim.C,v 1.31 2012-03-05 09:09:17 brianwalenz Exp $";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the
@@ -32,12 +32,13 @@ const char *mainid = "$Id: initialTrim.C,v 1.30 2011-07-25 20:00:47 mkotelbajcvi
 #include "AS_PER_gkpStore.h"
 
 #include "trim.H"
-//#include "constants.H"
 
 int
 main(int argc, char **argv) {
   char   *gkpName             = 0L;
   FILE   *logFile             = 0L;
+  bool    beVerbose           = false;
+  bool    doUpdate            = true;
 
   argc = AS_configure(argc, argv);
 
@@ -57,6 +58,12 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-frg", 2) == 0) {
       gkpName = argv[++arg];
 
+    } else if (strncmp(argv[arg], "-v", 2) == 0) {
+      beVerbose = true;
+
+    } else if (strncmp(argv[arg], "-n", 2) == 0) {
+      doUpdate = false;
+
     } else {
       fprintf(stderr, "Invalid option: '%s'\n", argv[arg]);
       err++;
@@ -70,6 +77,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -log X        Report the iid, original trim and new quality trim\n");
     fprintf(stderr, "  -frg F        Operate on this gkpStore\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -v            Be uselessly verbose (for debugging)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  A report of the trimming is printed to stdout:\n");
     fprintf(stderr, "    iid originalBegin originalEnd newBegin newEnd\n");
@@ -115,12 +124,12 @@ main(int argc, char **argv) {
   if (logFile)
     fprintf(logFile, "iid\torigL\torigR\tqltL\tqltR\tfinalL\tfinalR\tvecL\tvecR\tdeleted?\n");
 
-  for (int32 iid=1; iid<=gkpStore->gkStore_getNumFragments(); iid++) {
+  for (AS_IID iid=1; iid<=gkpStore->gkStore_getNumFragments(); iid++) {
+    if (beVerbose)
+      fprintf(stderr, "Loading fragment "F_IID".\n", iid);
     gkpStore->gkStore_getFragment(iid, &fr, GKFRAGMENT_QLT);
 
-    if (fr.gkFragment_getLibraryIID() != 0) {
-      lr = gkpStore->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
-    }
+    lr = gkpStore->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
 
     if (fr.gkFragment_getIsDeleted()) {
       stat_alreadyDeleted++;
@@ -194,12 +203,20 @@ main(int argc, char **argv) {
     if ((finL + AS_READ_MIN_LEN) > finR)
       stat_tooShort++;
 
-    fr.gkFragment_setClearRegion(finL, finR, AS_READ_CLEAR_OBTINITIAL);
+    if (beVerbose)
+      fprintf(stderr, "Updating fragment "F_IID".\n", iid);
+    if (doUpdate) {
+      fr.gkFragment_setClearRegion(finL, finR, AS_READ_CLEAR_OBTINITIAL);
+      gkpStore->gkStore_setFragment(&fr);
+    }
 
-    gkpStore->gkStore_setFragment(&fr);
-
-    if ((finL + AS_READ_MIN_LEN) > finR)
-      gkpStore->gkStore_delFragment(iid);
+    if ((finL + AS_READ_MIN_LEN) > finR) {
+      if (beVerbose)
+        fprintf(stderr, "Deleting fragment "F_IID" (mate "F_IID").\n",
+                iid, fr.gkFragment_getMateIID());
+      if (doUpdate)
+        gkpStore->gkStore_delFragment(iid);
+    }
 
     if (logFile)
       fprintf(logFile, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
