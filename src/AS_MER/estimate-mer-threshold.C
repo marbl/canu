@@ -19,16 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: estimate-mer-threshold.C,v 1.3 2010-09-01 02:28:31 brianwalenz Exp $";
+const char *mainid = "$Id: estimate-mer-threshold.C,v 1.4 2012-03-06 21:37:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 
 #include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_OVS_overlapStore.h"
-
-#include "AS_MER_gkpStore_to_FastABase.H"
 
 #include "bio++.H"
 #include "sweatShop.H"
@@ -41,7 +37,6 @@ main(int argc, char **argv) {
   char              *gkpPath = 0L;
   char              *merCountsFile = 0L;
 
-  gkStore   *gkp = 0L;
   merylStreamReader *MF  = 0L;
 
   u32bit             maxCount = 0;
@@ -51,10 +46,7 @@ main(int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-g") == 0) {
-      gkpPath = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-m") == 0) {
+    if        (strcmp(argv[arg], "-m") == 0) {
       merCountsFile = argv[++arg];
 
     } else {
@@ -63,14 +55,11 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((gkpPath == 0L) || (merCountsFile == 0L) || (err)) {
-    fprintf(stderr, "usage: %s -g gkpStore -m mercounts\n", argv[0]);
-    fprintf(stderr, "  -g gkpStore     path to the gkpStore\n");
+  if ((merCountsFile == 0L) || (err)) {
+    fprintf(stderr, "usage: %s -m mercounts\n", argv[0]);
     fprintf(stderr, "  -m mercounts    file of mercounts\n");
     exit(1);
   }
-
-  gkpStoreFile::registerFile();
 
   MF = new merylStreamReader(merCountsFile);
 
@@ -81,7 +70,6 @@ main(int argc, char **argv) {
   uint64  distinct            = 0;
   uint64  total               = 0;
   uint32  Xcoverage           = 8;
-  uint32  i                   = 0;
 
   fprintf(stderr, "distinct: "u64bitFMT"\n", MF->numberOfDistinctMers());
   fprintf(stderr, "unique:   "u64bitFMT"\n", MF->numberOfUniqueMers());
@@ -100,20 +88,33 @@ main(int argc, char **argv) {
   //  If this pattern is not found, we fallback to the default
   //  guess of 8x coverage.
   //
+
+  uint32  i  = 0;
+  uint32  iX = 0;
+
+  fprintf(stderr, "distinct: "u64bitFMT"\n", MF->numberOfDistinctMers());
+  fprintf(stderr, "unique:   "u64bitFMT"\n", MF->numberOfUniqueMers());
+  fprintf(stderr, "total:    "u64bitFMT"\n", MF->numberOfTotalMers());
+
   fprintf(stderr, "Xcoverage zero 1 0 "F_U64"\n", MF->histogram(1));
 
-  for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++) {
+  for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++)
     fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
+
+  iX = i - 1;
+
+  for (; i < MF->histogramLength(); i++) {
+    if (MF->histogram(iX) < MF->histogram(i)) {
+      fprintf(stderr, "Xcoverage incr "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(iX), MF->histogram(i));
+      iX = i;
+    } else {
+      //fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(iX), MF->histogram(i));
+    }
   }
 
-  for (; (i < MF->histogramLength()) && (MF->histogram(i-1) < MF->histogram(i)); i++) {
-    fprintf(stderr, "Xcoverage incr "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
-    Xcoverage = i;
-  }
+  fprintf(stderr, "Guessed X coverage is "F_U32"\n", iX);
 
-  fprintf(stderr, "Xcoverage done "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
-
-  fprintf(stderr, "Guessed X coverage is "F_U32"\n", Xcoverage);
+  Xcoverage = iX;
 
   //  Pass 1: look for a reasonable limit, using %distinct and %total.
   //
