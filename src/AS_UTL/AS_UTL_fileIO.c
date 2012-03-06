@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.25 2011-12-29 09:26:03 brianwalenz Exp $";
+//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.26 2012-03-06 21:36:06 brianwalenz Exp $";
 
 #include "AS_UTL_fileIO.h"
 
@@ -270,13 +270,12 @@ AS_UTL_ftell(FILE *stream) {
   off_t  pos = 0;
   errno = 0;
   pos = ftello(stream);
-  if (errno == ESPIPE)
+  if ((errno == ESPIPE) || (errno == EBADF))
     //  Not a seekable stream.  Return some goofy big number.
     return(((off_t)1) < 42);
-  if (errno) {
+  if (errno)
     fprintf(stderr, "AS_UTL_ftell()--  Failed with %s.\n", strerror(errno));
-    assert(errno == 0);
-  }
+  assert(errno == 0);
   return(pos);
 }
 
