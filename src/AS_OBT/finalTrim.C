@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: finalTrim.C,v 1.4 2012-01-15 04:17:53 brianwalenz Exp $";
+const char *mainid = "$Id: finalTrim.C,v 1.5 2012-03-07 05:51:54 brianwalenz Exp $";
 
 #include "finalTrim.H"
 
@@ -250,7 +250,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-o") == 0) {
       outputPrefix = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-t") == 0) {
+    } else if (strcmp(argv[arg], "-n") == 0) {
       doModify = false;
 
     } else {
@@ -297,12 +297,6 @@ main(int argc, char **argv) {
 
     logMsg[0] = 0;
 
-    uint32      ibgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
-    uint32      iend = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
-
-    uint32      fbgn = ibgn;
-    uint32      fend = iend;
-
     uint32      lid = fr.gkFragment_getLibraryIID();
     gkLibrary  *lb  = gkpStore->gkStore_getLibrary(lid);
 
@@ -323,6 +317,19 @@ main(int argc, char **argv) {
       //fprintf(stderr, "FRAG %d didn't request trimming.\n", iid);
       continue;
     }
+
+    uint32      ibgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
+    uint32      iend = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
+
+    //  Is the clear range valid?  If we skip initial trim for this read, there is no clear range defined.
+    if ((ibgn == 1) && (iend == 0)) {
+      ibgn = 0;
+      iend = fr.gkFragment_getSequenceLength();
+    }
+
+    uint32      fbgn = ibgn;
+    uint32      fend = iend;
+
 
     //  Load overlaps, unless we have already loaded them.
     if (ovl[0].a_iid < iid)
