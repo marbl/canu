@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.62 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.63 2012-03-08 20:30:35 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -2758,8 +2758,11 @@ ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
           if (isBadScaffoldMergeEdge(sEdge[i], iSpec->badSEdges))
             continue;
 
-          maxWeightEdge = sEdge[i]->edgesContributing;
-          break;
+          if (maxWeightEdge < sEdge[i]->edgesContributing) {
+            fprintf(stderr, "ExamineUsableSEdges()- maxWeightEdge from "F_S32" to "F_S32" at idx "F_S32" out of "F_S32"\n",
+                    maxWeightEdge, sEdge[i]->edgesContributing, i, GetNumVA_PtrT(sEdges));
+            maxWeightEdge = sEdge[i]->edgesContributing;
+          }
         }
       }
     } else {
@@ -2767,8 +2770,11 @@ ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
         if (isBadScaffoldMergeEdge(sEdge[i], iSpec->badSEdges))
           continue;
 
-        maxWeightEdge = sEdge[i]->edgesContributing;
-        break;
+        if (maxWeightEdge < sEdge[i]->edgesContributing) {
+          fprintf(stderr, "ExamineUsableSEdges()- maxWeightEdge from "F_S32" to "F_S32" at idx "F_S32" out of "F_S32"\n",
+                  maxWeightEdge, sEdge[i]->edgesContributing, i, GetNumVA_PtrT(sEdges));
+          maxWeightEdge = sEdge[i]->edgesContributing;
+        }
       }
     }
 
@@ -2820,8 +2826,14 @@ BuildSEdgesForMerging(ScaffoldGraphT * graph,
       if (GlobalData->doInterleavedScaffoldMerging) {
         for(int j=0; j<GetNumVA_PtrT(*sEdges); j++) {
           if (sEdge[j]->distance.mean > 0) {
-            *minWeightThreshold = sEdge[j]->edgesContributing / EDGE_WEIGHT_FACTOR;
-            break;
+
+            if (*minWeightThreshold < sEdge[j]->edgesContributing / EDGE_WEIGHT_FACTOR) {
+              fprintf(stderr, "BuildSEdgesForMerging()-- minWeightThreshold from %f to %f at iter %d out of %d\n",
+                      *minWeightThreshold,
+                      (double)sEdge[j]->edgesContributing / EDGE_WEIGHT_FACTOR,
+                      j, GetNumVA_PtrT(*sEdges));
+              *minWeightThreshold = sEdge[j]->edgesContributing / EDGE_WEIGHT_FACTOR;
+            }
           }
         }
       } else {
@@ -2829,7 +2841,8 @@ BuildSEdgesForMerging(ScaffoldGraphT * graph,
       }
       fprintf(stderr, "initially setting minWeightThreshold to %f\n", *minWeightThreshold);
     } else {
-      *minWeightThreshold -= 0.2;
+      //*minWeightThreshold -= 0.01;  //  AZ suggested
+      *minWeightThreshold -= 0.2;  //  original
     }
 
     *minWeightThreshold = MAX( *minWeightThreshold, EDGE_WEIGHT_FACTOR);
