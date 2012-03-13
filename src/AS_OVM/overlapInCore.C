@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.10 2012-02-12 05:25:52 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.11 2012-03-13 03:58:39 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 #include "AS_UTL_decodeRange.H"
@@ -367,6 +367,10 @@ OverlapDriver(void) {
     gkStream *hashStream = new gkStream (hash_frag_store, First_Hash_Frag, Last_Hash_Frag, GKFRAGMENT_QLT);
     Build_Hash_Index (hashStream, First_Hash_Frag, &myRead);
     delete hashStream;
+
+    if (Last_Hash_Frag_Read < Last_Hash_Frag)
+      //  Didn't read all frags.
+      Last_Hash_Frag = Last_Hash_Frag_Read;
 
     fprintf(stderr, "Index built.\n");
 
