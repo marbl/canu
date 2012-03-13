@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.17 2012-01-19 02:41:42 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.18 2012-03-13 21:54:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -515,6 +515,110 @@ makeMP(char   *seq,
 
 
 
+void
+makeCC(char   *seq,
+       int32   seqLen,
+       FILE   *outputI,
+       FILE   *outputC,
+       int32   readLen,
+       int32   numReads,
+       int32   ccJunkSize,
+       int32   ccJunkStdDev,
+       double  ccFalse) {
+  char    acgt[4] = { 'A', 'C', 'G', 'T' };
+
+  char   *s1 = new char [readLen + 1];
+  char   *q1 = new char [readLen + 1];
+  
+  for (int32 nr=0; nr<numReads; nr++) {
+  tryCCagain:
+
+    int32   lenj = randomGaussian(ccJunkSize, ccJunkStdDev);
+
+    if (lenj < 0)
+      lenj = 0;
+
+    if (lenj > readLen - 80)
+      goto tryCCagain;
+
+    int32   lenf = randomUniform(1, readLen - lenj);
+    int32   lenr = readLen - lenj - lenf;
+
+    if ((lenf < 1) ||
+        (lenr < 1))
+      goto tryCCagain;
+
+    int32   bgnf    = randomUniform(1, seqLen - readLen);
+    int32   idxf    = findSequenceIndex(bgnf);
+    int32   zerf    = seqStartPositions[idxf];
+
+    int32   bgnr    = randomUniform(1, seqLen - readLen);
+    int32   idxr    = findSequenceIndex(bgnr);
+    int32   zerr    = seqStartPositions[idxr];
+
+    bool    isFalse = false;
+
+    if (ccFalse < drand48()) {
+      bgnr = bgnf + readLen - lenr;
+      idxr = findSequenceIndex(bgnr);
+      zerr = seqStartPositions[idxr];
+
+      isFalse = true;
+    }
+
+    //  Scan the sequences, if we spanned a sequence break or encounter a block of Ns, don't use this pair
+
+    if (idxf != idxr)
+      goto tryCCagain;
+
+    for (int32 i=bgnf; i<bgnf+lenf; i++)
+      if ((seq[i] == '>') ||
+          ((allowGaps == false) && (seq[i] == 'N')))
+        goto tryCCagain;
+
+    for (int32 i=bgnr; i<bgnr+lenr; i++)
+      if ((seq[i] == '>') ||
+          ((allowGaps == false) && (seq[i] == 'N')))
+        goto tryCCagain;
+
+    //  Generate the sequence.
+
+    makeSequences(seq + bgnf, 0, lenf, s1,                  q1,                  NULL, NULL);
+    makeSequences(seq + bgnr, 0, lenr, s1 + readLen - lenr, q1 + readLen - lenr, NULL, NULL);
+
+    //  Load the read with random garbage.
+
+    for (int32 i=lenf; i<readLen - lenr; i++) {
+      s1[i] = acgt[randomUniform(0, 4)];
+      q1[i] = '!' + 4;
+    }
+
+    //  Mark the chimeric junction
+
+    q1[lenf]               = '[';
+    q1[readLen - lenr - 1] = ']';
+
+    //  Make sure the read doesn't contain N's (redundant in this particular case)
+
+    for (int32 i=0; i<readLen; i++)
+      if (s1[i] == 'N')
+        goto tryCCagain;
+
+    //  Output sequence, with a descriptive ID
+
+    fprintf(outputI, "@CC%c_%d_%d@%d-%d--%d@%d-%d/1\n",
+            (isFalse) ? 'f' : 't',
+            nr,
+            idxf, bgnf-zerf, bgnf+lenf-zerf,
+            idxr, bgnr-zerr, bgnr+lenr-zerr);
+    fprintf(outputI, "%s\n", s1);
+    fprintf(outputI, "+\n");
+    fprintf(outputI, "%s\n", q1);
+  }
+
+  delete [] s1;
+  delete [] q1;
+}
 
 
 int
@@ -544,6 +648,11 @@ main(int argc, char **argv) {
   int32      mpShearStdDev  = 0;
   double     mpEnrichment   = 1.0;   //  success rate of washing away paired-end fragments
   uint32     mpJunctions    = mpJunctionsNormal;
+
+  bool       ccEnable       = false;
+  int32      ccJunkSize     = 0;
+  int32      ccJunkStdDev   = 0;
+  double     ccFalse        = 0;
 
   char      *outputPrefix   = NULL;
   char       outputName[FILENAME_MAX];
@@ -608,6 +717,18 @@ main(int argc, char **argv) {
         mpShearStdDev  = atoi(argv[++arg]);
         mpEnrichment   = atof(argv[++arg]);
       }
+
+    } else if (strcmp(argv[arg], "-cc") == 0) {
+      if (arg + 3 >= argc) {
+        fprintf(stderr, "Not enough args to -cc.\n");
+        err++;
+      } else {
+        ccEnable       = true;
+        ccJunkSize     = atoi(argv[++arg]);
+        ccJunkStdDev   = atoi(argv[++arg]);
+        ccFalse        = atof(argv[++arg]);
+      }
+
     } else {
       fprintf(stderr, "Unknown arg '%s'\n", argv[arg]);
       err++;
@@ -620,7 +741,8 @@ main(int argc, char **argv) {
       (outputPrefix == NULL) ||
       ((seEnable == false) &&
        (peEnable == false) &&
-       (mpEnable == false))) {
+       (mpEnable == false) &&
+       (ccEnable == false))) {
     fprintf(stderr, "usage: %s -f reference.fasta -o output-prefix -l read-length ....\n", argv[0]);
     fprintf(stderr, "  -f ref.fasta    Use sequences in ref.fasta as the genome.\n");
     fprintf(stderr, "  -o name         Create outputs name.1.fastq and name.2.fastq (and maybe others).\n");
@@ -637,6 +759,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -se\n");
     fprintf(stderr, "                  Create single-end reads.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -cc junkSize junkStdDev false\n");
+    fprintf(stderr, "                  Create chimeric single-end reads.  The chimer is formed from two uniformly\n");
+    fprintf(stderr, "                  distributed positions in the reference.  Some amount of random junk is inserted\n");
+    fprintf(stderr, "                  at the junction.  With probability 'false' the read is not chimeric, but still\n");
+    fprintf(stderr, "                  the junk bases inserted in the middle.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -pe shearSize shearStdDev\n");
     fprintf(stderr, "                  Create paired-end reads, from fragments of size 'shearSize +- shearStdDev'.\n");
@@ -661,7 +789,7 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR:  No fasta file (-f) supplied.\n");
     if (outputPrefix == NULL)
       fprintf(stderr, "ERROR:  No output prefix (-o) supplied.\n");
-    if ((seEnable == false) && (peEnable == false) && (mpEnable == false))
+    if ((seEnable == false) && (peEnable == false) && (mpEnable == false) && (ccEnable == false))
       fprintf(stderr, "ERROR:  No type (-se or -pe or -mp) selected.\n");
 
     exit(1);
@@ -703,14 +831,14 @@ main(int argc, char **argv) {
 
   errno = 0;
 
-  if (seEnable == true) {
+  if ((seEnable == true) || (ccEnable == true)) {
     sprintf(outputName, "%s.s.fastq", outputPrefix);
     outputI = fopen(outputName, "w");
     if (errno)
       fprintf(stderr, "Failed to open output file '%s': %s\n", outputName, strerror(errno)), exit(1);
   }
 
-  if (seEnable == false) {
+  if ((seEnable == false) && (ccEnable == false)) {
     sprintf(outputName, "%s.i.fastq", outputPrefix);
     outputI = fopen(outputName, "w");
     if (errno)
@@ -802,14 +930,17 @@ main(int argc, char **argv) {
   if (mpEnable)
     makeMP(seq, seqLen, outputI, outputC, output1, output2, readLen, numPairs, mpInsertSize, mpInsertStdDev, mpShearSize, mpShearStdDev, mpEnrichment, mpJunctions);
 
+  if (ccEnable)
+    makeCC(seq, seqLen, outputI, outputC, readLen, numReads, ccJunkSize, ccJunkStdDev, ccFalse);
+
   //
   //
   //
 
-  if (seEnable == true)
+  if ((seEnable == true) || (ccEnable == true))
     fclose(outputI);
 
-  if (seEnable == false) {
+  if ((seEnable == false) && (ccEnable == false)) {
     fclose(outputI);
     fclose(outputC);
   }
