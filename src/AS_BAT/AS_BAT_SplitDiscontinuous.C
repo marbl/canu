@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.5 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.6 2012-03-13 21:43:43 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -28,138 +28,204 @@ static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.5 2012-01-05 16
 #include "AS_BAT_MateLocation.H"
 
 
+
+static
+void
+makeNewUnitig(UnitigVector &unitigs,
+              uint32        splitFragsLen,
+              ufNode       *splitFrags) {
+  Unitig *dangler = new Unitig(false);
+
+  if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
+    fprintf(logFile, "splitDiscontinuous()--   new tig "F_U32" with "F_U32" fragments (starting at frag "F_U32").\n",
+            dangler->id(), splitFragsLen, splitFrags[0].ident);
+
+  int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
+
+  //  This should already be true, but we force it still
+  splitFrags[0].contained = 0;
+
+  for (uint32 i=0; i<splitFragsLen; i++)
+    dangler->addFrag(splitFrags[i], splitOffset, false);  //logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
+
+  unitigs.push_back(dangler);
+}
+
+
+
+
 //  After splitting and ejecting some contains, check for discontinuous unitigs.
 //
 void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
 
   fprintf(logFile, "==> SPLIT DISCONTINUOUS\n");
 
+  uint32                numTested  = 0;
+  uint32                numSplit   = 0;
+  uint32                numCreated = 0;
+
+  uint32                splitFragsLen = 0;
+  uint32                splitFragsMax = 0;
+  ufNode               *splitFrags    = NULL;
+
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig  *tig = unitigs[ti];
 
-    if ((tig == NULL) ||
-        (tig->ufpath.size() < 2))
+    if ((tig == NULL) || (tig->ufpath.size() < 2))
       continue;
 
-    //  Check for discontinuities
+    //  Unitig must be sorted.  Someone upstream os screwing this up.
+    tig->sort();
 
-    int32                 maxEnd   = 0;
+    //  We'll want to build an array of new fragments to split out.  This can be up
+    //  to the size of the largest unitig.
+    splitFragsMax = MAX(splitFragsMax, tig->ufpath.size());
 
-    ufNode               *splitFrags    = new ufNode [tig->ufpath.size()];
-    uint32                splitFragsLen = 0;
+    //  Check that the unitig starts at position zero.  Not critical for the next loop, but
+    //  needs to be dome sometime.
+    int32   minPos = MIN(tig->ufpath[0].position.bgn, tig->ufpath[0].position.end);
+
+    if (minPos == 0)
+      continue;
+
+    fprintf(logFile, "splitDiscontinuous()-- tig "F_U32" offset messed up; reset by "F_S32".\n", tig->id(), minPos);
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode  *frg = &tig->ufpath[fi];
 
-      //  If this is the first frag in this block (we are at
-      //  the start of a unitig, or just split off a new
-      //  unitig), remember the end location.
-      //
-      if (splitFragsLen == 0) {
-        maxEnd =  MAX(frg->position.bgn, frg->position.end);
+      frg->position.bgn -= minPos;
+      frg->position.end -= minPos;
+    }
+  }
+
+  splitFrags = new ufNode [splitFragsMax];
+
+  //  Now, finally, we can check for gaps in unitigs.
+
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
+    Unitig  *tig = unitigs[ti];
+
+    if ((tig == NULL) || (tig->ufpath.size() < 2))
+      continue;
+
+    //  We don't expect many unitigs to be broken, so we'll do a first quick pass to just
+    //  test if it is.
+
+    int32  maxEnd   = MAX(tig->ufpath[0].position.bgn, tig->ufpath[0].position.end);
+    bool   isBroken = false;
+
+    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+      ufNode  *frg = &tig->ufpath[fi];
+
+      int32    bgn = MIN(frg->position.bgn, frg->position.end);
+      int32    end = MAX(frg->position.bgn, frg->position.end);
+
+      if (bgn > maxEnd - AS_OVERLAP_MIN_LEN) {
+        isBroken = true;
+        break;
       }
 
-      //  We require at least (currently 40bp, was 10bp hardcoded
-      //  here) of overlap between fragments.  If we don't have that,
-      //  split off the fragments we've seen.
-      //
-      //  10bp was a bad choice.  It caught most of the breaks, but
-      //  missed one class; when a container fragment is moved out of
-      //  the unitig, fragments contained in there are marked as
-      //  uncontained.  That container fragment could have been the
-      //  one holding the unitig together:
-      //
-      //  -----------------   <- container (removed)
-      //    --------
-      //      ---------
-      //              -----------------
-      //
-      //  Because the two small guys are marked as uncontained, they
-      //  are assumed to have a good dovetail overlap.
-      //
-      if (maxEnd - AS_OVERLAP_MIN_LEN < MIN(frg->position.bgn, frg->position.end)) {
-
-        //  If there is exactly one fragment, and it's contained, and
-        //  it's not mated, move it to the container.  (This has a
-        //  small positive benefit over just making every read a
-        //  singleton).
-        //
-        if ((splitFragsLen == 1) &&
-            (FI->mateIID(splitFrags[0].ident) == 0) &&
-            (splitFrags[0].contained != 0)) {
-
-          Unitig           *dangler  = unitigs[tig->fragIn(splitFrags[0].contained)];
-
-          //  If the parent isn't in a unitig, we must have shattered the repeat unitig it was in.
-          //  Do the same here.
-
-          if (dangler == NULL) {
-            Unitig::removeFrag(splitFrags[0].ident);
-
-          } else {
-            assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
-
-            if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-              fprintf(logFile, "Dangling contained fragment %d in unitig %d -> move them to container unitig %d\n",
-                      splitFrags[0].ident, tig->id(), dangler->id());
-
-            BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
-
-            assert(bestcont->isContained == true);
-
-            dangler->addContainedFrag(splitFrags[0].ident, bestcont, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
-            assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
-          }
-
-        } else {
-          Unitig *dangler = new Unitig(logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
-
-          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-            fprintf(logFile, "Dangling fragments in unitig %d -> move them to unitig %d\n", tig->id(), dangler->id());
-
-          int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
-
-          //  This should already be true, but we force it still
-          splitFrags[0].contained = 0;
-
-          for (uint32 i=0; i<splitFragsLen; i++)
-            dangler->addFrag(splitFrags[i], splitOffset, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
-
-          unitigs.push_back(dangler);
-          tig = unitigs[ti];
-        }
-
-        //  We just split out these fragments.  Reset the list.
-        splitFragsLen = 0;
-      }  //  End break
-
-      splitFrags[splitFragsLen++] = *frg;
-
-      maxEnd = MAX(maxEnd, MAX(frg->position.bgn, frg->position.end));
-    }  //  End of unitig fragment iteration
-
-    //  If we split this unitig, the length of the
-    //  frags in splitFrags will be less than the length of
-    //  the path in this unitg.  If so, rebuild this unitig.
-    //
-    if (splitFragsLen != tig->ufpath.size()) {
-
-      if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-        fprintf(logFile, "Rebuild unitig %d\n", tig->id());
-
-      tig->ufpath.clear();
-
-      int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
-
-      //  This should already be true, but we force it still
-      splitFrags[0].contained = 0;
-
-      for (uint32 i=0; i<splitFragsLen; i++)
-        tig->addFrag(splitFrags[i], splitOffset, logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
+      maxEnd = MAX(maxEnd, end);
     }
 
-    delete [] splitFrags;
-    splitFrags    = NULL;
-  }  //  End of discontinuity splitting
+    numTested++;
+
+    if (isBroken == false)
+      continue;
+
+    numSplit++;
+
+    //  Dang, busted unitig.  Fix it up.
+
+    splitFragsLen = 0;
+    maxEnd        = 0;
+
+    if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
+      fprintf(logFile, "splitDiscontinuous()-- discontinuous tig "F_U32" with "F_SIZE_T" fragments broken into:\n",
+              tig->id(), tig->ufpath.size());
+
+    for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+      ufNode  *frg = &tig->ufpath[fi];
+
+      int32    bgn = MIN(frg->position.bgn, frg->position.end);
+      int32    end = MAX(frg->position.bgn, frg->position.end);
+
+      //  Good thick overlap exists to this fragment, save it.
+      if (bgn <= maxEnd - AS_OVERLAP_MIN_LEN) {
+        assert(splitFragsLen < splitFragsMax);
+        splitFrags[splitFragsLen++] = *frg;
+        maxEnd = MAX(maxEnd, end);
+        continue;
+      }
+
+      //  No thick overlap found.  We need to break right here before the current fragment.
+
+      //  If there is exactly one fragment, and it's contained, and it's not mated, move it to the
+      //  container.  (This has a small positive benefit over just making every read a singleton).
+      //
+      if ((splitFragsLen == 1) &&
+          (FI->mateIID(splitFrags[0].ident) == 0) &&
+          (splitFrags[0].contained != 0)) {
+        Unitig  *dangler  = unitigs[tig->fragIn(splitFrags[0].contained)];
+
+        //  If the parent isn't in a unitig, we must have shattered the repeat unitig it was in.
+        //  Do the same here.
+
+        if (dangler == NULL) {
+          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
+            fprintf(logFile, "splitDiscontinuous()--   singleton frag "F_U32" shattered.\n",
+                    splitFrags[0].ident);
+          Unitig::removeFrag(splitFrags[0].ident);
+
+        } else {
+          assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
+
+          if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
+            fprintf(logFile, "splitDiscontinuous()--   old tig "F_U32" with "F_SIZE_T" fragments (contained frag "F_U32" moved here).\n",
+                    dangler->id(), dangler->ufpath.size() + 1, splitFrags[0].ident);
+
+          BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
+
+          assert(bestcont->isContained == true);
+
+          dangler->addContainedFrag(splitFrags[0].ident, bestcont, false);
+          dangler->bubbleSortLastFrag();
+
+          assert(dangler->id() == Unitig::fragIn(splitFrags[0].ident));
+        }
+      }
+
+      //  Otherwise, make an entirely new unitig for these fragments.
+      else {
+        numCreated++;
+        makeNewUnitig(unitigs, splitFragsLen, splitFrags);
+        tig = unitigs[ti];
+      }
+
+      //  Done with the split, save the current fragment.  This resets everything.
+
+      splitFragsLen = 0;
+      splitFrags[splitFragsLen++] = *frg;
+
+      maxEnd = end;
+    }
+
+
+    //  If we did any splitting, then the length of the frags in splitFrags will be less than the length
+    //  of the path in the current unitig.  Make a final new unitig for the remaining fragments.
+    //
+    if (splitFragsLen != tig->ufpath.size()) {
+      numCreated++;
+      makeNewUnitig(unitigs, splitFragsLen, splitFrags);
+
+      delete unitigs[ti];
+      unitigs[ti] = NULL;
+    }
+  }
+
+  fprintf(logFile, "splitDiscontinuous()-- Tested "F_U32" unitigs, split "F_U32" into "F_U32" new unitigs.\n",
+          numTested, numSplit, numCreated);
+
+  delete [] splitFrags;
 }
 
