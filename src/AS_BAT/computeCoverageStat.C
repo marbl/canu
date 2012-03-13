@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: computeCoverageStat.C,v 1.4 2012-01-15 23:49:34 brianwalenz Exp $";
+const char *mainid = "$Id: computeCoverageStat.C,v 1.5 2012-03-13 21:22:27 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -341,7 +341,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -g         Mandatory path to a gkpStore.\n");
-    fprintf(stderr, "  -t         Mandatory path to a tigStore (can exist or not).\n");
+    fprintf(stderr, "  -t         Mandatory path to a tigStore.\n");
     fprintf(stderr, "  -s         Optional genome size.\n");
     fprintf(stderr, "  -o         Output prefix; will create prefix.cga.0.\n");
 
