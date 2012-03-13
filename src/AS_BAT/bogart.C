@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.19 2012-02-22 19:16:36 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.20 2012-03-13 21:26:14 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -440,29 +440,6 @@ main (int argc, char * argv []) {
   reportOverlapsUsed(unitigs, output_prefix, "buildUnitigs");
   reportUnitigs(unitigs, output_prefix, "buildUnitigs");
   evaluateMates(unitigs, output_prefix, "buildUnitigs");
-
-
-  ////////////////////////////////////////////////////////////////////////////////
-  //
-  //  Place contained fragments.  There is a variety of evidence we can use to determine
-  //  where to place these:
-  //
-  //    1) By using the best containment overlap (no way to measure if this is an uncontested
-  //    placement)
-  //
-  //    2) By using all overlaps (we can measure if the placement is unique)
-  //
-  //    3) By using any mate relationship to a non-contained fragment
-  //
-  //    4) By using any mate relationship to an unambiguously placed (#2) contained fragment
-  //
-  //  For now, we're using the standard method #1.
-  //
-  //
-  //  After placing contains, every fragment should be in a unitig.  Sometimes this
-  //  is not true and we have zombie fragments (not dead, but not in a unitig).  We
-  //  place any of those into their own unitig.
-  //
 
   setLogFile(output_prefix, "placeContainsZombies");
 
