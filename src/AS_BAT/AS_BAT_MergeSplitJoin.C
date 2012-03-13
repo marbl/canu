@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.14 2012-02-22 19:16:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.15 2012-03-13 21:25:23 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -1239,7 +1239,7 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 
     if (uidToUnitig[bid] == NULL) {
       uidToUnitig[bid] = new Unitig(false);
-      uidToOffset[bid] = MIN(frg.position.bgn, frg.position.end);
+      uidToOffset[bid] = -MIN(frg.position.bgn, frg.position.end);
 
       newTigs.push_back(uidToUnitig[bid]);
     }
@@ -1256,8 +1256,8 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 
 
   if (newTigs.size() > 0) {
-    fprintf(logFile, "markRepeats()-- SPLIT unitig %d/"F_SIZE_T" of length %u with %ld fragments into "F_SIZE_T" unitigs:\n",
-            target->id(), unitigs.size(), target->getLength(), target->ufpath.size(),
+    fprintf(logFile, "markRepeats()-- SPLIT unitig %d of length %u with %ld fragments into "F_SIZE_T" unitigs:\n",
+            target->id(), target->getLength(), target->ufpath.size(),
             newTigs.size());
     for (uint32 i=0; i<newTigs.size(); i++)
       fprintf(logFile, "markRepeats()--   unitig %u of length %u with %ld fragments.\n",
