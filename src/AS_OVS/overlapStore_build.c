@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.50 2012-03-14 14:58:35 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.51 2012-03-14 17:45:47 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -394,9 +394,13 @@ index--;
 
   uint64   errateErrorThresh = 0;
 
-  fprintf(stderr,"Filtering out overlaps with greater than %.2f%% error\n",quality*100);
-
-  errateErrorThresh=AS_OVS_encodeQuality(quality);
+  if (quality == 0) {
+  	  fprintf(stderr,"No overlap error rate filtering\n",quality*100);
+	  errateErrorThresh=AS_OVS_encodeQuality(1.0);
+  } else {
+  	  fprintf(stderr,"Filtering out overlaps with greater than %.2f%% error\n",quality*100);
+	  errateErrorThresh=AS_OVS_encodeQuality(quality);
+  }
 
   if (doFilterOBT != 0)
     markLoad(storeFile, maxIID, skipFragment, iidToLib);
