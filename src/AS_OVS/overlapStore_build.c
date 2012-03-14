@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.49 2012-02-14 20:14:19 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.50 2012-03-14 14:58:35 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -308,10 +308,7 @@ writeToDumpFileGES(OVSoverlap          *overlap,
 }
 
 
-
-
-
-// NEW CODE GES
+// Default quality filtering is 0.04
 
 void
 BucketizeOvlGES(char *storeName, 
@@ -321,7 +318,8 @@ BucketizeOvlGES(char *storeName,
            uint32 nThreads, 
            uint32 doFilterOBT, 
            uint32 fileListLen, 
-           char **fileList, 
+           char **fileList,
+	   float quality, 
            Ovl_Skip_Type_t ovlSkipOpt,
 	   uint32 index) {
 
@@ -348,6 +346,22 @@ index--;
   uint32                   dumpFileMax  = sysconf(_SC_OPEN_MAX) - 16;
   BinaryOverlapFile      **dumpFile     = (BinaryOverlapFile **)safe_calloc(sizeof(BinaryOverlapFile *), dumpFileMax);
   uint64                  *dumpLength   = (uint64 *)safe_calloc(sizeof(uint64), dumpFileMax);
+  char nameStatus[FILENAME_MAX];
+
+  sprintf(nameStatus, "%s/%04d.BUCKETIZE.SUCCESS", storeName, index+1);
+  if (unlink(nameStatus) == -1) 
+	  if (errno != ENOENT)
+		  fprintf(stderr,"Error deleting %s/%04d.BUCKETIZE.SUCCESS: %s",nameStatus,index+1,strerror(errno));
+
+  sprintf(nameStatus, "%s/%04d.BUCKETIZE.WORKING", storeName, index+1);
+  if (unlink(nameStatus) == -1) 
+	  if (errno != ENOENT) 
+		  fprintf(stderr,"Error deleting %s/%04d.BUCKETIZE.WORKING: %s",nameStatus,index+1,strerror(errno));
+
+  if (fopen(nameStatus,"a+")==NULL) {
+  	fprintf(stderr, "Error creating %s: %s",nameStatus,strerror(errno));
+  }
+
 
   if (maxIID / iidPerBucket + 1 >= dumpFileMax) {
     fprintf(stderr, "ERROR:\n");
@@ -356,7 +370,6 @@ index--;
     fprintf(stderr, "ERROR:  Increase runCA option ovlStoreMemory.\n");
     exit(1);
   }
-
 
      fprintf(stderr,"Bucketizing %u of %u Overlap files\n",index+1,fileListLen);
 
@@ -380,7 +393,10 @@ index--;
   uint64   skipERRATE = 0;
 
   uint64   errateErrorThresh = 0;
-  errateErrorThresh=AS_OVS_encodeQuality(0.04);
+
+  fprintf(stderr,"Filtering out overlaps with greater than %.2f%% error\n",quality*100);
+
+  errateErrorThresh=AS_OVS_encodeQuality(quality);
 
   if (doFilterOBT != 0)
     markLoad(storeFile, maxIID, skipFragment, iidToLib);
@@ -519,7 +535,6 @@ index--;
   for (uint32 i=0; i<dumpFileMax; i++)
     AS_OVS_closeBinaryOverlapFile(dumpFile[i]);
 
-  fprintf(stderr, "bucketizing DONE!\n");
 
   fprintf(stderr, "overlaps skipped:\n");
   fprintf(stderr, "%16"F_U64P" OBT - low quality\n", skipOBT1LQ);
@@ -530,6 +545,19 @@ index--;
 
   delete [] skipFragment;  skipFragment = NULL;
   delete [] iidToLib;      iidToLib     = NULL;
+  fprintf(stderr, "SUCCESS.\n");
+
+  sprintf(nameStatus, "%s/%04d.BUCKETIZE.WORKING", storeName, index+1);
+  if (unlink(nameStatus) == -1)  
+	  if (errno != ENOENT)  
+		  fprintf(stderr,"Error deleting %s/%04d.BUCKETIZE.WORKING: %s",nameStatus,index+1,strerror(errno));
+
+  sprintf(nameStatus, "%s/%04d.BUCKETIZE.SUCCESS", storeName, index+1);
+  if (fopen(nameStatus,"a+")==NULL) {
+  	fprintf(stderr, "Error creating %s: %s",nameStatus,strerror(errno));
+  }
+
+
 // End here
 }
 
@@ -547,6 +575,7 @@ sortDistributedBucketGES(char *storeName,
            char **fileList, 
            uint32 index) {
 
+  
 
   time_t  beginTime = time(NULL);
 
@@ -582,14 +611,24 @@ sortDistributedBucketGES(char *storeName,
   uint64 uncompressed_size;
   uint32 ctr=0;
 
+  // Delete all signs of a previous run
+  sprintf(nameMigrate, "%s/%04d.SORT.SUCCESS", storeName, index+1);
+  unlink(nameMigrate);
+  sprintf(nameMigrate, "%s/%04d", storeName, index+1);
+  unlink(nameMigrate);
+  sprintf(nameMigrate, "%s/%04d.SORT.WORKING", storeName, index+1);
+  if (fopen(nameMigrate,"a+")==NULL) {
+  	fprintf(stderr, "Error creating %s: %s",nameMigrate,strerror(errno));
+  }
+  //
+
+
 
   // Get size of the final merged and sorted file
   for (uint32 i=0; i<fileListLen; i++) {
         sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,i,index);
   	if ((stat(name, &st))==0) {
-		// Sorry this is a total hack -- but its fastest and easiest way
-		// to get the size of the uncompressed file (no gzipping is actuallly
-		// done just a metadata query.
+		//Determine size of gzip file when it is uncompressed.
 		sprintf(runstr,"gzip -l %s | tail -n +2 | awk '{print $2}' ",name);
 		if ((pp=popen(runstr,"r")) == NULL ) 
 			fprintf(stderr,"Error getting uncompressed file size of %s",name);
@@ -598,24 +637,18 @@ sortDistributedBucketGES(char *storeName,
 		pclose(pp);
 	dumpLengthMax += (uint64) (uncompressed_size / sizeof(OVSoverlap));
 	dumpLength[i]= (uint64) (uncompressed_size / sizeof(OVSoverlap));
-//	dumpLengthMax += (uint64) (st.st_size / sizeof(OVSoverlap));
-//	dumpLength[i]= (uint64) (st.st_size / sizeof(OVSoverlap));
+
 	fprintf(stderr,"File length of %04d.%03d is %lu\n",i,index,dumpLength[i]);
 	ctr++;
-	} else {
-		fprintf(stderr,"File %04d.%03d Not found (OK).\n",i,index);
-		fprintf(stderr,"Size: %lu.\n",dumpLength[i]);
 	}
   }
 
   if (ctr == 0 ) {
-	fprintf(stderr,"Error: found ZERO partitions with bucket %d !\n",index);
+	fprintf(stderr,"WARNING: found ZERO partitions with bucket index %d !\n",index);
 	fprintf(stderr,"More often than not this is an error!\n");
-	exit(1);
   } else {
 	fprintf(stderr,"Found %d partitions with bucket index %d\n",ctr,index);
   }
-
 
 
   OVSoverlap         *overlapsort;
@@ -628,9 +661,7 @@ sortDistributedBucketGES(char *storeName,
 		continue;
         }
 	
-  	fprintf(stderr, "Concatenating unsorted temporary partitions %u.\n",i);
-    	fprintf(stderr, "Concatenating dumpfile partition %u.%u to unsorted dump.\n",i,index);
-	fprintf(stderr, "Size of file is %lu\n",dumpLength[i]);
+	fprintf(stderr, "Sorting concatenated dump %u.%u Size of file is %lu\n",i,index,dumpLength[i]);
         sprintf(name, "%s/unsorted%04d/tmp.sort.%03d.gz", storeName,i,index);
 
         bof = AS_OVS_openBinaryOverlapFile(name, FALSE);
@@ -640,30 +671,26 @@ sortDistributedBucketGES(char *storeName,
         AS_OVS_closeBinaryOverlapFile(bof);
   }
     assert(numOvl == dumpLengthMax);
-
     fprintf(stderr, "sorting %s (%ld)\n", name, time(NULL) - beginTime);
     qsort_mtGES(overlapsort, numOvl, sizeof(OVSoverlap), OVSoverlap_sortGES, nThreads, 16 * 1024 * 1024);
 
-
     // Migrate sorted dump files to store format
     sprintf(nameMigrate, "%s/%04d", storeName, index+1);
-    fprintf(stderr, "Migrating sorted overlap dump to %s (%ld)\n", nameMigrate,time(NULL) - beginTime);
+    fprintf(stderr, "Writing sorted overlap dump in store format to %s (%ld)\n", nameMigrate,time(NULL) - beginTime);
     bof = AS_OVS_createBinaryOverlapFile(nameMigrate,TRUE); //Create overlaps with only b_iid.
 
-    for (uint64 j=0; j < numOvl; j++) {  //<= or < ?
+    for (uint64 j=0; j < numOvl; j++) { 
     	AS_OVS_writeOverlap(bof, overlapsort+j);
     }
 
     AS_OVS_closeBinaryOverlapFile(bof);    
-
-    // Leave index building for later.
 
     AS_OVS_writeOverlapDumpToStore2(storeName,overlapsort, numOvl,index);
     fprintf(stderr, "Done migrating %s (%ld)\n", name,time(NULL) - beginTime);
 
   AS_OVS_closeOverlapStore(storeFile);
 
-  fprintf(stderr,"Will not cleanup of partitions.\n");
+  fprintf(stderr,"Will not cleanup partitions.\n");
  // for (uint32 i=0; i<fileListLen; i++) {
 //	if (dumpLength[i] == 0ULL ) {
 //		continue;
@@ -673,11 +700,18 @@ sortDistributedBucketGES(char *storeName,
   //	unlink(name);
   //}
 
-
-  fprintf(stderr,"Done.\n");
-
   safe_free(overlapsort);
-  
+  fprintf(stderr,"SUCCESS.\n");
+
+  // Update status files.
+  sprintf(nameMigrate, "%s/%04d.SORT.SUCCESS", storeName, index+1);
+  if (fopen(nameMigrate,"a+")==NULL) {
+  	fprintf(stderr, "Error creating %s: %s",nameMigrate,strerror(errno));
+  }
+
+  sprintf(nameMigrate, "%s/%04d.SORT.WORKING", storeName, index+1);
+  unlink(nameMigrate);
+
   exit(0);
 }
 
@@ -787,8 +821,8 @@ buildStoreIndexGES2(char *storeName,
 		missing.fileno=i+1;
 	        fprintf(stderr,"adding gap lasthighest %u current smallest: %lu\n",lastHighestIID,ovs.smallestIID);
 		if ((fwrite(&missing,sizeof(OverlapStoreOffsetRecord),1,fp_app))!=1){
-			fprintf(stderr,"write file error.\n");
-			exit(1);
+			fprintf(stderr,"Write file error: %s\n",strerror(errno));
+			exit(EXIT_FAILURE);
 		}
 		lastHighestIID++;
 	 }
@@ -798,13 +832,13 @@ buildStoreIndexGES2(char *storeName,
 	while(feof(fp_tmp)==0){	
 	 	if((nr=fread(buffer,sizeof(char),1024,fp_tmp))!=1024){
 			if(ferror(fp_tmp)!=0){
-				fprintf(stderr,"read file error.\n");
-				exit(1);
+				fprintf(stderr,"Read File Error: %s\n",strerror(errno));
+				exit(EXIT_FAILURE);
 			} else if(feof(fp_tmp)!=0);
 		}
 		if((nw=fwrite(buffer,sizeof(char),nr,fp_app))!=nr){
-			fprintf(stderr,"write file error.\n");
-			exit(1);
+			fprintf(stderr,"write file error: %s\n",strerror(errno));
+			exit(EXIT_FAILURE);
 		}
 	}
 

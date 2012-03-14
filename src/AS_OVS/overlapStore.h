@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTORE_H
 #define OVERLAPSTORE_H
 
-static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.22 2012-02-08 19:29:19 gesims Exp $";
+static const char *rcsid_OVERLAPSTORE_H = "$Id: overlapStore.h,v 1.23 2012-03-14 14:58:35 gesims Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,12 +42,12 @@ buildStoreGES(char *storeName, char *gkpName, uint64 memoryLimit, uint32 fileLim
 
 void
 BucketizeOvlGES(char *storeName, char *gkpName, uint64 memoryLimit,  uint32 fileLimit,
-               uint32 nThreads,  uint32 doFilterOBT, uint32 fileListLen,  char **fileList,
+               uint32 nThreads,  uint32 doFilterOBT, uint32 fileListLen,  char **fileList, float quality,
                Ovl_Skip_Type_t ovlSkipOpt, uint32 index);
 
 void
 sortDistributedBucketGES(char *storeName, char *gkpName, uint64 memoryLimit,  uint32 fileLimit,
-	            uint32 nThreads, uint32 fileListLen, char **fileList,  uint32 index);
+	            uint32 nThreads, uint32 fileListLen, char **fileList, uint32 index);
 
 void
 buildStoreIndexGES2(char *storeName,   char *gkpName,   uint64 memoryLimit,  uint32 fileLimit, uint32 nThreads, 

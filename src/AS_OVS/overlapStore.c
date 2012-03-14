@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.33 2012-02-03 14:20:23 gesims Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.34 2012-03-14 14:58:35 gesims Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -48,6 +48,7 @@ main(int argc, char **argv) {
   uint32 workingOvlDumpIndex  = 0;
   uint32 workingBucketIndex  = 0;
   double          dumpERate   = 100.0;
+  float		  quality = 0.04;
   uint32          dumpType    = 0;
 
   uint32          bgnIID      = 0;
@@ -168,6 +169,9 @@ main(int argc, char **argv) {
       optimizedOvlBucketize = TRUE;
       workingOvlDumpIndex = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-Q") == 0) {
+      quality = atof(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-W") == 0) {
       optimizedSortMergedBuckets = TRUE;
       workingBucketIndex = atoi(argv[++arg]);
@@ -244,6 +248,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "CREATION - create a new store from raw overlap files\n");
     fprintf(stderr, "  -P           (alpha) Optimized overlapstore create.\n");
     fprintf(stderr, "  -U x         (alpha) Optimized grid enabled bucketizer  (bucketize xth overlap file)\n");
+    fprintf(stderr, "          -Q f         Specify error in overlap filtering for above: Default 0.04\n");
     fprintf(stderr, "  -W x         (alpha) Sort buckets created with -U and dump to storefile.\n");
     fprintf(stderr, "  -I           (alpha) Create index of all storefile buckets.\n");
     fprintf(stderr, "  -O           Filter overlaps for OBT.\n");
@@ -299,7 +304,7 @@ main(int argc, char **argv) {
     case OP_BUILD:
       if (optimizedOvlBucketize) {
 	   fprintf(stderr,"Using optimized grid enabled bucketizer\n");
-           BucketizeOvlGES(storeName, gkpName, memoryLimit, fileLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0], ovlSkipOpt, workingOvlDumpIndex );
+           BucketizeOvlGES(storeName, gkpName, memoryLimit, fileLimit, nThreads, doFilterOBT, fileList.size(), &fileList[0],quality,  ovlSkipOpt, workingOvlDumpIndex );
       } else if (optimizedSortMergedBuckets) {
           sortDistributedBucketGES(storeName, gkpName, memoryLimit, fileLimit,nThreads, fileList.size(), &fileList[0], workingBucketIndex );
       } else if (optimizedBuildIndexFile) {
