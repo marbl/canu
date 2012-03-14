@@ -232,6 +232,10 @@ sub setDefaults () {
     #  5) UPDATE THE DOCUMENTATION.
     #
 
+    $global{"overlapStoreOnGrid"}	   = 0;
+    $synops{"overlapStoreOnGrid"}	   = "Enable OverlapStore Build on Grid";
+
+
     #####  General Configuration Options (aka miscellany)
 
     $global{"pathMap"}                     = undef;
@@ -289,6 +293,7 @@ sub setDefaults () {
 
     $global{"useGrid"}                     = 0;
     $synops{"useGrid"}                     = "Enable SGE globally";
+
 
     $global{"scriptOnGrid"}                = 0;
     $synops{"scriptOnGrid"}                = "Enable SGE for runCA (and unitigger, scaffolder, other sequential phases)";
@@ -3559,6 +3564,105 @@ sub createOverlapStore {
         caFailure("failed to generate a list of all the overlap files", undef);
     }
 
+   if (getGlobal("overlapStoreOnGrid") == 1) {
+
+	# Check for completion
+	
+	# Get length of list
+	my $indexMax=`wc -l < $wrk/$asm.ovlStore.list`;
+	chomp $indexMax;
+
+	# 
+        if (`ls -l $wrk/$asm.ovlStore.BUILDING/*.BUCKETIZE.SUCCESS | wc -l` < $indexMax) {
+
+	# Do the Bucketizing   
+	$cmd = "\#!/usr/bin/env bash\n";
+	$cmd .=   "$bin/overlapStore ";
+	$cmd .=  "-c $wrk/$asm.ovlStore.BUILDING  ";
+	$cmd .=  "-g $wrk/$asm.gkpStore ";
+	$cmd .=  "-U \$SGE_TASK_ID ";
+	if (defined(getGlobal("closureOverlaps"))){
+      		$cmd .= " -i " . getGlobal("closureOverlaps"). " ";
+        }
+
+	if (defined(getGlobal("ovlErrorRate"))) {
+		$cmd .= "-Q " . getGlobal("closureOverlaps"). " "; 
+	}
+
+        $cmd .= " -M " . getGlobal("ovlStoreMemory"). " ";
+        $cmd .= " -L $wrk/$asm.ovlStore.list ";
+        $cmd .= " > $wrk/$asm.ovlStoreBucket.\$SGE_TASK_ID.err 2>&1\n";
+
+	open(OUT_SCRIPT,">$wrk/RunOverlapBucketize.sh");
+	print OUT_SCRIPT $cmd;
+	close(OUT_SCRIPT);
+	chmod 0777, "$wrk/RunOverlapBucketize.sh";
+
+
+        my $sge                   = getGlobal("sge");
+	submitBatchJobs("qsub $sge -t 1-$indexMax -cwd -j y -o $wrk/overlapStoreBucket.err -N overlapStoreBucket_$asm $wrk/RunOverlapBucketize.sh",
+		        "overlapStoreBucket_$asm");
+
+
+	} elsif (`ls -l $wrk/$asm.ovlStore.BUILDING/*.BUCKETIZE.SUCCESS | wc -l` == $indexMax  && ! -e "$wrk/$asm.ovlStore.BUILDING/0001" ) {
+
+        # Do the sorting of buckets
+	$cmd = "\#!/usr/bin/env bash\n";
+	$cmd .=   "$bin/overlapStore ";
+	$cmd .=  "-c $wrk/$asm.ovlStore.BUILDING  ";
+	$cmd .=  "-g $wrk/$asm.gkpStore ";
+	$cmd .=  "-W \$SGE_TASK_ID ";
+	if (defined(getGlobal("closureOverlaps"))){
+      		$cmd .= " -i " . getGlobal("closureOverlaps"). " ";
+        }
+        $cmd .= " -M " . getGlobal("ovlStoreMemory"). " ";
+        $cmd .= " -L $wrk/$asm.ovlStore.list ";
+        $cmd .= " > $wrk/$asm.ovlStoreSort.\$SGE_TASK_ID.err 2>&1\n";
+
+	open(OUT_SCRIPT,">$wrk/RunOverlapSort.sh");
+	print OUT_SCRIPT $cmd;
+	close(OUT_SCRIPT);
+
+	chmod 0777, "$wrk/RunOverlapSort.sh";
+
+	# Get number of buckets created
+	#get Highest bucket index
+	my $bucketMax=`find $wrk/$asm.ovlStore.BUILDING/unsorted* -name \"tmp.sort.*.gz\" | sed 's/.*tmp.sort.\\([^\\.]*\\).gz\$/\\1/' | sort -n | tail -n 1`;
+	chomp($bucketMax);
+	$bucketMax=int($bucketMax);
+
+        my $sge  = getGlobal("sge");
+	submitBatchJobs("qsub $sge -t 1-".($bucketMax+1)." -cwd -j y -o $wrk/overlapSort.err -N overlapStoreSort_$asm $wrk/RunOverlapSort.sh",
+		        "overlapStoreSort_$asm");
+
+	} elsif (`ls -l $wrk/$asm.ovlStore.BUILDING/*.BUCKETIZE.SUCCESS | wc -l` == $indexMax  && -e "$wrk/$asm.ovlStore.BUILDING/0001" ) {
+	
+
+	# Do the indexing
+	$cmd =   "$bin/overlapStore ";
+	$cmd .=  "-c $wrk/$asm.ovlStore.BUILDING  ";
+	$cmd .=  "-g $wrk/$asm.gkpStore ";
+	$cmd .=  "-I ";
+	if (defined(getGlobal("closureOverlaps"))){
+      		$cmd .= " -i " . getGlobal("closureOverlaps"). " ";
+        }
+        $cmd .= " -M " . getGlobal("ovlStoreMemory"). " ";
+        $cmd .= " -L $wrk/$asm.ovlStore.list ";
+        $cmd .= " > $wrk/$asm.ovlStoreIndex.err 2>&1\n";
+
+        if (runCommand($wrk, $cmd)) {
+        	caFailure("failed to create overlapStoreIndex", "$wrk/$asm.ovlStoreIndex.err");
+	}
+
+        rename "$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore";
+
+        alldone:
+           stopAfter("overlapper");
+
+	}
+
+   } else {
+
     $cmd  = "$bin/overlapStore ";
     $cmd .= " -c $wrk/$asm.ovlStore.BUILDING ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
@@ -3589,9 +3693,16 @@ sub createOverlapStore {
     rmrf("$wrk/$asm.ovlStore.list");
     rmrf("$wrk/$asm.ovlStore.err");
 
+  }
+
   alldone:
     stopAfter("overlapper");
 }
+
+
+
+
+
 
 ################################################################################
 ################################################################################
