@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.13 2012-02-22 19:16:36 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.14 2012-03-21 05:54:55 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -296,6 +296,9 @@ public:
     int32  blen = fragmentLength(b_iid);
     int32  aovl = 0;
     int32  bovl = 0;
+
+    assert(alen > 0);
+    assert(blen > 0);
 
     if (a_hang < 0) {
       //  b_hang < 0      ?     ----------  :     ----
