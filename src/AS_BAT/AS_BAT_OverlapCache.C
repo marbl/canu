@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.18 2012-02-22 19:16:18 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.19 2012-03-21 06:03:47 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -438,16 +438,17 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
   //fprintf(stderr, "SALT_BITS %d SALT_MASK 0x%08x\n", SALT_BITS, SALT_MASK);
 
   for (uint32 ii=0; ii<no; ii++) {
-    _ovsSco[ii]   = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
-    _ovsSco[ii] <<= AS_OVS_ERRBITS;
-    _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
-    _ovsSco[ii] <<= SALT_BITS;
-    _ovsSco[ii]  |= ii & SALT_MASK;
-
     if ((_ovs[ii].dat.ovl.corr_erate > maxOVSerate) ||
         (FI->fragmentLength(_ovs[ii].a_iid) == 0) ||
-        (FI->fragmentLength(_ovs[ii].b_iid) == 0))
+        (FI->fragmentLength(_ovs[ii].b_iid) == 0)) {
       _ovsSco[ii] = 0;
+    } else {
+      _ovsSco[ii]   = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
+      _ovsSco[ii] <<= AS_OVS_ERRBITS;
+      _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
+      _ovsSco[ii] <<= SALT_BITS;
+      _ovsSco[ii]  |= ii & SALT_MASK;
+    }
   }
 
   //  Sort by longest overlap, then lowest error.
@@ -457,16 +458,17 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
   uint64  cutoff = _ovsSco[no - _maxPer];
 
   for (uint32 ii=0; ii<no; ii++) {
-    _ovsSco[ii]   = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
-    _ovsSco[ii] <<= AS_OVS_ERRBITS;
-    _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
-    _ovsSco[ii] <<= SALT_BITS;
-    _ovsSco[ii]  |= ii & SALT_MASK;
-
     if ((_ovs[ii].dat.ovl.corr_erate > maxOVSerate) ||
         (FI->fragmentLength(_ovs[ii].a_iid) == 0) ||
-        (FI->fragmentLength(_ovs[ii].b_iid) == 0))
+        (FI->fragmentLength(_ovs[ii].b_iid) == 0)) {
       _ovsSco[ii] = 0;
+    } else {
+      _ovsSco[ii]   = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
+      _ovsSco[ii] <<= AS_OVS_ERRBITS;
+      _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
+      _ovsSco[ii] <<= SALT_BITS;
+      _ovsSco[ii]  |= ii & SALT_MASK;
+    }
 
     if (_ovsSco[ii] < cutoff)
       _ovsSco[ii] = 0;
