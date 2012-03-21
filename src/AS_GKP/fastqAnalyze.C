@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqAnalyze.C,v 1.2 2012-02-25 22:45:56 brianwalenz Exp $";
+const char *mainid = "$Id: fastqAnalyze.C,v 1.3 2012-03-21 23:37:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -75,6 +75,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -solexa     input QV is solexa\n");
     fprintf(stderr, "  -illumina   input QV is illumina\n");
     fprintf(stderr, "  -sanger     input QV is sanger\n");
+    exit(1);
   }
 
 
