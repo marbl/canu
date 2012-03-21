@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.30 2012-02-27 22:45:57 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.31 2012-03-21 18:47:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,12 +44,15 @@ static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.30 2012-02-27 22:45:57 br
 
 static int *isValidACGTN = NULL;
 
+#define NAME_MAX_LEN  2048
+#define BASE_MAX_LEN  16 * 1024 * 1024
+
 class ilFragment {
  public:
-  char        snam[AS_READ_MAX_NORMAL_LEN];
-  char        sstr[AS_READ_MAX_NORMAL_LEN];
-  char        qnam[AS_READ_MAX_NORMAL_LEN];
-  char        qstr[AS_READ_MAX_NORMAL_LEN];
+  char        snam[NAME_MAX_LEN];
+  char        sstr[BASE_MAX_LEN];
+  char        qnam[NAME_MAX_LEN];
+  char        qstr[BASE_MAX_LEN];
   gkFragment  fr;
 };
 
@@ -372,10 +375,20 @@ readSeq(FILE       *F,
   fr->fr.gkFragment_setMateIID(0);
   fr->fr.gkFragment_setLibraryIID(0);
 
-  fgets(fr->snam, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->snam);
-  fgets(fr->sstr, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->sstr);
-  fgets(fr->qnam, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->qnam);
-  fgets(fr->qstr, AS_READ_MAX_NORMAL_LEN, F);  chomp(fr->qstr);
+  fr->snam[0] = 0;
+  fr->sstr[0] = 0;
+  fr->qnam[0] = 0;
+  fr->qstr[0] = 0;
+
+  fgets(fr->snam, NAME_MAX_LEN, F);
+  fgets(fr->sstr, BASE_MAX_LEN, F);
+  fgets(fr->qnam, NAME_MAX_LEN, F);
+  fgets(fr->qstr, BASE_MAX_LEN, F);
+
+  chomp(fr->snam);
+  chomp(fr->sstr);
+  chomp(fr->qnam);
+  chomp(fr->qstr);
 
   if (feof(F))
     return(0);
