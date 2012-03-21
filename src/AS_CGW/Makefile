@@ -56,7 +56,6 @@ CGW_LIB_SOURCES = Globals_CGW.C \
                   Output_CGW.C \
                   SEdgeT_CGW.C \
                   ScaffoldGraph_CGW.C \
-                  SplitChunks_CGW.C \
                   SplitScaffolds_CGW.C \
                   Stats_CGW.C \
                   TransitiveReduction_CGW.C \

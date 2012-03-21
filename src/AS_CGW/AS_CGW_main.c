@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.87 2012-02-02 21:01:36 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.88 2012-03-21 23:43:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +52,6 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.87 2012-02-02 21:01:36 brianwalenz 
 #include "ScaffoldGraph_CGW.h"
 #include "Input_CGW.h"
 #include "Output_CGW.h"
-#include "SplitChunks_CGW.h"
 #include "CommonREZ.h"
 #include "RepeatRez.h"
 #include "Stats_CGW.h"
@@ -326,10 +325,6 @@ main(int argc, char **argv) {
 
     LoadDistData();
 
-    fprintf(stderr,"* Splitting chimeric input unitigs\n");
-
-    //ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, GlobalData->minSamplesForOverride, "unitig_preinitial");
-    //SplitInputUnitigs(ScaffoldGraph);
     ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, GlobalData->minSamplesForOverride, "unitig_initial");
 
     BuildGraphEdgesDirectly(ScaffoldGraph->CIGraph);
