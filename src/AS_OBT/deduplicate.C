@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.16 2012-02-02 01:58:03 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.17 2012-03-21 21:48:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -79,13 +79,13 @@ public:
   };
 
   AS_IID   mateIID;
-  AS_IID   libraryIID;
 
-  uint64   matePatternLeft:1;
-  uint64   isDeleted:1;
+  uint32   libraryIID      : 32 - 2 * AS_READ_MAX_NORMAL_LEN_BITS - 2;
+  uint32   matePatternLeft : 1;
+  uint32   isDeleted       : 1;
 
-  uint64   clrbeg:AS_READ_MAX_NORMAL_LEN_BITS;
-  uint64   clrlen:AS_READ_MAX_NORMAL_LEN_BITS;
+  uint32   clrbeg          : AS_READ_MAX_NORMAL_LEN_BITS;
+  uint32   clrlen          : AS_READ_MAX_NORMAL_LEN_BITS;
 
   uint32   ovllen;
   uint32   ovlmax;
@@ -99,6 +99,8 @@ loadFragments(gkStore *gkp) {
   gkStream       *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
   gkFragment      fr;
   fragT          *frag = new fragT [gkp->gkStore_getNumFragments() + 1];
+
+  fprintf(stderr, "loading fragment data\n");
 
   while (fs->next(&fr)) {
     AS_IID  iid  = fr.gkFragment_getReadIID();
@@ -129,43 +131,170 @@ loadFragments(gkStore *gkp) {
 
 
 
+
+
+
+uint32
+loadOverlaps(OverlapStore *store,
+             uint32        ovlLen,
+             uint32        ovlMax,
+             OVSoverlap   *ovlBuffer,
+             AS_IID       &last) {
+  uint32  nr = 0;
+
+  //  If there is space left, load overlaps.  If any were loaded, remember the ID if the first one
+  //  loaded.  We limit mate processing to be strictly less than this ID.
+
+  if (ovlLen < ovlMax) {
+    nr = AS_OVS_readOverlapsFromStore(store, ovlBuffer + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_OBT, false);
+
+    if (nr > 0)
+      last = ovlBuffer[ovlLen].a_iid;
+    else
+      last = AS_IID_MAX;
+
+    ovlLen += nr;
+  }
+
+  //fprintf(stderr, "loadOverlaps()-- read %8"F_U32P" overlaps from store 0x%016p (now %8"F_U32P" overlaps)\n",
+  //        nr, store, ovlLen);
+
+  return(ovlLen);
+}
+
+
+
+//  Process all the mated overlaps.
+//
+//  Delete if one read has a near zero ahang, and the other read has a near
+//  zero bhang.
+//
+//  i   ----------->      <----------  j
+//  iod ----->         <-------------  jod
+//
+//  If imd (the mate of iod) is the same as jod (and implicitly jmd == iod), then
+//  we can delete one of these mates.  Which?
+//
 void
-readOverlapsAndProcessFragments(gkStore      *gkp,
-                                OverlapStore *ovsprimary,
-                                OverlapStore *ovssecondary,
-                                uint32        errorLimit,
-                                fragT        *frag) {
+processMatedFragment(gkStore *gkp, fragT *frag, AS_IID iid, AS_IID mid) {
 
-  gkLibrary  *libs = new gkLibrary [gkp->gkStore_getNumLibraries() + 1];
+  for (uint32 i=0; i<frag[iid].ovllen; i++) {
+    uint32  iod = frag[iid].ovl[i].biid;   //  Read IID of my overlapping fragment
+    uint32  imd = frag[iod].mateIID;       //  Mate IID of that overlapping framgnet
 
-  for (uint32 i=1; i<=gkp->gkStore_getNumLibraries(); i++)
-    gkp->gkStore_getLibrary(i, libs + i);
+    if ((frag[iod].isDeleted == 1) ||
+        (imd == -1) ||
+        (frag[imd].isDeleted == 1))
+      //  Overlapping frag already deleted, or no mate, or mate already deleted
+      continue;
+
+    for (uint32 j=0; j<frag[mid].ovllen; j++) {
+      uint32  jod = frag[mid].ovl[j].biid;
+      uint32  jmd = frag[jod].mateIID;
+
+      if (imd != jod)
+        //  Mate of my overlapping fragment is different than the overlapping fragment of my mate
+        continue;
+
+      //  If the proper overlap pattern is found, delete me.
+      if ((frag[iid].ovl[i].a && frag[mid].ovl[j].b) ||
+          (frag[iid].ovl[i].b && frag[mid].ovl[j].a)) {
+        fprintf(reportFile, "Delete %d <-> %d DUPof %d <-> %d\n",
+                iid,
+                mid,
+                iod,
+                jod);
+        duplicateMates++;
+        frag[iid].isDeleted = 1;
+        frag[mid].isDeleted = 1;
+        i = frag[iid].ovllen;
+        j = frag[mid].ovllen;
+      }
+    }
+  }
+
+  delete [] frag[iid].ovl;  frag[iid].ovl = NULL;
+  delete [] frag[mid].ovl;  frag[mid].ovl = NULL;
+}
 
 
-  for (OVSoverlap *ovl = readOverlap(ovsprimary, ovssecondary);
-       ovl;
-       ovl = readOverlap(ovsprimary, ovssecondary)) {
 
-    if (ovl->dat.obt.fwd == 0)
+AS_IID
+processMatedFragmentsInline(gkStore *gkp, fragT *frag, AS_IID fid, AS_IID current) {
+
+  for (; fid < current; fid++) {
+    AS_IID mid = frag[fid].mateIID;
+
+    if (mid == 0)
+      //  fid is not mated.
+      continue;
+
+    if (fid < mid)
+      //  we haven't seen the mate overlaps yet
+      continue;
+
+    processMatedFragment(gkp, frag, fid, mid);
+  }
+
+  return(fid);
+}
+
+
+AS_IID
+processOverlaps(gkStore      *gkp,
+                gkLibrary   **libs,
+                OVSoverlap   *ovlBuffer,
+                uint32        ovlLen,
+                uint32        errorLimit,
+                fragT        *frag,
+                AS_IID        currM,
+                AS_IID        lastP,
+                AS_IID        lastS) {
+  uint64  nRev = 0;
+  uint64  nLQ  = 0;
+  uint64  nDel = 0;
+  uint64  nLib = 0;
+  uint64  nNoD = 0;
+
+  uint64  nMate = 0;
+  uint64  nMaFr = 0;
+  uint64  nFrag = 0;
+
+  fprintf(stderr, "processing "F_U32" overlaps currM="F_IID" lastP="F_IID" lastS="F_IID" ",
+          ovlLen, currM, lastP, lastS);
+
+  for (uint32 oo=0; oo<ovlLen; oo++) {
+    OVSoverlap *ovl = ovlBuffer + oo;
+
+    if (ovl->dat.obt.fwd == 0) {
       //  Dups must be forward
+      nRev++;
       continue;
+    }
 
-    if (ovl->dat.obt.erate > errorLimit)
+    if (ovl->dat.obt.erate > errorLimit) {
       //  And of good quality
+      nLQ++;
       continue;
+    }
 
-    if ((frag[ovl->a_iid].isDeleted) || (frag[ovl->b_iid].isDeleted))
+    if ((frag[ovl->a_iid].isDeleted) || (frag[ovl->b_iid].isDeleted)) {
       //  And not deleted already
+      nDel++;
       continue;
+    }
 
-    if ((frag[ovl->a_iid].libraryIID != frag[ovl->b_iid].libraryIID))
+    if ((frag[ovl->a_iid].libraryIID != frag[ovl->b_iid].libraryIID)) {
       //  And in the same library
+      nLib++;
       continue;
+    }
 
-    if (libs[frag[ovl->a_iid].libraryIID].doRemoveDuplicateReads == 0)
+    if (libs[frag[ovl->a_iid].libraryIID]->doRemoveDuplicateReads == 0) {
       //  And marked for deduplication (lib 0 is init to not dedup)
+      nNoD++;
       continue;
-
+    }
 
     int32 ab = ovl->dat.obt.a_beg;
     int32 ae = ovl->dat.obt.a_end;
@@ -186,8 +315,11 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
 
     double error    = AS_OVS_decodeQuality(ovl->dat.obt.erate);
 
-    //  We can't process mated reads until we have all the overlaps for both this read and it's
-    //  mate.  We save the overlaps for later consumption.
+    bool   isMateA  = (frag[ovl->a_iid].mateIID != 0);
+    bool   isMateB  = (frag[ovl->b_iid].mateIID != 0);
+
+
+    //  No duplicates between mated and unmated fragments.
     //
     //  There is one (rare?) case that cannot be detected, when a circle is duplicated, but one
     //  duplicate forms an unmated fragment:
@@ -196,21 +328,20 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
     //  fragment   ----------------->    <-- (this frag too short)
     //  fragment   ->    <------------------
     //
-    if ((frag[ovl->a_iid].mateIID != 0) && (frag[ovl->b_iid].mateIID != 0))
+    if (isMateA != isMateB) {
+      nMaFr++;
+    }
+
+    //  If both reads in the overlap are mated, save the overlap for later processing.  We can't
+    //  process mated reads until we have all the overlaps for both this read and it's mate.
+    //
+    else if ((isMateA == true) && (isMateB == true)) {
+      nMate++;
+
       frag[ovl->a_iid].addOlap(ovl->b_iid,
                                (ahang >= -MATE_HANG_SLOP) && (ahang <= MATE_HANG_SLOP) && (abegdiff <= MATE_HANG_SLOP) && (bbegdiff <= MATE_HANG_SLOP),
                                (bhang >= -MATE_HANG_SLOP) && (bhang <= MATE_HANG_SLOP) && (aenddiff <= MATE_HANG_SLOP) && (benddiff <= MATE_HANG_SLOP));
-
-
-    if ((frag[ovl->a_iid].mateIID != 0) || (frag[ovl->b_iid].mateIID != 0))
-      //  Finally, for fragment duplicates, we require that both fragments be unmated.  We
-      //  could let the b_iid fragment be mated, hoping to catch another (rare?) case, where
-      //  this fragment read came from a mate read where the b_iid mate is bad:
-      //
-      //  mated      ------------->     <-----
-      //  fragment   --------->    <--          (this frag too short, or bad quality, etc)
-      //
-      continue;
+    }
 
     //  For unmated reads, delete if it is a near perfect prefix of something else.
     //
@@ -220,7 +351,12 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
     //  To pick the longer fragment, we then want to make sure the overlap extends to the end of
     //  this fragment, and that this fragment is contained in the other.
     //
-    if (frag[ovl->a_iid].mateIID == 0) {
+    else {
+      nFrag++;
+
+      assert(isMateA == false);
+      assert(isMateB == false);
+
       if ((ahang >= -FRAG_HANG_SLOP) && (ahang <= FRAG_HANG_SLOP) &&
           (abegdiff <= FRAG_HANG_SLOP) &&
           (bbegdiff <= FRAG_HANG_SLOP) &&
@@ -240,70 +376,17 @@ readOverlapsAndProcessFragments(gkStore      *gkp,
     }
   }
 
-  delete [] libs;
+  fprintf(stderr, "-- nMate="F_U64" nMaFR="F_U64" nFrag="F_U64" -- nRev="F_U64" nLQ="F_U64" nDel="F_U64" nLib="F_U64" nNoD="F_U64"\n",
+          nMate, nMaFr, nFrag, nRev, nLQ, nDel, nLib, nNoD);
+
+  currM = processMatedFragmentsInline(gkp, frag, currM, MIN(lastP, lastS));
+
+  return(currM);
 }
 
 
 
 
-//  Process all the mated overlaps.
-//
-//  Delete if one read has a near zero ahang, and the other read has a near
-//  zero bhang.
-//
-//  i   ----------->      <----------  j
-//  iod ----->         <-------------  jod
-//
-//  If imd (the mate of iod) is the same as jod (and implicitly jmd == iod), then
-//  we can delete one of these mates.  Which?
-//
-void
-processMatedFragments(gkStore *gkp, fragT *frag) {
-  for (uint32 iid=0; iid<=gkp->gkStore_getNumFragments(); iid++) {
-    uint32 mid = frag[iid].mateIID;
-
-    if ((frag[iid].mateIID   == 0) ||
-        (frag[iid].isDeleted == 1) || (frag[iid].ovllen == 0) ||
-        (frag[mid].isDeleted == 1) || (frag[mid].ovllen == 0))
-      //  Not mated, or already deleted, or no overlaps.
-      continue;
-
-    for (uint32 i=0; i<frag[iid].ovllen; i++) {
-      uint32  iod = frag[iid].ovl[i].biid;   //  Read IID of my overlapping fragment
-      uint32  imd = frag[iod].mateIID;       //  Mate IID of that overlapping framgnet
-
-      if ((frag[iod].isDeleted == 1) ||
-          (imd == -1) ||
-          (frag[imd].isDeleted == 1))
-        //  Overlapping frag already deleted, or no mate, or mate already deleted
-        continue;
-
-      for (uint32 j=0; j<frag[mid].ovllen; j++) {
-        uint32  jod = frag[mid].ovl[j].biid;
-        uint32  jmd = frag[jod].mateIID;
-
-        if (imd != jod)
-          //  Mate of my overlapping fragment is different than the overlapping fragment of my mate
-          continue;
-
-        //  If the proper overlap pattern is found, delete me.
-        if ((frag[iid].ovl[i].a && frag[mid].ovl[j].b) ||
-            (frag[iid].ovl[i].b && frag[mid].ovl[j].a)) {
-          fprintf(reportFile, "Delete %d <-> %d DUPof %d <-> %d\n",
-                  iid,
-                  mid,
-                  iod,
-                  jod);
-          duplicateMates++;
-          frag[iid].isDeleted = 1;
-          frag[mid].isDeleted = 1;
-          i = frag[iid].ovllen;
-          j = frag[mid].ovllen;
-        }
-      }
-    }
-  }
-}
 
 
 //  Update the gkpStore with any deletions.  This is a special case -- if a frag is deleted, its
@@ -340,16 +423,17 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
       gkp = new gkStore(argv[++arg], FALSE, doUpdate);
-
-      //  The cache is not enabled, as we don't expect many changes to the store.
       gkp->gkStore_metadataCaching(true);
+      fprintf(stderr, "gkpStore opened.\n");
 
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
-      if (ovsprimary == NULL)
+      if (ovsprimary == NULL) {
         ovsprimary = AS_OVS_openOverlapStore(argv[++arg]);
-      else if (ovssecondary == NULL)
+        fprintf(stderr, "primary opened.\n");
+      } else if (ovssecondary == NULL) {
         ovssecondary = AS_OVS_openOverlapStore(argv[++arg]);
-      else {
+        fprintf(stderr, "secondary opened.\n");
+      } else {
         fprintf(stderr, "Only two obtStores allowed.\n");
         err++;
       }
@@ -373,6 +457,9 @@ main(int argc, char **argv) {
       reportFile  = fopen(argv[arg], "w");
       if (errno)
         fprintf(stderr, "Failed to open '%s' for writing: %s\n", argv[arg], strerror(errno)), exit(1);
+
+    } else if (strncmp(argv[arg], "-n", 2) == 0) {
+      doUpdate = false;
 
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
@@ -403,16 +490,45 @@ main(int argc, char **argv) {
     }
   }
 
-
   if (nothingToDo == false) {
-    fragT  *frag = loadFragments(gkp);
+    fragT        *frag = loadFragments(gkp);
+    gkLibrary   **libs = new gkLibrary * [gkp->gkStore_getNumLibraries() + 1];
 
-    readOverlapsAndProcessFragments(gkp, ovsprimary, ovssecondary, errorLimit, frag);
-    processMatedFragments(gkp, frag);
+    for (uint32 i=1; i<=gkp->gkStore_getNumLibraries(); i++)
+      libs[i] = gkp->gkStore_getLibrary(i);
+
+    AS_IID        currMate      = 0;
+    AS_IID        lastPrimary   = 0;
+    AS_IID        lastSecondary = 0;
+
+    uint32        ovlLen    = 0;
+    uint32        ovlMax    = 4 * 1024 * 1024;
+    OVSoverlap   *ovlBuffer = new OVSoverlap [ovlMax];
+
+    ovlLen = 0;
+    ovlLen = loadOverlaps(ovsprimary,   ovlLen, ovlMax/2, ovlBuffer, lastPrimary);
+    ovlLen = loadOverlaps(ovssecondary, ovlLen, ovlMax,   ovlBuffer, lastSecondary);
+
+    while (ovlLen > 0) {
+      currMate = processOverlaps(gkp, libs, ovlBuffer, ovlLen, errorLimit, frag, currMate, lastPrimary, lastSecondary);
+
+      if (lastPrimary < lastSecondary) {
+        ovlLen = 0;
+        ovlLen = loadOverlaps(ovsprimary,   ovlLen, ovlMax, ovlBuffer, lastPrimary);
+        ovlLen = loadOverlaps(ovssecondary, ovlLen, ovlMax, ovlBuffer, lastSecondary);
+      } else {
+        ovlLen = 0;
+        ovlLen = loadOverlaps(ovssecondary, ovlLen, ovlMax, ovlBuffer, lastSecondary);
+        ovlLen = loadOverlaps(ovsprimary,   ovlLen, ovlMax, ovlBuffer, lastPrimary);
+      }
+    }
+
+    currMate = processMatedFragmentsInline(gkp, frag, currMate, gkp->gkStore_getNumFragments() + 2);
 
     if (doUpdate)
       deleteFragments(gkp, frag);
 
+    delete [] ovlBuffer;
     delete [] frag;
   }
 
