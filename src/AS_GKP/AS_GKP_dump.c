@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.68 2012-02-23 19:12:25 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.69 2012-03-21 20:00:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1006,7 +1006,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                         fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
                         fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
                         fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                        fr.gkFragment_getIsNonRandom() ? 't' : 'f');
+                        fr.gkFragment_getIsNonRandom() ? 'f' : 't');
       continue;
     }
 
@@ -1027,7 +1027,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
                       fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
                       fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getIsNonRandom() ? 't' : 'f');
+                      fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     AS_UTL_writeFastQ(p, seq, len, qlt, len,
                       "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
@@ -1040,7 +1040,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
                       fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
                       fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getIsNonRandom() ? 't' : 'f');
+                      fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     //  Grab the second fragment.
 
@@ -1068,7 +1068,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
                       fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
                       fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getIsNonRandom() ? 't' : 'f');
+                      fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     AS_UTL_writeFastQ(p, seq, len, qlt, len,
                       "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
@@ -1081,7 +1081,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
                       fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
                       fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
                       fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getIsNonRandom() ? 't' : 'f');
+                      fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     //  Mark the pair as dumped.  This is a cheap way around testing if we've already dumped a pair.
     //
