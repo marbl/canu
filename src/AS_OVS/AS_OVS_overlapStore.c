@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.34 2012-02-14 15:33:58 gesims Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.35 2012-03-21 23:39:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -292,12 +292,11 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 type)
 
 
 int
-AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 maxOverlaps, uint32 type) {
+AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 maxOverlaps, uint32 type, bool restrictToIID) {
   int    numOvl = 0;
 
   if (ovs == NULL)
     return(0);
-
 
   assert(ovs->isOutput == FALSE);
 
@@ -306,8 +305,7 @@ AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 max
   //  overlaps.
   //
   while (ovs->offset.numOlaps == 0)
-    if (0 == AS_UTL_safeRead(ovs->offsetFile, &ovs->offset, "AS_OVS_readOverlap offset",
-                             sizeof(OverlapStoreOffsetRecord), 1))
+    if (0 == AS_UTL_safeRead(ovs->offsetFile, &ovs->offset, "AS_OVS_readOverlap offset", sizeof(OverlapStoreOffsetRecord), 1))
       return(0);
 
   //  And if we've exited the range of overlaps requested, return.
@@ -324,7 +322,8 @@ AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 max
 
   assert(ovs->offset.numOlaps <= maxOverlaps);
 
-  while (ovs->offset.numOlaps > 0) {
+  while (((restrictToIID == true)  && (ovs->offset.numOlaps > 0)) ||
+         ((restrictToIID == false) && (ovs->offset.numOlaps > 0) && (numOvl < maxOverlaps))) {
 
     //  Read an overlap.  If this fails, open the next partition and read from there.
 
@@ -342,6 +341,10 @@ AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 max
 
       ovs->currentFileIndex++;
 
+      if (ovs->currentFileIndex > ovs->ovs.highestFileIndex)
+        //  No more files, stop trying to load an overlap.
+        break;
+
       sprintf(name, "%s/%04d%c", ovs->storePath, ovs->currentFileIndex, ovs->useBackup);
       ovs->bof = AS_OVS_openBinaryOverlapFile(name, TRUE);
 
@@ -352,17 +355,37 @@ AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 max
       }
     }
 
-    overlaps[numOvl].a_iid = ovs->offset.a_iid;
+    //  If the currentFileIndex is invalid, we ran out of overlaps to load.  Don't save that
+    //  empty overlap to the list.
 
-    ovs->offset.numOlaps--;
+    if (ovs->currentFileIndex <= ovs->ovs.highestFileIndex) {
+      overlaps[numOvl].a_iid = ovs->offset.a_iid;
 
-    if ((type == AS_OVS_TYPE_ANY) ||
-        (type == overlaps[numOvl].dat.ovl.type))
-      numOvl++;
-  }
+      if ((type == AS_OVS_TYPE_ANY) ||
+          (type == overlaps[numOvl].dat.ovl.type))
+        numOvl++;
 
+      assert(ovs->offset.numOlaps > 0);
+
+      ovs->offset.numOlaps--;
+    }
+
+    //  If restrictToIID == false, we're loading all overlaps up to the end of the store, or the
+    //  request last IID.  If to the end of store, we never read a last 'offset' and so a_iid is
+    //  still valid (below lastIIDrequested == infinity) but numOlaps is still zero, and the mail
+    //  loop terminates.
+
+    if (restrictToIID == false) {
+      while (ovs->offset.numOlaps == 0)
+        if (0 == AS_UTL_safeRead(ovs->offsetFile, &ovs->offset, "AS_OVS_readOverlap offset", sizeof(OverlapStoreOffsetRecord), 1))
+          break;
+      if (ovs->offset.a_iid > ovs->lastIIDrequested)
+        break;
+    }
+  }  //  while space for more overlaps, load overlaps
+
+ returnOverlaps:
   assert(numOvl <= maxOverlaps);
-
 
   return(numOvl);
 }

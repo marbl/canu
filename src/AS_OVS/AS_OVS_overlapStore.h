@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAPSTORE_H
 #define AS_OVS_OVERLAPSTORE_H
 
-static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.18 2012-02-03 14:20:23 gesims Exp $";
+static const char *rcsid_AS_OVS_OVERLAPSTORE_H = "$Id: AS_OVS_overlapStore.h,v 1.19 2012-03-21 23:39:12 brianwalenz Exp $";
 
 #include <stdio.h>
 
@@ -88,7 +88,7 @@ void               AS_OVS_restoreBackup(OverlapStore *ovs);
 int                AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 type);
 
 //  Read ALL remaining overlaps for the current A_iid.  Return value is the number of overlaps read.
-int                AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 maxOverlaps, uint32 type);
+int                AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 maxOverlaps, uint32 type, bool restrictToIID=true);
 
 void               AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 low, uint32 high);
 void               AS_OVS_resetRangeOverlapStore(OverlapStore *ovs);
