@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.30 2012-02-28 00:09:21 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.31 2012-03-23 06:58:25 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -1744,7 +1744,7 @@ mertrimComputation::analyzeChimer(void) {
 
 void
 mertrimComputation::dump(char *label) {
-  char    *logLine = new char [seqLen + seqLen];
+  char    *logLine = new char [10 * seqLen];
   uint32   logPos = 0;
 
   log.add("%s read %d len %d (trim %d-%d)\n", label, readIID, seqLen, clrBgn, clrEnd);
@@ -1811,6 +1811,8 @@ mertrimComputation::dump(char *label) {
   }
   strcpy(logLine + logPos, " (ADAPTER)\n");
   log.add(logLine);
+
+  delete [] logLine;
 }
 
 
@@ -2100,7 +2102,7 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
 
   if (VERBOSE)
     s->log.add("RESULT: %s\n", label);
-  s->log.fwrite(stderr);
+  s->log.fwrite(stdout);
 }
 
 
