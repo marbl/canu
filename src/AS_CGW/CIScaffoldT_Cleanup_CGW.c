@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.73 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.74 2012-03-23 06:45:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,7 @@ static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.73 2011-12-29 09:26:03 
 #include "CommonREZ.h"
 #include "Stats_CGW.h"   // for collecting scaffold merging stats
 #include <time.h>
-
+#include "ChunkOverlap_CGW.h"
 
 #undef DEBUG_DETAILED
 #undef DEBUG_CONNECTEDNESS

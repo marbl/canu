@@ -18,27 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.56 2012-01-03 09:57:01 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.57 2012-03-23 06:45:50 brianwalenz Exp $";
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <cmath>
-
-#include "AS_global.h"
-#include "AS_MSG_pmesg.h"
-#include "AS_UTL_fileIO.h"
-#include "AS_UTL_Hash.h"
-#include "AS_UTL_Var.h"
+#include "ChunkOverlap_CGW.h"
 #include "AS_UTL_reverseComplement.h"
-#include "AS_CGW_dataTypes.h"
-#include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"    // For DeleteCIOverlapEdge
-#include "AS_ALN_aligners.h"
-#include "CommonREZ.h"
-#include "UtilsREZ.h"
 
 #undef DEBUG_OVERLAP_SEQUENCES
 
@@ -158,6 +142,11 @@ int CanOlapHash(uint64 cO, uint32 length){
 
   return  Hash_AS((uint8 *)arr, sizeof(uint64) * 3, 37);
 }
+
+
+
+
+
 
 
 //external
@@ -668,13 +657,13 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
   isDoveTail = !(olap->AContainsB || olap->BContainsA);
 
 
-  // If there is an existing overlap edge, don't insert this one!
-  if(existing){
-    double diff = abs(existing->distance.mean - overlap.mean);
-    if(diff < 5.0){ // this is the same edge
-      CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, existing);
-      return eid;
-    }
+  // If there is an existing overlap edge, don't insert this one if it is the same!
+  if (existing) {
+    double diff = existing->distance.mean - overlap.mean;
+
+    if ((-5.0 < diff) &&
+        (diff < 5.0))
+      return(GetVAIndex_EdgeCGW_T(graph->edges, existing));
   }
 
   eid = AddGraphEdge(graph,
@@ -965,7 +954,7 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
     // ahang is pos and bhang is neg
     nnOlap.AContainsB = TRUE;
 
-  //	    Print_Overlap_AS(stderr,&AFR,&BFR,O);
+  //Print_Overlap_AS(stderr,&AFR,&BFR,O);  Last appears in AS_ALN_qvaligner.c r1.24
   nnOlap.ahg = tempOlap1->begpos;
   nnOlap.bhg = tempOlap1->endpos;
 

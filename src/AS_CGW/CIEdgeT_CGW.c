@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.21 2010-08-19 05:28:06 brianwalenz Exp $";
+static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.22 2012-03-23 06:45:50 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -36,7 +36,7 @@ static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.21 2010-08-19 05:28:06 brianwalenz 
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
-
+#include "ChunkOverlap_CGW.h"
 
 
 

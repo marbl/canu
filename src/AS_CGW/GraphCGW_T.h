@@ -22,10 +22,9 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.48 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.49 2012-03-23 06:45:50 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
-#include "AS_ALN_aligners.h"
 #include "AS_CGW_dataTypes.h"
 #include "InputDataTypes_CGW.h"
 #include "MultiAlign.h"
@@ -328,58 +327,6 @@ typedef struct{
 
 VA_DEF(NodeCGW_T)
 VA_DEF(EdgeCGW_T)
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  ChunkOverlapper
-//
-
-//  This structure comprises the 'symbol' that is the key for database
-//  lookups
-typedef struct {
-  CDS_CID_t  cidA;
-  CDS_CID_t  cidB;
-  PairOrient orientation;
-} ChunkOverlapSpecT;
-
-//  This is the value stored in the symbol table.  Note that it's
-//  first field is the key for the symbol table.  Thus we kill two
-//  birds with one stone.  These structures are allocated from a heap
-//
-typedef struct {
-  ChunkOverlapSpecT spec;
-
-  int32   minOverlap;
-  int32   maxOverlap;
-  int32   cgbMinOverlap;
-  int32   cgbMaxOverlap;
-  double  errorRate;
-
-  // This is what we found
-  uint32       computed:1;
-  uint32       fromCGB:1;
-  uint32       AContainsB:1;
-  uint32       BContainsA:1;
-  uint32       suspicious:1;
-  uint32       unused:26;
-
-  int32   overlap;  // The overlaplength if there is an overlap, 0 otherwise
-  int32   ahg;
-  int32   bhg;
-  double  quality;
-  int32   min_offset;
-  int32   max_offset;
-} ChunkOverlapCheckT;
-
-typedef struct {
-  HashTable_AS *hashTable;
-  Heap_AS      *ChunkOverlaps;  //  Heap of ChunkOverlapCheckT
-} ChunkOverlapperT;
-//
-//
-//
-////////////////////////////////////////////////////////////////////////////////
-
 
 
 /* GraphCGW_T
@@ -1386,77 +1333,6 @@ void AssignFragsToResolvedCI(GraphCGW_T *graph,
 
 // QC check on surrogate sanity
 void CheckSurrogateUnitigs();
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  ChunkOverlap_CGW prototypes
-//
-
-ChunkOverlapperT *CreateChunkOverlapper(void);
-void DestroyChunkOverlapper(ChunkOverlapperT *chunkOverlapper);
-
-int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
-                       ChunkOverlapCheckT *olap);
-
-void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *stream);
-ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream);
-
-int InitCanonicalOverlapSpec(CDS_CID_t cidA, CDS_CID_t cidB,
-                             PairOrient orientation,
-                             ChunkOverlapSpecT *spec);
-
-void CreateChunkOverlapFromEdge(GraphCGW_T *graph,
-                                EdgeCGW_T *edge);
-
-void FillChunkOverlapWithEdge(EdgeCGW_T *edge, ChunkOverlapCheckT *olap);
-
-ChunkOverlapCheckT *LookupCanonicalOverlap(ChunkOverlapperT *chunkOverlapper,
-                                           ChunkOverlapSpecT *spec);
-
-int LookupOverlap(GraphCGW_T *graph,
-		  CDS_CID_t cidA, CDS_CID_t cidB,
-		  PairOrient orientation,
-		  ChunkOverlapCheckT *olap);
-
-CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
-                                    ChunkOverlapCheckT *olap);
-
-void CollectChunkOverlap(GraphCGW_T *graph,
-                         CDS_CID_t cidA, CDS_CID_t cidB,
-                         PairOrient orientation,
-                         double   meanOverlap, double   deltaOverlap,
-                         double   quality, int bayesian,
-                         int fromCGB,
-			 int verbose);
-
-ALNoverlap* OverlapSequences(char *seq1, char *seq2,
-                             PairOrient orientation,
-                             int32 min_ahang, int32 max_ahang,
-                             double erate, double thresh, int32 minlen,
-                             uint32 tryLocal = FALSE);
-
-ChunkOverlapCheckT OverlapChunks(GraphCGW_T *graph,
-                                 CDS_CID_t cidA, CDS_CID_t cidB,
-                                 PairOrient orientation,
-                                 int32 minOverlap,
-                                 int32 maxOverlap,
-                                 double errorRate,
-                                 int insertGraphEdges);
-
-ALNoverlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
-                           PairOrient *overlapOrientation,
-                           int32 minAhang, int32 maxAhang,
-                           int computeAhang,
-                           uint32 tryLocal = FALSE,
-                           uint32 tryRev   = FALSE);
-
-void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
-                     int recomputeCGBOverlaps);
-
-//
-//
-//
-////////////////////////////////////////////////////////////////////////////////
 
 
 #endif

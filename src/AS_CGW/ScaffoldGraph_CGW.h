@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.48 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.49 2012-03-23 06:45:50 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -35,6 +35,7 @@ static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.48 201
 #include "MultiAlignStore.h"
 #include "AS_OVS_overlapStore.h"
 #include "AS_CGW_dataTypes.h"
+#include "ChunkOverlap_CGW.h"
 
 #define CGW_MISSED_OVERLAP CGW_DP_MINLEN /* size the overlapper may have missed */
 #define MAX_OVERLAP_SLOP_CGW 10
