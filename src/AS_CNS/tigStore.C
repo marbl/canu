@@ -19,12 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.18 2011-12-19 00:51:47 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.19 2012-03-26 07:58:27 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
 #include "MultiAlignStore.h"
 #include "MultiAlignMatePairAnalysis.H"
+#include "MultiAlignSizeAnalysis.H"
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
@@ -36,6 +37,7 @@ const char *mainid = "$Id: tigStore.C,v 1.18 2011-12-19 00:51:47 brianwalenz Exp
 #define DUMP_LAYOUT           6
 #define DUMP_MULTIALIGN       7
 #define DUMP_MATEPAIR         8
+#define DUMP_SIZES            9
 
 #define OPERATION_UNITIGLIST  1
 #define OPERATION_CONTIGLIST  2
@@ -284,6 +286,10 @@ main (int argc, char **argv) {
   matePairAnalysis  *mpa       = NULL;
   char              *mpaPrefix = NULL;
 
+  sizeAnalysis      *siz       = NULL;
+  char              *sizPrefix = NULL;
+  uint64             sizSize   = 0;
+
   argc = AS_configure(argc, argv);
 
   int arg=1;
@@ -345,6 +351,9 @@ main (int argc, char **argv) {
 
       else if (strncmp(argv[arg], "matepair", 2) == 0)
         dumpFlags = DUMP_MATEPAIR;
+
+      else if (strncmp(argv[arg], "sizes", 2) == 0)
+        dumpFlags = DUMP_SIZES;
       
       else
         fprintf(stderr, "%s: Unknown dump option '-d %s'\n", argv[0], argv[arg]);
@@ -384,6 +393,7 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-s") == 0) {
       MULTIALIGN_PRINT_SPACING = atoi(argv[++arg]);
+      sizSize                  = atoll(argv[arg]);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       mpaPrefix = argv[++arg];
@@ -424,6 +434,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "     layout             ...the layout\n");
     fprintf(stderr, "     multialign         ...the full multialignment\n");
     fprintf(stderr, "     matepair           ...an analysis of the mate pairs\n");
+    fprintf(stderr, "     sizes              ...an analysis of sizes of the tigs\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -E <editFile>         Change properties of multialigns\n");
@@ -445,6 +456,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "  For '-d matepair':\n");
     fprintf(stderr, "  -o prefix             Output files will be written to 'prefix.*' in the current directory.\n");
     fprintf(stderr, "                        (defaults to 'tigStore' (the -t option) if not set.)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  For '-d sizes':\n");
+    fprintf(stderr, "  -s genomesize         Denominator to use for n50 computation\n");
     exit(1);
   }
 
@@ -610,6 +624,12 @@ main (int argc, char **argv) {
         mpaPrefix = tigName;
     }
 
+    if (dumpFlags == DUMP_SIZES) {
+      siz = new sizeAnalysis(sizSize);
+      if (sizPrefix == NULL)
+        sizPrefix = tigName;
+    }
+
     for (tigID=bgn; tigID<end; tigID++) {
       ma = tigStore->loadMultiAlign(tigID, tigIsUnitig);
 
@@ -639,6 +659,9 @@ main (int argc, char **argv) {
 
       if (dumpFlags == DUMP_MATEPAIR)
         mpa->evaluateTig(ma);
+
+      if (dumpFlags == DUMP_SIZES)
+        siz->evaluateTig(ma, tigIsUnitig);
     }
   }
 
@@ -648,6 +671,12 @@ main (int argc, char **argv) {
     mpa->writeUpdate(mpaPrefix);
     mpa->drawPlots(mpaPrefix);
     delete mpa;
+  }
+
+  if (siz) {
+    siz->finalize();
+    siz->printSummary(stdout);
+    delete siz;
   }
 
   delete gkpStore;

@@ -61,6 +61,7 @@ endif
 
 LIB_SOURCES = MultiAlign.C \
               MultiAlignMatePairAnalysis.C \
+              MultiAlignSizeAnalysis.C \
               MultiAlignPrint.C \
               MultiAlignStore.C \
               MultiAlignment_CNS.C \
