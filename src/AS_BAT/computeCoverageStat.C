@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: computeCoverageStat.C,v 1.5 2012-03-13 21:22:27 brianwalenz Exp $";
+const char *mainid = "$Id: computeCoverageStat.C,v 1.6 2012-03-27 09:37:05 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -307,6 +307,8 @@ main(int argc, char **argv) {
   MultiAlignStore  *tigStore = NULL;
   gkStore          *gkpStore = NULL;
 
+  bool              doUpdate = true;
+
   argc = AS_configure(argc, argv);
 
   int err = 0;
@@ -324,6 +326,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       outPrefix = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-n") == 0) {
+      doUpdate = false;
 
     } else {
       err++;
@@ -434,7 +439,7 @@ main(int argc, char **argv) {
   extend_histogram(arv, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
 
   for (uint32 i=bgnID; i<endID; i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
+    MultiAlignT  *ma = tigStore->loadMultiAlign(i, doUpdate);
 
     if (ma == NULL)
       continue;
@@ -487,7 +492,8 @@ main(int argc, char **argv) {
     add_to_histogram(cvg, covStat,   &z);
     add_to_histogram(arv, arrDist,   &z);
 
-    tigStore->setUnitigCoverageStat(ma->maID, covStat);
+    if (doUpdate)
+      tigStore->setUnitigCoverageStat(ma->maID, covStat);
   }
 
 
