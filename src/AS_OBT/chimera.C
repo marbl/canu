@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.51 2012-03-07 09:19:45 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.52 2012-03-27 09:40:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -799,7 +799,7 @@ process(const AS_IID           iid,
 
         //  Overlap spans the region
         if ((ovllo <= loLinker) && (hiLinker <= ovlhi)) {
-          ovl->style = 16;  //  Invalid style, will be ignored
+          ovl->style = 0x0f;  //  Invalid style, will be ignored
 #ifdef DEBUG_ISLINKER
           fprintf(reportFile, "  overlap "F_U32"-"F_U32" --> "F_U32"-"F_U32" delete\n", ovllo, ovlhi, 0, 0);
 #endif
@@ -815,7 +815,7 @@ process(const AS_IID           iid,
           ovl->Brhang += trim;
           ovl->style  |= 0x04 | 0x01;
           if ((loLinker > ovlhi) || (ovl->Abeg > ovl->Aend) || (ovl->Aend - ovl->Abeg < 40)) {
-            ovl->style = 16;
+            ovl->style = 0x0f;
 #ifdef DEBUG_ISLINKER
             fprintf(reportFile, "  overlap "F_U32"-"F_U32" --> "F_U64"-"F_U64" begin delete\n", ovllo, ovlhi, ovl->Abeg, ovl->Aend);
           } else {
@@ -834,7 +834,7 @@ process(const AS_IID           iid,
           ovl->Blhang += trim;
           ovl->style  |= 0x08 | 0x02;
           if ((ovllo > hiLinker) || (ovl->Abeg > ovl->Aend) || (ovl->Aend - ovl->Abeg < 40)) {
-            ovl->style = 16;
+            ovl->style = 0x0f;
 #ifdef DEBUG_ISLINKER
             fprintf(reportFile, "  overlap "F_U32"-"F_U32" --> "F_U64"-"F_U64" end delete\n", ovllo, ovlhi, ovl->Abeg, ovl->Aend);
           } else {
@@ -1257,12 +1257,12 @@ process(const AS_IID           iid,
 
   isSpur = (isLeftSpur || isRightSpur);
 
-  if (isSpur)
+  if (isSpur) {
     if (isLinker)
       spurDetectedLinker++;
     else
       spurDetectedNormal++;
-
+  }
 
   if ((isChimera == false) &&
       (isSpur    == false)) {
@@ -1504,7 +1504,7 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
       gkp = new gkStore(argv[++arg], FALSE, doUpdate);
-      gkp->gkStore_metadataCaching(false);
+      gkp->gkStore_metadataCaching(true);
 
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL)
