@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.69 2012-03-21 20:00:25 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.70 2012-03-27 09:34:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -992,20 +992,54 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
     seq[len] = 0;
     qlt[len] = 0;
 
+    uint32  clrBgn = fr.gkFragment_getClearRegionBegin(dumpClear);
+    uint32  clrEnd = fr.gkFragment_getClearRegionEnd  (dumpClear);
+
+    uint32  vecBgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC);
+    uint32  vecEnd = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC);
+
+    uint32  maxBgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX);
+    uint32  maxEnd = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX);
+
+    uint32  tntBgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT);
+    uint32  tntEnd = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT);
+
+    //  If dumping only the clear range, reset clear ranges.
+    //
+    if (dumpAllBases == false) {
+      if (vecBgn < vecEnd) {
+        vecBgn = (vecBgn < clrBgn) ?   0 : (vecBgn - clrBgn);
+        vecEnd = (vecEnd < clrBgn) ?   0 : (vecEnd - clrBgn);
+        vecEnd = (len    < vecEnd) ? len : (vecEnd);
+      }
+
+      if (maxBgn < maxEnd) {
+        maxBgn = (maxBgn < clrBgn) ?   0 : (maxBgn - clrBgn);
+        maxEnd = (maxEnd < clrBgn) ?   0 : (maxEnd - clrBgn);
+        maxEnd = (len    < maxEnd) ? len : (maxEnd);
+      }
+
+      if (tntBgn < tntEnd) {
+        tntBgn = (tntBgn < clrBgn) ?   0 : (tntBgn - clrBgn);
+        tntEnd = (tntEnd < clrBgn) ?   0 : (tntEnd - clrBgn);
+        tntEnd = (len    < tntEnd) ? len : (tntEnd);
+      }
+
+      clrBgn = 0;
+      clrEnd = len;
+
+      //  The easiest fix is to just ignore clear ranges.
+      //vecBgn = maxBgn = tntBgn = 1;
+      //vecEnd = maxEnd = tntEnd = 0;
+    }
+
     if (id2 == 0) {
       //  Unmated read, dump to the unmated reads file.
       //
       AS_UTL_writeFastQ(u, seq, len, qlt, len,
                         "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                         AS_UID_toString(fr.gkFragment_getReadUID()),
-                        fr.gkFragment_getClearRegionBegin(dumpClear),
-                        fr.gkFragment_getClearRegionEnd  (dumpClear),
-                        fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                        fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                        fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                        fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                        fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                        fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                        clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                         fr.gkFragment_getIsNonRandom() ? 'f' : 't');
       continue;
     }
@@ -1019,27 +1053,13 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
     AS_UTL_writeFastQ(a, seq, len, qlt, len,
                       "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()),
-                      fr.gkFragment_getClearRegionBegin(dumpClear),
-                      fr.gkFragment_getClearRegionEnd  (dumpClear),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                      clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     AS_UTL_writeFastQ(p, seq, len, qlt, len,
                       "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()),
-                      fr.gkFragment_getClearRegionBegin(dumpClear),
-                      fr.gkFragment_getClearRegionEnd  (dumpClear),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                      clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     //  Grab the second fragment.
@@ -1056,31 +1076,58 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
     seq[len] = 0;
     qlt[len] = 0;
 
+    clrBgn = fr.gkFragment_getClearRegionBegin(dumpClear);
+    clrEnd = fr.gkFragment_getClearRegionEnd  (dumpClear);
+
+    vecBgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC);
+    vecEnd = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC);
+
+    maxBgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX);
+    maxEnd = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX);
+
+    tntBgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT);
+    tntEnd = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT);
+
+    //  If dumping only the clear range, reset clear ranges.
+    //
+    if (dumpAllBases == false) {
+      if (vecBgn < vecEnd) {
+        vecBgn = (vecBgn < clrBgn) ?   0 : (vecBgn - clrBgn);
+        vecEnd = (vecEnd < clrBgn) ?   0 : (vecEnd - clrBgn);
+        vecEnd = (len    < vecEnd) ? len : (vecEnd);
+      }
+
+      if (maxBgn < maxEnd) {
+        maxBgn = (maxBgn < clrBgn) ?   0 : (maxBgn - clrBgn);
+        maxEnd = (maxEnd < clrBgn) ?   0 : (maxEnd - clrBgn);
+        maxEnd = (len    < maxEnd) ? len : (maxEnd);
+      }
+
+      if (tntBgn < tntEnd) {
+        tntBgn = (tntBgn < clrBgn) ?   0 : (tntBgn - clrBgn);
+        tntEnd = (tntEnd < clrBgn) ?   0 : (tntEnd - clrBgn);
+        tntEnd = (len    < tntEnd) ? len : (tntEnd);
+      }
+
+      clrBgn = 0;
+      clrEnd = len;
+
+      //  The easiest fix is to just ignore clear ranges.
+      //vecBgn = maxBgn = tntBgn = 1;
+      //vecEnd = maxEnd = tntEnd = 0;
+    }
+
     //  Write the second fragment (twice).
     AS_UTL_writeFastQ(b, seq, len, qlt, len,
                       "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()),
-                      fr.gkFragment_getClearRegionBegin(dumpClear),
-                      fr.gkFragment_getClearRegionEnd  (dumpClear),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                      clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     AS_UTL_writeFastQ(p, seq, len, qlt, len,
                       "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
                       AS_UID_toString(fr.gkFragment_getReadUID()),
-                      fr.gkFragment_getClearRegionBegin(dumpClear),
-                      fr.gkFragment_getClearRegionEnd  (dumpClear),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_VEC),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_MAX),
-                      fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_TNT),
-                      fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_TNT),
+                      clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     //  Mark the pair as dumped.  This is a cheap way around testing if we've already dumped a pair.
