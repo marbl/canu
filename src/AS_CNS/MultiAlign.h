@@ -22,7 +22,7 @@
 #ifndef MULTIALIGN_H
 #define MULTIALIGN_H
 
-static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.11 2011-12-19 00:34:20 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.12 2012-03-28 06:10:55 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
@@ -64,7 +64,7 @@ MultiAlignT *CreateMultiAlignT(void);
 MultiAlignT *CreateEmptyMultiAlignT(void);
 void         ClearMultiAlignT(MultiAlignT *multiAlign);
 
-#define      DeleteMultiAlignT(M) { DeleteMultiAlignTWorker(M); (M) = NULL; }
+#define      DeleteMultiAlignT(M) do { DeleteMultiAlignTWorker(M); (M) = NULL; } while (0)
 void         DeleteMultiAlignTWorker(MultiAlignT *multiAlign);
 
 //  Copies oldma into newma.  If newma is NULL, a new one is allocated.
