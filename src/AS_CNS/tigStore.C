@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.19 2012-03-26 07:58:27 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.20 2012-03-28 06:11:25 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -662,6 +662,8 @@ main (int argc, char **argv) {
 
       if (dumpFlags == DUMP_SIZES)
         siz->evaluateTig(ma, tigIsUnitig);
+
+      tigStore->unloadMultiAlign(tigID, tigIsUnitig);
     }
   }
 

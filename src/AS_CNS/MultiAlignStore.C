@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.20 2011-05-06 17:28:07 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.21 2012-03-28 06:11:25 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -554,6 +554,16 @@ MultiAlignStore::loadMultiAlign(int32 maID, bool isUnitig) {
   return(maCache[maID]);
 }
 
+
+
+void
+MultiAlignStore::unloadMultiAlign(int32 maID, bool isUnitig) {
+
+  if (isUnitig)
+    DeleteMultiAlignT(utgCache[maID]);
+  else
+    DeleteMultiAlignT(ctgCache[maID]);
+}
 
 
 void

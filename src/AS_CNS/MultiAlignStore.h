@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
-static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.9 2011-01-03 03:07:16 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.10 2012-03-28 06:11:25 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -118,6 +118,8 @@ public:
   //  copy() will load and copy the MA.  It will not cache.  YOU OWN THIS OBJECT.
   //
   MultiAlignT   *loadMultiAlign(int32 maID, bool isUnitig);
+  void           unloadMultiAlign(int32 maID, bool isUnitig);
+
   void           copyMultiAlign(int32 maID, bool isUnitig, MultiAlignT *ma);
 
   //  Flush the cache of loaded MAs.  Be aware that this is expensive in that the flushed things
