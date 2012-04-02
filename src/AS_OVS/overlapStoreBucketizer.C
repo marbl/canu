@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.1 2012-04-02 10:58:04 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.2 2012-04-02 16:55:56 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -73,7 +73,7 @@ writeToFile(OVSoverlap          *overlap,
   if (dumpFile[df] == NULL) {
     char name[FILENAME_MAX];
 
-    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d%S", ovlName, jobIndex, df, (WITH_GZIP) ? ".gz" : "");
+    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d%s", ovlName, jobIndex, df, (WITH_GZIP) ? ".gz" : "");
     dumpFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE);
     dumpLength[df] = 0;
   }
@@ -211,8 +211,8 @@ main(int argc, char **argv) {
       ovlInput = argv[++arg];
 
     } else if (strcmp(argv[arg], "-e") == 0) {
-      maxError = atof(argv[++arg]);
-      maxError = AS_OVS_encodeQuality(maxErrorRate);
+      maxErrorRate = atof(argv[++arg]);
+      maxError     = AS_OVS_encodeQuality(maxErrorRate * 100.0);
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -437,7 +437,7 @@ main(int argc, char **argv) {
   }
 
   fprintf(stderr, "overlaps skipped:\n");
-  fprintf(stderr, "%16"F_U64P" ERR - low quality, more than %.2f fraction error\n", skipERATE, maxErrorRate);
+  fprintf(stderr, "%16"F_U64P" ERR - low quality, more than %.3f fraction error\n", skipERATE, maxErrorRate);
   fprintf(stderr, "%16"F_U64P" OBT - low quality\n", skipOBT1LQ);
   fprintf(stderr, "%16"F_U64P" DUP - non-duplicate overlap\n", skipOBT2HQ);
   fprintf(stderr, "%16"F_U64P" DUP - different library\n", skipOBT2LIB);
