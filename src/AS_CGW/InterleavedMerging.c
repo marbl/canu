@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.31 2012-04-02 09:53:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.32 2012-04-02 09:56:06 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -775,22 +775,20 @@ LookForChunkOverlapFromContigElements(ContigElement * ceA,
   orientA = ceA->orient;
   orientB = ceB->orient;
 
-  /*
-    consider two orientations of overlap
-    contigA:   --------
-    contigB:       --------
-
-    contigA:       --------
-    contigB:   --------
-
-    and B containing A
-    contigA:       ----
-    contigB:   ------------
-
-    can also have A contain B when the ends are close
-    contigA:   ------------
-    contigB:          ----
-  */
+  //    consider two orientations of overlap
+  //    contigA:   --------
+  //    contigB:       --------
+  //
+  //    contigA:       --------
+  //    contigB:   --------
+  //
+  //    and B containing A
+  //    contigA:       ----
+  //    contigB:   ------------
+  //
+  //    can also have A contain B when the ends are close
+  //    contigA:   ------------
+  //    contigB:          ----
 
   // first, consider min coord of A to the left of min coord of ceB,
 
