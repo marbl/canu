@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.30 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.31 2012-04-02 09:53:57 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -44,95 +44,91 @@ static const char *rcsid = "$Id: InterleavedMerging.c,v 1.30 2011-12-29 09:26:03
 #undef CHECK_INTERLEAVE_DISTANCE
 
 
+//  What this code is supposed to do:
+//  Take two scaffolds & a negative edge between them & determine if the
+//  two scaffolds can be merged - either by overlapping one or more contigs
+//  or by interleaving with no contig overlaps
+//
+//  How to use this code:
+//  1. Creat a reusable ScaffoldAlignmentInterface object:
+//
+//  ScaffoldAlignmentInterface * sai = CreateScaffoldAlignmentInterface();
+//
+//
+//  2. Populate the sai with a couple scaffolds & edge:
+//
+//  PopulateScaffoldAlignmentInterface(scaffoldA, scaffoldB, edge, sai);
+//
+//  This populates the sai object with scaffold & edge information as
+//  well as contig overlaps that may be involved
+//
+//  This function returns 0 if successful, non-0 if failure
+//
+//
+//  3. Call Align_Scaffold to see if scaffolds can be aligned
+//
+//  Align_Scaffold(sai->segmentList,
+//  sai->numSegs,
+//  sai->varWin,
+//  sai->scaffoldA->scaffold,
+//  sai->scaffoldB->scaffold,
+//  &(sai->best),
+//  sai->scaffoldA->bandBeg,
+//  sai->scaffoldA->bandEnd);
+//
+//  This function returns:
+//  a) non-NULL if the scaffolds can be merged with one or more
+//  contig overlaps
+//  b) NULL and sai->best >= 0 if the scaffolds can be merged
+//  via interleaving with no contig overlapping
+//  c) NULL and sai->best < 0 if the scaffolds cannot be merged
+//
+//  The non-NULL returned pointer can be ignored.
+//
+//
+//  4. If the scaffolds are mergeable, call MakeScaffoldAlignmentAdjustments
+//  to adjust contig positions in the scaffolds and adjust edge distance
+//  so that subsequent call to InsertScaffoldContentsIntoScaffold will
+//  merge the scaffolds correctly
+//
+//  MakeScaffoldAlignmentAdjustments(scaffoldA, scaffoldB, edge, sai);
+//
+//  This function returns:
+//  a) non-NULL pointer to an edge (statically allocated in the function)
+//  with adjusted distance, if everything is well
+//  b) NULL if adjustments failed
+//
+//
+//  Notes on call to Gene's/Aaron's Align_Scaffold function:
+//
+//  Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin, Scaffold *AF, Scaffold *BF,
+//                          int *best)
+//
+//  returns a pointer to a (linked) list of Segment,
+//  namely the set of contig/contig overlaps that were used,
+//  or NULL if unsuccessful
+//
+//  takes as arguments:
+//  a pointer to a (linked) list of Segment,
+//  the set of contig/contig overlaps that are allowed
+//  (but not required) to be part of the solution
+//  the number of segments in this (input) linked list
+//  the number of standard deviations away from the mean you
+//  consider acceptable (ie. probably 3)
+//  a pointer to the (appropriately specified) first scaffold
+//  a pointer to the (appropriately specified) second scaffold
+//  a pointer to an integer that will receive the alignment score
+//  of a successful alignment
+//
+//  Pre-processing must generate all arguments to this function from
+//  a pointer to the graph
+//  a pointer to scaffold A
+//  a pointer to scaffold B
+//  a pointer to the edge between A and B
+//
+//  Post-processing must examine the contents of the Segment returned and
+//  possibly adjust the edge and contig positions in one or both scaffolds
 
-/*
-  What this code is supposed to do:
-  Take two scaffolds & a negative edge between them & determine if the
-  two scaffolds can be merged - either by overlapping one or more contigs
-  or by interleaving with no contig overlaps
-
-  How to use this code:
-  1. Creat a reusable ScaffoldAlignmentInterface object:
-
-  ScaffoldAlignmentInterface * sai = CreateScaffoldAlignmentInterface();
-
-
-  2. Populate the sai with a couple scaffolds & edge:
-
-  PopulateScaffoldAlignmentInterface(scaffoldA, scaffoldB, edge, sai);
-
-  This populates the sai object with scaffold & edge information as
-  well as contig overlaps that may be involved
-
-  This function returns 0 if successful, non-0 if failure
-
-
-  3. Call Align_Scaffold to see if scaffolds can be aligned
-
-  Align_Scaffold(sai->segmentList,
-  sai->numSegs,
-  sai->varWin,
-  sai->scaffoldA->scaffold,
-  sai->scaffoldB->scaffold,
-  &(sai->best),
-  sai->scaffoldA->bandBeg,
-  sai->scaffoldA->bandEnd);
-
-  This function returns:
-  a) non-NULL if the scaffolds can be merged with one or more
-  contig overlaps
-  b) NULL and sai->best >= 0 if the scaffolds can be merged
-  via interleaving with no contig overlapping
-  c) NULL and sai->best < 0 if the scaffolds cannot be merged
-
-  The non-NULL returned pointer can be ignored.
-
-
-  4. If the scaffolds are mergeable, call MakeScaffoldAlignmentAdjustments
-  to adjust contig positions in the scaffolds and adjust edge distance
-  so that subsequent call to InsertScaffoldContentsIntoScaffold will
-  merge the scaffolds correctly
-
-  MakeScaffoldAlignmentAdjustments(scaffoldA, scaffoldB, edge, sai);
-
-  This function returns:
-  a) non-NULL pointer to an edge (statically allocated in the function)
-  with adjusted distance, if everything is well
-  b) NULL if adjustments failed
-
-
-
-
-  Notes on call to Gene's/Aaron's Align_Scaffold function:
-
-  Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
-  Scaffold *AF, Scaffold *BF, int *best)
-
-  returns a pointer to a (linked) list of Segment,
-  namely the set of contig/contig overlaps that were used,
-  or NULL if unsuccessful
-
-  takes as arguments:
-  a pointer to a (linked) list of Segment,
-  the set of contig/contig overlaps that are allowed
-  (but not required) to be part of the solution
-  the number of segments in this (input) linked list
-  the number of standard deviations away from the mean you
-  consider acceptable (ie. probably 3)
-  a pointer to the (appropriately specified) first scaffold
-  a pointer to the (appropriately specified) second scaffold
-  a pointer to an integer that will receive the alignment score
-  of a successful alignment
-
-  Pre-processing must generate all arguments to this function from
-  a pointer to the graph
-  a pointer to scaffold A
-  a pointer to scaffold B
-  a pointer to the edge between A and B
-
-  Post-processing must examine the contents of the Segment returned and
-  possibly adjust the edge and contig positions in one or both scaffolds
-*/
 
 typedef struct
 {
@@ -314,7 +310,7 @@ DuplicateSegmentList(Segment * segmentList) {
   return head;
 }
 
-//static
+//external
 void
 DeleteScaffoldAlignmentInterface(ScaffoldAlignmentInterface * sai) {
   if(sai) {
@@ -377,7 +373,7 @@ CreateScaffoldStuff(void) {
   return ss;
 }
 
-//static
+//external
 ScaffoldAlignmentInterface *
 CreateScaffoldAlignmentInterface(void) {
   ScaffoldAlignmentInterface * sai =
@@ -441,30 +437,30 @@ ResetScaffoldAlignmentInterface(ScaffoldAlignmentInterface * sai) {
 }
 
 
-/*
-  For Align_Scaffolds call, A & B have to appear to have NORMAL orientations.
-  Two coordinate systems are used:
 
-  1. treat scaffoldA is being to the left of scaffoldB
-  left end of B = 0 with positive to the right
-  this is used to determine which contigs may be 'in the edge'
-  contigs in A that have a min coord >= 0 || max coord <= m may overlap
-  such contigs in B
-  -n         0          +m
-  A     ---------------------->
-  B               ----------------------->
+//  For Align_Scaffolds call, A & B have to appear to have NORMAL orientations.
+//  Two coordinate systems are used:
+//
+//  1. treat scaffoldA is being to the left of scaffoldB
+//  left end of B = 0 with positive to the right
+//  this is used to determine which contigs may be 'in the edge'
+//  contigs in A that have a min coord >= 0 || max coord <= m may overlap
+//  such contigs in B
+//  -n         0          +m
+//  A     ---------------------->
+//  B               ----------------------->
+//
+//  2. positions of contigs within scaffold are assigned with
+//  leftmost (start of) scaffold set to 0, increasing left to right
+//  This is used by Align_Scaffolds & to adjust contig positions later
+//  0                            j
+//  A    ------  ------  -----  ------(>)
+//
+//  0                    k
+//  B    -----  ------- ------(>)
+//
 
-  2. positions of contigs within scaffold are assigned with
-  leftmost (start of) scaffold set to 0, increasing left to right
-  This is used by Align_Scaffolds & to adjust contig positions later
-  0                            j
-  A    ------  ------  -----  ------(>)
-
-  0                    k
-  B    -----  ------- ------(>)
-
-*/
-//static
+//external
 void
 PopulateScaffoldStuff(ScaffoldStuff * ss,
                       CIScaffoldT * scaffold,
@@ -487,11 +483,10 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
   double osMax;
   double varDelta;
 
-  /*
-    loop through contigs in scaffold, left to right
-    compute coordinates left to right
-    also measure distances from left end of scaffoldB
-  */
+  //  loop through contigs in scaffold, left to right
+  //  compute coordinates left to right
+  //  also measure distances from left end of scaffoldB
+
   if(sEdge->orient.isAB_AB() ||
      (isA && sEdge->orient.isAB_BA()) ||
      (!isA && sEdge->orient.isBA_AB()))
@@ -499,13 +494,11 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
   else
     ss->orient.setIsReverse();
 
-  /*
-    compute range in which to identify contigs that may be involved
-    in overlaps. limit by the length of the other scaffold
+  //  compute range in which to identify contigs that may be involved in overlaps. limit by the
+  //  length of the other scaffold
+  //
+  //  NOTE: increase variance going away from the end of scaffold 'in the edge'
 
-    NOTE: increase variance going away from the end of scaffold
-    'in the edge'
-  */
   if(isA) {
     osMin = CGW_DP_MINLEN;
     osMax = osLength.mean +
@@ -520,38 +513,37 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
       varDelta = (ss->orient.isReverse()) ? scaffold->bpLength.variance : 0.0;
     }
 
-  /*
-    bandBeg must be less than or equal to bandEnd
-    initialize maxAHang & flag as to whether or not minAHang has been set
-    Check these values after looping over all contigs
+  //    bandBeg must be less than or equal to bandEnd
+  //    initialize maxAHang & flag as to whether or not minAHang has been set
+  //    Check these values after looping over all contigs
+  //
+  //    bandBeg:
+  //    minCoord           maxCoord
+  //    (-------            )
+  //    (--------          )
+  //    scfA: ------------------------------------
+  //    |
+  //    |
+  //    scfB:                  ------------------------------------------------
+  //    0
+  //
+  //    thisLeft.mean - distance from left end of scfA to left end of contig
+  //    bandBeg = thisLeft.mean - minCoord
+  //
+  //
+  //    bandEnd:
+  //    minCoord           maxCoord
+  //    (          -------)
+  //    (          -------)
+  //    scfA: ------------------------------------
+  //    |
+  //    |
+  //    scfB:                  ------------------------------------------------
+  //    0
+  //
+  //    thisLeft.mean - distance from left end of scfA to left end of contig
+  //    bandEnd = thisLeft.mean - (maxCoord - contigLength)
 
-    bandBeg:
-    minCoord           maxCoord
-    (-------            )
-    (--------          )
-    scfA: ------------------------------------
-    |
-    |
-    scfB:                  ------------------------------------------------
-    0
-
-    thisLeft.mean - distance from left end of scfA to left end of contig
-    bandBeg = thisLeft.mean - minCoord
-
-
-    bandEnd:
-    minCoord           maxCoord
-    (          -------)
-    (          -------)
-    scfA: ------------------------------------
-    |
-    |
-    scfB:                  ------------------------------------------------
-    0
-
-    thisLeft.mean - distance from left end of scfA to left end of contig
-    bandEnd = thisLeft.mean - (maxCoord - contigLength)
-  */
   ss->bandBeg = scaffold->bpLength.mean - CGW_DP_MINLEN;
   ss->bandEnd = CGW_DP_MINLEN;
 
@@ -624,13 +616,12 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
         INTERLEAVE_CUTOFF * sqrt((double) thisRight.variance) -
         scaffold->bpLength.mean;
 
-      /*
-        compute min & max ahang - contigs are iterated left to right
-        ahangs are in or off the left end of scaffoldA
+      //  compute min & max ahang - contigs are iterated left to right
+      //  ahangs are in or off the left end of scaffoldA
+      //
+      //  contig or gap may specify an ahang
+      //  NOTE: this is a simple initial implementation - should be pretty close
 
-        contig or gap may specify an ahang
-        NOTE: this is a simple initial implementation - should be pretty close
-      */
       if(ce.minCoord <= 0 && ce.maxCoord >= CGW_DP_MINLEN) {
         // the interval this contig is in specifies an ahang range
         ss->bandBeg = MIN(ss->bandBeg, .5 +
@@ -669,10 +660,9 @@ PopulateScaffoldStuff(ScaffoldStuff * ss,
           sqrt((double) thisRight.variance);
       }
 
-    /*
-      store contig element for detecting contig overlaps and post-processing
-      range must intersect overlap interval - defined above
-    */
+    //  store contig element for detecting contig overlaps and post-processing
+    //  range must intersect overlap interval - defined above
+
     if(ce.maxCoord >= osMin && ce.minCoord <= osMax)
       AppendVA_ContigElement(ss->edgeContigs, &ce);
     AppendVA_ContigElement(ss->contigs, &ce);
@@ -920,7 +910,7 @@ LookForChunkOverlapFromContigElements(ContigElement * ceA,
 }
 
 
-//static
+//external
 int
 PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
                                    CIScaffoldT * scaffoldB,
@@ -1092,10 +1082,8 @@ segmentCompare(const void *A, const void *B) {
 }
 
 
-/*
-  compute expansion of gaps[index] given current placement of
-  contigs[index] and contigs[index+1]
-*/
+//  compute expansion of gaps[index] given current placement of
+//  contigs[index] and contigs[index+1]
 static
 int32
 ComputeCurrentGapExpansion(Scaffold_Tig * contigs,
@@ -1106,11 +1094,9 @@ ComputeCurrentGapExpansion(Scaffold_Tig * contigs,
 }
 
 
-/*
-  compute expansion of gap between contigs1[index1-1] and contigs1[index1]
-  needed to accomodate contigs2[index2]
-  assumes we're proceeding left to right
-*/
+//  compute expansion of gap between contigs1[index1-1] and contigs1[index1]
+//  needed to accomodate contigs2[index2]
+//  assumes we're proceeding left to right
 static
 int32
 ComputeAdditionalLeftGapExpansion(Scaffold_Tig * contigs1,
@@ -1124,11 +1110,9 @@ ComputeAdditionalLeftGapExpansion(Scaffold_Tig * contigs1,
                                              contigs2[index2-1].length)));
 }
 
-/*
-  compute expansion of gap between contigs1[index1] and contigs1[index1+1]
-  needed to accomodate contigs2[index2]
-  assumes we're proceeding right to left
-*/
+//  compute expansion of gap between contigs1[index1] and contigs1[index1+1]
+//  needed to accomodate contigs2[index2]
+//  assumes we're proceeding right to left
 static
 int32
 ComputeAdditionalRightGapExpansion(Scaffold_Tig * contigs1,
@@ -1142,10 +1126,8 @@ ComputeAdditionalRightGapExpansion(Scaffold_Tig * contigs1,
 }
 
 
-/*
-  compression of gaps1[index1-1] to fit contigs1[index1] to the left of
-  contigs2[index2]
-*/
+//  compression of gaps1[index1-1] to fit contigs1[index1] to the left of
+//  contigs2[index2]
 static
 int32
 ComputeLeftGapCompression(Scaffold_Tig * contigs1,
@@ -1160,10 +1142,8 @@ ComputeLeftGapCompression(Scaffold_Tig * contigs1,
               contigs1[index1].length));
 }
 
-/*
-  compression of gaps1[index1] to fit contigs1[index1] to the right of
-  contigs2[index2]
-*/
+//  compression of gaps1[index1] to fit contigs1[index1] to the right of
+//  contigs2[index2]
 static
 int32
 ComputeRightGapCompression(Scaffold_Tig * contigs1,
@@ -1225,18 +1205,17 @@ AdjustNonOverlappingContigsLeftToRight(Scaffold_Tig * contigsA,
       }
     }
 
-    /*
-      if we're here, ia & ib are still in play
-      and they're completely to the right of all contigs ia-1 & ib-1
-      choose one to go to the right of the other
-      for simplicity, consider just the gap to the left of ia & ib
-      Case 1:
-      Contigia-1  gapia-1    contigia
-      ScaffoldA          --------           -----------------
+    //  if we're here, ia & ib are still in play
+    //  and they're completely to the right of all contigs ia-1 & ib-1
+    //  choose one to go to the right of the other
+    //  for simplicity, consider just the gap to the left of ia & ib
+    //  Case 1:
+    //  Contigia-1  gapia-1    contigia
+    //  ScaffoldA          --------           -----------------
+    //
+    //   ScaffoldB       ---------            ----------------
+    //  Contigib-1   gapib-1     contigib
 
-      ScaffoldB       ---------            ----------------
-      Contigib-1   gapib-1     contigib
-    */
     if(contigsB[ib].lft_end + contigsB[ib].length < contigsA[ia].lft_end)
       ib++;
     else if(contigsA[ia].lft_end + contigsA[ia].length < contigsB[ib].lft_end)
@@ -1305,21 +1284,20 @@ PlaceContigsBetweenOverlapSets(COSData * cosLeft,
                                Scaffold_Gap * gapsA,
                                Scaffold_Tig * contigsB,
                                Scaffold_Gap * gapsB) {
-  /*
-    Identify rightmost contigA, contigB in cosLeft
-    these are already placed
-    Identify leftmost contigA, contigB in cosRight
 
-    Iterate over contigs between contig overlap sets & place them
-  */
+  //  Identify rightmost contigA, contigB in cosLeft
+  //  these are already placed
+  //  Identify leftmost contigA, contigB in cosRight
+  //
+  //  Iterate over contigs between contig overlap sets & place them
+
   int ia, ib;
   double sumStddevsA = 0;
   double sumStddevsB = 0;
 
-  /*
-    Make initial placement of contigs to determine difference between
-    scafflolds in distance between overlap sets
-  */
+  //  Make initial placement of contigs to determine difference between
+  //  scafflolds in distance between overlap sets
+
   for(ia = cosLeft->a.maxIndex + 1; ia < cosRight->a.minIndex; ia++) {
     contigsA[ia].lft_end = contigsA[ia-1].lft_end +
       contigsA[ia-1].length + gapsA[ia-1].gap_length;
@@ -1351,15 +1329,13 @@ PlaceContigsBetweenOverlapSets(COSData * cosLeft,
     // yes, gap_var is actually used as stddev in Align_Scaffold()
     sumStddevsB += gapsB[cosRight->b.minIndex-1].gap_var;
 
-    /*
-      initialPositionA - initialPositionB is distance A is to the right of B
-      by tentative placement from gap spacing
-      a.lft_end - b.lft_end is distance A is to right of B by overlap
-      if(former > latter)
-      then spread is in scaffoldA
-      else
-      spread is in scaffoldB
-    */
+    //  initialPositionA - initialPositionB is distance A is to the right of B
+    //  by tentative placement from gap spacing
+    //  a.lft_end - b.lft_end is distance A is to right of B by overlap
+    //  if(former > latter)
+    //  then spread is in scaffoldA
+    //  else
+    //  spread is in scaffoldB
 
     spreadInA = (initialPositionA - initialPositionB) -
       (contigsA[cosRight->a.minIndex].lft_end -
@@ -1580,33 +1556,31 @@ ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
 
   // overlaps are already sorted by a_contig, b_contig
 
-  /*
-    An overlap set implies a new contig will be created upon scaffold merging
-    Iterate through overlaps & traverse overlap sets
-    Figure out how to detect implicit reorderings
-
-    Overlap set will have following pattern of a_contig, b_contig indices
-
-    2,1
-    ----
-    3,2 |
-    3,3 |
-    4,2 |- Overlap set
-    4,3 |
-    4,4 |
-    ---
-    6,5
-
-    To traverse an overlap set, keep min & max contig index in A & B
-    while a_contig is within minA:maxA or b_contig is within minB:maxB
-    you're in the same overlap set
-
-    Two potential problems:
-    1) a contig is skipped in an overlap set
-    such a contig must be moved to before or after the set,
-    whichever minimizes the sum of stddevs affected
-    2) overlap intervals imply a scaffold reordering within the overlap set
-  */
+  //    An overlap set implies a new contig will be created upon scaffold merging
+  //    Iterate through overlaps & traverse overlap sets
+  //    Figure out how to detect implicit reorderings
+  //
+  //    Overlap set will have following pattern of a_contig, b_contig indices
+  //
+  //    2,1
+  //    ----
+  //    3,2 |
+  //    3,3 |
+  //    4,2 |- Overlap set
+  //    4,3 |
+  //    4,4 |
+  //    ---
+  //    6,5
+  //
+  //    To traverse an overlap set, keep min & max contig index in A & B
+  //    while a_contig is within minA:maxA or b_contig is within minB:maxB
+  //    you're in the same overlap set
+  //
+  //    Two potential problems:
+  //    1) a contig is skipped in an overlap set
+  //    such a contig must be moved to before or after the set,
+  //    whichever minimizes the sum of stddevs affected
+  //    2) overlap intervals imply a scaffold reordering within the overlap set
 
   // overload the insert_pnt field of Scaffold_Tig for identifying
   // which overlap set each contig is in. Initialize all to -1
@@ -1626,14 +1600,14 @@ ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
            ((overlaps[i].a_contig >= cos.a.minIndex && overlaps[i].a_contig <= cos.a.maxIndex) ||
             (overlaps[i].b_contig >= cos.b.minIndex && overlaps[i].b_contig <= cos.b.maxIndex));
          i++) {
-      /*
-        begpos = ahang
-        we want the leftmost relative coordinate to be 0, so
-        0      begpos      0     -begpos
-        |     |            |     |
-        a_contig:    ----------               ---------
-        b_contig:          ---------    ---------
-      */
+
+      //  begpos = ahang
+      //  we want the leftmost relative coordinate to be 0, so
+      //  0      begpos      0     -begpos
+      //  |     |            |     |
+      //  a_contig:    ----------               ---------
+      //  b_contig:          ---------    ---------
+
       if(contigsA[overlaps[i].a_contig].insert_pnt == NO_OVERLAP_SET) {
         if(contigsB[overlaps[i].b_contig].insert_pnt == NO_OVERLAP_SET) {
           // new overlap set
@@ -1652,11 +1626,9 @@ ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
       }
       else
         {
-          /*
-            both already overlap in overlap set -
-            don't check consistency of coordinates
-            NOTE: may want to add a check
-          */
+          //  both already overlap in overlap set -
+          //  don't check consistency of coordinates
+          //  NOTE: may want to add a check
         }
 
       UpdateCOSDataItem(&cos, overlaps, i, contigsA, contigsB);
@@ -1728,11 +1700,10 @@ PlaceContigsLeftOfFirstOverlapSet(COSData * cos,
       }
     }
 
-    /*
-      if we're here, ia >= 0 && ib >= 0 and
-      they're tentatively placed entirely to the left of contigs ia+1 & ib+1
-      if their coordinates don't intersect, place the rightmost one.
-    */
+    //  if we're here, ia >= 0 && ib >= 0 and
+    //  they're tentatively placed entirely to the left of contigs ia+1 & ib+1
+    //  if their coordinates don't intersect, place the rightmost one.
+
     if(contigsA[ia].lft_end >
        contigsB[ib].lft_end + contigsB[ib].length + MIN_GAP_LENGTH)
       ia--;
@@ -1753,20 +1724,18 @@ PlaceContigsLeftOfFirstOverlapSet(COSData * cos,
         double deltaAB;
         double deltaBA;
 
-        /*
-          the two contigs  overlap each other.
-          Choose one to go to the right of the other
-          for simplicity, consider just the gap to the right of ia & ib
-          Case 1:
-          contigia  gapia    contigia+1
-          ScaffoldA      --------           -----------------
-
-          ScaffoldB       ---------            ----------------
-          contigib   gapib     contigib+1
-
-          Make the choice based on minimal stretching of gap sizes in terms of
-          stddevs
-        */
+        //  the two contigs  overlap each other.
+        //  Choose one to go to the right of the other
+        //  for simplicity, consider just the gap to the right of ia & ib
+        //  Case 1:
+        //  contigia  gapia    contigia+1
+        //  ScaffoldA      --------           -----------------
+        //  
+        //  ScaffoldB       ---------            ----------------
+        //  contigib   gapib     contigib+1
+        //  
+        //  Make the choice based on minimal stretching of gap sizes in terms of
+        //  stddevs
 
         // calculate expansion of gaps needed to accomodate other contig
         // = (gap stretch already) + (additional stretch to fit other contig)
@@ -1927,19 +1896,10 @@ AdjustForPureInterleaving(Scaffold_Tig * contigsA,
     }
 
     aLeft = contigsA[ia].lft_end;
-    /*
-      if(ia > 0)
-      aLeft = contigsA[ia-1].lft_end + contigsA[ia-1].length + gapsA[ia-1].gap_length;
-      else */
     if(ib > 0)
       aLeft = MAX(aLeft, contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH);
 
     bLeft = contigsB[ib].lft_end;
-    /*
-      if(ib > 0)
-      bLeft = contigsB[ib-1].lft_end + contigsB[ib-1].length + gapsB[ib-1].gap_length;
-      else
-    */
     if(ia > 0)
       bLeft = MAX(bLeft, contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH);
 
@@ -1960,14 +1920,6 @@ AdjustForPureInterleaving(Scaffold_Tig * contigsA,
                          gapsA[ia].gap_length -
                          contigsA[ia].length) / gapsA[ia].gap_var);
 
-    /*
-    // add possible gap stretch for ia - ib
-    if(ia < numContigsA - 1 &&
-    contigsB[ib].lft_end < contigsA[ia+1].lft_end + contigsA[ia+1].length)
-    deltaAB += MAX(0, (contigsB[ib].length + 2 * MIN_GAP_LENGTH -
-    gapsA[ia].gap_length) / gapsA[ia].gap_var);
-    */
-
     // edge stretch for ib - ia
     if(ib == 0)
       deltaBA = MAX(0, (bLeft - aLeft - MIN_GAP_LENGTH -
@@ -1985,21 +1937,9 @@ AdjustForPureInterleaving(Scaffold_Tig * contigsA,
                          gapsB[ib].gap_length -
                          contigsB[ib].length) / gapsB[ib].gap_var);
 
-    /*
-    // add possible gap stretch for ib - ia
-    if(ib < numContigsB - 1 &&
-    contigsA[ia].lft_end < contigsB[ib+1].lft_end + contigsB[ib+1].length)
-    deltaBA += MAX(0, (contigsA[ia].length + 2 * MIN_GAP_LENGTH -
-    gapsB[ib].gap_length) / gapsB[ib].gap_var);
-    */
-
     if(deltaAB < deltaBA) {
       if(ib > 0) // ia == 0
         contigsA[ia].lft_end = aLeft;
-      /*
-        MAX(contigsA[ia].lft_end,
-        contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH);
-      */
       // else ia is already okay relative to contigsA[ia-1]
       ia++;
     }
@@ -2007,10 +1947,6 @@ AdjustForPureInterleaving(Scaffold_Tig * contigsA,
       {
         if(ia > 0) // ib == 0
           contigsB[ib].lft_end = bLeft;
-        /*
-          MAX(contigsB[ib].lft_end,
-          contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH);
-        */
         // else ib is already okay relative to contigsB[ib-1]
         ib++;
       }
@@ -2059,25 +1995,23 @@ PrintSegments(FILE * fp, Segment * segments) {
 }
 
 
-/*
-  push contigs left or right so contig overlaps in segments will be
-  found back later when scaffolds are actually merged
-  also push contigs left or right so non-overlapping contigs don't overlap
-  scaffolds in sai are populated so overlap betwen them is AB_AB
-  ScaffoldStuff orient field indicates whether scaffold needs to be flipped
-  best is best aHang
+//  push contigs left or right so contig overlaps in segments will be
+//  found back later when scaffolds are actually merged
+//  also push contigs left or right so non-overlapping contigs don't overlap
+//  scaffolds in sai are populated so overlap betwen them is AB_AB
+//  ScaffoldStuff orient field indicates whether scaffold needs to be flipped
+//  best is best aHang
+//  
+//  if best ahang indicates different edge distance, adjust sEdge
+//  
+//  work through segment list (overlaps) & anchor overlapping contigs
+//  wrt each other & adjust positions of contigs between overlapping sets
+//  
+//  
+//  Returns non-NULL pointer to static edge with new distance.mean if
+//  all went well, otherwise returns NULL
 
-  if best ahang indicates different edge distance, adjust sEdge
-
-  work through segment list (overlaps) & anchor overlapping contigs
-  wrt each other & adjust positions of contigs between overlapping sets
-
-
-  Returns non-NULL pointer to static edge with new distance.mean if
-  all went well, otherwise returns NULL
-*/
-
-//static
+//external
 SEdgeT *
 MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
                                  CIScaffoldT * scaffoldB,
@@ -2248,8 +2182,7 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
     sEdge->idB = idB;
     sEdge->orient = orient;
 
-    fprintf(stderr,
-            "WARNING - Interleaved scaffold adjustments stretch or compress edge too much!\n");
+    fprintf(stderr, "WARNING - Interleaved scaffold adjustments stretch or compress edge too much!\n");
 
     fprintf(stderr, "Original Edge:\n");
     PrintSEdgeT(stderr, ScaffoldGraph, "", sEdge, sEdge->idA);
@@ -2258,17 +2191,6 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
     fprintf(stderr, "Contig overlaps:\n");
     PrintSegments(stderr, sai->segmentList);
 
-    /*
-      fprintf(stderr, "\nOriginal scaffolds:\n");
-      DumpCIScaffold(stderr, ScaffoldGraph, scaffoldA, FALSE);
-      DumpCIScaffold(stderr, ScaffoldGraph, scaffoldB, FALSE);
-
-      fprintf(stderr, "\nAdjusted contig positions:");
-      fprintf(stderr, "Scaffold 'A'\n");
-      PrintScaffold_Tigs(stderr, contigsA, numContigsA);
-      fprintf(stderr, "\nScaffold 'B'\n");
-      PrintScaffold_Tigs(stderr, contigsB, numContigsB);
-    */
     return NULL;
   }
 #endif
