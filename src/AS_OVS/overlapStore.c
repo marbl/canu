@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.34 2012-03-14 14:58:35 gesims Exp $";
+const char *mainid = "$Id: overlapStore.c,v 1.35 2012-04-02 10:52:57 brianwalenz Exp $";
 
 #include "overlapStore.h"
 #include "AS_OVS_overlap.h"   //  Just to know the sizes of structs
@@ -65,7 +65,7 @@ main(int argc, char **argv) {
   uint32          nThreads    = 4;
   uint32          doFilterOBT = 0;
   vector<char *>  fileList;
-  Ovl_Skip_Type_t ovlSkipOpt  = ALL;
+  Ovl_Skip_Type_t ovlSkipOpt  = PLC_ALL;
 
   argc = AS_configure(argc, argv);
 
@@ -205,13 +205,13 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-i") == 0) {      
       switch (atoi(argv[++arg])) {
          case 0:
-            ovlSkipOpt = NONE;
+            ovlSkipOpt = PLC_NONE;
             break;
          case 1:
-            ovlSkipOpt = ALL;
+            ovlSkipOpt = PLC_ALL;
             break;
          case 2:
-            ovlSkipOpt = INTERNAL;
+            ovlSkipOpt = PLC_INTERNAL;
             break;
          default:
             fprintf(stderr, "%s: unknown overlap ignore option '%s'. Must be one of 0, 1, or 2.\n", argv[0], argv[arg]);

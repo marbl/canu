@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.51 2012-03-14 17:45:47 gesims Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.52 2012-04-02 10:52:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -470,14 +470,14 @@ index--;
          int secondIgnore = (storeFile->gkp->gkStore_getFRGtoPLC(fovrlap.b_iid) != 0 ? TRUE : FALSE);
          
          // option means don't ignore them at all
-         if (ovlSkipOpt == NONE) {
+         if (ovlSkipOpt == PLC_NONE) {
          }
          // option means don't overlap them at all
-         else if (ovlSkipOpt == ALL && ((firstIgnore == TRUE || secondIgnore == TRUE))) {
+         else if (ovlSkipOpt == PLC_ALL && ((firstIgnore == TRUE || secondIgnore == TRUE))) {
             continue;
          }
          // option means let them overlap other reads but not each other
-         else if (ovlSkipOpt == INTERNAL && ((firstIgnore == TRUE && secondIgnore == TRUE))) {
+         else if (ovlSkipOpt == PLC_INTERNAL && ((firstIgnore == TRUE && secondIgnore == TRUE))) {
             continue;
          }
       }
@@ -1001,14 +1001,14 @@ buildStore(char *storeName,
          int secondIgnore = (storeFile->gkp->gkStore_getFRGtoPLC(fovrlap.b_iid) != 0 ? TRUE : FALSE);
          
          // option means don't ignore them at all
-         if (ovlSkipOpt == NONE) {
+         if (ovlSkipOpt == PLC_NONE) {
          }
          // option means don't overlap them at all
-         else if (ovlSkipOpt == ALL && ((firstIgnore == TRUE || secondIgnore == TRUE))) {
+         else if (ovlSkipOpt == PLC_ALL && ((firstIgnore == TRUE || secondIgnore == TRUE))) {
             continue;
          }
          // option means let them overlap other reads but not each other
-         else if (ovlSkipOpt == INTERNAL && ((firstIgnore == TRUE && secondIgnore == TRUE))) {
+         else if (ovlSkipOpt == PLC_INTERNAL && ((firstIgnore == TRUE && secondIgnore == TRUE))) {
             continue;
          }
       }
@@ -1281,14 +1281,14 @@ buildStoreGES(char *storeName,
          int secondIgnore = (storeFile->gkp->gkStore_getFRGtoPLC(fovrlap.b_iid) != 0 ? TRUE : FALSE);
          
          // option means don't ignore them at all
-         if (ovlSkipOpt == NONE) {
+         if (ovlSkipOpt == PLC_NONE) {
          }
          // option means don't overlap them at all
-         else if (ovlSkipOpt == ALL && ((firstIgnore == TRUE || secondIgnore == TRUE))) {
+         else if (ovlSkipOpt == PLC_ALL && ((firstIgnore == TRUE || secondIgnore == TRUE))) {
             continue;
          }
          // option means let them overlap other reads but not each other
-         else if (ovlSkipOpt == INTERNAL && ((firstIgnore == TRUE && secondIgnore == TRUE))) {
+         else if (ovlSkipOpt == PLC_INTERNAL && ((firstIgnore == TRUE && secondIgnore == TRUE))) {
             continue;
          }
       }
