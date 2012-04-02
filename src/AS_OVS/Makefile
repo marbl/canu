@@ -1,4 +1,4 @@
-#
+
 ###########################################################################
 #
 # This file is part of Celera Assembler, a software program that
@@ -34,12 +34,12 @@ OVS_STR_OBJ = $(OVS_STR_SRC:.C=.o)
 OVS_STA_OBJ = $(OVS_STA_SRC:.C=.o)
 OVS_CVT_OBJ = $(OVS_CVT_SRC:.C=.o)
 
-SOURCES = $(OVS_LIB_SRC) $(OVS_STR_SRC) $(OVS_STA_SRC) $(OVS_CVT_SRC)
+SOURCES = $(OVS_LIB_SRC) $(OVS_STR_SRC) $(OVS_STA_SRC) $(OVS_CVT_SRC) overlapStoreBucketizer.C overlapStoreSorter.C overlapStoreIndexer.C overlapStoreBuild.C
 OBJECTS = $(SOURCES:.C=.o)
 
 LIBRARIES = libAS_OVS.a libCA.a
 
-CXX_PROGS = overlapStore overlapStats convertOverlap filterOverlap
+CXX_PROGS = overlapStore overlapStats convertOverlap filterOverlap overlapStoreBucketizer overlapStoreSorter overlapStoreIndexer overlapStoreBuild
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -50,6 +50,11 @@ libAS_OVS.a: $(OVS_LIB_OBJ)
 libCA.a:     $(OVS_LIB_OBJ)
 
 overlapStore:   $(OVS_STR_OBJ)   libCA.a
+overlapStoreBucketizer:   overlapStoreBucketizer.o   libCA.a
+overlapStoreSorter:       overlapStoreSorter.o       libCA.a
+overlapStoreIndexer:      overlapStoreIndexer.o      libCA.a
+overlapStoreBuild:        overlapStoreBuild.o        libCA.a
+
 overlapStats:   overlapStats.o   libCA.a
 convertOverlap: convertOverlap.o libCA.a
 filterOverlap:  filterOverlap.o  libCA.a
