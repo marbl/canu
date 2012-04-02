@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreSorter.C,v 1.1 2012-04-02 10:58:04 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreSorter.C,v 1.2 2012-04-02 16:55:34 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -41,7 +41,8 @@ using namespace std;
 #define AS_OVS_CURRENT_VERSION  2
 
 #define WITH_GZIP 1
-#define DELETE_INTERMEDIATE
+#define DELETE_INTERMEDIATE_EARLY
+#undef  DELETE_INTERMEDIATE_LATE
 
 
 //  This should be private to AS_OVS
@@ -293,6 +294,17 @@ main(int argc, char **argv) {
     fprintf(stderr, "ERROR: read "F_U64" overlaps, expected "F_U64"\n", numOvl, totOvl);
   assert(numOvl == totOvl);
 
+#ifdef DELETE_INTERMEDIATE_EARLY
+  for (uint32 i=0; i<=jobIdxMax; i++) {
+  	if (bucketSizes[i] == 0)
+  		continue;
+
+    char name[FILENAME_MAX];
+    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+  	AS_UTL_unlink(name);
+  }
+#endif
+
   //  Sort the overlaps
 
   sort(overlapsort, overlapsort + numOvl);
@@ -303,7 +315,7 @@ main(int argc, char **argv) {
 
   delete [] overlapsort;
 
-#ifdef DELETE_INTERMEDIATE
+#ifdef DELETE_INTERMEDIATE_LATE
   for (uint32 i=0; i<=jobIdxMax; i++) {
   	if (bucketSizes[i] == 0)
   		continue;
