@@ -19,20 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.88 2012-03-21 23:43:14 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.89 2012-04-02 09:29:24 brianwalenz Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-
-#include <math.h>
-#include <time.h>
-
-#undef INSTRUMENT_CGW
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
 
@@ -55,7 +43,8 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.88 2012-03-21 23:43:14 brianwalenz 
 #include "CommonREZ.h"
 #include "RepeatRez.h"
 #include "Stats_CGW.h"
-#include "AS_ALN_aligners.h"
+#include "ChunkOverlap_CGW.h"
+
 #include "Instrument_CGW.h"
 #include "fragmentPlacement.h"  //  for resolveSurrogates()
 
