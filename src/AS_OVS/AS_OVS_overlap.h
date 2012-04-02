@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAP_H
 #define AS_OVS_OVERLAP_H
 
-static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.18 2012-02-10 19:58:54 gesims Exp $";
+static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.19 2012-04-02 10:51:50 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"  //  pretty heavy just to get OverlapMesg.
@@ -194,6 +194,28 @@ typedef struct {
   AS_IID         b_iid;
   OVSoverlapDAT  dat;
 } OVSoverlap;
+
+inline
+bool
+operator<(const OVSoverlap &A, const OVSoverlap &B) {
+  if (A.a_iid      < B.a_iid)       return(true);
+  if (A.a_iid      > B.a_iid)       return(false);
+  if (A.b_iid      < B.b_iid)       return(true);
+  if (A.b_iid      > B.b_iid)       return(false);
+  if (A.dat.dat[0] < B.dat.dat[0])  return(true);
+  if (A.dat.dat[0] > B.dat.dat[0])  return(false);
+  if (A.dat.dat[1] < B.dat.dat[1])  return(true);
+  if (A.dat.dat[1] > B.dat.dat[1])  return(false);
+#if (AS_OVS_NWORDS > 2)
+  if (A.dat.dat[2] < B.dat.dat[2])  return(true);
+  if (A.dat.dat[2] > B.dat.dat[2])  return(false);
+#endif
+#if (AS_OVS_NWORDS > 3)
+  if (A.dat.dat[3] < B.dat.dat[3])  return(true);
+  if (A.dat.dat[3] > B.dat.dat[3])  return(false);
+#endif
+  return(false);
+}
 
 
 void  AS_OVS_convertOverlapMesgToOVSoverlap(OverlapMesg *omesg, OVSoverlap *ovs);
