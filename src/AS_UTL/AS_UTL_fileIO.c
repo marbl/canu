@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.26 2012-03-06 21:36:06 brianwalenz Exp $";
+//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.27 2012-04-02 11:07:36 brianwalenz Exp $";
 
 #include "AS_UTL_fileIO.h"
 
@@ -145,7 +145,7 @@ AS_UTL_mkdir(const char *dirname) {
 
   errno = 0;
   mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO);
-  if (errno) {
+  if ((errno) && (errno != EEXIST)) {
     fprintf(stderr, "AS_UTL_mkdir()--  Couldn't create directory '%s': %s\n", dirname, strerror(errno));
     exit(1);
   }
