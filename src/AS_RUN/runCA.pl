@@ -55,24 +55,17 @@ sub submitBatchJobs($$) {
 #  To make it more trouble, shell scripts need to do all this by
 #  themselves.
 #
-sub getBinDirectory () {
-    my $installDir;
-
-    ###
-    ### CODE DUPLICATION WITH getBinDirectoryShellCode
-    ###
-
-    #  Assume the current binary path is the path to the global CA
-    #  install directory.
-
-    #  CODE DUPLICATION!!!
+sub getInstallDirectory () {
     my @t = split '/', "$FindBin::RealBin";
-    pop @t;                      #  bin
-    pop @t;                      #  arch, e.g., FreeBSD-amd64
+    pop @t;                         #  bin
+    pop @t;                         #  arch, e.g., FreeBSD-amd64
     my $installDir = join '/', @t;  #  path to the assembler
-    #  CODE DUPLICATION!!!
 
-    #  Guess what platform we are currently running on.
+    return($installDir);
+}
+
+sub getBinDirectory () {
+    my $installDir = getInstallDirectory();
 
     my $syst = `uname -s`;    chomp $syst;  #  OS implementation
     my $arch = `uname -m`;    chomp $arch;  #  Hardware platform
@@ -97,14 +90,8 @@ sub getBinDirectory () {
 }
 
 sub getBinDirectoryShellCode () {
+    my $installDir = getInstallDirectory();
     my $string;
-
-    #  CODE DUPLICATION!!!
-    my @t = split '/', "$FindBin::RealBin";
-    pop @t;                      #  bin
-    pop @t;                      #  arch, e.g., FreeBSD-amd64
-    my $installDir = join '/', @t;  #  path to the assembler
-    #  CODE DUPLICATION!!!
 
     $string  = "\n";
     $string .= "syst=`uname -s`\n";
