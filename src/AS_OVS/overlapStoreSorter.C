@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreSorter.C,v 1.2 2012-04-02 16:55:34 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreSorter.C,v 1.3 2012-04-03 19:50:08 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -41,6 +41,7 @@ using namespace std;
 #define AS_OVS_CURRENT_VERSION  2
 
 #define WITH_GZIP 1
+
 #define DELETE_INTERMEDIATE_EARLY
 #undef  DELETE_INTERMEDIATE_LATE
 
@@ -50,7 +51,7 @@ using namespace std;
 void
 writeOverlaps(char                *ovlName,
               OVSoverlap          *overlapsort,
-              uint32               numOvl,
+              uint64               numOvl,
               uint32               jobIndex) {
 
 	char                        name[FILENAME_MAX];
@@ -90,6 +91,8 @@ writeOverlaps(char                *ovlName,
   FILE *offsetFile=fopen(name,"w");
   if (errno)
     fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+
+  fprintf(stderr, "Writing "F_U64" overlaps.\n", numOvl);
 
 	for (uint64 i=0; i<numOvl; i++ ) {
     AS_OVS_writeOverlap(bof, overlapsort + i);
@@ -150,6 +153,14 @@ writeOverlaps(char                *ovlName,
 
 	fclose(offsetFile);
 
+  //  In the nasty case that there were no overlaps in this slice, set meaningful smallest and
+  //  largest.  Well, at least, set non-nonsense smallest and largest.
+
+  if (overlapsThisFile == 0) {
+    ovs.smallestIID = 0;
+    ovs.largestIID = 0;
+  }
+
   {
     sprintf(name,"%s/%04d.ovs", ovlName, jobIndex);
 
@@ -163,6 +174,7 @@ writeOverlaps(char                *ovlName,
     fclose(F);	
 
     fprintf(stderr, "Wrote "F_U64" overlaps into '%s'\n", ovs.numOverlapsTotal, name);
+    fprintf(stderr, "Smallest "F_U64" largest "F_U64"\n", ovs.smallestIID, ovs.largestIID);
   }
 
   AS_OVS_closeBinaryOverlapFile(bof);    
@@ -186,7 +198,6 @@ writeOverlaps(char                *ovlName,
 int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
-  char           *gkpName      = NULL;
   uint32          fileLimit    = 512;
 
   uint32          jobIndex     = 0;
@@ -203,7 +214,8 @@ main(int argc, char **argv) {
       ovlName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-g") == 0) {
-      gkpName = argv[++arg];
+      //unused gkpName = argv[++arg];
+      ++arg;
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       fileLimit = atoi(argv[++arg]);
@@ -220,8 +232,6 @@ main(int argc, char **argv) {
   }
   if (ovlName == NULL)
     err++;
-  if (gkpName == NULL)
-    err++;
   if (jobIndex == 0)
     err++;
   if (jobIdxMax == 0)
@@ -230,11 +240,26 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  gkStore *gkp            = new gkStore(gkpName, FALSE, FALSE);
+  //  Check if we're running or done (or crashed), then note that we're running.
+
+  {
+    char name[FILENAME_MAX];
+    sprintf(name,"%s/%04d.ovs", ovlName, jobIndex);
+
+    if (AS_UTL_fileExists(name, FALSE, FALSE))
+      fprintf(stderr, "Job "F_U32" is running or finished.\n", jobIndex), exit(0);
+
+    errno = 0;
+    FILE *F = fopen(name, "w");
+    if (errno)
+      fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+
+    fclose(F);	
+  }
 
   // Get sizes of each bucket, and the final merge
 
-  uint64   *dumpLength    = new uint64 [fileLimit];      //  For each overlap job, number of overlaps per bucket
+  uint64   *sliceSizes    = new uint64 [fileLimit + 1];  //  For each overlap job, number of overlaps per bucket
   uint64   *bucketSizes   = new uint64 [jobIdxMax + 1];  //  For each bucket we care about, number of overlaps
 
   uint64    totOvl        = 0;
@@ -244,30 +269,30 @@ main(int argc, char **argv) {
     bucketSizes[i] = 0;
 
     char name[FILENAME_MAX];
-    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
 
     if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
       //  If no file, there are no overlaps.  Skip loading the bucketSizes file.
       continue;
 
-    sprintf(name, "%s/unsorted%04d/bucketSizes", ovlName, i);
+    sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, i);
 
     FILE *F = fopen(name, "r");
     if (errno)
       fprintf(stderr, "ERROR:  Failed to open %s: %s\n", name, strerror(errno)), exit(1);
 
-    AS_UTL_safeRead(F, dumpLength, "dumpLength", sizeof(uint64), fileLimit);
+    AS_UTL_safeRead(F, sliceSizes, "sliceSizes", sizeof(uint64), fileLimit + 1);
 
     fclose(F);
 
-    fprintf(stderr, "Found "F_U64" overlaps from '%s'.\n", dumpLength[jobIndex], name);
+    //fprintf(stderr, "Found "F_U64" overlaps from '%s'.\n", sliceSizes[jobIndex], name);
 
-    bucketSizes[i] = dumpLength[jobIndex];
-    totOvl        += dumpLength[jobIndex];
+    bucketSizes[i] = sliceSizes[jobIndex];
+    totOvl        += sliceSizes[jobIndex];
   }
 
-  delete [] dumpLength;
-  dumpLength = NULL;
+  delete [] sliceSizes;
+  sliceSizes = NULL;
 
   OVSoverlap *overlapsort = new OVSoverlap [totOvl];
 
@@ -278,7 +303,7 @@ main(int argc, char **argv) {
       continue;
 
     char name[FILENAME_MAX];
-    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
 
     fprintf(stderr, "Loading "F_U64" overlaps from '%s'.\n", bucketSizes[i], name);
 
@@ -295,33 +320,37 @@ main(int argc, char **argv) {
   assert(numOvl == totOvl);
 
 #ifdef DELETE_INTERMEDIATE_EARLY
+  fprintf(stderr, "Removing inputs.\n");
   for (uint32 i=0; i<=jobIdxMax; i++) {
   	if (bucketSizes[i] == 0)
   		continue;
 
     char name[FILENAME_MAX];
-    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
   	AS_UTL_unlink(name);
   }
 #endif
 
   //  Sort the overlaps
 
+  fprintf(stderr, "Sorting.\n");
   sort(overlapsort, overlapsort + numOvl);
 
   //  Output to store format
 
+  fprintf(stderr, "Writing output.\n");
   writeOverlaps(ovlName, overlapsort, numOvl, jobIndex);
 
   delete [] overlapsort;
 
 #ifdef DELETE_INTERMEDIATE_LATE
+  fprintf(stderr, "Removing inputs.\n");
   for (uint32 i=0; i<=jobIdxMax; i++) {
   	if (bucketSizes[i] == 0)
   		continue;
 
     char name[FILENAME_MAX];
-    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
   	AS_UTL_unlink(name);
   }
 #endif

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.2 2012-04-02 16:55:56 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.3 2012-04-03 19:50:08 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -43,25 +43,25 @@ using namespace std;
 static
 void
 writeToFile(OVSoverlap          *overlap,
-            BinaryOverlapFile  **dumpFile,
-            uint32               dumpFileMax,
-            uint64              *dumpLength,
+            BinaryOverlapFile  **sliceFile,
+            uint32               sliceFileMax,
+            uint64              *sliceSize,
             uint32               iidPerBucket,
             char                *ovlName,
             uint32               jobIndex) {
 
   uint32 df = overlap->a_iid / iidPerBucket + 1;
 
-  if (df > dumpFileMax) {
+  if (df > sliceFileMax) {
     char   olapstring[256];
     
     fprintf(stderr, "\n");
     fprintf(stderr, "Too many bucket files when adding overlap:\n");
     fprintf(stderr, "  %s\n", AS_OVS_toString(olapstring, *overlap));
     fprintf(stderr, "\n");
-    fprintf(stderr, "bucket       = "F_U32"\n", df);
-    fprintf(stderr, "iidPerBucket = "F_U32"\n", iidPerBucket);
-    fprintf(stderr, "dumpFileMax  = "F_U32"\n", dumpFileMax);
+    fprintf(stderr, "bucket        = "F_U32"\n", df);
+    fprintf(stderr, "iidPerBucket  = "F_U32"\n", iidPerBucket);
+    fprintf(stderr, "sliceFileMax  = "F_U32"\n", sliceFileMax);
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "This might be a corrupt input file, or maybe you simply need to supply more\n");
@@ -70,16 +70,16 @@ writeToFile(OVSoverlap          *overlap,
     exit(1);
   }
 
-  if (dumpFile[df] == NULL) {
+  if (sliceFile[df] == NULL) {
     char name[FILENAME_MAX];
 
-    sprintf(name, "%s/unsorted%04d/tmp.sort.%03d%s", ovlName, jobIndex, df, (WITH_GZIP) ? ".gz" : "");
-    dumpFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE);
-    dumpLength[df] = 0;
+    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, jobIndex, df, (WITH_GZIP) ? ".gz" : "");
+    sliceFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE);
+    sliceSize[df] = 0;
   }
 
-  AS_OVS_writeOverlap(dumpFile[df], overlap);
-  dumpLength[df]++;
+  AS_OVS_writeOverlap(sliceFile[df], overlap);
+  sliceSize[df]++;
 }
 
 
@@ -228,6 +228,8 @@ main(int argc, char **argv) {
     err++;
   if (jobIndex == 0)
     err++;
+  if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
+    err++;
   if (err) {
     exit(1);
   }
@@ -239,7 +241,7 @@ main(int argc, char **argv) {
     if (AS_UTL_fileExists(ovlName, TRUE, FALSE) == false)
       AS_UTL_mkdir(ovlName);
 
-    sprintf(name, "%s/unsorted%04d", ovlName, jobIndex);
+    sprintf(name, "%s/bucket%04d", ovlName, jobIndex);
     if (AS_UTL_fileExists(name, TRUE, FALSE) == false)
       AS_UTL_mkdir(name);
   }
@@ -250,19 +252,11 @@ main(int argc, char **argv) {
   uint64  maxIID       = gkp->gkStore_getNumFragments() + 1;
   uint64  iidPerBucket = (uint64)ceil((double)maxIID / (double)fileLimit);
 
-  uint32                   dumpFileMax  = sysconf(_SC_OPEN_MAX) + 1;
-  BinaryOverlapFile      **dumpFile     = new BinaryOverlapFile * [dumpFileMax];
-  uint64                  *dumpLength   = new uint64              [dumpFileMax];
+  BinaryOverlapFile      **sliceFile     = new BinaryOverlapFile * [fileLimit + 1];
+  uint64                  *sliceSize     = new uint64              [fileLimit + 1];
 
-  memset(dumpFile,   0, sizeof(BinaryOverlapFile *) * dumpFileMax);
-  memset(dumpLength, 0, sizeof(uint64)              * dumpFileMax);
-
-  if (maxIID / iidPerBucket + 1 > dumpFileMax - 16) {
-    fprintf(stderr, "ERROR:\n");
-    fprintf(stderr, "ERROR:  Operating system limit of %d open files.  The current -F setting\n", dumpFileMax);
-    fprintf(stderr, "ERROR:  will need to create "F_U64" files to construct the store.\n", maxIID / iidPerBucket + 1);
-    exit(1);
-  }
+  memset(sliceFile, 0, sizeof(BinaryOverlapFile *) * (fileLimit + 1));
+  memset(sliceSize, 0, sizeof(uint64)              * (fileLimit + 1));
 
   //  Read the gkStore to determine which fragments we care about.
   //
@@ -366,7 +360,7 @@ main(int argc, char **argv) {
     }
 
 
-    writeToFile(&fovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName, jobIndex);
+    writeToFile(&fovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex);
 
     //  flip the overlap -- copy all the dat, then fix whatever
     //  needs to change for the flip.
@@ -386,7 +380,7 @@ main(int argc, char **argv) {
           rovrlap.dat.ovl.b_hang = -fovrlap.dat.ovl.b_hang;
         }
 
-        writeToFile(&rovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName, jobIndex);
+        writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex);
         break;
       case AS_OVS_TYPE_OBT:
         rovrlap.a_iid = fovrlap.b_iid;
@@ -406,7 +400,7 @@ main(int argc, char **argv) {
           rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_beg & 0x1ff;
         }
 
-        writeToFile(&rovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, ovlName, jobIndex);
+        writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex);
         break;
       case AS_OVS_TYPE_MER:
         //  Not needed; MER outputs both overlaps
@@ -419,19 +413,19 @@ main(int argc, char **argv) {
 
   AS_OVS_closeBinaryOverlapFile(inputFile);
 
-  for (uint32 i=0; i<dumpFileMax; i++)
-    AS_OVS_closeBinaryOverlapFile(dumpFile[i]);
+  for (uint32 i=0; i<=fileLimit; i++)
+    AS_OVS_closeBinaryOverlapFile(sliceFile[i]);
 
   {
     char name[FILENAME_MAX];
 
-    sprintf(name, "%s/unsorted%04d/bucketSizes", ovlName, jobIndex);
+    sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, jobIndex);
 
     FILE *F = fopen(name, "w");
     if (errno)
       fprintf(stderr, "ERROR:  Failed to open %s: %s\n", name, strerror(errno)), exit(1);
 
-    AS_UTL_safeWrite(F, dumpLength, "dumpLength", sizeof(uint64), dumpFileMax);
+    AS_UTL_safeWrite(F, sliceSize, "sliceSize", sizeof(uint64), fileLimit + 1);
 
     fclose(F);
   }

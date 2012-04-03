@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBuild.C,v 1.1 2012-04-02 10:58:04 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBuild.C,v 1.2 2012-04-03 19:50:08 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -107,8 +107,8 @@ computeIIDperBucket(uint32 fileLimit, uint64 memoryLimit, uint32 maxIID, vector<
 
 static
 void
-markLoad(OverlapStore *storeFile, uint32 maxIID, char *&skipFragment, uint32 *&iidToLib) {
-  gkStream    *gks = new gkStream(storeFile->gkp, 0, 0, GKFRAGMENT_INF);
+markLoad(gkStore *gkp, uint32 maxIID, char *&skipFragment, uint32 *&iidToLib) {
+  gkStream    *gks = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
   gkFragment   fr;
 
   fprintf(stderr, "Reading gatekeeper to build a map from fragment ID to library ID.\n");
@@ -128,7 +128,7 @@ markLoad(OverlapStore *storeFile, uint32 maxIID, char *&skipFragment, uint32 *&i
 
 static
 void
-markOBT(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
+markOBT(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
   uint64  numMarked = 0;
 
   if (skipFragment == NULL)
@@ -137,7 +137,7 @@ markOBT(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidT
   fprintf(stderr, "Marking fragments to skip overlap based trimming.\n");
 
   for (uint64 iid=0; iid<maxIID; iid++) {
-    gkLibrary *L = storeFile->gkp->gkStore_getLibrary(iidToLib[iid]);
+    gkLibrary *L = gkp->gkStore_getLibrary(iidToLib[iid]);
 
     if (L == NULL)
       continue;
@@ -158,7 +158,7 @@ markOBT(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidT
 
 static
 void
-markDUP(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
+markDUP(gkStore *gkp, uint32 maxIID, char *skipFragment, uint32 *iidToLib) {
   uint64  numMarked = 0;
 
   if (skipFragment == NULL)
@@ -167,7 +167,7 @@ markDUP(OverlapStore *storeFile, uint32 maxIID, char *skipFragment, uint32 *iidT
   fprintf(stderr, "Marking fragments to skip deduplication.\n");
 
   for (uint64 iid=0; iid<maxIID; iid++) {
-    gkLibrary *L = storeFile->gkp->gkStore_getLibrary(iidToLib[iid]);
+    gkLibrary *L = gkp->gkStore_getLibrary(iidToLib[iid]);
 
     if (L == NULL)
       continue;
@@ -342,7 +342,6 @@ main(int argc, char **argv) {
   //
   OverlapStore    *storeFile = AS_OVS_createOverlapStore(ovlName, TRUE);
 
-
   gkStore *gkp         = new gkStore(gkpName, FALSE, FALSE);
 
   uint64  maxIID       = gkp->gkStore_getNumFragments() + 1;
@@ -384,13 +383,13 @@ main(int argc, char **argv) {
   uint64   skipOBT2NODEDUP = 0;
 
   if (doFilterOBT != 0)
-    markLoad(storeFile, maxIID, skipFragment, iidToLib);
+    markLoad(gkp, maxIID, skipFragment, iidToLib);
 
   if (doFilterOBT == 1)
-    markOBT(storeFile, maxIID, skipFragment, iidToLib);
+    markOBT(gkp, maxIID, skipFragment, iidToLib);
 
   if (doFilterOBT == 2)
-    markDUP(storeFile, maxIID, skipFragment, iidToLib);
+    markDUP(gkp, maxIID, skipFragment, iidToLib);
 
 
   
@@ -539,8 +538,7 @@ main(int argc, char **argv) {
     if (dumpLengthMax < dumpLength[i])
       dumpLengthMax = dumpLength[i];
 
-  OVSoverlap         *overlapsort = NULL;
-  overlapsort = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * dumpLengthMax);
+  OVSoverlap  *overlapsort = new OVSoverlap [dumpLengthMax];
 
   time_t  beginTime = time(NULL);
 
@@ -588,7 +586,7 @@ main(int argc, char **argv) {
 
   AS_OVS_closeOverlapStore(storeFile);
 
-  safe_free(overlapsort);
+  delete [] overlapsort;
 
   //  And we have a store.
   //

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreIndexer.C,v 1.1 2012-04-02 10:58:04 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreIndexer.C,v 1.2 2012-04-03 19:50:08 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -45,7 +45,7 @@ using namespace std;
 int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
-  char           *gkpName      = NULL;
+  //char           *gkpName      = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -56,7 +56,8 @@ main(int argc, char **argv) {
       ovlName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-g") == 0) {
-      gkpName = argv[++arg];
+      //unused gkpName = argv[++arg];
+      ++arg;
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -66,14 +67,14 @@ main(int argc, char **argv) {
   }
   if (ovlName == NULL)
     err++;
-  if (gkpName == NULL)
-    err++;
+  //if (gkpName == NULL)
+  //  err++;
   if (err) {
     exit(1);
   }
 
-  gkStore *gkp         = new gkStore(gkpName, FALSE, FALSE);
-  AS_IID   maxIID      = gkp->gkStore_getNumFragments() + 1;
+  //gkStore *gkp         = new gkStore(gkpName, FALSE, FALSE);
+  //AS_IID   maxIID      = gkp->gkStore_getNumFragments() + 1;
 
   OverlapStoreInfo    ovspiece;
   OverlapStoreInfo    ovs;
@@ -139,7 +140,7 @@ main(int argc, char **argv) {
     //  Add empty index elements for missing overlaps
 
     if (ovs.largestIID > 0) {
-      fprintf(stderr, "  Adding empty records for fragments "F_U32" to "F_U32"\n",
+      fprintf(stderr, "  Adding empty records for fragments "F_U64" to "F_U64"\n",
               ovs.largestIID + 1, ovspiece.smallestIID);
 
       while (ovs.largestIID + 1 < ovspiece.smallestIID) {
@@ -187,7 +188,7 @@ main(int argc, char **argv) {
 
     ovs.numOverlapsTotal += ovspiece.numOverlapsTotal;
 
-    fprintf(stderr, "  Now finished with fragments "F_U32" to "F_U32" -- "F_U64" overlaps.\n",
+    fprintf(stderr, "  Now finished with fragments "F_U64" to "F_U64" -- "F_U64" overlaps.\n",
             ovs.smallestIID, ovs.largestIID, ovs.numOverlapsTotal);
   }
 
@@ -216,17 +217,40 @@ main(int argc, char **argv) {
           ovs.largestIID,
           ovs.numOverlapsTotal);
 
-  //  Remove intermediates
+  //  Remove intermediates.  For the buckets, we keep going until there are 10 in a row not present.
+  //  During testing, on a microbe using 2850 buckets, some buckets were empty.
 
 #ifdef DELETE_INTERMEDIATE
   for (uint32 i=1; i<numSegments; i++) {
     char name[FILENAME_MAX];
 
     sprintf(name, "%s/%04u.idx", ovlName, i);
+    fprintf(stderr, "unlink %s\n", name);
     AS_UTL_unlink(name);
 
     sprintf(name, "%s/%04u.ovs", ovlName, i);
+    fprintf(stderr, "unlink %s\n", name);
     AS_UTL_unlink(name);
+  }
+
+  for (uint32 missing=0, i=1; missing<10; i++) {
+    char name[FILENAME_MAX];
+
+    sprintf(name, "%s/bucket%04d", ovlName, i);
+    if (AS_UTL_fileExists(name, TRUE, FALSE) == FALSE) {
+      missing++;
+      continue;
+    }
+
+    missing = 0;
+
+    sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, i);
+    fprintf(stderr, "unlink %s\n", name);
+    AS_UTL_unlink(name);
+
+    sprintf(name, "%s/bucket%04d", ovlName, i);
+    fprintf(stderr, "rmdir %s\n", name);
+    rmdir(name);
   }
 #endif
 

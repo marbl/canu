@@ -31,6 +31,7 @@ CXX_PROGS = fragmentDepth markUniqueUnique
 
 SCRIPTS = runCA \
           runCA-dedupe \
+          runCA-overlapStoreBuild \
           mergeqc.pl \
           caqc.pl \
           caqc_help.ini \
@@ -51,6 +52,10 @@ runCA: runCA.pl
 	@chmod 775 $(LOCAL_BIN)/$@
 
 runCA-dedupe: runCA-dedupe.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+runCA-overlapStoreBuild: runCA-overlapStoreBuild.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
