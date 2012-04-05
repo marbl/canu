@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.33 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.34 2012-04-05 23:38:35 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -37,6 +37,8 @@ static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.33 2011-12-29 09:26:03 
 #include "CommonREZ.h"
 #include "Instrument_CGW.h"
 #include "UtilsREZ.h"
+
+#include "omp.h"
 
 static VA_TYPE(CIEdgeT)        *graphCIEdges;
 
@@ -109,8 +111,8 @@ TransitiveEdgeOrientation(PairOrient leftOrient,
 //
 //  The values below (15, 50^4, 50) are complete gueses.
 //
-int AS_CGW_MAX_FTEP_RECURSE_DEPTH   = 15;
-int AS_CGW_MAX_FTEP_RECURSE_SIZE    = 50 * 50 * 50 * 50;
+int AS_CGW_MAX_FTEP_RECURSE_DEPTH   = 8;
+int AS_CGW_MAX_FTEP_RECURSE_SIZE    = 200000;
 int AS_CGW_MAX_FTEP_OUTGOING_EDGES  = 50;
 
 //  Count the number of possible outgoing edges 
@@ -244,6 +246,9 @@ FoundTransitiveEdgePath(ScaffoldGraphT *graph,
     next.orient             = TransitiveEdgeOrientation(pathOrient, GetEdgeOrientationWRT(tran, thisCI->id));
 
     if (FoundTransitiveEdgePath(graph, &next, edge, startCI, endCI, nextCI, recurseDepth + 1, recurseSize * outgoing)) {
+      //fprintf(stderr, "FoundTransitiveEdgePath()-- edge from %d to %d confirmed at depth %d size %d.\n",
+      //        tran->idA, tran->idB, recurseDepth, recurseSize);
+
       tran->flags.bits.isConfirmed = TRUE;
 
       //  For speed we are going to return when we find the first path and not find all paths so as
@@ -304,6 +309,8 @@ MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int en
       path.orient = GetEdgeOrientationWRT(tran, thisCI->id);
 
       if (FoundTransitiveEdgePath(graph, &path, edge, thisCI, endCI, nextCI, 0, outgoing)) {
+        //fprintf(stderr, "MarkPathRemovedEdgesOneEnd()-- path from %d to %d - edge from %d to %d removed.\n",
+        //        thisCI->id, endCI->id, edge->idA, edge->idB);
         edge->flags.bits.isTransitivelyRemoved = TRUE;
         edge->flags.bits.isConfirmed           = TRUE;
         tran->flags.bits.isConfirmed           = TRUE;
@@ -321,11 +328,45 @@ MarkPathRemovedEdges(ScaffoldGraphT *graph) {
   GraphNodeIterator nodes;
   ChunkInstanceT   *node;
 
+  fprintf(stderr, "MarkPathRemovedEdges()--\n");
+
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((node = NextGraphNodeIterator(&nodes)) != NULL) {
     MarkPathRemovedEdgesOneEnd(graph, node, A_END);
     MarkPathRemovedEdgesOneEnd(graph, node, B_END);
   }
+}
+
+
+static
+void
+MarkPathRemovedEdgesOMP(ScaffoldGraphT *graph) {
+  GraphNodeIterator nodes;
+  ChunkInstanceT   *node;
+
+  int32  numNodes = 0;
+
+  InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
+  while((node = NextGraphNodeIterator(&nodes)) != NULL)
+    numNodes++;
+
+  fprintf(stderr, "MarkPathRemovedEdgesOMP()-- working on "F_U32" nodes, with %d threads.\n", numNodes, omp_get_num_threads());
+
+  ChunkInstanceT **nodeList = new ChunkInstanceT * [numNodes];
+
+  numNodes = 0;
+
+  InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
+  while((node = NextGraphNodeIterator(&nodes)) != NULL)
+    nodeList[numNodes++] = node;
+
+#pragma omp parallel for schedule(dynamic, numNodes/100)
+  for (int32 ni=0; ni<numNodes; ni++) {
+    MarkPathRemovedEdgesOneEnd(graph, nodeList[ni], A_END);
+    MarkPathRemovedEdgesOneEnd(graph, nodeList[ni], B_END);
+  }
+
+  delete [] nodeList;
 }
 
 
@@ -360,7 +401,7 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 
     CDS_CID_t             AmidCID = (Ahop1->idA == thisCI->id) ? Ahop1->idB : Ahop1->idA;
     ChunkInstanceT       *AmidCI  = GetGraphNode(graph->ContigGraph, AmidCID);
-    PairOrient  AmidOri = GetEdgeOrientationWRT(Ahop1, thisCI->id);
+    PairOrient            AmidOri = GetEdgeOrientationWRT(Ahop1, thisCI->id);
 
     GraphEdgeIterator  Ahop2s;
     CIEdgeT           *Ahop2;
@@ -376,7 +417,7 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
         continue;
 
       ChunkInstanceT        *AendCI    = GetGraphNode(graph->ContigGraph, ((Ahop2->idA == AmidCID) ? Ahop2->idB : Ahop2->idA));
-      PairOrient   AendOri   = TransitiveEdgeOrientation(AmidOri, GetEdgeOrientationWRT(Ahop2, AmidCID));
+      PairOrient             AendOri   = TransitiveEdgeOrientation(AmidOri, GetEdgeOrientationWRT(Ahop2, AmidCID));
       double                 AMean     = Ahop1->distance.mean     + AmidCI->bpLength.mean     + Ahop2->distance.mean;
       double                 AVariance = Ahop1->distance.variance + AmidCI->bpLength.variance + Ahop2->distance.variance;
 
@@ -394,7 +435,7 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 
         CDS_CID_t             BmidCID = (Bhop1->idA == thisCI->id) ? Bhop1->idB : Bhop1->idA;
         ChunkInstanceT       *BmidCI  = GetGraphNode(graph->ContigGraph, BmidCID);
-        PairOrient  BmidOri = GetEdgeOrientationWRT(Bhop1, thisCI->id);
+        PairOrient            BmidOri = GetEdgeOrientationWRT(Bhop1, thisCI->id);
 
         GraphEdgeIterator  Bhop2s;
         CIEdgeT           *Bhop2;
@@ -410,7 +451,7 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
             continue;
 
           ChunkInstanceT        *BendCI    = GetGraphNode(graph->ContigGraph, ((Bhop2->idA == BmidCID) ? Bhop2->idB : Bhop2->idA));
-          PairOrient   BendOri   = TransitiveEdgeOrientation(BmidOri, GetEdgeOrientationWRT(Bhop2, BmidCID));
+          PairOrient             BendOri   = TransitiveEdgeOrientation(BmidOri, GetEdgeOrientationWRT(Bhop2, BmidCID));
           double                 BMean     = Bhop1->distance.mean     + BmidCI->bpLength.mean     + Bhop2->distance.mean;
           double                 BVariance = Bhop1->distance.variance + BmidCI->bpLength.variance + Bhop2->distance.variance;
 
@@ -440,11 +481,45 @@ MarkTwoHopConfirmedEdges(ScaffoldGraphT *graph) {
   GraphNodeIterator nodes;
   ChunkInstanceT   *node;
 
+  fprintf(stderr, "MarkTwoHopConfirmedEdges()--\n");
+
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((node = NextGraphNodeIterator(&nodes)) != NULL) {
     MarkTwoHopConfirmedEdgesOneEnd(graph, node, A_END);
     MarkTwoHopConfirmedEdgesOneEnd(graph, node, B_END);
   }
+}
+
+
+static
+void
+MarkTwoHopConfirmedEdgesOMP(ScaffoldGraphT *graph) {
+  GraphNodeIterator nodes;
+  ChunkInstanceT   *node;
+
+  int32  numNodes = 0;
+
+  InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
+  while((node = NextGraphNodeIterator(&nodes)) != NULL)
+    numNodes++;
+
+  fprintf(stderr, "MarkTwoHopConfirmedEdgesOMP()-- working on "F_U32" nodes, with %d threads.\n", numNodes, omp_get_num_threads());
+
+  ChunkInstanceT **nodeList = new ChunkInstanceT * [numNodes];
+
+  numNodes = 0;
+
+  InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
+  while((node = NextGraphNodeIterator(&nodes)) != NULL)
+    nodeList[numNodes++] = node;
+
+#pragma omp parallel for schedule(dynamic, numNodes/100)
+  for (int32 ni=0; ni<numNodes; ni++) {
+    MarkTwoHopConfirmedEdgesOneEnd(graph, nodeList[ni], A_END);
+    MarkTwoHopConfirmedEdgesOneEnd(graph, nodeList[ni], B_END);
+  }
+
+  delete [] nodeList;
 }
 
 
@@ -509,6 +584,8 @@ void
 MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph) {
   GraphNodeIterator nodes;
   ChunkInstanceT   *node;
+
+  fprintf(stderr, "MarkRedundantUniqueToUniqueEdges()--\n");
 
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((node = NextGraphNodeIterator(&nodes)) != NULL) {
@@ -1996,10 +2073,10 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
         inferredEdge->flags.bits.isConfirmed = TRUE;
         inferredEdge->flags.bits.isLeastSquares = TRUE;
 
-#if 0
+#if 1
         fprintf(stderr,"* Added inferred GraphEdge v1 (%d,%d,%c) isAContainsB:%d isBContainsA:%d fragA %d fragB %d isInferred %d isRaw %d\n",
                 inferredEdge->idA, inferredEdge->idB,
-                inferredEdge->orient,
+                inferredEdge->orient.toLetter(),
                 inferredEdge->flags.bits.aContainsB,
                 inferredEdge->flags.bits.bContainsA,
                 inferredEdge->fragA,inferredEdge->fragB,
@@ -2077,6 +2154,8 @@ BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
                        int markShakyBifurcations,
                        int verbose) {
 
+  fprintf(stderr, "BuildUniqueCIScaffolds()-- with %d threads out of %d max.\n", omp_get_num_threads(), omp_get_max_threads());
+
   //  mouse_20010730 disabled markShakyBifurcations.
   //markShakyBifurcations = FALSE;
 
@@ -2100,8 +2179,8 @@ BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
       ResetEdgeStatus(graph);
       AddScaffoldInferredEdges(graph);
       MarkRedundantUniqueToUniqueEdges(graph);
-      MarkTwoHopConfirmedEdges(graph);
-      MarkPathRemovedEdges(graph);  //  EXPENSIVE
+      MarkTwoHopConfirmedEdgesOMP(graph);
+      MarkPathRemovedEdgesOMP(graph);  //  EXPENSIVE
       SmoothWithInferredEdges(graph, markShakyBifurcations);
 
       //  Mark shaky bifurcations.
@@ -2135,8 +2214,8 @@ BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
   ResetEdgeStatus(graph);
   AddScaffoldInferredEdges(graph);
   MarkRedundantUniqueToUniqueEdges(graph);
-  MarkTwoHopConfirmedEdges(graph);
-  MarkPathRemovedEdges(graph);  //  EXPENSIVE
+  MarkTwoHopConfirmedEdgesOMP(graph);
+  MarkPathRemovedEdgesOMP(graph);  //  EXPENSIVE
   SmoothWithInferredEdges(graph, FALSE);
 
   //

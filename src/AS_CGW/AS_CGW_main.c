@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.89 2012-04-02 09:29:24 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.90 2012-04-05 23:38:35 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -48,6 +48,7 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.89 2012-04-02 09:29:24 brianwalenz 
 #include "Instrument_CGW.h"
 #include "fragmentPlacement.h"  //  for resolveSurrogates()
 
+#include <omp.h>
 
 //  Defines the logical checkpoints
 
@@ -99,6 +100,9 @@ main(int argc, char **argv) {
   coc = CreateContigOrientChecker();
   assert(coc != NULL);
 #endif
+
+  //  temporary!
+  fprintf(stderr, "Using up to %d OpenMP threads.\n", omp_get_max_threads());
 
   GlobalData = new Globals_CGW();
 
