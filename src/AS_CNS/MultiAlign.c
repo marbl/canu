@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.19 2011-12-19 00:34:20 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.20 2012-04-05 02:55:59 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -515,18 +515,12 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma) {
 
 
 
-//  used to return NULL if (!isPresent) or (*reference != NULLINDEX)
-
 MultiAlignT *
 LoadMultiAlignTFromStream(FILE *stream) {
   MultiAlignT *ma = CreateEmptyMultiAlignT();
   ReLoadMultiAlignTFromStream(stream, ma);
   return(ma);
 }
-
-
-
-
 
 
 void
@@ -548,8 +542,6 @@ CheckMAValidity(MultiAlignT *ma) {
     assert(*q >= '0' && *q <= 'l');
   }
 }
-
-
 
 
 
