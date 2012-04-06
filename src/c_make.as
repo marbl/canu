@@ -85,7 +85,7 @@ ifeq ($(OSTYPE), Linux)
   else
     #  gcc412 doesn't know these
     #ARCH_CFLAGS  += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-    ARCH_CFLAGS  += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+    ARCH_CFLAGS  += -O4 -fopenmp -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     ARCH_LDFLAGS += -Wl,-O1
   endif
 endif
@@ -95,16 +95,24 @@ endif
 #  NOTE:  using -pedantic generates many warnings "use of C99 long long integer constant" in kmer
 
 ifeq ($(OSTYPE), FreeBSD)
+  #CC=gcc46
+  #CXX=g++46
+
   ifeq ($(MACHINETYPE), i386)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      = -pthread -Wall -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
-    ARCH_CFLAGS      = -pthread       -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
+    ARCH_CFLAGS      = -pthread -Wall -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
+    ARCH_CFLAGS      = -pthread       -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_LDFLAGS    += -pthread -lthr -lm
-    ARCH_CFLAGS      =  -pthread               -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
-    ARCH_CFLAGS      =  -pthread -Wall -Wextra -Wimplicit -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+    ARCH_CFLAGS      =  -pthread               -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
+    ARCH_CFLAGS      =  -pthread -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
   endif
+
+  #ARCH_CFLAGS  += -fopenmp
+  #ARCH_LDFLAGS += -fopenmp
+  ARCH_CFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
+  ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -rpath /usr/local/lib/gcc46
 
   ifeq ($(BUILDCOVERAGE), 1)
     ARCH_CFLAGS   += -g -fprofile-arcs -ftest-coverage
@@ -114,9 +122,9 @@ ifeq ($(OSTYPE), FreeBSD)
       ARCH_CFLAGS   += -g
     else
       ifeq ($(BUILDPROFILE), 1)
-        ARCH_CFLAGS   += -O -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions
+        ARCH_CFLAGS   += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions
       else
-        ARCH_CFLAGS   += -O -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+        ARCH_CFLAGS   += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
       endif
     endif
   endif
