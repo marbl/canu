@@ -63,6 +63,9 @@ include $(LOCAL_WORK)/src/c_make.gen
 
 
 ifeq ($(OSTYPE), Linux)
+  ARCH_CFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
+  ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp
+
   ifeq ($(MACHINETYPE), i686)
     ARCH_LDFLAGS  += -pthread -lm
     ARCH_CFLAGS   += -pthread -Wall -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -DX86_GCC_LINUX
@@ -84,8 +87,8 @@ ifeq ($(OSTYPE), Linux)
     ARCH_LDFLAGS +=
   else
     #  gcc412 doesn't know these
-    #ARCH_CFLAGS  += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-    ARCH_CFLAGS  += -O4 -fopenmp -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+    ARCH_CFLAGS  += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+    #ARCH_CFLAGS  += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     ARCH_LDFLAGS += -Wl,-O1
   endif
 endif
