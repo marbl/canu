@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.7 2012-02-27 21:31:39 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.8 2012-04-07 07:32:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,6 +136,10 @@ gkStore::gkStore_getFragment(AS_IID iid, gkFragment *fr, int32 flags) {
   fr->hasQLT = 0;
 
   fr->gkp = this;
+
+  if (iid == 0)
+    fprintf(stderr, "gkStore_getFragment()-- ERROR, attempt to retrieve non-existent fragment 0.\n");
+  assert(iid > 0);
 
   gkStore_decodeTypeFromIID(iid, fr->type, fr->tiid);
 
