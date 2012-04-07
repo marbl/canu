@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.21 2011-07-21 05:32:54 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.22 2012-04-07 09:51:05 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -38,6 +38,7 @@ const char *mainid = "$Id: buildPosMap.c,v 1.21 2011-07-21 05:32:54 brianwalenz 
 using namespace std;
 
 map<AS_UID,AS_IID>  uid2iid;
+map<AS_UID,AS_IID>  uid2lib;
 
 #define ORIR 'r'
 #define ORIF 'f'
@@ -54,33 +55,35 @@ typedef struct {
 uint32       ctgInfoMax = 32 * 1024 * 1024;
 ctgInfo_t   *ctgInfo    = NULL;
 
+AS_IID       lastAFG = 1;
 
-FILE *frags  = NULL;
-FILE *mates  = NULL;
+FILE *frags     = NULL;
+FILE *mates     = NULL;
+FILE *libraries = NULL;
 
-FILE *utglkg = NULL;
-FILE *ctglkg = NULL;
-FILE *scflkg = NULL;
+FILE *utglkg    = NULL;
+FILE *ctglkg    = NULL;
+FILE *scflkg    = NULL;
 
-FILE *frgutg = NULL;
+FILE *frgutg    = NULL;
 
-FILE *frgdeg = NULL;
-FILE *utgdeg = NULL;
-FILE *vardeg = NULL;
+FILE *frgdeg    = NULL;
+FILE *utgdeg    = NULL;
+FILE *vardeg    = NULL;
 
-FILE *frgctg = NULL;
-FILE *utgctg = NULL;
-FILE *varctg = NULL;
+FILE *frgctg    = NULL;
+FILE *utgctg    = NULL;
+FILE *varctg    = NULL;
 
-FILE *frgscf = NULL;
-FILE *utgscf = NULL;
-FILE *ctgscf = NULL;
-FILE *varscf = NULL;
+FILE *frgscf    = NULL;
+FILE *utgscf    = NULL;
+FILE *ctgscf    = NULL;
+FILE *varscf    = NULL;
 
-FILE *utglen = NULL;
-FILE *deglen = NULL;
-FILE *ctglen = NULL;
-FILE *scflen = NULL;
+FILE *utglen    = NULL;
+FILE *deglen    = NULL;
+FILE *ctglen    = NULL;
+FILE *scflen    = NULL;
 
 
 FILE *
@@ -103,95 +106,147 @@ openFile(char *label, char *prefix, int write) {
 
 
 void
-processMDI(SnapMateDistMesg *mdi) {
-  int  samples = 0;
-  int  i;
+processMDI(SnapMateDistMesg *mdi, char *prefix) {
+  int32  samples = 0;
 
-  for (i=0; i<mdi->num_buckets; i++)
+  for (int32 i=0; i<mdi->num_buckets; i++)
     samples += mdi->histogram[i];
 
-  fprintf(stderr, "MDI\t%s\t%.6f\t%.6f\t%d\n",
+  fprintf(libraries, "%s\t%.0f\t%.0f\t%d\t%d\t%d\n",
           AS_UID_toString(mdi->erefines),
-          mdi->mean, mdi->stddev, samples);
+          mdi->mean, mdi->stddev,
+          mdi->min, mdi->max, samples);
+
+  double  bgn   = mdi->min;
+  double  width = (double)(mdi->max - mdi->min) / mdi->num_buckets;
+
+  char  N[FILENAME_MAX];
+
+  sprintf(N, "%s.posmap.libraries.%s", prefix, AS_UID_toString(mdi->erefines));
+
+  errno = 0;
+  FILE *F = fopen(N, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", N, strerror(errno)), exit(1);
+
+  for (int32 i=0; i<mdi->num_buckets; i++, bgn += width)
+    fprintf(F, "%.0f\t%.1f\t%.0f\t%d\n", bgn, bgn + width/2, bgn + width, mdi->histogram[i]);
+
+  fclose(F);
 }
+
+
+
+char *mateStatusStrings[15] = { 
+  "ERROR",
+  "unassigned",
+  "good",
+  "badShort",
+  "badLong",
+  "badSame",
+  "badOuttie",
+  "notMated",
+  "bothChaff",
+  "oneChaff",
+  "bothDegen",
+  "oneDegen",
+  "bothSurrogate",
+  "oneSurrogate",
+  "diffScaffold"
+};
 
 
 char *
-decodeMateStatus(char mateStatusCode, char *mateStatus) {
+decodeMateStatus(char mateStatusCode) {
+  int32   mss = 0;
 
   switch (mateStatusCode) {
-    case 'Z':
-      strcpy(mateStatus, "unassigned");
-      break;
-    case 'G':
-      strcpy(mateStatus, "good");
-      break;
-    case 'C':
-      strcpy(mateStatus, "badShort");
-      break;
-    case 'L':
-      strcpy(mateStatus, "badLong");
-      break;
-    case 'S':
-      strcpy(mateStatus, "badSame");
-      break;
-    case 'O':
-      strcpy(mateStatus, "badOuttie");
-      break;
-    case 'N':
-      strcpy(mateStatus, "notMated");
-      break;
-    case 'H':
-      strcpy(mateStatus, "bothChaff");
-      break;
-    case 'A':
-      strcpy(mateStatus, "oneChaff");
-      break;
-    case 'D':
-      strcpy(mateStatus, "bothDegen");
-      break;
-    case 'E':
-      strcpy(mateStatus, "oneDegen");
-      break;
-    case 'U':
-      strcpy(mateStatus, "bothSurrogate");
-      break;
-    case 'R':
-      strcpy(mateStatus, "oneSurrogate");
-      break;
-    case 'F':
-      strcpy(mateStatus, "diffScaffold");
-      break;
+    case 'Z':  mss =  1; break;
+    case 'G':  mss =  2;  break;
+    case 'C':  mss =  3;  break;
+    case 'L':  mss =  4;  break;
+    case 'S':  mss =  5;  break;
+    case 'O':  mss =  6;  break;
+    case 'N':  mss =  7;  break;
+    case 'H':  mss =  8;  break;
+    case 'A':  mss =  9;  break;
+    case 'D':  mss = 10;  break;
+    case 'E':  mss = 11;  break;
+    case 'U':  mss = 12;  break;
+    case 'R':  mss = 13;  break;
+    case 'F':  mss = 14;  break;
     default:
-      strcpy(mateStatus, "ERROR");
+      fprintf(stderr, "WARNING:  Invalid mate status %c\n", mateStatusCode);
       break;
   }
 
-  return(mateStatus);
+  return(mateStatusStrings[mss]);
 }
 
 
 void
-processAFG(AugFragMesg *afg) {
-  char   mateStatus[256] = {0};
+processAFG(AugFragMesg *afg, gkStore *gkp) {
+  char *libraryName = "N/A";
 
-  fprintf(frags, "%s\t%d\t%d\t%s\t%s\n",
+  if (gkp) {
+    gkFragment  frg;
+
+    while (lastAFG < afg->iaccession) {
+      gkp->gkStore_getFragment(lastAFG, &frg, GKFRAGMENT_INF);
+
+      fprintf(frags, "%s\t%d\t%d\t%s\t%s\t%s\n",
+              AS_UID_toString(frg.gkFragment_getReadUID()),
+              frg.gkFragment_getClearRegionBegin(),
+              frg.gkFragment_getClearRegionEnd(),
+              "deleted",
+              "notMated",
+              gkp->gkStore_getLibrary(frg.gkFragment_getLibraryIID())->libraryName);
+
+      lastAFG++;
+    }
+
+    assert(lastAFG == afg->iaccession);
+
+    gkp->gkStore_getFragment(lastAFG, &frg, GKFRAGMENT_INF);
+
+    if (frg.gkFragment_getMateIID() > 0)
+      uid2lib[afg->eaccession] = frg.gkFragment_getLibraryIID();
+
+    libraryName = gkp->gkStore_getLibrary(frg.gkFragment_getLibraryIID())->libraryName;
+  }
+
+  fprintf(frags, "%s\t%d\t%d\t%s\t%s\t%s\n",
           AS_UID_toString(afg->eaccession),
           afg->clear_rng.bgn,
           afg->clear_rng.end,
-          afg->chaff    ? "chaff"    : "placed",
-          decodeMateStatus(afg->mate_status, mateStatus));
+          afg->chaff ? "chaff" : "placed",
+          decodeMateStatus(afg->mate_status),
+          libraryName);
+
+  lastAFG++;
 }
 
 
 void
-processAMP(AugMatePairMesg *amp) {
-  char   mateStatus[256] = {0};
+processAMP(AugMatePairMesg *amp, gkStore *gkp) {
+  char *libraryName = "N/A";
 
-  fprintf(mates, "%s\t%s\t%s\n",
+  if (gkp) {
+    AS_IID   lib1  = uid2lib[amp->fragment1];
+    AS_IID   lib2  = uid2lib[amp->fragment2];
+
+    assert(lib1 != 0);
+    assert(lib2 != 0);
+    assert(lib1 == lib2);
+
+    libraryName = gkp->gkStore_getLibrary(lib1)->libraryName;
+  }
+
+  fprintf(mates, "%s\t%s\t%s\t%s\n",
           AS_UID_toString(amp->fragment1),
           AS_UID_toString(amp->fragment2),
-          decodeMateStatus(amp->mate_status, mateStatus));
+          decodeMateStatus(amp->mate_status),
+          libraryName);
 }
 
 
@@ -617,15 +672,19 @@ transferVar(FILE *ctg, FILE *scf) {
     fgets(line, lineMax, ctg);
     chomp(line);
   }
+
+  delete [] line;
 }
 
 
 
 
 int main (int argc, char *argv[]) {
-  char *outputPrefix       = NULL;
-  char *asmName            = NULL;
-  FILE *asmFile            = stdin;
+  char    *outputPrefix       = NULL;
+  char    *asmName            = NULL;
+  FILE    *asmFile            = stdin;
+  char    *gkpName            = NULL;
+  gkStore *gkp                = NULL;
 
   GenericMesg *pmesg       = NULL;
 
@@ -640,6 +699,9 @@ int main (int argc, char *argv[]) {
     } else if (strcmp(argv[arg], "-i") == 0) {
       asmName = argv[++arg];
 
+    } else if (strcmp(argv[arg], "-g") == 0) {
+      gkpName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-h") == 0) {
       err++;
 
@@ -648,12 +710,6 @@ int main (int argc, char *argv[]) {
       err++;
     }
     arg++;
-  }
-  if (asmName) {
-    errno = 0;
-    asmFile = fopen(asmName, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open assembly file '%s': %s\n", asmName, strerror(errno)), exit(1);
   }
   if ((outputPrefix == NULL) || (err)) {
     fprintf(stderr, "usage: %s -o prefix [-h] [-i prefix.asm | < prefix.asm]\n", argv[0]);
@@ -665,47 +721,60 @@ int main (int argc, char *argv[]) {
     exit(1);
   }
 
+  if (asmName) {
+    errno = 0;
+    asmFile = fopen(asmName, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open assembly file '%s': %s\n", asmName, strerror(errno)), exit(1);
+  }
+
+  if (gkpName) {
+    gkp = new gkStore(gkpName, FALSE, FALSE);
+    gkp->gkStore_metadataCaching(true);
+  }
+
   ctgInfo = (ctgInfo_t *)safe_calloc(ctgInfoMax, sizeof(ctgInfo_t));
 
-  frags  = openFile("frags",  outputPrefix, 1);
-  mates  = openFile("mates",  outputPrefix, 1);
+  frags     = openFile("frags",     outputPrefix, 1);
+  mates     = openFile("mates",     outputPrefix, 1);
+  libraries = openFile("libraries", outputPrefix, 1);
 
-  utglkg = openFile("utglkg", outputPrefix, 1);
-  ctglkg = openFile("ctglkg", outputPrefix, 1);
-  scflkg = openFile("scflkg", outputPrefix, 1);
+  utglkg    = openFile("utglkg",    outputPrefix, 1);
+  ctglkg    = openFile("ctglkg",    outputPrefix, 1);
+  scflkg    = openFile("scflkg",    outputPrefix, 1);
 
-  frgutg = openFile("frgutg", outputPrefix, 1);
+  frgutg    = openFile("frgutg",    outputPrefix, 1);
 
-  frgdeg = openFile("frgdeg", outputPrefix, 1);
-  utgdeg = openFile("utgdeg", outputPrefix, 1);
-  vardeg = openFile("vardeg", outputPrefix, 1);
+  frgdeg    = openFile("frgdeg",    outputPrefix, 1);
+  utgdeg    = openFile("utgdeg",    outputPrefix, 1);
+  vardeg    = openFile("vardeg",    outputPrefix, 1);
 
-  frgctg = openFile("frgctg", outputPrefix, 1);
-  utgctg = openFile("utgctg", outputPrefix, 1);
-  varctg = openFile("varctg", outputPrefix, 1);
+  frgctg    = openFile("frgctg",    outputPrefix, 1);
+  utgctg    = openFile("utgctg",    outputPrefix, 1);
+  varctg    = openFile("varctg",    outputPrefix, 1);
 
-  frgscf = openFile("frgscf", outputPrefix, 1);
-  utgscf = openFile("utgscf", outputPrefix, 1);
-  ctgscf = openFile("ctgscf", outputPrefix, 1);
-  varscf = openFile("varscf", outputPrefix, 1);
+  frgscf    = openFile("frgscf",    outputPrefix, 1);
+  utgscf    = openFile("utgscf",    outputPrefix, 1);
+  ctgscf    = openFile("ctgscf",    outputPrefix, 1);
+  varscf    = openFile("varscf",    outputPrefix, 1);
 
-  utglen = openFile("utglen", outputPrefix, 1);
-  deglen = openFile("deglen", outputPrefix, 1);
-  ctglen = openFile("ctglen", outputPrefix, 1);
-  scflen = openFile("scflen", outputPrefix, 1);
+  utglen    = openFile("utglen",    outputPrefix, 1);
+  deglen    = openFile("deglen",    outputPrefix, 1);
+  ctglen    = openFile("ctglen",    outputPrefix, 1);
+  scflen    = openFile("scflen",    outputPrefix, 1);
 
 
   while(ReadProtoMesg_AS(asmFile, &pmesg) != EOF){
     switch(pmesg->t){
       case MESG_MDI:
-        //processMDI(pmesg->m);
+        processMDI((SnapMateDistMesg *)pmesg->m, outputPrefix);
         break;
 
       case MESG_AFG:
-        processAFG((AugFragMesg *)pmesg->m);
+        processAFG((AugFragMesg *)pmesg->m, gkp);
         break;
       case MESG_AMP:
-        processAMP((AugMatePairMesg *)pmesg->m);
+        processAMP((AugMatePairMesg *)pmesg->m, gkp);
         break;
 
       case MESG_UTG:
@@ -733,6 +802,8 @@ int main (int argc, char *argv[]) {
         break;
     }
   }
+
+  delete gkp;
 
   fclose(frags);
   fclose(mates);

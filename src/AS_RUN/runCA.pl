@@ -5411,7 +5411,7 @@ sub terminate () {
 
     if (getGlobal("createPosMap") > 0) {
         if (! -e "$termDir/$asm.posmap.frgscf") {
-            if (runCommand("$termDir", "$bin/buildPosMap -o $asm < $termDir/$asm.asm > $termDir/buildPosMap.err 2>&1")) {
+            if (runCommand("$termDir", "$bin/buildPosMap -o $asm -g $wrk/$asm.gkpStore < $termDir/$asm.asm > $termDir/buildPosMap.err 2>&1")) {
                 rename "$termDir/$asm.posmap.frgscf", "$termDir/$asm.posmap.frgscf.FAILED";
                 caFailure("buildPosMap failed", "$termDir/buildPosMap.err");
             }
