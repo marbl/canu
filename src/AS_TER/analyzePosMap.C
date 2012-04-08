@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: analyzePosMap.C,v 1.1 2012-04-08 13:36:06 brianwalenz Exp $";
+const char *mainid = "$Id: analyzePosMap.C,v 1.2 2012-04-08 22:38:05 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -32,6 +32,7 @@ const char *mainid = "$Id: analyzePosMap.C,v 1.1 2012-04-08 13:36:06 brianwalenz
 #include "AS_PER_gkpStore.h"
 
 #include "AS_UTL_splitToWords.H"
+#include "AS_UTL_intervalList.H"
 
 #include <map>
 #include <vector>
@@ -40,23 +41,92 @@ const char *mainid = "$Id: analyzePosMap.C,v 1.1 2012-04-08 13:36:06 brianwalenz
 using namespace std;
 
 
-class pmEntry {
+#if 0
+plot [0:1]                                         \
+  "diffScaffold.gapfill" using 1:2 with lines,     \
+  "diffScafDegen.gapfill" using 1:2 with lines,    \
+  "diffScafSing.gapfill" using 1:2 with lines,     \
+  "diffScafSurr.gapfill" using 1:2 with lines
+#endif
+
+
+
+class libEntry {
 public:
-  pmEntry() {
+  libEntry() {
+    mean   = 0;
+    stddev = 0;
+    pdf    = NULL;
+  }
+  ~libEntry() {
+    delete [] pdf;
+  };
+
+  void  initialize(int32 mean_, int32 stddev_) {
+    mean   = mean_;
+    stddev = stddev_;
+    pdf    = new double [6 * stddev + 1];
+
+    double  c = 1 / (stddev * sqrt(2 * M_PI));
+    double  d = 2 * stddev * stddev;
+
+    for (int32 i=0; i<=6 * stddev; i++) {
+      double x = i - 3 * stddev;
+
+      pdf[i] = c * exp(-(x * x / d));
+    }
+
+#if 0
+    {
+      FILE *F = fopen("libdat", "w");
+      for (uint32 i=0; i<=6*stddev; i++)
+        fprintf(F, "%d\t%f\n", i, pdf[i]);
+      fclose(F);
+    }
+#endif
+  };
+
+
+  int32    mean;
+  int32    stddev;
+  double  *pdf;
+};
+
+
+class scfEntry {
+public:
+  scfEntry() {
+    len     = 0;
+    typ     = '?';
+    base    = NULL;
+  };
+  ~scfEntry() {
+    delete [] base;
+  }
+
+  uint32          len;     //  Length of object
+  char            typ;     //  Type of object; 's'caffold or 'd'egenerate
+  char           *base;    //  t/f if this is a gap or base
+};
+
+
+class mapEntry {
+public:
+  mapEntry() {
     con = UINT32_MAX;
     len = UINT32_MAX;
-    bgn = UINT32_MAX;
-    end = UINT32_MAX;
+    bgn = INT32_MAX;
+    end = INT32_MAX;
     ori = '?';
     typ = '?';
   };
-  ~pmEntry() {
+  ~mapEntry() {
   };
 
   uint32   con;  //  The container parent
   uint32   len;  //  Length of object
-  uint32   bgn;  //  Begin coord in parent
-  uint32   end;  //  End coord in parent
+  int32    bgn;  //  Begin coord in parent
+  int32    end;  //  End coord in parent
   char     ori;  //  Orientation in parent
   char     typ;  //  Type of object; 's'caffold or 'd'egenerate
 };
@@ -64,23 +134,22 @@ public:
 
 
 map<string,uint32>   libNames;   //  Map a name to mean/stddev
-vector<uint32>       libMean;
-vector<uint32>       libStdDev;
+vector<libEntry>     libDat;
 
 vector<uint32>       frgMate;
 vector<uint32>       frgLibrary;
 
 
 
-map<string,uint32>   scfNames;   //  Map a name to an index into vector<pmEntry>
+map<string,uint32>   scfNames;   //  Map a name to an index into vector<mapEntry>
 map<string,uint32>   ctgNames;
 map<string,uint32>   utgNames;
 map<string,uint32>   frgNames;   //  (loaded from posmap.frags)
 
-vector<pmEntry>      scfDat;
-vector<pmEntry>      ctgDat;
-vector<pmEntry>      utgDat;
-vector<pmEntry>      frgDat;
+vector<scfEntry>     scfDat;
+vector<mapEntry>     ctgDat;
+vector<mapEntry>     utgDat;
+vector<mapEntry>     frgDat;
 
 vector<string>       scfNam;
 vector<string>       ctgNam;
@@ -108,9 +177,10 @@ openFile(char *prefix, char *type) {
 
 
 
+//  Creates highest-level scaffold objects.
 void
-readPosMapLen(map<string,uint32> &names,
-              vector<pmEntry>    &dat,
+readPosMapScf(map<string,uint32> &names,
+              vector<scfEntry>   &dat,
               vector<string>     &nam,
               char               *prefix,
               char               *posmap,
@@ -119,7 +189,7 @@ readPosMapLen(map<string,uint32> &names,
   uint32  lineMax = 1048576;
   char   *line    = new char [lineMax];
 
-  pmEntry pme;
+  scfEntry scf;
 
   fgets(line, lineMax, file);
   while (!feof(file)) {
@@ -132,14 +202,53 @@ readPosMapLen(map<string,uint32> &names,
 
     names[name] = id;
 
-    pme.con = UINT32_MAX;
-    pme.bgn = 0;
-    pme.end = 0;
-    pme.len = W(1);
-    pme.ori = 0;
-    pme.typ = scfdeg;
+    scf.len  = W(1);
+    scf.typ  = scfdeg;
 
-    dat.push_back(pme);
+    dat.push_back(scf);
+    nam.push_back(name);
+
+    fgets(line, lineMax, file);
+  }
+
+  fclose(file);
+  delete [] line;
+}
+
+
+//  Initializes contig and unitig objects.  Does not place them into scaffolds.
+void
+readPosMapLen(map<string,uint32> &names,
+              vector<mapEntry>   &dat,
+              vector<string>     &nam,
+              char               *prefix,
+              char               *posmap,
+              char                scfdeg) {
+  FILE   *file    = openFile(prefix, posmap);
+  uint32  lineMax = 1048576;
+  char   *line    = new char [lineMax];
+
+  mapEntry mpe;
+
+  fgets(line, lineMax, file);
+  while (!feof(file)) {
+    splitToWords W(line);
+
+    string   name(W[0]);
+    uint32   id = dat.size();
+
+    assert(names.count(name) == 0);
+
+    names[name] = id;
+
+    mpe.con = UINT32_MAX;
+    mpe.bgn = 0;
+    mpe.end = 0;
+    mpe.len = W(1);
+    mpe.ori = 0;
+    mpe.typ = scfdeg;
+
+    dat.push_back(mpe);
     nam.push_back(name);
 
     fgets(line, lineMax, file);
@@ -151,10 +260,11 @@ readPosMapLen(map<string,uint32> &names,
 
 
 
+//  Places an object into scaffold coordinates.  Objects are either contigs, unitigs or fragments.
 void
 readPosMapToScf(map<string,uint32> &scfNames,
                 map<string,uint32> &names,
-                vector<pmEntry>    &dat,
+                vector<mapEntry>   &dat,
                 char               *prefix,
                 char               *posmap,
                 char                degscf) {
@@ -191,12 +301,13 @@ readPosMapToScf(map<string,uint32> &scfNames,
 }
 
 
-//  After everything is loaded, read the frgutg posmap to determine which
+
+//  After all fragments are placed on scaffolds, this will read the frgutg posmap to determine which
 //  fragment are unplaced in surrogates.
 void
 readPosMapToUtg(map<string,uint32> &scfNames,
                 map<string,uint32> &names,
-                vector<pmEntry>    &dat,
+                vector<mapEntry>   &dat,
                 char               *prefix,
                 char               *posmap,
                 char                degscf) {
@@ -311,6 +422,8 @@ public:
 class gapFill {
 public:
   gapFill() {
+    numPossible    = 0;
+    expectedFilled = 0;
   };
   ~gapFill() {
   };
@@ -319,12 +432,72 @@ public:
   //  will fall into a gap.
 
   void   addGapFill(uint32 fi) {
+    uint32  si = frgDat[fi].con;
+
+    if (scfDat[si].typ == 'd')
+      return;
+
+    assert(scfDat[si].typ == 's');
+
+    uint32 li = frgLibrary[fi];
+
+    assert(li < libDat.size());
+
+    int32 fbgn = frgDat[fi].bgn;
+    int32 fend = frgDat[fi].end;
+
+    int32 mbgn = 0;
+    int32 mend = 0;
+
+    if (frgDat[fi].ori == 'f') {
+      mbgn = fbgn + (libDat[li].mean - 3 * libDat[li].stddev);
+      mend = fbgn + (libDat[li].mean + 3 * libDat[li].stddev);
+    } else {
+      mbgn = fend - (libDat[li].mean + 3 * libDat[li].stddev);
+      mend = fend - (libDat[li].mean - 3 * libDat[li].stddev);
+    }
+
+    if (mbgn < 0)                mbgn = 0;
+    if (mbgn > scfDat[si].len)   mbgn = scfDat[si].len;
+
+    if (mend < 0)                mend = 0;
+    if (mend > scfDat[si].len)   mend = scfDat[si].len;
+
+    if (mend <= mbgn)
+      return;
+
+    double pgapfill = 0;
+
+    for (int32 i=mbgn; i<mend; i++)
+      if (scfDat[si].base[i] == 0)
+        pgapfill += libDat[li].pdf[i-mbgn];
+
+    if (pgapfill < 0.001)
+      return;
+
+    numPossible++;
+    
+    //fprintf(stderr, "fi="F_U32" si="F_U32" mbgn=%d mend=%d %d +- %d len=%d p=%f\n",
+    //        fi, si, mbgn, mend, libDat[li].mean, libDat[li].stddev, scfDat[si].len, pgapfill);
+
+    int32 pg = (int)floor(pgapfill * 1000);
+
+    assert(0  <= pg);
+    assert(pg <  1000);
+
+    probability[pg]++;
   };
 
   void   finalize(void) {
+    expectedFilled = 0;
+
+    for (uint32 i=0; i<1000; i++)
+      expectedFilled += (i / 1000.0) * probability[i];
   };
 
-  vector<double>    probability;
+  uint32     numPossible;
+  double     expectedFilled;
+  double     probability[1000];
 };
 
 
@@ -348,10 +521,22 @@ public:
   void         printReport(void) {
     fprintf(stdout, "----------------------------------------\n");
     fprintf(stdout, "%s\n", label);
-    fprintf(stdout, "total    "F_U32" mate pairs involved\n", number);
-    fprintf(stdout, "innie    "F_SIZE_T" %.2f +- %.2f bp\n", innie.distances.size(),  innie.mean,  innie.stddev);
-    fprintf(stdout, "outtie   "F_SIZE_T" %.2f +- %.2f bp\n", outtie.distances.size(), outtie.mean, outtie.stddev);
-    fprintf(stdout, "same     "F_SIZE_T" %.2f +- %.2f bp\n", same.distances.size(),   same.mean,   same.stddev);
+    fprintf(stdout, "total       "F_U32" mate pairs involved\n", number);
+    fprintf(stdout, "innie       "F_SIZE_T" %.2f +- %.2f bp\n", innie.distances.size(),  innie.mean,  innie.stddev);
+    fprintf(stdout, "outtie      "F_SIZE_T" %.2f +- %.2f bp\n", outtie.distances.size(), outtie.mean, outtie.stddev);
+    fprintf(stdout, "same        "F_SIZE_T" %.2f +- %.2f bp\n", same.distances.size(),   same.mean,   same.stddev);
+    fprintf(stdout, "expect fill %.0f from "F_U32" mates\n", floor(fill.expectedFilled), fill.numPossible);
+
+    if (fill.numPossible > 0) {
+      char  C[FILENAME_MAX];
+
+      sprintf(C, "%s.gapfill", label);
+
+      FILE *F = fopen(C, "w");
+      for (uint32 i=0; i<1000; i++)
+        fprintf(F, "%.3f\t%f\n", (double)i / 1000.0, fill.probability[i]);
+      fclose(F);
+    }
   };
 
   char         label[1024];
@@ -377,8 +562,11 @@ analyzeGapFillProbability() {
   scaffoldStatistics   *scfStatDiffDegenerate  = new scaffoldStatistics("diffDegenerate");
   scaffoldStatistics   *scfStatDiffScafDegen   = new scaffoldStatistics("diffScafDegen");
 
-  scaffoldStatistics   *scfStatDiffScafSing    = new scaffoldStatistics("diffScafSin");
+  scaffoldStatistics   *scfStatDiffScafSing    = new scaffoldStatistics("diffScafSing");
   scaffoldStatistics   *scfStatDiffDegenSing   = new scaffoldStatistics("diffDegenSing");
+
+  scaffoldStatistics   *scfStatDiffScafSurr    = new scaffoldStatistics("diffScafSurr");
+  scaffoldStatistics   *scfStatDiffDegenSurr   = new scaffoldStatistics("diffDegenSurr");
 
   scaffoldStatistics   *scfStat                = NULL;
 
@@ -444,18 +632,25 @@ analyzeGapFillProbability() {
       else if ((frgDat[fi].typ == 'd') && (frgDat[mi].typ == 'd'))
         scfStat = scfStatDiffDegenerate;
 
-      else if ((frgDat[fi].typ == 's') && (frgDat[mi].typ == 'c'))
+      else if ((frgDat[fi].typ == 's') && (frgDat[mi].typ == 'C'))
         scfStat = scfStatDiffScafSing;
 
-      else if ((frgDat[fi].typ == 'd') && (frgDat[mi].typ == 'c'))
+      else if ((frgDat[fi].typ == 'd') && (frgDat[mi].typ == 'C'))
         scfStat = scfStatDiffDegenSing;
+
+      else if ((frgDat[fi].typ == 's') && (frgDat[mi].typ == 'S'))
+        scfStat = scfStatDiffScafSurr;
+
+      else if ((frgDat[fi].typ == 'd') && (frgDat[mi].typ == 'S'))
+        scfStat = scfStatDiffDegenSurr;
 
       else
         scfStat = scfStatDiffScafDegen;
 
       scfStat->number++;
 
-      scfStat->fill.addGapFill(fi);
+      if (frgDat[fi].typ == 's')
+        scfStat->fill.addGapFill(fi);
     }
   }
 
@@ -467,6 +662,8 @@ analyzeGapFillProbability() {
   scfStatDiffScafDegen->finalize();
   scfStatDiffScafSing->finalize();
   scfStatDiffDegenSing->finalize();
+  scfStatDiffScafSurr->finalize();
+  scfStatDiffDegenSurr->finalize();
 
   scfStatSameScaffold->printReport();
   scfStatSameDegenerate->printReport();
@@ -475,6 +672,8 @@ analyzeGapFillProbability() {
   scfStatDiffScafDegen->printReport();
   scfStatDiffScafSing->printReport();
   scfStatDiffDegenSing->printReport();
+  scfStatDiffScafSurr->printReport();
+  scfStatDiffDegenSurr->printReport();
 }
 
 
@@ -536,8 +735,9 @@ main(int argc, char **argv) {
 
       libNames[libName] = libId;
 
-      libMean.push_back(W(1));
-      libMean.push_back(W(2));
+      libDat.push_back(libEntry());
+
+      libDat[libId].initialize(W(1), W(2));
 
       fgets(line, lineMax, file);
     }
@@ -561,21 +761,21 @@ main(int argc, char **argv) {
 
       frgNames[frgName] = frgId;
 
-      pmEntry pme;
+      mapEntry mpe;
 
-      pme.con = UINT32_MAX;
-      pme.bgn = 0;
-      pme.end = 0;
-      pme.len = 0;
-      pme.ori = 0;
-      pme.typ = 0;
+      mpe.con = UINT32_MAX;
+      mpe.bgn = 0;
+      mpe.end = 0;
+      mpe.len = 0;
+      mpe.ori = 0;
+      mpe.typ = 0;
 
       if      (W[3][0] == 'p')
-        pme.typ = '?';
+        mpe.typ = '?';
       else if (W[3][0] == 'd')
-        pme.typ = 'D';  //  Deleted
+        mpe.typ = 'D';  //  Deleted
       else if (W[3][0] == 'c')
-        pme.typ = 'C';  //  Singleton (chaff)
+        mpe.typ = 'C';  //  Singleton (chaff)
       else
         assert(0);
 
@@ -583,7 +783,7 @@ main(int argc, char **argv) {
       assert(frgMate.size() == frgId);
       assert(frgNam.size() == frgId);
 
-      frgDat.push_back(pme);
+      frgDat.push_back(mpe);
       frgMate.push_back(0);  //  All are initially unmated.
       frgNam.push_back(frgName);
 
@@ -623,8 +823,8 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Reading assembly information (scf, ctg, utg).\n");
   {
-    readPosMapLen(scfNames, scfDat, scfNam, prefix, "scflen", 's');  //  Real scaffolds
-    readPosMapLen(scfNames, scfDat, scfNam, prefix, "deglen", 'd');  //  Dreg scaffolds (promoted from dreg contigs)
+    readPosMapScf(scfNames, scfDat, scfNam, prefix, "scflen", 's');  //  Real scaffolds
+    readPosMapScf(scfNames, scfDat, scfNam, prefix, "deglen", 'd');  //  Dreg scaffolds (promoted from dreg contigs)
 
     readPosMapLen(ctgNames, ctgDat, ctgNam, prefix, "ctglen", 's');  //  Real contigs
     readPosMapLen(ctgNames, ctgDat, ctgNam, prefix, "deglen", 'd');  //  Dreg contigs
@@ -650,6 +850,7 @@ main(int argc, char **argv) {
     readPosMapToUtg(scfNames, frgNames, frgDat, prefix, "frgutg", 'S');  //  Surrogates
   }
 
+  //  Promote degenerate contigs to degenerate scaffolds.
   {
     for (uint32 si=0; si<scfDat.size(); si++) {
       if (scfDat[si].typ == 's')
@@ -663,6 +864,30 @@ main(int argc, char **argv) {
       ctgDat[ctgId].len = scfDat[si].len;
       ctgDat[ctgId].ori = 'f';
       ctgDat[ctgId].typ = 'd';
+    }
+  }
+
+  //  Fill out the contig layout in each scaffold.  For each contig, annotate the scaffold it is
+  //  in with its location.  Then, for each scaffold, invert that list into a list of gaps.
+  {
+    for (uint32 ci=0; ci<ctgDat.size(); ci++) {
+      if (ctgDat[ci].typ != 's')
+        continue;
+
+      uint32 si = ctgDat[ci].con;
+
+      if (scfDat[si].base == NULL) {
+        scfDat[si].base = new char [scfDat[si].len];
+
+        memset(scfDat[si].base, 0, sizeof(char) * scfDat[si].len);
+      }
+
+      for (uint32 i=ctgDat[ci].bgn; i<ctgDat[ci].end; i++) {
+        assert(ctgDat[ci].bgn <  scfDat[si].len);
+        assert(ctgDat[ci].end <= scfDat[si].len);
+
+        scfDat[si].base[i] = 1;
+      }
     }
   }
 
