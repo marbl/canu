@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: analyzePosMap.C,v 1.2 2012-04-08 22:38:05 brianwalenz Exp $";
+const char *mainid = "$Id: analyzePosMap.C,v 1.3 2012-04-08 22:57:14 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -37,17 +37,9 @@ const char *mainid = "$Id: analyzePosMap.C,v 1.2 2012-04-08 22:38:05 brianwalenz
 #include <map>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 using namespace std;
-
-
-#if 0
-plot [0:1]                                         \
-  "diffScaffold.gapfill" using 1:2 with lines,     \
-  "diffScafDegen.gapfill" using 1:2 with lines,    \
-  "diffScafSing.gapfill" using 1:2 with lines,     \
-  "diffScafSurr.gapfill" using 1:2 with lines
-#endif
 
 
 
@@ -56,16 +48,18 @@ public:
   libEntry() {
     mean   = 0;
     stddev = 0;
-    pdf    = NULL;
-  }
+    //pdf    = NULL;
+  };
   ~libEntry() {
-    delete [] pdf;
+    //delete [] pdf;
   };
 
   void  initialize(int32 mean_, int32 stddev_) {
     mean   = mean_;
     stddev = stddev_;
-    pdf    = new double [6 * stddev + 1];
+    //pdf    = new double [6 * stddev + 1];
+
+    pdf.resize(6 * stddev + 1);
 
     double  c = 1 / (stddev * sqrt(2 * M_PI));
     double  d = 2 * stddev * stddev;
@@ -89,7 +83,7 @@ public:
 
   int32    mean;
   int32    stddev;
-  double  *pdf;
+  vector<double>   pdf;
 };
 
 
