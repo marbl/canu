@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.20 2012-04-05 02:55:59 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.21 2012-04-09 19:17:26 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -990,7 +990,19 @@ GetMultiAlignLength(MultiAlignT *ma) {
       len = MAX(len, frg->position.bgn);
       len = MAX(len, frg->position.end);
     }
+
+    //  If this ma is a contig, it is entirely possible to be filled
+    //  with just surrogate unitigs.  In this case, there are no fragments.
+
+    for (uint32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
+      IntUnitigPos *utg = GetIntUnitigPos(ma->u_list, i);
+
+      len = MAX(len, utg->position.bgn);
+      len = MAX(len, utg->position.end);
+    }
   }
+
+  assert(len > 0);
 
   return(len);
 }
@@ -999,11 +1011,15 @@ GetMultiAlignLength(MultiAlignT *ma) {
 
 int32
 GetMultiAlignUngappedLength(MultiAlignT *ma) {
-  int32   u = 0;
+  int32   len = 0;
+  char   *c   = Getchar(ma->consensus, 0);
 
-  for (char *c = Getchar(ma->consensus,0); *c != 0; c++)
-    if (*c != '-')
-      u++;
+  if (c == NULL)
+    return(len);
 
-  return(u);
+  while (*c)
+    if (*c++ != '-')
+      len++;
+
+  return(len);
 }
