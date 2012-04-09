@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: analyzePosMap.C,v 1.3 2012-04-08 22:57:14 brianwalenz Exp $";
+const char *mainid = "$Id: analyzePosMap.C,v 1.4 2012-04-09 19:08:54 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -431,10 +431,18 @@ public:
     if (scfDat[si].typ == 'd')
       return;
 
+    if (scfDat[si].typ != 's') {
+      fprintf(stderr, "WARNING: scaffold %s of invalid type %c\n", scfNam[si].c_str(), scfDat[si].typ);
+      return;
+    }
     assert(scfDat[si].typ == 's');
 
     uint32 li = frgLibrary[fi];
 
+    if (li >= libDat.size()) {
+      fprintf(stderr, "WARNING: fragment %s claims library "F_U32", invalid\n", frgNam[fi].c_str(), li);
+      return;
+    }
     assert(li < libDat.size());
 
     int32 fbgn = frgDat[fi].bgn;
@@ -476,6 +484,8 @@ public:
 
     int32 pg = (int)floor(pgapfill * 1000);
 
+    if (pg < 0)      pg = 0;
+    if (pg >= 1000)  pg = 1000;
     assert(0  <= pg);
     assert(pg <  1000);
 
@@ -594,12 +604,14 @@ analyzeGapFillProbability() {
       int32  dist = MAX(frgDat[fi].end, frgDat[mi].end) - MIN(frgDat[fi].bgn, frgDat[mi].bgn);
 
       if (dist <= 0) {
+        fprintf(stderr, "negative distance %d\n", dist);
         fprintf(stderr, "fi="F_U32" con="F_U32" bgn="F_U32" end="F_U32" len="F_U32" ori=%c typ=%c %s\n",
                 fi,
                 frgDat[fi].con, frgDat[fi].bgn, frgDat[fi].end, frgDat[fi].len, frgDat[fi].ori, frgDat[fi].typ, frgNam[fi].c_str());
         fprintf(stderr, "mi="F_U32" con="F_U32" bgn="F_U32" end="F_U32" len="F_U32" ori=%c typ=%c %s\n",
                 mi,
                 frgDat[mi].con, frgDat[mi].bgn, frgDat[mi].end, frgDat[mi].len, frgDat[mi].ori, frgDat[mi].typ, frgNam[mi].c_str());
+        dist = 0;
       }
       assert(dist > 0);
 
@@ -615,7 +627,14 @@ analyzeGapFillProbability() {
         scfStat->outtie.addDistance(dist);
 
       } else {
-        assert(0);
+        fprintf(stderr, "invalid position and orientation\n");
+        fprintf(stderr, "fi="F_U32" con="F_U32" bgn="F_U32" end="F_U32" len="F_U32" ori=%c typ=%c %s\n",
+                fi,
+                frgDat[fi].con, frgDat[fi].bgn, frgDat[fi].end, frgDat[fi].len, frgDat[fi].ori, frgDat[fi].typ, frgNam[fi].c_str());
+        fprintf(stderr, "mi="F_U32" con="F_U32" bgn="F_U32" end="F_U32" len="F_U32" ori=%c typ=%c %s\n",
+                mi,
+                frgDat[mi].con, frgDat[mi].bgn, frgDat[mi].end, frgDat[mi].len, frgDat[mi].ori, frgDat[mi].typ, frgNam[mi].c_str());
+        //assert(0);
       }
 
     } else {
