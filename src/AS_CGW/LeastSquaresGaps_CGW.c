@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.46 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.47 2012-04-09 19:13:41 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -734,12 +734,9 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
   if(IsScaffoldInternallyConnected(ScaffoldGraph,scaffold,ALL_TRUSTED_EDGES)!=1){
     standardEdgeStatusFails = 1;
-    if (debug.recomputeOffsetsLV > 0) {
-      fprintf(stderr, "RecomputeOffsetsInScaffold()- WARNING: scaffold "F_CID " is not internally connected using\n", scaffold->id);
-      fprintf(stderr, "                              ALL_TRUSTED_EDGES will proceed with edge set determined by \n");
-      fprintf(stderr, "                              IsInternalEdgeStatusVaguelyOK instead of PairwiseChiSquare test\n");
-    }
-    //assert(0);
+    //if (debug.recomputeOffsetsLV > 0)
+    //   fprintf(stderr, "RecomputeOffsetsInScaffold()- WARNING: scaffold "F_CID " is not internally connected using ALL_TRUSTED_EDGES; proceed with edges from IsInternalEdgeStatusVaguelyOK instead of PairwiseChiSquare\n",
+    //           scaffold->id);
   }
 
   numCIs = scaffold->info.Scaffold.numElements;
@@ -1120,7 +1117,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       }else if(info > 0){
         freeRecomputeData(&data);
 
-        fprintf(stderr,"SOMEBODY IS SCREWING UP SCAFFOLDING -- RecomputeOffsetsInScaffold has a singularity -- assert skipped!\n");
+        //fprintf(stderr,"SOMEBODY IS SCREWING UP SCAFFOLDING -- RecomputeOffsetsInScaffold has a singularity -- assert skipped!\n");
 
         // mjf 3/9/2001
         // this assert was causing trouble in the mouse_20010307 run, commented it out
