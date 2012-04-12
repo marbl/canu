@@ -19,20 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.19 2012-03-21 06:03:47 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.20 2012-04-12 14:53:48 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
 
 #include "memoryMappedFile.H"
 
-#if 0
-#include <sys/types.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <sys/sysctl.h>
-#endif
 
 uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
 
@@ -709,12 +702,6 @@ OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memli
   //  Memory map the overlaps
 
   sprintf(name, "%s.ovlCacheDat", prefix);
-  //file = fopen(name, "r");
-  //if (errno)
-  //  fprintf(stderr, "Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
-
-  //uint64  length;
-  //_stor = mapFile(name, &length, 'r');
 
   _cacheMMF = new memoryMappedFile(name);
 
