@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.71 2012-04-12 14:57:42 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.72 2012-04-12 15:00:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -340,6 +340,7 @@ adjustBeginEndAddMates(gkStore *gkp,
                        char   *&iidToDump,
                        AS_UID *&frgUID,
                        int      doNotFixMates,
+                       int      dumpAllReads,
                        int      withoutUIDs) {
 
   if (bgnIID < 1)
@@ -348,11 +349,15 @@ adjustBeginEndAddMates(gkStore *gkp,
   if (gkp->gkStore_getNumFragments() < endIID)
     endIID = gkp->gkStore_getNumFragments();
 
+  bool  iidToDumpIsPrecious = true;
+
   if (iidToDump == NULL) {
     iidToDump = (char *)safe_calloc(endIID + 1, sizeof(char));
 
     for (AS_IID i=bgnIID; i<=endIID; i++)
       iidToDump[i] = 1;
+
+    iidToDumpIsPrecious = false;
   }
 
   libToDump = (int32  *)safe_calloc(gkp->gkStore_getNumLibraries() + 1, sizeof(int));
@@ -365,16 +370,24 @@ adjustBeginEndAddMates(gkStore *gkp,
 
   int32       mateAdded = 0;
 
-  fprintf(stderr, "Scanning store to find libraries used.\n");
+  fprintf(stderr, "Scanning store to find libraries used and reads to dump.\n");
 
   while (fs->next(&fr)) {
-    if (withoutUIDs == 0)
-      frgUID[fr.gkFragment_getReadIID()] = fr.gkFragment_getReadUID();
+    AS_IID  iid = fr.gkFragment_getReadIID();
+    AS_IID  mid = fr.gkFragment_getMateIID();
 
-    if (iidToDump[fr.gkFragment_getReadIID()]) {
+    if (withoutUIDs == 0)
+      frgUID[iid] = fr.gkFragment_getReadUID();
+
+    if ((iidToDumpIsPrecious == false) &&
+        (dumpAllReads == false) &&
+        (fr.gkFragment_getIsDeleted() == true))
+      iidToDump[iid] = 0;
+        
+    if (iidToDump[iid]) {
       libToDump[fr.gkFragment_getLibraryIID()]++;
 
-      if ((fr.gkFragment_getMateIID() > 0) && (iidToDump[fr.gkFragment_getMateIID()] == 0)) {
+      if ((mid > 0) && (iidToDump[mid] == 0)) {
         mateAdded++;
         if (doNotFixMates == 0)
           iidToDump[fr.gkFragment_getMateIID()] = 1;
@@ -414,7 +427,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
   int32     *libToDump = NULL;
   AS_UID    *frgUID    = NULL;
 
-  adjustBeginEndAddMates(gkp, bgnIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, withoutUIDs);
+  adjustBeginEndAddMates(gkp, bgnIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, dumpAllReads, withoutUIDs);
 
   char  fname[FILENAME_MAX];  sprintf(fname, "%s.fasta",      prefix);
   char  qname[FILENAME_MAX];  sprintf(qname, "%s.fasta.qv",   prefix);
@@ -436,6 +449,12 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
   //  Dump fragments -- as soon as both reads in a mate are defined,
   //  we dump the mate relationship.
 
+  while ((bgnIID < endIID) && (iidToDump[bgnIID] == 0))
+    bgnIID++;
+
+  while ((bgnIID < endIID) && (iidToDump[endIID] == 0))
+    endIID--;
+
   gkStream     *fs = new gkStream(gkp, bgnIID, endIID, GKFRAGMENT_QLT);
   gkFragment    fr;
 
@@ -451,13 +470,20 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
     AS_IID  libIID = fr.gkFragment_getLibraryIID();
     AS_UID  libUID = (libIID > 0) ? gkp->gkStore_getLibrary(libIID)->libraryUID : AS_UID_undefined();
 
-    if ((fr.gkFragment_getIsDeleted() == true) && (dumpAllReads == false))
-      //  Fragment is deleted, don't dump.
-      continue;
+    if (iidToDump[id1] == 0) {
+      //  Fragment isn't marked for dumping, don't dump.  Skip ahead to the next dumpable fragment.
 
-    if ((iidToDump[id1] == 0) && (dumpAllReads == false))
-      //  Fragment isn't marked for dumping, don't dump.
+      id2 = id1 + 1;
+      while ((id2 < endIID) && (iidToDump[id2] == 0))
+        id2++;
+
+      if (id2 > id1 + 1) {
+        //fprintf(stderr, "skip from "F_IID" to "F_IID".\n", id1, id2);
+        fs->reset(id2, endIID);
+      }
+
       continue;
+    }
 
     if ((lclr >= rclr) && (dumpAllBases == false))
       //  Fragment has null or invalid clear range, don't dump.
@@ -826,7 +852,7 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
   int32     *libToDump = NULL;
   AS_UID    *frgUID    = NULL;
 
-  adjustBeginEndAddMates(gkp, bgnIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, withoutUIDs);
+  adjustBeginEndAddMates(gkp, bgnIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, dumpAllReads, withoutUIDs);
 
   char  fname[FILENAME_MAX];  sprintf(fname, "%s.fna",      prefix);
   char  qname[FILENAME_MAX];  sprintf(qname, "%s.fna.qual", prefix);
@@ -858,13 +884,10 @@ dumpGateKeeperAsNewbler(char       *gkpStoreName,
     AS_IID  libIID = fr.gkFragment_getLibraryIID();
     AS_UID  libUID = (libIID > 0) ? gkp->gkStore_getLibrary(libIID)->libraryUID : AS_UID_undefined();
 
-    if ((fr.gkFragment_getIsDeleted() == true) && (dumpAllReads == false))
-      //  Fragment is deleted, don't dump.
-      continue;
-
-    if ((iidToDump[id1] == 0) && (dumpAllReads == false))
+    if (iidToDump[id1] == 0) {
       //  Fragment isn't marked for dumping, don't dump.
       continue;
+    }
 
     if ((lclr >= rclr) && (dumpAllBases == false))
       //  Fragment has null or invalid clear range, don't dump.
@@ -926,7 +949,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
   int32     *libToDump = NULL;
   AS_UID    *frgUID    = NULL;
 
-  adjustBeginEndAddMates(gkp, bgnIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, withoutUIDs);
+  adjustBeginEndAddMates(gkp, bgnIID, endIID, libToDump, iidToDump, frgUID, doNotFixMates, dumpAllReads, withoutUIDs);
 
   char  aname[FILENAME_MAX];  sprintf(aname, "%s.1.fastq",       prefix);
   char  bname[FILENAME_MAX];  sprintf(bname, "%s.2.fastq",       prefix);
@@ -955,6 +978,12 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
   //  Dump fragments -- as soon as both reads in a mate are defined,
   //  we dump the mate relationship.
 
+  while ((bgnIID < endIID) && (iidToDump[bgnIID] == 0))
+    bgnIID++;
+
+  while ((bgnIID < endIID) && (iidToDump[endIID] == 0))
+    endIID--;
+
   gkStream   *fs = new gkStream(gkp, bgnIID, endIID, GKFRAGMENT_QLT);
   gkFragment  fr;
 
@@ -968,13 +997,20 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
     AS_IID  libIID = fr.gkFragment_getLibraryIID();
     AS_UID  libUID = (libIID > 0) ? gkp->gkStore_getLibrary(libIID)->libraryUID : AS_UID_undefined();
 
-    if ((fr.gkFragment_getIsDeleted() == true) && (dumpAllReads == false))
-      //  Fragment is deleted, don't dump.
-      continue;
+    if (iidToDump[id1] == 0) {
+      //  Fragment isn't marked for dumping, don't dump.  Skip ahead to the next dumpable fragment.
 
-    if ((iidToDump[id1] == 0) && (dumpAllReads == false))
-      //  Fragment isn't marked for dumping, don't dump.
+      id2 = id1 + 1;
+      while ((id2 < endIID) && (iidToDump[id2] == 0))
+        id2++;
+
+      if (id2 > id1 + 1) {
+        fprintf(stderr, "skip from "F_IID" to "F_IID".\n", id1, id2);
+        fs->reset(id2, endIID);
+      }
+
       continue;
+    }
 
     if ((lclr >= rclr) && (dumpAllBases == false))
       //  Fragment has null or invalid clear range, don't dump.
