@@ -64,10 +64,10 @@ DNC_SOURCES = classifyMates-BFS.C \
 DNC_OBJECTS = $(DNC_SOURCES:.C=.o)
 
 
-SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C classifyMatesApply.C splitUnitigs.C computeCoverageStat.C $(BAT_SOURCES) $(DNC_SOURCES)
-OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o classifyMatesApply.o splitUnitigs.o computeCoverageStat.o $(BAT_OBJECTS) $(DNC_OBJECTS)
+SOURCES     = bogart.C petey.C bogus.C bogusness.C AS_BAT_bogusUtil.C classifyMates.C classifyMatesApply.C splitUnitigs.C computeCoverageStat.C rewriteCache.C $(BAT_SOURCES) $(DNC_SOURCES)
+OBJECTS     = bogart.o petey.o bogus.o bogusness.o AS_BAT_bogusUtil.o classifyMates.o classifyMatesApply.o splitUnitigs.o computeCoverageStat.o rewriteCache.o $(BAT_OBJECTS) $(DNC_OBJECTS)
 
-CXX_PROGS   = bogart bogus bogusness classifyMates classifyMatesApply splitUnitigs computeCoverageStat
+CXX_PROGS   = bogart bogus bogusness classifyMates classifyMatesApply splitUnitigs computeCoverageStat rewriteCache
 
 
 
@@ -124,3 +124,4 @@ classifyMates:       classifyMates.o      $(DNC_OBJECTS) libCA.a libutil.a
 classifyMatesApply:  classifyMatesApply.o $(DNC_OBJECTS) libCA.a libutil.a
 splitUnitigs:        splitUnitigs.o                      libCA.a
 computeCoverageStat: computeCoverageStat.o               libCA.a
+rewriteCache:        rewriteCache.o       AS_BAT_FragmentInfo.o libCA.a
