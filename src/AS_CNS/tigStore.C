@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.20 2012-03-28 06:11:25 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.21 2012-04-12 19:31:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -46,6 +46,7 @@ const char *mainid = "$Id: tigStore.C,v 1.20 2012-03-28 06:11:25 brianwalenz Exp
 #define OPERATION_EDIT        5
 #define OPERATION_REPLACE     6
 #define OPERATION_BUILD       7
+#define OPERATION_COMPRESS    8
 
 void
 changeProperties(MultiAlignStore *tigStore,
@@ -260,6 +261,193 @@ dumpConsensus(MultiAlignStore *tigStore,
 
 
 
+void
+operationBuild(char *buildName, char *tigName,  int tigVers) {
+  uint32  utgID = 0;
+  uint32  ctgID = 0;
+  uint32  orgID = 0;
+
+  MultiAlignStore  *tigStore = NULL;
+  MultiAlignT       *ma       = CreateEmptyMultiAlignT();
+  bool               isUnitig = false;
+
+  errno = 0;
+  FILE         *F = fopen(buildName, "r");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s': %s\n", buildName, strerror(errno)), exit(1);
+
+  if (AS_UTL_fileExists(tigName, TRUE, TRUE)) {
+    fprintf(stderr, "ERROR: '%s' exists, and I will not clobber an existing store.\n", tigName);
+    exit(1);
+    tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, TRUE, TRUE, FALSE);
+  } else {
+    tigStore = new MultiAlignStore(tigName);
+
+    for (int32 v=1; v<tigVers; v++)
+      tigStore->nextVersion();
+  }
+
+  while (LoadMultiAlignFromHuman(ma, isUnitig, F) == true) {
+    if (ma->data.num_frags + ma->data.num_unitigs == 0)
+      continue;
+
+    orgID = ma->maID;
+
+    if (isUnitig)
+      ma->maID = utgID;
+    else
+      ma->maID = ctgID;
+
+#if 0
+    fprintf(stderr, "INSERTING %s %d (%d frags %d unitigs) (originally ID %d)\n",
+            (isUnitig) ? "unitig" : "contig",
+            ma->maID,
+            ma->data.num_frags, ma->data.num_unitigs,
+            orgID);
+#endif
+
+    tigStore->insertMultiAlign(ma, isUnitig, FALSE);
+
+    if (isUnitig)
+      utgID++;
+    else
+      ctgID++;
+  }
+
+  fclose(F);
+
+  delete tigStore;
+}
+
+
+
+void
+operationCompress(char *tigName, int tigVers) {
+  MultiAlignStore  *tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, FALSE, FALSE, FALSE);
+  bool              isUnitig = TRUE;
+
+  uint32            nUtgErrors = 0;
+  uint32            nCtgErrors = 0;
+
+  uint32            nUtgCompress = 0;
+  uint32            nCtgCompress = 0;
+
+  //  Pass 0:  Fail if this isn't the latest version.  If we try to compress something that isn't the
+  //  latest version, versions after this still point to the uncompressed tigs.
+
+  //if (tigStore->
+
+  //  Pass 1:  Check that we aren't going to pull a tig out of the future and place it in the past.
+
+  for (uint32 ti=0; ti<tigStore->numUnitigs(); ti++) {
+    if (tigStore->isDeleted(ti, isUnitig))
+      continue;
+
+    if (tigStore->getUnitigVersion(ti) > tigVers) {
+      fprintf(stderr, "WARNING:  Attempt to move future unitig "F_U32" from version "F_U32" to previous version %d.\n",
+              ti, tigStore->getUnitigVersion(ti), tigVers);
+      nUtgErrors++;
+    } else if (tigStore->getUnitigVersion(ti) < tigVers) {
+      nUtgCompress++;
+    }
+  }
+
+  isUnitig = FALSE;
+
+  for (uint32 ti=0; ti<tigStore->numContigs(); ti++) {
+    if (tigStore->isDeleted(ti, isUnitig))
+      continue;
+
+    if (tigStore->getContigVersion(ti) > tigVers) {
+      fprintf(stderr, "WARNING:  Attempt to move future contig "F_U32" from version "F_U32" to previous version %d.\n",
+              ti, tigStore->getContigVersion(ti), tigVers);
+      nCtgErrors++;
+    } else if (tigStore->getContigVersion(ti) < tigVers) {
+      nCtgCompress++;
+    }
+  }
+
+  if (nUtgErrors + nCtgErrors > 0) {
+    fprintf(stderr, "Store can't be compressed; probably trying to compress to something that isn't the latest version.\n");
+    fprintf(stderr, "  "F_U32" unitigs failed; "F_U32" compressable\n", nUtgErrors, nUtgCompress);
+    fprintf(stderr, "  "F_U32" contigs failed; "F_U32" compressable\n", nCtgErrors, nCtgCompress);
+    delete tigStore;
+    exit(1);
+  }
+
+  //  Pass 2:  Actually do the moves
+
+  if (nUtgCompress + nCtgCompress > 0) {
+    delete tigStore;
+    tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, TRUE, TRUE, FALSE);
+  }
+
+  if (nUtgCompress > 0) {
+    isUnitig = TRUE;
+
+    fprintf(stderr, "Compressing "F_U32" unitigs into version %d\n", nUtgCompress, tigVers);
+
+    for (uint32 ti=0; ti<tigStore->numUnitigs(); ti++) {
+      if (tigStore->isDeleted(ti, isUnitig)) {
+        fprintf(stderr, "tig %d is deleted\n", ti);
+        continue;
+      }
+
+      if (tigStore->getUnitigVersion(ti) == tigVers)
+        continue;
+
+      fprintf(stderr, "tig %d\n", ti);
+      MultiAlignT *ma = tigStore->loadMultiAlign(ti, isUnitig);
+
+      if (ma == NULL) {
+        fprintf(stderr, "WARNING: unitig "F_U32" is NULL.\n", ti);
+        continue;
+      }
+
+      tigStore->insertMultiAlign(ma, isUnitig, FALSE);
+      tigStore->unloadMultiAlign(ti, isUnitig);
+    }
+  }
+
+  if (nCtgCompress > 0) {
+    isUnitig = FALSE;
+
+    fprintf(stderr, "Compressing "F_U32" contigs into version %d\n", nCtgCompress, tigVers);
+
+    for (uint32 ti=0; ti<tigStore->numContigs(); ti++) {
+      if (tigStore->isDeleted(ti, isUnitig))
+        continue;
+
+      if (tigStore->getContigVersion(ti) == tigVers)
+        continue;
+
+      MultiAlignT *ma = tigStore->loadMultiAlign(ti, isUnitig);
+
+      if (ma == NULL) {
+        fprintf(stderr, "WARNING: contig "F_U32" is NULL.\n", ti);
+        continue;
+      }
+
+      tigStore->insertMultiAlign(ma, isUnitig, FALSE);
+      tigStore->unloadMultiAlign(ti, isUnitig);
+    }
+  }
+
+  //  Now clean up the older files
+
+  if (nUtgCompress + nCtgCompress > 0) {
+    for (uint32 version=1; version<tigVers; version++) {
+      fprintf(stderr, "Purge version "F_U32".\n", version);
+      tigStore->purgeVersion(version);
+    }
+  }
+
+  //  And the newer files
+
+  delete tigStore;
+}
+
+
 
 
 int
@@ -272,13 +460,15 @@ main (int argc, char **argv) {
   int           tigPartC       = 0;
   int32         tigID          = 0;
   int32         tigIsUnitig    = TRUE;
-  uint32        dumpType       = 0;
+  uint32        opType         = 0;
   uint32        dumpFlags      = 0;
   uint32        dumpAll        = 0;
   char         *editName       = NULL;
   char         *replaceName    = NULL;
   bool          replaceInPlace = TRUE;
   char         *buildName      = NULL;
+  bool          doCompress     = FALSE;
+
   MultiAlignT  *ma             = NULL;
   int           showQV         = 0;
   int           showDots       = 1;
@@ -326,7 +516,7 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-d") == 0) {
       arg++;
 
-      dumpType = OPERATION_TIG;
+      opType = OPERATION_TIG;
 
       if      (strncmp(argv[arg], "properties", 1) == 0)
         dumpFlags = DUMP_PROPERTIES;
@@ -362,31 +552,35 @@ main (int argc, char **argv) {
       arg++;
 
       if      (strncmp(argv[arg], "unitiglist", 1) == 0)
-        dumpType = OPERATION_UNITIGLIST;
+        opType = OPERATION_UNITIGLIST;
 
       else if (strncmp(argv[arg], "contiglist", 1) == 0)
-        dumpType = OPERATION_CONTIGLIST;
+        opType = OPERATION_CONTIGLIST;
 
       else if (strncmp(argv[arg], "properties", 1) == 0)
-        dumpType = OPERATION_PROPERTIES;
+        opType = OPERATION_PROPERTIES;
 
       else
         fprintf(stderr, "%s: Unknown dump option '-D %s'\n", argv[0], argv[arg]);
 
     } else if (strcmp(argv[arg], "-E") == 0) {
-      dumpType = OPERATION_EDIT;
+      opType = OPERATION_EDIT;
       editName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-R") == 0) {
-      dumpType = OPERATION_REPLACE;
-      replaceName = argv[++arg];
-
     } else if (strcmp(argv[arg], "-B") == 0) {
-      dumpType = OPERATION_BUILD;
+      opType = OPERATION_BUILD;
       buildName = argv[++arg];
+
+
+    } else if (strcmp(argv[arg], "-R") == 0) {
+      opType = OPERATION_REPLACE;
+      replaceName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-N") == 0) {
       replaceInPlace = FALSE;
+
+    } else if (strcmp(argv[arg], "-compress") == 0) {
+      opType = OPERATION_COMPRESS;
 
     } else if (strcmp(argv[arg], "-w") == 0) {
       MULTIALIGN_PRINT_WIDTH = atoi(argv[++arg]);
@@ -448,6 +642,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "                        rarely useful, but is needed if the version of the store to add a multialign\n");
     fprintf(stderr, "                        does not exist.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -compress             Move tigs from earlier versions into the specified version.  This removes\n");
+    fprintf(stderr, "                        historical versions of unitigs/contigs, and can save tremendous storage space,\n");
+    fprintf(stderr, "                        but makes it impossible to back up the assembly past the specified versions\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  For '-d multialign':\n");
     fprintf(stderr, "  -w width              Width of the page.\n");
@@ -479,62 +676,14 @@ main (int argc, char **argv) {
   //  MultiAlignStore::MultiAlignStore()-- ERROR, didn't find any unitigs or contigs in the store.  Correct version?
 
 
-  if ((dumpType == OPERATION_BUILD) && (buildName != NULL)) {
-    uint32  utgID = 0;
-    uint32  ctgID = 0;
-    uint32  orgID = 0;
-
-    MultiAlignT  *ma       = CreateEmptyMultiAlignT();
-    bool          isUnitig = false;
-
-    errno = 0;
-    FILE         *F = fopen(buildName, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s': %s\n", buildName, strerror(errno)), exit(1);
-
-    if (AS_UTL_fileExists(tigName, TRUE, TRUE)) {
-      fprintf(stderr, "ERROR: '%s' exists, and I will not clobber an existing store.\n", tigName);
-      exit(1);
-      tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, TRUE, TRUE, FALSE);
-    } else {
-      tigStore = new MultiAlignStore(tigName);
-
-      for (int32 v=1; v<tigVers; v++)
-        tigStore->nextVersion();
-    }
+  if ((opType == OPERATION_BUILD) && (buildName != NULL)) {
+    operationBuild(buildName, tigName, tigVers);
+    exit(0);
+  }
 
 
-    while (LoadMultiAlignFromHuman(ma, isUnitig, F) == true) {
-      if (ma->data.num_frags + ma->data.num_unitigs == 0)
-        continue;
-
-      orgID = ma->maID;
-
-      if (isUnitig)
-        ma->maID = utgID;
-      else
-        ma->maID = ctgID;
-
-#if 0
-      fprintf(stderr, "INSERTING %s %d (%d frags %d unitigs) (originally ID %d)\n",
-              (isUnitig) ? "unitig" : "contig",
-              ma->maID,
-              ma->data.num_frags, ma->data.num_unitigs,
-              orgID);
-#endif
-
-      tigStore->insertMultiAlign(ma, isUnitig, FALSE);
-
-      if (isUnitig)
-        utgID++;
-      else
-        ctgID++;
-    }
-
-    fclose(F);
-
-    delete tigStore;
-
+  if (opType == OPERATION_COMPRESS) {
+    operationCompress(tigName, tigVers);
     exit(0);
   }
 
@@ -543,14 +692,14 @@ main (int argc, char **argv) {
   tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, FALSE, FALSE, FALSE);
 
 
-  if ((dumpType == OPERATION_EDIT) && (editName != NULL)) {
+  if ((opType == OPERATION_EDIT) && (editName != NULL)) {
     delete tigStore;
     tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, TRUE, FALSE);
     changeProperties(tigStore, editName);
   }
 
 
-  if ((dumpType == OPERATION_REPLACE) && (replaceName != NULL)) {
+  if ((opType == OPERATION_REPLACE) && (replaceName != NULL)) {
     if (tigID) {
       fprintf(stderr, "ERROR:  -R is incompatible with -c and -u.  Did you mean -cp or -up instead?\n");
       exit(1);
@@ -581,17 +730,17 @@ main (int argc, char **argv) {
   }
 
 
-  if (dumpType == OPERATION_UNITIGLIST) {
+  if (opType == OPERATION_UNITIGLIST) {
     tigStore->dumpMultiAlignRTable(true);
   }
 
 
-  if (dumpType == OPERATION_CONTIGLIST) {
+  if (opType == OPERATION_CONTIGLIST) {
     tigStore->dumpMultiAlignRTable(false);
   }
 
 
-  if (dumpType == OPERATION_PROPERTIES) {
+  if (opType == OPERATION_PROPERTIES) {
     for (uint32 i=0; i<tigStore->numUnitigs(); i++) {
       if (tigStore->isDeleted(i, TRUE) == false) {
         fprintf(stdout, "unitig_coverage_stat %8u %d\n", i, tigStore->getUnitigCoverageStat(i));
@@ -609,13 +758,27 @@ main (int argc, char **argv) {
   }
 
 
-  if (dumpType == OPERATION_TIG) {
+  if (opType == OPERATION_TIG) {
     int32  bgn = tigID;
     int32  end = tigID + 1;
 
     if (dumpAll == TRUE) {
       bgn = 0;
       end = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
+    }
+
+    if ((tigIsUnitig == true) && (tigStore->numUnitigs() <= tigID)) {
+      fprintf(stderr, "ERROR: only "F_U32" unitigs in the store; can't dump requested unitig "F_S32"\n",
+              tigStore->numUnitigs(), tigID);
+      bgn = 0;
+      end = 0;
+    }
+
+    if ((tigIsUnitig == false) && (tigStore->numContigs() <= tigID)) {
+      fprintf(stderr, "ERROR: only "F_U32" contigs in the store; can't dump requested contig "F_S32"\n",
+              tigStore->numContigs(), tigID);
+      bgn = 0;
+      end = 0;
     }
 
     if (dumpFlags == DUMP_MATEPAIR) {

@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
-static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.10 2012-03-28 06:11:25 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.11 2012-04-12 19:31:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -132,32 +132,35 @@ public:
 
   //  Accessors to MultiAlignD data; these do not load the multialign.
 
-  bool                       isDeleted(int32 maID, bool isUnitig);
+  bool           isDeleted(int32 maID, bool isUnitig);
 
-  int32                      getUnitigCoverageStat(int32 maID);
-  double                     getUnitigMicroHetProb(int32 maID);
-  UnitigStatus               getUnitigStatus(int32 maID);
-  UnitigFUR                  getUnitigFUR(int32 maID);
-  ContigStatus               getContigStatus(int32 maID);
+  int32          getUnitigCoverageStat(int32 maID);
+  double         getUnitigMicroHetProb(int32 maID);
+  UnitigStatus   getUnitigStatus(int32 maID);
+  UnitigFUR      getUnitigFUR(int32 maID);
+  ContigStatus   getContigStatus(int32 maID);
 
-  uint32                     getNumFrags(int32 maID, bool isUnitig);
-  uint32                     getNumUnitigs(int32 maID, bool isUnitig);
+  uint32         getNumFrags(int32 maID, bool isUnitig);
+  uint32         getNumUnitigs(int32 maID, bool isUnitig);
 
-  void                       setUnitigCoverageStat(int32 maID, double cs);
-  void                       setUnitigMicroHetProb(int32 maID, double mp);
-  void                       setUnitigStatus(int32 maID, UnitigStatus status);
-  void                       setUnitigFUR(int32 maID, UnitigFUR fur);
+  void           setUnitigCoverageStat(int32 maID, double cs);
+  void           setUnitigMicroHetProb(int32 maID, double mp);
+  void           setUnitigStatus(int32 maID, UnitigStatus status);
+  void           setUnitigFUR(int32 maID, UnitigFUR fur);
 
-  void                       setContigStatus(int32 maID, ContigStatus status);
+  void           setContigStatus(int32 maID, ContigStatus status);
 
-  void                       dumpMultiAlignR(int32 maID, bool isUnitig);
-  void                       dumpMultiAlignRTable(bool isUnitig);
+  uint32         getUnitigVersion(int32 maID);
+  uint32         getContigVersion(int32 maID);
+
+  void           dumpMultiAlignR(int32 maID, bool isUnitig);
+  void           dumpMultiAlignRTable(bool isUnitig);
 
 private:
   struct MultiAlignR {
     MultiAlignD  mad;
     uint64       unusedFlags : 2;   //  Two whole bits for future use.
-    uint64       isPresent   : 1;   //  If true, this MAR is valid.
+    uint64       isPresent   : 1;   //  If true, this MAR is present in this partition.
     uint64       isDeleted   : 1;   //  If true, this MAR has been deleted from the assembly.
     uint64       ptID        : 10;  //  10 -> 1024 partitions
     uint64       svID        : 10;  //  10 -> 1024 versions
@@ -173,7 +176,10 @@ private:
   void                    dumpMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig);
   void                    loadMASR(MultiAlignR* &R, uint32& L, uint32& M, uint32 V, bool isUnitig, bool onlyThisV);
 
+  void                    purgeVersion(int version);
   void                    purgeCurrentVersion(void);
+
+  friend void operationCompress(char *tigName, int tigVers);
 
   FILE                   *openDB(uint32 V, uint32 P);
 
@@ -345,5 +351,20 @@ MultiAlignStore::setContigStatus(int32 maID, ContigStatus status) {
     ctgCache[maID]->data.contig_status = status;
 }
 
+inline
+uint32
+MultiAlignStore::getUnitigVersion(int32 maID) {
+  assert(maID >= 0);
+  assert(maID < (int32)utgLen);
+  return(utgRecord[maID].svID);
+}
+
+inline
+uint32
+MultiAlignStore::getContigVersion(int32 maID) {
+  assert(maID >= 0);
+  assert(maID < (int32)ctgLen);
+  return(ctgRecord[maID].svID);
+}
 
 #endif

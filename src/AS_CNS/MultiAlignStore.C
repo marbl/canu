@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.21 2012-03-28 06:11:25 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.22 2012-04-12 19:31:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -208,20 +208,26 @@ MultiAlignStore::~MultiAlignStore() {
 
 
 void
-MultiAlignStore::purgeCurrentVersion(void) {
+MultiAlignStore::purgeVersion(int version) {
   char   name[FILENAME_MAX];
   uint32 part = 1;
 
-  sprintf(name, "%s/seqDB.v%03d.dat", path, currentVersion);   AS_UTL_unlink(name);
-  sprintf(name, "%s/seqDB.v%03d.ctg", path, currentVersion);   AS_UTL_unlink(name);
-  sprintf(name, "%s/seqDB.v%03d.utg", path, currentVersion);   AS_UTL_unlink(name);
+  sprintf(name, "%s/seqDB.v%03d.dat", path, version);   AS_UTL_unlink(name);
+  sprintf(name, "%s/seqDB.v%03d.ctg", path, version);   AS_UTL_unlink(name);
+  sprintf(name, "%s/seqDB.v%03d.utg", path, version);   AS_UTL_unlink(name);
 
-  sprintf(name, "%s/seqDB.v%03d.p001.dat", path, currentVersion);
+  sprintf(name, "%s/seqDB.v%03d.p001.dat", path, version);
   while (AS_UTL_unlink(name)) {
-    sprintf(name, "%s/seqDB.v%03d.p%03d.ctg", path, currentVersion, part);   AS_UTL_unlink(name);
-    sprintf(name, "%s/seqDB.v%03d.p%03d.utg", path, currentVersion, part);   AS_UTL_unlink(name);
-    sprintf(name, "%s/seqDB.v%03d.p%03d.dat", path, currentVersion, ++part);
+    sprintf(name, "%s/seqDB.v%03d.p%03d.ctg", path, version, part);   AS_UTL_unlink(name);
+    sprintf(name, "%s/seqDB.v%03d.p%03d.utg", path, version, part);   AS_UTL_unlink(name);
+    sprintf(name, "%s/seqDB.v%03d.p%03d.dat", path, version, ++part);
   }
+}
+
+
+void
+MultiAlignStore::purgeCurrentVersion(void) {
+  purgeVersion(currentVersion);
 }
 
 
@@ -369,6 +375,13 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
 
   assert(maRecord->isDeleted == 0);
 
+#if 0
+  if (maRecord->svID > 0)
+    fprintf(stderr, "InsetMultiAlign()--  Moving %s maID %d from svID %d to svID %d\n",
+            (isUnitig) ? "unitig" : "contig",
+            ma->maID, maRecord->svID, currentVersion);
+#endif
+
   maRecord->unusedFlags     = 0;
   maRecord->isPresent       = 1;
   maRecord->isDeleted       = 0;
@@ -494,7 +507,16 @@ MultiAlignStore::loadMultiAlign(int32 maID, bool isUnitig) {
   MultiAlignT           **maCache  = (isUnitig) ? utgCache  : ctgCache;
   bool                    cantLoad = true;
 
+  if (maID < 0)
+    fprintf(stderr, "MultiAlignStore::loadMultiAlign()-- WARNING: invalid negative %s maID "F_S32".\n",
+            (isUnitig) ? "unitig" : "contig",
+            maID);
   assert(maID >= 0);
+
+  if ((int32)maLen <= maID)
+    fprintf(stderr, "MultiAlignStore::loadMultiAlign()-- WARNING: invalid out-of-range %s maID "F_S32", only "F_S32" ma in store; return NULL.\n",
+            (isUnitig) ? "unitig" : "contig",
+            maID, (int32)maLen);
   assert(maID < (int32)maLen);
 
   //  This is...and is not...an error.  It does indicate something didn't go according to plan, like

@@ -531,6 +531,9 @@ sub setDefaults () {
     $global{"cgwPurgeCheckpoints"}         = 1;
     $synops{"cgwPurgeCheckpoints"}         = "Remove cgw checkpoint files when a scaffolding step finishes successfully";
 
+    $global{"cgwCompressTigStore"}         = 1;
+    $synops{"cgwCompressTigStore"}         = "Remove tigStore versions when a scaffolding step finishes successfully";
+
     $global{"cgwDemoteRBP"}                = 1;
     $synops{"cgwDemoteRBP"}                = "EXPERT!";
 
@@ -4870,23 +4873,22 @@ sub CGW ($$$$$$) {
         caFailure("scaffolder failed", "$wrk/$thisDir/cgw.out");
     }
 
+    if (getGlobal("cgwCompressTigStore") != 0) {
+        my $f = findFirstCheckpoint($thisDir);
+        my $l = findLastCheckpoint($thisDir);
 
-    open(F, "ls -1 $wrk/$thisDir |");
-    while (<F>) {
-        chomp;
+        if ($f < $l) {
+            $cmd  = "$bin/tigStore \\\n";
+            $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+            $cmd .= " -t $wrk/$asm.tigStore $l \\\n";
+            $cmd .= " -compress \\\n";
+            $cmd .= "> $wrk/$thisDir/tigStore-compress.out 2>&1";
 
-        if (m/\.log$/) {
-            system("mkdir $wrk/$thisDir/log")        if (! -d "$wrk/$thisDir/log");
-            rename "$wrk/$thisDir/$_", "$wrk/$thisDir/log/$_";
-        }
-
-        if (m/\.analysis$/) {
-            system("mkdir $wrk/$thisDir/analysis")   if (! -d "$wrk/$thisDir/analysis");
-            rename "$wrk/$thisDir/$_", "$wrk/$thisDir/analysis/$_";
+            if (runCommand("$wrk/$thisDir", $cmd)) {
+                caFailure("tigStore compression failed", "$wrk/$thisDir/tigStore-compress.out");
+            }
         }
     }
-    close(F);
-
 
     if (getGlobal("cgwPurgeCheckpoints") != 0) {
         my $f = findFirstCheckpoint($thisDir);
