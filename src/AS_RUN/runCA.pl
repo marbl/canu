@@ -4880,7 +4880,7 @@ sub CGW ($$$$$$) {
         if ($f < $l) {
             $cmd  = "$bin/tigStore \\\n";
             $cmd .= " -g $wrk/$asm.gkpStore \\\n";
-            $cmd .= " -t $wrk/$asm.tigStore $l \\\n";
+            $cmd .= " -t $tigStore $l \\\n";
             $cmd .= " -compress \\\n";
             $cmd .= "> $wrk/$thisDir/tigStore-compress.out 2>&1";
 
