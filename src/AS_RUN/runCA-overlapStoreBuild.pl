@@ -60,6 +60,14 @@ $err++  if (!defined($typ));
 $err++  if (!defined($gkp) || (! -d $gkp));
 $err++  if (!defined($inp) || (! -d $inp));
 
+if (($typ ne "obt") &&
+    ($typ ne "dup") &&
+    ($typ ne "mer") &&
+    ($typ ne "ovl")) {
+    $err++;
+    print STDERR "Invalid -t '$typ'.\n";
+}
+
 if ($err) {
     print STDERR "usage: $0 []\n";
     print STDERR "  -d wrk          path to location where store should be created\n";
@@ -70,11 +78,6 @@ if ($err) {
     exit(1);
 }
 
-
-
-
-
-
 #  Check that all -- or plausibly all -- overlap files are here
 
 my $firstIdx = "999999";
@@ -83,7 +86,7 @@ my $numJobs  = 0;
 
 my @jobArray;
 
-my $numJobs  = 0;
+my $numJobs     = 0;
 
 open(F, "find $inp -type f -name \*.ovb.gz -print | sort |");
 while (<F>) {
@@ -106,10 +109,16 @@ print STDERR "Found $numJobs jobs from index $firstIdx to $lastIdx.\n";
 
 die "No jobs.\n" if ($numJobs == 0);
 
+#  Create an output directory, and populate it with scripts
+
+if (! -d "$wrk/$asm.${typ}Store") {
+    system("mkdir -p $wrk/$asm.${typ}Store");
+}
+
 #  Submit parallel jobs for bucketizing.  This should really be part
 #  of overlap computation itself.
 
-open(F, "> $wrk/1-bucketize.sh") or die;
+open(F, "> $wrk/$asm.${typ}Store/1-bucketize.sh") or die;
 print F "#!/bin/sh\n";
 print F "\n";
 print F "jobid=\$SGE_TASK_ID\n";
@@ -121,6 +130,7 @@ print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command lin
 print F "  exit 1\n";
 print F "fi\n";
 print F "\n";
+print F "bn=`printf %04d \$jobid`\n";
 print F "jn=\"undefined\"\n";
 print F "\n";
 
@@ -136,9 +146,9 @@ print F "  echo \"Job out of range.\"\n";
 print F "  exit\n";
 print F "fi\n";
 print F "\n";
-print F "if [ -e \"\$jn.bucketizing.gz\" ] ; then\n";
-print F "  echo \"Input \$jn is in progress.\"\n";
-print F "  exit\n";
+print F "if [ ! -e \"$wrk/$asm.${typ}Store/bucket\$bn\" -a -e \"\$jn.success\" ] ; then\n";
+print F "  echo job \$jn claims success, but bucket $wrk/$asm.${typ}Store/bucket\$bn not found.  rerunning.\n";
+print F "  rm -f \$jn.success\n";
 print F "fi\n";
 print F "\n";
 print F "if [ -e \"\$jn.success\" ] ; then\n";
@@ -146,7 +156,18 @@ print F "  echo \"Input \$jn finished successfully.\"\n";
 print F "  exit\n";
 print F "fi\n";
 print F "\n";
-print F "mv -f \"\$jn\" \"\$jn.bucketizing.gz\"\n";
+print F "if [ -e \"\$jn.bucketizing\" ] ; then\n";
+print F "  echo \"Input \$jn is in progress.  Remove \$jn.bucketizing to try again.\"\n";
+print F "  exit\n";
+print F "fi\n";
+print F "\n";
+print F "if [ -e \"\$jn.FAILED\" ] ; then\n";
+print F "  echo \"Input \$jn failed previously, cleaning up bucket $wrk/$asm.${typ}Store/bucket\$bn and rerunning.\"\n";
+print F "  rm  -f \$jn.FAILED\n";
+print F "  rm -rf \"$wrk/$asm.${typ}Store/bucket\$bn\"\n";
+print F "fi\n";
+print F "\n";
+print F "touch \"\$jn.bucketizing\"\n";
 print F "\n";
 print F "$sbn\n";
 print F "\n";
@@ -154,16 +175,21 @@ print F "\$bin/overlapStoreBucketizer \\\n";
 print F "  -o $wrk/$asm.${typ}Store \\\n";
 print F "  -g $gkp \\\n";
 print F "  -F 512 \\\n";
-print F "  -obt \\\n";
+print F "  -obt \\\n"   if ($typ eq "obt");
+print F "  -dup \\\n"   if ($typ eq "dup");
 print F "  -job \$jobid \\\n";
-print F "  -i   \$jn.bucketizing.gz \\\n";
+print F "  -i   \$jn \\\n";
 print F "  -e   0.045 \\\n";
-print F "&& \\\n";
-print F "mv -f \$jn.bucketizing.gz \$jn.success\n";
+print F "\n";
+print F "if [ \$? = 0 ] ; then\n";
+print F "  mv -f \$jn.bucketizing \$jn.success\n";
+print F "\n";
+print F "mv -f \$jn.bucketizing \$jn.FAILED\n";
+print F "fi\n";
 close(F);
 
 
-open(F, "> $wrk/2-sort.sh") or die;
+open(F, "> $wrk/$asm.${typ}Store/2-sort.sh") or die;
 print F "#!/bin/sh\n";
 print F "\n";
 print F "jobid=\$SGE_TASK_ID\n";
@@ -183,11 +209,15 @@ print F "  -g $gkp \\\n";
 print F "  -F 512 \\\n";
 print F "  -job \$jobid $lastIdx\n";
 print F "\n";
-print F "\n";
+print F "if [ \$? = 0 ] ; then\n";
+print F "  echo Success.\n";
+print F "else\n";
+print F "  echo Failure.\n";
+print F "fi\n";
 close(F);
 
 
-open(F, "> $wrk/3-index.sh") or die;
+open(F, "> $wrk/$asm.${typ}Store/3-index.sh") or die;
 print F "#!/bin/sh\n";
 print F "\n";
 print F "$sbn\n";
@@ -196,14 +226,54 @@ print F "\$bin/overlapStoreIndexer \\\n";
 print F "  -o $wrk/$asm.${typ}Store \\\n";
 print F "  -g $gkp \\\n";
 print F "\n";
-print F "\n";
+print F "if [ \$? = 0 ] ; then\n";
+print F "  echo Success.\n";
+print F "else\n";
+print F "  echo Failure.\n";
+print F "fi\n";
 close(F);
 
 
-print STDERR "qsub -N ovs1$asm                    -b n -t 1-$numJobs -l memory=1g -j y -o $wrk/1-bucketize-\\\$TASK_ID.err $wrk/1-bucketize.sh\n";
-print STDERR "qsub -N ovs2$asm -hold_jid ovs1$asm -b n -t 1-512      -l memory=1g -j y -o $wrk/2-sort-\\\$TASK_ID.err      $wrk/2-sort.sh\n";
-print STDERR "qsub -N ovs3$asm -hold_jid ovs2$asm -b n               -l memory=1g -j y -o $wrk/3-index.err                 $wrk/3-index.sh\n";
+my $qsub1 = "";
+my $qsub2 = "";
+my $qsub3 = "";
 
+$qsub1 .= "qsub \\\n";
+$qsub1 .= "  -N ovs1$asm \\\n";
+$qsub1 .= "  -b n \\\n";
+$qsub1 .= "  -t 1-$numJobs \\\n";
+$qsub1 .= "  -l memory=1g \\\n";
+$qsub1 .= "  -j y \\\n";
+$qsub1 .= "  -o $wrk/$asm.${typ}Store/1-bucketize-\\\$TASK_ID.err \\\n";
+$qsub1 .= "  $wrk/$asm.${typ}Store/1-bucketize.sh";
+
+$qsub2 .= "qsub \\\n";
+$qsub2 .= "  -N ovs2$asm \\\n";
+$qsub2 .= "  -hold_jid ovs1$asm \\\n";
+$qsub2 .= "  -b n \\\n";
+$qsub2 .= "  -t 1-512 \\\n";
+$qsub2 .= "  -l memory=1g \\\n";
+$qsub2 .= "  -j y \\\n";
+$qsub2 .= "  -o $wrk/$asm.${typ}Store/2-sort-\\\$TASK_ID.err \\\n";
+$qsub2 .= "  $wrk/$asm.${typ}Store/2-sort.sh";
+
+$qsub3 .= "qsub \\\n";
+$qsub3 .= "  -N ovs3$asm \\\n";
+$qsub3 .= "  -hold_jid ovs2$asm \\\n";
+$qsub3 .= "  -b n \\\n";
+$qsub3 .= "  -l memory=1g \\\n";
+$qsub3 .= "  -j y \\\n";
+$qsub3 .= "  -o $wrk/$asm.${typ}Store/3-index.err \\\n";
+$qsub3 .= "  $wrk/$asm.${typ}Store/3-index.sh";
+
+print "$qsub1\n";
+system($qsub1);
+
+print "$qsub2\n";
+system($qsub2);
+
+print "$qsub3\n";
+system($qsub3);
 
 
 #
