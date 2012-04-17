@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.61 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.62 2012-04-17 04:15:48 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -122,7 +122,7 @@ main(int argc, char **argv) {
   int   startingGap      = -1;
   int   scaffoldEnd      = -1;
   int   ckptNum          = -1;
-  int   gkpPart          = 0;
+  int   loadReads        = 0;
   int   arg              = 1;
   int   err              = 0;
 
@@ -209,8 +209,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-p") == 0) {
-      gkpPart = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-load") == 0) {
+      loadReads = 1;
 
     } else if (strcmp(argv[arg], "-b") == 0) {
       scaffoldBegin = atoi(argv[++arg]);
@@ -274,7 +274,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -i iterNum     The iteration of ECR; either 1 or 2\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -p partition   Load a gkpStore partition into memory\n");
+    fprintf(stderr, "  -load          Load gkpStore into memory\n");
     exit(1);
   }
 
@@ -294,12 +294,9 @@ main(int argc, char **argv) {
   //
   ScaffoldGraph->gkpStore->gkStore_enableClearRange(AS_READ_CLEAR_ECR_0 + iterNumber);
 
-  //  If we're partitioned, load the partition.
-  //
-  //  THIS IS BROKEN.  GKPSTORE DOES NOT ALLOW UPDATES TO PARTITIONS.
-  //
-  //if (gkpPart)
-  //  ScaffoldGraph->gkpStore->gkStore_loadPartition(gkpPart);
+  if (loadReads)
+    ScaffoldGraph->gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);
+
 
   //  Update the begin/end scaffold ids.
   //
