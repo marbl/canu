@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.3 2012-04-03 19:50:08 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.4 2012-04-17 04:04:51 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -230,7 +230,19 @@ main(int argc, char **argv) {
     err++;
   if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
     err++;
+
   if (err) {
+    if (ovlName == NULL)
+      fprintf(stderr, "No overlap store (-o) supplied.\n");
+    if (gkpName == NULL)
+      fprintf(stderr, "No gatekeeper store (-g) supplied.\n");
+    if (ovlInput == NULL)
+      fprintf(stderr, "No input (-i) supplied.\n");
+    if (jobIndex == 0)
+      fprintf(stderr, "No job index (-job) supplied.\n");
+    if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
+      fprintf(stderr, "Too many jobs (-F); only %d supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
+
     exit(1);
   }
 
@@ -415,6 +427,9 @@ main(int argc, char **argv) {
 
   for (uint32 i=0; i<=fileLimit; i++)
     AS_OVS_closeBinaryOverlapFile(sliceFile[i]);
+
+  delete [] sliceFile;
+  delete [] sliceSize;
 
   {
     char name[FILENAME_MAX];

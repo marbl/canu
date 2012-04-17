@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreSorter.C,v 1.3 2012-04-03 19:50:08 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreSorter.C,v 1.4 2012-04-17 04:04:51 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -42,8 +42,8 @@ using namespace std;
 
 #define WITH_GZIP 1
 
-#define DELETE_INTERMEDIATE_EARLY
-#undef  DELETE_INTERMEDIATE_LATE
+#undef  DELETE_INTERMEDIATE_EARLY
+#define DELETE_INTERMEDIATE_LATE
 
 
 //  This should be private to AS_OVS
@@ -203,7 +203,10 @@ main(int argc, char **argv) {
   uint32          jobIndex     = 0;
   uint32          jobIdxMax    = 0;
 
-  uint32          nThreads = 4;
+  uint64          maxMemory    = UINT64_MAX;
+
+  bool            deleteIntermediateEarly = false;
+  bool            deleteIntermediateLate  = false;
 
   argc = AS_configure(argc, argv);
 
@@ -223,6 +226,18 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-job") == 0) {
       jobIndex  = atoi(argv[++arg]);
       jobIdxMax = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-M") == 0) {
+      maxMemory  = atoi(argv[++arg]);
+      maxMemory *= 1024;
+      maxMemory *= 1024;
+      maxMemory *= 1024;
+
+    } else if (strcmp(argv[arg], "-deleteearly") == 0) {
+      deleteIntermediateEarly = true;
+
+    } else if (strcmp(argv[arg], "-deletelate") == 0) {
+      deleteIntermediateLate  = true;
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -294,6 +309,21 @@ main(int argc, char **argv) {
   delete [] sliceSizes;
   sliceSizes = NULL;
 
+  if (sizeof(OVSoverlap) * totOvl > maxMemory) {
+    fprintf(stderr, "ERROR:  Overlaps need %.2f GB memory, but process limited (via -M) to "F_U64" GB.\n",
+            sizeof(OVSoverlap) * totOvl / (1024.0 * 1024.0 * 1024.0), maxMemory >> 30);
+
+    char name[FILENAME_MAX];
+    sprintf(name,"%s/%04d.ovs", ovlName, jobIndex);
+
+    unlink(name);
+
+    exit(1);
+  }
+
+  fprintf(stderr, "Overlaps need %.2f GB memory, allowed to use up to (via -M) "F_U64" GB.\n",
+          sizeof(OVSoverlap) * totOvl / (1024.0 * 1024.0 * 1024.0), maxMemory >> 30);
+
   OVSoverlap *overlapsort = new OVSoverlap [totOvl];
 
   //  Load all overlaps
@@ -319,17 +349,17 @@ main(int argc, char **argv) {
     fprintf(stderr, "ERROR: read "F_U64" overlaps, expected "F_U64"\n", numOvl, totOvl);
   assert(numOvl == totOvl);
 
-#ifdef DELETE_INTERMEDIATE_EARLY
-  fprintf(stderr, "Removing inputs.\n");
-  for (uint32 i=0; i<=jobIdxMax; i++) {
-  	if (bucketSizes[i] == 0)
-  		continue;
+  if (deleteIntermediateEarly) {
+    fprintf(stderr, "Removing inputs.\n");
+    for (uint32 i=0; i<=jobIdxMax; i++) {
+      if (bucketSizes[i] == 0)
+        continue;
 
-    char name[FILENAME_MAX];
-    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
-  	AS_UTL_unlink(name);
+      char name[FILENAME_MAX];
+      sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+      AS_UTL_unlink(name);
+    }
   }
-#endif
 
   //  Sort the overlaps
 
@@ -343,17 +373,17 @@ main(int argc, char **argv) {
 
   delete [] overlapsort;
 
-#ifdef DELETE_INTERMEDIATE_LATE
-  fprintf(stderr, "Removing inputs.\n");
-  for (uint32 i=0; i<=jobIdxMax; i++) {
-  	if (bucketSizes[i] == 0)
-  		continue;
+  if (deleteIntermediateLate) {
+    fprintf(stderr, "Removing inputs.\n");
+    for (uint32 i=0; i<=jobIdxMax; i++) {
+      if (bucketSizes[i] == 0)
+        continue;
 
-    char name[FILENAME_MAX];
-    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
-  	AS_UTL_unlink(name);
+      char name[FILENAME_MAX];
+      sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+      AS_UTL_unlink(name);
+    }
   }
-#endif
 
   delete [] bucketSizes;
 }

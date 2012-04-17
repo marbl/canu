@@ -23,6 +23,11 @@ my $typ = undef;  #  Type of store to build (obt, dup, mer, ovl).
 my $gkp = undef;  #  Path to the gkpStore.
 my $inp = undef;  #  Path to input files.
 
+my $jobs        = 512;
+my $maxMemory   = 2;    #  gigabytes
+my $deleteearly = 0;
+my $deletelate  = 0;
+
 my $bin = getBinDirectory();
 my $sbn = getBinDirectoryShellCode();
 
@@ -31,7 +36,7 @@ my $err = 0;
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
-    if      ($arg =~ m/^-d/) {
+    if      ($arg eq "-d") {
         $wrk = shift @ARGV;
         $wrk = "$ENV{'PWD'}/$wrk" if ($wrk !~ m!^/!);
 
@@ -49,26 +54,53 @@ while (scalar(@ARGV)) {
         $inp = shift @ARGV;
         $inp = "$ENV{'PWD'}/$inp" if ($inp !~ m!^/!);
 
+    } elsif ($arg eq "-jobs") {
+        $jobs = shift @ARGV;
+
+    } elsif ($arg eq "-memory") {
+        $maxMemory = shift @ARGV;
+
+    } elsif ($arg eq "-deleteearly") {
+        $deleteearly = 1;
+
+    } elsif ($arg eq "-delete") {
+        $deletelate = 1;
+
     } else {
         die "Unknown option '$arg'\n";
     }
 }
 
-$err++  if (!defined($wrk) || (! -d $wrk));
-$err++  if (!defined($asm));
-$err++  if (!defined($typ));
-$err++  if (!defined($gkp) || (! -d $gkp));
-$err++  if (!defined($inp) || (! -d $inp));
-
+if (!defined($wrk) || (! -d $wrk)) {
+    print STDERR "ERROR:  Work directory '$wrk' (-d option) not supplied or not found.\n";
+    $err++;
+}
+if (!defined($asm)) {
+    print STDERR "ERROR:  Assembly prefix (-p option) not supplied.\n";
+    $err++;
+}
+if (!defined($typ)) {
+    print STDERR "ERROR:  Store type (-t option) not supplied.\n";
+    $err++;
+}
 if (($typ ne "obt") &&
     ($typ ne "dup") &&
     ($typ ne "mer") &&
     ($typ ne "ovl")) {
     $err++;
-    print STDERR "Invalid -t '$typ'.\n";
+    print STDERR "ERROR:  Store type (-t option) not valid - must be 'obt', 'dup', 'mer' or 'ovl'.\n";
+}
+if (!defined($gkp) || (! -d $gkp)) {
+    print STDERR "ERROR:  Gatekeeper path '$gkp' (-g option) not supplied or not found.\n";
+    $err++;
+}
+if (!defined($inp) || (! -d $inp)) {
+    print STDERR "ERROR:  Input path '$inp' (-i option) not supplied or not found.\n";
+    $err++;
 }
 
 if ($err) {
+    print STDERR "\n";
     print STDERR "usage: $0 []\n";
     print STDERR "  -d wrk          path to location where store should be created\n";
     print STDERR "  -p asm          prefix of store\n";
@@ -174,17 +206,19 @@ print F "\n";
 print F "\$bin/overlapStoreBucketizer \\\n";
 print F "  -o $wrk/$asm.${typ}Store \\\n";
 print F "  -g $gkp \\\n";
-print F "  -F 512 \\\n";
+print F "  -F $jobs \\\n";
 print F "  -obt \\\n"   if ($typ eq "obt");
 print F "  -dup \\\n"   if ($typ eq "dup");
 print F "  -job \$jobid \\\n";
 print F "  -i   \$jn \\\n";
-print F "  -e   0.045 \\\n";
+print F "  -e   0.06\n";
 print F "\n";
 print F "if [ \$? = 0 ] ; then\n";
 print F "  mv -f \$jn.bucketizing \$jn.success\n";
+print F "fi\n";
 print F "\n";
-print F "mv -f \$jn.bucketizing \$jn.FAILED\n";
+print F "if [ -e \"\$jn.bucketizing\" ] ; then\n";
+print F "  mv -f \$jn.bucketizing \$jn.FAILED\n";
 print F "fi\n";
 close(F);
 
@@ -204,9 +238,12 @@ print F "\n";
 print F "$sbn\n";
 print F "\n";
 print F "\$bin/overlapStoreSorter \\\n";
+print F "  -deleteearly \\\n" if ($deleteearly);
+print F "  -deletelate \\\n"  if ($deletelate);
+print F "  -M $maxMemory \\\n";
 print F "  -o $wrk/$asm.${typ}Store \\\n";
 print F "  -g $gkp \\\n";
-print F "  -F 512 \\\n";
+print F "  -F $jobs \\\n";
 print F "  -job \$jobid $lastIdx\n";
 print F "\n";
 print F "if [ \$? = 0 ] ; then\n";
@@ -223,8 +260,9 @@ print F "\n";
 print F "$sbn\n";
 print F "\n";
 print F "\$bin/overlapStoreIndexer \\\n";
+print F "  -delete \\\n" if ($deleteearly || $deletelate);
 print F "  -o $wrk/$asm.${typ}Store \\\n";
-print F "  -g $gkp \\\n";
+print F "  -F $jobs\n";
 print F "\n";
 print F "if [ \$? = 0 ] ; then\n";
 print F "  echo Success.\n";
@@ -238,42 +276,39 @@ my $qsub1 = "";
 my $qsub2 = "";
 my $qsub3 = "";
 
-$qsub1 .= "qsub \\\n";
+$qsub1 .= "qsub -cwd -b n \\\n";
 $qsub1 .= "  -N ovs1$asm \\\n";
-$qsub1 .= "  -b n \\\n";
 $qsub1 .= "  -t 1-$numJobs \\\n";
 $qsub1 .= "  -l memory=1g \\\n";
 $qsub1 .= "  -j y \\\n";
 $qsub1 .= "  -o $wrk/$asm.${typ}Store/1-bucketize-\\\$TASK_ID.err \\\n";
 $qsub1 .= "  $wrk/$asm.${typ}Store/1-bucketize.sh";
 
-$qsub2 .= "qsub \\\n";
+$qsub2 .= "qsub -cwd -b n \\\n";
 $qsub2 .= "  -N ovs2$asm \\\n";
 $qsub2 .= "  -hold_jid ovs1$asm \\\n";
-$qsub2 .= "  -b n \\\n";
-$qsub2 .= "  -t 1-512 \\\n";
-$qsub2 .= "  -l memory=1g \\\n";
+$qsub2 .= "  -t 1-$jobs \\\n";
+$qsub2 .= "  -l memory=${maxMemory}g \\\n";
 $qsub2 .= "  -j y \\\n";
 $qsub2 .= "  -o $wrk/$asm.${typ}Store/2-sort-\\\$TASK_ID.err \\\n";
 $qsub2 .= "  $wrk/$asm.${typ}Store/2-sort.sh";
 
-$qsub3 .= "qsub \\\n";
+$qsub3 .= "qsub -cwd -b n \\\n";
 $qsub3 .= "  -N ovs3$asm \\\n";
 $qsub3 .= "  -hold_jid ovs2$asm \\\n";
-$qsub3 .= "  -b n \\\n";
 $qsub3 .= "  -l memory=1g \\\n";
 $qsub3 .= "  -j y \\\n";
 $qsub3 .= "  -o $wrk/$asm.${typ}Store/3-index.err \\\n";
 $qsub3 .= "  $wrk/$asm.${typ}Store/3-index.sh";
 
 print "$qsub1\n";
-system($qsub1);
+#system($qsub1);
 
 print "$qsub2\n";
-system($qsub2);
+#system($qsub2);
 
 print "$qsub3\n";
-system($qsub3);
+#system($qsub3);
 
 
 #

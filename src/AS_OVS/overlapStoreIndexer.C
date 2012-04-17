@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreIndexer.C,v 1.2 2012-04-03 19:50:08 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreIndexer.C,v 1.3 2012-04-17 04:04:51 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -45,7 +45,12 @@ using namespace std;
 int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
-  //char           *gkpName      = NULL;
+  uint32          maxJob       = 0;
+  uint32          cntJob       = 0;
+
+  bool            deleteIntermediates = false;
+
+  char            name[FILENAME_MAX];
 
   argc = AS_configure(argc, argv);
 
@@ -55,9 +60,11 @@ main(int argc, char **argv) {
     if        (strcmp(argv[arg], "-o") == 0) {
       ovlName = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-g") == 0) {
-      //unused gkpName = argv[++arg];
-      ++arg;
+    } else if (strcmp(argv[arg], "-F") == 0) {
+      maxJob = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-delete") == 0) {
+      deleteIntermediates = true;
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -67,14 +74,44 @@ main(int argc, char **argv) {
   }
   if (ovlName == NULL)
     err++;
-  //if (gkpName == NULL)
-  //  err++;
+  if (maxJob == 0)
+    err++;
   if (err) {
     exit(1);
   }
 
-  //gkStore *gkp         = new gkStore(gkpName, FALSE, FALSE);
-  //AS_IID   maxIID      = gkp->gkStore_getNumFragments() + 1;
+  //  Check that all segments are present.  Every segment should have an ovs file.
+
+  for (uint32 i=1; i<=maxJob; i++) {
+    uint32  complete = 0;
+
+    sprintf(name, "%s/%04d", ovlName, i);
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
+      complete++;
+    else
+      fprintf(stderr, "ERROR: Segment "F_U32" data not present  (%s)\n", i, name);
+
+    sprintf(name, "%s/%04d.ovs", ovlName, i);
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
+      complete++;
+    else
+      fprintf(stderr, "ERROR: Segment "F_U32" store not present (%s)\n", i, name);
+
+    sprintf(name, "%s/%04d.idx", ovlName, i);
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == true)
+      complete++;
+    else
+      fprintf(stderr, "ERROR: Segment "F_U32" index not present (%s)\n", i, name);
+
+    if (complete == 3)
+      cntJob++;
+  }
+
+  if (cntJob != maxJob) {
+    fprintf(stderr, "ERROR: Expected "F_U32" segments, only found "F_U32".\n", maxJob, cntJob);
+    exit(1);
+  }
+
 
   OverlapStoreInfo    ovspiece;
   OverlapStoreInfo    ovs;
@@ -95,7 +132,6 @@ main(int argc, char **argv) {
 
   //  Open the new master index output file
 
-  char name[FILENAME_MAX];
   sprintf(name, "%s/idx", ovlName);
 
   errno = 0;
@@ -103,24 +139,11 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "ERROR: Failed to open '%s': %s\n", name, strerror(errno)), exit(1);
 
-  //  Count how many files we have to process
-
-  uint32  numSegments = 1;
-
-  sprintf(name, "%s/%04d.ovs", ovlName, numSegments);
-
-  while (AS_UTL_fileExists(name, FALSE, FALSE) == true) {
-    numSegments++;
-    sprintf(name, "%s/%04d.ovs", ovlName, numSegments);
-  }
-
-  ovs.highestFileIndex = numSegments - 1;
-
-  fprintf(stderr, "Found "F_U32" segments to process.\n", numSegments-1);
+  ovs.highestFileIndex = maxJob;
 
   //  Process each
 
-  for (uint32 i=1; i<numSegments; i++) {
+  for (uint32 i=1; i<=maxJob; i++) {
     sprintf(name, "%s/%04d.ovs", ovlName, i);
 
     fprintf(stderr, "Processing '%s'\n", name);
@@ -220,8 +243,8 @@ main(int argc, char **argv) {
   //  Remove intermediates.  For the buckets, we keep going until there are 10 in a row not present.
   //  During testing, on a microbe using 2850 buckets, some buckets were empty.
 
-#ifdef DELETE_INTERMEDIATE
-  for (uint32 i=1; i<numSegments; i++) {
+  if (deleteIntermediates) {
+  for (uint32 i=1; i<=maxJob; i++) {
     char name[FILENAME_MAX];
 
     sprintf(name, "%s/%04u.idx", ovlName, i);
@@ -252,7 +275,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "rmdir %s\n", name);
     rmdir(name);
   }
-#endif
+  }
 
   exit(0);
 }
