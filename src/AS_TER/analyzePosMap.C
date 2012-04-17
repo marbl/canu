@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: analyzePosMap.C,v 1.4 2012-04-09 19:08:54 brianwalenz Exp $";
+const char *mainid = "$Id: analyzePosMap.C,v 1.5 2012-04-17 04:11:25 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -603,7 +603,7 @@ analyzeGapFillProbability() {
 
       int32  dist = MAX(frgDat[fi].end, frgDat[mi].end) - MIN(frgDat[fi].bgn, frgDat[mi].bgn);
 
-      if (dist <= 0) {
+      if (dist < 0) {
         fprintf(stderr, "negative distance %d\n", dist);
         fprintf(stderr, "fi="F_U32" con="F_U32" bgn="F_U32" end="F_U32" len="F_U32" ori=%c typ=%c %s\n",
                 fi,
@@ -613,7 +613,7 @@ analyzeGapFillProbability() {
                 frgDat[mi].con, frgDat[mi].bgn, frgDat[mi].end, frgDat[mi].len, frgDat[mi].ori, frgDat[mi].typ, frgNam[mi].c_str());
         dist = 0;
       }
-      assert(dist > 0);
+      assert(dist >= 0);
 
       if        (((frgDat[fi].ori == frgDat[mi].ori))) {
         scfStat->same.addDistance(dist);
