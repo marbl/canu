@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.21 2012-04-12 19:31:16 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.22 2012-04-17 04:09:25 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -388,19 +388,20 @@ operationCompress(char *tigName, int tigVers) {
     fprintf(stderr, "Compressing "F_U32" unitigs into version %d\n", nUtgCompress, tigVers);
 
     for (uint32 ti=0; ti<tigStore->numUnitigs(); ti++) {
+      if ((ti % 1000000) == 0)
+        fprintf(stderr, "tig %d\n", ti);
+
       if (tigStore->isDeleted(ti, isUnitig)) {
-        fprintf(stderr, "tig %d is deleted\n", ti);
         continue;
       }
 
       if (tigStore->getUnitigVersion(ti) == tigVers)
         continue;
 
-      fprintf(stderr, "tig %d\n", ti);
       MultiAlignT *ma = tigStore->loadMultiAlign(ti, isUnitig);
 
       if (ma == NULL) {
-        fprintf(stderr, "WARNING: unitig "F_U32" is NULL.\n", ti);
+        //fprintf(stderr, "WARNING: unitig "F_U32" is NULL.\n", ti);
         continue;
       }
 
@@ -415,6 +416,9 @@ operationCompress(char *tigName, int tigVers) {
     fprintf(stderr, "Compressing "F_U32" contigs into version %d\n", nCtgCompress, tigVers);
 
     for (uint32 ti=0; ti<tigStore->numContigs(); ti++) {
+      if ((ti % 1000000) == 0)
+        fprintf(stderr, "tig %d\n", ti);
+
       if (tigStore->isDeleted(ti, isUnitig))
         continue;
 
@@ -424,7 +428,7 @@ operationCompress(char *tigName, int tigVers) {
       MultiAlignT *ma = tigStore->loadMultiAlign(ti, isUnitig);
 
       if (ma == NULL) {
-        fprintf(stderr, "WARNING: contig "F_U32" is NULL.\n", ti);
+        //fprintf(stderr, "WARNING: contig "F_U32" is NULL.\n", ti);
         continue;
       }
 
