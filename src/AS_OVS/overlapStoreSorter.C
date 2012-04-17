@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreSorter.C,v 1.4 2012-04-17 04:04:51 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreSorter.C,v 1.5 2012-04-17 07:28:11 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -338,9 +338,16 @@ main(int argc, char **argv) {
     fprintf(stderr, "Loading "F_U64" overlaps from '%s'.\n", bucketSizes[i], name);
 
     BinaryOverlapFile *bof = AS_OVS_openBinaryOverlapFile(name, FALSE);
+    uint64             num = 0;
 
-    while (AS_OVS_readOverlap(bof, overlapsort + numOvl))
+    while (AS_OVS_readOverlap(bof, overlapsort + numOvl)) {
       numOvl++;
+      num++;
+    }
+
+    if (num != bucketSizes[i])
+      fprintf(stderr, "ERROR: expected "F_U64" overlaps, found "F_U64" overlaps.\n", bucketSizes[i], num);
+    assert(num == bucketSizes[i]);
 
     AS_OVS_closeBinaryOverlapFile(bof);
   }
