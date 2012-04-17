@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: splitUnitigs.C,v 1.3 2011-12-20 10:15:38 brianwalenz Exp $";
+const char *mainid = "$Id: splitUnitigs.C,v 1.4 2012-04-17 04:36:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -32,6 +32,8 @@ const char *mainid = "$Id: splitUnitigs.C,v 1.3 2011-12-20 10:15:38 brianwalenz 
 
 using namespace std;
 
+#undef  PLOT_COVERAGE
+
 #define READ_TRIM_BASES          (AS_OVERLAP_MIN_LEN / 2 - 1)
 #define MAX_SEQUENCE_COVERAGE     1
 #define MIN_BAD_CLONE_COVERAGE    3
@@ -40,8 +42,6 @@ using namespace std;
 
 #define CGW_CUTOFF 5
 
-//gkStore          *gkpStore     = NULL;
-//MultiAlignStore  *tigStore     = NULL;
 AS_IID           *matePair     = NULL;
 AS_IID           *library      = NULL;
 
@@ -281,6 +281,13 @@ main(int argc, char **argv) {
   int32      minLength = INT32_MAX;
   int32      minSplit  = INT32_MAX;
 
+  uint32     nShort      = 0;
+  uint32     nTested     = 0;
+  uint32     nSplit      = 0;
+  uint32     nCreated    = 0;
+  uint32     nCreatedMin = UINT32_MAX;
+  uint32     nCreatedMax = 0;
+
   argc = AS_configure(argc, argv);
 
   int err = 0;
@@ -389,8 +396,12 @@ main(int argc, char **argv) {
 
     uint32        maLen  = GetMultiAlignLength(maOrig);
 
-    if (maLen < minLength)
+    if (maLen < minLength) {
+      nShort++;
       continue;
+    }
+
+    nTested++;
 
     while (rcMax < maLen) {
       rcMax *= 2;
@@ -505,7 +516,9 @@ main(int argc, char **argv) {
     if (intervals.size() <= 1)
       continue;
 
-#if 1
+    nSplit++;
+
+#ifdef PLOT_COVERAGE
     {
       char  N[FILENAME_MAX];
       FILE *F;
@@ -640,6 +653,8 @@ main(int argc, char **argv) {
 
     //  Run these through consensus (if the original had a consensus sequence) and add to the store.
 
+    uint32 nCreatedSum = 0;
+
     for (uint32 i=0; i<intervals.size(); i++) {
       if (GetNumIntMultiPoss(maNew[i]->f_list) == 0)
         //  Possibly a tiny good interval between two bad intervals.  Not sure how this would occur
@@ -647,6 +662,8 @@ main(int argc, char **argv) {
         continue;
 
       maNew[i]->maID = tigStore->numUnitigs();
+
+      nCreatedSum++;
 
       fprintf(stderr, "Creating new unitig %d with "F_SIZE_T" fragments\n",
               maNew[i]->maID, GetNumIntMultiPoss(maNew[i]->f_list));
@@ -662,10 +679,22 @@ main(int argc, char **argv) {
 
     delete [] maNew;
 
+    nCreated    += nCreatedSum;
+    nCreatedMin  = MIN(nCreatedMin, nCreatedSum);
+    nCreatedMax  = MAX(nCreatedMax, nCreatedSum);
+
     //  Now mark the original unitig as deleted.
 
     tigStore->deleteMultiAlign(maOrig->maID, true);
   }
+
+
+  fprintf(stderr, "nShort      "F_U32"\n", nShort);
+  fprintf(stderr, "nTested     "F_U32"\n", nTested);
+  fprintf(stderr, "nSplit      "F_U32"\n", nSplit);
+  fprintf(stderr, "nCreated    "F_U32"\n", nCreated);
+  fprintf(stderr, "nCreatedMin "F_U32"\n", nCreatedMin);
+  fprintf(stderr, "nCreatedMax "F_U32"\n", nCreatedMax);
 
   delete [] rc;
   delete [] gcc;
