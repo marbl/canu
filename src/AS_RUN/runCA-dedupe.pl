@@ -1670,7 +1670,6 @@ sub runMeryl ($$$$$$) {
         if ($merThresh eq "auto") {
             if (! -e "$ofile.estMerThresh.out") {
                 $cmd  = "$bin/estimate-mer-threshold ";
-                $cmd .= " -g $wrk/$asm.gkpStore:chain ";  #  Or 'latest' to get the original version
                 $cmd .= " -m $ofile ";
                 $cmd .= " > $ofile.estMerThresh.out ";
                 $cmd .= "2> $ofile.estMerThresh.err";
