@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreSorter.C,v 1.5 2012-04-17 07:28:11 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreSorter.C,v 1.6 2012-04-18 01:46:23 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -300,7 +300,7 @@ main(int argc, char **argv) {
 
     fclose(F);
 
-    //fprintf(stderr, "Found "F_U64" overlaps from '%s'.\n", sliceSizes[jobIndex], name);
+    fprintf(stderr, "Found "F_U64" overlaps from '%s'.\n", sliceSizes[jobIndex], name);
 
     bucketSizes[i] = sliceSizes[jobIndex];
     totOvl        += sliceSizes[jobIndex];
