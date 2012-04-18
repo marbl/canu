@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreSorter.C,v 1.6 2012-04-18 01:46:23 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreSorter.C,v 1.7 2012-04-18 01:57:26 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -198,10 +198,9 @@ writeOverlaps(char                *ovlName,
 int
 main(int argc, char **argv) {
   char           *ovlName      = NULL;
-  uint32          fileLimit    = 512;
-
-  uint32          jobIndex     = 0;
-  uint32          jobIdxMax    = 0;
+  uint32          fileLimit    = 512;   //  Number of 'slices' from bucketizer
+  uint32          jobIndex     = 0;     //  'slice' that we are going to be sorting
+  uint32          jobIdxMax    = 0;     //  Number of 'buckets' from bucketizer
 
   uint64          maxMemory    = UINT64_MAX;
 
@@ -296,9 +295,15 @@ main(int argc, char **argv) {
     if (errno)
       fprintf(stderr, "ERROR:  Failed to open %s: %s\n", name, strerror(errno)), exit(1);
 
-    AS_UTL_safeRead(F, sliceSizes, "sliceSizes", sizeof(uint64), fileLimit + 1);
+    uint64 nr = AS_UTL_safeRead(F, sliceSizes, "sliceSizes", sizeof(uint64), fileLimit + 1);
 
     fclose(F);
+
+    if (nr != fileLimit + 1) {
+      fprintf(stderr, "ERROR: short read on '%s'.\n", name);
+      fprintf(stderr, "ERROR: read "F_U64" sizes insteadof "F_U64".\n", nr, fileLimit + 1);
+    }
+    assert(nr == fileLimit + 1);
 
     fprintf(stderr, "Found "F_U64" overlaps from '%s'.\n", sliceSizes[jobIndex], name);
 
