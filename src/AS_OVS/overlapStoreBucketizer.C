@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.4 2012-04-17 04:04:51 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.5 2012-04-18 01:50:40 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -241,7 +241,7 @@ main(int argc, char **argv) {
     if (jobIndex == 0)
       fprintf(stderr, "No job index (-job) supplied.\n");
     if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
-      fprintf(stderr, "Too many jobs (-F); only %d supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
+      fprintf(stderr, "Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
 
     exit(1);
   }
@@ -283,6 +283,7 @@ main(int argc, char **argv) {
   char    *skipFragment = NULL;
   uint32  *iidToLib     = NULL;
 
+  uint64   saveTOTAL       = 0;
   uint64   skipERATE       = 0;
   uint64   skipOBT1LQ      = 0;
   uint64   skipOBT2HQ      = 0;
@@ -373,6 +374,7 @@ main(int argc, char **argv) {
 
 
     writeToFile(&fovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex);
+    saveTOTAL++;
 
     //  flip the overlap -- copy all the dat, then fix whatever
     //  needs to change for the flip.
@@ -393,6 +395,7 @@ main(int argc, char **argv) {
         }
 
         writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex);
+        saveTOTAL++;
         break;
       case AS_OVS_TYPE_OBT:
         rovrlap.a_iid = fovrlap.b_iid;
@@ -413,6 +416,7 @@ main(int argc, char **argv) {
         }
 
         writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex);
+        saveTOTAL++;
         break;
       case AS_OVS_TYPE_MER:
         //  Not needed; MER outputs both overlaps
@@ -428,9 +432,6 @@ main(int argc, char **argv) {
   for (uint32 i=0; i<=fileLimit; i++)
     AS_OVS_closeBinaryOverlapFile(sliceFile[i]);
 
-  delete [] sliceFile;
-  delete [] sliceSize;
-
   {
     char name[FILENAME_MAX];
 
@@ -445,12 +446,16 @@ main(int argc, char **argv) {
     fclose(F);
   }
 
-  fprintf(stderr, "overlaps skipped:\n");
+  fprintf(stderr, "overlap fate:\n");
+  fprintf(stderr, "%16"F_U64P" SAV - overlaps output\n", saveTOTAL);
   fprintf(stderr, "%16"F_U64P" ERR - low quality, more than %.3f fraction error\n", skipERATE, maxErrorRate);
   fprintf(stderr, "%16"F_U64P" OBT - low quality\n", skipOBT1LQ);
   fprintf(stderr, "%16"F_U64P" DUP - non-duplicate overlap\n", skipOBT2HQ);
   fprintf(stderr, "%16"F_U64P" DUP - different library\n", skipOBT2LIB);
   fprintf(stderr, "%16"F_U64P" DUP - dedup not requested\n", skipOBT2NODEDUP);
+
+  delete [] sliceFile;
+  delete [] sliceSize;
 
   delete [] skipFragment;  skipFragment = NULL;
   delete [] iidToLib;      iidToLib     = NULL;
