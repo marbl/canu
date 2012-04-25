@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreIndexer.C,v 1.3 2012-04-17 04:04:51 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreIndexer.C,v 1.4 2012-04-25 01:53:31 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -127,6 +127,8 @@ main(int argc, char **argv) {
 
   OverlapStoreOffsetRecord missing;
 
+  missing.a_iid     = 0;
+  missing.fileno    = 1;
   missing.offset    = 0;
   missing.numOlaps  = 0;
 
@@ -141,6 +143,10 @@ main(int argc, char **argv) {
 
   ovs.highestFileIndex = maxJob;
 
+  //  Special case, we need an empty index for the zeroth fragment.
+
+  AS_UTL_safeWrite(idx, &missing, "AS_OVS_writeOverlapToStore offset", sizeof(OverlapStoreOffsetRecord), 1);
+
   //  Process each
 
   for (uint32 i=1; i<=maxJob; i++) {
@@ -148,8 +154,10 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "Processing '%s'\n", name);
 
-    //if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
-    //  error;
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == false) {
+      fprintf(stderr, "ERROR: file '%s' not found.\n", name);
+      exit(1);
+    }
 
     {
       errno = 0;
@@ -162,23 +170,31 @@ main(int argc, char **argv) {
 
     //  Add empty index elements for missing overlaps
 
-    if (ovs.largestIID > 0) {
-      fprintf(stderr, "  Adding empty records for fragments "F_U64" to "F_U64"\n",
-              ovs.largestIID + 1, ovspiece.smallestIID);
-
-      while (ovs.largestIID + 1 < ovspiece.smallestIID) {
-        missing.a_iid     = ovs.largestIID + 1;
-				missing.fileno    = 0;  //  POSSIBLY WRONG
-				missing.offset    = 0;  //  POSSIBLY WRONG
-				missing.numOlaps  = 0;
-
-				AS_UTL_safeWrite(idx, &missing, "AS_OVS_writeOverlapToStore offset", sizeof(OverlapStoreOffsetRecord), 1);
-
-				ovs.largestIID++;
-      }
+    if (ovspiece.numOverlapsTotal == 0) {
+      fprintf(stderr, "  No overlaps found.\n");
+      continue;
     }
 
-    //  Copy index elements for existing overlaps
+    assert(ovspiece.smallestIID <= ovspiece.largestIID);
+
+    if (ovs.largestIID + 1 < ovspiece.smallestIID)
+      fprintf(stderr, "  Adding empty records for fragments "F_U64" to "F_U64"\n",
+              ovs.largestIID + 1, ovspiece.smallestIID - 1);
+
+    while (ovs.largestIID + 1 < ovspiece.smallestIID) {
+      missing.a_iid     = ovs.largestIID + 1;
+      //missing.fileno    = set elsewhere
+      //missing.offset    = set elsewhere
+      //missing.numOlaps  = 0;
+
+      AS_UTL_safeWrite(idx, &missing, "AS_OVS_writeOverlapToStore offset", sizeof(OverlapStoreOffsetRecord), 1);
+
+      ovs.largestIID++;
+    }
+
+    //  Copy index elements for existing overlaps.  While copying, update the supposed position
+    //  of any fragments with no overlaps.  Without doing this, accessing the store beginning
+    //  or ending at such a fragment will fail.
 
     {
       sprintf(name, "%s/%04d.idx", ovlName, i);
@@ -194,7 +210,17 @@ main(int argc, char **argv) {
 
       recsLen = AS_UTL_safeRead(F, recs, "recs", sizeof(OverlapStoreOffsetRecord), recsMax);
 
+      if (recsLen > 0) {
+        if (ovs.largestIID + 1 != recs[0].a_iid)
+          fprintf(stderr, "ERROR: '%s' starts with iid "F_U32", but store only up to "F_U64"\n",
+                  name, recs[0].a_iid, ovs.largestIID);
+        assert(ovs.largestIID + 1 == recs[0].a_iid);
+      }
+
       while (recsLen > 0) {
+        missing.fileno = recs[recsLen-1].fileno;  //  Update location of missing stuff.
+        missing.offset = recs[recsLen-1].offset;
+
 				AS_UTL_safeWrite(idx, recs, "recs", sizeof(OverlapStoreOffsetRecord), recsLen);
         recsLen = AS_UTL_safeRead(F, recs, "recs", sizeof(OverlapStoreOffsetRecord), recsMax);
       }
