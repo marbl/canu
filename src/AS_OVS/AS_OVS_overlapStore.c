@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.35 2012-03-21 23:39:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.36 2012-04-25 01:55:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1042,11 +1042,6 @@ AS_OVS_numOverlapsInRange(OverlapStore *ovs) {
 
 uint32 *
 AS_OVS_numOverlapsPerFrag(OverlapStore *ovs) {
-  size_t                     originalposition = 0;
-  uint64                     i = 0;
-  uint64                     len = 0;
-  OverlapStoreOffsetRecord  *offsets = NULL;
-  uint32                    *numolap = NULL;
 
   if (ovs == NULL)
     return(0);
@@ -1054,7 +1049,7 @@ AS_OVS_numOverlapsPerFrag(OverlapStore *ovs) {
   if (ovs->firstIIDrequested > ovs->lastIIDrequested)
     return(0);
 
-  originalposition = AS_UTL_ftell(ovs->offsetFile);
+  size_t originalposition = AS_UTL_ftell(ovs->offsetFile);
 
   AS_UTL_fseek(ovs->offsetFile, (size_t)ovs->firstIIDrequested * sizeof(OverlapStoreOffsetRecord), SEEK_SET);
 
@@ -1063,17 +1058,19 @@ AS_OVS_numOverlapsPerFrag(OverlapStore *ovs) {
   //  this code is FragCorrectOVL.c, which doesn't run on the whole
   //  human, it runs on ~24 pieces, which cuts this down to < 32MB.
 
-  len = ovs->lastIIDrequested - ovs->firstIIDrequested + 1;
+  uint64 len = ovs->lastIIDrequested - ovs->firstIIDrequested + 1;
 
-  offsets = (OverlapStoreOffsetRecord *)safe_malloc(sizeof(OverlapStoreOffsetRecord) * len);
-  numolap = (uint32                   *)safe_malloc(sizeof(uint32)                   * len);
+  OverlapStoreOffsetRecord  *offsets = (OverlapStoreOffsetRecord *)safe_malloc(sizeof(OverlapStoreOffsetRecord) * len);
+  uint32                    *numolap = (uint32                   *)safe_malloc(sizeof(uint32)                   * len);
 
-  if (len != AS_UTL_safeRead(ovs->offsetFile, offsets, "AS_OVS_numOverlapsInRange", sizeof(OverlapStoreOffsetRecord), len)) {
-    fprintf(stderr, "AS_OVS_numOverlapsInRange()-- short read on offsets!\n");
+  uint64 act = AS_UTL_safeRead(ovs->offsetFile, offsets, "AS_OVS_numOverlapsInRange", sizeof(OverlapStoreOffsetRecord), len);
+
+  if (len != act) {
+    fprintf(stderr, "AS_OVS_numOverlapsPerFrag()-- short read on offsets!  Expected len="F_U64" read act="F_U64"\n", len, act);
     exit(1);
   }
 
-  for (i=0; i<len; i++)
+  for (uint64 i=0; i<len; i++)
     numolap[i] = offsets[i].numOlaps;
 
   safe_free(offsets);
