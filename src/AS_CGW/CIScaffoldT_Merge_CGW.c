@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.63 2012-03-08 20:30:35 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.64 2012-04-30 22:12:11 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -317,31 +317,35 @@ CompareSEdgesContributing(const void *c1, const void *c2) {
   SEdgeT *s1 = *(SEdgeT **)c1;
   SEdgeT *s2 = *(SEdgeT **)c2;
 
-  return((int)((s2->edgesContributing - (isOverlapEdge(s2) ? 1 : 0)) -
-               (s1->edgesContributing - (isOverlapEdge(s1) ? 1 : 0))));
+  int32  n2 = (s2->edgesContributing - (isOverlapEdge(s2) ? 1 : 0));
+  int32  n1 = (s1->edgesContributing - (isOverlapEdge(s1) ? 1 : 0));
+
+  if (n2 < n1)
+    //  Edge1 higher weight
+    return(-1);
+
+  if (n1 < n2)
+    //  Edge1 not higher weight
+    return(1);
+
+  //  Otherwise, they're the same weight.  Break ties using the insert size.
+
+  double  d1 = fabs(PREFERRED_GAP_SIZE - s1->distance.mean) + sqrt(MAX(1., s1->distance.variance));
+  double  d2 = fabs(PREFERRED_GAP_SIZE - s2->distance.mean) + sqrt(MAX(1., s2->distance.variance));
+
+  if (d1 < d2)
+    //  Edge1 closer to truth
+    return(-1);
+
+  if (d2 < d1)
+    //  Edge1 not closer to truth
+    return(1);
+
+  //  Tied.
+  return(0);
 }
 
 
-static
-int
-CompareSEdgeGaps(const void *c1, const void *c2) {
-  SEdgeT *s1 = *(SEdgeT **)c1;
-  SEdgeT *s2 = *(SEdgeT **)c2;
-
-  // if one has 2+ weight and the other does not, favor the 2+ weight edge
-  if (s1->edgesContributing > 1 && s2->edgesContributing < 2)
-    return -1;
-
-  if (s2->edgesContributing > 1 && s1->edgesContributing < 2)
-    return 1;
-
-  // both or neither have 2+ weight
-  // Use proximity to ideal gap size + stddev to order edges
-  return((int) ((fabs(PREFERRED_GAP_SIZE - s1->distance.mean) +
-                 sqrt(MAX(1.,s1->distance.variance))) -
-                (fabs(PREFERRED_GAP_SIZE - s2->distance.mean) +
-                 sqrt(MAX(1.,s2->distance.variance)))));
-}
 
 
 typedef struct {
@@ -978,11 +982,7 @@ BuildUsableSEdges(VA_TYPE(PtrT) *sEdges,
   if (GetNumPtrTs(sEdges) > 0) {
     SEdgeT **sEdge = (SEdgeT **)GetPtrT(sEdges,0);
 
-#ifdef SORT_BY_EDGE_WEIGHTS
     qsort(sEdge, GetNumPtrTs(sEdges), sizeof(SEdgeT *), CompareSEdgesContributing);
-#else
-    qsort(sEdge, GetNumPtrTs(sEdges), sizeof(SEdgeT *), CompareSEdgeGaps);
-#endif
   }
 }
 
