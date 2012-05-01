@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.49 2012-03-23 06:45:50 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.50 2012-05-01 03:29:01 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -661,31 +661,31 @@ static void SetNodeType(NodeCGW_T *ci, ChunkInstanceType type){
 /* EdgeDegree: */
 int32 EdgeDegree(GraphCGW_T *graph, EdgeCGW_T *edge);
 
-static int isContainmentEdge(EdgeCGW_T *edge){
+static int isContainmentEdge(const EdgeCGW_T *edge){
   return edge->flags.bits.hasContainmentOverlap;
 }
 
-static int isMustOverlapEdge(EdgeCGW_T *edge){
+static int isMustOverlapEdge(const EdgeCGW_T *edge){
   return edge->flags.bits.mustOverlap;
 }
 
-static int isInferredEdge(EdgeCGW_T *edge){
+static int isInferredEdge(const EdgeCGW_T *edge){
   return edge->flags.bits.isInferred;
 }
 
-static int isOverlapEdge(EdgeCGW_T *edge){
+static int isOverlapEdge(const EdgeCGW_T *edge){
   return (edge->flags.bits.hasContributingOverlap ||
           edge->flags.bits.aContainsB ||
           edge->flags.bits.bContainsA);
 }
 
-static int edgeContainsCI(EdgeCGW_T *edge, CDS_CID_t id){
+static int edgeContainsCI(const EdgeCGW_T *edge, CDS_CID_t id){
   assert((id == edge->idA) || (id == edge->idB));
   return((id == edge->idA) ? (int)edge->flags.bits.bContainsA :
 	 (int)edge->flags.bits.aContainsB);
 }
 
-static int isTransChunkEdge(EdgeCGW_T *edge){
+static int isTransChunkEdge(const EdgeCGW_T *edge){
   return (edge->flags.bits.hasTransChunk);
 }
 
