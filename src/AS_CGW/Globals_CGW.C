@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Globals_CGW.C,v 1.4 2010-12-08 12:40:53 skoren Exp $";
+static char *rcsid = "$Id: Globals_CGW.C,v 1.5 2012-05-01 04:18:19 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "Globals_CGW.h"
@@ -52,7 +52,6 @@ Globals_CGW::Globals_CGW() {
   cgbApplyMicrohetCutoff                  = -1;         // This basically turns it off, unless enabled
   cgbMicrohetProb                         = 1.e-05;     // scores less than this are considered repeats
 
-  doInterleavedScaffoldMerging            = 1;
   allowDemoteMarkedUnitigs                = TRUE;       // allow toggled unitigs to be demoted to be repeat if they were marked unique
 
   closurePlacement                        = 0;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.71 2012-02-02 09:07:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.72 2012-05-01 04:18:19 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -11103,7 +11103,7 @@ int Throw_Stones
   //  rebuilding scaffold edges.
   //
   if (splitscaffolds > 0) {
-    BuildSEdges(ScaffoldGraph, FALSE, GlobalData->doInterleavedScaffoldMerging);
+    BuildSEdges(ScaffoldGraph, FALSE, TRUE);
     MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
   }
 

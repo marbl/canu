@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.36 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.37 2012-05-01 04:18:19 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -59,7 +59,6 @@ public:
   int    cgbApplyMicrohetCutoff;
   double cgbMicrohetProb;
 
-  int    doInterleavedScaffoldMerging;
   int    allowDemoteMarkedUnitigs;
 
   int    closurePlacement;

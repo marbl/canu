@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.54 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.55 2012-05-01 04:18:19 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1625,7 +1625,7 @@ void DemoteSmallSingletonScaffolds(void) {
   //  If we removed any scaffolds, rebuild all the edges.
   //
   if (numDemoted > 0) {
-    BuildSEdges(ScaffoldGraph, FALSE, GlobalData->doInterleavedScaffoldMerging);
+    BuildSEdges(ScaffoldGraph, FALSE, TRUE);
     MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
   }
 
