@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.20 2012-03-13 21:26:14 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.21 2012-05-02 18:21:38 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -255,6 +255,8 @@ main (int argc, char * argv []) {
           if ((strcasecmp(logFileFlagNames[opt], "stderr") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "mateSplitCoveragePlot") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "overlapQuality") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "overlapsUsed") != 0) &&
+              (strcasecmp(logFileFlagNames[opt], "chunkGraph") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "happiness") != 0) &&
               (strcasecmp(logFileFlagNames[opt], "setParentAndHang") != 0))
             logFileFlags |= flg;
