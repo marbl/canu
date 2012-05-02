@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.65 2012-05-01 04:18:19 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.66 2012-05-02 14:43:56 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -418,37 +418,39 @@ ExamineSEdgeForUsability(SEdgeT            *curEdge,
 
 
 static
-void
+bool
 ExamineUsableSEdges(vector<SEdgeT *>  &sEdges,
-                    int                minWeightThreshold,
+                    double             weightScale,
                     InterleavingSpec  *iSpec) {
+  double minWeightThreshold = 0;
+  int32  maxWeightEdge      = 0;
 
-  if (sEdges.size() > 0) {
-    int32    maxWeightEdge = 0;
+  if (sEdges.size() == 0)
+    return(false);
 
-    for (uint32 i=0; i<sEdges.size(); i++) {
-      if (isBadScaffoldMergeEdge(sEdges[i], iSpec->badSEdges))
-        continue;
+  for (uint32 i=0; i<sEdges.size(); i++) {
+    if (isBadScaffoldMergeEdge(sEdges[i], iSpec->badSEdges))
+      continue;
 
-      if (maxWeightEdge >= sEdges[i]->edgesContributing)
-        continue;
+    if (maxWeightEdge >= sEdges[i]->edgesContributing)
+      continue;
 
-      fprintf(stderr, "ExamineUsableSEdges()- maxWeightEdge from "F_S32" to "F_S32" at idx "F_S32" out of "F_SIZE_T"\n",
-              maxWeightEdge, sEdges[i]->edgesContributing, i, sEdges.size());
-      maxWeightEdge = sEdges[i]->edgesContributing;
-    }
-
-    minWeightThreshold = MIN(minWeightThreshold, maxWeightEdge / EDGE_WEIGHT_FACTOR);
-    //minWeightThreshold = maxWeightEdge / 2;
-    minWeightThreshold = MAX(minWeightThreshold, EDGE_WEIGHT_FACTOR);
-
-    fprintf(stderr, "* Considering edges with weight >= %d (maxWeightEdge/%d: %d)\n",
-            minWeightThreshold,
-            (int)EDGE_WEIGHT_FACTOR,
-            (int)(maxWeightEdge/EDGE_WEIGHT_FACTOR));
+    fprintf(stderr, "ExamineUsableSEdges()- maxWeightEdge from "F_S32" to "F_S32" at idx "F_S32" out of "F_SIZE_T"\n",
+            maxWeightEdge, sEdges[i]->edgesContributing, i, sEdges.size());
+    maxWeightEdge = sEdges[i]->edgesContributing;
   }
 
-  // examine the edges
+  //  We now recompute the min weight allowed to merge each iteration.  Previous to this commit
+  //  (1.66) min was computed once at the start and slowly decremented each iteration.
+
+  minWeightThreshold = MAX(maxWeightEdge * weightScale, EDGE_WEIGHT_FACTOR);
+
+  fprintf(stderr, "* Considering edges with weight >= %.2f (maxWeightEdge %d weightScale %.4f)\n",
+          minWeightThreshold,
+          maxWeightEdge,
+          weightScale);
+
+  //  Examine the edges
 
   int32    edgeListLen  = sEdges.size();
   int32    edgeListStep = edgeListLen / 100;
@@ -460,6 +462,8 @@ ExamineUsableSEdges(vector<SEdgeT *>  &sEdges,
 
     ExamineSEdgeForUsability(sEdges[i], iSpec);
   }
+
+  return(minWeightThreshold > EDGE_WEIGHT_FACTOR);
 }
 
 
@@ -812,9 +816,9 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
     vector<SEdgeT *>  sEdges;
     vector<SEdgeT *>  oEdges;
 
-    int32             mergedSomething    = TRUE;
     int32             iterations         = 0;
-    double            minWeightThreshold = 0.0;
+    double            weightScaleInit    = 0.75;
+    double            weightScale        = weightScaleInit;
     time_t            lastCkpTime        = time(0) - 90 * 60;
 
     //  Create a scaffold edge for every inter-scaffold contig edge, then merge compatible ones
@@ -822,7 +826,7 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
     MergeAllGraphEdges(graph->ScaffoldGraph, TRUE, FALSE);
 
     // loop until nothing gets merged
-    while (mergedSomething) {
+    while (1) {
       time_t t = time(0);
 
       //  Checkpoint periodically - every two hours seems nice!  The
@@ -842,78 +846,43 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
         break;
       }
 
-
       //  Build sEdges for merging
-      {
-        if (iterations == 0) {
-          BuildUsableSEdges(sEdges, oEdges, verbose);
 
-          minWeightThreshold = 0;
+      sEdges.clear();
+      oEdges.clear();
+      BuildUsableSEdges(sEdges, oEdges, verbose);
 
-          for (uint32 j=0; j<sEdges.size(); j++) {
-            if (sEdges[j]->distance.mean <= 0)
-              continue;
+      bool  moreWork = ExamineUsableSEdges(sEdges, weightScale, &iSpec);
 
-            if (minWeightThreshold >= sEdges[j]->edgesContributing / EDGE_WEIGHT_FACTOR)
-              continue;
-
-            fprintf(stderr, "BuildSEdgesForMerging()-- minWeightThreshold from %f to %f at iter %d out of "F_SIZE_T"\n",
-                    minWeightThreshold,
-                    (double)sEdges[j]->edgesContributing / EDGE_WEIGHT_FACTOR,
-                    j, sEdges.size());
-            minWeightThreshold = sEdges[j]->edgesContributing / EDGE_WEIGHT_FACTOR;
-          }
-
-          minWeightThreshold = MAX(minWeightThreshold, EDGE_WEIGHT_FACTOR);
-
-          fprintf(stderr, "initially setting minWeightThreshold to %f\n", minWeightThreshold);
-
-        } else {
-          sEdges.clear();
-          oEdges.clear();
-
-#warning REMOVE
-          minWeightThreshold -= 0.2;
-
-          BuildUsableSEdges(sEdges, oEdges, verbose);
-        }
-
-        //  mark scaffolds for merging & associate scaffold ends
-        //
-        ExamineUsableSEdges(sEdges, minWeightThreshold, &iSpec);
-      }  //  SEDGES BUILT
-
-
-      mergedSomething = MergeScaffolds(&iSpec, verbose);
-
-
-      if (mergedSomething) {
+      if (MergeScaffolds(&iSpec, verbose)) {
         fprintf(stderr, "MergeScaffoldsAggressive()-- iter %d -- continue because we merged scaffolds.\n",
                 iterations);
 
-        //  Cleanup, build new edges, merge.
         CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
         BuildSEdges(graph, TRUE, TRUE);
         MergeAllGraphEdges(graph->ScaffoldGraph, TRUE, FALSE);
 
-      } else if (minWeightThreshold > 2.0) {
-        fprintf(stderr, "MergeScaffoldsAggressive()-- iter %d -- continue because minWeightThreshold is %f (decrease by %f).\n",
-                iterations, minWeightThreshold, MAX(1.0, minWeightThreshold / 100.0));
+        //  Reset to original weight scaling - this is a bit too aggressive, but seems to be safe.  We do not
+        //  end up doing tons and tons of work on failed edges.
+        weightScale = weightScaleInit;
 
-        //  Do we need to clean up the edges/scaffolds here?
+      } else if (moreWork == true) {
+        fprintf(stderr, "MergeScaffoldsAggressive()-- iter %d -- decrease weight scaling from %.4f to %.4f and continue.\n",
+                iterations, weightScale, weightScale * 0.8);
 
-        mergedSomething     = 1;
-        minWeightThreshold -= MAX(1.0, minWeightThreshold / 100.0);
+        //  Do we need to clean up the edges/scaffolds here?  Can we jump right back to ExamineUsableSEdges()?
+
+        weightScale *= 0.8;  //  Drop weight scaling by a bit
 
       } else {
         fprintf(stderr, "MergeScaffoldsAggressive()-- iter %d -- no additional scaffold merging is possible.\n",
                 iterations);
+        break;
       }
 
       iterations++;
     }
   }
-
 
   DeleteScaffoldAlignmentInterface(iSpec.sai);
 
