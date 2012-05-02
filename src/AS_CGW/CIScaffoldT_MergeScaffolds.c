@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.1 2012-05-01 04:18:19 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.2 2012-05-02 14:43:21 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "ScaffoldGraph_CGW.h"
@@ -239,15 +239,11 @@ MarkUnderlyingRawCIEdgeTrusted(ScaffoldGraphT * sgraph, EdgeCGW_T * raw) {
 
 int
 MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
-  int mergedSomething = 0;
+  int               mergedSomething = 0;
   GraphNodeIterator scaffolds;
-  CIScaffoldT *thisScaffold;
-  CDS_CID_t thisScaffoldID; /* The index of the thisScaffold. We have to be careful about thisScaffold since
-                               it is a pointer to a an element of the scaffolds array, which may be reallocated
-                               during the loop. */
-  CDS_CID_t currentSetID = 0;
-  int cntScaffold = 1;
-  int cnt;
+  CIScaffoldT      *thisScaffold;
+  CDS_CID_t         thisScaffoldID;
+  CDS_CID_t         currentSetID = 0;
 
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
 
@@ -261,26 +257,18 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
     CIScaffoldT   *neighbor = NULL;
     CDS_CID_t      neighborID = -1;
     LengthT        currentOffset = nullLength;
-    CIScaffoldT    CIScaffold;
     SequenceOrient orientCI;
     CDS_CID_t      newScaffoldID = -1;
     int            numMerged = 0;
 
     thisScaffoldID = thisScaffold->id;
 
-    //fprintf(stderr,"* Examining scaffold %d " F_CID "\n",
-    //        cntScaffold, thisScaffoldID);
-
-    if (thisScaffold->type != REAL_SCAFFOLD) {
-      //fprintf(stderr, "Not a REAL_SCAFFOLD\n");
+    if (thisScaffold->type != REAL_SCAFFOLD)
       continue;
-    }
 
-    if (thisScaffold->setID != NULLINDEX) {
+    if (thisScaffold->setID != NULLINDEX)
       // This Scaffold has already been placed in a Scaffold.
-      //fprintf(stderr, "Already placed in a scaffold.\n");
       continue;
-    }
 
     if (thisScaffold->essentialEdgeA != NULLINDEX) {
       edgeA        = GetGraphEdge(ScaffoldGraph->ScaffoldGraph, thisScaffold->essentialEdgeA);
@@ -295,11 +283,9 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
     }
 
     if ((AendScaffold != NULL) &&
-        (BendScaffold != NULL)) {
+        (BendScaffold != NULL))
       // This CI is not a starting point for a Scaffold.
-      //fprintf(stderr, "CI not a starting point.\n");
       continue;
-    }
 
     if        (BendScaffold != NULL) {
       orientCI.setIsForward();
@@ -328,41 +314,41 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
     //  This is our last chance to abort before we create a new scaffold!
 
-    InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
+    {
+      CIScaffoldT    ns;
 
-    CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
-    CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
-    CIScaffold.info.Scaffold.numElements = 0;
-    CIScaffold.edgeHead = NULLINDEX;
-    CIScaffold.bpLength = nullLength;
-    thisScaffold->setID = currentSetID;
-    newScaffoldID = CIScaffold.id = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
+      InitializeScaffold(&ns, REAL_SCAFFOLD);
 
-    CIScaffold.flags.bits.isDead = FALSE;
-    CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
-    CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
-    CIScaffold.setID = NULLINDEX;
-    thisScaffold->flags.bits.isDead = TRUE;  // Mark the old scaffold dead
+      ns.info.Scaffold.AEndCI      = NULLINDEX;
+      ns.info.Scaffold.BEndCI      = NULLINDEX;
+      ns.info.Scaffold.numElements = 0;
+      ns.edgeHead                  = NULLINDEX;
+      ns.bpLength                  = nullLength;
+      ns.id                        = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
 
-    AppendGraphNode(ScaffoldGraph->ScaffoldGraph, &CIScaffold);  /* Potential realloc of ScaffoldGraph->ScaffoldGraph->nodes */
+      ns.flags.bits.isDead         = FALSE;
+      ns.numEssentialA             = 0;
+      ns.numEssentialB             = 0;
+      ns.essentialEdgeB            = NULLINDEX;
+      ns.essentialEdgeA            = NULLINDEX;
+      ns.setID                     = NULLINDEX;
 
-    thisScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, thisScaffoldID);
-    neighbor     = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
+      newScaffoldID                = ns.id;
 
-    if (verbose) {
-      fprintf(stderr,"* START: Inserting scaffold " F_CID " into scaffold " F_CID "\n", thisScaffold->id, newScaffoldID);
+      thisScaffold->setID             = currentSetID;
+      thisScaffold->flags.bits.isDead = TRUE;  // Mark the old scaffold dead
+
+      AppendGraphNode(ScaffoldGraph->ScaffoldGraph, &ns);  /* Potential realloc of ScaffoldGraph->ScaffoldGraph->nodes */
+
+      thisScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, thisScaffoldID);
+      neighbor     = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
     }
+
     assert(thisScaffold->bpLength.variance >= 0);
     assert(neighbor->bpLength.variance >= 0);
 
-    cnt = 0;
-
-    //AppendVA_CDS_CID_t(deadScaffoldIDs, &(thisScaffold->id));
-
-    /* Potential realloc of ScaffoldGraph->ScaffoldGraph->nodes */
-
-    //  BPW - being the first merge, all we're doing is copying the
-    //  original scaffold into the new scaffold.
+    //  Being the first merge, all we're doing is copying the original scaffold into the new
+    //  scaffold.
     //
     InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
                                        newScaffoldID, thisScaffold->id,
@@ -375,10 +361,9 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
     currentOffset = thisScaffold->bpLength;
     numMerged = 1;
     mergedSomething++;
+
     while (neighbor != (CIScaffoldT *)NULL) {
       PairOrient edgeOrient = GetEdgeOrientationWRT(edge, thisScaffold->id);
-
-      cnt++;
 
       assert(edge->distance.variance >= 0);
 
@@ -409,7 +394,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
           assert(0);
         }
       }
-      thisScaffold = neighbor;
+      thisScaffold   = neighbor;
       thisScaffoldID = thisScaffold->id;
 
       assert(thisScaffold->bpLength.variance >= 0);
@@ -425,46 +410,35 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
         CIScaffoldT * newScaffold =
           GetCIScaffoldT(ScaffoldGraph->CIScaffolds, newScaffoldID);
         if (currentOffset.mean < 0.0) {
-          /*
-            0
-            newScaffold:                --------------->
-            thisScaffold:      ------------------
-          */
+          //  newScaffold:                --------------->
+          //  thisScaffold:      ------------------
           CIScaffoldTIterator CIs;
-          ChunkInstanceT * CI;
-          double variance = GetVarianceOffset(thisScaffold, -currentOffset.mean, orientCI.isForward());
+          ChunkInstanceT     *CI;
+          double              variance = GetVarianceOffset(thisScaffold, -currentOffset.mean, orientCI.isForward());
 
           fprintf(stderr, "Adjusting newScaffold offsets by mean - %f variance + %f\n", currentOffset.mean, variance);
 
-          InitCIScaffoldTIterator(ScaffoldGraph, newScaffold,
-                                  TRUE, FALSE, &CIs);
+          InitCIScaffoldTIterator(ScaffoldGraph, newScaffold, TRUE, FALSE, &CIs);
+
           while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-            CI->offsetAEnd.mean -= currentOffset.mean;
-            CI->offsetAEnd.variance += variance;
-            CI->offsetBEnd.mean -= currentOffset.mean;
-            CI->offsetBEnd.variance += variance;
+            CI->offsetAEnd.mean      -= currentOffset.mean;
+            CI->offsetAEnd.variance  += variance;
+            CI->offsetBEnd.mean      -= currentOffset.mean;
+            CI->offsetBEnd.variance  += variance;
           }
+
           currentOffset.mean = currentOffset.variance = 0.0;
         } else {
-          /*
-            0
-            newScaffold:     --------------->
-            thisScaffold:              ------------------
-          */
+          //  newScaffold:     --------------->
+          //  thisScaffold:              ------------------
           currentOffset.variance = GetVarianceOffset(newScaffold, currentOffset.mean, TRUE);
         }
       }
       assert(currentOffset.variance >= 0);
 
-      if (verbose) {
-        fprintf(stderr,"* Adding to scaffold " F_CID " scaffold " F_CID " at orient %c offset %g\n",
-                newScaffoldID, thisScaffoldID, orientCI.toLetter(), currentOffset.mean);
-      }
 #ifdef CHECK_CONTIG_ORDERS
       AddScaffoldToContigOrientChecker(ScaffoldGraph, thisScaffold, coc);
 #endif
-
-      //AppendVA_CDS_CID_t(deadScaffoldIDs, &(thisScaffold->id));
 
       InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
                                          newScaffoldID, thisScaffold->id,
@@ -511,8 +485,6 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
 
       }
 
-
-
       neighbor = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
 
       assert(orientCI.isUnknown() == false);
@@ -530,11 +502,11 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
       assert(currentOffset.variance >= 0);
 
       numMerged++;
+
       if (orientCI.isForward()) {
         if (thisScaffold->essentialEdgeB != NULLINDEX) {
           edge = GetGraphEdge(ScaffoldGraph->ScaffoldGraph, thisScaffold->essentialEdgeB);
-          neighbor = GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                  (edge->idA == thisScaffold->id) ? edge->idB : edge->idA);
+          neighbor = GetGraphNode(ScaffoldGraph->ScaffoldGraph, (edge->idA == thisScaffold->id) ? edge->idB : edge->idA);
           neighborID = neighbor->id;
         } else {// End of Scaffold
           edge = (SEdgeT *)NULL;
@@ -544,8 +516,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
       } else {// orientCI == B_A
         if (thisScaffold->essentialEdgeA != NULLINDEX) {
           edge = GetGraphEdge(ScaffoldGraph->ScaffoldGraph, thisScaffold->essentialEdgeA);
-          neighbor = GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                  (edge->idA == thisScaffold->id) ? edge->idB : edge->idA);
+          neighbor = GetGraphNode(ScaffoldGraph->ScaffoldGraph, (edge->idA == thisScaffold->id) ? edge->idB : edge->idA);
           neighborID = neighbor->id;
         } else {// End of Scaffold
           edge = (SEdgeT *)NULL;
@@ -558,8 +529,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
     // New scaffold fully popuated now.
 
     if (iSpec->contigNow == TRUE &&
-        GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                     newScaffoldID)->info.Scaffold.numElements > 1) {
+        GetGraphNode(ScaffoldGraph->ScaffoldGraph, newScaffoldID)->info.Scaffold.numElements > 1) {
 
       int32  numScaffoldsBefore = GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds);
       int32  status             = RECOMPUTE_SINGULAR;
