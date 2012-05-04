@@ -19,10 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef CA_ALN_SCAFCOMP
-#define CA_ALN_SCAFCOMP
+#ifndef CISCAFFOLDT_MERGE_ALIGNSCAFFOLD
+#define CISCAFFOLDT_MERGE_ALIGNSCAFFOLD
 
-static const char *rcsid_CA_ALN_SCAFCOMP = "$Id: CA_ALN_scafcomp.h,v 1.8 2012-04-19 15:59:35 brianwalenz Exp $";
+static const char *rcsid_CISCAFFOLDT_MERGE_ALIGNSCAFFOLD = "$Id: CIScaffoldT_Merge_AlignScaffold.h,v 1.1 2012-05-04 05:27:33 brianwalenz Exp $";
 
 #include "CA_ALN_local.h"     //  Local_Overlap
 #include "AS_ALN_aligners.h"  //  ALNoverlap
@@ -71,9 +71,4 @@ Align_Scaffold(Segment *seglist,
                int bandbeg,
                int bandend);
 
-#endif
-
-
-
-
-
+#endif  //  CISCAFFOLDT_MERGE_ALIGNSCAFFOLD

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_Interleaved.c,v 1.1 2012-05-01 04:18:19 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_Interleaved.c,v 1.2 2012-05-04 05:27:33 brianwalenz Exp $";
 
 //  These are private functions used in CIScaffoldT_Merge_CGW.c.
 //  These functions are specialized for interleaved merging.
@@ -32,6 +32,7 @@ static char *rcsid = "$Id: CIScaffoldT_Merge_Interleaved.c,v 1.1 2012-05-01 04:1
 #include "InterleavedMerging.h"
 
 #include "CIScaffoldT_MergeScaffolds.h"
+#include "CIScaffoldT_Merge_AlignScaffold.h"
 
 #include <vector>
 #include <algorithm>

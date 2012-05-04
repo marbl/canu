@@ -43,6 +43,7 @@ CGW_LIB_SOURCES = Globals_CGW.C \
                   CIScaffoldT_Cleanup_CGW.C \
                   CIScaffoldT_Merge_CGW.C \
                   CIScaffoldT_Merge_Interleaved.C \
+                  CIScaffoldT_Merge_AlignScaffold.C \
                   CIScaffoldT_MergeScaffolds.C \
                   Celamy_CGW.C \
                   ChunkOverlap_CGW.C \

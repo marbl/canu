@@ -26,11 +26,10 @@ LOCAL_WORK = $(shell cd ../../; pwd)
 
 LIB_SOURCES = AS_ALN_dpaligner.C \
               AS_ALN_qvaligner.C \
-	      AS_ALN_loverlapper.C \
+              AS_ALN_loverlapper.C \
               AS_ALN_pieceOlap.C AS_ALN_forcns.C \
-	      CA_ALN_local.C \
+              CA_ALN_local.C \
               CA_ALN_overlap.C \
-              CA_ALN_scafcomp.C \
               AS_ALN_bruteforcedp.C
 
 LIB_OBJECTS = $(LIB_SOURCES:.C=.o)
