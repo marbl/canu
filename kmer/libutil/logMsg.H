@@ -14,16 +14,22 @@
 
 class logMsg {
 public:
-  logMsg(bool toScreen=false) {
+  logMsg(bool toScreen=false, u32bit resize=8192) {
     _logLen       = 0;
-    _logMax       = 8192;
+    _logMax       = resize;
     _log          = new char [_logMax];
+    _resize       = resize;
     _toScreenToo  = toScreen;
   };
 
 
   ~logMsg() {
     delete [] _log;
+  };
+
+
+  void     setResize(u32bit resize) {
+    _resize = resize;
   };
 
 
@@ -49,7 +55,7 @@ public:
   void     add(char const *fmt, ...) {
     va_list   ap;
 
-    resize(8192);
+    resize(_resize);
 
     va_start(ap, fmt);
 
@@ -97,6 +103,7 @@ private:
   u32bit   _logLen;
   u32bit   _logMax;
   char    *_log;
+  u32bit   _resize;
   bool     _toScreenToo;
 };
 
