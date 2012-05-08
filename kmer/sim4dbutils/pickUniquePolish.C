@@ -169,21 +169,31 @@ pickUniqueSlave(sim4polish **p, u32bit pNum) {
 //  Matches that are close ties in span, but are clearly lower quality are deleted.
 //
 void
-pickCoveringSlave(sim4polish **p, u32bit pNum) {
-  u32bit  ibgn, iend, jbgn, jend;
+pickCoveringSlave(sim4polish **p, u32bit pNum, char doCovering) {
+  u32bit *bgn = new u32bit [pNum];
+  u32bit *end = new u32bit [pNum];
+
+  for (u32bit i=0; i<pNum; i++) {
+    if (doCovering == 'q') {
+      if (p[i]->_matchOrientation == SIM4_MATCH_FORWARD) {
+        bgn[i] = p[i]->_exons[0]._estFrom - 1;
+        end[i] = p[i]->_exons[0]._estTo;
+      } else {
+        bgn[i] = p[i]->_estLen - p[i]->_exons[0]._estTo;
+        end[i] = p[i]->_estLen - p[i]->_exons[0]._estFrom + 1;
+      }
+    }
+
+    if (doCovering == 'g') {
+      bgn[i] = p[i]->_exons[0]._genFrom - 1;
+      end[i] = p[i]->_exons[0]._genTo;
+    }
+  }
 
 
   for (u32bit i=0; i<pNum; i++) {
     if (p[i] == NULL)
       continue;
-
-    if (p[i]->_matchOrientation == SIM4_MATCH_FORWARD) {
-      ibgn = p[i]->_exons[0]._estFrom - 1;
-      iend = p[i]->_exons[0]._estTo;
-    } else {
-      ibgn = p[i]->_estLen - p[i]->_exons[0]._estTo;
-      iend = p[i]->_estLen - p[i]->_exons[0]._estFrom + 1;
-    }
 
     assert(p[i]->_numExons == 1);
 
@@ -191,18 +201,10 @@ pickCoveringSlave(sim4polish **p, u32bit pNum) {
       if (p[j] == NULL)
         continue;
 
-      if (p[j]->_matchOrientation == SIM4_MATCH_FORWARD) {
-        jbgn = p[j]->_exons[0]._estFrom - 1;
-        jend = p[j]->_exons[0]._estTo;
-      } else {
-        jbgn = p[j]->_estLen - p[j]->_exons[0]._estTo;
-        jend = p[j]->_estLen - p[j]->_exons[0]._estFrom + 1;
-      }
-
       //  i contained in j
       //         ----
       //       ---------
-      if ((jbgn <= ibgn) && (iend <= jend)) {
+      if ((bgn[j] <= bgn[i]) && (end[i] <= end[j])) {
         delete p[i];  p[i] = NULL;
         break;  //  This i is finished.
       }
@@ -210,7 +212,7 @@ pickCoveringSlave(sim4polish **p, u32bit pNum) {
       //  j contained in i
       //       ---------
       //         ----
-      if ((ibgn <= jbgn) && (jend <= iend)) {
+      if ((bgn[i] <= bgn[j]) && (end[j] <= end[i])) {
         delete p[j];  p[j] = NULL;
         continue;  //  This j is finished.
       }
@@ -218,8 +220,8 @@ pickCoveringSlave(sim4polish **p, u32bit pNum) {
       // i almost contained in j
       //      ----                    ----
       //       ---------  OR   ----------
-      if (((jbgn <= ibgn + 5) && (iend <= jend)) ||
-          ((jbgn <= ibgn)     && (iend <= jend + 5))) {
+      if (((bgn[j] <= bgn[i] + 5) && (end[i] <= end[j])) ||
+          ((bgn[j] <= bgn[i])     && (end[i] <= end[j] + 5))) {
         delete p[i];  p[i] = NULL;
         break;  //  This i is finished.
       }
@@ -227,8 +229,8 @@ pickCoveringSlave(sim4polish **p, u32bit pNum) {
       // j almost contained in i
       //       ---------  OR   ----------
       //      ----                    ----
-      if (((ibgn <= jbgn + 5) && (jend <= iend)) ||
-          ((ibgn <= jbgn)     && (jend <= iend + 5))) {
+      if (((bgn[i] <= bgn[j] + 5) && (end[j] <= end[i])) ||
+          ((bgn[i] <= bgn[j])     && (end[j] <= end[i] + 5))) {
         delete p[j];  p[j] = NULL;
         continue;  //  This j is finished.
       }
@@ -241,6 +243,9 @@ pickCoveringSlave(sim4polish **p, u32bit pNum) {
 
     W->writeAlignment(p[i]);
   }
+
+  delete [] bgn;
+  delete [] end;
 }
 
 
@@ -252,10 +257,10 @@ pickCoveringSlave(sim4polish **p, u32bit pNum) {
 //  destroy polishes when we're done.
 //
 void
-pickUnique(sim4polish **p, u32bit pNum, bool doCovering) {
+pickUnique(sim4polish **p, u32bit pNum, char doCovering) {
 
-  if (doCovering)
-    pickCoveringSlave(p, pNum);
+  if (doCovering != 0)
+    pickCoveringSlave(p, pNum, doCovering);
   else
     pickUniqueSlave(p, pNum);
 
@@ -268,19 +273,22 @@ pickUnique(sim4polish **p, u32bit pNum, bool doCovering) {
 
 int
 main(int argc, char **argv) {
-  bool         doCovering   = false;
-  u32bit       pNum         = 0;
-  u32bit       pAlloc       = 1048576;
-  u32bit       estID        = ~u32bitZERO;
+  char         doCovering     = 0;
+  u32bit       pNum           = 0;
+  u32bit       pAlloc         = 1048576;
+  u32bit       lastID         = ~u32bitZERO;
 
   sim4polishStyle  style = sim4polishStyleDefault;
 
   int arg = 1;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-c", 2) == 0) {
-      doCovering = true;
+    if        (strcmp(argv[arg], "-cq") == 0) {
+      doCovering = 'q';
 
-    } else if (strncmp(argv[arg], "-q", 2) == 0) {
+    } else if (strcmp(argv[arg], "-cg") == 0) {
+      doCovering = 'g';
+
+    } else if (strcmp(argv[arg], "-q") == 0) {
       qualityDifference = strtou32bit(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-gff3") == 0) {
@@ -297,9 +305,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -q qualDiff    Only report alignments where the best is qualDiff better\n");
     fprintf(stderr, "                 in percent identity and coverage\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -c             Only report alignments that are not contained in some\n");
-    fprintf(stderr, "                 other alignment (e.g., the smallest set of alignments\n");
-    fprintf(stderr, "                 that will cover the query fragment\n");
+    fprintf(stderr, "  -cq            Only report alignments that are not contained in some\n");
+    fprintf(stderr, "                 other alignment in the QUERY SEQUENCE.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -cg            Only report alignments that are not contained in some\n");
+    fprintf(stderr, "                 other alignment in the GENOMIC SEQUENCE.\n");
     fprintf(stderr, "\n");
 
     if (isatty(fileno(stdin)))
@@ -321,7 +331,18 @@ main(int argc, char **argv) {
     fprintf(stderr, "warning: input format and output format differ.\n");
 
   while (R->nextAlignment(q)) {
-    if ((q->_estID != estID) && (pNum > 0)) {
+    bool doPick = false;
+
+    if ((doCovering == 'q') && (q->_estID != lastID))
+      doPick = true;
+
+    if ((doCovering == 'g') && (q->_genID != lastID))
+      doPick = true;
+
+    if ((doCovering == 0) && (q->_estID != lastID))
+      doPick = true;
+
+    if ((doPick == true) && (pNum > 0)) {
       pickUnique(p, pNum, doCovering);
       pNum  = 0;
     }
@@ -335,7 +356,7 @@ main(int argc, char **argv) {
     }
 
     p[pNum++] = q;
-    estID     = q->_estID;
+    lastID    = (doCovering == 'g') ? q->_genID : q->_estID;
 
     q = 0L;  //  Otherwise we delete the alignment we just saved!
   }
