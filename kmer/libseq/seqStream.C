@@ -39,9 +39,9 @@ seqStream::seqStream(const char *filename) {
 
 
 
-seqStream::seqStream(char *sequence, u32bit length) {
+seqStream::seqStream(const char *sequence, u32bit length) {
   _file              = 0L;
-  _string            = sequence;
+  _string            = (char *)sequence;
 
   _currentIdx        = 0;
   _currentPos        = 0;

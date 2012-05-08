@@ -16,7 +16,7 @@ struct seqStreamIndex {
 class seqStream {
 public:
   seqStream(const char *filename);
-  seqStream(char *sequence, u32bit length);
+  seqStream(const char *sequence, u32bit length);
   ~seqStream();
 
   //  Separate sequences with this letter.  Non-ACGT is always
