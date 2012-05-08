@@ -7,6 +7,7 @@ LIBMERYL/   :=$(realpath $/../libmeryl/)/
 
 src := $/existDB-create-from-fasta.C \
        $/existDB-create-from-meryl.C \
+       $/existDB-create-from-sequence.C \
        $/existDB-state.C \
        $/existDB.C \
        $/existDB.H \

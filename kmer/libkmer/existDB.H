@@ -38,6 +38,12 @@ public:
           existDBflags   flags,
           u32bit         lo,
           u32bit         hi);
+
+  //  Load mers from a character string
+  existDB(char const    *sequence,
+          u32bit         merSize,
+          existDBflags   flags);
+
   ~existDB();
 
   void        saveState(char const *filename);
@@ -64,6 +70,9 @@ private:
                               u32bit       lo,
                               u32bit       hi,
                               u32bit       flags);
+  bool        createFromSequence(char const  *sequence,
+                                 u32bit       merSize,
+                                 u32bit       flags);
 
   u64bit       HASH(u64bit k) {
     return(((k >> _shift1) ^ (k >> _shift2) ^ k) & _mask1);

@@ -69,6 +69,22 @@ existDB::existDB(char const    *filename,
 }
 
 
+existDB::existDB(char const    *sequence,
+                 u32bit         merSize,
+                 existDBflags   flags) {
+  clear();
+
+  _compressedHash   = flags & existDBcompressHash;
+  _compressedBucket = flags & existDBcompressBuckets;
+  _compressedCounts = flags & existDBcompressCounts;
+
+  if ((flags & (existDBcanonical | existDBforward)) == u32bitZERO)
+    flags |= existDBforward;
+
+  createFromSequence(sequence, merSize, flags);
+}
+
+
 existDB::~existDB() {
   delete [] _hashTable;
   delete [] _buckets;
