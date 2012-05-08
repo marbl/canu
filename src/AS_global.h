@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.54 2012-02-03 11:54:12 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.55 2012-05-08 23:17:55 brianwalenz Exp $";
 
 //  ISO C99 says that to get INT32_MAX et al, these must be defined. (7.18.2, 7.18.4, 7.8.1)
 #ifndef __STDC_CONSTANT_MACROS
@@ -36,6 +36,18 @@ static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.54 2012-02-03 11:54
 #endif
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
+#endif
+
+//  Check for GCC parallel STL support.  This appeared in version 4.3, but the lowest we've tested
+//  with is 4.6.
+//
+#if ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ > 2)))
+//  Not by default!
+//#ifndef _GLIBCXX_PARALLEL
+//#define _GLIBCXX_PARALLEL
+//#endif
+#else
+#undef  _GLIBCXX_PARALLEL
 #endif
 
 #include <stdio.h>

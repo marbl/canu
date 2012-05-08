@@ -22,18 +22,12 @@
 #ifndef AS_UTL_RAND_H
 #define AS_UTL_RAND_H
 
-static const char *rcsid_AS_UTL_RAND_H = "$Id: AS_UTL_rand.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_RAND_H = "$Id: AS_UTL_rand.h,v 1.4 2012-05-08 23:17:55 brianwalenz Exp $";
 
-/* A normally distributed random number generator with zero mean and unit variance (stddev)
-   From "Numerical Recipes in C", pg 217
-
-   Uses drand48 for a uniform random deviate, so srand48(seed) should be called to initialize.
-
-*/
-
-/** For drand48 **/
-#include <stdlib.h>
 #include "AS_global.h"
+
+//  A normally distributed random number generator with zero mean and unit variance (stddev) From
+//  "Numerical Recipes in C", pg 217
 
 double GaussRandomNormalized_AS(void);
 

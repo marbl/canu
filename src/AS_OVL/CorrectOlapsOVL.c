@@ -33,28 +33,16 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.42 2011-07-26 20:16:26 mkotelbajcvi Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.43 2012-05-08 23:17:55 brianwalenz Exp $";
 
-//  System include files
-
-#include  <stdlib.h>
-#include  <stdio.h>
-#include  <assert.h>
-#include  <fcntl.h>
-#include  <string.h>
-#include  <unistd.h>
-
-
-//  Local include files
+#include  "AS_global.h"
 
 #include  "AS_OVL_delcher.h"
 #include  "AS_PER_gkpStore.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_UTL_reverseComplement.h"
-#include  "AS_UTL_qsort_mt.h"
 #include  "FragCorrectOVL.h"
 #include  "AS_OVS_overlapStore.h"
-
 
 //  Constants
 

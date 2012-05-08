@@ -18,13 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.31 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.32 2012-05-08 23:17:55 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
 #include "AS_UTL_interval.h"
 #include "AS_UTL_Var.h"
-#include "AS_UTL_qsort_mt.h"
 #include "UtilsREZ.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"

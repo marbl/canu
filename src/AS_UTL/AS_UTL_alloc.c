@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.16 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.17 2012-05-08 23:17:55 brianwalenz Exp $";
 
 //  We explicitly do not include AS_UTL_alloc.h here, because it
 //  redefines malloc(), calloc(), realloc() and free() to be errors.
@@ -31,14 +31,6 @@ static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.16 2011-09-05 16:49:44 mkote
 //  includes AS_UTL_alloc.h, so we pretend we've already included it.
 //
 #define AS_UTL_ALLOC_H
-
-#include <assert.h>
-#include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
-using namespace std;
 
 #include "AS_global.h"
 

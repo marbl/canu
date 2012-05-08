@@ -36,15 +36,13 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.43 2011-12-29 09:26:03 brianwalenz Exp $
- * $Revision: 1.43 $
+ * $Id: OlapFromSeedsOVL.c,v 1.44 2012-05-08 23:17:55 brianwalenz Exp $
+ * $Revision: 1.44 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.43 2011-12-29 09:26:03 brianwalenz Exp $";
-
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.44 2012-05-08 23:17:55 brianwalenz Exp $";
 
 #include "OlapFromSeedsOVL.h"
-#include "AS_UTL/AS_UTL_qsort_mt.h"
 
 int  main
     (int argc, char * argv [])

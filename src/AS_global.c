@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.20 2012-03-21 21:31:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.21 2012-05-08 23:17:55 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -67,6 +67,21 @@ AS_configure(int argc, char **argv) {
   fpu_control_t fpu_cw = ( _FPU_DEFAULT & ~_FPU_EXTENDED ) | _FPU_DOUBLE;
 
   _FPU_SETCW( fpu_cw );
+#endif
+
+#ifdef _GLIBCXX_PARALLEL_SETTINGS_H
+  __gnu_parallel::_Settings s;
+
+  //  Force all algorithms to be parallel.
+  //  Force some algs to be sequential by using a tag, eg:
+  //    sort(a, a+end, __gnu_parallel::sequential_tag());
+  //
+  //s.algorithm_strategy = __gnu_parallel::force_parallel;
+
+  //  The default seems to be 1000, way too small for us.
+  s.sort_minimal_n = 128 * 1024;
+
+  __gnu_parallel::_Settings::set(s);
 #endif
 
   //

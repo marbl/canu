@@ -25,19 +25,19 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.38 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.39 2012-05-08 23:17:55 brianwalenz Exp $";
+
+#include  "AS_global.h"
+#include  "AS_OVL_delcher.h"
+#include  "AS_PER_gkpStore.h"
+#include  "FragCorrectOVL.h"
+#include  "AS_OVS_overlapStore.h"
 
 #include  <stdio.h>
 #include  <stdlib.h>
 #include  <assert.h>
 #include  <pthread.h>
 
-#include  "AS_OVL_delcher.h"
-#include  "AS_PER_gkpStore.h"
-#include  "FragCorrectOVL.h"
-#include  "AS_OVS_overlapStore.h"
-
-#include  "AS_UTL_qsort_mt.h"
 
 //  Constants
 

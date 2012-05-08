@@ -1,14 +1,8 @@
-const char *mainid = "$Id: markUniqueUnique.c,v 1.11 2011-03-08 21:21:24 skoren Exp $";
+const char *mainid = "$Id: markUniqueUnique.c,v 1.12 2012-05-08 23:17:55 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
 //  accession numbers.
-
-#include  <stdio.h>
-#include  <stdlib.h>
-#include  <string.h>
-#include  <unistd.h>
-#include  <assert.h>
 
 #include "AS_global.h"
 #include "AS_UTL_UID.h"

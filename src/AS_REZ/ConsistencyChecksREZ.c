@@ -30,29 +30,12 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.20 2011-12-29 09:26:03 brianwalenz Exp $";
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <cmath>
-
-#include "ConsistencyChecksREZ.h"
-#include "DataTypesREZ.h"
-#include "CommonREZ.h"
-#include "UtilsREZ.h"
-#include "GapWalkerREZ.h"
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.21 2012-05-08 23:17:55 brianwalenz Exp $";
 
 #include "AS_global.h"
-#include "AS_UTL_Var.h"
-#include "UnionFind_AS.h"
-#include "AS_CGW_dataTypes.h"
-#include "Globals_CGW.h"
-#include "ChiSquareTest_CGW.h"
 
+#include "ConsistencyChecksREZ.h"
+#include "UtilsREZ.h"
 
 extern int  Global_Debug_Flag;
 

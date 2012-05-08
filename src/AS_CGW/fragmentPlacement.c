@@ -19,17 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.39 2011-12-29 09:26:03 brianwalenz Exp $";
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <cmath>
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.40 2012-05-08 23:17:55 brianwalenz Exp $";
 
 #include "AS_global.h"
+
+#include "fragmentPlacement.h"
+
 #include "AS_UTL_Var.h"
 #include "GraphCGW_T.h"
 #include "AS_CGW_dataTypes.h"
@@ -38,7 +33,6 @@ static const char *rcsid = "$Id: fragmentPlacement.c,v 1.39 2011-12-29 09:26:03 
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "Output_CGW.h"
-#include "fragmentPlacement.h"
 
 
 #define MAX_SIGMA_SLOP 3.0

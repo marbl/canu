@@ -19,9 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.9 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.10 2012-05-08 23:17:55 brianwalenz Exp $";
 
 #include "AS_UTL_fasta.h"
+#include "AS_UTL_fileIO.h"
+
+#include <stdarg.h>
 
 int 
 AS_UTL_isValidSequence(char *s, int sl) {

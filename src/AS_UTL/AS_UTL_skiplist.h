@@ -22,7 +22,7 @@
 #ifndef AS_UTL_SKIPLIST_H
 #define AS_UTL_SKIPLIST_H
 
-static const char *rcsid_AS_UTL_SKIPLIST_H = "$Id: AS_UTL_skiplist.h,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_SKIPLIST_H = "$Id: AS_UTL_skiplist.h,v 1.8 2012-05-08 23:17:55 brianwalenz Exp $";
 
 /********************************************************************/
 /* dynamic sorted sequences using skiplist (Pugh)
@@ -68,13 +68,7 @@ static const char *rcsid_AS_UTL_SKIPLIST_H = "$Id: AS_UTL_skiplist.h,v 1.7 2008-
  * Skiplist
  */
 
-#include<math.h>
-#include<stdio.h>
-#include<stdlib.h>
-#include<float.h>
-
 #include "AS_global.h"
-#include <assert.h>
 #include "AS_UTL_rand.h"
 
 

@@ -18,16 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.58 2011-12-29 09:26:03 brianwalenz Exp $";
-
-//#define DEBUG 1
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <fcntl.h>
-#include <string.h>
-#include <unistd.h>
-#include <cmath>
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.59 2012-05-08 23:17:55 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"

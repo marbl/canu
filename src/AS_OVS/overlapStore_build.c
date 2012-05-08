@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapStore_build.c,v 1.52 2012-04-02 10:52:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapStore_build.c,v 1.53 2012-05-08 23:17:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,8 +35,8 @@ static const char *rcsid = "$Id: overlapStore_build.c,v 1.52 2012-04-02 10:52:57
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
-#include "AS_UTL_qsort_mt.h"
-#include "AS_UTL_qsort_mtGES.h"
+//#include "AS_UTL_qsort_mt.h"
+//#include "AS_UTL_qsort_mtGES.h"
 #include "AS_OBT_acceptableOverlap.h"
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapFile.h"
@@ -676,7 +676,7 @@ sortDistributedBucketGES(char *storeName,
   }
     assert(numOvl == dumpLengthMax);
     fprintf(stderr, "sorting %s (%ld)\n", name, time(NULL) - beginTime);
-    qsort_mtGES(overlapsort, numOvl, sizeof(OVSoverlap), OVSoverlap_sortGES, nThreads, 16 * 1024 * 1024);
+    qsort(overlapsort, numOvl, sizeof(OVSoverlap), OVSoverlap_sortGES);
 
     // Migrate sorted dump files to store format
     sprintf(nameMigrate, "%s/%04d", storeName, index+1);
@@ -1128,7 +1128,7 @@ buildStore(char *storeName,
     unlink(name);
 
     fprintf(stderr, "sorting %s (%ld)\n", name, time(NULL) - beginTime);
-    qsort_mt(overlapsort, dumpLength[i], sizeof(OVSoverlap), OVSoverlap_sort, nThreads, 16 * 1024 * 1024);
+    qsort(overlapsort, dumpLength[i], sizeof(OVSoverlap), OVSoverlap_sort);
 
     fprintf(stderr, "writing %s (%ld)\n", name, time(NULL) - beginTime);
     for (uint64 x=0; x<dumpLength[i]; x++)
@@ -1413,7 +1413,7 @@ buildStoreGES(char *storeName,
     unlink(name);
 
     fprintf(stderr, "sorting %s (%ld)\n", name, time(NULL) - beginTime);
-    qsort_mtGES(overlapsort, dumpLength[i], sizeof(OVSoverlap), OVSoverlap_sortGES, nThreads, 16 * 1024 * 1024);
+    qsort(overlapsort, dumpLength[i], sizeof(OVSoverlap), OVSoverlap_sortGES);
 
     // Migrate sorted dump files
     sprintf(nameMigrate, "%s/%04d", storeName, i+1);

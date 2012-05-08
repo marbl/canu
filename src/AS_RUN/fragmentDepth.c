@@ -19,15 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fragmentDepth.c,v 1.16 2011-09-06 01:11:56 mkotelbajcvi Exp $";
-
-#include <unistd.h>
-#include <cassert>
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-
-using namespace std;
+const char *mainid = "$Id: fragmentDepth.c,v 1.17 2012-05-08 23:17:55 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_UID.h"
