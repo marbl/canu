@@ -19,12 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.21 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.22 2012-05-08 23:31:32 brianwalenz Exp $";
 
 #include "AS_global.h"
 
 #ifdef X86_GCC_LINUX
 #include <fpu_control.h>
+#endif
+
+#ifdef _GLIBCXX_PARALLEL
+#include <parallel/algorithm>
+#include <parallel/settings.h>
 #endif
 
 //  Nonsense values, mostly for making sure everybody that uses an
