@@ -19,7 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBuild.C,v 1.2 2012-04-03 19:50:08 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBuild.C,v 1.3 2012-05-09 01:16:54 brianwalenz Exp $";
+
+#include "AS_global.h"
 
 #include "AS_PER_gkpStore.h"
 
@@ -249,7 +251,7 @@ main(int argc, char **argv) {
   uint32          fileLimit    = 512;
   uint64          memoryLimit  = 0;
 
-  Ovl_Skip_Type_t ovlSkipOpt   = PLC_NONE;
+  Ovl_Skip_Type_t ovlSkipOpt   = PLC_ALL;
   uint32          doFilterOBT  = 0;
 
   double          maxErrorRate = 1.0;
@@ -284,7 +286,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-plc") == 0) {
       //  Former -i option
       //  PLC_NONE, PLC_ALL, PLC_INTERNAL
-      ovlSkipOpt = PLC_NONE;
+      ovlSkipOpt = PLC_ALL;
 
     } else if (strcmp(argv[arg], "-obt") == 0) {
       doFilterOBT = 1;
@@ -332,7 +334,34 @@ main(int argc, char **argv) {
     err++;
   if (gkpName == NULL)
     err++;
+  if (fileList.size() == 0)
+    err++;
+  if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
+    err++;
   if (err) {
+    fprintf(stderr, "usage: %s -o asm.ovlStore -g asm.gkpStore [opts] [-L fileList | *.ovb.gz]\n", argv[0]);
+    fprintf(stderr, "  -o asm.ovlStore       path to store to create\n");
+    fprintf(stderr, "  -g asm.gkpStore       path to gkpStore for this assembly\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
+    fprintf(stderr, "  -M m                  use up to 'm' MB memory for store creation\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -plc t                type of filtering for PLC fragments -- NOT SUPPORTED\n");
+    fprintf(stderr, "  -obt                  filter overlaps for OBT\n");
+    fprintf(stderr, "  -dup                  filter overlaps for OBT/dedupe\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
+    fprintf(stderr, "  -L fileList           read input filenames from 'flieList'\n");
+
+    if (ovlName == NULL)
+      fprintf(stderr, "ERROR: No overlap store (-o) supplied.\n");
+    if (gkpName == NULL)
+      fprintf(stderr, "ERROR: No gatekeeper store (-g) supplied.\n");
+    if (fileList.size() == 0)
+      fprintf(stderr, "ERROR: No input overlap files (-L or last on the command line) supplied.\n");
+    if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
+      fprintf(stderr, "ERROR: Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
+
     exit(1);
   }
 

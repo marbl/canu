@@ -630,22 +630,22 @@ sub setDefaults () {
     $global{"toggleUnitigLength"}           = 2000;
     $synops{"toggleUnitigLength"}           = "Minimum length for a surrogate to be toggled.";
 
-    $global{"toggleNumInstances"}            = 1;
-    $synops{"toggleNumInstances"}            = "Number of instances for a surrogate to be toggled. If 0 is specified, all non-singleton unitigs are toggled to unique status.";
+    $global{"toggleNumInstances"}           = 1;
+    $synops{"toggleNumInstances"}           = "Number of instances for a surrogate to be toggled. If 0 is specified, all non-singleton unitigs are toggled to unique status.";
 
-    $global{"toggleMaxDistance"}             = 1000;
-    $synops{"toggleMaxDistance"}             = "Toggling will look for surrogates that appear exactly twice, both at the end of a scaffold. This parameter specifies how close to the scaffold end the surrogate must be.";
+    $global{"toggleMaxDistance"}            = 1000;
+    $synops{"toggleMaxDistance"}            = "Toggling will look for surrogates that appear exactly twice, both at the end of a scaffold. This parameter specifies how close to the scaffold end the surrogate must be.";
     
-    $global{"toggleDoNotDemote"}             = 0;
+    $global{"toggleDoNotDemote"}            = 0;
     $synops{"toggleDoNotDemote"}            = "Do not allow CGW to demote toggled unitigs based on branching patterns.";
 
     #### Closure Options
 
-    $global{"closureOverlaps"}            = 0;
-    $synops{"closureOverlaps"}             = "Option for handling overlaps involving closure reads.\n\t0 - Treat them just like regular reads, \n\t1 - Do not allow any overlaps (i.e. closure reads will stay as singletons until scaffolding), \n\t2 - allow overlaps betweeen closure reads and non-closure reads only";
+    $global{"closureOverlaps"}              = undef;
+    $synops{"closureOverlaps"}              = "Option for handling overlaps involving closure reads.\n\t0 - Treat them just like regular reads, \n\t1 - Do not allow any overlaps (i.e. closure reads will stay as singletons until scaffolding), \n\t2 - allow overlaps betweeen closure reads and non-closure reads only";
 
-    $global{"closurePlacement"}           = 2;
-    $synops{"closurePlacement"}           = "Option for placing closure reads using the constraints.\n\t0 - Place at the first location found\n\t1 - Place at the best location (indicated by most constraints)\n\t2 - Place at multiple locations as long as the closure read/unitig in question is not unique";
+    $global{"closurePlacement"}             = 2;
+    $synops{"closurePlacement"}             = "Option for placing closure reads using the constraints.\n\t0 - Place at the first location found\n\t1 - Place at the best location (indicated by most constraints)\n\t2 - Place at multiple locations as long as the closure read/unitig in question is not unique";
 
     #####  Ugly, command line options passed to printHelp()
 
@@ -3141,8 +3141,15 @@ sub merOverlapper($) {
             caFailure("failed to generate a list of all the overlap files", undef);
         }
 
-        $cmd  = "$bin/overlapStore";
-        $cmd .= " -c $wrk/$outDir/$asm.merStore.WORKING";
+        #$cmd  = "$bin/overlapStore";
+        #$cmd .= " -c $wrk/$outDir/$asm.merStore.WORKING";
+        #$cmd .= " -g $wrk/$asm.gkpStore";
+        #$cmd .= " -M " . getGlobal("ovlStoreMemory");
+        #$cmd .= " -L $wrk/$outDir/$asm.merStore.list";
+        #$cmd .= " > $wrk/$outDir/$asm.merStore.err 2>&1";
+
+        $cmd  = "$bin/overlapStoreBuild";
+        $cmd .= " -o $wrk/$outDir/$asm.merStore.WORKING";
         $cmd .= " -g $wrk/$asm.gkpStore";
         $cmd .= " -M " . getGlobal("ovlStoreMemory");
         $cmd .= " -L $wrk/$outDir/$asm.merStore.list";
@@ -3554,111 +3561,16 @@ sub createOverlapStore {
         caFailure("failed to generate a list of all the overlap files", undef);
     }
 
-   if (getGlobal("overlapStoreOnGrid") == 1) {
+    if (getGlobal("overlapStoreOnGrid") == 1) {
+        caFailure("on grid overlapStore construction not supported yet; use runCA-overlapStoreBuild for now", undef);
+    }
 
-	# Check for completion
-	
-	# Get length of list
-	my $indexMax=`wc -l < $wrk/$asm.ovlStore.list`;
-	chomp $indexMax;
-
-	# 
-        if (`ls -l $wrk/$asm.ovlStore.BUILDING/*.BUCKETIZE.SUCCESS | wc -l` < $indexMax) {
-
-	# Do the Bucketizing   
-	$cmd = "\#!/usr/bin/env bash\n";
-	$cmd .=   "$bin/overlapStore ";
-	$cmd .=  "-c $wrk/$asm.ovlStore.BUILDING  ";
-	$cmd .=  "-g $wrk/$asm.gkpStore ";
-	$cmd .=  "-U \$SGE_TASK_ID ";
-	if (defined(getGlobal("closureOverlaps"))){
-      		$cmd .= " -i " . getGlobal("closureOverlaps"). " ";
-        }
-
-	if (defined(getGlobal("ovlErrorRate"))) {
-		$cmd .= "-Q " . getGlobal("closureOverlaps"). " "; 
-	}
-
-        $cmd .= " -M " . getGlobal("ovlStoreMemory"). " ";
-        $cmd .= " -L $wrk/$asm.ovlStore.list ";
-        $cmd .= " > $wrk/$asm.ovlStoreBucket.\$SGE_TASK_ID.err 2>&1\n";
-
-	open(OUT_SCRIPT,">$wrk/RunOverlapBucketize.sh");
-	print OUT_SCRIPT $cmd;
-	close(OUT_SCRIPT);
-	chmod 0777, "$wrk/RunOverlapBucketize.sh";
-
-
-        my $sge                   = getGlobal("sge");
-	submitBatchJobs("qsub $sge -t 1-$indexMax -cwd -j y -o $wrk/overlapStoreBucket.err -N overlapStoreBucket_$asm $wrk/RunOverlapBucketize.sh",
-		        "overlapStoreBucket_$asm");
-
-
-	} elsif (`ls -l $wrk/$asm.ovlStore.BUILDING/*.BUCKETIZE.SUCCESS | wc -l` == $indexMax  && ! -e "$wrk/$asm.ovlStore.BUILDING/0001" ) {
-
-        # Do the sorting of buckets
-	$cmd = "\#!/usr/bin/env bash\n";
-	$cmd .=   "$bin/overlapStore ";
-	$cmd .=  "-c $wrk/$asm.ovlStore.BUILDING  ";
-	$cmd .=  "-g $wrk/$asm.gkpStore ";
-	$cmd .=  "-W \$SGE_TASK_ID ";
-	if (defined(getGlobal("closureOverlaps"))){
-      		$cmd .= " -i " . getGlobal("closureOverlaps"). " ";
-        }
-        $cmd .= " -M " . getGlobal("ovlStoreMemory"). " ";
-        $cmd .= " -L $wrk/$asm.ovlStore.list ";
-        $cmd .= " > $wrk/$asm.ovlStoreSort.\$SGE_TASK_ID.err 2>&1\n";
-
-	open(OUT_SCRIPT,">$wrk/RunOverlapSort.sh");
-	print OUT_SCRIPT $cmd;
-	close(OUT_SCRIPT);
-
-	chmod 0777, "$wrk/RunOverlapSort.sh";
-
-	# Get number of buckets created
-	#get Highest bucket index
-	my $bucketMax=`find $wrk/$asm.ovlStore.BUILDING/unsorted* -name \"tmp.sort.*.gz\" | sed 's/.*tmp.sort.\\([^\\.]*\\).gz\$/\\1/' | sort -n | tail -n 1`;
-	chomp($bucketMax);
-	$bucketMax=int($bucketMax);
-
-        my $sge  = getGlobal("sge");
-	submitBatchJobs("qsub $sge -t 1-".($bucketMax+1)." -cwd -j y -o $wrk/overlapSort.err -N overlapStoreSort_$asm $wrk/RunOverlapSort.sh",
-		        "overlapStoreSort_$asm");
-
-	} elsif (`ls -l $wrk/$asm.ovlStore.BUILDING/*.BUCKETIZE.SUCCESS | wc -l` == $indexMax  && -e "$wrk/$asm.ovlStore.BUILDING/0001" ) {
-	
-
-	# Do the indexing
-	$cmd =   "$bin/overlapStore ";
-	$cmd .=  "-c $wrk/$asm.ovlStore.BUILDING  ";
-	$cmd .=  "-g $wrk/$asm.gkpStore ";
-	$cmd .=  "-I ";
-	if (defined(getGlobal("closureOverlaps"))){
-      		$cmd .= " -i " . getGlobal("closureOverlaps"). " ";
-        }
-        $cmd .= " -M " . getGlobal("ovlStoreMemory"). " ";
-        $cmd .= " -L $wrk/$asm.ovlStore.list ";
-        $cmd .= " > $wrk/$asm.ovlStoreIndex.err 2>&1\n";
-
-        if (runCommand($wrk, $cmd)) {
-        	caFailure("failed to create overlapStoreIndex", "$wrk/$asm.ovlStoreIndex.err");
-	}
-
-        rename "$wrk/$asm.ovlStore.BUILDING", "$wrk/$asm.ovlStore";
-
-        alldone:
-           stopAfter("overlapper");
-
-	}
-
-   } else {
-
-    $cmd  = "$bin/overlapStore ";
-    $cmd .= " -c $wrk/$asm.ovlStore.BUILDING ";
+    $cmd  = "$bin/overlapStoreBuild ";
+    $cmd .= " -o $wrk/$asm.ovlStore.BUILDING ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     
     if (defined(getGlobal("closureOverlaps"))){
-      $cmd .= " -i " . getGlobal("closureOverlaps");
+        $cmd .= " -i " . getGlobal("closureOverlaps");
     }
     
     $cmd .= " -M " . getGlobal("ovlStoreMemory");
@@ -3682,8 +3594,6 @@ sub createOverlapStore {
 
     rmrf("$wrk/$asm.ovlStore.list");
     rmrf("$wrk/$asm.ovlStore.err");
-
-  }
 
   alldone:
     stopAfter("overlapper");
@@ -3782,9 +3692,9 @@ sub overlapTrim {
             caFailure("failed to generate a list of all the overlap files", undef);
         }
 
-        $cmd  = "$bin/overlapStore ";
-        $cmd .= " -O ";
-        $cmd .= " -c $wrk/0-overlaptrim/$asm.obtStore.BUILDING ";
+        $cmd  = "$bin/overlapStoreBuild ";
+        $cmd .= " -obt ";
+        $cmd .= " -o $wrk/0-overlaptrim/$asm.obtStore.BUILDING ";
         $cmd .= " -g $wrk/$asm.gkpStore ";
         $cmd .= " -M " . getGlobal('ovlStoreMemory');
         $cmd .= " -L $wrk/0-overlaptrim/$asm.obtStore.list";
@@ -3823,9 +3733,9 @@ sub overlapTrim {
                 caFailure("failed to generate a list of all the overlap files", undef);
             }
 
-            $cmd  = "$bin/overlapStore \\\n";
-            $cmd .= " -O -O \\\n";
-            $cmd .= " -c $wrk/0-overlaptrim/$asm.dupStore.BUILDING \\\n";
+            $cmd  = "$bin/overlapStoreBuild \\\n";
+            $cmd .= " -dup \\\n";
+            $cmd .= " -o $wrk/0-overlaptrim/$asm.dupStore.BUILDING \\\n";
             $cmd .= " -g $wrk/$asm.gkpStore \\\n";
             $cmd .= " -M \\\n" . getGlobal('ovlStoreMemory');
             $cmd .= " -L $wrk/0-overlaptrim/$asm.dupStore.list \\\n";
@@ -4199,7 +4109,7 @@ sub overlapCorrection {
 
         $cmd  = "$bin/overlapStore ";
         $cmd .= " -u $wrk/$asm.ovlStore ";
-        $cmd .= " $wrk/3-overlapcorrection/$asm.erates";
+        $cmd .= " $wrk/3-overlapcorrection/$asm.erates ";
         $cmd .= "> $wrk/3-overlapcorrection/overlapStore-update-erates.err 2>&1";
         if (runCommand("$wrk/3-overlapcorrection", $cmd)) {
             caFailure("failed to apply the overlap corrections", "$wrk/3-overlapcorrection/overlapStore-update-erates.err");

@@ -19,7 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.5 2012-04-18 01:50:40 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.6 2012-05-09 01:16:54 brianwalenz Exp $";
+
+#include "AS_global.h"
 
 #include "AS_PER_gkpStore.h"
 
@@ -169,7 +171,7 @@ main(int argc, char **argv) {
   char           *gkpName      = NULL;
   uint32          fileLimit    = 512;
 
-  Ovl_Skip_Type_t ovlSkipOpt   = PLC_NONE;
+  Ovl_Skip_Type_t ovlSkipOpt   = PLC_ALL;
   uint32          doFilterOBT  = 0;
 
   uint32          jobIndex     = 0;
@@ -196,7 +198,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-plc") == 0) {
       //  Former -i option
       //  PLC_NONE, PLC_ALL, PLC_INTERNAL
-      ovlSkipOpt = PLC_NONE;
+      ovlSkipOpt = PLC_ALL;
 
     } else if (strcmp(argv[arg], "-obt") == 0) {
       doFilterOBT = 1;
@@ -232,16 +234,31 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
+    fprintf(stderr, "usage: %s -c asm.ovlStore -g asm.gkpStore -i file.ovb.gz -job j [opts]\n", argv[0]);
+    fprintf(stderr, "  -c asm.ovlStore       path to store to create\n");
+    fprintf(stderr, "  -g asm.gkpStore       path to gkpStore for this assembly\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -i file.ovb.gz        input overlaps\n");
+    fprintf(stderr, "  -job j                index of this overlap input file\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -F f                  use up to 'f' files for store creation\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -plc t                type of filtering for PLC fragments -- NOT SUPPORTED\n");
+    fprintf(stderr, "  -obt                  filter overlaps for OBT\n");
+    fprintf(stderr, "  -dup                  filter overlaps for OBT/dedupe\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
+
     if (ovlName == NULL)
-      fprintf(stderr, "No overlap store (-o) supplied.\n");
+      fprintf(stderr, "ERROR: No overlap store (-o) supplied.\n");
     if (gkpName == NULL)
-      fprintf(stderr, "No gatekeeper store (-g) supplied.\n");
+      fprintf(stderr, "ERROR: No gatekeeper store (-g) supplied.\n");
     if (ovlInput == NULL)
-      fprintf(stderr, "No input (-i) supplied.\n");
+      fprintf(stderr, "ERROR: No input (-i) supplied.\n");
     if (jobIndex == 0)
-      fprintf(stderr, "No job index (-job) supplied.\n");
+      fprintf(stderr, "ERROR: No job index (-job) supplied.\n");
     if (fileLimit > sysconf(_SC_OPEN_MAX) - 16)
-      fprintf(stderr, "Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
+      fprintf(stderr, "ERROR: Too many jobs (-F); only "F_SIZE_T" supported on this architecture.\n", sysconf(_SC_OPEN_MAX) - 16);
 
     exit(1);
   }

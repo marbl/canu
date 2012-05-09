@@ -28,6 +28,8 @@ my $maxMemory   = 2;    #  gigabytes
 my $deleteearly = 0;
 my $deletelate  = 0;
 
+my $maxError    = 0.06;
+
 my $bin = getBinDirectory();
 my $sbn = getBinDirectoryShellCode();
 
@@ -65,6 +67,9 @@ while (scalar(@ARGV)) {
 
     } elsif ($arg eq "-delete") {
         $deletelate = 1;
+
+    } elsif ($arg eq "-maxerror") {
+        $maxError = shift @ARGV;
 
     } else {
         die "Unknown option '$arg'\n";
@@ -135,9 +140,16 @@ while (<F>) {
 }
 close(F);
 
+@jobArray = sort @jobArray;
 $numJobs = scalar(@jobArray);
 
 print STDERR "Found $numJobs jobs from index $firstIdx to $lastIdx.\n";
+
+my $firstNum = int($firstIdx);
+my $lastNum  = int($lastIdx);
+
+die "First index ($firstIdx) not 000001.\n"  if ($firstIdx ne "000001");
+die "Potential missing jobs.\n"              if ($numJobs != $lastNum - $firstNum + 1);
 
 die "No jobs.\n" if ($numJobs == 0);
 

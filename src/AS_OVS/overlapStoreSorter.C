@@ -19,7 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreSorter.C,v 1.7 2012-04-18 01:57:26 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreSorter.C,v 1.8 2012-05-09 01:16:54 brianwalenz Exp $";
+
+#include "AS_global.h"
 
 #include "AS_PER_gkpStore.h"
 

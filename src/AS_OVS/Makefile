@@ -24,8 +24,8 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-OVS_LIB_SRC = AS_OVS_overlap.C AS_OVS_overlapFile.C AS_OVS_overlapStore.C AS_OVS_overlapStats.C
-OVS_STR_SRC = overlapStore.C overlapStore_build.C overlapStore_merge.C overlapStore_dump.C overlapStore_erates.C overlapStore_genomeLength.C
+OVS_LIB_SRC = AS_OVS_overlap.C AS_OVS_overlapFile.C AS_OVS_overlapStore.C
+OVS_STR_SRC = overlapStore.C overlapStore_dump.C overlapStore_erates.C overlapStore_genomeLength.C
 OVS_STA_SRC = overlapStats.C
 OVS_CVT_SRC = convertOverlap.C filterOverlap.C
 
