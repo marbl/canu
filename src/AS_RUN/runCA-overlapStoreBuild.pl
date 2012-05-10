@@ -223,7 +223,7 @@ print F "  -obt \\\n"   if ($typ eq "obt");
 print F "  -dup \\\n"   if ($typ eq "dup");
 print F "  -job \$jobid \\\n";
 print F "  -i   \$jn \\\n";
-print F "  -e   0.06\n";
+print F "  -e   $maxError \n";
 print F "\n";
 print F "if [ \$? = 0 ] ; then\n";
 print F "  mv -f \$jn.bucketizing \$jn.success\n";
