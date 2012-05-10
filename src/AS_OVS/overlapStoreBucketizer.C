@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.6 2012-05-09 01:16:54 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.7 2012-05-10 16:15:04 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -214,7 +214,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxErrorRate = atof(argv[++arg]);
-      maxError     = AS_OVS_encodeQuality(maxErrorRate * 100.0);
+      maxError     = AS_OVS_encodeQuality(maxErrorRate);
 
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
@@ -322,6 +322,9 @@ main(int argc, char **argv) {
 
   int                 df;
 
+  fprintf(stderr, "maxError fraction: %.3f percent: %.3f encoded: "F_U64"\n",
+          maxErrorRate, maxErrorRate * 100, maxError);
+
   fprintf(stderr, "Bucketizing %s\n", ovlInput);
 
   inputFile = AS_OVS_openBinaryOverlapFile(ovlInput, FALSE);
@@ -341,7 +344,7 @@ main(int argc, char **argv) {
     }
 
     //  Ignore high error overlaps
-    if (fovrlap.dat.ovl.orig_erate > maxError ) {
+    if (fovrlap.dat.ovl.orig_erate > maxError) {
       skipERATE++;
       continue;
     }
