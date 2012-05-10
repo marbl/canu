@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.61 2012-02-10 17:44:23 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.62 2012-05-10 14:20:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +35,9 @@ const char *mainid = "$Id: sffToCA.c,v 1.61 2012-02-10 17:44:23 brianwalenz Exp 
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
 #include "AS_ALN_bruteforcedp.h"
+
+//  Dump read data as it is loaded.
+#undef DEBUG_READ
 
 //  For the exact-prefix dedup to work, a fragment must be larger than
 //  the DEDUP_SPAN (valid values are 48 and 64).  After the dedup, we
@@ -382,6 +385,10 @@ static
 void
 readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 
+#ifdef DEBUG_READ
+  off_t  pos = AS_UTL_ftell(sff);
+#endif
+
   AS_UTL_safeRead(sff, r, "readsff_read_1", 16, 1);
 
   if (h->swap_endianess) {
@@ -394,6 +401,19 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
     r->clip_adapter_right = uint16Swap(r->clip_adapter_right);
   }
 
+#ifdef DEBUG_READ
+  fprintf(stdout, "READ pos="F_OFF_T" header_length "F_U16" name_length "F_U16" number_of_bases "F_U32" clip "F_U16" "F_U16" "F_U16" "F_U16"\n",
+          pos,
+          r->read_header_length,
+          r->name_length,
+          r->number_of_bases,
+          r->clip_quality_left,
+          r->clip_quality_right,
+          r->clip_adapter_left,
+          r->clip_adapter_right);
+          
+#endif
+
   //  Can you say UGLY?  Hey, it's a lot better than what I originally came up with.
 
   uint32 ss[6];
@@ -403,6 +423,11 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   ss[3] = (r->number_of_bases + 1)      * sizeof(char)   + ss[2];
   ss[4] = (r->number_of_bases + 1)      * sizeof(uint8)  + ss[3];
   ss[5] = (r->number_of_bases + 1)      * sizeof(char)   + ss[4];
+
+#ifdef DEBUG_READ
+  fprintf(stdout, "     "F_U32" "F_U32" "F_U32" "F_U32" "F_U32" "F_U32"\n",
+          ss[0], ss[1], ss[2], ss[3], ss[4], ss[5]);
+#endif
 
   if (r->data_block_len < ss[5]) {
     r->data_block_len = ss[5];
@@ -422,8 +447,10 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   r->name[r->name_length] = 0;
 
   uint64  padding_length = r->read_header_length - 16 - r->name_length;
+#ifdef DEBUG_READ
+  fprintf(stdout, "     padding_length "F_U64"\n", padding_length);
+#endif
   if (padding_length > 0) {
-    //fprintf(stderr, "read pad 1 "F_U64"\n", padding_length);
     uint64  junk;
     AS_UTL_safeRead(sff, &junk, "readsff_read_3", sizeof(char), padding_length);
   }
@@ -440,6 +467,29 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   r->bases[r->number_of_bases] = 0;
   r->quality[r->number_of_bases] = 0;
 
+#ifdef DEBUG_READ
+  bool   invalid = false;
+
+  for (uint32 i=0; i<r->number_of_bases; i++) {
+    if ((r->bases[i] != 'A') &&
+        (r->bases[i] != 'C') &&
+        (r->bases[i] != 'G') &&
+        (r->bases[i] != 'T') &&
+        (r->bases[i] != 'N'))
+      invalid = true;
+    if ((r->quality[i] < '0') ||
+        (r->quality[i] > 'X'))
+      invalid = true;
+  }
+
+  fprintf(stdout, "     NAME '%s'\n", r->name);
+  fprintf(stdout, "     BASE '%s'\n", r->bases);
+  fprintf(stdout, "     QUAL '%s'\n", r->quality);
+
+  if (invalid)
+    fprintf(stdout, "BROKEN!\n");
+#endif
+
   //  The padding_length is the number of bytes to make the above four
   //  chunks of data be of size that is divisible by 8.  The
   //  padding_length we compute directly below is the number of bytes
@@ -450,8 +500,10 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
                     r->number_of_bases * sizeof(uint8) +
                     r->number_of_bases * sizeof(char) +
                     r->number_of_bases * sizeof(uint8)) % 8;
+#ifdef DEBUG_READ
+  fprintf(stdout, "     padding_length "F_U64"\n", padding_length);
+#endif
   if (padding_length > 0) {
-    //fprintf(stderr, "read pad 2 "F_U64"\n", 8-padding_length);
     char *junk = (char *)safe_malloc(sizeof(char) * (8 - padding_length));
     AS_UTL_safeRead(sff, junk, "readsff_read_8", sizeof(char), 8 - padding_length);
     safe_free(junk);
