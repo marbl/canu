@@ -31,6 +31,8 @@ existDB::existDB(char const    *filename,
   _compressedBucket = flags & existDBcompressBuckets;
   _compressedCounts = flags & existDBcompressCounts;
 
+  _searchForDupe = false;
+
   //  Try to read state from the filename.  If successful, make sure
   //  that the merSize is correct.
   //

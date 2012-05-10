@@ -13,18 +13,31 @@ existDB::createFromFastA(char const  *filename,
                          u32bit       merSize,
                          u32bit       flags) {
 
+  bool               beVerbose = false;
+  bool               rebuilding = false;
+
   _hashTable = 0L;
   _buckets   = 0L;
   _counts    = 0L;
 
   _merSizeInBases        = merSize;
 
-  //  This eats up 16MB, and should allow a lot of mers at big sizes.
-  //  Unfortunately, we know nothing about how man mers are going to
-  //  be in the input.
-  //
-  u32bit tblBits = 22;
+  _searchForDupe = true;
 
+  if ((flags & existDBcompressHash) ||
+      (flags & existDBcompressBuckets) ||
+      (flags & existDBcompressCounts))
+    fprintf(stderr, "existDB::createFromSequence: compression not supported.\n"), exit(1);
+
+  //  This (at =22) eats up 16MB, and should allow a lot of mers at big sizes.  Unfortunately, we
+  //  know nothing about how man mers are going to be in the input.
+  //
+  //  Setting this too high drastically reduces performance, suspected because of cache misses.
+  //  Setting this too low will also reduce performance, by increasing the search time in a bucket.
+  //
+  u32bit tblBits = sizeOfFile(filename);
+
+ rebuild:
   _shift1                = 2 * _merSizeInBases - tblBits;
   _shift2                = _shift1 / 2;
   _mask1                 = u64bitMASK(tblBits);
@@ -43,11 +56,6 @@ existDB::createFromFastA(char const  *filename,
 
   _isCanonical = flags & existDBcanonical;
   _isForward   = flags & existDBforward;
-
-  if (flags & existDBcounts) {
-    fprintf(stderr, "existDB:createFromFastA()--  ERROR!  I don't support existDBcounts.\n");
-    exit(1);
-  }
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -118,12 +126,20 @@ existDB::createFromFastA(char const  *filename,
   if (_compressedBucket)
     _bucketsWords = _bucketsWords * _chkWidth / 64 + 1;
 
+  _countsWords = numberOfMers + 2;
+  if (_compressedCounts)
+    _countsWords = _countsWords * _cntWidth / 64 + 1;
+
   _hashTable = new u64bit [_hashTableWords];
   _buckets   = new u64bit [_bucketsWords];
+  _counts    = (flags & existDBcounts) ? new u64bit [_countsWords] : 0L;
 
-#ifdef STATS
-  fprintf(stderr, "existDB::allocated %lu bytes of storage.\n", 8 * (_hashTableWords + _bucketsWords));
-#endif
+  if (beVerbose) {
+    fprintf(stderr, "existDB::createFromFastA()-- hashTable is "u64bitFMT"MB\n", _hashTableWords >> 17);
+    fprintf(stderr, "existDB::createFromFastA()-- buckets is "u64bitFMT"MB\n", _bucketsWords >> 17);
+    if (flags & existDBcounts)
+      fprintf(stderr, "existDB::createFromFastA()-- counts is "u64bitFMT"MB\n", _countsWords >> 17);
+  }
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -175,17 +191,61 @@ existDB::createFromFastA(char const  *filename,
 
   while (M->nextMer()) {
     if (_isForward)
-      insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), 0, countingTable);
+      insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), 1, countingTable);
 
     if (_isCanonical)
-      insertMer(HASH(M->theCMer()), CHECK(M->theCMer()), 0, countingTable);
+      insertMer(HASH(M->theCMer()), CHECK(M->theCMer()), 1, countingTable);
   }
 
   delete M;
 
+  //  Compress out the gaps we have from redundant kmers.
+
+  u64bit  pos = 0;
+  u64bit  frm = 0;
+  u64bit  len = 0;
+
+  for (u64bit i=0; i<tableSizeInEntries; i++) {
+    frm = _hashTable[i];
+    len = countingTable[i] - _hashTable[i];
+
+    _hashTable[i] = pos;
+
+    for (u64bit j=0; j<len; j++) {
+      if (_counts)
+        _counts[pos]  = _counts[frm];
+
+      _buckets[pos++] = _buckets[frm++];
+    }
+  }
+
+  fprintf(stderr, "Compressed from "u64bitFMT" to "u64bitFMT" ("u64bitFMT" bits)\n",
+          _hashTable[tableSizeInEntries], pos, logBaseTwo64(pos));
+
+  _hashTable[tableSizeInEntries] = pos;
+
   //  All done.  Delete temporary stuff
   //
   delete [] countingTable;
+
+  //  But if we horribly screwed up the estimate of tblBits, reset and recompute
+
+  if ((logBaseTwo64(pos) < tblBits) &&
+      (rebuilding == false)) {
+    rebuilding = true;
+
+    delete [] _hashTable;
+    delete [] _buckets;
+    delete [] _counts;
+
+    _hashTable = 0L;
+    _buckets   = 0L;
+    _counts    = 0L;
+
+    tblBits = logBaseTwo64(pos);
+
+    goto rebuild;
+  }
 
   return(true);
 }

@@ -84,6 +84,23 @@ private:
 
   void         insertMer(u64bit hsh, u64bit chk, u64bit cnt, u64bit *countingTable) {
 
+    //  If the mer is already here, just update the count.  This only
+    //  works if not _compressedBucket, and only makes sense for loading from
+    //  fasta or sequence.
+
+    if ((_compressedBucket == false) &&
+        (_searchForDupe)) {
+      u64bit st = _hashTable[hsh];
+      u64bit ed = countingTable[hsh];
+
+      for (; st<ed; st++) {
+        if (_buckets[st] == chk) {
+          _counts[st] += cnt;
+          return;
+        }
+      }
+    }
+
     if (_compressedBucket)
       setDecodedValue(_buckets, countingTable[hsh] * _chkWidth, _chkWidth, chk);
     else
@@ -105,6 +122,8 @@ private:
   bool        _compressedCounts;
   bool        _isForward;
   bool        _isCanonical;
+
+  bool        _searchForDupe;
 
   u32bit      _merSizeInBases;
 

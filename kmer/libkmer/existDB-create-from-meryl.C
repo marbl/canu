@@ -16,9 +16,9 @@ existDB::createFromMeryl(char const  *prefix,
 
   bool               beVerbose = false;
 
-  _hashTable = 0L;
-  _buckets   = 0L;
-  _counts    = 0L;
+  _hashTable  = 0L;
+  _buckets    = 0L;
+  _counts     = 0L;
 
   _merSizeInBases        = M->merSize();
 
@@ -41,7 +41,6 @@ existDB::createFromMeryl(char const  *prefix,
 
   u64bit  tableSizeInEntries = u64bitONE << tblBits;
   u64bit  numberOfMers       = u64bitZERO;
-  u64bit  maxCount           = u64bitZERO;
   u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
 
   for (u64bit i=tableSizeInEntries+1; i--; )
@@ -77,9 +76,6 @@ existDB::createFromMeryl(char const  *prefix,
           countingTable[ HASH(r) ]++;
         numberOfMers++;
       }
-
-      if (maxCount < M->theCount())
-        maxCount = M->theCount();
 
       C->tick();
     }
