@@ -14,11 +14,11 @@
 
 class logMsg {
 public:
-  logMsg(bool toScreen=false, u32bit resize=8192) {
+  logMsg(bool toScreen=false, u32bit r=8192) {
     _logLen       = 0;
-    _logMax       = resize;
+    _logMax       = r;
     _log          = new char [_logMax];
-    _resize       = resize;
+    _resize       = r;
     _toScreenToo  = toScreen;
   };
 
@@ -28,8 +28,8 @@ public:
   };
 
 
-  void     setResize(u32bit resize) {
-    _resize = resize;
+  void     setResize(u32bit r) {
+    _resize = r;
   };
 
 
