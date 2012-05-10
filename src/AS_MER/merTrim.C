@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.31 2012-03-23 06:58:25 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.32 2012-05-10 08:35:44 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -50,6 +50,9 @@ uint32  VERBOSE = 0;
 #undef USE_MERSTREAM_REBUILD
 
 #undef TEST_TESTBASE
+
+char *createAdapterString(void);
+
 
 class mertrimGlobalData {
 public:
@@ -230,6 +233,17 @@ public:
     if (adapCountsFile) {
       fprintf(stderr, "loading adapter mer database.\n");
       adapterDB = new existDB(adapCountsFile, merSize, existDBcounts, 0, ~0);
+      adapterDB->printState(stderr);
+
+    } else {
+      fprintf(stderr, "creating adapter mer database.\n");
+
+      char *adapter = createAdapterString();
+
+      adapterDB = new existDB(adapter, merSize, existDBcanonical | existDBcounts);
+      adapterDB->printState(stderr);
+
+      delete [] adapter;
     }
 
 
@@ -437,6 +451,9 @@ public:
     readIID  = g->gktCur++;
     seqLen   = 0;
     allocLen = AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 1;  //  Used for seq/qlt storage only
+    allocLen = 65536;
+
+    log.setResize(allocLen);
 
     readName = new char   [1024];
 
@@ -1101,6 +1118,9 @@ mertrimComputation::scoreAdapter(void) {
     containsAdapterEnd = MAX(containsAdapterEnd, end + 1);
 
     if (VERBOSE > 1)
+      log.add("ADAPTER at "F_U32","F_U32" ["F_U32","F_U32"]\n",
+              bgn, end, containsAdapterBgn, containsAdapterEnd);
+
       log.add("ADAPTER at "F_U32","F_U32" ["F_U32","F_U32"]\n",
               bgn, end, containsAdapterBgn, containsAdapterEnd);
 
