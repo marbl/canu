@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.63 2012-05-11 17:44:32 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.64 2012-05-11 18:35:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -404,17 +404,18 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   }
 
 #ifdef DEBUG_READ
-  fprintf(stdout, "READ "F_U32" pos="F_OFF_T" header_length "F_U16" name_length "F_U16" number_of_bases "F_U32" clip "F_U16" "F_U16" "F_U16" "F_U16"\n",
-          DEBUG_READ_nRead,
-          pos,
-          r->read_header_length,
-          r->name_length,
-          r->number_of_bases,
-          r->clip_quality_left,
-          r->clip_quality_right,
-          r->clip_adapter_left,
-          r->clip_adapter_right);
-          
+  if (DEBUG_READ_nRead > 210400) {
+    fprintf(stderr, "READ "F_U32" pos="F_OFF_T" header_length "F_U16" name_length "F_U16" number_of_bases "F_U32" clip "F_U16" "F_U16" "F_U16" "F_U16"\n",
+            DEBUG_READ_nRead,
+            pos,
+            r->read_header_length,
+            r->name_length,
+            r->number_of_bases,
+            r->clip_quality_left,
+            r->clip_quality_right,
+            r->clip_adapter_left,
+            r->clip_adapter_right);
+  }          
 #endif
 
   //  Can you say UGLY?  Hey, it's a lot better than what I originally came up with.
@@ -428,8 +429,10 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   ss[5] = (r->number_of_bases + 1)      * sizeof(char)   + ss[4];
 
 #ifdef DEBUG_READ
-  fprintf(stdout, "     "F_U32" "F_U32" "F_U32" "F_U32" "F_U32" "F_U32"\n",
-          ss[0], ss[1], ss[2], ss[3], ss[4], ss[5]);
+  if (DEBUG_READ_nRead > 210400) {
+    fprintf(stderr, "     "F_U32" "F_U32" "F_U32" "F_U32" "F_U32" "F_U32"\n",
+            ss[0], ss[1], ss[2], ss[3], ss[4], ss[5]);
+  }
 #endif
 
   if (r->data_block_len < ss[5]) {
@@ -451,7 +454,9 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 
   uint64  padding_length = r->read_header_length - 16 - r->name_length;
 #ifdef DEBUG_READ
-  fprintf(stdout, "     padding_length "F_U64"\n", padding_length);
+  if (DEBUG_READ_nRead > 210400) {
+    fprintf(stderr, "     padding_length "F_U64"\n", padding_length);
+  }
 #endif
   if (padding_length > 0) {
     uint64  junk;
@@ -471,26 +476,28 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   r->quality[r->number_of_bases] = 0;
 
 #ifdef DEBUG_READ
-  bool   invalid = false;
+  if (DEBUG_READ_nRead > 210400) {
+    bool   invalid = false;
 
-  for (uint32 i=0; i<r->number_of_bases; i++) {
-    if ((r->bases[i] != 'A') &&
-        (r->bases[i] != 'C') &&
-        (r->bases[i] != 'G') &&
-        (r->bases[i] != 'T') &&
-        (r->bases[i] != 'N'))
-      invalid = true;
-    if ((r->quality[i] < '0') ||
-        (r->quality[i] > 'X'))
-      invalid = true;
+    for (uint32 i=0; i<r->number_of_bases; i++) {
+      if ((r->bases[i] != 'A') &&
+          (r->bases[i] != 'C') &&
+          (r->bases[i] != 'G') &&
+          (r->bases[i] != 'T') &&
+          (r->bases[i] != 'N'))
+        invalid = true;
+      if ((r->quality[i] < '0') ||
+          (r->quality[i] > 'X'))
+        invalid = true;
+    }
+
+    fprintf(stderr, "     NAME '%s'\n", r->name);
+    fprintf(stderr, "     BASE '%s'\n", r->bases);
+    fprintf(stderr, "     QUAL '%s'\n", r->quality);
+
+    if (invalid)
+      fprintf(stderr, "BROKEN!\n");
   }
-
-  fprintf(stdout, "     NAME '%s'\n", r->name);
-  fprintf(stdout, "     BASE '%s'\n", r->bases);
-  fprintf(stdout, "     QUAL '%s'\n", r->quality);
-
-  if (invalid)
-    fprintf(stdout, "BROKEN!\n");
 #endif
 
   //  The padding_length is the number of bytes to make the above four
@@ -504,7 +511,9 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
                     r->number_of_bases * sizeof(char) +
                     r->number_of_bases * sizeof(uint8)) % 8;
 #ifdef DEBUG_READ
-  fprintf(stdout, "     padding_length "F_U64"\n", padding_length);
+  if (DEBUG_READ_nRead > 210400) {
+    fprintf(stderr, "     padding_length "F_U64"\n", padding_length);
+  }
 #endif
   if (padding_length > 0) {
     char *junk = (char *)safe_malloc(sizeof(char) * (8 - padding_length));
@@ -513,7 +522,9 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   }
 
 #ifdef DEBUG_READ
-  fflush(stdout);
+  if (DEBUG_READ_nRead > 210400) {
+    fflush(stderr);
+  }
 #endif
 }
 
