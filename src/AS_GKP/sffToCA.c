@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.62 2012-05-10 14:20:13 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.63 2012-05-11 17:44:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +38,7 @@ const char *mainid = "$Id: sffToCA.c,v 1.62 2012-05-10 14:20:13 brianwalenz Exp 
 
 //  Dump read data as it is loaded.
 #undef DEBUG_READ
+uint32 DEBUG_READ_nRead = 0;
 
 //  For the exact-prefix dedup to work, a fragment must be larger than
 //  the DEDUP_SPAN (valid values are 48 and 64).  After the dedup, we
@@ -387,6 +388,7 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 
 #ifdef DEBUG_READ
   off_t  pos = AS_UTL_ftell(sff);
+  DEBUG_READ_nRead++;
 #endif
 
   AS_UTL_safeRead(sff, r, "readsff_read_1", 16, 1);
@@ -402,7 +404,8 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
   }
 
 #ifdef DEBUG_READ
-  fprintf(stdout, "READ pos="F_OFF_T" header_length "F_U16" name_length "F_U16" number_of_bases "F_U32" clip "F_U16" "F_U16" "F_U16" "F_U16"\n",
+  fprintf(stdout, "READ "F_U32" pos="F_OFF_T" header_length "F_U16" name_length "F_U16" number_of_bases "F_U32" clip "F_U16" "F_U16" "F_U16" "F_U16"\n",
+          DEBUG_READ_nRead,
           pos,
           r->read_header_length,
           r->name_length,
@@ -508,6 +511,10 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
     AS_UTL_safeRead(sff, junk, "readsff_read_8", sizeof(char), 8 - padding_length);
     safe_free(junk);
   }
+
+#ifdef DEBUG_READ
+  fflush(stdout);
+#endif
 }
 
 // Process Read.
