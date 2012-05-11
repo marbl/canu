@@ -19,13 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.11 2011-02-24 05:37:21 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.12 2012-05-11 18:34:42 brianwalenz Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
-
+#include "AS_global.h"
 #include "AS_PER_encodeSequenceQuality.h"
 
 
@@ -63,6 +59,7 @@ void
 encodeSequenceQuality(char *enc,
                       char *seq,
                       char *qlt) {
+  uint32   pos = 0;
 
   while ((*seq != 0) && (*qlt != 0)) {
     unsigned char qv;
@@ -71,14 +68,14 @@ encodeSequenceQuality(char *enc,
     qv = *qlt - '0' + 1;
 
     if (*qlt < '0') {
-      fprintf(stderr, "encodeSequenceQuality()-- Illegal qv %c (int %d) detected!  Change to low-qv '%c'.\n",
-              *qlt, *qlt, '0');
+      fprintf(stderr, "encodeSequenceQuality()-- Illegal qv %c (int %d) detected at position "F_U32"!  Change to low-qv '%c'.\n",
+              *qlt, *qlt, pos, '0');
       qv = 1;
     }
 
     if (*qlt > QUALITY_MAX + '0') {
-      fprintf(stderr, "encodeSequenceQuality()-- Illegal qv %c (int %d) detected!  Change to high-qv '%c'.\n",
-              *qlt, *qlt, QUALITY_MAX + '0');
+      fprintf(stderr, "encodeSequenceQuality()-- Illegal qv %c (int %d) detected at position "F_U32"!  Change to high-qv '%c'.\n",
+              *qlt, *qlt, pos, QUALITY_MAX + '0');
       qv = QUALITY_MAX + 1;
     }
 
@@ -105,7 +102,7 @@ encodeSequenceQuality(char *enc,
         sv = SEQ_N;
         break;
       default:
-        fprintf(stderr,"encodeSequenceQuality()-- Illegal base %c detected!  Change to 'N' with low QV.\n", *seq);
+        fprintf(stderr,"encodeSequenceQuality()-- Illegal base %c detected at position "F_U32"!  Change to 'N' with low QV.\n", *seq, pos);
         sv = SEQ_N;
         qv = 1;
         break;
