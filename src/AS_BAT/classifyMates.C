@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.27 2012-02-18 22:37:39 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.28 2012-05-14 15:19:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -144,6 +144,8 @@ main(int argc, char **argv) {
   char       *ovlStoreName      = NULL;
   char       *resultsName       = NULL;
 
+  bool        doCache           = false;
+
   double      maxErrorFraction  = 0.045;
 
   uint32      distMin           = 0;
@@ -193,6 +195,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-bl") == 0) {
       AS_UTL_decodeRange(argv[++arg], backboneLibs);
 
+    } else if (strcmp(argv[arg], "-cache") == 0) {
+      doCache = true;
+
     } else if (strcmp(argv[arg], "-min") == 0) {
       distMin = atoi(argv[++arg]);
 
@@ -241,6 +246,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -sl l[-m]        Search for mates in libraries l-m\n");
     fprintf(stderr, "  -bl l[-m]        Use libraries l-m for searching\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -cache           Write loaded data to cache files, useful for restarting\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "STANDARD CONFIGURATION:\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Will search for outtie-oriented PE mates, from 100 to 1500bp apart, using the\n");
@@ -277,6 +284,8 @@ main(int argc, char **argv) {
   if (g->load(searchLibs,
               backboneLibs,
               maxErrorFraction) == false) {
+    g->saveCache = doCache;  //  No better place...
+
     g->loadFragments(gkpStoreName, searchLibs, backboneLibs);
     g->loadOverlaps(ovlStoreName, maxErrorFraction);
     g->save();

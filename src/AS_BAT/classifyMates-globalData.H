@@ -308,6 +308,8 @@ public:
   memoryMappedFile         *cmOvl;
   memoryMappedFile         *cmInv;
 
+  bool                      saveCache;
+
   uint32                    numFrags;
   uint32                    numLibs;
   fragmentInfo             *fi;

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.14 2012-02-20 01:54:39 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.15 2012-05-14 15:19:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -66,6 +66,8 @@ cmGlobalData::cmGlobalData(char    *resultsName_,
   cmDat        = NULL;
   cmOvl        = NULL;
   cmInv        = NULL;
+
+  saveCache    = false;
 
   numFrags     = 0;
   numLibs      = 0;
@@ -333,6 +335,10 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
 
 void
 cmGlobalData::save(void) {
+
+  if (saveCache == false)
+    return;
+
   char  cacheName[FILENAME_MAX];
   sprintf(cacheName, "%s.cmdat", resultsPrefix);
 
@@ -550,13 +556,17 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
   uint32            oiStorageBS  = 32 * 1024 * 1024;  //  Fixed block size (32 == 256mb, 128 = 1gb)
   uint32            oiStoragePos = 0;                  //  Position in the current block
 
-  char  cacheName[FILENAME_MAX];
-  sprintf(cacheName, "%s.cmovl", resultsPrefix);
+  FILE             *oiFile       = NULL;
 
-  errno = 0;
-  FILE             *oiFile       = fopen(cacheName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open overlap storage file '%s' for writing: %s\n", cacheName, strerror(errno)), exit(1);
+  if (saveCache == true) {
+    char  cacheName[FILENAME_MAX];
+    sprintf(cacheName, "%s.cmovl", resultsPrefix);
+
+    errno = 0;
+    oiFile = fopen(cacheName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open overlap storage file '%s' for writing: %s\n", cacheName, strerror(errno)), exit(1);
+  }
 
   memoryUsed += (oiStorageBS) * sizeof(overlapInfo);
   if (memoryUsed > memoryLimit)
@@ -832,17 +842,19 @@ cmGlobalData::loadOverlaps_invert(void) {
     }
   }
 
-  char  cacheName[FILENAME_MAX];
-  sprintf(cacheName, "%s.cminv", resultsPrefix);
+  if (saveCache == true) {
+    char  cacheName[FILENAME_MAX];
+    sprintf(cacheName, "%s.cminv", resultsPrefix);
 
-  errno = 0;
-  FILE *F = fopen(cacheName, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open overlap storage file '%s' for writing: %s\n", cacheName, strerror(errno)), exit(1);
+    errno = 0;
+    FILE *F = fopen(cacheName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open overlap storage file '%s' for writing: %s\n", cacheName, strerror(errno)), exit(1);
 
-  AS_UTL_safeWrite(F, oiStorage, "oiStorage", sizeof(overlapInfo), oiStoragePos);
+    AS_UTL_safeWrite(F, oiStorage, "oiStorage", sizeof(overlapInfo), oiStoragePos);
 
-  fclose(F);
+    fclose(F);
+  }
 
   fprintf(stderr, "INVERTING OVERLAPS...."F_U64" frags found.\n", numGTfrg);
 
