@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBuild.C,v 1.3 2012-05-09 01:16:54 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBuild.C,v 1.4 2012-05-15 18:48:11 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -279,7 +279,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-M") == 0) {
       fileLimit    = 0;
       memoryLimit  = atoi(argv[++arg]);
-      memoryLimit *= 1024;
       memoryLimit *= 1024;
       memoryLimit *= 1024;
 
