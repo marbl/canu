@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreIndexer.C,v 1.5 2012-05-09 01:16:54 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreIndexer.C,v 1.6 2012-05-16 22:12:02 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -42,7 +42,79 @@ using namespace std;
 
 #define AS_OVS_CURRENT_VERSION  2
 
-#define DELETE_INTERMEDIATE
+
+bool
+testIndex(char *ovlName, bool doFixes) {
+  char name[FILENAME_MAX];
+  FILE *I = NULL;
+  FILE *F = NULL;
+
+  sprintf(name, "%s/idx", ovlName);
+
+  errno = 0;
+  I = fopen(name, "r");
+  if (errno)
+    fprintf(stderr, "ERROR: Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
+
+  fprintf(stderr, "TESTING '%s'\n", name);
+
+  if (doFixes) {
+    sprintf(name, "%s/idx.fixed", ovlName);
+
+    errno = 0;
+    F = fopen(name, "w");
+    if (errno)
+      fprintf(stderr, "ERROR: Failed to open '%s' for writing: %s\n", name, strerror(errno)), exit(1);
+
+    fprintf(stderr, "WITH FIXES TO '%s'\n", name);
+  }
+
+  OverlapStoreOffsetRecord  O;
+
+  uint32  curIID = 0;
+  uint32  minIID = UINT32_MAX;
+  uint32  maxIID = 0;
+
+  uint32  nErrs = 0;
+
+  while (1 == AS_UTL_safeRead(I, &O, "offset", sizeof(OverlapStoreOffsetRecord), 1)) {
+    bool  maxIncreases   = (maxIID < O.a_iid);
+    bool  errorDecreased = ((O.a_iid < curIID));
+    bool  errorGap       = ((O.a_iid > 0) && (curIID + 1 != O.a_iid));
+
+    if (O.a_iid < minIID)
+      minIID = O.a_iid;
+
+    if (maxIncreases)
+      maxIID = O.a_iid;
+
+    if (errorDecreased)
+      fprintf(stderr, "ERROR: index decreased from "F_U32" to "F_U32"\n", curIID, O.a_iid), nErrs++;
+    else if (errorGap)
+      fprintf(stderr, "ERROR: gap between "F_U32" and "F_U32"\n", curIID, O.a_iid), nErrs++;
+
+    if ((maxIncreases == true) && (errorGap == false) && (doFixes))
+      AS_UTL_safeWrite(F, &O, "offset", sizeof(OverlapStoreOffsetRecord), 1);
+    else {
+      if (O.numOlaps > 0)
+        fprintf(stderr, "ERROR: lost overlaps a_iid "F_U32" fileno "F_U32" offset "F_U32" numOlaps "F_U32"\n",
+                O.a_iid, O.fileno, O.offset, O.numOlaps);
+    }
+
+    curIID = O.a_iid;
+  }
+
+  fprintf(stderr, "minIID "F_U32"\n", minIID);
+  fprintf(stderr, "maxIID "F_U32"\n", maxIID);
+
+  fclose(I);
+
+  if (F)
+    fclose(F);
+
+  return(nErrs == 0);
+}
+
 
 int
 main(int argc, char **argv) {
@@ -51,6 +123,9 @@ main(int argc, char **argv) {
   uint32          cntJob       = 0;
 
   bool            deleteIntermediates = false;
+
+  bool            doExplicitTest = false;
+  bool            doFixes        = false;
 
   char            name[FILENAME_MAX];
 
@@ -65,6 +140,13 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-F") == 0) {
       maxJob = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-f") == 0) {
+      doFixes = true;
+
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      doExplicitTest = true;
+      ovlName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-delete") == 0) {
       deleteIntermediates = true;
 
@@ -76,10 +158,25 @@ main(int argc, char **argv) {
   }
   if (ovlName == NULL)
     err++;
-  if (maxJob == 0)
+  if ((maxJob == 0) && (doExplicitTest == false))
     err++;
   if (err) {
+    fprintf(stderr, "usage: %s ...\n", argv[0]);
+    fprintf(stderr, "  -o x.ovlStore    path to overlap store to build the final index for\n");
+    fprintf(stderr, "  -F s             number of slices used in bucketizing/sorting\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -t x.ovlStore    explicitly test a previously constructed index\n");
+    fprintf(stderr, "  -f               when testing, also create a new 'idx.fixed' which might resolve\n");
+    fprintf(stderr, "                   rare problems\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -delete          remove intermediate files when the index is successfully created\n");
     exit(1);
+  }
+
+  if (doExplicitTest == true) {
+    bool passed = testIndex(ovlName, doFixes);
+
+    exit((passed == true) ? 0 : 1);
   }
 
   //  Check that all segments are present.  Every segment should have an ovs file.
@@ -267,6 +364,11 @@ main(int argc, char **argv) {
           ovs.smallestIID,
           ovs.largestIID,
           ovs.numOverlapsTotal);
+
+  if (testIndex(ovlName, false) == false) {
+    fprintf(stderr, "ERROR: index failed tests.\n");
+    exit(1);
+  }
 
   //  Remove intermediates.  For the buckets, we keep going until there are 10 in a row not present.
   //  During testing, on a microbe using 2850 buckets, some buckets were empty.
