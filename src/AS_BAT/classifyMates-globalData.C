@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.15 2012-05-14 15:19:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.16 2012-05-16 22:14:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -89,11 +89,6 @@ cmGlobalData::cmGlobalData(char    *resultsName_,
 
   memoryLimit  = memoryLimit_;
   memoryUsed   = 0;
-
-  oiStorageMax = 0;
-  oiStorageLen = 0;
-  oiStorageArr = 0L;
-  oiStorage    = 0L;
 };
 
 
@@ -103,8 +98,10 @@ cmGlobalData::~cmGlobalData() {
 
   delete resultOutput;
 
-  for (uint32 i=0; i<oiStorageMax; i++)
+  for (uint32 i=0; i<oiStorageArr.size(); i++)
     delete [] oiStorageArr[i];
+
+  oiStorageArr.clear();
 
   if (cmDat) {
     fi    = NULL;
@@ -128,8 +125,6 @@ cmGlobalData::~cmGlobalData() {
 
   delete [] gtPos;
   delete [] gtLen;
-
-  delete [] oiStorageArr;
 
   delete [] fi;
 };
@@ -481,28 +476,16 @@ cmGlobalData::allocateOverlapPointers(void) {
 
 
 void
-cmGlobalData::allocateOverlapStorage(void) {
-
-  if (oiStorageMax > 0)
-    return;
-
-  memoryUsed += (oiStorageMax) * sizeof(overlapInfo *);
-  if (memoryUsed > memoryLimit)
-    fprintf(stderr, "\nMemory limit reached, aborting.\n"), exit(1);
-
-  oiStorageMax = 1024;                              //  Number blocks of memory
-  oiStorageLen = 1;
-  oiStorageArr = new overlapInfo * [oiStorageMax];  //  List of allocated memory
-  oiStorage    = 0L;
-
-  memset(oiStorageArr, 0, sizeof(overlapInfo *) * oiStorageMax);
-}
-
-
-void
 cmGlobalData::resetOverlapStoreRange(OverlapStore *ovlStore,
                                      AS_IID curFragIID, AS_IID &minFragIID, AS_IID &maxFragIID) {
-  bool   changed = false;
+  bool   minChanged = false;
+  bool   maxChanged = false;
+
+  AS_IID minFragIIDorig = minFragIID;
+  AS_IID maxFragIIDorig = maxFragIID;
+
+  assert(minFragIID <= curFragIID);
+  assert(minFragIID <  maxFragIID);
 
   minFragIID = curFragIID + 1;
 
@@ -510,18 +493,27 @@ cmGlobalData::resetOverlapStoreRange(OverlapStore *ovlStore,
          (fi[minFragIID].isBackbone == false) &&
          (fi[minFragIID].doSearch   == false)) {
     minFragIID++;
-    changed = true;
+    minChanged = true;
   }
 
   while ((minFragIID < maxFragIID) &&
          (fi[maxFragIID-1].isBackbone == false) &&
          (fi[maxFragIID-1].doSearch   == false)) {
     maxFragIID--;
-    changed = true;
+    maxChanged = true;
   }
 
-  if ((minFragIID < maxFragIID) &&
-      (changed)) {
+  if (minChanged)
+    fprintf(stderr, "minFragIID changed from %u to %u\n", minFragIIDorig, minFragIID);
+  if (maxChanged)
+    fprintf(stderr, "maxFragIID changed from %u to %u\n", maxFragIIDorig, maxFragIID);
+
+  if (minFragIID >= maxFragIID) {
+    fprintf(stderr, "LOADING OVERLAPS...done.\n");
+    return;
+  }
+
+  if (minChanged || maxChanged) {
     fprintf(stderr, "LOADING OVERLAPS...for fragments %u to %u\n", minFragIID, maxFragIID);
     AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
   }
@@ -542,7 +534,6 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
   bool             *ovlTG       = new bool       [ovlMax];
 
   allocateOverlapPointers();
-  allocateOverlapStorage();
 
   memset(bbPos, 0, sizeof(overlapInfo *) * (numFrags + 1));
   memset(bbLen, 0, sizeof(uint32)        * (numFrags + 1));
@@ -552,9 +543,6 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
   memset(gtPos, 0, sizeof(overlapInfo *) * (numFrags + 1));
   memset(gtLen, 0, sizeof(uint32)        * (numFrags + 1));
-
-  uint32            oiStorageBS  = 32 * 1024 * 1024;  //  Fixed block size (32 == 256mb, 128 = 1gb)
-  uint32            oiStoragePos = 0;                  //  Position in the current block
 
   FILE             *oiFile       = NULL;
 
@@ -568,11 +556,15 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
       fprintf(stderr, "Failed to open overlap storage file '%s' for writing: %s\n", cacheName, strerror(errno)), exit(1);
   }
 
+  uint32       oiStorageBS  = 128 * 1024 * 1024;              //  Fixed block size (32 == 256mb, 128 = 1gb)
+  uint32       oiStoragePos = 0;                              //  Position in the current block
+  overlapInfo *oiStorage    = new overlapInfo [oiStorageBS];
+
   memoryUsed += (oiStorageBS) * sizeof(overlapInfo);
   if (memoryUsed > memoryLimit)
     fprintf(stderr, "\nMemory limit reached, aborting.\n"), exit(1);
 
-  oiStorage = oiStorageArr[0] = new overlapInfo [oiStorageBS];
+  oiStorageArr.push_back(oiStorage);
 
   uint64            numFG = 0;  //  Number of fragments processed
 
@@ -587,10 +579,10 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
   OverlapStore     *ovlStore  = AS_OVS_openOverlapStore(ovlStoreName);
 
-  AS_IID            minFragIID = 1;
+  AS_IID            minFragIID = 0;
   AS_IID            maxFragIID = numFrags + 1;
 
-  resetOverlapStoreRange(ovlStore, 1, minFragIID, maxFragIID);
+  resetOverlapStoreRange(ovlStore, 0, minFragIID, maxFragIID);
 
   ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
 
@@ -702,13 +694,19 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
     //  If not enough space in oiStorage, get more space.
 
-    if (oiStoragePos + bbLen[curFragIID] + tgLen[curFragIID] > oiStorageBS) {
-      if ((oiFile) && (oiStoragePos > 0))
-        AS_UTL_safeWrite(oiFile, oiStorage, "oiStorage", sizeof(overlapInfo), oiStoragePos);
+    assert(oiStoragePos <= oiStorageBS);
 
-      oiStorage = oiStorageArr[oiStorageLen] = new overlapInfo [oiStorageBS];
-      oiStorageLen++;
+    if (oiStoragePos + bbLen[curFragIID] + tgLen[curFragIID] > oiStorageBS) {
+      if ((oiFile) && (oiStoragePos > 0)) {
+        fprintf(stderr, "  WRITING "F_U32" overlaps ("F_U32" wasted in this block).\n",
+                oiStoragePos, oiStorageBS - oiStoragePos);
+        AS_UTL_safeWrite(oiFile, oiStorage, "oiStorage", sizeof(overlapInfo), oiStoragePos);
+      }
+
+      oiStorage    = new overlapInfo [oiStorageBS];
       oiStoragePos = 0;
+
+      oiStorageArr.push_back(oiStorage);
 
       memoryUsed += (oiStorageBS) * sizeof(overlapInfo);
       if (memoryUsed > memoryLimit)
@@ -720,28 +718,29 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
     bbPos[curFragIID] = oiStorage + oiStoragePos;
     tgPos[curFragIID] = oiStorage + oiStoragePos + bbLen[curFragIID];
 
-    bbLen[curFragIID] = 0;
-    tgLen[curFragIID] = 0;
-
-    for (uint32 i=0; i<ovlLen; i++) {
-      if ((ovlBB[i] == false) && (ovlTG[i] == false)) {
-        numDD++;
-      }
-
-      if (ovlBB[i] == true) {
-        bbPos[curFragIID][bbLen[curFragIID]++] = overlapInfo(ovl[i]);
-        numBB++;
-      }
-
-      if (ovlTG[i] == true) {
-        tgPos[curFragIID][tgLen[curFragIID]++] = overlapInfo(ovl[i]);
-        numTG++;
-      }
-    }
-
     oiStoragePos += bbLen[curFragIID] + tgLen[curFragIID];
 
     assert(oiStoragePos <= oiStorageBS);
+
+    uint32  bbl = 0;
+    uint32  tgl = 0;
+
+    for (uint32 i=0; i<ovlLen; i++) {
+      if ((ovlBB[i] == false) && (ovlTG[i] == false))
+        numDD++;
+
+      if (ovlBB[i] == true)
+        bbPos[curFragIID][bbl++] = overlapInfo(ovl[i]);
+
+      if (ovlTG[i] == true)
+        tgPos[curFragIID][tgl++] = overlapInfo(ovl[i]);
+    }
+
+    assert(bbl == bbLen[curFragIID]);
+    assert(tgl == tgLen[curFragIID]);
+
+    numBB += bbl;
+    numTG += tgl;
 
     if ((++numFG % 3000000) == 0)
       fprintf(stderr, "LOADING OVERLAPS...at IID "F_U32" (%06.2f%%): BB "F_U64" (%06.2f%%) TG "F_U64" (%06.2f%%) DD "F_U64" (%06.2f%%).\n",
@@ -756,6 +755,14 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
     ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
   }
 
+  assert(oiStoragePos <= oiStorageBS);
+
+  if ((oiFile) && (oiStoragePos > 0))
+    AS_UTL_safeWrite(oiFile, oiStorage, "oiStorage", sizeof(overlapInfo), oiStoragePos);
+
+  if (oiFile)
+    fclose(oiFile);
+
   AS_OVS_closeOverlapStore(ovlStore);
 
   delete [] ovl;
@@ -764,12 +771,6 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
   delete bbDist;
   delete tgDist;
-
-  if ((oiFile) && (oiStoragePos > 0))
-    AS_UTL_safeWrite(oiFile, oiStorage, "oiStorage", sizeof(overlapInfo), oiStoragePos);
-
-  if (oiFile)
-    fclose(oiFile);
 
   fprintf(stderr, "LOADING OVERLAPS...at IID "F_U32" (%06.2f%%): BB "F_U64" (%06.2f%%) TG "F_U64" (%06.2f%%) DD "F_U64" (%06.2f%%).\n",
           numFrags, 100.0,
@@ -809,8 +810,10 @@ cmGlobalData::loadOverlaps_invert(void) {
 
   //  Allocate space for them
 
-  overlapInfo *oiStorage = oiStorageArr[oiStorageLen++] = new overlapInfo [numGTovl];
+  overlapInfo *oiStorage    = new overlapInfo [numGTovl];
   uint32       oiStoragePos = 0;
+
+  oiStorageArr.push_back(oiStorage);
 
   memoryUsed += (numGTovl) * sizeof(overlapInfo);
   if (memoryUsed > memoryLimit)
@@ -822,6 +825,8 @@ cmGlobalData::loadOverlaps_invert(void) {
     oiStoragePos  += gtLen[ii];                                           //  Reserve the space
     gtLen[ii]      = 0;                                                   //  Show we have no overlaps loaded
   }
+
+  assert(oiStoragePos <= numGTovl);
 
   //  Finally, copy the overlaps
   for (uint32 ii=0; ii<numFrags+1; ii++) {

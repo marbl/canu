@@ -28,6 +28,7 @@
 
 #include "classifyMates-runningTime.H"
 
+#include <vector>
 #include <map>
 #include <set>
 using namespace std;
@@ -260,7 +261,6 @@ public:
 
 
   void   allocateOverlapPointers(void);
-  void   allocateOverlapStorage(void);
 
   void   resetOverlapStoreRange(OverlapStore *ovlStore,
                                 AS_IID curFragIID, AS_IID &minFragIID, AS_IID &maxFragIID);
@@ -331,10 +331,7 @@ public:
   uint64                    memoryLimit;
   uint64                    memoryUsed;
 
-  uint32                    oiStorageMax;  //  Maximum number of blocks we can allocate.
-  uint32                    oiStorageLen;  //  Actual number of blocks allocated.
-  overlapInfo             **oiStorageArr;  //  List of allocated blocks.
-  overlapInfo              *oiStorage;     //  The current block -- doesn't need to be in the class.
+  vector<overlapInfo *>     oiStorageArr;  //  List of allocated blocks.
 
   onlineMeanStdDev          runTime;
 };
