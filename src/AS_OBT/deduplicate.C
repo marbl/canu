@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.17 2012-03-21 21:48:54 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.18 2012-05-16 21:22:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,12 +80,16 @@ public:
 
   AS_IID   mateIID;
 
-  uint32   libraryIID      : 32 - 2 * AS_READ_MAX_NORMAL_LEN_BITS - 2;
-  uint32   matePatternLeft : 1;
-  uint32   isDeleted       : 1;
+  //  This could be a 32-bit value, for BITS=11 (leaving 8 bits for library IID), but
+  //  any larger value of BITS reduces the library IID too much.  By BITS=15, there is
+  //  no space at all.  So we just eat the extra memory and leave it 64-bit wide.
 
-  uint32   clrbeg          : AS_READ_MAX_NORMAL_LEN_BITS;
-  uint32   clrlen          : AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   libraryIID      : 64 - 2 * AS_READ_MAX_NORMAL_LEN_BITS - 2;
+  uint64   matePatternLeft : 1;
+  uint64   isDeleted       : 1;
+
+  uint64   clrbeg          : AS_READ_MAX_NORMAL_LEN_BITS;
+  uint64   clrlen          : AS_READ_MAX_NORMAL_LEN_BITS;
 
   uint32   ovllen;
   uint32   ovlmax;
