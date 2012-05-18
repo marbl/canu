@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMatesApply.C,v 1.3 2011-12-24 06:55:18 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMatesApply.C,v 1.4 2012-05-18 21:28:22 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -29,15 +29,50 @@ const char *mainid = "$Id: classifyMatesApply.C,v 1.3 2011-12-24 06:55:18 brianw
 class classifyMatesSummary {
 public:
   classifyMatesSummary() {
-    isTested = 0;
-    doDelete = 0;
-    numNO    = 0;
-    numPE    = 0;
-    numMP    = 0;
+    isTested   = 0;
+    doDelete   = 0;
+    doUnMate   = 0;
+
+    isSpur     = 0;
+    isChimer   = 0;
+    isJunction = 0;
+
+    isClassified = 0;
+    isLimited    = 0;
+    isExhausted  = 0;
+
+    numNO      = 0;
+    numPE      = 0;
+    numMP      = 0;
   };
 
   void      setTested(void) { isTested = 1; };
   bool      getTested(void) { return(isTested > 0); };
+
+  void      setDelete(void)  { doDelete = 1; };
+  bool      getDelete(void)  { return(doDelete == 1); };
+
+  void      setUnMate(void)  { doUnMate = 1; };
+  bool      getUnMate(void)  { return(doUnMate == 1); };
+
+
+  void      setIsSpur(void)     { isSpur = true; };
+  void      setIsChimer(void)   { isChimer = true; };
+  void      setIsJunction(void) { isJunction = true; };
+
+  bool      getIsSpur(void)     { return(isSpur); };
+  bool      getIsChimer(void)   { return(isChimer); };
+  bool      getIsJunction(void) { return(isJunction); };
+
+
+  void      setIsClassified(void)   { isClassified = true; };
+  void      setIsLimited(void)      { isLimited = true; };
+  void      setIsExhausted(void)    { isExhausted = true; };
+
+  bool      getIsClassified(void)   { return(isClassified); };
+  bool      getIsLimited(void)      { return(isLimited); };
+  bool      getIsExhausted(void)    { return(isExhausted); };
+
 
   void      addNO(void) { if (numNO < 255)  numNO++; };
   void      addPE(void) { if (numPE < 255)  numPE++; };
@@ -47,19 +82,25 @@ public:
   uint8     getPE(void) { return(numPE); };
   uint8     getMP(void) { return(numMP); };
 
-  void      setDelete(void)  { doDelete = 1; };
-  bool      getDelete(void)  { return(doDelete == 1); };
-
-  void      setUnMate(void)  { doUnMate = 1; };
-  bool      getUnMate(void)  { return(doUnMate == 1); };
 
 private:
-  uint32    isTested   : 1;  //  We have attempted classification on this read
-  uint32    doDelete   : 1;  //  Delete the read, it's junk
-  uint32    doUnMate   : 1;  //  Remove the mate edge, it's mate read is junk
-  uint32    numNO      : 8;
-  uint32    numPE      : 8;
-  uint32    numMP      : 8;
+  uint32    isTested     : 1;  //  We have attempted classification on this read
+  uint32    doDelete     : 1;  //  Delete the read, it's junk
+  uint32    doUnMate     : 1;  //  Remove the mate edge, it's mate read is junk
+
+  //  Any classification called this read...
+  uint32    isSpur       : 1;
+  uint32    isChimer     : 1;
+  uint32    isJunction   : 1;
+
+  uint32    isClassified : 1;
+  uint32    isLimited    : 1;
+  uint32    isExhausted  : 1;
+
+  //  Number of votes for....
+  uint32    numNO        : 8;  //  ...no classification
+  uint32    numPE        : 8;  //  ...PE pair
+  uint32    numMP        : 8;  //  ...MP pair
 };
 
 
@@ -147,6 +188,18 @@ main(int argc, char **argv) {
 
   //  For each input file, load the results.
 
+  uint32  numAspur     = 0;  //  These stats are only correct if each pair is processed once
+  uint32  numAchimer   = 0;
+  uint32  numAjunction = 0;
+
+  uint32  numBspur     = 0;
+  uint32  numBchimer   = 0;
+  uint32  numBjunction = 0;
+
+  uint32  numABspurChimer[4][4];
+
+  memset(numABspurChimer, 0, sizeof(uint32) * 16);
+
   for (uint32 i=0; i<resultsNamesLen; i++) {
     classifyMatesResultFile  *RF = new classifyMatesResultFile(resultsNames[i]);
 
@@ -160,21 +213,55 @@ main(int argc, char **argv) {
       results[f].setTested();
       results[m].setTested();
 
+      if (result.fragSpur     == true)  { numAspur++;       results[f].setIsSpur(); }
+      if (result.fragChimer   == true)  { numAchimer++;     results[f].setIsChimer(); }
+      if (result.fragJunction == true)  { numAjunction++;   results[f].setIsJunction(); }
+
+      if (result.mateSpur     == true)  { numBspur++;       results[m].setIsSpur(); }
+      if (result.mateChimer   == true)  { numBchimer++;     results[m].setIsChimer(); }
+      if (result.mateJunction == true)  { numBjunction++;   results[m].setIsJunction(); }
+
+      assert(result.fragJunction == false);  //  unused
+      assert(result.mateJunction == false);  //  unused
+
+      assert(result.fragSpur + result.fragChimer != 2);
+      assert(result.mateSpur + result.mateChimer != 2);
+
+      uint32 a = result.fragSpur + 2 * result.fragChimer;
+      uint32 b = result.mateSpur + 2 * result.mateChimer;
+
+      numABspurChimer[a][b]++;
+
+      if (result.classified   == true) {
+        results[f].setIsClassified();
+        results[m].setIsClassified();
+      }
+
+      if (result.limited      == true) {
+        results[f].setIsLimited();
+        results[m].setIsLimited();
+      }
+
+      if (result.exhausted    == true) {
+        results[f].setIsExhausted();
+        results[m].setIsExhausted();
+      }
+
       //  If any single result says the read (or mate) is junk, delete it.
 
       if ((result.fragSpur     == true) ||
           (result.fragChimer   == true) ||
           (result.fragJunction == true)) {
-        results[f].setDelete();
-        results[f].setUnMate();
+        results[f].setDelete();  //  Delete the frag
+        results[f].setUnMate();  //  and unmate
         results[m].setUnMate();
       }
 
       if ((result.mateSpur     == true) ||
           (result.mateChimer   == true) ||
           (result.mateJunction == true)) {
-        results[m].setDelete();
-        results[f].setUnMate();
+        results[m].setDelete();  //  Delete the mate
+        results[f].setUnMate();  //  and unmate
         results[m].setUnMate();
       }
 
@@ -200,6 +287,14 @@ main(int argc, char **argv) {
     delete RF;
   }
 
+  uint32  numSpur     = 0;
+  uint32  numChimer   = 0;
+  uint32  numJunction = 0;
+
+  uint32  numClassified = 0;
+  uint32  numLimited    = 0;
+  uint32  numExhausted  = 0;
+
   //  Process the classifications.  If any are labeled both PE and MP, remove the mate.
 
   uint32  numDL = 0;
@@ -218,7 +313,6 @@ main(int argc, char **argv) {
     if     (results[i].getDelete()) {
       fprintf(outputFile, "frg iid "F_U32" isdeleted 1\n", i);
       fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
-      numUM++;
       numDL++;
 
     } else if (results[i].getUnMate()) {
@@ -242,10 +336,64 @@ main(int argc, char **argv) {
     } else {
       numIG++;
     }
+
+    if (results[i].getIsSpur())        numSpur++;
+    if (results[i].getIsChimer())      numChimer++;
+    if (results[i].getIsJunction())    numJunction++;
+
+    if (results[i].getIsClassified())  numClassified++;
+    if (results[i].getIsLimited())     numLimited++;
+    if (results[i].getIsExhausted())   numExhausted++;
   }
 
-  fprintf(stderr, "NO "F_U32" PE "F_U32" MP "F_U32" AB "F_U32" DL "F_U32" UM "F_U32" IG "F_U32"\n",
-          numNO, numPE, numMP, numAB, numDL, numUM, numIG);
+  fprintf(stderr, "Read Fate:\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   unclassified (remains mated)\n", numNO);
+  fprintf(stderr, "%10"F_U32P"   paired-end (break the mate)\n", numPE);
+  fprintf(stderr, "%10"F_U32P"   mate-pair (remains mated)\n", numMP);
+  fprintf(stderr, "%10"F_U32P"   paired-end + mate-pair (remains mated)\n", numAB);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   delete (read is spur/chimer/junction)\n", numDL);
+  fprintf(stderr, "%10"F_U32P"   unmate (pair is spur/chimer/junction)\n", numUM);
+  fprintf(stderr, "%10"F_U32P"   ignored (not searched)\n", numIG);
+  fprintf(stderr, "\n");
+
+  //fprintf(stderr, "NO "F_U32" PE "F_U32" MP "F_U32" AB "F_U32" DL "F_U32" UM "F_U32" IG "F_U32"\n",
+  //        numNO, numPE, numMP, numAB, numDL, numUM, numIG);
+
+  fprintf(stderr, "Read Classification:\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   A spur reads\n",     numAspur);
+  fprintf(stderr, "%10"F_U32P"   A chimer reads\n",   numAchimer);
+  fprintf(stderr, "%10"F_U32P"   A junction reads\n", numAjunction);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   B spur reads\n",     numBspur);
+  fprintf(stderr, "%10"F_U32P"   B chimer reads\n",   numBchimer);
+  fprintf(stderr, "%10"F_U32P"   B junction reads\n", numBjunction);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   spur reads\n",       numSpur);
+  fprintf(stderr, "%10"F_U32P"   chimer reads\n",     numChimer);
+  fprintf(stderr, "%10"F_U32P"   junction reads\n",   numJunction);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   good/good\n",     numABspurChimer[0][0]);
+  fprintf(stderr, "%10"F_U32P"   good/spur\n",     numABspurChimer[0][1]);
+  fprintf(stderr, "%10"F_U32P"   good/chimer\n",   numABspurChimer[0][2]);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   spur/good\n",     numABspurChimer[1][0]);
+  fprintf(stderr, "%10"F_U32P"   spur/spur\n",     numABspurChimer[1][1]);
+  fprintf(stderr, "%10"F_U32P"   spur/chimer\n",   numABspurChimer[1][2]);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   chimer/good\n",   numABspurChimer[2][0]);
+  fprintf(stderr, "%10"F_U32P"   chimer/spur\n",   numABspurChimer[2][1]);
+  fprintf(stderr, "%10"F_U32P"   chimer/chimer\n", numABspurChimer[2][2]);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Read Termination:\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   classified reads\n", numClassified);
+  fprintf(stderr, "%10"F_U32P"   limited reads\n",    numLimited);
+  fprintf(stderr, "%10"F_U32P"   exhausted reads\n",  numExhausted);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
 
   delete [] results;
   delete    gkpStore;
