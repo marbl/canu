@@ -251,6 +251,10 @@ public:
               double        maxErrorFraction);
   void   save(void);
 
+  bool   checkBB(void);
+  bool   checkTG(void);
+  bool   checkGT(void);
+
   void   buildBBSSmap(gkStore     *gkpStore,
                       set<AS_IID> &searchLibs,
                       set<AS_IID> &backboneLibs);

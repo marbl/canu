@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.16 2012-05-16 22:14:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.17 2012-05-18 16:22:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -128,6 +128,43 @@ cmGlobalData::~cmGlobalData() {
 
   delete [] fi;
 };
+
+
+
+bool
+cmGlobalData::checkBB(void) {
+  return(true);
+}
+
+
+bool
+cmGlobalData::checkTG(void) {
+  return(true);
+}
+
+
+bool
+cmGlobalData::checkGT(void) {
+  fprintf(stderr, "CHECKING gt\n");
+
+  uint32 nErr = 0;
+
+  for (uint32 ii=0; ii<numFrags+1; ii++) {
+    for (uint32 jj=0; jj<gtLen[ii]; jj++) {
+      if (gtPos[ii][jj].iid == 0)
+        fprintf(stderr, "WARNING: gtPos[%d][%d].iid == 0\n", ii, jj), nErr++;
+      if (gtPos[ii][jj].iid > numFrags)
+        fprintf(stderr, "WARNING: gtPos[%d][%d].iid = %d > numFrags=%d\n", ii, jj, gtPos[ii][jj].iid, numFrags), nErr++;
+
+      if (nErr > 30)
+        return(false);
+    }
+  }
+
+  return(nErr == 0);
+}
+
+
 
 
 
@@ -289,6 +326,19 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
   fprintf(stderr, "LOADING OVERLAPS...found "F_U64" BB overlaps and "F_U64" TG overlaps and "F_U64" GT overlaps.\n",
           numBB, numTG, numGT);
 
+  if (checkGT() == false) {
+    fprintf(stderr, "checkGT() failed; try to rescue by inverting again.\n");
+    gtLen = new uint32 [numFrags + 1];  //  Memory mapped before, need to allocate now; this leaks
+    memset(gtLen, 0, sizeof(uint32)        * (numFrags + 1));
+    loadOverlaps_invert();
+  }
+
+  if (checkBB() == false)
+    fprintf(stderr, "checkBB() failed.\n"), exit(1);
+  if (checkTG() == false)
+    fprintf(stderr, "checkTG() failed.\n"), exit(1);
+  if (checkGT() == false)
+    fprintf(stderr, "checkGT() failed.\n"), exit(1);
 
 
 #if 0
@@ -799,6 +849,9 @@ cmGlobalData::loadOverlaps_invert(void) {
   //  Count the number of overlaps for each b_iid
 
   for (uint32 ii=0; ii<numFrags+1; ii++) {
+    if ((ii % 100000000) == 0)
+      fprintf(stderr, "INVERTING OVERLAPS...COUNTING "F_U32"\n", ii);
+
     if (tgPos[ii] == NULL)
       continue;
 
@@ -808,10 +861,11 @@ cmGlobalData::loadOverlaps_invert(void) {
     }
   }
 
-  //  Allocate space for them
+  //  Allocate space for them - note, oiStoragePos MUST be 64-bit; opposed to the other usage of
+  //  oiStoragePos in loadOverlaps() which has a fixed small maximum size.
 
   overlapInfo *oiStorage    = new overlapInfo [numGTovl];
-  uint32       oiStoragePos = 0;
+  uint64       oiStoragePos = 0;
 
   oiStorageArr.push_back(oiStorage);
 
@@ -826,10 +880,13 @@ cmGlobalData::loadOverlaps_invert(void) {
     gtLen[ii]      = 0;                                                   //  Show we have no overlaps loaded
   }
 
-  assert(oiStoragePos <= numGTovl);
+  assert(oiStoragePos == numGTovl);
 
   //  Finally, copy the overlaps
   for (uint32 ii=0; ii<numFrags+1; ii++) {
+    if ((ii % 100000000) == 0)
+      fprintf(stderr, "INVERTING OVERLAPS...BUILDING "F_U32"\n", ii);
+
     if (tgPos[ii] == NULL)
       continue;
 
@@ -850,6 +907,8 @@ cmGlobalData::loadOverlaps_invert(void) {
   if (saveCache == true) {
     char  cacheName[FILENAME_MAX];
     sprintf(cacheName, "%s.cminv", resultsPrefix);
+
+    fprintf(stderr, "WRITING to '%s'\n", cacheName);
 
     errno = 0;
     FILE *F = fopen(cacheName, "w");
