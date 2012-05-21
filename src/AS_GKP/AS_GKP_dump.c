@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.72 2012-04-12 15:00:35 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.73 2012-05-21 18:24:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1005,7 +1005,7 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
         id2++;
 
       if (id2 > id1 + 1) {
-        fprintf(stderr, "skip from "F_IID" to "F_IID".\n", id1, id2);
+        //fprintf(stderr, "skip from "F_IID" to "F_IID".\n", id1, id2);
         fs->reset(id2, endIID);
       }
 
