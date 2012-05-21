@@ -201,11 +201,11 @@ EOF
 #  FreeBSD, optimized
 CC                := $CC
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -O3 -fPIC -pthread -D_REENTRANT -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -O3 -fPIC -pthread -D_REENTRANT -Wall -Wno-char-subscripts -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := -pthread -lthr
 CXX               := $CXX
-CXXFLAGS_COMPILE  := -O3 -fPIC -pthread -D_REENTRANT -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -O3 -fPIC -pthread -D_REENTRANT -Wall -Wno-char-subscripts -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := -pthread -lthr
 ARFLAGS           := ruvs
