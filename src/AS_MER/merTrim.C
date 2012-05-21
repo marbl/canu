@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.32 2012-05-10 08:35:44 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.33 2012-05-21 18:29:57 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -51,7 +51,7 @@ uint32  VERBOSE = 0;
 
 #undef TEST_TESTBASE
 
-char *createAdapterString(void);
+char *createAdapterString(bool adapIllumina, bool adap454);
 
 
 class mertrimGlobalData {
@@ -66,6 +66,8 @@ public:
     merCountsFile             = 0L;
     merCountsState            = 0L;
     adapCountsFile            = 0L;
+    adapIllumina              = false;
+    adap454                   = false;
 
     compression               = 0;  //  Does not work!
     numThreads                = 4;
@@ -235,15 +237,18 @@ public:
       adapterDB = new existDB(adapCountsFile, merSize, existDBcounts, 0, ~0);
       adapterDB->printState(stderr);
 
-    } else {
+    } else if (adapIllumina || adap454) {
       fprintf(stderr, "creating adapter mer database.\n");
 
-      char *adapter = createAdapterString();
+      char *adapter = createAdapterString(adapIllumina, adap454);
 
       adapterDB = new existDB(adapter, merSize, existDBcanonical | existDBcounts);
       adapterDB->printState(stderr);
 
       delete [] adapter;
+
+    } else {
+      fprintf(stderr, "not searching for adapter.\n");
     }
 
 
@@ -274,6 +279,9 @@ public:
   char         *merCountsFile;
   char         *merCountsState;
   char         *adapCountsFile;
+
+  bool          adapIllumina;
+  bool          adap454;
 
   uint32        compression;
   uint32        numThreads;
@@ -2182,6 +2190,12 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-mC") == 0) {
       g->adapCountsFile = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-mCillumina") == 0) {
+      g->adapIllumina = 1;
+
+    } else if (strcmp(argv[arg], "-mC454") == 0) {
+      g->adap454 = 2;
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       g->numThreads = atoi(argv[++arg]);
