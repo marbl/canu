@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.18 2012-05-16 21:22:23 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.19 2012-05-21 04:51:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +47,16 @@ FILE    *reportFile  = stdout;
 uint32   duplicateFrags  = 0;
 uint32   duplicateMates  = 0;
 
+uint32   mateOvlTypes[4][4] = { {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} };
+
+
+//  Stores the overlap to some fragment.  The overlap is to the biid fragment.  If the overlap
+//  starts at the start of both fragments, 'a' is set.  If the overlap ends at the end of both
+//  fragments, 'b' is set.
+//
+//  'a' : -------->            'b' : -------->
+//        -------------->               ----->
+//
 class olapT {
 public:
   AS_IID   biid;
@@ -113,19 +123,19 @@ loadFragments(gkStore *gkp) {
     frag[iid].isDeleted        = fr.gkFragment_getIsDeleted() ? 1 : 0;
 
     if (fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL) < fr.gkFragment_getClearRegionEnd(AS_READ_CLEAR_OBTINITIAL)) {
-      frag[iid].clrbeg           = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
-      frag[iid].clrlen           = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTINITIAL);
+      frag[iid].clrbeg = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
+      frag[iid].clrlen = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_OBTINITIAL);
     } else {
-      frag[iid].clrbeg           = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_CLR);
-      frag[iid].clrlen           = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_CLR);
+      frag[iid].clrbeg = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_CLR);
+      frag[iid].clrlen = fr.gkFragment_getClearRegionLength(AS_READ_CLEAR_CLR);
     }
 
-    frag[iid].mateIID          = fr.gkFragment_getMateIID();
-    frag[iid].libraryIID       = fr.gkFragment_getLibraryIID();
+    frag[iid].mateIID    = fr.gkFragment_getMateIID();
+    frag[iid].libraryIID = fr.gkFragment_getLibraryIID();
 
-    frag[iid].ovllen           = 0;
-    frag[iid].ovlmax           = 0;
-    frag[iid].ovl              = 0L;
+    frag[iid].ovllen = 0;
+    frag[iid].ovlmax = 0;
+    frag[iid].ovl    = 0L;
   }
 
   delete fs;
@@ -200,14 +210,25 @@ processMatedFragment(gkStore *gkp, fragT *frag, AS_IID iid, AS_IID mid) {
         //  Mate of my overlapping fragment is different than the overlapping fragment of my mate
         continue;
 
+      {
+        uint32 a = frag[iid].ovl[i].a + frag[iid].ovl[i].b * 2;
+        uint32 b = frag[mid].ovl[j].a + frag[mid].ovl[j].b * 2;
+
+        mateOvlTypes[a][b]++;
+      }
+
       //  If the proper overlap pattern is found, delete me.
-      if ((frag[iid].ovl[i].a && frag[mid].ovl[j].b) ||
-          (frag[iid].ovl[i].b && frag[mid].ovl[j].a)) {
-        fprintf(reportFile, "Delete %d <-> %d DUPof %d <-> %d\n",
+      //
+      if (frag[iid].ovl[i].a && frag[mid].ovl[j].a) {
+        fprintf(reportFile, "Delete %d <-> %d DUPof %d <-> %d %d%d%d%d\n",
                 iid,
                 mid,
                 iod,
-                jod);
+                jod,
+                frag[iid].ovl[i].a,
+                frag[iid].ovl[i].b,
+                frag[mid].ovl[j].a,
+                frag[mid].ovl[j].b);
         duplicateMates++;
         frag[iid].isDeleted = 1;
         frag[mid].isDeleted = 1;
@@ -541,6 +562,24 @@ main(int argc, char **argv) {
   if (summaryFile) {
     fprintf(summaryFile, "duplicateFrags:    "F_U32"\n", duplicateFrags);
     fprintf(summaryFile, "duplicateMates:    "F_U32"\n", duplicateMates);
+  }
+
+  if (summaryFile) {
+    char *label[4] = { "~a~b", "a~b", "~ab", "ab" };
+
+    fprintf(summaryFile, "\n");
+    fprintf(summaryFile, "\n");
+    fprintf(summaryFile, "Duplicate Mate Overlap Types\n");
+    fprintf(summaryFile, "\t~a~b\ta~b\t~ab\tab\n");
+
+    for (uint32 i=0; i<4; i++) {
+      fprintf(summaryFile, "%s", label[i]);
+
+      for (uint32 j=0; j<4; j++)
+        fprintf(summaryFile, "\t"F_U32, mateOvlTypes[i][j]);
+
+      fprintf(summaryFile, "\n");
+    }
   }
 
   exit(0);
