@@ -30,6 +30,8 @@ my $deletelate  = 0;
 
 my $maxError    = 0.06;
 
+my $submit = 0;
+
 my $bin = getBinDirectory();
 my $sbn = getBinDirectoryShellCode();
 
@@ -70,6 +72,9 @@ while (scalar(@ARGV)) {
 
     } elsif ($arg eq "-maxerror") {
         $maxError = shift @ARGV;
+
+    } elsif ($arg eq "-submit") {
+        $submit = 1;
 
     } else {
         die "Unknown option '$arg'\n";
@@ -314,13 +319,13 @@ $qsub3 .= "  -o $wrk/$asm.${typ}Store/3-index.err \\\n";
 $qsub3 .= "  $wrk/$asm.${typ}Store/3-index.sh";
 
 print "$qsub1\n";
-#system($qsub1);
+system($qsub1) if ($submit == 1);
 
 print "$qsub2\n";
-#system($qsub2);
+system($qsub2) if ($submit == 1);
 
 print "$qsub3\n";
-#system($qsub3);
+system($qsub3) if ($submit == 1);
 
 
 #
