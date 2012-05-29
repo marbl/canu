@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.33 2012-05-21 18:29:57 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.34 2012-05-29 12:10:11 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -64,7 +64,7 @@ public:
     merSize                   = 22;
 
     merCountsFile             = 0L;
-    merCountsState            = 0L;
+    merCountsCache            = false;
     adapCountsFile            = 0L;
     adapIllumina              = false;
     adap454                   = false;
@@ -84,13 +84,16 @@ public:
     minVerified               = 0;          //
 
     endTrimDefault            = true;
-    endTrimNum                = 2;
+    endTrimNum                = 0;
 
+#if 0
+    //  These never worked well.
     endTrimWinScale[0]        = 0.50;
     endTrimErrAllow[0]        = 2;
 
     endTrimWinScale[1]        = 0.25;
-    endTrimErrAllow[0]        = 0;
+    endTrimErrAllow[1]        = 0;
+#endif
 
     discardZeroCoverage       = false;
     discardImperfectCoverage  = false;
@@ -251,18 +254,21 @@ public:
       fprintf(stderr, "not searching for adapter.\n");
     }
 
+    char  cacheName[FILENAME_MAX];
+    sprintf(cacheName, "%s.merTrimDB", merCountsFile);
 
-    if ((merCountsState) &&
-        (AS_UTL_fileExists(merCountsState, FALSE, TRUE))) {
-      fprintf(stderr, "loading genome mer database (from cache).\n");
-      genomicDB = new existDB(merCountsState);
+    if (AS_UTL_fileExists(cacheName, FALSE, TRUE)) {
+      fprintf(stderr, "loading genome mer database from cache '%s'.\n", cacheName);
+      genomicDB = new existDB(cacheName);
 
     } else if (merCountsFile) {
-      fprintf(stderr, "loading genome mer database (from meryl).\n");
+      fprintf(stderr, "loading genome mer database from meryl '%s'.\n", merCountsFile);
       genomicDB = new existDB(merCountsFile, merSize, existDBcounts, minVerified, ~0);
 
-      if (merCountsState)
-        genomicDB->saveState(merCountsState);
+      if (merCountsCache) {
+        fprintf(stderr, "saving genome mer database to cache '%s'.\n", cacheName);
+        genomicDB->saveState(cacheName);
+      }
     }
   };
 
@@ -277,7 +283,7 @@ public:
   uint32        merSize;
 
   char         *merCountsFile;
-  char         *merCountsState;
+  bool          merCountsCache;
   char         *adapCountsFile;
 
   bool          adapIllumina;
@@ -2185,8 +2191,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-mc") == 0) {
       g->merCountsFile = argv[++arg];
 
-    } else if (strcmp(argv[arg], "-mcstate") == 0) {
-      g->merCountsState = argv[++arg];
+    } else if (strcmp(argv[arg], "-enablecache") == 0) {
+      g->merCountsCache = true;
 
     } else if (strcmp(argv[arg], "-mC") == 0) {
       g->adapCountsFile = argv[++arg];
