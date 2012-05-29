@@ -19,14 +19,19 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSample.C,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSample.C,v 1.9 2012-05-29 11:02:47 brianwalenz Exp $";
 
 #include "AS_global.h"
 
 
 class aRead {
 public:
-  aRead() {};
+  aRead() {
+    memset(a, 0, sizeof(char) * 1024);
+    memset(b, 0, sizeof(char) * 1024);
+    memset(c, 0, sizeof(char) * 1024);
+    memset(d, 0, sizeof(char) * 1024);
+  };
   ~aRead() {};
 
   bool  read(FILE *F) {
@@ -272,7 +277,7 @@ main(int argc, char **argv) {
   uint64 s=0;
 
   while (Ar.read(Ai) && Br.read(Bi)) {
-    if (save[i]) {
+    if ((i < NUMINPUT) && (save[i])) {
       Ar.write(Ao);
       Br.write(Bo);
       s++;
