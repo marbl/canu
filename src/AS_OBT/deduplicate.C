@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.19 2012-05-21 04:51:47 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.20 2012-05-29 12:20:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +40,9 @@ const char *mainid = "$Id: deduplicate.C,v 1.19 2012-05-21 04:51:47 brianwalenz 
 #define FRAG_HANG_SLOP  0
 #define MATE_HANG_SLOP  0
 #define DEFAULT_ERATE   2.0 / 100.0
+
+//  Works only with one library, and only with short reads.
+#undef SMALLMEMORY
 
 FILE    *summaryFile = stderr;
 FILE    *reportFile  = stdout;
@@ -81,6 +84,10 @@ public:
       ovl = O;
     }
 
+#ifdef SMALLMEMORY
+    assert(ovllen < 8 * 1024 * 1024 - 1024);
+#endif
+
     ovl[ovllen].biid = biid;
     ovl[ovllen].a    = ahang ? 1 : 0;
     ovl[ovllen].b    = bhang ? 1 : 0;
@@ -90,10 +97,17 @@ public:
 
   AS_IID   mateIID;
 
-  //  This could be a 32-bit value, for BITS=11 (leaving 8 bits for library IID), but
-  //  any larger value of BITS reduces the library IID too much.  By BITS=15, there is
-  //  no space at all.  So we just eat the extra memory and leave it 64-bit wide.
+#ifdef SMALLMEMORY
+  uint64   libraryIID      : 2;  //  MAX NUM LIBRARIES IS 3!
+  uint64   matePatternLeft : 1;
+  uint64   isDeleted       : 1;
 
+  uint64   clrbeg          : 7;  //  MAX READ LENGTH IS 128!
+  uint64   clrlen          : 7;
+
+  uint32   ovllen          : 23;
+  uint32   ovlmax          : 23;
+#else
   uint64   libraryIID      : 64 - 2 * AS_READ_MAX_NORMAL_LEN_BITS - 2;
   uint64   matePatternLeft : 1;
   uint64   isDeleted       : 1;
@@ -103,6 +117,7 @@ public:
 
   uint32   ovllen;
   uint32   ovlmax;
+#endif
   olapT   *ovl;
 };
 
@@ -114,7 +129,9 @@ loadFragments(gkStore *gkp) {
   gkFragment      fr;
   fragT          *frag = new fragT [gkp->gkStore_getNumFragments() + 1];
 
-  fprintf(stderr, "loading fragment data\n");
+  fprintf(stderr, "loading fragment data for "F_U32" fragments ("F_SIZE_T" MB)\n",
+          gkp->gkStore_getNumFragments(),
+          sizeof(fragT) * (gkp->gkStore_getNumFragments() + 1) >> 20);
 
   while (fs->next(&fr)) {
     AS_IID  iid  = fr.gkFragment_getReadIID();
@@ -132,6 +149,11 @@ loadFragments(gkStore *gkp) {
 
     frag[iid].mateIID    = fr.gkFragment_getMateIID();
     frag[iid].libraryIID = fr.gkFragment_getLibraryIID();
+
+    if (frag[iid].libraryIID != fr.gkFragment_getLibraryIID())
+      fprintf(stderr, "ERROR: libraryIID overflow; not enough bits to store library iid of "F_IID"\n",
+              fr.gkFragment_getLibraryIID());
+    assert(frag[iid].libraryIID == fr.gkFragment_getLibraryIID());
 
     frag[iid].ovllen = 0;
     frag[iid].ovlmax = 0;
@@ -155,6 +177,14 @@ loadOverlaps(OverlapStore *store,
              OVSoverlap   *ovlBuffer,
              AS_IID       &last) {
   uint32  nr = 0;
+
+  //  No store, no go.  We should probably also quit if we previously didn't load overlaps.
+
+  if (store == NULL)
+    last = AS_IID_MAX;
+
+  if (last == AS_IID_MAX)
+    return(ovlLen);
 
   //  If there is space left, load overlaps.  If any were loaded, remember the ID if the first one
   //  loaded.  We limit mate processing to be strictly less than this ID.
@@ -449,7 +479,7 @@ main(int argc, char **argv) {
     if        (strncmp(argv[arg], "-gkp", 2) == 0) {
       gkp = new gkStore(argv[++arg], FALSE, doUpdate);
       gkp->gkStore_metadataCaching(true);
-      fprintf(stderr, "gkpStore opened.\n");
+      fprintf(stderr, "gkpStore opened (with caching).\n");
 
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       if (ovsprimary == NULL) {
@@ -548,7 +578,7 @@ main(int argc, char **argv) {
       }
     }
 
-    currMate = processMatedFragmentsInline(gkp, frag, currMate, gkp->gkStore_getNumFragments() + 2);
+    currMate = processMatedFragmentsInline(gkp, frag, currMate, gkp->gkStore_getNumFragments() + 1);
 
     if (doUpdate)
       deleteFragments(gkp, frag);
