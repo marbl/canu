@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.22 2012-05-08 23:31:32 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.23 2012-05-29 11:01:37 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -75,7 +75,7 @@ AS_configure(int argc, char **argv) {
 #endif
 
 #ifdef _GLIBCXX_PARALLEL_SETTINGS_H
-  __gnu_parallel::_Settings s;
+  __gnu_parallel::_Settings s = __gnu_parallel::_Settings::get();
 
   //  Force all algorithms to be parallel.
   //  Force some algs to be sequential by using a tag, eg:
@@ -85,6 +85,12 @@ AS_configure(int argc, char **argv) {
 
   //  The default seems to be 1000, way too small for us.
   s.sort_minimal_n = 128 * 1024;
+
+  //  The default is MWMS, which, at least on FreeBSD 8.2 w/gcc46, is NOT inplace.
+  //  Then again, the others also appear to be NOT inplace as well.
+  //s.sort_algorithm = __gnu_parallel::MWMS;
+  //s.sort_algorithm = __gnu_parallel::QS_BALANCED;
+  //s.sort_algorithm = __gnu_parallel::QS;
 
   __gnu_parallel::_Settings::set(s);
 #endif
