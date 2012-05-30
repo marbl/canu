@@ -415,11 +415,17 @@ sub setDefaults () {
     $global{"ovlMerThreshold"}             = "auto";
     $synops{"ovlMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this are ignored";
 
+    $global{"ovlFrequentMers"}              = undef;
+    $synops{"ovlFrequentMers"}              = "Do not seed overlaps with these kmers (fasta format)";
+
     $global{"obtMerSize"}                  = 22;
     $synops{"obtMerSize"}                  = "K-mer size";
 
     $global{"obtMerThreshold"}             = "auto";
     $synops{"obtMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this are ignored";
+
+    $global{"obtFrequentMers"}              = undef;
+    $synops{"obtFrequentMers"}              = "Do not seed overlaps with these kmers (fasta format)";
 
     $global{"ovlHashLibrary"}              = "0";
     $synops{"ovlHashLibrary"}              = "Only load hash fragments from specified lib, 0 means all";
@@ -2348,10 +2354,6 @@ sub meryl {
     my $obtT = 0;  #  New threshold
     my $ovlT = 0;
 
-    #  If the mer overlapper, we don't care about single-copy mers,
-    #  only mers that occur in two or more frags (kind of important
-    #  for large assemblies).
-
     if (getGlobal("ovlOverlapper") eq "mer") {
         $ovlc = getGlobal("merCompression");
         $ovlC = "-C";
@@ -2363,15 +2365,56 @@ sub meryl {
         $obtD = 0;
     }
 
-    $ovlT = runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
-    $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming"));
 
-    if ((getGlobal("obtMerThreshold") ne $obtT) && (getGlobal("doOverlapBasedTrimming"))) {
+    system("mkdir $wrk/0-mercounts") if (! -d "$wrk/0-mercounts");
+
+    if (defined(getGlobal("obtFrequentMers"))) {
+        my $ffile = "$wrk/0-mercounts/$asm.nmers.obt.fasta";
+        my $sfile = getGlobal("obtFrequentMers");
+
+        if (! -e $ffile) {
+            caFailure("obtFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
+            print STDERR "Using obt frequent mers in '$sfile'\n";
+            symlink $sfile, $ffile;
+        }
+    }
+
+
+    if (defined(getGlobal("ovlFrequentMers"))) {
+        my $ffile = "$wrk/0-mercounts/$asm.nmers.ovl.fasta";
+        my $sfile = getGlobal("ovlFrequentMers");
+
+        if (! -e $ffile) {
+            caFailure("ovlFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
+            print STDERR "Using ovl frequent mers in '$sfile'\n";
+            symlink $sfile, $ffile;
+        }
+    }
+
+    #  We're only here to compute mercounts for the overlappers (all of mer, obt and ovl).  If the
+    #  frequent mer file(s) exist, don't bother running meryl (which runs to build mcidx/mcdat even
+    #  if the fasta is there).
+
+    if ((getGlobal("doOverlapBasedTrimming")) &&
+        ((getGlobal('obtOverlapper') eq 'mer') || (! -e "$wrk/0-mercounts/$asm.nmers.obt.fasta"))) {
+        $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming"));
+    } else {
+        print STDERR "No need to run meryl for OBT (OBT is disabled).\n"             if (getGlobal("doOverlapBasedTrimming") == 0);
+        print STDERR "No need to run meryl for OBT ($asm.nmers.obt.fasta exists).\n" if (-e "$wrk/0-mercounts/$asm.nmers.obt.fasta");
+    }
+
+    if ((getGlobal('ovlOverlapper') eq 'mer') || (! -e "$wrk/0-mercounts/$asm.nmers.ovl.fasta")) {
+        $ovlT = runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
+    } else {
+        print STDERR "No need to run meryl for OVL ($asm.nmers.ovl.fasta exists).\n";
+    }
+
+    if (($obtT > 0) && (getGlobal("obtMerThreshold") ne $obtT) && (getGlobal("doOverlapBasedTrimming"))) {
         print STDERR "Reset OBT mer threshold from ", getGlobal("obtMerThreshold"), " to $obtT.\n";
         setGlobal("obtMerThreshold", $obtT);
     }
     
-    if (getGlobal("ovlMerThreshold") ne $ovlT) {
+    if (($ovlT > 0) && (getGlobal("ovlMerThreshold") ne $ovlT)) {
         print STDERR "Reset OVL mer threshold from ", getGlobal("ovlMerThreshold"), " to $ovlT.\n";
         setGlobal("ovlMerThreshold", $ovlT);
     }
@@ -3281,15 +3324,8 @@ sub createOverlapJobs($) {
         return;
     }
 
-    my $hashLibrary = 0;
-    my $refLibrary = 0;
-    if ($isTrim eq "trim") {
-       $hashLibrary = getGlobal("obtHashLibrary");
-       $refLibrary = getGlobal("obtRefLibrary");
-    } else {
-       $hashLibrary = getGlobal("ovlHashLibrary");
-       $refLibrary = getGlobal("ovlRefLibrary");
-    }
+    my $hashLibrary = ($isTrim eq "trim") ? getGlobal("obtHashLibrary") : getGlobal("ovlHashLibrary");
+    my $refLibrary  = ($isTrim eq "trim") ? getGlobal("obtRefLibrary")  : getGlobal("ovlRefLibrary");
 
     #  To prevent infinite loops -- stop now if the overlap script
     #  exists.  This will unfortunately make restarting from transient
@@ -3358,7 +3394,8 @@ sub createOverlapJobs($) {
     print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
     print F "  -k $wrk/0-mercounts/$asm.nmers.ovl.fasta \\\n" if ($isTrim ne "trim");
     print F "  -o $wrk/$outDir/\$bat/\$job.ovb.WORKING.gz \\\n";
-    print F " -H $hashLibrary -R $refLibrary \\\n";
+    print F "  -H $hashLibrary \\\n" if ($hashLibrary ne "0");
+    print F "  -R $refLibrary \\\n"  if ($refLibrary ne "0");
     print F "  $wrk/$asm.gkpStore \\\n";
     print F "&& \\\n";
     print F "mv $wrk/$outDir/\$bat/\$job.ovb.WORKING.gz $wrk/$outDir/\$bat/\$job.ovb.gz\n";
@@ -3391,6 +3428,8 @@ sub createOverlapJobs($) {
         $cmd .= " -bs $ovlHashBlockSize \\\n";
         $cmd .= " -rs $ovlRefBlockSize \\\n";
         $cmd .= " -rl $ovlRefBlockLength \\\n";
+        $cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
+        $cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
         $cmd .= " -o  $wrk/$outDir";
 
         if (runCommand($wrk, $cmd)) {
@@ -4288,7 +4327,8 @@ sub classifyMates () {
     print F "  -p \\\n";
     print F "$classifiedOutputs";  #  NO INDENTATION!  NO LINE CONTINUATION!  Both are in the string directly.
     print F "  -o $wrk/2-classifyMates/$asm.classified.gkpStore.edit \\\n";
-    print F "> $wrk/2-classifyMates/$asm.classified.log \\\n";
+    print F ">  $wrk/2-classifyMates/$asm.classified.log \\\n";
+    print F "2> $wrk/2-classifyMates/$asm.classified.summary \\\n";
     print F "&& \\\n";
     print F "$bin/gatekeeper --edit \\\n";
     print F "  $wrk/2-classifyMates/$asm.classified.gkpStore.edit \\\n";
@@ -4312,7 +4352,7 @@ sub classifyMates () {
         }
     }
 
-    if (runCommand("$wrk/2-classifyMates", "$wrk/2-classifyMates/classify-apply.sh")) {
+    if (runCommand("$wrk/2-classifyMates", "$wrk/2-classifyMates/classify-apply.sh > $wrk/2-classifyMates/classify-apply.err 2>&1")) {
         caFailure("failed to apply classify mates results", undef);
     }
     if (! -e "$wrk/2-classifyMates/classify.success") {
