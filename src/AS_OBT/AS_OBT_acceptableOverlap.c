@@ -19,13 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OBT_acceptableOverlap.c,v 1.3 2011-06-03 17:34:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OBT_acceptableOverlap.c,v 1.4 2012-05-30 21:42:53 brianwalenz Exp $";
 
 #include "AS_OBT_acceptableOverlap.h"
 
-int
-AS_OBT_acceptableOverlap(OVSoverlap ol) {
+bool
+AS_OBT_acceptableOverlap(OVSoverlap &ol) {
   int32   minq = AS_OVS_encodeQuality(OBT_MIN_ERATE / 100.0);
+
+  assert(ol.dat.obt.type == AS_OVS_TYPE_OBT);
 
   //  Remember if the 5' ends are far apart -- but we only care if
   //  it's a forward match.
