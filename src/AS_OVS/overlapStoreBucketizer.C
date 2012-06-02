@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.7 2012-05-10 16:15:04 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.8 2012-06-02 08:34:08 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -40,8 +40,6 @@ const char *mainid = "$Id: overlapStoreBucketizer.C,v 1.7 2012-05-10 16:15:04 br
 
 using namespace std;
 
-#define WITH_GZIP 1
-
 static
 void
 writeToFile(OVSoverlap          *overlap,
@@ -50,7 +48,8 @@ writeToFile(OVSoverlap          *overlap,
             uint64              *sliceSize,
             uint32               iidPerBucket,
             char                *ovlName,
-            uint32               jobIndex) {
+            uint32               jobIndex,
+            bool                 useGzip) {
 
   uint32 df = overlap->a_iid / iidPerBucket + 1;
 
@@ -75,7 +74,7 @@ writeToFile(OVSoverlap          *overlap,
   if (sliceFile[df] == NULL) {
     char name[FILENAME_MAX];
 
-    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, jobIndex, df, (WITH_GZIP) ? ".gz" : "");
+    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, jobIndex, df, (useGzip) ? ".gz" : "");
     sliceFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE);
     sliceSize[df] = 0;
   }
@@ -181,6 +180,8 @@ main(int argc, char **argv) {
 
   char           *ovlInput     = NULL;
 
+  bool            useGzip      = true;
+
   argc = AS_configure(argc, argv);
 
   int err=0;
@@ -216,6 +217,9 @@ main(int argc, char **argv) {
       maxErrorRate = atof(argv[++arg]);
       maxError     = AS_OVS_encodeQuality(maxErrorRate);
 
+    } else if (strcmp(argv[arg], "-raw") == 0) {
+      useGzip = false;
+
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
     }
@@ -248,6 +252,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -dup                  filter overlaps for OBT/dedupe\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -e e                  filter overlaps above e fraction error\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -raw                  write uncompressed buckets\n");
 
     if (ovlName == NULL)
       fprintf(stderr, "ERROR: No overlap store (-o) supplied.\n");
@@ -273,6 +279,18 @@ main(int argc, char **argv) {
     sprintf(name, "%s/bucket%04d", ovlName, jobIndex);
     if (AS_UTL_fileExists(name, TRUE, FALSE) == false)
       AS_UTL_mkdir(name);
+  }
+
+
+  {
+    char name[FILENAME_MAX];
+
+    sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, jobIndex);
+
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == true) {
+      fprintf(stderr, "Job finished; file '%s' exists.\n", name);
+      exit(0);
+    }
   }
 
 
@@ -315,7 +333,7 @@ main(int argc, char **argv) {
 
   if (doFilterOBT == 2)
     markDUP(gkp, maxIID, skipFragment, iidToLib);
-  
+
   BinaryOverlapFile  *inputFile;
   OVSoverlap          fovrlap;
   OVSoverlap          rovrlap;
@@ -328,6 +346,9 @@ main(int argc, char **argv) {
   fprintf(stderr, "Bucketizing %s\n", ovlInput);
 
   inputFile = AS_OVS_openBinaryOverlapFile(ovlInput, FALSE);
+
+  //  Do bigger buffers increase performance?  Do small ones hurt?
+  AS_OVS_setBinaryOverlapFileBufferSize(2 * 1024 * 1024);
 
   while (AS_OVS_readOverlap(inputFile, &fovrlap)) {
 
@@ -344,7 +365,8 @@ main(int argc, char **argv) {
     }
 
     //  Ignore high error overlaps
-    if (fovrlap.dat.ovl.orig_erate > maxError) {
+    if (((fovrlap.dat.ovl.type == AS_OVS_TYPE_OVL) && (fovrlap.dat.ovl.orig_erate > maxError)) ||
+        ((fovrlap.dat.obt.type == AS_OVS_TYPE_OBT) && (fovrlap.dat.obt.erate      > maxError))) {
       skipERATE++;
       continue;
     }
@@ -393,7 +415,7 @@ main(int argc, char **argv) {
     }
 
 
-    writeToFile(&fovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex);
+    writeToFile(&fovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
     saveTOTAL++;
 
     //  flip the overlap -- copy all the dat, then fix whatever
@@ -414,7 +436,7 @@ main(int argc, char **argv) {
           rovrlap.dat.ovl.b_hang = -fovrlap.dat.ovl.b_hang;
         }
 
-        writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex);
+        writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
         saveTOTAL++;
         break;
       case AS_OVS_TYPE_OBT:
@@ -435,7 +457,7 @@ main(int argc, char **argv) {
           rovrlap.dat.obt.b_end_lo = fovrlap.dat.obt.a_beg & 0x1ff;
         }
 
-        writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex);
+        writeToFile(&rovrlap, sliceFile, fileLimit, sliceSize, iidPerBucket, ovlName, jobIndex, useGzip);
         saveTOTAL++;
         break;
       case AS_OVS_TYPE_MER:
