@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreIndexer.C,v 1.6 2012-05-16 22:12:02 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreIndexer.C,v 1.7 2012-06-02 08:36:24 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -93,12 +93,13 @@ testIndex(char *ovlName, bool doFixes) {
     else if (errorGap)
       fprintf(stderr, "ERROR: gap between "F_U32" and "F_U32"\n", curIID, O.a_iid), nErrs++;
 
-    if ((maxIncreases == true) && (errorGap == false) && (doFixes))
-      AS_UTL_safeWrite(F, &O, "offset", sizeof(OverlapStoreOffsetRecord), 1);
-    else {
-      if (O.numOlaps > 0)
-        fprintf(stderr, "ERROR: lost overlaps a_iid "F_U32" fileno "F_U32" offset "F_U32" numOlaps "F_U32"\n",
-                O.a_iid, O.fileno, O.offset, O.numOlaps);
+    if ((maxIncreases == true) && (errorGap == false)) {
+      if (doFixes)
+        AS_UTL_safeWrite(F, &O, "offset", sizeof(OverlapStoreOffsetRecord), 1);
+
+    } else if (O.numOlaps > 0) {
+      fprintf(stderr, "ERROR: lost overlaps a_iid "F_U32" fileno "F_U32" offset "F_U32" numOlaps "F_U32"\n",
+              O.a_iid, O.fileno, O.offset, O.numOlaps);
     }
 
     curIID = O.a_iid;
