@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.31 2012-03-21 18:47:15 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.32 2012-06-02 08:09:51 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,13 +89,22 @@ processSeq(char       *N,
 
   //  If we're packed, make sure the length is appropriate
 
-  if ((forcePacked) &&
+  if ((forcePacked == true) &&
       (slen > packedLength)) {
     AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, fr->snam, slen, packedLength);
     fr->sstr[packedLength] = 0;
     fr->qstr[packedLength] = 0;
     slen = packedLength;
     qlen = packedLength;
+  }
+
+  if ((forcePacked == false) &&
+      (slen > AS_READ_MAX_NORMAL_LEN)) {
+    AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, fr->snam, slen, AS_READ_MAX_NORMAL_LEN);
+    fr->sstr[AS_READ_MAX_NORMAL_LEN] = 0;
+    fr->qstr[AS_READ_MAX_NORMAL_LEN] = 0;
+    slen = AS_READ_MAX_NORMAL_LEN;
+    qlen = AS_READ_MAX_NORMAL_LEN;
   }
       
   //  Complicated, but fast, parsing of the 'snam' to find clear ranges.
@@ -203,9 +212,14 @@ processSeq(char       *N,
 
   uint32 QVerrors = 0;
 
+  fprintf(stderr, "qv = '%s'\n", fr->snam);
+  fprintf(stderr, "qv = '%s'\n", fr->sstr);
+  fprintf(stderr, "qv = '%s'\n", fr->qstr);
+
   if (fastqType == FASTQ_SANGER) {
     for (uint32 i=0; fr->qstr[i]; i++) {
       if (fr->qstr[i] < '!') {
+        fprintf(stderr, "BAD SANGER\n");
         QVerrors++;
         fr->qstr[i] = '!';
       }
@@ -225,6 +239,7 @@ processSeq(char       *N,
     double qs;
     for (uint32 i=0; fr->qstr[i]; i++) {
       if (fr->qstr[i] < '@') {
+        fprintf(stderr, "BAD SOLEXA\n");
         QVerrors++;
         fr->qstr[i] = '@';
       }
@@ -245,6 +260,7 @@ processSeq(char       *N,
   if (fastqType == FASTQ_ILLUMINA) {
     for (uint32 i=0; fr->qstr[i]; i++) {
       if (fr->qstr[i] < '@') {
+        fprintf(stderr, "BAD ILLUMINA\n");
         QVerrors++;
         fr->qstr[i] = '@';
       }
@@ -259,9 +275,10 @@ processSeq(char       *N,
     }
   }
 
-  if (QVerrors > 0)
+  if (QVerrors > 0) {
+    fprintf(stderr, "BADQV\n");
     AS_GKP_reportError(AS_GKP_ILL_BAD_QV, fr->snam, QVerrors);
-
+  }
 
   //  Reverse the read if it is from an outtie pair.  This ONLY works if the reads are the same
   //  length throughout the library.  WE DO NOT CHECK THAT IS SO.
