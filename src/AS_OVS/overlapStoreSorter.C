@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreSorter.C,v 1.8 2012-05-09 01:16:54 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreSorter.C,v 1.9 2012-06-02 08:34:53 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -41,8 +41,6 @@ const char *mainid = "$Id: overlapStoreSorter.C,v 1.8 2012-05-09 01:16:54 brianw
 using namespace std;
 
 #define AS_OVS_CURRENT_VERSION  2
-
-#define WITH_GZIP 1
 
 #undef  DELETE_INTERMEDIATE_EARLY
 #define DELETE_INTERMEDIATE_LATE
@@ -284,11 +282,17 @@ main(int argc, char **argv) {
   for (uint32 i=0; i<=jobIdxMax; i++) {
     bucketSizes[i] = 0;
 
+    char namz[FILENAME_MAX];
     char name[FILENAME_MAX];
-    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
 
-    if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
+    sprintf(namz, "%s/bucket%04d/slice%03d.gz", ovlName, i, jobIndex);
+    sprintf(name, "%s/bucket%04d/slice%03d",    ovlName, i, jobIndex);
+
+    if ((AS_UTL_fileExists(namz, FALSE, FALSE) == false) &&
+        (AS_UTL_fileExists(name, FALSE, FALSE) == false))
       //  If no file, there are no overlaps.  Skip loading the bucketSizes file.
+      //  We expect the gz version to exist (that's the default in bucketizer) more frequently, so
+      //  be sure to test for existence of that one first.
       continue;
 
     sprintf(name, "%s/bucket%04d/sliceSizes", ovlName, i);
@@ -303,7 +307,7 @@ main(int argc, char **argv) {
 
     if (nr != fileLimit + 1) {
       fprintf(stderr, "ERROR: short read on '%s'.\n", name);
-      fprintf(stderr, "ERROR: read "F_U64" sizes insteadof "F_U64".\n", nr, fileLimit + 1);
+      fprintf(stderr, "ERROR: read "F_U64" sizes insteadof "F_U32".\n", nr, fileLimit + 1);
     }
     assert(nr == fileLimit + 1);
 
@@ -333,14 +337,22 @@ main(int argc, char **argv) {
 
   OVSoverlap *overlapsort = new OVSoverlap [totOvl];
 
-  //  Load all overlaps
+  //  Load all overlaps - we're guaranteed that either 'name.gz' or 'name' exists (we checked above)
+  //  or funny business is happening with our files.
 
   for (uint32 i=0; i<=jobIdxMax; i++) {
     if (bucketSizes[i] == 0)
       continue;
 
     char name[FILENAME_MAX];
-    sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+
+    sprintf(name, "%s/bucket%04d/slice%03d.gz", ovlName, i, jobIndex);
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
+      sprintf(name, "%s/bucket%04d/slice%03d", ovlName, i, jobIndex);
+
+    if (AS_UTL_fileExists(name, FALSE, FALSE) == false)
+      fprintf(stderr, "ERROR: "F_U64" overlaps claim to exist in bucket '%s', but file not found.\n",
+              bucketSizes[i], name);
 
     fprintf(stderr, "Loading "F_U64" overlaps from '%s'.\n", bucketSizes[i], name);
 
@@ -364,21 +376,28 @@ main(int argc, char **argv) {
   assert(numOvl == totOvl);
 
   if (deleteIntermediateEarly) {
+    char name[FILENAME_MAX];
+
     fprintf(stderr, "Removing inputs.\n");
     for (uint32 i=0; i<=jobIdxMax; i++) {
       if (bucketSizes[i] == 0)
         continue;
 
-      char name[FILENAME_MAX];
-      sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+      sprintf(name, "%s/bucket%04d/slice%03d.gz", ovlName, i, jobIndex);
+      AS_UTL_unlink(name);
+
+      sprintf(name, "%s/bucket%04d/slice%03d", ovlName, i, jobIndex);
       AS_UTL_unlink(name);
     }
   }
 
-  //  Sort the overlaps
-
+  //  Sort the overlaps - at least on FreeBSD 8.2 with gcc46, the parallel STL sort
+  //  algorithms are NOT inplace.  Restrict to sequential sorting.
+  //
+  //  This sort takes at most 2 minutes on 7gb of overlaps.
+  //
   fprintf(stderr, "Sorting.\n");
-  sort(overlapsort, overlapsort + numOvl);
+  __gnu_sequential::sort(overlapsort, overlapsort + numOvl);
 
   //  Output to store format
 
@@ -388,13 +407,17 @@ main(int argc, char **argv) {
   delete [] overlapsort;
 
   if (deleteIntermediateLate) {
+    char name[FILENAME_MAX];
+
     fprintf(stderr, "Removing inputs.\n");
     for (uint32 i=0; i<=jobIdxMax; i++) {
       if (bucketSizes[i] == 0)
         continue;
 
-      char name[FILENAME_MAX];
-      sprintf(name, "%s/bucket%04d/slice%03d%s", ovlName, i, jobIndex, (WITH_GZIP) ? ".gz" : "");
+      sprintf(name, "%s/bucket%04d/slice%03d.gz", ovlName, i, jobIndex);
+      AS_UTL_unlink(name);
+
+      sprintf(name, "%s/bucket%04d/slice%03d", ovlName, i, jobIndex);
       AS_UTL_unlink(name);
     }
   }
