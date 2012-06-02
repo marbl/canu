@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreBuild.C,v 1.4 2012-05-15 18:48:11 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreBuild.C,v 1.5 2012-06-02 08:35:04 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -605,7 +605,7 @@ main(int argc, char **argv) {
     unlink(name);
 
     fprintf(stderr, "sorting %s (%ld)\n", name, time(NULL) - beginTime);
-    sort(overlapsort, overlapsort + dumpLength[i]);
+    __gnu_sequential::sort(overlapsort, overlapsort + dumpLength[i]);
 
     fprintf(stderr, "writing %s (%ld)\n", name, time(NULL) - beginTime);
     for (uint64 x=0; x<dumpLength[i]; x++)
