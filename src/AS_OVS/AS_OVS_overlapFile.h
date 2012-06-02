@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAPFILE_H
 #define AS_OVS_OVERLAPFILE_H
 
-static const char *rcsid_AS_OVS_OVERLAPFILE_H = "$Id: AS_OVS_overlapFile.h,v 1.11 2008-10-14 03:02:01 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAPFILE_H = "$Id: AS_OVS_overlapFile.h,v 1.12 2012-06-02 08:17:58 brianwalenz Exp $";
 
 #include <stdio.h>
 
@@ -40,6 +40,9 @@ typedef struct {
   int           isInternal;   //  if true, 3 words per overlap, else 4
   FILE         *file;
 } BinaryOverlapFile;
+
+void               AS_OVS_setBinaryOverlapFileBufferSize(int size);
+int                AS_OVS_getBinaryOverlapFileBufferSize(void);
 
 BinaryOverlapFile *AS_OVS_openBinaryOverlapFile(const char *name, int isInternal);
 BinaryOverlapFile *AS_OVS_createBinaryOverlapFile(const char *name, int isInternal);

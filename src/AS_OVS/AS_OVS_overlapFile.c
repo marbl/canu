@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.20 2012-05-09 00:42:47 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.21 2012-06-02 08:17:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,14 +30,32 @@ static const char *rcsid = "$Id: AS_OVS_overlapFile.c,v 1.20 2012-05-09 00:42:47
 #include "AS_OVS_overlapFile.h"
 #include "AS_UTL_fileIO.h"
 
+int AS_OVS_BOF_BufferMax = 1 * 1024 * 1024;
+
+
+void
+AS_OVS_setBinaryOverlapFileBufferSize(int size) {
+  if (size < 16 * 1024)
+    size = 16 * 1024;
+
+  AS_OVS_BOF_BufferMax = size;
+}
+
+
+int
+AS_OVS_getBinaryOverlapFileBufferSize(void) {
+  return(AS_OVS_BOF_BufferMax);
+}
+
+
 static void AS_OVS_initializeBOF(BinaryOverlapFile *bof, int isInternal, int isOutput) {
   assert(bof != NULL);
 
   uint32  lcf = (AS_OVS_NWORDS + 1) * (AS_OVS_NWORDS + 2);
 
   bof->bufferLen  = 0;
-  bof->bufferPos  = ((4 * 1048576) / (lcf * sizeof(uint32))) * lcf;
-  bof->bufferMax  = ((4 * 1048576) / (lcf * sizeof(uint32))) * lcf;
+  bof->bufferPos  = (AS_OVS_BOF_BufferMax / (lcf * sizeof(uint32))) * lcf;
+  bof->bufferMax  = (AS_OVS_BOF_BufferMax / (lcf * sizeof(uint32))) * lcf;
   bof->buffer     = (uint32 *)safe_malloc(sizeof(uint32) * bof->bufferMax);
   bof->isOutput   = isOutput;
   bof->isSeekable = FALSE;
