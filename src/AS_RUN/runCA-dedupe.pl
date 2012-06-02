@@ -2122,6 +2122,7 @@ sub checkOverlap {
 
     if ($isTrim eq "trim") {
         return if (-d "$wrk/$asm.obtStore");
+        return if (-d "$wrk/$asm.dupStore");
         if      (getGlobal("obtOverlapper") eq "ovl") {
             checkOverlapper($isTrim);
         } elsif (getGlobal("obtOverlapper") eq "ovm") {
@@ -2161,14 +2162,9 @@ sub createOverlapStore {
         caFailure("failed to generate a list of all the overlap files", undef);
     }
 
-    $cmd  = "$bin/overlapStore ";
-    $cmd .= " -c $wrk/$asm.ovlStore.BUILDING ";
+    $cmd  = "$bin/overlapStoreBuild ";
+    $cmd .= " -o $wrk/$asm.ovlStore.BUILDING ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
-    
-    if (defined(getGlobal("closureOverlaps"))){
-      $cmd .= " -i " . getGlobal("closureOverlaps");
-    }
-    
     $cmd .= " -M " . getGlobal("ovlStoreMemory");
     $cmd .= " -L $wrk/$asm.ovlStore.list ";
     $cmd .= " > $wrk/$asm.ovlStore.err 2>&1";
@@ -2214,55 +2210,19 @@ sub overlapTrim {
 
 
     #
-    #  Compute overlaps, if we don't have them already
+    #  Compute overlaps, if we don't have them already -- the obtStore isn't needed for dedupe
     #
 
-    if (! -e "$wrk/0-overlaptrim/$asm.obtStore") {
+    if (! -e "$wrk/0-overlaptrim/$asm.dupStore") {
         createOverlapJobs("trim");
         checkOverlap("trim");
-
-        #  Sort the overlaps -- this also duplicates each overlap so that
-        #  all overlaps for a fragment A are localized.
-
-        if (runCommand("$wrk/0-overlaptrim",
-                       "find $wrk/0-overlaptrim-overlap -follow \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.obtStore.list")) {
-            caFailure("failed to generate a list of all the overlap files", undef);
-        }
-
-        $cmd  = "$bin/overlapStore ";
-        $cmd .= " -O ";
-        $cmd .= " -c $wrk/0-overlaptrim/$asm.obtStore.BUILDING ";
-        $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " -M " . getGlobal('ovlStoreMemory');
-        $cmd .= " -L $wrk/0-overlaptrim/$asm.obtStore.list";
-        $cmd .= " > $wrk/0-overlaptrim/$asm.obtStore.err 2>&1";
-
-        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            caFailure("failed to build the obt store", "$wrk/0-overlaptrim/$asm.obtStore.err");
-        }
-
-        rename "$wrk/0-overlaptrim/$asm.obtStore.BUILDING", "$wrk/0-overlaptrim/$asm.obtStore";
-
-        #  Delete overlaps unless we're told to save them, or we need to dedup.
-        if ((getGlobal("saveOverlaps") == 0) && (getGlobal("doDeDuplication") == 0)) {
-            open(F, "< $wrk/0-overlaptrim/$asm.obtStore.list");
-            while (<F>) {
-                chomp;
-                unlink $_;
-            }
-            close(F);
-        }
-
-        rmrf("$wrk/0-overlaptrim/$asm.obtStore.list");
-        rmrf("$wrk/0-overlaptrim/$asm.obtStore.err");
     }
 
     #
     #  Deduplicate?
     #
 
-    if ((getGlobal("doDeDuplication") != 0) &&
-        (! -e "$wrk/0-overlaptrim/$asm.deduplicate.summary")) {
+    if (! -e "$wrk/0-overlaptrim/$asm.deduplicate.summary") {
 
         if (! -e "$wrk/0-overlaptrim/$asm.dupStore") {
             if (runCommand("$wrk/0-overlaptrim",
@@ -2270,9 +2230,9 @@ sub overlapTrim {
                 caFailure("failed to generate a list of all the overlap files", undef);
             }
 
-            $cmd  = "$bin/overlapStore \\\n";
-            $cmd .= " -O -O \\\n";
-            $cmd .= " -c $wrk/0-overlaptrim/$asm.dupStore.BUILDING \\\n";
+            $cmd  = "$bin/overlapStoreBuild \\\n";
+            $cmd .= " -dup \\\n";
+            $cmd .= " -o $wrk/0-overlaptrim/$asm.dupStore.BUILDING \\\n";
             $cmd .= " -g $wrk/$asm.gkpStore \\\n";
             $cmd .= " -M \\\n" . getGlobal('ovlStoreMemory');
             $cmd .= " -L $wrk/0-overlaptrim/$asm.dupStore.list \\\n";
@@ -2300,7 +2260,7 @@ sub overlapTrim {
 
         $cmd  = "$bin/deduplicate \\\n";
         $cmd .= "-gkp     $wrk/$asm.gkpStore \\\n";
-        $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.obtStore \\\n";
+        #$cmd .= "-ovs     $wrk/0-overlaptrim/$asm.obtStore \\\n";  #  Not needed
         $cmd .= "-ovs     $wrk/0-overlaptrim/$asm.dupStore \\\n";
         $cmd .= "-report  $wrk/0-overlaptrim/$asm.deduplicate.log \\\n";
         $cmd .= "-summary $wrk/0-overlaptrim/$asm.deduplicate.summary \\\n";
