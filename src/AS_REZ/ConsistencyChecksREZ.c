@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.21 2012-05-08 23:17:55 brianwalenz Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.22 2012-06-07 23:06:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -739,10 +739,10 @@ static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB,
     // we changed it so that we assume the biggest possible overlap
 
    minOlap = AS_REZ_MIN_OVERLAP;
-   if( abs(cidA.end.mean-cidA.start.mean) > abs(cidB.end.mean-cidB.start.mean))
-     maxOlap = abs(cidB.end.mean-cidB.start.mean);
+   if( fabs(cidA.end.mean-cidA.start.mean) > fabs(cidB.end.mean-cidB.start.mean))
+     maxOlap = fabs(cidB.end.mean-cidB.start.mean);
    else
-     maxOlap = abs(cidA.end.mean-cidA.start.mean);
+     maxOlap = fabs(cidA.end.mean-cidA.start.mean);
 
    *olap = OverlapChunks(ScaffoldGraph->ContigGraph,    // handles suspicious
 			 cidA.chunk_id, cidB.chunk_id,
