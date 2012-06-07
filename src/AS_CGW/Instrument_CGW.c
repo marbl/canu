@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.51 2012-01-03 10:01:27 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.52 2012-06-07 23:21:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "Instrument_CGW.h"
@@ -4919,25 +4919,25 @@ void PopulateICP(IntContigPairs * icp, CDS_CID_t id, CIEdgeT * edge)
   icp->contig1 = id;
   icp->contig2 = (edge->idA == id) ? edge->idB : edge->idA;
   icp->mean = edge->distance.mean;
-  if (edge->distance.variance < 0) {
-      fprintf(stderr,"Negative variance in sqrt: ctg1:%d ctg2:%d mean:%f var:%f\n",
-              id, icp->contig2, icp->mean, edge->distance.variance);
-      //assert(0);
-  }
-  icp->stddev = sqrt(edge->distance.variance);
+  icp->stddev = 0.1 * icp->mean;
   icp->orient = edge->orient;
 
-  if (edge->orient.isAB_AB())
-    if (edge->idA == id)
-      icp->orient.setIsAB_AB();
-    else
-      icp->orient.setIsBA_BA();
+  if (edge->distance.variance >= 0)
+    icp->stddev = sqrt(edge->distance.variance);
 
-  if (edge->orient.isBA_BA())
+  if (edge->orient.isAB_AB()) {
+    if (edge->idA == id)
+      icp->orient.setIsAB_AB();
+    else
+      icp->orient.setIsBA_BA();
+  }
+
+  if (edge->orient.isBA_BA()) {
     if (edge->idA == id)
       icp->orient.setIsBA_BA();
     else
       icp->orient.setIsAB_AB();
+  }
 }
 
 
