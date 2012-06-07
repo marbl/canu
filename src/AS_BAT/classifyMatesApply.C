@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMatesApply.C,v 1.4 2012-05-18 21:28:22 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMatesApply.C,v 1.5 2012-06-07 00:44:54 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -353,8 +353,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "%10"F_U32P"   mate-pair (remains mated)\n", numMP);
   fprintf(stderr, "%10"F_U32P"   paired-end + mate-pair (remains mated)\n", numAB);
   fprintf(stderr, "\n");
-  fprintf(stderr, "%10"F_U32P"   delete (read is spur/chimer/junction)\n", numDL);
-  fprintf(stderr, "%10"F_U32P"   unmate (pair is spur/chimer/junction)\n", numUM);
+  fprintf(stderr, "%10"F_U32P"   delete (this read is spur/chimer/junction)\n", numDL);
+  fprintf(stderr, "%10"F_U32P"   unmate (mate read is spur/chimer/junction)\n", numUM);
   fprintf(stderr, "%10"F_U32P"   ignored (not searched)\n", numIG);
   fprintf(stderr, "\n");
 
