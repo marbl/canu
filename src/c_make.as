@@ -98,8 +98,8 @@ endif
 #  NOTE:  using -pedantic generates many warnings "use of C99 long long integer constant" in kmer
 
 ifeq ($(OSTYPE), FreeBSD)
-  CC=gcc46
-  CXX=g++46
+  CC  = gcc46
+  CXX = g++46
 
   ifeq ($(MACHINETYPE), i386)
     ARCH_LDFLAGS    += -pthread -lthr -lm
@@ -122,6 +122,9 @@ ifeq ($(OSTYPE), FreeBSD)
     ARCH_LDFLAGS  += -lgcov
   else
     ifeq ($(BUILDDEBUG), 1)
+      #  Inconveniently fix a problem where gcc46 doesn't work with gdb.
+      CC  = gcc44
+      CXX = g++44
       ARCH_CFLAGS   += -g
     else
       ifeq ($(BUILDPROFILE), 1)
