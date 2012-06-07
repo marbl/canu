@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_ITERATOR_H
 #define SCAFFOLD_GRAPH_ITERATOR_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.9 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.10 2012-06-07 00:46:24 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
@@ -32,15 +32,22 @@ static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator
 
 // Edge characteristics for edge iterators
 
-#define ALL_TRUSTED_EDGES (TENTATIVE_TRUSTED_EDGE_STATUS | TRUSTED_EDGE_STATUS)
-#define ALL_EDGES (TENTATIVE_TRUSTED_EDGE_STATUS | TRUSTED_EDGE_STATUS | \
-		   TENTATIVE_UNTRUSTED_EDGE_STATUS | \
-		   UNKNOWN_EDGE_STATUS | UNTRUSTED_EDGE_STATUS | \
-		   LARGE_VARIANCE_EDGE_STATUS | INTER_SCAFFOLD_EDGE_STATUS)
+#define ALL_TRUSTED_EDGES  (TENTATIVE_TRUSTED_EDGE_STATUS | \
+                            TRUSTED_EDGE_STATUS)
 
-#define ALL_INTERNAL_EDGES (TENTATIVE_TRUSTED_EDGE_STATUS | TRUSTED_EDGE_STATUS | \
-		   TENTATIVE_UNTRUSTED_EDGE_STATUS | \
-		   UNKNOWN_EDGE_STATUS | UNTRUSTED_EDGE_STATUS)
+#define ALL_EDGES          (TENTATIVE_TRUSTED_EDGE_STATUS | \
+                            TRUSTED_EDGE_STATUS | \
+                            TENTATIVE_UNTRUSTED_EDGE_STATUS | \
+                            UNKNOWN_EDGE_STATUS | \
+                            UNTRUSTED_EDGE_STATUS | \
+                            LARGE_VARIANCE_EDGE_STATUS | \
+                            INTER_SCAFFOLD_EDGE_STATUS)
+
+#define ALL_INTERNAL_EDGES (TENTATIVE_TRUSTED_EDGE_STATUS | \
+                            TRUSTED_EDGE_STATUS | \
+                            TENTATIVE_UNTRUSTED_EDGE_STATUS | \
+                            UNKNOWN_EDGE_STATUS | \
+                            UNTRUSTED_EDGE_STATUS)
 
 
 /* ************************************************************************ */
