@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.2 2012-05-02 14:43:21 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.3 2012-06-10 05:52:33 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "ScaffoldGraph_CGW.h"
@@ -228,7 +228,7 @@ MarkUnderlyingRawCIEdgeTrusted(ScaffoldGraphT * sgraph, EdgeCGW_T * raw) {
   SetGraphEdgeStatus(sgraph->ContigGraph, topCIEdge, TRUSTED_EDGE_STATUS);
 
   if (GlobalData->debugLevel > 0)
-    fprintf(stderr,"* Marked contig edge " F_CID " (" F_CID "," F_CID ")%c as trusted(inside scaf " F_CID ")\n",
+    fprintf(stderr,"* Marked contig edge "F_CID" ("F_CID","F_CID")%c as trusted(inside scaf "F_CID")\n",
             topCIEdge->topLevelEdge, topCIEdge->idA, topCIEdge->idB, topCIEdge->orient.toLetter(),
             contigA->scaffoldID);
 }
@@ -471,7 +471,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
         // all the function does is check asserts
 
         if (GlobalData->debugLevel > 0)
-          fprintf(stderr,"* MarkUnderlyingCIEdgesTrusted on SEdge (" F_CID "," F_CID ")%c nextRaw = " F_CID "\n",
+          fprintf(stderr,"* MarkUnderlyingCIEdgesTrusted on SEdge ("F_CID","F_CID")%c nextRaw = "F_CID"\n",
                   edge->idA, edge->idB, edge->orient.toLetter(), edge->nextRawEdge);
         
         if (edge->flags.bits.isRaw) {
@@ -562,7 +562,7 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
       }
 
       if (status != RECOMPUTE_OK)
-        fprintf(stderr, "ReomputeOffsetsInScaffold failed (%d) for scaffold " F_CID " in MergeScaffolds\n", status, newScaffoldID);
+        fprintf(stderr, "ReomputeOffsetsInScaffold failed (%d) for scaffold "F_CID" in MergeScaffolds\n", status, newScaffoldID);
 
       int32  numScaffoldsAfter = GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds);
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.55 2012-05-01 04:18:19 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.56 2012-06-10 05:52:33 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -44,23 +44,23 @@ VA_DEF(PtrT)
 
 void PrintCINodeFields(FILE * stream, NodeCGW_T * node)
 {
-  fprintf(stream, "\t\tcontigID:"F_CID "\n", node->info.CI.contigID);
+  fprintf(stream, "\t\tcontigID:"F_CID"\n", node->info.CI.contigID);
   fprintf(stream, "\t\tnumFragments:%d\n", ScaffoldGraph->tigStore->getNumFrags(node->id, TRUE));
   fprintf(stream, "\t\tcoverageStat:%d\n", ScaffoldGraph->tigStore->getUnitigCoverageStat(node->id));
-  fprintf(stream, "\t\tbaseID:"F_CID "\n", node->info.CI.baseID);
+  fprintf(stream, "\t\tbaseID:"F_CID"\n", node->info.CI.baseID);
   fprintf(stream, "\t\tnumInstances:%d\n", node->info.CI.numInstances);
 }
 
 void PrintContigNodeFields(FILE * stream, NodeCGW_T * node)
 {
-  fprintf(stream, "\t\tAEndCI:"F_CID ", BEndCI:"F_CID ", numCI:%d\n",
+  fprintf(stream, "\t\tAEndCI:"F_CID", BEndCI:"F_CID", numCI:%d\n",
           node->info.Contig.AEndCI, node->info.Contig.BEndCI,
           node->info.Contig.numCI);
 }
 
 void PrintScaffoldNodeFields(FILE * stream, NodeCGW_T * node)
 {
-  fprintf(stream, "\t\tAEndCI:"F_CID ", BEndCI:"F_CID ", numElements:%d\n",
+  fprintf(stream, "\t\tAEndCI:"F_CID", BEndCI:"F_CID", numElements:%d\n",
           node->info.Scaffold.AEndCI, node->info.Scaffold.BEndCI,
           node->info.Scaffold.numElements);
   fprintf(stream, "\t\tleastSquareError:%.1f, numLeastSquareClones:%d\n",
@@ -103,15 +103,15 @@ void PrintNodeFlagBits(FILE * stream, NodeCGW_T * node)
 
 void PrintNodeFields(FILE * stream, NodeCGW_T * node)
 {
-  fprintf(stream,"\ttype:%c, scaffoldID:"F_CID ", prevScaffoldID:"F_CID "\n",
+  fprintf(stream,"\ttype:%c, scaffoldID:"F_CID", prevScaffoldID:"F_CID"\n",
           node->type, node->scaffoldID, node->prevScaffoldID);
-  fprintf(stream,"\tindexInScaffold:%d, smoothExpectedCID:"F_CID "\n",
+  fprintf(stream,"\tindexInScaffold:%d, smoothExpectedCID:"F_CID"\n",
           node->indexInScaffold, node->smoothExpectedCID);
   fprintf(stream, "\tnumEssentialA:%d, numEssentialB:%d\n",
           node->numEssentialA, node->numEssentialB);
-  fprintf(stream, "\tessentialEdgeA:"F_CID ", essentialEdgeB:"F_CID "\n",
+  fprintf(stream, "\tessentialEdgeA:"F_CID", essentialEdgeB:"F_CID"\n",
           node->essentialEdgeA, node->essentialEdgeB);
-  fprintf(stream,"\tAEndNext:"F_CID ", BEndNext:"F_CID "\n",
+  fprintf(stream,"\tAEndNext:"F_CID", BEndNext:"F_CID"\n",
           node->AEndNext, node->BEndNext);
   fprintf(stream, "\tbpLength:(%.1f,%.1f), offsetAEnd:(%.1f,%.1f), offsetBEnd:(%.1f,%.1f)\n",
           node->bpLength.mean, node->bpLength.variance,
@@ -138,13 +138,13 @@ void PrintNodeFields(FILE * stream, NodeCGW_T * node)
         break;
     }
   PrintNodeFlagBits(stream, node);
-  fprintf(stream, "\tedgeHead:"F_CID ", setID:"F_CID "\n",
+  fprintf(stream, "\tedgeHead:"F_CID", setID:"F_CID"\n",
           node->edgeHead, node->setID);
 }
 
 
 void PrintCIScaffoldHeader(FILE *stream, ScaffoldGraphT *graph, CIScaffoldT *scaffold){
-  fprintf(stream,"\n* CIScaffold "F_CID " numCI:%d (a:"F_CID " b:"F_CID ")  length: %d\n",
+  fprintf(stream,"\n* CIScaffold "F_CID" numCI:%d (a:"F_CID" b:"F_CID")  length: %d\n",
 	  scaffold->id, scaffold->info.Scaffold.numElements, scaffold->info.Scaffold.AEndCI, scaffold->info.Scaffold.BEndCI,
 	  (int)scaffold->bpLength.mean);
   // PrintNodeFields(stream, scaffold);
@@ -494,7 +494,7 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
 
 #if 0
   if(ciScaffold->info.Scaffold.numElements < 3){;
-  fprintf(stderr,"* Removing CI "F_CID " from scaffold "F_CID ", elements left %d\nBEFORE:\n",
+  fprintf(stderr,"* Removing CI "F_CID" from scaffold "F_CID", elements left %d\nBEFORE:\n",
 	  CI->id, ciScaffold->id, ciScaffold->info.Scaffold.numElements);
 
   DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
@@ -515,7 +515,7 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
     bnext = GetGraphNode(sgraph->ContigGraph, CI->BEndNext);
 
 #if 0
-  fprintf(stderr,"* Predecessor is "F_CID " Successor is "F_CID "\n",
+  fprintf(stderr,"* Predecessor is "F_CID" Successor is "F_CID"\n",
 	  CI->AEndNext, CI->BEndNext);
 #endif
 
@@ -531,7 +531,7 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
       assert(bnext->AEndNext == CI->id);
       bnext->AEndNext = NULLINDEX;
 #if 0
-      fprintf(stderr,"* bneighbor "F_CID " has AEndNext "F_CID " and BEndNext "F_CID "\n",
+      fprintf(stderr,"* bneighbor "F_CID" has AEndNext "F_CID" and BEndNext "F_CID"\n",
               bnext->id, bnext->AEndNext, bnext->BEndNext);
 #endif
     }
@@ -558,7 +558,7 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
 
 
 #if 0
-      fprintf(stderr,"* aneighbor "F_CID " has AEndNext "F_CID " and BEndNext "F_CID "\n",
+      fprintf(stderr,"* aneighbor "F_CID" has AEndNext "F_CID" and BEndNext "F_CID"\n",
 	      anext->id, anext->AEndNext, anext->BEndNext);
 #endif
     }
@@ -575,9 +575,9 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
     }
 
 #if 0
-    fprintf(stderr,"* bneighbor "F_CID " has AEndNext "F_CID " and BEndNext "F_CID "\n",
+    fprintf(stderr,"* bneighbor "F_CID" has AEndNext "F_CID" and BEndNext "F_CID"\n",
 	    bnext->id, bnext->AEndNext, bnext->BEndNext);
-    fprintf(stderr,"* aneighbor "F_CID " has AEndNext "F_CID " and BEndNext "F_CID "\n",
+    fprintf(stderr,"* aneighbor "F_CID" has AEndNext "F_CID" and BEndNext "F_CID"\n",
 	    anext->id, anext->AEndNext, anext->BEndNext);
 #endif
   }
@@ -592,7 +592,7 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
     // AddDelta adjusts contig positions and bpLength
     AddDeltaToScaffoldOffsets(ScaffoldGraph, ciScaffold->id, bnext->id, TRUE, FALSE, base);
 
-    fprintf(stderr,"* After RemoveCIFromScaffold ci:"F_CID " scaffold:"F_CID " removing from a-end base = (%g,%g), bpLength = (%g,%g)\n",
+    fprintf(stderr,"* After RemoveCIFromScaffold ci:"F_CID" scaffold:"F_CID" removing from a-end base = (%g,%g), bpLength = (%g,%g)\n",
 	    CI->id,
 	    ciScaffold->id,
 	    base.mean, base.variance,
@@ -601,7 +601,7 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
   }
   ciScaffold->info.Scaffold.numElements--;
 #if 0
-  fprintf(stderr,"* Removing CI "F_CID " froms scaffold "F_CID "\nAFTER:\n",
+  fprintf(stderr,"* Removing CI "F_CID" froms scaffold "F_CID"\nAFTER:\n",
 	  CI->id, ciScaffold->id);
   DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
 #endif
@@ -687,7 +687,7 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
 
 #if 0
       if(edge->flags.bits.isBridge){
-        fprintf(stderr,"* WARNING: chunk "F_CID " weight = %d bridge edge\n",
+        fprintf(stderr,"* WARNING: chunk "F_CID" weight = %d bridge edge\n",
                 chunk->id, weight);
         PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph,
                        "Bridge ", edge, chunk->id);
@@ -695,7 +695,7 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
         GraphEdgeIterator Edges;
         InitGraphEdgeIterator(sgraph->ContigGraph,chunk->id,ALL_END,
                               ALL_TRUSTED_EDGES,GRAPH_EDGE_DEFAULT,&Edges);
-        fprintf(stderr,"Edges out from "F_CID ":\n",chunk->id);
+        fprintf(stderr,"Edges out from "F_CID":\n",chunk->id);
         while(NULL!= (e = NextGraphEdgeIterator(&Edges)))
           PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph,
                          "DEBUG Bridge ",e, chunk->id);
@@ -910,7 +910,7 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
     NodeCGW_T *thisNode;
     CIScaffoldTIterator scaffoldNodes;
 
-    fprintf(stderr, "WARNING! Scaffold "F_CID " is not connected has %d components\n", scaffoldID, numComponents);
+    fprintf(stderr, "WARNING! Scaffold "F_CID" is not connected has %d components\n", scaffoldID, numComponents);
     fprintf(stderr, "Splitting into scaffolds: (search for \"Splitting "F_CID" into scaffold\" to get the new scaffolds)\n", scaffoldID);
 
     if(verbose)
@@ -1045,7 +1045,7 @@ void CheckTrustedEdges(ScaffoldGraphT * sgraph,  CDS_CID_t cid) {
 
     if (next_chunk->scaffoldID != sid)
 #if 1
-      fprintf(stderr,"-=> BAD edge id:"F_CID " "F_CID "("F_CID ")->"F_CID "("F_CID ") (weight %d, status %d)\n",
+      fprintf(stderr,"-=> BAD edge id:"F_CID" "F_CID"("F_CID")->"F_CID"("F_CID") (weight %d, status %d)\n",
               (CDS_CID_t) GetVAIndex_CIEdgeT(sgraph->ContigGraph->edges, edge),
               cid,
               sid,
@@ -1110,7 +1110,7 @@ int CheckAllEdges(ScaffoldGraphT * sgraph,  CDS_CID_t sid, CDS_CID_t cid) {
     if ((next_chunk->scaffoldID != sid) && (next_chunk->scaffoldID != -1)) {
       out_of_sid_links++;
       /*** mjf ***/
-      fprintf(stderr, "in CheckAllEdges -=> BAD edge id:"F_CID " "F_CID "("F_CID ")->"F_CID "("F_CID ") (weight %d, status %d)\n",
+      fprintf(stderr, "in CheckAllEdges -=> BAD edge id:"F_CID" "F_CID"("F_CID")->"F_CID"("F_CID") (weight %d, status %d)\n",
               (CDS_CID_t) GetVAIndex_EdgeCGW_T(sgraph->ContigGraph->edges, edge),
               cid,
               sid,
@@ -1224,7 +1224,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
           chunk->offsetBEnd.mean > 0.1) ||
          (chunk->offsetAEnd.variance <0.0 ||
           chunk->offsetBEnd.variance < 0.0) ){
-        fprintf(stderr,"*# First Chunk "F_CID " in scaffold "F_CID " is not positioned at scaffold start, but at (%g,%g)...fixing\n",
+        fprintf(stderr,"*# First Chunk "F_CID" in scaffold "F_CID" is not positioned at scaffold start, but at (%g,%g)...fixing\n",
                 chunk->id, scaffold->id, chunk->offsetAEnd.mean, chunk->offsetBEnd.mean);
 #ifdef STRICT_SCAFFOLD_CHECKING
         assert(0);
@@ -1233,7 +1233,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
         chunk->offsetBEnd = chunk->bpLength;
       }
     }
-    /*	fprintf(stderr,"* Chunk "F_CID " [%g,%g] mean = %g\n",
+    /*	fprintf(stderr,"* Chunk "F_CID" [%g,%g] mean = %g\n",
         chunk->id,
         chunk->offsetAEnd.mean,
         chunk->offsetBEnd.mean,
@@ -1242,7 +1242,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
     if(chunk->offsetAEnd.mean > scaffold->bpLength.mean ||
        chunk->offsetBEnd.mean > scaffold->bpLength.mean){
 
-      fprintf(stderr,"*# Chunk "F_CID " has end point [%g,%g] outside of scaffold length %g\n",
+      fprintf(stderr,"*# Chunk "F_CID" has end point [%g,%g] outside of scaffold length %g\n",
               chunk->id,
               chunk->offsetAEnd.mean,
               chunk->offsetBEnd.mean,
@@ -1252,7 +1252,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
     if(chunk->offsetAEnd.mean < 0 || chunk->offsetBEnd.mean < 0 ||
        chunk->offsetAEnd.variance < 0 || chunk->offsetBEnd.variance < 0){
-      fprintf(stderr,"*# Chunk "F_CID " in scaffold "F_CID " at odd position: (%g,%g) (%g,%g)\n",
+      fprintf(stderr,"*# Chunk "F_CID" in scaffold "F_CID" at odd position: (%g,%g) (%g,%g)\n",
               chunk->id, scaffold->id,
               chunk->offsetAEnd.mean, chunk->offsetAEnd.variance,
               chunk->offsetBEnd.mean, chunk->offsetBEnd.variance);
@@ -1264,7 +1264,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
     }
 
     if(chunk->offsetAEnd.mean > scaffold->bpLength.mean || chunk->offsetAEnd.variance > scaffold->bpLength.variance){
-      fprintf(stderr,"*# A Scaffold "F_CID " bpLength TOO Short (%g < %g: %g)...variances (%g, %g: %g)corrected\n",
+      fprintf(stderr,"*# A Scaffold "F_CID" bpLength TOO Short (%g < %g: %g)...variances (%g, %g: %g)corrected\n",
               scaffold->id,
               scaffold->bpLength.mean, chunk->offsetAEnd.mean,
               fabs(scaffold->bpLength.mean- chunk->offsetAEnd.mean),
@@ -1277,7 +1277,7 @@ void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
       scaffold->bpLength.variance = chunk->offsetAEnd.variance;
     }
     if(chunk->offsetBEnd.mean > scaffold->bpLength.mean || chunk->offsetBEnd.variance > scaffold->bpLength.variance){
-      fprintf(stderr,"*# B Scaffold "F_CID " bpLength TOO Short (%g < %g:%g)...variances (%g, %g:%g) corrected\n",
+      fprintf(stderr,"*# B Scaffold "F_CID" bpLength TOO Short (%g < %g:%g)...variances (%g, %g:%g) corrected\n",
               scaffold->id,
               scaffold->bpLength.mean, chunk->offsetBEnd.mean,
               fabs(scaffold->bpLength.mean- chunk->offsetAEnd.mean),
@@ -1324,7 +1324,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
   ScaffoldSanity(scaffold, sgraph);
 
   if(scaffold->info.Scaffold.numElements == 1){
-    //fprintf(stderr, " Early end to CheckCIScaffoldT() for scaffold "F_CID ": numElements ==1\n",scaffold->id);
+    //fprintf(stderr, " Early end to CheckCIScaffoldT() for scaffold "F_CID": numElements ==1\n",scaffold->id);
     return;
   }
 
@@ -1342,7 +1342,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
     while((chunk = NextCIScaffoldTIterator(&CIs)) != NULL){
       assert(chunk->scaffoldID == sid);
 
-      /*	fprintf(stderr,"* Chunk "F_CID " [%g,%g] mean = %g\n",
+      /*	fprintf(stderr,"* Chunk "F_CID" [%g,%g] mean = %g\n",
 		chunk->id,
 		chunk->offsetAEnd.mean,
 		chunk->offsetBEnd.mean,
@@ -1351,7 +1351,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
       if(chunk->offsetAEnd.mean > scaffold->bpLength.mean ||
          chunk->offsetBEnd.mean > scaffold->bpLength.mean){
 
-        fprintf(stderr,"* Chunk "F_CID " has end point [%g,%g] outside of scaffold length %g\n",
+        fprintf(stderr,"* Chunk "F_CID" has end point [%g,%g] outside of scaffold length %g\n",
                 chunk->id,
                 chunk->offsetAEnd.mean,
                 chunk->offsetBEnd.mean,
@@ -1368,9 +1368,9 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
         int32 realDiff = abs(chunk->aEndCoord - prevChunk->aEndCoord);
 
         if(realDiff > 250000 || ((realDiff > calcDiff) && (realDiff - calcDiff > 100000))){
-          fprintf(stderr,"*** Scaffold "F_CID " is CHIMERIC at point between CIs "F_CID " and "F_CID "\n",
+          fprintf(stderr,"*** Scaffold "F_CID" is CHIMERIC at point between CIs "F_CID" and "F_CID"\n",
                   sid, prevChunk->id, chunk->id);
-          fprintf(stderr,"*** CI "F_CID " ["F_S32","F_S32"]  CI "F_CID " ["F_S32","F_S32"] scaffold gap is "F_S32"\n",
+          fprintf(stderr,"*** CI "F_CID" ["F_S32","F_S32"]  CI "F_CID" ["F_S32","F_S32"] scaffold gap is "F_S32"\n",
                   prevChunk->id,
                   prevChunk->aEndCoord, prevChunk->bEndCoord,
                   chunk->id,
@@ -1383,7 +1383,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
       if(chunk->offsetAEnd.mean < 0 || chunk->offsetBEnd.mean < 0 ||
          chunk->offsetAEnd.variance < 0 || chunk->offsetBEnd.variance < 0){
-        fprintf(stderr,"* Chunk "F_CID " in scaffold "F_CID " at odd position: (%g,%g) (%g,%g) fixing\n",
+        fprintf(stderr,"* Chunk "F_CID" in scaffold "F_CID" at odd position: (%g,%g) (%g,%g) fixing\n",
                 chunk->id, scaffold->id,
                 chunk->offsetAEnd.mean, chunk->offsetAEnd.variance,
                 chunk->offsetBEnd.mean, chunk->offsetBEnd.variance);
@@ -1393,13 +1393,13 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
       }
 
       if(chunk->offsetAEnd.mean > scaffold->bpLength.mean || chunk->offsetAEnd.variance > scaffold->bpLength.variance){
-        fprintf(stderr,"* A Scaffold "F_CID " bpLength TOO Short (%g < %g)...variances (%g, %g)corrected\n",
+        fprintf(stderr,"* A Scaffold "F_CID" bpLength TOO Short (%g < %g)...variances (%g, %g)corrected\n",
                 scaffold->id, scaffold->bpLength.mean, chunk->offsetAEnd.mean, scaffold->bpLength.variance, chunk->offsetAEnd.variance);
         scaffold->bpLength.mean = chunk->offsetAEnd.mean;
         scaffold->bpLength.variance = chunk->offsetAEnd.variance;
       }
       if(chunk->offsetBEnd.mean > scaffold->bpLength.mean || chunk->offsetBEnd.variance > scaffold->bpLength.variance){
-        fprintf(stderr,"* B Scaffold "F_CID " bpLength TOO Short (%g < %g)...variances (%g, %g) corrected\n",
+        fprintf(stderr,"* B Scaffold "F_CID" bpLength TOO Short (%g < %g)...variances (%g, %g) corrected\n",
                 scaffold->id, scaffold->bpLength.mean, chunk->offsetBEnd.mean, scaffold->bpLength.variance, chunk->offsetBEnd.variance);
         scaffold->bpLength.mean = chunk->offsetBEnd.mean;
         scaffold->bpLength.variance = chunk->offsetBEnd.variance;
@@ -1407,7 +1407,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
       if(chunk->offsetAEnd.mean < mean ||
          chunk->offsetBEnd.mean < mean){
-        fprintf(stderr,"* Screwed up scaffold "F_CID ": Chunk "F_CID " has bad mean\n",
+        fprintf(stderr,"* Screwed up scaffold "F_CID": Chunk "F_CID" has bad mean\n",
                 sid, chunk->id);
 
         AppendPtrT(chunksToBeRemoved, (void **) &chunk);
@@ -1421,12 +1421,12 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
     cgwError = GetNumPtrTs(chunksToBeRemoved);
     if(cgwError){
       int i;
-      fprintf(stderr,"* Scaffold "F_CID " iteration %d  %d bad CIs out of %d LSE:%g improvement:%g\n",
+      fprintf(stderr,"* Scaffold "F_CID" iteration %d  %d bad CIs out of %d LSE:%g improvement:%g\n",
               sid, iteration, cgwError, numChecked, LSE, improvement);
       for(i = 0; i < GetNumPtrTs(chunksToBeRemoved); i++){
 
         chunk = *(ChunkInstanceT **)GetPtrT(chunksToBeRemoved, i);
-        fprintf(stderr,"* Reinserting chunk "F_CID " in scaffold "F_CID "\n",
+        fprintf(stderr,"* Reinserting chunk "F_CID" in scaffold "F_CID"\n",
                 chunk->id,sid);
         RemoveCIFromScaffold(sgraph, scaffold, chunk, FALSE);
         InsertCIInScaffold(sgraph, chunk->id, sid,
@@ -1442,7 +1442,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
       status = RecomputeOffsetsInScaffold(sgraph, scaffold->id, TRUE, TRUE /* was FALSE*/,FALSE);
       if (status != RECOMPUTE_OK) {
-        fprintf(stderr, "RecomputeOffsetsInScaffold failed (%d) for scaffold "F_CID " in CheckScaffolds\n",
+        fprintf(stderr, "RecomputeOffsetsInScaffold failed (%d) for scaffold "F_CID" in CheckScaffolds\n",
                 status, sid);
         break;
       }
@@ -1457,7 +1457,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
   }
 
   if(iteration > 20){
-    fprintf(stderr,"* Took %d iterations to patch up scaffold "F_CID "\n",
+    fprintf(stderr,"* Took %d iterations to patch up scaffold "F_CID"\n",
             iteration, sid);
     cgwError = TRUE;
   }
@@ -1470,7 +1470,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
     if((chunk->offsetAEnd.mean > mean && chunk->offsetAEnd.variance < variance) ||
        (chunk->offsetBEnd.mean > mean && chunk->offsetBEnd.variance < variance)){
       cgwError = TRUE;
-      fprintf(stderr,"* Screwed up scaffold "F_CID ": Chunk "F_CID " has bad variance\n",
+      fprintf(stderr,"* Screwed up scaffold "F_CID": Chunk "F_CID" has bad variance\n",
               sid, chunk->id);
     }
 
@@ -1481,7 +1481,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
       }
   }
   if(cgwError){
-    fprintf(stderr,"* Screwed up scaffold "F_CID "\n", sid);
+    fprintf(stderr,"* Screwed up scaffold "F_CID"\n", sid);
     DumpCIScaffold(stderr,sgraph, scaffold, FALSE);
     iterationError = TRUE;
   }
@@ -1539,7 +1539,7 @@ FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold) {
   assert(computedLength.mean     >  0);
 
   if (computedLength.mean > scaffold->bpLength.mean) {
-    fprintf(stderr,"* Adjusting scaffold "F_CID " bplength from %g to %g [%g,%g]\n",
+    fprintf(stderr,"* Adjusting scaffold "F_CID" bplength from %g to %g [%g,%g]\n",
             scaffold->id,
             scaffold->bpLength.mean,
             computedLength.mean,
@@ -1596,7 +1596,7 @@ void DemoteSmallSingletonScaffolds(void) {
     numDemoted++;
 
     fprintf(stderr,
-             "** Demoting Contig/Unitig "F_CID "/"F_CID " with coverage stat %d length %g scaffold "F_CID "\n",
+             "** Demoting Contig/Unitig "F_CID"/"F_CID" with coverage stat %d length %g scaffold "F_CID"\n",
              contig->id, CI->id, ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id), scaffold->bpLength.mean, scaffold->id);
     // Mark the Underlying Unitig as un-scaffolded, and not-unique
     SetNodeType(CI, UNRESOLVEDCHUNK_CGW);

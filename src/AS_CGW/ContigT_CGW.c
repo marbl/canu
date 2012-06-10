@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.31 2012-01-03 09:57:55 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.32 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -63,7 +63,7 @@ void CheckContigs()
          varianceDelta - .5 > contig->bpLength.variance)
         {
           fprintf(stderr,
-                  "Contig " F_CID " length (%f,%f) doesn't match offset difference (%f,%f)\n",
+                  "Contig "F_CID" length (%f,%f) doesn't match offset difference (%f,%f)\n",
                   contig->id, contig->bpLength.mean, contig->bpLength.variance,
                   meanDelta, varianceDelta);
         }
@@ -251,7 +251,7 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   if(raw)
     flags |= GRAPH_EDGE_RAW_ONLY;
 
-  fprintf(stream, "* Contig " F_CID " sc:" F_CID " aoff:%d boff:%d ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stream, "* Contig "F_CID" sc:"F_CID" aoff:%d boff:%d ANext:"F_CID" BNext:"F_CID" len:%d AEnd:"F_CID" BEnd:"F_CID" numCI:%d\nCIs:\n",
           contig->id,
           contig->scaffoldID,
           (int)contig->offsetAEnd.mean,
@@ -263,7 +263,7 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
           contig->info.Contig.numCI);
 
 #ifdef DEBUG_CONTIG
-  fprintf(stderr, "* Contig " F_CID " ANext:" F_CID " BNext:" F_CID " length:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stderr, "* Contig "F_CID" ANext:"F_CID" BNext:"F_CID" length:%d AEnd:"F_CID" BEnd:"F_CID" numCI:%d\nCIs:\n",
           contig->id,
           contig->AEndNext, contig->BEndNext, (int)contig->bpLength.mean,
           contig->info.Contig.AEndCI,
@@ -276,7 +276,7 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   while((CI = NextContigTIterator(&CIs)) != NULL){
     int isSurrogate = IsSurrogateNode(CI);
     numCI++;
-    fprintf(stream,"\t%c:" F_CID " cov:%d aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
+    fprintf(stream,"\t%c:"F_CID" cov:%d aoff:%d boff:%d anxt:"F_CID" bnxt:"F_CID" ctg:"F_CID" scf:"F_CID"\n",
             (isSurrogate?'s':'u'),
             CI->id,
             ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id),
@@ -287,7 +287,7 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
             CI->info.CI.contigID,
             CI->scaffoldID);
 #ifdef DEBUG_CONTIG
-    fprintf(stderr,"\t%c:" F_CID " cov:%d aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
+    fprintf(stderr,"\t%c:"F_CID" cov:%d aoff:%d boff:%d anxt:"F_CID" bnxt:"F_CID" ctg:"F_CID" scf:"F_CID"\n",
             (isSurrogate?'s':'u'),
             CI->id,
             ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id),
@@ -328,7 +328,7 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
   if(raw)
     flags |= GRAPH_EDGE_RAW_ONLY;
 
-  fprintf(stream, "* Contig " F_CID " sc:" F_CID " aoff:(%d,%e) boff:(%d,%e) ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stream, "* Contig "F_CID" sc:"F_CID" aoff:(%d,%e) boff:(%d,%e) ANext:"F_CID" BNext:"F_CID" len:%d AEnd:"F_CID" BEnd:"F_CID" numCI:%d\nCIs:\n",
           contig->id,
           contig->scaffoldID,
           (int32)contig->offsetAEnd.mean,
@@ -342,7 +342,7 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
           contig->info.Contig.numCI);
 
 #ifdef DEBUG_CONTIG
-  fprintf(stderr, "* Contig " F_CID " ANext:" F_CID " BNext:" F_CID " length:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stderr, "* Contig "F_CID" ANext:"F_CID" BNext:"F_CID" length:%d AEnd:"F_CID" BEnd:"F_CID" numCI:%d\nCIs:\n",
           contig->id,
           contig->AEndNext, contig->BEndNext, (int)contig->bpLength.mean,
           contig->info.Contig.AEndCI,
@@ -355,7 +355,7 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
   while((CI = NextContigTIterator(&CIs))!=NULL){
     int isSurrogate = IsSurrogateNode(CI);
     numCI++;
-    fprintf(stream,"\t%c:" F_CID " cov:%d aoff:(%d,%e) boff:(%d,%e) anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
+    fprintf(stream,"\t%c:"F_CID" cov:%d aoff:(%d,%e) boff:(%d,%e) anxt:"F_CID" bnxt:"F_CID" ctg:"F_CID" scf:"F_CID"\n",
             (isSurrogate?'s':'u'),
             CI->id,
             ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id),
@@ -368,7 +368,7 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
             CI->info.CI.contigID,
             CI->scaffoldID);
 #ifdef DEBUG_CONTIG
-    fprintf(stderr,"\t%c:" F_CID " cov:%d aoff:%d boff:%d anxt:" F_CID " bnxt:" F_CID " ctg:" F_CID " scf:" F_CID "\n",
+    fprintf(stderr,"\t%c:"F_CID" cov:%d aoff:%d boff:%d anxt:"F_CID" bnxt:"F_CID" ctg:"F_CID" scf:"F_CID"\n",
             (isSurrogate?'s':'u'),
             CI->id,
             ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id),
@@ -454,7 +454,7 @@ int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
 
       if(ciOffset->variance < 0.0){
         fprintf(stderr,"* 1) CIInContig ciOffset->variance = %g => 0.0\n", ciOffset->variance);
-        fprintf(stderr,"* 1) contig " F_CID " bpLength (%g,%g) CI " F_CID "  CI->offsetBEnd (%g,%g)\n",
+        fprintf(stderr,"* 1) contig "F_CID" bpLength (%g,%g) CI "F_CID"  CI->offsetBEnd (%g,%g)\n",
                 CI->info.CI.contigID, contig->bpLength.mean, contig->bpLength.variance, cid, CI->offsetBEnd.mean, CI->offsetBEnd.variance);
         ciOffset->variance = 0.0;
       }
@@ -494,7 +494,7 @@ int CIinContigOffsetAndOrientation(ScaffoldGraphT *graph,
 
       if(ciOffset->variance < 0.0){
         fprintf(stderr,"* 2) CIInContig ciOffset->variance = %g => 0.0\n", ciOffset->variance);
-        fprintf(stderr,"* 2) contig " F_CID " bpLength (%g,%g) CI " F_CID "  CI->offsetAEnd (%g,%g)\n",
+        fprintf(stderr,"* 2) contig "F_CID" bpLength (%g,%g) CI "F_CID"  CI->offsetAEnd (%g,%g)\n",
                 CI->info.CI.contigID, contig->bpLength.mean, contig->bpLength.variance, cid, CI->offsetAEnd.mean, CI->offsetAEnd.variance);
         ciOffset->variance = 0.0;
       }
@@ -537,12 +537,12 @@ int BuildContigEdges(ScaffoldGraphT *graph){
       continue;
 
 #if 0
-    fprintf(stderr,"* BuildContigEdges Scaffold " F_CID "\n",
+    fprintf(stderr,"* BuildContigEdges Scaffold "F_CID"\n",
 	    sid);
 #endif
     assert(scaffold->flags.bits.containsCIs == 0); // iterate over scaffold containing CONTIGS
 
-    //    fprintf(stderr,"* Building ContigEdges incident on Contigs of scaffold " F_CID "\n", sid);
+    //    fprintf(stderr,"* Building ContigEdges incident on Contigs of scaffold "F_CID"\n", sid);
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &Contigs);
 
 
@@ -561,7 +561,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 #if 0
           CDS_CID_t thisCID = thisCI->id;
           fprintf(stderr,
-                  "* Contig " F_CID " cid:" F_CID " nextcid:" F_CID "\n",
+                  "* Contig "F_CID" cid:"F_CID" nextcid:"F_CID"\n",
                   thisContig->id, thisCID, nextcid);
 #endif
 
@@ -593,7 +593,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 	    edgeOrient = GetEdgeOrientationWRT(edge, otherCI->id);
             orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
 #if 0
-            fprintf(stderr,"* Edge (" F_CID "," F_CID ") %c dist: %g in scaffolds (" F_CID "," F_CID ") orient = %c\n",
+            fprintf(stderr,"* Edge ("F_CID","F_CID") %c dist: %g in scaffolds ("F_CID","F_CID") orient = %c\n",
 		    thisCID, otherCID, edgeOrient, edge->distance.mean,
 		    thisCI->scaffoldID, otherCI->scaffoldID, orient);
 #endif
@@ -670,9 +670,9 @@ int BuildContigEdges(ScaffoldGraphT *graph){
             }
 
 #if 0
-            fprintf(stderr,"* CIEdge (" F_CID "," F_CID ") %c induced\n",
+            fprintf(stderr,"* CIEdge ("F_CID","F_CID") %c induced\n",
                     thisCID, otherCID, edge->orient);
-            fprintf(stderr,"* (" F_CID "," F_CID ") %c ciedge:" F_CID " cifrag:" F_CID " otherFrag:" F_CID " mciOffset = %g mciOrient = %c  ciOffset = %g ciOrient = %c\n",
+            fprintf(stderr,"* ("F_CID","F_CID") %c ciedge:"F_CID" cifrag:"F_CID" otherFrag:"F_CID" mciOffset = %g mciOrient = %c  ciOffset = %g ciOrient = %c\n",
                     thisCI->contigID, otherCI->contigID, contigEdgeOrient,
                     (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIEdges, edge),
                     (frag?frag->read_iid:NULLINDEX),
@@ -764,11 +764,11 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
       newEdge.topLevelEdge = newCIEdge; // selfreference
       newEdge.nextRawEdge = ++nextCIEdge;
 #ifdef DEBUG_CONTIG
-      fprintf(stderr,"* Converting %s edge (" F_CID "," F_CID ") to edge (" F_CID "," F_CID ") edgeID " F_CID "\n",
+      fprintf(stderr,"* Converting %s edge ("F_CID","F_CID") to edge ("F_CID","F_CID") edgeID "F_CID"\n",
               (edge->flags.bits.isRaw?" Raw":"Merged"),
               edge->idA, edge->idB,
               newEdge.idA, newEdge.idB, newCIEdge);
-      fprintf(stderr,"* linked to raw edge " F_CID "\n",
+      fprintf(stderr,"* linked to raw edge "F_CID"\n",
 	      newEdge.nextRawEdge);
 #endif
       AppendGraphEdge(graph->ContigGraph, &newEdge);
@@ -777,7 +777,7 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
       InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idB, FALSE);
       redge = edge;
 #ifdef DEBUG_CONTIG
-      fprintf(stderr,"* Converting edge (" F_CID "," F_CID ") to edge (" F_CID "," F_CID ") edgeID " F_CID "\n",
+      fprintf(stderr,"* Converting edge ("F_CID","F_CID") to edge ("F_CID","F_CID") edgeID "F_CID"\n",
               edge->idA, edge->idB,
               newEdge.idA, newEdge.idB, newCIEdge);
 #endif
@@ -795,7 +795,7 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
 	if(rawEdge.nextRawEdge != NULLINDEX)
 	  rawEdge.nextRawEdge = ++nextCIEdge;
 #ifdef DEBUG_CONTIG
-	fprintf(stderr,"* Adding raw edge " F_CID " linked  to raw edge " F_CID "\n",
+	fprintf(stderr,"* Adding raw edge "F_CID" linked  to raw edge "F_CID"\n",
                 (CDS_CID_t) GetNumGraphEdges(graph->ContigGraph),
                 rawEdge.nextRawEdge);
 #endif
@@ -806,7 +806,7 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
       if(edge->topLevelEdge != (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge)){
 #ifdef DEBUG_CONTIG
         EdgeCGW_T *tle = GetGraphEdge(graph->CIGraph, edge->topLevelEdge);
-	fprintf(stderr,"* !!!!! Skipping raw edge that is not topLevel (" F_CID "," F_CID ") edgeID " F_CID " \n",
+	fprintf(stderr,"* !!!!! Skipping raw edge that is not topLevel ("F_CID","F_CID") edgeID "F_CID" \n",
 		edge->idA, edge->idB,
 		(CDS_CID_t) GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge));
         PrintGraphEdge(stderr,graph->CIGraph,"raw edge ",edge, edge->idA);
@@ -936,7 +936,7 @@ void SetCIScaffoldIds(ChunkInstanceT *CI, CDS_CID_t scaffoldID){
     frag->flags.bits.isChaff = FALSE;
     CI->flags.bits.isChaff = FALSE;
     if(GlobalData->debugLevel > 0)
-      fprintf(stderr,"* SetCIScaffoldIDs ci " F_CID " and frag " F_CID " are NOT chaff\n",
+      fprintf(stderr,"* SetCIScaffoldIDs ci "F_CID" and frag "F_CID" are NOT chaff\n",
 	      CI->id, frag->read_iid);
   }
 }
@@ -957,7 +957,7 @@ void SetContigScaffoldIds(ContigT *contig, CDS_CID_t scaffoldID){
   contig->flags.bits.isUnique = TRUE;
   contig->flags.bits.isChaff = FALSE;
   if(GlobalData->debugLevel > 0)
-    fprintf(stderr,"* SetContigScaffoldIDs contig " F_CID " is NOT chaff\n",
+    fprintf(stderr,"* SetContigScaffoldIDs contig "F_CID" is NOT chaff\n",
             contig->id);
 
   // Set the scaffold ID of all of the contained CIs
@@ -979,7 +979,7 @@ void CheckAllContigFragments(void){
     MultiAlignT *ma  = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
     int i;
     if(!ma){
-      fprintf(stderr,"*CheckAllContigFragments -- Contig " F_CID " is missing\n", contig->id);
+      fprintf(stderr,"*CheckAllContigFragments -- Contig "F_CID" is missing\n", contig->id);
       continue;
     }
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
@@ -1017,7 +1017,7 @@ int IsDefinitelyUniqueContig(ContigT *contig){
   NodeCGW_T *ci;
 
   /*
-    fprintf(stderr,"* IsDefinitelyUniqueContig " F_CID " numCI:%d\n",
+    fprintf(stderr,"* IsDefinitelyUniqueContig "F_CID" numCI:%d\n",
     contig->id, contig->info.Contig.numCI);
   */
   // If it has been contigged already, it is unique
@@ -1056,7 +1056,7 @@ int IsShakyContigAtScaffoldEnd(ContigT *contig){
   }
 
 #if 0
-  fprintf(stderr,"* IsShakyContigAtScaffoldEnd " F_CID " numA:%d numB:%d %s\n",
+  fprintf(stderr,"* IsShakyContigAtScaffoldEnd "F_CID" numA:%d numB:%d %s\n",
           contig->id,
 	  contig->numEssentialA,
 	  contig->numEssentialB,

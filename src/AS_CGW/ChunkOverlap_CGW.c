@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.57 2012-03-23 06:45:50 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.58 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #include "ChunkOverlap_CGW.h"
 #include "AS_UTL_reverseComplement.h"
@@ -1005,7 +1005,7 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
       nnOlap.bhg = -tempOlap1->begpos;
     }
 
-    fprintf(stderr,">>> Fixing up suspicious overlap ("F_CID ","F_CID ",%c) (ahg:"F_S32" bhg:"F_S32") to ("F_CID ","F_CID ",%c) (ahg:"F_S32" bhg:"F_S32") len: "F_S32"\n",
+    fprintf(stderr,">>> Fixing up suspicious overlap ("F_CID","F_CID",%c) (ahg:"F_S32" bhg:"F_S32") to ("F_CID","F_CID",%c) (ahg:"F_S32" bhg:"F_S32") len: "F_S32"\n",
             inOlap.spec.cidA, inOlap.spec.cidB, inOlap.spec.orientation.toLetter(), tempOlap1->begpos, tempOlap1->endpos,
             nnOlap.spec.cidA, nnOlap.spec.cidB, nnOlap.spec.orientation.toLetter(), nnOlap.ahg,        nnOlap.bhg,
             nnOlap.overlap);
@@ -1300,7 +1300,7 @@ ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates, int recomputeCGBOverlaps) {
       int lengthA = GetConsensus(graph, olap.spec.cidA, consensusA, qualityA);
       int lengthB = GetConsensus(graph, olap.spec.cidB, consensusB, qualityB);
 
-      fprintf(stderr,"* CO: SUSPICIOUS Overlap found! Looked for ("F_CID ","F_CID ",%c)["F_S32","F_S32"] found ("F_CID ","F_CID ",%c) "F_S32"; contig lengths as found (%d,%d)\n",
+      fprintf(stderr,"* CO: SUSPICIOUS Overlap found! Looked for ("F_CID","F_CID",%c)["F_S32","F_S32"] found ("F_CID","F_CID",%c) "F_S32"; contig lengths as found (%d,%d)\n",
               inSpec.cidA,    inSpec.cidB,    inSpec.orientation.toLetter(),    olap.minOverlap, olap.maxOverlap,
               olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(), olap.overlap,
               lengthA,lengthB);

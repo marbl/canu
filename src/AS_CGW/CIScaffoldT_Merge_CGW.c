@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.66 2012-05-02 14:43:56 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.67 2012-06-10 05:52:33 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -371,7 +371,7 @@ ExamineSEdgeForUsability(SEdgeT            *curEdge,
   }
 
   if (TouchesMarkedScaffolds(curEdge)) {
-    //fprintf(stderr, "* Edge (" F_CID "," F_CID ",%c) touches marked scaffolds\n",
+    //fprintf(stderr, "* Edge ("F_CID","F_CID",%c) touches marked scaffolds\n",
     //        curEdge->idA, curEdge->idB, curEdge->orient.toLetter());
     return;
   }
@@ -386,7 +386,7 @@ ExamineSEdgeForUsability(SEdgeT            *curEdge,
       (scaffoldA->essentialEdgeA != NULLINDEX &&
        (scaffoldA->essentialEdgeA == scaffoldB->essentialEdgeA ||
         scaffoldA->essentialEdgeA == scaffoldB->essentialEdgeB))) {
-    //fprintf(stderr, "* We're already trying to merge scaffold (" F_CID "," F_CID ") ...back off!\n",
+    //fprintf(stderr, "* We're already trying to merge scaffold ("F_CID","F_CID") ...back off!\n",
     //        scaffoldA->id, scaffoldB->id);
     return;
   }
@@ -506,7 +506,7 @@ int
 ThereIsAStrongerEdgeToSameScaffoldReport(SEdgeT *curSEdge, int32 retVal) {
   if (retVal == 0)
     fprintf(stderr,
-            "SCF MERGE CONFLICT: " F_CID "," F_CID "  %s  %dbp  %dvar  %dec\n",
+            "SCF MERGE CONFLICT: "F_CID","F_CID"  %s  %dbp  %dvar  %dec\n",
             curSEdge->idA, curSEdge->idB,
             ((curSEdge->orient.isAB_AB()) ? "AB_AB" :
              ((curSEdge->orient.isAB_BA()) ? "AB_BA" :
@@ -515,7 +515,7 @@ ThereIsAStrongerEdgeToSameScaffoldReport(SEdgeT *curSEdge, int32 retVal) {
             (int) curSEdge->distance.variance,
             curSEdge->edgesContributing);
 
-  fprintf(stderr, "\t" F_CID "," F_CID ", %s, %dbp  %dvar  %dec\n",
+  fprintf(stderr, "\t"F_CID","F_CID", %s, %dbp  %dvar  %dec\n",
           sEdge->idA, sEdge->idB,
           ((sEdge->orient.isAB_AB()) ? "AB_AB" :
            ((sEdge->orient.isAB_BA()) ? "AB_BA" :

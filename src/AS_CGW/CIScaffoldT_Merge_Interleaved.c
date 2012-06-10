@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_Interleaved.c,v 1.2 2012-05-04 05:27:33 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_Interleaved.c,v 1.3 2012-06-10 05:52:34 brianwalenz Exp $";
 
 //  These are private functions used in CIScaffoldT_Merge_CGW.c.
 //  These functions are specialized for interleaved merging.
@@ -246,7 +246,7 @@ TranslateScaffoldOverlapToContigOverlap(CIScaffoldT     *scaffoldA,
   int BGapTowardAEnd = FALSE;
 
 #if 0
-  fprintf(stderr,"* Translate (" F_CID "," F_CID ",%c)   " F_CID " has (" F_CID "," F_CID ")  " F_CID " has (" F_CID "," F_CID ")\n",
+  fprintf(stderr,"* Translate ("F_CID","F_CID",%c)   "F_CID" has ("F_CID","F_CID")  "F_CID" has ("F_CID","F_CID")\n",
           scaffoldA->id, scaffoldB->id, scaffoldEdgeOrient,
           scaffoldA->id, scaffoldA->info.Scaffold.AEndCI, scaffoldA->info.Scaffold.BEndCI,
           scaffoldB->id, scaffoldB->info.Scaffold.AEndCI, scaffoldB->info.Scaffold.BEndCI);

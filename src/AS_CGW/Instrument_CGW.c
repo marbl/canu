@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.52 2012-06-07 23:21:29 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.53 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "Instrument_CGW.h"
@@ -101,18 +101,18 @@ int DoSimpleScaffoldChecks(FILE * fp,
         {
           if(minCoord > TOLERANCE || minCoord < -TOLERANCE)
             {
-              fprintf(fp, "scf "F_CID ": 1st contig (id "F_CID ") min offset is %f\n",
+              fprintf(fp, "scf "F_CID": 1st contig (id "F_CID") min offset is %f\n",
                       scaff->id, ci->id, minCoord);
             }
         }
       else if(minCoord < TOLERANCE)
         {
-          fprintf(fp, "scf "F_CID ": non-1st CI ("F_CID ") min offset is %f\n",
+          fprintf(fp, "scf "F_CID": non-1st CI ("F_CID") min offset is %f\n",
                   scaff->id, ci->id, minCoord);
         }
       else if(minVariance < TOLERANCE)
         {
-          fprintf(fp, "scf "F_CID ": CI ("F_CID ") variance (%f) is zero or negative\n",
+          fprintf(fp, "scf "F_CID": CI ("F_CID") variance (%f) is zero or negative\n",
                   scaff->id, ci->id, minVariance);
         }
 
@@ -121,7 +121,7 @@ int DoSimpleScaffoldChecks(FILE * fp,
           if(maxCoord > scaff->bpLength.mean + TOLERANCE ||
              maxCoord < scaff->bpLength.mean - TOLERANCE)
             {
-              fprintf(fp, "scf "F_CID " length (%f) isn't last CI's ("F_CID ") end (%f)\n",
+              fprintf(fp, "scf "F_CID" length (%f) isn't last CI's ("F_CID") end (%f)\n",
                       scaff->id, scaff->bpLength.mean,
                       ci->id, maxCoord);
             }
@@ -129,7 +129,7 @@ int DoSimpleScaffoldChecks(FILE * fp,
              maxVariance < scaff->bpLength.variance - TOLERANCE)
             {
               fprintf(fp,
-                      "scf "F_CID " variance (%f) isn't last CI's ("F_CID ") variance (%f)\n",
+                      "scf "F_CID" variance (%f) isn't last CI's ("F_CID") variance (%f)\n",
                       scaff->id, scaff->bpLength.variance,
                       ci->id, maxVariance);
             }
@@ -140,28 +140,28 @@ int DoSimpleScaffoldChecks(FILE * fp,
                (ci->offsetBEnd.variance < 1.f + TOLERANCE &&
                 ci->offsetBEnd.mean > TOLERANCE)))
         {
-          fprintf(fp, "scf "F_CID ": CI ("F_CID ") variance (%f) is less than 1\n",
+          fprintf(fp, "scf "F_CID": CI ("F_CID") variance (%f) is less than 1\n",
                   scaff->id, ci->id, minVariance);
         }
 
       if(minCoord < lastEnd - 20.f - TOLERANCE)
         {
           fprintf(fp,
-                  "scf "F_CID ": large negative gap %f between CIs "F_CID " and "F_CID "\n",
+                  "scf "F_CID": large negative gap %f between CIs "F_CID" and "F_CID"\n",
                   scaff->id, (minCoord - lastEnd), lastCIID, ci->id);
         }
 
       if(maxCoord > scaff->bpLength.mean + TOLERANCE)
         {
           fprintf(fp,
-                  "scf "F_CID ": CI ("F_CID ") end (%f) is past scaffold end (%f)\n",
+                  "scf "F_CID": CI ("F_CID") end (%f) is past scaffold end (%f)\n",
                   scaff->id, ci->id, maxCoord, scaff->bpLength.mean);
         }
 
       if(maxVariance > scaff->bpLength.variance + TOLERANCE)
         {
           fprintf(fp,
-                  "scf "F_CID ": CI ("F_CID ") position variance (%f) exceeds scaffold length variance (%f)\n",
+                  "scf "F_CID": CI ("F_CID") position variance (%f) exceeds scaffold length variance (%f)\n",
                   scaff->id, ci->id, maxVariance, scaff->bpLength.variance);
         }
 
@@ -1202,7 +1202,7 @@ void FindRockStoneUnitigs(ScaffoldGraphT * graph)
   while((unitig = NextGraphNodeIterator(&unitigIterator)) != NULL)
     {
       if(unitig->flags.bits.isStone && unitig->flags.bits.isRock)
-        fprintf(stderr, "%d. unitig "F_CID " is both a rock and a stone.\n",
+        fprintf(stderr, "%d. unitig "F_CID" is both a rock and a stone.\n",
                 ++numRockStones, unitig->id);
     }
 }
@@ -2008,7 +2008,7 @@ void PrintConsensus(VA_TYPE(char) * consensus, FILE * printTo)
 
 void PrintFragment(CIFragT * frag, CDS_CID_t index, FILE * printTo)
 {
-  fprintf(printTo, "Fragment iid "F_CID "\n",
+  fprintf(printTo, "Fragment iid "F_CID"\n",
           frag->read_iid);
 
   if(frag->flags.bits.hasMate){
@@ -2020,10 +2020,10 @@ void PrintFragment(CIFragT * frag, CDS_CID_t index, FILE * printTo)
           (frag->flags.bits.isPlaced) ? "placed" : "not placed",
           (frag->flags.bits.isSingleton) ? "singleton" : "not singleton",
           (frag->flags.bits.isChaff) ? "chaff" : "not chaff");
-  fprintf(printTo, "  cid "F_CID "; CIid "F_CID "; 5p,3p: %d,%d\n",
+  fprintf(printTo, "  cid "F_CID"; CIid "F_CID"; 5p,3p: %d,%d\n",
           frag->cid, frag->CIid,
           (int) frag->offset5p.mean, (int) frag->offset3p.mean);
-  fprintf(printTo, "  contigID "F_CID "; 5p,3p: %d,%d\n",
+  fprintf(printTo, "  contigID "F_CID"; 5p,3p: %d,%d\n",
           frag->contigID,
           (int) frag->contigOffset5p.mean, (int) frag->contigOffset3p.mean);
 }
@@ -2039,7 +2039,7 @@ void PrintContigPlacement(ContigPlacement * cp,
   else
     fprintf(printTo, "%s ", prefix);
   fprintf(printTo,
-          "IID:"F_CID ", Offset:%.f, Length:%.f, Orientation:%s\n",
+          "IID:"F_CID", Offset:%.f, Length:%.f, Orientation:%s\n",
           cp->id, cp->offset, cp->length,
           (cp->orient.isForward()) ? "A_B" : "B_A");
 }
@@ -2048,7 +2048,7 @@ void PrintContigPlacement(ContigPlacement * cp,
 void PrintContigPair(IntContigPairs * cp, char * prefix, FILE * printTo)
 {
   fprintf(printTo,
-          "%scontig1 = "F_CID ", contig2 = "F_CID ", mean = %f, stddev = %f, orientation = %c\n",
+          "%scontig1 = "F_CID", contig2 = "F_CID", mean = %f, stddev = %f, orientation = %c\n",
           prefix, cp->contig1, cp->contig2,
           cp->mean, cp->stddev, cp->orient.toLetter());
 }
@@ -2085,7 +2085,7 @@ void PrintMateDetailAndDist(MateDetail * md,
                             FILE * printTo)
 {
   fprintf(printTo,
-          "%sIn ("F_CID ","F_CID ") fid: "F_CID ", 5p: %.f\tmid: "F_CID ", 5p: %.f, type: %c, dist: %.2f, stddev: %.2f\n",
+          "%sIn ("F_CID","F_CID") fid: "F_CID", 5p: %.f\tmid: "F_CID", 5p: %.f, type: %c, dist: %.2f, stddev: %.2f\n",
           prefix,
           md->fragChunkIID, md->mateChunkIID,
           md->fragIID, md->fragOffset5p,
@@ -2107,7 +2107,7 @@ void safelyAppendInstInfo(char **locs,int32 utgIID, int *lenloc, int *lenUsed){
   mateUtg = GetGraphNode(ScaffoldGraph->CIGraph,utgIID);
   mateCtg = mateUtg->info.CI.contigID;
   mateScf = mateUtg->scaffoldID;
-  testsize = snprintf(teststring,99," surroTig "F_CID " ctg "F_CID " scf "F_CID,
+  testsize = snprintf(teststring,99," surroTig "F_CID" ctg "F_CID" scf "F_CID,
 		      mateUtg->id,mateCtg,mateScf);
   assert(testsize <= 100); /* test against truncation */
   assert(testsize >0); /* test against other error */
@@ -2130,7 +2130,7 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
 {
   if(printtype==PRINTTABLE){
     fprintf(printTo,
-	    "%sIn ("F_CID ","F_CID ") fid: "F_CID ", 5p: %.f\tmid: "F_CID ", 5p: %.f, type: %c, dist: %.2f, stddev: %.2f\n",
+	    "%sIn ("F_CID","F_CID") fid: "F_CID", 5p: %.f\tmid: "F_CID", 5p: %.f, type: %c, dist: %.2f, stddev: %.2f\n",
 	    prefix,
 	    md->fragChunkIID, md->mateChunkIID,
 	    md->fragIID, md->fragOffset5p,
@@ -2184,7 +2184,7 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
 	  }
 	}
 
-	fprintf(printTo,F_CID "Fragment: "F_S32" %s "F_S32" R50 # Externally-mated fragment "F_CID " ori:%s lib %f +/- %f Mate info: BaseCI "F_CID " Instances(%d): %s\n",
+	fprintf(printTo,F_CID"Fragment: "F_S32" %s "F_S32" R50 # Externally-mated fragment "F_CID" ori:%s lib %f +/- %f Mate info: BaseCI "F_CID" Instances(%d): %s\n",
 		md->fragIID,fragLeftEnd,
 		fragOri.isForward() ? "A7CMColor" : "A8CMColor" ,
 		fragRightEnd,md->fragIID,fragOri.isForward()?"A_B":"B_A",
@@ -2195,7 +2195,7 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
       } else {
 	mateCtg = unitig->info.CI.contigID;
 	mateScf = unitig->scaffoldID;
-	fprintf(printTo,F_CID "Fragment: "F_S32" %s "F_S32" R50 # Externally-mated fragment "F_CID " ori:%s lib %f +/- %f mateChunk "F_CID " mateCtg %d mateScf %d\n",
+	fprintf(printTo,F_CID"Fragment: "F_S32" %s "F_S32" R50 # Externally-mated fragment "F_CID" ori:%s lib %f +/- %f mateChunk "F_CID" mateCtg %d mateScf %d\n",
 		md->fragIID,fragLeftEnd,
 		fragOri.isForward() ? "A7CMColor" : "A8CMColor" ,
 		fragRightEnd,md->fragIID,fragOri.isForward()?"A_B":"B_A",
@@ -2427,7 +2427,7 @@ void PrintBreakpoint(InstrumenterBreakpoint * bp,
                      char * prefix,
                      FILE * printTo)
 {
-  fprintf(printTo, "%s"F_CID " (%c)\t"F_CID "\t"F_CID "\t("F_S32","F_S32")\t%6d\t\t",
+  fprintf(printTo, "%s"F_CID" (%c)\t"F_CID"\t"F_CID"\t("F_S32","F_S32")\t%6d\t\t",
           prefix,
           bp->iid,
           ((bp->section == BP_ALL) ? 'a' :
@@ -2493,7 +2493,7 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
 {
   if(ui->id != NULLINDEX)
     {
-      fprintf(printTo, "%sStatistics for unitig "F_CID "\n", prefix, ui->id);
+      fprintf(printTo, "%sStatistics for unitig "F_CID"\n", prefix, ui->id);
       fprintf(printTo, "%sSize: "F_S32"\n", prefix, ui->rightEnd - ui->leftEnd);
     }
 
@@ -2521,7 +2521,7 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
 
       if((unitig = GetGraphNode(graph->ContigGraph, ui->id)) == NULL)
         {
-          fprintf(stderr, "Unitig "F_CID " does not exist in the graph!\n", ui->id);
+          fprintf(stderr, "Unitig "F_CID" does not exist in the graph!\n", ui->id);
           return;
         }
       else
@@ -2530,12 +2530,12 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
           if(cma == NULL)
             {
               fprintf(stderr,
-                      "Failed to load MultiAlignT of unitig "F_CID "\n", unitig->id);
+                      "Failed to load MultiAlignT of unitig "F_CID"\n", unitig->id);
               return;
             }
 
           fprintf(printTo, "\n%sGapped sequence:\n", prefix);
-          fprintf(printTo, "\n>Unitig "F_CID "\n", unitig->id);
+          fprintf(printTo, "\n>Unitig "F_CID"\n", unitig->id);
           PrintConsensus(cma->consensus, printTo);
         }
 
@@ -2562,7 +2562,7 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
 {
   if(ci->id != NULLINDEX)
     {
-      fprintf(printTo, "%sStatistics for contig "F_CID "\n", prefix, ci->id);
+      fprintf(printTo, "%sStatistics for contig "F_CID"\n", prefix, ci->id);
       fprintf(printTo, "%sSize: "F_S32"\n", prefix, ci->rightEnd - ci->leftEnd);
       fprintf(printTo, "%sLeft end: "F_S32", Right end: "F_S32", Orientation: %c\n",
               prefix, ci->leftEnd, ci->rightEnd,
@@ -2598,7 +2598,7 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
 
       if((contig = GetGraphNode(graph->ContigGraph, ci->id)) == NULL)
         {
-          fprintf(stderr, "Contig "F_CID " does not exist in the graph!\n", ci->id);
+          fprintf(stderr, "Contig "F_CID" does not exist in the graph!\n", ci->id);
           return;
         }
       else
@@ -2607,12 +2607,12 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
           if(cma == NULL)
             {
               fprintf(stderr,
-                      "Failed to load MultiAlignT of contig "F_CID "\n", contig->id);
+                      "Failed to load MultiAlignT of contig "F_CID"\n", contig->id);
               return;
             }
 
           fprintf(printTo, "\n%sGapped sequence:\n", prefix);
-          fprintf(printTo, "\n>Contig "F_CID "\n", contig->id);
+          fprintf(printTo, "\n>Contig "F_CID"\n", contig->id);
           PrintConsensus(cma->consensus, printTo);
         }
 
@@ -2696,7 +2696,7 @@ void PrintScaffoldGaps(ScaffoldInstrumenter * si,
       double * gapSizes = GetVA_double(si->scaffoldGapSizes, 0);
       for(i = 0; i < numGapSizes; i++)
         {
-          fprintf(printTo, F_CID "\t%d\n", si->id, (int) gapSizes[i]);
+          fprintf(printTo, F_CID"\t%d\n", si->id, (int) gapSizes[i]);
         }
     }
 }
@@ -2732,7 +2732,7 @@ void PrintScaffoldInstrumenter(ScaffoldGraphT * graph,
   sprintf(nextPrefix, "%s\t", prefix);
   if(si->id != NULLINDEX)
     {
-      fprintf(printTo, "%sStatistics for scaffold "F_CID "\n", prefix, si->id);
+      fprintf(printTo, "%sStatistics for scaffold "F_CID"\n", prefix, si->id);
       fprintf(printTo, "\n%sSize: %.0f\n", prefix, si->size);
     }
 
@@ -3647,7 +3647,7 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
     return(0);
 
 #ifdef DEBUG2
-  fprintf(stderr, "Adding fragment "F_CID " (index = "F_CID ") to unitig instrumenter\n",
+  fprintf(stderr, "Adding fragment "F_CID" (index = "F_CID") to unitig instrumenter\n",
           frag->read_iid, info->fragIndex);
 #endif
 
@@ -3808,7 +3808,7 @@ int GetFragmentPositionInFauxScaffold(HashTable_AS * cpHT,
   cp = (ContigPlacement *)(INTPTR)LookupValueInHashTable_AS(cpHT, (uint64)frag->contigID, 0);
   if(cp == NULL)
     {
-      fprintf(stderr, "Fragment "F_CID "'s contig "F_CID " is not in hashtable!\n",
+      fprintf(stderr, "Fragment "F_CID"'s contig "F_CID" is not in hashtable!\n",
               frag->read_iid, frag->contigID);
       return 1;
     }
@@ -4062,7 +4062,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
     }
 
 #if 0
-  fprintf(stderr,"pair ("F_CID ","F_CID ") assigned 5p positions "F_S32" "F_S32" based on offsets %g %g on ctgs "F_CID " "F_CID "\n",
+  fprintf(stderr,"pair ("F_CID","F_CID") assigned 5p positions "F_S32" "F_S32" based on offsets %g %g on ctgs "F_CID" "F_CID"\n",
 	  fragIID,mateIID,frag5p,mate5p,
 	  ( md->fragChunkIID == fragChunkIID) ? md->fragOffset5p : md->mateOffset5p,
 	  ( md->fragChunkIID == fragChunkIID) ? md->mateOffset5p : md->fragOffset5p,
@@ -4088,9 +4088,9 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
     }
   if(printType == PRINTTABLE ){
     fprintf(printTo,
-	    "%s\t%s\t"F_CID "\t"F_CID "\t%c\t"
-	    ""F_CID "\t"F_S32"\t"F_CID "\t"
-	    ""F_CID "\t"F_S32"\t"F_CID "\n",
+	    "%s\t%s\t"F_CID"\t"F_CID"\t%c\t"
+	    ""F_CID"\t"F_S32"\t"F_CID"\t"
+	    ""F_CID"\t"F_S32"\t"F_CID"\n",
 	    category, oString, id, md->libIID, md->type,
 	    fragIID, frag5p, fragChunkIID,
 	    mateIID, mate5p, mateChunkIID);
@@ -4142,7 +4142,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
     }
 #endif
 
-    fprintf(printTo,F_CID "Mate"F_CID ": "F_S32" %s%s "F_S32" R%d # %s "F_CID " "F_CID "\n",
+    fprintf(printTo,F_CID"Mate"F_CID": "F_S32" %s%s "F_S32" R%d # %s "F_CID" "F_CID"\n",
             fragIID,mateIID,frag5p,markString,catString,mate5p,row,category,fragIID,mateIID);
   }
 }
@@ -4283,7 +4283,7 @@ void PrintUnmatedDetails(ScaffoldInstrumenter * si,
 	fragRightEnd=frag5p;
       }
 
-      fprintf(printTo,F_CID "Fragment: "F_S32" A9CMColor "F_S32" R45 # Unmated Fragment "F_CID " ori:%c\n",
+      fprintf(printTo,F_CID"Fragment: "F_S32" A9CMColor "F_S32" R45 # Unmated Fragment "F_CID" ori:%c\n",
 	      frag->read_iid,fragLeftEnd,fragRightEnd,frag->read_iid,
 	      fragOrient.toLetter());
     }
@@ -4714,7 +4714,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
       unitig = GetGraphNode(graph->CIGraph, unitig->info.CI.baseID);
       if(unitig == NULL)
         {
-          fprintf(stderr, "Surrogate's unitig "F_CID " does not exist in the graph!\n",
+          fprintf(stderr, "Surrogate's unitig "F_CID" does not exist in the graph!\n",
                   unitig->info.CI.baseID);
           return 1;
         }
@@ -4724,7 +4724,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
   uma = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id, TRUE);
   if(uma == NULL)
     {
-      fprintf(stderr, "Failed to load MultiAlignT of unitig "F_CID "\n", unitig->id);
+      fprintf(stderr, "Failed to load MultiAlignT of unitig "F_CID"\n", unitig->id);
       return 1;
     }
 
@@ -4790,7 +4790,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
           AddFragmentToUnitigInstrumenter(graph, uma, fi, ui);
         }
 #ifdef LIST_TERMINAL_TYPES
-      fprintf(stdout, "Terminal fragments for unitig "F_CID ":\t"F_CID ", %c\t"F_CID ", %c\n",
+      fprintf(stdout, "Terminal fragments for unitig "F_CID":\t"F_CID", %c\t"F_CID", %c\n",
               uma->id, firstFragIID, firstFragType, lastFragIID, lastFragType);
 #endif
     }
@@ -4855,7 +4855,7 @@ int InstrumentContig(ScaffoldGraphT * graph,
   SurrogateTracker *st   = (si == NULL) ? NULL : &si->surrogateTracker;
 
 #ifdef DEBUG
-  fprintf(stderr, "\tInstrumenting contig "F_CID "\n", contig->id);
+  fprintf(stderr, "\tInstrumenting contig "F_CID"\n", contig->id);
 #endif
   if(graph == NULL || ci == NULL)
     {
@@ -4884,7 +4884,7 @@ int InstrumentContig(ScaffoldGraphT * graph,
       AddUnitigToContigInstrumenter(graph, ci, &(ci->reusableUI));
     }
 #ifdef LIST_TERMINAL_TYPES
-  fprintf(stdout, "Terminal fragments for contig "F_CID ":\t"F_CID ", %c\t"F_CID ", %c\n",
+  fprintf(stdout, "Terminal fragments for contig "F_CID":\t"F_CID", %c\t"F_CID", %c\n",
           contig->id,
           ContigFirstFragIID, ContigFirstFragType,
           ContigLastFragIID, ContigLastFragType);
@@ -4974,7 +4974,7 @@ int AddICP(VA_TYPE(IntContigPairs) * icps,
       DeleteVA_IntContigPairs(icps);
     }
   *thisID = (edge->idA == *thisID) ? edge->idB : edge->idA;
-  // fprintf(stderr, F_CID "(%c) ", *thisID, (*thisEnd == A_END) ? 'A' : 'B');
+  // fprintf(stderr, F_CID"(%c) ", *thisID, (*thisEnd == A_END) ? 'A' : 'B');
   return 0;
 }
 
@@ -5027,11 +5027,11 @@ BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
     ContigT *rContig = GetGraphNode(graph->ContigGraph, CIsTemp.next);
 
     if (lContig == NULL) {
-      fprintf(stderr, "Left contig "F_CID " does not exist in the graph!\n", CIsTemp.curr);
+      fprintf(stderr, "Left contig "F_CID" does not exist in the graph!\n", CIsTemp.curr);
       return(1);
     }
     if(rContig == NULL) {
-      fprintf(stderr, "Right contig "F_CID " does not exist in the graph!\n", CIsTemp.next);
+      fprintf(stderr, "Right contig "F_CID" does not exist in the graph!\n", CIsTemp.next);
       return(1);
     }
 
@@ -5166,7 +5166,7 @@ InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
 
   // get the contig
   if((contig = GetGraphNode(graph->ContigGraph, contigID)) == NULL) {
-    fprintf(stderr, "Contig "F_CID " does not exist in the graph!\n", contigID);
+    fprintf(stderr, "Contig "F_CID" does not exist in the graph!\n", contigID);
     return 1;
   }
 
@@ -5193,7 +5193,7 @@ InstrumentScaffoldNextContig(ScaffoldGraphT * graph,
   if(InstrumentContig(graph, si, contig, &(si->reusableCI),
                       (cp.orient.isForward()) ? cp.offset : cp.offset + cp.length,
                       (cp.orient.isForward()) ? cp.offset + cp.length: cp.offset)) {
-    fprintf(stderr, "Failed to instrument contig "F_CID "\n", contig->id);
+    fprintf(stderr, "Failed to instrument contig "F_CID"\n", contig->id);
     return 1;
   }
 
@@ -5362,7 +5362,7 @@ int InstrumentScaffold(ScaffoldGraphT * graph,
 
   if(printTo && verbose >= InstrumenterVerbose3)
     {
-      fprintf(printTo, "Instrumenting Scaffold "F_CID "\n", scaffold->id);
+      fprintf(printTo, "Instrumenting Scaffold "F_CID"\n", scaffold->id);
     }
 
   // build a faux scaffold message - facilitates code reuse
@@ -5554,13 +5554,13 @@ int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
         {
           scaff = GetGraphNode(ScaffoldGraph->ScaffoldGraph, iidSize->iid);
           /*
-            fprintf(stderr, "\r%d\t"F_CID "\t%15.0fbp",
+            fprintf(stderr, "\r%d\t"F_CID"\t%15.0fbp",
             i + 1, scaff->id, scaff->bpLength.mean);
           */
           if(InstrumentScaffold(graph, scaff, &si, verbose, printTo))
             {
               fprintf(stderr,
-                      "Failed to instrument scaffold "F_CID "\n",scaff->scaffoldID);
+                      "Failed to instrument scaffold "F_CID"\n",scaff->scaffoldID);
               return 1;
             }
 
@@ -5800,7 +5800,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
 
   isf.iaccession = persistentScaffoldID++;
 
-  // fprintf(stderr,  F_CID "(%c): ", firstID, (firstEnd == A_END) ? 'A' : 'B');
+  // fprintf(stderr,  F_CID"(%c): ", firstID, (firstEnd == A_END) ? 'A' : 'B');
   while(!done)
     {
       ChunkInstanceT * thisCI = GetGraphNode(graph->ContigGraph, thisID);
@@ -5888,7 +5888,7 @@ void PrintEssentialEdges(ScaffoldGraphT * graph,
   GraphEdgeIterator edges;
   int thisEnd = end;
 
-  fprintf(stderr, F_CID "(%c): ", chunkID, (end == A_END) ? 'A' : 'B');
+  fprintf(stderr, F_CID"(%c): ", chunkID, (end == A_END) ? 'A' : 'B');
 
   // loop over one end's essential edges & instrument each 'scaffold'
   InitGraphEdgeIterator(graph->ContigGraph,
@@ -5907,7 +5907,7 @@ void PrintEssentialEdges(ScaffoldGraphT * graph,
               fprintf(stderr, "\n");
               return;
             }
-          fprintf(stderr, F_CID "(%.0f, %d) ",
+          fprintf(stderr, F_CID"(%.0f, %d) ",
                   (thisCI->id == edge->idA) ? edge->idB : edge->idA,
                   edge->distance.mean, thisEnd);
         }
@@ -6082,7 +6082,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
                   {
                     int32 q;
 
-                    fprintf(stderr, "**** Splitting scaffold "F_CID " into %d contigs:\n",
+                    fprintf(stderr, "**** Splitting scaffold "F_CID" into %d contigs:\n",
                             isf.iaccession, isf.num_contig_pairs + 1);
                     PrintScaffoldInstrumenter(graph, si, InstrumenterVerbose2, "\t", stderr);
                     for(q = 0; q < isf.num_contig_pairs; q++)

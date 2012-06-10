@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.21 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.22 2012-06-10 05:52:34 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -74,7 +74,7 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
       flag = "$O";
   }
 
-  fprintf(fp,"\t  cidA:" F_CID " cidB:" F_CID " weight:%d %s ori:%c con:%d distance:%d stddev:%g %s (" F_CID "," F_CID ")\n",
+  fprintf(fp,"\t  cidA:"F_CID" cidB:"F_CID" weight:%d %s ori:%c con:%d distance:%d stddev:%g %s ("F_CID","F_CID")\n",
           edge->idA, edge->idB,
           edge->edgesContributing,
           flag,
@@ -85,7 +85,7 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
 
 #ifdef NEVER
   fprintf(fp,
-          "\tidA:" F_CID " idB:" F_CID " orient:%s edgesContributing:%d quality:%d all:" F_S64 "\n",
+          "\tidA:"F_CID" idB:"F_CID" orient:%s edgesContributing:%d quality:%d all:" F_S64 "\n",
           edge->idA,
           edge->idB,
           edge->orient == AB_AB ? "AB_AB" :
@@ -133,17 +133,17 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
   fprintf(fp, "\t\tisBridge:%d\n", edge->flags.bits.isBridge);
   fprintf(fp, "\tdistance.mean:%.2f\n", edge->distance.mean);
   fprintf(fp, "\tdistance.variance:%.2f\n", edge->distance.variance);
-  fprintf(fp, "\tnextALink:" F_CID "\n", edge->nextALink);
-  fprintf(fp, "\tnextBLink:" F_CID "\n", edge->nextBLink);
-  fprintf(fp, "\tprevALink:" F_CID "\n", edge->prevALink);
-  fprintf(fp, "\tprevBLink:" F_CID "\n", edge->prevBLink);
+  fprintf(fp, "\tnextALink:"F_CID"\n", edge->nextALink);
+  fprintf(fp, "\tnextBLink:"F_CID"\n", edge->nextBLink);
+  fprintf(fp, "\tprevALink:"F_CID"\n", edge->prevALink);
+  fprintf(fp, "\tprevBLink:"F_CID"\n", edge->prevBLink);
   fprintf(fp, "\tminDistance:%.2f\n", edge->minDistance);
-  fprintf(fp, "\tfragA:" F_CID "\n", edge->fragA);
-  fprintf(fp, "\tfragB:" F_CID "\n", edge->fragB);
-  fprintf(fp, "\tdistIndex:" F_CID "\n", edge->distIndex);
-  fprintf(fp, "\tnextRawEdge:" F_CID "\n", edge->nextRawEdge);
-  fprintf(fp, "\ttopLevelEdge:" F_CID "\n", edge->topLevelEdge);
-  fprintf(fp, "\treferenceEdge:" F_CID "\n",edge->referenceEdge);
+  fprintf(fp, "\tfragA:"F_CID"\n", edge->fragA);
+  fprintf(fp, "\tfragB:"F_CID"\n", edge->fragB);
+  fprintf(fp, "\tdistIndex:"F_CID"\n", edge->distIndex);
+  fprintf(fp, "\tnextRawEdge:"F_CID"\n", edge->nextRawEdge);
+  fprintf(fp, "\ttopLevelEdge:"F_CID"\n", edge->topLevelEdge);
+  fprintf(fp, "\treferenceEdge:"F_CID"\n",edge->referenceEdge);
 #endif
 }
 
@@ -201,7 +201,7 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
   CIInScaffoldOrient = GetNodeOrient(CI);
 
 #ifdef DEBUG_SEDGE
-  fprintf(stderr,"* CI " F_CID " is oriented %c in scaffold " F_CID " (FragOrient = %c)\n",
+  fprintf(stderr,"* CI "F_CID" is oriented %c in scaffold "F_CID" (FragOrient = %c)\n",
 	  cid, CIInScaffoldOrient.toLetter(), CI->scaffoldID, chunkOrient.toLetter());
 #endif
   /* Find the offset of the B end of the chunk within its chunkOfScaffolds.  The fragments
@@ -226,7 +226,7 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
       ciFlipOffset->variance = CI->offsetAEnd.variance;
 
       if(ciOffset->variance < 0.0){
-        fprintf(stderr,"* A_B Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+        fprintf(stderr,"* A_B Negative offset variance %g for position of CI "F_CID" in scaffold "F_CID"==> set to 1\n",
                 ciOffset->variance, CI->id, CIS->id);
         ciOffset->variance = 1.0;
       }
@@ -243,7 +243,7 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
       ciFlipOffset->variance = (CIS->bpLength.variance - CI->offsetAEnd.variance);
 
       if(ciFlipOffset->variance < 0.0){
-        fprintf(stderr,"* A_B Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+        fprintf(stderr,"* A_B Negative Flip offset variance %g for position of CI "F_CID" in scaffold "F_CID"==> set to 1\n",
                 ciFlipOffset->variance, CI->id, CIS->id);
         ciFlipOffset->variance = 1.0;
       }
@@ -264,7 +264,7 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
       ciFlipOffset->variance = (CIS->bpLength.variance - CI->offsetBEnd.variance);
 
       if(ciFlipOffset->variance < 0.0){
-        fprintf(stderr,"* B_A Negative Flip offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+        fprintf(stderr,"* B_A Negative Flip offset variance %g for position of CI "F_CID" in scaffold "F_CID"==> set to 1\n",
                 ciFlipOffset->variance, CI->id, CIS->id);
         ciFlipOffset->variance = 1.0;
       }
@@ -282,7 +282,7 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
       ciFlipOffset->variance = CI->offsetBEnd.variance;
 
       if(ciOffset->variance < 0.0){
-        fprintf(stderr,"* B_A Negative offset variance %g for position of CI " F_CID " in scaffold " F_CID "==> set to 1\n",
+        fprintf(stderr,"* B_A Negative offset variance %g for position of CI "F_CID" in scaffold "F_CID"==> set to 1\n",
                 ciOffset->variance, CI->id, CIS->id);
         ciOffset->variance = 1.0;
       }
@@ -347,7 +347,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
 
 #ifdef DEBUG_SEDGE
-  fprintf(stderr,"* Edge %s (" F_CID "," F_CID ") %c dist: %d in scaffolds (" F_CID "," F_CID ") orient = %c\n",
+  fprintf(stderr,"* Edge %s ("F_CID","F_CID") %c dist: %d in scaffolds ("F_CID","F_CID") orient = %c\n",
           (edge->flags.bits.isBogus?"*Bogus*":"     "),
           thisCI->id, otherCI->id, edgeOrient.toLetter(), (int)edge->distance.mean,
           thisCI->scaffoldID, otherCI->scaffoldID, orient.toLetter());
@@ -490,7 +490,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   sedge.referenceEdge =
     (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
 #if 0
-  fprintf(stderr,"*SEdge (" F_CID "," F_CID ") induced by edge#" F_CID " (" F_CID "," F_CID ")\n",
+  fprintf(stderr,"*SEdge ("F_CID","F_CID") induced by edge#"F_CID" ("F_CID","F_CID")\n",
           sedge.idA, sedge.idB,
           sedge.referenceEdge,
           edge->idA, edge->idB);
@@ -597,14 +597,14 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
   FILE * fp;
   char filename[1024];
 
-  sprintf(filename, "scf%010" F_CIDP "Edges.txt", scaffold->id);
+  sprintf(filename, "scf%010"F_CIDP "Edges.txt", scaffold->id);
   fp = fopen(filename, "w");
   assert(fp != NULL);
 
   fprintf(fp, "********************************\n");
-  fprintf(fp, "Printing edges for scaffold " F_CID "\n",
+  fprintf(fp, "Printing edges for scaffold "F_CID"\n",
           scaffold->id);
-  fprintf(fp, "\nPrinting inter-scaffold contig edges for scaffold " F_CID "\n",
+  fprintf(fp, "\nPrinting inter-scaffold contig edges for scaffold "F_CID"\n",
           scaffold->id);
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
@@ -627,14 +627,14 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
               ChunkInstanceT *otherCI = GetGraphNode(graph->ContigGraph,
                                                      (isA? edge->idB: edge->idA));
 
-              fprintf(fp, "" F_CID " to " F_CID " in scaffold " F_CID ". %s",
+              fprintf(fp, ""F_CID" to "F_CID" in scaffold "F_CID". %s",
                       thisCI->id, otherCI->id, otherCI->scaffoldID,
                       (edge->flags.bits.isRaw) ? "Raw\n" : "\n");
               numEdges++;
             }
         }
     }
-  fprintf(fp, "Done printing %d inter-scaffold contig edges for " F_CID "\n",
+  fprintf(fp, "Done printing %d inter-scaffold contig edges for "F_CID"\n",
           numEdges, scaffold->id);
 
 
@@ -643,7 +643,7 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
     SEdgeT * sEdge;
 
     fprintf(fp,
-            "\nPrinting raw inter-scaffold scaffold edges for scaffold " F_CID "\n",
+            "\nPrinting raw inter-scaffold scaffold edges for scaffold "F_CID"\n",
             scaffold->id);
 
     numEdges = 0;
@@ -651,13 +651,13 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
                        TRUE, FALSE, ALL_END, FALSE, &SEdges);
     while((sEdge = NextSEdgeTIterator(&SEdges)) != NULL)
       {
-        fprintf(fp, "" F_CID " to " F_CID ", weight %d\n",
+        fprintf(fp, ""F_CID" to "F_CID", weight %d\n",
                 sEdge->idA, sEdge->idB, sEdge->edgesContributing);
         numEdges++;
       }
 
     fprintf(fp,
-            "\nPrinting merged inter-scaffold scaffold edges for scaffold " F_CID "\n",
+            "\nPrinting merged inter-scaffold scaffold edges for scaffold "F_CID"\n",
             scaffold->id);
 
     numEdges = 0;
@@ -665,12 +665,12 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
                        FALSE, FALSE, ALL_END, FALSE, &SEdges);
     while((sEdge = NextSEdgeTIterator(&SEdges)) != NULL)
       {
-        fprintf(fp, "" F_CID " to " F_CID ", weight %d\n",
+        fprintf(fp, ""F_CID" to "F_CID", weight %d\n",
                 sEdge->idA, sEdge->idB, sEdge->edgesContributing);
         numEdges++;
       }
 
-    fprintf(fp, "Done printing %d inter-scaffold scaffold edges for " F_CID "\n",
+    fprintf(fp, "Done printing %d inter-scaffold scaffold edges for "F_CID"\n",
             numEdges, scaffold->id);
   }
   fprintf(fp, "********************************\n");

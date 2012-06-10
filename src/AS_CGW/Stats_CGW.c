@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Stats_CGW.c,v 1.24 2010-08-19 05:28:07 brianwalenz Exp $";
+static char *rcsid = "$Id: Stats_CGW.c,v 1.25 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -705,7 +705,7 @@ void GenerateSurrogateStats(char *phase){
         break;
     }
 #ifdef DEBUG_DETAILED
-    fprintf(stderr,"* Node " F_CID " %c contig:" F_CID "  numInstances %d\n",
+    fprintf(stderr,"* Node "F_CID" %c contig:"F_CID"  numInstances %d\n",
 	    node->id, type, node->info.CI.contigID, node->info.CI.numInstances);
 #endif
     if((node->type != UNRESOLVEDCHUNK_CGW) ||    // is not a surrogate parent

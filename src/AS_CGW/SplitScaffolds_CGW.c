@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SplitScaffolds_CGW.c,v 1.17 2010-02-17 01:32:58 brianwalenz Exp $";
+static char *rcsid = "$Id: SplitScaffolds_CGW.c,v 1.18 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +64,7 @@ void SplitScaffolds(ScaffoldGraphT *graph){
     if(numNodes < 3){
       continue;
     }
-    fprintf(stderr,"TESTING! Scaffold " F_CID " with %d nodes is splitting into 2 Scaffolds\n",
+    fprintf(stderr,"TESTING! Scaffold "F_CID" with %d nodes is splitting into 2 Scaffolds\n",
 	    scaffold->id, numNodes);
     nodes = (int *)safe_malloc(numNodes * sizeof(int));
     AssertPtr(nodes);
@@ -131,7 +131,7 @@ void SplitScaffolds(ScaffoldGraphT *graph){
       }
       assert((GetGraphNode(graph->ScaffoldGraph,
 			   newScaffoldID))->info.Scaffold.numElements > 0);
-      fprintf(stderr,"New Scaffold " F_CID " with %d nodes\n",
+      fprintf(stderr,"New Scaffold "F_CID" with %d nodes\n",
               newScaffoldID,
 	      (GetGraphNode(graph->ScaffoldGraph,
 			    newScaffoldID))->info.Scaffold.numElements);

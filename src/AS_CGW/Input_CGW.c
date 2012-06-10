@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.73 2011-12-04 23:21:29 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.74 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -274,13 +274,13 @@ ProcessInputUnitig(MultiAlignT *uma) {
 
     if (ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb){
       if(ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff){
-        //fprintf(stderr,"* CI " F_CID " with astat: %g classified as repeat based on microhet unique prob of %g < %g\n",
+        //fprintf(stderr,"* CI "F_CID" with astat: %g classified as repeat based on microhet unique prob of %g < %g\n",
         //        CI.id, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb);
         isUnique = FALSE;
         CI.type = UNRESOLVEDCHUNK_CGW;
       }else{
         isUnique = TRUE;
-        //fprintf(stderr,"* WARNING: CI " F_CID " with coverage %g WOULD HAVE BEEN classified as repeat based on microhet unique prob of %g < %g\n",
+        //fprintf(stderr,"* WARNING: CI "F_CID" with coverage %g WOULD HAVE BEEN classified as repeat based on microhet unique prob of %g < %g\n",
         //        CI.id, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb);
       }
     }else{

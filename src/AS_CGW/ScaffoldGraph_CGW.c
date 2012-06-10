@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.60 2012-06-08 00:24:06 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.61 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -378,7 +378,7 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
 
   if(scaffold->bpLength.mean < 0 ||scaffold->bpLength.variance < 0 ){
     fprintf(stderr,
-            "*!!! Sanity  scaffold " F_CID " length (%g,%g) screwed up!\n",
+            "*!!! Sanity  scaffold "F_CID" length (%g,%g) screwed up!\n",
             scaffold->id,
             scaffold->bpLength.mean, scaffold->bpLength.variance);
   }
@@ -386,7 +386,7 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
      scaffold->bpLength.mean > 0 &&
      fabs(scaffold->bpLength.mean - (scaffoldMaxPos - scaffoldMinPos)) > 100.0){
     fprintf(stderr,
-            "*!!! Sanity  scaffold " F_CID " length %g not equal to (max - min) %g\n",
+            "*!!! Sanity  scaffold "F_CID" length %g not equal to (max - min) %g\n",
             scaffold->id,
             scaffold->bpLength.mean, (scaffoldMaxPos - scaffoldMinPos));
 #ifdef STRICT_SCAFFOLD_CHECKING
@@ -403,7 +403,7 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
       numElements++;
     }else{
       fprintf(stderr,
-              "* Scaffold Sanity: node " F_CID " is screwed: %s%s%sin scaffold " F_CID "\n",
+              "* Scaffold Sanity: node "F_CID" is screwed: %s%s%sin scaffold "F_CID"\n",
               CI->id,
               (CI->scaffoldID == scaffold->id?"":"scaffoldID is wrong "),
               (!CI->flags.bits.isDead?"":"Dead "),
@@ -455,13 +455,13 @@ void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
       if( MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean) < currentMinPos)
         {
           fprintf( stderr,
-                   "CIs " F_CID " and " F_CID "are out of order\n",
+                   "CIs "F_CID" and "F_CID"are out of order\n",
                    CI->id, prevCI->id);
           fprintf( stderr,
-                   "CI " F_CID ": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
+                   "CI "F_CID": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
                    CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
           fprintf( stderr,
-                   "CI " F_CID ": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
+                   "CI "F_CID": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
                    prevCI->id, prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
           DumpCIScaffold(stderr, graph, scaffold, FALSE);
 
@@ -471,7 +471,7 @@ void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
               CI->offsetAEnd.mean += 1.0;
               CI->offsetBEnd.mean += 1.0;
               fprintf( stderr,
-                       "shifted pos of CI " F_CID " to (%f, %f)\n",
+                       "shifted pos of CI "F_CID" to (%f, %f)\n",
                        CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
             }
           else
@@ -578,7 +578,7 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
 
 #ifdef DEBUG_DETAILED
   fprintf(stderr,
-          "##### Adding delta (%g,%g) to scaffold " F_CID " at CI " F_CID " #######\n",
+          "##### Adding delta (%g,%g) to scaffold "F_CID" at CI "F_CID" #######\n",
 	  delta.mean, delta.variance, scaffoldIndex, indexOfCI);
 #endif
 

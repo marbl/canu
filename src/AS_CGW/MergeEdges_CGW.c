@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.32 2012-05-08 23:17:55 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.33 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -58,7 +58,7 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
     maxOffset = -overlap;
   }
 #ifdef DEBUG_CONFIRM
-  fprintf(stderr,"* chunk = "F_CID " endB = %d minOffset = "F_S32" maxoffset = "F_S32" overlap = "F_S32"\n",
+  fprintf(stderr,"* chunk = "F_CID" endB = %d minOffset = "F_S32" maxoffset = "F_S32" overlap = "F_S32"\n",
           chunkID, endB, minOffset, maxOffset,overlap);
 #endif
 
@@ -103,7 +103,7 @@ static int ConfirmOverlap(GraphCGW_T *graph,
 
   if((!mateEdge->flags.bits.hasExtremalAFrag &&
       !mateEdge->flags.bits.hasExtremalBFrag)){
-    //fprintf(stderr,"*1*  Confirming edge between chunks ("F_CID ","F_CID ") -- no extremal fragment\n",
+    //fprintf(stderr,"*1*  Confirming edge between chunks ("F_CID","F_CID") -- no extremal fragment\n",
     //    mateEdge->idA, mateEdge->idB);
     return TRUE;
   }
@@ -120,11 +120,11 @@ static int ConfirmOverlap(GraphCGW_T *graph,
                                                  overlap);
 #ifdef DEBUG_CONFIRM
     if(goodOverlapA){
-      fprintf(stderr,"*3*  Confirming edge between chunks ("F_CID ","F_CID ") found overlap of "F_S32"\n",
+      fprintf(stderr,"*3*  Confirming edge between chunks ("F_CID","F_CID") found overlap of "F_S32"\n",
               mateEdge->idA, mateEdge->idB, overlap);
     }else{
       fprintf(stderr,
-              "* Refuting edge between chunks ("F_CID ","F_CID ")\n",
+              "* Refuting edge between chunks ("F_CID","F_CID")\n",
               mateEdge->idA, mateEdge->idB);
     }
 #endif
@@ -139,11 +139,11 @@ static int ConfirmOverlap(GraphCGW_T *graph,
                                                  overlap);
 #ifdef DEBUG_CONFIRM
     if(goodOverlapB){
-      fprintf(stderr,"*3*  Confirming edge between chunks ("F_CID ","F_CID ") found overlap of "F_S32"\n",
+      fprintf(stderr,"*3*  Confirming edge between chunks ("F_CID","F_CID") found overlap of "F_S32"\n",
               mateEdge->idA, mateEdge->idB, overlap);
     }else{
       fprintf(stderr,
-              "* Refuting edge between chunks ("F_CID ","F_CID ")\n",
+              "* Refuting edge between chunks ("F_CID","F_CID")\n",
               mateEdge->idA, mateEdge->idB);
     }
 #endif
@@ -879,7 +879,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
     if (GlobalData->verbose)
       {
         fprintf(stderr,"**** Couldn't merge these \n");
-        fprintf(stderr,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID " and "F_CID "\n",
+        fprintf(stderr,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID" and "F_CID"\n",
                 numClusters, edge->idA, edge->idB);
         switch(graph->type){
           case CI_GRAPH:
@@ -920,7 +920,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
   if (GlobalData->verbose)
     {
       fprintf(stderr,"**** Couldn't merge these \n");
-      fprintf(stderr,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID " and "F_CID "\n",
+      fprintf(stderr,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID" and "F_CID"\n",
               numEdges, edge->idA, edge->idB);
     }
   numEdgesAdded = numEdges;

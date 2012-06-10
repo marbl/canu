@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.32 2012-04-02 09:56:06 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.33 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -189,7 +189,7 @@ PrintScafCompScaffold(FILE * fp, Scaffold * scaffold) {
 static
 void
 PrintContigElement(FILE * fp, ContigElement * ce) {
-  fprintf(fp, "    (%d, "F_CID ") len: %.f, min: %.f, max: %.f, orient: %c\n",
+  fprintf(fp, "    (%d, "F_CID") len: %.f, min: %.f, max: %.f, orient: %c\n",
           ce->index, ce->id, ce->length, ce->minCoord, ce->maxCoord,
           ce->orient.toLetter());
 }
@@ -2072,7 +2072,7 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
                                                 overlaps, numOverlaps,
                                                 cosData)) != 0) {
       fprintf(stderr, "*** WARNING ***\n"
-              "\tScaffolds "F_CID " and "F_CID " can't be merged with edge (%.2f,%.2f)\n"
+              "\tScaffolds "F_CID" and "F_CID" can't be merged with edge (%.2f,%.2f)\n"
               "\tbecause %d contigs would have to be re-ordered\n"
               "\t(consider modifying the code to handle this)\n",
               scaffoldA->id, scaffoldB->id,

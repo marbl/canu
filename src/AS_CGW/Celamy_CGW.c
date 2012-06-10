@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Celamy_CGW.c,v 1.27 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: Celamy_CGW.c,v 1.28 2012-06-10 05:52:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -442,7 +442,7 @@ CelamyScaffold(FILE        *fout,
     CIbCoord = MAX(0,CIbCoord);
 
     if (scaffold->type == REAL_SCAFFOLD) {
-      fprintf(fout,F_CID "ScaCtg"F_CID": "F_S64" A%dCGBColor "F_S64" R%d # Scaffold "F_CID" Ctg "F_CID"\n",
+      fprintf(fout,F_CID"ScaCtg"F_CID": "F_S64" A%dCGBColor "F_S64" R%d # Scaffold "F_CID" Ctg "F_CID"\n",
               scaffold->id, contigID,
               CIaCoord,
               CONTIG_COLOUR,
