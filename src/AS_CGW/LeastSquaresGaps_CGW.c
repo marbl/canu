@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.48 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.49 2012-06-16 03:40:20 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1921,9 +1921,9 @@ static int EdgeAndGapAreVaguelyCompatible(double distDiff,
                                           double maxDiffSlop,
                                           double maxSigmaSlop){
   if(distDiff>maxDiffSlop)return FALSE;
-  if(diffVar<0){
-    fprintf(stderr,"WARNING: variance difference is negative -- probably trouble with variances after interleaving\n");
-  }
+  //if(diffVar<0){
+  //  fprintf(stderr,"WARNING: variance difference is negative -- probably trouble with variances after interleaving\n");
+  //}
   if(fabs(distDiff)/sqrt(fabs(diffVar))>maxSigmaSlop)return FALSE;
   return TRUE;
 }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.35 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.36 2012-06-16 03:40:20 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -2073,7 +2073,7 @@ AddScaffoldInferredEdges(ScaffoldGraphT *graph) {
         inferredEdge->flags.bits.isConfirmed = TRUE;
         inferredEdge->flags.bits.isLeastSquares = TRUE;
 
-#if 1
+#if 0
         fprintf(stderr,"* Added inferred GraphEdge v1 (%d,%d,%c) isAContainsB:%d isBContainsA:%d fragA %d fragB %d isInferred %d isRaw %d\n",
                 inferredEdge->idA, inferredEdge->idB,
                 inferredEdge->orient.toLetter(),

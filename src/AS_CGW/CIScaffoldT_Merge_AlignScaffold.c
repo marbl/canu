@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CIScaffoldT_Merge_AlignScaffold.c,v 1.1 2012-05-04 05:27:33 brianwalenz Exp $";
+static const char *rcsid = "$Id: CIScaffoldT_Merge_AlignScaffold.c,v 1.2 2012-06-16 03:40:20 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "CIScaffoldT_Merge_AlignScaffold.h"
@@ -377,7 +377,7 @@ Project_across_Agap_one_interval(interval *inoutIval,COvlps **bestTerm, double A
 #else
     remainingToUseUp = Agap_length -  Agap_var * varwin;
     if (remainingToUseUp < 0) {
-      fprintf(stderr, "ALLOW_NEG_GAP_BACKUP would have fixed a negative remainingToUseUp of %f; we just set it to zero now!\n", remainingToUseUp);
+      //fprintf(stderr, "ALLOW_NEG_GAP_BACKUP would have fixed a negative remainingToUseUp of %f; we just set it to zero now!\n", remainingToUseUp);
       remainingToUseUp = 0;
     }
 #endif
