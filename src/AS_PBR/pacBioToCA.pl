@@ -234,6 +234,8 @@ my $shortReads = undef;
 my $libraryname = undef;
 my $specFile = undef;
 my $length = 500;
+my $coverage = 0;
+my $maxUncorrectedGap = 0;
 my $threads = 1;
 my $repeats = "";
 my $fastqFile = undef;
@@ -261,6 +263,12 @@ while (scalar(@ARGV) > 0) {
 
     } elsif ($arg eq "-shortReads") {
         $shortReads = 1;
+
+    } elsif ($arg eq "-coverage") {
+        $coverage = shift @ARGV;
+
+    } elsif ($arg eq "-maxGap") {
+        $maxUncorrectedGap = shift @ARGV;
 
     } elsif ($arg eq "-length") {
         $length = shift @ARGV;
@@ -306,6 +314,11 @@ if (($err) || (scalar(@fragFiles) == 0) || (!defined($fastqFile)) || (!defined($
     print STDERR "  -sgeCorrection           Parameters for the correction step for the grid. This should match the threads specified below, for example by using -pe threaded\n";
     print STDERR "  -l libraryname           Name of the library; freeformat text.\n";
     print STDERR "  -t threads               Number of threads to use for correction.\n";
+    print STDERR " -shortReads               Use if the sequences for correction are 100bp or shorter.\n";
+
+    print STDERR "\nAdvanced options (EXPERT):\n";
+    print STDERR " -coverage		     Specify the pacBio coverage (integer) instead of automatically estimating.\n";
+    print STDERR " -maxGap		     The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option allows a number of PacBio sequences without short-read coverage to remain. For example, specifying 50, will mean 50bp can have no short-read coverage without splitting the PacBio sequence. Warning: this will allow more sequences that went through the SMRTportal to not be fixed.\n";
     exit(1);
 }
 
@@ -432,6 +445,8 @@ if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
    print F "    echo Job previously completed successfully.\n";
    print F " else\n";
    print F "   $CA/correctPacBio \\\n";
+   print F "      -C $coverage \\\n";
+   print F "      -M $maxUncorrectedGap \\\n";
    print F "      -t $threads \\\n";
    print F "       -p $partitions \\\n";
    print F "       -o $asm \\\n";

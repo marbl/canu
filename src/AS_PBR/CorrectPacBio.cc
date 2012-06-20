@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.13 2012-02-27 02:40:42 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.14 2012-06-20 17:14:52 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -64,9 +64,11 @@ const char *mainid = "$Id: CorrectPacBio.cc,v 1.13 2012-02-27 02:40:42 skoren Ex
 using namespace std;
 
 #define  THREAD_STACKSIZE        (16 * 512 * 512)
-const uint8 MAX_COV     = 255;
-const double CUMULATIVE_SUM = 0.5; //0.95;
-const uint64 MAX_TO_READ = 100000;
+
+const uint16 MAX_COV_HIST	= 65535;
+const uint8 MAX_COV		= 255;
+const double CUMULATIVE_SUM	= 0.5; //0.95;
+const uint64 MAX_TO_READ	= 100000;
 
 map<AS_IID, uint64> *globalFrgToScore;
 
@@ -88,6 +90,7 @@ struct PBRThreadGlobals {
    pthread_mutex_t globalDataMutex;
 
    map<AS_IID, uint8> readsToPrint;
+   map<AS_IID, uint32> longReadsToPrint;
 
    // track number of active threads for output of layouts
    stack<pair<AS_IID, AS_IID> > toOutput;
@@ -106,7 +109,8 @@ struct PBRThreadGlobals {
    char      prefix[FILENAME_MAX];
 
    // read-only variables for thread
-   uint8 covCutoff;
+   uint16 covCutoff;
+   uint8  maxUncorrectedGap;
    map<AS_IID, uint32> frgToLen;
    map<AS_IID, uint8> frgToLib;
 
@@ -186,7 +190,7 @@ static uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS
 }
 
 // partition the work
-static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int &numThreads, int &partitions, uint32& perFile, PBRThreadWorkArea *wa) { 
+static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int &numThreads, int &partitions, uint32& perFile, PBRThreadWorkArea *wa) {
   uint32 lastEnd = 0;
   uint32 lastFile = 0;
   uint32 currThread = 0;
@@ -194,10 +198,10 @@ static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int &
   AS_IID firstFrag = 0;
   PBRThreadGlobals* waGlobal = wa[0].globals;
 
-  if (partitions > counter) { 
+  if (partitions > counter) {
      partitions = counter;
   }
-  if (numThreads > counter) { 
+  if (numThreads > counter) {
      numThreads = counter;
   }
 
@@ -208,7 +212,7 @@ static AS_IID partitionWork( uint32 counter, map<AS_IID, uint8>& frgToLib, int &
   counter = 0;
 
   for(map<AS_IID, uint8>::const_iterator iter = frgToLib.begin(); iter != frgToLib.end(); iter++) {
-     if (iter->second == TRUE) { 
+     if (iter->second == TRUE) {
         if (counter == 0) { firstFrag = iter->first; lastEnd = iter->first; }
         counter++;
      }
@@ -255,7 +259,7 @@ static void *  correctFragments(void *ptr) {
   map<AS_IID, uint8> readsToPrint;
   map<AS_IID, uint32> longReadsToPrint;
 
-  uint8  *readCoverage = new uint8[AS_READ_MAX_NORMAL_LEN];
+  uint16  *readCoverage = new uint16[AS_READ_MAX_NORMAL_LEN];
   map<AS_IID, OVSoverlap> frgToBest;
   map<AS_IID, uint64> frgToScore;
   OVSoverlap olap;
@@ -293,7 +297,7 @@ static void *  correctFragments(void *ptr) {
      }
 
      uint32 alen = waGlobal->frgToLen[i];
-     memset(readCoverage, 0, alen * sizeof(uint8));
+     memset(readCoverage, 0, alen * sizeof(uint16));
 
      frgToBest.clear();
      frgToScore.clear();
@@ -449,7 +453,7 @@ static void *  correctFragments(void *ptr) {
         tile[bid] = tileStr;
 
         if (readsToPrint[bid] == MAX_COV) {
-           if (longReadsToPrint[bid] == 0) { longReadsToPrint[bid] = MAX_COV; }
+           if (longReadsToPrint.find(bid) == longReadsToPrint.end()) { longReadsToPrint[bid] = MAX_COV; }
            longReadsToPrint[bid]++;
         } else {
            readsToPrint[bid]++;
@@ -483,7 +487,7 @@ static void *  correctFragments(void *ptr) {
            }
            mean = MAX(2, mean);
 
-           memset(readCoverage, 0, alen * sizeof(uint8));
+           memset(readCoverage, 0, alen * sizeof(uint16));
 
            if (waGlobal->numThreads > 1) {
               pthread_mutex_lock( &waGlobal->globalDataMutex);
@@ -498,7 +502,7 @@ static void *  correctFragments(void *ptr) {
            for (vector<OverlapPos>::iterator iter = mp.begin(); iter != mp.end(); ) {
               uint32 min = MIN(iter->position.bgn, iter->position.end);
               uint32 max = MAX(iter->position.bgn, iter->position.end);
-              uint8  max_cov = 0;
+              uint16  max_cov = 0;
 
               for (uint32 coverage = min; coverage <= max; coverage++) {
                  if (max_cov < readCoverage[coverage]) {
@@ -553,6 +557,8 @@ fprintf(stderr, "Thread %d set partition %d to be %d-%d\n", wa->id, currOpenID-1
    for (map<AS_IID, uint8>::iterator iter = readsToPrint.begin(); iter != readsToPrint.end(); iter++) {
       if (((uint32)waGlobal->readsToPrint[iter->first] + iter->second) > MAX_COV) {
          waGlobal->readsToPrint[iter->first] = MAX_COV;
+         if (waGlobal->longReadsToPrint.find(iter->first) == waGlobal->longReadsToPrint.end()) { waGlobal->longReadsToPrint[iter->first] = waGlobal->readsToPrint[iter->first]; }
+         waGlobal->longReadsToPrint[iter->first] += iter->second; 
       } else {
          waGlobal->readsToPrint[iter->first] += iter->second;
       }
@@ -599,6 +605,8 @@ fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %
      }
      part = bounds.first;
      map<AS_IID, uint8> readsToPrint;
+     map<AS_IID, uint8> readsWithGaps;
+     map<AS_IID, vector<pair<AS_IID, pair<uint32, uint32> > > > gaps;
      map<AS_IID, set<AS_IID> > readRanking;
      map<AS_IID, char*> frgToEnc;
 
@@ -642,6 +650,9 @@ fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %
      uint32 readIID = 0;
      char seq[AS_READ_MAX_NORMAL_LEN];
      char qlt[AS_READ_MAX_NORMAL_LEN];
+     AS_IID gapIID = MAX(1, waGlobal->partitionStarts[bounds.second].second + 1);
+     gapIID = MAX(gapIID, waGlobal->partitionStarts[bounds.first].second + 1);
+     fprintf(stderr, "Thread %d is output starting with gap sequence %d\n", wa->id, gapIID);
 
      while (!feof(inFile)) {
         uint32 readSubID = 1;
@@ -657,6 +668,7 @@ fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %
            OverlapPos o;
            SeqInterval bclr;
            fscanf(inFile, "TLE\t"F_IID"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n", &o.ident, &o.position.bgn, &o.position.end, &bclr.bgn, &bclr.end);
+//fprintf(stderr, "Read in record "F_IID" with start "F_U32" "F_U32"\n", o.ident, o.position.bgn, o.position.end);
            mp.push_back(o);
            bclrs[o.ident] = bclr;
         }
@@ -674,19 +686,40 @@ fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %
               continue;
            }
            if (lastEnd != 0 && lastEnd < MIN(iter->position.bgn, iter->position.end)) {
-              // close the layout and start a new one because we have a coverage gap
-              if (lastEnd - offset >= waGlobal->minLength) {
-                 fprintf(outFile, "%s}\n", layout.str().c_str());
+              // instead of  skipping, we will output the uncorrected sequence
+              if (MIN(iter->position.bgn, iter->position.end) - lastEnd < waGlobal->maxUncorrectedGap) {
+                 if (offset < 0) { 
+                    offset = 0; 
+                 }
+                 uint32 overlappingStart = (lastEnd-offset >= (waGlobal->maxUncorrectedGap / 3) ? lastEnd - (waGlobal->maxUncorrectedGap / 3) - offset: 0);
+                uint32 overlappingEnd = MIN(iter->position.bgn, iter->position.end) + (waGlobal->maxUncorrectedGap / 3) - offset;
+                // record this gap
+                fprintf(stderr, "For fragment %d had a gap from %d to %d inserting range %d from %d %d\n", i, lastEnd, MIN(iter->position.bgn, iter->position.end),gapIID, overlappingStart, overlappingEnd);
+                layout << "{TLE\nclr:"
+                       << 0
+                       << ","
+                       << overlappingEnd - overlappingStart
+                       << "\noff:" << overlappingStart
+                       << "\nsrc:" << gapIID
+                       << "\n}\n";
+               readsWithGaps[i] = 1;
+               pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(overlappingStart, overlappingEnd));
+               gaps[i].push_back(gapInfo);
+              } else {
+                 // close the layout and start a new one because we have a coverage gap
+                 if (lastEnd - offset >= waGlobal->minLength) {
+                    fprintf(outFile, "%s}\n", layout.str().c_str());
+                 }
+                 readIID++;
+                 readSubID++;
+                 offset = -1;
+                 layout.str("");
+                 layout << "{LAY\neid:" << i << "_" << readSubID << "\niid:" << readIID << "\n";
               }
-              readIID++;
-              readSubID++;
-              offset = -1;
-              layout.str("");
-              layout << "{LAY\neid:" << i << "_" << readSubID << "\niid:" << readIID << "\n";
            }
-
            if (offset < 0) {
               offset = MIN(iter->position.bgn, iter->position.end);
+//fprintf(stderr, "Updating offset in layout "F_IID" to be "F_U32"\n", i, offset);
            }
            SeqInterval bClr;
            bClr.bgn = 0;
@@ -695,6 +728,7 @@ fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %
            uint32 max = MAX(iter->position.bgn, iter->position.end);
            uint32 length = max - min;
 
+//fprintf(stderr, "Writing layout for frg "F_IID" "F_IID" "F_U32" "F_U32" "F_U32"\n", i, iter->ident, iter->position.bgn, iter->position.end, offset);
            layout << "{TLE\nclr:"
                   << (iter->position.bgn < iter->position.end ? bClr.bgn : bClr.end)
                   << ","
@@ -735,6 +769,30 @@ fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %
         decodeSequenceQuality((*theFrgs)[iter->first], (char*) &seq, (char *) &qlt);
         fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", 0, waGlobal->frgToLen[iter->first], iter->first, iter->first, qlt, seq);
      }
+     // output uncorrected sequences
+     if (waGlobal->numThreads > 1) {
+        pthread_mutex_lock(&waGlobal->globalDataMutex);
+     }
+     loadSequence(waGlobal->gkp, readsWithGaps, frgToEnc);
+     if (waGlobal->numThreads > 1) {
+        pthread_mutex_unlock(&waGlobal->globalDataMutex);
+     }
+     for (map<AS_IID, uint8>::const_iterator iter = readsWithGaps.begin(); iter != readsWithGaps.end(); iter++) {
+        if (iter->second == 0) {
+           continue;
+        }
+        if (frgToEnc[iter->first] == 0) {
+           fprintf(stderr, "Error no ID for read %d\n",iter->first);
+        }
+        if (gaps.find(iter->first) == gaps.end()) {
+           fprintf(stderr, "No gap list for read %d\n", iter->first);
+        }
+        decodeSequenceQuality(frgToEnc[iter->first], (char*) &seq, (char *) &qlt);
+        for (vector<pair<AS_IID, pair<uint32, uint32> > >::const_iterator j = gaps[iter->first].begin(); j != gaps[iter->first].end(); j++) {
+           fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", j->second.first, j->second.second, j->first, j->first, qlt, seq);
+        }
+     }
+
      for (map<AS_IID, char*>::iterator iter = frgToEnc.begin(); iter != frgToEnc.end(); iter++) {
         delete[] iter->second;
      }
@@ -761,6 +819,7 @@ main (int argc, char * argv []) {
   thread_globals.partitions        = 100;
   thread_globals.minLength         = 500;
   thread_globals.fixedMemory       = FALSE;
+  thread_globals.maxUncorrectedGap = 0;
   strcpy(thread_globals.prefix, "asm");
 
   argc = AS_configure(argc, argv);
@@ -807,6 +866,18 @@ main (int argc, char * argv []) {
        thread_globals.numThreads = atoi(argv[++arg]);
        if (thread_globals.numThreads <= 0) { thread_globals.numThreads = 1; }
  
+    } else if (strcmp(argv[arg], "-C") == 0){ 
+       int32 cutoff = atoi(argv[++arg]);
+       if (cutoff <= 0) { thread_globals.covCutoff = 0; }
+       else if (cutoff >= MAX_COV) {thread_globals.covCutoff = MAX_COV - 1; }
+       else { thread_globals.covCutoff = cutoff; }
+       fprintf(stderr, "The cutoff is set to be %d\n", thread_globals.covCutoff);
+
+    } else if (strcmp(argv[arg], "-M") == 0) {
+       int32 maxGap = atoi(argv[++arg]);
+       if (maxGap <= 0) { thread_globals.maxUncorrectedGap = 0; }
+       else { thread_globals.maxUncorrectedGap = maxGap; } 
+
     } else {
       err++;
     }
@@ -841,6 +912,8 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -p %d     output %d results files, corresponds to #of parallel consensus jobs desired\n", thread_globals.partitions, thread_globals.partitions);
     fprintf(stderr, "  -p %s     output prefix of %s\n", thread_globals.prefix, thread_globals.prefix);
     fprintf(stderr, "  -R %f     consider a pileup of %f times the mean for a single corrected read to be a repeat and distribute reads to their best locations (this is only useful for metagenomic or non-even coverage datasets. Otherwise the global repeat estimate is used instead)\n", thread_globals.repeatMultiplier, thread_globals.repeatMultiplier);
+    fprintf(stderr, " -C 	 Specify the pacBio coverage (integer) instead of automatically estimating.\n");
+    fprintf(stderr, " -M	 The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option allows a number of PacBio sequences without short-read coverage to remain. For example, specifying 50, will mean 50bp can have no short-read coverage without splitting the PacBio sequence. Warning: this will allow more sequences that went through the SMRTportal to not be fixed.\n");
     fprintf(stderr, "\n");
 
     if ((thread_globals.maxErate < 0.0) || (AS_MAX_ERROR_RATE < thread_globals.maxErate))
@@ -935,38 +1008,46 @@ main (int argc, char * argv []) {
          fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
       }
    }
+
+   double mean = 0;
    if (thread_globals.globalRepeats == TRUE) {
-      // compute global coverage of the reads we're correcting
-      // the number of mappings each high-identity read has should be equal to the coverage of our data we're correcting, except for repeats
-      // identify the cut off the peak
-      // we do this by finding the inflection point at the end of the curve (that is where we are past the peak and no longer decreasing)
-      double mean = 0;
-      double N = 0;
-      uint32* covHist = new uint32[MAX_COV + 1];
-      memset(covHist, 0, (MAX_COV + 1) * sizeof(uint32));
-      double prevScore = 0;
+      if (thread_globals.covCutoff == 0) {
+         // compute global coverage of the reads we're correcting
+         // the number of mappings each high-identity read has should be equal to the coverage of our data we're correcting, except for repeats
+         // identify the cut off the peak
+         // we do this by finding the inflection point at the end of the curve (that is where we are past the peak and no longer decreasing)
+         double N = 0;
+         uint32* covHist = new uint32[MAX_COV_HIST + 1];
+         memset(covHist, 0, (MAX_COV_HIST + 1) * sizeof(uint32));
+         double prevScore = 0;
 
-      for (map<AS_IID, uint8>::const_iterator iter = thread_globals.readsToPrint.begin(); iter != thread_globals.readsToPrint.end(); iter++) {
-         if (iter->second != 0) {
-             N++;
-             double delta = iter->second - mean;
-             mean += delta / N;
+         for (map<AS_IID, uint8>::const_iterator iter = thread_globals.readsToPrint.begin(); iter != thread_globals.readsToPrint.end(); iter++) {
+            if (iter->second != 0) {
+               uint32 val = iter->second;
+               if (val == MAX_COV) {
+                  val = thread_globals.longReadsToPrint[iter->first];
+               } 
+               N++;
+               double delta = val - mean;
+               mean += delta / N;
 
-             covHist[MIN(MAX_COV, iter->second)]++;
+               covHist[MIN(MAX_COV_HIST, val)]++;
+            }
          }
-      }
-      double prevRatio = 0;
-      double runningTotal = covHist[0] + covHist[1];
-      for (uint8 iter = 2; iter < MAX_COV; iter++) {
-         if (covHist[iter] <= covHist[iter-1] && (double)covHist[iter]/covHist[iter-1] > prevRatio && (runningTotal / N > CUMULATIVE_SUM)) {
-            thread_globals.covCutoff = iter - 1;
-            break;
-         }
-         prevRatio = (double)covHist[iter]/covHist[iter-1];
-         runningTotal += covHist[iter];
+
+         double prevRatio = 0;
+         double runningTotal = covHist[0] + covHist[1];
+         for (uint16 iter = 2; iter < MAX_COV_HIST; iter++) {
+            if (covHist[iter] <= covHist[iter-1] && (double)covHist[iter]/covHist[iter-1] > prevRatio && (runningTotal / N > CUMULATIVE_SUM)) {
+               thread_globals.covCutoff = iter - 1;
+               break;
+            }
+            prevRatio = (double)covHist[iter]/covHist[iter-1];
+            runningTotal += covHist[iter];
+          }
+          if (thread_globals.covCutoff == 0) thread_globals.covCutoff = MAX_COV;
+          delete[] covHist;
        }
-       if (thread_globals.covCutoff == 0) thread_globals.covCutoff = MAX_COV;
-       delete[] covHist;
        fprintf(stderr, "Picking cutoff as %d mean would be %f\n", thread_globals.covCutoff, mean);
 
        // now that we have a cutoff, stream the store and record which pacbio sequences the high-identity sequences should correct
@@ -1026,7 +1107,7 @@ main (int argc, char * argv []) {
 
          // now keep only the best cuttoff of those and store them for easy access
          uint64 lastScore = 0;
-         uint8 position = 0;
+         uint16 position = 0;
          set<AS_IID> readRanking;
          for (multimap<uint64, AS_IID>::reverse_iterator rank = scoreToReads.rbegin(); rank != scoreToReads.rend(); rank++) {
             if (readRanking.find(rank->second) != readRanking.end()) {
