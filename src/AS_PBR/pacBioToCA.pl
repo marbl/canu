@@ -346,7 +346,11 @@ my $AMOS = "$CA/../../../AMOS/bin/";
 my $wrk = makeAbsolute("");
 my $asm = "asm";
 my $caSGE  = `cat $specFile | awk '{if (match(\$1, \"sge\")== 1 && length(\$1) == 3 && match(\$1, \"#\") == 0) print \$0}'`;
+
+$caSGE =~ s/^\s+//;
+$caSGE =~ s/\s+$//;
 chomp($caSGE);
+
 if (length($caSGE) != 0) {
    if (!defined($sge) || length($sge) == 0) {
       $sge = $caSGE;
@@ -358,7 +362,10 @@ if (length($caSGE) != 0) {
    $caSGE = "sge=\"" . " -sync y\" sgePropagateHold=corAsm";
 }
 my $scriptParams = `cat $specFile |awk -F '=' '{if (match(\$1, \"sgeScript\") == 1 && match(\$1, \"#\") == 0) print \$0}'`;
+$scriptParams =~ s/^\s+//;
+$scriptParams =~ s/\s+$//;
 chomp($scriptParams);
+
 if (length($scriptParams) != 0) {
    if (!defined($sgeCorrection) || length($sgeCorrection) == 0) {
       if ($scriptParams =~ m/\s*(\w*)\s*=([^#]*)#*.*$/) {
@@ -372,6 +379,8 @@ if (length($scriptParams) != 0) {
 }
 
 my $useGrid = `cat $specFile | awk -F '=' '{if (match(\$1, \"useGrid\") == 1 && match(\$1, \"#\") == 0) print \$NF}'`;
+$useGrid =~ s/^\s+//;
+$useGrid =~ s/\s+$//;
 chomp($useGrid);
 if (length($useGrid) != 0) {
    $submitToGrid = $useGrid;
@@ -381,6 +390,8 @@ elsif (defined($sge)) {
 }
 
 my $caCNS  = `cat $specFile | awk -F '=' '{if (match(\$1, \"cnsConcurrency\")== 1) print \$2}'`;
+$caCNS =~ s/^\s+//;
+$caCNS =~ s/\s+$//;
 chomp($caCNS);
 if (length($caCNS) != 0) {
    $consensusConcurrency = $caCNS;
