@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.22 2012-02-27 02:44:12 skoren Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.23 2012-06-21 09:12:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -103,24 +103,27 @@ checkFiles(char **names, int32 namesLen) {
 
 int
 main(int argc, char **argv) {
-  int       insertSize       = 0;
-  int       insertStdDev     = 0;
-  char     *libraryName      = 0L;
+  int       insertSize         = 0;
+  int       insertStdDev       = 0;
+  bool      constantInsertSize = false;
 
-  bool      isMated          = false;
+  char     *libraryName        = 0L;
 
-  char     *type             = "sanger";
+  bool      isMated            = false;
 
-  char     *technology       = "illumina";
-  char     *orientInnie      = "innie";
-  char     *orientOuttie     = "outtie";
-  char     *orient           = orientInnie;
+  char     *type               = "sanger";
 
-  char    **reads            = new char * [argc];
-  int32     readsLen         = 0;
+  char     *technology         = "illumina";
+  char     *orientInnie        = "innie";
+  char     *orientOuttie       = "outtie";
+  char     *orient             = orientInnie;
 
-  char    **mates            = new char * [argc];
-  int32     matesLen         = 0;
+
+  char    **reads              = new char * [argc];
+  int32     readsLen           = 0;
+
+  char    **mates              = new char * [argc];
+  int32     matesLen           = 0;
 
   argc = AS_configure(argc, argv);
 
@@ -131,6 +134,11 @@ main(int argc, char **argv) {
       insertSize   = atoi(argv[++arg]);
       insertStdDev = atoi(argv[++arg]);
       isMated      = true;
+
+      if ((arg+1 < argc) && (strcmp(argv[arg+1], "constant") == 0)) {
+        constantInsertSize = true;
+        arg++;
+      }
 
     } else if (strcmp(argv[arg], "-libraryname") == 0) {
       libraryName = argv[++arg];
@@ -187,6 +195,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s [-insertsize <mean> <stddev>] [-libraryname <name>]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -insertsize i d    Mates are on average i +- d bp apart.\n");
+    fprintf(stderr, "                     If the word 'constant' follows the insert size, no changes will be\n");
+    fprintf(stderr, "                     made to the insert size.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -libraryname n     The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
@@ -287,6 +297,8 @@ main(int argc, char **argv) {
 
     gkl.forceShortReadFormat       = 0;
 
+    gkl.constantInsertSize         = constantInsertSize;
+
   } else if (strcasecmp(technology, "454") == 0) {
     gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 1;
@@ -307,6 +319,8 @@ main(int argc, char **argv) {
     gkl.doConsensusCorrection      = 0;
 
     gkl.forceShortReadFormat       = 0;
+
+    gkl.constantInsertSize         = constantInsertSize;
 
   } else if (strcasecmp(technology, "illumina") == 0) {
     gkl.forceBOGunitigger          = 1;
@@ -329,6 +343,8 @@ main(int argc, char **argv) {
 
     gkl.forceShortReadFormat       = 1;
 
+    gkl.constantInsertSize         = constantInsertSize;
+
   } else if (strcasecmp(technology, "experimental") == 0) {  // Jason testing all-Illumina
     gkl.forceBOGunitigger          = 0;
     gkl.doNotTrustHomopolymerRuns  = 0;
@@ -350,6 +366,8 @@ main(int argc, char **argv) {
 
     gkl.forceShortReadFormat       = 0;
 
+    gkl.constantInsertSize         = constantInsertSize;
+
   } else if (strcasecmp(technology, "pacbio") == 0) {
     gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 0;
@@ -370,8 +388,10 @@ main(int argc, char **argv) {
     gkl.doConsensusCorrection      = 1;
    
     gkl.forceShortReadFormat       = 0;
-  }
-  else if (strcasecmp(technology, "pacbio-long") == 0) {
+
+    gkl.constantInsertSize         = constantInsertSize;
+
+  } else if (strcasecmp(technology, "pacbio-long") == 0) {
     gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 0;
 
@@ -391,6 +411,8 @@ main(int argc, char **argv) {
     gkl.doConsensusCorrection      = 1;
     
     gkl.forceShortReadFormat       = 0;
+
+    gkl.constantInsertSize         = constantInsertSize;
   }
 
   gkl.isNotRandom                = 0;

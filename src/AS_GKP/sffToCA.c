@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.64 2012-05-11 18:35:15 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.65 2012-06-21 09:12:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1595,7 +1595,6 @@ processMate(gkFragment *fr,
       char  *seq = m1->gkFragment_getSequence();
       char  *qlt = m1->gkFragment_getQuality();
 
-      assert(fr->clrBgn >= 0);
       assert(lSize > 0);
 
       memmove(seq, fr->gkFragment_getSequence(), al.begJ);
@@ -1616,7 +1615,6 @@ processMate(gkFragment *fr,
       char  *qlt = m2->gkFragment_getQuality();
 
       assert(al.endJ >= 0);
-      assert(rSize >= 0);
 
       memmove(seq, fr->gkFragment_getSequence() + al.endJ, rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd));
       memmove(qlt, fr->gkFragment_getQuality()  + al.endJ, rSize + (fr->gkFragment_getSequenceLength() - fr->clrEnd));
@@ -1819,6 +1817,8 @@ addLibrary(char *libraryName,
   gkl.doConsensusCorrection      = 0;
 
   gkl.forceShortReadFormat       = 0;
+
+  gkl.constantInsertSize         = 0;
 
   if (haveLinker == FALSE) {
     gkl.mean        = 0;

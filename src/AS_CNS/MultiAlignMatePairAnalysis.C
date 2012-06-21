@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.5 2012-01-12 12:35:40 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.6 2012-06-21 09:12:16 brianwalenz Exp $";
 
 #include "MultiAlignMatePairAnalysis.H"
 
@@ -324,9 +324,25 @@ mpaLibraryData::writeUpdate(FILE *output, int32 libOrient, gkLibrary *library) {
   if (dist.size() == 0)
     return;
 
-  if ((library->orientation == libOrient) &&
-      (numSamples >= 100))
-    fprintf(output, "lib uid %s distance %.2f %.2f\n", library->libraryName, mean, stddev);
+  if (library->orientation != libOrient)
+    return;
+
+  if (numSamples <= 100) {
+    fprintf(stderr, "library %s has only "F_U64" samples; not updated in gatekeeper.\n",
+            library->libraryName, numSamples);
+    return;
+  }
+
+  if (library->constantInsertSize == true) {
+    fprintf(stderr, "library %s doesn't allow insert size changes; not updated in gatekeeper.\n",
+            library->libraryName);
+    return;
+  }
+
+  fprintf(stderr, "library %s updated to %.2f +- %.2f\n",
+          library->libraryName, mean, stddev);
+
+  fprintf(output, "lib uid %s distance %.2f %.2f\n", library->libraryName, mean, stddev);
 }
 
 
@@ -334,6 +350,8 @@ mpaLibraryData::writeUpdate(FILE *output, int32 libOrient, gkLibrary *library) {
 void
 matePairAnalysis::writeUpdate(char *prefix) {
   char   datName[FILENAME_MAX];
+
+  fprintf(stderr, "\n\n");
 
   if (prefix[strlen(prefix)-1] == '/')
     prefix[strlen(prefix)-1] = 0;

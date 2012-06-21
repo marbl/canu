@@ -95,6 +95,7 @@ public:
     forceShortReadFormat       = 0;
 
     spareLIB                   = 0;
+    constantInsertSize         = 0;
     orientation                = 0;
   };
 
@@ -145,7 +146,8 @@ public:
   uint64         forceShortReadFormat:1;       //  Default 0 -> store as long reads
 
   //  Library options
-  uint64         spareLIB:61;                  //  Spare for library changes
+  uint64         spareLIB:60;                  //  Spare for library changes
+  uint64         constantInsertSize:1;         //  Default 0 -> allow changes to insert size
   uint64         orientation:3;                //  Default 0 -> AS_READ_ORIENT_UNKNOWN
 };
 

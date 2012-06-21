@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.92 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.93 2012-06-21 09:12:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3110,7 +3110,6 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     dwork[i].mu             = 0.0;
     dwork[i].sigma          = 0.0;
     dwork[i].numSamples     = 0;
-    dwork[i].numReferences  = 0;
     dwork[i].min            = INT32_MAX;
     dwork[i].max            = INT32_MIN;
     dwork[i].bnum           = 0;
@@ -3119,6 +3118,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     dwork[i].lower          = dorig->mu - CGW_CUTOFF * dorig->sigma;
     dwork[i].upper          = dorig->mu + CGW_CUTOFF * dorig->sigma;
     dwork[i].numBad         = 0;
+    dwork[i].allowUpdate    = dorig->allowUpdate;
 
     dworkSamples[i]         = CreateVA_int32(1024);
     dworkFrags[i]           = CreateVA_CDS_CID_t(1024);
@@ -3209,8 +3209,6 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       //
       dorig = GetDistT(ScaffoldGraph->Dists, frag->dist);
       dfrg  = &dwork[frag->dist];
-
-      dfrg->numReferences++;
 
       if (operateOnNodes == UNITIG_OPERATIONS) {
         NodeCGW_T *unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
@@ -3442,8 +3440,6 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     DistT       *dfrg       = &dwork[i];
     int          numSamples = GetNumint32s(dworkSamples[i]);
 
-    if (dfrg->numReferences == 0)
-      continue;
     if (dfrg->numSamples == 0 || dfrg->numSamples == 1)
       continue;
 
@@ -3581,14 +3577,18 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
   }  //  over all distances
 
   //
-  // now set mean, stddev, size & number of buckets
+  // now set mean, stddev, size & number of buckets, and make an update for gatekeeper
   //
 
-  for (i=1; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
-    DistT *dfrg = &dwork[i];
+  char   updName[FILENAME_MAX];
 
-    FILE         *fout                   = NULL;
-    char          filename[FILENAME_MAX] = {0};
+  sprintf(updName, "stat/%s.distupdate", instance_label);
+
+  FILE *updFile = fopen(updName, "w");
+
+  for (i=1; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
+    DistT        *dfrg = &dwork[i];
+
     int           numSamples             = 0;
     int32        *samples                = NULL;
 
@@ -3597,141 +3597,85 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     if (dfrg->numSamples > minSamplesForOverride) {
       DistT  *dupd       = GetDistT(ScaffoldGraph->Dists, i);
 
-      dupd->mu             = dfrg->mu / dfrg->numSamples;
-      dupd->sigma          = sqrt((dfrg->sigma - dfrg->mu * dfrg->mu / dfrg->numSamples) / (dfrg->numSamples - 1));
+      double  newmu      = dfrg->mu / dfrg->numSamples;
+      double  newsigma   = sqrt((dfrg->sigma - dfrg->mu * dfrg->mu / dfrg->numSamples) / (dfrg->numSamples - 1));
+      
+      if (dupd->allowUpdate) {
+        dupd->mu           = newmu;
+        dupd->sigma        = newsigma;
+      }
       dupd->numSamples     = dfrg->numSamples;
-      dupd->numReferences  = dfrg->numReferences;
       dupd->min            = dfrg->min;
       dupd->max            = dfrg->max;
       dupd->bnum           = 0;
       dupd->bsize          = 0;
       dupd->lower          = dupd->mu - CGW_CUTOFF * dupd->sigma;
       dupd->upper          = dupd->mu + CGW_CUTOFF * dupd->sigma;
-      dupd->numReferences  = dfrg->numReferences;
       dupd->numBad         = dfrg->numBad;
+      dupd->allowUpdate    = dfrg->allowUpdate;
 
-      //  Generate a histogram.  Up before the tigStore (early October 2009) we were skipping this
-      //  for unitigs with the following comments:
-      //
-      //  If we're computing on unitigs, do NOT make a histogram.  What seems to occur (rarely) is
-      //  that we allocate the histogram, write a checkpoint with that pointer still there, then
-      //  somehow never again have enough samples to reset the pointer to something valid.  On
-      //  output, we try to write out invalid crud and bomb.
-      //
-      //  Unitigs are suspected here beacuse those are the only ones that are computed when
-      //  checkpoints are written.  Scaffold and contig computations are done right before final
-      //  output, and output cleans up the pointer.
-      //
-      //if (operateOnNodes != UNITIG_OPERATIONS) {
-        dupd->bnum           = 1;
-        dupd->bsize          = dfrg->max - dfrg->min;
+      dupd->bnum           = 1;
+      dupd->bsize          = dfrg->max - dfrg->min;
 
-        if (dupd->sigma > CGW_NUM_BUCKETS)
-          dupd->bnum = dupd->bsize * CGW_NUM_BUCKETS / dupd->sigma + 1;
+      if (dupd->sigma > CGW_NUM_BUCKETS)
+        dupd->bnum = dupd->bsize * CGW_NUM_BUCKETS / dupd->sigma + 1;
 
-        dupd->bsize /= dupd->bnum;
+      dupd->bsize /= dupd->bnum;
 
-        //  Remove any existing histogram, then reallocate (and clear)
-        //  one big enough.
+      //  Remove any existing histogram, then reallocate (and clear)
+      //  one big enough.
 
-        safe_free(dupd->histogram);
-        dupd->histogram = (int32 *)safe_calloc(dupd->bnum, sizeof(int32));
+      safe_free(dupd->histogram);
+      dupd->histogram = (int32 *)safe_calloc(dupd->bnum, sizeof(int32));
 
-        // output a histogram file for each library
+      // output a histogram file for each library
 
-        numSamples = GetNumint32s(dworkSamples[i]);
-        samples    = Getint32(dworkSamples[i],0);
+      numSamples = GetNumint32s(dworkSamples[i]);
+      samples    = Getint32(dworkSamples[i],0);
 
-        for (j=0; j<numSamples ; j++) {
-          int32 binNum = (samples[j] - dupd->min) / (double)dupd->bsize;
+      for (j=0; j<numSamples ; j++) {
+        int32 binNum = (samples[j] - dupd->min) / (double)dupd->bsize;
 
-          binNum = MIN(binNum, dupd->bnum - 1);
-          binNum = MAX(binNum,0);
+        binNum = MIN(binNum, dupd->bnum - 1);
+        binNum = MAX(binNum,0);
 
-          dupd->histogram[binNum]++;
-        }
-      //}
+        dupd->histogram[binNum]++;
+      }
 
       numSamples = GetNumint32s(dworkSamples[i]);
       samples    = Getint32(dworkSamples[i],0);
 
       qsort(samples, numSamples, sizeof(int32), &compareInt);
 
-      sprintf(filename, "stat/%s.distlib_%d.cgm", instance_label, i);
-      fout = fopen(filename, "w");
-      AssertPtr(fout);
+      sprintf(updName, "stat/%s.distlib_%d.cgm", instance_label, i);
+      FILE *cgmFile = fopen(updName, "w");
 
-      fprintf( fout, "lib %d mu %g sigma %g\n", i, dupd->mu, dupd->sigma);
-      for (j=0; j<numSamples; j++)
-        fprintf(fout, "%d\n", samples[j]);
-      fclose(fout);
+      if (cgmFile) {
+        fprintf(cgmFile, "lib %d mu %g sigma %g%s\n", i, newmu, newsigma, dupd->allowUpdate ? "" : " (NOT UPDATED)");
+        for (j=0; j<numSamples; j++)
+          fprintf(cgmFile, "%d\n", samples[j]);
+        fclose(cgmFile);
+      }
+
+      if (updFile)
+        if (dupd->allowUpdate)
+          fprintf(updFile, "lib iid %d distance %.2f %.2f\n", i, dupd->mu, dupd->sigma);
+        else
+          fprintf(updFile, "#lib iid %d distance %.2f %.2f # would have updated to %.2f %.2f but not allowed\n", i, dupd->mu, dupd->sigma, newmu, newsigma);
 
     }  //  end of update
 
     DeleteVA_CDS_CID_t(dworkSamples[i]);
     DeleteVA_CDS_CID_t(dworkFrags[i]);
     DeleteVA_CDS_CID_t(dworkMates[i]);
-
   }  //  over all distances
+
+  fclose(updFile);
 
   delete [] dwork;
   delete [] dworkSamples;
   delete [] dworkFrags;
   delete [] dworkMates;
-
-  //  Finally, output a file appropriate for sending to gatekeeper, to
-  //  update the distances there.  This is used by some modes of
-  //  runCA-OBT.
-  //
-  //  We have to grab the UID from gatekeeper.  Sigh.
-  {
-    gkStore  *gkpStore = new gkStore(GlobalData->gkpStoreName, FALSE, FALSE);
-    FILE             *fout;
-    char              filename[FILENAME_MAX];
-    GenericMesg       pmesg;
-    VersionMesg       vmesg;
-    LibraryMesg       lmesg;
-
-    sprintf(filename, "stat/%s.distupdate.dst", instance_label);
-
-    fout = fopen(filename, "w");
-    AssertPtr(fout);
-
-    AS_MSG_setFormatVersion(2);
-
-    vmesg.version = 2;
-    pmesg.m = &vmesg;
-    pmesg.t = MESG_VER;
-    WriteProtoMesg_AS(fout, &pmesg);
-
-    for (i=1; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
-      DistT           *dptr = GetDistT(ScaffoldGraph->Dists, i);
-      gkLibrary       *gkpl = gkpStore->gkStore_getLibrary(i);
-
-      lmesg.action     = AS_UPDATE;
-      lmesg.eaccession = gkpl->libraryUID;
-      lmesg.mean       = dptr->mu;
-      lmesg.stddev     = dptr->sigma;
-      lmesg.source     = NULL;
-      lmesg.link_orient.setIsUnknown();  //  Not used for AS_UPDATE
-      lmesg.num_features = 0;            //  Not used for AS_UPDATE
-      lmesg.features     = NULL;         //  Not used for AS_UPDATE
-      lmesg.values       = NULL;         //  Not used for AS_UPDATE
-
-      fflush(fout);
-      fprintf(fout, "# LIB %s %f +- %f -> %f +- %f\n",
-              AS_UID_toString(lmesg.eaccession), gkpl->mean, gkpl->stddev, dptr->mu, dptr->sigma);
-      fflush(fout);
-
-      pmesg.m = &lmesg;
-      pmesg.t = MESG_LIB;
-      WriteProtoMesg_AS(fout, &pmesg);
-    }
-
-    fclose(fout);
-
-    delete gkpStore;
-  }
 }
 
 

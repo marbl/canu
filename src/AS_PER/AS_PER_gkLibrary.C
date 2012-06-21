@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.19 2012-02-06 08:28:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.20 2012-06-21 09:12:16 brianwalenz Exp $";
 
 #include "AS_PER_gkpStore.h"
 
@@ -166,6 +166,9 @@ gkLibrary::gkLibrary_setFeature(char *fea, char *val) {
 
   //  Library options (orientation is not a feature, it's part of the library)
 
+  else if (strcasecmp(fea, "constantInsertSize") == 0)
+    constantInsertSize = decodeBoolean("constantInsertSize", val);
+
   else
     fprintf(stderr, "gkLibrary_decodeFeatures()-- found feature '%s' but don't understand it.\n",
             fea);
@@ -258,6 +261,7 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
   encodeFeature(forceShortReadFormat);
 
   //  Library options (orientation is not a feature, it's part of the library)
+  encodeFeature(constantInsertSize);
 
   lmesg->num_features = nf;
 

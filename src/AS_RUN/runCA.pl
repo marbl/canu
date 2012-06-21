@@ -4627,7 +4627,7 @@ sub postUnitiggerConsensus () {
         if (runCommand("$wrk/5-consensus-insert-sizes", $cmd)) {
             caFailure("Insert size estimation failed", "$wrk/5-consensus-insert-sizes/estimates.out");
         }
-    }
+     }
 
     #
     #  Update estimates in gatekeeper
@@ -4962,22 +4962,42 @@ sub eCR ($$$) {
 sub updateDistanceRecords ($) {
     my $thisDir = shift @_;
 
-    return if (-e "$wrk/$thisDir/cgw.distupdate.success");
+    return if (-e "$wrk/$thisDir/$asm.distupdate.success");
 
-    #  Older versions needed to actually compute the updated
-    #  distances.  Now, cgw outputs it!  Yay!
+    open(F, "> $wrk/$thisDir/$asm.distupdate");
 
-    my $gkpErrorFile = "$wrk/$thisDir/gkp.distupdate.err";
-    $cmd  = "$bin/gatekeeper ";
-    $cmd .= " -a -o $wrk/$asm.gkpStore ";
-    $cmd .= " $wrk/$thisDir/stat/scaffold_final.distupdate.dst ";
-    $cmd .= " $wrk/$thisDir/stat/contig_final.distupdate.dst ";
-    $cmd .= " > $wrk/$thisDir/cgw.distupdate.err 2>&1";
-    if (runCommand("$wrk/$thisDir", $cmd)) {
-        caFailure("gatekeeper distance update failed", "$wrk/$thisDir/cgw.distupdate.err");
+    print F "## Scaffold Based Estimates\n";
+    if (-e "$wrk/$thisDir/stat/scaffold_final.distupdate") {
+        open(A, "< $wrk/$thisDir/stat/scaffold_final.distupdate");
+        while (<A>) {
+            print F $_;
+        }
+        close(A);
     }
 
-    touch("$wrk/$thisDir/cgw.distupdate.success");
+    print F "## Contig Based Estimates\n";
+    if (-e "$wrk/$thisDir/stat/contig_final.distupdate") {
+        open(A, "< $wrk/$thisDir/stat/contig_final.distupdate");
+        while (<A>) {
+            print F $_;
+        }
+        close(A);
+    }
+
+    close(F);
+
+    $cmd  = "$bin/gatekeeper \\\n";
+    $cmd .= " --edit $wrk/$thisDir/$asm.distupdate \\\n";
+    $cmd .= "        $wrk/$asm.gkpStore \\\n";
+    $cmd .= "> $wrk/$thisDir/$asm.distupdate.err 2>&1";
+
+    if (runCommand("$wrk/$thisDir", $cmd)) {
+        caFailure("Insert size updates failed", "$wrk/$thisDir/$asm.distupdate.err");
+    }
+
+    touch("$wrk/$thisDir/$asm.distupdate.success");
+
+    return $thisDir;
 }
 
 
@@ -5008,7 +5028,7 @@ sub scaffolder () {
 
 
     #  If we're not doing eCR, we just do a single scaffolder run, and
-    #  get the heck outta here!  OK, we'll do resolveSurrogates(), maybe.
+    #  get the heck outta here!
     #
     if (getGlobal("doExtendClearRanges") == 0) {
         $lastDir = CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", $stoneLevel, undef, 1);
@@ -5017,7 +5037,7 @@ sub scaffolder () {
 
         #  Do the initial CGW, making sure to not throw stones.
         #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", 0, undef, 0);
+        $lastDir = updateDistanceRecords(CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", 0, undef, 0));
         $thisDir++;
 
         #  Followed by at least one eCR
@@ -5031,7 +5051,7 @@ sub scaffolder () {
         #
         my $iterationMax = getGlobal("doExtendClearRanges") + 1;
         for (my $iteration = 2; $iteration < $iterationMax; $iteration++) {
-            $lastDir = CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", 0, "ckp01-ABS", 0);
+            $lastDir = updateDistanceRecords(CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", 0, "ckp01-ABS", 0));
             $thisDir++;
 
             $lastDir = eCR("7-$thisDir-ECR", $lastDir, $iteration);
@@ -5041,7 +5061,7 @@ sub scaffolder () {
         #  Then another scaffolder, chucking stones into the big holes,
         #  filling in surrogates, and writing output.
         #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", $stoneLevel, "ckp01-ABS", 1);
+        $lastDir = updateDistanceRecords(CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", $stoneLevel, "ckp01-ABS", 1));
         $thisDir++;
     }
 

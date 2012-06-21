@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.74 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.75 2012-06-21 09:12:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -361,8 +361,8 @@ LoadDistData(void) {
     dist.histogram      = NULL;
     dist.lower          = dist.mu - CGW_CUTOFF * dist.sigma;
     dist.upper          = dist.mu + CGW_CUTOFF * dist.sigma;
-    dist.numReferences  = 0;
     dist.numBad         = 0;
+    dist.allowUpdate    = (gkpl->constantInsertSize == false);
 
     fprintf(stderr,"* Loaded dist %s,"F_CID" (%g +/- %g)\n",
             AS_UID_toString(gkpl->libraryUID), i, dist.mu, dist.sigma);
