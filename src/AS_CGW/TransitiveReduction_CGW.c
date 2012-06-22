@@ -18,25 +18,21 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.36 2012-06-16 03:40:20 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.37 2012-06-22 07:54:30 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
 #define INSTRUMENT_TRANS_REDUCED
 
 #include "AS_global.h"
-#include "AS_UTL_heap.h"
-#include "AS_UTL_interval.h"
-#include "AS_CGW_dataTypes.h"
-#include "UnionFind_AS.h"
+
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
-#include "ChiSquareTest_CGW.h"
-#include "DataTypesREZ.h"
-#include "CommonREZ.h"
 #include "Instrument_CGW.h"
-#include "UtilsREZ.h"
+#include "ChiSquareTest_CGW.h"
+
+#include "DataTypesREZ.h"  //  Target_Info_t
 
 #include "omp.h"
 
@@ -344,13 +340,14 @@ MarkPathRemovedEdgesOMP(ScaffoldGraphT *graph) {
   GraphNodeIterator nodes;
   ChunkInstanceT   *node;
 
-  int32  numNodes = 0;
+  int32  numNodes   = 0;
+  int32  numThreads = omp_get_max_threads();
 
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((node = NextGraphNodeIterator(&nodes)) != NULL)
     numNodes++;
 
-  fprintf(stderr, "MarkPathRemovedEdgesOMP()-- working on "F_U32" nodes, with %d threads.\n", numNodes, omp_get_num_threads());
+  fprintf(stderr, "MarkPathRemovedEdgesOMP()-- working on %d nodes, with %d threads.\n", numNodes, numThreads);
 
   ChunkInstanceT **nodeList = new ChunkInstanceT * [numNodes];
 
@@ -360,7 +357,11 @@ MarkPathRemovedEdgesOMP(ScaffoldGraphT *graph) {
   while((node = NextGraphNodeIterator(&nodes)) != NULL)
     nodeList[numNodes++] = node;
 
-#pragma omp parallel for schedule(dynamic, numNodes/100)
+  int32 blockSize = (numNodes < 100 * numThreads) ? numThreads : numNodes / 99;      //  Up to 100 blocks.
+
+  assert(0 < blockSize);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
   for (int32 ni=0; ni<numNodes; ni++) {
     MarkPathRemovedEdgesOneEnd(graph, nodeList[ni], A_END);
     MarkPathRemovedEdgesOneEnd(graph, nodeList[ni], B_END);
@@ -497,13 +498,14 @@ MarkTwoHopConfirmedEdgesOMP(ScaffoldGraphT *graph) {
   GraphNodeIterator nodes;
   ChunkInstanceT   *node;
 
-  int32  numNodes = 0;
+  int32  numNodes   = 0;
+  int32  numThreads = omp_get_max_threads();
 
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((node = NextGraphNodeIterator(&nodes)) != NULL)
     numNodes++;
 
-  fprintf(stderr, "MarkTwoHopConfirmedEdgesOMP()-- working on "F_U32" nodes, with %d threads.\n", numNodes, omp_get_num_threads());
+  fprintf(stderr, "MarkTwoHopConfirmedEdgesOMP()-- working on %d nodes, with %d threads.\n", numNodes, omp_get_max_threads());
 
   ChunkInstanceT **nodeList = new ChunkInstanceT * [numNodes];
 
@@ -513,7 +515,11 @@ MarkTwoHopConfirmedEdgesOMP(ScaffoldGraphT *graph) {
   while((node = NextGraphNodeIterator(&nodes)) != NULL)
     nodeList[numNodes++] = node;
 
-#pragma omp parallel for schedule(dynamic, numNodes/100)
+  int32 blockSize = (numNodes < 100 * numThreads) ? numThreads : numNodes / 99;      //  Up to 100 blocks.
+
+  assert(0 < blockSize);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
   for (int32 ni=0; ni<numNodes; ni++) {
     MarkTwoHopConfirmedEdgesOneEnd(graph, nodeList[ni], A_END);
     MarkTwoHopConfirmedEdgesOneEnd(graph, nodeList[ni], B_END);
