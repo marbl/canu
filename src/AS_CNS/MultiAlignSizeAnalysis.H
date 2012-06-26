@@ -20,7 +20,7 @@
 #ifndef MULTIALIGNSIZEANALYSIS
 #define MULTIALIGNSIZEANALYSIS
 
-static const char *rcsid_MULTIALIGNSIZEANALYSIS = "$Id: MultiAlignSizeAnalysis.H,v 1.1 2012-03-26 07:58:27 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSIZEANALYSIS = "$Id: MultiAlignSizeAnalysis.H,v 1.2 2012-06-26 14:08:30 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -47,13 +47,16 @@ public:
 private:
   uint64          genomeSize;
 
-  vector<uint32>  utgLenUnassigned;
+  vector<uint32>  utgLenUnassigned;  //  Only unitigs have these labels
   vector<uint32>  utgLenUnique;
   vector<uint32>  utgLenSep;
   vector<uint32>  utgLenNotRez;
 
-  vector<uint32>  ctgLenPlaced;
+  vector<uint32>  ctgLenPlaced;      //  Only contigs have these labels
   vector<uint32>  ctgLenUnplaced;
+
+  vector<uint32>  tigLenSingleton;   //  Both contigs and unitigs can be assembled or single-fragment
+  vector<uint32>  tigLenAssembled;
 };
 
 

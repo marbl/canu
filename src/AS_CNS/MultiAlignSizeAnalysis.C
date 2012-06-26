@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignSizeAnalysis.C,v 1.1 2012-03-26 07:58:27 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignSizeAnalysis.C,v 1.2 2012-06-26 14:08:30 brianwalenz Exp $";
 
 #include "MultiAlignSizeAnalysis.H"
 
@@ -70,25 +70,28 @@ sizeAnalysis::evaluateTig(MultiAlignT *ma, bool isUnitig) {
     //  only occur for pre-consensus unitigs.
     length = GetMultiAlignLength(ma);
 
-
-  if        ((isUnitig == true) && (ma->data.unitig_status == AS_UNASSIGNED)) {
+  if      ((isUnitig == true) && (ma->data.unitig_status == AS_UNASSIGNED))
     utgLenUnassigned.push_back(length);
 
-  } else if ((isUnitig == true) && (ma->data.unitig_status == AS_UNIQUE)) {
+  else if ((isUnitig == true) && (ma->data.unitig_status == AS_UNIQUE))
     utgLenUnique.push_back(length);
 
-  } else if ((isUnitig == true) && (ma->data.unitig_status == AS_SEP)) {
+  else if ((isUnitig == true) && (ma->data.unitig_status == AS_SEP))
     utgLenSep.push_back(length);
 
-  } else if ((isUnitig == true) && (ma->data.unitig_status == AS_NOTREZ)) {
+  else if ((isUnitig == true) && (ma->data.unitig_status == AS_NOTREZ))
     utgLenNotRez.push_back(length);
 
-  } else if ((isUnitig == false) && (ma->data.contig_status == AS_UNPLACED)) {
+  else if ((isUnitig == false) && (ma->data.contig_status == AS_UNPLACED))
     ctgLenUnplaced.push_back(length);
 
-  } else if ((isUnitig == false) && (ma->data.contig_status == AS_PLACED)) {
+  else if ((isUnitig == false) && (ma->data.contig_status == AS_PLACED))
     ctgLenPlaced.push_back(length);
-  }
+
+  if (ma->data.num_frags == 1)
+    tigLenSingleton.push_back(length);
+  else
+    tigLenAssembled.push_back(length);
 }
 
 void
@@ -100,6 +103,10 @@ sizeAnalysis::finalize(void) {
 
   sort(ctgLenPlaced.rbegin(),     ctgLenPlaced.rend());
   sort(ctgLenUnplaced.rbegin(),   ctgLenUnplaced.rend());
+
+  sort(tigLenSingleton.rbegin(),  tigLenSingleton.rend());
+  sort(tigLenAssembled.rbegin(),  tigLenAssembled.rend());
+
 }
 
 void
@@ -150,4 +157,7 @@ sizeAnalysis::printSummary(FILE *out) {
 
   printSummary(out, "ctgLenPlaced",     ctgLenPlaced);
   printSummary(out, "ctgLenUnplaced",   ctgLenUnplaced);
+
+  printSummary(out, "tigLenSingleton",  tigLenSingleton);
+  printSummary(out, "tigLenAssembled",  tigLenAssembled);
 }
