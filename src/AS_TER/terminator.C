@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.14 2012-02-21 00:30:37 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.15 2012-06-26 14:05:05 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -305,6 +305,10 @@ bool buildUTGMessage(int32 ID, SnapUnitigMesg *utg) {
   utg->f_list        = (SnapMultiPos*)safe_malloc(utg->num_frags * sizeof(SnapMultiPos));
   utg->v_list        = NULL;
 
+  if (utg->consensus == NULL)
+    fprintf(stderr, "buildUTGMessage()-- unitig %d missing consensus sequence\n",
+            utg->iaccession);
+  assert(utg->consensus != NULL);
   if (utg->length != strlen(utg->consensus))
     fprintf(stderr, "buildUTGMessage()-- unitig %d length %d != consensus string length "F_SIZE_T"\n",
             utg->iaccession, utg->length, strlen(utg->consensus));
@@ -564,6 +568,10 @@ writeCCO(FILE *asmFile, bool doWrite) {
     cco.unitigs     = NULL;
     cco.vars        = NULL;
 
+    if (cco.consensus == NULL)
+      fprintf(stderr, "buildCCOMessage()-- contig %d missing consensus sequence\n",
+              cco.iaccession);
+    assert(cco.consensus != NULL);
     if (cco.length != strlen(cco.consensus))
       fprintf(stderr, "buildCCOMessage()-- contig %d length %d != consensus string length "F_SIZE_T"\n",
               cco.iaccession, cco.length, strlen(cco.consensus));
