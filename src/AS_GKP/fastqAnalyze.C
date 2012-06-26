@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqAnalyze.C,v 1.3 2012-03-21 23:37:56 brianwalenz Exp $";
+const char *mainid = "$Id: fastqAnalyze.C,v 1.4 2012-06-26 00:09:19 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -33,23 +33,13 @@ main(int argc, char **argv) {
   bool    originalIsIllumina = false;
   bool    originalIsSanger   = false;
 
-  bool    analyzeOnly        = false;
   bool    correctToSanger    = false;
-
 
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-i") == 0) {
-      inName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-o") == 0) {
-      otName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-analyze") == 0) {
-      analyzeOnly = true;
-
-    } else if (strcmp(argv[arg], "-correct") == 0) {
+    if        (strcmp(argv[arg], "-o") == 0) {
+      otName          = argv[++arg];
       correctToSanger = true;
 
     } else if (strcmp(argv[arg], "-solexa") == 0) {
@@ -61,23 +51,39 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-sanger") == 0) {
       originalIsSanger = true;
 
+    } else if (inName == NULL) {
+      inName = argv[arg];
+
     } else {
       err++;
     }
 
     arg++;
   }
-  if (err) {
-    fprintf(stderr, "usage: %s\n", argv[0]);
-    fprintf(stderr, "  -i in.fastq\n");
-    fprintf(stderr, "  -o out.fastq\n");
+  if ((err) || (inName == NULL)) {
+    fprintf(stderr, "usage: %s [options] [-o output.fastq] input.fastq\n", argv[0]);
+    fprintf(stderr, "  If no options are given, input.fastq is analyzed and a best guess for the\n");
+    fprintf(stderr, "  QC encoding is output.  Otherwise, the QV encoding is converted to Sanger-style\n");
+    fprintf(stderr, "  using this guess.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  In some cases, the encoding cannot be determined.  When this occurs, no guess is\n");
+    fprintf(stderr, "  output.  For conversion, you can force the input QV type with:\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -solexa     input QV is solexa\n");
     fprintf(stderr, "  -illumina   input QV is illumina\n");
     fprintf(stderr, "  -sanger     input QV is sanger\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o          sanger-style-output.fastq\n");
     exit(1);
   }
 
+  uint32 numValid  = 5;
+  uint32 numTrials = 100000;
+
+  char   A[1024];
+  char   B[1024];
+  char   C[1024];
+  char   D[1024];
 
   if ((originalIsSolexa   == false) &&
       (originalIsIllumina == false) &&
@@ -87,22 +93,18 @@ main(int argc, char **argv) {
     if (errno)
       fprintf(stderr, "Failed to open '%s' for reading: %s\n", inName, strerror(errno)), exit(1);
 
+    //  Initially, it could be any of these.
+    //
     bool   isNotSanger    = false;
     bool   isNotSolexa    = false;
     bool   isNotIllumina3 = false;
     bool   isNotIllumina5 = false;
     bool   isNotIllumina8 = false;
 
-    uint32 numValid  = 5;
-    uint32 numTrials = 100000;
-
-    char   A[1024];
-    char   B[1024];
-    char   C[1024];
-    char   D[1024];
+    uint32 qvCounts[256]  = {0};
 
     while ((!feof(F)) &&
-           (numValid > 1) &&
+           (numValid != 1) &&
            (numTrials > 0)) {
       fgets(A, 1024, F);
       fgets(B, 1024, F);
@@ -122,26 +124,14 @@ main(int argc, char **argv) {
         if ('h' < D[x])  isNotIllumina5 = true;  //  Illumina 1.5
         if ('J' < D[x])  isNotIllumina8 = true;  //  Illumina 1.5
 
-#if 0
-        fprintf(stderr, "%d%d%d%d%d %c %d\n",
-                isNotSanger,
-                isNotSolexa,
-                isNotIllumina3,
-                isNotIllumina5,
-                isNotIllumina8,
-                D[x], x);
-#endif
+        qvCounts[D[x]]++;
+
+        //fprintf(stderr, "%d%d%d%d%d %c %d\n",
+        //        isNotSanger, isNotSolexa, isNotIllumina3, isNotIllumina5, isNotIllumina8, D[x], x);
       }
 
-#if 0
-      fprintf(stderr, "%d%d%d%d%d '%s'\n",
-              isNotSanger,
-              isNotSolexa,
-              isNotIllumina3,
-              isNotIllumina5,
-              isNotIllumina8,
-              D);
-#endif
+      //fprintf(stderr, "%d%d%d%d%d '%s'\n",
+      //        isNotSanger, isNotSolexa, isNotIllumina3, isNotIllumina5, isNotIllumina8, D);
 
       numValid = 0;
 
@@ -160,11 +150,25 @@ main(int argc, char **argv) {
 
     if (isNotSanger    == false)  fprintf(stdout, " SANGER");
     if (isNotSolexa    == false)  fprintf(stdout, " SOLEXA");
-    if (isNotIllumina3 == false)  fprintf(stdout, " ILLUMINA 1.3+");
-    if (isNotIllumina5 == false)  fprintf(stdout, " ILLUMINA 1.5+");
-    if (isNotIllumina8 == false)  fprintf(stdout, " ILLUMINA 1.8+");
+    if (isNotIllumina3 == false)  fprintf(stdout, " ILLUMINA_1.3+");
+    if (isNotIllumina5 == false)  fprintf(stdout, " ILLUMINA_1.5+");
+    if (isNotIllumina8 == false)  fprintf(stdout, " ILLUMINA_1.8+");
+    if (numValid       == 0)      fprintf(stdout, " NO_VALID_ENCODING");
 
     fprintf(stdout, "\n");
+
+    if (numValid == 0) {
+      fprintf(stdout, "QV histogram:\n");
+
+      for (uint32 c=0, i=0; i<12; i++) {
+        fprintf(stdout, "%3d: ", i * 10);
+
+        for (uint32 j=0; j<10; j++, c++)
+          fprintf(stdout, " %8d/%c", qvCounts[c], isprint(c) ? c : '.');
+
+        fprintf(stdout, "\n");
+      }
+    }
 
     if (isNotSanger    == false)  originalIsSanger   = true;
     if (isNotSolexa    == false)  originalIsSolexa   = true;
@@ -173,20 +177,20 @@ main(int argc, char **argv) {
     if (isNotIllumina8 == false)  originalIsSanger   = true;
   }
 
-  if (analyzeOnly)
+  if (correctToSanger == false)
     exit(0);
 
-  uint32 numValid = 0;
+  numValid = 0;
 
   if (originalIsSanger    == true)  numValid++;
   if (originalIsSolexa    == true)  numValid++;
   if (originalIsIllumina  == true)  numValid++;
 
   if (numValid == 0)
-    fprintf(stderr, "No QV decision made.  Check the file.\n"), exit(0);
+    fprintf(stderr, "No QV decision made.  No valid encoding found.  Specify a QV encoding to convert from.\n"), exit(0);
 
   if (numValid > 1)
-    fprintf(stderr, "No QV decision made.  Multiple possibilities.\n"), exit(0);
+    fprintf(stderr, "No QV decision made.  Multiple valid encodings found.  Specify a QV encoding to convert from.\n"), exit(0);
 
 
   if ((correctToSanger) &&
@@ -205,11 +209,6 @@ main(int argc, char **argv) {
     FILE *O = fopen(otName, "w");
     if (errno)
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", otName, strerror(errno)), exit(1);
-
-    char   A[1024];
-    char   B[1024];
-    char   C[1024];
-    char   D[1024];
 
     while (!feof(F)) {
       fgets(A, 1024, F);
