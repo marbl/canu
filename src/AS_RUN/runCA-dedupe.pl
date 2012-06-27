@@ -425,11 +425,17 @@ sub setDefaults () {
     $global{"ovlMerThreshold"}             = "auto";
     $synops{"ovlMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this are ignored";
 
+    $global{"ovlFrequentMers"}              = undef;
+    $synops{"ovlFrequentMers"}              = "Do not seed overlaps with these kmers (fasta format)";
+
     $global{"obtMerSize"}                  = 22;
     $synops{"obtMerSize"}                  = "K-mer size";
 
     $global{"obtMerThreshold"}             = "auto";
     $synops{"obtMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this are ignored";
+
+    $global{"obtFrequentMers"}              = undef;
+    $synops{"obtFrequentMers"}              = "Do not seed overlaps with these kmers (fasta format)";
 
     $global{"ovlHashLibrary"}              = "0";
     $synops{"ovlHashLibrary"}              = "Only load hash fragments from specified lib, 0 means all";
@@ -1606,9 +1612,6 @@ sub runMeryl ($$$$$$) {
     #  The fasta file we should be creating.
     my $ffile = "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
 
-    print STDERR "$ffile\n";
-    return  if (-e $ffile);
-
     if ($merThresh =~ m/auto\s*\*\s*(\S+)/) {
         $merThresh = "auto";
         $merScale  = $1;
@@ -1623,6 +1626,11 @@ sub runMeryl ($$$$$$) {
         touch $ffile;
         return;
     }
+
+    #if (-e $ffile) {
+    #    print STDERR "runMeryl() would have returned.\n";
+    #}
+    #print STDERR "$ffile\n";
 
     if (merylVersion() eq "Mighty") {
 
@@ -1794,10 +1802,6 @@ sub meryl {
     my $obtT = 0;  #  New threshold
     my $ovlT = 0;
 
-    #  If the mer overlapper, we don't care about single-copy mers,
-    #  only mers that occur in two or more frags (kind of important
-    #  for large assemblies).
-
     if (getGlobal("ovlOverlapper") eq "mer") {
         $ovlc = getGlobal("merCompression");
         $ovlC = "-C";
@@ -1809,20 +1813,60 @@ sub meryl {
         $obtD = 0;
     }
 
-    $ovlT = runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
-    $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming"));
 
-    if ((getGlobal("obtMerThreshold") ne $obtT) && (getGlobal("doOverlapBasedTrimming"))) {
+    system("mkdir $wrk/0-mercounts") if (! -d "$wrk/0-mercounts");
+
+    if (defined(getGlobal("obtFrequentMers"))) {
+        my $ffile = "$wrk/0-mercounts/$asm.nmers.obt.fasta";
+        my $sfile = getGlobal("obtFrequentMers");
+
+        if (! -e $ffile) {
+            caFailure("obtFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
+            print STDERR "Using obt frequent mers in '$sfile'\n";
+            symlink $sfile, $ffile;
+        }
+    }
+
+
+    if (defined(getGlobal("ovlFrequentMers"))) {
+        my $ffile = "$wrk/0-mercounts/$asm.nmers.ovl.fasta";
+        my $sfile = getGlobal("ovlFrequentMers");
+
+        if (! -e $ffile) {
+            caFailure("ovlFrequentMers '$sfile' not found", undef)  if (! -e $sfile);
+            print STDERR "Using ovl frequent mers in '$sfile'\n";
+            symlink $sfile, $ffile;
+        }
+    }
+
+    #  We're only here to compute mercounts for the overlappers (all of mer, obt and ovl).  If the
+    #  frequent mer file(s) exist, don't bother running meryl (which runs to build mcidx/mcdat even
+    #  if the fasta is there).
+
+    if ((getGlobal("doOverlapBasedTrimming")) &&
+        ((getGlobal('obtOverlapper') eq 'mer') || (! -e "$wrk/0-mercounts/$asm.nmers.obt.fasta"))) {
+        $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming"));
+    } else {
+        print STDERR "No need to run meryl for OBT (OBT is disabled).\n"             if (getGlobal("doOverlapBasedTrimming") == 0);
+        print STDERR "No need to run meryl for OBT ($asm.nmers.obt.fasta exists).\n" if (-e "$wrk/0-mercounts/$asm.nmers.obt.fasta");
+    }
+
+    if ((getGlobal('ovlOverlapper') eq 'mer') || (! -e "$wrk/0-mercounts/$asm.nmers.ovl.fasta")) {
+        $ovlT = runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
+    } else {
+        print STDERR "No need to run meryl for OVL ($asm.nmers.ovl.fasta exists).\n";
+    }
+
+    if (($obtT > 0) && (getGlobal("obtMerThreshold") ne $obtT) && (getGlobal("doOverlapBasedTrimming"))) {
         print STDERR "Reset OBT mer threshold from ", getGlobal("obtMerThreshold"), " to $obtT.\n";
         setGlobal("obtMerThreshold", $obtT);
     }
     
-    if (getGlobal("ovlMerThreshold") ne $ovlT) {
+    if (($ovlT > 0) && (getGlobal("ovlMerThreshold") ne $ovlT)) {
         print STDERR "Reset OVL mer threshold from ", getGlobal("ovlMerThreshold"), " to $ovlT.\n";
         setGlobal("ovlMerThreshold", $ovlT);
     }
 }
-
 
 ################################################################################
 ################################################################################
