@@ -4260,52 +4260,10 @@ sub classifyMates () {
         print F "    -sl $mpIID \\\n";
         print F "    -bl $bbIID \\\n";
         print F "    -outtie -min  100 -max 1500 -bfs 100000 \\\n";
-        print F "    -o $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000.WORKING \\\n";
-        print F "  && \\\n";
-        print F "  mv -i \\\n";
-        print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000.WORKING \\\n";
-        print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000\n";
+        print F "    -o $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000\n";
         print F "fi\n";
         print F "\n";
-        #print F "\n";
-        #print F "if [ ! -e \"$wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000\" ] ; then\n";
-        #print F "  $bin/classifyMates \\\n";
-        #print F "    -G $wrk/$asm.gkpStore \\\n";
-        #print F "    -O $wrk/$asm.ovlStore \\\n";
-        #print F "    -t 8 \\\n";
-        #print F "    -m 128 \\\n";
-        #print F "    -sl $mpIID \\\n";
-        #print F "    -bl $bbIID \\\n";
-        #print F "    -outtie -min  100 -max 1500 -rfs 10000 \\\n";
-        #print F "    -o $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000.WORKING \\\n";
-        #print F "  && \\\n";
-        #print F "  mv -i \\\n";
-        #print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000.WORKING \\\n";
-        #print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000\n";
-        #print F "fi\n";
-        #print F "\n";
-        #
-        #$classifiedOutputs .= "  -r $wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.rfs.10000 \\\n";
-        #
-        #print F "\n";
-        #print F "if [ ! -e \"$wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000\" ] ; then\n";
-        #print F "  $bin/classifyMates \\\n";
-        #print F "    -G $wrk/$asm.gkpStore \\\n";
-        #print F "    -O $wrk/$asm.ovlStore \\\n";
-        #print F "    -t 8 \\\n";
-        #print F "    -m 128 \\\n";
-        #print F "    -sl $mpIID \\\n";
-        #print F "    -bl $bbIID \\\n";
-        #print F "    -innie  -min 1500 -max 9000 -bfs 100000 \\\n";
-        #print F "    -o $wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000.WORKING \\\n";
-        #print F "  && \\\n";
-        #print F "  mv -i \\\n";
-        #print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000.WORKING \\\n";
-        #print F "    $wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000\n";
-        #print F "fi\n";
-        #
-        #$classifiedOutputs .= "  -r $wrk/2-classifyMates/classifyMates.sl$mpIID.I.1500.9000.rfs.10000 \\\n";
-        #
+        print F "#  classifyMates internally appends .WORKING, then renames just before it exits.\n";
         print F "if [ ! -e \"$wrk/2-classifyMates/classifyMates.sl$mpIID.O.0100.1500.bfs.100000\" ] ; then\n";
         print F "  exit 1\n";
         print F "fi\n";

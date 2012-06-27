@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMatesApply.C,v 1.5 2012-06-07 00:44:54 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMatesApply.C,v 1.6 2012-06-27 20:11:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -38,9 +38,11 @@ public:
     isJunction = 0;
 
     isClassified = 0;
+    isSuspicious = 0;
     isLimited    = 0;
     isExhausted  = 0;
 
+    numSS      = 0;
     numNO      = 0;
     numPE      = 0;
     numMP      = 0;
@@ -66,41 +68,47 @@ public:
 
 
   void      setIsClassified(void)   { isClassified = true; };
+  void      setIsSuspicious(void)   { isSuspicious = true; };
   void      setIsLimited(void)      { isLimited = true; };
   void      setIsExhausted(void)    { isExhausted = true; };
 
   bool      getIsClassified(void)   { return(isClassified); };
+  bool      getIsSuspicious(void)   { return(isSuspicious); };
   bool      getIsLimited(void)      { return(isLimited); };
   bool      getIsExhausted(void)    { return(isExhausted); };
 
 
+  void      addSS(void) { if (numSS < 255)  numSS++; };
   void      addNO(void) { if (numNO < 255)  numNO++; };
   void      addPE(void) { if (numPE < 255)  numPE++; };
   void      addMP(void) { if (numMP < 255)  numMP++; };
 
+  uint8     getSS(void) { return(numSS); };
   uint8     getNO(void) { return(numNO); };
   uint8     getPE(void) { return(numPE); };
   uint8     getMP(void) { return(numMP); };
 
 
 private:
-  uint32    isTested     : 1;  //  We have attempted classification on this read
-  uint32    doDelete     : 1;  //  Delete the read, it's junk
-  uint32    doUnMate     : 1;  //  Remove the mate edge, it's mate read is junk
+  uint64    isTested     : 1;  //  We have attempted classification on this read
+  uint64    doDelete     : 1;  //  Delete the read, it's junk
+  uint64    doUnMate     : 1;  //  Remove the mate edge, it's mate read is junk
 
   //  Any classification called this read...
-  uint32    isSpur       : 1;
-  uint32    isChimer     : 1;
-  uint32    isJunction   : 1;
+  uint64    isSpur       : 1;
+  uint64    isChimer     : 1;
+  uint64    isJunction   : 1;
 
-  uint32    isClassified : 1;
-  uint32    isLimited    : 1;
-  uint32    isExhausted  : 1;
+  uint64    isClassified : 1;
+  uint64    isSuspicious : 1;
+  uint64    isLimited    : 1;
+  uint64    isExhausted  : 1;
 
   //  Number of votes for....
-  uint32    numNO        : 8;  //  ...no classification
-  uint32    numPE        : 8;  //  ...PE pair
-  uint32    numMP        : 8;  //  ...MP pair
+  uint64    numSS        : 8;  //  ...a suspicious pair
+  uint64    numNO        : 8;  //  ...no classification
+  uint64    numPE        : 8;  //  ...PE pair
+  uint64    numMP        : 8;  //  ...MP pair
 };
 
 
@@ -232,26 +240,16 @@ main(int argc, char **argv) {
 
       numABspurChimer[a][b]++;
 
-      if (result.classified   == true) {
-        results[f].setIsClassified();
-        results[m].setIsClassified();
-      }
-
-      if (result.limited      == true) {
-        results[f].setIsLimited();
-        results[m].setIsLimited();
-      }
-
-      if (result.exhausted    == true) {
-        results[f].setIsExhausted();
-        results[m].setIsExhausted();
-      }
-
       //  If any single result says the read (or mate) is junk, delete it.
+      //  These never made it to the search portion of classifyMates.
 
       if ((result.fragSpur     == true) ||
           (result.fragChimer   == true) ||
           (result.fragJunction == true)) {
+        assert(result.classified == false);
+        assert(result.suspicious == false);
+        assert(result.limited    == false);
+        assert(result.exhausted  == false);
         results[f].setDelete();  //  Delete the frag
         results[f].setUnMate();  //  and unmate
         results[m].setUnMate();
@@ -260,43 +258,86 @@ main(int argc, char **argv) {
       if ((result.mateSpur     == true) ||
           (result.mateChimer   == true) ||
           (result.mateJunction == true)) {
+        assert(result.classified == false);
+        assert(result.suspicious == false);
+        assert(result.limited    == false);
+        assert(result.exhausted  == false);
         results[m].setDelete();  //  Delete the mate
         results[f].setUnMate();  //  and unmate
         results[m].setUnMate();
       }
 
-      //  Rembmer if any result failed to classify.  This is for the final accounting summary only.
+      //  A pair can be suspicious and either classified or not classified.
 
-      if (result.classified == false) {
-        results[f].addNO();
-        results[m].addNO();
-        continue;
+      if (result.suspicious == true) {
+        results[f].setIsSuspicious();
+        results[m].setIsSuspicious();
+
+        results[f].addSS();
+        results[m].addSS();
       }
 
-      //  Otherwise, it must have been classified as either PE or MP.
+      //  But a pair can only be one of classified, limited or exhausted.  Or nothing,
+      //  if we never searched it.
 
-      if (result.innie) {
-        results[f].addMP();
-        results[m].addMP();
+      assert(result.classified + result.limited + result.exhausted <= 1);
+
+      if (result.classified == true) {
+        results[f].setIsClassified();
+        results[m].setIsClassified();
+
+        if (result.innie) {
+          results[f].addMP();
+          results[m].addMP();
+        } else {
+          results[f].addPE();
+          results[m].addPE();
+        }
+
+      } else if (result.limited == true) {
+        results[f].setIsLimited();
+        results[m].setIsLimited();
+
+        results[f].addNO();
+        results[m].addNO();
+
+      } else if (result.exhausted == true) {
+        results[f].setIsExhausted();
+        results[m].setIsExhausted();
+
+        results[f].addNO();
+        results[m].addNO();
+
       } else {
-        results[f].addPE();
-        results[m].addPE();
+        //  Pair is trash.  We didn't get to search for it because one read was deleted.
+        assert(results[f].getUnMate() == true);
+        assert(results[m].getUnMate() == true);
       }
     }
 
     delete RF;
   }
 
+  //  Process the classifications.  As written, this will allow multiple attempts to classify a
+  //  single pair.  If any are labeled both PE and MP, remove the mate.
+
   uint32  numSpur     = 0;
   uint32  numChimer   = 0;
   uint32  numJunction = 0;
 
-  uint32  numClassified = 0;
-  uint32  numLimited    = 0;
-  uint32  numExhausted  = 0;
+  //  Each read can be labeled with multiple of these.
+  uint32  numClassified  = 0;
+  uint32  numLimited     = 0;
+  uint32  numExhausted   = 0;
 
-  //  Process the classifications.  If any are labeled both PE and MP, remove the mate.
+  uint32  numClassifiedS = 0;
+  uint32  numLimitedS    = 0;
+  uint32  numExhaustedS  = 0;
 
+  uint32  numSuspicious  = 0;
+
+  //  Each read is labeled with exactly one of these.
+  uint32  numSS = 0;
   uint32  numDL = 0;
   uint32  numUM = 0;
   uint32  numNO = 0;
@@ -306,11 +347,12 @@ main(int argc, char **argv) {
   uint32  numIG = 0;
 
   for (uint32 i=1; i<=numFrags; i++) {
+    uint32  ss = results[i].getSS();
     uint32  no = results[i].getNO();
     uint32  mp = results[i].getMP();
     uint32  pe = results[i].getPE();
 
-    if     (results[i].getDelete()) {
+    if (results[i].getDelete()) {
       fprintf(outputFile, "frg iid "F_U32" isdeleted 1\n", i);
       fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
       numDL++;
@@ -319,8 +361,12 @@ main(int argc, char **argv) {
       fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
       numUM++;
 
+    } else if (results[i].getSS()) {
+      fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
+      numSS++;
+
     } else if ((mp > 0) && (pe > 0)) {
-      //fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
+      fprintf(outputFile, "frg iid "F_U32" mateiid 0\n", i);
       numAB++;
 
     } else if (mp > 0) {
@@ -337,29 +383,44 @@ main(int argc, char **argv) {
       numIG++;
     }
 
-    if (results[i].getIsSpur())        numSpur++;
-    if (results[i].getIsChimer())      numChimer++;
-    if (results[i].getIsJunction())    numJunction++;
+    if (results[i].getIsSpur())         numSpur++;
+    if (results[i].getIsChimer())       numChimer++;
+    if (results[i].getIsJunction())     numJunction++;
 
-    if (results[i].getIsClassified())  numClassified++;
-    if (results[i].getIsLimited())     numLimited++;
-    if (results[i].getIsExhausted())   numExhausted++;
+    if (results[i].getIsClassified() && !results[i].getIsSuspicious())      numClassified++;
+    if (results[i].getIsLimited()    && !results[i].getIsSuspicious())      numLimited++;
+    if (results[i].getIsExhausted()  && !results[i].getIsSuspicious())      numExhausted++;
+
+    if (results[i].getIsClassified() &&  results[i].getIsSuspicious())      numClassifiedS++;
+    if (results[i].getIsLimited()    &&  results[i].getIsSuspicious())      numLimitedS++;
+    if (results[i].getIsExhausted()  &&  results[i].getIsSuspicious())      numExhaustedS++;
+
+    if (results[i].getIsSuspicious())                                       numSuspicious++;
   }
 
-  fprintf(stderr, "Read Fate:\n");
+  fprintf(stderr, "Read Fate (one read, one fate):\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "%10"F_U32P"   unclassified (remains mated)\n", numNO);
-  fprintf(stderr, "%10"F_U32P"   paired-end (break the mate)\n", numPE);
-  fprintf(stderr, "%10"F_U32P"   mate-pair (remains mated)\n", numMP);
-  fprintf(stderr, "%10"F_U32P"   paired-end + mate-pair (remains mated)\n", numAB);
+  fprintf(stderr, "%10"F_U32P"   verified paired-end (break the mate)\n", numPE);
+  fprintf(stderr, "%10"F_U32P"   verified mate-pair (remains mated)\n", numMP);
+  fprintf(stderr, "%10"F_U32P"   verified paired-end AND verified mate-pair (break the mate)\n", numAB);
+  fprintf(stderr, "%10"F_U32P"   suspicious orientation/size (break the mate)\n", numSS);
   fprintf(stderr, "\n");
   fprintf(stderr, "%10"F_U32P"   delete (this read is spur/chimer/junction)\n", numDL);
   fprintf(stderr, "%10"F_U32P"   unmate (mate read is spur/chimer/junction)\n", numUM);
   fprintf(stderr, "%10"F_U32P"   ignored (not searched)\n", numIG);
   fprintf(stderr, "\n");
 
-  //fprintf(stderr, "NO "F_U32" PE "F_U32" MP "F_U32" AB "F_U32" DL "F_U32" UM "F_U32" IG "F_U32"\n",
-  //        numNO, numPE, numMP, numAB, numDL, numUM, numIG);
+  fprintf(stderr, "Search Termination (one read, multiple terminations if multiple runs):\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "%10"F_U32P"   classified\n",                numClassified);
+  fprintf(stderr, "%10"F_U32P"   limited\n",                   numLimited);
+  fprintf(stderr, "%10"F_U32P"   exhausted\n",                 numExhausted);
+  fprintf(stderr, "%10"F_U32P"   suspicious AND classified\n", numClassifiedS);
+  fprintf(stderr, "%10"F_U32P"   suspicious AND limited\n",    numLimitedS);
+  fprintf(stderr, "%10"F_U32P"   suspicious AND exhausted\n",  numExhaustedS);
+  fprintf(stderr, "%10"F_U32P"   suspicious\n",                numSuspicious);
+  fprintf(stderr, "\n");
 
   fprintf(stderr, "Read Classification:\n");
   fprintf(stderr, "\n");
@@ -386,12 +447,6 @@ main(int argc, char **argv) {
   fprintf(stderr, "%10"F_U32P"   chimer/good\n",   numABspurChimer[2][0]);
   fprintf(stderr, "%10"F_U32P"   chimer/spur\n",   numABspurChimer[2][1]);
   fprintf(stderr, "%10"F_U32P"   chimer/chimer\n", numABspurChimer[2][2]);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Read Termination:\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "%10"F_U32P"   classified reads\n", numClassified);
-  fprintf(stderr, "%10"F_U32P"   limited reads\n",    numLimited);
-  fprintf(stderr, "%10"F_U32P"   exhausted reads\n",  numExhausted);
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
 

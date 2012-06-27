@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.20 2012-05-29 12:20:38 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.21 2012-06-27 20:11:51 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +49,7 @@ FILE    *reportFile  = stdout;
 
 uint32   duplicateFrags  = 0;
 uint32   duplicateMates  = 0;
+uint32   duplicateSelf   = 0;
 
 uint32   mateOvlTypes[4][4] = { {0,0,0,0}, {0,0,0,0}, {0,0,0,0}, {0,0,0,0} };
 
@@ -387,6 +388,25 @@ processOverlaps(gkStore      *gkp,
       nMaFr++;
     }
 
+    //  Delete if there is an overlap between the mates.  These overlaps seem to occur in Illumina
+    //  MP (PE as well?) and are always normal oriented.
+    //
+    //  i   ------------>
+    //  j       --------------->
+    //
+    else if (ovl->a_iid == frag[ovl->b_iid].mateIID) {
+      nMate++;
+
+      fprintf(reportFile, "Delete %u <-> %u normal oriented self overlap (%u-%u) to (%u-%u) error %f\n",
+              ovl->a_iid,
+              ovl->b_iid,
+              ab, ae, bb, be,
+              AS_OVS_decodeQuality(ovl->dat.obt.erate));
+      duplicateSelf++;
+      frag[ovl->a_iid].isDeleted = 1;
+      frag[ovl->b_iid].isDeleted = 1;
+    }
+
     //  If both reads in the overlap are mated, save the overlap for later processing.  We can't
     //  process mated reads until we have all the overlaps for both this read and it's mate.
     //
@@ -592,6 +612,7 @@ main(int argc, char **argv) {
   if (summaryFile) {
     fprintf(summaryFile, "duplicateFrags:    "F_U32"\n", duplicateFrags);
     fprintf(summaryFile, "duplicateMates:    "F_U32"\n", duplicateMates);
+    fprintf(summaryFile, "duplicateSelf:     "F_U32"\n", duplicateSelf);
   }
 
   if (summaryFile) {

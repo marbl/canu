@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-DFS.C,v 1.9 2011-08-29 20:58:32 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-DFS.C,v 1.10 2012-06-27 20:11:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -40,8 +40,6 @@ cmGlobalData::doSearchDFS(cmComputation *c,
   set<uint32>  visited5p3;
   set<uint32>  visited3p5;
 
-  assert(t->searchIter == 0);
-
   //  +3 because:
   //  [0] is unused -- it's our termination condition
   //  [1] is the start node
@@ -53,11 +51,14 @@ cmGlobalData::doSearchDFS(cmComputation *c,
     t->path    = new searchNode [t->pathMax];
   }
 
+  t->clear();
+
   t->pathPos = 1;  //  CRITICAL; end of loop we increment t->pathOPos[t->pathPos-1]
 
   t->path[t->pathPos].pIID = c->fragIID;
   t->path[t->pathPos].p5p3 = c->frag5p3;
   t->path[t->pathPos].pLen = fi[c->fragIID].clearLength;
+  t->path[t->pathPos].pDpt = 1;
   t->path[t->pathPos].oMax = bbLen[c->fragIID];
   t->path[t->pathPos].oPos = 0;
   t->path[t->pathPos].oLst = bbPos[c->fragIID];
@@ -74,9 +75,11 @@ cmGlobalData::doSearchDFS(cmComputation *c,
       overlapInfo  *novl = t->path[t->pathPos].oLst + t->path[t->pathPos].oPos;
       uint32        niid = novl->iid;
       bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
-      uint32        nlen = 0;
+      int32         nlen = 0;
 
-      assert(niid == t->path[t->pathPos].pIID);
+      //  Not true.  novl is a BB overlap, so the iid is the next fragment we'd move to.
+      //  pIID is the BB fragment we are at currently.
+      //assert(niid == t->path[t->pathPos].pIID);
 
       set<uint32> &visited = (t->path[t->pathPos].p5p3 == true) ? visited5p3 : visited3p5;
       if (visited.find(niid) != visited.end())
@@ -87,7 +90,7 @@ cmGlobalData::doSearchDFS(cmComputation *c,
         //  Not a backbone read.
         continue;
 
-      computeNextPlacement(c, t, novl, niid, n5p3, nlen);
+      computeNextPlacement(t, novl, niid, n5p3, nlen);
 
       if (nlen < t->path[t->pathPos].pLen)
         //  Went backwards!
@@ -98,9 +101,10 @@ cmGlobalData::doSearchDFS(cmComputation *c,
       t->pathPos++;
       t->searchIter++;
 
-      t->path[t->pathPos].pIID  = niid;
-      t->path[t->pathPos].p5p3  = n5p3;
-      t->path[t->pathPos].pLen  = nlen;
+      t->path[t->pathPos].pIID = niid;
+      t->path[t->pathPos].p5p3 = n5p3;
+      t->path[t->pathPos].pLen = nlen;
+      t->path[t->pathPos].pDpt = t->path[t->pathPos-1].pDpt + 1;
       t->path[t->pathPos].oMax = bbLen[niid];
       t->path[t->pathPos].oPos = 0;
       t->path[t->pathPos].oLst = bbPos[niid];

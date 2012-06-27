@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-RFS.C,v 1.10 2011-09-06 16:01:56 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-RFS.C,v 1.11 2012-06-27 20:11:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -39,20 +39,21 @@ void
 cmGlobalData::doSearchRFS(cmComputation *c,
                           cmThreadData  *t) {
 
-  assert(t->searchIter == 0);
-
   if (t->path == NULL) {
     t->pathMax = distMax;  //  Can never have more than one overlap per base if distance
     t->path    = new searchNode [t->pathMax];
   }
 
+  t->clear();
+
   for (uint32 iter=0; iter<pathsMax; iter++) {
-    t->pathPos= 0;
+    t->pathPos = 0;
     t->searchIter++;
 
     t->path[t->pathPos].pIID = c->fragIID;
     t->path[t->pathPos].p5p3 = c->frag5p3;
     t->path[t->pathPos].pLen = fi[c->fragIID].clearLength;
+    t->path[t->pathPos].pDpt = 1;
     t->path[t->pathPos].oMax = bbLen[c->fragIID];
     t->path[t->pathPos].oPos = 0;
     t->path[t->pathPos].oLst = bbPos[c->fragIID];
@@ -73,13 +74,13 @@ cmGlobalData::doSearchRFS(cmComputation *c,
         overlapInfo  *novl = t->path[t->pathPos].oLst + test;
         uint32        niid = novl->iid;
         bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
-        uint32        nlen = 0;
+        int32         nlen = 0;
 
         if (fi[niid].isBackbone == false)
           //  Not a backbone read
           continue;
 
-        computeNextPlacement(c, t, novl, niid, n5p3, nlen);
+        computeNextPlacement(t, novl, niid, n5p3, nlen);
 
         if (nlen > t->path[t->pathPos].pLen)
           t->ext[t->extLen++] = test;
@@ -94,13 +95,15 @@ cmGlobalData::doSearchRFS(cmComputation *c,
       overlapInfo  *novl = t->path[t->pathPos].oLst + t->path[t->pathPos].oPos;
       uint32        niid = novl->iid;
       bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
-      uint32        nlen = 0;
+      int32         nlen = 0;
 
       if (fi[niid].isBackbone == false)
         //  Not a backbone read
         continue;
 
-      computeNextPlacement(c, t, novl, niid, n5p3, nlen);
+      computeNextPlacement(t, novl, niid, n5p3, nlen);
+
+      assert(t->path[t->pathPos].pLen < nlen);
 
       //  We're guaranteed to always advance the path (unlike DFS) so do it.
 
@@ -110,6 +113,7 @@ cmGlobalData::doSearchRFS(cmComputation *c,
         t->path[t->pathPos].pIID = niid;
         t->path[t->pathPos].p5p3 = n5p3;
         t->path[t->pathPos].pLen = nlen;
+        t->path[t->pathPos].pDpt = t->path[t->pathPos-1].pDpt + 1;
         t->path[t->pathPos].oMax = bbLen[niid];
         t->path[t->pathPos].oPos = 0;
         t->path[t->pathPos].oLst = bbPos[niid];

@@ -20,7 +20,7 @@
 #ifndef CLASSIFYMATES_H
 #define CLASSIFYMATES_H
 
-static const char *rcsid_CLASSIFYMATES_H = "$Id: classifyMates.H,v 1.4 2011-09-06 16:41:41 brianwalenz Exp $";
+static const char *rcsid_CLASSIFYMATES_H = "$Id: classifyMates.H,v 1.5 2012-06-27 20:11:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -46,7 +46,9 @@ public:
     mateChimer   = 0;  //
     fragJunction = 0;  //  Overlaps on both sides, but all we found were junctions
     mateJunction = 0;  //
+
     classified   = 0;  //  Found the mate at the expected distance, correctly oriented.
+    suspicious   = 0;  //  Found the mate but misoriented.
     limited      = 0;  //  Ran out of time.
     exhausted    = 0;  //  Ran out of places to look.
 
@@ -65,6 +67,7 @@ public:
 public:
   void    print(FILE *out) {
     char   reason[256] = {0};
+    char   suspic[256] = {0};
 
     if (fragSpur == true)
       strcat(reason, (reason[0]) ? ":a-spur" : "a-spur");
@@ -87,17 +90,27 @@ public:
     if (exhausted == true)
       strcat(reason, (reason[0]) ? ":exhausted" : "exhausted");
 
+    if (suspicious)
+#if 0
+      sprintf(suspic, " (SUSPICIOUS: ni "F_U32" nn "F_U32" na "F_U32" no "F_U32")",
+              s->nInnie, s->nNormal, s->nAnti, s->nOuttie);
+#else
+      sprintf(suspic, " (SUSPICIOUS)");
+#endif
+
     if (reason[0] != 0)
-      fprintf(out, "Path from "F_U32"/%s to "F_U32"/%s NOT FOUND (%s).\n",
+      fprintf(out, "Path from "F_U32"/%s to "F_U32"/%s NOT FOUND (%s)%s.\n",
               readIID, (innie == true) ? "5'3'" : "3'5'", 
               mateIID, (innie == true) ? "3'5'" : "5'3'",
-              reason);
+              reason,
+              suspic);
     else
-      fprintf(out, "Path from "F_U32"/%s to "F_U32"/%s found at iter "F_U64" of length "F_U64".\n",
+      fprintf(out, "Path from "F_U32"/%s to "F_U32"/%s found at iter "F_U64" of length "F_U64"%s.\n",
               readIID, (innie == true) ? "5'3'" : "3'5'", 
               mateIID, (innie == true) ? "3'5'" : "5'3'",
               iteration,
-              distance);
+              distance,
+              suspic);
   };
 
 public:
@@ -108,6 +121,7 @@ public:
   uint64  fragJunction : 1;
   uint64  mateJunction : 1;
   uint64  classified   : 1;
+  uint64  suspicious   : 1;
   uint64  limited      : 1;
   uint64  exhausted    : 1;
 
@@ -117,7 +131,7 @@ public:
   uint64  isBFS        : 1;   //  Algorithm.
   uint64  isDFS        : 1;   //  Algorithm.
   uint64  isRFS        : 1;   //  Algorithm.
-  uint64  iteration    : 29;  //  Up to 1m iterations.
+  uint64  iteration    : 28;  //  Up to 256m iterations.
 
   AS_IID  readIID;
   AS_IID  mateIID;

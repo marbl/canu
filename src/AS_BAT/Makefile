@@ -60,6 +60,7 @@ BAT_OBJECTS = $(BAT_SOURCES:.C=.o)
 DNC_SOURCES = classifyMates-BFS.C \
               classifyMates-DFS.C \
               classifyMates-RFS.C \
+              classifyMates-Suspicious.C \
               classifyMates-globalData.C
 DNC_OBJECTS = $(DNC_SOURCES:.C=.o)
 

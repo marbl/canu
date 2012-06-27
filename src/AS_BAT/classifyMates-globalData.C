@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.17 2012-05-18 16:22:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.18 2012-06-27 20:11:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -35,16 +35,15 @@ using namespace std;
 //  array.  There are bbLen & tgPos overlaps at this location.  The array is NOT contiguous.
 
 
-cmGlobalData::cmGlobalData(char    *resultsName_,
+cmGlobalData::cmGlobalData(char    *resultName_,
                            uint32   distMin_,
                            uint32   distMax_,
                            bool     innie_,
                            uint32   nodesMax_,
                            uint32   depthMax_,
                            uint32   pathsMax_,
-                           uint64   memoryLimit_) {
-
-  strcpy(resultsPrefix, resultsName_);
+                           uint64   memoryLimit_,
+                           bool     suspiciousSearch_) {
 
   distMin      = distMin_;
   distMax      = distMax_;
@@ -54,14 +53,26 @@ cmGlobalData::cmGlobalData(char    *resultsName_,
   depthMax     = depthMax_;
   pathsMax     = pathsMax_;
 
+  sprintf(resultPrefix, "%s.WORKING", resultName_);
+
   if      (nodesMax > 0)
-    resultOutput = new classifyMatesResultFile(resultsName_, 'b', nodesMax, innie, distMin, distMax);
+    resultOutput = new classifyMatesResultFile(resultPrefix, 'b', nodesMax, innie, distMin, distMax);
   else if (depthMax > 0)
-    resultOutput = new classifyMatesResultFile(resultsName_, 'd', depthMax, innie, distMin, distMax);
+    resultOutput = new classifyMatesResultFile(resultPrefix, 'd', depthMax, innie, distMin, distMax);
   else if (pathsMax > 0)
-    resultOutput = new classifyMatesResultFile(resultsName_, 'r', pathsMax, innie, distMin, distMax);
+    resultOutput = new classifyMatesResultFile(resultPrefix, 'r', pathsMax, innie, distMin, distMax);
   else
     fprintf(stderr, "ERROR: no algorithm specified.\n"), exit(1);
+
+  sprintf(resultPrefix, "%s.suspiciousLog", resultName_);
+
+  resultSuspicious   = NULL;
+  if (suspiciousSearch_)
+    resultSuspicious = fopen(resultPrefix, "w");
+
+  suspiciousSearch   = suspiciousSearch_;
+
+  strcpy(resultPrefix, resultName_);
 
   cmDat        = NULL;
   cmOvl        = NULL;
@@ -97,6 +108,19 @@ cmGlobalData::cmGlobalData(char    *resultsName_,
 cmGlobalData::~cmGlobalData() {
 
   delete resultOutput;
+
+  if (resultSuspicious)
+    fclose(resultSuspicious);
+
+  char filename[FILENAME_MAX];
+
+  sprintf(filename, "%s.WORKING", resultPrefix);
+
+  errno = 0;
+  rename(filename, resultPrefix);
+  if (errno)
+    fprintf(stderr, "Failed to rename '%s' to '%s': %s\n",
+            filename, resultPrefix, strerror(errno)), exit(1);
 
   for (uint32 i=0; i<oiStorageArr.size(); i++)
     delete [] oiStorageArr[i];
@@ -174,7 +198,7 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
                    double        maxErrorFraction) {
 
   char  cacheName[FILENAME_MAX];
-  sprintf(cacheName, "%s.cmdat", resultsPrefix);
+  sprintf(cacheName, "%s.cmdat", resultPrefix);
 
   if (AS_UTL_fileExists(cacheName, FALSE, FALSE) == false)
     return(false);
@@ -251,7 +275,7 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
 
   fprintf(stderr, "MAPPING FILES...\n");
 
-  sprintf(cacheName, "%s.cmdat", resultsPrefix);
+  sprintf(cacheName, "%s.cmdat", resultPrefix);
   cmDat = new memoryMappedFile(cacheName, 2 * sizeof(uint32) + 2 * (numLibs + 1) * sizeof(uint32));
 
   fi    = (fragmentInfo *)cmDat->get((numFrags + 1) * sizeof(fragmentInfo));
@@ -274,13 +298,13 @@ cmGlobalData::load(set<AS_IID>  &searchLibs,
 
   //  ...and the overlap data
 
-  sprintf(cacheName, "%s.cmovl", resultsPrefix);
+  sprintf(cacheName, "%s.cmovl", resultPrefix);
   cmOvl = new memoryMappedFile(cacheName);
 
   overlapInfo *oiRoot = (overlapInfo *)cmOvl->get(0, 0);
   overlapInfo *oiNext = oiRoot;
 
-  sprintf(cacheName, "%s.cminv", resultsPrefix);
+  sprintf(cacheName, "%s.cminv", resultPrefix);
   cmInv = new memoryMappedFile(cacheName);
 
   overlapInfo *gtRoot = (overlapInfo *)cmInv->get(0);
@@ -385,7 +409,7 @@ cmGlobalData::save(void) {
     return;
 
   char  cacheName[FILENAME_MAX];
-  sprintf(cacheName, "%s.cmdat", resultsPrefix);
+  sprintf(cacheName, "%s.cmdat", resultPrefix);
 
   //  Overlap data is already saved (done inline when loading)
 
@@ -598,7 +622,7 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
   if (saveCache == true) {
     char  cacheName[FILENAME_MAX];
-    sprintf(cacheName, "%s.cmovl", resultsPrefix);
+    sprintf(cacheName, "%s.cmovl", resultPrefix);
 
     errno = 0;
     oiFile = fopen(cacheName, "w");
@@ -906,7 +930,7 @@ cmGlobalData::loadOverlaps_invert(void) {
 
   if (saveCache == true) {
     char  cacheName[FILENAME_MAX];
-    sprintf(cacheName, "%s.cminv", resultsPrefix);
+    sprintf(cacheName, "%s.cminv", resultPrefix);
 
     fprintf(stderr, "WRITING to '%s'\n", cacheName);
 
@@ -929,35 +953,38 @@ cmGlobalData::loadOverlaps_invert(void) {
 
 
 void
-cmGlobalData::computeNextPlacement(cmComputation *c,
-                                   cmThreadData  *t,
+cmGlobalData::computeNextPlacement(cmThreadData  *t,
                                    overlapInfo  *&novl,
                                    uint32        &niid,
                                    bool          &n5p3,
-                                   uint32        &nlen) {
+                                   int32         &nlen) {
 
   //  Frag is forward, overlap is same, hang is positive
   if ((t->path[t->pathPos].p5p3 == true) && (novl->flipped == false)) {
     nlen = t->path[t->pathPos].pLen + novl->bhang;
     assert(n5p3 == true);
+    //fprintf(stderr, "computeNext1 - %d + %d = %d\n", t->path[t->pathPos].pLen, novl->bhang, nlen);
   } else
 
   //  Frag is forward, overlap is flipped, hang is positive
   if ((t->path[t->pathPos].p5p3 == true) && (novl->flipped == true)) {
     nlen = t->path[t->pathPos].pLen + novl->bhang;
     assert(n5p3 == false);
+    //fprintf(stderr, "computeNext2 - %d + %d = %d\n", t->path[t->pathPos].pLen, novl->bhang, nlen);
   } else
 
   //  Frag is reverse, overlap is same, hang is positive
   if ((t->path[t->pathPos].p5p3 == false) && (novl->flipped == false)) {
     nlen = t->path[t->pathPos].pLen + -novl->ahang;
     assert(n5p3 == false);
+    //fprintf(stderr, "computeNext3 - %d + %d = %d\n", t->path[t->pathPos].pLen, -novl->ahang, nlen);
   } else
 
   //  Frag is reverse, overlap is flipped, hang is positive
   if ((t->path[t->pathPos].p5p3 == false) && (novl->flipped == true)) {
     nlen = t->path[t->pathPos].pLen + -novl->ahang;
     assert(n5p3 == true);
+    //fprintf(stderr, "computeNext4 - %d + %d = %d\n", t->path[t->pathPos].pLen, -novl->ahang, nlen);
   }
 }
 
@@ -965,16 +992,19 @@ cmGlobalData::computeNextPlacement(cmComputation *c,
 
 
 bool
-cmGlobalData::testSearch(cmComputation              *c,
-                         cmThreadData               *t) {
+cmGlobalData::testSearch(cmComputation  *c,
+                         cmThreadData   *t) {
 
   uint32  thisIID = t->path[t->pathPos].pIID;
+
+  //  If not set, then this fragment does not have an overlap to our mate fragment.
 
   if (t->solutionSet->isSet(thisIID) == false)
     return(false);
 
-  //  We are guaranteed by construction that this overlap is to the mate fragment.
-  //  See doSearchBFS.
+  //  Now search for the overlap to the mate fragment.  When we built the gt overlaps,
+  //  we used the source iid, not the mate iid -- we just search for the overlap that
+  //  has the same iid as our source fragment.
 
   overlapInfo  *pos = gtPos[c->mateIID];
   uint32        len = gtLen[c->mateIID];
@@ -988,12 +1018,12 @@ cmGlobalData::testSearch(cmComputation              *c,
   overlapInfo  *novl = pos + iii;
   uint32        niid = c->mateIID;
   bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
-  uint32        nlen = 0;
+  int32         nlen = 0;
 
   if (n5p3 != c->mate5p3)
     return(false);
 
-  computeNextPlacement(c, t, novl, niid, n5p3, nlen);
+  computeNextPlacement(t, novl, niid, n5p3, nlen);
 
   if ((nlen < distMin) ||
       (nlen > distMax))
@@ -1021,13 +1051,13 @@ cmGlobalData::testSearch(cmComputation  *c,
     overlapInfo  *novl = pos[thisIID] + test;
     uint32        niid = novl->iid;
     bool          n5p3 = (novl->flipped) ? (!t->path[t->pathPos].p5p3) : (t->path[t->pathPos].p5p3);
-    uint32        nlen = 0;
+    int32         nlen = 0;
 
     if ((niid != c->mateIID) ||
         (n5p3 != c->mate5p3))
       continue;
 
-    computeNextPlacement(c, t, novl, niid, n5p3, nlen);
+    computeNextPlacement(t, novl, niid, n5p3, nlen);
 
     if ((nlen >= distMin) &&
         (nlen <= distMax)) {

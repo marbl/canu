@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.28 2012-05-14 15:19:03 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.29 2012-06-27 20:11:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -52,6 +52,27 @@ cmWorker(void *G, void *T, void *S) {
 
   if ((g->pathsMax > 0) && (s->result.classified == false))
     g->doSearchRFS(s, t);
+
+  if (g->suspiciousSearch) {
+    g->doSearchSuspicious(s->fragIID, true,  s->mateIID, t, t->distInnie, t->distNormal);
+    g->doSearchSuspicious(s->fragIID, false, s->mateIID, t, t->distAnti,  t->distOuttie);
+
+    s->nInnie  = t->distInnie.size();
+    s->nNormal = t->distNormal.size();
+    s->nAnti   = t->distAnti.size();
+    s->nOuttie = t->distOuttie.size();
+
+    //  We're expecting no Normal/Anti oriented results, and, depending on PE vs MP,
+    //  no results for one of Innie/Outtie.
+
+    if ((g->innie == true) && (s->nOuttie + s->nNormal + s->nAnti > s->nInnie))
+      //  Searching for innie-oriented MP.
+      s->result.suspicious = true;
+
+    if ((g->innie == false) && (s->nInnie + s->nNormal + s->nAnti > s->nOuttie))
+      //  Searching for outtie-oriented PE.
+      s->result.suspicious = true;
+  }
 }
 
 
@@ -89,6 +110,27 @@ cmWriter(void *G, void *S) {
   cmComputation   *c = (cmComputation *)S;
 
   g->resultOutput->write(c->result);
+
+  if ((c->result.suspicious) &&
+      (g->resultSuspicious)) {
+    fprintf(g->resultSuspicious, "IID %u/%u classified %c limited %c exhausted %c suspicious %c ni %u nn %u na %u no %u\n",
+            c->fragIID,
+            c->mateIID,
+            c->result.classified ? 'T' : 'F',
+            c->result.limited    ? 'T' : 'F',
+            c->result.exhausted  ? 'T' : 'F',
+            c->result.suspicious ? 'T' : 'F',
+            c->nInnie,
+            c->nNormal,
+            c->nAnti,
+            c->nOuttie);
+    //  Don't have the values here, only in the thread data
+    //fprintf(stderr, "ni %u values: ", );
+    //fprintf(stderr, "nn %u values: ");
+    //fprintf(stderr, "na %u values: ");
+    //fprintf(stderr, "no %u values: ");
+  }
+
 
   //  Only use 'classified' and 'exhausted' for adjusting the search time, since those are the two
   //  categorites where we found a result (either the other mate pair correctly, or a gap in
@@ -156,6 +198,8 @@ main(int argc, char **argv) {
   uint32      depthMax          = 0;
   uint32      pathsMax          = 0;
 
+  bool        searchSuspicious  = true;
+
   set<AS_IID> searchLibs;
   set<AS_IID> backboneLibs;
 
@@ -217,6 +261,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-rfs") == 0) {
       pathsMax = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-nosuspicious") == 0) {
+      searchSuspicious = false;
+
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
@@ -265,6 +312,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -dfs N           Use 'depth-first search'; search to depth N overlaps\n");
     fprintf(stderr, "  -rfs N           Use 'random-path search'; search at most N paths\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -nosuspicious    Don't search for suspicious pairs.\n");
+    fprintf(stderr, "\n");
     if (gkpStoreName == 0L)
       fprintf(stderr, "No gatekeeper store (-G) supplied.\n");
     if (ovlStoreName == 0L)
@@ -279,7 +328,8 @@ main(int argc, char **argv) {
                                       nodesMax,
                                       depthMax,
                                       pathsMax,
-                                      memoryLimit);
+                                      memoryLimit,
+                                      searchSuspicious);
 
   if (g->load(searchLibs,
               backboneLibs,

@@ -84,7 +84,8 @@ public:
   uint32         pIID;   //  Fragment here
   uint32         p5p3;   //  Fragment here is 5' to 3'
 
-  uint32         pLen;   //  The length, in bp, of the path up till now
+  int32          pLen;   //  The length, in bp, of the path up till now
+  uint32         pDpt;   //  The depth, in fragments, of the path up till now
 
   uint32         oMax;  //  Number of ovelerlaps for this iid
   uint32         oPos;  //  Position we are at in the list of overlaps
@@ -159,17 +160,19 @@ public:
   };
 
   void clear(void) {
-    pathPos    = 0;
-    pathAdd    = 0;
-    //pathMax    = 0;      //  NO!  We reuse this!
-    //path       = NULL;
+    pathPos        = 0;
+    pathAdd        = 0;
+    //pathMax      = 0;      //  NO!  We reuse this!
+    //path         = NULL;
 
-    searchIter = 0;
+    searchIter     = 0;
 
-    extLen     = 0;
+    extLen         = 0;
 
-    edge3Len   = 0;
-    edge5Len   = 0;
+    edge3Len       = 0;
+    edge5Len       = 0;
+
+    visitedListLen = 0;
   };
 
   uint32         pathPos;  //  Position of the search in DFS and BFS
@@ -198,6 +201,11 @@ public:
   uint32         edge5Len;  //  Use in testChimer
   uint32         edge5Max;
   uint32        *edge5;
+
+  vector<int32>  distInnie;  //  Use in testSuspicious
+  vector<int32>  distOuttie;
+  vector<int32>  distNormal;
+  vector<int32>  distAnti;
 };
 
 
@@ -214,6 +222,11 @@ public:
     mateIID         = mid;
     mate5p3         = (innie == false) ? true : false;
 
+    nInnie          = 0;
+    nNormal         = 0;
+    nAnti           = 0;
+    nOuttie         = 0;
+
     result.innie    = innie;
 
     result.readIID  = fragIID;
@@ -226,8 +239,13 @@ public:
   uint32                fragIID;
   bool                  frag5p3;
 
-  uint32                mateIID;     //  Fragment here
-  uint32                mate5p3;     //  Fragment here is 5' to 3'
+  uint32                mateIID;
+  bool                  mate5p3;
+
+  uint32                nInnie;
+  uint32                nNormal;
+  uint32                nAnti;
+  uint32                nOuttie;
 
   classifyMatesResult   result;
 };
@@ -236,14 +254,15 @@ public:
 
 class cmGlobalData {
 public:
-  cmGlobalData(char    *resultsName_,
+  cmGlobalData(char    *resultName_,
                uint32   distMin_,
                uint32   distMax_,
                bool     innie_,
                uint32   nodesMax_,
                uint32   depthMax_,
                uint32   pathsMax_,
-               uint64   memoryLimit_);
+               uint64   memoryLimit_,
+               bool     doSearchSuspicious_);
   ~cmGlobalData();
 
   bool   load(set<AS_IID>  &searchLibs,
@@ -273,15 +292,23 @@ public:
                       double  maxErrorFraction);
   void   loadOverlaps_invert(void);
 
-  void   computeNextPlacement(cmComputation *c,
-                              cmThreadData  *t,
+  void   computeNextPlacement(cmThreadData  *t,
                               overlapInfo  *&novl,
                               uint32        &niid,
                               bool          &n5p3,
-                              uint32        &nlen);
+                              int32         &nlen);
 
-  bool   testSearch(cmComputation              *c,
-                    cmThreadData               *t);
+  void   testSuspicious(uint32           fragIID,
+                        bool             frag5p3,
+                        uint32           mateIID,
+                        cmThreadData    *t,
+                        vector<int32>   &dist3p5,
+                        vector<int32>   &dist5p3,
+                        bool             onlyNormal);
+
+  bool   testSearch(cmComputation  *c,
+                    cmThreadData   *t);
+
   bool   testSearch(cmComputation *c,
                     cmThreadData  *t,
                     overlapInfo  **pos,
@@ -296,9 +323,16 @@ public:
   void   doSearchBFS(cmComputation *c, cmThreadData *t);
   void   doSearchRFS(cmComputation *c, cmThreadData *t);
 
+  void   doSearchSuspicious(uint32 fragIID, bool frag5p3,
+                            uint32 mateIID,
+                            cmThreadData   *t,
+                            vector<int32>  &dist3p5,
+                            vector<int32>  &dist5p3);
+
 public:
-  char                      resultsPrefix[FILENAME_MAX];
+  char                      resultPrefix[FILENAME_MAX];
   classifyMatesResultFile  *resultOutput;
+  FILE                     *resultSuspicious;
 
   uint32                    distMin;
   uint32                    distMax;
@@ -307,6 +341,8 @@ public:
   uint32                    nodesMax;
   uint32                    depthMax;
   uint32                    pathsMax;
+
+  bool                      suspiciousSearch;
 
   memoryMappedFile         *cmDat;
   memoryMappedFile         *cmOvl;
