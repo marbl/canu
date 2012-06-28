@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.33 2012-06-02 08:11:41 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.34 2012-06-28 01:19:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -274,8 +274,35 @@ processSeq(char       *N,
   //  Reverse the read if it is from an outtie pair.  This ONLY works if the reads are the same
   //  length throughout the library.  WE DO NOT CHECK THAT IS SO.
 
-  if (fastqOrient == FASTQ_OUTTIE)
+  if (fastqOrient == FASTQ_OUTTIE) {
+    uint32 bgn;
+
     reverseComplement(fr->sstr, fr->qstr, slen);
+
+    if (clrL < clrR) {
+      bgn    = clrL;
+      clrL = slen - clrR;
+      clrR = slen - bgn;
+    }
+
+    if (clvL < clvR) {
+      bgn    = clvL;
+      clvL = slen - clvR;
+      clvR = slen - bgn;
+    }
+
+    if (clmL < clmR) {
+      bgn    = clmL;
+      clmL = slen - clmR;
+      clmR = slen - bgn;
+    }
+
+    if (tntL < tntR) {
+      bgn    = tntL;
+      tntL = slen - tntR;
+      tntR = slen - bgn;
+    }
+  }
 
   //  Make sure there aren't any bogus letters
 
@@ -606,7 +633,9 @@ loadFastQReads(char    *uname,
 
 
 void
-checkLibraryForFastQPointers(LibraryMesg *lib_mesg, uint32 packedLength) {
+checkLibraryForFastQPointers(LibraryMesg *lib_mesg,
+                             AS_IID       lib_iid,
+                             uint32       packedLength) {
   uint32  fastqType   = FASTQ_SOLEXA;
   uint32  fastqOrient = FASTQ_INNIE;
   bool    forcePacked = false;
@@ -655,6 +684,19 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg, uint32 packedLength) {
       if (strcasecmp(lib_mesg->values[i], "outtie") == 0)
         fastqOrient = FASTQ_OUTTIE;
     }
+  }
+
+  //  If the orientation is outtie, mark the library as being flipped so
+  //  gatekeeper dumps can undo the flip.
+
+  if (fastqOrient == FASTQ_OUTTIE) {
+    gkLibrary  gkpl;
+
+    gkpStore->gkStore_getLibrary(lib_iid, &gkpl);
+
+    gkpl.readsAreReversed = true;
+
+    gkpStore->gkStore_setLibrary(lib_iid, &gkpl);
   }
 
   //  Search for and load the reads.

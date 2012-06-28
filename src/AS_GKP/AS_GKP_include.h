@@ -19,12 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.65 2012-02-23 19:12:25 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.66 2012-06-28 01:19:01 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
 
-static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.65 2012-02-23 19:12:25 brianwalenz Exp $";
+static const char *rcsid_AS_GKP_INCLUDE_H = "$Id: AS_GKP_include.h,v 1.66 2012-06-28 01:19:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <errno.h>
@@ -51,7 +51,9 @@ Check_DistanceMesg(DistanceMesg     *dst_mesg,
                    int                believeInputStdDev);
 
 void
-checkLibraryForFastQPointers(LibraryMesg *lib_mesg, uint32 packedLength);
+checkLibraryForFastQPointers(LibraryMesg *lib_mesg,
+                             AS_IID       lib_iid,
+                             uint32       packedLength);
 
 int
 Check_LibraryMesg(LibraryMesg       *dst_mesg,

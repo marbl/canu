@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.73 2012-05-21 18:24:21 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.74 2012-06-28 01:19:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@ static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.73 2012-05-21 18:24:21 brianw
 
 #include "AS_GKP_include.h"
 #include "AS_UTL_fasta.h"
+#include "AS_UTL_reverseComplement.h"
 #include "AS_PER_gkpStore.h"
 
 void
@@ -997,6 +998,8 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
     AS_IID  libIID = fr.gkFragment_getLibraryIID();
     AS_UID  libUID = (libIID > 0) ? gkp->gkStore_getLibrary(libIID)->libraryUID : AS_UID_undefined();
 
+    bool    flipReads = gkp->gkStore_getLibrary(libIID)->readsAreReversed;
+
     if (iidToDump[id1] == 0) {
       //  Fragment isn't marked for dumping, don't dump.  Skip ahead to the next dumpable fragment.
 
@@ -1067,6 +1070,38 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
       //  The easiest fix is to just ignore clear ranges.
       //vecBgn = maxBgn = tntBgn = 1;
       //vecEnd = maxEnd = tntEnd = 0;
+    }
+
+    //  If flipping, do the flip and reset clear ranges.
+    //
+    if (flipReads) {
+      uint32 bgn;
+
+      reverseComplement(seq, qlt, len);
+
+      if (clrBgn < clrEnd) {
+        bgn    = clrBgn;
+        clrBgn = len - clrEnd;
+        clrEnd = len - bgn;
+      }
+
+      if (vecBgn < vecEnd) {
+        bgn    = vecBgn;
+        vecBgn = len - vecEnd;
+        vecEnd = len - bgn;
+      }
+
+      if (maxBgn < maxEnd) {
+        bgn    = maxBgn;
+        maxBgn = len - maxEnd;
+        maxEnd = len - bgn;
+      }
+
+      if (tntBgn < tntEnd) {
+        bgn    = tntBgn;
+        tntBgn = len - tntEnd;
+        tntEnd = len - bgn;
+      }
     }
 
     if (id2 == 0) {
@@ -1151,6 +1186,38 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
       //  The easiest fix is to just ignore clear ranges.
       //vecBgn = maxBgn = tntBgn = 1;
       //vecEnd = maxEnd = tntEnd = 0;
+    }
+
+    //  If flipping, do the flip and reset clear ranges.
+    //
+    if (flipReads) {
+      uint32 bgn;
+
+      reverseComplement(seq, qlt, len);
+
+      if (clrBgn < clrEnd) {
+        bgn    = clrBgn;
+        clrBgn = len - clrEnd;
+        clrEnd = len - bgn;
+      }
+
+      if (vecBgn < vecEnd) {
+        bgn    = vecBgn;
+        vecBgn = len - vecEnd;
+        vecEnd = len - bgn;
+      }
+
+      if (maxBgn < maxEnd) {
+        bgn    = maxBgn;
+        maxBgn = len - maxEnd;
+        maxEnd = len - bgn;
+      }
+
+      if (tntBgn < tntEnd) {
+        bgn    = tntBgn;
+        tntBgn = len - tntEnd;
+        tntEnd = len - bgn;
+      }
     }
 
     //  Write the second fragment (twice).
