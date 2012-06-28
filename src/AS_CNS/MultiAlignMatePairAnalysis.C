@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.6 2012-06-21 09:12:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.7 2012-06-28 20:01:18 skoren Exp $";
 
 #include "MultiAlignMatePairAnalysis.H"
 
@@ -127,9 +127,16 @@ matePairAnalysis::~matePairAnalysis() {
 
 
 
-
 void
 matePairAnalysis::evaluateTig(MultiAlignT *ma) {
+   evaluateTig(ma, NULL);
+}
+
+
+
+
+void
+matePairAnalysis::evaluateTig(MultiAlignT *ma, pthread_mutex_t *mux) {
   map<AS_IID, uint32>  fragIdx;
   uint32               numFrag = GetNumIntMultiPoss(ma->f_list);
   int32                maLen   = 0;
@@ -168,6 +175,10 @@ matePairAnalysis::evaluateTig(MultiAlignT *ma) {
 
     //  EXTERNALLY MATED
     if (fragIdx.find(mmi) == fragIdx.end()) {
+      if (mux != NULL) {
+        pthread_mutex_lock (mux);
+      }
+
       switch (liborient) {
         case AS_READ_ORIENT_UNKNOWN:
           assert(0);
@@ -194,6 +205,9 @@ matePairAnalysis::evaluateTig(MultiAlignT *ma) {
         default:
           break;
       }
+      if (mux != NULL) {
+        pthread_mutex_unlock (mux);
+      }
 
       continue;
     }
@@ -209,7 +223,11 @@ matePairAnalysis::evaluateTig(MultiAlignT *ma) {
       continue;
 
     int32 distance = matmax - frgmin;
-    
+   
+    if (mux != NULL) {
+      pthread_mutex_lock (mux);
+    } 
+
     if        ((frgforward == true)  && (matforward == false)) {
       lib->orient[AS_READ_ORIENT_INNIE].dist.push_back(distance);
 
@@ -221,6 +239,10 @@ matePairAnalysis::evaluateTig(MultiAlignT *ma) {
 
     } else {//((frgforward == false) && (matforward == false))
       lib->orient[AS_READ_ORIENT_ANTINORMAL].dist.push_back(distance);
+    }
+
+    if (mux != NULL) {
+      pthread_mutex_unlock (mux);
     }
   }
 }
