@@ -37,12 +37,102 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-using namespace std;
+#ifndef AS_PBR_UTIL_H
+#define AS_PBR_UTIL_H
+
+static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.3 2012-06-28 20:02:45 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
+#include "AS_PER_gkpStore.h"
+#include "MultiAlignMatePairAnalysis.H"
 
-uint32 olapLengthOVL(OVSoverlap ovl, uint32 alen, uint32 blen) {
+#include <map>
+#include <stack>
+
+#include <pthread.h>
+
+#define	THREAD_STACKSIZE	(16 * 512 * 512)
+#define CGW_CUTOFF 			5
+
+const uint16 	MAX_COV_HIST	= 65535;
+const uint8 	MAX_COV			= 255;
+const double 	CUMULATIVE_SUM	= 0.5; //0.95;
+const uint64 	MAX_TO_READ		= 100000;
+const double	DEFAULT_SAMPLE_SIZE = 0.05;
+const uint32	CHIMERA_MAX_SIZE = 60;
+
+struct OverlapPos {
+   SeqInterval position;
+   IntFragment_ID ident;
+};
+
+// global variables shared between all threads
+struct PBRThreadGlobals {
+   // mutex to controll access to overlap store
+   pthread_mutex_t  overlapMutex;
+
+   // mutex to control access to gkp store/gkpStore itself
+   pthread_mutex_t gkpMutex;
+   gkStore *gkp;
+
+   // writable global data (access controlled by globalDataMutex)
+   pthread_mutex_t globalDataMutex;
+
+   map<AS_IID, uint8> readsToPrint;
+   map<AS_IID, uint32> longReadsToPrint;
+
+   // track number of active threads for output of layouts
+   stack<pair<AS_IID, AS_IID> > toOutput;
+   pthread_mutex_t countMutex;
+
+   // global parameters
+   char *    ovlStoreUniqPath;
+   int       numThreads;
+   int       partitions;
+   double    maxErate;
+   double    erate;
+   double    elimit;
+   int       globalRepeats;
+   double    repeatMultiplier;
+   int       minLength;
+   char      prefix[FILENAME_MAX];
+   double	 percentToEstimateInserts;
+
+   // read-only variables for thread
+   uint16 covCutoff;
+   uint8  maxUncorrectedGap;
+
+   // read-only fragment information
+   map<AS_IID, uint32> frgToLen;
+   map<AS_IID, uint8> frgToLib;
+   map<AS_IID, AS_IID> frgToMate;
+
+   // read-only lib information
+   uint32 *libToInclude;
+   map<AS_IID, pair<double, double> > libToSize;
+   map<AS_IID, uint8 > libToOrientation;
+   bool hasMates;
+
+   matePairAnalysis *mpa;
+
+   int fixedMemory;
+   map<AS_IID, char*> frgToEnc;
+   pair<AS_IID, AS_IID> *partitionStarts;
+   uint32 perFile;
+};
+
+// this holds thread-specfic variables (plus a pointer to the global data)
+struct PBRThreadWorkArea {
+   uint32 id;
+   AS_IID start;
+   AS_IID end;
+   uint32 fileStart;
+   uint32 fileEnd;
+   PBRThreadGlobals *globals;
+};
+
+static uint32 olapLengthOVL(OVSoverlap ovl, uint32 alen, uint32 blen) {
   int32   ah = ovl.dat.ovl.a_hang;
   int32   bh = ovl.dat.ovl.b_hang;
   uint32  le = 0;
@@ -62,7 +152,7 @@ uint32 olapLengthOVL(OVSoverlap ovl, uint32 alen, uint32 blen) {
   return(le);
 }
 
-uint32 olapLengthOBT(OVSoverlap ovl, uint32 alen, uint32 blen) {
+static uint32 olapLengthOBT(OVSoverlap ovl, uint32 alen, uint32 blen) {
    uint32 aovl = ovl.dat.obt.a_end - ovl.dat.obt.a_beg;
    uint32 bend = ovl.dat.obt.b_end_hi >> 9 | ovl.dat.obt.b_end_lo;
    uint32 bbgn = MIN(ovl.dat.obt.b_beg, bend);
@@ -71,7 +161,7 @@ uint32 olapLengthOBT(OVSoverlap ovl, uint32 alen, uint32 blen) {
    return MIN(aovl, (bend-bbgn));
 }
 
-extern uint32
+static uint32
 olapLength(OVSoverlap ovl, uint32 alen, uint32 blen) {
    if (ovl.dat.ovl.type == AS_OVS_TYPE_OVL) {
       return olapLengthOVL(ovl, alen, blen);
@@ -81,7 +171,7 @@ olapLength(OVSoverlap ovl, uint32 alen, uint32 blen) {
    return 0;
 }
 
-bool isOlapBadOVL(OVSoverlap olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
+static bool isOlapBadOVL(OVSoverlap olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
     //  The overlap is ALWAYS bad if the original error rate is above what we initially required
     //  overlaps to be at.  We shouldn't have even seen this overlap.  This is a bug in the
     //  overlapper.
@@ -114,7 +204,7 @@ bool isOlapBadOVL(OVSoverlap olap, uint32 alen, uint32 blen, double AS_UTG_ERROR
     return true;
 }
 
-bool isOlapBadOBT(OVSoverlap olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
+static bool isOlapBadOBT(OVSoverlap olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
    if (olap.dat.obt.erate > AS_OVS_encodeQuality(AS_CNS_ERROR_RATE))
       return true;
 
@@ -132,7 +222,7 @@ bool isOlapBadOBT(OVSoverlap olap, uint32 alen, uint32 blen, double AS_UTG_ERROR
    return true;
 }
 
-extern bool isOlapBad(OVSoverlap olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
+static bool isOlapBad(OVSoverlap olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
     if (olap.dat.ovl.type == AS_OVS_TYPE_OVL) {
        return isOlapBadOVL(olap, alen, blen, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT, AS_CNS_ERROR_RATE);
     } else if (olap.dat.ovl.type == AS_OVS_TYPE_OBT) {
@@ -141,7 +231,7 @@ extern bool isOlapBad(OVSoverlap olap, uint32 alen, uint32 blen, double AS_UTG_E
     return true;
 }
 
-uint64  scoreOverlapOVL(const OVSoverlap& olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
+static uint64  scoreOverlapOVL(const OVSoverlap& olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
 
     //  BPW's newer new score.  For the most part, we use the length of the overlap, but we also
     //  want to break ties with the higher quality overlap.
@@ -177,7 +267,7 @@ uint64  scoreOverlapOVL(const OVSoverlap& olap, uint32 alen, uint32 blen, double
     return(leng | corr | orig);
 }
 
-uint64  scoreOverlapOBT(const OVSoverlap& olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
+static uint64  scoreOverlapOBT(const OVSoverlap& olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
     if (isOlapBad(olap, alen, blen, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT, AS_CNS_ERROR_RATE)) {
        return 0;
     }
@@ -191,7 +281,7 @@ uint64  scoreOverlapOBT(const OVSoverlap& olap, uint32 alen, uint32 blen, double
     return(leng | orig);
 }
 
-extern
+static
   uint64  scoreOverlap(const OVSoverlap& olap, uint32 alen, uint32 blen, double AS_UTG_ERROR_RATE, double AS_UTG_ERROR_LIMIT, double AS_CNS_ERROR_RATE) {
    if (olap.dat.ovl.type == AS_OVS_TYPE_OVL) {
       return scoreOverlapOVL(olap, alen, blen, AS_UTG_ERROR_RATE, AS_UTG_ERROR_LIMIT, AS_CNS_ERROR_RATE);
@@ -200,3 +290,34 @@ extern
    }
    return 0;
 }
+
+static bool compare_tile ( const OverlapPos& a, const OverlapPos& b ) {
+  return MIN(a.position.bgn, a.position.end) < MIN(b.position.bgn, b.position.end);
+}
+
+extern uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS_IID, char*> &frgToEnc);
+
+static bool isOvlForward(const OVSoverlap& olap) {
+	if (olap.dat.ovl.type == AS_OVS_TYPE_OVL) {
+	   return !olap.dat.ovl.flipped;
+	} else if (olap.dat.ovl.type == AS_OVS_TYPE_OBT) {
+		return olap.dat.obt.fwd;
+	}
+
+	return false;
+}
+
+static bool rangesOverlap(const SeqInterval &first, const SeqInterval &second) {
+   uint32 minA = MIN(first.bgn, first.end);
+   uint32 minB = MIN(second.bgn, second.end);
+   uint32 maxA = MAX(first.bgn, first.end);
+   uint32 maxB = MAX(second.bgn, second.end);
+
+   int start = MAX(minA, minB);
+   int end = MIN(maxA, maxB);
+
+   return (end-start+1) > 0;
+}
+
+extern void convertOverlapToPosition(const OVSoverlap& olap, SeqInterval &pos, SeqInterval &bClr, uint32 alen, uint32 blen);
+#endif

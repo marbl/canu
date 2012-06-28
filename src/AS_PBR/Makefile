@@ -51,14 +51,25 @@ ifeq ($(MACHINETYPE), Power Macintosh)
   MACHINETYPE = ppc
 endif
 
-PBR_SOURCES = 
+PBR_SOURCES = CorrectPacBio.cc
 PBR_OBJECTS = $(PBR_SOURCES:.cc=.o)
 
-SOURCES     = CorrectPacBio.cc $(PBR_SOURCES)
-OBJECTS     = CorrectPacBio.o  $(PBR_OBJECTS)
-SCRIPTS     = pacBioToCA
+PBR_LIB_SOURCES = \
+				AS_PBR_util.cc \
+				AS_PBR_correct.cc \
+				AS_PBR_filter.cc \
+				AS_PBR_mates.cc \
+				AS_PBR_output.cc
+PBR_LIB_OBJECTS = $(PBR_LIB_SOURCES:.cc=.o)
+
+SOURCES     = $(PBR_SOURCES) $(PBR_LIB_SOURCES)
+OBJECTS     = $(PBR_OBJECTS) $(PBR_LIB_OBJECTS)
+
+LIBRARIES     = libAS_PBR.a libCA.a
+LIBS          = libCA.a
 
 CXX_PROGS = correctPacBio
+SCRIPTS     = pacBioToCA
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -81,10 +92,16 @@ endif
 ifeq ($(OSTYPE), Darwin)
 endif
 
+
 all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
 	@test -n nop
 
-correctPacBio:	   CorrectPacBio.o libCA.a
+libAS_PBR.a: $(PBR_LIB_OBJECTS)
+
+libCA.a: $(PBR_LIB_OBJECTS)
+
+correctPacBio:	   CorrectPacBio.o $(LIBS)
+
 pacBioToCA: pacBioToCA.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
