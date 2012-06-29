@@ -50,7 +50,7 @@ using namespace std;
 #include <vector>
 #include <set>
 
-static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.1 2012-06-28 20:02:45 skoren Exp $";
+static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.2 2012-06-29 13:10:50 skoren Exp $";
 
 void *outputResults(void *ptr) {
   PBRThreadWorkArea *wa = (PBRThreadWorkArea *) ptr;
@@ -95,7 +95,11 @@ fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %
      }
 
      char inName[FILENAME_MAX] = {0};
-     sprintf(inName, "%s.%d.olaps", waGlobal->prefix, part);
+     if (waGlobal->hasMates) {
+    	 sprintf(inName, "%s.%d.paired.olaps", waGlobal->prefix, part);
+     } else {
+    	 sprintf(inName, "%s.%d.olaps", waGlobal->prefix, part);
+     }
      errno = 0;
      FILE *inFile = fopen(inName, "r");
      if (errno) {
