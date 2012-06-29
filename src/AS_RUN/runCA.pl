@@ -537,7 +537,7 @@ sub setDefaults () {
     $global{"cgwPurgeCheckpoints"}         = 1;
     $synops{"cgwPurgeCheckpoints"}         = "Remove cgw checkpoint files when a scaffolding step finishes successfully";
 
-    $global{"cgwCompressTigStore"}         = 1;
+    $global{"cgwCompressTigStore"}         = 0;
     $synops{"cgwCompressTigStore"}         = "Remove tigStore versions when a scaffolding step finishes successfully";
 
     $global{"cgwDemoteRBP"}                = 1;
