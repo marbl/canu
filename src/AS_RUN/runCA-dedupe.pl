@@ -2454,8 +2454,8 @@ submitScript(undef) if (!runningOnGrid());
 
 #  Begin
 
-if (!defined(getGlobal("outputPrefix"))) {
-    die "No 'outputPrefix' supplied.\n";
+if (defined(getGlobal("outputPrefix"))) {
+    die "'outputPrefix' obsolete; output now written to work directory (-d) using assembly name (-p).\n";
 }
 
 preoverlap(@fragFiles);
@@ -2463,9 +2463,9 @@ overlapTrim();
 
 #  End
 
-$cmd = "$bin/gatekeeper -dumpfastq " . getGlobal("outputPrefix") . " $wrk/$asm.gkpStore > $wrk/$asm.gkpStore.dump.err 2>&1";
+$cmd = "$bin/gatekeeper -dumpfastq $wrk/$asm $wrk/$asm.gkpStore > $wrk/$asm.gkpStore.dump.err 2>&1";
 
-if (runCommand($ENV{'PWD'}, $cmd)) {
+if (runCommand($wrk, $cmd)) {
     caFailure("failed to dump deduplicated reads", "$wrk/$asm.gkpStore.dump.err");
 }
 
