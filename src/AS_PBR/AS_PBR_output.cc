@@ -50,7 +50,7 @@ using namespace std;
 #include <vector>
 #include <set>
 
-static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.2 2012-06-29 13:10:50 skoren Exp $";
+static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.3 2012-07-05 16:14:00 skoren Exp $";
 
 void *outputResults(void *ptr) {
   PBRThreadWorkArea *wa = (PBRThreadWorkArea *) ptr;
@@ -172,9 +172,9 @@ fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %
                     offset = 0;
                  }
                  uint32 overlappingStart = (lastEnd-offset >= (waGlobal->maxUncorrectedGap / 3) ? lastEnd - (waGlobal->maxUncorrectedGap / 3) - offset: 0);
-                uint32 overlappingEnd = MIN(iter->position.bgn, iter->position.end) + (waGlobal->maxUncorrectedGap / 3) - offset;
+                 uint32 overlappingEnd = MIN(iter->position.bgn, iter->position.end) + (waGlobal->maxUncorrectedGap / 3) - offset;
                 // record this gap
-                fprintf(stderr, "For fragment %d had a gap from %d to %d inserting range %d from %d %d\n", i, lastEnd, MIN(iter->position.bgn, iter->position.end),gapIID, overlappingStart, overlappingEnd);
+                fprintf(stderr, "For fragment %d had a gap from %d to %d inserting range %d from %d %d with offset %d so in original read positions are %d %d\n", i, lastEnd, MIN(iter->position.bgn, iter->position.end),gapIID, overlappingStart, overlappingEnd, offset, overlappingStart+offset, overlappingEnd+offset);
                 layout << "{TLE\nclr:"
                        << 0
                        << ","
@@ -183,7 +183,7 @@ fprintf(stderr, "THe thread %d has to output size of "F_SIZE_T" and partitions %
                        << "\nsrc:" << gapIID
                        << "\n}\n";
                readsWithGaps[i] = 1;
-               pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(overlappingStart, overlappingEnd));
+               pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(overlappingStart+offset, MIN(waGlobal->frgToLen[i], overlappingEnd+offset)));
                gaps[i].push_back(gapInfo);
               } else {
                  // close the layout and start a new one because we have a coverage gap
