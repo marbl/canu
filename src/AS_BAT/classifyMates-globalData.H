@@ -96,9 +96,11 @@ public:
 
 class bits {
 public:
-  bits(uint64 num) {
-    ba = new uint32 [num / 32 + 1];
-    memset(ba, 0, sizeof(uint32) * (num / 32 + 1));
+  bits(uint64 num, char *label) {
+    nm = num / 32 + 1;
+    ba = new uint32 [nm];
+    memset(ba, 0, sizeof(uint32) * nm);
+    strcpy(la, label);
   };
   ~bits() {
     delete [] ba;
@@ -125,8 +127,22 @@ public:
     ba[wrd] = ba[wrd] & ~(0x00000001llu << bit);
   };
 
+#if 1
+  void      testClear(void) {};
+#else
+  void      testClear(void) {
+    for (uint32 ii=0; ii<nm; ii++) {
+      if (ba[ii] != 0)
+        fprintf(stderr, "ERROR: bits::%s %u not zero.\n", la, ii);
+      assert(ba[ii] == 0);
+    }
+  };
+#endif
+
 private:
   uint32   *ba;
+  uint32    nm;
+  char      la[64];
 };
 
 
@@ -173,6 +189,11 @@ public:
     edge5Len       = 0;
 
     visitedListLen = 0;
+
+    //if (solutionSet)    solutionSet->testClear();  //  Not valid; we test explicitly.
+
+    if (visited5p3bits) visited5p3bits->testClear();
+    if (visited3p5bits) visited3p5bits->testClear();
   };
 
   uint32         pathPos;  //  Position of the search in DFS and BFS

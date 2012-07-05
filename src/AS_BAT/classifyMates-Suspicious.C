@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-Suspicious.C,v 1.1 2012-06-27 20:11:51 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-Suspicious.C,v 1.2 2012-07-05 04:07:51 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -121,10 +121,10 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
     t->pathMax        = nodesMax;
     t->path           = new searchNode [t->pathMax];
 
-    t->solutionSet    = new bits(numFrags + 1);
+    t->solutionSet    = new bits(numFrags + 1, "solutionSet");
 
-    t->visited5p3bits = new bits(numFrags + 1);
-    t->visited3p5bits = new bits(numFrags + 1);
+    t->visited5p3bits = new bits(numFrags + 1, "visited5p3bits");
+    t->visited3p5bits = new bits(numFrags + 1, "visited3p5bits");
 
     t->visitedListMax = 16 * 1024 * 1024;
     t->visitedList    = new uint32 [t->visitedListMax];
@@ -133,9 +133,13 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
   dist5p3.clear();
   dist3p5.clear();
 
+  t->clear();
+
   //  Build the map from backbone fragment to solution overlap.  The map goes from a-fragID to
   //  overlap with the mateIID b-frag.  In other words, if this is set, the backbone fragment has an
   //  overlap to the mate fragment we are searching for.
+
+  t->solutionSet->testClear();
 
   for (uint32 ii=0; ii<gtLen[mateIID]; ii++)
     t->solutionSet->set(gtPos[mateIID][ii].iid);
@@ -144,8 +148,6 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
   //
   //  Pass 1: Breadth first search for short insert crud.
   //
-  t->clear();
-
   t->path[t->pathAdd].pIID = fragIID;
   t->path[t->pathAdd].p5p3 = frag5p3;
   t->path[t->pathAdd].pLen = fi[fragIID].clearLength;
@@ -204,6 +206,7 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
       visited->set(niid);
 
       t->visitedList[t->visitedListLen++] = niid;
+      assert(t->visitedListLen < t->visitedListMax);
 
       t->path[t->pathAdd].pIID = niid;
       t->path[t->pathAdd].p5p3 = n5p3;
@@ -215,6 +218,13 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
 
       t->pathAdd++;
     }
+  }
+
+  //  Clean up the markings.
+
+  for (uint32 ii=0; ii<t->visitedListLen; ii++) {
+    t->visited5p3bits->clear(t->visitedList[ii]);
+    t->visited3p5bits->clear(t->visitedList[ii]);
   }
 
   ////////////////////////////////////////
@@ -300,11 +310,8 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
 
   //  Clean up our markings.
 
-  for (uint32 ii=0; ii<t->visitedListLen; ii++) {
-    t->visited5p3bits->clear(t->visitedList[ii]);
-    t->visited3p5bits->clear(t->visitedList[ii]);
-  }
-
   for (uint32 ii=0; ii<gtLen[mateIID]; ii++)
     t->solutionSet->clear(gtPos[mateIID][ii].iid);
+
+  t->solutionSet->testClear();
 }
