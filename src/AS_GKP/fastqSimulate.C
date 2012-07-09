@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.18 2012-03-13 21:54:31 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.19 2012-07-09 05:59:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +44,8 @@ const uint32 mpJunctionsNone   = 0;
 const uint32 mpJunctionsNormal = 1;
 const uint32 mpJunctionsAlways = 2;
 
+double pRevComp = 0.5;
+double pNormal  = 0.0;
 
 #define QV_BASE  '!'
 
@@ -110,7 +112,8 @@ makeSequences(char    *frag,
               char    *s1,
               char    *q1,
               char    *s2,
-              char    *q2) {
+              char    *q2,
+              bool     makeNormal = false) {
 
   for (int32 p=0, i=0; p<readLen; p++, i++) {
     s1[p] = frag[i];
@@ -130,8 +133,14 @@ makeSequences(char    *frag,
   if ((fragLen == 0) || (s2 == NULL) || (q2 == NULL))
     return;
 
-  for (int32 p=0, i=fragLen-1; p<readLen; p++, i--) {
-    s2[p] = revComp[frag[i]];
+  if (makeNormal == true)
+    for (int32 p=0, i=fragLen-readLen; p<readLen; p++, i++)
+      s2[p] = frag[i];
+  else
+    for (int32 p=0, i=fragLen-1; p<readLen; p++, i--)
+      s2[p] = revComp[frag[i]];
+
+  for (int32 p=0; p<readLen; p++) {
     q2[p] = (validBase[s2[p]]) ? QV_BASE + 39 : QV_BASE + 2;
 
     if (drand48() < readErrorRate) {
@@ -140,10 +149,15 @@ makeSequences(char    *frag,
     }
 
     assert(s2[p] != '*');
-  }  
+  }
 
   s2[readLen] = 0;
   q2[readLen] = 0;
+
+  if ((makeNormal) && (drand48() < pRevComp)) {
+    reverseComplement(s1, q1, readLen);
+    reverseComplement(s2, q2, readLen);
+  }
 }
 
 
@@ -182,6 +196,11 @@ makeSE(char   *seq,
     for (int32 i=0; i<readLen; i++)
       if (s1[i] == 'N')
         goto trySEagain;
+
+    //  Reverse complement?
+
+    if (drand48() < pRevComp)
+      reverseComplement(s1, q1, readLen);
 
     //  Output sequence, with a descriptive ID
 
@@ -232,7 +251,9 @@ makePE(char   *seq,
 
     //  Read sequences from the ends.
 
-    makeSequences(seq + bgn, len, readLen, s1, q1, s2, q2);
+    bool   makeNormal = ((pNormal > 0.0) && (drand48() < pNormal));
+
+    makeSequences(seq + bgn, len, readLen, s1, q1, s2, q2, makeNormal);
 
     //  Make sure the reads don't contain N's
 
@@ -242,22 +263,22 @@ makePE(char   *seq,
 
     //  Output sequences, with a descriptive ID
 
-    fprintf(outputI, "@PE_%d_%d@%d-%d/1\n", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(outputI, "@PE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
     fprintf(outputI, "%s\n", s1);
     fprintf(outputI, "+\n");
     fprintf(outputI, "%s\n", q1);
 
-    fprintf(outputI, "@PE_%d_%d@%d-%d/2\n", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(outputI, "@PE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
     fprintf(outputI, "%s\n", s2);
     fprintf(outputI, "+\n");
     fprintf(outputI, "%s\n", q2);
 
-    fprintf(output1, "@PE_%d_%d@%d-%d/1\n", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(output1, "@PE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
     fprintf(output1, "%s\n", s1);
     fprintf(output1, "+\n");
     fprintf(output1, "%s\n", q1);
 
-    fprintf(output2, "@PE_%d_%d@%d-%d/2\n", np, idx, bgn-zer, bgn+len-zer);
+    fprintf(output2, "@PE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, bgn-zer, bgn+len-zer);
     fprintf(output2, "%s\n", s2);
     fprintf(output2, "+\n");
     fprintf(output2, "%s\n", q2);
@@ -265,12 +286,12 @@ makePE(char   *seq,
     reverseComplement(s1, q1, readLen);
     reverseComplement(s2, q2, readLen);
 
-    fprintf(outputC, "@PE_%d_%d@%d-%d/1\n", np, idx, bgn+len-zer, bgn-zer);
+    fprintf(outputC, "@PE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, bgn+len-zer, bgn-zer);
     fprintf(outputC, "%s\n", s1);
     fprintf(outputC, "+\n");
     fprintf(outputC, "%s\n", q1);
 
-    fprintf(outputC, "@PE_%d_%d@%d-%d/2\n", np, idx, bgn+len-zer, bgn-zer);
+    fprintf(outputC, "@PE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, bgn+len-zer, bgn-zer);
     fprintf(outputC, "%s\n", s2);
     fprintf(outputC, "+\n");
     fprintf(outputC, "%s\n", q2);
@@ -317,7 +338,8 @@ makeMP(char   *seq,
     int32   slen = randomGaussian(mpShearSize, mpShearStdDev);  //  shear size
 
     if ((len  <= readLen) ||
-        (slen <= readLen))
+        (slen <= readLen) ||
+        (len  <= slen))
       goto tryMPagain;
 
     //  Scan the sequence, if we spanned a sequence break, don't use this pair
@@ -335,7 +357,9 @@ makeMP(char   *seq,
       //  Failed to wash away non-biotin marked sequence, make PE
       int32  sbgn = bgn + randomUniform(0, len - slen);
 
-      makeSequences(seq + sbgn, slen, readLen, s1, q1, s2, q2);
+      bool   makeNormal = ((pNormal > 0.0) && (drand48() < pNormal));
+
+      makeSequences(seq + sbgn, slen, readLen, s1, q1, s2, q2, makeNormal);
 
       //  Make sure the reads don't contain N's
 
@@ -345,22 +369,22 @@ makeMP(char   *seq,
 
       //  Output sequences, with a descriptive ID
 
-      fprintf(outputI, "@fPE_%d_%d@%d-%d/1\n", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(outputI, "@fPE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
       fprintf(outputI, "%s\n", s1);
       fprintf(outputI, "+\n");
       fprintf(outputI, "%s\n", q1);
 
-      fprintf(outputI, "@fPE_%d_%d@%d-%d/2\n", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(outputI, "@fPE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
       fprintf(outputI, "%s\n", s2);
       fprintf(outputI, "+\n");
       fprintf(outputI, "%s\n", q2);
 
-      fprintf(output1, "@fPE_%d_%d@%d-%d/1\n", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(output1, "@fPE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
       fprintf(output1, "%s\n", s1);
       fprintf(output1, "+\n");
       fprintf(output1, "%s\n", q1);
 
-      fprintf(output2, "@fPE_%d_%d@%d-%d/2\n", np, idx, sbgn-zer, sbgn+slen-zer);
+      fprintf(output2, "@fPE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, sbgn-zer, sbgn+slen-zer);
       fprintf(output2, "%s\n", s2);
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);
@@ -368,12 +392,12 @@ makeMP(char   *seq,
       reverseComplement(s1, q1, readLen);
       reverseComplement(s2, q2, readLen);
 
-      fprintf(outputC, "@fPE_%d_%d@%d-%d/1\n", np, idx, sbgn+slen-zer, sbgn-zer);
+      fprintf(outputC, "@fPE%s_%d_%d@%d-%d/1\n", (makeNormal) ? "normal" : "", np, idx, sbgn+slen-zer, sbgn-zer);
       fprintf(outputC, "%s\n", s1);
       fprintf(outputC, "+\n");
       fprintf(outputC, "%s\n", q1);
 
-      fprintf(outputC, "@fPE_%d_%d@%d-%d/2\n", np, idx, sbgn+slen-zer, sbgn-zer);
+      fprintf(outputC, "@fPE%s_%d_%d@%d-%d/2\n", (makeNormal) ? "normal" : "", np, idx, sbgn+slen-zer, sbgn-zer);
       fprintf(outputC, "%s\n", s2);
       fprintf(outputC, "+\n");
       fprintf(outputC, "%s\n", q2);
@@ -440,7 +464,9 @@ makeMP(char   *seq,
 
       sh[slen] = 0;
 
-      makeSequences(sh, slen, readLen, s1, q1, s2, q2);
+      bool   makeNormal = ((pNormal > 0.0) && (drand48() < pNormal));
+
+      makeSequences(sh, slen, readLen, s1, q1, s2, q2, makeNormal);
 
       //  Make sure the reads don't contain N's
 
@@ -477,22 +503,22 @@ makeMP(char   *seq,
         q2[shift - 0] = QV_BASE + 10;
       }
 
-      fprintf(outputI, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(outputI, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/1\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(outputI, "%s\n", s1);
       fprintf(outputI, "+\n");
       fprintf(outputI, "%s\n", q1);
 
-      fprintf(outputI, "@%cMP_%d_%d@%d-%d_%d/%d/%d/2\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(outputI, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/2\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(outputI, "%s\n", s2);
       fprintf(outputI, "+\n");
       fprintf(outputI, "%s\n", q2);
 
-      fprintf(output1, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output1, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/1\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output1, "%s\n", s1);
       fprintf(output1, "+\n");
       fprintf(output1, "%s\n", q1);
 
-      fprintf(output2, "@%cMP_%d_%d@%d-%d_%d/%d/%d/2\n", type, np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
+      fprintf(output2, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/2\n", type, (makeNormal) ? "normal" : "", np, idx, bgn, bgn+len, shift, slen, bgn+len-shift);
       fprintf(output2, "%s\n", s2);
       fprintf(output2, "+\n");
       fprintf(output2, "%s\n", q2);
@@ -500,12 +526,12 @@ makeMP(char   *seq,
       reverseComplement(s1, q1, readLen);
       reverseComplement(s2, q2, readLen);
 
-      fprintf(outputC, "@%cMP_%d_%d@%d-%d_%d/%d/%d/1\n", type, np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
+      fprintf(outputC, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/1\n", type, (makeNormal) ? "normal" : "", np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
       fprintf(outputC, "%s\n", s1);
       fprintf(outputC, "+\n");
       fprintf(outputC, "%s\n", q1);
 
-      fprintf(outputC, "@%cMP_%d_%d@%d-%d_%d/%d/%d/2\n", type, np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
+      fprintf(outputC, "@%cMP%s_%d_%d@%d-%d_%d/%d/%d/2\n", type, (makeNormal) ? "normal" : "", np, idx, bgn+len, bgn, shift, slen, bgn+len-shift);
       fprintf(outputC, "%s\n", s2);
       fprintf(outputC, "+\n");
       fprintf(outputC, "%s\n", q2);
@@ -689,6 +715,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-nojunction") == 0) {
       mpJunctions = mpJunctionsNone;
 
+    } else if (strcmp(argv[arg], "-normal") == 0) {
+      pNormal = atof(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-alljunction") == 0) {
       mpJunctions = mpJunctionsAlways;
 
@@ -756,6 +785,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nojunction     For -mp, do not create chimeric junction reads.  Create only fully PE or\n");
     fprintf(stderr, "                  fully MP reads.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -normal p       Output a normal-oriented (both forward or both reverse) pair with\n");
+    fprintf(stderr, "                  probability p.  Only for -pe and -mp.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -se\n");
     fprintf(stderr, "                  Create single-end reads.\n");
