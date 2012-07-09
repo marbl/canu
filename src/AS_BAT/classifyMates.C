@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.29 2012-06-27 20:11:51 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.30 2012-07-09 06:04:33 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -44,33 +44,30 @@ cmWorker(void *G, void *T, void *S) {
   if (g->testChimers(s, t))
     return;
 
-  if ((g->nodesMax > 0) && (s->result.classified == false))
+  if ((s->result.classified == false) && (g->nodesMax > 0))
     g->doSearchBFS(s, t);
 
-  if ((g->depthMax > 0) && (s->result.classified == false))
+  if ((s->result.classified == false) && (g->depthMax > 0))
     g->doSearchDFS(s, t);
 
-  if ((g->pathsMax > 0) && (s->result.classified == false))
+  if ((s->result.classified == false) && (g->pathsMax > 0))
     g->doSearchRFS(s, t);
 
-  if (g->suspiciousSearch) {
-    g->doSearchSuspicious(s->fragIID, true,  s->mateIID, t, t->distInnie, t->distNormal);
-    g->doSearchSuspicious(s->fragIID, false, s->mateIID, t, t->distAnti,  t->distOuttie);
+  //  Suspicious only works for finding outtie PE mixed in with innie MP.  Here, every orientation
+  //  except 'far' innie is suspicious crap.
 
-    s->nInnie  = t->distInnie.size();
-    s->nNormal = t->distNormal.size();
-    s->nAnti   = t->distAnti.size();
-    s->nOuttie = t->distOuttie.size();
+  if ((s->result.classified == false) && (g->suspiciousSearch) && (g->innie == false)) {
+    g->doSearchSuspicious(s->fragIID, true,  s->mateIID, t, t->distInnieClose, t->distInnieFar, t->distNormalClose, t->distNormalFar);
+    g->doSearchSuspicious(s->fragIID, false, s->mateIID, t, t->distAntiClose,  t->distAntiFar,  t->distOuttieClose, t->distOuttieFar);
 
-    //  We're expecting no Normal/Anti oriented results, and, depending on PE vs MP,
-    //  no results for one of Innie/Outtie.
+    s->nInnie  = t->distInnieClose.size();
+    s->nNormal = t->distNormalClose.size() + t->distNormalFar.size();
+    s->nAnti   = t->distAntiClose.size()   + t->distAntiFar.size();
+    s->nOuttie = t->distOuttieClose.size() + t->distOuttieFar.size();
 
-    if ((g->innie == true) && (s->nOuttie + s->nNormal + s->nAnti > s->nInnie))
-      //  Searching for innie-oriented MP.
-      s->result.suspicious = true;
+    //  But how to claim these are real and not spurious overlaps?  If we find ANYTHING, it's suspicious.
 
-    if ((g->innie == false) && (s->nInnie + s->nNormal + s->nAnti > s->nOuttie))
-      //  Searching for outtie-oriented PE.
+    if (s->nInnie + s->nNormal + s->nAnti + s->nOuttie > t->distInnieFar.size())
       s->result.suspicious = true;
   }
 }
@@ -188,6 +185,8 @@ main(int argc, char **argv) {
 
   bool        doCache           = false;
 
+  bool        beVerbose         = true;
+
   double      maxErrorFraction  = 0.045;
 
   uint32      distMin           = 0;
@@ -242,6 +241,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-cache") == 0) {
       doCache = true;
 
+    } else if (strcmp(argv[arg], "-q") == 0) {
+      beVerbose = false;
+
     } else if (strcmp(argv[arg], "-min") == 0) {
       distMin = atoi(argv[++arg]);
 
@@ -249,6 +251,8 @@ main(int argc, char **argv) {
       distMax = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-innie") == 0) {
+      fprintf(stderr, "-innie not supported.\n");
+      assert(0);
       innie = true;
 
     } else if (strcmp(argv[arg], "-outtie") == 0) {
@@ -295,6 +299,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -cache           Write loaded data to cache files, useful for restarting\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -q               Don't report progress.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "STANDARD CONFIGURATION:\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Will search for outtie-oriented PE mates, from 100 to 1500bp apart, using the\n");
@@ -305,7 +311,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -min m           Mates must be at least m bases apart\n");
     fprintf(stderr, "  -max m           Mates must be at most m bases apart\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -innie           Mates must be innie\n");
+    fprintf(stderr, "  -innie           Mates must be innie (NOT SUPPORTED)\n");
     fprintf(stderr, "  -outtie          Mates must be outtie\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -bfs N           Use 'breadth-first search'; search at most N fragments\n");
@@ -354,7 +360,7 @@ main(int argc, char **argv) {
   for (u32bit w=0; w<numThreads; w++)
     ss->setThreadData(w, new cmThreadData());  //  these leak
 
-  ss->run(g, true);
+  ss->run(g, beVerbose);
 
   delete g;
 }

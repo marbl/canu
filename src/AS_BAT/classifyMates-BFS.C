@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-BFS.C,v 1.13 2012-07-05 04:07:51 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-BFS.C,v 1.14 2012-07-09 06:04:33 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -76,6 +76,12 @@ cmGlobalData::doSearchBFS(cmComputation *c,
         (t->pathPos < t->pathAdd));
        t->pathPos++) {
 
+    //fprintf(stderr, "SEARCH iid %u bb %u path pos %u add %u max %u curLen %u bbLen %u\n",
+    //        c->fragIID, t->path[t->pathPos].pIID,
+    //        t->pathPos, t->pathAdd, t->pathMax,
+    //        t->path[t->pathPos].pLen,
+    //        bbLen[t->path[t->pathPos].pIID]);
+
     if (maxLen < t->path[t->pathPos].pLen)
       maxLen = t->path[t->pathPos].pLen;
 
@@ -101,6 +107,7 @@ cmGlobalData::doSearchBFS(cmComputation *c,
 
       if (fi[niid].isBackbone == false) {
         //  Not a backbone read
+        //fprintf(stderr, "NOTBB iid %u\n", niid);
         nBB++;
         continue;
       }
@@ -109,12 +116,14 @@ cmGlobalData::doSearchBFS(cmComputation *c,
 
       if (nlen <= t->path[t->pathPos].pLen) {
         //  Path went backwards.
+        //fprintf(stderr, "BACKWARDS iid %u 5p3 %d len %d\n", niid, n5p3, nlen);
         nBACK++;
         continue;
       }
 
       if (nlen > distMax) {
         //  Path too far, don't add
+        //fprintf(stderr, "TOOFAR iid %u 5p3 %d len %d\n", niid, n5p3, nlen);
         nFAR++;
         continue;
       }
@@ -123,6 +132,7 @@ cmGlobalData::doSearchBFS(cmComputation *c,
 
       if (visited->isSet(niid) == true) {
         //  Been here already.
+        //fprintf(stderr, "VISITED iid %u\n", niid);
         nHERE++;
         continue;
       }
@@ -147,8 +157,14 @@ cmGlobalData::doSearchBFS(cmComputation *c,
 
   if (t->pathAdd >= t->pathMax)
     c->result.limited = true;
-  else
+  else {
+    //fprintf(stderr, "EXHAUSTED iid %u path pos %u add %u max %u curLen %u bbLen %u\n",
+    //        c->fragIID,
+    //        t->pathPos, t->pathAdd, t->pathMax,
+    //        t->path[t->pathPos].pLen,
+    //        bbLen[t->path[t->pathPos].pIID]);
     c->result.exhausted = true;
+  }
 
   //  Not found.
   assert(c->result.classified == false);

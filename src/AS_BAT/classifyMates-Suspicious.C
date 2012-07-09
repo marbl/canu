@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-Suspicious.C,v 1.2 2012-07-05 04:07:51 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-Suspicious.C,v 1.3 2012-07-09 06:04:33 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -32,11 +32,14 @@ using namespace std;
 //  Suspicious is defined as ANY short path in ANY orientation from the frag to the mate.
 
 
-//  For BFS, the max distance we we'll search for, and the path depth.
-#define DISTMAX  300
-#define DEPTHMAX 8
+//  For BFS, the max distance we we'll search for, and the path depth.  EVERYTHING found below this
+//  size is bad.  Including any INNIE-MP found.  DISTMAX must be smaller than the any valid MP.
+//
+#define DISTMAX  500
+#define DEPTHMAX 10
 
-//  The number of iterations of random-path search.  This only counts normal-orient as bad.
+//  The number of iterations of random-path search.  INNIE-MP found here are not bad.
+//
 #define RFSITERS    100
 #define RFSDISTMAX  5000
 
@@ -114,8 +117,10 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
                                  bool            frag5p3,
                                  uint32          mateIID,
                                  cmThreadData   *t,
-                                 vector<int32>  &dist3p5,
-                                 vector<int32>  &dist5p3) {
+                                 vector<int32>  &dist3p5close,
+                                 vector<int32>  &dist3p5far,
+                                 vector<int32>  &dist5p3close,
+                                 vector<int32>  &dist5p3far) {
 
   if (t->path == NULL) {
     t->pathMax        = nodesMax;
@@ -130,8 +135,10 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
     t->visitedList    = new uint32 [t->visitedListMax];
   }
 
-  dist5p3.clear();
-  dist3p5.clear();
+  dist5p3close.clear();
+  dist5p3far.clear();
+  dist3p5close.clear();
+  dist3p5far.clear();
 
   t->clear();
 
@@ -163,7 +170,7 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
         (t->pathPos < t->pathAdd));
        t->pathPos++) {
 
-    testSuspicious(fragIID, frag5p3, mateIID, t, dist3p5, dist5p3, false);
+    testSuspicious(fragIID, frag5p3, mateIID, t, dist3p5close, dist5p3close, false);
 
     if (t->pathAdd >= t->pathMax)
       //  No space for more overlaps, abort adding any.
@@ -249,7 +256,7 @@ cmGlobalData::doSearchSuspicious(uint32          fragIID,
 
     while (t->path[t->pathPos].pLen < RFSDISTMAX) {
 
-      testSuspicious(fragIID, frag5p3, mateIID, t, dist3p5, dist5p3, true);
+      testSuspicious(fragIID, frag5p3, mateIID, t, dist3p5far, dist5p3far, true);
 
       //  Compute which edges extend in the correct direction.
       //

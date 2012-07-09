@@ -223,10 +223,15 @@ public:
   uint32         edge5Max;
   uint32        *edge5;
 
-  vector<int32>  distInnie;  //  Use in testSuspicious
-  vector<int32>  distOuttie;
-  vector<int32>  distNormal;
-  vector<int32>  distAnti;
+  vector<int32>  distInnieClose;  //  Use in testSuspicious
+  vector<int32>  distOuttieClose;
+  vector<int32>  distNormalClose;
+  vector<int32>  distAntiClose;
+
+  vector<int32>  distInnieFar;
+  vector<int32>  distOuttieFar;
+  vector<int32>  distNormalFar;
+  vector<int32>  distAntiFar;
 };
 
 
@@ -347,8 +352,10 @@ public:
   void   doSearchSuspicious(uint32 fragIID, bool frag5p3,
                             uint32 mateIID,
                             cmThreadData   *t,
-                            vector<int32>  &dist3p5,
-                            vector<int32>  &dist5p3);
+                            vector<int32>  &dist5p3close,
+                            vector<int32>  &dist5p3far,
+                            vector<int32>  &dist3p5close,
+                            vector<int32>  &dist3p5far);
 
 public:
   char                      resultPrefix[FILENAME_MAX];
