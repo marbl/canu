@@ -111,12 +111,55 @@ if (!defined($inp) || (! -d $inp)) {
 
 if ($err) {
     print STDERR "\n";
-    print STDERR "usage: $0 []\n";
+    print STDERR "usage: $0 -d output-directory -p prefix -t type -g gkpStore -i input-directory [options]]\n";
+    print STDERR "\n";
+    print STDERR "Mandatory parameters:\n";
     print STDERR "  -d wrk          path to location where store should be created\n";
     print STDERR "  -p asm          prefix of store\n";
     print STDERR "  -t typ          type of store: obt dup mer ovl\n";
     print STDERR "  -g gkp          path to gkpStore\n";
     print STDERR "  -i inp          path to input files\n";
+    print STDERR "\n";
+    print STDERR "Options:\n";
+    print STDERR "  -jobs j         create 'j' sorting jobs\n";
+    print STDERR "  -memory m       request 'm' memory from SGE for sorting\n";
+    print STDERR "  -deleteearly    delete intermediate files as soon as possible (unsafe)\n";
+    print STDERR "  -deletelate     delete intermediate files when it is safe to do so\n";
+    print STDERR "  -maxerror e     discard overlaps with more than 'e' fraction error\n";
+    print STDERR "  -submit         automatically submit to SGE\n";
+    print STDERR "\n";
+    print STDERR "This will create an overlap store in three phases.\n";
+    print STDERR "\n";
+    print STDERR "The first phase will read overlapper outputs found in the '-i inp' directory and write them to the\n";
+    print STDERR "store directory.  The store directory is in 'wrk/asm.typStore'.  Overlaps are organized into\n";
+    print STDERR "'buckets' with 'slices'.  A bucket corresponds to a single overlapper output, while a slice is a\n";
+    print STDERR "range of overlaps (based on fragment ID).  There will be one job for each overlap output file.\n";
+    print STDERR "\n";
+    print STDERR "The '-jobs j' parameter tells how many slices to make.  More slices means more sort jobs, but each\n";
+    print STDERR "job needs less memory.  The maximum number of jobs is dictated by the operating system, as the\n";
+    print STDERR "number of open files per process.\n";
+    print STDERR "\n";
+    print STDERR "The second phase will read a single slice (from multiple buckets) into memory, sort them completely,\n";
+    print STDERR "and write the overlaps into the store.  The '-memory m' parameter does NOT control how much memory\n";
+    print STDERR "is used, but ONLY tells SGE how much memory each job requires.  There is NO control over how much\n";
+    print STDERR "memory is needed, however, if a job needs more memory than requested, it will exit doing nothing.\n";
+    print STDERR "\n";
+    print STDERR "The third phase will check that all sort jobs in the second phase finished successfully, and create\n";
+    print STDERR "a master index for the store.  It is sequential, low memory and generally quick.\n";
+    print STDERR "\n";
+    print STDERR "Example:\n";
+    print STDERR "\n";
+    print STDERR "$0 \\\n";
+    print STDERR "  -d /work/assembly/godzilla-v1 \\\n";
+    print STDERR "  -p godzilla \\\n";
+    print STDERR "  -t ovl \\\n";
+    print STDERR "  -g /work/assembly/godzilla-v1/godzilla.gkpStore \\\n";
+    print STDERR "  -i /scratch/godzillaovl/ \\\n";
+    print STDERR "  -jobs 100\n";
+    print STDERR "\n";
+    print STDERR "This will load overlaps in /scratch/godzillaovl/001, /002, /003, etc into\n";
+    print STDERR "store /work/assembly/godzilla-v1/godzilla.ovlStore.\n";
+    print STDERR "\n";
     exit(1);
 }
 
