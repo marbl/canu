@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.67 2012-06-10 05:52:33 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.68 2012-07-11 06:02:16 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -208,12 +208,29 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
     SetVA_MateInstrumenterP(MIs, scaffoldB->id, &sBBefore);
   }
 
+  fprintf(stderr, "isQualityScaffoldMergingEdge()-- Scaffold %d instrumenter (intra/inter): happy %d/%d bad %d/%d missing %d/%d\n",
+          scaffoldA->id,
+          GetMateStatsHappy(&sABefore->intra),   GetMateStatsHappy(&sABefore->inter),
+          GetMateStatsBad(&sABefore->intra),     GetMateStatsBad(&sABefore->inter),
+          GetMateStatsMissing(&sABefore->intra), GetMateStatsMissing(&sABefore->inter));
+
+  fprintf(stderr, "isQualityScaffoldMergingEdge()-- Scaffold %d instrumenter (intra/inter): happy %d/%d bad %d/%d missing %d/%d\n",
+          scaffoldB->id,
+          GetMateStatsHappy(&sBBefore->intra),   GetMateStatsHappy(&sBBefore->inter),
+          GetMateStatsBad(&sBBefore->intra),     GetMateStatsBad(&sBBefore->inter),
+          GetMateStatsMissing(&sBBefore->intra), GetMateStatsMissing(&sBBefore->inter));
+
   AddMateInstrumenterCounts(&matesBefore, sABefore);
   AddMateInstrumenterCounts(&matesBefore, sBBefore);
 
   InstrumentScaffoldPair(ScaffoldGraph, curEdge, si, InstrumenterVerbose2, stderr);
 
   GetMateInstrumenterFromScaffoldInstrumenter(&matesAfter, si);
+
+  fprintf(stderr, "isQualityScaffoldMergingEdge()-- Scaffold (new) instrumenter (intra/inter): happy %d/%d bad %d/%d missing %d/%d\n",
+          GetMateStatsHappy(&matesAfter.intra),   GetMateStatsHappy(&matesAfter.inter),
+          GetMateStatsBad(&matesAfter.intra),     GetMateStatsBad(&matesAfter.inter),
+          GetMateStatsMissing(&matesAfter.intra), GetMateStatsMissing(&matesAfter.inter));
 
   int32   mBeforeGood = GetMateStatsHappy(&matesBefore.intra) + GetMateStatsHappy(&matesBefore.inter);
   int32   mBeforeBad  = GetMateStatsBad(&matesBefore.intra)   + GetMateStatsBad(&matesBefore.inter);
@@ -222,6 +239,7 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
   int32   mAfterBad   = GetMateStatsBad(&matesAfter.intra)    + GetMateStatsBad(&matesAfter.inter);
 
   //  Add in mates that should have been satisfied, but weren't.
+#warning THIS IS TOO AGGRESSIVE
   mAfterBad += GetMateStatsMissing(&matesAfter.inter);
 
   //  This should only be counted for 'inter' (== inter-contig?) and not for 'intra'.
@@ -230,7 +248,6 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
   // since we expect some set of mates to be missing due to divergence between closely related species, we don't perform this check the same way for metagenomics
   if (GetMateStatsMissing(&matesAfter.inter) > 0) {
 	  if (((double)GetMateStatsMissing(&matesAfter.inter) / mAfterGood) < GlobalData->mergeScaffoldMissingMates || GlobalData->mergeScaffoldMissingMates == -1) {
-	fprintf(stderr, "DOWNCOUNDING THE MISSING MATES BY %d\n", GetMateStatsMissing(&matesAfter.inter));
 		  mAfterBad -= GetMateStatsMissing(&matesAfter.inter);
 	  }
   }
