@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.101 2012-02-23 19:12:25 brianwalenz Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.102 2012-07-13 18:06:13 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +28,8 @@ const char *mainid = "$Id: AS_GKP_main.c,v 1.101 2012-02-23 19:12:25 brianwalenz
 #include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+
+#include <map>
 
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
@@ -93,9 +95,11 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  -uid <uid-file>         dump only objects listed in 'uid-file'\n");
   fprintf(stdout, "  -iid <iid-file>         dump only objects listed in 'iid-file'\n");
   fprintf(stdout, "  -randommated  <lib> <n> pick n mates (2n frags) at random from library lib\n");
-  fprintf(stdout, "  -randomsubset <lib> <f> dump a random fraction f of library lib\n");
+  fprintf(stdout, "  -randomsubset <lib> <f> dump a random fraction f (0.0-1.0) of library lib\n");
   fprintf(stdout, "  -randomlength <lib> <l> dump a random fraction of library lib, fraction picked\n");
-  fprintf(stdout, "                          so that the untrimmed length is close to l\n");
+  fprintf(stdout, "                          so that the untrimmed length is close to l bp\n");
+  fprintf(stdout, "  -longestovermin <lib> <n> pick all reads longer than n bp from library lib\n");
+  fprintf(stdout, "  -longestlength  <lib> <n> pick longest reads from library lib to add up to n total bp\n"); 
   fprintf(stdout, "\n");
   fprintf(stdout, "  ---------\n");
   fprintf(stdout, "  [options]\n");
@@ -376,6 +380,74 @@ constructIIDdump(char  *gkpStoreName,
 }
 
 
+char *
+constructIIDdumpLongest(char  *gkpStoreName,
+                 char  *iidToDump,
+                 uint32 dumpRandLib,
+                 uint32 dumpLongestMin,
+                 uint64 dumpLongestLength) {
+
+  if (dumpLongestLength == 0 && dumpLongestMin == 0) {
+    return(iidToDump);
+  }
+
+  gkStore *gkp = new gkStore(gkpStoreName, FALSE, FALSE);
+
+  uint32      numNoLib  = 0;
+
+  uint64      lenFrag   = 0;
+
+  uint32      numTotal  = gkp->gkStore_getNumFragments() + 1;  //  Should count, or remember this when building
+
+  multimap<uint32, AS_IID> lenToIID;
+
+  gkFragment  fr;
+  gkStream   *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
+
+  if (iidToDump == NULL)
+    iidToDump = (char *)safe_calloc(numTotal, sizeof(char));
+
+  //  Scan the whole fragstore, looking for reads in the
+  //  correct library, and save the lesser of the two reads.
+  //
+  while (fs->next(&fr)) {
+
+    if (fr.gkFragment_getLibraryIID() == 0)
+      numNoLib++;
+
+    if ((dumpRandLib == 0) ||
+        (dumpRandLib == fr.gkFragment_getLibraryIID())) {
+
+      uint32 len = fr.gkFragment_getSequenceLength();
+      if (len > dumpLongestMin) {
+         if (dumpLongestLength == 0) {
+            iidToDump[fr.gkFragment_getReadIID()] = 1;
+         } else {
+            lenToIID.insert(pair<uint32, AS_IID>(len, fr.gkFragment_getReadIID()));
+         }
+      }
+    }
+  }
+  delete fs;
+  delete gkp;
+
+  if (numNoLib)
+    fprintf(stderr, "WARNING: found "F_U32" reads with no library (usually caused by using frg format 1).\n", numNoLib);
+
+  if (dumpLongestLength != 0) {
+    for (multimap<uint32, AS_IID>::reverse_iterator iter = lenToIID.rbegin(); iter != lenToIID.rend(); iter++) {
+       iidToDump[iter->second] = 1;
+       lenFrag += iter->first;
+       
+       if (lenFrag >= dumpLongestLength) {
+          break;
+       } 
+    }
+  }
+
+  return(iidToDump);
+}
+
 
 
 #define DUMP_NOTHING     0
@@ -430,6 +502,8 @@ main(int argc, char **argv) {
   uint32           dumpRandSingNum   = 0;  //  Not a command line option
   double           dumpRandFraction  = 0.0;
   uint64           dumpRandLength    = 0;
+  uint32           dumpLongestMin    = 0;
+  uint64           dumpLongestTotal  = 0;
   char            *iidToDump         = NULL;
   
   AS_IID           featureLibIID     = 0;
@@ -498,6 +572,18 @@ main(int argc, char **argv) {
       dumpRandLength   = atol(argv[++arg]);
       if (dumpRandLength == 0) {
         fprintf(stderr, "%s: -randomlength told to dump 0 bases; exit.\n", argv[0]);
+        exit(0);
+      }
+    
+    } else if (strcmp(argv[arg], "-longestovermin") == 0) {
+       dumpRandLib = atoi(argv[++arg]);
+       dumpLongestMin = atoi(argv[++arg]);
+    }
+    else if (strcmp(argv[arg], "-longestlength") == 0) {
+       dumpRandLib = atoi(argv[++arg]);
+       dumpLongestTotal = atoi(argv[++arg]);
+       if (dumpLongestTotal == 0) {
+        fprintf(stderr, "%s: -longesttotallength told to dump 0 bases; exit.\n", argv[0]);
         exit(0);
       }
 
@@ -594,6 +680,7 @@ main(int argc, char **argv) {
 
   iidToDump = constructIIDdumpFromIDFile(gkpStoreName, iidToDump, uidFileName, iidFileName);
   iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction, dumpRandLength);
+  iidToDump = constructIIDdumpLongest(gkpStoreName, iidToDump, dumpRandLib, dumpLongestMin, dumpLongestTotal);
 
   if (dump != DUMP_NOTHING) {
     int exitVal = 0;
