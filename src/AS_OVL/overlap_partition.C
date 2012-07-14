@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.10 2012-02-21 00:31:58 brianwalenz Exp $";
+const char *mainid = "$Id: overlap_partition.C,v 1.11 2012-07-14 06:34:02 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -387,7 +387,28 @@ main(int argc, char **argv) {
   fprintf(stderr, "HASH: "F_U64" reads or "F_U64" length.\n", ovlHashBlockSize, ovlHashBlockLength);
   fprintf(stderr, "REF:  "F_U64" reads or "F_U64" length.\n", ovlRefBlockSize,  ovlRefBlockLength);
 
-  gkStore   *gkp      = new gkStore(gkpStoreName, FALSE, FALSE, true);
+  gkStore   *gkp         = new gkStore(gkpStoreName, FALSE, FALSE, true);
+  uint32     numLibs     = gkp->gkStore_getNumLibraries();
+  uint32     invalidLibs = 0;
+
+  for (set<uint32>::iterator it=libToHash.begin(); it != libToHash.end(); it++)
+    if (numLibs < *it)
+      fprintf(stderr, "ERROR: -H "F_U32" is invalid; only "F_U32" libraries in '%s'\n",
+              *it, numLibs, gkpStoreName), invalidLibs++;
+
+  for (set<uint32>::iterator it=libToRef.begin(); it != libToRef.end(); it++)
+    if (numLibs < *it)
+      fprintf(stderr, "ERROR: -R "F_U32" is invalid; only "F_U32" libraries in '%s'\n",
+              *it, numLibs, gkpStoreName), invalidLibs++;
+
+  if ((libToHash.size() > 0) && (libToRef.size() > 0))
+    for (uint32 lib=1; lib<=numLibs; lib++)
+      if ((libToHash.find(lib) == libToHash.end()) &&
+          (libToRef.find(lib)  == libToRef.end()))
+        fprintf(stderr, "ERROR: library "F_U32" is not mentioned in either -H or -R.\n", lib), invalidLibs++;
+
+  if (invalidLibs > 0)
+    fprintf(stderr, "ERROR: one of -H and/or -R are invalid.\n"), exit(1);
 
   gkp->gkStore_metadataCaching(true);
 
