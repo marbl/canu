@@ -104,6 +104,7 @@ public:
   u32bit  numWords(void)        { return(_argWords); };
   char   *getWord(u32bit i)     { return(_arg[i]); };
   char   *operator[](u32bit i)  { return(_arg[i]); };
+  s64bit  operator()(u32bit i)  { return(strtoull(_arg[i], NULL, 10)); };
 private:
   u32bit    _argWords;
   u32bit    _maxWords;
