@@ -7,6 +7,7 @@
 
 //  Writes polishes from stdin as a one-line-per-match format, space-based!
 
+bool extendedFormat = false;
 
 void
 output(sim4polish *p,
@@ -38,10 +39,18 @@ output(sim4polish *p,
     }
   }
 
-  fprintf(stdout, "%s\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%s\t"u32bitFMT"\t"u32bitFMT"\t%6.3f\t%6.3f\n",
-          Ep, p->_estLen, a, beg, end,
-          Gp, p->_exons[a]._genFrom - 1, p->_exons[b]._genTo,
-          ident, cover);
+  if (extendedFormat)
+    fprintf(stdout, "%s\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%s\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%6.3f\t%6.3f\n",
+            Ep, p->_estID,
+            p->_estLen, a, beg, end,
+            Gp, p->_genID,
+            p->_exons[a]._genFrom - 1, p->_exons[b]._genTo,
+            ident, cover);
+  else
+    fprintf(stdout, "%s\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%s\t"u32bitFMT"\t"u32bitFMT"\t%6.3f\t%6.3f\n",
+            Ep, p->_estLen, a, beg, end,
+            Gp, p->_exons[a]._genFrom - 1, p->_exons[b]._genTo,
+            ident, cover);
 }
 
 
@@ -55,14 +64,16 @@ main(int argc, char **argv) {
   int arg = 1;
   int err = 0;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-v", 2) == 0) {
+    if        (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
-    } else if (strncmp(argv[arg], "-q", 2) == 0) {
+    } else if (strcmp(argv[arg], "-fullquery") == 0) {
       wholeEDefLine = true;
-    } else if (strncmp(argv[arg], "-g", 2) == 0) {
+    } else if (strcmp(argv[arg], "-fullgenomic") == 0) {
       wholeGDefLine = true;
-    } else if (strncmp(argv[arg], "-exons", 2) == 0) {
+    } else if (strcmp(argv[arg], "-exons") == 0) {
       doExons = true;
+    } else if (strcmp(argv[arg], "-extended") == 0) {
+      extendedFormat = true;
     } else {
       fprintf(stderr, "Unknown arg '%s'\n", argv[arg]);
       err++;
@@ -74,7 +85,10 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  fprintf(stdout, "cDNAid\tcDNAlen\texonNum\tbegin\tend\tgenomicid\tbegin\tend\tidentity\tcoverage\n");
+  if (extendedFormat)
+    fprintf(stdout, "cDNAid\tcDNAidx\tcDNAlen\texonNum\tbegin\tend\tgenomicid\tgenomicidx\tbegin\tend\tidentity\tcoverage\n");
+  else
+    fprintf(stdout, "cDNAid\tcDNAlen\texonNum\tbegin\tend\tgenomicid\tbegin\tend\tidentity\tcoverage\n");
 
   char          E[1024], *Ep;
   char          G[1024], *Gp;
