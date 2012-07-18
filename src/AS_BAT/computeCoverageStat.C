@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: computeCoverageStat.C,v 1.6 2012-03-27 09:37:05 brianwalenz Exp $";
+const char *mainid = "$Id: computeCoverageStat.C,v 1.7 2012-07-18 15:52:43 jasonmiller9704 Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -150,84 +150,155 @@ numRandomFragments(MultiAlignT *ma) {
 double
 getGlobalArrivalRate(MultiAlignStore *tigStore,
                      FILE            *outSTA,
-                     uint64           genomeSize) {
+                     uint64           genomeSize,
+		     bool            useN50) {
   double   globalRate = 0;
   double   recalRate  = 0;
 
   double   sumRho     = 0;
 
-  int32    arMax   = 0;
   int32    arLen   = 0;
   double  *ar      = NULL;
-
+  uint32    numUnitigs    = 0;
+  uint32   *allRho  = NULL;
+  uint32   NF;
   uint64   totalRandom = 0;
   uint64   totalNF     = 0;
+  int32    BIG_SPAN    = 10000;
+  int32    big_spans_in_unitigs   = 0; // formerly arMax
+
+  const bool  isUnitig = true; // Required for tigStore accessor                                         
 
   // Go through all the unitigs to sum rho and unitig arrival frags
-
-  for (uint32 i=0; i<tigStore->numUnitigs(); i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
-
+  
+  numUnitigs = tigStore->numUnitigs();
+  allRho = new uint32 [numUnitigs];
+  for (uint32 i=0; i<numUnitigs; i++) {
+    MultiAlignT  *ma = tigStore->loadMultiAlign(i, isUnitig);
+    allRho[i]=0;
     if (ma == NULL)
       continue;
-
     double rho       = computeRho(ma);
     int32  numRandom = numRandomFragments(ma);
-
     sumRho  += rho;
-    arMax   += rho / 10000;
-
+    big_spans_in_unitigs   += (int32) (rho / BIG_SPAN);  // Keep integral portion of fraction.
     totalRandom += numRandom;
-    totalNF     += (numRandom == 0) ? (0) : (numRandom - 1);
+    totalNF     +=  (numRandom == 0) ? (0) : (numRandom - 1);
+    allRho[i] = rho;
   }
 
-  if (genomeSize > 0)
+  // Here is a rough estimate of arrival rate.
+  // Use (number frags)/(unitig span) unless unitig span is zero; then use (reads)/(genome).
+  // Here, (number frags) includes only random reads and omits the last read of each unitig.
+  // Here, (sumRho) is total unitig span omitting last read of each unitig.
+
+  if (genomeSize > 0) {
     globalRate = totalRandom / (double)genomeSize;
+  } else {
+    if (sumRho > 0)
+      globalRate = totalNF / sumRho;
+  }
 
-  if (sumRho > 0)
-    globalRate = totalNF / sumRho;
-
-  fprintf(outSTA, "\n");
-  fprintf(outSTA, "Calculated Global Arrival rate:   %f\n", globalRate);
-  fprintf(outSTA, "\n");
+  fprintf(outSTA, "BASED ON ALL UNITIGS:\n");
   fprintf(outSTA, "sumRho:                           %.0f\n", sumRho);
   fprintf(outSTA, "totalRandomFrags:                 "F_U64"\n", totalRandom);
-  fprintf(outSTA, "\n");
   fprintf(outSTA, "Supplied genome size              "F_U64"\n", genomeSize);
   fprintf(outSTA, "Computed genome size:             %.2f\n", totalRandom / globalRate);
-  fprintf(outSTA, "\n");
+  fprintf(outSTA, "Calculated Global Arrival rate:   %f\n", globalRate);
 
-  if (genomeSize > 0)
+  // Stop here and return the rough estimate under some circumstances.
+  // *) If user suppled a genome size, we are done.
+  // *) No unitigs.
+
+  if (genomeSize > 0 || numUnitigs==0) {
+    delete [] allRho;
     return(globalRate);
+  } 
 
-  if (arMax <= sumRho / 20000)
+  //  Calculate rho N50 
+
+  double rhoN50 = 0;
+  if (useN50) {
+    uint32 growUntil = sumRho / 2; // half is 50%, needed for N50
+    uint64 growRho = 0;
+    sort (allRho, allRho+numUnitigs);
+    for (uint32 i=numUnitigs; i>0; i--) { // from largest to smallest unitig...
+      rhoN50 = allRho[i-1];
+      growRho += rhoN50;
+      if (growRho >= growUntil)
+	break; // break when sum of rho > 50%
+    }
+  }
+  delete [] allRho;
+
+  //  Try for a better estimate based on just unitigs larger than N50.
+
+  if (useN50) {
+    double keepRho = 0;
+    double keepNF = 0;
+    for (uint32 i=0; i<numUnitigs; i++) {
+      MultiAlignT  *ma = tigStore->loadMultiAlign(i, isUnitig);
+      if (ma == NULL)
+	continue;
+      double  rho = computeRho(ma);
+      if (rho < rhoN50)
+	continue; // keep only rho from unitigs > N50
+      int32 numRandom =   numRandomFragments(ma);
+      keepNF     +=  (numRandom == 0) ? (0) : (numRandom - 1);
+      keepRho  +=  rho;
+    }
+    fprintf(outSTA, "BASED ON UNITIGS > N50:\n");
+    fprintf(outSTA, "rho N50:                          %.0f\n", rhoN50);
+    if (keepRho > 1) {   // the cutoff 1 is arbitrary but larger than 0.0f
+      globalRate = keepNF / keepRho;
+      fprintf(outSTA, "sumRho:                           %.0f\n", keepRho);
+      fprintf(outSTA, "totalRandomFrags:                 %.0f\n", keepNF);
+      fprintf(outSTA, "Computed genome size:             %.2f\n", totalRandom / globalRate);
+      fprintf(outSTA, "Calculated Global Arrival rate:   %f\n", globalRate);
+      return (globalRate);
+    } else {
+      fprintf(outSTA, "It did not work to re-estimate using the N50 method.\n");
+    }
+  }
+
+  //  Recompute based on just big unitigs. Big is 10Kbp.
+  double BIG_THRESHOLD = 0.5; 
+  int32 big_spans_in_rho = (int32) (sumRho / BIG_SPAN);
+  fprintf(outSTA, "Size of big spans is %d\n", BIG_SPAN);
+  fprintf(outSTA, "Number of big spans in unitigs is %d\n", big_spans_in_unitigs);
+  fprintf(outSTA, "Number of big spans in sum-of-rho is %d\n", big_spans_in_rho);
+  fprintf(outSTA, "Ratio required for re-estimate is %f\n", BIG_THRESHOLD);
+  if ( (big_spans_in_unitigs / big_spans_in_rho) <= BIG_THRESHOLD) {
+    fprintf(outSTA, "Too few big spans to re-estimate using the big spans method.\n");
     return(globalRate);
+  }
+  //  The test above is a rewrite of the former version, where arMax=big_spans_in_unitigs...
+  //  if (arMax <= sumRho / 20000)
 
-  //  Recompute based on just big unitigs.
 
-  ar = new double [arMax];
+  ar = new double [big_spans_in_unitigs];
 
-  for (uint32 i=0; i<tigStore->numUnitigs(); i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
+  for (uint32 i=0; i<numUnitigs; i++) {
+    MultiAlignT  *ma = tigStore->loadMultiAlign(i, isUnitig);
 
     if (ma == NULL)
       continue;
 
     double  rho = computeRho(ma);
 
-    if (rho <= 10000)
+    if (rho <= BIG_SPAN)
       continue;
 
     int32   numRandom        = numRandomFragments(ma);
     double  localArrivalRate = numRandom / rho;
-    uint32  rhoDiv10k        = rho / 10000;
+    uint32  rhoDiv10k        = rho / BIG_SPAN;
 
     assert(0 < rhoDiv10k);
 
     for (uint32 i=0; i<rhoDiv10k; i++)
       ar[arLen++] = localArrivalRate;
 
-    assert(arLen <= arMax);
+    assert(arLen <= big_spans_in_unitigs);
 
     sort(ar, ar + arLen);
 
@@ -275,6 +346,8 @@ getGlobalArrivalRate(MultiAlignStore *tigStore,
 
   delete [] ar;
 
+  fprintf(outSTA, "BASED ON BIG SPANS IN UNITIGS:\n");
+  fprintf(outSTA, "Computed genome size:             %.2f (reestimated)\n", totalRandom / globalRate);
   fprintf(outSTA, "Calculated Global Arrival rate:   %f (reestimated)\n", globalRate);
 
   return(globalRate);
@@ -308,6 +381,8 @@ main(int argc, char **argv) {
   gkStore          *gkpStore = NULL;
 
   bool              doUpdate = true;
+  bool              use_N50  = true;
+  const bool        isUnitig = true; // Required for tigStore accessor
 
   argc = AS_configure(argc, argv);
 
@@ -330,6 +405,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-n") == 0) {
       doUpdate = false;
 
+    } else if (strcmp(argv[arg], "-u") == 0) {
+      use_N50 = false;
+
     } else {
       err++;
     }
@@ -345,10 +423,12 @@ main(int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -g         Mandatory path to a gkpStore.\n");
-    fprintf(stderr, "  -t         Mandatory path to a tigStore.\n");
-    fprintf(stderr, "  -s         Optional genome size.\n");
-    fprintf(stderr, "  -o         Output prefix; will create prefix.cga.0.\n");
+    fprintf(stderr, "  -g <G>     Mandatory, path G to a gkpStore directory.\n");
+    fprintf(stderr, "  -t <T> <v> Mandatory, path T to a tigStore, and version V.\n");
+    fprintf(stderr, "  -s <S>     Optional, assume genome size S.\n");
+    fprintf(stderr, "  -o <name>  Recommended, prefix for output files.\n");
+    fprintf(stderr, "  -n         Do not update the tigStore (default = do update).\n");
+    fprintf(stderr, "  -u         Do not estimate based on N50 (default = use N50).\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "No gatekeeper store (-g option) supplied.\n");
@@ -420,7 +500,7 @@ main(int argc, char **argv) {
   //  Compute global arrival rate.  This ain't cheap.
   //
 
-  globalRate = getGlobalArrivalRate(tigStore, outSTA, genomeSize);
+  globalRate = getGlobalArrivalRate(tigStore, outSTA, genomeSize, use_N50);
 
   //
   //  Compute coverage stat for each unitig, populate histograms, write logging.
@@ -439,7 +519,7 @@ main(int argc, char **argv) {
   extend_histogram(arv, sizeof(MyHistoDataType), myindexdata, mysetdata, myaggregate, myprintdata);
 
   for (uint32 i=bgnID; i<endID; i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, doUpdate);
+    MultiAlignT  *ma = tigStore->loadMultiAlign(i, isUnitig);
 
     if (ma == NULL)
       continue;
