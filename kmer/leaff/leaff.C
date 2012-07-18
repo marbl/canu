@@ -6,7 +6,7 @@
 //  Analysis functions
 //
 void dumpBlocks(char *filename);
-void stats(char *filename);
+void stats(char *filename, u64bit refLen);
 void partitionBySize(char *prefix, u64bit partitionSize, char *filename);
 void partitionByBucket(char *prefix, u64bit partitionSize, char *filename);
 void partitionBySegment(char *prefix, u64bit numSegments, char *filename);
@@ -168,8 +168,9 @@ helpAnalysis(char *program) {
   fprintf(stderr, "                         -- of course, N= should be increased to give the\n");
   fprintf(stderr, "                            appropriate depth of coverage\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "   --stats a.fasta\n");
+  fprintf(stderr, "   --stats a.fasta [refLen]\n");
   fprintf(stderr, "                Reports size statistics; number, N50, sum, largest.\n");
+  fprintf(stderr, "                If 'refLen' is supplied, N50 is based on this size.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "   --seqstore out.seqStore\n");
   fprintf(stderr, "                Converts the input file (-f) to a seqStore file.\n");
@@ -627,7 +628,7 @@ processArray(int argc, char **argv) {
       exit(0);
 
     } else if (strcmp(argv[arg], "--stats") == 0) {
-      stats(argv[++arg]);
+      stats(argv[arg+1], (argv[arg+2] != 0L) ? strtou64bit(argv[arg+2], 0L) : 0);
       exit(0);
 
     } else if (strcmp(argv[arg], "--errors") == 0) {
