@@ -361,9 +361,11 @@ fastaFile::loadIndex(char *indexname) {
     return;
   }
 
-  if ((_header._fastaFileSize         != (u64bit)fastastat.st_size) ||
-      (_header._fastaModificationTime != (u64bit)fastastat.st_mtime) ||
-      (_header._fastaCreationTime     != (u64bit)fastastat.st_ctime)) {
+#if 0
+      (_header._fastaModificationTime != (u64bit)fastastat.st_mtime)
+      (_header._fastaCreationTime     != (u64bit)fastastat.st_ctime)
+#endif
+  if (_header._fastaFileSize         != (u64bit)fastastat.st_size) {
     fprintf(stderr, "fastaFile::constructIndex()-- stat mismatch.\n");
     fclose(I);
     return;
