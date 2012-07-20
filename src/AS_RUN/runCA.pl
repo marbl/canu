@@ -801,6 +801,9 @@ sub setParameters () {
     makeAbsolute("vectorIntersect");
     makeAbsolute("pathMap");
 
+    makeAbsolute("obtFrequentMers");
+    makeAbsolute("ovlFrequentMers");
+
     #  Adjust case on some of them
     #
     fixCase("doChimeraDetection");
