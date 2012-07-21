@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.55 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.56 2012-07-21 10:06:43 brianwalenz Exp $";
 
 //  ISO C99 says that to get INT32_MAX et al, these must be defined. (7.18.2, 7.18.4, 7.8.1)
 #ifndef __STDC_CONSTANT_MACROS
@@ -216,6 +216,9 @@ typedef uintptr_t INTPTR;
 //
 #define AS_READ_MAX_PACKED_LEN_BITS       8
 #define AS_READ_MAX_NORMAL_LEN_BITS       11
+
+//  Do not define this.
+#undef OVS_DANGEROUSLY_OVERSIZE
 
 #define AS_READ_MAX_PACKED_LEN            ((1 << AS_READ_MAX_PACKED_LEN_BITS) - 1)
 #define AS_READ_MAX_NORMAL_LEN            ((1 << AS_READ_MAX_NORMAL_LEN_BITS) - 1)

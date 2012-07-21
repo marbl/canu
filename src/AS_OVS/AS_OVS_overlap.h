@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAP_H
 #define AS_OVS_OVERLAP_H
 
-static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.19 2012-04-02 10:51:50 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.20 2012-07-21 10:06:43 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"  //  pretty heavy just to get OverlapMesg.
@@ -70,108 +70,144 @@ static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.19 2012-0
 //  Without the padding, the compiler could decide to move things around -- it only need to keep the
 //  relative ordering the same.
 
-#if AS_READ_MAX_NORMAL_LEN_BITS < 13
+#if (AS_READ_MAX_NORMAL_LEN_BITS < 13)
 
 #define AS_OVS_NWORDS     2
 
-
-//  
-//  orig_erate > 4% throw out
-//  print error message. 
-//   macro(corr_erate)
-//   AS_OVS_encodeQuality(Q) 
-//   encode error rate macro2(0.04): 
-//
-
-
 struct OVSoverlapOVL {
-    uint64  datpad1            :64 - 1 - 2 * AS_OVS_HNGBITS - 2 * AS_OVS_ERRBITS - 8 - 2;
-    uint64  flipped            :1;
-    int64   a_hang             :AS_OVS_HNGBITS;
-    int64   b_hang             :AS_OVS_HNGBITS;
-    uint64  orig_erate         :AS_OVS_ERRBITS;
-    uint64  corr_erate         :AS_OVS_ERRBITS;
-    uint64  seed_value         :8;
-    uint64  type               :2;
-  };
+  uint64  datpad1            :64 - 1 - 2 * AS_OVS_HNGBITS - 2 * AS_OVS_ERRBITS - 8 - 2;
+  uint64  flipped            :1;
+  int64   a_hang             :AS_OVS_HNGBITS;
+  int64   b_hang             :AS_OVS_HNGBITS;
+  uint64  orig_erate         :AS_OVS_ERRBITS;
+  uint64  corr_erate         :AS_OVS_ERRBITS;
+  uint64  seed_value         :8;
+  uint64  type               :2;
+};
 
 struct OVSoverlapMER {
-    uint64  datpad1            :64 - 1 - 1 - 2 * AS_OVS_POSBITS - 3 - 8 - 8 - 2;
-    uint64  fwd                :1;
-    uint64  palindrome         :1;
-    uint64  a_pos              :AS_OVS_POSBITS;
-    uint64  b_pos              :AS_OVS_POSBITS;
-    uint64  compression_length :3;
-    uint64  k_count            :8;
-    uint64  k_len              :8;
-    uint64  type               :2;
-  };
+  uint64  datpad1            :64 - 1 - 1 - 2 * AS_OVS_POSBITS - 3 - 8 - 8 - 2;
+  uint64  fwd                :1;
+  uint64  palindrome         :1;
+  uint64  a_pos              :AS_OVS_POSBITS;
+  uint64  b_pos              :AS_OVS_POSBITS;
+  uint64  compression_length :3;
+  uint64  k_count            :8;
+  uint64  k_len              :8;
+  uint64  type               :2;
+};
 
 struct OVSoverlapOBT {
-    uint64  datpad1            :64 - 1 - 4 * AS_OVS_POSBITS - AS_OVS_ERRBITS - 2;
-    uint64  fwd                :1;
-    uint64  a_beg              :AS_OVS_POSBITS;
-    uint64  a_end              :AS_OVS_POSBITS;
-    uint64  b_beg              :AS_OVS_POSBITS;
-    uint64  b_end_hi           :AS_OVS_POSBITS - 9;
-    uint64  b_end_lo           :9;
-    uint64  erate              :AS_OVS_ERRBITS;
-    uint64  type               :2;
-  };
+  uint64  datpad1            :64 - 1 - 4 * AS_OVS_POSBITS - AS_OVS_ERRBITS - 2;
+  uint64  fwd                :1;
+  uint64  a_beg              :AS_OVS_POSBITS;
+  uint64  a_end              :AS_OVS_POSBITS;
+  uint64  b_beg              :AS_OVS_POSBITS;
+  uint64  b_end_hi           :AS_OVS_POSBITS - 9;
+  uint64  b_end_lo           :9;
+  uint64  erate              :AS_OVS_ERRBITS;
+  uint64  type               :2;
+};
+
+#elif ((AS_READ_MAX_NORMAL_LEN_BITS == 13) && defined(OVS_DANGEROUSLY_OVERSIZE))
+#warning OVSE_DANGEROUSLY_OVERSIZE defined; OBT will not work
+
+//  In this mode, we can max out the space for OVSoverlapOVL, but OVSoverlapOBT is not supported.
+//  To make it fit in 2 words, we could remove one bit from each of the position fields, or 4 bits
+//  from the erate.  But to make it completely obvious this is broken, we instead reduce the
+//  position fields to exactly one bit.  OBT will still (probably) run, but reads will be
+//  obliterated.
+
+#define AS_OVS_NWORDS     2
+
+struct OVSoverlapOVL {
+  uint64  datpad1            :64 - 1 - 2 * AS_OVS_HNGBITS - 2 * AS_OVS_ERRBITS - 8 - 2;
+  uint64  flipped            :1;
+  int64   a_hang             :AS_OVS_HNGBITS;
+  int64   b_hang             :AS_OVS_HNGBITS;
+  uint64  orig_erate         :AS_OVS_ERRBITS;
+  uint64  corr_erate         :AS_OVS_ERRBITS;
+  uint64  seed_value         :8;
+  uint64  type               :2;
+};
+
+struct OVSoverlapMER {
+  uint64  datpad1            :64 - 1 - 1 - 2 * AS_OVS_POSBITS - 3 - 8 - 8 - 2;
+  uint64  fwd                :1;
+  uint64  palindrome         :1;
+  uint64  a_pos              :AS_OVS_POSBITS;
+  uint64  b_pos              :AS_OVS_POSBITS;
+  uint64  compression_length :3;
+  uint64  k_count            :8;
+  uint64  k_len              :8;
+  uint64  type               :2;
+};
+
+struct OVSoverlapOBT {
+  uint64  datpad1            :64 - 1 - 4 * (1) - 9 - AS_OVS_ERRBITS - 2;
+  uint64  fwd                :1;
+  uint64  a_beg              :1;
+  uint64  a_end              :1;
+  uint64  b_beg              :1;
+  uint64  b_end_hi           :1;
+  uint64  b_end_lo           :9;
+  uint64  erate              :AS_OVS_ERRBITS;
+  uint64  type               :2;
+};
 
 #else
 
 #define AS_OVS_NWORDS 3
 
 struct OVSoverlapOVL {
-    uint32  seed_value         :8;
-    uint32  orig_erate         :AS_OVS_ERRBITS;
-    uint32  corr_erate         :AS_OVS_ERRBITS;
+  uint32  seed_value         :8;
+  uint32  orig_erate         :AS_OVS_ERRBITS;
+  uint32  corr_erate         :AS_OVS_ERRBITS;
 
-    uint32  datpad1            :32 - AS_OVS_HNGBITS;
-    int32   a_hang             :AS_OVS_HNGBITS;
+  uint32  datpad1            :32 - AS_OVS_HNGBITS;
+  int32   a_hang             :AS_OVS_HNGBITS;
 
-    uint32  datpad2            :32 - AS_OVS_HNGBITS - 1 - 2;
-    int32   b_hang             :AS_OVS_HNGBITS;
-    uint32  flipped            :1;
-    uint32  type               :2;
-  };
+  uint32  datpad2            :32 - AS_OVS_HNGBITS - 1 - 2;
+  int32   b_hang             :AS_OVS_HNGBITS;
+  uint32  flipped            :1;
+  uint32  type               :2;
+};
 
-  struct OVSoverlapMER {
-    uint32  datpad1            :32 - AS_OVS_POSBITS;
-    uint32  a_pos              :AS_OVS_POSBITS;
+struct OVSoverlapMER {
+  uint32  datpad1            :32 - AS_OVS_POSBITS;
+  uint32  a_pos              :AS_OVS_POSBITS;
 
-    uint32  datpad2            :32 - AS_OVS_POSBITS;
-    uint32  b_pos              :AS_OVS_POSBITS;
+  uint32  datpad2            :32 - AS_OVS_POSBITS;
+  uint32  b_pos              :AS_OVS_POSBITS;
 
-    uint32  datpad3            :32 - 3 - 8 - 8 - 1 - 1 - 2;
-    uint32  compression_length :3;
-    uint32  k_count            :8;
-    uint32  k_len              :8;
-    uint32  palindrome         :1;
-    uint32  fwd                :1;
-    uint32  type               :2;
-  };
+  uint32  datpad3            :32 - 3 - 8 - 8 - 1 - 1 - 2;
+  uint32  compression_length :3;
+  uint32  k_count            :8;
+  uint32  k_len              :8;
+  uint32  palindrome         :1;
+  uint32  fwd                :1;
+  uint32  type               :2;
+};
 
-  struct OVSoverlapOBT {
+struct OVSoverlapOBT {
 #if (32 - AS_OVS_ERRBITS - AS_OVS_POSBITS > 0)
-    uint32  datpad1            :32 - AS_OVS_ERRBITS - AS_OVS_POSBITS;
+  uint32  datpad1            :32 - AS_OVS_ERRBITS - AS_OVS_POSBITS;
 #endif
-    uint32  erate              :AS_OVS_ERRBITS;
-    uint32  a_beg              :AS_OVS_POSBITS;
+  uint32  erate              :AS_OVS_ERRBITS;
+  uint32  a_beg              :AS_OVS_POSBITS;
 
-    uint32  datpad2            :32 - 2 * AS_OVS_POSBITS + 9;
-    uint32  a_end              :AS_OVS_POSBITS;
-    uint32  b_end_hi           :AS_OVS_POSBITS - 9;
+  uint32  datpad2            :32 - 2 * AS_OVS_POSBITS + 9;
+  uint32  a_end              :AS_OVS_POSBITS;
+  uint32  b_end_hi           :AS_OVS_POSBITS - 9;
 
 #if (32 - AS_OVS_POSBITS - 9 - 1 - 2 > 0)
-    uint32  datpad3            :32 - AS_OVS_POSBITS - 9 - 1 - 2;
+  uint32  datpad3            :32 - AS_OVS_POSBITS - 9 - 1 - 2;
 #endif
-    uint32  b_beg              :AS_OVS_POSBITS;
-    uint32  b_end_lo           :9;
-    uint32  fwd                :1;
-    uint32  type               :2;
-  };
+  uint32  b_beg              :AS_OVS_POSBITS;
+  uint32  b_end_lo           :9;
+  uint32  fwd                :1;
+  uint32  type               :2;
+};
 
 #endif
 
