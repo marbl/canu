@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.76 2012-07-24 12:06:46 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.77 2012-07-24 14:17:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -270,10 +270,11 @@ ProcessInputUnitig(MultiAlignT *uma) {
   if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff)
     isUnique = FALSE;
 
-#if 0
+#ifdef SHORT_HIGH_ASTAT_ARE_UNIQUE
   //  This is an attempt to not blindly call all short unitigs as non-unique.  It didn't work so
-  //  well in initial limited testing.
-  if ((ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbDefinitelyUniqueCutoff) &&
+  //  well in initial limited testing.  The threshold is arbitrary; older versions used
+  //  cgbDefinitelyUniqueCutoff.
+   if ((ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff * 10) &&
       (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH))
     isUnique = FALSE;
 #else
@@ -284,8 +285,7 @@ ProcessInputUnitig(MultiAlignT *uma) {
   //  MicroHet probability is actually the probability of the sequence being UNIQUE, based on
   //  microhet considerations.  Falling below threshhold makes something a repeat.
   //  Note that this is off by default (see options -e, -i)
-  if ((isUnique) &&
-      (ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb) &&
+  if ((ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb) &&
       (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff))
     isUnique = FALSE;
 
