@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.75 2012-06-21 09:12:16 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.76 2012-07-24 12:06:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -262,33 +262,32 @@ ProcessInputUnitig(MultiAlignT *uma) {
   CI.offsetAEnd.variance                 = 0.0;
   CI.offsetBEnd                          = CI.bpLength;
 
-  int isUnique = FALSE;
+  int  isUnique     = TRUE;
 
-  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) >= GlobalData->cgbUniqueCutoff &&
-     length >= CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH &&
-     GetNumIntMultiPoss(uma->f_list) >= CGW_MIN_READS_IN_UNIQUE){
-
-    // microhet probability is actually the probability of the
-    // sequence being UNIQUE, based on microhet considerations.
-    // Falling below threshhold makes something a repeat.
-
-    if (ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb){
-      if(ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff){
-        //fprintf(stderr,"* CI "F_CID" with astat: %g classified as repeat based on microhet unique prob of %g < %g\n",
-        //        CI.id, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb);
-        isUnique = FALSE;
-        CI.type = UNRESOLVEDCHUNK_CGW;
-      }else{
-        isUnique = TRUE;
-        //fprintf(stderr,"* WARNING: CI "F_CID" with coverage %g WOULD HAVE BEEN classified as repeat based on microhet unique prob of %g < %g\n",
-        //        CI.id, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb);
-      }
-    }else{
-      isUnique = TRUE;
-    }
-  }else{
+  if (GetNumIntMultiPoss(uma->f_list) < CGW_MIN_READS_IN_UNIQUE)
     isUnique = FALSE;
-  }
+
+  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff)
+    isUnique = FALSE;
+
+#if 0
+  //  This is an attempt to not blindly call all short unitigs as non-unique.  It didn't work so
+  //  well in initial limited testing.
+  if ((ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbDefinitelyUniqueCutoff) &&
+      (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH))
+    isUnique = FALSE;
+#else
+  if (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)
+    isUnique = FALSE;
+#endif
+
+  //  MicroHet probability is actually the probability of the sequence being UNIQUE, based on
+  //  microhet considerations.  Falling below threshhold makes something a repeat.
+  //  Note that this is off by default (see options -e, -i)
+  if ((isUnique) &&
+      (ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb) &&
+      (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff))
+    isUnique = FALSE;
 
   // allow flag to overwrite what the default behavior for a chunk and force it to be unique or repeat
 
@@ -297,11 +296,11 @@ ProcessInputUnitig(MultiAlignT *uma) {
   else if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_REPEAT)
     isUnique = FALSE;
 
-  if(isUnique){
+  if (isUnique) {
     ScaffoldGraph->numDiscriminatorUniqueCIs++;
     CI.flags.bits.isUnique = 1;
     CI.type                = DISCRIMINATORUNIQUECHUNK_CGW;
-  }else{
+  } else {
     CI.flags.bits.isUnique = 0;
     CI.type                = UNRESOLVEDCHUNK_CGW;
   }
