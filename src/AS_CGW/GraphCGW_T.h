@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.50 2012-05-01 03:29:01 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.51 2012-07-24 17:11:24 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -1186,7 +1186,6 @@ void RecycleDeletedGraphElements(GraphCGW_T *graph);
 
 
 void CheckEdgesAgainstOverlapper(GraphCGW_T *graph);
-int AddImplicitOverlaps_(GraphCGW_T *graph);
 
 
 
