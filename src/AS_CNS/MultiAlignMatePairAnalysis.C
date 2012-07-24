@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.7 2012-06-28 20:01:18 skoren Exp $";
+static const char *rcsid = "$Id: MultiAlignMatePairAnalysis.C,v 1.8 2012-07-24 16:55:56 brianwalenz Exp $";
 
 #include "MultiAlignMatePairAnalysis.H"
 
@@ -343,7 +343,11 @@ matePairAnalysis::printSummary(FILE *output) {
 
 void
 mpaLibraryData::writeUpdate(FILE *output, int32 libOrient, gkLibrary *library) {
-  if (dist.size() == 0)
+
+  if ((dist.size() == 0) ||
+      (library->orientation != libOrient) ||
+      (numSamples < 100) ||
+      (0.20 * mean <= stddev))
     return;
 
   if (library->orientation != libOrient)
