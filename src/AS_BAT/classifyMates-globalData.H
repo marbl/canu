@@ -293,7 +293,8 @@ public:
 
   bool   load(set<AS_IID>  &searchLibs,
               set<AS_IID>  &backboneLibs,
-              double        maxErrorFraction);
+              double        maxErrorFraction,
+              bool          cacheOnly);
   void   save(void);
 
   bool   checkBB(void);

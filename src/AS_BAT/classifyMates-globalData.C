@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.18 2012-06-27 20:11:51 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.19 2012-07-26 20:47:05 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -195,14 +195,20 @@ cmGlobalData::checkGT(void) {
 bool
 cmGlobalData::load(set<AS_IID>  &searchLibs,
                    set<AS_IID>  &backboneLibs,
-                   double        maxErrorFraction) {
+                   double        maxErrorFraction,
+                   bool          cacheOnly) {
 
   char  cacheName[FILENAME_MAX];
   sprintf(cacheName, "%s.cmdat", resultPrefix);
 
   if (AS_UTL_fileExists(cacheName, FALSE, FALSE) == false)
     return(false);
-    
+
+  if (cacheOnly) {
+    fprintf(stderr, "Cache appears built, stopping because of -cacheonly.\n");
+    exit(0);
+  }
+
   fprintf(stderr, "LOADING FRAGMENTS...(from cache)\n");
 
   errno = 0;

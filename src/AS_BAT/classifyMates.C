@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMates.C,v 1.30 2012-07-09 06:04:33 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMates.C,v 1.31 2012-07-26 20:47:05 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -184,6 +184,7 @@ main(int argc, char **argv) {
   char       *resultsName       = NULL;
 
   bool        doCache           = false;
+  bool        doCacheOnly       = false;
 
   bool        beVerbose         = true;
 
@@ -239,7 +240,12 @@ main(int argc, char **argv) {
       AS_UTL_decodeRange(argv[++arg], backboneLibs);
 
     } else if (strcmp(argv[arg], "-cache") == 0) {
-      doCache = true;
+      doCache     = true;
+      doCacheOnly = false;
+
+    } else if (strcmp(argv[arg], "-cacheonly") == 0) {
+      doCache     = true;
+      doCacheOnly = true;
 
     } else if (strcmp(argv[arg], "-q") == 0) {
       beVerbose = false;
@@ -251,8 +257,6 @@ main(int argc, char **argv) {
       distMax = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-innie") == 0) {
-      fprintf(stderr, "-innie not supported.\n");
-      assert(0);
       innie = true;
 
     } else if (strcmp(argv[arg], "-outtie") == 0) {
@@ -297,7 +301,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -sl l[-m]        Search for mates in libraries l-m\n");
     fprintf(stderr, "  -bl l[-m]        Use libraries l-m for searching\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -cache           Write loaded data to cache files, useful for restarting\n");
+    fprintf(stderr, "  -cache           Write loaded data to cache files\n");
+    fprintf(stderr, "  -cacheonly       Write loaded data to cache files, stop after building\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -q               Don't report progress.\n");
     fprintf(stderr, "\n");
@@ -339,12 +344,18 @@ main(int argc, char **argv) {
 
   if (g->load(searchLibs,
               backboneLibs,
-              maxErrorFraction) == false) {
+              maxErrorFraction,
+              doCacheOnly) == false) {
     g->saveCache = doCache;  //  No better place...
 
     g->loadFragments(gkpStoreName, searchLibs, backboneLibs);
     g->loadOverlaps(ovlStoreName, maxErrorFraction);
     g->save();
+
+    if (doCacheOnly) {
+      fprintf(stderr, "Stopping after building cache.\n");
+      exit(0);
+    }
   }
 
   sweatShop *ss = new sweatShop(cmReader, cmWorker, cmWriter);
