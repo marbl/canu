@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.52 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.53 2012-07-26 15:11:42 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlignment_CNS.h"
@@ -838,6 +838,11 @@ unitigConsensus::alignFragment(void) {
   char      *bseq  = Getchar(sequenceStore, GetFragment(fragmentStore, tiid)->sequence);  //  The fragment
   Fragment  *bfrag = GetFragment(fragmentStore, tiid);
   int32      blen  = bfrag->length;
+
+  if (endTrim >= blen)
+    fprintf(stderr, "ERROR: endTrim = %d >= blen = %d\n", endTrim, blen);
+  if (endTrim < 0)
+    fprintf(stderr, "ERROR: endTrim = %d\n", endTrim);
 
   assert(endTrim < blen);
   assert(endTrim >= 0);
