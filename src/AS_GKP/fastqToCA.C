@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.23 2012-06-21 09:12:16 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.24 2012-07-26 15:16:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,6 +125,8 @@ main(int argc, char **argv) {
   char    **mates              = new char * [argc];
   int32     matesLen           = 0;
 
+  bool      isNonRandom        = false;
+
   argc = AS_configure(argc, argv);
 
   int arg = 1;
@@ -160,6 +162,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-mates") == 0) {
       mates[matesLen++] = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-nonrandom") == 0) {
+      isNonRandom = true;
 
     } else {
       fprintf(stderr, "ERROR:  Unknown option '%s'\n", argv[arg]);
@@ -224,6 +229,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -reads A           Single ended reads, in fastq format.\n");
     fprintf(stderr, "  -mates A           Mated reads, interlaced, in fastq format.\n");
     fprintf(stderr, "  -mates A,B         Mated reads, in fastq format.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Library Features\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -nonrandom         Mark the library as containing non-random reads.\n");
     fprintf(stderr, "\n");
 
     if ((insertSize == 0) && (insertStdDev >  0))
@@ -415,7 +424,7 @@ main(int argc, char **argv) {
     gkl.constantInsertSize         = constantInsertSize;
   }
 
-  gkl.isNotRandom                = 0;
+  gkl.isNotRandom                = isNonRandom;
   gkl.orientation                = (isMated) ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_UNKNOWN;
 
   //  Construct the messages.
