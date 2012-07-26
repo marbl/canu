@@ -25,7 +25,10 @@
 
 REQD_LIBS = libAS_LIN.a
 
-LIB_SOURCES = dpbtrf.c dpbtrs.c daxpy.c dgemm.c dgemv.c dlamch.c dpbtf2.c \
+LIB_SOURCES = dgbtrf.c dgbtf2.c dgbtrs.c \
+              iparmq.c ieeeck.c dlaswp.c disnan.c dlaisnan.c \
+              dcopy.c dswap.c dger.c \
+              dpbtrf.c dpbtrs.c daxpy.c dgemm.c dgemv.c dlamch.c dpbtf2.c \
               dpotf2.c dptrfs.c dpttrs.c dsyr.c dsyrk.c dtbsv.c dtrsm.c \
               idamax.c ilaenv.c lsame.c xerbla.c s_copy.c s_cmp.c \
               ddot.c dscal.c
@@ -34,7 +37,10 @@ LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 
 LIBRARIES = libAS_LIN.a libCA.a
 
-AS_LIN_SRCS = dpbtrf.c dpbtrs.c daxpy.c dgemm.c dgemv.c dlamch.c dpbtf2.c \
+AS_LIN_SRCS = dgbtrf.c dgbtf2.c dgbtrs.c \
+              iparmq.c ieeeck.c dlaswp.c disnan.c dlaisnan.c \
+              dcopy.c dswap.c dger.c \
+              dpbtrf.c dpbtrs.c daxpy.c dgemm.c dgemv.c dlamch.c dpbtf2.c \
               dpotf2.c dptrfs.c dpttrs.c dsyr.c dsyrk.c dtbsv.c dtrsm.c \
               idamax.c ilaenv.c lsame.c xerbla.c s_copy.c s_cmp.c \
               ddot.c dscal.c
