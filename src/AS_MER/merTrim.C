@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.34 2012-05-29 12:10:11 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.35 2012-07-26 15:13:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -94,6 +94,8 @@ public:
     endTrimWinScale[1]        = 0.25;
     endTrimErrAllow[1]        = 0;
 #endif
+
+    doTrimming                = true;
 
     discardZeroCoverage       = false;
     discardImperfectCoverage  = false;
@@ -304,6 +306,8 @@ public:
   uint32        endTrimNum;
   double        endTrimWinScale[16];
   uint32        endTrimErrAllow[16];
+
+  bool          doTrimming;
 
   bool          discardZeroCoverage;
   bool          discardImperfectCoverage;
@@ -1135,9 +1139,6 @@ mertrimComputation::scoreAdapter(void) {
       log.add("ADAPTER at "F_U32","F_U32" ["F_U32","F_U32"]\n",
               bgn, end, containsAdapterBgn, containsAdapterEnd);
 
-      log.add("ADAPTER at "F_U32","F_U32" ["F_U32","F_U32"]\n",
-              bgn, end, containsAdapterBgn, containsAdapterEnd);
-
     for (uint32 a=bgn; a<=end; a++)
       adapter[a]++;
   }
@@ -1897,7 +1898,8 @@ mertrimWorker(void *G, void *T, void *S) {
 
   //  Attempt trimming if the read wasn't perfect
 
-  if (eval != ALLGOOD) {
+  if ((g->doTrimming == true) &&
+      (eval != ALLGOOD)) {
     s->analyze();
     s->attemptTrimming();
   }
@@ -2241,6 +2243,9 @@ main(int argc, char **argv) {
       g->endTrimWinScale[g->endTrimNum] = atof(argv[++arg]);
       g->endTrimErrAllow[g->endTrimNum] = atoi(argv[++arg]);
       g->endTrimNum++;
+
+    } else if (strcmp(argv[arg], "-notrimming") == 0) {
+      g->doTrimming = false;
 
     } else if (strcmp(argv[arg], "-discardzero") == 0) {
       g->discardZeroCoverage = true;
