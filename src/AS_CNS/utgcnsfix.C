@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcnsfix.C,v 1.6 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: utgcnsfix.C,v 1.7 2012-07-26 15:11:06 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -40,6 +40,8 @@ main (int argc, char **argv) {
   AS_IID endID = UINT32_MAX;
 
   bool   showResult = false;
+  bool   doUpdate   = true;
+  bool   doNothing  = false;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
@@ -66,6 +68,12 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-u") == 0) {
       onlID = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-n") == 0) {
+      doUpdate = false;
+
+    } else if (strcmp(argv[arg], "-N") == 0) {
+      doNothing = true;
+
     } else if (strcmp(argv[arg], "-v") == 0) {
       showResult = true;
 
@@ -85,20 +93,29 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -v           Show multialigns.\n");
     fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "    -u iid       Only fix unitig 'iid'.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -n           Don't update tigStore with any fixes.\n");
+    fprintf(stderr, "    -N           Don't do anything, just report which unitigs are broken.\n");
     exit(1);
   }
 
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
-  tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, TRUE, FALSE, FALSE);
+  tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, doUpdate, FALSE, FALSE);
 
   bgnID = 0;
   endID = tigStore->numUnitigs();
 
-  if (onlID < endID) {
-    bgnID = onlID;
-    endID = onlID + 1;
+  if (onlID != UINT32_MAX) {
+    if (onlID < endID) {
+      bgnID = onlID;
+      endID = onlID + 1;
+    } else {
+      fprintf(stderr, "ERROR: Invalid unitig "F_IID" (-u); only "F_IID" unitigs in the store.\n", onlID, endID);
+      exit(1);
+    }
   }
-  
+ 
   fprintf(stderr, "Checking unitig consensus for b="F_U32" to e="F_U32"\n", bgnID, endID);
 
   for (uint32 i=bgnID; i<endID; i++) {
@@ -115,8 +132,14 @@ main (int argc, char **argv) {
       //  Has consensus sequence already.
       continue;
 
-    fprintf(stderr, "\nEvaluating unitig %d (%d fragments)\n",
-            maOrig->maID, maOrig->data.num_frags);
+    if (doNothing == true) {
+      fprintf(stderr, "unitig %d of length %d with %d fragments is broken\n",
+              maOrig->maID, GetMultiAlignLength(maOrig), maOrig->data.num_frags);
+      continue;
+    }
+
+    fprintf(stderr, "\nEvaluating unitig %d of length %d with %d fragments\n",
+            maOrig->maID, GetMultiAlignLength(maOrig), maOrig->data.num_frags);
 
     //  This is a complicated algorithm, but only to make it bullet-proof.  The basic idea
     //  is to run consensus on the unitig.  Whatever fragments are placed get moved to
@@ -195,7 +218,8 @@ main (int argc, char **argv) {
       assert(1 == GetNumIntUnitigPoss(maFixd->u_list));  //  One unitig in the list (data.num_unitigs is updated on insertion)
       assert(maFixd->maID == GetIntUnitigPos(maFixd->u_list, 0)->ident);  //  Unitig has correct ident
 
-      tigStore->insertMultiAlign(maFixd, TRUE, FALSE);
+      if (doUpdate)
+        tigStore->insertMultiAlign(maFixd, TRUE, FALSE);
 
       fprintf(stderr, "Added unitig %d with "F_SIZE_T" fragments.\n",
               maFixd->maID, GetNumIntMultiPoss(maFixd->f_list));
@@ -213,7 +237,8 @@ main (int argc, char **argv) {
 
     //  Now mark the original unitig as deleted.
 
-    tigStore->deleteMultiAlign(maOrig->maID, true);
+    if (doUpdate)
+      tigStore->deleteMultiAlign(maOrig->maID, true);
   }
 
  finish:
