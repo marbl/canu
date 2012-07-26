@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: splitUnitigs.C,v 1.4 2012-04-17 04:36:48 brianwalenz Exp $";
+const char *mainid = "$Id: splitUnitigs.C,v 1.5 2012-07-26 20:45:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -281,6 +281,8 @@ main(int argc, char **argv) {
   int32      minLength = INT32_MAX;
   int32      minSplit  = INT32_MAX;
 
+  bool       doUpdate  = true;
+
   uint32     nShort      = 0;
   uint32     nTested     = 0;
   uint32     nSplit      = 0;
@@ -299,6 +301,15 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-t") == 0) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-u") == 0) {
+      onlID = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-n") == 0) {
+      doUpdate = false;
+
+    } else if (strcmp(argv[arg], "-V") == 0) {
+      VERBOSE_MULTIALIGN_OUTPUT++;
 
     } else {
       err++;
@@ -332,7 +343,7 @@ main(int argc, char **argv) {
 
   gkpStore     = new gkStore(gkpName, FALSE, FALSE);
 
-  tigStore     = new MultiAlignStore(tigName, tigVers, 0, 0, TRUE, FALSE, FALSE);
+  tigStore     = new MultiAlignStore(tigName, tigVers, 0, 0, doUpdate, FALSE, FALSE);
 
   matePair     = new AS_IID [gkpStore->gkStore_getNumFragments() + 1];
   library      = new AS_IID [gkpStore->gkStore_getNumFragments() + 1];
@@ -360,7 +371,10 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "LIB %d %f +- %f\n", i, lib->mean, lib->stddev);
 
-    if (lib->mean > 0) {
+    //  Why AS_READ_MIN_LEN?  We've seen some bogus data sets that have libraries with no fragments
+    //  and insert sizes of 10bp.
+
+    if (lib->mean > AS_READ_MIN_LEN) {
       minLength = MIN(minLength, lib->mean + CGW_CUTOFF * lib->stddev);
       minSplit  = MIN(minSplit,  lib->mean - CGW_CUTOFF * lib->stddev);
     }
@@ -672,7 +686,8 @@ main(int argc, char **argv) {
         if (MultiAlignUnitig(maNew[i], gkpStore, &options, NULL) == false)
           fprintf(stderr, "  Unitig %d FAILED.\n", maNew[i]->maID);
 
-      tigStore->insertMultiAlign(maNew[i], TRUE, FALSE);
+      if (doUpdate)
+        tigStore->insertMultiAlign(maNew[i], TRUE, FALSE);
 
       DeleteMultiAlignT(maNew[i]);
     }
@@ -685,7 +700,8 @@ main(int argc, char **argv) {
 
     //  Now mark the original unitig as deleted.
 
-    tigStore->deleteMultiAlign(maOrig->maID, true);
+    if (doUpdate)
+      tigStore->deleteMultiAlign(maOrig->maID, true);
   }
 
 
