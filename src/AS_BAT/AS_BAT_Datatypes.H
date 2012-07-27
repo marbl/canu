@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.14 2012-03-21 05:54:55 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.15 2012-07-27 15:41:41 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -277,6 +277,12 @@ class FragmentInfo {
 public:
   FragmentInfo(gkStore *gkpStore, const char *prefix);
   ~FragmentInfo();
+
+  uint64  memoryUsage(void) {
+    return((3 * sizeof(uint32) * _numFragments) +
+           (2 * sizeof(double) * _numLibraries) + 
+           (2 * sizeof(uint32) * _numLibraries));
+  };
 
   uint32  numFragments(void) { return(_numFragments); };
   uint32  numLibraries(void) { return(_numLibraries); };
