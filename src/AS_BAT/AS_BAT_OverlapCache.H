@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.11 2012-02-22 19:16:18 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.12 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "memoryMappedFile.H"
 
@@ -93,6 +93,22 @@ struct BAToverlap {
 };
 
 
+class OverlapCacheThreadData {
+public:
+  OverlapCacheThreadData() {
+    _batMax  = 1 * 1024 * 1024;  //  At 8B each, this is 8MB
+    _bat     = new BAToverlap [_batMax];
+  };
+
+  ~OverlapCacheThreadData() {
+    delete [] _bat;
+  };
+
+  uint32                  _batMax;   //  For returning overlaps
+  BAToverlap             *_bat;      //
+};
+
+
 class OverlapCache {
 public:
   OverlapCache(OverlapStore *ovlStoreUniq,
@@ -140,8 +156,8 @@ private:
   OVSoverlap             *_ovs;      //  
   uint64                 *_ovsSco;   //
 
-  uint32                  _batMax;   //  For returning overlaps
-  BAToverlap             *_bat;      //  
+  uint64                  _threadMax;
+  OverlapCacheThreadData *_thread;
 
   uint32                 *_OVSerate; //  Map from OVS erate to BAT erate
   double                 *_BATerate; //  Map from BAT erate to fraction error

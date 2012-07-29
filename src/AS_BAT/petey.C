@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: petey.C,v 1.9 2012-02-15 06:55:34 brianwalenz Exp $";
+const char *mainid = "$Id: petey.C,v 1.10 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -356,18 +356,11 @@ main (int argc, char * argv []) {
 
     MateLocation       *mates  = new MateLocation(unitigs, tig);
     vector<breakPoint> *breaks = computeMateCoverage(tig, mates, badMateBreakThreshold);
-    UnitigVector       *newUs  = breakUnitigAt(tig, *breaks);
 
-    if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
-      mates->dumpHappiness(output_prefix, "splitBadMates");
+    if (breakUnitigAt(unitigs, tig, *breaks, true) == true)
+      if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
+        mates->dumpHappiness(output_prefix, "splitBadMates");
 
-    if (newUs != NULL) {
-      delete tig;
-      unitigs[ti] = NULL;
-      unitigs.insert(unitigs.end(), newUs->begin(), newUs->end());
-    }
-
-    delete newUs;
     delete breaks;
     delete mates;
   }

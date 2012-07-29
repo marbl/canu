@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.6 2012-03-13 21:43:43 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.7 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -34,7 +34,7 @@ void
 makeNewUnitig(UnitigVector &unitigs,
               uint32        splitFragsLen,
               ufNode       *splitFrags) {
-  Unitig *dangler = new Unitig(false);
+  Unitig *dangler = unitigs.newUnitig(false);
 
   if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
     fprintf(logFile, "splitDiscontinuous()--   new tig "F_U32" with "F_U32" fragments (starting at frag "F_U32").\n",
@@ -47,8 +47,6 @@ makeNewUnitig(UnitigVector &unitigs,
 
   for (uint32 i=0; i<splitFragsLen; i++)
     dangler->addFrag(splitFrags[i], splitOffset, false);  //logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS));
-
-  unitigs.push_back(dangler);
 }
 
 

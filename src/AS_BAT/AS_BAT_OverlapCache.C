@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.21 2012-07-27 15:41:41 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.22 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -123,8 +123,10 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   fprintf(stderr, "OverlapCache()-- ---------\n");
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for data structures (sum of above).\n", memTT >> 20);
 
-  if (_memLimit < memTT) {
-    fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB available for overlaps.\n", 0);
+  if (_memLimit <= memTT) {
+    int64 defecit = (int64)memTT - (int64)_memLimit;
+
+    fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB available for overlaps.\n", defecit);
     fprintf(stderr, "OverlapCache()--  Out of memory before loading overlaps; increase -M.\n");
     exit(1);
   }
@@ -173,12 +175,13 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   _ovs     = new OVSoverlap [_ovsMax];
   _ovsSco  = new uint64     [_ovsMax];
 
-  _batMax  = 1 * 1024 * 1024;  //  At 8B each, this is 8MB
-  _bat     = new BAToverlap [_batMax];
-
   _memUsed += _ovsMax * sizeof(OVSoverlap);
   _memUsed += _ovsMax * sizeof(uint64);
-  _memUsed += _batMax * sizeof(BAToverlap);
+
+  _threadMax = omp_get_max_threads();
+  _thread    = new OverlapCacheThreadData [_threadMax];
+
+  _memUsed += _threadMax * _thread[0]._batMax * sizeof(BAToverlap);
 
   _OVSerate     = NULL;
   _BATerate     = NULL;
@@ -214,8 +217,9 @@ OverlapCache::~OverlapCache() {
   delete [] _BATerate;
   delete [] _OVSerate;
 
-  delete [] _bat;
   delete [] _ovs;
+
+  delete [] _thread;
 
   delete [] _cacheLen;
   delete [] _cachePtr;
@@ -649,31 +653,32 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
 
 BAToverlap *
 OverlapCache::getOverlaps(uint32 fragIID, uint32 &numOverlaps) {
+  uint32 tid = omp_get_thread_num();
 
   numOverlaps = _cacheLen[fragIID];
 
-  while (_batMax <= numOverlaps) {
-    _batMax *= 2;
-    delete [] _bat;
-    _bat = new BAToverlap [_batMax];
+  while (_thread[tid]._batMax <= numOverlaps) {
+    _thread[tid]._batMax *= 2;
+    delete [] _thread[tid]._bat;
+    _thread[tid]._bat = new BAToverlap [_thread[tid]._batMax];
   }
 
   BAToverlapInt *ptr = _cachePtr[fragIID];
 
   for (uint32 pos=0; pos < numOverlaps; pos++) {
-    _bat[pos].a_hang   = ptr[pos].a_hang;
-    _bat[pos].b_hang   = ptr[pos].b_hang;
+    _thread[tid]._bat[pos].a_hang   = ptr[pos].a_hang;
+    _thread[tid]._bat[pos].b_hang   = ptr[pos].b_hang;
 
-    _bat[pos].flipped  = ptr[pos].flipped;
+    _thread[tid]._bat[pos].flipped  = ptr[pos].flipped;
 
-    _bat[pos].errorRaw = ptr[pos].error;
-    _bat[pos].error    = _BATerate[ptr[pos].error];
+    _thread[tid]._bat[pos].errorRaw = ptr[pos].error;
+    _thread[tid]._bat[pos].error    = _BATerate[ptr[pos].error];
 
-    _bat[pos].a_iid    = fragIID;
-    _bat[pos].b_iid    = ptr[pos].b_iid;
+    _thread[tid]._bat[pos].a_iid    = fragIID;
+    _thread[tid]._bat[pos].b_iid    = ptr[pos].b_iid;
   }
 
-  return(_bat);
+  return(_thread[tid]._bat);
 }
 
 
@@ -715,10 +720,13 @@ OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memli
   AS_UTL_safeRead(file, &_memLimit, "overlapCache_memLimit", sizeof(uint64), 1);
   AS_UTL_safeRead(file, &_memUsed, "overlapCache_memUsed", sizeof(uint64), 1);
 
-  AS_UTL_safeRead(file, &_maxPer, "overlapCache_maxPer", sizeof(uint32), 1);
-  AS_UTL_safeRead(file, &_batMax, "overlapCache_batMax", sizeof(uint32), 1);
+  uint32 unused;  //  Former _batMax, left in for compatibility with old caches.
 
-  _bat = new BAToverlap [_batMax];
+  AS_UTL_safeRead(file, &_maxPer, "overlapCache_maxPer", sizeof(uint32), 1);
+  AS_UTL_safeRead(file, &unused, "overlapCache_batMax", sizeof(uint32), 1);
+
+  _threadMax = omp_get_max_threads();
+  _thread    = new OverlapCacheThreadData [_threadMax];
 
   _OVSerate = new uint32 [1 << AS_OVS_ERRBITS];
   _BATerate = new double [1 << AS_BAT_ERRBITS];
@@ -859,7 +867,7 @@ OverlapCache::save(const char *prefix, double erate, double elimit, uint64 memli
   AS_UTL_safeWrite(file, &_memUsed, "overlapCache_memUsed", sizeof(uint64), 1);
 
   AS_UTL_safeWrite(file, &_maxPer, "overlapCache_maxPer", sizeof(uint32), 1);
-  AS_UTL_safeWrite(file, &_batMax, "overlapCache_batMax", sizeof(uint32), 1);
+  AS_UTL_safeWrite(file, &_maxPer, "overlapCache_batMax", sizeof(uint32), 1);  //  COMPATIBILITY, REMOVE
 
   AS_UTL_safeWrite(file,  _OVSerate, "overlapCache_OVSerate", sizeof(uint32), 1 << AS_OVS_ERRBITS);
   AS_UTL_safeWrite(file,  _BATerate, "overlapCache_BATerate", sizeof(double), 1 << AS_BAT_ERRBITS);

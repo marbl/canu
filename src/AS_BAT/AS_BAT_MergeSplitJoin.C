@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.15 2012-03-13 21:25:23 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.16 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -1238,16 +1238,13 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
     }
 
     if (uidToUnitig[bid] == NULL) {
-      uidToUnitig[bid] = new Unitig(false);
+      uidToUnitig[bid] = unitigs.newUnitig(false);
       uidToOffset[bid] = -MIN(frg.position.bgn, frg.position.end);
 
-      newTigs.push_back(uidToUnitig[bid]);
+      newTigs.push_back(uidToUnitig[bid]);  //  For reporting below.
     }
 
-    Unitig *tig = uidToUnitig[bid];
-    uint32  off = uidToOffset[bid];
-
-    tig->addFrag(frg, off, false);
+    uidToUnitig[bid]->addFrag(frg, uidToOffset[bid], false);
   }
 
   delete [] breakID;
@@ -1267,8 +1264,6 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 
     unitigs[target->id()] = NULL;
     delete target;
-
-    unitigs.insert(unitigs.end(), newTigs.begin(), newTigs.end());
   }
 
   //  Run back over the ejected frags, and place them with either their mate, or at their best location.
@@ -1432,42 +1427,56 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
   }
 #endif
 
-  //  Since we create new unitigs for any of the splits, we need to remember
-  //  where to stop.  We don't want to re-examine any of the split unitigs.
-  //  Reevaluating seems to just trim off a few fragments at the end of the unitig.
+  //  Bubble popping
+  //
+  //  This used to be done right before each unitig was examined for repeats.
+  //  It cannot be done in parallel -- there is a race condition when both unitigs
+  //  A and B are considering merging in unitig C.
+  //
+  setLogFile(prefix, "popBubbles");
 
-  uint32  tiLimit = unitigs.size();
-
-  for (uint32 ti=0; ti<tiLimit; ti++) {
+  for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig        *target = unitigs[ti];
 
-    resetLogFile(prefix, "mergeSplitJoin");
+    resetLogFile(prefix, "popBubbles");
 
-    if (target == NULL)
-      continue;
-
-    if (target->ufpath.size() < 15)
-      continue;
-
-    if (target->getLength() < 300)
+    if ((target == NULL) ||
+        (target->ufpath.size() < 15) ||
+        (target->getLength() < 300))
       continue;
 
     fprintf(logFile, "popBubbles()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
             target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
-    //  MERGE BUBBLES - for every unitig with at least one incoming edge (and possibly no edges
-    //  to other unitigs) try to merge.  The incoming unitig must NOT extend the current unitig.
-
     mergeBubbles(unitigs, target, ilist);
-
-    //  STEAL BUBBLES (PRE-JOIN) - for dovetail overlapping unitigs, try to merge one or the other
-    //  end into the opposite unitig.  Requires a best overlap to force the intersection, then
-    //  the split off piece can be attempted to be merged into the other unitig.
-
     stealBubbles(unitigs, target, ilist);
+  }
 
-    //  MARK REPEATS and CHIMERA - using just overlaps, look for fragments that are partially
-    //  covered by this unitig.
+  //  Since we create new unitigs for any of the splits, we need to remember
+  //  where to stop.  We don't want to re-examine any of the split unitigs.
+  //  Reevaluating seems to just trim off a few fragments at the end of the unitig.
+
+  uint32  tiLimit = unitigs.size();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize = (tiLimit < 100 * numThreads) ? numThreads : tiLimit / 99;
+
+  setLogFile(prefix, "mergeSplitJoin");
+
+  fprintf(stderr, "repeatDetect()-- working on %d unitigs, with %d threads.\n", tiLimit, numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 ti=0; ti<tiLimit; ti++) {
+    Unitig        *target = unitigs[ti];
+
+    resetLogFile(prefix, "mergeSplitJoin");
+
+    if ((target == NULL) ||
+        (target->ufpath.size() < 15) ||
+        (target->getLength() < 300))
+      continue;
+
+    fprintf(logFile, "repeatDetect()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
+            target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
     markRepeats(unitigs, target, shatterRepeats);
     markChimera(unitigs, target);

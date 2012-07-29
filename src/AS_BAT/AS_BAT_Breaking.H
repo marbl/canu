@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_BREAKING
 #define INCLUDE_AS_BAT_BREAKING
 
-static const char *rcsid_INCLUDE_AS_BAT_BREAKING = "$Id: AS_BAT_Breaking.H,v 1.2 2011-03-17 05:33:36 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BREAKING = "$Id: AS_BAT_Breaking.H,v 1.3 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -92,7 +92,7 @@ public:
 
 
 
-UnitigVector *
-breakUnitigAt(Unitig *tig, vector<breakPoint> &breaks);
+bool
+breakUnitigAt(UnitigVector &unitigs, Unitig *tig, vector<breakPoint> &breaks, bool doDelete);
 
 #endif //  INCLUDE_AS_BAT_BREAKING

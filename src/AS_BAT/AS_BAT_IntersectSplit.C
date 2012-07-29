@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.5 2011-03-17 05:33:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.6 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -312,18 +312,8 @@ breakUnitigs(UnitigVector &unitigs,
 #endif
 
     //  Actually do the breaking.
-    if (enableIntersectionBreaking) {
-      UnitigVector* newUs = breakUnitigAt(tig, breaks);
-
-      if (newUs != NULL) {
-        unitigs[tig->id()] = NULL;
-        delete tig;
-
-        unitigs.insert(unitigs.end(), newUs->begin(), newUs->end());
-      }
-
-      delete newUs;
-    }
+    if (enableIntersectionBreaking)
+      breakUnitigAt(unitigs, tig, breaks, true);
 
     breaks.clear();
   }  //  Over all unitigs

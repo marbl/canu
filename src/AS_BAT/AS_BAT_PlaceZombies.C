@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.5 2012-02-22 19:15:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.6 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -69,7 +69,7 @@ placeZombies(UnitigVector &unitigs, double erate, double elimit) {
       //  Valid fragment in a unitig
       continue;
 
-    Unitig      *utg = new Unitig(false);
+    Unitig      *utg = unitigs.newUnitig(false);
     ufNode       frg;
 
     frg.ident             = i;
@@ -85,7 +85,6 @@ placeZombies(UnitigVector &unitigs, double erate, double elimit) {
     frg.containment_depth = 0;
 
     utg->addFrag(frg, 0, false);
-    unitigs.push_back(utg);
 
     fprintf(logFile, "placeZombies()-- unitig %d created from zombie fragment %d\n",
             utg->id(), i);

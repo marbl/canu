@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig.C,v 1.4 2012-01-15 23:49:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig.C,v 1.5 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -27,22 +27,8 @@ static const char *rcsid = "$Id: AS_BAT_Unitig.C,v 1.4 2012-01-15 23:49:34 brian
 
 static std::map<uint32,int>* containPartialOrder;
 
-uint32  Unitig::_nextId       = 1;
 uint32* Unitig::_inUnitig     = NULL;
 uint32* Unitig::_pathPosition = NULL;
-
-
-Unitig::Unitig(bool report){
-  _length           =  0;
-  _id               = _nextId++;
-
-  if (report)
-    fprintf(logFile, "Creating Unitig %d\n", _id);
-}
-
-
-Unitig::~Unitig(void){
-}
 
 
 #warning WHAT REALLLY HAPPENS IF NO BACKBONE NODE, OR NO PREVIOUS BACKBONE NODE

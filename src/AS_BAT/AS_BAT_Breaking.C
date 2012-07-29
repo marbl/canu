@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.6 2012-02-15 03:41:08 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.7 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Breaking.H"
 
@@ -149,14 +149,15 @@ isBreakpoint(ufNode &frg,
 
 
 
-UnitigVector *
-breakUnitigAt(Unitig *tig,
-              vector<breakPoint> &breaks) {
+bool
+breakUnitigAt(UnitigVector       &unitigs,
+              Unitig             *tig,
+              vector<breakPoint> &breaks,
+              bool                doDelete) {
+  uint32  newTigs = 0;
 
   if (breaks.empty())
-    return NULL;
-
-  UnitigVector *newTigs    = new UnitigVector();
+    return(false);
 
   // we cannot predict the number of new unitigs created from the number of break points.  to
   // prevent infinite splitting loops, we need to count the number of new unitigs we create here,
@@ -237,10 +238,10 @@ breakUnitigAt(Unitig *tig,
 
     if ((break5p == true) &&
         (break3p == true)) {
-      saveTig    = currTig    = new Unitig(false);  //  LOG_ADDUNITIG_BREAKING);
+      newTigs++;
+      saveTig    = currTig    = unitigs.newUnitig(false);  //  LOG_ADDUNITIG_BREAKING);
       saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
-      newTigs->push_back(currTig);
       currTig->addFrag(frg, currOffset, LOG_ADDFRAG_BREAKING);
 
       currTig = NULL;
@@ -264,10 +265,9 @@ breakUnitigAt(Unitig *tig,
     if ((break5p == false) &&
         (break3p == false)) {
       if (currTig == NULL) {
-        saveTig    = currTig    = new Unitig(false);  //  LOG_ADDUNITIG_BREAKING);
+        newTigs++;
+        saveTig    = currTig    = unitigs.newUnitig(false);  //  LOG_ADDUNITIG_BREAKING);
         saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
-
-        newTigs->push_back(currTig);
       }
 
       currTig->addFrag(frg, currOffset, LOG_ADDFRAG_BREAKING);
@@ -278,10 +278,10 @@ breakUnitigAt(Unitig *tig,
 
     if ((break5p && (frgReversed == false)) ||
         (break3p && (frgReversed == true))) {
-      saveTig    = currTig    = new Unitig(false);  //  LOG_ADDUNITIG_BREAKING);
+      newTigs++;
+      saveTig    = currTig    = unitigs.newUnitig(false);  //  LOG_ADDUNITIG_BREAKING);
       saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
 
-      newTigs->push_back(currTig);
       currTig->addFrag(frg, currOffset, LOG_ADDFRAG_BREAKING);
 
       continue;
@@ -293,10 +293,9 @@ breakUnitigAt(Unitig *tig,
     if ((break5p && (frgReversed == true)) ||
         (break3p && (frgReversed == false))) {
       if (currTig == NULL) {
-        saveTig    = currTig    = new Unitig(false);  //  LOG_ADDUNITIG_BREAKING);
+        newTigs++;
+        saveTig    = currTig    = unitigs.newUnitig(false);  //  LOG_ADDUNITIG_BREAKING);
         saveOffset = currOffset = (frgReversed) ? -frg.position.end : -frg.position.bgn;
-
-        newTigs->push_back(currTig);
       }
 
       currTig->addFrag(frg, currOffset, LOG_ADDFRAG_BREAKING);
@@ -307,5 +306,13 @@ breakUnitigAt(Unitig *tig,
     }
   }
 
-  return(newTigs);
+  if (newTigs == 0)
+    return(false);
+
+  if (doDelete) {
+    unitigs[tig->id()] = NULL;
+    delete tig;
+  }
+
+  return(true);
 }

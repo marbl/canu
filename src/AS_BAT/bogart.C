@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.21 2012-05-02 18:21:38 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.22 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -156,6 +156,8 @@ main (int argc, char * argv []) {
   double    erateMerge               = 0.045;
   double    elimitMerge              = 4.0;
 
+  int32     numThreads               = 1;
+
   uint64    ovlCacheMemory           = UINT64_MAX;
   uint32    ovlCacheLimit            = UINT32_MAX;
 
@@ -208,6 +210,9 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-DP") == 0) {
       enablePromoteToSingleton = false;
+
+    } else if (strcmp(argv[arg], "-threads") == 0) {
+      numThreads = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-eg") == 0) {
       erateGraph = atof(argv[++arg]);
@@ -325,6 +330,10 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -DP        When -R or -E, don't promote shattered leftovers to unitigs.\n");
     fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -threads N Use N compute threads during repeat detection.  EXPERIMENTAL!\n");
+    fprintf(stderr, "               0 - use OpenMP default\n");
+    fprintf(stderr, "               1 - use one thread (default)\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig if either of\n");
     fprintf(stderr, "                    the following conditions hold:\n");
     fprintf(stderr, "  When constructing the Best Overlap Graph and Promiscuous Unitigs ('g'raph):\n");
@@ -390,6 +399,16 @@ main (int argc, char * argv []) {
   fprintf(stderr, "Merge error limit     = %.3f errors\n", elimitMerge);
   fprintf(stderr, "\n");
 
+
+  if (numThreads > 0) {
+    omp_set_num_threads(numThreads);
+    fprintf(stderr, "number of threads     = %d (command line)\n", numThreads);
+    fprintf(stderr, "\n");
+  } else {
+    fprintf(stderr, "number of threads     = %d (OpenMP default)\n", omp_get_max_threads());
+    fprintf(stderr, "\n");
+  }
+
   for (uint64 i=0, j=1; i<64; i++, j<<=1)
     if (logFileFlagSet(j))
       fprintf(stderr, "DEBUG                 = %s\n", logFileFlagNames[i]);
@@ -404,7 +423,6 @@ main (int argc, char * argv []) {
 
   // Initialize where we've been to nowhere, and create the non-existent 0th unitig.
   Unitig::resetFragUnitigMap(FI->numFragments());
-  unitigs.push_back(NULL);
 
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
   OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix);

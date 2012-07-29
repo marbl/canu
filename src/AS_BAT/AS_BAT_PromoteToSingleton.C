@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PromoteToSingleton.C,v 1.1 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PromoteToSingleton.C,v 1.2 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -46,10 +46,7 @@ promoteToSingleton(UnitigVector &unitigs, bool enablePromoteToSingleton) {
       continue;
     }
 
-    Unitig *utg = new Unitig(false);
-
-    unitigs.push_back(utg);
-
+    Unitig *utg = unitigs.newUnitig(false);
     ufNode  frag;
   
     frag.ident             = fi;

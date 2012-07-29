@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.15 2012-02-15 03:41:08 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.16 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -725,9 +725,8 @@ placeUnmatedFragInBestLocation(UnitigVector   &unitigs,
   //  No placement?  New unitig!
 
   if (bp == UINT32_MAX) {
-    Unitig  *sing = new Unitig(false);
+    Unitig  *sing = unitigs.newUnitig(false);
     sing->addFrag(frg, 0, false);
-    unitigs.push_back(sing);
     return;
   }
 

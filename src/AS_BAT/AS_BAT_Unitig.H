@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.5 2012-02-15 03:41:08 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.6 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -49,8 +49,17 @@ struct ufNode {
 
 
 struct Unitig {
-  Unitig(bool report=false);
-  ~Unitig(void);
+private:
+  Unitig() {
+    _length = 0;
+    _id     = 0;
+  };
+    
+public:
+  ~Unitig(void) {
+  };
+
+  friend class UnitigVector;
 
   void sort(void);
   void reverseComplement(bool doSort=true);
@@ -113,13 +122,86 @@ private:
   int32    _length;
   uint32   _id;
 
-  static uint32  _nextId;
   static uint32 *_inUnitig;      //  Maps a fragment iid to a unitig id.
   static uint32 *_pathPosition;  //  Maps a fragment iid to an index in the dovetail path
 };
 
 
-typedef std::vector<Unitig*> UnitigVector;
+
+class UnitigVector {
+public:
+  UnitigVector() {
+    _blockSize    = 1048576;
+    _numBlocks    = 1;
+    _maxBlocks    = 1024;
+    _blocks       = new Unitig ** [_maxBlocks];
+    _blocks[0]    = new Unitig  * [_blockSize];
+    _blocks[0][0] = NULL;  //  No first unitig.
+    _blockNext    = 1;
+    _totalUnitigs = 1;
+  };
+  ~UnitigVector() {
+  };
+
+  Unitig *newUnitig(bool verbose) {
+    Unitig *u = new Unitig();
+
+#pragma omp critical
+    {
+      u->_id = _totalUnitigs++;
+
+      if (verbose)
+        fprintf(logFile, "Creating Unitig %d\n", u->_id);
+
+      if (_blockNext >= _blockSize) {
+        assert(_numBlocks < _maxBlocks);
+
+        _blocks[_numBlocks] = new Unitig * [_blockSize];
+
+        memset(_blocks[_numBlocks], 0, sizeof(Unitig **) * _blockSize);
+
+        _numBlocks++;
+        _blockNext = 0;
+      }
+
+      _blocks[_numBlocks-1][_blockNext++] = u;
+
+      //  The rest are just sanity checks.
+
+      assert((u->id() / _blockSize) == (_numBlocks - 1));
+      assert((u->id() % _blockSize) == (_blockNext - 1));
+
+      assert(operator[](u->id()) == u);
+    }
+
+    return(u);
+  };
+
+  size_t  size(void) {
+    return(_totalUnitigs);
+  };
+
+  Unitig *&operator[](uint32 i) {
+    uint32  idx = i / _blockSize;
+    uint32  pos = i % _blockSize;
+
+    assert(i    < _totalUnitigs);
+    assert((idx < _numBlocks));
+    assert((pos < _blockNext) || (idx < _numBlocks - 1));
+
+    return(_blocks[idx][pos]);
+  };
+
+private:
+  uint64              _blockSize;
+
+  uint64              _numBlocks;
+  uint64              _maxBlocks;
+  Unitig           ***_blocks;
+  uint64              _blockNext;
+
+  uint64              _totalUnitigs;
+};
 
 
 #endif  //  INCLUDE_AS_BAT_UNITIG

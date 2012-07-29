@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.4 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.5 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -273,7 +273,7 @@ void moveContains(UnitigVector &unitigs) {
 
       } else if ((moveToSingleton == true) && (thisUnitig->getNumFrags() != 1)) {
         //  Eject the fragment to a singleton (unless we ARE the singleton)
-        Unitig        *singUnitig  = new Unitig(logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
+        Unitig        *singUnitig  = unitigs.newUnitig(logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
         ufNode         containee  = *frg;
 
         //  Nuke the fragment in the current list
@@ -290,7 +290,6 @@ void moveContains(UnitigVector &unitigs) {
 
         singUnitig->addFrag(containee, -MIN(containee.position.bgn, containee.position.end), logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS));
 
-        unitigs.push_back(singUnitig);
         thisUnitig = unitigs[ti];  //  Reset the pointer; unitigs might be reallocated
 
       } else {

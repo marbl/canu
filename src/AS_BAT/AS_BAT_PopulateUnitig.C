@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.4 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.5 2012-07-29 01:02:34 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -99,9 +99,7 @@ populateUnitig(UnitigVector &unitigs,
       (OG->isContained(fi) == true))    //  Skip contained
     return;
 
-  Unitig *utg = new Unitig(logFileFlagSet(LOG_POPULATE_UNITIG));
-
-  unitigs.push_back(utg);
+  Unitig *utg = unitigs.newUnitig(logFileFlagSet(LOG_POPULATE_UNITIG));
 
   //  Add a first fragment -- to be 'compatable' with the old code, the first fragment is added
   //  reversed, we walk off of its 5' end, flip it, and add the 3' walk.
