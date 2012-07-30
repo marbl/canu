@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.24 2012-07-30 17:52:36 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.25 2012-07-30 20:53:08 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -409,10 +409,6 @@ main (int argc, char * argv []) {
   }
 
   checkUnitigMembership(unitigs);
-
-  reportOverlapsUsed(unitigs, output_prefix, "mergeSplitJoin");
-  reportUnitigs(unitigs, output_prefix, "mergeSplitJoin");
-  evaluateMates(unitigs, output_prefix, "mergeSplitJoin");
 
   setLogFile(output_prefix, "cleanup");
 

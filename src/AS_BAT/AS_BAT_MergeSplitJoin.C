@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.18 2012-07-30 17:51:24 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.19 2012-07-30 20:53:08 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -34,6 +34,9 @@ static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.18 2012-07-30 17:51
 #include "AS_BAT_MergeSplitJoin.H"
 
 #include "AS_BAT_Breaking.H"
+
+#include "AS_BAT_Instrumentation.H"
+#include "AS_BAT_EvaluateMates.H"
 
 #include "AS_UTL_intervalList.H"
 
@@ -1453,7 +1456,11 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
     stealBubbles(unitigs, target, ilist);
   }
 
-  setLogFile(NULL, NULL);
+  setLogFile(prefix, "popBubbles");
+
+  reportOverlapsUsed(unitigs, prefix, "mergeSplitJoin");
+  reportUnitigs(unitigs, prefix, "mergeSplitJoin");
+  evaluateMates(unitigs, prefix, "mergeSplitJoin");
 
   fprintf(stderr, "popBubbles()-- finished.\n");
 
@@ -1485,7 +1492,11 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
     markChimera(unitigs, target);
   }
 
-  setLogFile(NULL, NULL);
+  setLogFile(prefix, "mergeSplitJoin");
+
+  reportOverlapsUsed(unitigs, prefix, "mergeSplitJoin");
+  reportUnitigs(unitigs, prefix, "mergeSplitJoin");
+  evaluateMates(unitigs, prefix, "mergeSplitJoin");
 
   fprintf(stderr, "repeatDetect()-- finished.\n");
 
