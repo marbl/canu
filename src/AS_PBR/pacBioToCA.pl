@@ -53,6 +53,147 @@ use FileHandle;
 
 use POSIX qw(ceil floor sys_wait_h);
 
+my $TAB_SIZE = 8;
+
+my %global;
+my @nonCAOptions = ("genomeSize", "shortReads", "libraryname", "specFile", "length", "coverage", "maxUncorrectedGap", "threads", "repeats", "fastqFile", "partitions", "sumitToGrid", "sgeCorrection", "consensusConcurrency", "cleanup");
+
+sub getGlobal ($) {
+    my $var = shift @_;
+    if (!exists($global{$var})) {
+    	return undef;
+    }
+    return($global{$var});
+}
+
+sub setGlobal ($$) {
+    my $var = shift @_;
+    my $val = shift @_;
+
+    #  If no value, set the field to undefined, the default for many of the options.
+
+    $val = undef  if ($val eq "");
+
+    $global{$var} = $val;
+}
+
+sub setDefaults() {
+	$global{"shortReads"} = undef;
+	$global{"libraryname"} = undef;
+	$global{"specFile"} = undef;
+	$global{"length"} = 500;
+	$global{"coverage"} = 0;
+        $global{"genomeSize"} = 0;
+	$global{"maxUncorrectedGap"} = 0;
+	$global{"threads"} = 1;
+	$global{"repeats"} = "";
+	$global{"fastqFile"} = undef;
+	$global{"partitions"} = 1;
+	$global{"sge"} = undef;
+	$global{"submitToGrid"} = 0;
+	$global{"sgeCorrection"} = undef;
+	$global{"consensusConcurrency"} = 8;
+	$global{"cleanup"} = 1;
+}
+
+sub updateSpecFile($$) {
+	my $specFile = shift @_;
+	my $outFile = shift @_;
+    open(F, "< $specFile") or die("Couldn't open '$specFile'", undef);
+    open(W, "> $outFile") or die("Couldn't open '$outFile'", undef);
+
+	my $print = 1;
+    while (<F>) {
+		s/^\s+//;
+        s/\s+$//;
+        
+    	# skip comments
+		next if (m/^\s*\#/);
+        next if (m/^\s*$/);
+
+    	$print = 1;        
+    	foreach my $key (@nonCAOptions) {
+    		if (index($_, $key) != -1) {
+    			$print = 0;
+    			last;
+    		}
+    	}
+    	if ($print == 1) {
+    		print W "$_\n";
+    	}
+    }
+    close(F);
+    close(W);
+}
+
+sub setParametersFromFile ($@) {
+    my $specFile  = shift @_;
+    my @fragFiles = @_;
+
+    #  Client should be ensuring that the file exists before calling this function.
+    die "specFile '$specFile' not found.\n"  if (! -e "$specFile");
+
+    print STDERR "\n";
+    print STDERR "###\n";
+    print STDERR "###  Reading options from '$specFile'\n";
+    print STDERR "###\n";
+    print STDERR "\n";
+
+    open(F, "< $specFile") or die("Couldn't open '$specFile'", undef);
+
+    while (<F>) {
+        s/^\s+//;
+        s/\s+$//;
+
+        next if (m/^\s*\#/);
+        next if (m/^\s*$/);
+
+        if (-e $_) {
+            my $xx = $_;
+            $xx = "$ENV{'PWD'}/$xx" if ($xx !~ m!^/!);
+            if (-e $xx) {
+                push @fragFiles, $xx;
+            } else {
+                setGlobal("help", getGlobal("help") . "File not found '$_' after appending absolute path.\n");
+            }
+        } elsif (m/\s*(\w*)\s*=([^#]*)#*.*$/) {
+            my ($var, $val) = ($1, $2);
+            $var =~ s/^\s+//; $var =~ s/\s+$//;
+            $val =~ s/^\s+//; $val =~ s/\s+$//;
+            undef $val if ($val eq "undef");
+            setGlobal($var, $val);
+        } else {
+            setGlobal("help", getGlobal("help") . "File not found or unknown specFile option line '$_'.\n");
+        }
+    }
+    close(F);
+
+    return(@fragFiles);
+}
+
+sub setParametersFromCommandLine(@) {
+    my @specOpts = @_;
+
+    if (scalar(@specOpts) > 0) {
+        print STDERR "\n";
+        print STDERR "###\n";
+        print STDERR "###  Reading options from the command line.\n";
+        print STDERR "###\n";
+        print STDERR "\n";
+    }
+
+    foreach my $s (@specOpts) {
+        if ($s =~ m/\s*(\w*)\s*=(.*)/) {
+            my ($var, $val) = ($1, $2);
+            $var =~ s/^\s+//; $var =~ s/\s+$//;
+            $val =~ s/^\s+//; $val =~ s/\s+$//;
+            setGlobal($var, $val);
+        } else {
+            setGlobal("help", getGlobal("help") . "Misformed command line option '$s'.\n");
+        }
+    }
+}
+
 sub makeAbsolute ($) {
     my $val = shift @_;
     if (defined($val) && ($val !~ m!^/!)) {
@@ -229,24 +370,13 @@ sub schedulerFinish {
 
 ################################################################################
 my $MIN_FILES_WITHOUT_PARTITIONS = 20;
+my $REPEAT_MULTIPLIER = 10;
 
-my $shortReads = undef;
-my $libraryname = undef;
-my $specFile = undef;
-my $length = 500;
-my $coverage = 0;
-my $maxUncorrectedGap = 0;
-my $threads = 1;
-my $repeats = "";
-my $fastqFile = undef;
-my $correctFile = undef;
-my $partitions = 1;
-my $sge = undef;
-my $submitToGrid = 0;
-my $sgeCorrection = undef;
-my $consensusConcurrency = 8;
+setDefaults();
+
 my @fragFiles;
-my $cleanup = 1;
+my @specOpts;
+my @cmdArgs;
 
 my $srcstr;
 
@@ -255,146 +385,162 @@ my $srcstr;
     $srcstr = "$0 @ARGV";
 }
 
-my $err = 0;
+# process the spec file and the fragment files
 while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
     if      ($arg eq "-s") {
-        $specFile = shift @ARGV;
-
-    } elsif ($arg eq "-shortReads") {
-        $shortReads = 1;
-
-    } elsif ($arg eq "-coverage") {
-        $coverage = shift @ARGV;
-
-    } elsif ($arg eq "-maxGap") {
-        $maxUncorrectedGap = shift @ARGV;
-
-    } elsif ($arg eq "-length") {
-        $length = shift @ARGV;
-
-    } elsif ($arg eq "-repeats") {
-       $repeats = shift @ARGV;
-
-    } elsif ($arg eq "-fastq") {
-       $fastqFile = shift @ARGV;
-
-    } elsif ($arg eq "-t") {
-       $threads = shift @ARGV;
-       if ($threads <= 0) { $threads = 1; }
-
-    } elsif ($arg eq "-l") {
-       $libraryname = shift @ARGV;
-
-    } elsif ($arg eq "-partitions") {
-       $partitions = shift @ARGV;
+        setGlobal("specFile", shift @ARGV);
     
-    } elsif ($arg eq "-sge") {
-       $sge = shift @ARGV;
+    } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/i)) {
+       if (-e $arg) {
+          push @fragFiles, $arg;
+       } else {
+          print "Invalid file $arg could not be found.\n";
+       }
 
-    } elsif ($arg eq "-sgeCorrection") {
-       $sgeCorrection = shift @ARGV;
-
-    } elsif ($arg eq "-noclean") {
-       $cleanup = 0;
+    } elsif ($arg =~ m/=/) {
+        push @specOpts, $arg;
     
-    } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/i) && (-e $arg)) {
-       push @fragFiles, $arg;
-
     } else {
-        $err++;
+        push @cmdArgs, $arg;
     }
 }
 
-if (($err) || (scalar(@fragFiles) == 0) || (!defined($fastqFile)) || (!defined($specFile)) || (!defined($libraryname))) {
+# initialize parameters from the spec files
+my $err = 0;
+if (-e getGlobal("specFile")) {
+   @fragFiles = setParametersFromFile(getGlobal("specFile"), @fragFiles);
+} else {
+   $err++;
+}
+setParametersFromCommandLine(@specOpts);
+
+# finally, command-line parameters take precedence
+while (scalar(@cmdArgs) > 0) {
+    my $arg = shift @cmdArgs;
+
+    if ($arg eq "-shortReads") {
+        setGlobal("shortReads", 1);
+
+    } elsif ($arg eq "-coverage") {
+        setGlobal("coverage", shift @cmdArgs);
+        if (getGlobal("coverage") < 0) { setGlobal("coverage", 0); }
+
+    } elsif ($arg eq "-genomeSize") {
+       setGlobal("genomeSize", shift @cmdArgs);
+       if (getGlobal("genomeSize") < 0) { setGlobal("genomeSize", 0); }
+
+    } elsif ($arg eq "-maxGap") {
+        setGlobal("maxUncorrectedGap", shift @cmdArgs);
+        if (getGlobal("maxUncorrectedGap") < 0) { setGlobal("maxUncorrectedGap", 0); }
+
+    } elsif ($arg eq "-length") {
+        setGlobal("length", shift @cmdArgs);
+
+    } elsif ($arg eq "-repeats") {
+       setGlobal("repeats", shift @cmdArgs);
+
+    } elsif ($arg eq "-fastq") {
+       setGlobal("fastqFile", shift @cmdArgs);
+
+    } elsif ($arg eq "-t" || $arg eq "-threads") {
+       setGlobal("threads", shift @cmdArgs);
+       if (getGlobal("threads") <= 0) { setGlobal("threads", 1); }
+
+    } elsif ($arg eq "-l" || $arg eq "-libraryname") {
+       setGlobal("libraryname", shift @cmdArgs);
+
+    } elsif ($arg eq "-partitions") {
+       setGlobal("partitions", shift @cmdArgs);
+    
+    } elsif ($arg eq "-sge") {
+       setGlobal("sge", shift @cmdArgs);
+
+    } elsif ($arg eq "-sgeCorrection") {
+       setGlobal("sgeCorrection", shift @cmdArgs);
+
+    } elsif ($arg eq "-noclean") {
+       setGlobal("cleanup", 0);
+    
+    } else {
+       print STDERR "Unknown parameter " + $err + "\n";
+       $err++;
+    }   
+ }
+    
+if (($err) || (scalar(@fragFiles) == 0) || (!defined(getGlobal("fastqFile"))) || (!defined(getGlobal("specFile"))) || (!defined(getGlobal("libraryname")))) {
+   print STDERR "No frag files specified. Please specify at least one frag file containing high-accuracy data for correction.\n" if (scalar(@fragFiles) == 0);
+   print STDERR "No fastq file specified. Please specify a fastq file containing PacBio sequences for correction using the -fastq parameter.\n" if (!defined(getGlobal("fastqFile")));
+   print STDERR "No spec file defined. Please specify a spec file using the -s option.\n" if (!defined(getGlobal("specFile")));
+   print STDERR "No library name provided. Please specify a name using the -library option.\n" if (!defined(getGlobal("libraryname")));  
+
     print STDERR "usage: $0 [options] -s spec.file -fastq fastqfile <frg>\n";
     print STDERR "  -length                  Minimum length to keep.\n";
     print STDERR "  -partitions              Number of partitions for consensus\n";
     print STDERR "  -sge                     Submit consensus jobs to the grid\n";
     print STDERR "  -sgeCorrection           Parameters for the correction step for the grid. This should match the threads specified below, for example by using -pe threaded\n";
-    print STDERR "  -l libraryname           Name of the library; freeformat text.\n";
-    print STDERR "  -t threads               Number of threads to use for correction.\n";
-    print STDERR " -shortReads               Use if the sequences for correction are 100bp or shorter.\n";
+    print STDERR "  -libraryname libraryname Name of the library; freeformat text.\n";
+    print STDERR "  -threads threads         Number of threads to use for correction.\n";
+    print STDERR "  -shortReads              Use if the sequences for correction are 100bp or shorter.\n";
+
+    print STDERR "  -coverage		     Specify the pacBio coverage (integer) instead of automatically estimating.\n";
+    print STDERR "  -genomeSize		     Specify the approximate genome size. This overwrites the coverage parameter above and will be used to compute estimated coverage instead of automatically estimating.\n\n";
 
     print STDERR "\nAdvanced options (EXPERT):\n";
-    print STDERR " -coverage		     Specify the pacBio coverage (integer) instead of automatically estimating.\n";
-    print STDERR " -maxGap		     The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option allows a number of PacBio sequences without short-read coverage to remain. For example, specifying 50, will mean 50bp can have no short-read coverage without splitting the PacBio sequence. Warning: this will allow more sequences that went through the SMRTportal to not be fixed.\n";
+    print STDERR "  -maxGap		     The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option allows a number of PacBio sequences without short-read coverage to remain. For example, specifying 50, will mean 50bp can have no short-read coverage without splitting the PacBio sequence. Warning: this will allow more sequences that went through the SMRTportal to not be fixed.\n";
     exit(1);
 }
 
 #check for valid parameters for requested partitions and threads
-$MIN_FILES_WITHOUT_PARTITIONS += $threads;
+$MIN_FILES_WITHOUT_PARTITIONS += getGlobal("threads");
 my $limit = 1024;
 my $sysLimit = `ulimit -Sn`;
 chomp($sysLimit);
 if (defined($sysLimit)) {
    $limit = $sysLimit;
 }
-if ($limit - $MIN_FILES_WITHOUT_PARTITIONS <= $partitions) {
-   $partitions = $limit - $MIN_FILES_WITHOUT_PARTITIONS;
-   if ($threads > $partitions) { $threads = $partitions - 1; }
-   print STDERR "Warning: file handle limit of $limit prevents using requested partitions. Reset partitions to $partitions. If you want more partitions, reset the limit and try again.\n";
+if ($limit - $MIN_FILES_WITHOUT_PARTITIONS <= getGlobal("partitions")) {
+   setGlobal("partitions", $limit - $MIN_FILES_WITHOUT_PARTITIONS);
+   if (getGlobal("threads") > getGlobal("partitions")) { setGlobal("threads", getGlobal("partitions") - 1); }
+   print STDERR "Warning: file handle limit of $limit prevents using requested partitions. Reset partitions to " . getGlobal("partitions") . ". If you want more partitions, reset the limit and try again.\n";
 }
-if ($partitions <= $threads) {
-   $partitions = $threads + 1;
-   print STDERR "Warning: number of partitions should be > # threads. Adjusted partitions to be $partitions.\n";
+if (getGlobal("partitions") <= getGlobal("threads")) {
+   setGlobal("partitions", getGlobal("threads") + 1);
+   print STDERR "Warning: number of partitions should be > # threads. Adjusted partitions to be ". getGlobal("partitions") . "\n";
 }
 
-print STDOUT "Running with $threads threads and $partitions partitions\n";
+print STDOUT "Running with " . getGlobal("threads") . " threads and " . getGlobal("partitions") . " partitions\n";
+
 my $CA = getBinDirectory();
 my $AMOS = "$CA/../../../AMOS/bin/";
 my $wrk = makeAbsolute("");
 my $asm = "asm";
-my $caSGE  = `cat $specFile | awk '{if (match(\$1, \"sge\")== 1 && length(\$1) == 3 && match(\$1, \"#\") == 0) print \$0}'`;
+my $caSGE  = getGlobal("sge");
 
-$caSGE =~ s/^\s+//;
-$caSGE =~ s/\s+$//;
-chomp($caSGE);
-
-if (length($caSGE) != 0) {
-   if (!defined($sge) || length($sge) == 0) {
-      $sge = $caSGE;
-      $sge =~ s/sge\s*=\s*//;
-   }
-
+if (defined($caSGE)) {
    $caSGE = "\"" .$caSGE . " -sync y\" sgePropagateHold=corAsm";
 } else {
    $caSGE = "sge=\"" . " -sync y\" sgePropagateHold=corAsm";
 }
-my $scriptParams = `cat $specFile |awk -F '=' '{if (match(\$1, \"sgeScript\") == 1 && match(\$1, \"#\") == 0) print \$0}'`;
-$scriptParams =~ s/^\s+//;
-$scriptParams =~ s/\s+$//;
-chomp($scriptParams);
+my $scriptParams = getGlobal("sgeScript");
 
-if (length($scriptParams) != 0) {
-   if (!defined($sgeCorrection) || length($sgeCorrection) == 0) {
-      if ($scriptParams =~ m/\s*(\w*)\s*=([^#]*)#*.*$/) {
-         my ($var, $val) = ($1, $2);
-         $var =~ s/^\s+//; $var =~ s/\s+$//;
-         $val =~ s/^\s+//; $val =~ s/\s+$//;
-
-         $sgeCorrection = $val;
-      }
+if (defined($scriptParams)) {
+   if (!defined(getGlobal("sgeCorrection"))) {
+   	setGlobal("sgeCorrection", $scriptParams);
    }
 }
 
-my $useGrid = `cat $specFile | awk -F '=' '{if (match(\$1, \"useGrid\") == 1 && match(\$1, \"#\") == 0) print \$NF}'`;
-$useGrid =~ s/^\s+//;
-$useGrid =~ s/\s+$//;
-chomp($useGrid);
-if (length($useGrid) != 0) {
-   $submitToGrid = $useGrid;
+my $useGrid = getGlobal("useGrid");
+if (defined($useGrid)) {
+	setGlobal("submitToGrid", $useGrid);
 }
-elsif (defined($sge)) {
-   $submitToGrid = 1;
+elsif (defined(getGlobal("sge"))) {
+   setGlobal("submitToGrid", 1);
 }
 
-my $caCNS  = `cat $specFile | awk -F '=' '{if (match(\$1, \"cnsConcurrency\")== 1) print \$2}'`;
-$caCNS =~ s/^\s+//;
-$caCNS =~ s/\s+$//;
-chomp($caCNS);
-if (length($caCNS) != 0) {
-   $consensusConcurrency = $caCNS;
+my $caCNS  = getGlobal("cnsConcurrency");
+if (defined($caCNS)) {
+   setGlobal("consensusConcurrency", $caCNS);
 }
 
 if (! -e "$AMOS/bank-transact") {
@@ -410,13 +556,59 @@ if (! -e "$AMOS/bank-transact") {
       die "AMOS binaries: bank-transact not found in $AMOS\n";
    }
 }
-print STDERR "Starting correction...\n CA: $CA\nAMOS:$AMOS\n";
+print STDERR "********* Starting correction...\n CA: $CA\nAMOS:$AMOS \n";
+print STDERR "******** Configuration Summary ********\n";
+foreach my $key (keys %global) {
+	if (length($key) < $TAB_SIZE) {
+		print STDERR "$key\t\t\t=";
+	} elsif (length($key) < 2*$TAB_SIZE) {
+		print STDERR "$key\t\t="
+	} else {
+		print STDERR "$key\t=";
+	}
+	print STDERR "\t" . $global{$key} . "\n";
+}
+print STDERR "****************\n";
+
+# get global variable values
+my $specFile = getGlobal("specFile");
+my $libraryname = getGlobal("libraryname");
+my $fastqFile = getGlobal("fastqFile");
+
+my $ovlErrorRate = getGlobal("utgErrorRate");
+my $ovlErrorLimit = getGlobal("utgErrorLimit");
+
+my $maxUncorrectedGap = getGlobal("maxUncorrectedGap");
+my $coverage = getGlobal("coverage");
+my $genomeSize = getGlobal("genomeSize");
+my $shortReads = getGlobal("shortReads");
+my $length = getGlobal("length");
+my $repeats = getGlobal("repeats");
+
+my $threads = getGlobal("threads");
+my $partitions = getGlobal("partitions");
+
+my $submitToGrid = getGlobal("submitToGrid");
+my $sge = getGlobal("sge");
+my $sgeCorrection = getGlobal("sgeCorrection");
+my $consensusConcurrency = getGlobal("consensusConcurrency");
+
+my $cleanup = getGlobal("cleanup");
 
 my $cmd = "";
+
+if ($coverage != 0 && $genomeSize != 0) {
+   print STDERR "Warning, both coverage and genome size is set. Coverage $coverage will be overwritten by genome size\n";
+}
+
 if (! -e "temp$libraryname") {
    runCommand("$wrk", "mkdir temp$libraryname");
 }
-runCommand("$wrk", "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio-long -reads " . makeAbsolute($fastqFile) . " > $wrk/temp$libraryname/$libraryname.frg"); 
+# generate the ca spec file, since we support additional options in the spec file, we need to strip those out before passing it to ca
+updateSpecFile($specFile, "$wrk/temp$libraryname/$libraryname.spec");
+$specFile = "$wrk/temp$libraryname/$libraryname.spec";
+
+runCommand($wrk, "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio-long -reads " . makeAbsolute($fastqFile) . " > $wrk/temp$libraryname/$libraryname.frg"); 
 runCommand($wrk, "$CA/runCA -s $specFile -p $asm -d temp$libraryname $caSGE stopAfter=initialStoreBuilding @fragFiles $wrk/temp$libraryname/$libraryname.frg");
 
 # make assumption that we correct using all libraries preceeding pacbio
@@ -436,15 +628,57 @@ for (my $i = 1; $i <= $numLib; $i++) {
    }
 }
 
+# run correction up thorough meryl
+runCommand($wrk, "$CA/runCA -s $specFile -p $asm -d temp$libraryname $caSGE stopAfter=meryl");
+
+# set the meryl threshold based on the genome size and coverage (if specified)
+if ($genomeSize != 0) {
+   my $totalBP = 0;
+
+   # compute the number of bases in the gateeeker to be corrected
+   open(F, "$CA/gatekeeper -dumpinfo temp$libraryname/$asm.gkpStore |") or die("Couldn't open gatekeeper store", undef);
+
+   while (<F>) {
+      s/^\s+//;
+      s/\s+$//;
+
+      my @array = split '\s+';
+      if ($#array == 8 && $array[0] == $libToCorrect) { 
+         $totalBP = $array[6];
+      }
+   }
+   close(F); 
+
+   if ($totalBP > 0) {
+      $coverage = ceil($totalBP / $genomeSize);
+      setGlobal("coverage", $coverage);
+   }
+}
+# set the meryl threshold if necessary
+if (getGlobal("ovlMerThreshold") == "auto") {
+   # no threshold specified, check if the chosen one is OK
+   my $autoSetThreshold = `cat temp$libraryname/0-mercounts/*estMerThresh.out`;
+   chomp($autoSetThreshold); 
+
+   if ($autoSetThreshold < ($coverage * $REPEAT_MULTIPLIER)) {
+      setGlobal("ovlMerThreshold", $coverage * $REPEAT_MULTIPLIER);
+      unlink("temp$libraryname/0-mercounts/$asm.nmers.ovl.fasta");
+      print STDERR "Resetting from auto threshold of $autoSetThreshold to be " . ($coverage * 10) . "\n";
+   }
+}
+
 # now run the correction
+my $ovlThreshold = getGlobal("ovlMerThreshold");
 $cmd  = "$CA/runCA ";
 $cmd .=    "-s $specFile ";
 $cmd .=    "-p $asm -d temp$libraryname ";
-#$cmd .=    "doOverlapBasedTrimming=0 ";
+$cmd .=    "ovlMerThreshold=$ovlThreshold ";
 $cmd .=    "ovlHashLibrary=$libToCorrect ";
 $cmd .=    "ovlRefLibrary=$minCorrectLib-$maxCorrectLib ";
+$cmd .=    "ovlCheckLibrary=1 ";
 $cmd .=    "obtHashLibrary=$minCorrectLib-$maxCorrectLib ";
 $cmd .=    "obtRefLibrary=$minCorrectLib-$maxCorrectLib ";
+$cmd .=    "obtCheckLibrary=0 ";
 $cmd .=   "$caSGE stopAfter=overlapper";
 runCommand($wrk, $cmd);
 
@@ -465,7 +699,7 @@ if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
    print F "        $repeats \\\n";
    print F "        -O $wrk/temp$libraryname/$asm.ovlStore \\\n";
    print F "        -G $wrk/temp$libraryname/$asm.gkpStore \\\n";
-   print F "        -e 0.25 -c 0.25  -E 6.5 > $wrk/temp$libraryname/$asm.layout.err 2> $wrk/temp$libraryname/$asm.layout.err && touch $wrk/temp$libraryname/$asm.layout.success\n";
+   print F "        -e $ovlErrorRate -c $ovlErrorRate  -E $ovlErrorLimit > $wrk/temp$libraryname/$asm.layout.err 2> $wrk/temp$libraryname/$asm.layout.err && touch $wrk/temp$libraryname/$asm.layout.success\n";
    print F " fi\n";
    close(F);
    chmod 0755, "$wrk/temp$libraryname/runCorrection.sh";
@@ -514,6 +748,12 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    print F "         $AMOS/make-consensus -B -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.out 2>&1 && touch $wrk/temp$libraryname/\$jobid.success\n";
    print F "         $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
    print F "      fi\n";
+   print F "      if test -e $wrk/temp$libraryname/\$jobid.success ; then\n";
+   print F "         rm -rf $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk\n";
+   print F "         rm $wrk/temp$libraryname/bank-transact.\$jobid.err\n";
+   print F "         rm $wrk/temp$libraryname/\$jobid.excluded\n";
+   print F "         rm $wrk/temp$libraryname/\$jobid.out\n";
+   print F "      fi\n";
    print F "   fi\n";
    print F "fi\n";
    close(F);
@@ -531,7 +771,7 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    } 
 }
 
-for (my $i = 1; $i <=$partitions; $i++) {
+for (my $i = 1; $i <= $partitions; $i++) {
   if (! -e "$wrk/temp$libraryname/$i.success") {
     die "Failed to run correction job $i. Remove $wrk/temp$libraryname/runPartition.sh to try again.\n";
   }
