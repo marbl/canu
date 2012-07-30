@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogart.C,v 1.23 2012-07-30 01:21:01 brianwalenz Exp $";
+const char *mainid = "$Id: bogart.C,v 1.24 2012-07-30 17:52:36 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -327,7 +327,7 @@ main (int argc, char * argv []) {
 
   FI = new FragmentInfo(gkpStore, output_prefix);
 
-  // Initialize where we've been to nowhere, and create the non-existent 0th unitig.
+  // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap(FI->numFragments());
 
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
@@ -367,11 +367,13 @@ main (int argc, char * argv []) {
   reportUnitigs(unitigs, output_prefix, "buildUnitigs");
   evaluateMates(unitigs, output_prefix, "buildUnitigs");
 
-  setLogFile(output_prefix, "placeContainsZombies");
+  setLogFile(output_prefix, "placeContains");
 
   placeContainsUsingBestOverlaps(unitigs);
   //placeContainsUsingAllOverlaps(bool withMatesToNonContained,
   //                              bool withMatesToUnambiguousContain);
+
+  setLogFile(output_prefix, "placeZombies");
 
   placeZombies(unitigs, erateMerge, elimitMerge);
 
