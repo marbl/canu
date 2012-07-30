@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig_AddFrag.C,v 1.3 2012-02-15 03:41:08 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig_AddFrag.C,v 1.4 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -52,13 +52,13 @@ Unitig::addFrag(ufNode node, int offset, bool report) {
     int32 pos = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
 
     if (node.contained)
-      fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d) (contained in %d)\n",
+      writeLog("Added frag %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d) (contained in %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
               ufpath.size() - 1,
               pos - len,
               node.contained);
     else
-      fprintf(logFile, "Added frag %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d)\n",
+      writeLog("Added frag %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d)\n",
               node.ident, len, _id, node.position.bgn, node.position.end,
               ufpath.size() - 1,
               pos - len);
@@ -82,7 +82,7 @@ Unitig::addContainedFrag(int32 fid, BestContainment *bestcont, bool report) {
   frag.ident        = fid;
 
   if (placeFrag(frag, bestcont) == false) {
-    fprintf(logFile, "addContainedFrag()-- Failed to place contained frag %d using bestcont %d (hang %d,%d same orient %d).\n",
+    writeLog("addContainedFrag()-- Failed to place contained frag %d using bestcont %d (hang %d,%d same orient %d).\n",
             fid, bestcont->container, bestcont->a_hang, bestcont->b_hang, bestcont->sameOrientation);
     return(false);
   }

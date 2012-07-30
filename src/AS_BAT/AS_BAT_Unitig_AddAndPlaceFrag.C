@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig_AddAndPlaceFrag.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig_AddAndPlaceFrag.C,v 1.3 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -61,7 +61,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
     bidx5 = pathPosition(bestedge5->fragId());
     blen5 = FI->fragmentLength(fid) + ((bestedge5->ahang() < 0) ? bestedge5->bhang() : -bestedge5->ahang());
 #ifdef DEBUG_PLACEMENT
-    fprintf(logFile, "addAndPlaceFrag()-- bestedge5:  %d,%d,%d,%d len %d\n",
+    writeLog("addAndPlaceFrag()-- bestedge5:  %d,%d,%d,%d len %d\n",
             bestedge5->fragId(), bestedge5->frag3p, bestedge5->ahang(), bestedge5->bhang(), blen5);
 #endif
     assert(bestedge5->fragId() == ufpath[bidx5].ident);
@@ -71,7 +71,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
     bidx3 = pathPosition(bestedge3->fragId());;
     blen3 = FI->fragmentLength(fid) + ((bestedge3->ahang() < 0) ? bestedge3->bhang() : -bestedge3->ahang());
 #ifdef DEBUG_PLACEMENT
-    fprintf(logFile, "addAndPlaceFrag()-- bestedge3:  %d,%d,%d,%d len %d\n",
+    writeLog("addAndPlaceFrag()-- bestedge3:  %d,%d,%d,%d len %d\n",
             bestedge3->fragId(), bestedge3->frag3p, bestedge3->ahang(), bestedge3->bhang(), blen3);
 #endif
     assert(bestedge3->fragId() == ufpath[bidx3].ident);
@@ -83,7 +83,7 @@ Unitig::addAndPlaceFrag(int32 fid, BestEdgeOverlap *bestedge5, BestEdgeOverlap *
   //  etc.
 
   if ((blen5 == 0) && (blen3 == 0)) {
-    fprintf(logFile, "Unitig::addAndPlaceFrag()-- WARNING:  Failed to place frag %d into unitig %d; no edges to the unitig.\n",
+    writeLog("Unitig::addAndPlaceFrag()-- WARNING:  Failed to place frag %d into unitig %d; no edges to the unitig.\n",
             fid, id());
     return(false);
   }

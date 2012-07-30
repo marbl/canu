@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: petey.C,v 1.10 2012-07-29 01:02:34 brianwalenz Exp $";
+const char *mainid = "$Id: petey.C,v 1.11 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -42,86 +42,6 @@ OverlapCache     *OC  = 0L;
 BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
 InsertSizes      *IS  = 0L;
-
-
-FILE             *logFile      = stderr;
-uint32            logFileOrder = 0;
-uint64            logFileFlags = 0;  //  defined in AS_BAT_Datatypes.hh
-
-uint64 LOG_OVERLAP_QUALITY             = 0x0000000000000001;  //  Debug, scoring of overlaps
-uint64 LOG_OVERLAPS_USED               = 0x0000000000000002;  //  Report overlaps used/not used
-uint64 LOG_CHUNK_GRAPH                 = 0x0000000000000004;  //  Report the chunk graph as we build it
-uint64 LOG_INTERSECTIONS               = 0x0000000000000008;  //  Report intersections found when building initial unitigs
-uint64 LOG_POPULATE_UNITIG             = 0x0000000000000010;  //  Report building of initial unitigs (both unitig creation and fragment placement)
-uint64 LOG_INTERSECTION_BREAKING       = 0x0000000000000020;  //  
-uint64 LOG_INTERSECTION_BUBBLES        = 0x0000000000000040;  //  
-uint64 LOG_INTERSECTION_BUBBLES_DEBUG  = 0x0000000000000080;  //  
-uint64 LOG_INTERSECTION_JOINING        = 0x0000000000000100;  //
-uint64 LOG_INTERSECTION_JOINING_DEBUG  = 0x0000000000000200;  //
-uint64 LOG_INITIAL_CONTAINED_PLACEMENT = 0x0000000000000400;  //
-uint64 LOG_HAPPINESS                   = 0x0000000000000800;  //
-uint64 LOG_INTERMEDIATE_UNITIGS        = 0x0000000000001000;  //  At various spots, dump the current unitigs
-uint64 LOG_MATE_SPLIT_ANALYSIS         = 0x0000000000002000;  //
-uint64 LOG_MATE_SPLIT_DISCONTINUOUS    = 0x0000000000004000;  //
-uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS = 0x0000000000008000;  //
-uint64 LOG_MATE_SPLIT_COVERAGE_PLOT    = 0x0000000000010000;  //
-uint64 LOG_STDERR                      = 0x0000000000020000;  //  Write ALL logging to stderr, not the files.
-
-uint64 LOG_PLACE_FRAG                  = 0x8000000000000000;  //  Internal use only.
-
-const char *logFileFlagNames[64] = { "overlapQuality",
-                                     "overlapsUsed",
-                                     "chunkGraph",
-                                     "intersections",
-                                     "populate",
-                                     "intersectionBreaking",
-                                     "intersectionBubbles",
-                                     "intersectionBubblesDebug",
-                                     "intersectionJoining",
-                                     "intersectionJoiningDebug",
-                                     "containedPlacement",
-                                     "happiness",
-                                     "intermediateUnitigs",
-                                     "mateSplitAnalysis",
-                                     "mateSplitDiscontinuous",
-                                     "mateSplitUnhappyContains",
-                                     "mateSplitCoveragePlot",
-                                     "stderr",
-                                     NULL
-};
-
-//  Closes the current logFile, opens a new one called 'prefix.logFileOrder.name'.  If 'name' is
-//  NULL, the logFile is reset to stderr.
-void
-setLogFile(const char *prefix, const char *name) {
-  char  logFileName[FILENAME_MAX];
-
-  if (logFileFlagSet(LOG_STDERR))
-    //  Write everything to stderr
-    return;
-
-  if (logFile != stderr)
-    fclose(logFile);
-
-  if (name == NULL) {
-    logFile = stderr;
-    return;
-  }
-
-  sprintf(logFileName, "%s.%03u.%s.log", prefix, ++logFileOrder, name);
-
-  errno = 0;
-  logFile = fopen(logFileName, "w");
-  if (errno) {
-    fprintf(stderr, "setLogFile()-- Failed to open logFile '%s': %s.\n", logFileName, strerror(errno));
-    fprintf(stderr, "setLogFile()-- Will now log to stderr instead.\n");
-    logFile = stderr;
-  }
-
-  fprintf(stderr,  "setLogFile()-- Now logging to '%s'\n", logFileName);
-  //fprintf(logFile, "setLogFile()-- Search for '%s' in unitigger.err for messages before/after this file.\n", logFileName);
-}
-
 
 
 int
@@ -326,7 +246,7 @@ main (int argc, char * argv []) {
   //  can put them back, we'll let it.
 
   setLogFile(output_prefix, "moveContains1");
-  fprintf(logFile, "==> MOVE CONTAINS #1\n");
+  writeLog("==> MOVE CONTAINS #1\n");
   moveContains(unitigs);
 
   reportOverlapsUsed(unitigs, output_prefix, "moveContains1");
@@ -338,7 +258,7 @@ main (int argc, char * argv []) {
   //  disconnected.
 
   setLogFile(output_prefix, "splitDiscontinuous1");
-  fprintf(logFile, "==> SPLIT DISCONTINUOUS #1\n");
+  writeLog("==> SPLIT DISCONTINUOUS #1\n");
   splitDiscontinuousUnitigs(unitigs);
 
   reportOverlapsUsed(unitigs, output_prefix, "splitDiscontinuous1");
@@ -346,7 +266,7 @@ main (int argc, char * argv []) {
   evaluateMates(unitigs, output_prefix, "splitDiscontinuous1");
 
   setLogFile(output_prefix, "splitBadMates");
-  fprintf(logFile, "==> SPLIT BAD MATES\n");
+  writeLog("==> SPLIT BAD MATES\n");
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig  *tig = unitigs[ti];
@@ -376,7 +296,7 @@ main (int argc, char * argv []) {
   //  We break those unitigs here.
 
   setLogFile(output_prefix, "splitDiscontinuous2");
-  fprintf(logFile, "==> SPLIT DISCONTINUOUS #2\n");
+  writeLog("==> SPLIT DISCONTINUOUS #2\n");
   splitDiscontinuousUnitigs(unitigs);
 
   reportOverlapsUsed(unitigs, output_prefix, "splitDiscontinuous2");
@@ -388,7 +308,7 @@ main (int argc, char * argv []) {
   //  that just lost the container.
 
   setLogFile(output_prefix, "moveContains2");
-  fprintf(logFile, "==> MOVE CONTAINS #2\n");
+  writeLog("==> MOVE CONTAINS #2\n");
 
   moveContains(unitigs);
 
@@ -399,7 +319,7 @@ main (int argc, char * argv []) {
   //  Do one last check for disconnected unitigs.
 
   setLogFile(output_prefix, "splitDiscontinuous3");
-  fprintf(logFile, "==> SPLIT DISCONTINUOUS #3\n");
+  writeLog("==> SPLIT DISCONTINUOUS #3\n");
   splitDiscontinuousUnitigs(unitigs);
 
   reportOverlapsUsed(unitigs, output_prefix, "splitDiscontinuous3");
@@ -429,7 +349,7 @@ main (int argc, char * argv []) {
     delete unitigs[ti];
 
   setLogFile(NULL, NULL);
-  fprintf(logFile, "Bye.\n");
+  writeLog("Bye.\n");
 
   return(0);
 }

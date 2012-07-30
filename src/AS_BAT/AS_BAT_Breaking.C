@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.7 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Breaking.C,v 1.8 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Breaking.H"
 
@@ -78,7 +78,7 @@ processBreakpoints(vector<breakPoint>       &breaks,
   for (uint32 bp=0; bp<breaks.size(); bp++) {
     uint32  fid = breaks[bp].fragEnd.fragId();
 
-    //fprintf(logFile, "found break %u/%c' eject=%d keep=%d\n",
+    //writeLog("found break %u/%c' eject=%d keep=%d\n",
     //        breaks[bp].fragEnd.fragId(), (breaks[bp].fragEnd.frag3p() ? '3' : '5'),
     //        breaks[bp].ejectContains, breaks[bp].keepContains);
 
@@ -116,7 +116,7 @@ isBreakpoint(ufNode &frg,
 
   assert(bp.fragEnd.fragId() == frg.ident);
 
-  //fprintf(logFile, "BREAK %u %d/%d\n",
+  //writeLog("BREAK %u %d/%d\n",
   //        bp.fragEnd.fragId(), bp.break3p, bp.break5p);
 
   break3p             = bp.break3p;
@@ -207,7 +207,7 @@ breakUnitigAt(UnitigVector       &unitigs,
                      break5p, break3p,
                      rememberLastTig,
                      searchDiscontinuous)) {
-      //fprintf(logFile, "NEW BREAK at frag %u 5p=%d 3p=%d remember=%d search=%d\n",
+      //writeLog("NEW BREAK at frag %u 5p=%d 3p=%d remember=%d search=%d\n",
       //        frg.ident, break5p, break3p, rememberLastTig, searchDiscontinuous);
 
       lastTig    = NULL;

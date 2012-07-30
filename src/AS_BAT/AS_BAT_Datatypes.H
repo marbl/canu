@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.15 2012-07-27 15:41:41 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.16 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -38,8 +38,11 @@ static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1
 #include <limits>
 #include <algorithm>
 
+#include <omp.h>
+
 using namespace std;
 
+#include "AS_BAT_Logging.H"
 #include "AS_BAT_OverlapCache.H"
 
 const uint32  noUnitig = 0xffffffff;
@@ -67,37 +70,6 @@ extern ChunkGraph       *CG;
 extern InsertSizes      *IS;
 
 ////////////////////////////////////////
-
-void  setLogFile(const char *prefix, const char *name);
-void  resetLogFile(const char *prefix, const char *name);
-
-#define logFileFlagSet(L) ((logFileFlags & L) == L)
-
-extern FILE   *logFile;
-extern uint32  logFileOrder;
-extern uint64  logFileFlags;
-
-extern uint64 LOG_OVERLAP_QUALITY;
-extern uint64 LOG_OVERLAPS_USED;
-extern uint64 LOG_CHUNK_GRAPH;
-extern uint64 LOG_INTERSECTIONS;
-extern uint64 LOG_POPULATE_UNITIG;
-extern uint64 LOG_INTERSECTION_BREAKING;
-extern uint64 LOG_INTERSECTION_BUBBLES;
-extern uint64 LOG_INTERSECTION_BUBBLES_DEBUG;
-extern uint64 LOG_INTERSECTION_JOINING;
-extern uint64 LOG_INTERSECTION_JOINING_DEBUG;
-extern uint64 LOG_INITIAL_CONTAINED_PLACEMENT;
-extern uint64 LOG_HAPPINESS;
-extern uint64 LOG_INTERMEDIATE_UNITIGS;
-extern uint64 LOG_MATE_SPLIT_ANALYSIS;
-extern uint64 LOG_MATE_SPLIT_DISCONTINUOUS;
-extern uint64 LOG_MATE_SPLIT_UNHAPPY_CONTAINS;
-extern uint64 LOG_MATE_SPLIT_COVERAGE_PLOT;
-extern uint64 LOG_SET_PARENT_AND_HANG;
-extern uint64 LOG_STDERR;
-
-extern uint64 LOG_PLACE_FRAG;
 
 ////////////////////////////////////////
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceContains.C,v 1.5 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceContains.C,v 1.6 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -39,7 +39,7 @@ placeContainsUsingBestOverlaps(UnitigVector &unitigs) {
     fragsPlaced  = 0;
     fragsPending = 0;
 
-    fprintf(logFile, "==> PLACING CONTAINED FRAGMENTS\n");
+    writeLog("==> PLACING CONTAINED FRAGMENTS\n");
 
     for (uint32 fid=1; fid<FI->numFragments()+1; fid++) {
       BestContainment *bestcont = OG->getBestContainer(fid);
@@ -63,18 +63,18 @@ placeContainsUsingBestOverlaps(UnitigVector &unitigs) {
       utg->addContainedFrag(fid, bestcont, logFileFlagSet(LOG_INITIAL_CONTAINED_PLACEMENT));
 
       if (utg->id() != Unitig::fragIn(fid))
-        fprintf(logFile, "placeContainsUsingBestOverlaps()-- FAILED to add frag %d to unitig %d.\n", fid, bestcont->container);
+        writeLog("placeContainsUsingBestOverlaps()-- FAILED to add frag %d to unitig %d.\n", fid, bestcont->container);
       assert(utg->id() == Unitig::fragIn(fid));
 
 
       fragsPlaced++;
     }
 
-    fprintf(logFile, "==> PLACING CONTAINED FRAGMENTS - placed %d fragments; still need to place %d\n",
+    writeLog("==> PLACING CONTAINED FRAGMENTS - placed %d fragments; still need to place %d\n",
             fragsPlaced, fragsPending);
 
     if ((fragsPlaced == 0) && (fragsPending > 0)) {
-      fprintf(logFile, "Stopping contained fragment placement due to zombies.\n");
+      writeLog("Stopping contained fragment placement due to zombies.\n");
       fragsPlaced  = 0;
       fragsPending = 0;
     }
@@ -116,7 +116,7 @@ placeContainsUsingBestOverlaps(Unitig *target, set<AS_IID> *fragments) {
       target->addContainedFrag(fid, bestcont, false);
 
       if (target->id() != Unitig::fragIn(fid))
-        fprintf(logFile, "placeContainsUsingBestOverlaps()-- FAILED to add frag %d to unitig %d.\n", fid, bestcont->container);
+        writeLog("placeContainsUsingBestOverlaps()-- FAILED to add frag %d to unitig %d.\n", fid, bestcont->container);
       assert(target->id() == Unitig::fragIn(fid));
 
       fragsPlaced++;

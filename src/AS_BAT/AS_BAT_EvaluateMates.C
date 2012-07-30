@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_EvaluateMates.C,v 1.3 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_EvaluateMates.C,v 1.4 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_MateLocation.H"
@@ -89,25 +89,25 @@ evaluateMates(UnitigVector &unitigs, const char *output_prefix, const char *name
     }
   }
 
-  fprintf(logFile, "==> MATE HAPPINESS\n");
-  fprintf(logFile, "\n");
-  fprintf(logFile, "unmated          "F_S64"\n", nunmated);
-  fprintf(logFile, "\n");
-  fprintf(logFile, "                  dove-dove  dove-cont  cont-cont\n");
-  fprintf(logFile, "happy            %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", ngood[0],            ngood[1],            ngood[2]);
-  fprintf(logFile, "\n");
-  fprintf(logFile, "goodExternalFwd  %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", ngoodExternalFwd[0], ngoodExternalFwd[1], ngoodExternalFwd[2]);
-  fprintf(logFile, "goodExternalRev  %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", ngoodExternalRev[0], ngoodExternalRev[1], ngoodExternalRev[2]);
-  fprintf(logFile, "\n");
-  fprintf(logFile, "badExternalFwd   %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadExternalFwd[0],  nbadExternalFwd[1],  nbadExternalFwd[2]);
-  fprintf(logFile, "badExternalRev   %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadExternalRev[0],  nbadExternalRev[1],  nbadExternalRev[2]);
-  fprintf(logFile, "badCompressed    %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadCompressed[0],   nbadCompressed[1],   nbadCompressed[2]);
-  fprintf(logFile, "badStretched     %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadStretched[0],    nbadStretched[1],    nbadStretched[2]);
-  fprintf(logFile, "badNormal        %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadNormal[0],       nbadNormal[1],       nbadNormal[2]);
-  fprintf(logFile, "badAnti          %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadAnti[0],         nbadAnti[1],         nbadAnti[2]);
-  fprintf(logFile, "badOuttie        %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadOuttie[0],       nbadOuttie[1],       nbadOuttie[2]);
+  writeLog("==> MATE HAPPINESS\n");
+  writeLog("\n");
+  writeLog("unmated          "F_S64"\n", nunmated);
+  writeLog("\n");
+  writeLog("                  dove-dove  dove-cont  cont-cont\n");
+  writeLog("happy            %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", ngood[0],            ngood[1],            ngood[2]);
+  writeLog("\n");
+  writeLog("goodExternalFwd  %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", ngoodExternalFwd[0], ngoodExternalFwd[1], ngoodExternalFwd[2]);
+  writeLog("goodExternalRev  %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", ngoodExternalRev[0], ngoodExternalRev[1], ngoodExternalRev[2]);
+  writeLog("\n");
+  writeLog("badExternalFwd   %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadExternalFwd[0],  nbadExternalFwd[1],  nbadExternalFwd[2]);
+  writeLog("badExternalRev   %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadExternalRev[0],  nbadExternalRev[1],  nbadExternalRev[2]);
+  writeLog("badCompressed    %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadCompressed[0],   nbadCompressed[1],   nbadCompressed[2]);
+  writeLog("badStretched     %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadStretched[0],    nbadStretched[1],    nbadStretched[2]);
+  writeLog("badNormal        %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadNormal[0],       nbadNormal[1],       nbadNormal[2]);
+  writeLog("badAnti          %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadAnti[0],         nbadAnti[1],         nbadAnti[2]);
+  writeLog("badOuttie        %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadOuttie[0],       nbadOuttie[1],       nbadOuttie[2]);
 
-  fprintf(logFile, "badFwd           %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadFwd[0],          nbadFwd[1],          nbadFwd[2]);
-  fprintf(logFile, "badRev           %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadRev[0],          nbadRev[1],          nbadRev[2]);
+  writeLog("badFwd           %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadFwd[0],          nbadFwd[1],          nbadFwd[2]);
+  writeLog("badRev           %10"F_S64P" %10"F_S64P" %10"F_S64P"\n", nbadRev[0],          nbadRev[1],          nbadRev[2]);
 }
 

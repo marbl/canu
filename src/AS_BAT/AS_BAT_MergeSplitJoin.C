@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.16 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.17 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -92,7 +92,7 @@ mergeBubbles_findEnds(UnitigVector &unitigs,
 
   if (fIdx == zIdx) {
 #ifdef LOG_BUBBLE_TESTS
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments STARTS WITH A CONTAINED FRAGMENT %d\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments STARTS WITH A CONTAINED FRAGMENT %d\n",
             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
             bubble->ufpath[0].ident);
 #endif
@@ -145,16 +145,16 @@ mergeBubbles_findEnds(UnitigVector &unitigs,
 
 #ifdef LOG_BUBBLE_TESTS
   if ((fUtg != 0) && (lUtg != 0))
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
             fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5),
             lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
   else if (fUtg != 0)
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
             fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5));
   else if (lUtg != 0)
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
             bubble->id(), bubble->getLength(), bubble->ufpath.size(),
             lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
   else
@@ -162,7 +162,7 @@ mergeBubbles_findEnds(UnitigVector &unitigs,
     //  already popped.  We pop A into B, and while iterating through fragments in B we find
     //  the -- now obsolete -- intersections we originally used and try to pop it again.
     //
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  NO EDGES, no bubble.\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  NO EDGES, no bubble.\n",
             bubble->id(), bubble->getLength(), bubble->ufpath.size());
 #endif
 
@@ -174,7 +174,7 @@ mergeBubbles_findEnds(UnitigVector &unitigs,
   //  We might as well place it aggressively.
 
   if ((fUtg != 0) && (lUtg != 0) && (fUtg != lUtg)) {
-    fprintf(logFile, "popBubbles()--   bubble unitig %d has edges to both unitig %d and unitig %d\n",
+    writeLog("popBubbles()--   bubble unitig %d has edges to both unitig %d and unitig %d\n",
             bubble->id(), fUtg, lUtg);
     return(true);
   }
@@ -231,7 +231,7 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   if ((fFrgN.position.bgn == 0) &&
       (fFrgN.position.end == 0)) {
 #ifdef LOG_BUBBLE_FAILURE
-    fprintf(logFile, "popBubbles()--   failed to place fFrg.\n");
+    writeLog("popBubbles()--   failed to place fFrg.\n");
 #endif
     return(false);
   }
@@ -261,7 +261,7 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   if ((lFrgN.position.bgn == 0) &&
       (lFrgN.position.end == 0)) {
 #ifdef LOG_BUBBLE_FAILURE
-    fprintf(logFile, "popBubbles()--   failed to place lFrg.\n");
+    writeLog("popBubbles()--   failed to place lFrg.\n");
 #endif
     return(false);
   }
@@ -278,7 +278,7 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   if (2 * placedLen < bubble->getLength()) {
     //  Too short.
 #ifdef LOG_BUBBLE_FAILURE
-    fprintf(logFile, "popBubbles()--   too short.  fFrg %d,%d lFrg %d,%d.  L %d,%d R %d,%d len %d\n",
+    writeLog("popBubbles()--   too short.  fFrg %d,%d lFrg %d,%d.  L %d,%d R %d,%d len %d\n",
             fFrg.position.bgn, fFrg.position.end,
             lFrg.position.bgn, lFrg.position.end,
             minL, maxL, minR, maxR, placedLen);
@@ -289,7 +289,7 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   if (2 * bubble->getLength() < placedLen) {
     //  Too long.
 #ifdef LOG_BUBBLE_FAILURE
-    fprintf(logFile, "popBubbles()--   too long.  fFrg %d,%d lFrg %d,%d.  L %d,%d R %d,%d len %d\n",
+    writeLog("popBubbles()--   too long.  fFrg %d,%d lFrg %d,%d.  L %d,%d R %d,%d len %d\n",
             fFrg.position.bgn, fFrg.position.end,
             lFrg.position.bgn, lFrg.position.end,
             minL, maxL, minR, maxR, placedLen);
@@ -333,7 +333,7 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   //  Nope, something got screwed up in alignment.
 
 #ifdef LOG_BUBBLE_FAILURE
-  fprintf(logFile, "popBubbles()--   Order/Orientation problem.  bL %d bR %d bOrd %d  nL %d nR %d nOrd %d\n",
+  writeLog("popBubbles()--   Order/Orientation problem.  bL %d bR %d bOrd %d  nL %d nR %d nOrd %d\n",
           bL, bR, bOrd,
           nL, nR, nOrd);
 #endif
@@ -478,7 +478,7 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
       //  We currently require ALL fragments to be well placed, so we can abort on the first fragment that
       //  fails.
 #ifdef LOG_BUBBLE_FAILURE
-      fprintf(logFile, "popBubbles()--   Failed to place frag %d notPlaced %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
+      writeLog("popBubbles()--   Failed to place frag %d notPlaced %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
               bubble->ufpath[fi].ident, nNotPlaced, nNotPlacedInCorrectPosition, nNotPlacedFully, nNotOriented);
 #endif
       break;
@@ -516,7 +516,7 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
   success = true;
 
 #ifdef LOG_BUBBLE_SUCCESS
-  fprintf(logFile, "popBubbles()--   merged bubble unitig %d with %ld frags into unitig %d now with %ld frags\n",
+  writeLog("popBubbles()--   merged bubble unitig %d with %ld frags into unitig %d now with %ld frags\n",
           bubble->id(), bubble->ufpath.size(), target->id(), target->ufpath.size());
 #endif
 
@@ -693,7 +693,7 @@ markRepeats_computeUnitigErrorRate(UnitigVector &unitigs,
 
   stddevError = sqrt(stddevError / error.size());
 
-  fprintf(logFile, "markRepeats_computeUnitigErrorRate()--  tig %d error %f +- %f\n",
+  writeLog("markRepeats_computeUnitigErrorRate()--  tig %d error %f +- %f\n",
           target->id(), meanError, stddevError);
 }
 
@@ -731,7 +731,7 @@ markRepeats_placeAndProcessOverlaps(UnitigVector                     &unitigs,
       bool   erateTooHigh = (meanError + 3 * stddevError < erate);
 
 #if 0
-      fprintf(logFile, "markRepeats()-- op[%3d] tig %d frag %d fCoverage %f position %d %d verified %d %d erate %f%s\n",
+      writeLog("markRepeats()-- op[%3d] tig %d frag %d fCoverage %f position %d %d verified %d %d erate %f%s\n",
               pl, op[pl].tigID, op[pl].frgID, op[pl].fCoverage,
               op[pl].position.bgn, op[pl].position.end,
               op[pl].verified.bgn, op[pl].verified.end,
@@ -822,7 +822,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
     }
 
     if (containedIn != NULL) {
-      fprintf(logFile, "markRepeats()--  repeat alignment "F_U64","F_U64" count "F_U32" DISCARD - CONTAINED IN FRAGMENT "F_U32" "F_S32","F_S32"\n",
+      writeLog("markRepeats()--  repeat alignment "F_U64","F_U64" count "F_U32" DISCARD - CONTAINED IN FRAGMENT "F_U32" "F_S32","F_S32"\n",
               aligned.lo(i), aligned.hi(i), aligned.ct(i),
               containedIn->ident,
               containedIn->position.bgn, containedIn->position.end);
@@ -830,7 +830,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
     }
 
     if (isWeak == true) {
-      fprintf(logFile, "markRepeats()--  repeat alignment "F_S64","F_S64" count %u DISCARD - TOO WEAK\n",
+      writeLog("markRepeats()--  repeat alignment "F_S64","F_S64" count %u DISCARD - TOO WEAK\n",
               aligned.lo(i), aligned.hi(i), aligned.ct(i));
       continue;
     }
@@ -839,7 +839,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
         (regions.back().end + 100 < aligned.lo(i))) {
       regions.push_back(repeatRegion(aligned.lo(i), aligned.hi(i), aligned.ct(i)));
 
-      fprintf(logFile, "markRepeats()--  repeat alignment "F_U32","F_U32" count "F_U32"\n",
+      writeLog("markRepeats()--  repeat alignment "F_U32","F_U32" count "F_U32"\n",
               regions.back().bgn, regions.back().end, regions.back().overlaps);
 
     } else {
@@ -847,7 +847,7 @@ markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
       regions.back().end       = MAX(regions.back().end, aligned.hi(i));
       regions.back().overlaps += aligned.ct(i);
 
-      fprintf(logFile, "markRepeats()--  repeat alignment "F_U32","F_U32" count "F_U32" (merged from "F_U64","F_U64")\n",
+      writeLog("markRepeats()--  repeat alignment "F_U32","F_U32" count "F_U32" (merged from "F_U64","F_U64")\n",
               regions.back().bgn, regions.back().end, regions.back().overlaps,
               aligned.lo(i), aligned.hi(i));
     }
@@ -950,7 +950,7 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
         //  Mate is not in this unitig, but it should be.  That's bad.
         spanBad++;
 
-        //fprintf(logFile, "frg "F_U32","F_U32",%d  region "F_U32","F_U32"  expected "F_U32","F_U32"  mate in tig "F_U32"  BAD\n",
+        //writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"  expected "F_U32","F_U32"  mate in tig "F_U32"  BAD\n",
         //        frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgtig);
 
         continue;
@@ -969,7 +969,7 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
           (mrgend <= expend) &&
           (frg53  != mrg53)) {
         spanGood++;
-        //fprintf(logFile, "frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  GOOD\n",
+        //writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  GOOD\n",
         //        frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
 
       } else if ((expbgn              <= mrgbgn + 2 * stddev) &&
@@ -979,7 +979,7 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
 
       } else {
         spanBad++;
-        //fprintf(logFile, "frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  BAD\n",
+        //writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  BAD\n",
         //        frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
       }
     }
@@ -1000,7 +1000,7 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
         (10 < spanGood))
       regions[i].ejectUnanchored = true;
 
-    fprintf(logFile, "markRepeats()-- region["F_U32"] "F_U32","F_U32" -- bad "F_U32" good "F_U32" goodmaybe "F_U32" -- sb=%.4f sg=%.4f sm-%.4f%s\n",
+    writeLog("markRepeats()-- region["F_U32"] "F_U32","F_U32" -- bad "F_U32" good "F_U32" goodmaybe "F_U32" -- sb=%.4f sg=%.4f sm-%.4f%s\n",
             i,
             regions[i].bgn, regions[i].end,
             spanBad, spanGood, spanGoodMaybe,
@@ -1062,7 +1062,7 @@ markRepeats_filterJunctions(Unitig                          *target,
   map<FragmentEnd,uint32>   brkFrags;
 
   for (uint32 bi=0; bi<regions.size(); bi++)
-    fprintf(logFile, "markRepeats()--  region["F_U32"] "F_U32","F_U32" length "F_U32"\n",
+    writeLog("markRepeats()--  region["F_U32"] "F_U32","F_U32" length "F_U32"\n",
             bi, regions[bi].bgn, regions[bi].end, regions[bi].end - regions[bi].bgn);
 
   sort(evidence.begin(), evidence.end());
@@ -1096,7 +1096,7 @@ markRepeats_filterJunctions(Unitig                          *target,
     if ((bi >= regions.size()) ||
         (ruj.point < regions[bi].bgn)) {
 #if 1
-      fprintf(logFile, "markRepeats()--  junction: %s %6d %s at %d/%c' - DISCARD not in region\n",
+      writeLog("markRepeats()--  junction: %s %6d %s at %d/%c' - DISCARD not in region\n",
               ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
               ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5');
 #endif
@@ -1107,7 +1107,7 @@ markRepeats_filterJunctions(Unitig                          *target,
 
     if (regions[bi].ejectUnanchored == true) {
 #if 1
-      fprintf(logFile, "markRepeats()--  junction: %s %6d %s at %d/%c' - DISCARD not in a breakable region\n",
+      writeLog("markRepeats()--  junction: %s %6d %s at %d/%c' - DISCARD not in a breakable region\n",
               ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
               ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5');
 #endif
@@ -1121,7 +1121,7 @@ markRepeats_filterJunctions(Unitig                          *target,
 
     brkFrags[evidence[ai].tigFrag]++;
 
-    fprintf(logFile, "markRepeats()-- junction: %s %6d %s at %d/%c' - with "F_U32" intersections\n",
+    writeLog("markRepeats()-- junction: %s %6d %s at %d/%c' - with "F_U32" intersections\n",
             ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
             ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5',
             brkFrags[evidence[ai].tigFrag]);
@@ -1133,18 +1133,18 @@ markRepeats_filterJunctions(Unitig                          *target,
 
   sort(breakpoints.begin(), breakpoints.end());
 
-  fprintf(logFile, "markRepeats()--  unitig %d has "F_SIZE_T" interesting junctions at the following regions:\n",
+  writeLog("markRepeats()--  unitig %d has "F_SIZE_T" interesting junctions at the following regions:\n",
           target->id(), breakpoints.size());
 
   for (uint32 ji=0; ji<breakpoints.size(); ji++)
-    fprintf(logFile, "markRepeats()--  junction["F_U32"] at "F_IID"/%c' position "F_U32" repeat %s (count "F_U32"\n",
+    writeLog("markRepeats()--  junction["F_U32"] at "F_IID"/%c' position "F_U32" repeat %s (count "F_U32"\n",
             ji,
             breakpoints[ji].breakFrag.fragId(), breakpoints[ji].breakFrag.frag3p() ? '3' : '5',
             breakpoints[ji].point,
             breakpoints[ji].rptLeft ? "<-" : "->",
             brkFrags[breakpoints[ji].breakFrag]);
   for (uint32 bi=0; bi<regions.size(); bi++)
-    fprintf(logFile, "markRepeats()--  region["F_U32"] "F_U32","F_U32" distToBreakPoint "F_U32","F_U32"\n",
+    writeLog("markRepeats()--  region["F_U32"] "F_U32","F_U32" distToBreakPoint "F_U32","F_U32"\n",
             bi, regions[bi].bgn, regions[bi].end, regions[bi].bgnDist, regions[bi].endDist);
 }
 
@@ -1253,11 +1253,11 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
 
 
   if (newTigs.size() > 0) {
-    fprintf(logFile, "markRepeats()-- SPLIT unitig %d of length %u with %ld fragments into "F_SIZE_T" unitigs:\n",
+    writeLog("markRepeats()-- SPLIT unitig %d of length %u with %ld fragments into "F_SIZE_T" unitigs:\n",
             target->id(), target->getLength(), target->ufpath.size(),
             newTigs.size());
     for (uint32 i=0; i<newTigs.size(); i++)
-      fprintf(logFile, "markRepeats()--   unitig %u of length %u with %ld fragments.\n",
+      writeLog("markRepeats()--   unitig %u of length %u with %ld fragments.\n",
               newTigs[i]->id(),
               newTigs[i]->getLength(),
               newTigs[i]->ufpath.size());
@@ -1288,7 +1288,7 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
       //  Already shattered?
       continue;
 
-    fprintf(logFile, "markRepeats()--  shatter unitig %u with "F_SIZE_T" fragments from repeat frag %u\n",
+    writeLog("markRepeats()--  shatter unitig %u with "F_SIZE_T" fragments from repeat frag %u\n",
             ti, rpt->ufpath.size(), iid);
 
     for (uint32 fi=0; fi<rpt->ufpath.size(); fi++)
@@ -1307,7 +1307,7 @@ markRepeats_shatterRepeats(UnitigVector   &unitigs,
       //  Already shattered?
       continue;
 
-    fprintf(logFile, "markRepeats()--  frag "F_IID" covered by repeats, but still in unitig %d\n",
+    writeLog("markRepeats()--  frag "F_IID" covered by repeats, but still in unitig %d\n",
             iid, ti);
   }
 }
@@ -1416,7 +1416,7 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
   {
     Unitig        *target = unitigs[5];
 
-    fprintf(logFile, "popBubbles()-- WORKING on unitig %d/"F_SIZE_T" with %ld fragments.\n",
+    writeLog("popBubbles()-- WORKING on unitig %d/"F_SIZE_T" with %ld fragments.\n",
             target->id(), unitigs.size(), target->ufpath.size());
 
     mergeBubbles(unitigs, target, ilist);
@@ -1433,7 +1433,8 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
   //  It cannot be done in parallel -- there is a race condition when both unitigs
   //  A and B are considering merging in unitig C.
   //
-  setLogFile(prefix, "popBubbles");
+  setLogFile(NULL, NULL);
+  //setLogFile(prefix, "popBubbles");
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig        *target = unitigs[ti];
@@ -1445,7 +1446,7 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
         (target->getLength() < 300))
       continue;
 
-    fprintf(logFile, "popBubbles()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
+    writeLog("popBubbles()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
             target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
     mergeBubbles(unitigs, target, ilist);
@@ -1460,7 +1461,7 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100 * numThreads) ? numThreads : tiLimit / 99;
 
-  setLogFile(prefix, "mergeSplitJoin");
+  setLogFile(NULL, NULL);
 
   fprintf(stderr, "repeatDetect()-- working on %d unitigs, with %d threads.\n", tiLimit, numThreads);
 
@@ -1475,7 +1476,7 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
         (target->getLength() < 300))
       continue;
 
-    fprintf(logFile, "repeatDetect()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
+    writeLog("repeatDetect()-- WORKING on unitig %d/"F_SIZE_T" of length %u with %ld fragments.\n",
             target->id(), unitigs.size(), target->getLength(), target->ufpath.size());
 
     markRepeats(unitigs, target, shatterRepeats);

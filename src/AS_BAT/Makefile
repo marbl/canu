@@ -36,6 +36,7 @@ BAT_SOURCES = AS_BAT_BestOverlapGraph.C \
               AS_BAT_IntersectSplit.C \
               AS_BAT_InsertSizes.C \
               AS_BAT_Joining.C \
+              AS_BAT_Logging.C \
               AS_BAT_MateBubble.C \
               AS_BAT_MateChecker.C \
               AS_BAT_MateLocation.C \
@@ -125,4 +126,4 @@ classifyMates:       classifyMates.o      $(DNC_OBJECTS) libCA.a libutil.a
 classifyMatesApply:  classifyMatesApply.o $(DNC_OBJECTS) libCA.a libutil.a
 splitUnitigs:        splitUnitigs.o                      libCA.a
 computeCoverageStat: computeCoverageStat.o               libCA.a
-rewriteCache:        rewriteCache.o       AS_BAT_FragmentInfo.o libCA.a
+rewriteCache:        rewriteCache.o       AS_BAT_FragmentInfo.o AS_BAT_Logging.o libCA.a

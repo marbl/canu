@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.22 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_OverlapCache.C,v 1.23 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_OverlapCache.H"
@@ -555,7 +555,7 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
 
   AS_OVS_resetRangeOverlapStore(_ovlStoreUniq);
 
-  fprintf(logFile, "OverlapCache()-- Loading overlap information\n");
+  writeLog("OverlapCache()-- Loading overlap information\n");
 
   //  Could probably easily extend to multiple stores.  Needs to interleave the two store
   //  loads, can't do one after the other as we require all overlaps for a single fragment
@@ -631,7 +631,7 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
     assert(storEnd == _storLen);
 
     if ((numFrags++ % 1000000) == 0)
-      fprintf(logFile, "OverlapCache()-- Loading overlap information fragments:%d total:%12"F_U64P" loaded:%12"F_U64P"\n", _ovs[0].a_iid, numTotal, numLoaded);
+      writeLog("OverlapCache()-- Loading overlap information fragments:%d total:%12"F_U64P" loaded:%12"F_U64P"\n", _ovs[0].a_iid, numTotal, numLoaded);
   }
 
   if ((ovlDat) && (_storLen > 0))
@@ -642,7 +642,7 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
   if (ovlDat)
     fclose(ovlDat);
 
-  fprintf(logFile, "OverlapCache()-- Loading overlap information total:%12"F_U64P" loaded:%12"F_U64P"\n", numTotal, numLoaded);
+  writeLog("OverlapCache()-- Loading overlap information total:%12"F_U64P" loaded:%12"F_U64P"\n", numTotal, numLoaded);
 
   delete [] _ovs;
   _ovs = NULL;
@@ -777,14 +777,14 @@ OverlapCache::load(const char *prefix, double erate, double elimit, uint64 memli
 
   //  For each fragment, remove any overlaps to deleted fragments.
 
-  fprintf(logFile, "OverlapCache()-- Loaded "F_U64" overlaps.\n", nOvl);
+  writeLog("OverlapCache()-- Loaded "F_U64" overlaps.\n", nOvl);
 
   if (doCleaning) {
     uint64   nDel = 0;
     uint64   nMod = 0;
     uint64   nOvl = 0;
 
-    fprintf(logFile, "OverlapCache()-- Freshly deleted fragments detected.  Cleaning overlaps.\n");
+    writeLog("OverlapCache()-- Freshly deleted fragments detected.  Cleaning overlaps.\n");
 
     char  N[FILENAME_MAX];
 

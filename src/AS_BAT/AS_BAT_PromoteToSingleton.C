@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PromoteToSingleton.C,v 1.2 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PromoteToSingleton.C,v 1.3 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -41,7 +41,7 @@ promoteToSingleton(UnitigVector &unitigs, bool enablePromoteToSingleton) {
       continue;
 
     if (enablePromoteToSingleton == false) {
-      fprintf(logFile, "promoteToSingleton()--  Repeat fragment "F_U32" removed from assembly.\n", fi);
+      writeLog("promoteToSingleton()--  Repeat fragment "F_U32" removed from assembly.\n", fi);
       FI->markAsIgnore(fi);
       continue;
     }

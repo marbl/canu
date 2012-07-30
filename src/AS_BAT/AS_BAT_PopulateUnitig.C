@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.5 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PopulateUnitig.C,v 1.6 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -74,7 +74,7 @@ populateUnitig(Unitig           *unitig,
 
     } else {
 
-      fprintf(logFile, "ERROR:  Failed to place frag %d into BOG path.\n", frag.ident);
+      writeLog("ERROR:  Failed to place frag %d into BOG path.\n", frag.ident);
       assert(0);
     }
 
@@ -149,14 +149,14 @@ populateUnitig(UnitigVector &unitigs,
   //  This breaks unitigs at 0x best-coverage regions.  There might be a contain that spans (joins)
   //  the two best overlaps to verify the fragment, but we can't easily tell right now.
   if (covered < FI->fragmentLength(fi) + AS_OVERLAP_MIN_LEN / 2) {
-    fprintf(logFile, "Stopping unitig construction of suspicious frag %d in unitig %d\n",
+    writeLog("Stopping unitig construction of suspicious frag %d in unitig %d\n",
             utg->ufpath.back().ident, utg->id());
     return;
   }
 #endif
 
   if (logFileFlagSet(LOG_POPULATE_UNITIG))
-    fprintf(logFile, "Adding 5' edges off of frag %d in unitig %d\n",
+    writeLog("Adding 5' edges off of frag %d in unitig %d\n",
             utg->ufpath.back().ident, utg->id());
 
   if (bestedge5->fragId())
@@ -165,7 +165,7 @@ populateUnitig(UnitigVector &unitigs,
   utg->reverseComplement(false);
 
   if (logFileFlagSet(LOG_POPULATE_UNITIG))
-    fprintf(logFile, "Adding 3' edges off of frag %d in unitig %d\n",
+    writeLog("Adding 3' edges off of frag %d in unitig %d\n",
             utg->ufpath.back().ident, utg->id());
 
   if (bestedge3->fragId())

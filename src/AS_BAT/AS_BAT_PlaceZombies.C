@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.6 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.7 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -37,7 +37,7 @@ static const char *rcsid = "$Id: AS_BAT_PlaceZombies.C,v 1.6 2012-07-29 01:02:34
 void
 placeZombies(UnitigVector &unitigs, double erate, double elimit) {
 
-  fprintf(logFile, "==> SEARCHING FOR ZOMBIES\n");
+  writeLog("==> SEARCHING FOR ZOMBIES\n");
 
   uint32 *inUnitig   = new uint32 [FI->numFragments()+1];
   int     numZombies = 0;
@@ -86,12 +86,12 @@ placeZombies(UnitigVector &unitigs, double erate, double elimit) {
 
     utg->addFrag(frg, 0, false);
 
-    fprintf(logFile, "placeZombies()-- unitig %d created from zombie fragment %d\n",
+    writeLog("placeZombies()-- unitig %d created from zombie fragment %d\n",
             utg->id(), i);
     numZombies++;
   }
 
-  fprintf(logFile, "RESURRECTED %d ZOMBIE FRAGMENT%s.\n", numZombies, (numZombies != 1) ? "s" : "");
+  writeLog("RESURRECTED %d ZOMBIE FRAGMENT%s.\n", numZombies, (numZombies != 1) ? "s" : "");
 
   delete [] inUnitig;
 }

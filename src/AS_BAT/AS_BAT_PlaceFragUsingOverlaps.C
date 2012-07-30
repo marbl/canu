@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.16 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_PlaceFragUsingOverlaps.C,v 1.17 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -104,7 +104,7 @@ placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
       (MAX(op.position.bgn, op.position.end) > utg->getLength())) {
 #ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
+      writeLog("placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
               frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
@@ -114,7 +114,7 @@ placeAcontainsB(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
   } else {
 #ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
+      writeLog("placeFragUsingOverlaps()-- (container) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
               frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
@@ -157,7 +157,7 @@ placeBcontainsA(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
       (MAX(op.position.bgn, op.position.end) > utg->getLength())) {
 #ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
+      writeLog("placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
               frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
@@ -167,7 +167,7 @@ placeBcontainsA(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op
   } else {
 #ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
+      writeLog("placeFragUsingOverlaps()-- (contained) - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
               frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
@@ -229,7 +229,7 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
       (MAX(op.position.bgn, op.position.end) > utg->getLength())) {
 #ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
+      writeLog("placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d DISALLOWED\n",
               frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
@@ -239,7 +239,7 @@ placeDovetail(Unitig *utg, ufNode &frag, BAToverlap &ovl, overlapPlacement &op) 
   } else {
 #ifdef VERBOSE
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
+      writeLog("placeFragUsingOverlaps()-- (dovetail)  - frag %d in unitig %d at %d,%d (verified %d,%d) from overlap ident %d %d hang %d %d flipped %d covered %d,%d\n",
               frag.ident, utg->id(), op.position.bgn, op.position.end, op.verified.bgn, op.verified.end,
               ovl.a_iid, ovl.b_iid, ovl.a_hang, ovl.b_hang, ovl.flipped,
               op.covered.bgn, op.covered.end);
@@ -327,7 +327,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
 #if 0
   if (nFragmentsNotPlaced > 0)
     if (logFileFlagSet(LOG_PLACE_FRAG))
-      fprintf(logFile, "placeFragUsingOverlaps()-- WARNING: Failed to place %d fragments\n", nFragmentsNotPlaced);
+      writeLog("placeFragUsingOverlaps()-- WARNING: Failed to place %d fragments\n", nFragmentsNotPlaced);
 #endif
 
   //  Sort all the placements.  Any overlap we couldn't place is automatically in Unitig 0, the
@@ -377,7 +377,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
       end++;
 
 #if 0
-    fprintf(logFile, "PROCESS bgn=%d to end=%d\n", bgn, end);
+    writeLog("PROCESS bgn=%d to end=%d\n", bgn, end);
 #endif
 
     //  Over all placements with the same unitig/orientation, build interval lists for the begin
@@ -440,9 +440,9 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     sort(ovlPlace + bgn, ovlPlace + end, overlapPlacement_byCluster);
 
 #if 0
-    fprintf(logFile, "POSTSORT\n");
+    writeLog("POSTSORT\n");
     for (uint32 oo=bgn; oo<end; oo++)
-      fprintf(logFile, "overlapPlacement [%d] cluster %d frg %d tig %d position %d,%d errors %.2f covered %d,%d aligned %d\n",
+      writeLog("overlapPlacement [%d] cluster %d frg %d tig %d position %d,%d errors %.2f covered %d,%d aligned %d\n",
               oo,
               ovlPlace[oo].clusterID,
               ovlPlace[oo].frgID,
@@ -463,7 +463,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
         oe++;
 
 #if 0
-      fprintf(logFile, "PROCESS os=%d to oe=%d in range bgn=%d end=%d\n", os, oe, bgn, end);
+      writeLog("PROCESS os=%d to oe=%d in range bgn=%d end=%d\n", os, oe, bgn, end);
 #endif
 
       //  Overlaps from os to oe are all for a single location.  Examine them to fill out an
@@ -539,7 +539,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
         uint32   minPos  = MIN(ovlFrg.position.bgn, ovlFrg.position.end);
         uint32   maxPos  = MAX(ovlFrg.position.bgn, ovlFrg.position.end);
 
-        //fprintf(logFile, "placeFragUsingOverlaps()-- PickEnds ordinal %d tigFrg %d pos %d,%d\n",
+        //writeLog("placeFragUsingOverlaps()-- PickEnds ordinal %d tigFrg %d pos %d,%d\n",
         //        ordinal, ovlFrg.ident, minPos, maxPos);
 
         //  For a normal dovetail alignment, this is pretty straight forward.  We pick the
@@ -646,7 +646,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
                  (op.endStdDev > allowableStdDev)) {
 #if 0
         if (logFileFlagSet(LOG_PLACE_FRAG))
-          fprintf(logFile, "placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (+- %.2f,%.2f) -- cov %.2f (%d,%d) errors %.2f aligned %d novl %d -- INVALID standard deviation too large (min %0.2f)\n",
+          writeLog("placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (+- %.2f,%.2f) -- cov %.2f (%d,%d) errors %.2f aligned %d novl %d -- INVALID standard deviation too large (min %0.2f)\n",
                   op.frgID, op.tigID, op.position.bgn, op.position.end, op.bgnStdDev, op.endStdDev,
                   op.fCoverage, op.covered.bgn, op.covered.end,
                   op.errors,
@@ -659,7 +659,7 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
         placements.push_back(op);
 #if 0
         if (logFileFlagSet(LOG_PLACE_FRAG))
-          fprintf(logFile, "placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (+- %.2f,%.2f) -- cov %.2f (%d,%d) errors %.2f aligned %d novl %d\n",
+          writeLog("placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (+- %.2f,%.2f) -- cov %.2f (%d,%d) errors %.2f aligned %d novl %d\n",
                   op.frgID, op.tigID, op.position.bgn, op.position.end, op.bgnStdDev, op.endStdDev,
                   op.fCoverage, op.covered.bgn, op.covered.end,
                   op.errors,

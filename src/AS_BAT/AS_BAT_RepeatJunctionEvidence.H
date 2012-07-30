@@ -226,7 +226,7 @@ repeatJunctionEvidence::repeatJunctionEvidence(Unitig *target, overlapPlacement 
   tigFrag = FragmentEnd(tigFrag.fragId(), !tigFrag.frag3p());
 
 #if 0
-  fprintf(logFile, "markRepeats()-- tig frag %8d ovl frag %8d %6d-%6d %5.2f%% tig pos %8d/%c' (%4d) %6d-%6d (%4d) %8d/%c'\n",
+  writeLog("markRepeats()-- tig frag %8d ovl frag %8d %6d-%6d %5.2f%% tig pos %8d/%c' (%4d) %6d-%6d (%4d) %8d/%c'\n",
           op[pl].refID, op[pl].frgID,
           op[pl].covered.bgn,
           op[pl].covered.end,

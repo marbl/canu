@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Unitig_PlaceFragUsingEdges.C,v 1.4 2011-12-13 05:22:04 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Unitig_PlaceFragUsingEdges.C,v 1.5 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -153,7 +153,7 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
       //  off the 5' end) and so fend must be before pend (otherwise fragment would contain parent).
       if (fend >= pend) {
 #ifdef DEBUG_PLACE_FRAG
-        fprintf(logFile, "RESET5l fend from %d to %d\n", fend, pend - 1);
+        writeLog("RESET5l fend from %d to %d\n", fend, pend - 1);
 #endif
         fend = pend - 1;
       }
@@ -161,7 +161,7 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     } else {
       if (fend <= pend) {
 #ifdef DEBUG_PLACE_FRAG
-        fprintf(logFile, "RESET5r fend from %d to %d\n", fend, pend + 1);
+        writeLog("RESET5r fend from %d to %d\n", fend, pend + 1);
 #endif
         fend = pend + 1;
       }
@@ -191,7 +191,7 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
                  ((parent->position.end < parent->position.bgn) && (bestedge5->frag3p() == true)));
 
 #ifdef DEBUG_PLACE_FRAG
-    fprintf(logFile, "bestedge5:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
+    writeLog("bestedge5:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
             parent->ident, parent->position.bgn, parent->position.end,
             bestedge5->fragId(), bestedge5->frag3p(), bestedge5->ahang(), bestedge5->bhang(), fbgn, fend, flip);
 #endif
@@ -245,7 +245,7 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
       //  off the 3' end) and so fend must be before pend (otherwise fragment would contain parent).
       if (fend >= pend) {
 #ifdef DEBUG_PLACE_FRAG
-        fprintf(logFile, "RESET3l fend from %d to %d\n", fend, pend-1);
+        writeLog("RESET3l fend from %d to %d\n", fend, pend-1);
 #endif
         fend = pend - 1;
       }
@@ -253,7 +253,7 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     } else {
       if (fend <= pend) {
 #ifdef DEBUG_PLACE_FRAG
-        fprintf(logFile, "RESET3r fend from %d to %d\n", fend, pend+1);
+        writeLog("RESET3r fend from %d to %d\n", fend, pend+1);
 #endif
         fend = pend + 1;
       }
@@ -283,7 +283,7 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
                  ((parent->position.end < parent->position.bgn) && (bestedge3->frag3p() == false)));
 
 #ifdef DEBUG_PLACE_FRAG
-    fprintf(logFile, "bestedge3:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
+    writeLog("bestedge3:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
             parent->ident, parent->position.bgn, parent->position.end,
             bestedge3->fragId(), bestedge3->frag3p(), bestedge3->ahang(), bestedge3->bhang(), fbgn, fend, flip);
 #endif
@@ -327,14 +327,14 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
         parent = &ufpath[fi];
 
     if (parent) {
-      fprintf(logFile, "WARNING:  Didn't find the correct parent frag (%d) for contained frag %d -- pathPosition screwed up.\n",
+      writeLog("WARNING:  Didn't find the correct parent frag (%d) for contained frag %d -- pathPosition screwed up.\n",
               bestcont->container, frag.ident);
-      fprintf(logFile, "          Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
+      writeLog("          Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
 
       for (int fi=0; fi<ufpath.size(); fi++) {
         ufNode *ix = &ufpath[fi];
 
-        fprintf(logFile, "          path[%4d,%4d] is frag %d %s\n",
+        writeLog("          path[%4d,%4d] is frag %d %s\n",
                 fi, pathPosition(ix->ident),
                 ix->ident,
                 (ix->ident == bestcont->container) ? " CORRECT PARENT!" : "");
@@ -344,7 +344,7 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
 #endif
 
   if ((parent == NULL) || (parent->ident != bestcont->container)) {
-    fprintf(logFile, "Unitig::placeFrag()-- WARNING:  Failed to place frag %d into unitig %d; parent not here.\n",
+    writeLog("Unitig::placeFrag()-- WARNING:  Failed to place frag %d into unitig %d; parent not here.\n",
             frag.ident, id());
     return(false);
   }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.7 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_SplitDiscontinuous.C,v 1.8 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -37,7 +37,7 @@ makeNewUnitig(UnitigVector &unitigs,
   Unitig *dangler = unitigs.newUnitig(false);
 
   if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-    fprintf(logFile, "splitDiscontinuous()--   new tig "F_U32" with "F_U32" fragments (starting at frag "F_U32").\n",
+    writeLog("splitDiscontinuous()--   new tig "F_U32" with "F_U32" fragments (starting at frag "F_U32").\n",
             dangler->id(), splitFragsLen, splitFrags[0].ident);
 
   int splitOffset = -MIN(splitFrags[0].position.bgn, splitFrags[0].position.end);
@@ -56,7 +56,7 @@ makeNewUnitig(UnitigVector &unitigs,
 //
 void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
 
-  fprintf(logFile, "==> SPLIT DISCONTINUOUS\n");
+  writeLog("==> SPLIT DISCONTINUOUS\n");
 
   uint32                numTested  = 0;
   uint32                numSplit   = 0;
@@ -86,7 +86,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
     if (minPos == 0)
       continue;
 
-    fprintf(logFile, "splitDiscontinuous()-- tig "F_U32" offset messed up; reset by "F_S32".\n", tig->id(), minPos);
+    writeLog("splitDiscontinuous()-- tig "F_U32" offset messed up; reset by "F_S32".\n", tig->id(), minPos);
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
       ufNode  *frg = &tig->ufpath[fi];
@@ -139,7 +139,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
     maxEnd        = 0;
 
     if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-      fprintf(logFile, "splitDiscontinuous()-- discontinuous tig "F_U32" with "F_SIZE_T" fragments broken into:\n",
+      writeLog("splitDiscontinuous()-- discontinuous tig "F_U32" with "F_SIZE_T" fragments broken into:\n",
               tig->id(), tig->ufpath.size());
 
     for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
@@ -171,7 +171,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
 
         if (dangler == NULL) {
           if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-            fprintf(logFile, "splitDiscontinuous()--   singleton frag "F_U32" shattered.\n",
+            writeLog("splitDiscontinuous()--   singleton frag "F_U32" shattered.\n",
                     splitFrags[0].ident);
           Unitig::removeFrag(splitFrags[0].ident);
 
@@ -179,7 +179,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
           assert(dangler->id() == tig->fragIn(splitFrags[0].contained));
 
           if (logFileFlagSet(LOG_MATE_SPLIT_DISCONTINUOUS))
-            fprintf(logFile, "splitDiscontinuous()--   old tig "F_U32" with "F_SIZE_T" fragments (contained frag "F_U32" moved here).\n",
+            writeLog("splitDiscontinuous()--   old tig "F_U32" with "F_SIZE_T" fragments (contained frag "F_U32" moved here).\n",
                     dangler->id(), dangler->ufpath.size() + 1, splitFrags[0].ident);
 
           BestContainment  *bestcont = OG->getBestContainer(splitFrags[0].ident);
@@ -221,7 +221,7 @@ void splitDiscontinuousUnitigs(UnitigVector &unitigs) {
     }
   }
 
-  fprintf(logFile, "splitDiscontinuous()-- Tested "F_U32" unitigs, split "F_U32" into "F_U32" new unitigs.\n",
+  writeLog("splitDiscontinuous()-- Tested "F_U32" unitigs, split "F_U32" into "F_U32" new unitigs.\n",
           numTested, numSplit, numCreated);
 
   delete [] splitFrags;

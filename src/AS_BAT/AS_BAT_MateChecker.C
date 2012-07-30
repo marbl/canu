@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MateChecker.C,v 1.5 2011-03-17 05:33:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MateChecker.C,v 1.6 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -143,21 +143,21 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
       (revBads->size() == 0)) {
     delete fwdBads;
     delete revBads;
-    //fprintf(logFile, "unitig %d no bad peaks\n", tig->id());
+    //writeLog("unitig %d no bad peaks\n", tig->id());
     return(breaks);
   }
 
   if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS)) {
-    fprintf(logFile, "unitig %d with %lu fwd and %lu rev bads\n",
+    writeLog("unitig %d with %lu fwd and %lu rev bads\n",
             tig->id(), fwdBads->size(), revBads->size());
-    fprintf(logFile, "fwd:");
+    writeLog("fwd:");
     for (uint32 i=0; i<fwdBads->size(); i++)
-      fprintf(logFile, " %d,%d", (*fwdBads)[i].bgn, (*fwdBads)[i].end);
-    fprintf(logFile, "\n");
-    fprintf(logFile, "rev:");
+      writeLog(" %d,%d", (*fwdBads)[i].bgn, (*fwdBads)[i].end);
+    writeLog("\n");
+    writeLog("rev:");
     for (uint32 i=0; i<revBads->size(); i++)
-      fprintf(logFile, " %d,%d", (*revBads)[i].bgn, (*revBads)[i].end);
-    fprintf(logFile, "\n");
+      writeLog(" %d,%d", (*revBads)[i].bgn, (*revBads)[i].end);
+    writeLog("\n");
   }
 
   bool combine = false;
@@ -186,7 +186,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
       if (lastBreakBBEnd >= bad.bgn) {
         // Skip, instead of combine trying to detect in combine case
         if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
-          fprintf(logFile,"Skip fwd bad range %d %d due to backbone %d\n",
+          writeLog("Skip fwd bad range %d %d due to backbone %d\n",
                   bad.bgn, bad.end, lastBreakBBEnd);
         continue;
       }
@@ -195,7 +195,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
       if (lastBreakBBEnd >= bad.bgn) {
         // Skip, instead of combine trying to detect in combine case
         if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
-          fprintf(logFile,"Skip rev bad range %d %d due to backbone %d\n",
+          writeLog("Skip rev bad range %d %d due to backbone %d\n",
                   bad.bgn, bad.end, lastBreakBBEnd);
         revIter++;
         continue;
@@ -211,7 +211,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
           // check for containment relations and skip them
           if (fwdIter->bgn >= bad.bgn && fwdIter->end <= bad.end) {
             if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
-              fprintf(logFile,"Skip fwd bad range %d %d due to contained in rev %d %d\n",
+              writeLog("Skip fwd bad range %d %d due to contained in rev %d %d\n",
                       fwdIter->bgn, fwdIter->end, bad.bgn, bad.end);
 
             fwdIter++;
@@ -220,7 +220,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
             }
           } else if (bad.bgn >= fwdIter->bgn && bad.end <= fwdIter->end) {
             if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
-              fprintf(logFile,"Skip rev bad range %d %d due to contained in fwd %d %d\n",
+              writeLog("Skip rev bad range %d %d due to contained in fwd %d %d\n",
                       bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
       	    revIter++;
             continue;
@@ -230,7 +230,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
               fwdIter->end > bad.end &&
               bad.end - fwdIter->end < 200) {
             if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
-              fprintf(logFile,"Combine bad ranges %d - %d with %d - %d\n",
+              writeLog("Combine bad ranges %d - %d with %d - %d\n",
                       bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
             if (bad.bgn == 0) { // ignore reverse at start of tig
               bad.bgn = fwdIter->bgn;
@@ -250,7 +250,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
     }
 
     if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
-      fprintf(logFile,"Bad peak from %d to %d\n",bad.bgn,bad.end);
+      writeLog("Bad peak from %d to %d\n",bad.bgn,bad.end);
 
     for (; frgidx < tig->ufpath.size(); frgidx++) {
       ufNode frag = tig->ufpath[frgidx];
@@ -262,7 +262,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
       }
 
       if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
-        fprintf(logFile, "unitig %d frag %d %d,%d bad %d,%d\n",
+        writeLog("unitig %d frag %d %d,%d bad %d,%d\n",
                 tig->id(), frag.ident, loc.bgn, loc.end, bad.bgn, bad.end);
 
       // keep track of current and previous uncontained contig end
@@ -277,7 +277,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
 
       //  If we do go past the split point, whoops, break now and hope it all works out later.
       if ((loc.bgn > bad.end+1) && (loc.end > bad.end+1)) {
-        fprintf(logFile, "SPLIT ERROR: unitig %d frag %d %d,%d missed the split point %d,%d.\n",
+        writeLog("SPLIT ERROR: unitig %d frag %d %d,%d missed the split point %d,%d.\n",
                 tig->id(), frag.ident, loc.bgn, loc.end, bad.bgn, bad.end);
         breakNow = true;
       }
@@ -329,7 +329,7 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
           combine = false;
           lastBreakBBEnd = currBackboneEnd;
           if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
-            fprintf(logFile,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
+            writeLog("Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
                     frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd);
           uint32 frag3p = true;
           // If reverse mate is 1st and overlaps its mate break at 5'
@@ -348,13 +348,13 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
             if (frgidx > 0)
               frgidx--;
             else
-              fprintf(logFile, "DECREMENT ZERO frgidx!\n");
+              writeLog("DECREMENT ZERO frgidx!\n");
           }
           frag = tig->ufpath[frgidx];
           loc = frag.position;
 
           if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
-            fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #1.\n",
+            writeLog("BREAK unitig %d at fragment %d position %d,%d from MATES #1.\n",
                     tig->id(), frag.ident, loc.bgn, loc.end);
 
           breaks->push_back(breakPoint(frag.ident, frag3p, true, false));
@@ -389,13 +389,13 @@ vector<breakPoint> *computeMateCoverage(Unitig* tig,
                 frag3p = false;
 
               if (logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
-                fprintf(logFile, "BREAK unitig %d at fragment %d position %d,%d from MATES #2.\n",
+                writeLog("BREAK unitig %d at fragment %d position %d,%d from MATES #2.\n",
                         tig->id(), frag.ident, loc.bgn, loc.end);
 
               breaks->push_back(breakPoint(frag.ident, frag3p, true, false));
 
               if (logFileFlagSet(LOG_MATE_SPLIT_ANALYSIS))
-                fprintf(logFile,"Might make frg %d singleton, end %d size %u pos %d,%d\n",
+                writeLog("Might make frg %d singleton, end %d size %u pos %d,%d\n",
                         frag.ident, frag3p, (uint32)breaks->size(), loc.bgn, loc.end);
             }
 #endif

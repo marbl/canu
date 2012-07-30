@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_ExtendByMates.C,v 1.1 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_ExtendByMates.C,v 1.2 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -39,7 +39,7 @@ extendByMates(UnitigVector &unitigs,
   //logFileFlags |= LOG_CHUNK_GRAPH;
   logFileFlags |= LOG_POPULATE_UNITIG;
 
-  fprintf(logFile, "==> EXTENDING UNITIGS WITH MATE PAIRS.\n");
+  writeLog("==> EXTENDING UNITIGS WITH MATE PAIRS.\n");
 
   uint32 tiMax = unitigs.size();
 
@@ -65,8 +65,8 @@ extendByMates(UnitigVector &unitigs,
         extraMates++;
     }
 
-    fprintf(logFile, "\n");
-    fprintf(logFile, "unitig "F_U32" of size "F_SIZE_T" with "F_U32" extra fragments via mates\n",
+    writeLog("\n");
+    writeLog("unitig "F_U32" of size "F_SIZE_T" with "F_U32" extra fragments via mates\n",
             ti, target->ufpath.size(), extraMates);
 
     if (extraMates == 0)
@@ -85,7 +85,7 @@ extendByMates(UnitigVector &unitigs,
 
       if ((mid != 0) &&
           (Unitig::fragIn(mid) == 0)) {
-        fprintf(logFile, "  mate frag "F_IID"\n", mid);
+        writeLog("  mate frag "F_IID"\n", mid);
         frags.insert(mid);
         mates.insert(mid);
       }
@@ -135,7 +135,7 @@ extendByMates(UnitigVector &unitigs,
     //  Report what was constructed
 
     if (unitigs.size() - numTigs > 1)
-      fprintf(logFile, "WARNING: mate extension split a unitig.\n");
+      writeLog("WARNING: mate extension split a unitig.\n");
 
 
     for (uint32 newTigs=numTigs; newTigs<unitigs.size(); newTigs++) {
@@ -146,7 +146,7 @@ extendByMates(UnitigVector &unitigs,
 
       placeContainsUsingBestOverlaps(tig, &frags);
 
-      fprintf(logFile, "  new tig "F_U32" with "F_SIZE_T" fragments\n",
+      writeLog("  new tig "F_U32" with "F_SIZE_T" fragments\n",
               tig->id(), tig->ufpath.size());
     }
 

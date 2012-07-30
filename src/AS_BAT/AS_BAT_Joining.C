@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Joining.C,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Joining.C,v 1.3 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -235,8 +235,8 @@ joinUnitigs_confirmJoin(UnitigVector &unitigs, joinEntry *join) {
   if (((frBest->fragId() != toFragment->ident) || (frBest->frag3p() != toForward)) &&
       ((toBest->fragId() != frFragment->ident) || (toBest->frag3p() == frForward))) {
     //  Hmmm.  No best edge between these?
-    fprintf(logFile, "to: unitig %d frag %d best: %d/%d'\n", toUnitig->id(), toFragment->ident, toBest->fragId(), toBest->frag3p() ? 3 : 5);
-    fprintf(logFile, "fr: unitig %d frag %d best: %d/%d'\n", frUnitig->id(), frFragment->ident, frBest->fragId(), frBest->frag3p() ? 3 : 5);
+    writeLog("to: unitig %d frag %d best: %d/%d'\n", toUnitig->id(), toFragment->ident, toBest->fragId(), toBest->frag3p() ? 3 : 5);
+    writeLog("fr: unitig %d frag %d best: %d/%d'\n", frUnitig->id(), frFragment->ident, frBest->fragId(), frBest->frag3p() ? 3 : 5);
     return(false);
   }
 
@@ -305,14 +305,14 @@ findEdges(ufNode *aFrg, BestEdgeOverlap &a5, BestEdgeOverlap &a3,
   //  our input.
   //
   if (a5.fragId() == a3.fragId()) {
-    fprintf(logFile, "findEdges()-- frag %d has multiple edges to frag %d - a5 %d/%d' a3 %d/%d'\n",
+    writeLog("findEdges()-- frag %d has multiple edges to frag %d - a5 %d/%d' a3 %d/%d'\n",
             aFrg->ident, a5.fragId(),
             a5.fragId(), a5.frag3p() ? 3 : 5,
             a5.fragId(), a5.frag3p() ? 3 : 5);
   }
 
   if (b5.fragId() == b3.fragId()) {
-    fprintf(logFile, "findEdges()-- frag %d has multiple edges to frag %d - b5 %d/%d' b3 %d/%d'\n",
+    writeLog("findEdges()-- frag %d has multiple edges to frag %d - b5 %d/%d' b3 %d/%d'\n",
             bFrg->ident, b5.fragId(),
             b5.fragId(), b5.frag3p() ? 3 : 5,
             b5.fragId(), b5.frag3p() ? 3 : 5);
@@ -433,7 +433,7 @@ joinUnitigs_merge(UnitigVector &unitigs, joinEntry *join) {
   uint32    toIdx = Unitig::pathPosition(join->toFragID);
 
   if (logFileFlagSet(LOG_INTERSECTION_JOINING))
-    fprintf(logFile, "Join from unitig "F_U32" (length %d idx %d/%d) to unitig "F_U32" (length %d idx %d/%d) for a total length of %d\n",
+    writeLog("Join from unitig "F_U32" (length %d idx %d/%d) to unitig "F_U32" (length %d idx %d/%d) for a total length of %d\n",
             frUnitigID, join->frLen, frIdx, (int)frUnitig->ufpath.size(),
             toUnitigID, join->toLen, toIdx, (int)toUnitig->ufpath.size(),
             join->ttLen);
@@ -464,7 +464,7 @@ joinUnitigs_merge(UnitigVector &unitigs, joinEntry *join) {
       fr5 = *OG->getBestEdgeOverlap(frFragment->ident, false);
       fr3 = *OG->getBestEdgeOverlap(frFragment->ident, true);
 
-      fprintf(logFile, "Get real best edges: fr5 %d/%d' in unitig %d -- fr3 %d/%d' in unitig %d\n",
+      writeLog("Get real best edges: fr5 %d/%d' in unitig %d -- fr3 %d/%d' in unitig %d\n",
               fr5.fragId(), fr5.frag3p() ? 3 : 5, Unitig::fragIn(fr5.fragId()),
               fr3.fragId(), fr3.frag3p() ? 3 : 5, Unitig::fragIn(fr3.fragId()));
 
@@ -490,28 +490,28 @@ joinUnitigs_merge(UnitigVector &unitigs, joinEntry *join) {
     assert((to5.fragId() == 0) || (to3.fragId() == 0));
 
     if (logFileFlagSet(LOG_INTERSECTION_JOINING_DEBUG)) {
-      fprintf(logFile, "Adding unitig %d frag %d to unitig %d using frag %d at %d,%d\n",
+      writeLog("Adding unitig %d frag %d to unitig %d using frag %d at %d,%d\n",
               frUnitig->id(), frFragment->ident,
               toUnitig->id(), toFragment->ident,
               toFragment->position.bgn, toFragment->position.end);
-      fprintf(logFile, "fr5 = %8d %1d %5d %5d\n", fr5.fragId(), fr5.frag3p(), fr5.ahang(), fr5.bhang());
-      fprintf(logFile, "fr3 = %8d %1d %5d %5d\n", fr3.fragId(), fr3.frag3p(), fr3.ahang(), fr3.bhang());
-      fprintf(logFile, "to5 = %8d %1d %5d %5d\n", to5.fragId(), to5.frag3p(), to5.ahang(), to5.bhang());
-      fprintf(logFile, "to3 = %8d %1d %5d %5d\n", to3.fragId(), to3.frag3p(), to3.ahang(), to3.bhang());
+      writeLog("fr5 = %8d %1d %5d %5d\n", fr5.fragId(), fr5.frag3p(), fr5.ahang(), fr5.bhang());
+      writeLog("fr3 = %8d %1d %5d %5d\n", fr3.fragId(), fr3.frag3p(), fr3.ahang(), fr3.bhang());
+      writeLog("to5 = %8d %1d %5d %5d\n", to5.fragId(), to5.frag3p(), to5.ahang(), to5.bhang());
+      writeLog("to3 = %8d %1d %5d %5d\n", to3.fragId(), to3.frag3p(), to3.ahang(), to3.bhang());
     }
 
     if ((fr5.fragId() == 0) &&
         (fr3.fragId() == 0)) {
       //  No suitable edge found to add frFragment to the toUnitig!
-      fprintf(logFile, "Adding unitig %d frag %d to unitig %d using frag %d at %d,%d\n",
+      writeLog("Adding unitig %d frag %d to unitig %d using frag %d at %d,%d\n",
               frUnitig->id(), frFragment->ident,
               toUnitig->id(), toFragment->ident,
               toFragment->position.bgn, toFragment->position.end);
-      fprintf(logFile, "fr5 = %d %d %d %d\n", fr5.fragId(), fr5.frag3p(), fr5.ahang(), fr5.bhang());
-      fprintf(logFile, "fr3 = %d %d %d %d\n", fr3.fragId(), fr3.frag3p(), fr3.ahang(), fr3.bhang());
-      fprintf(logFile, "to5 = %d %d %d %d\n", to5.fragId(), to5.frag3p(), to5.ahang(), to5.bhang());
-      fprintf(logFile, "to3 = %d %d %d %d\n", to3.fragId(), to3.frag3p(), to3.ahang(), to3.bhang());
-      fprintf(logFile, "ERROR:  No edge found!  Can't place fragment.\n");
+      writeLog("fr5 = %d %d %d %d\n", fr5.fragId(), fr5.frag3p(), fr5.ahang(), fr5.bhang());
+      writeLog("fr3 = %d %d %d %d\n", fr3.fragId(), fr3.frag3p(), fr3.ahang(), fr3.bhang());
+      writeLog("to5 = %d %d %d %d\n", to5.fragId(), to5.frag3p(), to5.ahang(), to5.bhang());
+      writeLog("to3 = %d %d %d %d\n", to3.fragId(), to3.frag3p(), to3.ahang(), to3.bhang());
+      writeLog("ERROR:  No edge found!  Can't place fragment.\n");
       assert(0);
     }
 
@@ -519,7 +519,7 @@ joinUnitigs_merge(UnitigVector &unitigs, joinEntry *join) {
 
     if (toUnitig->addAndPlaceFrag(frFragment->ident, &fr5, &fr3, 
                                   logFileFlagSet(LOG_INTERSECTION_JOINING)) == false) {
-      fprintf(logFile, "ERROR:  Failed to place frag %d into extended unitig.\n", frFragment->ident);
+      writeLog("ERROR:  Failed to place frag %d into extended unitig.\n", frFragment->ident);
       assert(0);
     }
 
@@ -555,7 +555,7 @@ joinUnitigs_append(UnitigVector &unitigs, joinEntry *join) {
   uint32    toIdx = Unitig::pathPosition(join->toFragID);
 
   if (logFileFlagSet(LOG_INTERSECTION_JOINING))
-    fprintf(logFile, "Join from unitig "F_U32" (length %d idx %d/%d) to unitig "F_U32" (length %d idx %d/%d) for a total length of %d\n",
+    writeLog("Join from unitig "F_U32" (length %d idx %d/%d) to unitig "F_U32" (length %d idx %d/%d) for a total length of %d\n",
             frUnitigID, join->frLen, frIdx, (int)frUnitig->ufpath.size(),
             toUnitigID, join->toLen, toIdx, (int)toUnitig->ufpath.size(),
             join->ttLen);
@@ -615,7 +615,7 @@ joinUnitigs(UnitigVector &unitigs, bool enableJoining) {
   if (enableJoining == false)
     return;
 
-  fprintf(logFile, "==> JOINING SPLIT UNITIGS\n");
+  writeLog("==> JOINING SPLIT UNITIGS\n");
 
   //  Sort unitigs by joined size.  Sort.  Join the largest first.
 
@@ -639,7 +639,7 @@ joinUnitigs(UnitigVector &unitigs, bool enableJoining) {
   }  //  Over all unitigs.
 
 
-  fprintf(logFile, "Found %d pairs of unitigs to join.\n", (int)joins.size());
+  writeLog("Found %d pairs of unitigs to join.\n", (int)joins.size());
   std::sort(joins.begin(), joins.end(), greater<joinEntry>());
 
 

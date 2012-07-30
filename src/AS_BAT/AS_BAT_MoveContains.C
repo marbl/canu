@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.5 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MoveContains.C,v 1.6 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -53,7 +53,7 @@ void moveContains(UnitigVector &unitigs) {
     uint32                fragsLen      = 0;
 
     if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
-      fprintf(logFile, "moveContain unitig %d\n", thisUnitig->id());
+      writeLog("moveContain unitig %d\n", thisUnitig->id());
 
     for (uint32 fi=0; fi<thisUnitig->ufpath.size(); fi++) {
       ufNode  *frg = &thisUnitig->ufpath[fi];
@@ -88,12 +88,12 @@ void moveContains(UnitigVector &unitigs) {
 
       if        ((frg->contained == 0) && (bestcont == NULL)) {
         //  CASE 1:  Not contained.  Leave the fragment here.
-        //fprintf(logFile, "case1 frag %d fragsLen %d\n", thisFrgID, fragsLen);
+        //writeLog("case1 frag %d fragsLen %d\n", thisFrgID, fragsLen);
 
       } else if (isMated == false) {
         //  CASE 2: Contained but not mated.  Move to be with the
         //  container (if the container isn't here).
-        //fprintf(logFile, "case2 frag %d contID %d fragsLen %d\n", thisFrgID, contUtgID, fragsLen);
+        //writeLog("case2 frag %d contID %d fragsLen %d\n", thisFrgID, contUtgID, fragsLen);
 
         if (thisUtgID != contUtgID)
           moveToContainer = true;
@@ -102,7 +102,7 @@ void moveContains(UnitigVector &unitigs) {
         //  CASE 3: Not happy, and the frag and mate are together.
         //  Kick out to a singleton.
 
-        //fprintf(logFile, "case3 frag %d utg %d mate %d utg %d cont %d utg %d fragsLen %d\n",
+        //writeLog("case3 frag %d utg %d mate %d utg %d cont %d utg %d fragsLen %d\n",
         //        thisFrgID, thisUtgID, mateFrgID, mateUtgID, contFrgID, contUtgID, fragsLen);
 
         if (thisUtgID == mateUtgID)
@@ -213,7 +213,7 @@ void moveContains(UnitigVector &unitigs) {
           //  eject, and hope that we didn't also eject the mate to a
           //  singleton.
 
-          //fprintf(logFile, "case4 frag %d utg %d mate %d utg %d cont %d utg %d fragsLen %d\n",
+          //writeLog("case4 frag %d utg %d mate %d utg %d cont %d utg %d fragsLen %d\n",
           //        thisFrgID, thisUtgID, mateFrgID, mateUtgID, contFrgID, contUtgID, fragsLen);
 
           if ((hasOverlap == false) && (allContained == false))
@@ -232,7 +232,7 @@ void moveContains(UnitigVector &unitigs) {
           //  If not happy, we've already made sure that the mate is not
           //  here (that was case 3).
 
-          //fprintf(logFile, "case5 frag %d utg %d mate %d utg %d cont %d utg %d fragsLen %d\n",
+          //writeLog("case5 frag %d utg %d mate %d utg %d cont %d utg %d fragsLen %d\n",
           //        thisFrgID, thisUtgID, mateFrgID, mateUtgID, contFrgID, contUtgID, fragsLen);
 
           //  If no overlap (so not with container or no overlap to
@@ -263,7 +263,7 @@ void moveContains(UnitigVector &unitigs) {
         assert(thatUnitig->id() == contUtgID);
 
         if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
-          fprintf(logFile, "Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
+          writeLog("Moving contained fragment %d from unitig %d to be with its container %d in unitig %d\n",
                   thisFrgID, thisUtgID, contFrgID, contUtgID);
 
         assert(bestcont->container == contFrgID);
@@ -283,7 +283,7 @@ void moveContains(UnitigVector &unitigs) {
         frg->position.end = 0;
 
         if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
-          fprintf(logFile, "Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
+          writeLog("Ejecting unhappy contained fragment %d from unitig %d into new unitig %d\n",
                   thisFrgID, thisUtgID, singUnitig->id());
 
         containee.contained = 0;
@@ -317,7 +317,7 @@ void moveContains(UnitigVector &unitigs) {
 
     if (fragsLen != thisUnitig->ufpath.size()) {
       if (logFileFlagSet(LOG_MATE_SPLIT_UNHAPPY_CONTAINS))
-        fprintf(logFile, "Rebuild unitig %d after removing contained fragments.\n", thisUnitig->id());
+        writeLog("Rebuild unitig %d after removing contained fragments.\n", thisUnitig->id());
 
       thisUnitig->ufpath.clear();
 

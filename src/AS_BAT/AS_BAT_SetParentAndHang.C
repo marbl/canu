@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_SetParentAndHang.C,v 1.4 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_SetParentAndHang.C,v 1.5 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -77,13 +77,13 @@ setParentAndHang(UnitigVector &unitigs) {
           }
 
           if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-            fprintf(logFile, "frag %d at %d,%d edge to cont frag %d at %d,%d -- hang %d,%d\n",
+            writeLog("frag %d at %d,%d edge to cont frag %d at %d,%d -- hang %d,%d\n",
                     frg->ident, frg->position.bgn, frg->position.end,
                     par->ident, par->position.bgn, par->position.end,
                     frg->ahang, frg->bhang);
         } else {
           if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-            fprintf(logFile, "frag %d at %d,%d edge to cont frag %d in different unitig %d\n",
+            writeLog("frag %d at %d,%d edge to cont frag %d in different unitig %d\n",
                     frg->ident, frg->position.bgn, frg->position.end,
                     bestcont->container, utg->fragIn(bestcont->container));
         }
@@ -111,7 +111,7 @@ setParentAndHang(UnitigVector &unitigs) {
 
       if (bestedge5->fragId() > 0) {
         if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-          fprintf(logFile, "frag %d in unitig %d 5' to %d/%c' in unitig %d\n",
+          writeLog("frag %d in unitig %d 5' to %d/%c' in unitig %d\n",
                   frg->ident, utg->id(),
                   bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
                   utg->fragIn(bestedge5->fragId()));
@@ -130,7 +130,7 @@ setParentAndHang(UnitigVector &unitigs) {
             assert(frg->ahang >= 0);
 
             if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-              fprintf(logFile, "->frag %d at %d,%d 5' edge to prev frag %d at %d,%d -- hang %d,%d\n",
+              writeLog("->frag %d at %d,%d 5' edge to prev frag %d at %d,%d -- hang %d,%d\n",
                       frg->ident, frg->position.bgn, frg->position.end,
                       oth->ident, oth->position.bgn, oth->position.end,
                       frg->ahang, frg->bhang);
@@ -149,20 +149,20 @@ setParentAndHang(UnitigVector &unitigs) {
               assert(oth->ahang >= 0);
 
               if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-                fprintf(logFile, "<-frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- hang %d,%d\n",
+                writeLog("<-frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- hang %d,%d\n",
                         oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
                         frg->ident, frg->position.bgn, frg->position.end,
                         frg->ahang, frg->bhang);
             } else {
               if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-                fprintf(logFile, "<-frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- NOT VALID\n",
+                writeLog("<-frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- NOT VALID\n",
                         oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
                         frg->ident, frg->position.bgn, frg->position.end);
             }
 
           } else {
             if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-              fprintf(logFile, "--frag %d at %d,%d 5' edge to prev frag %d at %d,%d -- NOT VALID\n",
+              writeLog("--frag %d at %d,%d 5' edge to prev frag %d at %d,%d -- NOT VALID\n",
                       frg->ident, frg->position.bgn, frg->position.end,
                       oth->ident, oth->position.bgn, oth->position.end);
           }
@@ -171,7 +171,7 @@ setParentAndHang(UnitigVector &unitigs) {
 
       if (bestedge3->fragId() > 0) {
         if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-          fprintf(logFile, "frag %d in unitig %d 3' to %d/%c' in unitig %d\n",
+          writeLog("frag %d in unitig %d 3' to %d/%c' in unitig %d\n",
                   frg->ident, utg->id(),
                   bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
                   utg->fragIn(bestedge5->fragId()));
@@ -190,7 +190,7 @@ setParentAndHang(UnitigVector &unitigs) {
             assert(frg->ahang >= 0);
 
             if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-              fprintf(logFile, "->frag %d at %d,%d 3' edge to prev frag %d at %d,%d -- hang %d,%d\n",
+              writeLog("->frag %d at %d,%d 3' edge to prev frag %d at %d,%d -- hang %d,%d\n",
                       frg->ident, frg->position.bgn, frg->position.end,
                       oth->ident, oth->position.bgn, oth->position.end,
                       frg->ahang, frg->bhang);
@@ -204,20 +204,20 @@ setParentAndHang(UnitigVector &unitigs) {
               assert(oth->ahang >= 0);
 
               if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-                fprintf(logFile, "<-frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- hang %d,%d\n",
+                writeLog("<-frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- hang %d,%d\n",
                         oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
                         frg->ident, frg->position.bgn, frg->position.end,
                         frg->ahang, frg->bhang);
             } else {
               if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-                fprintf(logFile, "<-frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- NOT VALID\n",
+                writeLog("<-frag %d at %d,%d %c' edge fr prev frag %d at %d,%d -- NOT VALID\n",
                         oth->ident, oth->position.bgn, oth->position.end, bestedge5->frag3p() ? '3' : '5',
                         frg->ident, frg->position.bgn, frg->position.end);
             }
 
           } else {
             if (logFileFlags & LOG_SET_PARENT_AND_HANG)
-              fprintf(logFile, "--frag %d at %d,%d 3' edge to prev frag %d at %d,%d -- NOT VALID\n",
+              writeLog("--frag %d at %d,%d 3' edge to prev frag %d at %d,%d -- NOT VALID\n",
                       frg->ident, frg->position.bgn, frg->position.end,
                       oth->ident, oth->position.bgn, oth->position.end);
           }

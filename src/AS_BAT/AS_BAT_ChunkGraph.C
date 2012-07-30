@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_ChunkGraph.C,v 1.2 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_ChunkGraph.C,v 1.3 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_ChunkGraph.H"
@@ -192,7 +192,7 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
     currEnd = firstEnd;
     currIdx = firstIdx;
 
-    fprintf(logFile, "PATH from %d,%d length %d:",
+    writeLog("PATH from %d,%d length %d:",
             firstEnd.fragId(),
             (firstEnd.frag3p()) ? 3 : 5,
             _pathLen[firstIdx]);
@@ -202,9 +202,9 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
       seen.insert(currEnd);
 
       if (currEnd == lastEnd)
-        fprintf(logFile, " LAST");
+        writeLog(" LAST");
 
-      fprintf(logFile, " %d,%d(%d)",
+      writeLog(" %d,%d(%d)",
               currEnd.fragId(),
               (currEnd.frag3p()) ? 3 : 5,
               _pathLen[currIdx]);
@@ -214,16 +214,16 @@ ChunkGraph::countFullWidth(FragmentEnd firstEnd) {
     }
 
     if (seen.find(currEnd) != seen.end())
-      fprintf(logFile, " CYCLE %d,%d(%d)",
+      writeLog(" CYCLE %d,%d(%d)",
               currEnd.fragId(),
               (currEnd.frag3p()) ? 3 : 5,
               _pathLen[currIdx]);
 
-    fprintf(logFile, "\n");
+    writeLog("\n");
   }
 
   if (lengthMax != _pathLen[firstIdx])
-    fprintf(logFile, "ERROR: lengthMax %d _pathLen[] %d\n",
+    writeLog("ERROR: lengthMax %d _pathLen[] %d\n",
             lengthMax, _pathLen[firstIdx]);
   assert(lengthMax == _pathLen[firstIdx]);
 

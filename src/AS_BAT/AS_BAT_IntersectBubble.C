@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.9 2011-04-04 14:25:31 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.10 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -102,13 +102,13 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   if (lPlaced == false) {
     //  Huh?  Didn't place?  Emit diagnostics.
-    fprintf(logFile, "popBubbles()-- Failed to place lFrg.\n");
+    writeLog("popBubbles()-- Failed to place lFrg.\n");
     return(false);
   }
 
   if (rPlaced == false) {
     //  Huh?  Didn't place?  Emit diagnostics.
-    fprintf(logFile, "popBubbles()-- Failed to place rFrg.\n");
+    writeLog("popBubbles()-- Failed to place rFrg.\n");
     return(false);
   }
 
@@ -149,7 +149,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   if ((lFrgN.position.bgn == 0) &&
       (lFrgN.position.end == 0)) {
-    fprintf(logFile, "popBubbles()-- Failed to place lFrg.\n");
+    writeLog("popBubbles()-- Failed to place lFrg.\n");
     return(false);
   }
 
@@ -178,7 +178,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   if ((rFrgN.position.bgn == 0) &&
       (rFrgN.position.end == 0)) {
-    fprintf(logFile, "popBubbles()-- Failed to place rFrg.\n");
+    writeLog("popBubbles()-- Failed to place rFrg.\n");
     return(false);
   }
 #endif
@@ -194,7 +194,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   if (2 * placedLen < bubble->getLength()) {
     //  Too short.
-    fprintf(logFile, "popBubbles()-- Too short.  lFrg %d,%d rFrg %d,%d.  L %d,%d R %d,%d len %d\n",
+    writeLog("popBubbles()-- Too short.  lFrg %d,%d rFrg %d,%d.  L %d,%d R %d,%d len %d\n",
             lFrg.position.bgn, lFrg.position.end,
             rFrg.position.bgn, rFrg.position.end,
             minL, maxL, minR, maxR, placedLen);
@@ -203,7 +203,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   if (2 * bubble->getLength() < placedLen) {
     //  Too long.
-    fprintf(logFile, "popBubbles()-- Too long.  lFrg %d,%d rFrg %d,%d.  L %d,%d R %d,%d len %d\n",
+    writeLog("popBubbles()-- Too long.  lFrg %d,%d rFrg %d,%d.  L %d,%d R %d,%d len %d\n",
             lFrg.position.bgn, lFrg.position.end,
             rFrg.position.bgn, rFrg.position.end,
             minL, maxL, minR, maxR, placedLen);
@@ -245,7 +245,7 @@ validateBubbleWithEdges(UnitigVector &unitigs,
 
   //  Nope, something got screwed up in alignment.
 
-  fprintf(logFile, "popBubbles()-- Order/Orientation problem.  bL %d bR %d bOrd %d  nL %d nR %d nOrd %d\n",
+  writeLog("popBubbles()-- Order/Orientation problem.  bL %d bR %d bOrd %d  nL %d nR %d nOrd %d\n",
           bL, bR, bOrd,
           nL, nR, nOrd);
 
@@ -390,7 +390,7 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
     if (correctPlace[fi].fCoverage > 0)
       nCorrect++;
     else
-      fprintf(logFile, "popBubbles()-- Failed to place frag %d notPlaced %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
+      writeLog("popBubbles()-- Failed to place frag %d notPlaced %d notPlacedInCorrectPosition %d notPlacedFully %d notOriented %d\n",
               bubble->ufpath[fi].ident, nNotPlaced, nNotPlacedInCorrectPosition, nNotPlacedFully, nNotOriented);
   }
 
@@ -422,7 +422,7 @@ validateBubbleFragmentsWithOverlaps(UnitigVector &unitigs,
 
   success = true;
 
-  fprintf(logFile, "popBubbles()--  merged bubble unitig %d into unitig %d\n",
+  writeLog("popBubbles()--  merged bubble unitig %d into unitig %d\n",
           bubble->id(), larger->id());
 
  finished:
@@ -455,7 +455,7 @@ popIntersectionBubble(UnitigVector &unitigs,
   //  particular, that there won't be non-contained fragments somewhere in that unitig.
 
   if (OG->isContained(shortTig->ufpath[fIdx].ident) == true) {
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments STARTS WITH A CONTAINED FRAGMENT %d\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments STARTS WITH A CONTAINED FRAGMENT %d\n",
             shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
             shortTig->ufpath[fIdx].ident);
     return(false);
@@ -507,20 +507,20 @@ popIntersectionBubble(UnitigVector &unitigs,
   }
 
   if ((fUtg != 0) && (lUtg != 0))
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edges (%d/%d') from frag %d/%d' and (%d/%d') from frag %d/%d'\n",
             shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
             fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5),
             lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
   else if (fUtg != 0)
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
             shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
             fEdge->fragId(), (fEdge->frag3p() ? 3 : 5), fFrg.ident, (f3p ? 3 : 5));
   else if (lUtg != 0)
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  Edge (%d/%d') from frag %d/%d'\n",
             shortTig->id(), shortTig->getLength(), shortTig->ufpath.size(),
             lEdge->fragId(), (lEdge->frag3p() ? 3 : 5), lFrg.ident, (l3p ? 3 : 5));
   else {
-    fprintf(logFile, "popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  NO EDGES, no bubble.\n",
+    writeLog("popBubbles()-- Potential bubble unitig %d of length %d with %lu fragments.  NO EDGES, no bubble.\n",
             shortTig->id(), shortTig->getLength(), shortTig->ufpath.size());
     return(false);
   }
@@ -529,7 +529,7 @@ popIntersectionBubble(UnitigVector &unitigs,
   //  placing in both, but for now, we just give up.
 
   if ((fUtg != 0) && (lUtg != 0) && (fUtg != lUtg)) {
-    fprintf(logFile, "popBubbles()-- bubble unitig %d has edges to both unitig %d and unitig %d, cannot place (yet)\n",
+    writeLog("popBubbles()-- bubble unitig %d has edges to both unitig %d and unitig %d, cannot place (yet)\n",
             shortTig->id(), fUtg, lUtg);
     return(true);
   }
@@ -537,13 +537,13 @@ popIntersectionBubble(UnitigVector &unitigs,
   Unitig *mergeTig = (fUtg == 0) ? unitigs[lUtg] : unitigs[fUtg];
 
   if (validateBubbleWithEdges(unitigs, shortTig, fFrg, fEdge, lFrg, lEdge, mergeTig) == false) {
-    fprintf(logFile, "popBubbles()-- failed to validate edges for bubble unitig %d into larger unitig %d\n",
+    writeLog("popBubbles()-- failed to validate edges for bubble unitig %d into larger unitig %d\n",
             shortTig->id(), mergeTig->id());
     return(false);
   }
 
   if (validateBubbleFragmentsWithOverlaps(unitigs, shortTig, fFrg, lFrg, mergeTig) == false) {
-    fprintf(logFile, "popBubbles()-- failed to validate fragments for bubble unitig %d into larger unitig %d\n",
+    writeLog("popBubbles()-- failed to validate fragments for bubble unitig %d into larger unitig %d\n",
             shortTig->id(), mergeTig->id());
     return(false);
   }
@@ -574,7 +574,7 @@ popIntersectionBubbles(UnitigVector &unitigs) {
     //  Step 1:  Iterate over all possible merge sizes, popping whatever.
 
     for (nFrgToMerge=1; nFrgToMerge < nFrgToMergeMax; nFrgToMerge++) {
-      fprintf(logFile, "==> SEARCHING FOR BUBBLES of size %u fragments.\n", nFrgToMerge);
+      writeLog("==> SEARCHING FOR BUBBLES of size %u fragments.\n", nFrgToMerge);
 
       for (uint32 ti=0; ti<unitigs.size(); ti++) {
         Unitig        *shortTig = unitigs[ti];
@@ -614,7 +614,7 @@ popIntersectionBubbles(UnitigVector &unitigs) {
     while (nBubbleFixed > 0) {
       nBubbleFixed = 0;
 
-      fprintf(logFile, "==> SEARCHING FOR BUBBLES that spanned unitigs.\n");
+      writeLog("==> SEARCHING FOR BUBBLES that spanned unitigs.\n");
 
       for (uint32 ta=0; ta<tryAgain.size(); ta++) {
         Unitig        *shortTig = unitigs[tryAgain[ta]];
@@ -640,5 +640,5 @@ popIntersectionBubbles(UnitigVector &unitigs) {
 
   logFileFlags &= ~LOG_PLACE_FRAG;
 
-  fprintf(logFile, "Popped %u bubbles.\n", nBubblePopped);
+  writeLog("Popped %u bubbles.\n", nBubblePopped);
 }

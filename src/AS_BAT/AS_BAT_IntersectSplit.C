@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.6 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_IntersectSplit.C,v 1.7 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -109,8 +109,8 @@ intersectionList::intersectionList(UnitigVector &unitigs) {
           evidence[fi].frag5self = true;
 
           //  Not the correct place to report this.  Some of these get confirmed by later fragments.
-          //fprintf(logFile, "BUG1 F: %d,%d T %d,%d\n", minf, maxf, mint, maxt);
-          //fprintf(logFile, "INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d (SELF)\n",
+          //writeLog("BUG1 F: %d,%d T %d,%d\n", minf, maxf, mint, maxt);
+          //writeLog("INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d (SELF)\n",
           //        tig->id(), frg->ident, 5, evidence[fi].frag5tig, evidence[fi].edge5.fragId(), evidence[fi].edge5.frag3p() ? 3 : 5);
         }
       }
@@ -138,8 +138,8 @@ intersectionList::intersectionList(UnitigVector &unitigs) {
           evidence[fi].frag3self = true;
 
           //  Not the correct place to report this.  Some of these get confirmed by later fragments.
-          //fprintf(logFile, "BUG2 F: %d,%d T %d,%d\n", minf, maxf, mint, maxt);
-          //fprintf(logFile, "INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d (SELF)\n",
+          //writeLog("BUG2 F: %d,%d T %d,%d\n", minf, maxf, mint, maxt);
+          //writeLog("INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d (SELF)\n",
           //        tig->id(), frg->ident, 3, evidence[fi].frag3tig, evidence[fi].edge3.fragId(), evidence[fi].edge3.frag3p() ? 3 : 5);
         }
       }
@@ -207,7 +207,7 @@ intersectionList::logIntersections(void) {
   for (uint32 ii=0; ii<isects.size(); ii++) {
     intersectionPoint  *isect = &isects[ii];
 
-    fprintf(logFile, "INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d\n",
+    writeLog("INTERSECT from unitig %d frag %d end %d TO unitig %d frag %d end %d\n",
             Unitig::fragIn(isect->isectFrg), isect->isectFrg, isect->isect3p ? 3 : 5,
             Unitig::fragIn(isect->invadFrg), isect->invadFrg, isect->invad3p ? 3 : 5);
   }
@@ -222,7 +222,7 @@ breakUnitigs(UnitigVector &unitigs,
              char         *output_prefix,
              bool          enableIntersectionBreaking) {
 
-  fprintf(logFile, "==> BREAKING UNITIGS.\n");
+  writeLog("==> BREAKING UNITIGS.\n");
 
   intersectionList  *ilist = new intersectionList(unitigs);
 
@@ -266,7 +266,7 @@ breakUnitigs(UnitigVector &unitigs,
             ((best5->fragId() == 0) ||
              (best3->fragId() == 0))) {
           if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
-            fprintf(logFile, "unitig %d frag %d end %c' into unitig %d frag %d end %c' -- IS A SPUR, skip it\n",
+            writeLog("unitig %d frag %d end %c' into unitig %d frag %d end %c' -- IS A SPUR, skip it\n",
                     inv->id(), isect->invadFrg, isect->invad3p ? '3' : '5',
                     tig->id(), isect->isectFrg, isect->isect3p ? '3' : '5');
           continue;
@@ -277,7 +277,7 @@ breakUnitigs(UnitigVector &unitigs,
         if ((inv->getLength()   > MIN_BREAK_LENGTH) &&
             (inv->ufpath.size() > MIN_BREAK_FRAGS)) {
           if (logFileFlagSet(LOG_INTERSECTION_BREAKING))
-            fprintf(logFile, "unitig %d frag %d end %c' into unitig %d frag %d end %c'\n",
+            writeLog("unitig %d frag %d end %c' into unitig %d frag %d end %c'\n",
                     inv->id(), isect->invadFrg, isect->invad3p ? '3' : '5',
                     tig->id(), isect->isectFrg, isect->isect3p ? '3' : '5');
           breaks.push_back(breakPoint(isect->isectFrg, isect->isect3p, true, false));
@@ -303,7 +303,7 @@ breakUnitigs(UnitigVector &unitigs,
     if (logFileFlagSet(LOG_INTERSECTION_BREAKING) ||
         logFileFlagSet(LOG_MATE_SPLIT_COVERAGE_PLOT))
       for (uint32 i=0; i<breaks.size(); i++)
-        fprintf(logFile, "BREAK unitig %d at position %d,%d from inSize %d inFrags %d.\n",
+        writeLog("BREAK unitig %d at position %d,%d from inSize %d inFrags %d.\n",
                 tig->id(),
                 breaks[i].fragPos.bgn,
                 breaks[i].fragPos.end,

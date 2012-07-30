@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.6 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.7 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -151,7 +151,7 @@ public:
       u->_id = _totalUnitigs++;
 
       if (verbose)
-        fprintf(logFile, "Creating Unitig %d\n", u->_id);
+        writeLog("Creating Unitig %d\n", u->_id);
 
       if (_blockNext >= _blockSize) {
         assert(_numBlocks < _maxBlocks);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.10 2012-02-15 03:41:08 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.11 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -35,7 +35,7 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
   setLogFile(prefix, "bestoverlapgraph");
 
-  fprintf(logFile, "BestOverlapGraph-- allocating best edges ("F_SIZE_T"MB) and containments ("F_SIZE_T"MB)\n",
+  writeLog("BestOverlapGraph-- allocating best edges ("F_SIZE_T"MB) and containments ("F_SIZE_T"MB)\n",
           ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20),
           ((1 * sizeof(BestContainment) * (FI->numFragments() + 1)) >> 20));
 
@@ -101,7 +101,7 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
     if (verified == false) {
       if (no > 0)
-        fprintf(logFile, "BestOverlapGraph()-- frag "F_U32" is suspicious ("F_U32" overlaps).\n", fi, no);
+        writeLog("BestOverlapGraph()-- frag "F_U32" is suspicious ("F_U32" overlaps).\n", fi, no);
       _suspicious.insert(fi);
     }
   }
@@ -380,7 +380,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   //
   if (olap.error <= mismatchCutoff) {
     if (logFileFlags & LOG_OVERLAP_QUALITY)
-      fprintf(logFile, "OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
+      writeLog("OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
               olap.a_iid, olap.b_iid,
               olap.flipped ? 'A' : 'N',
               olap.a_hang,
@@ -406,7 +406,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
 
   if (nerr <= mismatchLimit) {
     if (logFileFlags & LOG_OVERLAP_QUALITY)
-      fprintf(logFile, "OVERLAP SAVED:    %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
+      writeLog("OVERLAP SAVED:    %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
               olap.a_iid, olap.b_iid,
               olap.flipped ? 'A' : 'N',
               olap.a_hang,
@@ -417,7 +417,7 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   }
 
   if (logFileFlags & LOG_OVERLAP_QUALITY)
-    fprintf(logFile, "OVERLAP REJECTED: %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
+    writeLog("OVERLAP REJECTED: %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
             olap.a_iid, olap.b_iid,
             olap.flipped ? 'A' : 'N',
             olap.a_hang,

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MateBubble.C,v 1.3 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MateBubble.C,v 1.4 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"
@@ -34,7 +34,7 @@ popMateBubbles(UnitigVector &unitigs) {
   uint32      nBubbleTooBig   = 0;
   uint32      nBubbleConflict = 0;
 
-  fprintf(logFile, "==> SEARCHING FOR MATE BUBBLES\n");
+  writeLog("==> SEARCHING FOR MATE BUBBLES\n");
 
   //  For each unitig, if all (or most) of the external mates are to a single other unitig (not
   //  counting singletons), then this is a potential bubble popping unitig.
@@ -103,7 +103,7 @@ popMateBubbles(UnitigVector &unitigs) {
     for (uint32 i=1; i<lkgLen; i++) {
       if (last != lkg[i]) {
         if ((lcnt > 3))
-          fprintf(logFile, "popMateBubble()-- tig %d len %d might pop bubble in tig %u (%u mates in there out of %d external mates)\n",
+          writeLog("popMateBubble()-- tig %d len %d might pop bubble in tig %u (%u mates in there out of %d external mates)\n",
                   tig->id(), tig->getLength(), last, lcnt, lkgExt);
         last = lkg[i];
         lcnt = 0;
@@ -113,7 +113,7 @@ popMateBubbles(UnitigVector &unitigs) {
     }
 
     if ((lcnt > 3))
-      fprintf(logFile, "popMateBubble()-- tig %d len %d might pop bubble in tig %u (%u mates in there out of %d external mates)\n",
+      writeLog("popMateBubble()-- tig %d len %d might pop bubble in tig %u (%u mates in there out of %d external mates)\n",
               tig->id(), tig->getLength(), last, lcnt, lkgExt);
 
     delete [] lkg;

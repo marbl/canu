@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_ReconstructRepeats.C,v 1.2 2012-02-15 03:41:08 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_ReconstructRepeats.C,v 1.3 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -54,17 +54,17 @@ reconstructRepeats(UnitigVector &unitigs,
   OG = new BestOverlapGraph(erateGraph / 2.0, elimitGraph / 2.0, &unplaced);
   CG = new ChunkGraph(&unplaced);
 
-  fprintf(logFile, "==> BUILDING REPEAT UNITIGS from %d fragments.\n", unplaced.size());
+  writeLog("==> BUILDING REPEAT UNITIGS from %d fragments.\n", unplaced.size());
 
   for (uint32 fi=CG->nextFragByChunkLength(); fi>0; fi=CG->nextFragByChunkLength())
     populateUnitig(unitigs, fi);
 
-  fprintf(logFile, "==> BUILDING REPEAT UNITIGS catching missed fragments.\n");
+  writeLog("==> BUILDING REPEAT UNITIGS catching missed fragments.\n");
 
   for (uint32 fi=1; fi <= FI->numFragments(); fi++)
     populateUnitig(unitigs, fi);
 
-  fprintf(logFile, "==> BUILDING REPEAT UNITIGS placing contained fragments.\n");
+  writeLog("==> BUILDING REPEAT UNITIGS placing contained fragments.\n");
 
   placeContainsUsingBestOverlaps(unitigs);
 

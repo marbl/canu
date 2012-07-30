@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Instrumentation.C,v 1.4 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_Instrumentation.C,v 1.5 2012-07-30 01:21:01 brianwalenz Exp $";
 
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -31,7 +31,7 @@ checkUnitigMembership(UnitigVector &unitigs) {
   int nutg = 0;
   int nfrg = 0;
 
-  fprintf(logFile, "checkUnitigMembership()--  numfrags=%d\n", FI->numFragments());
+  writeLog("checkUnitigMembership()--  numfrags=%d\n", FI->numFragments());
 
   uint32 *inUnitig = new uint32 [FI->numFragments()+1];
   uint32  logSizeMax  = 0;
@@ -52,7 +52,7 @@ checkUnitigMembership(UnitigVector &unitigs) {
         nfrg++;
 
         if (frg->ident > FI->numFragments())
-          fprintf(logFile, "HUH?  ident=%d numfrags=%d\n", frg->ident, FI->numFragments());
+          writeLog("HUH?  ident=%d numfrags=%d\n", frg->ident, FI->numFragments());
 
         inUnitig[frg->ident] = ti;
 
@@ -72,21 +72,21 @@ checkUnitigMembership(UnitigVector &unitigs) {
   for (uint32 i=0; i<FI->numFragments()+1; i++) {
     if (FI->fragmentLength(i) > 0) {
       if (inUnitig[i] == 0) {
-        fprintf(logFile, "ERROR frag %d is in unitig 0!\n", i);
+        writeLog("ERROR frag %d is in unitig 0!\n", i);
       } else if (inUnitig[i] != noUnitig) {
         found++;
       } else {
-        fprintf(logFile, "ERROR frag %d disappeared!\n", i);
+        writeLog("ERROR frag %d disappeared!\n", i);
         lost++;
       }
     }
   }
 
-  fprintf(logFile, "checkUnitigMembership()-- nutg=%d nfrg=%d lost=%d found=%d\n", nutg, nfrg, lost, found);
+  writeLog("checkUnitigMembership()-- nutg=%d nfrg=%d lost=%d found=%d\n", nutg, nfrg, lost, found);
 
-  fprintf(logFile, "checkUnitigMembership()-- log2 length histogram:\n");
+  writeLog("checkUnitigMembership()-- log2 length histogram:\n");
   for (uint32 i=5; i<=logSizeMax; i++)
-    fprintf(logFile, "checkUnitigMembership()-- %2u (%9u-%9u) %u\n", i, (uint32)1 << i, (uint32)1 << (i+1), logSize[i]);
+    writeLog("checkUnitigMembership()-- %2u (%9u-%9u) %u\n", i, (uint32)1 << i, (uint32)1 << (i+1), logSize[i]);
 
   assert(lost == 0);
 
