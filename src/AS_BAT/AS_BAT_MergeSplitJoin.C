@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.17 2012-07-30 01:21:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.18 2012-07-30 17:51:24 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -1453,6 +1453,10 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
     stealBubbles(unitigs, target, ilist);
   }
 
+  setLogFile(NULL, NULL);
+
+  fprintf(stderr, "popBubbles()-- finished.\n");
+
   //  Since we create new unitigs for any of the splits, we need to remember
   //  where to stop.  We don't want to re-examine any of the split unitigs.
   //  Reevaluating seems to just trim off a few fragments at the end of the unitig.
@@ -1460,8 +1464,6 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
   uint32  tiLimit = unitigs.size();
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100 * numThreads) ? numThreads : tiLimit / 99;
-
-  setLogFile(NULL, NULL);
 
   fprintf(stderr, "repeatDetect()-- working on %d unitigs, with %d threads.\n", tiLimit, numThreads);
 
@@ -1482,6 +1484,10 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
     markRepeats(unitigs, target, shatterRepeats);
     markChimera(unitigs, target);
   }
+
+  setLogFile(NULL, NULL);
+
+  fprintf(stderr, "repeatDetect()-- finished.\n");
 
   //  JOIN EXPOSED BEST - after bubbles are stolen, this should leave some unitigs
   //  with exposed best edges that can now be connected.
