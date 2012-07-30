@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.34 2012-06-21 09:12:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_edit.c,v 1.35 2012-07-30 03:52:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -213,7 +213,7 @@ allFrags(gkStore *gkpStore,
   }
 
   fr.gkFragment_enableGatekeeperMode(gkpStore);
-  for (i=firstElem; i<lastElem; i++) {
+  for (i=firstElem; i<=lastElem; i++) {
     gkpStore->gkStore_getFragment(i, &fr, GKFRAGMENT_INF);
 
     if (fr.gkFragment_getLibraryIID() == IID) {
