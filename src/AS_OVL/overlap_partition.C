@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.11 2012-07-14 06:34:02 brianwalenz Exp $";
+const char *mainid = "$Id: overlap_partition.C,v 1.12 2012-07-30 01:03:46 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -333,6 +333,8 @@ main(int argc, char **argv) {
   uint64           ovlHashBlockSize    = 0;
   uint64           ovlRefBlockLength   = 0;
   uint64           ovlRefBlockSize     = 0;
+  bool             checkAllLibUsed     = true;
+
 
   set<uint32>      libToHash;
   set<uint32>      libToRef;
@@ -362,6 +364,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-R") == 0) {
       AS_UTL_decodeRange(argv[++arg], libToRef);
+
+    } else if (strcmp(argv[arg], "-C") == 0) {
+       checkAllLibUsed = false;
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       outputPrefix = argv[++arg];
@@ -401,12 +406,17 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR: -R "F_U32" is invalid; only "F_U32" libraries in '%s'\n",
               *it, numLibs, gkpStoreName), invalidLibs++;
 
-  if ((libToHash.size() > 0) && (libToRef.size() > 0))
-    for (uint32 lib=1; lib<=numLibs; lib++)
+  if ((libToHash.size() > 0) && (libToRef.size() > 0)) {
+    for (uint32 lib=1; lib<=numLibs; lib++) {
       if ((libToHash.find(lib) == libToHash.end()) &&
-          (libToRef.find(lib)  == libToRef.end()))
-        fprintf(stderr, "ERROR: library "F_U32" is not mentioned in either -H or -R.\n", lib), invalidLibs++;
-
+          (libToRef.find(lib)  == libToRef.end())) {
+        if (checkAllLibUsed == true)
+          fprintf(stderr, "ERROR: library "F_U32" is not mentioned in either -H or -R.\n", lib), invalidLibs++;
+        else
+          fprintf(stderr, "Warning: library "F_U32" is not mentioned in either -H or -R.\n", lib);
+       }
+    }
+  }
   if (invalidLibs > 0)
     fprintf(stderr, "ERROR: one of -H and/or -R are invalid.\n"), exit(1);
 
