@@ -427,14 +427,20 @@ sub setDefaults () {
     $global{"obtFrequentMers"}              = undef;
     $synops{"obtFrequentMers"}              = "Do not seed overlaps with these kmers (fasta format)";
 
-    $global{"ovlHashLibrary"}              = "0";
-    $synops{"ovlHashLibrary"}              = "Only load hash fragments from specified lib, 0 means all";
+    $global{"ovlHashLibrary"}               = "0";
+    $synops{"ovlHashLibrary"}               = "Only load hash fragments from specified lib, 0 means all";
 
     $global{"ovlRefLibrary"}                = 0;
     $synops{"ovlRefLibrary"}                = "Only load ref fragments from specified lib, 0 means all";
 
-    $global{"obtHashLibrary"}              = "0";
-    $synops{"obtHashLibrary"}              = "Only load hash fragments from specified lib, 0 means all";
+    $global{"obtHashLibrary"}               = "0";
+    $synops{"obtHashLibrary"}               = "Only load hash fragments from specified lib, 0 means all";
+
+    $global{"obtCheckLibrary"}              = 1;
+    $synops{"obtCheckLibrary"}              = "Check that all libraries are used for overlapping in OBT step";
+
+    $global{"ovlCheckLibrary"}              = 1;
+    $synops{"ovlCheckLibrary"}              = "Check that all libraries are used for overlapping in OVL step";
 
     $global{"obtRefLibrary"}                = 0;
     $synops{"obtRefLibrary"}                = "Only load ref fragments from specified lib, 0 means all";
@@ -887,6 +893,7 @@ sub setParameters () {
         my $failureString = "Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
 
         my @stopAfter = ("initialStoreBuilding",
+			 "meryl",
                          "overlapper",
                          "OBT",
                          "overlapBasedTrimming",
@@ -2336,6 +2343,7 @@ sub runMeryl ($$$$$$) {
         caFailure("unknown meryl version '" . merylVersion() . "'", "");
     }
 
+    stopAfter("meryl");
     return($merThresh);
 }
 
@@ -3329,6 +3337,7 @@ sub createOverlapJobs($) {
 
     my $hashLibrary = ($isTrim eq "trim") ? getGlobal("obtHashLibrary") : getGlobal("ovlHashLibrary");
     my $refLibrary  = ($isTrim eq "trim") ? getGlobal("obtRefLibrary")  : getGlobal("ovlRefLibrary");
+    my $checkLibrary = ($isTrim eq "trim") ? getGlobal("obtCheckLibrary") : getGlobal("ovlCheckLibrary");
 
     #  To prevent infinite loops -- stop now if the overlap script
     #  exists.  This will unfortunately make restarting from transient
@@ -3433,6 +3442,7 @@ sub createOverlapJobs($) {
         $cmd .= " -rl $ovlRefBlockLength \\\n";
         $cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         $cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
+        $cmd .= " -C \\\n" if (!$checkLibrary);
         $cmd .= " -o  $wrk/$outDir";
 
         if (runCommand($wrk, $cmd)) {
