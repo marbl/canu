@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.11 2012-07-30 01:21:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.12 2012-07-30 20:58:10 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -55,6 +55,12 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
   mismatchCutoff  = AS_UTG_ERROR_RATE;
   mismatchLimit   = AS_UTG_ERROR_LIMIT;
+
+  //  Initialize parallelism.
+
+  uint32  fiLimit    = FI->numFragments();
+  uint32  numThreads = omp_get_max_threads();
+  uint32  blockSize  = (fiLimit < 100 * numThreads) ? numThreads : fiLimit / 99;
 
   //  PASS 0:  Find suspicious fragments.  For any found, mark as suspicious and don't allow
   //  these to be best overlaps.
@@ -109,22 +115,40 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
   //  PASS 1:  Find containments.
 
-  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
-    uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+  fprintf(stderr, "BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
 
-    for (uint32 ii=0; ii<no; ii++)
-      scoreContainment(ovl[ii]);
+  if (false && AS_UTL_fileExists("best.contains", false, false)) {
+    fprintf(stderr, "BestOverlapGraph()-- loading best containes from cache.\n");
+    assert(0);  //  Not quite done.
+
+  } else {
+#pragma omp parallel for schedule(dynamic, blockSize)
+    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+      uint32      no  = 0;
+      BAToverlap *ovl = OC->getOverlaps(fi, no);
+
+      for (uint32 ii=0; ii<no; ii++)
+        scoreContainment(ovl[ii]);
+    }
   }
 
   //  PASS 2:  Find dovetails.
 
-  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
-    uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
+  if (false && AS_UTL_fileExists("best.edges", false, false)) {
+    fprintf(stderr, "BestOverlapGraph()-- loading best edges from cache.\n");
+    assert(0);  //  Not quite done.
 
-    for (uint32 ii=0; ii<no; ii++)
-      scoreEdge(ovl[ii]);
+  } else {
+    fprintf(stderr, "BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+      uint32      no  = 0;
+      BAToverlap *ovl = OC->getOverlaps(fi, no);
+
+      for (uint32 ii=0; ii<no; ii++)
+        scoreEdge(ovl[ii]);
+    }
   }
 
   //  Remove temporary scoring data
@@ -134,12 +158,17 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
   //  Remove dovetail overlaps for contained fragments.
 
-  for (uint32 fi=1; fi<FI->numFragments() + 1; fi++) {
+  fprintf(stderr, "BestOverlapGraph()-- removing best edges for contained fragments, with %d threads.\n", numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (AS_IID fi=1; fi <= fiLimit; fi++) {
     if (isContained(fi) == true) {
       getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
       getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
     }
   }
+
+  fprintf(stderr, "BestOverlapGraph()-- dumping best edges/contains/singletons.\n");
 
   reportBestEdges();
 
