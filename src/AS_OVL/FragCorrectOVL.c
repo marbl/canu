@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.39 2012-05-08 23:17:55 brianwalenz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.40 2012-07-31 12:55:29 skoren Exp $";
 
 #include  "AS_global.h"
 #include  "AS_OVL_delcher.h"
@@ -136,6 +136,33 @@ typedef  struct
    Vote_Value_t  vote_val;
   }  Vote_t;
 
+const int  INNIE = 0;
+const int  NORMAL = 1;
+
+#if (2*AS_READ_MAX_NORMAL_LEN_BITS + 64 + 2 > 128)
+#error No space for Olap_Info_t.  Decrease read length AS_READ_MAX_NORMAL_LEN_BITS.
+#endif
+
+#if (2*AS_READ_MAX_NORMAL_LEN_BITS + 64 + 2 > 96)
+typedef  struct
+  {
+   char  * sequence;
+   Vote_Tally_t  * vote;
+   unsigned  clear_len : 31;
+   unsigned  left_degree : 31;
+   unsigned  right_degree : 31;
+   unsigned  shredded : 1;    // True if shredded read
+   unsigned  unused : 1;
+  }  Frag_Info_t;
+
+typedef  struct
+  {
+   AS_IID a_iid, b_iid;
+   signed int  a_hang : 31;
+   signed int  b_hang : 31;
+   signed int  orient : 2;
+  }  Olap_Info_t;
+#else
 typedef  struct
   {
    char  * sequence;
@@ -147,8 +174,6 @@ typedef  struct
    unsigned  unused : 1;
   }  Frag_Info_t;
 
-const int  INNIE = 0;
-const int  NORMAL = 1;
 
 typedef  struct
   {
@@ -157,6 +182,7 @@ typedef  struct
    signed int  b_hang : 15;
    signed int  orient : 2;
   }  Olap_Info_t;
+#endif
 
 typedef  struct
   {
@@ -828,7 +854,7 @@ static void  Display_Alignment
 
   {
    int  i, j, k, m, top_len, bottom_len;
-   char  top [2000], bottom [2000];
+   char  top [AS_READ_MAX_NORMAL_LEN+1], bottom [AS_READ_MAX_NORMAL_LEN+1];
 
    i = j = top_len = bottom_len = 0;
    for  (k = 0;  k < delta_ct;  k ++)
