@@ -518,7 +518,7 @@ my $asm = "asm";
 my $caSGE  = getGlobal("sge");
 
 if (defined($caSGE)) {
-   $caSGE = "\"" .$caSGE . " -sync y\" sgePropagateHold=corAsm";
+   $caSGE = "sge=\"" .$caSGE . " -sync y\" sgePropagateHold=corAsm";
 } else {
    $caSGE = "sge=\"" . " -sync y\" sgePropagateHold=corAsm";
 }
