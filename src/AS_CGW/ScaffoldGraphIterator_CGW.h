@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_ITERATOR_H
 #define SCAFFOLD_GRAPH_ITERATOR_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.10 2012-06-07 00:46:24 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.11 2012-08-01 02:34:08 brianwalenz Exp $";
 
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
@@ -567,18 +567,17 @@ static ChunkInstanceT *NextContigTIterator(ContigTIterator *e){
 static void NormalizeScaffoldOffsets(ScaffoldGraphT *graph,
 				     CIScaffoldT *scaffold, int verbose){
   LengthT curBeginOffset;
-  NodeCGW_T *endNodeA = GetGraphNode(graph->ContigGraph,
-				     scaffold->info.Scaffold.AEndCI);
-  if(GetNodeOrient(endNodeA).isForward()){
+  NodeCGW_T *endNodeA = GetGraphNode(graph->ContigGraph, scaffold->info.Scaffold.AEndCI);
+
+  if (GetNodeOrient(endNodeA).isForward())
     curBeginOffset = endNodeA->offsetAEnd;
-  }else{
+  else
     curBeginOffset = endNodeA->offsetBEnd;
-  }
-  curBeginOffset.mean = - curBeginOffset.mean;
-  curBeginOffset.variance = - curBeginOffset.variance;
-  AddDeltaToScaffoldOffsets(graph, scaffold->id, endNodeA->id, TRUE, verbose,
-			    curBeginOffset);
-  return;
+
+  curBeginOffset.mean      = -curBeginOffset.mean;
+  curBeginOffset.variance  = -curBeginOffset.variance;
+
+  AddDeltaToScaffoldOffsets(graph, scaffold->id, endNodeA->id, TRUE, curBeginOffset);
 }
 
 /* *********************************************************************** */
@@ -589,14 +588,12 @@ static void NormalizeAllScaffoldOffsets(ScaffoldGraphT *graph, int verbose){
   GraphNodeIterator scaffolds;
   CIScaffoldT *scaffold;
 
-  if(verbose){
-    fprintf(stderr, "Starting NormalizeAllScaffoldOffsets\n");
-  }
   InitGraphNodeIterator(&scaffolds, graph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
-  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
-    if(isDeadCIScaffoldT(scaffold) || scaffold->type != REAL_SCAFFOLD){
+
+  while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
+    if ((isDeadCIScaffoldT(scaffold)) ||
+        (scaffold->type != REAL_SCAFFOLD))
       continue;
-    }
     NormalizeScaffoldOffsets(graph, scaffold, verbose);
   }
 }
