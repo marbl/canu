@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_types.h,v 1.5 2012-01-03 09:55:08 brianwalenz Exp $   */
+/* $Id: AS_MSG_types.h,v 1.6 2012-08-01 03:20:19 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_TYPES_H
 #define AS_MSG_PMESG_TYPES_H
 
-static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.5 2012-01-03 09:55:08 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_TYPES_H = "$Id: AS_MSG_types.h,v 1.6 2012-08-01 03:20:19 brianwalenz Exp $";
 
 #include <cstdio>
 #include <ctime>
@@ -55,17 +55,17 @@ public:
   //
   //operator char()  { return(toLetter()); };
 
-  char  toLetter(void) {
+  char  toLetter(void) const {
     return(linkType);
   };
 
-  bool  isMatePair(void)     { assert(linkType != 0);  return(linkType == 'M'); };
-  bool  isOverlap(void)      { assert(linkType != 0);  return(linkType == 'X'); };  //  Really should be 'O', but that changes the asm
+  bool  isMatePair(void) const    { assert(linkType != 0);  return(linkType == 'M'); };
+  bool  isOverlap(void) const     { assert(linkType != 0);  return(linkType == 'X'); };  //  Really should be 'O', but that changes the asm
 
   void  setIsMatePair(void)  { linkType = 'M'; };
   void  setIsOverlap(void)   { linkType = 'X'; };
 
-  bool  isValid(void) {
+  bool  isValid(void) const {
     return(linkType != 0);
   };
 
@@ -93,29 +93,29 @@ public:
   PairOrient()    { orient = 'U'; pad[0] = pad[1] = pad[2] = 0; };
   ~PairOrient()   {};
 
-  char  toLetter(void)       { return(orient); };
+  char  toLetter(void) const  { return(orient); };
 
-  bool  isInnie(void)        { assert(orient != 0);  return(orient == 'I'); };
-  bool  isOuttie(void)       { assert(orient != 0);  return(orient == 'O'); };
-  bool  isNormal(void)       { assert(orient != 0);  return(orient == 'N'); };
-  bool  isAnti(void)         { assert(orient != 0);  return(orient == 'A'); };
-  bool  isUnknown(void)      { assert(orient != 0);  return(orient == 'U'); };
+  bool  isInnie(void) const   { assert(orient != 0);  return(orient == 'I'); };
+  bool  isOuttie(void) const  { assert(orient != 0);  return(orient == 'O'); };
+  bool  isNormal(void) const  { assert(orient != 0);  return(orient == 'N'); };
+  bool  isAnti(void) const    { assert(orient != 0);  return(orient == 'A'); };
+  bool  isUnknown(void) const { assert(orient != 0);  return(orient == 'U'); };
 
-  void  setIsInnie(void)     { orient = 'I'; };
-  void  setIsOuttie(void)    { orient = 'O'; };
-  void  setIsNormal(void)    { orient = 'N'; };
-  void  setIsAnti(void)      { orient = 'A'; };
-  void  setIsUnknown(void)   { orient = 'U'; };
+  void  setIsInnie(void)      { orient = 'I'; };
+  void  setIsOuttie(void)     { orient = 'O'; };
+  void  setIsNormal(void)     { orient = 'N'; };
+  void  setIsAnti(void)       { orient = 'A'; };
+  void  setIsUnknown(void)    { orient = 'U'; };
 
-  bool  isAB_BA(void)        { assert(orient != 0);  return(orient == 'I'); };
-  bool  isBA_AB(void)        { assert(orient != 0);  return(orient == 'O'); };
-  bool  isAB_AB(void)        { assert(orient != 0);  return(orient == 'N'); };
-  bool  isBA_BA(void)        { assert(orient != 0);  return(orient == 'A'); };
+  bool  isAB_BA(void) const   { assert(orient != 0);  return(orient == 'I'); };
+  bool  isBA_AB(void) const   { assert(orient != 0);  return(orient == 'O'); };
+  bool  isAB_AB(void) const   { assert(orient != 0);  return(orient == 'N'); };
+  bool  isBA_BA(void) const   { assert(orient != 0);  return(orient == 'A'); };
 
-  void  setIsAB_BA(void)     { orient = 'I'; };
-  void  setIsBA_AB(void)     { orient = 'O'; };
-  void  setIsAB_AB(void)     { orient = 'N'; };
-  void  setIsBA_BA(void)     { orient = 'A'; };
+  void  setIsAB_BA(void)      { orient = 'I'; };
+  void  setIsBA_AB(void)      { orient = 'O'; };
+  void  setIsAB_AB(void)      { orient = 'N'; };
+  void  setIsBA_BA(void)      { orient = 'A'; };
 
   void  invert(void) {
     assert(orient != 0);  
@@ -141,18 +141,18 @@ public:
     }
   };
 
-  bool  operator==(const PairOrient that) {
+  bool  operator==(const PairOrient &that) const {
     assert(orient      != 0);
     assert(that.orient != 0);
     return(orient == that.orient);
   };
-  bool  operator!=(const PairOrient that) {
+  bool  operator!=(const PairOrient &that) const {
     assert(orient      != 0);
     assert(that.orient != 0);
     return(orient != that.orient);
   };
 
-  bool  isValid(void) {
+  bool  isValid(void) const {
     return(orient != 0);
   };
 
@@ -175,11 +175,11 @@ public:
   SequenceOrient()    { orient = 'U'; };
   ~SequenceOrient()   {};
 
-  char  toLetter(void)       { return(orient); };
+  char  toLetter(void) const      { return(orient); };
 
-  bool  isForward(void)      { assert(orient != 0);  return(orient == 'F'); };
-  bool  isReverse(void)      { assert(orient != 0);  return(orient == 'R'); };
-  bool  isUnknown(void)      { assert(orient != 0);  return(orient == 'U'); };
+  bool  isForward(void) const     { assert(orient != 0);  return(orient == 'F'); };
+  bool  isReverse(void) const     { assert(orient != 0);  return(orient == 'R'); };
+  bool  isUnknown(void) const     { assert(orient != 0);  return(orient == 'U'); };
 
   void  setIsForward(bool f=true)   { orient = (f) ? 'F' : 'R'; };
   void  setIsReverse(bool r=true)   { orient = (r) ? 'R' : 'F'; };
@@ -194,18 +194,18 @@ public:
     }
   };
 
-  bool  operator==(const SequenceOrient that) {
+  bool  operator==(const SequenceOrient &that) const {
     assert(orient      != 0);
     assert(that.orient != 0);
     return(orient == that.orient);
   };
-  bool  operator!=(const SequenceOrient that) {
+  bool  operator!=(const SequenceOrient &that) const {
     assert(orient      != 0);
     assert(that.orient != 0);
     return(orient != that.orient);
   };
 
-  bool  isValid(void) {
+  bool  isValid(void) const {
     return(orient != 0);
   };
 
