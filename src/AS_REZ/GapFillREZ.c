@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.72 2012-05-01 04:18:19 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.73 2012-08-01 02:17:46 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -9564,7 +9564,7 @@ static void  Reverse_Positions
     }
 
   if  (found == 0)
-    this_gap -> adjustment . mean = this_gap -> adjustment . mean = 0.0;
+    this_gap -> adjustment . mean = this_gap -> adjustment . variance = 0.0;
   else
     {
       this_gap -> adjustment . mean = - lo_position;
