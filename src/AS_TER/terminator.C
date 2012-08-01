@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.15 2012-06-26 14:05:05 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.16 2012-08-01 02:23:38 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -406,11 +406,10 @@ writeULK(FILE *asmFile, bool doWrite) {
     if (ci->flags.bits.isChaff)
       continue;
 
-    GraphEdgeIterator  edges;
-    CIEdgeT    *edge, *redge;
+    GraphEdgeIterator  edges(ScaffoldGraph->CIGraph, ci->id, ALL_END, ALL_EDGES);
+    CIEdgeT           *edge;
 
-    InitGraphEdgeIterator(ScaffoldGraph->CIGraph, ci->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-    while ((edge = NextGraphEdgeIterator(&edges)) != NULL) {
+    while ((edge = edges.nextMerged()) != NULL) {
 
       if (edge->idA != ci->id ||
           edge->flags.bits.isInferred ||
@@ -445,7 +444,7 @@ writeULK(FILE *asmFile, bool doWrite) {
 
       // Look through the fragment pairs in this edge to decide the status of the link.
 
-      redge = (edge->flags.bits.isRaw) ? edge : GetGraphEdge(ScaffoldGraph->CIGraph, edge->nextRawEdge);
+      CIEdgeT *redge = (edge->flags.bits.isRaw) ? edge : GetGraphEdge(ScaffoldGraph->CIGraph, edge->nextRawEdge);
 
       int numBad     = 0;
       int numGood    = 0;
@@ -686,11 +685,10 @@ writeCLK(FILE *asmFile, bool doWrite) {
     if (SurrogatedSingleUnitigContig(ctg))
       continue;
 
-    GraphEdgeIterator  edges;
-    CIEdgeT    *edge, *redge;
+    GraphEdgeIterator  edges(ScaffoldGraph->ContigGraph, ctg->id, ALL_END, ALL_EDGES);
+    CIEdgeT           *edge;
 
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, ctg->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-    while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+    while((edge = edges.nextMerged()) != NULL){
 
       if (edge->idA != ctg->id)
         continue;
@@ -764,7 +762,7 @@ writeCLK(FILE *asmFile, bool doWrite) {
         edgeCount++;
 
       } else {
-        redge = edge;
+        CIEdgeT *redge = edge;
 
         assert(redge->nextRawEdge != NULLINDEX); // must have >= 1 raw edge
 
@@ -910,12 +908,11 @@ writeSLK(FILE *asmFile, bool doWrite) {
 
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
   while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
-    GraphEdgeIterator   edges;
-    CIEdgeT    *edge;
+    GraphEdgeIterator    edges(ScaffoldGraph->ScaffoldGraph, scaffold->id, ALL_END, ALL_EDGES);
+    CIEdgeT             *edge;
     CIEdgeT             *redge;
 
-    InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaffold->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-    while((edge = NextGraphEdgeIterator(&edges)) != NULL) {
+    while((edge = edges.nextMerged()) != NULL) {
       if (edge->idA != scaffold->id)
         continue;
 

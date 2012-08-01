@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.22 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.23 2012-08-01 02:23:38 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -530,8 +530,6 @@ void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
                             int includeNegativeEdges)
 {
   CIScaffoldTIterator CIs;
-  GraphEdgeIterator edges;
-  CIEdgeT *edge;
   ChunkInstanceT *thisCI;
 
   if(isDeadCIScaffoldT(scaffold) ||
@@ -541,9 +539,10 @@ void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
   while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL){
-    InitGraphEdgeIterator(graph->ContigGraph,  thisCI->id,   ALL_END,   ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);// ONLY RAW
+    GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, ALL_END, ALL_EDGES);
+    CIEdgeT          *edge;
 
-    while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+    while((edge = edges.nextRaw()) != NULL){
       int isA = (edge->idA == thisCI->id);
       ChunkInstanceT *otherCI = GetGraphNode(graph->ContigGraph,
                                              (isA? edge->idB: edge->idA));
@@ -610,22 +609,13 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
   while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL)
     {
-      GraphEdgeIterator edges;
-      CIEdgeT *edge;
+      GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, ALL_END, ALL_EDGES);
+      CIEdgeT          *edge;
 
-      InitGraphEdgeIterator(graph->ContigGraph,
-                            thisCI->id,
-                            ALL_END,
-                            ALL_EDGES,
-                            GRAPH_EDGE_DEFAULT,
-                            &edges);
-      while((edge = NextGraphEdgeIterator(&edges)) != NULL)
-        {
-          if(edge->idA != edge->idB)
-            {
+      while((edge = edges.nextMerged()) != NULL) {
+          if(edge->idA != edge->idB) {
               int isA = (edge->idA == thisCI->id);
-              ChunkInstanceT *otherCI = GetGraphNode(graph->ContigGraph,
-                                                     (isA? edge->idB: edge->idA));
+              ChunkInstanceT *otherCI = GetGraphNode(graph->ContigGraph, (isA? edge->idB: edge->idA));
 
               fprintf(fp, ""F_CID" to "F_CID" in scaffold "F_CID". %s",
                       thisCI->id, otherCI->id, otherCI->scaffoldID,

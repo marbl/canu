@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Stats_CGW.c,v 1.25 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: Stats_CGW.c,v 1.26 2012-08-01 02:23:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,34 +57,40 @@ void GenerateCIGraph_U_Stats(void){
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
-    GraphEdgeIterator Edges;
-    EdgeCGW_T *edge;
     int cnt = 0;
 
     if(node->type != DISCRIMINATORUNIQUECHUNK_CGW)
       continue;
     unodes++;
 
-    InitGraphEdgeIterator(graph, node->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&Edges))){
-      NodeCGW_T *other = GetGraphNode(graph,edge->idA == node->id? edge->idB: edge->idA);
-      if(other->type != DISCRIMINATORUNIQUECHUNK_CGW)
-	continue;
-      if(edge->idA == node->id)
-	uedges++;
-      cnt++;
+    {
+      GraphEdgeIterator edges(graph, node->id, A_END, ALL_EDGES);
+      EdgeCGW_T        *edge;
+
+      while(NULL != (edge = edges.nextMerged())) {
+        NodeCGW_T *other = GetGraphNode(graph,edge->idA == node->id? edge->idB: edge->idA);
+        if(other->type != DISCRIMINATORUNIQUECHUNK_CGW)
+          continue;
+        if(edge->idA == node->id)
+          uedges++;
+        cnt++;
+      }
     }
 
     Setint(aEndDegree, node->id, &cnt);
 
-    InitGraphEdgeIterator(graph, node->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&Edges))){
-      NodeCGW_T *other = GetGraphNode(graph,edge->idA == node->id? edge->idB: edge->idA);
-      if(other->type != DISCRIMINATORUNIQUECHUNK_CGW)
-	continue;
-      if(edge->idA == node->id)
-	uedges++;
-      cnt++;
+    {
+      GraphEdgeIterator edges(graph, node->id, B_END, ALL_EDGES);
+      EdgeCGW_T        *edge;
+
+      while(NULL != (edge = edges.nextMerged())) {
+        NodeCGW_T *other = GetGraphNode(graph,edge->idA == node->id? edge->idB: edge->idA);
+        if(other->type != DISCRIMINATORUNIQUECHUNK_CGW)
+          continue;
+        if(edge->idA == node->id)
+          uedges++;
+        cnt++;
+      }
     }
 
     Setint(bEndDegree, node->id, &cnt);
@@ -97,7 +103,7 @@ void GenerateCIGraph_U_Stats(void){
   AssertPtr(fout);
 
   fprintf(fout,"CIGraph_U (V:%d  E:%d) OutDegrees\n",
-	  unodes, uedges);
+          unodes, uedges);
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_UNIQUE_ONLY);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
@@ -112,7 +118,7 @@ void GenerateCIGraph_U_Stats(void){
   AssertPtr(fout);
 
   fprintf(fout,"CIGraph_U (V:%d  E:%d) End OutDegrees\n",
-	  2*unodes, uedges);
+          2*unodes, uedges);
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_UNIQUE_ONLY);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
@@ -146,8 +152,6 @@ void GenerateCIGraphStats(void){
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
-    GraphEdgeIterator Edges;
-    EdgeCGW_T *edge;
     int cnt = 0;
 
     // Filter surrogates
@@ -159,8 +163,10 @@ void GenerateCIGraphStats(void){
       continue;
     nu_unitigs++;
 
-    InitGraphEdgeIterator(graph, node->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&Edges))){
+    GraphEdgeIterator  edges(graph, node->id, A_END, ALL_EDGES);
+    EdgeCGW_T         *edge;
+
+    while(NULL != (edge = edges.nextMerged())) {
       cnt++;
     }
 
@@ -170,13 +176,13 @@ void GenerateCIGraphStats(void){
     }
   }
   fprintf(stderr,"*@ Graph has %d unitigs of which %d are non-unique\n",
-	  n_unitigs, nu_unitigs);
+          n_unitigs, nu_unitigs);
   fprintf(stderr,"*@ %d unitigs have no external data comprising %d total fragments\n",
-	  nu_unitigs_no_bac_fragments, tfrags_nobf);
+          nu_unitigs_no_bac_fragments, tfrags_nobf);
   fprintf(stderr,"*@ %d unitigs have no links comprising %d total fragments\n",
-	  nu_unitigs_no_links, tfrags_nolinks);
+          nu_unitigs_no_links, tfrags_nolinks);
   fprintf(stderr,"*@ %d unitigs have no external data AND no links comprising %d total fragments\n",
-	  nu_unitigs_no_links_no_bac_fragments, tfrags_nobf_nolinks);
+          nu_unitigs_no_links_no_bac_fragments, tfrags_nobf_nolinks);
 }
 
 
@@ -223,8 +229,6 @@ void GeneratePlacedContigGraphStats(char *label,int iteration){
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
-    GraphEdgeIterator Edges;
-    EdgeCGW_T *edge;
     int cnt = 0;
 
     if(node->scaffoldID == NULLINDEX){
@@ -235,28 +239,36 @@ void GeneratePlacedContigGraphStats(char *label,int iteration){
 
     unodes++;
 
-    InitGraphEdgeIterator(graph, node->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&Edges))){
+    {
+    GraphEdgeIterator edges(graph, node->id, A_END, ALL_EDGES);
+    EdgeCGW_T        *edge;
+
+    while (NULL != (edge = edges.nextMerged())) {
       NodeCGW_T *other = GetGraphNode(graph,edge->idA == node->id? edge->idB: edge->idA);
       if(other->scaffoldID == NULLINDEX)
-	continue;
+        continue;
       if(edge->idA == node->id)
-	uedges++;
+        uedges++;
       cnt++;
+    }
     }
 
     Setint(aEndDegree, node->id, &cnt);
 
     cnt = 0;
 
-    InitGraphEdgeIterator(graph, node->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&Edges))){
+    {
+    GraphEdgeIterator edges(graph, node->id, B_END, ALL_EDGES);
+    EdgeCGW_T        *edge;
+
+    while (NULL != (edge = edges.nextMerged())) {
       NodeCGW_T *other = GetGraphNode(graph,edge->idA == node->id? edge->idB: edge->idA);
       if(other->scaffoldID == NULLINDEX)
-	continue;
+        continue;
       if(edge->idA == node->id)
-	uedges++;
+        uedges++;
       cnt++;
+    }
     }
 
     Setint(bEndDegree, node->id, &cnt);
@@ -264,13 +276,13 @@ void GeneratePlacedContigGraphStats(char *label,int iteration){
 
 
   fprintf(fout,"%s (V:%d E:%d) OutDegrees\n",
-	  label, unodes, uedges);
+          label, unodes, uedges);
   fprintf(fEndOut,"PContig (V:%d  E:%d) End OutDegrees\n",
-	  2*unodes, uedges);
+          2*unodes, uedges);
   fprintf(fLengthOut,"%s (V:%d E:%d) Length\n",
-	  label, unodes, uedges);
+          label, unodes, uedges);
   fprintf(fUnitigOut,"%s (V:%d E:%d) Unitigs\n",
-	  label, unodes, uedges);
+          label, unodes, uedges);
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
@@ -388,23 +400,24 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
 
   InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&Nodes))){
-    GraphEdgeIterator Edges;
-    EdgeCGW_T *edge;
     int cnt = 0;
     int noBacDegree = 0, totalDegree = 0;
 
     nodes++;
 
-    InitGraphEdgeIterator(graph, node->id, A_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&Edges))){
+    {
+    GraphEdgeIterator edgei(graph, node->id, A_END, ALL_EDGES);
+    EdgeCGW_T        *edge;
+
+    while (NULL != (edge = edgei.nextMerged())) {
       if(edge->idA == node->id){
-	if(edge->flags.bits.isInferred){
-	  numberInferred++;
-	}
-	if(edge->flags.bits.isTransitivelyRemoved){
-	  numberRemoved++;
-	}
-	if(edge->edgesContributing >= MIN_EDGES){
+        if(edge->flags.bits.isInferred){
+          numberInferred++;
+        }
+        if(edge->flags.bits.isTransitivelyRemoved){
+          numberRemoved++;
+        }
+        if(edge->edgesContributing >= MIN_EDGES){
           edges++;
           totalDegree = EdgeDegree(graph,edge);
           assert(edge->edgesContributing == totalDegree);
@@ -416,14 +429,17 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
         cnt++;
       }
     }
-
+    }
     Setint(aEndDegree, node->id, &cnt);
 
     cnt = 0;
-    InitGraphEdgeIterator(graph, node->id, B_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&Edges))){
+    {
+    GraphEdgeIterator edgei(graph, node->id, B_END, ALL_EDGES);
+    EdgeCGW_T        *edge;
+
+    while (NULL != (edge = edgei.nextMerged())) {
       if(edge->idA == node->id){
-	if( edge->edgesContributing >= MIN_EDGES){
+        if( edge->edgesContributing >= MIN_EDGES){
           edges++;
           totalDegree = EdgeDegree(graph,edge);
           assert(edge->edgesContributing == totalDegree);
@@ -431,11 +447,11 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
             bacOnlyEdges++;
           fprintf(fLinksPerEdge_WBacs,  "%d\n",totalDegree);
           fprintf(fLinksPerEdge_WOBacs,  "%d\n",noBacDegree);
-	}
-	cnt++;
+        }
+        cnt++;
       }
     }
-
+    }
     Setint(bEndDegree, node->id, &cnt);
   }
 
@@ -443,15 +459,15 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
   fprintf(fScaffoldNature,"Number Edges marked inferred by end-tuck: %d\n", numberInferred);
 
   fprintf(fout,"%s (V:%d E:%d (%d)) OutDegrees\n",
-	  label, nodes, edges, bacOnlyEdges);
+          label, nodes, edges, bacOnlyEdges);
   fprintf(fEndOut,"Scaffolds (V:%d  E:%d (%d)) End OutDegrees\n",
-	  2*nodes, edges, bacOnlyEdges);
+          2*nodes, edges, bacOnlyEdges);
   fprintf(fLengthOut,"Scaffold (V:%d E:%d (%d)) Length\n",
-	  nodes, edges,bacOnlyEdges);
+          nodes, edges,bacOnlyEdges);
   fprintf(fLengthSinglesOut,"Scaffold (V:%d E:%d (%d)) Length\n",
-	  nodes, edges,bacOnlyEdges);
+          nodes, edges,bacOnlyEdges);
   fprintf(fContigOut,"Scaffold (V:%d E:%d (%d)) Contigs\n",
-	  nodes, edges, bacOnlyEdges);
+          nodes, edges, bacOnlyEdges);
   fprintf(fScaffoldGapMeans, "Mean IntraScaffold Gap Sizes\n");
   fprintf(fScaffoldGapStds, "Std IntraScaffold Gap Sizes\n");
 
@@ -480,33 +496,33 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
 
       InitCIScaffoldTIterator(ScaffoldGraph, node, TRUE, FALSE, &Contigs);
       for(next = NextCIScaffoldTIterator(&Contigs), prev = NULL; next != NULL; prev = next, next = NextCIScaffoldTIterator(&Contigs)){
-	if(prev && next){
-	  if(prev->offsetAEnd.mean < prev->offsetBEnd.mean){
-	    if(next->offsetAEnd.mean < next->offsetBEnd.mean){
-	      mean = next->offsetAEnd.mean - prev->offsetBEnd.mean;
-	      std = next->offsetAEnd.variance - prev->offsetBEnd.variance;
-	    }else{
-	      mean = next->offsetBEnd.mean - prev->offsetBEnd.mean;
-	      std = next->offsetBEnd.variance - prev->offsetBEnd.variance;
-	    }
-	  }else{
-	    if(next->offsetAEnd.mean < next->offsetBEnd.mean){
-	      mean = next->offsetAEnd.mean - prev->offsetAEnd.mean;
-	      std = next->offsetAEnd.variance - prev->offsetAEnd.variance;
-	    }else{
-	      mean = next->offsetBEnd.mean - prev->offsetAEnd.mean;
-	      std = next->offsetBEnd.variance - prev->offsetAEnd.variance;
-	    }
+        if(prev && next){
+          if(prev->offsetAEnd.mean < prev->offsetBEnd.mean){
+            if(next->offsetAEnd.mean < next->offsetBEnd.mean){
+              mean = next->offsetAEnd.mean - prev->offsetBEnd.mean;
+              std = next->offsetAEnd.variance - prev->offsetBEnd.variance;
+            }else{
+              mean = next->offsetBEnd.mean - prev->offsetBEnd.mean;
+              std = next->offsetBEnd.variance - prev->offsetBEnd.variance;
+            }
+          }else{
+            if(next->offsetAEnd.mean < next->offsetBEnd.mean){
+              mean = next->offsetAEnd.mean - prev->offsetAEnd.mean;
+              std = next->offsetAEnd.variance - prev->offsetAEnd.variance;
+            }else{
+              mean = next->offsetBEnd.mean - prev->offsetAEnd.mean;
+              std = next->offsetBEnd.variance - prev->offsetAEnd.variance;
+            }
 
-	  }
-	  if(std > 0)
-	    std = sqrt(std);
-	  else
-	    std = 0.0;
-	  fprintf(fScaffoldGapMeans, "%d\n", (int)mean);
-	  fprintf(fScaffoldGapStds, "%d\n", (int)std);
+          }
+          if(std > 0)
+            std = sqrt(std);
+          else
+            std = 0.0;
+          fprintf(fScaffoldGapMeans, "%d\n", (int)mean);
+          fprintf(fScaffoldGapStds, "%d\n", (int)std);
 
-	}
+        }
 
       }
     }
@@ -585,7 +601,7 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
 
     if(graph->type == CONTIG_GRAPH &&
        (nodeA->scaffoldID == NULLINDEX ||
-	nodeB->scaffoldID == NULLINDEX ))
+        nodeB->scaffoldID == NULLINDEX ))
       continue;
 
     if(isOverlapEdge(edge)){
@@ -614,7 +630,7 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
   }
   if(graph->type == CONTIG_GRAPH)
     fprintf(stderr,"*** Links confirmed by cgbOlaps %d  onCGBOlaps %d\n",
-	    cgbOverlap, nonCGBOverlap);
+            cgbOverlap, nonCGBOverlap);
 
   fclose(linkstd_all);
   fclose(linkstd_w_overlap);
@@ -706,7 +722,7 @@ void GenerateSurrogateStats(char *phase){
     }
 #ifdef DEBUG_DETAILED
     fprintf(stderr,"* Node "F_CID" %c contig:"F_CID"  numInstances %d\n",
-	    node->id, type, node->info.CI.contigID, node->info.CI.numInstances);
+            node->id, type, node->info.CI.contigID, node->info.CI.numInstances);
 #endif
     if((node->type != UNRESOLVEDCHUNK_CGW) ||    // is not a surrogate parent
        (node->info.CI.numInstances == 0))        // has no surrogates
@@ -717,7 +733,7 @@ void GenerateSurrogateStats(char *phase){
     fprintf(surrogRatio, "%d\n", ApproximateUnitigCoverage(node)/node->info.CI.numInstances );
   }
   fprintf(stderr,"* Stones: %d  Walks:%d\n",
-	  stoneSurrogs, walkSurrogs);
+          stoneSurrogs, walkSurrogs);
 
 
   fclose(surrogCreated);

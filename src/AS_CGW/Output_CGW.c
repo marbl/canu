@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.51 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.52 2012-08-01 02:23:38 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -56,11 +56,10 @@ MarkContigEdges(void) {
 
     InitCIScaffoldTIterator(ScaffoldGraph, scaffold,TRUE, FALSE, &Contigs);
     while((contig = NextCIScaffoldTIterator(&Contigs)) != NULL){
-      GraphEdgeIterator edges;
-      EdgeCGW_T *edge;
+      GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES);
+      EdgeCGW_T        *edge;
 
-      InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY , &edges);
-      while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+      while((edge = edges.nextRaw()) != NULL){
         ContigT *mcontig;
 
         assert(edge->flags.bits.isRaw);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.93 2012-06-21 09:12:16 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.94 2012-08-01 02:23:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,7 +162,7 @@ void DeleteGraphCGW(GraphCGW_T *graph){
       if (!node->flags.bits.isCI)
         continue;
       if (node->info.CI.numInstances < 3)
-	continue;
+        continue;
       DeleteVA_CDS_CID_t(node->info.CI.instances.va);
     }
 
@@ -279,16 +279,16 @@ int FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
       chunkA->edgeHead = tail->nextALink;
     }else{
       if(prevA->idA == head->idA){
-	prevA->nextALink = tail->nextALink;
+        prevA->nextALink = tail->nextALink;
       }else{
-	prevA->nextBLink = tail->nextALink;
+        prevA->nextBLink = tail->nextALink;
       }
     }
     if(nextA){
       if(nextA->idA == head->idA){
-	nextA->prevALink = head->prevALink;
+        nextA->prevALink = head->prevALink;
       }else{
-	nextA->prevBLink = head->prevALink;
+        nextA->prevBLink = head->prevALink;
       }
     }
     // Unlink B Chain
@@ -296,17 +296,17 @@ int FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
       chunkB->edgeHead = tail->nextBLink;
     }else{
       if(prevB->idB == head->idB){
-	prevB->nextBLink = tail->nextBLink;
+        prevB->nextBLink = tail->nextBLink;
       }else{
-	prevB->nextALink = tail->nextBLink;
+        prevB->nextALink = tail->nextBLink;
       }
     }
 
     if(nextB){
       if(nextB->idB == head->idB){
-	nextB->prevBLink = head->prevBLink;
+        nextB->prevBLink = head->prevBLink;
       }else{
-	nextB->prevALink = head->prevBLink;
+        nextB->prevALink = head->prevBLink;
       }
     }
 
@@ -327,29 +327,30 @@ void GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid){
   CIEdgeT  *edge = GetGraphEdge(graph,eid);
   CIEdgeT  *edgeFromA = NULL;
   CIEdgeT  *edgeFromB = NULL;
-  GraphEdgeIterator edges;
   CDS_CID_t idA = edge->idA;
   CDS_CID_t idB = edge->idB;
 
-  InitGraphEdgeIterator(graph, idA, ALL_END, ALL_EDGES,
-                        GRAPH_EDGE_DEFAULT , &edges);
-  while(NULL != (edgeFromA = NextGraphEdgeIterator(&edges))){
-    if(edgeFromA == edge)
-      break;
+  {
+    GraphEdgeIterator edges(graph, idA, ALL_END, ALL_EDGES);
+    while(NULL != (edgeFromA = edges.nextMerged())){
+      if(edgeFromA == edge)
+        break;
+    }
+    if(edgeFromA == NULL)
+      fprintf(stderr,"* Couldn't find edge "F_CID" ("F_CID","F_CID") looking from A "F_CID"\n",
+              eid, idA, idB, idA);
   }
-  if(edgeFromA == NULL)
-    fprintf(stderr,"* Couldn't find edge "F_CID" ("F_CID","F_CID") looking from A "F_CID"\n",
-	    eid, idA, idB, idA);
 
-  InitGraphEdgeIterator(graph, idB, ALL_END, ALL_EDGES,
-                        GRAPH_EDGE_DEFAULT , &edges);
-  while(NULL != (edgeFromB = NextGraphEdgeIterator(&edges))){
-    if(edgeFromB == edge)
-      break;
+  {
+    GraphEdgeIterator edges(graph, idB, ALL_END, ALL_EDGES);
+    while(NULL != (edgeFromB = edges.nextMerged())){
+      if(edgeFromB == edge)
+        break;
+    }
+    if(edgeFromB == NULL)
+      fprintf(stderr,"* Couldn't find edge "F_CID" ("F_CID","F_CID") looking from B "F_CID"\n",
+              eid, idA, idB, idB);
   }
-  if(edgeFromB == NULL)
-    fprintf(stderr,"* Couldn't find edge "F_CID" ("F_CID","F_CID") looking from B "F_CID"\n",
-            eid, idA, idB, idB);
 
   if(edgeFromB == NULL || edgeFromA == NULL)
     PrintGraphEdge(stderr,graph," ", edge, idA);
@@ -378,9 +379,9 @@ int EdgeCGWCompare(EdgeCGW_T *edge1, EdgeCGW_T *edge2){
   int diff;
 
   assert(edge1->idA <= edge1->idB &&
-	 edge2->idA <= edge2->idB &&
-	 !edge1->flags.bits.isDeleted &&
-	 !edge2->flags.bits.isDeleted);
+         edge2->idA <= edge2->idB &&
+         !edge1->flags.bits.isDeleted &&
+         !edge2->flags.bits.isDeleted);
 
 
   diff = edge1->idA - edge2->idA;
@@ -413,7 +414,6 @@ int EdgeCGWCompare(EdgeCGW_T *edge1, EdgeCGW_T *edge2){
 void InsertGraphEdgeInList(GraphCGW_T *graph,
                            CDS_CID_t CIedgeID, CDS_CID_t cid, int verbose){
   ChunkInstanceT *ci;
-  GraphEdgeIterator edges;
   CIEdgeT *edge, *prevEdge, *newEdge;
   int isA;
   int flags;
@@ -447,10 +447,9 @@ void InsertGraphEdgeInList(GraphCGW_T *graph,
   }
 
   /* Should we insert at head? */
-  flags = GRAPH_EDGE_DEFAULT;
 
-  InitGraphEdgeIterator(graph, cid, ALL_END, ALL_EDGES, flags, &edges);
-  edge = NextGraphEdgeIterator(&edges);
+  GraphEdgeIterator edges(graph, cid, ALL_END, ALL_EDGES);
+  edge = edges.nextMerged();
 
   /* Should we insert at head? */
   if(!edge ||
@@ -459,76 +458,58 @@ void InsertGraphEdgeInList(GraphCGW_T *graph,
     ci->edgeHead = CIedgeID;
     if(edge){
       if(edge->idA == cid){
-	edge->prevALink = CIedgeID;
+        edge->prevALink = CIedgeID;
       }else{
-	assert(edge->idB == cid);
-	edge->prevBLink = CIedgeID;
+        assert(edge->idB == cid);
+        edge->prevBLink = CIedgeID;
       }
     }
-    if(verbose)
-      fprintf(stderr,"* cid:"F_CID" edgeID:"F_CID" Insert at head ("F_CID","F_CID") -> ("F_CID","F_CID")\n",
-	      cid, CIedgeID,
-	      newEdge->idA, newEdge->idB,
-              (edge?edge->idA:-1), (edge?edge->idB:-1));
+    //fprintf(stderr,"* cid:"F_CID" edgeID:"F_CID" Insert at head ("F_CID","F_CID") -> ("F_CID","F_CID")\n",
+    //        cid, CIedgeID,
+    //        newEdge->idA, newEdge->idB,
+    //        (edge?edge->idA:-1), (edge?edge->idB:-1));
   }else{
     /* Look down list until we either hit the end, or are > the edge */
     CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, edge);
 
-    if(ci->edgeHead != eid){
-      EdgeCGW_T *ehead = GetGraphEdge(graph, ci->edgeHead);
-      EdgeCGW_T *eprev = GetGraphEdge(graph, edges.prev);
-      fprintf(stderr,"*  Screwup!!!\n");
-      PrintGraphEdge(stderr,graph,"head ", ehead, cid);
-      PrintGraphEdge(stderr,graph,"1st  ", edge, cid);
-      if(eprev)
-	PrintGraphEdge(stderr,graph,"1st  ", eprev, cid);
+    assert(ci->edgeHead == eid);
+    assert(edge->flags.bits.isDeleted == false);
 
-      assert(0);
-    }
-
-    assert(!edge->flags.bits.isDeleted);
-
-    while(NULL != (edge = NextGraphEdgeIterator(&edges))){
-      assert(!edge->flags.bits.isDeleted);
+    while(NULL != (edge = edges.nextMerged())){
+      assert(edge->flags.bits.isDeleted == false);
       assert(edge != newEdge);
       assert(edge->idA == cid || edge->idB == cid);
       if( EdgeCGWCompare(newEdge,edge) <= 0)
-	break;
+        break;
     }
+
     /* Now insert */
-    prevEdge = GetGraphEdge(graph, edges.prev);
-    assert(prevEdge != newEdge && !prevEdge->flags.bits.isDeleted);
-    if(verbose){
-      if(edge){
-	fprintf(stderr,"* cid:"F_CID" edge:"F_CID" Inserting in middle "F_CID"("F_CID","F_CID") - >* "F_CID"("F_CID","F_CID") -> * "F_CID"("F_CID","F_CID")\n",
-		cid, CIedgeID,
-		edges.prev,
-		prevEdge->idA, prevEdge->idB,
-		CIedgeID,
-		newEdge->idA, newEdge->idB,
-		edges.curr,
-		edge->idA, edge->idB);
-      }else{
-	fprintf(stderr,"* cid:"F_CID" edge:"F_CID" Appending after ("F_CID","F_CID") - >* ("F_CID","F_CID")\n",
-		cid, CIedgeID,
-		prevEdge->idA, prevEdge->idB,
-		newEdge->idA, newEdge->idB);
-      }
-    }
-    AssertPtr(prevEdge);
+
+    prevEdge = edges.prevMerged();
+    assert(prevEdge != newEdge);
+    assert(prevEdge->flags.bits.isDeleted == false);
+
+    //if (edge)
+    //  fprintf(stderr,"* cid:"F_CID" edge:"F_CID" Inserting in middle "F_CID"("F_CID","F_CID") - >* "F_CID"("F_CID","F_CID") -> * "F_CID"("F_CID","F_CID")\n",
+    //          cid, CIedgeID, edges.prevMergedID(), prevEdge->idA, prevEdge->idB,
+    //          CIedgeID, newEdge->idA, newEdge->idB, edges.currMergedID(), edge->idA, edge->idB);
+    //else
+    //  fprintf(stderr,"* cid:"F_CID" edge:"F_CID" Appending after ("F_CID","F_CID") - >* ("F_CID","F_CID")\n",
+    //          cid, CIedgeID, prevEdge->idA, prevEdge->idB, newEdge->idA, newEdge->idB);
+
     if(prevEdge->idA == cid){
-      SetEdgeCGWLinks(newEdge, isA, edges.prev, prevEdge->nextALink);
+      SetEdgeCGWLinks(newEdge, isA, edges.prevMergedID(), prevEdge->nextALink);
       prevEdge->nextALink = CIedgeID;
     }else{
       assert(prevEdge->idB == cid);
-      SetEdgeCGWLinks(newEdge, isA, edges.prev, prevEdge->nextBLink);
+      SetEdgeCGWLinks(newEdge, isA, edges.prevMergedID(), prevEdge->nextBLink);
       prevEdge->nextBLink = CIedgeID;
     }
     if(edge){
       if(edge->idA == cid){
-	edge->prevALink = CIedgeID;
+        edge->prevALink = CIedgeID;
       }else{
-	edge->prevBLink = CIedgeID;
+        edge->prevBLink = CIedgeID;
       }
     }
     if(prevEdge){
@@ -536,10 +517,10 @@ void InsertGraphEdgeInList(GraphCGW_T *graph,
              (prevEdge->nextALink != prevEdge->prevALink));
       assert(prevEdge->nextBLink == NULLINDEX ||
              (prevEdge->nextBLink != prevEdge->prevBLink));
-      assert( (prevEdge->nextALink != edges.prev &&
-               prevEdge->nextBLink != edges.prev));
-      assert( (prevEdge->prevALink != edges.prev &&
-               prevEdge->prevBLink != edges.prev));
+      assert( (prevEdge->nextALink != edges.prevMergedID() &&
+               prevEdge->nextBLink != edges.prevMergedID()));
+      assert( (prevEdge->prevALink != edges.prevMergedID() &&
+               prevEdge->prevBLink != edges.prevMergedID()));
     }
 
     if(isA)
@@ -578,10 +559,10 @@ void InitGraphEdgeFlags(GraphCGW_T *graph, EdgeCGW_T *edge){
       edge->flags.bits.isActive = TRUE;
       // Set the isConfirmed flag for edges with more than one pair of mates
       if((edge->edgesContributing > MIN_EDGES) ||
-	 (!isOverlapEdge(edge) && (edge->edgesContributing == MIN_EDGES))){
-	edge->flags.bits.isConfirmed = TRUE;
+         (!isOverlapEdge(edge) && (edge->edgesContributing == MIN_EDGES))){
+        edge->flags.bits.isConfirmed = TRUE;
       }else{
-	edge->flags.bits.isConfirmed = FALSE;
+        edge->flags.bits.isConfirmed = FALSE;
       }
     }
   }
@@ -612,12 +593,12 @@ int32 InsertGraphEdge(GraphCGW_T *graph, CDS_CID_t edgeID, int verbose){
   // ALD: set  [prev|next][AB]Link 's to NULL since
   // InsertGraphEdgeInList  isn't very smart about keeping the
   // A|B versions separate
-  edge -> prevALink = edge -> nextALink
-    = edge -> prevBLink = edge -> nextBLink = NULLINDEX;
+  edge->prevALink = NULLINDEX;
+  edge->nextALink = NULLINDEX;
+  edge->prevBLink = NULLINDEX;
+  edge->nextBLink = NULLINDEX;
 
-  // Now insert into list for idA
   InsertGraphEdgeInList(graph,  edgeID, edge->idA, verbose);
-  // Now insert into list for idB
   InsertGraphEdgeInList(graph,  edgeID, edge->idB, verbose);
 
   return TRUE;
@@ -633,16 +614,16 @@ void FreeGraphEdgeByEID(GraphCGW_T *graph, CDS_CID_t eid){
     {
       EdgeCGW_T *rawEdge = GetGraphEdge(graph, edge->nextRawEdge);
       while(rawEdge){
-	EdgeCGW_T *nextEdge = GetGraphEdge(graph, rawEdge->nextRawEdge);
-	count++;
+        EdgeCGW_T *nextEdge = GetGraphEdge(graph, rawEdge->nextRawEdge);
+        count++;
 
-	assert(rawEdge->idA == edge->idA &&
-	       rawEdge->idB == edge->idB &&
-	       rawEdge->orient == edge->orient );
+        assert(rawEdge->idA == edge->idA &&
+               rawEdge->idB == edge->idB &&
+               rawEdge->orient == edge->orient );
 
-	rawEdge->nextRawEdge = NULLINDEX;
-	FreeGraphEdge(graph,rawEdge);
-	rawEdge = nextEdge;
+        rawEdge->nextRawEdge = NULLINDEX;
+        FreeGraphEdge(graph,rawEdge);
+        rawEdge = nextEdge;
       }
     }
   edge->flags.bits.isDeleted = TRUE;
@@ -701,14 +682,12 @@ EdgeCGW_T *GetFreeGraphEdge(GraphCGW_T *graph){
 
 // Delete a graph node and all edges incident on this node
 void DeleteGraphNode(GraphCGW_T *graph, NodeCGW_T *node){
-  GraphEdgeIterator edges;
-  EdgeCGW_T *edge;
+  GraphEdgeIterator edges(graph, node->id, ALL_END, ALL_EDGES);
+  EdgeCGW_T        *edge;
   int i;
   VA_TYPE(PtrT) *edgeList = CreateVA_PtrT(100);
 
-  InitGraphEdgeIterator(graph, node->id,
-                        ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT , &edges);
-  while(NULL != (edge = NextGraphEdgeIterator(&edges)))
+  while(NULL != (edge = edges.nextMerged()))
     AppendPtrT(edgeList, (void **)&edge);
 
   for(i = 0; i < GetNumPtrTs(edgeList); i++){
@@ -748,17 +727,17 @@ void UnlinkGraphEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
       assert(edge->flags.bits.isRaw);
       for(prevEdge = topEdge,
             rawEdge = GetGraphEdge(graph,topEdge->nextRawEdge);
-	  rawEdge != NULL;
-	  prevEdge = rawEdge,
+          rawEdge != NULL;
+          prevEdge = rawEdge,
             rawEdge = GetGraphEdge(graph,rawEdge->nextRawEdge)){
-	assert(!rawEdge->flags.bits.isDeleted);
-	if(rawEdge == edge){
-	  prevEdge->nextRawEdge = edge->nextRawEdge;
-	  edge->nextRawEdge = 0;
-	  edge->topLevelEdge = eid;  // make this a top level edge
-	  topEdge->edgesContributing--;
-	  return;
-	}
+        assert(!rawEdge->flags.bits.isDeleted);
+        if(rawEdge == edge){
+          prevEdge->nextRawEdge = edge->nextRawEdge;
+          edge->nextRawEdge = 0;
+          edge->topLevelEdge = eid;  // make this a top level edge
+          topEdge->edgesContributing--;
+          return;
+        }
       }
 
       PrintGraphEdge(stderr,graph,"*looking for* ",
@@ -766,10 +745,10 @@ void UnlinkGraphEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
       PrintGraphEdge(stderr,graph,"*top level  * ",
                      topEdge, topEdge->idA );
       for(rawEdge = GetGraphEdge(graph,topEdge->nextRawEdge);
-	  rawEdge != NULL;
-	  rawEdge = GetGraphEdge(graph,rawEdge->nextRawEdge)){
-	assert(!rawEdge->flags.bits.isDeleted);
-	PrintGraphEdge(stderr,graph,"*raw* ",
+          rawEdge != NULL;
+          rawEdge = GetGraphEdge(graph,rawEdge->nextRawEdge)){
+        assert(!rawEdge->flags.bits.isDeleted);
+        PrintGraphEdge(stderr,graph,"*raw* ",
                        rawEdge, rawEdge->idA );
       }
       assert(0 /* We didn't find a raw edge we were trying to unlink */);
@@ -1220,7 +1199,6 @@ void DumpGraph(GraphCGW_T *graph, FILE *stream){
 
   char *graphType = "";
   GraphNodeIterator nodes;
-  GraphEdgeIterator edges;
   NodeCGW_T *node = NULL;
 
   if(graph->type == CI_GRAPH)
@@ -1236,12 +1214,12 @@ void DumpGraph(GraphCGW_T *graph, FILE *stream){
 
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   while(NULL != (node = NextGraphNodeIterator(&nodes))){
-    EdgeCGW_T *edge = NULL;
+    GraphEdgeIterator edges(graph, node->id, ALL_END, ALL_EDGES);
+    EdgeCGW_T        *edge = NULL;
 
     fprintf(stream,"Node "F_CID"\n", node->id);
-    InitGraphEdgeIterator(graph, node->id, ALL_END, ALL_EDGES,
-                          GRAPH_EDGE_DEFAULT , &edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&edges))){
+
+    while(NULL != (edge = edges.nextMerged())){
       fprintf(stream,"\t("F_CID","F_CID") %c wt:%d %s\n",
               edge->idA, edge->idB, edge->orient.toLetter(), edge->edgesContributing,
               (isOverlapEdge(edge)?"*O*":" "));
@@ -1257,8 +1235,6 @@ EdgeCGW_T *FindGraphOverlapEdge(GraphCGW_T *graph,
                                 CDS_CID_t idA, CDS_CID_t idB,
                                 PairOrient orient){
 
-  GraphEdgeIterator edges;
-  EdgeCGW_T *edge;
   int end;
   int found = FALSE;
 
@@ -1269,9 +1245,10 @@ EdgeCGW_T *FindGraphOverlapEdge(GraphCGW_T *graph,
   else
     end = A_END;
 
-  InitGraphEdgeIterator(graph, idA, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-
-  while(NULL != (edge = NextGraphEdgeIterator(&edges))){
+  GraphEdgeIterator edges(graph, idA, end, ALL_EDGES);
+  EdgeCGW_T        *edge = NULL;
+  
+  while(NULL != (edge = edges.nextMerged())) {
     PairOrient corient = GetEdgeOrientationWRT(edge, idA);
     if(!isOverlapEdge(edge)){
       continue;
@@ -1298,8 +1275,6 @@ EdgeCGW_T *FindGraphEdge(GraphCGW_T *graph,
                          CDS_CID_t idA, CDS_CID_t idB,
                          PairOrient orient){
 
-  GraphEdgeIterator edges;
-  EdgeCGW_T *edge;
   int end = ALL_END;
   int found = FALSE;
 
@@ -1310,9 +1285,10 @@ EdgeCGW_T *FindGraphEdge(GraphCGW_T *graph,
   if (orient.isBA_AB() || orient.isBA_BA())
     end = A_END;
 
-  InitGraphEdgeIterator(graph, idA, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
+  GraphEdgeIterator edges(graph, idA, end, ALL_EDGES);
+  EdgeCGW_T        *edge;
 
-  while(NULL != (edge = NextGraphEdgeIterator(&edges))){
+  while(NULL != (edge = edges.nextMerged())){
     PairOrient corient = GetEdgeOrientationWRT(edge, idA);
     if(corient != orient)
       continue;
@@ -1357,7 +1333,6 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
   CDS_CID_t id;
   EdgeCGW_T *head, *edge;
   CDS_CID_t *candidates;
-  GraphEdgeIterator edges;
   id = node->id;
 
   if(mergeCandidates == NULL){
@@ -1368,9 +1343,9 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
     ResetVA_CDS_CID_t(chain);
   }
 
-  InitGraphEdgeIterator(graph, id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
+  GraphEdgeIterator edges(graph, id, ALL_END, ALL_EDGES);
   head = NULL;
-  while(NULL != (edge = NextGraphEdgeIterator(&edges))){
+  while(NULL != (edge = edges.nextMerged())) {
     if(!head ||
        head->idA != edge->idA ||
        head->idB != edge->idB ||
@@ -1382,8 +1357,10 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
       //          edges.curr, (head?head->idA:-1), (head?head->idB:-1), edge->idA, edge->idB);
 
       head = edge;
-      if(head->idA == id || mergeAll) // avoid double counting
-        AppendCDS_CID_t(mergeCandidates, &edges.curr);
+      if(head->idA == id || mergeAll) { // avoid double counting
+        CDS_CID_t  c = edges.currMergedID();
+        AppendCDS_CID_t(mergeCandidates, &c);
+      }
     }
   }
 
@@ -1466,7 +1443,6 @@ void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides, int mergeAll){
 */
 void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
   EdgeCGW_T *edge;
-  GraphEdgeIterator edgeMates;
   GraphNodeIterator nodes;
   NodeCGW_T *node;
   ChunkOverlapCheckT olap;
@@ -1477,9 +1453,9 @@ void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
 
   while(NULL != (node = NextGraphNodeIterator(&nodes))){
-    InitGraphEdgeIterator(graph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edgeMates);
+    GraphEdgeIterator edgeMates(graph, node->id, ALL_END, ALL_EDGES);
 
-    while(NULL != (edge = NextGraphEdgeIterator(&edgeMates))){
+    while(NULL != (edge = edgeMates.nextMerged())){
       if(isOverlapEdge(edge)){
         count++;
         if (LookupOverlap(graph,
@@ -1493,7 +1469,7 @@ void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
     }
   }
 
-//  assert(failures == 0);
+  //  assert(failures == 0);
 
   fprintf(stderr,"**** Survived CheckEdgesAgainstOverlapper with %d failures****\n", failures);
 }
@@ -1645,25 +1621,25 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
       fprintf(stderr,"* Fragment "F_CID" now has ungapped length = %d ("F_S32","F_S32")...from gapped ("F_S32","F_S32")...either bad multi-alignment or a fragment fully contained within a gap in the consensus due to a bubble\n",
               mp->ident,(int)abs(ubgn-uend), ubgn, uend, bgn,end);
 
-    if(!markUnitigAndContig){
-	     fprintf(stderr,"* Details: fragment in CI "F_CID" ["F_S32","F_S32"] CtgID "F_CID" ["F_S32","F_S32"]\n",
-	        frag->cid,(int)(frag->offset5p.mean),(int)(frag->offset3p.mean),
-	        frag->contigID,(int)(frag->contigOffset5p.mean),(int)(frag->contigOffset3p.mean));
+      if(!markUnitigAndContig){
+        fprintf(stderr,"* Details: fragment in CI "F_CID" ["F_S32","F_S32"] CtgID "F_CID" ["F_S32","F_S32"]\n",
+                frag->cid,(int)(frag->offset5p.mean),(int)(frag->offset3p.mean),
+                frag->contigID,(int)(frag->contigOffset5p.mean),(int)(frag->contigOffset3p.mean));
       }
 
-     if(bgn < end){
-	     if(ubgn<1){
+      if(bgn < end){
+        if(ubgn<1){
 	        uend++;
-	     } else {
+        } else {
 	        ubgn--;
-	     }
-     } else {
-	     assert(end<bgn);
-	     if(uend<1){
+        }
+      } else {
+        assert(end<bgn);
+        if(uend<1){
 	        ubgn++;
-	     } else {
+        } else {
 	        uend--;
-	     }
+        }
       }
     }
     offset5p.mean = ubgn;
@@ -1689,32 +1665,32 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 
 #if 0
     fprintf(stderr,"* result: "F_CID" frag->offset to "F_S32","F_S32" and frag->contigOffset "F_S32","F_S32" of "F_CID" (frag->cid "F_CID" CIid "F_CID" contigID "F_CID" )\n",
-	    frag->read_iid,
-	    (int) frag->offset5p.mean,
-	    (int) frag->offset3p.mean,
-	    (int) frag->contigOffset5p.mean,
-	    (int) frag->contigOffset3p.mean,
-	    node->id,
-	    frag->cid,
-	    frag->CIid,
-	    frag->contigID);
+            frag->read_iid,
+            (int) frag->offset5p.mean,
+            (int) frag->offset3p.mean,
+            (int) frag->contigOffset5p.mean,
+            (int) frag->contigOffset3p.mean,
+            node->id,
+            frag->cid,
+            frag->CIid,
+            frag->contigID);
 #endif
 
-      if(i == extremalA){
-         frag->flags.bits.chunkLabel = AS_INTERCHUNK_A;
-      }else if(i == extremalB){
-         frag->flags.bits.chunkLabel = AS_INTERCHUNK_B;  /*  A->B? */
-       }else{
-         frag->flags.bits.chunkLabel = AS_INTRACHUNK;
-      }
+    if(i == extremalA){
+      frag->flags.bits.chunkLabel = AS_INTERCHUNK_A;
+    }else if(i == extremalB){
+      frag->flags.bits.chunkLabel = AS_INTERCHUNK_B;  /*  A->B? */
+    }else{
+      frag->flags.bits.chunkLabel = AS_INTRACHUNK;
+    }
 
-      // for placement constraints, mark fragments as constrained
-      if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(frag->read_iid) != 0) {
-         if (node->scaffoldID == -1) {
-            node->flags.bits.isClosure = TRUE;
-         }
+    // for placement constraints, mark fragments as constrained
+    if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(frag->read_iid) != 0) {
+      if (node->scaffoldID == -1) {
+        node->flags.bits.isClosure = TRUE;
       }
-   }
+    }
+  }
 }
 
 
@@ -1923,14 +1899,14 @@ CreateGraphEdge(GraphCGW_T *graph,
   switch(graph->type){
     case CI_GRAPH:
       if(frag->cid == mfrag->cid)
-	return FALSE;
+        return FALSE;
       isCI = TRUE;
       node = GetGraphNode(graph, frag->cid);
       mnode = GetGraphNode(graph, mfrag->cid);
       break;
     case CONTIG_GRAPH:
       if(frag->contigID == mfrag->contigID)
-	return FALSE;
+        return FALSE;
       isCI = FALSE;
       node = GetGraphNode(graph, frag->contigID);
       mnode = GetGraphNode(graph, mfrag->contigID);
@@ -2222,7 +2198,7 @@ void PropagateEdgeStatusToFrag(GraphCGW_T *graph, EdgeCGW_T *edge){
     if(edge->fragA == NULLINDEX||edge->fragB == NULLINDEX){
       PrintGraphEdge(stderr,graph," PESTF1 : ",edge,edge->idA);
       fprintf(stderr," * .... isInferred %d\n",
-	      edge->flags.bits.isInferred);
+              edge->flags.bits.isInferred);
       assert(0);
     }
 
@@ -2235,7 +2211,7 @@ void PropagateEdgeStatusToFrag(GraphCGW_T *graph, EdgeCGW_T *edge){
     if(edge->fragA == NULLINDEX||edge->fragB == NULLINDEX){
       PrintGraphEdge(stderr,graph," PESTF2 : ",edge,edge->idB);
       fprintf(stderr," * .... isInferred %d\n",
-	      edge->flags.bits.isInferred);
+              edge->flags.bits.isInferred);
       assert(0);
     }
 
@@ -2252,8 +2228,8 @@ static VA_TYPE(IntMultiPos) *f_list_Contig = NULL;
 
 
 /*
-   Assign a subset of the fragments in an unresolved CI to one of its surrogates.
-   The fragments listed are marked for membership (via their CIid field) int he new element
+  Assign a subset of the fragments in an unresolved CI to one of its surrogates.
+  The fragments listed are marked for membership (via their CIid field) int he new element
 */
 void AssignFragsToResolvedCI(GraphCGW_T *graph,
                              CDS_CID_t fromID, CDS_CID_t toID,
@@ -2423,11 +2399,10 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
 #if 0
   // There is no need to copy the edges on the surrogate unitig
   // they are not putput and not used for anything
-  GraphEdgeIterator edges;
-  EdgeCGW_T *edge;
+  GraphEdgeIterator edges(graph, oldNodeID, ALL_END, ALL_EDGES);
+  EdgeCGW_T        *edge;
 
-  InitGraphEdgeIterator(graph, oldNodeID, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);
-  while(edge = NextGraphEdgeIterator(&edges)){
+  while(edge = edges.nextRaw()){
     if(isOverlapEdge(edge)){
       EdgeCGW_T *newEdge = GetFreeGraphEdge(graph);
       CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
@@ -2563,7 +2538,6 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
 
   /* Copy all of the overlap edges from the original contig to the surrogate */
   if(copyAllOverlaps) {
-    GraphEdgeIterator edges;
     EdgeCGW_T *edge;
 
     // copyOfEdge - Bug fix by Jason Miller, 5/26/06.
@@ -2573,8 +2547,8 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
 
     //    fprintf(stderr,"* Copying edges\n");
 
-    InitGraphEdgeIterator(graph, oldID, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&edges))){
+    GraphEdgeIterator edges(graph, oldID, ALL_END, ALL_EDGES);
+    while(NULL != (edge = edges.nextRaw())){
       if(isOverlapEdge(edge)){
         EdgeCGW_T *newEdge;
         CDS_CID_t eid;
@@ -2616,7 +2590,7 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
   }
 
   fprintf(stderr,"SplitUnresolvedContig()-- Split base CI="F_CID" contig="F_CID" into new CI="F_CID" contig="F_CID"\n",
-	  baseCIid, oldID, newCIid, newID);
+          baseCIid, oldID, newCIid, newID);
 
   //DumpContig(stderr,ScaffoldGraph, newNode, FALSE);
 
@@ -2790,14 +2764,14 @@ void ComputeMatePairDetailedStatus(void) {
         continue;
       }
       if (mate->mate_iid != mp->ident) {
-	fprintf (stderr, "ERROR: The gkpStore appears corrupt!\n");
-	fprintf (stderr, "INFO: Expect (mate(mate(read))==read.\n");
-	fprintf (stderr, "INFO: Alignment %d of %d references read IID %d\n", i, numFrags, mp->ident);
-	fprintf (stderr, "INFO: Retrieved read IID %d\n", frag->read_iid);
-	fprintf (stderr, "INFO: That read references mate %d\n", frag->mate_iid);
-	fprintf (stderr, "INFO: Retrieved read IID %d\n", mate->read_iid);
-	fprintf (stderr, "INFO: That read references mate  %d\n", mate->mate_iid);
-	assert(mate->mate_iid == mp->ident);
+        fprintf (stderr, "ERROR: The gkpStore appears corrupt!\n");
+        fprintf (stderr, "INFO: Expect (mate(mate(read))==read.\n");
+        fprintf (stderr, "INFO: Alignment %d of %d references read IID %d\n", i, numFrags, mp->ident);
+        fprintf (stderr, "INFO: Retrieved read IID %d\n", frag->read_iid);
+        fprintf (stderr, "INFO: That read references mate %d\n", frag->mate_iid);
+        fprintf (stderr, "INFO: Retrieved read IID %d\n", mate->read_iid);
+        fprintf (stderr, "INFO: That read references mate  %d\n", mate->mate_iid);
+        assert(mate->mate_iid == mp->ident);
       }
       if(frag->flags.bits.isChaff) {
         if (mate->flags.bits.isChaff) {
@@ -2883,30 +2857,30 @@ void ComputeMatePairDetailedStatus(void) {
             }
           }
       
-            if( (mchunk->info.CI.numInstances > 1 || mchunk->flags.bits.isStoneSurrogate) && !mate->flags.bits.isPlaced ) {
-              int fragExists = ExistsInHashTable_AS(surrHash, frag->read_iid, 0);
+          if( (mchunk->info.CI.numInstances > 1 || mchunk->flags.bits.isStoneSurrogate) && !mate->flags.bits.isPlaced ) {
+            int fragExists = ExistsInHashTable_AS(surrHash, frag->read_iid, 0);
       
-              if (fragExists) { // already seen
-                if (frag->flags.bits.mateDetail != BOTH_SURR_MATE) {
-                  numSurrogate-=1;
-                  numBothSurr+=2;
-                  mate->flags.bits.mateDetail = BOTH_SURR_MATE;
-                  frag->flags.bits.mateDetail = BOTH_SURR_MATE;
-                  InsertInHashTable_AS(surrHash, mate->read_iid, 0, 0, 0);
-                }
-                continue;
-              }
-              int mateExists = ExistsInHashTable_AS(surrHash, mate->read_iid, 0);
-              if (!mateExists) {
-                //fprintf(stderr, "* Add frag %d from chunk %d to surr hash, num: %d\n",
-                //        mate->read_iid, mchunk->id, mchunk->info.CI.numInstances );
+            if (fragExists) { // already seen
+              if (frag->flags.bits.mateDetail != BOTH_SURR_MATE) {
+                numSurrogate-=1;
+                numBothSurr+=2;
+                mate->flags.bits.mateDetail = BOTH_SURR_MATE;
+                frag->flags.bits.mateDetail = BOTH_SURR_MATE;
                 InsertInHashTable_AS(surrHash, mate->read_iid, 0, 0, 0);
-                numSurrogate++;
-                mate->flags.bits.mateDetail = SURR_MATE;
-                frag->flags.bits.mateDetail = SURR_MATE;
               }
+              continue;
             }
-            continue;
+            int mateExists = ExistsInHashTable_AS(surrHash, mate->read_iid, 0);
+            if (!mateExists) {
+              //fprintf(stderr, "* Add frag %d from chunk %d to surr hash, num: %d\n",
+              //        mate->read_iid, mchunk->id, mchunk->info.CI.numInstances );
+              InsertInHashTable_AS(surrHash, mate->read_iid, 0, 0, 0);
+              numSurrogate++;
+              mate->flags.bits.mateDetail = SURR_MATE;
+              frag->flags.bits.mateDetail = SURR_MATE;
+            }
+          }
+          continue;
         }
       }
       
@@ -3657,11 +3631,12 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
         fclose(cgmFile);
       }
 
-      if (updFile)
+      if (updFile) {
         if (dupd->allowUpdate)
           fprintf(updFile, "lib iid %d distance %.2f %.2f\n", i, dupd->mu, dupd->sigma);
         else
           fprintf(updFile, "#lib iid %d distance %.2f %.2f # would have updated to %.2f %.2f but not allowed\n", i, dupd->mu, dupd->sigma, newmu, newsigma);
+      }
 
     }  //  end of update
 
@@ -3770,15 +3745,13 @@ void CheckGraph(GraphCGW_T *graph){
   EdgeCGW_T *edge;
   NodeCGW_T *node;
   GraphNodeIterator nodes;
-  GraphEdgeIterator edges;
 
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
 
   while(NULL != (node = NextGraphNodeIterator(&nodes))){
 
-    InitGraphEdgeIterator(graph, node->id, ALL_END, ALL_EDGES,
-                          GRAPH_EDGE_DEFAULT, &edges);
-    while(NULL != (edge = NextGraphEdgeIterator(&edges))){
+    GraphEdgeIterator edges(graph, node->id, ALL_END, ALL_EDGES);
+    while(NULL != (edge = edges.nextMerged())){
       continue;
     }
   }

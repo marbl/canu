@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.32 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.33 2012-08-01 02:23:38 brianwalenz Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -161,12 +161,11 @@ dumpContigInfo(ChunkInstanceT *contig) {
 
 #if 1
   CIEdgeT * e;
-  GraphEdgeIterator edges;
+  GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES);
 
   //  FALSE == ITERATOR_VERBOSE
 
-  InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES, FALSE, &edges);
-  while((e = NextGraphEdgeIterator(&edges)) != NULL)
+  while((e = edges.nextRaw()) != NULL)
     PrintGraphEdge( stderr, ScaffoldGraph->ContigGraph, "Analyzing edge", e, 0);
 #endif
 
@@ -240,16 +239,10 @@ GetFragmentPositionInScaffold(CIFragT *frag, int *left_end, int *right_end,
 
 void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   int numCI;
-  GraphEdgeIterator edges;
   ContigTIterator CIs;
   ChunkInstanceT *CI;
-  CIEdgeT *edge;
-  int flags = GRAPH_EDGE_DEFAULT;
 
   assert(contig->type == CONTIG_CGW);
-
-  if(raw)
-    flags |= GRAPH_EDGE_RAW_ONLY;
 
   fprintf(stream, "* Contig "F_CID" sc:"F_CID" aoff:%d boff:%d ANext:"F_CID" BNext:"F_CID" len:%d AEnd:"F_CID" BEnd:"F_CID" numCI:%d\nCIs:\n",
           contig->id,
@@ -303,30 +296,32 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
 
   fprintf(stream,"\t%s Edges from A End:\n", (raw?" Raw ":" Merged "));
 
-  InitGraphEdgeIterator(graph->ContigGraph, contig->id, A_END, ALL_EDGES, flags, &edges);
-  while((edge = NextGraphEdgeIterator(&edges)) != NULL){
-    PrintGraphEdge(stream,graph->ContigGraph,"\t",edge, contig->id);
+  {
+    GraphEdgeIterator edges(graph->ContigGraph, contig->id, A_END, ALL_EDGES);
+    CIEdgeT *edge;
+
+    while((edge = (raw) ? edges.nextRaw() : edges.nextMerged()) != NULL)
+      PrintGraphEdge(stream,graph->ContigGraph,"\t",edge, contig->id);
   }
+
   fprintf(stream,"\t%s Edges from B End:\n", (raw?" Raw ":" Merged "));
-  InitGraphEdgeIterator(graph->ContigGraph, contig->id, B_END, ALL_EDGES, flags, &edges);
-  while((edge = NextGraphEdgeIterator(&edges)) != NULL){
-    PrintGraphEdge(stream,graph->ContigGraph,"\t",edge, contig->id);
+
+  {
+    GraphEdgeIterator edges(graph->ContigGraph, contig->id, B_END, ALL_EDGES);
+    CIEdgeT *edge;
+
+    while((edge = (raw) ? edges.nextRaw() : edges.nextMerged()) != NULL)
+      PrintGraphEdge(stream,graph->ContigGraph,"\t",edge, contig->id);
   }
 }
 
 void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
                             ContigT *contig, int raw){
   int numCI;
-  GraphEdgeIterator edges;
   ContigTIterator CIs;
   ChunkInstanceT *CI;
-  CIEdgeT *edge;
-  int flags = GRAPH_EDGE_DEFAULT;
 
   assert(contig->type == CONTIG_CGW);
-
-  if(raw)
-    flags |= GRAPH_EDGE_RAW_ONLY;
 
   fprintf(stream, "* Contig "F_CID" sc:"F_CID" aoff:(%d,%e) boff:(%d,%e) ANext:"F_CID" BNext:"F_CID" len:%d AEnd:"F_CID" BEnd:"F_CID" numCI:%d\nCIs:\n",
           contig->id,
@@ -383,14 +378,22 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
   }
   fprintf(stream,"\t%s Edges from A End:\n", (raw?" Raw ":" Merged "));
 
-  InitGraphEdgeIterator(graph->ContigGraph, contig->id, A_END, ALL_EDGES, flags, &edges);
-  while((edge = NextGraphEdgeIterator(&edges))!=NULL){
-    PrintContigEdgeInScfContext(stream,graph->ContigGraph,"\t",edge, contig->id);
+  {
+    GraphEdgeIterator edges(graph->ContigGraph, contig->id, A_END, ALL_EDGES);
+    CIEdgeT *edge;
+
+    while((edge = (raw) ? edges.nextRaw() : edges.nextMerged()) != NULL)
+      PrintContigEdgeInScfContext(stream,graph->ContigGraph,"\t",edge, contig->id);
   }
+
   fprintf(stream,"\t%s Edges from B End:\n", (raw?" Raw ":" Merged "));
-  InitGraphEdgeIterator(graph->ContigGraph, contig->id, B_END, ALL_EDGES, flags, &edges);
-  while((edge = NextGraphEdgeIterator(&edges))!=NULL){
-    PrintContigEdgeInScfContext(stream,graph->ContigGraph,"\t",edge, contig->id);
+
+  {
+    GraphEdgeIterator edges(graph->ContigGraph, contig->id, B_END, ALL_EDGES);
+    CIEdgeT *edge;
+
+    while((edge = (raw) ? edges.nextRaw() : edges.nextMerged()) != NULL)
+      PrintContigEdgeInScfContext(stream,graph->ContigGraph,"\t",edge, contig->id);
   }
 }
 

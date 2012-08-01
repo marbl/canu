@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.56 2012-06-10 05:52:33 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.57 2012-08-01 02:23:38 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -624,13 +624,8 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
   // Will modify the setId field of the NodeCGW_T structure to reflect
   // which component a node belongs to.
   //
-  UFDataT
-    * UFData = UFCreateSets(scaffold->info.Scaffold.numElements);
-  CIEdgeT
-    * edge;
-  ChunkInstanceT
-    * chunk;
-  GraphEdgeIterator   edges;
+  UFDataT * UFData = UFCreateSets(scaffold->info.Scaffold.numElements);
+  ChunkInstanceT * chunk;
   CIScaffoldTIterator CIs;
   int set = 0;
   int numComponents;
@@ -665,12 +660,12 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
   InitCIScaffoldTIterator(sgraph, scaffold, TRUE,
                           FALSE, &CIs);
   while ((chunk = NextCIScaffoldTIterator(&CIs)) != NULL) {
+    GraphEdgeIterator   edges(sgraph->ContigGraph, chunk->id, ALL_END, edgeTypes);
+    CIEdgeT            *edge;
+
     assert(chunk->setID >= 0);
-    InitGraphEdgeIterator(sgraph->ContigGraph, chunk->id,
-                          ALL_END, edgeTypes, // ALL_TRUSTED_EDGES,
-                          GRAPH_EDGE_DEFAULT, //GRAPH_EDGE_CONFIRMED_ONLY,
-                          &edges);
-    while ((edge = NextGraphEdgeIterator(&edges)) != NULL) {
+
+    while ((edge = edges.nextMerged()) != NULL) {
       //
       // get the other end
       //
@@ -684,23 +679,6 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
       // See each edge only once
       if(chunk->id != edge->idA)
         continue;
-
-#if 0
-      if(edge->flags.bits.isBridge){
-        fprintf(stderr,"* WARNING: chunk "F_CID" weight = %d bridge edge\n",
-                chunk->id, weight);
-        PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph,
-                       "Bridge ", edge, chunk->id);
-        EdgeCGW_T *e;
-        GraphEdgeIterator Edges;
-        InitGraphEdgeIterator(sgraph->ContigGraph,chunk->id,ALL_END,
-                              ALL_TRUSTED_EDGES,GRAPH_EDGE_DEFAULT,&Edges);
-        fprintf(stderr,"Edges out from "F_CID":\n",chunk->id);
-        while(NULL!= (e = NextGraphEdgeIterator(&Edges)))
-          PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph,
-                         "DEBUG Bridge ",e, chunk->id);
-      }
-#endif
 
       if(isSingletonOverlapEdge(edge) ||
          (weight == 1 && edge->flags.bits.isBridge))
@@ -1018,18 +996,14 @@ void CheckTrustedEdges(ScaffoldGraphT * sgraph,  CDS_CID_t cid) {
   // iterates over all trusted edges of CI cid and check if
   // the other end is in the same scaffold
   //
-  GraphEdgeIterator  edges;
+  GraphEdgeIterator  edges(sgraph->ContigGraph, cid, ALL_END, ALL_TRUSTED_EDGES);
   CIEdgeT * edge;
   CDS_CID_t next;
   ChunkInstanceT * next_chunk;
   ChunkInstanceT * this_chunk = GetGraphNode(sgraph->ContigGraph, cid);
   CDS_CID_t sid = this_chunk->scaffoldID;
 
-  InitGraphEdgeIterator(sgraph->ContigGraph, cid,
-                        ALL_END, ALL_TRUSTED_EDGES,
-                        GRAPH_EDGE_DEFAULT,
-                        &edges);
-  while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+  while((edge = edges.nextMerged()) != NULL){
     assert(edge != NULL);
     //
     // get the other end
@@ -1084,14 +1058,13 @@ int CheckAllEdges(ScaffoldGraphT * sgraph,  CDS_CID_t sid, CDS_CID_t cid) {
   // returns the number of edges (of any type except UNTRUSTED_EDGE_STATUS)
   // to chunks in another scaffold
   //
-  GraphEdgeIterator edges;
+  GraphEdgeIterator edges(sgraph->ContigGraph, cid, ALL_END, ALL_EDGES);
   EdgeCGW_T * edge;
   CDS_CID_t next;
   NodeCGW_T * next_chunk;
   int out_of_sid_links = 0;
 
-  InitGraphEdgeIterator(sgraph->ContigGraph, cid, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-  while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+  while((edge = edges.nextMerged()) != NULL){
     assert(edge != NULL);
 
     if (!(edge->flags.bits.edgeStatus & (TRUSTED_EDGE_STATUS  || TENTATIVE_TRUSTED_EDGE_STATUS)) )

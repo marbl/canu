@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.73 2012-08-01 02:17:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.74 2012-08-01 02:23:38 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -2527,18 +2527,16 @@ static void  Check_Other_Links_One_Scaffold
       for  (k = sub = 0;  k < fill_chunks [scaff_id] . gap [j] . num_chunks;  k ++)
         {
           ChunkInstanceT  * chunk;
-          GraphEdgeIterator  ci_edges;
-          CIEdgeT  * edge;
           int  cid, good_links, bad_links;
 
           cid = fill_chunks [scaff_id] . gap [j] . chunk [k] . chunk_id;
           chunk = GetGraphNode(ScaffoldGraph->ContigGraph, cid);
 
-          InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, cid, ALL_END, ALL_EDGES,
-                                 GRAPH_EDGE_DEFAULT, & ci_edges);
+          GraphEdgeIterator  ci_edges(ScaffoldGraph->ContigGraph, cid, ALL_END, ALL_EDGES);
+          CIEdgeT           *edge;
 
           good_links = bad_links = 0;
-          while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
+          while  ((edge = ci_edges.nextMerged()) != NULL)
             {
               int  clone_mates;
 
@@ -3306,8 +3304,6 @@ static void  Choose_Safe_Chunks
         {
           int  gap;
           VA_TYPE(Stack_Entry_t)  *stackva;
-          GraphEdgeIterator  ci_edges;
-          CIEdgeT  * edge;
 
           stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
 
@@ -3321,10 +3317,10 @@ static void  Choose_Safe_Chunks
 
           // Put edges from chunk to a unique chunk onto a stack
 
-          InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, cid, ALL_END,
-                                 ALL_EDGES, GRAPH_EDGE_DEFAULT,
-                                 & ci_edges);
-          while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
+          GraphEdgeIterator  ci_edges(ScaffoldGraph->ContigGraph, cid, ALL_END, ALL_EDGES);
+          CIEdgeT           *edge;
+
+          while  ((edge = ci_edges.nextMerged()) != NULL)
             {
               ChunkInstanceT  * other_chunk;
               if  (isProbablyBogusEdge (edge)
@@ -3651,10 +3647,8 @@ static void  Choose_Stones
         {
           int  gap;
           VA_TYPE(Stack_Entry_t)  *stackva;
-          GraphEdgeIterator  ci_edges;
           ChunkInstanceT  * unitig;
           int  problem;
-          CIEdgeT  * edge;
 
           stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
 
@@ -3716,10 +3710,10 @@ static void  Choose_Stones
 
           // Put edges from chunk to a unique chunk onto a stack
 
-          InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, cid, ALL_END,
-                                 ALL_EDGES, GRAPH_EDGE_DEFAULT,
-                                 & ci_edges);
-          while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
+          GraphEdgeIterator  ci_edges(ScaffoldGraph->ContigGraph, cid, ALL_END, ALL_EDGES);
+          CIEdgeT           *edge;
+
+          while  ((edge = ci_edges.nextMerged()) != NULL)
             {
               ChunkInstanceT  * other_chunk;
 
@@ -4258,8 +4252,6 @@ static int  Depth_First_Visit
 //  a successful path just reaches  to .
 
 {
-  GraphEdgeIterator  edge_iterator;
-  CIEdgeT  * edge;
   double  curr_max_first_total;
   int  curr_first, curr_max_hits, curr_max_first, curr_max_first_dist;
   int  i, sub, succeeded = FALSE;
@@ -4379,10 +4371,10 @@ static int  Depth_First_Visit
       return  succeeded;
     }
 
-  InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, from -> id, from_end,
-                         ALL_EDGES, GRAPH_EDGE_DEFAULT, & edge_iterator);
+  GraphEdgeIterator  edge_iterator(ScaffoldGraph->ContigGraph, from -> id, from_end, ALL_EDGES);
+  CIEdgeT           *edge;
 
-  while  ((edge = NextGraphEdgeIterator (& edge_iterator)) != NULL)
+  while  ((edge = edge_iterator.nextMerged()) != NULL)
     {
       ChunkInstanceT  * next_node;
       double  frag_len, new_max_first_total;
@@ -7894,17 +7886,10 @@ static void  New_Confirm_Stones_One_Scaffold
               else
                 {
                   // search for link from p to q
-                  GraphEdgeIterator  ci_edges;
-                  CIEdgeT  * edge;
+                  GraphEdgeIterator  ci_edges(ScaffoldGraph->ContigGraph, check[p]->chunk_id, check[p]->flipped ? A_END : B_END, ALL_EDGES);
+                  CIEdgeT           *edge;
 
-                  InitGraphEdgeIterator
-                    (ScaffoldGraph->ContigGraph, check [p] -> chunk_id,
-                     //                         ALL_END,
-                     check [p] -> flipped ? A_END : B_END,
-                     ALL_EDGES, GRAPH_EDGE_DEFAULT,
-                     & ci_edges);
-
-                  while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
+                  while  ((edge = ci_edges.nextMerged()) != NULL)
                     {
                       ChunkInstanceT  * other_chunk;
                       if  (isProbablyBogusEdge (edge)
@@ -8398,21 +8383,18 @@ static void  Print_Scaffolds
                          GRAPH_NODE_DEFAULT);
   while  ((scaffold = NextGraphNodeIterator (& scaffolds)) != NULL)
     {
-      GraphEdgeIterator SEdges;
-      SEdgeT  * edge;
-
       scaff_id = scaffold -> id;
       if  (fp != NULL)
         {
           fprintf (fp, "Scaffold %3d:\n", scaff_id);
 
           fprintf (fp, "A Edges\n");
-          InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, A_END, ALL_EDGES,
-                                GRAPH_EDGE_DEFAULT,   &SEdges);
 
-          //      InitSEdgeTIterator (ScaffoldGraph, scaff_id, FALSE, FALSE,
-          //                          A_END, FALSE,  & SEdges);
-          while  ((edge = NextGraphEdgeIterator (& SEdges)) != NULL)
+          {
+          GraphEdgeIterator SEdges(ScaffoldGraph->ScaffoldGraph, scaff_id, A_END, ALL_EDGES);
+          SEdgeT           *edge;
+      
+          while  ((edge = SEdges.nextMerged()) != NULL)
             {
               fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %c  %3d  %4s  %5s\n",
                        edge -> idA, edge -> idB,
@@ -8423,14 +8405,15 @@ static void  Print_Scaffolds
                        Is_Good_Scaff_Edge (edge) ? "good" : "bad",
                        edge -> flags . bits . isBogus ? "bogus" : "valid");
             }
+          }
 
           fprintf (fp, "B Edges\n");
-          InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, scaff_id, B_END, ALL_EDGES,
-                                GRAPH_EDGE_DEFAULT,   &SEdges);
 
-          //InitSEdgeTIterator (ScaffoldGraph, scaff_id, FALSE, FALSE,
-          //                          B_END, FALSE,  & SEdges);
-          while  ((edge = NextGraphEdgeIterator (& SEdges)) != NULL)
+          {
+          GraphEdgeIterator SEdges(ScaffoldGraph->ScaffoldGraph, scaff_id, B_END, ALL_EDGES);
+          SEdgeT           *edge;
+
+          while  ((edge = SEdges.nextMerged()) != NULL)
             {
               fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %c  %3d  %4s  %5s\n",
                        edge -> idA, edge -> idB,
@@ -8441,6 +8424,7 @@ static void  Print_Scaffolds
                        Is_Good_Scaff_Edge (edge) ? "good" : "bad",
                        edge -> flags . bits . isBogus ? "bogus" : "valid");
             }
+          }
         }
     }
 
@@ -8867,14 +8851,13 @@ static void  Print_Potential_Fill_Chunks
         {  // show mate edges
           VA_TYPE(Stack_Entry_t)  *stackva;
           int  other_links = 0;
-          GraphEdgeIterator  ci_edges;
-          CIEdgeT  * edge;
 
           stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
 
-          InitGraphEdgeIterator (ScaffoldGraph->ContigGraph, cid,
-                                 ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, & ci_edges);
-          while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
+          GraphEdgeIterator  ci_edges(ScaffoldGraph->ContigGraph, cid, ALL_END, ALL_EDGES);
+          CIEdgeT           *edge;
+
+          while  ((edge = ci_edges.nextMerged()) != NULL)
             {
               ChunkInstanceT  * other_chunk;
 
@@ -11451,8 +11434,6 @@ static int  Violates_Scaff_Edges
 
 {
   CIScaffoldT  * scaffold1, * scaffold2;
-  GraphEdgeIterator  SEdges;
-  SEdgeT  * edge;
   LengthT  gap = {0, 0};
   int  found_supporting_edge, trust_edge;
 
@@ -11464,15 +11445,12 @@ static int  Violates_Scaff_Edges
 
   scaffold1 = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p -> scaff1);
   scaffold2 = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p -> scaff2);
-  InitGraphEdgeIterator(ScaffoldGraph->ScaffoldGraph, p->scaff1, ALL_END, ALL_EDGES,
-                        GRAPH_EDGE_DEFAULT,   &SEdges);
 
-
-  //   InitSEdgeTIterator (ScaffoldGraph, p -> scaff1, FALSE, FALSE,
-  //                       ALL_END, FALSE,  & SEdges);
+  GraphEdgeIterator  SEdges(ScaffoldGraph->ScaffoldGraph, p->scaff1, ALL_END, ALL_EDGES);
+  SEdgeT            *edge;
 
   found_supporting_edge = FALSE;
-  while  ((edge = NextGraphEdgeIterator (& SEdges)) != NULL)
+  while  ((edge = SEdges.nextMerged()) != NULL)
     {
       int  edge_lo, edge_hi, gap_lo, gap_hi;
       double  edge_delta, gap_delta;

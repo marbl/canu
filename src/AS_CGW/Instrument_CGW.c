@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Instrument_CGW.c,v 1.53 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: Instrument_CGW.c,v 1.54 2012-08-01 02:23:38 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "Instrument_CGW.h"
@@ -5614,17 +5614,11 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
   // add the first pair of CIs to the list
   if(!edge)
     {
-      GraphEdgeIterator edges;
+      GraphEdgeIterator edges(graph->ContigGraph, nextCI->id, end, ALL_EDGES);
 
       nextCI = GetGraphNode(graph->ContigGraph, id);
-      InitGraphEdgeIterator(graph->ContigGraph,
-                            nextCI->id,
-                            end,
-                            ALL_EDGES,
-                            GRAPH_EDGE_DEFAULT,
-                            &edges);
-      while((edge = NextGraphEdgeIterator(&edges))!= NULL &&
-            !getEssentialEdgeStatus(edge));
+      while((edge = edges.nextMerged()) != NULL && !getEssentialEdgeStatus(edge))
+        ;
     }
   if(edge == NULL)
     return 1;
@@ -5639,15 +5633,9 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
   while(numEssential == 1)
     {
       CIEdgeT * nextEdge;
-      GraphEdgeIterator edges;
+      GraphEdgeIterator edges(graph->ContigGraph, nextCI->id, nextEnd, ALL_EDGES);
 
-      InitGraphEdgeIterator(graph->ContigGraph,
-                            nextCI->id,
-                            nextEnd,
-                            ALL_EDGES,
-                            GRAPH_EDGE_DEFAULT,
-                            &edges);
-      while((nextEdge = NextGraphEdgeIterator(&edges))!= NULL &&
+      while((nextEdge = edges.nextMerged())!= NULL &&
             !getEssentialEdgeStatus(nextEdge));
 
       PopulateICP(&icp, nextCI->id, nextEdge);
@@ -5678,20 +5666,14 @@ int InstrumentContigEnd(ScaffoldGraphT * graph,
 {
   MateInstrumenter * mi;
   CIEdgeT * edge;
-  GraphEdgeIterator edges;
+  GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
   int32 numContigs = 1;
 
   // allocate a mate instrumenter to populate & return
   mi = CreateMateInstrumenter(graph, si->options);
 
   // loop over one end's essential edges & instrument each 'scaffold'
-  InitGraphEdgeIterator(graph->ContigGraph,
-                        thisCI->id,
-                        end,
-                        ALL_EDGES,
-                        GRAPH_EDGE_DEFAULT,
-                        &edges);
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL)
+  while((edge = edges.nextMerged())!= NULL)
     {
       IntScaffoldMesg isf;
       if(!getEssentialEdgeStatus(edge))
@@ -5732,7 +5714,7 @@ int InstrumentContigEndPartial(ScaffoldGraphT * graph,
 {
   MateInstrumenter * mi;
   CIEdgeT * edge;
-  GraphEdgeIterator edges;
+  GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
 
   // allocate a mate instrumenter to use
   if((mi = CreateMateInstrumenter(graph, si->options)) == NULL)
@@ -5742,13 +5724,7 @@ int InstrumentContigEndPartial(ScaffoldGraphT * graph,
     }
 
   // loop over one end's essential edges & instrument each 'scaffold'
-  InitGraphEdgeIterator(graph->ContigGraph,
-                        thisCI->id,
-                        end,
-                        ALL_EDGES,
-                        GRAPH_EDGE_DEFAULT,
-                        &edges);
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL)
+  while((edge = edges.nextMerged())!= NULL)
     {
       IntScaffoldMesg isf;
       if(!getEssentialEdgeStatus(edge))
@@ -5805,7 +5781,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
     {
       ChunkInstanceT * thisCI = GetGraphNode(graph->ContigGraph, thisID);
       CIEdgeT * edge;
-      GraphEdgeIterator edges;
+      GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, thisEnd, ALL_EDGES);
 
       /*
         if((thisEnd == 1 && thisCI->numEssentialA > 1) ||
@@ -5817,17 +5793,11 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
       */
 
       // loop over one end's essential edges & instrument each 'scaffold'
-      InitGraphEdgeIterator(graph->ContigGraph,
-                            thisCI->id,
-                            thisEnd,
-                            ALL_EDGES,
-                            GRAPH_EDGE_DEFAULT,
-                            &edges);
       if((thisEnd == 1 && thisCI->numEssentialA > 1) ||
          (thisEnd == 2 && thisCI->numEssentialB > 1))
         {
           int foundIt = 0;
-          while((edge = NextGraphEdgeIterator(&edges))!= NULL)
+          while((edge = edges.nextMerged())!= NULL)
             {
               if(getEssentialEdgeStatus(edge) &&
                  ((edge->idA == thisID && edge->idB == lastID) ||
@@ -5854,7 +5824,7 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
         }
       else
         {
-          while((edge = NextGraphEdgeIterator(&edges))!= NULL)
+          while((edge = edges.nextMerged())!= NULL)
             {
               if(getEssentialEdgeStatus(edge))
                 {
@@ -5884,24 +5854,17 @@ void PrintEssentialEdges(ScaffoldGraphT * graph,
                          CDS_CID_t chunkID, int end)
 {
   ChunkInstanceT * thisCI = GetGraphNode(graph->ContigGraph, chunkID);
-  CIEdgeT * edge;
-  GraphEdgeIterator edges;
-  int thisEnd = end;
+  GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
+  CIEdgeT          *edge;
 
   fprintf(stderr, F_CID"(%c): ", chunkID, (end == A_END) ? 'A' : 'B');
 
   // loop over one end's essential edges & instrument each 'scaffold'
-  InitGraphEdgeIterator(graph->ContigGraph,
-                        thisCI->id,
-                        thisEnd,
-                        ALL_EDGES,
-                        GRAPH_EDGE_DEFAULT,
-                        &edges);
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL)
+  while((edge = edges.nextMerged())!= NULL)
     {
       if(getEssentialEdgeStatus(edge))
         {
-          thisEnd = GetOppositeEndOfOtherCI(edge, thisCI->id);
+          int thisEnd = GetOppositeEndOfOtherCI(edge, thisCI->id);
           if(thisEnd == NO_END)
             {
               fprintf(stderr, "\n");
@@ -5960,19 +5923,13 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
             {
               int atLeft = 0;
               CIEdgeT * edge;
-              GraphEdgeIterator edges;
+              GraphEdgeIterator edges(graph->ContigGraph, firstCI->id, firstEnd, ALL_EDGES);
 
               // get to left-most (relative to the first CI encountered)
               while(!atLeft)
                 {
                   // iterate over edges off relevant end to get next CI
-                  InitGraphEdgeIterator(graph->ContigGraph,
-                                        firstCI->id,
-                                        firstEnd,
-                                        ALL_EDGES,
-                                        GRAPH_EDGE_DEFAULT,
-                                        &edges);
-                  while((edge = NextGraphEdgeIterator(&edges))!= NULL)
+                  while((edge = edges.nextMerged())!= NULL)
                     {
                       if(getEssentialEdgeStatus(edge))
                         {
@@ -6021,18 +5978,12 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
               isf.iaccession = thisCI->scaffoldID;
               while(!done)
                 {
-                  CIEdgeT * edge;
-                  GraphEdgeIterator edges;
+                  GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, thisEnd, ALL_EDGES);
+                  CIEdgeT          *edge;
 
                   foundNext = 0;
                   // loop over one end's essential edges & instrument each 'scaffold'
-                  InitGraphEdgeIterator(graph->ContigGraph,
-                                        thisCI->id,
-                                        thisEnd,
-                                        ALL_EDGES,
-                                        GRAPH_EDGE_DEFAULT,
-                                        &edges);
-                  while((edge = NextGraphEdgeIterator(&edges))!= NULL)
+                  while((edge = edges.nextMerged())!= NULL)
                     {
                       if(getEssentialEdgeStatus(edge))
                         {

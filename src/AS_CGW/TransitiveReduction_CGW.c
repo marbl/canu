@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.37 2012-06-22 07:54:30 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.38 2012-08-01 02:23:38 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -119,14 +119,13 @@ countNumberOfEdges(ScaffoldGraphT  *graph,
                    int              end,
                    int             &totedges,
                    int             &outgoing) {
-  GraphEdgeIterator edges;
+  GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
   CIEdgeT          *edge;
 
   totedges = 0;
   outgoing = 0;
 
-  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-  while ((edge = NextGraphEdgeIterator(&edges))!= NULL) {
+  while ((edge = edges.nextMerged())!= NULL) {
     totedges++;
 
     if ((!edge->flags.bits.isActive) ||
@@ -212,17 +211,10 @@ FoundTransitiveEdgePath(ScaffoldGraphT *graph,
   if (outgoing == 0)
     return(FALSE);
 
-  GraphEdgeIterator trans;
+  GraphEdgeIterator trans(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
   CIEdgeT          *tran  = NULL;
 
-  InitGraphEdgeIterator(graph->ContigGraph,
-                        thisCI->id,
-                        end,
-                        ALL_EDGES,
-                        GRAPH_EDGE_DEFAULT,
-                        &trans);// Use merged edges
-
-  while((tran = NextGraphEdgeIterator(&trans))!= NULL) {
+  while((tran = trans.nextMerged()) != NULL) {
     if ((!tran->flags.bits.isActive) ||
         (!tran->flags.bits.isUniquetoUnique) ||
         (isSingletonOverlapEdge(tran)))
@@ -261,10 +253,8 @@ FoundTransitiveEdgePath(ScaffoldGraphT *graph,
 static
 void
 MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int end) {
-  GraphEdgeIterator edges;
+  GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
   CIEdgeT          *edge;
-  GraphEdgeIterator trans;
-  CIEdgeT          *tran;
 
   //  Count the number of possible outgoing edges 
 
@@ -278,8 +268,7 @@ MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int en
 
   //  Appropriately small count, try to mark edges.
 
-  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-  while ((edge = NextGraphEdgeIterator(&edges))!= NULL) {
+  while ((edge = edges.nextMerged()) != NULL) {
     if ((edge->idA != thisCI->id) ||
         (!edge->flags.bits.isActive) ||
         (!edge->flags.bits.isUniquetoUnique))
@@ -288,8 +277,11 @@ MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int en
     ChunkInstanceT *endCI = GetGraphNode(graph->ContigGraph, ((edge->idA == thisCI->id) ? edge->idB : edge->idA));
 
     // Only use edges on the same end of thisCI to transitively remove an edge.
-    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &trans);// Use merged edges
-    while ((tran = NextGraphEdgeIterator(&trans))!= NULL) {
+
+    GraphEdgeIterator trans(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
+    CIEdgeT          *tran;
+
+    while ((tran = trans.nextMerged()) != NULL) {
       if ((edge == tran) ||
           (!tran->flags.bits.isActive) ||
           (!tran->flags.bits.isUniquetoUnique) ||
@@ -389,12 +381,10 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
                                ChunkInstanceT *thisCI,
                                int end) {
 
-  GraphEdgeIterator Ahop1s;
+  GraphEdgeIterator Ahop1s(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
   CIEdgeT          *Ahop1;
 
-  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &Ahop1s);// Use merged edges
-
-  while((Ahop1 = NextGraphEdgeIterator(&Ahop1s))!= NULL) {
+  while((Ahop1 = Ahop1s.nextMerged())!= NULL) {
     if ((!Ahop1->flags.bits.isActive) ||
         (!Ahop1->flags.bits.isUniquetoUnique) ||
         (isSingletonOverlapEdge(Ahop1)))
@@ -404,14 +394,12 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
     ChunkInstanceT       *AmidCI  = GetGraphNode(graph->ContigGraph, AmidCID);
     PairOrient            AmidOri = GetEdgeOrientationWRT(Ahop1, thisCI->id);
 
-    GraphEdgeIterator  Ahop2s;
+    GraphEdgeIterator  Ahop2s(graph->ContigGraph, AmidCID,
+                              (AmidOri.isAB_AB()) || (AmidOri.isBA_AB()) ? B_END : A_END,
+                              ALL_EDGES);
     CIEdgeT           *Ahop2;
 
-    InitGraphEdgeIterator(graph->ContigGraph, AmidCID,
-                          (AmidOri.isAB_AB()) || (AmidOri.isBA_AB()) ? B_END : A_END,
-                          ALL_EDGES, GRAPH_EDGE_DEFAULT, &Ahop2s);// Use merged edges
-
-    while((Ahop2 = NextGraphEdgeIterator(&Ahop2s))!= NULL) {
+    while((Ahop2 = Ahop2s.nextMerged())!= NULL) {
       if ((!Ahop2->flags.bits.isActive) ||
           (!Ahop2->flags.bits.isUniquetoUnique) ||
           (isSingletonOverlapEdge(Ahop2)))
@@ -428,7 +416,7 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
       GraphEdgeIterator   Bhop1s = Ahop1s;
       CIEdgeT            *Bhop1;
 
-      while((Bhop1 = NextGraphEdgeIterator(&Bhop1s))!= NULL) {
+      while((Bhop1 = Bhop1s.nextMerged())!= NULL) {
         if ((!Bhop1->flags.bits.isActive) ||
             (!Bhop1->flags.bits.isUniquetoUnique) ||
             (isSingletonOverlapEdge(Bhop1)))
@@ -438,14 +426,12 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
         ChunkInstanceT       *BmidCI  = GetGraphNode(graph->ContigGraph, BmidCID);
         PairOrient            BmidOri = GetEdgeOrientationWRT(Bhop1, thisCI->id);
 
-        GraphEdgeIterator  Bhop2s;
+        GraphEdgeIterator  Bhop2s(graph->ContigGraph, BmidCID,
+                                  (BmidOri.isAB_AB()) || (BmidOri.isBA_AB()) ? B_END : A_END,
+                                  ALL_EDGES);
         CIEdgeT           *Bhop2;
 
-        InitGraphEdgeIterator(graph->ContigGraph, BmidCID,
-                              (BmidOri.isAB_AB()) || (BmidOri.isBA_AB()) ? B_END : A_END,
-                              ALL_EDGES, GRAPH_EDGE_DEFAULT, &Bhop2s);// Use merged edges
-
-        while((Bhop2 = NextGraphEdgeIterator(&Bhop2s))!= NULL) {
+        while((Bhop2 = Bhop2s.nextMerged())!= NULL) {
           if ((!Bhop2->flags.bits.isActive) ||
               (!Bhop2->flags.bits.isUniquetoUnique) ||
               (isSingletonOverlapEdge(Bhop2)))
@@ -595,17 +581,16 @@ MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph) {
 
   InitGraphNodeIterator(&nodes, graph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while((node = NextGraphNodeIterator(&nodes)) != NULL) {
-    GraphEdgeIterator edges;
+    GraphEdgeIterator edges(graph->ContigGraph, node->id , ALL_END, ALL_EDGES);
     CIEdgeT          *edge;
 
-    InitGraphEdgeIterator(graph->ContigGraph, node->id , ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-    edge = NextGraphEdgeIterator(&edges);
-    while(edge != NULL) {
+    edge = edges.nextMerged();
+    while (edge != NULL) {
 
       if ((edge->idA != node->id) ||
           (!edge->flags.bits.isActive) ||
           (!edge->flags.bits.isUniquetoUnique)) {
-        edge = NextGraphEdgeIterator(&edges);
+        edge = edges.nextMerged();
         continue;
       }
 
@@ -614,7 +599,7 @@ MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph) {
       // We make the assumption that the edges are sorted such that the edges between a pair of CIs
       // are contiguous.
 
-      while(((edge = NextGraphEdgeIterator(&edges)) != NULL) &&
+      while(((edge = edges.nextMerged()) != NULL) &&
             (edge->idB == bestEdge->idB)) {
         if (!edge->flags.bits.isActive)
           continue;
@@ -640,7 +625,7 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
                             double inferredMean, double inferredVariance,
                             double *returnChiSquaredValue,
                             double chiSquareThreshold, int *isEssential) {
-  GraphEdgeIterator edges;
+  GraphEdgeIterator edges(graph, sourceCI->id, ALL_END, ALL_EDGES);
   CIEdgeT *edge;
   CIEdgeT *bestEdge = (CIEdgeT *)NULL;
   int overlapEdgeExists = FALSE;
@@ -650,8 +635,8 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
   *isEssential = FALSE;
   /* Search all orientations in case an essential edge exists between
      the CIs which is not in the correct orientation. */
-  InitGraphEdgeIterator(graph, sourceCI->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL) {
+
+  while((edge = edges.nextMerged())!= NULL) {
     CDS_CID_t otherCID = (edge->idA == sourceCI->id) ? edge->idB : edge->idA;
 
     if (isSloppyEdge(edge))
@@ -757,8 +742,10 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
     /* edgeOrient == BA_XX */
     end = A_END;
   }
-  InitGraphEdgeIterator(graph, sourceCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT,  &edges);// Use merged edges
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL) {
+
+  edges = GraphEdgeIterator(graph, sourceCI->id, end, ALL_EDGES);
+
+  while((edge = edges.nextMerged())!= NULL) {
     CDS_CID_t otherCID = (edge->idA == sourceCI->id) ? edge->idB : edge->idA;
 
     if (isSloppyEdge(edge))
@@ -816,8 +803,6 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
   int failedInfer;
   int numEssentialAdded;
   int numEssentialRemoved;
-  GraphEdgeIterator edges;
-  CIEdgeT *edge;
   Target_Info_t *branchTargets, *branchTargetsEnd;
   double maxBound;
 #if 0
@@ -842,8 +827,11 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     CDS_CID_t sourceEdgeIndex;
     sourceCI = (ChunkInstanceT *)NULL;
     assert(numBranch == 1);
-    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end,ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-    while((edge = NextGraphEdgeIterator(&edges))!= NULL) {
+
+    GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, end,ALL_EDGES);
+    CIEdgeT *edge;
+
+    while((edge = edges.nextMerged())!= NULL) {
       if (!getEssentialEdgeStatus(edge))
         // Skip nonessential edges.
         continue;
@@ -914,7 +902,9 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     addedInferred = (CDS_CID_t *)safe_malloc((numBranch - 1) * sizeof(*addedInferred));
     branchTargets = (Target_Info_t *)safe_malloc(numBranch * sizeof(*branchTargets));
 
-    InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
+    GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, end,ALL_EDGES);
+    CIEdgeT *edge;
+
     maxBound = 0.0;
     branchEnd = branchEdges;
     existingEnd = existingEdges;
@@ -928,7 +918,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       2. otherwise store the edge indices, orientations, and compute acceptable length intervals
       3. sort these edge references by near to far - nearest = sourceCI, farther ones = targetCI
     */
-    while((edge = NextGraphEdgeIterator(&edges))!= NULL) {
+    while((edge = edges.nextMerged()) != NULL) {
       ChunkInstanceT *targetCI;
       if (!getEssentialEdgeStatus(edge))
         // Skip nonessential edges.
@@ -1293,14 +1283,12 @@ int
 CountEssentialEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI,
                           int end, CDS_CID_t *essentialEdge) {
   int               count = 0;
-  GraphEdgeIterator edges;
+  GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
   CIEdgeT          *edge;
 
   *essentialEdge = (CDS_CID_t)NULLINDEX;
 
-  InitGraphEdgeIterator(graph->ContigGraph, thisCI->id, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-
-  while((edge = NextGraphEdgeIterator(&edges))!= NULL) {
+  while((edge = edges.nextMerged()) != NULL) {
     if ((!edge->flags.bits.isActive) ||
         (!edge->flags.bits.isConfirmed) ||
         (!edge->flags.bits.isUniquetoUnique) ||
@@ -2113,12 +2101,10 @@ ResetEdgeStatus(ScaffoldGraphT *graph) {
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_UNIQUE_ONLY);
   while ((node = NextGraphNodeIterator(&nodes)) != NULL) {
-    GraphEdgeIterator edges;
+    GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES);
     CIEdgeT          *edge;
 
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES,
-                          GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-    while ((edge = NextGraphEdgeIterator(&edges)) != NULL) {
+    while ((edge = edges.nextMerged()) != NULL) {
       ChunkInstanceT *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph,
                                              (edge->idA == node->id) ?
                                              edge->idB : edge->idA);
@@ -2144,11 +2130,10 @@ DeleteInferredEdges(ScaffoldGraphT *graph) {
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while ((node = NextGraphNodeIterator(&nodes)) != NULL) {
-    GraphEdgeIterator edges;
+    GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES);
     CIEdgeT *edge;
 
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);// Use merged edges
-    while ((edge = NextGraphEdgeIterator(&edges)) != NULL)
+    while ((edge = edges.nextMerged()) != NULL)
       if (edge->flags.bits.isInferred)
         DeleteGraphEdge(ScaffoldGraph->ContigGraph, edge);
   }

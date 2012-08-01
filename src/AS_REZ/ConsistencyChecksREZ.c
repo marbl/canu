@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.22 2012-06-07 23:06:48 brianwalenz Exp $";
+static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.23 2012-08-01 02:23:38 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -195,8 +195,6 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
   // global variable Global_CGW in file ../AS_CGW/Globals_CGW.h
   //
   /*****************************************************************/
-  GraphEdgeIterator iterator;
-  CIEdgeT         *edge;
 
   int i,j,k,l;
   int numGaps;
@@ -275,9 +273,10 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 
 
 	// Initialize the iterator for the CIEdges
-	InitGraphEdgeIterator(ScaffoldGraph->ContigGraph,cid1,ALL_END,ALL_EDGES,GRAPH_EDGE_DEFAULT,&iterator);
+  GraphEdgeIterator iterator(ScaffoldGraph->ContigGraph, cid1, ALL_END, ALL_EDGES);
+  CIEdgeT          *edge;
 
-	while( (edge = NextGraphEdgeIterator(&iterator)) != NULL )
+	while( (edge = iterator.nextMerged()) != NULL )
 	  {
 	    /* In this loop we iterate over all merged Chunk Instance edges
 	       of the assigend chunks */

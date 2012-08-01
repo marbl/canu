@@ -52,6 +52,7 @@ CGW_LIB_SOURCES = Globals_CGW.C \
                   DemoteUnitigsWithRBP_CGW.C \
                   fragmentPlacement.C \
                   GraphCGW_T.C \
+                  GraphEdgeIterator.C \
                   Input_CGW.C \
                   Instrument_CGW.C \
                   InterleavedMerging.C \

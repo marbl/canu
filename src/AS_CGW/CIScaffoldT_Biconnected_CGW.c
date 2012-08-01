@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.19 2012-06-10 05:52:33 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.20 2012-08-01 02:23:38 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -111,11 +111,8 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
 
     if(dfsnum[i] == NULLINDEX){
       int isIsolated = 1;
-      EdgeCGW_T *edge;
-      GraphEdgeIterator Edges;
-
-      // Iterate over raw edges
-      InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_TRUSTED_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
+      GraphEdgeIterator  edges(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_TRUSTED_EDGES);
+      EdgeCGW_T         *edge;
 
       dfsnum[i] = ++count1;
 #ifdef DEBUG
@@ -124,7 +121,7 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
 #endif
 
       // Does this node have any edges that are scaffold internal
-      while (NULL != (edge = NextGraphEdgeIterator(&Edges))){
+      while (edge = edges.nextMerged()) {
         NodeCGW_T *nodeA = GetGraphNode(ScaffoldGraph->ContigGraph, edge->idA);
         NodeCGW_T *nodeB = GetGraphNode(ScaffoldGraph->ContigGraph, edge->idB);
 
@@ -179,8 +176,8 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
                     stack<NodeCGW_T *> &ptrts,
 		    int32 *count1, int32 *count2, int32 *numBridges){
   CDS_CID_t contigNum = contig->info.Contig.contigNum;
-  GraphEdgeIterator Edges;
-  EdgeCGW_T *edge;
+  GraphEdgeIterator edges(sgraph->ContigGraph, contig->id, ALL_END, ALL_TRUSTED_EDGES);
+  EdgeCGW_T        *edge;
 
   lowpt[contigNum] = dfsnum[contigNum];
 #ifdef DEBUG
@@ -188,10 +185,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
           contig->id,contigNum,lowpt[contigNum]);
 #endif
 
-  // Iterate over raw edges
-  InitGraphEdgeIterator(sgraph->ContigGraph, contig->id, ALL_END, ALL_TRUSTED_EDGES, GRAPH_EDGE_DEFAULT, &Edges);
-
-  while (NULL != (edge = NextGraphEdgeIterator(&Edges))){
+  while (edge = edges.nextMerged()) {
     NodeCGW_T *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == contig->id? edge->idB:edge->idA));
     CDS_CID_t otherNum = otherContig->info.Contig.contigNum;
 
@@ -232,14 +226,13 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
     EdgeCGW_T *lastEdge = NULL;
 
     do{
-      GraphEdgeIterator Edges2;
-      NodeCGW_T *w = ptrts.top();  ptrts.pop();
-      EdgeCGW_T *edge2;
+      NodeCGW_T        *w = ptrts.top();  ptrts.pop();
+      GraphEdgeIterator edges2(sgraph->ContigGraph, w->id, ALL_END, ALL_TRUSTED_EDGES);
+      EdgeCGW_T        *edge2;
 
       wNum = w->info.Contig.contigNum;
-      InitGraphEdgeIterator(sgraph->ContigGraph, w->id, ALL_END, ALL_TRUSTED_EDGES, GRAPH_EDGE_DEFAULT, &Edges2);
 
-      while (NULL != (edge2 = NextGraphEdgeIterator(&Edges2))){
+      while (edge2 = edges2.nextMerged()) {
         NodeCGW_T *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge2->idA == w->id? edge2->idB:edge2->idA));
         CDS_CID_t otherNum = otherContig->info.Contig.contigNum;
 

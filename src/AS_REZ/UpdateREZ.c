@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.18 2010-01-15 17:52:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.19 2012-08-01 02:23:38 brianwalenz Exp $";
 
 /**********************************************************************
 
@@ -65,10 +65,6 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
   // in the fill_chunks as tentatively trusted: returns the number of
   // RAW edge marked
   //
-  GraphEdgeIterator
-    edges;
-  CIEdgeT
-    * edge;
   int32
     next;
   int
@@ -80,9 +76,10 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
     buffer[256];
 # endif
 
-  InitGraphEdgeIterator(sgraph->ContigGraph, cid,
-						ALL_END, ALL_EDGES, FALSE, &edges);
-  while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+  GraphEdgeIterator  edges(sgraph->ContigGraph, cid, ALL_END, ALL_EDGES);
+  CIEdgeT           *edge;
+
+  while((edge = edges.nextMerged()) != NULL){
     assert(edge != NULL);
     //
     // get the other end

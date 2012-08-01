@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.75 2012-06-10 05:52:33 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.76 2012-08-01 02:23:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,20 +80,13 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
   for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
     IntElementPos *pos = GetIntElementPos(ContigPositions,i);
     ContigT *contig = GetGraphNode(ScaffoldGraph->ContigGraph,pos->ident);
-    GraphEdgeIterator edges;
+    GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES);
     EdgeCGW_T *edge;
     int flip =( pos->position.bgn > pos->position.end); // do we need to flip edge orientation
     int32 posBgn = pos->position.bgn - contigBase;
     int32 posEnd = pos->position.end - contigBase;
 
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES,
-                          GRAPH_EDGE_RAW_ONLY,
-                          &edges);
-    if(verbose) {
-      fprintf(stderr,"* Scanning edges incident on contig "F_CID"\n", pos->ident);
-    }
-
-    while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+    while((edge = edges.nextRaw()) != NULL){
       PairOrient edgeOrient = GetEdgeOrientationWRT(edge,contig->id);
       PairOrient orient;
       LengthT distance={0,0};
@@ -376,21 +369,16 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
   for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
     IntElementPos *pos = GetIntElementPos(ContigPositions,i);
     ContigT *contig = GetGraphNode(ScaffoldGraph->ContigGraph,pos->ident);
-    GraphEdgeIterator edges;
+    GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES);
     EdgeCGW_T *edge;
     int flip =( pos->position.bgn > pos->position.end); // do we need to flip edge orientation
     int32 posBgn = pos->position.bgn - contigBase;
     int32 posEnd = pos->position.end - contigBase;
 
     /* We exclude containment since we handle it elsewhere */
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES,
-                          GRAPH_EDGE_RAW_ONLY|GRAPH_EDGE_EXCLUDE_CONTAINMENT,
-                          &edges);
-    if(verbose) {
-      fprintf(stderr,"* Scanning edges incident on contig "F_CID"\n", pos->ident);
-    }
+    edges.excludeContainment();
 
-    while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+    while((edge = edges.nextRaw()) != NULL){
       PairOrient edgeOrient = GetEdgeOrientationWRT(edge,contig->id);
       PairOrient orient1, orient2;
       LengthT distance1={0,0}, distance2={0,0};
@@ -864,23 +852,12 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 
 // Propagate overlap edges incident on extremal contigs to new contig
 void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, ContigT *newContig, int newContigEnd, int32 contigBase, int32 verbose){
-  GraphEdgeIterator edges;
+  GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, contigID, contigEnd, ALL_EDGES);
   EdgeCGW_T *edge;
   int first = 0;
   CDS_CID_t rawEdgeID;
 
-  if(verbose){
-    fprintf(stderr,"* PropagateExtremalOverlaps from ("F_CID",%c) to ("F_CID",%c)\n",
-            contigID, (contigEnd == A_END?'A':'B'),
-            newContig->id, (newContigEnd == A_END?'A':'B'));
-
-    DumpContig(stderr,ScaffoldGraph,
-               GetGraphNode(ScaffoldGraph->ContigGraph, contigID),FALSE);
-  }
-
-
-  InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contigID, contigEnd, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-  while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+  while((edge = edges.nextMerged()) != NULL){
     EdgeCGW_T *rawEdge, *newEdge;
     PairOrient newOrient = edge->orient;
     NodeCGW_T *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == contigID? edge->idB:edge->idA));

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: ShatterScaffolds_CGW.c,v 1.1 2010-12-08 12:40:53 skoren Exp $";
+static const char *rcsid = "$Id: ShatterScaffolds_CGW.c,v 1.2 2012-08-01 02:23:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,12 +85,10 @@ void PrintScaffoldContents(FILE *stream, ScaffoldGraphT *graph, char *message) {
 
 		    	fprintf(stream, "%d (%f) (%f) (%f) ", contig->id, contig->bpLength.mean, contig->offsetAEnd.mean, contig->offsetBEnd.mean);
 
-		        GraphEdgeIterator edges;
-		        CIEdgeT *edge;
+          GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES);
+		        CIEdgeT          *edge;
 
-		        InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-
-		        while ((edge = NextGraphEdgeIterator(&edges)) != NULL) {
+		        while ((edge = edges.nextMerged()) != NULL) {
 		        	NodeCGW_T *otherNode = GetGraphNode(graph->ContigGraph, (edge->idA == contig->id ? edge->idB : edge->idA));
 		        	//fprintf(stream, "The edge active %d is unique %d confirming %d ori:%c dist: %f connects %d and %d with weight %d and node is in scaffold %d and other end of edge is %d in scaffold %d\n", edge->flags.bits.isActive, edge->flags.bits.isUniquetoUnique, edge->flags.bits.isContigConfirming, edge->orient.toLetter(), edge->distance.mean, edge->idA, edge->idB, edge->edgesContributing, contig->scaffoldID, otherNode->id, otherNode->scaffoldID);
 		        }
@@ -104,18 +102,16 @@ void PrintScaffoldContents(FILE *stream, ScaffoldGraphT *graph, char *message) {
 
 void ShatterScaffoldsConnectedByLowWeight(FILE *stream, ScaffoldGraphT *graph, uint32 minWeight, int verbose){
   GraphNodeIterator nodes;
-  NodeCGW_T *node;
+  NodeCGW_T        *node;
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while ((node = NextGraphNodeIterator(&nodes)) != NULL) {
-    GraphEdgeIterator edges;
-    CIEdgeT *edge;
+    GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES);
+    CIEdgeT          *edge;
 
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-    int disconnected = (NextGraphEdgeIterator(&edges) == NULL ? FALSE : TRUE);	// don't disconnect a node if it has no edges
-    InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, node->id, ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
+    int disconnected = (edges.nextMerged() == NULL ? FALSE : TRUE);	// don't disconnect a node if it has no edges
 
-    while ((edge = NextGraphEdgeIterator(&edges)) != NULL) {
+    while ((edge = edges.nextMerged()) != NULL) {
     	NodeCGW_T *otherNode = GetGraphNode(graph->ContigGraph, (edge->idA == node->id ? edge->idB : edge->idA));
     	if (verbose == TRUE)
     		fprintf(stream, "The edge ori:%c dist: %f connects %d and %d with weight %d and node is in scaffold %d and other end of edge is %d in scaffold %d\n", edge->orient.toLetter(), edge->distance.mean, edge->idA, edge->idB, edge->edgesContributing, node->scaffoldID, otherNode->id, otherNode->scaffoldID);
