@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.76 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.77 2012-08-01 15:10:53 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1160,22 +1160,12 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
     }
 
     //fprintf(stderr,"* newContig "F_CID" at AEND offset [%g,%g] \n", newContig->id, newContig->offsetAEnd.mean, newContig->offsetBEnd.mean);
-    AddDeltaToScaffoldOffsets(ScaffoldGraph,
-                              scaffold->id,
-                              newContig->id,
-                              TRUE,
-                              FALSE,
-                              offset);
+    AddDeltaToScaffoldOffsets(ScaffoldGraph, scaffold->id, newContig->id, TRUE, offset);
   }
 
 
   if( newContig->BEndNext != NULLINDEX ){ // contig is in the beginning or middle
-    AddDeltaToScaffoldOffsets(ScaffoldGraph,
-                              scaffold->id,
-                              newContig->BEndNext,
-                              TRUE,
-                              FALSE,
-                              deltaOffsetBEnd);
+    AddDeltaToScaffoldOffsets(ScaffoldGraph, scaffold->id, newContig->BEndNext, TRUE, deltaOffsetBEnd);
   }
   /* Shouldn't need this */
   if(scaffold->bpLength.mean < (maxOffset->mean - minOffset->mean))

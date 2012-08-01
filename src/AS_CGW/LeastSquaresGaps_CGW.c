@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.50 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.51 2012-08-01 15:10:53 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -2101,7 +2101,7 @@ void  CheckLSScaffoldWierdnesses(char *string, ScaffoldGraphT *graph, CIScaffold
     return;
   }
 
-  AddDeltaToScaffoldOffsets(graph, scaffold->id,  secondCI->id, TRUE, FALSE, delta);
+  AddDeltaToScaffoldOffsets(graph, scaffold->id,  secondCI->id, TRUE, delta);
 
   if (debug.leastSquaresGapsLV > 1) {
     fprintf(stderr, "Done!! Scaffold after is:\n");

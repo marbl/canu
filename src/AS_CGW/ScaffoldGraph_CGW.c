@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.61 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.62 2012-08-01 15:10:53 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -556,22 +556,13 @@ GetNumInstances(ChunkInstanceT *CI) {
 /* Add a fixed amount to the offsetAEnd and offsetBEnd starting from a given
    CI to the end of the Scaffold                                */
 /* *********************************************************************** */
-void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
-                CDS_CID_t scaffoldIndex,
-                CDS_CID_t indexOfCI,
-                int aEndToBEnd,
-                int verbose,
-                LengthT delta){
-AddDeltaToScaffoldOffsets(graph, scaffoldIndex, indexOfCI, aEndToBEnd, verbose, delta, 0);
-}
 
 void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
-			       CDS_CID_t scaffoldIndex,
-			       CDS_CID_t indexOfCI,
-			       int aEndToBEnd,
-			       int verbose,
-			       LengthT delta,
-                uint32 mark){
+                               CDS_CID_t scaffoldIndex,
+                               CDS_CID_t indexOfCI,
+                               int aEndToBEnd,
+                               LengthT delta,
+                               uint32 mark){
   CIScaffoldT *scaffold;
   CIScaffoldTIterator Nodes;
   NodeCGW_T *thisNode;
@@ -584,8 +575,7 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
 
   scaffold = GetGraphNode(graph->ScaffoldGraph, scaffoldIndex);
 
-  InitCIScaffoldTIteratorFromCI(graph, scaffold, indexOfCI, aEndToBEnd,
-				verbose, &Nodes);
+  InitCIScaffoldTIteratorFromCI(graph, scaffold, indexOfCI, aEndToBEnd, FALSE, &Nodes);
   while((thisNode = NextCIScaffoldTIterator(&Nodes)) != NULL){
     thisNode->offsetAEnd.mean += delta.mean;
     thisNode->offsetAEnd.variance += delta.variance;

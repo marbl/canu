@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.74 2012-08-01 02:23:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.75 2012-08-01 15:10:53 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -7390,8 +7390,7 @@ static void UnJigglePositions(void)
                   delta.mean = - ci->offsetBEnd.mean;
                   delta.variance = - fabs(ci->offsetBEnd.variance);
                 }
-              AddDeltaToScaffoldOffsets(ScaffoldGraph, scaffold->id,
-                                        ci->id, TRUE, FALSE, delta);
+              AddDeltaToScaffoldOffsets(ScaffoldGraph, scaffold->id, ci->id, TRUE, delta);
               fprintf(stderr, "*** AFTER UNJIGGLING POSITIONS:\n");
               DumpCIScaffold(stderr, ScaffoldGraph, scaffold, 0);
 
@@ -7448,10 +7447,7 @@ static void  Jiggle_Positions_One_Scaffold
       if  (j < fill_chunks [scaff_id] . num_gaps - 1
            && (this_gap -> adjustment . mean != 0.0
                || this_gap -> adjustment . variance != 0.0))
-        AddDeltaToScaffoldOffsets
-          (ScaffoldGraph, scaff_id,
-           this_gap -> right_cid, TRUE, FALSE,
-           this_gap -> adjustment, 1);
+        AddDeltaToScaffoldOffsets(ScaffoldGraph, scaff_id, this_gap->right_cid, TRUE, this_gap->adjustment, 1);
 
 #ifdef DEBUG_DETAILED
       fprintf (stderr, "### Gap %d  gapadjv = %.1f  cumadjv = %.1f  oldrefv = %.1f",

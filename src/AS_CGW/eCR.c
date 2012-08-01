@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.63 2012-07-26 15:09:04 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.64 2012-08-01 15:10:53 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1000,7 +1000,7 @@ main(int argc, char **argv) {
             scaffoldDelta.mean = MAX(rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean) - maxRContigOffset;
             scaffoldDelta.variance = ComputeFudgeVariance(scaffoldDelta.mean);
 
-            AddDeltaToScaffoldOffsets(ScaffoldGraph, scaff->id, nextContigIndex, TRUE, FALSE, scaffoldDelta);
+            AddDeltaToScaffoldOffsets(ScaffoldGraph, scaff->id, nextContigIndex, TRUE, scaffoldDelta);
           }
 
           continue;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.57 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.58 2012-08-01 15:10:53 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -590,7 +590,7 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
     base.mean = - base.mean;
     base.variance = - base.variance;
     // AddDelta adjusts contig positions and bpLength
-    AddDeltaToScaffoldOffsets(ScaffoldGraph, ciScaffold->id, bnext->id, TRUE, FALSE, base);
+    AddDeltaToScaffoldOffsets(ScaffoldGraph, ciScaffold->id, bnext->id, TRUE, base);
 
     fprintf(stderr,"* After RemoveCIFromScaffold ci:"F_CID" scaffold:"F_CID" removing from a-end base = (%g,%g), bpLength = (%g,%g)\n",
 	    CI->id,
