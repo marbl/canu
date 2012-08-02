@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.3 2012-06-10 05:52:33 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.4 2012-08-02 17:33:15 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "ScaffoldGraph_CGW.h"
@@ -541,12 +541,13 @@ MergeScaffolds(InterleavingSpec * iSpec, int32 verbose) {
               status == RECOMPUTE_CONTIGGED_CONTAINMENTS)) {
         // need to make sure scaffold is connected with trusted raw edges
 
+        //  OPERATES ON MERGED
         MarkInternalEdgeStatus(ScaffoldGraph,
-                               GetGraphNode(ScaffoldGraph->ScaffoldGraph,
-                                            newScaffoldID),
+                               GetGraphNode(ScaffoldGraph->ScaffoldGraph, newScaffoldID),
+                               0,
+                               TRUE,
                                PAIRWISECHI2THRESHOLD_CGW,
-                               1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
-                               TRUE, TRUE, 0, TRUE);
+                               1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD);
 
 #ifdef CHECKCONNECTED
         assert(IsScaffoldInternallyConnected(ScaffoldGraph,

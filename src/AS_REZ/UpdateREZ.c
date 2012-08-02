@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.19 2012-08-01 02:23:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.20 2012-08-02 17:33:15 brianwalenz Exp $";
 
 /**********************************************************************
 
@@ -779,14 +779,15 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
       // do we want to change the TRUSTED/UNTRUSTED status?
       //
       if (ChiSquare) {
-		MarkInternalEdgeStatus(sgraph, scaffold,
-							   PAIRWISECHI2THRESHOLD_CGW,
-							   1000000.0, TRUE, TRUE, 0, FALSE); // use 100000000000.0 if using guides
-		//
-		// check the damage again
-		//
-		if (IsScaffoldInternallyConnected(sgraph, scaffold, ALL_TRUSTED_EDGES) != 1)
-		  fprintf(stderr, "* <REZ> * error: the scaffold has been disconnected after the MarkInternalEdgeStatus()\n");
+
+        //  OPERATES ON RAW
+        MarkInternalEdgeStatus(sgraph, scaffold, 0, FALSE, PAIRWISECHI2THRESHOLD_CGW, 1000000.0);
+
+        //
+        // check the damage again
+        //
+        if (IsScaffoldInternallyConnected(sgraph, scaffold, ALL_TRUSTED_EDGES) != 1)
+          fprintf(stderr, "* <REZ> * error: the scaffold has been disconnected after the MarkInternalEdgeStatus()\n");
       }
 
 #     if UPDATE_PARANOID_CHECKING > 0

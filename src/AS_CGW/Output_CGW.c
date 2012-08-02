@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.52 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.53 2012-08-02 17:33:15 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -45,8 +45,8 @@ MarkContigEdges(void) {
   while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
     if(scaffold->type != REAL_SCAFFOLD)
       continue;
-    MarkInternalEdgeStatus(ScaffoldGraph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-                           100000000000.0, TRUE, TRUE, 0, FALSE);
+    //  OPERATES ON RAW EDGES
+    MarkInternalEdgeStatus(ScaffoldGraph, scaffold, 0, FALSE, PAIRWISECHI2THRESHOLD_CGW, 100000000000.0);
   }
 
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);

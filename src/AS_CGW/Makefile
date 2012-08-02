@@ -57,6 +57,7 @@ CGW_LIB_SOURCES = Globals_CGW.C \
                   Instrument_CGW.C \
                   InterleavedMerging.C \
                   LeastSquaresGaps_CGW.C \
+                  MarkInternalEdgeStatus.C \
                   MergeEdges_CGW.C \
                   Output_CGW.C \
                   SEdgeT_CGW.C \

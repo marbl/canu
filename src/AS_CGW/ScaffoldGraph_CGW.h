@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.50 2012-08-01 15:10:53 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.51 2012-08-02 17:33:15 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -36,6 +36,8 @@ static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.50 201
 #include "AS_OVS_overlapStore.h"
 #include "AS_CGW_dataTypes.h"
 #include "ChunkOverlap_CGW.h"
+
+#include "ChiSquareTest_CGW.h"  //  For PAIRWISECHI2THRESHOLD_CGW
 
 #define CGW_MISSED_OVERLAP CGW_DP_MINLEN /* size the overlapper may have missed */
 #define MAX_OVERLAP_SLOP_CGW 10
@@ -435,31 +437,14 @@ void SetCIScaffoldIds(ChunkInstanceT *CI, CDS_CID_t scaffoldID);
 void SetContigScaffoldIds(ContigT *contig, CDS_CID_t scaffoldID);
 
 
-/*
-  MarkInternalEdgeStatus
 
-  Using the CI positions, determines the trustworthiness of all CI edges
-  that are internal to the scaffold, and marks them with a (new) status.
-  This routine only changes the status of edges which are not masked by the
-  doNotChange mask which should be the bitwise OR of CIEdgeStatus enums
-  the user does not want changed.
-  Edges with variance > maxVariance will be marked with
-  LARGE_VARIANCE_EDGE_STATUS
-  As an additional side effect, it also updates the scaffolds count of
-  internal edges and confirmed internal edges.
-  If operateOnMerged == TRUE, checks merged edges
-  else                        checks raw edges
-*/
-void MarkInternalEdgeStatus(ScaffoldGraphT *graph,
-                            CIScaffoldT *scaffold,
-                            double pairwiseChiSquaredThreshhold,
-                            double maxVariance,
-                            int markTrusted,
-                            int markUntrusted,
-                            int doNotChange,
-                            int operateOnMerged);
-
-
+void
+MarkInternalEdgeStatus(ScaffoldGraphT  *graph,
+                       CIScaffoldT     *scaffold,
+                       int              beLoose                      = 0,
+                       int              operateOnMerged              = TRUE,
+                       double           pairwiseChiSquaredThreshhold = PAIRWISECHI2THRESHOLD_CGW,
+                       double           maxVariance                  = SLOPPY_EDGE_VARIANCE_THRESHHOLD);
 
 
 

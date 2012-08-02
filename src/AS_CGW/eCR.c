@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.64 2012-08-01 15:10:53 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.65 2012-08-02 17:33:15 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1046,11 +1046,13 @@ main(int argc, char **argv) {
 
         // need to make sure scaffold is connected with trusted raw edges
 
+        //  OPERATES ON MERGED
         MarkInternalEdgeStatus(ScaffoldGraph,
                                GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
+                               0,
+                               TRUE,
                                PAIRWISECHI2THRESHOLD_CGW,
-                               SLOPPY_EDGE_VARIANCE_THRESHHOLD,
-                               TRUE, TRUE, 0, TRUE);
+                               SLOPPY_EDGE_VARIANCE_THRESHHOLD);
 
         assert(IsScaffoldInternallyConnected(ScaffoldGraph,
                                              GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
