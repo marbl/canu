@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: InterleavedMerging.c,v 1.33 2012-06-10 05:52:34 brianwalenz Exp $";
+static const char *rcsid = "$Id: InterleavedMerging.c,v 1.34 2012-08-02 03:00:09 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -36,7 +36,6 @@ static const char *rcsid = "$Id: InterleavedMerging.c,v 1.33 2012-06-10 05:52:34
 
 #undef DEBUG1
 
-#define CONNECTEDNESS_CHECKS
 
 //  Define this to enable checking of the stretching / compression
 //  of interleaved scaffold merges.  See the detailed comment at the
@@ -2198,59 +2197,9 @@ MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
   // adjust scaffoldA
 
 
-#ifdef CONNECTEDNESS_CHECKS
-  // not sure whether the MarkInternalEdgeStatus calls below are helpful or not?
-  MarkInternalEdgeStatus(ScaffoldGraph,scaffoldA,
-			 PAIRWISECHI2THRESHOLD_CGW,
-			 1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
-			 TRUE, TRUE, 0, TRUE);
-  MarkInternalEdgeStatus(ScaffoldGraph,scaffoldB,
-			 PAIRWISECHI2THRESHOLD_CGW,
-			 1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
-			 TRUE, TRUE, 0, TRUE);
+  AdjustScaffoldContigPositions(scaffoldA, contigsA, numContigsA, (sEdge->orient.isAB_AB() || sEdge->orient.isAB_BA()));
+  AdjustScaffoldContigPositions(scaffoldB, contigsB, numContigsB, (sEdge->orient.isAB_AB() || sEdge->orient.isBA_AB()));
 
-  if(!IsScaffoldInternallyConnected(ScaffoldGraph,scaffoldA,ALL_TRUSTED_EDGES))
-    fprintf(stderr,"WARNING: Interleaved merging: scaffoldA %d pre-adjustment is not internally connected\n",scaffoldA->id);
-
-  if(!IsScaffoldInternallyConnected(ScaffoldGraph,scaffoldB,ALL_TRUSTED_EDGES))
-    fprintf(stderr,"WARNING: Interleaved merging: scaffoldB %d pre-adjustment is not internally connected\n",scaffoldB->id);
-
-  if(!IsScaffold2EdgeConnected(ScaffoldGraph,scaffoldA))
-    fprintf(stderr,"WARNING: Interleaved merging: scaffoldA %d pre-adjustment is not 2-edge connected\n",scaffoldA->id);
-
-  if(!IsScaffold2EdgeConnected(ScaffoldGraph,scaffoldB))
-    fprintf(stderr,"WARNING: Interleaved merging: scaffoldB %d pre-adjustment is not 2-edge connected\n",scaffoldB->id);
-#endif
-
-  AdjustScaffoldContigPositions(scaffoldA, contigsA, numContigsA,
-                                (sEdge->orient.isAB_AB() ||
-                                 sEdge->orient.isAB_BA()));
-  AdjustScaffoldContigPositions(scaffoldB, contigsB, numContigsB,
-                                (sEdge->orient.isAB_AB() ||
-                                 sEdge->orient.isBA_AB()));
-
-#ifdef CONNECTEDNESS_CHECKS
-  MarkInternalEdgeStatus(ScaffoldGraph,scaffoldA,
-			 PAIRWISECHI2THRESHOLD_CGW,
-			 1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
-			 TRUE, TRUE, 0, TRUE);
-  MarkInternalEdgeStatus(ScaffoldGraph,scaffoldB,
-			 PAIRWISECHI2THRESHOLD_CGW,
-			 1000.0 * SLOPPY_EDGE_VARIANCE_THRESHHOLD,
-			 TRUE, TRUE, 0, TRUE);
-
-  if(!IsScaffoldInternallyConnected(ScaffoldGraph,scaffoldA,ALL_TRUSTED_EDGES))
-    fprintf(stderr,"WARNING: Interleaved merging: scaffoldA %d post-adjustment is not internally connected\n",scaffoldA->id);
-
-  if(!IsScaffoldInternallyConnected(ScaffoldGraph,scaffoldB,ALL_TRUSTED_EDGES))
-    fprintf(stderr,"WARNING: Interleaved merging: scaffoldB %d post-adjustment is not internally connected\n",scaffoldB->id);
-
-  if(!IsScaffold2EdgeConnected(ScaffoldGraph,scaffoldA))
-    fprintf(stderr,"WARNING: Interleaved merging: scaffoldA %d post-adjustment is not 2-edge connected\n",scaffoldA->id);
-
-  if(!IsScaffold2EdgeConnected(ScaffoldGraph,scaffoldB))
-    fprintf(stderr,"WARNING: Interleaved merging: scaffoldB %d post-adjustment is not 2-edge connected\n",scaffoldB->id);
-#endif
 
   // change sEdge back to what it was
   sEdge->idA = idA;
