@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MarkInternalEdgeStatus.c,v 1.1 2012-08-02 17:33:15 brianwalenz Exp $";
+static char *rcsid = "$Id: MarkInternalEdgeStatus.c,v 1.2 2012-08-02 21:56:32 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -189,7 +189,7 @@ MarkInternalEdgeStatus(ScaffoldGraphT  *graph,
       //  Mark this edge as untrusted if the distance of the edge is not consistent with the
       //  estimated gap distance as judged by the Chi Squared Test.
       //
-      if (beLoose < 1) {
+      if (beLoose < 2) {
         double  chiSquareResult;
 
         if (FALSE == PairwiseChiSquare(gapDistance.mean,
@@ -211,7 +211,8 @@ MarkInternalEdgeStatus(ScaffoldGraphT  *graph,
         }
       }
 
-      if ((edge->edgesContributing > 1) &&
+      if ((beLoose < 1) &&
+          (edge->edgesContributing > 1) &&
           (edge->distance.variance > maxVariance)) {
 #ifdef VERBOSE_MARKING
         PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, "LargeVariance", edge, -1);

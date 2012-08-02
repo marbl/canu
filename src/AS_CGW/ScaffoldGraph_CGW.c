@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.62 2012-08-01 15:10:53 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.63 2012-08-02 21:56:32 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -567,12 +567,6 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
   CIScaffoldTIterator Nodes;
   NodeCGW_T *thisNode;
 
-#ifdef DEBUG_DETAILED
-  fprintf(stderr,
-          "##### Adding delta (%g,%g) to scaffold "F_CID" at CI "F_CID" #######\n",
-	  delta.mean, delta.variance, scaffoldIndex, indexOfCI);
-#endif
-
   scaffold = GetGraphNode(graph->ScaffoldGraph, scaffoldIndex);
 
   InitCIScaffoldTIteratorFromCI(graph, scaffold, indexOfCI, aEndToBEnd, FALSE, &Nodes);
@@ -589,7 +583,6 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
 
   scaffold->bpLength.mean += delta.mean;
   scaffold->bpLength.variance += delta.variance;
-  return;
 }
 
 
@@ -710,43 +703,13 @@ int RepeatRez(int repeatRezLevel, char *name){
 
 
 
-/***************************************************************************/
-void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
-                      int markShakyBifurcations){
+void
+TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph) {
 
-#ifdef DEBUG_BUCIS
-  BuildUniqueCIScaffolds(ScaffoldGraph, markShakyBifurcations,TRUE);
-  fprintf(stderr,"** After BuildUniqueCIScaffolds **\n");
-  DumpChunkInstances(stderr, ScaffoldGraph,
-                     FALSE, TRUE, TRUE, FALSE);
-  DumpCIScaffolds(stderr,ScaffoldGraph, TRUE);
-#else
-  BuildUniqueCIScaffolds(ScaffoldGraph, markShakyBifurcations, FALSE);
-#endif
-  CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
-
-#ifdef DEBUG_BUCIS
-  LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE, CHECK_CONNECTIVITY, TRUE);
-#else
-  LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE, CHECK_CONNECTIVITY, FALSE);
-#endif
-
-  TidyUpScaffolds (ScaffoldGraph);
-
-  return;
-}
-
-
-/***************************************************************************/
-//  Used to be in middle of  RebuildScaffolds .
-void  TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph)
-{
-  // Contig now!
   CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
-  // We want tor recompute the contig coordinates
-  LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE,
-			   CHECK_CONNECTIVITY, FALSE);
+  for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++)
+    LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
 
   if(GlobalData->debugLevel > 0)
     CheckAllContigFragments();
@@ -755,8 +718,4 @@ void  TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph)
 
   BuildSEdges(ScaffoldGraph, TRUE, FALSE);
   MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
-
-  //ScaffoldGraph->tigStore->flushCache();
 }
-
-

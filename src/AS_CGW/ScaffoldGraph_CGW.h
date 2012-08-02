@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.51 2012-08-02 17:33:15 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.52 2012-08-02 21:56:32 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -268,38 +268,6 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
                                  char *label, EdgeCGW_T *edge,
                                  CDS_CID_t cid);
 
-typedef enum {
-  RECOMPUTE_OK = 0,
-  RECOMPUTE_SINGULAR = 1,
-  RECOMPUTE_LAPACK = 2,
-  RECOMPUTE_NO_GAPS = 3,
-  RECOMPUTE_FAILED_REORDER_NEEDED = 4,
-  RECOMPUTE_NOT_ENOUGH_CLONES = 5,
-  RECOMPUTE_CONTIGGED_CONTAINMENTS = 6,
-  RECOMPUTE_FAILED_CONTIG_DELETED  = 7
-}RecomputeOffsetsStatus;
-
-/*
-  RecomputeOffsetsInScaffold
-
-  Recomputes the positions of the CIs in a scaffold using a least
-  square error approach
-  Arguments:
-  allowOrderChanges -- if TRUE, reordering the CIs in a scaffold can occur
-  if FALSE, reordering will cause a return value
-  of RECOMPUTE_FAILED_REORDER_NEEDED
-  Preconditions:
-  scaffold should be internally connected (IsScaffoldInternallyConnected)
-  Return Values:
-  RECOMPUTE_OK    CI positions are updated and scaffold's least
-  square error measure and number of least square
-  clones are set.
-*/
-RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *sgraph,
-                                                  CDS_CID_t scaffoldID,
-                                                  int allowOrderChanges,
-                                                  int forceNonOverlaps,
-                                                  int verbose);
 
 
 int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
@@ -348,19 +316,10 @@ void BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
                             int markShakyBifurcations, int verbose);
 
 
+//  Recompute mean/variance gap estimates for a scaffold.
+//  Returns true if recomputed, false if not.
+bool LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
 
-// Cleans up a scaffold where the first contig has been placed at a negative coordinate.
-void  CheckLSScaffoldWierdnesses(char *string, ScaffoldGraphT *graph,
-                                 CIScaffoldT *scaffold);
-
-
-/* Recompute mean and variance gap estimates based on clone mate pairs
-   within a scaffold for all scaffolds.
-*/
-
-void LeastSquaresGapEstimates(ScaffoldGraphT *graph, int markEdges,
-			      int useGuides, int forceNonOverlaps,
-			      int checkConnectivity, int verbose);
 
 /***** Celamy *****/
 void DumpCelamyColors(FILE *file);

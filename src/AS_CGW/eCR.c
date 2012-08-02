@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.65 2012-08-02 17:33:15 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.66 2012-08-02 21:56:32 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1036,33 +1036,8 @@ main(int argc, char **argv) {
             numLargeGapsThisScaff, numLargeGapsClosedThisScaff);
 
 
-    if (numSmallGapsClosedThisScaff + numLargeGapsClosedThisScaff > 0) {
-      int status = RECOMPUTE_SINGULAR;
-      int recomputeIteration = 0;
-
-      while ((recomputeIteration++ < 3) &&
-             (status == RECOMPUTE_SINGULAR ||
-              status == RECOMPUTE_CONTIGGED_CONTAINMENTS)) {
-
-        // need to make sure scaffold is connected with trusted raw edges
-
-        //  OPERATES ON MERGED
-        MarkInternalEdgeStatus(ScaffoldGraph,
-                               GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
-                               0,
-                               TRUE,
-                               PAIRWISECHI2THRESHOLD_CGW,
-                               SLOPPY_EDGE_VARIANCE_THRESHHOLD);
-
-        assert(IsScaffoldInternallyConnected(ScaffoldGraph,
-                                             GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid),
-                                             ALL_EDGES));
-
-        status = RecomputeOffsetsInScaffold(ScaffoldGraph,
-                                            sid,
-                                            TRUE, TRUE, FALSE);
-      }
-    }
+    if (numSmallGapsClosedThisScaff + numLargeGapsClosedThisScaff > 0)
+      LeastSquaresGapEstimates(ScaffoldGraph, scaff);
 
     //  Clear out any cached multialigns.  We're all done with them.
     //

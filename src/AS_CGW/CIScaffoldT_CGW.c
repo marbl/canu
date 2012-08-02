@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.58 2012-08-01 15:10:53 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.59 2012-08-02 21:56:32 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1406,19 +1406,12 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
                            chunk->offsetAEnd, chunk->offsetBEnd, TRUE, FALSE);
       }
 
-#if 0
-      // special one-time hack added for mouse_20010307 run
-      MarkInternalEdgeStatus(sgraph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-                             SLOPPY_EDGE_VARIANCE_THRESHHOLD, TRUE, TRUE, 0, TRUE);
-#endif
-
-
-      status = RecomputeOffsetsInScaffold(sgraph, scaffold->id, TRUE, TRUE /* was FALSE*/,FALSE);
-      if (status != RECOMPUTE_OK) {
-        fprintf(stderr, "RecomputeOffsetsInScaffold failed (%d) for scaffold "F_CID" in CheckScaffolds\n",
-                status, sid);
+      if (LeastSquaresGapEstimates(sgraph, scaffold) == false) {
+        fprintf(stderr, "LeastSquaresGapEstimates failed for scaffold "F_CID" in CheckScaffolds.\n",
+                scaffold->id);
         break;
       }
+      
       // This is how much the LSE improved
       improvement = 1.0; // first time through
       if(LSE > 0.0){

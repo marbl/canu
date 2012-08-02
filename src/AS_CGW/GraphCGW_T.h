@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.52 2012-08-01 02:23:38 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.53 2012-08-02 21:56:32 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -148,6 +148,32 @@ typedef struct {
   CDS_CID_t referenceEdge;  /*** Reference to inducing edge */
 
 }EdgeCGW_T;
+
+
+class EdgeCGWLabel_T {
+public:
+  CDS_CID_t   idA;
+  CDS_CID_t   idB;
+  PairOrient  orient;
+  LengthT     distance;
+
+  bool  operator<(EdgeCGWLabel_T const &that) const {
+    if (idA < that.idA)   return(true);
+    if (idA > that.idA)   return(false);
+
+    if (idB < that.idB)   return(true);
+    if (idB > that.idB)   return(false);
+
+    if (orient.toLetter() < that.orient.toLetter())   return(true);
+    if (orient.toLetter() > that.orient.toLetter())   return(false);
+
+    if (distance.mean < that.distance.mean)   return(true);
+    if (distance.mean > that.distance.mean)   return(false);
+
+    return(false);
+  }
+};
+
 
 typedef struct
 {

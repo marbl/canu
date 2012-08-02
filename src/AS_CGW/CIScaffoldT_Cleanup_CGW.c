@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.77 2012-08-01 15:10:53 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.78 2012-08-02 21:56:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1410,14 +1410,9 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   // THE FOLLOWING IS DEBUG CODE
   // MAKE SURE WE DIDN'T DISCONNECT THE SCAFFOLD
   {
-    double maxVariance = 1000000.0;// useGuides ? 100000000000.0 : 1000000.0;
-    int numComponents;
+    MarkInternalEdgeStatus(graph, scaffold, 0, TRUE, PAIRWISECHI2THRESHOLD_CGW, 1000000.0);
 
-
-    MarkInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-                           maxVariance, TRUE, TRUE, 0,TRUE);
-
-    numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
+    int32 numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
     if(numComponents>1){
       //assert(numComponents == 1);
       fprintf(stderr,"WARNING  CUAS1: scaffold %d has %d components\n",scaffold->id,numComponents);
@@ -1654,12 +1649,9 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   // THE FOLLOWING IS DEBUG CODE
   // MAKE SURE WE DIDN'T DISCONNECT THE SCAFFOLD
   {
-    double maxVariance = 1000000.0;//useGuides ? 100000000000.0 : 1000000.0;
-    int numComponents;
-    MarkInternalEdgeStatus(graph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-                           maxVariance, TRUE, TRUE, 0,TRUE);
+    MarkInternalEdgeStatus(graph, scaffold, 0, TRUE, PAIRWISECHI2THRESHOLD_CGW, 1000000.0);
 
-    numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
+    int32 numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
     if(numComponents>1){
       //assert(numComponents == 1);
       fprintf(stderr," CUAS: scaffold %d has %d components\n",scaffold->id,numComponents);

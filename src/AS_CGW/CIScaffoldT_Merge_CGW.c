@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.69 2012-07-17 15:19:24 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.70 2012-08-02 21:56:32 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -974,8 +974,9 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
   iSpec.badSEdges              = CreateChunkOverlapper();
 
   {
-    vector<SEdgeT *>  sEdges;
-    vector<SEdgeT *>  oEdges;
+    vector<SEdgeT *>      sEdges;
+    vector<SEdgeT *>      oEdges;
+    set<EdgeCGWLabel_T>   bEdges;  //  Bad edges - new scaffold is not connected if these are used
 
     int32             iterations         = 0;
     double            weightScaleInit    = 0.75;
@@ -1015,7 +1016,7 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
 
       bool  moreWork = ExamineUsableSEdges(sEdges, weightScale, &iSpec);
 
-      if (MergeScaffolds(&iSpec, verbose)) {
+      if (MergeScaffolds(&iSpec, bEdges)) {
         fprintf(stderr, "MergeScaffoldsAggressive()-- iter %d -- continue because we merged scaffolds.\n",
                 iterations);
 

@@ -19,8 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid_CISCAFFOLDT_MERGESCAFFOLDS_H = "$Id: CIScaffoldT_MergeScaffolds.h,v 1.1 2012-05-01 20:25:23 brianwalenz Exp $";
+static const char *rcsid_CISCAFFOLDT_MERGESCAFFOLDS_H = "$Id: CIScaffoldT_MergeScaffolds.h,v 1.2 2012-08-02 21:56:32 brianwalenz Exp $";
 
+#include "AS_global.h"
+#include "ScaffoldGraph_CGW.h"
+#include "ScaffoldGraphIterator_CGW.h"
+#include "ChiSquareTest_CGW.h"
+#include "InterleavedMerging.h"
+
+#include <set>
+
+using namespace std;
 
 int
-MergeScaffolds(InterleavingSpec * iSpec, int32 verbose);
+MergeScaffolds(InterleavingSpec * iSpec, set<EdgeCGWLabel_T> &bEdges);

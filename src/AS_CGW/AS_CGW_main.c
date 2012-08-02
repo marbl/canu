@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.92 2012-05-01 04:18:19 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.93 2012-08-02 21:56:32 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -379,7 +379,16 @@ main(int argc, char **argv) {
       DumpContigs(stderr,ScaffoldGraph, FALSE);
 
     // Transitive reduction of ContigGraph followed by construction of SEdges
-    RebuildScaffolds(ScaffoldGraph, TRUE);
+
+    //  With markShakyBifurcations enabled.
+    BuildUniqueCIScaffolds(ScaffoldGraph, TRUE, FALSE);
+
+    CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
+
+    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++)
+      LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+
+    TidyUpScaffolds(ScaffoldGraph);
 
     //  rocks is called inside of here
     //  checkpoints are written inside of here
@@ -404,7 +413,16 @@ main(int argc, char **argv) {
         CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
         // Transitive reduction of ContigGraph followed by construction of SEdges
-        RebuildScaffolds(ScaffoldGraph, FALSE);
+
+        //  With markShakyBifurcations disabled.
+        BuildUniqueCIScaffolds(ScaffoldGraph, FALSE, FALSE);
+
+        CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
+
+        for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++)
+          LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+
+        TidyUpScaffolds(ScaffoldGraph);
 
         //  If we've been running for 2 hours, AND we've not just
         //  completed the last iteration, checkpoint.
