@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.78 2012-08-02 21:56:32 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.79 2012-08-03 21:14:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1412,7 +1412,8 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   {
     MarkInternalEdgeStatus(graph, scaffold, 0, TRUE, PAIRWISECHI2THRESHOLD_CGW, 1000000.0);
 
-    int32 numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
+    //  true = useMerged, true = useTrusted
+    int32 numComponents = IsScaffoldInternallyConnected(graph, scaffold, true, true);
     if(numComponents>1){
       //assert(numComponents == 1);
       fprintf(stderr,"WARNING  CUAS1: scaffold %d has %d components\n",scaffold->id,numComponents);
@@ -1651,7 +1652,8 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
   {
     MarkInternalEdgeStatus(graph, scaffold, 0, TRUE, PAIRWISECHI2THRESHOLD_CGW, 1000000.0);
 
-    int32 numComponents = IsScaffoldInternallyConnected(graph,scaffold,ALL_TRUSTED_EDGES);
+    //  true = useMerged, true = useTrusted
+    int32 numComponents = IsScaffoldInternallyConnected(graph, scaffold, true, true);
     if(numComponents>1){
       //assert(numComponents == 1);
       fprintf(stderr," CUAS: scaffold %d has %d components\n",scaffold->id,numComponents);

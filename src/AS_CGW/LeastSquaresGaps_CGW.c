@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.53 2012-08-02 21:56:32 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.54 2012-08-03 21:14:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -197,48 +197,47 @@ FixUpMisorderedContigs(CIScaffoldT           *scaffold,
 
 
 
-EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
-                                    NodeCGW_T *sourceCI,
-                                    CDS_CID_t targetId,
-                                    PairOrient edgeOrient,
-                                    double inferredMean,
-                                    double inferredVariance,
-                                    double *chiSquaredValue,
-                                    double chiSquareThreshold,
-                                    int *alternate, int verbose){
-  EdgeCGW_T *bestEdge = (EdgeCGW_T *)NULL;
-  int end;
-  double bestChiSquaredValue = FLT_MAX;
+EdgeCGW_T *
+FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
+                         NodeCGW_T *sourceCI,
+                         CDS_CID_t targetId,
+                         PairOrient edgeOrient,
+                         double inferredMean,
+                         double inferredVariance,
+                         double *chiSquaredValue,
+                         double chiSquareThreshold,
+                         int *alternate, int verbose){
+  EdgeCGW_T *bestEdge = NULL;
+  double     bestChiSquaredValue = FLT_MAX;
+  int32      end = (edgeOrient.isAB_AB() || edgeOrient.isAB_BA()) ? B_END : A_END;;
 
   *alternate = FALSE;
-
-  if (edgeOrient.isAB_AB() ||
-      edgeOrient.isAB_BA())
-    end = B_END;  // edgeOrient == AB_XX
-  else
-    end = A_END;  // edgeOrient == BA_XX
 
   GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, sourceCI->id, end, ALL_EDGES);
   EdgeCGW_T        *edge;
 
-  while((edge = edges.nextRaw())!= NULL){
-
+  while ((edge = edges.nextRaw()) != NULL){
     CDS_CID_t otherCID = (edge->idA == sourceCI->id) ? edge->idB : edge->idA;
-    if((otherCID == targetId) && isOverlapEdge(edge) &&
-       !isContainmentEdge(edge) ){// deal with these later
-      if(GetEdgeOrientationWRT(edge, sourceCI->id) == edgeOrient){
-        if(PairwiseChiSquare((double)inferredMean, (double)inferredVariance,
-                             (double)edge->distance.mean,
-                             (double)((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
-                             (LengthT *)NULL, chiSquaredValue,
-                             (double)chiSquareThreshold)){
-          if(bestEdge == (EdgeCGW_T *)NULL ||
-             (*chiSquaredValue < bestChiSquaredValue)){
-            bestEdge = edge;
-            bestChiSquaredValue = *chiSquaredValue;
-          }
-        }
-      }
+
+    if (otherCID != targetId)
+      continue;
+
+    if (isOverlapEdge(edge) == false)
+      continue;
+
+    if (isContainmentEdge(edge) == true)
+      continue;
+
+    if (GetEdgeOrientationWRT(edge, sourceCI->id) != edgeOrient)
+      continue;
+
+    if (PairwiseChiSquare(inferredMean, inferredVariance, edge->distance.mean, ((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
+                          NULL, chiSquaredValue, chiSquareThreshold) == false)
+      continue;
+
+    if ((bestEdge == NULL) || (*chiSquaredValue < bestChiSquaredValue)) {
+      bestEdge = edge;
+      bestChiSquaredValue = *chiSquaredValue;
     }
   }
 
@@ -271,17 +270,13 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
   if (olap.overlap == 0)
     return(NULL);
 
-  edge = GetGraphEdge(graph->ContigGraph,
-                      InsertComputedOverlapEdge(graph->ContigGraph, &olap));
+  edge = GetGraphEdge(graph->ContigGraph, InsertComputedOverlapEdge(graph->ContigGraph, &olap));
 
   // Create an appropriate hash table entry
   CreateChunkOverlapFromEdge(ScaffoldGraph->ContigGraph, edge);
 
-  if (PairwiseChiSquare((double)inferredMean, (double)inferredVariance,
-                        effectiveOlap,
-                        (double)((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
-                        (LengthT *)NULL, chiSquaredValue,
-                        (double)chiSquareThreshold)) {
+  if (PairwiseChiSquare(inferredMean, inferredVariance, effectiveOlap, ((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
+                        NULL, chiSquaredValue, chiSquareThreshold)) {
     *alternate = olap.suspicious;
     return(edge);
   }
@@ -290,7 +285,7 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
           inferredMean, inferredVariance, effectiveOlap, (double) ((MAX_OVERLAP_SLOP_CGW * MAX_OVERLAP_SLOP_CGW) / 9),
           edge->idA, edge->idB, edge->orient.toLetter(), edge->distance.mean);
 
-  return((EdgeCGW_T *)NULL);
+  return(NULL);
 }
 
 
@@ -298,7 +293,7 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
 
 //  Dump trusted/raw edges
 void
-dumpTrustedEdges(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 edgeTypes) {
+dumpTrustedEdges(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold) {
   ChunkInstanceT * chunk;
   CIScaffoldTIterator CIs;
   int set = 0;
@@ -308,19 +303,10 @@ dumpTrustedEdges(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold, int32 edgeTypes)
   InitCIScaffoldTIterator(sgraph, scaffold, TRUE, FALSE, &CIs);
 
   while ((chunk = NextCIScaffoldTIterator(&CIs)) != NULL) {
-    GraphEdgeIterator   edges(sgraph->ContigGraph, chunk->id, ALL_END, edgeTypes);
+    GraphEdgeIterator   edges(sgraph->ContigGraph, chunk->id, ALL_END, ALL_TRUSTED_EDGES);
     CIEdgeT            *edge;
 
-    //  We don't have a setID if we're in
-    //  BuildScaffoldsFromFirstPriniciples() -> RepeatRez() ->
-    //  TidyUpScaffolds() -> LeastSquaresGapEstimates() -> here
-    //
-    //assert(chunk->setID >= 0);
-    while ((edge = edges.nextMerged()) != NULL) {
-
-      //
-      // get the other end
-      //
+    while ((edge = edges.nextRaw()) != NULL) {
       ChunkInstanceT * otherChunk = GetGraphNode(sgraph->ContigGraph,
                                                  (chunk->id == edge->idA) ?
                                                  edge->idB : edge->idA);
@@ -549,8 +535,7 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
     thisCI->indexInScaffold = indexCIs;
     *lengthCIsPtr = thisCI->bpLength;
 
-    //fprintf(stderr, "Length of CI %d,"F_CID" %f\n",
-    //        indexCIs, thisCI->id, lengthCIsPtr->mean);
+    //fprintf(stderr, "Length of CI "F_CID" is %f indexInScaffold %d\n", thisCI->id, thisCI->bpLength.mean, thisCI->indexInScaffold);
 
     indexCIs++;
     lengthCIsPtr++;
@@ -563,9 +548,12 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
     GraphEdgeIterator  edges(ScaffoldGraph->ContigGraph, thisCI->id, ALL_END, ALL_TRUSTED_EDGES);
 
     while((edge = edges.nextRaw())!= NULL){
-
-      int isA = (edge->idA == thisCI->id);
+      int        isA = (edge->idA == thisCI->id);
       NodeCGW_T *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph, (isA ? edge->idB : edge->idA));
+
+      assert(thisCI->scaffoldID == otherCI->scaffoldID);
+      assert(otherCI->indexInScaffold <= numGaps);
+      assert(thisCI->indexInScaffold  <= numGaps);
 
       if (otherCI->scaffoldID == -1)
         continue;
@@ -698,13 +686,20 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       while((edge = edges.nextRaw())!= NULL){
         int isA = (edge->idA == thisCI->id);
         NodeCGW_T *otherCI = GetGraphNode(ScaffoldGraph->ContigGraph, (isA? edge->idB: edge->idA));
+
+        assert(thisCI->scaffoldID == otherCI->scaffoldID);
+        assert(otherCI->indexInScaffold <= numGaps);
+        assert(thisCI->indexInScaffold  <= numGaps);
+
         double constant, constantVariance, inverseVariance;
         int lengthCIsIndex, gapIndex;
         int colIndex;
 
-        if(otherCI->indexInScaffold <= thisCI->indexInScaffold){
+        if (otherCI->scaffoldID == -1)
+          continue;
+
+        if (otherCI->indexInScaffold <= thisCI->indexInScaffold)
           continue; // Only interested in looking at an edge once
-        }
 
         if(indexClones>=numClones){
           numClones*=1.2;
@@ -745,6 +740,7 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
            which seems wrong but not doing anything seems wrong too. */
         for(gapIndex = thisCI->indexInScaffold;
             gapIndex < otherCI->indexInScaffold; gapIndex++){
+          assert(gapIndex < numGaps);
           if(gapsToComputeGaps[gapIndex] == NULLINDEX){
             constant -= gapSize[gapIndex];
             //constantVariance += gapSizeVariance[gapIndex];
@@ -1145,9 +1141,8 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             //PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " alternateEdge: ", overlapEdge, overlapEdge->idA);
             //fprintf(stderr, "BEFORE ContigContainment, scaffold "F_CID" %s connected\n",
             //        scaffold->id,
-            //        IsScaffoldInternallyConnected(ScaffoldGraph,
-            //                                      scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-            //dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+            //        IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
+            //dumpTrustedEdges(ScaffoldGraph, scaffold);
             //DumpACIScaffold(stderr, graph, scaffold, FALSE);
 
             // We want to merge the two contigs immediately, since these are problematic,
@@ -1160,9 +1155,8 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
             //fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
             //        scaffold->id,
-            //        IsScaffoldInternallyConnected(ScaffoldGraph,
-            //                                      scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-            //dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+            //        IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
+            //dumpTrustedEdges(ScaffoldGraph, scaffold);
             //DumpACIScaffold(stderr, graph, scaffold, FALSE);
 
             freeRecomputeData(&data);
@@ -1178,9 +1172,8 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             
             //fprintf(stderr, "BEFORE ContigContainment, scaffold "F_CID" %s connected\n",
             //        scaffold->id,
-            //        IsScaffoldInternallyConnected(ScaffoldGraph,
-            //                                      scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-            //dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+            //        IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
+            //dumpTrustedEdges(ScaffoldGraph, scaffold);
             //DumpACIScaffold(stderr, graph, scaffold, FALSE);
 
             // When we find a containment relationship in a scaffold we want to merge the two contigs
@@ -1193,9 +1186,8 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
             //fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
             //        scaffold->id,
-            //        IsScaffoldInternallyConnected(ScaffoldGraph,
-            //                                      scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-            //dumpTrustedEdges(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES);
+            //        IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
+            //dumpTrustedEdges(ScaffoldGraph, scaffold);
             //DumpACIScaffold(stderr, graph, scaffold, FALSE);
 
             freeRecomputeData(&data);
@@ -1440,15 +1432,14 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   for (uint32 iter=0; iter<5; iter++) {
 
-    //  if we mark raw edges, the merged edge is not marked.  when iterating, we get the merged
-    //  edge first, it fails to have the correct status, and we never see the raw edges
+    //  Even though we only use raw edges, still mark the merged edges.
 
     MarkInternalEdgeStatus(graph, scaffold, 0, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
     MarkInternalEdgeStatus(graph, scaffold, 0, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
 
-    //  Don't check variance
+    //  Don't check variance (false = use raw, true = use trusted)
 #if 1
-    if (IsScaffoldInternallyConnected(ScaffoldGraph,scaffold,ALL_TRUSTED_EDGES) != 1) {
+    if (IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, false, true) != 1) {
       MarkInternalEdgeStatus(graph, scaffold, 1, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
       MarkInternalEdgeStatus(graph, scaffold, 1, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
     }
@@ -1456,7 +1447,7 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
     //  Don't check chiSquared - leads to a massive misjoin in pging test set
 #if 0
-    if (IsScaffoldInternallyConnected(ScaffoldGraph,scaffold,ALL_TRUSTED_EDGES) != 1) {
+    if (IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, false, true) != 1) {
       MarkInternalEdgeStatus(graph, scaffold, 2, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
       MarkInternalEdgeStatus(graph, scaffold, 2, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
     }

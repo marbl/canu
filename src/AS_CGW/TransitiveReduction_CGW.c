@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.38 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.39 2012-08-03 21:14:14 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -1905,10 +1905,9 @@ ActuallyInsertCIsIntoScaffolds(void) {
 
     {/***** Check that scaffold is connected ****/
       CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, currentScaffoldID);
-      if (!IsScaffoldInternallyConnected(ScaffoldGraph,  scaffold, ALL_TRUSTED_EDGES)) {
-        fprintf(stderr,"* Scaffold "F_CID
-                " is DISCONNECTED IMMEDIATELY AFTER INITIAL CONSTRUCTION!!!!\n",
-                currentScaffoldID);
+      //  true = use merged, true = use trusted
+      if (IsScaffoldInternallyConnected(ScaffoldGraph,  scaffold, true, true) == false) {
+        fprintf(stderr,"* Scaffold "F_CID" is DISCONNECTED IMMEDIATELY AFTER INITIAL CONSTRUCTION!!!!\n", currentScaffoldID);
         DumpACIScaffold(stderr,ScaffoldGraph, scaffold, FALSE);
         assert(0);
       }

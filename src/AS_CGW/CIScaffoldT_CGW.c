@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.59 2012-08-02 21:56:32 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.60 2012-08-03 21:14:14 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -615,15 +615,23 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
 
 
 
-/***************************************************************************/
-int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
-                                  CIScaffoldT *scaffold, int32 edgeTypes) {
-  //
-  // returns the number of connected components of the <scaffold>
-  // NOTE: it considers ONLY trusted edges
-  // Will modify the setId field of the NodeCGW_T structure to reflect
-  // which component a node belongs to.
-  //
+//  Determines whether the scaffold is connected by edges marked TRUSTED and
+//  TENTATIVELY_TRUSTED. This is a necessary condition for boths sanity and successful recomputation
+//  of positions of Scaffold CI positions.  Also interesting to evaluate this after
+//  MarkInternalCIEdgeStatus. edgeTypes defines the set of edges used.  LeastSquares uses
+//  ALL_TRUSTED_EDGES, other manipulations use ALL_EDGES.
+//
+//  returns the number of connected components of the <scaffold>
+//
+//  Will modify the setId field of the NodeCGW_T structure to reflect which component a node belongs
+//  to.
+//
+int
+IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
+                              CIScaffoldT    *scaffold,
+                              bool            useMerged,
+                              bool            useTrusted) {
+
   UFDataT * UFData = UFCreateSets(scaffold->info.Scaffold.numElements);
   ChunkInstanceT * chunk;
   CIScaffoldTIterator CIs;
@@ -639,19 +647,10 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
   //
   InitCIScaffoldTIterator(sgraph, scaffold, TRUE,  FALSE, &CIs);
   while ((chunk = NextCIScaffoldTIterator(&CIs)) != NULL) {
-    //
-    // create a set
-    //
-    UFSetT
-      * chunkSet = UFGetSet(UFData, set);
-    //
-    // map the set to a chunk
-    //
-    chunkSet->data = (void *)chunk;
-    //
-    // map the chunkId to setId
-    //
-    chunk->setID = set++;
+    UFSetT   *chunkSet = UFGetSet(UFData, set);
+
+    chunkSet->data = chunk;
+    chunk->setID   = set++;
   }
 
   //
@@ -660,21 +659,14 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
   InitCIScaffoldTIterator(sgraph, scaffold, TRUE,
                           FALSE, &CIs);
   while ((chunk = NextCIScaffoldTIterator(&CIs)) != NULL) {
-    GraphEdgeIterator   edges(sgraph->ContigGraph, chunk->id, ALL_END, edgeTypes);
+    GraphEdgeIterator   edges(sgraph->ContigGraph, chunk->id, ALL_END, (useTrusted) ? ALL_TRUSTED_EDGES : ALL_EDGES);
     CIEdgeT            *edge;
 
     assert(chunk->setID >= 0);
 
-    while ((edge = edges.nextMerged()) != NULL) {
-      //
-      // get the other end
-      //
-      ChunkInstanceT
-        * otherChunk = GetGraphNode(sgraph->ContigGraph,
-                                    (chunk->id == edge->idA) ?
-                                    edge->idB : edge->idA);
-      int32 weight = edge->edgesContributing - (isOverlapEdge(edge));
-      assert(otherChunk != NULL);
+    while ((edge = (useMerged) ? edges.nextMerged() : edges.nextRaw()) != NULL) {
+      ChunkInstanceT *otherChunk = GetGraphNode(sgraph->ContigGraph, (chunk->id == edge->idA) ? edge->idB : edge->idA);
+      int32           weight = edge->edgesContributing - (isOverlapEdge(edge));
 
       // See each edge only once
       if(chunk->id != edge->idA)
@@ -872,7 +864,7 @@ killScaffoldIfOnlySurrogate(CDS_CID_t scaffoldID) {
 /***********************************************************************/
 int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffoldID, int32 edgeTypes, int verbose){
   CIScaffoldT  *scaffold      = GetCIScaffoldT(graph->CIScaffolds, scaffoldID);
-  int           numComponents = IsScaffoldInternallyConnected(graph, scaffold, edgeTypes);
+  int           numComponents = IsScaffoldInternallyConnected(graph, scaffold, true, (edgeTypes == ALL_TRUSTED_EDGES));
   int32         numNodes      = scaffold->info.Scaffold.numElements;
 
   // Expected case, Scaffold is connected
@@ -988,113 +980,6 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
   return numComponents;
 }
 
-
-/*****************************************************************************/
-
-void CheckTrustedEdges(ScaffoldGraphT * sgraph,  CDS_CID_t cid) {
-  //
-  // iterates over all trusted edges of CI cid and check if
-  // the other end is in the same scaffold
-  //
-  GraphEdgeIterator  edges(sgraph->ContigGraph, cid, ALL_END, ALL_TRUSTED_EDGES);
-  CIEdgeT * edge;
-  CDS_CID_t next;
-  ChunkInstanceT * next_chunk;
-  ChunkInstanceT * this_chunk = GetGraphNode(sgraph->ContigGraph, cid);
-  CDS_CID_t sid = this_chunk->scaffoldID;
-
-  while((edge = edges.nextMerged()) != NULL){
-    assert(edge != NULL);
-    //
-    // get the other end
-    //
-    if (cid == edge->idA)
-      next = edge->idB;
-    else
-      //      continue;  // avoid double checking of (i,j) and (j,i)
-      next = edge->idA;
-
-    next_chunk = GetGraphNode(ScaffoldGraph->ContigGraph, next);
-    assert(next_chunk != NULL);
-
-    if (next_chunk->scaffoldID != sid)
-#if 1
-      fprintf(stderr,"-=> BAD edge id:"F_CID" "F_CID"("F_CID")->"F_CID"("F_CID") (weight %d, status %d)\n",
-              (CDS_CID_t) GetVAIndex_CIEdgeT(sgraph->ContigGraph->edges, edge),
-              cid,
-              sid,
-              next,
-              next_chunk->scaffoldID,
-              edge->edgesContributing,
-              edge->flags.bits.edgeStatus);
-#endif
-  }
-}
-
-
-/*****************************************************************************/
-
-void CheckAllTrustedEdges(ScaffoldGraphT * sgraph){
-  GraphNodeIterator nodes;
-  ChunkInstanceT *contig;
-
-  InitGraphNodeIterator(&nodes, sgraph->ContigGraph, GRAPH_NODE_DEFAULT);
-  while((contig = NextGraphNodeIterator(&nodes)) != NULL){
-
-    if(contig->scaffoldID == NULLINDEX)
-      continue;
-
-    CheckTrustedEdges(sgraph, contig->id);
-
-  }
-}
-
-/*****************************************************************************/
-
-int CheckAllEdges(ScaffoldGraphT * sgraph,  CDS_CID_t sid, CDS_CID_t cid) {
-  //
-  // iterates over all edges of CI cid and check if
-  // the other end is in the same scaffold
-  // returns the number of edges (of any type except UNTRUSTED_EDGE_STATUS)
-  // to chunks in another scaffold
-  //
-  GraphEdgeIterator edges(sgraph->ContigGraph, cid, ALL_END, ALL_EDGES);
-  EdgeCGW_T * edge;
-  CDS_CID_t next;
-  NodeCGW_T * next_chunk;
-  int out_of_sid_links = 0;
-
-  while((edge = edges.nextMerged()) != NULL){
-    assert(edge != NULL);
-
-    if (!(edge->flags.bits.edgeStatus & (TRUSTED_EDGE_STATUS  || TENTATIVE_TRUSTED_EDGE_STATUS)) )
-      continue;
-    //
-    // get the other end
-    //
-    if (cid == edge->idA)
-      next = edge->idB;
-    else
-      next = edge->idA;
-
-    next_chunk = GetGraphNode(ScaffoldGraph->ContigGraph, next);
-    assert(next_chunk != NULL);
-
-    if ((next_chunk->scaffoldID != sid) && (next_chunk->scaffoldID != -1)) {
-      out_of_sid_links++;
-      /*** mjf ***/
-      fprintf(stderr, "in CheckAllEdges -=> BAD edge id:"F_CID" "F_CID"("F_CID")->"F_CID"("F_CID") (weight %d, status %d)\n",
-              (CDS_CID_t) GetVAIndex_EdgeCGW_T(sgraph->ContigGraph->edges, edge),
-              cid,
-              sid,
-              next,
-              next_chunk->scaffoldID,
-              edge->edgesContributing,
-              edge->flags.bits.edgeStatus);
-    }
-  }
-  return out_of_sid_links;
-}
 
 
 /*****************************************************************************/

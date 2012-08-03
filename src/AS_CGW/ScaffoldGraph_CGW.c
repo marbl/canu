@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.63 2012-08-02 21:56:32 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.64 2012-08-03 21:14:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -702,6 +702,38 @@ int RepeatRez(int repeatRezLevel, char *name){
 
 
 
+static
+void
+CheckAllTrustedEdges(ScaffoldGraphT * sgraph) {
+  GraphNodeIterator nodes;
+  ChunkInstanceT   *contig;
+
+  InitGraphNodeIterator(&nodes, sgraph->ContigGraph, GRAPH_NODE_DEFAULT);
+  while ((contig = NextGraphNodeIterator(&nodes)) != NULL) {
+    if (contig->scaffoldID == NULLINDEX)
+      continue;
+
+    ChunkInstanceT *thisC = GetGraphNode(sgraph->ContigGraph, contig->id);
+
+    assert(contig == thisC);
+
+    GraphEdgeIterator  edges(sgraph->ContigGraph, contig->id, ALL_END, ALL_TRUSTED_EDGES);
+    CIEdgeT           *edge;
+
+    while((edge = edges.nextMerged()) != NULL){
+      CDS_CID_t next = (contig->id == edge->idA) ? edge->idB : edge->idA;
+
+      ChunkInstanceT *thatC = GetGraphNode(ScaffoldGraph->ContigGraph, next);
+
+      if (thatC->scaffoldID != thisC->scaffoldID)
+        fprintf(stderr,"-=> BAD edge id:"F_CID" "F_CID"("F_CID")->"F_CID"("F_CID") (weight %d, status %d)\n",
+                GetVAIndex_CIEdgeT(sgraph->ContigGraph->edges, edge),
+                contig->id, thisC->scaffoldID,
+                thatC->id, thatC->scaffoldID,
+                edge->edgesContributing, edge->flags.bits.edgeStatus);
+    }
+  }
+}
 
 void
 TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph) {

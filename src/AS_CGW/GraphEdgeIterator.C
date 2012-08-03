@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.1 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.2 2012-08-03 21:14:14 brianwalenz Exp $";
 
 #include "GraphCGW_T.h"
 //#include "GraphEdgeIterator.H"
@@ -70,6 +70,10 @@ GraphEdgeIterator::nextRaw(void) {
     assert(r->flags.bits.isDeleted == false);
     assert((r->idA == cid) || (r->idB == cid));
 
+    if ((GetEdgeStatus(r) & edgeStatusSet) == 0)
+      //  If the raw edge isn't marked appropraitely, get another.
+      goto getRawEdge;
+
     //fprintf(stderr, "Return raw edge %d-%d\n", r->idA, r->idB);
     return(r);
   }
@@ -86,16 +90,19 @@ GraphEdgeIterator::nextRaw(void) {
   nextM = (r->idA == cid) ? r->nextALink : r->nextBLink;
   nextR = NULLINDEX;
 
-  //  Like, if the marking isn't what we want, get another merged edge.
+  //  Previous versions would check that the merged edge was marked appropriately, and if not, skip
+  //  ALL raw edges below it.  Starting in v1.2 we test the raw edges separately.
 
-#warning FILTERING MERGED EDGES FROM RAW
-  if ((GetEdgeStatus(r) & edgeStatusSet) == 0)
-    goto getRawEdge;
-
-  //  Like, if it is a raw edge, return that.
+  //  If this merged edge in fact is raw (it didn't have anything to merge with),
+  //  return it.
 
   if (r->flags.bits.isRaw == true) {
     assert(r->nextRawEdge == NULLINDEX);
+
+    if ((GetEdgeStatus(r) & edgeStatusSet) == 0)
+      //  If the raw edge isn't marked appropraitely, get another.
+      goto getRawEdge;
+
     return(r);
   }
 

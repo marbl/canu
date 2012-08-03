@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.52 2012-08-02 21:56:32 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.53 2012-08-03 21:14:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -270,21 +270,15 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
 
 
 
-int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
+int
+IsScaffold2EdgeConnected(ScaffoldGraphT  *graph,
+                         CIScaffoldT     *scaffold);
 
-/*
-  IsScaffoldInternallyConnected
-
-  Determines whether the scaffold is connected by edges marked TRUSTED
-  and TENTATIVELY_TRUSTED. This is a necessary condition for boths sanity
-  and successful recomputation of positions of Scaffold CI positions.  Also
-  interesting to evaluate this after MarkInternalCIEdgeStatus. edgeTypes
-  defines the set of edges used.  LeastSquares uses ALL_TRUSTED_EDGES,
-  other manipulations use ALL_EDGES.
-  Returns TRUE if connected, FALSE if not connected.
-*/
-int IsScaffoldInternallyConnected(ScaffoldGraphT *graph,
-                                  CIScaffoldT *scaffold, int32 edgeTypes);
+int
+IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
+                              CIScaffoldT    *scaffold,
+                              bool            useMerged,
+                              bool            useTrusted);
 
 
 // New test code to partly substitute for the status given by
@@ -334,13 +328,6 @@ void FindScaffoldComponents(ScaffoldGraphT *graph, int findPaths);
 int MergeScaffoldPaths(ScaffoldGraphT *sgraph);
 
 
-/* Check that all trusted edges are intra-scaffold,
-   generates output to log file
-*/
-void CheckAllTrustedEdges(ScaffoldGraphT * sgraph);
-
-/* Checks that all trusted edges incident on cid are intra-scaffold */
-void CheckTrustedEdges(ScaffoldGraphT * sgraph, CDS_CID_t cid);
 
 /* Check means and variance in all real scaffolds */
 void CheckCIScaffoldTs(ScaffoldGraphT *sgraph);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.20 2012-08-02 17:33:15 brianwalenz Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.21 2012-08-03 21:14:14 brianwalenz Exp $";
 
 /**********************************************************************
 
@@ -786,7 +786,8 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
         //
         // check the damage again
         //
-        if (IsScaffoldInternallyConnected(sgraph, scaffold, ALL_TRUSTED_EDGES) != 1)
+        //  true = merged; true = trusted
+        if (IsScaffoldInternallyConnected(sgraph, scaffold, true, true) != 1)
           fprintf(stderr, "* <REZ> * error: the scaffold has been disconnected after the MarkInternalEdgeStatus()\n");
       }
 

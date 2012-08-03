@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.76 2012-08-02 17:33:15 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.77 2012-08-03 21:14:14 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -11001,9 +11001,10 @@ int Throw_Stones
         int  components1 = 0;
 
 #if 1
+        //  true = merged, false = all edges
         components0 = IsScaffoldInternallyConnected(ScaffoldGraph,
                                                     GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaff_id),
-                                                    ALL_EDGES);
+                                                    true, false);
 #endif
 
         //  XXXXX: Even though USE_MY_INSERT is not defined, we still
@@ -11044,13 +11045,14 @@ int Throw_Stones
           if (components1 > 1) {
             splitscaffolds++;
 
+            //  true = merged, true = trusted
             fprintf(stderr, "Throw_Stones()-- Scaffold %d components: ALL_EDGES=%d (%d before stones); ALL_TRUSTED_EDGES=%d components.\n",
                     scaff_id,
                     components1,
                     components0,
                     IsScaffoldInternallyConnected(ScaffoldGraph,
                                                   GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaff_id),
-                                                  ALL_TRUSTED_EDGES));
+                                                  true, true));
           }
 #endif
 

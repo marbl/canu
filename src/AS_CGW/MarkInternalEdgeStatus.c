@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MarkInternalEdgeStatus.c,v 1.2 2012-08-02 21:56:32 brianwalenz Exp $";
+static char *rcsid = "$Id: MarkInternalEdgeStatus.c,v 1.3 2012-08-03 21:14:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -81,6 +81,25 @@ findOrientAndDistance(PairOrient     &edgeOrient,
     gapDistance.mean     = MI->offsetAEnd.mean     - CI->offsetAEnd.mean;
     gapDistance.variance = MI->offsetAEnd.variance - CI->offsetAEnd.variance;
   }
+
+  //  This condition should not occur but when it does it causes an assert in the PairwiseChiSquare
+  //  subroutine so we will just mark the edge as untrusted so the program can keep going but this
+  //  needs to be investigated and fixed!!!!  The PairwiseChiSquare test is conditional on variance
+  //  being positive.
+
+  if (gapDistance.variance <= 0)
+    fprintf(stderr, "WARNING:  Negative variance (%.2f +- %.2f) from edgeOrient %c CI %d %c (%.2f +- %.2f -- %.2f +- %.2f) to MI %d %c (%.2f +- %.2f -- %.2f +- %.2f)\n",
+            gapDistance.mean, gapDistance.variance,
+            edgeOrient.toLetter(),
+            CI->id,
+            CIorient.toLetter(),
+            CI->offsetAEnd.mean, CI->offsetAEnd.variance,
+            CI->offsetBEnd.mean, CI->offsetBEnd.variance,
+            MI->id,
+            MIorient.toLetter(),
+            MI->offsetAEnd.mean, MI->offsetAEnd.variance,
+            MI->offsetBEnd.mean, MI->offsetBEnd.variance);
+  //assert(gapDistance.variance > 0);
 }
 
 
@@ -146,30 +165,11 @@ MarkInternalEdgeStatus(ScaffoldGraphT  *graph,
 
       findOrientAndDistance(edgeOrient, CI, CIorient, MI, MIorient, gapDistance);
 
-
-      //  This condition should not occur but when it does it causes an assert in the
-      //  PairwiseChiSquare subroutine so we will just mark the edge as untrusted so the program can
-      //  keep going but this needs to be investigated and fixed!!!!
-      //
-      //  If you're serious about debugging this, enable these dumps, otherwise, don't fill up the
-      //  cgwlog with useless crud.
-      //
-      if (gapDistance.variance <= 0.0) {
-        //DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,TRUE);
-        //DumpACIScaffoldNew(stderr,ScaffoldGraph,scaffold,FALSE);
-
-#ifdef VERBOSE_MARKING
-        //fprintf(stderr, "["F_CID"."F_CID","F_CID"."F_CID"]Bad Gap Variance (%f,%f) (%f,%f) DANGER WILL ROBINSON!!!\n",
-        //        CI->id, CI->scaffoldID, MI->id,
-        //        MI->scaffoldID,
-        //        gapDistance.mean, gapDistance.variance,
-        //        edge->distance.mean, edge->distance.variance);
-        //PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, "NegVariance  ", edge, -1);
-#endif
-        SetEdgeStatus(graph->ContigGraph, edge, UNTRUSTED_EDGE_STATUS);
-        continue;
-      }
-
+      //  Throw out edges across bad variance gaps.
+      //if (gapDistance.variance <= 0.0) {
+      //  SetEdgeStatus(graph->ContigGraph, edge, UNTRUSTED_EDGE_STATUS);
+      //  continue;
+      //}
 
       //  Mark as untrusted an edge whose orientation does not agree
       //  with the orientation of the CIs in the scaffold.
@@ -189,7 +189,12 @@ MarkInternalEdgeStatus(ScaffoldGraphT  *graph,
       //  Mark this edge as untrusted if the distance of the edge is not consistent with the
       //  estimated gap distance as judged by the Chi Squared Test.
       //
-      if (beLoose < 2) {
+      //  If the gapDistance.variance is negative, this fails.  Previous to version 1.2 we would
+      //  mark all edges across this gap as untrusted -- but doesn't that automatically disconnect
+      //  the scaffold?!
+
+      if ((beLoose < 2) &&
+          (gapDistance.variance > 0)) {
         double  chiSquareResult;
 
         if (FALSE == PairwiseChiSquare(gapDistance.mean,
@@ -211,6 +216,7 @@ MarkInternalEdgeStatus(ScaffoldGraphT  *graph,
         }
       }
 
+      //  If not raw, check for large variance.
       if ((beLoose < 1) &&
           (edge->edgesContributing > 1) &&
           (edge->distance.variance > maxVariance)) {

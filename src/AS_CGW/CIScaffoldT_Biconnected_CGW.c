@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.20 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.21 2012-08-03 21:14:14 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -121,7 +121,7 @@ int IsScaffold2EdgeConnected(ScaffoldGraphT *graph, CIScaffoldT *scaffold){
 #endif
 
       // Does this node have any edges that are scaffold internal
-      while (edge = edges.nextMerged()) {
+      while ((edge = edges.nextRaw()) != NULL) {
         NodeCGW_T *nodeA = GetGraphNode(ScaffoldGraph->ContigGraph, edge->idA);
         NodeCGW_T *nodeB = GetGraphNode(ScaffoldGraph->ContigGraph, edge->idB);
 
@@ -185,7 +185,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
           contig->id,contigNum,lowpt[contigNum]);
 #endif
 
-  while (edge = edges.nextMerged()) {
+  while ((edge = edges.nextRaw()) != NULL) {
     NodeCGW_T *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge->idA == contig->id? edge->idB:edge->idA));
     CDS_CID_t otherNum = otherContig->info.Contig.contigNum;
 
@@ -232,7 +232,7 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
 
       wNum = w->info.Contig.contigNum;
 
-      while (edge2 = edges2.nextMerged()) {
+      while ((edge2 = edges2.nextRaw()) != NULL) {
         NodeCGW_T *otherContig = GetGraphNode(ScaffoldGraph->ContigGraph, (edge2->idA == w->id? edge2->idB:edge2->idA));
         CDS_CID_t otherNum = otherContig->info.Contig.contigNum;
 
