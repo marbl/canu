@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.102 2012-07-13 18:06:13 skoren Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.103 2012-08-04 16:40:16 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,6 +120,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  -dumpfragments             dump fragment info, no sequence\n");
   fprintf(stdout, "    -withsequence              ...and include sequence\n");
   fprintf(stdout, "    -clear <clr>               ...in clear range <clr>, default=LATEST\n");
+  fprintf(stdout, "    -invert                    ...invert \n");
   fprintf(stdout, "  -dumpfasta <prefix>        dump fragment sequence and quality into <p.fasta> and <p.fasta.qual>\n");
   fprintf(stdout, "    -allreads                  ...all reads, regardless of deletion status (deleted are lowercase)\n");
   fprintf(stdout, "    -allbases                  ...all bases (lowercase for non-clear)\n");
@@ -273,7 +274,8 @@ constructIIDdump(char  *gkpStoreName,
                  uint32 dumpRandMateNum,
                  uint32 dumpRandSingNum,
                  double dumpRandFraction,
-                 uint64 dumpRandLength) {
+                 uint64 dumpRandLength,
+                 int	dumpInvert) {
 
   if ((dumpRandMateNum == 0) && (dumpRandSingNum == 0) &&
       (dumpRandFraction == 0.0) &&
@@ -313,6 +315,11 @@ constructIIDdump(char  *gkpStoreName,
 
     if ((dumpRandLib == 0) ||
         (dumpRandLib == fr.gkFragment_getLibraryIID())) {
+
+		// default to selecting everything
+    	if (dumpInvert) {
+    		iidToDump[fr.gkFragment_getReadIID()] = 1;
+    	}
 
       //  Build lists of singletons and mated frags in this library.
       //  Save only the smaller mate ID.
@@ -358,15 +365,15 @@ constructIIDdump(char  *gkpStoreName,
 
   for (uint32 i=0; (i < dumpRandSingNum) && (candidatesSLen > 0); i++) {
     int  x = lrand48() % candidatesSLen;
-    iidToDump[candidatesS[x]] = 1;
+    iidToDump[candidatesS[x]] = !dumpInvert;
     candidatesSLen--;
     candidatesS[x] = candidatesS[candidatesSLen];
   }
 
   for (uint32 i=0; (i < dumpRandMateNum) && (candidatesMLen > 0); i += 2) {
     int  x = lrand48() % candidatesMLen;
-    iidToDump[candidatesA[x]] = 1;
-    iidToDump[candidatesB[x]] = 1;
+    iidToDump[candidatesA[x]] = !dumpInvert;
+    iidToDump[candidatesB[x]] = !dumpInvert;
     candidatesMLen--;
     candidatesA[x] = candidatesA[candidatesMLen];
     candidatesB[x] = candidatesB[candidatesMLen];
@@ -385,7 +392,8 @@ constructIIDdumpLongest(char  *gkpStoreName,
                  char  *iidToDump,
                  uint32 dumpRandLib,
                  uint32 dumpLongestMin,
-                 uint64 dumpLongestLength) {
+                 uint64 dumpLongestLength,
+                 int dumpInvert) {
 
   if (dumpLongestLength == 0 && dumpLongestMin == 0) {
     return(iidToDump);
@@ -418,10 +426,14 @@ constructIIDdumpLongest(char  *gkpStoreName,
     if ((dumpRandLib == 0) ||
         (dumpRandLib == fr.gkFragment_getLibraryIID())) {
 
+	// default to selecting everything
+    	if (dumpInvert) {
+    		iidToDump[fr.gkFragment_getReadIID()] = 1;
+    	}
       uint32 len = fr.gkFragment_getSequenceLength();
       if (len > dumpLongestMin) {
          if (dumpLongestLength == 0) {
-            iidToDump[fr.gkFragment_getReadIID()] = 1;
+            iidToDump[fr.gkFragment_getReadIID()] = !dumpInvert;
          } else {
             lenToIID.insert(pair<uint32, AS_IID>(len, fr.gkFragment_getReadIID()));
          }
@@ -436,7 +448,7 @@ constructIIDdumpLongest(char  *gkpStoreName,
 
   if (dumpLongestLength != 0) {
     for (multimap<uint32, AS_IID>::reverse_iterator iter = lenToIID.rbegin(); iter != lenToIID.rend(); iter++) {
-       iidToDump[iter->second] = 1;
+       iidToDump[iter->second] = !dumpInvert;
        lenFrag += iter->first;
        
        if (lenFrag >= dumpLongestLength) {
@@ -495,6 +507,7 @@ main(int argc, char **argv) {
   int              dumpClear         = AS_READ_CLEAR_LATEST;
   int              dumpAllBases      = 0;
   int              doNotFixMates     = 0;
+  int			   dumpInvert		 = 0;
   int              dumpFormat        = 2;
   char            *dumpPrefix        = NULL;
   uint32           dumpRandLib       = 0;  //  0 means "from any library"
@@ -628,13 +641,14 @@ main(int argc, char **argv) {
       dumpDoNotUseUIDs = 1;
     } else if (strcmp(argv[arg], "-donotfixmates") == 0) {
       doNotFixMates = 1;
+    } else if (strcmp(argv[arg], "-invert") == 0) {
+    	dumpInvert = 1;
 
-      //  End of dump options, SECRET OPTIONS below
+        //  End of dump options, SECRET OPTIONS below
 
-    //} else if (strcmp(argv[arg], "--rebuildmap") == 0) {
-    //  gkStore_rebuildUIDtoIID(argv[arg+1]);
-    //  exit(0);
-
+      //} else if (strcmp(argv[arg], "--rebuildmap") == 0) {
+      //  gkStore_rebuildUIDtoIID(argv[arg+1]);
+      //  exit(0);
     } else if (strcmp(argv[arg], "--revertclear") == 0) {
       //  Takes two args:  clear region name, gkpStore
       //
@@ -679,8 +693,8 @@ main(int argc, char **argv) {
   }
 
   iidToDump = constructIIDdumpFromIDFile(gkpStoreName, iidToDump, uidFileName, iidFileName);
-  iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction, dumpRandLength);
-  iidToDump = constructIIDdumpLongest(gkpStoreName, iidToDump, dumpRandLib, dumpLongestMin, dumpLongestTotal);
+  iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction, dumpRandLength, dumpInvert);
+  iidToDump = constructIIDdumpLongest(gkpStoreName, iidToDump, dumpRandLib, dumpLongestMin, dumpLongestTotal, dumpInvert);
 
   if (dump != DUMP_NOTHING) {
     int exitVal = 0;
