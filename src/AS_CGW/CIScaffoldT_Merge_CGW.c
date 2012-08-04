@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.70 2012-08-02 21:56:32 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.71 2012-08-04 00:16:01 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -170,9 +170,6 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
                                 VA_TYPE(MateInstrumenterP) *MIs,
                                 double                       minSatisfied,
                                 double                       maxDelta) {
-  bool  failsMinimum;
-  bool  failsToGetHappier1;
-  bool  failsToGetHappier2;
 
 #warning GET RID OF THIS STATIC
   static vector<instrumentLIB>   libs;
@@ -214,11 +211,11 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
           P.numHappy, P.numGap, P.numMisClose, P.numMis, P.numMisFar, P.numTooClose, P.numTooFar, P.numMissing, P.numExternal);
 #endif
 
-  uint32  mBeforeGood = A.numEcstatic + B.numEcstatic;
-  uint32  mAfterGood  = P.numEcstatic;
+  int32  mBeforeGood = A.numEcstatic + B.numEcstatic;
+  int32  mAfterGood  = P.numEcstatic;
 
-  uint32  mBefore     = A.numMateInternal + A.numMateExternal + B.numMateInternal + B.numMateExternal;
-  uint32  mAfter      = P.numMateInternal + P.numMateExternal;
+  int32  mBefore     = A.numMateInternal + A.numMateExternal + B.numMateInternal + B.numMateExternal;
+  int32  mAfter      = P.numMateInternal + P.numMateExternal;
 
   //  Mates that fall into gaps are neither good nor bad.  They just don't exist as far as we are concerned.
 
@@ -230,40 +227,75 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
 
   //  Mates before that fall into contigs, but aren't present, are still bad.
 
-  uint32  mBeforeBad = A.numDejected + B.numDejected;
-  uint32  mAfterBad  = P.numDejected;
+  int32  mBeforeBad = A.numDejected + B.numDejected;
+  int32  mAfterBad  = P.numDejected;
 
   double fractMatesHappyBefore = (mAfter > 0) ? ((double)mBeforeGood / mAfter) : 0.0;
   double fractMatesHappyAfter  = (mAfter > 0) ? ((double)mAfterGood  / mAfter) : 0.0;
+
+  //  The number of satisfied mates we expect to gain from this edge.
+  //  Why -1?  Cheap way of fixing rounding issues.
+
+  int32  mEdge = curEdge->edgesContributing * fractMatesHappyBefore - 1;
 
   fprintf(stderr, "isQualityScaffoldMergingEdge()--   before: %.3f satisfied (%d/%d good/bad mates)  after: %.3f satisfied (%d/%d good/bad mates)\n",
           fractMatesHappyBefore, mBeforeGood, mBeforeBad,
           fractMatesHappyAfter,  mAfterGood,  mAfterBad);
 
-  double badGoodRatio      = 1.0;
-
   //  NOTE, still need the metagenomic test
+
+  bool failsOLD = false;
+  bool failsNEW = false;
+
+#if 1
+  double badGoodRatio      = 1.0;
 
   if (mAfterGood > mBeforeGood)
     badGoodRatio = (double)(mAfterBad - mBeforeBad) / (double)(mAfterGood - mBeforeGood);
 
-  failsMinimum       = (fractMatesHappyAfter < minSatisfied);
-  failsToGetHappier1 = (fractMatesHappyAfter < fractMatesHappyBefore);
-  failsToGetHappier2 = (mAfterGood < mBeforeGood) || (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
+  bool failsMinimum       = (fractMatesHappyAfter < minSatisfied);
+  bool failsToGetHappier1 = (fractMatesHappyAfter < fractMatesHappyBefore);
+  bool failsToGetHappier2 = (mAfterGood < mBeforeGood) || (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
 
-  if (failsMinimum && failsToGetHappier1 && failsToGetHappier2) {
-    fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge (%.3f < %.3f) && (%.3f < %.3f) && ((%d < %d) || (%0.3f > %.3f))\n",
+  failsOLD = (failsMinimum && failsToGetHappier1 && failsToGetHappier2);
+
+  if (failsOLD)
+    fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge %d%d%d (%.3f < %.3f) && (%.3f < %.3f) && ((%d < %d) || (%0.3f > %.3f))\n",
+            failsMinimum, failsToGetHappier1, failsToGetHappier2,
             fractMatesHappyAfter, minSatisfied,
             fractMatesHappyAfter, fractMatesHappyBefore,
             mAfterGood, mBeforeGood, badGoodRatio, MAX_FRAC_BAD_TO_GOOD);
-    return(FALSE);
-  } else {
-    fprintf(stderr, "isQualityScaffoldMergingEdge()--   ARE happy enough to merge (%.3f > %.3f) || (%.3f > %.3f) || ((%d > %d) && (%0.3f < %.3f))\n",
+  else
+    fprintf(stderr, "isQualityScaffoldMergingEdge()--   ARE happy enough to merge %d%d%d (%.3f > %.3f) || (%.3f > %.3f) || ((%d > %d) && (%0.3f < %.3f))\n",
+            failsMinimum, failsToGetHappier1, failsToGetHappier2,
             fractMatesHappyAfter, minSatisfied,
             fractMatesHappyAfter, fractMatesHappyBefore,
             mAfterGood, mBeforeGood, badGoodRatio, MAX_FRAC_BAD_TO_GOOD);
-    return(TRUE);
-  }
+#endif
+
+#if 0
+  //  Looks good on paper, not ready for prime time.
+  bool failsToGetHappierA = (fractMatesHappyAfter < fractMatesHappyBefore);           //  Satisfaction dropped
+  bool failsToGetHappierB = (mAfterGood < mBeforeGood + mEdge);                       //  Good mates dropped
+
+  failsNEW = (failsToGetHappierA || failsToGetHappierB);
+
+  if (failsNEW)
+    fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge %d%d happiness (%.3f < %.3f) || mates (%d < %d + %d)\n",
+            failsToGetHappierA, failsToGetHappierB,
+            fractMatesHappyAfter, fractMatesHappyBefore,
+            mAfterGood, mBeforeGood, mEdge);
+  else
+    fprintf(stderr, "isQualityScaffoldMergingEdge()--   ARE happy enough to merge %d%d happiness (%.3f >= %.3f) && mates (%d >= %d + %d)\n",
+            failsToGetHappierA, failsToGetHappierB,
+            fractMatesHappyAfter, fractMatesHappyBefore,
+            mAfterGood, mBeforeGood, mEdge);
+
+ if (failsNEW != failsOLD)
+   fprintf(stderr, "isQualityScaffoldMergingEge()--  DIFFER.\n");
+#endif
+
+ return(failsOLD == false);
 }
 
 
@@ -440,6 +472,7 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
            ((curEdge->orient.isAB_BA()) ? "AB_BA" :
             ((curEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))));
 
+#ifdef COMPARE_NEW_OLD
   bool   resnew = isQualityScaffoldMergingEdgeNEW(curEdge, scaffoldA, scaffoldB, si, MIs, minSatisfied, maxDelta);
   bool   resold = isQualityScaffoldMergingEdgeOLD(curEdge, scaffoldA, scaffoldB, si, MIs, minSatisfied, maxDelta);
 
@@ -449,6 +482,14 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
   fprintf(stderr, "isQualityScaffoldMergingEdge()--  NEW %s (%d/%d) OLD %s (%d/%d)\n",
           resnew ? "pass" : "fail", newPASS, newFAIL,
           resold ? "pass" : "fail", oldPASS, oldFAIL);
+#else
+  bool   resnew = isQualityScaffoldMergingEdgeNEW(curEdge, scaffoldA, scaffoldB, si, MIs, minSatisfied, maxDelta);
+
+  if (resnew)  newPASS++;  else  newFAIL++;
+
+  fprintf(stderr, "isQualityScaffoldMergingEdge()--  NEW %s (%d/%d)\n",
+          resnew ? "pass" : "fail", newPASS, newFAIL);
+#endif
 
   return(resnew);
 }
