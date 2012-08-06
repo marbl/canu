@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcns.C,v 1.13 2011-12-04 23:46:58 brianwalenz Exp $";
+const char *mainid = "$Id: utgcns.C,v 1.14 2012-08-06 23:56:27 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -93,7 +93,11 @@ main (int argc, char **argv) {
 
     arg++;
   }
-  if ((err) || (gkpName == NULL) || (tigName == NULL)) {
+  if (gkpName == NULL)
+    err++;
+  if ((utgFile == NULL) && (tigName == NULL))
+    err++;
+  if (err) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version partition [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "    -u id        Compute only unitig 'id' (must be in the correct partition!)\n");
@@ -104,24 +108,21 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -v           Show multialigns.\n");
     fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
     fprintf(stderr, "\n");
+
+    if (gkpName == NULL)
+      fprintf(stderr, "ERROR:  No gkpStore (-g) supplied.\n");
+
+    if ((utgFile == NULL) && (tigName == NULL))
+      fprintf(stderr, "ERROR:  No tigStore (-t) OR no test unitig (-T) supplied.\n");
+
     exit(1);
   }
 
-  //  Open both stores for read only.
+  //  Open gatekeeper for read only.
+
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
-  tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, FALSE, FALSE, FALSE);
 
-  gkpStore->gkStore_loadPartition(tigPart);
-
-  //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
-
-  uint32  b = 0;
-  uint32  e = tigStore->numUnitigs();
-
-  if (utgTest != -1) {
-    b = utgTest;
-    e = utgTest + 1;
-  }
+  //  If we are testing a unitig, do that.
 
   if (utgFile != NULL) {
     errno = 0;
@@ -133,8 +134,8 @@ main (int argc, char **argv) {
     bool          isUnitig = false;
 
     while (LoadMultiAlignFromHuman(ma, isUnitig, F) == true) {
-      if (ma->maID < 0)
-        ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
+      //if (ma->maID < 0)
+      //  ma->maID = (isUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
 
       if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
         if (showResult)
@@ -147,10 +148,27 @@ main (int argc, char **argv) {
 
     DeleteMultiAlignT(ma);
 
-    b = e = 0;
+    exit(0);
+  }
+
+  //  Otherwise, we're computing unitigs from the store.  Open it for read only,
+  //  and load the reads.
+
+  tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, FALSE, FALSE, FALSE);
+  gkpStore->gkStore_loadPartition(tigPart);
+
+  //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
+
+  uint32  b = 0;
+  uint32  e = tigStore->numUnitigs();
+
+  if (utgTest != -1) {
+    b = utgTest;
+    e = utgTest + 1;
   }
 
   //  Reopen for writing, if we have work to do.
+
   if (b < e) {
     delete tigStore;
     tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, TRUE, FALSE, TRUE);
@@ -159,6 +177,7 @@ main (int argc, char **argv) {
   fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32"\n", b, e);
 
   //  Now the usual case.  Iterate over all unitigs, compute and update.
+
   for (uint32 i=b; i<e; i++) {
     MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
 
