@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.19 2012-07-30 20:53:08 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.20 2012-08-06 23:36:44 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -1470,7 +1470,7 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
 
   uint32  tiLimit = unitigs.size();
   uint32  numThreads = omp_get_max_threads();
-  uint32  blockSize = (tiLimit < 100 * numThreads) ? numThreads : tiLimit / 99;
+  uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
   fprintf(stderr, "repeatDetect()-- working on %d unitigs, with %d threads.\n", tiLimit, numThreads);
 
