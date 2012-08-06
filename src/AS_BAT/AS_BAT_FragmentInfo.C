@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_FragmentInfo.C,v 1.4 2012-07-30 01:21:01 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_FragmentInfo.C,v 1.5 2012-08-06 23:32:32 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -100,6 +100,8 @@ FragmentInfo::FragmentInfo(gkStore *gkpStore, const char *prefix) {
     _numMatesInLib[i] /= 2;
 
   //  Search for and break (and complain) mates to deleted fragments.
+  uint32  numBroken = 0;
+
   for (uint32 i=0; i<_numFragments + 1; i++) {
     if ((_fragLength[i] == 0) ||
         (_mateIID[i] == 0) ||
@@ -109,12 +111,16 @@ FragmentInfo::FragmentInfo(gkStore *gkpStore, const char *prefix) {
 
     assert(_mateIID[_mateIID[i]] == 0);
 
-    writeLog("FragmentInfo()-- WARNING!  Mate of fragment %d (fragment %d) is deleted.\n",
-            i, _mateIID[i]);
+    if (numBroken++ < 100)
+      writeLog("FragmentInfo()-- WARNING!  Mate of fragment %d (fragment %d) is deleted.\n",
+               i, _mateIID[i]);
 
     _mateIID[i] = 0;
   }
 
+  if (numBroken > 0)
+    writeLog("FragmentInfo()-- WARNING!  Removed "F_U32" mate relationships.\n", numBroken);
+    
   writeLog("FragmentInfo()-- Loaded %d alive fragments, skipped %d dead fragments.\n", numLoaded, numDeleted);
 
   delete fs;
