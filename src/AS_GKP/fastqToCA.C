@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.24 2012-07-26 15:16:10 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.25 2012-08-07 20:26:14 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -394,7 +394,7 @@ main(int argc, char **argv) {
     gkl.doRemoveSpurReads          = 1;
     gkl.doRemoveChimericReads      = 1;
 
-    gkl.doConsensusCorrection      = 1;
+    gkl.doConsensusCorrection      = 0;
    
     gkl.forceShortReadFormat       = 0;
 
