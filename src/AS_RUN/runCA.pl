@@ -4349,91 +4349,98 @@ sub unitigger () {
         }
     }
 
-    if (! -e "$wrk/4-unitigger/unitigger.success") {
-
-        #  Default to unitigger, unless the gkpStore says otherwise.
-        #
-        if (!defined(getGlobal("unitigger"))) {
-            setGlobal("unitigger", "utg");
-
-            if (system("$bin/gatekeeper -isfeatureset 0 forceBOGunitigger $wrk/$asm.gkpStore") == 0) {
-               setGlobal("unitigger", "bog");
-            }
-        }
-
-        system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
-
-        my $e   = getGlobal("utgErrorRate");        #  Unitigger and BOG
-        my $E   = getGlobal("utgErrorLimit");
-        my $eg  = getGlobal("utgGraphErrorRate");   #  BOGART
-        my $Eg  = getGlobal("utgGraphErrorLimit");
-        my $em  = getGlobal("utgMergeErrorRate");
-        my $Em  = getGlobal("utgMergeErrorLimit");
-        my $mem = getGlobal("batMemory");
-
-        my $B = int($numFrags / getGlobal("cnsPartitions"));
-        $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
-
-        my $u = getGlobal("utgBubblePopping");
-
-        my $unitigger = getGlobal("unitigger");
-
-        if ($unitigger eq "bogart") {
-            my $bmd = getGlobal("bogBadMateDepth");
-
-            $cmd  = "$bin/bogart ";
-            $cmd .= " -O $wrk/$asm.ovlStore ";
-            $cmd .= " -G $wrk/$asm.gkpStore ";
-            $cmd .= " -T $wrk/$asm.tigStore ";
-            $cmd .= " -B $B ";
-            $cmd .= " -eg $eg ";
-            $cmd .= " -Eg $Eg ";
-            $cmd .= " -em $em ";
-            $cmd .= " -Em $Em ";
-            $cmd .= " -R "      if (getGlobal("batRebuildRepeats") == 1);
-            $cmd .= " -E "      if (getGlobal("batMateExtension") == 1);
-            $cmd .= " -M $mem " if (defined($mem));
-            $cmd .= " -o $wrk/4-unitigger/$asm ";
-            $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
-        } elsif ($unitigger eq "bog") {
-            my $bmd = getGlobal("bogBadMateDepth");
-
-            $cmd  = "$bin/buildUnitigs ";
-            $cmd .= " -O $wrk/$asm.ovlStore ";
-            $cmd .= " -G $wrk/$asm.gkpStore ";
-            $cmd .= " -T $wrk/$asm.tigStore ";
-            $cmd .= " -B $B ";
-            $cmd .= " -e $e ";
-            $cmd .= " -E $E ";
-            $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
-            $cmd .= " -m $bmd " if (defined($bmd));
-            $cmd .= " -U "      if ($u == 1);
-            $cmd .= " -o $wrk/4-unitigger/$asm ";
-            $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
-        } elsif ($unitigger eq "utg") {
-            $cmd  = "$bin/unitigger ";
-            $cmd .= " -I $wrk/$asm.ovlStore ";
-            $cmd .= " -F $wrk/$asm.gkpStore ";
-            $cmd .= " -T $wrk/$asm.tigStore ";
-            $cmd .= " -B $B ";
-            $cmd .= " -e $e ";
-            $cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
-            $cmd .= " -d 1 -x 1 -z 10 -j 5 -U $u ";
-            $cmd .= " -o $wrk/4-unitigger/$asm ";
-            $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
-        } else {
-            caFailure("unknown unitigger $unitigger; must be 'bog' or 'utg'", undef);
-        }
-
-        stopBefore("unitigger", $cmd);
-
-        if (runCommand("$wrk/4-unitigger", $cmd)) {
-            caFailure("failed to unitig", "$wrk/4-unitigger/unitigger.err");
-        }
-
-        touch("$wrk/4-unitigger/unitigger.success");
+    if (-e "$wrk/4-unitigger/unitigger.success") {
+        goto alldone;
     }
 
+    if (-e "$wrk/$asm.tigStore") {
+        print STDERR "Skipping unitigger because tigStore exists at $wrk/$asm.tigStore\n";
+        goto alldone;
+    }
+
+    #  Default to unitigger, unless the gkpStore says otherwise.
+    #
+    if (!defined(getGlobal("unitigger"))) {
+        setGlobal("unitigger", "utg");
+
+        if (system("$bin/gatekeeper -isfeatureset 0 forceBOGunitigger $wrk/$asm.gkpStore") == 0) {
+            setGlobal("unitigger", "bog");
+        }
+    }
+
+    system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
+
+    my $e   = getGlobal("utgErrorRate");        #  Unitigger and BOG
+    my $E   = getGlobal("utgErrorLimit");
+    my $eg  = getGlobal("utgGraphErrorRate");   #  BOGART
+    my $Eg  = getGlobal("utgGraphErrorLimit");
+    my $em  = getGlobal("utgMergeErrorRate");
+    my $Em  = getGlobal("utgMergeErrorLimit");
+    my $mem = getGlobal("batMemory");
+
+    my $B = int($numFrags / getGlobal("cnsPartitions"));
+    $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
+
+    my $u = getGlobal("utgBubblePopping");
+
+    my $unitigger = getGlobal("unitigger");
+
+    if ($unitigger eq "bogart") {
+        my $bmd = getGlobal("bogBadMateDepth");
+
+        $cmd  = "$bin/bogart ";
+        $cmd .= " -O $wrk/$asm.ovlStore ";
+        $cmd .= " -G $wrk/$asm.gkpStore ";
+        $cmd .= " -T $wrk/$asm.tigStore ";
+        $cmd .= " -B $B ";
+        $cmd .= " -eg $eg ";
+        $cmd .= " -Eg $Eg ";
+        $cmd .= " -em $em ";
+        $cmd .= " -Em $Em ";
+        $cmd .= " -R "      if (getGlobal("batRebuildRepeats") == 1);
+        $cmd .= " -E "      if (getGlobal("batMateExtension") == 1);
+        $cmd .= " -M $mem " if (defined($mem));
+        $cmd .= " -o $wrk/4-unitigger/$asm ";
+        $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
+    } elsif ($unitigger eq "bog") {
+        my $bmd = getGlobal("bogBadMateDepth");
+
+        $cmd  = "$bin/buildUnitigs ";
+        $cmd .= " -O $wrk/$asm.ovlStore ";
+        $cmd .= " -G $wrk/$asm.gkpStore ";
+        $cmd .= " -T $wrk/$asm.tigStore ";
+        $cmd .= " -B $B ";
+        $cmd .= " -e $e ";
+        $cmd .= " -E $E ";
+        $cmd .= " -b "      if (getGlobal("bogBreakAtIntersections") == 1);
+        $cmd .= " -m $bmd " if (defined($bmd));
+        $cmd .= " -U "      if ($u == 1);
+        $cmd .= " -o $wrk/4-unitigger/$asm ";
+        $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
+    } elsif ($unitigger eq "utg") {
+        $cmd  = "$bin/unitigger ";
+        $cmd .= " -I $wrk/$asm.ovlStore ";
+        $cmd .= " -F $wrk/$asm.gkpStore ";
+        $cmd .= " -T $wrk/$asm.tigStore ";
+        $cmd .= " -B $B ";
+        $cmd .= " -e $e ";
+        $cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
+        $cmd .= " -d 1 -x 1 -z 10 -j 5 -U $u ";
+        $cmd .= " -o $wrk/4-unitigger/$asm ";
+        $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
+    } else {
+        caFailure("unknown unitigger $unitigger; must be 'bog' or 'utg'", undef);
+    }
+
+    stopBefore("unitigger", $cmd);
+
+    if (runCommand("$wrk/4-unitigger", $cmd)) {
+        caFailure("failed to unitig", "$wrk/4-unitigger/unitigger.err");
+    }
+
+    touch("$wrk/4-unitigger/unitigger.success");
+
+  alldone:
     stopAfter("unitigger");
 }
 
