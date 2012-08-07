@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.22 2012-04-17 04:09:25 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.23 2012-08-07 00:24:45 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -47,6 +47,7 @@ const char *mainid = "$Id: tigStore.C,v 1.22 2012-04-17 04:09:25 brianwalenz Exp
 #define OPERATION_REPLACE     6
 #define OPERATION_BUILD       7
 #define OPERATION_COMPRESS    8
+#define OPERATION_FMAP        9
 
 void
 changeProperties(MultiAlignStore *tigStore,
@@ -452,6 +453,47 @@ operationCompress(char *tigName, int tigVers) {
 }
 
 
+void
+operationFmap(char   *tigName,
+              int32   tigVers,
+              uint32  minFmap,
+              uint32  maxFmap,
+              bool    tigIsUnitig,
+              uint32  tigID,
+              bool    dumpAll) {
+  MultiAlignStore  *tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, FALSE, FALSE, FALSE);
+
+  uint32  bgn = tigID;
+  uint32  end = tigID + 1;
+
+  if (dumpAll == TRUE) {
+    bgn = 0;
+    end = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
+  }
+
+  for (int32 ti=bgn; ti<end; ti++) {
+    if (tigStore->isDeleted(ti, tigIsUnitig))
+      continue;
+
+    if ((tigStore->getNumFrags(ti, tigIsUnitig) < minFmap) ||
+        (maxFmap < tigStore->getNumFrags(ti, tigIsUnitig)))
+      continue;
+
+    MultiAlignT  *ma    = tigStore->loadMultiAlign(ti, tigIsUnitig);
+    uint32        fiMax = GetNumIntMultiPoss(ma->f_list);
+
+    for (uint32 fi=0; fi<fiMax; fi++) {
+      IntMultiPos  *imp = GetIntMultiPos(ma->f_list, fi);
+
+      fprintf(stdout, F_U32"\t"F_U32"\t"F_S32"\t"F_S32"\n",
+              imp->ident, ti, imp->position.bgn, imp->position.end);
+    }
+
+    tigStore->unloadMultiAlign(ti, tigIsUnitig);
+  }
+}
+
+
 
 
 int
@@ -471,7 +513,9 @@ main (int argc, char **argv) {
   char         *replaceName    = NULL;
   bool          replaceInPlace = TRUE;
   char         *buildName      = NULL;
-  bool          doCompress     = FALSE;
+
+  uint32        minFmap        = 0;
+  uint32        maxFmap        = UINT32_MAX;
 
   MultiAlignT  *ma             = NULL;
   int           showQV         = 0;
@@ -586,6 +630,11 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-compress") == 0) {
       opType = OPERATION_COMPRESS;
 
+    } else if (strcmp(argv[arg], "-fmap") == 0) {
+      opType  = OPERATION_FMAP;
+      minFmap = atoi(argv[++arg]);
+      maxFmap = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-w") == 0) {
       MULTIALIGN_PRINT_WIDTH = atoi(argv[++arg]);
 
@@ -650,6 +699,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "                        historical versions of unitigs/contigs, and can save tremendous storage space,\n");
     fprintf(stderr, "                        but makes it impossible to back up the assembly past the specified versions\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -fmap min max         Output a map of fragment id to unitig id, for unitigs with min <= x <= max fragments.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  For '-d multialign':\n");
     fprintf(stderr, "  -w width              Width of the page.\n");
     fprintf(stderr, "  -s spacing            Spacing between reads on the same line.\n");
@@ -688,6 +739,12 @@ main (int argc, char **argv) {
 
   if (opType == OPERATION_COMPRESS) {
     operationCompress(tigName, tigVers);
+    exit(0);
+  }
+
+
+  if (opType == OPERATION_FMAP) {
+    operationFmap(tigName, tigVers, minFmap, maxFmap, tigIsUnitig, tigID, dumpAll);
     exit(0);
   }
 
