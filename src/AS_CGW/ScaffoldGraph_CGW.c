@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.65 2012-08-08 02:47:58 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.66 2012-08-08 19:25:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -162,7 +162,7 @@ CheckpointScaffoldGraph(const char *logicalname, const char *location) {
   //
   if (ScaffoldGraph->tigStore) {
     SetCIScaffoldTLengths(ScaffoldGraph);
-    CheckCIScaffoldTs(ScaffoldGraph);
+    ScaffoldSanity(ScaffoldGraph);
   }
 
   sprintf(ckpfile, "%s.ckp.%d", GlobalData->outputPrefix, ScaffoldGraph->checkPointIteration++);
@@ -355,134 +355,6 @@ void ReportMemorySize(ScaffoldGraphT *graph, FILE *stream){
 
 
 
-void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
-  int numElements = 0;
-  CIScaffoldTIterator CIs;
-  ChunkInstanceT *CI;
-  double scaffoldMinPos = (double)INT32_MAX;
-  double scaffoldMaxPos = (double)INT32_MIN;
-  double scratch;
-  int    scaffoldInsane = 0;
-
-  assert(scaffold->flags.bits.isScaffold);
-  if(scaffold->type != REAL_SCAFFOLD)
-    return;
-
-  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-  while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
-    scratch = MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-    scaffoldMinPos = MIN(scaffoldMinPos, scratch);
-    scratch = MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-    scaffoldMaxPos = MAX(scaffoldMaxPos, scratch);
-  }
-
-  if(scaffold->bpLength.mean < 0 ||scaffold->bpLength.variance < 0 ){
-    fprintf(stderr,
-            "*!!! Sanity  scaffold "F_CID" length (%g,%g) screwed up!\n",
-            scaffold->id,
-            scaffold->bpLength.mean, scaffold->bpLength.variance);
-  }
-  if(scaffold->info.Scaffold.AEndCI != NULLINDEX &&
-     scaffold->bpLength.mean > 0 &&
-     fabs(scaffold->bpLength.mean - (scaffoldMaxPos - scaffoldMinPos)) > 100.0){
-    fprintf(stderr,
-            "*!!! Sanity  scaffold "F_CID" length %g not equal to (max - min) %g\n",
-            scaffold->id,
-            scaffold->bpLength.mean, (scaffoldMaxPos - scaffoldMinPos));
-#ifdef STRICT_SCAFFOLD_CHECKING
-    scaffoldInsane = 1;
-#endif
-    scaffold->bpLength.mean = scaffoldMaxPos - scaffoldMinPos;
-  }
-  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-  while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
-
-    if(CI->scaffoldID == scaffold->id &&
-       CI->flags.bits.isUnique &&
-       !CI->flags.bits.isDead){
-      numElements++;
-    }else{
-      fprintf(stderr,
-              "* Scaffold Sanity: node "F_CID" is screwed: %s%s%sin scaffold "F_CID"\n",
-              CI->id,
-              (CI->scaffoldID == scaffold->id?"":"scaffoldID is wrong "),
-              (!CI->flags.bits.isDead?"":"Dead "),
-              (CI->flags.bits.isUnique?"":"Not Unique "),
-              scaffold->id);
-#ifdef STRICT_SCAFFOLD_CHECKING
-      scaffoldInsane = 1;
-#endif
-    }
-  }
-
-  if(numElements != scaffold->info.Scaffold.numElements){
-    fprintf(stderr,
-            "* numElements = %d scaffold says it has %d elements\n",
-            numElements, scaffold->info.Scaffold.numElements);
-    scaffoldInsane = 1;
-  }
-
-  if (scaffoldInsane) {
-    DumpCIScaffold(stderr,graph, scaffold, FALSE);
-    assert(!scaffoldInsane);
-  }
-
-  // CheckScaffoldOrder(scaffold, graph);
-}
-
-
-
-
-// CheckScaffoldOrder checks whether all the ahangs in a scaffold are
-// positive (ie, that the contigs are ordered by their distance from the
-// A end of the scaffold)
-void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
-{
-  double currentMinPos = (double)INT32_MAX;
-  CIScaffoldTIterator CIs;
-  ChunkInstanceT *CI, *prevCI = NULL;
-
-  assert(scaffold->flags.bits.isScaffold);
-  if(scaffold->type != REAL_SCAFFOLD)
-    return;
-
-  CI = GetGraphNode(graph->ContigGraph, scaffold->info.Scaffold.AEndCI);
-
-  currentMinPos = MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-  while(NULL != (CI = NextCIScaffoldTIterator(&CIs)))
-    {
-      if( MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean) < currentMinPos)
-        {
-          fprintf( stderr,
-                   "CIs "F_CID" and "F_CID"are out of order\n",
-                   CI->id, prevCI->id);
-          fprintf( stderr,
-                   "CI "F_CID": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
-                   CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-          fprintf( stderr,
-                   "CI "F_CID": AEndOffset.mean: %f, AEndOffset.mean: %f\n",
-                   prevCI->id, prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
-          DumpCIScaffold(stderr, graph, scaffold, FALSE);
-
-          // allow for a base of rounding error, but fix it
-          if( MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean) - currentMinPos < 1.0)
-            {
-              CI->offsetAEnd.mean += 1.0;
-              CI->offsetBEnd.mean += 1.0;
-              fprintf( stderr,
-                       "shifted pos of CI "F_CID" to (%f, %f)\n",
-                       CI->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-            }
-          else
-            assert(0);
-        }
-      currentMinPos = MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-      prevCI = CI;
-    }
-}
-
-
 
 #if 0
 void DumpScaffoldGraph(ScaffoldGraphT *graph){
@@ -634,7 +506,7 @@ int RepeatRez(int repeatRezLevel, char *name){
     CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
     // commented out next call to allow mouse_20010307 run to succeed
     CheckCITypes(ScaffoldGraph);
-    CheckCIScaffoldTs(ScaffoldGraph);
+    ScaffoldSanity(ScaffoldGraph);
 
     do
       {
@@ -642,12 +514,13 @@ int RepeatRez(int repeatRezLevel, char *name){
         if  (normal_inserts > 0)
           {
             didSomething = TRUE;
-            CheckCIScaffoldTs(ScaffoldGraph);
+
+            ScaffoldSanity(ScaffoldGraph);
 
             TidyUpScaffolds (ScaffoldGraph);
             CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
 
-            CheckCIScaffoldTs(ScaffoldGraph);
+            ScaffoldSanity(ScaffoldGraph);
 
             //GeneratePlacedContigGraphStats("rocks", iter);
             //GenerateLinkStats(ScaffoldGraph->ContigGraph,"rocks",iter);

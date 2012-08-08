@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.55 2012-08-08 02:20:29 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.56 2012-08-08 19:25:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1570,7 +1570,7 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   }
 #endif
 
-  CheckCIScaffoldT(graph, scaffold);
+  ScaffoldSanity(graph, scaffold);
 
   return(status == RECOMPUTE_OK);
 }

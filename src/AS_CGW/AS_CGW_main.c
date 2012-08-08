@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.94 2012-08-08 02:47:58 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.95 2012-08-08 19:25:48 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -342,7 +342,7 @@ main(int argc, char **argv) {
 
     BuildInitialContigs(ScaffoldGraph);
 
-    CheckCIScaffoldTs(ScaffoldGraph);
+    ScaffoldSanity(ScaffoldGraph);
 
     if(GlobalData->debugLevel > 0){
       CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
@@ -407,7 +407,7 @@ main(int argc, char **argv) {
       changed = RepeatRez(GlobalData->repeatRezLevel, GlobalData->outputPrefix);
 
       if (changed){
-        CheckCIScaffoldTs(ScaffoldGraph);
+        ScaffoldSanity(ScaffoldGraph);
 
         // merge in stuff placed by rocks, assuming its position is correct!
         CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
@@ -460,7 +460,7 @@ main(int argc, char **argv) {
 
     CleanupScaffolds(ScaffoldGraph,FALSE, NULLINDEX, FALSE);
 
-    CheckCIScaffoldTs(ScaffoldGraph);
+    ScaffoldSanity(ScaffoldGraph);
 
     /* First we try to merge Scaffolds agressively */
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_DURING_1ST_SCAFF_MERGE, FALSE);
@@ -506,9 +506,9 @@ main(int argc, char **argv) {
     if (GlobalData->demoteSingletonScaffolds)
       DemoteSmallSingletonScaffolds();
 
-    CheckCIScaffoldTs(ScaffoldGraph);
+    ScaffoldSanity(ScaffoldGraph);
     Throw_Stones(GlobalData->outputPrefix, GlobalData->stoneLevel, FALSE);
-    CheckCIScaffoldTs(ScaffoldGraph);
+    ScaffoldSanity(ScaffoldGraph);
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
     fprintf(stderr, "---Checking contig orders after Throw_Stones\n\n");
@@ -532,7 +532,7 @@ main(int argc, char **argv) {
   if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_2ND_SCAFF_MERGE) < 0) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_2ND_SCAFF_MERGE\n");
 
-    CheckCIScaffoldTs(ScaffoldGraph);
+    ScaffoldSanity(ScaffoldGraph);
 
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_DURING_2ND_SCAFF_MERGE, FALSE);
 
@@ -577,11 +577,11 @@ main(int argc, char **argv) {
       (GlobalData->stoneLevel > 0)) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_PARTIAL_STONES\n");
 
-    CheckCIScaffoldTs (ScaffoldGraph);
+    ScaffoldSanity (ScaffoldGraph);
 
     int partial_stones = Throw_Stones(GlobalData->outputPrefix, GlobalData->stoneLevel, TRUE);
 
-    CheckCIScaffoldTs (ScaffoldGraph);
+    ScaffoldSanity (ScaffoldGraph);
 
     //ScaffoldGraph->tigStore->flushCache();
 
@@ -608,9 +608,9 @@ main(int argc, char **argv) {
       (GlobalData->stoneLevel > 0)) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_FINAL_CONTAINED_STONES\n");
 
-    CheckCIScaffoldTs (ScaffoldGraph);
+    ScaffoldSanity (ScaffoldGraph);
     int contained_stones = Toss_Contained_Stones (GlobalData->outputPrefix, GlobalData->stoneLevel, 0);
-    CheckCIScaffoldTs (ScaffoldGraph);
+    ScaffoldSanity (ScaffoldGraph);
     fprintf (stderr, "**** Finished Final Contained Stones level %d ****\n", GlobalData->stoneLevel);
 
     CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);

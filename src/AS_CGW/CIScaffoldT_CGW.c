@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.62 2012-08-08 02:47:58 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.63 2012-08-08 19:25:48 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -593,11 +593,10 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
     AddDeltaToScaffoldOffsets(ScaffoldGraph, ciScaffold->id, bnext->id, TRUE, base);
 
     fprintf(stderr,"* After RemoveCIFromScaffold ci:"F_CID" scaffold:"F_CID" removing from a-end base = (%g,%g), bpLength = (%g,%g)\n",
-	    CI->id,
-	    ciScaffold->id,
-	    base.mean, base.variance,
-	    ciScaffold->bpLength.mean, ciScaffold->bpLength.variance);
-    //    CheckCIScaffoldTLength(sgraph, ciScaffold);
+            CI->id,
+            ciScaffold->id,
+            base.mean, base.variance,
+            ciScaffold->bpLength.mean, ciScaffold->bpLength.variance);
   }
   ciScaffold->info.Scaffold.numElements--;
 #if 0
@@ -985,34 +984,6 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
 /*****************************************************************************/
 
 
-void CheckCIScaffoldTs(ScaffoldGraphT *sgraph){
-  GraphNodeIterator scaffolds;
-  CIScaffoldT *scaffold;
-
-  InitGraphNodeIterator(&scaffolds, sgraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
-  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
-    if(scaffold->type != REAL_SCAFFOLD)
-      continue;
-    assert(!scaffold->flags.bits.isDead);
-    CheckCIScaffoldT(sgraph, scaffold);
-  }
-}
-
-
-void CheckCIScaffoldTLengths(ScaffoldGraphT *sgraph){
-  GraphNodeIterator scaffolds;
-  CIScaffoldT *scaffold;
-
-  InitGraphNodeIterator(&scaffolds, sgraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
-  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
-    if(scaffold->type != REAL_SCAFFOLD)
-      continue;
-    assert(!scaffold->flags.bits.isDead);
-    CheckCIScaffoldTLength(sgraph, scaffold);
-  }
-}
-
-
 void
 SetCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold) {
   CIScaffoldTIterator CIs;
@@ -1058,257 +1029,108 @@ SetCIScaffoldTLengths(ScaffoldGraphT *sgraph) {
 }
 
 
-//  bpw -- for each chunk in a scaffold, checks that the chunk
-//  position is sane, printing warnings if not.  Possibly extends the
-//  scaffold size to fit all chunks.
-//
-void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
-  CIScaffoldTIterator CIs;
-  ChunkInstanceT *chunk, *prevChunk;
-  CDS_CID_t sid;
-  // double mean, variance;
-  int cnt = 0;
 
-  sid = scaffold->id;
+void
+ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
-  InitCIScaffoldTIterator(sgraph, scaffold, TRUE,
-                          FALSE, &CIs);
-  prevChunk = NULL;
-  while((chunk = NextCIScaffoldTIterator(&CIs)) != NULL){
-    assert(chunk->scaffoldID == sid);
+  //sid = scaffold->id;
+  //LSE = scaffold->info.Scaffold.leastSquareError;
 
-    if(cnt++ == 0){
-      if((chunk->offsetAEnd.mean > 0.1 &&
-          chunk->offsetBEnd.mean > 0.1) ||
-         (chunk->offsetAEnd.variance <0.0 ||
-          chunk->offsetBEnd.variance < 0.0) ){
-        fprintf(stderr,"*# First Chunk "F_CID" in scaffold "F_CID" is not positioned at scaffold start, but at (%g,%g)...fixing\n",
-                chunk->id, scaffold->id, chunk->offsetAEnd.mean, chunk->offsetBEnd.mean);
-#ifdef STRICT_SCAFFOLD_CHECKING
-        assert(0);
-#endif
-        chunk->offsetAEnd.mean = chunk->offsetAEnd.variance = 0.0;
-        chunk->offsetBEnd = chunk->bpLength;
-      }
-    }
-    /*	fprintf(stderr,"* Chunk "F_CID" [%g,%g] mean = %g\n",
-        chunk->id,
-        chunk->offsetAEnd.mean,
-        chunk->offsetBEnd.mean,
-        mean);
-    */
-    if(chunk->offsetAEnd.mean > scaffold->bpLength.mean ||
-       chunk->offsetBEnd.mean > scaffold->bpLength.mean){
+  //fprintf(stderr, "ScaffoldSanity()-- Checking scaffold %d\n", scaffold->id);
 
-      fprintf(stderr,"*# Chunk "F_CID" has end point [%g,%g] outside of scaffold length %g\n",
-              chunk->id,
-              chunk->offsetAEnd.mean,
-              chunk->offsetBEnd.mean,
-              scaffold->bpLength.mean);
+  assert(scaffold->flags.bits.isScaffold == true);
+  assert(scaffold->flags.bits.isDead     == false);
 
-    }
-
-    if(chunk->offsetAEnd.mean < 0 || chunk->offsetBEnd.mean < 0 ||
-       chunk->offsetAEnd.variance < 0 || chunk->offsetBEnd.variance < 0){
-      fprintf(stderr,"*# Chunk "F_CID" in scaffold "F_CID" at odd position: (%g,%g) (%g,%g)\n",
-              chunk->id, scaffold->id,
-              chunk->offsetAEnd.mean, chunk->offsetAEnd.variance,
-              chunk->offsetBEnd.mean, chunk->offsetBEnd.variance);
-#ifdef STRICT_SCAFFOLD_CHECKING
-      assert(0);
-#endif
-      chunk->offsetAEnd.mean = chunk->offsetAEnd.variance = 0.0;
-      chunk->offsetBEnd = chunk->bpLength;
-    }
-
-    if(chunk->offsetAEnd.mean > scaffold->bpLength.mean || chunk->offsetAEnd.variance > scaffold->bpLength.variance){
-      fprintf(stderr,"*# A Scaffold "F_CID" bpLength TOO Short (%g < %g: %g)...variances (%g, %g: %g)corrected\n",
-              scaffold->id,
-              scaffold->bpLength.mean, chunk->offsetAEnd.mean,
-              fabs(scaffold->bpLength.mean- chunk->offsetAEnd.mean),
-              scaffold->bpLength.variance, chunk->offsetAEnd.variance,
-              fabs(scaffold->bpLength.variance- chunk->offsetAEnd.variance));
-#ifdef STRICT_SCAFFOLD_CHECKING
-      assert(0);
-#endif
-      scaffold->bpLength.mean = chunk->offsetAEnd.mean;
-      scaffold->bpLength.variance = chunk->offsetAEnd.variance;
-    }
-    if(chunk->offsetBEnd.mean > scaffold->bpLength.mean || chunk->offsetBEnd.variance > scaffold->bpLength.variance){
-      fprintf(stderr,"*# B Scaffold "F_CID" bpLength TOO Short (%g < %g:%g)...variances (%g, %g:%g) corrected\n",
-              scaffold->id,
-              scaffold->bpLength.mean, chunk->offsetBEnd.mean,
-              fabs(scaffold->bpLength.mean- chunk->offsetAEnd.mean),
-              scaffold->bpLength.variance, chunk->offsetBEnd.variance,
-              fabs(scaffold->bpLength.variance- chunk->offsetBEnd.variance));
-#ifdef STRICT_SCAFFOLD_CHECKING
-      assert(0);
-#endif
-      scaffold->bpLength.mean = chunk->offsetBEnd.mean;
-      scaffold->bpLength.variance = chunk->offsetBEnd.variance;
-    }
-
-  }
-}
-
-
-
-
-/* Check means and variance in a single */
-void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
-  CIScaffoldTIterator CIs;
-  ChunkInstanceT *chunk, *prevChunk;
-  CDS_CID_t sid;
-  double mean, variance;
-  int cgwError;
-  int iterationError;
-  int iteration = 0;
-  double LSE;
-  double improvement = 1.0;
-
-  static  VA_TYPE(PtrT) *chunksToBeRemoved = NULL;
-
-  if (chunksToBeRemoved == NULL)
-    chunksToBeRemoved = CreateVA_PtrT(2048);
-  else
-    ResetVA_PtrT(chunksToBeRemoved);
-
-  sid = scaffold->id;
-  LSE = scaffold->info.Scaffold.leastSquareError;
-
-  ScaffoldSanity(scaffold, sgraph);
+  if (scaffold->type != REAL_SCAFFOLD)
+    return;
 
   if (scaffold->info.Scaffold.numElements == 1)
     return;
 
-  cgwError = TRUE;
-  iteration = 0;
-  while(cgwError && improvement > 0.005 && iteration++ < 20){
-    int status;
-    int numChecked = 0;
-    cgwError = FALSE;
-    mean = - DBL_MAX;
-    ResetVA_PtrT(chunksToBeRemoved);
-    InitCIScaffoldTIterator(sgraph, scaffold, TRUE,
-                            FALSE, &CIs);
-    prevChunk = NULL;
-    while((chunk = NextCIScaffoldTIterator(&CIs)) != NULL){
-      assert(chunk->scaffoldID == sid);
+  CIScaffoldTIterator  CIs;
+  ChunkInstanceT      *CI;
 
-      if(chunk->offsetAEnd.mean > scaffold->bpLength.mean ||
-         chunk->offsetBEnd.mean > scaffold->bpLength.mean){
+  int32   numCtg  = 0;
 
-        fprintf(stderr,"CheckCIScaffoldT()-- chunk "F_CID" has end point [%g,%g] outside of scaffold length %g\n",
-                chunk->id,
-                chunk->offsetAEnd.mean,
-                chunk->offsetBEnd.mean,
-                scaffold->bpLength.mean);
+  LengthT lastMin = {0, 0};
+  LengthT lastMax = {0, 0};
 
-      }
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
-      prevChunk = chunk;
+  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
+    LengthT thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+    LengthT thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
 
-      if(chunk->offsetAEnd.mean < 0 || chunk->offsetBEnd.mean < 0 ||
-         chunk->offsetAEnd.variance < 0 || chunk->offsetBEnd.variance < 0){
-        fprintf(stderr,"CheckCIScaffoldT()-- chunk "F_CID" in scaffold "F_CID" at odd position: (%g,%g) (%g,%g) fixing\n",
-                chunk->id, scaffold->id,
-                chunk->offsetAEnd.mean, chunk->offsetAEnd.variance,
-                chunk->offsetBEnd.mean, chunk->offsetBEnd.variance);
-        chunk->offsetAEnd.mean = chunk->offsetAEnd.variance = 0.0;
-        chunk->offsetBEnd = chunk->bpLength;
+    //fprintf(stderr, "CI %d %d %.0f +- %.0f %.0f +- %.0f -- surrogate %d stone %d rock %d\n",
+    //        CI->id, CI->type,
+    //        thisMin.mean, thisMin.variance,
+    //        thisMax.mean, thisMax.variance,
+    //        CI->flags.bits.isSurrogate,
+    //        CI->flags.bits.isStone,
+    //        CI->flags.bits.isRock);
 
-      }
+    numCtg++;
 
-      if(chunk->offsetAEnd.mean > scaffold->bpLength.mean || chunk->offsetAEnd.variance > scaffold->bpLength.variance){
-        fprintf(stderr,"CheckCIScaffoldT()-- A Scaffold "F_CID" bpLength TOO Short (%g < %g)...variances (%g, %g)corrected\n",
-                scaffold->id, scaffold->bpLength.mean, chunk->offsetAEnd.mean, scaffold->bpLength.variance, chunk->offsetAEnd.variance);
-        scaffold->bpLength.mean = chunk->offsetAEnd.mean;
-        scaffold->bpLength.variance = chunk->offsetAEnd.variance;
-      }
-      if(chunk->offsetBEnd.mean > scaffold->bpLength.mean || chunk->offsetBEnd.variance > scaffold->bpLength.variance){
-        fprintf(stderr,"CheckCIScaffoldT()-- B Scaffold "F_CID" bpLength TOO Short (%g < %g)...variances (%g, %g) corrected\n",
-                scaffold->id, scaffold->bpLength.mean, chunk->offsetBEnd.mean, scaffold->bpLength.variance, chunk->offsetBEnd.variance);
-        scaffold->bpLength.mean = chunk->offsetBEnd.mean;
-        scaffold->bpLength.variance = chunk->offsetBEnd.variance;
-      }
+    assert(CI->scaffoldID == scaffold->id);
 
-      if(chunk->offsetAEnd.mean < mean ||
-         chunk->offsetBEnd.mean < mean){
-        fprintf(stderr,"CheckCIScaffoldT()-- Screwed up scaffold "F_CID": Chunk "F_CID" has bad mean\n",
-                sid, chunk->id);
+    assert(CI->flags.bits.isUnique == true);
+    assert(CI->flags.bits.isDead   == false);
 
-        AppendPtrT(chunksToBeRemoved, (void **) &chunk);
+    assert(0.0 <= CI->offsetAEnd.mean);
+    assert(0.0 <= CI->offsetBEnd.mean);
 
-      }else{
-        // Only update the mean if we are moving along as expected
-        mean = MIN(chunk->offsetAEnd.mean, chunk->offsetBEnd.mean);
-      }
-      numChecked++;
-    }
-    cgwError = GetNumPtrTs(chunksToBeRemoved);
-    if(cgwError){
-      int i;
-      fprintf(stderr,"CheckCIScaffoldT()-- Scaffold "F_CID" iteration %d  %d bad CIs out of %d LSE:%g improvement:%g\n",
-              sid, iteration, cgwError, numChecked, LSE, improvement);
-      for(i = 0; i < GetNumPtrTs(chunksToBeRemoved); i++){
+    assert(CI->offsetAEnd.mean <= scaffold->bpLength.mean);
+    assert(CI->offsetBEnd.mean <= scaffold->bpLength.mean);
 
-        chunk = *(ChunkInstanceT **)GetPtrT(chunksToBeRemoved, i);
-        fprintf(stderr,"CheckCIScaffoldT()-- Reinserting chunk "F_CID" in scaffold "F_CID"\n",
-                chunk->id,sid);
-        RemoveCIFromScaffold(sgraph, scaffold, chunk, FALSE);
-        InsertCIInScaffold(sgraph, chunk->id, sid,
-                           chunk->offsetAEnd, chunk->offsetBEnd, TRUE, FALSE);
-      }
+    assert(0.0 <= CI->offsetAEnd.variance);
+    assert(0.0 <= CI->offsetBEnd.variance);
 
-      if (LeastSquaresGapEstimates(sgraph, scaffold) == false) {
-        fprintf(stderr, "CheckCIScaffoldT()-- LeastSquaresGapEstimates failed for scaffold "F_CID" in CheckScaffolds.\n",
-                scaffold->id);
-        break;
-      }
-      
-      // This is how much the LSE improved
-      improvement = 1.0; // first time through
-      if(LSE > 0.0){
-        improvement = (LSE - scaffold->info.Scaffold.leastSquareError)/LSE;
-      }
-      fprintf(stderr,"CheckCIScaffoldT()-- improvement = %g LSE = %g\n", improvement, LSE);
-      LSE = scaffold->info.Scaffold.leastSquareError;
-    }
+    assert(CI->offsetAEnd.variance <= scaffold->bpLength.variance);
+    assert(CI->offsetBEnd.variance <= scaffold->bpLength.variance);
+
+    if (numCtg == 0)
+      assert((CI->offsetAEnd.mean == 0.0) || (CI->offsetBEnd.mean == 0.0));
+
+    //  Variances of rocks/stones/surrogates are not correct.
+
+    if (CI->flags.bits.isRock == true)
+      continue;
+    if (CI->flags.bits.isStone == true)
+      continue;
+    if (CI->flags.bits.isSurrogate == true)
+      continue;
+
+    assert(lastMin.mean <= thisMin.mean);
+    assert(lastMin.mean <= thisMax.mean);
+
+    assert(thisMin.variance - lastMax.variance >= 0);
+
+    lastMin = thisMin;
+    lastMax = thisMax;
   }
 
-  if(iteration > 20){
-    fprintf(stderr,"CheckCIScaffoldT()--  Took %d iterations to patch up scaffold "F_CID"\n",
-            iteration, sid);
-    cgwError = TRUE;
-  }
+  assert(numCtg == scaffold->info.Scaffold.numElements);
 
-  variance = -1.0;
-  mean     = -1.0;
-
-  InitCIScaffoldTIterator(sgraph, scaffold, TRUE, FALSE, &CIs);
-  while((chunk = NextCIScaffoldTIterator(&CIs)) != NULL){
-
-    if((chunk->offsetAEnd.mean > mean && chunk->offsetAEnd.variance < variance) ||
-       (chunk->offsetBEnd.mean > mean && chunk->offsetBEnd.variance < variance)){
-      cgwError = TRUE;
-      fprintf(stderr, "CheckCIScaffoldT()--  screwed up scaffold "F_CID": Chunk "F_CID" has bad variance\n",
-              sid, chunk->id);
-    }
-
-    if( mean < chunk->offsetAEnd.mean || mean < chunk->offsetBEnd.mean)
-      {
-        mean = MAX(chunk->offsetAEnd.mean, chunk->offsetBEnd.mean);
-        variance = MAX(chunk->offsetAEnd.variance, chunk->offsetBEnd.variance);
-      }
-  }
-  if(cgwError){
-    fprintf(stderr,"CheckCIScaffoldT()-- screwed up scaffold "F_CID"\n", sid);
-    DumpCIScaffold(stderr,sgraph, scaffold, FALSE);
-    iterationError = TRUE;
-  }
-  ScaffoldSanity(scaffold, sgraph);
+  assert(scaffold->bpLength.mean     >= 0);
+  assert(scaffold->bpLength.variance >= 0);
 
 
+  // CheckScaffoldOrder checks whether all the ahangs in a scaffold are
+  // positive (ie, that the contigs are ordered by their distance from the
+  // A end of the scaffold)
+  //
+  // CheckScaffoldOrder(scaffold, graph);
+}
+
+
+void
+ScaffoldSanity(ScaffoldGraphT *graph) {
+  GraphNodeIterator   scaffolds;
+  CIScaffoldT        *scaffold;
+
+  InitGraphNodeIterator(&scaffolds, graph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
+  while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL)
+    ScaffoldSanity(graph, scaffold);
 }
 
 
@@ -1358,7 +1180,7 @@ void DemoteSmallSingletonScaffolds(void) {
     numDemoted++;
 
     fprintf(stderr,
-             "** Demoting Contig/Unitig "F_CID"/"F_CID" with coverage stat %d length %g scaffold "F_CID"\n",
+             "** Demoting Contig/Unitig "F_CID"/"F_CID" with coverage stat %d length %.0f scaffold "F_CID"\n",
              contig->id, CI->id, ScaffoldGraph->tigStore->getUnitigCoverageStat(CI->id), scaffold->bpLength.mean, scaffold->id);
     // Mark the Underlying Unitig as un-scaffolded, and not-unique
     SetNodeType(CI, UNRESOLVEDCHUNK_CGW);
@@ -1392,7 +1214,7 @@ void DemoteSmallSingletonScaffolds(void) {
   }
 
   fprintf(stderr,
-          "# Considered %d scaffolds of which %d were single and %d (%g%%) were demoted\n",
+          "# Considered %d scaffolds of which %d were single and %d (%.0f%%) were demoted\n",
           numScaffolds, numSingletonScaffolds, numDemoted,
           (numSingletonScaffolds > 0? ((double)(numDemoted)/(double)(numSingletonScaffolds)): 0.0));
 }

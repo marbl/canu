@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.7 2012-08-08 02:47:58 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.8 2012-08-08 19:25:48 brianwalenz Exp $";
 
 #include "CIScaffoldT_MergeScaffolds.h"
 
@@ -191,9 +191,6 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
     InsertCIInScaffold(sgraph, CI->id, newScaffoldID, offsetAEnd, offsetBEnd, TRUE, contigNow);
   }
 
-  //  Shouldn't be necessary, occasionally (in GOSIII) the length was wrong.
-  SetCIScaffoldTLength(sgraph, newScaffold);
-
   //  Blindly adjust variances.
 #if 1
   {
@@ -218,7 +215,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
 
   bool  wasAdjusted = false;
 
-  lastMax.mean = 0.0;
+  lastMax.mean     = 0.0;
   lastMax.variance = 0.0;
 
   InitCIScaffoldTIterator(ScaffoldGraph, newScaffold, TRUE, FALSE, &CIs);
@@ -250,7 +247,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
   }
 
   if (wasAdjusted) {
-    lastMax.mean = 0.0;
+    lastMax.mean     = 0.0;
     lastMax.variance = 0.0;
 
     InitCIScaffoldTIterator(ScaffoldGraph, newScaffold, TRUE, FALSE, &CIs);
@@ -258,7 +255,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
       LengthT *thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
       LengthT *thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
 
-      fprintf(stderr, "VARADJ()-- Contig %8d at %9.0f +- %11.0f to %9.0f +- %11.0f  ctg len %9.0f  gap to prev %9.0f +- %11.0f\n",
+      fprintf(stderr, "VARADJ()-- Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f  gap to prev %9.0f +- %-11.0f\n",
               CI->id,
               thisMin->mean, thisMin->variance,
               thisMax->mean, thisMax->variance,
@@ -273,51 +270,10 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
   }
 #endif
 
-  //  Check all the contig coordinatess in the new scaffold.
-#if 1
-  {
-  LengthT lastMin   = {0, 0};
-  LengthT lastMax   = {0, 0};
-  int     thisIdx   = 0;
-  int     thisFails = 0;
+  //  If we adjust variances above, we need to reset scaffold length.  Just be nice and do it for everyone.
+  SetCIScaffoldTLength(sgraph, newScaffold);
 
-  InitCIScaffoldTIterator(ScaffoldGraph, newScaffold, TRUE, FALSE, &CIs);
-  while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-
-    if ((CI->offsetAEnd.mean < 0.0) || (CI->offsetAEnd.variance < 0.0) ||
-        (CI->offsetBEnd.mean < 0.0) || (CI->offsetBEnd.variance < 0.0)) {
-      fprintf(stderr, "InsertScaffoldContentsIntoScaffold()-- Negative contig mean or variance\n");
-      thisFails++;
-    }
-
-    if ((thisIdx++ != 0) && ((CI->offsetAEnd.mean == 0.0) ||
-                             (CI->offsetBEnd.mean == 0.0))) {
-      fprintf(stderr, "InsertScaffoldContentsIntoScaffold()-- Zero offset of internal contig\n");
-      thisFails++;
-    }
-
-    LengthT thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
-    LengthT thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
-
-    if (thisMax.mean < lastMin.mean) {
-      fprintf(stderr, "InsertScaffoldContentsIntoScaffold()-- Seriously out of order contigs\n");
-      thisFails++;
-    }
-
-    if (thisMin.mean < lastMin.mean) {
-      fprintf(stderr, "InsertScaffoldContentsIntoScaffold()-- Out of order contigs\n");
-      thisFails++;
-    }
-
-    lastMin = thisMin;
-    lastMax = thisMax;
-  }
-
-  if (thisFails)
-    DumpCIScaffold(stderr, ScaffoldGraph, newScaffold, FALSE);
-  //assert(thisFails == 0);
-  }
-#endif
+  ScaffoldSanity(sgraph, newScaffold);
 }
 
 

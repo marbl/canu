@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.21 2012-08-03 21:14:14 brianwalenz Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.22 2012-08-08 19:25:48 brianwalenz Exp $";
 
 /**********************************************************************
 
@@ -711,69 +711,6 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 		fprintf(stderr, "* error: the scaffold has been disconnected\n");
 #     endif
 
-#if  0   // Set to 0 for Granger's new way
-      //
-      // recompute positions (and cross the fingers :-)
-      //
-      // If we split we do not Recompute the Offsets
-      if( ! noRecompute )
-	  {
-		res = RecomputeOffsetsInScaffold(sgraph, scaffold, TRUE, TRUE, FALSE);
-//		res = RecomputeOffsetsInScaffold(sgraph, scaffold, TRUE, TRUE, TRUE);
-		switch (res) {
-		  case RECOMPUTE_OK:
-#       if DEBUG_UPDATE > 0
-			fprintf(stderr,
-					"-=> recompute: ok\n");
-#       endif
-			CheckCIScaffoldT(sgraph, scaffold);  // NEW
-			break;
-		  case RECOMPUTE_SINGULAR:
-#       if DEBUG_UPDATE > 0
-			fprintf(stderr,
-					"-=> recompute failed: the matrix is singular\n");
-#       endif
-			fprintf(stderr, "* error failed: the matrix is singular for scaffold %d\n", scaff_id);
-			break;
-		  case RECOMPUTE_LAPACK:
-#       if DEBUG_UPDATE > 0
-			fprintf(stderr,
-					"-=> recompute failed: lapack failed\n");
-#       endif
-			fprintf(stderr, "* error failed: lapack failed on scaffold %d\n", scaff_id);
-			break;
-		  case RECOMPUTE_NO_GAPS:
-#       if DEBUG_UPDATE > 0
-			fprintf(stderr,
-					"-=> recompute failed: the scaffold has only one CI\n");
-#       endif
-			fprintf(stderr, "* warning: scaffold %d has only one CI\n", scaff_id);
-			break;
-		  case RECOMPUTE_FAILED_REORDER_NEEDED:
-#       if DEBUG_UPDATE > 0
-			fprintf(stderr,
-					"-=> recompute failed: reordering needed in scaffold %d\n", scaff_id);
-#       endif
-			fprintf(stderr, "* error: reordering needed in scaffold %d\n", scaff_id);
-			break;
-		  case RECOMPUTE_NOT_ENOUGH_CLONES:
-#       if DEBUG_UPDATE > 0
-			fprintf(stderr,
-					"-=> recompute failed: not enough clones in scaffold %d\n", scaff_id);
-#       endif
-			fprintf(stderr, "* error: not enough clones in scaffold %d\n", scaff_id);
-			break;
-		  default:
-#       if DEBUG_UPDATE > 0
-			fprintf(stderr,
-					"-=> recompute failed: unknow reasons in scaffold %d\n", scaff_id);
-#       endif
-			fprintf(stderr, "* error: recompute failed for unknown reasons for scaffold %d\n", scaff_id);
-			break;
-		}
-
-	  }
-#endif
 
       //
       // do we want to change the TRUSTED/UNTRUSTED status?
@@ -819,11 +756,6 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
   fprintf(stderr,"* Inserted %d elements ... rebuilding scaffolds\n", inserted);
   // ****** NEW ******
   // Now rebuild the scaffolds from scratch (if we do not split)
-
-#if  0   // Set to 0 for Granger's new way
-  if( ! noRecompute )
-    RebuildScaffolds(ScaffoldGraph, FALSE);
-#endif
 
 
 # if DEBUG_UPDATE > 1

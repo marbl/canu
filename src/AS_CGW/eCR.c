@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.67 2012-08-08 02:47:58 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.68 2012-08-08 19:25:48 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1044,18 +1044,6 @@ main(int argc, char **argv) {
     if ((sid % 1000) == 0)
       ScaffoldGraph->tigStore->flushCache();
   }  //  over all scaffolds
-
-
-
-
-  //  Loading a checkpoint implicitly calls these -- and the
-  //  downstream consumer of our checkpoint shouldn't modify the
-  //  checkpoint if it is querying it (dumpDistanceUpdates, for
-  //  example) -- so we just call them before the checkpoint is
-  //  written.
-  //
-  SetCIScaffoldTLengths(ScaffoldGraph);
-  CheckCIScaffoldTs(ScaffoldGraph);
 
   CheckpointScaffoldGraph("extendClearRanges", "after extendClearRanges");
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.94 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.95 2012-08-08 19:25:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2365,17 +2365,21 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
       frag->flags.bits.isChaff = FALSE;
     }
     oldNode->info.CI.instances.in_line.instance1 = newNodeID;
+
   }else if(oldNode->info.CI.numInstances == 1){
     oldNode->info.CI.instances.in_line.instance2 = newNodeID;
+
   }else if(oldNode->info.CI.numInstances == 2){
     VA_TYPE(CDS_CID_t) *instances = CreateVA_CDS_CID_t(16);
     AppendCDS_CID_t(instances, &oldNode->info.CI.instances.in_line.instance1);
     AppendCDS_CID_t(instances, &oldNode->info.CI.instances.in_line.instance2);
     AppendCDS_CID_t(instances, &(newNodeID));
     oldNode->info.CI.instances.va = instances;
+
   }else if(oldNode->info.CI.numInstances > 2){
     AppendCDS_CID_t(oldNode->info.CI.instances.va, &(newNodeID));
   }
+
   oldNode->info.CI.numInstances++;
 
   if (oldNode->info.CI.numInstances > 2)
@@ -2390,7 +2394,10 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
   ScaffoldGraph->tigStore->insertMultiAlign(newMA, TRUE, TRUE);
 
   newNode->bpLength.mean     = GetMultiAlignUngappedLength(newMA);
+  newNode->bpLength.mean     = newNode->offsetBEnd.mean - newNode->offsetAEnd.mean;
+
   newNode->bpLength.variance = ComputeFudgeVariance(newNode->bpLength.mean);
+  newNode->bpLength.variance = newNode->offsetBEnd.variance - newNode->offsetAEnd.variance;
 
   assert(GetMultiAlignLength(newMA) == newNode->bpLength.mean);
 

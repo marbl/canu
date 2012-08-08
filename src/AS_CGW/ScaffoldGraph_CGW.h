@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.54 2012-08-08 02:47:58 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.55 2012-08-08 19:25:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -42,7 +42,7 @@ static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.54 201
 #define CGW_MISSED_OVERLAP CGW_DP_MINLEN /* size the overlapper may have missed */
 #define MAX_OVERLAP_SLOP_CGW 10
 
-// controls whether or not we assert in CheckCIScaffoldTLength, ScaffoldSanity
+// controls whether or not we assert in ScaffoldSanity
 //#define STRICT_SCAFFOLD_CHECKING
 
 typedef EdgeCGW_T CIEdgeT;
@@ -328,19 +328,9 @@ void FindScaffoldComponents(ScaffoldGraphT *graph, int findPaths);
 int MergeScaffoldPaths(ScaffoldGraphT *sgraph);
 
 
-
-/* Check means and variance in all real scaffolds */
-void CheckCIScaffoldTs(ScaffoldGraphT *sgraph);
-
-/* Check means and variance in a single */
-void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
-
 /* Scans the scaffold and sets its length */
 void SetCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold);
 void SetCIScaffoldTLengths(ScaffoldGraphT *sgraph);
-
-void CheckCIScaffoldTLengths(ScaffoldGraphT *sgraph);
-void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
 
 /* Checks that all edges (save those marked untrusted) incident on
    cid are intra-scaffold
@@ -372,7 +362,8 @@ int GetNumInstances(ChunkInstanceT *CI);
 
 void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph);
 
-void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph);
+void ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
+void ScaffoldSanity(ScaffoldGraphT *graph);
 
 void DumpScaffoldGraph(ScaffoldGraphT *graph);
 

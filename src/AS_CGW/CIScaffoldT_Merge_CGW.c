@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.72 2012-08-08 02:20:29 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.73 2012-08-08 19:25:48 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -62,7 +62,7 @@ using namespace std;
 
 #define MAX_SLOP_IN_STD 3.5
 
-#define EDGE_WEIGHT_FACTOR  MIN_EDGES
+#define MIN_WEIGHT_TO_MERGE   MIN_EDGES
 
 
 
@@ -656,7 +656,7 @@ ExamineUsableSEdges(vector<SEdgeT *>  &sEdges,
   //  We now recompute the min weight allowed to merge each iteration.  Previous to this commit
   //  (1.66) min was computed once at the start and slowly decremented each iteration.
 
-  minWeightThreshold = MAX(maxWeightEdge * weightScale, EDGE_WEIGHT_FACTOR);
+  minWeightThreshold = MAX(maxWeightEdge * weightScale, MIN_WEIGHT_TO_MERGE);
 
   fprintf(stderr, "* Considering edges with weight >= %.2f (maxWeightEdge %d weightScale %.4f)\n",
           minWeightThreshold,
@@ -676,7 +676,7 @@ ExamineUsableSEdges(vector<SEdgeT *>  &sEdges,
     ExamineSEdgeForUsability(sEdges[i], iSpec);
   }
 
-  return(minWeightThreshold > EDGE_WEIGHT_FACTOR);
+  return(minWeightThreshold > MIN_WEIGHT_TO_MERGE);
 }
 
 
@@ -1009,12 +1009,9 @@ void
 MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, int verbose) {
   InterleavingSpec iSpec;
 
-  if (verbose)
-    fprintf(stderr, "Starting MergeScaffoldsAggressive\n");
+  ScaffoldSanity(ScaffoldGraph);
 
-  CheckCIScaffoldTs(ScaffoldGraph);
-  CheckCIScaffoldTLengths(ScaffoldGraph);
-  fprintf(stderr, "* Successfully passed checks at beginning of scaffold merging\n");
+  fprintf(stderr, "<ergeScaffoldsAggressive()-- begins.\n");
 
   iSpec.sai                    = CreateScaffoldAlignmentInterface();
   iSpec.contigNow              = TRUE;
@@ -1106,5 +1103,5 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
 
   DestroyChunkOverlapper(iSpec.badSEdges);
 
-  CheckCIScaffoldTs(ScaffoldGraph);
+  ScaffoldSanity(ScaffoldGraph);
 }
