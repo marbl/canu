@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.64 2012-08-03 21:14:14 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.65 2012-08-08 02:47:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -161,7 +161,7 @@ CheckpointScaffoldGraph(const char *logicalname, const char *location) {
   //  any.
   //
   if (ScaffoldGraph->tigStore) {
-    SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
+    SetCIScaffoldTLengths(ScaffoldGraph);
     CheckCIScaffoldTs(ScaffoldGraph);
   }
 
@@ -726,7 +726,7 @@ CheckAllTrustedEdges(ScaffoldGraphT * sgraph) {
       ChunkInstanceT *thatC = GetGraphNode(ScaffoldGraph->ContigGraph, next);
 
       if (thatC->scaffoldID != thisC->scaffoldID)
-        fprintf(stderr,"-=> BAD edge id:"F_CID" "F_CID"("F_CID")->"F_CID"("F_CID") (weight %d, status %d)\n",
+        fprintf(stderr,"-=> BAD edge id:"F_SIZE_T" "F_CID"("F_CID")->"F_CID"("F_CID") (weight %d, status %d)\n",
                 GetVAIndex_CIEdgeT(sgraph->ContigGraph->edges, edge),
                 contig->id, thisC->scaffoldID,
                 thatC->id, thatC->scaffoldID,

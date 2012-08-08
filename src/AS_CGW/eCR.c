@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.66 2012-08-02 21:56:32 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.67 2012-08-08 02:47:58 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1054,7 +1054,7 @@ main(int argc, char **argv) {
   //  example) -- so we just call them before the checkpoint is
   //  written.
   //
-  SetCIScaffoldTLengths(ScaffoldGraph, TRUE);
+  SetCIScaffoldTLengths(ScaffoldGraph);
   CheckCIScaffoldTs(ScaffoldGraph);
 
   CheckpointScaffoldGraph("extendClearRanges", "after extendClearRanges");

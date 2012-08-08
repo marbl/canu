@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.6 2012-08-08 02:25:28 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.7 2012-08-08 02:47:58 brianwalenz Exp $";
 
 #include "CIScaffoldT_MergeScaffolds.h"
 
@@ -114,8 +114,8 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
   assert(offset->variance >= 0.0);
 
   //  Shouldn't be necessary, occasionally (in GOSIII) the length was wrong.
-  SetCIScaffoldTLength(sgraph, newScaffold, FALSE);
-  SetCIScaffoldTLength(sgraph, oldScaffold, FALSE);
+  SetCIScaffoldTLength(sgraph, newScaffold);
+  SetCIScaffoldTLength(sgraph, oldScaffold);
 
   //  Save copies of the old stuff
 
@@ -192,7 +192,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
   }
 
   //  Shouldn't be necessary, occasionally (in GOSIII) the length was wrong.
-  SetCIScaffoldTLength(sgraph, newScaffold, FALSE);
+  SetCIScaffoldTLength(sgraph, newScaffold);
 
   //  Blindly adjust variances.
 #if 1

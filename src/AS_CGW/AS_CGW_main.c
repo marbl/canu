@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.93 2012-08-02 21:56:32 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.94 2012-08-08 02:47:58 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -717,7 +717,7 @@ main(int argc, char **argv) {
   //
   ScaffoldGraph->tigStore->flushCache();
 
-  FixupLengthsScaffoldTs(ScaffoldGraph);
+  SetCIScaffoldTLengths(ScaffoldGraph);
 
   if(generateOutput){
     CelamyAssembly(GlobalData->outputPrefix);

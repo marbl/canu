@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.53 2012-08-03 21:14:14 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.54 2012-08-08 02:47:58 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -336,11 +336,8 @@ void CheckCIScaffoldTs(ScaffoldGraphT *sgraph);
 void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
 
 /* Scans the scaffold and sets its length */
-void SetCIScaffoldTLength(ScaffoldGraphT *sgraph,
-                          CIScaffoldT *ciScaffold, int verbose);
-
-/* Scans all scaffolds and sets their lengths */
-void SetCIScaffoldTLengths(ScaffoldGraphT *sgraph, int verbose);
+void SetCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold);
+void SetCIScaffoldTLengths(ScaffoldGraphT *sgraph);
 
 void CheckCIScaffoldTLengths(ScaffoldGraphT *sgraph);
 void CheckCIScaffoldTLength(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
@@ -415,9 +412,6 @@ void CheckAllContigFragments(void);
 
 /* Globals */
 extern ScaffoldGraphT *ScaffoldGraph;
-
-void FixupLengthsScaffoldTs(ScaffoldGraphT *sgraph);
-void FixupLengthScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold);
 
 EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
                                     NodeCGW_T *sourceCI, CDS_CID_t targetId,
