@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CIScaffoldT_Analysis.C,v 1.1 2012-07-16 09:13:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: CIScaffoldT_Analysis.C,v 1.2 2012-08-08 02:20:29 brianwalenz Exp $";
 
 #include "CIScaffoldT_Analysis.H"
 
@@ -60,12 +60,8 @@ instrumentLIB::instrumentLIB(AS_IID iid_, double mean_, double stddev_, bool inn
 
 
 
-
 void
-instrumentSCF::init(CIScaffoldT *scaffold, bool forward, double offMean, double offVariance) {
-
-  iid = 0;
-
+instrumentSCF::clearStats(void) {
   numMateInternal = 0;
   numMateExternal = 0;
   numMateFree     = 0;
@@ -82,6 +78,14 @@ instrumentSCF::init(CIScaffoldT *scaffold, bool forward, double offMean, double 
   numTooFar     = 0.0;
   numMissing    = 0.0;
   numExternal   = 0.0;
+}
+
+void
+instrumentSCF::init(CIScaffoldT *scaffold, bool forward, double offMean, double offVariance) {
+
+  iid = 0;
+
+  clearStats();
 
   if (scaffold == NULL)
     return;
@@ -204,6 +208,8 @@ instrumentSCF::analyze(vector<instrumentLIB> &libs) {
   char   *scfGap = NULL;
   uint32  scfLen = 0;
 
+  clearStats();
+
   for (uint32 fi=0; fi<FRG.size(); fi++) {
     CIFragT  *cif = GetCIFragT(ScaffoldGraph->CIFrags, FRG[fi].iid);
     CIFragT  *mif = GetCIFragT(ScaffoldGraph->CIFrags, cif->mate_iid);
@@ -301,7 +307,7 @@ instrumentSCF::analyze(vector<instrumentLIB> &libs) {
     assert(frg.iid == fiid);
     assert(mrg.iid == miid);
 
-    uint32           dist      = 0;
+    int32            dist      = 0;
     bool             misOrient = false;
 
     if (frg.bgn < mrg.bgn) {
@@ -375,4 +381,222 @@ instrumentSCF::report(void) {
 }
 
 
+
+
+//  If we're just after mate happiness during merging (NOT ENABLED) we are allowed to rearrange
+//  contigs willy nilly.
+//
+//  If we're after a replacement for least squares, we cannot rearrange.  Worse, we need someway of
+//  ensuring that the gaps we compute don't implicitly rearrange for us.
+//
+//  This DOES NOT WORK, especially in heavily interleaved scaffolds.  It tries to compute gap by
+//  gap, using mates that span a specific gap.  If those mates span other gaps, and those gap sizes
+//  are incorrect, then the estimate for this gap size is incorrect.
+
+void
+instrumentSCF::estimateGaps(vector<instrumentLIB> &libs, bool allowReorder) {
+
+  //  Initialize the GAP size vector.  Set variance to zero; it will be computed later.
+
+  if (allowReorder)
+    sort(CTG.begin(), CTG.end());
+
+  for (uint32 i=0; i<CTG.size(); i++)
+    fprintf(stderr, "CTG %d %7.0f-%7.0f\n", CTG[i].iid, CTG[i].bgn.mean, CTG[i].end.mean);
+
+  for (uint32 i=1; i<CTG.size(); i++) {
+    GAPmean.push_back(CTG[i].bgn.mean - CTG[i-1].end.mean);
+    GAPvari.push_back(0.0);
+  }
+
+  //  Build a map from CTG iid to CTG vector element.
+
+  for (uint32 i=0; i<CTG.size(); i++)
+    CTGmap[CTG[i].iid] = i;
+
+  //  Without trying to be clever or efficient, for each gap, iterate over all fragments.
+  //  if the pair spans the gap, save it for the estimate.
+
+  for (uint32 it=0; it<1; it++) {
+    for (uint32 gi=0; gi<GAPmean.size(); gi++) {
+      vector<int32>   actualM;  //  Current actual mean distance
+      vector<int32>   expectM;  //  Expected mean distance
+      vector<int32>   expectS;  //  Expected std.dev
+
+      for (uint32 fi=0; fi<FRG.size(); fi++) {
+        CIFragT  *cif = GetCIFragT(ScaffoldGraph->CIFrags, FRG[fi].iid);
+        CIFragT  *mif = GetCIFragT(ScaffoldGraph->CIFrags, cif->mate_iid);
+
+        if (cif->mate_iid == 0) {
+          numMateFree++;
+          continue;
+        }
+
+        AS_IID fiid = cif->read_iid;
+        AS_IID miid = mif->read_iid;
+
+        assert(cif->mate_iid == mif->read_iid);
+        assert(cif->read_iid == mif->mate_iid);
+
+        assert(cif->flags.bits.isDeleted == false);
+        assert(mif->flags.bits.isDeleted == false);
+      
+        assert(cif->read_iid == fiid);
+        assert(mif->read_iid == miid);
+
+        assert(cif->dist == mif->dist);
+
+        instrumentLIB   &lib = libs[cif->dist];
+
+        if (FRGmap.find(miid) == FRGmap.end())
+          //  Externally mated.
+          continue;
+
+        instrumentFRG   &frg  = FRG[fi];
+        instrumentFRG   &mrg  = FRG[FRGmap[miid]];
+
+        if (mrg.bgn < frg.bgn)
+          //  Process it later in canonical form
+          continue;
+
+        if ((frg.fwd != true) || (mrg.fwd != false))
+          //  Bad orientation.
+          continue;
+
+        if (frg.end >= CTG[gi].end.mean) 
+          //  Left most fragment is after the gap begins.
+          continue;
+
+        if (mrg.bgn <= CTG[gi+1].bgn.mean)
+          //  Right most fragment is before the gap ends.
+          continue;
+
+        int32  dist = mrg.end - frg.bgn;
+
+        if (dist > lib.mean + 3 * lib.stddev)
+          //  Pair is excessively stretched.
+          continue;
+
+        if (dist < lib.mean - 3 * lib.stddev)
+          //  Pair is excessively compressed.
+          continue;
+
+        //  Pair should be spanning the gap.  Negative gaps screw up this test.  All we can assert
+        //  is the negation of what we test above.
+        //
+        assert(CTG[gi].end.mean >= frg.bgn);
+        assert(mrg.end          >= CTG[gi+1].bgn.mean);
+
+        int32   lb = CTG[gi].end.mean - frg.bgn;
+        int32   rb = mrg.end          - CTG[gi+1].bgn.mean;
+
+#if 0
+        fprintf(stderr, "GAP %d frg %d %d-%d mrg %d %d-%d actual %d / %d expected %.2f +- %2.f / %f\n",
+                gi,
+                frg.iid, frg.bgn, frg.end,
+                mrg.iid, mrg.bgn, mrg.end,
+                mrg.end - frg.bgn,
+                mrg.end - frg.bgn - lb - rb,
+                lib.mean, lib.stddev,
+                lib.mean - lb - rb);
+#endif
+
+        actualM.push_back(mrg.end - frg.bgn - lb - rb);  //  Yeah, would have been easier as ctg[1].bgn - ctg[0].end
+
+        expectM.push_back(lib.mean - lb - rb);
+        expectS.push_back(lib.stddev);
+      } //  Over all frags
+
+      //  Compute some estimate of the gap
+
+      double gapM = 0.0;
+      double gapV = 0.0;
+
+      if        (actualM.size() == 0) {
+        gapM = CTG[gi+1].bgn.mean     - CTG[gi].end.mean;
+        gapV = CTG[gi+1].bgn.variance - CTG[gi].end.variance;
+
+      } else if (actualM.size() == 1) {
+        gapM = expectM[0];
+        gapV = expectS[0] * expectS[0];
+
+      } else {
+        double   sumDists   = 0.0;
+        double   sumSquares = 0.0;
+
+        for (uint32 i=0; i<expectM.size(); i++)
+          sumDists += expectM[i];
+    
+        gapM = sumDists / expectM.size();
+
+        for (uint32 i=0; i<expectM.size(); i++)
+          sumSquares += (expectM[i] - gapM) * (expectM[i] - gapM);
+
+        gapV = sumSquares / (expectM.size() - 1);
+      }
+
+      if ((allowReorder == false) && (gapM < -20))
+        gapM = -20;
+
+      GAPmean[gi] = gapM;
+      GAPvari[gi] = gapV;
+    }  //  Over all gaps
+
+    //  All gap sizes are estimated.  Update CTG and FRG positions.
+
+#warning this is inefficient
+
+    for (uint32 fi=0; fi<FRG.size(); fi++) {
+      uint32 ci = CTGmap[FRG[fi].cid];
+
+      FRG[fi].bgn -= CTG[ci].bgn.mean;
+      FRG[fi].end -= CTG[ci].bgn.mean;
+    }
+
+#if 1
+    fprintf(stderr, "ITER %u\n", it);
+    fprintf(stderr, "CTG %d from %7.0f +- %7.0f -- %7.0f +- %7.0f GAP %7.0f +- %7.0f --TO-- %7.0f +- %7.0f -- %7.0f +- %7.0f -- GAP %7.0f +- %7.0f\n",
+            0,
+            CTG[0].bgn.mean, sqrt(CTG[0].bgn.variance), CTG[0].end.mean, sqrt(CTG[0].end.variance),
+            0.0, 0.0,
+            CTG[0].bgn.mean, sqrt(CTG[0].bgn.variance), CTG[0].end.mean, sqrt(CTG[0].end.variance),
+            0.0, 0.0);
+#endif
+    
+    for (uint32 gi=0; gi<GAPmean.size(); gi++) {
+      uint32  ca = gi;
+      uint32  cb = gi + 1;
+      int32   cm = CTG[cb].end.mean - CTG[cb].bgn.mean;
+      int32   cv = CTG[cb].end.mean - CTG[cb].bgn.mean;
+
+      LengthT  olda = CTG[ca].end;
+      LengthT  oldb = CTG[cb].bgn;
+      LengthT  olde = CTG[cb].end;
+
+      CTG[cb].bgn.mean     = CTG[ca].end.mean     + GAPmean[gi];
+      CTG[cb].bgn.variance = CTG[ca].end.variance + GAPvari[gi];
+
+      CTG[cb].end.mean     = CTG[cb].bgn.mean     + cm;
+      CTG[cb].end.variance = CTG[cb].bgn.variance + cv;
+
+#if 0
+      fprintf(stderr, "CTG %d from %7.0f +- %7.0f -- %7.0f +- %7.0f GAP %7.0f +- %7.0f --TO-- %7.0f +- %7.0f -- %7.0f +- %7.0f -- GAP %7.0f +- %7.0f\n",
+              cb,
+              oldb.mean, sqrt(oldb.variance), olde.mean, sqrt(olde.variance),
+              oldb.mean     - olda.mean,
+              sqrt(oldb.variance - olda.variance),
+              CTG[cb].bgn.mean, sqrt(CTG[cb].bgn.variance), CTG[cb].end.mean, sqrt(CTG[cb].end.variance),
+              CTG[cb].bgn.mean     - CTG[ca].end.mean,
+              sqrt(CTG[cb].bgn.variance - CTG[ca].end.variance));
+#endif
+    }
+
+    for (uint32 fi=0; fi<FRG.size(); fi++) {
+      uint32 ci = CTGmap[FRG[fi].cid];
+
+      FRG[fi].bgn += CTG[ci].bgn.mean;
+      FRG[fi].end += CTG[ci].bgn.mean;
+    }
+  }
+}
 

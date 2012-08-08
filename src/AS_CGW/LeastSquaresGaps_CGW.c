@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.54 2012-08-03 21:14:14 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.55 2012-08-08 02:20:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -29,6 +29,7 @@ static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.54 2012-08-03 21:14:14 bri
 #include "ScaffoldGraphIterator_CGW.h"
 #include "ChiSquareTest_CGW.h"
 
+#include "CIScaffoldT_Analysis.H"
 
 #define FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* long standing bug: is it fixed yet? it seems to be */
 #undef  FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* nope */
@@ -411,7 +412,7 @@ void freeRecomputeData(RecomputeData *data){
 }
 
 
-
+static
 void
 dumpGapCoefficients(double *gapCoefficients,
                     int32   maxDiagonals,
@@ -439,6 +440,7 @@ dumpGapCoefficients(double *gapCoefficients,
 }
 
 
+static
 void
 dumpGapCoefficientsAlt(double *gapCoefficientsAlt,
                        int32   maxDiagonals,
@@ -464,6 +466,99 @@ dumpGapCoefficientsAlt(double *gapCoefficientsAlt,
     }
   }
 }
+
+
+static
+void
+RebuildScaffoldGaps(ScaffoldGraphT  *graph,
+                    CIScaffoldT     *scaffold,
+                    double          *gapMean,
+                    double          *gapVariance,
+                    bool             beVerbose) {
+  LengthT *prevLeftEnd, *prevRightEnd;
+  LengthT *thisLeftEnd, *thisRightEnd;
+
+  CIScaffoldTIterator CIs;
+
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+
+  NodeCGW_T *prevCI = NextCIScaffoldTIterator(&CIs);
+  NodeCGW_T *thisCI = NULL;
+
+  if (GetNodeOrient(prevCI).isForward()) {
+    prevLeftEnd  = &prevCI->offsetAEnd;
+    prevRightEnd = &prevCI->offsetBEnd;
+  } else {
+    prevLeftEnd  = &prevCI->offsetBEnd;
+    prevRightEnd = &prevCI->offsetAEnd;
+  }
+
+  prevLeftEnd->mean     = 0.0;  //  Scaffold starts at zero, no?
+  prevLeftEnd->variance = 0.0;
+
+  double   *gapPtr      = gapMean;
+  double   *gapVarPtr   = gapVariance;
+  LengthT  *maxOffset   = NULL;
+
+  while ((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL) { 
+    if (GetNodeOrient(thisCI).isForward()) {
+      thisLeftEnd  = &thisCI->offsetAEnd;
+      thisRightEnd = &thisCI->offsetBEnd;
+    } else {
+      thisLeftEnd  = &thisCI->offsetBEnd;
+      thisRightEnd = &thisCI->offsetAEnd;
+    }
+
+    double prevGap = thisLeftEnd->mean     - prevRightEnd->mean;
+    double prevVar = thisLeftEnd->variance - prevRightEnd->variance;
+
+    prevRightEnd->mean     = prevLeftEnd->mean      + prevCI->bpLength.mean;
+    prevRightEnd->variance = prevLeftEnd->variance  + prevCI->bpLength.variance;
+
+    //  Keep track of the biggest offset we've seen so far
+    if ((maxOffset == NULL) ||
+        (maxOffset->mean < prevRightEnd->mean))
+      maxOffset = prevRightEnd;
+
+    thisLeftEnd->mean      = prevRightEnd->mean     + *gapPtr;
+    thisLeftEnd->variance  = prevRightEnd->variance + *gapVarPtr;
+
+    if (beVerbose)
+      fprintf(stderr, "ROIS()-- Contig %8d at %9.0f +- %11.0f to %9.0f +- %11.0f  ctg len %9.0f  gap to next %9.0f +- %11.0f (was %9.0f +- %11.0f)\n",
+              prevCI->id,
+              prevLeftEnd->mean,  prevLeftEnd->variance,
+              prevRightEnd->mean, prevRightEnd->variance,
+              prevRightEnd->mean - prevLeftEnd->mean,
+              *gapPtr, *gapVarPtr,
+              prevGap, prevVar);
+
+    prevCI       = thisCI;
+    prevLeftEnd  = thisLeftEnd;
+    prevRightEnd = thisRightEnd;
+
+    gapPtr++;
+    gapVarPtr++;
+  }
+
+  prevRightEnd->mean      = prevLeftEnd->mean     + prevCI->bpLength.mean;
+  prevRightEnd->variance  = prevLeftEnd->variance + prevCI->bpLength.variance;
+
+  if (beVerbose)
+    fprintf(stderr, "ROIS()-- Contig %8d at %9.0f +- %11.0f to %9.0f +- %11.0f  ctg len %9.0f\n",
+            prevCI->id,
+            prevLeftEnd->mean,  prevLeftEnd->variance,
+            prevRightEnd->mean, prevRightEnd->variance,
+            prevRightEnd->mean - prevLeftEnd->mean);
+
+  if ((maxOffset == NULL) ||
+      (maxOffset->mean < prevRightEnd->mean))
+    maxOffset = prevRightEnd;
+
+  scaffold->bpLength = *maxOffset;
+
+  //SetCIScaffoldTLength(ScaffoldGraph, scaffold, TRUE); // recompute scaffold length, just to be sure
+}
+
 
 
 
@@ -1274,82 +1369,8 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
   scaffold->info.Scaffold.leastSquareError = squaredError;
   scaffold->info.Scaffold.numLeastSquareClones = numClones;
-  {// Start
 
-    double *gapPtr, *gapVarPtr;
-    LengthT *prevLeftEnd, *prevRightEnd, *thisLeftEnd, *thisRightEnd;
-
-    InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-
-    //fprintf(stderr,"Reestimate gaps for scaffold\n");
-    prevCI = NextCIScaffoldTIterator(&CIs);
-    if(GetNodeOrient(prevCI).isForward()){
-      prevLeftEnd = &(prevCI->offsetAEnd);
-      prevRightEnd = &(prevCI->offsetBEnd);
-    }else{
-      prevLeftEnd = &(prevCI->offsetBEnd);
-      prevRightEnd = &(prevCI->offsetAEnd);
-    }
-    //fprintf(stderr, "Old %f,%f ", prevLeftEnd->mean, sqrt(prevLeftEnd->variance));
-    prevLeftEnd->mean = 0.0;
-    prevLeftEnd->variance = 0.0;
-
-    //fprintf(stderr, "New %f,%f\n", prevLeftEnd->mean, sqrt(prevLeftEnd->variance));
-
-    for(gapPtr = gapSize, gapVarPtr = gapSizeVariance;
-        (thisCI = NextCIScaffoldTIterator(&CIs)) != NULL;
-        prevCI = thisCI, prevLeftEnd = thisLeftEnd,
-          prevRightEnd = thisRightEnd, gapPtr++, gapVarPtr++){
-      LengthT gapDistance;
-
-      if(GetNodeOrient(thisCI).isForward()){
-        thisLeftEnd = &(thisCI->offsetAEnd);
-        thisRightEnd = &(thisCI->offsetBEnd);
-      }else{
-        thisLeftEnd = &(thisCI->offsetBEnd);
-        thisRightEnd = &(thisCI->offsetAEnd);
-      }
-
-      // Keep track of the biggest offset we've seen so far
-      if(!maxOffset ||
-         maxOffset->mean < thisRightEnd->mean){
-        maxOffset = thisRightEnd;
-      }
-
-
-      gapDistance.mean = thisLeftEnd->mean - prevRightEnd->mean;
-      gapDistance.variance = thisLeftEnd->variance - prevRightEnd->variance;
-
-      //fprintf(stderr, "Old %f,%f ", prevRightEnd->mean, sqrt(prevRightEnd->variance));
-
-      prevRightEnd->mean = prevLeftEnd->mean + prevCI->bpLength.mean;
-      prevRightEnd->variance = prevLeftEnd->variance +
-        prevCI->bpLength.variance;
-
-      //fprintf(stderr, "New %f,%f\n", prevRightEnd->mean, sqrt(prevRightEnd->variance));
-      //fprintf(stderr, "Old %f,%f ", thisLeftEnd->mean, sqrt(thisLeftEnd->variance));
-
-      thisLeftEnd->mean = prevRightEnd->mean + *gapPtr;
-      thisLeftEnd->variance = prevRightEnd->variance + *gapVarPtr;
-      //fprintf(stderr, "New %f,%f\n", thisLeftEnd->mean, sqrt(thisLeftEnd->variance));
-      //fprintf(stderr, "Old %f New %f StdDev %f,%f\n", gapDistance.mean, *gapPtr, sqrt(gapDistance.variance), sqrt(*gapVarPtr));
-
-    }
-    //fprintf(stderr, "Old %f,%f ", prevRightEnd->mean, sqrt(prevRightEnd->variance));
-    prevRightEnd->mean = prevLeftEnd->mean + prevCI->bpLength.mean;
-    prevRightEnd->variance = prevLeftEnd->variance + prevCI->bpLength.variance;
-    //fprintf(stderr, "New %f,%f\n", prevRightEnd->mean, sqrt(prevRightEnd->variance));
-
-    //fprintf(stderr,"Scaffold "F_CID" Length %f,%f-%f,%f\n",
-    //        scaffold->id,
-    //        scaffold->bpLength.mean, sqrt(scaffold->bpLength.variance),
-    //        maxOffset->mean, sqrt(maxOffset->variance));
-    //DumpCIScaffold(stderr, graph, scaffold, FALSE);
-
-    scaffold->bpLength = *maxOffset;
-
-    SetCIScaffoldTLength(ScaffoldGraph, scaffold, TRUE); // recompute scaffold length, just to be sure
-  }
+  RebuildScaffoldGaps(graph, scaffold, gapSize, gapSizeVariance, false);
 
   freeRecomputeData(&data);
   return (RECOMPUTE_OK);
@@ -1357,7 +1378,9 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
 
 
-
+//  Ensures that the scaffold starts at coordinate 0.
+//  Significantly complicated, and generally useless.
+//
 void  CheckLSScaffoldWierdnesses(char *string, ScaffoldGraphT *graph, CIScaffoldT *scaffold){
   CIScaffoldTIterator CIs;
   ChunkInstanceT *firstCI, *secondCI;
@@ -1407,6 +1430,8 @@ void  CheckLSScaffoldWierdnesses(char *string, ScaffoldGraphT *graph, CIScaffold
       firstCI->offsetBEnd : firstCI->offsetAEnd;
     return;
   }
+
+  fprintf(stderr, "CheckLSScaffoldWierdnesses()-- ADDING offset of %.2f +- %.2f\n", delta.mean, sqrt(delta.variance));
 
   AddDeltaToScaffoldOffsets(graph, scaffold->id,  secondCI->id, TRUE, delta);
 
@@ -1505,6 +1530,45 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   }
 
   CheckLSScaffoldWierdnesses("AFTER", graph, scaffold);
+
+#if 0
+  //  If Least Squares fails, do a greedy size estimate.  This DOES NOT WORK, especially in heavily interleaved scaffolds.  It tries
+  //  to compute gap by gap, using mates that span a specific gap.  If those mates span other gaps, and those gap sizes are incorrect,
+  //  then the estimate for this gap size is incorrect.
+
+  if (status != RECOMPUTE_OK) {
+#warning GET RID OF THIS STATIC
+    static vector<instrumentLIB>   libs;
+    static bool                    libsInit = false;
+
+    if (libsInit == false) {
+      libsInit = true;
+
+      for (int32 i=0; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
+        DistT *dptr = GetDistT(ScaffoldGraph->Dists, i);
+
+        libs.push_back(instrumentLIB(i, dptr->mu, dptr->sigma, true));
+      }
+    }
+
+    fprintf(stderr, "LeastSquares failed; greedy gap size estimates used.\n");
+
+    instrumentSCF   I(scaffold);
+
+    I.analyze(libs);
+    fprintf(stderr, "LeastSquares()--   scaffold (new) instrumenter happy %.1f gap %.1f misorient close %.1f correct %.1f far %.1f oriented close %.1f far %.1f missing %.1f external %.1f\n",
+            I.numHappy, I.numGap, I.numMisClose, I.numMis, I.numMisFar, I.numTooClose, I.numTooFar, I.numMissing, I.numExternal);
+
+    I.estimateGaps(libs, false);
+
+    I.analyze(libs);
+    fprintf(stderr, "LeastSquares()--   scaffold (new) instrumenter happy %.1f gap %.1f misorient close %.1f correct %.1f far %.1f oriented close %.1f far %.1f missing %.1f external %.1f\n",
+            I.numHappy, I.numGap, I.numMisClose, I.numMis, I.numMisFar, I.numTooClose, I.numTooFar, I.numMissing, I.numExternal);
+
+    RebuildScaffoldGaps(graph, scaffold, &I.GAPmean[0], &I.GAPvari[0], true);
+    assert(0);
+  }
+#endif
 
   CheckCIScaffoldT(graph, scaffold);
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.71 2012-08-04 00:16:01 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.72 2012-08-08 02:20:29 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -207,6 +207,17 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
           scaffoldB->id,
           B.numHappy, B.numGap, B.numMisClose, B.numMis, B.numMisFar, B.numTooClose, B.numTooFar, B.numMissing, B.numExternal);
 
+  fprintf(stderr, "isQualityScaffoldMergingEdge()--   scaffold (new) instrumenter happy %.1f gap %.1f misorient close %.1f correct %.1f far %.1f oriented close %.1f far %.1f missing %.1f external %.1f\n",
+          P.numHappy, P.numGap, P.numMisClose, P.numMis, P.numMisFar, P.numTooClose, P.numTooFar, P.numMissing, P.numExternal);
+#endif
+
+#if 0
+  //  Contig positions in the mock merged scaffold are messed up.  The greedy gap size estimator
+  //  seems to over estimate gap sizes, which might be better for the few sizes that are messed up,
+  //  but also over estimates the size for the correct gaps.
+  //
+  P.estimateGaps(libs);
+  P.analyze(libs);
   fprintf(stderr, "isQualityScaffoldMergingEdge()--   scaffold (new) instrumenter happy %.1f gap %.1f misorient close %.1f correct %.1f far %.1f oriented close %.1f far %.1f missing %.1f external %.1f\n",
           P.numHappy, P.numGap, P.numMisClose, P.numMis, P.numMisFar, P.numTooClose, P.numTooFar, P.numMissing, P.numExternal);
 #endif

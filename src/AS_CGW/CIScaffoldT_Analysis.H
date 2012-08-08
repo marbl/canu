@@ -23,7 +23,7 @@
 #ifndef CISCAFFOLDT_ANALYSIS_H
 #define CISCAFFOLDT_ANALYSIS_H
 
-static const char *rcsid_CISCAFFOLDT_ANALYSIS_H = "$Id: CIScaffoldT_Analysis.H,v 1.1 2012-07-16 09:13:17 brianwalenz Exp $";
+static const char *rcsid_CISCAFFOLDT_ANALYSIS_H = "$Id: CIScaffoldT_Analysis.H,v 1.2 2012-08-08 02:20:29 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -34,6 +34,7 @@ static const char *rcsid_CISCAFFOLDT_ANALYSIS_H = "$Id: CIScaffoldT_Analysis.H,v
 
 #include <vector>
 #include <map>
+#include <algorithm>
 
 using namespace std;
 
@@ -82,8 +83,8 @@ public:
                 LengthT      ctgend_,
                 SeqInterval  pos_) {
 
-    uint32   rbgn = pos_.bgn;
-    uint32   rend = pos_.end;
+    int32   rbgn = pos_.bgn;
+    int32   rend = pos_.end;
 
     //  If the contig is flipped, reverse complement the fragment positions.
     //  Yes, we really do bodge contig length.  This can cause differences
@@ -124,8 +125,8 @@ public:
   AS_IID                   iid;  //  My IID
   AS_IID                   cid;  //  My contig IID
   bool                     fwd;  //  Orientation in scaffold
-  uint32                   bgn;  //  Position in scaffold
-  uint32                   end;
+  int32                    bgn;  //  Position in scaffold
+  int32                    end;
 };
 
 
@@ -158,6 +159,10 @@ public:
     //        iid, bgn_.mean, end_.mean, bgn.mean, end.mean, fwd);
   };
 
+  bool   operator<(instrumentCTG const &that) const {
+    return(bgn.mean < that.bgn.mean);
+  };
+
   AS_IID                   iid;  //  My IID
   AS_IID                   sid;  //  My scaffold IID
   bool                     fwd;  //  Orientation in scaffold
@@ -181,18 +186,27 @@ public:
     init(scaffoldA, edge, scaffoldB);
   };
 
+  void    clearStats(void);
+
   void    init(CIScaffoldT *scaffold, bool forward, double offMean, double offVariance);
   void    init(CIScaffoldT *scaffoldA, SEdgeT *edge, CIScaffoldT *scaffoldB);
 
-  void    analyze(vector<instrumentLIB> &lib);
+  void    analyze(vector<instrumentLIB> &libs);
   void    report(void);
+
+  void    estimateGaps(vector<instrumentLIB> &libs, bool allowReorder);
 
   AS_IID                   iid;
 
-  vector<instrumentCTG>    CTG;
-  vector<instrumentFRG>    FRG;
+  vector<instrumentCTG>    CTG;           //  Contig positions
+
+  vector<double>           GAPmean;       //  Size of gap to next contig
+  vector<double>           GAPvari;       //
+
+  vector<instrumentFRG>    FRG;           //  Fragment positions
 
   map<AS_IID,size_t>       FRGmap;        //  Maps fragment IID to location in FRG vector
+  map<AS_IID,size_t>       CTGmap;        //  Maps contig IID to location in CTG vector
 
   //  Should keep this per library?
 
