@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.5 2012-08-02 21:56:32 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.6 2012-08-08 02:25:28 brianwalenz Exp $";
 
 #include "CIScaffoldT_MergeScaffolds.h"
 
@@ -167,12 +167,24 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
     //assert(offsetBEnd.variance >= 0.0);
 
 #if 1
-    fprintf(stderr,"InsertScaffoldContentsIntoScaffold()-- Insert CI "F_CID" (%.0fbp) at offset (%.0f,%.0f); was at (%.0f,%.0f)\n",
-            CI->id,
-            CI->bpLength.mean,
-            offsetAEnd.mean,     offsetBEnd.mean,
-            CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+    if (offsetAEnd.mean < offsetBEnd.mean)
+      fprintf(stderr,"InsertScaffoldContentsIntoScaffold()-- Insert CI %8"F_CIDP" %6.0fbp fwd %9.0f +- %-11.0f %9.0f +- %-11.0f was %9.0f +- %-11.0f %9.0f +- %-11.0f\n",
+              CI->id,
+              CI->bpLength.mean,
+              offsetAEnd.mean, offsetAEnd.variance,
+              offsetBEnd.mean, offsetBEnd.variance,
+              CI->offsetAEnd.mean, CI->offsetAEnd.variance,
+              CI->offsetBEnd.mean, CI->offsetBEnd.variance);
+    else
+      fprintf(stderr,"InsertScaffoldContentsIntoScaffold()-- Insert CI %8"F_CIDP" %6.0fbp rev %9.0f +- %-11.0f %9.0f +- %-11.0f was %9.0f +- %-11.0f %9.0f +- %-11.0f\n",
+              CI->id,
+              CI->bpLength.mean,
+              offsetBEnd.mean, offsetBEnd.variance,
+              offsetAEnd.mean, offsetAEnd.variance,
+              CI->offsetBEnd.mean, CI->offsetBEnd.variance,
+              CI->offsetAEnd.mean, CI->offsetAEnd.variance);
 #endif
+
 
     //  Contig now?  If we do, and something contigs, we cannot back out this merge.
 #warning NOT CONTIGGING NOW
@@ -182,8 +194,88 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
   //  Shouldn't be necessary, occasionally (in GOSIII) the length was wrong.
   SetCIScaffoldTLength(sgraph, newScaffold, FALSE);
 
+  //  Blindly adjust variances.
+#if 1
+  {
+  LengthT lastMax   = {0.0, 0.0};
+
+  vector<double>  varOld;
+  uint32          gap = 0;
+
+  //  Save the old gap variances.
+
+  InitCIScaffoldTIterator(ScaffoldGraph, newScaffold, TRUE, FALSE, &CIs);
+  while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
+    LengthT thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+    LengthT thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+
+    varOld.push_back(thisMin.variance - lastMax.variance);
+
+    lastMax = thisMax;
+  }
+
+  //  If any of those old ones are negative, reset them to something sloppy.
+
+  bool  wasAdjusted = false;
+
+  lastMax.mean = 0.0;
+  lastMax.variance = 0.0;
+
+  InitCIScaffoldTIterator(ScaffoldGraph, newScaffold, TRUE, FALSE, &CIs);
+  while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
+    LengthT *thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
+    LengthT *thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
+
+    double ctgVar = thisMax->variance - thisMin->variance;
+
+    assert(ctgVar > 0);
+
+    if (varOld[gap] < 0) {
+      fprintf(stderr, "RESET neg var for gap %u from %.0f to %.0f\n",
+              gap, varOld[gap], SLOPPY_EDGE_VARIANCE_THRESHHOLD);
+
+      wasAdjusted = true;
+
+      thisMin->variance = lastMax.variance + SLOPPY_EDGE_VARIANCE_THRESHHOLD;
+      thisMax->variance = lastMax.variance + SLOPPY_EDGE_VARIANCE_THRESHHOLD + ctgVar;
+
+    } else {
+      thisMin->variance = lastMax.variance + varOld[gap];
+      thisMax->variance = lastMax.variance + varOld[gap] + ctgVar;
+    }
+
+    gap++;
+
+    lastMax = *thisMax;
+  }
+
+  if (wasAdjusted) {
+    lastMax.mean = 0.0;
+    lastMax.variance = 0.0;
+
+    InitCIScaffoldTIterator(ScaffoldGraph, newScaffold, TRUE, FALSE, &CIs);
+    while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
+      LengthT *thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
+      LengthT *thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
+
+      fprintf(stderr, "VARADJ()-- Contig %8d at %9.0f +- %11.0f to %9.0f +- %11.0f  ctg len %9.0f  gap to prev %9.0f +- %11.0f\n",
+              CI->id,
+              thisMin->mean, thisMin->variance,
+              thisMax->mean, thisMax->variance,
+              thisMax->mean - thisMin->mean,
+              thisMin->mean     - lastMax.mean,
+              thisMin->variance - lastMax.variance);
+
+      lastMax = *thisMax;
+    }
+  }
+
+  }
+#endif
+
   //  Check all the contig coordinatess in the new scaffold.
 #if 1
+  {
   LengthT lastMin   = {0, 0};
   LengthT lastMax   = {0, 0};
   int     thisIdx   = 0;
@@ -224,6 +316,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
   if (thisFails)
     DumpCIScaffold(stderr, ScaffoldGraph, newScaffold, FALSE);
   //assert(thisFails == 0);
+  }
 #endif
 }
 
@@ -459,12 +552,12 @@ MergeScaffolds(InterleavingSpec * iSpec, set<EdgeCGWLabel_T> &bEdges) {
       assert(currentOffset.variance >= 0);
       assert(orientCI.isUnknown() == false);
 
-      currentOffset.mean += edge->distance.mean;
+      currentOffset.mean     += edge->distance.mean;
       currentOffset.variance += edge->distance.variance;
 
       if (edge->distance.mean < -CGW_MISSED_OVERLAP) {
-        CIScaffoldT * newScaffold =
-          GetCIScaffoldT(ScaffoldGraph->CIScaffolds, newScaffoldID);
+        CIScaffoldT * newScaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, newScaffoldID);
+
         if (currentOffset.mean < 0.0) {
           //  newScaffold:                --------------->
           //  thisScaffold:      ------------------
@@ -472,18 +565,19 @@ MergeScaffolds(InterleavingSpec * iSpec, set<EdgeCGWLabel_T> &bEdges) {
           ChunkInstanceT     *CI;
           double              variance = GetVarianceOffset(thisScaffold, -currentOffset.mean, orientCI.isForward());
 
-          fprintf(stderr, "Adjusting newScaffold offsets by mean - %f variance + %f\n", currentOffset.mean, variance);
+          fprintf(stderr, "Shift existing contigs by %.0f +- %.0f\n", -currentOffset.mean, variance);
 
           InitCIScaffoldTIterator(ScaffoldGraph, newScaffold, TRUE, FALSE, &CIs);
 
           while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-            CI->offsetAEnd.mean      -= currentOffset.mean;
+            CI->offsetAEnd.mean      += -currentOffset.mean;
             CI->offsetAEnd.variance  += variance;
-            CI->offsetBEnd.mean      -= currentOffset.mean;
+            CI->offsetBEnd.mean      += -currentOffset.mean;
             CI->offsetBEnd.variance  += variance;
           }
 
-          currentOffset.mean = currentOffset.variance = 0.0;
+          currentOffset.mean     = 0.0;
+          currentOffset.variance = 0.0;
         } else {
           //  newScaffold:     --------------->
           //  thisScaffold:              ------------------
