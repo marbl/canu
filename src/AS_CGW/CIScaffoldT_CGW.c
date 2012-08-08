@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.63 2012-08-08 19:25:48 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.64 2012-08-08 22:45:30 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -309,6 +309,8 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
       bEndOffset.variance = aEndOffset.variance + chunkInstance->bpLength.variance;
     else
       aEndOffset.variance = bEndOffset.variance + chunkInstance->bpLength.variance;
+
+    assert(0);
   }
 
   //  Check that the placement is more or less the same as the length.
@@ -353,6 +355,7 @@ InsertCIInScaffold(ScaffoldGraphT *sgraph,
     else
       aEndOffset.mean = bEndOffset.mean + chunkInstance->bpLength.mean;
 #endif
+    assert(0);
   }
   //assert(fabs(aEndOffset.mean - bEndOffset.mean) < (1.2 * chunkInstance->bpLength.mean));
 

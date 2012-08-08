@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.8 2012-08-08 19:25:48 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.9 2012-08-08 22:45:30 brianwalenz Exp $";
 
 #include "CIScaffoldT_MergeScaffolds.h"
 
@@ -223,7 +223,9 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
     LengthT *thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
     LengthT *thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
 
-    double ctgVar = thisMax->variance - thisMin->variance;
+    //double ctgVar = thisMax->variance - thisMin->variance;
+    double ctgMea = CI->bpLength.mean;
+    double ctgVar = CI->bpLength.variance;
 
     assert(ctgVar > 0);
 

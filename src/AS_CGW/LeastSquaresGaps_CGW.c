@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.56 2012-08-08 19:25:48 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.57 2012-08-08 22:45:30 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1531,11 +1531,39 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   CheckLSScaffoldWierdnesses("AFTER", graph, scaffold);
 
-#if 0
+  //  If Least Squares fails, grab the current gap sizes from the scaffold, and rebuild it.  This
+  //  might seem like it will do anything, but it resets the size of each contig to truth.  This
+  //  seems to wander when we fail LeastSquares enough.
+#if 1
+  if (status != RECOMPUTE_OK) {
+    vector<double>  GAPmean;
+    vector<double>  GAPvari;
+
+    LengthT  lastEnd = { 0.0, 0.0 };
+
+    CIScaffoldTIterator CIs;
+    ChunkInstanceT     *CI;
+
+    InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+    while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
+      LengthT minOffset = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
+      LengthT maxOffset = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+
+      GAPmean.push_back(minOffset.mean     - lastEnd.mean);
+      GAPvari.push_back(minOffset.variance - lastEnd.variance);
+
+      lastEnd = maxOffset;
+    }
+
+    RebuildScaffoldGaps(graph, scaffold, &GAPmean[0], &GAPvari[0], true);
+  }
+#endif
+
+
   //  If Least Squares fails, do a greedy size estimate.  This DOES NOT WORK, especially in heavily interleaved scaffolds.  It tries
   //  to compute gap by gap, using mates that span a specific gap.  If those mates span other gaps, and those gap sizes are incorrect,
   //  then the estimate for this gap size is incorrect.
-
+#if 0
   if (status != RECOMPUTE_OK) {
 #warning GET RID OF THIS STATIC
     static vector<instrumentLIB>   libs;
