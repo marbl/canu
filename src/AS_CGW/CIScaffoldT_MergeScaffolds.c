@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.9 2012-08-08 22:45:30 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.10 2012-08-09 01:45:46 brianwalenz Exp $";
 
 #include "CIScaffoldT_MergeScaffolds.h"
 
@@ -312,7 +312,8 @@ MarkUnderlyingRawCIEdgeTrusted(ScaffoldGraphT * sgraph, EdgeCGW_T * raw) {
 
 
 int
-MergeScaffolds(InterleavingSpec * iSpec, set<EdgeCGWLabel_T> &bEdges) {
+MergeScaffolds(InterleavingSpec               *iSpec,
+               set<EdgeCGWLabel_T>            &bEdges) {
   int               mergedSomething = 0;
   GraphNodeIterator scaffolds;
   CIScaffoldT      *thisScaffold;
@@ -414,6 +415,12 @@ MergeScaffolds(InterleavingSpec * iSpec, set<EdgeCGWLabel_T> &bEdges) {
 
     vector<CIScaffoldT>      oldScaffolds;
     vector<ChunkInstanceT>   oldContigs;
+
+#ifdef TRACK_MATE_PAIR_TEST
+    uint32   edgeID = GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
+
+    matePairTestResult[edgeID].mergeAccepted = true;
+#endif
 
     //  Build a new scaffold.
 

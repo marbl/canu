@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.53 2012-08-02 21:56:32 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.54 2012-08-09 01:45:46 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -173,6 +173,65 @@ public:
     return(false);
   }
 };
+
+
+#ifdef TRACK_MATE_PAIR_TEST
+//  For linking matepair tests with merge results
+//
+struct mergeTestResult {
+public:
+  mergeTestResult();
+  ~mergeTestResult();
+
+  void     report(void) {
+    fprintf(stderr, "%s edgeID %u %u +- %u weight %u -- scaffold %u (%ubp %u contigs h/g/b %.2f/%.2f/%.2f) -- scaffold %u (%ubp %u contigs h/g/b %.2f/%.2f/%.2f) -- MERGE (h/g/b %.2f/%.2f/%.2f) -- BEFORE %.3f %.2f/%.2f -- AFTER %.3f %.2f/%.2f\n",
+            mergeAccepted ? "PASS" : "FAIL",
+            edgeID, edgeLength, edgeVariance, edgeWeight,
+            scaffoldAid, scaffoldAlength, scaffoldAcontigs, Ahappy, Agap, Abad,
+            scaffoldBid, scaffoldBlength, scaffoldBcontigs, Bhappy, Bgap, Bbad,
+            Mhappy, Mgap, Mbad,
+            beforeSatisfied, beforeGood, beforeBad,
+            afterSatisfied, afterGood, afterBad);
+  };
+
+  uint32   edgeID;
+  uint32   edgeLength;
+  uint32   edgeVariance;
+  uint32   edgeWeight;
+
+  uint32   scaffoldAid;
+  uint32   scaffoldAlength;
+  uint32   scaffoldAcontigs;
+
+  uint32   scaffoldBid;
+  uint32   scaffoldBlength;
+  uint32   scaffoldBcontigs;
+
+  double   Ahappy;
+  double   Agap;
+  double   Abad;
+
+  double   Bhappy;
+  double   Bgap;
+  double   Bbad;
+
+  double   Mhappy;
+  double   Mgap;
+  double   Mbad;
+
+  double   beforeSatisfied;
+  double   beforeGood;
+  double   beforeBad;
+
+  double   afterSatisfied;
+  double   afterGood;
+  double   afterBad;
+
+  bool     mergeAccepted;
+};
+#endif
+
+
 
 
 typedef struct

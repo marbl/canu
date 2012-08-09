@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.73 2012-08-08 19:25:48 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.74 2012-08-09 01:45:46 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -64,6 +64,11 @@ using namespace std;
 
 #define MIN_WEIGHT_TO_MERGE   MIN_EDGES
 
+
+//  Map an edge ID to a mate pair test result.
+#ifdef TRACK_MATE_PAIR_TEST
+map<uint32, mergeTestResult>    matePairTestResult;
+#endif
 
 
 int
@@ -252,6 +257,52 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
   fprintf(stderr, "isQualityScaffoldMergingEdge()--   before: %.3f satisfied (%d/%d good/bad mates)  after: %.3f satisfied (%d/%d good/bad mates)\n",
           fractMatesHappyBefore, mBeforeGood, mBeforeBad,
           fractMatesHappyAfter,  mAfterGood,  mAfterBad);
+
+
+#ifdef TRACK_MATE_PAIR_TEST
+  //  Why is this aborted?  Because the edge itself doesn't have an ID, and the only way
+  //  to get an ID is by asing the graph.  We don't have a graph handy, and are buried
+  //  FAR below where we last had it.
+  //
+  mergeTestResult  MTR;
+
+  MTR.edgeID            = edgeID;  //GetVAIndex_CIEdgeT(graph->ContigGraph->edges, curEdge);
+  MTR.edgeLength        = curEdge->distance.mean;
+  MTR.edgeVariance      = curEdge->distance.variance;
+  MTR.edgeWeight        = curEdge->edgesContributing;
+
+  MTR.scaffoldAid       = scaffoldA->id;
+  MTR.scaffoldAlength   = scaffoldA->bpLength.mean;
+  MTR.scaffoldAcontigs  = scaffoldA->info.Scaffold.numElements;
+
+  MTR.scaffoldBid       = scaffoldB->id;
+  MTR.scaffoldBlength   = scaffoldB->bpLength.mean;
+  MTR.scaffoldBcontigs  = scaffoldB->info.Scaffold.numElements;
+
+  MTR.Ahappy            = A.numHappy;
+  MTR.Agap              = A.numGap;
+  MTR.Abad              = A.numDejected;
+
+  MTR.Bhappy            = B.numHappy;
+  MTR.Bgap              = B.numGap;
+  MTR.Bbad              = B.numDejected;
+
+  MTR.Mhappy            = P.numHappy;
+  MTR.Mgap              = P.numGap;
+  MTR.Mbad              = P.numDejected;
+
+  MTR.beforeSatisfied   = fractMatesHappyBefore;
+  MTR.beforeGood        = mBeforeGood;
+  MTR.beforeBad         = mBeforeBad;
+
+  MTR.afterSatisfied    = fractMatesHappyAfter;
+  MTR.afterGood         = mAfterGood;
+  MTR.afterBad          = mAfterBad;
+
+  MTR.mergeAccepted     = false;
+#endif
+
+
 
   //  NOTE, still need the metagenomic test
 
@@ -519,23 +570,14 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
 //
 
 void
-ExamineSEdgeForUsability_NonInterleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
-                                        CIScaffoldT *scaffoldA,
-                                        CIScaffoldT *scaffoldB,
-                                        double minMergeDistance,
-                                        double maxMergeDistance,
-                                        int32 mayOverlap,
-                                        int32 mustOverlap);
-
-
-void
-ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
-                                     CIScaffoldT *scaffoldA,
-                                     CIScaffoldT *scaffoldB,
-                                     double minMergeDistance,
-                                     double maxMergeDistance,
-                                     int32 mayOverlap,
-                                     int32 mustOverlap);
+ExamineSEdgeForUsability_Interleaved(SEdgeT            *curEdge,
+                                     InterleavingSpec  *iSpec,
+                                     CIScaffoldT       *scaffoldA,
+                                     CIScaffoldT       *scaffoldB,
+                                     double             minMergeDistance,
+                                     double             maxMergeDistance,
+                                     int32              mayOverlap,
+                                     int32              mustOverlap);
 
 
 static
@@ -1065,9 +1107,28 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
 
       bool  moreWork = ExamineUsableSEdges(sEdges, weightScale, &iSpec);
 
+      //  Eventyally, we want to pass in matePairTestResult for scoring of which mate pair tests
+      //  resulted in successful merges.  At the moment, we have no inexpensive way of traching
+      //  SEdges from there to here.
       if (MergeScaffolds(&iSpec, bEdges)) {
         fprintf(stderr, "MergeScaffoldsAggressive()-- iter %d -- continue because we merged scaffolds.\n",
                 iterations);
+
+#ifdef TRACK_MATE_PAIR_TEST
+        fprintf(stderr, "The following edges successfully merged.\n");
+        for (map<uint32, char*>::iterator it = matePairTestResult.begin(); it != matePairTestResult.end(); it++) {
+          if (id->second.mergeAccepted == true)
+            it->second.print();
+        }
+
+        fprintf(stderr, "The following edges failed to merge.\n");
+        for (map<uint32, char*>::iterator it = matePairTestResult.begin(); it != matePairTestResult.end(); it++) {
+          if (id->second.mergeAccepted == false)
+            it->second.print();
+        }
+
+        matePairTestResult.clear();
+#endif
 
         CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
         BuildSEdges(graph, TRUE, TRUE);
