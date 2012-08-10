@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.77 2012-08-03 21:14:14 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.78 2012-08-10 18:07:59 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -7337,159 +7337,103 @@ static int  Is_Good_Scaff_Edge
 
 
 
-/*
-  this function is needed to undo Jiggle_Positions() changes
-  to singleton scaffolds where the contig offset may not be 0
-  imd 07/11/02
-*/
-static void UnJigglePositions(void)
-{
-  GraphNodeIterator scaffolds;
-  CIScaffoldT *scaffold;
+//  this function is needed to undo Jiggle_Positions() changes
+//  to singleton scaffolds where the contig offset may not be 0
+//  imd 07/11/02
+//
+static
+void
+UnJigglePositions(void) {
+  GraphNodeIterator  scaffolds;
+  CIScaffoldT       *scaffold;
 
-  // iterate over scaffolds
-  InitGraphNodeIterator(&scaffolds,
-                        ScaffoldGraph->ScaffoldGraph,
-                        GRAPH_NODE_DEFAULT);
-  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL)
-    {
-      // work with singleton, real, live scaffolds
-      if(scaffold->type == REAL_SCAFFOLD &&
-         !scaffold->flags.bits.isDead)
-        {
-          NodeCGW_T * ci;
-          ci = GetGraphNode(ScaffoldGraph->ContigGraph,
-                            scaffold->info.Scaffold.AEndCI);
+  InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
 
-          // work on scaffolds where cis are off
-          if(MIN(ci->offsetAEnd.mean, ci->offsetBEnd.mean) != 0.0)
-            {
-              LengthT delta;
+  while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
+    if (scaffold->type != REAL_SCAFFOLD)
+      continue;
+    if (scaffold->flags.bits.isDead == true)
+      continue;
 
-              fprintf(stderr, "\n\nSQUAWK!\n"
-                      "scaffold %d's first contig (%d) doesn't start at offset 0.0!\n",
-                      scaffold->id, ci->id);
-              fprintf(stderr, "\toffsets: (%.3f,%.3f) - (%.3f,%.3f)\n",
-                      ci->offsetAEnd.mean, ci->offsetAEnd.variance,
-                      ci->offsetBEnd.mean, ci->offsetBEnd.variance);
-              fprintf(stderr,
-                      "\tlengths: scaffold (%.3f,%.3f), contig (%.3f, %.3f)\n",
-                      scaffold->bpLength.mean, scaffold->bpLength.variance,
-                      ci->bpLength.mean, ci->bpLength.variance);
+    NodeCGW_T  *ci = GetGraphNode(ScaffoldGraph->ContigGraph, scaffold->info.Scaffold.AEndCI);
 
-              fprintf(stderr, "*** BEFORE UNJIGGLING POSITIONS:\n");
-              DumpCIScaffold(stderr, ScaffoldGraph, scaffold, 0);
+    if ((ci->offsetAEnd.mean != 0.0) &&
+        (ci->offsetBEnd.mean != 0.0)) {
+#if 1
+      LengthT  delta;
 
-              if(ci->offsetAEnd.mean < ci->offsetBEnd.mean)
-                {
-                  delta.mean = - ci->offsetAEnd.mean;
-                  delta.variance = - fabs(ci->offsetAEnd.variance);
-                }
-              else
-                {
-                  delta.mean = - ci->offsetBEnd.mean;
-                  delta.variance = - fabs(ci->offsetBEnd.variance);
-                }
-              AddDeltaToScaffoldOffsets(ScaffoldGraph, scaffold->id, ci->id, TRUE, delta);
-              fprintf(stderr, "*** AFTER UNJIGGLING POSITIONS:\n");
-              DumpCIScaffold(stderr, ScaffoldGraph, scaffold, 0);
+      if (ci->offsetAEnd.mean < ci->offsetBEnd.mean) {
+        delta.mean     = -ci->offsetAEnd.mean;
+        delta.variance = -ci->offsetAEnd.variance;
+      } else {
+        delta.mean     = -ci->offsetBEnd.mean;
+        delta.variance = -ci->offsetBEnd.variance;
+      }
 
-            }
-        }
+      AddDeltaToScaffoldOffsets(ScaffoldGraph, scaffold->id, ci->id, TRUE, delta);
+#else
+      LeastSquaresGapEstimates(ScaffoldGraph->ScaffoldGraph, scaffold);
+#endif
     }
+  }
 }
 
 
-static void  Jiggle_Positions
-(Scaffold_Fill_t * fill_chunks)
-
-//  Apply the gap adjustments in  fill_chunks  to scaffolds
-//  and to the chunks to be inserted in them.
-//  This moves positions of scaffold elements to make them
-//  more compatible with subsequent insertions.
-
-{
-  int  scaff_id;
+//  Apply the gap adjustments in fill_chunks to scaffolds and to the chunks to be inserted in them.
+//  This moves positions of scaffold elements to make them more compatible with subsequent
+//  insertions.
+//
+static
+void
+Jiggle_Positions(Scaffold_Fill_t *fill_chunks) {
 
   fprintf (stderr, "### Jiggle_Positions ###\n");
 
-  for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
-    Jiggle_Positions_One_Scaffold
-      (fill_chunks, scaff_id);
-
-  return;
+  for  (int32 scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
+    Jiggle_Positions_One_Scaffold(fill_chunks, scaff_id);
 }
 
 
-
-static void  Jiggle_Positions_One_Scaffold
-(Scaffold_Fill_t * fill_chunks, int scaff_id)
 
 //  Apply the gap adjustments in  fill_chunks [scaff_id]  to
 //  that scaffold and to the chunks to be inserted in it.
 //  This moves positions of scaffold elements to make them
 //  more compatible with subsequent insertions.
+static
+void
+Jiggle_Positions_One_Scaffold(Scaffold_Fill_t * fill_chunks, int scaff_id) {
+  LengthT  cum_adjust = { 0.0, 0.0 };
 
-{
-  LengthT  cum_adjust;
-  int  j;
+  for (int32 j=0; j<fill_chunks[scaff_id].num_gaps;  j ++) {
+    Gap_Fill_t  *this_gap = fill_chunks[scaff_id].gap + j;
 
-  cum_adjust . mean = cum_adjust . variance = 0.0;
+    if ((j < fill_chunks[scaff_id].num_gaps - 1) &&
+        ((this_gap->adjustment.mean     != 0.0) ||
+         (this_gap->adjustment.variance != 0.0)))
+      AddDeltaToScaffoldOffsets(ScaffoldGraph, scaff_id, this_gap->right_cid, TRUE, this_gap->adjustment, 1);
 
-#ifdef DEBUG_DETAILED
-  fprintf (stderr, "### Scaffold %d:\n", scaff_id);
-#endif
+    this_gap->ref_variance += cum_adjust.variance;
 
-  for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
-    {
-      Gap_Fill_t  * this_gap = fill_chunks [scaff_id] . gap + j;
+    if (j > 0) {
+      for (int32 k=0;  k<this_gap->num_chunks;  k++) {
+        Gap_Chunk_t  *this_chunk = this_gap->chunk + k;
 
-      if  (j < fill_chunks [scaff_id] . num_gaps - 1
-           && (this_gap -> adjustment . mean != 0.0
-               || this_gap -> adjustment . variance != 0.0))
-        AddDeltaToScaffoldOffsets(ScaffoldGraph, scaff_id, this_gap->right_cid, TRUE, this_gap->adjustment, 1);
+        this_chunk->start.mean += cum_adjust.mean;
+        this_chunk->end.mean   += cum_adjust.mean;
+      }
 
-#ifdef DEBUG_DETAILED
-      fprintf (stderr, "### Gap %d  gapadjv = %.1f  cumadjv = %.1f  oldrefv = %.1f",
-               j, this_gap -> adjustment . variance, cum_adjust . variance,
-               this_gap -> ref_variance);
-#endif
-
-      this_gap -> ref_variance += cum_adjust . variance;
-
-#ifdef DEBUG_DETAILED
-      fprintf (stderr, "  newrefv = %.1f\n",
-               this_gap -> ref_variance);
-#endif
-
-      if  (j > 0)
-        {
-          int  k;
-
-          for  (k = 0;  k < this_gap -> num_chunks;  k ++)
-            {
-              Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
-
-              //                 if  (this_chunk -> keep)
-              {
-                this_chunk -> start . mean += cum_adjust . mean;
-                this_chunk -> end . mean += cum_adjust . mean;
-              }
-            }
-          this_gap -> start . mean += cum_adjust . mean;
-          this_gap -> start . variance += cum_adjust . variance;
-        }
-
-      cum_adjust . mean += this_gap -> adjustment . mean;
-      cum_adjust . variance += this_gap -> adjustment . variance;
-      if  (j < fill_chunks [scaff_id] . num_gaps - 1)
-        {
-          this_gap -> end . mean += cum_adjust . mean;
-          this_gap -> end . variance += cum_adjust . variance;
-        }
+      this_gap->start.mean     += cum_adjust.mean;
+      this_gap->start.variance += cum_adjust.variance;
     }
 
-  return;
+    cum_adjust.mean     += this_gap->adjustment.mean;
+    cum_adjust.variance += this_gap->adjustment.variance;
+
+    if  (j<fill_chunks[scaff_id].num_gaps - 1) {
+      this_gap->end.mean     += cum_adjust.mean;
+      this_gap->end.variance += cum_adjust.variance;
+    }
+  }
 }
 
 
