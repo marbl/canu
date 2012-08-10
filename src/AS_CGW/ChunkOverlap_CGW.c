@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.58 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.59 2012-08-10 16:39:53 brianwalenz Exp $";
 
 #include "ChunkOverlap_CGW.h"
 #include "AS_UTL_reverseComplement.h"
@@ -234,6 +234,8 @@ int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
                                     (uint64)(INTPTR)&nolap->spec,
                                     sizeof(ChunkOverlapSpecT));
 
+#if 0
+  //  Useless logging, until someone wants to figure out why it already exists.
   if (exists == HASH_SUCCESS) {
     ChunkOverlapCheckT  *old = LookupCanonicalOverlap(chunkOverlapper, &nolap->spec);
 
@@ -241,6 +243,7 @@ int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
     printChunkOverlapCheckT("NEW", nolap);
     printChunkOverlapCheckT("OLD", old);
   }
+#endif
 
   int inserted = InsertInHashTable_AS(chunkOverlapper->hashTable,
                                     (uint64)(INTPTR)&nolap->spec,
@@ -401,11 +404,13 @@ CreateChunkOverlapFromEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
 
   //  And add the new one.
   if (InsertChunkOverlap(ScaffoldGraph->ChunkOverlaps, &olap) != HASH_SUCCESS) {
+#if 0
     ChunkOverlapCheckT  *old = LookupCanonicalOverlap(ScaffoldGraph->ChunkOverlaps, &olap.spec);
 
     fprintf(stderr, "WARNING:  CreateChunkOverlapFromEdge()-- Chunk overlap already exists.  Keeping old overlap.\n");
     printChunkOverlapCheckT("NEW", &olap);
     printChunkOverlapCheckT("OLD", old);
+#endif
     //assert(0);
   }
 }
