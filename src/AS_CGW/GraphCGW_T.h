@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.54 2012-08-09 01:45:46 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.55 2012-08-10 18:09:28 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -498,7 +498,7 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
 
   switch(graph->type){
     case CI_GRAPH:
-      fprintf(stderr, "CreateNewGraphNode()-- CI %d\n", node.id);
+      //fprintf(stderr, "CreateNewGraphNode()-- CI %d\n", node.id);
       node.type                      = UNRESOLVEDCHUNK_CGW;
       node.flags.bits.isCI           = TRUE;
       node.info.CI.contigID          = NULLINDEX;
@@ -506,7 +506,7 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
       node.info.CI.instances.va      = NULL;
       break;
     case CONTIG_GRAPH:
-      fprintf(stderr, "CreateNewGraphNode()-- Contig %d\n", node.id);
+      //fprintf(stderr, "CreateNewGraphNode()-- Contig %d\n", node.id);
       node.type                      = CONTIG_CGW;
       node.flags.bits.isContig       = TRUE;
       node.info.Contig.AEndCI        = NULLINDEX;
@@ -514,7 +514,7 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
       node.info.Contig.numCI         = 0;
       break;
     case SCAFFOLD_GRAPH:
-      fprintf(stderr, "CreateNewGraphNode()-- Scaffold %d\n", node.id);
+      //fprintf(stderr, "CreateNewGraphNode()-- Scaffold %d\n", node.id);
       node.type                      = REAL_SCAFFOLD;
       node.flags.bits.isScaffold     = TRUE;
       node.info.Scaffold.AEndCI      = NULLINDEX;
