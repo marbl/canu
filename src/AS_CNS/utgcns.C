@@ -19,13 +19,73 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcns.C,v 1.14 2012-08-06 23:56:27 brianwalenz Exp $";
+const char *mainid = "$Id: utgcns.C,v 1.15 2012-08-11 00:29:54 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
 #include "MultiAlignStore.h"
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
+
+
+//  Create a new f_list for the ma that has no contained reads.
+//  The original f_list is returned.
+//
+VA_TYPE(IntMultiPos) *
+stashContains(MultiAlignT *ma, double threshold) {
+  VA_TYPE(IntMultiPos) *fl = ma->f_list;
+
+  int32  nOrig = GetNumIntMultiPoss(fl);
+  int32  nRedu = 0;
+
+  for (uint32 fi=0; fi<GetNumIntMultiPoss(fl); fi++) {
+    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+
+    if (imp->contained == 0)
+      nRedu++;
+  }
+
+  if (1.0 - (double)nRedu / nOrig < threshold)
+    return(NULL);
+
+  fprintf(stderr, "Removed "F_S32" contains from unitig; processing only "F_S32" reads.\n",
+          nOrig - nRedu, nRedu);
+
+  ma->f_list = CreateVA_IntMultiPos(0);
+
+  for (uint32 fi=0; fi<GetNumIntMultiPoss(fl); fi++) {
+    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+
+    if (imp->contained == 0)
+      AppendVA_IntMultiPos(ma->f_list, imp);
+  }
+
+  return(fl);
+}
+
+
+//  Restores the f_list, and updates the position of non-contained reads.
+//
+void
+unstashContains(MultiAlignT *ma, VA_TYPE(IntMultiPos) *fl) {
+
+  if (fl == NULL)
+    return;
+
+  for (uint32 fi=0, ci=0; fi<GetNumIntMultiPoss(fl); fi++) {
+    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+
+    if (imp->contained == 0) {
+      SetVA_IntMultiPos(fl, fi, GetVA_IntMultiPos(ma->f_list, ci));
+      ci++;
+    }
+  }
+
+  DeleteVA_IntMultiPos(ma->f_list);
+
+  ma->f_list = fl;
+}
+
 
 
 int
@@ -45,6 +105,9 @@ main (int argc, char **argv) {
   int32  numSkipped  = 0;
 
   bool   showResult = false;
+
+  bool   ignoreContains = false;
+  double ignoreContainT = 0.75;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
@@ -86,6 +149,10 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE_MULTIALIGN_OUTPUT++;
 
+    } else if (strcmp(argv[arg], "-nocontains") == 0) {
+      ignoreContains = true;
+      ignoreContainT = atof(argv[++arg]);
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -107,6 +174,13 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -v           Show multialigns.\n");
     fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  ADVANCED OPTIONS\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -nocontains F   Do not use contains, if the unitig is more than fraction F\n");
+    fprintf(stderr, "                    contained reads.  The consensus sequence will be computed from\n");
+    fprintf(stderr, "                    only the non-contained reads.  The layout will still retain the\n");
+    fprintf(stderr, "                    contained reads, but their location will not be precise.\n");
     fprintf(stderr, "\n");
 
     if (gkpName == NULL)
@@ -179,7 +253,8 @@ main (int argc, char **argv) {
   //  Now the usual case.  Iterate over all unitigs, compute and update.
 
   for (uint32 i=b; i<e; i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, TRUE);
+    MultiAlignT              *ma = tigStore->loadMultiAlign(i, TRUE);
+    VA_TYPE(IntMultiPos)     *fl = NULL;
 
     if (ma == NULL) {
       //  Not in our partition, or deleted.
@@ -202,10 +277,21 @@ main (int argc, char **argv) {
               ma->maID, ma->data.num_unitigs, ma->data.num_frags,
               (exists) ? " - already computed, recomputing" : "");
 
+    //  Build a new ma if we're ignoring contains.  We'll need to put back the reads we remove
+    //  before we add it to the store.
+
+    if (ignoreContains)
+      fl = stashContains(ma, ignoreContainT);
+
     if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
-      tigStore->insertMultiAlign(ma, TRUE, FALSE);
       if (showResult)
         PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
+
+      if (ignoreContains)
+        unstashContains(ma, fl);
+
+      tigStore->insertMultiAlign(ma, TRUE, FALSE);
+
       DeleteMultiAlignT(ma);
     } else {
       fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
