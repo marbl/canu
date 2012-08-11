@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.23 2012-08-07 00:24:45 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.24 2012-08-11 00:32:27 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -771,6 +771,8 @@ main (int argc, char **argv) {
     if (errno)
       fprintf(stderr, "Failed to open '%s': %s\n", replaceName, strerror(errno)), exit(1);
 
+    fprintf(stderr, "Reading layouts from '%s'.\n", replaceName);
+
     delete tigStore;
     tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, replaceInPlace, !replaceInPlace);
 
@@ -779,13 +781,19 @@ main (int argc, char **argv) {
 
     while (LoadMultiAlignFromHuman(ma, isUnitig, F) == true) {
       if (ma->data.num_frags + ma->data.num_unitigs == 0) {
-        fprintf(stderr, "DELETING %s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
-        tigStore->deleteMultiAlign(ma->maID, isUnitig);
+        if (tigStore->isDeleted(ma->maID, isUnitig) == true) {
+          fprintf(stderr, "DELETING %s %d -- ALREADY DELETED\n", (isUnitig) ? "unitig" : "contig", ma->maID);
+        } else {
+          fprintf(stderr, "DELETING %s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
+          tigStore->deleteMultiAlign(ma->maID, isUnitig);
+        }
       } else {
         tigStore->insertMultiAlign(ma, isUnitig, FALSE);
         fprintf(stderr, "INSERTING %s %d\n", (isUnitig) ? "unitig" : "contig", ma->maID);
       }
     }
+
+    fprintf(stderr, "Reading layouts from '%s' completed.\n", replaceName);
 
     fclose(F);
   }
@@ -907,7 +915,6 @@ main (int argc, char **argv) {
 
   delete gkpStore;
   delete tigStore;
-
 
   exit(0);
 }
