@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.21 2012-04-09 19:17:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.22 2012-08-11 00:37:51 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -677,12 +677,12 @@ LoadMultiAlignFromHumanGetLine(FILE *in, int32 LINElen, int32 LINEmax, char *LIN
          (LINE[0] == '#'))
     ;
 
-  chomp(LINE);
-  W.split(LINE);
-
   if (feof(in))
     //  Nothing more to read!
     return(false);
+
+  chomp(LINE);
+  W.split(LINE);
 
   if (LINE[0] == 0)
     //  Blank or whitespace only line.  Recurse or just goto, hmmmm.
@@ -694,18 +694,26 @@ LoadMultiAlignFromHumanGetLine(FILE *in, int32 LINElen, int32 LINEmax, char *LIN
 
 bool
 LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
+#warning STATIC FOR PERFORMANCE
+  static int32  LINElen = 0;
+  static int32  LINEmax = 0;
+  static char  *LINE    = NULL;
 
-  int32  LINElen = 0;
-  int32  LINEmax = 1048576;
-  char  *LINE    = new char [LINEmax];
+  if (LINE == NULL) {
+    LINElen = 0;
+    LINEmax = 1048576;
+    LINE    = new char [LINEmax];
+  }
 
   splitToWords  W;
 
   ClearMultiAlignT(ma);
 
-  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0)
+  if (LoadMultiAlignFromHumanGetLine(in, LINElen, LINEmax, LINE, W) == 0) {
     //  Nothing loaded.
+    //delete [] LINE;
     return(false);
+  }
 
   if        (strcmp(W[0], "unitig") == 0) {
     isUnitig = true;
@@ -973,6 +981,8 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
     iup->position.end  = atoi(W[7]);
     iup->num_instances = atoi(W[9]);
   }
+
+  //delete [] LINE;
 
   return(true);
 }
