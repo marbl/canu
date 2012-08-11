@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.22 2012-04-12 19:31:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.23 2012-08-11 00:58:09 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -325,11 +325,19 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
 
   if (isUnitig == 1) {
     if (ma->maID < 0) {
-      ma->maID = utgLen;
-      newTigs  = true;
       assert(contigPart       == 0);
       assert(contigPartMap    == NULL);
       assert(contigPartMapLen == 0);
+
+      assert(GetNumIntUnitigPoss(ma->u_list) <= 1);
+
+      ma->maID = utgLen;
+      newTigs  = true;
+
+      //  Make sure that the UTG line (if present) agrees with our new maID
+      if (GetNumIntUnitigPoss(ma->u_list) == 1)
+        GetIntUnitigPos(ma->u_list, 0)->ident = ma->maID;
+
       fprintf(stderr, "insertMultiAlign()-- Added new unitig %d\n", ma->maID);
     }
 
