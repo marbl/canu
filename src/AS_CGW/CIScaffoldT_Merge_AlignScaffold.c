@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CIScaffoldT_Merge_AlignScaffold.c,v 1.2 2012-06-16 03:40:20 brianwalenz Exp $";
+static const char *rcsid = "$Id: CIScaffoldT_Merge_AlignScaffold.c,v 1.3 2012-08-12 21:49:31 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "CIScaffoldT_Merge_AlignScaffold.h"
@@ -1456,7 +1456,19 @@ Align_Scaffold(Segment *seglist,
       if(intoB>top){
         double gapFrac = ((double) (top - (BF->ctgs[i].lft_end+BF->ctgs[i].length))) /
           (double) (BF->gaps[i].gap_length+varwin*BF->gaps[i].gap_var);
+
+        if (gapFrac < 0) {
+          fprintf(stderr, "gapFrac    = %f\n", gapFrac);
+          fprintf(stderr, "top        = %d\n", top);
+          fprintf(stderr, "i          = %d\n", i);
+          fprintf(stderr, "lft_end    = %d\n", BF->ctgs[i].lft_end);
+          fprintf(stderr, "length     = %d\n", BF->ctgs[i].length);
+          fprintf(stderr, "gap_length = %d\n", BF->gaps[i].gap_length);
+          fprintf(stderr, "varwin     = %d\n", varwin);
+          fprintf(stderr, "gap_var    = %d\n", BF->gaps[i].gap_var);
+        }
         assert(gapFrac>=0);
+
         beg = (int32)(BF->ctgs[i].lft_end+BF->ctgs[i].length + gapFrac * BF->gaps[i].gap_length);
         break;
       }
