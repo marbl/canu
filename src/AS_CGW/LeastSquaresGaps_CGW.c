@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.57 2012-08-08 22:45:30 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.58 2012-08-12 23:33:37 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -478,6 +478,9 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
   LengthT *prevLeftEnd, *prevRightEnd;
   LengthT *thisLeftEnd, *thisRightEnd;
 
+  if (beVerbose)
+    fprintf(stderr, "ROIS()-- Rebuild contig and gap positions for scaffold %d\n", scaffold->id);
+
   CIScaffoldTIterator CIs;
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
@@ -496,9 +499,11 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
   prevLeftEnd->mean     = 0.0;  //  Scaffold starts at zero, no?
   prevLeftEnd->variance = 0.0;
 
+  scaffold->bpLength.mean     = 0.0;  //  Scaffold has no contigs yet, no?
+  scaffold->bpLength.variance = 0.0;
+
   double   *gapPtr      = gapMean;
   double   *gapVarPtr   = gapVariance;
-  LengthT  *maxOffset   = NULL;
 
   while ((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL) { 
     if (GetNodeOrient(thisCI).isForward()) {
@@ -512,25 +517,39 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
     double prevGap = thisLeftEnd->mean     - prevRightEnd->mean;
     double prevVar = thisLeftEnd->variance - prevRightEnd->variance;
 
+    //  Set then end of the last contig.
+
     prevRightEnd->mean     = prevLeftEnd->mean      + prevCI->bpLength.mean;
     prevRightEnd->variance = prevLeftEnd->variance  + prevCI->bpLength.variance;
 
-    //  Keep track of the biggest offset we've seen so far
-    if ((maxOffset == NULL) ||
-        (maxOffset->mean < prevRightEnd->mean))
-      maxOffset = prevRightEnd;
-
-    thisLeftEnd->mean      = prevRightEnd->mean     + *gapPtr;
-    thisLeftEnd->variance  = prevRightEnd->variance + *gapVarPtr;
+    if (scaffold->bpLength.mean     < prevRightEnd->mean)       scaffold->bpLength.mean     = prevRightEnd->mean;
+    if (scaffold->bpLength.variance < prevRightEnd->variance)   scaffold->bpLength.variance = prevRightEnd->variance;
 
     if (beVerbose)
-      fprintf(stderr, "ROIS()-- Contig %8d at %9.0f +- %11.0f to %9.0f +- %11.0f  ctg len %9.0f  gap to next %9.0f +- %11.0f (was %9.0f +- %11.0f)\n",
+      fprintf(stderr, "ROIS()-- Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f  gap to next %9.0f +- %-11.0f (was %9.0f +- %-11.0f)\n",
               prevCI->id,
               prevLeftEnd->mean,  prevLeftEnd->variance,
               prevRightEnd->mean, prevRightEnd->variance,
               prevRightEnd->mean - prevLeftEnd->mean,
               *gapPtr, *gapVarPtr,
               prevGap, prevVar);
+
+    //  Now set the begin of the next contig.
+
+    thisLeftEnd->mean      = prevRightEnd->mean     + *gapPtr;
+    thisLeftEnd->variance  = prevRightEnd->variance + *gapVarPtr;
+
+    //  In initial scaffolds, if LeastSquares is called before merging, we occasionally get negative
+    //  positions in the second scaffold.
+    //
+#if 0
+    //  This should be handled by the contig rearrange code
+    if (thisLeftEnd->mean < 0.0) {
+      fprintf(stderr, "ROIS()-- Contig %d in scaffold %d truncated to begin at zero.\n",
+              thisCI->id, scaffold->id);
+      thisLeftEnd->mean     = 0.0;
+    }
+#endif
 
     prevCI       = thisCI;
     prevLeftEnd  = thisLeftEnd;
@@ -543,20 +562,15 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
   prevRightEnd->mean      = prevLeftEnd->mean     + prevCI->bpLength.mean;
   prevRightEnd->variance  = prevLeftEnd->variance + prevCI->bpLength.variance;
 
+  if (scaffold->bpLength.mean     < prevRightEnd->mean)       scaffold->bpLength.mean     = prevRightEnd->mean;
+  if (scaffold->bpLength.variance < prevRightEnd->variance)   scaffold->bpLength.variance = prevRightEnd->variance;
+
   if (beVerbose)
-    fprintf(stderr, "ROIS()-- Contig %8d at %9.0f +- %11.0f to %9.0f +- %11.0f  ctg len %9.0f\n",
+    fprintf(stderr, "ROIS()-- Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f\n",
             prevCI->id,
             prevLeftEnd->mean,  prevLeftEnd->variance,
             prevRightEnd->mean, prevRightEnd->variance,
             prevRightEnd->mean - prevLeftEnd->mean);
-
-  if ((maxOffset == NULL) ||
-      (maxOffset->mean < prevRightEnd->mean))
-    maxOffset = prevRightEnd;
-
-  scaffold->bpLength = *maxOffset;
-
-  //SetCIScaffoldTLength(ScaffoldGraph, scaffold, TRUE); // recompute scaffold length, just to be sure
 }
 
 
@@ -1442,16 +1456,86 @@ void  CheckLSScaffoldWierdnesses(char *string, ScaffoldGraphT *graph, CIScaffold
 
 
 
+
+//  This bit of bizarreness was in CheckCIScaffoldT(), which was dropped in favor of
+//  ScaffoldSanity().  It serves to remove apparent out of order contigs, and reinsert them.  The
+//  reinsert supposedly orders contigs correctly.
+//
+//  Unlike the original version, this one removes and reinserts ALL contigs.  The original tried to
+//  detect which ones were out of order.  The original would iterate up to 20 times detecting and
+//  reinserting contigs.
+//
+static
 bool
-LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
+BounceOutOfOrderContigs(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
+  double                   lastMin = 0.0;
+
+  CIScaffoldTIterator      CIs;
+  ChunkInstanceT          *CI;
+
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+
+  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
+    double thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd.mean : CI->offsetBEnd.mean;
+
+    if (thisMin < lastMin)
+      break;
+
+    lastMin = thisMin;
+  }
+
+  if (CI == NULL) {
+    //fprintf(stderr, "BounceOutOfOrderContigs()-- passes.\n");
+    return(false);
+  }
+
+  fprintf(stderr, "BounceOutOfOrderContigs()-- fails.\n");
+
+  vector<ChunkInstanceT *> bounceList;
+
+  lastMin = 0.0;
+
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+
+  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
+    double thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd.mean : CI->offsetBEnd.mean;
+
+    if (thisMin < lastMin)
+      bounceList.push_back(CI);
+
+    lastMin = thisMin;
+  }
+
+  for (uint32 bi=0; bi<bounceList.size(); bi++) {
+    CI = bounceList[bi];
+
+    fprintf(stderr, "BounceOutOfOrderContigs()-- Bounce contig %d in scaffold %d\n", CI->id, scaffold->id);
+
+    RemoveCIFromScaffold(graph, scaffold, CI, FALSE);
+    InsertCIInScaffold(graph, CI->id, scaffold->id, CI->offsetAEnd, CI->offsetBEnd, TRUE, FALSE);
+  }
+
+  return(true);
+}
+
+
+
+
+
+bool
+LeastSquaresGapEstimates(ScaffoldGraphT *graph,
+                         CIScaffoldT    *scaffold,
+                         bool            doCleanup) {
   RecomputeOffsetsStatus   status = RECOMPUTE_SINGULAR;
 
   if ((isDeadCIScaffoldT(scaffold)) ||
       (scaffold->type != REAL_SCAFFOLD))
     return(true);
 
-  if (scaffold->info.Scaffold.numElements == 1)
+  if (scaffold->info.Scaffold.numElements == 1) {
+    RebuildScaffoldGaps(graph, scaffold, NULL, NULL, false);
     return(true);
+  }
 
   int32  sID = scaffold->id;
 
@@ -1549,8 +1633,10 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
       LengthT minOffset = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
       LengthT maxOffset = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
 
-      GAPmean.push_back(minOffset.mean     - lastEnd.mean);
-      GAPvari.push_back(minOffset.variance - lastEnd.variance);
+      if (lastEnd.mean > 0) {
+        GAPmean.push_back(minOffset.mean     - lastEnd.mean);
+        GAPvari.push_back(minOffset.variance - lastEnd.variance);
+      }
 
       lastEnd = maxOffset;
     }
@@ -1598,7 +1684,12 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   }
 #endif
 
-  ScaffoldSanity(graph, scaffold);
+  for (uint32 bi=0; (bi < 5) && (BounceOutOfOrderContigs(graph, scaffold)); bi++)
+    LeastSquaresGapEstimates(graph, scaffold, doCleanup);
+
+  if (doCleanup)
+    if (CleanupAScaffold(graph, scaffold, FALSE, NULLINDEX, FALSE) > 0)
+      LeastSquaresGapEstimates(graph, scaffold, doCleanup);
 
   return(status == RECOMPUTE_OK);
 }

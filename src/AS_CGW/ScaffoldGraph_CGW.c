@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.66 2012-08-08 19:25:48 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.67 2012-08-12 23:33:37 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -514,14 +514,7 @@ int RepeatRez(int repeatRezLevel, char *name){
         if  (normal_inserts > 0)
           {
             didSomething = TRUE;
-
-            ScaffoldSanity(ScaffoldGraph);
-
             TidyUpScaffolds (ScaffoldGraph);
-            CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
-
-            ScaffoldSanity(ScaffoldGraph);
-
             //GeneratePlacedContigGraphStats("rocks", iter);
             //GenerateLinkStats(ScaffoldGraph->ContigGraph,"rocks",iter);
             //GenerateScaffoldGraphStats("rocks",iter);
@@ -534,7 +527,6 @@ int RepeatRez(int repeatRezLevel, char *name){
               {
                 didSomething = TRUE;
                 TidyUpScaffolds (ScaffoldGraph);
-                CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
                 //GeneratePlacedContigGraphStats("controcks", iter);
                 //GenerateLinkStats(ScaffoldGraph->ContigGraph,"controcks",iter);
                 //GenerateScaffoldGraphStats("controcks",iter);
@@ -550,7 +542,6 @@ int RepeatRez(int repeatRezLevel, char *name){
               {
                 didSomething = TRUE;
                 TidyUpScaffolds (ScaffoldGraph);
-                CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
                 //GeneratePlacedContigGraphStats("contstones", iter);
                 //GenerateLinkStats(ScaffoldGraph->ContigGraph,"contstones",iter);
                 //GenerateScaffoldGraphStats("contstones",iter);
@@ -614,7 +605,9 @@ TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph) {
   CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
   for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++)
-    LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+    LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID), FALSE);
+
+  ScaffoldSanity(ScaffoldGraph);
 
   if(GlobalData->debugLevel > 0)
     CheckAllContigFragments();
@@ -623,4 +616,6 @@ TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph) {
 
   BuildSEdges(ScaffoldGraph, TRUE, FALSE);
   MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
+
+  CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
 }

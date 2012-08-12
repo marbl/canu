@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.10 2012-08-09 01:45:46 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.11 2012-08-12 23:33:37 brianwalenz Exp $";
 
 #include "CIScaffoldT_MergeScaffolds.h"
 
@@ -257,6 +257,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
       LengthT *thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
       LengthT *thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
 
+#if 0
       fprintf(stderr, "VARADJ()-- Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f  gap to prev %9.0f +- %-11.0f\n",
               CI->id,
               thisMin->mean, thisMin->variance,
@@ -264,6 +265,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
               thisMax->mean - thisMin->mean,
               thisMin->mean     - lastMax.mean,
               thisMin->variance - lastMax.variance);
+#endif
 
       lastMax = *thisMax;
     }
@@ -637,7 +639,7 @@ MergeScaffolds(InterleavingSpec               *iSpec,
 
       //fprintf(stderr, "Begin LeastSquaresGapEstimates()\n");
 
-      if (LeastSquaresGapEstimates(ScaffoldGraph, scaffold) == false) {
+      if (LeastSquaresGapEstimates(ScaffoldGraph, scaffold, TRUE) == false) {
         fprintf(stderr, "ADDING EDGE TO IGNORE: %d <-> %d orient %c distance %.1f +- %.1f\n",
                 edgeLabel.idA,
                 edgeLabel.idB,
@@ -677,22 +679,7 @@ MergeScaffolds(InterleavingSpec               *iSpec,
 #endif
       }  //  Bad LeastSquaresEstimate
 
-      int32  numScaffoldsAfter = GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds);
-
-      //  If numScaffoldsBefore is not the same as numScaffoldsAfter, then RecomputeOffsetsInScaffold() decided
-      //  to split a scaffold we just merged.  This (once) led to an infinite loop in scaffold merging where
-      //  a two contig and a one contig scaffold were merged, then ROIS() would unmerge them into the original
-      //  layout.
-
-      if         (numScaffoldsAfter - numScaffoldsBefore == numMerged - 1) {
-        fprintf(stderr, "MergeScaffolds()-- WARNING:  merged %d scaffolds into 1, then unmerged into %d new scaffolds.  NO MERGING DONE?!\n",
-                numMerged, numScaffoldsAfter - numScaffoldsBefore);
-        mergedSomething--;
-
-      } else  if (numScaffoldsAfter != numScaffoldsBefore) {
-        fprintf(stderr, "MergeScaffolds()-- WARNING:  merged %d scaffolds into 1, then unmerged into %d new scaffolds.  Partial merging done?\n",
-                numMerged, numScaffoldsAfter - numScaffoldsBefore);
-      }
+      ScaffoldSanity(ScaffoldGraph, scaffold);
     }  //  if (iSpec->contigNow == TRUE && .....)
 
 #warning numLiveScaffolds is probably broken, and is nearly unused

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.65 2012-08-10 05:36:05 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.66 2012-08-12 23:33:37 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1020,13 +1020,14 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     assert(0.0 <= CI->offsetAEnd.variance);
     assert(0.0 <= CI->offsetBEnd.variance);
 
-    assert(CI->offsetAEnd.variance <= scaffold->bpLength.variance);
-    assert(CI->offsetBEnd.variance <= scaffold->bpLength.variance);
+    //  +1 for rounding errors
+    assert(CI->offsetAEnd.variance <= scaffold->bpLength.variance + 1.0);
+    assert(CI->offsetBEnd.variance <= scaffold->bpLength.variance + 1.0);
 
     if (numCtg == 0)
       assert((CI->offsetAEnd.mean == 0.0) || (CI->offsetBEnd.mean == 0.0));
 
-    //  Variances of rocks/stones/surrogates are not correct.
+    //  Variances of rocks/stones/surrogates are not correct (these might be caught by the containment check below).
 
     if (CI->flags.bits.isRock == true)
       continue;
@@ -1035,10 +1036,20 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     if (CI->flags.bits.isSurrogate == true)
       continue;
 
-    assert(lastMin.mean <= thisMin.mean);
-    assert(lastMin.mean <= thisMax.mean);
+    //  The +1 is guarding against rounding problems, in particular, this:
+    //    (gdb) p lastMin  $5 = {mean = 2515.7648383446817, variance = 41392.301712181623}
+    //    (gdb) p thisMin  $6 = {mean = 2515.7648383446813, variance = 41712.021995136231}
+    //                                     0.0000000000004
+    //
+    assert(lastMin.mean <= thisMin.mean + 1.0);
+    assert(lastMin.mean <= thisMax.mean + 1.0);
 
-    assert(thisMin.variance - lastMax.variance >= 0);
+    //  If this contig is contained in the last, all bets are off on variance.
+    //  Thse occur during initial scaffolding (we shouldn't be calling this yet, though).
+    //
+    if (lastMax.mean < thisMax.mean)
+      //  An actual gap (or a -20 gap)
+      assert(lastMax.variance <= thisMin.variance);
 
     lastMin = thisMin;
     lastMax = thisMax;

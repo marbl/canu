@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.74 2012-08-09 01:45:46 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.75 2012-08-12 23:33:37 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -318,8 +318,10 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
   bool failsMinimum       = (fractMatesHappyAfter < minSatisfied);
   bool failsToGetHappier1 = (fractMatesHappyAfter < fractMatesHappyBefore);
   bool failsToGetHappier2 = (mAfterGood < mBeforeGood) || (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
+  //bool failsToGetHappier2 = (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
 
   failsOLD = (failsMinimum && failsToGetHappier1 && failsToGetHappier2);
+  //failsOLD = (failsMinimum) && (failsToGetHappier1 || failsToGetHappier2);
 
   if (failsOLD)
     fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge %d%d%d (%.3f < %.3f) && (%.3f < %.3f) && ((%d < %d) || (%0.3f > %.3f))\n",
@@ -1130,7 +1132,9 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
         matePairTestResult.clear();
 #endif
 
-        CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
+        //  This is done as part of LeastSquares now.
+        //CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
+
         BuildSEdges(graph, TRUE, TRUE);
         MergeAllGraphEdges(graph->ScaffoldGraph, TRUE, FALSE);
 

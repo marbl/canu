@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.95 2012-08-08 19:25:48 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.96 2012-08-12 23:33:37 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -29,6 +29,10 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.95 2012-08-08 19:25:48 brianwalenz 
 #else
 #define POPULATE_COC_HASHTABLE 0
 #endif
+
+//  If defined, run LeastSquaresGapEstimates() on every contig immediately after
+//  loading a checkpoint.
+#undef RECOMPUTE_GAPS_ON_LOAD
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -342,8 +346,6 @@ main(int argc, char **argv) {
 
     BuildInitialContigs(ScaffoldGraph);
 
-    ScaffoldSanity(ScaffoldGraph);
-
     if(GlobalData->debugLevel > 0){
       CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
       CheckSurrogateUnitigs();
@@ -361,6 +363,15 @@ main(int argc, char **argv) {
     if (GlobalData->shatterLevel > 0) {
     	ShatterScaffoldsConnectedByLowWeight(stderr, ScaffoldGraph, GlobalData->shatterLevel, TRUE);
     }
+
+#ifdef RECOMPUTE_GAPS_ON_LOAD
+    //if (recomputeLeastSquaresOnLoad) {
+    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+      LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+      ScaffoldSanity(graph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+    }
+    //}
+#endif
   }
 
 
@@ -385,10 +396,23 @@ main(int argc, char **argv) {
 
     CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
 
-    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++)
-      LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+    //  Equivalent to TidyUpScaffolds().
+    //
+    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+      CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
 
-    TidyUpScaffolds(ScaffoldGraph);
+      LeastSquaresGapEstimates(ScaffoldGraph, scaffold, TRUE);
+      //CleanupAScaffold(ScaffoldGraph, scaffold, FALSE, NULLINDEX, FALSE);
+      //LeastSquaresGapEstimates(ScaffoldGraph, scaffold);
+      ScaffoldSanity(ScaffoldGraph, scaffold);
+    }
+
+    //CheckAllTrustedEdges(ScaffoldGraph);
+
+    BuildSEdges(ScaffoldGraph, TRUE, FALSE);
+    MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
+
+    //ScaffoldSanity(ScaffoldGraph);
 
     //  rocks is called inside of here
     //  checkpoints are written inside of here
@@ -406,6 +430,9 @@ main(int argc, char **argv) {
 
       changed = RepeatRez(GlobalData->repeatRezLevel, GlobalData->outputPrefix);
 
+      //  The below loop looks excessive - 2x cleanup? - but it is what was really done after
+      //  expanding TidyUpScaffolds()
+
       if (changed){
         ScaffoldSanity(ScaffoldGraph);
 
@@ -419,10 +446,19 @@ main(int argc, char **argv) {
 
         CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
 
-        for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++)
-          LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+        for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+          CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
 
-        TidyUpScaffolds(ScaffoldGraph);
+          LeastSquaresGapEstimates(ScaffoldGraph, scaffold, TRUE);
+          //CleanupAScaffold(ScaffoldGraph, scaffold, FALSE, NULLINDEX, FALSE);
+          //LeastSquaresGapEstimates(ScaffoldGraph, scaffold);
+          ScaffoldSanity(ScaffoldGraph, scaffold);
+        }
+
+        //CheckAllTrustedEdges(ScaffoldGraph);
+
+        BuildSEdges(ScaffoldGraph, TRUE, FALSE);
+        MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
 
         //  If we've been running for 2 hours, AND we've not just
         //  completed the last iteration, checkpoint.
