@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fragmentDepth.c,v 1.17 2012-05-08 23:17:55 brianwalenz Exp $";
+const char *mainid = "$Id: fragmentDepth.c,v 1.18 2012-08-13 02:47:44 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_UID.h"
@@ -64,7 +64,7 @@ computeStuff(uint32 *V, uint32 N,
              uint32  *median) {
 
   uint32  histogramMax = 128 * 1024;
-  uint32 *histogram    = (uint32 *)safe_malloc(sizeof(uint32) * histogramMax);
+  uint32 *histogram    = (uint32 *)safe_calloc(histogramMax, sizeof(uint32));
   uint32  histogramBig = 0;
   uint32  meanCount    = 0;
   uint32  i;
