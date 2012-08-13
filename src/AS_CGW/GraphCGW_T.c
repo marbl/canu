@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.95 2012-08-08 19:25:48 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.96 2012-08-13 13:29:08 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1595,26 +1595,35 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
     int32 ubgn, uend;
     int flip = (mp->position.end < mp->position.bgn);
     int32 bgn, end;
-
-    // mp->position is an interval.  We need to subtract one from
-    // the upper end of the interval
+    int32 fudge = 0;
+    int32 array_size = ungappedOffsets->numElements;
+    int32 array_min = 0;
+    int32 initial_separation;
+    
+    /* Use begin and end indices into array of ungaped offsets.
+     * Wobble the indices so as not to exceed array bounds.
+     */
+    bgn = mp->position.bgn;
+    end = mp->position.end;
     if(flip){
-      bgn = mp->position.bgn;
-      end = mp->position.end;
-    }else{
-      bgn = mp->position.bgn;
-      end = mp->position.end;
+      bgn = mp->position.end;
+      end = mp->position.bgn;
     }
-
-    if(bgn>=ungappedOffsets->numElements){
-      fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n", mp->ident,ma->maID);
-      bgn=ungappedOffsets->numElements-1;
+    initial_separation = end-bgn;
+    if (bgn < array_min) {
+      bgn = array_min;
+      end = bgn + initial_separation;
     }
+    if (end >= array_size) {
+      end = array_size-1;
+      bgn = end - initial_separation;
+    }
+    if (bgn < array_min) {
+      bgn = array_min;
+    }    
+    assert(end < ungappedOffsets->numElements);
+    assert(bgn < ungappedOffsets->numElements);
     ubgn = *Getint32(ungappedOffsets, bgn);
-    if(end>=ungappedOffsets->numElements){
-      fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n", mp->ident,ma->maID);
-      end=ungappedOffsets->numElements-1;
-    }
     uend = *Getint32(ungappedOffsets, end);
 
     if(ubgn == uend){
