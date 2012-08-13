@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.75 2012-08-12 23:33:37 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.76 2012-08-13 13:34:06 jasonmiller9704 Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -62,7 +62,7 @@ using namespace std;
 
 #define MAX_SLOP_IN_STD 3.5
 
-#define MIN_WEIGHT_TO_MERGE   MIN_EDGES
+#define MIN_WEIGHT_TO_MERGE   4
 
 
 //  Map an edge ID to a mate pair test result.
