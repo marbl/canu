@@ -18,19 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.77 2012-08-14 07:47:34 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.78 2012-08-14 08:04:41 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
 //
-
-#undef DEBUG_MERGE_EDGE_INVERT
-
-
-#define OTHER_END_CHECK
-#undef  GENERAL_STRONGER_CHECK
-
-#undef  ALLOW_NON_INTERLEAVED_MERGING
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -51,17 +43,13 @@ using namespace std;
 
 #define PREFERRED_GAP_SIZE  (-500)
 
-#define MAX_SCAFFOLD_GAP_OVERLAP 1000
-
 #define CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD MIN_EDGES
 
 #define EDGE_QUANTA 5.0
-#define OVERLAP_QUANTA -10000.
 
 #define EDGE_STRENGTH_FACTOR  MIN_EDGES
 
-#define MAX_SLOP_IN_STD 3.5
-
+#undef ALTERNATE_MATE_TEST_RULES
 
 //  Map an edge ID to a mate pair test result.
 #ifdef TRACK_MATE_PAIR_TEST
@@ -129,28 +117,6 @@ TouchesMarkedScaffolds(SEdgeT *curEdge) {
 
 
 
-
-static
-int
-isLargeOverlap(CIEdgeT *curEdge) {
-  double maxGap   = curEdge->distance.mean + 3.0 * sqrt(curEdge->distance.variance);
-  double minGap   = curEdge->distance.mean - 3.0 * sqrt(curEdge->distance.variance);
-  int32  numEdges = curEdge->edgesContributing;
-
-  double numOverlapQuanta = minGap   / OVERLAP_QUANTA;
-  double numEdgeQuanta    = numEdges / EDGE_QUANTA;
-
-  fprintf(stderr, "isLargeOverlapSize()--  edges %d gap %f %f ovlQuanta %f (%f) edgeQuanta %f (%f)\n",
-          numEdges,
-          minGap, maxGap, 
-          numOverlapQuanta, OVERLAP_QUANTA,
-          numEdgeQuanta,    EDGE_QUANTA);
-
-  if (maxGap > OVERLAP_QUANTA)
-    return FALSE;
-
-  return(numEdgeQuanta < numOverlapQuanta);
-}
 
 
 
@@ -315,11 +281,17 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
 
   bool failsMinimum       = (fractMatesHappyAfter < minSatisfied);
   bool failsToGetHappier1 = (fractMatesHappyAfter < fractMatesHappyBefore);
-  bool failsToGetHappier2 = (mAfterGood < mBeforeGood) || (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
-  //bool failsToGetHappier2 = (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
 
+#ifndef ALTERNATE_MATE_TEST_RULES
+  bool failsToGetHappier2 = (mAfterGood < mBeforeGood) || (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
   failsOLD = (failsMinimum && failsToGetHappier1 && failsToGetHappier2);
-  //failsOLD = (failsMinimum) && (failsToGetHappier1 || failsToGetHappier2);
+#else
+#warning ALTERNATE RULES
+#warning ALTERNATE RULES
+#warning ALTERNATE RULES
+  bool failsToGetHappier2 = (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
+  failsOLD = (failsMinimum) && (failsToGetHappier1 || failsToGetHappier2);
+#endif
 
   if (failsOLD)
     fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge %d%d%d (%.3f < %.3f) && (%.3f < %.3f) && ((%d < %d) || (%0.3f > %.3f))\n",
@@ -573,11 +545,7 @@ void
 ExamineSEdgeForUsability_Interleaved(SEdgeT            *curEdge,
                                      InterleavingSpec  *iSpec,
                                      CIScaffoldT       *scaffoldA,
-                                     CIScaffoldT       *scaffoldB,
-                                     double             minMergeDistance,
-                                     double             maxMergeDistance,
-                                     int32              mayOverlap,
-                                     int32              mustOverlap);
+                                     CIScaffoldT       *scaffoldB);
 
 
 static
@@ -618,10 +586,12 @@ ExamineSEdgeForUsability(SEdgeT            *curEdge,
     return;
   }
 
+  //  Makre sure that a weak link doesn't preempt a strong link
+#warning thread unsafe
   if (scaffoldA->flags.bits.walkedAlready ||
       scaffoldB->flags.bits.walkedAlready ) {
-    //  We want to make sure that a week link doesn't preempt a strong link
-    scaffoldA->flags.bits.walkedAlready = scaffoldB->flags.bits.walkedAlready = 1;
+    scaffoldA->flags.bits.walkedAlready = 1;
+    scaffoldB->flags.bits.walkedAlready = 1;
     return;
   }
 
@@ -646,26 +616,7 @@ ExamineSEdgeForUsability(SEdgeT            *curEdge,
     return;
   }
 
-  double mergeDistance    = curEdge->distance.mean;
-  double minMergeDistance = mergeDistance - MAX_SLOP_IN_STD * sqrt(curEdge->distance.variance);
-  double maxMergeDistance = mergeDistance + MAX_SLOP_IN_STD * sqrt(curEdge->distance.variance);
-
-  //fprintf(stderr, "* curEdge mergeDistance = (%g,%g) min:%g max:%g\n",
-  //        mergeDistance, curEdge->distance.variance,
-  //        minMergeDistance, maxMergeDistance);
-
-  // Look for an overlap
-
-  int32 mayOverlap  = ((minMergeDistance < CGW_MISSED_OVERLAP) && (maxMergeDistance > CGW_MISSED_OVERLAP));
-  int32 mustOverlap = ((minMergeDistance < CGW_MISSED_OVERLAP) && (maxMergeDistance < CGW_MISSED_OVERLAP));
-
-  // If it is a really heavy edge, treat like a may overlap edge
-  if ((mustOverlap) && (curEdge->edgesContributing > EDGE_QUANTA)) {
-    mustOverlap = 0;
-    mayOverlap  = 1;
-  }
-
-  ExamineSEdgeForUsability_Interleaved(curEdge, iSpec, scaffoldA, scaffoldB, minMergeDistance, maxMergeDistance, mayOverlap, mustOverlap);
+  ExamineSEdgeForUsability_Interleaved(curEdge, iSpec, scaffoldA, scaffoldB);
 }
 
 
@@ -751,231 +702,35 @@ CompareSEdgesContributing(const SEdgeT *s1, const SEdgeT *s2) {
 }
 
 
-#ifdef GENERAL_STRONGER_CHECK
-/*
-  it would be better to do this during scaffold edge creation
-*/
 
+
+//  Check the edges off the other end to see if there is a stronger edge from there.
+//
 static
-int
-ThereIsAStrongerEdgeToSameScaffoldReport(SEdgeT *curSEdge, int32 retVal) {
-  if (retVal == 0)
-    fprintf(stderr,
-            "SCF MERGE CONFLICT: "F_CID","F_CID"  %s  %dbp  %dvar  %dec\n",
-            curSEdge->idA, curSEdge->idB,
-            ((curSEdge->orient.isAB_AB()) ? "AB_AB" :
-             ((curSEdge->orient.isAB_BA()) ? "AB_BA" :
-              ((curSEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
-            (int) curSEdge->distance.mean,
-            (int) curSEdge->distance.variance,
-            curSEdge->edgesContributing);
-
-  fprintf(stderr, "\t"F_CID","F_CID", %s, %dbp  %dvar  %dec\n",
-          sEdge->idA, sEdge->idB,
-          ((sEdge->orient.isAB_AB()) ? "AB_AB" :
-           ((sEdge->orient.isAB_BA()) ? "AB_BA" :
-            ((sEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))),
-          (int) sEdge->distance.mean,
-          (int) curSEdge->distance.variance,
-          sEdge->edgesContributing);
-
-  return(retVal + 1);
-}
-
-static
-int
-ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
-  SEdgeTIterator SEdges;
-  SEdgeT * sEdge;
-  int32 orientValue;
-  CDS_CID_t otherScaffoldID;
-  int32 retVal = 0;
-
-  otherScaffoldID = (scfIID == curSEdge->idA) ? curSEdge->idB : curSEdge->idA;
-  orientValue =
-    (curSEdge->orient.isAB_AB() || curSEdge->orient.isBA_BA()) ? 1 : -1;
-
-  /*
-    iterate over otherEnd's merged edges to see if there is a
-    stronger one to the other scaffold
-  */
-  InitSEdgeTIterator(ScaffoldGraph, scfIID,
-                     FALSE, FALSE, ALL_END, FALSE, &SEdges);
-  while ((sEdge = NextSEdgeTIterator(&SEdges)) != NULL) {
-
-    if (sEdge->idA == otherScaffoldID ||
-        (sEdge->idB == otherScaffoldID && sEdge != curSEdge)) {
-      int newOrientValue =
-        (sEdge->orient.isAB_AB() || sEdge->orient.isBA_BA()) ? 1 : -1;
-
-      /*
-        Does the pair of edges agree (shift) or disagree (reversal)?
-        If reversal, assume greater weight one is correct
-        If shift,
-        if both are positive, take one with greater weight
-        if one is negative, take the postive one
-        if both are negative, take the shortest one (smallest overlap)
-      */
-      if (orientValue != newOrientValue) {
-        // reversal
-        if (sEdge->edgesContributing > curSEdge->edgesContributing) {
-          retVal = ThereIsAStrongerEdgeToSameScaffoldReport(curSEdge, retVal);
-        }
-      } else {
-        // shift
-        if (curSEdge->distance.mean > 0) {
-          if (sEdge->distance.mean > 0) {
-            // both are positive, prefer stronger
-            if (sEdge->edgesContributing > curSEdge->edgesContributing) {
-              retVal = ThereIsAStrongerEdgeToSameScaffoldReport(curSEdge, retVal);
-            }
-          } else {
-            /*
-              curSEdge is positive, sEdge is negative
-              prefer curSEdge unless sEdge is much stronger
-            */
-            if (sEdge->edgesContributing >
-                EDGE_STRENGTH_FACTOR * curSEdge->edgesContributing) {
-              retVal = ThereIsAStrongerEdgeToSameScaffoldReport(curSEdge, retVal);
-            }
-          }
-        } else if (sEdge->distance.mean > 0) {
-          /*
-            sEdge is positive, curSEdge is negative
-            prefer sEdge unless curSEdge is much stronger
-          */
-          if (curSEdge->edgesContributing <
-              EDGE_STRENGTH_FACTOR * sEdge->edgesContributing) {
-            retVal = ThereIsAStrongerEdgeToSameScaffoldReport(curSEdge, retVal);
-          }
-        } else {
-          /*
-            both negative
-            prefer shorter overlap unless longer is much stronger
-            prefer sEdge if much stronger, or shorter & strong enough
-          */
-          if (sEdge->edgesContributing >
-              EDGE_STRENGTH_FACTOR * curSEdge->edgesContributing ||
-              (sEdge->distance.mean > curSEdge->distance.mean &&
-               EDGE_STRENGTH_FACTOR * sEdge->edgesContributing >
-               curSEdge->edgesContributing)) {
-            retVal = ThereIsAStrongerEdgeToSameScaffoldReport(curSEdge, retVal);
-          }
-        }
-      }
-    }
-  }
-  return retVal;
-}
-#endif
-
-
-
-
-
-#ifdef OTHER_END_CHECK
-static
-int
+bool
 OtherEndHasStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
-  SEdgeTIterator SEdges;
-  SEdgeT * sEdge;
-  int otherEnd;
+  int       otherEnd;
   CDS_CID_t otherScaffoldID;
 
   if (scfIID == curSEdge->idA) {
-    otherEnd = (curSEdge->orient.isAB_AB() || curSEdge->orient.isAB_BA()) ? A_END : B_END;
+    otherEnd        = (curSEdge->orient.isAB_AB() || curSEdge->orient.isAB_BA()) ? A_END : B_END;
     otherScaffoldID = curSEdge->idB;
   } else {
-    otherEnd = (curSEdge->orient.isAB_BA() || curSEdge->orient.isBA_BA()) ? A_END : B_END;
+    otherEnd        = (curSEdge->orient.isAB_BA() || curSEdge->orient.isBA_BA()) ? A_END : B_END;
     otherScaffoldID = curSEdge->idA;
   }
 
-  //  iterate over otherEnd's merged edges to see if there is a
-  //  stronger one to curSEdge->idB
+  SEdgeTIterator SEdges;
+  SEdgeT        *SEdge;
 
   InitSEdgeTIterator(ScaffoldGraph, scfIID, FALSE, FALSE, otherEnd, FALSE, &SEdges);
 
-  while ((sEdge = NextSEdgeTIterator(&SEdges)) != NULL)
-    if ((sEdge->idA == otherScaffoldID || sEdge->idB == otherScaffoldID) &&
-        (sEdge->edgesContributing > curSEdge->edgesContributing))
-      return 1;
+  while ((SEdge = NextSEdgeTIterator(&SEdges)) != NULL)
+    if ((SEdge->idA == otherScaffoldID || SEdge->idB == otherScaffoldID) &&
+        (SEdge->edgesContributing > curSEdge->edgesContributing))
+      return(true);
 
-  return 0;
-}
-#endif
-
-
-
-
-
-// Find all merge candidates incident on scaffoldA
-// Returns TRUE if marked edges are encountered
-//
-static
-int
-FindAllMergeCandidates(vector<SEdgeT *>   &sEdges,
-                       vector<SEdgeT *>   &oEdges,
-                       CIScaffoldT        *fromScaffold,
-                       int                 fromEnd,
-                       CIScaffoldT        *ignoreToScaffold,
-                       int                 canonicalOnly,
-                       int                 minWeight,
-                       int                 verbose) {
-  SEdgeTIterator  SEdges;
-  SEdgeT         *curSEdge;
-  CIScaffoldT    *otherScaffold;
-  CDS_CID_t       otherScaffoldID;
-
-  InitSEdgeTIterator(ScaffoldGraph, fromScaffold->id, FALSE, FALSE, fromEnd, FALSE, &SEdges);
-
-  while ((curSEdge = NextSEdgeTIterator(&SEdges)) != NULL) {
-    if (curSEdge->flags.bits.isBogus)
-      // This edge has already been visited by the recursion
-      continue;
-
-    if ( curSEdge->idA != fromScaffold->id) {
-      if (canonicalOnly)
-        continue;
-      otherScaffoldID = curSEdge->idA;
-    } else {
-      otherScaffoldID = curSEdge->idB;
-    }
-
-    otherScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, otherScaffoldID);
-
-    if (otherScaffold->flags.bits.smoothSeenAlready)
-      continue;
-
-    if (otherScaffold == ignoreToScaffold)
-      continue;
-
-    if (TouchesMarkedScaffolds(curSEdge))
-      return TRUE;
-
-#ifdef OTHER_END_CHECK
-    if (OtherEndHasStrongerEdgeToSameScaffold(fromScaffold->id, curSEdge))
-      continue;
-#endif
-
-#ifdef GENERAL_STRONGER_CHECK
-    if (ThereIsAStrongerEdgeToSameScaffold(fromScaffold->id, curSEdge))
-      continue;
-#endif
-
-    if (curSEdge->flags.bits.isDeleted ||
-        isDeadCIScaffoldT(otherScaffold) ||
-        otherScaffold->type != REAL_SCAFFOLD)
-      continue;
-
-    assert((curSEdge->idA != NULLINDEX) && (curSEdge->idB != NULLINDEX));
-
-    if ((curSEdge->edgesContributing - (isOverlapEdge(curSEdge) ? 1 : 0)) < minWeight)
-      continue;
-
-    sEdges.push_back(curSEdge);
-  }
-
-  return FALSE;
+  return(false);
 }
 
 
@@ -1018,17 +773,53 @@ BuildUsableSEdges(vector<SEdgeT *>   &sEdges,
 
 
   for (int i=0; i<GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); i++) {
-    CIScaffoldT * scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, i);
+    CIScaffoldT  *thisScaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, i);
+    CIScaffoldT  *thatScaffold = NULL;
 
-    if (isDeadCIScaffoldT(scaffold) || (scaffold->type != REAL_SCAFFOLD))
+    if (isDeadCIScaffoldT(thisScaffold) || (thisScaffold->type != REAL_SCAFFOLD))
       continue;
 
-    FindAllMergeCandidates(sEdges, oEdges,
-                           scaffold,
-                           ALL_END, NULL,
-                           TRUE,
-                           CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD,
-                           verbose);
+    SEdgeTIterator  SEdges;
+    SEdgeT         *SEdge;
+
+    InitSEdgeTIterator(ScaffoldGraph, thisScaffold->id, FALSE, FALSE, ALL_END, FALSE, &SEdges);
+
+    while ((SEdge = NextSEdgeTIterator(&SEdges)) != NULL) {
+      if (SEdge->flags.bits.isBogus)
+        // This edge has already been visited by the recursion
+        continue;
+
+      if (SEdge->flags.bits.isDeleted)
+        //  Deleted edge?  Really?  We delete edges?
+        continue;
+
+      if ((SEdge->edgesContributing - (isOverlapEdge(SEdge) ? 1 : 0)) < CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
+        //  Edge weight to weak.
+        continue;
+
+      assert(SEdge->idA != NULLINDEX);
+      assert(SEdge->idB != NULLINDEX);
+
+      if (SEdge->idA != thisScaffold->id)
+        //  Not canonical edge
+        continue;
+
+      thatScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, SEdge->idB);
+
+      if (isDeadCIScaffoldT(thatScaffold) || (thatScaffold->type != REAL_SCAFFOLD))
+        continue;
+
+      if (thatScaffold->flags.bits.smoothSeenAlready)
+        continue;
+
+      if (TouchesMarkedScaffolds(SEdge))
+        break;
+
+      if (OtherEndHasStrongerEdgeToSameScaffold(thisScaffold->id, SEdge))
+        continue;
+      
+      sEdges.push_back(SEdge);
+    }
   }
 
   sort(sEdges.begin(), sEdges.end(), CompareSEdgesContributing);
@@ -1036,8 +827,6 @@ BuildUsableSEdges(vector<SEdgeT *>   &sEdges,
 
 
 
-
-////////////////////////////////////////
 
 
 

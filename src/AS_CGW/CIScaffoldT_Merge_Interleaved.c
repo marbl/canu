@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_Interleaved.c,v 1.3 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_Interleaved.c,v 1.4 2012-08-14 08:04:41 brianwalenz Exp $";
 
 //  These are private functions used in CIScaffoldT_Merge_CGW.c.
 //  These functions are specialized for interleaved merging.
@@ -413,22 +413,22 @@ AbuttingWillWork(SEdgeT * curEdge,
 void
 ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
                                      CIScaffoldT *scaffoldA,
-                                     CIScaffoldT *scaffoldB,
-                                     double minMergeDistance,
-                                     double maxMergeDistance,
-                                     int32 mayOverlap,
-                                     int32 mustOverlap) {
+                                     CIScaffoldT *scaffoldB) {
 
   EdgeCGW_T  *mergeEdge = NULL;
 
   ScaffoldAlignmentInterface * sai = iSpec->sai;
 
+  double minMergeDistance = curEdge->distance.mean - 3.5 * sqrt(curEdge->distance.variance);
+
+#if 0
   if (minMergeDistance < -1000000. &&
       scaffoldA->bpLength.mean > 1000000. &&
       scaffoldB->bpLength.mean > 1000000.) {
     //fprintf(stderr, "Edge is too negative for scaffold lengths\n");
     return;
   }
+#endif
 
   if (isBadScaffoldMergeEdge(curEdge, iSpec->badSEdges)) {
     //fprintf(stderr, "Edge previously marked as bad for merging.\n");
@@ -448,10 +448,11 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
 
   mergeEdge = curEdge;
 
-  if ((mayOverlap  == false) &&
-      (mustOverlap == false)) {
-    // if here, edge was non-negative
-    MarkScaffoldsForMerging(mergeEdge);
+  //  The edge doesn't indicate these scaffolds overlap, so we're done.  Mark the scaffolds
+  //  for merging.
+  //
+  if (CGW_MISSED_OVERLAP < curEdge->distance.mean - 3.5 * sqrt(curEdge->distance.variance)) {
+    MarkScaffoldsForMerging(curEdge);
     return;
   }
 
@@ -510,11 +511,12 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
       // overlap edge found. use it
       SaveEdgeMeanForLater(mergeEdge);
 
-      if (edgeEndsOrient!=GetEdgeOrientationWRT(overlapEdge,endNodeA->id))
+      if (edgeEndsOrient != GetEdgeOrientationWRT(overlapEdge,endNodeA->id))
         overlapEdge->distance.mean = -(endNodeA->bpLength.mean + endNodeB->bpLength.mean + overlapEdge->distance.mean);
 
       mergeEdge->distance.mean = overlapEdge->distance.mean;
 
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, found overlap, will merge.\n");
       MarkScaffoldsForMerging(mergeEdge);
     }
 
@@ -522,11 +524,14 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
       // no overlap edge, but abutting will work
       SaveEdgeMeanForLater(mergeEdge);
       mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
+
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, didn't find it, but will abut them.\n");
       MarkScaffoldsForMerging(mergeEdge);
     }
 
     else {
       // else don't prevent scaffolds from merging via other edges
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, didn't find it, will not merge.\n");
       SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
     }
 
@@ -571,21 +576,24 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
                                     &(sai->best),
                                     sai->scaffoldA->bandBeg,
                                     sai->scaffoldA->bandEnd);
-
+                                                                
+  //  no overlap or interleaving possible
+  //
+  //  if edge is not highly negative, abut. Otherwise abort.
+  //
   if ((sai->segmentList == NULL) && (sai->best < 0)) {
-    //  no overlap or interleaving possible
-    //
-    // if edge is not highly negative, abutt. Otherwise abort.
-    // criterion is if -20 abutting still leaves edge as trusted
-
     if (!iSpec->checkAbutting || AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec)) {
       SaveEdgeMeanForLater(mergeEdge);
       mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
+
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, but will abut.\n");
       MarkScaffoldsForMerging(mergeEdge);
 
     } else {
       // else don't prevent scaffolds from merging via other edges
       // record that this scaffold overlap is bad
+
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, will not merge.\n");
       SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
     }
 
@@ -593,7 +601,8 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
   }
 
 
-  if (sai->segmentList != NULL || (iSpec->checkAbutting && !AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec))) {
+  if ((sai->segmentList != NULL) ||
+      (iSpec->checkAbutting && !AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec))) {
 
     // if there are overlaps or abutting isn't an option
     EdgeCGW_T *overlapEdge = MakeScaffoldAlignmentAdjustments(scaffoldA, scaffoldB, mergeEdge, sai);
@@ -601,19 +610,25 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
     if (overlapEdge != NULL) {
       SaveEdgeMeanForLater(mergeEdge);
       mergeEdge->distance.mean = overlapEdge->distance.mean;
+
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving succeeded, will merge.\n");
       MarkScaffoldsForMerging(mergeEdge);
 
     } else {
       // else don't prevent scaffolds from merging via other edges
+
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, cannot abut, will not merge.\n");
       SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
     }
 
     return;
   }
-
+                                                                
   // no overlaps && abutting will work
   SaveEdgeMeanForLater(mergeEdge);
   mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
+
+  fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, no overlaps, but will abut.\n");
   MarkScaffoldsForMerging(mergeEdge);
 }
 
