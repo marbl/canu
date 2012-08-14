@@ -276,6 +276,19 @@ sub setDefaults () {
     $global{"stopAfter"}                   = undef;
     $synops{"stopAfter"}                   = "Tell runCA when to halt execution";
 
+
+    #####  Grid Engine configuration, how to submit jobs, etc
+    $global{"gridSubmitCommand"}	   = "qsub";
+    $global{"gridHoldCommand"}		   = undef; # for lsf it is bsub -K WAIT_TAG echo \"Done\"
+    $global{"gridHoldOption"}		   = "-hold_jid WAIT_TAG"; # for lsf it is -w done(WAIT_TAG)
+    $global{"gridSyncOption"}		   = "-sync y"; # for lsf it is -K
+    $global{"gridNameOption"}		   = "-cwd -N";
+    $global{"gridArrayOption"}		   = "-t ARRAY_JOBS";	# for lsf, empty ("")
+    $global{"gridArrayName"}		   = "ARRAY_NAME";		# for lsf, it is ARRAY_NAME[1-ARRAY_JOBS]
+    $global{"gridOutputOption"}		   = "-j y -o";
+    $global{"gridPropagateCommand"}	   = "qalter";			# for lsf it is undef
+    $global{"gridTaskID"}		   = "SGE_TASK_ID";
+    
     #####  Sun Grid Engine
 
     $global{"useGrid"}                     = 0;
@@ -1195,7 +1208,8 @@ sub stopAfter ($) {
 }
 
 sub runningOnGrid () {
-    return(defined($ENV{'SGE_TASK_ID'}));
+	my $taskID = getGlobal("gridTaskID");
+    return(defined($ENV{$taskID}));
 }
 
 sub findNextScriptOutputFile () {
@@ -1204,6 +1218,30 @@ sub findNextScriptOutputFile () {
         $idx++;
     }
     return("$wrk/runCA.sge.out.$idx");
+}
+
+sub buildGridArray($$$) {
+	my $name = shift @_;
+	my $maxLimit = shift @_;
+	my $globalValue = shift @_;
+	
+	my $arrayJobName = getGlobal($globalValue);
+	$arrayJobName =~ s/ARRAY_NAME/$name/g;
+	$arrayJobName =~ s/ARRAY_JOBS/1-$maxLimit/g;
+	
+	return $arrayJobName;
+}
+
+sub getGridArrayName($$) {
+	my $name = shift @_;
+	my $maxLimit = shift @_;	
+	return buildGridArray($name, $maxLimit, "gridArrayName");
+}
+
+sub getGridArrayOption($$) {
+	my $name = shift @_;
+	my $maxLimit = shift @_;	
+	return buildGridArray($name, $maxLimit, "gridArrayOption");	
 }
 
 sub submitScript ($) {
@@ -1240,17 +1278,36 @@ sub submitScript ($) {
     my $sgeName     = getGlobal("sgeName");
     my $sgeScript   = getGlobal("sgeScript");
     my $sgePropHold = getGlobal("sgePropagateHold");
+    
+    my $submitCommand 	= getGlobal("gridSubmitCommand");
+    my $holdCommand 	= getGlobal("gridHoldCommand");
+    my $holdOption 		= getGlobal("gridHoldOption");
+    my $nameOption 		= getGlobal("gridNameOption");
+    my $outputOption 	= getGlobal("gridOutputOption");
+    my $holdPropagateCommand 	= getGlobal("gridPropagateCommand");
 
+	if (defined($waitTag)) {
+		$holdOption =~ s/WAIT_TAG/\"$waitTag\"/g;
+		$waitTag = $holdOption;
+	}
     $sgeName = "_$sgeName"              if (defined($sgeName));
-    $waitTag = "-hold_jid \"$waitTag\"" if (defined($waitTag));
 
-    my $qcmd = "qsub $sge $sgeScript -cwd -N \"rCA_$asm$sgeName\" -j y -o $output $waitTag $script";
+    my $qcmd = "$submitCommand $sge $sgeScript $nameOption \"rCA_$asm$sgeName\" $outputOption $output $waitTag $script";
 
     runCommand($wrk, $qcmd) and caFailure("Failed to submit script.\n");
+	if ($waitTag && defined($holdCommand)) {
+		my $waitcmd = $holdCommand;
+		$waitcmd =~ s/WAIT_TAG/$waitTag/g;
+	    runCommand($wrk, $waitcmd) and caFailure("Wait command failed.\n");
+	}
 
     if (defined($sgePropHold)) {
-        my $acmd = "qalter -hold_jid \"rCA_$asm$sgeName\" \"$sgePropHold\"";
-        system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
+		if (defined($holdPropagateCommand) && defined($holdOption)) {
+	        my $acmd = "$holdPropagateCommand $holdOption \"rCA_$asm$sgeName\" \"$sgePropHold\"";
+	        system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
+		} else {
+			print STDERR "WARNING: Failed to reset hold '$sgePropHold', not supported on current grid environment.\n";
+		}
     }
 
     exit(0);
@@ -2755,6 +2812,8 @@ sub merTrim {
     my $merComp      = 0;  # getGlobal("merCompression");  --  DOES NOT WORK WITH merTrim
 
     my $mbtThreads   = getGlobal("mbtThreads");
+    
+    my $taskID       = getGlobal("gridTaskID");
 
     runMeryl($merSize, $merComp, "-C", "auto", "mbt", 0);
 
@@ -2764,12 +2823,12 @@ sub merTrim {
         print F "\n";
         print F "perl='/usr/bin/env perl'\n";
         print F "\n";
-        print F "jobid=\$SGE_TASK_ID\n";
+        print F "jobid=\$$taskID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
         print F "  jobid=\$1\n";
         print F "fi\n";
         print F "if [ x\$jobid = x ]; then\n";
-        print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+        print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
@@ -2834,19 +2893,24 @@ sub merTrim {
     #
     if (findMBTSuccess($mbtJobs) == 0) {
         if (getGlobal("useGrid") && getGlobal("mbtOnGrid")) {
+        	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
+        	my $nameOption 		= getGlobal("gridNameOption");
+    		my $outputOption 	= getGlobal("gridOutputOption");
+        	
             my $sge        = getGlobal("sge");
             my $sgeName    = getGlobal("sgeName");
             my $sgeMerTrim = getGlobal("sgeMerTrim");
 
             $sgeName = "_$sgeName" if (defined($sgeName));
+            my $jobName = getGridArrayName("mbt_$asm$sgeName", $mbtJobs);
+   	  		my $arrayOpt = getGridArrayOption("mbt_$asm$sgeName", $mbtJobs);
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeMerTrim -cwd -N mbt_$asm$sgeName \\\n";
-            $SGE .= "  -t 1-$mbtJobs \\\n";
-            $SGE .= "  -j y -o $wrk/0-mertrim/$asm.merTrim.\\\$TASK_ID.sge.err \\\n";
+            $SGE  = "$submitCommand $sge $sgeMerTrim $nameOption $jobName $arrayOpt \\\n";
+            $SGE .= "  $outputOption $wrk/0-mertrim/$asm.merTrim.\\\$TASK_ID.sge.err \\\n";
             $SGE .= "  $wrk/0-mertrim/mertrim.sh\n";
 
-            submitBatchJobs($SGE, "mbt_$asm$sgeName");
+            submitBatchJobs($SGE, $jobName);
             exit(0);
         } else {
             for (my $i=1; $i<=$mbtJobs; $i++) {
@@ -3007,18 +3071,18 @@ sub merOverlapper($) {
     #  Need mer counts, unless there is only one partition.
     meryl() if (($ovmJobs > 1) || ($merylNeeded));
 
-
+	my $taskID       = getGlobal("gridTaskID");
     #  Create overmerry and olap-from-seeds jobs
     #
     open(F, "> $wrk/$outDir/overmerry.sh") or caFailure("can't open '$wrk/$outDir/overmerry.sh'", undef);
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=\$SGE_TASK_ID\n";
+    print F "jobid=\$$taskID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
@@ -3076,12 +3140,12 @@ sub merOverlapper($) {
     open(F, "> $wrk/$outDir/olap-from-seeds.sh") or caFailure("can't open '$wrk/$outDir/olap-from-seeds.sh'", undef);
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=\$SGE_TASK_ID\n";
+    print F "jobid=\$$taskID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
@@ -3160,19 +3224,24 @@ sub merOverlapper($) {
         #
         if (findOvermerrySuccess($outDir, $ovmJobs) == 0) {
             if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
+            	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
+        		my $nameOption 		= getGlobal("gridNameOption");
+    			my $outputOption 	= getGlobal("gridOutputOption");
+    		
                 my $sge        = getGlobal("sge");
                 my $sgeName    = getGlobal("sgeName");
                 my $sgeOverlap = getGlobal("sgeMerOverlapSeed");
 
                 $sgeName = "_$sgeName" if (defined($sgeName));
+	   	  		my $jobName = getGridArrayName("mer_$asm$sgeName", $ovmJobs);
+	   	  		my $arrayOpt = getGridArrayOption("mer_$asm$sgeName", $ovmJobs);
 
                 my $SGE;
-                $SGE  = "qsub $sge $sgeOverlap -cwd -N mer_$asm$sgeName \\\n";
-                $SGE .= "  -t 1-$ovmJobs \\\n";
-                $SGE .= "  -j y -o $wrk/$outDir/seeds/\\\$TASK_ID.err \\\n";
+                $SGE  = "$submitCommand $sge $sgeOverlap $nameOption $jobName $arrayOpt \\\n";
+                $SGE .= "  $outputOption $wrk/$outDir/seeds/\\\$TASK_ID.err \\\n";
                 $SGE .= "  $wrk/$outDir/overmerry.sh\n";
 
-                submitBatchJobs($SGE, "mer_$asm$sgeName");
+                submitBatchJobs($SGE, $jobName);
                 exit(0);
             } else {
                 for (my $i=1; $i<=$ovmJobs; $i++) {
@@ -3247,19 +3316,24 @@ sub merOverlapper($) {
     #
     if (findOlapFromSeedsSuccess($outDir, $olpJobs) == 0) {
         if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
+        	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
+        	my $nameOption 		= getGlobal("gridNameOption");
+    		my $outputOption 	= getGlobal("gridOutputOption");
+    		
             my $sge        = getGlobal("sge");
             my $sgeName    = getGlobal("sgeName");
             my $sgeOverlap = getGlobal("sgeMerOverlapExtend");
 
             $sgeName = "_$sgeName" if (defined($sgeName));
+   	  		my $jobName = getGridArrayName("olp_$asm$sgeName", $olpJobs);
+   	  		my $arrayOpt = getGridArrayOption("mer_$asm$sgeName", $ovmJobs);
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlap -cwd -N olp_$asm$sgeName \\\n";
-            $SGE .= "  -t 1-$olpJobs \\\n";
-            $SGE .= "  -j y -o $wrk/$outDir/olaps/\\\$TASK_ID.err \\\n";
+            $SGE  = "$submitCommand $sge $sgeOverlap $nameOption $jobName $arrayOpt \\\n";
+            $SGE .= "  $outputOption $wrk/$outDir/olaps/\\\$TASK_ID.err \\\n";
             $SGE .= "  $wrk/$outDir/olap-from-seeds.sh\n";
 
-            submitBatchJobs($SGE, "olp_$asm$sgeName");
+            submitBatchJobs($SGE, $jobName);
             exit(0);
         } else {
             for (my $i=1; $i<=$olpJobs; $i++) {
@@ -3352,6 +3426,7 @@ sub createOverlapJobs($) {
 
     meryl();
 
+	my $taskID       = getGlobal("gridTaskID");
     #  We make a giant job array for this -- we need to know hashBeg,
     #  hashEnd, refBeg and refEnd -- from that we compute batchName
     #  and jobName.
@@ -3366,12 +3441,12 @@ sub createOverlapJobs($) {
     print F "\n";
     print F "perl='/usr/bin/env perl'\n";
     print F "\n";
-    print F "jobid=\$SGE_TASK_ID\n";
+    print F "jobid=\$$taskID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
@@ -3471,19 +3546,24 @@ sub createOverlapJobs($) {
     #  things here
     #
     if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
+        my $submitCommand 	= getGlobal("gridSubmitCommand");        	
+        my $nameOption 		= getGlobal("gridNameOption");
+    	my $outputOption 	= getGlobal("gridOutputOption");
+    		
         my $sge        = getGlobal("sge");
         my $sgeName    = getGlobal("sgeName");
         my $sgeOverlap = getGlobal("sgeOverlap");
 
         $sgeName = "_$sgeName" if (defined($sgeName));
+        my $jobName = getGridArrayName("ovl_$asm$sgeName", $jobs);
+        my $arrayOpt = getGridArrayOption("ovl_$asm$sgeName", $jobs);
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeOverlap -cwd -N ovl_$asm$sgeName \\\n";
-        $SGE .= "  -t 1-$jobs \\\n";
-        $SGE .= "  -j y -o $wrk/$outDir/\\\$TASK_ID.out \\\n";
+        $SGE  = "$submitCommand $sge $sgeOverlap $nameOption $jobName $arrayOpt \\\n";
+        $SGE .= "  $outputOption $wrk/$outDir/\\\$TASK_ID.out \\\n";
         $SGE .= "  $wrk/$outDir/overlap.sh\n";
 
-	submitBatchJobs($SGE, "ovl_$asm$sgeName");
+	submitBatchJobs($SGE, $jobName);
         exit(0);
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
@@ -3652,6 +3732,7 @@ sub createOverlapStore {
 
   alldone:
     stopAfter("overlapper");
+    stopAfter("meryl");
 }
 
 
@@ -3906,15 +3987,17 @@ sub overlapCorrection {
         my $batchSize   = getGlobal("frgCorrBatchSize");
         my $numThreads  = getGlobal("frgCorrThreads");
         my $jobs        = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
+        
+        my $taskID       = getGlobal("gridTaskID");
 
         open(F, "> $wrk/3-overlapcorrection/frgcorr.sh") or caFailure("failed to write to '$wrk/3-overlapcorrection/frgcorr.sh'", undef);
         print F "#!" . getGlobal("shell") . "\n\n";
-        print F "jobid=\$SGE_TASK_ID\n";
+        print F "jobid=\$$taskID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
         print F "  jobid=\$1\n";
         print F "fi\n";
         print F "if [ x\$jobid = x ]; then\n";
-        print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+        print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
@@ -3960,20 +4043,24 @@ sub overlapCorrection {
 
         if (getGlobal("frgCorrOnGrid") && getGlobal("useGrid")) {
             #  Run the correction job on the grid.
-
+        	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
+        	my $nameOption 		= getGlobal("gridNameOption");
+    		my $outputOption 	= getGlobal("gridOutputOption");
+    		
             my $sge                   = getGlobal("sge");
             my $sgeName               = getGlobal("sgeName");
             my $sgeFragmentCorrection = getGlobal("sgeFragmentCorrection");
 
             $sgeName = "_$sgeName" if (defined($sgeName));
+   	  		my $jobName = getGridArrayName("frg_$asm$sgeName", $jobs);
+   	  		my $arrayOpt = getGridArrayOption("ovl_$asm$sgeName", $jobs);
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeFragmentCorrection -cwd -N frg_$asm$sgeName ";
-            $SGE .= "-t 1-$jobs ";
-            $SGE .= " -j y -o $wrk/3-overlapcorrection/\\\$TASK_ID.err ";
+            $SGE  = "$submitCommand $sge $sgeFragmentCorrection $nameOption $jobName $arrayOpt ";
+            $SGE .= " $outputOption $wrk/3-overlapcorrection/\\\$TASK_ID.err ";
             $SGE .= "$wrk/3-overlapcorrection/frgcorr.sh\n";
 
-            submitBatchJobs($SGE, "frg_$asm$sgeName");
+            submitBatchJobs($SGE, $jobName);
             exit(0);
         } else {
             #  Run the correction job right here, right now.
@@ -4053,14 +4140,15 @@ sub overlapCorrection {
     if (! -e "$wrk/3-overlapcorrection/ovlcorr.sh") {
         my $batchSize  = getGlobal("ovlCorrBatchSize");
         my $jobs       = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
-
+		my $taskID       = getGlobal("gridTaskID");
+		
         open(F, "> $wrk/3-overlapcorrection/ovlcorr.sh") or caFailure("failed to write '$wrk/3-overlapcorrection/ovlcorr.sh'", undef);
-        print F "jobid=\$SGE_TASK_ID\n";
+        print F "jobid=\$$taskID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
         print F "  jobid=\$1\n";
         print F "fi\n";
         print F "if [ x\$jobid = x ]; then\n";
-        print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+        print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
         print F "  exit 1\n";
         print F "fi\n";
         print F "\n";
@@ -4095,20 +4183,24 @@ sub overlapCorrection {
 
         if (getGlobal("ovlCorrOnGrid") && getGlobal("useGrid")) {
             #  Run the correction job on the grid.
-
+        	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
+        	my $nameOption 		= getGlobal("gridNameOption");
+    		my $outputOption 	= getGlobal("gridOutputOption");
+    		
             my $sge                   = getGlobal("sge");
             my $sgeName               = getGlobal("sgeName");
             my $sgeOverlapCorrection  = getGlobal("sgeOverlapCorrection");
 
             $sgeName = "_$sgeName" if (defined($sgeName));
+   	  		my $jobName = getGridArrayName("ovc_$asm$sgeName", $jobs);
+   	  		my $arrayOpt = getGridArrayOption("ovc_$asm$sgeName", $jobs);
 
             my $SGE;
-            $SGE  = "qsub $sge $sgeOverlapCorrection -cwd -N ovc_$asm$sgeName ";
-            $SGE .= "-t 1-$jobs ";
-            $SGE .= " -j y -o $wrk/3-overlapcorrection/\\\$TASK_ID.err ";
+            $SGE  = "$submitCommand $sge $sgeOverlapCorrection $nameOption $jobName $arrayOpt ";
+            $SGE .= " $outputOption $wrk/3-overlapcorrection/\\\$TASK_ID.err ";
             $SGE .= "$wrk/3-overlapcorrection/ovlcorr.sh\n";
 
-            submitBatchJobs($SGE, "ovc_$asm$sgeName");
+            submitBatchJobs($SGE, $jobName);
             exit(0);
         } else {
             #  Run the correction job right here, right now.
@@ -4478,15 +4570,16 @@ sub createPostUnitiggerConsensusJobs (@) {
     }
     close(F);
 
+	my $taskID       = getGlobal("gridTaskID");
     open(F, "> $wrk/5-consensus/consensus.sh") or caFailure("can't open '$wrk/5-consensus/consensus.sh'", undef);
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=\$SGE_TASK_ID\n";
+    print F "jobid=\$$taskID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "\n";
@@ -4535,19 +4628,24 @@ sub createPostUnitiggerConsensusJobs (@) {
     chmod 0755, "$wrk/5-consensus/consensus.sh";
 
     if (getGlobal("useGrid") && getGlobal("cnsOnGrid")) {
+    	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
+        my $nameOption 		= getGlobal("gridNameOption");
+    	my $outputOption 	= getGlobal("gridOutputOption");
+    		
         my $sge          = getGlobal("sge");
         my $sgeName      = getGlobal("sgeName");
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         $sgeName = "_$sgeName" if (defined($sgeName));
+   		my $jobName = getGridArrayName("utg_$asm$sgeName", $jobs);
+   		my $arrayOpt = getGridArrayOption("ovc_$asm$sgeName", $jobs);
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeConsensus -cwd -N utg_$asm$sgeName ";
-        $SGE .= "-t 1-$jobs ";
-        $SGE .= "-j y -o /dev/null ";
+        $SGE  = "$submitCommand $sge $sgeConsensus $nameOption $jobName $arrayOpt ";
+        $SGE .= "$outputOption /dev/null ";
         $SGE .= "$wrk/5-consensus/consensus.sh\n";
 
-        submitBatchJobs($SGE, "utg_$asm$sgeName");
+        submitBatchJobs($SGE, $jobName);
         exit(0);
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
@@ -5103,15 +5201,16 @@ sub createPostScaffolderConsensusJobs () {
     }
     close(F);
 
+	my $taskID       = getGlobal("gridTaskID");
     open(F, "> $wrk/8-consensus/consensus.sh") or caFailure("can't open '$wrk/8-consensus/consensus.sh'", undef);
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
-    print F "jobid=\$SGE_TASK_ID\n";
+    print F "jobid=\$$taskID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
     print F "  jobid=\$1\n";
     print F "fi\n";
     print F "if [ x\$jobid = x ]; then\n";
-    print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+    print F "  echo Error: I need $taskID set, or a job index on the command line.\n";
     print F "  exit 1\n";
     print F "fi\n";
     print F "if [ \$jobid -gt $jobs ]; then\n";
@@ -5165,19 +5264,24 @@ sub createPostScaffolderConsensusJobs () {
     chmod 0755, "$wrk/8-consensus/consensus.sh";
 
     if (getGlobal("cnsOnGrid") && getGlobal("useGrid")) {
+        my $submitCommand 	= getGlobal("gridSubmitCommand");        	
+        my $nameOption 		= getGlobal("gridNameOption");
+    	my $outputOption 	= getGlobal("gridOutputOption");
+    		
         my $sge          = getGlobal("sge");
         my $sgeName      = getGlobal("sgeName");
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         $sgeName = "_$sgeName" if (defined($sgeName));
+	  	my $jobName = getGridArrayName("ctg_$asm$sgeName", $jobs);
+	  	my $arrayOpt = getGridArrayOption("ctg_$asm$sgeName", $jobs);
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeConsensus -cwd -N ctg_$asm$sgeName ";
-        $SGE .= "-t 1-$jobs ";
-        $SGE .= "-j y -o /dev/null ";
+        $SGE  = "$submitCommand $sge $sgeConsensus $nameOption $jobName $arrayOpt ";
+        $SGE .= "$outputOption /dev/null ";
         $SGE .= "$wrk/8-consensus/consensus.sh\n";
 
-        submitBatchJobs($SGE, "ctg_$asm$sgeName");
+        submitBatchJobs($SGE, $jobName);
         exit(0);
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
