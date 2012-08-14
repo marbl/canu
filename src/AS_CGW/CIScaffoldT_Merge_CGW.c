@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.76 2012-08-13 13:34:06 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.77 2012-08-14 07:47:34 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -61,8 +61,6 @@ using namespace std;
 #define EDGE_STRENGTH_FACTOR  MIN_EDGES
 
 #define MAX_SLOP_IN_STD 3.5
-
-#define MIN_WEIGHT_TO_MERGE   4
 
 
 //  Map an edge ID to a mate pair test result.
@@ -700,7 +698,7 @@ ExamineUsableSEdges(vector<SEdgeT *>  &sEdges,
   //  We now recompute the min weight allowed to merge each iteration.  Previous to this commit
   //  (1.66) min was computed once at the start and slowly decremented each iteration.
 
-  minWeightThreshold = MAX(maxWeightEdge * weightScale, MIN_WEIGHT_TO_MERGE);
+  minWeightThreshold = MAX(maxWeightEdge * weightScale, GlobalData->minWeightToMerge);
 
   fprintf(stderr, "* Considering edges with weight >= %.2f (maxWeightEdge %d weightScale %.4f)\n",
           minWeightThreshold,
@@ -720,7 +718,7 @@ ExamineUsableSEdges(vector<SEdgeT *>  &sEdges,
     ExamineSEdgeForUsability(sEdges[i], iSpec);
   }
 
-  return(minWeightThreshold > MIN_WEIGHT_TO_MERGE);
+  return(minWeightThreshold > GlobalData->minWeightToMerge);
 }
 
 
@@ -1055,7 +1053,7 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
 
   ScaffoldSanity(ScaffoldGraph);
 
-  fprintf(stderr, "<ergeScaffoldsAggressive()-- begins.\n");
+  fprintf(stderr, "MergeScaffoldsAggressive()-- begins.  minWeightToMerge="F_S32"\n", GlobalData->minWeightToMerge);
 
   iSpec.sai                    = CreateScaffoldAlignmentInterface();
   iSpec.contigNow              = TRUE;

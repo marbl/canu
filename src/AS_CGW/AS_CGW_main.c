@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.96 2012-08-12 23:33:37 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.97 2012-08-14 07:47:34 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -221,6 +221,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-z") == 0) {
       GlobalData->checkRepeatBranchPattern = TRUE;
+
+    } else if (strcmp(argv[arg], "-minmergeweight") == 0) {
+      GlobalData->minWeightToMerge = atoi(argv[++arg]);
 
     } else if ((argv[arg][0] != '-') && (firstFileArg == 0)) {
       firstFileArg = arg;

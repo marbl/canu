@@ -587,7 +587,10 @@ sub setDefaults () {
 
     $global{"cgwMergeMissingThreshold"}    = 0;
     $synops{"cgwMergeMissingThreshold"}    = "When merging scaffolds, missing mates are those mates that should fall within the merged scaffold but do not. In metagenomics, this may not be the case for a conserved region within strains as the mates are missing because they are in a different strain. This is a value between 0 and 1 to specify the percentage of missing mates (relative to good mates) to ignore. A value of -1 means ignore all missing mates when merging. EXPERT!\n";
-    
+
+    $global{"cgwMinMergeWeight"}           = 2;
+    $synops{"cgwMinMergeWeight"}           = "When merging scaffolds, do not use edges with weight below this.\n";
+
     #####  Consensus Options
 
     $global{"cnsPartitions"}               = 128;
@@ -4773,11 +4776,13 @@ sub CGW ($$$$$$) {
     
     my $shatterLevel = getGlobal("cgwContigShatterWeight");
     my $missingMate  = getGlobal("cgwMergeMissingThreshold");
+    my $minWeight    = getGlobal("cgwMinMergeWeight");
 
     $cmd  = "$bin/cgw $ckp \\\n";
     $cmd .= "  -j $astatLow -k $astatHigh \\\n";
     $cmd .= "  -r 5 \\\n";
     $cmd .= "  -s $stoneLevel \\\n";
+    $cmd .= "  -minmergeweight $minWeight \\\n";
     $cmd .= "  -S 0 \\\n"                                if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= "  -G \\\n"                                  if ($finalRun == 0);
     $cmd .= "  -z \\\n"                                  if (getGlobal("cgwDemoteRBP") == 1);

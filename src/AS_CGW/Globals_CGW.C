@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Globals_CGW.C,v 1.5 2012-05-01 04:18:19 brianwalenz Exp $";
+static char *rcsid = "$Id: Globals_CGW.C,v 1.6 2012-08-14 07:47:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "Globals_CGW.h"
@@ -35,8 +35,10 @@ Globals_CGW::Globals_CGW() {
   repeatRezLevel                          = repeatRezLevel;
   stoneLevel                              = 0;
 
-  shatterLevel							  = 0;
-  mergeScaffoldMissingMates				  = 0;
+  minWeightToMerge                        = 2;
+
+  shatterLevel                            = 0;
+  mergeScaffoldMissingMates               = 0;
 
   minSamplesForOverride                   = 100;
 
