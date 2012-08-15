@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.96 2012-08-13 13:29:08 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.97 2012-08-15 11:41:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1592,69 +1592,73 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
     CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
     LengthT offset3p, offset5p;
-    int32 ubgn, uend;
     int flip = (mp->position.end < mp->position.bgn);
-    int32 bgn, end;
-    int32 fudge = 0;
-    int32 array_size = ungappedOffsets->numElements;
-    int32 array_min = 0;
-    int32 initial_separation;
-    
-    /* Use begin and end indices into array of ungaped offsets.
-     * Wobble the indices so as not to exceed array bounds.
-     */
-    bgn = mp->position.bgn;
-    end = mp->position.end;
-    if(flip){
-      bgn = mp->position.end;
-      end = mp->position.bgn;
+
+    //  This baloney is to adjust unitig fragment positions.  They should be asserts, but we'll just
+    //  fix up positions so they are within bounds.
+
+    int32 utgLen = GetNumint32s(ungappedOffsets) - 1;
+    int32 bgn    = mp->position.bgn;
+    int32 end    = mp->position.end;
+
+    if (mp->position.bgn < mp->position.end) {
+      int32  origLen = mp->position.end - mp->position.bgn;
+
+      if (mp->position.bgn < 0) {
+        bgn = 0;
+        end = origLen;
+      }
+      if (utgLen < end) {
+        bgn = utgLen - origLen;
+        end = utgLen;
+      }
+      if (bgn < 0)
+        bgn = 0;
+
+    } else {
+      int32  origLen = mp->position.bgn - mp->position.end;
+
+      if (mp->position.end < 0) {
+        end = 0;
+        bgn = origLen;
+      }
+      if (utgLen < bgn) {
+        end = utgLen - origLen;
+        bgn = utgLen;
+      }
+      if (end < 0)
+        end = 0;
     }
-    initial_separation = end-bgn;
-    if (bgn < array_min) {
-      bgn = array_min;
-      end = bgn + initial_separation;
-    }
-    if (end >= array_size) {
-      end = array_size-1;
-      bgn = end - initial_separation;
-    }
-    if (bgn < array_min) {
-      bgn = array_min;
-    }    
-    assert(end < ungappedOffsets->numElements);
+
+    assert(0 <= bgn);
     assert(bgn < ungappedOffsets->numElements);
-    ubgn = *Getint32(ungappedOffsets, bgn);
-    uend = *Getint32(ungappedOffsets, end);
 
-    if(ubgn == uend){
-      fprintf(stderr,"* Fragment "F_CID" now has ungapped length = %d ("F_S32","F_S32")...from gapped ("F_S32","F_S32")...either bad multi-alignment or a fragment fully contained within a gap in the consensus due to a bubble\n",
-              mp->ident,(int)abs(ubgn-uend), ubgn, uend, bgn,end);
+    assert(0 <= end);
+    assert(end < ungappedOffsets->numElements);
 
-      if(!markUnitigAndContig){
-        fprintf(stderr,"* Details: fragment in CI "F_CID" ["F_S32","F_S32"] CtgID "F_CID" ["F_S32","F_S32"]\n",
-                frag->cid,(int)(frag->offset5p.mean),(int)(frag->offset3p.mean),
-                frag->contigID,(int)(frag->contigOffset5p.mean),(int)(frag->contigOffset3p.mean));
-      }
+    int32 ubgn = *Getint32(ungappedOffsets, bgn);
+    int32 uend = *Getint32(ungappedOffsets, end);
 
-      if(bgn < end){
-        if(ubgn<1){
-	        uend++;
-        } else {
-	        ubgn--;
-        }
+    //  if we fall entirely within a gap, give it at least a positive size.
+
+    if (ubgn == uend) {
+      if (mp->position.bgn < mp->position.end) {
+        if (ubgn == 0)
+          uend++;
+        else
+          ubgn--;
       } else {
-        assert(end<bgn);
-        if(uend<1){
-	        ubgn++;
-        } else {
-	        uend--;
-        }
+        if (uend == 0)
+          ubgn++;
+        else
+          uend--;
       }
     }
-    offset5p.mean = ubgn;
+
+    offset5p.mean     = ubgn;
     offset5p.variance = ComputeFudgeVariance(offset5p.mean);
 
-    offset3p.mean =  uend;
+    offset3p.mean     = uend;
     offset3p.variance = ComputeFudgeVariance(offset3p.mean);
 
     frag->flags.bits.isPlaced = isPlaced;
@@ -1671,19 +1675,6 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
       frag->offset3p = offset3p;
       frag->offset5p = offset5p;
     }
-
-#if 0
-    fprintf(stderr,"* result: "F_CID" frag->offset to "F_S32","F_S32" and frag->contigOffset "F_S32","F_S32" of "F_CID" (frag->cid "F_CID" CIid "F_CID" contigID "F_CID" )\n",
-            frag->read_iid,
-            (int) frag->offset5p.mean,
-            (int) frag->offset3p.mean,
-            (int) frag->contigOffset5p.mean,
-            (int) frag->contigOffset3p.mean,
-            node->id,
-            frag->cid,
-            frag->CIid,
-            frag->contigID);
-#endif
 
     if(i == extremalA){
       frag->flags.bits.chunkLabel = AS_INTERCHUNK_A;
