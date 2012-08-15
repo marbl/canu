@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.56 2012-08-12 23:33:37 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.57 2012-08-15 15:07:15 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -44,15 +44,6 @@ static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.56 201
 
 // controls whether or not we assert in ScaffoldSanity
 //#define STRICT_SCAFFOLD_CHECKING
-
-typedef EdgeCGW_T CIEdgeT;
-typedef CIEdgeT SEdgeT;
-
-typedef NodeCGW_T ChunkInstanceT;
-typedef ChunkInstanceT ContigT;
-typedef ChunkInstanceT CIScaffoldT;
-
-
 
 void ClearChunkInstance(ChunkInstanceT *ci);
 
@@ -427,9 +418,6 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
    that they can be candidates for stone/rock throwing.
 */
 void DemoteSmallSingletonScaffolds(void);
-
-void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
-                            CIScaffoldT * scaffold);
 
 void ShatterScaffoldsConnectedByLowWeight(FILE *stream, ScaffoldGraphT *graph, uint32 minWeight, int verbose);
 

@@ -22,12 +22,30 @@
 #ifndef GRAPH_EDGE_ITERATOR_H
 #define GRAPH_EDGE_ITERATOR_H
 
-static const char *rcsid_GRAPH_EDGE_ITERATOR_H = "$Id: GraphEdgeIterator.H,v 1.1 2012-08-01 02:23:38 brianwalenz Exp $";
+static const char *rcsid_GRAPH_EDGE_ITERATOR_H = "$Id: GraphEdgeIterator.H,v 1.2 2012-08-15 15:07:15 brianwalenz Exp $";
 
 //  includes are broken here
 //#include "GraphCGW_T.h"
 //#include "AS_CGW_dataTypes.h"
 //#include "InputDataTypes_CGW.h"
+
+//  We can iterate over three types of edges:
+//    graph->SEdges          SEdgeT
+//    graph->CIEdges         CIEdgeT
+//    graph->ContigEdges     CIEdgeT
+//
+//  The ScaffoldGraphT has three edge lists:
+//    VA_TYPE(CIEdgeT)        *CIEdges;
+//    VA_TYPE(CIEdgeT)        *ContigEdges;
+//    VA_TYPE(SEdgeT)         *SEdges;
+//
+//  Which edge list is used depends on which GraphCGW_T is passed in.  The ScaffoldGraphT
+//  has three graphs:
+//    GraphCGW_T             *CIGraph;
+//    GraphCGW_T             *ContigGraph;
+//    GraphCGW_T             *ScaffoldGraph;
+
+
 
 class GraphEdgeIterator {
 public:

@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.55 2012-08-10 18:09:28 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.56 2012-08-15 15:07:15 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -148,6 +148,11 @@ typedef struct {
   CDS_CID_t referenceEdge;  /*** Reference to inducing edge */
 
 }EdgeCGW_T;
+
+typedef EdgeCGW_T CIEdgeT;
+typedef EdgeCGW_T ContigEdgeT;
+typedef EdgeCGW_T SEdgeT;
+
 
 
 class EdgeCGWLabel_T {
@@ -374,13 +379,13 @@ typedef struct{
       unsigned int isScaffold:1;
 
       /* The following is TRUE for CIs that are surrogate CIs and
-	 for Contigs that contain a single surrogate CI.  Set at creation
-	 time in the Split functions */
+         for Contigs that contain a single surrogate CI.  Set at creation
+         time in the Split functions */
       unsigned int isSurrogate:1;
       unsigned int beingContigged:1;
 
       /* The following is used by gap walking to see which scaffolds have been walked.
-	 Initialized to zero when a scaffold is created, managed by gw afterward */
+         Initialized to zero when a scaffold is created, managed by gw afterward */
       unsigned int walkedAlready:1;
       unsigned int walkedTooShort:1;
       unsigned int walkedTooLong:1;
@@ -399,8 +404,8 @@ typedef struct{
       /* THe following is used to closure read placement to identify candidate closure reads
        * Initialized to match the closure input status of the read or contig
        */
-       unsigned int isClosure:1;
-       unsigned int isJiggled:1;
+      unsigned int isClosure:1;
+      unsigned int isJiggled:1;
     }bits;
     int32 all;
   }flags;
@@ -409,6 +414,10 @@ typedef struct{
   CDS_CID_t setID;
 
 }NodeCGW_T;
+
+typedef NodeCGW_T ChunkInstanceT;
+typedef NodeCGW_T ContigT;
+typedef NodeCGW_T CIScaffoldT;
 
 VA_DEF(NodeCGW_T)
 VA_DEF(EdgeCGW_T)

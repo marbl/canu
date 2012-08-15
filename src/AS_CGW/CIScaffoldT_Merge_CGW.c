@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.78 2012-08-14 08:04:41 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.79 2012-08-15 15:07:15 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -720,12 +720,10 @@ OtherEndHasStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge) {
     otherScaffoldID = curSEdge->idA;
   }
 
-  SEdgeTIterator SEdges;
-  SEdgeT        *SEdge;
+  GraphEdgeIterator SEdges(ScaffoldGraph->ScaffoldGraph, scfIID, otherEnd, ALL_EDGES);
+  SEdgeT           *SEdge;
 
-  InitSEdgeTIterator(ScaffoldGraph, scfIID, FALSE, FALSE, otherEnd, FALSE, &SEdges);
-
-  while ((SEdge = NextSEdgeTIterator(&SEdges)) != NULL)
+  while ((SEdge = SEdges.nextMerged()) != NULL)
     if ((SEdge->idA == otherScaffoldID || SEdge->idB == otherScaffoldID) &&
         (SEdge->edgesContributing > curSEdge->edgesContributing))
       return(true);
@@ -779,12 +777,10 @@ BuildUsableSEdges(vector<SEdgeT *>   &sEdges,
     if (isDeadCIScaffoldT(thisScaffold) || (thisScaffold->type != REAL_SCAFFOLD))
       continue;
 
-    SEdgeTIterator  SEdges;
-    SEdgeT         *SEdge;
+    GraphEdgeIterator SEdges(ScaffoldGraph->ScaffoldGraph, thisScaffold->id, ALL_END, ALL_EDGES);
+    SEdgeT           *SEdge;
 
-    InitSEdgeTIterator(ScaffoldGraph, thisScaffold->id, FALSE, FALSE, ALL_END, FALSE, &SEdges);
-
-    while ((SEdge = NextSEdgeTIterator(&SEdges)) != NULL) {
+    while ((SEdge = SEdges.nextMerged()) != NULL) {
       if (SEdge->flags.bits.isBogus)
         // This edge has already been visited by the recursion
         continue;

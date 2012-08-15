@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.33 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.34 2012-08-15 15:07:15 brianwalenz Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -531,8 +531,6 @@ int BuildContigEdges(ScaffoldGraphT *graph){
     CIScaffoldT *scaffold = GetCIScaffoldT(graph->CIScaffolds,sid);
     CIScaffoldTIterator Contigs;
     /* Iterate over all of the CIEdges */
-    CIEdgeTIterator edges;
-    CIEdgeT *edge;
     ChunkInstanceT *thisCI;
     ChunkInstanceT *thisContig;
 
@@ -546,8 +544,8 @@ int BuildContigEdges(ScaffoldGraphT *graph){
     assert(scaffold->flags.bits.containsCIs == 0); // iterate over scaffold containing CONTIGS
 
     //    fprintf(stderr,"* Building ContigEdges incident on Contigs of scaffold "F_CID"\n", sid);
-    InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &Contigs);
 
+    InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &Contigs);
 
     while((thisContig = NextCIScaffoldTIterator(&Contigs)) != NULL){ /* Iterate over all CONTIGs in a Scaffold */
 
@@ -555,21 +553,14 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 
       /* Iterate over all CIs in a Contig */
       {
-	ContigTIterator CIs;
-#if 0
-	CDS_CID_t nextcid = thisContig->info.Contig.AEndCI;
-#endif
-	InitContigTIterator(graph, thisContig->id, TRUE, FALSE, &CIs);
-	while((thisCI = NextContigTIterator(&CIs)) != NULL){
-#if 0
-          CDS_CID_t thisCID = thisCI->id;
-          fprintf(stderr,
-                  "* Contig "F_CID" cid:"F_CID" nextcid:"F_CID"\n",
-                  thisContig->id, thisCID, nextcid);
-#endif
+        ContigTIterator CIs;
 
-	  InitCIEdgeTIterator(graph,  thisCI->id,   TRUE /* raw */, FALSE,  ALL_END,   ALL_EDGES, FALSE, &edges);// ONLY RAW
-	  while((edge = NextCIEdgeTIterator(&edges)) != NULL){
+        InitContigTIterator(graph, thisContig->id, TRUE, FALSE, &CIs);
+        while((thisCI = NextContigTIterator(&CIs)) != NULL){
+          GraphEdgeIterator  edges(graph->CIGraph, thisCI->id, ALL_END, ALL_EDGES);
+          CIEdgeT           *edge;
+
+	  while((edge = edges.nextRaw()) != NULL){
 	    int isA = (edge->idA == thisCI->id);
 	    PairOrient edgeOrient;
 	    CDS_CID_t otherCID = (isA? edge->idB: edge->idA);

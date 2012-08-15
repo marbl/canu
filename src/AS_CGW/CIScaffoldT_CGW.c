@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.66 2012-08-12 23:33:37 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.67 2012-08-15 15:07:15 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -153,13 +153,13 @@ void PrintCIScaffoldHeader(FILE *stream, ScaffoldGraphT *graph, CIScaffoldT *sca
 
 
 void DumpCIScaffold(FILE *stream, ScaffoldGraphT *graph, CIScaffoldT *scaffold, int raw){
-  ChunkInstanceT *CI;
-  CIScaffoldTIterator CIs;
-  SEdgeTIterator SEdges;
-  SEdgeT *SEdge;
 
   PrintCIScaffoldHeader(stream, graph, scaffold);
   fprintf(stream, "> Includes CIs\n");
+
+  CIScaffoldTIterator CIs;
+  ChunkInstanceT     *CI;
+
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
   while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
@@ -173,17 +173,25 @@ void DumpCIScaffold(FILE *stream, ScaffoldGraphT *graph, CIScaffoldT *scaffold, 
             GetNodeOrient(CI).toLetter());
   }
   fprintf(stream, "> %s Edges A \n",  (raw?" R ":" M "));
-  InitSEdgeTIterator(graph, scaffold->id, raw, FALSE, A_END, FALSE,  &SEdges);
-  while((SEdge = NextSEdgeTIterator(&SEdges)) != NULL){
-    PrintSEdgeT(stream, graph, " ", SEdge, scaffold->id);
+
+  {
+    GraphEdgeIterator  SEdges(graph->ScaffoldGraph, scaffold->id, A_END, ALL_EDGES);
+    SEdgeT            *SEdge;
+
+    while((SEdge = (raw) ? SEdges.nextRaw() : SEdges.nextMerged()) != NULL){
+      PrintSEdgeT(stream, graph, " ", SEdge, scaffold->id);
+    }
   }
 
+  fprintf(stream, "> %s Edges B\n", (raw?" R ":" M "));
 
-  fprintf(stream, "> %s Edges B\n",
-	  (raw?" R ":" M "));
-  InitSEdgeTIterator(graph, scaffold->id, raw, FALSE, B_END, FALSE,  &SEdges);
-  while((SEdge = NextSEdgeTIterator(&SEdges)) != NULL){
-    PrintSEdgeT(stream, graph, " ", SEdge, scaffold->id);
+  {
+    GraphEdgeIterator  SEdges(graph->ScaffoldGraph, scaffold->id, B_END, ALL_EDGES);
+    SEdgeT            *SEdge;
+
+    while((SEdge = (raw) ? SEdges.nextRaw() : SEdges.nextMerged()) != NULL){
+      PrintSEdgeT(stream, graph, " ", SEdge, scaffold->id);
+    }
   }
 }
 /*****************************************************************/

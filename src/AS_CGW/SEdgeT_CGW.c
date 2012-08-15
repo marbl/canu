@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.23 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.24 2012-08-15 15:07:15 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -576,96 +576,6 @@ void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
   }
 }
 
-
-void PrintSEdges(ScaffoldGraphT * graph){
-  int32 numEdges = (int32) GetNumGraphEdges(graph->ScaffoldGraph);
-  CDS_CID_t i;
-  for(i = 0; i < numEdges; i++){
-    PrintSEdgeT(stderr, graph, "\t",
-                GetGraphEdge(graph->ScaffoldGraph, i), i);
-  }
-}
-
-
-void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
-                            CIScaffoldT * scaffold)
-{
-  CIScaffoldTIterator CIs;
-  ChunkInstanceT *thisCI;
-  int32 numEdges = 0;
-  FILE * fp;
-  char filename[1024];
-
-  sprintf(filename, "scf%010"F_CIDP "Edges.txt", scaffold->id);
-  fp = fopen(filename, "w");
-  assert(fp != NULL);
-
-  fprintf(fp, "********************************\n");
-  fprintf(fp, "Printing edges for scaffold "F_CID"\n",
-          scaffold->id);
-  fprintf(fp, "\nPrinting inter-scaffold contig edges for scaffold "F_CID"\n",
-          scaffold->id);
-
-  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-  while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL)
-    {
-      GraphEdgeIterator edges(graph->ContigGraph, thisCI->id, ALL_END, ALL_EDGES);
-      CIEdgeT          *edge;
-
-      while((edge = edges.nextMerged()) != NULL) {
-          if(edge->idA != edge->idB) {
-              int isA = (edge->idA == thisCI->id);
-              ChunkInstanceT *otherCI = GetGraphNode(graph->ContigGraph, (isA? edge->idB: edge->idA));
-
-              fprintf(fp, ""F_CID" to "F_CID" in scaffold "F_CID". %s",
-                      thisCI->id, otherCI->id, otherCI->scaffoldID,
-                      (edge->flags.bits.isRaw) ? "Raw\n" : "\n");
-              numEdges++;
-            }
-        }
-    }
-  fprintf(fp, "Done printing %d inter-scaffold contig edges for "F_CID"\n",
-          numEdges, scaffold->id);
-
-
-  {
-    SEdgeTIterator SEdges;
-    SEdgeT * sEdge;
-
-    fprintf(fp,
-            "\nPrinting raw inter-scaffold scaffold edges for scaffold "F_CID"\n",
-            scaffold->id);
-
-    numEdges = 0;
-    InitSEdgeTIterator(ScaffoldGraph, scaffold->id,
-                       TRUE, FALSE, ALL_END, FALSE, &SEdges);
-    while((sEdge = NextSEdgeTIterator(&SEdges)) != NULL)
-      {
-        fprintf(fp, ""F_CID" to "F_CID", weight %d\n",
-                sEdge->idA, sEdge->idB, sEdge->edgesContributing);
-        numEdges++;
-      }
-
-    fprintf(fp,
-            "\nPrinting merged inter-scaffold scaffold edges for scaffold "F_CID"\n",
-            scaffold->id);
-
-    numEdges = 0;
-    InitSEdgeTIterator(ScaffoldGraph, scaffold->id,
-                       FALSE, FALSE, ALL_END, FALSE, &SEdges);
-    while((sEdge = NextSEdgeTIterator(&SEdges)) != NULL)
-      {
-        fprintf(fp, ""F_CID" to "F_CID", weight %d\n",
-                sEdge->idA, sEdge->idB, sEdge->edgesContributing);
-        numEdges++;
-      }
-
-    fprintf(fp, "Done printing %d inter-scaffold scaffold edges for "F_CID"\n",
-            numEdges, scaffold->id);
-  }
-  fprintf(fp, "********************************\n");
-  fclose(fp);
-}
 
 
 void BuildSEdges(ScaffoldGraphT *graph, int canonicalOnly, int includeNegativeEdges)

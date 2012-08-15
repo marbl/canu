@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.24 2012-07-24 17:11:24 brianwalenz Exp $";
+static char *rcsid = "$Id: CIEdgeT_CGW.c,v 1.25 2012-08-15 15:07:15 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -119,8 +119,7 @@ void DumpChunkInstance(FILE *stream, ScaffoldGraphT *graph,
 		       int confirmedOnly, int scaffoldedOnly,
 		       int uniqueToUniqueOnly, int verbose){
   int aEndPrinted, bEndPrinted;
-  CIEdgeT *edge;
-  CIEdgeTIterator edgeMates;
+
 
   if(chunk->edgeHead == NULLINDEX){
     PrintChunkInstanceHeader(stream, graph, chunk);
@@ -131,48 +130,55 @@ void DumpChunkInstance(FILE *stream, ScaffoldGraphT *graph,
 
   aEndPrinted = FALSE;
   bEndPrinted = FALSE;
+
   /* Iterate over A_END edges */
-  InitCIEdgeTIterator(graph, chunk->id, FALSE, confirmedOnly,
-                      A_END, ALL_EDGES, verbose, &edgeMates);
-  while((edge = NextCIEdgeTIterator(&edgeMates)) != NULL){
-    if(uniqueToUniqueOnly && !edge->flags.bits.isUniquetoUnique){
-      continue;
+  {
+    GraphEdgeIterator edgeMates(graph->CIGraph, chunk->id, A_END, ALL_EDGES);
+    CIEdgeT          *edge;
+
+    while((edge = edgeMates.nextMerged()) != NULL){
+      if(uniqueToUniqueOnly && !edge->flags.bits.isUniquetoUnique){
+        continue;
+      }
+      if(!aEndPrinted){
+        PrintChunkInstanceHeader(stream,graph, chunk);
+        fprintf(stream,"\n\tA_END\n");
+        aEndPrinted = TRUE;
+      }
+      PrintGraphEdge(stream,graph->CIGraph,"\t", edge, chunk->id);
     }
-    if(!aEndPrinted){
-      PrintChunkInstanceHeader(stream,graph, chunk);
-      fprintf(stream,"\n\tA_END\n");
-      aEndPrinted = TRUE;
-    }
-    PrintGraphEdge(stream,graph->CIGraph,"\t", edge, chunk->id);
   }
+
   /* Iterate over B_END edges */
-  InitCIEdgeTIterator(graph, chunk->id, FALSE, confirmedOnly,
-                      B_END, ALL_EDGES, verbose,  &edgeMates);
-  while((edge = NextCIEdgeTIterator(&edgeMates)) != NULL){
-    if(uniqueToUniqueOnly && !edge->flags.bits.isUniquetoUnique){
-      continue;
+  {
+    GraphEdgeIterator edgeMates(graph->CIGraph, chunk->id, B_END, ALL_EDGES);
+    CIEdgeT          *edge;
+
+    while((edge = edgeMates.nextMerged()) != NULL){
+      if(uniqueToUniqueOnly && !edge->flags.bits.isUniquetoUnique){
+        continue;
+      }
+      if(!aEndPrinted){
+        PrintChunkInstanceHeader(stream, graph, chunk);
+        aEndPrinted = TRUE;
+      }
+      if(!bEndPrinted){
+        fprintf(stream,"\n\tB_END\n");
+        bEndPrinted = TRUE;
+      }
+      PrintGraphEdge(stream,graph->CIGraph,"\t", edge, chunk->id);
     }
-    if(!aEndPrinted){
-      PrintChunkInstanceHeader(stream, graph, chunk);
-      aEndPrinted = TRUE;
-    }
-    if(!bEndPrinted){
-      fprintf(stream,"\n\tB_END\n");
-      bEndPrinted = TRUE;
-    }
-    PrintGraphEdge(stream,graph->CIGraph,"\t", edge, chunk->id);
   }
-  return;
 }
 /****************************************************************************/
 void DumpChunkInstances(FILE *stream, ScaffoldGraphT *graph, int confirmedOnly,
-			int scaffoldedOnly, int uniqueToUniqueOnly,
-			int verbose){
+                        int scaffoldedOnly, int uniqueToUniqueOnly,
+                        int verbose){
   CDS_CID_t cid;
   /* For each chunk */
   for(cid = 0; cid < GetNumGraphNodes(graph->CIGraph); cid++){
     ChunkInstanceT *chunk = GetGraphNode(graph->CIGraph,cid);
     DumpChunkInstance(stream, graph, chunk, confirmedOnly, scaffoldedOnly,
-		      uniqueToUniqueOnly, verbose);
+                      uniqueToUniqueOnly, verbose);
   }
 }
