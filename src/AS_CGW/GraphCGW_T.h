@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.56 2012-08-15 15:07:15 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.57 2012-08-16 03:39:43 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -406,6 +406,11 @@ typedef struct{
        */
       unsigned int isClosure:1;
       unsigned int isJiggled:1;
+
+      //  We store the edges unsorted, until the first access.
+      unsigned int edgesModified:1;
+
+      unsigned int unused:5;
     }bits;
     int32 all;
   }flags;
@@ -796,7 +801,7 @@ static int isTransChunkEdge(const EdgeCGW_T *edge){
 // #define SLOPPY_EDGE_VARIANCE_THRESHHOLD (14.0e+6)    // sigma = 3700
 // #define SLOPPY_EDGE_VARIANCE_THRESHHOLD (4.0e+6)    // sigma = 2000
 
-static int isSloppyEdge(EdgeCGW_T *edge){
+static int isSloppyEdge(EdgeCGW_T const *edge){
   if(edge->flags.bits.isInferred)
     return 0;
   if(edge->flags.bits.isSloppy)
@@ -1014,8 +1019,7 @@ static void SetGraphEdgeStatus(GraphCGW_T *graph, EdgeCGW_T *edge,
 void InitGraphEdgeFlags(GraphCGW_T *graph, EdgeCGW_T *edge);
 
 int32 InsertGraphEdge(GraphCGW_T *graph,  CDS_CID_t cedgeID, int verbose);
-void InsertGraphEdgeInList(GraphCGW_T *graph, CDS_CID_t CIedgeID,
-                           CDS_CID_t sid, int verbose);
+void InsertGraphEdgeInList(GraphCGW_T *graph, CDS_CID_t CIedgeID, CDS_CID_t sid);
 void PrintGraphEdge(FILE *fp, GraphCGW_T *graph, const char *label,
                     EdgeCGW_T *edge, CDS_CID_t cid);
 

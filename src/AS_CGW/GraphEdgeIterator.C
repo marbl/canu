@@ -19,10 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.2 2012-08-03 21:14:14 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.3 2012-08-16 03:39:43 brianwalenz Exp $";
 
 #include "GraphCGW_T.h"
 //#include "GraphEdgeIterator.H"
+
+#include <vector>
+#include <algorithm>
+
+using namespace std;
 
 
 GraphEdgeIterator::GraphEdgeIterator(GraphCGW_T *graph_,
@@ -39,6 +44,9 @@ GraphEdgeIterator::GraphEdgeIterator(GraphCGW_T *graph_,
   edgeStatusSet      = edgeStatusSet_;
 
   noContains         = false;
+
+  if (GetGraphNode(graph, cid)->flags.bits.edgesModified)
+    sortEdges();
 
   prevM              = NULLINDEX;
   currM              = NULLINDEX;
@@ -65,6 +73,10 @@ GraphEdgeIterator::nextRaw(void) {
     r = GetGraphEdge(graph, nextR);
 
     nextR = r->nextRawEdge;
+
+    if ((r->idA != cid) && (r->idB != cid))
+      fprintf(stderr, "ERROR: edge 0x%016lx idA=%d idB=%d not for cid %d\n",
+              r, r->idA, r->idB, cid);
 
     assert(r->flags.bits.isRaw == true);
     assert(r->flags.bits.isDeleted == false);
@@ -130,6 +142,10 @@ GraphEdgeIterator::nextMerged(void) {
 
   nextM = (r->idA == cid) ? r->nextALink : r->nextBLink;
 
+  if ((r->idA != cid) && (r->idB != cid))
+    fprintf(stderr, "ERROR: edge 0x%016lx idA=%d idB=%d not for cid %d\n",
+            r, r->idA, r->idB, cid);
+
   //  This is not true - we will return raw edges, as merged edges with only one raw edge.
   //assert(r->flags.bits.isRaw == false);
   assert(r->flags.bits.isDeleted == false);
@@ -170,4 +186,136 @@ GraphEdgeIterator::nextMerged(void) {
   //fprintf(stderr, "Return merged edge %d-%d p=%d c=%d n=%d\n",
   //        r->idA, r->idB, prevM, currM, nextM);
   return(r);
+}
+
+
+
+static
+bool
+edgeCompare(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2) {
+  int diff;
+
+  assert(edge1->idA <= edge1->idB);
+  assert(edge2->idA <= edge2->idB);
+  assert(edge1->flags.bits.isDeleted == false);
+  assert(edge2->flags.bits.isDeleted == false);
+
+  if (edge1->idA < edge2->idA)
+    return(true);
+  if (edge1->idA > edge2->idA)
+    return(false);
+
+  if (edge1->idB < edge2->idB)
+    return(true);
+  if (edge1->idB > edge2->idB)
+    return(false);
+
+  if (edge1->orient.toLetter() < edge2->orient.toLetter())
+    return(true);
+  if (edge1->orient.toLetter() > edge2->orient.toLetter())
+    return(false);
+
+  // We want guide edges AFTER all other edges
+  diff = isSloppyEdge(edge1) - isSloppyEdge(edge2);
+  if (diff < 0)
+    return(true);
+  if (diff > 0)
+    return(false);
+
+  // We want overlap edges AFTER non-overlap edges...
+  diff = isOverlapEdge(edge1) - isOverlapEdge(edge2);
+  if (diff < 0)
+    return(true);
+  if (diff > 0)
+    return(false);
+
+  diff = edge1->distance.mean - edge2->distance.mean;
+  if (diff < 0)
+    return(true);
+
+  return(false);
+}
+
+
+void
+GraphEdgeIterator::sortEdges(void) {
+  NodeCGW_T *node = GetGraphNode(graph, cid);
+  EdgeCGW_T *edge = NULL;
+
+  if (node->flags.bits.edgesModified == 0)
+    return;
+
+  //fprintf(stderr, "GraphEdgeIterator::sortEdges()--  sorting for node %d\n", node->id);
+
+  node->flags.bits.edgesModified = 0;
+
+  if (node->edgeHead == NULLINDEX)
+    return;
+
+  //  Move pointers from the unsorted list to our vector for sorting
+
+  vector<EdgeCGW_T *>  edges;
+
+  for (CDS_CID_t ie=node->edgeHead; ie != NULLINDEX; ) {
+    edge = GetGraphEdge(graph, ie);
+
+    edges.push_back(edge);
+
+    if ((edge->idA != cid) && (edge->idB != cid))
+      fprintf(stderr, "ERROR: edge 0x%016lx idA=%d idB=%d not for cid %d\n",
+              edge, edge->idA, edge->idB, cid);
+    assert((edge->idA == cid) || (edge->idB == cid));
+
+    ie = (edge->idA == cid) ? edge->nextALink : edge->nextBLink;
+
+    //fprintf(stderr, "GraphEdgeIterator::sortEdges()--   edge 0x%016lx idx %d next %d\n",
+    //        edge, GetVAIndex_EdgeCGW_T(graph->edges, edge), ie);
+  }
+
+  //  Sort
+
+  sort(edges.begin(), edges.end(), edgeCompare);
+
+  //  Update pointers.
+
+  //for (uint32 ei=0; ei<edges.size(); ei++) {
+  //  edges[ei]->prevALink = NULLINDEX;
+  //  edges[ei]->nextALink = NULLINDEX;
+  //  edges[ei]->prevBLink = NULLINDEX;
+  //  edges[ei]->nextBLink = NULLINDEX;
+  //}
+
+  CDS_CID_t  last = NULLINDEX;
+
+  //  Move forward, to set backward pointers
+
+  for (uint32 ei=0; ei<edges.size(); ei++) {
+    EdgeCGW_T *edge = edges[ei];
+
+    if (edge->idA == cid)
+      edge->prevALink = last;
+    else
+      edge->prevBLink = last;
+
+    last = GetVAIndex_EdgeCGW_T(graph->edges, edge);
+  }
+
+  //  Move backward, to set forward pointers
+
+  last = NULLINDEX;
+
+  for (uint32 ei=edges.size(); ei-->0; ) {
+    EdgeCGW_T *edge = edges[ei];
+
+    if (edge->idA == cid)
+      edge->nextALink = last;
+    else
+      edge->nextBLink = last;
+
+    last = GetVAIndex_EdgeCGW_T(graph->edges, edge);
+  }
+
+  //  Set the list head to the node.
+
+  node->edgeHead = GetVAIndex_EdgeCGW_T(graph->edges, edges[0]);
 }

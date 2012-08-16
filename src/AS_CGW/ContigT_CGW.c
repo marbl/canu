@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.34 2012-08-15 15:07:15 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.35 2012-08-16 03:39:43 brianwalenz Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -56,7 +56,7 @@ void CheckContigs()
     {
       double meanDelta = fabs(contig->offsetAEnd.mean - contig->offsetBEnd.mean);
       double varianceDelta = fabs(contig->offsetAEnd.variance -
-                                   contig->offsetBEnd.variance);
+                                  contig->offsetBEnd.variance);
       if(meanDelta + .5 < contig->bpLength.mean ||
          meanDelta - .5 > contig->bpLength.mean ||
          varianceDelta + .5 < contig->bpLength.variance ||
@@ -144,7 +144,7 @@ dumpContigInfo(ChunkInstanceT *contig) {
       unitig = GetGraphNode( ScaffoldGraph->CIGraph, unitig->info.CI.baseID);
       fprintf ( stderr, "  using original unitig: %d\n", unitig->id);
       uma = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id,
-                                          ScaffoldGraph->CIGraph->type == CI_GRAPH);
+                                                    ScaffoldGraph->CIGraph->type == CI_GRAPH);
     }
 
     // now print out info on the frags in the unitig
@@ -226,7 +226,7 @@ GetFragmentPositionInScaffoldFromContig(CIFragT *frag, int *left_end, int *right
 
 void
 GetFragmentPositionInScaffold(CIFragT *frag, int *left_end, int *right_end,
-                                   int *fragmentScaffoldOrientation) {
+                              int *fragmentScaffoldOrientation) {
   ContigT *containingContig = GetGraphNode(ScaffoldGraph->ContigGraph, frag->contigID);
   int contigLeftEnd, contigRightEnd, contigScaffoldOrientation;
 
@@ -537,188 +537,172 @@ int BuildContigEdges(ScaffoldGraphT *graph){
     if(isDeadCIScaffoldT(scaffold))
       continue;
 
-#if 0
-    fprintf(stderr,"* BuildContigEdges Scaffold "F_CID"\n",
-	    sid);
-#endif
-    assert(scaffold->flags.bits.containsCIs == 0); // iterate over scaffold containing CONTIGS
-
-    //    fprintf(stderr,"* Building ContigEdges incident on Contigs of scaffold "F_CID"\n", sid);
+    assert(scaffold->flags.bits.containsCIs == 0);
 
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &Contigs);
 
-    while((thisContig = NextCIScaffoldTIterator(&Contigs)) != NULL){ /* Iterate over all CONTIGs in a Scaffold */
-
+    while((thisContig = NextCIScaffoldTIterator(&Contigs)) != NULL){
       assert(thisContig->scaffoldID == sid);
 
-      /* Iterate over all CIs in a Contig */
-      {
-        ContigTIterator CIs;
+      ContigTIterator CIs;
 
-        InitContigTIterator(graph, thisContig->id, TRUE, FALSE, &CIs);
-        while((thisCI = NextContigTIterator(&CIs)) != NULL){
-          GraphEdgeIterator  edges(graph->CIGraph, thisCI->id, ALL_END, ALL_EDGES);
-          CIEdgeT           *edge;
+      InitContigTIterator(graph, thisContig->id, TRUE, FALSE, &CIs);
+      while((thisCI = NextContigTIterator(&CIs)) != NULL){
+        GraphEdgeIterator  edges(graph->CIGraph, thisCI->id, ALL_END, ALL_EDGES);
+        CIEdgeT           *edge;
 
-	  while((edge = edges.nextRaw()) != NULL){
-	    int isA = (edge->idA == thisCI->id);
-	    PairOrient edgeOrient;
-	    CDS_CID_t otherCID = (isA? edge->idB: edge->idA);
-	    ChunkInstanceT *otherCI = GetChunkInstanceT(graph->ChunkInstances, otherCID);
-	    CIFragT *frag = GetCIFragT(graph->CIFrags, (isA? edge->fragA: edge->fragB));
-	    CIFragT *otherFrag = GetCIFragT(graph->CIFrags, (isA? edge->fragB: edge->fragA));
-	    SequenceOrient orient;
-	    int CIok, mCIok;
-	    CDS_CID_t contig, mcontig;
+        while((edge = edges.nextRaw()) != NULL){
+          int isA = (edge->idA == thisCI->id);
+          PairOrient edgeOrient;
+          CDS_CID_t otherCID = (isA? edge->idB: edge->idA);
+          ChunkInstanceT *otherCI = GetChunkInstanceT(graph->ChunkInstances, otherCID);
+          CIFragT *frag = GetCIFragT(graph->CIFrags, (isA? edge->fragA: edge->fragB));
+          CIFragT *otherFrag = GetCIFragT(graph->CIFrags, (isA? edge->fragB: edge->fragA));
+          SequenceOrient orient;
+          int CIok, mCIok;
+          CDS_CID_t contig, mcontig;
 
-	    contig = thisCI->info.CI.contigID;
-	    mcontig = otherCI->info.CI.contigID;
+          contig = thisCI->info.CI.contigID;
+          mcontig = otherCI->info.CI.contigID;
 
-	    // RAW EDGES ONLY
-	    assert(edge->flags.bits.isRaw);
+          // RAW EDGES ONLY
+          assert(edge->flags.bits.isRaw);
 
-	    // Only non-overlap  edges (i,j) s.t. i < j are interesting
-	    if(/* (isOverlapCIEdgeT(edge)) || */
-	       otherCI->info.CI.contigID == NULLINDEX ||              // not scaffolded/contiged
-	       otherCI->info.CI.contigID <= thisCI->info.CI.contigID)       // not canonical
-	      continue;
+          // Only non-overlap  edges (i,j) s.t. i < j are interesting
+          if(/* (isOverlapCIEdgeT(edge)) || */
+             otherCI->info.CI.contigID == NULLINDEX ||              // not scaffolded/contiged
+             otherCI->info.CI.contigID <= thisCI->info.CI.contigID)       // not canonical
+            continue;
 
 #ifndef TRY_IANS_EDGES
-	    edgeOrient = GetEdgeOrientationWRT(edge, otherCI->id);
-            orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
-#if 0
-            fprintf(stderr,"* Edge ("F_CID","F_CID") %c dist: %g in scaffolds ("F_CID","F_CID") orient = %c\n",
-		    thisCID, otherCID, edgeOrient, edge->distance.mean,
-		    thisCI->scaffoldID, otherCI->scaffoldID, orient);
-#endif
+          edgeOrient = GetEdgeOrientationWRT(edge, otherCI->id);
+          orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
 
-	    /* Contigs are ALWAYS oriented A->B in scaffold, so we can reuse this code */
+          //fprintf(stderr,"* Edge ("F_CID","F_CID") %c dist: %g in scaffolds ("F_CID","F_CID") orient = %c\n",
+          //        thisCID, otherCID, edgeOrient, edge->distance.mean,
+          //        thisCI->scaffoldID, otherCI->scaffoldID, orient);
 
-	    mCIok = CIinContigOffsetAndOrientation(graph,
-                                                   otherFrag, // input
-                                                   otherCI->id, // input
-                                                   orient,    // input orientation of fragment in CI
-                                                   &mciOffset,    // CI's offset within Scaffold
-                                                   &mciOrient);
-	    if(!mCIok)
-	      continue;
+          /* Contigs are ALWAYS oriented A->B in scaffold, so we can reuse this code */
 
-	    edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
-            orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
-	    CIok = CIinContigOffsetAndOrientation(graph,
-                                                  frag,
-                                                  thisCI->id, // input
-                                                  orient,    // input orientation of fragment in CI
-                                                  &ciOffset,    // CI's offset within Scaffold
-                                                  &ciOrient);
-	    assert(CIok);
+          mCIok = CIinContigOffsetAndOrientation(graph,
+                                                 otherFrag, // input
+                                                 otherCI->id, // input
+                                                 orient,    // input orientation of fragment in CI
+                                                 &mciOffset,    // CI's offset within Scaffold
+                                                 &mciOrient);
+          if(!mCIok)
+            continue;
 
+          edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
+          orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
+          CIok = CIinContigOffsetAndOrientation(graph,
+                                                frag,
+                                                thisCI->id, // input
+                                                orient,    // input orientation of fragment in CI
+                                                &ciOffset,    // CI's offset within Scaffold
+                                                &ciOrient);
+          assert(CIok);
 
 
-	    /* Mate pairs must be oriented in opposite directions.  So, if they are oriented the same wrt
-	       their own chunk, the chunks must be oriented opposite one another */
 
-            assert(ciOrient.isUnknown() == false);
+          /* Mate pairs must be oriented in opposite directions.  So, if they are oriented the same wrt
+             their own chunk, the chunks must be oriented opposite one another */
 
-	    if (ciOrient.isForward()) {
-              if (mciOrient.isForward()) {
-                //           length - 5'             gap            length - 5'
-                //      |------------------------||---------------||-----------|
-                //  A --------------------------- B               B --------------------------- A
-                //    5'----->                                           <------5'
-                //      |-------------------------------------------------------|
-                //                             mate distance
-                //
-                contigEdgeOrient.setIsAB_BA();
-              } else {
-                //           length - 5'             gap                5'
-                //      |------------------------||---------------||-----------|
-                //  A --------------------------- B               A --------------------------- B
-                //    5'----->                                           <------5'
-                //      |-------------------------------------------------------|
-                //                             mate distance
-                //
-                contigEdgeOrient.setIsAB_AB();
-              }
+          assert(ciOrient.isUnknown() == false);
+
+          if (ciOrient.isForward()) {
+            if (mciOrient.isForward()) {
+              //           length - 5'             gap            length - 5'
+              //      |------------------------||---------------||-----------|
+              //  A --------------------------- B               B --------------------------- A
+              //    5'----->                                           <------5'
+              //      |-------------------------------------------------------|
+              //                             mate distance
+              //
+              contigEdgeOrient.setIsAB_BA();
             } else {
-              //  ciOrient.isReverse()
-              if (mciOrient.isForward()) {
-                //                     5'             gap            length - 5'
-                //      |------------------------||---------------||-----------|
-                //  B --------------------------- A               B --------------------------- A
-                //    5'----->                                           <------5'
-                //      |-------------------------------------------------------|
-                //                             mate distance
-                //
-                contigEdgeOrient.setIsBA_BA();
-              } else {
-                //                     5'             gap                5'
-                //      |------------------------||---------------||-----------|
-                //  B --------------------------- A               A --------------------------- B
-                //    5'----->                                           <------5'
-                //      |-------------------------------------------------------|
-                //                             mate/guide distance
-                //
-                contigEdgeOrient.setIsBA_AB();
-              }
+              //           length - 5'             gap                5'
+              //      |------------------------||---------------||-----------|
+              //  A --------------------------- B               A --------------------------- B
+              //    5'----->                                           <------5'
+              //      |-------------------------------------------------------|
+              //                             mate distance
+              //
+              contigEdgeOrient.setIsAB_AB();
             }
+          } else {
+            //  ciOrient.isReverse()
+            if (mciOrient.isForward()) {
+              //                     5'             gap            length - 5'
+              //      |------------------------||---------------||-----------|
+              //  B --------------------------- A               B --------------------------- A
+              //    5'----->                                           <------5'
+              //      |-------------------------------------------------------|
+              //                             mate distance
+              //
+              contigEdgeOrient.setIsBA_BA();
+            } else {
+              //                     5'             gap                5'
+              //      |------------------------||---------------||-----------|
+              //  B --------------------------- A               A --------------------------- B
+              //    5'----->                                           <------5'
+              //      |-------------------------------------------------------|
+              //                             mate/guide distance
+              //
+              contigEdgeOrient.setIsBA_AB();
+            }
+          }
 
-#if 0
-            fprintf(stderr,"* CIEdge ("F_CID","F_CID") %c induced\n",
-                    thisCID, otherCID, edge->orient);
-            fprintf(stderr,"* ("F_CID","F_CID") %c ciedge:"F_CID" cifrag:"F_CID" otherFrag:"F_CID" mciOffset = %g mciOrient = %c  ciOffset = %g ciOrient = %c\n",
-                    thisCI->contigID, otherCI->contigID, contigEdgeOrient,
-                    (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIEdges, edge),
-                    (frag?frag->read_iid:NULLINDEX),
-                    (otherFrag?otherFrag->read_iid:NULLINDEX),
-                    mciOffset.mean, mciOrient, ciOffset.mean, ciOrient);
-#endif
-	    distance.mean = edge->distance.mean - ciOffset.mean - mciOffset.mean;
-	    // Since the two offsets and the dist are independent we SUM their variances
-	    distance.variance = edge->distance.variance  + ciOffset.variance + mciOffset.variance;
-	    contigEdge.orient = contigEdgeOrient;
-	    contigEdge.distance = distance;
+          //fprintf(stderr,"* CIEdge ("F_CID","F_CID") %c induced\n",
+          //        thisCID, otherCID, edge->orient);
+          //fprintf(stderr,"* ("F_CID","F_CID") %c ciedge:"F_CID" cifrag:"F_CID" otherFrag:"F_CID" mciOffset = %g mciOrient = %c  ciOffset = %g ciOrient = %c\n",
+          //        thisCI->contigID, otherCI->contigID, contigEdgeOrient,
+          //        (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIEdges, edge),
+          //        (frag?frag->read_iid:NULLINDEX),
+          //        (otherFrag?otherFrag->read_iid:NULLINDEX),
+          //        mciOffset.mean, mciOrient, ciOffset.mean, ciOrient);
+
+          // Since the two offsets and the dist are independent we SUM their variances
+
+          distance.mean = edge->distance.mean - ciOffset.mean - mciOffset.mean;
+          distance.variance = edge->distance.variance  + ciOffset.variance + mciOffset.variance;
+
+          contigEdge.orient = contigEdgeOrient;
+          contigEdge.distance = distance;
 #else
-            /* Ian's attempt to simplify, goes straight to fragments
-               get edge between fragments, innie or outtie, distance
-            */
-            PopulateChunkEdgeBasics(graph,
-                                    frag,
-                                    thisCI,
-                                    otherFrag,
-                                    otherCI,
-                                    GetDistT(graph->Dists, edge->distIndex),
-                                    &contigEdge);
+          /* Ian's attempt to simplify, goes straight to fragments
+             get edge between fragments, innie or outtie, distance
+          */
+          PopulateChunkEdgeBasics(graph,
+                                  frag,
+                                  thisCI,
+                                  otherFrag,
+                                  otherCI,
+                                  GetDistT(graph->Dists, edge->distIndex),
+                                  &contigEdge);
 #endif
-	    edgesSucceeded++;
+          edgesSucceeded++;
 
-	    contigEdge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIEdges, edge);
-	    contigEdge.idA = thisCI->info.CI.contigID;
-	    contigEdge.idB = otherCI->info.CI.contigID;
-	    contigEdge.flags = edge->flags;
-	    contigEdge.edgesContributing = edge->edgesContributing;
-	    contigEdge.nextALink = contigEdge.nextBLink = NULLINDEX;
-	    contigEdge.prevALink = contigEdge.prevBLink = NULLINDEX;
-	    contigEdge.nextRawEdge = NULLINDEX;
-	    contigEdge.minDistance = 0;
-#if 0
-	    contigEdge.maxDistance = contigEdge.fudgeDistance = 0;
-#endif
-	    if(isA){
-	      contigEdge.fragA = edge->fragA;
-	      contigEdge.fragB = edge->fragB;
-	    }else{
-	      contigEdge.fragA = edge->fragB;
-	      contigEdge.fragB = edge->fragA;
-	    }
-	    {
-	      CDS_CID_t edgeID = GetNumGraphEdges(graph->ContigGraph);
-	      contigEdge.topLevelEdge = edgeID;
-	      AppendGraphEdge(graph->ContigGraph, &contigEdge);
-	      InsertGraphEdge(graph->ContigGraph, edgeID, FALSE);
-	    }
-	  }
-	}
+          contigEdge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIEdges, edge);
+          contigEdge.idA = thisCI->info.CI.contigID;
+          contigEdge.idB = otherCI->info.CI.contigID;
+          contigEdge.flags = edge->flags;
+          contigEdge.edgesContributing = edge->edgesContributing;
+          contigEdge.nextALink = NULLINDEX;
+          contigEdge.nextBLink = NULLINDEX;
+          contigEdge.prevALink = NULLINDEX;
+          contigEdge.prevBLink = NULLINDEX;
+          contigEdge.nextRawEdge = NULLINDEX;
+          contigEdge.minDistance = 0;
+          contigEdge.fragA = (isA) ? edge->fragA : edge->fragB;
+          contigEdge.fragB = (isA) ? edge->fragB : edge->fragA;
+          {
+            CDS_CID_t edgeID = GetNumGraphEdges(graph->ContigGraph);
+            contigEdge.topLevelEdge = edgeID;
+            AppendGraphEdge(graph->ContigGraph, &contigEdge);
+            InsertGraphEdge(graph->ContigGraph, edgeID, FALSE);
+          }
+        }
       }
     }
   }
@@ -751,8 +735,10 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
       continue;
     }
     newEdge = *edge;
-    newEdge.prevALink = newEdge.prevBLink = NULLINDEX;
-    newEdge.nextALink = newEdge.nextBLink = NULLINDEX;
+    newEdge.prevALink = NULLINDEX;
+    newEdge.prevBLink = NULLINDEX;
+    newEdge.nextALink = NULLINDEX;
+    newEdge.nextBLink = NULLINDEX;
 
     if(!newEdge.flags.bits.isRaw){
       newEdge.topLevelEdge = newCIEdge; // selfreference
@@ -763,12 +749,12 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
               edge->idA, edge->idB,
               newEdge.idA, newEdge.idB, newCIEdge);
       fprintf(stderr,"* linked to raw edge "F_CID"\n",
-	      newEdge.nextRawEdge);
+              newEdge.nextRawEdge);
 #endif
       AppendGraphEdge(graph->ContigGraph, &newEdge);
       assert(newCIEdge == GetNumGraphEdges(graph->ContigGraph) -1);
-      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idA, FALSE);
-      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idB, FALSE);
+      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idA);
+      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idB);
       redge = edge;
 #ifdef DEBUG_CONTIG
       fprintf(stderr,"* Converting edge ("F_CID","F_CID") to edge ("F_CID","F_CID") edgeID "F_CID"\n",
@@ -776,38 +762,38 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
               newEdge.idA, newEdge.idB, newCIEdge);
 #endif
       while(redge->nextRawEdge != NULLINDEX){
-	actuallySkipped++;
-	redge = GetGraphEdge(graph->CIGraph, redge->nextRawEdge);
-	rawEdge = *redge;
-	rawEdge.idA = newEdge.idA;
-	rawEdge.idB = newEdge.idB;
-	rawEdge.prevALink = rawEdge.prevBLink = NULLINDEX;
-	rawEdge.nextALink = rawEdge.nextBLink = NULLINDEX;
-	rawEdge.topLevelEdge = newCIEdge;
-	rawEdge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge);
-	assert(GetNumGraphEdges(graph->ContigGraph) == nextCIEdge);
-	if(rawEdge.nextRawEdge != NULLINDEX)
-	  rawEdge.nextRawEdge = ++nextCIEdge;
+        actuallySkipped++;
+        redge = GetGraphEdge(graph->CIGraph, redge->nextRawEdge);
+        rawEdge = *redge;
+        rawEdge.idA = newEdge.idA;
+        rawEdge.idB = newEdge.idB;
+        rawEdge.prevALink = rawEdge.prevBLink = NULLINDEX;
+        rawEdge.nextALink = rawEdge.nextBLink = NULLINDEX;
+        rawEdge.topLevelEdge = newCIEdge;
+        rawEdge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge);
+        assert(GetNumGraphEdges(graph->ContigGraph) == nextCIEdge);
+        if(rawEdge.nextRawEdge != NULLINDEX)
+          rawEdge.nextRawEdge = ++nextCIEdge;
 #ifdef DEBUG_CONTIG
-	fprintf(stderr,"* Adding raw edge "F_CID" linked  to raw edge "F_CID"\n",
+        fprintf(stderr,"* Adding raw edge "F_CID" linked  to raw edge "F_CID"\n",
                 (CDS_CID_t) GetNumGraphEdges(graph->ContigGraph),
                 rawEdge.nextRawEdge);
 #endif
-	AppendGraphEdge(graph->ContigGraph, &rawEdge);
+        AppendGraphEdge(graph->ContigGraph, &rawEdge);
       }
     }else{
       // If this isn't a top-level edge, skip it
       if(edge->topLevelEdge != (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge)){
 #ifdef DEBUG_CONTIG
         EdgeCGW_T *tle = GetGraphEdge(graph->CIGraph, edge->topLevelEdge);
-	fprintf(stderr,"* !!!!! Skipping raw edge that is not topLevel ("F_CID","F_CID") edgeID "F_CID" \n",
-		edge->idA, edge->idB,
-		(CDS_CID_t) GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge));
+        fprintf(stderr,"* !!!!! Skipping raw edge that is not topLevel ("F_CID","F_CID") edgeID "F_CID" \n",
+                edge->idA, edge->idB,
+                (CDS_CID_t) GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge));
         PrintGraphEdge(stderr,graph->CIGraph,"raw edge ",edge, edge->idA);
         PrintGraphEdge(stderr,graph->CIGraph,"top edge ",tle, tle->idA);
 #endif
-	shouldHaveSkipped++;
-	continue;
+        shouldHaveSkipped++;
+        continue;
       }
       newEdge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge);
       newEdge.topLevelEdge = newCIEdge; // selfreference
@@ -815,13 +801,13 @@ void CreateInitialContigEdges(ScaffoldGraphT *graph){
       assert(newCIEdge == GetNumGraphEdges(graph->ContigGraph) -1);
 
 
-      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idA, FALSE);
-      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idB, FALSE);
+      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idA);
+      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idB);
     }
   }
   fprintf(stderr,"* Skipped %d raw edges. %d deleted..should have been %d (%d <==> %d)\n",
-	  actuallySkipped, deletedSkipped, shouldHaveSkipped,
-	  (int) GetNumGraphEdges(graph->ContigGraph),
+          actuallySkipped, deletedSkipped, shouldHaveSkipped,
+          (int) GetNumGraphEdges(graph->ContigGraph),
           (int) GetNumGraphEdges(graph->CIGraph)  );
 
 }
@@ -931,7 +917,7 @@ void SetCIScaffoldIds(ChunkInstanceT *CI, CDS_CID_t scaffoldID){
     CI->flags.bits.isChaff = FALSE;
     if(GlobalData->debugLevel > 0)
       fprintf(stderr,"* SetCIScaffoldIDs ci "F_CID" and frag "F_CID" are NOT chaff\n",
-	      CI->id, frag->read_iid);
+              CI->id, frag->read_iid);
   }
 }
 
@@ -1052,9 +1038,9 @@ int IsShakyContigAtScaffoldEnd(ContigT *contig){
 #if 0
   fprintf(stderr,"* IsShakyContigAtScaffoldEnd "F_CID" numA:%d numB:%d %s\n",
           contig->id,
-	  contig->numEssentialA,
-	  contig->numEssentialB,
-	  (IsDefinitelyUniqueContig(contig)?"unique":"shaky"));
+          contig->numEssentialA,
+          contig->numEssentialB,
+          (IsDefinitelyUniqueContig(contig)?"unique":"shaky"));
 #endif
 
   return(!IsDefinitelyUniqueContig(contig));

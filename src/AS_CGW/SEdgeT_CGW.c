@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.24 2012-08-15 15:07:15 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.25 2012-08-16 03:39:43 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -82,69 +82,6 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
           edge->flags.bits.hasContainmentOverlap,
           (int)edge->distance.mean, sqrt(edge->distance.variance),
           actualOverlap, edge->fragA, edge->fragB);
-
-#ifdef NEVER
-  fprintf(fp,
-          "\tidA:"F_CID" idB:"F_CID" orient:%s edgesContributing:%d quality:%d all:" F_S64 "\n",
-          edge->idA,
-          edge->idB,
-          edge->orient == AB_AB ? "AB_AB" :
-          (edge->orient == AB_BA ? "AB_BA" :
-           (edge->orient == BA_AB ? "BA_AB" :
-            (edge->orient == BA_BA ? "BA_BA" : "XX_XX"))),
-          edge->edgesContributing,
-          (int) edge->quality,
-          edge->flags.all);
-  fprintf(fp, "\t\tisInferred:%d\n", edge->flags.bits.isInferred);
-  fprintf(fp, "\t\tisTentative:%d\n", edge->flags.bits.isTentative);
-  fprintf(fp, "\t\tisLeastSquares:%d\n", edge->flags.bits.isLeastSquares);
-  fprintf(fp, "\t\tisEssential:%d\n", edge->flags.bits.isEssential);
-  fprintf(fp, "\t\twasEssential:%d\n", edge->flags.bits.wasEssential);
-  fprintf(fp, "\t\tisActive:%d\n", edge->flags.bits.isActive);
-  fprintf(fp, "\t\tisConfirmed:%d\n", edge->flags.bits.isConfirmed);
-  fprintf(fp, "\t\tisContigConfirming:%d\n", edge->flags.bits.isContigConfirming);
-  fprintf(fp, "\t\tisUniquetoUnique:%d\n", edge->flags.bits.isUniquetoUnique);
-  fprintf(fp, "\t\tisTransitivelyRemoved:%d\n", edge->flags.bits.isTransitivelyRemoved);
-  fprintf(fp, "\t\tisInferredRemoved:%d\n", edge->flags.bits.isInferredRemoved);
-  fprintf(fp, "\t\tisRedundantRemoved:%d\n", edge->flags.bits.isRedundantRemoved);
-  fprintf(fp, "\t\tisDeleted:%d\n", edge->flags.bits.isDeleted);
-  fprintf(fp, "\t\tisPossibleChimera:%d\n", edge->flags.bits.isPossibleChimera);
-  fprintf(fp, "\t\tinducedByUnknownOrientation:%d\n", edge->flags.bits.inducedByUnknownOrientation);
-  fprintf(fp, "\t\thasContributingOverlap:%d\n", edge->flags.bits.hasContributingOverlap);
-  fprintf(fp, "\t\taContainsB:%d\n", edge->flags.bits.aContainsB);
-  fprintf(fp, "\t\tbContainsA:%d\n", edge->flags.bits.bContainsA);
-  fprintf(fp, "\t\tmustOverlap:%d\n", edge->flags.bits.mustOverlap);
-  fprintf(fp, "\t\thasTransChunk:%d\n", edge->flags.bits.hasTransChunk);
-  fprintf(fp, "\t\thasContainmentOverlap:%d\n", edge->flags.bits.hasContainmentOverlap);
-  fprintf(fp, "\t\tisRaw:%d\n", edge->flags.bits.isRaw);
-  fprintf(fp, "\t\thasExtremalAFrag:%d\n", edge->flags.bits.hasExtremalAFrag);
-  fprintf(fp, "\t\thasExtremalBFrag:%d\n", edge->flags.bits.hasExtremalBFrag);
-  fprintf(fp, "\t\trangeTruncated:%d\n", edge->flags.bits.rangeTruncated);
-  fprintf(fp, "\t\tinAssembly:%d\n", edge->flags.bits.inAssembly);
-  fprintf(fp, "\t\tisBogus:%d\n", edge->flags.bits.isBogus);
-  fprintf(fp, "\t\tisProbablyBogus:%d\n", edge->flags.bits.isProbablyBogus);
-  fprintf(fp, "\t\thasConfirmingPath:%d\n", edge->flags.bits.hasConfirmingPath);
-  fprintf(fp, "\t\tedgeStatus:%d\n", edge->flags.bits.edgeStatus);
-  fprintf(fp, "\t\tisMarkedForDeletion:%d\n", edge->flags.bits.isMarkedForDeletion);
-  fprintf(fp, "\t\tMeanChangedByWalking:%d\n", edge->flags.bits.MeanChangedByWalking);
-  fprintf(fp, "\t\thighQualityA:%d\n", edge->flags.bits.highQualityA);
-  fprintf(fp, "\t\thighQualityB:%d\n", edge->flags.bits.highQualityB);
-  fprintf(fp, "\t\tisSloppy:%d\n", edge->flags.bits.isSloppy);
-  fprintf(fp, "\t\tisBridge:%d\n", edge->flags.bits.isBridge);
-  fprintf(fp, "\tdistance.mean:%.2f\n", edge->distance.mean);
-  fprintf(fp, "\tdistance.variance:%.2f\n", edge->distance.variance);
-  fprintf(fp, "\tnextALink:"F_CID"\n", edge->nextALink);
-  fprintf(fp, "\tnextBLink:"F_CID"\n", edge->nextBLink);
-  fprintf(fp, "\tprevALink:"F_CID"\n", edge->prevALink);
-  fprintf(fp, "\tprevBLink:"F_CID"\n", edge->prevBLink);
-  fprintf(fp, "\tminDistance:%.2f\n", edge->minDistance);
-  fprintf(fp, "\tfragA:"F_CID"\n", edge->fragA);
-  fprintf(fp, "\tfragB:"F_CID"\n", edge->fragB);
-  fprintf(fp, "\tdistIndex:"F_CID"\n", edge->distIndex);
-  fprintf(fp, "\tnextRawEdge:"F_CID"\n", edge->nextRawEdge);
-  fprintf(fp, "\ttopLevelEdge:"F_CID"\n", edge->topLevelEdge);
-  fprintf(fp, "\treferenceEdge:"F_CID"\n",edge->referenceEdge);
-#endif
 }
 
 /* CorrectEdgeVariance calculates and returns
@@ -294,27 +231,6 @@ int CIOffsetAndOrientation(ScaffoldGraphT *graph,
   return TRUE;
 }
 
-void PopulateReverseEdge(EdgeCGW_T * reverseEdge, EdgeCGW_T * forwardEdge)
-{
-  *reverseEdge = *forwardEdge;
-
-  reverseEdge->idA = forwardEdge->idB;
-  reverseEdge->idB = forwardEdge->idA;
-
-  reverseEdge->orient = forwardEdge->orient;
-  reverseEdge->orient.flip();
-
-  reverseEdge->flags.bits.aContainsB = forwardEdge->flags.bits.bContainsA;
-  reverseEdge->flags.bits.bContainsA = forwardEdge->flags.bits.aContainsB;
-
-  reverseEdge->flags.bits.highQualityA = forwardEdge->flags.bits.highQualityB;
-  reverseEdge->flags.bits.highQualityB = forwardEdge->flags.bits.highQualityA;
-
-  reverseEdge->nextALink = forwardEdge->nextBLink;
-  reverseEdge->nextBLink = forwardEdge->nextALink;
-  reverseEdge->prevALink = forwardEdge->prevBLink;
-  reverseEdge->prevBLink = forwardEdge->prevALink;
-}
 
 
 /************************************************************************************/
@@ -332,10 +248,8 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   PairOrient edgeOrient;
   SequenceOrient orient;
   int CIok, mCIok;
-  CIScaffoldT * scaffold =
-    GetCIScaffoldT(graph->CIScaffolds, thisCI->scaffoldID);
-  CIScaffoldT * otherScaffold =
-    GetCIScaffoldT(graph->CIScaffolds, otherCI->scaffoldID);
+  CIScaffoldT * scaffold      = GetCIScaffoldT(graph->CIScaffolds, thisCI->scaffoldID);
+  CIScaffoldT * otherScaffold = GetCIScaffoldT(graph->CIScaffolds, otherCI->scaffoldID);
 
   if(canonicalOnly && otherCI->scaffoldID < thisCI->scaffoldID)
     return TRUE;
@@ -468,7 +382,8 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   sedge.fragA = edge->fragA;
   sedge.fragB = edge->fragB;
   sedge.flags = edge->flags;
-  sedge.flags.bits.aContainsB = sedge.flags.bits.bContainsA = FALSE;
+  sedge.flags.bits.aContainsB = FALSE;
+  sedge.flags.bits.bContainsA = FALSE;
   sedge.flags.bits.hasContainmentOverlap = FALSE;
 
   // BE CAREFUL: hasContainmentOverlap is advisory.  aContainsB and bContainsA say
@@ -487,8 +402,8 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
 
   sedge.edgesContributing = edge->edgesContributing;
   sedge.topLevelEdge = NULLINDEX;
-  sedge.referenceEdge =
-    (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
+  sedge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
+
 #if 0
   fprintf(stderr,"*SEdge ("F_CID","F_CID") induced by edge#"F_CID" ("F_CID","F_CID")\n",
           sedge.idA, sedge.idB,
@@ -501,22 +416,38 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
     assert(edge->idB == topEdge->idB);
   }
 #endif
-  sedge.nextALink = sedge.nextBLink = sedge.prevALink = sedge.prevBLink = NULLINDEX;
 
-  if(sedge.idA > sedge.idB)
-    {
-      SEdgeT reverseEdge;
+  sedge.nextALink = NULLINDEX;
+  sedge.nextBLink = NULLINDEX;
+  sedge.prevALink = NULLINDEX;
+  sedge.prevBLink = NULLINDEX;
 
-      assert(canonicalOnly == FALSE);
-      PopulateReverseEdge(&reverseEdge, &sedge);
-      sedge = reverseEdge;
-    }
+  if(sedge.idA > sedge.idB) {
+    CDS_CID_t  idA = sedge.idA;
+    CDS_CID_t  idB = sedge.idB;
+    int32      ab  = sedge.flags.bits.aContainsB;
+    int32      ba  = sedge.flags.bits.bContainsA;
+    int32      hqa = sedge.flags.bits.highQualityA;
+    int32      hqb = sedge.flags.bits.highQualityB;
+
+    assert(canonicalOnly == FALSE);
+
+    sedge.idA = idB;
+    sedge.idB = idA;
+
+    sedge.orient.flip();
+
+    sedge.flags.bits.aContainsB = ba;
+    sedge.flags.bits.bContainsA = ab;
+
+    sedge.flags.bits.highQualityA = hqa;
+    sedge.flags.bits.highQualityB = hqb;
+  }
 
 
   {
     SEdgeT * newEdge = GetFreeGraphEdge(graph->ScaffoldGraph);
-    sedge.topLevelEdge =
-      GetVAIndex_EdgeCGW_T(graph->ScaffoldGraph->edges, newEdge);
+    sedge.topLevelEdge = GetVAIndex_EdgeCGW_T(graph->ScaffoldGraph->edges, newEdge);
     *newEdge = sedge;
     InsertGraphEdge(graph->ScaffoldGraph, newEdge->topLevelEdge, FALSE);
   }
