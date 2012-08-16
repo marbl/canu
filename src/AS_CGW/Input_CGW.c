@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.77 2012-07-24 14:17:15 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.78 2012-08-16 01:24:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,7 +116,7 @@ int ProcessInput(int optind, int argc, char *argv[]){
     if (uma == NULL) {
       ChunkInstanceT  CI;
 
-      fprintf(stderr, "WARNING:  Unitig %d does not exist.\n", i);
+      //fprintf(stderr, "WARNING:  Unitig %d does not exist.\n", i);
 
       memset(&CI, 0, sizeof(ChunkInstanceT));
 
