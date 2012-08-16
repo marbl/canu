@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.97 2012-08-14 07:47:34 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.98 2012-08-16 01:25:27 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -322,7 +322,7 @@ main(int argc, char **argv) {
 
     LoadDistData();
 
-    ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, GlobalData->minSamplesForOverride, "unitig_initial");
+    //ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, GlobalData->minSamplesForOverride, "unitig_initial");
 
     BuildGraphEdgesDirectly(ScaffoldGraph->CIGraph);
 
