@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.98 2012-08-16 01:25:27 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.99 2012-08-17 19:55:59 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -29,10 +29,6 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.98 2012-08-16 01:25:27 brianwalenz 
 #else
 #define POPULATE_COC_HASHTABLE 0
 #endif
-
-//  If defined, run LeastSquaresGapEstimates() on every contig immediately after
-//  loading a checkpoint.
-#undef RECOMPUTE_GAPS_ON_LOAD
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -56,6 +52,7 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.98 2012-08-16 01:25:27 brianwalenz 
 
 //  Defines the logical checkpoints
 
+#define CHECKPOINT_AFTER_LOADING                    "ckp00-INI"
 #define CHECKPOINT_AFTER_BUILDING_SCAFFOLDS         "ckp01-ABS"
 #define CHECKPOINT_DURING_CLEANING_SCAFFOLDS        "ckp02-DCS"
 #define CHECKPOINT_AFTER_CLEANING_SCAFFOLDS         "ckp03-ACD"
@@ -90,6 +87,8 @@ main(int argc, char **argv) {
 
   int    restartFromCheckpoint = -1;
   char  *restartFromLogical    = "ckp00";
+
+  bool   recomputeLeastSquaresOnLoad = false;
 
   int    doResolveSurrogates               = 1;      //  resolveSurrogates
   int    placeAllFragsInSinglePlacedSurros = 0;      //  resolveSurrogates
@@ -225,6 +224,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-minmergeweight") == 0) {
       GlobalData->minWeightToMerge = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-recomputegaps") == 0) {
+      recomputeLeastSquaresOnLoad = true;
+
     } else if ((argv[arg][0] != '-') && (firstFileArg == 0)) {
       firstFileArg = arg;
       arg = argc;
@@ -277,6 +279,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "   -s <lvl>     stone throwing level\n");
     fprintf(stderr, "   -shatter <thresh>  Set threshold for shattering scaffolds when loading from checkpoint. Any contigs connected to a scaffold only by edges with less weight than the threshold will be split into a new scaffold (default OFF)\n");
     fprintf(stderr, "   -missingMate <thresh>  Set threshold (0-1) for the percentage of mates (out of total) that are allowed to be missing when attempting a scaffold merge (default 0). A value of -1 will ignore all missing mates\n");
+    fprintf(stderr, "   -minmergeweight <w>    Only use weight w or better edges for merging scaffolds.\n");
+    fprintf(stderr, "   -recompute   if loading a checkpoint, recompute gaps, merging contigs and splitting low weight scaffolds.\n");
     fprintf(stderr, "   -U           after inserting rocks/stones try shifting contig positions back to their original location when computing overlaps to see if they overlap with the rock/stone and allow them to merge if they do\n");
     fprintf(stderr, "   -u <file>    load these overlaps (from BOG) into the scaffold graph\n");
     fprintf(stderr, "   -v           verbose\n");
@@ -312,7 +316,7 @@ main(int argc, char **argv) {
     GlobalData->repeatRezLevel = repeatRezLevel;
 
 
-  if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS) < 0) {
+  if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_LOADING) < 0) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_BUILDING_SCAFFOLDS\n");
 
     //  Create the checkpoint from scratch
@@ -324,6 +328,15 @@ main(int argc, char **argv) {
 
     //ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, GlobalData->minSamplesForOverride, "unitig_initial");
 
+    CheckpointScaffoldGraph(CHECKPOINT_AFTER_LOADING, "after loading");
+  } else if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_LOADING) == 0) {
+    //  Load the checkpoint if we are exactly after loading, otherwise, fall through to the
+    //  real load.
+    LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix,restartFromCheckpoint, TRUE);
+  }
+
+
+  if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS) < 0) {
     BuildGraphEdgesDirectly(ScaffoldGraph->CIGraph);
 
     if (GlobalData->unitigOverlaps[0])
@@ -367,14 +380,12 @@ main(int argc, char **argv) {
     	ShatterScaffoldsConnectedByLowWeight(stderr, ScaffoldGraph, GlobalData->shatterLevel, TRUE);
     }
 
-#ifdef RECOMPUTE_GAPS_ON_LOAD
-    //if (recomputeLeastSquaresOnLoad) {
-    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
-      LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
-      ScaffoldSanity(graph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+    if (recomputeLeastSquaresOnLoad) {
+      for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+        if (true == LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID), LeastSquares_Cleanup | LeastSquares_Split))
+          ScaffoldSanity(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+      }
     }
-    //}
-#endif
   }
 
 
@@ -404,10 +415,8 @@ main(int argc, char **argv) {
     for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
       CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
 
-      LeastSquaresGapEstimates(ScaffoldGraph, scaffold, TRUE);
-      //CleanupAScaffold(ScaffoldGraph, scaffold, FALSE, NULLINDEX, FALSE);
-      //LeastSquaresGapEstimates(ScaffoldGraph, scaffold);
-      ScaffoldSanity(ScaffoldGraph, scaffold);
+      if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
+        ScaffoldSanity(ScaffoldGraph, scaffold);
     }
 
     //CheckAllTrustedEdges(ScaffoldGraph);
@@ -433,9 +442,6 @@ main(int argc, char **argv) {
 
       changed = RepeatRez(GlobalData->repeatRezLevel, GlobalData->outputPrefix);
 
-      //  The below loop looks excessive - 2x cleanup? - but it is what was really done after
-      //  expanding TidyUpScaffolds()
-
       if (changed){
         ScaffoldSanity(ScaffoldGraph);
 
@@ -452,10 +458,8 @@ main(int argc, char **argv) {
         for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
           CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
 
-          LeastSquaresGapEstimates(ScaffoldGraph, scaffold, TRUE);
-          //CleanupAScaffold(ScaffoldGraph, scaffold, FALSE, NULLINDEX, FALSE);
-          //LeastSquaresGapEstimates(ScaffoldGraph, scaffold);
-          ScaffoldSanity(ScaffoldGraph, scaffold);
+          if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
+            ScaffoldSanity(ScaffoldGraph, scaffold);
         }
 
         //CheckAllTrustedEdges(ScaffoldGraph);

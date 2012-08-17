@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.11 2012-08-12 23:33:37 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.12 2012-08-17 19:55:59 brianwalenz Exp $";
 
 #include "CIScaffoldT_MergeScaffolds.h"
 
@@ -637,9 +637,7 @@ MergeScaffolds(InterleavingSpec               *iSpec,
       CIScaffoldT *scaffold           = GetGraphNode(ScaffoldGraph->ScaffoldGraph, newScaffoldID);
       int32        numScaffoldsBefore = GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds);
 
-      //fprintf(stderr, "Begin LeastSquaresGapEstimates()\n");
-
-      if (LeastSquaresGapEstimates(ScaffoldGraph, scaffold, TRUE) == false) {
+      if (LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup) == false) {
         fprintf(stderr, "ADDING EDGE TO IGNORE: %d <-> %d orient %c distance %.1f +- %.1f\n",
                 edgeLabel.idA,
                 edgeLabel.idB,

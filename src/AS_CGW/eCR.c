@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR.c,v 1.69 2012-08-12 23:33:37 brianwalenz Exp $";
+const char *mainid = "$Id: eCR.c,v 1.70 2012-08-17 19:55:59 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1037,8 +1037,11 @@ main(int argc, char **argv) {
 
 
     if (numSmallGapsClosedThisScaff + numLargeGapsClosedThisScaff > 0) {
-      LeastSquaresGapEstimates(ScaffoldGraph, scaff, FALSE);
-      ScaffoldSanity(ScaffoldGraph, scaff);
+      if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaff, LeastSquares_Only))
+        ScaffoldSanity(ScaffoldGraph, scaff);
+      else
+        //  Not connected?!
+        assert(0);
     }
 
     //  Clear out any cached multialigns.  We're all done with them.

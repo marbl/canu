@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.57 2012-08-15 15:07:15 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.58 2012-08-17 19:55:59 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -303,7 +303,13 @@ void BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
 
 //  Recompute mean/variance gap estimates for a scaffold.
 //  Returns true if recomputed, false if not.
-bool LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold, bool doCleanup);
+
+const uint32 LeastSquares_Only     = 0x00;
+const uint32 LeastSquares_Cleanup  = 0x01;
+const uint32 LeastSquares_Split    = 0x02;
+const uint32 LeastSquares_NoBounce = 0x04;
+
+bool LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold, uint32 LSFlags);
 
 
 /***** Celamy *****/
@@ -388,8 +394,6 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
 
 void RebuildScaffolds(ScaffoldGraphT *ScaffoldGraph,
                       int markShakyBifurcations);
-void TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph);
-
 void CheckAllContigFragments(void);
 
 /* Globals */

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.79 2012-08-15 15:07:15 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.80 2012-08-17 19:55:59 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -914,9 +914,6 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
 
         matePairTestResult.clear();
 #endif
-
-        //  This is done as part of LeastSquares now.
-        //CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
         BuildSEdges(graph, TRUE, TRUE);
         MergeAllGraphEdges(graph->ScaffoldGraph, TRUE, FALSE);

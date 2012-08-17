@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.67 2012-08-15 15:07:15 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.68 2012-08-17 19:55:59 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -618,16 +618,9 @@ IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
          (weight == 1 && edge->flags.bits.isBridge))
         continue;
 
-      //
-      // if the other end is not in this scaffold
-      // ignore it
-      //
       if (chunk->scaffoldID != otherChunk->scaffoldID)
         continue;
 
-      //
-      // do union
-      //
       UFUnion(UFData, chunk->setID, otherChunk->setID);
     }
         
@@ -803,123 +796,118 @@ killScaffoldIfOnlySurrogate(CDS_CID_t scaffoldID) {
 }
 
 
-/***********************************************************************/
-int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffoldID, int32 edgeTypes, int verbose){
+
+int32
+CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph,
+                                  CDS_CID_t       scaffoldID,
+                                  int32           edgeTypes,
+                                  int             verbose) {
   CIScaffoldT  *scaffold      = GetCIScaffoldT(graph->CIScaffolds, scaffoldID);
-  int           numComponents = IsScaffoldInternallyConnected(graph, scaffold, true, (edgeTypes == ALL_TRUSTED_EDGES));
-  int32         numNodes      = scaffold->info.Scaffold.numElements;
 
-  // Expected case, Scaffold is connected
-  if(numComponents > 1){
-    CDS_CID_t *nodes = (CDS_CID_t *)safe_malloc(sizeof(CDS_CID_t) * numNodes);
-    int inode;
+  //  Test connectedness, mark bridge edges
+  if (IsScaffold2EdgeConnected(ScaffoldGraph, scaffold) == true)
+    return(1);
 
-    // IsScaffoldInternalyConnected does a connected component analysis, marking the contigs with their component number
-    // the following code leverages this marking to break up the scaffold.
+  // Connected component analysis, mark contigs with their component number
+  int32  numComponents = IsScaffoldInternallyConnected(graph, scaffold, true, (edgeTypes == ALL_TRUSTED_EDGES));
 
-    int component;
-    int  *nodesEnd;
-    NodeCGW_T *thisNode;
-    CIScaffoldTIterator scaffoldNodes;
+  assert(numComponents > 0);
 
-    fprintf(stderr, "WARNING! Scaffold "F_CID" is not connected has %d components\n", scaffoldID, numComponents);
-    fprintf(stderr, "Splitting into scaffolds: (search for \"Splitting "F_CID" into scaffold\" to get the new scaffolds)\n", scaffoldID);
+  if (numComponents == 1)
+    //  Expected case, all connected.
+    return(numComponents);
 
-    if(verbose)
-      DumpACIScaffold(stderr,graph, scaffold, FALSE);
+  fprintf(stderr, "Scaffold "F_CID" is not connected, has %d components.\n", scaffoldID, numComponents);
+  fprintf(stderr, "Splitting into scaffolds: (search for \"Splitting "F_CID" into scaffold\" to get the new scaffolds)\n", scaffoldID);
 
-#ifdef DEBUG_SPLIT
-    fprintf(stderr,"Prior to split ...");
-    DumpACIScaffoldNew(stderr,graph, scaffold, FALSE);
-#endif
+  //DumpACIScaffold(stderr,graph, scaffold, FALSE);
 
-    nodesEnd = nodes + numNodes;
-    InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &scaffoldNodes);
+  //fprintf(stderr,"Prior to split ...");
+  //DumpACIScaffoldNew(stderr,graph, scaffold, FALSE);
 
-    inode = 0;
-    while((thisNode = NextCIScaffoldTIterator(&scaffoldNodes)) != NULL){
-      assert(inode < numNodes);
-      nodes[inode++] = thisNode->id;
+  int32               contigMax = 0;
+  CDS_CID_t          *contigID  = (CDS_CID_t *)safe_malloc(sizeof(CDS_CID_t) * scaffold->info.Scaffold.numElements);
+
+  CIScaffoldTIterator contigs;
+  NodeCGW_T          *contig;
+
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &contigs);
+
+  while ((contig = NextCIScaffoldTIterator(&contigs)) != NULL)
+    contigID[contigMax++] = contig->id;
+
+  assert(contigMax == scaffold->info.Scaffold.numElements);
+
+  // For each component, create a scaffold and insert the relevant contigs
+
+  for (int32 component=0; component<numComponents; component++) {
+    CIScaffoldT newScaffold;
+
+    InitializeScaffold(&newScaffold, REAL_SCAFFOLD);
+
+    newScaffold.info.Scaffold.AEndCI      = NULLINDEX;
+    newScaffold.info.Scaffold.BEndCI      = NULLINDEX;
+    newScaffold.info.Scaffold.numElements = 0;
+    newScaffold.edgeHead                  = NULLINDEX;
+    newScaffold.bpLength.mean             = 0.0;
+    newScaffold.bpLength.variance         = 0.0;
+    newScaffold.id                        = GetNumGraphNodes(graph->ScaffoldGraph);
+    newScaffold.flags.bits.isDead         = FALSE;
+    newScaffold.numEssentialA             = 0;
+    newScaffold.numEssentialB             = 0;
+    newScaffold.essentialEdgeB            = NULLINDEX;
+    newScaffold.essentialEdgeA            = NULLINDEX;
+
+    //CDS_CID_t newScaffoldID = newScaffold.id;
+
+    fprintf(stderr, "Splitting "F_CID" into scaffold "F_CID"\n", scaffoldID, newScaffold.id);
+
+    AppendGraphNode(graph->ScaffoldGraph, &newScaffold);
+
+    scaffold = GetCIScaffoldT(graph->CIScaffolds, scaffoldID);
+
+    LengthT  firstOffset = { DBL_MAX, DBL_MAX };
+
+    for (int32 ic = 0; ic < contigMax; ic++) {
+      contig = GetGraphNode(graph->ContigGraph, contigID[ic]);
+
+      if (contig->setID != component)
+        continue;
+
+      RemoveCIFromScaffold(graph, scaffold, contig, FALSE);
+
+      if (firstOffset.mean == DBL_MAX)
+        firstOffset = (GetNodeOrient(contig).isForward()) ? contig->offsetAEnd : contig->offsetBEnd;
+
+      contig->offsetAEnd.mean     -= firstOffset.mean;
+      contig->offsetAEnd.variance -= firstOffset.variance;
+      contig->offsetBEnd.mean     -= firstOffset.mean;
+      contig->offsetBEnd.variance -= firstOffset.variance;
+
+      InsertCIInScaffold(graph, contig->id, newScaffold.id, contig->offsetAEnd, contig->offsetBEnd, TRUE, FALSE);
     }
 
-    // For each component, create a scaffold and insert the relevant
-    // contigs
-    for(component = 0; component < numComponents; component++){
-      LengthT NullLength = {0.0, 0.0};
-      LengthT firstOffset = {0.0, 0.0};
-      int seenFirstOffset;
-      CIScaffoldT CIScaffold;
-      CDS_CID_t newScaffoldID;
+    assert((GetGraphNode(graph->ScaffoldGraph, newScaffold.id))->info.Scaffold.numElements > 0);
 
-      InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
-      CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
-      CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
-      CIScaffold.info.Scaffold.numElements = 0;
-      CIScaffold.edgeHead = NULLINDEX;
-      CIScaffold.bpLength = NullLength;
-      newScaffoldID = CIScaffold.id = GetNumGraphNodes(graph->ScaffoldGraph);
-      CIScaffold.flags.bits.isDead = FALSE;
-#if 0
-      CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
-#endif
-      CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
-      CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
-      AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);
-
-      scaffold = GetCIScaffoldT(graph->CIScaffolds, scaffoldID);
-
-      for(inode = 0, seenFirstOffset = FALSE; inode < numNodes; inode++){
-        NodeCGW_T *thisNode = GetGraphNode(graph->ContigGraph, nodes[inode]);
-        if(thisNode->setID == component){
-          LengthT offsetAEnd, offsetBEnd;
-          if(!seenFirstOffset){
-            if(GetNodeOrient(thisNode).isForward()) {
-              firstOffset = thisNode->offsetAEnd;
-            }else{
-              firstOffset = thisNode->offsetBEnd;
-            }
-            seenFirstOffset = TRUE;
-          }
-          offsetAEnd.mean     = thisNode->offsetAEnd.mean     - firstOffset.mean;
-          offsetAEnd.variance = thisNode->offsetAEnd.variance - firstOffset.variance;
-          offsetBEnd.mean     = thisNode->offsetBEnd.mean     - firstOffset.mean;
-          offsetBEnd.variance = thisNode->offsetBEnd.variance - firstOffset.variance;
-
-          RemoveCIFromScaffold(graph, scaffold, thisNode, FALSE);
-          InsertCIInScaffold(graph, thisNode->id, newScaffoldID, offsetAEnd, offsetBEnd, TRUE, FALSE);
-        }
-      }
-      assert((GetGraphNode(graph->ScaffoldGraph, newScaffoldID))->info.Scaffold.numElements > 0);
-
-      fprintf(stderr, "Splitting "F_CID" into scaffold "F_CID"\n", scaffoldID, newScaffoldID);
-
-      //  Make sure that our new scaffold contains more than just a single surrogate.
-      //
-      killScaffoldIfOnlySurrogate(newScaffoldID);
-
-#ifdef DEBUG_SPLIT
-      fprintf(stderr,"... post split ...");
-      DumpACIScaffoldNew(stderr,graph,
-                         GetGraphNode(graph->ScaffoldGraph,newScaffoldID),
-                         TRUE);
-#endif
-
-    }
-
-    // Delete any remaining edges
-    DeleteScaffoldEdgesForScaffold(graph, scaffold);
-
-    // Mark the old scaffold dead
-    scaffold->flags.bits.isDead         = TRUE;
-    scaffold->info.Scaffold.AEndCI      = NULLINDEX;
-    scaffold->info.Scaffold.BEndCI      = NULLINDEX;
-    scaffold->info.Scaffold.numElements = 0;
-    scaffold->bpLength.mean             = 0.0;
-    scaffold->bpLength.variance         = 0.0;
-
-    safe_free(nodes);
+    //  Make sure that our new scaffold contains more than just a single surrogate.
+    //
+    killScaffoldIfOnlySurrogate(newScaffold.id);
   }
-  return numComponents;
+
+  // Delete any remaining edges
+  DeleteScaffoldEdgesForScaffold(graph, scaffold);
+
+  // Mark the old scaffold dead
+  scaffold->flags.bits.isDead         = TRUE;
+  scaffold->info.Scaffold.AEndCI      = NULLINDEX;
+  scaffold->info.Scaffold.BEndCI      = NULLINDEX;
+  scaffold->info.Scaffold.numElements = 0;
+  scaffold->bpLength.mean             = 0.0;
+  scaffold->bpLength.variance         = 0.0;
+
+  safe_free(contigID);
+
+  return(numComponents);
 }
 
 
