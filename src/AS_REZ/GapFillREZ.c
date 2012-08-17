@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.78 2012-08-10 18:07:59 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.79 2012-08-17 19:55:26 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -5338,7 +5338,7 @@ static void  Doublecheck_Positions_One_Scaffold
                        "Doublecheck ERROR:  variance dip = %f  chunk %d  scaff %d\n",
                        lo_var - prev_hi, check [k] -> chunk_id,
                        check [k] -> scaff_id);
-              var_adjust +=  prev_hi - lo_var;
+              var_adjust +=  2 * (prev_hi - lo_var);
             }
           adjustment [k] = var_adjust;
           prev_hi = hi_var;
@@ -5356,7 +5356,7 @@ static void  Doublecheck_Positions_One_Scaffold
                        "Doublecheck ERROR:  variance dip = %f  chunk %d  scaff %d\n",
                        next_lo - hi_var,  right_chunk -> id,
                        scaff_id);
-              var_adjust +=  hi_var - next_lo;
+              var_adjust +=  2 * (hi_var - next_lo);
             }
         }
 
