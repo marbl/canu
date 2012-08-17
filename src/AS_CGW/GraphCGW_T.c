@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.99 2012-08-17 05:25:27 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.100 2012-08-17 05:33:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +45,12 @@ static char *rcsid = "$Id: GraphCGW_T.c,v 1.99 2012-08-17 05:25:27 brianwalenz E
 #include "omp.h"
 
 VA_DEF(PtrT)
+
+//  If defined, the previous behavior of maintaining the edge list as alway sorted is used.  If
+//  undefined, the initial edge list will be unsorted until the first access, then maintained
+//  sorted.
+//
+#define ALWAYSINSERT
 
 void InitializeChunkInstance(ChunkInstanceT *ci, ChunkInstanceType type){
   ClearChunkInstance(ci);
