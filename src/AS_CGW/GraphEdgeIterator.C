@@ -19,9 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.3 2012-08-16 03:39:43 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.4 2012-08-17 05:25:28 brianwalenz Exp $";
 
 #include "GraphCGW_T.h"
+#include "ScaffoldGraph_CGW.h"
 //#include "GraphEdgeIterator.H"
 
 #include <vector>
@@ -75,7 +76,7 @@ GraphEdgeIterator::nextRaw(void) {
     nextR = r->nextRawEdge;
 
     if ((r->idA != cid) && (r->idB != cid))
-      fprintf(stderr, "ERROR: edge 0x%016lx idA=%d idB=%d not for cid %d\n",
+      fprintf(stderr, "ERROR: edge %16p idA=%d idB=%d not for cid %d\n",
               r, r->idA, r->idB, cid);
 
     assert(r->flags.bits.isRaw == true);
@@ -143,7 +144,7 @@ GraphEdgeIterator::nextMerged(void) {
   nextM = (r->idA == cid) ? r->nextALink : r->nextBLink;
 
   if ((r->idA != cid) && (r->idB != cid))
-    fprintf(stderr, "ERROR: edge 0x%016lx idA=%d idB=%d not for cid %d\n",
+    fprintf(stderr, "ERROR: edge %16p idA=%d idB=%d not for cid %d\n",
             r, r->idA, r->idB, cid);
 
   //  This is not true - we will return raw edges, as merged edges with only one raw edge.
@@ -190,7 +191,7 @@ GraphEdgeIterator::nextMerged(void) {
 
 
 
-static
+
 bool
 edgeCompare(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2) {
   int diff;
@@ -245,7 +246,14 @@ GraphEdgeIterator::sortEdges(void) {
   if (node->flags.bits.edgesModified == 0)
     return;
 
-  //fprintf(stderr, "GraphEdgeIterator::sortEdges()--  sorting for node %d\n", node->id);
+#if 0
+  char const *type = "UNKNOWN";
+  type = (graph == ScaffoldGraph->CIGraph)       ? "unitig" : type;
+  type = (graph == ScaffoldGraph->ContigGraph)   ? "contig" : type;
+  type = (graph == ScaffoldGraph->ScaffoldGraph) ? "scaffold" : type;
+
+  fprintf(stderr, "GraphEdgeIterator::sortEdges()--  sorting edges for %s %d\n", type, node->id);
+#endif
 
   node->flags.bits.edgesModified = 0;
 
@@ -262,19 +270,19 @@ GraphEdgeIterator::sortEdges(void) {
     edges.push_back(edge);
 
     if ((edge->idA != cid) && (edge->idB != cid))
-      fprintf(stderr, "ERROR: edge 0x%016lx idA=%d idB=%d not for cid %d\n",
+      fprintf(stderr, "ERROR: edge %16p idA=%d idB=%d not for cid %d\n",
               edge, edge->idA, edge->idB, cid);
     assert((edge->idA == cid) || (edge->idB == cid));
 
     ie = (edge->idA == cid) ? edge->nextALink : edge->nextBLink;
 
-    //fprintf(stderr, "GraphEdgeIterator::sortEdges()--   edge 0x%016lx idx %d next %d\n",
+    //fprintf(stderr, "GraphEdgeIterator::sortEdges()--   edge %16p idx %d next %d\n",
     //        edge, GetVAIndex_EdgeCGW_T(graph->edges, edge), ie);
   }
 
   //  Sort
 
-  sort(edges.begin(), edges.end(), edgeCompare);
+  __gnu_sequential::sort(edges.begin(), edges.end(), edgeCompare);
 
   //  Update pointers.
 

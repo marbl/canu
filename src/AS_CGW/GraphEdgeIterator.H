@@ -22,7 +22,7 @@
 #ifndef GRAPH_EDGE_ITERATOR_H
 #define GRAPH_EDGE_ITERATOR_H
 
-static const char *rcsid_GRAPH_EDGE_ITERATOR_H = "$Id: GraphEdgeIterator.H,v 1.3 2012-08-16 03:39:43 brianwalenz Exp $";
+static const char *rcsid_GRAPH_EDGE_ITERATOR_H = "$Id: GraphEdgeIterator.H,v 1.4 2012-08-17 05:25:28 brianwalenz Exp $";
 
 //  includes are broken here
 //#include "GraphCGW_T.h"
@@ -94,6 +94,10 @@ private:
   CDS_CID_t    currR;
   CDS_CID_t    nextR;
 };
+
+
+bool  edgeCompare(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2);
+
 
 
 #endif  //  GRAPH_EDGE_ITERATOR_H

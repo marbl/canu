@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.98 2012-08-16 03:39:43 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.99 2012-08-17 05:25:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +41,8 @@ static char *rcsid = "$Id: GraphCGW_T.c,v 1.98 2012-08-16 03:39:43 brianwalenz E
 #include "UtilsREZ.h"
 
 #include "Input_CGW.h"
+
+#include "omp.h"
 
 VA_DEF(PtrT)
 
@@ -355,17 +357,17 @@ GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid) {
   {
     GraphEdgeIterator edges(graph, edge->idA, ALL_END, ALL_EDGES);
     while (NULL != (edgeFromA = edges.nextMerged())){
-      //fprintf(stderr, "GraphEdgeSanity()--  testA Found edge 0x%016lx idx %d (%d,%d)\n",
+      //fprintf(stderr, "GraphEdgeSanity()--  testA Found edge %16p idx %d (%d,%d)\n",
       //        edgeFromA, GetVAIndex_EdgeCGW_T(graph->edges, edgeFromA), edgeFromA->idA, edgeFromA->idB);
       if (edgeFromA == edge)
         break;
     }
     if (edgeFromA == NULL) {
-      fprintf(stderr,"GraphEdgeSanity()-- Couldn't find edge 0x%016lx "F_CID" ("F_CID","F_CID") looking from A "F_CID"\n",
+      fprintf(stderr,"GraphEdgeSanity()-- Couldn't find edge %16p "F_CID" ("F_CID","F_CID") looking from A "F_CID"\n",
               edge, eid, edge->idA, edge->idB, edge->idA);
       edges.reset();
       while (NULL != (edgeFromA = edges.nextMerged())){
-        fprintf(stderr, "GraphEdgeSanity()--  Found edge 0x%016lx idx %d (%d,%d)\n",
+        fprintf(stderr, "GraphEdgeSanity()--  Found edge %16p idx "F_SIZE_T" (%d,%d)\n",
                 edgeFromA, GetVAIndex_EdgeCGW_T(graph->edges, edgeFromA), edgeFromA->idA, edgeFromA->idB);
       }
       fails = true;
@@ -375,17 +377,17 @@ GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid) {
   {
     GraphEdgeIterator edges(graph, edge->idB, ALL_END, ALL_EDGES);
     while (NULL != (edgeFromB = edges.nextMerged())){
-      //fprintf(stderr, "GraphEdgeSanity()--  testB Found edge 0x%016lx idx %d (%d,%d)\n",
+      //fprintf(stderr, "GraphEdgeSanity()--  testB Found edge %16p idx %d (%d,%d)\n",
       //        edgeFromB, GetVAIndex_EdgeCGW_T(graph->edges, edgeFromB), edgeFromB->idA, edgeFromB->idB);
       if (edgeFromB == edge)
         break;
     }
     if(edgeFromB == NULL) {
-      fprintf(stderr,"GraphEdgeSanity()-- Couldn't find edge 0x%016lx "F_CID" ("F_CID","F_CID") looking from B "F_CID"\n",
+      fprintf(stderr,"GraphEdgeSanity()-- Couldn't find edge %16p "F_CID" ("F_CID","F_CID") looking from B "F_CID"\n",
               edge, eid, edge->idA, edge->idB, edge->idB);
       edges.reset();
       while (NULL != (edgeFromB = edges.nextMerged())){
-        fprintf(stderr, "GraphEdgeSanity()--  Found edge 0x%016lx idx %d (%d,%d)\n",
+        fprintf(stderr, "GraphEdgeSanity()--  Found edge %16p idx "F_SIZE_T" (%d,%d)\n",
                 edgeFromB, GetVAIndex_EdgeCGW_T(graph->edges, edgeFromB), edgeFromB->idA, edgeFromB->idB);
       }
       fails = true;
@@ -417,9 +419,81 @@ InsertGraphEdgeInList(GraphCGW_T *graph,
     return;
   }
 
-  //  Mark as not sorted.
   //
-  ci->flags.bits.edgesModified = 1;
+  //  If the list is currently non-empty and sorted, insert the edge in the correct spot.
+  //
+
+  //  If defined, the previous behavior of maintaining the edge list as alway sorted is used.  If
+  //  undefined, the initial edge list will be unsorted until the first access, then maintained
+  //  sorted.
+#undef ALWAYSINSERT
+
+#ifndef ALWAYSINSERT
+  if ((ci->flags.bits.edgesModified == 0) &&
+      (ci->edgeHead != NULLINDEX)) {
+#endif
+    CIEdgeT *prvEdge = NULL;
+    CIEdgeT *nxtEdge = GetGraphEdge(graph, ci->edgeHead);
+
+    while ((nxtEdge != NULL) &&
+           (edgeCompare(newEdge, nxtEdge) == false)) {
+      prvEdge = nxtEdge;
+      nxtEdge = GetGraphEdge(graph, (prvEdge->idA == ciID) ? prvEdge->nextALink : prvEdge->nextBLink);
+    }
+
+    //  If we are always inserting, instead of just adding, this case is needed
+    //  to start a list.
+#ifdef ALWAYSINSERT
+    if ((prvEdge == NULL) && (nxtEdge == NULL)) {
+      ci->edgeHead = edgeID;
+
+      ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = NULLINDEX;
+      ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = NULLINDEX;
+    } else
+#endif
+
+    if (prvEdge == NULL) {
+      //  Insert at the head, before nxtEdge.
+      ci->edgeHead = edgeID;
+      ((nxtEdge->idA == ciID) ? nxtEdge->prevALink : nxtEdge->prevBLink) = edgeID;
+
+      ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = NULLINDEX;
+      ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = GetVAIndex_EdgeCGW_T(graph->edges, nxtEdge);
+
+    } else if (nxtEdge == NULL) {
+      //  Insert after prvEdge, at the tail.
+
+      ((prvEdge->idA == ciID) ? prvEdge->nextALink : prvEdge->nextBLink) = edgeID;
+
+      ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = GetVAIndex_EdgeCGW_T(graph->edges, prvEdge);
+      ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = NULLINDEX;
+
+    } else {
+      //  Insert after prvEdge, before nxtEdge.
+      ((prvEdge->idA == ciID) ? prvEdge->nextALink : prvEdge->nextBLink) = edgeID;
+      ((nxtEdge->idA == ciID) ? nxtEdge->prevALink : nxtEdge->prevBLink) = edgeID;
+
+      ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = GetVAIndex_EdgeCGW_T(graph->edges, prvEdge);
+      ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = GetVAIndex_EdgeCGW_T(graph->edges, nxtEdge);
+    }
+
+#if 0
+    char const *type = "UNKNOWN";
+    type = (graph == ScaffoldGraph->CIGraph)       ? "unitig" : type;
+    type = (graph == ScaffoldGraph->ContigGraph)   ? "contig" : type;
+    type = (graph == ScaffoldGraph->ScaffoldGraph) ? "scaffold" : type;
+
+    fprintf(stderr, "InsertGraphEdgeInList()--  Insert edge %16p idx %d to %s %d next %d\n", newEdge, edgeID, type, ciID, newEdge->nextALink);
+#endif
+
+    return;
+#ifndef ALWAYSINSERT
+  }
+#endif
+
+  //
+  //  Otherwise, add the new edge to the head of the list.
+  //
 
   //  Set the links to the prev/next edge.  This edge is forced to be the head.
   //  All edges are added to the A list, regardless.
@@ -436,7 +510,16 @@ InsertGraphEdgeInList(GraphCGW_T *graph,
   //
   ci->edgeHead = edgeID;
 
-  //fprintf(stderr, "InsertGraphEdgeInList()--  Added edge 0x%016lx idx %d to node %d next %d\n", newEdge, edgeID, ciID, newEdge->nextALink);
+  ci->flags.bits.edgesModified = 1;
+
+#if 0
+  char const *type = "UNKNOWN";
+  type = (graph == ScaffoldGraph->CIGraph)       ? "unitig" : type;
+  type = (graph == ScaffoldGraph->ContigGraph)   ? "contig" : type;
+  type = (graph == ScaffoldGraph->ScaffoldGraph) ? "scaffold" : type;
+
+  fprintf(stderr, "InsertGraphEdgeInList()--  Added  edge %16p idx %d to %s %d next %d\n", newEdge, edgeID, type, ciID, newEdge->nextALink);
+#endif
 }
 
 // Initialize the status flags for the given edge.
@@ -1979,6 +2062,28 @@ BuildGraphEdgesDirectly(GraphCGW_T *graph) {
   fprintf(stderr,"BuildGraphEdgesDirectly()-- Found %d fragments\n", stat.totalFragments);
   fprintf(stderr,"BuildGraphEdgesDirectly()-- Found %d/%d BacEnd pairs Unique-Unique\n", stat.totalUUBacPairs, stat.totalBacPairs);
   fprintf(stderr,"BuildGraphEdgesDirectly()-- Found %d/%d (%.2f%%) mate pairs node external\n", stat.totalExternalMatePairs, stat.totalMatePairs, f);
+
+  //  To sort the edges, all we need to do is create an iterator for each node                                                                                                
+
+  uint32  nc = GetNumNodeCGW_Ts(graph->nodes);
+  uint32  ns = 0;
+
+  fprintf(stderr,"BuildGraphEdgesDirectly()-- Sorting edges in "F_U32" unitigs.\n", nc);
+
+  int32 numThreads = omp_get_max_threads();
+  int32 blockSize  = (nc < 100 * numThreads) ? numThreads : nc / 99;      //  Up to 100 blocks.
+
+  assert(0 < blockSize);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 ni=0; ni<nc; ni++) {
+    ns++;
+
+    if ((ns % 1000000) == 0)
+      fprintf(stderr, "BuildGraphEdgesDirectly()-- Sorting edges in unitig "F_U32"\n", ns);
+
+    GraphEdgeIterator edges(graph, ni, ALL_END, ALL_EDGES);
+  }
 }
 
 
