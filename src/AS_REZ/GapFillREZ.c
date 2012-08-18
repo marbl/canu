@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.79 2012-08-17 19:55:26 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.80 2012-08-18 23:36:45 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -7073,6 +7073,7 @@ static void  Include_Good_Joins
         }
     }
 
+#if 0
   fprintf (stderr, "%6s %6s %5s %10s %7s %5s %5s %7s\n",
            "scaff1", "scaff2", "m", "b", "stdev", "bad", "vio", "chunk");
   for  (i = 0;  i < n;  i ++)
@@ -7083,6 +7084,7 @@ static void  Include_Good_Joins
                p [i] -> violated ? "y" : "n",
                p [i] -> chunk_id);
     }
+#endif
 
   for  (i = 0;  i < n;  i ++)
     if  (! p [i] -> is_bad)
