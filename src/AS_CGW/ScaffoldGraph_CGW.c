@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.68 2012-08-17 19:55:59 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.69 2012-08-18 23:58:10 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -525,11 +525,16 @@ static
 void
 TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph) {
 
+  fprintf(stderr, "TidyUpScaffolds()--  Starting CleanupScaffolds().\n");
   CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
-  for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++)
-    LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID), LeastSquares_Split);
+  fprintf(stderr, "TidyUpScaffolds()--  Starting LeastSquaresGapEstimates() followed by inline ScaffoldSanity().\n");
+  for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+    if (true == LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID), LeastSquares_Split))
+      ScaffoldSanity(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+  }
 
+  fprintf(stderr, "TidyUpScaffolds()--  Starting ScaffoldSanity().\n");
   ScaffoldSanity(ScaffoldGraph);
 
   if(GlobalData->debugLevel > 0)
@@ -537,7 +542,9 @@ TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph) {
 
   CheckAllTrustedEdges(ScaffoldGraph);
 
+  fprintf(stderr, "TidyUpScaffolds()--  Starting BuildSEdges().\n");
   BuildSEdges(ScaffoldGraph, TRUE, FALSE);
+  fprintf(stderr, "TidyUpScaffolds()--  Starting MergeAllGraphEdges().\n");
   MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
 
   CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);

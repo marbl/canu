@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.68 2012-08-17 19:55:59 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.69 2012-08-18 23:58:10 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -961,6 +961,14 @@ SetCIScaffoldTLengths(ScaffoldGraphT *sgraph) {
 
 
 
+
+bool
+AdjustNegativePositions(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
+bool
+AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
+
+
+
 void
 ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
@@ -970,6 +978,11 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   //fprintf(stderr, "ScaffoldSanity()-- Checking scaffold %d\n", scaffold->id);
 
   assert(scaffold->flags.bits.isScaffold == true);
+
+  if (scaffold->flags.bits.isDead == true) {
+    fprintf(stderr, "ScaffoldSanity()-- WARNING: Called on dead scaffold %d\n", scaffold->id);
+    return;
+  }
   assert(scaffold->flags.bits.isDead     == false);
 
   if (scaffold->type != REAL_SCAFFOLD)
@@ -985,6 +998,8 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   LengthT lastMin = {0, 0};
   LengthT lastMax = {0, 0};
+
+  uint32  hasProblems = 0;
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
@@ -1002,26 +1017,38 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
     numCtg++;
 
-    assert(CI->scaffoldID == scaffold->id);
+    if (CI->scaffoldID != scaffold->id)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- claims scaffold %d\n", CI->id, scaffold->id, CI->scaffoldID), hasProblems++;
 
-    assert(CI->flags.bits.isUnique == true);
-    assert(CI->flags.bits.isDead   == false);
+    if (CI->flags.bits.isUnique != true)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- marked as not unique\n", CI->id, scaffold->id), hasProblems++;
+    if (CI->flags.bits.isDead   != false)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- marked as dead\n", CI->id, scaffold->id), hasProblems++;
 
-    assert(0.0 <= CI->offsetAEnd.mean);
-    assert(0.0 <= CI->offsetBEnd.mean);
+    if (0.0 > CI->offsetAEnd.mean)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f negative\n", CI->id, scaffold->id, CI->offsetAEnd.mean), hasProblems++;
+    if (0.0 > CI->offsetBEnd.mean)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f negative\n", CI->id, scaffold->id, CI->offsetBEnd.mean), hasProblems++;
 
-    assert(CI->offsetAEnd.mean <= scaffold->bpLength.mean);
-    assert(CI->offsetBEnd.mean <= scaffold->bpLength.mean);
+    if (CI->offsetAEnd.mean > scaffold->bpLength.mean)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetAEnd.mean, scaffold->bpLength.mean), hasProblems++;
+    if (CI->offsetBEnd.mean > scaffold->bpLength.mean)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.mean %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetBEnd.mean, scaffold->bpLength.mean), hasProblems++;
 
-    assert(0.0 <= CI->offsetAEnd.variance);
-    assert(0.0 <= CI->offsetBEnd.variance);
+    if (0.0 > CI->offsetAEnd.variance)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f negative\n", CI->id, scaffold->id, CI->offsetBEnd.variance), hasProblems++;
+    if (0.0 > CI->offsetBEnd.variance)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.variance %f negative\n", CI->id, scaffold->id, CI->offsetBEnd.variance), hasProblems++;
 
     //  +1 for rounding errors
-    assert(CI->offsetAEnd.variance <= scaffold->bpLength.variance + 1.0);
-    assert(CI->offsetBEnd.variance <= scaffold->bpLength.variance + 1.0);
+    if (CI->offsetAEnd.variance > scaffold->bpLength.variance + 1.0)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetAEnd.variance, scaffold->bpLength.variance), hasProblems++;
+    if (CI->offsetBEnd.variance > scaffold->bpLength.variance + 1.0)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetBEnd.variance, scaffold->bpLength.variance), hasProblems++;
 
     if (numCtg == 0)
-      assert((CI->offsetAEnd.mean == 0.0) || (CI->offsetBEnd.mean == 0.0));
+      if ((CI->offsetAEnd.mean != 0.0) && (CI->offsetBEnd.mean != 0.0))
+        fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- first contig at %f,%f not zero\n", CI->id, scaffold->id, CI->offsetAEnd.mean, CI->offsetBEnd.mean), hasProblems++;
 
     //  Variances of rocks/stones/surrogates are not correct (these might be caught by the containment check below).
 
@@ -1037,19 +1064,70 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     //    (gdb) p thisMin  $6 = {mean = 2515.7648383446813, variance = 41712.021995136231}
     //                                     0.0000000000004
     //
-    assert(lastMin.mean <= thisMin.mean + 1.0);
-    assert(lastMin.mean <= thisMax.mean + 1.0);
+    if (lastMin.mean > thisMin.mean + 1.0)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- begins at %f before previous begin at %f\n", CI->id, scaffold->id, thisMin.mean, lastMin.mean), hasProblems++;
+    if (lastMin.mean > thisMax.mean + 1.0)
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- ends at %f before previous begin at %f\n", CI->id, scaffold->id, thisMax.mean, lastMin.mean), hasProblems++;
 
     //  If this contig is contained in the last, all bets are off on variance.
-    //  Thse occur during initial scaffolding (we shouldn't be calling this yet, though).
+    //  Thse occur when placing rocks during initial scaffolding (we shouldn't be calling this yet, though).
     //
     if (lastMax.mean < thisMax.mean)
       //  An actual gap (or a -20 gap)
-      assert(lastMax.variance <= thisMin.variance);
+      if (lastMax.variance > thisMin.variance)
+        fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- negative gap variance %f on positive gap size %f\n", CI->id, scaffold->id, thisMin.variance - lastMax.variance, thisMin.mean - lastMax.mean), hasProblems++;
 
     lastMin = thisMin;
     lastMax = thisMax;
   }
+
+  if (hasProblems > 0) {
+    fprintf(stderr, "ScaffoldSanity()-- scaffold %d has "F_U32" problems.\n", scaffold->id, hasProblems);
+
+#if 1
+  {
+    InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+
+    CI = NextCIScaffoldTIterator(&CIs);
+
+    CDS_CID_t  prevCIid     = CI->id;
+    LengthT    thisLeftEnd  = { 0, 0 };
+    LengthT    thisRightEnd = { 0, 0 };
+    LengthT    prevLeftEnd  = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+    LengthT    prevRightEnd = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
+
+    while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
+      thisLeftEnd  = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+      thisRightEnd = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
+
+      fprintf(stderr, "ScaffoldSanity()-- Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f  gap to next %9.0f +- %-11.0f\n",
+              prevCIid,
+              prevLeftEnd.mean,  prevLeftEnd.variance,
+              prevRightEnd.mean, prevRightEnd.variance,
+              prevRightEnd.mean - prevLeftEnd.mean,
+              thisLeftEnd.mean - prevRightEnd.mean,
+              thisLeftEnd.variance - prevRightEnd.variance);
+
+      prevCIid      = CI->id;
+      prevLeftEnd   = thisLeftEnd;
+      prevRightEnd  = thisRightEnd;
+    }
+
+    fprintf(stderr, "ScaffoldSanity()-- Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f\n",
+            prevCIid,
+            prevLeftEnd.mean,  prevLeftEnd.variance,
+            prevRightEnd.mean, prevRightEnd.variance,
+            prevRightEnd.mean - prevLeftEnd.mean);
+  }
+#endif
+  }
+
+  //  Attempt correction
+
+  //AdjustNegativePositions(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
+  //AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
+
+  assert(hasProblems == 0);
 
   assert(numCtg == scaffold->info.Scaffold.numElements);
 
