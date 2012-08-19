@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.99 2012-08-17 19:55:59 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.100 2012-08-19 02:51:46 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -443,12 +443,8 @@ main(int argc, char **argv) {
       changed = RepeatRez(GlobalData->repeatRezLevel, GlobalData->outputPrefix);
 
       if (changed){
-        ScaffoldSanity(ScaffoldGraph);
-
-        // merge in stuff placed by rocks, assuming its position is correct!
         CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-
-        // Transitive reduction of ContigGraph followed by construction of SEdges
+        ScaffoldSanity(ScaffoldGraph);
 
         //  With markShakyBifurcations disabled.
         BuildUniqueCIScaffolds(ScaffoldGraph, FALSE, FALSE);
@@ -652,13 +648,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "Beginning CHECKPOINT_AFTER_FINAL_CONTAINED_STONES\n");
 
     ScaffoldSanity (ScaffoldGraph);
+
     int contained_stones = Toss_Contained_Stones (GlobalData->outputPrefix, GlobalData->stoneLevel, 0);
-    ScaffoldSanity (ScaffoldGraph);
+    fprintf(stderr, "Threw %d contained stones\n", contained_stones);
     fprintf (stderr, "**** Finished Final Contained Stones level %d ****\n", GlobalData->stoneLevel);
 
     CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-
-    fprintf(stderr, "Threw %d contained stones\n", contained_stones);
+    ScaffoldSanity (ScaffoldGraph);
 
     // Remove copies of surrogates which are placed multiple times in the same place in a contig
 
