@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.4 2012-08-17 05:25:28 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.5 2012-08-19 03:03:23 brianwalenz Exp $";
 
 #include "GraphCGW_T.h"
 #include "ScaffoldGraph_CGW.h"
@@ -110,6 +110,20 @@ GraphEdgeIterator::nextRaw(void) {
   //  return it.
 
   if (r->flags.bits.isRaw == true) {
+
+    //  This assert was triggering in a variety of Salmon assemblies.  The top level edge (r) is
+    //  marked as raw, and claimed one contributing edge.  The top level edge was an overlap edge,
+    //  while the contributing edge was not.  The IDs did not agree.  There indeed was one
+    //  raw edge in the nextRawEdge list.
+    //
+    //  Instead of tracking down what caused this, we just 'fix' the top level edge to have
+    //  no underlying edges.
+    //
+    if (r->nextRawEdge != NULLINDEX) {
+      fprintf(stderr, "GraphEdgeIterator()-- WARNING: top level raw edge %p (%d,%d contributing=%d) claims to have raw edges (id %d).  Fixing and ignoring.\n",
+              r, r->idA, r->idB, r->edgesContributing, r->nextRawEdge);
+      r->nextRawEdge = NULLINDEX;
+    }
     assert(r->nextRawEdge == NULLINDEX);
 
     if ((GetEdgeStatus(r) & edgeStatusSet) == 0)
