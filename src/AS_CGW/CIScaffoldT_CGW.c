@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.69 2012-08-18 23:58:10 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.70 2012-08-19 04:11:11 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1072,8 +1072,8 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     //  If this contig is contained in the last, all bets are off on variance.
     //  Thse occur when placing rocks during initial scaffolding (we shouldn't be calling this yet, though).
     //
-    if (lastMax.mean < thisMax.mean)
-      //  An actual gap (or a -20 gap)
+    if (lastMax.mean < thisMin.mean)
+      //  An actual gap -- not a -20 gap or overlapping contigs.
       if (lastMax.variance > thisMin.variance)
         fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- negative gap variance %f on positive gap size %f\n", CI->id, scaffold->id, thisMin.variance - lastMax.variance, thisMin.mean - lastMax.mean), hasProblems++;
 
