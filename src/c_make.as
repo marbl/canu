@@ -43,17 +43,11 @@
 #
 # You can enable a profiling build by setting BUILDPROFILE to 1.
 #
-# You can enable a line coverage build by setting BUILDCOVERAGE to 1.
-# This implies a debug build with no optimization.
-#
 ifneq "$(origin BUILDDEBUG)" "environment"
 BUILDDEBUG     = 0
 endif
 ifneq "$(origin BUILDPROFILE)" "environment"
 BUILDPROFILE   = 0
-endif
-ifneq "$(origin BUILDCOVERAGE)" "environment"
-BUILDCOVERAGE  = 0
 endif
 
 
@@ -112,26 +106,24 @@ ifeq ($(OSTYPE), FreeBSD)
     ARCH_CFLAGS      =  -pthread -Wall -Wextra -Wno-write-strings -Wno-unused -Wno-char-subscripts -Wno-sign-compare -Wformat
   endif
 
-  #ARCH_CFLAGS  += -fopenmp
-  #ARCH_LDFLAGS += -fopenmp
-  ARCH_CFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
-  ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -rpath /usr/local/lib/gcc46
-
-  ifeq ($(BUILDCOVERAGE), 1)
-    ARCH_CFLAGS   += -g -fprofile-arcs -ftest-coverage
-    ARCH_LDFLAGS  += -lgcov
+  ifeq ($(BUILDPROFILE), 1)
+    ARCH_CFLAGS  += -fopenmp
+    ARCH_LDFLAGS += -fopenmp -rpath /usr/local/lib/gcc46
   else
-    ifeq ($(BUILDDEBUG), 1)
-      #  Inconveniently fix a problem where gcc46 doesn't work with gdb.
-      CC  = gcc44
-      CXX = g++44
-      ARCH_CFLAGS   += -g
+    ARCH_CFLAGS  += -D_GLIBCXX_PARALLEL -fopenmp
+    ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -rpath /usr/local/lib/gcc46
+  endif
+
+  ifeq ($(BUILDDEBUG), 1)
+    #  Inconveniently fix a problem where gcc46 doesn't work with gdb.
+    CC  = gcc44
+    CXX = g++44
+    ARCH_CFLAGS   += -g
+  else
+    ifeq ($(BUILDPROFILE), 1)
+      ARCH_CFLAGS   += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions
     else
-      ifeq ($(BUILDPROFILE), 1)
-        ARCH_CFLAGS   += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions
-      else
-        ARCH_CFLAGS   += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-      endif
+      ARCH_CFLAGS   += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     endif
   endif
 
