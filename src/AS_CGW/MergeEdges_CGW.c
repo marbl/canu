@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.33 2012-06-10 05:52:34 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.34 2012-08-19 03:04:28 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -329,6 +329,12 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
   for (edgeIndex = 0; edgeIndex < numEdges; edgeIndex++){
     thisEdgeIndex = *GetCDS_CID_t(inputEdges, edgeIndex);
     edge = GetCIEdgeT(edges, thisEdgeIndex);
+
+    edge->prevALink = NULLINDEX;
+    edge->nextALink = NULLINDEX;
+    edge->prevBLink = NULLINDEX;
+    edge->nextBLink = NULLINDEX;
+
     if(edgeIndex == 0){
       *newEdge = *edge;
       newEdge->nextRawEdge = thisEdgeIndex;
