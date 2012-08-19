@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStoreSorter.C,v 1.9 2012-06-02 08:34:53 brianwalenz Exp $";
+const char *mainid = "$Id: overlapStoreSorter.C,v 1.10 2012-08-19 04:13:52 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -397,7 +397,13 @@ main(int argc, char **argv) {
   //  This sort takes at most 2 minutes on 7gb of overlaps.
   //
   fprintf(stderr, "Sorting.\n");
+
+#ifdef _GLIBCXX_PARALLEL
+  //  If we have the parallel STL, don't use it!  Sort is not inplace!
   __gnu_sequential::sort(overlapsort, overlapsort + numOvl);
+#else
+  sort(overlapsort, overlapsort + numOvl);
+#endif
 
   //  Output to store format
 

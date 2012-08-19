@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.5 2012-08-19 03:03:23 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.6 2012-08-19 04:13:52 brianwalenz Exp $";
 
 #include "GraphCGW_T.h"
 #include "ScaffoldGraph_CGW.h"
@@ -296,7 +296,12 @@ GraphEdgeIterator::sortEdges(void) {
 
   //  Sort
 
+#ifdef _GLIBCXX_PARALLEL
+  //  If we have the parallel STL, don't use it!  We don't want the expense of firing up threads here.
   __gnu_sequential::sort(edges.begin(), edges.end(), edgeCompare);
+#else
+  sort(edges.begin(), edges.end(), edgeCompare);
+#endif
 
   //  Update pointers.
 
