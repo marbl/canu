@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.100 2012-08-17 05:33:57 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.101 2012-08-19 02:53:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2469,12 +2469,12 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
   if ((fragments) && (GetNumCDS_CID_ts(fragments) > 0))
     AssignFragsToResolvedCI(graph, oldNodeID, newNodeID, fragments);
 
-  fprintf(stderr,"SplitUnresolvedCI()--  Cloned surrogate ma of CI "F_CID" (length %d) has length (%d) %g\n",
-          oldNodeID, (int) GetMultiAlignUngappedLength(oldMA),
-          (int) GetMultiAlignLength(newMA), newNode->bpLength.mean);
+  //fprintf(stderr,"SplitUnresolvedCI()--  Cloned surrogate ma of CI "F_CID" (length %d) has length (%d) %g\n",
+  //        oldNodeID, (int) GetMultiAlignUngappedLength(oldMA),
+  //        (int) GetMultiAlignLength(newMA), newNode->bpLength.mean);
 
-  fprintf(stderr, "SplitUnresolvedCI()--  Split base CI="F_CID" (now with %d instances) into new CI="F_CID"\n",
-          oldNodeID, oldNode->info.CI.numInstances, newNodeID);
+  //fprintf(stderr, "SplitUnresolvedCI()--  Split base CI="F_CID" (now with %d instances) into new CI="F_CID"\n",
+  //        oldNodeID, oldNode->info.CI.numInstances, newNodeID);
 
   return newNodeID;
 }
@@ -2628,8 +2628,8 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
     }
   }
 
-  fprintf(stderr,"SplitUnresolvedContig()-- Split base CI="F_CID" contig="F_CID" into new CI="F_CID" contig="F_CID"\n",
-          baseCIid, oldID, newCIid, newID);
+  fprintf(stderr,"SplitUnresolvedContig()-- Split base CI="F_CID" (now with %d refs) contig="F_CID" into new CI="F_CID" contig="F_CID"\n",
+          baseCIid, baseCI->info.CI.numInstances, oldID, newCIid, newID);
 
   //DumpContig(stderr,ScaffoldGraph, newNode, FALSE);
 
