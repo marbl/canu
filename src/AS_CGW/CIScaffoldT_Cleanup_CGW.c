@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.80 2012-08-08 02:47:58 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.81 2012-08-19 02:52:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1044,50 +1044,21 @@ void PropagateOverlapsToNewContig(ContigT *contig,
       contigBase = minPos;
   }
 
-  AssertPtr(scaffold);
-
-#ifdef DEBUG_PROPAGATE
-  fprintf(stderr,"* PropagateOverlaps...initial\n");
-  DumpContig(stderr,ScaffoldGraph, GetGraphNode(ScaffoldGraph->ContigGraph, contig->id),FALSE);
-  fprintf(stderr,"* Calling internal *\n");
-#endif
-
   // First, propagate the tandem overlap marks to the new contig
   //
   aContig = GetGraphNode(ScaffoldGraph->ContigGraph, aEndID);
   bContig = GetGraphNode(ScaffoldGraph->ContigGraph, bEndID);
 
+  //DumpContig(stderr,ScaffoldGraph, GetGraphNode(ScaffoldGraph->ContigGraph, contig->id),FALSE);
 
-
-#ifdef DEBUG_PROPAGATE
-  DumpContig(stderr,ScaffoldGraph, GetGraphNode(ScaffoldGraph->ContigGraph, contig->id),FALSE);
-
-  fprintf(stderr,"* Calling extermal on "F_CID" *\n", aEndID);
-#endif
-
-  // Propagate overlaps from the contig at the a end of the new contig
   PropagateExtremalOverlapsToNewContig(aEndID, aEndEnd, contig, A_END, contigBase, verbose);
-
-#ifdef DEBUG_PROPAGATE
-  fprintf(stderr,"* Calling extermal on "F_CID" *\n", bEndID);
-  DumpContig(stderr,ScaffoldGraph, GetGraphNode(ScaffoldGraph->ContigGraph, contig->id),FALSE);
-#endif
-  // Propagate overlaps from the contig at the b end of the enw contig
   PropagateExtremalOverlapsToNewContig(bEndID, bEndEnd, contig, B_END, contigBase, verbose);
 
-  // Propagate Internal, non-containment overlaps
   PropagateInternalOverlapsToNewContig(contig, ContigPositions, scaffold->id, contigBase, verbose);
 
-#ifdef DEBUG_PROPAGATE
-  DumpContig(stderr,ScaffoldGraph, GetGraphNode(ScaffoldGraph->ContigGraph, contig->id),FALSE);
-  fprintf(stderr,"* Calling containment *\n");
-#endif
-  // Propagate Containment Overlaps
   PropagateContainmentOverlapsToNewContig(contig, ContigPositions, contigBase, verbose);
 
-#ifdef DEBUG_PROPAGATE
-  DumpContig(stderr,ScaffoldGraph, GetGraphNode(ScaffoldGraph->ContigGraph, contig->id),FALSE);
-#endif
+  //DumpContig(stderr,ScaffoldGraph, GetGraphNode(ScaffoldGraph->ContigGraph, contig->id),FALSE);
 }
 
 
