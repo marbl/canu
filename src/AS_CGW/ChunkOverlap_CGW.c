@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.59 2012-08-10 16:39:53 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.60 2012-08-20 11:55:23 brianwalenz Exp $";
 
 #include "ChunkOverlap_CGW.h"
 #include "AS_UTL_reverseComplement.h"
@@ -720,6 +720,8 @@ void CollectChunkOverlap(GraphCGW_T *graph,
     return;
   }
 
+  //fprintf(stderr, "Collect %d to %d\n", cidA, cidB);
+
   memset(&canOlap, 0, sizeof(ChunkOverlapCheckT));
 
   // Create a canonical representation of the overlap
@@ -1264,6 +1266,8 @@ ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates, int recomputeCGBOverlaps) {
   HashTable_Iterator_AS iterator;
   uint64 key, value;
   uint32 valuetype;
+
+  fprintf(stderr, "ComputeOverlaps()--\n");
 
   InitializeHashTable_Iterator_AS(ScaffoldGraph->ChunkOverlaps->hashTable, &iterator);
 

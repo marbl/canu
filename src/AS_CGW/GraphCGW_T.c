@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.101 2012-08-19 02:53:01 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.102 2012-08-20 11:55:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1029,10 +1029,7 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
 }
 
 
-// collectOverlap argument is ignored.
-// We NEVER collect overlaps! SAK 10/13/2000
-// This means overlaps are never pre-computed, which was needed for dros
-// gap walking, but instead, discovered as needed.
+
 CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
                        CDS_CID_t cidA, CDS_CID_t cidB,
                        CDS_CID_t fragidA, CDS_CID_t fragidB,
@@ -1163,6 +1160,8 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
 
   if(insert)
     InsertGraphEdge(graph, ciedgeIndex, FALSE);
+
+  //  isPotentialRock is set in ComputeMatePairStatisticsRestricted()
 
   if(collectOverlap &&
      CIa->flags.bits.isPotentialRock &&

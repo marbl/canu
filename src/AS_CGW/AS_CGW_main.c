@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.100 2012-08-19 02:51:46 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.101 2012-08-20 11:55:23 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -326,7 +326,9 @@ main(int argc, char **argv) {
 
     LoadDistData();
 
-    //ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, GlobalData->minSamplesForOverride, "unitig_initial");
+    //  This also labels unitigs as potential rocks / stones.
+    //  That is the only real reason to call it here.  Insert sizes are set already.
+    ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, GlobalData->minSamplesForOverride, "unitig_initial");
 
     CheckpointScaffoldGraph(CHECKPOINT_AFTER_LOADING, "after loading");
   } else if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_LOADING) == 0) {
