@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AS_PBR_UTIL_H
 #define AS_PBR_UTIL_H
 
-static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.3 2012-06-28 20:02:45 skoren Exp $";
+static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.4 2012-08-20 13:10:37 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -49,18 +49,26 @@ static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.3 2012-06-28 2
 
 #include <map>
 #include <stack>
+#include "boost/dynamic_bitset.hpp"
 
 #include <pthread.h>
 
 #define	THREAD_STACKSIZE	(16 * 512 * 512)
 #define CGW_CUTOFF 			5
+#define	NUM_BITS			8
 
-const uint16 	MAX_COV_HIST	= 65535;
-const uint8 	MAX_COV			= 255;
-const double 	CUMULATIVE_SUM	= 0.5; //0.95;
-const uint64 	MAX_TO_READ		= 100000;
-const double	DEFAULT_SAMPLE_SIZE = 0.05;
-const uint32	CHIMERA_MAX_SIZE = 60;
+const uint16 	MAX_COV_HIST					= 	65535;
+const uint8 	MAX_COV							= 	255;
+const double 	CUMULATIVE_SUM					=	0.5;
+const uint64 	MAX_TO_READ						= 	100000;
+const double	DEFAULT_SAMPLE_SIZE 			= 	0.05;
+const double	DEFAULT_SHORT_READ_STORE_SIZE 	= 	0.01;
+const uint32	CHIMERA_MAX_SIZE 				= 	150;
+const uint32	MIN_DIST_TO_RECRUIT				=	500;
+
+const uint8		VERBOSE_OFF 					= 0;
+const uint8		VERBOSE_DEBUG					= 1;
+const uint8		VERBOSE_DEVELOPER				= 2;
 
 struct OverlapPos {
    SeqInterval position;
@@ -81,6 +89,9 @@ struct PBRThreadGlobals {
 
    map<AS_IID, uint8> readsToPrint;
    map<AS_IID, uint32> longReadsToPrint;
+   double percentShortReadsToStore;
+   boost::dynamic_bitset<> *gappedReadSet;
+   uint32 bitMax;
 
    // track number of active threads for output of layouts
    stack<pair<AS_IID, AS_IID> > toOutput;
@@ -97,7 +108,9 @@ struct PBRThreadGlobals {
    double    repeatMultiplier;
    int       minLength;
    char      prefix[FILENAME_MAX];
+   char		 exePath[FILENAME_MAX];
    double	 percentToEstimateInserts;
+   uint8	 verboseLevel;
 
    // read-only variables for thread
    uint16 covCutoff;
@@ -113,6 +126,7 @@ struct PBRThreadGlobals {
    map<AS_IID, pair<double, double> > libToSize;
    map<AS_IID, uint8 > libToOrientation;
    bool hasMates;
+   char libName[LIBRARY_NAME_SIZE];
 
    matePairAnalysis *mpa;
 
@@ -131,6 +145,20 @@ struct PBRThreadWorkArea {
    uint32 fileEnd;
    PBRThreadGlobals *globals;
 };
+
+static boost::dynamic_bitset<>* initGappedReadSet(PBRThreadGlobals *globals, AS_IID max = 0) {
+	if (globals->bitMax == 0) {
+		assert(max != 0);
+		globals->bitMax = max;
+	}
+	return new boost::dynamic_bitset<>(globals->bitMax + 1);
+}
+
+static AS_IID getBitSetID(AS_IID &id, PBRThreadGlobals *globals) {
+	assert(globals != NULL);
+	assert(id < globals->bitMax);
+	return id;
+}
 
 static uint32 olapLengthOVL(OVSoverlap ovl, uint32 alen, uint32 blen) {
   int32   ah = ovl.dat.ovl.a_hang;
@@ -319,5 +347,5 @@ static bool rangesOverlap(const SeqInterval &first, const SeqInterval &second) {
    return (end-start+1) > 0;
 }
 
-extern void convertOverlapToPosition(const OVSoverlap& olap, SeqInterval &pos, SeqInterval &bClr, uint32 alen, uint32 blen);
+extern void convertOverlapToPosition(const OVSoverlap& olap, SeqInterval &pos, SeqInterval &bClr, uint32 alen, uint32 blen, bool forB = false);
 #endif

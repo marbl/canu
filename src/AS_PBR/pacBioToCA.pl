@@ -56,7 +56,31 @@ use POSIX qw(ceil floor sys_wait_h);
 my $TAB_SIZE = 8;
 
 my %global;
-my @nonCAOptions = ("genomeSize", "shortReads", "libraryname", "specFile", "length", "coverage", "maxUncorrectedGap", "threads", "repeats", "fastqFile", "partitions", "sumitToGrid", "sgeCorrection", "consensusConcurrency", "cleanup");
+my @nonCAOptions = ("genomeSize", "shortReads", "libraryname", "specFile", "length", "coverage", "maxCoverage", "maxGap", "maxUncorrectedGap", "threads", "repeats", "fastqFile", "partitions", "submitToGrid", "sgeCorrection", "consensusConcurrency", "cleanup");
+
+sub buildGridArray($$$) {
+	my $name = shift @_;
+	my $maxLimit = shift @_;
+	my $globalValue = shift @_;
+	
+	my $arrayJobName = getGlobal($globalValue);
+	$arrayJobName =~ s/ARRAY_NAME/$name/g;
+	$arrayJobName =~ s/ARRAY_JOBS/1-$maxLimit/g;
+	
+	return $arrayJobName;
+}
+
+sub getGridArrayName($$) {
+	my $name = shift @_;
+	my $maxLimit = shift @_;	
+	return buildGridArray($name, $maxLimit, "gridArrayName");
+}
+
+sub getGridArrayOption($$) {
+	my $name = shift @_;
+	my $maxLimit = shift @_;	
+	return buildGridArray($name, $maxLimit, "gridArrayOption");	
+}
 
 sub getGlobal ($) {
     my $var = shift @_;
@@ -78,11 +102,24 @@ sub setGlobal ($$) {
 }
 
 sub setDefaults() {
+	# grid options, duplicate of runCA
+    $global{"gridSubmitCommand"}		   = "qsub";
+    $global{"gridHoldCommand"}			   = undef; # for lsf it is bsub -K WAIT_TAG echo \"Done\"
+    $global{"gridHoldOption"}			   = "-hold_jid WAIT_TAG"; # for lsf it is -w done(WAIT_TAG)
+    $global{"gridSyncOption"}			   = "-sync y"; # for lsf it is -K
+    $global{"gridNameOption"}			   = "-cwd -N";
+    $global{"gridArrayOption"}			   = "-t ARRAY_JOBS";	# for lsf, empty ("")
+    $global{"gridArrayName"}			   = "ARRAY_NAME";		# for lsf, it is ARRAY_NAME[1-ARRAY_JOBS]
+    $global{"gridOutputOption"}			   = "-j y -o";
+    $global{"gridPropagateCommand"}		   = "qalter";			# for lsf it is undef
+    $global{"gridTaskID"}				   = "SGE_TASK_ID";
+	
 	$global{"shortReads"} = undef;
 	$global{"libraryname"} = undef;
 	$global{"specFile"} = undef;
 	$global{"length"} = 500;
 	$global{"coverage"} = 0;
+	$global{"maxCoverage"} = 0;
         $global{"genomeSize"} = 0;
 	$global{"maxUncorrectedGap"} = 0;
 	$global{"threads"} = 1;
@@ -96,33 +133,23 @@ sub setDefaults() {
 	$global{"cleanup"} = 1;
 }
 
-sub updateSpecFile($$) {
-	my $specFile = shift @_;
+sub updateSpecFile($) {
 	my $outFile = shift @_;
-    open(F, "< $specFile") or die("Couldn't open '$specFile'", undef);
     open(W, "> $outFile") or die("Couldn't open '$outFile'", undef);
 
 	my $print = 1;
-    while (<F>) {
-		s/^\s+//;
-        s/\s+$//;
-        
-    	# skip comments
-		next if (m/^\s*\#/);
-        next if (m/^\s*$/);
-
+	foreach my $key (keys %global) {
     	$print = 1;        
-    	foreach my $key (@nonCAOptions) {
-    		if (index($_, $key) != -1) {
+    	foreach my $nonCaOption (@nonCAOptions) {
+    		if (index($key, $nonCaOption) == 0) {
     			$print = 0;
     			last;
     		}
     	}
     	if ($print == 1) {
-    		print W "$_\n";
+    		print W "$key = " . getGlobal($key) . "\n";
     	}
     }
-    close(F);
     close(W);
 }
 
@@ -161,6 +188,9 @@ sub setParametersFromFile ($@) {
             $var =~ s/^\s+//; $var =~ s/\s+$//;
             $val =~ s/^\s+//; $val =~ s/\s+$//;
             undef $val if ($val eq "undef");
+            if ($var eq "maxGap") {
+               $var = "maxUncorrectedGap"; 
+            }
             setGlobal($var, $val);
         } else {
             setGlobal("help", getGlobal("help") . "File not found or unknown specFile option line '$_'.\n");
@@ -371,6 +401,7 @@ sub schedulerFinish {
 ################################################################################
 my $MIN_FILES_WITHOUT_PARTITIONS = 20;
 my $REPEAT_MULTIPLIER = 10;
+my $MAX_CORRECTION_COVERAGE = 100;
 
 setDefaults();
 
@@ -411,6 +442,7 @@ my $err = 0;
 if (-e getGlobal("specFile")) {
    @fragFiles = setParametersFromFile(getGlobal("specFile"), @fragFiles);
 } else {
+	print STDERR "Error: spec file " . getGlobal("specFile") . " does not exist. Double-check your paths and try again.\n";
    $err++;
 }
 setParametersFromCommandLine(@specOpts);
@@ -425,6 +457,10 @@ while (scalar(@cmdArgs) > 0) {
     } elsif ($arg eq "-coverage") {
         setGlobal("coverage", shift @cmdArgs);
         if (getGlobal("coverage") < 0) { setGlobal("coverage", 0); }
+
+    } elsif ($arg eq "-maxCoverage") {
+        setGlobal("maxCoverage", shift @cmdArgs);
+        if (getGlobal("maxCoverage") < 0) { setGlobal("maxCoverage", 0); }
 
     } elsif ($arg eq "-genomeSize") {
        setGlobal("genomeSize", shift @cmdArgs);
@@ -475,7 +511,7 @@ if (($err) || (scalar(@fragFiles) == 0) || (!defined(getGlobal("fastqFile"))) ||
    print STDERR "No library name provided. Please specify a name using the -library option.\n" if (!defined(getGlobal("libraryname")));  
 
     print STDERR "usage: $0 [options] -s spec.file -fastq fastqfile <frg>\n";
-    print STDERR "  -length                  Minimum length to keep.\n";
+    print STDERR "  -length                  Minimum length of PacBio sequences to correct/output.\n";
     print STDERR "  -partitions              Number of partitions for consensus\n";
     print STDERR "  -sge                     Submit consensus jobs to the grid\n";
     print STDERR "  -sgeCorrection           Parameters for the correction step for the grid. This should match the threads specified below, for example by using -pe threaded\n";
@@ -483,30 +519,43 @@ if (($err) || (scalar(@fragFiles) == 0) || (!defined(getGlobal("fastqFile"))) ||
     print STDERR "  -threads threads         Number of threads to use for correction.\n";
     print STDERR "  -shortReads              Use if the sequences for correction are 100bp or shorter.\n";
 
-    print STDERR "  -coverage		     Specify the pacBio coverage (integer) instead of automatically estimating.\n";
     print STDERR "  -genomeSize		     Specify the approximate genome size. This overwrites the coverage parameter above and will be used to compute estimated coverage instead of automatically estimating.\n\n";
+    print STDERR "  -maxCoverage		 Maximum coverage of PacBio sequences to correct. Only the longest sequences adding up to this coverage will be corrected. Requires genomeSize or coverage parameter to be specified\n";
 
     print STDERR "\nAdvanced options (EXPERT):\n";
+    print STDERR "  -coverage		 Specify the pacBio coverage (integer) instead of automatically estimating.\n";
     print STDERR "  -maxGap		     The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option allows a number of PacBio sequences without short-read coverage to remain. For example, specifying 50, will mean 50bp can have no short-read coverage without splitting the PacBio sequence. Warning: this will allow more sequences that went through the SMRTportal to not be fixed.\n";
     exit(1);
 }
 
+# get grid options
+my $submitCommand 	= getGlobal("gridSubmitCommand");
+my $nameOption 		= getGlobal("gridNameOption");
+my $outputOption 	= getGlobal("gridOutputOption");
+my $holdOption	    = getGlobal("gridHoldOption");
+my $holdCommand     = getGlobal("gridHoldCommand");
+my $syncOption      = getGlobal("gridSyncOption");
+
 #check for valid parameters for requested partitions and threads
-$MIN_FILES_WITHOUT_PARTITIONS += getGlobal("threads");
 my $limit = 1024;
+my $FILES_PER_PARTITION = (getGlobal("maxUncorrectedGap") > 0 ? 3 : 1);
+my $FILES_PER_THREAD = 3;
+
 my $sysLimit = `ulimit -Sn`;
 chomp($sysLimit);
 if (defined($sysLimit)) {
    $limit = $sysLimit;
 }
-if ($limit - $MIN_FILES_WITHOUT_PARTITIONS <= getGlobal("partitions")) {
-   setGlobal("partitions", $limit - $MIN_FILES_WITHOUT_PARTITIONS);
-   if (getGlobal("threads") > getGlobal("partitions")) { setGlobal("threads", getGlobal("partitions") - 1); }
-   print STDERR "Warning: file handle limit of $limit prevents using requested partitions. Reset partitions to " . getGlobal("partitions") . ". If you want more partitions, reset the limit and try again.\n";
+if ($limit - $MIN_FILES_WITHOUT_PARTITIONS <= $FILES_PER_PARTITION*getGlobal("partitions") || $limit - $MIN_FILES_WITHOUT_PARTITIONS <= getGlobal("threads") * $FILES_PER_THREAD) {
+	my $maxPartitions = floor(($limit - $MIN_FILES_WITHOUT_PARTITIONS) / $FILES_PER_PARTITION);
+	my $maxThreads = (floor($limit - $MIN_FILES_WITHOUT_PARTITIONS) / $FILES_PER_THREAD);
+   setGlobal("partitions", ($maxPartitions < getGlobal("partitions") ? $maxPartitions : getGlobal("partitions")));
+   setGlobal("threads", ($maxThreads < getGlobal("threads") ? $maxThreads : getGlobal("threads")));
+   print STDERR "Warning: file handle limit of $limit prevents using requested partitions. Reset partitions to " . getGlobal("partitions") . " and " . getGlobal("threads") . " threads. If you want more partitions, reset the limit using ulimit -Sn and try again.\n";
 }
-if (getGlobal("partitions") <= getGlobal("threads")) {
-   setGlobal("partitions", getGlobal("threads") + 1);
-   print STDERR "Warning: number of partitions should be > # threads. Adjusted partitions to be ". getGlobal("partitions") . "\n";
+if (getGlobal("threads") > getGlobal("partitions")) {
+   setGlobal("threads", getGlobal("partitions") - 1);
+   print STDERR "Warning: number of partitions should be > # threads. Adjusted threads to be ". getGlobal("threads") . "\n";
 }
 
 print STDOUT "Running with " . getGlobal("threads") . " threads and " . getGlobal("partitions") . " partitions\n";
@@ -518,9 +567,9 @@ my $asm = "asm";
 my $caSGE  = getGlobal("sge");
 
 if (defined($caSGE)) {
-   $caSGE = "sge=\"" .$caSGE . " -sync y\" sgePropagateHold=corAsm";
+   $caSGE = "sge=\"" .$caSGE . " $syncOption \" sgePropagateHold=corAsm";
 } else {
-   $caSGE = "sge=\"" . " -sync y\" sgePropagateHold=corAsm";
+   $caSGE = "sge=\"" . " $syncOption \" sgePropagateHold=corAsm";
 }
 my $scriptParams = getGlobal("sgeScript");
 
@@ -598,14 +647,14 @@ my $cleanup = getGlobal("cleanup");
 my $cmd = "";
 
 if ($coverage != 0 && $genomeSize != 0) {
-   print STDERR "Warning, both coverage and genome size is set. Coverage $coverage will be overwritten by genome size\n";
+   print STDERR "Warning, both coverage and genome size is set. Coverage $coverage will be overwritten by $genomeSize\n";
 }
 
 if (! -e "temp$libraryname") {
    runCommand("$wrk", "mkdir temp$libraryname");
 }
 # generate the ca spec file, since we support additional options in the spec file, we need to strip those out before passing it to ca
-updateSpecFile($specFile, "$wrk/temp$libraryname/$libraryname.spec");
+updateSpecFile("$wrk/temp$libraryname/$libraryname.spec");
 $specFile = "$wrk/temp$libraryname/$libraryname.spec";
 
 runCommand($wrk, "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio-long -reads " . makeAbsolute($fastqFile) . " > $wrk/temp$libraryname/$libraryname.frg"); 
@@ -621,6 +670,9 @@ my $maxCorrectLib = 0;
 my $libToCorrect = 0;
 for (my $i = 1; $i <= $numLib; $i++) {
    if (system("$CA/gatekeeper -isfeatureset $i doConsensusCorrection temp$libraryname/$asm.gkpStore") == 0) {
+   	  if ($libToCorrect != 0) {
+   	  	die("Error: only one PacBio library can be corrected. Both libraries $libToCorrect and $i are set to be corrected. Please double-check your input files and try again", undef);
+   	  }
       $libToCorrect = $i;
     } else {
       if ($minCorrectLib == 0) { $minCorrectLib = $i; }
@@ -628,34 +680,105 @@ for (my $i = 1; $i <= $numLib; $i++) {
    }
 }
 
-# run correction up thorough meryl
-runCommand($wrk, "$CA/runCA -s $specFile -p $asm -d temp$libraryname $caSGE stopAfter=meryl");
+# check that we were able to find the libraries for correction as expected
+print STDERR "Will be correcting PacBio library $libToCorrect with librarie[s] $minCorrectLib - $maxCorrectLib\n";
+if ($libToCorrect == 0 || ($minCorrectLib == 0 && $maxCorrectLib == 0)) {
+	die ("Error: unable to find a library to correct. Please double-check your input files and try again.", undef);
+}
+if ($libToCorrect <= $minCorrectLib) {
+	die("Error: The PacBio library $libToCorrect must be the last library loaded but it preceedes $minCorrectLib. Please double-check your input files and try again.", undef);
+}
+my $totalBP = 0;
+# compute the number of bases in the gateeeker to be corrected
+open(F, "$CA/gatekeeper -dumpinfo temp$libraryname/$asm.gkpStore |") or die("Couldn't open gatekeeper store", undef);
 
-# set the meryl threshold based on the genome size and coverage (if specified)
-if ($genomeSize != 0) {
-   my $totalBP = 0;
+while (<F>) {
+   s/^\s+//;
+   s/\s+$//;
 
-   # compute the number of bases in the gateeeker to be corrected
-   open(F, "$CA/gatekeeper -dumpinfo temp$libraryname/$asm.gkpStore |") or die("Couldn't open gatekeeper store", undef);
-
-   while (<F>) {
-      s/^\s+//;
-      s/\s+$//;
-
-      my @array = split '\s+';
-      if ($#array == 8 && $array[0] == $libToCorrect) { 
-         $totalBP = $array[6];
-      }
-   }
-   close(F); 
-
-   if ($totalBP > 0) {
-      $coverage = ceil($totalBP / $genomeSize);
-      setGlobal("coverage", $coverage);
+   my @array = split '\s+';
+   if ($#array == 8 && $array[0] == $libToCorrect) { 
+      $totalBP = $array[6];
    }
 }
-# set the meryl threshold if necessary
-if (getGlobal("ovlMerThreshold") == "auto") {
+close(F); 
+
+# here is where we filter for specified length as well as max of longest X of coverage for correction
+# use the genome size/coverage, if available to subset the sequences
+if ($genomeSize != 0 && getGlobal("maxCoverage" != 0)) {
+   $totalBP = $genomeSize * getGlobal("maxCoverage"); 
+} elsif ($coverage != 0 && getGlobal("maxCoverage") != 0) {
+	$genomeSize = floor($totalBP / $coverage);
+	setGlobal("genomeSize", $genomeSize);
+}
+runCommand($wrk, "$CA/gatekeeper -dumpfragments -invert -tabular -longestovermin $libToCorrect $length -longestlength $libToCorrect $totalBP temp$libraryname/$asm.gkpStore |awk '{if (!(match(\$1, \"UID\") != 0 && length(\$1) == " . length("UID") . ")) { print \"frg uid \"\$1\" isdeleted 1\"; } }' > $wrk/temp$libraryname/$asm.toerase.uid");
+runCommand($wrk, "$CA/gatekeeper --edit $wrk/temp$libraryname/$asm.toerase.uid $wrk/temp$libraryname/$asm.gkpStore > $wrk/temp$libraryname/$asm.toerase.out 2> $wrk/temp$libraryname/$asm.toerase.err");
+
+# compute the number of bases left after our filtering gateeeker to be corrected
+my $totalCorrectingWith = 0;
+open(F, "$CA/gatekeeper -dumpinfo temp$libraryname/$asm.gkpStore |") or die("Couldn't open gatekeeper store", undef);
+while (<F>) {
+   s/^\s+//;
+   s/\s+$//;
+
+   my @array = split '\s+';
+   if ($#array == 8) {
+   	  if ($array[0] == $libToCorrect) { 
+      	$totalBP = $array[6];
+   	  } elsif ($minCorrectLib <= $array[0] && $array[0] <= $maxCorrectLib) {
+   	  	$totalCorrectingWith += $array[6];
+   	  }
+   }
+}
+close(F);
+
+if ($genomeSize != 0) {
+   $coverage = ceil($totalBP / $genomeSize);
+   setGlobal("coverage", $coverage);
+} elsif ($coverage != 0) {
+	$genomeSize = ceil($totalBP / $coverage);
+	setGlobal("genomeSize", $genomeSize);
+}
+
+# check that we have good data
+if ($genomeSize != 0) {
+    print STDOUT "Running with " . $coverage . "X (for genome size $genomeSize) of $libraryname sequences ($totalBP bp).\n";
+    print STDOUT "Correcting with " . floor($totalCorrectingWith / $genomeSize) . "X sequences ($totalCorrectingWith bp).\n";
+} else {
+    print STDOUT "Running with $totalBP bp for $libraryname.\n";
+    print STDOUT "Correcting with $totalCorrectingWith bp.\n";
+}
+    
+if ($totalBP == 0) {
+	print STDERR "Error: All $libraryname sequences were eliminated. Please check the length threshold of $length and your input file $fastqFile.\n";
+    runCommand("$wrk", "rm -rf temp$libraryname");
+	die;
+}
+if ($totalCorrectingWith == 0) {
+	print STDERR "Error: No high-accuracy sequences for correction. Please check your input FRG files " . join(", ", @fragFiles) . "\n";
+	runCommand("$wrk", "rm -rf temp$libraryname");
+	die;
+}
+if ($genomeSize != 0 && floor($totalCorrectingWith / $genomeSize) > $MAX_CORRECTION_COVERAGE) {
+	print STDERR "Warning: input a total of " . floor($totalCorrectingWith / $genomeSize) . " of high-accuracy coverage for correction. For best performance, at most $MAX_CORRECTION_COVERAGE is recommended.\n";
+	# could randomly subsample here
+}
+
+# run correction up thorough meryl
+$cmd  = "$CA/runCA ";
+$cmd .=    "-s $specFile ";
+$cmd .=    "-p $asm -d temp$libraryname ";
+$cmd .=    "ovlHashLibrary=$libToCorrect ";
+$cmd .=    "ovlRefLibrary=$minCorrectLib-$maxCorrectLib ";
+$cmd .=    "ovlCheckLibrary=1 ";
+$cmd .=    "obtHashLibrary=$minCorrectLib-$maxCorrectLib ";
+$cmd .=    "obtRefLibrary=$minCorrectLib-$maxCorrectLib ";
+$cmd .=    "obtCheckLibrary=0 ";
+$cmd .=   "$caSGE stopAfter=meryl";
+runCommand($wrk, $cmd);
+
+# set the meryl threshold based on the genome size and coverage (if specified)
+if (!defined(getGlobal("ovlMerThreshold")) || getGlobal("ovlMerThreshold") == "auto") {
    # no threshold specified, check if the chosen one is OK
    my $autoSetThreshold = `cat temp$libraryname/0-mercounts/*estMerThresh.out`;
    chomp($autoSetThreshold); 
@@ -705,7 +828,7 @@ if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
    chmod 0755, "$wrk/temp$libraryname/runCorrection.sh";
 
    if ($submitToGrid == 1) {
-      runCommand("$wrk/temp$libraryname", "qsub $sge $sgeCorrection -sync y -cwd -N correct_$asm -j y -o /dev/null $wrk/temp$libraryname/runCorrection.sh");
+      runCommand("$wrk/temp$libraryname", "$submitCommand $sge $sgeCorrection $syncOption $nameOption correct_$asm $outputOption /dev/null $wrk/temp$libraryname/runCorrection.sh");
    } else {
       runCommand("$wrk/temp$libraryname", "$wrk/temp$libraryname/runCorrection.sh");
    }
@@ -761,7 +884,14 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    chmod 0755, "$wrk/temp$libraryname/runPartition.sh";
 
    if ($submitToGrid == 1) {
-      runCommand("$wrk/temp$libraryname", "qsub $sge -sync y -cwd -N utg_$asm -t 1-$partitions -j y -o /dev/null $wrk/temp$libraryname/runPartition.sh");
+   	  my $jobName = getGridArrayName("utg_$asm", $partitions);
+   	  my $arrayOpt = getGridArrayOption("utg_$asm", $partitions);
+      runCommand("$wrk/temp$libraryname", "$submitCommand $sge $syncOption $nameOption $jobName $arrayOpt $outputOption /dev/null $wrk/temp$libraryname/runPartition.sh");
+      if (defined($holdCommand)) {
+		my $waitcmd = $holdCommand;
+		$waitcmd =~ s/WAIT_TAG/$jobName/g;
+	    runCommand($wrk, $waitcmd) and die "Wait command failed.\n";
+	}
    } else {
       for (my $i = 1; $i <=$partitions; $i++) {
          schedulerSubmit("$wrk/temp$libraryname/runPartition.sh $i");
@@ -777,8 +907,8 @@ for (my $i = 1; $i <= $partitions; $i++) {
   }
 }
 
-runCommand("$wrk/temp$libraryname", "cat `ls [1234567890]*.fasta |sort -rnk1` > corrected.fasta");
-runCommand("$wrk/temp$libraryname", "cat `ls [1234567890]*.qual |sort -rnk1` > corrected.qual");
+runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fasta |sort -rnk1` > corrected.fasta");
+runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.qual |sort -rnk1` > corrected.qual");
 runCommand("$wrk", "$CA/convert-fasta-to-v2.pl -pacbio -s $wrk/temp$libraryname/corrected.fasta -q $wrk/temp$libraryname/corrected.qual -l $libraryname > $wrk/$libraryname.frg");
 runCommand("$wrk/temp$libraryname", "cp corrected.fasta $wrk/$libraryname.fasta");
 runCommand("$wrk/temp$libraryname", "cp corrected.qual  $wrk/$libraryname.qual");

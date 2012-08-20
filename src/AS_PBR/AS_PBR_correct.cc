@@ -41,11 +41,12 @@ using namespace std;
 
 #include "AS_PBR_correct.hh"
 #include "AS_PBR_util.hh"
+#include "AS_PBR_store.hh"
 
 #include <vector>
 #include <algorithm>
 
-static const char *rcsid_AS_PBR_CORRECT_C = "$Id: AS_PBR_correct.cc,v 1.1 2012-06-28 20:02:45 skoren Exp $";
+static const char *rcsid_AS_PBR_CORRECT_C = "$Id: AS_PBR_correct.cc,v 1.2 2012-08-20 13:10:37 skoren Exp $";
 
 map<AS_IID, uint64> *globalFrgToScore;
 
@@ -62,7 +63,7 @@ map<AS_IID, uint64> *globalFrgToScore;
 	   	   	  We want to pick the max position of the lower sequence and min position of the greater to pick our breakpoints
 */
 // WARNING: for now this only handles one chimera per fragment. If there are more than one this code will only break at the first, it should be recursive
-static SeqInterval findChimera(AS_IID aid, uint32 alen, const map<AS_IID, SeqInterval> &fwdMatches, const map<AS_IID, SeqInterval> &revMatches) {
+static SeqInterval findChimera(AS_IID aid, uint32 alen, const map<AS_IID, SeqInterval> &fwdMatches, const map<AS_IID, SeqInterval> &revMatches, uint8 verbosity) {
 	uint32 totalInBothOri = 0;
 	SeqInterval chimeraJunction;
 	chimeraJunction.bgn = 0;
@@ -88,10 +89,9 @@ static SeqInterval findChimera(AS_IID aid, uint32 alen, const map<AS_IID, SeqInt
 		chimeraJunction.bgn = chimeraJunction.end;
 		chimeraJunction.end = tmp;
 	}
-	if (totalInBothOri > 0 && (chimeraJunction.end - chimeraJunction.end) < CHIMERA_MAX_SIZE) {
-		fprintf(stderr, "The pac read %d has a chimera with %d reads mapping both fwd/rev (out of %d and %d) at positions %d-%d\n", aid, totalInBothOri, fwdMatches.size(), revMatches.size(), chimeraJunction.bgn, chimeraJunction.end);
+	if ((totalInBothOri > 1 && (chimeraJunction.end - chimeraJunction.bgn) < CHIMERA_MAX_SIZE) || ((double)totalInBothOri / MIN(fwdMatches.size(), revMatches.size()) > 0.5)) {
+		if (verbosity >= VERBOSE_DEBUG) fprintf(stderr, "The pac read %d has a chimera with %d reads mapping both fwd/rev (out of %d and %d) at positions %d-%d\n", aid, totalInBothOri, fwdMatches.size(), revMatches.size(), chimeraJunction.bgn, chimeraJunction.end);
 	} else {
-		fprintf(stderr, "The pac read %d is not a chimera with %d reads mapping both, ( %d %d ) \n", aid, totalInBothOri, chimeraJunction.bgn, chimeraJunction.end);
 		chimeraJunction.bgn = chimeraJunction.end = 0;
 	}
 
@@ -107,7 +107,12 @@ bool compare_by_identity (const OverlapPos &a, const OverlapPos &b) {
    return (*globalFrgToScore)[a.ident] < (*globalFrgToScore)[b.ident];
 }
 
+
+/**
+ * This function is responsible for streaming through a subset of PacBio fragments and generating a tiling for them
+ */
 void *  correctFragments(void *ptr) {
+	// get the global and thread-specific settings. The thread-specific settings tells us what data we are responsible for
   PBRThreadWorkArea *wa = (PBRThreadWorkArea *) (ptr);
   PBRThreadGlobals* waGlobal = wa->globals;
   uint32 counter = 0;
@@ -120,6 +125,9 @@ void *  correctFragments(void *ptr) {
   map<AS_IID, uint8> readsToPrint;
   map<AS_IID, uint32> longReadsToPrint;
 
+  boost::dynamic_bitset<> *gappedReadSet = initGappedReadSet(waGlobal);
+  boost::dynamic_bitset<> *workingReadSet = initGappedReadSet(waGlobal);
+
   uint16  *readCoverage = new uint16[AS_READ_MAX_NORMAL_LEN];
   map<AS_IID, OVSoverlap> frgToBest;
   map<AS_IID, uint64> frgToScore;
@@ -128,33 +136,30 @@ void *  correctFragments(void *ptr) {
   uint64 ovlPosition = 0;
   OVSoverlap *olaps = NULL;
 
-  // compute the number of files we should be generating
+  // get the number of files we should be generating
   char outputName[FILENAME_MAX] = {0};
   uint32 fileStart = wa->fileStart;
   uint32 lastFile = wa->fileEnd;
   uint32 numFiles = lastFile - fileStart + 1;
   uint32 perFile = waGlobal->perFile;
 
+  // create the requested output partition
   pair<AS_IID, AS_IID> partitionStartEnd;
   uint32 currOpenID = fileStart;
   sprintf(outputName, "%s.%d.olaps", waGlobal->prefix, fileStart);
   errno = 0;
-  FILE *outFile = fopen(outputName, "w");
-  if (errno) {
-     fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
-  }
+  LayRecordStore *outFile = createLayFile(outputName);
   fprintf(stderr, "In thread %d going to output files %d-%d with %d\n", wa->id, fileStart, fileStart + numFiles - 1, perFile);
   partitionStartEnd.first = wa->start;
 
   // finally stream through the fragments we're correcting and map the best overlaps to them
-  // figure out our block of responsibility
   for (AS_IID i = wa->start; i <= wa->end; i++) {
      if (waGlobal->libToInclude[waGlobal->frgToLib[i]] != TRUE) {
        continue;
     }
 
     if (counter % 10000 == 0) {
-       fprintf(stderr, "Thread %d done with %d fragments\n", wa->id, counter);
+    	if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Thread %d done with %d fragments\n", wa->id, counter);
      }
 
      uint32 alen = waGlobal->frgToLen[i];
@@ -164,11 +169,12 @@ void *  correctFragments(void *ptr) {
      frgToScore.clear();
 
      map<uint32, OverlapPos> tile;
-     map<AS_IID, SeqInterval> bClrs;
+     LayRecord layout;
+     layout.iid = i;
 
      map<AS_IID, uint8> toSkip;
 
-     // read next batch
+     // read next batch of records from the overlap store, since this requires locking, we try to do it in batches
      if (ovlPosition >= olapCount) {
         delete[] olaps;
         if (waGlobal->numThreads > 1) {
@@ -192,12 +198,14 @@ void *  correctFragments(void *ptr) {
         }
         olapCount = read;
         ovlPosition = 0;
-        fprintf(stderr, "Thread %d loaded "F_U64" overlaps\n", wa->id, olapCount);
+        if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Thread %d loaded "F_U64" overlaps\n", wa->id, olapCount);
      }
 
+     // track fwd/reverse matches for a PacBio sequence
      map<AS_IID, SeqInterval> fwdMatches;
      map<AS_IID, SeqInterval> revMatches;
 
+     // go through our block of loaded overlaps until we hit the end of this PacBio sequence (the a sequence)
      for (; ovlPosition < olapCount; ovlPosition++) {
         if (olaps[ovlPosition].a_iid != i) {
            break;
@@ -216,20 +224,22 @@ void *  correctFragments(void *ptr) {
         bClr.bgn = bClr.end = 0;
         convertOverlapToPosition(olap, pos, bClr, alen, blen);
 
+        // should this only use contained overlaps or not?
         if (isOvlForward(olap)) {
         	fwdMatches[bid] = pos;
         } else {
         	revMatches[bid] = pos;
         }
 
+        // skip overlaps below our quality criteria
         if (isOlapBad(olap, alen, blen, waGlobal->erate, waGlobal->elimit, waGlobal->maxErate)) {
            continue;
         }
 
-        // figure out what bases the bfrag covers
+        // non contained overlap, dont use these fragments for correction
         if (olap.dat.ovl.type == AS_OVS_TYPE_OVL && (olap.dat.ovl.a_hang < 0 || olap.dat.ovl.b_hang > 0)) {
-           // non contained overlap, dont use these fragments for correction
-           if (frgToScore[bid] != 0) {
+        	// if there is a better non-contained overlap, then do not trust the contained overlap for this same fragment
+        	if (frgToScore[bid] != 0) {
               OVSoverlap best = frgToBest[bid];
               uint32 min = MIN(tile[best.b_iid].position.bgn, tile[best.b_iid].position.end);
               uint32 max = MAX(tile[best.b_iid].position.bgn, tile[best.b_iid].position.end);
@@ -260,11 +270,12 @@ void *  correctFragments(void *ptr) {
            continue;
         }
 
-        // remove mapping if we find a better version of it to this read
+        // if this overlap is worse than one we already found, skip it
         if (score  < frgToScore[bid]) {
            continue;
         }
 
+        // remove a previous match if this one is better
         if (frgToScore[bid] < score && frgToScore[bid] != 0) {
            OVSoverlap best = frgToBest[bid];
            uint32 min = MIN(tile[best.b_iid].position.bgn, tile[best.b_iid].position.end);
@@ -286,7 +297,8 @@ void *  correctFragments(void *ptr) {
         frgToBest[bid] = olap;
         frgToScore[bid] = score;
 
-        bClrs.insert(pair<AS_IID, SeqInterval>(bid, bClr));
+        layout.bClrs.insert(pair<AS_IID, SeqInterval>(bid, bClr));
+        layout.bOvls.insert(pair<AS_IID, OVSoverlap>(bid, olap));
 
         OverlapPos tileStr;
         tileStr.position = pos;
@@ -307,11 +319,12 @@ void *  correctFragments(void *ptr) {
         }
      }
 
-     SeqInterval chimeraJunction = findChimera(i, alen, fwdMatches, revMatches);
+     // check for a chimera and update this sequence if it is chimeric
+     SeqInterval chimeraJunction = findChimera(i, alen, fwdMatches, revMatches, waGlobal->verboseLevel);
      fwdMatches.clear();
      revMatches.clear();
 
-     vector<OverlapPos> mp; // = new vector<OverlapPos>();
+     // update our tiling based on the detected chimera
      for (map<uint32, OverlapPos>::const_iterator iter = tile.begin(); iter != tile.end(); iter++) {
         if (iter->second.position.bgn > 0 || iter->second.position.end > 0) {
         	bool toAdd = true;
@@ -336,12 +349,13 @@ void *  correctFragments(void *ptr) {
         	}
 
         	if (toAdd == true) {
-        		mp.push_back(iter->second);
+        		layout.mp.push_back(iter->second);
         	}
         }
      }
 
-     if (mp.size() > 0) {
+     if (layout.mp.size() > 0) {
+    	 // check for repeats within this sequence, if we were asked
         if (waGlobal->globalRepeats == FALSE) {
            double mean = 0;
            double N = 0;
@@ -361,13 +375,13 @@ void *  correctFragments(void *ptr) {
               pthread_mutex_lock( &waGlobal->globalDataMutex);
            }
            globalFrgToScore = &frgToScore;
-           stable_sort(mp.begin(), mp.end(), compare_by_identity);
+           stable_sort(layout.mp.begin(), layout.mp.end(), compare_by_identity);
            globalFrgToScore = NULL;
            if (waGlobal->numThreads > 1) {
               pthread_mutex_unlock( &waGlobal->globalDataMutex);
            }
 
-           for (vector<OverlapPos>::iterator iter = mp.begin(); iter != mp.end(); ) {
+           for (vector<OverlapPos>::iterator iter = layout.mp.begin(); iter != layout.mp.end(); ) {
               uint32 min = MIN(iter->position.bgn, iter->position.end);
               uint32 max = MAX(iter->position.bgn, iter->position.end);
               uint16  max_cov = 0;
@@ -379,46 +393,42 @@ void *  correctFragments(void *ptr) {
                  readCoverage[coverage] = (readCoverage[coverage] == MAX_COV ? MAX_COV : readCoverage[coverage]+1);
               }
               if (max_cov > (mean * waGlobal->repeatMultiplier)) {
-                 iter = mp.erase(iter);
+                 iter = layout.mp.erase(iter);
               } else {
                  iter++;
               }
            }
         }
 
-        // now save the tiling
-        stable_sort(mp.begin(), mp.end(), compare_tile);
-        // write to my file
+        // sort the tiling by position
+        stable_sort(layout.mp.begin(), layout.mp.end(), compare_tile);
+        // now save the tiling, if we have filled up a file, move onto the next file before writing
         uint32 fileId = fileStart + MIN(numFiles - 1, floor((double)(i - wa->start) / perFile));
         if (fileId != currOpenID) {
            partitionStartEnd.second = i;
-fprintf(stderr, "Thread %d set partition %d to be %d-%d\n", wa->id, currOpenID-1, partitionStartEnd.first, partitionStartEnd.second);
+           if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Thread %d set partition %d to be %d-%d\n", wa->id, currOpenID-1, partitionStartEnd.first, partitionStartEnd.second);
            waGlobal->partitionStarts[currOpenID-1] = partitionStartEnd;
            partitionStartEnd.first = partitionStartEnd.second = i;
-           fclose(outFile);
+           closeLayFile(outFile);
            sprintf(outputName, "%s.%d.olaps", waGlobal->prefix, fileId);
            errno = 0;
-           outFile = fopen(outputName, "w");
-           if (errno) {
-              fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
-           }
-fprintf(stderr, "For thread %d I'm currently on file %d and need to move to %d\n", wa->id, currOpenID, fileId);
+           outFile = createLayFile(outputName);
+           if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For thread %d I'm currently on file %d and need to move to %d\n", wa->id, currOpenID, fileId);
            currOpenID = fileId;
         }
-        fprintf(outFile, "LAY\t"F_IID"\t"F_SIZE_T"\n", i, mp.size());
-        for (vector<OverlapPos>::const_iterator iter = mp.begin(); iter != mp.end(); iter++) {
-        	fprintf(outFile, "TLE\t"F_IID"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n", iter->ident, iter->position.bgn, iter->position.end, bClrs[iter->ident].bgn, bClrs[iter->ident].end);
-        }
+        writeLayRecord(outFile, layout, workingReadSet, waGlobal->percentShortReadsToStore);
+        (*gappedReadSet) |= (*workingReadSet);
+        workingReadSet->reset();
      }
 
      counter++;
    }
    partitionStartEnd.second = wa->end + 1;
    waGlobal->partitionStarts[currOpenID-1] = partitionStartEnd;
-fprintf(stderr, "Thread %d set partition %d to be %d-%d\n", wa->id, currOpenID-1, partitionStartEnd.first, partitionStartEnd.second);
-   fclose(outFile);
+   if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Thread %d set partition %d to be %d-%d\n", wa->id, currOpenID-1, partitionStartEnd.first, partitionStartEnd.second);
+   closeLayFile(outFile);
 
-   // finally update the global data
+   // finally update the global data on the mappings by each short-read
    if (waGlobal->numThreads > 1) {
       pthread_mutex_lock( &waGlobal->globalDataMutex);
    }
@@ -431,11 +441,16 @@ fprintf(stderr, "Thread %d set partition %d to be %d-%d\n", wa->id, currOpenID-1
          waGlobal->readsToPrint[iter->first] += iter->second;
       }
    }
+   if (waGlobal->hasMates == false) {
+	   (*waGlobal->gappedReadSet) |= (*gappedReadSet);
+   }
    if (waGlobal->numThreads > 1) {
       pthread_mutex_unlock( &waGlobal->globalDataMutex);
    }
 
-   fprintf(stderr, "Thread shutting down after finishing %d fragments\n", counter);
+   if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Thread shutting down after finishing %d fragments\n", counter);
+   delete gappedReadSet;
+   delete workingReadSet;
    delete[] readCoverage;
    delete[] olaps;
    readsToPrint.clear();

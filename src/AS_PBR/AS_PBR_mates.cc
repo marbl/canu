@@ -40,11 +40,14 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using namespace std;
 
 #include "AS_PBR_mates.hh"
+#include "AS_PBR_store.hh"
 #include "MultiAlignMatePairAnalysis.H"
 #include "MultiAlign.h"
 
 #include <map>
 #include <vector>
+
+static const char *rcsid_AS_PBR_MATES_C = "$Id: AS_PBR_mates.cc,v 1.2 2012-08-20 13:10:37 skoren Exp $";
 
 const double 	Z_MAX	= 6;
 
@@ -87,6 +90,10 @@ double poz(double z) {
     return z > 0.0 ? ((x + 1.0) * 0.5) : ((1.0 - x) * 0.5);
 }
 
+/**
+ * Parallel function to estimate insert-sizes for each library in our short-read sequences
+ *
+ */
 void *estimateInsertSizes(void *ptr) {
 	PBRThreadWorkArea *wa = (PBRThreadWorkArea *) ptr;
 	PBRThreadGlobals *waGlobal = wa->globals;
@@ -94,6 +101,7 @@ void *estimateInsertSizes(void *ptr) {
 	pair<AS_IID, AS_IID> bounds(0,0);
 	int part = 0;
 
+	// we have a queue of work, grab a work unit (partition) from the queue and work on it, keep going until the queue is empty
 	while (true) {
 		if (waGlobal->numThreads > 1) {
 			pthread_mutex_lock(&waGlobal->countMutex);
@@ -116,40 +124,18 @@ void *estimateInsertSizes(void *ptr) {
 		char inName[FILENAME_MAX] = {0};
 		sprintf(inName, "%s.%d.olaps", waGlobal->prefix, part);
 		errno = 0;
-		FILE *inFile = fopen(inName, "r");
-		if (errno) {
-			fprintf(stderr, "Couldn't open '%s' for write: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part].first, waGlobal->partitionStarts[part].second);
+		LayRecordStore *inFile = openLayFile(inName);
+		if (inFile == NULL) {
+			fprintf(stderr, "Couldn't open '%s' for read: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part].first, waGlobal->partitionStarts[part].second);
 			assert(waGlobal->partitionStarts[part-1].first == waGlobal->partitionStarts[part-1].second  && waGlobal->partitionStarts[part-1].first == 0);
 			continue;
 		}
 
+		// build a multialignment for each tiling (pacbio read) in our partition and compute its mate values
 		MultiAlignT *ma = CreateEmptyMultiAlignT();
-		while (!feof(inFile)) {
+		LayRecord layout;
+		while (readLayRecord(inFile, layout, ma)) {
 			uint32 readSubID = 1;
-
-			AS_IID i;
-
-			// read in a record
-			uint32 count = 0;
-			fscanf(inFile, "LAY\t"F_IID"\t"F_U32"\n", &i, &count);
-			ma->maID = i;
-			ma->data.num_frags = count;
-			ResetToRange_VA(ma->f_list, ma->data.num_frags);
-
-			for (uint32 iter = 0; iter < count; iter++) {
-				OverlapPos o;
-				SeqInterval bclr;
-				fscanf(inFile, "TLE\t"F_IID"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n", &o.ident, &o.position.bgn, &o.position.end, &bclr.bgn, &bclr.end);
-
-				IntMultiPos  *imp = GetIntMultiPos(ma->f_list, iter);
-				imp->ident        = o.ident;
-				imp->contained    = false;
-				imp->parent       = 0;
-				imp->ahang        = 0;
-				imp->bhang        = 0;
-				imp->position.bgn = o.position.bgn;
-				imp->position.end = o.position.end;
-			}
 
 			if (waGlobal->numThreads > 1) {
 				waGlobal->mpa->evaluateTig(ma, &waGlobal->globalDataMutex);
@@ -158,19 +144,26 @@ void *estimateInsertSizes(void *ptr) {
 			}
 			ClearMultiAlignT(ma);
 		}
-		fclose(inFile);
+		closeLayFile(inFile);
 	}
 
 	return (NULL);
 }
 
+/**
+ * Function to screen out short-reads who are not satifisfied by their mappings
+ */
 void *screenBadMates(void *ptr) {
   PBRThreadWorkArea *wa = (PBRThreadWorkArea *) ptr;
   PBRThreadGlobals *waGlobal = wa->globals;
 
   pair<AS_IID, AS_IID> bounds(0,0);
+  boost::dynamic_bitset<> *gappedReadSet = initGappedReadSet(waGlobal);
+  boost::dynamic_bitset<> *workingReadSet = initGappedReadSet(waGlobal);
+
   int part = 0;
 
+  // we have a queue of work, grab a work unit (partition) and work on it. Keep going until the queue is empty
   while (true) {
      if (waGlobal->numThreads > 1) {
         pthread_mutex_lock(&waGlobal->countMutex);
@@ -190,10 +183,11 @@ void *screenBadMates(void *ptr) {
      }
      part = bounds.first;
 
+     // open our input partition and a coressponding output file to record updated tiling with only satisfied mates
      char outputName[FILENAME_MAX] = {0};
      sprintf(outputName, "%s.%d.paired.olaps", waGlobal->prefix, part);
      errno = 0;
-     FILE *outFile = fopen(outputName, "w");
+     LayRecordStore *outFile = createLayFile(outputName);
      if (errno) {
         fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno)); exit(1);
      }
@@ -201,70 +195,41 @@ void *screenBadMates(void *ptr) {
      char inName[FILENAME_MAX] = {0};
      sprintf(inName, "%s.%d.olaps", waGlobal->prefix, part);
      errno = 0;
-     FILE *inFile = fopen(inName, "r");
-     if (errno) {
+     LayRecordStore *inFile = openLayFile(inName);
+     if (inFile == NULL) {
         fprintf(stderr, "Couldn't open '%s' for write: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part].first, waGlobal->partitionStarts[part].second);
         assert(waGlobal->partitionStarts[part-1].first == waGlobal->partitionStarts[part-1].second  && waGlobal->partitionStarts[part-1].first == 0);
-        fclose(outFile);
         continue;
      }
+     char outputOverlaps[FILENAME_MAX] = {0};
+     sprintf(outputOverlaps, "%s.%d.ovb", waGlobal->prefix, part);
+     BinaryOverlapFile *bof = AS_OVS_createBinaryOverlapFile(outputOverlaps, FALSE);
 
-     fprintf(stderr, "Thread %d is running and output to file %s range %d-%d\n", wa->id, outputName, bounds.first, bounds.second);
+     if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Thread %d is running and output to file %s range %d-%d\n", wa->id, outputName, bounds.first, bounds.second);
 
-     while (!feof(inFile)) {
-        AS_IID i;
-        vector<OverlapPos> mp;
-        map<AS_IID, SeqInterval> bclrs;
-        map<AS_IID, int32> readStarts;
-        map<AS_IID, bool> readOri;
-        uint32 currLength = 0;
-
-        // read in a record
-        uint32 count = 0;
-        fscanf(inFile, "LAY\t"F_IID"\t"F_U32"\n", &i, &count);
-        for (uint32 iter = 0; iter < count; iter++) {
-           OverlapPos o;
-           SeqInterval bclr;
-           fscanf(inFile, "TLE\t"F_IID"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n", &o.ident, &o.position.bgn, &o.position.end, &bclr.bgn, &bclr.end);
-           mp.push_back(o);
-           bclrs[o.ident] = bclr;
-           if (currLength < MAX(o.position.bgn, o.position.end)) {
-        	   currLength = MAX(o.position.bgn, o.position.end);
-           }
-
-           AS_IID libID = waGlobal->frgToLib[o.ident];
-           if (waGlobal->libToOrientation[libID] != AS_READ_ORIENT_UNKNOWN) {
-			   // save the beginning position of each sequence
-			   // we can save the beginning position because if the read is fwd it looks like:
-			   //	PacRead: -------------------------->
-			   //	fwd read:		--->
-			   //	rev read:				<---
-			   // so the begin is always the outer-most positions of the sequences
-			   readStarts[o.ident] = o.position.bgn;
-			   readOri[o.ident] = (o.position.bgn < o.position.end);
-           }
-        }
-
+     LayRecord layout;
+     // work on one PacBio sequence at a time, keeping a subset of its mapped short-read sequences
+     while (readLayRecord(inFile, layout, waGlobal)) {
         map<AS_IID, bool> processed;
         map<AS_IID, bool> good;
-        for (vector<OverlapPos>::const_iterator iter = mp.begin(); iter != mp.end(); iter++) {
+        for (vector<OverlapPos>::const_iterator iter = layout.mp.begin(); iter != layout.mp.end(); iter++) {
         	if (processed.find(iter->ident) != processed.end()) {
         		continue;
         	}
         	processed[iter->ident] = true;
-        	int32 mypos = readStarts[iter->ident];
+        	int32 mypos = layout.readStarts[iter->ident];
         	AS_IID otherRead = waGlobal->frgToMate[iter->ident];
         	AS_IID libID = waGlobal->frgToLib[iter->ident];
         	pair<double, double> libSize = waGlobal->libToSize[libID];
         	double mean = (libSize.second + libSize.first) / 2;
         	double stdev = (libSize.second - libSize.first) / ( 2 * CGW_CUTOFF);
 
-    		// unmated keep
+    		// unmated sequence, keep
         	if (otherRead == 0) {
         		good[iter->ident] = true;
         		continue;
         	}
-        	if (readStarts.find(otherRead) == readStarts.end()) {
+        	if (layout.readStarts.find(otherRead) == layout.readStarts.end()) {
         		// mate not in same read, keep with some probability
         		// first, we need to compute the distance from the end of the read to this sequence
         		// next, we compute the probability of observing a paired-end that has distance > this value given our library distribution
@@ -272,10 +237,10 @@ void *screenBadMates(void *ptr) {
 
         		// compute distance from end of containing read
         		uint32 dist = 0;
-        		if (readOri[iter->ident] == 0) {
+        		if (layout.readOri[iter->ident] == 0) {
         			dist = iter->position.bgn;
         		} else {
-        			dist = currLength - iter->position.bgn + 1;
+        			dist = layout.length - iter->position.bgn + 1;
         		}
 
         		// calculate the probability of having a sequence longer than this distance, given the mean/stdev
@@ -292,19 +257,20 @@ void *screenBadMates(void *ptr) {
         	processed[otherRead] = true;
 
         	// make sure this fragment comes first, it should because we sorted our fragments by start position before
-                if (readStarts[otherRead] <= readStarts[iter->ident]) {
-                   if (MIN(iter->position.bgn, iter->position.end) <= readStarts[otherRead]) {
-                      // one read is contained in the other or they've gone past each other, ignore it
-                      continue;
-                    }
-                    assert(0);
-                }
+            if (layout.readStarts[otherRead] <= layout.readStarts[iter->ident]) {
+               if (MIN(iter->position.bgn, iter->position.end) <= layout.readStarts[otherRead]) {
+                  // one read is contained in the other or they've gone past each other, ignore it
+                  continue;
+               }
+               fprintf(stderr, "Comparing mated reads %d and %d in %d and first ones position is %d and second is %d which is bad\n", layout.iid, iter->ident, otherRead, layout.readStarts[iter->ident], layout.readStarts[otherRead]);
+               assert(0);
+            }
 
-        	uint32 dist = readStarts[otherRead] - readStarts[iter->ident];
+        	uint32 dist = layout.readStarts[otherRead] - layout.readStarts[iter->ident];
         	// check the orientation of the reads
         	switch(waGlobal->libToOrientation[libID]) {
         		case AS_READ_ORIENT_INNIE:
-        			if (readOri[iter->ident] == true && readOri[otherRead] == false && libSize.first < dist && dist < libSize.second) {
+        			if (layout.readOri[iter->ident] == true && layout.readOri[otherRead] == false && libSize.first < dist && dist < libSize.second) {
         				// good pair, keep
         				good[iter->ident] = true;
         				good[otherRead] = true;
@@ -313,7 +279,7 @@ void *screenBadMates(void *ptr) {
         			}
         			break;
         		case AS_READ_ORIENT_OUTTIE:
-        			if (readOri[iter->ident] == false && readOri[otherRead] == true && libSize.first < dist && dist < libSize.second) {
+        			if (layout.readOri[iter->ident] == false && layout.readOri[otherRead] == true && libSize.first < dist && dist < libSize.second) {
         				// good pair, keep
         				good[iter->ident] = true;
         				good[otherRead] = true;
@@ -329,22 +295,27 @@ void *screenBadMates(void *ptr) {
         	}
         }
 
+        // finally, record the good subset of our data
         if (good.size() > 0) {
-			// finally, output the sequences we decided to keep
-			fprintf(outFile, "LAY\t"F_IID"\t"F_SIZE_T"\n", i, good.size());
-	        for (vector<OverlapPos>::const_iterator iter = mp.begin(); iter != mp.end(); iter++) {
-			   AS_IID ident = iter->ident;
-
-			   if (good.find(ident) != good.end()) {
-				   SeqInterval bclr = bclrs[ident];
-				   fprintf(outFile, "TLE\t"F_IID"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n", ident, iter->position.bgn, iter->position.end, bclr.bgn, bclr.end);
-			   }
-			}
+        	writeLayRecord(outFile, layout, workingReadSet, waGlobal->percentShortReadsToStore, &good, bof);
+      	   (*gappedReadSet) |= (*workingReadSet);
+      	   workingReadSet->reset();
         }
      }
-     fclose(inFile);
-     fclose(outFile);
+     closeLayFile(inFile);
+     closeLayFile(outFile);
+     AS_OVS_closeBinaryOverlapFile(bof);
+     AS_UTL_unlink(inName);
   }
 
+  if (waGlobal->numThreads > 1) {
+     pthread_mutex_lock( &waGlobal->globalDataMutex);
+  }
+  (*waGlobal->gappedReadSet) |= (*gappedReadSet);
+  if (waGlobal->numThreads > 1) {
+     pthread_mutex_unlock( &waGlobal->globalDataMutex);
+  }
+  delete gappedReadSet;
+  delete workingReadSet;
   return (NULL);
 }

@@ -51,11 +51,12 @@ ifeq ($(MACHINETYPE), Power Macintosh)
   MACHINETYPE = ppc
 endif
 
-PBR_SOURCES = CorrectPacBio.cc
+PBR_SOURCES = CorrectPacBio.cc AS_PBR_dumpStore.cc
 PBR_OBJECTS = $(PBR_SOURCES:.cc=.o)
 
 PBR_LIB_SOURCES = \
 				AS_PBR_util.cc \
+				AS_PBR_store.cc \
 				AS_PBR_correct.cc \
 				AS_PBR_filter.cc \
 				AS_PBR_mates.cc \
@@ -68,7 +69,7 @@ OBJECTS     = $(PBR_OBJECTS) $(PBR_LIB_OBJECTS)
 LIBRARIES     = libAS_PBR.a libCA.a
 LIBS          = libCA.a
 
-CXX_PROGS = correctPacBio
+CXX_PROGS = correctPacBio dumpPBRLayoutStore
 SCRIPTS     = pacBioToCA
 
 # Include for AS project rules
@@ -101,6 +102,8 @@ libAS_PBR.a: $(PBR_LIB_OBJECTS)
 libCA.a: $(PBR_LIB_OBJECTS)
 
 correctPacBio:	   CorrectPacBio.o $(LIBS)
+
+dumpPBRLayoutStore:	AS_PBR_dumpStore.o $(LIBS)
 
 pacBioToCA: pacBioToCA.pl
 	@cp $< $(LOCAL_BIN)/$@

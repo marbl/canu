@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-static const char *rcsid_AS_PBR_UTIL_C = "$Id: AS_PBR_util.cc,v 1.1 2012-06-28 20:02:45 skoren Exp $";
+static const char *rcsid_AS_PBR_UTIL_C = "$Id: AS_PBR_util.cc,v 1.2 2012-08-20 13:10:37 skoren Exp $";
 
 #include "AS_PBR_util.hh"
 
@@ -49,7 +49,7 @@ uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS_IID, c
   gkFragment  fr;
   uint32 counter = 0;
 
-  fprintf(stderr, "Loading fragment seq\n");
+  //fprintf(stderr, "Loading fragment seq\n");
   // figure out which libraries we want to use and store fragment info
   for (map<AS_IID, uint8>::const_iterator i = readsToPrint.begin(); i != readsToPrint.end(); i++) {
 	 if (i->second != 0) {
@@ -70,19 +70,36 @@ uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS_IID, c
   return counter;
 }
 
-void convertOverlapToPosition(const OVSoverlap& olap, SeqInterval &pos, SeqInterval &bClr, uint32 alen, uint32 blen) {
+void convertOverlapToPosition(const OVSoverlap& olap, SeqInterval &pos, SeqInterval &bClr, uint32 alen, uint32 blen, bool forB) {
 	if (olap.dat.ovl.type == AS_OVS_TYPE_OVL) {
-	   pos.bgn = olap.dat.ovl.a_hang;
-	   pos.end = alen + olap.dat.ovl.b_hang;
-	   bClr.bgn = 0;
-	   bClr.end = blen;
+		if (forB) {
+			bClr.bgn = 0;
+			bClr.end = alen;
+			pos.bgn = -olap.dat.ovl.a_hang;
+			pos.end = blen - olap.dat.ovl.b_hang;
 
-	   if (olap.dat.ovl.flipped) {
-		  uint32 x = pos.end;
-		  pos.end = pos.bgn;
-		  pos.bgn = x;
-	   }
+			if (olap.dat.ovl.flipped) {
+			      pos.bgn = blen - pos.bgn;
+			      pos.end = blen - pos.end;
+			}
+		}
+		else {
+			bClr.bgn = 0;
+			bClr.end = blen;
+			pos.bgn = olap.dat.ovl.a_hang;
+		    pos.end = alen + olap.dat.ovl.b_hang;
+
+		   if (olap.dat.ovl.flipped) {
+			  uint32 x = pos.end;
+			  pos.end = pos.bgn;
+			  pos.bgn = x;
+		   }
+		}
 	} else if (olap.dat.ovl.type == AS_OVS_TYPE_OBT) {
+		if (forB) {
+			fprintf(stderr, "Error, OBT is not currently supported in this mode\n");
+			exit(1);
+		}
 	   pos.bgn = olap.dat.obt.a_beg;
 	   pos.end = olap.dat.obt.a_end;
 
