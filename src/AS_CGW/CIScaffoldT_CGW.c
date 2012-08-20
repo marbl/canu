@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.70 2012-08-19 04:11:11 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.71 2012-08-20 08:50:05 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -966,7 +966,8 @@ bool
 AdjustNegativePositions(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
 bool
 AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
-
+void
+AdjustNegativeGapVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
 
 
 void
@@ -990,6 +991,8 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   if (scaffold->info.Scaffold.numElements == 1)
     return;
+
+  AdjustNegativeGapVariances(graph, scaffold);
 
   CIScaffoldTIterator  CIs;
   ChunkInstanceT      *CI;
@@ -1121,11 +1124,6 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   }
 #endif
   }
-
-  //  Attempt correction
-
-  //AdjustNegativePositions(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
-  //AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
 
   assert(hasProblems == 0);
 

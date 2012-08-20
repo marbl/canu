@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.60 2012-08-18 23:58:10 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.61 2012-08-20 08:50:05 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -534,7 +534,13 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
               *gapPtr, *gapVarPtr,
               prevGap, prevVar);
 
-    //  Adjust for implausibly large variances.
+    //  Adjust for implausible variances.
+
+    if ((*gapPtr > 0) &&
+        (*gapVarPtr <= 0)) {
+      fprintf(stderr, "ROIS()-- Negative variance %f for gap size %f; reset to %f\n", *gapVarPtr, *gapPtr, (0.01 * *gapPtr) * (0.01 * *gapPtr));
+      *gapVarPtr = (0.01 * *gapPtr) * (0.01 * *gapPtr);
+    }
 
     if (*gapVarPtr > 50000.0 * 50000.0) {
       fprintf(stderr, "ROIS()-- Implausibly large variance %f for gap size %f; reset to %f\n", *gapVarPtr, *gapPtr, 50000.0 * 50000.0);
@@ -1562,6 +1568,92 @@ AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
 
 
+void
+AdjustNegativeGapVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
+
+  CIScaffoldTIterator  CIs;
+  ChunkInstanceT      *CI;
+
+  LengthT lastMax     = {0, 0};
+
+  double  varAdj      = 0.0;
+  double  varOff      = 0.0;
+  bool    fixesNeeded = false;
+
+#undef LOG_NEG_GAP_FIX
+#ifdef LOG_NEG_GAP_FIX
+  //  If no fixes, don't bother logging.
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+
+  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
+    LengthT thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+    LengthT thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+
+    if (lastMax.mean < thisMin.mean)
+      if (lastMax.variance >= thisMin.variance)
+        fixesNeeded = true;
+
+    lastMax.mean     = MAX(lastMax.mean,     thisMax.mean);
+    lastMax.variance = MAX(lastMax.variance, thisMax.variance);
+  }
+
+  if (fixesNeeded == false)
+    return;
+#endif
+
+  lastMax.mean     = 0.0;
+  lastMax.variance = 0.0;
+
+#ifdef LOG_NEG_GAP_FIX
+  dumpScaffoldContigPositions(graph, scaffold, "AdjGapVar(pre)--");
+#endif
+
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+
+  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
+    LengthT *thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
+    LengthT *thisMax = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? &CI->offsetAEnd : &CI->offsetBEnd;
+
+    //  Adjust variances for this contig.
+    thisMin->variance += varAdj;
+    thisMax->variance += varAdj;
+
+    //  Do we need more adjustment?
+    if ((lastMax.mean < thisMin->mean) &&
+        (lastMax.variance + 1 >= thisMin->variance)) {
+
+      //  The final gap variance
+      double  newVariance = 0.10 * (thisMin->mean - lastMax.mean) * 0.10 * (thisMin->mean - lastMax.mean);
+
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- negative gap variance %f on positive gap size %f -- reset to %f\n",
+              CI->id, scaffold->id, thisMin->variance - lastMax.variance, thisMin->mean - lastMax.mean, newVariance);
+
+      //  But we also need to account for the currently negative variance for this gap.
+      newVariance += lastMax.variance - thisMin->variance;
+
+      //  Adjust again.
+      thisMin->variance += newVariance;
+      thisMax->variance += newVariance;
+
+      varAdj += newVariance;
+    }
+
+    //  Save the highest we've seen.
+    lastMax.mean     = MAX(lastMax.mean,     thisMax->mean);
+    lastMax.variance = MAX(lastMax.variance, thisMax->variance);
+  }
+
+  //  Reset scaffold length
+  scaffold->bpLength.mean     = lastMax.mean;
+  scaffold->bpLength.variance = lastMax.variance;
+
+#ifdef LOG_NEG_GAP_FIX
+  dumpScaffoldContigPositions(graph, scaffold, "AdjGapVar(post)--");
+#endif
+}
+
+
+
 //  This bit of bizarreness was in CheckCIScaffoldT(), which was dropped in favor of
 //  ScaffoldSanity().  It serves to remove apparent out of order contigs, and reinsert them.  The
 //  reinsert supposedly orders contigs correctly.
@@ -1798,6 +1890,7 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
 
   AdjustNegativePositions(graph, scaffold);
   AdjustNegativeVariances(graph, scaffold);
+  AdjustNegativeGapVariances(graph, scaffold);
 
   if ((redo == false) && ((LSFlags & LeastSquares_Cleanup) == 0))
     //  No cleanup requested, and it didn't bounce, we're done.
