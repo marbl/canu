@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.40 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.41 2012-08-21 20:53:46 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -131,10 +131,10 @@ void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
   m5pOnScf = mateCtg->offsetAEnd.mean + ((mCtgOri.isForward()) ? m5pOnCtg : -m5pOnCtg);
 
 
-  separation->mean = abs(f5pOnScf - m5pOnScf);
+  separation->mean = fabs(f5pOnScf - m5pOnScf);
 
   separation->variance =
-    abs(fragCtg->offsetAEnd.variance - mateCtg->offsetAEnd.variance) + ComputeFudgeVariance(f5pOnCtg) + ComputeFudgeVariance(m5pOnCtg);
+    fabs(fragCtg->offsetAEnd.variance - mateCtg->offsetAEnd.variance) + ComputeFudgeVariance(f5pOnCtg) + ComputeFudgeVariance(m5pOnCtg);
 
   if( ((fOri.isForward())+(fCIOri.isForward())+(fCtgOri.isForward())) % 2 == 0 ){
     fOriOnScf.setIsReverse();
@@ -196,7 +196,7 @@ int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk,
 
   jointstddev = sqrt ( separation.variance + fragDist->sigma * fragDist->sigma);
 
-  if (abs (separation.mean - fragDist->mu) < MAX_SIGMA_SLOP * jointstddev) {
+  if (fabs (separation.mean - fragDist->mu) < MAX_SIGMA_SLOP * jointstddev) {
     return TRUE;
   } else {
     return FALSE;
