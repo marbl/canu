@@ -705,7 +705,7 @@ close(F);
 
 # here is where we filter for specified length as well as max of longest X of coverage for correction
 # use the genome size/coverage, if available to subset the sequences
-if ($genomeSize != 0 && getGlobal("maxCoverage" != 0)) {
+if ($genomeSize != 0 && getGlobal("maxCoverage") != 0) {
    $totalBP = $genomeSize * getGlobal("maxCoverage"); 
 } elsif ($coverage != 0 && getGlobal("maxCoverage") != 0) {
 	$genomeSize = floor($totalBP / $coverage);
