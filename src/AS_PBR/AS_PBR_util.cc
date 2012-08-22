@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-static const char *rcsid_AS_PBR_UTIL_C = "$Id: AS_PBR_util.cc,v 1.2 2012-08-20 13:10:37 skoren Exp $";
+static const char *rcsid_AS_PBR_UTIL_C = "$Id: AS_PBR_util.cc,v 1.3 2012-08-22 14:41:00 skoren Exp $";
 
 #include "AS_PBR_util.hh"
 
@@ -114,11 +114,22 @@ void convertOverlapToPosition(const OVSoverlap& olap, SeqInterval &pos, SeqInter
 
 	// update end points if necessary
 	uint32 len = MAX(pos.bgn, pos.end) - MIN(pos.bgn, pos.end);
-	if (len > blen) {
-	   if (pos.bgn > pos.end) {
-		  pos.bgn = pos.end + blen;
-	   } else {
-		  pos.end = pos.bgn + blen;
-	  }
+	if (forB) {
+        if (len > alen) {
+           if (pos.bgn > pos.end) {
+              pos.bgn = pos.end + alen;
+           } else {
+              pos.end = pos.bgn + alen;
+          }
+        }
+	}
+	else {
+	    if (len > blen) {
+           if (pos.bgn > pos.end) {
+              pos.bgn = pos.end + blen;
+           } else {
+              pos.end = pos.bgn + blen;
+          }
+	    }
 	}
 }

@@ -51,7 +51,7 @@ using namespace std;
 #include <vector>
 #include <set>
 
-static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.4 2012-08-20 13:10:37 skoren Exp $";
+static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.5 2012-08-22 14:41:00 skoren Exp $";
 
 static const uint32 FUDGE_BP = 5;
 
@@ -71,6 +71,7 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
     while (!fwdDistanceSatisfied || !revDistanceSatisfied) {
         ShortMapRecord *record = NULL;
 
+        // first we check the forward direction (in front of the gap) for those who can help us
         if (!fwdDistanceSatisfied && fwd != layRecord.mp.end()) {
             if (waGlobal->globalRepeats == TRUE && (readRanking[fwd->ident].find(layRecord.iid) == readRanking[fwd->ident].end())) {
                 // ignore
@@ -88,8 +89,6 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
                     bool iterFwd = fwd->position.bgn < fwd->position.end;
                     for(int i = bits.find_first(); i != boost::dynamic_bitset<>::npos; i = bits.find_next(i)) {
                         AS_IID id = inStore->getMappedIID(i);
-                        if (id == layRecord.iid) { bits.set(i, false); continue; }
-                        //					  fprintf(stderr, "Checking sequence %d which still has good match at position %d and in the record it was %d\n", id, i, record->getMappedReads()->test(i));
                         SeqInterval *search = record->getMapping(i);
                         if (search != NULL) {
                             bool isFwd = search->bgn < search->end;
@@ -149,6 +148,9 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
                 if (fwd == layRecord.mp.end()) { fwdDistanceSatisfied = true; }
             }
         }
+
+        // next, check the sequences before the gap to find helpers
+        // TODO: this is almost exactly duplicating the code above, clean up
         if (!revDistanceSatisfied) {
             // move back to the next good sequence
             if (rev != layRecord.mp.begin()) {
@@ -177,9 +179,6 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
                 bool iterFwd = rev->position.bgn < rev->position.end;
                 for(int i = bits.find_first(); i != boost::dynamic_bitset<>::npos; i = bits.find_next(i)) {
                     AS_IID id = inStore->getMappedIID(i);
-                    if (id == layRecord.iid) { bits.set(i, false); continue; }
-
-                    //					  fprintf(stderr, "Checking sequence %d which still has good match at position %d and in the record it was %d\n", id, i, record->getMappedReads()->test(i));
                     SeqInterval *search = record->getMapping(i);
                     if (search != NULL) {
                         uint32 min = MIN(search->bgn, search->end);
@@ -201,14 +200,14 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
                                 matchingSequencePositions[id].end = INT32_MAX;
                             }
                             if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check bgn for %d\n", id, isFwd, iterFwd, rev->ident, MAX(search->bgn, search->end));
-                            matchingSequencePositions[id].bgn = MAX(matchingSequencePositions[id].bgn, MAX(search->bgn, search->end));
+                            matchingSequencePositions[id].bgn = MAX(matchingSequencePositions[id].bgn, MAX(search->bgn, search->end)-1);
                         } else if (!matchingSequenceOrientation[id] && isFwd != iterFwd && (MIN(search->bgn, search->end) >= MIN(0, min - FUDGE_BP) || (isContained))) {
                             if (matchingSequencePositions.find(id) == matchingSequencePositions.end()) {
                                 matchingSequencePositions[id].bgn = INT32_MAX;
                                 matchingSequencePositions[id].end = 0;
                             }
                             if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check bgn for %d\n", id, isFwd, iterFwd, rev->ident, MIN(search->bgn, search->end));
-                            matchingSequencePositions[id].bgn = MIN(matchingSequencePositions[id].bgn, MIN(search->bgn, search->end));
+                            matchingSequencePositions[id].bgn = MIN(matchingSequencePositions[id].bgn, MIN(search->bgn, search->end)-1);
                         } else {
                             if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminating %s candidate read %d with orientation %d vs %d (expected %d) min %d vs %d for gap in %d\n", (matchingSequenceOrientation[id] == true ? "fwd" : "rev"), id, isFwd, iterFwd, matchingSequenceOrientation[id], MIN(search->bgn, search->end), min, layRecord.iid);
                             bits.set(i, false);
@@ -229,6 +228,7 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
         }
     }
 
+    // finally, go through our list of helper sequences and make sure they are properly initialized and have valid positions
     for (map<AS_IID, SeqInterval>::iterator iter = matchingSequencePositions.begin(); iter != matchingSequencePositions.end(); iter++) {
         if (matchingSequenceLastFwd.find(iter->first) == matchingSequenceLastFwd.end() ||
                 matchingSequenceLastRev.find(iter->first) == matchingSequenceLastRev.end()) {
@@ -371,13 +371,20 @@ void *outputResults(void *ptr) {
                 }
                 // if the last fragment ended before the current one starts, we have a gap
                 if (lastEnd != 0 && lastEnd <= MIN(iter->position.bgn, iter->position.end)) {
-                    // if we were asked, instead of  skipping, we will output the uncorrected sequence
+                    // if we were asked, instead of skipping, we will output the uncorrected sequence
                     if (MIN(iter->position.bgn, iter->position.end) - lastEnd < waGlobal->maxUncorrectedGap) {
                         boost::dynamic_bitset<> bits;
                         map<AS_IID, SeqInterval> matchingSequencePositions;
                         getCandidateOverlaps(waGlobal, bits, matchingSequencePositions, readRanking, iter, layRecord, inStore);
+                        uint32 gapStart = lastEnd;
+                        uint32 gapEnd = MIN(iter->position.bgn, iter->position.end);
+                        if (bits.size() != 0 && bits.test(inStore->getStoreIID(layRecord.iid)) == true) {
+                            gapStart = matchingSequencePositions[layRecord.iid].bgn;
+                            gapEnd = matchingSequencePositions[layRecord.iid].end;
+                        }
+                        assert(gapEnd >= gapStart);
 
-                        if (bits.count() > 0) { // we found some candidates, use them
+                        if (bits.count() > 1) { // we found some candidates, use them
                             uint32 count = 0;
 
                             for(int i = bits.find_first(); i != boost::dynamic_bitset<>::npos; i = bits.find_next(i)) {
@@ -386,7 +393,7 @@ void *outputResults(void *ptr) {
                                 if (iid != layRecord.iid) {
                                     uint32 min = MIN(matchingSequencePositions[iid].bgn,matchingSequencePositions[iid].end);
                                     uint32 max = MAX(matchingSequencePositions[iid].bgn,matchingSequencePositions[iid].end);
-                                    uint32 gapSize = (int32)(MIN(iter->position.bgn, iter->position.end) - lastEnd + 1);
+                                    uint32 gapSize = (int32)(MIN(iter->position.bgn, iter->position.end) - gapStart + 1);
                                     uint32 diff = abs((int32)(max-min+1) - (int32)gapSize);
                                     if ((double)diff / gapSize <= waGlobal->erate) {	// if the gap size difference is within our error rate, it is OK
                                         uint32 tmpoff = (offset < 0 ? 0 : offset);
@@ -398,12 +405,12 @@ void *outputResults(void *ptr) {
                                             max = (matchingSequencePositions[iid].end >= (waGlobal->maxUncorrectedGap) ? matchingSequencePositions[iid].end - (waGlobal->maxUncorrectedGap) : 0);
                                         }
 
-                                        if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Found read %d (will be called %d) sequence %d - %d (min: %d, max: %d) that could help gap %d to %d in %d (gap diff is %d)\n", iid, gapIID, matchingSequencePositions[iid].bgn, matchingSequencePositions[iid].end, min, max, lastEnd, MIN(iter->position.bgn, iter->position.end), layRecord.iid, diff);
+                                        if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Found read %d (will be called %d) sequence %d - %d (min: %d, max: %d) that could help gap %d to %d in %d (gap diff is %d)\n", iid, gapIID, matchingSequencePositions[iid].bgn, matchingSequencePositions[iid].end, min, max, gapStart, MIN(iter->position.bgn, iter->position.end), layRecord.iid, diff);
                                         layout << "{TLE\nclr:"
                                                 << 0 /*min*/
                                                 << ","
                                                 << (MAX(max, min) - MIN(max, min) + 1)
-                                                << "\noff:" << (lastEnd-tmpoff >= (waGlobal->maxUncorrectedGap) ? lastEnd - (waGlobal->maxUncorrectedGap) - tmpoff: 0)
+                                                << "\noff:" << (gapStart-tmpoff >= (waGlobal->maxUncorrectedGap) ? gapStart - (waGlobal->maxUncorrectedGap) - tmpoff: 0)
                                                 << "\nsrc:" << gapIID
                                                 << "\n}\n";
                                         readsWithGaps[iid] = 1;
@@ -411,7 +418,7 @@ void *outputResults(void *ptr) {
                                         gaps[iid].push_back(gapInfo);
                                         count++;
                                     } else {
-                                        if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Found read %d sequence %d - %d that could help gap %d to %d in %d (but diff %d is too big (vs %d aka %f)\n", iid, matchingSequencePositions[iid].bgn, matchingSequencePositions[iid].end, lastEnd, MIN(iter->position.bgn, iter->position.end), layRecord.iid, diff, gapSize, (double)diff/gapSize);
+                                        if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Found read %d sequence %d - %d that could help gap %d to %d in %d (but diff %d is too big (vs %d aka %f)\n", iid, matchingSequencePositions[iid].bgn, matchingSequencePositions[iid].end, gapStart, MIN(iter->position.bgn, iter->position.end), layRecord.iid, diff, gapSize, (double)diff/gapSize);
                                     }
                                 }
                             }
@@ -443,6 +450,7 @@ void *outputResults(void *ptr) {
                         }
                     } else {
                         // close the layout and start a new one because we have a coverage gap
+                        if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Gap in sequence %d between positions %d - %d is greater than allowed %d\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end), waGlobal->maxUncorrectedGap);
                         closeRecord(waGlobal, outFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
                     }
                 }

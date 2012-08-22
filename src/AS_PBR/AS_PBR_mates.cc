@@ -47,7 +47,7 @@ using namespace std;
 #include <map>
 #include <vector>
 
-static const char *rcsid_AS_PBR_MATES_C = "$Id: AS_PBR_mates.cc,v 1.2 2012-08-20 13:10:37 skoren Exp $";
+static const char *rcsid_AS_PBR_MATES_C = "$Id: AS_PBR_mates.cc,v 1.3 2012-08-22 14:41:00 skoren Exp $";
 
 const double 	Z_MAX	= 6;
 
@@ -297,7 +297,7 @@ void *screenBadMates(void *ptr) {
 
         // finally, record the good subset of our data
         if (good.size() > 0) {
-        	writeLayRecord(outFile, layout, workingReadSet, waGlobal->percentShortReadsToStore, &good, bof);
+        	writeLayRecord(outFile, layout, workingReadSet, waGlobal->percentShortReadsToStore, waGlobal->readsToPrint, waGlobal->longReadsToPrint, waGlobal->covCutoff, &good, bof);
       	   (*gappedReadSet) |= (*workingReadSet);
       	   workingReadSet->reset();
         }

@@ -42,7 +42,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AS_PBR_util.hh"
 
-static const char *rcsid_AS_PBR_FILTER_H = "$Id: AS_PBR_filter.hh,v 1.1 2012-06-28 20:02:45 skoren Exp $";
+static const char *rcsid_AS_PBR_FILTER_H = "$Id: AS_PBR_filter.hh,v 1.2 2012-08-22 14:41:00 skoren Exp $";
 
 extern void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag);
+extern void filterRepeatReads(PBRThreadGlobals &thread_globals, AS_IID firstFrag);
+
 #endif

@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-static const char *rcsid_AS_PBR_STORE_C = "$Id: AS_PBR_store.cc,v 1.1 2012-08-20 13:10:37 skoren Exp $";
+static const char *rcsid_AS_PBR_STORE_C = "$Id: AS_PBR_store.cc,v 1.2 2012-08-22 14:41:00 skoren Exp $";
 
 using namespace std;
 
@@ -121,7 +121,7 @@ ShortMapStore::ShortMapStore(const char *path, bool writable, bool creating, boo
 	inMemory = mem;
 
 	memset(storePath, 0, FILENAME_MAX);
-	strncpy(storePath, path, strnlen(path, FILENAME_MAX));
+	strncpy(storePath, path, strlen(path));
 	if (writable) {
 		strcpy(mode, "r+");
 	} else {
@@ -246,6 +246,13 @@ void ShortMapStore::appendRecord(ShortMapRecord &mapRecord) {
 
 	// make sure we correctly stored the number of bits/blocks in the bitset
 	assert(ceil((double)mapRecord.bitSetBits / (sizeof(boost::dynamic_bitset<>::block_type) * NUM_BITS)) == mapRecord.mappedBitSet->num_blocks());
+
+	if (VERBOSE) {
+	    fprintf (stderr, "The record for %d contains %d maps\n", mapRecord.readIID, mapRecord.mappingSize);
+	    for (map<AS_IID, uint16>::const_iterator iter = mapRecord.positionMap->begin(); iter != mapRecord.positionMap->end(); iter++) {
+	        fprintf(stderr, "Mapping to %d is from position %d to %d\n", (iter->first + mapRecord.bitSetOffset), mapRecord.mappings[iter->second].bgn, mapRecord.mappings[iter->second].end);
+	    }
+	}
 	lastWasWrite = 1;
 }
 
@@ -545,7 +552,7 @@ bool readLayRecord(LayRecordStore *in, LayRecord &r, MultiAlignT *ma) {
 	return readLayRecord(in, r, NULL, ma);
 }
 
-uint32 writeLayRecord(LayRecordStore *out, LayRecord &r, boost::dynamic_bitset<> *bits, double percentageToStoreInBits, map<AS_IID, bool> *subset, BinaryOverlapFile *bof) {
+uint32 writeLayRecord(LayRecordStore *out, LayRecord &r, boost::dynamic_bitset<> *bits, double percentageToStoreInBits, map<AS_IID, uint8> &counts, map<AS_IID, uint32> &largeCounts, double threshold, map<AS_IID, bool> *subset, BinaryOverlapFile *bof) {
 	bool isRecordingGaps = false;
 	assert(out->isOutput == TRUE);
 
@@ -586,7 +593,7 @@ uint32 writeLayRecord(LayRecordStore *out, LayRecord &r, boost::dynamic_bitset<>
             }
 			if (MIN(iter->position.bgn, iter->position.end) - lastRecorded > MIN_DIST_TO_RECRUIT) {
 				// pop one and add new one
-			    if (VERBOSE) fprintf(stderr, "Tracking on position %d and unset %d (read %d). Last position I stored is %d, current pos is %d ", iter-r.mp.begin(), lastRecordedIndex, r.mp[lastRecordedIndex].ident, lastRecorded, MIN(iter->position.bgn, iter->position.end));
+			    if (VERBOSE) fprintf(stderr, "Tracking on position %td and unset %d (read %d). Last position I stored is %d, current pos is %d ", iter-r.mp.begin(), lastRecordedIndex, r.mp[lastRecordedIndex].ident, lastRecorded, MIN(iter->position.bgn, iter->position.end));
 
 				bits->set(r.mp[lastRecordedIndex].ident, false);
 				do {
@@ -598,8 +605,14 @@ uint32 writeLayRecord(LayRecordStore *out, LayRecord &r, boost::dynamic_bitset<>
 			bits->set(iter->ident, (drand48() <= percentageToStoreInBits));
 
 			// when we do see a gap, we record the surround sequences of that gap and reset our preceeding range information to start a new range
-			if (lastEnd != 0 && lastEnd <= MIN(iter->position.bgn, iter->position.end)) {
-				gapBP += MIN(iter->position.bgn, iter->position.end) - lastEnd;
+			// also when we see a sequence that looks repetitive, record its surroundings
+            uint32 count = counts[iter->ident];
+			if (count == MAX_COV) {
+			    count = largeCounts[iter->ident];
+            }
+			if ((lastEnd != 0 && lastEnd <= MIN(iter->position.bgn, iter->position.end)) ||
+			    count > threshold) {
+				gapBP += (count > threshold ? MAX(iter->position.bgn, iter->position.end) - MIN(iter->position.bgn, iter->position.end) : MIN(iter->position.bgn, iter->position.end) - lastEnd);
 				lastGapEnd = MIN(iter->position.bgn, iter->position.end);
 				lastRecordedIndex = lastRecorded = 0;
 				isRecordingGaps = true;
@@ -607,12 +620,12 @@ uint32 writeLayRecord(LayRecordStore *out, LayRecord &r, boost::dynamic_bitset<>
 				// always record the surrounding reads of a gap
 				bits->set(r.mp[lastStored].ident, true);
 				bits->set(iter->ident, true);
-				if (VERBOSE) fprintf(stderr, "Stored surrounding reads of gap between index %d and surrounding reads: %d and %d in %d\n", iter-r.mp.begin(), r.mp[lastStored].ident, iter->ident, r.iid);
+				if (VERBOSE) fprintf(stderr, "Stored surrounding reads of gap between index %td and surrounding reads: %d and %d in %d\n", iter-r.mp.begin(), r.mp[lastStored].ident, iter->ident, r.iid);
 			}
 
 			// we also record a subset of the sequences following a gap
 			if (isRecordingGaps) {
-                if (VERBOSE) fprintf(stderr, "Setting after on position %d of %d (read %d) and set position %d due to gap at %d\n", iter-r.mp.begin(), r.mp.size(), iter->ident, (MAX(iter->position.bgn, iter->position.end)), lastGapEnd);
+                if (VERBOSE) fprintf(stderr, "Setting after on position %td of "F_SIZE_T" (read %d) and set position %d due to gap at %d\n", iter-r.mp.begin(), r.mp.size(), iter->ident, (MAX(iter->position.bgn, iter->position.end)), lastGapEnd);
 
                 if (bits->test(iter->ident) == false) {
                     // drop with random chance
@@ -637,8 +650,8 @@ uint32 writeLayRecord(LayRecordStore *out, LayRecord &r, boost::dynamic_bitset<>
 
 			if (lastEnd < MAX(iter->position.bgn, iter->position.end)) {
 				lastEnd = MAX(iter->position.bgn, iter->position.end);
-				lastStored = iter-r.mp.begin();
 			}
+            lastStored = iter-r.mp.begin();
 		}
 	}
 

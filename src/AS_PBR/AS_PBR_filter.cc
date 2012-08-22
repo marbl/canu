@@ -47,13 +47,74 @@ using namespace std;
 #include <set>
 #include <map>
 
-static const char *rcsid_AS_PBR_FILTER_C = "$Id: AS_PBR_filter.cc,v 1.2 2012-08-20 13:10:37 skoren Exp $";
+static const char *rcsid_AS_PBR_FILTER_C = "$Id: AS_PBR_filter.cc,v 1.3 2012-08-22 14:41:00 skoren Exp $";
 
 /**
  * This function is responsible for computing the repeat threshold based on the number of PacBio sequences each short-read maps to
  */
 void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) {
-    fprintf(stderr, "Storing %d fragments out of %d\n", thread_globals.gappedReadSet->count(), thread_globals.gappedReadSet->size());
+    double mean = 0;
+    double sd = 0;
+    if (thread_globals.globalRepeats == TRUE) {
+        // compute global coverage of the reads we're correcting
+        // the number of mappings each high-identity read has should be equal to the coverage of our data we're correcting, except for repeats
+        // identify the cut off the peak
+        // we do this by finding the inflection point at the end of the curve (that is where we are past the peak and no longer decreasing)
+        double N = 0;
+        double variance = 0;
+        uint32* covHist = new uint32[MAX_COV_HIST + 1];
+        memset(covHist, 0, (MAX_COV_HIST + 1) * sizeof(uint32));
+        double prevScore = 0;
+
+        for (map<AS_IID, uint8>::const_iterator iter = thread_globals.readsToPrint.begin(); iter != thread_globals.readsToPrint.end(); iter++) {
+            if (iter->second != 0) {
+                uint32 val = iter->second;
+                if (val == MAX_COV) {
+                    val = thread_globals.longReadsToPrint[iter->first];
+                }
+                N++;
+                double delta = val - mean;
+                mean += delta / N;
+                variance += delta * (val - mean);
+
+                covHist[MIN(MAX_COV_HIST, val)]++;
+            }
+        }
+        variance /= N;
+        sd = sqrt(variance);
+
+        double prevRatio = 0;
+        double runningTotal = covHist[0] + covHist[1];
+        for (uint16 iter = 2; iter < MAX_COV_HIST; iter++) {
+            if (covHist[iter] <= covHist[iter-1] && (double)covHist[iter]/covHist[iter-1] > prevRatio && (runningTotal / N > CUMULATIVE_SUM + ONE_SD_PERCENT)) {
+                thread_globals.covCutoff = MAX(iter - 1, thread_globals.covCutoff);
+                break;
+            }
+            prevRatio = (double)covHist[iter]/covHist[iter-1];
+            runningTotal += covHist[iter];
+        }
+        if (thread_globals.covCutoff == 0) thread_globals.covCutoff = MAX_COV;
+
+        // output histogram we used to compute this value
+        char outputName[FILENAME_MAX] = {0};
+        sprintf(outputName, "%s.layout.hist", thread_globals.prefix);
+        errno = 0;
+        FILE *histF =  fopen(outputName, "w");
+        if (errno) {
+            fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno));
+        } else {
+            for (uint16 iter = 1; iter < MAX_COV_HIST; iter++) {
+                fprintf(histF, "%d\t%d\n", iter, covHist[iter]);
+            }
+            fclose(histF);
+        }
+        delete[] covHist;
+        if (thread_globals.verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Picking cutoff as %d mean would be %f +- %f (%d)\n", thread_globals.covCutoff, mean, sd, (int)(ceil(mean + sd)));
+    }
+}
+
+void filterRepeatReads(PBRThreadGlobals &thread_globals, AS_IID firstFrag) {
+    fprintf(stderr, "Storing "F_SIZE_T" fragments out of "F_SIZE_T"\n", thread_globals.gappedReadSet->count(), thread_globals.gappedReadSet->size());
 
     // create files to partition the scores
     FILE **partitionedScores = new FILE*[thread_globals.partitions];
@@ -76,58 +137,7 @@ void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) 
         }
     }
 
-    double mean = 0;
     if (thread_globals.globalRepeats == TRUE) {
-        // compute global coverage of the reads we're correcting
-        // the number of mappings each high-identity read has should be equal to the coverage of our data we're correcting, except for repeats
-        // identify the cut off the peak
-        // we do this by finding the inflection point at the end of the curve (that is where we are past the peak and no longer decreasing)
-        double N = 0;
-        uint32* covHist = new uint32[MAX_COV_HIST + 1];
-        memset(covHist, 0, (MAX_COV_HIST + 1) * sizeof(uint32));
-        double prevScore = 0;
-
-        for (map<AS_IID, uint8>::const_iterator iter = thread_globals.readsToPrint.begin(); iter != thread_globals.readsToPrint.end(); iter++) {
-            if (iter->second != 0) {
-                uint32 val = iter->second;
-                if (val == MAX_COV) {
-                    val = thread_globals.longReadsToPrint[iter->first];
-                }
-                N++;
-                double delta = val - mean;
-                mean += delta / N;
-
-                covHist[MIN(MAX_COV_HIST, val)]++;
-            }
-        }
-
-        double prevRatio = 0;
-        double runningTotal = covHist[0] + covHist[1];
-        for (uint16 iter = 2; iter < MAX_COV_HIST; iter++) {
-            if (covHist[iter] <= covHist[iter-1] && (double)covHist[iter]/covHist[iter-1] > prevRatio && (runningTotal / N > CUMULATIVE_SUM)) {
-                thread_globals.covCutoff = MAX(iter - 1, thread_globals.covCutoff);
-                break;
-            }
-            prevRatio = (double)covHist[iter]/covHist[iter-1];
-            runningTotal += covHist[iter];
-        }
-        if (thread_globals.covCutoff == 0) thread_globals.covCutoff = MAX_COV;
-
-        // output histogram we used to compute this value
-        sprintf(outputName, "%s.layout.hist", thread_globals.prefix);
-        errno = 0;
-        FILE *histF =  fopen(outputName, "w");
-        if (errno) {
-            fprintf(stderr, "Couldn't open '%s' for write: %s\n", outputName, strerror(errno));
-        } else {
-            for (uint16 iter = 1; iter < MAX_COV_HIST; iter++) {
-                fprintf(histF, "%d\t%d\n", iter, covHist[iter]);
-            }
-            fclose(histF);
-        }
-        delete[] covHist;
-        if (thread_globals.verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Picking cutoff as %d mean would be %f\n", thread_globals.covCutoff, mean);
-
         // now that we have a cutoff, stream the store and record which pacbio sequences the high-identity sequences should correct
         OverlapStore *ovs = AS_OVS_openOverlapStore(thread_globals.ovlStoreUniqPath);
         uint64 olapCount = 0;
@@ -176,6 +186,9 @@ void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) 
 
             // build a sorted by score map of all mapping a short-read sequence has
             multimap<uint64, OverlapPos> scoreToReads;
+            map<AS_IID, uint64> readsToScore;
+            map<AS_IID, uint32> readsToBgn;
+
             uint32 alen = thread_globals.frgToLen[iter->first];
             for (uint64 rank = ovlPosition; rank < olapCount; rank++, ovlPosition++) {
                 assert(ovlPosition == rank);
@@ -193,6 +206,17 @@ void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) 
                 OverlapPos pos;
                 pos.ident = olaps[rank].b_iid;
                 convertOverlapToPosition(olaps[rank], pos.position, bclr, alen, blen, true);
+
+                // check for duplicate overlaps
+                // TODO: this currently assumes ties are non-randomly broken with greater positions winning which is not ideal
+                map<AS_IID, uint64>::iterator ovlIter = readsToScore.find(pos.ident);
+                if (ovlIter != readsToScore.end()) {
+                    if (currScore == ovlIter->second && readsToBgn[pos.ident] >= pos.position.bgn) {
+                        continue;
+                    }
+                }
+                readsToScore[pos.ident] = currScore;
+                readsToBgn[pos.ident] = pos.position.bgn;
                 scoreToReads.insert(pair<uint64, OverlapPos>(currScore, pos));
             }
 

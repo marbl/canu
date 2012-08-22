@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include "boost/dynamic_bitset.hpp"
 
-static const char *rcsid_AS_PBR_STORE_H = "$Id: AS_PBR_store.hh,v 1.1 2012-08-20 13:10:37 skoren Exp $";
+static const char *rcsid_AS_PBR_STORE_H = "$Id: AS_PBR_store.hh,v 1.2 2012-08-22 14:41:00 skoren Exp $";
 
 /*
  * Store and structures to read/write short-read mapping information
@@ -186,7 +186,7 @@ static void clearLayout(LayRecord &r) {
 extern LayRecordStore *createLayFile(const char *name);
 extern LayRecordStore *openLayFile(const char *name);
 extern void	closeLayFile(LayRecordStore *lof);
-extern uint32 writeLayRecord(LayRecordStore *out, LayRecord &r, boost::dynamic_bitset<> *bits, double percentageToStoreInBits, map<AS_IID, bool> *subset = NULL, BinaryOverlapFile *bof = NULL);
+extern uint32 writeLayRecord(LayRecordStore *out, LayRecord &r, boost::dynamic_bitset<> *bits, double percentageToStoreInBits, map<AS_IID, uint8> &counts, map<AS_IID, uint32> &largeCounts, double threshold, map<AS_IID, bool> *subset = NULL, BinaryOverlapFile *bof = NULL);
 extern bool readLayRecord(LayRecordStore *in, LayRecord &r);
 extern bool readLayRecord(LayRecordStore *in, LayRecord &r, PBRThreadGlobals *waGlobal);
 extern bool readLayRecord(LayRecordStore *in, LayRecord &r, MultiAlignT *ma);

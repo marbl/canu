@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.16 2012-08-20 13:10:37 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.17 2012-08-22 14:41:00 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -372,6 +372,9 @@ main (int argc, char * argv []) {
         }
     }
 
+    // get the expected number of mappings for each sequence
+    computeRepeatThreshold(thread_globals, firstFrag);
+
     char command[FILENAME_MAX] = {0};
     if (thread_globals.hasMates == true) {
         // keep well-mated reads, first estimate the library insert sizes
@@ -461,11 +464,12 @@ main (int argc, char * argv []) {
 
     // filter repeat reads out, currently based on coverage pre-mate filtering, should it be post-mate filtering?
     fprintf(stderr, "Filtering repeats\n");
-    computeRepeatThreshold(thread_globals, firstFrag);
+    filterRepeatReads(thread_globals, firstFrag);
     if (thread_globals.fixedMemory == FALSE) {
         loadSequence(thread_globals.gkp, thread_globals.readsToPrint, thread_globals.frgToEnc);
     }
     thread_globals.readsToPrint.clear();
+    thread_globals.longReadsToPrint.clear();
 
     // remove our paired store
     sprintf(command, "rm -rf %s.paired.ovlStore", thread_globals.prefix);
