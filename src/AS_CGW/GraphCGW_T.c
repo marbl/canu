@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.102 2012-08-20 11:55:23 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.103 2012-08-22 02:00:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -207,9 +207,13 @@ size_t ReportMemorySizeGraphCGW(GraphCGW_T *graph, FILE *stream){
 }
 
 
-int FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
-                       VA_TYPE(CDS_CID_t) *chain,
-                       int extractSingletons, int includeGuides){
+int
+FindGraphEdgeChain(GraphCGW_T         *graph,
+                   CDS_CID_t           eid,
+                   vector<CDS_CID_t>  &chain,
+                   int                 extractSingletons,
+                   int                 includeGuides){
+
   CIEdgeT *edge, *head, *tail;
   int32 count = 0;
   CDS_CID_t headID, edgeID;
@@ -230,7 +234,7 @@ int FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
      element in the chain */
   while(1) {
     count++;
-    AppendCDS_CID_t(chain, &edgeID);
+    chain.push_back(edgeID);
 
     tail = edge;
 
@@ -1314,18 +1318,10 @@ EdgeCGW_T *FindGraphEdge(GraphCGW_T *graph,
 void  DeleteGraphOverlapEdge(GraphCGW_T *graph,
                              CDS_CID_t idA, CDS_CID_t idB,
                              PairOrient orient){
-  CIEdgeT *edge = FindGraphOverlapEdge(graph, idA,idB, orient);
-
-  AssertPtr(edge); // If we don't find it...assert
-  DeleteGraphEdge(graph, edge);
-  return;
+  DeleteGraphEdge(graph, FindGraphOverlapEdge(graph, idA,idB, orient));
 }
 
 
-// Scratch space for MergeNodeGraphEdges
-//
-static  VA_TYPE(CDS_CID_t) *mergeCandidates = NULL;
-static   VA_TYPE(CDS_CID_t) *chain = NULL;
 
 /* MergeNodeGraphEdges
  *   Merge the edges incident on a particular node
@@ -1338,13 +1334,8 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
   CDS_CID_t *candidates;
   id = node->id;
 
-  if(mergeCandidates == NULL){
-    mergeCandidates = CreateVA_CDS_CID_t(1024);
-    chain = CreateVA_CDS_CID_t(1024);
-  }else{
-    ResetVA_CDS_CID_t(mergeCandidates);
-    ResetVA_CDS_CID_t(chain);
-  }
+  vector<CDS_CID_t>  mergeCandidates;
+  vector<CDS_CID_t>  chain;
 
   GraphEdgeIterator edges(graph, id, ALL_END, ALL_EDGES);
   head = NULL;
@@ -1355,68 +1346,28 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
        head->orient != edge->orient ||
        (!includeGuides && isSloppyEdge(edge))  /* don't merge guides */ ){
 
-      //if(debug)
-      //  fprintf(stderr,"* Appending edge "F_CID" since ("F_CID","F_CID") is different than ("F_CID","F_CID")\n",
-      //          edges.curr, (head?head->idA:-1), (head?head->idB:-1), edge->idA, edge->idB);
-
       head = edge;
-      if(head->idA == id || mergeAll) { // avoid double counting
-        CDS_CID_t  c = edges.currMergedID();
-        AppendCDS_CID_t(mergeCandidates, &c);
-      }
+      if(head->idA == id || mergeAll) // avoid double counting
+        mergeCandidates.push_back(edges.currMergedID());
     }
   }
 
 
   // Now, iterate over the candidates
-  candidates = GetCDS_CID_t(mergeCandidates, 0);
 
   if(debug)
-    fprintf(stderr,"* Found %d merge Candidates from node "F_CID"\n",
-            (int) GetNumint32s(mergeCandidates), id);
+    fprintf(stderr,"* Found "F_SIZE_T" merge Candidates from node "F_CID"\n", mergeCandidates.size(), id);
 
-  for(id = 0; id < GetNumCDS_CID_ts(mergeCandidates); id++){
-    int length;
-    ResetCDS_CID_t(chain);
-    //if(debug)
-    //  fprintf(stderr,"* Checking CIEdge Chain from edge "F_CID" "F_CID"\n",
-    //          id,candidates[id]);
+  for(id = 0; id < mergeCandidates.size(); id++){
+    chain.clear();
 
-    length = FindGraphEdgeChain(graph, candidates[id], chain, FALSE, includeGuides);
+    int32 length = FindGraphEdgeChain(graph, mergeCandidates[id], chain, FALSE, includeGuides);
 
-    if(length > 1){
-      CIEdgeT *edge = GetGraphEdge(graph, candidates[id]);
-      int edgesAdded;
-      int i;
+    if (length > 1) {
+      int32 edgesAdded = MergeGraphEdges(graph, chain);
 
-      if(debug){
-        fprintf(stderr,"* Passing the following chain of %d edges to merge\n",
-                length);
-
-        //for(i = 0; i < GetNumCDS_CID_ts(chain); i ++){
-        //  CDS_CID_t edgeID = *GetCDS_CID_t(chain,i);
-        //  CIEdgeT *edge = GetGraphEdge(graph, edgeID);
-        //  PrintGraphEdge(stderr, graph, " ", edge, edge->idA);
-        //}
-      }
-
-      edgesAdded = MergeGraphEdges(graph, chain);
-      if(debug && edgesAdded > 0) {
-        fprintf(stderr,"* Found a chain of length %d between ("F_CID","F_CID") orient:%c ==> Added %d edges\n",
-                length, edge->idA, edge->idB, edge->orient.toLetter(), edgesAdded);
-
-        //for(i = 0; i < GetNumCDS_CID_ts(chain); i ++){
-        //  CDS_CID_t edgeID = *GetCDS_CID_t(chain,i);
-        //  CIEdgeT *edge = GetGraphEdge(graph, edgeID);
-        //  fprintf(stderr,"* Edge %d returned is edge "F_CID" -- %s\n",
-        //          i, edgeID, (edge->flags.bits.isRaw?" Raw ":" Merged "));
-        //}
-      }
-
-      for(i = 0; i < GetNumCDS_CID_ts(chain); i ++){
-        CDS_CID_t edgeID = *GetCDS_CID_t(chain,i);
-        InsertGraphEdge(graph,edgeID,FALSE);
-      }
+      for (uint32 i=0; i<chain.size(); i++)
+        InsertGraphEdge(graph, chain[i], FALSE);
     }
   }
 }
@@ -1428,9 +1379,8 @@ void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides, int mergeAll){
 
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
 
-  while(NULL != (CI = NextGraphNodeIterator(&nodes))){
+  while (NULL != (CI = NextGraphNodeIterator(&nodes)))
     MergeNodeGraphEdges(graph, CI, includeGuides, mergeAll, FALSE);
-  }
 }
 
 

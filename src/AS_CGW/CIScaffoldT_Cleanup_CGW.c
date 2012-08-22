@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.81 2012-08-19 02:52:21 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.82 2012-08-22 02:00:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -296,11 +296,15 @@ static int CompareIntElementPosByBgnPos(const void * c1, const void * c2)
 
 // Sort routine to order edges that are not yet inserted in graph
 //
-static int CompareEdges(const void *c1, const void *c2){
+static
+int
+CompareEdges (const void *c1, const void *c2) {
   CDS_CID_t eid1 = *(CDS_CID_t *)c1;
   CDS_CID_t eid2 = *(CDS_CID_t *)c2;
+
   EdgeCGW_T *edge1 = GetGraphEdge(ScaffoldGraph->ContigGraph, eid1);
   EdgeCGW_T *edge2 = GetGraphEdge(ScaffoldGraph->ContigGraph, eid2);
+
   int diff;
   diff = edge1->idA - edge2->idA;
   if(diff)
@@ -316,24 +320,6 @@ static int CompareEdges(const void *c1, const void *c2){
   return 0;
 }
 
-// Collection of indices of raw edges reflecting potential overlaps to
-// propagate new contig.
-static VA_TYPE(CDS_CID_t) *CollectedEdges = NULL;
-
-// Collection of indices of raw edges that we've checked
-// and discarded
-static VA_TYPE(CDS_CID_t) *DiscardedEdges = NULL;
-
-// This VA is used to hold indices of tentative edges between the
-// new contig and a particular potential overlap neighbor.  Used in
-// the interface to MergeEdges.
-static VA_TYPE(CDS_CID_t) *TentativeEdges = NULL;
-
-// This VA is used to hold indices of confirmed edges that we
-// need to add to the graph.  We actually discard these merged
-// edges and insert corresponding raw edge into the graph
-static VA_TYPE(CDS_CID_t) *MergedEdges = NULL;
-
 
 // Propagate overlap edges (other than extremal or containment) incident on extremal contigs to new contig
 // These overlaps become implied containments.  Since containments can be viewed as an edge on either the A or
@@ -347,17 +333,19 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
   int32 i;
   int32 cnt = 0;
 
-  if(TentativeEdges == NULL){
-    TentativeEdges = CreateVA_CDS_CID_t(100);
-    CollectedEdges = CreateVA_CDS_CID_t(100);
-    DiscardedEdges = CreateVA_CDS_CID_t(100);
-    MergedEdges = CreateVA_CDS_CID_t(100);
-  }
+  // Collection of indices of raw edges reflecting potential overlaps to propagate new contig.
+  vector<CDS_CID_t> CollectedEdges;
 
-  ResetVA_CDS_CID_t(TentativeEdges);
-  ResetVA_CDS_CID_t(CollectedEdges);
-  ResetVA_CDS_CID_t(DiscardedEdges);
-  ResetVA_CDS_CID_t(MergedEdges);
+  // Collection of indices of raw edges that we've checked and discarded
+  vector<CDS_CID_t> DiscardedEdges;
+
+  // Holds indices of tentative edges between the new contig and a particular potential overlap
+  // neighbor.  Used in the interface to MergeEdges.
+  vector<CDS_CID_t> TentativeEdges;
+
+  // Holds indices of confirmed edges that we need to add to the graph.  We actually discard these
+  // merged edges and insert corresponding raw edge into the graph
+  vector<CDS_CID_t> MergedEdges;
 
   // First,we map all of the non-containment overlaps of the contigs that were merged onto the
   // new contig.  We create an appropriate set of raw edges
@@ -532,7 +520,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
           edge = GetGraphEdge(ScaffoldGraph->ContigGraph, edgeIDX);
 
           CDS_CID_t  eid           = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
-          AppendCDS_CID_t(CollectedEdges, &eid);
+          CollectedEdges.push_back(eid);
 
           int32      isContainment = (MIN(-distance1.mean,-distance2.mean) > otherContig->bpLength.mean);
 
@@ -557,7 +545,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
             edge = GetGraphEdge(ScaffoldGraph->ContigGraph, edgeIDX);
 
             eid = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ContigGraph->edges, newEdge);
-            AppendCDS_CID_t(CollectedEdges, &eid);
+            CollectedEdges.push_back(eid);
             newEdge->idA = newContig->id;
             newEdge->idB = (edge->idA == contig->id? edge->idB: edge->idA);
             newEdge->edgesContributing = cnt++;
@@ -580,16 +568,16 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
     }
   }
   {
-    CDS_CID_t *collectedEdges = GetCDS_CID_t(CollectedEdges,0);
     EdgeCGW_T *e;
     int32 i;
     // Sort the edge indices, so they group together multiple edges between the new contig and other contigs
-    qsort((void *)collectedEdges, GetNumCDS_CID_ts(CollectedEdges), sizeof(CDS_CID_t), CompareEdges);
+#warning dump this CompareEdges
+    qsort(&CollectedEdges[0], CollectedEdges.size(), sizeof(CDS_CID_t), CompareEdges);
     if(verbose) {
       fprintf(stderr,"* Collected the following edges *\n");
     }
-    for(i = 0; i < GetNumCDS_CID_ts(CollectedEdges); i++){
-      e = GetGraphEdge(ScaffoldGraph->ContigGraph, *GetCDS_CID_t(CollectedEdges,i));
+    for(i = 0; i < CollectedEdges.size(); i++){
+      e = GetGraphEdge(ScaffoldGraph->ContigGraph, CollectedEdges[i]);
       if(verbose) {
         PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph," ", e, e->idA);
       }
@@ -601,13 +589,13 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 
   {
     int32 i;
-    int32 numEdges = GetNumCDS_CID_ts(CollectedEdges);
+    int32 numEdges = CollectedEdges.size();
     CDS_CID_t currID = NULLINDEX;
     PairOrient currOrient;
-    ResetVA_CDS_CID_t(TentativeEdges);
+    TentativeEdges.clear();
 
     for(i = 0; i < numEdges; ){
-      CDS_CID_t eid = *GetCDS_CID_t(CollectedEdges,i);
+      CDS_CID_t eid = CollectedEdges[i];
       EdgeCGW_T *e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
       int merge = FALSE;
       CDS_CID_t last = i == numEdges -1;
@@ -615,18 +603,18 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
         currID = e->idB;
         currOrient = e->orient;
         e->flags.all = 0;
-        AppendCDS_CID_t(TentativeEdges,&eid);
+        TentativeEdges.push_back(eid);
         i++;
       }else  if(e->idB == currID &&
                 e->orient == currOrient){
         e->flags.all = 0;
-        AppendCDS_CID_t(TentativeEdges,&eid);
+        TentativeEdges.push_back(eid);
         i++;
       }else{
         merge = TRUE;
       }
 
-      if( last && GetNumCDS_CID_ts(TentativeEdges) > 1)
+      if( last && TentativeEdges.size() > 1)
         merge = TRUE;
 
       if(merge){
@@ -638,25 +626,23 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 
         EdgeCGW_T *ee;
         int i;
-        if(GetNumCDS_CID_ts(TentativeEdges) == 1){
+        if(TentativeEdges.size() == 1){
           // keep track of which edges to discard
 #ifdef DEBUG_DETAILED
-          fprintf(stderr,"* Edge "F_CID" to Discarded edges\n",
-                  *GetCDS_CID_t(TentativeEdges,0));
+          fprintf(stderr,"* Edge "F_CID" to Discarded edges\n", TentativeEdges[0]);
 #endif
-          AppendCDS_CID_t(DiscardedEdges, GetCDS_CID_t(TentativeEdges,0));
+          DiscardedEdges.push_back(TentativeEdges[0]);
         }else{
           if(GlobalData->debugLevel > 0)
-            fprintf(stderr,"* Merging "F_CID","F_CID",%c   %d edges\n",
-                    e->idA, currID, currOrient.toLetter(),
-                    (int) GetNumCDS_CID_ts(TentativeEdges));
+            fprintf(stderr,"* Merging "F_CID","F_CID",%c   "F_SIZE_T" edges\n",
+                    e->idA, currID, currOrient.toLetter(), TentativeEdges.size());
           addedEdges = MergeGraphEdges(ScaffoldGraph->ContigGraph, TentativeEdges);
           if(addedEdges> 0){
             if(GlobalData->debugLevel > 0)
               fprintf(stderr,"* Merging ("F_CID","F_CID",%c): Added %d edges!!!\n",
                       e->idA, currID, currOrient.toLetter(), addedEdges);
 
-            ee = GetGraphEdge(ScaffoldGraph->ContigGraph, *GetCDS_CID_t(TentativeEdges,0));
+            ee = GetGraphEdge(ScaffoldGraph->ContigGraph, TentativeEdges[0]);
             ee->flags.bits.bContainsA = FALSE;
             ee->flags.bits.aContainsB = TRUE;
             ee->flags.bits.hasContainmentOverlap = TRUE;
@@ -667,29 +653,29 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
               PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,
                              "* Successful merge: ", ee, ee->idA);
 #endif
-              AppendCDS_CID_t(MergedEdges, GetCDS_CID_t(TentativeEdges,i));
+              MergedEdges.push_back(TentativeEdges[i]);
             }
           }
 #ifdef DEBUG_DETAILED
           fprintf(stderr,"* addedEdges %d total:%d\n",
-                  addedEdges, (int) GetNumCDS_CID_ts(TentativeEdges));
+                  addedEdges, TentativeEdges.size());
 #endif
         }
 
         if(addedEdges > 0)
-          for(i = addedEdges; i < GetNumCDS_CID_ts(TentativeEdges) ; i++){
+          for(i = addedEdges; i < TentativeEdges.size() ; i++){
             // keep track of which edges to discard
-            ee = GetGraphEdge(ScaffoldGraph->ContigGraph, *GetCDS_CID_t(TentativeEdges,i));
+            ee = GetGraphEdge(ScaffoldGraph->ContigGraph, TentativeEdges[i]);
             ee->flags.bits.bContainsA = FALSE;
             ee->flags.bits.aContainsB = TRUE;
             ee->flags.bits.hasContainmentOverlap = TRUE;
 
             PrintGraphEdge(stderr,ScaffoldGraph->ContigGraph,"To Discarded Edges", ee, ee->idA);
-            AppendCDS_CID_t(DiscardedEdges, GetCDS_CID_t(TentativeEdges,i));
+            DiscardedEdges.push_back(TentativeEdges[i]);
           }
         currID = NULLINDEX;
         currOrient.setIsUnknown();
-        ResetVA_CDS_CID_t(TentativeEdges);
+        TentativeEdges.clear();
         if(last)
           break;
       }
@@ -705,11 +691,11 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       if(verbose) {
         fprintf(stderr,"* Discarded the following DISCARDED edges:\n");
       }
-      for(i = 0; i < GetNumCDS_CID_ts(DiscardedEdges); i++){
+      for(i = 0; i < DiscardedEdges.size(); i++){
         CDS_CID_t eid;
         EdgeCGW_T *e;
 
-        eid = *GetCDS_CID_t(DiscardedEdges,i);
+        eid = DiscardedEdges[i];
         e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
 
         //fprintf(stderr,"* i = %d eid = "F_CID"\n", i,eid);
@@ -730,8 +716,8 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
         fprintf(stderr,"* Inserting the following MERGED edges:\n");
       }
 
-      for(i = 0; i < GetNumCDS_CID_ts(MergedEdges); i++){
-        CDS_CID_t eid= *GetCDS_CID_t(MergedEdges,i);
+      for(i = 0; i < MergedEdges.size(); i++){
+        CDS_CID_t eid= MergedEdges[i];
         CDS_CID_t neid;
         EdgeCGW_T *e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
         ChunkOverlapCheckT olap;

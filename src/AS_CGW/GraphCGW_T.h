@@ -22,12 +22,16 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.57 2012-08-16 03:39:43 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.58 2012-08-22 02:00:57 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
 #include "InputDataTypes_CGW.h"
 #include "MultiAlign.h"
+
+#include <vector>
+
+using namespace std;
 
 typedef enum {
   INVALID_EDGE_STATUS = 0,
@@ -980,7 +984,7 @@ void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides, int mergeAll);
    The client of this routine must INSERT the resulting edges into the
    appropriate graph.
 */
-int MergeGraphEdges(GraphCGW_T *graph, VA_TYPE(CDS_CID_t) *inputEdges);
+int MergeGraphEdges(GraphCGW_T *graph, vector<CDS_CID_t> &inputEdges);
 
 
 /* FindGraphEdgeChain
