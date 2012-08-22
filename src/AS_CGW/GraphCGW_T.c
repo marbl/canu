@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.103 2012-08-22 02:00:57 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.104 2012-08-22 06:13:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -462,30 +462,30 @@ InsertGraphEdgeInList(GraphCGW_T *graph,
     } else
 #endif
 
-    if (prvEdge == NULL) {
-      //  Insert at the head, before nxtEdge.
-      ci->edgeHead = edgeID;
-      ((nxtEdge->idA == ciID) ? nxtEdge->prevALink : nxtEdge->prevBLink) = edgeID;
+      if (prvEdge == NULL) {
+        //  Insert at the head, before nxtEdge.
+        ci->edgeHead = edgeID;
+        ((nxtEdge->idA == ciID) ? nxtEdge->prevALink : nxtEdge->prevBLink) = edgeID;
 
-      ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = NULLINDEX;
-      ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = GetVAIndex_EdgeCGW_T(graph->edges, nxtEdge);
+        ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = NULLINDEX;
+        ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = GetVAIndex_EdgeCGW_T(graph->edges, nxtEdge);
 
-    } else if (nxtEdge == NULL) {
-      //  Insert after prvEdge, at the tail.
+      } else if (nxtEdge == NULL) {
+        //  Insert after prvEdge, at the tail.
 
-      ((prvEdge->idA == ciID) ? prvEdge->nextALink : prvEdge->nextBLink) = edgeID;
+        ((prvEdge->idA == ciID) ? prvEdge->nextALink : prvEdge->nextBLink) = edgeID;
 
-      ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = GetVAIndex_EdgeCGW_T(graph->edges, prvEdge);
-      ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = NULLINDEX;
+        ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = GetVAIndex_EdgeCGW_T(graph->edges, prvEdge);
+        ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = NULLINDEX;
 
-    } else {
-      //  Insert after prvEdge, before nxtEdge.
-      ((prvEdge->idA == ciID) ? prvEdge->nextALink : prvEdge->nextBLink) = edgeID;
-      ((nxtEdge->idA == ciID) ? nxtEdge->prevALink : nxtEdge->prevBLink) = edgeID;
+      } else {
+        //  Insert after prvEdge, before nxtEdge.
+        ((prvEdge->idA == ciID) ? prvEdge->nextALink : prvEdge->nextBLink) = edgeID;
+        ((nxtEdge->idA == ciID) ? nxtEdge->prevALink : nxtEdge->prevBLink) = edgeID;
 
-      ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = GetVAIndex_EdgeCGW_T(graph->edges, prvEdge);
-      ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = GetVAIndex_EdgeCGW_T(graph->edges, nxtEdge);
-    }
+        ((newEdge->idA == ciID) ? newEdge->prevALink : newEdge->prevBLink) = GetVAIndex_EdgeCGW_T(graph->edges, prvEdge);
+        ((newEdge->idA == ciID) ? newEdge->nextALink : newEdge->nextBLink) = GetVAIndex_EdgeCGW_T(graph->edges, nxtEdge);
+      }
 
 #if 0
     char const *type = "UNKNOWN";
@@ -1034,24 +1034,25 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
 
 
 
-CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
-                       CDS_CID_t cidA, CDS_CID_t cidB,
-                       CDS_CID_t fragidA, CDS_CID_t fragidB,
-                       CDS_CID_t dist,
-                       LengthT distance,
-                       double   quality,
-                       int32 fudgeDistance,
-                       PairOrient orientation,
-                       int isInducedByUnknownOrientation,
-                       int isOverlap,
-                       int isAContainsB,
-                       int isBContainsA,
-                       int isTransChunk,
-                       int isExtremalA,
-                       int isExtremalB,
-                       EdgeStatus status,
-                       int collectOverlap,
-                       int insert){
+CDS_CID_t
+AddGraphEdge(GraphCGW_T *graph,
+             CDS_CID_t cidA, CDS_CID_t cidB,
+             CDS_CID_t fragidA, CDS_CID_t fragidB,
+             CDS_CID_t dist,
+             LengthT distance,
+             double   quality,
+             int32 fudgeDistance,
+             PairOrient orientation,
+             int isInducedByUnknownOrientation,
+             int isOverlap,
+             int isAContainsB,
+             int isBContainsA,
+             int isTransChunk,
+             int isExtremalA,
+             int isExtremalB,
+             EdgeStatus status,
+             int collectOverlap,
+             int insert){
   CIEdgeT *ciedge = GetFreeGraphEdge(graph);
   CDS_CID_t ciedgeIndex = GetVAIndex_EdgeCGW_T(graph->edges, ciedge);
   CDS_CID_t idA, idB;
@@ -1141,7 +1142,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
 
     ciedge->flags.bits.isBogus         = FALSE;
     ciedge->flags.bits.isProbablyBogus = (ciedge->distance.mean < minDistance ||
-                                          ciedge->distance.mean > maxDistance);
+                                                                  ciedge->distance.mean > maxDistance);
 
 #ifdef DEBUG_CIEDGES
     if (ciedge->flags.bits.isProbablyBogus) {
@@ -1650,29 +1651,25 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 
 
 
-/* Compute the offset and orientation of a fragment in its chunk/contig
-   orientIsOpposite == TRUE
-   Offset is from 5p end of fragment to the end of the chunk in the
-   direction of the 3p end of the fragment.
-   orientIsOpposite == FALSE
-   Offset is from 5p end of fragment to the end of the chunk in the
-   direction of the 5p end of the fragment.
-*/
+//  Compute the offset and orientation of a fragment in its chunk/contig orientIsOpposite == TRUE
+//  Offset is from 5p end of fragment to the end of the chunk in the direction of the 3p end of the fragment.
+//
+//  orientIsOpposite == FALSE
+//  Offset is from 5p end of fragment to the end of the chunk in the direction of the 5p end of the
+//  fragment.
+//
+//  orientIsOpposite -- TRUE if offset should be calculated from 5' towards end of chunk closest to
+//  3' end of fragment.  FALSE if offset should be calculated from 5' towards end of chunk closest
+//  to 5' end.  See comments below */
 
-int FragOffsetAndOrientation(CIFragT     *frag,
-                             ChunkInstanceT *chunk,
-                             LengthT    *chunkOffset, // output
-                             SequenceOrient *chunkOrient, // output
-                             int32 *extremal,         // output
-                             int32 orientIsOpposite
-                             /* TRUE if offset should be calculated from 5' towards end of
-                                chunk closest to 3' end of fragment.
-                                FALSE if offset should be calculated from 5' towards end of
-                                chunk closest to 5' end.
-                                See comments below */
 
-                             )
-{
+void
+FragOffsetAndOrientation(CIFragT          *frag,
+                         ChunkInstanceT   *chunk,
+                         LengthT          *chunkOffset,    // output
+                         SequenceOrient   *chunkOrient,    // output
+                         int32            *extremal,       // output
+                         int32             orientIsOpposite) {
   LengthT offset3p={0,0}, offset5p={0,0};
   assert(frag && chunk && chunkOffset && chunkOrient && extremal);
 
@@ -1737,16 +1734,7 @@ int FragOffsetAndOrientation(CIFragT     *frag,
     }
   }
 
-#ifdef DEBUG_CIEDGES_1
-  fprintf(stderr,"* Frag "F_CID" offset(%g,%g) clength:%g orient:%c ["F_S32","F_S32"]\n",
-          frag->read_iid, frag->offset5p.mean, frag->offset3p.mean,
-          chunk->bpLength.mean, *chunkOrient,
-          frag->aEndCoord, frag->bEndCoord);
-#endif
   chunkOffset->variance = ComputeFudgeVariance(chunkOffset->mean);
-
-  return TRUE;
-
 }
 
 
@@ -1827,160 +1815,12 @@ ciEdgeOrientFromFragment(int          orient,
 
 
 
-static
-int
-CreateGraphEdge(GraphCGW_T *graph,
-                CIFragT *frag,
-                CIFragT *mfrag,
-                DistT *dist,
-                int orient,
-                int inducedByUnknownOrientation,
-                GraphEdgeStatT *stat,
-                int buildAll) {
-  int isCI=0;
-  NodeCGW_T *node=NULL, *mnode=NULL;
-  CDS_CID_t fragID = GetVAIndex_CIFragT(ScaffoldGraph->CIFrags, frag);
-  CDS_CID_t mfragID = GetVAIndex_CIFragT(ScaffoldGraph->CIFrags, mfrag);
-  LengthT ciOffset, mciOffset, distance;
-  int32 extremalA, extremalB;
-  SequenceOrient ciOrient, mciOrient;
-  PairOrient ciEdgeOrient;
-  EdgeStatus status;
-
-  assert(dist);
-
-  switch(graph->type){
-    case CI_GRAPH:
-      if(frag->cid == mfrag->cid)
-        return FALSE;
-      isCI = TRUE;
-      node = GetGraphNode(graph, frag->cid);
-      mnode = GetGraphNode(graph, mfrag->cid);
-      break;
-    case CONTIG_GRAPH:
-      if(frag->contigID == mfrag->contigID)
-        return FALSE;
-      isCI = FALSE;
-      node = GetGraphNode(graph, frag->contigID);
-      mnode = GetGraphNode(graph, mfrag->contigID);
-      break;
-    default:
-      assert(0);
-  }
-
-  //  Guard against bogus data.  These should never occur.  If they do, your input unitigs are
-  //  missing fragments....and we should have already caught that in Input_CGW.c.  Possibly, we can
-  //  simply return FALSE instead of failing, but your input IS messed up, and that's bad.
-
-  if (frag->flags.bits.isDeleted)
-    fprintf(stderr, "CreateGraphEdge()-- WARNING: frag %d (mate %d) is DELETED!\n",
-            frag->read_iid, frag->mate_iid);
-
-  if (mfrag->flags.bits.isDeleted)
-    fprintf(stderr, "CreateGraphEdge()-- WARNING: frag %d (mate %d) is DELETED!\n",
-            mfrag->read_iid, mfrag->mate_iid);
-
-  if (node == NULL)
-    fprintf(stderr, "CreateGraphEdge()-- WARNING: node is NULL!  isCI=%d  node %d/%d/%d mnode %d/%d/%d\n",
-            isCI, frag->read_iid, frag->cid, frag->contigID, mfrag->read_iid, mfrag->cid, mfrag->contigID);
-
-  if (mnode == NULL)
-    fprintf(stderr, "CreateGraphEdge()-- WARNING: mnode is NULL!  isCI=%d  node %d/%d/%d mnode %d/%d/%d\n",
-            isCI, frag->read_iid, frag->cid, frag->contigID, mfrag->read_iid, mfrag->cid, mfrag->contigID);
-
-  assert(frag->flags.bits.isDeleted == 0);
-  assert(mfrag->flags.bits.isDeleted == 0);
-  assert(node != NULL);
-  assert(mnode != NULL);
-
-  // Don't add edges to chaff
-  if(GlobalData->ignoreChaffUnitigs && (mnode->flags.bits.isChaff ||
-                                        node->flags.bits.isChaff))
-    return FALSE;
-
-  // Don't build double
-  if(!buildAll && (node->id >  mnode->id))
-    return TRUE; // there ARE external edges, we just aren't building them
-
-  assert(mfragID == frag->mate_iid);
-
-  if(GlobalData->verbose)
-    fprintf(stderr,
-            "* Found mate of frag "F_CID" ("F_CID") in chunk:"F_CID" mate:"F_CID" ("F_CID") chunk:"F_CID" distID:"F_CID"\n",
-            fragID, frag->read_iid,
-            frag->cid,
-            mfragID, mfrag->read_iid,
-            mfrag->cid,
-            (CDS_CID_t) GetVAIndex_DistT(ScaffoldGraph->Dists, dist));
-
-  if(!FragOffsetAndOrientation(frag,
-                               node,
-                               &ciOffset,
-                               &ciOrient,
-                               &extremalA,
-                               (orient == AS_READ_ORIENT_INNIE ||
-                                orient == AS_READ_ORIENT_NORMAL)))
-    return FALSE;
-
-  if(!FragOffsetAndOrientation(mfrag,
-                               mnode,
-                               &mciOffset,
-                               &mciOrient,
-                               &extremalB,
-                               (orient == AS_READ_ORIENT_INNIE ||
-                                orient == AS_READ_ORIENT_ANTINORMAL)))
-    return FALSE;
-
-
-  ciEdgeOrient = ciEdgeOrientFromFragment(orient, ciOrient, mciOrient);
-
-
-  distance.mean = (int32) dist->mu - ciOffset.mean - mciOffset.mean;
-  // Since the two offsets and the dist are independent we SUM their variances
-  distance.variance = dist->sigma * dist->sigma + ciOffset.variance + mciOffset.variance;
-
-#ifdef DEBUG_CIEDGES_1
-  fprintf(stderr,"* Adding edge ("F_CID","F_CID",%c) induced by fragments ("F_CID","F_CID",%c) with distance %g and status %d\n",
-          node->id, mnode->id, ciEdgeOrient, frag->read_iid, mfrag->read_iid, (frag->flags.bits.innieMate == 1?'I':'O'),
-          distance.mean, frag->flags.bits.edgeStatus);
-#endif
-
-  //status = frag->flags.bits.edgeStatus;
-  status = AS_CGW_SafeConvert_uintToEdgeStatus(frag->flags.bits.edgeStatus);
-
-  // Insert a chunk Overlap in preparation for ComputeOverlaps when we are building the extended
-  // Unitig Graph.  With contigs, overlaps will be discovered as needed, and no call to
-  // ComputeOverlaps is performed.
-
-  AddGraphEdge(graph,
-               node->id,
-               mnode->id,
-               fragID,
-               mfragID,
-               GetVAIndex_DistT(ScaffoldGraph->Dists, dist),
-               distance,
-               1.0,
-               (int)sqrt(ciOffset.variance + mciOffset.variance), // This is used by collectOverlap as the fudge distance
-               ciEdgeOrient,
-               inducedByUnknownOrientation,
-               FALSE,                        // isOverlap
-               FALSE,                        // isAContainsB
-               FALSE,                        // isBContainsA
-               FALSE,                        // isTransChunk
-               extremalA,
-               extremalB,
-               status,
-               graph->type == CI_GRAPH,
-               TRUE);
-
-  return TRUE;
-}
-
-
 
 // Create All raw link-based graph edges
 void
-BuildGraphEdgesDirectly(GraphCGW_T *graph) {
+BuildGraphEdgesDirectly(GraphCGW_T         *graph,
+                        vector<CDS_CID_t>  &rawEdges) {
+
   GraphEdgeStatT    stat;
   GraphNodeIterator Nodes;
   NodeCGW_T        *node;
@@ -2009,7 +1849,7 @@ BuildGraphEdgesDirectly(GraphCGW_T *graph) {
       nf = 0;
     }
 
-    BuildGraphEdgesFromMultiAlign(graph, node, ma, &stat, FALSE);
+    BuildGraphEdgesFromMultiAlign(graph, node, ma, &stat, FALSE, &rawEdges);
   }
 
   double f = (stat.totalMatePairs > 0) ? (100.0 * stat.totalExternalMatePairs / stat.totalMatePairs) : (0.0);
@@ -2045,104 +1885,165 @@ BuildGraphEdgesDirectly(GraphCGW_T *graph) {
 
 // Create the raw link-based edges
 void
-BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph,
-                              NodeCGW_T *node,
-                              MultiAlignT *ma,
-                              GraphEdgeStatT *stat,
-                              int buildAll) {
-  int   i;
-  int32 numFrags  = GetNumIntMultiPoss(ma->f_list);;
-  DistT *dist     = NULL;
+BuildGraphEdgesFromMultiAlign(GraphCGW_T         *graph,
+                              NodeCGW_T          *node,
+                              MultiAlignT        *ma,
+                              GraphEdgeStatT     *stat,
+                              int                 buildAll,
+                              vector<CDS_CID_t>  *rawEdges) {
 
-  stat->totalFragments += numFrags;
+  if (stat)
+    stat->totalFragments += GetNumIntMultiPoss(ma->f_list);
 
-  for (i=0; i<numFrags; i++) {
-    IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-    CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
-    int          hasExternalLinks = FALSE;
-    CDS_CID_t    mfragID;
-    CIFragT     *mfrag;
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+    IntMultiPos *mp     = GetIntMultiPos(ma->f_list, i);
+    CDS_CID_t    frgID  = mp->ident;
+    CIFragT     *frg    = GetCIFragT(ScaffoldGraph->CIFrags, mp->ident);
+    NodeCGW_T   *frgCtg = GetGraphNode(graph, (graph->type == CI_GRAPH) ? frg->cid : frg->contigID);
 
-    // If this fragment has no constraints... continue
-    if ((frag->flags.bits.hasMate == 0) ||
-        (frag->mate_iid == 0))
+    if ((frg->flags.bits.hasMate == 0) ||
+        (frg->mate_iid == 0))
+      //  Not mated.
       continue;
 
-    // If this fragment only has links to fragments within this contig...continue
+    //  Skip it if the frag was discovered, previously, to have its mate in the same contig or unitig
+
+    if ((frgCtg->flags.bits.isContig) && (frg->flags.bits.hasInternalOnlyContigLinks))
+      continue;
+
+    if ((frgCtg->flags.bits.isCI) && (frg->flags.bits.hasInternalOnlyCILinks))
+      continue;
+
+    CDS_CID_t    mrgID  = frg->mate_iid;
+    CIFragT     *mrg    = GetCIFragT(ScaffoldGraph->CIFrags, mrgID);
+    NodeCGW_T   *mrgCtg = GetGraphNode(graph, (graph->type == CI_GRAPH) ? mrg->cid : mrg->contigID);
+
+    assert(frgID != mrgID);
+
+    //  Guard against bogus data.  These should never occur.  If they do, your input unitigs are
+    //  missing fragments....and we should have already caught that in Input_CGW.c.  Possibly, we can
+    //  simply return FALSE instead of failing, but your input IS messed up, and that's bad.
+
+    if (frg->flags.bits.isDeleted)
+      fprintf(stderr, "BuildGraphEdgesFromMultiAlign()-- WARNING: frag %d (mate %d) is DELETED!\n",
+              frg->read_iid, frg->mate_iid);
+
+    if (mrg->flags.bits.isDeleted)
+      fprintf(stderr, "BuildGraphEdgesFromMultiAlign()-- WARNING: frag %d (mate %d) is DELETED!\n",
+              mrg->read_iid, mrg->mate_iid);
+
+    if (frgCtg == NULL)
+      fprintf(stderr, "BuildGraphEdgesFromMultiAlign()-- WARNING: node is NULL!  isCI=%d  node %d/%d/%d mnode %d/%d/%d\n",
+              (graph->type == CI_GRAPH), frg->read_iid, frg->cid, frg->contigID, mrg->read_iid, mrg->cid, mrg->contigID);
+
+    if (mrgCtg == NULL)
+      fprintf(stderr, "BuildGraphEdgesFromMultiAlign()-- WARNING: mnode is NULL!  isCI=%d  node %d/%d/%d mnode %d/%d/%d\n",
+              (graph->type == CI_GRAPH), frg->read_iid, frg->cid, frg->contigID, mrg->read_iid, mrg->cid, mrg->contigID);
+
+    assert(frg->flags.bits.isDeleted == 0);
+    assert(mrg->flags.bits.isDeleted == 0);
+    assert(frgCtg != NULL);
+    assert(mrgCtg != NULL);
+
+    if (stat)
+      stat->totalMatePairs++;
+
+    assert((graph->type == CI_GRAPH) || (graph->type == CONTIG_GRAPH));
+    assert(graph->type != SCAFFOLD_GRAPH);
+
+
+    //  Don't add edges to chaff, or mates in the same object
+    if ((GlobalData->ignoreChaffUnitigs && (frgCtg->flags.bits.isChaff || mrgCtg->flags.bits.isChaff)) ||
+        (frgCtg->id == mrgCtg->id)) {
+
+      if (node->flags.bits.isContig) {
+        frg->flags.bits.hasInternalOnlyContigLinks = TRUE;
+      }
+      
+      if (node->flags.bits.isCI) {
+        frg->flags.bits.hasInternalOnlyCILinks     = TRUE;
+        frg->flags.bits.hasInternalOnlyContigLinks = TRUE;
+      }
+
+      continue;
+    }
+
+    //  Only build specific orientations.
+
+    if ((buildAll == TRUE) || (frgCtg->id < mrgCtg->id)) {
+      LengthT        ciOffset;
+      LengthT        miOffset;
+      int32          extremalA;
+      int32          extremalB;
+      SequenceOrient ciOrient;
+      SequenceOrient miOrient;
+
+      assert(frg->flags.bits.innieMate == mrg->flags.bits.innieMate);
+
+      FragOffsetAndOrientation(frg, frgCtg, &ciOffset, &ciOrient, &extremalA, frg->flags.bits.innieMate);
+      FragOffsetAndOrientation(mrg, mrgCtg, &miOffset, &miOrient, &extremalB, frg->flags.bits.innieMate);
+
+      PairOrient ciEdgeOrient = ciEdgeOrientFromFragment(frg->flags.bits.innieMate, ciOrient, miOrient);
+
+      // Since the two offsets and the dist are independent we SUM their variances
+
+      DistT      *dist = GetDistT(ScaffoldGraph->Dists, frg->dist);
+      LengthT     distance;
+
+      distance.mean     = dist->mu - ciOffset.mean - miOffset.mean;
+      distance.variance = dist->sigma * dist->sigma + ciOffset.variance + miOffset.variance;
+
+      EdgeStatus status = AS_CGW_SafeConvert_uintToEdgeStatus(frg->flags.bits.edgeStatus);
+
+      // Insert a chunk Overlap in preparation for ComputeOverlaps when we are building the extended
+      // Unitig Graph.  With contigs, overlaps will be discovered as needed, and no call to
+      // ComputeOverlaps is performed.
+
+      CDS_CID_t cid = AddGraphEdge(graph,
+                                   frgCtg->id,
+                                   mrgCtg->id,
+                                   frgID,
+                                   mrgID,
+                                   frg->dist,
+                                   distance,
+                                   1.0,
+                                   sqrt(ciOffset.variance + miOffset.variance), // This is used by collectOverlap as the fudge distance
+                                   ciEdgeOrient,
+                                   FALSE,
+                                   FALSE,    // isOverlap
+                                   FALSE,    // isAContainsB
+                                   FALSE,    // isBContainsA
+                                   FALSE,    // isTransChunk
+                                   extremalA,
+                                   extremalB,
+                                   status,
+                                   graph->type == CI_GRAPH,
+                                   TRUE); //(rawEdges == NULL));
+#warning ALWAYS ADDING EDGES TO GRAPH
+
+      if (rawEdges)
+        rawEdges->push_back(cid);
+    }
+
+    //  Even if we didn't build, mark the reads as having external mates.
+
     if (node->flags.bits.isContig) {
-      if (frag->contigID != node->id)
-        fprintf(stderr,"* Frag "F_CID" with iid "F_CID" of Contig "F_CID" has contigOf = "F_CID"!!!\n",
-                mp->ident, frag->read_iid, node->id, frag->contigID);
-      assert(frag->contigID == node->id);
-
-      if (frag->flags.bits.hasInternalOnlyContigLinks)
-        continue;
-
-    } else if (node->flags.bits.isCI) {
-      // If this fragment only has links to fragments within this CI...continue
-      if (frag->cid != node->id)
-        fprintf(stderr,"* Frag "F_CID" with iid "F_CID" of cid "F_CID" has ci = "F_CID"!!!\n",
-                mp->ident, frag->read_iid, node->id, frag->cid);
-      assert(frag->cid == node->id);
-
-      if( frag->flags.bits.hasInternalOnlyCILinks)
-        continue;
+      frg->flags.bits.hasInternalOnlyContigLinks = FALSE;
+      mrg->flags.bits.hasInternalOnlyContigLinks = FALSE;
     }
 
-    mfragID = frag->mate_iid;
-    mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragID);
+    if (node->flags.bits.isCI) {
+      mrg->flags.bits.hasInternalOnlyCILinks     = FALSE;
+      frg->flags.bits.hasInternalOnlyCILinks     = FALSE;
 
-    stat->totalMatePairs++;
+      frg->flags.bits.hasInternalOnlyContigLinks = FALSE;
+      mrg->flags.bits.hasInternalOnlyContigLinks = FALSE;
+    }
 
-    dist = GetDistT(ScaffoldGraph->Dists, mfrag->dist);
-    assert(dist);
-
-    hasExternalLinks |= CreateGraphEdge(graph,
-                                        frag,
-                                        mfrag,
-                                        dist,
-                                        frag->flags.bits.innieMate ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_OUTTIE,
-                                        FALSE,
-                                        stat,
-                                        buildAll);
-
-    // If we didn't insert any links to other nodes, remember this, since we can save time
-    // later
-    if(!hasExternalLinks){
-      if(node->flags.bits.isContig){
-        frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
-      } else if(node->flags.bits.isCI){
-        frag->flags.bits.hasInternalOnlyCILinks = TRUE;
-        frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
-      } else {
-        fprintf(stderr,"* Marking frag "F_CID" as internal only -- NOT isContig or isCI??\n", mp->ident);
-        PrintFragment(frag, mp->ident, stderr);
-        assert(0);
-      }
-    }else{
-      if(node->flags.bits.isContig){
-        if(frag->flags.bits.hasInternalOnlyContigLinks){
-          fprintf(stderr,"* An internal only fragment ("F_CID") in node ("F_CID") induced an edge\n",
-                  mp->ident, node->id);
-        }
-        mfrag->flags.bits.hasInternalOnlyContigLinks = FALSE;
-        frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
-      } else if(node->flags.bits.isCI){
-        if(frag->flags.bits.hasInternalOnlyCILinks){
-          fprintf(stderr,"* An internal only fragment ("F_CID") in node ("F_CID") induced an edge\n",
-                  mp->ident, node->id);
-        }
-        mfrag->flags.bits.hasInternalOnlyContigLinks = FALSE;
-        mfrag->flags.bits.hasInternalOnlyCILinks = FALSE;
-        frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
-        frag->flags.bits.hasInternalOnlyCILinks = FALSE;
-      }
-
+    if (stat)
       stat->totalExternalMatePairs++;
-    }
   }
-}
-
+}  
 
 
 

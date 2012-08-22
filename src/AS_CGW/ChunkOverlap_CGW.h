@@ -22,7 +22,7 @@
 #ifndef CHUNKOVERLAP_CGW_H
 #define CHUNKOVERLAP_CGW_H
 
-static const char *rcsid_CHUNKOVERLAP_CGW_H = "$Id: ChunkOverlap_CGW.h,v 1.12 2012-03-23 06:45:50 brianwalenz Exp $";
+static const char *rcsid_CHUNKOVERLAP_CGW_H = "$Id: ChunkOverlap_CGW.h,v 1.13 2012-08-22 06:13:35 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Hash.h"
@@ -121,8 +121,9 @@ LookupOverlap(GraphCGW_T *graph,
               ChunkOverlapCheckT *olap);
 
 CDS_CID_t
-InsertComputedOverlapEdge(GraphCGW_T *graph,
-                          ChunkOverlapCheckT *olap);
+MakeComputedOverlapEdge(GraphCGW_T          *graph,
+                        ChunkOverlapCheckT  *olap,
+                        bool                 insert);
 
 void
 CollectChunkOverlap(GraphCGW_T *graph,
@@ -159,8 +160,13 @@ OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
 
 
 void
-ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
-                int recomputeCGBOverlaps);
+ComputeOverlaps(GraphCGW_T          *graph,
+                vector<CDS_CID_t>   &rawEdges);
+
+void
+AddUnitigOverlaps(GraphCGW_T         *graph,
+                  char               *ovlFileName,
+                  vector<CDS_CID_t>  &rawEdges);
 
 
 #endif  //  CHUNKOVERLAP_CGW_H

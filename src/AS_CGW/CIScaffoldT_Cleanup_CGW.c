@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.82 2012-08-22 02:00:57 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.83 2012-08-22 06:13:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2001,10 +2001,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   UpdateNodeUnitigs(newMultiAlign,contig);
 
   // Create the raw link-based edges
-  {
-    GraphEdgeStatT stats;
-    BuildGraphEdgesFromMultiAlign(ScaffoldGraph->ContigGraph, contig, newMultiAlign, &stats, TRUE);
-  }
+  BuildGraphEdgesFromMultiAlign(ScaffoldGraph->ContigGraph, contig, newMultiAlign, NULL, TRUE, NULL);
 
   if(GlobalData->debugLevel > 0){
     fprintf(stderr,"* Here is the new contig before merging: [%g,%g]\n",

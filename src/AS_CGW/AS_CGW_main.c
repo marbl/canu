@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.101 2012-08-20 11:55:23 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.102 2012-08-22 06:13:35 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -70,7 +70,6 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.101 2012-08-20 11:55:23 brianwalenz
 
 
 
-void AddUnitigOverlaps(GraphCGW_T *graph, char       *ovlFileName);
 void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph);
 void CheckCITypes(ScaffoldGraphT *sgraph);
 void RemoveSurrogateDuplicates(void);
@@ -339,16 +338,20 @@ main(int argc, char **argv) {
 
 
   if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS) < 0) {
-    BuildGraphEdgesDirectly(ScaffoldGraph->CIGraph);
+    vector<CDS_CID_t>  rawEdges;
 
-    if (GlobalData->unitigOverlaps[0])
-      AddUnitigOverlaps(ScaffoldGraph->CIGraph, GlobalData->unitigOverlaps);
+    BuildGraphEdgesDirectly(ScaffoldGraph->CIGraph, rawEdges);
+
+    //  Broken, see comments in ChunkOverlap_CGW.c
+    //
+    //if (GlobalData->unitigOverlaps[0])
+    //  AddUnitigOverlaps(ScaffoldGraph->CIGraph, GlobalData->unitigOverlaps, rawEdges);
 
     // Compute all overlaps implied by mate links between pairs of unique unitigs
-    ComputeOverlaps(ScaffoldGraph->CIGraph, TRUE, TRUE);
+    ComputeOverlaps(ScaffoldGraph->CIGraph, rawEdges);
 
-    CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
-    CheckSurrogateUnitigs();
+    //CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
+    //CheckSurrogateUnitigs();
 
     MergeAllGraphEdges(ScaffoldGraph->CIGraph, FALSE, FALSE);
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.25 2012-08-16 03:39:43 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.26 2012-08-22 06:13:35 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -97,17 +97,12 @@ double CorrectEdgeVariance(ScaffoldGraphT *graph, CIEdgeT *edge){
   CIFragT *fragA = GetCIFragT(graph->CIFrags, edge->fragA);
   CIFragT *fragB = GetCIFragT(graph->CIFrags, edge->fragB);
 
-  if(FragOffsetAndOrientation(fragA, nodeA, &oldOffsetA, &fragOrient,
-                              &extremalFrag, TRUE) == FALSE ||
-     FragOffsetAndOrientation(fragA, nodeA, &newOffsetA, &fragOrient,
-                              &extremalFrag, FALSE) == FALSE ||
-     FragOffsetAndOrientation(fragB, nodeB, &oldOffsetB, &fragOrient,
-                              &extremalFrag, TRUE) == FALSE ||
-     FragOffsetAndOrientation(fragB, nodeB, &newOffsetB, &fragOrient,
-                              &extremalFrag, FALSE) == FALSE)
-    assert(0);
-  return((newOffsetA.variance -  oldOffsetA.variance) +
-	 (newOffsetB.variance -  oldOffsetB.variance));
+  FragOffsetAndOrientation(fragA, nodeA, &oldOffsetA, &fragOrient, &extremalFrag, TRUE);
+  FragOffsetAndOrientation(fragA, nodeA, &newOffsetA, &fragOrient, &extremalFrag, FALSE);
+  FragOffsetAndOrientation(fragB, nodeB, &oldOffsetB, &fragOrient, &extremalFrag, TRUE);
+  FragOffsetAndOrientation(fragB, nodeB, &newOffsetB, &fragOrient, &extremalFrag, FALSE);
+
+  return((newOffsetA.variance -  oldOffsetA.variance) + (newOffsetB.variance -  oldOffsetB.variance));
 }
 
 

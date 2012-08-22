@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.58 2012-08-22 02:00:57 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.59 2012-08-22 06:13:35 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -1122,12 +1122,13 @@ void UpdateNodeUnitigs(MultiAlignT *ma, NodeCGW_T *contig);
    FALSE if offset should be calculated from 5' towards end of
    chunk closest to 5' end.
 */
-int FragOffsetAndOrientation(CIFragT     *frag,
-			     NodeCGW_T *chunk,
-			     LengthT    *chunkOffset, // output
-			     SequenceOrient *chunkOrient, // output
-			     int32 *extremal,         // output
-			     int32 orientIsOpposite);
+void
+FragOffsetAndOrientation(CIFragT          *frag,
+                         ChunkInstanceT   *chunk,
+                         LengthT          *chunkOffset,    // output
+                         SequenceOrient   *chunkOrient,    // output
+                         int32            *extremal,       // output
+                         int32             orientIsOpposite);
 
 // GraphEdgeStat is used to collect stats on graph edge building
 typedef struct {
@@ -1150,13 +1151,17 @@ static void InitGraphEdgeStatT(GraphEdgeStatT *stat){
   Create All raw link-based graph edges directly from fragment links
   and multi-alignments
 */
-void  BuildGraphEdgesDirectly(GraphCGW_T *graph);
+void
+BuildGraphEdgesDirectly(GraphCGW_T *graph, vector<CDS_CID_t> &rawEdges);
 
 // Create the raw link-based edges incident on a particular graph node
-void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
-                                    MultiAlignT *ma, GraphEdgeStatT *stats,
-                                    int buildAll);
-
+void
+BuildGraphEdgesFromMultiAlign(GraphCGW_T         *graph,
+                              NodeCGW_T          *node,
+                              MultiAlignT        *ma,
+                              GraphEdgeStatT     *stats,
+                              int                 buildAll,
+                              vector<CDS_CID_t>  *rawEdges);
 
 /**********************
 

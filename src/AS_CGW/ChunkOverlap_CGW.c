@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.60 2012-08-20 11:55:23 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.61 2012-08-22 06:13:35 brianwalenz Exp $";
 
 #include "ChunkOverlap_CGW.h"
 #include "AS_UTL_reverseComplement.h"
@@ -646,23 +646,23 @@ LookupOverlap(GraphCGW_T *graph,
 /* Insert a computed overlap as a CIEdgeT into the Scaffold Graph. */
 
 //external
-CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
-                                    ChunkOverlapCheckT *olap){
-  CDS_CID_t eid;
-  int fudge;
-  int isDoveTail = FALSE;
-  LengthT overlap;
-  PairOrient orient = olap->spec.orientation;
-  EdgeCGW_T *existing = FindGraphOverlapEdge(graph, olap->spec.cidA, olap->spec.cidB, orient);
+CDS_CID_t
+MakeComputedOverlapEdge(GraphCGW_T         *graph,
+                        ChunkOverlapCheckT *olap,
+                        bool                insert) {
 
-  overlap.mean   = -olap->overlap;
-  overlap.variance = MAX(1.0, ComputeFudgeVariance((double)olap->overlap));
-  fudge = sqrt(overlap.variance);
+  EdgeCGW_T *existing = FindGraphOverlapEdge(graph,
+                                             olap->spec.cidA,
+                                             olap->spec.cidB,
+                                             olap->spec.orientation);
 
-  isDoveTail = !(olap->AContainsB || olap->BContainsA);
+  LengthT    overlap;
 
+  overlap.mean     = -olap->overlap;
+  overlap.variance = MAX(1.0, ComputeFudgeVariance(olap->overlap));
 
   // If there is an existing overlap edge, don't insert this one if it is the same!
+  //
   if (existing) {
     double diff = existing->distance.mean - overlap.mean;
 
@@ -671,26 +671,26 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
       return(GetVAIndex_EdgeCGW_T(graph->edges, existing));
   }
 
-  eid = AddGraphEdge(graph,
-                     olap->spec.cidA,
-                     olap->spec.cidB,
-                     NULLINDEX, NULLINDEX, // frags
-                     NULLINDEX,  // dist
-                     overlap,
-                     olap->quality,
-                     fudge,
-                     orient,
-                     FALSE, // inducedByUnknownOrientation
-                     isDoveTail,  // isOverlap
-                     olap->AContainsB,                 // isAContainsB
-                     olap->BContainsA,                 // isBContainsA
-                     FALSE,                        // isTransChunk
-                     FALSE, FALSE,  // extremalA and extremalB
-                     UNKNOWN_EDGE_STATUS,
-                     FALSE,
-                     TRUE /* insert*/ );
+  CDS_CID_t eid = AddGraphEdge(graph,
+                               olap->spec.cidA,
+                               olap->spec.cidB,
+                               NULLINDEX, NULLINDEX, // frags
+                               NULLINDEX,  // dist
+                               overlap,
+                               olap->quality,
+                               sqrt(overlap.variance),
+                               olap->spec.orientation,
+                               FALSE, // inducedByUnknownOrientation
+                               (olap->AContainsB == FALSE) && (olap->BContainsA == FALSE),  // isOverlap
+                               olap->AContainsB,                 // isAContainsB
+                               olap->BContainsA,                 // isBContainsA
+                               FALSE,                        // isTransChunk
+                               FALSE, FALSE,  // extremalA and extremalB
+                               UNKNOWN_EDGE_STATUS,
+                               FALSE,
+                               insert);
 
-  return eid;
+  return(eid);
 }
 
 
@@ -1146,7 +1146,7 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
 
 
     if(olap.overlap && insert){ // Insert all non-zero overlaps, if requested
-      InsertComputedOverlapEdge(graph, &olap);
+      MakeComputedOverlapEdge(graph, &olap, TRUE);
     }
     /* Make sure the orientation of the edge we return is IDENTICAL with the spec returned */
     // if the input was not canonical we set the cid's and orientation
@@ -1256,13 +1256,11 @@ static VA_TYPE(char) *quality2 = NULL;
 
 
 
-// This is the top level routine that computes all new potential overlaps.
-//
-#define NUM_SECTIONS (5)
 
 //external
 void
-ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates, int recomputeCGBOverlaps) {
+ComputeOverlaps(GraphCGW_T          *graph,
+                vector<CDS_CID_t>   &rawEdges) {
   HashTable_Iterator_AS iterator;
   uint64 key, value;
   uint32 valuetype;
@@ -1284,9 +1282,6 @@ ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates, int recomputeCGBOverlaps) {
     assert(key == value);
 
     if (olap.computed)
-      continue;
-
-    if (olap.fromCGB && !recomputeCGBOverlaps)
       continue;
 
     // set errRate to old value
@@ -1315,17 +1310,24 @@ ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates, int recomputeCGBOverlaps) {
               lengthA,lengthB);
     }
 
-    if (addEdgeMates && !olap.fromCGB && olap.overlap)
-      InsertComputedOverlapEdge(graph, &olap);
+    if ((olap.fromCGB == FALSE) && (olap.overlap))
+      rawEdges.push_back(MakeComputedOverlapEdge(graph, &olap, FALSE));
   }
 }
 
 
 
-//external
-void AddUnitigOverlaps(GraphCGW_T *graph,
-                       char       *ovlFileName) {
+#if 0
+//  This is broken.  Buried in FullChunkOverlapWithOVL() is a call to OverlapChunks(), which
+//  automagically addes the overlap edge to the graph.  We cannot do that before building merged
+//  edges.
 
+//external
+void
+AddUnitigOverlaps(GraphCGW_T         *graph,
+                  char               *ovlFileName,
+                  vector<CDS_CID_t>  &rawEdges) {
+  
   if (ovlFileName == NULL)
     return;
 
@@ -1351,3 +1353,4 @@ void AddUnitigOverlaps(GraphCGW_T *graph,
 
   fclose(F);
 }
+#endif
