@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: DemoteUnitigsWithRBP_CGW.c,v 1.11 2012-08-12 23:43:34 jasonmiller9704 Exp $";
+static const char *rcsid = "$Id: DemoteUnitigsWithRBP_CGW.c,v 1.12 2012-08-22 05:53:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,7 +77,7 @@ void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph){
     /* fprintf(stream, "Unitig %d: branchA %d branchB %d\n", node->id, numAEndConfirmOverlap,
        numBEndConfirmOverlap); */
     if((ScaffoldGraph->tigStore->getUnitigFUR(node->id) == AS_FORCED_REPEAT) || ((numAEndConfirmOverlap > 1) && (numBEndConfirmOverlap > 1))){
-      fprintf(stream, "DemoteUnitigsWithRBP(): Demote unitig %d, len=%d, #overlaps=(%d,%d)\n", 
+      fprintf(stream, "DemoteUnitigsWithRBP(): Demote unitig %d, len=%.0f, #overlaps=(%d,%d)\n", 
 	      node->id,node->bpLength.mean,numAEndConfirmOverlap,numBEndConfirmOverlap);
       node->flags.bits.isUnique = FALSE;
       node->type = UNRESOLVEDCHUNK_CGW;
