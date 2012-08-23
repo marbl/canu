@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.63 2012-08-23 20:54:56 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.64 2012-08-23 22:45:15 jasonmiller9704 Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -968,13 +968,13 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       FTN_INT ldab = maxDiagonals;
       FTN_INT info = 0;
 
-      fprintf(stderr, "Calling dpbtrf() \n");
+      //      fprintf(stderr, "Calling dpbtrf() \n");
       //      dumpGapCoefficients(gapCoefficients, maxDiagonals, numComputeGaps, rows, bands); // debug
 
       dpbtrf_("L", &rows, &bands, gapCoefficients, &ldab, &info);
 
       //      dumpGapCoefficients(gapCoefficients, maxDiagonals, numComputeGaps, rows, bands); // debug
-      fprintf(stderr, "dpbtrf: ldab "F_FTN_INT" info "F_FTN_INT"\n", ldab, info);
+      //      fprintf(stderr, "dpbtrf: ldab "F_FTN_INT" info "F_FTN_INT"\n", ldab, info);
 
       if (info < 0) {
         //  The -info'th argument had an illegal value.
@@ -1003,13 +1003,13 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       FTN_INT ldab = maxDiagonals-1 + maxDiagonals-1 + 1 +maxDiagonals-1;
       FTN_INT info = 0;
 
-      fprintf(stderr, "Calling dgbtrf() \n");
-      //dumpGapCoefficientsAlt(gapCoefficientsAlt, maxDiagonals, numComputeGaps, rows, bands);  // debug
+      //   fprintf(stderr, "Calling dgbtrf() \n");
+      //   dumpGapCoefficientsAlt(gapCoefficientsAlt, maxDiagonals, numComputeGaps, rows, bands);  // debug
 
       dgbtrf_(&rows, &rows, &bands, &bands, gapCoefficientsAlt, &ldab, IPIV, &info);
 
-      //dumpGapCoefficientsAlt(gapCoefficientsAlt, maxDiagonals, numComputeGaps, rows, bands); // debug
-      fprintf(stderr, "dgbtrf: ldab "F_FTN_INT" info "F_FTN_INT"\n", ldab, info);
+      //    dumpGapCoefficientsAlt(gapCoefficientsAlt, maxDiagonals, numComputeGaps, rows, bands); // debug
+      //    fprintf(stderr, "dgbtrf: ldab "F_FTN_INT" info "F_FTN_INT"\n", ldab, info);
 
       if (info < 0) {
         //  The -info'th argument had an illegal value.
