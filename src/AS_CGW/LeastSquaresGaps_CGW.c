@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.62 2012-08-22 06:13:35 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.63 2012-08-23 20:54:56 jasonmiller9704 Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -578,6 +578,71 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
 
 
 
+/* Below we incrementally add to the matrices and vector we need for
+   solving our equations. When we take the partial derivatives and
+   set them to zero we get numGaps equations which we can represent
+   as a vector on one side of equation by moving the constant terms
+   to one side and a matrix times our set of gap size variables on
+   the other. The vector is called gapConstants and the matrix
+   gapCoefficients. As expected gapConstants is stored as a one
+   dimensional array. The storage for gapCoefficients is also a
+   one dimensional array but it represents a more complicated
+   data structure. First due to the local effects of the clones
+   on the scaffold the array is usually banded so for efficiency
+   we only store the nonzero bands and in addition the matrix is
+   symmetric so we only store the lower bands (subdiagonals) plus
+   the main diagonal. The LAPACK interface expects the subdiagonals
+   to be padded out to the same length as the diagonal and to be in
+   column major order with the diagonals stored as rows so we
+   comply. */
+void
+LS_IncrementGapsCoveredByOneClone(
+				  int thisCI_index, 
+				  int otherCI_index,
+				  int* _gapsToComputeGaps,
+				  double* _gapConstants,
+				  double* _gapCoefficients,
+				  int32 _maxDiagonals,
+				  double clone_constantMean,
+				  double clone_inverseVariance) {
+  fprintf (stderr, "LS_IncrementGapsCoveredByOneClone(%d,%d,...%f,%f)\n",
+	   thisCI_index,otherCI_index,clone_constantMean,clone_inverseVariance);
+  int colIndex;
+  for(colIndex = thisCI_index;
+      colIndex < otherCI_index; 
+      colIndex++){
+    int rowIndex, arrayIndex;
+    int colComputeIndex = _gapsToComputeGaps[colIndex];
+    /* For each gap that the clone spans it contributes the same
+       constant value to the gapConstants vector which is equal
+       to the mean total gap size for that clone divided by the
+       variance of the total gap size. */
+    if(colComputeIndex == NULLINDEX){
+      continue;
+    }
+    _gapConstants[colComputeIndex] += clone_constantMean;
+
+    for(rowIndex = colIndex;
+	rowIndex < otherCI_index; 
+	rowIndex++){
+      int rowComputeIndex = _gapsToComputeGaps[rowIndex];
+      /* If the number of gaps spanned by the clone is N then this clone
+	 contributes to NxN terms in the gapCoefficients matrix, but
+	 because the matrix is symmetric we only store the lower triangle
+	 so N*(N+1)/2 terms are affected for this clone. Remember that we
+	 store the (sub)diagonals as rows in column major order because
+	 the matrix tends to be banded and to use the LAPACK interface.
+	 The contribution of this clone to each term is the inverse of
+	 the variance of the total gap size for that clone. */
+      if(rowComputeIndex == NULLINDEX){
+	continue;
+      }
+      arrayIndex = (colComputeIndex * _maxDiagonals) + (rowComputeIndex - colComputeIndex);
+      _gapCoefficients [arrayIndex] += clone_inverseVariance;
+    }
+  }
+}
+
 
 
 static
@@ -804,9 +869,8 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
         assert(otherCI->indexInScaffold <= numGaps);
         assert(thisCI->indexInScaffold  <= numGaps);
 
-        double constant, constantVariance, inverseVariance;
+        double constantMean, constantVariance, inverseVariance;
         int lengthCIsIndex, gapIndex;
-        int colIndex;
 
         if (otherCI->scaffoldID == -1)
           continue;
@@ -838,11 +902,11 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
            the portions of the CIs containing the clone ends mean and variance.
            Next we subtract the length of all of the CIs spanned by the clone.
            Again we assume the variances are additive based on independence. */
-        for(constant = edge->distance.mean,
+        for(constantMean = edge->distance.mean,
               constantVariance = edge->distance.variance,
               lengthCIsIndex = thisCI->indexInScaffold + 1;
             lengthCIsIndex < otherCI->indexInScaffold; lengthCIsIndex++){
-          constant -= lengthCIs[lengthCIsIndex].mean;
+          constantMean -= lengthCIs[lengthCIsIndex].mean;
           constantVariance += lengthCIs[lengthCIsIndex].variance;
         }
         /* If we are recomputing gap sizes after setting some of the gaps to
@@ -855,72 +919,35 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             gapIndex < otherCI->indexInScaffold; gapIndex++){
           assert(gapIndex < numGaps);
           if(gapsToComputeGaps[gapIndex] == NULLINDEX){
-            constant -= gapSize[gapIndex];
+            constantMean -= gapSize[gapIndex];
             //constantVariance += gapSizeVariance[gapIndex];
           }
         }
         /* cloneMean and cloneVariance are the statistics for the estimated
            total size of the gaps spanned by this clone. */
-        cloneMean[indexClones] = constant;
+        cloneMean[indexClones] = constantMean;
         cloneVariance[indexClones] = constantVariance;
 
         //fprintf(stderr, "Gap clone %f,%f (%d,%d)\n",
-        //        constant, sqrt(constantVariance), thisCI->indexInScaffold, otherCI->indexInScaffold);
+        //        constantMean, sqrt(constantVariance), thisCI->indexInScaffold, otherCI->indexInScaffold);
 
-        constant /= constantVariance;
+        constantMean /= constantVariance;
         inverseVariance = 1.0 / constantVariance;
         /* Store which gaps each clone spans so that we can iterate over
            these gaps when we calculate the gap variances and the
            squared error. */
         cloneGapStart[indexClones] = thisCI->indexInScaffold;
         cloneGapEnd[indexClones] = otherCI->indexInScaffold;
-        /* Below we incrementally add to the matrices and vector we need for
-           solving our equations. When we take the partial derivatives and
-           set them to zero we get numGaps equations which we can represent
-           as a vector on one side of equation by moving the constant terms
-           to one side and a matrix times our set of gap size variables on
-           the other. The vector is called gapConstants and the matrix
-           gapCoefficients. As expected gapConstants is stored as a one
-           dimensional array. The storage for gapCoefficients is also a
-           one dimensional array but it represents a more complicated
-           data structure. First due to the local effects of the clones
-           on the scaffold the array is usually banded so for efficiency
-           we only store the nonzero bands and in addition the matrix is
-           symmetric so we only store the lower bands (subdiagonals) plus
-           the main diagonal. The LAPACK interface expects the subdiagonals
-           to be padded out to the same length as the diagonal and to be in
-           column major order with the diagonals stored as rows so we
-           comply. */
-        for(colIndex = thisCI->indexInScaffold;
-            colIndex < otherCI->indexInScaffold; colIndex++){
-          int rowIndex;
-          int colComputeIndex = gapsToComputeGaps[colIndex];
-          /* For each gap that the clone spans it contributes the same
-             constant value to the gapConstants vector which is equal
-             to the mean total gap size for that clone divided by the
-             variance of the total gap size. */
-          if(colComputeIndex == NULLINDEX){
-            continue;
-          }
-          gapConstants[colComputeIndex] += constant;
-          for(rowIndex = colIndex;
-              rowIndex < otherCI->indexInScaffold; rowIndex++){
-            int rowComputeIndex = gapsToComputeGaps[rowIndex];
-            /* If the number of gaps spanned by the clone is N then this clone
-               contributes to NxN terms in the gapCoefficients matrix, but
-               because the matrix is symmetric we only store the lower triangle
-               so N*(N+1)/2 terms are affected for this clone. Remember that we
-               store the (sub)diagonals as rows in column major order because
-               the matrix tends to be banded and to use the LAPACK interface.
-               The contribution of this clone to each term is the inverse of
-               the variance of the total gap size for that clone. */
-            if(rowComputeIndex == NULLINDEX){
-              continue;
-            }
-            gapCoefficients[(colComputeIndex * maxDiagonals)
-                            + (rowComputeIndex - colComputeIndex)] += inverseVariance;
-          }
-        }
+
+	LS_IncrementGapsCoveredByOneClone
+	  (thisCI->indexInScaffold, 
+	   otherCI->indexInScaffold,
+	   gapsToComputeGaps,
+	   gapConstants,
+	   gapCoefficients,
+	   maxDiagonals,
+	   constantMean,
+	   inverseVariance);
         indexClones++;
       }
     }
@@ -941,12 +968,13 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       FTN_INT ldab = maxDiagonals;
       FTN_INT info = 0;
 
-      //dumpGapCoefficients(gapCoefficients, maxDiagonals, numComputeGaps, rows, bands);
+      fprintf(stderr, "Calling dpbtrf() \n");
+      //      dumpGapCoefficients(gapCoefficients, maxDiagonals, numComputeGaps, rows, bands); // debug
 
       dpbtrf_("L", &rows, &bands, gapCoefficients, &ldab, &info);
 
-      //dumpGapCoefficients(gapCoefficients, maxDiagonals, numComputeGaps, rows, bands);
-      //fprintf(stderr, "dpbtrf: ldab "F_FTN_INT" info "F_FTN_INT"\n", ldab, info);
+      //      dumpGapCoefficients(gapCoefficients, maxDiagonals, numComputeGaps, rows, bands); // debug
+      fprintf(stderr, "dpbtrf: ldab "F_FTN_INT" info "F_FTN_INT"\n", ldab, info);
 
       if (info < 0) {
         //  The -info'th argument had an illegal value.
@@ -962,8 +990,7 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       }
     }
 
-#define LU_BUSTED
-
+#define LU_BUSTED  // debug
 #ifdef LU_BUSTED
     if (isCholesky == false)
       return(RECOMPUTE_LAPACK);
@@ -976,12 +1003,13 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
       FTN_INT ldab = maxDiagonals-1 + maxDiagonals-1 + 1 +maxDiagonals-1;
       FTN_INT info = 0;
 
-      //dumpGapCoefficientsAlt(gapCoefficientsAlt, maxDiagonals, numComputeGaps, rows, bands);
+      fprintf(stderr, "Calling dgbtrf() \n");
+      //dumpGapCoefficientsAlt(gapCoefficientsAlt, maxDiagonals, numComputeGaps, rows, bands);  // debug
 
       dgbtrf_(&rows, &rows, &bands, &bands, gapCoefficientsAlt, &ldab, IPIV, &info);
 
-      //dumpGapCoefficientsAlt(gapCoefficientsAlt, maxDiagonals, numComputeGaps, rows, bands);
-      //fprintf(stderr, "dgbtrf: ldab "F_FTN_INT" info "F_FTN_INT"\n", ldab, info);
+      //dumpGapCoefficientsAlt(gapCoefficientsAlt, maxDiagonals, numComputeGaps, rows, bands); // debug
+      fprintf(stderr, "dgbtrf: ldab "F_FTN_INT" info "F_FTN_INT"\n", ldab, info);
 
       if (info < 0) {
         //  The -info'th argument had an illegal value.
