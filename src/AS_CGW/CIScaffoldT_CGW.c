@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.73 2012-08-22 11:50:02 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.74 2012-08-23 12:16:47 jasonmiller9704 Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -41,6 +41,14 @@ static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.73 2012-08-22 11:50:02 jasonmil
 
 VA_DEF(PtrT)
 
+// ACTIVATE THIS DEFINE IN ORDER TO HAVE CGW FIX CONTIG POSITION & VARIANCES ARBITRARILY. 
+// WHEN ACTIVE, THIS WILL AVOID ASSERT.
+// WHEN ACTIVE, THIS WILL LEAVE PROBLEM SCAFFOLDS AND COULD HAVE A SNOWBALL EFFECT.
+// THIS IS INTENDED AS A DEBUGGING AID.
+//#define PAPER_OVER_SCAFFOLD_PROBLEMS
+#ifdef PAPER_OVER_SCAFFOLD_PROBLEMS
+void PaperOverScaffoldProblems(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
+#endif
 
 void PrintCINodeFields(FILE * stream, NodeCGW_T * node)
 {
@@ -1086,13 +1094,8 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   if (hasProblems > 0) {
     fprintf(stderr, "ScaffoldSanity()-- scaffold %d has "F_U32" problems.\n", scaffold->id, hasProblems);
-
-#if 1
-  {
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-
     CI = NextCIScaffoldTIterator(&CIs);
-
     CDS_CID_t  prevCIid     = CI->id;
     LengthT    thisLeftEnd  = { 0, 0 };
     LengthT    thisRightEnd = { 0, 0 };
@@ -1102,7 +1105,6 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
       thisLeftEnd  = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
       thisRightEnd = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
-
       fprintf(stderr, "ScaffoldSanity()-- Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f  gap to next %9.0f +- %-11.0f\n",
               prevCIid,
               prevLeftEnd.mean,  prevLeftEnd.variance,
@@ -1110,25 +1112,23 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
               prevRightEnd.mean - prevLeftEnd.mean,
               thisLeftEnd.mean - prevRightEnd.mean,
               thisLeftEnd.variance - prevRightEnd.variance);
-
       prevCIid      = CI->id;
       prevLeftEnd   = thisLeftEnd;
       prevRightEnd  = thisRightEnd;
     }
-
     fprintf(stderr, "ScaffoldSanity()-- Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f\n",
             prevCIid,
             prevLeftEnd.mean,  prevLeftEnd.variance,
             prevRightEnd.mean, prevRightEnd.variance,
             prevRightEnd.mean - prevLeftEnd.mean);
   }
-#endif
-  }
 
+#ifdef PAPER_OVER_SCAFFOLD_PROBLEMS
+  PaperOverScaffoldProblems (graph, scaffold);
+#else
   assert(hasProblems == 0);
-
+#endif
   assert(numCtg == scaffold->info.Scaffold.numElements);
-
   assert(scaffold->bpLength.mean     >= 0);
   assert(scaffold->bpLength.variance >= 0);
 
@@ -1236,3 +1236,53 @@ void DemoteSmallSingletonScaffolds(void) {
           numScaffolds, numSingletonScaffolds, numDemoted,
           (numSingletonScaffolds > 0? ((double)(numDemoted)/(double)(numSingletonScaffolds)): 0.0));
 }
+
+#ifdef PAPER_OVER_SCAFFOLD_PROBLEMS
+void PaperOverScaffoldProblems(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
+  // If this approach becomes necessary, add flag to scaffold struct to mark it bad.
+  CIScaffoldTIterator CIs;
+  ChunkInstanceT     *CI;
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+  CI = NextCIScaffoldTIterator(&CIs);
+  CDS_CID_t  prevCIid     = CI->id;
+  LengthT    thisLeftEnd  = { 0, 0 };
+  LengthT    thisRightEnd = { 0, 0 };
+  bool A_before_B = (CI->offsetAEnd.mean < CI->offsetBEnd.mean);
+  LengthT    prevLeftEnd  = (A_before_B) ? CI->offsetAEnd : CI->offsetBEnd;
+  LengthT    prevRightEnd = (A_before_B) ? CI->offsetBEnd : CI->offsetAEnd;
+  int papered_offset = 0;
+  int papered_variance = 0;
+  int contig_length = 0;
+  int papered_gap_length = 100;  // As we paper over bad scaffold, every gap gets a uniform arbitrary size
+  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
+    A_before_B = (CI->offsetAEnd.mean < CI->offsetBEnd.mean);
+    thisLeftEnd  = (A_before_B) ? CI->offsetAEnd : CI->offsetBEnd;
+    thisRightEnd = (A_before_B) ? CI->offsetBEnd : CI->offsetAEnd;
+    // Paper over the problem by placing the contig downstream of the previous contig
+    contig_length = thisRightEnd.mean - thisLeftEnd.mean; // true of space based coords
+    contig_length = (contig_length < 0) ? (0 - contig_length) : (contig_length); // length >= 0
+    contig_length = (contig_length == 0) ? (1) : (contig_length); // length > 0
+    if (A_before_B) {
+      CI->offsetAEnd.mean = papered_offset;
+      papered_offset += contig_length;  
+      CI->offsetBEnd.mean = papered_offset;
+      papered_offset += papered_gap_length; 
+    } else {
+      CI->offsetBEnd.mean = papered_offset;
+      papered_offset += contig_length;  
+      CI->offsetAEnd.mean = papered_offset;
+      papered_offset += papered_gap_length; 
+    } 
+    // Paper over the variance too. Arbitrarily set variance same as mean
+    CI->offsetAEnd.variance = CI->offsetAEnd.mean;
+    CI->offsetBEnd.variance = CI->offsetBEnd.mean;
+    // will we need to adjust scaffold->bpLength.mean ?
+    // On to the next: this contig becomes previous contig
+    prevCIid      = CI->id;
+    prevLeftEnd   = thisLeftEnd;
+    prevRightEnd  = thisRightEnd;
+  }
+  fprintf(stderr, "PaperOverScaffoldProblems()-- Arbitrarily set gaps to length %d in scaffold %d.\n", papered_gap_length, scaffold->id);
+}
+#endif
+
