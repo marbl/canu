@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.58 2012-08-17 19:55:59 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.59 2012-08-23 14:32:54 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -98,7 +98,7 @@ void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
                             CIScaffoldT * scaffold,
                             int canonicalOnly,
                             int includeNegativeEdges);
-void BuildSEdges(ScaffoldGraphT *graph, int canonicalOnly, int includeNegativeEdges);
+void BuildSEdges(ScaffoldGraphT *graph, vector<CDS_CID_t> &rawEdges, int canonicalOnly, int includeNegativeEdges);
 
 /* Destructor */
 void DestroyScaffoldGraph(ScaffoldGraphT *sgraph);
@@ -417,11 +417,7 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
                     CDS_CID_t cid, CDS_CID_t sid,
                     LengthT offsetAEnd, LengthT offsetBEnd);
 
-/* DemoteSmallSingletonScaffolds
-   We want to demote the contigs/unitigs in small singleton scaffolds so
-   that they can be candidates for stone/rock throwing.
-*/
-void DemoteSmallSingletonScaffolds(void);
+bool DemoteSmallSingletonScaffolds(void);
 
 void ShatterScaffoldsConnectedByLowWeight(FILE *stream, ScaffoldGraphT *graph, uint32 minWeight, int verbose);
 

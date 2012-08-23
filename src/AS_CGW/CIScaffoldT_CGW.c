@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.74 2012-08-23 12:16:47 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.75 2012-08-23 14:32:54 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1158,7 +1158,8 @@ ScaffoldSanity(ScaffoldGraphT *graph) {
 //  We want to demote the contigs/unitigs in small singleton scaffolds
 //  so that they can be candidates for stone/rock throwing.
 //
-void DemoteSmallSingletonScaffolds(void) {
+bool
+DemoteSmallSingletonScaffolds(void) {
   GraphNodeIterator   scaffolds;
   CIScaffoldT        *scaffold;
   int                 numScaffolds = 0;
@@ -1224,17 +1225,12 @@ void DemoteSmallSingletonScaffolds(void) {
     scaffold->bpLength.variance         = 0.0;
   }
 
-  //  If we removed any scaffolds, rebuild all the edges.
-  //
-  if (numDemoted > 0) {
-    BuildSEdges(ScaffoldGraph, FALSE, TRUE);
-    MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
-  }
-
   fprintf(stderr,
           "# Considered %d scaffolds of which %d were single and %d (%.0f%%) were demoted\n",
           numScaffolds, numSingletonScaffolds, numDemoted,
           (numSingletonScaffolds > 0? ((double)(numDemoted)/(double)(numSingletonScaffolds)): 0.0));
+
+  return(numDemoted > 0);
 }
 
 #ifdef PAPER_OVER_SCAFFOLD_PROBLEMS

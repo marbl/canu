@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.102 2012-08-22 06:13:35 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.103 2012-08-23 14:32:54 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -426,8 +426,12 @@ main(int argc, char **argv) {
 
     //CheckAllTrustedEdges(ScaffoldGraph);
 
-    BuildSEdges(ScaffoldGraph, TRUE, FALSE);
-    MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
+    {
+      vector<CDS_CID_t>  rawEdges;
+
+      BuildSEdges(ScaffoldGraph, rawEdges, TRUE, FALSE);
+      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
+    }
 
     //ScaffoldSanity(ScaffoldGraph);
 
@@ -465,8 +469,12 @@ main(int argc, char **argv) {
 
         //CheckAllTrustedEdges(ScaffoldGraph);
 
-        BuildSEdges(ScaffoldGraph, TRUE, FALSE);
-        MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
+        {
+          vector<CDS_CID_t>  rawEdges;
+
+          BuildSEdges(ScaffoldGraph, rawEdges, TRUE, FALSE);
+          MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
+        }
 
         //  If we've been running for 2 hours, AND we've not just
         //  completed the last iteration, checkpoint.
@@ -547,11 +555,30 @@ main(int argc, char **argv) {
     // Convert single-contig scaffolds that are marginally unique back
     // to unplaced contigs so they might be placed as stones
     //
-    if (GlobalData->demoteSingletonScaffolds)
-      DemoteSmallSingletonScaffolds();
+    //  If we removed any scaffolds, rebuild all the edges.
+    //
+    if ((GlobalData->demoteSingletonScaffolds == true) &&
+        (DemoteSmallSingletonScaffolds() == true)) {
+      vector<CDS_CID_t>  rawEdges;
+
+#warning why is this BuildSEdges non-canonical
+      BuildSEdges(ScaffoldGraph, rawEdges, FALSE, TRUE);
+      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
+    }
 
     ScaffoldSanity(ScaffoldGraph);
     Throw_Stones(GlobalData->outputPrefix, GlobalData->stoneLevel, FALSE);
+
+    //  If Throw_Stones splits scaffolds, rebuild edges.
+    //  Throw_Stones should return if 'splitscaffolds > 0' so we can avoid
+    //  rebuilding.
+    {
+      vector<CDS_CID_t>  rawEdges;
+
+      BuildSEdges(ScaffoldGraph, rawEdges, FALSE, TRUE);
+      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
+    }
+
     ScaffoldSanity(ScaffoldGraph);
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -624,6 +651,14 @@ main(int argc, char **argv) {
     ScaffoldSanity (ScaffoldGraph);
 
     int partial_stones = Throw_Stones(GlobalData->outputPrefix, GlobalData->stoneLevel, TRUE);
+
+    //  If throw_stones splits scaffolds, rebuild edges
+    {
+      vector<CDS_CID_t>  rawEdges;
+
+      BuildSEdges(ScaffoldGraph, rawEdges, FALSE, TRUE);
+      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
+    }
 
     ScaffoldSanity (ScaffoldGraph);
 
