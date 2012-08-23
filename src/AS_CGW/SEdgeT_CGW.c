@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.27 2012-08-23 14:32:54 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.28 2012-08-23 22:37:43 brianwalenz Exp $";
 
 //#define DEBUG 1
 
@@ -226,8 +226,7 @@ CDS_CID_t
 BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
                         ChunkInstanceT  *thisCI,
                         ChunkInstanceT  *thatCI,
-                        CIEdgeT         *edge,
-                        int              canonicalOnly) {
+                        CIEdgeT         *edge) {
   SequenceOrient ciOrient;
   SequenceOrient miOrient;
 
@@ -242,9 +241,7 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
   CIScaffoldT  *thisScf  = GetCIScaffoldT(graph->CIScaffolds, thisCI->scaffoldID);
   CIScaffoldT  *thatScf  = GetCIScaffoldT(graph->CIScaffolds, thatCI->scaffoldID);
 
-  if ((canonicalOnly == true) &&
-      (thatCI->scaffoldID < thisCI->scaffoldID))
-    return(0);
+  assert(thisCI->scaffoldID < thatCI->scaffoldID);
 
   InitGraphEdge(&sedge);
 
@@ -294,7 +291,7 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
     distance.variance = edge->distance.variance + ciFlipOffset.variance + miFlipOffset.variance + CorrectEdgeVariance(graph, edge);
     sedgeOrient.invert();
 
-  }else{
+  } else {
     // Since the two offsets and the dist are independent we SUM their variances
     distance.variance = edge->distance.variance + ciOffset.variance + miOffset.variance;
   }
@@ -333,33 +330,12 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
   sedge.topLevelEdge = NULLINDEX;
   sedge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
 
-  sedge.nextALink = NULLINDEX;
-  sedge.nextBLink = NULLINDEX;
-  sedge.prevALink = NULLINDEX;
-  sedge.prevBLink = NULLINDEX;
+  sedge.nextALink   = NULLINDEX;
+  sedge.nextBLink   = NULLINDEX;
+  sedge.prevALink   = NULLINDEX;
+  sedge.prevBLink   = NULLINDEX;
 
-  if(sedge.idA > sedge.idB) {
-    CDS_CID_t  idA = sedge.idA;
-    CDS_CID_t  idB = sedge.idB;
-    int32      ab  = sedge.flags.bits.aContainsB;
-    int32      ba  = sedge.flags.bits.bContainsA;
-    int32      hqa = sedge.flags.bits.highQualityA;
-    int32      hqb = sedge.flags.bits.highQualityB;
-
-    assert(canonicalOnly == FALSE);
-
-    sedge.idA = idB;
-    sedge.idB = idA;
-
-    sedge.orient.flip();
-
-    sedge.flags.bits.aContainsB = ba;
-    sedge.flags.bits.bContainsA = ab;
-
-    sedge.flags.bits.highQualityA = hqa;
-    sedge.flags.bits.highQualityB = hqb;
-  }
-
+  sedge.nextRawEdge = NULLINDEX;
 
   SEdgeT * newEdge = GetFreeGraphEdge(graph->ScaffoldGraph);
 
@@ -367,8 +343,8 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
 
   *newEdge = sedge;
 
-#warning DONT INSERT
-  InsertGraphEdge(graph->ScaffoldGraph, newEdge->topLevelEdge, FALSE);
+  //  DON'T INSERT!  We return these edges to the caller for insertion into a vector.
+  //InsertGraphEdge(graph->ScaffoldGraph, newEdge->topLevelEdge, FALSE);
 
   return(sedge.topLevelEdge);
 }
@@ -378,8 +354,7 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
 void
 BuildSEdges(ScaffoldGraphT     *graph,
             vector<CDS_CID_t>  &rawEdges,
-            int                 canonicalOnly,
-            int                 includeNegativeEdges) {
+            bool                includeNegativeEdges) {
 
   //  Recycle the SEdge VA
 
@@ -437,17 +412,11 @@ BuildSEdges(ScaffoldGraphT     *graph,
         if (MI->scaffoldID == NULLINDEX)
           continue;
 
-        if ((canonicalOnly == true) && (MI->scaffoldID < CI->scaffoldID))
+        if (MI->scaffoldID <= CI->scaffoldID)
+          //  Non-canonical or internal edge.
           continue;
 
-        if ((canonicalOnly == false) && (CI->scaffoldID < MI->scaffoldID))
-          continue;
-
-        if (MI->scaffoldID == CI->scaffoldID)
-          //  Internal to the scaffold
-          continue;
-
-        rawEdges.push_back(BuildSEdgeFromChunkEdge(graph, CI, MI, edge, canonicalOnly));
+        rawEdges.push_back(BuildSEdgeFromChunkEdge(graph, CI, MI, edge));
       }
     }
   }

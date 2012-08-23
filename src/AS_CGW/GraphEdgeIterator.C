@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.6 2012-08-19 04:13:52 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.7 2012-08-23 22:37:43 brianwalenz Exp $";
 
 #include "GraphCGW_T.h"
 #include "ScaffoldGraph_CGW.h"
@@ -280,6 +280,11 @@ GraphEdgeIterator::sortEdges(void) {
 
   for (CDS_CID_t ie=node->edgeHead; ie != NULLINDEX; ) {
     edge = GetGraphEdge(graph, ie);
+
+    assert(ie != edge->prevALink);
+    assert(ie != edge->nextALink);
+    assert(ie != edge->prevBLink);
+    assert(ie != edge->nextBLink);
 
     edges.push_back(edge);
 

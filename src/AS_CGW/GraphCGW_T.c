@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.104 2012-08-22 06:13:35 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.105 2012-08-23 22:37:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +43,11 @@ static char *rcsid = "$Id: GraphCGW_T.c,v 1.104 2012-08-22 06:13:35 brianwalenz 
 #include "Input_CGW.h"
 
 #include "omp.h"
+
+#include <vector>
+#include <algorithm>
+
+using namespace std;
 
 VA_DEF(PtrT)
 
@@ -1328,8 +1333,11 @@ void  DeleteGraphOverlapEdge(GraphCGW_T *graph,
  *   Merge the edges incident on a particular node
  *
  */
-void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
-                         int includeGuides, int mergeAll, int debug){
+void
+MergeNodeGraphEdges(GraphCGW_T  *graph,
+                    NodeCGW_T   *node,
+                    bool         includeGuides,
+                    bool         mergeAll) {
   CDS_CID_t id;
   EdgeCGW_T *head, *edge;
   CDS_CID_t *candidates;
@@ -1339,7 +1347,9 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
   vector<CDS_CID_t>  chain;
 
   GraphEdgeIterator edges(graph, id, ALL_END, ALL_EDGES);
+
   head = NULL;
+
   while(NULL != (edge = edges.nextMerged())) {
     if(!head ||
        head->idA != edge->idA ||
@@ -1353,11 +1363,7 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
     }
   }
 
-
   // Now, iterate over the candidates
-
-  if(debug)
-    fprintf(stderr,"* Found "F_SIZE_T" merge Candidates from node "F_CID"\n", mergeCandidates.size(), id);
 
   for(id = 0; id < mergeCandidates.size(); id++){
     chain.clear();
@@ -1373,15 +1379,155 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
   }
 }
 
-// Merge all of the edges
-void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides, int mergeAll){
-  GraphNodeIterator nodes;
-  NodeCGW_T *CI;
 
-  InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
+bool
+MergeAllGraphEdges_EdgeCompare(EdgeCGW_T *A, EdgeCGW_T *B) {
 
-  while (NULL != (CI = NextGraphNodeIterator(&nodes)))
-    MergeNodeGraphEdges(graph, CI, includeGuides, mergeAll, FALSE);
+#if 1
+  if (A->idA < B->idA)   return(true);
+  if (A->idA > B->idA)   return(false);
+
+  if (A->idB < B->idB)   return(true);
+  if (A->idB > B->idB)   return(false);
+
+  if (A->orient.toLetter() < B->orient.toLetter())  return(true);
+  if (A->orient.toLetter() > B->orient.toLetter())  return(false);
+
+
+#else
+  if (((A->idA <  B->idA)) ||
+      ((A->idA == B->idA) && (A->idB <  B->idB)) ||
+      ((A->idA == B->idA) && (A->idB == B->idB) && (A->orient.toLetter() < B->orient.toLetter())))
+    return(true);
+#endif
+
+  return(false);
+}
+
+bool
+MergeAllGraphEdges_UTG_EdgeIDCompare(CDS_CID_t const idA, CDS_CID_t const idB) {
+  EdgeCGW_T  *A = GetGraphEdge(ScaffoldGraph->CIGraph, idA);
+  EdgeCGW_T  *B = GetGraphEdge(ScaffoldGraph->CIGraph, idB);
+
+  //return(MergeAllGraphEdges_EdgeCompare(A, B));
+  return(edgeCompare(A, B));
+}
+
+bool
+MergeAllGraphEdges_CTG_EdgeIDCompare(CDS_CID_t const idA, CDS_CID_t const idB) {
+  EdgeCGW_T  *A = GetGraphEdge(ScaffoldGraph->ContigGraph, idA);
+  EdgeCGW_T  *B = GetGraphEdge(ScaffoldGraph->ContigGraph, idB);
+
+  //return(MergeAllGraphEdges_EdgeCompare(A, B));
+  return(edgeCompare(A, B));
+}
+
+bool
+MergeAllGraphEdges_SCF_EdgeIDCompare(CDS_CID_t const idA, CDS_CID_t const idB) {
+  EdgeCGW_T  *A = GetGraphEdge(ScaffoldGraph->ScaffoldGraph, idA);
+  EdgeCGW_T  *B = GetGraphEdge(ScaffoldGraph->ScaffoldGraph, idB);
+
+  //return(MergeAllGraphEdges_EdgeCompare(A, B));
+  return(edgeCompare(A, B));
+}
+
+void
+MergeAllGraphEdges(GraphCGW_T         *graph,
+                   vector<CDS_CID_t>  &rawEdges,
+                   bool                includeGuides,
+                   bool                mergeAll) {
+  vector<CDS_CID_t>  newEdges;
+  vector<CDS_CID_t>  chain;
+
+  //  Crud, we have a list of edge IDs as input, but we need to sort using the
+  //  edge itself.  As we're building rawEdges, the edge storage array is probably
+  //  reallocated, and so we cannot store pointers in rawEdges.  We either need
+  //  to use three different sort functions (one per graph) or rebuild rawEdges
+  //  using pointers.
+  //
+  if      (graph == ScaffoldGraph->CIGraph) {
+    fprintf(stderr, "MergeAllGraphEdges()--  Working on unitig edges; includeGuides=%c mergeAll=%c.\n",
+            (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
+    sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_UTG_EdgeIDCompare);
+
+  } else if (graph == ScaffoldGraph->ContigGraph) {
+    fprintf(stderr, "MergeAllGraphEdges()--  Working on contig edges; includeGuides=%c mergeAll=%c.\n",
+            (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
+    sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_CTG_EdgeIDCompare);
+
+  } else if (graph == ScaffoldGraph->ScaffoldGraph) {
+    fprintf(stderr, "MergeAllGraphEdges()--  Working on scaffold edges; includeGuides=%c mergeAll=%c.\n",
+            (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
+    sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_SCF_EdgeIDCompare);
+
+  } else {
+    fprintf(stderr, "MergeAllGraphEdges()--  Invalid edges.\n");
+    assert(0);
+  }
+
+  //  Walk down the now sorted list of edges, merging anything with the same
+  //  (idA,idB,orient) triplet.
+
+  for (uint32 rid=0; rid < rawEdges.size(); ) {
+    EdgeCGW_T  *A = GetGraphEdge(graph, rawEdges[rid]);
+
+    chain.clear();
+    chain.push_back(rawEdges[rid++]);
+
+    EdgeCGW_T  *B = (rid < rawEdges.size()) ? GetGraphEdge(graph, rawEdges[rid]) : NULL;
+
+    //  Keep adding to the merge set if the triplet agrees, or we can include guides or the edge is sloppy.
+
+    while ((B != NULL) &&
+           (A->idA == B->idA) &&
+           (A->idB == B->idB) &&
+           (A->orient.toLetter() == B->orient.toLetter()) &&
+           ((includeGuides == TRUE) || (isSloppyEdge(B) == FALSE))) {
+      chain.push_back(rawEdges[rid++]);
+
+      //(!includeGuides && isSloppyEdge(edge))  /* don't merge guides */ ){
+
+      B = (rid < rawEdges.size()) ? GetGraphEdge(graph, rawEdges[rid]) : NULL;
+    }
+
+    MergeGraphEdges(graph, chain);
+
+    newEdges.insert(newEdges.begin(), chain.begin(), chain.end());
+  }
+
+  //  Now add the new edges to the graph.
+
+  fprintf(stderr, "MergeAllGraphEdges()--  processed "F_SIZE_T" raw edges into "F_SIZE_T" merged edges.\n",
+          rawEdges.size(), newEdges.size());
+
+  for (uint32 ee=0; ee<newEdges.size(); ee++)
+    InsertGraphEdge(graph, newEdges[ee], FALSE);
+
+  //  Sort them, too.  All we need to do is create an iterator for each node.
+
+#if 1
+  uint32  nc = GetNumNodeCGW_Ts(graph->nodes);
+  uint32  ns = 0;
+
+  fprintf(stderr,"MergeAllGraphEdges()-- Sorting "F_SIZE_T" edges in "F_U32" objects.\n",
+          newEdges.size(), nc);
+
+  int32 numThreads = omp_get_max_threads();
+  int32 blockSize  = (nc < 100 * numThreads) ? numThreads : nc / 99;      //  Up to 100 blocks.
+
+  assert(0 < blockSize);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (uint32 ni=0; ni<nc; ni++) {
+    ns++;
+
+    if ((ns % 1000000) == 0)
+      fprintf(stderr, "MergeAllGraphEdges()-- Sorting edges in object "F_U32"\n", ns);
+
+    GraphEdgeIterator edges(graph, ni, ALL_END, ALL_EDGES);
+  }
+#endif
+
 }
 
 
@@ -1858,27 +2004,10 @@ BuildGraphEdgesDirectly(GraphCGW_T         *graph,
   fprintf(stderr,"BuildGraphEdgesDirectly()-- Found %d/%d BacEnd pairs Unique-Unique\n", stat.totalUUBacPairs, stat.totalBacPairs);
   fprintf(stderr,"BuildGraphEdgesDirectly()-- Found %d/%d (%.2f%%) mate pairs node external\n", stat.totalExternalMatePairs, stat.totalMatePairs, f);
 
-  //  To sort the edges, all we need to do is create an iterator for each node                                                                                                
-
-  uint32  nc = GetNumNodeCGW_Ts(graph->nodes);
-  uint32  ns = 0;
-
-  fprintf(stderr,"BuildGraphEdgesDirectly()-- Sorting edges in "F_U32" unitigs.\n", nc);
-
-  int32 numThreads = omp_get_max_threads();
-  int32 blockSize  = (nc < 100 * numThreads) ? numThreads : nc / 99;      //  Up to 100 blocks.
-
-  assert(0 < blockSize);
-
-#pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 ni=0; ni<nc; ni++) {
-    ns++;
-
-    if ((ns % 1000000) == 0)
-      fprintf(stderr, "BuildGraphEdgesDirectly()-- Sorting edges in unitig "F_U32"\n", ns);
-
-    GraphEdgeIterator edges(graph, ni, ALL_END, ALL_EDGES);
-  }
+  //  Make sure that there are no edges associated with the objects yet.
+  InitGraphNodeIterator(&Nodes, graph, GRAPH_NODE_DEFAULT);
+  while (NULL != (node = NextGraphNodeIterator(&Nodes)))
+    assert(node->edgeHead == NULLINDEX);
 }
 
 
@@ -1999,6 +2128,8 @@ BuildGraphEdgesFromMultiAlign(GraphCGW_T         *graph,
       // Unitig Graph.  With contigs, overlaps will be discovered as needed, and no call to
       // ComputeOverlaps is performed.
 
+      //  Do not insert if rawEdges is supplied.  Add them to the vector of raw edges instead.
+
       CDS_CID_t cid = AddGraphEdge(graph,
                                    frgCtg->id,
                                    mrgCtg->id,
@@ -2018,8 +2149,7 @@ BuildGraphEdgesFromMultiAlign(GraphCGW_T         *graph,
                                    extremalB,
                                    status,
                                    graph->type == CI_GRAPH,
-                                   TRUE); //(rawEdges == NULL));
-#warning ALWAYS ADDING EDGES TO GRAPH
+                                   (rawEdges == NULL));
 
       if (rawEdges)
         rawEdges->push_back(cid);

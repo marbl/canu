@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.103 2012-08-23 14:32:54 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.104 2012-08-23 22:37:43 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -212,6 +212,8 @@ main(int argc, char **argv) {
       GlobalData->doUnjiggleWhenMerging = 1;
 
     } else if (strcmp(argv[arg], "-u") == 0) {
+      fprintf(stderr, "Option -u is broken.\n");
+      exit(1);
       strcpy(GlobalData->unitigOverlaps, argv[++arg]);
 
     } else if (strcmp(argv[arg], "-Z") == 0) {
@@ -350,10 +352,7 @@ main(int argc, char **argv) {
     // Compute all overlaps implied by mate links between pairs of unique unitigs
     ComputeOverlaps(ScaffoldGraph->CIGraph, rawEdges);
 
-    //CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
-    //CheckSurrogateUnitigs();
-
-    MergeAllGraphEdges(ScaffoldGraph->CIGraph, FALSE, FALSE);
+    MergeAllGraphEdges(ScaffoldGraph->CIGraph, rawEdges, FALSE, FALSE);
 
     CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
     CheckSurrogateUnitigs();
@@ -429,8 +428,8 @@ main(int argc, char **argv) {
     {
       vector<CDS_CID_t>  rawEdges;
 
-      BuildSEdges(ScaffoldGraph, rawEdges, TRUE, FALSE);
-      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
+      BuildSEdges(ScaffoldGraph, rawEdges, FALSE);
+      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, FALSE);
     }
 
     //ScaffoldSanity(ScaffoldGraph);
@@ -472,8 +471,8 @@ main(int argc, char **argv) {
         {
           vector<CDS_CID_t>  rawEdges;
 
-          BuildSEdges(ScaffoldGraph, rawEdges, TRUE, FALSE);
-          MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
+          BuildSEdges(ScaffoldGraph, rawEdges, FALSE);
+          MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, FALSE);
         }
 
         //  If we've been running for 2 hours, AND we've not just
@@ -561,9 +560,8 @@ main(int argc, char **argv) {
         (DemoteSmallSingletonScaffolds() == true)) {
       vector<CDS_CID_t>  rawEdges;
 
-#warning why is this BuildSEdges non-canonical
-      BuildSEdges(ScaffoldGraph, rawEdges, FALSE, TRUE);
-      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
+      BuildSEdges(ScaffoldGraph, rawEdges, TRUE);
+      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, TRUE);
     }
 
     ScaffoldSanity(ScaffoldGraph);
@@ -575,8 +573,8 @@ main(int argc, char **argv) {
     {
       vector<CDS_CID_t>  rawEdges;
 
-      BuildSEdges(ScaffoldGraph, rawEdges, FALSE, TRUE);
-      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
+      BuildSEdges(ScaffoldGraph, rawEdges, TRUE);
+      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, TRUE);
     }
 
     ScaffoldSanity(ScaffoldGraph);
@@ -656,8 +654,8 @@ main(int argc, char **argv) {
     {
       vector<CDS_CID_t>  rawEdges;
 
-      BuildSEdges(ScaffoldGraph, rawEdges, FALSE, TRUE);
-      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
+      BuildSEdges(ScaffoldGraph, rawEdges, TRUE);
+      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, TRUE);
     }
 
     ScaffoldSanity (ScaffoldGraph);

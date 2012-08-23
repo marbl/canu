@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.59 2012-08-22 06:13:35 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.60 2012-08-23 22:37:43 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -958,15 +958,17 @@ size_t ReportMemorySizeGraphCGW(GraphCGW_T *graph, FILE *stream);
 
 /* Operations on Edges */
 
-/* MergeNodeGraphEdges
- *   Merge the edges incident on a particular node
- *
- */
-void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
-                         int includeGuides, int mergeAll, int debug);
+void
+MergeNodeGraphEdges(GraphCGW_T  *graph,
+                    NodeCGW_T   *node,
+                    bool         includeGuides,
+                    bool         mergeAll);
 
-// Merge all of the edges
-void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides, int mergeAll);
+void
+MergeAllGraphEdges(GraphCGW_T        *graph,
+                   vector<CDS_CID_t> &rawEdges,
+                   bool               includeGuides,
+                   bool               mergeAll);
 
 
 

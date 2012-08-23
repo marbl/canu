@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.83 2012-08-22 06:13:35 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.84 2012-08-23 22:37:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2010,7 +2010,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   }
 
   // Merge the edges incident on this contig
-  MergeNodeGraphEdges(ScaffoldGraph->ContigGraph, contig, FALSE, TRUE, FALSE);
+  MergeNodeGraphEdges(ScaffoldGraph->ContigGraph, contig, FALSE, TRUE);
 
 #ifdef DEBUG_DETAILED
   fprintf(stderr,"*  >>> NEW CONTIG "F_CID" <<< *\n", contig->id);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.70 2012-08-23 14:32:54 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.71 2012-08-23 22:37:43 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -217,57 +217,6 @@ CheckpointScaffoldGraph(const char *logicalname, const char *location) {
 
 
 
-
-
-/***************************************************************************/
-// TEMPORARY HACK
-//
-void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph){
-  CDS_CID_t cid;
-  int scaffolded = 0;
-  LengthT NullLength = {0,0.0};
-  CIScaffoldT CIScaffold;
-  GraphNodeIterator nodes;
-  NodeCGW_T *CI;
-
-  memset(&CIScaffold, 0, sizeof(CIScaffoldT));
-
-  CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
-  CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
-  CIScaffold.info.Scaffold.numElements = 0;
-  CIScaffold.edgeHead = NULLINDEX;
-  CIScaffold.bpLength = NullLength;
-  CIScaffold.id = NULLINDEX;
-  InitializeScaffold(&CIScaffold, OUTPUT_SCAFFOLD);
-  CIScaffold.flags.bits.isDead = FALSE;
-  CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
-  CIScaffold.essentialEdgeA = CIScaffold.essentialEdgeB = NULLINDEX;
-
-  InitGraphNodeIterator(&nodes, sgraph->ContigGraph, GRAPH_NODE_DEFAULT);
-  while(NULL != (CI = NextGraphNodeIterator(&nodes))){
-    ChunkInstanceType type = CI->type;
-    cid = CI->id;
-
-    // Skip scaffolded CIs
-    if(CI->scaffoldID != NULLINDEX)
-      continue;
-
-    scaffolded++;
-    CI->scaffoldID = CIScaffold.id = GetNumGraphNodes(sgraph->ScaffoldGraph);
-
-    AppendGraphNode(sgraph->ScaffoldGraph, &CIScaffold);
-
-    InsertCIInScaffold(sgraph, cid, CIScaffold.id, NullLength,
-                       CI->bpLength,  FALSE, FALSE);
-    CI->flags.bits.isUnique = FALSE;
-    CI->type = type; // restore type for graphics
-  }
-
-  fprintf(stderr,
-          "* Inserting %d Unscaffolded CIs into newly created scaffolds\n",
-	  scaffolded);
-
-}
 
 /****************************************************************************/
 
@@ -545,10 +494,10 @@ TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph) {
   vector<CDS_CID_t>  rawEdges;
 
   fprintf(stderr, "TidyUpScaffolds()--  Starting BuildSEdges().\n");
-  BuildSEdges(ScaffoldGraph, rawEdges, TRUE, FALSE);
+  BuildSEdges(ScaffoldGraph, rawEdges, FALSE);
 
   fprintf(stderr, "TidyUpScaffolds()--  Starting MergeAllGraphEdges().\n");
-  MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, FALSE);
+  MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, FALSE);
 
   CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
 }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.81 2012-08-23 14:32:54 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.82 2012-08-23 22:37:43 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -863,8 +863,8 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
     {
       vector<CDS_CID_t>  rawEdges;
 
-      BuildSEdges(graph, rawEdges, TRUE, TRUE);
-      MergeAllGraphEdges(graph->ScaffoldGraph, TRUE, FALSE);
+      BuildSEdges(graph, rawEdges, TRUE);
+      MergeAllGraphEdges(graph->ScaffoldGraph, rawEdges, TRUE, FALSE);
     }
 
     // loop until nothing gets merged
@@ -922,8 +922,8 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
         {
           vector<CDS_CID_t>  rawEdges;
 
-          BuildSEdges(graph, rawEdges, TRUE, TRUE);
-          MergeAllGraphEdges(graph->ScaffoldGraph, TRUE, FALSE);
+          BuildSEdges(graph, rawEdges, TRUE);
+          MergeAllGraphEdges(graph->ScaffoldGraph, rawEdges, TRUE, FALSE);
         }
 
         //  Reset to original weight scaling - this is a bit too aggressive, but seems to be safe.  We do not
