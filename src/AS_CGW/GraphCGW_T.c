@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.105 2012-08-23 22:37:43 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.106 2012-08-24 02:56:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -212,150 +212,6 @@ size_t ReportMemorySizeGraphCGW(GraphCGW_T *graph, FILE *stream){
 }
 
 
-int
-FindGraphEdgeChain(GraphCGW_T         *graph,
-                   CDS_CID_t           eid,
-                   vector<CDS_CID_t>  &chain,
-                   int                 extractSingletons,
-                   int                 includeGuides){
-
-  CIEdgeT *edge, *head, *tail;
-  int32 count = 0;
-  CDS_CID_t headID, edgeID;
-  edge = head = GetGraphEdge(graph, eid);
-  AssertPtr(edge);
-  headID = eid;
-
-  edgeID = eid;
-
-  // Only interesting on canonical chains
-  assert(head->idA <= head->idB);
-
-  //  Make sure this edge is correctly hooked into the graph
-  //  SIDEEFFECT: both edge lists are sorted.
-  GraphEdgeSanity(graph, eid);
-
-  /* A chain is characterized by both the A and B links pointing to the next
-     element in the chain */
-  while(1) {
-    count++;
-    chain.push_back(edgeID);
-
-    tail = edge;
-
-    if(edge->nextALink == NULLINDEX ||
-       edge->nextBLink == NULLINDEX)
-      break;
-
-    if( edge->nextALink != edge->nextBLink)
-      break;
-
-    // Guides are always at the end of these chains
-    if(!includeGuides && isSloppyEdge(edge))
-      break;
-
-    edgeID = edge->nextALink;
-    edge = GetGraphEdge(graph, edgeID);
-
-    if( edge->orient != head->orient)
-      break;
-
-    // Guides are always at the end of these chains
-    if(!includeGuides && isSloppyEdge(edge))
-      break;
-
-  }
-
-  if(count > 1 || extractSingletons){  // Unlink the entire chain of suckers
-#if 0
-    //  Why isn't this the usual UnlinkGraphEdge() call??
-    //  Because memory explodes, for an unknown reason.
-    //    **** Survived CheckEdgesAgainstOverlapper with 0 failures****
-    //    SPECIAL UNLINK
-    //    SPECIAL UNLINK
-    //    SPECIAL UNLINK
-    //  And by now, the normally 110mb process was up to 6gb.
-    //
-    fprintf(stderr, "SPECIAL UNLINK\n");
-    UnlinkGraphEdge(graph, edge);
-#else
-    ChunkInstanceT *chunkA, *chunkB;
-    CIEdgeT *prevA, *prevB, *nextA, *nextB;
-    // head->prevALink should be hooked to tail->nextALink
-    // head->prevBLink should be hooked to tail->nextBlink
-    // if head->prev?Link is NULLINDEX, we need to update the head of the list
-
-    chunkA = GetGraphNode(graph, edge->idA);
-    chunkB = GetGraphNode(graph, edge->idB);
-
-    assert(chunkA != NULL);
-    assert(chunkB != NULL);
-
-    if (chunkA->flags.bits.edgesModified == true)
-      GraphEdgeIterator(graph, edge->idA, ALL_END, ALL_EDGES);
-
-    if (chunkB->flags.bits.edgesModified == true)
-      GraphEdgeIterator(graph, edge->idB, ALL_END, ALL_EDGES);
-
-    assert(chunkA->flags.bits.edgesModified == false);
-    assert(chunkB->flags.bits.edgesModified == false);
-
-    nextA = NULL;
-    if(tail->nextALink != NULLINDEX)
-      nextA = GetGraphEdge(graph, tail->nextALink);
-
-    nextB = NULL;
-    if(tail->nextBLink != NULLINDEX)
-      nextB = GetGraphEdge(graph, tail->nextBLink);
-
-    prevA = NULL;
-    if(head->prevALink != NULLINDEX)
-      prevA = GetGraphEdge(graph, head->prevALink);
-
-    prevB = NULL;
-    if(head->prevBLink != NULLINDEX)
-      prevB = GetGraphEdge(graph, head->prevBLink);
-
-    // Unlink A Chain
-    if(!prevA){
-      chunkA->edgeHead = tail->nextALink;
-    }else{
-      if(prevA->idA == head->idA){
-        prevA->nextALink = tail->nextALink;
-      }else{
-        prevA->nextBLink = tail->nextALink;
-      }
-    }
-    if(nextA){
-      if(nextA->idA == head->idA){
-        nextA->prevALink = head->prevALink;
-      }else{
-        nextA->prevBLink = head->prevALink;
-      }
-    }
-    // Unlink B Chain
-    if(!prevB){
-      chunkB->edgeHead = tail->nextBLink;
-    }else{
-      if(prevB->idB == head->idB){
-        prevB->nextBLink = tail->nextBLink;
-      }else{
-        prevB->nextALink = tail->nextBLink;
-      }
-    }
-
-    if(nextB){
-      if(nextB->idB == head->idB){
-        nextB->prevBLink = head->prevBLink;
-      }else{
-        nextB->prevALink = head->prevBLink;
-      }
-    }
-#endif
-  }
-
-  return count;
-}
 
 
 /* Check that edge with index eid is properly wired in the graph:
@@ -1329,56 +1185,6 @@ void  DeleteGraphOverlapEdge(GraphCGW_T *graph,
 
 
 
-/* MergeNodeGraphEdges
- *   Merge the edges incident on a particular node
- *
- */
-void
-MergeNodeGraphEdges(GraphCGW_T  *graph,
-                    NodeCGW_T   *node,
-                    bool         includeGuides,
-                    bool         mergeAll) {
-  CDS_CID_t id;
-  EdgeCGW_T *head, *edge;
-  CDS_CID_t *candidates;
-  id = node->id;
-
-  vector<CDS_CID_t>  mergeCandidates;
-  vector<CDS_CID_t>  chain;
-
-  GraphEdgeIterator edges(graph, id, ALL_END, ALL_EDGES);
-
-  head = NULL;
-
-  while(NULL != (edge = edges.nextMerged())) {
-    if(!head ||
-       head->idA != edge->idA ||
-       head->idB != edge->idB ||
-       head->orient != edge->orient ||
-       (!includeGuides && isSloppyEdge(edge))  /* don't merge guides */ ){
-
-      head = edge;
-      if(head->idA == id || mergeAll) // avoid double counting
-        mergeCandidates.push_back(edges.currMergedID());
-    }
-  }
-
-  // Now, iterate over the candidates
-
-  for(id = 0; id < mergeCandidates.size(); id++){
-    chain.clear();
-
-    int32 length = FindGraphEdgeChain(graph, mergeCandidates[id], chain, FALSE, includeGuides);
-
-    if (length > 1) {
-      int32 edgesAdded = MergeGraphEdges(graph, chain);
-
-      for (uint32 i=0; i<chain.size(); i++)
-        InsertGraphEdge(graph, chain[i], FALSE);
-    }
-  }
-}
-
 
 bool
 MergeAllGraphEdges_EdgeCompare(EdgeCGW_T *A, EdgeCGW_T *B) {
@@ -1439,6 +1245,9 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
   vector<CDS_CID_t>  newEdges;
   vector<CDS_CID_t>  chain;
 
+  newEdges.reserve(rawEdges.size());  //  Slight overkill.
+  chain.reserve(rawEdges.size());     //  Massive overkill.
+
   //  Crud, we have a list of edge IDs as input, but we need to sort using the
   //  edge itself.  As we're building rawEdges, the edge storage array is probably
   //  reallocated, and so we cannot store pointers in rawEdges.  We either need
@@ -1446,18 +1255,21 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
   //  using pointers.
   //
   if      (graph == ScaffoldGraph->CIGraph) {
-    fprintf(stderr, "MergeAllGraphEdges()--  Working on unitig edges; includeGuides=%c mergeAll=%c.\n",
-            (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
+    if (rawEdges.size() > 100000)
+      fprintf(stderr, "MergeAllGraphEdges()--  Working on unitig edges; includeGuides=%c mergeAll=%c.\n",
+              (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
     sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_UTG_EdgeIDCompare);
 
   } else if (graph == ScaffoldGraph->ContigGraph) {
-    fprintf(stderr, "MergeAllGraphEdges()--  Working on contig edges; includeGuides=%c mergeAll=%c.\n",
-            (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
+    if (rawEdges.size() > 100000)
+      fprintf(stderr, "MergeAllGraphEdges()--  Working on contig edges; includeGuides=%c mergeAll=%c.\n",
+              (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
     sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_CTG_EdgeIDCompare);
 
   } else if (graph == ScaffoldGraph->ScaffoldGraph) {
-    fprintf(stderr, "MergeAllGraphEdges()--  Working on scaffold edges; includeGuides=%c mergeAll=%c.\n",
-            (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
+    if (rawEdges.size() > 100000)
+      fprintf(stderr, "MergeAllGraphEdges()--  Working on scaffold edges; includeGuides=%c mergeAll=%c.\n",
+              (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
     sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_SCF_EdgeIDCompare);
 
   } else {
@@ -1492,20 +1304,25 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
 
     MergeGraphEdges(graph, chain);
 
-    newEdges.insert(newEdges.begin(), chain.begin(), chain.end());
+    //newEdges.insert(newEdges.begin(), chain.begin(), chain.end());
+    for (uint32 cc=0; cc<chain.size(); cc++)
+      newEdges.push_back(chain[cc]);
   }
 
   //  Now add the new edges to the graph.
 
-  fprintf(stderr, "MergeAllGraphEdges()--  processed "F_SIZE_T" raw edges into "F_SIZE_T" merged edges.\n",
-          rawEdges.size(), newEdges.size());
+  if (rawEdges.size() > 100000)
+    fprintf(stderr, "MergeAllGraphEdges()--  processed "F_SIZE_T" raw edges into "F_SIZE_T" merged edges.\n",
+            rawEdges.size(), newEdges.size());
 
   for (uint32 ee=0; ee<newEdges.size(); ee++)
     InsertGraphEdge(graph, newEdges[ee], FALSE);
 
   //  Sort them, too.  All we need to do is create an iterator for each node.
+  //  Well, don't sort them.  We call this function on edges from just a single
+  //  contig.  Examining all contigs to just sort one is a bit of a waste.
 
-#if 1
+#if 0
   uint32  nc = GetNumNodeCGW_Ts(graph->nodes);
   uint32  ns = 0;
 

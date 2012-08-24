@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.60 2012-08-23 22:37:43 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.61 2012-08-24 02:56:06 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -959,12 +959,6 @@ size_t ReportMemorySizeGraphCGW(GraphCGW_T *graph, FILE *stream);
 /* Operations on Edges */
 
 void
-MergeNodeGraphEdges(GraphCGW_T  *graph,
-                    NodeCGW_T   *node,
-                    bool         includeGuides,
-                    bool         mergeAll);
-
-void
 MergeAllGraphEdges(GraphCGW_T        *graph,
                    vector<CDS_CID_t> &rawEdges,
                    bool               includeGuides,
@@ -989,19 +983,6 @@ MergeAllGraphEdges(GraphCGW_T        *graph,
 int MergeGraphEdges(GraphCGW_T *graph, vector<CDS_CID_t> &inputEdges);
 
 
-/* FindGraphEdgeChain
-   Starting from the CIEdge with index eid, identify a chain of edges
-   of length > 1 that connect the same pair of CIs.  The indices of these
-   edges are collected in the chain VA, and the entire chain is UNLINKED
-   from the graph.
-
-   The return value is the length of the identified chain.  If 1 is returned,
-   the graph has not been perturbed, unless extractSingletons is TRUE.
-*/
-CDS_CID_t FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
-                             VA_TYPE(CDS_CID_t) *chain,
-                             int extractSingletons,
-                             int includeGuides);
 
 void GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid);
 
