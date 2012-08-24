@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.64 2012-08-23 22:45:15 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.65 2012-08-24 04:40:27 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1557,7 +1557,7 @@ AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     uint32  pa = pi - 1;  //  Should always have good variance, even if it is an average
     uint32  pb = pi + 1;  //  Might have zero variance
 
-    while ((pb < positions.size()) && (positions[pb]->variance == 0.0))
+    while ((pb < positions.size()) && (positions[pb]->variance <= 0.0))
       pb++;
 
     //  The -20 gaps screw this up.  It is close, and probably better than leaving it alonw.
