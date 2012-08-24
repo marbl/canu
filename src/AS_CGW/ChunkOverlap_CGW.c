@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.61 2012-08-22 06:13:35 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.62 2012-08-24 02:05:33 brianwalenz Exp $";
 
 #include "ChunkOverlap_CGW.h"
 #include "AS_UTL_reverseComplement.h"
@@ -1265,11 +1265,22 @@ ComputeOverlaps(GraphCGW_T          *graph,
   uint64 key, value;
   uint32 valuetype;
 
+  uint32 ni = 0;
+  uint32 nt = 0;
+  uint32 nm = 0;
+
   fprintf(stderr, "ComputeOverlaps()--\n");
 
   InitializeHashTable_Iterator_AS(ScaffoldGraph->ChunkOverlaps->hashTable, &iterator);
+  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype))
+    nt++;
 
+  nm = (nt / 100 < 10000) ? 10000 : nt / 100;
+
+  InitializeHashTable_Iterator_AS(ScaffoldGraph->ChunkOverlaps->hashTable, &iterator);
   while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype)) {
+    if ((++ni % nm) == 0)
+      fprintf(stderr, "ComputeOverlaps()--  Processed "F_U32" out of "F_U32" potential overlaps.\n", ni, nt);
 
     //  VERY IMPORTANT.  Do NOT directly use the overlap stored in the hash table.  If we recompute
     //  it (ComputeCanonicalOverlap_new) we can and do screw up the hash table.  This function
