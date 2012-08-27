@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.66 2012-08-27 04:46:50 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.67 2012-08-27 05:37:44 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -468,6 +468,49 @@ dumpGapCoefficientsAlt(double *gapCoefficientsAlt,
 }
 
 
+void
+dumpScaffoldContigPositions(ScaffoldGraphT *graph, CIScaffoldT *scaffold, char *label) {
+  CIScaffoldTIterator      CIs;
+  ChunkInstanceT          *CI;
+
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+
+  CI = NextCIScaffoldTIterator(&CIs);
+
+  CDS_CID_t  prevCIid     = CI->id;
+  LengthT    thisLeftEnd  = { 0, 0 };
+  LengthT    thisRightEnd = { 0, 0 };
+  LengthT    prevLeftEnd  = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+  LengthT    prevRightEnd = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
+
+  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
+    thisLeftEnd  = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+    thisRightEnd = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
+
+    fprintf(stderr, "%s Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f  gap to next %9.0f +- %-11.0f\n",
+            label,
+            prevCIid,
+            prevLeftEnd.mean,  prevLeftEnd.variance,
+            prevRightEnd.mean, prevRightEnd.variance,
+            prevRightEnd.mean - prevLeftEnd.mean,
+            thisLeftEnd.mean - prevRightEnd.mean,
+            thisLeftEnd.variance - prevRightEnd.variance);
+
+    prevCIid      = CI->id;
+    prevLeftEnd   = thisLeftEnd;
+    prevRightEnd  = thisRightEnd;
+  }
+
+  fprintf(stderr, "%s Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f\n",
+          label,
+          prevCIid,
+          prevLeftEnd.mean,  prevLeftEnd.variance,
+          prevRightEnd.mean, prevRightEnd.variance,
+          prevRightEnd.mean - prevLeftEnd.mean);
+}
+
+
+
 static
 void
 RebuildScaffoldGaps(ScaffoldGraphT  *graph,
@@ -480,6 +523,12 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
 
   if (beVerbose)
     fprintf(stderr, "ROIS()-- Rebuild contig and gap positions for scaffold %d\n", scaffold->id);
+
+  if ((gapMean == NULL) || (gapVariance == NULL)) {
+    fprintf(stderr, "ROIS()-- NULL array!  mean %p variance %p\n", gapMean, gapVariance);
+    dumpScaffoldContigPositions(graph, scaffold, "ROIS()-- NULL array!  ");
+    return;
+  }
 
   CIScaffoldTIterator CIs;
 
@@ -573,7 +622,7 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
             prevRightEnd->mean, prevRightEnd->variance,
             prevRightEnd->mean - prevLeftEnd->mean);
 
-  //dumpScaffoldContigPositions(graph, scaffold, "ROIS()");  -  doesn't show previous gap size
+  //dumpScaffoldContigPositions(graph, scaffold, "ROIS()--");  -  doesn't show previous gap size
 }
 
 
@@ -1424,50 +1473,6 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
 
 
 
-void
-dumpScaffoldContigPositions(ScaffoldGraphT *graph, CIScaffoldT *scaffold, char *label) {
-  CIScaffoldTIterator      CIs;
-  ChunkInstanceT          *CI;
-
-  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-
-  CI = NextCIScaffoldTIterator(&CIs);
-
-  CDS_CID_t  prevCIid     = CI->id;
-  LengthT    thisLeftEnd  = { 0, 0 };
-  LengthT    thisRightEnd = { 0, 0 };
-  LengthT    prevLeftEnd  = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
-  LengthT    prevRightEnd = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
-
-  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
-    thisLeftEnd  = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
-    thisRightEnd = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
-
-    fprintf(stderr, "%s Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f  gap to next %9.0f +- %-11.0f\n",
-            label,
-            prevCIid,
-            prevLeftEnd.mean,  prevLeftEnd.variance,
-            prevRightEnd.mean, prevRightEnd.variance,
-            prevRightEnd.mean - prevLeftEnd.mean,
-            thisLeftEnd.mean - prevRightEnd.mean,
-            thisLeftEnd.variance - prevRightEnd.variance);
-
-    prevCIid      = CI->id;
-    prevLeftEnd   = thisLeftEnd;
-    prevRightEnd  = thisRightEnd;
-  }
-
-  fprintf(stderr, "%s Contig %8d at %9.0f +- %-11.0f to %9.0f +- %-11.0f  ctg len %9.0f\n",
-          label,
-          prevCIid,
-          prevLeftEnd.mean,  prevLeftEnd.variance,
-          prevRightEnd.mean, prevRightEnd.variance,
-          prevRightEnd.mean - prevLeftEnd.mean);
-}
-
-
-
-
 bool
 AdjustNegativePositions(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   CIScaffoldTIterator      CIs;
@@ -1718,7 +1723,7 @@ BounceOutOfOrderContigs(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   //  Build a list of contigs that are out of order.
 
-  //dumpScaffoldContigPositions(graph, scaffold, "BOOOC(pre)-- ");
+  //dumpScaffoldContigPositions(graph, scaffold, "BOOOC(pre)--");
 
   vector<ChunkInstanceT *> bounceList;
   lastMin = 0.0;
@@ -1809,11 +1814,11 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
         (CheckScaffoldConnectivityAndSplit(ScaffoldGraph, sID, ALL_TRUSTED_EDGES, FALSE) > 1))
       return(false);
 
-    //dumpScaffoldContigPositions(graph, scaffold, "LSGE(pre)");
+    //dumpScaffoldContigPositions(graph, scaffold, "LSGE(pre)--");
 
     status = RecomputeOffsetsInScaffold(graph, sID, TRUE, TRUE, FALSE);
 
-    //dumpScaffoldContigPositions(graph, scaffold, "LSGE(post)");
+    //dumpScaffoldContigPositions(graph, scaffold, "LSGE(post)--");
 
     //  Well, it's connected at least.  I guess lapack failed to converge.
     if (status == RECOMPUTE_SINGULAR) {
