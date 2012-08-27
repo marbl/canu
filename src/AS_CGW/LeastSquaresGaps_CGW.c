@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.65 2012-08-24 04:40:27 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.66 2012-08-27 04:46:50 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -605,8 +605,8 @@ LS_IncrementGapsCoveredByOneClone(
 				  int32 _maxDiagonals,
 				  double clone_constantMean,
 				  double clone_inverseVariance) {
-  fprintf (stderr, "LS_IncrementGapsCoveredByOneClone(%d,%d,...%f,%f)\n",
-	   thisCI_index,otherCI_index,clone_constantMean,clone_inverseVariance);
+  //fprintf (stderr, "LS_IncrementGapsCoveredByOneClone(%d,%d,...%f,%f)\n",
+  //         thisCI_index,otherCI_index,clone_constantMean,clone_inverseVariance);
   int colIndex;
   for(colIndex = thisCI_index;
       colIndex < otherCI_index; 
