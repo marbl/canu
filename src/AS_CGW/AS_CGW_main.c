@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.104 2012-08-23 22:37:43 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.105 2012-08-28 14:11:33 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -251,42 +251,52 @@ main(int argc, char **argv) {
 
   if (err) {
     fprintf(stderr, "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <unitigs*.cgb>\n", argv[0]);
-    fprintf(stderr, "   -C           Don't cleanup scaffolds\n");    
-    fprintf(stderr, "   -D <lvl>     Debug\n");
-    fprintf(stderr, "   -E           output overlap only contig edges\n");
-    fprintf(stderr, "   -e <thresh>  Microhet score probability cutoff\n");
-    fprintf(stderr, "   -F           strongly enforce unique/repeat flag set in unitig, default if not set is to still\n");
-    fprintf(stderr, "                  allow those marked unique to be demoted due to Repeat Branch Pattern or being\n");
-    fprintf(stderr, "                  too small\n");
-    fprintf(stderr, "   -g           gkp Store path (required)\n");
-    fprintf(stderr, "   -G           Don't generate output (cgw or cam)\n");
-    fprintf(stderr, "   -I           ignore chaff unitigs\n");
-    fprintf(stderr, "   -i <thresh>  Set max coverage stat for microhet determination of non-uniqueness (default -1)\n");
-    fprintf(stderr, "   -j <thresh>  Set min coverage stat for definite uniqueness\n");
-    fprintf(stderr, "   -K           Allow kicking out a contig placed in a scaffold by mate pairs that has no overlaps to both its left and right neighbor contigs.\n");
-    fprintf(stderr, "   -k <thresh>  Set max coverage stat for possible uniqueness\n");
-    fprintf(stderr, "   -M           don't do interleaved scaffold merging\n");
-    fprintf(stderr, "   -m <min>     Number of mate samples to recompute an insert size, default is 100\n");
-    fprintf(stderr, "   -N <ckp>     restart from checkpoint location 'ckp' (see the timing file)\n");
-    fprintf(stderr, "   -o           Output Name (required)\n");
-    fprintf(stderr, "   -P <int>     how to place closure reads. 0 - place at first location found, 1 - place at best gap, 2 - allow to be placed in multiple gaps\n");
-    fprintf(stderr, "   -R <ckp>     restart from checkpoint file number 'ckp'\n");
-    fprintf(stderr, "   -r <lvl>     repeat resolution level\n");
-    fprintf(stderr, "   -S <t>       place all frags in singly-placed surrogates if at least fraction <x> can be placed\n");
-    fprintf(stderr, "                  two special cases:\n");
-    fprintf(stderr, "                    if <t> = -1, place all frags in singly-placed surrogates aggressively\n");
-    fprintf(stderr, "                                 (which really mean t = 0.0, but triggers a better algorithm)\n");
-    fprintf(stderr, "                    if <t> =  0, do not resolve surrogate fragments\n");
-    fprintf(stderr, "   -s <lvl>     stone throwing level\n");
-    fprintf(stderr, "   -shatter <thresh>  Set threshold for shattering scaffolds when loading from checkpoint. Any contigs connected to a scaffold only by edges with less weight than the threshold will be split into a new scaffold (default OFF)\n");
-    fprintf(stderr, "   -missingMate <thresh>  Set threshold (0-1) for the percentage of mates (out of total) that are allowed to be missing when attempting a scaffold merge (default 0). A value of -1 will ignore all missing mates\n");
+    fprintf(stderr, "   -C                     Don't cleanup scaffolds\n");    
+    fprintf(stderr, "   -D <lvl>               Debug\n");
+    fprintf(stderr, "   -E                     output overlap only contig edges\n");
+    fprintf(stderr, "   -e <thresh>            Microhet score probability cutoff\n");
+    fprintf(stderr, "   -F                     strongly enforce unique/repeat flag set in unitig, default if not set is to still\n");
+    fprintf(stderr, "                              allow those marked unique to be demoted due to Repeat Branch Pattern or being\n");
+    fprintf(stderr, "                              too small\n");
+    fprintf(stderr, "   -g                     gkp Store path (required)\n");
+    fprintf(stderr, "   -G                     Don't generate output (cgw or cam)\n");
+    fprintf(stderr, "   -I                     ignore chaff unitigs\n");
+    fprintf(stderr, "   -i <thresh>            Set max coverage stat for microhet determination of non-uniqueness (default -1)\n");
+    fprintf(stderr, "   -j <thresh>            Set min coverage stat for definite uniqueness\n");
+    fprintf(stderr, "   -K                     Allow kicking out a contig placed in a scaffold by mate pairs that has no overlaps\n");
+    fprintf(stderr, "                            to both its left and right neighbor contigs.\n");
+    fprintf(stderr, "   -k <thresh>            Set max coverage stat for possible uniqueness\n");
+    fprintf(stderr, "   -M                     don't do interleaved scaffold merging\n");
+    fprintf(stderr, "   -m <min>               Number of mate samples to recompute an insert size, default is 100\n");
+    fprintf(stderr, "   -N <ckp>               restart from checkpoint location 'ckp' (see the timing file)\n");
+    fprintf(stderr, "   -o                     Output Name (required)\n");
+    fprintf(stderr, "   -P <int>               how to place closure reads.\n");
+    fprintf(stderr, "                              0 - place at first location found\n");
+    fprintf(stderr, "                              1 - place at best gap\n");
+    fprintf(stderr, "                              2 - allow to be placed in multiple gaps\n");
+    fprintf(stderr, "   -R <ckp>               restart from checkpoint file number 'ckp'\n");
+    fprintf(stderr, "   -r <lvl>               repeat resolution level\n");
+    fprintf(stderr, "   -S <t>                 place all frags in singly-placed surrogates if at least fraction <x> can be placed\n");
+    fprintf(stderr, "                          two special cases:\n");
+    fprintf(stderr, "                              if <t> = -1, place all frags in singly-placed surrogates aggressively\n");
+    fprintf(stderr, "                                           (which really mean t = 0.0, but triggers a better algorithm)\n");
+    fprintf(stderr, "                              if <t> =  0, do not resolve surrogate fragments\n");
+    fprintf(stderr, "   -s <lvl>               stone throwing level\n");
+    fprintf(stderr, "   -shatter <thresh>      Set threshold for shattering scaffolds when loading from checkpoint. Any contigs\n");
+    fprintf(stderr, "                            connected to a scaffold only by edges with less weight than the threshold will be\n");
+    fprintf(stderr, "                            split into a new scaffold (default OFF)\n");
+    fprintf(stderr, "   -missingMate <thresh>  Set threshold (0-1) for the percentage of mates (out of total) that are allowed to be\n");
+    fprintf(stderr, "                            missing when attempting a scaffold merge (default 0). A value of -1 will ignore all\n");
+    fprintf(stderr, "                            missing mates\n");
     fprintf(stderr, "   -minmergeweight <w>    Only use weight w or better edges for merging scaffolds.\n");
-    fprintf(stderr, "   -recompute   if loading a checkpoint, recompute gaps, merging contigs and splitting low weight scaffolds.\n");
-    fprintf(stderr, "   -U           after inserting rocks/stones try shifting contig positions back to their original location when computing overlaps to see if they overlap with the rock/stone and allow them to merge if they do\n");
-    fprintf(stderr, "   -u <file>    load these overlaps (from BOG) into the scaffold graph\n");
-    fprintf(stderr, "   -v           verbose\n");
-    fprintf(stderr, "   -Z           Don't demote singleton scaffolds\n");
-    fprintf(stderr, "   -z           Turn on Check for Repeat Branch Pattern (demotes some unique unitigs to repeat)\n");
+    fprintf(stderr, "   -recomputegaps         if loading a checkpoint, recompute gaps, merging contigs and splitting low weight scaffolds.\n");
+    fprintf(stderr, "   -U                     after inserting rocks/stones try shifting contig positions back to their original location\n");
+    fprintf(stderr, "                            when computing overlaps to see if they overlap with the rock/stone and allow them to merge\n");
+    fprintf(stderr, "                            if they do\n");
+    fprintf(stderr, "   -u <file>              load these overlaps (from BOG) into the scaffold graph\n");
+    fprintf(stderr, "   -v                     verbose\n");
+    fprintf(stderr, "   -Z                     Don't demote singleton scaffolds\n");
+    fprintf(stderr, "   -z                     Turn on Check for Repeat Branch Pattern (demotes some unique unitigs to repeat)\n");
 
     fprintf(stderr, "\n");
 
@@ -386,8 +396,13 @@ main(int argc, char **argv) {
 
     if (recomputeLeastSquaresOnLoad) {
       for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+        CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
+
+        if (scaffold->flags.bits.isDead == true)
+          continue;
+
         if (true == LeastSquaresGapEstimates(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID), LeastSquares_Cleanup | LeastSquares_Split))
-          ScaffoldSanity(ScaffoldGraph, GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID));
+          ScaffoldSanity(ScaffoldGraph, scaffold);
       }
     }
   }
