@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.106 2012-08-24 02:56:06 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.107 2012-08-28 14:27:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -214,6 +214,80 @@ size_t ReportMemorySizeGraphCGW(GraphCGW_T *graph, FILE *stream){
 
 
 
+void
+DumpGraphEdges(GraphCGW_T *graph, char *outname) {
+  FILE *outfile = fopen(outname, "w");
+
+  fprintf(stderr, "DumpGraphEdges()-- to '%s'\n", outname);
+
+  for (uint32 i=0; i<GetNumGraphEdges(graph); i++) {
+    CIEdgeT  *edge = GetGraphEdge(graph, i);
+
+    fprintf(outfile, "eid "F_U32" deleted %d triplet "F_U32" "F_U32" %c contributing %d %.0f +- %.8f frag "F_U32":"F_U32" nextRaw "F_U32" topLevel "F_U32"\n",
+            i,
+            edge->flags.bits.isDeleted,
+            edge->idA, edge->idB, edge->orient.toLetter(),
+            edge->edgesContributing,
+            edge->distance.mean, edge->distance.variance,
+            edge->fragA, edge->fragB,
+            edge->nextRawEdge,
+            edge->topLevelEdge);
+  }
+
+  for (uint32 i=0; i<GetNumGraphNodes(graph); i++) {
+    GraphEdgeIterator  edges(graph, i, A_END, ALL_EDGES);
+    EdgeCGW_T         *edge;
+
+    while ((edge = edges.nextMerged()) != NULL) {
+    }
+    edges.reset();
+    while ((edge = edges.nextRaw()) != NULL) {
+    }
+  }
+
+  for (uint32 i=0; i<GetNumGraphNodes(graph); i++) {
+    GraphEdgeIterator  edges(graph, i, B_END, ALL_EDGES);
+    EdgeCGW_T         *edge;
+
+    while ((edge = edges.nextMerged()) != NULL) {
+    }
+    edges.reset();
+    while ((edge = edges.nextRaw()) != NULL) {
+    }
+  }
+
+  for (uint32 i=0; i<GetNumGraphNodes(graph); i++) {
+    NodeCGW_T  *node = GetGraphNode(graph, i);
+
+    GraphEdgeIterator  edges(graph, i, A_END, ALL_EDGES);
+    EdgeCGW_T         *edge;
+
+    while ((edge = edges.nextMerged()) != NULL) {
+      fprintf(outfile, "mergedEdge node "F_U32" eid "F_SIZE_T" triplet "F_U32" "F_U32" %c\n",
+              i,
+              GetVAIndex_EdgeCGW_T(graph->edges, edge),
+              edge->idA, edge->idB, edge->orient.toLetter());
+    }
+  }
+
+  for (uint32 i=0; i<GetNumGraphNodes(graph); i++) {
+    NodeCGW_T  *node = GetGraphNode(graph, i);
+
+    GraphEdgeIterator  edges(graph, i, B_END, ALL_EDGES);
+    EdgeCGW_T         *edge;
+
+    while ((edge = edges.nextRaw()) != NULL) {
+      fprintf(outfile, "rawEdge node "F_U32" eid "F_SIZE_T" triplet "F_U32" "F_U32" %c\n",
+              i,
+              GetVAIndex_EdgeCGW_T(graph->edges, edge),
+              edge->idA, edge->idB, edge->orient.toLetter());
+    }
+  }
+
+  fclose(outfile);
+}
+
+
 /* Check that edge with index eid is properly wired in the graph:
    - we find it when looking for it in both lists which it is supposed to be a member
    - we can walk backwards from the edge to the heads of the two lists
@@ -289,6 +363,9 @@ InsertGraphEdgeInList(GraphCGW_T *graph,
     assert(!ci->flags.bits.isDead);
     return;
   }
+
+  //fprintf(stderr, "InsertGraphEdgeInList()-- edge eid %d %d-%d orient %c ciID %d\n",
+  //        edgeID, newEdge->idA, newEdge->idB, newEdge->orient.toLetter(), ciID);
 
   //
   //  If the list is currently non-empty and sorted, insert the edge in the correct spot.
@@ -473,6 +550,9 @@ void FreeGraphEdgeByEID(GraphCGW_T *graph, CDS_CID_t eid){
   EdgeCGW_T *edge = GetGraphEdge(graph, eid);
   assert(!edge->flags.bits.isDeleted);
 
+  //fprintf(stderr, "FreeGraphEdgeByEID()-- edge eid %d %d-%d orient %c\n",
+  //        eid, edge->idA, edge->idB, edge->orient.toLetter());
+
   if(!edge->flags.bits.isRaw)
     {
       EdgeCGW_T *rawEdge = GetGraphEdge(graph, edge->nextRawEdge);
@@ -520,6 +600,8 @@ void InitGraphEdge(EdgeCGW_T *edge){
 // Get the edge from the free list
 EdgeCGW_T *GetFreeGraphEdge(GraphCGW_T *graph){
   EdgeCGW_T *freeEdge = GetGraphEdge(graph, graph->freeEdgeHead);
+
+  //fprintf(stderr, "GetFreeGraphEdge()-- %d %d\n", graph->freeEdgeHead, GetNumGraphEdges(graph));
 
   if (freeEdge == NULL) {
     EdgeCGW_T edge;
@@ -580,6 +662,8 @@ void UnlinkGraphEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
 
   // if head->prev?Link is NULLINDEX, we need to update the head of the list
 
+  //fprintf(stderr, "UnlinkGraphEdge()-- edge eid %d %d-%d orient %c\n",
+  //        GetVAIndex_EdgeCGW_T(graph->edges, edge), edge->idA, edge->idB, edge->orient.toLetter());
 
   // First determine if this is a toplevel edge, or a rawEdge linked
   // to a top level edge
@@ -587,6 +671,7 @@ void UnlinkGraphEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
     CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, edge);
     // This is a raw edge hanging off of a merged edge
     if(edge->flags.bits.isRaw && edge->topLevelEdge != eid){
+      assert(0);
       EdgeCGW_T *topEdge = GetGraphEdge(graph, edge->topLevelEdge);
       EdgeCGW_T *rawEdge, *prevEdge;
       AssertPtr(topEdge);

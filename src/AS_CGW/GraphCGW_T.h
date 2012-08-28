@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.61 2012-08-24 02:56:06 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.62 2012-08-28 14:27:57 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -983,6 +983,8 @@ MergeAllGraphEdges(GraphCGW_T        *graph,
 int MergeGraphEdges(GraphCGW_T *graph, vector<CDS_CID_t> &inputEdges);
 
 
+
+void DumpGraphEdges(GraphCGW_T *graph, char *outname);
 
 void GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid);
 
