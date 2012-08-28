@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.67 2012-08-27 05:37:44 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.68 2012-08-28 14:14:23 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -524,7 +524,7 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
   if (beVerbose)
     fprintf(stderr, "ROIS()-- Rebuild contig and gap positions for scaffold %d\n", scaffold->id);
 
-  if ((gapMean == NULL) || (gapVariance == NULL)) {
+  if ((gapMean == NULL) || (gapVariance == NULL) && (scaffold->info.Scaffold.numElements > 1)) {
     fprintf(stderr, "ROIS()-- NULL array!  mean %p variance %p\n", gapMean, gapVariance);
     dumpScaffoldContigPositions(graph, scaffold, "ROIS()-- NULL array!  ");
     return;
