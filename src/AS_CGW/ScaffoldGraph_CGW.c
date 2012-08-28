@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.71 2012-08-23 22:37:43 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.72 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -89,6 +89,10 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   ScaffoldGraph->ScaffoldGraph = LoadGraphCGWFromStream(F);
 
   ScaffoldGraph->ChunkOverlaps = LoadChunkOverlapperFromStream(F);
+
+  RebuildGraphEdges(ScaffoldGraph->CIGraph);
+  RebuildGraphEdges(ScaffoldGraph->ContigGraph);
+  RebuildGraphEdges(ScaffoldGraph->ScaffoldGraph);
 
   CheckGraph(ScaffoldGraph->CIGraph);
   CheckGraph(ScaffoldGraph->ContigGraph);

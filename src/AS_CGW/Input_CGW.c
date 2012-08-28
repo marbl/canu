@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.78 2012-08-16 01:24:44 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.79 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,7 +126,6 @@ int ProcessInput(int optind, int argc, char *argv[]){
 
       CI.bpLength.mean                       = 0;          //  Boilerplate from below, to NULLINDEX
       CI.bpLength.variance                   = 1.0;
-      CI.edgeHead                            = NULLINDEX;
       CI.setID                               = NULLINDEX;
       CI.scaffoldID                          = NULLINDEX;
       CI.indexInScaffold                     = NULLINDEX;
@@ -155,7 +154,10 @@ int ProcessInput(int optind, int argc, char *argv[]){
 
       //  Add it to the graph.
 
-      SetChunkInstanceT(ScaffoldGraph->CIGraph->nodes, CI.id, &CI);
+      SetGraphNode(ScaffoldGraph->CIGraph, &CI);
+
+      //  Ensure that there are no edges, and that the edgeList is allocated.
+      assert(ScaffoldGraph->CIGraph->edgeLists[CI.id].empty() == true);
 
       continue;
     }
@@ -233,7 +235,6 @@ ProcessInputUnitig(MultiAlignT *uma) {
   CI.id                                  = uma->maID;
   CI.bpLength.mean                       = length;
   CI.bpLength.variance                   = MAX(1.0,ComputeFudgeVariance(CI.bpLength.mean));
-  CI.edgeHead                            = NULLINDEX;
   CI.setID                               = NULLINDEX;
   CI.scaffoldID                          = NULLINDEX;
   CI.indexInScaffold                     = NULLINDEX;
@@ -331,7 +332,10 @@ ProcessInputUnitig(MultiAlignT *uma) {
 
   // Insert the Chunk Instance
 
-  SetChunkInstanceT(ScaffoldGraph->CIGraph->nodes, CI.id, &CI);
+  SetGraphNode(ScaffoldGraph->CIGraph, &CI);
+
+  //  Ensure that there are no edges, and that the edgeList is allocated.
+  assert(ScaffoldGraph->CIGraph->edgeLists[CI.id].empty() == true);
 
   // Mark all frags as being members of this CI, and set their offsets within the CI
   // mark unitigs and contigs

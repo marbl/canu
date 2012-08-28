@@ -22,7 +22,7 @@
 #ifndef GRAPH_EDGE_ITERATOR_H
 #define GRAPH_EDGE_ITERATOR_H
 
-static const char *rcsid_GRAPH_EDGE_ITERATOR_H = "$Id: GraphEdgeIterator.H,v 1.4 2012-08-17 05:25:28 brianwalenz Exp $";
+static const char *rcsid_GRAPH_EDGE_ITERATOR_H = "$Id: GraphEdgeIterator.H,v 1.5 2012-08-28 21:09:39 brianwalenz Exp $";
 
 //  includes are broken here
 //#include "GraphCGW_T.h"
@@ -63,22 +63,16 @@ public:
 
   EdgeCGW_T   *nextRaw(void);
   EdgeCGW_T   *nextMerged(void);
-  EdgeCGW_T   *prevMerged(void)   { return(GetGraphEdge(graph, prevM)); };
-
-  CDS_CID_t    prevMergedID(void) { return(prevM); };  //  Used when adding edges to the graph.
-  CDS_CID_t    currMergedID(void) { return(currM); };  //  Quite ugly.  Same for prevMerged().
 
   void         reset(void) {
-    prevM              = NULLINDEX;
-    currM              = NULLINDEX;
-    nextM              = GetGraphNode(graph, cid)->edgeHead;
+    nextR = NULLINDEX;
 
-    nextR              = NULLINDEX;
+    assert(cid <= graph->edgeLists.size());
+
+    it = graph->edgeLists[cid].begin();
   };
 
 private:
-  void         sortEdges(void);
-
   GraphCGW_T  *graph;
   CDS_CID_t    cid;
   int          end;
@@ -86,18 +80,17 @@ private:
 
   bool         noContains;
 
-  CDS_CID_t    prevM;
-  CDS_CID_t    currM;
-  CDS_CID_t    nextM;
-
-  CDS_CID_t    prevR;
-  CDS_CID_t    currR;
   CDS_CID_t    nextR;
+
+  set<CDS_CID_t>::iterator  it;
 };
 
 
-bool  edgeCompare(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2);
+bool
+edgeCompareForMerging(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2);
 
+bool
+edgeCompareForStoring(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2);
 
 
 #endif  //  GRAPH_EDGE_ITERATOR_H

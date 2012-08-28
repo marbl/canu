@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.62 2012-08-28 14:27:57 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.63 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -30,6 +30,7 @@ static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.62 2012-08-28 14:2
 #include "MultiAlign.h"
 
 #include <vector>
+#include <set>
 
 using namespace std;
 
@@ -131,10 +132,10 @@ typedef struct {
 
   /* vvvvv Iterator does not fill in fields below this line vvvvvv */
   //
-  CDS_CID_t nextALink; // next edge involving cidA, -1 if none
-  CDS_CID_t nextBLink; // next edge involving cidB, -1 if none
-  CDS_CID_t prevALink; // prev edge involving cidA, -1 if none
-  CDS_CID_t prevBLink; // prev edge involving cidB, -1 if none
+  CDS_CID_t nextALinkUNUSED; // next edge involving cidA, -1 if none
+  CDS_CID_t nextBLinkUNUSED; // next edge involving cidB, -1 if none
+  CDS_CID_t prevALinkUNUSED; // prev edge involving cidA, -1 if none
+  CDS_CID_t prevBLinkUNUSED; // prev edge involving cidB, -1 if none
 
   double  minDistance;  /* negative implies potential overlap
                          * This Field is overloaded to store the distance.mean when
@@ -419,7 +420,7 @@ typedef struct{
     int32 all;
   }flags;
 
-  CDS_CID_t edgeHead;  // Pointer to linked list of edges  in edges;
+  CDS_CID_t edgeHeadUNUSERD;  // Pointer to linked list of edges  in edges;
   CDS_CID_t setID;
 
 }NodeCGW_T;
@@ -446,12 +447,18 @@ typedef enum{
 }GraphType;
 
 
+
 typedef struct{
   GraphType type;
-  VA_TYPE(NodeCGW_T) *nodes;
-  VA_TYPE(EdgeCGW_T) *edges;
+
+  VA_TYPE(NodeCGW_T)      *nodes;
+  VA_TYPE(EdgeCGW_T)      *edges;
+
+  vector<set<CDS_CID_t,bool(*)(CDS_CID_t,CDS_CID_t)> >  edgeLists;
+
   int32 numActiveNodes;
   int32 numActiveEdges;
+
   CDS_CID_t freeEdgeHead;
   CDS_CID_t tobeFreeEdgeHead; // staging area for edges waiting to be moved to the free list
   CDS_CID_t freeNodeHead;
@@ -466,19 +473,6 @@ typedef struct{
   int32 maxGap;
   PairOrient orient;
 }RevivedEdgeT;
-
-static void InitializeGraph(GraphCGW_T *graph){
-  graph->nodes = NULL;
-  graph->edges = NULL;
-  graph->numActiveNodes = 0;
-  graph->numActiveEdges = 0;
-  graph->freeEdgeHead = NULLINDEX;
-  graph->tobeFreeEdgeHead = NULLINDEX;
-  graph->freeNodeHead = NULLINDEX;
-  graph->tobeFreeNodeHead = NULLINDEX;
-  graph->deadNodeHead = NULLINDEX;
-}
-
 
 
 static int32 GetNumGraphNodes(GraphCGW_T *graph){
@@ -495,9 +489,18 @@ static NodeCGW_T *GetGraphNode(GraphCGW_T *graph, CDS_CID_t nodeID){
   return GetNodeCGW_T(graph->nodes, nodeID);
 }
 
+
+void ResizeEdgeList(GraphCGW_T *graph);
+
+static void SetGraphNode(GraphCGW_T *graph, NodeCGW_T *node) {
+  SetNodeCGW_T(graph->nodes, node->id, node);
+  ResizeEdgeList(graph);
+}
+
 /* Append */
 static void AppendGraphNode(GraphCGW_T *graph, NodeCGW_T *node){
   AppendNodeCGW_T(graph->nodes, node);
+  ResizeEdgeList(graph);
 }
 static void AppendGraphEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
   AppendEdgeCGW_T(graph->edges, edge);
@@ -511,7 +514,6 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
 
   node.id         = GetNumGraphNodes(graph);
   node.flags.all  = 0;
-  node.edgeHead   = NULLINDEX;
   node.setID      = 0;
 
   switch(graph->type){
@@ -550,7 +552,6 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
   node.essentialEdgeA      = NULLINDEX;
   node.essentialEdgeB      = NULLINDEX;
   node.indexInScaffold     = NULLINDEX;
-  node.edgeHead            = NULLINDEX;
   node.smoothExpectedCID   = 0;
   node.AEndNext            = NULLINDEX;
   node.BEndNext            = NULLINDEX;
@@ -566,7 +567,7 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
 
   //node.aEndCoord = node.bEndCoord = NULLINDEX;
 
-  AppendNodeCGW_T(graph->nodes, &node);
+  AppendGraphNode(graph, &node);
 
   return(GetGraphNode(graph, node.id));
 }
@@ -576,8 +577,9 @@ GraphCGW_T *CreateGraphCGW(GraphType type, int32 numNodes, int32 numEdges);
 void DeleteGraphCGW(GraphCGW_T *graph);
 
 /* Persistence */
-void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream);
+void        SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream);
 GraphCGW_T *LoadGraphCGWFromStream(FILE *stream);
+void        RebuildGraphEdges(GraphCGW_T *graph);
 
 
 static EdgeStatus GetEdgeStatus(EdgeCGW_T *edge){
@@ -1007,8 +1009,9 @@ static void SetGraphEdgeStatus(GraphCGW_T *graph, EdgeCGW_T *edge,
 // Initialize the status flags for the given edge.
 void InitGraphEdgeFlags(GraphCGW_T *graph, EdgeCGW_T *edge);
 
-int32 InsertGraphEdge(GraphCGW_T *graph,  CDS_CID_t cedgeID, int verbose);
 void InsertGraphEdgeInList(GraphCGW_T *graph, CDS_CID_t CIedgeID, CDS_CID_t sid);
+void InsertGraphEdge(GraphCGW_T *graph,  CDS_CID_t cedgeID);
+
 void PrintGraphEdge(FILE *fp, GraphCGW_T *graph, const char *label,
                     EdgeCGW_T *edge, CDS_CID_t cid);
 
@@ -1062,13 +1065,7 @@ void  DeleteGraphOverlapEdge(GraphCGW_T *graph,
                              PairOrient orient);
 
 // Move the edge to the free list
-void FreeGraphEdgeByEID(GraphCGW_T *graph,  CDS_CID_t eid);
-
-static void FreeGraphEdge(GraphCGW_T *graph,  EdgeCGW_T *edge){
-  CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, edge);
-
-  FreeGraphEdgeByEID(graph, eid);
-}
+void FreeGraphEdge(GraphCGW_T *graph, EdgeCGW_T *edge);
 
 // Get the edge from the free list
 EdgeCGW_T *GetFreeGraphEdge(GraphCGW_T *graph);

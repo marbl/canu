@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.68 2012-08-28 14:14:23 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.69 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1278,13 +1278,16 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                      CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
                      CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
                      CIScaffold.info.Scaffold.numElements = 0;
-                     CIScaffold.edgeHead = NULLINDEX;
                      CIScaffold.bpLength = firstOffset;
                      newScaffoldID = CIScaffold.id = GetNumGraphNodes(graph->ScaffoldGraph);
                      CIScaffold.flags.bits.isDead = FALSE;
                      CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
                      CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
+
                      AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);
+
+                     //  Ensure that there are no edges, and that the edgeList is allocated.
+                     assert(ScaffoldGraph->ScaffoldGraph->edgeLists[CIScaffold.id].empty() == true);
                                
                      scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaffoldID);
 
@@ -1862,8 +1865,8 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
 
     InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
     while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-      LengthT minOffset = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
-      LengthT maxOffset = (CI->offsetAEnd.mean > CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+      LengthT minOffset = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+      LengthT maxOffset = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
 
       if (lastEnd.mean > 0) {
         GAPmean.push_back(minOffset.mean     - lastEnd.mean);

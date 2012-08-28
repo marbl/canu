@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.60 2012-08-23 22:37:43 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.61 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -66,12 +66,15 @@ VA_DEF(SEdgeT)
 typedef struct{
   VA_TYPE(CIFragT)        *CIFrags;
   VA_TYPE(DistT)          *Dists;
+
   VA_TYPE(ChunkInstanceT) *ChunkInstances;  // CIs and Contigs
   VA_TYPE(ContigT)        *Contigs;
   VA_TYPE(CIScaffoldT)    *CIScaffolds;
+
   VA_TYPE(CIEdgeT)        *CIEdges;
   VA_TYPE(CIEdgeT)        *ContigEdges;
   VA_TYPE(SEdgeT)         *SEdges;
+
   char                    name[256];
   int32                   checkPointIteration; // Index of next checkpoint
   int32                   numContigs;  // Number of contigs...they may be interspersed
@@ -79,10 +82,13 @@ typedef struct{
   int32                   numLiveCIs; // Number of currently instantiated CIs, including splits
   int32                   numDiscriminatorUniqueCIs;
   int32                   numLiveScaffolds;
+
   GraphCGW_T             *CIGraph;
   GraphCGW_T             *ContigGraph;
   GraphCGW_T             *ScaffoldGraph;
+
   ChunkOverlapperT       *ChunkOverlaps;
+
   gkStore                *gkpStore;
   MultiAlignStore        *tigStore;
   OverlapStore           *frgOvlStore;

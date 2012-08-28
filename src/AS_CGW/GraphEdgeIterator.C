@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.7 2012-08-23 22:37:43 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.8 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include "GraphCGW_T.h"
 #include "ScaffoldGraph_CGW.h"
@@ -46,14 +46,7 @@ GraphEdgeIterator::GraphEdgeIterator(GraphCGW_T *graph_,
 
   noContains         = false;
 
-  if (GetGraphNode(graph, cid)->flags.bits.edgesModified)
-    sortEdges();
-
-  prevM              = NULLINDEX;
-  currM              = NULLINDEX;
-  nextM              = GetGraphNode(graph, cid)->edgeHead;
-
-  nextR              = NULLINDEX;
+  reset();
 
   //fprintf(stderr, "Created GraphEdgeIterator for cid %d end %d status %d nextM %d nextR %d\n",
   //        cid_, end_, edgeStatusSet_, nextM, nextR);
@@ -91,20 +84,14 @@ GraphEdgeIterator::nextRaw(void) {
     return(r);
   }
 
-  //  If there is no nextM, we're done with the iteration.
-  if (nextM == NULLINDEX)
+  //  No more top level edges?
+
+  if (it == graph->edgeLists[cid].end())
     return(NULL);
 
-  //  Otherwise, grab the nextM and do soemthing with it.  Whatever happens,
-  //  we want to also advance to the next nextM.
+  r = GetGraphEdge(graph, *it);
 
-  r = GetGraphEdge(graph, nextM);
-
-  nextM = (r->idA == cid) ? r->nextALink : r->nextBLink;
-  nextR = NULLINDEX;
-
-  //  Previous versions would check that the merged edge was marked appropriately, and if not, skip
-  //  ALL raw edges below it.  Starting in v1.2 we test the raw edges separately.
+  it++;
 
   //  If this merged edge in fact is raw (it didn't have anything to merge with),
   //  return it.
@@ -116,8 +103,7 @@ GraphEdgeIterator::nextRaw(void) {
     //  while the contributing edge was not.  The IDs did not agree.  There indeed was one
     //  raw edge in the nextRawEdge list.
     //
-    //  Instead of tracking down what caused this, we just 'fix' the top level edge to have
-    //  no underlying edges.
+    //  It is possibly caused by deleting a raw edge from a 2-edge merged edge.
     //
     if (r->nextRawEdge != NULLINDEX) {
       fprintf(stderr, "GraphEdgeIterator()-- WARNING: top level raw edge %p (%d,%d contributing=%d) claims to have raw edges (id %d).  Fixing and ignoring.\n",
@@ -133,7 +119,7 @@ GraphEdgeIterator::nextRaw(void) {
     return(r);
   }
 
-  //  Like, if it is a merged edge, start iterating down the raw edges.
+  //  Otherwise, it is a top level merged edge, so dive into the raw edges.
 
   nextR = r->nextRawEdge;
 
@@ -146,27 +132,16 @@ GraphEdgeIterator::nextMerged(void) {
   EdgeCGW_T *r = NULL;
 
  getMergedEdge:
-  prevM = currM;
-  currM = nextM;
-  nextM = NULLINDEX;
-
-  if (currM == NULLINDEX)
+  if (it == graph->edgeLists[cid].end())
     return(NULL);
 
-  r = GetGraphEdge(graph, currM);
+  r = GetGraphEdge(graph, *it);
 
-  nextM = (r->idA == cid) ? r->nextALink : r->nextBLink;
-
-  if ((r->idA != cid) && (r->idB != cid))
-    fprintf(stderr, "ERROR: edge %16p idA=%d idB=%d not for cid %d\n",
-            r, r->idA, r->idB, cid);
-
-  //  This is not true - we will return raw edges, as merged edges with only one raw edge.
-  //assert(r->flags.bits.isRaw == false);
+  assert(r->topLevelEdge == *it);
   assert(r->flags.bits.isDeleted == false);
   assert((r->idA == cid) || (r->idB == cid));
 
-  // Flip orientation to accomodate canonical graph form
+  it++;
 
   PairOrient orient = GetEdgeOrientationWRT(r, cid);
 
@@ -175,31 +150,31 @@ GraphEdgeIterator::nextMerged(void) {
   //  Check for correct end and confirmed status
 
   if ((GetEdgeStatus(r) & edgeStatusSet) == 0) {
-    //fprintf(stderr, "Merged edge %d-%d status %d not %d\n",
-    //        r->idA, r->idB, GetEdgeStatus(r), edgeStatusSet);
+    //fprintf(stderr, "Merged edge eid %d %d-%d status %d not %d\n",
+    //        GetVAIndex_EdgeCGW_T(graph->edges, r), r->idA, r->idB, GetEdgeStatus(r), edgeStatusSet);
     goto getMergedEdge;
   }
 
   if ((end == A_END) && (orient.isAB_BA() || orient.isAB_AB())) {
-    //fprintf(stderr, "Merged edge %d-%d orient %c not A_END\n",
-    //        r->idA, r->idB, orient.toLetter());
+    //fprintf(stderr, "Merged edge eid %d %d-%d orient %c not A_END\n",
+    //        GetVAIndex_EdgeCGW_T(graph->edges, r), r->idA, r->idB, orient.toLetter());
     goto getMergedEdge;
   }
 
   if ((end == B_END) && (orient.isBA_BA() || orient.isBA_AB())) {
-    //fprintf(stderr, "Merged edge %d-%d orient %c not B_END\n",
-    //        r->idA, r->idB, orient.toLetter());
+    //fprintf(stderr, "Merged edge eid %d %d-%d orient %c not B_END\n",
+    //        GetVAIndex_EdgeCGW_T(graph->edges, r), r->idA, r->idB, orient.toLetter());
     goto getMergedEdge;
   }
 
   if ((noContains == true) && (isContainmentEdge(r))) {
-    //fprintf(stderr, "Merged edge %d-%d is contained, skip\n",
-    //        r->idA, r->idB);
+    //fprintf(stderr, "Merged edge eid %d %d-%d is contained, skip\n",
+    //        GetVAIndex_EdgeCGW_T(graph->edges, r), r->idA, r->idB);
     goto getMergedEdge;
   }
 
-  //fprintf(stderr, "Return merged edge %d-%d p=%d c=%d n=%d\n",
-  //        r->idA, r->idB, prevM, currM, nextM);
+  //fprintf(stderr, "Return merged edge eid %d %d-%d\n",
+  //        GetVAIndex_EdgeCGW_T(graph->edges, r), r->idA, r->idB);
   return(r);
 }
 
@@ -207,7 +182,7 @@ GraphEdgeIterator::nextMerged(void) {
 
 
 bool
-edgeCompare(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2) {
+edgeCompareForMerging(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2) {
   int diff;
 
   assert(edge1->idA <= edge1->idB);
@@ -244,110 +219,47 @@ edgeCompare(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2) {
   if (diff > 0)
     return(false);
 
-  diff = edge1->distance.mean - edge2->distance.mean;
-  if (diff < 0)
+  if (edge1->distance.mean < edge2->distance.mean)
     return(true);
+  if (edge1->distance.mean > edge2->distance.mean)
+    return(false);
+
+  //  This *is* well behaved.  We should only be comparing edges allocated from the same array,
+  //  and this is essentially just comparing the edge IDs.  It is needed so that we can add two
+  //  (raw) edges of the same stats.
+  return(edge1 < edge2);
 
   return(false);
 }
 
 
-void
-GraphEdgeIterator::sortEdges(void) {
-  NodeCGW_T *node = GetGraphNode(graph, cid);
-  EdgeCGW_T *edge = NULL;
 
-  if (node->flags.bits.edgesModified == 0)
-    return;
+bool
+edgeCompareForStoring(EdgeCGW_T const *edge1, EdgeCGW_T const *edge2) {
+  int diff;
 
-#if 0
-  char const *type = "UNKNOWN";
-  type = (graph == ScaffoldGraph->CIGraph)       ? "unitig" : type;
-  type = (graph == ScaffoldGraph->ContigGraph)   ? "contig" : type;
-  type = (graph == ScaffoldGraph->ScaffoldGraph) ? "scaffold" : type;
+  assert(edge1->idA <= edge1->idB);
+  assert(edge2->idA <= edge2->idB);
+  assert(edge1->flags.bits.isDeleted == false);
+  assert(edge2->flags.bits.isDeleted == false);
 
-  fprintf(stderr, "GraphEdgeIterator::sortEdges()--  sorting edges for %s %d\n", type, node->id);
-#endif
+  if (edge1->idA < edge2->idA)
+    return(true);
+  if (edge1->idA > edge2->idA)
+    return(false);
 
-  node->flags.bits.edgesModified = 0;
+  if (edge1->idB < edge2->idB)
+    return(true);
+  if (edge1->idB > edge2->idB)
+    return(false);
 
-  if (node->edgeHead == NULLINDEX)
-    return;
+  if (edge1->orient.toLetter() < edge2->orient.toLetter())
+    return(true);
+  if (edge1->orient.toLetter() > edge2->orient.toLetter())
+    return(false);
 
-  //  Move pointers from the unsorted list to our vector for sorting
-
-  vector<EdgeCGW_T *>  edges;
-
-  for (CDS_CID_t ie=node->edgeHead; ie != NULLINDEX; ) {
-    edge = GetGraphEdge(graph, ie);
-
-    assert(ie != edge->prevALink);
-    assert(ie != edge->nextALink);
-    assert(ie != edge->prevBLink);
-    assert(ie != edge->nextBLink);
-
-    edges.push_back(edge);
-
-    if ((edge->idA != cid) && (edge->idB != cid))
-      fprintf(stderr, "ERROR: edge %16p idA=%d idB=%d not for cid %d\n",
-              edge, edge->idA, edge->idB, cid);
-    assert((edge->idA == cid) || (edge->idB == cid));
-
-    ie = (edge->idA == cid) ? edge->nextALink : edge->nextBLink;
-
-    //fprintf(stderr, "GraphEdgeIterator::sortEdges()--   edge %16p idx %d next %d\n",
-    //        edge, GetVAIndex_EdgeCGW_T(graph->edges, edge), ie);
-  }
-
-  //  Sort
-
-#ifdef _GLIBCXX_PARALLEL
-  //  If we have the parallel STL, don't use it!  We don't want the expense of firing up threads here.
-  __gnu_sequential::sort(edges.begin(), edges.end(), edgeCompare);
-#else
-  sort(edges.begin(), edges.end(), edgeCompare);
-#endif
-
-  //  Update pointers.
-
-  //for (uint32 ei=0; ei<edges.size(); ei++) {
-  //  edges[ei]->prevALink = NULLINDEX;
-  //  edges[ei]->nextALink = NULLINDEX;
-  //  edges[ei]->prevBLink = NULLINDEX;
-  //  edges[ei]->nextBLink = NULLINDEX;
-  //}
-
-  CDS_CID_t  last = NULLINDEX;
-
-  //  Move forward, to set backward pointers
-
-  for (uint32 ei=0; ei<edges.size(); ei++) {
-    EdgeCGW_T *edge = edges[ei];
-
-    if (edge->idA == cid)
-      edge->prevALink = last;
-    else
-      edge->prevBLink = last;
-
-    last = GetVAIndex_EdgeCGW_T(graph->edges, edge);
-  }
-
-  //  Move backward, to set forward pointers
-
-  last = NULLINDEX;
-
-  for (uint32 ei=edges.size(); ei-->0; ) {
-    EdgeCGW_T *edge = edges[ei];
-
-    if (edge->idA == cid)
-      edge->nextALink = last;
-    else
-      edge->nextBLink = last;
-
-    last = GetVAIndex_EdgeCGW_T(graph->edges, edge);
-  }
-
-  //  Set the list head to the node.
-
-  node->edgeHead = GetVAIndex_EdgeCGW_T(graph->edges, edges[0]);
+  //  This *is* well behaved.  We should only be comparing edges allocated from the same array,
+  //  and this is essentially just comparing the edge IDs.  It is needed so that we can add two
+  //  (raw) edges of the same stats.
+  return(edge1 < edge2);
 }

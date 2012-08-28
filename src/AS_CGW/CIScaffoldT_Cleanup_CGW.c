@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.85 2012-08-24 02:56:06 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.86 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -227,7 +227,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
           ChunkOverlapCheckT olap;
           memset(&olap, 0, sizeof(ChunkOverlapCheckT));
           if(LookupOverlap(ScaffoldGraph->ContigGraph, newEdge->idA, newEdge->idB, newEdge->orient, &olap)){
-            FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph, eid);
+            FreeGraphEdge(ScaffoldGraph->ContigGraph, newEdge);  //  Just delete an allocated but not added edge
             continue;
           }
         }
@@ -255,7 +255,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
                       olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(),
                       olap.overlap);
             }
-            FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
+            FreeGraphEdge(ScaffoldGraph->ContigGraph, newEdge);  //  Just delete an allocated but not added edge
             continue;
           }
         }
@@ -646,7 +646,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
         e = GetGraphEdge(ScaffoldGraph->ContigGraph, eid);
 
         assert(e->flags.bits.isDeleted == false);
-        FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
+        FreeGraphEdge(ScaffoldGraph->ContigGraph, e);  //  Delete -- edge hasn't been added yet
       }
 
 
@@ -676,7 +676,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
           ChunkOverlapCheckT olap;
           memset(&olap, 0, sizeof(ChunkOverlapCheckT));
           if(LookupOverlap(ScaffoldGraph->ContigGraph, e->idA, e->idB, e->orient, &olap)){
-            FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
+            FreeGraphEdge(ScaffoldGraph->ContigGraph, e);  //  Delete -- edge hasn't been added yet
             continue;
           }
         }
@@ -700,7 +700,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
                     olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(), olap.overlap);
           }
 
-          FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
+          FreeGraphEdge(ScaffoldGraph->ContigGraph, e);  //  Delete -- edge hasn't been added yet
           continue;
         }
 
@@ -739,7 +739,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
         // Create an appropriate hash table entry
         CreateChunkOverlapFromEdge(ScaffoldGraph->ContigGraph, newEdge);
 
-        FreeGraphEdgeByEID(ScaffoldGraph->ContigGraph,eid);
+        FreeGraphEdge(ScaffoldGraph->ContigGraph, e);  //  Delete
       }
     }
   }
@@ -1057,16 +1057,18 @@ void ReScaffoldPseudoDegenerates(void)
               CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
               CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
               CIScaffold.info.Scaffold.numElements = 0;
-              CIScaffold.edgeHead = NULLINDEX;
               CIScaffold.bpLength = NullLength;
               CIScaffold.id = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
               CIScaffold.flags.bits.isDead = FALSE;
-              //CIScaffold.aEndCoord = CIScaffold.bEndCoord = -1;
               CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
               CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
+
               AppendGraphNode(ScaffoldGraph->ScaffoldGraph, &CIScaffold);
-              InsertCIInScaffold(ScaffoldGraph, ctg->id, CIScaffold.id,
-                                 NullLength, ctg->bpLength, FALSE, FALSE);
+
+              //  Ensure that there are no edges, and that the edgeList is allocated.
+              assert(ScaffoldGraph->ScaffoldGraph->edgeLists[CIScaffold.id].empty() == true);
+
+              InsertCIInScaffold(ScaffoldGraph, ctg->id, CIScaffold.id, NullLength, ctg->bpLength, FALSE, FALSE);
               numMatches++;
             }
         }

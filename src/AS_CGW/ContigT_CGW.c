@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.36 2012-08-28 14:22:12 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.37 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -407,146 +407,58 @@ void DumpContigs(FILE *stream, ScaffoldGraphT *graph, int raw){
 
 
 
-//#define DEBUG_CONTIG
-void CreateInitialContigEdges(ScaffoldGraphT *graph){
-  CIEdgeT *edge, *redge;
-  int i;
-  int deletedSkipped = 0;
-  int shouldHaveSkipped = 0;
-  int actuallySkipped = 0;
-
-  for(i = 0; i < GetNumGraphEdges(graph->CIGraph); i++){
-    CIEdgeT newEdge, rawEdge;
-    CDS_CID_t newCIEdge = GetNumGraphEdges(graph->ContigGraph);
-    CDS_CID_t nextCIEdge = newCIEdge;
-    edge = GetGraphEdge(graph->CIGraph, i);
-
-    // Skip deleted edges
-    if(edge->flags.bits.isDeleted){
-      deletedSkipped++;
-      continue;
-    }
-    newEdge = *edge;
-    newEdge.prevALink = NULLINDEX;
-    newEdge.prevBLink = NULLINDEX;
-    newEdge.nextALink = NULLINDEX;
-    newEdge.nextBLink = NULLINDEX;
-
-    if(!newEdge.flags.bits.isRaw){
-      newEdge.topLevelEdge = newCIEdge; // selfreference
-      newEdge.nextRawEdge = ++nextCIEdge;
-#ifdef DEBUG_CONTIG
-      fprintf(stderr,"* Converting %s edge ("F_CID","F_CID") to edge ("F_CID","F_CID") edgeID "F_CID"\n",
-              (edge->flags.bits.isRaw?" Raw":"Merged"),
-              edge->idA, edge->idB,
-              newEdge.idA, newEdge.idB, newCIEdge);
-      fprintf(stderr,"* linked to raw edge "F_CID"\n",
-              newEdge.nextRawEdge);
-#endif
-      AppendGraphEdge(graph->ContigGraph, &newEdge);
-      assert(newCIEdge == GetNumGraphEdges(graph->ContigGraph) -1);
-      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idA);
-      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idB);
-      redge = edge;
-#ifdef DEBUG_CONTIG
-      fprintf(stderr,"* Converting edge ("F_CID","F_CID") to edge ("F_CID","F_CID") edgeID "F_CID"\n",
-              edge->idA, edge->idB,
-              newEdge.idA, newEdge.idB, newCIEdge);
-#endif
-      while(redge->nextRawEdge != NULLINDEX){
-        actuallySkipped++;
-        redge = GetGraphEdge(graph->CIGraph, redge->nextRawEdge);
-        rawEdge = *redge;
-        rawEdge.idA = newEdge.idA;
-        rawEdge.idB = newEdge.idB;
-        rawEdge.prevALink = rawEdge.prevBLink = NULLINDEX;
-        rawEdge.nextALink = rawEdge.nextBLink = NULLINDEX;
-        rawEdge.topLevelEdge = newCIEdge;
-        rawEdge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge);
-        assert(GetNumGraphEdges(graph->ContigGraph) == nextCIEdge);
-        if(rawEdge.nextRawEdge != NULLINDEX)
-          rawEdge.nextRawEdge = ++nextCIEdge;
-#ifdef DEBUG_CONTIG
-        fprintf(stderr,"* Adding raw edge "F_CID" linked  to raw edge "F_CID"\n",
-                (CDS_CID_t) GetNumGraphEdges(graph->ContigGraph),
-                rawEdge.nextRawEdge);
-#endif
-        AppendGraphEdge(graph->ContigGraph, &rawEdge);
-      }
-    }else{
-      // If this isn't a top-level edge, skip it
-      if(edge->topLevelEdge != (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge)){
-#ifdef DEBUG_CONTIG
-        EdgeCGW_T *tle = GetGraphEdge(graph->CIGraph, edge->topLevelEdge);
-        fprintf(stderr,"* !!!!! Skipping raw edge that is not topLevel ("F_CID","F_CID") edgeID "F_CID" \n",
-                edge->idA, edge->idB,
-                (CDS_CID_t) GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge));
-        PrintGraphEdge(stderr,graph->CIGraph,"raw edge ",edge, edge->idA);
-        PrintGraphEdge(stderr,graph->CIGraph,"top edge ",tle, tle->idA);
-#endif
-        shouldHaveSkipped++;
-        continue;
-      }
-      newEdge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge);
-      newEdge.topLevelEdge = newCIEdge; // selfreference
-      AppendGraphEdge(graph->ContigGraph, &newEdge);
-      assert(newCIEdge == GetNumGraphEdges(graph->ContigGraph) -1);
-
-
-      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idA);
-      InsertGraphEdgeInList(graph->ContigGraph, newCIEdge, newEdge.idB);
-    }
-  }
-  fprintf(stderr,"* Skipped %d raw edges. %d deleted..should have been %d (%d <==> %d)\n",
-          actuallySkipped, deletedSkipped, shouldHaveSkipped,
-          (int) GetNumGraphEdges(graph->ContigGraph),
-          (int) GetNumGraphEdges(graph->CIGraph)  );
-
-}
-
 void
 BuildInitialContigs(ScaffoldGraphT *graph) {
-  GraphNodeIterator CIs;
-  NodeCGW_T        *CI;
 
-  /* Resize the ContigGraph to the same size as the CI Graph */
+  //  Resize the ContigGraph to the same size as the CI Graph
 
-  fprintf(stderr,"* Allocating Contig Graph with %d nodes and %d edges\n",
+  fprintf(stderr,"BuildInitialContigs()-- converting %d unitigs with %d edges to contigs.\n",
           GetNumGraphNodes(graph->CIGraph),
           GetNumGraphEdges(graph->CIGraph));
 
-  // Would be nice if there was a Var_Array function to realloc a Var_Array, without
-  // adjusting the number of active elements.
-
-  DeleteVA_EdgeCGW_T(graph->ContigGraph->edges);
   DeleteVA_NodeCGW_T(graph->ContigGraph->nodes);
+  DeleteVA_EdgeCGW_T(graph->ContigGraph->edges);
 
-  graph->ContigGraph->edges = CreateVA_EdgeCGW_T(GetNumGraphEdges(graph->CIGraph));
   graph->ContigGraph->nodes = CreateVA_NodeCGW_T(GetNumGraphNodes(graph->CIGraph));
+  graph->ContigGraph->edges = CreateVA_EdgeCGW_T(GetNumGraphEdges(graph->CIGraph));
 
   EnableRange_VA(graph->ContigGraph->nodes, GetNumGraphNodes(graph->CIGraph));
 
+  graph->ContigGraph->edgeLists.clear();
+
+  ResizeEdgeList(graph->ContigGraph);
+
+  //  Clear contigs.
+
   for (int32 cid=0; cid < GetNumGraphNodes(graph->ContigGraph); cid++) {
-    CI = GetGraphNode(graph->ContigGraph, cid);
+    NodeCGW_T *ctg = GetGraphNode(graph->ContigGraph, cid);
 
-    CI->flags.all           = 0;
-    CI->flags.bits.isContig = TRUE;
-    CI->flags.bits.isDead   = TRUE;
+    ctg->flags.all           = 0;
+    ctg->flags.bits.isContig = TRUE;
+    ctg->flags.bits.isDead   = TRUE;
 
-    CI->edgeHead            = NULLINDEX;
+    //ctg->edgeHead            = NULLINDEX;
+
+    graph->ContigGraph->edgeLists[cid].clear();
   }
+
+  //  And copy.
+
+  GraphNodeIterator CIs;
+  NodeCGW_T        *CI;
 
   InitGraphNodeIterator(&CIs, graph->CIGraph, GRAPH_NODE_DEFAULT);
 
   while ((CI = NextGraphNodeIterator(&CIs)) != NULL){
     assert(CI->flags.bits.isDead == 0);
 
-    //  cid = CI->id;
-    //ChunkInstanceT *CI = GetGraphNode (graph->CIGraph, CI->id);
+    //  Reset the unitig.
 
     CI->AEndNext                = NULLINDEX;
     CI->BEndNext                = NULLINDEX;
     CI->info.CI.contigID        = CI->id;
+
+    //  Copy to a new contig
 
     ContigT contig = *CI;
 
@@ -564,18 +476,108 @@ BuildInitialContigs(ScaffoldGraphT *graph) {
     contig.indexInScaffold      = NULLINDEX;
     contig.flags.bits.isCI      = FALSE;
     contig.flags.bits.isContig  = TRUE;
-    contig.flags.bits.isChaff   = CI->flags.bits.isChaff;   // this property is inherited
-    contig.flags.bits.isClosure = CI->flags.bits.isClosure; // this property is inherited
-    contig.edgeHead             = NULLINDEX;
+    contig.flags.bits.isChaff   = CI->flags.bits.isChaff;
+    contig.flags.bits.isClosure = CI->flags.bits.isClosure;
+    //contig.edgeHead             = NULLINDEX;
 
     SetNodeCGW_T(graph->ContigGraph->nodes, contig.id, &contig);
 
-    //fprintf(stderr, "BuildInitialContigs()-- Contig %d CI %d\n", contig.id, CI->id);
+    //  Ensure that there are no edges, and that the edgeList is allocated.
+    assert(graph->ContigGraph->edgeLists[contig.id].empty() == true);
   }
 
   graph->numContigs = GetNumGraphNodes(graph->ContigGraph);
 
-  CreateInitialContigEdges(graph);
+  //  Now, work on the edges.
+
+  uint32   nRawSkipped = 0;
+  uint32   nMerged     = 0;
+  uint32   nTopRaw     = 0;
+  uint32   nRaw        = 0;
+
+  for (uint32 i=0; i<GetNumGraphEdges(graph->CIGraph); i++) {
+    CIEdgeT  *edge = GetGraphEdge(graph->CIGraph, i);
+
+    if (edge->flags.bits.isDeleted)
+      continue;
+
+    //  If this isn't a top-level edge, skip it.
+    //  It must also be raw, and therefore already added.
+
+    if (edge->topLevelEdge != GetVAIndex_CIEdgeT(graph->CIGraph->edges, edge)) {
+      assert(edge->flags.bits.isRaw == true);
+      nRawSkipped++;
+      continue;
+    }
+
+    //  Is it a top-level raw edge?
+
+    if (edge->flags.bits.isRaw == true) {
+      CIEdgeT   newEdge     = *edge;
+
+      newEdge.referenceEdge = i;
+      newEdge.topLevelEdge  = GetNumGraphEdges(graph->ContigGraph);
+
+      AppendGraphEdge(graph->ContigGraph, &newEdge);
+
+      InsertGraphEdgeInList(graph->ContigGraph, newEdge.topLevelEdge, newEdge.idA);
+      InsertGraphEdgeInList(graph->ContigGraph, newEdge.topLevelEdge, newEdge.idB);
+
+      nTopRaw++;
+
+      continue;
+    }
+
+    //  Otherwise, it must be a top-level merged edge
+
+    assert(edge->nextRawEdge != NULLINDEX);
+
+    if (edge->flags.bits.isRaw == FALSE) {
+      CIEdgeT   newEdge     = *edge;
+      CIEdgeT   rawEdge;
+
+      newEdge.topLevelEdge  = GetNumGraphEdges(graph->ContigGraph);
+      newEdge.nextRawEdge   = GetNumGraphEdges(graph->ContigGraph) + 1;  //  Must be raw edges!
+
+      AppendGraphEdge(graph->ContigGraph, &newEdge);
+
+      InsertGraphEdgeInList(graph->ContigGraph, newEdge.topLevelEdge, newEdge.idA);
+      InsertGraphEdgeInList(graph->ContigGraph, newEdge.topLevelEdge, newEdge.idB);
+
+      nMerged++;
+
+      //  And copy over all the raw edges that compose this merged edge.
+
+      while (edge->nextRawEdge != NULLINDEX) {
+        CIEdgeT  *redge       = GetGraphEdge(graph->CIGraph, edge->nextRawEdge);  //  Grab the raw CI edge
+
+        rawEdge               = *redge;
+
+        //  These used to be assignments, but they should be correct as is.
+        assert(rawEdge.idA == newEdge.idA);
+        assert(rawEdge.idB == newEdge.idB);
+
+        rawEdge.topLevelEdge  = newEdge.topLevelEdge;   //  The ID of the new contig top level edge
+        rawEdge.referenceEdge = edge->nextRawEdge;      //  The ID of the current CI raw edge
+
+        //  rawEdge.nextRawEdge is currently the next CI raw edge.  If that is defined,
+        //  reset it to the next edge we'd add to the contig graph.
+        if (rawEdge.nextRawEdge != NULLINDEX)
+          rawEdge.nextRawEdge = GetNumGraphEdges(graph->ContigGraph) + 1;
+
+        AppendGraphEdge(graph->ContigGraph, &rawEdge);
+
+        nRaw++;
+
+        edge = redge;
+      }
+    }
+  }
+
+  fprintf(stderr,"BuildInitialContigs()-- converted "F_U32" merged edges with "F_U32" raw edges; converted "F_U32" top level raw edges.\n",
+          nMerged, nRaw, nTopRaw);
+
+  assert(nRawSkipped == nRaw);
 }
 
 int GetConsensus(GraphCGW_T *graph, CDS_CID_t CIindex,

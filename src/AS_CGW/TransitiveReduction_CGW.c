@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.39 2012-08-03 21:14:14 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.40 2012-08-28 21:09:39 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -1818,14 +1818,19 @@ ActuallyInsertCIsIntoScaffolds(void) {
     CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
     CIScaffold.info.Scaffold.numElements = 0;
     CIScaffold.info.Scaffold.leastSquareError = 0.0;
-    CIScaffold.edgeHead = NULLINDEX;
     CIScaffold.bpLength = NullLength;
     thisCI->scaffoldID = CIScaffold.id = currentScaffoldID;
     CIScaffold.flags.bits.isDead = FALSE;
     CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
     CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
-    AppendCIScaffoldT(ScaffoldGraph->CIScaffolds, &CIScaffold);
+
+    AppendGraphNode(ScaffoldGraph->ScaffoldGraph, &CIScaffold);
+
     assert(currentScaffoldID == (GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds) - 1));
+    assert(CIScaffold.id     == (GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds) - 1));
+
+    //  Ensure that there are no edges, and that the edgeList is allocated.
+    assert(ScaffoldGraph->ScaffoldGraph->edgeLists[CIScaffold.id].empty() == true);
 
     aEndOffset = bEndOffset = currentOffset = NullLength;
 
@@ -1842,8 +1847,7 @@ ActuallyInsertCIsIntoScaffolds(void) {
     currentOffset = thisCI->bpLength;
 
     while(neighbor != (ChunkInstanceT *)NULL) {
-      PairOrient edgeOrient = GetEdgeOrientationWRT(edge,
-                                                              thisCI->id);
+      PairOrient edgeOrient = GetEdgeOrientationWRT(edge, thisCI->id);
       if (orientCI.isForward()) {
         if (edgeOrient.isAB_AB()) {
           orientCI.setIsForward();
@@ -2209,11 +2213,18 @@ BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
   SmoothWithInferredEdges(graph, FALSE);
 
   //
-  //  Create Scaffolds
+  //  Create Scaffolds (again)
   //
 
-  //  Recycle the CIScaffolds VA
+  //  Clear any existing scaffolds, and dump any edges associated with them.
+
   ResetNodeCGW_T(graph->ScaffoldGraph->nodes);
+
+  graph->ScaffoldGraph->edgeLists.clear();
+
+  ResizeEdgeList(graph->ScaffoldGraph);
+
+  //
 
   MarkBifurcations(graph);
 

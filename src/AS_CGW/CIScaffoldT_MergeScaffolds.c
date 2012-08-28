@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.12 2012-08-17 19:55:59 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.13 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include "CIScaffoldT_MergeScaffolds.h"
 
@@ -434,7 +434,7 @@ MergeScaffolds(InterleavingSpec               *iSpec,
       ns.info.Scaffold.AEndCI      = NULLINDEX;
       ns.info.Scaffold.BEndCI      = NULLINDEX;
       ns.info.Scaffold.numElements = 0;
-      ns.edgeHead                  = NULLINDEX;
+      //ns.edgeHead                  = NULLINDEX;
       ns.bpLength                  = nullLength;
       ns.id                        = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
 
@@ -448,6 +448,9 @@ MergeScaffolds(InterleavingSpec               *iSpec,
       newScaffoldID                = ns.id;
 
       AppendGraphNode(ScaffoldGraph->ScaffoldGraph, &ns);  /* Potential realloc of ScaffoldGraph->ScaffoldGraph->nodes */
+
+      //  Ensure that there are no edges, and that the edgeList is allocated.
+      assert(ScaffoldGraph->ScaffoldGraph->edgeLists[ns.id].empty() == true);
 
       thisScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, thisScaffoldID);
       neighbor     = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);

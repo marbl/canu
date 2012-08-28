@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.28 2012-08-23 22:37:43 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.29 2012-08-28 21:09:39 brianwalenz Exp $";
 
 //#define DEBUG 1
 
@@ -330,11 +330,6 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
   sedge.topLevelEdge = NULLINDEX;
   sedge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
 
-  sedge.nextALink   = NULLINDEX;
-  sedge.nextBLink   = NULLINDEX;
-  sedge.prevALink   = NULLINDEX;
-  sedge.prevBLink   = NULLINDEX;
-
   sedge.nextRawEdge = NULLINDEX;
 
   SEdgeT * newEdge = GetFreeGraphEdge(graph->ScaffoldGraph);
@@ -360,6 +355,10 @@ BuildSEdges(ScaffoldGraphT     *graph,
 
   ResetEdgeCGW_T(graph->ScaffoldGraph->edges);
 
+  graph->ScaffoldGraph->edgeLists.clear();
+
+  ResizeEdgeList(graph->ScaffoldGraph);
+
   graph->ScaffoldGraph->tobeFreeEdgeHead = NULLINDEX;
   graph->ScaffoldGraph->freeEdgeHead     = NULLINDEX;
 
@@ -368,13 +367,14 @@ BuildSEdges(ScaffoldGraphT     *graph,
   for (CDS_CID_t sid=0; sid<GetNumGraphNodes(graph->ScaffoldGraph); sid++) {
     CIScaffoldT *scaffold = GetGraphNode(graph->ScaffoldGraph, sid);
 
-    scaffold->edgeHead                      = NULLINDEX;
     scaffold->essentialEdgeA                = NULLINDEX;
     scaffold->essentialEdgeB                = NULLINDEX;
     scaffold->numEssentialA                 = 0;
     scaffold->numEssentialB                 = 0;
     scaffold->flags.bits.smoothSeenAlready  = FALSE;
     scaffold->flags.bits.walkedAlready      = FALSE;
+
+    graph->ScaffoldGraph->edgeLists[sid].clear();
   }
 
   //  Build the scaffold edges

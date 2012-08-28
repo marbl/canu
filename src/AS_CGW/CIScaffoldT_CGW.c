@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.75 2012-08-23 14:32:54 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.76 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -146,8 +146,7 @@ void PrintNodeFields(FILE * stream, NodeCGW_T * node)
         break;
     }
   PrintNodeFlagBits(stream, node);
-  fprintf(stream, "\tedgeHead:"F_CID", setID:"F_CID"\n",
-          node->edgeHead, node->setID);
+  fprintf(stream, "\tsetID:"F_CID"\n", node->setID);
 }
 
 
@@ -703,10 +702,13 @@ IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
 static
 void
 DeleteScaffoldEdgesForScaffold(ScaffoldGraphT * graph, CIScaffoldT * scaffold) {
-  while(scaffold->edgeHead != NULLINDEX)
-      DeleteGraphEdge(graph->ScaffoldGraph,
-                      GetGraphEdge(graph->ScaffoldGraph,
-                                   scaffold->edgeHead));
+  GraphEdgeIterator   edges(graph->ScaffoldGraph, scaffold->id, ALL_END, ALL_EDGES);
+  EdgeCGW_T          *edge;
+
+  while ((edge = edges.nextMerged()) != NULL)
+    DeleteGraphEdge(graph->ScaffoldGraph, edge);
+
+  graph->ScaffoldGraph->edgeLists[scaffold->id].clear();
 }
 
 
@@ -856,7 +858,6 @@ CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph,
     newScaffold.info.Scaffold.AEndCI      = NULLINDEX;
     newScaffold.info.Scaffold.BEndCI      = NULLINDEX;
     newScaffold.info.Scaffold.numElements = 0;
-    newScaffold.edgeHead                  = NULLINDEX;
     newScaffold.bpLength.mean             = 0.0;
     newScaffold.bpLength.variance         = 0.0;
     newScaffold.id                        = GetNumGraphNodes(graph->ScaffoldGraph);
@@ -871,6 +872,9 @@ CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph,
     fprintf(stderr, "Splitting "F_CID" into scaffold "F_CID"\n", scaffoldID, newScaffold.id);
 
     AppendGraphNode(graph->ScaffoldGraph, &newScaffold);
+
+    //  Ensure that there are no edges, and that the edgeList is allocated.
+    assert(graph->ScaffoldGraph->edgeLists[newScaffold.id].empty() == true);
 
     scaffold = GetCIScaffoldT(graph->CIScaffolds, scaffoldID);
 

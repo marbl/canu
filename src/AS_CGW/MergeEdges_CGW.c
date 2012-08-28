@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.35 2012-08-22 02:00:57 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.36 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -30,12 +30,7 @@ static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.35 2012-08-22 02:00:57 brianwale
 #include "ChiSquareTest_CGW.h"
 
 #include <vector>
-
-#define C_SORT
-
-#ifndef C_SORT
 #include <algorithm>
-#endif
 
 using namespace std;
 
@@ -320,12 +315,6 @@ InitializeMergedEdge(CIEdgeT            *newEdge,
 
     CIEdgeT   *edge   = GetGraphEdge(graph, inputEdges[ei]);
 
-    edge->prevALink = NULLINDEX;
-    edge->nextALink = NULLINDEX;
-    edge->prevBLink = NULLINDEX;
-    edge->nextBLink = NULLINDEX;
-
-
     if (isOverlapEdge(edge))
       overlapEdge    = edge;
     else
@@ -389,21 +378,6 @@ InitializeMergedEdge(CIEdgeT            *newEdge,
 /* CompareChi2Scores sorts Chi squared scores in ascending order
    but also places active and passed scores before others */
 
-#ifdef C_SORT
-
-static int CompareChi2Scores (const void *c1, const void *c2){
-  ClusterScoreChi2T *s1 = *(ClusterScoreChi2T **)c1;
-  ClusterScoreChi2T *s2 = *(ClusterScoreChi2T **)c2;
-
-  if(s1->active != s2->active)
-    return((s1->active != 0) ? -1 : 1);
-  if(s1->passed != s2->passed)
-    return((s1->passed != 0) ? -1 : 1);
-  return((s1->score < s2->score) ? -1 : 1);
-}
-
-#else
-
 bool
 operator<(ClusterScoreChi2T &s1, ClusterScoreChi2T &s2) {
   if(s1.active != s2.active)
@@ -412,8 +386,6 @@ operator<(ClusterScoreChi2T &s1, ClusterScoreChi2T &s2) {
     return(s1.passed != 0);
   return (s1.score < s2.score);
 }
-
-#endif
 
 
 /* MergeGraphEdges
@@ -681,11 +653,7 @@ MergeGraphEdges(GraphCGW_T        *graph,
     }
     /* Sort potential merge candidates by their pairwise Chi Squared scores. */
 
-#ifdef C_SORT
-    qsort((void *)sortClusterScoreChi2, numPairs, sizeof(*sortClusterScoreChi2), CompareChi2Scores);
-#else
-    std::sort(sortClusterScoreChi2, sortClusterScoreChi2 + numPairs);
-#endif
+    __gnu_sequential::sort(sortClusterScoreChi2, sortClusterScoreChi2 + numPairs);
 
     sortClusterScoreChi2Ptr = sortClusterScoreChi2;
     pairClusterScoreChi2Ptr = *sortClusterScoreChi2Ptr;
@@ -792,11 +760,7 @@ MergeGraphEdges(GraphCGW_T        *graph,
         }
         /* Resort the pairwise Chi Squared scores. */
 
-#ifdef C_SORT
-        qsort((void *)sortClusterScoreChi2, numPairs, sizeof(*sortClusterScoreChi2), CompareChi2Scores);
-#else
-        std::sort(sortClusterScoreChi2, sortClusterScoreChi2 + numPairs);
-#endif
+        __gnu_sequential::sort(sortClusterScoreChi2, sortClusterScoreChi2 + numPairs);
 
         sortClusterScoreChi2Ptr = sortClusterScoreChi2;
       }else{

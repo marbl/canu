@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: ShatterScaffolds_CGW.c,v 1.2 2012-08-01 02:23:38 brianwalenz Exp $";
+static const char *rcsid = "$Id: ShatterScaffolds_CGW.c,v 1.3 2012-08-28 21:09:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,13 +140,16 @@ void ShatterScaffoldsConnectedByLowWeight(FILE *stream, ScaffoldGraphT *graph, u
         CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
         CIScaffold.info.Scaffold.BEndCI = NULLINDEX;
         CIScaffold.info.Scaffold.numElements = 0;
-        CIScaffold.edgeHead = NULLINDEX;
         CIScaffold.bpLength = node->bpLength;
         CIScaffold.id = GetNumGraphNodes(graph->ScaffoldGraph);
         CIScaffold.flags.bits.isDead = FALSE;
         CIScaffold.numEssentialA = CIScaffold.numEssentialB = 0;
         CIScaffold.essentialEdgeB = CIScaffold.essentialEdgeA = NULLINDEX;
+
         AppendGraphNode(graph->ScaffoldGraph, &CIScaffold);
+
+        //  Ensure that there are no edges, and that the edgeList is allocated.
+        assert(ScaffoldGraph->ScaffoldGraph->edgeLists[CIScaffold.id].empty() == true);
 
         node->numEssentialA = node->numEssentialB = 0;
         node->essentialEdgeA = node->essentialEdgeB = NULLINDEX;
