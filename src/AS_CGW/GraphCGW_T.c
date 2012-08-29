@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.108 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.109 2012-08-29 05:24:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2455,6 +2455,7 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T         *graph,
 
         *newEdge = copyOfEdge;
         newEdge->topLevelEdge = eid;
+        newEdge->nextRawEdge  = NULLINDEX;
 
         // Make it canonical WRT otherCID and node->id
 
