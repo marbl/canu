@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: computeCoverageStat.C,v 1.7 2012-07-18 15:52:43 jasonmiller9704 Exp $";
+const char *mainid = "$Id: computeCoverageStat.C,v 1.8 2012-08-29 16:19:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -76,6 +76,8 @@ double    globalArrivalRate = 0.0;
 bool     *isNonRandom = NULL;
 uint32   *fragLength  = NULL;
 
+bool      leniant = false;
+
 
 //  No frags -> 1
 //  One frag -> 1
@@ -110,14 +112,15 @@ computeRho(MultiAlignT *ma) {
   }
 
   if (minBgn != 0) {
-    fprintf(stderr, "ERROR: unitig %d doesn't begin at zero.  Layout:\n", ma->maID);
+    fprintf(stderr, "unitig %d doesn't begin at zero.  Layout:\n", ma->maID);
     for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
       IntMultiPos  *frg = GetIntMultiPos(ma->f_list, i);
       fprintf(stderr, "  %10"F_IIDP" %5"F_U32P" %5"F_U32P"\n",
               frg->ident, frg->position.bgn, frg->position.end);
     }
   }
-  assert(minBgn == 0);
+  if (leniant == false)
+    assert(minBgn == 0);
 
   fwdRho = fwdRho - minBgn;
   revRho = maxEnd - revRho;
@@ -408,6 +411,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-u") == 0) {
       use_N50 = false;
 
+    } else if (strcmp(argv[arg], "-L") == 0) {
+      leniant = true;
+
     } else {
       err++;
     }
@@ -429,6 +435,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -o <name>  Recommended, prefix for output files.\n");
     fprintf(stderr, "  -n         Do not update the tigStore (default = do update).\n");
     fprintf(stderr, "  -u         Do not estimate based on N50 (default = use N50).\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -L         Be leniant; don't require reads start at position zero.\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "No gatekeeper store (-g option) supplied.\n");
