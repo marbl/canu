@@ -574,6 +574,9 @@ sub setDefaults () {
     $global{"stoneLevel"}                  = 2;
     $synops{"stoneLevel"}                  = "EXPERT!";
 
+    $global{"cgwMergeFilterLevel"}         = 0;
+    $synops{"cgwMergeFilterLevel"}         = "Apply classic (0) or stringent (5) criteria before considering a scaffold merge";
+
     $global{"computeInsertSize"}           = undef;
     $synops{"computeInsertSize"}           = "Compute a scratch scaffolding to estimate insert sizes; default: do only if less than 1 million reads";
 
@@ -4875,11 +4878,13 @@ sub CGW ($$$$$$) {
     my $shatterLevel = getGlobal("cgwContigShatterWeight");
     my $missingMate  = getGlobal("cgwMergeMissingThreshold");
     my $minWeight    = getGlobal("cgwMinMergeWeight");
+    my $filterLevel  = getGlobal("cgwMergeFilterLevel");
 
     $cmd  = "$bin/cgw $ckp \\\n";
     $cmd .= "  -j $astatLow -k $astatHigh \\\n";
     $cmd .= "  -r 5 \\\n";
     $cmd .= "  -s $stoneLevel \\\n";
+    $cmd .= "  -filter $filterLevel \\\n"                if ($filterLevel != 0);
     $cmd .= "  -minmergeweight $minWeight \\\n";
     $cmd .= "  -S 0 \\\n"                                if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= "  -G \\\n"                                  if ($finalRun == 0);

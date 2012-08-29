@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.105 2012-08-28 14:11:33 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.106 2012-08-29 20:50:54 jasonmiller9704 Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -194,6 +194,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-s") == 0) {
       GlobalData->stoneLevel = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-filter") == 0) {
+      GlobalData->mergeFilterLevel = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-shatter") == 0) {
       GlobalData->shatterLevel = atoi(argv[++arg]);

@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.38 2012-08-14 07:47:34 brianwalenz Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.39 2012-08-29 20:50:54 jasonmiller9704 Exp $";
 
 #include "AS_global.h"
 
@@ -67,6 +67,8 @@ public:
   
   int    removeNonOverlapingContigsFromScaffold;
   int    doUnjiggleWhenMerging;
+
+  int    mergeFilterLevel;
 
   char   outputPrefix[FILENAME_MAX];
 

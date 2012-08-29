@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Globals_CGW.C,v 1.6 2012-08-14 07:47:34 brianwalenz Exp $";
+static char *rcsid = "$Id: Globals_CGW.C,v 1.7 2012-08-29 20:50:54 jasonmiller9704 Exp $";
 
 #include "AS_global.h"
 #include "Globals_CGW.h"
@@ -60,6 +60,8 @@ Globals_CGW::Globals_CGW() {
 
   removeNonOverlapingContigsFromScaffold  = 0;
   doUnjiggleWhenMerging                   = 0;
+
+  mergeFilterLevel                        = 0;        // Positive values require more happy mate support before a particular scaffold merge is explored
 
   memset(outputPrefix, 0, FILENAME_MAX);
 

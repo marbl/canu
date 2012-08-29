@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.82 2012-08-23 22:37:43 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.83 2012-08-29 20:50:54 jasonmiller9704 Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -328,6 +328,64 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
  if (failsNEW != failsOLD)
    fprintf(stderr, "isQualityScaffoldMergingEge()--  DIFFER.\n");
 #endif
+
+ if (GlobalData->mergeFilterLevel >= 5) {
+   bool doTest1 = true;
+   bool doTest2 = true;
+   bool doTest3 = true;
+   bool doTest4 = true;
+   bool passTest1 = true;
+   bool passTest2 = true;
+   bool passTest3 = true;
+   bool passTest4 = true;
+   
+   bool passAllTests = false;
+   // We altered this test, which was probably too permissive. Using mAfter in denominator, it only required that happy mate count increased.
+   //// fractMatesHappyBefore = (mAfter > 0) ? ((double)mBeforeGood / mAfter) : 0.0;
+   fractMatesHappyBefore = (mBefore > 0) ? ((double)mBeforeGood / mBefore) : 0.0;
+   fractMatesHappyAfter  = (mAfter > 0) ? ((double)mAfterGood  / mAfter) : 0.0;
+   if (doTest1) {
+     // Rule: Fraction of scored mates that are scored happy must not decrease.
+     // These fractions can differ by tiny amounts. Use double precision.
+     passTest1 = (fractMatesHappyAfter) >= (fractMatesHappyBefore); 
+   }
+   int32 observedHappyMateIncrease = (mAfterGood>mBeforeGood) ? (mAfterGood-mBeforeGood) : 0;
+   int32 expectedHappyMateIncrease = (int32) ( fractMatesHappyBefore * curEdge->edgesContributing - 1);
+   if (doTest2) {
+     // Number of scored mates that are scored happy must increase by the expected amount.
+     // Expected amount = (rate of happiness in scaffolds prior to merge) * (#mates in edge provoking the merge) - (fudge for integer conversion).
+     passTest2 = (observedHappyMateIncrease >= expectedHappyMateIncrease);
+   }
+   int32 sadnessIncrease =   (mAfterBad >mBeforeBad ) ? (mAfterBad -mBeforeBad ) : 0;
+   int32 happinessIncrease = (mAfterGood>mBeforeGood) ? (mAfterGood-mBeforeGood) : 0;
+   if (doTest3) {
+     // Sadness Increase must not exceed 30% of Happiness Increase.
+     passTest3 = ( sadnessIncrease <= 1.0 * MAX_FRAC_BAD_TO_GOOD * happinessIncrease);
+   }
+   if (doTest4) {
+     // Before each test, call MarkInternal to make sure all edges are properly marked. This should be a no-op.
+     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldA, 0, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
+     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldA, 0, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
+     bool A_is_connected = (true==IsScaffold2EdgeConnected(ScaffoldGraph, scaffoldA));
+     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldB, 0, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
+     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldB, 0, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
+     bool B_is_connected = (true==IsScaffold2EdgeConnected(ScaffoldGraph, scaffoldB));
+     // Disconnected scaffolds should never happen but they do arise from interleaved scaffold merging.
+     // Disconnects lead to a Least Squares failure (because one row is all zero in the coefficient matrix).
+     // Least Squares failures induce black holes: scaffolds that grow to enormous size through iterations of merge scaffolds aggressive.
+     // A continuing failure of Least Squares means gap sizes grow on every iteration.
+     // A black hole's large gap sizes effectively suck in more contigs, which fuels further growth.
+     // The test here will not fix a black hole but it can preclude any black hole growth.
+     // This test says I to refuse to merge with any scaffold that shows signs of a disconnect problem.
+     passTest4 = (A_is_connected) && (B_is_connected);
+   }
+   // Set the value that gets returned below...
+   passAllTests = (passTest1) && (passTest2) && (passTest3) && (passTest4);
+   failsOLD = !passAllTests;
+   
+   fprintf(stderr,"isQualityScaffoldMergingEdge()-- filter=5 pass=%d based on test1=%d, test2=%d, test3=%d (sad/happy=%d/%d), test4=%d.\n",
+	   passAllTests,passTest1,passTest2,passTest3, sadnessIncrease, happinessIncrease, passTest4);
+ }
 
  return(failsOLD == false);
 }
