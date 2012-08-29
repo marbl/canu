@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.22 2012-08-11 00:37:51 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.23 2012-08-29 05:58:36 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -715,7 +715,15 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
     return(false);
   }
 
-  if        (strcmp(W[0], "unitig") == 0) {
+  if        (strcmp(W[0], "unitigid") == 0) {
+    isUnitig = true;
+    ma->maID = atoi(W[1]);
+    return(true);
+  } else if (strcmp(W[0], "contigid") == 0) {
+    isUnitig = false;
+    ma->maID = atoi(W[1]);
+    return(true);
+  } else if (strcmp(W[0], "unitig") == 0) {
     isUnitig = true;
     ma->maID = atoi(W[1]);
   } else if (strcmp(W[0], "contig") == 0) {
@@ -990,10 +998,14 @@ LoadMultiAlignFromHuman(MultiAlignT *ma, bool &isUnitig, FILE *in) {
 
 
 int32
-GetMultiAlignLength(MultiAlignT *ma) {
+GetMultiAlignLength(MultiAlignT *ma, bool force) {
   int32  len = (int32)GetNumchars(ma->consensus) - 1;  //  Getnumchars() includes the terminating nul.
 
-  if (len <= 0) {
+  if ((len <= 0) || (force == true)) {
+    len = 0;
+
+    //  Find the largest position covered by a read.
+
     for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
       IntMultiPos *frg = GetIntMultiPos(ma->f_list, i);
 

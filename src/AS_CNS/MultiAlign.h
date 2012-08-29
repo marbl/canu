@@ -22,7 +22,7 @@
 #ifndef MULTIALIGN_H
 #define MULTIALIGN_H
 
-static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.12 2012-03-28 06:10:55 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.13 2012-08-29 05:58:36 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
@@ -94,7 +94,7 @@ void         PrintMultiAlignT(FILE *out,
                               int32 dots,
                               uint32 clrrng_flag);
 
-int32        GetMultiAlignLength(MultiAlignT *ma);
+int32        GetMultiAlignLength(MultiAlignT *ma, bool force=false);
 int32        GetMultiAlignUngappedLength(MultiAlignT *ma);
 
 #endif //  MULTIALIGN_H
