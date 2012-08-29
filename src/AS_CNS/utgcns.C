@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcns.C,v 1.15 2012-08-11 00:29:54 brianwalenz Exp $";
+const char *mainid = "$Id: utgcns.C,v 1.16 2012-08-29 06:01:22 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -27,6 +27,7 @@ const char *mainid = "$Id: utgcns.C,v 1.15 2012-08-11 00:29:54 brianwalenz Exp $
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignment_CNS_private.h"
 
+#include "AS_UTL_decodeRange.H"
 
 //  Create a new f_list for the ma that has no contained reads.
 //  The original f_list is returned.
@@ -72,12 +73,41 @@ unstashContains(MultiAlignT *ma, VA_TYPE(IntMultiPos) *fl) {
   if (fl == NULL)
     return;
 
+  uint32   oldMax = 0;
+  uint32   newMax = 0;
+
+  //  For fragments not involved in the consensus computation, we'll scale their position linearly
+  //  from the old max to the new max.
+  //
+  //  We probably should do an alignment to the consensus sequence to find the true location, but
+  //  that's (a) expensive and (b) likely overkill for these unitigs.
+  //
+  for (uint32 fi=0, ci=0; fi<GetNumIntMultiPoss(fl); fi++) {
+    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+
+    if (oldMax < imp->position.bgn)    oldMax = imp->position.bgn;
+    if (oldMax < imp->position.end)    oldMax = imp->position.end;
+  }
+
+  newMax = GetMultiAlignLength(ma);
+
+  double sf = (double)newMax / oldMax;
+
   for (uint32 fi=0, ci=0; fi<GetNumIntMultiPoss(fl); fi++) {
     IntMultiPos  *imp = GetIntMultiPos(fl, fi);
 
     if (imp->contained == 0) {
+      //  Copy the location used by consensus back to the original list
       SetVA_IntMultiPos(fl, fi, GetVA_IntMultiPos(ma->f_list, ci));
       ci++;
+
+    } else {
+      //  Adjust old position
+      imp->position.bgn = sf * imp->position.bgn;
+      imp->position.end = sf * imp->position.end;
+
+      if (imp->position.bgn > newMax)  imp->position.bgn = newMax;
+      if (imp->position.end > newMax)  imp->position.end = newMax;
     }
   }
 
@@ -96,7 +126,8 @@ main (int argc, char **argv) {
   int32  tigVers = -1;
   int32  tigPart = -1;
 
-  int32  utgTest = -1;
+  uint64 utgBgn = -1;
+  uint64 utgEnd = -1;
   char  *utgFile = NULL;
 
   bool   forceCompute = false;
@@ -108,6 +139,9 @@ main (int argc, char **argv) {
 
   bool   ignoreContains = false;
   double ignoreContainT = 0.75;
+
+  bool   inplace = false;
+  bool   loadall = false;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
@@ -135,7 +169,7 @@ main (int argc, char **argv) {
         fprintf(stderr, "invalid tigStore partition (-t store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
 
     } else if (strcmp(argv[arg], "-u") == 0) {
-      utgTest = atoi(argv[++arg]);
+      AS_UTL_decodeRange(argv[++arg], utgBgn, utgEnd);
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       utgFile = argv[++arg];
@@ -153,6 +187,12 @@ main (int argc, char **argv) {
       ignoreContains = true;
       ignoreContainT = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-inplace") == 0) {
+      inplace = true;
+
+    } else if (strcmp(argv[arg], "-loadall") == 0) {
+      loadall = true;
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -167,7 +207,9 @@ main (int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version partition [opts]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -u id        Compute only unitig 'id' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -u b         Compute only unitig ID 'b' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -u b-e       Compute only unitigs from ID 'b' to ID 'e'\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "    -T file      Test the computation of the unitig layout in 'file'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -f           Recompute unitigs that already have a multialignment\n");
@@ -182,6 +224,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "                    only the non-contained reads.  The layout will still retain the\n");
     fprintf(stderr, "                    contained reads, but their location will not be precise.\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "    -inplace        Write the updated unitig to the same version it was read from.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -t S V P        If 'partition' is '.', use an unpartitioned tigStore/gkpStore.\n");
+    fprintf(stderr, "    -loadall        If not partitioned, load ALL reads into memory.\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "ERROR:  No gkpStore (-g) supplied.\n");
@@ -229,23 +275,31 @@ main (int argc, char **argv) {
   //  and load the reads.
 
   tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, FALSE, FALSE, FALSE);
-  gkpStore->gkStore_loadPartition(tigPart);
+
+  if (tigPart == 0) {
+    if (loadall) {
+      fprintf(stderr, "Loading all reads into memory.\n");
+      gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);
+    }
+  } else {
+    gkpStore->gkStore_loadPartition(tigPart);
+  }
 
   //  Decide on what to compute.  Either all unitigs, or a single unitig, or a special case test.
 
   uint32  b = 0;
   uint32  e = tigStore->numUnitigs();
 
-  if (utgTest != -1) {
-    b = utgTest;
-    e = utgTest + 1;
+  if (utgBgn != -1) {
+    b = utgBgn;
+    e = utgEnd + 1;
   }
 
   //  Reopen for writing, if we have work to do.
 
   if (b < e) {
     delete tigStore;
-    tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, TRUE, FALSE, TRUE);
+    tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, TRUE, inplace, !inplace);
   }
 
   fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32"\n", b, e);
