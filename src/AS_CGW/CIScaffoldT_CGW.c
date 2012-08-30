@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.76 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.77 2012-08-30 17:32:28 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1013,6 +1013,7 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   LengthT lastMin = {0, 0};
   LengthT lastMax = {0, 0};
+  LengthT contMax = {0, 0};
 
   uint32  hasProblems = 0;
 
@@ -1084,16 +1085,20 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     if (lastMin.mean > thisMax.mean + 1.0)
       fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- ends at %f before previous begin at %f\n", CI->id, scaffold->id, thisMax.mean, lastMin.mean), hasProblems++;
 
-    //  If this contig is contained in the last, all bets are off on variance.
-    //  Thse occur when placing rocks during initial scaffolding (we shouldn't be calling this yet, though).
+    //  If this contig is contained -- or even overlapping -- with a previous contig, all bets are
+    //  off on variance.  Thse occur when placing rocks during initial scaffolding (we shouldn't be
+    //  calling this yet, though).
     //
-    if (lastMax.mean < thisMin.mean)
+    if (contMax.mean < thisMin.mean)
       //  An actual gap -- not a -20 gap or overlapping contigs.
       if (lastMax.variance > thisMin.variance)
         fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- negative gap variance %f on positive gap size %f\n", CI->id, scaffold->id, thisMin.variance - lastMax.variance, thisMin.mean - lastMax.mean), hasProblems++;
 
     lastMin = thisMin;
     lastMax = thisMax;
+
+    if (contMax.mean < lastMax.mean)
+      contMax = lastMax;
   }
 
   if (hasProblems > 0) {
