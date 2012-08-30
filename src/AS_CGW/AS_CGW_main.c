@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.106 2012-08-29 20:50:54 jasonmiller9704 Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.107 2012-08-30 22:48:04 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -52,21 +52,81 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.106 2012-08-29 20:50:54 jasonmiller
 
 //  Defines the logical checkpoints
 
-#define CHECKPOINT_AFTER_LOADING                    "ckp00-INI"
-#define CHECKPOINT_AFTER_BUILDING_SCAFFOLDS         "ckp01-ABS"
-#define CHECKPOINT_DURING_CLEANING_SCAFFOLDS        "ckp02-DCS"
-#define CHECKPOINT_AFTER_CLEANING_SCAFFOLDS         "ckp03-ACD"
-#define CHECKPOINT_DURING_1ST_SCAFF_MERGE           "ckp04-1SM-partial"
-#define CHECKPOINT_AFTER_1ST_SCAFF_MERGE            "ckp05-1SM"
-#define CHECKPOINT_AFTER_STONES                     "ckp06-AS"
-#define CHECKPOINT_DURING_2ND_SCAFF_MERGE           "ckp07-2SM-partial"
-#define CHECKPOINT_AFTER_2ND_SCAFF_MERGE            "ckp08-2SM"
-#define CHECKPOINT_AFTER_FINAL_ROCKS                "ckp09-FR"
-#define CHECKPOINT_AFTER_PARTIAL_STONES             "ckp10-PS"
-#define CHECKPOINT_AFTER_FINAL_CONTAINED_STONES     "ckp11-FCS"
-#define CHECKPOINT_AFTER_FINAL_CLEANUP              "ckp12-FC"
-#define CHECKPOINT_AFTER_RESOLVE_SURROGATES         "ckp13-RS"
-#define CHECKPOINT_AFTER_OUTPUT                     "ckp14-FIN"
+char *ckpNames[16] = { NULL,
+                       "ckp01-INI",
+                       "ckp02-EDG",
+                       "ckp03-SCF-partial",
+                       "ckp04-SCF",
+                       "ckp05-1SM-partial",
+                       "ckp06-1SM",
+                       "ckp07-AS",
+                       "ckp08-2SM-partial",
+                       "ckp09-2SM",
+                       "ckp10-FR",
+                       "ckp11-PS",
+                       "ckp12-FCS",
+                       "ckp13-FC",
+                       "ckp14-RS",
+                       "ckp15-FIN" };
+
+#define CHECKPOINT_AFTER_LOADING                    1
+#define CHECKPOINT_AFTER_EDGE_BUILDING              2
+#define CHECKPOINT_DURING_INITIAL_SCAFFOLDING       3
+#define CHECKPOINT_AFTER_INITIAL_SCAFFOLDING        4
+#define CHECKPOINT_DURING_1ST_SCAFF_MERGE           5
+#define CHECKPOINT_AFTER_1ST_SCAFF_MERGE            6
+#define CHECKPOINT_AFTER_STONES                     7
+#define CHECKPOINT_DURING_2ND_SCAFF_MERGE           8
+#define CHECKPOINT_AFTER_2ND_SCAFF_MERGE            9
+#define CHECKPOINT_AFTER_FINAL_ROCKS                10
+#define CHECKPOINT_AFTER_PARTIAL_STONES             11
+#define CHECKPOINT_AFTER_FINAL_CONTAINED_STONES     12
+#define CHECKPOINT_AFTER_FINAL_CLEANUP              13
+#define CHECKPOINT_AFTER_RESOLVE_SURROGATES         14
+#define CHECKPOINT_AFTER_OUTPUT                     15
+
+
+void
+isValidCheckpointName(char *ckpName) {
+  uint32 i=1;
+
+  for (; i<16; i++)
+    if (strcasecmp(ckpName, ckpNames[i]) == 0)
+      break;
+
+  if (i < 16)
+    return;
+
+  fprintf(stderr, "Invalid checkpoint name (-N) '%s'\n", ckpName);
+  fprintf(stderr, "Valid names are: \n");
+
+  for (i=1; i<16; i++)
+    fprintf(stderr, "  %s\n", ckpNames[i]);
+
+  exit(1);
+}
+
+
+bool
+isThisCheckpoint(char *ckpName, uint32 level) {
+  return(strcasecmp(ckpName, ckpNames[level]) == 0);
+}
+
+//  True if the checkpoint we loaded (ckpName) is earlier than the checkpoint we are at (level).
+bool
+runThisCheckpoint(char *ckpName, uint32 level) {
+
+  if (strcasecmp(ckpName, ckpNames[level]) < 0) {
+    fprintf(stderr, "Beginning %s (started at %s).\n", ckpNames[level], ckpName);
+    return(true);
+  }
+
+  fprintf(stderr, "Skipping %s (starting at %s).\n", ckpNames[level], ckpName);
+
+  return(false);
+}
+
+
 
 
 
@@ -320,6 +380,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+  isValidCheckpointName(restartFromLogical);
+
   if(GlobalData->cgbDefinitelyUniqueCutoff < GlobalData->cgbUniqueCutoff)
     GlobalData->cgbDefinitelyUniqueCutoff = GlobalData->cgbUniqueCutoff;
 
@@ -330,8 +392,8 @@ main(int argc, char **argv) {
     GlobalData->repeatRezLevel = repeatRezLevel;
 
 
-  if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_LOADING) < 0) {
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_BUILDING_SCAFFOLDS\n");
+  if (runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_LOADING) == true) {
+    int ctme     = time(0);
 
     //  Create the checkpoint from scratch
     ScaffoldGraph = CreateScaffoldGraph(GlobalData->outputPrefix);
@@ -344,15 +406,17 @@ main(int argc, char **argv) {
     //  That is the only real reason to call it here.  Insert sizes are set already.
     ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS, GlobalData->minSamplesForOverride, "unitig_initial");
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_LOADING, "after loading");
-  } else if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_LOADING) == 0) {
+    if (time(0) - ctme > 60 * 60)
+      CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_LOADING], "after loading");
+
+  } else if (isThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_LOADING) == true) {
     //  Load the checkpoint if we are exactly after loading, otherwise, fall through to the
     //  real load.
     LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix,restartFromCheckpoint, TRUE);
   }
 
 
-  if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_BUILDING_SCAFFOLDS) < 0) {
+  if (runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_EDGE_BUILDING) == true) {
     vector<CDS_CID_t>  rawEdges;
 
     BuildGraphEdgesDirectly(ScaffoldGraph->CIGraph, rawEdges);
@@ -384,7 +448,7 @@ main(int argc, char **argv) {
       CheckSurrogateUnitigs();
     }
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_BUILDING_SCAFFOLDS, "after building scaffolds");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_EDGE_BUILDING], "after building edges");
   } else {
     LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix,restartFromCheckpoint, TRUE);
 
@@ -417,10 +481,9 @@ main(int argc, char **argv) {
   ScaffoldGraph->tigStore->flushCache();
 
 
-
-  if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_CLEANING_SCAFFOLDS) < 0) &&
+  if ((runThisCheckpoint(restartFromLogical, CHECKPOINT_DURING_INITIAL_SCAFFOLDING) == true) &&
       (GlobalData->repeatRezLevel > 0)) {
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_CLEANING_SCAFFOLDS\n");
+    int ctme     = time(0);
 
     if(GlobalData->debugLevel > 0)
       DumpContigs(stderr,ScaffoldGraph, FALSE);
@@ -440,6 +503,14 @@ main(int argc, char **argv) {
       if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
         ScaffoldSanity(ScaffoldGraph, scaffold);
     }
+
+    if (time(0) - ctme > 60 * 60)
+      CheckpointScaffoldGraph(ckpNames[CHECKPOINT_DURING_INITIAL_SCAFFOLDING], "during initial scaffolding");
+  }
+
+
+  if ((runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_INITIAL_SCAFFOLDING) == true) &&
+      (GlobalData->repeatRezLevel > 0)) {
 
     //CheckAllTrustedEdges(ScaffoldGraph);
 
@@ -496,9 +567,9 @@ main(int argc, char **argv) {
         //  If we've been running for 2 hours, AND we've not just
         //  completed the last iteration, checkpoint.
         //
-        if ((time(0) - ctme > 120 * 60) && (iter+1 < iterMax)) {
+        if ((time(0) - ctme > 120 * 60) && (changed) && (iter+1 < iterMax)) {
           ctme = time(0);
-          CheckpointScaffoldGraph(CHECKPOINT_DURING_CLEANING_SCAFFOLDS, "during scaffold cleaning");
+          CheckpointScaffoldGraph(ckpNames[CHECKPOINT_DURING_INITIAL_SCAFFOLDING], "during initial scaffolding");
         }
 
         iter++;
@@ -513,7 +584,7 @@ main(int argc, char **argv) {
     if(GlobalData->debugLevel > 0)
       DumpCIScaffolds(stderr,ScaffoldGraph, FALSE);
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_CLEANING_SCAFFOLDS, "after scaffold cleaning");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_INITIAL_SCAFFOLDING], "after initial scaffolding");
   }
   //  else TidyUpScaffolds (ScaffoldGraph);
 
@@ -524,15 +595,13 @@ main(int argc, char **argv) {
   ScaffoldGraph->tigStore->flushCache();
 
 
-  if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_1ST_SCAFF_MERGE) < 0) {
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_1ST_SCAFF_MERGE\n");
-
+  if (runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_1ST_SCAFF_MERGE) == true) {
     CleanupScaffolds(ScaffoldGraph,FALSE, NULLINDEX, FALSE);
 
     ScaffoldSanity(ScaffoldGraph);
 
     /* First we try to merge Scaffolds agressively */
-    MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_DURING_1ST_SCAFF_MERGE, FALSE);
+    MergeScaffoldsAggressive(ScaffoldGraph, ckpNames[CHECKPOINT_DURING_1ST_SCAFF_MERGE], FALSE);
     CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -545,7 +614,7 @@ main(int argc, char **argv) {
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_1ST_SCAFF_MERGE, "after 1st scaffold merge");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_1ST_SCAFF_MERGE], "after 1st scaffold merge");
   }
 
 
@@ -565,9 +634,8 @@ main(int argc, char **argv) {
 
 
   /* Now we throw stones */
-  if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_STONES) < 0) &&
+  if ((runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_STONES) == true) &&
       (GlobalData->stoneLevel > 0)) {
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_STONES\n");
 
     // Convert single-contig scaffolds that are marginally unique back
     // to unplaced contigs so they might be placed as stones
@@ -607,7 +675,7 @@ main(int argc, char **argv) {
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_STONES, "after stone throwing");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_STONES], "after stone throwing");
 
     //GenerateLinkStats(ScaffoldGraph->CIGraph, "Stones", 0);
     //GeneratePlacedContigGraphStats("Stones", 0);
@@ -616,12 +684,12 @@ main(int argc, char **argv) {
   }
 
 
-  if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_2ND_SCAFF_MERGE) < 0) {
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_2ND_SCAFF_MERGE\n");
+  if ((runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_2ND_SCAFF_MERGE) == true) &&
+      (GlobalData->stoneLevel > 0)) {
 
     ScaffoldSanity(ScaffoldGraph);
 
-    MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_DURING_2ND_SCAFF_MERGE, FALSE);
+    MergeScaffoldsAggressive(ScaffoldGraph, ckpNames[CHECKPOINT_DURING_2ND_SCAFF_MERGE], FALSE);
 
     CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
@@ -635,7 +703,7 @@ main(int argc, char **argv) {
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_2ND_SCAFF_MERGE, "after 2nd scaffold merge");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_2ND_SCAFF_MERGE], "after 2nd scaffold merge");
   }
 
   //  We DO want to flush unused unitigs/contigs at this point.  They're not in
@@ -643,12 +711,10 @@ main(int argc, char **argv) {
   //
   ScaffoldGraph->tigStore->flushCache();
 
-  if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_FINAL_ROCKS) < 0) &&
+  if ((runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_FINAL_ROCKS) == true) &&
       (GlobalData->repeatRezLevel > 0)) {
     const int  MAX_EXTRA_ROCKS_ITERS = 5;
     int  iter = 0, extra_rocks;
-
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_FINAL_ROCKS\n");
 
     do {
       extra_rocks = Fill_Gaps(GlobalData->outputPrefix, GlobalData->repeatRezLevel, iter);
@@ -657,12 +723,11 @@ main(int argc, char **argv) {
       //ScaffoldGraph->tigStore->flushCache();
     } while (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_FINAL_ROCKS, "after final rocks");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_FINAL_ROCKS], "after final rocks");
   }
 
-  if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_PARTIAL_STONES) < 0) &&
+  if ((runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_PARTIAL_STONES) == true) &&
       (GlobalData->stoneLevel > 0)) {
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_PARTIAL_STONES\n");
 
     ScaffoldSanity (ScaffoldGraph);
 
@@ -691,7 +756,7 @@ main(int argc, char **argv) {
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_PARTIAL_STONES, "after partial stones");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_PARTIAL_STONES], "after partial stones");
 
     //GenerateLinkStats (ScaffoldGraph->CIGraph, "PStones", 0);
     //GeneratePlacedContigGraphStats ("PStones", 0);
@@ -699,9 +764,8 @@ main(int argc, char **argv) {
     //GenerateScaffoldGraphStats ("PStones", 0);
   }
 
-  if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_FINAL_CONTAINED_STONES) < 0) &&
+  if ((runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_FINAL_CONTAINED_STONES) == true) &&
       (GlobalData->stoneLevel > 0)) {
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_FINAL_CONTAINED_STONES\n");
 
     ScaffoldSanity (ScaffoldGraph);
 
@@ -725,7 +789,7 @@ main(int argc, char **argv) {
     AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
 #endif
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_FINAL_CONTAINED_STONES, "after final contained stones");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_FINAL_CONTAINED_STONES], "after final contained stones");
 
     //GenerateLinkStats (ScaffoldGraph->CIGraph, "CStones", 0);
     //GeneratePlacedContigGraphStats ("CStones", 0);
@@ -739,8 +803,7 @@ main(int argc, char **argv) {
   ScaffoldGraph->tigStore->flushCache();
 
 
-  if (strcasecmp(restartFromLogical, CHECKPOINT_AFTER_FINAL_CLEANUP) < 0) {
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_FINAL_CLEANUP\n");
+  if (runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_FINAL_CLEANUP) == true) {
 
     // Try to cleanup failed merges, and if we do, generate a checkpoint
     if(CleanupFailedMergesInScaffolds(ScaffoldGraph)){
@@ -752,14 +815,13 @@ main(int argc, char **argv) {
         CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
 #endif
       }
-      CheckpointScaffoldGraph(CHECKPOINT_AFTER_FINAL_CLEANUP, "after final cleanup");
+      CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_FINAL_CLEANUP], "after final cleanup");
     }
   }
 
 
-  if ((strcasecmp(restartFromLogical, CHECKPOINT_AFTER_RESOLVE_SURROGATES) < 0) &&
+  if ((runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_RESOLVE_SURROGATES) == true) &&
       (doResolveSurrogates > 0)) {
-    fprintf(stderr, "Beginning CHECKPOINT_AFTER_RESOLVE_SURROGATES\n");
 
     resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
     // Call resolve surrogate twice, this is necessary for finishing (closure) reads.
@@ -771,7 +833,7 @@ main(int argc, char **argv) {
     // Note that is closure reads are themselves mated, it may be necessary to do a third round of placement.  
     resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
     
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_RESOLVE_SURROGATES, "after resolve surrogates");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_RESOLVE_SURROGATES], "after resolve surrogates");
   }
 
   //  This generates the 'rezlog/gapreads' file.  It's hugely
@@ -826,7 +888,7 @@ main(int argc, char **argv) {
     OutputUnitigsFromMultiAligns();
     OutputContigsFromMultiAligns(outputFragsPerPartition);
 
-    CheckpointScaffoldGraph(CHECKPOINT_AFTER_OUTPUT, "after output");
+    CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_OUTPUT], "after output");
   }
 
   DestroyScaffoldGraph(ScaffoldGraph);
