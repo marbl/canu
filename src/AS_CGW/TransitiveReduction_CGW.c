@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.40 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.41 2012-08-30 20:23:43 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -349,7 +349,8 @@ MarkPathRemovedEdgesOMP(ScaffoldGraphT *graph) {
   while((node = NextGraphNodeIterator(&nodes)) != NULL)
     nodeList[numNodes++] = node;
 
-  int32 blockSize = (numNodes < 100 * numThreads) ? numThreads : numNodes / 99;      //  Up to 100 blocks.
+  int32 maxBlocks = 25 * numThreads;
+  int32 blockSize = (numNodes < maxBlocks * numThreads) ? numThreads : numNodes / (maxBlocks-1);  //  Up to maxBlocks blocks.
 
   assert(0 < blockSize);
 
@@ -501,7 +502,8 @@ MarkTwoHopConfirmedEdgesOMP(ScaffoldGraphT *graph) {
   while((node = NextGraphNodeIterator(&nodes)) != NULL)
     nodeList[numNodes++] = node;
 
-  int32 blockSize = (numNodes < 100 * numThreads) ? numThreads : numNodes / 99;      //  Up to 100 blocks.
+  int32 maxBlocks = 25 * numThreads;
+  int32 blockSize = (numNodes < maxBlocks * numThreads) ? numThreads : numNodes / (maxBlocks-1);  //  Up to maxBlocks blocks.
 
   assert(0 < blockSize);
 
