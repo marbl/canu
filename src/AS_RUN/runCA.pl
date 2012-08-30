@@ -389,6 +389,12 @@ sub setDefaults () {
 
     $global{"mbtConcurrency"}              = 1;
     $synops{"mbtConcurrency"}              = "If not SGE, number of mer-based trimming processes to run at the same time";
+    
+    $global{"mbtIlluminaAdapter"}          = 0;
+    $synops{"mbtIlluminaAdapter"}          = "Remove Illumina adapter sequence during merTrim";
+    
+    $global{"mbt454Adapter"}               = 0;
+    $synops{"mbt454Adapter"}               = "Remove 454 adapter sequence during merTrim";       
 
     #####  Overlapper
 
@@ -550,6 +556,9 @@ sub setDefaults () {
 
     $global{"batMemory"}                   = undef;
     $synops{"batMemory"}                   = "Approximate maximum memory usage for loading overlaps, in gigabytes, default is unlimited";
+    
+    $global{"batThreads"}                  = undef;
+    $synops{"batThreads"}                  = "Number of threads to use in the Merge/Split/Join phase; default is whatever OpenMP wants";
 
     #####  Scaffolder Options
 
@@ -2815,7 +2824,7 @@ sub merTrim {
     my $merComp      = 0;  # getGlobal("merCompression");  --  DOES NOT WORK WITH merTrim
 
     my $mbtThreads   = getGlobal("mbtThreads");
-    
+
     my $taskID       = getGlobal("gridTaskID");
 
     runMeryl($merSize, $merComp, "-C", "auto", "mbt", 0);
@@ -2867,6 +2876,8 @@ sub merTrim {
         print F " -b  \$minid \\\n";
         print F " -e  \$maxid \\\n";
         print F " -g  $wrk/$asm.gkpStore \\\n";
+        print F " -mCillumina \\\n"  if (getGlobal("mbtIlluminaAdapter") ne "0");
+        print F " -mC454 \\\n"       if (getGlobal("mbt454Adapter")      ne "0");
         print F " -t  $mbtThreads \\\n";
         print F " -m  $merSize \\\n";
         print F " -mc $wrk/0-mercounts/$asm-C-ms$merSize-cm$merComp \\\n";
@@ -4484,7 +4495,7 @@ sub unitigger () {
     my $unitigger = getGlobal("unitigger");
 
     if ($unitigger eq "bogart") {
-        my $bmd = getGlobal("bogBadMateDepth");
+        my $th = getGlobal("batThreads");
 
         $cmd  = "$bin/bogart ";
         $cmd .= " -O $wrk/$asm.ovlStore ";
@@ -4495,6 +4506,7 @@ sub unitigger () {
         $cmd .= " -Eg $Eg ";
         $cmd .= " -em $em ";
         $cmd .= " -Em $Em ";
+        $cmd .= " -threads $th " if (defined($th));
         $cmd .= " -R "      if (getGlobal("batRebuildRepeats") == 1);
         $cmd .= " -E "      if (getGlobal("batMateExtension") == 1);
         $cmd .= " -M $mem " if (defined($mem));
