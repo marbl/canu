@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.107 2012-08-30 22:48:04 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.108 2012-08-30 23:01:30 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -117,11 +117,11 @@ bool
 runThisCheckpoint(char *ckpName, uint32 level) {
 
   if (strcasecmp(ckpName, ckpNames[level]) < 0) {
-    fprintf(stderr, "Beginning %s (started at %s).\n", ckpNames[level], ckpName);
+    fprintf(stderr, "Beginning %s (loaded %s).\n", ckpNames[level], ckpName);
     return(true);
   }
 
-  fprintf(stderr, "Skipping %s (starting at %s).\n", ckpNames[level], ckpName);
+  fprintf(stderr, "Skipping %s (loaded %s).\n", ckpNames[level], ckpName);
 
   return(false);
 }
