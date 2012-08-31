@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.61 2012-08-28 21:09:39 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.62 2012-08-31 20:20:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -313,7 +313,7 @@ const uint32 LeastSquares_Cleanup  = 0x01;
 const uint32 LeastSquares_Split    = 0x02;
 const uint32 LeastSquares_NoBounce = 0x04;
 
-bool LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold, uint32 LSFlags);
+bool LeastSquaresGapEstimates(ScaffoldGraphT *graph, CIScaffoldT *scaffold, uint32 LSFlags, uint32 bounceIteration=0);
 
 
 /***** Celamy *****/

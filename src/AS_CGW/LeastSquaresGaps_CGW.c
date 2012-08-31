@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.70 2012-08-29 23:47:14 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.71 2012-08-31 20:20:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1498,7 +1498,7 @@ AdjustNegativePositions(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   //dumpScaffoldContigPositions(graph, scaffold, "AdjPos(pre)--");
 
-  fprintf(stderr, "BOOOC(adj)-- adjust scaffold start by %f +- %f\n", minPos.mean, minPos.variance);
+  fprintf(stderr, "AdjNegPos()-- adjust scaffold start by %f +- %f\n", minPos.mean, minPos.variance);
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
@@ -1569,21 +1569,32 @@ AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     while ((pb < positions.size()) && (positions[pb]->variance <= 0.0))
       pb++;
 
-    //  The -20 gaps screw this up.  It is close, and probably better than leaving it alonw.
+    //  The -20 gaps screw this up.  It is close, and probably better than leaving it alone.
 
-    if (pb == positions.size()) {
-      positions[pi]->variance = positions[pa]->variance + 500 * 500;
+    double  adj = 0;
 
-      fprintf(stderr, "BOOOC(adj)-- adjust variance for position %f to %f based on %f +- %f\n",
-              positions[pi]->mean, positions[pi]->variance,
-              positions[pa]->mean, positions[pa]->variance);
-    } else {
-      positions[pi]->variance = (positions[pa]->variance + positions[pb]->variance) / 2.0;
+    if (pb == positions.size())
+      adj = 500 * 500;
+    else
+      adj = (positions[pa]->variance + positions[pb]->variance) / (pb - pa);
 
-      fprintf(stderr, "BOOOC(adj)-- adjust variance for position %f to %f based on %f +- %f and %f +- %f\n",
-              positions[pi]->mean, positions[pi]->variance,
-              positions[pa]->mean, positions[pa]->variance,
-              positions[pb]->mean, positions[pb]->variance);
+    //  Adjust all variances from pi to pb.
+
+    for (; pi < pb; pi++) {
+      assert(positions[pi]->variance <= 0);
+
+      positions[pi]->variance = positions[pi-1]->variance + adj;
+
+      if (pb == positions.size())
+        fprintf(stderr, "AdjNegVar()-- adjust variance for position %f to %f (actual %f) based on %f +- %f\n",
+                positions[pi]->mean, positions[pi]->variance, adj,
+                positions[pa]->mean, positions[pa]->variance);
+      else
+        fprintf(stderr, "AdjNegVar()-- adjust variance for position %f to %f (actual %f) based on %f +- %f and %f +- %f and %d gaps\n",
+                positions[pi]->mean, positions[pi]->variance, adj,
+                positions[pa]->mean, positions[pa]->variance,
+                positions[pb]->mean, positions[pb]->variance,
+                pb - pa);
     }
   }
 
@@ -1662,7 +1673,7 @@ AdjustNegativeGapVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
       //  The final gap variance
       double  newVariance = 0.10 * (thisMin->mean - lastMax.mean) * 0.10 * (thisMin->mean - lastMax.mean);
 
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- negative gap variance %f on positive gap size %f -- reset to %f\n",
+      fprintf(stderr, "AdjGapVar()--  contig %d in scaffold %d -- negative gap variance %f on positive gap size %f -- reset to %f\n",
               CI->id, scaffold->id, thisMin->variance - lastMax.variance, thisMin->mean - lastMax.mean, newVariance);
 
       //  But we also need to account for the currently negative variance for this gap.
@@ -1705,7 +1716,7 @@ BounceOutOfOrderContigs(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   double                   lastMin = 0.0;
 
   CIScaffoldTIterator      CIs;
-  ChunkInstanceT          *CI;
+  ChunkInstanceT          *CI;  //  Current
 
   //  Test if anything is out of order.
 
@@ -1725,25 +1736,47 @@ BounceOutOfOrderContigs(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   if (CI == NULL)
     return(false);
 
-  //  Build a list of contigs that are out of order.
+  //  Populate an array with the contigs in the current order.  We'll search through it to find
+  //  those that are out of order.
 
-  //dumpScaffoldContigPositions(graph, scaffold, "BOOOC(pre)--");
+  dumpScaffoldContigPositions(graph, scaffold, "BOOOC(pre)--");
 
+  vector<ChunkInstanceT *> contigList;
   vector<ChunkInstanceT *> bounceList;
-  lastMin = 0.0;
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
-  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
-    double thisMin = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd.mean : CI->offsetBEnd.mean;
+  while (NULL != (CI = NextCIScaffoldTIterator(&CIs)))
+    contigList.push_back(CI);
 
-    if (thisMin < lastMin)
-      bounceList.push_back(CI);
+  //  Search for out of order.  In order is: prev < this < next
+  //
+  //  Out of order is thus
+  //     prev >= this or
+  //     this >= next
 
-    lastMin = thisMin;
+  for (uint32 i=0; i<contigList.size(); ) {
+    double prevMin = -DBL_MAX;
+    double thisMin = (contigList[i]->offsetAEnd.mean < contigList[i]->offsetBEnd.mean) ? contigList[i]->offsetAEnd.mean : contigList[i]->offsetBEnd.mean;
+    double nextMin = DBL_MAX;
+
+    if (i > 0)
+      prevMin = (contigList[i-1]->offsetAEnd.mean < contigList[i-1]->offsetBEnd.mean) ? contigList[i-1]->offsetAEnd.mean : contigList[i-1]->offsetBEnd.mean;
+
+    if (i < contigList.size() - 1)
+      nextMin = (contigList[i+1]->offsetAEnd.mean < contigList[i+1]->offsetBEnd.mean) ? contigList[i+1]->offsetAEnd.mean : contigList[i+1]->offsetBEnd.mean;
+
+    if ((prevMin >= thisMin) ||
+        (thisMin >= nextMin)) {
+      bounceList.push_back(contigList[i]);
+      contigList.erase(contigList.begin() + i);
+
+    } else {
+      i++;
+    }
   }
 
-  //  Eject and reinsert it.  This will place it in the contig list at the correct location.
+  //  Eject and reinsert them.  This will place it in the contig list at the correct location.
 
   for (uint32 bi=0; bi<bounceList.size(); bi++) {
     CI = bounceList[bi];
@@ -1760,7 +1793,7 @@ BounceOutOfOrderContigs(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
   //  Report the damage
 
-  //dumpScaffoldContigPositions(graph, scaffold, "BOOOC(post)--");
+  dumpScaffoldContigPositions(graph, scaffold, "BOOOC(post)--");
 
   return(true);
 }
@@ -1772,12 +1805,13 @@ BounceOutOfOrderContigs(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 bool
 LeastSquaresGapEstimates(ScaffoldGraphT *graph,
                          CIScaffoldT    *scaffold,
-                         uint32          LSFlags) {
+                         uint32          LSFlags, 
+                         uint32          bounceIteration) {
   RecomputeOffsetsStatus   status = RECOMPUTE_SINGULAR;
 
   if ((isDeadCIScaffoldT(scaffold)) ||
       (scaffold->type != REAL_SCAFFOLD))
-    return(true);
+    return(false);
 
   if (scaffold->info.Scaffold.numElements == 1) {
     RebuildScaffoldGaps(graph, scaffold, NULL, NULL, false);
@@ -1854,7 +1888,7 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
   //  If Least Squares fails, grab the current gap sizes from the scaffold, and rebuild it.  This
   //  might seem like it will do anything, but it resets the size of each contig to truth.  This
   //  seems to wander when we fail LeastSquares enough.
-#if 1
+
   if (status != RECOMPUTE_OK) {
     vector<double>  GAPmean;
     vector<double>  GAPvari;
@@ -1879,7 +1913,6 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
 
     RebuildScaffoldGaps(graph, scaffold, &GAPmean[0], &GAPvari[0], false);
   }
-#endif
 
 
   //  If Least Squares fails, do a greedy size estimate.  This DOES NOT WORK, especially in heavily interleaved scaffolds.  It tries
@@ -1925,6 +1958,9 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
   if ((LSFlags & LeastSquares_NoBounce) == 0)
     redo = BounceOutOfOrderContigs(graph, scaffold);
 
+  if (bounceIteration > 5)
+    redo = false;
+
   AdjustNegativePositions(graph, scaffold);
   AdjustNegativeVariances(graph, scaffold);
   AdjustNegativeGapVariances(graph, scaffold);
@@ -1938,9 +1974,10 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
   if (CleanupAScaffold(graph, scaffold, FALSE, NULLINDEX, FALSE) > 0)
     redo |= true;
 
-  //  If we changed something, recompute least squares, but do not allow bouncing.
+  //  If we changed something, recompute least squares.  Note that even if we've reached the bounce
+  //  iteration limit, if contigs were merged, we recompute.
   if (redo)
-    return(LeastSquaresGapEstimates(graph, scaffold, LSFlags | LeastSquares_NoBounce));
+    return(LeastSquaresGapEstimates(graph, scaffold, LSFlags, bounceIteration+1));
 
   return(true);
 }
