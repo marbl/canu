@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.108 2012-08-30 23:01:30 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.109 2012-08-31 06:35:35 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -52,7 +52,7 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.108 2012-08-30 23:01:30 brianwalenz
 
 //  Defines the logical checkpoints
 
-char *ckpNames[16] = { NULL,
+char *ckpNames[16] = { "ckp00-NUL",
                        "ckp01-INI",
                        "ckp02-EDG",
                        "ckp03-SCF-partial",
@@ -88,7 +88,7 @@ char *ckpNames[16] = { NULL,
 
 void
 isValidCheckpointName(char *ckpName) {
-  uint32 i=1;
+  uint32 i=0;
 
   for (; i<16; i++)
     if (strcasecmp(ckpName, ckpNames[i]) == 0)
@@ -145,7 +145,7 @@ main(int argc, char **argv) {
   int    repeatRezLevel   = 0;
 
   int    restartFromCheckpoint = -1;
-  char  *restartFromLogical    = "ckp00";
+  char  *restartFromLogical    = "ckp00-NUL";
 
   bool   recomputeLeastSquaresOnLoad = false;
 
