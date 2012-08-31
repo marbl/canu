@@ -5149,7 +5149,7 @@ sub scaffolder () {
         #
         my $iterationMax = getGlobal("doExtendClearRanges") + 1;
         for (my $iteration = 2; $iteration < $iterationMax; $iteration++) {
-            $lastDir = updateDistanceRecords(CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", 0, "ckp01-ABS", 0));
+            $lastDir = updateDistanceRecords(CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", 0, "ckp03-SCF-partial", 0));
             $thisDir++;
 
             $lastDir = eCR("7-$thisDir-ECR", $lastDir, $iteration);
@@ -5159,7 +5159,7 @@ sub scaffolder () {
         #  Then another scaffolder, chucking stones into the big holes,
         #  filling in surrogates, and writing output.
         #
-        $lastDir = updateDistanceRecords(CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", $stoneLevel, "ckp01-ABS", 1));
+        $lastDir = updateDistanceRecords(CGW("7-$thisDir-CGW", $lastDir, "$wrk/$asm.tigStore", $stoneLevel, "ckp03-SCF-partial", 1));
         $thisDir++;
     }
 
