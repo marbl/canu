@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.40 2012-07-31 12:55:29 skoren Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.41 2012-09-03 17:19:56 mcschatz Exp $";
 
 #include  "AS_global.h"
 #include  "AS_OVL_delcher.h"
@@ -139,11 +139,11 @@ typedef  struct
 const int  INNIE = 0;
 const int  NORMAL = 1;
 
-#if (2*AS_READ_MAX_NORMAL_LEN_BITS + 64 + 2 > 128)
+#if (2*AS_READ_MAX_NORMAL_LEN_BITS + 64 + 2 >= 128)
 #error No space for Olap_Info_t.  Decrease read length AS_READ_MAX_NORMAL_LEN_BITS.
 #endif
 
-#if (2*AS_READ_MAX_NORMAL_LEN_BITS + 64 + 2 > 96)
+#if (2*AS_READ_MAX_NORMAL_LEN_BITS + 64 + 2 >= 96)
 typedef  struct
   {
    char  * sequence;
@@ -1819,7 +1819,10 @@ static void  Process_Olap
        printf ("b_part = %p  is ascii %d  rev_seq is %d\n",
                b_part, (int) (* b_part), (int) (* rev_seq));
    if  (! isalpha (* b_part) || ! isalpha (* rev_seq))
+   {
+     fprintf(stderr, "ERROR: not alpha: %d %d\n", isalpha(*b_part), isalpha(*rev_seq));
        exit(1);
+   }
 
    if  (Verbose_Level > 0)
        {
