@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.72 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.73 2012-09-04 06:34:47 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -60,7 +60,7 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   sprintf(tmgfile, "%s.timing", name);
 
   time_t t = time(0);
-  fprintf(stderr, "====> Reading %s at %s", ckpfile, ctime(&t));
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  Loading checkpoint '%s' at %s", ckpfile, ctime(&t));
 
   errno = 0;
   FILE *F = fopen(tmgfile, "a");
@@ -81,22 +81,35 @@ LoadScaffoldGraphFromCheckpoint(char   *name,
   status = AS_UTL_safeRead(F, ScaffoldGraph->name, "LoadScaffoldGraphFromCheckpoint", sizeof(char), 256);
   assert(status == 256);
 
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  Loading reads and dists.\n");
   ScaffoldGraph->CIFrags        = CreateFromFileVA_CIFragT(F);
   ScaffoldGraph->Dists          = CreateFromFileVA_DistT(F);
 
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  Loading unitigs.\n");
   ScaffoldGraph->CIGraph       = LoadGraphCGWFromStream(F);
+
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  Loading contigs.\n");
   ScaffoldGraph->ContigGraph   = LoadGraphCGWFromStream(F);
+
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  Loading scaffolds.\n");
   ScaffoldGraph->ScaffoldGraph = LoadGraphCGWFromStream(F);
 
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  Loading chunk overlaps.\n");
   ScaffoldGraph->ChunkOverlaps = LoadChunkOverlapperFromStream(F);
 
+  //  For debugging, you can disable regeneration of the edges.
+#if 1
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  Rebuilding unitig edges.\n");
   RebuildGraphEdges(ScaffoldGraph->CIGraph);
-  RebuildGraphEdges(ScaffoldGraph->ContigGraph);
-  RebuildGraphEdges(ScaffoldGraph->ScaffoldGraph);
 
-  CheckGraph(ScaffoldGraph->CIGraph);
-  CheckGraph(ScaffoldGraph->ContigGraph);
-  CheckGraph(ScaffoldGraph->ScaffoldGraph);
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  Rebuilding contig edges.\n");
+  RebuildGraphEdges(ScaffoldGraph->ContigGraph);
+
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  Rebuilding scaffold edges.\n");
+  RebuildGraphEdges(ScaffoldGraph->ScaffoldGraph);
+#else
+  fprintf(stderr, "LoadScaffoldGraphFromCheckpoint()--  NOT REBUILDING UNITIG OR CONTIG OR SCAFFOLD EDGES.\n");
+#endif
 
   //  Load distance estimate histograms
   //
