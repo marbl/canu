@@ -23,7 +23,7 @@
 #ifndef CISCAFFOLDT_ANALYSIS_H
 #define CISCAFFOLDT_ANALYSIS_H
 
-static const char *rcsid_CISCAFFOLDT_ANALYSIS_H = "$Id: CIScaffoldT_Analysis.H,v 1.2 2012-08-08 02:20:29 brianwalenz Exp $";
+static const char *rcsid_CISCAFFOLDT_ANALYSIS_H = "$Id: CIScaffoldT_Analysis.H,v 1.3 2012-09-04 06:45:21 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -37,6 +37,8 @@ static const char *rcsid_CISCAFFOLDT_ANALYSIS_H = "$Id: CIScaffoldT_Analysis.H,v
 #include <algorithm>
 
 using namespace std;
+
+#undef CIA_SUPER_VERBOSE
 
 //  This came from analyzePosMap.C, class libEntry.
 
@@ -81,10 +83,11 @@ public:
                 bool         ctgfwd_,
                 LengthT      ctgbgn_,
                 LengthT      ctgend_,
-                SeqInterval  pos_) {
+                LengthT      frgbgn_,
+                LengthT      frgend_) {
 
-    int32   rbgn = pos_.bgn;
-    int32   rend = pos_.end;
+    int32   rbgn = frgbgn_.mean;
+    int32   rend = frgend_.mean;
 
     //  If the contig is flipped, reverse complement the fragment positions.
     //  Yes, we really do bodge contig length.  This can cause differences
@@ -94,8 +97,8 @@ public:
     if (ctgfwd_ == false) {
       double   ctgLen = ctgend_.mean - ctgbgn_.mean;
 
-      rbgn = (ctgLen >= pos_.end) ? ctgLen - pos_.end : 0;
-      rend = (ctgLen >= pos_.bgn) ? ctgLen - pos_.bgn : 0;
+      rbgn = (ctgLen >= frgend_.mean) ? ctgLen - frgend_.mean : 0;
+      rend = (ctgLen >= frgbgn_.mean) ? ctgLen - frgbgn_.mean : 0;
     }
 
     //  Offset to scaffold positions.
@@ -118,8 +121,10 @@ public:
       end  = rbgn;
     }
 
-    //fprintf(stderr, "instrumentFRG %d at orig %u,%u ctg %u,%u scf %u,%u fwd=%d\n",
-    //        iid, pos_.bgn, pos_.end, rbgn, rend, bgn, end, fwd);
+#ifdef CIA_SUPER_VERBOSE
+    fprintf(stderr, "instrumentFRG %d at orig %.0f,%.0f ctg %u,%u scf %u,%u fwd=%d\n",
+            iid, frgbgn_.mean, frgend_.mean, rbgn, rend, bgn, end, fwd);
+#endif
   };
 
   AS_IID                   iid;  //  My IID
@@ -155,8 +160,10 @@ public:
       end = bgn_;
     }
 
-    //fprintf(stderr, "instrumentCTG %d orig %.2f,%.2f now at %.0f,%.0f fwd=%d\n",
-    //        iid, bgn_.mean, end_.mean, bgn.mean, end.mean, fwd);
+#ifdef CIA_SUPER_VERBOSE
+    fprintf(stderr, "instrumentCTG %d orig %.2f,%.2f now at %.0f,%.0f fwd=%d\n",
+            iid, bgn_.mean, end_.mean, bgn.mean, end.mean, fwd);
+#endif
   };
 
   bool   operator<(instrumentCTG const &that) const {

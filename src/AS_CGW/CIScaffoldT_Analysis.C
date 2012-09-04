@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CIScaffoldT_Analysis.C,v 1.2 2012-08-08 02:20:29 brianwalenz Exp $";
+static const char *rcsid = "$Id: CIScaffoldT_Analysis.C,v 1.3 2012-09-04 06:45:21 brianwalenz Exp $";
 
 #include "CIScaffoldT_Analysis.H"
 
@@ -54,7 +54,7 @@ instrumentLIB::instrumentLIB(AS_IID iid_, double mean_, double stddev_, bool inn
   for (int32 i=0; i<=6 * stddev; i++)
     s += pdf[i];
 
-  fprintf(stderr, "LIB %d %.2f+-%.2f [%.2f,%.2f] innie=%d sum=%f\n",
+  fprintf(stderr, "instrumentLIB %d %.2f+-%.2f [%.2f,%.2f] innie=%d sum=%f\n",
           iid, mean, stddev, minDist, maxDist, innie, s);
 }
 
@@ -122,7 +122,9 @@ instrumentSCF::init(CIScaffoldT *scaffold, bool forward, double offMean, double 
       bgn.variance = scaffold->bpLength.variance - contig->offsetAEnd.variance;
       end.mean     = scaffold->bpLength.mean     - contig->offsetBEnd.mean;
       end.variance = scaffold->bpLength.variance - contig->offsetBEnd.variance;
-      //fprintf(stderr, "REVERSE to %.2f,%.2f\n", bgn.mean, end.mean);
+#ifdef CIA_SUPER_VERBOSE
+      fprintf(stderr, "CONTIG %d rv %.0f,%.0f\n", contig->id, bgn.mean, end.mean);
+#endif
     }
 
     bgn.mean     += offMean;
@@ -133,7 +135,9 @@ instrumentSCF::init(CIScaffoldT *scaffold, bool forward, double offMean, double 
 
     instrumentCTG  ctg(contig->id, scaffold->id, bgn, end);
 
-    //fprintf(stderr, "CONTIG %d at %.0f,%.0f\n", contig->id, contig->offsetAEnd.mean, contig->offsetBEnd.mean);
+#ifdef CIA_SUPER_VERBOSE
+    fprintf(stderr, "CONTIG %d at %.0f,%.0f\n", contig->id, contig->offsetAEnd.mean, contig->offsetBEnd.mean);
+#endif
 
 #if 0
     NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, contig->info.Contig.AEndCI);
@@ -149,10 +153,11 @@ instrumentSCF::init(CIScaffoldT *scaffold, bool forward, double offMean, double 
 
     for(int32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
       IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
+      CIFragT     *cif = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
 
       FRGmap[imp->ident] = FRG.size();
 
-      FRG.push_back(instrumentFRG(imp->ident, contig->id, ctg.fwd, ctg.bgn, ctg.end, imp->position));
+      FRG.push_back(instrumentFRG(imp->ident, contig->id, ctg.fwd, ctg.bgn, ctg.end, cif->contigOffset5p, cif->contigOffset3p));
     }
 
     CTG.push_back(ctg);
@@ -166,11 +171,13 @@ instrumentSCF::init(CIScaffoldT *scaffoldA, SEdgeT *edge, CIScaffoldT *scaffoldB
   bool      fwdA = (edge->orient.isAB_AB() || edge->orient.isAB_BA());
   bool      fwdB = (edge->orient.isAB_AB() || edge->orient.isBA_AB());
 
-  //fprintf(stderr, "EDGE: %d %d %.2f +- %.2f orient %c (fwd %d %d) scfLen %.2f %.2f\n",
-  //        edge->idA, edge->idB,
-  //        edge->distance.mean, sqrt(edge->distance.variance), edge->orient.toLetter(),
-  //        fwdA, fwdB,
-  //        scaffoldA->bpLength.mean, scaffoldB->bpLength.mean);
+#ifdef CIA_SUPER_VERBOSE
+  fprintf(stderr, "EDGE: %d %d %.2f +- %.2f orient %c (fwd %d %d) scfLen %.2f %.2f\n",
+          edge->idA, edge->idB,
+          edge->distance.mean, sqrt(edge->distance.variance), edge->orient.toLetter(),
+          fwdA, fwdB,
+          scaffoldA->bpLength.mean, scaffoldB->bpLength.mean);
+#endif
 
   LengthT   offA = { 0, 0 };
   LengthT   offB = { 0, 0 };
@@ -188,8 +195,10 @@ instrumentSCF::init(CIScaffoldT *scaffoldA, SEdgeT *edge, CIScaffoldT *scaffoldB
     offB.variance  = scaffoldA->bpLength.variance - edge->distance.variance;
   }
 
-  //fprintf(stderr, "A fwd %d offset %f,%f\n", fwdA, offA.mean, offA.variance);
-  //fprintf(stderr, "B fwd %d offset %f,%f\n", fwdB, offB.mean, offB.variance);
+#ifdef CIA_SUPER_VERBOSE
+  fprintf(stderr, "A fwd %d offset %f,%f\n", fwdA, offA.mean, offA.variance);
+  fprintf(stderr, "B fwd %d offset %f,%f\n", fwdB, offB.mean, offB.variance);
+#endif
 
   init(scaffoldA, fwdA, offA.mean, offA.variance);
   init(scaffoldB, fwdB, offB.mean, offB.variance);
@@ -285,11 +294,13 @@ instrumentSCF::analyze(vector<instrumentLIB> &libs) {
         else                             numMissing  += lib.pdf[ii];
       }
 
-      //fprintf(stderr, "EXTERNAL frg %d (%u,%u ori %d) at scfPos %d,%d external %.4f gap %.4f missing %.4f\n",
-      //        fiid,
-      //        frg.bgn, frg.end, frg.fwd,
-      //        scfPos, scfPos + lib.pdf.size(),
-      //        numExternal, numGap, numMissing);
+#ifdef CIA_SUPER_VERBOSE
+      fprintf(stderr, "EXTERNAL frg %d (%u,%u ori %d) at scfPos %d,%d external %.4f gap %.4f missing %.4f\n",
+              fiid,
+              frg.bgn, frg.end, frg.fwd,
+              scfPos, scfPos + lib.pdf.size(),
+              numExternal, numGap, numMissing);
+#endif
 
       continue;
     }
@@ -401,8 +412,10 @@ instrumentSCF::estimateGaps(vector<instrumentLIB> &libs, bool allowReorder) {
   if (allowReorder)
     sort(CTG.begin(), CTG.end());
 
+#ifdef CIA_SUPER_VERBOSE
   for (uint32 i=0; i<CTG.size(); i++)
     fprintf(stderr, "CTG %d %7.0f-%7.0f\n", CTG[i].iid, CTG[i].bgn.mean, CTG[i].end.mean);
+#endif
 
   for (uint32 i=1; i<CTG.size(); i++) {
     GAPmean.push_back(CTG[i].bgn.mean - CTG[i-1].end.mean);
@@ -490,7 +503,7 @@ instrumentSCF::estimateGaps(vector<instrumentLIB> &libs, bool allowReorder) {
         int32   lb = CTG[gi].end.mean - frg.bgn;
         int32   rb = mrg.end          - CTG[gi+1].bgn.mean;
 
-#if 0
+#ifdef CIA_SUPER_VERBOSE
         fprintf(stderr, "GAP %d frg %d %d-%d mrg %d %d-%d actual %d / %d expected %.2f +- %2.f / %f\n",
                 gi,
                 frg.iid, frg.bgn, frg.end,
@@ -553,7 +566,7 @@ instrumentSCF::estimateGaps(vector<instrumentLIB> &libs, bool allowReorder) {
       FRG[fi].end -= CTG[ci].bgn.mean;
     }
 
-#if 1
+#ifdef CIA_SUPER_VERBOSE
     fprintf(stderr, "ITER %u\n", it);
     fprintf(stderr, "CTG %d from %7.0f +- %7.0f -- %7.0f +- %7.0f GAP %7.0f +- %7.0f --TO-- %7.0f +- %7.0f -- %7.0f +- %7.0f -- GAP %7.0f +- %7.0f\n",
             0,
@@ -579,7 +592,7 @@ instrumentSCF::estimateGaps(vector<instrumentLIB> &libs, bool allowReorder) {
       CTG[cb].end.mean     = CTG[cb].bgn.mean     + cm;
       CTG[cb].end.variance = CTG[cb].bgn.variance + cv;
 
-#if 0
+#ifdef CIA_SUPER_VERBOSE
       fprintf(stderr, "CTG %d from %7.0f +- %7.0f -- %7.0f +- %7.0f GAP %7.0f +- %7.0f --TO-- %7.0f +- %7.0f -- %7.0f +- %7.0f -- GAP %7.0f +- %7.0f\n",
               cb,
               oldb.mean, sqrt(oldb.variance), olde.mean, sqrt(olde.variance),
