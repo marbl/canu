@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.109 2012-08-29 05:24:20 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.110 2012-09-04 06:37:53 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1467,10 +1467,6 @@ void UpdateNodeUnitigs(MultiAlignT *ma, ContigT *contig){
   if(!UngappedOffsets){
     UngappedOffsets = CreateVA_int32(1000);
   }
-  /*
-    fprintf(stderr,
-    "* UpdateNodeUnitigs for contig "F_CID"\n", contig->id);
-  */
 
   GetMultiAlignUngappedOffsets(ma, UngappedOffsets);
   offsets = Getint32(UngappedOffsets,0);
@@ -2182,24 +2178,10 @@ void AssignFragsToResolvedCI(GraphCGW_T *graph,
     AppendIntMultiPos(f_list_Contig, &fragPos);
   }
 
-#if 0
-  /* Copy IntMultiPos records from the source to destination CI, adjusting consensus sequence */
-  PlaceFragmentsInMultiAlignT(toCIMA, f_list_CI);
-  UpdateNodeFragments(ScaffoldGraph->CIGraph, toID, FALSE);
-
-  /* Copy IntMultiPos records to destination Contig, adjusting consensus sequence */
-  PlaceFragmentsInMultiAlignT(contigMA, f_list_Contig);
-  UpdateNodeFragments(ScaffoldGraph->ContigGraph, toContig->id,FALSE);
-  UpdateNodeUnitigs(contigMA, toContig);
-
-#endif
-
   /* Do not Rebuild the Mate Edges of the target CI tor reflect the changes in fragment membership */
 
   /* Do NOT Rebuild the Mate Edges of the target CI's Contig to reflect the changes in fragment membership.
      We will rebuild all mate edges when all fragments have been placed */
-
-
 }
 
 
@@ -3636,22 +3618,6 @@ int32 EdgeDegree(GraphCGW_T *graph, EdgeCGW_T *edge) {
   return(tdegree);
 }
 
-
-void CheckGraph(GraphCGW_T *graph){
-  EdgeCGW_T *edge;
-  NodeCGW_T *node;
-  GraphNodeIterator nodes;
-
-  InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
-
-  while(NULL != (node = NextGraphNodeIterator(&nodes))){
-
-    GraphEdgeIterator edges(graph, node->id, ALL_END, ALL_EDGES);
-    while(NULL != (edge = edges.nextMerged())){
-      continue;
-    }
-  }
-}
 
 
 /* ---------------------------------------------

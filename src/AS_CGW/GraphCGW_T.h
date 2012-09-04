@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.63 2012-08-28 21:09:39 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.64 2012-09-04 06:37:53 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -1216,8 +1216,6 @@ int32 IsShakyContigAtScaffoldEnd(NodeCGW_T *contig);
 
 /* Restore the Edge Means we squirreled away during walking */
 void RestoreEdgeMeans(GraphCGW_T *graph);
-
-void CheckGraph(GraphCGW_T *graph);
 
 void ReallocGraphEdges(GraphCGW_T *graph, int32 numEdges);
 
