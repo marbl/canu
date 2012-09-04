@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.109 2012-08-31 06:35:35 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.110 2012-09-04 06:31:21 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -47,6 +47,8 @@ const char *mainid = "$Id: AS_CGW_main.c,v 1.109 2012-08-31 06:35:35 brianwalenz
 
 #include "Instrument_CGW.h"
 #include "fragmentPlacement.h"  //  for resolveSurrogates()
+
+#include "CIScaffoldT_Analysis.H"  //  For checking mates on load
 
 #include <omp.h>
 
@@ -459,6 +461,32 @@ main(int argc, char **argv) {
     // shatter scaffolds if requested
     if (GlobalData->shatterLevel > 0) {
     	ShatterScaffoldsConnectedByLowWeight(stderr, ScaffoldGraph, GlobalData->shatterLevel, TRUE);
+    }
+
+    //  Useful for checking mate happiness on loading.  Currently only checks one scaffold.
+    if (0) {
+      vector<instrumentLIB>   libs;
+
+      for (int32 i=0; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
+        DistT *dptr = GetDistT(ScaffoldGraph->Dists, i);
+
+        libs.push_back(instrumentLIB(i, dptr->mu, dptr->sigma, true));
+      }
+
+      for (int32 sID=287340; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+        CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
+
+        fprintf(stderr, "ANALYZING SCAFFOLD %d\n", sID);
+
+        if (scaffold->flags.bits.isDead == true)
+          continue;
+
+        instrumentSCF   A(scaffold);
+        A.analyze(libs);
+        A.report();
+
+        exit(0);
+      }
     }
 
     if (recomputeLeastSquaresOnLoad) {
