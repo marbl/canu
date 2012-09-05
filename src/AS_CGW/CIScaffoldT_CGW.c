@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.77 2012-08-30 17:32:28 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.78 2012-09-05 18:58:40 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -1044,7 +1044,7 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     if (0.0 > CI->offsetAEnd.mean)
       fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f negative\n", CI->id, scaffold->id, CI->offsetAEnd.mean), hasProblems++;
     if (0.0 > CI->offsetBEnd.mean)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f negative\n", CI->id, scaffold->id, CI->offsetBEnd.mean), hasProblems++;
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.mean %f negative\n", CI->id, scaffold->id, CI->offsetBEnd.mean), hasProblems++;
 
     if (CI->offsetAEnd.mean > scaffold->bpLength.mean)
       fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetAEnd.mean, scaffold->bpLength.mean), hasProblems++;
@@ -1052,7 +1052,7 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
       fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.mean %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetBEnd.mean, scaffold->bpLength.mean), hasProblems++;
 
     if (0.0 > CI->offsetAEnd.variance)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f negative\n", CI->id, scaffold->id, CI->offsetBEnd.variance), hasProblems++;
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f negative\n", CI->id, scaffold->id, CI->offsetAEnd.variance), hasProblems++;
     if (0.0 > CI->offsetBEnd.variance)
       fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.variance %f negative\n", CI->id, scaffold->id, CI->offsetBEnd.variance), hasProblems++;
 
@@ -1060,7 +1060,7 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     if (CI->offsetAEnd.variance > scaffold->bpLength.variance + 1.0)
       fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetAEnd.variance, scaffold->bpLength.variance), hasProblems++;
     if (CI->offsetBEnd.variance > scaffold->bpLength.variance + 1.0)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetBEnd.variance, scaffold->bpLength.variance), hasProblems++;
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.variance %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetBEnd.variance, scaffold->bpLength.variance), hasProblems++;
 
     if (numCtg == 0)
       if ((CI->offsetAEnd.mean != 0.0) && (CI->offsetBEnd.mean != 0.0))
