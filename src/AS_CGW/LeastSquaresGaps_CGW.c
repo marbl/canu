@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.71 2012-08-31 20:20:56 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.72 2012-09-05 19:01:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1553,6 +1553,13 @@ AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   vector<LengthT *>          positions;
 
   while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
+
+    if (CI->offsetAEnd.variance <= 0.0)
+      CI->offsetAEnd.variance = 0.0;
+
+    if (CI->offsetBEnd.variance <= 0.0)
+      CI->offsetBEnd.variance = 0.0;
+
     positions.push_back(&CI->offsetAEnd);
     positions.push_back(&CI->offsetBEnd);
   }
@@ -1583,7 +1590,14 @@ AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     for (; pi < pb; pi++) {
       assert(positions[pi]->variance <= 0);
 
-      positions[pi]->variance = positions[pi-1]->variance + adj;
+      //  Have had trouble in the past adjusting the variance on coord 0, when there are multiple
+      //  contigs that start at position 0.  The same will possibly occur for any value of the mean,
+      //  we just don't care that much.
+      //
+      if (positions[pi]->mean > 0.0)
+        positions[pi]->variance = positions[pi-1]->variance + adj;
+      else
+        positions[pi]->variance = 0.0;
 
       if (pb == positions.size())
         fprintf(stderr, "AdjNegVar()-- adjust variance for position %f to %f (actual %f) based on %f +- %f\n",
@@ -1666,9 +1680,12 @@ AdjustNegativeGapVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     thisMin->variance += varAdj;
     thisMax->variance += varAdj;
 
-    //  Do we need more adjustment?
+    //  Do we need more adjustment?  Only for positive gaps, and only if the gap variance is negative.
+    //  This used to adjust for variance difference below 1.0, but those are generally correct, and created
+    //  by this adjustment (from a small positive gap).
+    
     if ((lastMax.mean < thisMin->mean) &&
-        (lastMax.variance + 1 >= thisMin->variance)) {
+        (lastMax.variance > thisMin->variance)) {
 
       //  The final gap variance
       double  newVariance = 0.10 * (thisMin->mean - lastMax.mean) * 0.10 * (thisMin->mean - lastMax.mean);
