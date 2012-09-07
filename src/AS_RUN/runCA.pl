@@ -2415,7 +2415,6 @@ sub runMeryl ($$$$$$) {
         caFailure("unknown meryl version '" . merylVersion() . "'", "");
     }
 
-    stopAfter("meryl");
     return($merThresh);
 }
 
@@ -2501,6 +2500,8 @@ sub meryl {
         print STDERR "Reset OVL mer threshold from ", getGlobal("ovlMerThreshold"), " to $ovlT.\n";
         setGlobal("ovlMerThreshold", $ovlT);
     }
+
+    stopAfter("meryl");
 }
 
 ################################################################################
@@ -3378,6 +3379,9 @@ sub merOverlapper($) {
 sub createOverlapJobs($) {
     my $isTrim = shift @_;
 
+    if (-d "$wrk/$asm.ovlStore") {
+       stopAfter("meryl");
+    }
     return if (-d "$wrk/$asm.ovlStore");
 
     caFailure("overlapper detected no fragments", undef) if ($numFrags == 0);
@@ -3402,6 +3406,9 @@ sub createOverlapJobs($) {
 
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");
 
+    if (-e "$wrk/$outDir/overlap.sh") {
+       stopAfter("meryl");
+    }
     return if (-e "$wrk/$outDir/overlap.sh");
 
     #  umd overlapper here
@@ -3746,7 +3753,6 @@ sub createOverlapStore {
 
   alldone:
     stopAfter("overlapper");
-    stopAfter("meryl");
 }
 
 
