@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMatesPairwise.C,v 1.1 2012-09-06 19:42:26 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMatesPairwise.C,v 1.2 2012-09-07 01:52:05 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -59,69 +59,23 @@ public:
 };
 
 
-
-int
-main(int argc, char **argv) {
-  char       *gkpStoreName      = NULL;
-  char       *ovlStoreName      = NULL;
-  char       *resultsName       = NULL;
-
-  bool        beVerbose         = true;
-
-  double      maxErrorFraction  = 0.045;
-
-  uint32      distMin           = 0;
-  uint32      distMax           = 0;
-  bool        innie             = false;  //  require mates to be innie
-
-  set<AS_IID> trstLibs;
-  set<AS_IID> testLibs;
+vector<frgInfo>   finf;
+vector<libInfo>   linf;
 
 
-  argc = AS_configure(argc, argv);
-
-  int err = 0;
-  int arg = 1;
-  while (arg < argc) {
-    if        (strcmp(argv[arg], "-G") == 0) {
-      gkpStoreName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-O") == 0) {
-      ovlStoreName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-e") == 0) {
-      maxErrorFraction = atof(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-o") == 0) {
-      resultsName = argv[++arg];
-
-    } else if (strcmp(argv[arg], "-trusted") == 0) {
-      AS_UTL_decodeRange(argv[++arg], trstLibs);
-      
-    } else if (strcmp(argv[arg], "-test") == 0) {
-      AS_UTL_decodeRange(argv[++arg], testLibs);
-
-
-    }
-
-    arg++;
-  }
-
-
-  //  Load the mate pair map, and read lenghts.
-
+void
+loadFragmentData(char         *gkpStoreName,
+                 set<AS_IID>   trstLibs,
+                 set<AS_IID>   testLibs) {
   gkStore          *gkpStore  = new gkStore(gkpStoreName, FALSE, FALSE);
   gkStream         *gkpStream = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
   gkFragment        frg;
 
   uint32 numFrags   = gkpStore->gkStore_getNumFragments();
-  uint32 numTrusted = 0;
-  uint32 numTested  = 0;
   uint32 numLibs    = gkpStore->gkStore_getNumLibraries();
 
-  frgInfo    *finf    = new frgInfo [numFrags + 1];
-  libInfo    *linf    = new libInfo [numLibs + 1];
-
+  linf.resize(numLibs + 1);
+  finf.resize(numFrags + 1);
 
   for (uint32 ii=1; ii<=numLibs; ii++) {
     linf[ii].isTrusted       = (trstLibs.count(ii) > 0);
@@ -143,7 +97,8 @@ main(int argc, char **argv) {
             linf[ii].mean, linf[ii].stddev);
   }
 
-
+  uint32 numTrusted = 0;
+  uint32 numTested  = 0;
 
   while (gkpStream->next(&frg)) {
     uint32  fid = frg.gkFragment_getReadIID();
@@ -193,11 +148,139 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "LOADING FRAGMENTS...%u fragments loaded (%u trusted; %u to test).\n",
           numFrags, numTrusted, numTested);
+}
+
+
+bool
+testIfTruePEAreOverlapping(OVSoverlap  *avl,
+                           uint32       avlLen,
+                           OVSoverlap  *bvl,
+                           uint32       bvlLen) {
+  int32   fsa = 0;
+  int32   fsb = 0;
+
+  AS_IID  aiid = avl[0].a_iid;
+  AS_IID  biid = bvl[0].a_iid;
+
+  assert(finf[aiid].mateIID == biid);
+  assert(finf[biid].mateIID == aiid);
+
+  uint32  ai = 0;
+  uint32  bi = 0;
+
+  for (ai=0; ai<avlLen; ai++)
+    if (avl[ai].b_iid == biid)
+      break;
+
+  for (bi=0; bi<bvlLen; bi++)
+    if (bvl[bi].b_iid == aiid)
+      break;
+
+  if (ai < avlLen) {
+    finf[aiid].isOverlapping = true;
+    finf[biid].isOverlapping = true;
+
+    fsa = finf[aiid].clearLength + avl[ai].dat.ovl.b_hang;
+  }
+
+  if (bi < bvlLen) {
+    finf[aiid].isOverlapping = true;
+    finf[biid].isOverlapping = true;
+
+    fsb = finf[biid].clearLength + bvl[bi].dat.ovl.a_hang;
+  }
+
+  return(MAX(fsa, fsb));
+}
 
 
 
-  FILE             *editFile  = fopen("cmp.edit", "w");
+int
+main(int argc, char **argv) {
+  char       *gkpStoreName      = NULL;
+  char       *ovlStoreName      = NULL;
+  char       *resultsName       = NULL;
 
+  bool        beVerbose         = true;
+
+  double      maxErrorFraction  = 0.045;
+
+  uint32      distMin           = 0;
+  uint32      distMax           = 0;
+  bool        innie             = false;  //  require mates to be innie
+
+  set<AS_IID> trstLibs;
+  set<AS_IID> testLibs;
+
+
+  argc = AS_configure(argc, argv);
+
+  int err = 0;
+  int arg = 1;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-G") == 0) {
+      gkpStoreName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      ovlStoreName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      maxErrorFraction = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      resultsName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-trusted") == 0) {
+      AS_UTL_decodeRange(argv[++arg], trstLibs);
+      
+    } else if (strcmp(argv[arg], "-test") == 0) {
+      AS_UTL_decodeRange(argv[++arg], testLibs);
+
+
+    }
+
+    arg++;
+  }
+  if (gkpStoreName == NULL)
+    err++;
+  if (ovlStoreName == NULL)
+    err++;
+  if (resultsName == NULL)
+    err++;
+  if (trstLibs.size() == 0)
+    err++;
+  if (testLibs.size() == 0)
+    err++;
+
+  if (err) {
+    fprintf(stderr, "usage: %s -G gkpStore -O ovlStore -o outName -trusted X-Y -test A-B\n", argv[0]);
+
+    if (gkpStoreName == NULL)
+      fprintf(stderr, "ERROR: no gkpStore (-G) supplied.\n");
+    if (ovlStoreName == NULL)
+      fprintf(stderr, "ERROR: no ovlStore (-O) supplied.\n");
+    if (resultsName == NULL)
+      fprintf(stderr, "ERROR: no output name (-o) supplied.\n");
+    if (trstLibs.size() == 0)
+      fprintf(stderr, "ERROR: no trusted libraries (-tusted) supplied.\n");
+    if (testLibs.size() == 0)
+      fprintf(stderr, "ERROR: no test libraries (-test) supplied.\n");
+    
+    exit(1);
+  }
+
+  //  Load the mate pair map, and read lenghts.
+
+  loadFragmentData(gkpStoreName, trstLibs, testLibs);
+
+
+  char              fileName[FILENAME_MAX];
+
+  sprintf(fileName, "%s.classifyMatesPairwise.gkpEdit", resultsName);
+  FILE             *edtFile  = fopen(fileName, "w");
+
+  sprintf(fileName, "%s.classifyMatesPairwise.log", resultsName);
+  FILE             *logFile  = fopen(fileName, "w");
 
   OverlapStore     *ovlStore  = AS_OVS_openOverlapStore(ovlStoreName);
 
@@ -220,10 +303,31 @@ main(int argc, char **argv) {
   //  overlaps for the next id.
 
 
-  AS_IID            minFragIID = 0;
-  AS_IID            maxFragIID = numFrags + 1;
+  AS_IID            minFragIID = finf.size();
+  AS_IID            maxFragIID = 0;
 
-  //resetOverlapStoreRange(ovlStore, 0, minFragIID, maxFragIID);
+  for (uint32 fi=1; fi<finf.size(); fi++) {
+    if (finf[fi].doTesting == false)
+      continue;
+
+    if (fi < minFragIID)
+      minFragIID = fi;
+    if (maxFragIID < fi)
+      maxFragIID = fi;
+  }
+
+  if (minFragIID > maxFragIID)
+    fprintf(stderr, "ERROR: nothing to test.\n"), exit(1);
+
+  fprintf(stderr, "Testing reads from "F_U32" to "F_U32".\n",
+          minFragIID, maxFragIID);
+
+  //AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
+
+
+
+
+
 
   bool  stillMore = true;
 
@@ -270,41 +374,15 @@ main(int argc, char **argv) {
 
     //  Check if we're overlapping - if the other read in an overlap is the mate
 
-    bool    atob     = false;
-    bool    btoa     = false;
-    int32   fragSize = linf[finf[avl[0].a_iid].libIID].mean;
+    bool   overlappingPE = false;
+    int32  fragSize      = testIfTruePEAreOverlapping(avl, avlLen, bvl, bvlLen);
 
-    {
-      AS_IID  aiid = avl[0].a_iid;
-      AS_IID  biid = bvl[0].a_iid;
-
-      assert(finf[aiid].mateIID == biid);
-      assert(finf[biid].mateIID == aiid);
-
-      uint32  ai = 0;
-      uint32  bi = 0;
-
-      for (uint32 ai=0; ai<avlLen; ai++) {
-        if (avl[ai].b_iid == biid) {
-          atob = true;
-          break;
-        }
-      }
-
-      for (uint32 bi=0; bi<bvlLen; bi++) {
-        if (bvl[bi].b_iid == aiid) {
-          btoa = true;
-          break;
-        }
-      }
-
-      if (atob && btoa) {
-        finf[aiid].isOverlapping = true;
-        finf[biid].isOverlapping = true;
-
-        fragSize = MAX(finf[aiid].clearLength + avl[ai].dat.ovl.b_hang,
-                       finf[biid].clearLength + avl[ai].dat.ovl.a_hang);
-      }
+    if (fragSize == 0) {
+      //  Nope.
+      fragSize = linf[finf[avl[0].a_iid].libIID].mean;
+    } else {
+      //  Yup.
+      overlappingPE = true;
     }
 
 
@@ -312,25 +390,43 @@ main(int argc, char **argv) {
     //  Both overlaps have Aiid from the PE pair.
     //  We need to find two overlaps such that the Biid is a testable pair.
 
-    for (uint32 ai=0; ai<avlLen; ai++) {
+    for (uint32 ai=0, si=0; ai<avlLen; ai++) {
       AS_IID  taiid = avl[ai].b_iid;
 
-      if (finf[taiid].doTesting == false)
+      if ((finf[taiid].mateIID == 0) ||       //  Overlapping read isn't mated, don't care about it.
+          (finf[taiid].doTesting == false))   //  Overlapping read isn't marked for testing, don't care about it.
         continue;
+
+      //  Starting position for the next loop.  Advance past the overlaps that are below the read
+      //  we're looking for.
+
+      while ((si < bvlLen) &&
+             (bvl[si].b_iid < finf[taiid].mateIID))
+        si++;
+
+      if (si > 0)  //  Because the loop stops on the one after we want.
+        si--;
 
       //  The ai overlap is to a testable read.  Search for the mate in the
       //  other overlap set.
 
-      for (uint32 bi=0; bi<bvlLen; bi++) {
+      for (uint32 bi=si; bi<bvlLen; bi++) {
         AS_IID  tbiid = bvl[bi].b_iid;
 
-        if (finf[tbiid].doTesting == false)
+        if (finf[taiid].mateIID < tbiid)        //  Overlapping read is after the one we're looking for.  It isn't here.
+          break;
+
+        if ((tbiid < finf[taiid].mateIID) ||    //  Overlapping read is before the one we're looking for.  Keep looking.
+            (finf[tbiid].doTesting == false))   //  Overlapping read isn't marked for testing, don't care about it.
           continue;
 
-        if (finf[taiid].mateIID != tbiid)
-          continue;
+        //  Overlapping read is the one we're looking for.  Test it!
 
-        //  Testable!
+        assert(finf[avl[ai].a_iid].mateIID   == bvl[bi].a_iid);  //  The trusted PE pair
+        assert(finf[bvl[bi].a_iid].mateIID   == avl[ai].a_iid);
+
+        assert(finf[avl[ai].b_iid].mateIID   == bvl[bi].b_iid);  //  The tested PE pair
+        assert(finf[bvl[bi].b_iid].mateIID   == avl[ai].b_iid);
 
         //  Compute the expected size of the MP pair (do NOT add to fragSize; it is reused for the next pair in the same overlap set)
 
@@ -347,17 +443,23 @@ main(int argc, char **argv) {
         if ((avl[ai].dat.ovl.flipped == true) && (avl[ai].dat.ovl.flipped == true))
           plausiblyPE = true;
 
-        if ((avl[ai].dat.ovl.flipped == false) && (avl[ai].dat.ovl.flipped == false) && (atob == true) && (btoa == true))
+        if ((avl[ai].dat.ovl.flipped == false) && (avl[ai].dat.ovl.flipped == false) && (overlappingPE == true))
           plausiblyPE = true;
 
         if (plausiblyPE == false) {
-          fprintf(stderr, "A %8u-%8u %c %4ld-%4ld %c  B %8u-%8u %c %4ld-%4ld %c -- size %d\n",
-                  avl[ai].a_iid, avl[ai].b_iid, avl[ai].dat.ovl.flipped ? 'I' : 'N', avl[ai].dat.ovl.a_hang, avl[ai].dat.ovl.b_hang, atob ? 'O' : ' ',
-                  bvl[bi].a_iid, bvl[bi].b_iid, bvl[bi].dat.ovl.flipped ? 'I' : 'N', bvl[bi].dat.ovl.a_hang, bvl[bi].dat.ovl.b_hang, btoa ? 'O' : ' ',
-                  fragSize + adiff + bdiff);
+          fprintf(logFile, "A %8u-%8u %c %4ld-%4ld  B %8u-%8u %c %4ld-%4ld -- size %4d %c -- SHORT_MP\n",
+                  avl[ai].a_iid, avl[ai].b_iid, avl[ai].dat.ovl.flipped ? 'I' : 'N', avl[ai].dat.ovl.a_hang, avl[ai].dat.ovl.b_hang,
+                  bvl[bi].a_iid, bvl[bi].b_iid, bvl[bi].dat.ovl.flipped ? 'I' : 'N', bvl[bi].dat.ovl.a_hang, bvl[bi].dat.ovl.b_hang,
+                  fragSize + adiff + bdiff, overlappingPE ? 'O' : '-');
+
         } else {
-          fprintf(editFile, "frg iid %u mateiid 0\n", avl[ai].b_iid);
-          fprintf(editFile, "frg iid %u mateiid 0\n", bvl[bi].b_iid);
+          fprintf(logFile, "A %8u-%8u %c %4ld-%4ld  B %8u-%8u %c %4ld-%4ld -- size %4d %c -- PLAUSIBLY_PE\n",
+                  avl[ai].a_iid, avl[ai].b_iid, avl[ai].dat.ovl.flipped ? 'I' : 'N', avl[ai].dat.ovl.a_hang, avl[ai].dat.ovl.b_hang,
+                  bvl[bi].a_iid, bvl[bi].b_iid, bvl[bi].dat.ovl.flipped ? 'I' : 'N', bvl[bi].dat.ovl.a_hang, bvl[bi].dat.ovl.b_hang,
+                  fragSize + adiff + bdiff, overlappingPE ? 'O' : '-');
+
+          fprintf(edtFile, "frg iid %u mateiid 0\n", avl[ai].b_iid);
+          fprintf(edtFile, "frg iid %u mateiid 0\n", bvl[bi].b_iid);
         }
       }
     }
@@ -368,7 +470,8 @@ main(int argc, char **argv) {
     bvlLen = 0;
   }
 
-  fclose(editFile);
+  fclose(edtFile);
+  fclose(logFile);
 
   exit(0);
 }
