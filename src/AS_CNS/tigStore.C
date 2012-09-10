@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.24 2012-08-11 00:32:27 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.25 2012-09-10 12:38:30 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -406,7 +406,7 @@ operationCompress(char *tigName, int tigVers) {
         continue;
       }
 
-      tigStore->insertMultiAlign(ma, isUnitig, FALSE);
+      tigStore->insertMultiAlign(ma, isUnitig, TRUE);
       tigStore->unloadMultiAlign(ti, isUnitig);
     }
   }
@@ -433,7 +433,7 @@ operationCompress(char *tigName, int tigVers) {
         continue;
       }
 
-      tigStore->insertMultiAlign(ma, isUnitig, FALSE);
+      tigStore->insertMultiAlign(ma, isUnitig, TRUE);
       tigStore->unloadMultiAlign(ti, isUnitig);
     }
   }
