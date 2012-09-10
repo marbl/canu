@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: terminator.C,v 1.16 2012-08-01 02:23:38 brianwalenz Exp $";
+const char *mainid = "$Id: terminator.C,v 1.17 2012-09-10 08:58:11 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly pipeline and replaces internal
 //  accession numbers by external accession numbers.
@@ -904,7 +904,7 @@ writeSLK(FILE *asmFile, bool doWrite) {
   CIScaffoldT         *scaffold;
   CIScaffoldT         *scafmate;
 
-  fprintf(stderr, "writeSCF()--\n");
+  fprintf(stderr, "writeSLK()--\n");
 
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
   while ((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {

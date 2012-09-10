@@ -5443,15 +5443,14 @@ sub terminate () {
         $cmd .= " -g $wrk/$asm.gkpStore";
         $cmd .= " -t $wrk/$asm.tigStore $tigVersion";
         $cmd .= " -c $wrk/7-CGW/$asm $ckpVersion";
-        $cmd .= " -o $wrk/9-terminator/$asm";
-        $cmd .= " > $wrk/9-terminator/$asm.asm.err";
+        $cmd .= " -o $termDir/$asm";
+        $cmd .= " > $termDir/$asm.asm.err 2>&1";
 
         if (runCommand("$termDir", $cmd)) {
             rename "$termDir/$asm.asm", "$termDir/$asm.asm.FAILED";
             rename "$termDir/$asm.map", "$termDir/$asm.map.FAILED";
-            caFailure("terminator failed", "$termDir/terminator.err");
+            caFailure("terminator failed", "$termDir/$asm.asm.err");
         }
-        unlink "$termDir/terminator.err";
     }
 
 
