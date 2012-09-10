@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.111 2012-09-10 10:55:44 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.112 2012-09-10 12:40:32 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -753,6 +753,19 @@ main(int argc, char **argv) {
       //ScaffoldGraph->tigStore->flushCache();
     } while (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
 
+    //
+    //  XXX do we need least squares here?
+    //
+#if 1
+    fprintf(stderr, "Beta - LeastSquaresGapEstimates #1 after final rocks\n");
+    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+      CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
+
+      if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
+        ScaffoldSanity(ScaffoldGraph, scaffold);
+    }
+#endif
+
     CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_FINAL_ROCKS], "after final rocks");
   }
 
@@ -762,6 +775,19 @@ main(int argc, char **argv) {
     ScaffoldSanity (ScaffoldGraph);
 
     int partial_stones = Throw_Stones(GlobalData->outputPrefix, GlobalData->stoneLevel, TRUE);
+
+    //
+    //  XXX do we need least squares here?
+    //
+#if 1
+    fprintf(stderr, "Beta - LeastSquaresGapEstimates #2 after partial stones\n");
+    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+      CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
+
+      if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
+        ScaffoldSanity(ScaffoldGraph, scaffold);
+    }
+#endif
 
     //  If throw_stones splits scaffolds, rebuild edges
     {
@@ -803,7 +829,22 @@ main(int argc, char **argv) {
     fprintf(stderr, "Threw %d contained stones\n", contained_stones);
     fprintf (stderr, "**** Finished Final Contained Stones level %d ****\n", GlobalData->stoneLevel);
 
+    //  Merge contigs before fiddling with gap sizes.
     CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
+
+    //
+    //  XXX do we need least squares here?
+    //
+#if 1
+    fprintf(stderr, "Beta - LeastSquaresGapEstimates #3 after contained stones\n");
+    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+      CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
+
+      if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
+        ScaffoldSanity(ScaffoldGraph, scaffold);
+    }
+#endif
+
     ScaffoldSanity (ScaffoldGraph);
 
     // Remove copies of surrogates which are placed multiple times in the same place in a contig
@@ -845,6 +886,20 @@ main(int argc, char **argv) {
         CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
 #endif
       }
+
+      //
+      //  XXX do we need least squares here?
+      //
+#if 1
+    fprintf(stderr, "Beta - LeastSquaresGapEstimates #4 after final cleanup\n");
+      for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+        CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
+
+        if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
+          ScaffoldSanity(ScaffoldGraph, scaffold);
+      }
+#endif
+
       CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_FINAL_CLEANUP], "after final cleanup");
     }
   }
