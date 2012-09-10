@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.110 2012-09-04 06:37:53 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.111 2012-09-10 10:55:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -244,6 +244,7 @@ RebuildGraphEdges(GraphCGW_T *graph) {
 
   ResizeEdgeList(graph);
 
+#if 0
   //  BPW couldn't get scaffold edges to load properly.  They triggered a ton of issues
   //  with null scaffolds and edges to deleted scaffolds.
   //
@@ -259,6 +260,7 @@ RebuildGraphEdges(GraphCGW_T *graph) {
 
     return;
   }
+#endif
 
   fprintf(stderr, "RebuildGraphEdges()-- Rebuilding "F_SIZE_T" edges in "F_SIZE_T" %s.\n",
           GetNumEdgeCGW_Ts(graph->edges),

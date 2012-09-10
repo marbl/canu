@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.73 2012-09-04 06:34:47 brianwalenz Exp $";
+static char *rcsid = "$Id: ScaffoldGraph_CGW.c,v 1.74 2012-09-10 10:55:44 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -511,7 +511,7 @@ TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph) {
   vector<CDS_CID_t>  rawEdges;
 
   fprintf(stderr, "TidyUpScaffolds()--  Starting BuildSEdges().\n");
-  BuildSEdges(ScaffoldGraph, rawEdges, FALSE);
+  BuildSEdges(rawEdges, FALSE);
 
   fprintf(stderr, "TidyUpScaffolds()--  Starting MergeAllGraphEdges().\n");
   MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, FALSE);

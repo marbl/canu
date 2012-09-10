@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.83 2012-08-29 20:50:54 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.84 2012-09-10 10:55:44 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -907,6 +907,17 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
   iSpec.MIs                    = CreateVA_MateInstrumenterP(GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
   iSpec.badSEdges              = CreateChunkOverlapper();
 
+  //  Be conservative, and rebuild the full edge set once.
+
+  {
+    vector<CDS_CID_t>  rawEdges;
+
+    BuildSEdges(rawEdges, TRUE);
+    MergeAllGraphEdges(graph->ScaffoldGraph, rawEdges, TRUE, FALSE);
+  }
+
+
+
   {
     vector<SEdgeT *>      sEdges;
     vector<SEdgeT *>      oEdges;
@@ -917,13 +928,6 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
     double            weightScale        = weightScaleInit;
     time_t            lastCkpTime        = time(0) - 90 * 60;
 
-    //  Create a scaffold edge for every inter-scaffold contig edge, then merge compatible ones
-    {
-      vector<CDS_CID_t>  rawEdges;
-
-      BuildSEdges(graph, rawEdges, TRUE);
-      MergeAllGraphEdges(graph->ScaffoldGraph, rawEdges, TRUE, FALSE);
-    }
 
     // loop until nothing gets merged
     while (1) {
@@ -977,12 +981,16 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
         matePairTestResult.clear();
 #endif
 
+#if 0
+        //  Left in, just in case.  MergeScaffolds() now rebuilds only those scaffold graph edges
+        //  that have changed.  If you enable this, ALL scaffold graph edges will be rebuilt.
         {
           vector<CDS_CID_t>  rawEdges;
 
-          BuildSEdges(graph, rawEdges, TRUE);
+          BuildSEdges(rawEdges, TRUE);
           MergeAllGraphEdges(graph->ScaffoldGraph, rawEdges, TRUE, FALSE);
         }
+#endif
 
         //  Reset to original weight scaling - this is a bit too aggressive, but seems to be safe.  We do not
         //  end up doing tons and tons of work on failed edges.

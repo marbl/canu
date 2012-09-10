@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.29 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: SEdgeT_CGW.c,v 1.30 2012-09-10 10:55:44 brianwalenz Exp $";
 
 //#define DEBUG 1
 
@@ -223,8 +223,7 @@ CIOffsetAndOrientation(ScaffoldGraphT *graph,
 /************************************************************************************/
 static
 CDS_CID_t
-BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
-                        ChunkInstanceT  *thisCI,
+BuildSEdgeFromChunkEdge(ChunkInstanceT  *thisCI,
                         ChunkInstanceT  *thatCI,
                         CIEdgeT         *edge) {
   SequenceOrient ciOrient;
@@ -238,8 +237,8 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
 
   SEdgeT sedge;
 
-  CIScaffoldT  *thisScf  = GetCIScaffoldT(graph->CIScaffolds, thisCI->scaffoldID);
-  CIScaffoldT  *thatScf  = GetCIScaffoldT(graph->CIScaffolds, thatCI->scaffoldID);
+  CIScaffoldT  *thisScf  = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, thisCI->scaffoldID);
+  CIScaffoldT  *thatScf  = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, thatCI->scaffoldID);
 
   assert(thisCI->scaffoldID < thatCI->scaffoldID);
 
@@ -251,7 +250,7 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
 
     orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
 
-    CIOffsetAndOrientation(graph, thatCI->id, orient, &miOffset, &miFlipOffset, &miOrient);
+    CIOffsetAndOrientation(ScaffoldGraph, thatCI->id, orient, &miOffset, &miFlipOffset, &miOrient);
   }
 
   {
@@ -260,7 +259,7 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
 
     orient.setIsForward(edgeOrient.isAB_BA() || edgeOrient.isAB_AB());
 
-    CIOffsetAndOrientation(graph, thisCI->id, orient, &ciOffset, &ciFlipOffset, &ciOrient);
+    CIOffsetAndOrientation(ScaffoldGraph, thisCI->id, orient, &ciOffset, &ciFlipOffset, &ciOrient);
   }
 
   assert(ciOrient.isUnknown() == false);
@@ -288,7 +287,7 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
     // variances but we need to correct for the variance of the offset
     // already included in the edge->distance.variance
 
-    distance.variance = edge->distance.variance + ciFlipOffset.variance + miFlipOffset.variance + CorrectEdgeVariance(graph, edge);
+    distance.variance = edge->distance.variance + ciFlipOffset.variance + miFlipOffset.variance + CorrectEdgeVariance(ScaffoldGraph, edge);
     sedgeOrient.invert();
 
   } else {
@@ -328,18 +327,18 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
 
   sedge.edgesContributing = edge->edgesContributing;
   sedge.topLevelEdge = NULLINDEX;
-  sedge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
+  sedge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(ScaffoldGraph->ContigGraph->edges, edge);
 
   sedge.nextRawEdge = NULLINDEX;
 
-  SEdgeT * newEdge = GetFreeGraphEdge(graph->ScaffoldGraph);
+  SEdgeT * newEdge = GetFreeGraphEdge(ScaffoldGraph->ScaffoldGraph);
 
-  sedge.topLevelEdge = GetVAIndex_EdgeCGW_T(graph->ScaffoldGraph->edges, newEdge);
+  sedge.topLevelEdge = GetVAIndex_EdgeCGW_T(ScaffoldGraph->ScaffoldGraph->edges, newEdge);
 
   *newEdge = sedge;
 
   //  DON'T INSERT!  We return these edges to the caller for insertion into a vector.
-  //InsertGraphEdge(graph->ScaffoldGraph, newEdge->topLevelEdge, FALSE);
+  //InsertGraphEdge(ScaffoldGraph->ScaffoldGraph, newEdge->topLevelEdge, FALSE);
 
   return(sedge.topLevelEdge);
 }
@@ -347,25 +346,105 @@ BuildSEdgeFromChunkEdge(ScaffoldGraphT  *graph,
 
 
 void
-BuildSEdges(ScaffoldGraphT     *graph,
+RemoveDeadSEdges(vector<CDS_CID_t> &oldScaffolds) {
+
+  for (uint32 si=0; si<oldScaffolds.size(); si++) {
+    CDS_CID_t    sid      = oldScaffolds[si];
+    CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid);
+
+    assert(isDeadCIScaffoldT(scaffold) == true);
+
+    //  Move edges from the dead scaffold to the unused edge list
+
+    GraphEdgeIterator edges(ScaffoldGraph->ScaffoldGraph, sid, ALL_END, ALL_EDGES);
+    CIEdgeT          *edge;
+
+    while ((edge = edges.nextMerged()) != NULL) {
+      UnlinkGraphEdge(ScaffoldGraph->ScaffoldGraph, edge);  //  Unlink it from the graph
+      FreeGraphEdge(ScaffoldGraph->ScaffoldGraph, edge);    //  And recycle the components
+    }
+
+    ScaffoldGraph->ScaffoldGraph->edgeLists[sid].clear();
+  }
+}
+
+
+
+static
+void
+BuildSEdgesForScaffold(CIScaffoldT        *scaffold,
+                       vector<CDS_CID_t>  &rawEdges,
+                       bool                includeNegativeEdges,
+                       bool                includeAllEdges) {
+
+  if ((isDeadCIScaffoldT(scaffold) == true) ||
+      (scaffold->type != REAL_SCAFFOLD))
+    return;
+
+  CIScaffoldTIterator CIs;
+  ChunkInstanceT     *CI;
+
+  InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
+
+  while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
+    GraphEdgeIterator edges(ScaffoldGraph->ContigGraph, CI->id, ALL_END, ALL_EDGES);
+    CIEdgeT          *edge;
+
+    while ((edge = edges.nextRaw()) != NULL) {
+      ChunkInstanceT *MI = GetGraphNode(ScaffoldGraph->ContigGraph, ((edge->idA == CI->id) ? edge->idB : edge->idA));
+
+      assert(edge->flags.bits.isRaw);
+
+      if (isOverlapEdge(edge) == true)
+        continue;
+
+      if ((includeNegativeEdges == false) && (edge->distance.mean < -10000))
+        continue;
+
+      if (isProbablyBogusEdge(edge) == true)
+        continue;
+
+      if (MI->scaffoldID == NULLINDEX)
+        continue;
+
+      if (MI->scaffoldID == CI->scaffoldID)
+        //  Internal edge
+        continue;
+
+      if ((includeAllEdges == false) && (MI->scaffoldID < CI->scaffoldID))
+        //  Non-canonical edge.
+        continue;
+
+      if ((includeAllEdges == true) &&
+          (GetGraphNode(ScaffoldGraph->ScaffoldGraph, CI->scaffoldID)->flags.bits.isHavingEdgesBuilt == true) &&
+          (GetGraphNode(ScaffoldGraph->ScaffoldGraph, MI->scaffoldID)->flags.bits.isHavingEdgesBuilt == true) &&
+          (MI->scaffoldID < CI->scaffoldID))
+        //  Non-canonical edge between two new scaffolds.
+        continue;
+
+      if (CI->scaffoldID < MI->scaffoldID)
+        rawEdges.push_back(BuildSEdgeFromChunkEdge(CI, MI, edge));
+      else
+        rawEdges.push_back(BuildSEdgeFromChunkEdge(MI, CI, edge));
+    }
+  }
+}
+
+
+
+void
+BuildSEdges(vector<CDS_CID_t>  &newScaffolds,
             vector<CDS_CID_t>  &rawEdges,
             bool                includeNegativeEdges) {
 
-  //  Recycle the SEdge VA
+  for (uint32 si=0; si<newScaffolds.size(); si++) {
+    CDS_CID_t    sid      = newScaffolds[si];
+    CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid);
 
-  ResetEdgeCGW_T(graph->ScaffoldGraph->edges);
+    assert(isDeadCIScaffoldT(scaffold) == false);
+    assert(scaffold->type              == REAL_SCAFFOLD);
 
-  graph->ScaffoldGraph->edgeLists.clear();
-
-  ResizeEdgeList(graph->ScaffoldGraph);
-
-  graph->ScaffoldGraph->tobeFreeEdgeHead = NULLINDEX;
-  graph->ScaffoldGraph->freeEdgeHead     = NULLINDEX;
-
-  //  Reset scaffold edge heads
-
-  for (CDS_CID_t sid=0; sid<GetNumGraphNodes(graph->ScaffoldGraph); sid++) {
-    CIScaffoldT *scaffold = GetGraphNode(graph->ScaffoldGraph, sid);
+    //  Reset scaffold edge heads
 
     scaffold->essentialEdgeA                = NULLINDEX;
     scaffold->essentialEdgeB                = NULLINDEX;
@@ -374,50 +453,76 @@ BuildSEdges(ScaffoldGraphT     *graph,
     scaffold->flags.bits.smoothSeenAlready  = FALSE;
     scaffold->flags.bits.walkedAlready      = FALSE;
 
-    graph->ScaffoldGraph->edgeLists[sid].clear();
+    //  Make note of the fact that we're building edges for this scaffold.  If we encounter an edge
+    //  between two 'new' scaffolds, we'll only use the canonical version.  Otherwise, all edges are
+    //  added.
+
+    scaffold->flags.bits.isHavingEdgesBuilt = true;
+
+    ScaffoldGraph->ScaffoldGraph->edgeLists[sid].clear();
   }
 
-  //  Build the scaffold edges
 
-  for (CDS_CID_t sid=0; sid<GetNumGraphNodes(graph->ScaffoldGraph); sid++) {
-    CIScaffoldT *scaffold = GetGraphNode(graph->ScaffoldGraph, sid);
+  for (uint32 si=0; si<newScaffolds.size(); si++) {
+    CDS_CID_t    sid      = newScaffolds[si];
+    CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid);
 
-    if ((isDeadCIScaffoldT(scaffold) == true) ||
-        (scaffold->type != REAL_SCAFFOLD))
-      continue;
+    fprintf(stderr, "BuildSEdges()-- build scaffold edges for scaffold %d\n", sid);
 
-    CIScaffoldTIterator CIs;
-    ChunkInstanceT     *CI;
+    //  Build SEdges involving the scaffold.  We want to include all edges, regardless of canonical,
+    //  since we're only building edges for specific scaffolds.
 
-    InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+    BuildSEdgesForScaffold(scaffold, rawEdges, includeNegativeEdges, true);
+  }
 
-    while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
-      GraphEdgeIterator edges(graph->ContigGraph, CI->id, ALL_END, ALL_EDGES);
-      CIEdgeT          *edge;
 
-      while ((edge = edges.nextRaw()) != NULL) {
-        ChunkInstanceT *MI = GetGraphNode(graph->ContigGraph, ((edge->idA == CI->id) ? edge->idB : edge->idA));
+  for (uint32 si=0; si<newScaffolds.size(); si++) {
+    CDS_CID_t    sid      = newScaffolds[si];
+    CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid);
 
-        assert(edge->flags.bits.isRaw);
+    scaffold->flags.bits.isHavingEdgesBuilt = false;
+  }
 
-        if (isOverlapEdge(edge) == true)
-          continue;
+}
 
-        if ((includeNegativeEdges == false) && (edge->distance.mean < -10000))
-          continue;
 
-        if (isProbablyBogusEdge(edge) == true)
-          continue;
 
-        if (MI->scaffoldID == NULLINDEX)
-          continue;
+void
+BuildSEdges(vector<CDS_CID_t>  &rawEdges,
+            bool                includeNegativeEdges) {
 
-        if (MI->scaffoldID <= CI->scaffoldID)
-          //  Non-canonical or internal edge.
-          continue;
+  //  Recycle the SEdge VA
 
-        rawEdges.push_back(BuildSEdgeFromChunkEdge(graph, CI, MI, edge));
-      }
-    }
+  ResetEdgeCGW_T(ScaffoldGraph->ScaffoldGraph->edges);
+
+  ScaffoldGraph->ScaffoldGraph->edgeLists.clear();
+
+  ResizeEdgeList(ScaffoldGraph->ScaffoldGraph);
+
+  ScaffoldGraph->ScaffoldGraph->tobeFreeEdgeHead = NULLINDEX;
+  ScaffoldGraph->ScaffoldGraph->freeEdgeHead     = NULLINDEX;
+
+  //  Reset scaffold edge heads
+
+  for (CDS_CID_t sid=0; sid<GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid++) {
+    CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid);
+
+    scaffold->essentialEdgeA                = NULLINDEX;
+    scaffold->essentialEdgeB                = NULLINDEX;
+    scaffold->numEssentialA                 = 0;
+    scaffold->numEssentialB                 = 0;
+    scaffold->flags.bits.smoothSeenAlready  = FALSE;
+    scaffold->flags.bits.walkedAlready      = FALSE;
+
+    ScaffoldGraph->ScaffoldGraph->edgeLists[sid].clear();
+  }
+
+  //  Build the scaffold edges.  We're building all edges from scratch, and we
+  //  want to filter out non-canonical edges.
+
+  for (CDS_CID_t sid=0; sid<GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid++) {
+    CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, sid);
+
+    BuildSEdgesForScaffold(scaffold, rawEdges, includeNegativeEdges, false);
   }
 }

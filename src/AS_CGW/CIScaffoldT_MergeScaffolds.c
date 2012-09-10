@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.13 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_MergeScaffolds.c,v 1.14 2012-09-10 10:55:44 brianwalenz Exp $";
 
 #include "CIScaffoldT_MergeScaffolds.h"
 
@@ -95,9 +95,7 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
                                    SequenceOrient            orient,
                                    LengthT                  *offset,
                                    int                       currentSetID,
-                                   int                       contigNow,
-                                   vector<CIScaffoldT>      &oldScaffolds,
-                                   vector<ChunkInstanceT>   &oldContigs) {
+                                   int                       contigNow) {
   CIScaffoldT *oldScaffold = GetCIScaffoldT(sgraph->CIScaffolds, oldScaffoldID);
   CIScaffoldT *newScaffold = GetCIScaffoldT(sgraph->CIScaffolds, newScaffoldID);
 
@@ -116,16 +114,6 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
   //  Shouldn't be necessary, occasionally (in GOSIII) the length was wrong.
   SetCIScaffoldTLength(sgraph, newScaffold);
   SetCIScaffoldTLength(sgraph, oldScaffold);
-
-  //  Save copies of the old stuff
-
-  oldScaffolds.push_back(*oldScaffold);
-
-  InitCIScaffoldTIterator(sgraph, oldScaffold, TRUE, FALSE, &CIs);
-  while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-    //fprintf(stderr, "SAVE CI %d in scaffold %d\n", CI->id, CI->scaffoldID);
-    oldContigs.push_back(*CI);
-  }
 
   //  Mark the old one as dead
 
@@ -324,6 +312,9 @@ MergeScaffolds(InterleavingSpec               *iSpec,
 
   InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
 
+  vector<CDS_CID_t>  oldScaffolds;  //  These scaffolds were merged, and no longer exist
+  vector<CDS_CID_t>  newScaffolds;  //  These scaffolds were created
+
   while ((thisScaffold = NextGraphNodeIterator(&scaffolds)) != NULL) {
     const LengthT  nullLength = {0.0, 0.0};
     CIScaffoldT   *AendScaffold = NULL;
@@ -400,6 +391,7 @@ MergeScaffolds(InterleavingSpec               *iSpec,
     if (edge->distance.variance <= 0.0)
       continue;
 
+#if 0
     //fprintf(stderr, "TESTING EDGE: %d <-> %d orient %c distance %.1f +- %.1f\n",
     //        edgeLabel.idA, edgeLabel.idB, edgeLabel.orient.toLetter(), edgeLabel.distance.mean, sqrt(edgeLabel.distance.variance));
 
@@ -411,12 +403,10 @@ MergeScaffolds(InterleavingSpec               *iSpec,
       continue;
     }
     assert(bEdges.find(edgeLabel) == bEdges.end());
+#endif
 
     //  This is our last chance to abort before we create a new scaffold!
     //  Save enough of the old scaffolds so we can reconstruct if it all goes bad.
-
-    vector<CIScaffoldT>      oldScaffolds;
-    vector<ChunkInstanceT>   oldContigs;
 
 #ifdef TRACK_MATE_PAIR_TEST
     uint32   edgeID = GetVAIndex_CIEdgeT(graph->ContigGraph->edges, edge);
@@ -434,7 +424,6 @@ MergeScaffolds(InterleavingSpec               *iSpec,
       ns.info.Scaffold.AEndCI      = NULLINDEX;
       ns.info.Scaffold.BEndCI      = NULLINDEX;
       ns.info.Scaffold.numElements = 0;
-      //ns.edgeHead                  = NULLINDEX;
       ns.bpLength                  = nullLength;
       ns.id                        = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
 
@@ -447,13 +436,15 @@ MergeScaffolds(InterleavingSpec               *iSpec,
 
       newScaffoldID                = ns.id;
 
-      AppendGraphNode(ScaffoldGraph->ScaffoldGraph, &ns);  /* Potential realloc of ScaffoldGraph->ScaffoldGraph->nodes */
+      AppendGraphNode(ScaffoldGraph->ScaffoldGraph, &ns);
 
       //  Ensure that there are no edges, and that the edgeList is allocated.
       assert(ScaffoldGraph->ScaffoldGraph->edgeLists[ns.id].empty() == true);
 
       thisScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, thisScaffoldID);
       neighbor     = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
+
+      newScaffolds.push_back(newScaffoldID);
     }
 
     assert(thisScaffold->bpLength.variance >= 0);
@@ -467,12 +458,13 @@ MergeScaffolds(InterleavingSpec               *iSpec,
     //  Being the first merge, all we're doing is copying the original scaffold into the new
     //  scaffold.
     //
+    oldScaffolds.push_back(thisScaffold->id);
+
     InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
                                        newScaffoldID, thisScaffold->id,
                                        orientCI, &currentOffset,
                                        currentSetID,
-                                       iSpec->contigNow,
-                                       oldScaffolds, oldContigs);
+                                       iSpec->contigNow);
 
     thisScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, thisScaffoldID);
     neighbor     = GetGraphNode(ScaffoldGraph->ScaffoldGraph, neighborID);
@@ -556,12 +548,13 @@ MergeScaffolds(InterleavingSpec               *iSpec,
       }
       assert(currentOffset.variance >= 0);
 
+      oldScaffolds.push_back(thisScaffold->id);
+
       InsertScaffoldContentsIntoScaffold(ScaffoldGraph,
                                          newScaffoldID, thisScaffold->id,
                                          orientCI, &currentOffset,
                                          currentSetID,
-                                         iSpec->contigNow,
-                                         oldScaffolds, oldContigs);
+                                         iSpec->contigNow);
 
       if (iSpec->contigNow == TRUE) {
         // remove references to edges of dead contigs from scaffold edge
@@ -641,43 +634,11 @@ MergeScaffolds(InterleavingSpec               *iSpec,
       int32        numScaffoldsBefore = GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds);
 
       if (LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup) == false) {
-        fprintf(stderr, "ADDING EDGE TO IGNORE: %d <-> %d orient %c distance %.1f +- %.1f\n",
-                edgeLabel.idA,
-                edgeLabel.idB,
-                edgeLabel.orient.toLetter(),
-                edgeLabel.distance.mean, sqrt(edgeLabel.distance.variance));
-
-#if 0
-        scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, newScaffoldID);
-
-        fprintf(stderr, "MARKING SCAFFOLD %d as DEAD.\n", scaffold->id);
-        scaffold->flags.bits.isDead = TRUE;
-
-        bEdges.insert(edgeLabel);
-
-        fprintf(stderr, "OLD: scaffolds "F_SIZE_T" contigs "F_SIZE_T"\n",
-                oldScaffolds.size(),
-                oldContigs.size());
-
-        for (uint32 i=0; i<oldScaffolds.size(); i++) {
-          CIScaffoldT     *oldScaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, oldScaffolds[i].id);
-
-          fprintf(stderr, "RESURRECT scaffold %d\n", oldScaffolds[i].id);
-
-          *oldScaffold = oldScaffolds[i];
-        }
-
-        for (uint32 i=0; i<oldContigs.size(); i++) {
-          ChunkInstanceT  *CI         = &oldContigs[i];
-          ChunkInstanceT  *oldCI      = GetGraphNode(ScaffoldGraph->ContigGraph, CI->id);
-
-          *oldCI = *CI;
-
-          fprintf(stderr, "RESURRECT contig %d in scaffold %d\n", CI->id, CI->scaffoldID);
-          //InsertCIInScaffold(ScaffoldGraph, CI->id, CI->scaffoldID, CI->offsetAEnd, CI->offsetBEnd, TRUE, FALSE);
-          //fprintf(stderr, "RESURRECT contig %d in scaffold %d DONE\n", CI->id, CI->scaffoldID);
-        }
-#endif
+        //fprintf(stderr, "ADDING EDGE TO IGNORE: %d <-> %d orient %c distance %.1f +- %.1f\n",
+        //        edgeLabel.idA,
+        //        edgeLabel.idB,
+        //        edgeLabel.orient.toLetter(),
+        //        edgeLabel.distance.mean, sqrt(edgeLabel.distance.variance));
       }  //  Bad LeastSquaresEstimate
 
       ScaffoldSanity(ScaffoldGraph, scaffold);
@@ -688,6 +649,21 @@ MergeScaffolds(InterleavingSpec               *iSpec,
 
     currentSetID++;
   }
+
+
+  //  For all the old scaffolds, kill the edges.
+
+  RemoveDeadSEdges(oldScaffolds);
+
+  //  For all the new scaffolds, create new edges.
+
+  {
+    vector<CDS_CID_t> rawEdges;
+
+    BuildSEdges(newScaffolds, rawEdges, TRUE);
+    MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, FALSE);
+  } 
+
 
   return mergedSomething;
 }

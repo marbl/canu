@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.64 2012-09-04 06:37:53 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.65 2012-09-10 10:55:44 brianwalenz Exp $";
 
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
@@ -412,8 +412,10 @@ typedef struct{
       unsigned int isClosure:1;
       unsigned int isJiggled:1;
 
-      //  We store the edges unsorted, until the first access.
-      unsigned int edgesModified:1;
+      //  When rebuilding scaffold edges for only newly created scaffolds, we need to know if the
+      //  edge is between two new scaffolds, or between a new and an old.  This flags marks the new
+      //  scaffolds.
+      unsigned int isHavingEdgesBuilt:1;
 
       unsigned int unused:5;
     }bits;

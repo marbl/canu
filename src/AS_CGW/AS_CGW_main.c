@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.110 2012-09-04 06:31:21 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.111 2012-09-10 10:55:44 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -545,7 +545,7 @@ main(int argc, char **argv) {
     {
       vector<CDS_CID_t>  rawEdges;
 
-      BuildSEdges(ScaffoldGraph, rawEdges, FALSE);
+      BuildSEdges(rawEdges, FALSE);
       MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, FALSE);
     }
 
@@ -585,10 +585,12 @@ main(int argc, char **argv) {
 
         //CheckAllTrustedEdges(ScaffoldGraph);
 
+        //  This shouldn't be necessary (RepeatRez() calling TidyUpScaffolds() should be doing it),
+        //  but it is infrequent (at most iterMax=10 times).
         {
           vector<CDS_CID_t>  rawEdges;
 
-          BuildSEdges(ScaffoldGraph, rawEdges, FALSE);
+          BuildSEdges(rawEdges, FALSE);
           MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, FALSE);
         }
 
@@ -674,7 +676,7 @@ main(int argc, char **argv) {
         (DemoteSmallSingletonScaffolds() == true)) {
       vector<CDS_CID_t>  rawEdges;
 
-      BuildSEdges(ScaffoldGraph, rawEdges, TRUE);
+      BuildSEdges(rawEdges, TRUE);
       MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, TRUE);
     }
 
@@ -687,7 +689,7 @@ main(int argc, char **argv) {
     {
       vector<CDS_CID_t>  rawEdges;
 
-      BuildSEdges(ScaffoldGraph, rawEdges, TRUE);
+      BuildSEdges(rawEdges, TRUE);
       MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, TRUE);
     }
 
@@ -765,7 +767,7 @@ main(int argc, char **argv) {
     {
       vector<CDS_CID_t>  rawEdges;
 
-      BuildSEdges(ScaffoldGraph, rawEdges, TRUE);
+      BuildSEdges(rawEdges, TRUE);
       MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, TRUE);
     }
 
