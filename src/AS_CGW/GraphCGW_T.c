@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.111 2012-09-10 10:55:44 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.112 2012-09-11 17:24:05 jasonmiller9704 Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1287,6 +1287,7 @@ MergeAllGraphEdges_SCF_EdgeIDCompare(CDS_CID_t const idA, CDS_CID_t const idB) {
                                GetGraphEdge(ScaffoldGraph->ScaffoldGraph, idB)));
 }
 
+static int EdgeLog_FileNumber = 0;
 void
 MergeAllGraphEdges(GraphCGW_T         *graph,
                    vector<CDS_CID_t>  &rawEdges,
@@ -1301,6 +1302,9 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
   newEdges.reserve(rawEdges.size());  //  Slight overkill.
   chain.reserve(rawEdges.size());     //  Massive overkill.
 
+  FILE *EdgeLog_FilePointer = NULL; 
+  char EdgeLog_FileName [1000];
+
   //  Crud, we have a list of edge IDs as input, but we need to sort using the
   //  edge itself.  As we're building rawEdges, the edge storage array is probably
   //  reallocated, and so we cannot store pointers in rawEdges.  We either need
@@ -1313,6 +1317,10 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
               (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
     sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_UTG_EdgeIDCompare);
 
+    sprintf (EdgeLog_FileName, "EdgeLog.unitig.%d", ++EdgeLog_FileNumber);
+    assert (strlen(EdgeLog_FileName)<1000);
+    EdgeLog_FilePointer = fopen (EdgeLog_FileName, "w");
+
   } else if (graph == ScaffoldGraph->ContigGraph) {
     if (rawEdges.size() > minReportSize)
       fprintf(stderr, "MergeAllGraphEdges()--  Working on contig edges; includeGuides=%c mergeAll=%c.\n",
@@ -1324,6 +1332,10 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
       fprintf(stderr, "MergeAllGraphEdges()--  Working on scaffold edges; includeGuides=%c mergeAll=%c.\n",
               (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
     sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_SCF_EdgeIDCompare);
+
+    sprintf (EdgeLog_FileName, "EdgeLog.scaffold.%d", ++EdgeLog_FileNumber);
+    assert (strlen(EdgeLog_FileName)<1000);
+    EdgeLog_FilePointer = fopen (EdgeLog_FileName, "w");
 
   } else {
     fprintf(stderr, "MergeAllGraphEdges()--  Invalid edges.\n");
@@ -1376,9 +1388,17 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
     fprintf(stderr, "MergeAllGraphEdges()--  processed "F_SIZE_T" raw edges into "F_SIZE_T" merged edges.\n",
             rawEdges.size(), newEdges.size());
 
-  for (uint32 ee=0; ee<newEdges.size(); ee++)
+  for (uint32 ee=0; ee<newEdges.size(); ee++) {
+    if (EdgeLog_FilePointer != NULL) {
+      CDS_CID_t edgeID = newEdges[ee];
+      EdgeCGW_T *edgePtr = GetGraphEdge(graph, edgeID);
+      fprintf(EdgeLog_FilePointer, F_CID" "F_CID" %c weight %d overlap %d dist %f var %f\n",
+	      edgePtr->idA, edgePtr->idB, edgePtr->orient.toLetter(), 
+	      edgePtr->edgesContributing, isOverlapEdge(edgePtr),
+	      edgePtr->distance.mean, edgePtr->distance.variance);
+    }
     InsertGraphEdge(graph, newEdges[ee]);
-
+  }
   //  Sort them, too.  All we need to do is create an iterator for each node.
   //  Well, don't sort them.  We call this function on edges from just a single
   //  contig.  Examining all contigs to just sort one is a bit of a waste.
@@ -1406,6 +1426,9 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
   }
 #endif
 
+  if (EdgeLog_FilePointer != NULL) {
+    fclose (EdgeLog_FilePointer);
+  }
 }
 
 
