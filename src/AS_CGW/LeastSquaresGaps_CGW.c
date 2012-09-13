@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.72 2012-09-05 19:01:12 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.73 2012-09-13 10:01:54 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1315,78 +1315,52 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
             }
          }
          
+         // We want to merge the two contigs immediately, since these are problematic,
+         // but we know we want to overlap these guys.
+         //
          if(overlapEdge && alternate){ // found a node that is out of order!!!!
 
 #ifdef TEST_FIXUPMISORDER
-            //  XXXX:  BPW is slightly confused as to why we are not
-            //  FixUpMisorderedContigs(), instead we are merging the contig.
-            //  This was if'd out before I got here.
-            //
-            //  OK, so test it!
-            //
-            //  If it succeeds, return, if not, continue with the original method.
-            //
-            fprintf(stderr, "FixUpMisorderedContigs\n");
-            if (FixUpMisorderedContigs(scaffold, prevCI, thisCI, edgeOrient, gapSize[gapIndex], gapSizeVariance[gapIndex], overlapEdge))
-              return(RECOMPUTE_FAILED_REORDER_NEEDED);
+           //  XXXX:  BPW is slightly confused as to why we are not
+           //  FixUpMisorderedContigs(), instead we are merging the contig.
+           //  This was if'd out before I got here.
+           //
+           //  OK, so test it!
+           //
+           //  If it succeeds, return, if not, continue with the original method.
+           //
+           fprintf(stderr, "FixUpMisorderedContigs\n");
+           if (FixUpMisorderedContigs(scaffold, prevCI, thisCI, edgeOrient, gapSize[gapIndex], gapSizeVariance[gapIndex], overlapEdge))
+             return(RECOMPUTE_FAILED_REORDER_NEEDED);
 #endif
 
-            //fprintf(stderr,"*** Least Squares found the following alternate edge...contig NOW!\n");
-            //PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " alternateEdge: ", overlapEdge, overlapEdge->idA);
-            //fprintf(stderr, "BEFORE ContigContainment, scaffold "F_CID" %s connected\n",
-            //        scaffold->id,
-            //        IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-            //dumpTrustedEdges(ScaffoldGraph, scaffold);
-            //DumpACIScaffold(stderr, graph, scaffold, FALSE);
+           if (ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE) != TRUE) {
+             fprintf(stderr, "RecomputeOffsetsInScaffold()-- ContigContainment() failed to merge (out-of-order) contig %d (len %.0f)and contig %d (len %.0f) based on %c edge %.0f +- %.0f\n",
+                     prevCI->id, prevCI->bpLength.mean,
+                     thisCI->id, thisCI->bpLength.mean,
+                     overlapEdge->orient.toLetter(), overlapEdge->distance.mean, overlapEdge->distance.variance);
+             //assert(0);
+           }
 
-            // We want to merge the two contigs immediately, since these are problematic,
-            // but we know we want to overlap these guys.
-            //
-            if (ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE) != TRUE) {
-              fprintf(stderr, "ContigContainment failed.\n");
-              assert(0);
-            }
+           freeRecomputeData(&data);
+           return RECOMPUTE_CONTIGGED_CONTAINMENTS;
+         }
 
-            //fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
-            //        scaffold->id,
-            //        IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-            //dumpTrustedEdges(ScaffoldGraph, scaffold);
-            //DumpACIScaffold(stderr, graph, scaffold, FALSE);
+         // When we find a containment relationship in a scaffold we want to merge the two contigs
+         // immediately, since containments have the potential to induce situations that are confusing
+         // for least squares
+         if(overlapEdge && isContainmentEdge(overlapEdge)){
+           if (ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE) != TRUE) {
+             fprintf(stderr, "RecomputeOffsetsInScaffold()-- ContigContainment() failed to merge (containment) contig %d (len %.0f) and contig %d (len %.0f) based on %c edge %.0f +- %.0f\n",
+                     prevCI->id, prevCI->bpLength.mean,
+                     thisCI->id, thisCI->bpLength.mean,
+                     overlapEdge->orient.toLetter(), overlapEdge->distance.mean, overlapEdge->distance.variance);
+             //assert(0);
+           }
 
-            freeRecomputeData(&data);
-            return RECOMPUTE_CONTIGGED_CONTAINMENTS;
-          }
-          if(overlapEdge && isContainmentEdge(overlapEdge)){
-
-            //fprintf(stderr,"*** Least Squares found the following containment edge...contig NOW!\n");
-            //fprintf(stderr,"*** "F_CID" (length %g) should be contained within "F_CID" (length %g)\n",
-            //        thisCI->id, thisCI->bpLength.mean,
-            //        prevCI->id, prevCI->bpLength.mean);
-            //PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " overlapEdge: ", overlapEdge, overlapEdge->idA);
-            
-            //fprintf(stderr, "BEFORE ContigContainment, scaffold "F_CID" %s connected\n",
-            //        scaffold->id,
-            //        IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-            //dumpTrustedEdges(ScaffoldGraph, scaffold);
-            //DumpACIScaffold(stderr, graph, scaffold, FALSE);
-
-            // When we find a containment relationship in a scaffold we want to merge the two contigs
-            // immediately, since containments have the potential to induce situations that are confusing
-            // for least squares
-            if (ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE) != TRUE) {
-              fprintf(stderr, "ContigContainment failed.\n");
-              assert(0);
-            }
-
-            //fprintf(stderr, "AFTER ContigContainment, scaffold "F_CID" %s connected\n",
-            //        scaffold->id,
-            //        IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, ALL_TRUSTED_EDGES) ? "is" : "is NOT");
-            //dumpTrustedEdges(ScaffoldGraph, scaffold);
-            //DumpACIScaffold(stderr, graph, scaffold, FALSE);
-
-            freeRecomputeData(&data);
-            return RECOMPUTE_CONTIGGED_CONTAINMENTS;
-          }
+           freeRecomputeData(&data);
+           return RECOMPUTE_CONTIGGED_CONTAINMENTS;
+         }
 
 
           if(overlapEdge == (EdgeCGW_T *)NULL){
