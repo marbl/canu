@@ -47,7 +47,7 @@ using namespace std;
 #include <map>
 #include <vector>
 
-static const char *rcsid_AS_PBR_MATES_C = "$Id: AS_PBR_mates.cc,v 1.3 2012-08-22 14:41:00 skoren Exp $";
+static const char *rcsid_AS_PBR_MATES_C = "$Id: AS_PBR_mates.cc,v 1.4 2012-09-13 14:40:42 skoren Exp $";
 
 const double 	Z_MAX	= 6;
 
@@ -144,6 +144,7 @@ void *estimateInsertSizes(void *ptr) {
 			}
 			ClearMultiAlignT(ma);
 		}
+		DeleteMultiAlignT(ma);
 		closeLayFile(inFile);
 	}
 

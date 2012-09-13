@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AS_PBR_UTIL_H
 #define AS_PBR_UTIL_H
 
-static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.5 2012-08-22 14:41:00 skoren Exp $";
+static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.6 2012-09-13 14:40:42 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -59,13 +59,15 @@ static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.5 2012-08-22 1
 
 const uint16 	MAX_COV_HIST					= 	65535;
 const uint8 	MAX_COV							= 	255;
-const double 	CUMULATIVE_SUM					=	0.5;
 const double    ONE_SD_PERCENT                  =   0.341;
+const double    TWO_SD_PERCENT                  =   0.136;
+const double    CUMULATIVE_SUM                  =   (2*ONE_SD_PERCENT) + (2*TWO_SD_PERCENT);
 const uint64 	MAX_TO_READ						= 	100000;
 const double	DEFAULT_SAMPLE_SIZE 			= 	0.05;
 const double	DEFAULT_SHORT_READ_STORE_SIZE 	= 	0.01;
 const uint32	CHIMERA_MAX_SIZE 				= 	150;
 const uint32	MIN_DIST_TO_RECRUIT				=	500;
+const double    ERATE_ADJUST                    =   1.5;
 
 const uint8		VERBOSE_OFF 					= 0;
 const uint8		VERBOSE_DEBUG					= 1;

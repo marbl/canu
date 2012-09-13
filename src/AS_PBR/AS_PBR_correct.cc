@@ -46,7 +46,7 @@ using namespace std;
 #include <vector>
 #include <algorithm>
 
-static const char *rcsid_AS_PBR_CORRECT_C = "$Id: AS_PBR_correct.cc,v 1.3 2012-08-22 14:41:00 skoren Exp $";
+static const char *rcsid_AS_PBR_CORRECT_C = "$Id: AS_PBR_correct.cc,v 1.4 2012-09-13 14:40:42 skoren Exp $";
 
 map<AS_IID, uint64> *globalFrgToScore;
 
@@ -299,7 +299,7 @@ void *  correctFragments(void *ptr) {
                     longReadsToPrint[best.b_iid]--;
                     if (longReadsToPrint[best.b_iid] < MAX_COV) {
                         readsToPrint[best.b_iid] = longReadsToPrint[best.b_iid];
-                        longReadsToPrint[best.b_iid] = 0;
+                        longReadsToPrint[best.b_iid] = MAX_COV;
                         readsMean += readsToPrint[best.b_iid];
                     } else {
                         readsMean += longReadsToPrint[best.b_iid];
@@ -339,6 +339,7 @@ void *  correctFragments(void *ptr) {
             } else {
                 readsMean -= readsToPrint[bid];
                 readsToPrint[bid]++;
+                if (readsToPrint[bid] == MAX_COV) { longReadsToPrint[bid] = MAX_COV; }
                 readsMean += readsToPrint[bid];
             }
 

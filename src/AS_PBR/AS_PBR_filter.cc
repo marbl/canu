@@ -47,7 +47,7 @@ using namespace std;
 #include <set>
 #include <map>
 
-static const char *rcsid_AS_PBR_FILTER_C = "$Id: AS_PBR_filter.cc,v 1.3 2012-08-22 14:41:00 skoren Exp $";
+static const char *rcsid_AS_PBR_FILTER_C = "$Id: AS_PBR_filter.cc,v 1.4 2012-09-13 14:40:42 skoren Exp $";
 
 /**
  * This function is responsible for computing the repeat threshold based on the number of PacBio sequences each short-read maps to
@@ -85,15 +85,18 @@ void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) 
 
         double prevRatio = 0;
         double runningTotal = covHist[0] + covHist[1];
+        uint16 overRatio = 0;
         for (uint16 iter = 2; iter < MAX_COV_HIST; iter++) {
-            if (covHist[iter] <= covHist[iter-1] && (double)covHist[iter]/covHist[iter-1] > prevRatio && (runningTotal / N > CUMULATIVE_SUM + ONE_SD_PERCENT)) {
+            if (covHist[iter] <= covHist[iter-1] && (double)covHist[iter]/covHist[iter-1] > prevRatio && (runningTotal / N > CUMULATIVE_SUM)) {
                 thread_globals.covCutoff = MAX(iter - 1, thread_globals.covCutoff);
                 break;
+            } else if (runningTotal / N > CUMULATIVE_SUM && overRatio == 0) {
+                overRatio = MAX(iter - 1, thread_globals.covCutoff);
             }
             prevRatio = (double)covHist[iter]/covHist[iter-1];
             runningTotal += covHist[iter];
         }
-        if (thread_globals.covCutoff == 0) thread_globals.covCutoff = MAX_COV;
+        if (thread_globals.covCutoff == 0) thread_globals.covCutoff = (overRatio == 0 ? MAX_COV : overRatio);
 
         // output histogram we used to compute this value
         char outputName[FILENAME_MAX] = {0};
@@ -109,7 +112,8 @@ void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) 
             fclose(histF);
         }
         delete[] covHist;
-        if (thread_globals.verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Picking cutoff as %d mean would be %f +- %f (%d)\n", thread_globals.covCutoff, mean, sd, (int)(ceil(mean + sd)));
+        thread_globals.covCutoff = MAX(thread_globals.covCutoff, MIN((int)(floor(mean*2)), (int)(floor(mean + 2*sd))));
+        if (thread_globals.verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Picking cutoff as %d mean would be %f +- %f (%d)\n", thread_globals.covCutoff, mean, sd, (int)(ceil(mean + 2*sd)));
     }
 }
 

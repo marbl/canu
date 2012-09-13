@@ -51,7 +51,7 @@ using namespace std;
 #include <vector>
 #include <set>
 
-static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.5 2012-08-22 14:41:00 skoren Exp $";
+static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.6 2012-09-13 14:40:42 skoren Exp $";
 
 static const uint32 FUDGE_BP = 5;
 
@@ -67,6 +67,9 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
 
     bool fwdDistanceSatisfied = false;
     bool revDistanceSatisfied = false;
+    uint32 revGapStart = 0;
+    uint32 lastFwd = 0;
+    uint32 lastRev = 0;
 
     while (!fwdDistanceSatisfied || !revDistanceSatisfied) {
         ShortMapRecord *record = NULL;
@@ -76,68 +79,77 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
             if (waGlobal->globalRepeats == TRUE && (readRanking[fwd->ident].find(layRecord.iid) == readRanking[fwd->ident].end())) {
                 // ignore
             } else {
-                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Pulling sequence %d forward of %d\n", fwd->ident, iter->ident);
+                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Pulling sequence %d forward of %d in %d \n", fwd->ident, iter->ident, layRecord.iid);
                 record = inStore->getRecord(fwd->ident);
-                if (record != NULL) {
-                    if (bits.size() == 0) {
-                        bits = (*record->getMappedReads());
-                    } else {
-                        bits &= (*record->getMappedReads());
-                    }
+                // skip sequences that dont advance us
+                if (lastFwd != 0 && lastFwd < MIN(fwd->position.bgn, fwd->position.end)) {
+                    fwdDistanceSatisfied = true;
+                }
+                else if ((fwd+1) != layRecord.mp.end() && MAX(fwd->position.bgn, fwd->position.end) <= lastFwd+FUDGE_BP) {
+                    // skip
+                }
+                else {
+                    if (record != NULL) {
+                        lastFwd = MAX(fwd->position.bgn, fwd->position.end);
 
-                    // check mapped candidates to see if they are good
-                    bool iterFwd = fwd->position.bgn < fwd->position.end;
-                    for(int i = bits.find_first(); i != boost::dynamic_bitset<>::npos; i = bits.find_next(i)) {
-                        AS_IID id = inStore->getMappedIID(i);
-                        SeqInterval *search = record->getMapping(i);
-                        if (search != NULL) {
-                            bool isFwd = search->bgn < search->end;
-                            uint32 min = MIN(search->bgn, search->end);
-                            bool isContained = false;
-                            if (matchingSequenceLastFwd.find(id) != matchingSequenceLastFwd.end()) {
-                                min = MIN(matchingSequenceLastFwd[id].bgn, matchingSequenceLastFwd[id].end);
-                                uint32 max = MAX(matchingSequenceLastFwd[id].bgn, matchingSequenceLastFwd[id].end);
-                                uint32 myMin = MIN(search->bgn, search->end);
-                                uint32 myMax = MAX(search->bgn, search->end);
-                                isContained =(myMin >= min && myMax <= max);
-                            }
+                        if (bits.size() == 0) {
+                            bits = (*record->getMappedReads());
+                        } else {
+                            bits &= (*record->getMappedReads());
+                        }
 
-                            if (matchingSequenceOrientation.find(id) == matchingSequenceOrientation.end()) {
+                        // check mapped candidates to see if they are good
+                        bool iterFwd = fwd->position.bgn < fwd->position.end;
+                        for(int i = bits.find_first(); i != boost::dynamic_bitset<>::npos; i = bits.find_next(i)) {
+                            AS_IID id = inStore->getMappedIID(i);
+                            SeqInterval *search = record->getMapping(i);
+                            if (search != NULL) {
+                                bool isFwd = search->bgn < search->end;
+                                uint32 min = MIN(search->bgn, search->end);
+                                bool isContained = false;
+                                if (matchingSequenceLastFwd.find(id) != matchingSequenceLastFwd.end()) {
+                                    min = MIN(matchingSequenceLastFwd[id].bgn, matchingSequenceLastFwd[id].end);
+                                    uint32 max = MAX(matchingSequenceLastFwd[id].bgn, matchingSequenceLastFwd[id].end);
+                                    uint32 myMin = MIN(search->bgn, search->end);
+                                    uint32 myMax = MAX(search->bgn, search->end);
+                                    isContained =(myMin >= min && myMax <= max);
+                                }
+
+                                if (matchingSequenceOrientation.find(id) == matchingSequenceOrientation.end()) {
+                                    matchingSequenceOrientation[id] = iterFwd == isFwd;
+                                }
+                                if (matchingSequenceOrientation[id] && isFwd == iterFwd && (MIN(search->bgn, search->end) >= MIN(0, min - FUDGE_BP) || (isContained))) {
+                                    if (matchingSequencePositions.find(id) == matchingSequencePositions.end()) {
+                                        matchingSequencePositions[id].bgn = 0;
+                                        matchingSequencePositions[id].end = INT32_MAX;
+                                    }
+                                    if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check end for %d in %d\n", id, isFwd, iterFwd, fwd->ident, MIN(search->bgn, search->end), layRecord.iid);
+                                    matchingSequencePositions[id].end = MIN(matchingSequencePositions[id].end, MIN(search->bgn, search->end));
+                                } else if (!matchingSequenceOrientation[id] && isFwd != iterFwd && (MIN(search->bgn, search->end) <= (min + FUDGE_BP) || (isContained))) {
+                                    if (matchingSequencePositions.find(id) == matchingSequencePositions.end()) {
+                                        matchingSequencePositions[id].bgn = INT32_MAX;
+                                        matchingSequencePositions[id].end = 0;
+                                    }
+                                    if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check end for %d in %d\n", id, isFwd, iterFwd, fwd->ident, MAX(search->bgn, search->end), layRecord.iid);
+                                    matchingSequencePositions[id].end = MAX(matchingSequencePositions[id].end, MAX(search->bgn, search->end));
+                                } else {
+                                    bits.set(i, false);
+                                    if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminating %s candidate read %d with orientation %d vs %d (expected %d) min %d vs %d for gap in %d\n", (matchingSequenceOrientation[id] == true ? "fwd" : "rev"), id, isFwd, iterFwd, matchingSequenceOrientation[id], MIN(search->bgn, search->end), min, layRecord.iid);
+                                }
+                                matchingSequenceLastFwd[id] = *search;
                                 matchingSequenceOrientation[id] = iterFwd == isFwd;
-                            }
-                            if (matchingSequenceOrientation[id] && isFwd == iterFwd && (MIN(search->bgn, search->end) >= MIN(0, min - FUDGE_BP) || (isContained))) {
-                                if (matchingSequencePositions.find(id) == matchingSequencePositions.end()) {
-                                    matchingSequencePositions[id].bgn = 0;
-                                    matchingSequencePositions[id].end = INT32_MAX;
-                                }
-                                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check end for %d\n", id, isFwd, iterFwd, fwd->ident, MIN(search->bgn, search->end));
-                                matchingSequencePositions[id].end = MIN(matchingSequencePositions[id].end, MIN(search->bgn, search->end));
-                            } else if (!matchingSequenceOrientation[id] && isFwd != iterFwd && (MIN(search->bgn, search->end) <= (min + FUDGE_BP) || (isContained))) {
-                                if (matchingSequencePositions.find(id) == matchingSequencePositions.end()) {
-                                    matchingSequencePositions[id].bgn = INT32_MAX;
-                                    matchingSequencePositions[id].end = 0;
-                                }
-                                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check end for %d\n", id, isFwd, iterFwd, fwd->ident, MAX(search->bgn, search->end));
-                                matchingSequencePositions[id].end = MAX(matchingSequencePositions[id].end, MAX(search->bgn, search->end));
                             } else {
                                 bits.set(i, false);
-                                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminating %s candidate read %d with orientation %d vs %d (expected %d) min %d vs %d for gap in %d\n", (matchingSequenceOrientation[id] == true ? "fwd" : "rev"), id, isFwd, iterFwd, matchingSequenceOrientation[id], MIN(search->bgn, search->end), min, layRecord.iid);
+                                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminating %s candidate read %d for gap in %d it had no mapping for %d\n", (matchingSequenceOrientation[id] == true ? "fwd" : "rev"), id, layRecord.iid, record->readIID);
                             }
-                            matchingSequenceLastFwd[id] = *search;
-                            matchingSequenceOrientation[id] = iterFwd == isFwd;
-                        } else {
-                            bits.set(i, false);
-                            if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminating %s candidate read %d for gap in %d it had no mapping for %d\n", (matchingSequenceOrientation[id] == true ? "fwd" : "rev"), id, layRecord.iid, record->readIID);
                         }
                     }
-
-                    delete record;
                 }
+                if (MAX(fwd->position.bgn, fwd->position.end) - MIN(iter->position.bgn, iter->position.end) > MIN_DIST_TO_RECRUIT) {
+                    fwdDistanceSatisfied = true;
+                }
+                delete record;
             }
-            if (MAX(fwd->position.bgn, fwd->position.end) - MIN(iter->position.bgn, iter->position.end) > MIN_DIST_TO_RECRUIT) {
-                fwdDistanceSatisfied = true;
-            }
-
             // move forward to next good sequence
             if (fwd != layRecord.mp.end()) {
                 fwd++;
@@ -165,65 +177,80 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
                 continue;
             }
 
-            if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Pulling sequence %d reverse of %d\n", rev->ident, iter->ident);
-            record = inStore->getRecord(rev->ident);
+            if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Pulling sequence %d reverse of %d in %d \n", rev->ident, iter->ident, layRecord.iid);
+            if (lastRev != 0 && lastRev < MAX(rev->position.bgn, rev->position.end)) {
+                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Hit a gap before sequence in %d\n", layRecord.iid);
+                revDistanceSatisfied = true;
+            }
+            else if (rev != layRecord.mp.begin() && MIN(rev->position.bgn, rev->position.end) <= lastRev+FUDGE_BP) {
+                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Skipping because it didnt advance\n");
+            }
+            else {
+                record = inStore->getRecord(rev->ident);
 
-            if (record != NULL) {
-                if (bits.size() == 0) {
-                    bits = (*record->getMappedReads());
-                } else {
-                    bits &= (*record->getMappedReads());
-                }
+                if (record != NULL) {
+                    lastRev = MIN(rev->position.bgn, rev->position.end);
 
-                // check mapped candidates to see if they are good
-                bool iterFwd = rev->position.bgn < rev->position.end;
-                for(int i = bits.find_first(); i != boost::dynamic_bitset<>::npos; i = bits.find_next(i)) {
-                    AS_IID id = inStore->getMappedIID(i);
-                    SeqInterval *search = record->getMapping(i);
-                    if (search != NULL) {
-                        uint32 min = MIN(search->bgn, search->end);
-                        bool isContained = false;
-                        if (matchingSequenceLastRev.find(id) != matchingSequenceLastRev.end()) {
-                            min = MIN(matchingSequenceLastRev[id].bgn, matchingSequenceLastRev[id].end);
-                            uint32 max = MAX(matchingSequenceLastRev[id].bgn, matchingSequenceLastRev[id].end);
-                            uint32 myMin = MIN(search->bgn, search->end);
-                            uint32 myMax = MAX(search->bgn, search->end);
-                            isContained = (myMin >= min && myMax <= max);
-                        }
-                        bool isFwd = search->bgn < search->end;
-                        if (matchingSequenceOrientation.find(id) == matchingSequenceOrientation.end()) {
-                            matchingSequenceOrientation[id] = iterFwd == isFwd;
-                        }
-                        if (matchingSequenceOrientation[id] && isFwd == iterFwd && (MIN(search->bgn, search->end) <= (min + FUDGE_BP) || (isContained))) {
-                            if (matchingSequencePositions.find(id) == matchingSequencePositions.end()) {
-                                matchingSequencePositions[id].bgn = 0;
-                                matchingSequencePositions[id].end = INT32_MAX;
-                            }
-                            if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check bgn for %d\n", id, isFwd, iterFwd, rev->ident, MAX(search->bgn, search->end));
-                            matchingSequencePositions[id].bgn = MAX(matchingSequencePositions[id].bgn, MAX(search->bgn, search->end)-1);
-                        } else if (!matchingSequenceOrientation[id] && isFwd != iterFwd && (MIN(search->bgn, search->end) >= MIN(0, min - FUDGE_BP) || (isContained))) {
-                            if (matchingSequencePositions.find(id) == matchingSequencePositions.end()) {
-                                matchingSequencePositions[id].bgn = INT32_MAX;
-                                matchingSequencePositions[id].end = 0;
-                            }
-                            if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check bgn for %d\n", id, isFwd, iterFwd, rev->ident, MIN(search->bgn, search->end));
-                            matchingSequencePositions[id].bgn = MIN(matchingSequencePositions[id].bgn, MIN(search->bgn, search->end)-1);
-                        } else {
-                            if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminating %s candidate read %d with orientation %d vs %d (expected %d) min %d vs %d for gap in %d\n", (matchingSequenceOrientation[id] == true ? "fwd" : "rev"), id, isFwd, iterFwd, matchingSequenceOrientation[id], MIN(search->bgn, search->end), min, layRecord.iid);
-                            bits.set(i, false);
-                        }
-                        matchingSequenceLastRev[id] = *search;
-                        matchingSequenceOrientation[id] = iterFwd == isFwd;
+                    if (bits.size() == 0) {
+                        bits = (*record->getMappedReads());
                     } else {
-                        bits.set(i, false);
-                        if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminating %s candidate read %d for gap in %d it had no mapping for %d\n", (matchingSequenceOrientation[id] == true ? "fwd" : "rev"), id, layRecord.iid, record->readIID);
+                        bits &= (*record->getMappedReads());
+                    }
+
+                    // check mapped candidates to see if they are good
+                    bool iterFwd = rev->position.bgn < rev->position.end;
+                    for(int i = bits.find_first(); i != boost::dynamic_bitset<>::npos; i = bits.find_next(i)) {
+                        AS_IID id = inStore->getMappedIID(i);
+                        SeqInterval *search = record->getMapping(i);
+                        if (search != NULL) {
+                            uint32 min = MIN(search->bgn, search->end);
+                            bool isContained = false;
+                            if (matchingSequenceLastRev.find(id) != matchingSequenceLastRev.end()) {
+                                min = MIN(matchingSequenceLastRev[id].bgn, matchingSequenceLastRev[id].end);
+                                uint32 max = MAX(matchingSequenceLastRev[id].bgn, matchingSequenceLastRev[id].end);
+                                uint32 myMin = MIN(search->bgn, search->end);
+                                uint32 myMax = MAX(search->bgn, search->end);
+                                isContained = (myMin >= min && myMax <= max);
+                            }
+                            bool isFwd = search->bgn < search->end;
+                            if (matchingSequenceOrientation.find(id) == matchingSequenceOrientation.end()) {
+                                matchingSequenceOrientation[id] = iterFwd == isFwd;
+                            }
+                            if (matchingSequenceOrientation[id] && isFwd == iterFwd && (MIN(search->bgn, search->end) <= (min + FUDGE_BP) || (isContained))) {
+                                if (matchingSequencePositions.find(id) == matchingSequencePositions.end()) {
+                                    matchingSequencePositions[id].bgn = 0;
+                                    matchingSequencePositions[id].end = INT32_MAX;
+                                }
+                                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check bgn for %d in %d \n", id, isFwd, iterFwd, rev->ident, MAX(search->bgn, search->end), layRecord.iid);
+                                matchingSequencePositions[id].bgn = MAX(matchingSequencePositions[id].bgn, MAX(search->bgn, search->end)-1);
+                            } else if (!matchingSequenceOrientation[id] && isFwd != iterFwd && (MIN(search->bgn, search->end) >= MIN(0, min - FUDGE_BP) || (isContained))) {
+                                if (matchingSequencePositions.find(id) == matchingSequencePositions.end()) {
+                                    matchingSequencePositions[id].bgn = INT32_MAX;
+                                    matchingSequencePositions[id].end = 0;
+                                }
+                                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "For candidate sequence %d set it to be forward is %d and current sequence is %d based on short-read %d and will check bgn for %d in %d\n", id, isFwd, iterFwd, rev->ident, MIN(search->bgn, search->end), layRecord.iid);
+                                matchingSequencePositions[id].bgn = MIN(matchingSequencePositions[id].bgn, MIN(search->bgn, search->end)-1);
+                            } else {
+                                if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminating %s candidate read %d with orientation %d vs %d (expected %d) min %d vs %d for gap in %d\n", (matchingSequenceOrientation[id] == true ? "fwd" : "rev"), id, isFwd, iterFwd, matchingSequenceOrientation[id], MIN(search->bgn, search->end), min, layRecord.iid);
+                                bits.set(i, false);
+                            }
+                            matchingSequenceLastRev[id] = *search;
+                            matchingSequenceOrientation[id] = iterFwd == isFwd;
+                        } else {
+                            bits.set(i, false);
+                            if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminating %s candidate read %d for gap in %d it had no mapping for %d\n", (matchingSequenceOrientation[id] == true ? "fwd" : "rev"), id, layRecord.iid, record->readIID);
+                        }
                     }
                 }
-
                 delete record;
             }
-            if (MIN(rev->position.bgn, rev->position.end) - MAX(iter->position.bgn, iter->position.end) > MIN_DIST_TO_RECRUIT) {
-                revDistanceSatisfied = true;
+
+            if (revGapStart == 0) {revGapStart = MAX(rev->position.bgn, rev->position.end); }
+            else {
+                if (MIN(rev->position.bgn, rev->position.end) - revGapStart > MIN_DIST_TO_RECRUIT) {
+                    if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "in read %d rev distance was satisfied by read %d at %d %d\n", layRecord.iid, rev->ident, rev->position.bgn, rev->position.end);
+                    revDistanceSatisfied = true;
+                }
             }
         }
     }
@@ -252,10 +279,11 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
 /**
  * Output a single AMOS layout record
  */
-static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, stringstream &layout, LayRecord &layRecord, uint32 lastEnd, int32 &offset, uint32 &readIID, uint32 &readSubID) {
+static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, FILE *logFile, stringstream &layout, LayRecord &layRecord, uint32 lastEnd, int32 &offset, uint32 &readIID, uint32 &readSubID) {
     // close the layout and start a new one because we have a coverage gap
     if (lastEnd - offset >= waGlobal->minLength) {
         fprintf(outFile, "%s}\n", layout.str().c_str());
+        fprintf(logFile, "%d\t%d\t%d\t%d\n", layRecord.iid, readSubID, offset, lastEnd);
     }
     readIID++;
     readSubID++;
@@ -300,6 +328,14 @@ void *outputResults(void *ptr) {
         map<AS_IID, vector<pair<AS_IID, pair<uint32, uint32> > > > gaps;
         map<AS_IID, set<AS_IID> > readRanking;
         map<AS_IID, char*> frgToEnc;
+
+        char reportName[FILENAME_MAX] = {0};
+        sprintf(reportName, "%s.%d.log", waGlobal->prefix, part);
+        errno = 0;
+        FILE *reportFile = fopen(reportName, "w");
+        if (errno) {
+            fprintf(stderr, "Couldn't open '%s' for write: %s\n", reportName, strerror(errno)); exit(1);
+        }
 
         char outputName[FILENAME_MAX] = {0};
         sprintf(outputName, "%s.%d.lay", waGlobal->prefix, part);
@@ -346,7 +382,7 @@ void *outputResults(void *ptr) {
         fclose(inRankFile);
         AS_UTL_unlink(inRankName);
 
-        if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Thread %d is running and output to file %s range %d-%d\n", wa->id, outputName, bounds.first, bounds.second);
+        if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Thread %d is running and output to file %s range %d-%d\n", wa->id, outputName, bounds.first, bounds.second);
         uint32 readIID = 0;
         char seq[AS_READ_MAX_NORMAL_LEN];
         char qlt[AS_READ_MAX_NORMAL_LEN];
@@ -395,22 +431,39 @@ void *outputResults(void *ptr) {
                                     uint32 max = MAX(matchingSequencePositions[iid].bgn,matchingSequencePositions[iid].end);
                                     uint32 gapSize = (int32)(MIN(iter->position.bgn, iter->position.end) - gapStart + 1);
                                     uint32 diff = abs((int32)(max-min+1) - (int32)gapSize);
-                                    if ((double)diff / gapSize <= waGlobal->erate) {	// if the gap size difference is within our error rate, it is OK
+                                    if ((double)diff / gapSize <= (ERATE_ADJUST*waGlobal->erate)) {	// if the gap size difference is within our error rate, it is OK
                                         uint32 tmpoff = (offset < 0 ? 0 : offset);
+                                        uint32 gapPatch = 0;
                                         if (matchingSequencePositions[iid].bgn < matchingSequencePositions[iid].end) {
-                                            min = (matchingSequencePositions[iid].bgn >= (waGlobal->maxUncorrectedGap) ? matchingSequencePositions[iid].bgn - (waGlobal->maxUncorrectedGap): 0);
-                                            max = (matchingSequencePositions[iid].end+(waGlobal->maxUncorrectedGap) < waGlobal->frgToLen[iid] ? matchingSequencePositions[iid].end+(waGlobal->maxUncorrectedGap) : waGlobal->frgToLen[iid]);
+                                            if (matchingSequencePositions[iid].bgn < MIN_DIST_TO_RECRUIT) {
+                                                gapPatch = MIN_DIST_TO_RECRUIT - matchingSequencePositions[iid].bgn;
+                                            }
+                                            min = (matchingSequencePositions[iid].bgn >= (MIN_DIST_TO_RECRUIT) ? matchingSequencePositions[iid].bgn - (MIN_DIST_TO_RECRUIT): 0);
+                                            max = (matchingSequencePositions[iid].end+(MIN_DIST_TO_RECRUIT) < waGlobal->frgToLen[iid] ? matchingSequencePositions[iid].end+(MIN_DIST_TO_RECRUIT) : waGlobal->frgToLen[iid]);
                                         } else {
-                                            min = (matchingSequencePositions[iid].bgn+(waGlobal->maxUncorrectedGap) < waGlobal->frgToLen[iid] ? matchingSequencePositions[iid].bgn+(waGlobal->maxUncorrectedGap) : waGlobal->frgToLen[iid]);
-                                            max = (matchingSequencePositions[iid].end >= (waGlobal->maxUncorrectedGap) ? matchingSequencePositions[iid].end - (waGlobal->maxUncorrectedGap) : 0);
+                                            if (matchingSequencePositions[iid].bgn+MIN_DIST_TO_RECRUIT >= waGlobal->frgToLen[iid]) {
+                                                gapPatch = MIN_DIST_TO_RECRUIT - (waGlobal->frgToLen[iid] - matchingSequencePositions[iid].bgn);
+                                            }
+                                            min = (matchingSequencePositions[iid].bgn+(MIN_DIST_TO_RECRUIT) < waGlobal->frgToLen[iid] ? matchingSequencePositions[iid].bgn+(MIN_DIST_TO_RECRUIT) : waGlobal->frgToLen[iid]);
+                                            max = (matchingSequencePositions[iid].end >= (MIN_DIST_TO_RECRUIT) ? matchingSequencePositions[iid].end - (MIN_DIST_TO_RECRUIT) : 0);
                                         }
 
                                         if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Found read %d (will be called %d) sequence %d - %d (min: %d, max: %d) that could help gap %d to %d in %d (gap diff is %d)\n", iid, gapIID, matchingSequencePositions[iid].bgn, matchingSequencePositions[iid].end, min, max, gapStart, MIN(iter->position.bgn, iter->position.end), layRecord.iid, diff);
+
+                                        uint32 MIN_FRM_START = 50;
+                                        // ran off the end of the patchee
+                                        if (gapStart + gapPatch - tmpoff < MIN_DIST_TO_RECRUIT) {
+                                            if (min < max) {
+                                                min += (MIN_DIST_TO_RECRUIT - (gapStart + gapPatch - tmpoff)) + MIN_FRM_START;
+                                            } else {
+                                                min -= (MIN_DIST_TO_RECRUIT - (gapStart +gapPatch - tmpoff)) + MIN_FRM_START;
+                                            }
+                                        }
                                         layout << "{TLE\nclr:"
                                                 << 0 /*min*/
                                                 << ","
                                                 << (MAX(max, min) - MIN(max, min) + 1)
-                                                << "\noff:" << (gapStart-tmpoff >= (waGlobal->maxUncorrectedGap) ? gapStart - (waGlobal->maxUncorrectedGap) - tmpoff: 0)
+                                                << "\noff:" << (gapStart+gapPatch-tmpoff >= (MIN_DIST_TO_RECRUIT) ? gapStart + gapPatch - (MIN_DIST_TO_RECRUIT) - tmpoff: MIN_FRM_START)
                                                 << "\nsrc:" << gapIID
                                                 << "\n}\n";
                                         readsWithGaps[iid] = 1;
@@ -426,8 +479,8 @@ void *outputResults(void *ptr) {
                                 if (offset < 0) {
                                     offset = 0;
                                 }
-                                uint32 overlappingStart = (lastEnd-offset >= (waGlobal->maxUncorrectedGap / 3) ? lastEnd - (waGlobal->maxUncorrectedGap / 3) - offset: 0);
-                                uint32 overlappingEnd = MIN(iter->position.bgn, iter->position.end) + (waGlobal->maxUncorrectedGap / 3) - offset;
+                                uint32 overlappingStart = (lastEnd-offset >= (MIN_DIST_TO_RECRUIT / 3) ? lastEnd - (MIN_DIST_TO_RECRUIT / 3) - offset: 0);
+                                uint32 overlappingEnd = MIN(iter->position.bgn, iter->position.end) + (MIN_DIST_TO_RECRUIT / 3) - offset;
                                 // record this gap
                                 if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d with %d supporters had a gap from %d to %d inserting range %d from %d %d with offset %d so in original read positions are %d %d\n", layRecord.iid, count, lastEnd, MIN(iter->position.bgn, iter->position.end),gapIID, overlappingStart, overlappingEnd, offset, overlappingStart+offset, overlappingEnd+offset);
                                 layout << "{TLE\nclr:"
@@ -442,16 +495,16 @@ void *outputResults(void *ptr) {
                                 gaps[layRecord.iid].push_back(gapInfo);
                             } else {
                                 if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d but no one had a matching gap size it so breaking it\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
-                                closeRecord(waGlobal, outFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
+                                closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
                             }
                         } else { // no one could agree with this read, break it
                             if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d but no one believed it so breaking it\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
-                            closeRecord(waGlobal, outFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
+                            closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
                         }
                     } else {
                         // close the layout and start a new one because we have a coverage gap
                         if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Gap in sequence %d between positions %d - %d is greater than allowed %d\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end), waGlobal->maxUncorrectedGap);
-                        closeRecord(waGlobal, outFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
+                        closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
                     }
                 }
                 if (offset < 0) {
@@ -480,12 +533,13 @@ void *outputResults(void *ptr) {
             }
             if (lastEnd - offset >= waGlobal->minLength) {
                 fprintf(outFile, "%s}\n", layout.str().c_str());
+                fprintf(reportFile, "%d\t%d\t%d\t%d\n", layRecord.iid, readSubID, offset, lastEnd);
             }
             readIID++;
             if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Finished processing read %d subsegments %d\n", layRecord.iid, readSubID);
         }
 
-        if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Thread %d beginning output of "F_SIZE_T" reads\n", wa->id, readsToPrint.size());
+        if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Thread %d beginning output of "F_SIZE_T" reads\n", wa->id, readsToPrint.size());
         if (waGlobal->fixedMemory == TRUE) {
             if (waGlobal->numThreads > 1) {
                 pthread_mutex_lock(&waGlobal->globalDataMutex);
@@ -535,12 +589,14 @@ void *outputResults(void *ptr) {
         }
         frgToEnc.clear();
         fclose(outFile);
+        fclose(reportFile);
         closeLayFile(inFile);
 
         if (waGlobal->maxUncorrectedGap > 0) {
             inStore->unlink();
             delete inStore;
         }
+        AS_UTL_unlink(inName);
     }
     fprintf(stderr, "Done output of thread %d\n", wa->id);
     return(NULL);
