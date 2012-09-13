@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.104 2012-09-13 14:46:13 skoren Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.105 2012-09-13 17:41:13 skoren Exp $";
 
 #include "AS_global.h"
 
@@ -595,7 +595,7 @@ main(int argc, char **argv) {
     }
     else if (strcmp(argv[arg], "-longestlength") == 0) {
        dumpRandLib = atoi(argv[++arg]);
-       dumpLongestTotal = atoi(argv[++arg]);
+       dumpLongestTotal = atol(argv[++arg]);
        if (dumpLongestTotal == 0) {
         fprintf(stderr, "%s: -longesttotallength told to dump 0 bases; exit.\n", argv[0]);
         exit(0);
