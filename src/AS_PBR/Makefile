@@ -70,7 +70,7 @@ LIBRARIES     = libAS_PBR.a libCA.a
 LIBS          = libCA.a
 
 CXX_PROGS = correctPacBio dumpPBRLayoutStore
-SCRIPTS     = pacBioToCA
+SCRIPTS     = pacBioToCA sam-1.71 ConvertSamToCA
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -108,3 +108,9 @@ dumpPBRLayoutStore:	AS_PBR_dumpStore.o $(LIBS)
 pacBioToCA: pacBioToCA.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
+
+sam-1.71: sam-1.71.jar
+	@cp $< $(LOCAL_LIB)/$<
+
+ConvertSamToCA: ConvertSamToCA.jar
+	@cp $< $(LOCAL_LIB)/$<
