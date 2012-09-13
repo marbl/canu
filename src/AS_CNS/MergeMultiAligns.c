@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MergeMultiAligns.c,v 1.11 2011-12-08 00:56:28 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeMultiAligns.c,v 1.12 2012-09-13 09:56:07 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -49,8 +49,14 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
   VERBOSE_MULTIALIGN_OUTPUT = 1;
 #endif
 
-  if (num_contigs == 1)
-    return(tigStore->loadMultiAlign(cpositions[0].ident, FALSE));
+  if (num_contigs == 1) {
+    MultiAlignT *cma = tigStore->loadMultiAlign(cpositions[0].ident, FALSE);
+
+    if (cma == NULL)
+      fprintf(stderr, "MergeMultiAlignsFast_new() returns null cma from existing contig %d?\n", cpositions[0].ident);
+
+    return(cma);
+  }
 
   allow_neg_hang = 0;
 
@@ -83,7 +89,7 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
     offsets[fid].end = complement ? cpositions[i].position.bgn : cpositions[i].position.end;
 
     if (VERBOSE_MULTIALIGN_OUTPUT)
-      fprintf(stderr,"MergeMultiAligns()-- id=%10d %s %c %12d %12d\n",
+      fprintf(stderr,"MergeMultiAlignsFast_new()-- id=%10d %s %c %12d %12d\n",
               cpositions[i].ident,
               (complement) ? "<----" : "---->",
               cpositions[i].type,
@@ -120,7 +126,7 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
 
       if (align_to < 0) {
         if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MergeMultiAligns()-- unable to find uncontained contig upstream from current contig %d.  Fail.\n",
+          fprintf(stderr, "MergeMultiAlignsFast_new()-- unable to find uncontained contig upstream from current contig %d.  Fail.\n",
                   bfrag->iid);
         break;
       }
@@ -153,19 +159,19 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
       //  End of copy
 
       if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr, "MergeMultiAligns()-- ovl=%d from a %d-%d b %d-%d hangs %d %d\n",
+        fprintf(stderr, "MergeMultiAlignsFast_new()-- ovl=%d from a %d-%d b %d-%d hangs %d %d\n",
                 ovl,
                 offsets[afrag->lid].bgn, offsets[afrag->lid].end,
                 offsets[bfrag->lid].bgn, offsets[bfrag->lid].end,
                 ahang, bhang);
 
       if (ovl <= 0) {
-        if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MergeMultiAligns()-- uncontained contig upstream is found, but positions indicate no overlap between contigs %d and %d.  Fail.", afrag->iid, bfrag->iid);
+        fprintf(stderr, "MergeMultiAlignsFast_new()-- uncontained contig upstream is found, but positions indicate no overlap between contigs %d and %d.\n",
+                afrag->iid, bfrag->iid);
 
         DeleteMANode(manode->lid);
         safe_free(offsets);
-        return NULL;
+        return(NULL);
       }
 
       //  Use driver here?  Probably not; that will increase the erate and try other tricks we don't
@@ -178,19 +184,18 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
 
       if (!olap_success) {
         if (VERBOSE_MULTIALIGN_OUTPUT)
-          fprintf(stderr, "MergeMultiAligns()-- positions of contigs %d and %d overlap, but GetAlignmentTrace() fails.\n",
+          fprintf(stderr, "MergeMultiAlignsFast_new()-- positions of contigs %d and %d overlap, but GetAlignmentTrace() fails.\n",
                   afrag->iid, bfrag->iid);
         break;
       }
     }
 
     if (!olap_success) {
-      if (VERBOSE_MULTIALIGN_OUTPUT)
-        fprintf(stderr, "MergeMultiAligns()-- failed to find overlap between contigs %d and %d.  Fail.\n",
-                afrag->iid, bfrag->iid);
+      fprintf(stderr, "MergeMultiAlignsFast_new()-- failed to find overlap between contigs %d and %d.\n",
+              afrag->iid, bfrag->iid);
       DeleteMANode(manode->lid);
       safe_free(offsets);
-      return NULL;
+      return(NULL);
     }
 
     if (otype == AS_CONTAINMENT) {
@@ -320,5 +325,8 @@ MergeMultiAlignsFast_new(VA_TYPE(IntElementPos) *positions, CNS_Options *opp) {
   DeleteMANode(manode->lid);
   safe_free(offsets);
 
-  return cma;
+  if (cma == NULL)
+    fprintf(stderr, "MergeMultiAlignsFast_new() returns null cma?\n");
+
+  return(cma);
 }
