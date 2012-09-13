@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.24 2012-08-29 05:54:20 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.25 2012-09-13 09:16:16 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -316,8 +316,12 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
 
   //  Check that the components do not exceed the bound.
   //
-  if (GetMultiAlignLength(ma) > GetMultiAlignLength(ma, true))
-    fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d has invalid fragment/unitig layout -- exceeds bounds of consensus sequence.\n");
+  if (GetMultiAlignLength(ma) > GetMultiAlignLength(ma, true)) {
+    DumpMultiAlignForHuman(stderr, ma, isUnitig);
+    fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d has invalid fragment/unitig layout (length %d) -- exceeds bounds of consensus sequence (length %d).\n",
+            GetMultiAlignLength(ma, true),
+            GetMultiAlignLength(ma));
+  }
   assert(GetMultiAlignLength(ma) <= GetMultiAlignLength(ma, true));
 
   //  We can add unitigs only if we are not contig-partitioned, likewise for contigs.
