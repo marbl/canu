@@ -1299,15 +1299,16 @@ sub submitScript ($) {
     my $holdPropagateCommand 	= getGlobal("gridPropagateCommand");
 
 	if (defined($waitTag)) {
-		$holdOption =~ s/WAIT_TAG/\"$waitTag\"/g;
-		$waitTag = $holdOption;
+	    my $hold = $holdOption;
+		$hold =~ s/WAIT_TAG/\"$waitTag\"/g;
+		$waitTag = $hold;
 	}
     $sgeName = "_$sgeName"              if (defined($sgeName));
 
     my $qcmd = "$submitCommand $sge $sgeScript $nameOption \"rCA_$asm$sgeName\" $outputOption $output $waitTag $script";
 
     runCommand($wrk, $qcmd) and caFailure("Failed to submit script.\n");
-	if ($waitTag && defined($holdCommand)) {
+	if (defined($waitTag) && defined($holdCommand)) {
 		my $waitcmd = $holdCommand;
 		$waitcmd =~ s/WAIT_TAG/$waitTag/g;
 	    runCommand($wrk, $waitcmd) and caFailure("Wait command failed.\n");
@@ -1315,6 +1316,7 @@ sub submitScript ($) {
 
     if (defined($sgePropHold)) {
 		if (defined($holdPropagateCommand) && defined($holdOption)) {
+		    $holdOption =~ s/WAIT_TAG//g;
 	        my $acmd = "$holdPropagateCommand $holdOption \"rCA_$asm$sgeName\" \"$sgePropHold\"";
 	        system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
 		} else {
