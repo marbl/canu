@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-const char *mainid = "$Id: CorrectPacBio.cc,v 1.17 2012-08-22 14:41:00 skoren Exp $";
+const char *mainid = "$Id: CorrectPacBio.cc,v 1.18 2012-09-13 14:38:06 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -156,7 +156,7 @@ main (int argc, char * argv []) {
     thread_globals.hasMates			= false;
     thread_globals.percentToEstimateInserts = DEFAULT_SAMPLE_SIZE;
     thread_globals.percentShortReadsToStore = DEFAULT_SHORT_READ_STORE_SIZE;
-    thread_globals.verboseLevel 			  = VERBOSE_DEBUG;
+    thread_globals.verboseLevel 			  = VERBOSE_OFF;
 
     strcpy(thread_globals.prefix, "asm");
     argv[0][strlen(argv[0])-strlen(EXECUTABLE_NAME)] = '\0';
@@ -458,7 +458,7 @@ main (int argc, char * argv []) {
         fprintf(stderr, "Updated overlap store path to be %s\n", thread_globals.ovlStoreUniqPath);
 
         // remove intermediate files
-        sprintf(command, "rm -rf %s\\*ovb", thread_globals.prefix);
+        sprintf(command, "rm -rf %s*ovb", thread_globals.prefix);
         assert(system(command) == 0);
     }
 
