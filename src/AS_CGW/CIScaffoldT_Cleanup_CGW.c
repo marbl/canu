@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.86 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.87 2012-09-13 10:00:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1772,23 +1772,20 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   MultiAlignT *newMultiAlign = MergeMultiAlignsFast_new(ContigPositions, NULL);
 
   if (newMultiAlign == NULL) {
+    fprintf(stderr,"CreateAContigInScaffold()-- MergeMultiAlignsFast_new() failed.\n");
+
     for(int32 i = 0; i < GetNumIntElementPoss(ContigPositions); i++) {
       IntElementPos *pos = GetIntElementPos(ContigPositions,i);
       ContigT       *ctg = GetGraphNode(ScaffoldGraph->ContigGraph, pos->ident);
 
       ctg->flags.bits.failedToContig = TRUE;
 
-#ifdef DEBUG_CREATEACONTIG
-      fprintf(stderr,"* Contig "F_CID" ("F_CID")   bgn:"F_S32" end:"F_S32"\n",
+      fprintf(stderr,"CreateAContigInScaffold()-- contig "F_CID" (original "F_CID")  "F_S32"-"F_S32"\n",
               pos->ident, GetOriginalContigID(ctg->id),
               pos->position.bgn, pos->position.end);
-#endif
     }
 
-#ifdef DEBUG_CREATEACONTIG
     DumpCIScaffold(stderr, ScaffoldGraph, scaffold, FALSE);
-    fprintf(stderr,"* MergeMultiAligns failed....bye\n");
-#endif
 
     return FALSE;
   }
@@ -1796,7 +1793,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   //  We have a multialign, create a new contig.
 
   ContigT *contig = CreateNewGraphNode(ScaffoldGraph->ContigGraph);
-  fprintf(stderr,"* Create a contig "F_CID" in scaffold "F_CID"\n", contig->id, scaffold->id);
+  fprintf(stderr,"CreateAContigInScaffold()-- new contig "F_CID" in scaffold "F_CID"\n", contig->id, scaffold->id);
 
   newMultiAlign->maID = contig->id;
 
@@ -1935,102 +1932,115 @@ ContigContainment(CIScaffoldT  *scaffold,
                   NodeCGW_T    *thisCI,
                   EdgeCGW_T    *overlapEdge,
                   int           tryHarder) {
-  int32            minAhang;
-  int32            maxAhang;
-  IntElementPos          contigPos;
-  ALNoverlap            *contigOverlap;
-  PairOrient             overlapOrientation;
-  PairOrient             actualOverlapOrientation;
-  NodeCGW_T             *leftContig;
-  NodeCGW_T             *rightContig;
 
+  NodeCGW_T             *lftCtg;
+  NodeCGW_T             *rgtCtg;
 
-  if (MIN(prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean) <=
-      MIN(thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean)) {
-    leftContig = prevCI;
-    rightContig = thisCI;
+  if ((MIN(prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean)) <=
+      (MIN(thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean))) {
+    lftCtg = prevCI;
+    rgtCtg = thisCI;
   } else {
-    leftContig = thisCI;
-    rightContig = prevCI;
+    lftCtg = thisCI;
+    rgtCtg = prevCI;
   }
 
+#ifdef DEBUG_CONTIGCONTAINMENT
+  fprintf(stderr, "ContigContainment()-- 'left'  %d at %.0f-%.0f\n", lftCtg->id, lftCtg->offsetAEnd.mean, lftCtg->offsetBEnd.mean);
+  fprintf(stderr, "ContigContainment()-- 'right' %d at %.0f-%.0f\n", rgtCtg->id, rgtCtg->offsetAEnd.mean, rgtCtg->offsetBEnd.mean);
+#endif
 
   // Ad hominem critique (ALH): the following seems at this late hour an insane way to
   // set the allowed ahang range: the input edge should be used rather than the
   // positions the contigs currently think they have in the scaffold ... which can be way off!
 
-  if (leftContig->offsetAEnd.mean < leftContig->offsetBEnd.mean) {  // leftContig is AB
-    if (rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) {  // rightContig is AB
+  PairOrient       overlapOrientation;
+  PairOrient       actualOverlapOrientation;
+
+  int32            minAhang;
+  int32            maxAhang;
+
+  if (lftCtg->offsetAEnd.mean < lftCtg->offsetBEnd.mean) {  // lftCtg is AB
+    if (rgtCtg->offsetAEnd.mean < rgtCtg->offsetBEnd.mean) {  // rgtCtg is AB
       overlapOrientation.setIsAB_AB();
-      minAhang = (int32) (rightContig->offsetAEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
+      minAhang = (int32) (rgtCtg->offsetAEnd.mean - lftCtg->offsetAEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
-    } else {  // rightContig is BA
+    } else {  // rgtCtg is BA
       overlapOrientation.setIsAB_BA();
-      minAhang = (int32) (rightContig->offsetBEnd.mean - leftContig->offsetAEnd.mean) - AHANGSLOP;
+      minAhang = (int32) (rgtCtg->offsetBEnd.mean - lftCtg->offsetAEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     }
-  } else {  // leftContig is BA
-    if (rightContig->offsetAEnd.mean < rightContig->offsetBEnd.mean) {  // rightContig is AB
+  } else {  // lftCtg is BA
+    if (rgtCtg->offsetAEnd.mean < rgtCtg->offsetBEnd.mean) {  // rgtCtg is AB
       overlapOrientation.setIsBA_AB();
-      minAhang = (int32) (rightContig->offsetAEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
+      minAhang = (int32) (rgtCtg->offsetAEnd.mean - lftCtg->offsetBEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
-    } else {  // rightContig is BA
+    } else {  // rgtCtg is BA
       overlapOrientation.setIsBA_BA();
-      minAhang = (int32) (rightContig->offsetBEnd.mean - leftContig->offsetBEnd.mean) - AHANGSLOP;
+      minAhang = (int32) (rgtCtg->offsetBEnd.mean - lftCtg->offsetBEnd.mean) - AHANGSLOP;
       maxAhang = minAhang + (2 * AHANGSLOP);
     }
   }
 
 #ifdef DEBUG_CONTIGCONTAINMENT
   fprintf(stderr, "ContigContainment()-- orient=%d ahang min,max=%d,%d\n",
-          overlapOrientation, minAhang, maxAhang);
+          overlapOrientation.toLetter(), minAhang, maxAhang);
 #endif
 
-  contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
+  //  WAS TRUE - computeAhang
+  ALNoverlap *ovl = OverlapContigs(lftCtg, rgtCtg, &overlapOrientation, minAhang, maxAhang, FALSE);
+
+#ifdef DEBUG_CONTIGCONTAINMENT
+  if (ovl)
+    fprintf(stderr, "ContigContainment()-- overlap found: begpos=%d endpos=%d length=%d diffs=%d comp=%d\n",
+            ovl->begpos,
+            ovl->endpos,
+            ovl->length,
+            ovl->diffs,
+            ovl->comp);
+#endif
 
   // if no overlap found, try flipping orientation in case DPCompare
   // asymmetry is biting us
   //
-  if ((contigOverlap == NULL) && (tryHarder)) {
+  if ((ovl == NULL) && (tryHarder)) {
 #ifdef DEBUG_CONTIGCONTAINMENT
     fprintf(stderr, "ContigContainment()--  Try #2\n");
 #endif
     overlapOrientation.invert();
-    contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
+    ovl = OverlapContigs(lftCtg, rgtCtg, &overlapOrientation, minAhang, maxAhang, FALSE);
     overlapOrientation.invert();
 
-    if (contigOverlap != NULL) {
-      int32 temp      = -contigOverlap->begpos;
-      contigOverlap->begpos = -contigOverlap->endpos;
-      contigOverlap->endpos = temp;
+    if (ovl != NULL) {
+      int32 temp      = -ovl->begpos;
+      ovl->begpos = -ovl->endpos;
+      ovl->endpos = temp;
     }
   }
 
   // if still no overlap found, try maxing out hangs
-  if ((contigOverlap == NULL) && (tryHarder)) {
+  if ((ovl == NULL) && (tryHarder)) {
 #ifdef DEBUG_CONTIGCONTAINMENT
     fprintf(stderr, "ContigContainment()--  Try #3\n");
 #endif
-    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
-    contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+    ovl = OverlapContigs(lftCtg, rgtCtg, &overlapOrientation, minAhang, maxAhang, TRUE);
   }
 
   // if still no overlap found, try flipping orientation and maxing out hangs
-  if ((contigOverlap == NULL) && (tryHarder)) {
+  if ((ovl == NULL) && (tryHarder)) {
 #ifdef DEBUG_CONTIGCONTAINMENT
     fprintf(stderr, "ContigContainment()--  Try #4\n");
 #endif
-    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     overlapOrientation.invert();
-    contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+    ovl = OverlapContigs(lftCtg, rgtCtg, &overlapOrientation, minAhang, maxAhang, TRUE);
     overlapOrientation.invert();
 
-    if (contigOverlap != NULL) {
-      int32 temp      = -contigOverlap->begpos;
-      contigOverlap->begpos = -contigOverlap->endpos;
-      contigOverlap->endpos = temp;
+    if (ovl != NULL) {
+      int32 temp      = -ovl->begpos;
+      ovl->begpos = -ovl->endpos;
+      ovl->endpos = temp;
     }
   }
 
@@ -2042,44 +2052,44 @@ ContigContainment(CIScaffoldT  *scaffold,
   //  - call OverlapContigs with left and right swapped
 
   //  swap
-  if ((contigOverlap == NULL) && (tryHarder)) {
+  if ((ovl == NULL) && (tryHarder)) {
 #ifdef DEBUG_CONTIGCONTAINMENT
     fprintf(stderr, "ContigContainment()--  Try #5\n");
 #endif
-    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    int32 maxLength = MAX(lftCtg->bpLength.mean, rgtCtg->bpLength.mean);
 
     overlapOrientation.swap();
-    contigOverlap = OverlapContigs(rightContig, leftContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+    ovl = OverlapContigs(rgtCtg, lftCtg, &overlapOrientation, -maxLength, maxLength, FALSE);
     overlapOrientation.swap();
 
-    if (contigOverlap != NULL) {
-      contigOverlap->begpos *= -1;
-      contigOverlap->endpos *= -1;
+    if (ovl != NULL) {
+      ovl->begpos *= -1;
+      ovl->endpos *= -1;
     }
   }
 
   //  swap and flip orientation
-  if ((contigOverlap == NULL) && (tryHarder)) {
+  if ((ovl == NULL) && (tryHarder)) {
 #ifdef DEBUG_CONTIGCONTAINMENT
     fprintf(stderr, "ContigContainment()--  Try #6\n");
 #endif
-    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    int32 maxLength = MAX(lftCtg->bpLength.mean, rgtCtg->bpLength.mean);
 
     overlapOrientation.swap();
     overlapOrientation.invert();
 
-    contigOverlap = OverlapContigs(rightContig, leftContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+    ovl = OverlapContigs(rgtCtg, lftCtg, &overlapOrientation, -maxLength, maxLength, FALSE);
 
     overlapOrientation.invert();
     overlapOrientation.swap();
 
-    if (contigOverlap != NULL) {
-      int32 temp      = -contigOverlap->begpos;
-      contigOverlap->begpos = -contigOverlap->endpos;
-      contigOverlap->endpos = temp;
+    if (ovl != NULL) {
+      int32 temp      = -ovl->begpos;
+      ovl->begpos = -ovl->endpos;
+      ovl->endpos = temp;
 
-      contigOverlap->begpos *= -1;
-      contigOverlap->endpos *= -1;
+      ovl->begpos *= -1;
+      ovl->endpos *= -1;
     }
   }
 
@@ -2087,40 +2097,40 @@ ContigContainment(CIScaffoldT  *scaffold,
   //  overlaps at CGW_ERATE + 0.02, builds a new contig, and then dies
   //  when it calls RecomputeOffsetsInScaffold() (which calls us).
   //
-  if ((contigOverlap == NULL) && (tryHarder)) {
+  if ((ovl == NULL) && (tryHarder)) {
 #ifdef DEBUG_CONTIGCONTAINMENT
     fprintf(stderr, "ContigContainment()--  Try #7\n");
 #endif
-    int32 maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    int32 maxLength = MAX(lftCtg->bpLength.mean, rgtCtg->bpLength.mean);
 
     AS_CGW_ERROR_RATE += 0.02;
 
-    contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, minAhang, maxAhang, TRUE);
+    ovl = OverlapContigs(lftCtg, rgtCtg, &overlapOrientation, minAhang, maxAhang, FALSE);
 
-    if (contigOverlap == NULL)
-      contigOverlap = OverlapContigs(leftContig, rightContig, &overlapOrientation, -maxLength, maxLength, FALSE);
+    if (ovl == NULL)
+      ovl = OverlapContigs(lftCtg, rgtCtg, &overlapOrientation, -maxLength, maxLength, TRUE);
 
     AS_CGW_ERROR_RATE -= 0.02;
   }
 
-  if (contigOverlap == NULL) {
+  if (ovl == NULL) {
     fprintf(stderr, "================================================================================\n");
-    dumpContigInfo(leftContig);
-    dumpContigInfo(rightContig);
-    fprintf(stderr, "* No overlap found between "F_CID" and "F_CID".  Fail.\n", leftContig->id, rightContig->id);
+    dumpContigInfo(lftCtg);
+    dumpContigInfo(rgtCtg);
+    fprintf(stderr, "* No overlap found between "F_CID" and "F_CID".  Fail.\n", lftCtg->id, rgtCtg->id);
     return(FALSE);
   }
-  //assert(contigOverlap != NULL);
+  //assert(ovl != NULL);
 
   // contigs need to be reversed
-  if (contigOverlap->begpos < 0) {
-    NodeCGW_T *t = leftContig;
-    leftContig   = rightContig;
-    rightContig  = t;
+  if (ovl->begpos < 0) {
+    NodeCGW_T *t = lftCtg;
+    lftCtg   = rgtCtg;
+    rgtCtg  = t;
 
     // adjust Overlap fields for later use in positioning
-    contigOverlap->begpos = - contigOverlap->begpos;
-    contigOverlap->endpos = - contigOverlap->endpos;
+    ovl->begpos = - ovl->begpos;
+    ovl->endpos = - ovl->endpos;
 
     //  AB_AB and BA_BA don't change
     actualOverlapOrientation = overlapOrientation;
@@ -2130,64 +2140,68 @@ ContigContainment(CIScaffoldT  *scaffold,
     if (overlapOrientation.isBA_AB())
       actualOverlapOrientation.setIsAB_BA();
 
+#ifdef DEBUG_CONTIGCONTAINMENT
     fprintf(stderr, "* Switched right-left, orientation went from %c to %c\n",
             overlapOrientation.toLetter(), actualOverlapOrientation.toLetter());
+#endif
   } else {
     actualOverlapOrientation = overlapOrientation;
   }
 
 #ifdef DEBUG_CONTIGCONTAINMENT
   fprintf(stderr, "* Containing contig is "F_CID" contained contig is "F_CID" ahg:%d bhg:%d orient:%c\n",
-          leftContig->id, rightContig->id, contigOverlap->begpos, contigOverlap->endpos, actualOverlapOrientation);
+          lftCtg->id, rgtCtg->id, ovl->begpos, ovl->endpos, actualOverlapOrientation.toLetter());
 
   fprintf(stderr, "* Initial Positions:  left:"F_CID" [%g,%g]  right:"F_CID" [%g,%g]\n",
-          leftContig->id,  leftContig->offsetAEnd.mean,  leftContig->offsetBEnd.mean,
-          rightContig->id, rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
+          lftCtg->id,  lftCtg->offsetAEnd.mean,  lftCtg->offsetBEnd.mean,
+          rgtCtg->id, rgtCtg->offsetAEnd.mean, rgtCtg->offsetBEnd.mean);
 #endif
 
-  // assume we leave the leftContig where it is
+  // assume we leave the lftCtg where it is
   if (actualOverlapOrientation.isAB_AB()) {
-    rightContig->offsetAEnd.mean = leftContig->offsetAEnd.mean  + contigOverlap->begpos;
-    rightContig->offsetBEnd.mean = rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
+    rgtCtg->offsetAEnd.mean = lftCtg->offsetAEnd.mean  + ovl->begpos;
+    rgtCtg->offsetBEnd.mean = rgtCtg->offsetAEnd.mean + rgtCtg->bpLength.mean;
   }
   if (actualOverlapOrientation.isAB_BA()) {
-    rightContig->offsetBEnd.mean = leftContig->offsetAEnd.mean  + contigOverlap->begpos;
-    rightContig->offsetAEnd.mean = rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
+    rgtCtg->offsetBEnd.mean = lftCtg->offsetAEnd.mean  + ovl->begpos;
+    rgtCtg->offsetAEnd.mean = rgtCtg->offsetBEnd.mean + rgtCtg->bpLength.mean;
   }
   if (actualOverlapOrientation.isBA_AB()) {
-    rightContig->offsetAEnd.mean = leftContig->offsetBEnd.mean  + contigOverlap->begpos;
-    rightContig->offsetBEnd.mean = rightContig->offsetAEnd.mean + rightContig->bpLength.mean;
+    rgtCtg->offsetAEnd.mean = lftCtg->offsetBEnd.mean  + ovl->begpos;
+    rgtCtg->offsetBEnd.mean = rgtCtg->offsetAEnd.mean + rgtCtg->bpLength.mean;
   }
   if (actualOverlapOrientation.isBA_BA()) {
-    rightContig->offsetBEnd.mean = leftContig->offsetBEnd.mean  + contigOverlap->begpos;
-    rightContig->offsetAEnd.mean = rightContig->offsetBEnd.mean + rightContig->bpLength.mean;
+    rgtCtg->offsetBEnd.mean = lftCtg->offsetBEnd.mean  + ovl->begpos;
+    rgtCtg->offsetAEnd.mean = rgtCtg->offsetBEnd.mean + rgtCtg->bpLength.mean;
   }
 
   VA_TYPE(IntElementPos) *ContigPositions = CreateVA_IntElementPos(2);
 
-  contigPos.ident        = leftContig->id;
+  IntElementPos          contigPos;
+
+  contigPos.ident        = lftCtg->id;
   contigPos.type         = AS_CONTIG;
-  contigPos.position.bgn = leftContig->offsetAEnd.mean;
-  contigPos.position.end = leftContig->offsetBEnd.mean;
+  contigPos.position.bgn = lftCtg->offsetAEnd.mean;
+  contigPos.position.end = lftCtg->offsetBEnd.mean;
   AppendIntElementPos(ContigPositions, &contigPos);
 
-  contigPos.ident         = rightContig->id;
+  contigPos.ident         = rgtCtg->id;
   contigPos.type          = AS_CONTIG;
-  contigPos.position.bgn = rightContig->offsetAEnd.mean;
-  contigPos.position.end = rightContig->offsetBEnd.mean;
+  contigPos.position.bgn = rgtCtg->offsetAEnd.mean;
+  contigPos.position.end = rgtCtg->offsetBEnd.mean;
   AppendIntElementPos(ContigPositions, &contigPos);
 
 #ifdef DEBUG_CONTIGCONTAINMENT
   fprintf(stderr, "* Final   Positions:  left:"F_CID" [%g,%g]  right:"F_CID" [%g,%g]\n",
-          leftContig->id,  leftContig->offsetAEnd.mean,  leftContig->offsetBEnd.mean,
-          rightContig->id, rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
+          lftCtg->id,  lftCtg->offsetAEnd.mean,  lftCtg->offsetBEnd.mean,
+          rgtCtg->id, rgtCtg->offsetAEnd.mean, rgtCtg->offsetBEnd.mean);
 #endif
 
-  int flip        = (leftContig->offsetBEnd.mean < leftContig->offsetAEnd.mean);
+  int flip        = (lftCtg->offsetBEnd.mean < lftCtg->offsetAEnd.mean);
   int mergeStatus = CreateAContigInScaffold(scaffold,
                                             ContigPositions,
-                                            flip ? leftContig->offsetBEnd : leftContig->offsetAEnd,
-                                            flip ? leftContig->offsetAEnd : leftContig->offsetBEnd);
+                                            flip ? lftCtg->offsetBEnd : lftCtg->offsetAEnd,
+                                            flip ? lftCtg->offsetAEnd : lftCtg->offsetBEnd);
 
   Delete_VA(ContigPositions);
 
