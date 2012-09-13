@@ -19,7 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.103 2012-08-04 16:40:16 skoren Exp $";
+const char *mainid = "$Id: AS_GKP_main.c,v 1.104 2012-09-13 14:46:13 skoren Exp $";
+
+#include "AS_global.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +33,6 @@ const char *mainid = "$Id: AS_GKP_main.c,v 1.103 2012-08-04 16:40:16 skoren Exp 
 
 #include <map>
 
-#include "AS_global.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_fileIO.h"

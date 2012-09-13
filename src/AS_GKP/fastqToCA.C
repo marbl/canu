@@ -19,13 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.25 2012-08-07 20:26:14 skoren Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.26 2012-09-13 14:46:13 skoren Exp $";
+
+#include "AS_global.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "AS_global.h"
 #include "AS_UTL_fileIO.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_MSG_pmesg.h"
