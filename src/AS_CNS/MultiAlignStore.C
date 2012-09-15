@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.25 2012-09-13 09:16:16 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.26 2012-09-15 01:13:12 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -318,7 +318,9 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
   //
   if (GetMultiAlignLength(ma) > GetMultiAlignLength(ma, true)) {
     DumpMultiAlignForHuman(stderr, ma, isUnitig);
-    fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d has invalid fragment/unitig layout (length %d) -- exceeds bounds of consensus sequence (length %d).\n",
+    fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d %c has invalid fragment/unitig layout (length %d) -- exceeds bounds of consensus sequence (length %d).\n",
+            ma->maID,
+            isUnitig ? 'U' : 'C',
             GetMultiAlignLength(ma, true),
             GetMultiAlignLength(ma));
   }
