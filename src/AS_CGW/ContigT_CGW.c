@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ContigT_CGW.c,v 1.37 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: ContigT_CGW.c,v 1.38 2012-09-17 09:14:18 brianwalenz Exp $";
 
 #undef DEBUG_CONTIG
 
@@ -574,8 +574,8 @@ BuildInitialContigs(ScaffoldGraphT *graph) {
     }
   }
 
-  fprintf(stderr,"BuildInitialContigs()-- converted "F_U32" merged edges with "F_U32" raw edges; converted "F_U32" top level raw edges.\n",
-          nMerged, nRaw, nTopRaw);
+  fprintf(stderr,"BuildInitialContigs()-- converted "F_U32" merged edges with "F_U32" raw edges; skipped "F_U32" raw edges in merged edges; converted "F_U32" top level raw edges.\n",
+          nMerged, nRaw, nRawSkipped, nTopRaw);
 
   assert(nRawSkipped == nRaw);
 }
