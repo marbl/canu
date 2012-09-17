@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.112 2012-09-11 17:24:05 jasonmiller9704 Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.113 2012-09-17 13:53:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,11 +51,8 @@ using namespace std;
 
 VA_DEF(PtrT)
 
-//  If defined, the previous behavior of maintaining the edge list as alway sorted is used.  If
-//  undefined, the initial edge list will be unsorted until the first access, then maintained
-//  sorted.
-//
-#define ALWAYSINSERT
+//  If enabled, output logging of the resulting merged edges.
+#undef EDGELOG
 
 void InitializeChunkInstance(ChunkInstanceT *ci, ChunkInstanceType type){
   ClearChunkInstance(ci);
@@ -1287,7 +1284,6 @@ MergeAllGraphEdges_SCF_EdgeIDCompare(CDS_CID_t const idA, CDS_CID_t const idB) {
                                GetGraphEdge(ScaffoldGraph->ScaffoldGraph, idB)));
 }
 
-static int EdgeLog_FileNumber = 0;
 void
 MergeAllGraphEdges(GraphCGW_T         *graph,
                    vector<CDS_CID_t>  &rawEdges,
@@ -1302,8 +1298,10 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
   newEdges.reserve(rawEdges.size());  //  Slight overkill.
   chain.reserve(rawEdges.size());     //  Massive overkill.
 
-  FILE *EdgeLog_FilePointer = NULL; 
-  char EdgeLog_FileName [1000];
+#ifdef EDGELOG
+  static int  EdgeLog_FileNumber             = 0;
+  char        EdgeLog_FileName[FILENAME_MAX] = {0};
+#endif
 
   //  Crud, we have a list of edge IDs as input, but we need to sort using the
   //  edge itself.  As we're building rawEdges, the edge storage array is probably
@@ -1317,9 +1315,9 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
               (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
     sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_UTG_EdgeIDCompare);
 
-    sprintf (EdgeLog_FileName, "EdgeLog.unitig.%d", ++EdgeLog_FileNumber);
-    assert (strlen(EdgeLog_FileName)<1000);
-    EdgeLog_FilePointer = fopen (EdgeLog_FileName, "w");
+#ifdef EDGELOG
+    sprintf(EdgeLog_FileName, "%s.unitigEdges.%d", ScaffoldGraph->name, ++EdgeLog_FileNumber);
+#endif
 
   } else if (graph == ScaffoldGraph->ContigGraph) {
     if (rawEdges.size() > minReportSize)
@@ -1333,14 +1331,15 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
               (includeGuides) ? 'T' : 'F', (mergeAll) ? 'T' : 'F');
     sort(rawEdges.begin(), rawEdges.end(), MergeAllGraphEdges_SCF_EdgeIDCompare);
 
-    sprintf (EdgeLog_FileName, "EdgeLog.scaffold.%d", ++EdgeLog_FileNumber);
-    assert (strlen(EdgeLog_FileName)<1000);
-    EdgeLog_FilePointer = fopen (EdgeLog_FileName, "w");
+#ifdef EDGELOG
+    sprintf(EdgeLog_FileName, "%s.scaffoldEdges.%d", ScaffoldGraph->name, ++EdgeLog_FileNumber);
+#endif
 
   } else {
     fprintf(stderr, "MergeAllGraphEdges()--  Invalid edges.\n");
     assert(0);
   }
+
 
   //  Walk down the now sorted list of edges, merging anything with the same
   //  (idA,idB,orient) triplet.
@@ -1388,47 +1387,46 @@ MergeAllGraphEdges(GraphCGW_T         *graph,
     fprintf(stderr, "MergeAllGraphEdges()--  processed "F_SIZE_T" raw edges into "F_SIZE_T" merged edges.\n",
             rawEdges.size(), newEdges.size());
 
-  for (uint32 ee=0; ee<newEdges.size(); ee++) {
-    if (EdgeLog_FilePointer != NULL) {
-      CDS_CID_t edgeID = newEdges[ee];
-      EdgeCGW_T *edgePtr = GetGraphEdge(graph, edgeID);
-      fprintf(EdgeLog_FilePointer, F_CID" "F_CID" %c weight %d overlap %d dist %f var %f\n",
-	      edgePtr->idA, edgePtr->idB, edgePtr->orient.toLetter(), 
-	      edgePtr->edgesContributing, isOverlapEdge(edgePtr),
-	      edgePtr->distance.mean, edgePtr->distance.variance);
-    }
+  for (uint32 ee=0; ee<newEdges.size(); ee++)
     InsertGraphEdge(graph, newEdges[ee]);
-  }
-  //  Sort them, too.  All we need to do is create an iterator for each node.
-  //  Well, don't sort them.  We call this function on edges from just a single
-  //  contig.  Examining all contigs to just sort one is a bit of a waste.
 
-#if 0
-  uint32  nc = GetNumNodeCGW_Ts(graph->nodes);
-  uint32  ns = 0;
+#ifdef EDGELOG
+  if (EdgeLog_FileName[0] != 0) {
+    FILE *fp = fopen(EdgeLog_FileName, "w");
 
-  fprintf(stderr,"MergeAllGraphEdges()-- Sorting "F_SIZE_T" edges in "F_U32" objects.\n",
-          newEdges.size(), nc);
+    for (uint32 ee=0; ee<newEdges.size(); ee++) {
+      EdgeCGW_T *edge = GetGraphEdge(graph, newEdges[ee]);
 
-  int32 numThreads = omp_get_max_threads();
-  int32 blockSize  = (nc < 100 * numThreads) ? numThreads : nc / 99;      //  Up to 100 blocks.
+      fprintf(fp, "EDGE "F_CID" "F_CID" %c frag "F_CID" "F_CID" weight %d overlap %d dist %.0f +- %.0f lib "F_CID"\n",
+              edge->idA,
+              edge->idB,
+              edge->orient.toLetter(),
+              edge->fragA,
+              edge->fragB,
+              edge->edgesContributing,
+              isOverlapEdge(edge),
+              edge->distance.mean, sqrt(edge->distance.variance),
+              edge->distIndex);
 
-  assert(0 < blockSize);
+      while (edge->nextRawEdge != NULLINDEX) {
+        edge = GetGraphEdge(graph, edge->nextRawEdge);
 
-#pragma omp parallel for schedule(dynamic, blockSize)
-  for (uint32 ni=0; ni<nc; ni++) {
-    ns++;
+        fprintf(fp, "     "F_CID" "F_CID" %c frag "F_CID" "F_CID" weight %d overlap %d dist %.0f +- %.0f lib "F_CID" RAW\n",
+                edge->idA,
+                edge->idB,
+                edge->orient.toLetter(),
+                edge->fragA,
+                edge->fragB,
+                edge->edgesContributing,
+                isOverlapEdge(edge),
+                edge->distance.mean, sqrt(edge->distance.variance),
+                edge->distIndex);
+      }
+    }
 
-    if ((ns % 100000) == 0)
-      fprintf(stderr, "MergeAllGraphEdges()-- Sorting edges in object "F_U32"\n", ns);
-
-    GraphEdgeIterator edges(graph, ni, ALL_END, ALL_EDGES);
+    fclose(fp);
   }
 #endif
-
-  if (EdgeLog_FilePointer != NULL) {
-    fclose (EdgeLog_FilePointer);
-  }
 }
 
 
