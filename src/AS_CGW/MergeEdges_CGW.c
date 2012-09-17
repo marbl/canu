@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.36 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.37 2012-09-17 13:58:03 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -56,10 +56,9 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
     minOffset = 0;
     maxOffset = -overlap;
   }
-#ifdef DEBUG_CONFIRM
-  fprintf(stderr,"* chunk = "F_CID" endB = %d minOffset = "F_S32" maxoffset = "F_S32" overlap = "F_S32"\n",
-          chunkID, endB, minOffset, maxOffset,overlap);
-#endif
+
+  //fprintf(stderr,"* chunk = "F_CID" endB = %d minOffset = "F_S32" maxoffset = "F_S32" overlap = "F_S32"\n",
+  //        chunkID, endB, minOffset, maxOffset,overlap);
 
   /* Now we have to find if there are intraChunk or terminal fragments, other
      than the fragment at endB, that overlap the (minOffset,maxOffset)
@@ -91,7 +90,7 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
 }
 
 
-/************************************************************/
+
 /* Check that a weight 2 edge is correctly confirmed        */
 static int ConfirmOverlap(GraphCGW_T *graph,
                           CIEdgeT *overlapEdge,
@@ -227,11 +226,11 @@ gammq(double a, double x) {
 //
 static
 int
-ComputeChiSquared(Chi2ComputeT *edges,
-                  int           numEdges,
-                  CDS_CID_t     skip,
-                  LengthT      *distance,
-                  double        *score) {
+ComputeChiSquared(vector<Chi2ComputeT> &edges,
+                  int                   numEdges,
+                  CDS_CID_t             skip,
+                  LengthT              &distance,
+                  double               &score) {
   double  cumScore           = 0.0;
   double  cumWeightedMean    = 0.0;
   double  cumInverseVariance = 0.0;
@@ -249,8 +248,8 @@ ComputeChiSquared(Chi2ComputeT *edges,
 
   leastSquaresMean = cumWeightedMean / cumInverseVariance;
 
-  distance->mean     = leastSquaresMean;
-  distance->variance = 1.0 / cumInverseVariance;
+  distance.mean     = leastSquaresMean;
+  distance.variance = 1.0 / cumInverseVariance;
 
   for (int32 edgeIndex = 0; edgeIndex < numEdges; edgeIndex++) {
     if (edgeIndex != skip)
@@ -259,7 +258,7 @@ ComputeChiSquared(Chi2ComputeT *edges,
                    edges[edgeIndex].distance.variance);
   }
 
-  *score = cumScore;
+  score = cumScore;
 
   //  It'd be a bad day if this fails.
   assert(numEdges > numEdgesCorrection);
@@ -289,7 +288,7 @@ ComputeChiSquared(Chi2ComputeT *edges,
 }
 
 
-/************************************************************************/
+
 static
 void
 InitializeMergedEdge(CIEdgeT            *newEdge,
@@ -375,502 +374,459 @@ InitializeMergedEdge(CIEdgeT            *newEdge,
     newEdge->flags.bits.isProbablyBogus = FALSE;
 }
 
+
 /* CompareChi2Scores sorts Chi squared scores in ascending order
    but also places active and passed scores before others */
 
 bool
-operator<(ClusterScoreChi2T &s1, ClusterScoreChi2T &s2) {
-  if(s1.active != s2.active)
-    return(s1.active != 0);
-  if(s1.passed != s2.passed)
-    return(s1.passed != 0);
-  return (s1.score < s2.score);
+sortScoreCompare(ClusterScoreChi2T *s1, ClusterScoreChi2T *s2) {
+  if (s1->active != s2->active)  return(s1->active == true);
+  if (s1->passed != s2->passed)  return(s1->passed == true);
+
+  return(s1->score < s2->score);
 }
 
 
-/* MergeGraphEdges
-   Input:
-   VA_TYPE(CDS_CID_t) *inputEdges is the array of references to CIEdges
-   that link the same two elements (unitigs/contigs/etc) with the
-   same orientation.
-   GraphT *graph is the graph containing the edges and is
-   needed to detect possible chimeric edges where an overlap edge
-   and a mate edge are the only edges and they both depend on the
-   same fragment which may be chimeric and so the edge is not
-   being independently supported by two kinds of evidence.
+//  MergeGraphEdges
 
-   The edges have associated distance records which include mean and variance
-   statistics. This routine merges edges which when merged pass a Chi Squared
-   test indicating that they are all consistent with a new combined estimate
-   of the mean and variance. First all edges are merged and Chi Squared tested.
-   If this fails each edge in turn is left out of the merged set and the set is
-   Chi Squared tested with the lowest passing set chosen as the merged set and
-   the leftover edge remaining as a singleton. If this fails an agglomerative
-   (bottom-up) nearest neighbor clustering is performed using a pairwise Chi
-   Squared criteria. Each candidate cluster although chosen based on a pairwise
-   Chi Squared criterion must pass the full Chi Squared test to be accepted.
-   The resulting clusters are output as the merged edges. To compute the best
-   least squares estimate of the mean and variance of a merged edge the
-   formulation from Chapter 14 of Numerical Recipes in C p523 is used. See
-   also pages 66-71 of Data Reduction and Error Analysis for the Physical
-   Sciences by Bevington.
+//  VA_TYPE(CDS_CID_t) *inputEdges is the array of references to CIEdges that link the same two
+//  elements (unitigs/contigs/etc) with the same orientation.
+//
+//  GraphT *graph is the graph containing the edges and is needed to detect possible chimeric edges
+//  where an overlap edge and a mate edge are the only edges and they both depend on the same
+//  fragment which may be chimeric and so the edge is not being independently supported by two kinds
+//  of evidence.
+//
+//  The edges have associated distance records which include mean and variance statistics. This
+//  routine merges edges which when merged pass a Chi Squared test indicating that they are all
+//  consistent with a new combined estimate of the mean and variance.
+//
+//  All edges are merged and Chi Squared tested.
+//
+//  If this fails each edge in turn is left out of the merged set and the set is Chi Squared tested
+//  with the lowest passing set chosen as the merged set and the leftover edge remaining as a
+//  singleton.
+//
+//  If this fails an agglomerative (bottom-up) nearest neighbor clustering is performed using a
+//  pairwise Chi Squared criteria. Each candidate cluster although chosen based on a pairwise Chi
+//  Squared criterion must pass the full Chi Squared test to be accepted.  The resulting clusters
+//  are output as the merged edges.
+//
+//  To compute the best least squares estimate of the mean and variance of a merged edge the
+//  formulation from Chapter 14 of Numerical Recipes in C p523 is used. See also pages 66-71 of Data
+//  Reduction and Error Analysis for the Physical Sciences by Bevington.
+//
+//  The return value is the number of edges that this routine appended to the edges array - returns
+//  0 when no merging was done and -1 on failure.
+//
+//  The client of this routine must INSERT the resulting edges into the appropriate graph.
 
-   The merged CIEdgeTs reference the raw CIEdges they incorporate by a singly
-   linked list via the nextRawEdge field.  The merged edges are marked as not
-   raw.  The merged edges are APPENDED to the edges array. The client of this
-   routine also needs to know which raw edges were not merged with any other
-   edge and therefore need to be retained. MergeEdges will reset the
-   VA_TYPE(CDS_CID_t) *inputEdges variable array in order to return the indices
-   of the merged edges in addition to the indices of these unmerged edges in
-   this variable array.
+bool
+MergeGraphEdges_All(GraphCGW_T            *graph,
+                    vector<CDS_CID_t>     &inputEdges,
+                    vector<Chi2ComputeT>  &edgeCompute,
+                    CIEdgeT               *overlapEdge) {
 
-   The return value is the number of edges that this routine appended to the
-   edges array - returns 0 when no merging was done and -1 on failure.
+  assert(inputEdges.size() >= 2);
 
-   The client of this routine must INSERT the resulting edges into the
-   appropriate graph.
-*/
+  for (int32 ei=0; ei<inputEdges.size(); ei++) {
+    CIEdgeT *edge                   = GetGraphEdge(graph, inputEdges[ei]);
+    edge->topLevelEdge              = inputEdges[ei];
+    edgeCompute[ei].distance        = edge->distance;
+    edgeCompute[ei].inverseVariance = 1.0 / edgeCompute[ei].distance.variance;
+    edgeCompute[ei].weightedMean    = edgeCompute[ei].distance.mean * edgeCompute[ei].inverseVariance;
+  }
+
+  bool     confirmable = (inputEdges.size() >= 2);
+  LengthT  distance;
+  double   chiSquareScore;
+
+#if 0
+  //  If we don't want to confirm a mate-link edge by
+  //  merging it with a repeat or tandem Overlap edge
+  if (overlapEdge)
+    confirmable = ((inputEdges.size() > 2) ||
+                   ((inputEdges.size() == 2) && (overlapEdge == NULL)) ||
+                   ((inputEdges.size() == 2) && (overlapEdge->flags.bits.hasContributingOverlap == true)));
+#endif
+
+  //  Check to see if the entire set of inputEdges passes the Chi Squared test.
+
+  if ((confirmable == true) &&
+      (ComputeChiSquared(edgeCompute, inputEdges.size(), inputEdges.size() + 1, distance, chiSquareScore) == true)) {
+    CIEdgeT   *ne  = GetFreeGraphEdge(graph);
+
+    InitializeMergedEdge(ne, overlapEdge, distance, graph, inputEdges);
+
+    inputEdges.clear();
+    inputEdges.push_back(GetVAIndex_EdgeCGW_T(graph->edges, ne));
+
+    return(true);
+  }
+
+  return(false);
+}
+
+
+
+bool
+MergeGraphEdges_AllButOne(GraphCGW_T            *graph,
+                          vector<CDS_CID_t>     &inputEdges,
+                          vector<Chi2ComputeT>  &edgeCompute,
+                          CIEdgeT               *overlapEdge) {
+
+  assert(inputEdges.size() >= 3);
+
+  vector<Chi2ResultT>   edgeChi2Result(inputEdges.size());
+
+  CDS_CID_t minIndex = -1;
+  double    minScore = DBL_MAX;
+
+  for (int32 ei=0; ei<inputEdges.size(); ei++) {
+    edgeChi2Result[ei].passed = ComputeChiSquared(edgeCompute, inputEdges.size(), ei, edgeChi2Result[ei].distance, edgeChi2Result[ei].score); 
+
+    if ((edgeChi2Result[ei].passed == true) &&
+        (edgeChi2Result[ei].score < minScore)) {
+      minScore = edgeChi2Result[ei].score;
+      minIndex = ei;
+    }
+  }
+
+  //  If we found a result, minIndex is > -1 and is the edge we left out of the merged set.
+  //  Initialize the new edge with all but the skipped edge.  Result[ei] is the distance estimate
+  //  with that edge skipped.
+
+  if (minIndex == -1)
+    return(false);
+
+  vector<CDS_CID_t> clusterEdges;
+
+  for (int32 ei=0; ei<inputEdges.size(); ei++)
+    if (ei != minIndex)
+      clusterEdges.push_back(inputEdges[ei]);
+
+  CIEdgeT    *ne = GetFreeGraphEdge(graph);
+  CDS_CID_t   ni = GetVAIndex_EdgeCGW_T(graph->edges, ne);
+  CDS_CID_t   ex = inputEdges[minIndex];
+
+  InitializeMergedEdge(ne, overlapEdge, edgeChi2Result[minIndex].distance, graph, clusterEdges);
+
+  inputEdges.clear();
+  inputEdges.push_back(ni);
+  inputEdges.push_back(ex);
+
+  return(true);
+}
+
+
+
+
+//  Starting with the best pairwise set, add one edge as long as it is consistent.
+//  If no edges are consistent, seed another best pairwise set.
+//
+
+
+//  A pair of edges, with ChiSquared score and distance.
+class mgePair {
+public:
+  double          score;     //  ChiSquared score
+  LengthT         distance;  //  estimated distance
+  uint32          aIdx;      //  index into inputEdges vector for one of the edges
+  uint32          bIdx;      //  index into inputEdges vector for the other edge
+
+  bool operator<(const mgePair &that) const {
+    return(score < that.score);
+  };
+};
+
+//  A set of edges, with ChiSquared score and distance.
+class mgeSet {
+public:
+  mgeSet(mgePair &pair_) {
+    score    = pair_.score;
+    distance = pair_.distance;
+
+    edges.push_back(pair_.aIdx);
+    edges.push_back(pair_.bIdx);
+  };
+
+  mgeSet(CDS_CID_t edge_) {
+    score             = 0.0;
+    distance.mean     = 0.0;
+    distance.variance = 0.0;
+
+    edges.push_back(edge_);
+  };
+
+  ~mgeSet() {
+  };
+
+  void   insertPair(const mgePair &pair_, double score_, double mean_, double variance_) {
+    score              = score_;
+    distance.mean      = mean_;
+    distance.variance  = variance_;
+
+    edges.push_back(pair_.aIdx);
+    edges.push_back(pair_.bIdx);
+  }
+
+  void   insertSingle(CDS_CID_t edgeid_, double score_, double mean_, double variance_) {
+    score              = score_;
+    distance.mean      = mean_;
+    distance.variance  = variance_;
+
+    edges.push_back(edgeid_);
+  }
+
+  double             score;     //  the ChiSquared score
+  LengthT            distance;  //  estimate of true size
+  vector<CDS_CID_t>  edges;     //  edges involved
+};
+
+
+
+
+bool
+MergeGraphEdges_Greedy(GraphCGW_T            *graph,
+                       vector<CDS_CID_t>     &inputEdges,
+                       vector<Chi2ComputeT>  &edgeCompute,
+                       CIEdgeT               *overlapEdge) {
+
+  assert(inputEdges.size() >= 4);
+
+  set<CDS_CID_t>           edgesMerged;  //  These edges have been processed (indices into inputEdges)
+  vector<mgeSet>           mergedEdges;  //  A list of the merged edges we are building
+
+  //  Compute ChiSquared for all pairs of edges.
+
+  uint32     pairsLen = 0;
+  uint32     pairsMax = inputEdges.size() * (inputEdges.size() - 1) / 2;
+  mgePair   *pairs    = new mgePair [pairsMax];
+
+  for (uint32 a=0; a<inputEdges.size(); a++) {
+    for (uint32 b=a+1; b<inputEdges.size(); b++) {
+      pairs[pairsLen].score             = 0.0;
+      pairs[pairsLen].distance.mean     = 0.0;
+      pairs[pairsLen].distance.variance = 0.0;
+      pairs[pairsLen].aIdx              = a;
+      pairs[pairsLen].bIdx              = b;
+
+      if (PairwiseChiSquare(edgeCompute[a].distance.mean, edgeCompute[a].distance.variance,
+                            edgeCompute[b].distance.mean, edgeCompute[b].distance.variance,
+                            &pairs[pairsLen].distance,
+                            &pairs[pairsLen].score,
+                            PAIRWISECHI2THRESHOLD_CGW) == false)
+        pairs[pairsLen].score = DBL_MAX;
+
+      pairsLen++;
+    }
+  }
+
+  assert(pairsLen == pairsMax);
+
+  sort(pairs, pairs + pairsMax);
+
+  //  Seed the first cluster with the lowest scoring pair....unless there is no valid lowest scoring pair.
+
+  pairsLen = 0;
+
+  if (pairs[pairsLen].score >= PAIRWISECHI2THRESHOLD_CGW)
+    return(false);
+
+  mergedEdges.push_back(mgeSet(pairs[pairsLen]));
+  edgesMerged.insert(pairs[pairsLen].aIdx);
+  edgesMerged.insert(pairs[pairsLen].bIdx);
+
+  //  While there are unmerged edges, add one to its best matching cluster.
+  //
+  //  Iterate over the list of sorted pairs.  If a pair is consistent with an existing merged edge, add it to that merged edge.
+  //  Otherwise, 
+
+  for (pairsLen=0; pairsLen < pairsMax; pairsLen++) {
+
+    //  Skip over pairs that have already been merged, or pairs that are not consistent.
+    while ((pairsLen < pairsMax) &&
+           ((pairs[pairsLen].score >= PAIRWISECHI2THRESHOLD_CGW) ||  //  Probably should use a 'passed' flag...
+            (edgesMerged.count(pairs[pairsLen].aIdx) == 1) ||
+            (edgesMerged.count(pairs[pairsLen].bIdx) == 1)))
+      pairsLen++;
+
+    //  Just get out of here if there are no more pairs left.
+    if (pairsLen == pairsMax)
+      break;
+
+    //  Try to find a place to put paired-edges pairs[pairsLen], either in an existing cluster, or its own new cluster.
+    //  We'll test all clusters, and pick the lowest score.
+
+    uint32  minci         = UINT32_MAX;
+    double  minScore      = DBL_MAX;
+    LengthT minDistance   = { 0.0, 0.0 };
+
+    vector<Chi2ComputeT>  clstCompute(inputEdges.size());
+
+    for (uint32 ci=0; ci<mergedEdges.size(); ci++) {
+      uint32  numEdges = mergedEdges[ci].edges.size() + 2;
+
+      //  Copy the compute data for each edge in the new cluster.
+      for (uint32 ii=0; ii<mergedEdges[ci].edges.size(); ii++)
+        clstCompute[ii] = edgeCompute[mergedEdges[ci].edges[ii]];
+
+      //  Add in the new edges
+      clstCompute[numEdges - 2] = edgeCompute[pairs[pairsLen].aIdx];
+      clstCompute[numEdges - 1] = edgeCompute[pairs[pairsLen].bIdx];
+
+      double  newScore      = 0.0;
+      LengthT newDistance   = { 0.0, 0.0 };
+
+      //  Test if this pair is consistent with this set, and that it has the lowest score
+      if (ComputeChiSquared(clstCompute, numEdges, numEdges + 1, newDistance, newScore)) {
+        if (newScore < minScore) {
+          minci       = ci;
+          minScore    = newScore;
+          minDistance = newDistance;
+        }
+      }
+    }
+
+    if (minci < mergedEdges.size()) {
+      mergedEdges[minci].insertPair(pairs[pairsLen], minScore, minDistance.mean, minDistance.variance);
+
+    } else {
+      mergedEdges.push_back(mgeSet(pairs[pairsLen]));
+    }
+
+    //  Pair has been processed.
+    edgesMerged.insert(pairs[pairsLen].aIdx);
+    edgesMerged.insert(pairs[pairsLen].bIdx);
+  }
+
+  //  For all the remaining unmerged edges, try to add them one at a time to a cluster.  If they
+  //  don't add, add as singletons.
+  //
+  //  It is unlikely these will be added; they didn't have a valid pairwise ChiSquared result (otherwise
+  //  they would have been added as the pair already), and so probably won't match a larger cluster.
+
+  for (uint32 ie=0; ie<inputEdges.size(); ie++) {
+    if (edgesMerged.count(ie) == 1)
+      continue;
+
+    uint32  minci    = UINT32_MAX;
+    double  minScore      = 0.0;
+    LengthT minDistance   = { 0.0, 0.0 };
+
+    for (uint32 ci=0; ci<mergedEdges.size(); ci++) {
+      //  Test if this pair is consistent with this set, and that it has the lowest score
+    }
+
+    if (minci < mergedEdges.size()) {
+      mergedEdges[minci].insertSingle(ie, minScore, minDistance.mean, minDistance.variance);
+
+    } else {
+      mergedEdges.push_back(mgeSet(ie));
+    }
+  }
+
+  //  Convert all the indices stored in mergedEdges from indices into inputEdges to
+  //  the edge index in inputEdges[].
+
+  for (uint32 ci=0; ci<mergedEdges.size(); ci++)
+    for (uint32 ei=0; ei<mergedEdges[ci].edges.size(); ei++)
+      mergedEdges[ci].edges[ei] = inputEdges[mergedEdges[ci].edges[ei]];
+
+  //  Create new edges for each cluster, and copy to inputEdges.
+
+  inputEdges.clear();
+
+  for (uint32 ci=0; ci<mergedEdges.size(); ci++) {
+    if (mergedEdges[ci].edges.size() > 1) {
+      CIEdgeT *ne = GetFreeGraphEdge(graph);
+
+      InitializeMergedEdge(ne, overlapEdge, mergedEdges[ci].distance, graph, mergedEdges[ci].edges);
+
+      inputEdges.push_back(GetVAIndex_EdgeCGW_T(graph->edges, ne));
+
+      fprintf(stderr, "MergeGraphEdges()--  greedy - edge "F_SIZE_T" with %d raw edges, %d %d, score=%f %.0f +- %.0f\n",
+              GetVAIndex_EdgeCGW_T(graph->edges, ne),
+              ne->edgesContributing,
+              mergedEdges[ci].edges[0],
+              mergedEdges[ci].edges[1],
+              mergedEdges[ci].score,
+              mergedEdges[ci].distance.mean, mergedEdges[ci].distance.variance);
+
+    } else {
+      fprintf(stderr, "MergeGraphEdges()--  greedy - edge %d singleton\n",
+              mergedEdges[ci].edges[0]);
+      inputEdges.push_back(mergedEdges[ci].edges[0]);
+    }
+  }
+
+  //inputEdges.push_back(ni);
+  //inputEdges.push_back(ex);
+
+  return(true);
+}
+
+
+
 
 int
 MergeGraphEdges(GraphCGW_T        *graph,
                 vector<CDS_CID_t> &inputEdges){
 
-  CIEdgeT *newEdge, *edge;
-  int numEdges = inputEdges.size();
-  int numEdgesAdded = 0;
-  int numMergedEdges = 0;
-  CDS_CID_t edgeIndex;
-  int confirmable;
-  CIEdgeT *overlapEdge;
-  LengthT distance;
-  double chiSquareScore;
-  Chi2ComputeT *edgeChi2ComputePtr;
+  if (inputEdges.size() == 1)
+    return(1);
 
-  Chi2ComputeT *edgeChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges * sizeof(*edgeChi2Compute));
 
-  /* Create an array of Chi2ComputeT records one per edge which contain
-     a distance record, the inverseVariance = 1 / distance.variance and
-     the weightedMean = distance.mean / distance.variance which are used
-     in determining the least squares estimator for the mean and variance
-     of merged edges and for Chi Squared tests */
-  for (overlapEdge = NULL, edgeChi2ComputePtr = edgeChi2Compute, edgeIndex = 0;
-       edgeIndex < numEdges; edgeIndex++, edgeChi2ComputePtr++){
-    CDS_CID_t eid = inputEdges[edgeIndex];
-    edge = GetGraphEdge(graph, eid);
-    edge->topLevelEdge = eid; // TEST
-    edgeChi2ComputePtr->distance = edge->distance;
-    edgeChi2ComputePtr->inverseVariance =
-      1./edgeChi2ComputePtr->distance.variance;
-    edgeChi2ComputePtr->weightedMean = edgeChi2ComputePtr->distance.mean *
-      edgeChi2ComputePtr->inverseVariance;
-    /* Check if edge is an overlap edge */
-    if(isOverlapEdge(edge)){
-      if(overlapEdge != NULL){
-        /* It is a violation to have more than one overlap edge in the
-           inputEdges so we abort when this occurs */
-        fprintf(stderr,"* Found 2 overlap edges out of %d\n",
-                numEdges);
-        PrintGraphEdge(stderr,graph," e  ", edge, edge->idA);
-        PrintGraphEdge(stderr,graph," o  ", overlapEdge, overlapEdge->idA);
-        fprintf(stderr,"*Aborting edge mate merge \n");
-        safe_free(edgeChi2Compute);
-        return(-1);
-      }else{
-        overlapEdge = edge;
-      }
-    }
-  }
-#if 0
-  /* This code is used if we don't want to confirm a mate-link edge by
-     merging it with a repeat or tandem Overlap edge */
-  if(overlapEdge){
-    confirmable = (numEdges > 2 ||
-                   ((numEdges == 2) && (overlapEdge == NULL)) ||
-                   ((numEdges == 2) && overlapEdge->flags.bits.hasContributingOverlap));
-  }else{
-    confirmable = numEdges >= 2;
-  }
-#else
-  confirmable = numEdges >= 2;
-#endif
+  //  Find the overlap edge, if it exists.  There can be at most one.  Abort the merge if we find such a case.
 
-  /* Check to see if the entire set of inputEdges passes the Chi Squared
-     test. */
-  if(confirmable && ComputeChiSquared(edgeChi2Compute, numEdges, (CDS_CID_t)(numEdges + 1),
-                                      &distance, &chiSquareScore)){
-    /* We passed */
-    newEdge = GetFreeGraphEdge(graph);
-    InitializeMergedEdge(newEdge, overlapEdge, distance, graph, inputEdges);
-    inputEdges.clear();
+  CIEdgeT             *overlapEdge     = NULL;
 
-    //    edgeIndex = GetNumCIEdgeTs(edges);  // The index of the last edge is one less than the number of edges
-    //    AppendGraphEdge(graph, &newEdge);
+  for (int32 ei=0; ei<inputEdges.size(); ei++) {
+    CIEdgeT *edge = GetGraphEdge(graph, inputEdges[ei]);
 
-    edgeIndex = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
-    inputEdges.push_back(edgeIndex);
-    numMergedEdges = 1;
-    numEdgesAdded = 1;
-    safe_free(edgeChi2Compute);
-    return(numMergedEdges);
-  }
-  if(numEdges > 2){
-    /* Check to see if any set of the inputEdges of size numEdges - 1 passes
-       the Chi Squared Test and if so merge the set with the best score. */
-    double minScore;
-    CDS_CID_t skipEdgeIndex;
-    Chi2ResultT  *edgeChi2ResultPtr;
-    vector<CDS_CID_t> clusterEdges;
-    Chi2ResultT * edgeChi2Result = (Chi2ResultT *)safe_malloc(numEdges * sizeof(*edgeChi2Result));
-    for (skipEdgeIndex = -1, minScore = FLT_MAX,
-           edgeChi2ResultPtr = edgeChi2Result, edgeIndex = 0;
-         edgeIndex < numEdges; edgeIndex++, edgeChi2ResultPtr++){
-      if((edgeChi2ResultPtr->passed =
-          ComputeChiSquared(edgeChi2Compute, numEdges, edgeIndex,
-                            &(edgeChi2ResultPtr->distance),
-                            &(edgeChi2ResultPtr->score))) != FALSE){
-        if(edgeChi2ResultPtr->score < minScore){
-          minScore = edgeChi2ResultPtr->score;
-          skipEdgeIndex = edgeIndex;
-        }
-      }
-    }
-    if(skipEdgeIndex >= 0){
-      //  One of the edge sets passed and skipped is set to the edge to be left out of the merged
-      //  set.
+    if (isOverlapEdge(edge) == false)
+      continue;
 
-      CDS_CID_t skipped;
+    if (overlapEdge != NULL) {
+      fprintf(stderr, "MergeGraphEdges()--  Found multiple overlap edges between %d and %d!  Aborting merge.\n",
+              edge->idA, edge->idB);
 
-      edgeChi2ResultPtr = edgeChi2Result + skipEdgeIndex;
-
-      for (edgeIndex = 0; edgeIndex < numEdges; edgeIndex++){
-        if(edgeIndex == skipEdgeIndex){
-          skipped = inputEdges[edgeIndex];
-        }else{
-          clusterEdges.push_back(inputEdges[edgeIndex]);
-        }
-      }
-      newEdge = GetFreeGraphEdge(graph);
-      InitializeMergedEdge(newEdge, overlapEdge, edgeChi2ResultPtr->distance, graph, clusterEdges);
-
-      inputEdges.clear();
-      inputEdges.push_back(GetVAIndex_EdgeCGW_T(graph->edges, newEdge));
-      inputEdges.push_back(skipped);
-
-      numMergedEdges = 1;
-      numEdgesAdded = 2;
-
-      safe_free(edgeChi2Result);
-      safe_free(edgeChi2Compute);
-
-      return(numMergedEdges);
-    }
-
-    safe_free(edgeChi2Result);
-  }
-
-  if(numEdges > 3){
-    /* Check to see if any clusters can be formed which pass the Chi Squared
-       Test by combining pairs of edges/clusters which have the best pairwise
-       Chi Squared Test value and also pass the full Chi Squared Test. This
-       is done in a bottom up fashion until all merges which pass have been
-       performed. */
-    vector<CDS_CID_t> tmpInputEdges;
-    vector<CDS_CID_t> clusterEdges;
-
-    int rowIndex, colIndex;
-    int numPairs = ((numEdges - 1) * numEdges) / 2;
-    int numInCluster;
-    int numClusters;
-    /* edgeClusterChi2 is an array of numEdges elements which represent
-       each initial edge (cluster of size 1) or merged cluster which has
-       this edge as the smallest index based on the 0 - (numEdges - 1)
-       indexing of the inputEdges array. Each of these elements points
-       to an array of ((numEdges - 1) - index) of pairwise Chi Squared
-       scores which taken together are the upper right triangle of the
-       numEdges x numEdges matrix of cluster versus cluster. */
-    ClusterChi2T  *edgeClusterChi2Ptr = NULL;
-    /* pairClusterScoreChi2 is an array of numPairs = (numEdges * (numEdges -
-       1)) / 2 elements of pairwise Chi Squared scores which taken together
-       are the upper right triangle of the numEdges x numEdges matrix of
-       cluster versus cluster. */
-    ClusterScoreChi2T *pairClusterScoreChi2Ptr = NULL;
-    /* sortClusterScoreChi2 is an array for sorting the pairwise Chi Squared
-       scores. */
-    ClusterScoreChi2T **sortClusterScoreChi2Ptr = NULL;
-    /* clusterChi2Compute is an array which must be filled in for each cluster
-       in order to perform the full Chi Squared Test for that cluster. */
-    Chi2ComputeT *clusterChi2ComputePtr;
-    ClusterScoreChi2T *pairClusterScoreChi2 = (ClusterScoreChi2T *)safe_malloc(numPairs * sizeof(*pairClusterScoreChi2));
-    ClusterScoreChi2T **sortClusterScoreChi2 = (ClusterScoreChi2T **)safe_malloc(numPairs * sizeof(*sortClusterScoreChi2));
-    ClusterChi2T *edgeClusterChi2 = (ClusterChi2T *)safe_malloc(numEdges * sizeof(*edgeClusterChi2));
-    Chi2ComputeT *clusterChi2Compute = (Chi2ComputeT *)safe_malloc(numEdges * sizeof(*clusterChi2Compute));
-
-    /* Initialize the arrays. */
-    for(edgeChi2ComputePtr = edgeChi2Compute,
-          pairClusterScoreChi2Ptr = pairClusterScoreChi2,
-          sortClusterScoreChi2Ptr = sortClusterScoreChi2,
-          edgeClusterChi2Ptr = edgeClusterChi2, rowIndex = 0;
-        rowIndex < numEdges;
-        rowIndex++, edgeClusterChi2Ptr++, edgeChi2ComputePtr++){
-      /* Set the pointer to the pairwise Chi Squared scores for this row. */
-      edgeClusterChi2Ptr->pairwiseScores = pairClusterScoreChi2Ptr;
-      /* replacedBy points to the cluster which contains this edge or has in
-         turn been replaced by another cluster in which case the pointer
-         must be followed until it is NULL. Currently only used to indicate
-         that this edge is in another cluster. */
-      edgeClusterChi2Ptr->replacedBy = NULL;
-      /* replaced is a linked list of additional edges which are in this
-         cluster. */
-      edgeClusterChi2Ptr->replaced = NULL;
-      edgeClusterChi2Ptr->numInCluster = 1;
-      edgeClusterChi2Ptr->distance = edgeChi2ComputePtr->distance;
-      for(colIndex = rowIndex + 1; colIndex < numEdges;
-          colIndex++, pairClusterScoreChi2Ptr++, sortClusterScoreChi2Ptr++){
-        *sortClusterScoreChi2Ptr = pairClusterScoreChi2Ptr;
-        /* rowIndex and colIndex are the cordinates in the pairwise Chi
-           Squared matrix. rowIndex < colIndex because we only store the
-           upper right triangle of the matrix. */
-        pairClusterScoreChi2Ptr->rowIndex = rowIndex;
-        pairClusterScoreChi2Ptr->colIndex = colIndex;
-        /* active indicates that the clusters for this row and column have
-           not been replaced by previous merge steps. When clusters are
-           merged only the lower index cluster remains active by absorbing
-           the higher index cluster. */
-        pairClusterScoreChi2Ptr->active = TRUE;
-        /* passed indicates that this pair of clusters exceeded the threshold
-           for passing the pairwise Chi Squared Test. */
-        pairClusterScoreChi2Ptr->passed =
-          PairwiseChiSquare((double)edgeClusterChi2Ptr->distance.mean,
-                            edgeClusterChi2Ptr->distance.variance,
-                            (double)(edgeChi2Compute + colIndex)->distance.mean,
-                            (edgeChi2Compute + colIndex)->distance.variance,
-                            &(pairClusterScoreChi2Ptr->distance),
-                            &(pairClusterScoreChi2Ptr->score),
-                            (double)PAIRWISECHI2THRESHOLD_CGW);
-        /* We want all of the clusters to try to pass the full chi squared test so we set this to TRUE */
-        pairClusterScoreChi2Ptr->passed = TRUE;
-      }
-    }
-    /* Sort potential merge candidates by their pairwise Chi Squared scores. */
-
-    __gnu_sequential::sort(sortClusterScoreChi2, sortClusterScoreChi2 + numPairs);
-
-    sortClusterScoreChi2Ptr = sortClusterScoreChi2;
-    pairClusterScoreChi2Ptr = *sortClusterScoreChi2Ptr;
-    /* While there are still potential merge candidates try the next merge. */
-    while(pairClusterScoreChi2Ptr->passed &&
-          pairClusterScoreChi2Ptr->active){
-      ClusterChi2T *lastRowClusterChi2Ptr = NULL;
-      /* Fill in the array for the full Chi Squared Test for the row
-         cluster. */
-      for(edgeClusterChi2Ptr = edgeClusterChi2 +
-            pairClusterScoreChi2Ptr->rowIndex,
-            numInCluster = edgeClusterChi2Ptr->numInCluster,
-            clusterChi2ComputePtr = clusterChi2Compute;
-          edgeClusterChi2Ptr !=  NULL;
-          edgeClusterChi2Ptr = edgeClusterChi2Ptr->replaced,
-            clusterChi2ComputePtr++ ){
-        /* Copy this structure from already computed structure at beginning
-           of this routine for each edge in the row cluster. */
-        *clusterChi2ComputePtr =
-          edgeChi2Compute[edgeClusterChi2Ptr - edgeClusterChi2];
-        /* Save this pointer at end of linked list so that if we merge these
-           two clusters we can join the two linked lists. */
-        lastRowClusterChi2Ptr = edgeClusterChi2Ptr;
-      }
-      /* Fill in the array for the full Chi Squared Test for the column
-         cluster. */
-      for(edgeClusterChi2Ptr = edgeClusterChi2 +
-            pairClusterScoreChi2Ptr->colIndex,
-            numInCluster += edgeClusterChi2Ptr->numInCluster;
-          edgeClusterChi2Ptr !=  NULL;
-          edgeClusterChi2Ptr = edgeClusterChi2Ptr->replaced,
-            clusterChi2ComputePtr++ ){
-        /* Copy this structure from already computed structure at beginning
-           of this routine for each edge in the column cluster. */
-        *clusterChi2ComputePtr =
-          edgeChi2Compute[edgeClusterChi2Ptr - edgeClusterChi2];
-      }
-      /* Run the full Chi Squared Test. */
-      if(ComputeChiSquared(clusterChi2Compute, numInCluster,
-                           (CDS_CID_t)(numInCluster + 1), &distance, &chiSquareScore)){
-        /* We passed so we need to update the clusters by merging the
-           row and column clusters and computing new pairwise Chi Squared
-           scores for this new cluster. */
-        ClusterChi2T *rowClusterChi2Ptr = edgeClusterChi2 +
-          pairClusterScoreChi2Ptr->rowIndex;
-        ClusterChi2T *colClusterChi2Ptr = edgeClusterChi2 +
-          pairClusterScoreChi2Ptr->colIndex;
-        ClusterScoreChi2T *rowClusterScoreChi2Ptr;
-        /* Merge the column cluster into the row cluster. */
-        rowClusterChi2Ptr->numInCluster += colClusterChi2Ptr->numInCluster;
-        rowClusterChi2Ptr->distance = distance;
-        lastRowClusterChi2Ptr->replaced = colClusterChi2Ptr;
-        colClusterChi2Ptr->replacedBy = rowClusterChi2Ptr;
-        /* Deactivate pairwise Chi Squared scores for the column cluster.
-           First the column of scores and ... */
-        for(edgeClusterChi2Ptr = edgeClusterChi2,
-              colIndex = pairClusterScoreChi2Ptr->colIndex - 1;
-            colIndex >= 0 ; edgeClusterChi2Ptr++, colIndex--){
-          (edgeClusterChi2Ptr->pairwiseScores + colIndex)->active = FALSE;
-        }
-        /* then the row of scores. */
-        for(rowClusterScoreChi2Ptr = colClusterChi2Ptr->pairwiseScores,
-              colIndex = pairClusterScoreChi2Ptr->colIndex + 1;
-            colIndex < numEdges; colIndex++, rowClusterScoreChi2Ptr++){
-          rowClusterScoreChi2Ptr->active = FALSE;
-        }
-        /* Now compute the new pairwise Chi Squared scores the merged
-           cluster. First the column of scores and ... */
-        for(edgeClusterChi2Ptr = edgeClusterChi2,
-              colIndex = pairClusterScoreChi2Ptr->rowIndex - 1;
-            colIndex >= 0; edgeClusterChi2Ptr++, colIndex--){
-          rowClusterScoreChi2Ptr = edgeClusterChi2Ptr->pairwiseScores +
-            colIndex;
-          if(rowClusterScoreChi2Ptr->active){
-            rowClusterScoreChi2Ptr->passed =
-              PairwiseChiSquare((double)edgeClusterChi2Ptr->distance.mean,
-                                edgeClusterChi2Ptr->distance.variance,
-                                (double)rowClusterChi2Ptr->distance.mean,
-                                rowClusterChi2Ptr->distance.variance,
-                                &(rowClusterScoreChi2Ptr->distance),
-                                &(rowClusterScoreChi2Ptr->score),
-                                (double)PAIRWISECHI2THRESHOLD_CGW);
-            /* We want all of the clusters to try to pass the full chi squared test so we set this to TRUE */
-            rowClusterScoreChi2Ptr->passed = TRUE;
-          }
-        }
-        /* then the row of scores. */
-        for(rowClusterScoreChi2Ptr = rowClusterChi2Ptr->pairwiseScores,
-              colIndex = pairClusterScoreChi2Ptr->rowIndex + 1;
-            colIndex < numEdges; colIndex++, rowClusterScoreChi2Ptr++){
-          edgeClusterChi2Ptr = edgeClusterChi2 + colIndex;
-          if(rowClusterScoreChi2Ptr->active){
-            rowClusterScoreChi2Ptr->passed =
-              PairwiseChiSquare((double)edgeClusterChi2Ptr->distance.mean,
-                                edgeClusterChi2Ptr->distance.variance,
-                                (double)rowClusterChi2Ptr->distance.mean,
-                                rowClusterChi2Ptr->distance.variance,
-                                &(rowClusterScoreChi2Ptr->distance),
-                                &(rowClusterScoreChi2Ptr->score),
-                                (double)PAIRWISECHI2THRESHOLD_CGW);
-            /* We want all of the clusters to try to pass the full chi squared test so we set this to TRUE */
-            rowClusterScoreChi2Ptr->passed = TRUE;
-          }
-        }
-        /* Resort the pairwise Chi Squared scores. */
-
-        __gnu_sequential::sort(sortClusterScoreChi2, sortClusterScoreChi2 + numPairs);
-
-        sortClusterScoreChi2Ptr = sortClusterScoreChi2;
-      }else{
-        /* Failed the full Chi Squared Test so see if there are any more
-           potential merges and try again. */
-        pairClusterScoreChi2Ptr->passed = FALSE;
-        if(sortClusterScoreChi2Ptr < (sortClusterScoreChi2 + (numPairs - 1))){
-          sortClusterScoreChi2Ptr++;
-        }else{
-          break;
-        }
-      }
-      pairClusterScoreChi2Ptr = *sortClusterScoreChi2Ptr;
-    }
-    /* For each cluster either compute the merged edge or if there is only
-       one edge in the cluster return it as an unmerged edge. */
-    for(numClusters = 0, edgeClusterChi2Ptr = edgeClusterChi2, rowIndex = 0;
-        rowIndex < numEdges; rowIndex++, edgeClusterChi2Ptr++){
-      if(edgeClusterChi2Ptr->replacedBy == NULL){
-        ClusterChi2T *groupClusterChi2Ptr;
-        /* Put the edge indices for a cluster into clusterEdges. */
-        clusterEdges.clear();
-        for(groupClusterChi2Ptr = edgeClusterChi2Ptr, numInCluster = 0;
-            groupClusterChi2Ptr != NULL;
-            groupClusterChi2Ptr = groupClusterChi2Ptr->replaced,
-              numInCluster++){
-          clusterEdges.push_back(inputEdges[groupClusterChi2Ptr - edgeClusterChi2]);
-        }
-        assert(numInCluster == edgeClusterChi2Ptr->numInCluster);
-        if(numInCluster > 1){
-          newEdge = GetFreeGraphEdge(graph);
-          InitializeMergedEdge(newEdge, overlapEdge, edgeClusterChi2Ptr->distance, graph, clusterEdges);
-
-          edgeIndex = GetVAIndex_EdgeCGW_T(graph->edges, newEdge);
-
-          tmpInputEdges.push_back(edgeIndex);
-
-          numMergedEdges++;
-          numEdgesAdded++;
-        }else{
-          tmpInputEdges.push_back(clusterEdges[0]);
-          numEdgesAdded++;
-        }
-        numClusters++;
-      }
-    }
-
-    inputEdges.clear();
-
-    for(uint32 ei = 0; ei < tmpInputEdges.size(); ei++){
-      inputEdges.push_back(tmpInputEdges[ei]);
-    }
-    edge = GetGraphEdge(graph, inputEdges[0]);
-
-    if (GlobalData->verbose) {
-      fprintf(stderr,"**** Couldn't merge these \n");
-      fprintf(stderr,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID" and "F_CID"\n",
-              numClusters, edge->idA, edge->idB);
-      switch(graph->type){
-        case CI_GRAPH:
-          DumpChunkInstance(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE, FALSE, FALSE, FALSE);
-          DumpChunkInstance(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE, FALSE, FALSE, FALSE);
-          break;
-        case CONTIG_GRAPH:
-          DumpContig(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
-          DumpContig(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
-          break;
-        case SCAFFOLD_GRAPH:
-          DumpCIScaffold(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idA), FALSE);
-          DumpCIScaffold(stderr,ScaffoldGraph,GetGraphNode(graph, edge->idB), FALSE);
-          break;
-        default:
-          break;
-      }
-
-      for (uint32 ei=0; ei<inputEdges.size(); ei++) {
+      for (int32 ei=0; ei<inputEdges.size(); ei++) {
         edge = GetGraphEdge(graph, inputEdges[ei]);
-        PrintGraphEdge(stderr, graph," *  ", edge, edge->idA);
+        fprintf(stderr, "MergeGraphEdges()--    edge %d %.0f +- %.0f overlap %d\n",
+                inputEdges[ei], edge->distance.mean, edge->distance.variance, isOverlapEdge(edge));
       }
+      return(-1);
     }
 
-    safe_free(pairClusterScoreChi2);
-    safe_free(sortClusterScoreChi2);
-    safe_free(edgeClusterChi2);
-    safe_free(clusterChi2Compute);
-    safe_free(edgeChi2Compute);
+    assert(overlapEdge == NULL);
 
-    return(numMergedEdges);
+    overlapEdge = edge;
   }
 
-  /* If we reached here none of the inputEdges was mergable so just return them. */
+  vector<Chi2ComputeT> edgeCompute(inputEdges.size());
 
-  if (GlobalData->verbose) {
-    edge = GetGraphEdge(graph, inputEdges[0]);
+  if (MergeGraphEdges_All(graph, inputEdges, edgeCompute, overlapEdge))
+    return(1);
 
-    fprintf(stderr,"**** Couldn't merge these \n");
-    fprintf(stderr,"**** MORE THAN ONE (%d)  EDGE BETWEEN "F_CID" and "F_CID"\n",
-            numEdges, edge->idA, edge->idB);
-  }
+  if (inputEdges.size() == 2)
+    return(0);
 
-  numEdgesAdded = numEdges;
+  if (MergeGraphEdges_AllButOne(graph, inputEdges, edgeCompute, overlapEdge))
+    return(1);
 
-  if (GlobalData->verbose) {
-    for(int32 ei = 0; ei < numEdges; ei++) {
-      edge = GetGraphEdge(graph, inputEdges[ei]);
-      PrintGraphEdge(stderr, graph," *  ", edge, edge->idA);
-    }
-  }
+  if (inputEdges.size() == 3)
+    return(0);
 
-  safe_free(edgeChi2Compute);
+  fprintf(stderr, "MergeGraphEdges()--  "F_SIZE_T" raw edges between %d and %d - use greedy merging.\n",
+          inputEdges.size(),
+          GetGraphEdge(graph, inputEdges[0])->idA,
+          GetGraphEdge(graph, inputEdges[0])->idB);
 
-  return(numMergedEdges);
+  if (MergeGraphEdges_Greedy(graph, inputEdges, edgeCompute, overlapEdge))
+    return(inputEdges.size());
+
+  //  If we reached here none of the inputEdges was mergable so just return them.
+
+  return(inputEdges.size());
 }
