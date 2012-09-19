@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.74 2012-06-28 01:19:01 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.75 2012-09-19 20:06:51 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -510,9 +510,14 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
 
     //  Lowercase sequence not in the clear range.
 
-    if (fr.gkFragment_getIsDeleted())
-      for (int i=0; seq[i]; i++)
-        seq[i] = tolower(seq[i]);
+    if (fr.gkFragment_getIsDeleted()) {
+        if (dumpAllBases == true) {
+            for (int i=0; seq[i]; i++)
+                seq[i] = tolower(seq[i]);
+        } else {
+            continue;
+        }
+    }
 
     //  If allBases == true, seq is the whole read.  If false, seq is limited to just the clear
     //  bases.
