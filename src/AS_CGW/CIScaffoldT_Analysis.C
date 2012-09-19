@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CIScaffoldT_Analysis.C,v 1.3 2012-09-04 06:45:21 brianwalenz Exp $";
+static const char *rcsid = "$Id: CIScaffoldT_Analysis.C,v 1.4 2012-09-19 12:05:32 brianwalenz Exp $";
 
 #include "CIScaffoldT_Analysis.H"
 
@@ -214,7 +214,7 @@ instrumentSCF::analyze(vector<instrumentLIB> &libs) {
   AS_IID  fiid;
   AS_IID  miid;
 
-  char   *scfGap = NULL;
+  char   *scfCov = NULL;
   uint32  scfLen = 0;
 
   clearStats();
@@ -248,9 +248,11 @@ instrumentSCF::analyze(vector<instrumentLIB> &libs) {
     if (FRGmap.find(miid) == FRGmap.end()) {
       numMateExternal++;
 
-      //  If needed, build up the gap map for the scaffold.  Why the +1?  Because we're comparing
-      //  int vs float, and the rules for MAX() seem to differ from less than.  MAX(2, 2.5) is 2 in
-      //  integer space.  But 2 < 2.5 in float space.  PITA.
+      //  If needed, build up the coverage map for the scaffold.  If set, this position is covered
+      //  by a contig.
+      //
+      //  Why the +1?  Because we're comparing int vs float, and the rules for MAX() seem to differ
+      //  from less than.  MAX(2, 2.5) is 2 in integer space.  But 2 < 2.5 in float space.  PITA.
       //
       if (scfLen == 0) {
         for (uint32 i=0; i<CTG.size(); i++) {
@@ -258,14 +260,14 @@ instrumentSCF::analyze(vector<instrumentLIB> &libs) {
           scfLen = MAX(scfLen, CTG[i].end.mean + 1);
         }
 
-        scfGap = new char [scfLen];
+        scfCov = new char [scfLen];
 
-        memset(scfGap, 0, sizeof(char) * scfLen);
+        memset(scfCov, 0, sizeof(char) * scfLen);
 
         for (uint32 i=0; i<CTG.size(); i++)
           for (uint32 p=CTG[i].bgn.mean; p<CTG[i].end.mean; p++) {
             assert(p < scfLen);
-            scfGap[p] = true;
+            scfCov[p] = true;
           }
       }
 
@@ -277,28 +279,28 @@ instrumentSCF::analyze(vector<instrumentLIB> &libs) {
 
       if        (((lib.innie == true)  && (frg.fwd == true)) ||
                  ((lib.innie == false) && (frg.fwd == false))) {
-        scfPos = frg.bgn + lib.minDist;
+        scfPos = (frg.bgn + frg.end) / 2 + lib.mean - lib.pdf.size() / 2;
 
       } else if (((lib.innie == true)  && (frg.fwd == false)) ||
                  ((lib.innie == false) && (frg.fwd == true))) {
-        scfPos = frg.end - lib.maxDist;
+        scfPos = (frg.bgn + frg.end) / 2 - lib.mean - lib.pdf.size() / 2;
 
       } else {
         assert(0);
       }
 
       for (uint32 ii=0; ii<lib.pdf.size(); ii++, scfPos++) {
-        if      (scfPos <  0)            numExternal += lib.pdf[ii];
-        else if (scfLen <= scfPos)       numExternal += lib.pdf[ii];
-        else if (scfGap[scfPos] == true) numGap      += lib.pdf[ii];
-        else                             numMissing  += lib.pdf[ii];
+        if      (scfPos <  0)             numExternal += lib.pdf[ii];
+        else if (scfLen <= scfPos)        numExternal += lib.pdf[ii];
+        else if (scfCov[scfPos] == false) numGap      += lib.pdf[ii];
+        else                              numMissing  += lib.pdf[ii];
       }
 
 #ifdef CIA_SUPER_VERBOSE
-      fprintf(stderr, "EXTERNAL frg %d (%u,%u ori %d) at scfPos %d,%d external %.4f gap %.4f missing %.4f\n",
+      fprintf(stderr, "EXTERNAL frg %d (%u,%u fwd %d) mate range %d,%d - external %.4f gap %.4f missing %.4f\n",
               fiid,
               frg.bgn, frg.end, frg.fwd,
-              scfPos, scfPos + lib.pdf.size(),
+              scfPos - (int32)lib.pdf.size(), scfPos,
               numExternal, numGap, numMissing);
 #endif
 
@@ -318,47 +320,94 @@ instrumentSCF::analyze(vector<instrumentLIB> &libs) {
     assert(frg.iid == fiid);
     assert(mrg.iid == miid);
 
-    int32            dist      = 0;
-    bool             misOrient = false;
+    int32  frgmin = (frg.bgn < frg.end) ? frg.bgn : frg.end;
+    int32  frgmax = (frg.bgn < frg.end) ? frg.end : frg.bgn;
 
-    if (frg.bgn < mrg.bgn) {
+    int32  mrgmin = (mrg.bgn < mrg.end) ? mrg.bgn : mrg.end;
+    int32  mrgmax = (mrg.bgn < mrg.end) ? mrg.end : mrg.bgn;
+
+    int32  posmin = (frgmin < mrgmin) ? frgmin : mrgmin;
+    int32  posmax = (frgmax < mrgmax) ? mrgmax : frgmax;
+
+    int32  dist      = posmax - posmin;
+    bool   misOrient = false;
+
+    if        ((frgmin <= mrgmin) && (mrgmax <= frgmax)) {
+      //  mrg contained in frg
+      misOrient = true;
+
+    } else if ((mrgmin <= frgmin) && (frgmax <= mrgmax)) {
+      //  frg contained in mrg
+      misOrient = true;
+        
+    } else if (frgmin < mrgmin) {
       //  frg before mrg.
-      assert(mrg.end > frg.bgn);
-      dist = mrg.end - frg.bgn;
+      assert(frgmax < mrgmax);
 
       if ((lib.innie == true)  && ((frg.fwd == false) || (mrg.fwd == true)))   misOrient = true;
       if ((lib.innie == false) && ((frg.fwd == true)  || (mrg.fwd == false)))  misOrient = true;
 
     } else {
       //  mrg before frg
-      assert(frg.end > mrg.bgn);
-      dist = frg.end - mrg.bgn;
+      assert(mrgmax < frgmax);
 
       if ((lib.innie == true)  && ((frg.fwd == true)  || (mrg.fwd == false)))  misOrient = true;
       if ((lib.innie == false) && ((frg.fwd == false) || (mrg.fwd == true)))   misOrient = true;
     }
 
+
     if (misOrient == false) {
-      if      (dist < lib.minDist)
+      if      (dist < lib.minDist) {
+#ifdef CIA_SUPER_VERBOSE
+        fprintf(stderr, "ORICLOSE frg %d (%u,%u fwd %d) mrg %d (%u,%u fwd %d)\n",
+                fiid, frg.bgn, frg.end, frg.fwd,
+                miid, mrg.bgn, mrg.end, mrg.fwd);
+#endif
         numTooClose++;
-      else if (lib.maxDist < dist)
+      } else if (lib.maxDist < dist) {
+#ifdef CIA_SUPER_VERBOSE
+        fprintf(stderr, "ORIFAR   frg %d (%u,%u fwd %d) mrg %d (%u,%u fwd %d)\n",
+                fiid, frg.bgn, frg.end, frg.fwd,
+                miid, mrg.bgn, mrg.end, mrg.fwd);
+#endif
         numTooFar++;
-      else
+      } else {
+#ifdef CIA_SUPER_VERBOSE
+        fprintf(stderr, "ORIHAPPY frg %d (%u,%u fwd %d) mrg %d (%u,%u fwd %d)\n",
+                fiid, frg.bgn, frg.end, frg.fwd,
+                miid, mrg.bgn, mrg.end, mrg.fwd);
+#endif
         numHappy++;
+      }
 
       continue;
     }
 
     if      (dist < lib.minDist) {
+#ifdef CIA_SUPER_VERBOSE
+      fprintf(stderr, "MISCLOSE frg %d (%u,%u fwd %d) mrg %d (%u,%u fwd %d)\n",
+              fiid, frg.bgn, frg.end, frg.fwd,
+                miid, mrg.bgn, mrg.end, mrg.fwd);
+#endif
       numMisClose++;
     } else if (lib.maxDist < dist) {
+#ifdef CIA_SUPER_VERBOSE
+      fprintf(stderr, "MISFAR   frg %d (%u,%u fwd %d) mrg %d (%u,%u fwd %d)\n",
+              fiid, frg.bgn, frg.end, frg.fwd,
+              miid, mrg.bgn, mrg.end, mrg.fwd);
+#endif
       numMisFar++;
     } else {
+#ifdef CIA_SUPER_VERBOSE
+      fprintf(stderr, "MIS      frg %d (%u,%u fwd %d) mrg %d (%u,%u fwd %d)\n",
+                fiid, frg.bgn, frg.end, frg.fwd,
+                miid, mrg.bgn, mrg.end, mrg.fwd);
+#endif
       numMis++;
     }
   }
 
-  delete [] scfGap;
+  delete [] scfCov;
 
   numEcstatic  = numHappy + numGap;
   numDejected  = numMisClose + numMis + numMisFar + numTooClose + numTooFar + numMissing;
