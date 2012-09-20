@@ -56,31 +56,12 @@ use POSIX qw(ceil floor sys_wait_h);
 my $TAB_SIZE = 8;
 
 my %global;
-my @nonCAOptions = ("genomeSize", "shortReads", "libraryname", "specFile", "length", "coverage", "maxCoverage", "maxGap", "maxUncorrectedGap", "threads", "repeats", "fastqFile", "partitions", "submitToGrid", "sgeCorrection", "consensusConcurrency", "cleanup");
 
-sub buildGridArray($$$) {
-	my $name = shift @_;
-	my $maxLimit = shift @_;
-	my $globalValue = shift @_;
-	
-	my $arrayJobName = getGlobal($globalValue);
-	$arrayJobName =~ s/ARRAY_NAME/$name/g;
-	$arrayJobName =~ s/ARRAY_JOBS/1-$maxLimit/g;
-	
-	return $arrayJobName;
-}
 
-sub getGridArrayName($$) {
-	my $name = shift @_;
-	my $maxLimit = shift @_;	
-	return buildGridArray($name, $maxLimit, "gridArrayName");
-}
 
-sub getGridArrayOption($$) {
-	my $name = shift @_;
-	my $maxLimit = shift @_;	
-	return buildGridArray($name, $maxLimit, "gridArrayOption");	
-}
+my @nonCAOptions = ("genomeSize", "shortReads", "libraryname", "specFile", "length", "coverageCutoff", "maxCoverage", "maxGap", "maxUncorrectedGap", "samFOFN", "blasr", "bowtie", "threads", "repeats", "fastqFile", "partitions", "submitToGrid", "sgeCorrection", "consensusConcurrency", "cleanup");
+
+my $commandLineOptions = "";
 
 sub getGlobal ($) {
     my $var = shift @_;
@@ -99,38 +80,56 @@ sub setGlobal ($$) {
     $val = undef  if ($val eq "");
 
     $global{$var} = $val;
+    $val =~ s/\\\"/\"/g;
+    $val =~ s/\"/\\\"/g;
+    $val =~ s/\\\$/\$/g;
+    $val =~ s/\$/\\\$/g;
+    $commandLineOptions .= " \"$var=$val\" ";
 }
 
 sub setDefaults() {
 	# grid options, duplicate of runCA
     $global{"gridSubmitCommand"}		   = "qsub";
-    $global{"gridHoldCommand"}			   = undef; # for lsf it is bsub -K WAIT_TAG echo \"Done\"
-    $global{"gridHoldOption"}			   = "-hold_jid WAIT_TAG"; # for lsf it is -w done(WAIT_TAG)
+    $global{"gridHoldOption"}		       = "-hold_jid \"WAIT_TAG\""; # for lsf it is -w "done("WAIT_TAG")"
     $global{"gridSyncOption"}			   = "-sync y"; # for lsf it is -K
-    $global{"gridNameOption"}			   = "-cwd -N";
+    $global{"gridNameOption"}			   = "-cwd -N";         # for lsf it is -J
     $global{"gridArrayOption"}			   = "-t ARRAY_JOBS";	# for lsf, empty ("")
-    $global{"gridArrayName"}			   = "ARRAY_NAME";		# for lsf, it is ARRAY_NAME[1-ARRAY_JOBS]
-    $global{"gridOutputOption"}			   = "-j y -o";
-    $global{"gridPropagateCommand"}		   = "qalter";			# for lsf it is undef
-    $global{"gridTaskID"}				   = "SGE_TASK_ID";
+    $global{"gridArrayName"}			   = "ARRAY_NAME";		# for lsf, it is ARRAY_NAME[ARRAY_JOBS]
+    $global{"gridOutputOption"}			   = "-j y -o";         # for lsf, it is -o
+    $global{"gridPropagateCommand"}		   = "qalter -hold_jid \"WAIT_TAG\""; # for lsf it is bmodify -w "done(WAIT_TAG)"
+    $global{"gridNameToJobIDCommand"}      = undef;             # for lsf it is bjobs -J "WAIT_TAG" | grep -v JOBID    
+    $global{"gridTaskID"}				   = "SGE_TASK_ID";     # for lsf it is LSB_JOBINDEX
+    $global{"gridArraySubmitID"}           = "\$TASK_ID";       # for lsf it is %I
+    
+    $global{"shell"}                       = "/bin/sh";
+	
+	$global{"utgErrorRate"} = 0.25;
+	$global{"utgErrorLimit"} = 6.5;
+	$global{"ovlErrorRate"} = 0.25;
 	
 	$global{"shortReads"} = undef;
 	$global{"libraryname"} = undef;
 	$global{"specFile"} = undef;
 	$global{"length"} = 500;
-	$global{"coverage"} = 0;
+	
+	$global{"coverageCutoff"} = 0;
 	$global{"maxCoverage"} = 0;
-        $global{"genomeSize"} = 0;
+    $global{"genomeSize"} = 0;
 	$global{"maxUncorrectedGap"} = 0;
-	$global{"threads"} = 1;
 	$global{"repeats"} = "";
-	$global{"fastqFile"} = undef;
+	
+	$global{"threads"} = 1;
 	$global{"partitions"} = 1;
-	$global{"sge"} = undef;
 	$global{"submitToGrid"} = 0;
+	$global{"sge"} = undef;
 	$global{"sgeCorrection"} = undef;
 	$global{"consensusConcurrency"} = 8;
+	
+	$global{"doOverlapBasedTrimming"} = 0;  # should this be defaulted to true or false?
+
 	$global{"cleanup"} = 1;
+		
+	$global{"fastqFile"} = undef;
 }
 
 sub updateSpecFile($) {
@@ -232,25 +231,17 @@ sub makeAbsolute ($) {
     return $val;
 }
 
-sub getBinDirectory () {
-    my $installDir;
-
-    ###
-    ### CODE DUPLICATION WITH getBinDirectoryShellCode
-    ###
-
-    #  Assume the current binary path is the path to the global CA
-    #  install directory.
-
-    #  CODE DUPLICATION!!!
-
+sub getInstallDirectory () {
     my @t = split '/', "$FindBin::RealBin";
-    pop @t;                      #  bin
-    pop @t;                      #  arch, e.g., FreeBSD-amd64
+    pop @t;                         #  bin
+    pop @t;                         #  arch, e.g., FreeBSD-amd64
     my $installDir = join '/', @t;  #  path to the assembler
-    #  CODE DUPLICATION!!!
 
-    #  Guess what platform we are currently running on.
+    return($installDir);
+}
+
+sub getBinDirectory () {
+    my $installDir = getInstallDirectory();
 
     my $syst = `uname -s`;    chomp $syst;  #  OS implementation
     my $arch = `uname -m`;    chomp $arch;  #  Hardware platform
@@ -260,7 +251,53 @@ sub getBinDirectory () {
     $arch = "ppc"    if ($arch eq "Power Macintosh");
 
     my $path = "$installDir/$syst-$arch/bin";
+
+    my $pathMap = getGlobal("pathMap");
+    if (defined($pathMap)) {
+        open(F, "< $pathMap") or caFailure("failed to open pathMap '$pathMap'", undef);
+        while (<F>) {
+            my ($n, $b) = split '\s+', $_;
+            $path = $b if ($name eq $n);
+        }
+        close(F);
+    }
+
     return($path);
+}
+
+sub getBinDirectoryShellCode () {
+    my $installDir = getInstallDirectory();
+    my $string;
+
+    $string  = "\n";
+    $string .= "syst=`uname -s`\n";
+    $string .= "arch=`uname -m`\n";
+    $string .= "name=`uname -n`\n";
+    $string .= "\n";
+    $string .= "if [ \"\$arch\" = \"x86_64\" ] ; then\n";
+    $string .= "  arch=\"amd64\"\n";
+    $string .= "fi\n";
+    $string .= "if [ \"\$arch\" = \"Power Macintosh\" ] ; then\n";
+    $string .= "  arch=\"ppc\"\n";
+    $string .= "fi\n";
+    $string .= "\n";
+    $string .= "bin=\"$installDir/\$syst-\$arch/bin\"\n";
+    $string .= "\n";
+
+    my $pathMap = getGlobal("pathMap");
+    if (defined($pathMap)) {
+        open(PM, "< $pathMap") or caFailure("failed to open pathMap '$pathMap'", undef);
+        while (<PM>) {
+            my ($n, $b) = split '\s+', $_;
+            $string .= "if [ \"\$name\" = \"$n\" ] ; then\n";
+            $string .= "  bin=\"$b\"\n";
+            $string .= "fi\n";
+        }
+        close(PM);
+        $string .= "\n";
+    }
+
+    return($string);
 }
 
 sub runCommand($$) {
@@ -399,6 +436,266 @@ sub schedulerFinish {
 }
 
 ################################################################################
+#
+#  Functions for running jobs on grid
+
+sub runningOnGrid () {
+	my $taskID = getGlobal("gridTaskID");
+    return(defined($ENV{$taskID}));
+}
+
+sub findNextScriptOutputFile ($$) {
+    my $wrk = shift @_;
+    my $prefix = shift @_;
+    my $idx = "00";
+    while (-e "$wrk/$prefix.$idx.sh") {
+        $idx++;
+    }
+    return("$wrk/$prefix.$idx");
+}
+
+sub buildGridArray($$$) {
+	my $name = shift @_;
+	my $maxLimit = shift @_;
+	my $globalValue = shift @_;
+	
+	my $arrayJobName = getGlobal($globalValue);
+	$arrayJobName =~ s/ARRAY_NAME/$name/g;
+	$arrayJobName =~ s/ARRAY_JOBS/1-$maxLimit/g;
+	
+	return $arrayJobName;
+}
+
+sub getGridArrayName($$) {
+	my $name = shift @_;
+	my $maxLimit = shift @_;	
+	return buildGridArray($name, $maxLimit, "gridArrayName");
+}
+
+sub getGridArrayOption($$) {
+	my $name = shift @_;
+	my $maxLimit = shift @_;	
+	return buildGridArray($name, $maxLimit, "gridArrayOption");	
+}
+
+sub writeScriptHeader($$$$$) {
+    my $wrk = shift @_;
+    my $asm = shift @_;
+    my $script = shift @_;
+    my $executable = shift @_;
+    my $options = shift @_;
+
+    open(F, "> $script") or caFailure("failed to open '$script' for writing", undef);
+    print F "#!" . getGlobal("shell") . "\n";
+    print F "#\n";
+    print F "if [ \"x\$SGE_ROOT\" != \"x\" ]; then \n";
+    print F "   #  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
+    print F "   #  jobs submitted to SGE, and running under SGE, fail to read his\n";
+    print F "   #  .tcshrc (or .bashrc, limited testing), and so they don't setup\n";
+    print F "   #  SGE (or ANY other paths, etc) properly.  For the record,\n";
+    print F "   #  interactive SGE logins (qlogin, etc) DO set the environment.\n";
+    print F "   \n";
+    print F "   . \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
+    print F "fi\n";
+    print F "\n";
+    print F "#  On the off chance that there is a pathMap, and the host we\n";
+    print F "#  eventually get scheduled on doesn't see other hosts, we decide\n";
+    print F "#  at run time where the binary is.\n";
+
+    print F getBinDirectoryShellCode();
+
+    print F "/usr/bin/env perl \$bin/$executable $options\n";
+    close(F);
+
+    system("chmod +x $script");
+}
+
+sub submit($$$$$) {
+    my $wrk = shift @_;
+    my $script = shift @_;
+    my $output = shift @_;
+    my $prefix = shift @_;
+    my $waitTag = shift @_;
+
+    my $sge         = getGlobal("sge");
+    my $sgeScript   = getGlobal("sgeScript");
+    my $sgePropHold = getGlobal("sgePropagateHold");
+
+    my $submitCommand        = getGlobal("gridSubmitCommand");
+    my $holdOption           = getGlobal("gridHoldOption");
+    my $nameOption           = getGlobal("gridNameOption");
+    my $outputOption         = getGlobal("gridOutputOption");
+    my $holdPropagateCommand = getGlobal("gridPropagateCommand");
+
+    my $jobName = $prefix;
+    if (defined($waitTag)) {
+       my $hold = $holdOption;
+       $hold =~ s/WAIT_TAG/$waitTag/g;
+       $waitTag = $hold;
+    }
+
+    my $qcmd = "$submitCommand $sge $sgeScript $nameOption \"$jobName\" $waitTag $outputOption $output $script";
+    runCommand($wrk, $qcmd) and caFailure("Failed to submit script.\n");
+
+    if (defined($sgePropHold)) {
+		if (defined($holdPropagateCommand)) {
+           my $translateCmd = getGlobal("gridNameToJobIDCommand");
+           
+           # translate hold option to job id if necessar
+           if (defined($translateCmd) && $translateCmd ne "") {
+              my $tcmd = $translateCmd;
+              $tcmd =~ s/WAIT_TAG/$sgePropHold/g;
+              my $jobCount = `$tcmd |wc -l`;
+              chmod $jobCount;
+              if ($jobCount != 1) {
+                 print STDERR "Error: cannot get job ID for job $sgePropHold got $jobCount and expected 1\n";
+              }
+              my $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
+              chomp $jobID;
+              print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
+              $sgePropHold = $jobID;
+              
+              # now we can get the job we are holding for
+              $tcmd = $translateCmd;
+              $tcmd =~ s/WAIT_TAG/$jobName/g;
+              $jobCount = `$tcmd |wc -l`;
+              chmod $jobCount;
+              if ($jobCount != 1) {
+                 print STDERR "Error: cannot get job ID for job $sgePropHold got $jobCount and expected 1\n";
+              }
+              $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
+              chomp $jobID;
+              print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
+              $jobName = $jobID;
+           } else {
+              $sgePropHold = "\"$sgePropHold\"";
+           }
+           $holdPropagateCommand =~ s/WAIT_TAG/$jobName/g;
+           my $acmd = "$holdPropagateCommand $sgePropHold";
+           system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
+		} else {
+			print STDERR "WARNING: Failed to reset hold '$sgePropHold', not supported on current grid environment.\n";
+		}
+    }
+    
+    if (defined($sgePropHold)) {
+       if (defined($holdPropagateCommand) && defined($holdOption)) {
+          $holdOption =~ s/WAIT_TAG//g;
+          my $acmd = "$holdPropagateCommand $holdOption \"$prefix\" \"$sgePropHold\"";
+          system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
+       } else {
+          print STDERR "WARNING: Failed to reset hold '$sgePropHold', not supported on current grid environment.\n";
+       }
+    }
+}
+
+sub submitScript ($$$) {
+    my $wrk = shift @_;
+    my $asm = shift @_;
+    my $waitTag = shift @_;
+    my $libraryname = "temp" . getGlobal("libraryname");
+
+    $wrk =~ s/$libraryname//g;
+    my $sgeName     = getGlobal("sgeName");
+    $sgeName = "_$sgeName"              if (defined($sgeName));
+
+    return if (getGlobal("scriptOnGrid") == 0);
+    my $output = findNextScriptOutputFile("$wrk/$libraryname", "runPBcR.sge.out");
+    my $script = "$output.sh";
+    writeScriptHeader($wrk, $asm, $script, "pacBioToCA", $commandLineOptions);
+    submit($wrk, $script, $output, "pBcR_$asm$sgeName", $waitTag);
+
+    exit(0);
+}
+
+sub submitBatchJobs($$$$) {
+   my $wrk = shift @_;
+   my $asm = shift @_;
+   my $SGE = shift @_;
+   my $TAG = shift @_;
+
+   if (getGlobal("scriptOnGrid")) {
+       runCommand($wrk, $SGE) and die("Failed to submit batch jobs.");
+       submitScript($wrk, $asm, $TAG);
+   } else {
+       print "Please execute:\n$SGE\n";
+   }
+}
+
+sub submitRunCA($$$$) {
+   my $wrk = shift @_;
+   my $asm = shift @_;
+   my $options = shift @_;
+   my $TAG = shift @_;
+   my $holdPropagateCommand    = getGlobal("gridPropagateCommand");
+   my $holdOption	           = getGlobal("gridHoldOption");
+   my $syncOption              = getGlobal("gridSyncOption");
+   my $sge                     = getGlobal("sge");
+
+   if (defined($holdPropagateCommand) && $holdPropagateCommand ne "") {
+      # do nothing, we can use the hold option to propagate
+      $syncOption = "";
+   } else {
+      print "Warning: grid environment does not support hold propagate, running in sync mode\n";
+   }
+
+   if (getGlobal("scriptOnGrid")) {
+       my $output = findNextScriptOutputFile($wrk, "runPBcR.runCA.sge.out");
+       my $script = "$output.sh";
+       writeScriptHeader($wrk, $asm, $script, "runCA", $options);
+       submit($wrk, "$syncOption $script", $output, $TAG, undef);
+       submitScript($wrk, $asm, $TAG);
+   } else {
+       print "Please execute:\nrunCA $options\n";
+   }
+}
+
+################################################################################
+
+my $HISTOGRAM_CUTOFF = 0.954;
+
+sub pickMappingThreshold($) {
+    my $histogram = shift @_;
+    my $threshold = 0;
+    
+    # pick threshold as 2sd (95% of the bases)
+    my @hist;
+    my $total = 0;
+    my $sum = 0;
+    my $mean = 0;
+    my $variance = 0;
+
+    open(F, "< $histogram") or die("Couldn't open '$histogram'", undef);
+    while (<F>) {
+       s/^\s+//;
+       s/\s+$//;
+
+       next if (m/^\s*\#/);
+       next if (m/^\s*$/);
+    
+       $hist[$_]++;
+       $total++;
+       my $delta = $_ - $mean;
+       $mean += $delta / $total;
+       $variance += $delta * ($_ - $mean);
+    }
+    $variance /= $total;
+    my $sd = sqrt($variance);
+    close(F);
+    
+    for (my $i = 0; $i <= $#hist; $i++) {
+       $sum += $hist[$i];
+       if ($sum / $total > $HISTOGRAM_CUTOFF) {
+          $threshold = $i - 1;
+          last;
+       }
+    }
+    $threshold = ($threshold < ($mean + $sd) ? floor($mean + $sd) : $threshold);
+    print STDERR "Picked mapping cutoff of $threshold\n";
+    
+    return $threshold;
+}
+
 my $MIN_FILES_WITHOUT_PARTITIONS = 20;
 my $REPEAT_MULTIPLIER = 10;
 my $MAX_CORRECTION_COVERAGE = 100;
@@ -424,7 +721,7 @@ while (scalar(@ARGV) > 0) {
     
     } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/i)) {
        if (-e $arg) {
-          push @fragFiles, $arg;
+          push @fragFiles, makeAbsolute($arg);
        } else {
           print "Invalid file $arg could not be found.\n";
        }
@@ -454,9 +751,9 @@ while (scalar(@cmdArgs) > 0) {
     if ($arg eq "-shortReads") {
         setGlobal("shortReads", 1);
 
-    } elsif ($arg eq "-coverage") {
-        setGlobal("coverage", shift @cmdArgs);
-        if (getGlobal("coverage") < 0) { setGlobal("coverage", 0); }
+    } elsif ($arg eq "-coverageCutoff") {
+        setGlobal("coverageCutoff", shift @cmdArgs);
+        if (getGlobal("coverageCutoff") < 0) { setGlobal("coverageCutoff", 0); }
 
     } elsif ($arg eq "-maxCoverage") {
         setGlobal("maxCoverage", shift @cmdArgs);
@@ -523,7 +820,7 @@ if (($err) || (scalar(@fragFiles) == 0) || (!defined(getGlobal("fastqFile"))) ||
     print STDERR "  -maxCoverage		 Maximum coverage of PacBio sequences to correct. Only the longest sequences adding up to this coverage will be corrected. Requires genomeSize or coverage parameter to be specified\n";
 
     print STDERR "\nAdvanced options (EXPERT):\n";
-    print STDERR "  -coverage		 Specify the pacBio coverage (integer) instead of automatically estimating.\n";
+    print STDERR "  -coverageCutoff	     Specify the pacBio coverage (integer) used to separate repeat copies instead of automatically estimating.\n";
     print STDERR "  -maxGap		     The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option allows a number of PacBio sequences without short-read coverage to remain. For example, specifying 50, will mean 50bp can have no short-read coverage without splitting the PacBio sequence. Warning: this will allow more sequences that went through the SMRTportal to not be fixed.\n";
     exit(1);
 }
@@ -532,9 +829,6 @@ if (($err) || (scalar(@fragFiles) == 0) || (!defined(getGlobal("fastqFile"))) ||
 my $submitCommand 	= getGlobal("gridSubmitCommand");
 my $nameOption 		= getGlobal("gridNameOption");
 my $outputOption 	= getGlobal("gridOutputOption");
-my $holdOption	    = getGlobal("gridHoldOption");
-my $holdCommand     = getGlobal("gridHoldCommand");
-my $syncOption      = getGlobal("gridSyncOption");
 
 #check for valid parameters for requested partitions and threads
 my $limit = 1024;
@@ -562,15 +856,10 @@ print STDOUT "Running with " . getGlobal("threads") . " threads and " . getGloba
 
 my $CA = getBinDirectory();
 my $AMOS = "$CA/../../../AMOS/bin/";
+my $BLASR = "$CA/../../../smrtanalysis/analysis/bin/";
+my $BOWTIE = "$CA/../../../bowtie2/";
 my $wrk = makeAbsolute("");
 my $asm = "asm";
-my $caSGE  = getGlobal("sge");
-
-if (defined($caSGE)) {
-   $caSGE = "sge=\"" .$caSGE . " $syncOption \" sgePropagateHold=corAsm";
-} else {
-   $caSGE = "sge=\"" . " $syncOption \" sgePropagateHold=corAsm";
-}
 my $scriptParams = getGlobal("sgeScript");
 
 if (defined($scriptParams)) {
@@ -605,7 +894,36 @@ if (! -e "$AMOS/bank-transact") {
       die "AMOS binaries: bank-transact not found in $AMOS\n";
    }
 }
-print STDERR "********* Starting correction...\n CA: $CA\nAMOS:$AMOS \n";
+
+if (! -e "$BLASR/blasr") {
+   # try to use path
+   my $amosPath = `which blasr`;
+   chomp $amosPath;
+   my @t = split '/', "$amosPath";
+   pop @t;                      #  blasr 
+   $BLASR = join '/', @t;  #  path to the assembler
+
+   # if we really can't find it just give up
+   if (! -e "$BLASR/blasr") {
+      die "BLASR binaries: blasr not found in $BLASR\n" if defined(getGlobal("blasr"));
+   }
+}
+
+if (! -e "$BOWTIE/bowtie2-build") {
+   # try to use path
+   my $amosPath = `which bowtie2-build`;
+   chomp $amosPath;
+   my @t = split '/', "$amosPath";
+   pop @t;                      #  bowtie2-build 
+   $BOWTIE = join '/', @t;  #  path to the assembler
+
+   # if we really can't find it just give up
+   if (! -e "$BOWTIE/bowtie2-build") {
+      die "Bowtie2 binaries: bowtie not found in $BOWTIE\n" if defined(getGlobal("bowtie"));
+   }
+}
+
+print STDERR "********* Starting correction...\n CA: $CA\nAMOS:$AMOS\nSMRTportal:$BLASR\nBowtie:$BOWTIE\n";
 print STDERR "******** Configuration Summary ********\n";
 foreach my $key (keys %global) {
 	if (length($key) < $TAB_SIZE) {
@@ -628,7 +946,7 @@ my $ovlErrorRate = getGlobal("utgErrorRate");
 my $ovlErrorLimit = getGlobal("utgErrorLimit");
 
 my $maxUncorrectedGap = getGlobal("maxUncorrectedGap");
-my $coverage = getGlobal("coverage");
+my $coverage = getGlobal("coverageCutoff");
 my $genomeSize = getGlobal("genomeSize");
 my $shortReads = getGlobal("shortReads");
 my $length = getGlobal("length");
@@ -639,26 +957,42 @@ my $partitions = getGlobal("partitions");
 
 my $submitToGrid = getGlobal("submitToGrid");
 my $sge = getGlobal("sge");
+my $sgeOvl = getGlobal("sgeOverlap");
 my $sgeCorrection = getGlobal("sgeCorrection");
+my $sgeConsensus = getGlobal("sgeConsensus");
+my $sgeTaskID = getGlobal("gridTaskID");
+
 my $consensusConcurrency = getGlobal("consensusConcurrency");
 
 my $cleanup = getGlobal("cleanup");
 
 my $cmd = "";
 
-if ($coverage != 0 && $genomeSize != 0) {
-   print STDERR "Warning, both coverage and genome size is set. Coverage $coverage will be overwritten by $genomeSize\n";
-}
-
 if (! -e "temp$libraryname") {
    runCommand("$wrk", "mkdir temp$libraryname");
+   # generate the ca spec file, since we support additional options in the spec file, we need to strip those out before passing it to ca
+   updateSpecFile("$wrk/temp$libraryname/$libraryname.spec");
 }
-# generate the ca spec file, since we support additional options in the spec file, we need to strip those out before passing it to ca
-updateSpecFile("$wrk/temp$libraryname/$libraryname.spec");
 $specFile = "$wrk/temp$libraryname/$libraryname.spec";
 
-runCommand($wrk, "$CA/fastqToCA -libraryname PacBio -type sanger -innie -technology pacbio-long -reads " . makeAbsolute($fastqFile) . " > $wrk/temp$libraryname/$libraryname.frg"); 
-runCommand($wrk, "$CA/runCA -s $specFile -p $asm -d temp$libraryname $caSGE stopAfter=initialStoreBuilding @fragFiles $wrk/temp$libraryname/$libraryname.frg");
+if (! -e "$wrk/temp$libraryname/$libraryname.frg") {
+   runCommand($wrk, "$CA/fastqToCA -libraryname $libraryname -type sanger -innie -technology pacbio-long -reads " . makeAbsolute($fastqFile) . " > $wrk/temp$libraryname/$libraryname.frg"); 
+}
+
+# now that were ready, add the frg file info to the command line args
+$commandLineOptions = "-s $specFile $commandLineOptions @fragFiles";
+
+# and we're off
+submitScript($wrk, $asm, undef) if (!runningOnGrid());
+my $sgeName = (defined(getGlobal("sgeName")) ? "_" . getGlobal("sgeName") : "");
+if (! -d "$wrk/temp$libraryname/$asm.gkpStore") {
+   $cmd = "$CA/runCA ";
+   $cmd .= " -s $specFile -p $asm -d temp$libraryname ";
+   $cmd .= " stopAfter=initialStoreBuilding ";
+   $cmd .= " sgeName=\"" . getGlobal("sgeName") . "\" " if defined(getGlobal("sgeName"));
+   $cmd .= " @fragFiles $wrk/temp$libraryname/$libraryname.frg";
+   runCommand($wrk, $cmd);
+}
 
 # make assumption that we correct using all libraries preceeding pacbio
 # figure out what number of libs we have and what lib is pacbio
@@ -703,16 +1037,15 @@ while (<F>) {
 }
 close(F); 
 
-# here is where we filter for specified length as well as max of longest X of coverage for correction
-# use the genome size/coverage, if available to subset the sequences
-if ($genomeSize != 0 && getGlobal("maxCoverage") != 0) {
-   $totalBP = $genomeSize * getGlobal("maxCoverage"); 
-} elsif ($coverage != 0 && getGlobal("maxCoverage") != 0) {
-	$genomeSize = floor($totalBP / $coverage);
-	setGlobal("genomeSize", $genomeSize);
+if (! -e "$wrk/temp$libraryname/$asm.toerase.out") {
+   # here is where we filter for specified length as well as max of longest X of coverage for correction
+   # use the genome size/coverage, if available to subset the sequences
+   if ($genomeSize != 0 && getGlobal("maxCoverage") != 0) {
+      $totalBP = $genomeSize * getGlobal("maxCoverage"); 
+   }
+   runCommand($wrk, "$CA/gatekeeper -dumpfragments -invert -tabular -longestovermin $libToCorrect $length -longestlength $libToCorrect $totalBP temp$libraryname/$asm.gkpStore |awk '{if (!(match(\$1, \"UID\") != 0 && length(\$1) == " . length("UID") . ")) { print \"frg uid \"\$1\" isdeleted 1\"; } }' > $wrk/temp$libraryname/$asm.toerase.uid");
+   runCommand($wrk, "$CA/gatekeeper --edit $wrk/temp$libraryname/$asm.toerase.uid $wrk/temp$libraryname/$asm.gkpStore > $wrk/temp$libraryname/$asm.toerase.out 2> $wrk/temp$libraryname/$asm.toerase.err");
 }
-runCommand($wrk, "$CA/gatekeeper -dumpfragments -invert -tabular -longestovermin $libToCorrect $length -longestlength $libToCorrect $totalBP temp$libraryname/$asm.gkpStore |awk '{if (!(match(\$1, \"UID\") != 0 && length(\$1) == " . length("UID") . ")) { print \"frg uid \"\$1\" isdeleted 1\"; } }' > $wrk/temp$libraryname/$asm.toerase.uid");
-runCommand($wrk, "$CA/gatekeeper --edit $wrk/temp$libraryname/$asm.toerase.uid $wrk/temp$libraryname/$asm.gkpStore > $wrk/temp$libraryname/$asm.toerase.out 2> $wrk/temp$libraryname/$asm.toerase.err");
 
 # compute the number of bases left after our filtering gateeeker to be corrected
 my $totalCorrectingWith = 0;
@@ -732,17 +1065,9 @@ while (<F>) {
 }
 close(F);
 
-if ($genomeSize != 0) {
-   $coverage = ceil($totalBP / $genomeSize);
-   setGlobal("coverage", $coverage);
-} elsif ($coverage != 0) {
-	$genomeSize = ceil($totalBP / $coverage);
-	setGlobal("genomeSize", $genomeSize);
-}
-
 # check that we have good data
 if ($genomeSize != 0) {
-    print STDOUT "Running with " . $coverage . "X (for genome size $genomeSize) of $libraryname sequences ($totalBP bp).\n";
+    print STDOUT "Running with " . ($totalBP / $genomeSize) . "X (for genome size $genomeSize) of $libraryname sequences ($totalBP bp).\n";
     print STDOUT "Correcting with " . floor($totalCorrectingWith / $genomeSize) . "X sequences ($totalCorrectingWith bp).\n";
 } else {
     print STDOUT "Running with $totalBP bp for $libraryname.\n";
@@ -764,55 +1089,280 @@ if ($genomeSize != 0 && floor($totalCorrectingWith / $genomeSize) > $MAX_CORRECT
 	# could randomly subsample here
 }
 
-# run correction up thorough meryl
-$cmd  = "$CA/runCA ";
-$cmd .=    "-s $specFile ";
-$cmd .=    "-p $asm -d temp$libraryname ";
-$cmd .=    "ovlHashLibrary=$libToCorrect ";
-$cmd .=    "ovlRefLibrary=$minCorrectLib-$maxCorrectLib ";
-$cmd .=    "ovlCheckLibrary=1 ";
-$cmd .=    "obtHashLibrary=$minCorrectLib-$maxCorrectLib ";
-$cmd .=    "obtRefLibrary=$minCorrectLib-$maxCorrectLib ";
-$cmd .=    "obtCheckLibrary=0 ";
-$cmd .=   "$caSGE stopAfter=meryl";
-runCommand($wrk, $cmd);
-
-# set the meryl threshold based on the genome size and coverage (if specified)
-if (!defined(getGlobal("ovlMerThreshold")) || getGlobal("ovlMerThreshold") == "auto") {
-   # no threshold specified, check if the chosen one is OK
-   my $autoSetThreshold = `cat temp$libraryname/0-mercounts/*estMerThresh.out`;
-   chomp($autoSetThreshold); 
-
-   if ($autoSetThreshold < ($coverage * $REPEAT_MULTIPLIER)) {
-      setGlobal("ovlMerThreshold", $coverage * $REPEAT_MULTIPLIER);
-      unlink("temp$libraryname/0-mercounts/$asm.nmers.ovl.fasta");
-      print STDERR "Resetting from auto threshold of $autoSetThreshold to be " . ($coverage * 10) . "\n";
+if (!defined(getGlobal("bowtie"))) {
+   # run correction up thorough meryl
+   if (! -e "$wrk/temp$libraryname/0-mercounts/$asm.nmers.ovl.fasta") {
+      $cmd  = "$CA/runCA ";
+      $cmd .=    "-s $specFile ";
+      $cmd .=    "-p $asm -d temp$libraryname ";
+      $cmd .=    "ovlHashLibrary=$libToCorrect ";
+      $cmd .=    "ovlRefLibrary=$minCorrectLib-$maxCorrectLib ";
+      $cmd .=    "ovlCheckLibrary=1 ";
+      $cmd .=    "obtHashLibrary=$minCorrectLib-$maxCorrectLib ";
+      $cmd .=    "obtRefLibrary=$minCorrectLib-$maxCorrectLib ";
+      $cmd .=    "obtCheckLibrary=0 ";
+      $cmd .=    "sgeName=\"" . getGlobal("sgeName") . "\" " if defined(getGlobal("sgeName"));
+      $cmd .=    "doOverlapBasedTrimming=0 stopAfter=meryl";
+      runCommand($wrk, $cmd);
+   }
+   
+   # set the meryl threshold based on the genome size and coverage (if specified)
+   if (!defined(getGlobal("ovlMerThreshold")) || getGlobal("ovlMerThreshold") == "auto") {
+      # no threshold specified, check if the chosen one is OK
+      my $autoSetThreshold = `cat temp$libraryname/0-mercounts/*estMerThresh.out`;
+      chomp($autoSetThreshold);
+      setGlobal("ovlMerThreshold", $autoSetThreshold);
+      
+      my $corrCov = (defined($genomeSize) && $genomeSize != 0 ? floor($totalCorrectingWith / $genomeSize) : 0);
+      my $pacCov = (defined($genomeSize) && $genomeSize != 0 ? floor($totalBP / $genomeSize) : 0);
+      my $maxCov = $pacCov + $corrCov;
+   
+      if ($autoSetThreshold < ($maxCov * $REPEAT_MULTIPLIER)) {
+         setGlobal("ovlMerThreshold", $maxCov * $REPEAT_MULTIPLIER);
+         unlink("$wrk/temp$libraryname/0-mercounts/$asm.nmers.ovl.fasta");
+         print STDERR "Resetting from auto threshold of $autoSetThreshold to be " . ($maxCov * 10) . "\n";
+      }
    }
 }
 
-# now run the correction
-my $ovlThreshold = getGlobal("ovlMerThreshold");
-$cmd  = "$CA/runCA ";
-$cmd .=    "-s $specFile ";
-$cmd .=    "-p $asm -d temp$libraryname ";
-$cmd .=    "ovlMerThreshold=$ovlThreshold ";
-$cmd .=    "ovlHashLibrary=$libToCorrect ";
-$cmd .=    "ovlRefLibrary=$minCorrectLib-$maxCorrectLib ";
-$cmd .=    "ovlCheckLibrary=1 ";
-$cmd .=    "obtHashLibrary=$minCorrectLib-$maxCorrectLib ";
-$cmd .=    "obtRefLibrary=$minCorrectLib-$maxCorrectLib ";
-$cmd .=    "obtCheckLibrary=0 ";
-$cmd .=   "$caSGE stopAfter=overlapper";
-runCommand($wrk, $cmd);
+if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
+   # run trimming if needed first
+   if (getGlobal("doOverlapBasedTrimming") != 0 && ! -e "$wrk/temp$libraryname/0-overlaptrim/overlaptrim.success") {
+      $cmd  =    "-s $specFile ";
+      $cmd .=    "-p $asm -d . ";
+      $cmd .=    "ovlHashLibrary=$libToCorrect ";
+      $cmd .=    "ovlRefLibrary=$minCorrectLib-$maxCorrectLib ";
+      $cmd .=    "ovlCheckLibrary=1 ";
+      $cmd .=    "obtHashLibrary=$minCorrectLib-$maxCorrectLib ";
+      $cmd .=    "obtRefLibrary=$minCorrectLib-$maxCorrectLib ";
+      $cmd .=    "obtCheckLibrary=0 ";
+      $cmd .=    "sgeName=\"" . getGlobal("sgeName") . "\" " if defined(getGlobal("sgeName"));
+      $cmd .=    "sgePropagateHold=\"pBcR_$asm$sgeName\" "; 
+      $cmd .=    "stopAfter=overlapBasedTrimming";
+      if ($submitToGrid == 1) {
+         submitRunCA("$wrk/temp$libraryname", $asm, $cmd, "runCA_obt_$asm$sgeName");
+      } else {
+         runCommand("$wrk/temp$libraryname", "$CA/runCA $cmd");
+      }
+   }
+   
+   # now run the correction
+   my $ovlThreshold = getGlobal("ovlMerThreshold");
+
+   # when we were asked to not use CA's overlapper, first perform common options
+   if (defined(getGlobal("samFOFN")) || defined(getGlobal("blasr")) || defined(getGlobal("bowtie"))) {
+      my $blasrThreshold = 0;
+      my $ovlThreads = getGlobal("ovlThreads");   
+      my $numOvlJobs = 0;
+      my $blasrOpts = getGlobal("blasr");
+      my $bowtieOpts = getGlobal("bowtie");
+      my $suffix = "sam";
+   
+      if (-e "$wrk/temp$libraryname/1-overlapper/overlap.sh") {
+         if (defined(getGlobal("samFOFN"))) {
+            my $fofn = getGlobal("samFOFN");
+            $numOvlJobs = `wc -l $fofn`;
+            chomp $numOvlJobs;
+         } else {
+            $numOvlJobs = 1;
+         }
+         goto checkforerror;
+      }
+      
+      # dump gatekeeper store and print eid to iid, add to it the gkpStore fastq file into eidToIID and lengths
+      runCommand("$wrk/temp$libraryname", "$CA/gatekeeper -dumpfragments -tabular $asm.gkpStore |awk '{print \$1\"\\t\"\$2}' > $asm.eidToIID");
+      runCommand("$wrk/temp$libraryname", "cat $asm.gkpStore.fastqUIDmap | awk '{print \$NF\"\\t\"\$2}' >> $asm.eidToIID");
+      runCommand("$wrk/temp$libraryname", "$CA/gatekeeper -dumpfragments -tabular $asm.gkpStore |awk '{print \$2\"\\t\"\$10}' > $asm.iidToLen");
+   
+      # create empty work files            
+      runCommand($wrk, "mkdir $wrk/temp$libraryname/1-overlapper") if (! -d "$wrk/temp$libraryname/1-overlapper");
+      runCommand($wrk, "mkdir $wrk/temp$libraryname/1-overlapper/001") if (! -d "$wrk/temp$libraryname/1-overlapper/001");
+      runCommand($wrk, "touch temp$libraryname/1-overlapper/ovljob");
+      runCommand($wrk, "touch temp$libraryname/1-overlapper/ovlbat");
+   
+      # now do specific steps (either import SAMs or run blasr)
+      if (defined(getGlobal("samFOFN"))) {
+         my $fofn = getGlobal("samFOFN");
+            
+         # convert sam to ovl and put it into the overlap directory
+         open(F, "< $fofn") or die("Couldn't open '$fofn'", undef);
+         while (<F>) {
+            s/^\s+//;
+            s/\s+$//;
+      
+            next if (m/^\s*\#/);
+            next if (m/^\s*$/);
+            if (! -e $_) {
+               print STDERR "Warning: could not open SAM file $_, skipping\n";
+               next;
+            } elsif ($_ =~ /\.sam$/) {
+                $suffix = "sam";
+            } elsif ($_ =~ /\.sam\.gz$/) {
+               $suffix = "sam.gz";
+            } elsif ($_ =~ /\.sam\.bz2$/) {
+               $suffix = "sam.bz2";
+            }
+            
+            $numOvlJobs++;
+            runCommand("$wrk/temp$libraryname/1-overlapper/001", "unlink $wrk/temp$libraryname/1-overlapper/001/$numOvlJobs.$suffix") if (-e "$wrk/temp$libraryname/1-overlapper/001/$numOvlJobs.$suffix");
+            runCommand("$wrk/temp$libraryname/1-overlapper/001", "cp $_ $wrk/temp$libraryname/1-overlapper/001/$numOvlJobs.$suffix");
+         }
+         close(F); 
+      } else {
+         runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta long_reads -randomsubset $libToCorrect 1 $wrk/temp$libraryname/$asm.gkpStore");
+         for (my $i = $minCorrectLib; $i <= $maxCorrectLib; $i++) {
+           runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_lib -randomsubset $i 1 $wrk/temp$libraryname/$asm.gkpStore");
+           runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_subset -randomsubset $i 0.01 $wrk/temp$libraryname/$asm.gkpStore");
+         }
+         runCommand("$wrk/temp$libraryname/1-overlapper", "cat `ls [0-9]*_lib.fasta` > correct_reads.fasta");
+         runCommand("$wrk/temp$libraryname/1-overlapper", "cat `ls [0-9]*_subset.fasta` > correct_subset.fasta");
+         runCommand("$wrk/temp$libraryname/1-overlapper", "rm `ls [0-9]*_subset.fasta*`");
+         runCommand("$wrk/temp$libraryname/1-overlapper", "rm `ls [0-9]*_lib.fasta*`");
+       
+         if (defined(getGlobal("blasr"))) {
+            # run with best limit set to kmer with a small (0.5-1% of the data)   
+            my $ovlThreads = getGlobal("ovlThreads");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "$BLASR/sawriter long.sa long_reads.fasta");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "$BLASR/blasr -sa long.sa correct_subset.fasta long_reads.fasta -nproc $ovlThreads -bestn $ovlThreshold $blasrOpts -sam -out subset.sam");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "cat subset.sam |grep -v \"@\" | awk '{print \$1}' |sort |uniq -c |awk '{print \$1}' > subset.hist");
+         
+            # pick threshold as 2sd (95% of the bases)
+            $blasrThreshold = pickMappingThreshold("$wrk/temp$libraryname/1-overlapper/subset.hist");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "unlink subset.sam");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "unlink correct_subset.fasta");
+         
+            # for now we can only run one blasr job at a time, in the future we can partition it
+            $numOvlJobs = 1;
+         } elsif (defined(getGlobal("bowtie"))) {     
+         # run with best limit set to all with a small (0.5-1% of the data)   
+            my $ovlThreads = getGlobal("ovlThreads");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "$BOWTIE/bowtie2-build -f long_reads.fasta long.sa");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "$BOWTIE/bowtie2 -x long.sa -f correct_subset.fasta -p $ovlThreads -a $bowtieOpts -S subset.sam");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "cat subset.sam |grep -v \"@\" | awk '{print \$1}' |sort |uniq -c |awk '{print \$1}' > subset.hist");
+         
+            # pick threshold as 2sd (95% of the bases)
+            $blasrThreshold = pickMappingThreshold("$wrk/temp$libraryname/1-overlapper/subset.hist");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "unlink subset.sam");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "unlink correct_subset.fasta");
+         
+            # for now we can only run one blasr job at a time, in the future we can partition it
+            $numOvlJobs = 1;
+         }
+      }
+   
+      # now that we have our parameters, create a run job
+      open F, "> $wrk/temp$libraryname/1-overlapper/overlap.sh" or die ("can't open '$wrk/temp$libraryname/1-overlapper/overlap.sh'");
+      print F "#!" . getGlobal("shell") ."\n";
+      print F getBinDirectoryShellCode();
+      print F "\n";
+      print F "jobid=\$$sgeTaskID\n";
+      print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
+      print F "jobid=\$1\n";
+      print F "fi\n";
+      print F "\n";
+      print F "if test x\$jobid = x; then\n";
+      print F "  echo Error: I need $sgeTaskID set, or a job index on the command line\n";
+      print F "  exit 1\n";
+      print F "fi\n";
+      print F "\n";
+      print F "if test -e $wrk/temp$libraryname/1-overlapper/001/\$jobid.ovb ; then\n";
+      print F "   echo Job previously completed successfully.\n";
+      print F "else\n";
+      if (defined(getGlobal("blasr"))) {
+      print F "   $BLASR/blasr \\\n";
+      print F "          -sa $wrk/temp$libraryname/1-overlapper/long.sa $wrk/temp$libraryname/1-overlapper/correct_reads.fasta $wrk/temp$libraryname/1-overlapper/long_reads.fasta \\\n";
+      print F "          -nproc $ovlThreads -bestn $blasrThreshold \\\n";
+      print F "          $blasrOpts \\\n";
+      print F "          -sam -out $wrk/temp$libraryname/1-overlapper/001/\$jobid.sam \\\n";
+      print F "          > $wrk/temp$libraryname/1-overlapper/\$jobid.out 2>&1 \\\n";
+      print F "            && touch $wrk/temp$libraryname/1-overlapper/\$jobid.blasr.success\n";
+      print F "   if test -e $wrk/temp$libraryname/1-overlapper/\$jobid.blasr.success ; then\n";
+      print F "      echo Blasr completed.\n";
+      print F "   else\n";
+      print F "      echo Blasr failed.\n";
+      print F "      tail $wrk/temp$libraryname/1-overlapper/\$jobid.out && exit\n";
+      print F "   fi\n";
+      } elsif (defined(getGlobal("bowtie"))) {
+      print F "   $BOWTIE/bowtie2 \\\n";
+      print F "          -x $wrk/temp$libraryname/1-overlapper/long.sa -f $wrk/temp$libraryname/1-overlapper/correct_reads.fasta \\\n";
+      print F "          -p $ovlThreads -k $blasrThreshold \\\n";
+      print F "          $bowtieOpts \\\n";
+      print F "          -S $wrk/temp$libraryname/1-overlapper/001/\$jobid.sam \\\n";
+      print F "          > $wrk/temp$libraryname/1-overlapper/\$jobid.out 2>&1 \\\n";
+      print F "            && touch $wrk/temp$libraryname/1-overlapper/\$jobid.blasr.success\n";
+      print F "   if test -e $wrk/temp$libraryname/1-overlapper/\$jobid.blasr.success ; then\n";
+      print F "      echo Bowtie completed.\n";
+      print F "   else\n";
+      print F "      echo Bowtie failed.\n";
+      print F "      tail $wrk/temp$libraryname/1-overlapper/\$jobid.out && exit\n";
+      print F "   fi\n";
+      }
+      print F "   java -cp $CA/../lib/sam-1.71.jar:$CA/../lib/ConvertSamToCA.jar:. ConvertSamToCA \\\n";
+      print F "        $wrk/temp$libraryname/1-overlapper/001/\$jobid.$suffix $wrk/temp$libraryname/$asm.eidToIID $wrk/temp$libraryname/$asm.iidToLen \\\n";
+      print F "        > $wrk/temp$libraryname/1-overlapper/001/\$jobid.ovls 2> $wrk/temp$libraryname/1-overlapper/\$jobid.java.err\\\n";
+      print F "            && touch $wrk/temp$libraryname/1-overlapper/\$jobid.java.success\n";
+      print F "   if test -e $wrk/temp$libraryname/1-overlapper/\$jobid.java.success ; then\n";
+      print F "      echo SamToCA conversion completed.\n";
+      print F "   else\n";
+      print F "      echo SamToCA conversion failed.\n";
+      print F "      tail $wrk/temp$libraryname/1-overlapper/\$jobid.java.err && exit\n";
+      print F "   fi\n";
+      print F "   \$bin/convertOverlap -ovl < $wrk/temp$libraryname/1-overlapper/001/\$jobid.ovls > $wrk/temp$libraryname/1-overlapper/001/\$jobid.ovb\n";
+      print F "fi\n";
+      close(F);
+      chmod 0755, "$wrk/temp$libraryname/1-overlapper/overlap.sh";
+      
+      if ($submitToGrid == 1) {
+          my $sgeName = "pBcR_ovl_$asm$sgeName";
+      	  my $jobName = getGridArrayName($sgeName, $numOvlJobs);
+      	  my $arrayOpt = getGridArrayOption($sgeName, $numOvlJobs);
+         submitBatchJobs($wrk, $asm, "$submitCommand $sge $sgeOvl $nameOption \"$jobName\" $arrayOpt $outputOption /dev/null $wrk/temp$libraryname/1-overlapper/overlap.sh", $jobName);
+      } else {
+         for (my $i = 1; $i <= $numOvlJobs; $i++) {
+            schedulerSubmit("$wrk/temp$libraryname/1-overlapper/overlap.sh $i");
+         }
+         schedulerSetNumberOfProcesses(getGlobal("ovlConcurrency"));
+         schedulerFinish();
+      } 
+      
+  checkforerror:
+      for (my $i = 1; $i <= $numOvlJobs; $i++) {
+        if (! -e "$wrk/temp$libraryname/1-overlapper/001/$i.ovb") {
+          die "Failed to run sam conversion job $i. Remove $wrk/temp$libraryname/1-overlapper/overlap.sh to try again.\n";
+        } else {
+          runCommand("$wrk/temp$libraryname/1-overlapper/001/", "rm $i.sam");
+          runCommand("$wrk/temp$libraryname/1-overlapper/001/", "rm $i.ovls");
+        }
+      }  
+   }
+   $cmd  =    "-s $specFile ";
+   $cmd .=    "-p $asm -d . ";
+   $cmd .=    "ovlMerThreshold=$ovlThreshold ";
+   $cmd .=    "ovlHashLibrary=$libToCorrect ";
+   $cmd .=    "ovlRefLibrary=$minCorrectLib-$maxCorrectLib ";
+   $cmd .=    "ovlCheckLibrary=1 ";
+   $cmd .=    "obtHashLibrary=$minCorrectLib-$maxCorrectLib ";
+   $cmd .=    "obtRefLibrary=$minCorrectLib-$maxCorrectLib ";
+   $cmd .=    "obtCheckLibrary=0 ";
+   $cmd .=    "sgeName=\"" . getGlobal("sgeName") . "\" " if defined(getGlobal("sgeName"));
+   $cmd .=    "sgePropagateHold=\"pBcR_$asm$sgeName\" "; 
+   $cmd .=    "stopAfter=overlapper";
+   if ($submitToGrid == 1) {
+      submitRunCA("$wrk/temp$libraryname", $asm, $cmd, "runCA_ovl_$asm$sgeName");      
+   } else {
+      runCommand("$wrk/temp$libraryname", "$CA/runCA $cmd");
+   }
+}
 
 if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
    open F, "> $wrk/temp$libraryname/runCorrection.sh" or die ("can't open '$wrk/temp$libraryname/runCorrection.sh'");
-   print F "#!" . "/bin/sh\n";
+   print F "#!" . getGlobal("shell") ."\n";
+   print F getBinDirectoryShellCode();
    print F "\n";
    print F " if test -e $wrk/temp$libraryname/$asm.layout.success; then\n";
    print F "    echo Job previously completed successfully.\n";
    print F " else\n";
-   print F "   $CA/correctPacBio \\\n";
+   print F "   \$bin/correctPacBio \\\n";
    print F "      -C $coverage \\\n";
    print F "      -M $maxUncorrectedGap \\\n";
    print F "      -t $threads \\\n";
@@ -827,8 +1377,9 @@ if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
    close(F);
    chmod 0755, "$wrk/temp$libraryname/runCorrection.sh";
 
-   if ($submitToGrid == 1) {
-      runCommand("$wrk/temp$libraryname", "$submitCommand $sge $sgeCorrection $syncOption $nameOption correct_$asm $outputOption /dev/null $wrk/temp$libraryname/runCorrection.sh");
+   if ($submitToGrid == 1) {    
+      my $sgeName = "pBcR_correct_$asm$sgeName";
+      submitBatchJobs("$wrk/temp$libraryname", $asm, "$submitCommand $sge $sgeCorrection $nameOption \"$sgeName\" $outputOption /dev/null $wrk/temp$libraryname/runCorrection.sh", $sgeName);
    } else {
       runCommand("$wrk/temp$libraryname", "$wrk/temp$libraryname/runCorrection.sh");
    }
@@ -836,15 +1387,16 @@ if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
 
 if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    open F, "> $wrk/temp$libraryname/runPartition.sh" or die ("can't open '$wrk/temp$libraryname/runPartition.sh'");
-   print F "#!" . "/bin/sh\n";
+   print F "#!" . getGlobal("shell") ."\n";
+   print F getBinDirectoryShellCode();
    print F "\n";
-   print F "jobid=\$SGE_TASK_ID\n";
-   print F "if test x\$jobid = x -o x\$jobid = xundefined; then\n";
+   print F "jobid=\$$sgeTaskID\n";
+   print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
    print F "jobid=\$1\n";
    print F "fi\n";
    print F "\n";
    print F "if test x\$jobid = x; then\n";
-   print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line\n";
+   print F "  echo Error: I need $sgeTaskID set, or a job index on the command line\n";
    print F "  exit 1\n";
    print F "fi\n";
    print F "\n";
@@ -884,14 +1436,10 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    chmod 0755, "$wrk/temp$libraryname/runPartition.sh";
 
    if ($submitToGrid == 1) {
-   	  my $jobName = getGridArrayName("utg_$asm", $partitions);
-   	  my $arrayOpt = getGridArrayOption("utg_$asm", $partitions);
-      runCommand("$wrk/temp$libraryname", "$submitCommand $sge $syncOption $nameOption $jobName $arrayOpt $outputOption /dev/null $wrk/temp$libraryname/runPartition.sh");
-      if (defined($holdCommand)) {
-		my $waitcmd = $holdCommand;
-		$waitcmd =~ s/WAIT_TAG/$jobName/g;
-	    runCommand($wrk, $waitcmd) and die "Wait command failed.\n";
-	}
+      my $sgeName = "pBcR_cns_$asm$sgeName";
+   	  my $jobName = getGridArrayName($sgeName, $partitions);
+   	  my $arrayOpt = getGridArrayOption($sgeName, $partitions);
+      submitBatchJobs("$wrk/temp$libraryname", $asm, "$submitCommand $sge $sgeConsensus $nameOption \"$jobName\" $arrayOpt $outputOption /dev/null $wrk/temp$libraryname/runPartition.sh", $jobName);
    } else {
       for (my $i = 1; $i <=$partitions; $i++) {
          schedulerSubmit("$wrk/temp$libraryname/runPartition.sh $i");
@@ -907,13 +1455,60 @@ for (my $i = 1; $i <= $partitions; $i++) {
   }
 }
 
+runCommand("$wrk/temp$libraryname", "cat `ls $asm.[0-9]*.log |sort -rnk1` > corrected.log");
 runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fasta |sort -rnk1` > corrected.fasta");
 runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.qual |sort -rnk1` > corrected.qual");
 runCommand("$wrk", "$CA/convert-fasta-to-v2.pl -pacbio -s $wrk/temp$libraryname/corrected.fasta -q $wrk/temp$libraryname/corrected.qual -l $libraryname > $wrk/$libraryname.frg");
 runCommand("$wrk/temp$libraryname", "cp corrected.fasta $wrk/$libraryname.fasta");
 runCommand("$wrk/temp$libraryname", "cp corrected.qual  $wrk/$libraryname.qual");
 
+# generate summary reports
+my %nameTranslation;
+open(F, "< $wrk/temp$libraryname/$asm.gkpStore.fastqUIDmap") or die("Couldn't open '$wrk/temp$libraryname/$asm.gkpStore.fastqUIDmap'", undef);
+
+while (<F>) {
+   s/^\s+//;
+   s/\s+$//;
+
+   next if (m/^\s*\#/);
+   next if (m/^\s*$/);
+   my @splitLine=split /\s+/;
+   $nameTranslation{$splitLine[1]} = $splitLine[2];
+}
+close(F);
+
+my $maxCorrected = 0;
+my $totalCorrected = 0;
+my $totalCorrectedBP = 0;
+open(F, "< $wrk/temp$libraryname/corrected.log") or die("Couldn't open '$wrk/temp$libraryname/corrected.log'", undef);
+open(W, "> $wrk/$libraryname.log") or die("Couldn't open '$wrk/$libraryname.log'", undef);
+
+while (<F>) {
+   s/^\s+//;
+   s/\s+$//;
+
+   next if (m/^\s*\#/);
+   next if (m/^\s*$/);
+   my @splitLine=split /\s+/;
+   my $len = $splitLine[4] - $splitLine[3];
+   my $name = (defined($nameTranslation{$splitLine[0]}) ? $nameTranslation{$splitLine[0]} : $splitLine[0]);
+   
+   print W "INPUT_NAME\tOUTPUT_NAME\tSUBREAD\tSTART\tEND\tLENGTH\n"if ($totalCorrected == 0);
+   print W "$name\t$splitLine[1]\t$splitLine[2]\t$splitLine[3]\t$splitLine[4]\t$len\n";
+   
+   $maxCorrected = $len if ($len > $maxCorrected);
+   $totalCorrected++;
+   $totalCorrectedBP += $len;
+}
+close(F);
+close(W);
+         
+print STDERR "******** Correction Summary ********\n";
+printf "Total corrected bp (before consensus): $totalCorrectedBP (%.3f).\n", ($totalCorrectedBP/$totalBP)*100;
+printf "Longest sequence: $maxCorrected bp, mean: %.3f bp.\n", ($totalCorrectedBP/$totalCorrected);
+
 # finally clean up the assembly directory
 if ($cleanup == 1) {
    runCommand("$wrk", "rm -rf temp$libraryname");
 }
+print STDERR "********* Finished correcting $totalBP bp (using $totalCorrectingWith bp).\n";
