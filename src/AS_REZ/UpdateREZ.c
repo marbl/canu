@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.22 2012-08-08 19:25:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.23 2012-09-20 19:18:40 brianwalenz Exp $";
 
 /**********************************************************************
 
@@ -718,7 +718,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
       if (ChiSquare) {
 
         //  OPERATES ON RAW
-        MarkInternalEdgeStatus(sgraph, scaffold, 0, FALSE, PAIRWISECHI2THRESHOLD_CGW, 1000000.0);
+        MarkInternalEdgeStatus(sgraph, scaffold, 0, FALSE);
 
         //
         // check the damage again

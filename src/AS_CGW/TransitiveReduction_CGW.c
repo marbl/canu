@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.41 2012-08-30 20:23:43 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.42 2012-09-20 19:18:40 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -175,21 +175,21 @@ FoundTransitiveEdgePath(ScaffoldGraphT *graph,
   //
   if (thisCI == endCI)
     return((edgeOrient == pathOrient) &&
-           (PairwiseChiSquare((double)path->distance.mean,
-                              (double)path->distance.variance,
-                              (double)edge->distance.mean,
-                              (double)edge->distance.variance, (LengthT *)NULL,
-                              &chiSquaredValue, (double)PAIRWISECHI2THRESHOLD_CGW)));
+           (PairwiseChiSquare(path->distance.mean,
+                              path->distance.variance,
+                              edge->distance.mean,
+                              edge->distance.variance, NULL,
+                              &chiSquaredValue, PAIRWISECHI2THRESHOLD_010)));
 
   //  Not at the end, but if the current path is longer than we are, and this is too long, return
   //  failure.
   //
   if ((path->distance.mean > edge->distance.mean) &&
-      (!PairwiseChiSquare((double)path->distance.mean,
-                          (double)path->distance.variance,
-                          (double)edge->distance.mean,
-                          (double)edge->distance.variance, (LengthT *)NULL,
-                          &chiSquaredValue, (double)PAIRWISECHI2THRESHOLD_CGW)))
+      (!PairwiseChiSquare(path->distance.mean,
+                          path->distance.variance,
+                          edge->distance.mean,
+                          edge->distance.variance, NULL,
+                          &chiSquaredValue, PAIRWISECHI2THRESHOLD_010)))
     return(FALSE);
 
   //  Not at the end, but if the current CI has too many outgoing edges, we'll abort now.  It might
@@ -447,10 +447,10 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 
           if ((AendCI == BendCI) &&
               (AendOri == BendOri) &&
-              (PairwiseChiSquare((double)AMean, (double)AVariance,
-                                 (double)BMean, (double)BVariance,
-                                 (LengthT *)NULL, &chiSquaredValue,
-                                 (double)PAIRWISECHI2THRESHOLD_CGW))) {
+              (PairwiseChiSquare(AMean, AVariance,
+                                 BMean, BVariance,
+                                 NULL, &chiSquaredValue,
+                                 PAIRWISECHI2THRESHOLD_010))) {
             Ahop1->flags.bits.isConfirmed = TRUE;
             Ahop2->flags.bits.isConfirmed = TRUE;
             Bhop1->flags.bits.isConfirmed = TRUE;
@@ -668,11 +668,9 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
         return((CIEdgeT *)NULL);
 
     }else // If the orientation is 'right', check for Chi Square compatibility
-    if (PairwiseChiSquare((double)inferredMean, (double)inferredVariance,
-                          (double)bestEdge->distance.mean,
-                          (double)bestEdge->distance.variance,
-                          (LengthT *)NULL, &chiSquaredValue,
-                          (double)chiSquareThreshold)) {
+    if (PairwiseChiSquare(inferredMean, inferredVariance,
+                          bestEdge->distance.mean, bestEdge->distance.variance,
+                          NULL, &chiSquaredValue, chiSquareThreshold)) {
       *returnChiSquaredValue = chiSquaredValue;
       return(bestEdge);
     }else{ // If right orientation, but not chi square compatible
@@ -756,12 +754,9 @@ FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
 
     if ((otherCID == targetId) &&
         (GetEdgeOrientationWRT(edge, sourceCI->id) == edgeOrient) &&
-        PairwiseChiSquare((double)inferredMean,
-                          (double)inferredVariance,
-                          (double)edge->distance.mean,
-                          (double)edge->distance.variance,
-                          (LengthT *)NULL, &chiSquaredValue,
-                          (double)chiSquareThreshold)) {
+        PairwiseChiSquare(inferredMean, inferredVariance,
+                          edge->distance.mean, edge->distance.variance,
+                          NULL, &chiSquaredValue, chiSquareThreshold)) {
       if (bestEdge == (CIEdgeT *)NULL ||
           (chiSquaredValue < bestChiSquaredValue)) {
         bestEdge = edge;
@@ -1027,7 +1022,7 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                                                  (targetEdge->idA == thisCI->id) ? targetEdge->idB :
                                                  targetEdge->idA,
                                                  inferredEdgeOrient, inferredMean, inferredVariance,
-                                                 &chiSquaredValue, (double)PAIRWISECHI2THRESHOLD_CGW,
+                                                 &chiSquaredValue, PAIRWISECHI2THRESHOLD_001,
                                                  &existingIsEssential);
       targetEdge = GetGraphEdge(graph->ContigGraph, *branchTarget); // FindEdgeBetweenCIsChiSquare may cause edges to realloc
       if (existingEdge != (CIEdgeT *)NULL) {
@@ -1063,10 +1058,10 @@ RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
         if ( inferredVariance > FLT_MAX ) inferredVariance = FLT_MAX;  // hack instituted on 5/15/01 to help mouse_20010508
 #endif
 
-        if (!PairwiseChiSquare((double)inferredMean, (double)inferredVariance,
-                               (double)(- CGW_MISSED_OVERLAP), (double)1.0,
-                               (LengthT *)NULL, &chiSquaredValue,
-                               (double)PAIRWISECHI2THRESHOLD_CGW)) {
+        if (!PairwiseChiSquare(inferredMean, inferredVariance,
+                               (- CGW_MISSED_OVERLAP), 1.0,
+                               NULL, &chiSquaredValue,
+                               PAIRWISECHI2THRESHOLD_001)) {
           failedInfer = TRUE;
           break;
         }

@@ -22,7 +22,7 @@
 #ifndef ChiSquareTest_CGW_H
 #define ChiSquareTest_CGW_H
 
-static const char *rcsid_ChiSquareTest_CGW_H = "$Id: ChiSquareTest_CGW.h,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_ChiSquareTest_CGW_H = "$Id: ChiSquareTest_CGW.h,v 1.9 2012-09-20 19:18:40 brianwalenz Exp $";
 
 /* Data structures for clustering edges based on Chi Squared tests on
    combinations of edges */
@@ -104,6 +104,27 @@ static int PairwiseChiSquare(double mean1, double variance1,
   return(chiSquared < chiSquaredThreshold);
 }
 
-#define PAIRWISECHI2THRESHOLD_CGW 3.0 * 7.879
+#if 1
+
+//  These were the historical defaults (= 3 * 7.879).
+#define PAIRWISECHI2THRESHOLD_500  0.455  //   50.0%
+#define PAIRWISECHI2THRESHOLD_010 23.637  //    ?.?% of values higher than this; this was the default for all cases
+#define PAIRWISECHI2THRESHOLD_001 23.637  //    ?.?% of values higher than this; this was the default for all cases
+
+#else
+
+#define PAIRWISECHI2THRESHOLD_995  0.000  //   99.5% chance these are the same
+#define PAIRWISECHI2THRESHOLD_975  0.000  //   97.5%
+#define PAIRWISECHI2THRESHOLD_900  0.016  //   90.0%
+#define PAIRWISECHI2THRESHOLD_500  0.455  //   50.0%
+#define PAIRWISECHI2THRESHOLD_100  2.706  //   10.0%
+#define PAIRWISECHI2THRESHOLD_050  3.841  //    5.0%
+#define PAIRWISECHI2THRESHOLD_025  5.024  //    2.5%
+#define PAIRWISECHI2THRESHOLD_010  6.635  //    1.0%
+#define PAIRWISECHI2THRESHOLD_005  7.879  //    0.5%
+#define PAIRWISECHI2THRESHOLD_001 10.828  //    0.1% chance these are the same
+
+#endif
+
 
 #endif

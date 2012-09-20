@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.73 2012-09-13 10:01:54 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.74 2012-09-20 19:18:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1217,7 +1217,7 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                                                  edgeOrient, gapSize[gapIndex],
                                                  gapSizeVariance[gapIndex],
                                                  &chiSquaredValue,
-                                                 (double)PAIRWISECHI2THRESHOLD_CGW,
+                                                 PAIRWISECHI2THRESHOLD_001,
                                                  &alternate, verbose);
 
          if(GlobalData->removeNonOverlapingContigsFromScaffold && overlapEdge == (EdgeCGW_T *)NULL){
@@ -1244,16 +1244,16 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                                                       edgeOrient, currGapSize,
                                                       currGapSizeVariance,
                                                       &chiSquaredValue,
-                                                      (double)PAIRWISECHI2THRESHOLD_CGW,
+                                                      PAIRWISECHI2THRESHOLD_001,
                                                       &alternate, verbose);
                if (overlapEdge) {
                   edgeOrient = GetChunkPairOrientation(GetNodeOrient(skippedCI), GetNodeOrient(thisCI));
                   EdgeCGW_T *skippedToNextEdge = FindOverlapEdgeChiSquare(graph, skippedCI, thisCI->id,
-                                                         edgeOrient, gapSize[startingGapIndex+1],
-                                                         gapSizeVariance[startingGapIndex+1],
-                                                         &chiSquaredValue,
-                                                         (double)PAIRWISECHI2THRESHOLD_CGW,
-                                                         &alternate, verbose);
+                                                                          edgeOrient, gapSize[startingGapIndex+1],
+                                                                          gapSizeVariance[startingGapIndex+1],
+                                                                          &chiSquaredValue,
+                                                                          PAIRWISECHI2THRESHOLD_001,
+                                                                          &alternate, verbose);
                   if (skippedToNextEdge != NULL)
                      overlapEdge = NULL;
                }
@@ -1815,22 +1815,22 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
 
     //  Even though we only use raw edges, still mark the merged edges.
 
-    MarkInternalEdgeStatus(graph, scaffold, 0, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
-    MarkInternalEdgeStatus(graph, scaffold, 0, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
+    MarkInternalEdgeStatus(graph, scaffold, 0, TRUE);  //  Merged
+    MarkInternalEdgeStatus(graph, scaffold, 0, FALSE);  //  Raw
 
     //  Don't check variance (false = use raw, true = use trusted)
 #if 1
     if (IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, false, true) != 1) {
-      MarkInternalEdgeStatus(graph, scaffold, 1, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
-      MarkInternalEdgeStatus(graph, scaffold, 1, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
+      MarkInternalEdgeStatus(graph, scaffold, 1, TRUE);  //  Merged
+      MarkInternalEdgeStatus(graph, scaffold, 1, FALSE);  //  Raw
     }
 #endif
 
     //  Don't check chiSquared - leads to a massive misjoin in pging test set
 #if 0
     if (IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, false, true) != 1) {
-      MarkInternalEdgeStatus(graph, scaffold, 2, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
-      MarkInternalEdgeStatus(graph, scaffold, 2, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
+      MarkInternalEdgeStatus(graph, scaffold, 2, TRUE);  //  Merged
+      MarkInternalEdgeStatus(graph, scaffold, 2, FALSE);  //  Raw
     }
 #endif
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.84 2012-09-10 10:55:44 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.85 2012-09-20 19:18:40 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -364,11 +364,11 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
    }
    if (doTest4) {
      // Before each test, call MarkInternal to make sure all edges are properly marked. This should be a no-op.
-     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldA, 0, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
-     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldA, 0, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
+     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldA, 0, TRUE);  //  Merged
+     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldA, 0, FALSE);  //  Raw
      bool A_is_connected = (true==IsScaffold2EdgeConnected(ScaffoldGraph, scaffoldA));
-     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldB, 0, TRUE,  PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Merged
-     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldB, 0, FALSE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);  //  Raw
+     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldB, 0, TRUE);  //  Merged
+     MarkInternalEdgeStatus(ScaffoldGraph, scaffoldB, 0, FALSE);  //  Raw
      bool B_is_connected = (true==IsScaffold2EdgeConnected(ScaffoldGraph, scaffoldB));
      // Disconnected scaffolds should never happen but they do arise from interleaved scaffold merging.
      // Disconnects lead to a Least Squares failure (because one row is all zero in the coefficient matrix).

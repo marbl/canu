@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_Interleaved.c,v 1.4 2012-08-14 08:04:41 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_Interleaved.c,v 1.5 2012-09-20 19:18:40 brianwalenz Exp $";
 
 //  These are private functions used in CIScaffoldT_Merge_CGW.c.
 //  These functions are specialized for interleaved merging.
@@ -50,32 +50,6 @@ isQualityScaffoldMergingEdge(SEdgeT                     *curEdge,
                              double                       maxDelta);
 
 
-
-//  After noticing with interleaved scaffold merging that there can be some rather high-weight
-//  negative edges that are slightly beyond the limit of abutting by the chi-squared check, we
-//  wanted to let them be abutted.
-//
-//  Two conditions must be satisfied:
-//
-//  1. The number of stddev's from a -20 edge per unit of edge weight is less than .5
-//
-//  2. The length of the edge is a small fraction of the shorter of the two scaffolds involved.
-//
-//  The specific numbers are based on an examination of edges with weight >= 25 in the rat assembly
-//  12/16/2002.
-//
-//  After noticing that this was still not aggressive enough during the Macaque assembly we added
-//  another condition. We also hope that this will allow ECR to merge the abbutted contigs.
-//
-//  3. If the overlap is < 2kbp and the overlap is less than 1/2 of the shorter scaffold then abut.
-//
-//  Granger 8/22/05.
-//
-#define STDDEVS_PER_WEIGHT_THRESHOLD                 0.5
-#define EDGE_PER_MIN_SCAFFOLD_LENGTH_THRESHOLD       0.002
-
-#define MAX_OVERLAP_TO_ABUT                          2000
-#define MAX_PERC_SCAFFOLD_LEN                        0.5
 
 
 
@@ -330,80 +304,88 @@ TranslateScaffoldOverlapToContigOverlap(CIScaffoldT     *scaffoldA,
 
 
 
+//  The edge must be compatible with a -20 edge or strong & short relative to scaffold lengths.
+//
+//  After noticing with interleaved scaffold merging that there can be some rather high-weight
+//  negative edges that are slightly beyond the limit of abutting by the chi-squared check, we
+//  wanted to let them be abutted.
+//
+//  Two conditions must be satisfied:
+//
+//  1. The number of stddev's from a -20 edge per unit of edge weight is less than .5
+//
+//  2. The length of the edge is a small fraction of the shorter of the two scaffolds involved.
+//
+//  The specific numbers are based on an examination of edges with weight >= 25 in the rat assembly
+//  12/16/2002.
+//
+//  After noticing that this was still not aggressive enough during the Macaque assembly we added
+//  another condition. We also hope that this will allow ECR to merge the abbutted contigs.
+//
+//  3. If the overlap is < 2kbp and the overlap is less than 1/2 of the shorter scaffold then abut.
+//
+//  Granger 8/22/05.
+//
+#define STDDEVS_PER_WEIGHT_THRESHOLD                 0.5
+#define EDGE_PER_MIN_SCAFFOLD_LENGTH_THRESHOLD       0.002
 
-static
-int
-LooseAbuttingCheck(SEdgeT * curEdge,
-                   CIScaffoldT * scaffoldA,
-                   CIScaffoldT * scaffoldB) {
-
-  double stddevsPerWeight = -(curEdge->distance.mean + CGW_MISSED_OVERLAP) / (curEdge->edgesContributing * sqrt(MAX(0.01,curEdge->distance.variance)));
-  double edgeMinScaffoldLengthRatio = -curEdge->distance.mean / MIN(scaffoldA->bpLength.mean, scaffoldB->bpLength.mean);
-
-  //  The original abut rule.
-  if ((stddevsPerWeight < STDDEVS_PER_WEIGHT_THRESHOLD) &&
-      (edgeMinScaffoldLengthRatio < EDGE_PER_MIN_SCAFFOLD_LENGTH_THRESHOLD))
-    return(TRUE);
-
-  //  Be more aggressive about allowing abutments.
-  if ((edgeMinScaffoldLengthRatio < MAX_PERC_SCAFFOLD_LEN) &&
-      (-curEdge->distance.mean < MAX_OVERLAP_TO_ABUT))
-    return(TRUE);
-
-  return(FALSE);
-}
+#define MAX_OVERLAP_TO_ABUT                          2000
+#define MAX_PERC_SCAFFOLD_LEN                        0.5
 
 
-
-
-/*
-  Prior to marking scaffolds for merging, mean may be changed but not variance
-  So, see if a change of mean to -CGW_MISSED_OVERLAP will allow abutting
-  after which edge can be marked as trusted for recomputing offsets
-*/
+//  Prior to marking scaffolds for merging, mean may be changed but not variance
+//  So, see if a change of mean to -CGW_MISSED_OVERLAP will allow abutting
+//  after which edge can be marked as trusted for recomputing offsets
+//
 static
 int
 AbuttingWillWork(SEdgeT * curEdge,
                  CIScaffoldT * scaffoldA,
                  CIScaffoldT * scaffoldB,
                  InterleavingSpec * iSpec) {
-  int isAbuttable = FALSE;
+
+  assert(curEdge->distance.mean <= -CGW_MISSED_OVERLAP);
+
   double chiSquaredValue;
+  bool   passesChiSquared = PairwiseChiSquare(-CGW_MISSED_OVERLAP, curEdge->distance.variance,
+                                              curEdge->distance.mean, curEdge->distance.variance,
+                                              NULL, &chiSquaredValue, PAIRWISECHI2THRESHOLD_500);
 
-  if (curEdge->distance.mean >= -CGW_MISSED_OVERLAP)
-    return TRUE;
+  double stddevsPerWeight           = -(curEdge->distance.mean + CGW_MISSED_OVERLAP) / (curEdge->edgesContributing * sqrt(MAX(0.01,curEdge->distance.variance)));
+  double edgeMinScaffoldLengthRatio = -curEdge->distance.mean / MIN(scaffoldA->bpLength.mean, scaffoldB->bpLength.mean);
 
-  // the edge must be compatible with a -20 edge
-  // or be strong & short relative to the scaffold lengths
-  if (PairwiseChiSquare(-CGW_MISSED_OVERLAP,
-                        curEdge->distance.variance,
-                        curEdge->distance.mean,
-                        curEdge->distance.variance,
-                        (LengthT *) NULL,
-                        &chiSquaredValue,
-                        PAIRWISECHI2THRESHOLD_CGW) ||
-      (LooseAbuttingCheck(curEdge, scaffoldA, scaffoldB))) {
+  bool   passesSmall      = (edgeMinScaffoldLengthRatio < 0.002) && (stddevsPerWeight < 0.5);
+  bool   passesRelaxed    = (edgeMinScaffoldLengthRatio < 0.5)   && (-2000            < curEdge->distance.mean);
+  bool   passesMates      = false;
+
+  if (passesChiSquared || passesSmall || passesRelaxed) {
     double originalMean = curEdge->distance.mean;
 
     curEdge->distance.mean = -CGW_MISSED_OVERLAP;
 
-    // a -20 edge must have high satisfied mate %
-    if (isQualityScaffoldMergingEdge(curEdge,
-                                     scaffoldA,
-                                     scaffoldB,
-                                     iSpec->sai->scaffInst,
-                                     iSpec->MIs,
-                                     iSpec->minSatisfied,
-                                     iSpec->maxDelta))
-      isAbuttable = TRUE;
+    passesMates = isQualityScaffoldMergingEdge(curEdge, scaffoldA, scaffoldB, iSpec->sai->scaffInst, iSpec->MIs, iSpec->minSatisfied, iSpec->maxDelta);
 
     curEdge->distance.mean = originalMean;
+
+    fprintf(stderr,"AbuttingWillWork()-- Abut %s (%c%c%c) for scaffolds "F_CID" (%.1fbp) and "F_CID" (%.1fbp): gap %.1fbp +- %.1fbp weight %d %s edge\n",
+            (passesMates)    ? "passes" : "fails",
+            passesChiSquared ? 'p' : 'f',
+            passesSmall      ? 'p' : 'f',
+            passesRelaxed    ? 'p' : 'f',
+            scaffoldA->id, scaffoldA->bpLength.mean,
+            scaffoldB->id, scaffoldB->bpLength.mean,
+            curEdge->distance.mean,
+            sqrt(curEdge->distance.variance),
+            curEdge->edgesContributing,
+            ((curEdge->orient.isAB_AB()) ? "AB_AB" :
+             ((curEdge->orient.isAB_BA()) ? "AB_BA" :
+              ((curEdge->orient.isBA_AB()) ? "BA_AB" : "BA_BA"))));
   }
 
-  if (!isAbuttable)
+  if (passesMates == false)
     SaveBadScaffoldMergeEdge(curEdge, iSpec->badSEdges);
 
-  return isAbuttable;
+  return(passesMates);
 }
 
 
@@ -451,7 +433,7 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
   //  The edge doesn't indicate these scaffolds overlap, so we're done.  Mark the scaffolds
   //  for merging.
   //
-  if (CGW_MISSED_OVERLAP < curEdge->distance.mean - 3.5 * sqrt(curEdge->distance.variance)) {
+  if (CGW_MISSED_OVERLAP < minMergeDistance) {
     MarkScaffoldsForMerging(curEdge);
     return;
   }
@@ -490,25 +472,20 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
 
 
   // take the easy road if the edge is shorter than end nodes/gaps
+  // (e.g., single contig involved in each scaffold)
+
   if (endNodeA->bpLength.mean + aGapSize > -minMergeDistance &&
       endNodeB->bpLength.mean + bGapSize > -minMergeDistance) {
-    // single contig involved in each scaffold
-
     double chiSquaredValue = 0.0;
-    int32  alternate = FALSE;
+    int32  alternate       = FALSE;
 
-    EdgeCGW_T *overlapEdge = FindOverlapEdgeChiSquare(ScaffoldGraph,
-                                                      endNodeA, endNodeB->id,
-                                                      edgeEndsOrient,
-                                                      mergeEdge->distance.mean,
-                                                      mergeEdge->distance.variance,
-                                                      &chiSquaredValue,
-                                                      2 * PAIRWISECHI2THRESHOLD_CGW,
-                                                      &alternate,
-                                                      FALSE);
+    EdgeCGW_T *overlapEdge = FindOverlapEdgeChiSquare(ScaffoldGraph, endNodeA, endNodeB->id, edgeEndsOrient,
+                                                      mergeEdge->distance.mean, mergeEdge->distance.variance,
+                                                      &chiSquaredValue, PAIRWISECHI2THRESHOLD_001, &alternate, FALSE);
+
+    //  Found an overlap edge?  Yippee!  Use that for merging.
 
     if (overlapEdge != NULL) {
-      // overlap edge found. use it
       SaveEdgeMeanForLater(mergeEdge);
 
       if (edgeEndsOrient != GetEdgeOrientationWRT(overlapEdge,endNodeA->id))
@@ -516,25 +493,50 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
 
       mergeEdge->distance.mean = overlapEdge->distance.mean;
 
-      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, found overlap, will merge.\n");
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, found overlap, will merge (%.0f +- %.0f).\n",
+              mergeEdge->distance.mean, sqrt(mergeEdge->distance.variance));
       MarkScaffoldsForMerging(mergeEdge);
+      return;
     }
 
-    else if (!iSpec->checkAbutting || AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec)) {
-      // no overlap edge, but abutting will work
-      SaveEdgeMeanForLater(mergeEdge);
-      mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
+    //  Not allowed to abut, and the edge is negative?  Dang, can't merge.
 
-      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, didn't find it, but will abut them.\n");
-      MarkScaffoldsForMerging(mergeEdge);
-    }
+    if ((iSpec->checkAbutting == false) &&
+        (mergeEdge->distance.mean < -CGW_MISSED_OVERLAP)) {
 
-    else {
-      // else don't prevent scaffolds from merging via other edges
-      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, didn't find it, will not merge.\n");
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, didn't find it, and abutting not allowed, will not merge.\n");
       SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
+      return;
     }
 
+    //  Allowed to abut, and the edge is negative?  And abutting makes sense, do it!
+
+    if ((iSpec->checkAbutting == true) &&
+        (mergeEdge->distance.mean < -CGW_MISSED_OVERLAP) &&
+        (AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec))) {
+      SaveEdgeMeanForLater(mergeEdge);
+      mergeEdge->distance.mean = -CGW_MISSED_OVERLAP;
+
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, didn't find it, but will abut (%.0f +- %.0f).\n",
+              mergeEdge->distance.mean, sqrt(mergeEdge->distance.variance));
+      MarkScaffoldsForMerging(mergeEdge);
+      return;
+    }
+
+    //  If the gap is positive, we weren't really expecting them to overlap, and we'll use the edge
+    //  as is.
+
+    if (mergeEdge->distance.mean >= -CGW_MISSED_OVERLAP) {
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Didn't expect end contigs to overlap, didn't find it, and will join with existing edge (%.0f +- %.0f).\n",
+              mergeEdge->distance.mean, sqrt(mergeEdge->distance.variance));
+      MarkScaffoldsForMerging(mergeEdge);
+      return;
+    }
+
+    //  Otherwise, we really did expect them to overlap, and they didn't.
+
+    fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Expected end contigs to overlap, didn't find it, will not merge.\n");
+    SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
     return;
   }
 
@@ -542,7 +544,6 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
 
   // large negative edge - may involve interleaving
 
-  //more contigs may be involved in one or both scaffolds
   if (PopulateScaffoldAlignmentInterface(scaffoldA, scaffoldB, mergeEdge, sai) != 0) {
     fprintf(stderr, "Failed to populate scaffold alignment interface!\n");
     SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
@@ -576,59 +577,91 @@ ExamineSEdgeForUsability_Interleaved(SEdgeT * curEdge, InterleavingSpec * iSpec,
                                     &(sai->best),
                                     sai->scaffoldA->bandBeg,
                                     sai->scaffoldA->bandEnd);
-                                                                
-  //  no overlap or interleaving possible
+
+  //  From comments in InterleavedMerging.c (which isn't where this function lives), the return
+  //  value is:
   //
-  //  if edge is not highly negative, abut. Otherwise abort.
-  //
-  if ((sai->segmentList == NULL) && (sai->best < 0)) {
-    if (!iSpec->checkAbutting || AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec)) {
-      SaveEdgeMeanForLater(mergeEdge);
-      mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
-
-      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, but will abut.\n");
-      MarkScaffoldsForMerging(mergeEdge);
-
-    } else {
-      // else don't prevent scaffolds from merging via other edges
-      // record that this scaffold overlap is bad
-
-      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, will not merge.\n");
-      SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
-    }
-
-    return;
-  }
+  //  segmentList valid  -- can be merged with one or more contig overlaps
+  //  segmentList NULL   -- sai->best >= 0 -- can be merged, but with no contig overlaps.
+  //  segmentList NULL   -- sai->best  < 0 -- scaffolds cannot be merged
 
 
-  if ((sai->segmentList != NULL) ||
-      (iSpec->checkAbutting && !AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec))) {
-
-    // if there are overlaps or abutting isn't an option
+  if (sai->segmentList != NULL) {
     EdgeCGW_T *overlapEdge = MakeScaffoldAlignmentAdjustments(scaffoldA, scaffoldB, mergeEdge, sai);
 
-    if (overlapEdge != NULL) {
-      SaveEdgeMeanForLater(mergeEdge);
-      mergeEdge->distance.mean = overlapEdge->distance.mean;
-
-      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving succeeded, will merge.\n");
-      MarkScaffoldsForMerging(mergeEdge);
-
-    } else {
-      // else don't prevent scaffolds from merging via other edges
-
-      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, cannot abut, will not merge.\n");
+    if (overlapEdge == NULL) {
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving succeeded with contig overlaps, but failed to make adjustments; will not merge.\n");
       SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
+      return;
     }
 
+    SaveEdgeMeanForLater(mergeEdge);
+    mergeEdge->distance.mean = overlapEdge->distance.mean;
+
+    fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving succeeded with contig overlaps; will merge (%.0f +- %.0f).\n",
+            mergeEdge->distance.mean, sqrt(mergeEdge->distance.variance));
+    MarkScaffoldsForMerging(mergeEdge);
     return;
   }
-                                                                
-  // no overlaps && abutting will work
-  SaveEdgeMeanForLater(mergeEdge);
-  mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
 
-  fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, no overlaps, but will abut.\n");
-  MarkScaffoldsForMerging(mergeEdge);
+
+  if (sai->best >= 0) {
+    EdgeCGW_T *overlapEdge = MakeScaffoldAlignmentAdjustments(scaffoldA, scaffoldB, mergeEdge, sai);
+
+    if (overlapEdge == NULL) {
+      fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving succeeded without contig overlaps, but failed to make adjustments; will not merge.\n");
+      SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
+      return;
+    }
+
+    SaveEdgeMeanForLater(mergeEdge);
+    mergeEdge->distance.mean = overlapEdge->distance.mean;
+
+    fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving succeeded without contig overlaps; will merge (%.0f +- %.0f).\n",
+            mergeEdge->distance.mean, sqrt(mergeEdge->distance.variance));
+    MarkScaffoldsForMerging(mergeEdge);
+    return;
+  }
+
+
+  //  No overlap or interleaving possible.  Check for possible abut; this is similiar to the cases above.
+
+  if ((iSpec->checkAbutting == false) &&
+      (mergeEdge->distance.mean < -CGW_MISSED_OVERLAP)) {
+
+    fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, abut not allowed, will not merge.\n");
+    SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
+    return;
+  }
+
+  //  Allowed to abut, and the edge is negative?  And abutting makes sense, do it!
+
+  if ((iSpec->checkAbutting == true) &&
+      (mergeEdge->distance.mean < -CGW_MISSED_OVERLAP) &&
+      (AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec))) {
+    SaveEdgeMeanForLater(mergeEdge);
+    mergeEdge->distance.mean = -CGW_MISSED_OVERLAP;
+
+    fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, will abut (%.0f +- %.0f).\n",
+            mergeEdge->distance.mean, sqrt(mergeEdge->distance.variance));
+    MarkScaffoldsForMerging(mergeEdge);
+    return;
+  }
+
+  //  If the gap is positive, we weren't really expecting them to overlap, and we'll use the edge
+  //  as is.
+
+  if (mergeEdge->distance.mean >= -CGW_MISSED_OVERLAP) {
+    fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, didn't expect overlap, will join with existing edge (%.0f +- %.0f).\n",
+            mergeEdge->distance.mean, sqrt(mergeEdge->distance.variance));
+    MarkScaffoldsForMerging(mergeEdge);
+    return;
+  }
+
+  //  Otherwise, we really did expect them to overlap, and they didn't.
+
+  fprintf(stderr, "ExamineSEdgeForUsability_Interleaved()-- Interleaving failed, will not merge.\n");
+  SaveBadScaffoldMergeEdge(mergeEdge, iSpec->badSEdges);
+  return;
 }
 

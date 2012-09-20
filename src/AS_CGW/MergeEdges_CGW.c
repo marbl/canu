@@ -11,14 +11,14 @@
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * MERCHANTABILITY or FITNESS FOR A PATICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received (LICENSE.txt) a copy of the GNU General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.37 2012-09-17 13:58:03 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.38 2012-09-20 19:18:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -615,7 +615,7 @@ MergeGraphEdges_Greedy(GraphCGW_T            *graph,
                             edgeCompute[b].distance.mean, edgeCompute[b].distance.variance,
                             &pairs[pairsLen].distance,
                             &pairs[pairsLen].score,
-                            PAIRWISECHI2THRESHOLD_CGW) == false)
+                            PAIRWISECHI2THRESHOLD_500) == false)
         pairs[pairsLen].score = DBL_MAX;
 
       pairsLen++;
@@ -630,7 +630,7 @@ MergeGraphEdges_Greedy(GraphCGW_T            *graph,
 
   pairsLen = 0;
 
-  if (pairs[pairsLen].score >= PAIRWISECHI2THRESHOLD_CGW)
+  if (pairs[pairsLen].score >= PAIRWISECHI2THRESHOLD_500)
     return(false);
 
   mergedEdges.push_back(mgeSet(pairs[pairsLen]));
@@ -646,7 +646,7 @@ MergeGraphEdges_Greedy(GraphCGW_T            *graph,
 
     //  Skip over pairs that have already been merged, or pairs that are not consistent.
     while ((pairsLen < pairsMax) &&
-           ((pairs[pairsLen].score >= PAIRWISECHI2THRESHOLD_CGW) ||  //  Probably should use a 'passed' flag...
+           ((pairs[pairsLen].score >= PAIRWISECHI2THRESHOLD_500) ||  //  Probably should use a 'passed' flag...
             (edgesMerged.count(pairs[pairsLen].aIdx) == 1) ||
             (edgesMerged.count(pairs[pairsLen].bIdx) == 1)))
       pairsLen++;

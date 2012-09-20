@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.81 2012-08-23 14:32:54 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.82 2012-09-20 19:18:40 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -10975,7 +10975,7 @@ int Throw_Stones
           //  should re-mark all the edges.
           //
           //  OPERATES ON MERGED
-          MarkInternalEdgeStatus(ScaffoldGraph, scaff, 0, TRUE, PAIRWISECHI2THRESHOLD_CGW, SLOPPY_EDGE_VARIANCE_THRESHHOLD);
+          MarkInternalEdgeStatus(ScaffoldGraph, scaff, 0, TRUE);
 
           CleanupAScaffold(ScaffoldGraph,
                            scaff,

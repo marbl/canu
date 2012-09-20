@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_H
 #define SCAFFOLD_GRAPH_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.63 2012-09-10 10:55:44 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_H = "$Id: ScaffoldGraph_CGW.h,v 1.64 2012-09-20 19:18:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -385,7 +385,7 @@ MarkInternalEdgeStatus(ScaffoldGraphT  *graph,
                        CIScaffoldT     *scaffold,
                        int              beLoose                      = 0,
                        int              operateOnMerged              = TRUE,
-                       double           pairwiseChiSquaredThreshhold = PAIRWISECHI2THRESHOLD_CGW,
+                       double           pairwiseChiSquaredThreshhold = PAIRWISECHI2THRESHOLD_010,
                        double           maxVariance                  = SLOPPY_EDGE_VARIANCE_THRESHHOLD);
 
 
