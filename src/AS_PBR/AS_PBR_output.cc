@@ -51,7 +51,7 @@ using namespace std;
 #include <vector>
 #include <set>
 
-static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.6 2012-09-13 14:40:42 skoren Exp $";
+static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.7 2012-09-20 21:23:42 skoren Exp $";
 
 static const uint32 FUDGE_BP = 5;
 
@@ -87,6 +87,7 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
                 }
                 else if ((fwd+1) != layRecord.mp.end() && MAX(fwd->position.bgn, fwd->position.end) <= lastFwd+FUDGE_BP) {
                     // skip
+                    lastFwd = MAX(fwd->position.bgn, fwd->position.end);
                 }
                 else {
                     if (record != NULL) {
@@ -178,12 +179,13 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
             }
 
             if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Pulling sequence %d reverse of %d in %d \n", rev->ident, iter->ident, layRecord.iid);
-            if (lastRev != 0 && lastRev < MAX(rev->position.bgn, rev->position.end)) {
+            if (lastRev != 0 && lastRev > MAX(rev->position.bgn, rev->position.end)) {
                 if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Hit a gap before sequence in %d\n", layRecord.iid);
                 revDistanceSatisfied = true;
             }
             else if (rev != layRecord.mp.begin() && MIN(rev->position.bgn, rev->position.end) <= lastRev+FUDGE_BP) {
                 if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Skipping because it didnt advance\n");
+                lastRev = MIN(rev->position.bgn, rev->position.end);
             }
             else {
                 record = inStore->getRecord(rev->ident);
@@ -247,11 +249,12 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
 
             if (revGapStart == 0) {revGapStart = MAX(rev->position.bgn, rev->position.end); }
             else {
-                if (MIN(rev->position.bgn, rev->position.end) - revGapStart > MIN_DIST_TO_RECRUIT) {
+                if (revGapStart - MIN(rev->position.bgn, rev->position.end) > MIN_DIST_TO_RECRUIT) {
                     if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "in read %d rev distance was satisfied by read %d at %d %d\n", layRecord.iid, rev->ident, rev->position.bgn, rev->position.end);
                     revDistanceSatisfied = true;
                 }
             }
+            if (rev == layRecord.mp.begin()) { revDistanceSatisfied = true; }
         }
     }
 
@@ -283,7 +286,7 @@ static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, FILE *logFile
     // close the layout and start a new one because we have a coverage gap
     if (lastEnd - offset >= waGlobal->minLength) {
         fprintf(outFile, "%s}\n", layout.str().c_str());
-        fprintf(logFile, "%d\t%d\t%d\t%d\n", layRecord.iid, readSubID, offset, lastEnd);
+        fprintf(logFile, "%d\t%s_%d_%d\t%d\t%d\t%d\n", layRecord.iid, waGlobal->libName, layRecord.iid, readSubID, readSubID, offset, lastEnd);
     }
     readIID++;
     readSubID++;
@@ -533,7 +536,7 @@ void *outputResults(void *ptr) {
             }
             if (lastEnd - offset >= waGlobal->minLength) {
                 fprintf(outFile, "%s}\n", layout.str().c_str());
-                fprintf(reportFile, "%d\t%d\t%d\t%d\n", layRecord.iid, readSubID, offset, lastEnd);
+                fprintf(reportFile, "%d\t%s_%d_%d\t%d\t%d\t%d\n", layRecord.iid, waGlobal->libName, layRecord.iid, readSubID, readSubID, offset, lastEnd);
             }
             readIID++;
             if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Finished processing read %d subsegments %d\n", layRecord.iid, readSubID);
