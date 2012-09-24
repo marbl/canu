@@ -288,7 +288,7 @@ sub setDefaults () {
     $global{"gridPropagateCommand"}		   = "qalter -hold_jid \"WAIT_TAG\""; # for lsf it is bmodify -w "done(WAIT_TAG)"
     $global{"gridNameToJobIDCommand"}      = undef;             # for lsf it is bjobs -J "WAIT_TAG" | grep -v JOBID
     $global{"gridTaskID"}				   = "SGE_TASK_ID";     # for lsf it is LSB_JOBINDEX
-    $global{"gridArraySubmitID"}           = "\$TASK_ID";       # for lsf it is %I
+    $global{"gridArraySubmitID"}           = "\\\$TASK_ID";       # for lsf it is %I
         
     #####  Sun Grid Engine
 
