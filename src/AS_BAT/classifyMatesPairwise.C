@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMatesPairwise.C,v 1.2 2012-09-07 01:52:05 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMatesPairwise.C,v 1.3 2012-09-24 13:02:45 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -36,7 +36,7 @@ public:
   bool    isTrusted     : 1;   //  If set, this can be evidence
   bool    isOverlapping : 1;   //  If set, this can be evidence that is conflicting
   bool    doTesting     : 1;   //  If set, this pair needs to be tested
-  bool    isGarbage     : 1;   //  If set, this pair was tested, and looks like PE
+  bool    isReported    : 1;   //  If set, this pair was tested, and looks like PE
 
   uint64  libIID        : 12;
   uint64  clearLength   : 16;
@@ -120,7 +120,7 @@ loadFragmentData(char         *gkpStoreName,
     finf[fid].isTrusted       = (linf[lid].isTrusted && isMated);
     finf[fid].isOverlapping   = false;
     finf[fid].doTesting       = (linf[lid].doTesting && isMated);
-    finf[fid].isGarbage       = false;
+    finf[fid].isReported      = false;
 
     finf[fid].libIID          = lid;
     finf[fid].clearLength     = cllen;
@@ -458,8 +458,15 @@ main(int argc, char **argv) {
                   bvl[bi].a_iid, bvl[bi].b_iid, bvl[bi].dat.ovl.flipped ? 'I' : 'N', bvl[bi].dat.ovl.a_hang, bvl[bi].dat.ovl.b_hang,
                   fragSize + adiff + bdiff, overlappingPE ? 'O' : '-');
 
-          fprintf(edtFile, "frg iid %u mateiid 0\n", avl[ai].b_iid);
-          fprintf(edtFile, "frg iid %u mateiid 0\n", bvl[bi].b_iid);
+          assert(finf[avl[ai].b_iid].isReported == finf[bvl[bi].b_iid].isReported);
+
+          if (finf[avl[ai].b_iid].isReported == false) {
+            fprintf(edtFile, "frg iid %u mateiid 0\n", avl[ai].b_iid);
+            fprintf(edtFile, "frg iid %u mateiid 0\n", bvl[bi].b_iid);
+
+            finf[avl[ai].b_iid].isReported = true;
+            finf[bvl[bi].b_iid].isReported = true;
+          }
         }
       }
     }
