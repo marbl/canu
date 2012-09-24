@@ -38,6 +38,10 @@
 # The final CFLAGS, CXXFLAGS and LDFLAGS are constructed from these.
 
 
+# Use the CXXFLAGS environment variable to enhance optimizations, e.g.:
+#   -mtune=native -march=native
+
+
 # You can enable a debugging build, disabling all optimizations, by
 # setting BUILDDEBUG to 1.
 #
@@ -81,8 +85,7 @@ ifeq ($(OSTYPE), Linux)
     ARCH_LDFLAGS +=
   else
     #  gcc412 doesn't know these
-    ARCH_CFLAGS  += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-    #ARCH_CFLAGS  += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+    ARCH_CFLAGS  += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     ARCH_LDFLAGS += -Wl,-O1
   endif
 endif
@@ -121,9 +124,9 @@ ifeq ($(OSTYPE), FreeBSD)
     ARCH_CFLAGS   += -g
   else
     ifeq ($(BUILDPROFILE), 1)
-      ARCH_CFLAGS   += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions
+      ARCH_CFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions
     else
-      ARCH_CFLAGS   += -O4 -mtune=native -march=native -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+      ARCH_CFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     endif
   endif
 
