@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.112 2012-09-10 12:40:32 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.113 2012-09-24 17:27:41 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -401,8 +401,6 @@ main(int argc, char **argv) {
     ScaffoldGraph = CreateScaffoldGraph(GlobalData->outputPrefix);
 
     ProcessInput(firstFileArg, argc, argv);
-
-    LoadDistData();
 
     //  This also labels unitigs as potential rocks / stones.
     //  That is the only real reason to call it here.  Insert sizes are set already.

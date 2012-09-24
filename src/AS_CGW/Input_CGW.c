@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.79 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.80 2012-09-24 17:27:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,14 +40,133 @@ static char *rcsid = "$Id: Input_CGW.c,v 1.79 2012-08-28 21:09:39 brianwalenz Ex
 #include "Input_CGW.h"
 
 
-void ProcessInputUnitig(MultiAlignT *uma);
+
+static
+void
+ProcessInputUnitig(MultiAlignT *uma) {
+  CDS_CID_t       cfr;
+  ChunkInstanceT  CI;
+
+  int32           length = GetMultiAlignUngappedLength(uma);
+
+  memset(&CI, 0, sizeof(ChunkInstanceT));
+
+  CI.id                                  = uma->maID;
+  CI.bpLength.mean                       = length;
+  CI.bpLength.variance                   = MAX(1.0,ComputeFudgeVariance(CI.bpLength.mean));
+  CI.setID                               = NULLINDEX;
+  CI.scaffoldID                          = NULLINDEX;
+  CI.indexInScaffold                     = NULLINDEX;
+  CI.prevScaffoldID                      = NULLINDEX;
+  CI.numEssentialA                       = 0;
+  CI.numEssentialB                       = 0;
+  CI.essentialEdgeA                      = NULLINDEX;
+  CI.essentialEdgeB                      = NULLINDEX;
+  CI.smoothExpectedCID                   = NULLINDEX;
+  CI.BEndNext                            = NULLINDEX;
+  CI.AEndNext                            = NULLINDEX;
+
+  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < -1000)
+    ScaffoldGraph->tigStore->setUnitigCoverageStat(uma->maID, -1000);
+
+  CI.info.CI.contigID                    = NULLINDEX;
+  CI.info.CI.numInstances                = 0;
+  CI.info.CI.instances.in_line.instance1 = 0;
+  CI.info.CI.instances.in_line.instance2 = 0;
+  CI.info.CI.instances.va                = NULL;
+  CI.info.CI.source                      = NULLINDEX;
+
+  CI.flags.all                           = 0;
+
+  CI.offsetAEnd.mean                     = 0.0;
+  CI.offsetAEnd.variance                 = 0.0;
+  CI.offsetBEnd                          = CI.bpLength;
+
+  int  isUnique     = TRUE;
+
+  if (GetNumIntMultiPoss(uma->f_list) < CGW_MIN_READS_IN_UNIQUE)
+    isUnique = FALSE;
+
+  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff)
+    isUnique = FALSE;
+
+#ifdef SHORT_HIGH_ASTAT_ARE_UNIQUE
+  //  This is an attempt to not blindly call all short unitigs as non-unique.  It didn't work so
+  //  well in initial limited testing.  The threshold is arbitrary; older versions used
+  //  cgbDefinitelyUniqueCutoff.
+   if ((ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff * 10) &&
+      (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH))
+    isUnique = FALSE;
+#else
+  if (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)
+    isUnique = FALSE;
+#endif
+
+  //  MicroHet probability is actually the probability of the sequence being UNIQUE, based on
+  //  microhet considerations.  Falling below threshhold makes something a repeat.
+  //  Note that this is off by default (see options -e, -i)
+  if ((ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb) &&
+      (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff))
+    isUnique = FALSE;
+
+  // allow flag to overwrite what the default behavior for a chunk and force it to be unique or repeat
+
+  if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_UNIQUE)
+    isUnique = TRUE;
+  else if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_REPEAT)
+    isUnique = FALSE;
+
+  if (isUnique) {
+    ScaffoldGraph->numDiscriminatorUniqueCIs++;
+    CI.flags.bits.isUnique = 1;
+    CI.type                = DISCRIMINATORUNIQUECHUNK_CGW;
+  } else {
+    CI.flags.bits.isUnique = 0;
+    CI.type                = UNRESOLVEDCHUNK_CGW;
+  }
+
+  CI.flags.bits.smoothSeenAlready = FALSE;
+  CI.flags.bits.isCI              = TRUE;
+  CI.flags.bits.isChaff           = FALSE;
+  CI.flags.bits.isClosure         = FALSE;
+
+  for(cfr = 0; cfr < GetNumIntMultiPoss(uma->f_list); cfr++){
+    IntMultiPos *imp    = GetIntMultiPos(uma->f_list, cfr);
+    CIFragT     *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
+
+    cifrag->cid  = uma->maID;
+    cifrag->CIid = uma->maID;
+  }
+
+  //  Singleton chunks are chaff; singleton frags are chaff unless proven otherwise
+
+  if (GetNumIntMultiPoss(uma->f_list) < 2) {
+    IntMultiPos *imp    = GetIntMultiPos(uma->f_list, 0);
+    CIFragT     *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
+
+    CI.flags.bits.isChaff          = TRUE;
+    cifrag->flags.bits.isSingleton = TRUE;
+    cifrag->flags.bits.isChaff     = TRUE;
+  }
+
+  // Insert the Chunk Instance
+
+  SetGraphNode(ScaffoldGraph->CIGraph, &CI);
+
+  //  Ensure that there are no edges, and that the edgeList is allocated.
+  assert(ScaffoldGraph->CIGraph->edgeLists[CI.id].empty() == true);
+
+  // Mark all frags as being members of this CI, and set their offsets within the CI
+  // mark unitigs and contigs
+  UpdateNodeFragments(ScaffoldGraph->CIGraph,CI.id, CI.type == DISCRIMINATORUNIQUECHUNK_CGW, TRUE);
+}
 
 
-int ProcessInput(int optind, int argc, char *argv[]){
-  int i,j = 0;
+
+void
+ProcessInput(int optind, int argc, char *argv[]){
   int32  numFRG = 0;
   int32  numUTG = 0;
-
 
   fprintf(stderr, "Reading fragments.\n");
 
@@ -216,141 +335,13 @@ int ProcessInput(int optind, int argc, char *argv[]){
   ScaffoldGraph->numLiveCIs     = GetNumGraphNodes(ScaffoldGraph->CIGraph);
   ScaffoldGraph->numOriginalCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);
 
-  return(0);
-}
+
+  //  Load the distances.
 
 
-
-
-
-void
-ProcessInputUnitig(MultiAlignT *uma) {
-  CDS_CID_t       cfr;
-  ChunkInstanceT  CI;
-
-  int32           length = GetMultiAlignUngappedLength(uma);
-
-  memset(&CI, 0, sizeof(ChunkInstanceT));
-
-  CI.id                                  = uma->maID;
-  CI.bpLength.mean                       = length;
-  CI.bpLength.variance                   = MAX(1.0,ComputeFudgeVariance(CI.bpLength.mean));
-  CI.setID                               = NULLINDEX;
-  CI.scaffoldID                          = NULLINDEX;
-  CI.indexInScaffold                     = NULLINDEX;
-  CI.prevScaffoldID                      = NULLINDEX;
-  CI.numEssentialA                       = 0;
-  CI.numEssentialB                       = 0;
-  CI.essentialEdgeA                      = NULLINDEX;
-  CI.essentialEdgeB                      = NULLINDEX;
-  CI.smoothExpectedCID                   = NULLINDEX;
-  CI.BEndNext                            = NULLINDEX;
-  CI.AEndNext                            = NULLINDEX;
-
-  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < -1000)
-    ScaffoldGraph->tigStore->setUnitigCoverageStat(uma->maID, -1000);
-
-  CI.info.CI.contigID                    = NULLINDEX;
-  CI.info.CI.numInstances                = 0;
-  CI.info.CI.instances.in_line.instance1 = 0;
-  CI.info.CI.instances.in_line.instance2 = 0;
-  CI.info.CI.instances.va                = NULL;
-  CI.info.CI.source                      = NULLINDEX;
-
-  CI.flags.all                           = 0;
-
-  CI.offsetAEnd.mean                     = 0.0;
-  CI.offsetAEnd.variance                 = 0.0;
-  CI.offsetBEnd                          = CI.bpLength;
-
-  int  isUnique     = TRUE;
-
-  if (GetNumIntMultiPoss(uma->f_list) < CGW_MIN_READS_IN_UNIQUE)
-    isUnique = FALSE;
-
-  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff)
-    isUnique = FALSE;
-
-#ifdef SHORT_HIGH_ASTAT_ARE_UNIQUE
-  //  This is an attempt to not blindly call all short unitigs as non-unique.  It didn't work so
-  //  well in initial limited testing.  The threshold is arbitrary; older versions used
-  //  cgbDefinitelyUniqueCutoff.
-   if ((ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff * 10) &&
-      (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH))
-    isUnique = FALSE;
-#else
-  if (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)
-    isUnique = FALSE;
-#endif
-
-  //  MicroHet probability is actually the probability of the sequence being UNIQUE, based on
-  //  microhet considerations.  Falling below threshhold makes something a repeat.
-  //  Note that this is off by default (see options -e, -i)
-  if ((ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb) &&
-      (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff))
-    isUnique = FALSE;
-
-  // allow flag to overwrite what the default behavior for a chunk and force it to be unique or repeat
-
-  if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_UNIQUE)
-    isUnique = TRUE;
-  else if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_REPEAT)
-    isUnique = FALSE;
-
-  if (isUnique) {
-    ScaffoldGraph->numDiscriminatorUniqueCIs++;
-    CI.flags.bits.isUnique = 1;
-    CI.type                = DISCRIMINATORUNIQUECHUNK_CGW;
-  } else {
-    CI.flags.bits.isUnique = 0;
-    CI.type                = UNRESOLVEDCHUNK_CGW;
-  }
-
-  CI.flags.bits.smoothSeenAlready = FALSE;
-  CI.flags.bits.isCI              = TRUE;
-  CI.flags.bits.isChaff           = FALSE;
-  CI.flags.bits.isClosure         = FALSE;
-
-  for(cfr = 0; cfr < GetNumIntMultiPoss(uma->f_list); cfr++){
-    IntMultiPos *imp    = GetIntMultiPos(uma->f_list, cfr);
-    CIFragT     *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
-
-    cifrag->cid  = uma->maID;
-    cifrag->CIid = uma->maID;
-  }
-
-  //  Singleton chunks are chaff; singleton frags are chaff unless proven otherwise
-
-  if (GetNumIntMultiPoss(uma->f_list) < 2) {
-    IntMultiPos *imp    = GetIntMultiPos(uma->f_list, 0);
-    CIFragT     *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
-
-    CI.flags.bits.isChaff          = TRUE;
-    cifrag->flags.bits.isSingleton = TRUE;
-    cifrag->flags.bits.isChaff     = TRUE;
-  }
-
-  // Insert the Chunk Instance
-
-  SetGraphNode(ScaffoldGraph->CIGraph, &CI);
-
-  //  Ensure that there are no edges, and that the edgeList is allocated.
-  assert(ScaffoldGraph->CIGraph->edgeLists[CI.id].empty() == true);
-
-  // Mark all frags as being members of this CI, and set their offsets within the CI
-  // mark unitigs and contigs
-  UpdateNodeFragments(ScaffoldGraph->CIGraph,CI.id, CI.type == DISCRIMINATORUNIQUECHUNK_CGW, TRUE);
-}
-
-
-
-
-void
-LoadDistData(void) {
   int32 numDists = ScaffoldGraph->gkpStore->gkStore_getNumLibraries();
-  CDS_CID_t i;
 
-  for(i = 1; i <= numDists; i++){
+  for (int32 i=1; i<=numDists; i++) {
     DistT dist;
     gkLibrary  *gkpl = ScaffoldGraph->gkpStore->gkStore_getLibrary(i);
 
