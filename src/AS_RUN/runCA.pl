@@ -1303,17 +1303,15 @@ sub submitScript ($) {
     my $nameOption 		= getGlobal("gridNameOption");
     my $outputOption 	= getGlobal("gridOutputOption");
     my $holdPropagateCommand 	= getGlobal("gridPropagateCommand");
-    
+
+    $sgeName = "_$sgeName"              if (defined($sgeName));    
     my $jobName = "rCA_$asm$sgeName";
-    
     
 	if (defined($waitTag)) {
 	    my $hold = $holdOption;
 		$hold =~ s/WAIT_TAG/$waitTag/g;
 		$waitTag = $hold;
 	}
-    $sgeName = "_$sgeName"              if (defined($sgeName));
-
     my $qcmd = "$submitCommand $sge $sgeScript $nameOption \"$jobName\" $waitTag $outputOption $output  $script";
     runCommand($wrk, $qcmd) and caFailure("Failed to submit script.\n");
 
@@ -1321,39 +1319,54 @@ sub submitScript ($) {
 		if (defined($holdPropagateCommand)) {
            my $translateCmd = getGlobal("gridNameToJobIDCommand");
            
-           # translate hold option to job id if necessar
+           # translate hold option to job id if necessary
            if (defined($translateCmd) && $translateCmd ne "") {
               my $tcmd = $translateCmd;
               $tcmd =~ s/WAIT_TAG/$sgePropHold/g;
-              my $jobCount = `$tcmd |wc -l`;
-              chmod $jobCount;
-              if ($jobCount != 1) {
-                 print STDERR "Error: cannot get job ID for job $sgePropHold got $jobCount and expected 1\n";
+              my $propJobCount = `$tcmd |wc -l`;
+              chomp $propJobCount;
+              if ($propJobCount != 1) {
+                 print STDERR "Warning: multiple IDs for job $sgePropHold got $propJobCount and should have been 1.\n";
               }
-              my $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
-              chomp $jobID;
-              print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
-              $sgePropHold = $jobID;
+              #my $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
+              #chomp $jobID;
+              #print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
+              #$sgePropHold = $jobID;
+              open(PROPS, "$tcmd |awk '{print \$1}' | ") or die("Couldn't get list of jobs that need to hold", undef);
               
               # now we can get the job we are holding for
               $tcmd = $translateCmd;
-              $tcmd =~ s/WAIT_TAG/$jobName/g;
-              $jobCount = `$tcmd |wc -l`;
-              chmod $jobCount;
-              if ($jobCount != 1) {
-                 print STDERR "Error: cannot get job ID for job $sgePropHold got $jobCount and expected 1\n";
+              $tcmd =~ s/WAIT_TAG/$jobName/g;              
+              my $holdJobCount = `$tcmd |wc -l`;
+              chomp $propJobCount;
+              if ($propJobCount != 1) {
+                 print STDERR "Warning: multiple IDs for job $jobName got $propJobCount and should have been 1.\n";
               }
-              $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
-              chomp $jobID;
-              print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
-              $jobName = $jobID;
+              #$jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
+              #chomp $jobID;
+              #print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
+              #$jobName = $jobID;
+              open(HOLDS, "$tcmd |awk '{print \$1}' | ") or die("Couldn't get list of jobs that should be held for", undef);
+              
+              # loop over all jobs and all sge hold commands to modify the jobs. We have no way to know which is the right one unfortunately               
+              while (my $prop = <PROPS>) {
+                 while (my $hold = <HOLDS>) {
+                  my $hcmd = $holdPropagateCommand;
+                  $hcmd =~ s/WAIT_TAG/$hold/g;
+                  my $acmd = "$hcmd $prop";
+                  print STDERR "Propagating hold to $prop to wait for job $hold\n";
+                  system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$prop'.\n";                  
+                 }
+              }
+              close(HOLDS);
+              close(PROPS);                
            } else {
               $sgePropHold = "\"$sgePropHold\"";
+              $holdPropagateCommand =~ s/WAIT_TAG/$jobName/g;
+              my $acmd = "$holdPropagateCommand $sgePropHold";
+              system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
            }
-           $holdPropagateCommand =~ s/WAIT_TAG/$jobName/g;
-           my $acmd = "$holdPropagateCommand $sgePropHold";
-           system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
-		} else {
+        } else {
 			print STDERR "WARNING: Failed to reset hold '$sgePropHold', not supported on current grid environment.\n";
 		}
     }
