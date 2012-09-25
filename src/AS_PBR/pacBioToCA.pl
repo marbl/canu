@@ -545,34 +545,49 @@ sub submit($$$$$) {
            if (defined($translateCmd) && $translateCmd ne "") {
               my $tcmd = $translateCmd;
               $tcmd =~ s/WAIT_TAG/$sgePropHold/g;
-              my $jobCount = `$tcmd |wc -l`;
-              chmod $jobCount;
-              if ($jobCount != 1) {
-                 print STDERR "Error: cannot get job ID for job $sgePropHold got $jobCount and expected 1\n";
+              my $propJobCount = `$tcmd |wc -l`;
+              chomp $propJobCount;
+              if ($propJobCount != 1) {
+                 print STDERR "Warning: multiple IDs for job $sgePropHold got $propJobCount and should have been 1.\n";
               }
-              my $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
-              chomp $jobID;
-              print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
-              $sgePropHold = $jobID;
+              #my $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
+              #chomp $jobID;
+              #print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
+              #$sgePropHold = $jobID;
+              open(PROPS, "$tcmd |awk '{print \$1}' | ") or die("Couldn't get list of jobs that need to hold", undef);
               
               # now we can get the job we are holding for
               $tcmd = $translateCmd;
-              $tcmd =~ s/WAIT_TAG/$jobName/g;
-              $jobCount = `$tcmd |wc -l`;
-              chmod $jobCount;
-              if ($jobCount != 1) {
-                 print STDERR "Error: cannot get job ID for job $sgePropHold got $jobCount and expected 1\n";
+              $tcmd =~ s/WAIT_TAG/$jobName/g;              
+              my $holdJobCount = `$tcmd |wc -l`;
+              chomp $propJobCount;
+              if ($propJobCount != 1) {
+                 print STDERR "Warning: multiple IDs for job $jobName got $propJobCount and should have been 1.\n";
               }
-              $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
-              chomp $jobID;
-              print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
-              $jobName = $jobID;
+              #$jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
+              #chomp $jobID;
+              #print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
+              #$jobName = $jobID;
+              open(HOLDS, "$tcmd |awk '{print \$1}' | ") or die("Couldn't get list of jobs that should be held for", undef);
+              
+              # loop over all jobs and all sge hold commands to modify the jobs. We have no way to know which is the right one unfortunately               
+              while (my $prop = <PROPS>) {
+                 while (my $hold = <HOLDS>) {
+                  my $hcmd = $holdPropagateCommand;
+                  $hcmd =~ s/WAIT_TAG/$hold/g;
+                  my $acmd = "$hcmd $prop";
+                  print STDERR "Propagating hold to $prop to wait for job $hold\n";
+                  system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$prop'.\n";                  
+                 }
+              }
+              close(HOLDS);
+              close(PROPS);                
            } else {
               $sgePropHold = "\"$sgePropHold\"";
+              $holdPropagateCommand =~ s/WAIT_TAG/$jobName/g;
+              my $acmd = "$holdPropagateCommand $sgePropHold";
+              system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
            }
-           $holdPropagateCommand =~ s/WAIT_TAG/$jobName/g;
-           my $acmd = "$holdPropagateCommand $sgePropHold";
-           system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
 		} else {
 			print STDERR "WARNING: Failed to reset hold '$sgePropHold', not supported on current grid environment.\n";
 		}
@@ -652,7 +667,7 @@ sub submitRunCA($$$$) {
 
 ################################################################################
 
-my $HISTOGRAM_CUTOFF = 0.954;
+my $HISTOGRAM_CUTOFF = 0.985;
 
 sub pickMappingThreshold($) {
     my $histogram = shift @_;
@@ -690,7 +705,7 @@ sub pickMappingThreshold($) {
           last;
        }
     }
-    $threshold = ($threshold < ($mean + $sd) ? floor($mean + $sd) : $threshold);
+    $threshold = ($threshold < ($mean + 3*$sd) ? floor($mean + 3*$sd) : $threshold);
     print STDERR "Picked mapping cutoff of $threshold\n";
     
     return $threshold;
@@ -1023,6 +1038,7 @@ if ($libToCorrect <= $minCorrectLib) {
 	die("Error: The PacBio library $libToCorrect must be the last library loaded but it preceedes $minCorrectLib. Please double-check your input files and try again.", undef);
 }
 my $totalBP = 0;
+my $totalNumToCorrect = 0;
 # compute the number of bases in the gateeeker to be corrected
 open(F, "$CA/gatekeeper -dumpinfo temp$libraryname/$asm.gkpStore |") or die("Couldn't open gatekeeper store", undef);
 
@@ -1058,6 +1074,7 @@ while (<F>) {
    if ($#array == 8) {
    	  if ($array[0] == $libToCorrect) { 
       	$totalBP = $array[6];
+      	$totalNumToCorrect = $array[3] + $array[4];
    	  } elsif ($minCorrectLib <= $array[0] && $array[0] <= $maxCorrectLib) {
    	  	$totalCorrectingWith += $array[6];
    	  }
@@ -1151,6 +1168,36 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
 
    # when we were asked to not use CA's overlapper, first perform common options
    if (defined(getGlobal("samFOFN")) || defined(getGlobal("blasr")) || defined(getGlobal("bowtie"))) {
+      # create directories
+      runCommand($wrk, "mkdir $wrk/temp$libraryname/1-overlapper") if (! -d "$wrk/temp$libraryname/1-overlapper");
+
+      # first partition the data so we know how many jobs we have
+      my $cmd;
+
+      my $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
+      my $ovlHashBlockSize   = $totalNumToCorrect;
+      my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
+      my $ovlRefBlockLength  = getGlobal("ovlRefBlockLength");
+
+      if (($ovlRefBlockSize > 0) && ($ovlRefBlockLength > 0)) {
+          die("can't set both ovlRefBlockSize and ovlRefBlockLength", undef);
+      }
+
+      $cmd  = "$CA/overlap_partition \\\n";
+      $cmd .= " -g  $wrk/temp$libraryname/$asm.gkpStore \\\n";
+      #$cmd .= " -bl $totalBP \\\n"; # for now we cant partition the hash with other tools
+      $cmd .= " -bs $ovlHashBlockSize \\\n";
+      $cmd .= " -rs $ovlRefBlockSize \\\n" if (defined(getGlobal("ovlRefBlockSize")));
+      $cmd .= " -rl $ovlRefBlockLength \\\n"  if (defined(getGlobal("ovlRefBlockLength")));
+      $cmd .= " -H $libToCorrect \\\n";
+      $cmd .= " -R $minCorrectLib-$maxCorrectLib \\\n";
+      $cmd .= " -C \\\n";
+      $cmd .= " -o  $wrk/temp$libraryname/1-overlapper";
+      runCommand($wrk, $cmd);
+      open(F, "< $wrk/temp$libraryname/1-overlapper/ovljob") or die("failed partition for overlapper: no ovljob file found", undef);
+      my @job = <F>;
+      close(F);
+    
       my $blasrThreshold = 0;
       my $ovlThreads = getGlobal("ovlThreads");   
       my $numOvlJobs = 0;
@@ -1158,14 +1205,14 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       my $bowtieOpts = getGlobal("bowtie");
       my $suffix = "sam";
    
+      if (defined(getGlobal("samFOFN"))) {
+         my $fofn = getGlobal("samFOFN");
+         $numOvlJobs = `wc -l $fofn`;
+         chomp $numOvlJobs;
+      } else {
+         $numOvlJobs = $#job + 1;
+      }
       if (-e "$wrk/temp$libraryname/1-overlapper/overlap.sh") {
-         if (defined(getGlobal("samFOFN"))) {
-            my $fofn = getGlobal("samFOFN");
-            $numOvlJobs = `wc -l $fofn`;
-            chomp $numOvlJobs;
-         } else {
-            $numOvlJobs = 1;
-         }
          goto checkforerror;
       }
       
@@ -1173,12 +1220,6 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       runCommand("$wrk/temp$libraryname", "$CA/gatekeeper -dumpfragments -tabular $asm.gkpStore |awk '{print \$1\"\\t\"\$2}' > $asm.eidToIID");
       runCommand("$wrk/temp$libraryname", "cat $asm.gkpStore.fastqUIDmap | awk '{print \$NF\"\\t\"\$2}' >> $asm.eidToIID");
       runCommand("$wrk/temp$libraryname", "$CA/gatekeeper -dumpfragments -tabular $asm.gkpStore |awk '{print \$2\"\\t\"\$10}' > $asm.iidToLen");
-   
-      # create empty work files            
-      runCommand($wrk, "mkdir $wrk/temp$libraryname/1-overlapper") if (! -d "$wrk/temp$libraryname/1-overlapper");
-      runCommand($wrk, "mkdir $wrk/temp$libraryname/1-overlapper/001") if (! -d "$wrk/temp$libraryname/1-overlapper/001");
-      runCommand($wrk, "touch temp$libraryname/1-overlapper/ovljob");
-      runCommand($wrk, "touch temp$libraryname/1-overlapper/ovlbat");
    
       # now do specific steps (either import SAMs or run blasr)
       if (defined(getGlobal("samFOFN"))) {
@@ -1230,9 +1271,6 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
             $blasrThreshold = pickMappingThreshold("$wrk/temp$libraryname/1-overlapper/subset.hist");
             runCommand("$wrk/temp$libraryname/1-overlapper", "unlink subset.sam");
             runCommand("$wrk/temp$libraryname/1-overlapper", "unlink correct_subset.fasta");
-         
-            # for now we can only run one blasr job at a time, in the future we can partition it
-            $numOvlJobs = 1;
          } elsif (defined(getGlobal("bowtie"))) {     
          # run with best limit set to all with a small (0.5-1% of the data)   
             my $ovlThreads = getGlobal("ovlThreads");
@@ -1244,9 +1282,6 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
             $blasrThreshold = pickMappingThreshold("$wrk/temp$libraryname/1-overlapper/subset.hist");
             runCommand("$wrk/temp$libraryname/1-overlapper", "unlink subset.sam");
             runCommand("$wrk/temp$libraryname/1-overlapper", "unlink correct_subset.fasta");
-         
-            # for now we can only run one blasr job at a time, in the future we can partition it
-            $numOvlJobs = 1;
          }
       }
    
@@ -1265,15 +1300,42 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       print F "  exit 1\n";
       print F "fi\n";
       print F "\n";
-      print F "if test -e $wrk/temp$libraryname/1-overlapper/001/\$jobid.ovb ; then\n";
-      print F "   echo Job previously completed successfully.\n";
-      print F "else\n";
+      print F "bat=`head -n \$jobid $wrk/temp$libraryname/1-overlapper/ovlbat | tail -n 1`\n";
+      print F "job=`head -n \$jobid $wrk/temp$libraryname/1-overlapper/ovljob | tail -n 1`\n";
+      print F "opt=`head -n \$jobid $wrk/temp$libraryname/1-overlapper/ovlopt | tail -n 1`\n";
+      print F "\n";
+      print F "if [ ! -d $wrk/temp$libraryname/1-overlapper/\$bat ]; then\n";
+      print F "  mkdir $wrk/temp$libraryname/1-overlapper/\$bat\n";
+      print F "fi\n";
+      print F "\n";
+      print F "if [ -e $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovb ]; then\n";
+      print F "  echo Job previously completed successfully.\n";
+      print F "  exit\n";
+      print F "fi\n";
+      print F "\n";
+      print F "if [ x\$bat = x ]; then\n";
+      print F "  echo Error: Job index out of range.\n";
+      print F "  exit 1\n";
+      print F "fi\n";
+      print F "\n";
+      print F "options=(\$opt)\n";
+      print F "params=(\$(echo \${options[3]}  | tr \"-\" \"\\n\")) \n";
+      print F "zeroJobId=\$((\$jobid - 1))\n";
+      print F "numOvlJobs=$numOvlJobs\n";
+      print F "start=\${params[0]} \n";
+      print F "start=\$((\$start - 1))\n";
+      print F "end=\${params[1]} \n";
+      print F "total=\$((\$end - \$start))\n";
+      print F "echo \"Running partition \$job with options \$opt start \$start end \$end total \$total zero job \$zeroJobId and stride \$numOvlJobs\"\n";
+      print F "\n";
       if (defined(getGlobal("blasr"))) {
       print F "   $BLASR/blasr \\\n";
-      print F "          -sa $wrk/temp$libraryname/1-overlapper/long.sa $wrk/temp$libraryname/1-overlapper/correct_reads.fasta $wrk/temp$libraryname/1-overlapper/long_reads.fasta \\\n";
+      print F "          -start \$zeroJobId -stride \$numOvlJobs \\\n";
+      print F "          -sa $wrk/temp$libraryname/1-overlapper/long.sa $wrk/temp$libraryname/1-overlapper/correct_reads.fasta \\\n";
+      print F "          $wrk/temp$libraryname/1-overlapper/long_reads.fasta \\\n";
       print F "          -nproc $ovlThreads -bestn $blasrThreshold \\\n";
       print F "          $blasrOpts \\\n";
-      print F "          -sam -out $wrk/temp$libraryname/1-overlapper/001/\$jobid.sam \\\n";
+      print F "          -sam -out $wrk/temp$libraryname/1-overlapper/\$bat/\$job.sam \\\n";
       print F "          > $wrk/temp$libraryname/1-overlapper/\$jobid.out 2>&1 \\\n";
       print F "            && touch $wrk/temp$libraryname/1-overlapper/\$jobid.blasr.success\n";
       print F "   if test -e $wrk/temp$libraryname/1-overlapper/\$jobid.blasr.success ; then\n";
@@ -1284,10 +1346,11 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       print F "   fi\n";
       } elsif (defined(getGlobal("bowtie"))) {
       print F "   $BOWTIE/bowtie2 \\\n";
+      print F "          -s \$start -u \$total \\\n";
       print F "          -x $wrk/temp$libraryname/1-overlapper/long.sa -f $wrk/temp$libraryname/1-overlapper/correct_reads.fasta \\\n";
       print F "          -p $ovlThreads -k $blasrThreshold \\\n";
       print F "          $bowtieOpts \\\n";
-      print F "          -S $wrk/temp$libraryname/1-overlapper/001/\$jobid.sam \\\n";
+      print F "          -S $wrk/temp$libraryname/1-overlapper/\$bat/\$job.sam \\\n";
       print F "          > $wrk/temp$libraryname/1-overlapper/\$jobid.out 2>&1 \\\n";
       print F "            && touch $wrk/temp$libraryname/1-overlapper/\$jobid.blasr.success\n";
       print F "   if test -e $wrk/temp$libraryname/1-overlapper/\$jobid.blasr.success ; then\n";
@@ -1297,9 +1360,9 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       print F "      tail $wrk/temp$libraryname/1-overlapper/\$jobid.out && exit\n";
       print F "   fi\n";
       }
-      print F "   java -cp $CA/../lib/sam-1.71.jar:$CA/../lib/ConvertSamToCA.jar:. ConvertSamToCA \\\n";
-      print F "        $wrk/temp$libraryname/1-overlapper/001/\$jobid.$suffix $wrk/temp$libraryname/$asm.eidToIID $wrk/temp$libraryname/$asm.iidToLen \\\n";
-      print F "        > $wrk/temp$libraryname/1-overlapper/001/\$jobid.ovls 2> $wrk/temp$libraryname/1-overlapper/\$jobid.java.err\\\n";
+      print F "   java -cp \$bin/../lib/sam-1.71.jar:\$bin/../lib/ConvertSamToCA.jar:. ConvertSamToCA \\\n";
+      print F "        $wrk/temp$libraryname/1-overlapper/\$bat/\$job.$suffix $wrk/temp$libraryname/$asm.eidToIID $wrk/temp$libraryname/$asm.iidToLen \\\n";
+      print F "        > $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovls 2> $wrk/temp$libraryname/1-overlapper/\$jobid.java.err\\\n";
       print F "            && touch $wrk/temp$libraryname/1-overlapper/\$jobid.java.success\n";
       print F "   if test -e $wrk/temp$libraryname/1-overlapper/\$jobid.java.success ; then\n";
       print F "      echo SamToCA conversion completed.\n";
@@ -1307,8 +1370,7 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       print F "      echo SamToCA conversion failed.\n";
       print F "      tail $wrk/temp$libraryname/1-overlapper/\$jobid.java.err && exit\n";
       print F "   fi\n";
-      print F "   \$bin/convertOverlap -ovl < $wrk/temp$libraryname/1-overlapper/001/\$jobid.ovls > $wrk/temp$libraryname/1-overlapper/001/\$jobid.ovb\n";
-      print F "fi\n";
+      print F "   \$bin/convertOverlap -ovl < $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovls > $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovb\n";
       close(F);
       chmod 0755, "$wrk/temp$libraryname/1-overlapper/overlap.sh";
       
@@ -1326,15 +1388,40 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       } 
       
   checkforerror:
-      for (my $i = 1; $i <= $numOvlJobs; $i++) {
-        if (! -e "$wrk/temp$libraryname/1-overlapper/001/$i.ovb") {
-          die "Failed to run sam conversion job $i. Remove $wrk/temp$libraryname/1-overlapper/overlap.sh to try again.\n";
-        } else {
-          runCommand("$wrk/temp$libraryname/1-overlapper/001/", "rm $i.sam");
-          runCommand("$wrk/temp$libraryname/1-overlapper/001/", "rm $i.ovls");
-        }
+      my $failedJobs = 0;
+      my $failureMessage = "";
+
+      open(B, "< $wrk/temp$libraryname/1-overlapper/ovlbat") or die("failed to open '$wrk/temp$libraryname/1-overlapper/ovlbat'", undef);
+      open(J, "< $wrk/temp$libraryname/1-overlapper/ovljob") or die("failed to open '$wrk/temp$libraryname/1-overlapper/ovljob'", undef);
+
+      while (!eof(B) && !eof(J)) {
+         my $b = <B>;  chomp $b;
+         my $j = <J>;  chomp $j;
+
+         if ((! -e "$wrk/temp$libraryname/1-overlapper/$b/$j.ovb.gz") &&
+             (! -e "$wrk/temp$libraryname/1-overlapper/$b/$j.ovb")) {
+            $failureMessage .= "ERROR:  Overlap job $wrk/temp$libraryname/1-overlapper/$b/$j FAILED.\n";
+            $failedJobs++;
+         } else {
+            runCommand("$wrk/temp$libraryname/1-overlapper/$b/", "rm $j.sam");
+            runCommand("$wrk/temp$libraryname/1-overlapper/$b/", "rm $j.ovls");
+         }
+      }
+      if (!eof(B) || !eof(J)) {
+         print STDERR "Partitioning error; '$wrk/temp$libraryname/1-overlapper/ovlbat' and '$wrk/temp$libraryname/1-overlapper/ovljob' have extra lines.\n";
+      }
+      close(B);
+      close(J);
+      
+      my $errorType = "sam conversion";
+      if (defined(getGlobal("blasr"))) { $errorType = "blasr mapping"; }
+      if (defined(getGlobal("bowtie"))) { $errorType = "bowtie mapping"; }
+      $failureMessage .= "\n$failedJobs $errorType jobs failed.";
+      if ($failedJobs > 0) {
+          die "$failureMessage\n";
       }  
    }
+
    $cmd  =    "-s $specFile ";
    $cmd .=    "-p $asm -d . ";
    $cmd .=    "ovlMerThreshold=$ovlThreshold ";
