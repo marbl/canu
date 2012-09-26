@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.80 2012-09-24 17:27:41 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.81 2012-09-26 22:58:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,6 +38,41 @@ static char *rcsid = "$Id: Input_CGW.c,v 1.80 2012-09-24 17:27:41 brianwalenz Ex
 #include "ScaffoldGraph_CGW.h"
 #include "Output_CGW.h"
 #include "Input_CGW.h"
+
+
+#define CGW_MIN_READS_IN_UNIQUE  2
+
+// Due to the FBAC fragments, we get some pathologically short U-Unitigs
+// Set the following threshhold to eliminate the really short ones
+//
+#define CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH 1000
+
+
+//  Stats on repeat labeling of input unitigs.
+//
+class ruLabelStat {
+public:
+  ruLabelStat() {
+    num = 0;
+    len = 0;
+  };
+
+  void     operator+=(uint64 len_) {
+    num++;
+    len += len_;
+  };
+
+  uint32   num;
+  uint64   len;
+};
+
+ruLabelStat  repeat_LowReads;
+ruLabelStat  repeat_LowCovStat;
+ruLabelStat  repeat_Short;
+ruLabelStat  repeat_MicroHet;
+
+ruLabelStat  repeat_IsUnique;
+ruLabelStat  repeat_IsRepeat;
 
 
 
@@ -84,45 +119,70 @@ ProcessInputUnitig(MultiAlignT *uma) {
 
   int  isUnique     = TRUE;
 
-  if (GetNumIntMultiPoss(uma->f_list) < CGW_MIN_READS_IN_UNIQUE)
+  if (GetNumIntMultiPoss(uma->f_list) < CGW_MIN_READS_IN_UNIQUE) {
+    //fprintf(stderr, "unitig %d not unique -- "F_SIZE_T" reads, need at least %d\n",
+    //         uma->maID, GetNumIntMultiPoss(uma->f_list), CGW_MIN_READS_IN_UNIQUE);
+    repeat_LowReads += length;
     isUnique = FALSE;
+  }
 
-  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff)
+  if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff) {
+    //fprintf(stderr, "unitig %d not unique -- coverage stat %d, needs to be at least %d\n",
+    //        uma->maID, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbUniqueCutoff);
+    repeat_LowCovStat += length;
     isUnique = FALSE;
+  }
 
 #ifdef SHORT_HIGH_ASTAT_ARE_UNIQUE
   //  This is an attempt to not blindly call all short unitigs as non-unique.  It didn't work so
   //  well in initial limited testing.  The threshold is arbitrary; older versions used
   //  cgbDefinitelyUniqueCutoff.
    if ((ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff * 10) &&
-      (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH))
+      (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)) {
+    repeat_Short += length;
     isUnique = FALSE;
+  }
 #else
-  if (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)
+  if (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH) {
+    //fprintf(stderr, "unitig %d not unique -- length %d too short, need to be at least %d\n",
+    //        uma->maID, length, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH);
+    repeat_Short += length;
     isUnique = FALSE;
+  }
 #endif
 
   //  MicroHet probability is actually the probability of the sequence being UNIQUE, based on
   //  microhet considerations.  Falling below threshhold makes something a repeat.
   //  Note that this is off by default (see options -e, -i)
+  //  Defaults  cgbMicrohetProb        = 1.0 e-5
+  //            cgbApplyMicrohetCutoff = -1
   if ((ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb) &&
-      (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff))
+      (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff)) {
+    fprintf(stderr, "unitig %d not unique -- low microhetprob %f (< %f) and low coverage stat %d (< %d)\n",
+            uma->maID,
+            ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb,
+            ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbApplyMicrohetCutoff);
+    repeat_MicroHet += length;
     isUnique = FALSE;
+  }
 
   // allow flag to overwrite what the default behavior for a chunk and force it to be unique or repeat
 
   if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_UNIQUE)
     isUnique = TRUE;
-  else if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_REPEAT)
+  if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_REPEAT)
     isUnique = FALSE;
 
   if (isUnique) {
-    ScaffoldGraph->numDiscriminatorUniqueCIs++;
     CI.flags.bits.isUnique = 1;
     CI.type                = DISCRIMINATORUNIQUECHUNK_CGW;
+
+    repeat_IsUnique += length;
   } else {
     CI.flags.bits.isUnique = 0;
     CI.type                = UNRESOLVEDCHUNK_CGW;
+
+    repeat_IsRepeat += length;
   }
 
   CI.flags.bits.smoothSeenAlready = FALSE;
@@ -325,8 +385,13 @@ ProcessInput(int optind, int argc, char *argv[]){
     }
   }
 
-  fprintf(stderr,"Processed %d unitigs with %d fragments.\n",
-          numUTG, numFRG);
+  fprintf(stderr, "Processed %d unitigs with %d fragments.\n", numUTG, numFRG);
+  fprintf(stderr, "  unique:        "F_U32" unitigs with total length "F_U64"\n", repeat_IsUnique.num,   repeat_IsUnique.len);
+  fprintf(stderr, "  repeat:        "F_U32" unitigs with total length "F_U64"\n", repeat_IsRepeat.num,   repeat_IsRepeat.len);
+  fprintf(stderr, "  few reads:     "F_U32" unitigs with total length "F_U64"\n", repeat_LowReads.num,   repeat_LowReads.len);
+  fprintf(stderr, "  low cov stat:  "F_U32" unitigs with total length "F_U64"\n", repeat_LowCovStat.num, repeat_LowCovStat.len);
+  fprintf(stderr, "  too short:     "F_U32" unitigs with total length "F_U64"\n", repeat_Short.num,      repeat_Short.len);
+  fprintf(stderr, "  microhet:      "F_U32" unitigs with total length "F_U64"\n", repeat_MicroHet.num,   repeat_MicroHet.len);
 
   if (numErrors > 0)
     fprintf(stderr, "ERROR:  Some fragments are not in unitigs.\n");
@@ -335,9 +400,7 @@ ProcessInput(int optind, int argc, char *argv[]){
   ScaffoldGraph->numLiveCIs     = GetNumGraphNodes(ScaffoldGraph->CIGraph);
   ScaffoldGraph->numOriginalCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);
 
-
   //  Load the distances.
-
 
   int32 numDists = ScaffoldGraph->gkpStore->gkStore_getNumLibraries();
 

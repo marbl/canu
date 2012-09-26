@@ -22,7 +22,7 @@
 #ifndef AS_CGW_DATATYPES_H
 #define AS_CGW_DATATYPES_H
 
-static const char *rcsid_AS_CGW_DATATYPES_H = "$Id: AS_CGW_dataTypes.h,v 1.14 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_AS_CGW_DATATYPES_H = "$Id: AS_CGW_dataTypes.h,v 1.15 2012-09-26 22:58:07 brianwalenz Exp $";
 
 #include <assert.h>
 #include "AS_global.h"
@@ -30,8 +30,6 @@ static const char *rcsid_AS_CGW_DATATYPES_H = "$Id: AS_CGW_dataTypes.h,v 1.14 20
 #include "math.h"
 
 #define CHECK_CONNECTIVITY TRUE
-
-#define CGW_MIN_READS_IN_UNIQUE  2
 
 //  We've moved to a linear model of variance as a function of length.
 //  We chose the FUDGE_FACTOR as follows:
@@ -46,10 +44,6 @@ static const char *rcsid_AS_CGW_DATATYPES_H = "$Id: AS_CGW_dataTypes.h,v 1.14 20
 #define CGW_DP_THRESH 1e-6
 #define CGW_DP_MINLEN 20
 #define CGW_DP_DESPERATION_MINLEN 10
-
-// Due to the FBAC fragments, we get some pathologically short U-Unitigs
-// Set the following threshhold to eliminate the really short ones
-#define CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH 1000
 
 #define NO_END 0
 #define A_END 1
