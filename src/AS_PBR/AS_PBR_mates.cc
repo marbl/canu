@@ -47,7 +47,7 @@ using namespace std;
 #include <map>
 #include <vector>
 
-static const char *rcsid_AS_PBR_MATES_C = "$Id: AS_PBR_mates.cc,v 1.4 2012-09-13 14:40:42 skoren Exp $";
+static const char *rcsid_AS_PBR_MATES_C = "$Id: AS_PBR_mates.cc,v 1.5 2012-09-26 20:26:29 skoren Exp $";
 
 const double 	Z_MAX	= 6;
 
@@ -120,13 +120,14 @@ void *estimateInsertSizes(void *ptr) {
 			}
 		}
 		part = bounds.first;
+	    assert(part > 0);
 
 		char inName[FILENAME_MAX] = {0};
 		sprintf(inName, "%s.%d.olaps", waGlobal->prefix, part);
 		errno = 0;
 		LayRecordStore *inFile = openLayFile(inName);
 		if (inFile == NULL) {
-			fprintf(stderr, "Couldn't open '%s' for read: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part].first, waGlobal->partitionStarts[part].second);
+			fprintf(stderr, "Couldn't open '%s' for read: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part-1].first, waGlobal->partitionStarts[part-1].second);
 			assert(waGlobal->partitionStarts[part-1].first == waGlobal->partitionStarts[part-1].second  && waGlobal->partitionStarts[part-1].first == 0);
 			continue;
 		}
@@ -183,6 +184,7 @@ void *screenBadMates(void *ptr) {
         }
      }
      part = bounds.first;
+     assert(part > 0);
 
      // open our input partition and a coressponding output file to record updated tiling with only satisfied mates
      char outputName[FILENAME_MAX] = {0};
@@ -198,7 +200,7 @@ void *screenBadMates(void *ptr) {
      errno = 0;
      LayRecordStore *inFile = openLayFile(inName);
      if (inFile == NULL) {
-        fprintf(stderr, "Couldn't open '%s' for write: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part].first, waGlobal->partitionStarts[part].second);
+        fprintf(stderr, "Couldn't open '%s' for write: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part-1].first, waGlobal->partitionStarts[part-1].second);
         assert(waGlobal->partitionStarts[part-1].first == waGlobal->partitionStarts[part-1].second  && waGlobal->partitionStarts[part-1].first == 0);
         continue;
      }

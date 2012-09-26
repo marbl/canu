@@ -51,7 +51,7 @@ using namespace std;
 #include <vector>
 #include <set>
 
-static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.7 2012-09-20 21:23:42 skoren Exp $";
+static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.8 2012-09-26 20:26:29 skoren Exp $";
 
 static const uint32 FUDGE_BP = 5;
 
@@ -73,6 +73,11 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
 
     while (!fwdDistanceSatisfied || !revDistanceSatisfied) {
         ShortMapRecord *record = NULL;
+        // stop when we've eliminated all supporters
+        if (bits.size() != 0 && bits.count() == 1) {
+            if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Eliminated all candidates in sequence %d while pulling from %d\n", layRecord.iid, iter->ident);
+            break;
+        }
 
         // first we check the forward direction (in front of the gap) for those who can help us
         if (!fwdDistanceSatisfied && fwd != layRecord.mp.end()) {
@@ -259,15 +264,18 @@ static void getCandidateOverlaps(PBRThreadGlobals *waGlobal, boost::dynamic_bits
     }
 
     // finally, go through our list of helper sequences and make sure they are properly initialized and have valid positions
-    for (map<AS_IID, SeqInterval>::iterator iter = matchingSequencePositions.begin(); iter != matchingSequencePositions.end(); iter++) {
-        if (matchingSequenceLastFwd.find(iter->first) == matchingSequenceLastFwd.end() ||
-                matchingSequenceLastRev.find(iter->first) == matchingSequenceLastRev.end()) {
+    for(int i = bits.find_first(); i != boost::dynamic_bitset<>::npos; i = bits.find_next(i)) {
+        AS_IID iid = inStore->getMappedIID(i);
+        map<AS_IID, SeqInterval>::iterator iter = matchingSequencePositions.find(iid);
+
+        if (matchingSequenceLastFwd.find(iid) == matchingSequenceLastFwd.end() ||
+                matchingSequenceLastRev.find(iid) == matchingSequenceLastRev.end()) {
             if (waGlobal->verboseLevel >= VERBOSE_DEVELOPER) fprintf(stderr, "Uninitialized fragment %d supporter of %d on either fwd or rev end with positions %d %d\n", iter->first, layRecord.iid, iter->second.bgn, iter->second.end);
-            bits.set(inStore->getStoreIID(iter->first), false);
+            bits.set(inStore->getStoreIID(iid), false);
         }
 
         int32 tmp;
-        if (matchingSequenceOrientation[iter->first]) {
+        if (matchingSequenceOrientation[iid]) {
             tmp = MIN(iter->second.bgn, iter->second.end);
             iter->second.end = MAX(iter->second.bgn, iter->second.end);
             iter->second.bgn = tmp;
@@ -326,6 +334,7 @@ void *outputResults(void *ptr) {
             }
         }
         part = bounds.first;
+        assert(part > 0);
         map<AS_IID, uint8> readsToPrint;
         map<AS_IID, uint8> readsWithGaps;
         map<AS_IID, vector<pair<AS_IID, pair<uint32, uint32> > > > gaps;
@@ -385,12 +394,11 @@ void *outputResults(void *ptr) {
         fclose(inRankFile);
         AS_UTL_unlink(inRankName);
 
-        if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Thread %d is running and output to file %s range %d-%d\n", wa->id, outputName, bounds.first, bounds.second);
         uint32 readIID = 0;
         char seq[AS_READ_MAX_NORMAL_LEN];
         char qlt[AS_READ_MAX_NORMAL_LEN];
-        AS_IID gapIID = MAX(1, waGlobal->partitionStarts[bounds.second].second + 1);
-        gapIID = MAX(gapIID, waGlobal->partitionStarts[bounds.first].second + 1);
+        AS_IID gapIID = MAX(1, waGlobal->partitionStarts[part-1].second + 1);
+        if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Thread %d is running and output to file %s range %d-%d gap offset %d\n", wa->id, outputName, waGlobal->partitionStarts[part-1].first, waGlobal->partitionStarts[part-1].second, gapIID);
 
         LayRecord layRecord;
         while (readLayRecord(inFile, layRecord)) {
@@ -501,8 +509,31 @@ void *outputResults(void *ptr) {
                                 closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
                             }
                         } else { // no one could agree with this read, break it
+                            /*
+                            if (MIN(iter->position.bgn, iter->position.end) - lastEnd < 2*FUDGE_BP) {
+                                if (offset < 0) {
+                                    offset = 0;
+                                }
+                                uint32 overlappingStart = (lastEnd-offset >= (MIN_DIST_TO_RECRUIT / 3) ? lastEnd - (MIN_DIST_TO_RECRUIT / 3) - offset: 0);
+                                uint32 overlappingEnd = MIN(iter->position.bgn, iter->position.end) + (MIN_DIST_TO_RECRUIT / 3) - offset;
+                                // record this gap
+                                if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d with 0 supporters had a gap from %d to %d inserting range %d from %d %d with offset %d so in original read positions are %d %d\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end),gapIID, overlappingStart, overlappingEnd, offset, overlappingStart+offset, overlappingEnd+offset);
+                                layout << "{TLE\nclr:"
+                                        << 0
+                                        << ","
+                                        << overlappingEnd - overlappingStart
+                                        << "\noff:" << overlappingStart
+                                        << "\nsrc:" << gapIID
+                                        << "\n}\n";
+                                readsWithGaps[layRecord.iid] = 1;
+                                pair<AS_IID, pair<uint32, uint32> > gapInfo(gapIID++, pair<uint32, uint32>(overlappingStart+offset, MIN(waGlobal->frgToLen[layRecord.iid], overlappingEnd+offset)));
+                                gaps[layRecord.iid].push_back(gapInfo);
+                                if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d, no one believed it but it was very small so we allowed.\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
+                            } else {
+                            */
                             if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "For fragment %d had a gap from %d to %d but no one believed it so breaking it\n", layRecord.iid, lastEnd, MIN(iter->position.bgn, iter->position.end));
                             closeRecord(waGlobal, outFile, reportFile, layout, layRecord, lastEnd, offset, readIID, readSubID);
+                            //}
                         }
                     } else {
                         // close the layout and start a new one because we have a coverage gap
@@ -561,6 +592,7 @@ void *outputResults(void *ptr) {
                 fprintf(stderr, "Error no ID for read %d\n",iter->first);
             }
             decodeSequenceQuality((*theFrgs)[iter->first], (char*) &seq, (char *) &qlt);
+            assert(iter->first < gapIID);
             fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", 0, waGlobal->frgToLen[iter->first], iter->first, iter->first, qlt, seq);
         }
         // output uncorrected sequences
