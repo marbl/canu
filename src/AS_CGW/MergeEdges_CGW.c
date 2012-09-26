@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.38 2012-09-20 19:18:40 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.39 2012-09-26 23:05:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -599,9 +599,9 @@ MergeGraphEdges_Greedy(GraphCGW_T            *graph,
 
   //  Compute ChiSquared for all pairs of edges.
 
-  uint32     pairsLen = 0;
-  uint32     pairsMax = inputEdges.size() * (inputEdges.size() - 1) / 2;
-  mgePair   *pairs    = new mgePair [pairsMax];
+  uint32           pairsLen = 0;
+  uint32           pairsMax = inputEdges.size() * (inputEdges.size() - 1) / 2;
+  vector<mgePair>  pairs(pairsMax);
 
   for (uint32 a=0; a<inputEdges.size(); a++) {
     for (uint32 b=a+1; b<inputEdges.size(); b++) {
@@ -624,7 +624,7 @@ MergeGraphEdges_Greedy(GraphCGW_T            *graph,
 
   assert(pairsLen == pairsMax);
 
-  sort(pairs, pairs + pairsMax);
+  sort(pairs.begin(), pairs.end());
 
   //  Seed the first cluster with the lowest scoring pair....unless there is no valid lowest scoring pair.
 
