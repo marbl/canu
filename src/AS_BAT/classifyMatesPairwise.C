@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMatesPairwise.C,v 1.3 2012-09-24 13:02:45 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMatesPairwise.C,v 1.4 2012-09-26 21:38:22 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -139,7 +139,7 @@ loadFragmentData(char         *gkpStoreName,
     assert(finf[fid].mateIID     == frg.gkFragment_getMateIID());
 
     if ((fid % 10000000) == 0)
-      fprintf(stderr, "LOADING FRAGMENTS...at IID "F_U32".\r",
+      fprintf(stderr, "LOADING FRAGMENTS...at IID "F_U32".\n",
               fid);
   }
 
@@ -296,7 +296,9 @@ main(int argc, char **argv) {
   uint32            tvlLen;
   OVSoverlap       *tvl;
 
-  
+  uint64            nTested      = 0;
+  uint64            nPlausiblePE = 0;
+  uint64            nShortMP     = 0;
 
   //  The store doesn't (efficiently) support the kind of iteration we want to do.  We want to get
   //  all overlaps for a mated pair.  If one of the reads has no overlaps, the store will return
@@ -307,7 +309,7 @@ main(int argc, char **argv) {
   AS_IID            maxFragIID = 0;
 
   for (uint32 fi=1; fi<finf.size(); fi++) {
-    if (finf[fi].doTesting == false)
+    if (finf[fi].isTrusted == false)
       continue;
 
     if (fi < minFragIID)
@@ -322,12 +324,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Testing reads from "F_U32" to "F_U32".\n",
           minFragIID, maxFragIID);
 
-  //AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
-
-
-
-
-
+  AS_OVS_setRangeOverlapStore(ovlStore, minFragIID, maxFragIID);
 
   bool  stillMore = true;
 
@@ -343,17 +340,23 @@ main(int argc, char **argv) {
 
     bool  AnoGood = false;
 
-    if (finf[avl[0].a_iid].mateIID == 0)
+    if (finf[avl[0].a_iid].mateIID == 0) {
       //  avl overlaps are not for a mated read.
+      //fprintf(stderr, "BAD %d - not mated.\n", avl[0].a_iid);
       AnoGood = true;
+    }
 
-    if (finf[avl[0].a_iid].isTrusted == false)
+    if (finf[avl[0].a_iid].isTrusted == false) {
       //  avl overlaps are not for a trusted read.
+      //fprintf(stderr, "BAD %d - not trusted.\n", avl[0].a_iid);
       AnoGood = true;
+    }
 
-    if (finf[avl[0].a_iid].mateIID != bvl[0].a_iid)
+    if (finf[avl[0].a_iid].mateIID != bvl[0].a_iid) {
       //  avl overlaps are not mated to the bovl overlaps.
+      //fprintf(stderr, "BAD %d - not mated to %d.\n", avl[0].a_iid, bvl[0].a_iid);
       AnoGood = true;
+    }
 
     //  If AnoGood, discard the avl overlaps, move the bvl overlaps to avl, and continue
     //  to read a new batch of bvl overlaps.
@@ -364,6 +367,8 @@ main(int argc, char **argv) {
       continue;
     }
 
+    //fprintf(stderr, "PASSES %d - %d.\n", avl[0].a_iid, bvl[0].a_iid);
+
     //  We have overlaps.  They should be mate-consistent, and trusted.
 
     assert(finf[avl[0].a_iid].mateIID   == bvl[0].a_iid);
@@ -371,6 +376,12 @@ main(int argc, char **argv) {
 
     assert(finf[avl[0].a_iid].isTrusted == true);
     assert(finf[bvl[0].a_iid].isTrusted == true);
+
+    nTested++;
+
+    if ((nTested % 100000) == 0)
+      fprintf(stderr, "  nTested "F_U64" nPlausiblePE "F_U64" nShortMP "F_U64"\n",
+              nTested, nPlausiblePE, nShortMP);
 
     //  Check if we're overlapping - if the other read in an overlap is the mate
 
@@ -393,9 +404,14 @@ main(int argc, char **argv) {
     for (uint32 ai=0, si=0; ai<avlLen; ai++) {
       AS_IID  taiid = avl[ai].b_iid;
 
-      if ((finf[taiid].mateIID == 0) ||       //  Overlapping read isn't mated, don't care about it.
-          (finf[taiid].doTesting == false))   //  Overlapping read isn't marked for testing, don't care about it.
+      if ((finf[taiid].mateIID == 0) ||         //  Overlapping read isn't mated, don't care about it.
+          (finf[taiid].doTesting == false)) {   //  Overlapping read isn't marked for testing, don't care about it.
+        //fprintf(stderr, "SKIP ai=%d/%d si=%d/%d PE iid %d %d -- MP iid %d %d isn't mated.\n",
+        //        ai, avlLen, si, bvlLen,
+        //        avl[ai].a_iid, bvl[si].a_iid, 
+        //        avl[ai].b_iid, bvl[si].b_iid);
         continue;
+      }
 
       //  Starting position for the next loop.  Advance past the overlaps that are below the read
       //  we're looking for.
@@ -413,12 +429,21 @@ main(int argc, char **argv) {
       for (uint32 bi=si; bi<bvlLen; bi++) {
         AS_IID  tbiid = bvl[bi].b_iid;
 
-        if (finf[taiid].mateIID < tbiid)        //  Overlapping read is after the one we're looking for.  It isn't here.
-          break;
+        //fprintf(stderr, "TEST ai=%d/%d bi=%d/%d PE iid %d %d -- MP iid %d %d.\n",
+        //        ai, avlLen, bi, bvlLen,
+        //        avl[ai].a_iid, bvl[bi].a_iid, 
+        //        avl[ai].b_iid, bvl[bi].b_iid);
 
-        if ((tbiid < finf[taiid].mateIID) ||    //  Overlapping read is before the one we're looking for.  Keep looking.
-            (finf[tbiid].doTesting == false))   //  Overlapping read isn't marked for testing, don't care about it.
+        if (finf[taiid].mateIID < tbiid) {      //  Overlapping read is after the one we're looking for.  It isn't here.
+          //fprintf(stderr, "     SKIP overlapping read too high, we're done\n");
+          break;
+        }
+
+        if ((tbiid < finf[taiid].mateIID) ||      //  Overlapping read is before the one we're looking for.  Keep looking.
+            (finf[tbiid].doTesting == false)) {   //  Overlapping read isn't marked for testing, don't care about it.
+          //fprintf(stderr, "     SKIP overlapping read too low, keep searching\n");
           continue;
+        }
 
         //  Overlapping read is the one we're looking for.  Test it!
 
@@ -447,6 +472,7 @@ main(int argc, char **argv) {
           plausiblyPE = true;
 
         if (plausiblyPE == false) {
+          nShortMP++;
           fprintf(logFile, "A %8u-%8u %c %4ld-%4ld  B %8u-%8u %c %4ld-%4ld -- size %4d %c -- SHORT_MP\n",
                   avl[ai].a_iid, avl[ai].b_iid, avl[ai].dat.ovl.flipped ? 'I' : 'N', avl[ai].dat.ovl.a_hang, avl[ai].dat.ovl.b_hang,
                   bvl[bi].a_iid, bvl[bi].b_iid, bvl[bi].dat.ovl.flipped ? 'I' : 'N', bvl[bi].dat.ovl.a_hang, bvl[bi].dat.ovl.b_hang,
@@ -461,6 +487,8 @@ main(int argc, char **argv) {
           assert(finf[avl[ai].b_iid].isReported == finf[bvl[bi].b_iid].isReported);
 
           if (finf[avl[ai].b_iid].isReported == false) {
+            nPlausiblePE++;
+
             fprintf(edtFile, "frg iid %u mateiid 0\n", avl[ai].b_iid);
             fprintf(edtFile, "frg iid %u mateiid 0\n", bvl[bi].b_iid);
 
@@ -476,6 +504,9 @@ main(int argc, char **argv) {
     avlLen = 0;
     bvlLen = 0;
   }
+
+  fprintf(stderr, "  nTested "F_U64" nPlausiblePE "F_U64" nShortMP "F_U64"\n",
+          nTested, nPlausiblePE, nShortMP);
 
   fclose(edtFile);
   fclose(logFile);
