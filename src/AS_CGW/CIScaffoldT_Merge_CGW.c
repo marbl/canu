@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.85 2012-09-20 19:18:40 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.86 2012-09-27 16:55:14 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -216,7 +216,10 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
   //  The number of satisfied mates we expect to gain from this edge.
   //  Why -1?  Cheap way of fixing rounding issues.
 
-  int32  mEdge = curEdge->edgesContributing * fractMatesHappyBefore - 1;
+  int32  mEdge = curEdge->edgesContributing * fractMatesHappyBefore / 2 - 1;
+
+  if (mEdge < 1)
+    mEdge = 1;
 
   fprintf(stderr, "isQualityScaffoldMergingEdge()--   before: %.3f satisfied (%d/%d good/bad mates)  after: %.3f satisfied (%d/%d good/bad mates)\n",
           fractMatesHappyBefore, mBeforeGood, mBeforeBad,
@@ -266,70 +269,61 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
   MTR.mergeAccepted     = false;
 #endif
 
-
-
   //  NOTE, still need the metagenomic test
 
-  bool failsOLD = false;
-  bool failsNEW = false;
-
-#if 1
   double badGoodRatio      = 1.0;
-
+   
   if (mAfterGood > mBeforeGood)
     badGoodRatio = (double)(mAfterBad - mBeforeBad) / (double)(mAfterGood - mBeforeGood);
 
-  bool failsMinimum       = (fractMatesHappyAfter < minSatisfied);
-  bool failsToGetHappier1 = (fractMatesHappyAfter < fractMatesHappyBefore);
+  bool matesFail = false;
 
-#ifndef ALTERNATE_MATE_TEST_RULES
-  bool failsToGetHappier2 = (mAfterGood < mBeforeGood) || (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
-  failsOLD = (failsMinimum && failsToGetHappier1 && failsToGetHappier2);
-#else
-#warning ALTERNATE RULES
-#warning ALTERNATE RULES
-#warning ALTERNATE RULES
-  bool failsToGetHappier2 = (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
-  failsOLD = (failsMinimum) && (failsToGetHappier1 || failsToGetHappier2);
-#endif
+ if (GlobalData->mergeFilterLevel == 1) {
+   bool failsMinimum       = (fractMatesHappyAfter < minSatisfied);
+   bool failsToGetHappier1 = (fractMatesHappyAfter < fractMatesHappyBefore);
+   bool failsToGetHappier2 = (mAfterGood <= mBeforeGood) || (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
 
-  if (failsOLD)
-    fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge %d%d%d (%.3f < %.3f) && (%.3f < %.3f) && ((%d < %d) || (%0.3f > %.3f))\n",
-            failsMinimum, failsToGetHappier1, failsToGetHappier2,
-            fractMatesHappyAfter, minSatisfied,
-            fractMatesHappyAfter, fractMatesHappyBefore,
-            mAfterGood, mBeforeGood, badGoodRatio, MAX_FRAC_BAD_TO_GOOD);
-  else
-    fprintf(stderr, "isQualityScaffoldMergingEdge()--   ARE happy enough to merge %d%d%d (%.3f > %.3f) || (%.3f > %.3f) || ((%d > %d) && (%0.3f < %.3f))\n",
-            failsMinimum, failsToGetHappier1, failsToGetHappier2,
-            fractMatesHappyAfter, minSatisfied,
-            fractMatesHappyAfter, fractMatesHappyBefore,
-            mAfterGood, mBeforeGood, badGoodRatio, MAX_FRAC_BAD_TO_GOOD);
-#endif
+   matesFail = (failsMinimum && failsToGetHappier1 && failsToGetHappier2);
 
-#if 0
-  //  Looks good on paper, not ready for prime time.
-  bool failsToGetHappierA = (fractMatesHappyAfter < fractMatesHappyBefore);           //  Satisfaction dropped
-  bool failsToGetHappierB = (mAfterGood < mBeforeGood + mEdge);                       //  Good mates dropped
+   //bool failsToGetHappier2 = (badGoodRatio > MAX_FRAC_BAD_TO_GOOD);
+   //matesFail = (failsMinimum) && (failsToGetHappier1 || failsToGetHappier2);
 
-  failsNEW = (failsToGetHappierA || failsToGetHappierB);
+   if (matesFail)
+     fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge %d%d%d (%.3f < %.3f) && (%.3f < %.3f) && ((%d <= %d) || (%0.3f > %.3f))\n",
+             failsMinimum, failsToGetHappier1, failsToGetHappier2,
+             fractMatesHappyAfter, minSatisfied,
+             fractMatesHappyAfter, fractMatesHappyBefore,
+             mAfterGood, mBeforeGood, badGoodRatio, MAX_FRAC_BAD_TO_GOOD);
+   else
+     fprintf(stderr, "isQualityScaffoldMergingEdge()--   ARE happy enough to merge %d%d%d (%.3f >= %.3f) || (%.3f >= %.3f) || ((%d > %d) && (%0.3f <= %.3f))\n",
+             failsMinimum, failsToGetHappier1, failsToGetHappier2,
+             fractMatesHappyAfter, minSatisfied,
+             fractMatesHappyAfter, fractMatesHappyBefore,
+             mAfterGood, mBeforeGood, badGoodRatio, MAX_FRAC_BAD_TO_GOOD);
+ }
 
-  if (failsNEW)
-    fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge %d%d happiness (%.3f < %.3f) || mates (%d < %d + %d)\n",
-            failsToGetHappierA, failsToGetHappierB,
-            fractMatesHappyAfter, fractMatesHappyBefore,
-            mAfterGood, mBeforeGood, mEdge);
-  else
-    fprintf(stderr, "isQualityScaffoldMergingEdge()--   ARE happy enough to merge %d%d happiness (%.3f >= %.3f) && mates (%d >= %d + %d)\n",
-            failsToGetHappierA, failsToGetHappierB,
-            fractMatesHappyAfter, fractMatesHappyBefore,
-            mAfterGood, mBeforeGood, mEdge);
 
- if (failsNEW != failsOLD)
-   fprintf(stderr, "isQualityScaffoldMergingEge()--  DIFFER.\n");
-#endif
+ //  Looks good on paper, not ready for prime time.
+ if (GlobalData->mergeFilterLevel == 2) {
+   bool failsToGetHappierA = (fractMatesHappyAfter < fractMatesHappyBefore);           //  Satisfaction dropped
+   bool failsToGetHappierB = (mAfterGood < mBeforeGood + mEdge);                       //  Good mates dropped
 
- if (GlobalData->mergeFilterLevel >= 5) {
+   matesFail = (failsToGetHappierA || failsToGetHappierB);
+
+   if (matesFail)
+     fprintf(stderr, "isQualityScaffoldMergingEdge()--   not happy enough to merge %d%d happiness (%.3f < %.3f) || mates (%d < %d + %d)\n",
+             failsToGetHappierA, failsToGetHappierB,
+             fractMatesHappyAfter, fractMatesHappyBefore,
+             mAfterGood, mBeforeGood, mEdge);
+   else
+     fprintf(stderr, "isQualityScaffoldMergingEdge()--   ARE happy enough to merge %d%d happiness (%.3f >= %.3f) && mates (%d >= %d + %d)\n",
+             failsToGetHappierA, failsToGetHappierB,
+             fractMatesHappyAfter, fractMatesHappyBefore,
+             mAfterGood, mBeforeGood, mEdge);
+ }
+
+
+ if (GlobalData->mergeFilterLevel == 5) {
    bool doTest1 = true;
    bool doTest2 = true;
    bool doTest3 = true;
@@ -340,15 +334,18 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
    bool passTest4 = true;
    
    bool passAllTests = false;
+
    // We altered this test, which was probably too permissive. Using mAfter in denominator, it only required that happy mate count increased.
    //// fractMatesHappyBefore = (mAfter > 0) ? ((double)mBeforeGood / mAfter) : 0.0;
    fractMatesHappyBefore = (mBefore > 0) ? ((double)mBeforeGood / mBefore) : 0.0;
    fractMatesHappyAfter  = (mAfter > 0) ? ((double)mAfterGood  / mAfter) : 0.0;
+
    if (doTest1) {
      // Rule: Fraction of scored mates that are scored happy must not decrease.
      // These fractions can differ by tiny amounts. Use double precision.
      passTest1 = (fractMatesHappyAfter) >= (fractMatesHappyBefore); 
    }
+
    int32 observedHappyMateIncrease = (mAfterGood>mBeforeGood) ? (mAfterGood-mBeforeGood) : 0;
    int32 expectedHappyMateIncrease = (int32) ( fractMatesHappyBefore * curEdge->edgesContributing - 1);
    if (doTest2) {
@@ -356,12 +353,14 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
      // Expected amount = (rate of happiness in scaffolds prior to merge) * (#mates in edge provoking the merge) - (fudge for integer conversion).
      passTest2 = (observedHappyMateIncrease >= expectedHappyMateIncrease);
    }
+
    int32 sadnessIncrease =   (mAfterBad >mBeforeBad ) ? (mAfterBad -mBeforeBad ) : 0;
    int32 happinessIncrease = (mAfterGood>mBeforeGood) ? (mAfterGood-mBeforeGood) : 0;
    if (doTest3) {
      // Sadness Increase must not exceed 30% of Happiness Increase.
      passTest3 = ( sadnessIncrease <= 1.0 * MAX_FRAC_BAD_TO_GOOD * happinessIncrease);
    }
+
    if (doTest4) {
      // Before each test, call MarkInternal to make sure all edges are properly marked. This should be a no-op.
      MarkInternalEdgeStatus(ScaffoldGraph, scaffoldA, 0, TRUE);  //  Merged
@@ -379,15 +378,15 @@ isQualityScaffoldMergingEdgeNEW(SEdgeT                     *curEdge,
      // This test says I to refuse to merge with any scaffold that shows signs of a disconnect problem.
      passTest4 = (A_is_connected) && (B_is_connected);
    }
-   // Set the value that gets returned below...
+
    passAllTests = (passTest1) && (passTest2) && (passTest3) && (passTest4);
-   failsOLD = !passAllTests;
+   matesFail = !passAllTests;
    
    fprintf(stderr,"isQualityScaffoldMergingEdge()-- filter=5 pass=%d based on test1=%d, test2=%d, test3=%d (sad/happy=%d/%d), test4=%d.\n",
 	   passAllTests,passTest1,passTest2,passTest3, sadnessIncrease, happinessIncrease, passTest4);
  }
 
- return(failsOLD == false);
+ return(matesFail == false);
 }
 
 
