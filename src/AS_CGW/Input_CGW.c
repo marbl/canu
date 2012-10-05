@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.81 2012-09-26 22:58:07 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.82 2012-10-05 05:28:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -190,12 +190,44 @@ ProcessInputUnitig(MultiAlignT *uma) {
   CI.flags.bits.isChaff           = FALSE;
   CI.flags.bits.isClosure         = FALSE;
 
+  //  Assign each read to this unitig.
+
   for(cfr = 0; cfr < GetNumIntMultiPoss(uma->f_list); cfr++){
     IntMultiPos *imp    = GetIntMultiPos(uma->f_list, cfr);
     CIFragT     *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
 
     cifrag->cid  = uma->maID;
     cifrag->CIid = uma->maID;
+  }
+
+  //  Decide if this unitig is a potential rock or stone (note, uses cid mark just set)
+
+  uint32  numExternMates = 0;
+
+  for(cfr = 0; cfr < GetNumIntMultiPoss(uma->f_list); cfr++){
+    IntMultiPos *imp    = GetIntMultiPos(uma->f_list, cfr);
+    CIFragT     *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
+
+    if (cifrag->flags.bits.hasMate == false)
+      continue;
+
+    CIFragT     *mifrag = GetCIFragT(ScaffoldGraph->CIFrags, cifrag->mate_iid);
+
+    if (cifrag->cid != mifrag->cid)
+      numExternMates++;
+  }
+
+  if        (numExternMates == 0) {
+    CI.flags.bits.isPotentialRock  = FALSE;
+    CI.flags.bits.isPotentialStone = TRUE;
+
+  } else if (numExternMates == 1) {
+    CI.flags.bits.isPotentialRock  = FALSE;
+    CI.flags.bits.isPotentialStone = TRUE;
+
+  } else {
+    CI.flags.bits.isPotentialRock  = TRUE;
+    CI.flags.bits.isPotentialStone = TRUE;
   }
 
   //  Singleton chunks are chaff; singleton frags are chaff unless proven otherwise

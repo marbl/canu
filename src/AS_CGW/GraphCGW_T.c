@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.113 2012-09-17 13:53:37 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.114 2012-10-05 05:28:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3255,6 +3255,10 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     ma = NULL;
 
     // Mark unitigs as potential Rocks and Stones
+    //
+    //  As of oct 4 2012 this is no longer needed; it's done during unitig loading.  Left in for the
+    //  asserts.
+
     if (operateOnNodes == UNITIG_OPERATIONS) {
       int rock = FALSE;
       int stone = FALSE;
@@ -3274,8 +3278,9 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
           numPotentialRocks++;
           break;
       }
-      node->flags.bits.isPotentialRock = rock;
-      node->flags.bits.isPotentialStone = stone;
+
+      assert(node->flags.bits.isPotentialRock == rock);
+      assert(node->flags.bits.isPotentialStone == stone);
     }
   }  //  over all graph nodes
 
