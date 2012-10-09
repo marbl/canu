@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.34 2012-06-28 01:19:01 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.35 2012-10-09 01:29:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -709,11 +709,19 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg,
         sr++;
 
       if (*sr)
+        //  Kill the comma.  Strings sl and sr are now two file names.
         *sr++ = 0;
 
+      //  Bri likes making this mistake.
+      if (*sr)
+        if (strcmp(sl, sr) == 0)
+          fprintf(stderr, "ERROR: fastqMates files '%s' and '%s' are identical.\n", sl, sr), exit(1);
+
       if (*sr == 0)
+        //  Interlaved mates (one file)
         loadFastQReads(sl, sl, fastqType, fastqOrient, forcePacked, packedLength);
       else
+        //  Disjoint mates (two files)
         loadFastQReads(sl, sr, fastqType, fastqOrient, forcePacked, packedLength);
     }
 
