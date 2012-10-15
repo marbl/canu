@@ -1,6 +1,9 @@
 #include "snapper2.H"
 
-
+#if defined (__SVR4) && defined (__sun) 
+// Solaris defines SS in sys/regset.h
+#undef SS
+#endif
 
 class encodedQuery {
 private:

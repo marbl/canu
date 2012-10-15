@@ -4,20 +4,12 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#ifdef _AIX
-#include <sys/statfs.h>
-#else
-#include <sys/param.h>
-#include <sys/mount.h>
-#endif
-
-#ifdef linux
-#include <sys/vfs.h>
-#endif
+#include <sys/statvfs.h>
 
 #include "util.h"
 
@@ -248,15 +240,15 @@ copyFile(char *srcName, FILE *dstFile) {
 u32bit
 freeDiskSpace(char *path) {
   char          *p, *t;
-  struct statfs  dst;
+  struct statvfs dst;
   struct stat    fst;
   u64bit         ret = 0;
 
   //  Stat the path; if it exists, we're golden.
   //
   if (stat(path, &fst) == 0) {
-    if (statfs(path, &dst) == -1) {
-      perror("statfs");
+    if (statvfs(path, &dst) == -1) {
+      perror("statvfs");
       exit(1);
     }
   } else {
@@ -278,15 +270,15 @@ freeDiskSpace(char *path) {
       p[1] = 0;
     }
 
-    if (statfs(p, &dst) == -1) {
-      perror("statfs");
+    if (statvfs(p, &dst) == -1) {
+      perror("statvfs");
       exit(1);
     }
 
     free(p);
   }
 
-  ret   = dst.f_bsize;
+  ret   = dst.f_frsize;
   ret  *= dst.f_bavail;
   ret >>= 20;
 

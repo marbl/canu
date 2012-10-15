@@ -64,6 +64,9 @@ if [ "x$target" = "x" ] ; then
         target="Linux-ia64$opts"
       fi
       ;;
+    SunOS)
+      target="solaris$opts"
+      ;;
     *)
       echo "ERROR: Unknown uname of `uname` -- try manual configuration."
       exit 1
@@ -355,14 +358,14 @@ EOF
 # -*- makefile -*-
 #  Solaris, gcc optimized
 #
-CC                := $CC
+CC                := $CC -m64
 SHLIB_FLAGS       := -G #untested
 CFLAGS_COMPILE    := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-CLDFLAGS          := 
+CLDFLAGS          :=
 CLIBS             := -lpthread -lrt
-CXX               := $CXX
+CXX               := $CXX -m64
 CXXFLAGS_COMPILE  := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer 
-CXXLDFLAGS        := 
+CXXLDFLAGS        :=
 CXXLIBS           := -lpthread -lrt
 ARFLAGS           := ruv
 INSTALL/          := $target/

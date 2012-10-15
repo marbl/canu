@@ -4,6 +4,11 @@
 #include <sys/types.h>
 #include <signal.h>
 
+#if defined (__SVR4) && defined (__sun) 
+// Solaris defines SS in sys/regset.h
+#undef SS
+#endif
+
 //  Define this to do bounds checking on the arrays used here
 //#define CHECK_BOUNDS
 

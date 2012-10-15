@@ -1,6 +1,12 @@
 #include "positionDB.H"
 #include "seqCache.H"
 
+#if defined (__SVR4) && defined (__sun) 
+// Solaris defines SS and GS in sys/regset.h
+#undef GS
+#undef SS
+#endif
+
 class tapperGlobalData {
 public:
   tapperGlobalData();

@@ -53,27 +53,27 @@ public:
 
 //  Simply forwards control to the class
 void*
-_sweatshop_loaderThread(void *ss) {
-  sweatShop *SS = (sweatShop *)ss;
-  return(SS->loader());
+_sweatshop_loaderThread(void *ss_) {
+  sweatShop *ss = (sweatShop *)ss_;
+  return(ss->loader());
 }
 
 void*
-_sweatshop_workerThread(void *x) {
-  sweatShopWorker *SW = (sweatShopWorker *)x;
-  return(SW->shop->worker(SW));
+_sweatshop_workerThread(void *sw_) {
+  sweatShopWorker *sw = (sweatShopWorker *)sw_;
+  return(sw->shop->worker(sw));
 }
 
 void*
-_sweatshop_writerThread(void *x) {
-  sweatShop *SS = (sweatShop *)x;
-  return(SS->writer());
+_sweatshop_writerThread(void *ss_) {
+  sweatShop *ss = (sweatShop *)ss_;
+  return(ss->writer());
 }
 
 void*
-_sweatshop_statusThread(void *x) {
-  sweatShop *SS = (sweatShop *)x;
-  return(SS->status());
+_sweatshop_statusThread(void *ss_) {
+  sweatShop *ss = (sweatShop *)ss_;
+  return(ss->status());
 }
 
 
