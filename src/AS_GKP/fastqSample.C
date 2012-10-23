@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSample.C,v 1.9 2012-05-29 11:02:47 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSample.C,v 1.10 2012-10-23 10:29:30 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -35,10 +35,14 @@ public:
   ~aRead() {};
 
   bool  read(FILE *F) {
+    if (F == NULL)
+      return(false);
+
     fgets(a, 1024, F);
     fgets(b, 1024, F);
     fgets(c, 1024, F);
     fgets(d, 1024, F);
+
     if ((a[0] != '@') || (c[0] != '+')) {
       fprintf(stderr, "ERROR:  Not FastQ.  Read lines:\n");
       fprintf(stderr, "  %s", a);
@@ -50,6 +54,8 @@ public:
     return(feof(F) == false);
   };
   void  write(FILE *F) {
+    if (F == NULL)
+      return;
     fputs(a, F);
     fputs(b, F);
     fputs(c, F);
@@ -76,6 +82,8 @@ main(int argc, char **argv) {
   uint64    NUMINPUT    = 0;        //  Number of pairs in the input
   char     *NAME        = NULL;     //  Prefix name
 
+  bool      isMated     = true;
+
   uint64    GENOMESIZE  = 0;        //  Size of the genome in bp
   uint64    READLENGTH  = 0;        //  For mated reads, 2x read size
   uint64    COVERAGE    = 0;        //  Desired coverage in output
@@ -97,13 +105,16 @@ main(int argc, char **argv) {
       //  Total reads in input
       NUMINPUT = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-u") == 0) {
+      isMated = false;
+
     } else if (strcmp(argv[arg], "-g") == 0) {
       //  Genome size
       GENOMESIZE = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-l") == 0) {
       //  Length of read
-      READLENGTH = atoi(argv[++arg]) * 2;
+      READLENGTH = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-c") == 0) {
       //  Desired coverage
@@ -136,6 +147,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     fprintf(stderr, "    -n NAME  name (prefix) of the reads\n");
     fprintf(stderr, "    -t T     total number of mate pairs in the input\n");
+    fprintf(stderr, "    -u       reads are unmated, expected in *.u.fastq\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  Method 1: specify desired coverage:\n");
     fprintf(stderr, "    -g G     genome size\n");
@@ -173,37 +185,41 @@ main(int argc, char **argv) {
 
     fprintf(stderr, "Counting the number of reads in the input.\n");
 
-    sprintf(path1, "%s.1.fastq", NAME);
-    sprintf(path2, "%s.2.fastq", NAME);
+    sprintf(path1, "%s.%c.fastq", NAME, (isMated == true) ? '1' : 'u');
+    sprintf(path2, "%s.%c.fastq", NAME, (isMated == true) ? '2' : 'u');
 
     errno = 0;
     Ai = fopen(path1, "r");
     if (errno)
       fprintf(stderr, "Failed to open '%s': %s\n", path1, strerror(errno)), exit(1);
-
-    errno = 0;
-    Bi = fopen(path2, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
-
     while (Ar.read(Ai))
       Ac++;
-    while (Br.read(Bi))
-      Bc++;
-
     fclose(Ai);
-    fclose(Bi);
 
     fprintf(stderr, "Found "F_U64" reads in '%s'\n", Ac, path1);
-    fprintf(stderr, "Found "F_U64" reads in '%s'\n", Bc, path2);
 
-    if (Ac != Bc) {
-      fprintf(stderr, "ERROR:  Number of reads must be the same.\n");
-      exit(1);
+    if (isMated == true) {
+      errno = 0;
+      Bi = fopen(path2, "r");
+      if (errno)
+        fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
+      while (Br.read(Bi))
+        Bc++;
+      fclose(Bi);
+
+      fprintf(stderr, "Found "F_U64" reads in '%s'\n", Bc, path2);
+
+      if (Ac != Bc) {
+        fprintf(stderr, "ERROR:  Number of reads must be the same.\n");
+        exit(1);
+      }
     }
 
     NUMINPUT = Ac;
   }
+
+  if (isMated)
+    READLENGTH *= 2;
 
   if ((NUMOUTPUT == 0) && (COVERAGE > 0))
     NUMOUTPUT = COVERAGE * GENOMESIZE / READLENGTH;
@@ -239,25 +255,27 @@ main(int argc, char **argv) {
   for (uint64 i=0; i<NUMOUTPUT; i++)
     save[ids[i]] = 1;
 
-  sprintf(path1, "%s.1.fastq", NAME);
-  sprintf(path2, "%s.2.fastq", NAME);
+  sprintf(path1, "%s.%c.fastq", NAME, (isMated == true) ? '1' : 'u');
+  sprintf(path2, "%s.%c.fastq", NAME, (isMated == true) ? '2' : 'u');
 
   errno = 0;
   Ai = fopen(path1, "r");
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", path1, strerror(errno)), exit(1);
 
-  errno = 0;
-  Bi = fopen(path2, "r");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
+  if (isMated == true) {
+    errno = 0;
+    Bi = fopen(path2, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
+  }
 
   if (COVERAGE > 0) {
-    sprintf(path1, "%s.%03"F_U64P"x.1.fastq", NAME, COVERAGE);
-    sprintf(path2, "%s.%03"F_U64P"x.2.fastq", NAME, COVERAGE);
+    sprintf(path1, "%s.%03"F_U64P"x.%c.fastq", NAME, COVERAGE, (isMated == true) ? '1' : 'u');
+    sprintf(path2, "%s.%03"F_U64P"x.%c.fastq", NAME, COVERAGE, (isMated == true) ? '2' : 'u');
   } else {
-    sprintf(path1, "%s.n="F_U64".1.fastq", NAME, NUMOUTPUT);
-    sprintf(path2, "%s.n="F_U64".2.fastq", NAME, NUMOUTPUT);
+    sprintf(path1, "%s.n="F_U64".%c.fastq", NAME, NUMOUTPUT, (isMated == true) ? '1' : 'u');
+    sprintf(path2, "%s.n="F_U64".%c.fastq", NAME, NUMOUTPUT, (isMated == true) ? '2' : 'u');
   }
 
   errno = 0;
@@ -265,44 +283,61 @@ main(int argc, char **argv) {
   if (errno)
     fprintf(stderr, "Failed to open '%s': %s\n", path1, strerror(errno)), exit(1);
 
-  errno = 0;
-  Bo = fopen(path2, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
-
-  fprintf(stderr, "Extracting "F_U64" mate pairs into %s and %s\n",
-          NUMOUTPUT, path1, path2);
+  if (isMated == true) {
+    errno = 0;
+    Bo = fopen(path2, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", path2, strerror(errno)), exit(1);
+  }
 
   uint64 i=0;
   uint64 s=0;
 
-  while (Ar.read(Ai) && Br.read(Bi)) {
-    if ((i < NUMINPUT) && (save[i])) {
-      Ar.write(Ao);
-      Br.write(Bo);
-      s++;
+
+  if (isMated == true) {
+    fprintf(stderr, "Extracting "F_U64" mate pairs into %s and %s\n",
+            NUMOUTPUT, path1, path2);
+    for (; Ar.read(Ai) && Br.read(Bi); i++) {
+      if ((i < NUMINPUT) && (save[i])) {
+        Ar.write(Ao);
+        Br.write(Bo);
+        s++;
+      }
     }
 
-    i++;
+    fclose(Ai);
+    fclose(Bi);
+
+    fclose(Ao);
+    fclose(Bo);
+
+  } else {
+    fprintf(stderr, "Extracting "F_U64" reads into %s\n",
+            NUMOUTPUT, path1);
+    for (; Ar.read(Ai); i++) {
+      if ((i < NUMINPUT) && (save[i])) {
+        Ar.write(Ao);
+        s++;
+      }
+    }
+
+    fclose(Ai);
+    fclose(Ao);
   }
 
   if (i > NUMINPUT) {
-    fprintf(stderr, "WARNING:  There are "F_U64" mates in the input; you claimed there are "F_U64" (-t option) mates.\n",
-            i, NUMINPUT);
+    fprintf(stderr, "WARNING:  There are "F_U64" %s in the input; you claimed there are "F_U64" (-t option) %s.\n",
+            i,        (isMated) ? "mates" : "reads",
+            NUMINPUT, (isMated) ? "mates" : "reads");
     fprintf(stderr, "WARNING:  Result is not a random sample of the input file.\n");
   }
 
   if (i < NUMINPUT) {
-    fprintf(stderr, "WARNING:  There are "F_U64" mates in the input; you claimed there are "F_U64" (-t option) mates.\n",
-            i, NUMINPUT);
+    fprintf(stderr, "WARNING:  There are "F_U64" %s in the input; you claimed there are "F_U64" (-t option) %s.\n",
+            i,        (isMated) ? "mates" : "reads",
+            NUMINPUT, (isMated) ? "mates" : "reads");
     fprintf(stderr, "WARNING:  Result is only %f X coverage.\n", (double)s * READLENGTH / GENOMESIZE);
   }
-
-  fclose(Ai);
-  fclose(Bi);
-
-  fclose(Ao);
-  fclose(Bo);
 
   return(0);
 }
