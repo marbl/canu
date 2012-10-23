@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.35 2012-07-26 15:13:14 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.36 2012-10-23 10:26:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -259,7 +259,7 @@ public:
     char  cacheName[FILENAME_MAX];
     sprintf(cacheName, "%s.merTrimDB", merCountsFile);
 
-    if (AS_UTL_fileExists(cacheName, FALSE, TRUE)) {
+    if (AS_UTL_fileExists(cacheName, FALSE, FALSE)) {
       fprintf(stderr, "loading genome mer database from cache '%s'.\n", cacheName);
       genomicDB = new existDB(cacheName);
 
