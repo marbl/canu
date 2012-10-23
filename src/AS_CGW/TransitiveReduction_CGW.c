@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.42 2012-09-20 19:18:40 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.43 2012-10-23 10:37:32 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
@@ -199,12 +199,12 @@ FoundTransitiveEdgePath(ScaffoldGraphT *graph,
   int outgoing = 0;
 
   if (countNumberOfEdges(graph, thisCI, end, totedges, outgoing) > AS_CGW_MAX_FTEP_OUTGOING_EDGES) {
-    //fprintf(stderr, "TransitiveReduction:  CI %d has %d/%d edges; too many, possible repeat, skipping (depth %d).\n", thisCI->id, outgoing, totedges, recurseDepth);
+    //fprintf(stderr, "FoundTransitiveEdgePath()-- CI %d has %d/%d edges; too many, possible repeat, skipping (depth %d).\n", thisCI->id, outgoing, totedges, recurseDepth);
     return(FALSE);
   }
 
   if (recurseSize * outgoing > AS_CGW_MAX_FTEP_RECURSE_SIZE) {
-    //fprintf(stderr, "TransitiveReduction:  CI %d has %d/%d edges; size too big (%d) for path, skipping (depth %d).\n", thisCI->id, outgoing, totedges, recurseSize * outgoing, recurseDepth);
+    //fprintf(stderr, "FoundTransitiveEdgePath()-- CI %d has %d/%d edges; size too big (%d) for path, skipping (depth %d).\n", thisCI->id, outgoing, totedges, recurseSize * outgoing, recurseDepth);
     return(FALSE);
   }
 
@@ -262,7 +262,7 @@ MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int en
   int outgoing = 0;
 
   if (countNumberOfEdges(graph, thisCI, end, totedges, outgoing) > AS_CGW_MAX_FTEP_OUTGOING_EDGES) {
-    fprintf(stderr, "TransitiveReduction:  CI %d has %d/%d edges; too many, possible repeat, skipping.\n", thisCI->id, outgoing, totedges);
+    fprintf(stderr, "MarkPathRemovedEdgesOneEnd()- CI %d has %d/%d edges; too many, possible repeat, skipping.\n", thisCI->id, outgoing, totedges);
     return;
   }
 
