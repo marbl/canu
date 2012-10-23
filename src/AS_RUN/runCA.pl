@@ -723,7 +723,7 @@ sub setDefaults () {
 
     if (exists($ENV{'AS_OVERLAP_MIN_LEN'})) {
         setGlobal("ovlMinLen", $ENV{'AS_OVERLAP_MIN_LEN'});
-        print STDERR "ENV: ovlMinLen $ENV{'AS_OVL_MIN_LEN'} (from \$AS_OVL_MIN_LEN)\n";
+        print STDERR "ENV: ovlMinLen $ENV{'AS_OVERLAP_MIN_LEN'} (from \$AS_OVERLAP_MIN_LEN)\n";
     }
 }
 
