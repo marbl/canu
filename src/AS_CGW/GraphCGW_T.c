@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.114 2012-10-05 05:28:37 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.115 2012-10-23 10:39:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3474,7 +3474,10 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
     //  If we don't have enough samples for an update, don't do anything to dfrg
 
-    if (dfrg->numSamples > minSamplesForOverride) {
+    if (dfrg->numSamples <= minSamplesForOverride) {
+      fprintf(stderr, "ComputeMatePairStatisticsRestricted()-- LIB IID %d distance %.2f %.2f -- only %u samples, can't reestimate\n", i, dfrg->mu, dfrg->sigma, dfrg->numSamples);
+
+    } else {
       DistT  *dupd       = GetDistT(ScaffoldGraph->Dists, i);
 
       double  newmu      = dfrg->mu / dfrg->numSamples;
@@ -3544,6 +3547,10 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
           fprintf(updFile, "#lib iid %d distance %.2f %.2f # would have updated to %.2f %.2f but not allowed\n", i, dupd->mu, dupd->sigma, newmu, newsigma);
       }
 
+      if (dupd->allowUpdate)
+        fprintf(stderr, "ComputeMatePairStatisticsRestricted()-- LIB IID %d distance %.2f %.2f\n", i, dupd->mu, dupd->sigma);
+      else
+        fprintf(stderr, "ComputeMatePairStatisticsRestricted()-- LIB IID %d distance %.2f %.2f -- would have updated to %.2f %.2f but not allowed\n", i, dupd->mu, dupd->sigma, newmu, newsigma);
     }  //  end of update
 
     DeleteVA_CDS_CID_t(dworkSamples[i]);
