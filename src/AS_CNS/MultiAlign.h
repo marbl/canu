@@ -22,7 +22,7 @@
 #ifndef MULTIALIGN_H
 #define MULTIALIGN_H
 
-static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.13 2012-08-29 05:58:36 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGN_H = "$Id: MultiAlign.h,v 1.14 2012-10-24 15:34:06 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
@@ -79,6 +79,7 @@ void         ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma);
 
 void         CheckMAValidity(MultiAlignT *ma);
 
+void         GetMultiAlignUngappedConsensus(MultiAlignT *ma, char *ungappedSequence, char *ungappedQuality);
 void         GetMultiAlignUngappedConsensus(MultiAlignT *ma, VA_TYPE(char) *ungappedSequence, VA_TYPE(char) *ungappedQuality);
 void         GetMultiAlignUngappedOffsets(MultiAlignT *ma, VA_TYPE(int32) *ungappedOffsets);
 

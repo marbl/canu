@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlign.c,v 1.23 2012-08-29 05:58:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlign.c,v 1.24 2012-10-24 15:34:06 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -544,6 +544,33 @@ CheckMAValidity(MultiAlignT *ma) {
 }
 
 
+
+void
+GetMultiAlignUngappedConsensus(MultiAlignT *ma,
+                               char *ungappedConsensus,
+                               char *ungappedQuality) {
+  int32 p = 0;
+
+  if (ma) {
+    char *c = Getchar(ma->consensus, 0);
+    char *q = Getchar(ma->quality,   0);
+
+    CheckMAValidity(ma);
+
+    while (*c != 0) {
+      if (*c != '-') {
+        ungappedConsensus[p] = *c;
+        ungappedQuality[p]   = *q;
+        p++;
+      }
+      c++;
+      q++;
+    }
+  }
+
+  ungappedConsensus[p] = 0;
+  ungappedQuality[p]   = 0;
+}
 
 void
 GetMultiAlignUngappedConsensus(MultiAlignT *ma,
