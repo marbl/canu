@@ -22,12 +22,19 @@
 #ifndef OUTPUT_CGW_H
 #define OUTPUT_CGW_H
 
-static const char *rcsid_OUTPUT_CGW_H = "$Id: Output_CGW.h,v 1.7 2009-12-01 00:20:30 brianwalenz Exp $";
+static const char *rcsid_OUTPUT_CGW_H = "$Id: Output_CGW.h,v 1.8 2012-10-25 17:13:35 brianwalenz Exp $";
+
+#include "Globals_CGW.h"
+#include "GraphCGW_T.h"
+#include "AS_MSG_pmesg.h"
 
 void MarkContigEdges(void);
 
-void OutputContigsFromMultiAligns(int32 outputFragsPerPartition);
+UnitigStatus  finalUnitigStatus(NodeCGW_T *unitig);
+UnitigType    finalUnitigType(NodeCGW_T *unitig);
+
 void OutputUnitigsFromMultiAligns(void);
+void OutputContigsFromMultiAligns(int32 outputFragsPerPartition);
 
 #endif
 

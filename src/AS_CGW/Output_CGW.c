@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.54 2012-09-20 19:18:40 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.55 2012-10-25 17:13:35 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -79,53 +79,69 @@ MarkContigEdges(void) {
 
 
 
+UnitigStatus
+finalUnitigStatus(ContigT *ci) {
+
+  assert(ci->id >= 0);
+  assert(ci->id < GetNumGraphNodes(ScaffoldGraph->CIGraph));
+
+  if (ci->flags.bits.isChaff)
+    //  Didn't used to be assigned to anything; just skipped in the OutputUnitigsFromMultiAligns function
+    return(AS_UNASSIGNED);
+
+  if (ci->type == RESOLVEDREPEATCHUNK_CGW)
+    //  Didn't used to be assigned to anything; just skipped in the OutputUnitigsFromMultiAligns function
+    return(AS_UNASSIGNED);
+
+  if (ci->type == DISCRIMINATORUNIQUECHUNK_CGW)
+    return(AS_UNIQUE);
+
+  if (ci->type == UNIQUECHUNK_CGW)
+    return(AS_UNIQUE);
+
+  if (ci->type != UNRESOLVEDCHUNK_CGW)
+    //  Former assert
+    return(AS_UNASSIGNED);
+    
+  if (ci->info.CI.numInstances > 0)
+    return(AS_SEP);
+
+  if (ci->scaffoldID != NULLINDEX)
+    return(AS_UNIQUE);
+
+  return(AS_NOTREZ);
+}
 
 
-void
-OutputUnitigsFromMultiAligns(void) {
-  GraphNodeIterator   nodes;
-  ContigT	     *ci;
+UnitigType
+finalUnitigType(NodeCGW_T *unitig) {
 
-  InitGraphNodeIterator(&nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-  while ((ci = NextGraphNodeIterator(&nodes)) != NULL) {
-    UnitigStatus   status = AS_UNASSIGNED;
+  if (unitig->type == DISCRIMINATORUNIQUECHUNK_CGW)
+    return(AS_UNIQUE_UNITIG);
+    
+  if (unitig->scaffoldID == NULLINDEX)
+    return(AS_SINGLE_UNITIG);
 
-    assert(ci->id >= 0);
-    assert(ci->id < GetNumGraphNodes(ScaffoldGraph->CIGraph));
+  if (unitig->flags.bits.isSurrogate == FALSE)
+    return(AS_ROCK_UNITIG);
 
-    if (ci->flags.bits.isChaff)
-      continue;
+  if (unitig->flags.bits.isStoneSurrogate)
+    return(AS_STONE_UNITIG);
 
-    if (ci->type == RESOLVEDREPEATCHUNK_CGW)
-      continue;
-
-    if      (ci->type == DISCRIMINATORUNIQUECHUNK_CGW)
-      status = AS_UNIQUE;
-
-    else if (ci->type == UNIQUECHUNK_CGW)
-      status = AS_UNIQUE;
-
-    else if (ci->type == UNRESOLVEDCHUNK_CGW)
-      if (ci->info.CI.numInstances > 0)
-        status = AS_SEP;
-      else if (ci->scaffoldID != NULLINDEX)
-        status = AS_UNIQUE;
-      else
-        status = AS_NOTREZ;
-
-    else {
-      fprintf(stderr, "Unknown ci->type %d\n", ci->type);
-      assert(0);
-    }
-
-    ScaffoldGraph->tigStore->setUnitigStatus(ci->id, status);
-  }
+  return(AS_PEBBLE_UNITIG);
 }
 
 
 
+void
+OutputUnitigsFromMultiAligns(void) {
+  GraphNodeIterator   unitigs;
+  NodeCGW_T          *unitig;
 
-
+  InitGraphNodeIterator(&unitigs, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
+  while ((unitig = NextGraphNodeIterator(&unitigs)) != NULL)
+    ScaffoldGraph->tigStore->setUnitigStatus(unitig->id, finalUnitigStatus(unitig));
+}
 
 
 
@@ -263,24 +279,8 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
 
     for (uint32 i=0; i<numUnitig; i++) {
       NodeCGW_T    *unitig        = GetGraphNode(ScaffoldGraph->CIGraph, iup[i].ident);
-      int32         num_instances = unitig->info.CI.numInstances;
- 
-      if (unitig->type == DISCRIMINATORUNIQUECHUNK_CGW) {
-        iup[i].type = AS_UNIQUE_UNITIG;
 
-      } else if (unitig->scaffoldID == NULLINDEX) {
-        iup[i].type = AS_SINGLE_UNITIG;
-
-      } else if (unitig->flags.bits.isSurrogate == FALSE) {
-        iup[i].type = AS_ROCK_UNITIG;
-
-      } else  if (unitig->flags.bits.isStoneSurrogate) {
-        iup[i].type = AS_STONE_UNITIG;
-
-      } else {
-        iup[i].type = AS_PEBBLE_UNITIG;
-      }
-
+      iup[i].type         = finalUnitigType(unitig);
       iup[i].delta_length = 0;
       iup[i].delta        = NULL;
 
