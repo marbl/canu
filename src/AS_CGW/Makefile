@@ -25,6 +25,7 @@
 LOCAL_WORK = $(shell cd ../../; pwd)
 
 CGW_SOURCES =     AS_CGW_main.C \
+                  cgwDump.C \
                   analyzeScaffolds.C \
                   eCR.C \
                   eCR-examineGap.C \
@@ -76,7 +77,7 @@ CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.C=.o)
 LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
-CXX_PROGS = cgw analyzeScaffolds extendClearRanges extendClearRangesPartition resolveSurrogates dumpCloneMiddles dumpSingletons frgs2clones
+CXX_PROGS = cgw cgwDump analyzeScaffolds extendClearRanges extendClearRangesPartition resolveSurrogates dumpCloneMiddles dumpSingletons frgs2clones
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -103,3 +104,5 @@ dumpCloneMiddles: dumpCloneMiddles.o $(LIBS)
 dumpSingletons: dumpSingletons.o $(LIBS)
 
 frgs2clones: frgs2clones.o $(LIBS)
+
+cgwDump: cgwDump.o $(LIBS)
