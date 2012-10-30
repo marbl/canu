@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: cgwDump.C,v 1.1 2012-10-25 17:15:54 brianwalenz Exp $";
+const char *mainid = "$Id: cgwDump.C,v 1.2 2012-10-30 16:49:09 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -34,10 +34,11 @@ const char *mainid = "$Id: cgwDump.C,v 1.1 2012-10-25 17:15:54 brianwalenz Exp $
 #include "AS_UTL_reverseComplement.h"
 
 #define DUMP_NOTHING       0
-#define DUMP_READS         1
-#define DUMP_UNITIGS       2
-#define DUMP_CONTIGS       3
-#define DUMP_SCAFFOLDS     4
+
+#define DUMP_READS         0x01
+#define DUMP_UNITIGS       0x02
+#define DUMP_CONTIGS       0x04
+#define DUMP_SCAFFOLDS     0x08
 
 #define DUMP_CONSENSUS     0x01
 #define DUMP_LAYOUT        0x02
@@ -63,9 +64,13 @@ public:
 };
 
 
-class outputTig {
+class outputTig : public outputObj {
 public:
-  outputTig() {};
+  outputTig() {
+    id = 0;
+    fwd = false;
+    gapBgn = gapEnd = posBgn = posEnd = 0;
+  };
   outputTig(NodeCGW_T *tig, MultiAlignT *ma, bool isUnitig) {
     init(tig, ma, isUnitig);
   };
@@ -74,7 +79,6 @@ public:
 
   int32   setPosition(int32 bgn);
 
-  outputObj          obj;  //  This unitig or contig
   vector<outputObj>  frg;  //  Component fragments
   vector<outputObj>  utg;  //  Component unitigs
 
@@ -109,10 +113,9 @@ void
 outputTig::init(NodeCGW_T    *tig,
                 MultiAlignT  *ma,
                 bool          isUnitig) {
-  outputObj   tmpObj;
 
-  obj.id     = tig->id;
-  obj.fwd    = (tig->offsetAEnd.mean < tig->offsetBEnd.mean);
+  id     = tig->id;
+  fwd    = (tig->offsetAEnd.mean < tig->offsetBEnd.mean);
 
   //  Build a map from gapped to ungapped coordinates.
 
@@ -120,7 +123,7 @@ outputTig::init(NodeCGW_T    *tig,
   uint32   seqLen     = GetMultiAlignLength(ma);
   uint32  *gapToUngap = new uint32 [seqLen];
 
-  if (obj.fwd == false)
+  if (fwd == false)
     reverseComplementSequence(gapseq, seqLen);
 
   uint32   gp = 0;  //  Gapped length, after the loop
@@ -135,28 +138,32 @@ outputTig::init(NodeCGW_T    *tig,
     }
   }
 
+  gapToUngap[gp] = up;
+
   //  Set the position of the tig in the parent.  For now, set the ungapped
   //  position to the start of the parent; the parent (scaffold) must update this.
 
-  obj.gapBgn = (obj.fwd) ? tig->offsetAEnd.mean : tig->offsetBEnd.mean;
-  obj.gapEnd = (obj.fwd) ? tig->offsetBEnd.mean : tig->offsetAEnd.mean;
+  gapBgn = (fwd) ? tig->offsetAEnd.mean : tig->offsetBEnd.mean;
+  gapEnd = (fwd) ? tig->offsetBEnd.mean : tig->offsetAEnd.mean;
 
-  obj.posBgn = 0;
-  obj.posEnd = up;
+  posBgn = 0;
+  posEnd = up;
 
   //  Populate a list of reads.
+
+  outputObj   to;
 
   for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
 
-    tmpObj.id     = imp->ident;
-    tmpObj.fwd    = (imp->position.bgn < imp->position.end) ? true : false;
-    tmpObj.gapBgn = imp->position.bgn;
-    tmpObj.gapEnd = imp->position.end;
-    tmpObj.posBgn = gapToUngap[tmpObj.gapBgn];
-    tmpObj.posEnd = gapToUngap[tmpObj.gapEnd];
+    to.id     = imp->ident;
+    to.fwd    = (imp->position.bgn < imp->position.end) ? true : false;
+    to.gapBgn = imp->position.bgn;
+    to.gapEnd = imp->position.end;
+    to.posBgn = gapToUngap[to.gapBgn];
+    to.posEnd = gapToUngap[to.gapEnd];
 
-    frg.push_back(tmpObj);
+    frg.push_back(to);
   }
 
   //  Populate a list of unitigs.
@@ -164,14 +171,14 @@ outputTig::init(NodeCGW_T    *tig,
   for (uint32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
     IntUnitigPos *iup = GetIntUnitigPos(ma->u_list, i);
 
-    tmpObj.id     = iup->ident;
-    tmpObj.fwd    = (iup->position.bgn < iup->position.end) ? true : false;
-    tmpObj.gapBgn = iup->position.bgn;
-    tmpObj.gapEnd = iup->position.end;
-    tmpObj.posBgn = gapToUngap[tmpObj.gapBgn];
-    tmpObj.posEnd = gapToUngap[tmpObj.gapEnd];
+    to.id     = iup->ident;
+    to.fwd    = (iup->position.bgn < iup->position.end) ? true : false;
+    to.gapBgn = iup->position.bgn;
+    to.gapEnd = iup->position.end;
+    to.posBgn = gapToUngap[to.gapBgn];
+    to.posEnd = gapToUngap[to.gapEnd];
 
-    frg.push_back(tmpObj);
+    utg.push_back(to);
   }
 
   //  Cleanup.
@@ -183,8 +190,8 @@ outputTig::init(NodeCGW_T    *tig,
 int32
 outputTig::setPosition(int32 bgn) {
 
-  obj.posBgn += bgn;
-  obj.posEnd += bgn;
+  posBgn += bgn;
+  posEnd += bgn;
 
   for (uint32 fi=0; fi<frg.size(); fi++) {
     frg[fi].posBgn += bgn;
@@ -196,7 +203,7 @@ outputTig::setPosition(int32 bgn) {
     utg[ui].posEnd += bgn;
   }
 
-  return(obj.posEnd);
+  return(posEnd);
 }
 
 
@@ -226,7 +233,7 @@ outputScf::init(NodeCGW_T *scaffold) {
       else
         gap.push_back((int32)(bgn - lastEnd));
 
-      fprintf(stderr, "GAP %u %d from last %.2f this %.2f %.2f\n", gap.size(), gap.back(), lastEnd, bgn, end);
+      //fprintf(stderr, "GAP %u %d from last %.2f this %.2f %.2f\n", gap.size(), gap.back(), lastEnd, bgn, end);
     }
 
     lastEnd = end;
@@ -245,12 +252,16 @@ outputScf::init(NodeCGW_T *scaffold) {
   }
 
   //  Pass 3: Place each contig in the correct location.  This also adjusts the component
-  //  reads and unitigs.
+  //  reads and unitigs.  At the same time, populate the list of fragments.
 
   int32 scfLen = 0;
 
-  for (uint32 ci=0; ci<ctg.size(); ci++)
+  for (uint32 ci=0; ci<ctg.size(); ci++) {
     scfLen = ctg[ci].setPosition(scfLen) + gap[ci];
+
+    for (uint32 fi=0; fi<ctg[ci].frg.size(); fi++)
+      frg.push_back(ctg[ci].frg[fi]);
+  }
 
   //  Pass 3: Construct scaffold sequence
 
@@ -265,7 +276,6 @@ outputScf::init(NodeCGW_T *scaffold) {
   seq.push_back(0);
 
   //AS_UTL_writeFastA(stderr, &seq[0], seq.size()-1, seq.size()-1, ">scf"F_U32"\n", scaffold->id);
-  //fprintf(stderr, "ctg%08d\tscf%08d\t%d\t%d\t%c\n", contig->id, scaffold->id, bgn, end, (isFwd) ? 'f' : 'r');
 }
 
 
@@ -319,7 +329,9 @@ dumpUnitigs(uint32          bgnIID,
   FILE    *outputStone   = openPrefixFile(outputPrefix, ".utg.stone.fasta");
   FILE    *outputPebble  = openPrefixFile(outputPrefix, ".utg.pebble.fasta");
 
-  FILE    *outputLayout  = openPrefixFile(outputPrefix, ".utg.layout");
+  FILE    *outputUtgLen  = openPrefixFile(outputPrefix, ".utg.posmap.utglen");
+  FILE    *outputFrgUtg  = openPrefixFile(outputPrefix, ".utg.posmap.frgutg");
+
   FILE    *outputEdges   = openPrefixFile(outputPrefix, ".utg.edges");
 
   bool     isVec = (objIID.size() > 0);
@@ -341,19 +353,26 @@ dumpUnitigs(uint32          bgnIID,
     MultiAlignT  *ma     = ScaffoldGraph->tigStore->loadMultiAlign(unitig->id, TRUE);
     UnitigType    type   = finalUnitigType(unitig);
 
-    uint32  seqLen = GetMultiAlignUngappedLength(ma);
-    char   *seq    = new char [seqLen + 1];
-    char   *qlt    = new char [seqLen + 1];
-
-    GetMultiAlignUngappedConsensus(ma, seq, qlt);
+    outputTig     utg(unitig, ma, TRUE);
 
     if (dumpType & DUMP_LAYOUT) {
+      fprintf(outputUtgLen, "utg%08d\t"F_SIZE_T"\n", unitig->id, utg.seq.size() - 1);
+
+      for (uint32 fi=0; fi<utg.frg.size(); fi++) {
+        outputObj  &obj = utg.frg[fi];
+
+        fprintf(outputFrgUtg, "frg%08d\tutg%08d\t%d\t%d\t%c\n",
+                obj.id, unitig->id, obj.posBgn, obj.posEnd, (obj.fwd) ? 'f' : 'r');
+      }
     }
 
     if (dumpType & DUMP_EDGES) {
     }
 
     if (dumpType & DUMP_CONSENSUS) {
+      uint32  seqLen =  utg.seq.size() - 1;
+      char   *seq    = &utg.seq[0];
+
       if (type == AS_UNIQUE_UNITIG)
         AS_UTL_writeFastA(outputUnique, seq, seqLen, seqLen, ">utg"F_U32"\n", unitig->id);
 
@@ -377,7 +396,9 @@ dumpUnitigs(uint32          bgnIID,
   if (outputStone)   fclose(outputStone);
   if (outputPebble)  fclose(outputPebble);
 
-  if (outputLayout)  fclose(outputLayout);
+  if (outputUtgLen)  fclose(outputUtgLen);
+  if (outputFrgUtg)  fclose(outputFrgUtg);
+
   if (outputEdges)   fclose(outputEdges);
 }
 
@@ -389,6 +410,81 @@ dumpContigs(uint32          bgnIID,
             vector<uint32>  objIID,
             uint32          dumpType,
             char           *outputPrefix) {
+  FILE    *outputPlaced   = openPrefixFile(outputPrefix, ".ctg.placed.fasta");
+  FILE    *outputUnplaced = openPrefixFile(outputPrefix, ".ctg.unplaced.fasta");
+  FILE    *outputSingle   = openPrefixFile(outputPrefix, ".ctg.single.fasta");
+
+  FILE    *outputCtgLen   = openPrefixFile(outputPrefix, ".ctg.posmap.ctglen");
+  FILE    *outputFrgCtg   = openPrefixFile(outputPrefix, ".ctg.posmap.frgctg");
+  FILE    *outputUtgCtg   = openPrefixFile(outputPrefix, ".ctg.posmap.utgctg");
+
+  FILE    *outputEdges    = openPrefixFile(outputPrefix, ".ctg.edges");
+
+  bool     isVec = (objIID.size() > 0);
+
+  if (endIID > GetNumGraphNodes(ScaffoldGraph->ContigGraph))
+    endIID = GetNumGraphNodes(ScaffoldGraph->ContigGraph);
+
+  if (isVec) {
+    bgnIID = 0;
+    endIID = objIID.size();
+  }
+
+  for (uint32 ii=bgnIID; ii<endIID; ii++) {
+    NodeCGW_T    *contig = GetGraphNode(ScaffoldGraph->ContigGraph, (isVec) ? objIID[ii] : ii);
+
+    if (contig->flags.bits.isDead)
+      continue;
+
+    MultiAlignT  *ma     = ScaffoldGraph->tigStore->loadMultiAlign(contig->id, FALSE);
+    ContigStatus  type   = finalContigStatus(contig);
+
+    outputTig     ctg(contig, ma, FALSE);
+
+    if (dumpType & DUMP_LAYOUT) {
+      fprintf(outputCtgLen, "utg%08d\t"F_SIZE_T"\n", contig->id, ctg.seq.size() - 1);
+
+      for (uint32 fi=0; fi<ctg.frg.size(); fi++) {
+        outputObj  &obj = ctg.frg[fi];
+
+        fprintf(outputFrgCtg, "frg%08d\tctg%08d\t%d\t%d\t%c\n",
+                obj.id, contig->id, obj.posBgn, obj.posEnd, (obj.fwd) ? 'f' : 'r');
+      }
+
+      for (uint32 ci=0; ci<ctg.utg.size(); ci++) {
+        outputObj  &obj = ctg.utg[ci];
+
+        fprintf(outputUtgCtg, "utg%08d\tctg%08d\t%d\t%d\t%c\n",
+                obj.id, contig->id, obj.posBgn, obj.posEnd, (obj.fwd) ? 'f' : 'r');
+      }
+    }
+
+    if (dumpType & DUMP_EDGES) {
+    }
+
+    if (dumpType & DUMP_CONSENSUS) {
+      uint32  seqLen =  ctg.seq.size() - 1;
+      char   *seq    = &ctg.seq[0];
+
+      if (type == AS_PLACED)
+        AS_UTL_writeFastA(outputPlaced, seq, seqLen, seqLen, ">ctg"F_U32"\n", contig->id);
+
+      if ((type == AS_UNPLACED) && (ctg.frg.size() == 1))
+        AS_UTL_writeFastA(outputSingle, seq, seqLen, seqLen, ">ctg"F_U32"\n", contig->id);
+
+      if ((type == AS_UNPLACED) && (ctg.frg.size() > 1))
+        AS_UTL_writeFastA(outputUnplaced, seq, seqLen, seqLen, ">ctg"F_U32"\n", contig->id);
+    }
+  }
+
+  if (outputPlaced)   fclose(outputPlaced);
+  if (outputUnplaced) fclose(outputUnplaced);
+
+  if (outputCtgLen)  fclose(outputCtgLen);
+  if (outputFrgCtg)  fclose(outputFrgCtg);
+  if (outputUtgCtg)  fclose(outputUtgCtg);
+
+  if (outputEdges)   fclose(outputEdges);
 }
 
 
@@ -402,7 +498,11 @@ dumpScaffolds(uint32          bgnIID,
   FILE    *outputMulti   = openPrefixFile(outputPrefix, ".scf.multi.fasta");
   FILE    *outputSingle  = openPrefixFile(outputPrefix, ".scf.single.fasta");
 
-  FILE    *outputLayout  = openPrefixFile(outputPrefix, ".scf.layout");
+  FILE    *outputScfLen  = openPrefixFile(outputPrefix, ".scf.posmap.scflen");
+  FILE    *outputFrgScf  = openPrefixFile(outputPrefix, ".scf.posmap.frgscf");
+  FILE    *outputUtgScf  = openPrefixFile(outputPrefix, ".scf.posmap.utgscf");
+  FILE    *outputCtgScf  = openPrefixFile(outputPrefix, ".scf.posmap.ctgscf");
+
   FILE    *outputEdges   = openPrefixFile(outputPrefix, ".scf.edges");
 
   bool     isVec = (objIID.size() > 0);
@@ -426,19 +526,54 @@ dumpScaffolds(uint32          bgnIID,
 
     outputScf              scf(scaffold);
 
+    if (dumpType & DUMP_LAYOUT) {
+      fprintf(outputScfLen, "scf%08d\t"F_SIZE_T"\n", scaffold->id, scf.seq.size() - 1);
+
+      for (uint32 fi=0; fi<scf.frg.size(); fi++) {
+        outputObj  &obj = scf.frg[fi];
+
+        fprintf(outputFrgScf, "frg%08d\tscf%08d\t%d\t%d\t%c\n",
+                obj.id, scaffold->id, obj.posBgn, obj.posEnd, (obj.fwd) ? 'f' : 'r');
+      }
+
+      for (uint32 ui=0; ui<scf.utg.size(); ui++) {
+        outputTig  &obj = scf.utg[ui];
+
+        fprintf(outputUtgScf, "utg%08d\tscf%08d\t%d\t%d\t%c\n",
+                obj.id, scaffold->id, obj.posBgn, obj.posEnd, (obj.fwd) ? 'f' : 'r');
+      }
+
+      for (uint32 ci=0; ci<scf.ctg.size(); ci++) {
+        outputTig  &obj = scf.ctg[ci];
+
+        fprintf(outputCtgScf, "ctg%08d\tscf%08d\t%d\t%d\t%c\n",
+                obj.id, scaffold->id, obj.posBgn, obj.posEnd, (obj.fwd) ? 'f' : 'r');
+      }
+    }
+
+    if (dumpType & DUMP_EDGES) {
+    }
+
     if (dumpType & DUMP_CONSENSUS) {
+      uint32  seqLen =  scf.seq.size() - 1;
+      char   *seq    = &scf.seq[0];
+
       if (scf.ctg.size() == 1)
-        AS_UTL_writeFastA(outputSingle, &scf.seq[0], scf.seq.size()-1, scf.seq.size()-1, ">scf"F_U32"\n", scaffold->id);
+        AS_UTL_writeFastA(outputSingle, seq, seqLen, seqLen, ">scf"F_U32"\n", scaffold->id);
 
       if (scf.ctg.size() > 1)
-        AS_UTL_writeFastA(outputMulti, &scf.seq[0], scf.seq.size()-1, scf.seq.size()-1, ">scf"F_U32"\n", scaffold->id);
+        AS_UTL_writeFastA(outputMulti,  seq, seqLen, seqLen, ">scf"F_U32"\n", scaffold->id);
     }
   }
 
   if (outputMulti)   fclose(outputMulti);
   if (outputSingle)  fclose(outputSingle);
 
-  if (outputLayout)  fclose(outputLayout);
+  if (outputScfLen)  fclose(outputScfLen);
+  if (outputFrgScf)  fclose(outputFrgScf);
+  if (outputUtgScf)  fclose(outputUtgScf);
+  if (outputCtgScf)  fclose(outputCtgScf);
+
   if (outputEdges)   fclose(outputEdges);
 }
 
@@ -481,13 +616,13 @@ int main (int argc, char *argv[]) {
       outputPrefix = argv[++arg];
 
     } else if (strcmp(argv[arg], "-reads") == 0) {
-      objectType = DUMP_READS;
+      objectType |= DUMP_READS;
     } else if (strcmp(argv[arg], "-unitigs") == 0) {
-      objectType = DUMP_UNITIGS;
+      objectType |= DUMP_UNITIGS;
     } else if (strcmp(argv[arg], "-contigs") == 0) {
-      objectType = DUMP_CONTIGS;
+      objectType |= DUMP_CONTIGS;
     } else if (strcmp(argv[arg], "-scaffolds") == 0) {
-      objectType = DUMP_SCAFFOLDS;
+      objectType |= DUMP_SCAFFOLDS;
 
     } else if (strcmp(argv[arg], "-b") == 0) {
       bgnIID = atoi(argv[++arg]);
@@ -501,6 +636,16 @@ int main (int argc, char *argv[]) {
     } else if (strcmp(argv[arg], "-layout") == 0) {
       dumpType |= DUMP_LAYOUT;
     } else if (strcmp(argv[arg], "-edges") == 0) {
+      dumpType |= DUMP_EDGES;
+
+    } else if (strcmp(argv[arg], "-all") == 0) {
+      objectType |= DUMP_READS;
+      objectType |= DUMP_UNITIGS;
+      objectType |= DUMP_CONTIGS;
+      objectType |= DUMP_SCAFFOLDS;
+
+      dumpType |= DUMP_CONSENSUS;
+      dumpType |= DUMP_LAYOUT;
       dumpType |= DUMP_EDGES;
 
     } else {
@@ -525,11 +670,11 @@ int main (int argc, char *argv[]) {
     fprintf(stderr, "  -t tigStore version     mandatory path to the tigStore and version\n");
     fprintf(stderr, "  -c checkpoint version   mandatory path to a checkpoint and version\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
     fprintf(stderr, "  -o prefix               output is written to files starting with 'prefix'\n");
     fprintf(stderr, "                          (e.g., prefix.ctg.fasta)\n");
     fprintf(stderr, "                          (e.g., prefix.posmap.frgscf)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -all                    dump all data for all object types\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "action - what object types to dump\n");
     fprintf(stderr, "\n");
@@ -585,16 +730,16 @@ int main (int argc, char *argv[]) {
   if (labelMates)
     MarkContigEdges();
 
-  if (objectType == DUMP_READS)
+  if (objectType & DUMP_READS)
     dumpReads(bgnIID, endIID, objIID, dumpType, outputPrefix);
 
-  if (objectType == DUMP_UNITIGS)
+  if (objectType & DUMP_UNITIGS)
     dumpUnitigs(bgnIID, endIID, objIID, dumpType, outputPrefix);
 
-  if (objectType == DUMP_CONTIGS)
+  if (objectType & DUMP_CONTIGS)
     dumpContigs(bgnIID, endIID, objIID, dumpType, outputPrefix);
 
-  if (objectType == DUMP_SCAFFOLDS)
+  if (objectType & DUMP_SCAFFOLDS)
     dumpScaffolds(bgnIID, endIID, objIID, dumpType, outputPrefix);
 
   DestroyScaffoldGraph(ScaffoldGraph);
