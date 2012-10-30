@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: Output_CGW.c,v 1.55 2012-10-25 17:13:35 brianwalenz Exp $";
+static char *rcsid = "$Id: Output_CGW.c,v 1.56 2012-10-30 16:48:26 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -80,36 +80,47 @@ MarkContigEdges(void) {
 
 
 UnitigStatus
-finalUnitigStatus(ContigT *ci) {
+finalUnitigStatus(NodeCGW_T *unitig) {
 
-  assert(ci->id >= 0);
-  assert(ci->id < GetNumGraphNodes(ScaffoldGraph->CIGraph));
+  assert(unitig->id >= 0);
+  assert(unitig->id < GetNumGraphNodes(ScaffoldGraph->CIGraph));
 
-  if (ci->flags.bits.isChaff)
+  if (unitig->flags.bits.isChaff)
     //  Didn't used to be assigned to anything; just skipped in the OutputUnitigsFromMultiAligns function
     return(AS_UNASSIGNED);
 
-  if (ci->type == RESOLVEDREPEATCHUNK_CGW)
+  if (unitig->type == RESOLVEDREPEATCHUNK_CGW)
     //  Didn't used to be assigned to anything; just skipped in the OutputUnitigsFromMultiAligns function
     return(AS_UNASSIGNED);
 
-  if (ci->type == DISCRIMINATORUNIQUECHUNK_CGW)
+  if (unitig->type == DISCRIMINATORUNIQUECHUNK_CGW)
     return(AS_UNIQUE);
 
-  if (ci->type == UNIQUECHUNK_CGW)
+  if (unitig->type == UNIQUECHUNK_CGW)
     return(AS_UNIQUE);
 
-  if (ci->type != UNRESOLVEDCHUNK_CGW)
+  if (unitig->type != UNRESOLVEDCHUNK_CGW)
     //  Former assert
     return(AS_UNASSIGNED);
     
-  if (ci->info.CI.numInstances > 0)
+  if (unitig->info.CI.numInstances > 0)
     return(AS_SEP);
 
-  if (ci->scaffoldID != NULLINDEX)
+  if (unitig->scaffoldID != NULLINDEX)
     return(AS_UNIQUE);
 
   return(AS_NOTREZ);
+}
+
+
+ContigStatus
+finalContigStatus(NodeCGW_T *contig) {
+  CIScaffoldT   *scaffold  = GetGraphNode(ScaffoldGraph->ScaffoldGraph, contig->scaffoldID);
+
+  if ((scaffold != NULL) && (scaffold->type == REAL_SCAFFOLD))
+    return(AS_PLACED);
+
+  return(AS_UNPLACED);
 }
 
 
@@ -259,8 +270,6 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
     if (ctg->flags.bits.isChaff)
       continue;
 
-    CIScaffoldT   *scaffold  = GetGraphNode(ScaffoldGraph->ScaffoldGraph, ctg->scaffoldID);
-
     MultiAlignT   *ma        = ScaffoldGraph->tigStore->loadMultiAlign(ctg->id, FALSE);
 
     uint32         numFrag   = GetNumIntMultiPoss(ma->f_list);
@@ -299,7 +308,7 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
     //  Important: we want to keep this ma in the cache, only so that we don't have to explicitly
     //  delete it right here.  When the store is deleted (below) the cache will get flushed.
 
-    ScaffoldGraph->tigStore->setContigStatus(ctg->id, ((scaffold != NULL) && (scaffold->type == REAL_SCAFFOLD)) ? AS_PLACED : AS_UNPLACED);
+    ScaffoldGraph->tigStore->setContigStatus(ctg->id, finalContigStatus(ctg));
     ScaffoldGraph->tigStore->insertMultiAlign(ma, FALSE, TRUE);
   }
 
