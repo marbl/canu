@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.36 2012-10-23 10:26:26 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.37 2012-11-01 23:03:41 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -94,6 +94,8 @@ public:
     endTrimWinScale[1]        = 0.25;
     endTrimErrAllow[1]        = 0;
 #endif
+
+    endTrimQV                 = '2';
 
     doTrimming                = true;
 
@@ -306,6 +308,8 @@ public:
   uint32        endTrimNum;
   double        endTrimWinScale[16];
   uint32        endTrimErrAllow[16];
+
+  char          endTrimQV;
 
   bool          doTrimming;
 
@@ -600,7 +604,7 @@ public:
 
   void       attemptCorrection(bool isReversed);
 
-  void       attemptTrimming(void);
+  void       attemptTrimming(char endTrimQV);
   void       attemptTrimming5End(uint32 *errorPos, uint32 endWindow, uint32 endAllowed);
   void       attemptTrimming3End(uint32 *errorPos, uint32 endWindow, uint32 endAllowed);
 
@@ -1441,7 +1445,7 @@ mertrimComputation::attemptTrimming3End(uint32 *errorPos, uint32 endWindow, uint
 
 
 void
-mertrimComputation::attemptTrimming(void) {
+mertrimComputation::attemptTrimming(char endTrimQV) {
 
   //  Just bail if the read is all junk.  Nothing to do here.
   //
@@ -1461,10 +1465,10 @@ mertrimComputation::attemptTrimming(void) {
   //  Lop off the ends with no confirmed kmers or a QV less than 3.  The Illumina '2' qv ('B' in
   //  Illumina 1.5+ encodings) is defined as "rest of read is < QV 15; do not use".
   //
-  while ((clrBgn < clrEnd) && ((coverage[clrBgn] == 0) || (corrQlt[clrBgn] < '3')))
+  while ((clrBgn < clrEnd) && ((coverage[clrBgn] == 0) || (corrQlt[clrBgn] <= endTrimQV)))
     clrBgn++;
 
-  while ((clrEnd > clrBgn) && ((coverage[clrEnd-1] == 0) || (corrQlt[clrEnd-1] < '3')))
+  while ((clrEnd > clrBgn) && ((coverage[clrEnd-1] == 0) || (corrQlt[clrEnd-1] <= endTrimQV)))
     clrEnd--;
 
 
@@ -1901,7 +1905,7 @@ mertrimWorker(void *G, void *T, void *S) {
   if ((g->doTrimming == true) &&
       (eval != ALLGOOD)) {
     s->analyze();
-    s->attemptTrimming();
+    s->attemptTrimming(g->endTrimQV);
   }
 
   //  SKIPPING until the heuristics are worked out.
@@ -2255,6 +2259,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-notrimimperfect") == 0) {
       g->trimImperfectCoverage = false;
+
+    } else if (strcmp(argv[arg], "-endtrimqv") == 0) {
+      g->endTrimQV = argv[++arg][0];
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       g->forceCorrection = true;
