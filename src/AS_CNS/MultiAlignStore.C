@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.26 2012-09-15 01:13:12 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.27 2012-11-12 16:06:48 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -314,17 +314,59 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
   assert(ma->data.unitig_unique_rept != 0);
   assert(ma->data.contig_status      != 0);
 
-  //  Check that the components do not exceed the bound.
+  //  Check that the components do not exceed the bound.  This is an inlined version of a singe test
+  //    GetMultiAlignLength(ma)       -- returns length of the sequence, or if it doesn't exist, the length of the layout
+  //    GetMultiAlignLength(ma, true) -- returns length of the layout
   //
-  if (GetMultiAlignLength(ma) > GetMultiAlignLength(ma, true)) {
-    DumpMultiAlignForHuman(stderr, ma, isUnitig);
-    fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d %c has invalid fragment/unitig layout (length %d) -- exceeds bounds of consensus sequence (length %d).\n",
-            ma->maID,
-            isUnitig ? 'U' : 'C',
-            GetMultiAlignLength(ma, true),
-            GetMultiAlignLength(ma));
+  //    if (GetMultiAlignLength(ma) < GetMultiAlignLength(ma, true))
+  //
+  if (GetNumchars(ma->consensus) > 1) {  //  Getnumchars() includes the terminating nul.
+    int32  len = GetNumchars(ma->consensus) - 1;  
+    int32  neg = 0;
+    int32  pos = 0;
+
+    for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+      IntMultiPos *frg = GetIntMultiPos(ma->f_list, i);
+
+      if ((frg->position.bgn < 0) || (frg->position.end < 0))
+        fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d frg %d at (%d,%d) has negative position\n",
+                ma->maID, frg->ident, frg->position.bgn, frg->position.end), neg++;
+      if (frg->position.bgn < 0)  frg->position.bgn = 0;
+      if (frg->position.end < 0)  frg->position.end = 0;
+
+      if ((frg->position.bgn > len) || (frg->position.end > len))
+        fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d frg %d at (%d,%d) exceeded multialign length %d\n",
+                ma->maID, frg->ident, frg->position.bgn, frg->position.end, len), pos++;
+      if (frg->position.bgn > len)  frg->position.bgn = len;
+      if (frg->position.end > len)  frg->position.end = len;
+    }
+
+    for (uint32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
+      IntUnitigPos *utg = GetIntUnitigPos(ma->u_list, i);
+
+      if ((utg->position.bgn < 0) || (utg->position.end < 0))
+        fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d utg %d at (%d,%d) has negative position\n",
+                ma->maID, utg->ident, utg->position.bgn, utg->position.end), neg++;
+      if (utg->position.bgn < 0)  utg->position.bgn = 0;
+      if (utg->position.end < 0)  utg->position.end = 0;
+
+      if ((utg->position.bgn > len) || (utg->position.end > len))
+        fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d frg %d at (%d,%d) exceeds multialign length %d\n",
+                ma->maID, utg->ident, utg->position.bgn, utg->position.end, len), pos++;
+      if (utg->position.bgn > len)  utg->position.bgn = len;
+      if (utg->position.end > len)  utg->position.end = len;
+    }
+
+    if (neg + pos > 0) {
+      DumpMultiAlignForHuman(stderr, ma, isUnitig);
+      fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d %c has invalid fragment/unitig layout, exceeds bounds of consensus sequence (length %d) -- neg=%d pos=%d.\n",
+              ma->maID, isUnitig ? 'U' : 'C', len, neg, pos);
+    }
+
+    assert(neg == 0);
+    assert(pos == 0);
   }
-  assert(GetMultiAlignLength(ma) <= GetMultiAlignLength(ma, true));
+
 
   //  We can add unitigs only if we are not contig-partitioned, likewise for contigs.
   if ((isUnitig == 1) && (contigPart != 0))
