@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: Input_CGW.c,v 1.82 2012-10-05 05:28:37 brianwalenz Exp $";
+static char *rcsid = "$Id: Input_CGW.c,v 1.83 2012-11-13 18:42:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,10 +158,10 @@ ProcessInputUnitig(MultiAlignT *uma) {
   //            cgbApplyMicrohetCutoff = -1
   if ((ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb) &&
       (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff)) {
-    fprintf(stderr, "unitig %d not unique -- low microhetprob %f (< %f) and low coverage stat %d (< %d)\n",
-            uma->maID,
-            ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb,
-            ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbApplyMicrohetCutoff);
+    //fprintf(stderr, "unitig %d not unique -- low microhetprob %f (< %f) and low coverage stat %d (< %d)\n",
+    //        uma->maID,
+    //        ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb,
+    //        ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbApplyMicrohetCutoff);
     repeat_MicroHet += length;
     isUnique = FALSE;
   }
