@@ -18,11 +18,15 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.62 2012-08-24 02:05:33 brianwalenz Exp $";
+static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.63 2012-11-13 19:08:33 brianwalenz Exp $";
 
 #include "ChunkOverlap_CGW.h"
 #include "AS_UTL_reverseComplement.h"
 #include "ScaffoldGraph_CGW.h"    // For DeleteCIOverlapEdge
+
+#include <set>
+
+using namespace std;
 
 #undef DEBUG_OVERLAP_SEQUENCES
 
@@ -43,6 +47,15 @@ static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.62 2012-08-24 02:05:33 brianwa
 //   3352 tries
 //
 #undef USE_LOCAL_OVERLAP_AS_FALLBACK
+
+
+//  Define this to screen out duplicate overlap edges as they are created.  This is absolutely
+//  correct, but might be slow on large genomes.  On a 30Mb fungii with 70000 real edges out of 2.8
+//  million tested, it added 6 seconds to the 500 seconds it took to compute overlaps.
+//
+//  See also the duplicate detection in MergeGraphEdges() in MergeEdges_CGW.c.
+//
+#define SCREEN_DUPLICATES
 
 
 /* ChunkOverlap_CGW provides tools for invoking Gene's dpalign tool to compute
@@ -244,6 +257,9 @@ int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
     printChunkOverlapCheckT("OLD", old);
   }
 #endif
+
+  //  Not useful; this is called on loading a checkpoint too
+  //printChunkOverlapCheckT("InsertChunkOverlap()--  Adding", nolap);
 
   int inserted = InsertInHashTable_AS(chunkOverlapper->hashTable,
                                     (uint64)(INTPTR)&nolap->spec,
@@ -1012,10 +1028,11 @@ ComputeCanonicalOverlap_new(GraphCGW_T *graph, ChunkOverlapCheckT *canOlap) {
       nnOlap.bhg = -tempOlap1->begpos;
     }
 
-    fprintf(stderr,">>> Fixing up suspicious overlap ("F_CID","F_CID",%c) (ahg:"F_S32" bhg:"F_S32") to ("F_CID","F_CID",%c) (ahg:"F_S32" bhg:"F_S32") len: "F_S32"\n",
-            inOlap.spec.cidA, inOlap.spec.cidB, inOlap.spec.orientation.toLetter(), tempOlap1->begpos, tempOlap1->endpos,
-            nnOlap.spec.cidA, nnOlap.spec.cidB, nnOlap.spec.orientation.toLetter(), nnOlap.ahg,        nnOlap.bhg,
-            nnOlap.overlap);
+    //  Not a terribly useful message.
+    //fprintf(stderr,">>> Fixing up suspicious overlap ("F_CID","F_CID",%c) (ahg:"F_S32" bhg:"F_S32") to ("F_CID","F_CID",%c) (ahg:"F_S32" bhg:"F_S32") len: "F_S32"\n",
+    //        inOlap.spec.cidA, inOlap.spec.cidB, inOlap.spec.orientation.toLetter(), tempOlap1->begpos, tempOlap1->endpos,
+    //        nnOlap.spec.cidA, nnOlap.spec.cidB, nnOlap.spec.orientation.toLetter(), nnOlap.ahg,        nnOlap.bhg,
+    //        nnOlap.overlap);
 
     DeleteChunkOverlap(ScaffoldGraph->ChunkOverlaps, &inOlap);  //  Delete the old overlap
     DeleteChunkOverlap(ScaffoldGraph->ChunkOverlaps, &nnOlap);  //  New one shouldn't exist, but we'll delete it anyway
@@ -1254,7 +1271,46 @@ static VA_TYPE(char) *quality2 = NULL;
 
 
 
+#ifdef SCREEN_DUPLICATES
 
+//  Somebody, somewhere, seems to be adding multiple overlaps for a pair/orient of unitigs.
+//    InsertChunkOverlap()--  Adding  115698,14,N - min/max 0/242 0/242 erate 0.100000 flags 00000 overlap 0 hang 0,0 qual 1.000000 offset 0,0
+//    InsertChunkOverlap()--  Adding  14,115698,N - min/max 22517/28959 22517/28959 erate 0.100000 flags 00000 overlap 0 hang 0,0 qual 1.000000 offset 0,0
+//
+//  When we get to here, the overlap is computed, is non-canonical (suspicious) and flipped.  The resulting overlap
+//  is now identical to one we already have.
+//
+//    ComputeOverlaps()-- adding edge 115698,14,N overlap 68
+//    InsertChunkOverlap()--  Adding  115698,14,N - min/max 22310/28959 22517/28959 erate 0.100000 flags 10001 overlap 68 hang 63,27971 qual 0.000000 offset 0,0
+//    ComputeOverlaps()-- adding edge 115698,14,N overlap 68
+//
+//  To guard against this, we'll keep track of the edges we have created.
+
+class edgeSignature {
+public:
+  edgeSignature(ChunkOverlapCheckT &olap) {
+    idA = olap.spec.cidA;
+    idB = olap.spec.cidB;
+    ori = olap.spec.orientation.toLetter();
+  };
+
+  bool   operator<(edgeSignature const that) const {
+    if (idA < that.idA)  return(true);
+    if (idA > that.idA)  return(false);
+
+    if (idB < that.idB)  return(true);
+    if (idB > that.idB)  return(false);
+
+    if (ori < that.ori)  return(true);
+    return(false);
+  };
+
+  CDS_CID_t   idA;
+  CDS_CID_t   idB;
+  char        ori;
+};
+
+#endif
 
 
 //external
@@ -1269,7 +1325,15 @@ ComputeOverlaps(GraphCGW_T          *graph,
   uint32 nt = 0;
   uint32 nm = 0;
 
+#ifdef SCREEN_DUPLICATES
+  uint32               dupsDetected = 0;
+  set<edgeSignature>   edgesFound;
+#endif
+
   fprintf(stderr, "ComputeOverlaps()--\n");
+  int64 startTime = time(0);
+
+  uint32    rawEdgesBefore = rawEdges.size();
 
   InitializeHashTable_Iterator_AS(ScaffoldGraph->ChunkOverlaps->hashTable, &iterator);
   while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype))
@@ -1280,7 +1344,8 @@ ComputeOverlaps(GraphCGW_T          *graph,
   InitializeHashTable_Iterator_AS(ScaffoldGraph->ChunkOverlaps->hashTable, &iterator);
   while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype)) {
     if ((++ni % nm) == 0)
-      fprintf(stderr, "ComputeOverlaps()--  Processed "F_U32" out of "F_U32" potential overlaps.\n", ni, nt);
+      fprintf(stderr, "ComputeOverlaps()--  Processed "F_U32" out of "F_U32" potential overlaps, discovered "F_SIZE_T" overlaps (%.2f%%).\n",
+              ni, nt, rawEdges.size() - rawEdgesBefore, 100.0 * (rawEdges.size() - rawEdgesBefore) / ni);
 
     //  VERY IMPORTANT.  Do NOT directly use the overlap stored in the hash table.  If we recompute
     //  it (ComputeCanonicalOverlap_new) we can and do screw up the hash table.  This function
@@ -1311,19 +1376,48 @@ ComputeOverlaps(GraphCGW_T          *graph,
 
     ComputeCanonicalOverlap_new(graph, &olap);
 
-    if (olap.suspicious) {
-      int lengthA = GetConsensus(graph, olap.spec.cidA, consensusA, qualityA);
-      int lengthB = GetConsensus(graph, olap.spec.cidB, consensusB, qualityB);
+    //  BPW thinks this is the source of (some if not all) duplicates.  Until someone wants to debug or verify, it
+    //  just clutters up logs.
+    //
+#ifdef SCREEN_DUPLICATES
+    //if (olap.suspicious)
+    //  fprintf(stderr,"* CO: SUSPICIOUS Overlap found! Looked for ("F_CID","F_CID",%c)["F_S32","F_S32"] found ("F_CID","F_CID",%c) "F_S32"; contig lengths as found (%d,%d)\n",
+    //          inSpec.cidA,    inSpec.cidB,    inSpec.orientation.toLetter(),    olap.minOverlap, olap.maxOverlap,
+    //          olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(), olap.overlap,
+    //          GetConsensus(graph, olap.spec.cidA, consensusA, qualityA),
+    //          GetConsensus(graph, olap.spec.cidB, consensusB, qualityB));
+#endif
 
-      fprintf(stderr,"* CO: SUSPICIOUS Overlap found! Looked for ("F_CID","F_CID",%c)["F_S32","F_S32"] found ("F_CID","F_CID",%c) "F_S32"; contig lengths as found (%d,%d)\n",
-              inSpec.cidA,    inSpec.cidB,    inSpec.orientation.toLetter(),    olap.minOverlap, olap.maxOverlap,
-              olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(), olap.overlap,
-              lengthA,lengthB);
+    if ((olap.fromCGB == TRUE) ||
+        (olap.overlap <= 0))
+      continue;
+
+#ifdef SCREEN_DUPLICATES
+    edgeSignature  sig(olap);
+
+    if (edgesFound.count(sig) > 0) {
+      fprintf(stderr, "ComputeOverlaps()-- duplicate edge %d,%d,%c overlap %d detected; ignoring\n",
+            olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(), olap.overlap);
+      dupsDetected++;
+      continue;
     }
 
-    if ((olap.fromCGB == FALSE) && (olap.overlap))
-      rawEdges.push_back(MakeComputedOverlapEdge(graph, &olap, FALSE));
+    edgesFound.insert(sig);
+#endif
+
+    //fprintf(stderr, "ComputeOverlaps()-- adding edge %d,%d,%c overlap %d\n",
+    //        olap.spec.cidA, olap.spec.cidB, olap.spec.orientation.toLetter(), olap.overlap);
+    rawEdges.push_back(MakeComputedOverlapEdge(graph, &olap, FALSE));
   }
+
+#ifdef SCREEN_DUPLICATES
+  fprintf(stderr, "ComputeOverlaps()-- removed "F_U32" duplicate edges.\n", dupsDetected);
+#else
+  fprintf(stderr, "ComputeOverlaps()-- duplicate edges not screened.\n");
+#endif
+
+  fprintf(stderr, "ComputeOverlaps()-- took "F_S64" seconds, found "F_SIZE_T" edges (%.2f%%).\n",
+          time(0) - startTime, rawEdges.size() - rawEdgesBefore, 100.0 * (rawEdges.size() - rawEdgesBefore) / nt);
 }
 
 

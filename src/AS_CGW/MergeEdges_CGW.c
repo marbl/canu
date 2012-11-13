@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.39 2012-09-26 23:05:34 brianwalenz Exp $";
+static char *rcsid = "$Id: MergeEdges_CGW.c,v 1.40 2012-11-13 19:08:33 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
@@ -745,23 +745,20 @@ MergeGraphEdges_Greedy(GraphCGW_T            *graph,
 
       inputEdges.push_back(GetVAIndex_EdgeCGW_T(graph->edges, ne));
 
-      fprintf(stderr, "MergeGraphEdges()--  greedy - edge "F_SIZE_T" with %d raw edges, %d %d, score=%f %.0f +- %.0f\n",
-              GetVAIndex_EdgeCGW_T(graph->edges, ne),
-              ne->edgesContributing,
-              mergedEdges[ci].edges[0],
-              mergedEdges[ci].edges[1],
-              mergedEdges[ci].score,
-              mergedEdges[ci].distance.mean, mergedEdges[ci].distance.variance);
+      //fprintf(stderr, "MergeGraphEdges()--  greedy - edge "F_SIZE_T" with %d raw edges, %d %d, score=%f %.0f +- %.0f\n",
+      //        GetVAIndex_EdgeCGW_T(graph->edges, ne),
+      //        ne->edgesContributing,
+      //        mergedEdges[ci].edges[0],
+      //        mergedEdges[ci].edges[1],
+      //        mergedEdges[ci].score,
+      //        mergedEdges[ci].distance.mean, mergedEdges[ci].distance.variance);
 
     } else {
-      fprintf(stderr, "MergeGraphEdges()--  greedy - edge %d singleton\n",
-              mergedEdges[ci].edges[0]);
+      //fprintf(stderr, "MergeGraphEdges()--  greedy - edge %d singleton\n",
+      //        mergedEdges[ci].edges[0]);
       inputEdges.push_back(mergedEdges[ci].edges[0]);
     }
   }
-
-  //inputEdges.push_back(ni);
-  //inputEdges.push_back(ex);
 
   return(true);
 }
@@ -788,21 +785,46 @@ MergeGraphEdges(GraphCGW_T        *graph,
       continue;
 
     if (overlapEdge != NULL) {
-      fprintf(stderr, "MergeGraphEdges()--  Found multiple overlap edges between %d and %d!  Aborting merge.\n",
-              edge->idA, edge->idB);
+      fprintf(stderr, "MergeGraphEdges()--  Found multiple overlap edges between %d and %d, removing duplicate edge %d.\n",
+              edge->idA, edge->idB, inputEdges[ei]);
 
-      for (int32 ei=0; ei<inputEdges.size(); ei++) {
-        edge = GetGraphEdge(graph, inputEdges[ei]);
-        fprintf(stderr, "MergeGraphEdges()--    edge %d %.0f +- %.0f overlap %d\n",
-                inputEdges[ei], edge->distance.mean, edge->distance.variance, isOverlapEdge(edge));
-      }
-      return(-1);
+      //  Remove the edge from our list.
+      inputEdges.erase(inputEdges.begin() + ei);
+
+      //  Remove the edge from the graph.
+      //DeleteGraphEdge(graph, edge);
+
+      //UnlinkGraphEdge(graph, edge);
+      FreeGraphEdge(graph, edge);
+
+      //  Back up one, so we examine the new ei element.
+      ei--;
+
+      continue;
     }
 
     assert(overlapEdge == NULL);
 
     overlapEdge = edge;
   }
+
+  uint32  numOlapEdges = 0;
+
+  for (int32 ei=0; ei<inputEdges.size(); ei++)
+    if (isOverlapEdge(GetGraphEdge(graph, inputEdges[ei])))
+      numOlapEdges++;
+
+  if (numOlapEdges >= 2) {
+    for (int32 ei=0; ei<inputEdges.size(); ei++) {
+      CIEdgeT *edge = GetGraphEdge(graph, inputEdges[ei]);
+      fprintf(stderr, "MergeGraphEdges()--    edge %d %.0f +- %.0f overlap %d\n",
+              inputEdges[ei],
+              edge->distance.mean, edge->distance.variance,
+              isOverlapEdge(edge));
+    }
+  }
+  assert(numOlapEdges < 2);
+
 
   vector<Chi2ComputeT> edgeCompute(inputEdges.size());
 
@@ -818,10 +840,10 @@ MergeGraphEdges(GraphCGW_T        *graph,
   if (inputEdges.size() == 3)
     return(0);
 
-  fprintf(stderr, "MergeGraphEdges()--  "F_SIZE_T" raw edges between %d and %d - use greedy merging.\n",
-          inputEdges.size(),
-          GetGraphEdge(graph, inputEdges[0])->idA,
-          GetGraphEdge(graph, inputEdges[0])->idB);
+  //fprintf(stderr, "MergeGraphEdges()--  "F_SIZE_T" raw edges between %d and %d - use greedy merging.\n",
+  //        inputEdges.size(),
+  //        GetGraphEdge(graph, inputEdges[0])->idA,
+  //        GetGraphEdge(graph, inputEdges[0])->idB);
 
   if (MergeGraphEdges_Greedy(graph, inputEdges, edgeCompute, overlapEdge))
     return(inputEdges.size());
