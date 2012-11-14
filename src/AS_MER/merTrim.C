@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.37 2012-11-01 23:03:41 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.38 2012-11-14 18:03:47 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -2011,6 +2011,9 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
     s->corrSeq[0] = 0;
     s->corrQlt[0] = 0;
 
+    s->clrBgn = 0;
+    s->clrEnd = 0;
+
     goto outputFastq;
   }
 
@@ -2021,6 +2024,9 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
 
     s->corrSeq[0] = 0;
     s->corrQlt[0] = 0;
+
+    s->clrBgn = 0;
+    s->clrEnd = 0;
 
     goto outputFastq;
   }
@@ -2062,6 +2068,9 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
 
       s->corrSeq[0] = 0;
       s->corrQlt[0] = 0;
+
+      s->clrBgn = 0;
+      s->clrEnd = 0;
     }
 
     goto outputFastq;
@@ -2075,6 +2084,9 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
     s->corrSeq[0] = 0;
     s->corrQlt[0] = 0;
 
+    s->clrBgn = 0;
+    s->clrEnd = 0;
+
     goto outputFastq;
   }
 
@@ -2085,6 +2097,9 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
 
     s->corrSeq[0] = 0;
     s->corrQlt[0] = 0;
+
+    s->clrBgn = 0;
+    s->clrEnd = 0;
 
     goto outputFastq;
   }
@@ -2141,7 +2156,7 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
           s->corrQlt + seqOffset);
 
   if (VERBOSE)
-    s->log.add("RESULT: %s\n", label);
+    s->log.add("RESULT read %d len %d (trim %d-%d) %s\n", s->readIID, s->seqLen, s->clrBgn, s->clrEnd, label);
   s->log.fwrite(stdout);
 }
 
