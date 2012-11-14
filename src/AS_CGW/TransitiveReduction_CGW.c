@@ -18,11 +18,15 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.43 2012-10-23 10:37:32 brianwalenz Exp $";
+static char *rcsid = "$Id: TransitiveReduction_CGW.c,v 1.44 2012-11-14 17:14:23 brianwalenz Exp $";
 
 //#define INSTRUMENT_CGW
 //#define INSTRUMENT_SMOOTHED
 #define INSTRUMENT_TRANS_REDUCED
+
+//  If the edge is to a singleton unitig, it is not useful for us here.  We don't actually check
+//  for this case though.  Instead (easier) we just ignore all edges with weight one.
+
 
 #include "AS_global.h"
 
@@ -111,6 +115,11 @@ int AS_CGW_MAX_FTEP_RECURSE_DEPTH   = 8;
 int AS_CGW_MAX_FTEP_RECURSE_SIZE    = 200000;
 int AS_CGW_MAX_FTEP_OUTGOING_EDGES  = 50;
 
+//  Some assemblies have lots and lots of weight one edges that cause these searches to be
+//  intractable.  Edges below MIN_FTEP_EDGES will be ignored here.
+//
+int AS_CGW_MIN_FTEP_EDGES           = 1;
+
 //  Count the number of possible outgoing edges 
 static
 int
@@ -128,8 +137,9 @@ countNumberOfEdges(ScaffoldGraphT  *graph,
   while ((edge = edges.nextMerged())!= NULL) {
     totedges++;
 
-    if ((!edge->flags.bits.isActive) ||
-        (!edge->flags.bits.isUniquetoUnique) ||
+    if ((edge->flags.bits.isActive == false) ||
+        (edge->flags.bits.isUniquetoUnique == false) ||
+        (edge->edgesContributing < AS_CGW_MIN_FTEP_EDGES) ||
         (isSingletonOverlapEdge(edge)))
       continue;
 
@@ -215,8 +225,9 @@ FoundTransitiveEdgePath(ScaffoldGraphT *graph,
   CIEdgeT          *tran  = NULL;
 
   while((tran = trans.nextMerged()) != NULL) {
-    if ((!tran->flags.bits.isActive) ||
-        (!tran->flags.bits.isUniquetoUnique) ||
+    if ((tran->flags.bits.isActive == false) ||
+        (tran->flags.bits.isUniquetoUnique == false) ||
+        (tran->edgesContributing < AS_CGW_MIN_FTEP_EDGES) ||
         (isSingletonOverlapEdge(tran)))
       //  Do not use inactive edges or edges to nonUnique CIs.
       //  Do not use overlap edges in path walks
@@ -270,8 +281,9 @@ MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int en
 
   while ((edge = edges.nextMerged()) != NULL) {
     if ((edge->idA != thisCI->id) ||
-        (!edge->flags.bits.isActive) ||
-        (!edge->flags.bits.isUniquetoUnique))
+        (edge->flags.bits.isActive == false) ||
+        (edge->edgesContributing < AS_CGW_MIN_FTEP_EDGES) ||
+        (edge->flags.bits.isUniquetoUnique == false))
       continue;
 
     ChunkInstanceT *endCI = GetGraphNode(graph->ContigGraph, ((edge->idA == thisCI->id) ? edge->idB : edge->idA));
@@ -283,8 +295,9 @@ MarkPathRemovedEdgesOneEnd(ScaffoldGraphT *graph, ChunkInstanceT *thisCI, int en
 
     while ((tran = trans.nextMerged()) != NULL) {
       if ((edge == tran) ||
-          (!tran->flags.bits.isActive) ||
-          (!tran->flags.bits.isUniquetoUnique) ||
+          (tran->flags.bits.isActive == false) ||
+          (tran->flags.bits.isUniquetoUnique == false) ||
+          (tran->edgesContributing < AS_CGW_MIN_FTEP_EDGES) ||
           (isSingletonOverlapEdge(tran)))
         continue;
 
@@ -382,12 +395,51 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
                                ChunkInstanceT *thisCI,
                                int end) {
 
+  GraphEdgeIterator  edgeCounter(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
+  CIEdgeT           *edge;
+
+#if 0
+  //  To visualize the graph, report the edges we could use for searching, and the sum.
+  uint32             edgeCount  = 0;
+  uint32             edgeCountA = 0;
+  uint32             edgeCountU = 0;
+  uint32             edgeCountO = 0;
+  uint32             edgeCountS = 0;
+
+  while ((edge = edgeCounter.nextMerged())!= NULL) {
+    if (edge->flags.bits.isActive == false)
+      edgeCountA++;
+    if (edge->flags.bits.isUniquetoUnique == false)
+      edgeCountU++;
+    if (edge->flags.bits.hasContributingOverlap == true)
+      edgeCountO++;
+    if (edge->edgesContributing < AS_CGW_MIN_FTEP_EDGES)
+      edgeCountS++;
+
+    edgeCount++;
+
+    if (edge->edgesContributing >= AS_CGW_MIN_FTEP_EDGES)
+      fprintf(stderr, "MarkTwoHopConfirmedEdgesOneEnd()-- CI %d edge %d,%d distance %.0f (active %u uniquetounique %u overlap %u singleton %u)\n",
+              thisCI->id,
+              edge->idA, edge->idB, edge->distance.mean,
+              edge->flags.bits.isActive,
+              edge->flags.bits.isUniquetoUnique,
+              edge->flags.bits.hasContributingOverlap,
+              edge->edgesContributing);
+  }
+
+  fprintf(stderr, "MarkTwoHopConfirmedEdgesOneEnd()--  CI %d has %u edges (active %u uniquetounique %u overlap %u singleton %u)\n",
+          thisCI->id, edgeCount, edgeCountA, edgeCountU, edgeCountO, edgeCountS);
+#endif
+
+
   GraphEdgeIterator Ahop1s(graph->ContigGraph, thisCI->id, end, ALL_EDGES);
   CIEdgeT          *Ahop1;
 
   while((Ahop1 = Ahop1s.nextMerged())!= NULL) {
-    if ((!Ahop1->flags.bits.isActive) ||
-        (!Ahop1->flags.bits.isUniquetoUnique) ||
+    if ((Ahop1->flags.bits.isActive == false) ||
+        (Ahop1->flags.bits.isUniquetoUnique == false) ||
+        (Ahop1->edgesContributing < AS_CGW_MIN_FTEP_EDGES) ||
         (isSingletonOverlapEdge(Ahop1)))
       continue;
 
@@ -401,8 +453,9 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
     CIEdgeT           *Ahop2;
 
     while((Ahop2 = Ahop2s.nextMerged())!= NULL) {
-      if ((!Ahop2->flags.bits.isActive) ||
-          (!Ahop2->flags.bits.isUniquetoUnique) ||
+      if ((Ahop2->flags.bits.isActive == false) ||
+          (Ahop2->flags.bits.isUniquetoUnique == false) ||
+          (Ahop2->edgesContributing < AS_CGW_MIN_FTEP_EDGES) ||
           (isSingletonOverlapEdge(Ahop2)))
         continue;
 
@@ -418,8 +471,9 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
       CIEdgeT            *Bhop1;
 
       while((Bhop1 = Bhop1s.nextMerged())!= NULL) {
-        if ((!Bhop1->flags.bits.isActive) ||
-            (!Bhop1->flags.bits.isUniquetoUnique) ||
+        if ((Bhop1->flags.bits.isActive == false) ||
+            (Bhop1->flags.bits.isUniquetoUnique == false) ||
+            (Bhop1->edgesContributing < AS_CGW_MIN_FTEP_EDGES) ||
             (isSingletonOverlapEdge(Bhop1)))
           continue;
 
@@ -433,8 +487,9 @@ MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
         CIEdgeT           *Bhop2;
 
         while((Bhop2 = Bhop2s.nextMerged())!= NULL) {
-          if ((!Bhop2->flags.bits.isActive) ||
-              (!Bhop2->flags.bits.isUniquetoUnique) ||
+          if ((Bhop2->flags.bits.isActive == false) ||
+              (Bhop2->flags.bits.isUniquetoUnique == false) ||
+              (Bhop2->edgesContributing < AS_CGW_MIN_FTEP_EDGES) ||
               (isSingletonOverlapEdge(Bhop2)))
             continue;
 
