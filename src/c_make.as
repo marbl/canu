@@ -81,18 +81,20 @@ ifeq ($(OSTYPE), Linux)
   endif
 
   ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS  += -g
+    ARCH_CFLAGS  += -g3
     ARCH_LDFLAGS +=
   else
-    #  gcc412 doesn't know these
-    ARCH_CFLAGS  += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
-    ARCH_LDFLAGS += -Wl,-O1
+    ifeq ($(BUILDPROFILE), 1)
+      ARCH_CFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions
+      ARCH_LDFLAGS += -Wl,-O1
+    else
+      ARCH_CFLAGS   += -O4 -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+      ARCH_LDFLAGS += -Wl,-O1
+    endif
   endif
 endif
 
 
-
-#  NOTE:  using -pedantic generates many warnings "use of C99 long long integer constant" in kmer
 
 ifeq ($(OSTYPE), FreeBSD)
   CC  = gcc46
@@ -159,7 +161,6 @@ ifeq ($(OSTYPE), Darwin)
 
   ARCH_LIB         = /opt/local/lib /usr/X11R6/lib
 endif
-
 
 
 # Use "gmake SHELL=/bin/bash".
