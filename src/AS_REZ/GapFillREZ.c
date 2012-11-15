@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.83 2012-11-15 03:21:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.84 2012-11-15 03:44:36 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -57,6 +57,9 @@ static const char *rcsid = "$Id: GapFillREZ.c,v 1.83 2012-11-15 03:21:00 brianwa
 
 
 #define  REF(i)   (Ref_Data [Ref_Index [i]])   // Macro to reference chunk_ref data
+
+#undef DO_DEAD_WASTEFUL_SEARCH
+//  If defined, waste lots of time searching for a link, and then do nothing.
 
 
 #define  ALLOW_LOOSE_END_ROCKS     0
@@ -7442,6 +7445,8 @@ static void  New_Confirm_Stones_One_Scaffold
               else
                 {
                   // search for link from p to q
+                  //fprintf(stderr, "Would have searched for link from p to q, skipping.\n");
+#ifdef DO_DEAD_WASTEFUL_SEARCH
                   GraphEdgeIterator  ci_edges(ScaffoldGraph->ContigGraph, check[p]->chunk_id, check[p]->flipped ? A_END : B_END, ALL_EDGES);
                   CIEdgeT           *edge;
 
@@ -7464,6 +7469,7 @@ static void  New_Confirm_Stones_One_Scaffold
                           // add to edges--not done yet
                         }
                     }
+#endif
                 }
             }
         }
@@ -10242,8 +10248,7 @@ int Throw_Stones
   Scaffold_Fill_t  * fill_stones;
   static int  iteration = 0;
   int  inserted = 0, total_stones = 0;
-  int  stones_last_chkpt = 0;
-  int  i, scaff_id;
+  int  i;
 
   int  splitscaffolds = 0;
 
@@ -10313,7 +10318,12 @@ int Throw_Stones
   //  without danger that somebody would reenable the historical
   //  code.
 
-  for  (scaff_id = 0; scaff_id < Num_Scaffolds;  scaff_id ++)
+  int32 scaff_id = 0;
+
+  time_t   intrCkpTime = 8 * 3600;                   //  Checkpoint every eight hours
+  time_t   lastCkpTime = time(0) - intrCkpTime / 2;  //  But do the first one after four
+
+  for  (; scaff_id < Num_Scaffolds;  scaff_id ++)
     {
       int  total_entries, keep_entries;
 
@@ -10364,15 +10374,6 @@ int Throw_Stones
       Print_Fill_Info_One_Scaffold(log_file, fill_stones, scaff_id, & total_entries, & keep_entries);
 
       if  (keep_entries > 0) {
-        int  components0 = 0;
-        int  components1 = 0;
-
-#if 1
-        //  true = merged, false = all edges
-        components0 = IsScaffoldInternallyConnected(ScaffoldGraph,
-                                                    GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaff_id),
-                                                    true, false);
-#endif
 
         //  XXXXX: Even though USE_MY_INSERT is not defined, we still
         //  use the "my insert" function here.  On human, this made no
@@ -10398,47 +10399,23 @@ int Throw_Stones
           //  OPERATES ON MERGED
           MarkInternalEdgeStatus(ScaffoldGraph, scaff, 0, TRUE);
 
-          CleanupAScaffold(ScaffoldGraph,
-                           scaff,
-                           FALSE, NULLINDEX, FALSE);
+          CleanupAScaffold(ScaffoldGraph, scaff, FALSE, NULLINDEX, FALSE);
 
           Force_Increasing_Variances_One_Scaffold(scaff_id);
-
-#if 1
-          //  A bad idea to use ALL_TRUSTED_EDGES.  We destroy our nice big scaffolds.
-          //
-          components1 = CheckScaffoldConnectivityAndSplit(ScaffoldGraph, scaff_id, ALL_EDGES, FALSE);  //  last arg is verbose
-
-          if (components1 > 1) {
-            splitscaffolds++;
-
-            //  true = merged, true = trusted
-            fprintf(stderr, "Throw_Stones()-- Scaffold %d components: ALL_EDGES=%d (%d before stones); ALL_TRUSTED_EDGES=%d components.\n",
-                    scaff_id,
-                    components1,
-                    components0,
-                    IsScaffoldInternallyConnected(ScaffoldGraph,
-                                                  GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaff_id),
-                                                  true, true));
-          }
-#endif
-
 
           total_stones += inserted;
         }
       }  //  stones to throw
 
-      if  (total_stones - stones_last_chkpt >= STONES_PER_CHECKPOINT)
-        {
-          fprintf (stderr,
-                   "* Stones CleanupScaffolds through scaffold %d\n",
-                   scaff_id);
+      if (time(0) - lastCkpTime > intrCkpTime) {
+        char   idString[1024];
+        sprintf(idString, "after stones scaffold %d\n", scaff_id);
 
-          //  Disabled, should propagate a logical checkpoint, but also debate the value of this checkpoint
-          //CheckpointScaffoldGraph (ScaffoldGraph, logicalcheckpoint, "after Stones CleanupScaffolds");
+        CheckpointScaffoldGraph("ckp06-1SM", idString);
+        lastCkpTime = time(0);
+      }
 
-          stones_last_chkpt = total_stones;
-        }
+
     }  //  Main loop
 
   fprintf (stderr, "             Actually inserted: %7d\n", total_stones);
@@ -10696,7 +10673,11 @@ int  Toss_Contained_Stones
 #if  USE_MY_INSERT
       inserted = Insert_Chunks_In_Graph (ScaffoldGraph, fill_stones, STONES);
 #else
-      // Not using surrogates on contains.
+      //  Not using surrogates on contains.
+      //
+      //  BPW, Nov2012 - no clue what the above comment means.  On salmon with aggressive repeat building,
+      //  copyAllOVerlaps below was forced to FALSE to not add new edges and run out of memory.
+      //
       inserted
         = Update_Scaffold_Graph
         (ScaffoldGraph, fill_stones, FALSE, TRUE,

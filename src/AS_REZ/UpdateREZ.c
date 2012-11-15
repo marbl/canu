@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: UpdateREZ.c,v 1.24 2012-11-15 03:21:00 brianwalenz Exp $";
+static const char *rcsid = "$Id: UpdateREZ.c,v 1.25 2012-11-15 03:44:36 brianwalenz Exp $";
 
 /**********************************************************************
 
@@ -130,7 +130,7 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
       SetEdgeStatus(sgraph->ContigGraph, edge, TENTATIVE_UNTRUSTED_EDGE_STATUS);
     }
 #if DEBUG_UPDATE > 1
-    fprintf(stderr,"  -=> edge %d->%d (edge weight %d, new status %d, mean %f, var %f) (other end sid %d, %s) * %s",
+    fprintf(stderr,"  -=> edge %d->%d (edge weight %d, new status %d, mean %f, var %f) (other end sid %d, %s)",
             cid,
             next,
             edge->edgesContributing,
@@ -138,8 +138,7 @@ int Trust_Edges(ScaffoldGraphT * sgraph,
             edge->distance.mean,
             edge->distance.variance,
             next_chunk->scaffoldID,
-            table[next] ? "in the set" : "not in the set",
-            buffer);
+            table[next] ? "in the set" : "not in the set");
 #endif
   }
   return marked;
@@ -185,6 +184,34 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
     * * table = (Gap_Chunk_t * *)safe_calloc(num_chunks, sizeof(Gap_Chunk_t *));
   ChunkInstanceT
     * chunk;
+
+  //  Compute how much work we need to do
+
+  uint64  numScaffolds = 0, curScaffolds = 0;
+  uint64  numGaps      = 0, curGaps      = 0;
+  uint64  numChunks    = 0, curChunks    = 0;
+  uint64                    curInserted  = 0;
+
+  for (scaff_id = 0; scaff_id < num_scaffs;  scaff_id++) {
+    if( scaffId != -1 )
+      if( scaffId != scaff_id )
+        continue;
+
+    scaffold = GetCIScaffoldT(sgraph->CIScaffolds, scaff_id);
+    assert(scaffold != NULL);
+    if ((isDeadCIScaffoldT(scaffold)) || (scaffold->type != REAL_SCAFFOLD))
+      continue;
+
+    numScaffolds++;
+
+    numGaps += fill_chunks[scaff_id].num_gaps;
+
+    for (j = 0; j < fill_chunks[scaff_id].num_gaps;  j++)
+      numChunks += fill_chunks[scaff_id].gap[j].num_chunks;
+  }
+
+  fprintf(stderr, "Update_Scaffold_Graph()-- place "F_U64" chunks into "F_U64" gaps in "F_U64" scaffolds.\n",
+          numChunks, numGaps, numScaffolds);
 
   //
   // we need a table so that given a chunk id we can go directly to
@@ -268,11 +295,15 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
       continue;
     // ScaffoldSanity( scaffold, sgraph);
 
+    curScaffolds++;
+
     //
     // now loop over all the gaps in "scaffold" (scaff_id)
     //
     scaffold_modified = FALSE;
     for (j = 0; j < fill_chunks[scaff_id].num_gaps;  j++) {
+      curGaps++;
+
       //
       // a convenient pointer
       //
@@ -305,6 +336,9 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
           int chunkScaffID;
           CIScaffoldT  * chunkScaffold;
 
+          curChunks++;
+          curInserted++;
+
           if  (! fc -> chunk [k] . keep)
             continue;
 
@@ -315,6 +349,8 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
           // scaffold the current chunk is in. Has ID chunkScaffID
 
           /* scaffold ID must be different */
+          //fprintf(stderr,"chunk %d, scaff_id = %d chunkScaffID = %d \n",fc->chunk[k].chunk_id,scaff_id,chunkScaffID);
+
           if( (chunkScaffID != scaff_id) && (chunkScaffID != NULLINDEX) )
             {
               //
@@ -367,6 +403,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
       for  (k = 0;  k < fc->num_chunks;  k++) {
         // here we have to filter out the scaffold ends
         // that means any chunk that is in the scaffold in which the gap is
+        //fprintf(stderr,"Chunk Scaff ID = %d, scaff_id= %d \n",GetGraphNode(ScaffoldGraph->ContigGraph, fc->chunk[k].chunk_id)->scaffoldID, scaff_id);
 
         if( GetGraphNode(ScaffoldGraph->ContigGraph, fc->chunk[k].chunk_id)->scaffoldID == scaff_id )
           fc->chunk[k].keep = FALSE;
@@ -406,13 +443,13 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                 if (trusted_edges < 1) {
                   if (fc->chunk[k].isClosure) {
                     fprintf(stderr,
-                            "*warning: closure CI %d with a total weight %d of trusted edges not being inserted - should it be?\n",
+                            "Update_Scaffold_Graph()-- warning: closure CI %d with a total weight %d of trusted edges not being inserted - should it be?\n",
                             cid,
                             trusted_edges);
                     continue;
                   } else {
                     fprintf(stderr,
-                            "* warning : attempted to insert CI %d with a total weight %d of trusted edges - skipped\n",
+                            "Update_Scaffold_Graph()-- warning : attempted to insert CI %d with a total weight %d of trusted edges - skipped\n",
                             cid,
                             trusted_edges);
                     continue;
@@ -457,7 +494,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                           break;
                         default :
                           fprintf (stderr,
-                                   "ERROR:  Unexpected insert type = %d\n",
+                                   "Update_Scaffold_Graph()-- ERROR:  Unexpected insert type = %d\n",
                                    (int) kind);
                       }
                   }
@@ -474,7 +511,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                       contig -> flags . bits . isWalk = TRUE;
                       break;
                     default :
-                      fprintf (stderr, "ERROR:  Unexpected insert type = %d\n",
+                      fprintf (stderr, "Update_Scaffold_Graph()-- ERROR:  Unexpected insert type = %d\n",
                                (int) kind);
                   }
                 InsertCIInScaffold(sgraph, cid, scaff_id,
@@ -508,8 +545,7 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                           unitig -> flags . bits . isWalk = TRUE;
                           break;
                         default :
-                          fprintf (stderr,
-                                   "ERROR:  Unexpected insert type = %d\n",
+                          fprintf (stderr, "Update_Scaffold_Graph()-- ERROR:  Unexpected insert type = %d\n",
                                    (int) kind);
                       }
                   }
@@ -534,11 +570,10 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
                       contig -> flags . bits . isWalk = TRUE;
                       break;
                     default :
-                      fprintf (stderr, "ERROR:  Unexpected insert type = %d\n",
+                      fprintf (stderr, "Update_Scaffold_Graph()-- ERROR:  Unexpected insert type = %d\n",
                                (int) kind);
                   }
-                InsertCIInScaffold(sgraph, splitCid, scaff_id,
-                                   fc->chunk[k].start, fc->chunk[k].end, TRUE, FALSE);
+                InsertCIInScaffold(sgraph, splitCid, scaff_id, fc->chunk[k].start, fc->chunk[k].end, TRUE, FALSE);
               }
 
             chunk = GetGraphNode(sgraph->ContigGraph, cid);
@@ -558,31 +593,35 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
       //      Force_Increasing_Variances();
 
     }
-    //
-    // if the scaffold has been modified ...
-    //
+
+    if ((scaffold_modified) &&
+        (curInserted > 100000)) {
+      curInserted = 0;
+
+      fprintf(stderr, "Update_Scaffold_Graph()-- placed "F_U64"/"F_U64" chunks into "F_U64"/"F_U64" gaps in "F_U64"/"F_U64" scaffolds.\n",
+              curChunks,    numChunks,
+              curGaps,      numGaps,
+              curScaffolds, numScaffolds);
+
+      //  This wasn't as useful as expected.
+      //ScaffoldGraph->tigStore->flushCache();
+    }
+
     if (scaffold_modified) {
-
-      //
-      // do we want to change the TRUSTED/UNTRUSTED status?
-      //
       if (ChiSquare) {
-
-        //  OPERATES ON RAW
-        MarkInternalEdgeStatus(sgraph, scaffold, 0, FALSE);
+        MarkInternalEdgeStatus(sgraph, scaffold, 0, FALSE);        //  OPERATES ON RAW
 
         //
         // check the damage again
         //
         //  true = merged; true = trusted
         if (IsScaffoldInternallyConnected(sgraph, scaffold, true, true) != 1)
-          fprintf(stderr, "* <REZ> * error: the scaffold has been disconnected after the MarkInternalEdgeStatus()\n");
+          fprintf(stderr, "Update_Scaffold_Graph()-- error: the scaffold has been disconnected after the MarkInternalEdgeStatus()\n");
       }
     }
   }
-  fprintf(stderr,"* Inserted %d elements ... rebuilding scaffolds\n", inserted);
-  // ****** NEW ******
-  // Now rebuild the scaffolds from scratch (if we do not split)
+
+  fprintf(stderr,"Update_Scaffold_Graph()-- Inserted %d elements ... rebuilding scaffolds\n", inserted);
 
   safe_free(table);
   return inserted;
