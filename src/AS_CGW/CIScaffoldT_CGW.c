@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.78 2012-09-05 18:58:40 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.79 2012-11-15 02:12:07 brianwalenz Exp $";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
@@ -40,15 +40,6 @@ static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.78 2012-09-05 18:58:40 brianwal
 #include "Stats_CGW.h"   // for collecting scaffold merging stats
 
 VA_DEF(PtrT)
-
-// ACTIVATE THIS DEFINE IN ORDER TO HAVE CGW FIX CONTIG POSITION & VARIANCES ARBITRARILY. 
-// WHEN ACTIVE, THIS WILL AVOID ASSERT.
-// WHEN ACTIVE, THIS WILL LEAVE PROBLEM SCAFFOLDS AND COULD HAVE A SNOWBALL EFFECT.
-// THIS IS INTENDED AS A DEBUGGING AID.
-//#define PAPER_OVER_SCAFFOLD_PROBLEMS
-#ifdef PAPER_OVER_SCAFFOLD_PROBLEMS
-void PaperOverScaffoldProblems(ScaffoldGraphT *graph, CIScaffoldT *scaffold);
-#endif
 
 void PrintCINodeFields(FILE * stream, NodeCGW_T * node)
 {
@@ -1132,11 +1123,8 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
             prevRightEnd.mean - prevLeftEnd.mean);
   }
 
-#ifdef PAPER_OVER_SCAFFOLD_PROBLEMS
-  PaperOverScaffoldProblems (graph, scaffold);
-#else
   assert(hasProblems == 0);
-#endif
+
   assert(numCtg == scaffold->info.Scaffold.numElements);
   assert(scaffold->bpLength.mean     >= 0);
   assert(scaffold->bpLength.variance >= 0);
@@ -1241,53 +1229,3 @@ DemoteSmallSingletonScaffolds(void) {
 
   return(numDemoted > 0);
 }
-
-#ifdef PAPER_OVER_SCAFFOLD_PROBLEMS
-void PaperOverScaffoldProblems(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
-  // If this approach becomes necessary, add flag to scaffold struct to mark it bad.
-  CIScaffoldTIterator CIs;
-  ChunkInstanceT     *CI;
-  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-  CI = NextCIScaffoldTIterator(&CIs);
-  CDS_CID_t  prevCIid     = CI->id;
-  LengthT    thisLeftEnd  = { 0, 0 };
-  LengthT    thisRightEnd = { 0, 0 };
-  bool A_before_B = (CI->offsetAEnd.mean < CI->offsetBEnd.mean);
-  LengthT    prevLeftEnd  = (A_before_B) ? CI->offsetAEnd : CI->offsetBEnd;
-  LengthT    prevRightEnd = (A_before_B) ? CI->offsetBEnd : CI->offsetAEnd;
-  int papered_offset = 0;
-  int papered_variance = 0;
-  int contig_length = 0;
-  int papered_gap_length = 100;  // As we paper over bad scaffold, every gap gets a uniform arbitrary size
-  while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
-    A_before_B = (CI->offsetAEnd.mean < CI->offsetBEnd.mean);
-    thisLeftEnd  = (A_before_B) ? CI->offsetAEnd : CI->offsetBEnd;
-    thisRightEnd = (A_before_B) ? CI->offsetBEnd : CI->offsetAEnd;
-    // Paper over the problem by placing the contig downstream of the previous contig
-    contig_length = thisRightEnd.mean - thisLeftEnd.mean; // true of space based coords
-    contig_length = (contig_length < 0) ? (0 - contig_length) : (contig_length); // length >= 0
-    contig_length = (contig_length == 0) ? (1) : (contig_length); // length > 0
-    if (A_before_B) {
-      CI->offsetAEnd.mean = papered_offset;
-      papered_offset += contig_length;  
-      CI->offsetBEnd.mean = papered_offset;
-      papered_offset += papered_gap_length; 
-    } else {
-      CI->offsetBEnd.mean = papered_offset;
-      papered_offset += contig_length;  
-      CI->offsetAEnd.mean = papered_offset;
-      papered_offset += papered_gap_length; 
-    } 
-    // Paper over the variance too. Arbitrarily set variance same as mean
-    CI->offsetAEnd.variance = CI->offsetAEnd.mean;
-    CI->offsetBEnd.variance = CI->offsetBEnd.mean;
-    // will we need to adjust scaffold->bpLength.mean ?
-    // On to the next: this contig becomes previous contig
-    prevCIid      = CI->id;
-    prevLeftEnd   = thisLeftEnd;
-    prevRightEnd  = thisRightEnd;
-  }
-  fprintf(stderr, "PaperOverScaffoldProblems()-- Arbitrarily set gaps to length %d in scaffold %d.\n", papered_gap_length, scaffold->id);
-}
-#endif
-
