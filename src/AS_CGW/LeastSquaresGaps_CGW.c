@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.74 2012-09-20 19:18:40 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.75 2012-11-15 03:47:47 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -35,8 +35,6 @@ static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.74 2012-09-20 19:18:40 bri
 #undef  FIXED_RECOMPUTE_NOT_ENOUGH_CLONES /* nope */
 
 #undef NEG_GAP_VARIANCE_PROBLEM_FIXED  /* if undef'ed, allow processing to continue despite a negative gap variance */
-
-#undef TEST_FIXUPMISORDER
 
 
 /* declarations for LAPACK/DXML calls to linear algebra routines */
@@ -62,139 +60,31 @@ extern int dgbtrs_(char *trans, FTN_INT *n, FTN_INT *kl, FTN_INT *ku,
 
 
 typedef enum {
-  RECOMPUTE_OK = 0,
-  RECOMPUTE_SINGULAR = 1,
-  RECOMPUTE_LAPACK = 2,
-  RECOMPUTE_NO_GAPS = 3,
-  RECOMPUTE_FAILED_REORDER_NEEDED = 4,
-  RECOMPUTE_NOT_ENOUGH_CLONES = 5,
-  RECOMPUTE_CONTIGGED_CONTAINMENTS = 6,
-  RECOMPUTE_FAILED_CONTIG_DELETED  = 7
+  RECOMPUTE_OK,
+  RECOMPUTE_SINGULAR,
+  RECOMPUTE_LAPACK,
+  RECOMPUTE_NO_GAPS,
+  RECOMPUTE_NOT_ENOUGH_CLONES,
+  RECOMPUTE_ORDER_CONTIG,
+  RECOMPUTE_ORDER_CONTIG_FAILED,
+  RECOMPUTE_MERGE_CONTIG,
+  RECOMPUTE_MERGE_CONTIG_FAILED,
+  RECOMPUTE_DELETE_CONTIG
 }RecomputeOffsetsStatus;
 
+char const *statusLabel[10] = {
+  "RECOMPUTE_OK",
+  "RECOMPUTE_SINGULAR",
+  "RECOMPUTE_LAPACK",
+  "RECOMPUTE_NO_GAPS",
+  "RECOMPUTE_NOT_ENOUGH_CLONES",
+  "RECOMPUTE_ORDER_CONTIG",
+  "RECOMPUTE_ORDER_CONTIG_FAILED",
+  "RECOMPUTE_MERGE_CONTIG",
+  "RECOMPUTE_MERGE_CONTIG_FAILED",
+  "RECOMPUTE_DELETE_CONTIG"
+};
 
-
-//   If we find a pair of contigs that are misordered, we rip out
-//   thisCI, move it to the right place based on the implied position
-//   in the overlapEdge
-//
-int
-FixUpMisorderedContigs(CIScaffoldT           *scaffold,
-                       ContigT               *prevCI,
-                       ContigT               *thisCI,
-                       PairOrient   edgeOrient,
-                       double                 inferredMean,
-                       double                 inferredVariance,
-                       EdgeCGW_T             *overlapEdge){
-  PairOrient newEdgeOrient = GetEdgeOrientationWRT(overlapEdge, prevCI->id);
-
-  LengthT aEndOffset, bEndOffset;
-
-  //  Same orientation?  I guess we want to try to merge these contigs then...
-  //
-  if (edgeOrient == newEdgeOrient)
-    return(0);
-
-  // 1 == prevCI
-  // 2 == thisCI
-  // edgeOrient is expected orientation of (1,2)
-  // newEdgeOrient is correct orientation of (1,2)
-
-  DumpContig(stderr,ScaffoldGraph, prevCI, FALSE);
-  DumpContig(stderr,ScaffoldGraph, thisCI, FALSE);
-  PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, " overlapEdge: ", overlapEdge, overlapEdge->idA);
-
-  fprintf(stderr,"* edgeOrient %c   edge->orient = %c  newEdgeOrient = %c  prevCI = "F_CID"   thisCI = "F_CID" mean:%g\n",
-          edgeOrient.toLetter(), overlapEdge->orient.toLetter(), newEdgeOrient.toLetter(),
-          prevCI->id, thisCI->id, inferredMean);
-
-
-
-  aEndOffset.mean = aEndOffset.variance = -1.0;
-  bEndOffset.mean = bEndOffset.variance = -1.0;
-
-  assert(edgeOrient.isUnknown() == false);
-
-  if (edgeOrient.isAB_AB()) {
-    assert(newEdgeOrient.isBA_BA());
-    //           expected                                 actual
-    //       ---------1-------->                            ---------1-------->
-    //                  ---------2-------->     ---------2-------->
-    //                                                      |<=====|
-    //                                                      overlap length
-
-    // overlap is negative
-    bEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean;
-    bEndOffset.variance = prevCI->offsetAEnd.variance +  overlapEdge->distance.variance;
-    aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
-    aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
-  }
-
-  if (edgeOrient.isAB_BA()) {
-    assert(newEdgeOrient.isBA_AB());
-    //           expected                                 actual
-    //       ---------1-------->                            ---------1-------->
-    //                  <--------2--------     <--------2--------
-    //                                                      |<=====|
-    //                                                      overlap length
-
-    // overlap is negative
-    aEndOffset.mean = prevCI->offsetAEnd.mean -  overlapEdge->distance.mean;
-    aEndOffset.variance = prevCI->offsetAEnd.variance + overlapEdge->distance.variance;
-    bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
-    bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
-  }
-
-  if (edgeOrient.isBA_AB()) {
-    assert(newEdgeOrient.isAB_BA());
-    //           expected                                    actual
-    //       <---------1--------                            <---------1--------
-    //                  --------2-------->     --------2------->
-    //                                                      |<=====|
-    //                                                      overlap length
-
-    // overlap is negative!
-    bEndOffset.mean = prevCI->offsetBEnd.mean -  overlapEdge->distance.mean;
-    bEndOffset.variance = prevCI->offsetBEnd.variance -  overlapEdge->distance.variance;
-    aEndOffset.mean = bEndOffset.mean - thisCI->bpLength.mean;
-    aEndOffset.variance = bEndOffset.variance - thisCI->bpLength.variance;
-  }
-
-  if (edgeOrient.isBA_BA()) {
-    assert(newEdgeOrient.isAB_AB());
-    //           expected                                 actual
-    //       <---------1--------                            <---------1--------
-    //                  <---------2--------     <---------2--------
-    //                                                      |<=====|
-    //                                                      overlap length
-
-    // overlap is negative
-    aEndOffset.mean = prevCI->offsetBEnd.mean - overlapEdge->distance.mean;
-    aEndOffset.variance = prevCI->offsetBEnd.variance +  overlapEdge->distance.variance;
-    bEndOffset.mean = aEndOffset.mean - thisCI->bpLength.mean;
-    bEndOffset.variance = aEndOffset.variance - thisCI->bpLength.variance;
-  }
-
-  fprintf(stderr,"* Overlap is ("F_CID","F_CID",%c)  moving "F_CID" from (%g,%g) to (%g,%g)\n",
-          overlapEdge->idA,
-          overlapEdge->idB,
-          overlapEdge->orient.toLetter(),
-          thisCI->id,
-          thisCI->offsetAEnd.mean,
-          thisCI->offsetBEnd.mean,
-          aEndOffset.mean,
-          bEndOffset.mean);
-
-  thisCI->offsetAEnd = aEndOffset;
-  thisCI->offsetBEnd = bEndOffset;
-
-  RemoveCIFromScaffold(ScaffoldGraph, scaffold, thisCI, FALSE);
-  InsertCIInScaffold(ScaffoldGraph,
-                     thisCI->id, scaffold->id, aEndOffset, bEndOffset,
-                     TRUE, FALSE);
-
-  return(1);
-}
 
 
 
@@ -625,6 +515,38 @@ RebuildScaffoldGaps(ScaffoldGraphT  *graph,
 
   //dumpScaffoldContigPositions(graph, scaffold, "ROIS()--");  -  doesn't show previous gap size
 }
+
+
+static
+void
+RebuildScaffoldGapsFromScaffold(ScaffoldGraphT  *graph,
+                                CIScaffoldT     *scaffold) {
+  vector<double>  GAPmean;
+  vector<double>  GAPvari;
+
+  LengthT  lastEnd = { 0.0, 0.0 };
+
+  CIScaffoldTIterator CIs;
+  ChunkInstanceT     *CI;
+
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+  while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
+    LengthT minOffset = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
+    LengthT maxOffset = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
+
+    if (lastEnd.mean > 0) {
+      GAPmean.push_back(minOffset.mean     - lastEnd.mean);
+      GAPvari.push_back(minOffset.variance - lastEnd.variance);
+    }
+
+    lastEnd = maxOffset;
+  }
+
+  RebuildScaffoldGaps(graph, scaffold, &GAPmean[0], &GAPvari[0], false);
+}
+
+
+
 
 
 
@@ -1309,7 +1231,7 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                    fprintf(stderr, "KickOutNonOverlappingContig: Removing contig %d to scaffold %d because we found no overlaps to it\n", toDelete->id, newScaffoldID);
                }
                freeRecomputeData(&data);
-               return(RECOMPUTE_FAILED_CONTIG_DELETED);
+               return(RECOMPUTE_DELETE_CONTIG);
             } else {
                thisCI = NextCIScaffoldTIterator(&CIs);
             }
@@ -1319,31 +1241,18 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
          // but we know we want to overlap these guys.
          //
          if(overlapEdge && alternate){ // found a node that is out of order!!!!
-
-#ifdef TEST_FIXUPMISORDER
-           //  XXXX:  BPW is slightly confused as to why we are not
-           //  FixUpMisorderedContigs(), instead we are merging the contig.
-           //  This was if'd out before I got here.
-           //
-           //  OK, so test it!
-           //
-           //  If it succeeds, return, if not, continue with the original method.
-           //
-           fprintf(stderr, "FixUpMisorderedContigs\n");
-           if (FixUpMisorderedContigs(scaffold, prevCI, thisCI, edgeOrient, gapSize[gapIndex], gapSizeVariance[gapIndex], overlapEdge))
-             return(RECOMPUTE_FAILED_REORDER_NEEDED);
-#endif
-
            if (ContigContainment(scaffold, prevCI, thisCI, overlapEdge, TRUE) != TRUE) {
              fprintf(stderr, "RecomputeOffsetsInScaffold()-- ContigContainment() failed to merge (out-of-order) contig %d (len %.0f)and contig %d (len %.0f) based on %c edge %.0f +- %.0f\n",
                      prevCI->id, prevCI->bpLength.mean,
                      thisCI->id, thisCI->bpLength.mean,
                      overlapEdge->orient.toLetter(), overlapEdge->distance.mean, overlapEdge->distance.variance);
              //assert(0);
+             freeRecomputeData(&data);
+             return RECOMPUTE_ORDER_CONTIG_FAILED;
            }
 
            freeRecomputeData(&data);
-           return RECOMPUTE_CONTIGGED_CONTAINMENTS;
+           return RECOMPUTE_ORDER_CONTIG;
          }
 
          // When we find a containment relationship in a scaffold we want to merge the two contigs
@@ -1356,10 +1265,12 @@ RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
                      thisCI->id, thisCI->bpLength.mean,
                      overlapEdge->orient.toLetter(), overlapEdge->distance.mean, overlapEdge->distance.variance);
              //assert(0);
+             freeRecomputeData(&data);
+             return RECOMPUTE_MERGE_CONTIG_FAILED;
            }
 
            freeRecomputeData(&data);
-           return RECOMPUTE_CONTIGGED_CONTAINMENTS;
+           return RECOMPUTE_MERGE_CONTIG;
          }
 
 
@@ -1547,7 +1458,7 @@ AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     uint32  pa = pi - 1;  //  Should always have good variance, even if it is an average
     uint32  pb = pi + 1;  //  Might have zero variance
 
-    while ((pb < positions.size()) && (positions[pb]->variance <= 0.0))
+    while ((pb < positions.size()) && (positions[pb]->variance <= positions[pa]->variance))
       pb++;
 
     //  The -20 gaps screw this up.  It is close, and probably better than leaving it alone.
@@ -1557,12 +1468,14 @@ AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
     if (pb == positions.size())
       adj = 500 * 500;
     else
-      adj = (positions[pa]->variance + positions[pb]->variance) / (pb - pa);
+      adj = (positions[pb]->variance - positions[pa]->variance) / (pb - pa);
 
     //  Adjust all variances from pi to pb.
 
     for (; pi < pb; pi++) {
-      assert(positions[pi]->variance <= 0);
+      //  Used to be true, but we're now picking pb to be the first variance that is larger than pa.
+      //  Before, it was the first positive variance, which could easily be less than pa.
+      //assert(positions[pi]->variance <= 0);
 
       //  Have had trouble in the past adjusting the variance on coord 0, when there are multiple
       //  contigs that start at position 0.  The same will possibly occur for any value of the mean,
@@ -1809,9 +1722,10 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
     return(true);
   }
 
-  int32  sID = scaffold->id;
+  int32  sID   = scaffold->id;
+  int32  rIter = 0;
 
-  for (uint32 iter=0; iter<5; iter++) {
+  while (1) {
 
     //  Even though we only use raw edges, still mark the merged edges.
 
@@ -1819,21 +1733,11 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
     MarkInternalEdgeStatus(graph, scaffold, 0, FALSE);  //  Raw
 
     //  Don't check variance (false = use raw, true = use trusted)
-#if 1
+
     if (IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, false, true) != 1) {
       MarkInternalEdgeStatus(graph, scaffold, 1, TRUE);  //  Merged
       MarkInternalEdgeStatus(graph, scaffold, 1, FALSE);  //  Raw
     }
-#endif
-
-    //  Don't check chiSquared - leads to a massive misjoin in pging test set
-#if 0
-    if (IsScaffoldInternallyConnected(ScaffoldGraph, scaffold, false, true) != 1) {
-      MarkInternalEdgeStatus(graph, scaffold, 2, TRUE);  //  Merged
-      MarkInternalEdgeStatus(graph, scaffold, 2, FALSE);  //  Raw
-    }
-#endif
-
 
     //  If the scaffold isn't 2-edge connected, break it.  We don't bother estimating gaps for any
     //  of the new scaffolds, it is up to the client.  In other words, the client is assumed to be
@@ -1845,104 +1749,52 @@ LeastSquaresGapEstimates(ScaffoldGraphT *graph,
 
     //dumpScaffoldContigPositions(graph, scaffold, "LSGE(pre)--");
 
+    rIter++;
     status = RecomputeOffsetsInScaffold(graph, sID, TRUE, TRUE, FALSE);
 
     //dumpScaffoldContigPositions(graph, scaffold, "LSGE(post)--");
 
-    //  Well, it's connected at least.  I guess lapack failed to converge.
-    if (status == RECOMPUTE_SINGULAR) {
-      fprintf(stderr, "RecomputeOffsetsInScaffold() returned RECOMPUTE_SINGULAR on scaffold "F_CID" -- we're stuck\n", sID);
-      break;
+    //  If we fail to do a contig merge enough times, drop out of the least squares loop and try to
+    //  bounce contigs or otherwise clean up the scaffold.  If we bounce a contig, we'll end up back
+    //  here trying to again merge.
+    //
+    if ((status == RECOMPUTE_ORDER_CONTIG_FAILED) ||
+        (status == RECOMPUTE_MERGE_CONTIG_FAILED)) {
+      fprintf(stderr,"RecomputeOffsetsInScaffold() returned %s on scaffold "F_CID"; %d failures in a row, %s.\n",
+              statusLabel[status], sID, rIter, (rIter >= 5) ? "too many, give up" : "keep trying");
+      if (rIter >= 5)
+        break;
+      else
+        continue;
     }
-    assert(status != RECOMPUTE_SINGULAR);
 
-    //  We merged contigs, so remark edge status and repeat.
-    if ((status == RECOMPUTE_CONTIGGED_CONTAINMENTS) ||
-        (status == RECOMPUTE_FAILED_CONTIG_DELETED)) {
-      fprintf(stderr, "RecomputeOffsetsInScaffold() returned RECOMPUTE_CONTIGGED_CONTAINMENTS on scaffold "F_CID"\n", sID);
+    rIter = 0;  //  Didn't fail, reset iteration count
+
+    //  If we did something to the scaffold, usually merging contigs, iterate again.
+    //  Note - DELETE_CONTIG seems to be unused.
+    //
+    if ((status == RECOMPUTE_ORDER_CONTIG) ||
+        (status == RECOMPUTE_MERGE_CONTIG) ||
+        (status == RECOMPUTE_DELETE_CONTIG)) {
+      fprintf(stderr, "RecomputeOffsetsInScaffold() returned %s on scaffold "F_CID"; scaffold modified, keep trying\n",
+              statusLabel[status], sID);
       continue;
     }
 
-    //  We changed scaffold order, so remark edge status and repeat.
-    if (status == RECOMPUTE_FAILED_REORDER_NEEDED) {
-      fprintf(stderr,"RecomputeOffsetsInScaffold() returned RECOMPUTE_FAILED_REORDER_NEEDED on scaffold "F_CID"\n", sID);
-      continue;
+    //  Anything else is either total success, or a fatal failure (like RECOMPUTE_SINGULAR, which
+    //  used to be the first case).
+    //
+    //  For failures, grab the current gap sizes from the scaffold, and rebuild it.  This resets the
+    //  size of each contig to truth.  Those seem to wander when we fail LeastSquares enough.
+    //
+    if (status != RECOMPUTE_OK) {
+      fprintf(stderr, "RecomputeOffsetsInScaffold() returned %s on scaffold "F_CID"; no more work will help.\n",
+              statusLabel[status], sID);
+      RebuildScaffoldGapsFromScaffold(graph, scaffold);
     }
 
-    if (status != RECOMPUTE_OK)
-      fprintf(stderr, "RecomputeOffsetsInScaffold() on scaffold "F_CID" failed with code %d\n", sID, status);
-
-    //  No more attempts will help.
     break;
   }
-
-  //  If Least Squares fails, grab the current gap sizes from the scaffold, and rebuild it.  This
-  //  might seem like it will do anything, but it resets the size of each contig to truth.  This
-  //  seems to wander when we fail LeastSquares enough.
-
-  if (status != RECOMPUTE_OK) {
-    vector<double>  GAPmean;
-    vector<double>  GAPvari;
-
-    LengthT  lastEnd = { 0.0, 0.0 };
-
-    CIScaffoldTIterator CIs;
-    ChunkInstanceT     *CI;
-
-    InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-    while ((CI = NextCIScaffoldTIterator(&CIs)) != NULL) {
-      LengthT minOffset = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetAEnd : CI->offsetBEnd;
-      LengthT maxOffset = (CI->offsetAEnd.mean < CI->offsetBEnd.mean) ? CI->offsetBEnd : CI->offsetAEnd;
-
-      if (lastEnd.mean > 0) {
-        GAPmean.push_back(minOffset.mean     - lastEnd.mean);
-        GAPvari.push_back(minOffset.variance - lastEnd.variance);
-      }
-
-      lastEnd = maxOffset;
-    }
-
-    RebuildScaffoldGaps(graph, scaffold, &GAPmean[0], &GAPvari[0], false);
-  }
-
-
-  //  If Least Squares fails, do a greedy size estimate.  This DOES NOT WORK, especially in heavily interleaved scaffolds.  It tries
-  //  to compute gap by gap, using mates that span a specific gap.  If those mates span other gaps, and those gap sizes are incorrect,
-  //  then the estimate for this gap size is incorrect.
-#if 0
-  if (status != RECOMPUTE_OK) {
-#warning GET RID OF THIS STATIC
-    static vector<instrumentLIB>   libs;
-    static bool                    libsInit = false;
-
-    if (libsInit == false) {
-      libsInit = true;
-
-      for (int32 i=0; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
-        DistT *dptr = GetDistT(ScaffoldGraph->Dists, i);
-
-        libs.push_back(instrumentLIB(i, dptr->mu, dptr->sigma, true));
-      }
-    }
-
-    fprintf(stderr, "LeastSquares failed; greedy gap size estimates used.\n");
-
-    instrumentSCF   I(scaffold);
-
-    I.analyze(libs);
-    fprintf(stderr, "LeastSquares()--   scaffold (new) instrumenter happy %.1f gap %.1f misorient close %.1f correct %.1f far %.1f oriented close %.1f far %.1f missing %.1f external %.1f\n",
-            I.numHappy, I.numGap, I.numMisClose, I.numMis, I.numMisFar, I.numTooClose, I.numTooFar, I.numMissing, I.numExternal);
-
-    I.estimateGaps(libs, false);
-
-    I.analyze(libs);
-    fprintf(stderr, "LeastSquares()--   scaffold (new) instrumenter happy %.1f gap %.1f misorient close %.1f correct %.1f far %.1f oriented close %.1f far %.1f missing %.1f external %.1f\n",
-            I.numHappy, I.numGap, I.numMisClose, I.numMis, I.numMisFar, I.numTooClose, I.numTooFar, I.numMissing, I.numExternal);
-
-    RebuildScaffoldGaps(graph, scaffold, &I.GAPmean[0], &I.GAPvari[0], true);
-    assert(0);
-  }
-#endif
 
   bool  redo = false;
 
