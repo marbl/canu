@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.82 2012-09-20 19:18:40 brianwalenz Exp $";
+static const char *rcsid = "$Id: GapFillREZ.c,v 1.83 2012-11-15 03:21:00 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -74,10 +74,6 @@ static const char *rcsid = "$Id: GapFillREZ.c,v 1.82 2012-09-20 19:18:40 brianwa
 // unless there is a scaffold edge that indicates the scaffolds
 // should be joined.
 
-#define  SHOW_CALC_COORDS          0
-// If  1  then use calculated coordinates relative to celamy start
-// of scaffold for unique and placed chunks
-
 #define  SHOW_FRAG_DETAILS         0
 // If  1  show individual fragment mate link info in
 // Print_Potential_Fill_Chunks
@@ -115,9 +111,6 @@ static const char *rcsid = "$Id: GapFillREZ.c,v 1.82 2012-09-20 19:18:40 brianwa
 #define  VERBOSE                   0
 // If  1  print out lots of extra stuff
 // If  2  print out even more detail stuff
-
-const double  CALC_SCAFF_SEPARATION = 100.0;
-// The number of bases to separate scaffolds in calc-cam files
 
 const double  EPSILON = 0.5;
 // Added to variances to make sure they are in ascending order
@@ -187,32 +180,6 @@ const int  STACK_SIZE = 32;
 
 const double  VARIANCE_FUDGE_FACTOR = 3.0 * CGW_FUDGE_FACTOR;
 // Multiply this by total overlap length to estimate variance
-
-char  * Colour_String [NUM_COLOURS]
-= {
-  "C000000 T2 S  # Unused",
-  "CFFFF00 T2 S  # Unique",
-  "CFF8080 T2 S  # Inserted",
-  "C7F7F7F T2 S  # Unconnected",
-  "C0000FF T2 S  # Unresolved",
-  "C49F8F8 T2 S  # Consistent",
-  "CFF0000 T2 S  # Placed",
-  "CFF00FF T3 S  # Misplaced",
-  "C7FFF00 T3 S  # Rejected",
-  "CDFBF4F T2 S  # Scaffold",
-  "CA0A0FF T2 S  # LoCoverStat",
-  "CFF8000 T2 S  # Stone",
-  "C80C080 T3 S  # rr_ru",
-  "C00FFFF T3 S  # ur"
-};
-
-#if  MAKE_CAM_FILE
-FILE  * Cam_File      = NULL;
-#if  SHOW_CALC_COORDS
-FILE  * Calc_Cam_File = NULL;
-#endif
-#endif
-
 
 typedef enum {
   ALL_FALSE,
@@ -518,7 +485,6 @@ static int  Might_Overlap(double a_frag_start, double a_frag_end,
 static void  New_Confirm_Stones(FILE * fp, Scaffold_Fill_t * fill_chunks, int use_all);
 static void  New_Confirm_Stones_One_Scaffold(FILE * fp, Scaffold_Fill_t * fill_chunks, int use_all, int scaff_id);
 static int  Num_Keep_Entries(Scaffold_Fill_t * fill, int scaff_id);
-static void  Output_Cam_Files(Scaffold_Fill_t * fill);
 static void  Partition_Edges(int cid, VA_TYPE(Stack_Entry_t) * stackva, int min_good_links);
 void  Print_Fill_Info(FILE * fp, Scaffold_Fill_t * fill_chunks);
 void  Print_Fill_Info_One_Scaffold(FILE * fp, Scaffold_Fill_t * fill_chunks, int scaff_id,
@@ -558,7 +524,6 @@ static void  Topologically_Sort(Gap_Chunk_t * node [], int num_nodes, int start_
                                 Stone_Edge_t pool [], int sorted [], int * num_sorted, int sort_all);
 static void  Top_Sort_Visit(int i, Gap_Chunk_t * node [], int edge [], Stone_Edge_t pool [],
                             int sorted [], int * num_sorted);
-static void  Update_Colours(Scaffold_Fill_t * fill_chunks);
 static int  Violates_Scaff_Edges(Scaff_Join_t  * p);
 static void  Adjust_By_Ref_Variance_One_Scaffol(Scaffold_Fill_t * fill_chunks, int scaff_id);
 
@@ -584,272 +549,272 @@ typedef  struct
 static int Place_Closure_Using_Repeats = 0;
 
 static int Place_Closure_Chunk(Scaffold_Fill_t * fill_chunks, ContigT* contig, int cid, int cover_stat, char copy_letter, int place_repeats) {
-   if (!place_repeats && cover_stat < GlobalData->cgbDefinitelyUniqueCutoff) {   
-      return 0;
-   }
+  if (!place_repeats && cover_stat < GlobalData->cgbDefinitelyUniqueCutoff) {   
+    return 0;
+  }
 
-   int placeImmediately = 0;
-   int placeBest        = 0;
-   switch(GlobalData->closurePlacement) {
-      case 0:
-         placeImmediately = 1;
-         placeBest        = 0;
-         break;
-      case 1:
-         placeImmediately = 0;
-         placeBest        = 1;
-         break;
-      case 2:
-         placeImmediately = 0;
-         placeBest        = 0;      
-         break;
-      default:
-         fprintf(stderr, "Place_Closure_Chunk(): unknown placement option: %d\n", GlobalData->closurePlacement);
-         assert(0);
-   };
+  int placeImmediately = 0;
+  int placeBest        = 0;
+  switch(GlobalData->closurePlacement) {
+    case 0:
+      placeImmediately = 1;
+      placeBest        = 0;
+      break;
+    case 1:
+      placeImmediately = 0;
+      placeBest        = 1;
+      break;
+    case 2:
+      placeImmediately = 0;
+      placeBest        = 0;      
+      break;
+    default:
+      fprintf(stderr, "Place_Closure_Chunk(): unknown placement option: %d\n", GlobalData->closurePlacement);
+      assert(0);
+  };
 
-   uint32 totalLinks = 0;
-   uint32 badLinks = 0;
-   uint32 numInCtgs = 0;
-   int Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
-   int numPlacementOptions = 0;   
-   int numActuallyPlaced = 0;
-   uint32 i = 0;
+  uint32 totalLinks = 0;
+  uint32 badLinks = 0;
+  uint32 numInCtgs = 0;
+  int Num_Scaffolds = GetNumGraphNodes (ScaffoldGraph -> ScaffoldGraph);
+  int numPlacementOptions = 0;   
+  int numActuallyPlaced = 0;
+  uint32 i = 0;
 
-   Closure_Placement_t *placements = NULL;
-   if (!placeImmediately) {
-      placements = (Closure_Placement_t *)safe_calloc(Num_Scaffolds, sizeof(Closure_Placement_t));   
-      memset(placements, 0, sizeof(Closure_Placement_t)*Num_Scaffolds);
-   }
+  Closure_Placement_t *placements = NULL;
+  if (!placeImmediately) {
+    placements = (Closure_Placement_t *)safe_calloc(Num_Scaffolds, sizeof(Closure_Placement_t));   
+    memset(placements, 0, sizeof(Closure_Placement_t)*Num_Scaffolds);
+  }
 
 #if VERBOSE > 2
-   fprintf(stderr, "Place_Closure_Chunk(): Processing %d which is a closure read\n", cid);
+  fprintf(stderr, "Place_Closure_Chunk(): Processing %d which is a closure read\n", cid);
 #endif
    
-   // go through fragments in cid
-   MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->ContigGraph->type == CI_GRAPH);
-   assert(ma != NULL);
+  // go through fragments in cid
+  MultiAlignT *ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, ScaffoldGraph->ContigGraph->type == CI_GRAPH);
+  assert(ma != NULL);
    
-   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {      
-      IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
+  for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {      
+    IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
 
-      // skip the non-closure reads
-      gkPlacement *gkpl = ScaffoldGraph->gkpStore->gkStore_getReadPlacement(mp->ident);
-      if (gkpl == NULL) {
-         continue;
-      }
-      assert(gkpl->bound1);
-      assert(gkpl->bound2);
+    // skip the non-closure reads
+    gkPlacement *gkpl = ScaffoldGraph->gkpStore->gkStore_getReadPlacement(mp->ident);
+    if (gkpl == NULL) {
+      continue;
+    }
+    assert(gkpl->bound1);
+    assert(gkpl->bound2);
       
 #if VERBOSE > 2
-fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in CID %d\n", mp->ident, gkpl->bound1, gkpl->bound2, cid);
+    fprintf(stderr, "Place_Closure_Chunk(): Read=%d Left Bound=%d Right Bound=%d in CID %d\n", mp->ident, gkpl->bound1, gkpl->bound2, cid);
 #endif
-      // get the reads indicated by the input line
-      CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound1); 
-      CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound2);
+    // get the reads indicated by the input line
+    CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound1); 
+    CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound2);
 
-      // the reads aren't in contigs so there can't be gaps to fill
-      if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
-         badLinks++;
-         continue; 
-      }
+    // the reads aren't in contigs so there can't be gaps to fill
+    if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
+      badLinks++;
+      continue; 
+    }
 
-      // the reads are already in the same contig which again means no gaps
-      if (leftMate->contigID == rightMate->contigID) {
-         numInCtgs++;
-         continue;
-      }
+    // the reads are already in the same contig which again means no gaps
+    if (leftMate->contigID == rightMate->contigID) {
+      numInCtgs++;
+      continue;
+    }
             
-      // now pull the contigs that these reads belong to and if they are in the same scaffold, see if there is a gap we can throw things into                    
-      ChunkInstanceT * begin_chunk = GetGraphNode(ScaffoldGraph->ContigGraph, leftMate->contigID);
-      ChunkInstanceT * end_chunk   = GetGraphNode(ScaffoldGraph->ContigGraph, rightMate->contigID);
+    // now pull the contigs that these reads belong to and if they are in the same scaffold, see if there is a gap we can throw things into                    
+    ChunkInstanceT * begin_chunk = GetGraphNode(ScaffoldGraph->ContigGraph, leftMate->contigID);
+    ChunkInstanceT * end_chunk   = GetGraphNode(ScaffoldGraph->ContigGraph, rightMate->contigID);
 
 #if VERBOSE > 2
-   fprintf(stderr, "Place_Closure_Chunk(): Link between closure entry %d and nodes %d and %d\n", cid, begin_chunk->id, end_chunk->id);
-   fprintf(stderr, "Place_Closure_Chunk(): The begin chunk is %d SCFID=%d UNIQ=%d SURR=%d and end chunk is %d SCFID=%d UNIQ=%d SURR=%d\n", begin_chunk->id, begin_chunk->scaffoldID, IsUnique(begin_chunk), IsSurrogate(begin_chunk), end_chunk->id, end_chunk->scaffoldID, IsUnique(end_chunk), IsSurrogate(end_chunk));
+    fprintf(stderr, "Place_Closure_Chunk(): Link between closure entry %d and nodes %d and %d\n", cid, begin_chunk->id, end_chunk->id);
+    fprintf(stderr, "Place_Closure_Chunk(): The begin chunk is %d SCFID=%d UNIQ=%d SURR=%d and end chunk is %d SCFID=%d UNIQ=%d SURR=%d\n", begin_chunk->id, begin_chunk->scaffoldID, IsUnique(begin_chunk), IsSurrogate(begin_chunk), end_chunk->id, end_chunk->scaffoldID, IsUnique(end_chunk), IsSurrogate(end_chunk));
 #endif
             
-      // the reads are in different scaffolds, again no gap to place in
-      if  ((begin_chunk->scaffoldID != end_chunk->scaffoldID) || begin_chunk->scaffoldID == NULLINDEX) {
-         badLinks++;
-         continue;
-      }
+    // the reads are in different scaffolds, again no gap to place in
+    if  ((begin_chunk->scaffoldID != end_chunk->scaffoldID) || begin_chunk->scaffoldID == NULLINDEX) {
+      badLinks++;
+      continue;
+    }
 
-      assert (end_chunk -> scaffoldID > NULLINDEX);                        
+    assert (end_chunk -> scaffoldID > NULLINDEX);                        
 
-      // allocate data structure for scaffold holding tentative closure placements
-      if (!placeImmediately && placements[end_chunk->scaffoldID].gaps == NULL) {
-         placements[end_chunk->scaffoldID].scfID = end_chunk->scaffoldID;
-         placements[end_chunk->scaffoldID].numGaps = fill_chunks[end_chunk->scaffoldID].num_gaps;
-         placements[end_chunk->scaffoldID].gaps = (Closure_Gap_t *)safe_calloc(placements[end_chunk->scaffoldID].numGaps, sizeof(Closure_Gap_t));
-      }
+    // allocate data structure for scaffold holding tentative closure placements
+    if (!placeImmediately && placements[end_chunk->scaffoldID].gaps == NULL) {
+      placements[end_chunk->scaffoldID].scfID = end_chunk->scaffoldID;
+      placements[end_chunk->scaffoldID].numGaps = fill_chunks[end_chunk->scaffoldID].num_gaps;
+      placements[end_chunk->scaffoldID].gaps = (Closure_Gap_t *)safe_calloc(placements[end_chunk->scaffoldID].numGaps, sizeof(Closure_Gap_t));
+    }
 
-      int i = 0;
-      int placedInScf = 0;
-      // loop through all gaps in a scaffold, if we find the appropriate gap, record it
-      for  (i = 0;  i < fill_chunks[end_chunk->scaffoldID].num_gaps; i++) {
-         Gap_Fill_t g = fill_chunks[end_chunk->scaffoldID].gap[i];
+    int i = 0;
+    int placedInScf = 0;
+    // loop through all gaps in a scaffold, if we find the appropriate gap, record it
+    for  (i = 0;  i < fill_chunks[end_chunk->scaffoldID].num_gaps; i++) {
+      Gap_Fill_t g = fill_chunks[end_chunk->scaffoldID].gap[i];
 
-         if ((g.left_cid == begin_chunk->id && g.right_cid == end_chunk->id) || 
-               (g.left_cid == end_chunk->id && g.right_cid == begin_chunk->id)) {
+      if ((g.left_cid == begin_chunk->id && g.right_cid == end_chunk->id) || 
+          (g.left_cid == end_chunk->id && g.right_cid == begin_chunk->id)) {
 
-            // Only allow placement based on reads in unique contigs                                          
-            if (Place_Closure_Using_Repeats || (IsUnique (begin_chunk) && !IsSurrogate(begin_chunk) && IsUnique (end_chunk) && !IsSurrogate(end_chunk)))
-            {
+        // Only allow placement based on reads in unique contigs                                          
+        if (Place_Closure_Using_Repeats || (IsUnique (begin_chunk) && !IsSurrogate(begin_chunk) && IsUnique (end_chunk) && !IsSurrogate(end_chunk)))
+          {
 #if VERBOSE > 2
-   fprintf(stderr, "Place_Closure_Chunk(): Gap # %d in SCF=%d LEFT=%d RIGHT=%d MEAN=%lf VAR=%lf start=(%f, %f) end=(%f, %f)\n", i, end_chunk->scaffoldID, g.left_cid, g.right_cid, g.len, g.ref_variance, g.start.mean, g.start.variance, g.end.mean, g.end.variance);
+            fprintf(stderr, "Place_Closure_Chunk(): Gap # %d in SCF=%d LEFT=%d RIGHT=%d MEAN=%lf VAR=%lf start=(%f, %f) end=(%f, %f)\n", i, end_chunk->scaffoldID, g.left_cid, g.right_cid, g.len, g.ref_variance, g.start.mean, g.start.variance, g.end.mean, g.end.variance);
 #endif
-               // now that we know this is a valid link, we count is as one of the closure links pulling us somewhere
-               totalLinks++;
+            // now that we know this is a valid link, we count is as one of the closure links pulling us somewhere
+            totalLinks++;
 
-               LengthT chunk_start;
-               LengthT chunk_end;                  
-               if (g.start.mean <= g.end.mean) {
-            	  // estimate positions of the contig in the gap, evenly distribute overhang on both sides of the gap
-            	  double diffInSize = (contig->bpLength.mean - (g.end.mean - g.start.mean)) / 2;
+            LengthT chunk_start;
+            LengthT chunk_end;                  
+            if (g.start.mean <= g.end.mean) {
+              // estimate positions of the contig in the gap, evenly distribute overhang on both sides of the gap
+              double diffInSize = (contig->bpLength.mean - (g.end.mean - g.start.mean)) / 2;
 
-            	  chunk_start.mean = g.start.mean - diffInSize;
-                  chunk_start.variance = g.start.variance + contig->bpLength.variance;
-                  chunk_end.mean = g.end.mean + diffInSize;
-                  chunk_end.variance = g.end.variance + contig->bpLength.variance;
-               } else {
-                  fprintf(stderr, "Place_Closure_Chunk(): Closure gap %d (%f) in scf=%d is negative, not placing closure reads here\n", i, g.len, end_chunk->scaffoldID);
-                  assert(0);
-               }
-
-               // if we place at the first location we get pulled to, just place now, otherwise keep track of the best
-               if (placeImmediately) {
-                  if (Assign_To_Gap (cid, chunk_start, chunk_end,
-                           i, end_chunk->scaffoldID,
-                           0, fill_chunks,
-                           3*totalLinks, cover_stat, totalLinks,
-                           copy_letter, TRUE)) {
-                     assert(Assign_To_Gap (cid, chunk_start, chunk_end,
-                              i, end_chunk->scaffoldID,
-                              1, fill_chunks,
-                              3*totalLinks, cover_stat, totalLinks,
-                              copy_letter, TRUE));
-                  }
-
-                  return 1;
-               } else {
-                  placedInScf = 1;
-                  if (placements[end_chunk->scaffoldID].gaps[i].numLinks == 0) {
-                     numPlacementOptions++;
-                  }
-                        
-                  placements[end_chunk->scaffoldID].gaps[i].start = chunk_start;
-                  placements[end_chunk->scaffoldID].gaps[i].end = chunk_end;
-                  placements[end_chunk->scaffoldID].gaps[i].numLinks++;
-               }
-            }
-         }
-      }
-      // we found two contigs in the same scaffold but couldnt be placed, count that as a bad link as well
-      if (!placedInScf) {
-         badLinks++;
-      }
-   }
-
-   assert(!placeImmediately);
-   
-   // inefficient, can we not look through all scaffolds/gaps   
-   uint32 j = 0;      
-   LengthT start={0,0},end={0,0};
-   uint32 bestScfID=0, bestGap=0;
-   uint32 bestLinks = 0;
-
-   if (!place_repeats && badLinks != 0) {
-      safe_free(placements);
-      return 0;
-   }
-
-   if (!place_repeats && numPlacementOptions > 1) {
-      safe_free(placements);
-      return 0;
-   }
-
-   for (i = 0; i < Num_Scaffolds; i++) {
-      if (placements[i].scfID != 0) {
-         for (j = 0; j < placements[i].numGaps; j++) {
-            // skip gaps were we put nothing
-            if (placements[i].gaps[j].numLinks == 0) {
-               continue;
-            }
-                  
-            if (!placeBest) {
-               if (placements[i].gaps[j].numLinks > badLinks) {
-                  numActuallyPlaced++;               
-                  if (Assign_To_Gap (cid, placements[i].gaps[j].start, placements[i].gaps[j].end,
-                           j, i,
-                           0, fill_chunks,
-                           3*placements[i].gaps[j].numLinks, cover_stat, placements[i].gaps[j].numLinks,
-                           copy_letter, TRUE)) {
-                     assert(Assign_To_Gap (cid, placements[i].gaps[j].start, placements[i].gaps[j].end,
-                              j, i,
-                              1, fill_chunks,
-                              3*placements[i].gaps[j].numLinks, cover_stat, placements[i].gaps[j].numLinks,
-                              copy_letter, TRUE));
-                  }
-               }   
-               // placing uniques more than once is bad
-               if (cover_stat >= GlobalData->cgbDefinitelyUniqueCutoff && numActuallyPlaced > 1) {
-                  fprintf(stderr, "Place_Closure_Chunk(): Multiply placing unique contig %d with cover_stat %d\n", cid, cover_stat);
-               }
-               copy_letter++;
+              chunk_start.mean = g.start.mean - diffInSize;
+              chunk_start.variance = g.start.variance + contig->bpLength.variance;
+              chunk_end.mean = g.end.mean + diffInSize;
+              chunk_end.variance = g.end.variance + contig->bpLength.variance;
             } else {
-               if (bestLinks < placements[i].gaps[j].numLinks) {
-                  bestLinks = placements[i].gaps[j].numLinks;
-                  start = placements[i].gaps[j].start;
-                  end = placements[i].gaps[j].end;
-                  bestScfID = i;
-                  bestGap = j;
-               }
+              fprintf(stderr, "Place_Closure_Chunk(): Closure gap %d (%f) in scf=%d is negative, not placing closure reads here\n", i, g.len, end_chunk->scaffoldID);
+              assert(0);
             }
-         }
-         safe_free(placements[i].gaps);
+
+            // if we place at the first location we get pulled to, just place now, otherwise keep track of the best
+            if (placeImmediately) {
+              if (Assign_To_Gap (cid, chunk_start, chunk_end,
+                                 i, end_chunk->scaffoldID,
+                                 0, fill_chunks,
+                                 3*totalLinks, cover_stat, totalLinks,
+                                 copy_letter, TRUE)) {
+                assert(Assign_To_Gap (cid, chunk_start, chunk_end,
+                                      i, end_chunk->scaffoldID,
+                                      1, fill_chunks,
+                                      3*totalLinks, cover_stat, totalLinks,
+                                      copy_letter, TRUE));
+              }
+
+              return 1;
+            } else {
+              placedInScf = 1;
+              if (placements[end_chunk->scaffoldID].gaps[i].numLinks == 0) {
+                numPlacementOptions++;
+              }
+                        
+              placements[end_chunk->scaffoldID].gaps[i].start = chunk_start;
+              placements[end_chunk->scaffoldID].gaps[i].end = chunk_end;
+              placements[end_chunk->scaffoldID].gaps[i].numLinks++;
+            }
+          }
       }
-   }
+    }
+    // we found two contigs in the same scaffold but couldnt be placed, count that as a bad link as well
+    if (!placedInScf) {
+      badLinks++;
+    }
+  }
+
+  assert(!placeImmediately);
    
-   if (placeBest && bestLinks != 0 && bestLinks > badLinks) {
-      numActuallyPlaced++;
+  // inefficient, can we not look through all scaffolds/gaps   
+  uint32 j = 0;      
+  LengthT start={0,0},end={0,0};
+  uint32 bestScfID=0, bestGap=0;
+  uint32 bestLinks = 0;
 
-      if (Assign_To_Gap (cid, start, end,
-            bestGap, bestScfID,
-            0, fill_chunks,
-            3*bestLinks, cover_stat, bestLinks,
-            copy_letter, TRUE)) {
-         assert(Assign_To_Gap (cid, start, end,
-                  bestGap, bestScfID,
-                  1, fill_chunks,
-                  3*bestLinks, cover_stat, bestLinks,
-                  copy_letter, TRUE));
+  if (!place_repeats && badLinks != 0) {
+    safe_free(placements);
+    return 0;
+  }
+
+  if (!place_repeats && numPlacementOptions > 1) {
+    safe_free(placements);
+    return 0;
+  }
+
+  for (i = 0; i < Num_Scaffolds; i++) {
+    if (placements[i].scfID != 0) {
+      for (j = 0; j < placements[i].numGaps; j++) {
+        // skip gaps were we put nothing
+        if (placements[i].gaps[j].numLinks == 0) {
+          continue;
+        }
+                  
+        if (!placeBest) {
+          if (placements[i].gaps[j].numLinks > badLinks) {
+            numActuallyPlaced++;               
+            if (Assign_To_Gap (cid, placements[i].gaps[j].start, placements[i].gaps[j].end,
+                               j, i,
+                               0, fill_chunks,
+                               3*placements[i].gaps[j].numLinks, cover_stat, placements[i].gaps[j].numLinks,
+                               copy_letter, TRUE)) {
+              assert(Assign_To_Gap (cid, placements[i].gaps[j].start, placements[i].gaps[j].end,
+                                    j, i,
+                                    1, fill_chunks,
+                                    3*placements[i].gaps[j].numLinks, cover_stat, placements[i].gaps[j].numLinks,
+                                    copy_letter, TRUE));
+            }
+          }   
+          // placing uniques more than once is bad
+          if (cover_stat >= GlobalData->cgbDefinitelyUniqueCutoff && numActuallyPlaced > 1) {
+            fprintf(stderr, "Place_Closure_Chunk(): Multiply placing unique contig %d with cover_stat %d\n", cid, cover_stat);
+          }
+          copy_letter++;
+        } else {
+          if (bestLinks < placements[i].gaps[j].numLinks) {
+            bestLinks = placements[i].gaps[j].numLinks;
+            start = placements[i].gaps[j].start;
+            end = placements[i].gaps[j].end;
+            bestScfID = i;
+            bestGap = j;
+          }
+        }
       }
-   }
+      safe_free(placements[i].gaps);
+    }
+  }
+   
+  if (placeBest && bestLinks != 0 && bestLinks > badLinks) {
+    numActuallyPlaced++;
 
-   safe_free(placements);
-   return numActuallyPlaced;
+    if (Assign_To_Gap (cid, start, end,
+                       bestGap, bestScfID,
+                       0, fill_chunks,
+                       3*bestLinks, cover_stat, bestLinks,
+                       copy_letter, TRUE)) {
+      assert(Assign_To_Gap (cid, start, end,
+                            bestGap, bestScfID,
+                            1, fill_chunks,
+                            3*bestLinks, cover_stat, bestLinks,
+                            copy_letter, TRUE));
+    }
+  }
+
+  safe_free(placements);
+  return numActuallyPlaced;
 }
 
 static void Print_Closure_Reads_Info(Scaffold_Fill_t * fill_chunks) {
-   int i, j, scfID;
+  int i, j, scfID;
    
 #if VERBOSE > 2
-   for (scfID = 0; scfID < ScaffoldGraph->CIScaffolds->numElements; scfID++) {
-      CIScaffoldT *scf = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, scfID);
+  for (scfID = 0; scfID < ScaffoldGraph->CIScaffolds->numElements; scfID++) {
+    CIScaffoldT *scf = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, scfID);
          
-      for  (i = 0;  i < fill_chunks[scf->id].num_gaps; i++) {
-         Gap_Fill_t g = fill_chunks[scf->id].gap[i];
+    for  (i = 0;  i < fill_chunks[scf->id].num_gaps; i++) {
+      Gap_Fill_t g = fill_chunks[scf->id].gap[i];
             
-         for (j = 0; j < g.num_chunks; j++) {
-            if (g.chunk[j].isClosure) {
-               fprintf(stderr, "Place_Closure_Chunk(): CID %d thrown into gap %d for SCF %d total placed=%d\n", g.chunk[j].chunk_id, i, scf->id, g.num_chunks);
-            } else {
-            	fprintf(stderr, "Place_Closure_Chunk(): Non-Closure CID %d thrown into gap %d for SCF %d total placed=%d\n", g.chunk[j].chunk_id, i, scf->id, g.num_chunks);
-            }
-         }
+      for (j = 0; j < g.num_chunks; j++) {
+        if (g.chunk[j].isClosure) {
+          fprintf(stderr, "Place_Closure_Chunk(): CID %d thrown into gap %d for SCF %d total placed=%d\n", g.chunk[j].chunk_id, i, scf->id, g.num_chunks);
+        } else {
+          fprintf(stderr, "Place_Closure_Chunk(): Non-Closure CID %d thrown into gap %d for SCF %d total placed=%d\n", g.chunk[j].chunk_id, i, scf->id, g.num_chunks);
+        }
       }
-   }
+    }
+  }
 #endif
 }
 
@@ -1687,7 +1652,6 @@ static int  Assign_To_Gap
   Gap_Fill_t  * g;
   double  left_extreme, right_extreme;
 
-//#if  0
 #if VERBOSE > 1
   fprintf (stderr, ">>> Adding cid = %d to gap %d in scaff %d\n",
            cid, gap, scaff_id);
@@ -2572,7 +2536,6 @@ static void  Check_Other_Links_One_Scaffold
                 }
             }
 
-// #if 0
 #if  VERBOSE > 1
           printf ("Chunk %6d:  good links = %3d  bad links = %3d\n",
                   cid, good_links, bad_links);
@@ -3075,7 +3038,7 @@ static void  Check_Scaffold_Join
       b_end2 = right_end2;
     }
 
-// #if 0
+  // #if 0
 #if  VERBOSE > 1
   fprintf (stderr, "### chunk %d joins\n", cid);
   fprintf (stderr, "    scaff %d  gap %d  a_end = (%.0f, %.0f)  b_end = (%.0f, %.0f)\n",
@@ -3221,10 +3184,6 @@ static void  Choose_Safe_Chunks
   int  num_placed = 0;
   ContigT  * contig, * prev_contig = NULL;
   GraphNodeIterator  contig_iterator;
-#if  MAKE_CAM_FILE
-  int   cam_colour;
-  char  annotation_string [MAX_STRING_LEN];
-#endif
 
   InitGraphNodeIterator (& contig_iterator, ScaffoldGraph -> ContigGraph,
                          GRAPH_NODE_DEFAULT);
@@ -3254,46 +3213,6 @@ static void  Choose_Safe_Chunks
 
       if  ((IsUnique (contig) || IsSurrogate(contig)))
         {         
-#if  MAKE_CAM_FILE
-          int  rel_pos, left, right;
-
-          cam_colour = UNIQUE_COLOUR;
-          scaff_id = REF (cid) . scaff_id;
-          rel_pos = REF (cid) . rel_pos;
-
-          sprintf (annotation_string,
-                   "  Scaff #%d  rel pos #%d  start = <%.0f,%.0f>  end = <%.0f,%.0f>  cov = %d",
-                   scaff_id, rel_pos,
-                   contig -> offsetAEnd . mean, sqrt (contig -> offsetAEnd . variance),
-                   contig -> offsetBEnd . mean, sqrt (contig -> offsetBEnd . variance),
-                   cover_stat)
-                   );
-#if  SHOW_CALC_COORDS
-          assert(contig->scaffoldID > NULLINDEX);
-          if  (contig -> offsetAEnd . mean < contig -> offsetBEnd . mean)
-            {
-              left = contig -> offsetAEnd . mean;
-              right = contig -> offsetBEnd . mean;
-            }
-          else
-            {
-              left = contig -> offsetBEnd . mean;
-              right = contig -> offsetAEnd . mean;
-            }
-
-          Chunk_Info [cid] . scaff_id = scaff_id;
-          if  (Scaffold_Start [scaff_id] <= Scaffold_End [scaff_id])
-            {
-              Chunk_Info [cid] . calc_left = left + Scaffold_Start [scaff_id];
-              Chunk_Info [cid] . calc_right = right + Scaffold_Start [scaff_id];
-            }
-          else
-            {
-              Chunk_Info [cid] . calc_left = Scaffold_Start [scaff_id] - right;
-              Chunk_Info [cid] . calc_right = Scaffold_Start [scaff_id] - left;
-            }
-#endif
-#endif
         }
       else if  (GetNumInstances(contig) > 0)
         {
@@ -3308,12 +3227,6 @@ static void  Choose_Safe_Chunks
           stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
 
           non_unique_ct ++;
-#if  MAKE_CAM_FILE
-          cam_colour = NO_CONNECT_COLOUR;
-          sprintf (annotation_string,
-                   "  No connections to uniques  cov = %d  ",
-                   cover_stat);
-#endif
 
           // Put edges from chunk to a unique chunk onto a stack
 
@@ -3351,24 +3264,15 @@ static void  Choose_Safe_Chunks
           if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
               unique_connect_ct ++;
-#if  MAKE_CAM_FILE
-              cam_colour = CONNECT_COLOUR;
-              sprintf (annotation_string,
-                       "  %d mate edges to uniques  cov = %d  ",
-                       GetNumVA_Stack_Entry_t(stackva), cover_stat);
-#endif
               Select_Good_Edges (stackva, contig);
             }
 
           if (GetNumInstances(contig) > 0)  {
-              fprintf (stderr, "SURPRISE:  contig %d has surrogates...skipping it\n",
-                       contig -> info . Contig . AEndCI);
-            }
+            fprintf (stderr, "SURPRISE:  contig %d has surrogates...skipping it\n",
+                     contig -> info . Contig . AEndCI);
+          }
           else if  (cover_stat < min_cover_stat)
             {
-#if  MAKE_CAM_FILE
-              cam_colour = LO_COVERSTAT_COLOUR;
-#endif
             }
           else if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
@@ -3383,15 +3287,6 @@ static void  Choose_Safe_Chunks
               if  (consistent)
                 {
                   num_consistent ++;
-#if  MAKE_CAM_FILE
-                  cam_colour = CONSISTENT_COLOUR;
-                  sprintf (annotation_string,
-                           "  %d mate links (in %d edges) to uniques  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d",
-                           good_total, GetNumVA_Stack_Entry_t(stackva),
-                           left_end . mean, sqrt (left_end . variance),
-                           right_end . mean, sqrt (right_end . variance),
-                           cover_stat);
-#endif
                 }
 
               bad_allowed = MAX (0, 1 - bad_links);
@@ -3404,9 +3299,6 @@ static void  Choose_Safe_Chunks
 
               if  (consistent && good_total >= min_good_links)
                 {
-#if  MAKE_CAM_FILE && SHOW_CALC_COORDS
-                  int64  left_coord, right_coord;
-#endif
                   int assign_succeeded;
                   assign_succeeded
                     = Assign_To_Gap (cid, left_end, right_end,
@@ -3418,99 +3310,17 @@ static void  Choose_Safe_Chunks
                   placed = TRUE;
                   num_placed ++;
 
-#if  MAKE_CAM_FILE
-                  if  (assign_succeeded)
-                    cam_colour = PLACED_COLOUR;
-                  sprintf (annotation_string,
-                           "  %d mate links (in %d edges) to uniques  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d",
-                           good_total, GetNumVA_Stack_Entry_t(stackva),
-                           left_end . mean, sqrt (left_end . variance),
-                           right_end . mean, sqrt (right_end . variance),
-                           cover_stat);
-#endif
-#if  MAKE_CAM_FILE && SHOW_CALC_COORDS
-                  scaff_id = REF (GetVA_Stack_Entry_t(stackva, 0) -> chunk_id) . scaff_id;
-                  if  (Scaffold_Start [scaff_id] < Scaffold_End [scaff_id])
-                    {
-                      left_coord = left_end . mean + Scaffold_Start [scaff_id];
-                      right_coord = right_end . mean + Scaffold_Start [scaff_id];
-                    }
-                  else
-                    {
-                      left_coord = Scaffold_Start [scaff_id] - right_end . mean;
-                      right_coord = Scaffold_Start [scaff_id] - left_end . mean;
-                    }
-                  if  (left_coord < 0)
-                    left_coord = 0;
-                  if  (right_coord < 0)
-                    right_coord = 0;
-                  Chunk_Info [cid] . scaff_id = scaff_id;
-                  Chunk_Info [cid] . calc_left = left_coord;
-                  Chunk_Info [cid] . calc_right = right_coord;
-#endif
                 }
             }
 
           DeleteVA_Stack_Entry_t(stackva);
         }
        
-        // handle the closure reads in this part of the if
-        if (IsClosure(contig) && placed == FALSE && contig->scaffoldID == NULLINDEX) 
+      // handle the closure reads in this part of the if
+      if (IsClosure(contig) && placed == FALSE && contig->scaffoldID == NULLINDEX) 
         {
-            num_placed += Place_Closure_Chunk(fill_chunks, contig, cid, cover_stat, ' ', FALSE);
+          num_placed += Place_Closure_Chunk(fill_chunks, contig, cid, cover_stat, ' ', FALSE);
         }
-        
-#if  MAKE_CAM_FILE
-      Chunk_Info [cid] . colour = cam_colour;
-      Chunk_Info [cid] . annotation = strdup (annotation_string);
-      if  (contig -> aEndCoord >= 0 && contig -> bEndCoord >= 0)
-        {
-          if  (contig -> aEndCoord <= contig -> bEndCoord)
-            {
-// #if 0
-#if  VERBOSE > 1
-              fprintf (Cam_File,
-                       "%dCHUNKREZ: %d A%dREZ %d # chunk %d forward %s\n",
-                       cid, contig -> aEndCoord,
-                       cam_colour, contig -> bEndCoord,
-                       cid, annotation_string);
-#endif
-#if  SHOW_CALC_COORDS
-              if  (cam_colour != UNIQUE_COLOUR
-                   && cam_colour != PLACED_COLOUR
-                   && cam_colour != MISPLACED_COLOUR)
-                {
-                  Chunk_Info [cid] . scaff_id = scaff_id;
-                  Chunk_Info [cid] . calc_left = contig -> aEndCoord;
-                  Chunk_Info [cid] . calc_right = contig -> bEndCoord;
-                }
-#endif
-              Chunk_Info [cid] . colour = cam_colour;
-            }
-          else
-            {
-// #if 0
-#if  VERBOSE > 1
-              fprintf (Cam_File,
-                       "%dCHUNKREZ: %d A%dREZ %d # chunk %d reverse %s\n",
-                       cid, contig -> bEndCoord, cam_colour,
-                       contig -> aEndCoord,
-                       cid, annotation_string);
-#endif
-#if  SHOW_CALC_COORDS
-              if  (cam_colour != UNIQUE_COLOUR
-                   && cam_colour != PLACED_COLOUR
-                   && cam_colour != MISPLACED_COLOUR)
-                {
-                  Chunk_Info [cid] . scaff_id = scaff_id;
-                  Chunk_Info [cid] . calc_left = contig -> bEndCoord;
-                  Chunk_Info [cid] . calc_right = contig -> aEndCoord;
-                }
-#endif
-              Chunk_Info [cid] . colour = cam_colour;
-            }
-        }
-#endif
     }
 
   fprintf (stderr, "             Non-unique chunks: %7d\n", non_unique_ct);
@@ -3523,7 +3333,7 @@ static void  Choose_Safe_Chunks
   fprintf (stderr, "             Scaffolded chunks: %7d\n",
            Num_Chunks - non_unique_ct);
 
-   Print_Closure_Reads_Info(fill_chunks);
+  Print_Closure_Reads_Info(fill_chunks);
 
   return;
 }
@@ -3581,12 +3391,8 @@ static void  Choose_Stones
   int  non_unique_ct = 0;
   int  unique_connect_ct = 0;
   int  num_stones = 0;
-  int  cam_colour;
   ContigT  * chunk;
   GraphNodeIterator  contig_iterator;
-#if  MAKE_CAM_FILE
-  char  annotation_string [MAX_STRING_LEN];
-#endif
 
   InitGraphNodeIterator (& contig_iterator, ScaffoldGraph -> ContigGraph,
                          GRAPH_NODE_DEFAULT);
@@ -3603,45 +3409,6 @@ static void  Choose_Stones
       if  (IsUnique (chunk)
            && ! (REF (cid) . is_singleton && UNIQUES_CAN_BE_STONES))
         {
-#if  MAKE_CAM_FILE
-          int  rel_pos, left, right;
-
-          cam_colour = UNIQUE_COLOUR;
-          scaff_id = REF (cid) . scaff_id;
-          rel_pos = REF (cid) . rel_pos;
-
-          sprintf (annotation_string,
-                   "  Scaff #%d  rel pos #%d  start = <%.0f,%.0f>  end = <%.0f,%.0f>  cov = %d",
-                   scaff_id, rel_pos,
-                   chunk -> offsetAEnd . mean, sqrt (chunk -> offsetAEnd . variance),
-                   chunk -> offsetBEnd . mean, sqrt (chunk -> offsetBEnd . variance),
-                   cover_stat);
-#if  SHOW_CALC_COORDS
-          assert(chunk->scaffoldID > NULLINDEX);
-          if  (chunk -> offsetAEnd . mean < chunk -> offsetBEnd . mean)
-            {
-              left = chunk -> offsetAEnd . mean;
-              right = chunk -> offsetBEnd . mean;
-            }
-          else
-            {
-              left = chunk -> offsetBEnd . mean;
-              right = chunk -> offsetAEnd . mean;
-            }
-
-          Chunk_Info [cid] . scaff_id = scaff_id;
-          if  (Scaffold_Start [scaff_id] <= Scaffold_End [scaff_id])
-            {
-              Chunk_Info [cid] . calc_left = left + Scaffold_Start [scaff_id];
-              Chunk_Info [cid] . calc_right = right + Scaffold_Start [scaff_id];
-            }
-          else
-            {
-              Chunk_Info [cid] . calc_left = Scaffold_Start [scaff_id] - right;
-              Chunk_Info [cid] . calc_right = Scaffold_Start [scaff_id] - left;
-            }
-#endif
-#endif
         }
       else
         {
@@ -3653,12 +3420,6 @@ static void  Choose_Stones
           stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
 
           non_unique_ct ++;
-#if  MAKE_CAM_FILE
-          cam_colour = NO_CONNECT_COLOUR;
-          sprintf (annotation_string,
-                   "  No connections to uniques  cov = %d",
-                   cover_stat);
-#endif
 
           if  (Single_Fragment_Only)
             {
@@ -3750,21 +3511,11 @@ static void  Choose_Stones
           if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
               unique_connect_ct ++;
-#if  MAKE_CAM_FILE
-              cam_colour = CONNECT_COLOUR;
-              sprintf (annotation_string,
-                       "  %d mate edges to uniques  cov = %d",
-                       GetNumVA_Stack_Entry_t(stackva),
-                       cover_stat);
-#endif
               Select_Good_Edges (stackva, chunk);
             }
 
           if  (cover_stat < min_cover_stat)
             {
-#if  MAKE_CAM_FILE
-              cam_colour = LO_COVERSTAT_COLOUR;
-#endif
             }
           else if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
@@ -3778,9 +3529,6 @@ static void  Choose_Stones
               for  (i = 0;  i < GetNumVA_Stack_Entry_t(stackva);  i = j)
                 {
                   int  link_ct, assign_succeeded;
-#if  MAKE_CAM_FILE && SHOW_CALC_COORDS
-                  int64  left_coord, right_coord;
-#endif
                   {
                     Stack_Entry_t *stack = GetVA_Stack_Entry_t(stackva, 0);
 
@@ -3810,57 +3558,25 @@ static void  Choose_Stones
 
                   num_stones ++;
 
-#if  MAKE_CAM_FILE
-                  cam_colour = STONE_COLOUR;
-                  sprintf (annotation_string,
-                           "  stone copy %c  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d",
-                           copy_letter,
-                           left_end . mean, sqrt (left_end . variance),
-                           right_end . mean, sqrt (right_end . variance),
-                           cover_stat);
-#endif
-
                   assign_succeeded
                     = Assign_To_Gap (cid, left_end, right_end,
                                      gap, scaff_id,
                                      GetVA_Stack_Entry_t(stackva, i) -> flipped, fill_chunks,
                                      edge_quality, cover_stat, link_ct,
                                      copy_letter, IsClosure(chunk));
-                  if  (! assign_succeeded)
-                    cam_colour = REJECT_COLOUR;
 
                   placed = TRUE;
-#if  MAKE_CAM_FILE && SHOW_CALC_COORDS
-                  scaff_id = REF (GetVA_Stack_Entry_t(stackva, 0) -> chunk_id) . scaff_id;
-                  if  (Scaffold_Start [scaff_id] < Scaffold_End [scaff_id])
-                    {
-                      left_coord = left_end . mean + Scaffold_Start [scaff_id];
-                      right_coord = right_end . mean + Scaffold_Start [scaff_id];
-                    }
-                  else
-                    {
-                      left_coord = Scaffold_Start [scaff_id] - right_end . mean;
-                      right_coord = Scaffold_Start [scaff_id] - left_end . mean;
-                    }
-                  if  (left_coord < 0)
-                    left_coord = 0;
-                  if  (right_coord < 0)
-                    right_coord = 0;
-                  Chunk_Info [cid] . scaff_id = scaff_id;
-                  Chunk_Info [cid] . calc_left = left_coord;
-                  Chunk_Info [cid] . calc_right = right_coord;
-#endif
                   copy_letter ++;
                 }  //  end for
             }
           DeleteVA_Stack_Entry_t(stackva);
         }
         
-        if (IsClosure(chunk) && placed == FALSE && chunk->scaffoldID == NULLINDEX)
+      if (IsClosure(chunk) && placed == FALSE && chunk->scaffoldID == NULLINDEX)
         {
           Place_Closure_Chunk(fill_chunks, chunk, cid, cover_stat, copy_letter, TRUE);
         }
-  }
+    }
         
   fprintf (stderr, "             Non-unique chunks: %7d\n", non_unique_ct);
   fprintf (stderr, "         With edges to uniques: %7d\n", unique_connect_ct);
@@ -3871,7 +3587,7 @@ static void  Choose_Stones
   fprintf (stderr, "             Scaffolded chunks: %7d\n",
            Num_Chunks - non_unique_ct);
 
-   Print_Closure_Reads_Info(fill_chunks);
+  Print_Closure_Reads_Info(fill_chunks);
   return;
 }
 
@@ -4679,7 +4395,7 @@ static int  Determine_Components
                   //SK: this is a total hack but it's due to the fact that we don't compute true coordinates for closure reads
                   if  (!node[pool[j].to]->isClosure && !node[pool[j].from]->isClosure 
                        && (pool [j] . a_hang < desired_a_hang - error_band
-                       || pool [j] . a_hang > desired_a_hang + error_band))
+                           || pool [j] . a_hang > desired_a_hang + error_band))
                     {
 #if  SHOW_STONE_CONFIRM
                       fprintf (stderr,
@@ -4689,7 +4405,7 @@ static int  Determine_Components
                                desired_a_hang + error_band,
                                (pool [j] . a_hang - desired_a_hang) / std_dev);
 #endif
-                       continue;
+                      continue;
                     }
 
 #if  SHOW_STONE_CONFIRM
@@ -5736,7 +5452,7 @@ static int  Estimate_Chunk_Ends
           (* edge_quality) = 0.0;
           (* allowed_bad_links) = 0;
           /*	   fprintf(stderr,"* Chunk %d: Too many bad links %d or not enough good links %d\n",
-		   chunk->id, bad_links, good_links);
+                 chunk->id, bad_links, good_links);
           */
           return  FALSE;
         }
@@ -5841,21 +5557,6 @@ int  Fill_Gaps
   sprintf(filename, "rezlog/rez.i%02d.log", iteration);
   log_file = file_open (filename, "w");
 
-#if  MAKE_CAM_FILE
-  sprintf(filename, "rezlog/rez.i%02d.cam", iteration);
-  Cam_File = file_open (filename, "w");
-
-  for  (i = 0;  i < NUM_COLOURS;  i ++)
-    fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
-#if  SHOW_CALC_COORDS
-  sprintf(filename, "rezlog/calcrez.i%02d.cam", iteration);
-  Calc_Cam_File = file_open (filename, "w");
-
-  for  (i = 0;  i < NUM_COLOURS;  i ++)
-    fprintf (Calc_Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
-#endif
-#endif
-
   Scaffold_Start = (int64 *) safe_calloc
     (Num_Scaffolds, sizeof (int64));
   Scaffold_End = (int64 *) safe_calloc
@@ -5893,7 +5594,6 @@ int  Fill_Gaps
   Include_Good_Joins (fill_chunks);
   fprintf (stderr, "Back from Include_Good_Joins\n");
 
-//#if  0
 #if VERBOSE > 1
   {
     fprintf (log_file, "\n>>> Fill after Include_Good_Joins <<<\n");
@@ -5910,7 +5610,6 @@ int  Fill_Gaps
       Identify_Best_Rocks (fill_chunks, FALSE);
     }
 
-// #if 0
 #if  VERBOSE > 1
   {
     fprintf (log_file, "\n>>> Fill before  check_consistency <<<\n");
@@ -5933,7 +5632,6 @@ int  Fill_Gaps
              passed_consistency_check);
   }
 
-// #if 0
 #if  VERBOSE > 1
   {
     fprintf (log_file, "\n>>> Fill after  check_consistency <<<\n");
@@ -6007,14 +5705,12 @@ int  Fill_Gaps
       Sort_Insertions (fill_chunks, By_Index);
       fprintf (stderr, "After Sort_Insertions\n");
 
-// #if 0
 #if  VERBOSE > 1
       fprintf (stderr, "Before Doublecheck_Positions\n");
       fprintf (log_file, "\n>>> Fill before  Doublecheck_Positions <<<\n");
       Print_Fill_Info (log_file, fill_chunks);
 #endif
       Doublecheck_Positions (fill_chunks, TRUE);
-// #if 0
 #if  VERBOSE > 1
       fprintf (stderr, "After Doublecheck_Positions\n");
       fprintf (log_file, "\n>>> Fill after  Doublecheck_Positions <<<\n");
@@ -6027,16 +5723,6 @@ int  Fill_Gaps
       Check_Rocks (log_file, fill_chunks);
     }
 
-
-#if  MAKE_CAM_FILE
-  Update_Colours (fill_chunks);
-  Output_Cam_Files (fill_chunks);
-
-  fclose (Cam_File);
-#if  SHOW_CALC_COORDS
-  fclose (Calc_Cam_File);
-#endif
-#endif
 
   fprintf (stderr, "Set_Split_Flags\n");
   Set_Split_Flags (fill_chunks, ALL_FALSE);
@@ -6499,19 +6185,19 @@ static ALNoverlap *  Get_Chunk_Overlap
          AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN);
 #if  SHOW_OLAP_DETAILS
       fprintf (fp, "  min_ahang = %4d  max_ahang = %4d  orient = %c\n",
-               min_ahang, max_ahang, orient.toLetter(),
+               min_ahang, max_ahang, orient.toLetter());
       if  (result == NULL)
         fprintf (fp, "   No overlap\n");
       else {
         fprintf (fp, "   begpos = %d  endpos = %d  length = %d\n",
                  result -> begpos, result -> endpos, result -> length);
 
-fprintf(stderr, "OVERLAP FOUND BETWEEN %d and %d\n", a->chunk_id, b->chunk_id);
-if (orient == BA_AB || orient == BA_BA)
-  reverseComplementSequence( (*a_seq), strlen(*a_seq) );
-Print_Overlap(stderr, (*a_seq), (*b_seq), result);
-(*a_seq) = NULL;
-(*b_seq) = NULL; 
+        fprintf(stderr, "OVERLAP FOUND BETWEEN %d and %d\n", a->chunk_id, b->chunk_id);
+        if (orient == BA_AB || orient == BA_BA)
+          reverseComplementSequence( (*a_seq), strlen(*a_seq) );
+        Print_Overlap(stderr, (*a_seq), (*b_seq), result);
+        (*a_seq) = NULL;
+        (*b_seq) = NULL; 
       }
 #endif
       return  result;
@@ -6614,21 +6300,6 @@ int  Hurl_Contained_Rocks
   sprintf(filename, "rezlog/crocks.i%02d.log", iteration);
   log_file = file_open (filename, "w");
 
-#if  MAKE_CAM_FILE
-  sprintf(filename, "rezlog/crocks.i%02d.cam", iteration);
-  Cam_File = file_open (filename, "w");
-
-  for  (i = 0;  i < NUM_COLOURS;  i ++)
-    fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
-#if  SHOW_CALC_COORDS
-  sprintf(filename, "rezlog/calccr.i%02d.cam", iteration);
-  Calc_Cam_File = file_open (filename, "w");
-
-  for  (i = 0;  i < NUM_COLOURS;  i ++)
-    fprintf (Calc_Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
-#endif
-#endif
-
   Scaffold_Start = (int64 *) safe_calloc
     (Num_Scaffolds, sizeof (int64));
   Scaffold_End = (int64 *) safe_calloc
@@ -6680,16 +6351,6 @@ int  Hurl_Contained_Rocks
 
   Disqualify_Scaff_Chunks (fill_chunks);
   Sort_Insertions (fill_chunks, By_Keep_And_Low_Position);
-
-#if  MAKE_CAM_FILE
-  Update_Colours (fill_chunks);
-  Output_Cam_Files (fill_chunks);
-
-  fclose (Cam_File);
-#if  SHOW_CALC_COORDS
-  fclose (Calc_Cam_File);
-#endif
-#endif
 
   fprintf (stderr, "Set_Split_Flags\n");
   Set_Split_Flags (fill_chunks, ALL_FALSE);
@@ -6857,10 +6518,6 @@ static void  Include_Good_Joins
 {
   Scaff_Join_t  * * p;
   int  i, j, n;
-
-#if  MAKE_CAM_FILE
-  char  annotation_string [MAX_STRING_LEN];
-#endif
 
   n = GetNumVA_Scaff_Join_t (Scaff_Join);
   if  (n == 0)
@@ -7091,12 +6748,6 @@ static void  Include_Good_Joins
       {
         ChunkInstanceT  * chunk;
         int  assign_succeeded;
-#if  MAKE_CAM_FILE && SHOW_CALC_COORDS
-        char  annotation_string [MAX_STRING_LEN];
-#if SHOW_CALC_COORDS
-        int left_coord, right_coord;
-#endif
-#endif
 
         chunk = GetGraphNode(ScaffoldGraph->ContigGraph,
                              p [i] -> chunk_id);
@@ -7107,43 +6758,6 @@ static void  Include_Good_Joins
                            fill_chunks, p [i] -> edge_quality,
                            p [i] -> cover_stat, p [i] -> link_ct,
                            JOINER_ROCK_CHAR, IsClosure(chunk));
-#if  MAKE_CAM_FILE
-        if  (assign_succeeded)
-          Chunk_Info [p [i] -> chunk_id] . colour = PLACED_COLOUR;
-        sprintf (annotation_string,
-                 "  joins scaffs  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d",
-                 p [i] -> left_end . mean, sqrt (p [i] -> left_end . variance),
-                 p [i] -> right_end . mean, sqrt (p [i] -> right_end . variance),
-                 p [i] -> cover_stat);
-        if  (Chunk_Info [p [i] -> chunk_id] . annotation != NULL)
-          safe_free (Chunk_Info [p [i] -> chunk_id] . annotation);
-        Chunk_Info [p [i] -> chunk_id] . annotation
-          = strdup (annotation_string);
-#endif
-#if  MAKE_CAM_FILE && SHOW_CALC_COORDS
-        if  (Scaffold_Start [p [i] -> insert_scaff]
-             < Scaffold_End [p [i] -> insert_scaff])
-          {
-            left_coord = p [i] -> left_end . mean
-              + Scaffold_Start [p [i] -> insert_scaff];
-            right_coord = p [i] -> right_end . mean
-              + Scaffold_Start [p [i] -> insert_scaff];
-          }
-        else
-          {
-            left_coord = Scaffold_Start [p [i] -> insert_scaff]
-              - p [i] -> right_end . mean;
-            right_coord = Scaffold_Start [p [i] -> insert_scaff]
-              - p [i] -> left_end . mean;
-          }
-        if  (left_coord < 0)
-          left_coord = 0;
-        if  (right_coord < 0)
-          right_coord = 0;
-        Chunk_Info [p [i] -> chunk_id] . scaff_id = p [i] -> insert_scaff;
-        Chunk_Info [p [i] -> chunk_id] . calc_left = left_coord;
-        Chunk_Info [p [i] -> chunk_id] . calc_right = right_coord;
-#endif
       }
 
   safe_free (p);
@@ -7172,11 +6786,11 @@ int  IsClosure
 //  Return  TRUE  iff  (* chunk)  is a closure read
 
 {
-   if (chunk->flags.bits.isClosure == 1) {
-      return TRUE;
-   } else {
-      return FALSE;
-   }
+  if (chunk->flags.bits.isClosure == 1) {
+    return TRUE;
+  } else {
+    return FALSE;
+  }
 }
 
 
@@ -7907,32 +7521,32 @@ static void  New_Confirm_Stones_One_Scaffold
         Reject_Non_Reachable (this_gap -> right_cid, check, ct,
                               reverse_edge, edge_pool);
 
-      #if  VERBOSE
-            fprintf (fp, "Forward edges:  ct = %d\n", ct);
-            for  (p = 0;  p < ct;  p ++)
-              {
-                fprintf (fp, "  From %d\n", check [p] -> chunk_id);
-                for  (q = forward_edge [p];  q != -1;  q = edge_pool [q] . next)
-                  fprintf (fp, "    to %4d  ahg = %5d  prog = %5d  qual = %6.4f  bad = %c\n",
-                           check [edge_pool [q] . to] -> chunk_id,
-                           edge_pool [q] . a_hang,
-                           edge_pool [q] . progress,
-                           edge_pool [q] . quality,
-                           edge_pool [q] . bad ? 'T' : 'F');
-              }
-            fflush (fp);
-      #endif
+#if  VERBOSE
+      fprintf (fp, "Forward edges:  ct = %d\n", ct);
+      for  (p = 0;  p < ct;  p ++)
+        {
+          fprintf (fp, "  From %d\n", check [p] -> chunk_id);
+          for  (q = forward_edge [p];  q != -1;  q = edge_pool [q] . next)
+            fprintf (fp, "    to %4d  ahg = %5d  prog = %5d  qual = %6.4f  bad = %c\n",
+                     check [edge_pool [q] . to] -> chunk_id,
+                     edge_pool [q] . a_hang,
+                     edge_pool [q] . progress,
+                     edge_pool [q] . quality,
+                     edge_pool [q] . bad ? 'T' : 'F');
+        }
+      fflush (fp);
+#endif
       
-      #if  VERBOSE
-            {
-              int  i;
+#if  VERBOSE
+      {
+        int  i;
       
-              fprintf (fp, "Keep:\n");
-              for  (i = 0;  i < ct;  i ++)
-                if  (check [i] -> keep)
-                  fprintf (stderr, "  %5d\n", check [i] -> chunk_id);
-            }
-      #endif
+        fprintf (fp, "Keep:\n");
+        for  (i = 0;  i < ct;  i ++)
+          if  (check [i] -> keep)
+            fprintf (stderr, "  %5d\n", check [i] -> chunk_id);
+      }
+#endif
 
       if  (this_gap -> left_cid >= 0)
         {
@@ -8021,133 +7635,6 @@ static int  Num_Keep_Entries
 
 
 
-static void  Output_Cam_Files
-(Scaffold_Fill_t * fill)
-
-//  Output information in global  Chunk_Info  to  Cam_File  and
-//  info in  fill  to  Calc_Cam_File .
-
-{
-  char  annotation_string [MAX_STRING_LEN];
-  int  scaff_id;
-  int  j;
-#if  MAKE_CAM_FILE
-  double  scaff_start = 0.0, scaff_end = 0.0;
-#endif
-
-  if  (! MAKE_CAM_FILE)
-    return;
-
-  for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
-    for  (j = 0;  j < fill [scaff_id] . num_gaps;  j ++)
-      {
-        Gap_Fill_t  * this_gap = fill [scaff_id] . gap + j;
-        int  k;
-
-        for  (k = 0;  k < this_gap -> num_chunks;  k ++)
-          {
-            Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
-
-            // Use  keep  so that stop overwriting annotation
-            // after first  keep  entry in fill.
-
-            if  (Chunk_Info [this_chunk -> chunk_id] . keep)
-              continue;
-
-            sprintf (annotation_string,
-                     "copy %c  start = <%.0f,%.0f>  end = <%.0f,%.0f>",
-                     this_chunk -> copy_letter,
-                     this_chunk -> start . mean,
-                     sqrt (this_chunk -> start . variance),
-                     this_chunk -> end . mean,
-                     sqrt (this_chunk -> end . variance));
-            Chunk_Info [this_chunk -> chunk_id] . annotation
-              = strdup (annotation_string);
-            Chunk_Info [this_chunk -> chunk_id] . keep
-              = this_chunk -> keep;
-          }
-      }
-
-
-#if  SHOW_CALC_COORDS
-  for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
-    {
-      double  scaff_contig_lo, scaff_contig_hi;
-      int  j;
-
-      for  (j = 0;  j < fill [scaff_id] . num_gaps;  j ++)
-        {
-          Gap_Fill_t  * this_gap = fill [scaff_id] . gap + j;
-          int  k;
-
-          if  (j > 0)
-            {
-              if  (this_gap -> len >= 0)
-                scaff_contig_hi = this_gap -> start . mean;
-              else
-                scaff_contig_hi = this_gap -> end . mean;
-#if  MAKE_CAM_FILE
-              fprintf (Calc_Cam_File,
-                       "%dCHUNKREZ: %.0f A%dREZ %.0f R%d # contig %d  %s\n",
-                       this_gap -> left_cid,
-                       scaff_start + scaff_contig_lo,
-                       UNIQUE_COLOUR,
-                       scaff_start + scaff_contig_hi,
-                       1, this_gap -> left_cid,
-                       Chunk_Info [this_gap -> left_cid] . annotation);
-#endif
-            }
-          if  (this_gap -> len >= 0)
-            scaff_contig_lo = this_gap -> end . mean;
-          else
-            scaff_contig_lo = this_gap -> start . mean;
-
-          for  (k = 0;  k < this_gap -> num_chunks;  k ++)
-            {
-              Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
-              int  colour, row;
-              double  lo, hi;
-
-              if  (this_chunk -> copy_letter == GAP_END_CHAR)
-                continue;
-              else if  (this_chunk -> keep)
-                {
-                  colour = INSERTED_COLOUR;
-                  row = 3;
-                }
-              else
-                {
-                  colour = REJECT_COLOUR;
-                  row = 4;
-                }
-
-              lo = MIN (this_chunk -> start . mean,
-                        this_chunk -> end . mean);
-              hi = MAX (this_chunk -> start . mean,
-                        this_chunk -> end . mean);
-              if  (hi > scaff_end)
-                scaff_end = hi;
-
-#if  MAKE_CAM_FILE
-              fprintf (Calc_Cam_File,
-                       "%dCHUNK%dg%d: %.0f A%dREZ %.0f R%d # contig %d  %s\n",
-                       this_chunk -> chunk_id, scaff_id, j,
-                       scaff_start + lo,
-                       colour, scaff_start + hi, row,
-                       this_chunk -> chunk_id,
-                       Chunk_Info [this_chunk -> chunk_id] . annotation);
-#endif
-            }
-        }
-      if  (scaff_end > scaff_start)
-        scaff_start = scaff_end + CALC_SCAFF_SEPARATION;
-    }
-#endif
-
-  return;
-}
-
-
 
 static void  Print_Scaffolds
 (FILE * fp)
@@ -8174,9 +7661,6 @@ static void  Print_Scaffolds
       ChunkInstanceT  * chunk;
       double  prev_variance;
       int  scaff_index;
-#if  MAKE_CAM_FILE
-      int  seg_num = 0;
-#endif
 
       scaff_id = scaffold -> id;
       if  (fp != NULL)
@@ -8188,13 +7672,6 @@ static void  Print_Scaffolds
                    "End", "Variance",
                    "Len");
         }
-
-#if  MAKE_CAM_FILE
-      fprintf (Cam_File, "LNK: ");
-#if  SHOW_CALC_COORDS
-      fprintf (Calc_Cam_File, "LNK: ");
-#endif
-#endif
 
       last_coord_used += MAX_MATE_DISTANCE;
       Scaffold_Start [scaff_id] = last_coord_used;
@@ -8261,30 +7738,6 @@ static void  Print_Scaffolds
               //assert (FALSE);
             }
 
-#if  MAKE_CAM_FILE
-#if  SHOW_CALC_COORDS
-          fprintf (Calc_Cam_File, " %dCHUNKREZ", chunk -> id);
-          if  ((scaff_index + 1) % MAX_SCAFFOLD_SIZE == 0
-               && scaff_index != scaffold -> info.Scaffold.numElements - 1)
-            {
-              fprintf (Calc_Cam_File, " A%dREZ  # Scaffold #%d segment %d\n",
-                       SCAFFOLD_COLOUR, scaff_id, seg_num);
-              fprintf (Calc_Cam_File, "LNK: ");
-              fprintf (Calc_Cam_File, " %dCHUNKREZ", chunk -> id);
-            }
-#endif
-          fprintf (Cam_File, " %dCHUNKREZ", chunk -> id);
-          if  ((scaff_index + 1) % MAX_SCAFFOLD_SIZE == 0
-               && scaff_index != scaffold -> info.Scaffold.numElements - 1)
-            {
-              fprintf (Cam_File, " A%dREZ  # Scaffold #%d segment %d\n",
-                       SCAFFOLD_COLOUR, scaff_id, seg_num ++);
-              fprintf (Cam_File, "LNK: ");
-              fprintf (Cam_File, " %dCHUNKREZ", chunk -> id);
-            }
-#endif
-
-
           if  (REF (chunk -> id) . scaff_id != scaff_id)
             {
               fprintf (stderr, "chunk -> id = %d\n", chunk -> id);
@@ -8298,22 +7751,6 @@ static void  Print_Scaffolds
         }
 
       Scaffold_Flipped [scaff_id] = Scaffold_Start [scaff_id] > Scaffold_End [scaff_id];
-
-
-#if  MAKE_CAM_FILE
-      fprintf (Cam_File, " A%dREZ  # Scaffold #%d", SCAFFOLD_COLOUR, scaff_id);
-      if  (seg_num == 0)
-        fprintf (Cam_File, "\n");
-      else
-        fprintf (Cam_File, " segment %d\n", seg_num);
-#if  SHOW_CALC_COORDS
-      fprintf (Calc_Cam_File, " A%dREZ  # Scaffold #%d", SCAFFOLD_COLOUR, scaff_id);
-      if  (seg_num == 0)
-        fprintf (Calc_Cam_File, "\n");
-      else
-        fprintf (Calc_Cam_File, " segment %d\n", seg_num);
-#endif
-#endif
     }
 
   // List all scaffold edges
@@ -8333,39 +7770,39 @@ static void  Print_Scaffolds
           fprintf (fp, "A Edges\n");
 
           {
-          GraphEdgeIterator SEdges(ScaffoldGraph->ScaffoldGraph, scaff_id, A_END, ALL_EDGES);
-          SEdgeT           *edge;
+            GraphEdgeIterator SEdges(ScaffoldGraph->ScaffoldGraph, scaff_id, A_END, ALL_EDGES);
+            SEdgeT           *edge;
       
-          while  ((edge = SEdges.nextMerged()) != NULL)
-            {
-              fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %c  %3d  %4s  %5s\n",
-                       edge -> idA, edge -> idB,
-                       edge -> distance . mean,
-                       sqrt (edge -> distance . variance),
-                       edge->orient.toLetter(),
-                       edge -> edgesContributing,
-                       Is_Good_Scaff_Edge (edge) ? "good" : "bad",
-                       edge -> flags . bits . isBogus ? "bogus" : "valid");
-            }
+            while  ((edge = SEdges.nextMerged()) != NULL)
+              {
+                fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %c  %3d  %4s  %5s\n",
+                         edge -> idA, edge -> idB,
+                         edge -> distance . mean,
+                         sqrt (edge -> distance . variance),
+                         edge->orient.toLetter(),
+                         edge -> edgesContributing,
+                         Is_Good_Scaff_Edge (edge) ? "good" : "bad",
+                         edge -> flags . bits . isBogus ? "bogus" : "valid");
+              }
           }
 
           fprintf (fp, "B Edges\n");
 
           {
-          GraphEdgeIterator SEdges(ScaffoldGraph->ScaffoldGraph, scaff_id, B_END, ALL_EDGES);
-          SEdgeT           *edge;
+            GraphEdgeIterator SEdges(ScaffoldGraph->ScaffoldGraph, scaff_id, B_END, ALL_EDGES);
+            SEdgeT           *edge;
 
-          while  ((edge = SEdges.nextMerged()) != NULL)
-            {
-              fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %c  %3d  %4s  %5s\n",
-                       edge -> idA, edge -> idB,
-                       edge -> distance . mean,
-                       sqrt (edge -> distance . variance),
-                       edge->orient.toLetter(),
-                       edge -> edgesContributing,
-                       Is_Good_Scaff_Edge (edge) ? "good" : "bad",
-                       edge -> flags . bits . isBogus ? "bogus" : "valid");
-            }
+            while  ((edge = SEdges.nextMerged()) != NULL)
+              {
+                fprintf (fp, " %3d -> %3d  [%8.0f,%8.0f]  %c  %3d  %4s  %5s\n",
+                         edge -> idA, edge -> idB,
+                         edge -> distance . mean,
+                         sqrt (edge -> distance . variance),
+                         edge->orient.toLetter(),
+                         edge -> edgesContributing,
+                         Is_Good_Scaff_Edge (edge) ? "good" : "bad",
+                         edge -> flags . bits . isBogus ? "bogus" : "valid");
+              }
           }
         }
     }
@@ -8532,7 +7969,7 @@ void  Print_Fill_Info_One_Scaffold
         {
           scaff_chunk
             = GetGraphNode(ScaffoldGraph->ContigGraph, this_gap -> left_cid);
-// #if 0
+
 #if  VERBOSE > 1
           fprintf (fp,
                    " Scaffold Chunk %8d:  (%8.0f,%7.0f)  (%8.0f,%7.0f)\n",
@@ -10840,22 +10277,6 @@ int Throw_Stones
   sprintf(filename, "rezlog/stone.i%02d.log", iteration);
   log_file = file_open (filename, "w");
 
-#if  MAKE_CAM_FILE
-  sprintf(filename, "rezlog/stone.i%02d.cam", iteration);
-  Cam_File = file_open (filename, "w");
-
-  for  (i = 0;  i < NUM_COLOURS;  i ++)
-    fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
-#if  SHOW_CALC_COORDS
-  sprintf(filename, "rezlog/calcstone.i%02d.cam", iteration);
-  Calc_Cam_File = file_open (filename, "w");
-
-  for  (i = 0;  i < NUM_COLOURS;  i ++)
-    fprintf (Calc_Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
-
-#endif
-#endif
-
   Scaffold_Start = (int64 *) safe_calloc
     (Num_Scaffolds, sizeof (int64));
   Scaffold_End = (int64 *) safe_calloc
@@ -11035,16 +10456,6 @@ int Throw_Stones
   //  MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE, TRUE);
   //}
 
-#if  MAKE_CAM_FILE
-  Update_Colours (fill_stones);
-  Output_Cam_Files (fill_stones);
-
-  fclose (Cam_File);
-#if  SHOW_CALC_COORDS
-  fclose (Calc_Cam_File);
-#endif
-#endif
-
 #ifdef ANALYZE
   sprintf(filename, "rezlog/stone.i%02d.analysis", iteration);
   log_file = file_open (filename, "w");
@@ -11207,21 +10618,6 @@ int  Toss_Contained_Stones
   log_file = file_open (filename, "w");
 #endif
 
-#if  MAKE_CAM_FILE
-  sprintf(filename, "rezlog/cstones.i%02d.cam", iteration);
-  Cam_File = file_open (filename, "w");
-
-  for  (i = 0;  i < NUM_COLOURS;  i ++)
-    fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
-#if  SHOW_CALC_COORDS
-  sprintf(filename, "rezlog/calccs.i%02d.cam", iteration);
-  Calc_Cam_File = file_open (filename, "w");
-
-  for  (i = 0;  i < NUM_COLOURS;  i ++)
-    fprintf (Calc_Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
-#endif
-#endif
-
   Scaffold_Start = (int64 *) safe_calloc
     (Num_Scaffolds, sizeof (int64));
   Scaffold_End = (int64 *) safe_calloc
@@ -11271,16 +10667,6 @@ int  Toss_Contained_Stones
 #endif
 
   Sort_Insertions (fill_stones, By_Keep_And_Low_Position);
-
-#if  MAKE_CAM_FILE
-  Update_Colours (fill_stones);
-  Output_Cam_Files (fill_stones);
-
-  fclose (Cam_File);
-#if  SHOW_CALC_COORDS
-  fclose (Calc_Cam_File);
-#endif
-#endif
 
   fprintf (stderr, "Set_Split_Flags\n");
   Set_Split_Flags (fill_stones, FALSE_IFF_SINGLETON /* was ALL_FALSE */);
@@ -11335,39 +10721,6 @@ int  Toss_Contained_Stones
 
 
 
-static void  Update_Colours
-(Scaffold_Fill_t * fill_chunks)
-
-//  Update the  colour  field in global  Chunk_Info  based on information
-//  returned in  fill_chunks .
-
-{
-  int  scaff_id;
-
-  for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
-    {
-      Gap_Fill_t  * g;
-      int  i;
-
-      g = fill_chunks [scaff_id] . gap;
-
-      for  (i = 0;  i < fill_chunks [scaff_id] . num_gaps;  i ++)
-        {
-          int  j, num_chunks;
-          Gap_Chunk_t  * chunk;
-
-          num_chunks = g [i] . num_chunks;
-          chunk = g [i] . chunk;
-
-          for  (j = 0;  j < num_chunks;  j ++)
-            if  (! chunk [j] . keep
-                 && Chunk_Info [chunk [j] . chunk_id] . colour != UNIQUE_COLOUR)
-              Chunk_Info [chunk [j] . chunk_id] . colour = REJECT_COLOUR;
-        }
-    }
-
-  return;
-}
 
 
 

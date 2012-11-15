@@ -22,13 +22,13 @@
 #ifndef COMMONREZ_H
 #define COMMONREZ_H
 
-static const char *rcsid_COMMONREZ_H = "$Id: CommonREZ.h,v 1.11 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_COMMONREZ_H = "$Id: CommonREZ.h,v 1.12 2012-11-15 03:21:00 brianwalenz Exp $";
 
 #include "DataTypesREZ.h"
 
-#define  MAKE_CAM_FILE         0
-  // if  1  will create celamy file  rez.cam
-
+#if 1
+//  These should be dead, but they're still used.  Search for 'colour' (lower case
+//  is a struct member).
 #define  NUM_COLOURS           14
 
 #define  UNIQUE_COLOUR         1
@@ -44,9 +44,7 @@ static const char *rcsid_COMMONREZ_H = "$Id: CommonREZ.h,v 1.11 2011-12-29 09:26
 #define  STONE_COLOUR         11
 #define  RU_RR_COLOUR         12
 #define  UR_COLOUR            13
-
-extern FILE  * Cam_File;
-
+#endif
 
 // Flags for Find_Olap_Path edge mask
 
