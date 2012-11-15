@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.115 2012-11-15 03:46:09 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.116 2012-11-15 05:04:54 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -915,7 +915,7 @@ main(int argc, char **argv) {
       //  XXX do we need least squares here?
       //
 #if 1
-    fprintf(stderr, "Beta - LeastSquaresGapEstimates #4 after final cleanup\n");
+      fprintf(stderr, "Beta - LeastSquaresGapEstimates #4 after final cleanup\n");
       for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
         CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
 
@@ -942,6 +942,19 @@ main(int argc, char **argv) {
     // Note that is closure reads are themselves mated, it may be necessary to do a third round of placement.  
     resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
     
+    //
+    //  XXX do we need least squares here?
+    //
+#if 1
+    fprintf(stderr, "Beta - LeastSquaresGapEstimates #5 after resolve surrogates\n");
+    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+      CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
+
+      if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
+        ScaffoldSanity(ScaffoldGraph, scaffold);
+    }
+#endif
+
     CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_RESOLVE_SURROGATES], "after resolve surrogates");
   }
 
