@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.86 2012-09-27 16:55:14 brianwalenz Exp $";
+static char *rcsid = "$Id: CIScaffoldT_Merge_CGW.c,v 1.87 2012-11-15 02:15:59 brianwalenz Exp $";
 
 //
 //  The ONLY exportable function here is MergeScaffoldsAggressive.
@@ -925,7 +925,7 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
     int32             iterations         = 0;
     double            weightScaleInit    = 0.75;
     double            weightScale        = weightScaleInit;
-    time_t            lastCkpTime        = time(0) - 90 * 60;
+    time_t            lastCkpTime        = time(0) - 4 * 60 * 60;
 
 
     // loop until nothing gets merged
@@ -936,7 +936,7 @@ MergeScaffoldsAggressive(ScaffoldGraphT *graph, char *logicalcheckpointnumber, i
       //  first checkpoint is done after 30 minutes of work here,
       //  though.
       //
-      if (t - lastCkpTime > 120 * 60) {
+      if (t - lastCkpTime > 8 * 60 * 60) {
         char  where[1024];
 
         sprintf(where, "after MergeScaffoldsAggressive iteration %d", iterations);
