@@ -19,13 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.41 2012-08-21 20:53:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: fragmentPlacement.c,v 1.42 2012-11-15 04:22:19 brianwalenz Exp $";
 
 #include "AS_global.h"
 
 #include "fragmentPlacement.h"
 
-#include "AS_UTL_Var.h"
 #include "GraphCGW_T.h"
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraph_CGW.h"
@@ -34,68 +33,44 @@ static const char *rcsid = "$Id: fragmentPlacement.c,v 1.41 2012-08-21 20:53:46 
 #include "ScaffoldGraph_CGW.h"
 #include "Output_CGW.h"
 
+#include <set>
+#include <map>
+#include <vector>
+
+using namespace std;
 
 #define MAX_SIGMA_SLOP 3.0
 
 #define EXTERNAL_MATES_ONLY 1
 #define ALL_MATES 0
 
-#undef  DEBUG_RS
-
-
-// new iterator for looping over the fragments in a chunk -- note need to call cleanup routine when done
-
-  /* we need to have:
-     an ma for the  top chunk
-     if (type == contig)
-     an iterator over chunks in top ma
-     an ma for sub chunks
-     an iterator over fragments in the (sub) ma
-
-     the fragment iterator should be set to go after init
-
-     each call to iterator should
-     compute next in fragment iterator
-     if non null, return
-     else
-     iterate to next sub chunk
-     if null, return failure
-     else
-     restart fragment iterator
-     compute next
-
-
-     return the current
-  */
 
 typedef struct FragIterator{
-  uint32 isUtg:1;
-  uint32 isCtg:1;
-  uint32 includeSurrogateFrgs:1;
-  CDS_CID_t id;
-  MultiAlignT *fragiterma;
-  int32 fOrder; /* which fragment within multialign is next */
-  ContigTIterator subchunks;
-  struct FragIterator *subchunkIterator;
+  uint32               isUtg;
+  uint32               isCtg;
+  uint32               includeSurrogateFrgs;
+  CDS_CID_t            id;
+  MultiAlignT         *fragiterma;
+  int32                 fOrder; /* which fragment within multialign is next */
+  ContigTIterator       subchunks;
+  struct FragIterator  *subchunkIterator;
 } CGWFragIterator;
 
-// New iterator for finding the mates of a fragment
+
 typedef struct  {
   CDS_CID_t  thisFragIID;
   CDS_CID_t  nextLink;
   NodeCGW_T *node;
-  uint32     external_only:1;
+  uint32     external_only;
 } CGWMateIterator;
-
-
 
 
 
 
 static
 void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
-				     CIFragT *mate,ChunkInstanceT*mateChunk,
-				     LengthT*separation,PairOrient* edgeOri){
+                                     CIFragT *mate,ChunkInstanceT*mateChunk,
+                                     LengthT*separation,PairOrient* edgeOri){
 
 
   // we pass in chunks because if a fragment in question is in a surrogate, we can't
@@ -151,9 +126,9 @@ void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
   if(fOriOnScf.isForward()){
     if(mOriOnScf.isReverse()){
       if(f5pOnScf < m5pOnScf){
-	edgeOri->setIsAB_BA();
+        edgeOri->setIsAB_BA();
       } else {
-	edgeOri->setIsBA_AB();
+        edgeOri->setIsBA_AB();
       }
     } else {
       edgeOri->setIsAB_AB();
@@ -161,9 +136,9 @@ void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
   } else { // fOriOnScf == B_A
     if(mOriOnScf.isForward()){
       if(f5pOnScf < m5pOnScf){
-	edgeOri->setIsBA_AB();
+        edgeOri->setIsBA_AB();
       } else {
-	edgeOri->setIsAB_BA();
+        edgeOri->setIsAB_BA();
       }
     } else {
       edgeOri->setIsBA_BA();
@@ -178,7 +153,7 @@ void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
 
 static
 int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk,
-			     CIFragT *mate, ChunkInstanceT *mateChunk){
+                             CIFragT *mate, ChunkInstanceT *mateChunk){
 
   DistT *fragDist;
   LengthT separation;
@@ -207,29 +182,19 @@ int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk,
 
 
 static
-void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int includeSurrogates){
+void
+InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int includeSurrogates) {
 
-  if(chunk->flags.bits.isScaffold){
-    fprintf(stderr,"We haven't coded fragment iteration over scaffolds!\n");
-    assert(0);
-    exit(1);
-    frags->isUtg = frags->isCtg = 0;
-  }
-  else if(chunk->flags.bits.isContig){
-    frags->isUtg = 0;
-    frags->isCtg = 1;
-    frags->fOrder = 0;
-  } else {
-    frags->isCtg = 0;
-    frags->isUtg = 1;
-    frags->fOrder = 0;
-  }
+  assert(chunk->flags.bits.isScaffold == 0);
+
+  frags->isUtg  = (chunk->flags.bits.isContig == true) ? 0 : 1;
+  frags->isCtg  = (chunk->flags.bits.isContig == true) ? 1 : 0;
+  frags->fOrder = 0;
 
   frags->subchunkIterator = NULL;
-  frags->fragiterma = NULL;
+  frags->fragiterma       = NULL;
 
   frags->includeSurrogateFrgs = includeSurrogates;
-
 
   if(frags->isCtg && frags->includeSurrogateFrgs){
 
@@ -281,13 +246,14 @@ int NextCIFragTInChunkIterator(CGWFragIterator* frags, CIFragT**nextfrg){
     int rv;
     CIFragT *retfrg;
     NodeCGW_T *ci;
-    assert(frags->isCtg && frags->includeSurrogateFrgs);
+    assert(frags->isCtg);
+    assert(frags->includeSurrogateFrgs);
     assert(frags->subchunkIterator!=NULL);
     while( (rv = NextCIFragTInChunkIterator(frags->subchunkIterator,&retfrg)) == FALSE){
       ci = NextContigTIterator(&(frags->subchunks));
       if(ci==NULL){
-	*nextfrg=NULL;
-	return FALSE;
+        *nextfrg=NULL;
+        return FALSE;
       }
       assert(frags->subchunkIterator!=NULL);
       InitCIFragTInChunkIterator(frags->subchunkIterator,GetGraphNode(ScaffoldGraph->CIGraph,ci->id),frags->includeSurrogateFrgs);
@@ -341,23 +307,23 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
     // If this fragment only has links to fragments within the node of interesst ...continue
     if(node->flags.bits.isContig){
       if(frag->contigID != node->id){
-	assert(0);
+        assert(0);
       }
 
       if( frag->flags.bits.hasInternalOnlyContigLinks){
-	// return in state where iterator will fail ...
-	return;
+        // return in state where iterator will fail ...
+        return;
       }
 
     }else if(node->flags.bits.isCI){
       // If this fragment only has links to fragments within this CI...continue
       if(frag->cid != node->id){
-	assert(0);
+        assert(0);
       }
 
       if( frag->flags.bits.hasInternalOnlyCILinks){
-	// return in state where iterator will fail ...
-	return;
+        // return in state where iterator will fail ...
+        return;
       }
     }
 
@@ -468,14 +434,14 @@ int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT
     CDS_CID_t place = scaffoldOf(linkIID);
     if(place!=NULLINDEX){
       if(placedIn!=NULLINDEX){
-	if(place!=placedIn){
-	  *mate = NULL;
-	  *mateChunk = NULL;
-	  return FALSE;
-	}
+        if(place!=placedIn){
+          *mate = NULL;
+          *mateChunk = NULL;
+          return FALSE;
+        }
       } else {
-	placedIn=place;
-	mateiid = linkIID;
+        placedIn=place;
+        mateiid = linkIID;
       }
     }
   }
@@ -495,15 +461,14 @@ int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT
 
 
 
-/*
-   Assign a subset of the fragments in an unresolved CI to one of its surrogates.
-   The fragments listed are marked for membership (via their CIid field) int he new element
-*/
-
+//  Assign a subset of the fragments in an unresolved CI to one of its surrogates.  The fragments
+//  listed are marked for membership (via their CIid field) in the new element
+//
 static
-void ReallyAssignFragsToResolvedCI(CDS_CID_t frCIid,
-                                   CDS_CID_t toCIid,
-				   VA_TYPE(CDS_CID_t) *fragments){
+void
+ReallyAssignFragsToResolvedCI(CDS_CID_t           frCIid,
+                              CDS_CID_t           toCIid,
+                              vector<CDS_CID_t>  &fragments) {
 
   NodeCGW_T *frCI = GetGraphNode(ScaffoldGraph->CIGraph, frCIid);
   NodeCGW_T *toCI = GetGraphNode(ScaffoldGraph->CIGraph, toCIid);
@@ -519,15 +484,13 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t frCIid,
 
   assert(toCI->scaffoldID != NULLINDEX);
 
-  for (int32 i=0; i<GetNumCDS_CID_ts(fragments); i++) {
-    CDS_CID_t fragID  = *GetCDS_CID_t(fragments,i);
+  for (uint32 i=0; i<fragments.size(); i++) {
+    CDS_CID_t fragID  = fragments[i];
     CIFragT  *frag    = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
 
     IntMultiPos fragPos;
 
-#ifdef DEBUG_RS
-    fprintf(stderr, "PLACE frag %d into instance %d\n", fragID, toCIid);
-#endif
+    //fprintf(stderr, "PLACE frag %d into instance %d\n", fragID, toCIid);
 
     //  Calling resolveSurrogates() multiple times (for closure reads, see AS_CGW_main.c) can result
     //  in placed surrogate reads placing other surrogate reads.
@@ -589,15 +552,20 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t frCIid,
 
     AppendIntMultiPos(utgMA->f_list, &fragPos);
 
-    // Create a new fragment for the contig (by updating the placement of the fragment we just created)
+    //  Create a new fragment for the contig (by updating the placement of the fragment we just created)
 
     int32      surrogateAOffset = toCI->offsetAEnd.mean;
     int32      surrogateBOffset = toCI->offsetBEnd.mean;
+    int32      maxOffset;
 
     if (surrogateAOffset > surrogateBOffset) {
+      //  AOffset is the upper coord.  Surrogate is backwards.
+      maxOffset = surrogateAOffset;
       fragPos.position.bgn = surrogateAOffset - frag->offset5p.mean;
       fragPos.position.end = surrogateAOffset - frag->offset3p.mean;
     } else {
+      //  AOffset is the lower coord.
+      maxOffset = surrogateBOffset;
       fragPos.position.bgn = surrogateAOffset + frag->offset5p.mean;
       fragPos.position.end = surrogateAOffset + frag->offset3p.mean;
     }
@@ -606,6 +574,11 @@ void ReallyAssignFragsToResolvedCI(CDS_CID_t frCIid,
       fragPos.position.bgn = 0;
     if (fragPos.position.end < 0)
       fragPos.position.end = 0;
+
+    if (fragPos.position.bgn >= maxOffset)
+      fragPos.position.bgn = maxOffset;
+    if (fragPos.position.end >= maxOffset)
+      fragPos.position.end = maxOffset;
 
     // We shouldn't need this!
     frag->contigOffset5p.variance = ComputeFudgeVariance(fragPos.position.bgn);
@@ -668,286 +641,259 @@ getChunkInstanceID(ChunkInstanceT *chunk, int index) {
   return(-1);
 }
 
-int placedByClosureIn(int index, CDS_CID_t iid, CDS_CID_t sid, CDS_CID_t ctgiid, HashTable_AS *instanceList) {
-   int result = FALSE;
+static
+int
+placedByClosureIn(int index,
+                  CDS_CID_t iid,
+                  CDS_CID_t sid,
+                  CDS_CID_t ctgiid,
+                  set<CDS_CID_t> &instanceList) {
+  int result = FALSE;
 
-   gkPlacement *gkpl = ScaffoldGraph->gkpStore->gkStore_getReadPlacement(iid);
-   assert(gkpl);
-   assert(gkpl->bound1);
-   assert(gkpl->bound2);
+  gkPlacement *gkpl = ScaffoldGraph->gkpStore->gkStore_getReadPlacement(iid);
+  assert(gkpl);
+  assert(gkpl->bound1);
+  assert(gkpl->bound2);
    
-   // get the reads indicated by the input line
-   CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound1); 
-   CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound2);
+  // get the reads indicated by the input line
+  CIFragT *leftMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound1); 
+  CIFragT *rightMate = GetCIFragT(ScaffoldGraph->CIFrags, gkpl->bound2);
 
-   // the reads aren't in contigs so there can't be gaps to fill
-   if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
-      return result;
-   }
-   ChunkInstanceT * begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, leftMate->CIid);
-   ChunkInstanceT * end_chunk   = GetGraphNode(ScaffoldGraph->CIGraph, rightMate->CIid);
+  // the reads aren't in contigs so there can't be gaps to fill
+  if (leftMate->contigID == NULLINDEX || rightMate->contigID == NULLINDEX) {
+    return result;
+  }
+  ChunkInstanceT * begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, leftMate->CIid);
+  ChunkInstanceT * end_chunk   = GetGraphNode(ScaffoldGraph->CIGraph, rightMate->CIid);
 
-   int instanceCount = 0;
-   if (leftMate->contigID == ctgiid || rightMate->contigID == ctgiid) {
-      if (begin_chunk->scaffoldID == sid && end_chunk->scaffoldID == sid) {
-         // if our parent is already in this surrogate instance, place us here as well
-         if (begin_chunk->id == index || end_chunk->id == index) {
+  int instanceCount = 0;
+  if (leftMate->contigID == ctgiid || rightMate->contigID == ctgiid) {
+    if (begin_chunk->scaffoldID == sid && end_chunk->scaffoldID == sid) {
+      // if our parent is already in this surrogate instance, place us here as well
+      if (begin_chunk->id == index || end_chunk->id == index) {
+        result = TRUE;
+      } else {
+        // try going off the aend of the leftNode
+        while (begin_chunk->BEndNext != NULLINDEX && begin_chunk->BEndNext != end_chunk->id) {
+          if (begin_chunk->BEndNext == index && instanceCount == 0) {
             result = TRUE;
-         } else {
-            // try going off the aend of the leftNode
-            while (begin_chunk->BEndNext != NULLINDEX && begin_chunk->BEndNext != end_chunk->id) {
-               if (begin_chunk->BEndNext == index && instanceCount == 0) {
-                  result = TRUE;
-                  instanceCount++;
-               }
-               else if (ExistsInHashTable_AS(instanceList, begin_chunk->BEndNext, 0)) {
-                  result = FALSE;
-                  instanceCount++;
-               } 
-               begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, begin_chunk->BEndNext);
-            }
+            instanceCount++;
+          }
+          else if (instanceList.count(begin_chunk->BEndNext) > 0) {
+            result = FALSE;
+            instanceCount++;
+          } 
+          begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, begin_chunk->BEndNext);
+        }
             
-            // if we ran off the end from the left and didn't find the surrogate instance, try from the right
-            if (result && begin_chunk->BEndNext != NULLINDEX) { 
-               // we stopped because we got to the end chunk or we found the instance we were looking for, no need to search other direction
-            } else {
-               result = FALSE;
-               instanceCount = 0;
-               begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, leftMate->CIid);
-               while (end_chunk->BEndNext != NULLINDEX && end_chunk->BEndNext != begin_chunk->id) {
-                  if (end_chunk->BEndNext == index && instanceCount == 0) {
-                     result = TRUE;
-                     instanceCount++;
-                  }
-                  else if (ExistsInHashTable_AS(instanceList, end_chunk->BEndNext, 0)) {
-                     result = FALSE;
-                     instanceCount++;
-                  }
-                  end_chunk = GetGraphNode(ScaffoldGraph->CIGraph, end_chunk->BEndNext);
-               }
-               if (end_chunk->BEndNext == NULLINDEX) {
-                  result = FALSE;
-               }
+        // if we ran off the end from the left and didn't find the surrogate instance, try from the right
+        if (result && begin_chunk->BEndNext != NULLINDEX) { 
+          // we stopped because we got to the end chunk or we found the instance we were looking for, no need to search other direction
+        } else {
+          result = FALSE;
+          instanceCount = 0;
+          begin_chunk = GetGraphNode(ScaffoldGraph->CIGraph, leftMate->CIid);
+          while (end_chunk->BEndNext != NULLINDEX && end_chunk->BEndNext != begin_chunk->id) {
+            if (end_chunk->BEndNext == index && instanceCount == 0) {
+              result = TRUE;
+              instanceCount++;
             }
-         }
+            else if (instanceList.count(end_chunk->BEndNext) > 0) {
+              result = FALSE;
+              instanceCount++;
+            }
+            end_chunk = GetGraphNode(ScaffoldGraph->CIGraph, end_chunk->BEndNext);
+          }
+          if (end_chunk->BEndNext == NULLINDEX) {
+            result = FALSE;
+          }
+        }
       }
-   }
+    }
+  }
 
-   return result;
+  return result;
 }
       
 
 void
 resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
                   double cutoffToInferSingleCopyStatus) {
-  int32 totalNumParentFrags  = 0;
-  int32 numReallyPlaced      = 0;
+  int32 totalNumParentFrags    = 0;
+  int32 numReallyPlaced        = 0;
   int32 allocatedPlacedLists   = 128;
 
-  assert((cutoffToInferSingleCopyStatus >= 0.0) &&
-         (cutoffToInferSingleCopyStatus <= 1.0));
+  assert(cutoffToInferSingleCopyStatus >= 0.0);
+  assert(cutoffToInferSingleCopyStatus <= 1.0);
 
-  GraphNodeIterator  CIGraphIterator;
-  ChunkInstanceT    *parentChunk;
-
+  GraphNodeIterator  CIs;
+  ChunkInstanceT    *parentCI;
 
   //  Allocate a list of IIDs for each possible surrogate instance.  We allocate enough lists for
   //  the largest number of instances in the whole assembly.
 
-  InitGraphNodeIterator(&CIGraphIterator, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-  while ((parentChunk = NextGraphNodeIterator(&CIGraphIterator)) != NULL)
-    if (allocatedPlacedLists < parentChunk->info.CI.numInstances)
-      allocatedPlacedLists = parentChunk->info.CI.numInstances;
+  InitGraphNodeIterator(&CIs, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
+  while ((parentCI = NextGraphNodeIterator(&CIs)) != NULL)
+    if (allocatedPlacedLists < parentCI->info.CI.numInstances)
+      allocatedPlacedLists = parentCI->info.CI.numInstances;
 
-  VA_TYPE(int32) **placedList = (VA_TYPE(int32)**) safe_malloc(allocatedPlacedLists * sizeof(VA_TYPE(int32)*));
+  fprintf(stderr, "resolveSurrogates()--  Allocating %d vectors.\n", allocatedPlacedLists);
 
-  for (int32 i=0; i<allocatedPlacedLists; i++)
-    placedList[i] = CreateVA_int32(20);
+  vector<CDS_CID_t>   *placedList = new vector<CDS_CID_t> [allocatedPlacedLists];
 
   //  Over all unitigs, try to place surrogate fragments.
 
-  InitGraphNodeIterator(&CIGraphIterator, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-  while ((parentChunk = NextGraphNodeIterator(&CIGraphIterator)) != NULL) {
-    int32            numFragmentsInParent;
-    int32            numFrgsToPlace = 0;
-    int              numInstances = parentChunk->info.CI.numInstances;
+  InitGraphNodeIterator(&CIs, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
+  while ((parentCI = NextGraphNodeIterator(&CIs)) != NULL) {
+    assert(parentCI->info.CI.numInstances <= allocatedPlacedLists);
 
-    assert(numInstances <= allocatedPlacedLists);
-
-    if (numInstances == 0)
+    if (parentCI->info.CI.numInstances == 0)
       //  Not a surrogate
       continue;
 
-    numFragmentsInParent  = ScaffoldGraph->tigStore->getNumFrags(parentChunk->id, TRUE);
-    totalNumParentFrags  += numFragmentsInParent;
+    fprintf(stderr, "resolveSurrogates()--  Placing for surrogate CI %d with %d instances.\n",
+            parentCI->id, parentCI->info.CI.numInstances);
 
-#ifdef DEBUG_RS
-    fprintf(stderr, "----------------------------------------\n");
-    fprintf(stderr, "RESOLVE for parent %d with %d fragments and %d instances.\n", parentChunk->id, numFragmentsInParent, numInstances);
-#endif
+    int32  numFrgToPlace = 0;
+    int32  numFrgInParent  = ScaffoldGraph->tigStore->getNumFrags(parentCI->id, TRUE);
 
-    HashTable_AS *instanceList = CreateScalarHashTable_AS();
+    totalNumParentFrags  += numFrgInParent;
+
+    set<CDS_CID_t>        instanceList;
+    map<CDS_CID_t,int32>  fragPlacedTimes;
 
     //  Over all instances, do some sanity checking, clear the placedList, and remember the instance ID.
 
-    for (int32 i=0; i<numInstances; i++) {
-      int32           instanceID     = getChunkInstanceID(parentChunk, i);
-      ChunkInstanceT *candidateChunk = GetGraphNode(ScaffoldGraph->CIGraph, instanceID);
+    for (int32 i=0; i<parentCI->info.CI.numInstances; i++) {
+      int32           instanceID     = getChunkInstanceID(parentCI, i);
+      ChunkInstanceT *targetCI       = GetGraphNode(ScaffoldGraph->CIGraph, instanceID);
 
       //  These were historically problems that were not asserts, but
       //  would just skip this instance.
-      assert(parentChunk->type              == UNRESOLVEDCHUNK_CGW);
-      assert(candidateChunk->type           == RESOLVEDREPEATCHUNK_CGW);
-      assert(candidateChunk->info.CI.baseID == parentChunk->id);
-      assert(parentChunk                    != candidateChunk);
+      assert(parentCI->type           == UNRESOLVEDCHUNK_CGW);
+      assert(targetCI->type           == RESOLVEDREPEATCHUNK_CGW);
+      assert(targetCI->info.CI.baseID == parentCI->id);
+      assert(parentCI                 != targetCI);
 
-      ResetVA_int32(placedList[i]);
+      placedList[i].clear();
 
-      InsertInHashTable_AS(instanceList, (uint64)instanceID, 0, (uint64)1, 0);
+      instanceList.insert(instanceID);
     }
 
-    //  Over all instances (again), build a list of the fragments we can place in each instance.
+    //  Over all instances, build a list of the fragments we can place in each instance.
 
-    HashTable_AS    *fragPlacedTimes = CreateScalarHashTable_AS();
+    for (int32 i=0; i<parentCI->info.CI.numInstances; i++) {
+      int32           instanceID     = getChunkInstanceID(parentCI, i);
+      ChunkInstanceT *targetCI = GetGraphNode(ScaffoldGraph->CIGraph, instanceID);
 
-    for (int32 i=0; i<numInstances; i++) {
-      int32           instanceID     = getChunkInstanceID(parentChunk, i);
-      ChunkInstanceT *candidateChunk = GetGraphNode(ScaffoldGraph->CIGraph, instanceID);
-
-      int32       sid    = candidateChunk->scaffoldID;
-      int32       ctgiid = candidateChunk->info.CI.contigID;
-
-      if (sid == NULLINDEX)
+      if (targetCI->scaffoldID == NULLINDEX)
         continue;
 
       CGWFragIterator frags;
       CIFragT        *frag;
 
-      InitCIFragTInChunkIterator(&frags,parentChunk,FALSE);
-      while(NextCIFragTInChunkIterator(&frags, &frag)){
-        int fragIsGood = 0;
+      InitCIFragTInChunkIterator(&frags, parentCI, FALSE);
+      while (NextCIFragTInChunkIterator(&frags, &frag)) {
+        bool            fragIsGood = false;
+        CIFragT        *mate       = NULL;
+        ChunkInstanceT *mateChunk  = NULL;
 
-        if (frag->CIid != parentChunk->id)
+        if (frag->CIid != parentCI->id)
           //  Placed in a previuos round
           continue;
         
         if ((placeAllFragsInSinglePlacedSurros) &&
-            (numInstances == 1))
-          fragIsGood = 1;
+            (parentCI->info.CI.numInstances == 1))
+          fragIsGood = true;
 
-        CIFragT        *mate      = NULL;
-        ChunkInstanceT *mateChunk = NULL;
-
-        if ((matePlacedOnlyIn(frag,sid,&mate,&mateChunk)) &&
+        if ((matePlacedOnlyIn(frag, targetCI->scaffoldID, &mate, &mateChunk)) &&
             (frag->flags.bits.innieMate) &&
-            (FragAndMateAreCompatible(frag,candidateChunk,mate,mateChunk)))
-          fragIsGood = 1;          
+            (FragAndMateAreCompatible(frag, targetCI, mate, mateChunk)))
+          fragIsGood = true;
 
         // if this is closure read and we can place it in this location, do it
         if (ScaffoldGraph->gkpStore->gkStore_getFRGtoPLC(frag->read_iid) != 0 && 
-            placedByClosureIn(instanceID, frag->read_iid, sid, ctgiid, instanceList))
-          fragIsGood = 1;
-        
-        if (fragIsGood) {
-#ifdef DEBUG_RS
-          fprintf(stderr, "frag %d (CIid=%d cid=%d) from parent=%d to=%d\n", frag->read_iid, frag->CIid, frag->cid, parentChunk->id, instanceID);
-#endif
-          AppendVA_int32(placedList[i], &frag->read_iid);
+            placedByClosureIn(instanceID, frag->read_iid, targetCI->scaffoldID, targetCI->info.CI.contigID, instanceList))
+          fragIsGood = true;
 
-          //  Count how many times we try to place this fragment
-          ReplaceInHashTable_AS(fragPlacedTimes, frag->read_iid, 0,
-                                LookupValueInHashTable_AS(fragPlacedTimes, frag->read_iid, 0) + 1, 0);
+        if (fragIsGood == false)
+          continue;
 
-          numFrgsToPlace++;
-        }
+        assert(frag->CIid == parentCI->id);
+        assert(frag->cid  == parentCI->id);
+
+        fprintf(stderr, "resolveSurrogates()--  frag %d from parent CI=%d to instance CI=%d in scaffold %d\n",
+                frag->read_iid, parentCI->id, instanceID, targetCI->scaffoldID);
+
+        placedList[i].push_back(frag->read_iid);
+        fragPlacedTimes[frag->read_iid]++;
+
+        numFrgToPlace++;
       }
 
       CleanupCIFragTInChunkIterator(&frags);
     }
 
-    DeleteHashTable_AS(instanceList);
+    instanceList.clear();
 
-    if (numFrgsToPlace == 0) {
+    if (numFrgToPlace == 0)
       //  Nothing to place.
-      DeleteHashTable_AS(fragPlacedTimes);
       continue;
-    }
 
     //  Over all instances, again, build the final list of fragments to place.  This discards any
     //  fragment we try to place more than once.
 
-    for (int32 i=0; i<numInstances; i++) {
-      int numToPlace = GetNumint32s(placedList[i]);
-
-      if (numToPlace == 0)
+    for (int32 i=0; i<parentCI->info.CI.numInstances; i++) {
+      if (placedList[i].size() == 0)
         continue;
 
-#ifdef DEBUG_RS
-      fprintf(stderr, "PLACING for instance %d\n", getChunkInstanceID(parentChunk, i));
-#endif
+      vector<CDS_CID_t>   toPlace;
 
-      VA_TYPE(CDS_CID_t) *toplace = CreateVA_CDS_CID_t(numToPlace);
+      for (int32 j=0; j<placedList[i].size(); j++){
+        CDS_CID_t iid = placedList[i][j];
 
-      for (int32 j=0; j<numToPlace; j++){
-	CDS_CID_t iid = *Getint32(placedList[i], j);
+        int32 numTimes = fragPlacedTimes[iid];
+        assert(numTimes > 0);
 
-	int32 numTimes = (int32)LookupValueInHashTable_AS(fragPlacedTimes, (uint64)iid, 0);
-	assert(numTimes > 0);
-
-	if (numTimes > 1)
+        if (numTimes > 1)
           //  Whoops!  Placed it more than once.
-	  continue;
+          continue;
 
-#ifdef DEBUG_RS
-        fprintf(stderr, "frag %d is OK\n", iid);
-#endif
-	AppendVA_CDS_CID_t(toplace, &iid);
+        toPlace.push_back(iid);
       }
 
 
       //  Second-guess ourselves: if a sufficient fraction of reads can be placed with mates, then
       //  place all fragments.
       //
-      if ((numInstances == 1) &&
-          (GetNumCDS_CID_ts(toplace) > cutoffToInferSingleCopyStatus * numFragmentsInParent)) {
-
+      if ((parentCI->info.CI.numInstances == 1) &&
+          (toPlace.size() > cutoffToInferSingleCopyStatus * numFrgInParent)) {
         CGWFragIterator frags;
         CIFragT        *frag;
 
-        InitCIFragTInChunkIterator(&frags,parentChunk,FALSE);
+        toPlace.clear();
 
-        ResetVA_CDS_CID_t(toplace);
+        InitCIFragTInChunkIterator(&frags,parentCI,FALSE);
 
-        while (NextCIFragTInChunkIterator(&frags, &frag)) {
-#ifdef DEBUG_RS
-          fprintf(stderr, "frag %d (CIid=%d cid=%d) from parent=%d to=%d (placing all)\n", frag->read_iid, frag->CIid, frag->cid, parentChunk->id, getChunkInstanceID(parentChunk, i));
-#endif
-
-          AppendVA_CDS_CID_t(toplace, &frag->read_iid);
-        }
+        while (NextCIFragTInChunkIterator(&frags, &frag))
+          toPlace.push_back(frag->read_iid);
 
         CleanupCIFragTInChunkIterator(&frags);
       }
 
-      // now really do the placement
-      ReallyAssignFragsToResolvedCI(parentChunk->id,
-                                    getChunkInstanceID(parentChunk,i),
-                                    toplace);
+      ReallyAssignFragsToResolvedCI(parentCI->id, getChunkInstanceID(parentCI,i), toPlace);
 
-      numReallyPlaced+=GetNumCDS_CID_ts(toplace);
+      numReallyPlaced += toPlace.size();
 
-      DeleteVA_CDS_CID_t(toplace);
-
-      ResetVA_int32(placedList[i]);
+      placedList[i].clear();
     }  //  Over all instances
 
-    DeleteHashTable_AS(fragPlacedTimes);
+    fragPlacedTimes.clear();
   }  //  Over all unitigs
 
-  for (int32 i=0; i<allocatedPlacedLists; i++)
-    DeleteVA_int32(placedList[i]);
-  safe_free(placedList);
+  delete [] placedList;
 
-  fprintf(stderr, "Placed %d surrogate fragments out of %d surrogate fragments\n", numReallyPlaced, totalNumParentFrags);
+  fprintf(stderr, "Placed %d surrogate fragments out of %d surrogate fragments\n",
+          numReallyPlaced, totalNumParentFrags);
 }
 
