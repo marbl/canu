@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.27 2012-04-02 11:07:36 brianwalenz Exp $";
+//static char *rcsid = "$Id: AS_UTL_fileIO.c,v 1.28 2012-11-15 01:31:55 brianwalenz Exp $";
 
 #include "AS_UTL_fileIO.h"
 
@@ -28,7 +28,7 @@
 
 //  Use ftell() to verify that we wrote the expected number of bytes,
 //  and that we ended up at the expected location.
-#define VERIFY_WRITE_POSITIONS
+#undef VERIFY_WRITE_POSITIONS
 
 //  Provides a safe and reliable mechanism for reading / writing
 //  binary data.
