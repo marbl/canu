@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.114 2012-10-05 05:28:37 brianwalenz Exp $";
+const char *mainid = "$Id: AS_CGW_main.c,v 1.115 2012-11-15 03:46:09 brianwalenz Exp $";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL
@@ -680,15 +680,20 @@ main(int argc, char **argv) {
     ScaffoldSanity(ScaffoldGraph);
     Throw_Stones(GlobalData->outputPrefix, GlobalData->stoneLevel, FALSE);
 
-    //  If Throw_Stones splits scaffolds, rebuild edges.
-    //  Throw_Stones should return if 'splitscaffolds > 0' so we can avoid
-    //  rebuilding.
-    {
-      vector<CDS_CID_t>  rawEdges;
+    //  Cleanup and split scaffolds.  The cleanup shouldn't do anything, but it's cheap.
+    CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
 
-      BuildSEdges(rawEdges, TRUE);
-      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, TRUE);
+    for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+      CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
+
+      if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
+        ScaffoldSanity(ScaffoldGraph, scaffold);
     }
+
+    vector<CDS_CID_t>  rawEdges;
+
+    BuildSEdges(rawEdges, TRUE);
+    MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, TRUE);
 
     ScaffoldSanity(ScaffoldGraph);
 
@@ -738,17 +743,39 @@ main(int argc, char **argv) {
   //
   ScaffoldGraph->tigStore->flushCache();
 
+  //  The original rock throwing (above, RepeatRez()) calls TidyUpScaffolds() after each call to
+  //  Fill_Gaps().  This does CleanupAScaffold() and LeastSquaresGapEstimates().  The it rebuilds
+  //  scaffold edges (but not contig edges).  It's not been tested here, so we don't do it yet.
+
   if ((runThisCheckpoint(restartFromLogical, CHECKPOINT_AFTER_FINAL_ROCKS) == true) &&
       (GlobalData->repeatRezLevel > 0)) {
-    const int  MAX_EXTRA_ROCKS_ITERS = 5;
-    int  iter = 0, extra_rocks;
-
+    int32  extra_rocks = 0;
+    int32  iter        = 0;
     do {
-      extra_rocks = Fill_Gaps(GlobalData->outputPrefix, GlobalData->repeatRezLevel, iter);
-      fprintf(stderr, "Threw additional %d rocks on iter %d\n", extra_rocks, iter);
+
+      //  Zero means to rebuild the hopeless scaffold array - e.g., try all scaffolds again.
+      //  Before this, it was using iter, but iter was never changed from zero.
+      extra_rocks = Fill_Gaps(GlobalData->outputPrefix, GlobalData->repeatRezLevel, 0);
+      fprintf(stderr, "Threw additional %d rocks on iter %d\n", extra_rocks, iter++);
+
+#if 0
+      CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
+
+      for (int32 sID=0; sID < GetNumCIScaffoldTs(ScaffoldGraph->CIScaffolds); sID++) {
+        CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds, sID);
+
+        if (true == LeastSquaresGapEstimates(ScaffoldGraph, scaffold, LeastSquares_Cleanup | LeastSquares_Split))
+          ScaffoldSanity(ScaffoldGraph, scaffold);
+      }
+
+      vector<CDS_CID_t>  rawEdges;
+
+      BuildSEdges(rawEdges, FALSE);
+      MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, rawEdges, TRUE, FALSE);
+#endif
 
       //ScaffoldGraph->tigStore->flushCache();
-    } while (extra_rocks > 1 && iter < MAX_EXTRA_ROCKS_ITERS);
+    } while (extra_rocks > 1);
 
     //
     //  XXX do we need least squares here?
