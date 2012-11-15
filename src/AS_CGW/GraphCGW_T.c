@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.115 2012-10-23 10:39:06 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.116 2012-11-15 02:17:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -83,6 +83,8 @@ void ReallocGraphEdges(GraphCGW_T *graph, int32 numEdges){
 GraphCGW_T *
 CreateGraphCGW(GraphType type, int32 numNodes, int32 numEdges) {
   GraphCGW_T *graph = new GraphCGW_T;
+
+  memset(graph, 0, sizeof(GraphCGW_T));
 
   graph->type  = type;
 
@@ -202,7 +204,9 @@ void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
 GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
   CDS_CID_t i;
   int       status = 0;
-  GraphCGW_T *graph = (GraphCGW_T *)safe_calloc(1, sizeof(GraphCGW_T));
+  GraphCGW_T *graph = new GraphCGW_T;
+
+  memset(graph, 0, sizeof(GraphCGW_T));
 
   graph->nodes = CreateFromFileVA_NodeCGW_T(stream);
 
