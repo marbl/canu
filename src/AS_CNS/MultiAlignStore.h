@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
-static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.11 2012-04-12 19:31:16 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSTORE_H = "$Id: MultiAlignStore.h,v 1.12 2012-11-15 04:19:46 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -122,6 +122,11 @@ public:
 
   void           copyMultiAlign(int32 maID, bool isUnitig, MultiAlignT *ma);
 
+  //  Flush to disk any cached MAs.  This is called by flushCache().
+  //
+  void           flushDisk(int32 maID, bool isUnitig);
+  void           flushDisk(void);
+
   //  Flush the cache of loaded MAs.  Be aware that this is expensive in that the flushed things
   //  usually just get loaded back into core.
   //
@@ -159,7 +164,8 @@ public:
 private:
   struct MultiAlignR {
     MultiAlignD  mad;
-    uint64       unusedFlags : 2;   //  Two whole bits for future use.
+    uint64       unusedFlags : 1;   //  One whole bit for future use.
+    uint64       flushNeeded : 1;   //  If true, this MAR and associated MultiAlign are NOT saved to disk.
     uint64       isPresent   : 1;   //  If true, this MAR is present in this partition.
     uint64       isDeleted   : 1;   //  If true, this MAR has been deleted from the assembly.
     uint64       ptID        : 10;  //  10 -> 1024 partitions
@@ -168,6 +174,8 @@ private:
   };
 
   void                    init(const char *path_, uint32 version_, bool writable_, bool inplace_, bool append_);
+
+  void                    writeTigToDisk(MultiAlignT *ma, MultiAlignR *maRecord);
 
   void                    dumpMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, uint32 part);
   bool                    loadMASRfile(char *name, MultiAlignR *R, uint32 L, uint32 M, uint32 part, bool onlyThisV);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.27 2012-11-12 16:06:48 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.28 2012-11-15 04:19:46 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -242,6 +242,10 @@ MultiAlignStore::nextVersion(void) {
   assert(unitigPart == 0);
   assert(contigPart == 0);
 
+  //  Write out any tigs that are cached
+
+  flushDisk();
+
   //  Dump the MASR's.
 
   dumpMASR(utgRecord, utgLen, utgMax, currentVersion, TRUE);
@@ -263,7 +267,7 @@ MultiAlignStore::nextVersion(void) {
 
   //  Bump to the next version.
 
-  //fprintf(stderr, "MultiAlignStore()-- moving from version %d to version %d; utgLen %d ctgLen %d\n",
+  //fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- moving from version %d to version %d; utgLen %d ctgLen %d\n",
   //        currentVersion, currentVersion+1, utgLen, ctgLen);
 
   currentVersion++;
@@ -308,6 +312,34 @@ MultiAlignStore::writeToPartitioned(uint32 *unitigPartMap_, uint32 unitigPartMap
 
 
 void
+MultiAlignStore::writeTigToDisk(MultiAlignT *ma, MultiAlignR *maRecord) {
+
+  //fprintf(stderr, "MultiAlignStore::writeTigToDisk()-- write ma "F_S32" in store version "F_U64" partition "F_U64" at file position "F_U64"\n", ma->maID, maRecord->svID, maRecord->ptID, maRecord->fileOffset);
+
+  FILE *FP = openDB(maRecord->svID, maRecord->ptID);
+
+  //  The atEOF flag allows us to skip a seek when we're already (supposed) to be at the EOF.  This
+  //  (hopefully) fixes a problem on one system where the seek() was placing the FP just before EOF
+  //  (almost like the last block of data wasn't being flushed), and the tell() would then place the
+  //  next tig in the middle of the previous one.
+  //
+  //  It also should (greatly) improve performance over NFS, espeically during BOG and CNS.  Both of
+  //  these only write data, so no repositioning of the stream is needed.
+  //
+  if (dataFile[maRecord->svID][maRecord->ptID].atEOF == false) {
+    AS_UTL_fseek(FP, 0, SEEK_END);
+    dataFile[maRecord->svID][maRecord->ptID].atEOF = true;
+  }
+
+  maRecord->flushNeeded = 0;
+  maRecord->fileOffset  = AS_UTL_ftell(FP);
+
+  SaveMultiAlignTToStream(ma, FP);
+}
+
+
+
+void
 MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCache) {
 
   assert(ma->data.unitig_status      != 0);
@@ -329,13 +361,13 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
       IntMultiPos *frg = GetIntMultiPos(ma->f_list, i);
 
       if ((frg->position.bgn < 0) || (frg->position.end < 0))
-        fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d frg %d at (%d,%d) has negative position\n",
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()-- ERROR: multialign %d frg %d at (%d,%d) has negative position\n",
                 ma->maID, frg->ident, frg->position.bgn, frg->position.end), neg++;
       if (frg->position.bgn < 0)  frg->position.bgn = 0;
       if (frg->position.end < 0)  frg->position.end = 0;
 
       if ((frg->position.bgn > len) || (frg->position.end > len))
-        fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d frg %d at (%d,%d) exceeded multialign length %d\n",
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()-- ERROR: multialign %d frg %d at (%d,%d) exceeded multialign length %d\n",
                 ma->maID, frg->ident, frg->position.bgn, frg->position.end, len), pos++;
       if (frg->position.bgn > len)  frg->position.bgn = len;
       if (frg->position.end > len)  frg->position.end = len;
@@ -345,13 +377,13 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
       IntUnitigPos *utg = GetIntUnitigPos(ma->u_list, i);
 
       if ((utg->position.bgn < 0) || (utg->position.end < 0))
-        fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d utg %d at (%d,%d) has negative position\n",
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()-- ERROR: multialign %d utg %d at (%d,%d) has negative position\n",
                 ma->maID, utg->ident, utg->position.bgn, utg->position.end), neg++;
       if (utg->position.bgn < 0)  utg->position.bgn = 0;
       if (utg->position.end < 0)  utg->position.end = 0;
 
       if ((utg->position.bgn > len) || (utg->position.end > len))
-        fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d frg %d at (%d,%d) exceeds multialign length %d\n",
+        fprintf(stderr, "MultiAlignStore::insertMultiAlign()-- ERROR: multialign %d frg %d at (%d,%d) exceeds multialign length %d\n",
                 ma->maID, utg->ident, utg->position.bgn, utg->position.end, len), pos++;
       if (utg->position.bgn > len)  utg->position.bgn = len;
       if (utg->position.end > len)  utg->position.end = len;
@@ -359,7 +391,7 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
 
     if (neg + pos > 0) {
       DumpMultiAlignForHuman(stderr, ma, isUnitig);
-      fprintf(stderr, "insertMultiAlign()-- ERROR: multialign %d %c has invalid fragment/unitig layout, exceeds bounds of consensus sequence (length %d) -- neg=%d pos=%d.\n",
+      fprintf(stderr, "MultiAlignStore::insertMultiAlign()-- ERROR: multialign %d %c has invalid fragment/unitig layout, exceeds bounds of consensus sequence (length %d) -- neg=%d pos=%d.\n",
               ma->maID, isUnitig ? 'U' : 'C', len, neg, pos);
     }
 
@@ -392,7 +424,7 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
       if (GetNumIntUnitigPoss(ma->u_list) == 1)
         GetIntUnitigPos(ma->u_list, 0)->ident = ma->maID;
 
-      fprintf(stderr, "insertMultiAlign()-- Added new unitig %d\n", ma->maID);
+      fprintf(stderr, "MultiAlignStore::insertMultiAlign()-- Added new unitig %d\n", ma->maID);
     }
 
     if (utgMax <= ma->maID) {
@@ -416,7 +448,7 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
       assert(unitigPart       == 0);
       assert(unitigPartMap    == NULL);
       assert(unitigPartMapLen == 0);
-      fprintf(stderr, "insertMultiAlign()-- Added new contig %d\n", ma->maID);
+      fprintf(stderr, "MultiAlignStore::insertMultiAlign()-- Added new contig %d\n", ma->maID);
     }
 
     if (ctgMax <= ma->maID) {
@@ -439,12 +471,16 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
 
 #if 0
   if (maRecord->svID > 0)
-    fprintf(stderr, "InsetMultiAlign()--  Moving %s maID %d from svID %d to svID %d\n",
+    fprintf(stderr, "MultiAlignStore::InsetMultiAlign()--  Moving %s maID %d from svID %d to svID %d\n",
             (isUnitig) ? "unitig" : "contig",
             ma->maID, maRecord->svID, currentVersion);
 #endif
 
+  //fprintf(stderr, "MultiAlignStore::InsertMultiAlign()-- Change %s "F_S32" from pt "F_U64" sv "F_U64" to pt 0 sv "F_U32"\n",
+  //        (isUnitig) ? "utg" : "ctg", ma->maID, maRecord->ptID, maRecord->svID, currentVersion);
+
   maRecord->unusedFlags     = 0;
+  maRecord->flushNeeded     = 1;  //  Mark as needing a flush by default
   maRecord->isPresent       = 1;
   maRecord->isDeleted       = 0;
   maRecord->ptID            = 0;
@@ -503,39 +539,22 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
     maRecord->ptID = (contigPartMap) ? contigPartMap[ma->maID] : contigPart;
   }
 
-
-  FILE *FP = openDB(maRecord->svID, maRecord->ptID);
-
-  //  The atEOF flag allows us to skip a seek when we're already (supposed) to be at the EOF.  This
-  //  (hopefully) fixes a problem on one system where the seek() was placing the FP just before EOF
-  //  (almost like the last block of data wasn't being flushed), and the tell() would then place the
-  //  next tig in the middle of the previous one.
+  //  Write to disk RIGHT NOW unless we're keeping it in cache.  If it is written, the flushNeeded
+  //  flag is cleared.
   //
-  //  It also should (greatly) improve performance over NFS, espeically during BOG and CNS.  Both of
-  //  these only write data, so no repositioning of the stream is needed.
-  //
-  if (dataFile[maRecord->svID][maRecord->ptID].atEOF == false) {
-    AS_UTL_fseek(FP, 0, SEEK_END);
-    dataFile[maRecord->svID][maRecord->ptID].atEOF = true;
-  }
-
-  maRecord->fileOffset = AS_UTL_ftell(FP);
-
-  SaveMultiAlignTToStream(ma, FP);
-
-  //fprintf(stderr, "MA %d in store version %d partition %d at file position %d\n", ma->maID, maRecord->svID, maRecord->ptID, maRecord->fileOffset);
+  if (keepInCache == false)
+    writeTigToDisk(ma, maRecord);
 
   MultiAlignT   **maCache  = (isUnitig) ? (utgCache) : (ctgCache);
 
-  //  If we want to save this in the cache, delete whatever is there (unless it is us) and save it.
-  //  The store now owns this MutliAlignT.
-  //
-  //  If not, delete whatever is there (unless it is us), but do NOT delete us.  The store doesn NOT
-  //  own this MultiAlignT, even if it was initially supplied by loadMultiAlign().
+  //  If the cache is different from this unitig, delete the cache.  Not sure why this happens --
+  //  did we copy a tig, muck with it, and then want to replace the one in the store?
   //
   if (maCache[ma->maID] != ma)
     DeleteMultiAlignT(maCache[ma->maID]);
 
+  //  Cache it if requested, otherwise clear the cache.
+  //
   maCache[ma->maID] = (keepInCache) ? ma : NULL;
 }
 
@@ -549,6 +568,10 @@ MultiAlignStore::deleteMultiAlign(int32 maID, bool isUnitig) {
 
   assert(maID >= 0);
   assert(maID < (int32)maLen);
+
+  flushDisk(maID, isUnitig);
+
+  assert(maRecord[maID].flushNeeded == 0);
 
   assert(maRecord[maID].isPresent == 1);
   assert(maRecord[maID].isDeleted == 0);
@@ -615,6 +638,9 @@ MultiAlignStore::loadMultiAlign(int32 maID, bool isUnitig) {
   if (maCache[maID] == NULL) {
     FILE *FP = openDB(maRecord[maID].svID, maRecord[maID].ptID);
 
+    //  Since the tig isn't in the cache, it had better NOT be marked as needing to be flushed!
+    assert(maRecord[maID].flushNeeded == 0);
+
     //  Seek to the correct position, and reset the atEOF to indicate we're (with high probability)
     //  not at EOF anymore.
     if (dataFile[maRecord[maID].svID][maRecord[maID].ptID].atEOF == true) {
@@ -627,12 +653,15 @@ MultiAlignStore::loadMultiAlign(int32 maID, bool isUnitig) {
     maCache[maID] = LoadMultiAlignTFromStream(FP);
 
     if (maCache[maID] == NULL)
-      fprintf(stderr,"MultiAlignStore::loadMultiAlign()-- FAILED for %s "F_S32" in file "F_U64" at offset "F_U64"\n",
+      fprintf(stderr,"loadMultiAlign()-- FAILED for %s "F_S32" in file "F_U64" at offset "F_U64"\n",
               (isUnitig ? "Unitig" : "Contig"), maID, maRecord[maID].svID, maRecord[maID].fileOffset);
     assert(maCache[maID] != NULL);
 
     //  ALWAYS assume the incore mad is more up to date
     maCache[maID]->data = maRecord[maID].mad;
+
+    //  Since we just loaded, no flush is needed.
+    maRecord[maID].flushNeeded = 0;
   }
 
   return(maCache[maID]);
@@ -642,11 +671,14 @@ MultiAlignStore::loadMultiAlign(int32 maID, bool isUnitig) {
 
 void
 MultiAlignStore::unloadMultiAlign(int32 maID, bool isUnitig) {
+  MultiAlignR            *maRecord = (isUnitig) ? utgRecord : ctgRecord;
+  MultiAlignT           **maCache  = (isUnitig) ? utgCache  : ctgCache;
 
-  if (isUnitig)
-    DeleteMultiAlignT(utgCache[maID]);
-  else
-    DeleteMultiAlignT(ctgCache[maID]);
+  flushDisk(maID, isUnitig);
+
+  assert(maRecord[maID].flushNeeded == 0);
+
+  DeleteMultiAlignT(maCache[maID]);
 }
 
 
@@ -690,9 +722,51 @@ MultiAlignStore::copyMultiAlign(int32 maID, bool isUnitig, MultiAlignT *macopy) 
 
 
 void
+MultiAlignStore::flushDisk(int32 maID, bool isUnitig) {
+  MultiAlignR            *maRecord = (isUnitig) ? utgRecord + maID : ctgRecord + maID;
+  MultiAlignT            *maCache  = (isUnitig) ? utgCache[maID]   : ctgCache[maID];
+
+  if (maRecord->flushNeeded == 0)
+    return;
+
+  writeTigToDisk(maCache, maRecord);
+}
+
+
+
+void
+MultiAlignStore::flushDisk(void) {
+  uint32  numUFlushed = 0;
+  uint32  numCFlushed = 0;
+
+  for (uint32 maID=0; maID<utgLen; maID++) {
+    if ((utgCache[maID]) && (utgRecord[maID].flushNeeded)) {
+      //fprintf(stderr, "MultiAlignStore::MultiAlignStore()--  Flush unitig %d to version %d\n", maID, currentVersion);
+      flushDisk(maID, TRUE);
+      numUFlushed++;
+    }
+  }
+
+  for (uint32 maID=0; maID<ctgLen; maID++) {
+    if ((ctgCache[maID]) && (ctgRecord[maID].flushNeeded)) {
+      //fprintf(stderr, "MultiAlignStore::MultiAlignStore()--  Flush contig %d to version %d\n", maID, currentVersion);
+      flushDisk(maID, FALSE);
+      numCFlushed++;
+    }
+  }
+
+  fprintf(stderr, "MultiAlignStore::flushDisk()-- flushed %u unitigs and %u contigs.\n",
+          numUFlushed, numCFlushed);
+}
+
+
+
+void
 MultiAlignStore::flushCache(void) {
   uint32  numUFlushed = 0;
   uint32  numCFlushed = 0;
+
+  flushDisk();
 
   for (uint32 i=0; i<utgLen; i++) {
     if (utgCache[i]) {
@@ -710,8 +784,8 @@ MultiAlignStore::flushCache(void) {
     }
   }
 
-  //fprintf(stderr, "MultiAlignStore::flushCache()-- flushed %u unitigs and %u contigs.\n",
-  //        numUFlushed, numCFlushed);
+  fprintf(stderr, "MultiAlignStore::flushCache()-- flushed %u unitigs and %u contigs.\n",
+          numUFlushed, numCFlushed);
 
 #if 0
   for (uint32 p=0; p<MAX_PART; p++)
@@ -719,14 +793,6 @@ MultiAlignStore::flushCache(void) {
       fflush(dataFile[currentVersion][p].FP);
 #endif
 }
-
-
-
-
-
-
-
-
 
 
 
