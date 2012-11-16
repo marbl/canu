@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.28 2012-11-15 04:19:46 brianwalenz Exp $";
+static const char *rcsid = "$Id: MultiAlignStore.C,v 1.29 2012-11-16 22:03:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -428,7 +428,8 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
     }
 
     if (utgMax <= ma->maID) {
-      utgMax = (utgMax == 0) ? (65536) : (2 * utgMax);
+      while (utgMax <= ma->maID)
+        utgMax = (utgMax == 0) ? (1024) : (2 * utgMax);
       assert(ma->maID < utgMax);
 
       utgRecord = (MultiAlignR  *)safe_realloc(utgRecord, utgMax * sizeof(MultiAlignR));
@@ -452,7 +453,8 @@ MultiAlignStore::insertMultiAlign(MultiAlignT *ma, bool isUnitig, bool keepInCac
     }
 
     if (ctgMax <= ma->maID) {
-      ctgMax = (ctgMax == 0) ? (65536) : (2 * ctgMax);
+      while (ctgMax <= ma->maID)
+        ctgMax = (ctgMax == 0) ? (1024) : (2 * ctgMax);
       assert(ma->maID < ctgMax);
 
       ctgRecord = (MultiAlignR  *)safe_realloc(ctgRecord, ctgMax * sizeof(MultiAlignR));
