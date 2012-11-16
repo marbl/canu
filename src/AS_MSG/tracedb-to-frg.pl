@@ -86,6 +86,11 @@ my %seqLibIDFix;
 #
 my $useSLI = 1;
 
+#  Some ancient reads contain no library information.  Set this to dump
+#  all reads into one library of this name.
+#
+my $noLIB  = undef;
+
 #  This allows one to include only certain libraries in the output, or
 #  to ignore specific libraries.  We'll do all the work, and just skip
 #  the output steps.
@@ -117,23 +122,33 @@ while (scalar(@ARGV) > 0) {
     if      ($arg eq "-sge") {
         @sgefiles = @ARGV;
         undef @ARGV;
+
     } elsif ($arg eq "-sgeoptions") {
         $sgeOptions = shift @ARGV;
+
     } elsif ($arg eq "-xml") {
         $xmlfile = shift @ARGV;
+
     } elsif ($arg eq "-lib") {
         @libfiles = @ARGV;
         undef @ARGV;
+
     } elsif ($arg eq "-frg") {
         $forNewbler = 0;
         $frgfile = shift @ARGV;
+
     } elsif ($arg eq "-newbler") {
         $forNewbler = 1;
         $frgfile = shift @ARGV;
+
     } elsif ($arg eq "-only") {
         $outNam    = shift @ARGV;
         $seqLibInclude{$outNam} = 1;
         $onlyOption = "-only $outNam";
+
+    } elsif ($arg eq "-nolib") {
+        $noLIB = shift @ARGV;
+
     } else {
         die "unknown option '$arg'.\n";
     }
@@ -263,6 +278,10 @@ sub readXML () {
 
     $xid      =~ s/,//g;
     $lib      =~ s/,//g;
+
+    if (defined($noLIB)) {
+        $lib = $noLIB;
+    }
 
     return($xid, $type, $template, $end, $lib, $libsize, $libstddev, $clr, $clv, $clq);
 }
