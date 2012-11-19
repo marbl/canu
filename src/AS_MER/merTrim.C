@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.38 2012-11-14 18:03:47 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.39 2012-11-19 20:53:59 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -685,7 +685,7 @@ uint32
 mertrimComputation::evaluate(void) {
 
   if (VERBOSE > 1)
-    log.add("\nPROCESS\n");
+    log.add("\nPROCESS read %d name %s\n", readIID, readName);
 
   if (garbageInInput == true)
     return(ALLCRAP);
@@ -1471,6 +1471,8 @@ mertrimComputation::attemptTrimming(char endTrimQV) {
   while ((clrEnd > clrBgn) && ((coverage[clrEnd-1] == 0) || (corrQlt[clrEnd-1] <= endTrimQV)))
     clrEnd--;
 
+  //log.add("TRIM: %d,%d (lop-off-ends)\n", clrBgn, clrEnd);
+  //dump("TRIM");
 
   //  Deal with adapter.  We'll pick the biggest end that is adapter free for our sequence.
   //  If both ends have adapter, so be it; the read gets trashed.
@@ -1505,6 +1507,9 @@ mertrimComputation::attemptTrimming(char endTrimQV) {
       clrBgn = 0;
       clrEnd = 0;
     }
+
+    //log.add("TRIM: %d,%d (adapter)\n", clrBgn, clrEnd);
+    //dump("TRIM");
   }
 
   //  Lop off the ends with no confirmed kmers (again)
@@ -1515,6 +1520,8 @@ mertrimComputation::attemptTrimming(char endTrimQV) {
   while ((clrEnd > clrBgn) && (coverage[clrEnd-1] == 0))
     clrEnd--;
 
+  //log.add("TRIM: %d,%d (lop-off-ends-2)\n", clrBgn, clrEnd);
+  //dump("TRIM");
 
   //  True if there is an error at position i.
   //
@@ -1633,10 +1640,10 @@ mertrimComputation::attemptTrimming(char endTrimQV) {
     //  Then search towards the ends, as long as the coverage is strictly decreasing.
 
     if (bgn < end) {
-      while ((bgn > clrBgn) && (coverage[bgn-1] < coverage[bgn]))
+      while ((bgn > clrBgn) && (coverage[bgn-1] < coverage[bgn]) && (coverage[bgn-1] > 0))
         bgn--;
 
-      while ((end < clrEnd) && (coverage[end] < coverage[end-1]))
+      while ((end < clrEnd) && (coverage[end] < coverage[end-1]) && (coverage[end] > 0))
         end++;
 
     } else {
