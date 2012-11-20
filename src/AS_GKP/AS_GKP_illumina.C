@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.35 2012-10-09 01:29:22 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.36 2012-11-20 18:23:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -644,8 +644,8 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg,
 
   for (uint32 i=0; i<lib_mesg->num_features; i++) {
     if (strncasecmp(lib_mesg->features[i], "illumina", 8) == 0) {
-      fprintf(stderr, "ERROR:  Obsolete LIB feature '%s' detected.\n",
-              lib_mesg->features[i]);
+      fprintf(stderr, "\nERROR:  Obsolete LIB feature '%s' detected.\n", lib_mesg->features[i]);
+      fprintf(stderr, "\n");
       fprintf(stderr, "The presence of an obsolete flag indicates that the FRG file was generated ");
       fprintf(stderr, "by an older version of Celera Assembler.\n");
       fprintf(stderr, "Please re-generate your FRG file with this version of Celera Assembler.\n");
@@ -704,6 +704,13 @@ checkLibraryForFastQPointers(LibraryMesg *lib_mesg,
     if (strcasecmp(lib_mesg->features[i], "fastqMates") == 0) {
       char *sl = lib_mesg->values[i];
       char *sr = lib_mesg->values[i];
+
+      //  If there are mates, then the library orientationand distance must be valid.
+      if (lib_mesg->link_orient.isUnknown() == true) {
+        fprintf(stderr, "\nERROR: Library has unknown orientation (ori:U) but reads are mated.\n");
+        fprintf(stderr, "Mated reads must come with innie (ori:I) orientation.\n");
+        exit(1);
+      }
 
       while ((*sr) && (*sr != ','))
         sr++;
