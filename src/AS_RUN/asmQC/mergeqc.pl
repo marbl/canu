@@ -32,6 +32,7 @@ my $v;
 my $firstFile = 1;
 my $numFiles  = 1;  #  First file is the label column
 my $isWiki    = 0;
+my $isCSV     = 0;
 
 push @labels, "Files";
 
@@ -42,11 +43,20 @@ if ($ARGV[0] eq "-wiki") {
     print "{| class=\"wikitable\" border=\"1\"\n";
 }
 
+if ($ARGV[0] eq "-csv") {
+    shift @ARGV;
+
+    $isCSV = 1;
+}
+
 while (scalar(@ARGV) > 0) {
     if (open(F, "< $ARGV[0]")) {
 
         if ($isWiki) {
             $values{"Files"} .= "|| $ARGV[0]";
+            $values{"Files"} .= "BRIWASHERE";
+        } elsif ($isCSV) {
+            $values{"Files"} .= ",$ARGV[0]";
             $values{"Files"} .= "BRIWASHERE";
         } else {
             $values{"Files"} .= "\t$ARGV[0]";
@@ -75,12 +85,20 @@ while (scalar(@ARGV) > 0) {
                 next;
             }
 
+            if ($isCSV) {
+                $l =~ s/,/ /g;
+                $v =~ s/,/ /g;
+            }
+
             if ($firstFile) {
                 push @labels, $l;
             }
 
             if ($isWiki) {
                 $values{$l} .= "|| $v";
+                $values{$l} .= "BRIWASHERE";
+            } elsif ($isCSV) {
+                $values{$l} .= ",$v";
                 $values{$l} .= "BRIWASHERE";
             } else {
                 $values{$l} .= substr("\t$v                ", 0, 16);
@@ -96,6 +114,8 @@ while (scalar(@ARGV) > 0) {
             } else {
                 if ($isWiki) {
                     $values{$l} .= "|| N/A";
+                } elsif ($isCSV) {
+                    $values{$l} .= ",0";
                 } else {
                     $values{$l} .= substr("\tN/A                ", 0, 16);
                 }
@@ -128,6 +148,8 @@ foreach my $xx (@labels) {
     if ($isWiki) {
         print "| $l $values{$xx}\n";
         print "|-\n";
+    } elsif ($isCSV) {
+        print "$l$values{$xx}\n";
     } else {
         $l = substr("$l                    ", 0, 20);
         print "$l$values{$xx}\n";
