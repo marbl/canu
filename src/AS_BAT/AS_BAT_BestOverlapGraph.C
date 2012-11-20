@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.12 2012-07-30 20:58:10 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.13 2012-11-20 13:20:15 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"
@@ -168,6 +168,21 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
     }
   }
 
+  //  Remove spurs
+
+#if 0
+  fprintf(stderr, "BestOverlapGraph()-- removing best edges for spur fragments, with %d threads.\n", numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+  for (AS_IID fi=1; fi <= fiLimit; fi++) {
+    if ((getBestEdgeOverlap(fi, false)->fragId() == 0) ||
+        (getBestEdgeOverlap(fi, true)->fragId()  == 0)) {
+      getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
+      getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
+    }
+  }
+#endif
+
   fprintf(stderr, "BestOverlapGraph()-- dumping best edges/contains/singletons.\n");
 
   reportBestEdges();
@@ -246,6 +261,20 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
       getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
     }
   }
+
+  //  Remove spurs
+
+#if 0
+  for (set<AS_IID>::iterator it=_restrict->begin(); it != _restrict->end(); it++) {
+    AS_IID      fi  = *it;
+
+    if ((getBestEdgeOverlap(fi, false)->fragId() == 0) ||
+        (getBestEdgeOverlap(fi, true)->fragId()  == 0)) {
+      getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
+      getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
+    }
+  }
+#endif
 }
 
 
