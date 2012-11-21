@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.41 2012-09-03 17:19:56 mcschatz Exp $";
+const char *mainid = "$Id: FragCorrectOVL.c,v 1.42 2012-11-21 17:06:41 mcschatz Exp $";
 
 #include  "AS_global.h"
 #include  "AS_OVL_delcher.h"
@@ -188,14 +188,14 @@ typedef  struct
   {
    AS_IID id;
    unsigned  shredded : 1;
-   int  start:31;              // position of beginning of sequence in  buffer
+   long unsigned int  start:63;              // position of beginning of sequence in  buffer
   }  Frag_List_Entry_t;
 
 typedef  struct
   {
    Frag_List_Entry_t  * entry;
    char  * buffer;
-   uint32  size, ct, buffer_size;
+   uint64  size, ct, buffer_size;
   }  Frag_List_t;
 
 typedef  struct
@@ -995,7 +995,7 @@ static void  Extract_Needed_Frags
 #endif
    static gkFragment  frag_read;
    AS_IID frag_iid;
-   int  bytes_used, total_len, new_total;
+   uint64  bytes_used, total_len, new_total;
    int  extract_ct, stream_ct;
    int  j;
 
