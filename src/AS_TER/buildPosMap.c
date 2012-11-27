@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.22 2012-04-07 09:51:05 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.23 2012-11-27 18:33:15 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -39,6 +39,9 @@ using namespace std;
 
 map<AS_UID,AS_IID>  uid2iid;
 map<AS_UID,AS_IID>  uid2lib;
+
+map<AS_UID,double>  covStat;
+map<AS_UID,double>  microHet;
 
 #define ORIR 'r'
 #define ORIF 'f'
@@ -61,24 +64,33 @@ FILE *frags     = NULL;
 FILE *mates     = NULL;
 FILE *libraries = NULL;
 
+FILE *utginf    = NULL;
+FILE *deginf    = NULL;
+FILE *ctginf    = NULL;
+FILE *scfinf    = NULL;
+
 FILE *utglkg    = NULL;
 FILE *ctglkg    = NULL;
 FILE *scflkg    = NULL;
 
 FILE *frgutg    = NULL;
+FILE *sfgutg    = NULL;
 
 FILE *frgdeg    = NULL;
 FILE *utgdeg    = NULL;
 FILE *vardeg    = NULL;
 
 FILE *frgctg    = NULL;
+FILE *sfgctg    = NULL;
 FILE *utgctg    = NULL;
 FILE *varctg    = NULL;
 
 FILE *frgscf    = NULL;
+FILE *sfgscf    = NULL;
 FILE *utgscf    = NULL;
 FILE *ctgscf    = NULL;
 FILE *varscf    = NULL;
+
 
 FILE *utglen    = NULL;
 FILE *deglen    = NULL;
@@ -137,7 +149,7 @@ processMDI(SnapMateDistMesg *mdi, char *prefix) {
 
 
 
-char *mateStatusStrings[15] = { 
+char const *mateStatusStrings[15] = { 
   "ERROR",
   "unassigned",
   "good",
@@ -155,13 +167,32 @@ char *mateStatusStrings[15] = {
   "diffScaffold"
 };
 
+char const *unitigStatusStrings[6] = {
+  "ERROR",
+  "unique",
+  "surrogate",
+  "degenerate",
+  "chimer",
+  "unresolved"
+};
 
-char *
+char const *unitigTypeStrings[7] = {
+  "ERROR",
+  "unique",
+  "rock",
+  "stone",
+  "pebble",
+  "singleton",
+  "other"
+};
+
+
+char const *
 decodeMateStatus(char mateStatusCode) {
   int32   mss = 0;
 
   switch (mateStatusCode) {
-    case 'Z':  mss =  1; break;
+    case 'Z':  mss =  1;  break;
     case 'G':  mss =  2;  break;
     case 'C':  mss =  3;  break;
     case 'L':  mss =  4;  break;
@@ -182,6 +213,46 @@ decodeMateStatus(char mateStatusCode) {
 
   return(mateStatusStrings[mss]);
 }
+
+char const *
+decodeUnitigStatus(char unitigStatusCode) {
+  int32  uss = 0;
+
+  switch (unitigStatusCode) {
+    case 'U':  uss = 1;  break;
+    case 'S':  uss = 2;  break;
+    case 'N':  uss = 3;  break;
+    case 'C':  uss = 4;  break;
+    case 'X':  uss = 5;  break;
+    default:
+      fprintf(stderr, "WARNING:  Invalid unitig status %c\n", unitigStatusCode);
+      break;
+  }
+
+  return(unitigStatusStrings[uss]);
+}
+
+char const *
+decodeUnitigType(char unitigTypeCode) {
+  int32  uss = 0;
+
+  switch (unitigTypeCode) {
+    case 'U':  uss = 1;  break;
+    case 'R':  uss = 2;  break;
+    case 'S':  uss = 3;  break;
+    case 'P':  uss = 4;  break;
+    case 's':  uss = 5;  break;
+    case 'X':  uss = 6;  break;
+    default:
+      fprintf(stderr, "WARNING:  Invalid unitig status %c\n", unitigTypeCode);
+      break;
+  }
+
+  return(unitigTypeStrings[uss]);
+}
+
+
+
 
 
 void
@@ -267,7 +338,19 @@ processUTG(SnapUnitigMesg *utg) {
     unitigGapToUngap[i+1] = unitigLength;
   }
 
-  fprintf(utglen, "%s\t%d\n", AS_UID_toString(utg->eaccession), unitigLength);
+  fprintf(utglen, "%s\t%d\n",
+          AS_UID_toString(utg->eaccession),
+          unitigLength);
+  fprintf(utginf, "%s\t%d\t%d\t%f\t%f\t%s\n",
+          AS_UID_toString(utg->eaccession),
+          unitigLength,
+          utg->num_frags,
+          utg->coverage_stat,
+          utg->microhet_prob,
+          decodeUnitigStatus(utg->status));
+
+  covStat[utg->eaccession]  = utg->coverage_stat;
+  microHet[utg->eaccession] = utg->microhet_prob;
 
   //  MPS/fragments
   for (i=0; i<utg->num_frags; i++) {
@@ -343,7 +426,7 @@ processCCO(SnapConConMesg *cco) {
   FILE  *var = varctg;
 
   if ((cco->placed == AS_UNPLACED) && (cco->num_unitigs == 1)) {
-    //  Degenerate, use deg files.
+    isDegenerate = 1;
     len = deglen;
     frg = frgdeg;
     utg = utgdeg;
@@ -361,7 +444,27 @@ processCCO(SnapConConMesg *cco) {
     contigGapToUngap[i+1] = contigLengthUngap;
   }
 
-  fprintf(len, "%s\t%d\n", AS_UID_toString(cco->eaccession), contigLengthUngap);
+  fprintf(len, "%s\t%d\n",
+          AS_UID_toString(cco->eaccession),
+          contigLengthUngap);
+
+  if (isDegenerate == 0)
+    fprintf(ctginf, "%s\t%d\t%d\t%d\t%d\n",
+            AS_UID_toString(cco->eaccession),
+            contigLengthUngap,
+            cco->num_unitigs,
+            cco->num_pieces,
+            cco->num_vars);
+  else
+    fprintf(deginf, "%s\t%d\t%d\t%d\t%d\t%s\t%f\t%f\n",
+            AS_UID_toString(cco->eaccession),
+            contigLengthUngap,
+            cco->num_unitigs,
+            cco->num_pieces,
+            cco->num_vars,
+            AS_UID_toString(cco->unitigs[0].eident),
+            covStat[cco->unitigs[0].eident],
+            microHet[cco->unitigs[0].eident]);
 
   uid2iid[cco->eaccession] = cco->iaccession;
 
@@ -425,10 +528,17 @@ processCCO(SnapConConMesg *cco) {
       bgn = contigGapToUngap[cco->unitigs[i].position.end];
     }
 
-    fprintf(utg, "%s\t%s\t%d\t%d\t%c\n",
-            AS_UID_toString(cco->unitigs[i].eident),
-            AS_UID_toString(cco->eaccession),
-            bgn, end, ori);
+    if (isDegenerate == 0)
+      fprintf(utg, "%s\t%s\t%d\t%d\t%c\t%s\n",
+              AS_UID_toString(cco->unitigs[i].eident),
+              AS_UID_toString(cco->eaccession),
+              bgn, end, ori,
+              decodeUnitigType(cco->unitigs[i].type));
+    else
+      fprintf(utg, "%s\t%s\t%d\t%d\t%c\n",
+              AS_UID_toString(cco->unitigs[i].eident),
+              AS_UID_toString(cco->eaccession),
+              bgn, end, ori);
   }
 
   safe_free(contigGapToUngap);
@@ -578,45 +688,58 @@ processSLK(SnapScaffoldLinkMesg *slk) {
 
 void
 transferFrg(FILE *ctg, FILE *scf) {
-  char   frgUID[1024] = {0};
-  char   ctgUID[1024] = {0};
-  int    bgn = 0;
-  int    end = 0;
-  char   ori = 0;
+  char           line[1024]   = {0};
+  splitToWords   W;
+  int32          bgn = 0;
+  int32          end = 0;
 
   rewind(ctg);
 
+  fgets(line, 1024, ctg);
+
   while (!feof(ctg)) {
-    if (5 == fscanf(ctg, "%s %s %d %d %c ", frgUID, ctgUID, &bgn, &end, &ori)) {
-      AS_UID uid = AS_UID_lookup(ctgUID, NULL);
-      AS_IID iid = uid2iid[uid];
+    chomp(line);
+    W.split(line);
 
-      if (iid > 0) {
-        uid  = ctgInfo[iid].scfUID;
+    //  frgUID
+    //  ctgUID
+    //  bgn
+    //  end
+    //  ori
+    //  type (optional)
 
-        assert(AS_UID_isDefined(uid));
+    AS_UID uid = AS_UID_lookup(W[1], NULL);
+    AS_IID iid = uid2iid[uid];
 
-        if (ctgInfo[iid].scfOri == ORIF) {
-          bgn = ctgInfo[iid].scfBgn + bgn;
-          end = ctgInfo[iid].scfBgn + end;
-        } else {
-          int tmp;
-          tmp = ctgInfo[iid].scfEnd - bgn;
-          bgn = ctgInfo[iid].scfEnd - end;
-          end = tmp;
-        }
+    if (iid > 0) {
+      uid  = ctgInfo[iid].scfUID;
 
-        if (ori == ctgInfo[iid].scfOri)
-          ori = ORIF;
-        else
-          ori = ORIR;
+      assert(AS_UID_isDefined(uid));
 
-        fprintf(scf, "%s\t%s\t%d\t%d\t%c\n",
-                frgUID,
-                AS_UID_toString(uid),
-                bgn, end, ori);
+      if (ctgInfo[iid].scfOri == ORIF) {
+        bgn = ctgInfo[iid].scfBgn + W(2);
+        end = ctgInfo[iid].scfBgn + W(3);
+      } else {
+        end = ctgInfo[iid].scfEnd - W(2);
+        bgn = ctgInfo[iid].scfEnd - W(3);
       }
+
+      char ori = W[4][0];
+
+      if (ori == ctgInfo[iid].scfOri)
+        ori = ORIF;
+      else
+        ori = ORIR;
+
+      if (W[5] == NULL)
+        fprintf(scf, "%s\t%s\t%d\t%d\t%c\n",
+                W[0], AS_UID_toString(uid), bgn, end, ori);
+      else
+        fprintf(scf, "%s\t%s\t%d\t%d\t%c\t%s\n",
+                W[0], AS_UID_toString(uid), bgn, end, ori, W[5]);
     }
+
+    fgets(line, 1024, ctg);
   }
 }
 
@@ -739,21 +862,29 @@ int main (int argc, char *argv[]) {
   mates     = openFile("mates",     outputPrefix, 1);
   libraries = openFile("libraries", outputPrefix, 1);
 
+  utginf    = openFile("utginf",    outputPrefix, 1);
+  deginf    = openFile("deginf",    outputPrefix, 1);
+  ctginf    = openFile("ctginf",    outputPrefix, 1);
+  scfinf    = openFile("scfinf",    outputPrefix, 1);
+
   utglkg    = openFile("utglkg",    outputPrefix, 1);
   ctglkg    = openFile("ctglkg",    outputPrefix, 1);
   scflkg    = openFile("scflkg",    outputPrefix, 1);
 
   frgutg    = openFile("frgutg",    outputPrefix, 1);
+  sfgutg    = openFile("sfgutg",    outputPrefix, 1);
 
   frgdeg    = openFile("frgdeg",    outputPrefix, 1);
   utgdeg    = openFile("utgdeg",    outputPrefix, 1);
   vardeg    = openFile("vardeg",    outputPrefix, 1);
 
   frgctg    = openFile("frgctg",    outputPrefix, 1);
+  sfgctg    = openFile("sfgctg",    outputPrefix, 1);
   utgctg    = openFile("utgctg",    outputPrefix, 1);
   varctg    = openFile("varctg",    outputPrefix, 1);
 
   frgscf    = openFile("frgscf",    outputPrefix, 1);
+  sfgscf    = openFile("sfgscf",    outputPrefix, 1);
   utgscf    = openFile("utgscf",    outputPrefix, 1);
   ctgscf    = openFile("ctgscf",    outputPrefix, 1);
   varscf    = openFile("varscf",    outputPrefix, 1);
@@ -808,13 +939,20 @@ int main (int argc, char *argv[]) {
   fclose(frags);
   fclose(mates);
 
+  fclose(utginf);
+  fclose(deginf);
+  fclose(ctginf);
+  fclose(scfinf);
+
   fclose(frgutg);
+  fclose(sfgutg);
 
   fclose(frgdeg);
   fclose(utgdeg);
   fclose(vardeg);
 
   fclose(frgctg);
+  fclose(sfgctg);
   fclose(utgctg);
   fclose(varctg);
 
