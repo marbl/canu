@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.23 2012-11-27 18:33:15 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.24 2012-11-28 13:20:51 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -33,6 +33,8 @@ const char *mainid = "$Id: buildPosMap.c,v 1.23 2012-11-27 18:33:15 brianwalenz 
 
 #include "AS_UTL_splitToWords.H"
 
+#include <vector>
+#include <set>
 #include <map>
 
 using namespace std;
@@ -47,16 +49,37 @@ map<AS_UID,double>  microHet;
 #define ORIF 'f'
 
 
-typedef struct {
+class ctgInfo_t {
+public:
   int      len;
   AS_UID   scfUID;
   int      scfBgn;
   int      scfEnd;
   char     scfOri;
-} ctgInfo_t;
+};
 
 uint32       ctgInfoMax = 32 * 1024 * 1024;
 ctgInfo_t   *ctgInfo    = NULL;
+
+class surFrag_t {
+public:
+  surFrag_t(AS_UID id_, int bgn_, int end_) {
+    id  = id_;
+    bgn = bgn_;
+    end = end_;
+  };
+
+  bool operator<(surFrag_t const &that) const {
+    return(id < that.id);
+  };
+
+  AS_UID   id;
+  int      bgn;
+  int      end;
+};
+
+map<AS_UID,vector<surFrag_t> >   surrogateUnitigFrags;
+
 
 AS_IID       lastAFG = 1;
 
@@ -74,7 +97,6 @@ FILE *ctglkg    = NULL;
 FILE *scflkg    = NULL;
 
 FILE *frgutg    = NULL;
-FILE *sfgutg    = NULL;
 
 FILE *frgdeg    = NULL;
 FILE *utgdeg    = NULL;
@@ -373,10 +395,16 @@ processUTG(SnapUnitigMesg *utg) {
   }
 
   //  Remember what fragments are in surrogates
-#warning not remembering surrogate fragments
+
   if (utg->status == AS_SEP) {
-    for (i=0; i<utg->num_frags; i++) {
-    }
+    surrogateUnitigFrags[utg->eaccession] = vector<surFrag_t>();
+
+    vector<surFrag_t> &frg = surrogateUnitigFrags[utg->eaccession];
+
+    for (i=0; i<utg->num_frags; i++)
+      frg.push_back(surFrag_t(utg->f_list[i].eident,
+                              unitigGapToUngap[utg->f_list[i].position.bgn],
+                              unitigGapToUngap[utg->f_list[i].position.end]));
   }
 
   safe_free(unitigGapToUngap);
@@ -494,6 +522,11 @@ processCCO(SnapConConMesg *cco) {
             v->enc_read_ids);
   }
 
+  //  Remember what fragments were placed.  This is used to ignore
+  //  some fragments when reporting unplaced surrogate fragments.
+
+  set<AS_UID>  placed;
+
   //  MPS/fragments
   for (i=0; i<cco->num_pieces; i++) {
     int  bgn = contigGapToUngap[cco->pieces[i].position.bgn];
@@ -512,6 +545,8 @@ processCCO(SnapConConMesg *cco) {
             AS_UID_toString(cco->pieces[i].eident),
             AS_UID_toString(cco->eaccession),
             bgn, end, ori);
+
+    placed.insert(cco->pieces[i].eident);
   }
 
   //  UPS/unitigs
@@ -539,6 +574,50 @@ processCCO(SnapConConMesg *cco) {
               AS_UID_toString(cco->unitigs[i].eident),
               AS_UID_toString(cco->eaccession),
               bgn, end, ori);
+
+    //  unplaced surrogate fragments
+
+    if (surrogateUnitigFrags.count(cco->unitigs[i].eident) > 0) {
+      vector<surFrag_t>  &frg = surrogateUnitigFrags[cco->unitigs[i].eident];
+
+      for (uint32 ii=0; ii<frg.size(); ii++) {
+        char const *status = "unplaced";
+
+        if (placed.count(frg[ii].id) > 0) {
+          //  Read already placed.
+          //continue;
+          status = "resolved";
+        }
+
+        int32  frgbgn = frg[ii].bgn + bgn;
+        int32  frgend = frg[ii].end + bgn;
+
+        if (ori == ORIR) {
+          frgbgn = end - frg[ii].bgn;
+          frgend = end - frg[ii].end;
+        }
+
+        if (frgbgn < frgend) {
+          fprintf(sfgctg, "%s\t%s\t%d\t%d\t%c\t%s\t%s\n",
+                  AS_UID_toString(frg[ii].id),
+                  AS_UID_toString(cco->eaccession),
+                  contigGapToUngap[frgbgn],
+                  contigGapToUngap[frgend],
+                  ORIF,
+                  status,
+                  AS_UID_toString(cco->unitigs[i].eident));
+        } else {
+          fprintf(sfgctg, "%s\t%s\t%d\t%d\t%c\t%s\t%s\n",
+                  AS_UID_toString(frg[ii].id),
+                  AS_UID_toString(cco->eaccession),
+                  contigGapToUngap[frgend],
+                  contigGapToUngap[frgbgn],
+                  ORIR,
+                  status,
+                  AS_UID_toString(cco->unitigs[i].eident));
+        }
+      }
+    }
   }
 
   safe_free(contigGapToUngap);
@@ -732,11 +811,17 @@ transferFrg(FILE *ctg, FILE *scf) {
         ori = ORIR;
 
       if (W[5] == NULL)
+        //  Contig
         fprintf(scf, "%s\t%s\t%d\t%d\t%c\n",
                 W[0], AS_UID_toString(uid), bgn, end, ori);
-      else
+      else if (W[6] == NULL)
+        //  Unitig (has type as [5])
         fprintf(scf, "%s\t%s\t%d\t%d\t%c\t%s\n",
                 W[0], AS_UID_toString(uid), bgn, end, ori, W[5]);
+      else
+        //  Unplaced surrogate fragment
+        fprintf(scf, "%s\t%s\t%d\t%d\t%c\t%s\t%s\n",
+                W[0], AS_UID_toString(uid), bgn, end, ori, W[5], W[6]);
     }
 
     fgets(line, 1024, ctg);
@@ -872,7 +957,6 @@ int main (int argc, char *argv[]) {
   scflkg    = openFile("scflkg",    outputPrefix, 1);
 
   frgutg    = openFile("frgutg",    outputPrefix, 1);
-  sfgutg    = openFile("sfgutg",    outputPrefix, 1);
 
   frgdeg    = openFile("frgdeg",    outputPrefix, 1);
   utgdeg    = openFile("utgdeg",    outputPrefix, 1);
@@ -945,7 +1029,6 @@ int main (int argc, char *argv[]) {
   fclose(scfinf);
 
   fclose(frgutg);
-  fclose(sfgutg);
 
   fclose(frgdeg);
   fclose(utgdeg);
@@ -966,10 +1049,12 @@ int main (int argc, char *argv[]) {
   //  Transfer the contig based info onto scaffolds.
 
   frgctg = openFile("frgctg", outputPrefix, 0);
+  sfgctg = openFile("sfgctg", outputPrefix, 0);
   utgctg = openFile("utgctg", outputPrefix, 0);
   varctg = openFile("varctg", outputPrefix, 0);
 
   transferFrg(frgctg, frgscf);
+  transferFrg(sfgctg, sfgscf);
   transferFrg(utgctg, utgscf);
   transferVar(varctg, varscf);
 
