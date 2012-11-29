@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.24 2012-11-28 13:20:51 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.25 2012-11-29 16:06:24 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -118,6 +118,8 @@ FILE *utglen    = NULL;
 FILE *deglen    = NULL;
 FILE *ctglen    = NULL;
 FILE *scflen    = NULL;
+
+bool writeUnplaced = false;
 
 
 FILE *
@@ -546,7 +548,8 @@ processCCO(SnapConConMesg *cco) {
             AS_UID_toString(cco->eaccession),
             bgn, end, ori);
 
-    placed.insert(cco->pieces[i].eident);
+    if (writeUnplaced)
+      placed.insert(cco->pieces[i].eident);
   }
 
   //  UPS/unitigs
@@ -577,7 +580,7 @@ processCCO(SnapConConMesg *cco) {
 
     //  unplaced surrogate fragments
 
-    if (surrogateUnitigFrags.count(cco->unitigs[i].eident) > 0) {
+    if ((writeUnplaced) && (surrogateUnitigFrags.count(cco->unitigs[i].eident) > 0)) {
       vector<surFrag_t>  &frg = surrogateUnitigFrags[cco->unitigs[i].eident];
 
       for (uint32 ii=0; ii<frg.size(); ii++) {
@@ -894,7 +897,7 @@ int main (int argc, char *argv[]) {
   char    *gkpName            = NULL;
   gkStore *gkp                = NULL;
 
-  GenericMesg *pmesg       = NULL;
+  GenericMesg *pmesg          = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -913,6 +916,9 @@ int main (int argc, char *argv[]) {
     } else if (strcmp(argv[arg], "-h") == 0) {
       err++;
 
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      writeUnplaced = true;
+
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -923,8 +929,8 @@ int main (int argc, char *argv[]) {
     fprintf(stderr, "usage: %s -o prefix [-h] [-i prefix.asm | < prefix.asm]\n", argv[0]);
     fprintf(stderr, "  -o prefix        write the output here\n");
     fprintf(stderr, "  -i prefix.asm    read the assembly from here; default is to read stdin\n");
-    fprintf(stderr, "  -h               print help\n");
-
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -U               write unplaced surrogate reads 'sfgctg' and 'sfgscf' (LARGE!)\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -977,7 +983,6 @@ int main (int argc, char *argv[]) {
   deglen    = openFile("deglen",    outputPrefix, 1);
   ctglen    = openFile("ctglen",    outputPrefix, 1);
   scflen    = openFile("scflen",    outputPrefix, 1);
-
 
   while(ReadProtoMesg_AS(asmFile, &pmesg) != EOF){
     switch(pmesg->t){
