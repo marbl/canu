@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.25 2012-11-29 16:06:24 brianwalenz Exp $";
+const char *mainid = "$Id: buildPosMap.c,v 1.26 2012-11-30 09:46:04 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -926,9 +926,10 @@ int main (int argc, char *argv[]) {
     arg++;
   }
   if ((outputPrefix == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -o prefix [-h] [-i prefix.asm | < prefix.asm]\n", argv[0]);
+    fprintf(stderr, "usage: %s -o prefix [-h] [-g gkpStore] [-i prefix.asm | < prefix.asm]\n", argv[0]);
     fprintf(stderr, "  -o prefix        write the output here\n");
     fprintf(stderr, "  -i prefix.asm    read the assembly from here; default is to read stdin\n");
+    fprintf(stderr, "  -g gkpStore      if supplied, also report deleted reads and read/mate library information\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -U               write unplaced surrogate reads 'sfgctg' and 'sfgscf' (LARGE!)\n");
     fprintf(stderr, "\n");
@@ -944,7 +945,7 @@ int main (int argc, char *argv[]) {
 
   if (gkpName) {
     gkp = new gkStore(gkpName, FALSE, FALSE);
-    gkp->gkStore_metadataCaching(true);
+    //gkp->gkStore_metadataCaching(true);
   }
 
   ctgInfo = (ctgInfo_t *)safe_calloc(ctgInfoMax, sizeof(ctgInfo_t));
