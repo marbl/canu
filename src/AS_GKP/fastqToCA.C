@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.26 2012-09-13 14:46:13 skoren Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.27 2012-11-30 20:43:39 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -185,7 +185,7 @@ main(int argc, char **argv) {
   if ((strcasecmp(technology, "sanger") != 0) &&
       (strcasecmp(technology, "454") != 0) &&
       (strcasecmp(technology, "illumina") != 0) &&
-      (strcasecmp(technology, "experimental") != 0) &&
+      (strcasecmp(technology, "illumina-long") != 0) &&
       (strcasecmp(technology, "pacbio") != 0) &&
       (strcasecmp(technology, "pacbio-long") != 0))
      err++;
@@ -207,11 +207,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -libraryname n     The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -technology p      What instrument were these reads generated on ('illumina' is the default):\n");
-    fprintf(stderr, "                       'sanger'   -- \n");
-    fprintf(stderr, "                       '454'      -- \n");
-    fprintf(stderr, "                       'illumina' -- \n");
-    fprintf(stderr, "                       'pacbio'   -- \n");
-    fprintf(stderr, "                       'pacbio-long' -- \n");
+    fprintf(stderr, "                       'sanger'        -- reads from dideoxy sequencers\n");
+    fprintf(stderr, "                       '454'           -- reads from 454 Life Sciences; FLX, Titanium, FLX+\n");
+    fprintf(stderr, "                       'illumina'      -- reads from Illumina; GAIIx, MiSeq, HiSeq; shorter than 160bp\n");
+    fprintf(stderr, "                       'illumina-long' -- reads from Illumina; GAIIx, MiSeq, HiSeq; any length\n");
+    fprintf(stderr, "                       'pacbio'        -- reads from PacBio; Circular Consensus Sequence (CSS)\n");
+    fprintf(stderr, "                       'pacbio-long'   -- reads from PacBio; uncorrected reads\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -type t            What type of fastq ('sanger' is the default):\n");
     fprintf(stderr, "                       'sanger'   -- QV's are PHRED, offset=33 '!', NCBI SRA data.\n");
@@ -355,22 +356,22 @@ main(int argc, char **argv) {
 
     gkl.constantInsertSize         = constantInsertSize;
 
-  } else if (strcasecmp(technology, "experimental") == 0) {  // Jason testing all-Illumina
-    gkl.forceBOGunitigger          = 0;
+  } else if (strcasecmp(technology, "illumina-long") == 0) {
+    gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 0;
 
     gkl.doTrim_initialNone         = 0;
     gkl.doTrim_initialMerBased     = 1;
     gkl.doTrim_initialFlowBased    = 0;
-    gkl.doTrim_initialQualityBased = 1;
+    gkl.doTrim_initialQualityBased = 0;
 
-    gkl.doRemoveDuplicateReads     = 0;
+    gkl.doRemoveDuplicateReads     = 1;
 
-    gkl.doTrim_finalLargestCovered = 0;
+    gkl.doTrim_finalLargestCovered = 1;
     gkl.doTrim_finalEvidenceBased  = 0;
 
-    gkl.doRemoveSpurReads          = 0;
-    gkl.doRemoveChimericReads      = 0;
+    gkl.doRemoveSpurReads          = 1;
+    gkl.doRemoveChimericReads      = 1;
 
     gkl.doConsensusCorrection      = 0;
 
