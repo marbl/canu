@@ -26,7 +26,13 @@ LOCAL_WORK = $(shell cd ../../; pwd)
 
 include $(LOCAL_WORK)/src/site_name.as
 
-SOURCES   = terminator.C asmOutputFasta.C asmOutputStatistics.C fragsInVars.C buildPosMap.C analyzePosMap.C
+ANALYZE_SOURCES = analyzePosMap.C \
+                  analyzePosMap-libraryFate.C \
+                  analyzePosMap-load.C \
+                  analyzePosMap-gapFillProbability.C
+ANALYZE_OBJECTS = $(ANALYZE_SOURCES:.C=.o)
+
+SOURCES   = terminator.C asmOutputFasta.C asmOutputStatistics.C fragsInVars.C buildPosMap.C $(ANALYZE_SOURCES)
 OBJECTS   = (SOURCES:.C=.o)
 CXX_PROGS = terminator asmOutputFasta asmOutputStatistics fragsInVars buildPosMap analyzePosMap
 
@@ -40,4 +46,4 @@ asmOutputFasta:          asmOutputFasta.o           libCA.a
 asmOutputStatistics:     asmOutputStatistics.o      libCA.a
 fragsInVars:             fragsInVars.o              libCA.a
 buildPosMap:             buildPosMap.o              libCA.a
-analyzePosMap:           analyzePosMap.o            libCA.a
+analyzePosMap:           $(ANALYZE_OBJECTS)         libCA.a
