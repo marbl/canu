@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: analyzePosMap-gapFillProbability.C,v 1.1 2012-12-05 01:13:23 brianwalenz Exp $";
+static const char *rcsid = "$Id: analyzePosMap-gapFillProbability.C,v 1.2 2012-12-06 15:31:50 brianwalenz Exp $";
 
 #include "analyzePosMap.H"
 
@@ -88,7 +88,7 @@ public:
     int32 pg = (int)floor(pgapfill * 1000);
 
     if (pg < 0)      pg = 0;
-    if (pg >= 1000)  pg = 1000;
+    if (pg >= 1000)  pg = 999;
 
     assert(0  <= pg);
     assert(pg <  1000);
