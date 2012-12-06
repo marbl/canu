@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: analyzePosMap-libraryFate.C,v 1.1 2012-12-05 01:13:23 brianwalenz Exp $";
+static const char *rcsid = "$Id: analyzePosMap-libraryFate.C,v 1.2 2012-12-06 01:51:57 brianwalenz Exp $";
 
 #include "analyzePosMap.H"
 
@@ -51,8 +51,10 @@ computeStdDev(vector<double> dist, double &mean, double &stddev) {
   mean   = 0.0;
   stddev = 0.0;
 
-  if (dist.size() == 0)
+  if (dist.size() == 0) {
+    fprintf(stderr, "NO SAMPLES\n");
     return;
+  }
 
   sort(dist.begin(), dist.end());
 
@@ -74,8 +76,10 @@ computeStdDev(vector<double> dist, double &mean, double &stddev) {
       mean       += dist[x];
     }
 
-  if (numSamples == 0)
+  if (numSamples == 0) {
+    fprintf(stderr, "NO SAMPLES in range %f - %f\n", smallest, biggest);
     return;
+  }
 
   mean   = mean / numSamples;
   stddev = 0.0;
@@ -135,7 +139,75 @@ public:
     ctgDegenerate       += that.ctgDegenerate;
 
     return(*this);
-  }
+  };
+
+
+  void       report(char *prefix, uint32 libid, char *libname, readFate &allfate) {
+    char   N[FILENAME_MAX];
+    FILE  *F;
+
+    sprintf(N, "%s.readFate.lib%02d.%s", prefix, libid, libname);
+
+    errno = 0;
+    F = fopen(N, "w");
+    if (errno)
+      fprintf(stderr, "Couldn't open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+
+    fprintf(F, "\n");
+    fprintf(F, "libFate\t%s\n", libname);
+    fprintf(F, "reads\t"F_U32"\n", total);
+    fprintf(F, "\n");
+    fprintf(F, "category\tcount\tlibFrac\tcatFrac\n");
+    fprintf(F, "UNPLACED\n");
+    fprintf(F, "deleted\t"F_U32"\t%.2f\t%.2f\n",
+            frgDeleted,
+            frgDeleted * 100.0 / total,
+            frgDeleted * 100.0 / allfate.frgDeleted);
+    fprintf(F, "singleton\t"F_U32"\t%.2f\t%.2f\n",
+            frgSingleton,
+            frgSingleton * 100.0 / total,
+            frgSingleton * 100.0 / allfate.frgSingleton);
+    fprintf(F, "UNITIGS\n");
+    fprintf(F, "degenerate\t"F_U32"\t%.2f\t%.2f\n",
+            ctgDegenerate,
+            ctgDegenerate * 100.0 / total,
+            ctgDegenerate * 100.0 / allfate.ctgDegenerate);
+    fprintf(F, "unique\t"F_U32"\t%.2f\t%.2f\n",
+            utgUnique,
+            utgUnique * 100.0 / total,
+            utgUnique * 100.0 / allfate.utgUnique);
+    fprintf(F, "rock\t"F_U32"\t%.2f\t%.2f\n",
+            utgRock,
+            utgRock * 100.0 / total,
+            utgRock * 100.0 / allfate.utgRock);
+    fprintf(F, "stone\t"F_U32"\t%.2f\t%.2f\n",
+            utgStone,
+            utgStone * 100.0 / total,
+            utgStone * 100.0 / allfate.utgStone);
+    fprintf(F, "stoneUnres\t"F_U32"\t%.2f\t%.2f\n",
+            utgStoneUnresolved,
+            utgStoneUnresolved * 100.0 / total,
+            utgStoneUnresolved * 100.0 / allfate.utgStoneUnresolved);
+    fprintf(F, "pebble\t"F_U32"\t%.2f\t%.2f\n",
+            utgPebble,
+            utgPebble * 100.0 / total,
+            utgPebble * 100.0 / allfate.utgPebble);
+    fprintf(F, "CONTIGS\n");
+    fprintf(F, "degenerate\t"F_U32"\t%.2f\t%.2f\n",
+            ctgDegenerate,
+            ctgDegenerate * 100.0 / total,
+            ctgDegenerate * 100.0 / allfate.ctgDegenerate);
+    fprintf(F, "big\t"F_U32"\t%.2f\t%.2f\n",
+            ctgBig,
+            ctgBig * 100.0 / total,
+            ctgBig * 100.0 / allfate.ctgBig);
+    fprintf(F, "small\t"F_U32"\t%.2f\t%.2f\n",
+            ctgSmall,
+            ctgSmall * 100.0 / total,
+            ctgSmall * 100.0 / allfate.ctgSmall);
+
+    fclose(F);
+  };
 
   uint32   total;
 
@@ -161,32 +233,109 @@ public:
   mateFate() {
     total = 0;
 
-    memset(sameScaffold, 0, sizeof(uint32) * NUM_FRG_LABELS * NUM_FRG_LABELS);
-    memset(diffScaffold, 0, sizeof(uint32) * NUM_FRG_LABELS * NUM_FRG_LABELS);
+    memset(sameScf, 0, sizeof(uint32) * NUM_FRG_LABELS * NUM_FRG_LABELS);
+    memset(diffScf, 0, sizeof(uint32) * NUM_FRG_LABELS * NUM_FRG_LABELS);
 
-    memset(scfDegenerate, 0, sizeof(uint32) * NUM_FRG_LABELS);
-    memset(scfSingleton,  0, sizeof(uint32) * NUM_FRG_LABELS);
-    memset(scfUnresolved, 0, sizeof(uint32) * NUM_FRG_LABELS);
+    memset(sameCtg, 0, sizeof(uint32) * NUM_FRG_LABELS * NUM_FRG_LABELS);
+    memset(diffCtg, 0, sizeof(uint32) * NUM_FRG_LABELS * NUM_FRG_LABELS);
 
-    sameDegenerate = 0;
-    diffDegenerate = 0;
+    memset(sameUtg, 0, sizeof(uint32) * NUM_FRG_LABELS * NUM_FRG_LABELS);
+    memset(diffUtg, 0, sizeof(uint32) * NUM_FRG_LABELS * NUM_FRG_LABELS);
   };
   ~mateFate() {};
 
+  mateFate &operator+=(mateFate const &that) {
+    total += that.total;
+
+    for (uint32 ii=0; ii<NUM_FRG_LABELS; ii++) {
+      for (uint32 jj=0; jj<NUM_FRG_LABELS; jj++) {
+        sameScf[ii][jj] += that.sameScf[ii][jj];
+        diffScf[ii][jj] += that.diffScf[ii][jj];
+
+        sameCtg[ii][jj] += that.sameCtg[ii][jj];
+        diffCtg[ii][jj] += that.diffCtg[ii][jj];
+
+        sameUtg[ii][jj] += that.sameUtg[ii][jj];
+        diffUtg[ii][jj] += that.diffUtg[ii][jj];
+      }
+    }
+
+    return(*this);
+  };
+
+  void       reportDetails(FILE    *F,
+                           uint32   stat[NUM_FRG_LABELS][NUM_FRG_LABELS]) {
+    fprintf(F, ".");
+    for (uint32 jj=0; jj<NUM_FRG_LABELS; jj++)
+      fprintf(F, "\t%s", frgLabelS[jj]);
+    fprintf(F, "\n");
+
+    for (uint32 ii=0; ii<NUM_FRG_LABELS; ii++) {
+      fprintf(F, "%s", frgLabelS[ii]);
+      for (uint32 jj=0; jj<NUM_FRG_LABELS; jj++)
+        if (ii <= jj) {
+          fprintf(F, "\t"F_U32, stat[ii][jj]);
+        } else {
+          fprintf(F, "\t");
+          assert(stat[ii][jj] == 0);
+        }
+      fprintf(F, "\n");
+    }
+  };
+
+
+  void       report(char *prefix, uint32 libid, char *libname, mateFate &allfate) {
+    char   N[FILENAME_MAX];
+    FILE  *F;
+
+    sprintf(N, "%s.mateFate.lib%02d.%s", prefix, libid, libname);
+
+    errno = 0;
+    F = fopen(N, "w");
+    if (errno)
+      fprintf(stderr, "Couldn't open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+
+    fprintf(F, "\n");
+    fprintf(F, "libFate\t%s\n", libname);
+    fprintf(F, "mates\t"F_U32"\n", total);
+    fprintf(F, "\n");
+
+    fprintf(F, "\n");
+    fprintf(F, "SAME SCAFFOLD MATE COUNTS\n");
+    reportDetails(F, sameScf);
+
+    fprintf(F, "\n");
+    fprintf(F, "DIFF SCAFFOLD MATE COUNTS\n");
+    reportDetails(F, diffScf);
+
+    fprintf(F, "\n");
+    fprintf(F, "SAME CONTIG MATE COUNTS\n");
+    reportDetails(F, sameCtg);
+
+    fprintf(F, "\n");
+    fprintf(F, "DIFF CONTIG MATE COUNTS\n");
+    reportDetails(F, diffCtg);
+
+
+    fprintf(F, "\n");
+    fprintf(F, "SAME UNITIG MATE COUNTS\n");
+    reportDetails(F, sameUtg);
+
+    fprintf(F, "\n");
+    fprintf(F, "DIFF UNITIG MATE COUNTS\n");
+    reportDetails(F, diffUtg);
+  };
+
   uint32    total;
 
-  uint32    sameScaffold[NUM_FRG_LABELS][NUM_FRG_LABELS];
-  uint32    diffScaffold[NUM_FRG_LABELS][NUM_FRG_LABELS];
+  uint32    sameScf[NUM_FRG_LABELS][NUM_FRG_LABELS];
+  uint32    diffScf[NUM_FRG_LABELS][NUM_FRG_LABELS];
 
-  uint32    scfDegenerate[NUM_FRG_LABELS];
-  uint32    scfSingleton[NUM_FRG_LABELS];
-  uint32    scfUnresolved[NUM_FRG_LABELS];
+  uint32    sameCtg[NUM_FRG_LABELS][NUM_FRG_LABELS];
+  uint32    diffCtg[NUM_FRG_LABELS][NUM_FRG_LABELS];
 
-  uint32    bothSingleton;
-  uint32    bothUnresolved;
-
-  uint32    sameDegenerate;
-  uint32    diffDegenerate;
+  uint32    sameUtg[NUM_FRG_LABELS][NUM_FRG_LABELS];
+  uint32    diffUtg[NUM_FRG_LABELS][NUM_FRG_LABELS];
 };
 
 
@@ -194,29 +343,115 @@ public:
 class insertSize {
 public:
   insertSize() {
-    mean   = 0;
-    stddev = 0;
+    meanInnie  = sdevInnie  = 0.0;
+    meanOuttie = sdevOuttie = 0.0;
+    meanSame   = sdevSame   = 0.0;
   };
   ~insertSize() {
   };
 
-  void  addDistance(int32 dist) {
-    distances.push_back(dist);
+  void  addDistance(uint32 A, int32 Abgn, int32 Aend, char Aori,
+                    uint32 B, int32 Bbgn, int32 Bend, char Bori) {
+
+    int32  dist = MAX(Aend, Bend) - MIN(Abgn, Bbgn);
+
+    if (dist < 0) {
+      fprintf(stderr, "negative distance %d\n", dist);
+      fprintf(stderr, "A="F_U32" bgn="F_U32" end="F_U32" ori=%c %s\n",
+              A, Abgn, Aend, Aori, frgNam[A].c_str());
+      fprintf(stderr, "B="F_U32" bgn="F_U32" end="F_U32" ori=%c %s\n",
+              B, Bbgn, Bend, Bori, frgNam[B].c_str());
+      dist = 0;
+    }
+    assert(dist >= 0);
+
+    if        (((Aori == Bori)))
+      distSame.push_back(dist);
+
+    else if (((Abgn <=  Bbgn) && (Aori == 'f')) ||
+             ((Abgn >=  Bbgn) && (Aori == 'r')))
+      distInnie.push_back(dist);
+
+    else if (((Abgn <  Bbgn) && (Aori == 'r')) ||
+             ((Abgn >  Bbgn) && (Aori == 'f')))
+      distOuttie.push_back(dist);
+
+    else {
+      fprintf(stderr, "invalid position and orientation\n");
+      fprintf(stderr, "A="F_U32" bgn="F_U32" end="F_U32" ori=%c %s\n",
+              A, Abgn, Aend, Aori, frgNam[A].c_str());
+      fprintf(stderr, "B="F_U32" bgn="F_U32" end="F_U32" ori=%c %s\n",
+              B, Bbgn, Bend, Bori, frgNam[B].c_str());
+      //assert(0);
+    }
   };
 
   void  finalize(void) {
-    computeStdDev(distances, mean, stddev);
+
+    fprintf(stderr, "FINALIZE %ld %ld %ld\n", distInnie.size(), distOuttie.size(), distSame.size());
+    computeStdDev(distInnie,  meanInnie,  sdevInnie);
+    computeStdDev(distOuttie, meanOuttie, sdevOuttie);
+    computeStdDev(distSame,   meanSame,   sdevSame);
   };
 
-#if 0
-  fprintf(O, "innie       "F_SIZE_T" %.2f +- %.2f bp\n", innie.distances.size(),  innie.mean,  innie.stddev);
-  fprintf(O, "outtie      "F_SIZE_T" %.2f +- %.2f bp\n", outtie.distances.size(), outtie.mean, outtie.stddev);
-  fprintf(O, "same        "F_SIZE_T" %.2f +- %.2f bp\n", same.distances.size(),   same.mean,   same.stddev);
-#endif
+  vector<double>   distInnie;
+  double           meanInnie;
+  double           sdevInnie;
 
-  vector<double>   distances;
-  double           mean;
-  double           stddev;
+  vector<double>   distOuttie;
+  double           meanOuttie;
+  double           sdevOuttie;
+
+  vector<double>   distSame;
+  double           meanSame;
+  double           sdevSame;
+};
+
+
+
+class sizeFate {
+public:
+  sizeFate() {
+  };
+  ~sizeFate() {
+  };
+
+  void       report(char *prefix, uint32 libid, char *libname, sizeFate &allfate) {
+    char   N[FILENAME_MAX];
+    FILE  *F;
+
+    sprintf(N, "%s.sizeFate.lib%02d.%s", prefix, libid, libname);
+
+    errno = 0;
+    F = fopen(N, "w");
+    if (errno)
+      fprintf(stderr, "Couldn't open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+
+    scf.finalize();
+    ctg.finalize();
+    utg.finalize();
+
+    fprintf(F, "SCAFFOLD\n");
+    fprintf(F, "innie       "F_SIZE_T" %.2f +- %.2f bp\n", scf.distInnie.size(),  scf.meanInnie,  scf.sdevInnie);
+    fprintf(F, "outtie      "F_SIZE_T" %.2f +- %.2f bp\n", scf.distOuttie.size(), scf.meanOuttie, scf.sdevOuttie);
+    fprintf(F, "same        "F_SIZE_T" %.2f +- %.2f bp\n", scf.distSame.size(),   scf.meanSame,   scf.sdevSame);
+
+    fprintf(F, "CONTIG\n");
+    fprintf(F, "innie       "F_SIZE_T" %.2f +- %.2f bp\n", ctg.distInnie.size(),  ctg.meanInnie,  ctg.sdevInnie);
+    fprintf(F, "outtie      "F_SIZE_T" %.2f +- %.2f bp\n", ctg.distOuttie.size(), ctg.meanOuttie, ctg.sdevOuttie);
+    fprintf(F, "same        "F_SIZE_T" %.2f +- %.2f bp\n", ctg.distSame.size(),   ctg.meanSame,   ctg.sdevSame);
+
+    fprintf(F, "UNITIG\n");
+    fprintf(F, "innie       "F_SIZE_T" %.2f +- %.2f bp\n", utg.distInnie.size(),  utg.meanInnie,  utg.sdevInnie);
+    fprintf(F, "outtie      "F_SIZE_T" %.2f +- %.2f bp\n", utg.distOuttie.size(), utg.meanOuttie, utg.sdevOuttie);
+    fprintf(F, "same        "F_SIZE_T" %.2f +- %.2f bp\n", utg.distSame.size(),   utg.meanSame,   utg.sdevSame);
+
+    fclose(F);
+  };
+
+  insertSize  scf;
+  insertSize  ctg;
+  insertSize  utg;
 };
 
 
@@ -229,10 +464,7 @@ public:
 
   readFate    read;
   mateFate    mate;
-
-  insertSize  innie;
-  insertSize  outtie;
-  insertSize  same;
+  sizeFate    size;
 };
 
 
@@ -246,28 +478,28 @@ analyzeLibraryFate(char *outPrefix) {
   //  Read Fate
 
   for (uint32 fi=0; fi<frgDat.size(); fi++) {
-    uint32 ll = frgLibrary[fi];
+    uint32 li = frgLibrary[fi];
  
-    libfate[ll].read.total++;
+    libfate[li].read.total++;
 
     if (frgDat[fi].sta == 'D') {
-      libfate[ll].read.frgDeleted++;
+      libfate[li].read.frgDeleted++;
       continue;
     }
 
     if ((frgDat[fi].sta == 'C') ||
         (frgDat[fi].sta == 'S')) {
-      libfate[ll].read.frgSingleton++;
+      libfate[li].read.frgSingleton++;
       continue;
     }
 
     if (frgDat[fi].sta == 'd') {
-      libfate[ll].read.ctgDegenerate++;
+      libfate[li].read.ctgDegenerate++;
       continue;
     }
 
     if (frgDat[fi].sta == 'R') {
-      libfate[ll].read.utgStoneUnresolved++;
+      libfate[li].read.utgStoneUnresolved++;
       continue;
     }
 
@@ -277,75 +509,25 @@ analyzeLibraryFate(char *outPrefix) {
 
     //  Otherwise, the read is in a untig/contig we care about.
 
-    if      (frgDat[fi].sta == 'u')   libfate[ll].read.utgUnique++;
-    else if (frgDat[fi].sta == 'r')   libfate[ll].read.utgRock++;
-    else if (frgDat[fi].sta == 's')   libfate[ll].read.utgStone++;
-    else if (frgDat[fi].sta == 'p')   libfate[ll].read.utgPebble++;
+    if      (frgDat[fi].sta == 'u')   libfate[li].read.utgUnique++;
+    else if (frgDat[fi].sta == 'r')   libfate[li].read.utgRock++;
+    else if (frgDat[fi].sta == 's')   libfate[li].read.utgStone++;
+    else if (frgDat[fi].sta == 'p')   libfate[li].read.utgPebble++;
     else assert(0);
 
     if (ctgDat[frgDat[fi].ctg.con].len >= 10000)
-      libfate[ll].read.ctgBig++;
+      libfate[li].read.ctgBig++;
     else
-      libfate[ll].read.ctgSmall++;
+      libfate[li].read.ctgSmall++;
   }
 
   for (uint32 li=0; li<libDat.size(); li++)
     allfate.read += libfate[li].read;
 
-  for (uint32 li=0; li<libDat.size(); li++) {
-    fprintf(stdout, "\n");
-    fprintf(stdout, "libFate\t%s\n", libDat[li].name);
-    fprintf(stdout, "reads\t"F_U32"\n", libfate[li].read.total);
-    fprintf(stdout, "\n");
-    fprintf(stdout, "category\tcount\tlibFrac\tcatFrac\n");
-    fprintf(stdout, "UNPLACED\n");
-    fprintf(stdout, "deleted\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.frgDeleted,
-            libfate[li].read.frgDeleted * 100.0 / libfate[li].read.total,
-            libfate[li].read.frgDeleted * 100.0 / allfate.read.frgDeleted);
-    fprintf(stdout, "singleton\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.frgSingleton,
-            libfate[li].read.frgSingleton * 100.0 / libfate[li].read.total,
-            libfate[li].read.frgSingleton * 100.0 / allfate.read.frgSingleton);
-    fprintf(stdout, "UNITIGS\n");
-    fprintf(stdout, "degenerate\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.ctgDegenerate,
-            libfate[li].read.ctgDegenerate * 100.0 / libfate[li].read.total,
-            libfate[li].read.ctgDegenerate * 100.0 / allfate.read.ctgDegenerate);
-    fprintf(stdout, "unique\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.utgUnique,
-            libfate[li].read.utgUnique * 100.0 / libfate[li].read.total,
-            libfate[li].read.utgUnique * 100.0 / allfate.read.utgUnique);
-    fprintf(stdout, "rock\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.utgRock,
-            libfate[li].read.utgRock * 100.0 / libfate[li].read.total,
-            libfate[li].read.utgRock * 100.0 / allfate.read.utgRock);
-    fprintf(stdout, "stone\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.utgStone,
-            libfate[li].read.utgStone * 100.0 / libfate[li].read.total,
-            libfate[li].read.utgStone * 100.0 / allfate.read.utgStone);
-    fprintf(stdout, "stoneUnres\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.utgStoneUnresolved,
-            libfate[li].read.utgStoneUnresolved * 100.0 / libfate[li].read.total,
-            libfate[li].read.utgStoneUnresolved * 100.0 / allfate.read.utgStoneUnresolved);
-    fprintf(stdout, "pebble\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.utgPebble,
-            libfate[li].read.utgPebble * 100.0 / libfate[li].read.total,
-            libfate[li].read.utgPebble * 100.0 / allfate.read.utgPebble);
-    fprintf(stdout, "CONTIGS\n");
-    fprintf(stdout, "degenerate\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.ctgDegenerate,
-            libfate[li].read.ctgDegenerate * 100.0 / libfate[li].read.total,
-            libfate[li].read.ctgDegenerate * 100.0 / allfate.read.ctgDegenerate);
-    fprintf(stdout, "big\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.ctgBig,
-            libfate[li].read.ctgBig * 100.0 / libfate[li].read.total,
-            libfate[li].read.ctgBig * 100.0 / allfate.read.ctgBig);
-    fprintf(stdout, "small\t"F_U32"\t%.2f\t%.2f\n",
-            libfate[li].read.ctgSmall,
-            libfate[li].read.ctgSmall * 100.0 / libfate[li].read.total,
-            libfate[li].read.ctgSmall * 100.0 / allfate.read.ctgSmall);
-  }
+  allfate.read.report(outPrefix, 0, "ALLLIBRARIES", allfate.read);
+
+  for (uint32 li=0; li<libDat.size(); li++)
+    libfate[li].read.report(outPrefix, li+1, libDat[li].name, allfate.read);
 
 
   //  Mate fate
@@ -353,114 +535,82 @@ analyzeLibraryFate(char *outPrefix) {
 
   for (uint32 fi=0; fi<frgMate.size(); fi++) {
     uint32 mi = frgMate[fi];
+    uint32 li = frgLibrary[fi];
 
     if (mi <= fi)
       //  Either not mated, or visited already.
       continue;
 
-    assert(frgDat[fi].typ == 'f');
-    assert(frgDat[mi].typ == 'f');
+    uint32 asta = frgLabelToInt[frgDat[fi].sta];
+    uint32 bsta = frgLabelToInt[frgDat[mi].sta];
 
-    uint32  fisi = frgDat[fi].scf.con;
-    uint32  misi = frgDat[mi].scf.con;
+    if (asta > bsta) {
+      asta = frgLabelToInt[frgDat[mi].sta];
+      bsta = frgLabelToInt[frgDat[fi].sta];
+    }
 
-    assert(fisi < scfDat.size());
-    assert(misi < scfDat.size());
+    libfate[li].mate.total++;
 
-#if 0
-    uint32    sameScaffold[NUM_FRG_LABELS][NUM_FRG_LABELS];
-    uint32    diffScaffold[NUM_FRG_LABELS][NUM_FRG_LABELS];
+    if (frgDat[fi].scf.con == frgDat[mi].scf.con)
+      libfate[li].mate.sameScf[asta][bsta]++;
+    else
+      libfate[li].mate.diffScf[asta][bsta]++;
 
-    uint32    scfDegenerate[NUM_FRG_LABELS];
-    uint32    scfSingleton[NUM_FRG_LABELS];
-    uint32    scfUnresolved[NUM_FRG_LABELS];
+    if (frgDat[fi].ctg.con == frgDat[mi].ctg.con)
+      libfate[li].mate.sameCtg[asta][bsta]++;
+    else
+      libfate[li].mate.diffCtg[asta][bsta]++;
 
-    uint32    bothSingleton;
-    uint32    bothUnresolved;
-
-    uint32    sameDegenerate;
-    uint32    diffDegenerate;
-#endif
-
-    //if (fisi == UINT32_MAX)
+    if (frgDat[fi].utg.con == frgDat[mi].utg.con)
+      libfate[li].mate.sameUtg[asta][bsta]++;
+    else
+      libfate[li].mate.diffUtg[asta][bsta]++;
+  }
 
 
-#if 0
-      if ((frgDat[fi].sta == 'D') ||  //  deleted
-          (frgDat[fi].sta == 'C') ||  //  chaff
-          (frgDat[fi].sta == 'd') ||  //  degenerate
-          (frgDat[fi].sta == 'R'))    //  unplaced surrogate read
-        //  Not in a scaffold, fragment deleted or singleton or unplaced surrogate.
-        continue;
+  for (uint32 li=0; li<libDat.size(); li++)
+    allfate.mate += libfate[li].mate;
 
-    if ((mi <= fi) && (frgDat[mi].sta != 'C'))
-      //  Catches both unmated (mi==0) and visited (mi < fi), in particular,
-      //  unmated fi=0 is caught.  The test on status is to not skip mates where the
-      //  lower id is a singleton.
+  allfate.mate.report(outPrefix, 0, "ALLLIBRARIES", allfate.mate);
+
+  for (uint32 li=0; li<libDat.size(); li++)
+    libfate[li].mate.report(outPrefix, li+1, libDat[li].name, allfate.mate);
+
+
+  //  Insert sizes
+
+
+  for (uint32 fi=0; fi<frgMate.size(); fi++) {
+    uint32 mi = frgMate[fi];
+    uint32 li = frgLibrary[fi];
+
+    if (mi <= fi)
+      //  Either not mated, or visited already.
       continue;
 
+    uint32 fisi = frgDat[fi].scf.con;
+    uint32 misi = frgDat[mi].scf.con;
 
-    //assert((scfDat[si].sta == 'p') || (scfDat[si].sta == 'd'));
+    if ((fisi == UINT32_MAX) || (misi == UINT32_MAX))
+      continue;
 
-    if (fisi == misi) {
-    } else {
-    }
+    if (fisi != misi)
+      continue;
 
+    if (scfDat[fisi].sta == 'd')
+      continue;
 
+    assert(scfDat[fisi].sta == 'p');
 
-    //  What type of pair is this?
-
-    if (frgDat[fi].con == frgDat[mi].con) {
-      //  Same Scaffold
-
-
-      if (scfDat[si].sta == 'p')
-        scfStat = scfStatSameScaffold;    //  Real scaffolds!
-      else
-        scfStat = scfStatSameDegenerate;  //  Degenerates.
-
-      scfStat->number++;
-
-      int32  dist = MAX(frgDat[fi].end, frgDat[mi].end) - MIN(frgDat[fi].bgn, frgDat[mi].bgn);
-
-      if (dist < 0) {
-        fprintf(stderr, "negative distance %d\n", dist);
-        fprintf(stderr, "fi="F_U32" con="F_U32" bgn="F_U32" end="F_U32" len="F_U32" ori=%c sta=%c %s\n",
-                fi,
-                frgDat[fi].con, frgDat[fi].bgn, frgDat[fi].end, frgDat[fi].len, frgDat[fi].ori, frgDat[fi].sta, frgNam[fi].c_str());
-        fprintf(stderr, "mi="F_U32" con="F_U32" bgn="F_U32" end="F_U32" len="F_U32" ori=%c sta=%c %s\n",
-                mi,
-                frgDat[mi].con, frgDat[mi].bgn, frgDat[mi].end, frgDat[mi].len, frgDat[mi].ori, frgDat[mi].sta, frgNam[mi].c_str());
-        dist = 0;
-      }
-      assert(dist >= 0);
-
-      if        (((frgDat[fi].ori == frgDat[mi].ori))) {
-        scfStat->same.addDistance(dist);
-      }
-
-      else if (((frgDat[fi].bgn <=  frgDat[mi].bgn) && (frgDat[fi].ori == 'f')) ||
-               ((frgDat[fi].bgn >=  frgDat[mi].bgn) && (frgDat[fi].ori == 'r'))) {
-        scfStat->innie.addDistance(dist);
-      }
-
-      else if (((frgDat[fi].bgn <  frgDat[mi].bgn) && (frgDat[fi].ori == 'r')) ||
-               ((frgDat[fi].bgn >  frgDat[mi].bgn) && (frgDat[fi].ori == 'f'))) {
-        scfStat->outtie.addDistance(dist);
-      }
-
-      else {
-        fprintf(stderr, "invalid position and orientation\n");
-        fprintf(stderr, "fi="F_U32" con="F_U32" bgn="F_U32" end="F_U32" len="F_U32" ori=%c sta=%c %s\n",
-                fi,
-                frgDat[fi].con, frgDat[fi].bgn, frgDat[fi].end, frgDat[fi].len, frgDat[fi].ori, frgDat[fi].sta, frgNam[fi].c_str());
-        fprintf(stderr, "mi="F_U32" con="F_U32" bgn="F_U32" end="F_U32" len="F_U32" ori=%c sta=%c %s\n",
-                mi,
-                frgDat[mi].con, frgDat[mi].bgn, frgDat[mi].end, frgDat[mi].len, frgDat[mi].ori, frgDat[mi].sta, frgNam[mi].c_str());
-        //assert(0);
-      }
-    }
-#endif
+    libfate[li].size.scf.addDistance(fi, frgDat[fi].scf.bgn, frgDat[fi].scf.end, frgDat[fi].scf.ori,
+                                     mi, frgDat[mi].scf.bgn, frgDat[mi].scf.end, frgDat[mi].scf.ori);
   }
-}
 
+  //for (uint32 li=0; li<libDat.size(); li++)
+  //  allfate.size += libfate[li].size;
+
+  allfate.size.report(outPrefix, 0, "ALLLIBRARIES", allfate.size);
+
+  for (uint32 li=0; li<libDat.size(); li++)
+    libfate[li].size.report(outPrefix, li+1, libDat[li].name, allfate.size);
+}

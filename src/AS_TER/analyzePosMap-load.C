@@ -20,13 +20,32 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: analyzePosMap-load.C,v 1.1 2012-12-05 01:13:23 brianwalenz Exp $";
+static const char *rcsid = "$Id: analyzePosMap-load.C,v 1.2 2012-12-06 01:51:57 brianwalenz Exp $";
 
 #include "analyzePosMap.H"
 
 
 
-char                 frgLabel[NUM_FRG_LABELS] = { 'D', 'C', 'd', 'u', 'r', 's', 'R', 'p', 'S', 'o' };
+char const           frgLabelC[NUM_FRG_LABELS] = { 'D',
+                                                   'C',
+                                                   'd',
+                                                   'u',
+                                                   'r',
+                                                   's',
+                                                   'R',
+                                                   'p',
+                                                   'S',
+                                                   'o' };
+char const          *frgLabelS[NUM_FRG_LABELS] = { "deletd",
+                                                   "chaff",
+                                                   "degen",
+                                                   "uniq",
+                                                   "rock",
+                                                   "stone",
+                                                   "stoneU",
+                                                   "pebble",
+                                                   "single",
+                                                   "other" };
 uint32               frgLabelToInt[256]       = { 0 };
 
 map<string,uint32>   libNames;
@@ -711,7 +730,7 @@ loadPosMap(char *prefix, char *gkpName) {
   //  Initialize
 
   for (uint32 i=0; i<NUM_FRG_LABELS; i++)
-    frgLabelToInt[frgLabel[i]] = i;
+    frgLabelToInt[frgLabelC[i]] = i;
 
   //  Read library information.
 

@@ -23,7 +23,7 @@
 #ifndef ANALYZEPOSMAP_H
 #define ANALYZEPOSMAP_H
 
-static const char *rcsid_ANALYZEPOSMAP_H = "$Id: analyzePosMap.H,v 1.1 2012-12-05 01:13:23 brianwalenz Exp $";
+static const char *rcsid_ANALYZEPOSMAP_H = "$Id: analyzePosMap.H,v 1.2 2012-12-06 01:51:57 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -244,7 +244,8 @@ public:
 
 #define NUM_FRG_LABELS      10
 
-extern char                 frgLabel[NUM_FRG_LABELS];
+extern char const           frgLabelC[NUM_FRG_LABELS];
+extern char const          *frgLabelS[NUM_FRG_LABELS];
 extern uint32               frgLabelToInt[256];
 
 extern map<string,uint32>   libNames;    //  Index into libDat
