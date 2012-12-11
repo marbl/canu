@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.64 2010-10-12 22:24:56 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.65 2012-12-11 21:51:46 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -197,11 +197,13 @@ struct BestOverlapGraph {
 
 
   uint32  olapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
-    int32  ooff = 0;
     int32  alen = FI->fragmentLength(a_iid);
     int32  blen = FI->fragmentLength(b_iid);
     int32  aovl = 0;
     int32  bovl = 0;
+
+    assert(alen > 0);
+    assert(blen > 0);
 
     if (a_hang < 0) {
       //  b_hang < 0      ?     ----------  :     ----
@@ -216,6 +218,18 @@ struct BestOverlapGraph {
       aovl = (b_hang < 0) ? (alen - a_hang + b_hang) : (alen - a_hang);
       bovl = (b_hang < 0) ? (blen)                   : (blen - b_hang);
     }
+
+    if ((aovl <= 0) || (bovl <= 0) || (aovl > alen) || (bovl > blen)) {
+      fprintf(stderr, "WARNING: bogus overlap found for A="F_U32" B="F_U32"\n", a_iid, b_iid);
+      fprintf(stderr, "WARNING:                     A len="F_S32" hang="F_S32" ovl="F_S32"\n", alen, a_hang, aovl);
+      fprintf(stderr, "WARNING:                     B len="F_S32" hang="F_S32" ovl="F_S32"\n", blen, b_hang, bovl);
+    }
+
+    if (aovl < 0)     aovl = 0;
+    if (bovl < 0)     bovl = 0;
+
+    if (aovl > alen)  aovl = alen;
+    if (bovl > blen)  bovl = blen;
 
     assert(aovl > 0);
     assert(bovl > 0);

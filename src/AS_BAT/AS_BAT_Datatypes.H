@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.16 2012-07-30 01:21:01 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.17 2012-12-11 21:51:46 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -269,7 +269,6 @@ public:
   uint32  numMatesInLib(uint32 iid) { return(_numMatesInLib[iid]); };
 
   uint32  overlapLength(uint32 a_iid, uint32 b_iid, int32 a_hang, int32 b_hang) {
-    int32  ooff = 0;
     int32  alen = fragmentLength(a_iid);
     int32  blen = fragmentLength(b_iid);
     int32  aovl = 0;
@@ -291,6 +290,18 @@ public:
       aovl = (b_hang < 0) ? (alen - a_hang + b_hang) : (alen - a_hang);
       bovl = (b_hang < 0) ? (blen)                   : (blen - b_hang);
     }
+
+    if ((aovl <= 0) || (bovl <= 0) || (aovl > alen) || (bovl > blen)) {
+      fprintf(stderr, "WARNING: bogus overlap found for A="F_U32" B="F_U32"\n", a_iid, b_iid);
+      fprintf(stderr, "WARNING:                     A len="F_S32" hang="F_S32" ovl="F_S32"\n", alen, a_hang, aovl);
+      fprintf(stderr, "WARNING:                     B len="F_S32" hang="F_S32" ovl="F_S32"\n", blen, b_hang, bovl);
+    }
+
+    if (aovl < 0)     aovl = 0;
+    if (bovl < 0)     bovl = 0;
+
+    if (aovl > alen)  aovl = alen;
+    if (bovl > blen)  bovl = blen;
 
     assert(aovl > 0);
     assert(bovl > 0);
