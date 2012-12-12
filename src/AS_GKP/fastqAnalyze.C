@@ -19,63 +19,219 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqAnalyze.C,v 1.4 2012-06-26 00:09:19 brianwalenz Exp $";
+const char *mainid = "$Id: fastqAnalyze.C,v 1.5 2012-12-12 06:13:02 brianwalenz Exp $";
 
 #include "AS_global.h"
 
+#include <vector>
+#include <algorithm>
 
-int
-main(int argc, char **argv) {
-  char   *inName = NULL;
-  char   *otName = NULL;
+using namespace std;
 
-  bool    originalIsSolexa   = false;
-  bool    originalIsIllumina = false;
-  bool    originalIsSanger   = false;
 
-  bool    correctToSanger    = false;
+//  Map a letter to an index in the freq arrays.
+uint32   baseToIndex[256];
+char     indexToBase[8];
 
-  int arg=1;
-  int err=0;
-  while (arg < argc) {
-    if        (strcmp(argv[arg], "-o") == 0) {
-      otName          = argv[++arg];
-      correctToSanger = true;
+#define  FREQ_A    0
+#define  FREQ_C    1
+#define  FREQ_G    2
+#define  FREQ_T    3
+#define  FREQ_N    4  //  Just N's
+#define  FREQ_g    5  //  Just -'s
+#define  FREQ_Z    6  //  Everything else
+#define  FREQ_NUM  7
 
-    } else if (strcmp(argv[arg], "-solexa") == 0) {
-      originalIsSolexa = true;
+class nucFreq {
+public:
+  nucFreq() {
+    memset(mono, 0, sizeof(uint64) * FREQ_NUM);
+    memset(di,   0, sizeof(uint64) * FREQ_NUM * FREQ_NUM);
+    memset(tri,  0, sizeof(uint64) * FREQ_NUM * FREQ_NUM * FREQ_NUM);
+  };
 
-    } else if (strcmp(argv[arg], "-illumina") == 0) {
-      originalIsIllumina = true;
+  uint64    mono[FREQ_NUM];
+  uint64    di[FREQ_NUM][FREQ_NUM];
+  uint64    tri[FREQ_NUM][FREQ_NUM][FREQ_NUM];
+};
 
-    } else if (strcmp(argv[arg], "-sanger") == 0) {
-      originalIsSanger = true;
+class nucOut {
+public:
+  nucOut(char a, char b, char c, uint64 cnt, double frq) {
+    label[0] = a;
+    label[1] = b;
+    label[2] = c;
+    label[3] = 0;
 
-    } else if (inName == NULL) {
-      inName = argv[arg];
+    count    = cnt;
+    freq     = frq;
+  };
 
-    } else {
-      err++;
+  bool operator<(nucOut const &that) const {
+    return(freq > that.freq);
+  };
+
+  char    label[4];
+  uint64  count;
+  double  freq;
+};
+
+
+
+
+
+
+void
+doStats(char *inName,
+        char *otName) {
+
+  uint64           totSeqs  = 0;
+  uint64           totBases = 0;
+  vector<uint32>   seqLen;
+  nucFreq         *freq = new nucFreq;
+
+  char   A[1024];
+  char   B[1024];
+  char   C[1024];
+  char   D[1024];
+
+  errno = 0;
+  FILE *F = fopen(inName, "r");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for reading: %s\n", inName, strerror(errno)), exit(1);
+
+  //errno = 0;
+  //FILE *O = fopen(otName, "w");
+  //if (errno)
+  //  fprintf(stderr, "Failed to open '%s' for writing: %s\n", otName, strerror(errno)), exit(1);
+
+  while (!feof(F)) {
+    fgets(A, 1024, F);
+    fgets(B, 1024, F);  chomp(B);
+    fgets(C, 1024, F);
+    fgets(D, 1024, F);  chomp(D);
+
+    if ((A[0] != '@') || (C[0] != '+')) {
+      fprintf(stderr, "WARNING:  sequence isn't fastq.\n");
+      fprintf(stderr, "WARNING:  %s",   A);
+      fprintf(stderr, "WARNING:  %s\n", B);
+      fprintf(stderr, "WARNING:  %s",   C);
+      fprintf(stderr, "WARNING:  %s\n", D);
     }
 
-    arg++;
+    uint32  a   = 0;
+    uint32  b   = baseToIndex[B[0]];
+    uint32  c   = baseToIndex[B[1]];
+    uint32  ii;
+
+    freq->mono[b]++;
+    freq->mono[c]++;
+
+    freq->di[b][c]++;
+
+    for (ii=2; B[ii]; ii++) {
+      a = b;
+      b = c;
+      c = baseToIndex[B[ii]];
+
+      freq->mono[c]++;
+      freq->di[b][c]++;
+      freq->tri[a][b][c]++;
+    }
+
+    ii--;
+
+    seqLen.push_back(ii);
+
+    totSeqs++;
+    totBases += ii;
   }
-  if ((err) || (inName == NULL)) {
-    fprintf(stderr, "usage: %s [options] [-o output.fastq] input.fastq\n", argv[0]);
-    fprintf(stderr, "  If no options are given, input.fastq is analyzed and a best guess for the\n");
-    fprintf(stderr, "  QC encoding is output.  Otherwise, the QV encoding is converted to Sanger-style\n");
-    fprintf(stderr, "  using this guess.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  In some cases, the encoding cannot be determined.  When this occurs, no guess is\n");
-    fprintf(stderr, "  output.  For conversion, you can force the input QV type with:\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -solexa     input QV is solexa\n");
-    fprintf(stderr, "  -illumina   input QV is illumina\n");
-    fprintf(stderr, "  -sanger     input QV is sanger\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -o          sanger-style-output.fastq\n");
-    exit(1);
-  }
+
+
+  fprintf(stdout, "%s\n", inName);
+  fprintf(stdout, "\n");
+
+  fprintf(stdout, "sequences\t"F_U64"\n", totSeqs);
+  fprintf(stdout, "bases\t"F_U64"\n",     totBases);
+  fprintf(stdout, "\n");
+  fprintf(stdout, "average\t"F_U64"\n", totBases / totSeqs);
+  fprintf(stdout, "\n");
+
+  sort(seqLen.begin(), seqLen.end());
+
+  uint64   min        = seqLen.front();
+  uint64   max        = seqLen.back();
+  uint64  *histogram  = new uint64 [max];
+
+  for (uint32 ii=min; ii<=max; ii++)
+    histogram[ii] = 0;
+
+  for (uint32 ii=0; ii<seqLen.size(); ii++)
+    histogram[seqLen[ii]]++;
+
+  for (uint32 ii=min; ii<=max; ii++)
+    fprintf(stdout, F_U32"\t"F_U64"\n", ii, histogram[ii]);
+
+  vector<nucOut>    output;
+
+  fprintf(stdout, "\n");
+  fprintf(stdout, "mononucleotide\n");
+  fprintf(stdout, "\n");
+  for (uint32 ii=0; ii<FREQ_NUM; ii++)
+    if (freq->tri[ii] > 0)
+      output.push_back(nucOut(indexToBase[ii], 0, 0,
+                              freq->mono[ii],
+                              freq->mono[ii] * 100.0 / totBases));
+  sort(output.begin(), output.end());
+  for (uint32 ii=0; ii<output.size(); ii++)
+    fprintf(stdout, "%s\t"F_U64"\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
+  output.clear();
+
+  fprintf(stdout, "\n");
+  fprintf(stdout, "dinucleotide\n");
+  fprintf(stdout, "\n");
+  for (uint32 ii=0; ii<FREQ_NUM; ii++)
+    for (uint32 jj=0; jj<FREQ_NUM; jj++)
+      if (freq->di[ii][jj] > 0)
+        output.push_back(nucOut(indexToBase[ii], indexToBase[jj], 0,
+                                freq->di[ii][jj],
+                                freq->di[ii][jj] * 100.0 / totBases));
+  sort(output.begin(), output.end());
+  for (uint32 ii=0; ii<output.size(); ii++)
+    fprintf(stdout, "%s\t"F_U64"\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
+  output.clear();
+
+  fprintf(stdout, "\n");
+  fprintf(stdout, "trinucleotide\n");
+  fprintf(stdout, "\n");
+  for (uint32 ii=0; ii<FREQ_NUM; ii++)
+    for (uint32 jj=0; jj<FREQ_NUM; jj++)
+      for (uint32 kk=0; kk<FREQ_NUM; kk++)
+        if (freq->tri[ii][jj][kk] > 0)
+          output.push_back(nucOut(indexToBase[ii], indexToBase[jj], indexToBase[kk],
+                                  freq->tri[ii][jj][kk],
+                                  freq->tri[ii][jj][kk] * 100.0 / totBases));
+  sort(output.begin(), output.end());
+  for (uint32 ii=0; ii<output.size(); ii++)
+    fprintf(stdout, "%s\t"F_U64"\t%.4f%%\n", output[ii].label, output[ii].count, output[ii].freq);
+  output.clear();
+
+  //fclose(O);
+  fclose(F);
+}
+
+
+
+void
+doAnalyzeQV(char *inName,
+            bool &originalIsSolexa,
+            bool &originalIsIllumina,
+            bool &originalIsSanger) {
+
+  if ((originalIsSolexa   == true) ||
+      (originalIsIllumina == true) ||
+      (originalIsSanger   == true))
+    return;
 
   uint32 numValid  = 5;
   uint32 numTrials = 100000;
@@ -85,102 +241,110 @@ main(int argc, char **argv) {
   char   C[1024];
   char   D[1024];
 
-  if ((originalIsSolexa   == false) &&
-      (originalIsIllumina == false) &&
-      (originalIsSanger   == false)) {
-    errno = 0;
-    FILE *F = fopen(inName, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for reading: %s\n", inName, strerror(errno)), exit(1);
+  errno = 0;
+  FILE *F = fopen(inName, "r");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for reading: %s\n", inName, strerror(errno)), exit(1);
 
-    //  Initially, it could be any of these.
-    //
-    bool   isNotSanger    = false;
-    bool   isNotSolexa    = false;
-    bool   isNotIllumina3 = false;
-    bool   isNotIllumina5 = false;
-    bool   isNotIllumina8 = false;
+  //  Initially, it could be any of these.
+  //
+  bool   isNotSanger    = false;
+  bool   isNotSolexa    = false;
+  bool   isNotIllumina3 = false;
+  bool   isNotIllumina5 = false;
+  bool   isNotIllumina8 = false;
 
-    uint32 qvCounts[256]  = {0};
+  uint32 qvCounts[256]  = {0};
 
-    while ((!feof(F)) &&
-           (numValid != 1) &&
-           (numTrials > 0)) {
-      fgets(A, 1024, F);
-      fgets(B, 1024, F);
-      fgets(C, 1024, F);
-      fgets(D, 1024, F);  chomp(D);
+  while ((!feof(F)) &&
+         (numValid != 1) &&
+         (numTrials > 0)) {
+    fgets(A, 1024, F);
+    fgets(B, 1024, F);
+    fgets(C, 1024, F);
+    fgets(D, 1024, F);  chomp(D);
 
-      for (uint32 x=0; D[x] != 0; x++) {
-        if (D[x] < '!')  isNotSanger    = true;
-        if (D[x] < ';')  isNotSolexa    = true;
-        if (D[x] < '@')  isNotIllumina3 = true;  //  Illumina 1.3
-        if (D[x] < 'B')  isNotIllumina5 = true;  //  Illumina 1.5
-        if (D[x] < '!')  isNotIllumina8 = true;  //  Illumina 1.5
+    for (uint32 x=0; D[x] != 0; x++) {
+      if (D[x] < '!')  isNotSanger    = true;
+      if (D[x] < ';')  isNotSolexa    = true;
+      if (D[x] < '@')  isNotIllumina3 = true;  //  Illumina 1.3
+      if (D[x] < 'B')  isNotIllumina5 = true;  //  Illumina 1.5
+      if (D[x] < '!')  isNotIllumina8 = true;  //  Illumina 1.5
 
-        if ('I' < D[x])  isNotSanger    = true;
-        if ('h' < D[x])  isNotSolexa    = true;
-        if ('h' < D[x])  isNotIllumina3 = true;  //  Illumina 1.3
-        if ('h' < D[x])  isNotIllumina5 = true;  //  Illumina 1.5
-        if ('J' < D[x])  isNotIllumina8 = true;  //  Illumina 1.5
+      if ('I' < D[x])  isNotSanger    = true;
+      if ('h' < D[x])  isNotSolexa    = true;
+      if ('h' < D[x])  isNotIllumina3 = true;  //  Illumina 1.3
+      if ('h' < D[x])  isNotIllumina5 = true;  //  Illumina 1.5
+      if ('J' < D[x])  isNotIllumina8 = true;  //  Illumina 1.5
 
-        qvCounts[D[x]]++;
+      qvCounts[D[x]]++;
 
-        //fprintf(stderr, "%d%d%d%d%d %c %d\n",
-        //        isNotSanger, isNotSolexa, isNotIllumina3, isNotIllumina5, isNotIllumina8, D[x], x);
-      }
-
-      //fprintf(stderr, "%d%d%d%d%d '%s'\n",
-      //        isNotSanger, isNotSolexa, isNotIllumina3, isNotIllumina5, isNotIllumina8, D);
-
-      numValid = 0;
-
-      if (isNotSanger    == false)  numValid++;
-      if (isNotSolexa    == false)  numValid++;
-      if (isNotIllumina3 == false)  numValid++;
-      if (isNotIllumina5 == false)  numValid++;
-      if (isNotIllumina8 == false)  numValid++;
-
-      numTrials--;
+      //fprintf(stderr, "%d%d%d%d%d %c %d\n",
+      //        isNotSanger, isNotSolexa, isNotIllumina3, isNotIllumina5, isNotIllumina8, D[x], x);
     }
 
-    fclose(F);
+    //fprintf(stderr, "%d%d%d%d%d '%s'\n",
+    //        isNotSanger, isNotSolexa, isNotIllumina3, isNotIllumina5, isNotIllumina8, D);
 
-    fprintf(stdout, "%s --", inName);
+    numValid = 0;
 
-    if (isNotSanger    == false)  fprintf(stdout, " SANGER");
-    if (isNotSolexa    == false)  fprintf(stdout, " SOLEXA");
-    if (isNotIllumina3 == false)  fprintf(stdout, " ILLUMINA_1.3+");
-    if (isNotIllumina5 == false)  fprintf(stdout, " ILLUMINA_1.5+");
-    if (isNotIllumina8 == false)  fprintf(stdout, " ILLUMINA_1.8+");
-    if (numValid       == 0)      fprintf(stdout, " NO_VALID_ENCODING");
+    if (isNotSanger    == false)  numValid++;
+    if (isNotSolexa    == false)  numValid++;
+    if (isNotIllumina3 == false)  numValid++;
+    if (isNotIllumina5 == false)  numValid++;
+    if (isNotIllumina8 == false)  numValid++;
 
-    fprintf(stdout, "\n");
-
-    if (numValid == 0) {
-      fprintf(stdout, "QV histogram:\n");
-
-      for (uint32 c=0, i=0; i<12; i++) {
-        fprintf(stdout, "%3d: ", i * 10);
-
-        for (uint32 j=0; j<10; j++, c++)
-          fprintf(stdout, " %8d/%c", qvCounts[c], isprint(c) ? c : '.');
-
-        fprintf(stdout, "\n");
-      }
-    }
-
-    if (isNotSanger    == false)  originalIsSanger   = true;
-    if (isNotSolexa    == false)  originalIsSolexa   = true;
-    if (isNotIllumina3 == false)  originalIsIllumina = true;
-    if (isNotIllumina5 == false)  originalIsIllumina = true;
-    if (isNotIllumina8 == false)  originalIsSanger   = true;
+    numTrials--;
   }
 
-  if (correctToSanger == false)
-    exit(0);
+  fclose(F);
 
-  numValid = 0;
+  fprintf(stdout, "%s --", inName);
+
+  if (isNotSanger    == false)  fprintf(stdout, " SANGER");
+  if (isNotSolexa    == false)  fprintf(stdout, " SOLEXA");
+  if (isNotIllumina3 == false)  fprintf(stdout, " ILLUMINA_1.3+");
+  if (isNotIllumina5 == false)  fprintf(stdout, " ILLUMINA_1.5+");
+  if (isNotIllumina8 == false)  fprintf(stdout, " ILLUMINA_1.8+");
+  if (numValid       == 0)      fprintf(stdout, " NO_VALID_ENCODING");
+
+  fprintf(stdout, "\n");
+
+  if (numValid == 0) {
+    fprintf(stdout, "QV histogram:\n");
+ 
+   for (uint32 c=0, i=0; i<12; i++) {
+      fprintf(stdout, "%3d: ", i * 10);
+
+      for (uint32 j=0; j<10; j++, c++)
+        fprintf(stdout, " %8d/%c", qvCounts[c], isprint(c) ? c : '.');
+
+      fprintf(stdout, "\n");
+    }
+  }
+
+  if (isNotSanger    == false)  originalIsSanger   = true;
+  if (isNotSolexa    == false)  originalIsSolexa   = true;
+  if (isNotIllumina3 == false)  originalIsIllumina = true;
+  if (isNotIllumina5 == false)  originalIsIllumina = true;
+  if (isNotIllumina8 == false)  originalIsSanger   = true;
+}
+
+
+
+void
+doTransformQV(char *inName,
+              char *otName,
+              bool  originalIsSolexa,
+              bool  originalIsIllumina,
+              bool  originalIsSanger) {
+
+  uint32 numValid = 0;
+
+  char   A[1024];
+  char   B[1024];
+  char   C[1024];
+  char   D[1024];
 
   if (originalIsSanger    == true)  numValid++;
   if (originalIsSolexa    == true)  numValid++;
@@ -193,52 +357,154 @@ main(int argc, char **argv) {
     fprintf(stderr, "No QV decision made.  Multiple valid encodings found.  Specify a QV encoding to convert from.\n"), exit(0);
 
 
-  if ((correctToSanger) &&
-      (originalIsSanger == true))
+  if (originalIsSanger == true)
     fprintf(stderr, "No QV changes needed; original is in sanger format already.\n"), exit(0);
 
+  errno = 0;
+  FILE *F = fopen(inName, "r");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for reading: %s\n", inName, strerror(errno)), exit(1);
 
-  if ((correctToSanger) &&
-      (originalIsSanger == false)) {
-    errno = 0;
-    FILE *F = fopen(inName, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for reading: %s\n", inName, strerror(errno)), exit(1);
+  errno = 0;
+  FILE *O = fopen(otName, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for writing: %s\n", otName, strerror(errno)), exit(1);
 
-    errno = 0;
-    FILE *O = fopen(otName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for writing: %s\n", otName, strerror(errno)), exit(1);
+  while (!feof(F)) {
+    fgets(A, 1024, F);
+    fgets(B, 1024, F);
+    fgets(C, 1024, F);
+    fgets(D, 1024, F);  chomp(D);
 
-    while (!feof(F)) {
-      fgets(A, 1024, F);
-      fgets(B, 1024, F);
-      fgets(C, 1024, F);
-      fgets(D, 1024, F);  chomp(D);
+    if (feof(F))
+      break;
 
-      if (feof(F))
-        break;
-
-      for (uint32 x=0; D[x] != 0; x++) {
-        if (originalIsSolexa) {
-          double qs  = D[x] - '@';
-          qs /= 10.0;
-          qs  = 10.0 * log10(pow(10.0, qs) + 1);
-          D[x] = lround(qs) + '0';
-        }
-
-        if (originalIsIllumina) {
-          D[x] -= '@';
-          D[x] += '!';
-        }
+    for (uint32 x=0; D[x] != 0; x++) {
+      if (originalIsSolexa) {
+        double qs  = D[x] - '@';
+        qs /= 10.0;
+        qs  = 10.0 * log10(pow(10.0, qs) + 1);
+        D[x] = lround(qs) + '0';
       }
 
-      fprintf(O, "%s%s%s%s\n", A, B, C, D);
+      if (originalIsIllumina) {
+        D[x] -= '@';
+        D[x] += '!';
+      }
     }
 
-    fclose(F);
-    fclose(O);
+    fprintf(O, "%s%s%s%s\n", A, B, C, D);
   }
+
+  fclose(F);
+  fclose(O);
+}
+
+
+
+
+int
+main(int argc, char **argv) {
+  char   *inName = NULL;
+  char   *otName = NULL;
+
+  bool    originalIsSolexa   = false;
+  bool    originalIsIllumina = false;
+  bool    originalIsSanger   = false;
+
+  bool    convertToSanger    = false;
+
+  bool    computeStats       = false;
+
+  int arg=1;
+  int err=0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-o") == 0) {
+      otName          = argv[++arg];
+      convertToSanger = true;
+
+    } else if (strcmp(argv[arg], "-solexa") == 0) {
+      originalIsSolexa = true;
+
+    } else if (strcmp(argv[arg], "-illumina") == 0) {
+      originalIsIllumina = true;
+
+    } else if (strcmp(argv[arg], "-sanger") == 0) {
+      originalIsSanger = true;
+
+    } else if (strcmp(argv[arg], "-stats") == 0) {
+      computeStats = true;
+
+    } else if (inName == NULL) {
+      inName = argv[arg];
+
+    } else {
+      err++;
+    }
+
+    arg++;
+  }
+  if ((err) || (inName == NULL)) {
+    fprintf(stderr, "usage: %s [-stats] [-o output.fastq] input.fastq\n", argv[0]);
+    fprintf(stderr, "  If no options are given, input.fastq is analyzed and a best guess for the\n");
+    fprintf(stderr, "  QV encoding is output.  Otherwise, the QV encoding is converted to Sanger-style\n");
+    fprintf(stderr, "  using this guess.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  In some cases, the encoding cannot be determined.  When this occurs, no guess is\n");
+    fprintf(stderr, "  output.  For conversion, you can force the input QV type with:\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -solexa     input QV is solexa\n");
+    fprintf(stderr, "  -illumina   input QV is illumina\n");
+    fprintf(stderr, "  -sanger     input QV is sanger\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o          sanger-style-output.fastq\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  If -stats is supplied, no QV analysis or conversion is performed, but some simple\n");
+    fprintf(stderr, "  statistics are computed and output to stdout.\n");
+    fprintf(stderr, "\n");
+    
+    exit(1);
+  }
+
+  for (uint32 ii=0; ii<256; ii++)
+    baseToIndex[ii] = FREQ_Z;
+
+  baseToIndex['a'] = FREQ_A;
+  baseToIndex['A'] = FREQ_A;
+  baseToIndex['c'] = FREQ_C;
+  baseToIndex['C'] = FREQ_C;
+  baseToIndex['g'] = FREQ_G;
+  baseToIndex['G'] = FREQ_G;
+  baseToIndex['t'] = FREQ_T;
+  baseToIndex['T'] = FREQ_T;
+  baseToIndex['n'] = FREQ_N;
+  baseToIndex['N'] = FREQ_N;
+  baseToIndex['-'] = FREQ_g;
+  baseToIndex['-'] = FREQ_g;
+
+  indexToBase[FREQ_A] = 'A';
+  indexToBase[FREQ_C] = 'C';
+  indexToBase[FREQ_G] = 'G';
+  indexToBase[FREQ_T] = 'T';
+  indexToBase[FREQ_N] = 'N';
+  indexToBase[FREQ_g] = '-';
+  indexToBase[FREQ_Z] = '?';
+
+
+  if (computeStats)
+    doStats(inName, otName), exit(0);
+
+  doAnalyzeQV(inName,
+              originalIsSanger,
+              originalIsSolexa,
+              originalIsIllumina);
+
+  if (convertToSanger)
+    doTransformQV(inName,
+                  otName,
+                  originalIsSanger,
+                  originalIsSolexa,
+                  originalIsIllumina);
 
   exit(0);
 }
