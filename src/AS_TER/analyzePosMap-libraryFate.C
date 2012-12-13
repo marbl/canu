@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: analyzePosMap-libraryFate.C,v 1.2 2012-12-06 01:51:57 brianwalenz Exp $";
+static const char *rcsid = "$Id: analyzePosMap-libraryFate.C,v 1.3 2012-12-13 18:43:09 brianwalenz Exp $";
 
 #include "analyzePosMap.H"
 
@@ -167,6 +167,10 @@ public:
             frgSingleton,
             frgSingleton * 100.0 / total,
             frgSingleton * 100.0 / allfate.frgSingleton);
+    fprintf(F, "stoneUnres\t"F_U32"\t%.2f\t%.2f\n",
+            utgStoneUnresolved,
+            utgStoneUnresolved * 100.0 / total,
+            utgStoneUnresolved * 100.0 / allfate.utgStoneUnresolved);
     fprintf(F, "UNITIGS\n");
     fprintf(F, "degenerate\t"F_U32"\t%.2f\t%.2f\n",
             ctgDegenerate,
@@ -184,10 +188,6 @@ public:
             utgStone,
             utgStone * 100.0 / total,
             utgStone * 100.0 / allfate.utgStone);
-    fprintf(F, "stoneUnres\t"F_U32"\t%.2f\t%.2f\n",
-            utgStoneUnresolved,
-            utgStoneUnresolved * 100.0 / total,
-            utgStoneUnresolved * 100.0 / allfate.utgStoneUnresolved);
     fprintf(F, "pebble\t"F_U32"\t%.2f\t%.2f\n",
             utgPebble,
             utgPebble * 100.0 / total,
