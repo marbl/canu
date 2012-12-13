@@ -2463,10 +2463,32 @@ overlapTrim();
 
 #  End
 
-$cmd = "$bin/gatekeeper -dumpfastq $wrk/$asm $wrk/$asm.gkpStore > $wrk/$asm.gkpStore.dump.err 2>&1";
+if (! -e "$wrk/$asm.gkpStore.dump.err") {
+    $cmd = "$bin/gatekeeper -dumpfastq $wrk/$asm $wrk/$asm.gkpStore > $wrk/$asm.gkpStore.dump.err 2>&1";
 
-if (runCommand($wrk, $cmd)) {
-    caFailure("failed to dump deduplicated reads", "$wrk/$asm.gkpStore.dump.err");
+    if (runCommand($wrk, $cmd)) {
+        caFailure("failed to dump deduplicated reads", "$wrk/$asm.gkpStore.dump.err");
+    }
 }
+
+
+if (! -e "$wrk/$asm.gkpStore.dumpRename.err") {
+    $cmd = "$bin/replaceUIDwithName $wrk/$asm.gkpStore.fastqUIDmap $wrk/$asm.1.fastq $wrk/$asm.2.fastq $wrk/$asm.paired.fastq $wrk/$asm.unmated.fastq > $wrk/$asm.gkpStore.dumpRename.err 2>&1";
+
+    if (runCommand($wrk, $cmd)) {
+        caFailure("failed to restore names in deduplicated reads", "$wrk/$asm.$asm.gkpStore.dumpRename.err");
+    }
+
+    rename "$wrk/0-overlaptrim/$asm.deduplicate.summary", "$wrk/$asm.deduplicate.summary";
+    rename "$wrk/0-overlaptrim/$asm.deduplicate.log",     "$wrk/$asm.deduplicate.log";
+}
+
+rmrf("$wrk/0-mercounts");
+rmrf("$wrk/0-overlaptrim");
+rmrf("$wrk/0-overlaptrim-overlap");
+
+rmrf("$wrk/$asm.gkpStore");
+rmrf("$wrk/$asm.gkpStore.err");
+rmrf("$wrk/runCA-logs");
 
 exit(0);

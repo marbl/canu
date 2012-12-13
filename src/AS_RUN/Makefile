@@ -36,7 +36,8 @@ SCRIPTS = runCA \
           caqc.pl \
           caqc_help.ini \
           ca2ace.pl \
-          asmToAGP.pl
+          asmToAGP.pl \
+          replaceUIDwithName
 
 
 # Include for AS project rules
@@ -79,6 +80,10 @@ asmToAGP.pl: asmQC/asmToAGP.pl
 	@chmod 775 $(LOCAL_BIN)/$@
 
 mergeqc.pl: asmQC/mergeqc.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+replaceUIDwithName: replaceUIDwithName.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
