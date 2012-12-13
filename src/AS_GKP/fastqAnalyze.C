@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqAnalyze.C,v 1.5 2012-12-12 06:13:02 brianwalenz Exp $";
+const char *mainid = "$Id: fastqAnalyze.C,v 1.6 2012-12-13 20:02:15 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -41,6 +41,8 @@ char     indexToBase[8];
 #define  FREQ_g    5  //  Just -'s
 #define  FREQ_Z    6  //  Everything else
 #define  FREQ_NUM  7
+
+#define  MAX_READ_LEN   10240
 
 class nucFreq {
 public:
@@ -90,10 +92,10 @@ doStats(char *inName,
   vector<uint32>   seqLen;
   nucFreq         *freq = new nucFreq;
 
-  char   A[1024];
-  char   B[1024];
-  char   C[1024];
-  char   D[1024];
+  char   A[MAX_READ_LEN];
+  char   B[MAX_READ_LEN];
+  char   C[MAX_READ_LEN];
+  char   D[MAX_READ_LEN];
 
   errno = 0;
   FILE *F = fopen(inName, "r");
@@ -106,10 +108,10 @@ doStats(char *inName,
   //  fprintf(stderr, "Failed to open '%s' for writing: %s\n", otName, strerror(errno)), exit(1);
 
   while (!feof(F)) {
-    fgets(A, 1024, F);
-    fgets(B, 1024, F);  chomp(B);
-    fgets(C, 1024, F);
-    fgets(D, 1024, F);  chomp(D);
+    fgets(A, MAX_READ_LEN, F);
+    fgets(B, MAX_READ_LEN, F);  chomp(B);
+    fgets(C, MAX_READ_LEN, F);
+    fgets(D, MAX_READ_LEN, F);  chomp(D);
 
     if ((A[0] != '@') || (C[0] != '+')) {
       fprintf(stderr, "WARNING:  sequence isn't fastq.\n");
@@ -145,8 +147,12 @@ doStats(char *inName,
 
     totSeqs++;
     totBases += ii;
+
+    if ((totSeqs % 10000) == 0)
+      fprintf(stderr, "Reading "F_U32"\r", totSeqs);
   }
 
+  fprintf(stderr, "Read    "F_U32"\n", totSeqs);
 
   fprintf(stdout, "%s\n", inName);
   fprintf(stdout, "\n");
@@ -157,13 +163,19 @@ doStats(char *inName,
   fprintf(stdout, "average\t"F_U64"\n", totBases / totSeqs);
   fprintf(stdout, "\n");
 
-  sort(seqLen.begin(), seqLen.end());
+  //sort(seqLen.begin(), seqLen.end());
 
-  uint64   min        = seqLen.front();
-  uint64   max        = seqLen.back();
-  uint64  *histogram  = new uint64 [max];
+  uint64   min        = UINT64_MAX;
+  uint64   max        = 0;
 
-  for (uint32 ii=min; ii<=max; ii++)
+  for (uint32 ii=0; ii<seqLen.size(); ii++) {
+    min = MIN(min, seqLen[ii]);
+    max = MAX(max, seqLen[ii]);
+  }
+
+  uint64  *histogram  = new uint64 [max + 1];
+
+  for (uint32 ii=0; ii<=max; ii++)
     histogram[ii] = 0;
 
   for (uint32 ii=0; ii<seqLen.size(); ii++)
@@ -171,6 +183,8 @@ doStats(char *inName,
 
   for (uint32 ii=min; ii<=max; ii++)
     fprintf(stdout, F_U32"\t"F_U64"\n", ii, histogram[ii]);
+
+  delete [] histogram;
 
   vector<nucOut>    output;
 
@@ -218,6 +232,8 @@ doStats(char *inName,
 
   //fclose(O);
   fclose(F);
+
+  delete freq;
 }
 
 
@@ -236,10 +252,10 @@ doAnalyzeQV(char *inName,
   uint32 numValid  = 5;
   uint32 numTrials = 100000;
 
-  char   A[1024];
-  char   B[1024];
-  char   C[1024];
-  char   D[1024];
+  char   A[MAX_READ_LEN];
+  char   B[MAX_READ_LEN];
+  char   C[MAX_READ_LEN];
+  char   D[MAX_READ_LEN];
 
   errno = 0;
   FILE *F = fopen(inName, "r");
@@ -259,10 +275,10 @@ doAnalyzeQV(char *inName,
   while ((!feof(F)) &&
          (numValid != 1) &&
          (numTrials > 0)) {
-    fgets(A, 1024, F);
-    fgets(B, 1024, F);
-    fgets(C, 1024, F);
-    fgets(D, 1024, F);  chomp(D);
+    fgets(A, MAX_READ_LEN, F);
+    fgets(B, MAX_READ_LEN, F);
+    fgets(C, MAX_READ_LEN, F);
+    fgets(D, MAX_READ_LEN, F);  chomp(D);
 
     for (uint32 x=0; D[x] != 0; x++) {
       if (D[x] < '!')  isNotSanger    = true;
@@ -341,10 +357,10 @@ doTransformQV(char *inName,
 
   uint32 numValid = 0;
 
-  char   A[1024];
-  char   B[1024];
-  char   C[1024];
-  char   D[1024];
+  char   A[MAX_READ_LEN];
+  char   B[MAX_READ_LEN];
+  char   C[MAX_READ_LEN];
+  char   D[MAX_READ_LEN];
 
   if (originalIsSanger    == true)  numValid++;
   if (originalIsSolexa    == true)  numValid++;
@@ -371,10 +387,10 @@ doTransformQV(char *inName,
     fprintf(stderr, "Failed to open '%s' for writing: %s\n", otName, strerror(errno)), exit(1);
 
   while (!feof(F)) {
-    fgets(A, 1024, F);
-    fgets(B, 1024, F);
-    fgets(C, 1024, F);
-    fgets(D, 1024, F);  chomp(D);
+    fgets(A, MAX_READ_LEN, F);
+    fgets(B, MAX_READ_LEN, F);
+    fgets(C, MAX_READ_LEN, F);
+    fgets(D, MAX_READ_LEN, F);  chomp(D);
 
     if (feof(F))
       break;
