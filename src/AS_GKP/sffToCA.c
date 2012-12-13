@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: sffToCA.c,v 1.65 2012-06-21 09:12:16 brianwalenz Exp $";
+const char *mainid = "$Id: sffToCA.c,v 1.66 2012-12-13 16:30:00 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -351,6 +351,18 @@ readsff_header(FILE *sff, sffHeader *h, sffManifest *m) {
     h->number_of_flows_per_read = uint16Swap(h->number_of_flows_per_read);
   }
 
+#ifdef DEBUG_READ
+  fprintf(stderr, "HEADER endianess %d magic 0x%08x index_offset %ld index_length %d number_of_reads %d header_length %d key_length %d flows_per_read %d\n",
+          h->swap_endianess,
+          h->magic_number,
+          h->index_offset,
+          h->index_length,
+          h->number_of_reads,
+          h->header_length,
+          h->key_length,
+          h->number_of_flows_per_read);
+#endif
+
   assert(h->magic_number == 0x2e736666);
 
   uint32 newlen = h->number_of_flows_per_read + h->key_length + 2;
@@ -561,6 +573,16 @@ processRead(sffHeader *h,
 
   ////////////////////////////////////////
   //
+  //  According to (an older) SFF spec, the clip values are base-based, and set to zero if not
+  //  computed.  Reset them to valid values.
+  //
+  if (r->clip_adapter_left  == 0)    r->clip_adapter_left  = h->key_length + 1;
+  if (r->clip_adapter_right == 0)    r->clip_adapter_right = r->number_of_bases;
+  if (r->clip_quality_left  == 0)    r->clip_quality_left  = h->key_length + 1;
+  if (r->clip_quality_right == 0)    r->clip_quality_right = r->number_of_bases;
+
+  ////////////////////////////////////////
+  //
   //  Chop off any N's at the end of the read.  Titanium likes to do
   //  this to us.
   //
@@ -608,18 +630,18 @@ processRead(sffHeader *h,
 
   if (clearAction & CLEAR_454) {
     //  Left point should be zero or after the key
-    assert((r->clip_quality_left == 0) || (h->key_length <= r->clip_quality_left));
-    assert((r->clip_adapter_left == 0) || (h->key_length <= r->clip_adapter_left));
+    assert(h->key_length <= r->clip_quality_left);
+    assert(h->key_length <= r->clip_adapter_left);
 
     //  Right point should be zero or before the end
-    assert((r->clip_quality_right == 0) || (r->clip_quality_left <= r->number_of_bases));
-    assert((r->clip_adapter_right == 0) || (r->clip_adapter_left <= r->number_of_bases));
+    assert(r->clip_quality_left <= r->number_of_bases);
+    assert(r->clip_adapter_left <= r->number_of_bases);
 
-    clq = MAX(r->clip_quality_left,  h->key_length + 1) - 1;
-    cla = MAX(r->clip_adapter_left,  h->key_length + 1) - 1;
+    clq = r->clip_quality_left;
+    cla = r->clip_adapter_left;
 
-    crq = (r->clip_quality_right > 0) ? r->clip_quality_right : r->number_of_bases;
-    cra = (r->clip_adapter_right > 0) ? r->clip_adapter_right : r->number_of_bases;
+    crq = r->clip_quality_right;
+    cra = r->clip_adapter_right;
   }
 
   ////////////////////////////////////////
@@ -1050,7 +1072,7 @@ removeDuplicateReads(void) {
 
       //  Advance end to the end of the matches
       //
-      while ((fh[beg].hash == fh[end].hash) && (end < fhLen))
+      while ((end < fhLen) && (fh[beg].hash == fh[end].hash))
         end++;
 
       //  Yeah, we could extend scope of this test to include the for
