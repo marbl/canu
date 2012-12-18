@@ -2997,7 +2997,7 @@ sub merTrim {
     }
 
 
-    if (runCommand($wrk, "find $wrk/0-mertrim -name \\*.merTrim -print | sort > $wrk/0-mertrim/$asm.merTrim.list")) {
+    if (runCommand($wrk, "find -L $wrk/0-mertrim -name \\*.merTrim -print | sort > $wrk/0-mertrim/$asm.merTrim.list")) {
         caFailure("failed to generate a list of all the merTrim results", undef);
     }
 
@@ -3330,7 +3330,7 @@ sub merOverlapper($) {
         }
 
 
-        if (runCommand($wrk, "find $wrk/$outDir/seeds \\( -name \\*ovm.gz -or -name \\*ovm \\) -print > $wrk/$outDir/$asm.merStore.list")) {
+        if (runCommand($wrk, "find -L $wrk/$outDir/seeds \\( -name \\*ovm.gz -or -name \\*ovm \\) -print > $wrk/$outDir/$asm.merStore.list")) {
             caFailure("failed to generate a list of all the overlap files", undef);
         }
 
@@ -3767,7 +3767,7 @@ sub createOverlapStore {
 
     goto alldone if (-d "$wrk/$asm.ovlStore");
 
-    if (runCommand($wrk, "find $wrk/1-overlapper \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/$asm.ovlStore.list")) {
+    if (runCommand($wrk, "find -L $wrk/1-overlapper \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/$asm.ovlStore.list")) {
         caFailure("failed to generate a list of all the overlap files", undef);
     }
 
@@ -3898,7 +3898,7 @@ sub overlapTrim {
         #  all overlaps for a fragment A are localized.
 
         if (runCommand("$wrk/0-overlaptrim",
-                       "find $wrk/0-overlaptrim-overlap -follow \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.obtStore.list")) {
+                       "find -L $wrk/0-overlaptrim-overlap \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.obtStore.list")) {
             caFailure("failed to generate a list of all the overlap files", undef);
         }
 
@@ -3939,7 +3939,7 @@ sub overlapTrim {
 
         if (! -e "$wrk/0-overlaptrim/$asm.dupStore") {
             if (runCommand("$wrk/0-overlaptrim",
-                           "find $wrk/0-overlaptrim-overlap -follow \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.dupStore.list")) {
+                           "find -L $wrk/0-overlaptrim-overlap \\( -name \\*ovb.gz -or -name \\*ovb \\) -print > $wrk/0-overlaptrim/$asm.dupStore.list")) {
                 caFailure("failed to generate a list of all the overlap files", undef);
             }
 
