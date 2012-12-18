@@ -32,9 +32,9 @@ ANALYZE_SOURCES = analyzePosMap.C \
                   analyzePosMap-gapFillProbability.C
 ANALYZE_OBJECTS = $(ANALYZE_SOURCES:.C=.o)
 
-SOURCES   = terminator.C asmOutputFasta.C asmOutputStatistics.C fragsInVars.C buildPosMap.C $(ANALYZE_SOURCES)
+SOURCES   = terminator.C asmOutputFasta.C asmOutputStatistics.C fragsInVars.C buildPosMap.C $(ANALYZE_SOURCES) demotePosMap.C
 OBJECTS   = (SOURCES:.C=.o)
-CXX_PROGS = terminator asmOutputFasta asmOutputStatistics fragsInVars buildPosMap analyzePosMap
+CXX_PROGS = terminator asmOutputFasta asmOutputStatistics fragsInVars buildPosMap analyzePosMap demotePosMap
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -47,3 +47,4 @@ asmOutputStatistics:     asmOutputStatistics.o      libCA.a
 fragsInVars:             fragsInVars.o              libCA.a
 buildPosMap:             buildPosMap.o              libCA.a
 analyzePosMap:           $(ANALYZE_OBJECTS)         libCA.a
+demotePosMap:            demotePosMap.o             libCA.a
