@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: analyzePosMap.C,v 1.6 2012-12-05 01:13:23 brianwalenz Exp $";
+const char *mainid = "$Id: analyzePosMap.C,v 1.7 2012-12-18 18:38:32 brianwalenz Exp $";
 
 #include "analyzePosMap.H"
 
@@ -105,9 +105,9 @@ main(int argc, char **argv) {
     err++;
   if (err) {
     fprintf(stderr, "usage: %s [...]\n", argv[0]);
-    fprintf(stderr, "  -p posmap-prefix     prefix of posmap files\n");
+    fprintf(stderr, "  -p posmap-prefix     prefix of posmap files (e.g., posmap-prefix.posmap.frgctg)\n");
     fprintf(stderr, "  -o output-prefix     prefix of output files\n");
-    fprintf(stderr, "  -g gkpStore          path to gkpStore\n");
+    fprintf(stderr, "  -g gkpStore          path to gkpStore (not used)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -A analysis          select an analysis (multiple -A allowed)\n");
     fprintf(stderr, "                         readsingaps - probability that a gap can be filled with a read\n");
