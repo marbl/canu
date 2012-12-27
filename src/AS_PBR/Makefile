@@ -71,7 +71,7 @@ LIBS          = libCA.a
 SAM_LIBS      = $(LIBS) libbam.a
 
 CXX_PROGS = trimFastqByQVWindow convertSamToCA correctPacBio dumpPBRLayoutStore
-SCRIPTS     = pacBioToCA sam-1.71 ConvertSamToCA
+SCRIPTS     = pacBioToCA
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -118,9 +118,3 @@ dumpPBRLayoutStore:	AS_PBR_dumpStore.o $(LIBS)
 pacBioToCA: pacBioToCA.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
-
-sam-1.71: sam-1.71.jar
-	@cp $< $(LOCAL_LIB)/$<
-
-ConvertSamToCA: ConvertSamToCA.jar
-	@cp $< $(LOCAL_LIB)/$<
