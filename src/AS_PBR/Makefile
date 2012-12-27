@@ -51,7 +51,7 @@ ifeq ($(MACHINETYPE), Power Macintosh)
   MACHINETYPE = ppc
 endif
 
-PBR_SOURCES = CorrectPacBio.cc AS_PBR_dumpStore.cc
+PBR_SOURCES = TrimFastqByQVWindow.cc ConvertSamToCA.cc CorrectPacBio.cc AS_PBR_dumpStore.cc
 PBR_OBJECTS = $(PBR_SOURCES:.cc=.o)
 
 PBR_LIB_SOURCES = \
@@ -68,21 +68,22 @@ OBJECTS     = $(PBR_OBJECTS) $(PBR_LIB_OBJECTS)
 
 LIBRARIES     = libAS_PBR.a libCA.a
 LIBS          = libCA.a
+SAM_LIBS      = $(LIBS) libbam.a
 
-CXX_PROGS = correctPacBio dumpPBRLayoutStore
+CXX_PROGS = trimFastqByQVWindow convertSamToCA correctPacBio dumpPBRLayoutStore
 SCRIPTS     = pacBioToCA sam-1.71 ConvertSamToCA
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
 ifeq ($(OSTYPE), Linux)
-  LDFLAGS  += -lpthread
+  LDFLAGS  += -lpthread -lz
   CFLAGS   += -pthread
   CPPFLAGS += -pthread
 endif
 
 ifeq ($(OSTYPE), OSF1)
-  LDFLAGS  += -lpthread
+  LDFLAGS  += -lpthread -lz 
   CFLAGS   += -pthread
   CPPFLAGS += -pthread
 endif
@@ -91,6 +92,7 @@ ifeq ($(OSTYPE), FreeBSD)
 endif
 
 ifeq ($(OSTYPE), Darwin)
+   LDFLAGS += -lz
 endif
 
 
@@ -100,6 +102,14 @@ all:    $(OBJECTS) $(LIBRARIES) $(CXX_PROGS) $(SCRIPTS)
 libAS_PBR.a: $(PBR_LIB_OBJECTS)
 
 libCA.a: $(PBR_LIB_OBJECTS)
+
+libbam.a:
+	$(MAKE) -C samtools
+	@cp samtools/$@ $(LOCAL_LIB)/$@
+
+trimFastqByQVWindow:	TrimFastqByQVWindow.o $(LIBS)
+
+convertSamToCA:		ConvertSamToCA.o $(SAM_LIBS)
 
 correctPacBio:	   CorrectPacBio.o $(LIBS)
 

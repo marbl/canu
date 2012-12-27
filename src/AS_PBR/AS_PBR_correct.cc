@@ -46,7 +46,7 @@ using namespace std;
 #include <vector>
 #include <algorithm>
 
-static const char *rcsid_AS_PBR_CORRECT_C = "$Id: AS_PBR_correct.cc,v 1.4 2012-09-13 14:40:42 skoren Exp $";
+static const char *rcsid_AS_PBR_CORRECT_C = "$Id: AS_PBR_correct.cc,v 1.5 2012-12-27 15:17:48 skoren Exp $";
 
 map<AS_IID, uint64> *globalFrgToScore;
 
@@ -228,6 +228,32 @@ void *  correctFragments(void *ptr) {
             bClr.bgn = bClr.end = 0;
             convertOverlapToPosition(olap, pos, bClr, alen, blen);
 
+            // when we have an overlap that is coming from the long reads, trim it back
+            if (waGlobal->libToInclude[waGlobal->frgToLib[bid]] == TRUE) {
+                // dont use library itself to correct fragments unless requested
+                if (waGlobal->allowLong == FALSE) {
+                    continue;
+                }
+                int32 min = MIN(pos.bgn, pos.end);
+                int32 max = MAX(pos.bgn, pos.end);
+                // bad overlap if it is too small to trim
+                if (min + TRIM_BACK_AMOUNT > alen || max < TRIM_BACK_AMOUNT || bClr.bgn + TRIM_BACK_AMOUNT > blen || bClr.end < TRIM_BACK_AMOUNT) {
+                    continue;
+                }
+                if (min + TRIM_BACK_AMOUNT < 0 || max - TRIM_BACK_AMOUNT > alen) {
+                    continue;
+                }
+                if (pos.bgn < pos.end) {
+                    pos.bgn += TRIM_BACK_AMOUNT;
+                    pos.end -= TRIM_BACK_AMOUNT;
+                } else {
+                    pos.bgn -= TRIM_BACK_AMOUNT;
+                    pos.end += TRIM_BACK_AMOUNT;
+                }
+                bClr.bgn += TRIM_BACK_AMOUNT;
+                bClr.end -= TRIM_BACK_AMOUNT;
+            }
+
             // should this only use contained overlaps or not?
             if (isOvlForward(olap)) {
                 fwdMatches[bid] = pos;
@@ -273,11 +299,6 @@ void *  correctFragments(void *ptr) {
             }
 
             if (toSkip[bid] != 0) {
-                continue;
-            }
-
-            // dont use library itself to correct fragments
-            if (waGlobal->libToInclude[waGlobal->frgToLib[bid]] == TRUE) {
                 continue;
             }
 

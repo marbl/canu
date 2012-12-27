@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AS_PBR_UTIL_H
 #define AS_PBR_UTIL_H
 
-static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.6 2012-09-13 14:40:42 skoren Exp $";
+static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.7 2012-12-27 15:17:49 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
@@ -68,6 +68,7 @@ const double	DEFAULT_SHORT_READ_STORE_SIZE 	= 	0.01;
 const uint32	CHIMERA_MAX_SIZE 				= 	150;
 const uint32	MIN_DIST_TO_RECRUIT				=	500;
 const double    ERATE_ADJUST                    =   1.5;
+const uint8     TRIM_BACK_AMOUNT                =   50;
 
 const uint8		VERBOSE_OFF 					= 0;
 const uint8		VERBOSE_DEBUG					= 1;
@@ -114,6 +115,7 @@ struct PBRThreadGlobals {
    char		 exePath[FILENAME_MAX];
    double	 percentToEstimateInserts;
    uint8	 verboseLevel;
+   int       allowLong;
 
    // read-only variables for thread
    uint16 covCutoff;

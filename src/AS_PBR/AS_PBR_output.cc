@@ -51,7 +51,7 @@ using namespace std;
 #include <vector>
 #include <set>
 
-static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.8 2012-09-26 20:26:29 skoren Exp $";
+static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.9 2012-12-27 15:17:49 skoren Exp $";
 
 static const uint32 FUDGE_BP = 5;
 
@@ -398,6 +398,9 @@ void *outputResults(void *ptr) {
         char seq[AS_READ_MAX_NORMAL_LEN];
         char qlt[AS_READ_MAX_NORMAL_LEN];
         AS_IID gapIID = MAX(1, waGlobal->partitionStarts[part-1].second + 1);
+        if (waGlobal->allowLong == TRUE) {
+            gapIID = MAX(gapIID, waGlobal->gkp->gkStore_getNumFragments()+1);
+        }
         if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Thread %d is running and output to file %s range %d-%d gap offset %d\n", wa->id, outputName, waGlobal->partitionStarts[part-1].first, waGlobal->partitionStarts[part-1].second, gapIID);
 
         LayRecord layRecord;
@@ -545,9 +548,9 @@ void *outputResults(void *ptr) {
                     offset = MIN(iter->position.bgn, iter->position.end);
                     //fprintf(stderr, "Updating offset in layout "F_IID" to be "F_U32"\n", i, offset);
                 }
-                SeqInterval bClr;
-                bClr.bgn = 0;
-                bClr.end = waGlobal->frgToLen[iter->ident];
+                SeqInterval bClr = layRecord.bClrs[iter->ident];
+                //bClr.bgn = 0;
+                //bClr.end = waGlobal->frgToLen[iter->ident];
                 uint32 min = MIN(iter->position.bgn, iter->position.end);
                 uint32 max = MAX(iter->position.bgn, iter->position.end);
                 uint32 length = max - min;
