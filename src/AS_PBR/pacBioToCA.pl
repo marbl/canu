@@ -1240,6 +1240,10 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
 
    # when we were asked to not use CA's overlapper, first perform common options
    if (defined(getGlobal("samFOFN")) || defined(getGlobal("blasr")) || defined(getGlobal("bowtie"))) {
+      # check for sam tools
+      if (!-e "$CA/convertSamToCA") { 
+         die("Error: request to use Blasr, Bowtie, or SAM files requires CA to be built with SAMTOOLS. Please rebuild CA and try again");
+      }
       # create directories
       runCommand($wrk, "mkdir $wrk/temp$libraryname/1-overlapper") if (! -d "$wrk/temp$libraryname/1-overlapper");
 

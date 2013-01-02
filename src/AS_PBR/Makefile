@@ -40,6 +40,14 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
+#  SAMTOOLS should point to a configured, compiled and installed copy of
+#  samtools
+#
+#  We attempt to find it in the same place that our src/ directory is.
+
+
+#  We'd like to include the global include (c_make.as) to get these
+#  definitions, but we cannot without defining rules.
 
 OSTYPE      = $(shell echo `uname`)
 MACHINETYPE = $(shell echo `uname -m`)
@@ -51,7 +59,18 @@ ifeq ($(MACHINETYPE), Power Macintosh)
   MACHINETYPE = ppc
 endif
 
-PBR_SOURCES = TrimFastqByQVWindow.cc ConvertSamToCA.cc CorrectPacBio.cc AS_PBR_dumpStore.cc
+ifneq "$(origin SAMTOOLS)" "environment"
+   ifeq ($(shell ls -d $(LOCAL_WORK)/samtools 2> /dev/null), $(LOCAL_WORK)/samtools)
+      SAMTOOLS = $(LOCAL_WORK)/samtools/
+   endif
+endif
+
+PBR_SOURCES = TrimFastqByQVWindow.cc CorrectPacBio.cc AS_PBR_dumpStore.cc
+ifdef SAMTOOLS
+   PBR_SOURCES += ConvertSamToCA.cc 
+   INC_IMPORT_DIRS += $(SAMTOOLS)
+endif
+
 PBR_OBJECTS = $(PBR_SOURCES:.cc=.o)
 
 PBR_LIB_SOURCES = \
@@ -70,7 +89,11 @@ LIBRARIES     = libAS_PBR.a libCA.a
 LIBS          = libCA.a
 SAM_LIBS      = $(LIBS) libbam.a
 
-CXX_PROGS = trimFastqByQVWindow convertSamToCA correctPacBio dumpPBRLayoutStore
+CXX_PROGS = trimFastqByQVWindow correctPacBio dumpPBRLayoutStore
+ifdef SAMTOOLS
+   CXX_PROGS += convertSamToCA
+endif
+
 SCRIPTS     = pacBioToCA
 
 # Include for AS project rules
@@ -104,8 +127,8 @@ libAS_PBR.a: $(PBR_LIB_OBJECTS)
 libCA.a: $(PBR_LIB_OBJECTS)
 
 libbam.a:
-	$(MAKE) -C samtools
-	@cp samtools/$@ $(LOCAL_LIB)/$@
+	$(MAKE) -C $(SAMTOOLS)
+	@cp $(SAMTOOLS)/$@ $(LOCAL_LIB)/$@
 
 trimFastqByQVWindow:	TrimFastqByQVWindow.o $(LIBS)
 

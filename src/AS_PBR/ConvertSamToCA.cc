@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "samtools/sam.h"
+#include "sam.h"
 
 using namespace std;
 
