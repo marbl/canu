@@ -392,16 +392,19 @@ sweatShop::status(void) {
       fflush(stderr);
     }
 
-    //  Readjust queue sizes based on current performance, but don't let it
-    //  get too big or small.
+    //  Readjust queue sizes based on current performance, but don't let it get too big or small.
+    //  In particular, don't let it get below 2*numberOfWorkers.
     //
-    if (_numberComputed > readjustAt) {
-      readjustAt       += (u64bit)(2 * cpuPerSec);
-      _loaderQueueSize  = (u32bit)(5 * cpuPerSec);
-    }
+     if (_numberComputed > readjustAt) {
+       readjustAt       += (u64bit)(2 * cpuPerSec);
+       _loaderQueueSize  = (u32bit)(5 * cpuPerSec);
+     }
 
     if (_loaderQueueSize < _loaderQueueMin)
       _loaderQueueSize = _loaderQueueMin;
+
+    if (_loaderQueueSize < 2 * _numberOfWorkers)
+      _loaderQueueSize = 2 * _numberOfWorkers;
 
     if (_loaderQueueSize > _loaderQueueMax)
       _loaderQueueSize = _loaderQueueMax;
