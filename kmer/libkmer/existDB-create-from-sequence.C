@@ -59,6 +59,8 @@ existDB::createFromSequence(char const  *sequence,
   _isCanonical = flags & existDBcanonical;
   _isForward   = flags & existDBforward;
 
+  assert(_isCanonical + _isForward == 1);
+
   ////////////////////////////////////////////////////////////////////////////////
   //
   //  1)  Count bucket sizes

@@ -14,7 +14,7 @@ existDB::createFromMeryl(char const  *prefix,
 
   merylStreamReader *M = new merylStreamReader(prefix);
 
-  bool               beVerbose = false;
+  bool               beVerbose = true;
 
   _hashTable  = 0L;
   _buckets    = 0L;
@@ -43,11 +43,23 @@ existDB::createFromMeryl(char const  *prefix,
   u64bit  numberOfMers       = u64bitZERO;
   u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
 
+  if (beVerbose) {
+    fprintf(stderr, "createFromMeryl()-- tableSizeInEntries   "u64bitFMT"\n", tableSizeInEntries);
+    fprintf(stderr, "createFromMeryl()-- count range          "u32bitFMT"-"u32bitFMT"\n", lo, hi);
+  }
+
   for (u64bit i=tableSizeInEntries+1; i--; )
     countingTable[i] = 0;
 
   _isCanonical = flags & existDBcanonical;
   _isForward   = flags & existDBforward;
+
+  if (beVerbose) {
+    fprintf(stderr, "createFromMeryl()-- canonical            %c\n", (_isCanonical) ? 'T' : 'F');
+    fprintf(stderr, "createFromMeryl()-- forward              %c\n", (_isForward)   ? 'T' : 'F');
+  }
+
+  assert(_isCanonical + _isForward == 1);
 
   //  1) Count bucket sizes
   //     While we don't know the bucket sizes right now, but we do know
@@ -80,6 +92,9 @@ existDB::createFromMeryl(char const  *prefix,
       C->tick();
     }
   }
+
+  if (beVerbose)
+    fprintf(stderr, "createFromMeryl()-- numberOfMers         "u64bitFMT"\n", numberOfMers);
 
   delete C;
   delete M;
