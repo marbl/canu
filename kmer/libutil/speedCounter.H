@@ -17,7 +17,7 @@ public:
   void   enableSpinner(void) { _spin = true; };
   void   enableLiner(void)   { _line = true; };
 
-  void   tick(void) {
+  bool   tick(void) {
     if (_enabled && ((++_count & _freq) == u64bitZERO)) {
       double  v = _count / _unit;
       if (_spin) fputs(_spinr[_draws %  4], stderr);
@@ -25,14 +25,14 @@ public:
       _draws++;
       fprintf(stderr, _fmt, v, v / (getTime() - _startTime));
       fflush(stderr);
-      //return(true);
+      return(true);
     }
-    //return(false);
+    return(false);
   };
 
-  void   tick(u64bit increment) {
+  bool   tick(u64bit increment) {
     if (_enabled == false)
-      return; //false);
+      return(false);
 
     _count += increment;
     if ((_count & _freq) == u64bitZERO) {
@@ -42,9 +42,9 @@ public:
       _draws++;
       fprintf(stderr, _fmt, v, v / (getTime() - _startTime));
       fflush(stderr);
-      //return(true);
+      return(true);
     }
-    //return(false);
+    return(false);
   };
 
   void   finish(void) {
