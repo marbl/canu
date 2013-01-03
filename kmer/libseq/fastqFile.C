@@ -539,18 +539,11 @@ fastqFile::constructIndex(void) {
     _index[indexLen]._seqPosition = seqStart;
     _index[indexLen]._seqLength   = seqLen;
 
+#if 0
     if ((indexLen * sizeof(fastqFileIndex) > 131000) &&
         (indexLen * sizeof(fastqFileIndex) < 131200))
       fprintf(stderr, "INDEX pos="u64bitFMT" iid="u32bitFMT" len="u32bitFMT" pos="u64bitFMT"\n",
               indexLen * sizeof(fastqFileIndex), indexLen, seqLen, seqStart);
-#if 0
-    fprintf(stderr, "INDEX iid="u32bitFMT" len="u32bitFMT" pos="u64bitFMT"\n",
-            indexLen, _index[indexLen]._seqLength, _index[indexLen]._seqPosition);
-#endif
-
-#ifdef DEBUG
-    fprintf(stderr, "INDEX iid="u32bitFMT" len="u32bitFMT" pos="u64bitFMT"\n",
-            indexLen, seqLen, seqStart);
 #endif
 
     indexLen++;
