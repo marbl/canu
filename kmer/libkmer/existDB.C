@@ -155,7 +155,7 @@ existDB::count(u64bit mer) {
   }
 
   if (st == ed)
-    return(false);
+    return(0);
 
   c = CHECK(mer);
 
