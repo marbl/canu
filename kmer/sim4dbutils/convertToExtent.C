@@ -81,7 +81,12 @@ main(int argc, char **argv) {
     arg++;
   }
   if (isatty(fileno(stdin)) || (err)) {
-    fprintf(stderr, "usage: %s [-v] [-q] [-g] [-exons]\n", argv[0]);
+    fprintf(stderr, "usage: %s [options] < IN > OUT\n", argv[0]);
+    fprintf(stderr, "  -v             be chatty\n");
+    fprintf(stderr, "  -fullquery     output the whole query def line\n");
+    fprintf(stderr, "  -fullgenomic   output the whole genomic def line\n");
+    fprintf(stderr, "  -exons         include exons\n");
+    fprintf(stderr, "  -extended      include the IDX of each sequence\n");
     exit(1);
   }
 
