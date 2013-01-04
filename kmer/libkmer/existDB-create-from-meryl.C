@@ -14,7 +14,7 @@ existDB::createFromMeryl(char const  *prefix,
 
   merylStreamReader *M = new merylStreamReader(prefix);
 
-  bool               beVerbose = true;
+  bool               beVerbose = false;
 
   _hashTable  = 0L;
   _buckets    = 0L;
@@ -22,13 +22,13 @@ existDB::createFromMeryl(char const  *prefix,
 
   _merSizeInBases        = M->merSize();
 
-  //  We can set this exactly, but not memory optimal (see
-  //  meryl/estimate.C:optimalNumberOfBuckets()).  Instead,
-  //  we just blindly use whatever meryl used.
-  //
-  //u32bit tblBits = logBaseTwo64(M->numberOfDistinctMers() + 1);
+  //  We can set this exactly, but not memory optimal (see meryl/estimate.C:optimalNumberOfBuckets()).
+  //  Instead, we just blindly use whatever meryl used.
   //
   u32bit tblBits = M->prefixSize();
+
+  //  But it is faster to reset to this.  Might use 2x the memory.
+  //u32bit tblBits = logBaseTwo64(M->numberOfDistinctMers() + 1);
 
   _shift1                = 2 * _merSizeInBases - tblBits;
   _shift2                = _shift1 / 2;
@@ -131,9 +131,23 @@ existDB::createFromMeryl(char const  *prefix,
       fprintf(stderr, "existDB::createFromMeryl()-- counts is "u64bitFMT"MB\n", _countsWords >> 17);
   }
 
-  _hashTable = new u64bit [_hashTableWords];
-  _buckets   = new u64bit [_bucketsWords];
-  _counts    = (flags & existDBcounts) ? new u64bit [_countsWords] : 0L;
+  _hashTable   = new u64bit [_hashTableWords];
+  _buckets     = new u64bit [_bucketsWords];
+  _countsWords = (flags & existDBcounts) ?             _countsWords  : 0;
+  _counts      = (flags & existDBcounts) ? new u64bit [_countsWords] : 0L;
+
+  //  These aren't strictly needed.  _buckets is cleared as it is initialied.  _hashTable
+  //  is also cleared as it is initialized, but in the _compressedHash case, the last
+  //  few words might be uninitialized.  They're unused.
+
+  //memset(_hashTable, 0, sizeof(u64bit) * _hashTableWords);
+  //memset(_buckets,   0, sizeof(u64bit) * _bucketsWords);  //  buckets is cleared as it is built
+  //memset(_counts,    0, sizeof(u64bit) * _countsWords);
+
+  _hashTable[_hashTableWords-1] = 0;
+  _hashTable[_hashTableWords-2] = 0;
+  _hashTable[_hashTableWords-3] = 0;
+  _hashTable[_hashTableWords-4] = 0;
 
   ////////////////////////////////////////////////////////////////////////////////
   //

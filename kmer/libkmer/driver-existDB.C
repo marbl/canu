@@ -25,7 +25,7 @@ testFiles(char *filename, char *prefix, u32bit merSize) {
 
   //  Create existDB e and save it to disk
   //
-  existDB  *e = new existDB(filename, merSize, existDBnoFlags, 0, ~u32bitZERO);
+  existDB  *e = new existDB(filename, merSize, existDBnoFlags | existDBcounts, 0, ~u32bitZERO);
   sprintf(prefixfilename, "%s.1", prefix);
   e->saveState(prefixfilename);
 
@@ -33,20 +33,38 @@ testFiles(char *filename, char *prefix, u32bit merSize) {
   //
   existDB  *f = new existDB(prefixfilename);
 
-  //  Create a fresh existDB g
+  //  Create a fresh existDB g (to check if we corrup the original when saved)
   //
-  existDB  *g = new existDB(filename, merSize, existDBnoFlags, 0, ~u32bitZERO);
+  existDB  *g = new existDB(filename, merSize, existDBnoFlags | existDBcounts, 0, ~u32bitZERO);
 
   speedCounter *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, true);
   fprintf(stderr, "Need to iterate over %7.2f Mmers.\n", (u64bitMASK(2 * merSize) + 1) / 1000000.0);
 
-  for (u64bit m = u64bitMASK(2 * merSize); m--; ) {
-    bool ee = e->exists(m);
-    bool ef = f->exists(m);
-    bool eg = g->exists(m);
+  for (u64bit d=0, m=u64bitMASK(2 * merSize); m--; ) {
+    bool   ee = e->exists(m);
+    bool   ef = f->exists(m);
+    bool   eg = g->exists(m);
+
+    u32bit ce = e->count(m);
+    u32bit cf = f->count(m);
+    u32bit cg = g->count(m);
 
     if ((ee != ef) || (ef != eg) || (ee != eg))
       fprintf(stderr, "mer "u64bitHEX" not found : e=%d  f=%d  g=%d\n", m, ee, ef, eg);
+
+    if ((ce != cf) || (cf != cg) || (ce != cg))
+      fprintf(stderr, "mer "u64bitHEX" count differs : e=%u  f=%u  g=%u (exists=%d)\n", m, ce, cf, cg, ee);
+
+    if ((m & 0xffffff) == 0) {
+      //  Been a while since a report, so report.
+      d = 1;
+    }
+
+    if ((ce > 1) && (d == 1)) {
+      //  Report anything not unique, to make sure that we're testing real counts and not just existence.
+      fprintf(stderr, "mer "u64bitHEX" : e=%u  f=%u  g=%u (exists=%d)\n", m, ce, cf, cg, ee);
+      d = 0;
+    }
 
     C->tick();
   }
@@ -179,23 +197,29 @@ main(int argc, char **argv) {
     if        (strncmp(argv[arg], "-mersize", 2) == 0) {
       arg++;
       mersize = atoi(argv[arg]);
+
     } else if (strncmp(argv[arg], "-describe", 2) == 0) {
       existDB *e = new existDB(argv[argc-1], false);
       e->printState(stdout);
       delete e;
       exit(0);
+
     } else if (strncmp(argv[arg], "-testfiles", 8) == 0) {
       exit(testFiles(argv[arg+1], argv[arg+2], mersize));
+
     } else if (strncmp(argv[arg], "-testexistence", 8) == 0) {
       exit(testExistence(argv[arg+1], mersize));
+
     } else if (strncmp(argv[arg], "-testexhaustive", 8) == 0) {
       exit(testExhaustive(argv[arg+1], argv[arg+2], mersize));
+
     } else if (strncmp(argv[arg], "-build", 2) == 0) {
       existDB  *e = new existDB(argv[argc-2], mersize, existDBnoFlags, 0, ~u32bitZERO);
       e->saveState(argv[argc-1]);
       delete e;
       exit(0);
     }
+
     arg++;
   }
 

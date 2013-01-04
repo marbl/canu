@@ -6,13 +6,13 @@
 #include "bio++.H"
 
 
-const char  magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 
+const char  magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '2', 
                           ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
 
 
 void
 existDB::saveState(char const *filename) {
-  char     cigam[16];
+  char     cigam[16] = { 0 };
 
   errno = 0;
   FILE *F = fopen(filename, "wb");
@@ -27,10 +27,13 @@ existDB::saveState(char const *filename) {
     cigam[8] = 'h';
   if (_compressedBucket)
     cigam[9] = 'b';
-  if (_isForward)
-    cigam[10] = 'f';
-  if (_isCanonical)
+  if (_compressedCounts)
     cigam[10] = 'c';
+
+  if (_isForward)
+    cigam[11] = 'F';
+  if (_isCanonical)
+    cigam[11] = 'C';
 
   fwrite(cigam, sizeof(char), 16, F);
 
@@ -78,6 +81,7 @@ existDB::loadState(char const *filename,
 
   _compressedHash   = false;
   _compressedBucket = false;
+  _compressedCounts = false;
   _isForward        = false;
   _isCanonical      = false;
 
@@ -85,14 +89,18 @@ existDB::loadState(char const *filename,
     _compressedHash = true;
   if (cigam[9] == 'b')
     _compressedBucket = true;
-  if (cigam[10] == 'f')
-    _isForward = true;
   if (cigam[10] == 'c')
+    _compressedCounts = true;
+
+  if (cigam[11] == 'F')
+    _isForward = true;
+  if (cigam[11] == 'C')
     _isCanonical = true;
 
   cigam[ 8] = ' ';
   cigam[ 9] = ' ';
   cigam[10] = ' ';
+  cigam[11] = ' ';
 
   if (strncmp(magic, cigam, 16) != 0) {
     if (beNoisy) {
@@ -128,15 +136,20 @@ existDB::loadState(char const *filename,
 
   _hashTable = 0L;
   _buckets   = 0L;
+  _counts    = 0L;
 
   if (loadData) {
     _hashTable = new u64bit [_hashTableWords];
     _buckets   = new u64bit [_bucketsWords];
-    _counts    = new u64bit [_countsWords];
+
+    if (_countsWords > 0)
+      _counts  = new u64bit [_countsWords];
 
     fread(_hashTable, sizeof(u64bit), _hashTableWords, F);
     fread(_buckets,   sizeof(u64bit), _bucketsWords,   F);
-    fread(_counts,    sizeof(u64bit), _countsWords,    F);
+
+    if (_countsWords > 0)
+      fread(_counts,  sizeof(u64bit), _countsWords,    F);
   }
 
   fclose(F);

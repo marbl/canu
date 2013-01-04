@@ -13,7 +13,7 @@ existDB::createFromFastA(char const  *filename,
                          u32bit       merSize,
                          u32bit       flags) {
 
-  bool               beVerbose = false;
+  bool               beVerbose  = false;
   bool               rebuilding = false;
 
   _hashTable = 0L;
@@ -35,7 +35,7 @@ existDB::createFromFastA(char const  *filename,
   //  Setting this too high drastically reduces performance, suspected because of cache misses.
   //  Setting this too low will also reduce performance, by increasing the search time in a bucket.
   //
-  u32bit tblBits = sizeOfFile(filename);
+  u32bit tblBits = logBaseTwo64(sizeOfFile(filename));
 
  rebuild:
   _shift1                = 2 * _merSizeInBases - tblBits;
@@ -132,16 +132,30 @@ existDB::createFromFastA(char const  *filename,
   if (_compressedCounts)
     _countsWords = _countsWords * _cntWidth / 64 + 1;
 
-  _hashTable = new u64bit [_hashTableWords];
-  _buckets   = new u64bit [_bucketsWords];
-  _counts    = (flags & existDBcounts) ? new u64bit [_countsWords] : 0L;
-
   if (beVerbose) {
     fprintf(stderr, "existDB::createFromFastA()-- hashTable is "u64bitFMT"MB\n", _hashTableWords >> 17);
     fprintf(stderr, "existDB::createFromFastA()-- buckets is "u64bitFMT"MB\n", _bucketsWords >> 17);
     if (flags & existDBcounts)
       fprintf(stderr, "existDB::createFromFastA()-- counts is "u64bitFMT"MB\n", _countsWords >> 17);
   }
+
+  _hashTable   = new u64bit [_hashTableWords];
+  _buckets     = new u64bit [_bucketsWords];
+  _countsWords = (flags & existDBcounts) ?             _countsWords  : 0;
+  _counts      = (flags & existDBcounts) ? new u64bit [_countsWords] : 0L;
+
+  //  These aren't strictly needed.  _buckets is cleared as it is initialied.  _hashTable
+  //  is also cleared as it is initialized, but in the _compressedHash case, the last
+  //  few words might be uninitialized.  They're unused.
+  //
+  //memset(_hashTable, 0, sizeof(u64bit) * _hashTableWords);
+  //memset(_buckets,   0, sizeof(u64bit) * _bucketsWords);  //  buckets is cleared as it is built
+  //memset(_counts,    0, sizeof(u64bit) * _countsWords);
+
+  _hashTable[_hashTableWords-1] = 0;
+  _hashTable[_hashTableWords-2] = 0;
+  _hashTable[_hashTableWords-3] = 0;
+  _hashTable[_hashTableWords-4] = 0;
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -223,6 +237,9 @@ existDB::createFromFastA(char const  *filename,
 
   fprintf(stderr, "Compressed from "u64bitFMT" to "u64bitFMT" ("u64bitFMT" bits)\n",
           _hashTable[tableSizeInEntries], pos, logBaseTwo64(pos));
+
+  while (pos < _bucketsWords)
+    _buckets[pos++] = 0;
 
   _hashTable[tableSizeInEntries] = pos;
 

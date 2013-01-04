@@ -95,7 +95,8 @@ private:
 
       for (; st<ed; st++) {
         if (_buckets[st] == chk) {
-          _counts[st] += cnt;
+          if (_counts)
+            _counts[st] += cnt;
           return;
         }
       }
