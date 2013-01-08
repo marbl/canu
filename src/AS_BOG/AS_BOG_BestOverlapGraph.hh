@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.65 2012-12-11 21:51:46 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.66 2013-01-08 03:03:07 brianwalenz Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -112,8 +112,8 @@ struct BestOverlapGraph {
         fprintf(logFile, "OVERLAP GOOD:     %d %d %c  hangs "F_S64" "F_S64" err %.3f %.3f\n",
                 olap.a_iid, olap.b_iid,
                 olap.dat.ovl.flipped ? 'A' : 'N',
-                olap.dat.ovl.a_hang,
-                olap.dat.ovl.b_hang,
+                (int64)olap.dat.ovl.a_hang,
+                (int64)olap.dat.ovl.b_hang,
                 AS_OVS_decodeQuality(olap.dat.ovl.orig_erate),
                 AS_OVS_decodeQuality(olap.dat.ovl.corr_erate));
       return(false);
@@ -139,8 +139,8 @@ struct BestOverlapGraph {
         fprintf(logFile, "OVERLAP SAVED:    %d %d %c  hangs "F_S64" "F_S64" err %.3f %.3f olen %f nerr %f\n",
                 olap.a_iid, olap.b_iid,
                 olap.dat.ovl.flipped ? 'A' : 'N',
-                olap.dat.ovl.a_hang,
-                olap.dat.ovl.b_hang,
+                (int64)olap.dat.ovl.a_hang,
+                (int64)olap.dat.ovl.b_hang,
                 AS_OVS_decodeQuality(olap.dat.ovl.orig_erate),
                 AS_OVS_decodeQuality(olap.dat.ovl.corr_erate),
                 olen, nerr);
@@ -151,8 +151,8 @@ struct BestOverlapGraph {
       fprintf(logFile, "OVERLAP REJECTED: %d %d %c  hangs "F_S64" "F_S64" err %.3f %.3f olen %f nerr %f\n",
               olap.a_iid, olap.b_iid,
               olap.dat.ovl.flipped ? 'A' : 'N',
-              olap.dat.ovl.a_hang,
-              olap.dat.ovl.b_hang,
+              (int64)olap.dat.ovl.a_hang,
+              (int64)olap.dat.ovl.b_hang,
               AS_OVS_decodeQuality(olap.dat.ovl.orig_erate),
               AS_OVS_decodeQuality(olap.dat.ovl.corr_erate),
               olen, nerr);
