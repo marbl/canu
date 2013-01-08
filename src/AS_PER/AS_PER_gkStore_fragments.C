@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.8 2012-04-07 07:32:32 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_gkStore_fragments.C,v 1.9 2013-01-08 02:39:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -116,7 +116,7 @@ gkStore::gkStore_getFragmentData(gkStream *gst, gkFragment *fr, uint32 flags) {
     if ((fr->seq[seqLen] != 0) ||
         (fr->qlt[seqLen] != 0)) {
       fprintf(stderr, "gkStore_getFragmentData()- Potential gkpStore corruption.\n");
-      fprintf(stderr, "gkStore_getFragmentData()- Fragment "F_IID" reports length %d, but seq/qlt report length %d/%d.\n",
+      fprintf(stderr, "gkStore_getFragmentData()- Fragment "F_IID" reports length %d, but seq/qlt report length "F_SIZE_T"/"F_SIZE_T".\n",
               fr->gkFragment_getReadIID(),
               seqLen,
               strlen(fr->seq),
