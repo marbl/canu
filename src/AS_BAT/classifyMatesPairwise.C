@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: classifyMatesPairwise.C,v 1.4 2012-09-26 21:38:22 brianwalenz Exp $";
+const char *mainid = "$Id: classifyMatesPairwise.C,v 1.5 2013-01-08 03:16:34 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
@@ -473,15 +473,15 @@ main(int argc, char **argv) {
 
         if (plausiblyPE == false) {
           nShortMP++;
-          fprintf(logFile, "A %8u-%8u %c %4ld-%4ld  B %8u-%8u %c %4ld-%4ld -- size %4d %c -- SHORT_MP\n",
-                  avl[ai].a_iid, avl[ai].b_iid, avl[ai].dat.ovl.flipped ? 'I' : 'N', avl[ai].dat.ovl.a_hang, avl[ai].dat.ovl.b_hang,
-                  bvl[bi].a_iid, bvl[bi].b_iid, bvl[bi].dat.ovl.flipped ? 'I' : 'N', bvl[bi].dat.ovl.a_hang, bvl[bi].dat.ovl.b_hang,
+          fprintf(logFile, "A %8u-%8u %c %4"F_S64P"-%4"F_S64P"  B %8u-%8u %c %4"F_S64P"-%4"F_S64P" -- size %4d %c -- SHORT_MP\n",
+                  avl[ai].a_iid, avl[ai].b_iid, avl[ai].dat.ovl.flipped ? 'I' : 'N', (int64)avl[ai].dat.ovl.a_hang, (int64)avl[ai].dat.ovl.b_hang,
+                  bvl[bi].a_iid, bvl[bi].b_iid, bvl[bi].dat.ovl.flipped ? 'I' : 'N', (int64)bvl[bi].dat.ovl.a_hang, (int64)bvl[bi].dat.ovl.b_hang,
                   fragSize + adiff + bdiff, overlappingPE ? 'O' : '-');
 
         } else {
-          fprintf(logFile, "A %8u-%8u %c %4ld-%4ld  B %8u-%8u %c %4ld-%4ld -- size %4d %c -- PLAUSIBLY_PE\n",
-                  avl[ai].a_iid, avl[ai].b_iid, avl[ai].dat.ovl.flipped ? 'I' : 'N', avl[ai].dat.ovl.a_hang, avl[ai].dat.ovl.b_hang,
-                  bvl[bi].a_iid, bvl[bi].b_iid, bvl[bi].dat.ovl.flipped ? 'I' : 'N', bvl[bi].dat.ovl.a_hang, bvl[bi].dat.ovl.b_hang,
+          fprintf(logFile, "A %8u-%8u %c %4"F_S64P"-%4"F_S64P"  B %8u-%8u %c %4"F_S64P"-%4"F_S64P" -- size %4d %c -- PLAUSIBLY_PE\n",
+                  avl[ai].a_iid, avl[ai].b_iid, avl[ai].dat.ovl.flipped ? 'I' : 'N', (int64)avl[ai].dat.ovl.a_hang, (int64)avl[ai].dat.ovl.b_hang,
+                  bvl[bi].a_iid, bvl[bi].b_iid, bvl[bi].dat.ovl.flipped ? 'I' : 'N', (int64)bvl[bi].dat.ovl.a_hang, (int64)bvl[bi].dat.ovl.b_hang,
                   fragSize + adiff + bdiff, overlappingPE ? 'O' : '-');
 
           assert(finf[avl[ai].b_iid].isReported == finf[bvl[bi].b_iid].isReported);
