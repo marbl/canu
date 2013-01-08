@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.44 2012-05-08 23:17:55 brianwalenz Exp $
- * $Revision: 1.44 $
+ * $Id: OlapFromSeedsOVL.c,v 1.45 2013-01-08 02:51:06 brianwalenz Exp $
+ * $Revision: 1.45 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.44 2012-05-08 23:17:55 brianwalenz Exp $";
+const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.45 2013-01-08 02:51:06 brianwalenz Exp $";
 
 #include "OlapFromSeedsOVL.h"
 
@@ -2664,15 +2664,15 @@ static void  Get_Seeds_From_Store
        if (Verbose_Level > 1)
          {
            printf ("olap %7u %7u %2"F_U64P" %c %c %5"F_U64P" %5"F_U64P" %4"F_U64P" %4"F_U64P" %2"F_U64P"\n",
-               ovl . a_iid, ovl . b_iid,
-               ovl . dat . mer . compression_length,
-               (ovl . dat . mer . fwd ? 'f' : 'r'),
-               (ovl . dat . mer . palindrome ? 'p' : '-'),
-               ovl . dat . mer . a_pos,
-               ovl . dat . mer . b_pos,
-               ovl . dat . mer . k_count,
-               ovl . dat . mer . k_len,
-               ovl . dat . mer . type);
+                   ovl . a_iid, ovl . b_iid,
+                   (uint64)ovl . dat . mer . compression_length,
+                   (ovl . dat . mer . fwd ? 'f' : 'r'),
+                   (ovl . dat . mer . palindrome ? 'p' : '-'),
+                   (uint64)ovl . dat . mer . a_pos,
+                   (uint64)ovl . dat . mer . b_pos,
+                   (uint64)ovl . dat . mer . k_count,
+                   (uint64)ovl . dat . mer . k_len,
+                   (uint64)ovl . dat . mer . type);
          }
       }
 
@@ -5192,8 +5192,7 @@ static void  Set_Signature
           if (i < num_diff_cols && j == diff_col [i])
             {
               // put space in signature if -/- match or homopoly variation
-              if (seq [j] == '-' || doing_homopoly
-                    && (0 < homopoly_ct && homopoly_ct <= HOMOPOLY_LEN_VARIATION))
+              if (seq [j] == '-' || (doing_homopoly && 0 < homopoly_ct && homopoly_ct <= HOMOPOLY_LEN_VARIATION))
                 signature -> seq [i ++] = ' ';
               else
                 {
@@ -5214,8 +5213,7 @@ static void  Set_Signature
           if (i < num_diff_cols && j == diff_col [i])
             {
               char ch = Code_To_Char (dp -> de [k] . ch);
-              if (ch == seq [j] || doing_homopoly
-                    && (0 < homopoly_ct && homopoly_ct <= HOMOPOLY_LEN_VARIATION))
+              if (ch == seq [j] || (doing_homopoly && 0 < homopoly_ct && homopoly_ct <= HOMOPOLY_LEN_VARIATION))
                 signature -> seq [i ++] = ' ';
               else
                 {
