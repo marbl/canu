@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.38 2012-03-05 09:08:52 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_PER_genericStore.c,v 1.39 2013-01-08 02:25:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -283,10 +283,10 @@ getStringStore(StoreStruct *s, int64 offset, char *buffer, uint32 maxLength, uin
     memcpy(&length, s->memoryBuffer + actualOffset + sizeof(StoreStruct), sizeof(uint32));
 
     if (length > maxLength)
-      fprintf(stderr, "getStringStore()-- ERROR: store '%s' length="F_U32" > maxLength="F_S64"\n",
+      fprintf(stderr, "getStringStore()-- ERROR: store '%s' length="F_U32" > maxLength="F_U32"\n",
               s->storeLabel, length, maxLength);
     if (length + actualOffset + sizeof(uint32) > s->lastElem)
-      fprintf(stderr, "getStringStore()-- ERROR: store '%s' length="F_U32" actualOffset="F_S64" > lastElem="F_S64"\n",
+      fprintf(stderr, "getStringStore()-- ERROR: store '%s' length="F_U32" actualOffset="F_S64" > lastElem="F_SIZE_T"\n",
               s->storeLabel, length, actualOffset, s->lastElem);
 
     assert(length <= maxLength);
@@ -306,10 +306,10 @@ getStringStore(StoreStruct *s, int64 offset, char *buffer, uint32 maxLength, uin
     }
 
     if (length > maxLength)
-      fprintf(stderr, "getStringStore()-- ERROR: store '%s' length="F_U32" > maxLength="F_S64"\n",
+      fprintf(stderr, "getStringStore()-- ERROR: store '%s' length="F_U32" > maxLength="F_U32"\n",
               s->storeLabel, length, maxLength);
     if (length + actualOffset + sizeof(uint32) > s->lastElem)
-      fprintf(stderr, "getStringStore()-- ERROR: store '%s' length="F_U32" actualOffset="F_S64" > lastElem="F_S64"\n",
+      fprintf(stderr, "getStringStore()-- ERROR: store '%s' length="F_U32" actualOffset="F_S64" > lastElem="F_SIZE_T"\n",
               s->storeLabel, length, actualOffset, s->lastElem);
 
     assert(length <= maxLength);
