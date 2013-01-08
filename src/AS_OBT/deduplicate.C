@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: deduplicate.C,v 1.21 2012-06-27 20:11:51 brianwalenz Exp $";
+const char *mainid = "$Id: deduplicate.C,v 1.22 2013-01-08 02:33:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,8 +27,6 @@ const char *mainid = "$Id: deduplicate.C,v 1.21 2012-06-27 20:11:51 brianwalenz 
 #include <ctype.h>
 #include <math.h>
 #include <assert.h>
-
-#include "readOverlap.H"
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -564,6 +562,15 @@ main(int argc, char **argv) {
         fprintf(summaryFile, "Ignoring library %s.\n", gkl->libraryName);
     }
   }
+
+  uint64  numOlaps = 0;
+
+  numOlaps += (ovsprimary)   ? AS_OVS_numOverlapsInRange(ovsprimary)   : 0;
+  numOlaps += (ovssecondary) ? AS_OVS_numOverlapsInRange(ovssecondary) : 0;
+
+  if (numOlaps == 0)
+    nothingToDo = true;
+
 
   if (nothingToDo == false) {
     fragT        *frag = loadFragments(gkp);
