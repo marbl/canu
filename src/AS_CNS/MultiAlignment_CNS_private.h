@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.28 2011-12-15 19:54:30 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.29 2013-01-08 03:19:29 brianwalenz Exp $";
 
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapStore.h"
@@ -185,7 +185,7 @@ public:
   seqIdx()  { _idx = 0xffffffff; };
   ~seqIdx() {                            };
 
-  operator const size_t () { return(_idx); };
+  operator size_t () const { return(_idx); };
 
   void   set(size_t forcedIdx) { _idx = forcedIdx; };
   uint32 get(void)             { return(_idx); };
