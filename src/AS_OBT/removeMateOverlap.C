@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: removeMateOverlap.C,v 1.6 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id: removeMateOverlap.C,v 1.7 2013-01-08 02:33:46 brianwalenz Exp $";
 
 //  Remove mate relationships for any fragments that overlap
 
@@ -146,11 +146,11 @@ main(int argc, char **argv) {
       gkpstore->gkStore_getFragment(iid, &fr, GKFRAGMENT_SEQ);
       gkpstore->gkStore_getFragment(mid, &mr, GKFRAGMENT_SEQ);
 
-      fprintf(stdout, ">"F_U32","F_U32" "F_U64","F_U64"\n%s\n",
+      fprintf(stdout, ">"F_U32","F_U32" "F_S64","F_S64"\n%s\n",
               iid,
               mid,
-              ovl.dat.ovl.a_hang,
-              ovl.dat.ovl.b_hang,
+              (int64)ovl.dat.ovl.a_hang,
+              (int64)ovl.dat.ovl.b_hang,
               fr.gkFragment_getSequence() + ovl.dat.ovl.a_hang);
     }
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqAnalyze.C,v 1.6 2012-12-13 20:02:15 brianwalenz Exp $";
+const char *mainid = "$Id: fastqAnalyze.C,v 1.7 2013-01-08 02:31:56 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -149,10 +149,10 @@ doStats(char *inName,
     totBases += ii;
 
     if ((totSeqs % 10000) == 0)
-      fprintf(stderr, "Reading "F_U32"\r", totSeqs);
+      fprintf(stderr, "Reading "F_U64"\r", totSeqs);
   }
 
-  fprintf(stderr, "Read    "F_U32"\n", totSeqs);
+  fprintf(stderr, "Read    "F_U64"\n", totSeqs);
 
   fprintf(stdout, "%s\n", inName);
   fprintf(stdout, "\n");
