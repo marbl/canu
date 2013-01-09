@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.43 2012-05-08 23:17:55 brianwalenz Exp $";
+const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.44 2013-01-09 05:40:58 brianwalenz Exp $";
 
 #include  "AS_global.h"
 
@@ -408,8 +408,6 @@ static void  Apply_Seq_Corrects
 //  otherwise, realloc a new string for the revised sequence.
 
   {
-   char  buff [2 * AS_READ_MAX_NORMAL_LEN];
-   Adjust_t  adj_buff [2 * AS_READ_MAX_NORMAL_LEN];
    int  adj_val, len, new_len;
    int  i, j, k, ct;
 
@@ -418,8 +416,12 @@ static void  Apply_Seq_Corrects
         (* adjust_ct) = 0;
         return;
        }
+
    len = strlen (* seq);
    ct = adj_val = 0;
+
+   char     *buff     = new char     [2 * AS_READ_MAX_NORMAL_LEN];
+   Adjust_t *adj_buff = new Adjust_t [2 * AS_READ_MAX_NORMAL_LEN];
 
    i = j = k = 0;
    while  (i < len)
@@ -509,6 +511,9 @@ fprintf (stderr,
          "Apply_Seq_Corrects:  len = %d  new_len = %d  n = %d\n",
          len, new_len, n);
 #endif
+
+   delete [] buff;
+   delete [] adj_buff;
 
    return;
   }
@@ -1143,9 +1148,9 @@ static int  Hang_Adjust
 //   adjust [0 .. (adjust_ct - 1)] .
 
   {
-   int  i, delta = 0;
+   int  delta = 0;
 
-   for  (i = 0;  i < adjust_ct && hang >= adjust [i] . pos;  i ++)
+   for  (int32 i = 0;  i < adjust_ct && hang >= adjust [i] . pos;  i ++)
      delta = adjust [i] . adjust;
 
    return  hang + delta;
@@ -1159,41 +1164,46 @@ static void  Initialize_Globals
 //  Initialize global variables used in this program
 
   {
-   int  i, offset, del;
-   int  e, start;
+    int32 w      = 2;
+    int32 offset = 2;
+    int32 del    = 6;
+    for  (int32 i = 0;  i < MAX_ERRORS;  i ++) {
+      offset += del;
+      del    += 2;
+    }
 
-   // (only (MAX_ERRORS + 4) * MAX_ERRORS needed)
-   Edit_Space = (int32 *)safe_malloc(sizeof(int32) * (AS_READ_MAX_NORMAL_LEN + 4) * AS_READ_MAX_NORMAL_LEN);
+    fprintf(stderr, "Allocating %d words for Edit_Space.\n", offset);
 
-   offset = 2;
-   del = 6;
-   for  (i = 0;  i < MAX_ERRORS;  i ++)
-     {
-       Edit_Array [i] = Edit_Space + offset;
-       offset += del;
-       del += 2;
-     }
+    Edit_Space = (int32 *)safe_malloc(sizeof(int32) * offset);
 
+    memset(Edit_Space, 0, sizeof(int32) * offset);
 
-   assert (MAX_ERROR_RATE >= AS_READ_ERROR_RATE
-             && MAX_ERROR_RATE >= AS_GUIDE_ERROR_RATE);
+    offset = w;
+    del    = 6;
+    for  (int32 i = 0;  i < MAX_ERRORS;  i ++) {
+      Edit_Array [i] = Edit_Space + offset;
+      offset += del;
+      del    += 2;
+    }
 
-   for  (i = 0;  i <= ERRORS_FOR_FREE;  i ++)
-     Edit_Match_Limit [i] = 0;
+    assert(MAX_ERROR_RATE >= AS_READ_ERROR_RATE);
+    assert(MAX_ERROR_RATE >= AS_GUIDE_ERROR_RATE);
 
-   start = 1;
-   for  (e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++)
-     {
-      start = Binomial_Bound (e - ERRORS_FOR_FREE, MAX_ERROR_RATE,
-                  start, EDIT_DIST_PROB_BOUND);
-      Edit_Match_Limit [e] = start - 1;
-      assert (Edit_Match_Limit [e] >= Edit_Match_Limit [e - 1]);
-     }
+    for  (int32 i = 0;  i <= ERRORS_FOR_FREE;  i ++)
+      Edit_Match_Limit [i] = 0;
 
-   for  (i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
-     Error_Bound [i] = (int) (i * MAX_ERROR_RATE);
+    int32 start = 1;
+    for  (int32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++)
+      {
+        start = Binomial_Bound (e - ERRORS_FOR_FREE, MAX_ERROR_RATE, start, EDIT_DIST_PROB_BOUND);
+        Edit_Match_Limit [e] = start - 1;
+        assert (Edit_Match_Limit [e] >= Edit_Match_Limit [e - 1]);
+      }
 
-   return;
+    for  (int32 i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
+      Error_Bound [i] = (int) (i * MAX_ERROR_RATE);
+
+    return;
   }
 
 
@@ -1642,6 +1652,9 @@ static int  Prefix_Edit_Dist
          while  (Row < m && Row + d < n
                   && A [Row] == T [Row + d])
            Row ++;
+
+         assert(e < MAX_ERRORS);
+         //assert(d < ??);
 
          Edit_Array [e] [d] = Row;
 
@@ -2137,8 +2150,6 @@ static void  Redo_Olaps
    int  lo_frag, hi_frag;
    uint64  next_olap;
    Correction_Output_t  msg;
-   Correction_t  correct [AS_READ_MAX_NORMAL_LEN];
-   Adjust_t  adjust [AS_READ_MAX_NORMAL_LEN];
    int16  adjust_ct;
    int  num_corrects;
    AS_IID correct_iid = 0, next_iid;
@@ -2151,6 +2162,9 @@ static void  Redo_Olaps
    Frag_Stream = new gkStream (gkpStore, lo_frag, hi_frag, GKFRAGMENT_SEQ);
 
    fp = File_Open (Correct_File_Path, "rb");
+
+   Correction_t *correct = new Correction_t [AS_READ_MAX_NORMAL_LEN];
+   Adjust_t     *adjust  = new Adjust_t     [AS_READ_MAX_NORMAL_LEN];
 
    next_olap = 0;
    for  (i = 0;  Frag_Stream->next (&frag_read)
@@ -2228,6 +2242,9 @@ static void  Redo_Olaps
          next_olap ++;
         }
      }
+
+   delete [] correct;
+   delete [] adjust;
 
    delete Frag_Stream;
    delete gkpStore;
