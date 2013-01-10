@@ -38,29 +38,29 @@ main(int argc, char **argv) {
   merStream *T = new merStream(new kMerBuilder(MERSIZE), F);
 
   fprintf(stderr, "BUILDING FULL\n");
-  full = new positionDB(T, MERSIZE, 0,      0L,      0L, 0L, 0, 0, true);
+  full = new positionDB(T, MERSIZE, 0,      0L,      0L, 0L, 0, 0, 0, 0, true);
   full->saveState("junk-full");
   delete full;
 
   fprintf(stderr, "BUILDING INCL\n");
-  incl = new positionDB(T, MERSIZE, 0,      0L, include, 0L, 0, 0, true);
+  incl = new positionDB(T, MERSIZE, 0,      0L, include, 0L, 0, 0, 0, 0, true);
   incl->saveState("junk-incl");
   delete incl;
 
   fprintf(stderr, "BUILDING EXCL\n");
-  excl = new positionDB(T, MERSIZE, 0, exclude,      0L, 0L, 0, 0, true);
+  excl = new positionDB(T, MERSIZE, 0, exclude,      0L, 0L, 0, 0, 0, 0, true);
   excl->saveState("junk-excl");
   delete excl;
 
   fprintf(stderr, "BUILDING THRS\n");
-  thrs = new positionDB(T, MERSIZE, 0,      0L,      0L, 0L, 1, 0, true);
+  thrs = new positionDB(T, MERSIZE, 0,      0L,      0L, 0L, 1, 0, 0, 0, true);
   thrs->saveState("junk-thrs");
   delete thrs;
 
-  full = new positionDB("junk-full");
-  incl = new positionDB("junk-incl");
-  excl = new positionDB("junk-excl");
-  thrs = new positionDB("junk-thrs");
+  full = new positionDB("junk-full", MERSIZE, 0, 0);
+  incl = new positionDB("junk-incl", MERSIZE, 0, 0);
+  excl = new positionDB("junk-excl", MERSIZE, 0, 0);
+  thrs = new positionDB("junk-thrs", MERSIZE, 0, 0);
 
   char    themer[1000];
   u32bit  mernum = 0;

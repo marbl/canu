@@ -84,8 +84,8 @@ exist-passed3: ../existDB xe.fasta ../../meryl/meryl
 	touch exist-passed3
 
 
-INCLUDE = -I../../libbio -I../../libutil -I../../libmeryl -I..
-LIBS    = -L../../libbio -L../../libutil -L../../libmeryl -L.. -lkmer -lmeryl -lbio -lutil
+INCLUDE = -I../../libbio -I../../libseq -I../../libutil -I../../libmeryl -I..
+LIBS    = -L../../libbio -L../../libseq -L../../libutil -L../../libmeryl -L.. -lkmer -lmeryl -lbio -lutil
 DBGOPT  = -DERROR_CHECK_COUNTING -DERROR_CHECK_COUNTING_ENCODING -DERROR_CHECK_EMPTY_BUCKETS
 
 testerp: ../positionDB.C ../positionDB.H ../positionDB-access.C ../positionDB-dump.C ../positionDB-sort.C ../positionDB-file.C
