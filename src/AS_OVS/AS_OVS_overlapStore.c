@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.36 2012-04-25 01:55:10 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.37 2013-01-11 11:18:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -199,10 +199,15 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   ovs->lastIIDrequested  = ovs->ovs.largestIID;
 
   ovs->overlapsThisFile = 0;
-  ovs->currentFileIndex = 1;
 
+#if 0
+  ovs->currentFileIndex = 1;
   sprintf(name, "%s/%04d%c", ovs->storePath, ovs->currentFileIndex, ovs->useBackup);
   ovs->bof = AS_OVS_openBinaryOverlapFile(name, TRUE);
+#else
+  ovs->currentFileIndex = 0;
+  ovs->bof = NULL;
+#endif
 
   return(ovs);
 }
@@ -238,8 +243,6 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 type)
   //
  again:
 
-
-
   while (ovs->offset.numOlaps == 0)
     if (0 == AS_UTL_safeRead(ovs->offsetFile, &ovs->offset, "AS_OVS_readOverlap offset",
                              sizeof(OverlapStoreOffsetRecord), 1))
@@ -250,15 +253,14 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 type)
   if (ovs->offset.a_iid > ovs->lastIIDrequested)
     return(0);
 
-
-  
-
-  while (AS_OVS_readOverlap(ovs->bof, overlap) == FALSE) {
+  while ((ovs->bof == NULL) ||
+         (AS_OVS_readOverlap(ovs->bof, overlap) == FALSE)) {
     char name[FILENAME_MAX];
 
     //  We read no overlap, open the next file and try again.
 
-    AS_OVS_closeBinaryOverlapFile(ovs->bof);
+    if (ovs->bof)
+      AS_OVS_closeBinaryOverlapFile(ovs->bof);
 
     if (ovs->saveSpace) {
       sprintf(name, "%04d", ovs->currentFileIndex);
@@ -327,7 +329,8 @@ AS_OVS_readOverlapsFromStore(OverlapStore *ovs, OVSoverlap *overlaps, uint32 max
 
     //  Read an overlap.  If this fails, open the next partition and read from there.
 
-    while (AS_OVS_readOverlap(ovs->bof, overlaps + numOvl) == FALSE) {
+    while ((ovs->bof == NULL) ||
+           (AS_OVS_readOverlap(ovs->bof, overlaps + numOvl) == FALSE)) {
       char name[FILENAME_MAX];
 
       //  We read no overlap, open the next file and try again.
