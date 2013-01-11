@@ -22,7 +22,7 @@
 #ifndef AS_OVS_OVERLAP_H
 #define AS_OVS_OVERLAP_H
 
-static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.20 2012-07-21 10:06:43 brianwalenz Exp $";
+static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.21 2013-01-11 11:15:54 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"  //  pretty heavy just to get OverlapMesg.
@@ -59,12 +59,15 @@ static const char *rcsid_AS_OVS_OVERLAP_H = "$Id: AS_OVS_overlap.h,v 1.20 2012-0
 
 //  These structs are very, very, very carefully laid out.  DO NOT rearrange.
 //
-//  With 11 or 12 bits in a position, everything fits into 64 bits.  We'd love to
-//  use uint32 for this data (to be compatible with the other version of this data),
-//  but the OBT data will not fit into 2 32-bit words.
+//  With 11 or 12 bits in a position, everything fits into 64 bits.  We'd love to use uint32 for
+//  this data (to be compatible with the other version of this data), but the OBT data will not fit
+//  into 2 32-bit words.
 //
 //  With more bits, we use a combination of a 32-bit and a 64-bit word.  It's ugly, but having spent
 //  an hour trying to layout the data into only 32-bit words, I give up.
+//
+//  What this means is that everything that uses these data must expect EITHER 32- or 64-bit words.
+//  In particular, printf() gets tripped up unless things are cast.
 //
 //  The "type" field MUST be in the same place in all structs.  We use pad bits to enforce this.
 //  Without the padding, the compiler could decide to move things around -- it only need to keep the
@@ -323,7 +326,7 @@ AS_OVS_testEndComparisons_Test(const OVSoverlap &olap, uint32 c=1) {
     fprintf(stderr, "A AS_OVS_overlapAEndIs3prime(olap) = %d\n", AS_OVS_overlapAEndIs3prime(olap));
     fprintf(stderr, "A AS_OVS_overlapAIsContained(olap) = %d\n", AS_OVS_overlapAIsContained(olap));
     fprintf(stderr, "A AS_OVS_overlapAIsContainer(olap) = %d\n", AS_OVS_overlapAIsContainer(olap));
-    fprintf(stderr, "a_hang "F_S64" b_hang "F_S64" flipped "F_U64"\n", olap.dat.ovl.a_hang, olap.dat.ovl.b_hang, olap.dat.ovl.flipped);
+    fprintf(stderr, "a_hang "F_S64" b_hang "F_S64" flipped "F_U64"\n", (int64)olap.dat.ovl.a_hang, (int64)olap.dat.ovl.b_hang, (int64)olap.dat.ovl.flipped);
   }
 
   if (AS_OVS_overlapBEndIs5prime(olap) + AS_OVS_overlapBEndIs3prime(olap) + AS_OVS_overlapBIsContained(olap) + AS_OVS_overlapBIsContainer(olap) != c) {
@@ -331,7 +334,7 @@ AS_OVS_testEndComparisons_Test(const OVSoverlap &olap, uint32 c=1) {
     fprintf(stderr, "B AS_OVS_overlapBEndIs3prime(olap) = %d\n", AS_OVS_overlapBEndIs3prime(olap));
     fprintf(stderr, "B AS_OVS_overlapBIsContained(olap) = %d\n", AS_OVS_overlapBIsContained(olap));
     fprintf(stderr, "B AS_OVS_overlapBIsContainer(olap) = %d\n", AS_OVS_overlapBIsContainer(olap));
-    fprintf(stderr, "a_hang "F_S64" b_hang "F_S64" flipped "F_U64"\n", olap.dat.ovl.a_hang, olap.dat.ovl.b_hang, olap.dat.ovl.flipped);
+    fprintf(stderr, "a_hang "F_S64" b_hang "F_S64" flipped "F_U64"\n", (int64)olap.dat.ovl.a_hang, (int64)olap.dat.ovl.b_hang, (int64)olap.dat.ovl.flipped);
   }
 
   assert(AS_OVS_overlapAEndIs5prime(olap) + AS_OVS_overlapAEndIs3prime(olap) + AS_OVS_overlapAIsContained(olap) + AS_OVS_overlapAIsContainer(olap) == c);

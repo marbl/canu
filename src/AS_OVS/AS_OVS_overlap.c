@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.15 2011-06-27 17:13:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_OVS_overlap.c,v 1.16 2013-01-11 11:15:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,8 +200,8 @@ AS_OVS_toString(char *outstr, OVSoverlap &olap) {
               olap.a_iid,
               olap.b_iid,
               olap.dat.ovl.flipped ? 'I' : 'N',
-              olap.dat.ovl.a_hang,
-              olap.dat.ovl.b_hang,
+              (int64)olap.dat.ovl.a_hang,
+              (int64)olap.dat.ovl.b_hang,
               AS_OVS_decodeQuality(olap.dat.ovl.orig_erate) * 100.0,
               AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100.0);
       break;
@@ -209,9 +209,9 @@ AS_OVS_toString(char *outstr, OVSoverlap &olap) {
       sprintf(outstr, "%7d %7d  %c  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P"  %5.2f",
               olap.a_iid, olap.b_iid,
               olap.dat.obt.fwd ? 'f' : 'r',
-              olap.dat.obt.a_beg,
-              olap.dat.obt.a_end,
-              olap.dat.obt.b_beg,
+              (uint64)olap.dat.obt.a_beg,
+              (uint64)olap.dat.obt.a_end,
+              (uint64)olap.dat.obt.b_beg,
               (uint64)((olap.dat.obt.b_end_hi << 9) | (olap.dat.obt.b_end_lo)),
               AS_OVS_decodeQuality(olap.dat.obt.erate) * 100.0);
       break;
@@ -219,11 +219,11 @@ AS_OVS_toString(char *outstr, OVSoverlap &olap) {
       sprintf(outstr, "%7d %7d  %c  "F_U64"  %4"F_U64P" %4"F_U64P"  %4"F_U64P" %4"F_U64P,
               olap.a_iid, olap.b_iid,
               olap.dat.mer.palindrome ? 'p' : (olap.dat.mer.fwd ? 'f' : 'r'),
-              olap.dat.mer.compression_length,
-              olap.dat.mer.a_pos,
-              olap.dat.mer.b_pos,
-              olap.dat.mer.k_count,
-              olap.dat.mer.k_len);
+              (uint64)olap.dat.mer.compression_length,
+              (uint64)olap.dat.mer.a_pos,
+              (uint64)olap.dat.mer.b_pos,
+              (uint64)olap.dat.mer.k_count,
+              (uint64)olap.dat.mer.k_len);
       break;
     case AS_OVS_TYPE_UNS:
     default:
