@@ -22,13 +22,13 @@
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 
-static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id: AS_CGB_unitigger_globals.h,v 1.20 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id: AS_CGB_unitigger_globals.h,v 1.21 2013-01-11 05:29:00 brianwalenz Exp $";
 
 #include "AS_CGB_all.h"
 
 typedef struct {
   IntFragment_ID  avx,bvx;
-  int16       ahg,bhg;
+  int32           ahg,bhg;
 
   uint32    quality : 16;  // zero is a perfect overlap
   uint32    nes : 8;      // The edge labeling.
@@ -102,7 +102,7 @@ typedef struct {
   // AS_CGB_INTRACHUNK_FRAG, AS_CGB_CONTAINED_FRAG,
   // AS_CGB_DELETED_FRAG, etc ?
 
-  int16   bp_length;
+  int32   bp_length;
   // The length of the fragment read in bp.
 
   /* FGB bit flags: */

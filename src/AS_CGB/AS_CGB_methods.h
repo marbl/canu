@@ -24,7 +24,7 @@
 #ifndef AS_CGB_METHODS_INCLUDE
 #define AS_CGB_METHODS_INCLUDE
 
-static const char *rcsid_AS_CGB_METHODS_INCLUDE = "$Id: AS_CGB_methods.h,v 1.13 2009-07-30 11:23:56 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_METHODS_INCLUDE = "$Id: AS_CGB_methods.h,v 1.14 2013-01-11 05:29:00 brianwalenz Exp $";
 
 #include "AS_OVS_overlapStore.h"
 
@@ -64,9 +64,9 @@ static void set_asx_edge(Tedge edges[],IntEdge_ID i,int value)
 static void set_bsx_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,bsx) = (int8)value;}
 static void set_ahg_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,ahg) = (int16)value;}
+{ VAgetaccess(Aedge,edges,i,ahg) = (int32)value;}
 static void set_bhg_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,bhg) = (int16)value;}
+{ VAgetaccess(Aedge,edges,i,bhg) = (int32)value;}
 static void set_nes_edge(Tedge edges[],IntEdge_ID i,Tnes value)
 { VAgetaccess(Aedge,edges,i,nes) = (int8)value;}
 static void set_inv_edge(Tedge edges[],IntEdge_ID i,int value)
@@ -221,7 +221,7 @@ static void set_o5p_fragment(Tfragment frags[],IntFragment_ID i,int64  value)
 { VAgetaccess(Afragment,frags,i,offset5p) = (int64 ) value;}
 
 static void set_length_fragment(Tfragment frags[],IntFragment_ID i,int32 value)
-{ VAgetaccess(Afragment,frags,i,bp_length) = (int16)value;}
+{ VAgetaccess(Afragment,frags,i,bp_length) = (int32)value;}
 
 static void set_cid_fragment(Tfragment frags[],IntFragment_ID i,IntChunk_ID value)
 { VAgetaccess(Afragment,frags,i,cid) = (IntChunk_ID)value;}
