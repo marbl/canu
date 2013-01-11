@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapInCore-Extend_Alignment.C,v 1.2 2011-08-08 02:25:33 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapInCore-Extend_Alignment.C,v 1.3 2013-01-11 10:58:01 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -70,17 +70,22 @@ Set_Left_Delta (int e, int d, int * leftover, int * t_end, int t_len, Work_Area_
 
   // Don't allow first delta to be +1 or -1
   assert (WA -> Left_Delta_Len == 0 || WA -> Left_Delta [0] != -1);
-  if  (WA -> Left_Delta_Len > 0 && WA -> Left_Delta [0] == 1
-       && (* t_end) + t_len > 0) {
+
+  //  BPW - The original test was Left_Delta_Len>0, but that hit uninitialized data when Len == 1.
+
+  if  (WA -> Left_Delta_Len > 1 && WA -> Left_Delta [0] == 1 && (* t_end) + t_len > 0) {
     int  i;
 
-    if  (WA -> Left_Delta [1] > 0)
+    if  (WA -> Left_Delta [1] > 0)  //  <- uninitialized here
       WA -> Left_Delta [0] = WA -> Left_Delta [1] + 1;
     else
       WA -> Left_Delta [0] = WA -> Left_Delta [1] - 1;
+
     for  (i = 2;  i < WA -> Left_Delta_Len;  i ++)
       WA -> Left_Delta [i - 1] = WA -> Left_Delta [i];
+
     WA -> Left_Delta_Len --;
+
     (* t_end) --;
     if  (WA -> Left_Delta_Len == 0)
       (* leftover) ++;
