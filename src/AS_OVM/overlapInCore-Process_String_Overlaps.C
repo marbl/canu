@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapInCore-Process_String_Overlaps.C,v 1.1 2011-07-30 01:16:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: overlapInCore-Process_String_Overlaps.C,v 1.2 2013-01-11 11:11:04 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 
@@ -327,6 +327,36 @@ static void  Choose_Best_Partial
 
 
 
+//  Return  TRUE  iff there is any length-( window_len ) subarray
+//  of  a [0 .. (n-1)]  that sums to  threshold  or higher.
+static
+int
+Has_Bad_Window(char *a, int n, int window_len, int threshold) {
+
+  if (n < window_len)
+    return(FALSE);
+
+  int32 sum = 0;
+  int32 i=0;
+  int32 j=0;
+
+  for (i=0; i<window_len; i++)
+    sum += a[i];
+
+  if (sum >= threshold)
+    return(TRUE);
+
+  while (i < n) {
+    sum -= a[j++];
+    sum += a[i++];
+    if (sum >= threshold)
+      return(TRUE);
+  }
+
+  return(FALSE);
+}
+
+
 
 //  Find and report all overlaps and branch points between string  S
 //  (with length  S_Len  and id  S_ID ) and string  T  (with
@@ -359,7 +389,7 @@ Process_Matches (int * Start,
   int  Max_Len, S_Lo, S_Hi, T_Lo, T_Hi;
   int  t_len;
   int  Done_S_Left, Done_S_Right;
-  int  Errors, rejected;
+  int  Errors;
 
   Done_S_Left = Done_S_Right = FALSE;
   t_len = t_info . length;
@@ -527,97 +557,105 @@ Process_Matches (int * Start,
         }
 
       p = distinct_olap;
-      for  (i = 0;  i < distinct_olap_ct;  i ++)
-        {
-          if  (! deleted [i])
-            {
 
-              rejected = FALSE;
-              if  (Use_Window_Filter)
-                {
-                  int  d, i, j, k, q_len;
-                  char  q_diff [AS_READ_MAX_NORMAL_LEN];
+      for  (i = 0;  i < distinct_olap_ct;  i ++) {
+        if  (! deleted [i]) {
+          bool rejected = FALSE;
 
-                  i = p -> s_lo;
-                  j = p -> t_lo;
-                  q_len = 0;
+          if  (Use_Window_Filter) {
+            int32  d;
+            int32  i = p -> s_lo;;
+            int32  j = p -> t_lo;
+            int32  q_len = 0;
 
-                  for  (k = 0;  k < p -> delta_ct;  k ++)
-                    {
-                      int  n, len;
+#if AS_READ_MAX_NORMAL_LEN > 5000
+            char  *q_diff = new char [AS_READ_MAX_NORMAL_LEN];
+#else
+            char   q_diff[AS_READ_MAX_NORMAL_LEN];
+#endif
+            for  (int32 k=0;  k<p->delta_ct;  k++) {
+              int32 len = abs(p->delta[k]);
 
-                      len = abs (p -> delta [k]);
-                      for  (n = 1;  n < len;  n ++)
-                        {
-                          if  (S [i] == T [j]
-                               || S [i] == DONT_KNOW_CHAR
-                               || T [j] == DONT_KNOW_CHAR)
-                            d = 0;
-                          else
-                            {
-                              d = MIN (S_quality [i], T_quality [j]);
-                              d = MIN (d, QUALITY_CUTOFF);
-                            }
-                          q_diff [q_len ++] = d;
-                          i ++;
-                          j ++;
-                        }
-                      if  (p -> delta [k] > 0)
-                        {
-                          d = S_quality [i];
-                          i ++;
-                        }
-                      else
-                        {
-                          d = T_quality [j];
-                          j ++;
-                        }
-                      q_diff [q_len ++] = MIN (d, QUALITY_CUTOFF);
-                    }
-                  while  (i <= p -> s_hi)
-                    {
-                      if  (S [i] == T [j]
-                           || S [i] == DONT_KNOW_CHAR
-                           || T [j] == DONT_KNOW_CHAR)
-                        d = 0;
-                      else
-                        {
-                          d = MIN (S_quality [i], T_quality [j]);
-                          d = MIN (d, QUALITY_CUTOFF);
-                        }
-                      q_diff [q_len ++] = d;
-                      i ++;
-                      j ++;
-                    }
+              for (int32 n = 1;  n < len;  n++) {
+                if  (S[i] == T[j] || S[i] == DONT_KNOW_CHAR || T[j] == DONT_KNOW_CHAR) {
+                  d = 0;
+                } else {
+                  d = MIN (S_quality[i], T_quality[j]);
+                  d = MIN (d, QUALITY_CUTOFF);
                 }
 
-              if  (! rejected)
-                {
-                  if  (Doing_Partial_Overlaps)
-                    Output_Partial_Overlap (S_ID, T_ID, Dir, p,
-                                            S_Len, t_len,
-                                            WA);
-                  else
-                    Output_Overlap (S_ID, S_Len, Dir, T_ID, t_len, p, WA);
-                  overlaps_output ++;
-                  if  (p -> s_lo == 0)
-                    WA -> A_Olaps_For_Frag ++;
-                  if  (p -> s_hi >= S_Len - 1)
-                    WA -> B_Olaps_For_Frag ++;
-                }
+                q_diff[q_len++] = d;
+
+                i++;
+                j++;
+              }
+
+              if  (p -> delta[k] > 0) {
+                d = S_quality[i];
+                i++;
+              } else {
+                d = T_quality[j];
+                j++;
+              }
+              q_diff[q_len++] = MIN (d, QUALITY_CUTOFF);
             }
-          p ++;
+
+            while  (i <= p -> s_hi) {
+              if  (S[i] == T[j] || S[i] == DONT_KNOW_CHAR || T[j] == DONT_KNOW_CHAR) {
+                d = 0;
+              } else {
+                d = MIN(S_quality[i], T_quality[j]);
+                d = MIN(d, QUALITY_CUTOFF);
+              }
+
+              q_diff[q_len++] = d;
+
+              i++;
+              j++;
+            }
+            
+            if (Has_Bad_Window(q_diff, q_len, BAD_WINDOW_LEN, BAD_WINDOW_VALUE)) {
+              rejected = TRUE;
+              Bad_Short_Window_Ct++;
+            }
+
+            else if (Has_Bad_Window(q_diff, q_len, 100, 240)) {
+              rejected = TRUE;
+              Bad_Long_Window_Ct++;
+            }
+            
+#if AS_READ_MAX_NORMAL_LEN > 5000
+            delete [] q_diff;
+#endif
+          }
+
+          if  (! rejected) {
+            if  (Doing_Partial_Overlaps)
+              Output_Partial_Overlap(S_ID, T_ID, Dir, p, S_Len, t_len, WA);
+            else
+              Output_Overlap(S_ID, S_Len, Dir, T_ID, t_len, p, WA);
+
+            overlaps_output++;
+
+            if  (p->s_lo == 0)
+              WA->A_Olaps_For_Frag++;
+
+            if  (p->s_hi >= S_Len - 1)
+              WA->B_Olaps_For_Frag++;
+          }
         }
+        p++;
+      }
     }
 
 
   if  (overlaps_output == 0)
-    WA->Kmer_Hits_Without_Olap_Ct ++;
+    WA->Kmer_Hits_Without_Olap_Ct++;
   else
     {
-      WA->Kmer_Hits_With_Olap_Ct ++;
+      WA->Kmer_Hits_With_Olap_Ct++;
       if  (overlaps_output > 1)
-        WA->Multi_Overlap_Ct ++;
+        WA->Multi_Overlap_Ct++;
     }
 
 

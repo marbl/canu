@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.11 2012-03-13 03:58:39 brianwalenz Exp $";
+const char *mainid = "$Id: overlapInCore.C,v 1.12 2013-01-11 11:11:04 brianwalenz Exp $";
 
 #include "overlapInCore.H"
 #include "AS_UTL_decodeRange.H"
@@ -39,7 +39,11 @@ uint64 MAX_STRING_NUM        = STRING_NUM_MASK;
 
 
 
+int64  Bad_Short_Window_Ct = 0;
+//  The number of overlaps rejected because of too many errors in a small window
 
+int64  Bad_Long_Window_Ct = 0;
+//  The number of overlaps rejected because of too many errors in a long window
 
 double  Branch_Match_Value = 0.0;
 double  Branch_Error_Value = 0.0;
@@ -821,6 +825,8 @@ main(int argc, char **argv) {
   fprintf (stderr, " Total overlaps produced = "F_S64"\n", Total_Overlaps);
   fprintf (stderr, "      Contained overlaps = "F_S64"\n", Contained_Overlap_Ct);
   fprintf (stderr, "       Dovetail overlaps = "F_S64"\n", Dovetail_Overlap_Ct);
+  fprintf (stderr, "Rejected by short window = "F_S64"\n", Bad_Short_Window_Ct);
+  fprintf (stderr, " Rejected by long window = "F_S64"\n", Bad_Long_Window_Ct);
 
   delete OldFragStore;
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static const char *rcsid = "$Id: overlapInCore.H,v 1.4 2012-02-03 08:57:49 brianwalenz Exp $";
+//static const char *rcsid = "$Id: overlapInCore.H,v 1.5 2013-01-11 11:11:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -423,8 +423,8 @@ typedef  struct Hash_Frag_Info {
 }  Hash_Frag_Info_t;
 
 
-
-
+extern int64   Bad_Short_Window_Ct;
+extern int64   Bad_Long_Window_Ct;
 extern double  Branch_Match_Value;
 extern double  Branch_Error_Value;
 extern char  * Data;
