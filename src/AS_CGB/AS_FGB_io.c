@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_io.c,v 1.38 2012-01-24 22:47:08 brianwalenz Exp $";
+static char *rcsid = "$Id: AS_FGB_io.c,v 1.39 2013-01-11 05:27:06 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -675,6 +675,11 @@ void process_ovl_store(char * OVL_Store_Path,
       e.bvx = olap.b_iid;
       e.bsx = (!improper) ^ (!olap.dat.ovl.flipped);
       e.bhg = (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang);
+
+      //  Why?  Because ahg and bhg are bit-fields, and if they're too small,
+      //  we won't set them correctly.
+      assert(e.ahg == (improper ? -olap.dat.ovl.b_hang : olap.dat.ovl.a_hang));
+      assert(e.bhg == (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang));
 
       e.nes       = (is_a_dvt_simple(e.ahg, e.bhg) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE);
       e.quality   = olap.dat.ovl.corr_erate;
