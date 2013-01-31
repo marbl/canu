@@ -61,6 +61,9 @@ while (scalar(@ARGV)) {
     open(O, "> $otFile")      or die "Failed to open '$otFile' for writing\n";
     open(N, "< $fastqUIDmap") or die "Failed to open '$fastqUIDmap'\n";
 
+    $namesLoaded   = 0;
+    $readsRenamed  = 0;
+
     print STDERR "Renaming '$inFile' to '$otFile'.\n";
 
     while (!eof(F)) {
@@ -78,7 +81,7 @@ while (scalar(@ARGV)) {
         while (!exists($UIDtoNAME{$a})) {
             loadMoreNames();
 
-            if (!exists($UIDtoNAME{$a})) {
+            if ((!exists($UIDtoNAME{$a})) && ($readsRenamed > 0)) {
                 print STDERR "WARNING:  Looping to load mode names; out of sync?\n";
             }
         }
