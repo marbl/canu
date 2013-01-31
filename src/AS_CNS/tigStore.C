@@ -19,9 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: tigStore.C,v 1.25 2012-09-10 12:38:30 brianwalenz Exp $";
+const char *mainid = "$Id: tigStore.C,v 1.26 2013-01-31 16:38:21 brianwalenz Exp $";
 
 #include "AS_global.h"
+#include "AS_UTL_decodeRange.H"
 #include "MultiAlign.h"
 #include "MultiAlignStore.h"
 #include "MultiAlignMatePairAnalysis.H"
@@ -256,8 +257,19 @@ dumpConsensus(MultiAlignStore *tigStore,
     *o = 0;
   }
 
-  fprintf(stdout, ">%s%d len="F_U64"\n", (tigIsUnitig) ? "utg" : "ctg", ma->maID, GetNumchars(ma->consensus) - 1);
-  fprintf(stdout, "%s\n", cns);
+  if (tigIsUnitig)
+    fprintf(stdout, ">utg%d len="F_U64" reads="F_U32" status=%c microHet=%.2f covStat=%.2f\n%s\n",
+            ma->maID, GetNumchars(ma->consensus) - 1, ma->data.num_frags,
+            ma->data.unitig_status,
+            ma->data.unitig_microhet_prob,
+            ma->data.unitig_coverage_stat,
+            cns);
+  else
+    fprintf(stdout, ">ctg%d len="F_U64" reads="F_U32" unitigs="F_U32" status=%c\n%s\n",
+            ma->maID, GetNumchars(ma->consensus) - 1, ma->data.num_frags,
+            ma->data.num_unitigs,
+            ma->data.contig_status,
+            cns);
 }
 
 
@@ -504,7 +516,9 @@ main (int argc, char **argv) {
   int           tigVers        = -1;
   int           tigPartU       = 0;
   int           tigPartC       = 0;
-  int32         tigID          = 0;
+  uint32        tigID          = 0;
+  uint32        tigIDbgn       = 0;
+  uint32        tigIDend       = UINT32_MAX;
   int32         tigIsUnitig    = TRUE;
   uint32        opType         = 0;
   uint32        dumpFlags      = 0;
@@ -546,7 +560,8 @@ main (int argc, char **argv) {
       tigPartC = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-u") == 0) {
-      tigID       = atoi(argv[++arg]);
+      AS_UTL_decodeRange(argv[++arg], tigIDbgn, tigIDend);
+      tigID       = tigIDbgn;
       tigIsUnitig = TRUE;
 
     } else if (strcmp(argv[arg], "-U") == 0) {
@@ -554,7 +569,8 @@ main (int argc, char **argv) {
       tigIsUnitig = TRUE;
 
     } else if (strcmp(argv[arg], "-c") == 0) {
-      tigID       = atoi(argv[++arg]);
+      AS_UTL_decodeRange(argv[++arg], tigIDbgn, tigIDend);
+      tigID       = tigIDbgn;
       tigIsUnitig = FALSE;
 
     } else if (strcmp(argv[arg], "-C") == 0) {
@@ -666,8 +682,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "     contiglist         ...a list of the contigs in the store\n");
     fprintf(stderr, "     properties         ...a list of properties for ALL multialigns in the store (for -E)\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -u id                 Unitig to dump (for -d option)\n");
-    fprintf(stderr, "  -c id                 Contig to dump (for -d option)\n");
+    fprintf(stderr, "  -u id[-id]            Unitig to dump (for -d option); if A-B, dump tigs from id A to id B, inclusive\n");
+    fprintf(stderr, "  -c id[-id]            Contig to dump (for -d option); if A-B, dump tigs from id A to id B, inclusive\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -U                    Dump ALL unitigs (for -d option)\n");
     fprintf(stderr, "  -C                    Dump ALL contigs (for -d option)\n");
@@ -830,6 +846,11 @@ main (int argc, char **argv) {
   if (opType == OPERATION_TIG) {
     int32  bgn = tigID;
     int32  end = tigID + 1;
+
+    if (tigIDbgn != tigIDend) {
+      bgn = tigIDbgn;
+      end = tigIDend + 1;
+    }
 
     if (dumpAll == TRUE) {
       bgn = 0;
