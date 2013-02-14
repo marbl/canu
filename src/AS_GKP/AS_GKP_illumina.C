@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.36 2012-11-20 18:23:05 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.37 2013-02-14 04:22:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -115,6 +115,7 @@ processSeq(char       *N,
   uint32   clvL=1, clvR=0;     //  Undefined range
   uint32   clmL=1, clmR=0;
   uint32   tntL=1, tntR=0;
+  char     rnd =0;
 
   while (tok != NULL) {
     if (((tok[0] == 'c') || (tok[0] == 'C')) &&
@@ -151,9 +152,8 @@ processSeq(char       *N,
     }
     if (((tok[0] == 'r') || (tok[0] == 'R')) &&
         ((tok[1] == 'n') || (tok[1] == 'N')) &&
-        ((tok[2] == 'd') || (tok[2] == 'D')) &&
-        ((tok[4] == 'f') || (tok[4] == 'F'))) {
-      fr->fr.gkFragment_setIsNonRandom(1);
+        ((tok[2] == 'd') || (tok[2] == 'D'))) {
+      rnd = tok[4];
     }
 
     tok = strtok(NULL, " \t");
@@ -367,6 +367,15 @@ processSeq(char       *N,
 
   fr->fr.gkFragment_setLibraryIID(libraryIID);
   fr->fr.gkFragment_setOrientation(AS_READ_ORIENT_UNKNOWN);
+
+  //  If rnd is not set in the read itself, default to the library randomness, otherwise
+  //  use the read-specific randomness flag.
+
+  if (rnd == 0)
+    fr->fr.gkFragment_setIsNonRandom(gkpStore->gkStore_getLibrary(libraryIID)->isNotRandom);
+  else
+    if ((rnd == 'f') || (rnd == 'F')) 
+      fr->fr.gkFragment_setIsNonRandom(1);
 
   memcpy(fr->fr.gkFragment_getSequence(), fr->sstr, sizeof(char) * slen);
   memcpy(fr->fr.gkFragment_getQuality(),  fr->qstr, sizeof(char) * qlen);
