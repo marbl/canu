@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqAnalyze.C,v 1.8 2013-02-15 08:42:40 brianwalenz Exp $";
+const char *mainid = "$Id: fastqAnalyze.C,v 1.9 2013-02-15 08:43:41 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -513,7 +513,7 @@ main(int argc, char **argv) {
   doAnalyzeQV(inName,
               originalIsSolexa,
               originalIsIllumina,
-              originalIsSanger)
+              originalIsSanger);
 
   if (convertToSanger)
     doTransformQV(inName,
