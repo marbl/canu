@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqAnalyze.C,v 1.7 2013-01-08 02:31:56 brianwalenz Exp $";
+const char *mainid = "$Id: fastqAnalyze.C,v 1.8 2013-02-15 08:42:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -362,9 +362,9 @@ doTransformQV(char *inName,
   char   C[MAX_READ_LEN];
   char   D[MAX_READ_LEN];
 
-  if (originalIsSanger    == true)  numValid++;
   if (originalIsSolexa    == true)  numValid++;
   if (originalIsIllumina  == true)  numValid++;
+  if (originalIsSanger    == true)  numValid++;
 
   if (numValid == 0)
     fprintf(stderr, "No QV decision made.  No valid encoding found.  Specify a QV encoding to convert from.\n"), exit(0);
@@ -511,16 +511,16 @@ main(int argc, char **argv) {
     doStats(inName, otName), exit(0);
 
   doAnalyzeQV(inName,
-              originalIsSanger,
               originalIsSolexa,
-              originalIsIllumina);
+              originalIsIllumina,
+              originalIsSanger)
 
   if (convertToSanger)
     doTransformQV(inName,
                   otName,
-                  originalIsSanger,
                   originalIsSolexa,
-                  originalIsIllumina);
+                  originalIsIllumina,
+                  originalIsSanger);
 
   exit(0);
 }
