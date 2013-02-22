@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.56 2012-07-21 10:06:43 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.57 2013-02-22 12:18:52 brianwalenz Exp $";
 
 //  ISO C99 says that to get INT32_MAX et al, these must be defined. (7.18.2, 7.18.4, 7.8.1)
 #ifndef __STDC_CONSTANT_MACROS
@@ -99,7 +99,7 @@ typedef uint64_t uint64;
 typedef void* PtrT;
 
 #ifndef UINT32_MAX
-#error UINT32_MAX not defined; if new code, AS_globa.h must be first include
+#error UINT32_MAX not defined; if new code, AS_global.h must be the first include
 #endif
 
 // Pointers
@@ -172,6 +172,9 @@ typedef uintptr_t INTPTR;
 #endif
 
 
+//  Enable troublesome asserts.  These typically have work arounds, and occasionally trigger.
+//  They're really only useful if the assembly can be debugged.
+#undef AGGRESSIVE_ASSERT
 
 
 //  perl's chomp is pretty nice

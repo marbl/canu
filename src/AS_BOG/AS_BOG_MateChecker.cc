@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.105 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.106 2013-02-22 12:18:52 brianwalenz Exp $";
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
@@ -311,8 +311,9 @@ UnitigBreakPoints* UnitigGraph::computeMateCoverage(Unitig* tig,
         breakNow = true;
       }
       // Don't want to go past range and break in wrong place
+#ifdef AGRESSIVE_ASSERT
       assert(loc.bgn <= bad.end+1 || loc.end <= bad.end+1);
-
+#endif
 
       if (mloc.mleFrgID1 != 0 && mloc.isGrumpy) { // only break on bad mates
         if (isFwdBad && bad.bgn <= loc.end) {
