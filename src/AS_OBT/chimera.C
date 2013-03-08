@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.52 2012-03-27 09:40:50 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.53 2013-03-08 18:51:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -418,16 +418,25 @@ adjust(OVSoverlap *ovl, uint32 ovlLen, const clear_t *clear) {
     int32 righB = initLb + ((ovl[o].dat.obt.b_end_hi << 9) | (ovl[o].dat.obt.b_end_lo));
     int32 lenB  = clear[idB].length;
 
+    double error  = AS_OVS_decodeQuality(ovl[o].dat.obt.erate);
+
     if (ori == 'r') {
       int32 t = leftB;
       leftB   = righB;
       righB   = t;
     }
 
+    //if (leftA >= righA)
+    //  fprintf(stderr, "ERROR: leftA=%d !< rightA=%d\n", leftA, righA);
+    //if (leftB >= righB)
+    //  fprintf(stderr, "ERROR: leftB=%d !< rightB=%d\n", leftB, righB);
+
+    if ((leftA >= righA) || (leftB >= righB))
+      fprintf(stderr, "A="F_S32"\tB="F_S32"\tori=%c\tA="F_S32"-"F_S32" len "F_S32" B="F_S32"-"F_S32" len "F_S32"\t%5.3f%%\n",
+              idA, idB, ori, leftA, righA, lenA, leftB, righB, lenB, error);
+
     assert(leftA < righA);
     assert(leftB < righB);
-
-    double error  = AS_OVS_decodeQuality(ovl[o].dat.obt.erate);
 
 #ifdef REPORT_OVERLAPS
     if (reportFile)
