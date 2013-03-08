@@ -25,10 +25,9 @@ my $inp = undef;  #  Path to input files.
 
 my $jobs        = 512;
 my $maxMemory   = 2;    #  gigabytes
-my $deleteearly = 0;
-my $deletelate  = 0;
+my $delete      = "late";
 
-my $maxError    = 0.06;
+my $maxError    = undef;
 
 my $submit = 0;
 
@@ -65,10 +64,10 @@ while (scalar(@ARGV)) {
         $maxMemory = shift @ARGV;
 
     } elsif ($arg eq "-deleteearly") {
-        $deleteearly = 1;
+        $delete = "early";
 
-    } elsif ($arg eq "-delete") {
-        $deletelate = 1;
+    } elsif ($arg eq "-nodelete") {
+        $delete = "no";
 
     } elsif ($arg eq "-maxerror") {
         $maxError = shift @ARGV;
@@ -122,10 +121,10 @@ if ($err) {
     print STDERR "\n";
     print STDERR "Options:\n";
     print STDERR "  -jobs j         create 'j' sorting jobs\n";
-    print STDERR "  -memory m       request 'm' memory from SGE for sorting\n";
+    print STDERR "  -memory m       request 'm' gigabytes memory from SGE for sorting\n";
     print STDERR "  -deleteearly    delete intermediate files as soon as possible (unsafe)\n";
-    print STDERR "  -deletelate     delete intermediate files when it is safe to do so\n";
-    print STDERR "  -maxerror e     discard overlaps with more than 'e' fraction error\n";
+    print STDERR "  -nodelete       do not delete intermediate files\n";
+    print STDERR "  -maxerror e     discard overlaps with more than 'e' fraction error (no filtering by default)\n";
     print STDERR "  -submit         automatically submit to SGE\n";
     print STDERR "\n";
     print STDERR "This will create an overlap store in three phases.\n";
@@ -267,11 +266,11 @@ print F "\$bin/overlapStoreBucketizer \\\n";
 print F "  -o $wrk/$asm.${typ}Store \\\n";
 print F "  -g $gkp \\\n";
 print F "  -F $jobs \\\n";
+print F "  -e $maxError \\\n" if (defined($maxError));
 print F "  -obt \\\n"   if ($typ eq "obt");
 print F "  -dup \\\n"   if ($typ eq "dup");
 print F "  -job \$jobid \\\n";
-print F "  -i   \$jn \\\n";
-print F "  -e   $maxError \n";
+print F "  -i   \$jn\n";
 print F "\n";
 print F "if [ \$? = 0 ] ; then\n";
 print F "  mv -f \$jn.bucketizing \$jn.success\n";
@@ -298,8 +297,7 @@ print F "\n";
 print F "$sbn\n";
 print F "\n";
 print F "\$bin/overlapStoreSorter \\\n";
-print F "  -deleteearly \\\n" if ($deleteearly);
-print F "  -deletelate \\\n"  if ($deletelate);
+print F "  -delete$delete \\\n"  if ($delete ne "no");
 print F "  -M $maxMemory \\\n";
 print F "  -o $wrk/$asm.${typ}Store \\\n";
 print F "  -g $gkp \\\n";
@@ -320,7 +318,7 @@ print F "\n";
 print F "$sbn\n";
 print F "\n";
 print F "\$bin/overlapStoreIndexer \\\n";
-print F "  -delete \\\n" if ($deleteearly || $deletelate);
+print F "  -delete \\\n" if ($delete ne "no");
 print F "  -o $wrk/$asm.${typ}Store \\\n";
 print F "  -F $jobs\n";
 print F "\n";
