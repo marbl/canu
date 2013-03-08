@@ -48,6 +48,8 @@ main(int argc, char **argv) {
   existDB       *E = new existDB(merylFile, merSize, existDBcounts | existDBcompressCounts | existDBcompressBuckets, loCount, hiCount);
   seqCache      *F = new seqCache(fastaFile);
 
+  fprintf(stderr, "Begin.\n");
+
 #ifdef FRAGSTATS
   u32bit         Clen = 0;
   u32bit         Cmax = 4 * 1024 * 1024;
@@ -95,6 +97,8 @@ main(int argc, char **argv) {
           lenCovReg += end+merSize - beg;
           beg = end = pos;
         }
+      } else {
+        fprintf(stdout, "%s\t"u64bitFMT"\tuncovered\n", S->header(), MS->thePositionInSequence());
       }
 #endif
 
