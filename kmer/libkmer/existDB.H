@@ -1,6 +1,9 @@
 #ifndef EXISTDB_H
 #define EXISTDB_H
 
+//  Used by wgs-assembler, to determine if a rather serious bug was patched.
+#define EXISTDB_H_VERSION 1950
+
 #include "bio++.H"
 
 //  Takes as input a list of mers (in a file) and builds a searchable
