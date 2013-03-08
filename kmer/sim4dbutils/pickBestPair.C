@@ -10,10 +10,10 @@ using namespace std;
 
 struct mapResult {
   u32bit seqIdx;
-  //char   seqName[32];
+  char   seqName[32];
 
   u32bit refIdx;
-  //char   refName[32];
+  char   refName[32];
   u32bit refBgn;
   u32bit refEnd;
 
@@ -35,8 +35,11 @@ readMR(FILE *in, mapResult &mr) {
 
   W.split(line);
 
-  //assert(strlen(W[0]) < 32);
-  //assert(strlen(W[6]) < 32);
+  if (strcmp(W[0], "cDNAid") == 0)
+    return(readMR(in, mr));
+
+  assert(strlen(W[0]) < 32);
+  assert(strlen(W[6]) < 32);
 
   mr.seqIdx = W(1);
   mr.refIdx = W(7);
@@ -46,8 +49,8 @@ readMR(FILE *in, mapResult &mr) {
       
   mr.forward = (W(4) < W(5)) ? true : false;
 
-  //strcpy(mr.seqName, W[0]);
-  //strcpy(mr.refName, W[6]);
+  strcpy(mr.seqName, W[0]);
+  strcpy(mr.refName, W[6]);
 
   return(true);
 }
@@ -86,32 +89,16 @@ main(int argc, char **argv) {
 
   mapResult           mr;
 
+  fprintf(stderr, "Loading alignments from '%s'\n", in1);
   FILE  *IN1 = fopen(in1, "r");
-  FILE  *IN2 = fopen(in2, "r");
-
-  //  Read the first record.  If it is the header, ignore it.
-
-  readMR(IN1, mr);
-  if ((mr.refBgn != 0) && (mr.refEnd != 0))
-    mr1.push_back(mr);
-
-  readMR(IN2, mr);
-  if ((mr.refBgn != 0) && (mr.refEnd != 0))
-    mr2.push_back(mr);
-
-  //  Read the rest of the lines.
-
   while (readMR(IN1, mr) == true)
     mr1.push_back(mr);
+  fclose(IN1);
 
-  fprintf(stderr, "Loaded mr1 with %lu reads.\n", mr1.size());
-
+  fprintf(stderr, "Loading alignments from '%s'\n", in2);
+  FILE  *IN2 = fopen(in2, "r");
   while (readMR(IN2, mr) == true)
     mr2.push_back(mr);
-
-  fprintf(stderr, "Loaded mr2 with %lu reads.\n", mr2.size());
-
-  fclose(IN1);
   fclose(IN2);
 
   FILE  *LOG = NULL;
@@ -134,46 +121,37 @@ main(int argc, char **argv) {
   u32bit   mr2END = mr2.size();
 
   while ((mr1bgn < mr1END) && (mr2bgn < mr2END)) {
-    while ((mr1bgn < mr1END) && (mr1[mr1bgn].seqIdx < mr2[mr2bgn].seqIdx))
+
+    if ((mr1[mr1bgn].seqIdx < mr2[mr2bgn].seqIdx) && (mr1bgn < mr1END))
       mr1bgn++;
 
-    if (mr1bgn == mr1END)
-      //  No reads left in #1.  We're all done.
-      break;
-
-    while ((mr2bgn < mr2END) && (mr1[mr1bgn].seqIdx > mr2[mr2bgn].seqIdx))
+    if ((mr2[mr2bgn].seqIdx < mr1[mr1bgn].seqIdx) && (mr2bgn < mr2END))
       mr2bgn++;
 
-    if (mr2bgn == mr1END)
-      //  No reads left in #2.  We're all done.
-      break;
-
-    if (mr1[mr1bgn].seqIdx != mr2[mr2bgn].seqIdx) {
-      //  Still out of sync?  Repeat.
-      //fprintf(stderr, "NO SYNC for "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s\n",
-      //        mr1[mr1bgn].seqIdx, "." /*mr1[mr1bgn].seqName*/, mr1[mr1bgn].refBgn, mr1[mr1bgn].refEnd,
-      //        mr2[mr2bgn].seqIdx, "." /*mr2[mr2bgn].seqName*/, mr2[mr2bgn].refBgn, mr2[mr2bgn].refEnd,
-      //        mr1[mr1bgn].refIdx, "." /*mr2[mr2bgn].refName*/);
+    if (mr1[mr1bgn].seqIdx != mr2[mr2bgn].seqIdx)
+      //  SequenceA 1 3 5 7 8
+      //  SequenceB  2 4 6  8
+      //  1st pass, A increases to 3, B increases to 4
+      //  2nd pass, A increases to 5, B increases to 6
+      //  3rd pass, A increases to 7, B increases to 8
+      //  4th pass, A increases to 8, B doesn't change.
       continue;
-    }
+
+    assert(mr1[mr1bgn].seqIdx == mr2[mr2bgn].seqIdx);
 
     mr1end = mr1bgn + 1;
     mr2end = mr2bgn + 1;
 
-    while ((mr1end < mr1END) && (mr1[mr1bgn].seqIdx == mr1[mr1end].seqIdx))
+    while (mr1[mr1bgn].seqIdx == mr1[mr1end].seqIdx)
       mr1end++;
 
-    while ((mr2end < mr2END) && (mr2[mr2bgn].seqIdx == mr2[mr2end].seqIdx))
+    while (mr2[mr2bgn].seqIdx == mr2[mr2end].seqIdx)
       mr2end++;
-
-    assert(mr1[mr1end-1].seqIdx == mr2[mr2end-1].seqIdx);
 
     //  Group of reads from mr1bgn-mr1end and mr2bgn-mr2end need to be compared.
 
     for (u32bit i1=mr1bgn; i1<mr1end; i1++) {
       for (u32bit i2=mr2bgn; i2<mr2end; i2++) {
-        assert(mr1[i1].seqIdx == mr2[i2].seqIdx);
-
         if (mr1[i1].refIdx != mr2[i2].refIdx)
           continue;
 
@@ -204,9 +182,9 @@ main(int argc, char **argv) {
           fprintf(LOG, "%c "u32bitFMT" "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s\n",
                   ori,
                   df,
-                  mr1[i1].seqIdx, "." /*mr1[i1].seqName*/, mr1[i1].refBgn, mr1[i1].refEnd,
-                  mr2[i2].seqIdx, "." /*mr2[i2].seqName*/, mr2[i2].refBgn, mr2[i2].refEnd,
-                  mr1[i1].refIdx, "." /*mr2[i2].refName*/);
+                  mr1[i1].seqIdx, mr1[i1].seqName, mr1[i1].refBgn, mr1[i1].refEnd,
+                  mr2[i2].seqIdx, mr2[i2].seqName, mr2[i2].refBgn, mr2[i2].refEnd,
+                  mr1[i1].refIdx, mr1[i1].refName);
 
         } else {
           if ((mr2[i2].forward == true)  && (mr1[i1].forward == true))
@@ -221,9 +199,9 @@ main(int argc, char **argv) {
           fprintf(LOG, "%c "u32bitFMT" "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s ("u32bitFMT","u32bitFMT") "u32bitFMT" %s\n",
                   ori,
                   dr,
-                  mr2[i2].seqIdx, "." /*mr2[i2].seqName*/, mr2[i2].refBgn, mr2[i2].refEnd,
-                  mr1[i1].seqIdx, "." /*mr1[i1].seqName*/, mr1[i1].refBgn, mr1[i1].refEnd,
-                  mr1[i1].refIdx, "." /*mr2[i2].refName*/);
+                  mr2[i2].seqIdx, mr2[i2].seqName, mr2[i2].refBgn, mr2[i2].refEnd,
+                  mr1[i1].seqIdx, mr1[i1].seqName, mr1[i1].refBgn, mr1[i1].refEnd,
+                  mr2[i2].refIdx, mr2[i2].refName);
         }
       }
     }
