@@ -11,11 +11,15 @@
 int
 main(int argc, char **argv) {
   u32bit   genomeLength = 0;
+  u32bit   seqIdx       = 0;
 
   int arg = 1;
   while (arg < argc) {
     if (strncmp(argv[arg], "-l", 2) == 0) {
       genomeLength = strtou32bit(argv[++arg], 0L);
+      
+    } else if (strncmp(argv[arg], "-s", 2) == 0) {
+      seqIdx = strtou32bit(argv[++arg], 0L);
 
     } else {
       fprintf(stderr, "Unknown arg '%s'\n", argv[arg]);
@@ -31,6 +35,9 @@ main(int argc, char **argv) {
   while (R->nextAlignment(p)) {
     u32bit  beg = p->_exons[0]._genFrom - 1;
     u32bit  end = p->_exons[p->_numExons-1]._genTo;
+
+    if (p->_genID != seqIdx)
+      continue;
 
     if (end > genomeLength)
       genomeLength = end;
