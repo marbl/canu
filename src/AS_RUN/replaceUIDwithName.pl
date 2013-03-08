@@ -72,10 +72,11 @@ while (scalar(@ARGV)) {
         my $c = <F>;
         my $d = <F>;
 
-        if ($a =~ m/\@(\w+)\s/) {
+        if ($a =~ m/\@(\w+)\s*/) {
             $a = $1;
         } else {
             print "Nope '$a'\n";
+            die;
         }
 
         while (!exists($UIDtoNAME{$a})) {
