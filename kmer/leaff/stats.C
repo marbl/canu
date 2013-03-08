@@ -78,7 +78,7 @@ stats(char *filename, u64bit refLen) {
   for (u32bit i=0; i<11; i++) {
     sizes[i] = i * Rs / 10;
     sizeb[i] = i * Rb / 10;
-    fprintf(stderr, "SIZE %2d  s=%d b=%d\n", i, sizes[i], sizeb[i]);
+    //fprintf(stderr, "SIZE %2d  s=%d b=%d\n", i, sizes[i], sizeb[i]);
   }
 
   for (u32bit i=0, sum=0, n=1; (i < numSeq) && (n < 11); i++) {
@@ -105,21 +105,21 @@ stats(char *filename, u64bit refLen) {
   //for (u32bit i=0, sum=0; sum < Rb/2; i++) {
   //}
 
-  fprintf(stderr, "%s\n", F->getSourceName());
-  fprintf(stderr, "\n");
-  fprintf(stderr, "numSeqs  "u32bitFMT"\n", numSeq);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "SPAN (smallest "u32bitFMT" largest "u32bitFMT")\n", Ls[numSeq-1], Ls[0]);
+  fprintf(stdout, "%s\n", F->getSourceName());
+  fprintf(stdout, "\n");
+  fprintf(stdout, "numSeqs  "u32bitFMT"\n", numSeq);
+  fprintf(stdout, "\n");
+  fprintf(stdout, "SPAN (smallest "u32bitFMT" largest "u32bitFMT")\n", Ls[numSeq-1], Ls[0]);
   for (u32bit i=1; i<10; i++)
-    fprintf(stderr, "n"u32bitFMT"      "u32bitFMT" at index "u32bitFMT"\n", 10 * i, n50s[i], l50s[i]);
-  fprintf(stderr, "totLen   "u64bitFMTW(10)"\n", Ss);
-  fprintf(stderr, "refLen   "u64bitFMTW(10)"\n", Rs);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "BASES (smallest "u32bitFMT" largest "u32bitFMT")\n", Lb[numSeq-1], Lb[0]);
+    fprintf(stdout, "n"u32bitFMT"      "u32bitFMT" at index "u32bitFMT"\n", 10 * i, n50s[i], l50s[i]);
+  fprintf(stdout, "totLen   "u64bitFMTW(10)"\n", Ss);
+  fprintf(stdout, "refLen   "u64bitFMTW(10)"\n", Rs);
+  fprintf(stdout, "\n");
+  fprintf(stdout, "BASES (smallest "u32bitFMT" largest "u32bitFMT")\n", Lb[numSeq-1], Lb[0]);
   for (u32bit i=1; i<10; i++)
-    fprintf(stderr, "n"u32bitFMT"      "u32bitFMT" at index "u32bitFMT"\n", 10 * i, n50b[i], l50b[i]);
-  fprintf(stderr, "totLen   "u64bitFMTW(10)"\n", Sb);
-  fprintf(stderr, "refLen   "u64bitFMTW(10)"\n", Rb);
+    fprintf(stdout, "n"u32bitFMT"      "u32bitFMT" at index "u32bitFMT"\n", 10 * i, n50b[i], l50b[i]);
+  fprintf(stdout, "totLen   "u64bitFMTW(10)"\n", Sb);
+  fprintf(stdout, "refLen   "u64bitFMTW(10)"\n", Rb);
 
   delete [] Ls;
   delete [] Lb;
