@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.39 2012-11-19 20:53:59 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.40 2013-03-08 19:23:35 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -39,6 +39,13 @@ const char *mainid = "$Id: merTrim.C,v 1.39 2012-11-19 20:53:59 brianwalenz Exp 
 #include "logMsg.H"
 
 #include "merTrimResult.H"
+
+//  There is a serious bug in storing the kmer count in the existDB that merTrim 1.40 exposes.  kmer
+//  must be at least r1950 to fix the bug.
+#if !defined(EXISTDB_H_VERSION) || (EXISTDB_H_VERSION < 1950)
+#error kmer needs to be updated to at least r1950
+#error note that the kmer svn url changed in mid December 2012, the old url does not have r1950
+#endif
 
 uint32  VERBOSE = 0;
 
@@ -239,9 +246,15 @@ public:
 
     fprintf(stderr, "Use minCorrect="F_U32" minVerified="F_U32"\n", minCorrect, minVerified);
 
+    if (minCorrect < minVerified) {
+      fprintf(stderr, "WARNING!\n");
+      fprintf(stderr, "WARNING!  minVerified (-verified) should be less than minCorrect (-correct).\n");
+      fprintf(stderr, "WARNING!\n");
+    }
+
     if (adapCountsFile) {
       fprintf(stderr, "loading adapter mer database.\n");
-      adapterDB = new existDB(adapCountsFile, merSize, existDBcounts, 0, ~0);
+      adapterDB = new existDB(adapCountsFile, merSize, existDBcounts, 0, UINT32_MAX);
       adapterDB->printState(stderr);
 
     } else if (adapIllumina || adap454) {
@@ -267,7 +280,7 @@ public:
 
     } else if (merCountsFile) {
       fprintf(stderr, "loading genome mer database from meryl '%s'.\n", merCountsFile);
-      genomicDB = new existDB(merCountsFile, merSize, existDBcounts, minVerified, ~0);
+      genomicDB = new existDB(merCountsFile, merSize, existDBcounts, MIN(minCorrect, minVerified), UINT32_MAX);
 
       if (merCountsCache) {
         fprintf(stderr, "saving genome mer database to cache '%s'.\n", cacheName);
@@ -608,8 +621,6 @@ public:
   void       attemptTrimming5End(uint32 *errorPos, uint32 endWindow, uint32 endAllowed);
   void       attemptTrimming3End(uint32 *errorPos, uint32 endWindow, uint32 endAllowed);
 
-  void       analyzeChimer(void);
-
   uint32     getClrBgn(void) { return(seqMap[clrBgn]); };
   uint32     getClrEnd(void) { return(seqMap[clrEnd]); };
   uint32     getSeqLen(void) { return(seqMap[seqLen]); };
@@ -711,10 +722,10 @@ mertrimComputation::evaluate(void) {
 
     nMersTested++;
 
-    if (eDB->exists(rMS->theCMer()))
+    if (eDB->count(rMS->theCMer()) >= g->minVerified)
       //  kmer exists in the database, assumed to be at least g->minVerified
       nMersFound++;
-  }
+   }
 
   if (nMersFound == nMersExpected)
     //  All mers confirmed, read is 100% verified!
@@ -807,7 +818,7 @@ mertrimComputation::analyze(void) {
 
     assert(posEnd <= seqLen);
 
-    if (eDB->exists(rMS->theCMer()) == false)
+    if (eDB->count(rMS->theCMer()) < g->minVerified)
       //  This mer is too weak for us.  SKip it.
       continue;
 
@@ -1180,7 +1191,7 @@ mertrimComputation::attemptCorrection(bool isReversed) {
     //        count);
 
     if (count >= g->minCorrect)
-      //  Mer exists, no need to correct.
+      //  Mer is correct, no need to correct it!
       continue;
 
     //  State the minimum number of mers we'd accept as evidence any change we make is correct.  The
@@ -1253,10 +1264,10 @@ mertrimComputation::testBases(char *bases, uint32 basesLen) {
     R.mask(false);
 
     if (F < R) {
-      if (eDB->exists(F))
+      if (eDB->count(F) >= g->minVerified)
         numConfirmed++;
     } else {
-      if (eDB->exists(R))
+      if (eDB->count(R) >= g->minVerified)
         numConfirmed++;
     }
   }
@@ -1290,7 +1301,7 @@ mertrimComputation::testBaseChange(uint32 pos, char replacement) {
 
     //  Test
     for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
-      if (eDB->exists(localms->theCMer()))
+      if (eDB->count(localms->theCMer()) >= g->minVerified)
         oldConfirmed++;
 
     delete localms;
@@ -1353,7 +1364,7 @@ mertrimComputation::testBaseIndel(uint32 pos, char replacement) {
 
     //  Test
     for (uint32 i=0; i<g->merSize && localms->nextMer(); i++)
-      if (existDB->exists(localms->theCMer()))
+      if (existDB->count(localms->theCMer()) >= g->minVerified)
         oldConfirmed++;
 
     delete localms;
@@ -1670,125 +1681,6 @@ mertrimComputation::attemptTrimming(char endTrimQV) {
 
 
 void
-mertrimComputation::analyzeChimer(void) {
-
-  //  Examine the coverage for a specific pattern that indicates a chimeric read (or a read with an
-  //  uncorrected error):  a valley in the coverage:  ..../---\./---\...
-
-  assert(suspectedChimer    == false);
-  assert(suspectedChimerBgn == 0);
-  assert(suspectedChimerEnd == 0);
-
-  if (coverage == NULL)
-    //  No coverage?  Must have been a perfect read.
-    return;
-
-  int32   floc = 0, rloc = seqLen-1;
-  int32   fcov = coverage[floc];
-  int32   rcov = coverage[rloc];
-
-  //  Search in from the ends while the coverage monotonically increases.
-
-  while ((floc < seqLen) && (fcov <= coverage[floc])) {
-    fcov = coverage[floc];
-    floc++;
-  }
-
-  while ((rloc > 0) && (rcov <= coverage[rloc])) {
-    rcov = coverage[rloc];
-    rloc--;
-  }
-
-  if (rloc <= floc)
-    //  If ranges are flipped, we can stop.  No chimer found.
-    return;
-
-  //  Otherwise, there is a dip in the coverage starting at floc until rloc.  Continue searching in
-  //  while the coverage monotonically drops.
-
-  while ((floc < seqLen) && (fcov >= coverage[floc])) {
-    fcov = coverage[floc];
-    floc++;
-  }
-
-  while ((rloc > 0) && (rcov >= coverage[rloc])) {
-    rcov = coverage[rloc];
-    rloc--;
-  }
-
-  //  The searches always go one too far.  This backs up the point to be the last monotonically
-  //  decreasing value.
-
-  floc--;
-  rloc++;
-
-  //  If the coverages are different, or if floc < rloc, then we're not at a junction.  Something
-  //  bizarre happened in this read, and there are two valleys instead of one.
-
-  if ((floc < rloc) || (fcov != rcov))
-    return;
-
-  assert(fcov == rcov);
-  assert(floc >= rloc);
-
-  //  By chance, mers will cross the junction.  This will inflate the coverage count.
-  //
-  //  Ideally, there is a single base added between the genomic sequences, and so our
-  //  coverage should drop to zero.  Or the chimera is from an abutment and the coverage will be one.
-  //
-  //  The probability that we're extending past the chimeric region by X bases is 0.25^X:
-  //      0 - 0.25^0 = 100%
-  //      1 - 0.25^1 =  25%
-  //      2 - 0.25^2 =   6.25%
-  //      3 - 0.25^3 =   1.5625%
-  //      4 - 0.25^4 =   0.3906%
-  //      5 - 0.25^5 =   0.0977%
-  //      6 - 0.25^6 =   0.0244%
-  //      7 - 0.25^7 =   0.0061%
-  //      8 - 0.25^8 =   0.0015%
-  //
-  //  Unfortunately, we cannot reliably tell how far we've passed the junction from coverage alone.
-  //  We blindly declare that 7 is too high.
-
-  if (fcov >= 6)
-    return;
-
-  //  For a true chimeric junction, the pattern we should see is:
-  //
-  //    fcov == rcov == X
-  //    floc == rloc + X     (X is also the number of bases the junction is crossed by)
-  //
-  //  In general, uncorrected errors in the read should not have this pattern; only errors near SNPs
-  //  or in diverged repeats should be spuriously spanned.  The uncorrected error is, by definition,
-  //  different from the real sequence -- where in the chimeric junction case, the base after the
-  //  junction has a 25% chance of being the same as the true next base.
-  //
-#warning NOT CORRECT
-  if (floc == rloc + fcov) {
-    suspectedChimer    = true;
-    suspectedChimerBgn = rloc;
-    suspectedChimerEnd = floc;
-    return;
-  }
-
-  //  If the 'loc' pattern isn't met, there must be something else going on.  Do we err on the side
-  //  of caution and label this as chimeric read??
-  //
-  //  Examples:
-  //   * two uncorrected errors next to each other.  We cannot correct these.
-  //   * a pile of bases in the middle of a read with lots of low quality on the end.
-  //     the bases were composed of T's and A's only.
-
-  //log.add("CHIMER?  floc=%d rloc=%d  cov=%d\n",
-  //        floc, rloc, fcov);
-
-  return;
-}
-
-
-
-
-void
 mertrimComputation::dump(char *label) {
   char    *logLine = new char [10 * seqLen];
   uint32   logPos = 0;
@@ -1914,9 +1806,6 @@ mertrimWorker(void *G, void *T, void *S) {
     s->analyze();
     s->attemptTrimming(g->endTrimQV);
   }
-
-  //  SKIPPING until the heuristics are worked out.
-  //s->analyzeChimer();
 
   if (VERBOSE)
     s->dump("FINAL");
@@ -2308,7 +2197,39 @@ main(int argc, char **argv) {
     err++;
 
   if (err) {
-    fprintf(stderr, "usage: %s -g gkpStore -m merSize -mc merCountsFile [-v]\n", argv[0]);
+    fprintf(stderr, "usage: %s ...\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -F reads.fastq       input reads\n");
+    fprintf(stderr, "  -o reads.fastq       output reads\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -m ms                mer size\n");
+    fprintf(stderr, "  -mc counts           kmer database (in 'counts.mcdat' and 'counts.mcidx')\n");
+    fprintf(stderr, "  -enablecache         dump the final kmer data to 'counts.merTrimDB'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -coverage C\n");
+    fprintf(stderr, "  -correct\n");
+    fprintf(stderr, "  -evidence\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -mC adapter.fasta    screen for these adapter sequences\n");
+    fprintf(stderr, "  -mCillumina          screen for common Illumina adapter sequences\n");
+    fprintf(stderr, "  -mC454               screen for common 454 adapter and linker sequences\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -endtrim             (undocumented)\n");
+    fprintf(stderr, "  -notrimming          do only correction, no trimming\n");
+    fprintf(stderr, "  -discardzero         trash the whole read if coverage drops to zero in the middle\n");
+    fprintf(stderr, "  -discardimperfect    trash the whole read if coverage isn't perfect\n");
+    fprintf(stderr, "  -notrimimperfect     do NOT trim off ends that make the coverage imperfect\n");
+    fprintf(stderr, "  -endtrimqv Q         trim ends of reads if they are below qv Q (Sanger encoded; default '2')\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -NM                  do NOT correct mismatch errors\n");
+    fprintf(stderr, "  -NI                  do NOT correct indel errors\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -t T                 use T CPU cores\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -v                   report progress to stderr\n");
+    fprintf(stderr, "  -V                   report trimming evidence to stdout (more -V -> more reports)\n");
+    fprintf(stderr, "\n");
+
     exit(1);
   }
 
