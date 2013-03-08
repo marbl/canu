@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: utgcnsfix.C,v 1.7 2012-07-26 15:11:06 brianwalenz Exp $";
+const char *mainid = "$Id: utgcnsfix.C,v 1.8 2013-03-08 19:25:43 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "MultiAlign.h"
@@ -42,6 +42,7 @@ main (int argc, char **argv) {
   bool   showResult = false;
   bool   doUpdate   = true;
   bool   doNothing  = false;
+  bool   doCache    = false;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
@@ -80,6 +81,9 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE_MULTIALIGN_OUTPUT++;
 
+    } else if (strcmp(argv[arg], "-l") == 0) {
+      doCache = 1;
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -97,11 +101,18 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -n           Don't update tigStore with any fixes.\n");
     fprintf(stderr, "    -N           Don't do anything, just report which unitigs are broken.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -l           Load the entire gkpStore into memory (faster, but more memory)\n");
     exit(1);
   }
 
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
   tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, doUpdate, FALSE, FALSE);
+
+  if (doCache) {
+    fprintf(stderr, "Loading all reads into memory.\n");
+    gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);
+  }
 
   bgnID = 0;
   endID = tigStore->numUnitigs();
