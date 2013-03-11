@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.19 2012-07-26 20:47:05 brianwalenz Exp $";
+static const char *rcsid = "$Id: classifyMates-globalData.C,v 1.20 2013-03-11 16:12:40 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -662,6 +662,11 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
   AS_IID            minFragIID = 0;
   AS_IID            maxFragIID = numFrags + 1;
 
+  uint32  nCont = 0;
+  uint32  nEnd5 = 0;
+  uint32  nEnd3 = 0;
+  uint32  nSpur = 0;
+
   resetOverlapStoreRange(ovlStore, 0, minFragIID, maxFragIID);
 
   ovlLen = AS_OVS_readOverlapsFromStore(ovlStore, ovl, ovlMax, AS_OVS_TYPE_OVL);
@@ -677,8 +682,24 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
     for (uint32 i=0; i<ovlLen; i++) {
       assert(curFragIID == ovl[i].a_iid);
 
-      if ((ovl[i].dat.ovl.orig_erate    > maxError) ||
-          ((fi[ovl[i].a_iid].isBackbone == false) && (fi[ovl[i].a_iid].doSearch   == false)) ||   //  Don't care about a.
+      if (ovl[i].dat.ovl.orig_erate > maxError) {
+        numUU++;
+        continue;
+      }
+
+#ifndef COVERED_LATE
+      if (fi[ovl[i].a_iid].doSearch   == true) {
+        bool   cn = AS_OVS_overlapAIsContained(ovl[i]);
+        bool   d5 = AS_OVS_overlapAEndIs5prime(ovl[i]);
+        bool   d3 = AS_OVS_overlapAEndIs3prime(ovl[i]);
+
+        fi[ovl[i].a_iid].contained   |= cn;
+        fi[ovl[i].a_iid].end5covered |= d5;
+        fi[ovl[i].a_iid].end3covered |= d3;
+      }
+#endif
+
+      if (((fi[ovl[i].a_iid].isBackbone == false) && (fi[ovl[i].a_iid].doSearch   == false)) ||   //  Don't care about a.
           ((fi[ovl[i].b_iid].isBackbone == false) && (fi[ovl[i].b_iid].doSearch   == false)) ||   //  Don't care about b.
           ((fi[ovl[i].a_iid].isBackbone == false) &&
            (fi[ovl[i].a_iid].doSearch   == true)  &&
@@ -696,6 +717,22 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
         ovl[c] = ovl[i];
       c++;
     }
+
+
+
+    if (fi[ovl[0].a_iid].contained)     nCont++;
+    if (fi[ovl[0].a_iid].end5covered)   nEnd5++;
+    if (fi[ovl[0].a_iid].end3covered)   nEnd3++;
+
+    if ((fi[ovl[0].a_iid].contained == false) &&
+        ((fi[ovl[0].a_iid].end5covered == false) || (fi[ovl[0].a_iid].end3covered == false)))
+      nSpur++;
+
+    if ((ovl[0].a_iid % 10000000) == 0)
+      fprintf(stderr, "COVERED: contained "F_U32" end5 "F_U32" end3 "F_U32" spur "F_U32"\n",
+              nCont, nEnd5, nEnd3, nSpur);
+
+
 
     numTT  += ovlLen;
     ovlLen  = c;
@@ -717,6 +754,21 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
       bool   d3 = AS_OVS_overlapAEndIs3prime(ovl[i]);
       bool   cr = AS_OVS_overlapAIsContainer(ovl[i]);
 
+      //  Remember which end this overlap covered.  If contained, both ends are covered.  Previous
+      //  to v1.20, this was only done if the overlap was saved -- if the overlap was
+      //  backbone-backbone or target-backbone.  It excluded target-target overlaps.
+      //
+      //  Target-target overlaps are now included.  We just want to find ends that are covered by
+      //  real sequence.  If the real sequence is to a read with a junction, that's still real
+      //  sequence.  The chance of having a concordant junction overlap is small -- and in any case,
+      //  the junction detector will detect it.
+      //
+#ifdef COVERED_LATE
+      fi[ovl[i].a_iid].contained   |= cn;
+      fi[ovl[i].a_iid].end5covered |= d5;
+      fi[ovl[i].a_iid].end3covered |= d3;
+#endif
+
       ovlBB[i] = false;
       ovlTG[i] = false;
 
@@ -730,8 +782,8 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
             ((d3) && (tgDist->doveDist3 <= fb -  bh)))
           ovlTG[i] = true;
 
-      //  Overlaps from backbone to backbone are kept if they are dovetail and long.
-      //  Documentation calls these "BB (backbone)"
+      //  Overlaps from backbone to backbone are kept if they are dovetail and long.  Documentation
+      //  calls these "BB (backbone)"
       //
       if ((fi[ovl[i].a_iid].isBackbone == true) && (fi[ovl[i].b_iid].isBackbone == true))
         if (((d5) && (bbDist->doveDist5 <= fb - -ah)) ||
@@ -739,15 +791,14 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
           ovlBB[i] = true;
 
       //  Overlaps from a search A-fragment to a backbone B-fragment are kept if a is contained, or
-      //  the dovetail overlap is long.  These are used to initiate the search.
-      //  Documentation calls these "TB (backbone)"
+      //  the dovetail overlap is long.  These are used to initiate the search.  Documentation calls
+      //  these "TB (backbone)"
       //
       if ((fi[ovl[i].a_iid].doSearch   == true) && (fi[ovl[i].b_iid].isBackbone == true))
         if ((cn) ||
             ((d5) && (bbDist->doveDist5 <= fb - -ah)) ||
             ((d3) && (bbDist->doveDist3 <= fb -  bh)))
           ovlBB[i] = true;
-
 
       //  Save or discard the overlap.  A fragment can be both backbone and search, and thus we are
       //  allowed to save the overlap twice.
@@ -760,16 +811,6 @@ cmGlobalData::loadOverlaps(char  *ovlStoreName,
 
       if (ovlTG[i] == true)
         tgLen[ovl[i].a_iid]++;
-
-
-      //  Remember which end this overlap covered.  If contained, both ends are covered.  Note that if
-      //  we don't care about this overlap, the a_iid of the overlap is reset to zero, which isn't a
-      //  fragment (so we don't actually remember anything).
-      //
-      fi[ovl[i].a_iid].contained   |= cn;
-      fi[ovl[i].a_iid].end5covered |= d5;
-      fi[ovl[i].a_iid].end3covered |= d3;
-
     }  //  Over all overlaps
 
     //  If not enough space in oiStorage, get more space.
