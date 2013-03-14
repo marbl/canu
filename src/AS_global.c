@@ -19,9 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.23 2012-05-29 11:01:37 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.24 2013-03-14 06:24:13 brianwalenz Exp $";
 
 #include "AS_global.h"
+
+#include "AS_UTL_stackTrace.h"
 
 #ifdef X86_GCC_LINUX
 #include <fpu_control.h>
@@ -94,6 +96,10 @@ AS_configure(int argc, char **argv) {
 
   __gnu_parallel::_Settings::set(s);
 #endif
+
+  //  Install a signal handler to catch seg faults and errors.
+
+  AS_UTL_installCrashCatcher();
 
   //
   //  Default values
