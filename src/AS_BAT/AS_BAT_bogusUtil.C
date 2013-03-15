@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.12 2011-08-15 06:11:42 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.13 2013-03-15 19:42:17 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -109,11 +109,15 @@ loadNucmer(char                       *nucmerName,
   fgets(inLine, 1024, inFile);
   chomp(inLine);
 
+  //  If W[2][0] == '|' use the numbers below.
+  //  Otherwise, assume -T tab-delimited output which removes the |'s
+
   while (!feof(inFile)) {
     splitToWords     W(inLine);
     genomeAlignment  A;
-    string           fID = W[12];
-    string           gID = W[11];
+    bool             isTab = (W[2][0] != '|');
+    string           fID = W[(isTab) ? 8 : 12];
+    string           gID = W[(isTab) ? 7 : 11];
 
     if (IIDmap.find(fID) == IIDmap.end()) {
       IIDname.push_back(fID);
@@ -123,21 +127,21 @@ loadNucmer(char                       *nucmerName,
     //  Unlike snapper, these are already in base-based coords.
 
     A.frgIID    = IIDmap[fID];
-    A.frgBgn    = W(3);
-    A.frgEnd    = W(4);
+    A.frgBgn    = W((isTab) ? 2 : 3);
+    A.frgEnd    = W((isTab) ? 3 : 4);
     A.genIID    = refMap[gID];
     A.genBgn    = W(0);
     A.genEnd    = W(1);
     A.chnBgn    = refList[A.genIID].rschnBgn + A.genBgn;
     A.chnEnd    = refList[A.genIID].rschnBgn + A.genEnd;
-    A.identity  = atof(W[9]);
+    A.identity  = atof(W[(isTab) ? 6 : 9]);
     A.isReverse = false;
     A.isSpanned = false;
     A.isRepeat  = true;
 
     if (A.frgBgn > A.frgEnd) {
-      A.frgBgn    = W(4);
-      A.frgEnd    = W(3);
+      A.frgBgn    = W((isTab) ? 3 : 4);
+      A.frgEnd    = W((isTab) ? 2 : 3);
       A.isReverse = true;
     }
 
