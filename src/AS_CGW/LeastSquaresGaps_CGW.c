@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.75 2012-11-15 03:47:47 brianwalenz Exp $";
+static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.76 2013-03-15 19:39:17 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -1416,35 +1416,44 @@ AdjustNegativeVariances(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
   CIScaffoldTIterator      CIs;
   ChunkInstanceT          *CI;
 
+  //  Search for negative (or zero) variance.  Reset those to be exactly zero.  If the position is
+  //  not the origin, this invalid variance will trigger a recompute.  If it is the origin, the
+  //  variance must be zero.
+  //
+  //  Important side effect!  Negative variance at the origin is reset.  This occurs when (but not
+  //  only) contigs at the start of a scaffold fail to merge.
+
+  bool   negFound = false;
+
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
-
-  bool                       zeroFound = false;
-
   while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
-    if (((CI->offsetAEnd.variance <= 0.0) && (CI->offsetAEnd.mean != 0.0)) ||
-        ((CI->offsetBEnd.variance <= 0.0) && (CI->offsetBEnd.mean != 0.0))) {
-      zeroFound = true;
-      break;
+
+    if (CI->offsetAEnd.variance <= 0.0) {
+      CI->offsetAEnd.variance = 0.0;
+
+      if (CI->offsetAEnd.mean > 0.0)
+        negFound = true;
+    }
+
+    if (CI->offsetBEnd.variance <= 0.0) {
+      CI->offsetBEnd.variance = 0.0;
+
+      if (CI->offsetBEnd.mean > 0.0)
+        negFound = true;
     }
   }
 
-  if (zeroFound == false)
+  if (negFound == false)
     return(false);
 
   //dumpScaffoldContigPositions(graph, scaffold, "AdjVar(pre)--");
 
-  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
+  //  Build a list of the positions, so we can sort.
 
   vector<LengthT *>          positions;
 
+  InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
   while (NULL != (CI = NextCIScaffoldTIterator(&CIs))) {
-
-    if (CI->offsetAEnd.variance <= 0.0)
-      CI->offsetAEnd.variance = 0.0;
-
-    if (CI->offsetBEnd.variance <= 0.0)
-      CI->offsetBEnd.variance = 0.0;
-
     positions.push_back(&CI->offsetAEnd);
     positions.push_back(&CI->offsetBEnd);
   }
