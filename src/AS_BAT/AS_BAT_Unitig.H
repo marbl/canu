@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.7 2012-07-30 01:21:01 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.8 2013-03-18 15:11:05 brianwalenz Exp $";
 
 #include "AS_BAT_Datatypes.H"
 
@@ -185,9 +185,19 @@ public:
     uint32  idx = i / _blockSize;
     uint32  pos = i % _blockSize;
 
+#ifdef CHECK_UNITIG_ARRAY_INDEXING
+    if (((i    >= _totalUnitigs)) ||
+        ((idx  >= _numBlocks)) ||
+        (((pos >= _blockNext) && (idx >= _numBlocks - 1)))) {
+      fprintf(stderr, "UnitigVector::operator[]()--  i="F_U32" with totalUnitigs="F_U64"\n", i, _totalUnitigs);
+      fprintf(stderr, "UnitigVector::operator[]()--  blockSize="F_U64"\n", _blockSize);
+      fprintf(stderr, "UnitigVector::operator[]()--  idx="F_U32" numBlocks="F_U64"\n", idx, _numBlocks);
+      fprintf(stderr, "UnitigVector::operator[]()--  pos="F_U32" blockNext="F_U64"\n", pos, _blockNext);
+    }
     assert(i    < _totalUnitigs);
     assert((idx < _numBlocks));
     assert((pos < _blockNext) || (idx < _numBlocks - 1));
+#endif
 
     return(_blocks[idx][pos]);
   };
