@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSimulate.C,v 1.19 2012-07-09 05:59:22 brianwalenz Exp $";
+const char *mainid = "$Id: fastqSimulate.C,v 1.20 2013-03-18 15:12:24 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,9 +35,13 @@ vector<int32> seqStartPositions;
 
 static char revComp[256];
 static char errorBase[256][3];
+static char insertBase[4];
 static char validBase[256];
 
-double readErrorRate = 0.01;  //  Fraction error
+double readMismatchRate = 0.01;  //  Fraction mismatch error
+double readInsertRate   = 0.01;  //  Fraction insertion error
+double readDeleteRate   = 0.01;  //  Fraction deletion error
+
 bool   allowGaps     = false;
 
 const uint32 mpJunctionsNone   = 0;
@@ -104,6 +108,44 @@ findSequenceIndex(int32 pos) {
 }
 
 
+uint64 nNoChange = 0;
+uint64 nMismatch = 0;
+uint64 nInsert   = 0;
+uint64 nDelete   = 0;
+
+void
+makeSequenceError(char   *s1,
+                  char   *q1,
+                  int32  &p) {
+  double   r = drand48();
+
+  if (r < readMismatchRate) {
+    s1[p] = errorBase[s1[p]][randomUniform(0, 3)];
+    q1[p] = (validBase[s1[p]]) ? QV_BASE + 8 : QV_BASE + 2;
+    nMismatch++;
+    return;
+  }
+  r -= readMismatchRate;
+
+  if (r < readInsertRate) {
+    p++;
+    s1[p] = insertBase[randomUniform(0, 4)];
+    q1[p] = (validBase[s1[p]]) ? QV_BASE + 4 : QV_BASE + 2;
+    nInsert++;
+    return;
+  }
+  r -= readInsertRate;
+
+  if (r < readDeleteRate) {
+    p--;
+    nDelete++;
+    return;
+  }
+  r -= readDeleteRate;
+
+  nNoChange++;
+}
+
 
 void
 makeSequences(char    *frag,
@@ -119,12 +161,17 @@ makeSequences(char    *frag,
     s1[p] = frag[i];
     q1[p] = (validBase[s1[p]]) ? QV_BASE + 39 : QV_BASE + 2;
 
-    if (drand48() < readErrorRate) {
-      s1[p] = errorBase[s1[p]][randomUniform(0, 3)];
-      q1[p] = (validBase[s1[p]]) ? QV_BASE + 8 : QV_BASE + 2;
-    }
+    //  Lots of deletions can cause i to exceed the bounds of frag.
+    //  If that happens, we just end the read early.
+
+    makeSequenceError(s1, q1, p);
 
     assert(s1[p] != '*');
+
+    if (s1[p] == 0) {
+      fprintf(stderr, "BREAK\n");
+      break;
+    }
   }
 
   s1[readLen] = 0;
@@ -143,10 +190,7 @@ makeSequences(char    *frag,
   for (int32 p=0; p<readLen; p++) {
     q2[p] = (validBase[s2[p]]) ? QV_BASE + 39 : QV_BASE + 2;
 
-    if (drand48() < readErrorRate) {
-      s2[p] = errorBase[s2[p]][randomUniform(0, 3)];
-      q2[p] = (validBase[s2[p]]) ? QV_BASE + 8 : QV_BASE + 2;
-    }
+    makeSequenceError(s2, q2, p);
 
     assert(s2[p] != '*');
   }
@@ -706,8 +750,14 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-x") == 0) {
       readCoverage = atof(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-e") == 0) {
-      readErrorRate = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-em") == 0) {
+      readMismatchRate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-ei") == 0) {
+      readInsertRate = atof(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-ed") == 0) {
+      readDeleteRate = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-allowgaps") == 0) {
       allowGaps = true;
@@ -778,7 +828,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -l len          Create reads of length 'len' bases.\n");
     fprintf(stderr, "  -n n            Create 'n' reads (for -se) or 'n' pairs of reads (for -pe and -mp).\n");
     fprintf(stderr, "  -x cov          Set 'np' to create reads that sample the genome to 'cov' coverage.\n");
-    fprintf(stderr, "  -e err          Reads will contain fraction error 'e' (0.01 == 1%% error).\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -em err         Reads will contain fraction mismatch  error 'e' (0.01 == 1%% error).\n");
+    fprintf(stderr, "  -ei err         Reads will contain fraction insertion error 'e' (0.01 == 1%% error).\n");
+    fprintf(stderr, "  -ed err         Reads will contain fraction deletion  error 'e' (0.01 == 1%% error).\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -allowgaps      Allow pairs to span N regions in the reference.  By default, pairs\n");
     fprintf(stderr, "                  are not allowed to span a gap.  Reads are never allowed to cover N's.\n");
@@ -827,6 +880,20 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+  if ((readMismatchRate < 0.0) || (readMismatchRate > 1.0))
+    err++;
+  if ((readInsertRate < 0.0) || (readInsertRate > 1.0))
+    err++;
+  if ((readDeleteRate < 0.0) || (readDeleteRate > 1.0))
+    err++;
+  if (readMismatchRate + readInsertRate + readDeleteRate > 1.0)
+    err++;
+
+  if (err > 0) {
+    fprintf(stderr, "Invalid error rates.\n");
+    exit(1);
+  }
+
   //
   //  Initialize
   //
@@ -848,6 +915,13 @@ main(int argc, char **argv) {
   errorBase['G'][0] = 'A';  errorBase['G'][1] = 'C';  errorBase['G'][2] = 'T';
   errorBase['T'][0] = 'A';  errorBase['T'][1] = 'C';  errorBase['T'][2] = 'G';
   errorBase['N'][0] = 'N';  errorBase['N'][1] = 'N';  errorBase['N'][2] = 'N';
+
+  memset(insertBase, '*', sizeof(char) * 4);
+
+  insertBase[0] = 'A';
+  insertBase[1] = 'C';
+  insertBase[2] = 'G';
+  insertBase[3] = 'T';
 
   memset(validBase, 0, sizeof(char) * 256);
 
@@ -983,6 +1057,11 @@ main(int argc, char **argv) {
   }
 
   delete [] seq;
+
+fprintf(stderr, "nNoChange = "F_U64"\n", nNoChange);
+fprintf(stderr, "nMismatch = "F_U64"\n", nMismatch);
+fprintf(stderr, "nInsert   = "F_U64"\n", nInsert);
+fprintf(stderr, "nDelete   = "F_U64"\n", nDelete);
 
   exit(0);
 }
