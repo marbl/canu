@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.19 2011-12-15 19:54:30 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_ALN_bruteforcedp.c,v 1.20 2013-03-18 15:02:59 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_ALN_bruteforcedp.h"
@@ -84,8 +84,10 @@ alignLinker(char           *alignA,
 
   memset(a, 0, sizeof(alignLinker_s));
 
-  if ((lenA > AS_READ_MAX_NORMAL_LEN) || (lenB > AS_READ_MAX_NORMAL_LEN))
+  if ((lenA > AS_READ_MAX_NORMAL_LEN) || (lenB > AS_READ_MAX_NORMAL_LEN)) {
+    fprintf(stderr, "alignLinker()-- Reads too long.  %d or %d > %d\n", lenA, lenB, AS_READ_MAX_NORMAL_LEN);
     return;
+  }
 
   //  Definition of the box we want to do dynamic programming in.
   int32 ibgn = 1;
