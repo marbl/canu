@@ -111,6 +111,8 @@ sub setDefaults() {
     $global{"utgErrorRate"} = 0.25;
     $global{"utgErrorLimit"} = 6.5;
     $global{"ovlErrorRate"} = 0.25;
+    $global{"cnsErrorRate"} = 0.25;
+    $global{"cgwErrorRate"} = 0.25;
 	
     $global{"shortReads"} = undef;
     $global{"longReads"} = undef;
@@ -1032,7 +1034,6 @@ my $cleanup = getGlobal("cleanup");
 
 my $cmd = "";
 
-print "Running with working idrectory $wrk\n";
 if (! -e "$wrk/temp$libraryname") {
    runCommand("$wrk", "mkdir temp$libraryname");
    # generate the ca spec file, since we support additional options in the spec file, we need to strip those out before passing it to ca
