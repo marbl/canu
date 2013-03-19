@@ -119,6 +119,9 @@ ifeq ($(OSTYPE), FreeBSD)
     ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -rpath /usr/local/lib/gcc46
   endif
 
+  ARCH_CFLAGS  += -I/usr/local/include
+  ARCH_LDFLAGS += -L/usr/local/include -lunwind
+
   ifeq ($(BUILDDEBUG), 1)
     #  Inconveniently fix a problem where gcc46 doesn't work with gdb.
     CC  = gcc44
@@ -201,7 +204,7 @@ endif
 
 CFLAGS          += $(ARCH_CFLAGS)
 CXXFLAGS        += $(ARCH_CFLAGS) $(ARCH_CXXFLAGS)
-LDFLAGS         += $(ARCH_LDFLAGS)
+LDFLAGS         += $(ARCH_LDFLAGS) -rdynamic
 
 INC_IMPORT_DIRS += $(LOCAL_WORK)/src $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS)))
 INC_IMPORT_DIRS += $(ARCH_INC)
