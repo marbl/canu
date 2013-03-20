@@ -974,6 +974,12 @@ if (! -e "$BLASR/blasr") {
    }
 }
 
+my $blasrVersion = 1.2;
+if (-e "$BLASR/blasr") {
+   $blasrVersion = `$BLASR/blasr -version |tail -n 1`;
+   chomp $blasrVersion;
+}
+
 if (! -e "$BOWTIE/bowtie2-build") {
    # try to use path
    my $amosPath = `which bowtie2-build`;
@@ -988,7 +994,7 @@ if (! -e "$BOWTIE/bowtie2-build") {
    }
 }
 
-print STDERR "********* Starting correction...\n CA: $CA\nAMOS:$AMOS\nSMRTportal:$BLASR\nBowtie:$BOWTIE\n";
+print STDERR "********* Starting correction...\n CA: $CA\nAMOS:$AMOS\nSMRTportal:$BLASR ($blasrVersion)\nBowtie:$BOWTIE\n";
 print STDERR "******** Configuration Summary ********\n";
 foreach my $key (keys %global) {
 	if (length($key) < $TAB_SIZE) {
@@ -1281,6 +1287,11 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       my $blasrOpts = getGlobal("blasr");
       my $bowtieOpts = getGlobal("bowtie");
       my $suffix = "sam";
+
+      # SMRTportal 1.4 changed parameters so update our blasr options
+      if ($blasrVersion >= 1.4) {
+         $blasrOpts =~ s/-ignoreQuality//g;
+      }
    
       if (defined(getGlobal("samFOFN"))) {
          my $fofn = getGlobal("samFOFN");
