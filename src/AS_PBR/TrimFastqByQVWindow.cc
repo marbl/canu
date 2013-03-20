@@ -1,7 +1,11 @@
 #include "AS_UTL_fileIO.h"
+#include "AS_UTL_fasta.h"
+
 #include <iostream>
 #include <fstream>
 #include <vector>
+
+#define FASTA_LINE_LENGTH 60
 
 using namespace std;
 
@@ -33,8 +37,9 @@ static string readRecord(ifstream &file, string &header,
 }
 
 static void processRecord(string &header, string& fasta,
-        vector<int32> &qualValues, double qvCut, uint32 offset = 33) {
+        vector<int32> &qualValues, FILE *fastaOut, FILE *qualOut,  double qvCut, uint32 offset = 33) {
     string qual;
+    string qualCAEncoding;
     uint32 minSeqLen = 50;
 
     double maxSum = 0;
@@ -45,6 +50,7 @@ static void processRecord(string &header, string& fasta,
 
     for (size_t i = 0; i < qualValues.size(); i++) {
         qual += ((char) (qualValues[i] + offset));
+        qualCAEncoding += ((char) (qualValues[i] + '0'));
 
         if (currSum > 0) {
             currSum = currSum + ((double) qualValues[i] - qvCut);
@@ -61,6 +67,10 @@ static void processRecord(string &header, string& fasta,
     if (maxEndIndex - maxStartIndex < minSeqLen) {
         return;
     }
+
+   AS_UTL_writeFastA(fastaOut, (char *)fasta.substr(maxStartIndex, maxEndIndex - maxStartIndex + 1).c_str(), maxEndIndex - maxStartIndex + 1, FASTA_LINE_LENGTH, ">%s/"F_U32"_"F_U32"\n", (char *)header.c_str(), maxStartIndex, maxEndIndex);
+   AS_UTL_writeQVFastA(qualOut, (char *)qualCAEncoding.substr(maxStartIndex, maxEndIndex - maxStartIndex + 1).c_str(), maxEndIndex - maxStartIndex + 1, (FASTA_LINE_LENGTH/3), ">%s/"F_U32"_"F_U32"\n", (char *)header.c_str(), maxStartIndex, maxEndIndex);
+
     cout << "@" << header << "/" << maxStartIndex << "_" << maxEndIndex << endl;
     cout << fasta.substr(maxStartIndex, maxEndIndex - maxStartIndex + 1)
             << endl;
@@ -72,17 +82,19 @@ int main(int argc, char * argv[]) {
 
     bool debug = false;
     double qvCut = 59.5;
-    if (argc < 3) {
-        cerr << "Usage: " << argv[0] << " <fasta file> <0-60 PHRED qual file>"
+    if (argc < 5) {
+        cerr << "Usage: " << argv[0] << " <fasta file> <0-60 PHRED qual file> <fasta output> <qual output> [optional qv cutoff = " << qvCut << "]"
                 << endl;
         exit(1);
     }
-    if (argc > 4) {
-        qvCut = atof(argv[3]);
+    if (argc > 5) {
+        qvCut = atof(argv[5]);
     }
 
     ifstream fastaFile(argv[1], ifstream::in);
     ifstream qualFile(argv[2], ifstream::in);
+    FILE *fastaOut = fopen(argv[3], "w");
+    FILE *qualOut = fopen(argv[4], "w");
 
     string fasta;
     string qual;
@@ -98,11 +110,13 @@ int main(int argc, char * argv[]) {
             exit(1);
         }
 
-        processRecord(header, fasta, qualValues, qvCut);
+        processRecord(header, fasta, qualValues, fastaOut, qualOut, qvCut);
         qualValues.clear();
     }
 
     fastaFile.close();
     qualFile.close();
+    fclose(fastaOut);
+    fclose(qualOut);
 }
 

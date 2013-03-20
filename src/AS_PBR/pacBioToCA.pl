@@ -1288,8 +1288,9 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       my $bowtieOpts = getGlobal("bowtie");
       my $suffix = "sam";
 
+$blasrVersion="1.3.1.116174";
       # SMRTportal 1.4 changed parameters so update our blasr options
-      if ($blasrVersion >= 1.4) {
+      if ($blasrVersion >= 1.3.1.116174) {
          $blasrOpts =~ s/-ignoreQuality//g;
       }
    
@@ -1354,11 +1355,20 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
             # run with best limit set to kmer with a small (0.5-1% of the data)   
             my $ovlThreads = getGlobal("ovlThreads");
             runCommand("$wrk/temp$libraryname/1-overlapper", "$BLASR/sawriter long.sa long_reads.fasta");
+            open F, "> $wrk/temp$libraryname/1-overlapper/pickNBest.sh" or die ("can't open '$wrk/temp$libraryname/1-overlapper/pickNBest.sh");
+            print F "#!" . getGlobal("shell") ."\n";
+            print F getBinDirectoryShellCode();
+            print F "\n";
+
             if (-e "$BLASR/../../etc/setup.sh") {
-               runCommand("$wrk/temp$libraryname/1-overlapper", "source $BLASR/../../etc/setup.sh && $BLASR/blasr -sa long.sa correct_subset.fasta long_reads.fasta -nproc $ovlThreads -bestn $ovlThreshold $blasrOpts -sam -out subset.sam");
+               print F "source $BLASR/../../etc/setup.sh && $BLASR/blasr -sa long.sa correct_subset.fasta long_reads.fasta -nproc $ovlThreads -bestn $ovlThreshold $blasrOpts -sam -out subset.sa";
             } else {
-               runCommand("$wrk/temp$libraryname/1-overlapper", "$BLASR/blasr -sa long.sa correct_subset.fasta long_reads.fasta -nproc $ovlThreads -bestn $ovlThreshold $blasrOpts -sam -out subset.sam");
+               print F "$BLASR/blasr -sa long.sa correct_subset.fasta long_reads.fasta -nproc $ovlThreads -bestn $ovlThreshold $blasrOpts -sam -out subset.sam";
             }
+            close(F);
+            chmod 0755, "$wrk/temp$libraryname/1-overlapper/pickNBest.sh";
+            runCommand("$wrk/temp$libraryname/1-overlapper", "$wrk/temp$libraryname/1-overlapper/pickNBest.sh");
+
             runCommand("$wrk/temp$libraryname/1-overlapper", "cat subset.sam |grep -v \"@\" | awk '{print \$1}' |sort -T . |uniq -c |awk '{print \$1}' > subset.hist");
          
             # pick threshold as 2sd (95% of the bases)
@@ -1759,7 +1769,7 @@ runCommand("$wrk/temp$libraryname", "cp $asm.layout.err  $wrk/$libraryname.corre
 runCommand("$wrk/temp$libraryname", "cp $asm.layout.hist  $wrk/$libraryname.correction.hist");
 
 if (defined($longReads) && $longReads == 1) {
-   runCommand("$wrk", "$CA/trimFastqByQVWindow $wrk/$libraryname.fasta $wrk/$libraryname.qual > $wrk/$libraryname.fastq");
+   runCommand("$wrk", "$CA/trimFastqByQVWindow $wrk/temp$libraryname/corrected.fasta $wrk/temp$libraryname/corrected.qual $wrk/$libraryname.fasta $wrk/$libraryname.qual > $wrk/$libraryname.fastq");
    runCommand("$wrk", "$CA/fastqToCA -libraryname $libraryname -technology pacbio -type sanger -reads $wrk/$libraryname.fastq > $wrk/$libraryname.frg");
 } else {
    # should do trimming here

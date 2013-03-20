@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.10 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.11 2013-03-20 17:25:27 skoren Exp $";
 
 #include "AS_UTL_fasta.h"
 #include "AS_UTL_fileIO.h"
@@ -46,7 +46,7 @@ AS_UTL_writeFastA(FILE *f,
                   char *s, int sl, int bl,
                   char *h, ...) {
   va_list ap;
-  char   *o  = (char *)safe_malloc(sizeof(char) * (sl + sl / 70 + 2));
+  char   *o  = (char *)safe_malloc(sizeof(char) * (sl + sl / 60 + 2));
   int     si = 0;
   int     oi = 0;
 
@@ -75,7 +75,7 @@ AS_UTL_writeQVFastA(FILE *f,
                     char *q, int ql, int bl,
                     char *h, ...) {
   va_list ap;
-  char   *o  = (char *)safe_malloc(sizeof(char) * (3*ql + 3*ql / 70 + 2));
+  char   *o  = (char *)safe_malloc(sizeof(char) * (3*ql + 3*ql / 60 + 2));
   int     qi = 0;
   int     oi = 0;
 
