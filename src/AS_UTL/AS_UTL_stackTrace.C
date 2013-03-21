@@ -22,7 +22,7 @@
 #ifndef AS_UTL_STACKTRACE_H
 #define AS_UTL_STACKTRACE_H
 
-static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.1 2013-03-14 06:24:13 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.2 2013-03-21 02:50:43 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -32,7 +32,6 @@ static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.1 2
 //  Linux    g++ -rdynamic -g3 -o st1 st1.C
 //  FreeBSD  CC -o unwind unwind.C -I/usr/local/include -L/usr/local/lib -lunwind
 
-#include <alloca.h>
 #include <execinfo.h>  //  backtrace
 #include <signal.h>
 #include <stdio.h>
@@ -45,6 +44,46 @@ static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.1 2
 #define WRITE_STRING(S) write(2, S, strlen(S))
 
 
+void
+AS_UTL_envokeGDB(void) {
+
+  //  Not enabled; doesn't work on FreeBSD, not tested on Linux.
+
+#if 0
+  uint64   pid = getpid();
+  char     cmd[1024];
+
+  if (fork() != 0) {
+    //  Parent
+    sleep(10);
+    return;
+  }
+
+  //  Child
+
+  sprintf(cmd, "gdb66 -p "F_U64" < commands", pid);
+
+#if 0
+  FILE *gdb = popen(cmd, "w");
+
+  fputs("where\n", gdb);
+  fputs("list\n", gdb);
+  fputs("exit\n", gdb);
+
+  sleep(10);
+
+  pclose(gdb);
+#endif
+
+  system(cmd);
+
+  exit(0);
+#endif
+}
+
+
+
+
 #ifdef LIBUNWIND
 
 #include <libunwind.h>
@@ -53,16 +92,10 @@ void
 AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
 
   WRITE_STRING("\nFailed with '");
+  WRITE_STRING(strsignal(sig_num));
+  WRITE_STRING("'\n");
 
-#if 0
-  //  GNUisms below _NSIG And _sys_siglist
-  if ((sig_num < 0) || (sig_num >= _NSIG) || (_sys_siglist[sig_num] == NULL))
-    WRITE_STRING("Unknown sig_num");
-  else
-    WRITE_STRING (_sys_siglist[sig_num]);
-#endif
-
-  WRITE_STRING("(unknown)'\n\n");
+  WRITE_STRING("\nBacktrace (mangled):\n\n");
 
   unw_cursor_t   cursor;
   unw_context_t  uc;
@@ -85,11 +118,28 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
       else
         fprintf(stderr, "%02d <%s>  ip=%lx sp=%lx\n", depth, name, ip, sp);
     } else {
-      fprintf(stderr, "%02d <???>  ip=%lx sp=%lx\n", depth, name, ip, sp);
+      fprintf(stderr, "%02d <?>  ip=%lx sp=%lx\n", depth, ip, sp);
     }
 
     depth++;
   }
+
+  //WRITE_STRING("\nBacktrace (demangled):\n\n");
+
+  //WRITE_STRING("\nGDB:\n\n");
+  //AS_UTL_envokeGDB();
+
+  //  Pass the signal through, only so a core file can get generated.
+
+  struct sigaction sa;
+
+  sa.sa_handler = SIG_DFL;
+  sigemptyset (&sa.sa_mask);
+  sa.sa_flags = 0;
+
+  sigaction(sig_num, &sa, NULL);
+
+  raise(sig_num);
 }
 
 #elif defined(_GNU_SOURCE)
@@ -102,12 +152,7 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
   //  Report the signal we failed on, be careful to not allocate memory.
 
   WRITE_STRING("\nFailed with '");
-
-  if ((sig_num < 0) || (sig_num >= _NSIG) || (_sys_siglist[sig_num] == NULL))
-    WRITE_STRING("Unknown sig_num");
-  else
-    WRITE_STRING(_sys_siglist[sig_num]);
-
+  WRITE_STRING(strsignal(sig_num));
   WRITE_STRING("'\n");
 
   //  Dump a full backtrace, even including the signal handler frames, instead of not dumping anything.
@@ -170,6 +215,10 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
     }
   }
 
+  WRITE_STRING("\nGDB:\n\n");
+
+  AS_UTL_envokeGDB();
+
   WRITE_STRING("\n");
 
   //  Pass the signal through, only so a core file can get generated.
@@ -185,17 +234,19 @@ AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
   raise(sig_num);
 }
 
-#else
-
-void
-AS_UTL_catchCrash(int sig_num, siginfo_t *info, void *ctx) {
-}
-
 #endif
 
 
 void
 AS_UTL_installCrashCatcher(void) {
+
+#if (!defined(LIBUNWIND) && !defined(_GNU_SOURCE))
+
+  //  No handler, just get out of here.
+  return;
+
+#else
+
   struct sigaction sigact;
 
   sigact.sa_sigaction = AS_UTL_catchCrash;
@@ -203,11 +254,15 @@ AS_UTL_installCrashCatcher(void) {
 
   //  Don't especially care if these fail or not.
 
-  //sigaction(SIGINT,  &sigact, NULL);  //  02 - Interrupt
-  sigaction(SIGILL,  &sigact, NULL);  //  04 - Illegal instruction
-  sigaction(SIGFPE,  &sigact, NULL);  //  06 - Floating point exception
-  sigaction(SIGBUS,  &sigact, NULL);  //  10 - Bus error
-  sigaction(SIGSEGV, &sigact, NULL);  //  11 - Segmentation fault
+  //sigaction(SIGINT,  &sigact, NULL);  //  Interrupt
+
+  sigaction(SIGILL,  &sigact, NULL);  //  Illegal instruction
+  sigaction(SIGFPE,  &sigact, NULL);  //  Floating point exception
+  sigaction(SIGABRT, &sigact, NULL);  //  Abort - from assert
+  sigaction(SIGBUS,  &sigact, NULL);  //  Bus error
+  sigaction(SIGSEGV, &sigact, NULL);  //  Segmentation fault
+
+#endif
 }
 
 
