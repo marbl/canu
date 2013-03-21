@@ -1361,7 +1361,7 @@ $blasrVersion="1.3.1.116174";
             print F "\n";
 
             if (-e "$BLASR/../../etc/setup.sh") {
-               print F "source $BLASR/../../etc/setup.sh && $BLASR/blasr -sa long.sa correct_subset.fasta long_reads.fasta -nproc $ovlThreads -bestn $ovlThreshold $blasrOpts -sam -out subset.sa";
+               print F "source $BLASR/../../etc/setup.sh && $BLASR/blasr -sa long.sa correct_subset.fasta long_reads.fasta -nproc $ovlThreads -bestn $ovlThreshold $blasrOpts -sam -out subset.sam";
             } else {
                print F "$BLASR/blasr -sa long.sa correct_subset.fasta long_reads.fasta -nproc $ovlThreads -bestn $ovlThreshold $blasrOpts -sam -out subset.sam";
             }
