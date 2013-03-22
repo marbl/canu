@@ -153,7 +153,7 @@ while (scalar(@ARGV) > 0) {
         die "unknown option '$arg'.\n";
     }
 }
-if (!defined(@sgefiles) && !defined($xmlfile) && !defined(@libfiles) && !defined($frgfile)) {
+if (!@sgefiles && !defined($xmlfile) && !@libfiles && !defined($frgfile)) {
     print STDERR "usage: $0 [-sge xml*]                          //  All steps on SGE\n";
     print STDERR "       $0 [-xml xml*] [-lib xml*] [-frg xml*]  //  Each stage independently\n";
     print STDERR "\n";
@@ -173,9 +173,9 @@ my $tcat = "";
 #$tcat = "/home/bri/bin/osFreeBSD-amd64/tcat |" if (-x "/home/bri/bin/osFreeBSD-amd64/tcat");
 #$tcat = "/home/bri/bin/tcat.i386 |"            if (-x "/home/bri/bin/tcat.i386");
 
-runSGE(@sgefiles) if (defined(@sgefiles));
+runSGE(@sgefiles) if (@sgefiles);
 runXML($xmlfile)  if (defined($xmlfile));
-runLIB(@libfiles) if (defined(@libfiles));
+runLIB(@libfiles) if (@libfiles);
 runFRG($frgfile)  if (defined($frgfile) && ($forNewbler == 0));
 runNBL($frgfile)  if (defined($frgfile) && ($forNewbler == 1));
 
