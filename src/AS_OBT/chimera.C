@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: chimera.C,v 1.53 2013-03-08 18:51:27 brianwalenz Exp $";
+const char *mainid = "$Id: chimera.C,v 1.54 2013-03-26 16:20:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1567,9 +1567,9 @@ main(int argc, char **argv) {
   clear_t         *clear = readClearRanges(gkp);
 
 
-  libMean   = new uint32 [gkp->gkStore_getNumLibraries()];
-  libStdDev = new uint32 [gkp->gkStore_getNumLibraries()];
-  libOrient = new uint32 [gkp->gkStore_getNumLibraries()];
+  libMean   = new uint32 [gkp->gkStore_getNumLibraries() + 1];
+  libStdDev = new uint32 [gkp->gkStore_getNumLibraries() + 1];
+  libOrient = new uint32 [gkp->gkStore_getNumLibraries() + 1];
 
   for (uint32 i=0; i<gkp->gkStore_getNumLibraries() + 1; i++) {
     libMean[i]   = gkp->gkStore_getLibrary(i)->mean;
