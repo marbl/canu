@@ -605,16 +605,6 @@ print "The command I am running to alter is $acmd\n";
 			print STDERR "WARNING: Failed to reset hold '$sgePropHold', not supported on current grid environment.\n";
 		}
     }
-    
-    if (defined($sgePropHold)) {
-       if (defined($holdPropagateCommand) && defined($holdOption)) {
-          $holdOption =~ s/WAIT_TAG//g;
-          my $acmd = "$holdPropagateCommand $holdOption \"$prefix\" \"$sgePropHold\"";
-          system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
-       } else {
-          print STDERR "WARNING: Failed to reset hold '$sgePropHold', not supported on current grid environment.\n";
-       }
-    }
 }
 
 sub submitScript ($$$) {
@@ -956,7 +946,7 @@ if (! -e "$AMOS/bank-transact") {
 
    # if we really can't find it just give up
    if (! -e "$AMOS/bank-transact") {
-      die "AMOS binaries: bank-transact not found in $AMOS\n";
+      die "AMOS binaries: bank-transact not found in $ENV{PATH}. Please download it from http://amos.sf.net and add it to your path.\n";
    }
 }
 
@@ -970,7 +960,7 @@ if (! -e "$BLASR/blasr") {
 
    # if we really can't find it just give up
    if (! -e "$BLASR/blasr") {
-      die "BLASR binaries: blasr not found in $BLASR\n" if defined(getGlobal("blasr"));
+      die "BLASR binaries: blasr not found in $ENV{PATH}. Please download it from http://pacificbiosciences.github.com/DevNet/ and add it to your path.\n" if (defined(getGlobal("blasr")) || (defined(getGlobal("longReads")) && getGlobal("longReads") == 1));
    }
 }
 
