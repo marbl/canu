@@ -2,7 +2,7 @@
 #define EXISTDB_H
 
 //  Used by wgs-assembler, to determine if a rather serious bug was patched.
-#define EXISTDB_H_VERSION 1950
+#define EXISTDB_H_VERSION 1960
 
 #include "bio++.H"
 
@@ -58,11 +58,6 @@ public:
 
   bool        exists(u64bit mer);
   u64bit      count(u64bit mer);
-
-#if 0
-  bool        exists(u64bit b, u64bit c);
-  u64bit      count(u64bit b, u64bit c);
-#endif
 
 private:
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
@@ -148,19 +143,7 @@ private:
   u64bit     *_buckets;
   u64bit     *_counts;
 
-  //  Used by the streaming exists interface
-#if 0
-  u64bit      _es_bucket;
-  u64bit      _es_st;
-  u64bit      _es_ed;
-#endif
-
   void clear(void) {
-#if 0
-    _es_bucket = ~u64bitZERO;
-    _es_st     = 0;
-    _es_ed     = 0;
-#endif
   };
 };
 

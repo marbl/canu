@@ -137,7 +137,7 @@ existDB::exists(u64bit mer) {
 
 u64bit
 existDB::count(u64bit mer) {
-  u64bit c, h, st, ed, ct;
+  u64bit c, h, st, ed;
 
   if (_counts == 0L)
     return(0);
@@ -146,12 +146,10 @@ existDB::count(u64bit mer) {
     h  = HASH(mer) * _hshWidth;
     st = getDecodedValue(_hashTable, h,             _hshWidth);
     ed = getDecodedValue(_hashTable, h + _hshWidth, _hshWidth);
-    ct = st;
   } else {
     h  = HASH(mer);
     st = _hashTable[h];
     ed = _hashTable[h+1];
-    ct = st;
   }
 
   if (st == ed)
@@ -178,80 +176,7 @@ existDB::count(u64bit mer) {
 
  returncount:
   if (_compressedCounts)
-    return(getDecodedValue(_counts, ct * _cntWidth, _cntWidth));
+    return(getDecodedValue(_counts, st * _cntWidth, _cntWidth));
   else
-    return(_counts[ct]);
+    return(_counts[st]);
 }
-
-
-
-
-#if 0
-//  Special case used from inside the posDB.  Errrr, it _was_ used
-//  inside the posDB.
-//
-//  If:
-//    The existDB and posDB are built using the same hshWidth.
-//    We know the bucket and check we want to find.
-//    The checks are in increasing order.
-//  Then we can bypass a lot of the overhead of checking for existence.
-//
-bool
-existDB::exists(u64bit b, u64bit c) {
-
-  //  Are we in a new bucket?  Reset!
-  //
-  if (b != _es_bucket) {
-    _es_bucket = b;
-
-    if (_compressedHash) {
-      b      *= _hshWidth;
-      _es_st  = getDecodedValue(_hashTable, b,             _hshWidth);
-      _es_ed  = getDecodedValue(_hashTable, b + _hshWidth, _hshWidth);
-    } else {
-      _es_st  = _hashTable[b];
-      _es_ed  = _hashTable[b+1];
-    }
-
-    if (_compressedBucket) {
-      _es_st *= _chkWidth;
-      _es_ed *= _chkWidth;
-    }
-  }
-
-  //  If we're all done, return early.  Probably doesn't do much, just
-  //  skips the setup of a for loop.
-  //
-  if (_es_st == _es_ed)
-    return(false);
-
-#ifdef ES_SORTED
-  //  This would work great, except existDB isn't sorted.
-  if (_compressedBucket) {
-    for (; _es_st<_es_ed; _es_st += _chkWidth) {
-      if (getDecodedValue(_buckets, _es_st, _chkWidth) == c)
-        return(true);
-    }
-  } else {
-    for (; _es_st<_es_ed; _es_st++) {
-      if (_buckets[_es_st] == c)
-        return(true);
-    }
-  }
-#else
-  if (_compressedBucket) {
-    for (u64bit st=_es_st; st<_es_ed; st += _chkWidth) {
-      if (getDecodedValue(_buckets, st, _chkWidth) == c)
-        return(true);
-    }
-  } else {
-    for (u64bit st=_es_st; st<_es_ed; st++) {
-      if (_buckets[st] == c)
-        return(true);
-    }
-  }
-#endif
-
-  return(false);
-}
-#endif
