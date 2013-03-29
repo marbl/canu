@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphCGW_T.c,v 1.116 2012-11-15 02:17:45 brianwalenz Exp $";
+static char *rcsid = "$Id: GraphCGW_T.c,v 1.117 2013-03-29 13:07:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3203,6 +3203,14 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
           // grab scaffold
           scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph, fragContig->scaffoldID);
           extremeContig = GetGraphNode( ScaffoldGraph->ContigGraph, scaff->info.Scaffold.BEndCI);
+
+          //  We've seen one case where extremeContig was NULL.  Disabling the assert here
+          //  is a valid solution.
+
+          assert(extremeContig != NULL);
+          if (extremeContig == NULL)
+            continue;
+
           GetContigPositionInScaffold ( extremeContig, &contigLeftEnd, &contigRightEnd, &contigScaffoldOrientation);
 
           if ( fragLeftEnd + dorig->mu + CGW_CUTOFF * dorig->sigma > contigRightEnd) {
