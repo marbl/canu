@@ -36,19 +36,20 @@ public:
   //  Ensure that the string has at least 'moreSpace' available.
   //
   void     resize(u32bit moreSpace) {
-    if (_logLen + moreSpace >= _logMax) {
-      _logMax += _logMax + moreSpace + 1;
-      char *ll = new char [_logMax];
-      memcpy(ll, _log, sizeof(char) * _logLen);
-      delete [] _log;
-      _log = ll;
-    }
+    if (_logLen + moreSpace < _logMax)
+      return;
+
+    _logMax += _logMax + moreSpace + 1;
+    char *ll = new char [_logMax];
+    memcpy(ll, _log, sizeof(char) * _logLen);
+    delete [] _log;
+    _log = ll;
   };
 
 
-  //  Add a message to the log, assume the message is less than 8192
-  //  bytes.  Would be nice to parse the fmt string (and any args) but
-  //  that's a lot of work (and already done if you have vsnprintf.
+  //  Add a message to the log, assume the message is less than 8192 bytes.  Would be nice to parse
+  //  the fmt string (and any args) but that's a lot of work (and already done if you have
+  //  vsnprintf.
   //
   //  It warns if you overwrote memory.
   //
@@ -57,20 +58,23 @@ public:
 
     resize(_resize);
 
-    va_start(ap, fmt);
-
-    if (_toScreenToo)
+    if (_toScreenToo) {
+      va_start(ap, fmt);
       vfprintf(stderr, fmt, ap);
+      va_end(ap);
+    }
 
+    //  Reinit the ap, since it seems to get 'used up' if _toScreenToo is set.
+
+    va_start(ap, fmt);
     _logLen += vsprintf(_log + _logLen, fmt, ap);
-
     va_end(ap);
 
     if (_logLen > _logMax)
       fprintf(stderr,
               "logMsg::add()-- HEY!  I wrote "u32bitFMT" bytes beyond the end of the buffer!\n"
-              "logMsg::add()-- This program will probably crash soon....\n",
-              _logLen - _logMax);
+              "logMsg::add()-- This program will probably crash soon....\n\n%s\n\n",
+              _logLen - _logMax, _log);
   };
 
 
