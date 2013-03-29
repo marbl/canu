@@ -6,9 +6,9 @@
 #define GAPB             2
 #define STOP             3
 
-#define MATCHSCORE       3
-#define GAPSCORE        -2
-#define MISMATCHSCORE   -2
+#define MATCHSCORE       2
+#define GAPSCORE        -3
+#define MISMATCHSCORE   -1
 
 
 void
@@ -189,6 +189,8 @@ dpMatrix::dpAlign(char     *stringA,  int lenA,
     }
   }
 
+  //fprintf(stdout, "SCORE %d at %d,%d\n", scoreMax - (1 << 29), endI, endJ);
+
   int  alignLen  = 0;
   int  matches   = 0;
   int  terminate = 0;
@@ -207,6 +209,7 @@ dpMatrix::dpAlign(char     *stringA,  int lenA,
           alignB[alignLen] = tolower(alignB[alignLen]);
           matches++;
         } else {
+          //fprintf(stdout, "MIS  at %d\n", alignLen);
           alignA[alignLen] = toupper(alignA[alignLen]);
           alignB[alignLen] = toupper(alignB[alignLen]);
         }
@@ -216,12 +219,14 @@ dpMatrix::dpAlign(char     *stringA,  int lenA,
         alignLen++;
         break;
       case GAPA:
+        //fprintf(stdout, "GAPA at %d\n", alignLen);
         alignA[alignLen] = '-';
         alignB[alignLen] = stringB[curJ-1];
         curJ--;
         alignLen++;
         break;
       case GAPB:
+        //fprintf(stdout, "GAPB at %d\n", alignLen);
         alignA[alignLen] = stringA[curI-1];
         alignB[alignLen] = '-';
         curI--;
