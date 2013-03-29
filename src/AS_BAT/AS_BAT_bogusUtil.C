@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.13 2013-03-15 19:42:17 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.14 2013-03-29 13:03:42 brianwalenz Exp $";
 
 #include "AS_BAT_bogusUtil.H"
 
@@ -189,7 +189,7 @@ loadSnapper(char                       *snapperName,
     string           fID = W[0];
     string           gID = W[5];
 
-    if (strncmp(inLine, "cDNAid", 6) == 0)
+    if ((W[1][0] < '0') || (W[1][0] > '9'))
       //  Skip header lines.
       goto nextSnapperLine;
 
