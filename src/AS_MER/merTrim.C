@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.40 2013-03-08 19:23:35 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.41 2013-03-29 13:14:59 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -42,9 +42,9 @@ const char *mainid = "$Id: merTrim.C,v 1.40 2013-03-08 19:23:35 brianwalenz Exp 
 
 //  There is a serious bug in storing the kmer count in the existDB that merTrim 1.40 exposes.  kmer
 //  must be at least r1950 to fix the bug.
-#if !defined(EXISTDB_H_VERSION) || (EXISTDB_H_VERSION < 1950)
-#error kmer needs to be updated to at least r1950
-#error note that the kmer svn url changed in mid December 2012, the old url does not have r1950
+#if !defined(EXISTDB_H_VERSION) || (EXISTDB_H_VERSION < 1960)
+#error kmer needs to be updated to at least r1960
+#error note that the kmer svn url changed in mid December 2012, the old url does not have r1960
 #endif
 
 uint32  VERBOSE = 0;
@@ -67,6 +67,8 @@ public:
     gkpPath                   = 0L;
     fqInputPath               = 0L;
     fqOutputPath              = 0L;
+
+    fqVerifyPath              = 0L;
 
     merSize                   = 22;
 
@@ -115,6 +117,7 @@ public:
 
     fqInput                   = NULL;
     fqOutput                  = NULL;
+    fqVerify                  = NULL;
     fqLog                     = NULL;
 
     genomicDB                 = NULL;
@@ -135,6 +138,8 @@ public:
       fclose(fqInput);
     if (fqOutput)
       fclose(fqOutput);
+    if (fqVerify)
+      fclose(fqVerify);
     if (fqLog)
       fclose(fqLog);
 
@@ -190,6 +195,12 @@ public:
     fqOutput = fopen(fqOutputPath, "w");
     if (errno)
       fprintf(stderr, "Failed to open output file '%s': %s\n", fqOutputPath, strerror(errno)), exit(1);
+
+    errno = 0;
+    if (fqVerifyPath)
+      fqVerify = fopen(fqVerifyPath, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open verify file '%s': %s\n", fqVerifyPath, strerror(errno)), exit(1);
 
     char fqName[FILENAME_MAX];
 
@@ -297,6 +308,8 @@ public:
   char         *fqInputPath;
   char         *fqOutputPath;
 
+  char         *fqVerifyPath;
+
   uint32        merSize;
 
   char         *merCountsFile;
@@ -343,6 +356,7 @@ public:
 
   FILE         *fqInput;
   FILE         *fqOutput;
+  FILE         *fqVerify;
   FILE         *fqLog;
 
   existDB      *genomicDB;
@@ -376,7 +390,7 @@ public:
 
 class mertrimComputation {
 public:
-  mertrimComputation() {
+  mertrimComputation() : log(false, 131072) {
     readName   = NULL;
 
     origSeq    = NULL;
@@ -384,6 +398,10 @@ public:
     corrSeq    = NULL;
     corrQlt    = NULL;
     seqMap     = NULL;
+
+    verifyName = NULL;
+    verifySeq  = NULL;
+    verifyErr   = NULL;
 
     rMS        = NULL;
 
@@ -400,6 +418,11 @@ public:
     delete [] origQlt;
     delete [] corrSeq;
     delete [] corrQlt;
+
+    delete [] verifyName;
+    delete [] verifySeq;
+    delete [] verifyErr;
+
     delete [] seqMap;
 
     delete    rMS;
@@ -424,6 +447,10 @@ public:
     origQlt  = new char   [allocLen];
     corrSeq  = new char   [allocLen];
     corrQlt  = new char   [allocLen];
+
+    verifyName = NULL;
+    verifySeq  = NULL;
+    verifyErr  = NULL;
 
     seqMap   = new uint32 [allocLen];
 
@@ -488,16 +515,18 @@ public:
     allocLen = AS_READ_MAX_NORMAL_LEN + AS_READ_MAX_NORMAL_LEN + 1;  //  Used for seq/qlt storage only
     allocLen = 65536;
 
-    log.setResize(allocLen);
+    readName   = new char   [1024];
 
-    readName = new char   [1024];
+    origSeq    = new char   [allocLen];
+    origQlt    = new char   [allocLen];
+    corrSeq    = new char   [allocLen];
+    corrQlt    = new char   [allocLen];
 
-    origSeq  = new char   [allocLen];
-    origQlt  = new char   [allocLen];
-    corrSeq  = new char   [allocLen];
-    corrQlt  = new char   [allocLen];
+    verifyName = NULL;  //  probably redundant
+    verifySeq  = NULL;
+    verifyErr  = NULL;
 
-    seqMap   = new uint32 [allocLen];
+    seqMap     = new uint32 [allocLen];
 
     nMersExpected = 0;
     nMersTested   = 0;
@@ -511,6 +540,28 @@ public:
     corrected  = NULL;
 
     eDB        = NULL;
+
+    //  Load the answer, if supplied (uses the real read storage space as temporary)
+
+    if (g->fqVerify) {
+      verifyName = new char   [1024];
+      verifySeq  = new char   [allocLen];
+      verifyErr  = new char   [allocLen];
+
+      memset(verifyName, 1024,     0);
+      memset(verifySeq,  allocLen, 0);  //  Needed, for verified reads shorter than real reads
+      memset(verifyErr,  allocLen, '-');
+
+      fgets(verifyName, 1024,     g->fqVerify);
+      fgets(verifySeq,  allocLen, g->fqVerify);
+      fgets(origQlt,    allocLen, g->fqVerify);  //  qv name line, ignored
+      fgets(origQlt,    allocLen, g->fqVerify);
+
+      chomp(verifyName);
+      chomp(verifySeq);
+    }
+
+    //  Load a read to correct
 
     fgets(readName, 1024,     g->fqInput);
     fgets(origSeq,  allocLen, g->fqInput);
@@ -643,6 +694,10 @@ public:
   char      *origQlt;
   char      *corrSeq;
   char      *corrQlt;
+
+  char      *verifyName;
+  char      *verifySeq;
+  char      *verifyErr;
 
   uint32    *seqMap;
 
@@ -1682,14 +1737,16 @@ mertrimComputation::attemptTrimming(char endTrimQV) {
 
 void
 mertrimComputation::dump(char *label) {
-  char    *logLine = new char [10 * seqLen];
+  char    *logLine = new char [4 * seqLen];
   uint32   logPos = 0;
+  uint32   bogus  = (clrEnd == 0) ? 0 : UINT32_MAX;
 
-  log.add("%s read %d len %d (trim %d-%d)\n", label, readIID, seqLen, clrBgn, clrEnd);
+  log.add("%s read %d %s len %d (trim %d-%d)\n", label, readIID, readName, seqLen, clrBgn, clrEnd);
 
   logPos = 0;
   for (uint32 i=0; origSeq[i]; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }  //  read deleted
     logLine[logPos++] = origSeq[i];
     if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
@@ -1699,15 +1756,49 @@ mertrimComputation::dump(char *label) {
   logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
     logLine[logPos++] = corrSeq[i];
     if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
   strcpy(logLine + logPos, " (SEQ)\n");
   log.add(logLine);
 
+  if (corrSeq && verifySeq) {
+    uint32 i=0;
+
+    for (; (i<seqLen) && (corrSeq[i] != 0) && (verifySeq[i] != 0); i++)
+      verifyErr[i] = (corrSeq[i] == verifySeq[i]) ? '.' : '!';
+
+    for (; i<seqLen; i++) {
+      verifyErr[i] = '-';
+      verifySeq[i] = '-';
+    }
+  }
+
   logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
+    logLine[logPos++] = (verifyErr) ? verifyErr[i] : ' ';
+    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
+  }
+  strcpy(logLine + logPos, " (VAL)\n");
+  log.add(logLine);
+
+  logPos = 0;
+  for (uint32 i=0; i<seqLen; i++) {
+    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
+    logLine[logPos++] = (verifySeq && verifySeq[0]) ? verifySeq[i] : '-';
+    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
+  }
+  strcpy(logLine + logPos, " (VAL)\n");
+  log.add(logLine);
+
+  logPos = 0;
+  for (uint32 i=0; i<seqLen; i++) {
+    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
     logLine[logPos++] = corrQlt[i];
     if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
@@ -1717,6 +1808,7 @@ mertrimComputation::dump(char *label) {
   logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
     logLine[logPos++] = (coverage) ? coverage[i] + 'A' : 'A';
     if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
@@ -1726,6 +1818,7 @@ mertrimComputation::dump(char *label) {
   logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
     logLine[logPos++] = (corrected && corrected[i]) ? corrected[i] : ' ';
     if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
@@ -1735,6 +1828,7 @@ mertrimComputation::dump(char *label) {
   logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
     logLine[logPos++] = (disconnect && disconnect[i]) ? disconnect[i] : ' ';
     if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
@@ -1744,6 +1838,7 @@ mertrimComputation::dump(char *label) {
   logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
     if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
     logLine[logPos++] = (adapter && adapter[i]) ? adapter[i] + 'A' : ' ';
     if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
   }
@@ -2025,6 +2120,14 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
 
 
  outputFastq:
+
+  //  If there is a verify sequence, verify.
+
+  uint32  nVerifyErrors = 0;
+#warning unfinished verify
+  if (s->verifySeq) {
+  }
+
   fprintf(g->fqLog, F_U32"\t"F_U32"\tchimer\t%c\t"F_U32"\t"F_U32"\tadapter\t%c\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\t%s\n",
           s->clrBgn,
           s->clrEnd,
@@ -2101,6 +2204,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-F") == 0) {
       g->fqInputPath = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-T") == 0) {
+      g->fqVerifyPath = argv[++arg];
 
     } else if (strcmp(argv[arg], "-m") == 0) {
       g->merSize = atoi(argv[++arg]);
@@ -2201,6 +2307,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -F reads.fastq       input reads\n");
     fprintf(stderr, "  -o reads.fastq       output reads\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -T reads.fasta       truth reads for validation\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -m ms                mer size\n");
     fprintf(stderr, "  -mc counts           kmer database (in 'counts.mcdat' and 'counts.mcidx')\n");
