@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.41 2013-03-29 13:14:59 brianwalenz Exp $";
+const char *mainid = "$Id: merTrim.C,v 1.42 2013-04-02 16:45:21 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_UTL_reverseComplement.h"
@@ -668,7 +668,7 @@ public:
 
   void       attemptCorrection(bool isReversed);
 
-  void       attemptTrimming(char endTrimQV);
+  void       attemptTrimming(bool doTrimming, char endTrimQV);
   void       attemptTrimming5End(uint32 *errorPos, uint32 endWindow, uint32 endAllowed);
   void       attemptTrimming3End(uint32 *errorPos, uint32 endWindow, uint32 endAllowed);
 
@@ -1511,7 +1511,7 @@ mertrimComputation::attemptTrimming3End(uint32 *errorPos, uint32 endWindow, uint
 
 
 void
-mertrimComputation::attemptTrimming(char endTrimQV) {
+mertrimComputation::attemptTrimming(bool doTrimming, char endTrimQV) {
 
   //  Just bail if the read is all junk.  Nothing to do here.
   //
@@ -1531,11 +1531,13 @@ mertrimComputation::attemptTrimming(char endTrimQV) {
   //  Lop off the ends with no confirmed kmers or a QV less than 3.  The Illumina '2' qv ('B' in
   //  Illumina 1.5+ encodings) is defined as "rest of read is < QV 15; do not use".
   //
-  while ((clrBgn < clrEnd) && ((coverage[clrBgn] == 0) || (corrQlt[clrBgn] <= endTrimQV)))
-    clrBgn++;
+  if (doTrimming) {
+    while ((clrBgn < clrEnd) && ((coverage[clrBgn] == 0) || (corrQlt[clrBgn] <= endTrimQV)))
+      clrBgn++;
 
-  while ((clrEnd > clrBgn) && ((coverage[clrEnd-1] == 0) || (corrQlt[clrEnd-1] <= endTrimQV)))
-    clrEnd--;
+    while ((clrEnd > clrBgn) && ((coverage[clrEnd-1] == 0) || (corrQlt[clrEnd-1] <= endTrimQV)))
+      clrEnd--;
+  }
 
   //log.add("TRIM: %d,%d (lop-off-ends)\n", clrBgn, clrEnd);
   //dump("TRIM");
@@ -1577,6 +1579,9 @@ mertrimComputation::attemptTrimming(char endTrimQV) {
     //log.add("TRIM: %d,%d (adapter)\n", clrBgn, clrEnd);
     //dump("TRIM");
   }
+
+  if (doTrimming == false)
+    return;
 
   //  Lop off the ends with no confirmed kmers (again)
   //
@@ -1773,27 +1778,27 @@ mertrimComputation::dump(char *label) {
       verifyErr[i] = '-';
       verifySeq[i] = '-';
     }
-  }
 
-  logPos = 0;
-  for (uint32 i=0; i<seqLen; i++) {
-    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
-    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
-    logLine[logPos++] = (verifyErr) ? verifyErr[i] : ' ';
-    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
-  }
-  strcpy(logLine + logPos, " (VAL)\n");
-  log.add(logLine);
+    logPos = 0;
+    for (uint32 i=0; i<seqLen; i++) {
+      if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+      if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
+      logLine[logPos++] = (verifyErr) ? verifyErr[i] : ' ';
+      if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
+    }
+    strcpy(logLine + logPos, " (VAL)\n");
+    log.add(logLine);
 
-  logPos = 0;
-  for (uint32 i=0; i<seqLen; i++) {
-    if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
-    if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
-    logLine[logPos++] = (verifySeq && verifySeq[0]) ? verifySeq[i] : '-';
-    if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
+    logPos = 0;
+    for (uint32 i=0; i<seqLen; i++) {
+      if (i == clrBgn) { logLine[logPos++] = '-'; logLine[logPos++] = '['; }
+      if (i == bogus)  { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
+      logLine[logPos++] = (verifySeq && verifySeq[0]) ? verifySeq[i] : '-';
+      if (i+1 == clrEnd) { logLine[logPos++] = ']'; logLine[logPos++] = '-'; }
+    }
+    strcpy(logLine + logPos, " (VAL)\n");
+    log.add(logLine);
   }
-  strcpy(logLine + logPos, " (VAL)\n");
-  log.add(logLine);
 
   logPos = 0;
   for (uint32 i=0; i<seqLen; i++) {
@@ -1896,10 +1901,9 @@ mertrimWorker(void *G, void *T, void *S) {
 
   //  Attempt trimming if the read wasn't perfect
 
-  if ((g->doTrimming == true) &&
-      (eval != ALLGOOD)) {
+  if (eval != ALLGOOD) {
     s->analyze();
-    s->attemptTrimming(g->endTrimQV);
+    s->attemptTrimming(g->doTrimming, g->endTrimQV);
   }
 
   if (VERBOSE)
