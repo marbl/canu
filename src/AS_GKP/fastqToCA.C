@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqToCA.C,v 1.27 2012-11-30 20:43:39 brianwalenz Exp $";
+const char *mainid = "$Id: fastqToCA.C,v 1.28 2013-04-03 17:52:04 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -31,6 +31,9 @@ const char *mainid = "$Id: fastqToCA.C,v 1.27 2012-11-30 20:43:39 brianwalenz Ex
 #include "AS_PER_gkpStore.h"
 #include "AS_MSG_pmesg.h"
 
+#include <vector>
+
+using namespace std;
 
 
 void
@@ -104,29 +107,32 @@ checkFiles(char **names, int32 namesLen) {
 
 int
 main(int argc, char **argv) {
-  int       insertSize         = 0;
-  int       insertStdDev       = 0;
-  bool      constantInsertSize = false;
+  int             insertSize         = 0;
+  int             insertStdDev       = 0;
+  bool            constantInsertSize = false;
 
-  char     *libraryName        = 0L;
+  char           *libraryName        = 0L;
 
-  bool      isMated            = false;
+  bool            isMated            = false;
 
-  char     *type               = "sanger";
+  char           *type               = "sanger";
 
-  char     *technology         = "illumina";
-  char     *orientInnie        = "innie";
-  char     *orientOuttie       = "outtie";
-  char     *orient             = orientInnie;
+  char           *technology         = "illumina";
+  char           *orientInnie        = "innie";
+  char           *orientOuttie       = "outtie";
+  char           *orient             = orientInnie;
 
 
-  char    **reads              = new char * [argc];
-  int32     readsLen           = 0;
+  char          **reads              = new char * [argc];
+  int32           readsLen           = 0;
 
-  char    **mates              = new char * [argc];
-  int32     matesLen           = 0;
+  char          **mates              = new char * [argc];
+  int32           matesLen           = 0;
 
-  bool      isNonRandom        = false;
+  bool            isNonRandom        = false;
+
+  vector<char *>  featureKeys;
+  vector<char *>  featureVals;
 
   argc = AS_configure(argc, argv);
 
@@ -167,6 +173,10 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-nonrandom") == 0) {
       isNonRandom = true;
 
+    } else if (strcmp(argv[arg], "-feature") == 0) {
+      featureKeys.push_back(argv[++arg]);
+      featureVals.push_back(argv[++arg]);
+
     } else {
       fprintf(stderr, "ERROR:  Unknown option '%s'\n", argv[arg]);
       exit(1);
@@ -187,7 +197,8 @@ main(int argc, char **argv) {
       (strcasecmp(technology, "illumina") != 0) &&
       (strcasecmp(technology, "illumina-long") != 0) &&
       (strcasecmp(technology, "pacbio") != 0) &&
-      (strcasecmp(technology, "pacbio-long") != 0))
+      (strcasecmp(technology, "pacbio-long") != 0) &&
+      (strcasecmp(technology, "none") != 0))
      err++;
   if ((strcasecmp(type, "sanger") != 0) &&
       (strcasecmp(type, "solexa") != 0) &&
@@ -207,6 +218,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -libraryname n     The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -technology p      What instrument were these reads generated on ('illumina' is the default):\n");
+    fprintf(stderr, "                       'none'          -- don't set any features; use -feature to set them manually\n");
     fprintf(stderr, "                       'sanger'        -- reads from dideoxy sequencers\n");
     fprintf(stderr, "                       '454'           -- reads from 454 Life Sciences; FLX, Titanium, FLX+\n");
     fprintf(stderr, "                       'illumina'      -- reads from Illumina; GAIIx, MiSeq, HiSeq; shorter than 160bp\n");
@@ -235,6 +247,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "Library Features\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -nonrandom         Mark the library as containing non-random reads.\n");
+    fprintf(stderr, "  -feature F V       Set feature F to value V.\n");
     fprintf(stderr, "\n");
 
     if ((insertSize == 0) && (insertStdDev >  0))
@@ -249,7 +262,8 @@ main(int argc, char **argv) {
         (strcasecmp(technology, "454") != 0) &&
         (strcasecmp(technology, "illumina") != 0) &&
         (strcasecmp(technology, "pacbio") != 0) &&
-        (strcasecmp(technology, "pacbio-long") != 0)) 
+        (strcasecmp(technology, "pacbio-long") != 0) &&
+        (strcasecmp(technology, "none") != 0))
       fprintf(stderr, "ERROR:  Invalid technology '%s' supplied with -technology.\n", technology);
 
     if ((strcasecmp(type, "sanger") != 0) &&
@@ -308,8 +322,6 @@ main(int argc, char **argv) {
 
     gkl.forceShortReadFormat       = 0;
 
-    gkl.constantInsertSize         = constantInsertSize;
-
   } else if (strcasecmp(technology, "454") == 0) {
     gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 1;
@@ -330,8 +342,6 @@ main(int argc, char **argv) {
     gkl.doConsensusCorrection      = 0;
 
     gkl.forceShortReadFormat       = 0;
-
-    gkl.constantInsertSize         = constantInsertSize;
 
   } else if (strcasecmp(technology, "illumina") == 0) {
     gkl.forceBOGunitigger          = 1;
@@ -354,8 +364,6 @@ main(int argc, char **argv) {
 
     gkl.forceShortReadFormat       = 1;
 
-    gkl.constantInsertSize         = constantInsertSize;
-
   } else if (strcasecmp(technology, "illumina-long") == 0) {
     gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 0;
@@ -376,8 +384,6 @@ main(int argc, char **argv) {
     gkl.doConsensusCorrection      = 0;
 
     gkl.forceShortReadFormat       = 0;
-
-    gkl.constantInsertSize         = constantInsertSize;
 
   } else if (strcasecmp(technology, "pacbio") == 0) {
     gkl.forceBOGunitigger          = 1;
@@ -400,8 +406,6 @@ main(int argc, char **argv) {
    
     gkl.forceShortReadFormat       = 0;
 
-    gkl.constantInsertSize         = constantInsertSize;
-
   } else if (strcasecmp(technology, "pacbio-long") == 0) {
     gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 0;
@@ -423,11 +427,37 @@ main(int argc, char **argv) {
     
     gkl.forceShortReadFormat       = 0;
 
-    gkl.constantInsertSize         = constantInsertSize;
+  } else if (strcasecmp(technology, "none") == 0) {
+    gkl.forceBOGunitigger          = 0;
+    gkl.doNotTrustHomopolymerRuns  = 0;
+
+    gkl.doTrim_initialNone         = 0;
+    gkl.doTrim_initialMerBased     = 0;
+    gkl.doTrim_initialFlowBased    = 0;
+    gkl.doTrim_initialQualityBased = 0;
+
+    gkl.doRemoveDuplicateReads     = 0;
+
+    gkl.doTrim_finalLargestCovered = 0;
+    gkl.doTrim_finalEvidenceBased  = 0;
+
+    gkl.doRemoveSpurReads          = 0;
+    gkl.doRemoveChimericReads      = 0;
+
+    gkl.doConsensusCorrection      = 0;
+    
+    gkl.forceShortReadFormat       = 0;
   }
 
   gkl.isNotRandom                = isNonRandom;
   gkl.orientation                = (isMated) ? AS_READ_ORIENT_INNIE : AS_READ_ORIENT_UNKNOWN;
+
+  gkl.constantInsertSize         = constantInsertSize;
+
+
+  for (uint32 ff=0; ff<featureKeys.size(); ff++)
+    gkl.gkLibrary_setFeature(featureKeys[ff], featureVals[ff]);
+
 
   //  Construct the messages.
 
