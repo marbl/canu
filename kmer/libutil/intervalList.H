@@ -32,30 +32,21 @@ public:
 
   intervalList &operator=(intervalList &src);
 
-  //  Clear a list
   void        clear(void) {
     _isSorted = true;
     _isMerged = true;
     _listLen  = 0;
   }
 
-  //  Insert a new interval into the list
   void        add(intervalNumber position, intervalNumber length);
-
-  //  Sort the set of intervals by the lo value
   void        sort(void);
-
-  //  Merge overlapping or adjacent intervals together.
-  void        merge(void);
+  void        merge(void);              //  Merge overlapping regions
+  void        merge(intervalList *IL);  //  Insert IL into this list
 
   void        invert(intervalNumber lo, intervalNumber hi);
 
-  //  Returns the number of intervals
-  u32bit      numberOfIntervals(void) {
-    return(_listLen);
-  };
+  u32bit      numberOfIntervals(void)   { return(_listLen); };
 
-  //  Returns the sum of the length of all intervals
   intervalNumber      sumOfLengths(void) {
     intervalNumber len = 0;
     u32bit         i   = numberOfIntervals();
@@ -66,36 +57,6 @@ public:
 
     return(len);
   };
-
-
-  //  Populates an array with the intervals that are within the
-  //  supplied interval.  Return
-  //
-  u32bit      overlapping(intervalNumber    lo,
-                          intervalNumber    hi,
-                          u32bit          *&intervals,
-                          u32bit           &intervalsLen,
-                          u32bit           &intervalsMax);
-
-  //  Adds all the intervals in IL to this list
-  //
-  void        merge(intervalList *IL);
-
-  //  Populates this intervalList with the intersection of A and B.
-  //  This intervalList is not cleared prior to adding new intervals.
-  //
-  //  Both A and B call merge().
-  //
-  void                intersect(intervalList &A,
-                                intervalList &B);
-
-  //  Populates this intervalList with regions in A that are completely
-  //  contained in a region in B.
-  //
-  //  Both A and B call merge().
-  //
-  void                contained(intervalList &A,
-                                intervalList &B);
 
 
   intervalNumber      lo(u32bit i) { return(_list[i].lo); };
@@ -124,10 +85,7 @@ public:
   intervalDepth(intervalDepthRegions *id, u32bit idlen);
   ~intervalDepth();
 
-  //  Returns the number of intervals
-  u32bit                     numberOfIntervals(void) {
-    return(_listLen);
-  };
+  u32bit                     numberOfIntervals(void)   { return(_listLen); };
 
   intervalNumber             lo(u32bit i) { return(_list[i].lo); };
   intervalNumber             hi(u32bit i) { return(_list[i].hi); };
@@ -140,8 +98,6 @@ private:
   u32bit                    _listMax;
   _intervalDepth           *_list;
 };
-
-
 
 
 #endif  //  INTERVALLIST_H
