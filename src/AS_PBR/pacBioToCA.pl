@@ -59,7 +59,7 @@ my %global;
 
 
 
-my @nonCAOptions = ("maxCorrectionRounds", "genomeSize", "shortReads", "longReads", "libraryname", "specFile", "length", "coverageCutoff", "maxCoverage", "maxGap", "maxUncorrectedGap", "samFOFN", "blasr", "bowtie", "threads", "repeats", "fastqFile", "partitions", "submitToGrid", "sgeCorrection", "consensusConcurrency", "cleanup");
+my @nonCAOptions = ("QV", "maxCorrectionRounds", "genomeSize", "shortReads", "longReads", "libraryname", "specFile", "length", "coverageCutoff", "maxCoverage", "maxGap", "maxUncorrectedGap", "samFOFN", "blasr", "bowtie", "threads", "repeats", "fastqFile", "partitions", "submitToGrid", "sgeCorrection", "consensusConcurrency", "cleanup");
 
 my $commandLineOptions = "";
 
@@ -116,6 +116,7 @@ sub setDefaults() {
 	
     $global{"shortReads"} = undef;
     $global{"longReads"} = undef;
+    $global{"QV"} = 54.5;
     $global{"libraryname"} = undef;
     $global{"specFile"} = undef;
     $global{"length"} = 500;
@@ -1013,6 +1014,7 @@ my $shortReads = getGlobal("shortReads");
 my $longReads = getGlobal("longReads");
 my $length = getGlobal("length");
 my $repeats = getGlobal("repeats");
+my $QV = getGlobal("QV");
 
 my $threads = getGlobal("threads");
 my $partitions = getGlobal("partitions");
@@ -1231,7 +1233,7 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
           $longReads = undef;
       } else {
          print STDERR "Warning: Blasr is required to align long reads to long reads. Switching blasr ON.\n";
-         setGlobal("blasr", defined(getGlobal("blasr")) ? getGlobal("blasr") . " -minSubreadLength 500 -minReadLength 500 -maxLCPLength 15 -minPctIdentity 70.0" : "-minSubreadLength 500 -minReadLength 500 -advanceHalf -noRefineAlign -ignoreQuality -minMatch 10 -maxLCPLength 15 -minPctIdentity 70.0");
+         setGlobal("blasr", defined(getGlobal("blasr")) ? getGlobal("blasr") . " maxLCPLength 16" : "-minReadLength 200 -maxScore -1000 -maxLCPLength 16");
       }
    }
 
@@ -1659,7 +1661,6 @@ runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.qual |sort -T . -rnk1` > cor
 
 # check how much we split the sequences up
 my %splitUIDs = ();
-runCommand("$wrk", "$CA/convert-fasta-to-v2.pl -pacbio -s $wrk/temp$libraryname/corrected.fasta -q $wrk/temp$libraryname/corrected.qual -l unsplit_$libraryname > $wrk/temp$libraryname/$libraryname.frg");
 runCommand("$wrk/temp$libraryname", "cat corrected.log |awk '{print \$1}' |sort -T . |uniq -c |awk '{if (\$1 > 1) print \$2}' > $asm.split.uid");
 
 # read in the split UIDs so we can process them
@@ -1758,13 +1759,8 @@ runCommand("$wrk/temp$libraryname", "cp corrected.qual  $wrk/$libraryname.qual")
 runCommand("$wrk/temp$libraryname", "cp $asm.layout.err  $wrk/$libraryname.correction.err");
 runCommand("$wrk/temp$libraryname", "cp $asm.layout.hist  $wrk/$libraryname.correction.hist");
 
-if (defined($longReads) && $longReads == 1) {
-   runCommand("$wrk", "$CA/trimFastqByQVWindow $wrk/temp$libraryname/corrected.fasta $wrk/temp$libraryname/corrected.qual $wrk/$libraryname.fasta $wrk/$libraryname.qual > $wrk/$libraryname.fastq");
-   runCommand("$wrk", "$CA/fastqToCA -libraryname $libraryname -technology pacbio -type sanger -reads $wrk/$libraryname.fastq > $wrk/$libraryname.frg");
-} else {
-   # should do trimming here
-   runCommand("$wrk", "$CA/convert-fasta-to-v2.pl -pacbio -s $wrk/temp$libraryname/corrected.fasta -q $wrk/temp$libraryname/corrected.qual -l $libraryname > $wrk/$libraryname.frg");
-}
+runCommand("$wrk", "$CA/trimFastqByQVWindow $wrk/temp$libraryname/corrected.fasta $wrk/temp$libraryname/corrected.qual $wrk/$libraryname.fasta $wrk/$libraryname.qual $QV > $wrk/$libraryname.fastq");
+runCommand("$wrk", "$CA/fastqToCA -libraryname $libraryname -technology pacbio -type sanger -reads $wrk/$libraryname.fastq > $wrk/$libraryname.frg");
 
 my $numOutput = `ls $wrk/temp$libraryname/*sge.out* |wc -l`;
 chomp $numOutput;
