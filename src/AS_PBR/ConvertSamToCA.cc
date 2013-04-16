@@ -60,7 +60,7 @@ int main(int argc, char * argv[]) {
 
     iids.close();
 
-    if (argc == 4) {
+    if (argc >= 4) {
         iids.open(argv[3], ifstream::in);
 
         while (iids.good()) {
