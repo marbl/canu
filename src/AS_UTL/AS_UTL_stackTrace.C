@@ -22,7 +22,7 @@
 #ifndef AS_UTL_STACKTRACE_H
 #define AS_UTL_STACKTRACE_H
 
-static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.3 2013-03-29 13:08:07 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.3 2013/03/29 13:08:07 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -34,6 +34,8 @@ static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.3 2
 
 #include <execinfo.h>  //  backtrace
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,36 +49,21 @@ static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.3 2
 void
 AS_UTL_envokeGDB(void) {
 
-  //  Not enabled; doesn't work on FreeBSD, not tested on Linux.
-
 #if 0
   uint64   pid = getpid();
+  uint64   cid = fork();
   char     cmd[1024];
 
-  if (fork() != 0) {
+  if (cid != 0) {
     //  Parent
-    sleep(10);
+    waitpid(cid, NULL, 0);
     return;
   }
 
   //  Child
 
-  sprintf(cmd, "gdb66 -p "F_U64" < commands", pid);
-
-#if 0
-  FILE *gdb = popen(cmd, "w");
-
-  fputs("where\n", gdb);
-  fputs("list\n", gdb);
-  fputs("exit\n", gdb);
-
-  sleep(10);
-
-  pclose(gdb);
-#endif
-
+  sprintf(cmd, "gdb -quiet -silent -p "F_U64" -batch -x commands", pid);
   system(cmd);
-
   exit(0);
 #endif
 }
@@ -247,7 +234,9 @@ AS_UTL_installCrashCatcher(void) {
 
 #else
 
-  struct sigaction sigact = {0};
+  struct sigaction sigact;
+
+  memset(&sigact, 0, sizeof(struct sigaction));
 
   sigact.sa_sigaction = AS_UTL_catchCrash;
   sigact.sa_flags     = SA_RESTART | SA_SIGINFO;
