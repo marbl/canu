@@ -69,13 +69,15 @@ void
 writeInputsAsGFF3(char *outputPrefix) {
 
   for (uint32 i=0; i<genome.size(); i++) {
-    fprintf(gffOutput, "%s\t.\tbogus_raw_input\t%d\t%d\t.\t%c\t.\tID=align%08d-frag%08d\n",  //  ;Name=%s;Note=%d-%d
+    fprintf(gffOutput, "%s\t.\tbogus_raw_input\t%d\t%d\t.\t%c\t.\tID=align%08d-frag%08d;Name=%s;Note=%d-%d\n",
             refList[genome[i].genIID].rsrefName,        //  reference name
             genome[i].genBgn,                           //  begin position in base-based
             genome[i].genEnd,                           //  end position
             (genome[i].isReverse) ? '-' : '+',          //  strand
             i,                                          //  ID - match id
-            genome[i].frgIID);                          //  ID - frag id
+            genome[i].frgIID,                           //  ID - frag id
+            IIDname[genome[i].frgIID].c_str(),          //  Name - actual sequence name
+            genome[i].frgBgn, genome[i].frgEnd);        //  Note - position on frag
   }
 }
 
@@ -95,7 +97,17 @@ processMatches(int32 alignWobble, int32 uniqEnd) {
            (genome[bgn].frgIID == genome[end].frgIID))
       end++;
 
+#ifdef DEBUG
+    for (uint32 ii=bgn; ii<end; ii++)
+      fprintf(stderr, "processMatches()-- INIT %u-%u frg %u at chn %u-%u gen %u %u-%u\n",
+              bgn, end, genome[ii].frgIID, genome[ii].chnBgn, genome[ii].chnEnd, genome[ii].genIID, genome[ii].genBgn, genome[ii].genEnd);
+#endif
+
     //  Find the longest alignment.  Set 'num' to zero, we'll fill it out correctly in a minute.
+    //  Also, based on the longest alignment, compute an indel rate.
+
+    double indelRate = 1.0;
+
     for (uint32 i=bgn; i<end; i++) {
       genomeAlignment  *A = &genome[i];
 
@@ -104,6 +116,8 @@ processMatches(int32 alignWobble, int32 uniqEnd) {
         longest[frgIID].end = A->frgEnd;
         longest[frgIID].len = A->frgEnd - A->frgBgn;
         longest[frgIID].num = 0;
+
+        indelRate = (A->genEnd - A->genBgn) / (double)(A->frgEnd - A->frgBgn);
       }
 
       if (longest[frgIID].frgLen < A->frgEnd) {
@@ -168,32 +182,68 @@ processMatches(int32 alignWobble, int32 uniqEnd) {
 
       assert(LONG != 0L);
 
-      if (longest[frgIID].rptBgn > 0)
-        addAlignment(genome,
-                     LONG->frgIID,
-                     0, longest[frgIID].rptBgn, false,
-                     LONG->chnBgn,
-                     LONG->chnBgn + longest[frgIID].rptBgn,
-                     LONG->identity,
-                     LONG->genIID,
-                     LONG->genBgn,
-                     LONG->genBgn + longest[frgIID].rptBgn);
+      //  Indel screws up this compute.  We have the repeat region marked on the read, and need to transfer it to the genome.
+      //  We estimate, globally, the indel rate, and scale the repeat region length.
 
-      if (longest[frgIID].rptEnd < LONG->frgEnd)
-        addAlignment(genome,
-                     LONG->frgIID,
-                     longest[frgIID].rptEnd, LONG->frgEnd, false,
-                     LONG->chnBgn + longest[frgIID].rptEnd,
-                     LONG->chnBgn + LONG->frgEnd,
-                     LONG->identity,
-                     LONG->genIID,
-                     LONG->genBgn + longest[frgIID].rptEnd,
-                     LONG->genBgn + LONG->frgEnd);
+      if (longest[frgIID].rptBgn > 0) {
+        uint32 rptLen = (longest[frgIID].rptBgn - 0) * indelRate;
 
+        if (rptLen > 0) {
+#ifdef DEBUG
+          fprintf(stderr, "addAlignment()-- RPTBGN longest %u-%u frg %u at frg %u-%u chn %u-%u gen %u %u-%u rptlen %u indelrate %f\n",
+                  longest[frgIID].rptBgn, longest[frgIID].rptEnd, LONG->frgIID, LONG->frgBgn, LONG->frgEnd, LONG->chnBgn, LONG->chnEnd, LONG->genIID, LONG->genBgn, LONG->genEnd, rptLen, indelRate);
+#endif
+          addAlignment(genome,
+                       LONG->frgIID,
+                       0, longest[frgIID].rptBgn, false,
+                       LONG->chnBgn,
+                       LONG->chnBgn + rptLen,
+                       LONG->identity,
+                       LONG->genIID,
+                       LONG->genBgn,
+                       LONG->genBgn + rptLen);
+#ifdef DEBUG
+          uint32 ii = genome.size() - 1;
+          fprintf(stderr, "addAlignment()-- RPTBGN FINI frg %u at frg %u-%u chn %u-%u gen %u %u-%u\n",
+                  genome[ii].frgIID, genome[ii].frgBgn, genome[ii].frgEnd, genome[ii].chnBgn, genome[ii].chnEnd, genome[ii].genIID, genome[ii].genBgn, genome[ii].genEnd);
+#endif
+        }
+      }
+
+      if (longest[frgIID].rptEnd < LONG->frgEnd) {
+        uint32 rptLen = (LONG->frgEnd - longest[frgIID].rptEnd) * indelRate;
+
+        if (rptLen > 0) {
+#ifdef DEBUG
+          fprintf(stderr, "addAlignment()-- RPTEND longest %u-%u frg %u at frg %u-%u chn %u-%u gen %u %u-%u rptlen %u indelrate %f\n",
+                  longest[frgIID].rptBgn, longest[frgIID].rptEnd, LONG->frgIID, LONG->frgBgn, LONG->frgEnd, LONG->chnBgn, LONG->chnEnd, LONG->genIID, LONG->genBgn, LONG->genEnd, rptLen, indelRate);
+#endif
+          addAlignment(genome,
+                       LONG->frgIID,
+                       longest[frgIID].rptEnd, LONG->frgEnd, false,
+                       LONG->chnEnd - rptLen,
+                       LONG->chnEnd,
+                       LONG->identity,
+                       LONG->genIID,
+                       LONG->genEnd - rptLen,
+                       LONG->genEnd);
+#ifdef DEBUG
+          uint32 ii = genome.size() - 1;
+          fprintf(stderr, "addAlignment()-- RPTEND FINI frg %u at frg %u-%u chn %u-%u gen %u %u-%u\n",
+                  genome[ii].frgIID, genome[ii].frgBgn, genome[ii].frgEnd, genome[ii].chnBgn, genome[ii].chnEnd, genome[ii].genIID, genome[ii].genBgn, genome[ii].genEnd);
+#endif
+        }
+      }
     }
 
     bgn = end;
   }  //  Over all matches, by fragment
+
+#ifdef DEBUG
+  for (uint32 ii=0; ii<genome.size(); ii++)
+    fprintf(stderr, "processMatches()-- FINI frg %u at chn %u-%u gen %u %u-%u\n",
+            genome[ii].frgIID, genome[ii].chnBgn, genome[ii].chnEnd, genome[ii].genIID, genome[ii].genBgn, genome[ii].genEnd);
+#endif
 }
 
 
@@ -209,6 +259,11 @@ void
 findSpannedMatches(int32 uniqEnd) {
 
   for (uint32 uniq=0; uniq<genome.size(); uniq++) {
+#ifdef DEBUG
+    fprintf(stderr, "findSpannedMatched()-- frg %u at chn %u-%u gen %u %u-%u\n",
+            genome[uniq].frgIID, genome[uniq].chnBgn, genome[uniq].chnEnd, genome[uniq].genIID, genome[uniq].genBgn, genome[uniq].genEnd);
+#endif
+
     if (genome[uniq].isRepeat == true)
       continue;
     if (genome[uniq].isSpanned == true)
@@ -227,6 +282,7 @@ findSpannedMatches(int32 uniqEnd) {
 }
 
 
+#undef REPORT_INTERVALS_IN_GFF
 
 static
 void
@@ -241,7 +297,7 @@ buildIntervals(char *outputPrefix, int32 fragTrim, bool includeRaw) {
     char  *refhdr = refList[genome[i].genIID].rsrefName;
 
     if (genome[i].isSpanned == true) {
-#if 0
+#ifdef REPORT_INTERVALS_IN_GFF
       fprintf(gffOutput, "\n");
       fprintf(gffOutput, "#SPAN frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
               frgIID,
@@ -250,20 +306,20 @@ buildIntervals(char *outputPrefix, int32 fragTrim, bool includeRaw) {
               genome[i].genBgn, genome[i].genEnd);
 #endif
       if (includeRaw)
-        fprintf(gffOutput, "%s\t.\tbogus_span_input\t%d\t%d\t.\t%c\t.\tID=SPAN%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
+        fprintf(gffOutput, "%s\t.\tbogus_span_input\t%d\t%d\t.\t%c\t.\tID=SPAN%08d-frag%08d;Name=%s;Note=%d-%d\n",
                 refhdr,                                //  reference name
                 genome[i].genBgn, genome[i].genEnd,    //  reference position
                 (genome[i].isReverse) ? '-' : '+',     //  strand
                 i,                                     //  ID - match id
-                genome[i].frgIID);                     //  ID - frag id
-      //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
-      //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
+                genome[i].frgIID,                      //  ID - frag id
+                IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+                genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
       continue;
     }
 
     if (genome[i].isRepeat == true) {
       REPT.add(genome[i].chnBgn, len);
-#if 0
+#ifdef REPORT_INTERVALS_IN_GFF
       fprintf(gffOutput, "\n");
       fprintf(gffOutput, "#REPT frgIID %8d frg %8d,%8d rev %c gen %8d,%8d\n",
               frgIID,
@@ -272,14 +328,14 @@ buildIntervals(char *outputPrefix, int32 fragTrim, bool includeRaw) {
               genome[i].genBgn, genome[i].genEnd);
 #endif
       if (includeRaw)
-        fprintf(gffOutput, "%s\t.\tbogus_rept_input\t%d\t%d\t.\t%c\t.\tID=REPT%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
+        fprintf(gffOutput, "%s\t.\tbogus_rept_input\t%d\t%d\t.\t%c\t.\tID=REPT%08d-frag%08d;Name=%s;Note=%d-%d\n",
                 refhdr,                                //  reference name
                 genome[i].genBgn, genome[i].genEnd,    //  reference position
                 (genome[i].isReverse) ? '-' : '+',     //  strand
                 i,                                     //  ID - match id
-                genome[i].frgIID);                     //  ID - frag id
-      //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
-      //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
+                genome[i].frgIID,                      //  ID - frag id
+                IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+                genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
       continue;
     }
 
@@ -299,7 +355,7 @@ buildIntervals(char *outputPrefix, int32 fragTrim, bool includeRaw) {
     UNIQ.add(genome[i].chnBgn + frgOff + fragTrim,
              len);
 
-#if 0
+#ifdef REPORT_INTERVALS_IN_GFF
     fprintf(gffOutput, "\n");
     fprintf(gffOutput, "#UNIQ frgIID %8d frg %8d,%8d rev %c gen %8d,%8d mod %8d,%8d\n",
             frgIID,
@@ -310,14 +366,14 @@ buildIntervals(char *outputPrefix, int32 fragTrim, bool includeRaw) {
             genome[i].genBgn + frgOff + fragTrim + len);
 #endif
     if (includeRaw)
-      fprintf(gffOutput, "%s\t.\tbogus_uniq_input\t%d\t%d\t.\t%c\t.\tID=UNIQ%08d-frag%08d\n", //;Name=%s;Note=%d-%d\n",
+      fprintf(gffOutput, "%s\t.\tbogus_uniq_input\t%d\t%d\t.\t%c\t.\tID=UNIQ%08d-frag%08d;Name=%s;Note=%d-%d\n",
               refhdr,                                //  reference name
               genome[i].genBgn, genome[i].genEnd,    //  reference position
               (genome[i].isReverse) ? '-' : '+',     //  strand
               i,                                     //  ID - match id
-              genome[i].frgIID);                     //  ID - frag id
-    //IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
-    //genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
+              genome[i].frgIID,                      //  ID - frag id
+              IIDname[genome[i].frgIID].c_str(),     //  Name - actual sequence name
+              genome[i].frgBgn, genome[i].frgEnd);   //  Note - position on frag
   }
 }
 
@@ -538,8 +594,9 @@ main(int argc, char **argv) {
     //  UNIQ regions are offset by fragTrim on each side
 
     int64  lor = (ir < REPT.numberOfIntervals()) ? REPT.lo(ir)            : 999999999;
+    int64  hir = (ir < REPT.numberOfIntervals()) ? REPT.hi(ir)            : 999999999;
     int64  lou = (iu < UNIQ.numberOfIntervals()) ? UNIQ.lo(iu) - fragTrim : 999999999;
-
+    int64  hiu = (iu < UNIQ.numberOfIntervals()) ? UNIQ.hi(iu) + fragTrim : 999999999;
 
     //  Search the refList for the reference sequence we are in.  We should never span reference
     //  sequences (which isn't tested, as we only know the low coordinate at this time).
@@ -558,9 +615,20 @@ main(int argc, char **argv) {
           refcnt = REPT.ct(ir);
         }
 
-      assert(refcnt != 0);
+      if (refcnt == 0) {
+        fprintf(stderr, "DIDN'T FIND REGION.\n");
+        for (uint32 rr=0; rr<refList.size(); rr++) {
+          fprintf(stderr, "  %3u rschnBgn %6d REPT %5d %ld-%ld UNIQ %5d %ld-%ld rschnEnd %6d REPT\n",
+                  rr,
+                  refList[rr].rschnBgn,
+                  ir, lor, hir,
+                  iu, lou, hiu,
+                  refList[rr].rschnEnd);
+        }
+      }
+      //assert(refcnt != 0);
 
-      if ((minFrags <= refcnt) && (minLength <= refend - refbgn)) {
+      if ((refcnt > 0) && (minFrags <= refcnt) && (minLength <= refend - refbgn)) {
         fprintf(intervalOutput, "%s\t%8"F_S64P"\t%8"F_S64P"\tREPT\t"F_S64"%s\n",
                 refhdr, refbgn, refend, refcnt, (REPTvalid[ir]) ? "" : " weak");
 
@@ -583,9 +651,23 @@ main(int argc, char **argv) {
           refcnt = UNIQ.ct(iu);
         }
 
-      assert(refcnt != 0);
+      //  Not sure why some data sets (long pacbio for example) trigger this.
+#if 0
+      if (refcnt == 0) {
+        fprintf(stderr, "DIDN'T FIND REGION.\n");
+        for (uint32 rr=0; rr<refList.size(); rr++) {
+          fprintf(stderr, "  %3u rschnBgn %6d REPT %5d %ld-%ld UNIQ %5d %ld-%ld rschnEnd %6d UNIQ\n",
+                  rr,
+                  refList[rr].rschnBgn,
+                  ir, lor, hir,
+                  iu, lou, hiu,
+                  refList[rr].rschnEnd);
+        }
+      }
+#endif
+      //assert(refcnt != 0);
 
-      if ((minFrags <= refcnt) && (minLength <= refend - refbgn)) {
+      if ((refcnt > 0) && (minFrags <= refcnt) && (minLength <= refend - refbgn)) {
         fprintf(intervalOutput, "%s\t%8"F_S64P"\t%8"F_S64P"\tUNIQ\t"F_S64"%s\n",
                 refhdr, refbgn, refend, refcnt, (UNIQvalid[iu]) ? "" : " separation");
 

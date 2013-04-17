@@ -145,6 +145,13 @@ loadNucmer(char                       *nucmerName,
       A.isReverse = true;
     }
 
+    if ((A.frgBgn >= A.frgEnd) ||
+        (A.genBgn >= A.genEnd)) {
+      fprintf(stderr, "ERROR: %s\n", inLine);
+      fprintf(stderr, "ERROR: frgBgn,frgEnd %u,%u genBgn,genEnd (%u,%u)\n",
+              A.frgBgn, A.frgEnd,
+              A.genBgn, A.genEnd);
+    }
     assert(A.frgBgn < A.frgEnd);
     assert(A.genBgn < A.genEnd);
 
