@@ -3989,8 +3989,26 @@ sub overlapTrim {
 
     if ((! -e "$wrk/0-overlaptrim/$asm.finalTrim.log") &&
         (! -e "$wrk/0-overlaptrim/$asm.finalTrim.log.bz2")) {
-        my $erate  = 0.03;
+        my $erate  = 0.03;  #  Used for non-Sanger 'largest covered' style
         my $elimit = 4.5;
+
+        my $utg = getGlobal("unitigger");
+
+        if      ($utg eq "utg") {
+            $erate  = getGlobal("utgErrorRate");
+            $elimit = getGlobal("utgErrorLimit");
+
+        } elsif ($utg eq "bog") {
+            $erate  = getGlobal("utgErrorRate");
+            $elimit = getGlobal("utgErrorLimit");
+
+        } elsif ($utg eq "bogart") {
+            $erate  = getGlobal("utgGraphErrorRate");
+            $elimit = getGlobal("utgGraphErrorLimit");
+
+        } else {
+            caFailure("unknown unitigger '$utg' during finalTrim", undef);
+        }
 
         $cmd  = "$bin/finalTrim \\\n";
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
