@@ -1335,7 +1335,7 @@ $blasrVersion="1.3.1.116174";
       } else {
          runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta long_reads -randomsubset $libToCorrect 1 $wrk/temp$libraryname/$asm.gkpStore");
          for (my $i = $minCorrectLib; $i <= $maxCorrectLib; $i++) {
-           runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_lib ". (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases" : "") . " -randomsubset $i 1 $wrk/temp$libraryname/$asm.gkpStore");
+           runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_lib ". (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases -longestovermin $i $length" : " -randomsubset $i 1") . " $wrk/temp$libraryname/$asm.gkpStore");
            runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_subset " . (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases" : "") . " -randomsubset $i 0.01 $wrk/temp$libraryname/$asm.gkpStore");
          }
          runCommand("$wrk/temp$libraryname/1-overlapper", "cat `ls [0-9]*_lib.fasta` > correct_reads.fasta");
