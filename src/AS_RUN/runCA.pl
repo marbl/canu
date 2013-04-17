@@ -979,17 +979,17 @@ sub setParameters () {
     my $cgwER = getGlobal("cgwErrorRate");
     my $cnsER = getGlobal("cnsErrorRate");
 
-    if (($ovlER < 0.0) || (0.25 < $ovlER)) {
-        caFailure("ovlErrorRate is $ovlER, this MUST be between 0.00 and 0.25", undef);
+    if (($ovlER < 0.0) || (0.40 < $ovlER)) {
+        caFailure("ovlErrorRate is $ovlER, this MUST be between 0.00 and 0.40", undef);
     }
-    if (($utgER < 0.0) || (0.25 < $utgER)) {
-        caFailure("utgErrorRate is $utgER, this MUST be between 0.00 and 0.25", undef);
+    if (($utgER < 0.0) || (0.40 < $utgER)) {
+        caFailure("utgErrorRate is $utgER, this MUST be between 0.00 and 0.40", undef);
     }
-    if (($cgwER < 0.0) || (0.25 < $cgwER)) {
-        caFailure("cgwErrorRate is $cgwER, this MUST be between 0.00 and 0.25", undef);
+    if (($cgwER < 0.0) || (0.40 < $cgwER)) {
+        caFailure("cgwErrorRate is $cgwER, this MUST be between 0.00 and 0.40", undef);
     }
-    if (($cnsER < 0.0) || (0.25 < $cnsER)) {
-        caFailure("cnsErrorRate is $cnsER, this MUST be between 0.00 and 0.25", undef);
+    if (($cnsER < 0.0) || (0.40 < $cnsER)) {
+        caFailure("cnsErrorRate is $cnsER, this MUST be between 0.00 and 0.40", undef);
     }
     if ($utgER > $ovlER) {
         caFailure("utgErrorRate is $utgER, this MUST be <= ovlErrorRate ($ovlER)", undef);

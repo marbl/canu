@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_global.c,v 1.24 2013-03-14 06:24:13 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_global.c,v 1.24 2013/03/14 06:24:13 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -40,7 +40,7 @@ static const char *rcsid = "$Id: AS_global.c,v 1.24 2013-03-14 06:24:13 brianwal
 double AS_OVL_ERROR_RATE   = -90.0;
 double AS_CGW_ERROR_RATE   = -90.0;
 double AS_CNS_ERROR_RATE   = -90.0;
-double AS_MAX_ERROR_RATE   =   0.25;
+double AS_MAX_ERROR_RATE   =   0.40;
 
 //  Historical Sanger defaults.  Seem to work well with 454 and Illumina,
 //  but occasionally they need to be reduced (for, say, 50bp Illumina reads).
