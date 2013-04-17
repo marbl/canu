@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: finalTrim-largestCovered.C,v 1.2 2011-06-23 15:25:23 brianwalenz Exp $";
+static const char *rcsid = "$Id: finalTrim-largestCovered.C,v 1.2 2011/06/23 15:25:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,7 +45,9 @@ largestCovered(OVSoverlap  *ovl,
                char        *logMsg,
                uint32       errorRate,
                double       errorLimit,
-               bool         qvTrimAllowed) {
+               bool         qvTrimAllowed,
+               uint32       minOverlap,
+               uint32       minCoverage) {
 
   fbgn      = ibgn;
   fend      = iend;
@@ -65,6 +67,7 @@ largestCovered(OVSoverlap  *ovl,
   }
 
   intervalList  IL;
+  intervalList  ID;
   int32         iid = fr.gkFragment_getReadIID();
 
   for (uint32 i=0; i<ovlLen; i++) {
@@ -82,7 +85,135 @@ largestCovered(OVSoverlap  *ovl,
     IL.add(tbgn, tend - tbgn);
   }
 
-  IL.merge();
+#if 0
+  for (uint32 it=0; it<IL.numberOfIntervals(); it++)
+    fprintf(stderr, "IL - %d - "F_S64" "F_S64" "F_S64"\n", fr.gkFragment_getReadIID(), IL.lo(it), IL.hi(it), IL.ct(it));
+
+  for (uint32 it=0; it<ID.numberOfIntervals(); it++)
+    fprintf(stderr, "ID - %d - "F_S64" "F_S64" "F_S64"\n", fr.gkFragment_getReadIID(), ID.lo(it), ID.hi(it), ID.de(it));
+#endif
+
+  //  I thought I'd allow low coverage at the end of the read, but not internally, but that is hard,
+  //  and largely unnecessary.  We'll just not be assembling at low coverage joins, which is
+  //  acceptable.
+
+  if (minCoverage > 0) {
+    intervalDepth  DE(IL);
+
+    uint32  it = 0;
+    uint32  ib = 0;
+    uint32  ie = 0;
+
+    while (it < DE.numberOfIntervals()) {
+      //fprintf(stderr, "DE - %d - "F_S64" "F_S64" "F_S64"\n", fr.gkFragment_getReadIDE(), DE.lo(it), DE.hi(it), DE.de(it));
+
+      if (DE.de(it) < minCoverage) {
+        //  Dropped below good coverage depth.  If we have an interval, save it.  Reset.
+        if (ie > ib) {
+          //fprintf(stderr, "AD1 %d-%d len %d\n", ib, ie, ie - ib);
+          ID.add(ib, ie - ib);
+        }
+        ib = 0;
+        ie = 0;
+
+      } else if ((ib == 0) && (ie == 0)) {
+        //  Depth is good.  If no current interval, make a new one.
+        ib = DE.lo(it);
+        ie = DE.hi(it);
+        //fprintf(stderr, "NE1 %d-%d len %d\n", ib, ie, ie - ib);
+
+      } else if (ie == DE.lo(it)) {
+        //  Depth is good.  If this interval is adjacent to the current, extend.
+        ie = DE.hi(it);
+        //fprintf(stderr, "EXT %d-%d len %d\n", ib, ie, ie - ib);
+
+      } else {
+        //  Depth is good, but we just had a gap in coverage.  Save any current interval.  Reset.
+        if (ie > ib) {
+          //fprintf(stderr, "AD2 %d-%d len %d\n", ib, ie, ie - ib);
+          ID.add(ib, ie - ib);
+        }
+        ib = DE.lo(it);
+        ie = DE.hi(it);
+        //fprintf(stderr, "NE2 %d-%d len %d\n", ib, ie, ie - ib);
+      }
+
+      it++;
+    }
+
+    if (ie > ib) {
+      //fprintf(stderr, "AD3 %d-%d len %d\n", ib, ie, ie - ib);
+      ID.add(ib, ie - ib);
+    }
+  }
+
+  //  Now that we've created depth, merge the intervals.
+
+  IL.merge(minOverlap);
+
+  //  IL - covered interavls enforcing a minimum overlap size (these can overlap)
+  //  ID - covered intervals enforcing a minimum depth (these cannot overlap)
+  //
+  //  Create new intervals from the intersection of IL and ID.
+  //
+  //  This catches one nasty case, where a thin overlap has more than minDepth coverage.
+  //
+  //         -------------               3x coverage
+  //          -------------              all overlaps 1 or 2 dashes long
+  //                     ---------
+  //                      -----------
+
+  if (minCoverage > 0) {
+    intervalList FI;
+
+    uint32  li = 0;
+    uint32  di = 0;
+
+    while ((li < IL.numberOfIntervals()) &&
+           (di < ID.numberOfIntervals())) {
+      uint32   ll = IL.lo(li);
+      uint32   lh = IL.hi(li);
+      uint32   dl = ID.lo(di);
+      uint32   dh = ID.hi(di);
+      uint32   nl  = 0;
+      uint32   nh  = 0;
+
+      //  If they intersect, make a new region
+
+      if ((ll <= dl) && (dl < lh)) {
+        nl = dl;
+        nh = (lh < dh) ? lh : dh;
+      }
+
+      if ((dl <= ll) && (ll < dh)) {
+        nl = ll;
+        nh = (lh < dh) ? lh : dh;
+      }
+
+      if (nl < nh)
+        FI.add(nl, nh - nl);
+
+      //  Advance the list with the earlier region.
+
+      if (lh <= dh)
+        //  IL ends at or before ID
+        li++;
+
+      if (dh <= lh) {
+        //  ID ends at or before IL
+        di++;
+      }
+    }
+
+    //  Replace the intervals to use with the intersection.
+
+    IL = FI;
+  }
+
+  ////////////////////////////////////////
+
+  //for (uint32 it=0; it<IL.numberOfIntervals(); it++)
+  //  fprintf(stderr, "IL - %d - "F_S64" "F_S64" "F_S64"\n", fr.gkFragment_getReadIID(), IL.lo(it), IL.hi(it), IL.ct(it));
 
   if (IL.numberOfIntervals() == 0) {
     strcpy(logMsg, "\tno high quality overlaps");

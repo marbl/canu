@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: finalTrim.C,v 1.5 2012-03-07 05:51:54 brianwalenz Exp $";
+const char *mainid = "$Id: finalTrim.C,v 1.5 2012/03/07 05:51:54 brianwalenz Exp $";
 
 #include "finalTrim.H"
 
@@ -240,7 +240,7 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       double erate = atof(argv[++arg]);
-      if (erate >= AS_MAX_ERROR_RATE)
+      if (erate > AS_MAX_ERROR_RATE)
         fprintf(stderr, "ERROR:  Error rate (-e) %s too large; must be 'fraction error' and below %f\n", argv[arg], AS_MAX_ERROR_RATE), exit(1);
       errorRate = AS_OVS_encodeQuality(erate);
 
@@ -265,6 +265,9 @@ main(int argc, char **argv) {
       (outputPrefix == NULL) ||
       (err)) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore [-O ovlStore] -o outputPrefix\n", argv[0]);
+    fprintf(stderr, "   -e erate       allow 'erate' percent error\n");
+    fprintf(stderr, "   -E elimit      allow 'elimit' errors (only used in 'largestCovered')\n");
+    fprintf(stderr, "   -n             do not modify\n");
     exit(1);
   }
 
@@ -340,17 +343,37 @@ main(int argc, char **argv) {
     //  If there are no overlaps for this fragment, do nothing.
     if ((iid < ovl[0].a_iid) ||
         (ovlLen == 0)) {
-      isGood = trimWithoutOverlaps(ovl, ovlLen, fr, ibgn, iend, fbgn, fend, logMsg, errorRate, errorLimit, lb->doTrim_initialQualityBased);
+      isGood = trimWithoutOverlaps(ovl, ovlLen,
+                                   fr,
+                                   ibgn, iend, fbgn, fend,
+                                   logMsg,
+                                   errorRate,
+                                   errorLimit,
+                                   lb->doTrim_initialQualityBased);
       assert(fbgn <= fend);
 
     } else if        (lb->doTrim_finalLargestCovered == true) {
       //  Use the largest region covered by overlaps as the trim
-      isGood = largestCovered(ovl, ovlLen, fr, ibgn, iend, fbgn, fend, logMsg, errorRate, errorLimit, lb->doTrim_initialQualityBased);
+      isGood = largestCovered(ovl, ovlLen,
+                              fr,
+                              ibgn, iend, fbgn, fend,
+                              logMsg,
+                              errorRate,
+                              errorLimit,
+                              lb->doTrim_initialQualityBased,
+                              AS_OVERLAP_MIN_LEN,
+                              2);
       assert(fbgn <= fend);
 
     } else if (lb->doTrim_finalEvidenceBased == true) {
       //  Do Sanger-style heuristics
-      isGood = evidenceBased(ovl, ovlLen, fr, ibgn, iend, fbgn, fend, logMsg, errorRate, errorLimit, lb->doTrim_initialQualityBased);
+      isGood = evidenceBased(ovl, ovlLen,
+                             fr,
+                             ibgn, iend, fbgn, fend,
+                             logMsg,
+                             errorRate,
+                             errorLimit,
+                             lb->doTrim_initialQualityBased);
       assert(fbgn <= fend);
 
     } else {
@@ -362,7 +385,13 @@ main(int argc, char **argv) {
     //  Enforce the maximum clear range
 
     if (isGood)
-      isGood = enforceMaximumClearRange(ovl, ovlLen, fr, ibgn, iend, fbgn, fend, logMsg, errorRate, errorLimit, lb->doTrim_initialQualityBased);
+      isGood = enforceMaximumClearRange(ovl, ovlLen,
+                                        fr,
+                                        ibgn, iend, fbgn, fend,
+                                        logMsg,
+                                        errorRate,
+                                        errorLimit,
+                                        lb->doTrim_initialQualityBased);
 
     assert(fbgn <= fend);
 

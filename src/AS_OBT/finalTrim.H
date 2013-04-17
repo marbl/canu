@@ -22,7 +22,7 @@
 #ifndef FINALTRIM_H
 #define FINALTRIM_H
 
-static const char *rcsid_FINALTRIM_H = "$Id: finalTrim.H,v 1.1 2011-06-03 17:34:19 brianwalenz Exp $";
+static const char *rcsid_FINALTRIM_H = "$Id: finalTrim.H,v 1.1 2011/06/03 17:34:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,7 +77,9 @@ largestCovered(OVSoverlap  *ovl,
                char        *logMsg,
                uint32       errorRate,
                double       errorLimit,
-               bool         qvTrimAllowed);
+               bool         qvTrimAllowed,
+               uint32       minOverlap,
+               uint32       minCoverage);
 
 bool
 evidenceBased(OVSoverlap  *ovl,

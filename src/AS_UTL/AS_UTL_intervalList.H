@@ -71,7 +71,7 @@ public:
   void        sort(void);
 
   //  Merge overlapping or adjacent intervals together.
-  void        merge(void);
+  void        merge(uint32 minOverlap=0);
 
   void        invert(intervalNumber lo, intervalNumber hi);
 

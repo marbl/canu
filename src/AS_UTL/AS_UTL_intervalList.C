@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_intervalList.C,v 1.1 2010-10-04 08:52:36 brianwalenz Exp $";
+static const char *rcsid = "$Id: AS_UTL_intervalList.C,v 1.1 2010/10/04 08:52:36 brianwalenz Exp $";
 
 #include "AS_UTL_intervalList.H"
 
@@ -123,7 +123,7 @@ intervalList::sort(void) {
 
 
 void
-intervalList::merge(void) {
+intervalList::merge(uint32 minOverlap) {
   uint32  thisInterval  = 0;
   uint32  nextInterval = 1;
 
@@ -155,7 +155,7 @@ intervalList::merge(void) {
       //  This interval is valid.  See if it overlaps with the next
       //  interval.
 
-      if (_list[thisInterval].hi >= _list[nextInterval].lo) {
+      if (_list[thisInterval].hi - minOverlap >= _list[nextInterval].lo) {
 
         //  Got an intersection.
 
@@ -434,8 +434,18 @@ intervalDepth::intervalDepth(intervalDepthRegions *id, uint32 idlen) {
 void
 intervalDepth::computeIntervals(intervalDepthRegions *id, uint32 idlen) {
 
+  //  No intervals input?  No intervals output.
+
+  if (idlen == 0) {
+    _listLen = 0;
+    _listMax = 0;
+    _list    = NULL;
+
+    return;
+  }
+
   //  Scan the list, counting how many times we change depth.
-  //
+
   _listMax = 1;
   for (uint32 i=1; i<idlen; i++) {
     if (id[i-1].pos != id[i].pos)
@@ -443,30 +453,25 @@ intervalDepth::computeIntervals(intervalDepthRegions *id, uint32 idlen) {
   }
 
   //  Allocate the real depth of coverage intervals
-  //
+
   _listLen = 0;
   _list    = new _intervalDepth [_listMax];
 
   //  Build new intervals
-  //
-  //  Initialize the first interval
-  //
+
+  //  Init first interval.
   _list[_listLen].lo = id[0].pos;
   _list[_listLen].hi = id[0].pos;
   _list[_listLen].de = id[0].cha;
 
   for (uint32 i=1; i<idlen; i++) {
-
     if (_list[_listLen].de == 0) {
-      //  Update the start position if the current interval is at zero
-      //  depth.
-      //
+      //  Update the start position if the current interval is at zero depth.
       _list[_listLen].lo = id[i].pos;
     } else {
 
-      //  If we are at a position different from the start, we need to
-      //  close out the current interval and make a new one.
-      //
+      //  If we are at a position different from the start, we need to close out the current
+      //  interval and make a new one.
       if (id[i-1].pos != id[i].pos) {
         _list[_listLen].hi = id[i].pos;
 
@@ -479,13 +484,14 @@ intervalDepth::computeIntervals(intervalDepthRegions *id, uint32 idlen) {
     }
 
     //  Finally, update the depth of the current interval
-    //
     _list[_listLen].de += id[i].cha;
   }
 
-  //  Toss out the last one if it's zero length -- I think it's always
-  //  zero length, just can convince myself.
-  //
+  assert(_listLen > 0);
+
+  //  Toss out the last one if it's zero length -- I think it's always zero length, just can't
+  //  convince myself.
+
   if (_list[_listLen].lo == _list[_listLen].hi)
     _listLen--;
 }
