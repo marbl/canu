@@ -47,6 +47,8 @@ static void processRecord(string &header, string& fasta,
     uint32 maxEndIndex = 0;
     double currSum = (double) qualValues.front() - qvCut;
     uint32 currStartIndex = 0;
+    qual += ((char) (qualValues[0] + offset));
+    qualCAEncoding += ((char) (qualValues[0] + '0'));
 
     for (size_t i = 1; i < qualValues.size(); i++) {
         qual += ((char) (qualValues[i] + offset));
