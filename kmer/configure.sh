@@ -80,64 +80,28 @@ fi
 #  used by atac-driver/chainer only.
 #
 
-PYTHON=
-CFLAGS_PYTHON=
+PYTHON=${PYTHON:-`which python`}
 
-if [ x$PYTHONHOME != x ] ; then
-  python=`echo $PYTHONHOME | cut -d: -f 1`
-  PYTHON=$python/bin/python
+if [ ! -x $PYTHON ] ; then
+  echo "WARNING:  Python program not found at '$PYTHON'.  Try setting environment variable PYTHON to the location of the python interpreter."
+  WITHOUT_ATAC="atac-driver/ seatac/"
 else
-  python=`which python`
-  PYTHON=$python
-  if [ x$python != x ] ; then
-    python=`dirname $python`
-    python=`dirname $python`
+  echo "Python executable found in '$PYTHON'"
+  CFLAGS_PYTHON=`$PYTHON -c "from distutils import sysconfig; print sysconfig.get_python_inc()"`
+  
+  if [ -z "$CFLAGS_PYTHON" -o ! -d "$CFLAGS_PYTHON" ] ; then
+    echo "WARNING:  Python development environment not found."
+    WITHOUT_ATAC="atac-driver/ seatac/"
+  else
+    echo "Python libraries found in '$CFLAGS_PYTHON'"
+    CFLAGS_PYTHON="-I$CFLAGS_PYTHON"
   fi
 fi
 
-
-if [ x$python != x ] ; then
-  for p in $python/include/python2.6 \
-           $python/include/python2.5 \
-           $python/include/python2.4 \
-           $python/include/python2.3 \
-           $python/include/python2.2 \
-           /usr/local/include/python2.6 \
-           /usr/local/include/python2.5 \
-           /usr/local/include/python2.4 \
-           /usr/local/include/python2.3 \
-           /usr/local/include/python2.2 \
-           /System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3 \
-           /System/Library/Frameworks/Python.framework/Versions/2.4/include/python2.4 \
-           /System/Library/Frameworks/Python.framework/Versions/2.5/include/python2.5 \
-           /System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6 \
-           /usr/local/packages/python/include/python2.6 \
-           /usr/local/packages/python/include/python2.5 \
-           /usr/local/packages/python/include/python2.4 ; do
-    echo "Testing '$p'"
-    if [ -e $p/Python.h ] ; then
-      CFLAGS_PYTHON="$p"
-      break
-    fi
-  done
-else
-  echo "WARNING:  'python' program not found."
+if [ ! -z "$WITHOUT_ATAC" ] ; then
+    echo "WARNING:  Will not build ATAC."
 fi
 
-if [ ! -e $PYTHON ] ; then
-  echo "WARNING:  Python program not found at '$PYTHON'.  Will not build ATAC."
-  WITHOUT_ATAC="atac-driver/ seatac/"
-else
-  echo "Pyhton executable found in '$PYTHON'"
-fi
-  
-if [ x$CFLAGS_PYTHON = x ] ; then
-  echo "WARNING:  Python development environment not found.  Will not build ATAC."
-  WITHOUT_ATAC="atac-driver/ seatac/"
-else
-  echo "Pyhton libraries  found in '$CFLAGS_PYTHON'"
-  CFLAGS_PYTHON="-I$CFLAGS_PYTHON"
-fi
 
 #
 #  Decide on compilers to use.  Unfortunately, all the options are tuned for gcc/g++.
