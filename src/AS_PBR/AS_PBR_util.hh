@@ -69,6 +69,7 @@ const uint32	CHIMERA_MAX_SIZE 				= 	150;
 const uint32	MIN_DIST_TO_RECRUIT				=	500;
 const double    ERATE_ADJUST                    =   1.5;
 const uint8     TRIM_BACK_AMOUNT                =   50;
+const uint8	MIN_NUM_SAMPLES			=   100;
 
 const uint8		VERBOSE_OFF 					= 0;
 const uint8		VERBOSE_DEBUG					= 1;

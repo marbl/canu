@@ -377,7 +377,11 @@ main (int argc, char * argv []) {
     }
 
     // get the expected number of mappings for each sequence
-    computeRepeatThreshold(thread_globals, firstFrag);
+    if (thread_globals.covCutoff == 0) {
+       computeRepeatThreshold(thread_globals, firstFrag);
+    } else {
+       fprintf(stderr, "Skipping repeat cutoff calculation, using specified cutoff of %d\n", thread_globals.covCutoff);
+    }
 
     char command[FILENAME_MAX] = {0};
     if (thread_globals.hasMates == true) {
@@ -417,7 +421,7 @@ main (int argc, char * argv []) {
         thread_globals.mpa->finalize();
         thread_globals.mpa->printSummary(stderr);
         for (uint32 i=1; i<=thread_globals.gkp->gkStore_getNumLibraries(); i++) {
-            if (thread_globals.mpa->mean(i) != 0) {
+            if (thread_globals.mpa->mean(i) != 0 && thread_globals.mpa->stddev(i) != 0 && thread_globals.mpa->numSamples(i) > MIN_NUM_SAMPLES) {
                 thread_globals.libToSize[i] = pair<double, double>(thread_globals.mpa->mean(i) - CGW_CUTOFF * thread_globals.mpa->stddev(i), thread_globals.mpa->mean(i) + CGW_CUTOFF * thread_globals.mpa->stddev(i));
             }
         }
