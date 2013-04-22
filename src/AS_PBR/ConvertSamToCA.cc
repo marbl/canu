@@ -158,7 +158,7 @@ int main(int argc, char * argv[]) {
             }
         }
 
-        double errRate = ((double) errors / blen) * 100;
+        double errRate = ((double) errors / (refHigh - refLo + 1)) * 100;
         if (refHigh - refLo + 1 >= (double) 0.9 * blen) {
             int ahang = refLo;
             int bhang = -1 * (refLen - refHigh);
