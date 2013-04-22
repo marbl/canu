@@ -49,6 +49,7 @@ public:
 
   double       mean(uint32 libid);
   double       stddev(uint32 libid);
+  uint64       numSamples(uint32 libid);
 
 private:
   gkStore     *gkpStore;

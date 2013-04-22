@@ -479,3 +479,9 @@ matePairAnalysis::stddev(uint32 libid) {
   mpaLibrary  *l = libdata + libid;
   return(l->orient[l->library->orientation].stddev);
 }
+
+uint64
+matePairAnalysis::numSamples(uint32 libid) {
+  mpaLibrary  *l = libdata + libid;
+  return(l->orient[l->library->orientation].numSamples);
+}
