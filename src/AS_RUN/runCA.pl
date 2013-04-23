@@ -584,8 +584,8 @@ sub setDefaults () {
     $global{"stoneLevel"}                  = 2;
     $synops{"stoneLevel"}                  = "EXPERT!";
 
-    $global{"cgwMergeFilterLevel"}         = 0;
-    $synops{"cgwMergeFilterLevel"}         = "Apply classic (0) or stringent (5) criteria before considering a scaffold merge";
+    $global{"cgwMergeFilterLevel"}         = 1;
+    $synops{"cgwMergeFilterLevel"}         = "Apply no (0), classic (1, default), suggested (2), or stringent (5) criteria before considering a scaffold merge";
 
     $global{"computeInsertSize"}           = undef;
     $synops{"computeInsertSize"}           = "Compute a scratch scaffolding to estimate insert sizes; default: do only if less than 1 million reads";
