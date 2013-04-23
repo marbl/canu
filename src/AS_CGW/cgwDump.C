@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: cgwDump.C,v 1.2 2012-10-30 16:49:09 brianwalenz Exp $";
+const char *mainid = "$Id: cgwDump.C,v 1.2 2012/10/30 16:49:09 brianwalenz Exp $";
 
 #include "AS_global.h"
 
@@ -121,7 +121,7 @@ outputTig::init(NodeCGW_T    *tig,
 
   char    *gapseq     = Getchar(ma->consensus, 0);
   uint32   seqLen     = GetMultiAlignLength(ma);
-  uint32  *gapToUngap = new uint32 [seqLen];
+  uint32  *gapToUngap = new uint32 [seqLen + 1];
 
   if (fwd == false)
     reverseComplementSequence(gapseq, seqLen);
@@ -137,6 +137,8 @@ outputTig::init(NodeCGW_T    *tig,
       up++;
     }
   }
+
+  assert(gp == seqLen);
 
   gapToUngap[gp] = up;
 
