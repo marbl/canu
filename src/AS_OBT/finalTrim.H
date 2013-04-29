@@ -82,6 +82,21 @@ largestCovered(OVSoverlap  *ovl,
                uint32       minCoverage);
 
 bool
+bestEdge(OVSoverlap  *ovl,
+         uint32       ovlLen,
+         gkFragment  &fr,
+         uint32       ibgn,
+         uint32       iend,
+         uint32      &fbgn,
+         uint32      &fend,
+         char        *logMsg,
+         uint32       errorRate,
+         double       errorLimit,
+         bool         qvTrimAllowed,
+         uint32       minOverlap,
+         uint32       minCoverage);
+
+bool
 evidenceBased(OVSoverlap  *ovl,
               uint32       ovlLen,
               gkFragment  &fr,

@@ -37,7 +37,7 @@ static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.27 2012-02-22 21:59:20 brianwale
 #include "AS_UTL_fileIO.h"
 
 
-#define AS_GKP_CURRENT_VERSION    8
+#define AS_GKP_CURRENT_VERSION    9
 
 gkStore::gkStore() {
 
@@ -102,6 +102,8 @@ gkStore::gkStore_open(int writable, int doNotUseUIDs) {
   if (inf.gkVersion != AS_GKP_CURRENT_VERSION) {
     fprintf(stderr, "gkStore_open()-- Invalid version!  Found version "F_U64", code supports version "F_S32".\n",
             inf.gkVersion, AS_GKP_CURRENT_VERSION);
+    fprintf(stderr, "gkStore_open()-- Please backup store '%s', then run 'upgrade-v"F_U64"-to-v"F_U64"' from within the store directory.\n",
+            storePath, inf.gkVersion, AS_GKP_CURRENT_VERSION);
     exit(1);
   }
 

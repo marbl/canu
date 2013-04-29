@@ -82,6 +82,7 @@ public:
 
     doTrim_finalLargestCovered = 0;
     doTrim_finalEvidenceBased  = 1;  //  NOTE, NOT ZERO!
+    doTrim_finalBestEdge       = 0;
 
     doRemoveSpurReads          = 1;  //  NOTE, NOT ZERO!
     doRemoveChimericReads      = 1;  //  NOTE, NOT ZERO!
@@ -125,7 +126,7 @@ public:
   uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 -> trust 'em
 
   //  OBT options
-  uint64         spareOBT:54;                  //  Spare for OBT changes
+  uint64         spareOBT:53;                  //  Spare for OBT changes
 
   uint64         doTrim_initialNone:1;         //  Don't trim, use whatever clear range is present
   uint64         doTrim_initialMerBased:1;     //  For Illumina reads
@@ -136,6 +137,7 @@ public:
 
   uint64         doTrim_finalLargestCovered:1; //  A simple 'pick the largest covered by overlaps'
   uint64         doTrim_finalEvidenceBased:1;  //  Pick the most plausible end points based on overlaps
+  uint64         doTrim_finalBestEdge:1;
 
   uint64         doRemoveSpurReads:1;          //  
   uint64         doRemoveChimericReads:1;      //  

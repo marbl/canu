@@ -91,6 +91,8 @@ gkLibrary::gkLibrary_setFeature(char *fea, char *val) {
     doTrim_finalLargestCovered = decodeBoolean("doTrim_finalLargestCovered", val);
   else if (strcasecmp(fea, "doTrim_finalEvidenceBased") == 0)
     doTrim_finalEvidenceBased = decodeBoolean("doTrim_finalEvidenceBased", val);
+  else if (strcasecmp(fea, "doTrim_finalBestEdge") == 0)
+    doTrim_finalBestEdge = decodeBoolean("doTrim_finalBestEdge", val);
 
   else if (strcasecmp(fea, "doRemoveSpurReads") == 0)
     doRemoveSpurReads = decodeBoolean("doRemoveSpurReads", val);
@@ -109,6 +111,7 @@ gkLibrary::gkLibrary_setFeature(char *fea, char *val) {
 
       doTrim_finalLargestCovered = 1;
       doTrim_finalEvidenceBased  = 0;
+      doTrim_finalBestEdge       = 0;
     }
   }
   else if (strcasecmp(fea, "doNotQVTrim") == 0) {
@@ -122,6 +125,7 @@ gkLibrary::gkLibrary_setFeature(char *fea, char *val) {
 
       doTrim_finalLargestCovered = 0;
       doTrim_finalEvidenceBased  = 1;
+      doTrim_finalBestEdge       = 0;
     }
   }
   else if (strcasecmp(fea, "goodBadQVThreshold") == 0) {
@@ -138,6 +142,7 @@ gkLibrary::gkLibrary_setFeature(char *fea, char *val) {
 
       doTrim_finalLargestCovered = 0;
       doTrim_finalEvidenceBased  = 0;
+      doTrim_finalBestEdge       = 0;
     }
   }
 
@@ -251,6 +256,7 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
 
   encodeFeature(doTrim_finalLargestCovered);
   encodeFeature(doTrim_finalEvidenceBased);
+  encodeFeature(doTrim_finalBestEdge);
 
   encodeFeature(doRemoveSpurReads);
   encodeFeature(doRemoveChimericReads);

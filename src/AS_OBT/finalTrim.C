@@ -316,7 +316,8 @@ main(int argc, char **argv) {
     //  If it did not request trimming, do nothing.  Similar to the above, we'll get overlaps to
     //  fragments we skip.
     if ((lb->doTrim_finalLargestCovered == false) &&
-        (lb->doTrim_finalEvidenceBased  == false)) {
+        (lb->doTrim_finalEvidenceBased  == false) &&
+        (lb->doTrim_finalBestEdge       == false)) {
       //fprintf(stderr, "FRAG %d didn't request trimming.\n", iid);
       continue;
     }
@@ -363,6 +364,19 @@ main(int argc, char **argv) {
                               lb->doTrim_initialQualityBased,
                               AS_OVERLAP_MIN_LEN,
                               2);
+      assert(fbgn <= fend);
+
+    } else if        (lb->doTrim_finalBestEdge == true) {
+      //  Use the largest region covered by overlaps as the trim
+      isGood = bestEdge(ovl, ovlLen,
+                        fr,
+                        ibgn, iend, fbgn, fend,
+                        logMsg,
+                        errorRate,
+                        errorLimit,
+                        lb->doTrim_initialQualityBased,
+                        AS_OVERLAP_MIN_LEN,
+                        2);
       assert(fbgn <= fend);
 
     } else if (lb->doTrim_finalEvidenceBased == true) {

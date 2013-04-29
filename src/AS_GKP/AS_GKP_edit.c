@@ -709,6 +709,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
 
           setBoolean(doTrim_finalLargestCovered)
           setBoolean(doTrim_finalEvidenceBased)
+          setBoolean(doTrim_finalBestEdge)
 
           setBoolean(doRemoveSpurReads)
           setBoolean(doRemoveChimericReads)
