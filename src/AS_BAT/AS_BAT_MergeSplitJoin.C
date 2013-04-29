@@ -213,14 +213,47 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   placements.clear();
 
   placeFragUsingOverlaps(unitigs, target, fFrg.ident, placements);
+
+#ifdef LOG_BUBBLE_TESTS
+  writeLog("popBubbles()-- fFrg %u has %u potential placements.\n", fFrg.ident, placements.size());
+#endif
+
   for (uint32 i=0; i<placements.size(); i++) {
     assert(placements[i].tigID == target->id());
 
-    if (placements[i].fCoverage < 0.99)
+    if (placements[i].fCoverage < 0.99) {
+#ifdef LOG_BUBBLE_FAILURE
+      writeLog("popBubbles()-- fFrg %u low coverage %f at %u,%u\n",
+              fFrg.ident,
+              placements[i].fCoverage,
+              placements[i].position.bgn, placements[i].position.end);
+#endif
       continue;
+    } else {
+#ifdef LOG_BUBBLE_FAILURE
+      writeLog("popBubbles()-- fFrg %u GOOD coverage %f at %u,%u\n",
+              fFrg.ident,
+              placements[i].fCoverage,
+              placements[i].position.bgn, placements[i].position.end);
+#endif
+    }
 
-    if (placements[i].errors / placements[i].aligned < fFrgPlacement.errors / fFrgPlacement.aligned)
+    if (placements[i].errors / placements[i].aligned < fFrgPlacement.errors / fFrgPlacement.aligned) {
+#ifdef LOG_BUBBLE_FAILURE
+      writeLog("popBubbles()-- fFrg %u GOOD identity %f at %u,%u\n",
+              fFrg.ident,
+              placements[i].errors / placements[i].aligned,
+              placements[i].position.bgn, placements[i].position.end);
+#endif
       fFrgPlacement = placements[i];
+    } else {
+#ifdef LOG_BUBBLE_FAILURE
+      writeLog("popBubbles()-- fFrg %u low identity %f at %u,%u\n",
+              fFrg.ident,
+              placements[i].errors / placements[i].aligned,
+              placements[i].position.bgn, placements[i].position.end);
+#endif
+    }
   }
 
   fFrgN.ident             = fFrgPlacement.frgID;
@@ -243,14 +276,47 @@ mergeBubbles_checkEnds(UnitigVector &unitigs,
   placements.clear();
 
   placeFragUsingOverlaps(unitigs, target, lFrg.ident, placements);
+
+#ifdef LOG_BUBBLE_TESTS
+  writeLog("popBubbles()-- lFrg %u has %u potential placements.\n", lFrg.ident, placements.size());
+#endif
+
   for (uint32 i=0; i<placements.size(); i++) {
     assert(placements[i].tigID == target->id());
 
-    if (placements[i].fCoverage < 0.99)
+    if (placements[i].fCoverage < 0.99) {
+#ifdef LOG_BUBBLE_FAILURE
+      writeLog("popBubbles()-- lFrg %u low coverage %f at %u,%u\n",
+              lFrg.ident,
+              placements[i].fCoverage,
+              placements[i].position.bgn, placements[i].position.end);
+#endif
       continue;
+    } else {
+#ifdef LOG_BUBBLE_FAILURE
+      writeLog("popBubbles()-- lFrg %u GOOD coverage %f at %u,%u\n",
+              lFrg.ident,
+              placements[i].fCoverage,
+              placements[i].position.bgn, placements[i].position.end);
+#endif
+    }
 
-    if (placements[i].errors / placements[i].aligned < lFrgPlacement.errors / lFrgPlacement.aligned)
+    if (placements[i].errors / placements[i].aligned < lFrgPlacement.errors / lFrgPlacement.aligned) {
+#ifdef LOG_BUBBLE_FAILURE
+      writeLog("popBubbles()-- lFrg %u GOOD identity %f at %u,%u\n",
+              lFrg.ident,
+              placements[i].errors / placements[i].aligned,
+              placements[i].position.bgn, placements[i].position.end);
+#endif
       lFrgPlacement = placements[i];
+    } else {
+#ifdef LOG_BUBBLE_FAILURE
+      writeLog("popBubbles()-- lFrg %u low identity %f at %u,%u\n",
+              lFrg.ident,
+              placements[i].errors / placements[i].aligned,
+              placements[i].position.bgn, placements[i].position.end);
+#endif
+    }
   }
 
   lFrgN.ident             = lFrgPlacement.frgID;
@@ -510,8 +576,7 @@ mergeBubbles_checkFrags(UnitigVector &unitigs,
     nFrg.position          = correctPlace[fi].position;
     nFrg.containment_depth = 0;
 
-    //target->addFrag(nFrg, 0, logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG));
-    target->addFrag(nFrg, 0, false);
+    target->addFrag(nFrg, 0, logFileFlagSet(LOG_INTERSECTION_BUBBLES_DEBUG));
   }
 
   target->sort();
