@@ -142,39 +142,53 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     //
 
 #warning not knowing the overlap length really hurts.
+
+#if 1
     fend = fbgn + FI->fragmentLength(frag5.ident);
+#else
+    //  This was an attempt to adjust position to better capture the length of the read.  It bombed
+    //  because it violates hang restrictions - for example, when building the initial unitig, the
+    //  path is from positive ahang overlaps, but this change can result in negative hang
+    //  postioning.
+    //
+    //  This typically fails with
+    //    AS_BAT_Unitig_AddFrag.C:68:
+    //      void Unitig::addFrag(ufNode, int, bool):
+    //        Assertion `node.position.end >= 0' failed
+    //
+    int  fpos = (fbgn + fend) / 2;
+
+    fbgn = fpos - FI->fragmentLength(frag5.ident) / 2;
+    fend = fpos + FI->fragmentLength(frag5.ident) / 2;
+#endif
 
     //  Make sure that we didn't just make a contained fragment out of a dovetail.  There are two
     //  cases here, either the fragment is before or after the parent.  We'll compare fbgn to the
     //  parent position.  We could use orientations and ends, but this is easier.
 
     if (fbgn < pbgn) {
-      //  Fragment begins before the parent (fragment must therefore be forward since the edge is
-      //  off the 5' end) and so fend must be before pend (otherwise fragment would contain parent).
       if (fend >= pend) {
-#ifdef DEBUG_PLACE_FRAG
-        writeLog("RESET5l fend from %d to %d\n", fend, pend - 1);
-#endif
         fend = pend - 1;
       }
 
     } else {
       if (fend <= pend) {
-#ifdef DEBUG_PLACE_FRAG
-        writeLog("RESET5r fend from %d to %d\n", fend, pend + 1);
-#endif
         fend = pend + 1;
       }
     }
 
     if (pbgn >= pend)
-      fprintf(stderr, "ERROR: parent placement inconsistent iid=%d %d,%d\n",
+      fprintf(stderr, "ERROR: 5' parent placement inconsistent iid=%d %d,%d\n",
               parent->ident, parent->position.bgn, parent->position.end);
     if (fbgn >= fend)
-      fprintf(stderr, "ERROR: placement inconsistent parent=%d %d,%d hang %d,%d this %d %d,%d\n",
+      fprintf(stderr, "ERROR: 5' placement inconsistent parent=%d %d,%d hang %d,%d this %d %d,%d\n",
               parent->ident, parent->position.bgn, parent->position.end,
               ahang, bhang,
               frag5.ident, fbgn, fend);
+
+    //if ((pbgn >= pend) || (fbgn >= fend))
+    //  return(false);
+
     assert(pbgn < pend);
     assert(fbgn < fend);
 
@@ -234,42 +248,46 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
     }
 
 #warning not knowing the overlap length really hurts.
+
+#if 1
     fend = fbgn + FI->fragmentLength(frag3.ident);
+#else
+    //  See comment above.
+    int  fpos = (fbgn + fend) / 2;
+
+    fbgn = fpos - FI->fragmentLength(frag3.ident) / 2;
+    fend = fpos + FI->fragmentLength(frag3.ident) / 2;
+#endif
 
     //  Make sure that we didn't just make a contained fragment out of a dovetail.  There are two
     //  cases here, either the fragment is before or after the parent.  We'll compare fbgn to the
     //  parent position.  We could use orientations and ends, but this is easier.
 
     if (fbgn < pbgn) {
-      //  Fragment begins before the parent (fragment must therefore be reverse since the edge is
-      //  off the 3' end) and so fend must be before pend (otherwise fragment would contain parent).
       if (fend >= pend) {
-#ifdef DEBUG_PLACE_FRAG
-        writeLog("RESET3l fend from %d to %d\n", fend, pend-1);
-#endif
         fend = pend - 1;
       }
 
     } else {
       if (fend <= pend) {
-#ifdef DEBUG_PLACE_FRAG
-        writeLog("RESET3r fend from %d to %d\n", fend, pend+1);
-#endif
         fend = pend + 1;
       }
     }
 
     if (pbgn >= pend)
-      fprintf(stderr, "ERROR: parent placement inconsistent iid=%d %d,%d\n",
+      writeLog("ERROR: 3' parent placement inconsistent iid=%d %d,%d\n",
               parent->ident, parent->position.bgn, parent->position.end);
     if (fbgn >= fend)
-      fprintf(stderr, "ERROR: placement inconsistent parent=%d %d,%d hang %d,%d this %d %d,%d\n",
+      writeLog("ERROR: 3' placement inconsistent parent=%d %d,%d hang %d,%d this %d %d,%d\n",
               parent->ident, parent->position.bgn, parent->position.end,
               ahang, bhang,
               frag3.ident, fbgn, fend);
+
+    //if ((pbgn >= pend) || (fbgn >= fend))
+    //  return(false);
+
     assert(pbgn < pend);
     assert(fbgn < fend);
-
 
     //  The new frag is reverse if:
     //    the old frag is forward and we hit its 3' end, or
@@ -409,6 +427,53 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
     //  If we're a false containment overlap, skip the adjustment below.
     return(true);
 
+  //  Reset the position.  Try to accomodate the hangs and full read length.
+  //  Note that this CAN break containment relationships.
+
+  int32  fragPos   = (frag.position.bgn + frag.position.end) / 2;
+  int32  placedLen = 0;
+
+  if (frag.position.bgn < frag.position.end) {
+    int32  placedLen = frag.position.end - frag.position.bgn;
+    int32  aveLen    = (placedLen + FI->fragmentLength(frag.ident)) / 2;
+
+    frag.position.bgn = fragPos - aveLen / 2;
+    frag.position.end = fragPos + aveLen / 2;
+
+    writeLog("placeFrag()-- contained frag %u at %d,%d fwd from parent frag %u at %d,%d placedLen %d readLen %d aveLen %d\n",
+             frag.ident,    frag.position.bgn,    frag.position.end,
+             parent->ident, parent->position.bgn, parent->position.end,
+             placedLen, FI->fragmentLength(frag.ident), aveLen);
+
+  } else {
+    int32  placedLen = frag.position.bgn - frag.position.end;
+    int32  aveLen    = (placedLen + FI->fragmentLength(frag.ident)) / 2;
+
+    frag.position.bgn = fragPos + aveLen / 2;
+    frag.position.end = fragPos - aveLen / 2;
+
+    writeLog("placeFrag()-- contained frag %u at %d,%d rev from parent frag %u at %d,%d placedLen %d readLen %d aveLen %d\n",
+             frag.ident,    frag.position.bgn,    frag.position.end,
+             parent->ident, parent->position.bgn, parent->position.end,
+             placedLen, FI->fragmentLength(frag.ident), aveLen);
+  }
+
+  //  If we're pushed outside the container, adjust.
+
+  int32   minParent = MIN(parent->position.bgn, parent->position.end);
+  int32   maxParent = MAX(parent->position.bgn, parent->position.end);
+
+  if (frag.position.bgn < minParent)   frag.position.bgn = minParent;
+  if (frag.position.end < minParent)   frag.position.end = minParent;
+
+  if (frag.position.bgn > maxParent)   frag.position.bgn = maxParent;
+  if (frag.position.end > maxParent)   frag.position.end = maxParent;
+
+  assert(frag.position.bgn >= 0);
+  assert(frag.position.end >= 0);
+  assert(frag.position.bgn <= getLength());
+  assert(frag.position.end <= getLength());
+
   //  Containments are particularily painful.  A beautiful example: a fragment of length 253bp is
   //  contained in a fragment of length 251bp (both hangs are zero).  In this case, the
   //  "ahang+length" method fails, placing the contained fragment outside the container (and if
@@ -421,6 +486,7 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
   //  those values anyway) then reset the end based on the length, limited to maintain a containment
   //  relationship.
   //
+#if 0
 #warning not knowing the overlap length really hurts.
   if (frag.position.bgn < frag.position.end) {
     frag.position.end = frag.position.bgn + FI->fragmentLength(frag.ident);
@@ -431,6 +497,7 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
     if (frag.position.bgn > MAX(parent->position.bgn, parent->position.end))
       frag.position.bgn = MAX(parent->position.bgn, parent->position.end);
   }
+#endif
 
   //  So we can sort properly, set the depth of this contained fragment.
   frag.containment_depth = parent->containment_depth + 1;
