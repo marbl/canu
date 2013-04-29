@@ -43,6 +43,15 @@ public:
   void        merge(void);              //  Merge overlapping regions
   void        merge(intervalList *IL);  //  Insert IL into this list
 
+  void        intersect(intervalList &A,
+                        intervalList &B);
+
+  u32bit      overlapping(intervalNumber    lo,
+                          intervalNumber    hi,
+                          u32bit          *&intervals,
+                          u32bit           &intervalsLen,
+                          u32bit           &intervalsMax);
+
   void        invert(intervalNumber lo, intervalNumber hi);
 
   u32bit      numberOfIntervals(void)   { return(_listLen); };
