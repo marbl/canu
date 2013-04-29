@@ -362,8 +362,10 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
 #endif
 
   if ((parent == NULL) || (parent->ident != bestcont->container)) {
+#ifdef DEBUG_PLACE_FRAG
     writeLog("Unitig::placeFrag()-- WARNING:  Failed to place frag %d into unitig %d; parent not here.\n",
             frag.ident, id());
+#endif
     return(false);
   }
   
@@ -440,10 +442,12 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
     frag.position.bgn = fragPos - aveLen / 2;
     frag.position.end = fragPos + aveLen / 2;
 
+#ifdef DEBUG_PLACE_FRAG
     writeLog("placeFrag()-- contained frag %u at %d,%d fwd from parent frag %u at %d,%d placedLen %d readLen %d aveLen %d\n",
              frag.ident,    frag.position.bgn,    frag.position.end,
              parent->ident, parent->position.bgn, parent->position.end,
              placedLen, FI->fragmentLength(frag.ident), aveLen);
+#endif
 
   } else {
     int32  placedLen = frag.position.bgn - frag.position.end;
@@ -452,10 +456,12 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
     frag.position.bgn = fragPos + aveLen / 2;
     frag.position.end = fragPos - aveLen / 2;
 
+#ifdef DEBUG_PLACE_FRAG
     writeLog("placeFrag()-- contained frag %u at %d,%d rev from parent frag %u at %d,%d placedLen %d readLen %d aveLen %d\n",
              frag.ident,    frag.position.bgn,    frag.position.end,
              parent->ident, parent->position.bgn, parent->position.end,
              placedLen, FI->fragmentLength(frag.ident), aveLen);
+#endif
   }
 
   //  If we're pushed outside the container, adjust.
