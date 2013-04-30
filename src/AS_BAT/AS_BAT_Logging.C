@@ -28,22 +28,78 @@ public:
   logFileInstance() {
     file    = NULL;
     name[0] = 0;
+    part    = 0;
+    length  = 0;
   };
   ~logFileInstance() {
-    if (file) {
-      fprintf(stderr, "WARNING: open file\n");
+    if ((name[0] != 0) && (file)) {
+      fprintf(stderr, "WARNING: open file '%s'\n", name);
       fclose(file);
     }
   };
 
-  FILE *file;
-  char  name[FILENAME_MAX];
+  void  set(char const *prefix, int32 order, char const *label, int32 tn) {
+    if (label == NULL) {
+      file    = stderr;
+      name[0] = 0;
+      part    = 0;
+      length  = 0;
+      return;
+    }
+
+    sprintf(name, "%s.%03u.%s.thr%03d", prefix, order, label, tn);
+  };
+
+  void  rotate(void) {
+    fclose(file);
+
+    file   = NULL;
+    length = 0;
+
+    part++;
+  }
+
+  void  open(void) {
+    char    path[FILENAME_MAX];
+
+    assert(file == NULL);
+    assert(name[0] != 0);
+
+    sprintf(path, "%s.num%03d.log", name, part);
+
+    errno = 0;
+    file = fopen(path, "w");
+    if (errno) {
+      fprintf(stderr, "setLogFile()-- Failed to open logFile '%s': %s.\n", path, strerror(errno));
+      fprintf(stderr, "setLogFile()-- Will now log to stderr instead.\n");
+      file = stderr;
+    }
+  };
+
+  void  close(void) {
+    if ((file != NULL) && (file != stderr))
+      fclose(file);
+
+    file    = NULL;
+    name[0] = 0;
+    part    = 0;
+    length  = 0;
+  };
+
+  FILE   *file;
+  char    name[FILENAME_MAX];
+  uint32  part;
+  uint64  length;
 };
 
 
-logFileInstance   *logFile      = NULL;
-uint32             logFileOrder = 0;
-uint64             logFileFlags = 0;
+//  NONE of the logFileMain/logFileThread is implemented
+
+
+logFileInstance    logFileMain;           //  For writes during non-threaded portions
+logFileInstance   *logFileThread = NULL;  //  For writes during threaded portions.
+uint32             logFileOrder  = 0;
+uint64             logFileFlags  = 0;
 
 uint64 LOG_OVERLAP_QUALITY             = 0x0000000000000001;  //  Debug, scoring of overlaps
 uint64 LOG_OVERLAPS_USED               = 0x0000000000000002;  //  Report overlaps used/not used
@@ -89,72 +145,81 @@ char const *logFileFlagNames[64] = { "overlapQuality",
                                      NULL
 };
 
-//  Closes the current logFile, opens a new one called 'prefix.logFileOrder.name'.  If 'name' is
+//  Closes the current logFile, opens a new one called 'prefix.logFileOrder.label'.  If 'label' is
 //  NULL, the logFile is reset to stderr.
 void
-setLogFile(char const *prefix, char const *name) {
+setLogFile(char const *prefix, char const *label) {
+
+  assert(prefix != NULL);
 
   if (logFileFlagSet(LOG_STDERR))
     //  Write everything to stderr
     return;
 
-  int32  nt = omp_get_num_threads();
-  int32  tn = omp_get_thread_num();
+  //  Allocate space.
 
-  if (logFile == NULL)
-    logFile = new logFileInstance [omp_get_max_threads()];
+  if (logFileThread == NULL)
+    logFileThread = new logFileInstance [omp_get_max_threads()];
 
-  for (int32 i=0; i<omp_get_max_threads(); i++)
-    if ((logFile[tn].file != NULL) && (logFile[tn].file != stderr)) {
-      fclose(logFile[tn].file);
-      logFile[tn].file    = NULL;
-    }
+  //  Close out the old.
 
-  if (name == NULL) {
-    logFile[tn].file    = stderr;
-    logFile[tn].name[0] = 0;
-    return;
-  }
+  logFileMain.close();
 
-#pragma omp critical
-  if (nt == 1)
-    sprintf(logFile[tn].name, "%s.%03u.%s.log", prefix, ++logFileOrder, name);
-  else
-    sprintf(logFile[tn].name, "%s.%03u.%s.thread%03d.log", prefix, ++logFileOrder, name, tn);
+  for (int32 tn=0; tn<omp_get_max_threads(); tn++)
+    logFileThread[tn].close();
 
-  errno = 0;
-  logFile[tn].file = fopen(logFile[tn].name, "w");
-  if (errno) {
-    fprintf(stderr, "setLogFile()-- Failed to open logFile '%s': %s.\n", logFile[tn].name, strerror(errno));
-    fprintf(stderr, "setLogFile()-- Will now log to stderr instead.\n");
-    logFile[tn].file = stderr;
-  }
 
-  fprintf(stderr,  "setLogFile()-- Now logging to '%s'\n", logFile[tn].name);
+  //  Move to the next iteration.
+
+  logFileOrder++;
+
+  //  Set up for that iteration.
+
+  logFileMain.set(prefix, logFileOrder, label, 0);
+
+  for (int32 tn=0; tn<omp_get_max_threads(); tn++)
+    logFileThread[tn].set(prefix, logFileOrder, label, tn+1);
+
+  //  File open is delayed until it is used.
+
+  if (label != NULL)
+    fprintf(stderr,  "setLogFile()-- Now logging to '%s.%03d.%s'\n", prefix, logFileOrder, label);
 }
 
-
-void
-resetLogFile(char const *prefix, char const *name) {
-
-  if (logFileFlagSet(LOG_STDERR))
-    //  Write everything to stderr
-    return;
-
-  int32  tn = omp_get_thread_num();
-
-  if ((logFile[tn].name[0] == 0) ||
-      (AS_UTL_sizeOfFile(logFile[tn].name) > 512 * 1024 * 1024))
-    setLogFile(prefix, name);
-}
 
 
 void
 writeLog(char const *fmt, ...) {
-  va_list   ap;
+  va_list           ap;
+  int32             nt = omp_get_num_threads();
+  int32             tn = omp_get_thread_num();
+
+  logFileInstance  *lf = (nt == 1) ? (&logFileMain) : (&logFileThread[tn]);
+
+  //  Rotate the log file please, HAL.
+  //    AS_UTL_sizeOfFile(lf->name) > 512 * 1024 * 1024)
+
+  if ((lf->name[0] != 0) &&
+      (lf->length  > 512 * 1024 * 1024)) {
+    fprintf(stderr, "ROTATE length %u\n", lf->length);
+    lf->rotate();
+  }
+
+  //  Default to stderr if no name set.
+
+  if (lf->name[0] == 0)
+    lf->file = stderr;
+
+  //  Open the file if needed.
+
+  if (lf->file == NULL)
+    lf->open();
+
+  //  Write the log.
 
   va_start(ap, fmt);
 
-  vfprintf(logFile[omp_get_thread_num()].file, fmt, ap);
-}
+  lf->length += vfprintf(lf->file, fmt, ap);
 
+  va_end(ap);
+}

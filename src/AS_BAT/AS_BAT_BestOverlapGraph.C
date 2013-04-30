@@ -31,13 +31,15 @@ static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.13 2012-11-20 13:
 
 BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
                                    double               AS_UTG_ERROR_LIMIT,
-                                   const char          *prefix) {
+                                   const char          *prefix,
+                                   bool                 removeSuspicious,
+                                   bool                 removeSpurs) {
 
-  setLogFile(prefix, "bestoverlapgraph");
+  setLogFile(prefix, "bestOverlapGraph");
 
   writeLog("BestOverlapGraph-- allocating best edges ("F_SIZE_T"MB) and containments ("F_SIZE_T"MB)\n",
-          ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20),
-          ((1 * sizeof(BestContainment) * (FI->numFragments() + 1)) >> 20));
+           ((2 * sizeof(BestEdgeOverlap) * (FI->numFragments() + 1)) >> 20),
+           ((1 * sizeof(BestContainment) * (FI->numFragments() + 1)) >> 20));
 
   assert(AS_UTG_ERROR_RATE >= 0.0);
   assert(AS_UTG_ERROR_RATE <= AS_MAX_ERROR_RATE);
@@ -64,61 +66,67 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
   //  PASS 0:  Find suspicious fragments.  For any found, mark as suspicious and don't allow
   //  these to be best overlaps.
-#if 0
-  for (AS_IID fi=1; fi <= FI->numFragments(); fi++) {
-    uint32      no  = 0;
-    BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-    bool          verified = false;
-    intervalList  IL;
+  if (removeSuspicious) {
+    writeLog("BestOverlapGraph()-- removing suspicious reads from graph, with %d threads.\n", numThreads);
 
-    uint32        fLen = FI->fragmentLength(fi);
+#pragma omp parallel for schedule(dynamic, blockSize)
+    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+      uint32      no  = 0;
+      BAToverlap *ovl = OC->getOverlaps(fi, no);
 
-    for (uint32 ii=0; (ii<no) && (verified == false); ii++) {
-      if (isOverlapBadQuality(ovl[ii]))
-        //  Yuck.  Don't want to use this crud.
-        continue;
+      bool          verified = false;
+      intervalList  IL;
 
-      if      ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang <= 0))
-        //  Left side dovetail
-        IL.add(0, fLen + ovl[ii].b_hang);
+      uint32        fLen = FI->fragmentLength(fi);
 
-      else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang >= 0))
-        //  Right side dovetail
-        IL.add(ovl[ii].a_hang, fLen - ovl[ii].a_hang);
+      for (uint32 ii=0; (ii<no) && (verified == false); ii++) {
+        if (isOverlapBadQuality(ovl[ii]))
+          //  Yuck.  Don't want to use this crud.
+          continue;
 
-      else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang <= 0))
-        //  I contain the other
-        IL.add(ovl[ii].a_hang, fLen - ovl[ii].a_hang - ovl[ii].b_hang);
+        if      ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang <= 0))
+          //  Left side dovetail
+          IL.add(0, fLen + ovl[ii].b_hang);
 
-      else if ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang >= 0))
-        //  I am contained and thus now perfectly good!
-        verified = true;
+        else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang >= 0))
+          //  Right side dovetail
+          IL.add(ovl[ii].a_hang, fLen - ovl[ii].a_hang);
 
-      else
-        //  Huh?  Coding error.
-        assert(0);
-    }
+        else if ((ovl[ii].a_hang >= 0) && (ovl[ii].b_hang <= 0))
+          //  I contain the other
+          IL.add(ovl[ii].a_hang, fLen - ovl[ii].a_hang - ovl[ii].b_hang);
 
-    if (verified == false) {
-      IL.merge();
-      verified = (IL.numberOfIntervals() == 1);
-    }
+        else if ((ovl[ii].a_hang <= 0) && (ovl[ii].b_hang >= 0))
+          //  I am contained and thus now perfectly good!
+          verified = true;
 
-    if (verified == false) {
-      if (no > 0)
-        writeLog("BestOverlapGraph()-- frag "F_U32" is suspicious ("F_U32" overlaps).\n", fi, no);
-      _suspicious.insert(fi);
+        else
+          //  Huh?  Coding error.
+          assert(0);
+      }
+
+      if (verified == false) {
+        IL.merge();
+        verified = (IL.numberOfIntervals() == 1);
+      }
+
+      if (verified == false) {
+        if (no > 0)
+          writeLog("BestOverlapGraph()-- frag "F_U32" is suspicious ("F_U32" overlaps).\n", fi, no);
+
+#pragma omp critical (suspInsert)
+        _suspicious.insert(fi);
+      }
     }
   }
-#endif
 
   //  PASS 1:  Find containments.
 
-  fprintf(stderr, "BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
+  writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
 
   if (false && AS_UTL_fileExists("best.contains", false, false)) {
-    fprintf(stderr, "BestOverlapGraph()-- loading best containes from cache.\n");
+    writeLog("BestOverlapGraph()-- loading best containes from cache.\n");
     assert(0);  //  Not quite done.
 
   } else {
@@ -135,11 +143,11 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
   //  PASS 2:  Find dovetails.
 
   if (false && AS_UTL_fileExists("best.edges", false, false)) {
-    fprintf(stderr, "BestOverlapGraph()-- loading best edges from cache.\n");
+    writeLog("BestOverlapGraph()-- loading best edges from cache.\n");
     assert(0);  //  Not quite done.
 
   } else {
-    fprintf(stderr, "BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
+    writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
     for (AS_IID fi=1; fi <= fiLimit; fi++) {
@@ -151,6 +159,65 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
     }
   }
 
+  //  Remove spurs
+
+  if (removeSpurs) {
+    writeLog("BestOverlapGraph()-- detecting spur fragments.\n");
+
+    char   *isSpur = new char [fiLimit + 1];
+
+    memset(isSpur, 0, sizeof(char) * (fiLimit + 1));
+
+    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+      bool   spur5 = (getBestEdgeOverlap(fi, false)->fragId() == 0);
+      bool   spur3 = (getBestEdgeOverlap(fi, true)->fragId()  == 0);
+
+      if ((spur5 == true) || (spur3 == true)) {
+        if ((spur5 == false) || (spur3 == false))
+          writeLog("BestOverlapGraph()-- frag "F_U32" is a %s spur.\n", fi, (spur5) ? "5'" : "3'");
+        isSpur[fi] = true;
+      }
+    }
+
+    //  Remove best edges, so we can rebuild
+
+    memset(_bestA, 0, sizeof(BestOverlaps) * (fiLimit + 1));
+    memset(_scorA, 0, sizeof(BestScores)   * (fiLimit + 1));
+
+    //  Rebuild best edges, ignoring edges to spurs.  We build edges out of spurs, but don't allow edges into them.
+    //  This should prevent them from being incorporated into a promiscuous unitig, but still let them be popped
+    //  as bubbles (but they shouldn't because they're spurs).
+
+    //  PASS 3:  Find containments.
+
+    writeLog("BestOverlapGraph()-- analyzing %d fragments for best contains, with %d threads.\n", fiLimit, numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+      uint32      no  = 0;
+      BAToverlap *ovl = OC->getOverlaps(fi, no);
+
+      for (uint32 ii=0; ii<no; ii++)
+        scoreContainment(ovl[ii]);
+    }
+
+    //  PASS 4:  Find dovetails.
+
+    writeLog("BestOverlapGraph()-- analyzing %d fragments for best edges, with %d threads.\n", fiLimit, numThreads);
+
+#pragma omp parallel for schedule(dynamic, blockSize)
+    for (AS_IID fi=1; fi <= fiLimit; fi++) {
+      uint32      no  = 0;
+      BAToverlap *ovl = OC->getOverlaps(fi, no);
+
+      for (uint32 ii=0; ii<no; ii++)
+        if (isSpur[ovl[ii].b_iid] == false)
+          scoreEdge(ovl[ii]);
+    }
+
+    delete [] isSpur;
+  }
+
   //  Remove temporary scoring data
 
   delete [] _scorA;
@@ -158,7 +225,7 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
 
   //  Remove dovetail overlaps for contained fragments.
 
-  fprintf(stderr, "BestOverlapGraph()-- removing best edges for contained fragments, with %d threads.\n", numThreads);
+  writeLog("BestOverlapGraph()-- removing best edges for contained fragments, with %d threads.\n", numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (AS_IID fi=1; fi <= fiLimit; fi++) {
@@ -168,22 +235,7 @@ BestOverlapGraph::BestOverlapGraph(double               AS_UTG_ERROR_RATE,
     }
   }
 
-  //  Remove spurs
-
-#if 0
-  fprintf(stderr, "BestOverlapGraph()-- removing best edges for spur fragments, with %d threads.\n", numThreads);
-
-#pragma omp parallel for schedule(dynamic, blockSize)
-  for (AS_IID fi=1; fi <= fiLimit; fi++) {
-    if ((getBestEdgeOverlap(fi, false)->fragId() == 0) ||
-        (getBestEdgeOverlap(fi, true)->fragId()  == 0)) {
-      getBestEdgeOverlap(fi, false)->set(0, 0, 0, 0);
-      getBestEdgeOverlap(fi, true) ->set(0, 0, 0, 0);
-    }
-  }
-#endif
-
-  fprintf(stderr, "BestOverlapGraph()-- dumping best edges/contains/singletons.\n");
+  writeLog("BestOverlapGraph()-- dumping best edges/contains/singletons.\n");
 
   reportBestEdges();
 
@@ -372,8 +424,7 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
     c->a_hang            = olap.flipped ? olap.b_hang : -olap.a_hang;
     c->b_hang            = olap.flipped ? olap.a_hang : -olap.b_hang;
 
-    //fprintf(stderr, "set best for %d from "F_U64" to "F_U64"\n",
-    //        olap.a_iid, bestCscore(olap.a_iid), newScr);
+    //writeLog("set best for %d from "F_U64" to "F_U64"\n", olap.a_iid, bestCscore(olap.a_iid), newScr);
 
     bestCscore(olap.a_iid) = newScr;
   }
@@ -383,28 +434,52 @@ BestOverlapGraph::scoreContainment(const BAToverlap& olap) {
 
 void
 BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
+  bool   enableLog = false;  //  useful for reporting this stuff only for specific reads
 
-  if (isOverlapBadQuality(olap))
+  //if ((olap.a_iid == 97202) || (olap.a_iid == 30701))
+  //  enableLog = true;
+
+  if (isOverlapBadQuality(olap)) {
     //  Yuck.  Don't want to use this crud.
+    if ((enableLog == true) && ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY)))
+      writeLog("OVERLAP BADQ:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- bad quality\n",
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
     return;
+  }
 
-  if (isOverlapRestricted(olap))
+  if (isOverlapRestricted(olap)) {
     //  Whoops, don't want this overlap for this BOG
+    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+      writeLog("OVERLAP REST:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- restricted\n",
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
     return;
+  }
 
-  if (isSuspicious(olap.b_iid))
+  if (isSuspicious(olap.b_iid)) {
     //  Whoops, don't want this overlap for this BOG
+    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+      writeLog("OVERLAP SUSP:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- suspicious\n",
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
     return;
+  }
 
   if (((olap.a_hang >= 0) && (olap.b_hang <= 0)) ||
-      ((olap.a_hang <= 0) && (olap.b_hang >= 0)))
+      ((olap.a_hang <= 0) && (olap.b_hang >= 0))) {
     //  Skip containment overlaps.
+    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+      writeLog("OVERLAP CONT:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- container read\n",
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
     return;
+  }
 
   if ((isContained(olap.a_iid) == true) ||
-      (isContained(olap.b_iid) == true))
+      (isContained(olap.b_iid) == true)) {
     //  Skip contained fragments.
+    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+      writeLog("OVERLAP CONT:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- contained read\n",
+               olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
     return;
+  }
 
   uint64           newScr = scoreOverlap(olap);
   bool             a3p    = AS_BAT_overlapAEndIs3prime(olap);
@@ -419,6 +494,10 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
   best->set(olap);
 
   score = newScr;
+
+  if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
+    writeLog("OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f -- NOW BEST\n",
+             olap.a_iid, olap.b_iid, olap.flipped ? 'A' : 'N', olap.a_hang, olap.b_hang, olap.error);
 }
 
 
@@ -426,6 +505,10 @@ BestOverlapGraph::scoreEdge(const BAToverlap& olap) {
 
 bool
 BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
+  bool   enableLog = false;  //  useful for reporting this stuff only for specific reads
+
+  //if ((olap.a_iid == 97202) || (olap.a_iid == 30701))
+  //  enableLog = true;
 
   if ((FI->fragmentLength(olap.a_iid) == 0) ||
       (FI->fragmentLength(olap.b_iid) == 0))
@@ -437,13 +520,13 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   //  erate.
   //
   if (olap.error <= mismatchCutoff) {
-    if (logFileFlags & LOG_OVERLAP_QUALITY)
+    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("OVERLAP GOOD:     %d %d %c  hangs "F_S32" "F_S32" err %.3f\n",
-              olap.a_iid, olap.b_iid,
-              olap.flipped ? 'A' : 'N',
-              olap.a_hang,
-              olap.b_hang,
-              olap.error);
+               olap.a_iid, olap.b_iid,
+               olap.flipped ? 'A' : 'N',
+               olap.a_hang,
+               olap.b_hang,
+               olap.error);
     return(false);
   }
 
@@ -463,25 +546,25 @@ BestOverlapGraph::isOverlapBadQuality(const BAToverlap& olap) {
   assert(nerr >= 0);
 
   if (nerr <= mismatchLimit) {
-    if (logFileFlags & LOG_OVERLAP_QUALITY)
+    if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
       writeLog("OVERLAP SAVED:    %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
-              olap.a_iid, olap.b_iid,
-              olap.flipped ? 'A' : 'N',
-              olap.a_hang,
-              olap.b_hang,
-              olap.error,
-              olen, nerr);
+               olap.a_iid, olap.b_iid,
+               olap.flipped ? 'A' : 'N',
+               olap.a_hang,
+               olap.b_hang,
+               olap.error,
+               olen, nerr);
     return(false);
   }
 
-  if (logFileFlags & LOG_OVERLAP_QUALITY)
+  if ((enableLog == true) && (logFileFlags & LOG_OVERLAP_QUALITY))
     writeLog("OVERLAP REJECTED: %d %d %c  hangs "F_S32" "F_S32" err %.3f olen %f nerr %f\n",
-            olap.a_iid, olap.b_iid,
-            olap.flipped ? 'A' : 'N',
-            olap.a_hang,
-            olap.b_hang,
-            olap.error,
-            olen, nerr);
+             olap.a_iid, olap.b_iid,
+             olap.flipped ? 'A' : 'N',
+             olap.a_hang,
+             olap.b_hang,
+             olap.error,
+             olen, nerr);
   return(true);
 }
 

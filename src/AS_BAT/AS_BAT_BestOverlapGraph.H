@@ -52,9 +52,11 @@ public:
 
 class BestOverlapGraph {
 public:
-  BestOverlapGraph(double erate,
-                   double elimit,
-                   const char *prefix);
+  BestOverlapGraph(double      erate,
+                   double      elimit,
+                   const char *prefix,
+                   bool        removeSuspicious,
+                   bool        removeSpurs);
 
   BestOverlapGraph(double erate,
                    double elimit,

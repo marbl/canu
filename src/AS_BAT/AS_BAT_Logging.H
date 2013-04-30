@@ -39,7 +39,6 @@ static const char *rcsid_INCLUDE_AS_BAT_LOGGING = "$Id: AS_BAT_Logging.H,v 1.1 2
 #include <omp.h>
 
 void  setLogFile(char const *prefix, char const *name);
-void  resetLogFile(char const *prefix, char const *name);
 void  writeLog(char const *fmt, ...);
 
 #define logFileFlagSet(L) ((logFileFlags & L) == L)

@@ -223,7 +223,7 @@ main (int argc, char * argv []) {
 
   FI = new FragmentInfo(gkpStore, output_prefix);
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, 6.0, 1.5, 0, 0, false, false);
-  OG = new BestOverlapGraph(erate, elimit, output_prefix);
+  OG = new BestOverlapGraph(erate, elimit, output_prefix, false, false);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
 

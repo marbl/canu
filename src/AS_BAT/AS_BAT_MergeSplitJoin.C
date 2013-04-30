@@ -1500,14 +1500,12 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
   //  This used to be done right before each unitig was examined for repeats.
   //  It cannot be done in parallel -- there is a race condition when both unitigs
   //  A and B are considering merging in unitig C.
-  //
-  setLogFile(NULL, NULL);
-  //setLogFile(prefix, "popBubbles");
+
+  setLogFile(prefix, "popBubbles");
+  writeLog("popBubbles()-- working on "F_U64" unitigs.\n", unitigs.size());
 
   for (uint32 ti=0; ti<unitigs.size(); ti++) {
     Unitig        *target = unitigs[ti];
-
-    resetLogFile(prefix, "popBubbles");
 
     if ((target == NULL) ||
         (target->ufpath.size() < 15) ||
@@ -1521,13 +1519,9 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
     stealBubbles(unitigs, target, ilist);
   }
 
-  setLogFile(prefix, "popBubbles");
-
-  reportOverlapsUsed(unitigs, prefix, "mergeSplitJoin");
-  reportUnitigs(unitigs, prefix, "mergeSplitJoin");
-  evaluateMates(unitigs, prefix, "mergeSplitJoin");
-
-  fprintf(stderr, "popBubbles()-- finished.\n");
+  reportOverlapsUsed(unitigs, prefix, "popBubbles");
+  reportUnitigs(unitigs, prefix, "popBubbles");
+  evaluateMates(unitigs, prefix, "popBubbles");
 
   //  Since we create new unitigs for any of the splits, we need to remember
   //  where to stop.  We don't want to re-examine any of the split unitigs.
@@ -1537,13 +1531,12 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
   uint32  numThreads = omp_get_max_threads();
   uint32  blockSize = (tiLimit < 100000 * numThreads) ? numThreads : tiLimit / 99999;
 
-  fprintf(stderr, "repeatDetect()-- working on %d unitigs, with %d threads.\n", tiLimit, numThreads);
+  setLogFile(prefix, "mergeSplitJoin");
+  writeLog("repeatDetect()-- working on "F_U32" unitigs, with "F_U32" threads.\n", tiLimit, numThreads);
 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig        *target = unitigs[ti];
-
-    resetLogFile(prefix, "mergeSplitJoin");
 
     if ((target == NULL) ||
         (target->ufpath.size() < 15) ||
@@ -1557,13 +1550,9 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
     markChimera(unitigs, target);
   }
 
-  setLogFile(prefix, "mergeSplitJoin");
-
   reportOverlapsUsed(unitigs, prefix, "mergeSplitJoin");
   reportUnitigs(unitigs, prefix, "mergeSplitJoin");
   evaluateMates(unitigs, prefix, "mergeSplitJoin");
-
-  fprintf(stderr, "repeatDetect()-- finished.\n");
 
   //  JOIN EXPOSED BEST - after bubbles are stolen, this should leave some unitigs
   //  with exposed best edges that can now be connected.

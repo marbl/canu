@@ -34,6 +34,7 @@ const char *mainid = "$Id: bogart.C,v 1.25 2012-07-30 20:53:08 brianwalenz Exp $
 #include "AS_BAT_PlaceContains.H"
 #include "AS_BAT_PlaceZombies.H"
 
+#include "AS_BAT_Joining.H"
 #include "AS_BAT_MergeSplitJoin.H"
 #include "AS_BAT_SplitDiscontinuous.H"
 
@@ -71,6 +72,10 @@ main (int argc, char * argv []) {
   int       fragment_count_target    = 0;
   char     *output_prefix            = NULL;
 
+  bool      removeSpur               = false;
+  bool      removeSuspicious         = false;
+  bool      enableJoining            = false;
+
   bool      enableShatterRepeats     = false;
   bool      enableExtendByMates      = false;
   bool      enableReconstructRepeats = false;
@@ -97,6 +102,15 @@ main (int argc, char * argv []) {
         ovlStoreReptPath = argv[++arg];
       else
         err++;
+
+    } else if (strcmp(argv[arg], "-RS") == 0) {
+      removeSpur = true;
+
+    } else if (strcmp(argv[arg], "-NS") == 0) {
+      removeSuspicious = true;
+
+    } else if (strcmp(argv[arg], "-J") == 0) {
+      enableJoining = true;
 
     } else if (strcmp(argv[arg], "-T") == 0) {
       tigStorePath = argv[++arg];
@@ -227,6 +241,9 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Algorithm Options\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -RS        Remove edges to spur reads from best overlap graph.\n");
+    fprintf(stderr, "  -NS        Don't seed promiscuous unitigs with suspicious reads.\n");
+    fprintf(stderr, "  -J         Join promiscuous unitigs using unused best edges.\n");
     fprintf(stderr, "  -SR        Shatter repeats.  Enabled with -R and -E; if neither are supplied,\n");
     fprintf(stderr, "               repeat fragments are promoted to singleton unitigs (unless -DP).\n");
     fprintf(stderr, "  -R         Shatter repeats, rebuild\n");
@@ -323,7 +340,7 @@ main (int argc, char * argv []) {
 
   UnitigVector      unitigs;
 
-  setLogFile(NULL, NULL);
+  setLogFile(output_prefix, NULL);
 
   FI = new FragmentInfo(gkpStore, output_prefix);
 
@@ -331,7 +348,7 @@ main (int argc, char * argv []) {
   Unitig::resetFragUnitigMap(FI->numFragments());
 
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, MAX(erateGraph, erateMerge), MAX(elimitGraph, elimitMerge), ovlCacheMemory, ovlCacheLimit, onlySave, doSave);
-  OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix);
+  OG = new BestOverlapGraph(erateGraph, elimitGraph, output_prefix, removeSuspicious, removeSpur);
   CG = new ChunkGraph(output_prefix);
   IS = NULL;
 
@@ -368,6 +385,16 @@ main (int argc, char * argv []) {
   evaluateMates(unitigs, output_prefix, "buildUnitigs");
 
   setLogFile(output_prefix, "placeContains");
+
+  if (enableJoining) {
+    setLogFile(output_prefix, "joining");
+
+    joinUnitigs(unitigs, enableJoining);
+
+    reportOverlapsUsed(unitigs, output_prefix, "joining");
+    reportUnitigs(unitigs, output_prefix, "joining");
+    evaluateMates(unitigs, output_prefix, "joining");
+  }
 
   placeContainsUsingBestOverlaps(unitigs);
   //placeContainsUsingAllOverlaps(bool withMatesToNonContained,
@@ -440,7 +467,7 @@ main (int argc, char * argv []) {
   for (uint32  ti=0; ti<unitigs.size(); ti++)
     delete unitigs[ti];
 
-  setLogFile(NULL, NULL);
+  setLogFile(output_prefix, NULL);
   writeLog("Bye.\n");
 
   return(0);
