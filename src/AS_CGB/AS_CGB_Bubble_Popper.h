@@ -31,7 +31,7 @@ static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id: AS_CGB_Bubble_Popper.h
 
 /* The parameters for the Affine_Overlap_AS() function (should
    eventually become a CGB parameters). */
-#define POPPER_ALN_ERATE    AS_READ_ERROR_RATE
+#define POPPER_ALN_ERATE    AS_OVL_ERROR_RATE
 #define POPPER_ALN_THRESH   1e-6
 #define POPPER_ALN_MIN_LEN  AS_OVERLAP_MIN_LEN
 #define POPPER_ALN_FN       Local_Overlap_AS

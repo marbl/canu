@@ -3432,11 +3432,10 @@ static void  Parse_Command_Line
 
         case  'y' :
           Error_Rate = strtod (optarg, & p);
-          if  (p == optarg || AS_GUIDE_ERROR_RATE < Error_Rate)
+          if  (p == optarg || AS_OVL_ERROR_RATE < Error_Rate)
             {
              fprintf (stderr, "ERROR:  Bad error rate  %s\n", optarg);
-             fprintf (stderr, "Value must be between 0.0 and %.3f\n",
-                  AS_GUIDE_ERROR_RATE);
+             fprintf (stderr, "Value must be between 0.0 and %.3f\n", AS_OVL_ERROR_RATE);
              errflg = TRUE;
             }
           else
@@ -3498,7 +3497,7 @@ static void  Parse_Command_Line
    //
 
    if (! error_rate_set)
-     Error_Rate = AS_GUIDE_ERROR_RATE;
+     Error_Rate = AS_OVL_ERROR_RATE;
 
    return;
   }
@@ -5933,7 +5932,7 @@ static void  Usage
         "-y <x>  Allow max error rate of <x> in alignments (e.g., 0.03 for 3%% error)\n"
         "        Value cannot exceed  %.3f\n"
         "-z      Do NOT try to correct read errors\n",
-        q, AS_GUIDE_ERROR_RATE);
+        q, AS_OVL_ERROR_RATE);
 
    return;
   }

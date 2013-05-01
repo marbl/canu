@@ -233,9 +233,6 @@ extern double AS_CGW_ERROR_RATE;
 extern double AS_CNS_ERROR_RATE;
 extern double AS_MAX_ERROR_RATE;
 
-#define AS_READ_ERROR_RATE         AS_OVL_ERROR_RATE
-#define AS_GUIDE_ERROR_RATE        AS_OVL_ERROR_RATE
-
 extern uint32 AS_READ_MIN_LEN;
 extern uint32 AS_OVERLAP_MIN_LEN;
 

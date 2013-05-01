@@ -73,7 +73,7 @@
 #define  DEFAULT_BRANCH_MATCH_VAL    ( AS_OVL_ERROR_RATE / (1.+AS_OVL_ERROR_RATE) )
 #define  PARTIAL_BRANCH_MATCH_VAL    DEFAULT_BRANCH_MATCH_VAL
 //  Value to add for a match in finding branch points.
-//  ALH: Note that AS_READ_ERROR_RATE also affects what overlaps get found
+//  ALH: Note that AS_OVL_ERROR_RATE also affects what overlaps get found
 //  ALH: Scoring seems to be unusual: given an alignment
 //  of length l with k mismatches, the score seems to be
 //  computed as l + k * error value and NOT (l-k)*match+k*error

@@ -133,12 +133,12 @@ int32  Guide_Edit_Match_Limit [AS_READ_MAX_NORMAL_LEN] = {0};
 int32  Read_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
 //  This array [i]  is the maximum number of errors allowed
 //  in a match between reads of length  i , which is
-//  i * AS_READ_ERROR_RATE .
+//  i * AS_OVL_ERROR_RATE .
 
 int32  Guide_Error_Bound [AS_READ_MAX_NORMAL_LEN + 1];
 //  This array [i]  is the maximum number of errors allowed
 //  in a match between guides of length  i , which is
-//  i * AS_GUIDE_ERROR_RATE .
+//  i * AS_OVL_ERROR_RATE .
 
 double  Branch_Cost [AS_READ_MAX_NORMAL_LEN + 1];
 //  Branch_Cost [i]  is the "goodness" of matching i characters
@@ -534,7 +534,7 @@ Initialize_Globals (void) {
   int Start = 1;
 
   for  (int e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++) {
-    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_READ_ERROR_RATE, Start, EDIT_DIST_PROB_BOUND);
+    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, Start, EDIT_DIST_PROB_BOUND);
     Read_Edit_Match_Limit [e] = Start - 1;
     assert (Read_Edit_Match_Limit [e] >= Read_Edit_Match_Limit [e - 1]);
   }
@@ -545,16 +545,16 @@ Initialize_Globals (void) {
   Start = 1;
 
   for  (int e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++) {
-    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_GUIDE_ERROR_RATE, Start, EDIT_DIST_PROB_BOUND);
+    Start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, Start, EDIT_DIST_PROB_BOUND);
     Guide_Edit_Match_Limit [e] = Start - 1;
     assert (Guide_Edit_Match_Limit [e] >= Guide_Edit_Match_Limit [e - 1]);
   }
 
   for  (int i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
-    Read_Error_Bound [i] = (int) (i * AS_READ_ERROR_RATE + 0.0000000000001);
+    Read_Error_Bound [i] = (int) (i * AS_OVL_ERROR_RATE + 0.0000000000001);
 
   for  (int i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
-    Guide_Error_Bound [i] = (int) (i * AS_GUIDE_ERROR_RATE + 0.0000000000001);
+    Guide_Error_Bound [i] = (int) (i * AS_OVL_ERROR_RATE + 0.0000000000001);
 
   for  (int i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
     Branch_Cost [i] = i * Branch_Match_Value + Branch_Error_Value;

@@ -69,8 +69,6 @@ const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.44 2013-01-09 05:40:58 brianwal
     //  The number of errors that are ignored in setting probability
     //  bound for terminating alignment extensions in edit distance
     //  calculations
-#define  MAX_ERROR_RATE              AS_GUIDE_ERROR_RATE
-    //  The largest error allowed in overlaps
 #define  MAX_FASTA_LINE              2048
     //  Most bytes allowed in line of fasta file
 #define  MAX_FILENAME_LEN            1000
@@ -1186,22 +1184,19 @@ static void  Initialize_Globals
       del    += 2;
     }
 
-    assert(MAX_ERROR_RATE >= AS_READ_ERROR_RATE);
-    assert(MAX_ERROR_RATE >= AS_GUIDE_ERROR_RATE);
-
     for  (int32 i = 0;  i <= ERRORS_FOR_FREE;  i ++)
       Edit_Match_Limit [i] = 0;
 
     int32 start = 1;
     for  (int32 e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++)
       {
-        start = Binomial_Bound (e - ERRORS_FOR_FREE, MAX_ERROR_RATE, start, EDIT_DIST_PROB_BOUND);
+        start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE, start, EDIT_DIST_PROB_BOUND);
         Edit_Match_Limit [e] = start - 1;
         assert (Edit_Match_Limit [e] >= Edit_Match_Limit [e - 1]);
       }
 
     for  (int32 i = 0;  i <= AS_READ_MAX_NORMAL_LEN;  i ++)
-      Error_Bound [i] = (int) (i * MAX_ERROR_RATE);
+      Error_Bound [i] = (int) (i * AS_OVL_ERROR_RATE);
 
     return;
   }
