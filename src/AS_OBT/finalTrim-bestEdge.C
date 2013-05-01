@@ -22,14 +22,9 @@
 static const char *rcsid = "$Id:  $";
 
 #include "finalTrim.H"
-#if 0
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_OVS_overlapStore.h"
-#include "AS_UTL_intervalList.H"
-#endif
 
 #include <vector>
+#include <functional>
 #include <algorithm>
 
 using namespace std;
