@@ -26,14 +26,14 @@ static const char *rcsid = "$Id: overlapInCore-Extend_Alignment.C,v 1.3 2013-01-
 
 
 
-//  Put the delta encoding of the alignment represented in  WA -> Edit_Array
-//  starting at row  e  (which is the number of errors) and column  d
+//  Put the delta encoding of the alignment represented in WA->Edit_Array
+//  starting at row e (which is the number of errors) and column d
 //  (which is the diagonal) and working back to the start, into
-//  WA -> Left_Delta .  Set  WA -> Left_Delta_Len  to the number of
-//  delta entries and set  (* leftover)  to the number of
-//  characters that match after the last  WA -> Left_Delta  entry.
+//  WA->Left_Delta. Set WA->Left_Delta_Len to the number of
+//  delta entries and set (* leftover) to the number of
+//  characters that match after the last WA->Left_Delta entry.
 //  Don't allow the first delta to be an indel if it can be
-//  converted to a substitution by adjusting  (* t_end)  which
+//  converted to a substitution by adjusting (* t_end) which
 //  is where the alignment ends in the T string, which has length
 //   t_len .
 
@@ -43,61 +43,61 @@ Set_Left_Delta (int e, int d, int * leftover, int * t_end, int t_len, Work_Area_
   int  from, last, max;
   int  j, k;
 
-  last = WA -> Edit_Array [e] [d];
-  WA -> Left_Delta_Len = 0;
-  for  (k = e;  k > 0;  k --) {
+  last = WA->Edit_Array[e][d];
+  WA->Left_Delta_Len = 0;
+  for  (k = e;  k > 0;  k--) {
     from = d;
-    max = 1 + WA -> Edit_Array [k - 1] [d];
-    if  ((j = WA -> Edit_Array [k - 1] [d - 1]) > max) {
+    max = 1 + WA->Edit_Array[k - 1][d];
+    if  ((j = WA->Edit_Array[k - 1][d - 1]) > max) {
       from = d - 1;
       max = j;
     }
-    if  ((j = 1 + WA -> Edit_Array [k - 1] [d + 1]) > max) {
+    if  ((j = 1 + WA->Edit_Array[k - 1][d + 1]) > max) {
       from = d + 1;
       max = j;
     }
     if  (from == d - 1) {
-      WA -> Left_Delta [WA -> Left_Delta_Len ++] = max - last - 1;
-      d --;
-      last = WA -> Edit_Array [k - 1] [from];
+      WA->Left_Delta[WA->Left_Delta_Len++] = max - last - 1;
+      d--;
+      last = WA->Edit_Array[k - 1][from];
     } else if  (from == d + 1) {
-      WA -> Left_Delta [WA -> Left_Delta_Len ++] = last - (max - 1);
-      d ++;
-      last = WA -> Edit_Array [k - 1] [from];
+      WA->Left_Delta[WA->Left_Delta_Len++] = last - (max - 1);
+      d++;
+      last = WA->Edit_Array[k - 1][from];
     }
   }
   (* leftover) = last;
 
   // Don't allow first delta to be +1 or -1
-  assert (WA -> Left_Delta_Len == 0 || WA -> Left_Delta [0] != -1);
+  assert (WA->Left_Delta_Len == 0 || WA->Left_Delta[0] != -1);
 
   //  BPW - The original test was Left_Delta_Len>0, but that hit uninitialized data when Len == 1.
 
-  if  (WA -> Left_Delta_Len > 1 && WA -> Left_Delta [0] == 1 && (* t_end) + t_len > 0) {
+  if  (WA->Left_Delta_Len > 1 && WA->Left_Delta[0] == 1 && (* t_end) + t_len > 0) {
     int  i;
 
-    if  (WA -> Left_Delta [1] > 0)  //  <- uninitialized here
-      WA -> Left_Delta [0] = WA -> Left_Delta [1] + 1;
+    if  (WA->Left_Delta[1] > 0)  //  <- uninitialized here
+      WA->Left_Delta[0] = WA->Left_Delta[1] + 1;
     else
-      WA -> Left_Delta [0] = WA -> Left_Delta [1] - 1;
+      WA->Left_Delta[0] = WA->Left_Delta[1] - 1;
 
-    for  (i = 2;  i < WA -> Left_Delta_Len;  i ++)
-      WA -> Left_Delta [i - 1] = WA -> Left_Delta [i];
+    for  (i = 2;  i < WA->Left_Delta_Len;  i++)
+      WA->Left_Delta[i - 1] = WA->Left_Delta[i];
 
-    WA -> Left_Delta_Len --;
+    WA->Left_Delta_Len--;
 
-    (* t_end) --;
-    if  (WA -> Left_Delta_Len == 0)
-      (* leftover) ++;
+    (* t_end)--;
+    if  (WA->Left_Delta_Len == 0)
+      (* leftover)++;
   }
 }
 
 
 
-//  Put the delta encoding of the alignment represented in  WA -> Edit_Array
-//  starting at row  e  (which is the number of errors) and column  d
+//  Put the delta encoding of the alignment represented in WA->Edit_Array
+//  starting at row e (which is the number of errors) and column d
 //  (which is the diagonal) and working back to the start, into
-//  WA -> Right_Delta .  Set  WA -> Right_Delta_Len  to the number of
+//  WA->Right_Delta. Set WA->Right_Delta_Len to the number of
 //  delta entries.
 
 static
@@ -106,36 +106,36 @@ Set_Right_Delta (int e, int d, Work_Area_t * WA) {
   int  from, last, max;
   int  i, j, k;
 
-  last = WA -> Edit_Array [e] [d];
-  WA -> Right_Delta_Len = 0;
-  for  (k = e;  k > 0;  k --) {
+  last = WA->Edit_Array[e][d];
+  WA->Right_Delta_Len = 0;
+  for  (k = e;  k > 0;  k--) {
     from = d;
-    max = 1 + WA -> Edit_Array [k - 1] [d];
-    if  ((j = WA -> Edit_Array [k - 1] [d - 1]) > max) {
+    max = 1 + WA->Edit_Array[k - 1][d];
+    if  ((j = WA->Edit_Array[k - 1][d - 1]) > max) {
       from = d - 1;
       max = j;
     }
-    if  ((j = 1 + WA -> Edit_Array [k - 1] [d + 1]) > max) {
+    if  ((j = 1 + WA->Edit_Array[k - 1][d + 1]) > max) {
       from = d + 1;
       max = j;
     }
     if  (from == d - 1) {
-      WA -> Delta_Stack [WA -> Right_Delta_Len ++] = max - last - 1;
-      d --;
-      last = WA -> Edit_Array [k - 1] [from];
+      WA->Delta_Stack[WA->Right_Delta_Len++] = max - last - 1;
+      d--;
+      last = WA->Edit_Array[k - 1][from];
     } else if  (from == d + 1) {
-      WA -> Delta_Stack [WA -> Right_Delta_Len ++] = last - (max - 1);
-      d ++;
-      last = WA -> Edit_Array [k - 1] [from];
+      WA->Delta_Stack[WA->Right_Delta_Len++] = last - (max - 1);
+      d++;
+      last = WA->Edit_Array[k - 1][from];
     }
   }
-  WA -> Delta_Stack [WA -> Right_Delta_Len ++] = last + 1;
+  WA->Delta_Stack[WA->Right_Delta_Len++] = last + 1;
 
   k = 0;
-  for  (i = WA -> Right_Delta_Len - 1;  i > 0;  i --)
-    WA -> Right_Delta [k ++]
-      = abs (WA -> Delta_Stack [i]) * Sign (WA -> Delta_Stack [i - 1]);
-  WA -> Right_Delta_Len --;
+  for  (i = WA->Right_Delta_Len - 1;  i > 0;  i--)
+    WA->Right_Delta[k++]
+      = abs (WA->Delta_Stack[i]) * Sign (WA->Delta_Stack[i - 1]);
+  WA->Right_Delta_Len--;
 }
 
 
@@ -145,12 +145,12 @@ Set_Right_Delta (int e, int d, Work_Area_t * WA) {
 
 
 //  Return the minimum number of changes (inserts, deletes, replacements)
-//  needed to match string  A [0 .. (m-1)]  with a prefix of string
-//   T [0 .. (n-1)]  if it's not more than  Error_Limit .
+//  needed to match string  A[0 .. (m-1)]  with a prefix of string
+//   T[0 .. (n-1)]  if it's not more than  Error_Limit .
 //  If no match, return the number of errors for the best match
 //  up to a branch point.
-//  Put delta description of alignment in  WA -> Right_Delta  and set
-//  WA -> Right_Delta_Len  to the number of entries there if it's a complete
+//  Put delta description of alignment in  WA->Right_Delta  and set
+//  WA->Right_Delta_Len  to the number of entries there if it's a complete
 //  match.
 //  Set  A_End  and  T_End  to the rightmost positions where the
 //  alignment ended in  A  and  T , respectively.
@@ -161,9 +161,9 @@ Set_Right_Delta (int e, int d, Work_Area_t * WA) {
 
 static
 int
-Prefix_Edit_Dist(char A [], int m, char T [], int n, int Error_Limit,
+Prefix_Edit_Dist(char A[], int m, char T[], int n, int Error_Limit,
                  int * A_End, int * T_End, int * Match_To_End, Work_Area_t * WA) {
-  //int  Delta_Stack [MAX_ERRORS];
+  //int  Delta_Stack[MAX_ERRORS];
   double  Score, Max_Score;
   int  Max_Score_Len = 0, Max_Score_Best_d = 0, Max_Score_Best_e = 0;
   int  Tail_Len;
@@ -173,15 +173,15 @@ Prefix_Edit_Dist(char A [], int m, char T [], int n, int Error_Limit,
 
   assert (m <= n);
   Best_d = Best_e = Longest = 0;
-  WA -> Right_Delta_Len = 0;
+  WA->Right_Delta_Len = 0;
 
   for  (Row = 0;  Row < m
-          && (A [Row] == T [Row]
-              || A [Row] == DONT_KNOW_CHAR
-              || T [Row] == DONT_KNOW_CHAR);  Row ++)
+          && (A[Row] == T[Row]
+              || A[Row] == DONT_KNOW_CHAR
+              || T[Row] == DONT_KNOW_CHAR);  Row++)
     ;
 
-  WA -> Edit_Array [0] [0] = Row;
+  WA->Edit_Array[0][0] = Row;
 
   if  (Row == m) {
     // Exact match
@@ -192,27 +192,27 @@ Prefix_Edit_Dist(char A [], int m, char T [], int n, int Error_Limit,
 
   Left = Right = 0;
   Max_Score = 0.0;
-  for  (e = 1;  e <= Error_Limit;  e ++) {
+  for  (e = 1;  e <= Error_Limit;  e++) {
     Left = MAX (Left - 1, -e);
     Right = MIN (Right + 1, e);
-    WA -> Edit_Array [e - 1] [Left] = -2;
-    WA -> Edit_Array [e - 1] [Left - 1] = -2;
-    WA -> Edit_Array [e - 1] [Right] = -2;
-    WA -> Edit_Array [e - 1] [Right + 1] = -2;
+    WA->Edit_Array[e - 1][Left] = -2;
+    WA->Edit_Array[e - 1][Left - 1] = -2;
+    WA->Edit_Array[e - 1][Right] = -2;
+    WA->Edit_Array[e - 1][Right + 1] = -2;
 
-    for  (d = Left;  d <= Right;  d ++) {
-      Row = 1 + WA -> Edit_Array [e - 1] [d];
-      if  ((j = WA -> Edit_Array [e - 1] [d - 1]) > Row)
+    for  (d = Left;  d <= Right;  d++) {
+      Row = 1 + WA->Edit_Array[e - 1][d];
+      if  ((j = WA->Edit_Array[e - 1][d - 1]) > Row)
         Row = j;
-      if  ((j = 1 + WA -> Edit_Array [e - 1] [d + 1]) > Row)
+      if  ((j = 1 + WA->Edit_Array[e - 1][d + 1]) > Row)
         Row = j;
       while  (Row < m && Row + d < n
-              && (A [Row] == T [Row + d]
-                  || A [Row] == DONT_KNOW_CHAR
-                  || T [Row + d] == DONT_KNOW_CHAR))
-        Row ++;
+              && (A[Row] == T[Row + d]
+                  || A[Row] == DONT_KNOW_CHAR
+                  || T[Row + d] == DONT_KNOW_CHAR))
+        Row++;
 
-      WA -> Edit_Array [e] [d] = Row;
+      WA->Edit_Array[e][d] = Row;
 
       if  (Row == m || Row + d == n) {
         //  Check for branch point here caused by uneven
@@ -233,9 +233,9 @@ Prefix_Edit_Dist(char A [], int m, char T [], int n, int Error_Limit,
         }
 
         // Force last error to be mismatch rather than insertion
-        if  (Row == m && 1 + WA -> Edit_Array [e - 1] [d + 1] == WA -> Edit_Array [e] [d] && d < Right) {
-          d ++;
-          WA -> Edit_Array [e] [d] = WA -> Edit_Array [e] [d - 1];
+        if  (Row == m && 1 + WA->Edit_Array[e - 1][d + 1] == WA->Edit_Array[e][d] && d < Right) {
+          d++;
+          WA->Edit_Array[e][d] = WA->Edit_Array[e][d - 1];
         }
 
         (* A_End) = Row;           // One past last align position
@@ -247,32 +247,32 @@ Prefix_Edit_Dist(char A [], int m, char T [], int n, int Error_Limit,
     }
 
     while  (Left <= Right && Left < 0
-            && WA -> Edit_Array [e] [Left] < WA -> Edit_Match_Limit [e])
-      Left ++;
+            && WA->Edit_Array[e][Left] < WA->Edit_Match_Limit[e])
+      Left++;
 
     if  (Left >= 0)
       while  (Left <= Right
-              && WA -> Edit_Array [e] [Left] + Left < WA -> Edit_Match_Limit [e])
-        Left ++;
+              && WA->Edit_Array[e][Left] + Left < WA->Edit_Match_Limit[e])
+        Left++;
 
     if  (Left > Right)
       break;
 
     while  (Right > 0
-            && WA -> Edit_Array [e] [Right] + Right < WA -> Edit_Match_Limit [e])
-      Right --;
+            && WA->Edit_Array[e][Right] + Right < WA->Edit_Match_Limit[e])
+      Right--;
 
     if  (Right <= 0)
-      while  (WA -> Edit_Array [e] [Right] < WA -> Edit_Match_Limit [e])
-        Right --;
+      while  (WA->Edit_Array[e][Right] < WA->Edit_Match_Limit[e])
+        Right--;
 
     assert (Left <= Right);
 
-    for  (d = Left;  d <= Right;  d ++)
-      if  (WA -> Edit_Array [e] [d] > Longest) {
+    for  (d = Left;  d <= Right;  d++)
+      if  (WA->Edit_Array[e][d] > Longest) {
         Best_d = d;
         Best_e = e;
-        Longest = WA -> Edit_Array [e] [d];
+        Longest = WA->Edit_Array[e][d];
       }
 
     Score = Longest * Branch_Match_Value - e;
@@ -300,16 +300,16 @@ Prefix_Edit_Dist(char A [], int m, char T [], int n, int Error_Limit,
 
 
 //  Return the minimum number of changes (inserts, deletes, replacements)
-//  needed to match string  A [0 .. (1-m)]  right-to-left with a prefix of string
-//   T [0 .. (1-n)]  right-to-left if it's not more than  Error_Limit .
+//  needed to match string  A[0 .. (1-m)]  right-to-left with a prefix of string
+//   T[0 .. (1-n)]  right-to-left if it's not more than  Error_Limit .
 //  If no match, return the number of errors for the best match
 //  up to a branch point.
-//  Put delta description of alignment in  WA -> Left_Delta  and set
-//  WA -> Left_Delta_Len  to the number of entries there.
+//  Put delta description of alignment in  WA->Left_Delta  and set
+//  WA->Left_Delta_Len  to the number of entries there.
 //  Set  A_End  and  T_End  to the leftmost positions where the
 //  alignment ended in  A  and  T , respectively.
 //  If the alignment succeeds set  Leftover  to the number of
-//  characters that match after the last  WA -> Left_Delta  entry;
+//  characters that match after the last  WA->Left_Delta  entry;
 //  otherwise, set  Leftover  to zero.
 //  Set  Match_To_End  true if the match extended to the end
 //  of at least one string; otherwise, set it false to indicate
@@ -317,7 +317,7 @@ Prefix_Edit_Dist(char A [], int m, char T [], int n, int Error_Limit,
 
 static
 int
-Rev_Prefix_Edit_Dist (char A [], int m, char T [], int n, int Error_Limit,
+Rev_Prefix_Edit_Dist (char A[], int m, char T[], int n, int Error_Limit,
                       int * A_End, int * T_End, int * Leftover, int * Match_To_End,
                       Work_Area_t * WA) {
 
@@ -331,15 +331,15 @@ Rev_Prefix_Edit_Dist (char A [], int m, char T [], int n, int Error_Limit,
 
   assert (m <= n);
   Best_d = Best_e = Longest = 0;
-  WA -> Left_Delta_Len = 0;
+  WA->Left_Delta_Len = 0;
 
   for  (Row = 0;  Row < m
-          && (A [- Row] == T [- Row]
-              || A [- Row] == DONT_KNOW_CHAR
-              || T [- Row] == DONT_KNOW_CHAR);  Row ++)
+          && (A[- Row] == T[- Row]
+              || A[- Row] == DONT_KNOW_CHAR
+              || T[- Row] == DONT_KNOW_CHAR);  Row++)
     ;
 
-  WA -> Edit_Array [0] [0] = Row;
+  WA->Edit_Array[0][0] = Row;
 
   if  (Row == m) {
     (* A_End) = (* T_End) = - m;
@@ -350,27 +350,27 @@ Rev_Prefix_Edit_Dist (char A [], int m, char T [], int n, int Error_Limit,
 
   Left = Right = 0;
   Max_Score = 0.0;
-  for  (e = 1;  e <= Error_Limit;  e ++) {
+  for  (e = 1;  e <= Error_Limit;  e++) {
     Left = MAX (Left - 1, -e);
     Right = MIN (Right + 1, e);
-    WA -> Edit_Array [e - 1] [Left] = -2;
-    WA -> Edit_Array [e - 1] [Left - 1] = -2;
-    WA -> Edit_Array [e - 1] [Right] = -2;
-    WA -> Edit_Array [e - 1] [Right + 1] = -2;
+    WA->Edit_Array[e - 1][Left] = -2;
+    WA->Edit_Array[e - 1][Left - 1] = -2;
+    WA->Edit_Array[e - 1][Right] = -2;
+    WA->Edit_Array[e - 1][Right + 1] = -2;
 
-    for  (d = Left;  d <= Right;  d ++) {
-      Row = 1 + WA -> Edit_Array [e - 1] [d];
-      if  ((j = WA -> Edit_Array [e - 1] [d - 1]) > Row)
+    for  (d = Left;  d <= Right;  d++) {
+      Row = 1 + WA->Edit_Array[e - 1][d];
+      if  ((j = WA->Edit_Array[e - 1][d - 1]) > Row)
         Row = j;
-      if  ((j = 1 + WA -> Edit_Array [e - 1] [d + 1]) > Row)
+      if  ((j = 1 + WA->Edit_Array[e - 1][d + 1]) > Row)
         Row = j;
       while  (Row < m && Row + d < n
-              && (A [- Row] == T [- Row - d]
-                  || A [- Row] == DONT_KNOW_CHAR
-                  || T [- Row - d] == DONT_KNOW_CHAR))
-        Row ++;
+              && (A[- Row] == T[- Row - d]
+                  || A[- Row] == DONT_KNOW_CHAR
+                  || T[- Row - d] == DONT_KNOW_CHAR))
+        Row++;
 
-      WA -> Edit_Array [e] [d] = Row;
+      WA->Edit_Array[e][d] = Row;
 
       if  (Row == m || Row + d == n) {
 
@@ -402,32 +402,32 @@ Rev_Prefix_Edit_Dist (char A [], int m, char T [], int n, int Error_Limit,
     }
 
     while  (Left <= Right && Left < 0
-            && WA -> Edit_Array [e] [Left] < WA -> Edit_Match_Limit [e])
-      Left ++;
+            && WA->Edit_Array[e][Left] < WA->Edit_Match_Limit[e])
+      Left++;
 
     if  (Left >= 0)
       while  (Left <= Right
-              && WA -> Edit_Array [e] [Left] + Left < WA -> Edit_Match_Limit [e])
-        Left ++;
+              && WA->Edit_Array[e][Left] + Left < WA->Edit_Match_Limit[e])
+        Left++;
 
     if  (Left > Right)
       break;
 
     while  (Right > 0
-            && WA -> Edit_Array [e] [Right] + Right < WA -> Edit_Match_Limit [e])
-      Right --;
+            && WA->Edit_Array[e][Right] + Right < WA->Edit_Match_Limit[e])
+      Right--;
 
     if  (Right <= 0)
-      while  (WA -> Edit_Array [e] [Right] < WA -> Edit_Match_Limit [e])
-        Right --;
+      while  (WA->Edit_Array[e][Right] < WA->Edit_Match_Limit[e])
+        Right--;
 
     assert (Left <= Right);
 
-    for  (d = Left;  d <= Right;  d ++)
-      if  (WA -> Edit_Array [e] [d] > Longest) {
+    for  (d = Left;  d <= Right;  d++)
+      if  (WA->Edit_Array[e][d] > Longest) {
         Best_d = d;
         Best_e = e;
-        Longest = WA -> Edit_Array [e] [d];
+        Longest = WA->Edit_Array[e][d];
       }
 
     Score = Longest * Branch_Match_Value - e;
@@ -472,18 +472,23 @@ Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
   int  Error_Limit, Left_Errors, Right_Errors, Total_Olap;
   int  i, Leftover, Right_Match_To_End, Left_Match_To_End;
 
-  S_Left_Begin = Match -> Start - 1;
-  S_Right_Begin = Match -> Start + Match -> Len;
-  S_Right_Len = S_Len - S_Right_Begin;
-  T_Left_Begin = Match -> Offset - 1;
-  T_Right_Begin = Match -> Offset + Match -> Len;
-  T_Right_Len = T_Len - T_Right_Begin;
-  Total_Olap = MIN (Match -> Start, Match -> Offset) + MIN (S_Right_Len, T_Right_Len) + Match -> Len;
-  Error_Limit = WA -> Error_Bound [Total_Olap];
+  S_Left_Begin  = Match->Start - 1;
+  S_Right_Begin = Match->Start + Match->Len;
+  S_Right_Len   = S_Len - S_Right_Begin;
+
+  T_Left_Begin  = Match->Offset - 1;
+  T_Right_Begin = Match->Offset + Match->Len;
+  T_Right_Len   = T_Len - T_Right_Begin;
+
+  Total_Olap = (MIN(Match->Start, Match->Offset) +
+                Match->Len +
+                MIN(S_Right_Len, T_Right_Len));
+
+  Error_Limit = WA->Error_Bound[Total_Olap];
 
   if  (S_Right_Len == 0 || T_Right_Len == 0) {
     Right_Errors = 0;
-    WA -> Right_Delta_Len = 0;
+    WA->Right_Delta_Len = 0;
     (* S_Hi) = (* T_Hi) = 0;
     Right_Match_To_End = TRUE;
 
@@ -497,8 +502,8 @@ Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
                                      T_Hi, S_Hi, & Right_Match_To_End, WA);
   }
 
-  for  (i = 0;  i < WA -> Right_Delta_Len;  i ++)
-    WA -> Right_Delta [i] *= -1;
+  for  (i = 0;  i < WA->Right_Delta_Len;  i++)
+    WA->Right_Delta[i] *= -1;
 
   (* S_Hi) += S_Right_Begin - 1;
   (* T_Hi) += T_Right_Begin - 1;
@@ -507,7 +512,7 @@ Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
 
   if  (S_Left_Begin < 0 || T_Left_Begin < 0) {
     Left_Errors = 0;
-    WA -> Left_Delta_Len = 0;
+    WA->Left_Delta_Len = 0;
     (* S_Lo) = (* T_Lo) = 0;
     Leftover = 0;
     Left_Match_To_End = TRUE;
@@ -527,15 +532,15 @@ Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
                                         WA);
   }
 
-  for  (i = 0;  i < WA -> Left_Delta_Len;  i ++)
-    WA -> Left_Delta [i] *= -1;
+  for  (i = 0;  i < WA->Left_Delta_Len;  i++)
+    WA->Left_Delta[i] *= -1;
 
   (* S_Lo) += S_Left_Begin + 1;        // Check later for branch points
   (* T_Lo) += T_Left_Begin + 1;        // Check later for branch points
 
   if  (! Right_Match_To_End) {
     if  (! Doing_Partial_Overlaps)
-      WA -> Left_Delta_Len = 0;
+      WA->Left_Delta_Len = 0;
     if  (! Left_Match_To_End)
       return_type = NONE;
     else
@@ -551,16 +556,14 @@ Extend_Alignment(Match_Node_t * Match, char * S, int S_Len, char * T, int T_Len,
     (* Errors) = Left_Errors + Right_Errors;
     assert ((* Errors) <= Error_Limit);
 
-    if  (WA -> Right_Delta_Len > 0) {
-      if  (WA -> Right_Delta [0] > 0)
-        WA -> Left_Delta [WA -> Left_Delta_Len ++]
-          = WA -> Right_Delta [0] + Leftover + Match -> Len;
+    if  (WA->Right_Delta_Len > 0) {
+      if  (WA->Right_Delta[0] > 0)
+        WA->Left_Delta[WA->Left_Delta_Len++] = WA->Right_Delta[0] + Leftover + Match->Len;
       else
-        WA -> Left_Delta [WA -> Left_Delta_Len ++]
-          = WA -> Right_Delta [0] - Leftover - Match -> Len;
+        WA->Left_Delta[WA->Left_Delta_Len++] = WA->Right_Delta[0] - Leftover - Match->Len;
     }
-    for  (i = 1;  i < WA -> Right_Delta_Len;  i ++)
-      WA -> Left_Delta [WA -> Left_Delta_Len ++] = WA -> Right_Delta [i];
+    for  (i = 1;  i < WA->Right_Delta_Len;  i++)
+      WA->Left_Delta[WA->Left_Delta_Len++] = WA->Right_Delta[i];
   }
 
   return  return_type;

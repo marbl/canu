@@ -39,10 +39,6 @@ void  Add_Match(String_Ref_t ref,
 
   new_diag = getStringRefOffset(ref) - offset;
 
-#ifdef COMPARE
-  fprintf(stderr, "Add_Match:  offset=%d new_diag=%d\n", offset, new_diag);
-#endif
-
   for  (p = start;  (* p) != 0;  p = & (wa -> Match_Node_Space [(* p)] . Next))
     {
       expected_start = wa -> Match_Node_Space [(* p)] . Start
@@ -278,9 +274,6 @@ Find_Overlaps (char Frag [], int Frag_Len, char quality [], AS_IID Frag_Num, Dir
   if  ((Hash_Check_Array [Sub] & (((Check_Vector_t) 1) << Shift)) != 0) {
     Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
     if  (hi_hits) {
-#ifdef COMPARE
-      fprintf(stderr, "WA left_end_Screened\n");
-#endif
       WA -> left_end_screened = TRUE;
     }
     if  (! getStringRefEmpty(Ref)) {
@@ -318,15 +311,9 @@ Find_Overlaps (char Frag [], int Frag_Len, char quality [], AS_IID Frag_Num, Dir
       Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
       if  (hi_hits) {
         if  (Offset < HOPELESS_MATCH) {
-#ifdef COMPARE
-          fprintf(stderr, "WA left_end_Screened 2\n");
-#endif
           WA -> left_end_screened = TRUE;
         }
         if  (Frag_Len - Offset - Kmer_Len + 1 < HOPELESS_MATCH) {
-#ifdef COMPARE
-          fprintf(stderr, "WA right_end_Screened\n");
-#endif
           WA -> right_end_screened = TRUE;
         }
       }

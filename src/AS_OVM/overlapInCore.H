@@ -40,8 +40,6 @@
 #define OVERLAPINCORE_H
 
 
-#undef COMPARE
-
 ////////////////////////////////////////
 //
 //  AS_OVL_overlap.h BEGINS

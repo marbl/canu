@@ -176,10 +176,6 @@ static void  Add_Overlap
 {
   int  i, new_diag;
 
-#ifdef COMPARE
-  fprintf(stderr, "Add_Overlap()  %d %d %d %d qual %f\n", s_lo, s_hi, t_lo, t_hi, qual);
-#endif
-
   if  (Doing_Partial_Overlaps)
     olap += (* ct);
   // Don't combine overlaps when doing partials
@@ -432,13 +428,6 @@ Process_Matches (int * Start,
             is_hopeless = TRUE;
         }
 
-#ifdef COMPARE
-      fprintf(stderr, "IS HOPELESS %d %d %d %d\n",
-              WA->left_end_screened, WA->right_end_screened,
-              t_info.lfrag_end_screened,
-              t_info.rfrag_end_screened);
-#endif
-
       if  (is_hopeless)
         {
           (* Start) = 0;
@@ -477,10 +466,6 @@ Process_Matches (int * Start,
           Kind_Of_Olap = Extend_Alignment (Longest_Match, S, S_Len, T, t_len,
                                            & S_Lo, & S_Hi, & T_Lo, & T_Hi, & Errors, WA);
 
-#ifdef COMPARE
-          fprintf(stderr, "Extend_Alignment S: %d %d %d T %d %d %d kind %d\n",
-                  S_Len, S_Lo, S_Hi, t_len, T_Lo, T_Hi, Kind_Of_Olap);
-#endif
 
           if  (Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
             {
@@ -489,11 +474,6 @@ Process_Matches (int * Start,
                 {
                   Olap_Len = 1 + MIN (S_Hi - S_Lo, T_Hi - T_Lo);
                   Quality = (double) Errors / Olap_Len;
-
-#ifdef COMPARE
-                  fprintf(stderr, "Add_Overlap: scr_sub 0 erorrs %d bound %d passes 1\n",
-                          Errors, WA->Error_Bound [Olap_Len]);
-#endif
 
                   if  (Errors <= WA -> Error_Bound [Olap_Len])
                     {
@@ -525,10 +505,6 @@ Process_Matches (int * Start,
             Ref = & (Ptr -> Next);
         }
     }
-
-#ifdef COMPARE
-  fprintf(stderr, "distinct_olap_ct = %d\n", distinct_olap_ct);
-#endif
 
   if  (distinct_olap_ct > 0)
     {

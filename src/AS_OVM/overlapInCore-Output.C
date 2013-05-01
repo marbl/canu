@@ -32,12 +32,6 @@ void
 Output_Overlap(AS_IID S_ID, int S_Len, Direction_t S_Dir,
                AS_IID T_ID, int T_Len, Olap_Info_t * olap,
                Work_Area_t *WA) {
-
-
-#ifdef COMPARE
-  fprintf(stderr, "OUTPUT %d/%d %d/%d\n", S_ID, S_Len, T_ID, T_Len);
-#endif
-
   int  S_Right_Hang, T_Right_Hang;
   int  this_diag;
   OverlapMesg ovMesg;

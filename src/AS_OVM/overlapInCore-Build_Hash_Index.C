@@ -94,23 +94,14 @@ Add_Extra_Hash_String(const char * s) {
 static
 void
 Mark_Screened_Ends_Single(String_Ref_t ref) {
-
   int32 s_num = getStringRefStringNum(ref);
   int32 len = String_Info [s_num] . length;
 
-  if  (getStringRefOffset(ref) < HOPELESS_MATCH) {
-#ifdef COMPARE
-    fprintf(stderr, "Mark_Screened_Ends_Single()-- %d mark left\n", s_num);
-#endif
+  if  (getStringRefOffset(ref) < HOPELESS_MATCH)
     String_Info [s_num] . lfrag_end_screened = TRUE;
-  }
 
-  if  (len - getStringRefOffset(ref) - Kmer_Len + 1 < HOPELESS_MATCH) {
-#ifdef COMPARE
-    fprintf(stderr, "Mark_Screened_Ends_Single()-- %d mark left\n", s_num);
-#endif
+  if  (len - getStringRefOffset(ref) - Kmer_Len + 1 < HOPELESS_MATCH)
     String_Info [s_num] . rfrag_end_screened = TRUE;
-  }
 }
 
 
