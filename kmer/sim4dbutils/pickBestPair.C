@@ -8,12 +8,14 @@
 #include <vector>
 using namespace std;
 
+#define NAME_MAX  32
+
 struct mapResult {
   u32bit seqIdx;
-  char   seqName[32];
+  char   seqName[NAME_MAX];
 
   u32bit refIdx;
-  char   refName[32];
+  char   refName[NAME_MAX];
   u32bit refBgn;
   u32bit refEnd;
 
@@ -38,8 +40,14 @@ readMR(FILE *in, mapResult &mr) {
   if (strcmp(W[0], "cDNAid") == 0)
     return(readMR(in, mr));
 
-  assert(strlen(W[0]) < 32);
-  assert(strlen(W[6]) < 32);
+  if (strlen(W[0]) >= NAME_MAX)
+    W[0][NAME_MAX-1] = 0;
+
+  if (strlen(W[6]) >= NAME_MAX)
+    W[6][NAME_MAX-1] = 0;
+
+  assert(strlen(W[0]) < NAME_MAX);
+  assert(strlen(W[6]) < NAME_MAX);
 
   mr.seqIdx = W(1);
   mr.refIdx = W(7);
