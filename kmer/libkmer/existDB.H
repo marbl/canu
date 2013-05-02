@@ -65,6 +65,7 @@ private:
                               u32bit       merSize,
                               u32bit       flags);
   bool        createFromMeryl(char const  *filename,
+                              u32bit       merSize,
                               u32bit       lo,
                               u32bit       hi,
                               u32bit       flags);

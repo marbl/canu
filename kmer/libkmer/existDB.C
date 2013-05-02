@@ -67,7 +67,7 @@ existDB::existDB(char const    *filename,
   if (fileExists(filename))
     createFromFastA(filename, merSize, flags);
   else
-    createFromMeryl(filename, lo, hi, flags);
+    createFromMeryl(filename, merSize, lo, hi, flags);
 }
 
 

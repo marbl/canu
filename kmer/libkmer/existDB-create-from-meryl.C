@@ -8,6 +8,7 @@
 
 bool
 existDB::createFromMeryl(char const  *prefix,
+                         u32bit       merSize,
                          u32bit       lo,
                          u32bit       hi,
                          u32bit       flags) {
@@ -21,6 +22,12 @@ existDB::createFromMeryl(char const  *prefix,
   _counts     = 0L;
 
   _merSizeInBases        = M->merSize();
+
+  if (merSize != _merSizeInBases) {
+    fprintf(stderr, "createFromMeryl()-- ERROR: requested merSize ("u32bitFMT") is different than merSize in meryl database ("u32bitFMT").\n",
+            merSize, _merSizeInBases);
+    exit(1);
+  }
 
   //  We can set this exactly, but not memory optimal (see meryl/estimate.C:optimalNumberOfBuckets()).
   //  Instead, we just blindly use whatever meryl used.
