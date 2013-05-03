@@ -23,6 +23,8 @@ const char *mainid = "$Id: tigStore.C,v 1.26 2013-01-31 16:38:21 brianwalenz Exp
 
 #include "AS_global.h"
 #include "AS_UTL_decodeRange.H"
+#include "AS_UTL_intervalList.H"
+
 #include "MultiAlign.h"
 #include "MultiAlignStore.h"
 #include "MultiAlignMatePairAnalysis.H"
@@ -39,6 +41,8 @@ const char *mainid = "$Id: tigStore.C,v 1.26 2013-01-31 16:38:21 brianwalenz Exp
 #define DUMP_MULTIALIGN       7
 #define DUMP_MATEPAIR         8
 #define DUMP_SIZES            9
+#define DUMP_COVERAGE        10
+#define DUMP_THINOVERLAP     11
 
 #define OPERATION_UNITIGLIST  1
 #define OPERATION_CONTIGLIST  2
@@ -271,6 +275,167 @@ dumpConsensus(MultiAlignStore *tigStore,
             ma->data.contig_status,
             cns);
 }
+
+
+
+
+void
+dumpCoverage(MultiAlignStore *tigStore,
+             int32            tigID,
+             int32            tigIsUnitig,
+             MultiAlignT     *ma,
+             uint32           minCoverage,
+             uint32           maxCoverage) {
+  intervalList  allL;
+
+  uint32        maxPos = 0;
+
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+    IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
+
+    int32   bgn = MIN(imp->position.bgn, imp->position.end);
+    int32   end = MAX(imp->position.bgn, imp->position.end);
+    int32   len = end - bgn + 1;
+
+    if (maxPos < end)
+      maxPos = end;
+
+    allL.add(bgn, len);
+  }
+
+  intervalDepth  ID(allL);
+
+  intervalList   minL;
+  intervalList   maxL;
+
+  for (uint32 ii=0; ii<ID.numberOfIntervals(); ii++) {
+    if ((ID.de(ii) < minCoverage) && (ID.lo(ii) != 0) && (ID.hi(ii) != maxPos)) {
+      fprintf(stderr, "%s %d low coverage interval %ld %ld max %u coverage %u\n",
+              (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.de(ii));
+      minL.add(ID.lo(ii), ID.hi(ii) - ID.lo(ii) + 1);
+    }
+
+    if (maxCoverage <= ID.de(ii)) {
+      fprintf(stderr, "%s %d high coverage interval %ld %ld max %u coverage %u\n",
+              (tigIsUnitig) ? "unitig" : "contig", tigID, ID.lo(ii), ID.hi(ii), maxPos, ID.de(ii));
+      maxL.add(ID.lo(ii), ID.hi(ii) - ID.lo(ii) + 1);
+    }
+  }
+
+  allL.merge();
+  minL.merge();
+  maxL.merge();
+
+  if      ((minL.numberOfIntervals() > 0) && (maxL.numberOfIntervals() > 0))
+    fprintf(stderr, "%s %d has %u intervals, %u regions below %u coverage and %u regions at or above %u coverage\n",
+            (tigIsUnitig) ? "unitig" : "contig", tigID,
+            allL.numberOfIntervals(),
+            minL.numberOfIntervals(), minCoverage,
+            maxL.numberOfIntervals(), maxCoverage);
+  else if (minL.numberOfIntervals() > 0)
+    fprintf(stderr, "%s %d has %u intervals, %u regions below %u coverage\n",
+            (tigIsUnitig) ? "unitig" : "contig", tigID,
+            allL.numberOfIntervals(),
+            minL.numberOfIntervals(), minCoverage);
+  else if (maxL.numberOfIntervals() > 0)
+    fprintf(stderr, "%s %d has %u intervals, %u regions at or above %u coverage\n",
+            (tigIsUnitig) ? "unitig" : "contig", tigID,
+            allL.numberOfIntervals(),
+            maxL.numberOfIntervals(), maxCoverage);
+  else
+    fprintf(stderr, "%s %d has %u intervals\n",
+            (tigIsUnitig) ? "unitig" : "contig", tigID,
+            allL.numberOfIntervals());
+}
+
+
+void
+dumpThinOverlap(MultiAlignStore *tigStore,
+                int32            tigID,
+                int32            tigIsUnitig,
+                MultiAlignT     *ma,
+                uint32           minOverlap) {
+  intervalList  allL;
+  intervalList  ovlL;
+
+  uint32        maxPos = 0;
+
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+    IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
+
+    int32   bgn = MIN(imp->position.bgn, imp->position.end);
+    int32   end = MAX(imp->position.bgn, imp->position.end);
+    int32   len = end - bgn + 1;
+
+    if (maxPos < end)
+      maxPos = end;
+
+    allL.add(bgn, len);
+    ovlL.add(bgn, len);
+  }
+
+  allL.merge();
+  ovlL.merge(minOverlap);
+
+  if (ovlL.numberOfIntervals() == 1)
+    return;
+
+
+  if (maxPos < 10000)
+    return;
+
+#if 1
+  for (uint32 i=0; i<ovlL.numberOfIntervals(); i++)
+    fprintf(stderr, "%s %u IL %u %u\n",
+            (tigIsUnitig) ? "unitig" : "contig", tigID,
+            ovlL.lo(i), ovlL.hi(i));
+#endif
+
+  intervalList badL;
+
+  for (uint32 i=1; i<ovlL.numberOfIntervals(); i++) {
+    assert(ovlL.lo(i) < ovlL.hi(i-1));
+
+    badL.add(ovlL.lo(i), ovlL.hi(i-1) - ovlL.lo(i));
+    //badL.add(ovlL.hi(i-1), ovlL.lo(i) - ovlL.hi(i-1));
+  }
+
+#if 1
+  for (uint32 i=0; i<badL.numberOfIntervals(); i++)
+    fprintf(stderr, "%s %u BAD %u %u\n",
+            (tigIsUnitig) ? "unitig" : "contig", tigID,
+            badL.lo(i), badL.hi(i));
+#endif
+
+  for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
+    IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
+
+    int32   bgn = MIN(imp->position.bgn, imp->position.end);
+    int32   end = MAX(imp->position.bgn, imp->position.end);
+    int32   len = end - bgn + 1;
+
+    bool    report = false;
+
+    for (uint32 oo=0; oo<badL.numberOfIntervals(); oo++)
+      if ((badL.lo(oo) <= end) &&
+          (bgn         <= badL.hi(oo))) {
+        report = true;
+        break;
+      }
+
+    if (report)
+      fprintf(stderr, "%s %d frag %u %u-%u\n",
+              (tigIsUnitig) ? "unitig" : "contig", tigID,
+              imp->ident, imp->position.bgn, imp->position.end);
+  }
+
+  fprintf(stderr, "%s %d max %u has %u intervals, %u enforcing minimum overlap of %u\n",
+          (tigIsUnitig) ? "unitig" : "contig", tigID, maxPos,
+          allL.numberOfIntervals(),
+          ovlL.numberOfIntervals(), minOverlap);
+}
+
+
 
 
 
@@ -582,46 +747,52 @@ main (int argc, char **argv) {
 
       opType = OPERATION_TIG;
 
-      if      (strncmp(argv[arg], "properties", 1) == 0)
+      if      (strcmp(argv[arg], "properties") == 0)
         dumpFlags = DUMP_PROPERTIES;
 
-      else if (strncmp(argv[arg], "frags", 1) == 0)
+      else if (strcmp(argv[arg], "frags") == 0)
         dumpFlags = DUMP_FRAGS;
 
-      else if (strncmp(argv[arg], "unitigs", 1) == 0)
+      else if (strcmp(argv[arg], "unitigs") == 0)
         dumpFlags = DUMP_UNITIGS;
 
-      else if (strncmp(argv[arg], "consensus", 1) == 0)
+      else if (strcmp(argv[arg], "consensus") == 0)
         dumpFlags = DUMP_CONSENSUS;
 
-      else if (strncmp(argv[arg], "consensusgapped", 1) == 0)
+      else if (strcmp(argv[arg], "consensusgapped") == 0)
         dumpFlags = DUMP_CONSENSUSGAPPED;
 
-      else if (strncmp(argv[arg], "layout", 1) == 0)
+      else if (strcmp(argv[arg], "layout") == 0)
         dumpFlags = DUMP_LAYOUT;
 
-      else if (strncmp(argv[arg], "multialign", 2) == 0)
+      else if (strcmp(argv[arg], "multialign") == 0)
         dumpFlags = DUMP_MULTIALIGN;
 
-      else if (strncmp(argv[arg], "matepair", 2) == 0)
+      else if (strcmp(argv[arg], "matepair") == 0)
         dumpFlags = DUMP_MATEPAIR;
 
-      else if (strncmp(argv[arg], "sizes", 2) == 0)
+      else if (strcmp(argv[arg], "sizes") == 0)
         dumpFlags = DUMP_SIZES;
       
+      else if (strcmp(argv[arg], "coverage") == 0)
+        dumpFlags = DUMP_COVERAGE;
+
+      else if (strcmp(argv[arg], "overlap") == 0)
+        dumpFlags = DUMP_THINOVERLAP;
+
       else
         fprintf(stderr, "%s: Unknown dump option '-d %s'\n", argv[0], argv[arg]);
 
     } else if (strcmp(argv[arg], "-D") == 0) {
       arg++;
 
-      if      (strncmp(argv[arg], "unitiglist", 1) == 0)
+      if      (strcmp(argv[arg], "unitiglist") == 0)
         opType = OPERATION_UNITIGLIST;
 
-      else if (strncmp(argv[arg], "contiglist", 1) == 0)
+      else if (strcmp(argv[arg], "contiglist") == 0)
         opType = OPERATION_CONTIGLIST;
 
-      else if (strncmp(argv[arg], "properties", 1) == 0)
+      else if (strcmp(argv[arg], "properties") == 0)
         opType = OPERATION_PROPERTIES;
 
       else
@@ -698,6 +869,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "     multialign         ...the full multialignment\n");
     fprintf(stderr, "     matepair           ...an analysis of the mate pairs\n");
     fprintf(stderr, "     sizes              ...an analysis of sizes of the tigs\n");
+    fprintf(stderr, "     coverage           ...an analysis of read coverage of the tigs\n");
+    fprintf(stderr, "     overlap            ...an analysis of read overlaps in the tigs\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -E <editFile>         Change properties of multialigns\n");
@@ -915,6 +1088,12 @@ main (int argc, char **argv) {
 
       if (dumpFlags == DUMP_SIZES)
         siz->evaluateTig(ma, tigIsUnitig);
+
+      if (dumpFlags == DUMP_COVERAGE)
+        dumpCoverage(tigStore, tigID, tigIsUnitig, ma, 2, UINT32_MAX);
+
+      if (dumpFlags == DUMP_THINOVERLAP)
+        dumpThinOverlap(tigStore, tigID, tigIsUnitig, ma, sizSize);
 
       tigStore->unloadMultiAlign(tigID, tigIsUnitig);
     }
