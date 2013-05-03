@@ -155,7 +155,19 @@ intervalList::merge(uint32 minOverlap) {
       //  This interval is valid.  See if it overlaps with the next
       //  interval.
 
-      if (_list[thisInterval].hi - minOverlap >= _list[nextInterval].lo) {
+      bool  intersects = false;
+
+      if ((_list[thisInterval].lo <= _list[nextInterval].lo) &&
+          (_list[nextInterval].hi <= _list[thisInterval].hi))
+        //  next is contained in this
+        intersects = true;
+
+      if (_list[thisInterval].hi - minOverlap >= _list[nextInterval].lo)
+        //  next has thick overlap to this
+        intersects = true;
+
+
+      if (intersects) {
 
         //  Got an intersection.
 
