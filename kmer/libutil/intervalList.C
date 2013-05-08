@@ -104,7 +104,7 @@ intervalList::sort(void) {
 
 
 void
-intervalList::merge(void) {
+intervalList::merge(u32bit minOverlap) {
   u32bit  thisInterval  = 0;
   u32bit  nextInterval = 1;
 

@@ -40,8 +40,8 @@ public:
 
   void        add(intervalNumber position, intervalNumber length);
   void        sort(void);
-  void        merge(void);              //  Merge overlapping regions
-  void        merge(intervalList *IL);  //  Insert IL into this list
+  void        merge(u32bit minOverlap=0);   //  Merge overlapping regions
+  void        merge(intervalList *IL);      //  Insert IL into this list
 
   void        intersect(intervalList &A,
                         intervalList &B);
