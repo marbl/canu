@@ -222,20 +222,21 @@ public:
       uint32  i  = 0;
       uint32  iX = 0;
 
-      fprintf(stderr, "distinct: "u64bitFMT"\n", MF->numberOfDistinctMers());
-      fprintf(stderr, "unique:   "u64bitFMT"\n", MF->numberOfUniqueMers());
-      fprintf(stderr, "total:    "u64bitFMT"\n", MF->numberOfTotalMers());
+      //fprintf(stderr, "distinct: "u64bitFMT"\n", MF->numberOfDistinctMers());
+      //fprintf(stderr, "unique:   "u64bitFMT"\n", MF->numberOfUniqueMers());
+      //fprintf(stderr, "total:    "u64bitFMT"\n", MF->numberOfTotalMers());
 
-      fprintf(stderr, "Xcoverage zero 1 0 "F_U64"\n", MF->histogram(1));
+      //fprintf(stderr, "Xcoverage zero 1 0 "F_U64"\n", MF->histogram(1));
 
       for (i=2; (i < MF->histogramLength()) && (MF->histogram(i-1) > MF->histogram(i)); i++)
-        fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
+        //fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(i-1), MF->histogram(i));
+        ;
 
       iX = i - 1;
 
       for (; i < MF->histogramLength(); i++) {
         if (MF->histogram(iX) < MF->histogram(i)) {
-          fprintf(stderr, "Xcoverage incr "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(iX), MF->histogram(i));
+          //fprintf(stderr, "Xcoverage incr "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(iX), MF->histogram(i));
           iX = i;
         } else {
           //fprintf(stderr, "Xcoverage drop "F_U32" "F_U64" "F_U64"\n", i, MF->histogram(iX), MF->histogram(i));
@@ -274,7 +275,7 @@ public:
       char *adapter = createAdapterString(adapIllumina, adap454);
 
       adapterDB = new existDB(adapter, merSize, existDBcanonical | existDBcounts);
-      adapterDB->printState(stderr);
+      //adapterDB->printState(stderr);
 
       delete [] adapter;
 
@@ -457,6 +458,7 @@ public:
     nMersExpected = 0;
     nMersTested   = 0;
     nMersFound    = 0;
+    nMersCorrect  = 0;
 
     rMS = NULL;
 
@@ -531,6 +533,7 @@ public:
     nMersExpected = 0;
     nMersTested   = 0;
     nMersFound    = 0;
+    nMersCorrect  = 0;
 
     rMS = NULL;
 
@@ -660,8 +663,8 @@ public:
   uint32     testBaseChange(uint32 pos, char replacement);
   uint32     testBaseIndel(uint32 pos, char replacement);
 
-  bool       correctMismatch(uint32 pos, uint32 mNum, bool isReversed);
-  bool       correctIndel(uint32 pos, uint32 mNum, bool isReversed);
+  bool       correctMismatch(uint32 pos, uint32 mNum, uint32 mExtra, bool isReversed);
+  bool       correctIndel(uint32 pos, uint32 mNum, uint32 mExtra, bool isReversed);
 
   void       searchAdapter(bool isReversed);
   void       scoreAdapter(void);
@@ -704,6 +707,7 @@ public:
   uint32     nMersExpected;
   uint32     nMersTested;
   uint32     nMersFound;
+  uint32     nMersCorrect;
 
   merStream *rMS;  //  kmers in the read, for searching against genomic kmers
 
@@ -764,6 +768,7 @@ mertrimComputation::evaluate(void) {
   nMersExpected = clrEnd - clrBgn - g->merSize + 1;
   nMersTested   = 0;
   nMersFound    = 0;
+  nMersCorrect  = 0;
 
   while ((rMS->nextMer()) &&
          (rMS->thePositionInSequence() + g->merSize - 1 < clrEnd)) {
@@ -777,17 +782,29 @@ mertrimComputation::evaluate(void) {
 
     nMersTested++;
 
-    if (eDB->count(rMS->theCMer()) >= g->minVerified)
-      //  kmer exists in the database, assumed to be at least g->minVerified
-      nMersFound++;
-   }
+    //log.add("pos %d count %d\n", 
+    //        rMS->thePositionInSequence() + g->merSize - 1,
+    //        eDB->count(rMS->theCMer()));
 
-  if (nMersFound == nMersExpected)
-    //  All mers confirmed, read is 100% verified!
+    if (eDB->count(rMS->theCMer()) >= g->minCorrect)
+      //  We don't need to correct this kmer.
+      nMersCorrect++;
+
+    if (eDB->count(rMS->theCMer()) >= g->minVerified)
+      //  We trust this mer.
+      nMersFound++;
+  }
+
+  if (VERBOSE > 0)
+    log.add("INITIAL read %u %s len %u has %u mers, %u correct and %u trusted.\n",
+            readIID, readName, seqLen, nMersTested, nMersCorrect, nMersFound);          
+
+  if (nMersCorrect == nMersExpected)
+    //  All mers correct, read is 100% verified!
     return(ALLGOOD);
 
   if (nMersFound == 0) {
-    //  No kMers confirmed, read is 100% garbage (or 100% unique).
+    //  No trusted kMers found, read is 100% garbage (or 100% unique).
     hasNoConfirmedKmers = true;
     return(ALLCRAP);
   }
@@ -900,19 +917,20 @@ mertrimComputation::analyze(void) {
 
 
 bool
-mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
+mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, uint32 mExtra, bool isReversed) {
   uint32 nA = (corrSeq[pos] != 'A') ? testBaseChange(pos, 'A') : 0;
   uint32 nC = (corrSeq[pos] != 'C') ? testBaseChange(pos, 'C') : 0;
   uint32 nG = (corrSeq[pos] != 'G') ? testBaseChange(pos, 'G') : 0;
   uint32 nT = (corrSeq[pos] != 'T') ? testBaseChange(pos, 'T') : 0;
-  uint32 rB = 0;
+  uint32 rB = 0;  //  Base to change to
+  uint32 rV = 0;  //  Count of that kmer evidence
   uint32 nR = 0;
 
   if (VERBOSE > 2) {
-    if (nA > mNum)  log.add("testA at %d -- %d req=%d\n", pos, nA, mNum);
-    if (nC > mNum)  log.add("testC at %d -- %d req=%d\n", pos, nC, mNum);
-    if (nG > mNum)  log.add("testG at %d -- %d req=%d\n", pos, nG, mNum);
-    if (nT > mNum)  log.add("testT at %d -- %d req=%d\n", pos, nT, mNum);
+    if (nA > mNum + mExtra)  log.add("testA at %d -- %d req=%d\n", pos, nA, mNum + mExtra);
+    if (nC > mNum + mExtra)  log.add("testC at %d -- %d req=%d\n", pos, nC, mNum + mExtra);
+    if (nG > mNum + mExtra)  log.add("testG at %d -- %d req=%d\n", pos, nG, mNum + mExtra);
+    if (nT > mNum + mExtra)  log.add("testT at %d -- %d req=%d\n", pos, nT, mNum + mExtra);
   }  //  VERBOSE
 
   //  If we found a single perfectly correct choice, ignore all the other solutions.
@@ -933,14 +951,16 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
 
   nR = 0;
 
-  if (nA > mNum)  { nR++;  rB = 'A'; }
-  if (nC > mNum)  { nR++;  rB = 'C'; }
-  if (nG > mNum)  { nR++;  rB = 'G'; }
-  if (nT > mNum)  { nR++;  rB = 'T'; }
+  if (nA > mNum + mExtra)  { nR++;  rB = 'A';  rV = nA; }
+  if (nC > mNum + mExtra)  { nR++;  rB = 'C';  rV = nC; }
+  if (nG > mNum + mExtra)  { nR++;  rB = 'G';  rV = nG; }
+  if (nT > mNum + mExtra)  { nR++;  rB = 'T';  rV = nT; }
 
   if (nR == 0)
-    //  No solutions.
+    //  Nothing viable, keep the base as is.
     return(false);
+
+  //  Something to change to.  By definition, this is a stronger mer than the original.
 
   if (nR > 1) {
     //  Multiple solutions.  Pick the most common.  If we don't do this, the confirmed kmer
@@ -949,10 +969,10 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
 
     uint32  mm = MAX(MAX(nA, nC), MAX(nG, nT));
 
-    if (nA == mm)   { rB = 'A'; }
-    if (nC == mm)   { rB = 'C'; }
-    if (nG == mm)   { rB = 'G'; }
-    if (nT == mm)   { rB = 'T'; }
+    if (nA == mm)   { rB = 'A';  rV = nA; }
+    if (nC == mm)   { rB = 'C';  rV = nC; }
+    if (nG == mm)   { rB = 'G';  rV = nG; }
+    if (nT == mm)   { rB = 'T';  rV = nT; }
 
     //corrected[pos] = 'X';
     //return(false);
@@ -962,21 +982,21 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
 
   if (VERBOSE > 0) {
     if (nR > 1)
-      log.add("Correct read %d at position %d from %c to %c (QV %d) (%s) (multiple choices nA=%d nC=%d nG=%d nT=%d)\n",
+      log.add("Correct read %d at position %d from %c (%u) to %c (%u) (QV %d) (%s) (multiple choices nA=%d nC=%d nG=%d nT=%d)\n",
               readIID,
               (isReversed == false) ? pos : seqLen - pos,
-              corrSeq[pos],
-              rB,
-              corrQlt[pos],
+              corrSeq[pos], mNum,
+              rB,           rV,
+              corrQlt[pos] - '0',
               (isReversed == false) ? "fwd" : "rev",
               nA, nC, nG, nT);
     else
-      log.add("Correct read %d at position %d from %c to %c (QV %d) (%s)\n",
+      log.add("Correct read %d at position %d from %c (%u) to %c (%u) (QV %d) (%s)\n",
               readIID,
               (isReversed == false) ? pos : seqLen - pos,
-              corrSeq[pos],
-              rB,
-              corrQlt[pos],
+              corrSeq[pos], mNum,
+              rB,           rV,
+              corrQlt[pos] - '0',
               (isReversed == false) ? "fwd" : "rev");
   }  //  VERBOSE
 
@@ -1007,27 +1027,28 @@ mertrimComputation::correctMismatch(uint32 pos, uint32 mNum, bool isReversed) {
 
 
 bool
-mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
+mertrimComputation::correctIndel(uint32 pos, uint32 mNum, uint32 mExtra, bool isReversed) {
   uint32 nD = testBaseIndel(pos, '-');
   uint32 nA = testBaseIndel(pos, 'A');
   uint32 nC = testBaseIndel(pos, 'C');
   uint32 nG = testBaseIndel(pos, 'G');
   uint32 nT = testBaseIndel(pos, 'T');
   char   rB = 0;
+  uint32 rV = 0;
   uint32 nR = 0;
 
-  if (nD > mNum)  { nR++;  rB = '-'; }
-  if (nA > mNum)  { nR++;  rB = 'A'; }
-  if (nC > mNum)  { nR++;  rB = 'C'; }
-  if (nG > mNum)  { nR++;  rB = 'G'; }
-  if (nT > mNum)  { nR++;  rB = 'T'; }
+  if (nD > mNum + mExtra)  { nR++;  rB = '-';  rV = nD;  }
+  if (nA > mNum + mExtra)  { nR++;  rB = 'A';  rV = nA;  }
+  if (nC > mNum + mExtra)  { nR++;  rB = 'C';  rV = nC;  }
+  if (nG > mNum + mExtra)  { nR++;  rB = 'G';  rV = nG;  }
+  if (nT > mNum + mExtra)  { nR++;  rB = 'T';  rV = nT;  }
 
   if (VERBOSE > 2) {
-    if (nD > mNum)  log.add("test-- %d -- %d req=%d\n", pos, nD, mNum);
-    if (nA > mNum)  log.add("test+A %d -- %d req=%d\n", pos, nA, mNum);
-    if (nC > mNum)  log.add("test+C %d -- %d req=%d\n", pos, nC, mNum);
-    if (nG > mNum)  log.add("test+G %d -- %d req=%d\n", pos, nG, mNum);
-    if (nT > mNum)  log.add("test+T %d -- %d req=%d\n", pos, nT, mNum);
+    if (nD > mNum + mExtra)  log.add("test-- %d -- %d req=%d\n", pos, nD, mNum + mExtra);
+    if (nA > mNum + mExtra)  log.add("test+A %d -- %d req=%d\n", pos, nA, mNum + mExtra);
+    if (nC > mNum + mExtra)  log.add("test+C %d -- %d req=%d\n", pos, nC, mNum + mExtra);
+    if (nG > mNum + mExtra)  log.add("test+G %d -- %d req=%d\n", pos, nG, mNum + mExtra);
+    if (nT > mNum + mExtra)  log.add("test+T %d -- %d req=%d\n", pos, nT, mNum + mExtra);
   }  //  VERBOSE
 
   if (nR == 0)
@@ -1042,12 +1063,13 @@ mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
 
   //  One solution.  Make a correction.  Either a deletion or an insert.
 
-  if (nD > mNum) {
+  if (nD > mNum + mExtra) {
     if (VERBOSE > 0) {
-      log.add("Correct read %d at position %d from %c to DELETE (QV %d) (%s)\n",
+      log.add("Correct read %d at position %d from %c (%u) to DELETE (%u) (QV %d) (%s)\n",
               readIID,
               (isReversed == false) ? pos : seqLen - pos,
-              corrSeq[pos],
+              corrSeq[pos], mNum,
+              rV,
               corrQlt[pos] - '0',
               (isReversed == false) ? "fwd" : "rev");
 
@@ -1067,10 +1089,11 @@ mertrimComputation::correctIndel(uint32 pos, uint32 mNum, bool isReversed) {
 
   } else {
     if (VERBOSE > 0) {
-      log.add("Correct read %d at position %d INSERT %c (%s)\n",
+      log.add("Correct read %d at position %d from . (%u) to INSERT %c (%u) (%s)\n",
               readIID,
               (isReversed == false) ? pos : seqLen - pos,
-              rB,
+              mNum,
+              rB, rV,
               (isReversed == false) ? "fwd" : "rev");
 
     }  //  VERBOSE
@@ -1160,11 +1183,11 @@ mertrimComputation::searchAdapter(bool isReversed) {
       continue;
     }
 
-    uint32 mNum = testBaseChange(pos, corrSeq[pos]) + 1;
+    uint32 mNum = testBaseChange(pos, corrSeq[pos]);
 
     //  Test if we can repair the sequence with a single base change.
     if (g->correctMismatch)
-      if (correctMismatch(pos, mNum, isReversed)) {
+      if (correctMismatch(pos, mNum, 1, isReversed)) {
         containsAdapter = true;
         containsAdapterFixed++;
       }
@@ -1273,17 +1296,17 @@ mertrimComputation::attemptCorrection(bool isReversed) {
     //  A solution would be to retry any base we cannot correct and allow a positive change of
     //  one mer to accept the change.  (in other words, change +1 below to +0).
 
-    uint32 mNum = testBaseChange(pos, corrSeq[pos]) + 1;
+    uint32 mNum = testBaseChange(pos, corrSeq[pos]);
 
     //  Test if we can repair the sequence with a single base change.
     if (g->correctMismatch)
-      if (correctMismatch(pos, mNum, isReversed))
+      if (correctMismatch(pos, mNum, 1, isReversed))
         continue;
 
     if ((g->correctIndel) &&
         (g->merSize     < pos) &&
         (pos            < seqLen - g->merSize))
-      if (correctIndel(pos, mNum + 2, isReversed))
+      if (correctIndel(pos, mNum, 3, isReversed))
         continue;
   }
 
@@ -2319,8 +2342,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -enablecache         dump the final kmer data to 'counts.merTrimDB'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -coverage C\n");
-    fprintf(stderr, "  -correct\n");
-    fprintf(stderr, "  -evidence\n");
+    fprintf(stderr, "  -correct n           mers with count below n can be changed\n");
+    fprintf(stderr, "                         (that is, count >= n are correct mers)\n");
+    fprintf(stderr, "  -evidence n          mers with count at least n will be used for changes\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -mC adapter.fasta    screen for these adapter sequences\n");
     fprintf(stderr, "  -mCillumina          screen for common Illumina adapter sequences\n");
