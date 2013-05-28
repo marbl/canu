@@ -12,7 +12,7 @@ using namespace std;
 static string readRecord(ifstream &file, string &header,
         vector<int32> *qualValues = NULL) {
     string toReturn;
-    int position = file.tellg();
+    long position = file.tellg();
     string line;
 
     while (file.good()) {
