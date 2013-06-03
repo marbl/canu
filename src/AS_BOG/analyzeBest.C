@@ -25,6 +25,7 @@ const char *mainid = "$Id: analyzeBest.C,v 1.2 2011-12-29 09:26:03 brianwalenz E
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_splitToWords.H"
 
+
 //  Read the 'best.edges' and 'best.contains' outputs from BOG, compute
 //  how many singletons, spurs and contains are present per library.
 //
@@ -33,8 +34,9 @@ const char *mainid = "$Id: analyzeBest.C,v 1.2 2011-12-29 09:26:03 brianwalenz E
 int
 main(int argc, char **argv) {
   char  *gkpName = 0L;
-  char  *bEdges  = "best.edges";
+  char  *bEdge   = "best.edges";
   char  *bCont   = "best.contains";
+  char  *bSing   = "best.singletons";
 
   int arg=1;
   int err=0;
@@ -43,10 +45,13 @@ main(int argc, char **argv) {
       gkpName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-e") == 0) {
-      bEdges = argv[++arg];
+      bEdge = argv[++arg];
 
     } else if (strcmp(argv[arg], "-c") == 0) {
       bCont = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      bSing = argv[++arg];
 
     } else {
       err++;
@@ -62,13 +67,17 @@ main(int argc, char **argv) {
   fprintf(stderr, "Opening best edges and contains.\n");
 
   errno = 0;
-  FILE *be = fopen(bEdges, "r");
+  FILE *be = fopen(bEdge, "r");
   if (errno)
-    fprintf(stderr, "Failed to open '%s' for reading: %s\n", bEdges, strerror(errno)), exit(1);
+    fprintf(stderr, "Failed to open '%s' for reading: %s\n", bEdge, strerror(errno)), exit(1);
 
   FILE *bc = fopen(bCont,  "r");
   if (errno)
     fprintf(stderr, "Failed to open '%s' for reading: %s\n", bCont, strerror(errno)), exit(1);
+
+  FILE *bs = fopen(bSing,  "r");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for reading: %s\n", bSing, strerror(errno)), exit(1);
 
   fprintf(stderr, "Loading fragment to library mapping.\n");
 
@@ -95,17 +104,32 @@ main(int argc, char **argv) {
 
   delete str;
 
-  uint64  *cntdPerLib = new uint64 [numLib + 1];  memset(cntdPerLib, 0, sizeof(uint64) * (numLib + 1));
-  uint64  *cntrPerLib = new uint64 [numLib + 1];  memset(cntrPerLib, 0, sizeof(uint64) * (numLib + 1));
+  uint64      *cntdPerLib = new uint64 [numLib + 1];  memset(cntdPerLib, 0, sizeof(uint64) * (numLib + 1));
+  uint64      *cntrPerLib = new uint64 [numLib + 1];  memset(cntrPerLib, 0, sizeof(uint64) * (numLib + 1));
+  uint32      *cntr       = new uint32 [numFrg + 1];  memset(cntr,       0, sizeof(uint32) * (numFrg + 1));
 
-  uint64  *singPerLib = new uint64 [numLib + 1];  memset(singPerLib, 0, sizeof(uint64) * (numLib + 1));
-  uint64  *spu5PerLib = new uint64 [numLib + 1];  memset(spu5PerLib, 0, sizeof(uint64) * (numLib + 1));
-  uint64  *spu3PerLib = new uint64 [numLib + 1];  memset(spu3PerLib, 0, sizeof(uint64) * (numLib + 1));
-  uint64  *dovePerLib = new uint64 [numLib + 1];  memset(dovePerLib, 0, sizeof(uint64) * (numLib + 1));
+  uint64      *singPerLib = new uint64 [numLib + 1];  memset(singPerLib, 0, sizeof(uint64) * (numLib + 1));
+  uint64      *spu5PerLib = new uint64 [numLib + 1];  memset(spu5PerLib, 0, sizeof(uint64) * (numLib + 1));
+  uint64      *spu3PerLib = new uint64 [numLib + 1];  memset(spu3PerLib, 0, sizeof(uint64) * (numLib + 1));
+  uint64      *dovePerLib = new uint64 [numLib + 1];  memset(dovePerLib, 0, sizeof(uint64) * (numLib + 1));
 
   int32          lineMax = 1048576;
   char          *line    = new char [lineMax];
   splitToWords   W;
+
+
+  fprintf(stderr, "Processing best.singletons.\n");
+
+  while (!feof(bs)) {
+    fgets(line, lineMax, bs);  chomp(line);
+    W.split(line);
+
+    if (line[0] == '#')
+      continue;
+
+    singPerLib[frgToLib[W(0)]]++;
+  }
+
 
   fprintf(stderr, "Processing best.contains.\n");
 
@@ -117,7 +141,13 @@ main(int argc, char **argv) {
       continue;
 
     cntdPerLib[frgToLib[W(0)]]++;
-    cntrPerLib[frgToLib[W(3)]]++;
+
+    cntr[W(3)]++;
+  }
+
+  for (uint32 i=1; i<=numFrg; i++) {
+    if (cntr[i] > 0)
+      cntrPerLib[frgToLib[i]]++;
   }
 
 
@@ -163,11 +193,13 @@ main(int argc, char **argv) {
   fclose(bc);
 
   delete [] frgToLib;
+
   delete [] fragPerLib;
   delete [] deldPerLib;
 
   delete [] cntdPerLib;
   delete [] cntrPerLib;
+  delete [] cntr;
 
   delete [] singPerLib;
   delete [] spu5PerLib;
