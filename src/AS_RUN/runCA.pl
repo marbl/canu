@@ -744,8 +744,11 @@ sub makeAbsolute ($) {
 sub fixCase ($) {
     my $var = shift @_;
     my $val = getGlobal($var);
-    $val =~ tr/A-Z/a-z/;
-    setGlobal($var, $val);
+
+    if (defined($val)) {
+        $val =~ tr/A-Z/a-z/;
+        setGlobal($var, $val);
+    }
 }
 
 sub setParametersFromFile ($@) {
@@ -1110,11 +1113,9 @@ sub findFirstCheckpoint ($) {
 
     $dir = "$wrk/$dir" if (! -d $dir);
 
-    open(F, "ls -1 $dir/$asm.ckp.[0-9]* |");
+    open(F, "find -L $dir -type f -name $asm.ckp.\[0-9\]\* |");
     while (<F>) {
-        chomp;
-
-        if (m/ckp.(\d+)$/) {
+        if (m/ckp.(\d+)\s*$/) {
             $firstckp = $1 if ($1 < $firstckp);
         }
     }
@@ -1129,11 +1130,9 @@ sub findLastCheckpoint ($) {
 
     $dir = "$wrk/$dir" if (-d "$wrk/$dir");
 
-    open(F, "ls -1 $dir/$asm.ckp.[0-9]* |");
+    open(F, "find -L $dir -type f -name $asm.ckp.\[0-9\]\* |");
     while (<F>) {
-        chomp;
-
-        if (m/ckp.(\d+)$/) {
+        if (m/ckp.(\d+)\s*$/) {
             $lastckp = $1 if ($1 > $lastckp);
         }
     }
@@ -1185,6 +1184,29 @@ sub getNumberOfFragsInStore ($$) {
     }
 
     return($numFrags);
+}
+
+
+
+
+#  Default to unitigger, unless the gkpStore says otherwise.
+#
+sub getUnitigger () {
+    my $unitigger = getGlobal("unitigger");
+
+    if (!defined($unitigger)) {
+        setGlobal("unitigger", "utg");
+
+        if (system("$bin/gatekeeper -isfeatureset 0 forceBOGunitigger $wrk/$asm.gkpStore") == 0) {
+            setGlobal("unitigger", "bog");
+        }
+    }
+
+    $unitigger = getGlobal("unitigger");
+
+    die "Unitigger not defined.\n" if (!defined($unitigger));
+
+    return($unitigger);
 }
 
 
@@ -3596,7 +3618,8 @@ sub createOverlapJobs($) {
         $cmd .= " -H $hashLibrary \\\n" if ($hashLibrary ne "0");
         $cmd .= " -R $refLibrary \\\n"  if ($refLibrary ne "0");
         $cmd .= " -C \\\n" if (!$checkLibrary);
-        $cmd .= " -o  $wrk/$outDir";
+        $cmd .= " -o  $wrk/$outDir \\\n";
+        $cmd .= "> $wrk/$outDir/overlap_partition.err 2>&1";
 
         if (runCommand($wrk, $cmd)) {
             caFailure("failed partition for overlapper", undef);
@@ -3992,7 +4015,7 @@ sub overlapTrim {
         my $erate  = 0.03;  #  Used for non-Sanger 'largest covered' style
         my $elimit = 4.5;
 
-        my $utg = getGlobal("unitigger");
+        my $utg = getUnitigger();
 
         if      ($utg eq "utg") {
             $erate  = getGlobal("utgErrorRate");
@@ -4547,16 +4570,6 @@ sub unitigger () {
         goto alldone;
     }
 
-    #  Default to unitigger, unless the gkpStore says otherwise.
-    #
-    if (!defined(getGlobal("unitigger"))) {
-        setGlobal("unitigger", "utg");
-
-        if (system("$bin/gatekeeper -isfeatureset 0 forceBOGunitigger $wrk/$asm.gkpStore") == 0) {
-            setGlobal("unitigger", "bog");
-        }
-    }
-
     system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
     my $e   = getGlobal("utgErrorRate");        #  Unitigger and BOG
@@ -4572,7 +4585,7 @@ sub unitigger () {
 
     my $u = getGlobal("utgBubblePopping");
 
-    my $unitigger = getGlobal("unitigger");
+    my $unitigger = getUnitigger();
 
     if ($unitigger eq "bogart") {
         my $th = getGlobal("batThreads");
@@ -4619,7 +4632,7 @@ sub unitigger () {
         $cmd .= " -o $wrk/4-unitigger/$asm ";
         $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
     } else {
-        caFailure("unknown unitigger $unitigger; must be 'bog' or 'utg'", undef);
+        caFailure("unknown unitigger '$unitigger'; must be 'bog' or 'utg'", undef);
     }
 
     stopBefore("unitigger", $cmd);
@@ -4787,10 +4800,14 @@ sub postUnitiggerConsensus () {
     #
     #  Estimate insert size estimates
     #
+    #  tigStore writes output files using the tigStore as a prefix.  We thus need to temporarily symlink
+    #  The tigStore to the proper directory.
+    #
 
     if (! -e "$wrk/5-consensus-insert-sizes/estimates.out") {
         system("mkdir $wrk/5-consensus-insert-sizes") if (! -d "$wrk/5-consensus-insert-sizes");
-        system("ln -s $wrk/$asm.tigStore $wrk/5-consensus-insert-sizes/$asm.tigStore");
+
+        system("ln -s ../$asm.tigStore $wrk/5-consensus-insert-sizes/$asm.tigStore");
 
         $cmd  = "$bin/tigStore \\\n";
         $cmd .= " -g $wrk/$asm.gkpStore \\\n";
@@ -4801,7 +4818,9 @@ sub postUnitiggerConsensus () {
         if (runCommand("$wrk/5-consensus-insert-sizes", $cmd)) {
             caFailure("Insert size estimation failed", "$wrk/5-consensus-insert-sizes/estimates.out");
         }
-     }
+
+        unlink("$wrk/5-consensus-insert-sizes/$asm.tigStore");
+    }
 
     #
     #  Update estimates in gatekeeper
@@ -4830,7 +4849,6 @@ sub postUnitiggerConsensus () {
 
     if (! -e "$wrk/5-consensus-split/splitUnitigs.out") {
         system("mkdir $wrk/5-consensus-split") if (! -d "$wrk/5-consensus-split");
-        system("ln -s $wrk/$asm.tigStore $wrk/5-consensus-split/$asm.tigStore");
 
         $cmd  = "$bin/splitUnitigs \\\n";
         $cmd .= " -g $wrk/$asm.gkpStore \\\n";
@@ -5069,7 +5087,14 @@ sub eCR ($$$) {
 
         #  Remove any existing eCR scripts -- possibly left behind by the user deleting
         #  the partitioinInfo and restarting.
-        system("rm $wrk/$thisDir/extendClearRanges-scaffold.*");
+
+        open(F, "find -L $wrk/$thisDir -name 'extendClearRanges-scaffold.*' -print |");
+        while (<F>) {
+            chomp;
+            print STDERR "Repartitioned; remove extraneous file $_\n";
+            unlink $_;
+        }
+        close(F);
     }
 
     #  Read the partitioning info, create jobs.  No partitions?  No ECR jobs.
@@ -5140,7 +5165,7 @@ sub eCR ($$$) {
 sub updateDistanceRecords ($) {
     my $thisDir = shift @_;
 
-    return if (-e "$wrk/$thisDir/$asm.distupdate.success");
+    return $thisDir   if (-e "$wrk/$thisDir/$asm.distupdate.success");
 
     open(F, "> $wrk/$thisDir/$asm.distupdate");
 
@@ -5199,7 +5224,7 @@ sub scaffolder () {
     if ($cis == 1) {
         if (! -e "$wrk/6-clonesize/$asm.tigStore") {
             system("mkdir -p $wrk/6-clonesize/$asm.tigStore");
-            system("ln -s $wrk/$asm.tigStore/* $wrk/6-clonesize/$asm.tigStore");
+            system("cd $wrk/6-clonesize/$asm.tigStore && ln -s ../../$asm.tigStore/* .");
         }
         updateDistanceRecords(CGW("6-clonesize", undef, "$wrk/6-clonesize/$asm.tigStore", $stoneLevel, undef, 0));
     }
@@ -5880,7 +5905,7 @@ sub toggler () {
     #  A simple link to the ovlStore suffices.
     #
     if (! -e "$wrk/$toggledDir/$asm.ovlStore") {
-        system("ln -s $wrk/$asm.ovlStore $wrk/$toggledDir/$asm.ovlStore");
+        system("ln -s ../$asm.ovlStore $wrk/$toggledDir/$asm.ovlStore");
     }
 
     #  The gatekeeper store must be paritally copied, so that we can first undo
@@ -5890,9 +5915,9 @@ sub toggler () {
     if (! -e "$wrk/$toggledDir/$asm.gkpStore") {
         system("mkdir $wrk/$toggledDir/$asm.gkpStore");
 
-        system("ln -s $wrk/$asm.gkpStore/[qsu]?? $wrk/$toggledDir/$asm.gkpStore/");
-        system("cp $wrk/$asm.gkpStore/[filp]??   $wrk/$toggledDir/$asm.gkpStore/");
-        system("cp $wrk/$asm.gkpStore/clr-*      $wrk/$toggledDir/$asm.gkpStore/");
+        system("cd $wrk/$toggledDir/$asm.gkpStore && ln -s ../..//$asm.gkpStore/[qsu]?? .");
+        system("cp $wrk/$asm.gkpStore/[filp]?? $wrk/$toggledDir/$asm.gkpStore/");
+        system("cp $wrk/$asm.gkpStore/clr-*    $wrk/$toggledDir/$asm.gkpStore/");
 
         $cmd  = "$bin/gatekeeper";
         $cmd .= " --revertclear OBTCHIMERA $wrk/$toggledDir/$asm.gkpStore";
@@ -5908,11 +5933,11 @@ sub toggler () {
     if (! -e "$wrk/$toggledDir/$asm.tigStore") {
         system("mkdir $wrk/$toggledDir/$asm.tigStore") ;
 
-        system("ln -s $wrk/$asm.tigStore/*v00[12345]* $wrk/$toggledDir/$asm.tigStore/");
+        system("cd $wrk/$toggledDir/$asm.tigStore && ln -s ../../$asm.tigStore/*v00[12345]* .");
     }
 
-    system("ln -s $wrk/4-unitigger $wrk/$toggledDir") if (! -e "$wrk/$toggledDir/4-unitigger");
-    system("ln -s $wrk/5-consensus $wrk/$toggledDir") if (! -e "$wrk/$toggledDir/5-consensus");
+    system("ln -s ../4-unitigger $wrk/$toggledDir") if (! -e "$wrk/$toggledDir/4-unitigger");
+    system("ln -s ../5-consensus $wrk/$toggledDir") if (! -e "$wrk/$toggledDir/5-consensus");
 
     #  Update the tigStore, flipping repeat untigs to unique unitigs.
     #
