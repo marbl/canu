@@ -24,6 +24,7 @@ const char *mainid = "$Id: overlapInCore.C,v 1.12 2013-01-11 11:11:04 brianwalen
 #include "overlapInCore.H"
 #include "AS_UTL_decodeRange.H"
 
+#include <pthread_np.h>
 
 
 uint32 STRING_NUM_BITS       = 31;  //  MUST BE EXACTLY THIS
@@ -172,7 +173,9 @@ uint32  Hash_Mask_Bits            = 22;
 double  Max_Hash_Load             = 0.6;
 uint32  Max_Hash_Strings          = 100000000 / 800;
 uint64  Max_Hash_Data_Len         = 100000000;
-uint32  Max_Frags_In_Memory_Store = MAX_OLD_BATCH_SIZE;
+
+uint32  Max_Reads_Per_Batch       = 0;  //  The number of reads loaded in a single batch.
+uint32  Max_Reads_Per_Thread      = 0;  //  The number of reads processed per thread.
 
 AS_IID  Last_Hash_Frag_Read;
 AS_IID  Lo_Hash_Frag = 0;
@@ -211,11 +214,13 @@ void *Choose_And_Process_Stream_Segment(void *ptr) {
   Work_Area_t  *WA = (Work_Area_t *) (ptr);
   int           allDone = 0;
 
+  fprintf(stderr, "Choose_And_Process_Stream_Segment()-- tid %d\n", pthread_getthreadid_np());
+
   while  (allDone == 0) {
     pthread_mutex_lock (& FragStore_Mutex);
 
     AS_IID lo = Frag_Segment_Lo;
-    Frag_Segment_Lo += MAX_FRAGS_PER_THREAD;
+    Frag_Segment_Lo += Max_Reads_Per_Thread;
     AS_IID hi = Frag_Segment_Lo - 1;
 
     //  This block doesn't need to be in a mutex, but it's so quick
@@ -236,6 +241,8 @@ void *Choose_And_Process_Stream_Segment(void *ptr) {
     if (allDone == 0)
       Process_Overlaps (WA -> stream_segment, WA);
   }
+
+  fprintf(stderr, "Choose_And_Process_Stream_Segment()-- tid %d returns\n", pthread_getthreadid_np());
 
   return(ptr);
 }
@@ -390,7 +397,7 @@ OverlapDriver(void) {
 
     while  (lowest_old_frag <= highest_old_frag) {
       Frag_Segment_Lo = lowest_old_frag;
-      Frag_Segment_Hi = Frag_Segment_Lo + Max_Frags_In_Memory_Store - 1;
+      Frag_Segment_Hi = Frag_Segment_Lo + Max_Reads_Per_Batch - 1;
       if  (Frag_Segment_Hi > highest_old_frag)
         Frag_Segment_Hi = highest_old_frag;
 
@@ -426,7 +433,7 @@ OverlapDriver(void) {
 
       delete curr_frag_store;
 
-      lowest_old_frag += Max_Frags_In_Memory_Store;
+      lowest_old_frag += Max_Reads_Per_Batch;
     }
 
     delete hash_frag_store;
@@ -646,7 +653,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "--hashstrings") == 0) {
       Max_Hash_Strings = strtoull(argv[++arg], NULL, 10);
-      Max_Frags_In_Memory_Store = MIN (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
 
     } else if (strcmp(argv[arg], "--hashdatalen") == 0) {
       Max_Hash_Data_Len = strtoull(argv[++arg], NULL, 10);
@@ -667,6 +673,12 @@ main(int argc, char **argv) {
       OFFSET_MASK           = (1 << OFFSET_BITS) - 1;
 
       MAX_STRING_NUM        = STRING_NUM_MASK;
+
+    } else if (strcmp(argv[arg], "--readsperbatch") == 0) {
+      Max_Reads_Per_Batch = strtoul(argv[++arg], NULL, 10);
+
+    } else if (strcmp(argv[arg], "--readsperthread") == 0) {
+      Max_Reads_Per_Thread = strtoul(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-o") == 0) {
       strcpy(Outfile_Name, argv[++arg]);
@@ -755,24 +767,22 @@ main(int argc, char **argv) {
     fprintf(stderr, "            full sequence\n");
     fprintf(stderr, "-z          skip the hopeless check\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--hashbits n       Use n bits for the hash mask.  This directly sets\n");
-    fprintf(stderr, "                   the amount of memory used:\n");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "--hashbits n       Use n bits for the hash mask.\n");
     fprintf(stderr, "--hashstrings n    Load at most n strings into the hash table at one time.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "--hashdatalen n    Use at most n bytes for the hash table.\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "\n");
+    fprintf(stderr, "--hashdatalen n    Load at most n bytes into the hash table at one time.\n");
     fprintf(stderr, "--hashload f       Load to at most 0.0 < f < 1.0 capacity (default 0.7).\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "--maxreadlen n     Use m=log2(n) bits for storing read positions; read length limited\n");
-    fprintf(stderr, "                   to n, and --hashstrings limited to 2^(30-m).  Common values:\n");
+    fprintf(stderr, "--maxreadlen n     For batches with all short reads, pack bits differently to\n");
+    fprintf(stderr, "                   process more reads per batch.\n");
+    fprintf(stderr, "                     all reads must be shorter than n\n");
+    fprintf(stderr, "                     --hashstrings limited to 2^(30-m)\n");
+    fprintf(stderr, "                   Common values:\n");
     fprintf(stderr, "                     maxreadlen 2048 -> hashstrings  524288 (default)\n");
     fprintf(stderr, "                     maxreadlen  512 -> hashstrings 2097152\n");
     fprintf(stderr, "                     maxreadlen  128 -> hashstrings 8388608\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "--readsperbatch n  Force batch size to n.\n");
+    fprintf(stderr, "--readsperthread n Force each thread to process n reads.\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -781,9 +791,28 @@ main(int argc, char **argv) {
 
   Out_BOF    = AS_OVS_createBinaryOverlapFile(Outfile_Name, FALSE);
 
-  //  We know enough now to set the hash function variables, and some
-  //  other random variables.
-  //
+  //  Adjust the number of reads to load into memory at once (for processing, not the hash table),
+
+  if (Max_Reads_Per_Batch == 0)
+    Max_Reads_Per_Batch = 100000;
+
+  if (Max_Hash_Strings < Max_Reads_Per_Batch)
+    Max_Reads_Per_Batch = Max_Hash_Strings;
+
+  //  Adjust the number of reads processed per thread.  Default to having four blocks per thread,
+  //  but make sure that (a) all threads have work to do, and (b) batches are not minuscule.
+
+  if (Max_Reads_Per_Thread == 0)
+    Max_Reads_Per_Thread = Max_Reads_Per_Batch / (4 * Num_PThreads);
+
+  if (Max_Reads_Per_Thread * Num_PThreads > Max_Reads_Per_Batch)
+    Max_Reads_Per_Thread = Max_Reads_Per_Batch / Num_PThreads + 1;
+
+  if (Max_Reads_Per_Thread < 10)
+    Max_Reads_Per_Thread = 10;
+
+  //  We know enough now to set the hash function variables, and some other random variables.
+
   HSF1 = Kmer_Len - (Hash_Mask_Bits / 2);
   HSF2 = 2 * Kmer_Len - Hash_Mask_Bits;
   SV1  = HSF1 + 2;
@@ -794,20 +823,24 @@ main(int argc, char **argv) {
   Branch_Error_Value = Branch_Match_Value - 1.0;
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "STRING_NUM_BITS     "F_U32"\n", STRING_NUM_BITS);
-  fprintf(stderr, "OFFSET_BITS         "F_U32"\n", OFFSET_BITS);
-  fprintf(stderr, "STRING_NUM_MASK     "F_U64"\n", STRING_NUM_MASK);
-  fprintf(stderr, "OFFSET_MASK         "F_U64"\n", OFFSET_MASK);
-  fprintf(stderr, "MAX_STRING_NUM      "F_U64"\n", MAX_STRING_NUM);
+  fprintf(stderr, "STRING_NUM_BITS       "F_U32"\n", STRING_NUM_BITS);
+  fprintf(stderr, "OFFSET_BITS           "F_U32"\n", OFFSET_BITS);
+  fprintf(stderr, "STRING_NUM_MASK       "F_U64"\n", STRING_NUM_MASK);
+  fprintf(stderr, "OFFSET_MASK           "F_U64"\n", OFFSET_MASK);
+  fprintf(stderr, "MAX_STRING_NUM        "F_U64"\n", MAX_STRING_NUM);
   fprintf(stderr, "\n");
-  fprintf(stderr, "Hash_Mask_Bits      "F_U32"\n", Hash_Mask_Bits);
-  fprintf(stderr, "Max_Hash_Strings    "F_U32"\n", Max_Hash_Strings);
-  fprintf(stderr, "Max_Hash_Data_Len   "F_U64"\n", Max_Hash_Data_Len);
-  fprintf(stderr, "Max_Hash_Load       %f\n", Max_Hash_Load);
-  fprintf(stderr, "Kmer Length         %d\n", (int)Kmer_Len);
-  fprintf(stderr, "Min Overlap Length  %d\n", Min_Olap_Len);
-  fprintf(stderr, "MAX_ERRORS          %d\n", MAX_ERRORS);
-  fprintf(stderr, "ERRORS_FOR_FREE     %d\n", ERRORS_FOR_FREE);
+  fprintf(stderr, "Hash_Mask_Bits        "F_U32"\n", Hash_Mask_Bits);
+  fprintf(stderr, "Max_Hash_Strings      "F_U32"\n", Max_Hash_Strings);
+  fprintf(stderr, "Max_Hash_Data_Len     "F_U64"\n", Max_Hash_Data_Len);
+  fprintf(stderr, "Max_Hash_Load         %f\n", Max_Hash_Load);
+  fprintf(stderr, "Kmer Length           %d\n", (int)Kmer_Len);
+  fprintf(stderr, "Min Overlap Length    %d\n", Min_Olap_Len);
+  fprintf(stderr, "MAX_ERRORS            %d\n", MAX_ERRORS);
+  fprintf(stderr, "ERRORS_FOR_FREE       %d\n", ERRORS_FOR_FREE);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Num_PThreads          "F_U32"\n", Num_PThreads);
+  fprintf(stderr, "Max_Reads_Per_Batch   "F_U32"\n", Max_Reads_Per_Batch);
+  fprintf(stderr, "Max_Reads_Per_Thread  "F_U32"\n", Max_Reads_Per_Thread);
 
   assert (8 * sizeof (uint64) > 2 * Kmer_Len);
 

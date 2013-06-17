@@ -170,16 +170,9 @@
 //  Most errors in any edit distance computation
 //  THIS VALUE IS KNOWN ONLY AT RUN TIME!
 
-#define  MAX_FRAGS_PER_THREAD    500
-//  The number of fragments each parallel thread tries to
-//  process in a "round"
-
 #define  EXPECTED_STRING_LEN     (AS_READ_MAX_NORMAL_LEN / 2)
 #define  INITIAL_DATA_LEN        (EXPECTED_STRING_LEN * Max_Hash_Strings)
 //  The number of bytes to allocate initially for hash-table sequence
-
-#define  MAX_OLD_BATCH_SIZE      100000
-//  Most old fragments to read at a time from the fragment store
 
 #define  MAX_LINE_LEN            1000
 //  Maximum input line when reading FASTA file
