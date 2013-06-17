@@ -22,7 +22,7 @@
 const char *mainid = "$Id: finalTrim.C,v 1.5 2012/03/07 05:51:54 brianwalenz Exp $";
 
 #include "finalTrim.H"
-
+#include "AS_UTL_decodeRange.H"
 
 uint32
 loadOverlaps(uint32         iid,
@@ -218,6 +218,9 @@ main(int argc, char **argv) {
 
   bool              doModify = true;  //  Make this false for testing
 
+  uint32            iidMin = 1;
+  uint32            iidMax = UINT32_MAX;
+
   argc = AS_configure(argc, argv);
 
   int arg=1;
@@ -253,6 +256,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-n") == 0) {
       doModify = false;
 
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      AS_UTL_decodeRange(argv[++arg], iidMin, iidMax);
+
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
       err++;
@@ -267,7 +273,11 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s -G gkpStore -O ovlStore [-O ovlStore] -o outputPrefix\n", argv[0]);
     fprintf(stderr, "   -e erate       allow 'erate' percent error\n");
     fprintf(stderr, "   -E elimit      allow 'elimit' errors (only used in 'largestCovered')\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "   -n             do not modify\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "   -t bgn-end     limit processing to only reads from bgn to end (inclusive)\n");
+    fprintf(stderr, "\n");
     exit(1);
   }
 
@@ -290,7 +300,17 @@ main(int argc, char **argv) {
   gkFragment  fr;
   char        logMsg[1024] = {0};
 
-  for (uint32 iid=1; iid<=gkpStore->gkStore_getNumFragments(); iid++) {
+  if (iidMin < 1)
+    iidMin = 1;
+  if (iidMax > gkpStore->gkStore_getNumFragments())
+    iidMax = gkpStore->gkStore_getNumFragments();
+
+  fprintf(stderr, "Processing from IID "F_U32" to "F_U32" out of "F_U32" reads.\n",
+          iidMin,
+          iidMax,
+          gkpStore->gkStore_getNumFragments());
+
+  for (uint32 iid=iidMin; iid<=iidMax; iid++) {
 
     //  The QLT is needed ONLY for Sanger reads, and is a total waste of bandwidth for all other
     //  read types.  Perhaps this can be moved into initialTrim -- compute the strict QV trim there
