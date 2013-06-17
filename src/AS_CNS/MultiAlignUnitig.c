@@ -36,123 +36,152 @@ using namespace std;
 #define SHOW_PLACEMENT         3
 #define SHOW_ALIGNMENTS        4
 
+//  If defined, failure to align a read causes immediate crash.
+#undef FAILURE_IS_FATAL
+
+//  If defined, skip ALL contained reads.  This will cause problems in scaffolding.
+#undef SKIP_CONTAINS
 
 static
 int
-MANode2Array(MANode *ma, int32 *depth, char ***array, int32 ***id_array,
-             int32 show_cel_status) {
-  char **multia;
-  int32 **ia;
-  int32 length = GetNumColumns(ma->columnList);
-  // find max column depth.
-  int32 max_depth=0;
-  int32 col_depth;
-  int32 column_index;
-  Column *col;
-  char laneformat[40];
-  int32 num_frags=GetNumFragments(fragmentStore);
-  Fragment *frag;
-  int32 fid;
-  int32 *rowptr,*row_assign;
-  int32 ir,fbgn,fend;
-  int32 i;
-  *depth =  0;
-  for (column_index = ma->first;column_index != -1;  ) {
-    col = GetColumn(columnStore, column_index);
-    if ( col != NULL ) {
-      col_depth = GetDepth(col);
-      max_depth = (col_depth > max_depth)?col_depth:max_depth;
-    }
-    column_index = col->next;
+MANode2Array(MANode    *ma,
+             char    ***array,
+             int32   ***id_array,
+             int32      show_cel_status) {
+  int32  max_depth = 0;
+
+  for (int32 ci = ma->first; ci != -1; ) {
+    Column *col = GetColumn(columnStore, ci);
+
+    max_depth = MAX(max_depth, GetDepth(col));
+
+    ci = col->next;
   }
-  *depth = 2*max_depth; // rough estimate. first pack rows, then adjust to actual consumed rows
-  rowptr = (int32 *)safe_malloc((*depth)*sizeof(int));
-  row_assign = (int32 *)safe_malloc(num_frags*sizeof(int));
-  for (ir=0;ir<*depth;ir++) rowptr[ir] = 0;
-  for (ir=0;ir<num_frags;ir++) row_assign[ir] = -1;
-  frag = GetFragment(fragmentStore,0);
+
+  // rough estimate. first pack rows, then adjust to actual consumed rows
+
+  int32 depth       = 2 * max_depth;
+  int32 num_frags   = GetNumFragments(fragmentStore);
+
+  int32 *rowptr = new int32 [depth];
+  int32 *rowpos = new int32 [num_frags];
+
+  for (int32 ir=0; ir<depth; ir++)
+    rowptr[ir] = 0;
+
+  for (int32 ir=0; ir<num_frags; ir++)
+    rowpos[ir] = -1;
+
   // setup the packing
-  for ( fid=0;fid<num_frags;fid++ ) {
-    if ( frag->type != AS_UNITIG ) {
-      fbgn = GetColumn(columnStore, (GetBead(beadStore,frag->firstbead                     ))->column_index)->ma_index;
-      fend = GetColumn(columnStore, (GetBead(beadStore,frag->firstbead.get()+frag->length-1))->column_index)->ma_index+1;
-      for (ir=0;ir<*depth;ir++) {
-        if (fbgn <  rowptr[ir] ) continue;
-        rowptr[ir] = fend;
-        row_assign[fid] = ir;
-        break;
+
+  for (uint32 fi=0; fi<num_frags; fi++) {
+    Fragment *fragment = GetFragment(fragmentStore, fi);
+
+    if (fragment->deleted)
+      //  Ejected by contig consensus??
+      continue;
+
+    if (fragment->manode == -1)
+      //  Fragment not placed in this multialign
+      continue;
+
+    if (fragment->type == AS_UNITIG)
+      continue;
+
+    assert(fragment->type == AS_READ);
+
+    int32 fbgn = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead                         ))->column_index)->ma_index;
+    int32 fend = GetColumn(columnStore, (GetBead(beadStore,fragment->firstbead.get()+fragment->length-1))->column_index)->ma_index+1;
+
+    for (int32 ir=0; ir<depth; ir++) {
+      if (ir + 1 == depth) {
+        depth += max_depth;
+        assert(0);
+        // realloc rowptr
+        //rowptr = (int32 *)safe_realloc(rowptr, (*depth)*sizeof(int));
       }
-      if (row_assign[fid] <= -1)
-        {
-          *depth += max_depth;
-          rowptr = (int32 *)safe_realloc(rowptr, (*depth)*sizeof(int));
-          fid--;
-          continue;
-        }
-    }
-    frag++;
-  }
-  // now, find out actual depth
-  max_depth = 0;
-  for (ir=0;ir<*depth;ir++) {
-    if (rowptr[ir] == 0 ) {
-      max_depth = ir+1;
+
+      if (fbgn <  rowptr[ir])
+        continue;
+
+      rowptr[ir]  = fend;
+      rowpos[fi] = ir;
       break;
     }
   }
-  if ( max_depth == 0 ) max_depth = ir;
-  *depth = max_depth;
-  multia = (char **)safe_malloc(2*(*depth)*sizeof(char *));
-  ia = (int32 **)safe_malloc((*depth)*sizeof(int32 *));
-  sprintf(laneformat,"%%%ds",length);
-  {int32 j;
-    for (i=0;i<(*depth);i++) {
-      ia[i] = (int32 *) safe_malloc( length*sizeof(int));
-      for (j=0;j<length;j++) ia[i][j] = 0;
+
+  // now, find out actual depth
+
+  max_depth = depth;
+
+  for (int32 ir=0; ir<depth; ir++) {
+    if (rowptr[ir] == 0) {
+      max_depth = ir + 1;
+      break;
     }
   }
-  for (i=0;i<2*(*depth);i++) {
-    multia[i] = (char *) safe_malloc((length+1)*sizeof(char));
-    sprintf(multia[i],laneformat," ");
-    *(multia[i]+length) = '\0';
+
+  depth = max_depth;
+
+  char   **multia = new char  * [depth * 2];
+  int32  **ia     = new int32 * [depth];
+
+  int32 length = GetNumColumns(ma->columnList);
+
+  for (int32 i=0; i<depth; i++) {
+    ia[i] = new int32 [length];
+    memset(ia[i], 0, sizeof(int32) * length);
   }
-  {
-    Bead *fb;
-    FragmentBeadIterator fi;
-    beadIdx bid;
-    char bc,bq;
-    Column *bcolumn;
-    int32 ma_index;
 
-    frag = GetFragment(fragmentStore,0);
-    for ( fid=0;fid<num_frags;fid++ ) {
-      if ( frag->type != AS_UNITIG ) {
-        ir = row_assign[fid];
-        fb = GetBead(beadStore,frag->firstbead);
-        bcolumn =  GetColumn(columnStore,fb->column_index);
+  for (int32 i=0; i<2*depth; i++) {
+    multia[i] = new char [length + 1];
+    memset(multia[i], ' ', sizeof(char) * (length + 1));
+    multia[i][length] = 0;
+  }
 
-        CreateFragmentBeadIterator(fid,&fi);
+  for (int32 fi=0; fi<num_frags; fi++) {
+    Fragment *fragment = GetFragment(fragmentStore, fi);
 
-        while ( (bid = NextFragmentBead(&fi)) .isValid() ) {
-          fb = GetBead(beadStore,bid);
-          bc = *Getchar(sequenceStore,fb->soffset);
-          bq = *Getchar(qualityStore,fb->soffset);
-          bcolumn =  GetColumn(columnStore,fb->column_index);
-          ma_index = bcolumn->ma_index;
-          // find the first open row here, and put in the sequence/quality/ident
-          multia[2*ir][ma_index] = bc;
-          multia[2*ir+1][ma_index] = bq;
-          ia[ir][ma_index] = frag->iid;
-        }
-      }
-      frag++;
+    if (fragment->deleted)
+      //  Ejected by contig consensus??
+      continue;
+
+    if (fragment->manode == -1)
+      //  Fragment not placed in this multialign
+      continue;
+
+    if (fragment->type == AS_UNITIG)
+      continue;
+
+    int32   ir      = rowpos[fi];
+    Bead   *fb      = GetBead(beadStore, fragment->firstbead);
+
+    FragmentBeadIterator fbi;
+    beadIdx              bid;
+
+    CreateFragmentBeadIterator(fi, &fbi);
+
+    // find the first open row here, and put in the sequence/quality/ident
+
+    while ((bid = NextFragmentBead(&fbi)).isValid()) {
+      fb       = GetBead(beadStore, bid);
+
+      int32 mi = GetColumn(columnStore,fb->column_index)->ma_index;
+
+      multia[2*ir  ][mi] = *Getchar(sequenceStore, fb->soffset);
+      multia[2*ir+1][mi] = *Getchar(qualityStore,  fb->soffset);
+
+      ia[ir][mi] = fragment->iid;
     }
   }
-  *array = multia;
-  *id_array = ia;
-  safe_free(rowptr);
-  safe_free(row_assign);
-  return 1;
+
+  delete [] rowptr;
+  delete [] rowpos;
+
+  *array      = multia;
+  *id_array   = ia;
+
+  return(depth);
 }
 
 
@@ -253,11 +282,12 @@ unitigConsensus::reportStartingWork(void) {
 
   if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT_BEFORE)
     for (int32 x=0; x<=tiid; x++)
-      fprintf(stderr, "MultiAlignUnitig()-- mid %3d  f_list %6d,%6d  utgpos %6d,%6d  cnspos %6d,%6d\n",
+      fprintf(stderr, "MultiAlignUnitig()-- mid %10d  frgpos %7d,%7d  utgpos %7d,%7d  cnspos %7d,%7d  parent %10d,%6d,%6d\n",
               fraglist[x].ident,
               fraglist[x].position.bgn, fraglist[x].position.end,
               utgpos[x].bgn, utgpos[x].end,
-              cnspos[x].bgn, cnspos[x].end);
+              cnspos[x].bgn, cnspos[x].end,
+              fraglist[x].parent, fraglist[x].ahang, fraglist[x].bhang);
 }
 
 
@@ -436,6 +466,8 @@ unitigConsensus::computePositionFromParent(bool doContained) {
     cnspos[tiid].bgn = cnspos[piid].bgn + fraglist[tiid].ahang;
     cnspos[tiid].end = cnspos[piid].end + fraglist[tiid].bhang;
 
+    assert(cnspos[tiid].bgn < cnspos[tiid].end);
+
     if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
       fprintf(stderr, "computePositionFromParent()-- parent %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
               parent,
@@ -471,9 +503,14 @@ unitigConsensus::computePositionFromLayout(void) {
       cnspos[tiid].bgn = cnspos[qiid].bgn + utgpos[tiid].bgn - utgpos[qiid].bgn;
       cnspos[tiid].end = cnspos[qiid].end + utgpos[tiid].end - utgpos[qiid].end;
 
+      //  This assert triggers.  It results in 'ooo' below being negative, and we
+      //  discard this overlap anyway.
+      //
+      //assert(cnspos[tiid].bgn < cnspos[tiid].end);
+
       int32 ooo = MIN(cnspos[tiid].end, frankensteinLen) - cnspos[tiid].bgn;
 
-#if 0
+#if 1
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
         fprintf(stderr, "computePositionFromLayout()-- layout %d at utg %d,%d cns %d,%d --> utg %d,%d cns %d,%d -- overlap %d\n",
                 fraglist[qiid].ident,
@@ -498,6 +535,8 @@ unitigConsensus::computePositionFromLayout(void) {
           (thickestLen < ooo)) {
         thickestLen = ooo;
 
+        assert(cnspos[tiid].bgn < cnspos[tiid].end);  //  But we'll still assert cnspos is ordered correctly.
+
         int32 ovl   = ooo;
         int32 ahang = cnspos[tiid].bgn;
         int32 bhang = cnspos[tiid].end - frankensteinLen;
@@ -515,6 +554,8 @@ unitigConsensus::computePositionFromLayout(void) {
 
     cnspos[tiid].bgn = cnspos[piid].bgn + utgpos[tiid].bgn - utgpos[piid].bgn;
     cnspos[tiid].end = cnspos[piid].end + utgpos[tiid].end - utgpos[piid].end;
+
+    assert(cnspos[tiid].bgn < cnspos[tiid].end);
 
     if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
       fprintf(stderr, "computePositionFromLayout()-- layout %d at %d,%d --> beg,end %d,%d (fLen %d)\n",
@@ -591,6 +632,8 @@ unitigConsensus::computePositionFromAlignment(void) {
   cnspos[tiid].bgn = O->begpos;
   cnspos[tiid].end = O->endpos + frankensteinLen;
   //fprintf(stderr, "cnspos[%3d] mid %d %d,%d\n", tiid, fraglist[tiid].ident, cnspos[tiid].bgn, cnspos[tiid].end);
+
+  assert(cnspos[tiid].bgn < cnspos[tiid].end);
 
   int32   thickestLen = 0;
 
@@ -758,6 +801,8 @@ unitigConsensus::alignFragment(void) {
   assert((cnspos[tiid].bgn != 0) || (cnspos[tiid].end != 0));
   assert(piid != -1);
 
+  assert(cnspos[tiid].bgn < cnspos[tiid].end);
+
   //  Compute how much extra consensus sequence to align to.  If we allow too much, we risk placing
   //  the fragment in an incorrect location -- worst case is that we find a longer higher scoring
   //  alignment, but lower identity that is rejected.  If we allow too little, we leave unaligned
@@ -798,7 +843,13 @@ unitigConsensus::alignFragment(void) {
   //                                                   CGGCAGCCACCCCATCCGGGAGGGAGATGGGGGGGTCAGCCCCCCGCCCGGCCAGCCG
   //            CCCATCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCCGCCAGCCGCTCCGTCCGGGAGGGAGGTGGGGGGGTCAGCCCCCCGCCCGGCCAGCCGCCCC
   //
-  int32 endTrim = (cnspos[tiid].end - frankensteinLen) - (int32)ceil(AS_CNS_ERROR_RATE * (cnspos[tiid].end - cnspos[tiid].bgn));
+
+  assert(cnspos[tiid].bgn < cnspos[tiid].end);
+
+  int32 cnsbgn = (cnspos[tiid].bgn < cnspos[tiid].end) ? cnspos[tiid].bgn : cnspos[tiid].end;
+  int32 cnsend = (cnspos[tiid].bgn < cnspos[tiid].end) ? cnspos[tiid].end : cnspos[tiid].bgn;
+
+  int32 endTrim = (cnsend - frankensteinLen) - (int32)ceil(AS_CNS_ERROR_RATE * (cnsend - cnsbgn));
 
   if (endTrim < 20)  endTrim = 0;
 
@@ -840,78 +891,78 @@ unitigConsensus::alignFragment(void) {
   int32      blen  = bfrag->length;
 
   if (endTrim >= blen)
-    fprintf(stderr, "ERROR: endTrim = %d >= blen = %d\n", endTrim, blen);
+    fprintf(stderr, "alignFragment()-- ERROR -- excessive endTrim %d >= length %d\n", endTrim, blen);
   if (endTrim < 0)
-    fprintf(stderr, "ERROR: endTrim = %d\n", endTrim);
+    fprintf(stderr, "alignFragment()-- ERROR -- negative endTrim %d\n", endTrim);
 
-  assert(endTrim < blen);
-  assert(endTrim >= 0);
+  if ((endTrim <  blen) &&
+      (0       <= endTrim)) {
+    int32 fragBgn      = 0;
+    int32 fragEnd      = blen - endTrim;
+    char  fragEndBase  = bseq[fragEnd];
 
-  int32 fragBgn      = 0;
-  int32 fragEnd      = blen - endTrim;
-  char  fragEndBase  = bseq[fragEnd];
+    bseq[fragEnd] = 0;
 
-  bseq[fragEnd] = 0;
+    ALNoverlap  *O           = NULL;
+    double       thresh      = 1e-3;
+    int32        minlen      = AS_OVERLAP_MIN_LEN;
 
-  ALNoverlap  *O           = NULL;
-  double       thresh      = 1e-3;
-  int32        minlen      = AS_OVERLAP_MIN_LEN;
-
-  if (O == NULL) {
-    O = Optimal_Overlap_AS_forCNS(aseq,
-                                  bseq,
-                                  0, alen,            //  ahang bounds are unused here
-                                  0, 0,               //  ahang, bhang exclusion
-                                  0,
-                                  AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
-                                  AS_FIND_ALIGN);
-    if ((O) && (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)) {
-      PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
+    if (O == NULL) {
+      O = Optimal_Overlap_AS_forCNS(aseq,
+                                    bseq,
+                                    0, alen,            //  ahang bounds are unused here
+                                    0, 0,               //  ahang, bhang exclusion
+                                    0,
+                                    AS_CNS_ERROR_RATE + 0.02, thresh, minlen,
+                                    AS_FIND_ALIGN);
+      if ((O) && (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)) {
+        PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
+      }
     }
-  }
-  if ((O) && (O->begpos < 0) && (frankBgn > 0)) {
-    bgnExtra += -O->begpos + 10;
-    tryAgain = true;
-    O = NULL;
-  }
-  if ((O) && (O->endpos > 0) && (allowBhang == false)) {
-    endExtra += O->endpos + 10;
-    tryAgain = true;
-    O = NULL;
-  }
-  if ((O) && (O->endpos < 0) && (endTrim > 0)) {
-    endTrim -= -O->endpos + 10;
-    if (endTrim < 20)
-      endTrim = 0;
-    tryAgain = true;
-    O = NULL;
-  }
-  if (rejectAlignment(allowBhang, allowAhang, O))
-    O = NULL;
+    if ((O) && (O->begpos < 0) && (frankBgn > 0)) {
+      bgnExtra += -O->begpos + 10;
+      tryAgain = true;
+      O = NULL;
+    }
+    if ((O) && (O->endpos > 0) && (allowBhang == false)) {
+      endExtra += O->endpos + 10;
+      tryAgain = true;
+      O = NULL;
+    }
+    if ((O) && (O->endpos < 0) && (endTrim > 0)) {
+      endTrim -= -O->endpos + 10;
+      if (endTrim < 20)
+        endTrim = 0;
+      tryAgain = true;
+      O = NULL;
+    }
+    if (rejectAlignment(allowBhang, allowAhang, O))
+      O = NULL;
 
-  //  Restore the bases we might have removed.
-  if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
-  if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
+    //  Restore the bases we might have removed.
+    if (frankEndBase)   frankenstein[frankEnd] = frankEndBase;
+    if (fragEndBase)    bseq[fragEnd]          = fragEndBase;
 
-  if (O) {
-    Resetint32(trace);
+    if (O) {
+      Resetint32(trace);
 
-    traceBgn = frankBgn + O->begpos;
+      traceBgn = frankBgn + O->begpos;
 
-    for (int32 *t = O->trace; (t != NULL) && (*t != 0); t++) {
-      if (*t < 0)
-        *t -= frankBgn;
-      AppendVA_int32(trace, t);
+      for (int32 *t = O->trace; (t != NULL) && (*t != 0); t++) {
+        if (*t < 0)
+          *t -= frankBgn;
+        AppendVA_int32(trace, t);
+      }
+
+      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+        fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
+      
+      return(true);
     }
 
-    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
-      fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
-
-    return(true);
+    if (tryAgain)
+      goto alignFragmentAgain;
   }
-
-  if (tryAgain)
-    goto alignFragmentAgain;
 
   //  No alignment.  Dang.
   cnspos[tiid].bgn = 0;
@@ -1050,11 +1101,10 @@ unitigConsensus::generateConsensus(void) {
   //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
   //  to load sequence and quality for every fragment, and that's too expensive.
   {
-    int32    depth  = 0;
     char **multia = NULL;
     int32  **id_array = NULL;
 
-    MANode2Array(manode, &depth, &multia, &id_array,0);
+    int32 depth = MANode2Array(manode, &multia, &id_array,0);
 
     ma->data.unitig_microhet_prob = AS_REZ_MP_MicroHet_prob(multia, id_array, gkpStore, frankensteinLen, depth);
 
@@ -1095,6 +1145,16 @@ MultiAlignUnitig(MultiAlignT     *ma,
     goto returnFailure;
 
   while (uc->moreFragments()) {
+
+
+#ifdef SKIP_CONTAINS
+    if (uc->fraglist[uc->tiid].contained != 0) {
+      //  skip contained for now
+      fprintf(stderr, "SKIP CONTAINED %u\n", uc->fraglist[uc->tiid].ident);
+      continue;
+    }
+#endif
+
     if (VERBOSE_MULTIALIGN_OUTPUT)
       uc->reportStartingWork();
 
@@ -1138,6 +1198,11 @@ MultiAlignUnitig(MultiAlignT     *ma,
     //  Failed to align the fragment.  Dang.
 
     AS_CNS_ERROR_RATE = origErate;
+
+#ifdef FAILURE_IS_FATAL
+    fprintf(stderr, "FAILED TO ALIGN FRAG.  DIE.\n");
+    assert(0);
+#endif
 
     uc->reportFailure(failed);
     failuresToFix = true;
