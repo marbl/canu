@@ -458,6 +458,11 @@ GetMANodePositions(int32        mid,
     //        i, fragment->iid, fragment->deleted);
 
     if (fragment->deleted)
+      //  Ejected by contig consensus??
+      continue;
+
+    if (fragment->manode == -1)
+      //  Fragment not placed in this multialign
       continue;
 
     assert(fragment->manode == mid);
@@ -520,6 +525,11 @@ GetMANodePositions(int32        mid,
     Fragment *fragment = GetFragment(fragmentStore, i);
 
     if (fragment->deleted)
+      //  Ejected by contig consensus??
+      continue;
+
+    if (fragment->manode == -1)
+      //  Fragment not placed in this multialign
       continue;
 
     if (fragment->type == AS_READ) {
