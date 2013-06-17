@@ -138,7 +138,13 @@ dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRe
   gkFragment     A;
   gkFragment     B;
 
-  uint32  clrBgnA, clrEndA;
+  uint32         clrBgnA, clrEndA;
+
+  uint32         MHS = 6;  //  Max Hang Size, amount of padding for "+### "
+
+#if (AS_READ_MAX_NORMAL_LEN_BITS > 13)
+  MHS = 7;
+#endif
 
   gkpStore->gkStore_getFragment(qryIID, &A, GKFRAGMENT_INF);
   A.gkFragment_getClearRegion(clrBgnA, clrEndA, clearRegion);
@@ -149,15 +155,21 @@ dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRe
     ovl[i] = ' ';
 
   for (int32 i=0; i<100; i++)
-    ovl[i+6] = '-';
-  ovl[99+6] = '>';
-  ovl[100+6] = 0;
+    ovl[i + MHS] = '-';
+  ovl[ 99 + MHS] = '>';
+  ovl[100 + MHS] = 0;
 
+#if (AS_READ_MAX_NORMAL_LEN_BITS > 13)
+  fprintf(stdout, "%8d  A: %5d %5d                                           %s\n",
+          qryIID,
+          clrBgnA, clrEndA,
+          ovl);
+#else
   fprintf(stdout, "%8d  A: %4d %4d                                       %s\n",
           qryIID,
           clrBgnA, clrEndA,
           ovl);
-
+#endif
 
   qsort(overlaps, novl, sizeof(OVSoverlap), sortOBT);
 
@@ -179,8 +191,8 @@ dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRe
     uint32 ovlStrBgn = (ovlBgnA < ovlEndA) ? ovlBgnA : ovlEndA;
     uint32 ovlStrEnd = (ovlBgnA < ovlEndA) ? ovlEndA : ovlBgnA;
 
-    ovlStrBgn = ovlStrBgn * 100 / frgLenA + 6;
-    ovlStrEnd = ovlStrEnd * 100 / frgLenA + 6;
+    ovlStrBgn = ovlStrBgn * 100 / frgLenA + MHS;
+    ovlStrEnd = ovlStrEnd * 100 / frgLenA + MHS;
 
     for (int32 i=0; i<256; i++)
       ovl[i] = ' ';
@@ -221,12 +233,21 @@ dumpPicture(OVSoverlap *overlaps, uint64 novl, gkStore *gkpStore, uint32 clearRe
       sprintf(ovl + ovlStrEnd, " +%d", ovlEndHang);
     }
 
+#if (AS_READ_MAX_NORMAL_LEN_BITS > 13)
+    fprintf(stdout, "%8d  A: %5d %5d (%5d)  B: %5d %5d (%5d)  %5.2f%%   %s\n",
+            overlaps[o].b_iid,
+            ovlBgnA, ovlEndA, frgLenA,
+            ovlBgnB, ovlEndB, frgLenB,
+            AS_OVS_decodeQuality(overlaps[o].dat.obt.erate) * 100.0,
+            ovl);
+#else
     fprintf(stdout, "%8d  A: %4d %4d (%4d)  B: %4d %4d (%4d)  %5.2f%%   %s\n",
             overlaps[o].b_iid,
             ovlBgnA, ovlEndA, frgLenA,
             ovlBgnB, ovlEndB, frgLenB,
             AS_OVS_decodeQuality(overlaps[o].dat.obt.erate) * 100.0,
             ovl);
+#endif
   }
 }
 
