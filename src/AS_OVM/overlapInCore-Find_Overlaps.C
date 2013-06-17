@@ -94,7 +94,14 @@ void  Add_Match(String_Ref_t ref,
   wa -> Match_Node_Space [(* start)] . Start = offset;
   wa -> Match_Node_Space [(* start)] . Next = save;
 
-  return;
+#if 0
+  fprintf(stderr, "Add_Match()-- %3d offset %d len %d start %d next %d\n",
+          *start,
+          wa -> Match_Node_Space [(* start)] . Offset,
+          wa -> Match_Node_Space [(* start)] . Len,
+          wa -> Match_Node_Space [(* start)] . Start,
+          wa -> Match_Node_Space [(* start)] . Next);
+#endif
 }
 
 
