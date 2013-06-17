@@ -426,7 +426,7 @@ ProcessInput(int optind, int argc, char *argv[]){
   fprintf(stderr, "  microhet:      "F_U32" unitigs with total length "F_U64"\n", repeat_MicroHet.num,   repeat_MicroHet.len);
 
   if (numErrors > 0)
-    fprintf(stderr, "ERROR:  Some fragments are not in unitigs.\n");
+    fprintf(stderr, "ERROR:  %u fragments are not in unitigs.\n", numErrors);
   assert(numErrors == 0);
 
   ScaffoldGraph->numLiveCIs     = GetNumGraphNodes(ScaffoldGraph->CIGraph);
