@@ -81,6 +81,8 @@ main (int argc, char * argv []) {
   bool      enableReconstructRepeats = false;
   bool      enablePromoteToSingleton = true;
 
+  uint32    minReadLen               = 0;
+
   argc = AS_configure(argc, argv);
 
   int err = 0;
@@ -128,6 +130,9 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-DP") == 0) {
       enablePromoteToSingleton = false;
+
+    } else if (strcmp(argv[arg], "-RL") == 0) {
+      minReadLen = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-threads") == 0) {
       numThreads = atoi(argv[++arg]);
@@ -250,6 +255,8 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -E         Shatter repeats, extend unique unitigs\n");
     fprintf(stderr, "  -DP        When -R or -E, don't promote shattered leftovers to unitigs.\n");
     fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
+    fprintf(stderr, "  -RL len    Force reads below 'len' bases to be singletons.\n");
+    fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -threads N Use N compute threads during repeat detection.  EXPERIMENTAL!\n");
     fprintf(stderr, "               0 - use OpenMP default\n");
@@ -257,6 +264,7 @@ main (int argc, char * argv []) {
     fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig if either of\n");
     fprintf(stderr, "                    the following conditions hold:\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  When constructing the Best Overlap Graph and Promiscuous Unitigs ('g'raph):\n");
     fprintf(stderr, "    -eg 0.020   no more than 0.020 fraction (2.0%%) error\n");
     fprintf(stderr, "    -Eg 2       no more than 2 errors (useful with short reads)\n");
@@ -342,7 +350,7 @@ main (int argc, char * argv []) {
 
   setLogFile(output_prefix, NULL);
 
-  FI = new FragmentInfo(gkpStore, output_prefix);
+  FI = new FragmentInfo(gkpStore, output_prefix, minReadLen);
 
   // Initialize where we've been to nowhere
   Unitig::resetFragUnitigMap(FI->numFragments());

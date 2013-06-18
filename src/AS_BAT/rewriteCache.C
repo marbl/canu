@@ -25,7 +25,7 @@ main(int argc, char **argv) {
 
 
   gkStore        *gkpStore  = new gkStore("salmon.gkpStore", FALSE, FALSE);
-  FragmentInfo   *FI        = new FragmentInfo(gkpStore, "salmon");
+  FragmentInfo   *FI        = new FragmentInfo(gkpStore, "salmon", 0);
 
 
   sprintf(name, "salmon.ovlCache");

@@ -247,7 +247,7 @@ public:
 
 class FragmentInfo {
 public:
-  FragmentInfo(gkStore *gkpStore, const char *prefix);
+  FragmentInfo(gkStore *gkpStore, const char *prefix, uint32 minReadLen);
   ~FragmentInfo();
 
   uint64  memoryUsage(void) {

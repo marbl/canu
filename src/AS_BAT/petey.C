@@ -221,7 +221,7 @@ main (int argc, char * argv []) {
   OverlapStore     *ovlStoreUniq = AS_OVS_openOverlapStore(ovlStoreUniqPath);
   OverlapStore     *ovlStoreRept = ovlStoreReptPath ? AS_OVS_openOverlapStore(ovlStoreReptPath) : NULL;
 
-  FI = new FragmentInfo(gkpStore, output_prefix);
+  FI = new FragmentInfo(gkpStore, output_prefix, 0);
   OC = new OverlapCache(ovlStoreUniq, ovlStoreRept, output_prefix, 6.0, 1.5, 0, 0, false, false);
   OG = new BestOverlapGraph(erate, elimit, output_prefix, false, false);
   CG = new ChunkGraph(output_prefix);

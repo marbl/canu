@@ -27,12 +27,18 @@ const uint64 fiMagicNumber   = 0x6f666e4967617266llu;  //  'fragInfo' until it g
 const uint64 fiVersionNumber = 1;
 
 
-FragmentInfo::FragmentInfo(gkStore *gkpStore, const char *prefix) {
+FragmentInfo::FragmentInfo(gkStore    *gkpStore,
+                           const char *prefix,
+                           uint32      minReadLen) {
 
   if (load(prefix))
     return;
 
   writeLog("FragmentInfo()-- Loading fragment information\n");
+
+  if (minReadLen > 0)
+    writeLog("FragmentInfo()-- Reads shorter than "F_U32" bases are forced to be singleton.\n",
+             minReadLen);
 
   gkStream         *fs = new gkStream(gkpStore, 0, 0, GKFRAGMENT_INF);
   gkFragment        fr;
@@ -71,11 +77,16 @@ FragmentInfo::FragmentInfo(gkStore *gkpStore, const char *prefix) {
   }
 
   uint32 numDeleted = 0;
+  uint32 numSkipped = 0;
   uint32 numLoaded  = 0;
 
   while(fs->next(&fr)) {
     if (fr.gkFragment_getIsDeleted()) {
       numDeleted++;
+
+    } else if (fr.gkFragment_getClearRegionLength() < minReadLen) {
+      numSkipped++;
+
     } else {
       uint32 iid = fr.gkFragment_getReadIID();
       uint32 lib = fr.gkFragment_getLibraryIID();
@@ -92,8 +103,9 @@ FragmentInfo::FragmentInfo(gkStore *gkpStore, const char *prefix) {
       numLoaded++;
     }
 
-    if (((numDeleted + numLoaded) % 10000000) == 0)
-      writeLog("FragmentInfo()-- Loading fragment information deleted:%9d active:%9d\n", numDeleted, numLoaded);
+    if (((numDeleted + numSkipped + numLoaded) % 10000000) == 0)
+      writeLog("FragmentInfo()-- Loading fragment information deleted:%9d skipped:%9d active:%9d\n",
+               numDeleted, numSkipped, numLoaded);
   }
 
   for (uint32 i=0; i<_numLibraries + 1; i++)
@@ -121,7 +133,8 @@ FragmentInfo::FragmentInfo(gkStore *gkpStore, const char *prefix) {
   if (numBroken > 0)
     writeLog("FragmentInfo()-- WARNING!  Removed "F_U32" mate relationships.\n", numBroken);
     
-  writeLog("FragmentInfo()-- Loaded %d alive fragments, skipped %d dead fragments.\n", numLoaded, numDeleted);
+  writeLog("FragmentInfo()-- Loaded %d alive fragments, skipped %d short and %d dead fragments.\n",
+           numLoaded, numSkipped, numDeleted);
 
   delete fs;
 
