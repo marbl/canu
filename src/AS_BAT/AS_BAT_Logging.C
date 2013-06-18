@@ -199,9 +199,12 @@ writeLog(char const *fmt, ...) {
   //  Rotate the log file please, HAL.
   //    AS_UTL_sizeOfFile(lf->name) > 512 * 1024 * 1024)
 
+  uint64  maxLength = 512 * 1024 * 1024;
+
   if ((lf->name[0] != 0) &&
-      (lf->length  > 512 * 1024 * 1024)) {
-    fprintf(stderr, "ROTATE length %u\n", lf->length);
+      (lf->length  > maxLength)) {
+    fprintf(lf->file, "logFile()--  size "F_U64" exceeds limit of "F_U64"; rotate to new file.\n",
+            lf->length, maxLength);
     lf->rotate();
   }
 
