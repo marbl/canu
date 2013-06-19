@@ -24,8 +24,6 @@ const char *mainid = "$Id: overlapInCore.C,v 1.12 2013-01-11 11:11:04 brianwalen
 #include "overlapInCore.H"
 #include "AS_UTL_decodeRange.H"
 
-#include <pthread_np.h>
-
 
 uint32 STRING_NUM_BITS       = 31;  //  MUST BE EXACTLY THIS
 uint32 OFFSET_BITS           = 31;
@@ -214,7 +212,7 @@ void *Choose_And_Process_Stream_Segment(void *ptr) {
   Work_Area_t  *WA = (Work_Area_t *) (ptr);
   int           allDone = 0;
 
-  fprintf(stderr, "Choose_And_Process_Stream_Segment()-- tid %d\n", pthread_getthreadid_np());
+  fprintf(stderr, "Choose_And_Process_Stream_Segment()-- tid %d\n", WA->thread_id);
 
   while  (allDone == 0) {
     pthread_mutex_lock (& FragStore_Mutex);
@@ -242,7 +240,7 @@ void *Choose_And_Process_Stream_Segment(void *ptr) {
       Process_Overlaps (WA -> stream_segment, WA);
   }
 
-  fprintf(stderr, "Choose_And_Process_Stream_Segment()-- tid %d returns\n", pthread_getthreadid_np());
+  fprintf(stderr, "Choose_And_Process_Stream_Segment()-- tid %d returns\n", WA->thread_id);
 
   return(ptr);
 }
