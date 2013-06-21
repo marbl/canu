@@ -2170,16 +2170,25 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
           s->readName);
 
   //  Convert from CA QV to Sanger QV
+
   for (uint32 i=0; s->corrQlt[i]; i++) {
     s->corrQlt[i] -= '0';
     s->corrQlt[i] += '!';
   }
 
-  fprintf(g->fqOutput, "%s type=%s\n%s\n+\n%s\n",
-          s->readName,
-          label,
-          s->corrSeq + seqOffset,
-          s->corrQlt + seqOffset);
+  //  If no sequence, write a single N, with low QV (! == lowest).
+
+  if ((s->corrSeq[seqOffset] == 0) ||
+      (s->corrQlt[seqOffset] == 0))
+    fprintf(g->fqOutput, "%s type=%s\nN\n+\n!\n",
+            s->readName,
+            label);
+  else
+    fprintf(g->fqOutput, "%s type=%s\n%s\n+\n%s\n",
+            s->readName,
+            label,
+            s->corrSeq + seqOffset,
+            s->corrQlt + seqOffset);
 
   if (VERBOSE)
     s->log.add("RESULT read %d len %d (trim %d-%d) %s\n", s->readIID, s->seqLen, s->clrBgn, s->clrEnd, label);
