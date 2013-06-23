@@ -127,8 +127,8 @@ libAS_PBR.a: $(PBR_LIB_OBJECTS)
 libCA.a: $(PBR_LIB_OBJECTS)
 
 libbam.a:
-	$(MAKE) -C $(SAMTOOLS)/samtools
-	@cp $(SAMTOOLS)/samtools/$@ $(LOCAL_LIB)/$@
+	$(MAKE) -C $(SAMTOOLS)/
+	@cp $(SAMTOOLS)/$@ $(LOCAL_LIB)/$@
 
 trimFastqByQVWindow:	TrimFastqByQVWindow.o $(LIBS)
 
