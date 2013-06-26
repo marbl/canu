@@ -351,8 +351,8 @@ BestOverlapGraph::reportBestEdges(void) {
   FILE *BS = fopen("best.singletons", "w");
 
   if ((BC) && (BE) && (BS)) {
-    fprintf(BC, "#fragId\tlibId\tmated\tbestCont\n");
-    fprintf(BE, "#fragId\tlibId\tbest5\tbest3\n");
+    fprintf(BC, "#fragId\tlibId\tmated\tbestCont\teRate\n");
+    fprintf(BE, "#fragId\tlibId\tbest5iid\tbest5end\tbest3iid\tbest3end\teRate5\teRate3\n");
     fprintf(BS, "#fragId\tlibId\tmated\n");
 
     for (uint32 id=1; id<FI->numFragments() + 1; id++) {
@@ -360,15 +360,26 @@ BestOverlapGraph::reportBestEdges(void) {
       BestEdgeOverlap *bestedge5 = getBestEdgeOverlap(id, false);
       BestEdgeOverlap *bestedge3 = getBestEdgeOverlap(id, true);
 
-      if (bestcont->isContained)
-        fprintf(BC, "%u\t%u\t%c\t%u\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f', bestcont->container);
-      else if ((bestedge5->fragId() > 0) || (bestedge3->fragId() > 0))
-        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\n", id, FI->libraryIID(id),
-                bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
-                bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5');
-      else
-        fprintf(BS, "%u\t%u\t%c\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f');
+      if (bestcont->isContained) {
+        double  error = 100.0 * OC->findError(id, bestcont->container);
 
+        fprintf(BC, "%u\t%u\t%c\t%u\t%.2f\n", id, FI->libraryIID(id),
+                (FI->mateIID(id) > 0) ? 'm' : 'f', bestcont->container, error);
+      }
+
+      else if ((bestedge5->fragId() > 0) || (bestedge3->fragId() > 0)) {
+        double  error5 = 100.0 * OC->findError(id, bestedge5->fragId());
+        double  error3 = 100.0 * OC->findError(id, bestedge3->fragId());
+
+        fprintf(BE, "%u\t%u\t%u\t%c'\t%u\t%c'\t%.2f\t%.2f\n", id, FI->libraryIID(id),
+                bestedge5->fragId(), bestedge5->frag3p() ? '3' : '5',
+                bestedge3->fragId(), bestedge3->frag3p() ? '3' : '5',
+                error5, error3);
+      }
+
+      else {
+        fprintf(BS, "%u\t%u\t%c\n", id, FI->libraryIID(id), (FI->mateIID(id) > 0) ? 'm' : 'f');
+      }
     }
 
     fclose(BC);
