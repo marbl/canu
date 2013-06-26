@@ -48,20 +48,23 @@ Unitig::addFrag(ufNode node, int offset, bool report) {
   ufpath.push_back(node);
 
   if ((report) || (node.position.bgn < 0) || (node.position.end < 0)) {
-    int32 len = FI->fragmentLength(node.ident);
-    int32 pos = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
+    int32 trulen = FI->fragmentLength(node.ident);
+    int32 poslen = (node.position.end > node.position.bgn) ? (node.position.end - node.position.bgn) : (node.position.bgn - node.position.end);
 
     if (node.contained)
       writeLog("Added frag %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d) (contained in %d)\n",
-              node.ident, len, _id, node.position.bgn, node.position.end,
+              node.ident, trulen, _id, node.position.bgn, node.position.end,
               ufpath.size() - 1,
-              pos - len,
+              poslen - trulen,
               node.contained);
     else
       writeLog("Added frag %d (len %d) to unitig %d at %d,%d (idx %lu) (lendiff %d)\n",
-              node.ident, len, _id, node.position.bgn, node.position.end,
+              node.ident, trulen, _id, node.position.bgn, node.position.end,
               ufpath.size() - 1,
-              pos - len);
+              poslen - trulen);
+
+    assert(poslen / trulen < 10);
+    assert(trulen / poslen < 10);
   }
 
   assert(node.position.bgn >= 0);
