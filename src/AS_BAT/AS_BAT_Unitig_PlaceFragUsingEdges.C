@@ -49,10 +49,6 @@ Unitig::placeFrag_computePlacement(ufNode          &frag,
   double  intraScale = (double)parentPlacedLen / parentRealLen;  //  Within the parent read overlap
   double  interScale = 1.0;                                      //  Outside the parent read overlap
 
-  //  Bug fix for the next commit
-  intraScale = 1.0;
-  interScale = 1.0;
-
   //  Overlap is stored using 'node' as the A frag, and we negate the hangs to make them relative
   //  to the 'parent'.  (This is opposite from how containment edges are saved.)  A special case
   //  exists when we overlap to the 5' end of the other fragment; we need to flip the overlap to
@@ -117,16 +113,13 @@ Unitig::placeFrag_computePlacement(ufNode          &frag,
 
 #if 1
 
-  //  If true, adjust the end point (it was moved outside the parent range); otherwise, adjust the
-  //  begin point.
+  //  If true, we've moved fend outside the parent range, so that can be adjusted.
+  //  If false, the begin point can be adjusted.
 
-  fend = fbgn + FI->fragmentLength(frag.ident);
-
-  //  Bug fix for the next commit
-  //if (bgnhang > 0)
-  //  fend = fbgn + FI->fragmentLength(frag.ident);
-  //else
-  //  fbgn = fend - FI->fragmentLength(frag.ident);
+  if (bgnhang > 0)
+    fend = fbgn + FI->fragmentLength(frag.ident);
+  else
+    fbgn = fend - FI->fragmentLength(frag.ident);
 
 #else
   //  This was an attempt to adjust position to better capture the length of the read.  It bombed
@@ -311,16 +304,16 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
 
     if (parent) {
       writeLog("placeFrag()-- WARNING:  Didn't find the correct parent frag (%d) for contained frag %d -- pathPosition screwed up.\n",
-              bestcont->container, frag.ident);
+               bestcont->container, frag.ident);
       writeLog("placeFrag()--           Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
 
       for (int fi=0; fi<ufpath.size(); fi++) {
         ufNode *ix = &ufpath[fi];
 
         writeLog("placeFrag()--           path[%4d,%4d] is frag %d %s\n",
-                fi, pathPosition(ix->ident),
-                ix->ident,
-                (ix->ident == bestcont->container) ? " CORRECT PARENT!" : "");
+                 fi, pathPosition(ix->ident),
+                 ix->ident,
+                 (ix->ident == bestcont->container) ? " CORRECT PARENT!" : "");
       }
     }
   }
@@ -329,7 +322,7 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
   if ((parent == NULL) || (parent->ident != bestcont->container)) {
 #ifdef DEBUG_PLACE_FRAG
     writeLog("placeFrag()-- WARNING:  Failed to place frag %d into unitig %d; parent not here.\n",
-            frag.ident, id());
+             frag.ident, id());
 #endif
     return(false);
   }
@@ -354,6 +347,8 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
     assert(bestcont->b_hang >= 0);
   }
 
+  //  Scale the hangs to the current placed read length.  int32 will overflow for reads > 15 bits, so we use a double.
+
   if (parent->position.bgn < parent->position.end) {
     //  Container is forward.
     frag.contained = bestcont->container;
@@ -361,14 +356,21 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
     frag.ahang     = bestcont->a_hang;
     frag.bhang     = bestcont->b_hang;
 
+    double  scale = (double)(parent->position.end - parent->position.bgn) / FI->fragmentLength(parent->ident);
+
+    if ((scale < 0.75) ||
+        (1.25  < scale))
+      writeLog("placeFrag()-- extreme scaling FWD %d at %d,%d (%d) len %d by %f\n",
+               parent->ident, parent->position.bgn, parent->position.end, parent->position.end - parent->position.bgn, FI->fragmentLength(parent->ident), scale);
+
     if (bestcont->sameOrientation) {
       //  ...and so is containee.
-      frag.position.bgn = parent->position.bgn + frag.ahang;
-      frag.position.end = parent->position.end + frag.bhang;
+      frag.position.bgn = parent->position.bgn + frag.ahang * scale;
+      frag.position.end = parent->position.end + frag.bhang * scale;
     } else {
       //  ...but containee is reverse.
-      frag.position.bgn = parent->position.end + frag.bhang;
-      frag.position.end = parent->position.bgn + frag.ahang;
+      frag.position.bgn = parent->position.end + frag.bhang * scale;
+      frag.position.end = parent->position.bgn + frag.ahang * scale;
     }
 
   } else {
@@ -378,14 +380,21 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
     frag.ahang     = -bestcont->b_hang;
     frag.bhang     = -bestcont->a_hang;
 
+    double  scale = (double)(parent->position.bgn - parent->position.end) / FI->fragmentLength(parent->ident);
+
+    if ((scale < 0.75) ||
+        (1.25  < scale))
+      writeLog("placeFrag()-- extreme scaling REV %d at %d,%d (%d) len %d by %f\n",
+               parent->ident, parent->position.end, parent->position.bgn, parent->position.bgn - parent->position.end, FI->fragmentLength(parent->ident), scale);
+
     if (bestcont->sameOrientation) {
       //  ...and so is containee.
-      frag.position.bgn = parent->position.bgn + frag.bhang;
-      frag.position.end = parent->position.end + frag.ahang;
+      frag.position.bgn = parent->position.bgn + frag.bhang * scale;
+      frag.position.end = parent->position.end + frag.ahang * scale;
     } else {
       //  ...but containee is forward.
-      frag.position.bgn = parent->position.end + frag.ahang;
-      frag.position.end = parent->position.bgn + frag.bhang;
+      frag.position.bgn = parent->position.end + frag.ahang * scale;
+      frag.position.end = parent->position.bgn + frag.bhang * scale;
     }
   }
 
@@ -393,6 +402,12 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
   if (bestcont->isContained == false)
     //  If we're a false containment overlap, skip the adjustment below.
     return(true);
+
+
+#ifdef DEBUG_PLACE_FRAG
+  writeLog("placeFrag()-- contained frag %u at %d,%d -- hangs %d,%d\n",
+           frag.ident, frag.position.bgn, frag.position.end, frag.ahang, frag.bhang);
+#endif
 
   //  Reset the position.  Try to accomodate the hangs and full read length.
   //  Note that this CAN break containment relationships.
