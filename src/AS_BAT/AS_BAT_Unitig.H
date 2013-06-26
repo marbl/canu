@@ -77,6 +77,11 @@ public:
 
   uint32       id(void) { return(_id); };
 
+  void placeFrag_computePlacement(ufNode          &frag,
+                                  int32           &bidx,
+                                  BestEdgeOverlap *bestedge,
+                                  bool             bestIs3);
+
   bool placeFrag(ufNode &place5, int32 &fidx5, BestEdgeOverlap *bestedge5,
                  ufNode &place3, int32 &fidx3, BestEdgeOverlap *bestedge3);
 

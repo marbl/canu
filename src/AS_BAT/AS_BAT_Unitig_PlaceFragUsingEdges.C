@@ -25,7 +25,185 @@ static const char *rcsid = "$Id: AS_BAT_Unitig_PlaceFragUsingEdges.C,v 1.5 2012-
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
+//  This provides low level (and usually too much) detail on placing a read using an edge.
 #undef DEBUG_PLACE_FRAG
+
+
+
+void
+Unitig::placeFrag_computePlacement(ufNode          &frag,
+                                   int32           &bidx,
+                                   BestEdgeOverlap *bestedge,
+                                   bool             bestIs3) {
+  ufNode *parent = &ufpath[bidx];
+
+  assert(parent->ident == bestedge->fragId());
+
+  //  Scale the hangs based on the placement of the parent read.  This isn't perfect; we should really only
+  //  scale the hang that is into the parent read (either positive A or negative B) and let the other
+  //  hang be based on the scaling for this read -- but we don't know the scaling for this read.
+
+  uint32  parentPlacedLen = (parent->position.bgn < parent->position.end) ? (parent->position.end - parent->position.bgn) : (parent->position.bgn - parent->position.end);
+  uint32  parentRealLen   = FI->fragmentLength(parent->ident);
+
+  double  intraScale = (double)parentPlacedLen / parentRealLen;  //  Within the parent read overlap
+  double  interScale = 1.0;                                      //  Outside the parent read overlap
+
+  //  Bug fix for the next commit
+  intraScale = 1.0;
+  interScale = 1.0;
+
+  //  Overlap is stored using 'node' as the A frag, and we negate the hangs to make them relative
+  //  to the 'parent'.  (This is opposite from how containment edges are saved.)  A special case
+  //  exists when we overlap to the 5' end of the other fragment; we need to flip the overlap to
+  //  ensure the (new) A frag is forward.
+
+  int32 ahang = -bestedge->ahang();
+  int32 bhang = -bestedge->bhang();
+
+  if (bestedge->frag3p() == bestIs3) {
+    ahang = bestedge->bhang();
+    bhang = bestedge->ahang();
+  }
+
+  int32  bgnhang = 0;
+  int32  endhang = 0;
+
+  int32  pbgn, pend;
+  int32  fbgn, fend;
+
+  bool   adjustBgn = false;
+
+  //  Place the new fragment using the overlap.  We don't worry about the orientation of the new
+  //  fragment, only the location.  Orientation of the parent fragment matters (1) to know which
+  //  coordinate is the lower, and (2) to decide if the overlap needs to be flipped (again).
+
+  if (parent->position.bgn < parent->position.end) {
+    pbgn = parent->position.bgn;
+    pend = parent->position.end;
+
+    bgnhang = ahang;
+    endhang = bhang;
+
+  } else {
+    pbgn = parent->position.end;
+    pend = parent->position.bgn;
+
+    bgnhang = -bhang;
+    endhang = -ahang;
+  }
+
+  assert((bgnhang >=0) == (endhang >= 0));
+
+  if (bgnhang > 0) {
+    fbgn = pbgn + bgnhang * intraScale;  //  hang is moving low  to the right, inside the parent
+    fend = pend + endhang * interScale;  //  hang is moving high to the right, outside the parent
+  } else {
+    fbgn = pbgn + bgnhang * interScale;  //  hang is moving low  to the left,  outside the parent
+    fend = pend + endhang * intraScale;  //  hang is moving high to the left,  inside the parent
+  }
+
+
+  //  Since we don't know the true length of the overlap, if we use just the hangs to place a
+  //  fragment, we typically shrink fragments well below their actual length.  In one case, we
+  //  shrank a container enough that the containee was placed in the unitig backwards.
+  //
+  //  We now revert back to placing the end based on the actual length, but will
+  //  adjust to maintain a dovetail relationship.
+  //
+  //  See comments on other instances of this warning.
+
+#warning not knowing the overlap length really hurts.
+
+#if 1
+
+  //  If true, adjust the end point (it was moved outside the parent range); otherwise, adjust the
+  //  begin point.
+
+  fend = fbgn + FI->fragmentLength(frag.ident);
+
+  //  Bug fix for the next commit
+  //if (bgnhang > 0)
+  //  fend = fbgn + FI->fragmentLength(frag.ident);
+  //else
+  //  fbgn = fend - FI->fragmentLength(frag.ident);
+
+#else
+  //  This was an attempt to adjust position to better capture the length of the read.  It bombed
+  //  because it violates hang restrictions - for example, when building the initial unitig, the
+  //  path is from positive ahang overlaps, but this change can result in negative hang
+  //  postioning.
+  //
+  //  This typically fails with
+  //    AS_BAT_Unitig_AddFrag.C:68:
+  //      void Unitig::addFrag(ufNode, int, bool):
+  //        Assertion `node.position.end >= 0' failed
+  //
+  int  fpos = (fbgn + fend) / 2;
+
+  fbgn = fpos - FI->fragmentLength(frag.ident) / 2;
+  fend = fpos + FI->fragmentLength(frag.ident) / 2;
+#endif
+
+  //  Make sure that we didn't just make a contained fragment out of a dovetail.  There are two
+  //  cases here, either the fragment is before or after the parent.  We'll compare fbgn to the
+  //  parent position.  We could use orientations and ends, but this is easier.
+
+  if (fbgn < pbgn) {
+    if (fend >= pend) {
+      fend = pend - 1;
+    }
+
+  } else {
+    if (fend <= pend) {
+      fend = pend + 1;
+    }
+  }
+
+  if (pbgn >= pend)
+    writeLog("placeFrag()-- ERROR: %c' parent placement inconsistent iid=%d %d,%d\n",
+             (bestIs3) ? '3' : '5', parent->ident, parent->position.bgn, parent->position.end);
+  if (fbgn >= fend)
+    writeLog("placeFrag()-- ERROR: %c' placement inconsistent parent=%d %d,%d hang %d,%d this %d %d,%d\n",
+             (bestIs3) ? '3' : '5', parent->ident, parent->position.bgn, parent->position.end,
+             ahang, bhang,
+             frag.ident, fbgn, fend);
+
+  //if ((pbgn >= pend) || (fbgn >= fend))
+  //  return(false);
+
+  assert(pbgn < pend);
+  assert(fbgn < fend);
+
+
+  //  The new frag is reverse if:
+  //    the old frag is forward and we hit its 5' end, or
+  //    the old frag is reverse and we hit its 3' end.
+  //
+  //  The new frag is forward if:
+  //    the old frag is forward and we hit its 3' end, or
+  //    the old frag is reverse and we hit its 5' end.
+  //
+  bool flip = (((parent->position.bgn < parent->position.end) && (bestedge->frag3p() == bestIs3)) ||
+               ((parent->position.end < parent->position.bgn) && (bestedge->frag3p() != bestIs3)));
+
+#ifdef DEBUG_PLACE_FRAG
+  writeLog("placeFrag()-- bestedge:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
+           parent->ident, parent->position.bgn, parent->position.end,
+           bestedge->fragId(), bestedge->frag3p(), bestedge->ahang(), bestedge->bhang(), fbgn, fend, flip);
+#endif
+
+  frag.contained    = 0;
+  frag.parent       = bestedge->fragId();
+  frag.ahang        = ahang;
+  frag.bhang        = bhang;
+  frag.position.bgn = (flip) ? fend : fbgn;
+  frag.position.end = (flip) ? fbgn : fend;
+}
+
+
+
+
 
 //  Given an implicit fragment -- a ufNode with only the 'ident' set -- and at least one best edge
 //  to a fragment in this unitig, compute the position of the fragment in this unitig.  If both
@@ -74,7 +252,7 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
 
   //  If we have an incoming edge, AND the fragment for that edge is in this unitig, look up its
   //  index.  Otherwise, discard the edge to prevent placement.
-  //
+
   if ((bestedge5) && (fragIn(bestedge5->fragId()) == id())) {
     bidx5 = pathPosition(bestedge5->fragId());
     assert(bestedge5->fragId() == ufpath[bidx5].ident);
@@ -89,230 +267,17 @@ Unitig::placeFrag(ufNode &frag5, int32 &bidx5, BestEdgeOverlap *bestedge5,
   } else {
     bestedge3 = NULL;
     bidx3     = -1;
-
   }
 
   //  Now, just compute the placement based on edges that exist.
 
-  if ((bestedge5) && (bidx5 != -1)) {
-    ufNode *parent = &ufpath[bidx5];
+  if ((bestedge5) && (bidx5 != -1))
+    placeFrag_computePlacement(frag5, bidx5, bestedge5, false);
 
-    assert(parent->ident == bestedge5->fragId());
+  if ((bestedge3) && (bidx3 != -1))
+    placeFrag_computePlacement(frag3, bidx3, bestedge3, true);
 
-    //  Overlap is stored using 'node' as the A frag, and we negate the hangs to make them relative
-    //  to the 'parent'.  (This is opposite from how containment edges are saved.)  A special case
-    //  exists when we overlap to the 5' end of the other fragment; we need to flip the overlap to
-    //  ensure the (new) A frag is forward.
-
-    int ahang = -bestedge5->ahang();
-    int bhang = -bestedge5->bhang();
-
-    if (bestedge5->frag3p() == false) {
-      ahang = bestedge5->bhang();
-      bhang = bestedge5->ahang();
-    }
-
-    int  pbgn, pend;
-    int  fbgn, fend;
-
-    //  Place the new fragment using the overlap.  We don't worry about the orientation of the new
-    //  fragment, only the location.  Orientation of the parent fragment matters (1) to know which
-    //  coordinate is the lower, and (2) to decide if the overlap needs to be flipped (again).
-
-    if (parent->position.bgn < parent->position.end) {
-      pbgn = parent->position.bgn;
-      pend = parent->position.end;
-      fbgn = parent->position.bgn + ahang;
-      fend = parent->position.end + bhang;
-    } else {
-      pbgn = parent->position.end;
-      pend = parent->position.bgn;
-      fbgn = parent->position.end - bhang;
-      fend = parent->position.bgn - ahang;
-    }
-
-    //  Since we don't know the true length of the overlap, if we use just the hangs to place a
-    //  fragment, we typically shrink fragments well below their actual length.  In one case, we
-    //  shrank a container enough that the containee was placed in the unitig backwards.
-    //
-    //  We now revert back to placing the end based on the actual length, but will
-    //  adjust to maintain a dovetail relationship.
-    //
-    //  See comments on other instances of this warning.
-    //
-
-#warning not knowing the overlap length really hurts.
-
-#if 1
-    fend = fbgn + FI->fragmentLength(frag5.ident);
-#else
-    //  This was an attempt to adjust position to better capture the length of the read.  It bombed
-    //  because it violates hang restrictions - for example, when building the initial unitig, the
-    //  path is from positive ahang overlaps, but this change can result in negative hang
-    //  postioning.
-    //
-    //  This typically fails with
-    //    AS_BAT_Unitig_AddFrag.C:68:
-    //      void Unitig::addFrag(ufNode, int, bool):
-    //        Assertion `node.position.end >= 0' failed
-    //
-    int  fpos = (fbgn + fend) / 2;
-
-    fbgn = fpos - FI->fragmentLength(frag5.ident) / 2;
-    fend = fpos + FI->fragmentLength(frag5.ident) / 2;
-#endif
-
-    //  Make sure that we didn't just make a contained fragment out of a dovetail.  There are two
-    //  cases here, either the fragment is before or after the parent.  We'll compare fbgn to the
-    //  parent position.  We could use orientations and ends, but this is easier.
-
-    if (fbgn < pbgn) {
-      if (fend >= pend) {
-        fend = pend - 1;
-      }
-
-    } else {
-      if (fend <= pend) {
-        fend = pend + 1;
-      }
-    }
-
-    if (pbgn >= pend)
-      fprintf(stderr, "ERROR: 5' parent placement inconsistent iid=%d %d,%d\n",
-              parent->ident, parent->position.bgn, parent->position.end);
-    if (fbgn >= fend)
-      fprintf(stderr, "ERROR: 5' placement inconsistent parent=%d %d,%d hang %d,%d this %d %d,%d\n",
-              parent->ident, parent->position.bgn, parent->position.end,
-              ahang, bhang,
-              frag5.ident, fbgn, fend);
-
-    //if ((pbgn >= pend) || (fbgn >= fend))
-    //  return(false);
-
-    assert(pbgn < pend);
-    assert(fbgn < fend);
-
-
-    //  The new frag is reverse if:
-    //    the old frag is forward and we hit its 5' end, or
-    //    the old frag is reverse and we hit its 3' end.
-    //
-    //  The new frag is forward if:
-    //    the old frag is forward and we hit its 3' end, or
-    //    the old frag is reverse and we hit its 5' end.
-    //
-    bool flip = (((parent->position.bgn < parent->position.end) && (bestedge5->frag3p() == false)) ||
-                 ((parent->position.end < parent->position.bgn) && (bestedge5->frag3p() == true)));
-
-#ifdef DEBUG_PLACE_FRAG
-    writeLog("bestedge5:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
-            parent->ident, parent->position.bgn, parent->position.end,
-            bestedge5->fragId(), bestedge5->frag3p(), bestedge5->ahang(), bestedge5->bhang(), fbgn, fend, flip);
-#endif
-
-    frag5.contained    = 0;
-    frag5.parent       = bestedge5->fragId();
-    frag5.ahang        = ahang;
-    frag5.bhang        = bhang;
-    frag5.position.bgn = (flip) ? fend : fbgn;
-    frag5.position.end = (flip) ? fbgn : fend;
-  }
-
-
-  if ((bestedge3) && (bidx3 != -1)) {
-    ufNode *parent = &ufpath[bidx3];
-
-    assert(parent->ident == bestedge3->fragId());
-
-    int ahang = -bestedge3->ahang();
-    int bhang = -bestedge3->bhang();
-
-    if (bestedge3->frag3p() == true) {
-      ahang = bestedge3->bhang();
-      bhang = bestedge3->ahang();
-    }
-
-    int  pbgn, pend;
-    int  fbgn, fend;
-
-    if (parent->position.bgn < parent->position.end) {
-      pbgn = parent->position.bgn;
-      pend = parent->position.end;
-      fbgn = parent->position.bgn + ahang;
-      fend = parent->position.end + bhang;
-    } else {
-      pbgn = parent->position.end;
-      pend = parent->position.bgn;
-      fbgn = parent->position.end - bhang;
-      fend = parent->position.bgn - ahang;
-    }
-
-#warning not knowing the overlap length really hurts.
-
-#if 1
-    fend = fbgn + FI->fragmentLength(frag3.ident);
-#else
-    //  See comment above.
-    int  fpos = (fbgn + fend) / 2;
-
-    fbgn = fpos - FI->fragmentLength(frag3.ident) / 2;
-    fend = fpos + FI->fragmentLength(frag3.ident) / 2;
-#endif
-
-    //  Make sure that we didn't just make a contained fragment out of a dovetail.  There are two
-    //  cases here, either the fragment is before or after the parent.  We'll compare fbgn to the
-    //  parent position.  We could use orientations and ends, but this is easier.
-
-    if (fbgn < pbgn) {
-      if (fend >= pend) {
-        fend = pend - 1;
-      }
-
-    } else {
-      if (fend <= pend) {
-        fend = pend + 1;
-      }
-    }
-
-    if (pbgn >= pend)
-      writeLog("ERROR: 3' parent placement inconsistent iid=%d %d,%d\n",
-              parent->ident, parent->position.bgn, parent->position.end);
-    if (fbgn >= fend)
-      writeLog("ERROR: 3' placement inconsistent parent=%d %d,%d hang %d,%d this %d %d,%d\n",
-              parent->ident, parent->position.bgn, parent->position.end,
-              ahang, bhang,
-              frag3.ident, fbgn, fend);
-
-    //if ((pbgn >= pend) || (fbgn >= fend))
-    //  return(false);
-
-    assert(pbgn < pend);
-    assert(fbgn < fend);
-
-    //  The new frag is reverse if:
-    //    the old frag is forward and we hit its 3' end, or
-    //    the old frag is reverse and we hit its 5' end.
-    //
-    //  The new frag is forward if:
-    //    the old frag is forward and we hit its 5' end, or
-    //    the old frag is reverse and we hit its 3' end.
-    //
-    bool flip = (((parent->position.bgn < parent->position.end) && (bestedge3->frag3p() == true)) ||
-                 ((parent->position.end < parent->position.bgn) && (bestedge3->frag3p() == false)));
-
-#ifdef DEBUG_PLACE_FRAG
-    writeLog("bestedge3:  parent iid %d pos %d,%d   b_iid %d ovl %d,%d,%d  pos %d,%d flip %d\n",
-            parent->ident, parent->position.bgn, parent->position.end,
-            bestedge3->fragId(), bestedge3->frag3p(), bestedge3->ahang(), bestedge3->bhang(), fbgn, fend, flip);
-#endif
-
-    frag3.contained    = 0;
-    frag3.parent       = bestedge3->fragId();
-    frag3.ahang        = ahang;
-    frag3.bhang        = bhang;
-    frag3.position.bgn = (flip) ? fend : fbgn;
-    frag3.position.end = (flip) ? fbgn : fend;
-  }
+  //  Return success if we computed.
 
   return((bidx5 != -1) || (bidx3 != -1));
 }
@@ -345,14 +310,14 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
         parent = &ufpath[fi];
 
     if (parent) {
-      writeLog("WARNING:  Didn't find the correct parent frag (%d) for contained frag %d -- pathPosition screwed up.\n",
+      writeLog("placeFrag()-- WARNING:  Didn't find the correct parent frag (%d) for contained frag %d -- pathPosition screwed up.\n",
               bestcont->container, frag.ident);
-      writeLog("          Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
+      writeLog("placeFrag()--           Found frag %d instead.\n", (parent == NULL) ? -1 : parent->ident);
 
       for (int fi=0; fi<ufpath.size(); fi++) {
         ufNode *ix = &ufpath[fi];
 
-        writeLog("          path[%4d,%4d] is frag %d %s\n",
+        writeLog("placeFrag()--           path[%4d,%4d] is frag %d %s\n",
                 fi, pathPosition(ix->ident),
                 ix->ident,
                 (ix->ident == bestcont->container) ? " CORRECT PARENT!" : "");
@@ -363,7 +328,7 @@ Unitig::placeFrag(ufNode &frag, BestContainment *bestcont) {
 
   if ((parent == NULL) || (parent->ident != bestcont->container)) {
 #ifdef DEBUG_PLACE_FRAG
-    writeLog("Unitig::placeFrag()-- WARNING:  Failed to place frag %d into unitig %d; parent not here.\n",
+    writeLog("placeFrag()-- WARNING:  Failed to place frag %d into unitig %d; parent not here.\n",
             frag.ident, id());
 #endif
     return(false);
