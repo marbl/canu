@@ -85,12 +85,19 @@ struct BAToverlap {
 
   uint32      flipped;
 
-  uint32      errorRaw;
-  double      error;
+  uint32      errorRaw;  //  Encoded fraction error, 0   -- AS_BAT_MAX_ERATE
+  double      error;     //  Decoded fraction error, 0.0 -- 1.0
 
   AS_IID      a_iid;
   AS_IID      b_iid;
 };
+
+
+inline
+bool
+BAToverlap_sortByErate(BAToverlap const &a, BAToverlap const &b) {
+  return(a.error > b.error);
+}
 
 
 class OverlapCacheThreadData {
@@ -130,6 +137,12 @@ public:
   void         loadOverlaps(double erate, double elimit, const char *prefix, bool onlySave, bool doSave);
 
   BAToverlap  *getOverlaps(uint32 fragIID, uint32 &numOverlaps);
+
+  double       decodeError(uint32 error) {
+    return(_BATerate[error]);
+  };
+
+  double       findError(uint32 aIID, uint32 bIID);
 
 private:
   bool         load(const char *prefix, double erate, double elimit, uint64 memlimit, uint32 maxOverlaps);

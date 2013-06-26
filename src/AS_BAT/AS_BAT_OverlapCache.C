@@ -672,13 +672,30 @@ OverlapCache::getOverlaps(uint32 fragIID, uint32 &numOverlaps) {
     _thread[tid]._bat[pos].flipped  = ptr[pos].flipped;
 
     _thread[tid]._bat[pos].errorRaw = ptr[pos].error;
-    _thread[tid]._bat[pos].error    = _BATerate[ptr[pos].error];
+    _thread[tid]._bat[pos].error    = decodeError(ptr[pos].error);
 
     _thread[tid]._bat[pos].a_iid    = fragIID;
     _thread[tid]._bat[pos].b_iid    = ptr[pos].b_iid;
   }
 
   return(_thread[tid]._bat);
+}
+
+
+
+
+double
+OverlapCache::findError(uint32 aIID, uint32 bIID) {
+
+  for (uint32 pos=0; pos < _cacheLen[aIID]; pos++)
+    if (_cachePtr[aIID][pos].b_iid == bIID)
+      return(decodeError(_cachePtr[aIID][pos].error));
+
+  for (uint32 pos=0; pos < _cacheLen[bIID]; pos++)
+    if (_cachePtr[bIID][pos].b_iid == aIID)
+      return(decodeError(_cachePtr[bIID][pos].error));
+
+  return(1.0);
 }
 
 
