@@ -48,6 +48,9 @@ BestOverlapGraph *OG  = 0L;
 ChunkGraph       *CG  = 0L;
 InsertSizes      *IS  = 0L;
 
+//  HACK
+extern uint32 examineOnly;
+
 
 int
 main (int argc, char * argv []) {
@@ -130,6 +133,10 @@ main (int argc, char * argv []) {
 
     } else if (strcmp(argv[arg], "-DP") == 0) {
       enablePromoteToSingleton = false;
+
+    } else if (strcmp(argv[arg], "-examineonly") == 0) {
+      //  HACK
+      examineOnly = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-RL") == 0) {
       minReadLen = atoi(argv[++arg]);
