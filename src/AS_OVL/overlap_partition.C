@@ -214,7 +214,7 @@ partitionFrags(gkStore      *gkp,
 
       if (refEnd > refMax)
         refEnd = refMax;
-      if (refEnd > hashEnd)
+      if ((refEnd > hashEnd) && (libToHash.size() == 0 || libToHash != libToRef))
         refEnd = hashEnd;
 
       outputJob(BAT, JOB, OPT, hashBeg, hashEnd, refBeg, refEnd, 0, 0, batchSize, batchName, jobName);
@@ -304,7 +304,7 @@ partitionLength(gkStore      *gkp,
 
       if (refEnd > refMax)
         refEnd = refMax;
-      if (refEnd > hashEnd)
+      if ((refEnd > hashEnd) && (libToHash.size() == 0 || libToHash != libToRef))
         refEnd = hashEnd;
 
       outputJob(BAT, JOB, OPT, hashBeg, hashEnd, refBeg, refEnd, hashEnd - hashBeg + 1, hashLen, batchSize, batchName, jobName);
