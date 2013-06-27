@@ -44,6 +44,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 static const char *rcsid_AS_PBR_OUTPUT_H = "$Id: AS_PBR_output.hh,v 1.1 2012-06-28 20:02:45 skoren Exp $";
 
-extern void *outputResults(void *ptr);
+extern void outputResults(PBRThreadGlobals *waGlobal, uint32 part);
 
 #endif

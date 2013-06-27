@@ -306,34 +306,7 @@ static void closeRecord(PBRThreadGlobals *waGlobal, FILE *outFile, FILE *logFile
 /**
  *output AMOS-style layout messaged based on our internal structures
  */
-void *outputResults(void *ptr) {
-    PBRThreadWorkArea *wa = (PBRThreadWorkArea *) ptr;
-    PBRThreadGlobals *waGlobal = wa->globals;
-
-    //drand48_data rstate;
-    //srand48_r(1, &rstate);
-    pair<AS_IID, AS_IID> bounds(0,0);
-    int part = 0;
-
-    while (true) {
-        if (waGlobal->numThreads > 1) {
-            pthread_mutex_lock(&waGlobal->countMutex);
-        }
-        if (waGlobal->toOutput.size() == 0) {
-            if (waGlobal->numThreads > 1) {
-                pthread_mutex_unlock(&waGlobal->countMutex);
-            }
-            break;
-        } else {
-            part = waGlobal->toOutput.size();
-            if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "The thread %d has to output size of "F_SIZE_T" and partitions %d\n", wa->id, waGlobal->toOutput.size(), waGlobal->partitions);
-            bounds = waGlobal->toOutput.top();
-            waGlobal->toOutput.pop();
-            if (waGlobal->numThreads > 1) {
-                pthread_mutex_unlock(&waGlobal->countMutex);
-            }
-        }
-        part = bounds.first;
+void outputResults(PBRThreadGlobals *waGlobal, uint32 part) {
         assert(part > 0);
         map<AS_IID, uint8> readsToPrint;
         map<AS_IID, uint8> readsWithGaps;
@@ -366,9 +339,8 @@ void *outputResults(void *ptr) {
         errno = 0;
         LayRecordStore *inFile = openLayFile(inName);
         if (errno) {
-            fprintf(stderr, "Couldn't open '%s' for write: %s from %d-%d\n", inName, strerror(errno), waGlobal->partitionStarts[part].first, waGlobal->partitionStarts[part].second);
-            assert(waGlobal->partitionStarts[part-1].first == waGlobal->partitionStarts[part-1].second  && waGlobal->partitionStarts[part-1].first == 0);
-            continue;
+            fprintf(stderr, "Couldn't open '%s' for read %s\n", inName, strerror(errno));
+            return;
         }
 
         char inRankName[FILENAME_MAX] = {0};
@@ -397,11 +369,7 @@ void *outputResults(void *ptr) {
         uint32 readIID = 0;
         char seq[AS_READ_MAX_NORMAL_LEN];
         char qlt[AS_READ_MAX_NORMAL_LEN];
-        AS_IID gapIID = MAX(1, waGlobal->partitionStarts[part-1].second + 1);
-        if (waGlobal->allowLong == TRUE) {
-            gapIID = MAX(gapIID, waGlobal->gkp->gkStore_getNumFragments()+1);
-        }
-        if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Thread %d is running and output to file %s range %d-%d gap offset %d\n", wa->id, outputName, waGlobal->partitionStarts[part-1].first, waGlobal->partitionStarts[part-1].second, gapIID);
+        AS_IID gapIID = waGlobal->gkp->gkStore_getNumFragments()+1;
 
         LayRecord layRecord;
         while (readLayRecord(inFile, layRecord)) {
@@ -549,8 +517,6 @@ void *outputResults(void *ptr) {
                     //fprintf(stderr, "Updating offset in layout "F_IID" to be "F_U32"\n", i, offset);
                 }
                 SeqInterval bClr = layRecord.bClrs[iter->ident];
-                //bClr.bgn = 0;
-                //bClr.end = waGlobal->frgToLen[iter->ident];
                 uint32 min = MIN(iter->position.bgn, iter->position.end);
                 uint32 max = MAX(iter->position.bgn, iter->position.end);
                 uint32 length = max - min;
@@ -576,17 +542,9 @@ void *outputResults(void *ptr) {
             if (waGlobal->verboseLevel >= VERBOSE_DEBUG) fprintf(stderr, "Finished processing read %d subsegments %d\n", layRecord.iid, readSubID);
         }
 
-        if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Thread %d beginning output of "F_SIZE_T" reads\n", wa->id, readsToPrint.size());
-        if (waGlobal->fixedMemory == TRUE) {
-            if (waGlobal->numThreads > 1) {
-                pthread_mutex_lock(&waGlobal->globalDataMutex);
-            }
-            loadSequence(waGlobal->gkp, readsToPrint, frgToEnc);
-            if (waGlobal->numThreads > 1) {
-                pthread_mutex_unlock(&waGlobal->globalDataMutex);
-            }
-        }
-        map<AS_IID, char*> *theFrgs = (waGlobal->fixedMemory == TRUE ? &frgToEnc : &waGlobal->frgToEnc);
+        if (waGlobal->verboseLevel >= VERBOSE_OFF) fprintf(stderr, "Beginning output of "F_SIZE_T" reads\n", readsToPrint.size());
+        loadSequence(waGlobal->gkp, readsToPrint, frgToEnc);
+        map<AS_IID, char*> *theFrgs = &frgToEnc;
         for (map<AS_IID, uint8>::const_iterator iter = readsToPrint.begin(); iter != readsToPrint.end(); iter++) {
             if (iter->second == 0) {
                 continue;
@@ -599,13 +557,7 @@ void *outputResults(void *ptr) {
             fprintf(outFile, "{RED\nclr:%d,%d\neid:%d\niid:%d\nqlt:\n%s\n.\nseq:\n%s\n.\n}\n", 0, waGlobal->frgToLen[iter->first], iter->first, iter->first, qlt, seq);
         }
         // output uncorrected sequences
-        if (waGlobal->numThreads > 1) {
-            pthread_mutex_lock(&waGlobal->globalDataMutex);
-        }
         loadSequence(waGlobal->gkp, readsWithGaps, frgToEnc);
-        if (waGlobal->numThreads > 1) {
-            pthread_mutex_unlock(&waGlobal->globalDataMutex);
-        }
         for (map<AS_IID, uint8>::const_iterator iter = readsWithGaps.begin(); iter != readsWithGaps.end(); iter++) {
             if (iter->second == 0) {
                 continue;
@@ -635,8 +587,6 @@ void *outputResults(void *ptr) {
             delete inStore;
         }
         AS_UTL_unlink(inName);
-    }
-    fprintf(stderr, "Done output of thread %d\n", wa->id);
-    return(NULL);
+    fprintf(stderr, "Done output\n");
 }
 

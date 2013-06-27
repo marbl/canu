@@ -47,7 +47,6 @@ const char *mainid = "$Id: CorrectPacBio.cc,v 1.19 2012-12-27 15:17:49 skoren Ex
 #include "AS_PBR_correct.hh"
 #include "AS_PBR_filter.hh"
 #include "AS_PBR_mates.hh"
-#include "AS_PBR_output.hh"
 
 #include <map>
 #include <pthread.h>
@@ -150,8 +149,6 @@ main (int argc, char * argv []) {
     thread_globals.globalRepeats     = TRUE;
     thread_globals.repeatMultiplier  = 2.0;
     thread_globals.partitions        = 100;
-    thread_globals.minLength         = 500;
-    thread_globals.fixedMemory       = FALSE;
     thread_globals.maxUncorrectedGap = 0;
     thread_globals.hasMates			= false;
     thread_globals.percentToEstimateInserts = DEFAULT_SAMPLE_SIZE;
@@ -178,18 +175,12 @@ main (int argc, char * argv []) {
             else
                 err++;
 
-        } else if (strcmp(argv[arg], "-f") == 0) {
-            thread_globals.fixedMemory = (atoi(argv[++arg]) != 0 ? TRUE : FALSE);
-
         } else if (strcmp(argv[arg], "-p") == 0) {
             thread_globals.partitions = atoi(argv[++arg]);
             if (thread_globals.partitions <= 0) { thread_globals.partitions = 1; }
 
         } else if (strcmp(argv[arg], "-o") == 0) {
             strncpy(thread_globals.prefix, argv[++arg], FILENAME_MAX);
-
-        } else if (strcmp(argv[arg], "-l") == 0) {
-            thread_globals.minLength = atoi(argv[++arg]);
 
         } else if (strcmp(argv[arg], "-L") == 0) {
             thread_globals.allowLong = TRUE;
@@ -254,8 +245,6 @@ main (int argc, char * argv []) {
         err++;
     if (thread_globals.ovlStoreUniqPath == NULL)
         err++;
-    if (thread_globals.minLength <= 0)
-        err++;
 
     if (err) {
         fprintf(stderr, "usage: %s -O ovlStore -G gkpStore [options]\n", argv[0]);
@@ -266,10 +255,9 @@ main (int argc, char * argv []) {
         fprintf(stderr, "  -e 0.15   no more than 0.015 fraction (1.5%%) error\n");
         fprintf(stderr, "  -E 0      no more than 0 errors\n");
         fprintf(stderr, "  -c 0.25   ignore overlaps over this rate before correction\n");
-        fprintf(stderr, "  -l %d     ignore corrected fragments less than %d bp\n", thread_globals.minLength, thread_globals.minLength);
         fprintf(stderr, "  -t %d     use %d threads to process correction in parallel\n", thread_globals.numThreads, thread_globals.numThreads);
         fprintf(stderr, "  -p %d     output %d results files, corresponds to #of parallel consensus jobs desired\n", thread_globals.partitions, thread_globals.partitions);
-        fprintf(stderr, "  -p %s     output prefix of %s\n", thread_globals.prefix, thread_globals.prefix);
+        fprintf(stderr, "  -o %s     output prefix of %s\n", thread_globals.prefix, thread_globals.prefix);
         fprintf(stderr, "\n");
         fprintf(stderr, " -C %d 	 Specify the pacBio coverage (integer) instead of automatically estimating.\n", thread_globals.covCutoff);
         fprintf(stderr, " -M %d	 	 The maximum uncorrected PacBio gap that will be allowed. When there is no short-read coverage for a region, by default the pipeline will split a PacBio sequence. This option allows a number of PacBio sequences without short-read coverage to remain. For example, specifying 50, will mean 50bp can have no short-read coverage without splitting the PacBio sequence. Warning: this will allow more sequences that went through the SMRTportal to not be fixed.\n", thread_globals.maxUncorrectedGap);
@@ -296,9 +284,6 @@ main (int argc, char * argv []) {
 
         if (thread_globals.ovlStoreUniqPath == NULL)
             fprintf(stderr, "No overlap store (-O option) supplied.\n");
-
-        if (thread_globals.minLength <= 0)
-            fprintf(stderr, "Invalid min length, must be positive: %d\n", thread_globals.minLength);
 
         exit(1);
     }
@@ -473,12 +458,10 @@ main (int argc, char * argv []) {
     // filter repeat reads out, currently based on coverage pre-mate filtering, should it be post-mate filtering?
     fprintf(stderr, "Filtering repeats\n");
     filterRepeatReads(thread_globals, firstFrag);
-    if (thread_globals.fixedMemory == FALSE) {
-        loadSequence(thread_globals.gkp, thread_globals.readsToPrint, thread_globals.frgToEnc);
-    }
     thread_globals.readsToPrint.clear();
     thread_globals.longReadsToPrint.clear();
 
+/*
     // remove our paired store
     sprintf(command, "rm -rf %s.paired.ovlStore", thread_globals.prefix);
     assert(system(command) == 0);
@@ -510,6 +493,7 @@ main (int argc, char * argv []) {
         void  * ptr;
         int status = pthread_join  (thread_id [i], & ptr);
     }
+*/
 
     // clean up
     fprintf(stderr, "Cleaning up\n");

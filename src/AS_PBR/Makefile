@@ -65,7 +65,7 @@ ifneq "$(origin SAMTOOLS)" "environment"
    endif
 endif
 
-PBR_SOURCES = TrimFastqByQVWindow.cc CorrectPacBio.cc AS_PBR_dumpStore.cc
+PBR_SOURCES = OutputLayout.cc TrimFastqByQVWindow.cc CorrectPacBio.cc AS_PBR_dumpStore.cc
 ifdef SAMTOOLS
    PBR_SOURCES += ConvertSamToCA.cc 
    INC_IMPORT_DIRS += $(SAMTOOLS)
@@ -89,7 +89,7 @@ LIBRARIES     = libAS_PBR.a libCA.a
 LIBS          = libCA.a
 SAM_LIBS      = $(LIBS) libbam.a
 
-CXX_PROGS = trimFastqByQVWindow correctPacBio dumpPBRLayoutStore
+CXX_PROGS = outputLayout trimFastqByQVWindow correctPacBio dumpPBRLayoutStore
 ifdef SAMTOOLS
    CXX_PROGS += convertSamToCA
 endif
@@ -129,6 +129,9 @@ libCA.a: $(PBR_LIB_OBJECTS)
 libbam.a:
 	$(MAKE) -C $(SAMTOOLS)/
 	@cp $(SAMTOOLS)/$@ $(LOCAL_LIB)/$@
+
+
+outputLayout:    OutputLayout.o $(LIBS)
 
 trimFastqByQVWindow:	TrimFastqByQVWindow.o $(LIBS)
 

@@ -1249,8 +1249,13 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       # first partition the data so we know how many jobs we have
       my $cmd;
 
-      my $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
       my $ovlHashBlockSize   = $totalNumToCorrect;
+      my $ovlHashBlockLength = undef;
+
+      if (defined(getGlobal("blasr"))) {
+         $ovlHashBlockLength = getGlobal("ovlHashBlockLength");
+         $ovlHashBlockSize   = getGlobal("ovlHashBlockSize");
+      }
       my $ovlRefBlockSize    = getGlobal("ovlRefBlockSize");
       my $ovlRefBlockLength  = getGlobal("ovlRefBlockLength");
 
@@ -1260,27 +1265,28 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
 
       $cmd  = "$CA/overlap_partition \\\n";
       $cmd .= " -g  $wrk/temp$libraryname/$asm.gkpStore \\\n";
-      #$cmd .= " -bl $totalBP \\\n"; # for now we cant partition the hash with other tools
-      $cmd .= " -bs $ovlHashBlockSize \\\n";
-      $cmd .= " -rs $ovlRefBlockSize \\\n" if (defined(getGlobal("ovlRefBlockSize")));
-      $cmd .= " -rl $ovlRefBlockLength \\\n"  if (defined(getGlobal("ovlRefBlockLength")));
+      $cmd .= " -bs $ovlHashBlockSize \\\n" if (defined($ovlHashBlockSize));
+      $cmd .= " -bl $ovlHashBlockLength \\\n" if (defined($ovlHashBlockLength));
+      $cmd .= " -rs $ovlRefBlockSize \\\n" if (defined($ovlRefBlockSize));
+      $cmd .= " -rl $ovlRefBlockLength \\\n"  if (defined($ovlRefBlockLength));
       $cmd .= " -H $libToCorrect \\\n";
       $cmd .= " -R $minCorrectLib-$maxCorrectLib \\\n";
       $cmd .= " -C \\\n";
       $cmd .= " -o  $wrk/temp$libraryname/1-overlapper";
       runCommand($wrk, $cmd);
-      open(F, "< $wrk/temp$libraryname/1-overlapper/ovljob") or die("failed partition for overlapper: no ovljob file found", undef);
+      open(F, "< $wrk/temp$libraryname/1-overlapper/ovlopt") or die("failed partition for overlapper: no ovlopt file found", undef);
       my @job = <F>;
       close(F);
     
       my $blasrThreshold = 0;
       my $ovlThreads = getGlobal("ovlThreads");   
       my $numOvlJobs = 0;
+      my $numIndicies = 1;
       my $blasrOpts = getGlobal("blasr");
       my $bowtieOpts = getGlobal("bowtie");
       my $suffix = "sam";
 
-$blasrVersion="1.3.1.116174";
+      $blasrVersion="1.3.1.116174";
       # SMRTportal 1.4 changed parameters so update our blasr options
       if ($blasrVersion >= 1.3.1.116174) {
          $blasrOpts =~ s/-ignoreQuality//g;
@@ -1288,8 +1294,7 @@ $blasrVersion="1.3.1.116174";
    
       if (defined(getGlobal("samFOFN"))) {
          my $fofn = getGlobal("samFOFN");
-         $numOvlJobs = `wc -l $fofn`;
-         chomp $numOvlJobs;
+         $numOvlJobs = 0;
       } else {
          $numOvlJobs = $#job + 1;
       }
@@ -1300,6 +1305,8 @@ $blasrVersion="1.3.1.116174";
       # dump gatekeeper store and print eid to iid, add to it the gkpStore fastq file into eidToIID and lengths
       runCommand("$wrk/temp$libraryname", "$CA/gatekeeper -dumpfragments -tabular $asm.gkpStore |awk '{print \$1\"\\t\"\$2}' > $asm.eidToIID");
       runCommand("$wrk/temp$libraryname", "$CA/gatekeeper -dumpfragments -tabular $asm.gkpStore |awk '{print \$2\"\\t\"\$10}' > $asm.iidToLen");
+       open F, "> $wrk/temp$libraryname/1-overlapper/ovlindex" or die ("can't open '$wrk/temp$libraryname/1-overlapper/ovlindex");
+
    
       # now do specific steps (either import SAMs or run blasr)
       if (defined(getGlobal("samFOFN"))) {
@@ -1309,6 +1316,15 @@ $blasrVersion="1.3.1.116174";
          runCommand("$wrk/temp$libraryname", "cat $asm.gkpStore.fastqUIDmap | awk '{if (NF > 3) { print \$NF\"\\t\"\$(NF-1); } print \$3\"\\t\"\$2; }' >> $asm.eidToIID");
 
          # convert sam to ovl and put it into the overlap directory
+         my $batch = 1;
+         my $maxBatch = 1000;
+
+         open(BAT, "> $wrk/temp$libraryname/1-overlapper/ovlbat") or die ("Couldn't open $wrk/temp$libraryname/1-overlapper/ovlbat", undef);
+         open(JOB, "> $wrk/temp$libraryname/1-overlapper/ovljob") or die ("Couldn't open $wrk/temp$libraryname/1-overlapper/ovljob", undef);
+         open(OPT, "> $wrk/temp$libraryname/1-overlapper/ovlopt") or die ("Couldn't open $wrk/temp$libraryname/1-overlapper/ovlopt", undef);
+         open(SA, "> $wrk/temp$libraryname/1-overlapper/ovlindex") or die ("Couldn't open $wrk/temp$libraryname/1-overlapper/ovlindex", undef);
+         $numIndicies++;
+
          open(F, "< $fofn") or die("Couldn't open '$fofn'", undef);
          while (<F>) {
             s/^\s+//;
@@ -1328,25 +1344,82 @@ $blasrVersion="1.3.1.116174";
             }
             
             $numOvlJobs++;
-            runCommand("$wrk/temp$libraryname/1-overlapper/001", "unlink $wrk/temp$libraryname/1-overlapper/001/$numOvlJobs.$suffix") if (-e "$wrk/temp$libraryname/1-overlapper/001/$numOvlJobs.$suffix");
-            runCommand("$wrk/temp$libraryname/1-overlapper/001", "cp $_ $wrk/temp$libraryname/1-overlapper/001/$numOvlJobs.$suffix");
+            if ($numOvlJobs > $maxBatch) {
+               $batch++; 
+            }
+            my $batchName = sprintf("%03d", $batch);
+            my $jobName = sprintf("%06d", $numOvlJobs);
+            print BAT "$batchName\n";
+            print OPT "-r 1-$totalNumToCorrect -l 1-$totalNumToCorrect\n";
+            print JOB "$jobName\n";
+            print SA "1\n";
+            runCommand("$wrk/temp$libraryname/1-overlapper", "mkdir -p $batchName");
+            runCommand("$wrk/temp$libraryname/1-overlapper/$batchName", "unlink $wrk/temp$libraryname/1-overlapper/$batchName/$jobName.$suffix") if (-e "$wrk/temp$libraryname/1-overlapper/$batchName/$jobName.$suffix");
+            runCommand("$wrk/temp$libraryname/1-overlapper/$batchName", "cp $_ $wrk/temp$libraryname/1-overlapper/$batchName/$jobName.$suffix");
          }
-         close(F); 
+         close(F);
+         close(BAT);
+         close(OPT);
+         close(JOB);
+         close(SA);
       } else {
-         runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta long_reads -randomsubset $libToCorrect 1 $wrk/temp$libraryname/$asm.gkpStore");
+         #runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta long_reads -randomsubset $libToCorrect 1 $wrk/temp$libraryname/$asm.gkpStore");
          for (my $i = $minCorrectLib; $i <= $maxCorrectLib; $i++) {
-           runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_lib ". (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases -longestovermin $i $length" : " -randomsubset $i 1") . " $wrk/temp$libraryname/$asm.gkpStore");
+           #runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_lib ". (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases -longestovermin $i $length" : " -randomsubset $i 1") . " $wrk/temp$libraryname/$asm.gkpStore");
            runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_subset " . (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases" : "") . " -randomsubset $i 0.01 $wrk/temp$libraryname/$asm.gkpStore");
          }
-         runCommand("$wrk/temp$libraryname/1-overlapper", "cat `ls [0-9]*_lib.fasta` > correct_reads.fasta");
+         #runCommand("$wrk/temp$libraryname/1-overlapper", "cat `ls [0-9]*_lib.fasta` > correct_reads.fasta");
          runCommand("$wrk/temp$libraryname/1-overlapper", "cat `ls [0-9]*_subset.fasta` > correct_subset.fasta");
          runCommand("$wrk/temp$libraryname/1-overlapper", "rm `ls [0-9]*_subset.fasta*`");
-         runCommand("$wrk/temp$libraryname/1-overlapper", "rm `ls [0-9]*_lib.fasta*`");
-       
+         #runCommand("$wrk/temp$libraryname/1-overlapper", "rm `ls [0-9]*_lib.fasta*`");
+
+         # read in ovl options and partition data from the gatekeeper store
+         my $i = 1;
+         my $part = 1;
+         my %longIndex = {};
+         my %correctIndex = {};
+
+         foreach my $ovlJob (@job) {
+            $ovlJob =~ s/^\s+//;
+            $ovlJob =~ s/\s+$//;
+            my @values=split(/\s+/, $ovlJob);
+            my $indexIds = "";
+            my $correctIds = "";
+
+            if (!defined($longIndex{$values[1]})) {
+               # first the hash sequences
+               my @startend=split(/-/, $values[1]);
+               $indexIds = "-b $startend[0] -e $startend[1]";
+               runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta long_reads_part$numIndicies -randomsubset $libToCorrect 1 $indexIds $wrk/temp$libraryname/$asm.gkpStore");
+               runCommand("$wrk/temp$libraryname/1-overlapper", "$BLASR/sawriter long_part$numIndicies.sa long_reads_part$numIndicies.fasta");
+               $numIndicies++;
+               $longIndex{$values[1]} = 1;
+            }
+
+            if (!defined($correctIndex{$values[3]})) {
+               # now the correction sequences
+               my @startend=split(/-/, $values[3]);
+               $correctIds="-b $startend[0] -e $startend[1]";
+               runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta correct_reads_part" . $i . (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases -longestovermin 0 $length" : " -randomsubset 0 1") . " $correctIds $wrk/temp$libraryname/$asm.gkpStore");
+               $i++;
+               $correctIndex{$values[3]} = 1;
+            }
+
+            runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfragments -tabular $indexIds $wrk/temp$libraryname/$asm.gkpStore |awk '{print \$1\"\\t\"\$2}' > $asm.part$part.eidToIID");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfragments -tabular $correctIds $wrk/temp$libraryname/$asm.gkpStore |awk '{print \$1\"\\t\"\$2}' >> $asm.part$part.eidToIID");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfragments -tabular $indexIds $wrk/temp$libraryname/$asm.gkpStore |awk '{print \$2\"\\t\"\$10}' > $asm.part$part.iidToLen");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfragments -tabular $correctIds $wrk/temp$libraryname/$asm.gkpStore |awk '{print \$2\"\\t\"\$10}' >> $asm.part$part.iidToLen");
+            print F $numIndicies-1 . "\n";
+            $part++;
+         }
+         close(F);
+
+         runCommand("$wrk/temp$libraryname/1-overlapper", "ln -s long_reads_part1.fasta long_reads.fasta");       
          if (defined(getGlobal("blasr"))) {
             # run with best limit set to kmer with a small (0.5-1% of the data)   
             my $ovlThreads = getGlobal("ovlThreads");
-            runCommand("$wrk/temp$libraryname/1-overlapper", "$BLASR/sawriter long.sa long_reads.fasta");
+            runCommand("$wrk/temp$libraryname/1-overlapper", "ln -s long_part1.sa long.sa");
+
             open F, "> $wrk/temp$libraryname/1-overlapper/pickNBest.sh" or die ("can't open '$wrk/temp$libraryname/1-overlapper/pickNBest.sh");
             print F "#!" . getGlobal("shell") ."\n";
             print F getBinDirectoryShellCode();
@@ -1380,6 +1453,7 @@ $blasrVersion="1.3.1.116174";
             runCommand("$wrk/temp$libraryname/1-overlapper", "unlink correct_subset.fasta");
          }
       }
+      close(F);
    
       # now that we have our parameters, create a run job
       open F, "> $wrk/temp$libraryname/1-overlapper/overlap.sh" or die ("can't open '$wrk/temp$libraryname/1-overlapper/overlap.sh'");
@@ -1399,6 +1473,7 @@ $blasrVersion="1.3.1.116174";
       print F "bat=`head -n \$jobid $wrk/temp$libraryname/1-overlapper/ovlbat | tail -n 1`\n";
       print F "job=`head -n \$jobid $wrk/temp$libraryname/1-overlapper/ovljob | tail -n 1`\n";
       print F "opt=`head -n \$jobid $wrk/temp$libraryname/1-overlapper/ovlopt | tail -n 1`\n";
+      print F "sa=`head -n \$jobid $wrk/temp$libraryname/1-overlapper/ovlindex | tail -n 1`\n";
       print F "\n";
       print F "if [ ! -d $wrk/temp$libraryname/1-overlapper/\$bat ]; then\n";
       print F "  mkdir $wrk/temp$libraryname/1-overlapper/\$bat\n";
@@ -1416,8 +1491,11 @@ $blasrVersion="1.3.1.116174";
       print F "\n";
       print F "options=(\$opt)\n";
       print F "params=(\$(echo \${options[3]}  | tr \"-\" \"\\n\")) \n";
-      print F "zeroJobId=\$((\$jobid - 1))\n";
-      print F "numOvlJobs=$numOvlJobs\n";
+      print F "numTotalJobs=$numOvlJobs\n";
+      print F "numSA=" . ($numIndicies-1) . "\n";
+      print F "numOvlJobs=\$((\$numTotalJobs/\$numSA))\n";
+      print F "zeroJobId=\$((\$((\$jobid - 1)) % \$numOvlJobs))\n";
+      print F "oneJobId=\$((\$zeroJobId+1))\n";
       print F "start=\${params[0]} \n";
       print F "start=\$((\$start - 1))\n";
       print F "end=\${params[1]} \n";
@@ -1429,9 +1507,8 @@ $blasrVersion="1.3.1.116174";
             print F "   source $BLASR/../../etc/setup.sh \n";
          }
          print F "   $BLASR/blasr \\\n";
-         print F "          -start \$zeroJobId -stride \$numOvlJobs \\\n";
-         print F "          -sa $wrk/temp$libraryname/1-overlapper/long.sa $wrk/temp$libraryname/1-overlapper/correct_reads.fasta \\\n";
-         print F "          $wrk/temp$libraryname/1-overlapper/long_reads.fasta \\\n";
+         print F "          -sa $wrk/temp$libraryname/1-overlapper/long_part\$sa.sa $wrk/temp$libraryname/1-overlapper/correct_reads_part\$oneJobId.fasta \\\n";
+         print F "          $wrk/temp$libraryname/1-overlapper/long_reads_part\$sa.fasta \\\n";
          print F "          -nproc $ovlThreads -bestn $blasrThreshold \\\n";
          print F "          $blasrOpts \\\n";
          print F "          -sam -out $wrk/temp$libraryname/1-overlapper/\$bat/\$job.sam \\\n";
@@ -1446,7 +1523,7 @@ $blasrVersion="1.3.1.116174";
       } elsif (defined(getGlobal("bowtie"))) {
          print F "   $BOWTIE/bowtie2 \\\n";
          print F "          -s \$start -u \$total \\\n";
-         print F "          -x $wrk/temp$libraryname/1-overlapper/long.sa -f $wrk/temp$libraryname/1-overlapper/correct_reads.fasta \\\n";
+         print F "          -x $wrk/temp$libraryname/1-overlapper/long.sa -f $wrk/temp$libraryname/1-overlapper/correct_reads_part\$oneJobId.fasta \\\n";
          print F "          -p $ovlThreads -k $blasrThreshold \\\n";
          print F "          $bowtieOpts \\\n";
          print F "          -S $wrk/temp$libraryname/1-overlapper/\$bat/\$job.sam \\\n";
@@ -1459,10 +1536,17 @@ $blasrVersion="1.3.1.116174";
          print F "      tail $wrk/temp$libraryname/1-overlapper/\$jobid.out && exit\n";
          print F "   fi\n";
       }
-      print F "   \$bin/convertSamToCA \\\n";
-      print F "        $wrk/temp$libraryname/1-overlapper/\$bat/\$job.$suffix $wrk/temp$libraryname/$asm.eidToIID $wrk/temp$libraryname/$asm.iidToLen \\\n";
-      print F "        > $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovls 2> $wrk/temp$libraryname/1-overlapper/\$jobid.java.err\\\n";
-      print F "            && touch $wrk/temp$libraryname/1-overlapper/\$jobid.java.success\n";
+      print F "   if test -e $wrk/temp$libraryname/1-overlapper/$asm.part\$jobid.eidToIID ; then\n";
+      print F "      \$bin/convertSamToCA \\\n";
+      print F "           $wrk/temp$libraryname/1-overlapper/\$bat/\$job.$suffix $wrk/temp$libraryname/1-overlapper/$asm.part\$jobid.eidToIID $wrk/temp$libraryname/$asm.part\$jobid.iidToLen \\\n";
+      print F "           > $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovls 2> $wrk/temp$libraryname/1-overlapper/\$jobid.java.err\\\n";
+      print F "               && touch $wrk/temp$libraryname/1-overlapper/\$jobid.java.success\n";
+      print F "   else\n";
+      print F "      \$bin/convertSamToCA \\\n";
+      print F "           $wrk/temp$libraryname/1-overlapper/\$bat/\$job.$suffix $wrk/temp$libraryname/$asm.eidToIID $wrk/temp$libraryname/$asm.iidToLen \\\n";
+      print F "           > $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovls 2> $wrk/temp$libraryname/1-overlapper/\$jobid.java.err\\\n";
+      print F "               && touch $wrk/temp$libraryname/1-overlapper/\$jobid.java.success\n";
+      print F "   fi\n";
       print F "   if test -e $wrk/temp$libraryname/1-overlapper/\$jobid.java.success ; then\n";
       print F "      echo SamToCA conversion completed.\n";
       print F "   else\n";
@@ -1557,7 +1641,6 @@ if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
    print F "      -t $threads \\\n";
    print F "       -p $partitions \\\n";
    print F "       -o $asm \\\n";
-   print F "       -l $length \\\n";
    print F "        $repeats \\\n";
    print F "        -O $wrk/temp$libraryname/$asm.ovlStore \\\n";
    print F "        -G $wrk/temp$libraryname/$asm.gkpStore \\\n";
@@ -1572,6 +1655,8 @@ if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
    } else {
       runCommand("$wrk/temp$libraryname", "$wrk/temp$libraryname/runCorrection.sh");
    }
+
+    runCommand("$wrk/temp$libraryname", "rm -rf $asm.paired.ovlStore");
 }
 
 if (! -e "$wrk/temp$libraryname/runPartition.sh") {
@@ -1592,6 +1677,22 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    print F "if test -e $wrk/temp$libraryname/\$jobid.success ; then\n";
    print F "   echo Job previously completed successfully.\n";
    print F "else\n";
+   print F "   \$bin/outputLayout \\\n";
+   if (defined($longReads) && $longReads == 1) {
+   print F "      -L \\\n";
+   }
+   print F "      -M $maxUncorrectedGap \\\n";
+   print F "      -o $wrk/temp$libraryname/$asm \\\n";
+   print F "      -p \$jobid \\\n";
+   print F "      -l $length \\\n";
+   print F "      $repeats \\\n";
+   print F "      -G $wrk/temp$libraryname/$asm.gkpStore \\\n";
+   print F "      > $wrk/temp$libraryname/\$jobid.lay.err 2>&1 && touch $wrk/temp$libraryname/\$jobid.lay.success\n";
+   print F "   if ! test -e $wrk/temp$libraryname/\$jobid.lay.success ; then\n";
+   print F "      echo \"Error generating layout for job \$jobid\"\n";
+   print F "      exit 1\n";
+   print F "   fi\n";
+   print F "   \n";
    print F "   numLays=`cat $wrk/temp$libraryname/$asm" . ".\$jobid.lay |grep \"{LAY\" |wc -l`\n";
    print F "   if test \$numLays = 0 ; then\n";
    print F "      touch $wrk/temp$libraryname/\$jobid.fasta\n";
@@ -1622,6 +1723,8 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    print F "         $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
    print F "      fi\n";
    print F "      if test -e $wrk/temp$libraryname/\$jobid.success ; then\n";
+   print F "         $CA/trimFastqByQVWindow $wrk/temp$libraryname/\$jobid.fasta $wrk/temp$libraryname/\$jobid.qual $wrk/temp$libraryname/\$jobid.trim.fasta $wrk/temp$libraryname/\$jobid.trim.qual $QV > $wrk/temp$libraryname/\$jobid.trim.fastq\n";
+
    print F "         rm -rf $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk\n";
    print F "         rm $wrk/temp$libraryname/bank-transact.\$jobid.err\n";
    print F "         rm $wrk/temp$libraryname/\$jobid.excluded\n";
@@ -1656,8 +1759,8 @@ runCommand("$wrk/temp$libraryname", "rm -rf core.*");
 
 # combine partitions
 runCommand("$wrk/temp$libraryname", "cat `ls $asm.[0-9]*.log | sort -T . -rnk1` > corrected.log");
-runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fasta |sort -T . -rnk1` > corrected.fasta");
-runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.qual |sort -T . -rnk1` > corrected.qual");
+runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fasta |grep -v trim |sort -T . -rnk1` > corrected.fasta");
+runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.qual |grep -v trim | sort -T . -rnk1` > corrected.qual");
 
 # check how much we split the sequences up
 my %splitUIDs = ();
@@ -1749,17 +1852,20 @@ if (($totalSplitBases / $totalBP) > $MAX_SPLIT_PERCENTAGE && defined(getGlobal("
    runCommand("$wrk/temp$libraryname", "cat corrected.roundOne.qual temproundTwo/corrected.qual |awk '{if (match(\$1, \"^>\") && match(\$1, \",\")) print substr(\$1, 1, index(\$1, \",\")-1); else print \$0}' > $asm.merged.qual");
    runCommand("$wrk/temp$libraryname", "mv $asm.merged.fasta corrected.fasta");
    runCommand("$wrk/temp$libraryname", "mv $asm.merged.qual corrected.qual");
-   
+   runCommand("$wrk/temp$libraryname", "rm [0-9]*.fasta");
+   runCommand("$wrk/temp$libraryname", "rm [0=0]*.qual");
+   runCommand("$CA/trimFastqByQVWindow", "$wrk/temp$libraryname/corrected.fasta $wrk/temp$libraryname/corrected.qual $wrk/temp$libraryname/corrected.trim.fasta $wrk/temp$libraryname/corrected.trim.qual $QV > $wrk/temp$libraryname/corrected.trim.fastq");
+
    #runCommand("$wrk/temp$libraryname", "rm -rf $wrk/temp$libraryname/temproundTwo");
 }
 
 #save output from temporary directory
-runCommand("$wrk/temp$libraryname", "cp corrected.fasta $wrk/$libraryname.fasta");
-runCommand("$wrk/temp$libraryname", "cp corrected.qual  $wrk/$libraryname.qual");
 runCommand("$wrk/temp$libraryname", "cp $asm.layout.err  $wrk/$libraryname.correction.err");
 runCommand("$wrk/temp$libraryname", "cp $asm.layout.hist  $wrk/$libraryname.correction.hist");
 
-runCommand("$wrk", "$CA/trimFastqByQVWindow $wrk/temp$libraryname/corrected.fasta $wrk/temp$libraryname/corrected.qual $wrk/$libraryname.fasta $wrk/$libraryname.qual $QV > $wrk/$libraryname.fastq");
+runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fasta |grep trim |sort -T . -rnk1` > $wrk/$libraryname.fasta");
+runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.qual |grep trim | sort -T . -rnk1` > $wrk/$libraryname.qual");
+runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fastq |grep trim | sort -T . -rnk1` > $wrk/$libraryname.fastq");
 runCommand("$wrk", "$CA/fastqToCA -libraryname $libraryname -technology pacbio -type sanger -reads $wrk/$libraryname.fastq > $wrk/$libraryname.frg");
 
 my $numOutput = `ls $wrk/temp$libraryname/*sge.out* |wc -l`;
