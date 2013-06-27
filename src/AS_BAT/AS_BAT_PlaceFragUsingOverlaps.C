@@ -682,19 +682,62 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
       //  This placement is invalid if the std.dev is too high on either end.  (Was 3% fragment length before 11 Apr 2013)
       //  This placement is invalid if both nReverse and nForward are more than zero.
 
+      bool   weakStdDev      = false;
+      bool   overlappingSpan = false;
+      bool   spanBad         = false;
+      bool   reject          = false;
+
       double allowableStdDev = MAX(2.0, 0.075 * FI->fragmentLength(op.frgID));
 
-      if        ((op.bgnStdDev > allowableStdDev) ||
-                 (op.endStdDev > allowableStdDev)) {
+      if ((op.bgnStdDev > allowableStdDev) ||
+          (op.endStdDev > allowableStdDev))
+        weakStdDev = true;
+
+      if (((op.position.bgn < op.position.end) && (op.position.bgn + 3 * op.bgnStdDev > op.position.end - 3 * op.endStdDev)) ||
+          ((op.position.end < op.position.bgn) && (op.position.end + 3 * op.endStdDev > op.position.bgn - 3 * op.bgnStdDev)))
+        overlappingSpan = true;
+
+      int32   poslen = (op.position.end > op.position.bgn) ? (op.position.end - op.position.bgn) : (op.position.bgn - op.position.end);
+      int32   trulen = FI->fragmentLength(op.frgID);
+      double  scaled = (double)poslen / trulen;
+
+      if ((scaled < 0.3333) ||
+          (2.0    < scaled))
+        spanBad = true;
+
+
+      if ((weakStdDev) && (0))
+        //  Read is not known to have lots of indel, but the stddev is high.
+        reject = true;
+
+      if (overlappingSpan)
+        //  Read placements are conflicting and overlapping.
+        reject = true;
+
+      if (spanBad)
+        //  Bogus placement, more than twice as large as expected, or less than 1/3 expected.
+        reject = true;
+
+
+      if (reject) {
 #ifdef VERBOSE_PLACEMENT
-        if (logFileFlagSet(LOG_PLACE_FRAG))
-          writeLog("placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (+- %.2f,%.2f) -- cov %.2f (%d,%d) errors %.2f aligned %d novl %d -- INVALID standard deviation too large (min %0.2f)\n",
-                  op.frgID, op.tigID, op.position.bgn, op.position.end, op.bgnStdDev, op.endStdDev,
-                  op.fCoverage, op.covered.bgn, op.covered.end,
-                  op.errors,
-                  op.aligned,
-                  oe - os,
-                  allowableStdDev);
+        if (logFileFlagSet(LOG_PLACE_FRAG)) {
+          writeLog("placeFragUsingOverlaps()-- frag %d in unitig %d at %d,%d (+- %.2f,%.2f) -- cov %.2f (%d,%d) errors %.2f aligned %d novl %d -- INVALID stddev weak %d overlapping %d bad size %d\n",
+                   op.frgID, op.tigID, op.position.bgn, op.position.end, op.bgnStdDev, op.endStdDev,
+                   op.fCoverage, op.covered.bgn, op.covered.end,
+                   op.errors,
+                   op.aligned,
+                   oe - os,
+                   weakStdDev, overlappingSpan, spanBad);
+          for (uint32 oo=os; oo<oe; oo++) {
+            if ((ovlPlace[oo].position.bgn == 0) &&
+                (ovlPlace[oo].position.end == 0))
+              continue;
+
+            writeLog("placeFragUsingOverlaps()--   %8u,%8u\n", ovlPlace[oo].position.bgn, ovlPlace[oo].position.end);
+
+          }
+        }
 #endif
 
       } else {
