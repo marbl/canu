@@ -1538,7 +1538,7 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       }
       print F "   if test -e $wrk/temp$libraryname/1-overlapper/$asm.part\$jobid.eidToIID ; then\n";
       print F "      \$bin/convertSamToCA \\\n";
-      print F "           $wrk/temp$libraryname/1-overlapper/\$bat/\$job.$suffix $wrk/temp$libraryname/1-overlapper/$asm.part\$jobid.eidToIID $wrk/temp$libraryname/$asm.part\$jobid.iidToLen \\\n";
+      print F "           $wrk/temp$libraryname/1-overlapper/\$bat/\$job.$suffix $wrk/temp$libraryname/1-overlapper/$asm.part\$jobid.eidToIID $wrk/temp$libraryname/1-overlapper/$asm.part\$jobid.iidToLen \\\n";
       print F "           > $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovls 2> $wrk/temp$libraryname/1-overlapper/\$jobid.java.err\\\n";
       print F "               && touch $wrk/temp$libraryname/1-overlapper/\$jobid.java.success\n";
       print F "   else\n";
