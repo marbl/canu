@@ -35,6 +35,7 @@ static const char *rcsid = "$Id: AS_OVS_overlapStore.c,v 1.37 2013-01-11 11:18:0
 #include "AS_UTL_fileIO.h"
 
 #define AS_OVS_CURRENT_VERSION  2
+#define AS_OVS_MAGIC_NUMBER     0x65726f74536c766f
 
 static
 void
@@ -103,8 +104,8 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   ovs->useBackup = (useBackup) ? '~' : 0;
   ovs->saveSpace = saveSpace;
 
-  ovs->ovs.ovsMagic              = 1;
-  ovs->ovs.ovsVersion            = AS_OVS_CURRENT_VERSION;
+  ovs->ovs.ovsMagic              = 0;
+  ovs->ovs.ovsVersion            = 0;
   ovs->ovs.numOverlapsPerFile    = 0;  //  not used for reading
   ovs->ovs.smallestIID           = UINT_MAX;
   ovs->ovs.largestIID            = 0;
@@ -116,28 +117,38 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   errno = 0;
   ovsinfo = fopen(name, "r");
   if (errno) {
-    fprintf(stderr, "failed to open info file '%s': %s\n", name, strerror(errno));
+    fprintf(stderr, "ERROR: directory '%s' is not an ovelrapStore; failed to open info file '%s': %s\n",
+            path, name, strerror(errno));
     exit(1);
   }
   AS_UTL_safeRead(ovsinfo, &ovs->ovs, "AS_OVS_openOverlapStore info", sizeof(OverlapStoreInfo), 1);
   fclose(ovsinfo);
 
-
-  if (ovs->ovs.ovsMagic != 1) {
-    fprintf(stderr, "ERROR:  Not an overlapStore directory; magic number in %s/ovs incorrect.\n",
+  if (ovs->ovs.ovsMagic == 0) {
+    fprintf(stderr, "ERROR:  overlapStore '%s' is incomplete; previous overlapStoreBuild probably crashed.\n",
             path);
     exit(1);
   }
 
+  //  Before r4360, the ovsMagic was set to 1.  We allow that as a magic number for backward
+  //  compatibility.
+
+  if ((ovs->ovs.ovsMagic != 1) &&
+      (ovs->ovs.ovsMagic != AS_OVS_MAGIC_NUMBER)) {
+    fprintf(stderr, "ERROR:  directory '%s' is not an overlapStore; magic number 0x%016"F_X64P" incorrect.\n",
+            path, ovs->ovs.ovsMagic);
+    exit(1);
+  }
+
   if (ovs->ovs.ovsVersion != AS_OVS_CURRENT_VERSION) {
-    fprintf(stderr, "ERROR:  Wrong overlapStore version; this code supports only version %d.  %s is version "F_U64".\n",
-            AS_OVS_CURRENT_VERSION, path, ovs->ovs.ovsVersion);
+    fprintf(stderr, "ERROR:  overlapStore '%s' is version "F_U64"; this code supports only version %d.\n",
+            path, ovs->ovs.ovsVersion, AS_OVS_CURRENT_VERSION);
     exit(1);
   }
 
   if (ovs->ovs.maxReadLenInBits != AS_READ_MAX_NORMAL_LEN_BITS) {
-    fprintf(stderr, "ERROR:  Wrong AS_READ_MAX_NORMAL_LEN_BITS; this code supports only %d bits.  %s has "F_U64" bits.\n",
-            AS_READ_MAX_NORMAL_LEN_BITS, path, ovs->ovs.maxReadLenInBits);
+    fprintf(stderr, "ERROR:  overlapStore '%s' is for AS_READ_MAX_NORMAL_LEN_BITS="F_U64"; this code supports only %d bits.\n",
+            path, ovs->ovs.maxReadLenInBits, AS_READ_MAX_NORMAL_LEN_BITS);
     exit(1);
   }
 
@@ -502,14 +513,12 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
   }
 
   if (ovs->isOutput) {
-    FILE *ovsinfo = NULL;
 
     //  Write the last index element, maybe, and don't forget to fill
     //  in gaps!
     //
     //  Record gaps in the index (offsetFile) file.
-    //  
-    //
+
     if (ovs->offset.numOlaps > 0) {
       while (ovs->missing.a_iid < ovs->offset.a_iid) {
         ovs->missing.fileno    = ovs->offset.fileno;
@@ -527,12 +536,16 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
                        sizeof(OverlapStoreOffsetRecord), 1);
     }
 
-    //  Update the info
-    //
+    //  Update the info - note that using the real magic number here (instead of the previous
+    //  value of 1) means that stores constructed with this code cannot be read with earlier
+    //  versions.
+
+    ovs->ovs.ovsMagic    = AS_OVS_MAGIC_NUMBER;
+    ovs->ovs.ovsVersion  = AS_OVS_CURRENT_VERSION;
 
     sprintf(name, "%s/ovs", ovs->storePath);
     errno = 0;
-    ovsinfo = fopen(name, "w");
+    FILE *ovsinfo = fopen(name, "w");
     if (errno) {
       fprintf(stderr, "failed to create overlap store '%s': %s\n", ovs->storePath, strerror(errno));
       exit(1);
@@ -542,7 +555,7 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
     fclose(ovsinfo);
 
     fprintf(stderr, "Closing the new store:\n");
-    fprintf(stderr, "ovs->ovs.ovsMagic           = "F_U64"\n", ovs->ovs.ovsMagic);
+    fprintf(stderr, "ovs->ovs.ovsMagic           = 0x%016"F_X64P"\n", ovs->ovs.ovsMagic);
     fprintf(stderr, "ovs->ovs.ovsVersion         = "F_U64"\n", ovs->ovs.ovsVersion);
     fprintf(stderr, "ovs->ovs.numOverlapsPerFile = "F_U64"\n", ovs->ovs.numOverlapsPerFile);
     fprintf(stderr, "ovs->ovs.smallestIID        = "F_U64"\n", ovs->ovs.smallestIID);
@@ -603,13 +616,14 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
   AS_UTL_mkdir(path);
 
   sprintf(name, "%s/ovs", path);
-  errno = 0;
-  ovsinfo = fopen(name, "w");
-  if (errno) {
-    fprintf(stderr, "failed to create overlap store '%s': %s\n", ovs->storePath, strerror(errno));
+
+  if (AS_UTL_fileExists(name, FALSE, FALSE)) {
+    fprintf(stderr, "failed to create overlap store '%s': valid store exists\n", ovs->storePath);
     exit(1);
   }
-  ovs->ovs.ovsMagic              = 1;
+
+
+  ovs->ovs.ovsMagic              = 0;  //  Not a valid store
   ovs->ovs.ovsVersion            = AS_OVS_CURRENT_VERSION;
   ovs->ovs.numOverlapsPerFile    = 1024 * 1024 * 1024 / sizeof(OVSoverlapINT);
   ovs->ovs.smallestIID           = UINT_MAX;
@@ -618,9 +632,14 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
   ovs->ovs.highestFileIndex      = 0;
   ovs->ovs.maxReadLenInBits      = AS_READ_MAX_NORMAL_LEN_BITS;
 
+  errno = 0;
+  ovsinfo = fopen(name, "w");
+  if (errno) {
+    fprintf(stderr, "failed to create overlap store '%s': %s\n", ovs->storePath, strerror(errno));
+    exit(1);
+  }
   AS_UTL_safeWrite(ovsinfo, &ovs->ovs, "AS_OVS_createOverlapStore", sizeof(OverlapStoreInfo), 1);
   fclose(ovsinfo);
-
 
   sprintf(name, "%s/idx", path);
   errno = 0;
@@ -650,57 +669,6 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
 }
 
 
-
-
-
-/*
-
-typedef struct {
-  uint64    ovsMagic;
-  uint64    ovsVersion;
-  uint64    numOverlapsPerFile;  //  on create, how big to make each file: 1024 * 1024 * 1024 / sizeof(OVSoverlapINT);
-  uint64    smallestIID;         //  smallest frag iid in the store
-  uint64    largestIID;          //  largest frag iid in the store
-  uint64    numOverlapsTotal;    //  number of overlaps in the store
-  uint64    highestFileIndex;
-  uint64    maxReadLenInBits;    //  length of a fragment
-} OverlapStoreInfo;
-
-typedef struct {
-  uint32    a_iid;
-  uint32    fileno;    //  the file that contains this a_iid
-  uint32    offset;    //  offset to the first overlap for this iid
-  uint32    numOlaps;  //  number of overlaps for this iid
-} OverlapStoreOffsetRecord;
-
-typedef struct {
-  char                        storePath[FILENAME_MAX];
-  int                         isOutput; //True
-  char                        useBackup; 0
-  int                         saveSpace;
-
-  OverlapStoreInfo            ovs;
-  FILE                       *offsetFile;
-  OverlapStoreOffsetRecord    offset;
-  OverlapStoreOffsetRecord    missing;
-
-  uint32                      firstIIDrequested;
-  uint32                      lastIIDrequested;
-
-  int                         overlapsThisFile;
-  int                         currentFileIndex;
-  BinaryOverlapFile          *bof;
-
-  gkStore                    *gkp;
-
-#if 0
-  uint16                     *fragClearBegin;
-  uint16                     *fragClearEnd;
-  uint16                     *fragClearLength;
-#endif
-} OverlapStore;
-
-*/
 
 
 
@@ -853,149 +821,6 @@ AS_OVS_writeOverlapDumpToStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 ma
 
     	fprintf(stderr,"Done building index for dumpfile %d.\n",ovs->currentFileIndex);
 }
-
-
-/*
-
-typedef struct {
-	  uint64    ovsMagic;
-	    uint64    ovsVersion;
-	      uint64    numOverlapsPerFile;  //  on create, how big to make each file
-	        uint64    smallestIID;         //  smallest frag iid in the store
-		  uint64    largestIID;          //  largest frag iid in the store
-		    uint64    numOverlapsTotal;    //  number of overlaps in the store
-		      uint64    highestFileIndex;
-		        uint64    maxReadLenInBits;    //  length of a fragment
-} OverlapStoreInfo;
-
-*/
-
-
-void
-AS_OVS_writeOverlapDumpToStore2(char * storename,OVSoverlap *overlap, uint32 maxOverlapsThisFile,uint32 index) {
-	char            name[FILENAME_MAX];
-
-
-	OverlapStoreInfo ovs;
-	
-
-    	uint32 currentFileIndex=index+1;
-    	uint64 overlapsThisFile = 0;
-	OverlapStoreOffsetRecord    offset; 
-        OverlapStoreOffsetRecord    missing;
-        offset.a_iid = 0; //overlap[0].a_iid;	
-        offset.numOlaps = 0; //overlap[0].a_iid;	
-	missing.a_iid = 0;
-	offset.fileno = index+1;
-
-
-        if (index != 0 ) {
-	    missing.a_iid = overlap[0].a_iid;  
-	    offset.a_iid = overlap[0].a_iid;  
-	    // Gaps between files filled in later after merge
-	}
-
-	ovs.ovsMagic = 1;
-	ovs.ovsVersion= AS_OVS_CURRENT_VERSION;
-        ovs.numOverlapsPerFile    = 1024 * 1024 * 1024 / sizeof(OVSoverlapINT);
-        ovs.smallestIID           = UINT_MAX;
-        ovs.largestIID            = 0;
-        ovs.numOverlapsTotal      = 0;
-        ovs.highestFileIndex      = 0;
-	ovs.maxReadLenInBits      = AS_READ_MAX_NORMAL_LEN_BITS;
-
-
-	sprintf(name,"%s/%04d.idx",storename,index);
-        FILE* offsetFile=fopen(name,"w");        
-
-
-	for (uint64 i=0; i < maxOverlapsThisFile; i++ ) {
-    		//  All overlaps will be sorted by a_iid
-  		if (offset.a_iid > overlap[i].a_iid) {
-			fprintf(stderr, "LAST:  a:"F_U32"\n", offset.a_iid);
-			fprintf(stderr, "THIS:  a:"F_U32" b:"F_U32"\n", overlap[i].a_iid, overlap[i].b_iid);
-		}
-  		
-		assert(offset.a_iid <= overlap[i].a_iid);
-
-		if (ovs.smallestIID > overlap[i].a_iid)
-			ovs.smallestIID = overlap[i].a_iid;
-		if (ovs.largestIID < overlap[i].a_iid)
-     			ovs.largestIID = overlap[i].a_iid;
-
-		//  Put the index to disk, filling any gaps
-		if ((offset.numOlaps != 0) && (offset.a_iid != overlap[i].a_iid)) {
-
-			while (missing.a_iid < offset.a_iid) {
-
-				missing.fileno    = offset.fileno;
-				missing.offset    = offset.offset;
-				missing.numOlaps  = 0;
-
-				AS_UTL_safeWrite(offsetFile,
-						&missing,
-						"AS_OVS_writeOverlapToStore offset",
-						sizeof(OverlapStoreOffsetRecord),
-						1);
-				missing.a_iid++;
-			}
-
-			//  One more, since this iid is not missing -- we write it next!
-			missing.a_iid++;
-			AS_UTL_safeWrite(offsetFile,
-					&offset,
-					"AS_OVS_writeOverlapToStore offset",
-					sizeof(OverlapStoreOffsetRecord),
-					1);
-			offset.numOlaps  = 0;
-		}
-		//  Update the index if this is the first overlap for this a_iid
-		if (offset.numOlaps == 0) {
-			offset.a_iid     = overlap[i].a_iid;
-			offset.fileno    = currentFileIndex;
-			offset.offset    = overlapsThisFile;
-		}
-
-		offset.numOlaps++;
-		ovs.numOverlapsTotal++;
-		overlapsThisFile++;
-	}
-
-          //write final a_iid index
-	while (missing.a_iid < offset.a_iid) {
-
-		missing.fileno    = offset.fileno;
-		missing.offset    = offset.offset;
-		missing.numOlaps  = 0;
-
-		AS_UTL_safeWrite(offsetFile,
-				&missing,
-				"AS_OVS_writeOverlapToStore offset",
-				sizeof(OverlapStoreOffsetRecord),
-				1);
-		missing.a_iid++;
-	}
-
-	AS_UTL_safeWrite(offsetFile,
-			&offset,
-			"AS_OVS_writeOverlapToStore offset",
-			sizeof(OverlapStoreOffsetRecord),
-			1);
-
-
-    	fprintf(stderr,"Done building index for dumpfile %d.\n",currentFileIndex);
-	fclose(offsetFile);
-
-
-	//write partition store.
-	sprintf(name,"%s/%04d.ovs",storename,index);
-        FILE* ovsinfo;
-	ovsinfo = fopen(name,"w");
-	AS_UTL_safeWrite(ovsinfo,&ovs,"Partition ovs file",sizeof( OverlapStoreInfo ),1);
-	fclose(ovsinfo);	
-
-}
-
 
 
 
