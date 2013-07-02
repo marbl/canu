@@ -617,11 +617,32 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
 
   sprintf(name, "%s/ovs", path);
 
+  //  If the ovs file exists, AND has a valid magic number, then the store is complete and we should
+  //  abort before the valid store is destroyed.
+
   if (AS_UTL_fileExists(name, FALSE, FALSE)) {
-    fprintf(stderr, "failed to create overlap store '%s': valid store exists\n", ovs->storePath);
-    exit(1);
+    errno = 0;
+    ovsinfo = fopen(name, "r");
+    if (errno) {
+      fprintf(stderr, "ERROR: failed to read store metadata from '%s': %s\n", name, strerror(errno));
+      exit(1);
+    }
+
+    AS_UTL_safeRead(ovsinfo, &ovs->ovs, "AS_OVS_openOverlapStore info", sizeof(OverlapStoreInfo), 1);
+    fclose(ovsinfo);
+
+    //  Before r4360, the ovsMagic was set to 1.  We allow that as a magic number for backward
+    //  compatibility.
+
+    if ((ovs->ovs.ovsMagic == 1) ||
+        (ovs->ovs.ovsMagic == AS_OVS_MAGIC_NUMBER)) {
+      fprintf(stderr, "ERROR:  overlapStore '%s' is a valid overlap store, will not overwrite.\n",
+              path);
+      exit(1);
+    }
   }
 
+  //  Create the store, but mark it as incomplete.
 
   ovs->ovs.ovsMagic              = 0;  //  Not a valid store
   ovs->ovs.ovsVersion            = AS_OVS_CURRENT_VERSION;
@@ -653,17 +674,14 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
     exit(1);
   }
 
-
   ovs->missing.a_iid    = 0;
   ovs->missing.fileno   = 0;
   ovs->missing.offset   = 0;
   ovs->missing.numOlaps = 0;
 
-
   ovs->overlapsThisFile = 0;
   ovs->currentFileIndex = 0;  //previously was 0
   ovs->bof              = NULL;
-
 
   return(ovs);
 }
