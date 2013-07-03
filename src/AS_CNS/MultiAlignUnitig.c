@@ -463,8 +463,22 @@ unitigConsensus::computePositionFromParent(bool doContained) {
       goto computePositionFromParentFail;
     }
 
-    cnspos[tiid].bgn = cnspos[piid].bgn + fraglist[tiid].ahang;
-    cnspos[tiid].end = cnspos[piid].end + fraglist[tiid].bhang;
+    //  Scale the hangs by the change in the parent size between bogart and consensus.
+
+    double   parentScale = (double)(cnspos[piid].end - cnspos[piid].bgn) / (double)(utgpos[piid].end - utgpos[piid].bgn);
+
+    if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
+      fprintf(stderr, "computePositionFromParent()--  frag %u in parent %u -- hangs %d,%d -- scale %f -- final hangs %d,%d\n",
+              fraglist[tiid].ident,
+              fraglist[piid].ident,
+              fraglist[tiid].ahang,
+              fraglist[tiid].bhang,
+              parentScale,
+              fraglist[tiid].ahang * parentScale,
+              fraglist[tiid].bhang * parentScale);
+
+    cnspos[tiid].bgn = cnspos[piid].bgn + fraglist[tiid].ahang * parentScale;
+    cnspos[tiid].end = cnspos[piid].end + fraglist[tiid].bhang * parentScale;
 
     assert(cnspos[tiid].bgn < cnspos[tiid].end);
 
