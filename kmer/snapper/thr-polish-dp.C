@@ -408,8 +408,17 @@ doPolishDP(searcherState       *state,
       e._numMatchesN       = 0;
       e._percentIdentity   = 0;
       e._intronOrientation = SIM4_INTRON_NONE;
-      e._estAlignment      = match.alignA;  //  'e' DOES NOT own this, must reset the pointer later.
-      e._genAlignment      = match.alignB;
+
+      //  Since we're not using sim4, the normal method of ignoring aligns doesn't work.
+      //  Do it explicitly.
+
+      if (config._doAlignments) {
+        e._estAlignment      = match.alignA;  //  'e' DOES NOT own this, must reset the pointer later.
+        e._genAlignment      = match.alignB;
+      } else {
+        e._estAlignment      = NULL;
+        e._genAlignment      = NULL;
+      }
 
       p.s4p_updateAlignmentScores();
 
