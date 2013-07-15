@@ -70,10 +70,13 @@ Check_LinkMesg(LinkMesg             *lkg_mesg);
 int
 Check_PlacementMesg(PlacementMesg   *plc_mesg);
 
+
+void
+buildGateKeeperInfo(char      *gkpStoreName);
+
 void
 dumpGateKeeperInfo(char       *gkpStoreName,
-                   int         asTable,
-                   int         withoutUIDs);
+                   int         asTable);
 
 void
 dumpGateKeeperLibraries(char       *gkpStoreName,
@@ -172,10 +175,10 @@ editStore(char *editsFileName, char *gkpStoreName, int update);
 //  Error handling
 
 void
-AS_GKP_reportError(int error, ...);
+AS_GKP_reportError(int error, uint32 libIID, ...);
 
-int
-AS_GKP_summarizeErrors(void);
+bool
+AS_GKP_summarizeErrors(char *gkpStoreName);
 
 
 #define AS_GKP_BAT_ZERO_UID              1

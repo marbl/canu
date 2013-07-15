@@ -67,6 +67,9 @@ processSeq(char       *N,
            bool        forcePacked,
            uint32      packedLength) {
 
+  uint64  libraryIID = gkpStore->gkStore_getNumLibraries();
+  uint64  readUID    = 0;
+
   chomp(fr->snam);
   chomp(fr->sstr);
   chomp(fr->qnam);
@@ -91,7 +94,8 @@ processSeq(char       *N,
 
   if ((forcePacked == true) &&
       (slen > packedLength)) {
-    AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, fr->snam, slen, packedLength);
+    AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, libraryIID,
+                       fr->snam, slen, packedLength);
     fr->sstr[packedLength] = 0;
     fr->qstr[packedLength] = 0;
     slen = packedLength;
@@ -100,7 +104,8 @@ processSeq(char       *N,
 
   if ((forcePacked == false) &&
       (slen > AS_READ_MAX_NORMAL_LEN)) {
-    AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, fr->snam, slen, AS_READ_MAX_NORMAL_LEN);
+    AS_GKP_reportError(AS_GKP_ILL_SEQ_TOO_LONG, libraryIID,
+                       fr->snam, slen, AS_READ_MAX_NORMAL_LEN);
     fr->sstr[AS_READ_MAX_NORMAL_LEN] = 0;
     fr->qstr[AS_READ_MAX_NORMAL_LEN] = 0;
     slen = AS_READ_MAX_NORMAL_LEN;
@@ -183,22 +188,26 @@ processSeq(char       *N,
   //  Check that things are consistent.  Same names, same lengths, etc.
 
   if (fr->snam[0] != '@') {
-    AS_GKP_reportError(AS_GKP_ILL_NOT_SEQ_START_LINE, N, fr->snam);
+    AS_GKP_reportError(AS_GKP_ILL_NOT_SEQ_START_LINE, libraryIID,
+                       N, fr->snam);
     return(0);
   }
 
   if (fr->qnam[0] != '+') {
-    AS_GKP_reportError(AS_GKP_ILL_NOT_QLT_START_LINE, N, fr->qnam);
+    AS_GKP_reportError(AS_GKP_ILL_NOT_QLT_START_LINE, libraryIID,
+                       N, fr->qnam);
     return(0);
   }
 
   if ((fr->qnam[1] != 0) && (strcmp(fr->snam+1, fr->qnam+1) != 0)) {
-    AS_GKP_reportError(AS_GKP_ILL_SEQ_QLT_NAME_DIFFER, N, fr->snam, fr->qnam);
+    AS_GKP_reportError(AS_GKP_ILL_SEQ_QLT_NAME_DIFFER, libraryIID,
+                       N, fr->snam, fr->qnam);
     return(0);
   }
 
   if (slen != qlen) {
-    AS_GKP_reportError(AS_GKP_ILL_SEQ_QLT_LEN_DIFFER, N, fr->snam, slen, qlen);
+    AS_GKP_reportError(AS_GKP_ILL_SEQ_QLT_LEN_DIFFER, libraryIID,
+                       N, fr->snam, slen, qlen);
     return(0);
   }
 
@@ -269,7 +278,8 @@ processSeq(char       *N,
   }
 
   if (QVerrors > 0)
-    AS_GKP_reportError(AS_GKP_ILL_BAD_QV, fr->snam, QVerrors);
+    AS_GKP_reportError(AS_GKP_ILL_BAD_QV, libraryIID,
+                       fr->snam, QVerrors);
 
   //  Reverse the read if it is from an outtie pair.  This ONLY works if the reads are the same
   //  length throughout the library.  WE DO NOT CHECK THAT IS SO.
@@ -338,9 +348,6 @@ processSeq(char       *N,
   //           2147483648
   //  LLLLLLLLR##########
   //
-
-  uint64  libraryIID = gkpStore->gkStore_getNumLibraries();
-  uint64  readUID    = 0;
 
   //  The plus one is to make the UID and IID match up when these are the first fragments in the
   //  store.  Pointless otherwise.
@@ -451,13 +458,15 @@ openFile(char *name, FILE *&file) {
 
   if (AS_UTL_fileExists(name, FALSE, FALSE) == FALSE) {
     fprintf(stderr, "ERROR:  Failed to open fastq input file '%s': %s\n", name, strerror(errno));
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, name, strerror(errno));
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, 0,
+                       name, strerror(errno));
     exit(1);
   }
 
   if        (name == NULL) {
     fprintf(stderr, "ERROR:  Failed to open fastq input file: no name supplied.\n");
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, "(no-name-supplied)", "no name supplied");
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, 0,
+                       "(no-name-supplied)", "no name supplied");
     exit(1);
 
   } else if (strcasecmp(name+strlen(name)-3, ".gz") == 0) {
@@ -477,7 +486,8 @@ openFile(char *name, FILE *&file) {
 
   if (errno) {
     fprintf(stderr, "ERROR:  Failed to open fastq input file '%s': %s\n", name, strerror(errno));
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, name, strerror(errno));
+    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, 0,
+                       name, strerror(errno));
     exit(1);
   }
 

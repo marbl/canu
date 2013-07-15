@@ -30,16 +30,19 @@ static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.75 2012-09-19 20:06:51 skoren
 #include "AS_UTL_reverseComplement.h"
 #include "AS_PER_gkpStore.h"
 
+
 void
 dumpGateKeeperInfo(char       *gkpStoreName,
-                   int         asTable,
-                   int         withoutUIDs) {
+                   int         asTable) {
 
-  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE, withoutUIDs);
+  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE, TRUE);
+
   if (gkp == NULL) {
     fprintf(stderr, "Failed to open %s\n", gkpStoreName);
     exit(1);
   }
+
+  gkStoreStats  *stats = new gkStoreStats(gkp);
 
   if (asTable == 0) {
     fprintf(stdout, "LOAD STATS\n");
@@ -74,62 +77,7 @@ dumpGateKeeperInfo(char       *gkpStoreName,
     fprintf(stdout, F_U32"\tnumRandom\n",   gkp->inf.numRandom);
     fprintf(stdout, F_U32"\tnumPacked\n",   gkp->inf.numPacked);
     fprintf(stdout, F_U32"\tnumNormal\n",   gkp->inf.numNormal);
-    fprintf(stdout, F_U32"\tnumStrobe\n",    gkp->inf.numStrobe);
-  }
-
-  gkFragment    fr;
-  gkStream     *fs = new gkStream(gkp, 0, 0, GKFRAGMENT_INF);
-
-  int           i, j;
-
-  uint32  numActiveFrag     = 0;
-  uint32  numDeletedFrag    = 0;
-  uint32  numMatedFrag      = 0;
-  uint64  readLength        = 0;
-  uint64  clearLength       = 0;
-
-  uint32  *lowestIID         = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
-  uint32  *highestIID        = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
-
-  uint32  *numActivePerLib   = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
-  uint32  *numDeletedPerLib  = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
-  uint32  *numMatedPerLib    = (uint32 *)safe_calloc(sizeof(uint32), (gkp->gkStore_getNumLibraries() + 1));
-  uint64  *readLengthPerLib  = (uint64 *)safe_calloc(sizeof(uint64), (gkp->gkStore_getNumLibraries() + 1));
-  uint64  *clearLengthPerLib = (uint64 *)safe_calloc(sizeof(uint64), (gkp->gkStore_getNumLibraries() + 1));
-
-  while (fs->next(&fr)) {
-    AS_IID     lib = fr.gkFragment_getLibraryIID();
-    AS_IID     iid = fr.gkFragment_getReadIID();
-
-    if (lowestIID[lib] == 0) {
-      lowestIID[lib]  = iid;
-      highestIID[lib] = iid;
-    }
-    if (highestIID[lib] < iid) {
-      highestIID[lib] = iid;
-    }
-
-    if (fr.gkFragment_getIsDeleted()) {
-      numDeletedFrag++;
-      numDeletedPerLib[lib]++;
-    } else {
-      numActiveFrag++;
-      numActivePerLib[lib]++;
-
-      if (fr.gkFragment_getMateIID() > 0) {
-        numMatedFrag++;
-        numMatedPerLib[lib]++;
-      }
-
-      readLength             += fr.gkFragment_getSequenceLength();
-      readLengthPerLib[lib]  += fr.gkFragment_getSequenceLength();
-
-      clearLength            += fr.gkFragment_getClearRegionLength();
-      clearLengthPerLib[lib] += fr.gkFragment_getClearRegionLength();
-    }
-  }
-
-  if (asTable == 0) {
+    fprintf(stdout, F_U32"\tnumStrobe\n",   gkp->inf.numStrobe);
     fprintf(stdout, "\n");
     fprintf(stdout, "GLOBAL STATS\n");
     fprintf(stdout, "\n");
@@ -145,34 +93,23 @@ dumpGateKeeperInfo(char       *gkpStoreName,
   //  Global
 
   fprintf(stdout, "0\t%d\t%d\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\tGLOBAL\n",
-          1, numActiveFrag + numDeletedFrag, numActiveFrag, numDeletedFrag, numMatedFrag, readLength, clearLength);
+          1, stats->numActiveFrag + stats->numDeletedFrag, stats->numActiveFrag, stats->numDeletedFrag, stats->numMatedFrag, stats->readLength, stats->clearLength);
 
   //  Per Library
 
-  for (j=0; j<gkp->gkStore_getNumLibraries() + 1; j++) {
-    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\t",
+  for (uint32 j=0; j<gkp->gkStore_getNumLibraries() + 1; j++)
+    fprintf(stdout, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\t%s\n",
             j,
-            lowestIID[j],
-            highestIID[j],
-            numActivePerLib[j],
-            numDeletedPerLib[j],
-            numMatedPerLib[j],
-            readLengthPerLib[j],
-            clearLengthPerLib[j]);
+            stats->lowestIID[j],
+            stats->highestIID[j],
+            stats->numActivePerLib[j],
+            stats->numDeletedPerLib[j],
+            stats->numMatedPerLib[j],
+            stats->readLengthPerLib[j],
+            stats->clearLengthPerLib[j],
+            (j == 0 ? "LegacyUnmatedReads" : gkp->gkStore_getLibrary(j)->libraryName));
 
-   if (withoutUIDs == TRUE && j != 0) 
-      fprintf(stdout, "N/A\n");
-   else
-      fprintf(stdout, "%s\n", (j == 0 ? "LegacyUnmatedReads" : AS_UID_toString(gkp->gkStore_getLibrary(j)->libraryUID)));
-  }
-
-  safe_free(numActivePerLib);
-  safe_free(numDeletedPerLib);
-  safe_free(numMatedPerLib);
-  safe_free(readLengthPerLib);
-  safe_free(clearLengthPerLib);
-
-  delete fs;
+  delete stats;
   delete gkp;
 }
 

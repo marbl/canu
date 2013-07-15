@@ -52,7 +52,7 @@ updateLibraryCache(FragMesg *frg_mesg) {
   libIID = gkpStore->gkStore_getUIDtoIID(frg_mesg->library_uid, NULL);
 
   if (AS_IID_isDefined(libIID) == FALSE) {
-    AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_LIB,
+    AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_LIB, 0,
                        AS_UID_toString(frg_mesg->eaccession),
                        AS_UID_toString(frg_mesg->library_uid));
     return(1);
@@ -101,7 +101,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
   for (p = 0; s[p]; p++) {
     if ((isspacearray[s[p]]) || (isValidACGTN[s[p]])) {
     } else {
-      AS_GKP_reportError(AS_GKP_FRG_INVALID_CHAR_SEQ,
+      AS_GKP_reportError(AS_GKP_FRG_INVALID_CHAR_SEQ, 0,
                          AS_UID_toString(frg_mesg->eaccession), s[p], p);
       s[p] = 'N';
       q[p] = '0';
@@ -112,7 +112,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
   for (p = 0; q[p]; p++) {
     if ((isspacearray[q[p]]) || ((q[p] >= '0') && (q[p] <= 'l'))) {
     } else {
-      AS_GKP_reportError(AS_GKP_FRG_INVALID_CHAR_QLT,
+      AS_GKP_reportError(AS_GKP_FRG_INVALID_CHAR_QLT, 0,
                          AS_UID_toString(frg_mesg->eaccession), q[p], p);
 
       q[p] = '0';
@@ -153,7 +153,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
   //  adjust to the minimum, just so we can load in the store.
   //
   if (sl != ql) {
-    AS_GKP_reportError(AS_GKP_FRG_INVALID_LENGTH,
+    AS_GKP_reportError(AS_GKP_FRG_INVALID_LENGTH, 0,
                        AS_UID_toString(frg_mesg->eaccession), sl, ql);
     sl = MIN(sl, ql);
     ql = sl;
@@ -163,7 +163,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
   }
 
   if        (sl < AS_READ_MIN_LEN) {
-    AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_SHORT,
+    AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_SHORT, 0,
                        AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MIN_LEN);
     failed = 1;
 
@@ -171,7 +171,7 @@ checkSequenceAndQuality(FragMesg *frg_mesg, int *seqLen) {
     //  Do nothing.
 
   } else {
-    AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_LONG,
+    AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_LONG, 0,
                        AS_UID_toString(frg_mesg->eaccession), sl, AS_READ_MAX_NORMAL_LEN);
 
     sl = AS_READ_MAX_NORMAL_LEN;
@@ -207,14 +207,14 @@ checkClearRanges(FragMesg   *frg_mesg,
   //  Check clear range bounds, adjust
   //
   if (frg_mesg->clear_rng.bgn < 0) {
-    AS_GKP_reportError(AS_GKP_FRG_CLR_BGN,
+    AS_GKP_reportError(AS_GKP_FRG_CLR_BGN, 0,
                        AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end, seqLen);
     if (frg_mesg->action == AS_ADD)
       gkpStore->inf.frgWarnings++;
     frg_mesg->clear_rng.bgn = 0;
   }
   if (seqLen < frg_mesg->clear_rng.end) {
-    AS_GKP_reportError(AS_GKP_FRG_CLR_END,
+    AS_GKP_reportError(AS_GKP_FRG_CLR_END, 0,
                        AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end, seqLen);
     if (frg_mesg->action == AS_ADD)
       gkpStore->inf.frgWarnings++;
@@ -235,13 +235,13 @@ checkClearRanges(FragMesg   *frg_mesg,
   //
   if (assembler != AS_ASSEMBLER_OBT) {
     if (frg_mesg->clear_rng.bgn > frg_mesg->clear_rng.end) {
-      AS_GKP_reportError(AS_GKP_FRG_CLR_INVALID,
+      AS_GKP_reportError(AS_GKP_FRG_CLR_INVALID, 0,
                          AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end);
       failed = 1;
     }
 
     if ((frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn) < AS_READ_MIN_LEN) {
-      AS_GKP_reportError(AS_GKP_FRG_CLR_TOO_SHORT,
+      AS_GKP_reportError(AS_GKP_FRG_CLR_TOO_SHORT, 0,
                          AS_UID_toString(frg_mesg->eaccession), frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn, AS_READ_MIN_LEN);
       failed = 1;
     }
@@ -298,12 +298,12 @@ setUID(FragMesg *frg_mesg) {
   //  it is a fatal error
   //
   if (AS_UID_isDefined(frg_mesg->eaccession) == FALSE) {
-    AS_GKP_reportError(AS_GKP_FRG_ZERO_UID);
+    AS_GKP_reportError(AS_GKP_FRG_ZERO_UID, 0);
     return(1);
   }
 
   if (gkpStore->gkStore_getUIDtoIID(frg_mesg->eaccession, NULL)) {
-    AS_GKP_reportError(AS_GKP_FRG_EXISTS,
+    AS_GKP_reportError(AS_GKP_FRG_EXISTS, 0,
                        AS_UID_toString(frg_mesg->eaccession));
     return(1);
   }
@@ -341,7 +341,7 @@ Check_FragMesg(FragMesg   *frg_mesg,
     failed |= setUID(frg_mesg);
 
     if (failed) {
-      AS_GKP_reportError(AS_GKP_FRG_LOADED_DELETED,
+      AS_GKP_reportError(AS_GKP_FRG_LOADED_DELETED, 0,
                          AS_UID_toString(frg_mesg->eaccession));
       gkFrag1->gkFragment_setIsDeleted(1);
     } else {
@@ -354,7 +354,7 @@ Check_FragMesg(FragMesg   *frg_mesg,
     AS_IID       iid = gkpStore->gkStore_getUIDtoIID(frg_mesg->eaccession, NULL);
 
     if (iid == 0) {
-      AS_GKP_reportError(AS_GKP_FRG_DOESNT_EXIST,
+      AS_GKP_reportError(AS_GKP_FRG_DOESNT_EXIST, 0,
                          AS_UID_toString(frg_mesg->eaccession));
       return(1);
     }
@@ -362,7 +362,7 @@ Check_FragMesg(FragMesg   *frg_mesg,
     gkpStore->gkStore_getFragment(iid, gkFrag1, GKFRAGMENT_INF);
 
     if (gkFrag1->gkFragment_getMateIID() > 0) {
-      AS_GKP_reportError(AS_GKP_FRG_HAS_MATE,
+      AS_GKP_reportError(AS_GKP_FRG_HAS_MATE, 0,
                          AS_UID_toString(frg_mesg->eaccession));
       return(1);
     }
@@ -370,7 +370,7 @@ Check_FragMesg(FragMesg   *frg_mesg,
     gkpStore->gkStore_delFragment(iid);
 
   } else {
-    AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_ACTION);
+    AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_ACTION, 0);
     return 1;
   }
 

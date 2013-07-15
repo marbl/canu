@@ -45,7 +45,7 @@ Check_PlacementMesg(PlacementMesg *plc_mesg) {
   //  Check that the bounding fragments are different
   //
   if (AS_UID_compare(plc_mesg->bound1, plc_mesg->bound2) == 0) {
-    AS_GKP_reportError(AS_GKP_PLC_SAME_CONSTRAINT,
+    AS_GKP_reportError(AS_GKP_PLC_SAME_CONSTRAINT, 0,
                        AS_UID_toString(plc_mesg->frag), AS_UID_toString(plc_mesg->bound1));
     if (plc_mesg->action == AS_ADD)
       gkpStore->inf.plcErrors++;
@@ -56,7 +56,7 @@ Check_PlacementMesg(PlacementMesg *plc_mesg) {
   //
   if (AS_UID_compare(plc_mesg->frag, plc_mesg->bound1) == 0 || 
          AS_UID_compare(plc_mesg->frag, plc_mesg->bound2) == 0) {
-    AS_GKP_reportError(AS_GKP_PLC_SELF_CONSTRAINT,
+    AS_GKP_reportError(AS_GKP_PLC_SELF_CONSTRAINT, 0,
                        AS_UID_toString(plc_mesg->frag));
     if (plc_mesg->action == AS_ADD)
       gkpStore->inf.plcErrors++;
@@ -67,7 +67,7 @@ Check_PlacementMesg(PlacementMesg *plc_mesg) {
   //
   fragIID  = gkpStore->gkStore_getUIDtoIID(plc_mesg->frag, NULL);
   if (fragIID == 0) {
-    AS_GKP_reportError(AS_GKP_PLC_FRG_DOESNT_EXIST,
+    AS_GKP_reportError(AS_GKP_PLC_FRG_DOESNT_EXIST, 0,
                        AS_UID_toString(plc_mesg->frag));
     if (plc_mesg->action == AS_ADD)
       gkpStore->inf.plcErrors++;
@@ -75,7 +75,7 @@ Check_PlacementMesg(PlacementMesg *plc_mesg) {
   }
   frag1IID = gkpStore->gkStore_getUIDtoIID(plc_mesg->bound1, NULL);
   if (frag1IID == 0) {
-    AS_GKP_reportError(AS_GKP_PLC_FRG_DOESNT_EXIST,
+    AS_GKP_reportError(AS_GKP_PLC_FRG_DOESNT_EXIST, 0,
                        AS_UID_toString(plc_mesg->bound1));
     if (plc_mesg->action == AS_ADD)
       gkpStore->inf.plcErrors++;
@@ -83,7 +83,7 @@ Check_PlacementMesg(PlacementMesg *plc_mesg) {
   }
   frag2IID = gkpStore->gkStore_getUIDtoIID(plc_mesg->bound2, NULL);
   if (frag2IID == 0) {
-    AS_GKP_reportError(AS_GKP_PLC_FRG_DOESNT_EXIST,
+    AS_GKP_reportError(AS_GKP_PLC_FRG_DOESNT_EXIST, 0,
                        AS_UID_toString(plc_mesg->bound2));
     if (plc_mesg->action == AS_ADD)
       gkpStore->inf.plcErrors++;
@@ -96,7 +96,7 @@ Check_PlacementMesg(PlacementMesg *plc_mesg) {
   //
   gkpStore->gkStore_getFragment(fragIID, gkFrag1, GKFRAGMENT_INF);
   if (gkFrag1->gkFragment_getIsDeleted()) {
-    AS_GKP_reportError(AS_GKP_PLC_FRG_DELETED,
+    AS_GKP_reportError(AS_GKP_PLC_FRG_DELETED, 0,
                        AS_UID_toString(plc_mesg->frag));
     if (plc_mesg->action == AS_ADD)
       gkpStore->inf.plcErrors++;
@@ -105,14 +105,14 @@ Check_PlacementMesg(PlacementMesg *plc_mesg) {
   gkpStore->gkStore_getFragment(frag1IID, gkFrag1, GKFRAGMENT_INF);
   gkpStore->gkStore_getFragment(frag2IID, gkFrag2, GKFRAGMENT_INF);
   if (gkFrag1->gkFragment_getIsDeleted()) {
-    AS_GKP_reportError(AS_GKP_PLC_FRG_DELETED,
+    AS_GKP_reportError(AS_GKP_PLC_FRG_DELETED, 0,
                        AS_UID_toString(plc_mesg->bound1));
     if (plc_mesg->action == AS_ADD)
       gkpStore->inf.plcErrors++;
     return(1);
   }
   if (gkFrag2->gkFragment_getIsDeleted()) {
-    AS_GKP_reportError(AS_GKP_PLC_FRG_DELETED,
+    AS_GKP_reportError(AS_GKP_PLC_FRG_DELETED, 0,
                        AS_UID_toString(plc_mesg->bound2));
     if (plc_mesg->action == AS_ADD)
       gkpStore->inf.plcErrors++;
@@ -125,7 +125,7 @@ Check_PlacementMesg(PlacementMesg *plc_mesg) {
   if (oldGkpl != NULL) {
     gkpStore->gkStore_getFragment(oldGkpl->bound1, gkFrag1, GKFRAGMENT_INF);
     gkpStore->gkStore_getFragment(oldGkpl->bound2, gkFrag2, GKFRAGMENT_INF);    
-    AS_GKP_reportError(AS_GKP_PLC_ALREADY_CONSTRAINED,
+    AS_GKP_reportError(AS_GKP_PLC_ALREADY_CONSTRAINED, 0,
                        AS_UID_toString(plc_mesg->frag), fragIID,
                        AS_UID_toString(gkFrag1->gkFragment_getReadUID()), gkFrag1->gkFragment_getReadIID(),
                        AS_UID_toString(gkFrag2->gkFragment_getReadUID()), gkFrag1->gkFragment_getReadIID(),
@@ -144,7 +144,7 @@ Check_PlacementMesg(PlacementMesg *plc_mesg) {
     gkpl.bound2 = frag2IID;
     gkpStore->gkStore_addPlacement(&gkpl);
   } else {
-    AS_GKP_reportError(AS_GKP_PLC_UNKNOWN_ACTION);
+    AS_GKP_reportError(AS_GKP_PLC_UNKNOWN_ACTION, 0);
     return 1;
   }
 

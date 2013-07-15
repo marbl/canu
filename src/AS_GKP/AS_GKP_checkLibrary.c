@@ -61,7 +61,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
 
   if ((lib_mesg->mean   <= 0.0) &&
       (lib_mesg->stddev <= 0.0)) {
-    AS_GKP_reportError(AS_GKP_LIB_ILLEGAL_MEAN_STDDEV,
+    AS_GKP_reportError(AS_GKP_LIB_ILLEGAL_MEAN_STDDEV, 0,
                        AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, lib_mesg->stddev);
     if (lib_mesg->action == AS_ADD)
       gkpStore->inf.libWarnings++;
@@ -70,7 +70,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
   }
 
   if (lib_mesg->mean   <= 0.0) {
-    AS_GKP_reportError(AS_GKP_LIB_INVALID_MEAN,
+    AS_GKP_reportError(AS_GKP_LIB_INVALID_MEAN, 0,
                        AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, 10.0 * lib_mesg->stddev);
     if (lib_mesg->action == AS_ADD)
       gkpStore->inf.libWarnings++;
@@ -78,7 +78,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
   }
 
   if (lib_mesg->stddev <= 0.0) {
-    AS_GKP_reportError(AS_GKP_LIB_INVALID_STDDEV,
+    AS_GKP_reportError(AS_GKP_LIB_INVALID_STDDEV, 0,
                        AS_UID_toString(lib_mesg->eaccession), lib_mesg->stddev, 0.1 * lib_mesg->mean);
     if (lib_mesg->action == AS_ADD)
       gkpStore->inf.libWarnings++;
@@ -87,7 +87,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
 
   if (fixInsertSizes) {
     if (lib_mesg->mean < 3.0 * lib_mesg->stddev) {
-      AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_BIG,
+      AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_BIG, 0,
                          AS_UID_toString(lib_mesg->eaccession), lib_mesg->stddev, lib_mesg->mean, 0.1 * lib_mesg->mean);
       if (lib_mesg->action == AS_ADD)
         gkpStore->inf.libWarnings++;
@@ -99,7 +99,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
     //  floating point math sucks.
 
     if (lib_mesg->stddev + 0.001 < 0.1 * lib_mesg->mean) {
-      AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_SMALL,
+      AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_SMALL, 0,
                          AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, lib_mesg->stddev, 0.1 * lib_mesg->mean);
       if (lib_mesg->action == AS_ADD)
         gkpStore->inf.libWarnings++;
@@ -127,14 +127,14 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
   if (lib_mesg->action == AS_ADD) {
     AS_IID     iid = gkpStore->gkStore_getUIDtoIID(lib_mesg->eaccession, NULL);
     if (iid) {
-      AS_GKP_reportError(AS_GKP_LIB_EXISTS,
+      AS_GKP_reportError(AS_GKP_LIB_EXISTS, 0,
                          AS_UID_toString(lib_mesg->eaccession), iid);
       gkpStore->inf.libErrors++;
       checkLibraryForFastQPointers(lib_mesg, iid, packedLength);
       return(1);
     }
     if (AS_UID_isDefined(lib_mesg->eaccession) == FALSE) {
-      AS_GKP_reportError(AS_GKP_LIB_ZERO_UID);
+      AS_GKP_reportError(AS_GKP_LIB_ZERO_UID, 0);
       gkpStore->inf.libErrors++;
       return(1);
     }
@@ -177,7 +177,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     AS_IID     iid = gkpStore->gkStore_getUIDtoIID(lib_mesg->eaccession, NULL);
 
     if (iid == 0) {
-      AS_GKP_reportError(AS_GKP_LIB_DOESNT_EXIST_UPDATE,
+      AS_GKP_reportError(AS_GKP_LIB_DOESNT_EXIST_UPDATE, 0,
                          AS_UID_toString(lib_mesg->eaccession));
       return(1);
     }
@@ -193,7 +193,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     }
 
   } else {
-    AS_GKP_reportError(AS_GKP_LIB_UNKNOWN_ACTION);
+    AS_GKP_reportError(AS_GKP_LIB_UNKNOWN_ACTION, 0);
     return 1;
   }
 

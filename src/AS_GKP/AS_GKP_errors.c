@@ -28,19 +28,34 @@ static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.19 2012-02-03 21:47:58 bria
 #include "AS_global.h"
 #include "AS_GKP_include.h"
 
+#include <vector>
+
+using namespace std;
+
 //  A rather unwieldy error handling system.  We want to count the
 //  number of times we see each error, and try to make it somewhat
 //  easy to add a new error.
 
 #define AS_GKP_NUM_ERRORS  128
 
-static char   const *errorMs[AS_GKP_NUM_ERRORS] = {0};
-static char   const *errorSs[AS_GKP_NUM_ERRORS] = {0};
-static uint32        errorCs[AS_GKP_NUM_ERRORS] = {0};
+class AS_GKP_ePL {
+ public:
+  AS_GKP_ePL() {
+    memset(errorCs, 0, sizeof(uint32) * AS_GKP_NUM_ERRORS);
+  };
+  ~AS_GKP_ePL() {
+  };
 
+  uint32      errorCs[AS_GKP_NUM_ERRORS];
+};
+
+static char         const *errorMs[AS_GKP_NUM_ERRORS] = {0};
+static char         const *errorSs[AS_GKP_NUM_ERRORS] = {0};
+static uint32              errorCs[AS_GKP_NUM_ERRORS] = {0};
+static vector<AS_GKP_ePL>  libError;
 
 void
-AS_GKP_reportError(int error, ...) {
+AS_GKP_reportError(int error, uint32 libIID, ...) {
   va_list ap;
 
   if (errorMs[0] == 0) {
@@ -186,42 +201,109 @@ AS_GKP_reportError(int error, ...) {
     errorSs[AS_GKP_UNKNOWN_MESSAGE        ] = "# GKP Error: Unknown message.\n";
   }
 
-  va_start(ap, error);
+  va_start(ap, libIID);
 
   vfprintf(errorFP, errorMs[error], ap);
+
   errorCs[error]++;
+
+  if (libError.size() < libIID)
+    libError.resize(libIID + 1);
+
+  libError[libIID].errorCs[error]++;
 
   va_end(ap);
 }
 
 
-int
-AS_GKP_summarizeErrors(void) {
-  int nerrs = 0;
-  int i;
+bool
+AS_GKP_summarizeErrors(char *gkpStoreName) {
+  gkStore      *gkp    = new gkStore(gkpStoreName, FALSE, FALSE, TRUE);
+  gkStoreStats *stats  = new gkStoreStats(gkp);
 
-  for (i=0; i<AS_GKP_NUM_ERRORS; i++)
-    nerrs += errorCs[i];
+  //  Report the stats -- this is the same as 'gatekeeper -dumpinfo'.
 
-  if (nerrs) {
-    fprintf(stderr, "GKP finished with %d alerts or errors:\n", nerrs);
-    for (i=0; i<AS_GKP_NUM_ERRORS; i++)
-      if (errorCs[i])
-        fprintf(stderr, "%d\t%s", errorCs[i], errorSs[i]);
-  } else {
-    fprintf(stderr, "GKP finished with no alerts or errors.\n");
+  char  N[FILENAME_MAX];
+
+  sprintf(N, "%s.info", gkpStoreName);
+
+  FILE *F = fopen(N, "w");
+  if (errno)
+    fprintf(stderr, "WARNING: failed to open '%s' for write: %s\n", N, strerror(errno));
+
+  if (F) {
+    fprintf(F, "libIID\tbgnIID\tendIID\tactive\tdeleted\tmated\ttotLen\tclrLen\tlibName\n");
+
+    fprintf(F, "0\t%d\t%d\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\tGLOBAL\n",
+            1, stats->numActiveFrag + stats->numDeletedFrag, stats->numActiveFrag, stats->numDeletedFrag, stats->numMatedFrag, stats->readLength, stats->clearLength);
+
+    for (uint32 j=0; j<gkp->gkStore_getNumLibraries() + 1; j++)
+      fprintf(F, F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U64"\t"F_U64"\t%s\n",
+              j,
+              stats->lowestIID[j],
+              stats->highestIID[j],
+              stats->numActivePerLib[j],
+              stats->numDeletedPerLib[j],
+              stats->numMatedPerLib[j],
+              stats->readLengthPerLib[j],
+              stats->clearLengthPerLib[j],
+              (j == 0 ? "LegacyUnmatedReads" : gkp->gkStore_getLibrary(j)->libraryName));
+
+    fclose(F);
   }
 
-  //  Gatekeeper never dies.  We're always successful.  Maybe we
-  //  should die only on very serious errors.
-  //
-  //  This particular error indicates either a library record didn't
-  //  load properly, or your input frags might have a serious problem.
-  //
-  int   fatal = 0;
+  //  Deal with errors.
 
+  uint32 nerrs = 0;
+
+  for (uint32 i=0; i<AS_GKP_NUM_ERRORS; i++)
+    nerrs += errorCs[i];
+
+  if (nerrs == 0) {
+    fprintf(stderr, "GKP finished with no alerts or errors.\n\n");
+    return(0);
+  }
+
+  fprintf(stderr, "GKP finished with %d alerts or errors:\n", nerrs);
+
+  for (uint32 i=0; i<AS_GKP_NUM_ERRORS; i++)
+    if (errorCs[i])
+      fprintf(stderr, "%d\t%s", errorCs[i], errorSs[i]);
+
+  fprintf(stderr, "\n");
+
+  //  Gatekeeper never dies.  We're always successful.  Maybe we should die only on very serious
+  //  errors.
+
+  bool   fatal = false;
+
+  //  This particular error indicates either a library record didn't load properly, or your input
+  //  frags might have a serious problem.
+  //
   if ((errorCs[AS_GKP_FRG_UNKNOWN_LIB]))
-    fatal = 1;
+    fatal = true;
+
+  //  If any of the per-library errors are set, fail if they are a significant fraction of the
+  //  library.  Currently, only FASTQ libraries set these.  Currently, we do not know the number of
+  //  reads per library without scanning the entire store.
+  //
+  for (uint32 ll=1; ll < libError.size(); ll++) {
+    uint32  nf = stats->numActivePerLib[ll] + stats->numDeletedPerLib[ll];
+    uint32  ne = 0;
+
+    for (uint32 i=0; i < AS_GKP_NUM_ERRORS; i++)
+      ne += libError[ll].errorCs[i];
+
+    if (ne >= nf * 0.05) {
+      fprintf(stderr, "ERROR: library IID %u '%s' has %.2f%% errors or warnings.\n", ll, gkp->gkStore_getLibrary(ll)->libraryName, 100.0 * ne / nf);
+      fatal = true;
+    } else if (ne > 0) {
+      fprintf(stderr, "WARNING: library IID %u '%s' has %.2f%% errors or warnings.\n", ll, gkp->gkStore_getLibrary(ll)->libraryName, 100.0 * ne / nf);
+    }
+  }
+
+  delete stats;
+  delete gkp;
 
   return(fatal);
 }

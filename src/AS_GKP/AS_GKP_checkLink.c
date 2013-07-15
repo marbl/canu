@@ -42,7 +42,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //  Check that the fragments are different
   //
   if (AS_UID_compare(lkg_mesg->frag1, lkg_mesg->frag2) == 0) {
-    AS_GKP_reportError(AS_GKP_LKG_SELF_LINK,
+    AS_GKP_reportError(AS_GKP_LKG_SELF_LINK, 0,
                        AS_UID_toString(lkg_mesg->frag1));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->inf.lkgErrors++;
@@ -52,7 +52,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //  Check that it's a currently supported link type
   //
   if (lkg_mesg->type.isMatePair() == false) {
-    AS_GKP_reportError(AS_GKP_LKG_UNSUPPORTED_TYPE,
+    AS_GKP_reportError(AS_GKP_LKG_UNSUPPORTED_TYPE, 0,
                        lkg_mesg->type.toLetter(),
                        AS_UID_toString(lkg_mesg->frag1),
                        AS_UID_toString(lkg_mesg->frag2), AS_UID_toString(lkg_mesg->distance));
@@ -66,7 +66,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //
   frag1IID = gkpStore->gkStore_getUIDtoIID(lkg_mesg->frag1, NULL);
   if (frag1IID == 0) {
-    AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST,
+    AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST, 0,
                        AS_UID_toString(lkg_mesg->frag1));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->inf.lkgErrors++;
@@ -75,7 +75,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
   frag2IID = gkpStore->gkStore_getUIDtoIID(lkg_mesg->frag2, NULL);
   if (frag2IID == 0) {
-    AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST,
+    AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST, 0,
                        AS_UID_toString(lkg_mesg->frag2));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->inf.lkgErrors++;
@@ -95,7 +95,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //  Make sure they're not deleted
   //
   if (gkFrag1->gkFragment_getIsDeleted()) {
-    AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED,
+    AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED, 0,
                        AS_UID_toString(lkg_mesg->frag1));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->inf.lkgErrors++;
@@ -103,7 +103,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   }
 
   if (gkFrag2->gkFragment_getIsDeleted()) {
-    AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED,
+    AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED, 0,
                        AS_UID_toString(lkg_mesg->frag2));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->inf.lkgErrors++;
@@ -116,14 +116,14 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     int err = 0;
 
     if ((gkFrag1->gkFragment_getMateIID() > 0) && (gkFrag1->gkFragment_getMateIID() != frag2IID)) {
-      AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED,
+      AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED, 0,
                          AS_UID_toString(gkFrag1->gkFragment_getReadUID()), gkFrag1->gkFragment_getReadIID(),
                          gkFrag1->gkFragment_getMateIID(),
                          AS_UID_toString(lkg_mesg->frag2), frag2IID);
       err++;
     }
     if ((gkFrag2->gkFragment_getMateIID() > 0) && (gkFrag2->gkFragment_getMateIID() != frag1IID)) {
-      AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED,
+      AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED, 0,
                          AS_UID_toString(gkFrag2->gkFragment_getReadUID()), gkFrag2->gkFragment_getReadIID(),
                          gkFrag2->gkFragment_getMateIID(),
                          AS_UID_toString(lkg_mesg->frag1), frag1IID);
@@ -158,7 +158,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     gkFrag2->gkFragment_setLibraryIID(gkFrag1->gkFragment_getLibraryIID());
 
     if (gkFrag1->gkFragment_getLibraryIID() == 0) {
-      AS_GKP_reportError(AS_GKP_LKG_LIB_DOESNT_EXIST,
+      AS_GKP_reportError(AS_GKP_LKG_LIB_DOESNT_EXIST, 0,
                          AS_UID_toString(lkg_mesg->distance));
       if (lkg_mesg->action == AS_ADD)
         gkpStore->inf.lkgErrors++;
@@ -189,7 +189,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //  Now make absolutely sure the two reads are in the same library.
   //
   if (gkFrag1->gkFragment_getLibraryIID() != gkFrag2->gkFragment_getLibraryIID()) {
-    AS_GKP_reportError(AS_GKP_LKG_DIFFERENT_LIB,
+    AS_GKP_reportError(AS_GKP_LKG_DIFFERENT_LIB, 0,
                        frag1IID, gkFrag1->gkFragment_getLibraryIID(),
                        frag2IID, gkFrag2->gkFragment_getLibraryIID());
     if (lkg_mesg->action == AS_ADD)
@@ -208,7 +208,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   uint64  orient = gkpStore->gkStore_getLibrary(gkFrag1->gkFragment_getLibraryIID())->orientation;
 
   if (orient == AS_READ_ORIENT_UNKNOWN) {
-    AS_GKP_reportError(AS_GKP_LKG_UNMATED_LIB,
+    AS_GKP_reportError(AS_GKP_LKG_UNMATED_LIB, 0,
                        frag1IID, frag2IID, gkFrag1->gkFragment_getLibraryIID());
     if (lkg_mesg->action == AS_ADD)
       gkpStore->inf.lkgErrors++;
@@ -217,7 +217,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
   if ((orient != gkFrag1->gkFragment_getOrientation()) ||
       (orient != gkFrag2->gkFragment_getOrientation())) {
-    AS_GKP_reportError(AS_GKP_LKG_DIFFERENT_ORIENT,
+    AS_GKP_reportError(AS_GKP_LKG_DIFFERENT_ORIENT, 0,
                        frag1IID,gkFrag1->gkFragment_getOrientation(),
                        frag2IID, gkFrag1->gkFragment_getOrientation(),
                        gkFrag1->gkFragment_getLibraryIID(), orient);
@@ -248,7 +248,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     gkpStore->gkStore_setFragment(gkFrag1);
     gkpStore->gkStore_setFragment(gkFrag2);
   } else {
-    AS_GKP_reportError(AS_GKP_LKG_UNKNOWN_ACTION);
+    AS_GKP_reportError(AS_GKP_LKG_UNKNOWN_ACTION, 0);
     return 1;
   }
 

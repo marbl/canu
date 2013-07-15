@@ -35,6 +35,7 @@ SOURCES = AS_PER_genericStore.C \
           AS_PER_gkStore_fragments.C \
           AS_PER_gkStore_load.C \
           AS_PER_gkStore_partition.C \
+          AS_PER_gkStore_stats.C \
           AS_PER_gkStream.C \
           AS_PER_encodeSequenceQuality.C
 

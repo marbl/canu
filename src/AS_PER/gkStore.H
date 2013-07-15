@@ -304,4 +304,30 @@ private:
   friend class gkClearRange;
 };
 
+
+class gkStoreStats {
+public:
+  gkStoreStats(char const *gkStoreName);
+  gkStoreStats(gkStore *gkp);
+  ~gkStoreStats();
+
+  void    init(gkStore *gkp);
+
+  uint32  numActiveFrag;
+  uint32  numDeletedFrag;
+  uint32  numMatedFrag;
+  uint64  readLength;
+  uint64  clearLength;
+
+  uint32  *lowestIID;
+  uint32  *highestIID;
+
+  uint32  *numActivePerLib;
+  uint32  *numDeletedPerLib;
+  uint32  *numMatedPerLib;
+  uint64  *readLengthPerLib;
+  uint64  *clearLengthPerLib;
+};
+
+
 #endif

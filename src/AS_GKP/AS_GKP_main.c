@@ -702,7 +702,7 @@ main(int argc, char **argv) {
    
     switch (dump) {
       case DUMP_INFO:
-        dumpGateKeeperInfo(gkpStoreName, dumpTabular, dumpDoNotUseUIDs);
+        dumpGateKeeperInfo(gkpStoreName, dumpTabular);
         break;
       case DUMP_LIBRARIES:
         dumpGateKeeperLibraries(gkpStoreName, begIID, endIID, iidToDump, dumpTabular, dumpDoNotUseUIDs);
@@ -847,7 +847,7 @@ main(int argc, char **argv) {
         //  Ignore
       } else {
         //  Ignore messages we don't understand
-        AS_GKP_reportError(AS_GKP_UNKNOWN_MESSAGE, MessageTypeName[pmesg->t]);
+        AS_GKP_reportError(AS_GKP_UNKNOWN_MESSAGE, 0, MessageTypeName[pmesg->t]);
       }
     }
 
@@ -876,5 +876,8 @@ main(int argc, char **argv) {
   if (fastqUIDmap)
     fclose(fastqUIDmap);
 
-  return(AS_GKP_summarizeErrors());
+  fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
+
+  return(AS_GKP_summarizeErrors(gkpStoreName));
 }
