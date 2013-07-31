@@ -468,7 +468,7 @@ unitigConsensus::computePositionFromParent(bool doContained) {
     double   parentScale = (double)(cnspos[piid].end - cnspos[piid].bgn) / (double)(utgpos[piid].end - utgpos[piid].bgn);
 
     if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
-      fprintf(stderr, "computePositionFromParent()--  frag %u in parent %u -- hangs %d,%d -- scale %f -- final hangs %d,%d\n",
+      fprintf(stderr, "computePositionFromParent()--  frag %u in parent %u -- hangs %d,%d -- scale %f -- final hangs %.0f,%.0f\n",
               fraglist[tiid].ident,
               fraglist[piid].ident,
               fraglist[tiid].ahang,
@@ -479,6 +479,26 @@ unitigConsensus::computePositionFromParent(bool doContained) {
 
     cnspos[tiid].bgn = cnspos[piid].bgn + fraglist[tiid].ahang * parentScale;
     cnspos[tiid].end = cnspos[piid].end + fraglist[tiid].bhang * parentScale;
+
+    //  Hmmm, but if we shrank the read too much, add back in some of the length.  We want to end up
+    //  with the read scaled by parentScale, and centered on the hangs.
+
+    uint32   fragmentLength = utgpos[tiid].end - utgpos[tiid].bgn;
+
+    if ((cnspos[tiid].bgn >= cnspos[tiid].end) ||
+        (cnspos[tiid].end - cnspos[tiid].bgn < 0.75 * fragmentLength)) {
+      uint32  center = (cnspos[tiid].bgn + cnspos[tiid].end) / 2;
+
+      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT) {
+        fprintf(stderr, "computePositionFromParent()--  frag %u in parent %u -- too short.  reposition around center %u with adjusted length %.0f\n",
+                fraglist[tiid].ident,
+                fraglist[piid].ident,
+                center, fragmentLength * parentScale);
+      }
+
+      cnspos[tiid].bgn = center - fragmentLength * parentScale / 2;
+      cnspos[tiid].end = center + fragmentLength * parentScale / 2;
+    }
 
     assert(cnspos[tiid].bgn < cnspos[tiid].end);
 
