@@ -48,6 +48,10 @@ static char *rcsid = "$Id: Input_CGW.c,v 1.83 2012-11-13 18:42:28 brianwalenz Ex
 #define CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH 1000
 
 
+//  For each unitig, write logging on the repeat/unique decision.
+#undef LOG_REPEAT_UNIQUE_LABELING
+
+
 //  Stats on repeat labeling of input unitigs.
 //
 class ruLabelStat {
@@ -119,16 +123,25 @@ ProcessInputUnitig(MultiAlignT *uma) {
 
   int  isUnique     = TRUE;
 
+
+  //fprintf(stderr, "unitig %d "F_SIZE_T" reads %d length\n",
+  //        uma->maID, GetNumIntMultiPoss(uma->f_list), length);
+
+
   if (GetNumIntMultiPoss(uma->f_list) < CGW_MIN_READS_IN_UNIQUE) {
-    //fprintf(stderr, "unitig %d not unique -- "F_SIZE_T" reads, need at least %d\n",
-    //         uma->maID, GetNumIntMultiPoss(uma->f_list), CGW_MIN_READS_IN_UNIQUE);
+#ifdef LOG_REPEAT_UNIQUE_LABELING
+    fprintf(stderr, "unitig %d not unique -- "F_SIZE_T" reads, need at least %d\n",
+             uma->maID, GetNumIntMultiPoss(uma->f_list), CGW_MIN_READS_IN_UNIQUE);
+#endif
     repeat_LowReads += length;
     isUnique = FALSE;
   }
 
   if (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff) {
-    //fprintf(stderr, "unitig %d not unique -- coverage stat %d, needs to be at least %d\n",
-    //        uma->maID, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbUniqueCutoff);
+#ifdef LOG_REPEAT_UNIQUE_LABELING
+    fprintf(stderr, "unitig %d not unique -- coverage stat %d, needs to be at least %d\n",
+            uma->maID, ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbUniqueCutoff);
+#endif
     repeat_LowCovStat += length;
     isUnique = FALSE;
   }
@@ -139,13 +152,20 @@ ProcessInputUnitig(MultiAlignT *uma) {
   //  cgbDefinitelyUniqueCutoff.
    if ((ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbUniqueCutoff * 10) &&
       (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH)) {
+#ifdef LOG_REPEAT_UNIQUE_LABELING
+    fprintf(stderr, "unitig %d not unique -- length %d too short, need to be at least %d AND coverage stat %d must be larger than %d\n",
+            uma->maID, length, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH,
+            ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbUniqueCutoff * 10);
+#endif
     repeat_Short += length;
     isUnique = FALSE;
   }
 #else
   if (length < CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH) {
-    //fprintf(stderr, "unitig %d not unique -- length %d too short, need to be at least %d\n",
-    //        uma->maID, length, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH);
+#ifdef LOG_REPEAT_UNIQUE_LABELING
+    fprintf(stderr, "unitig %d not unique -- length %d too short, need to be at least %d\n",
+            uma->maID, length, CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH);
+#endif
     repeat_Short += length;
     isUnique = FALSE;
   }
@@ -158,20 +178,33 @@ ProcessInputUnitig(MultiAlignT *uma) {
   //            cgbApplyMicrohetCutoff = -1
   if ((ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID) < GlobalData->cgbMicrohetProb) &&
       (ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID) < GlobalData->cgbApplyMicrohetCutoff)) {
-    //fprintf(stderr, "unitig %d not unique -- low microhetprob %f (< %f) and low coverage stat %d (< %d)\n",
-    //        uma->maID,
-    //        ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb,
-    //        ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbApplyMicrohetCutoff);
+#ifdef LOG_REPEAT_UNIQUE_LABELING
+    fprintf(stderr, "unitig %d not unique -- low microhetprob %f (< %f) and low coverage stat %d (< %d)\n",
+            uma->maID,
+            ScaffoldGraph->tigStore->getUnitigMicroHetProb(uma->maID), GlobalData->cgbMicrohetProb,
+            ScaffoldGraph->tigStore->getUnitigCoverageStat(uma->maID), GlobalData->cgbApplyMicrohetCutoff);
+#endif
     repeat_MicroHet += length;
     isUnique = FALSE;
   }
 
   // allow flag to overwrite what the default behavior for a chunk and force it to be unique or repeat
 
-  if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_UNIQUE)
+  if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_UNIQUE) {
+#ifdef LOG_REPEAT_UNIQUE_LABELING
+    fprintf(stderr, "unitig %d forced unique\n",
+            uma->maID);
+#endif
     isUnique = TRUE;
-  if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_REPEAT)
+  }
+
+  if (ScaffoldGraph->tigStore->getUnitigFUR(CI.id) == AS_FORCED_REPEAT) {
+#ifdef LOG_REPEAT_UNIQUE_LABELING
+    fprintf(stderr, "unitig %d forced repeat\n",
+            uma->maID);
+#endif
     isUnique = FALSE;
+  }
 
   if (isUnique) {
     CI.flags.bits.isUnique = 1;
