@@ -368,9 +368,6 @@ sub setDefaults () {
 
     #####  Overlap Based Trimming
 
-    $global{"perfectTrimming"}             = undef;  #  SECRET!
-    $synops{"perfectTrimming"}             = undef;  #  SECRET!
-
     $global{"doOverlapBasedTrimming"}      = 1;
     $synops{"doOverlapBasedTrimming"}      = "Enable the Overlap Based Trimming module (doOBT and doOverlapTrimming are aliases)";
 
@@ -662,6 +659,9 @@ sub setDefaults () {
 
     $global{"cleanup"}                     = "none";
     $synops{"cleanup"}                     = "At the end of a successful assembly, remove none/some/many/all of the intermediate files";
+
+    $global{"dumpFASTQ"}                   = undef;
+    $synops{"dumpFASTQ"}                   = "At the end of a successful assembly, output final reads in FASTQ format";
 
     #####  Options for toggling assembly. 
 
@@ -1643,124 +1643,18 @@ sub schedulerFinish {
 ################################################################################
 ################################################################################
 
-sub perfectTrimming {
-    my $gkpStore = "$wrk/$asm.gkpStore";
-    my $refFasta = getGlobal("perfectTrimming");
+sub dumpInfo {
+    if (! -e "$wrk/$asm.gkpStore.info") {
+        $cmd  = "$bin/gatekeeper ";
+        $cmd .= " -dumpinfo -tabular $wrk/$asm.gkpStore ";
+        $cmd .= ">  $wrk/$asm.gkpStore.info ";
+        $cmd .= "2> $wrk/$asm.gkpStore.info.err";
 
-    return if (!defined($refFasta));
-
-    setGlobal("doOverlapBasedTrimming", 0);
-
-    die "Can't find gkpStore '$gkpStore'\n"  if (! -d $gkpStore);
-    die "Can't find reference '$refFasta'\n" if (! -e $refFasta);
-
-    my $kmer;
-    {
-        my @p = split '/', $bin;
-        my $l = scalar(@p);
-
-        $p[$l]   = $p[$l-1];
-        $p[$l-1] = $p[$l-2];
-        $p[$l-2] = "kmer";
-
-        $kmer = join '/', @p;
-    }
-
-    if (! -e "$gkpStore/reads.fasta") {
-        runCommand($wrk, "$bin/gatekeeper -dumpfastaseq -clear untrim $gkpStore > $gkpStore/reads.fasta") and die;
-    }
-
-    if (! -e "$gkpStore/reads.sim4db") {
-        #  #1 cov 25 iden 90 sucka
-        #  #2 cov 80 iden 96 is nice
-        #  #3 cov 25 iden 94 better than #1, but still sucky
-        #  #4 cov 80 iden 94 same as #3
-        #  #5 cov 80 iden 95
-        #  #6 cov 25 iden 96
-        #  #7 cov 25 iden 97
-        #  #8 cov 25 iden 98
-        $cmd  = "$kmer/snapper2";
-        $cmd .= " -queries $gkpStore/reads.fasta";
-        $cmd .= " -genomic $refFasta";
-        $cmd .= " -minhitlength 0";
-        $cmd .= " -minhitcoverage 0";
-        $cmd .= " -discardexonlength 40";
-        $cmd .= " -minmatchcoverage 25";
-        $cmd .= " -minmatchidentity 98";
-        $cmd .= " -verbose";
-        $cmd .= " -numthreads 1";
-        $cmd .= " > $gkpStore/reads.sim4db";
-
-        runCommand($wrk, $cmd) and die;
-    }
-
-    if (! -e "$gkpStore/reads.extent") {
-        runCommand($wrk, "$kmer/pickBestPolish < $gkpStore/reads.sim4db | $kmer/convertToExtent > $gkpStore/reads.extent") and die;
-    }
-
-    if (! -e "$gkpStore/reads.update") {
-        my %mapBeg;
-        my %mapEnd;
-
-        my %allReads;
-        my %allMates;
-
-        #  Read the reads and mates
-        #
-        open(F, "$bin/gatekeeper -dumpfragments -tabular -clear OBT $gkpStore |");
-        $_ = <F>;  #  header line
-        while (<F>) {
-            my @v = split '\s+', $_;
-            $allReads{$v[1]}++;
-            $allMates{$v[1]} = $v[3];
+        if (runCommand($wrk, $cmd)) {
+            caWarn("gatekeeper -dumpinfo failed", "$wrk/$asm.gkpStore.info.err");
         }
-        close(F);
-
-        #  Read the mapping
-        #
-        open(F, "< $gkpStore/reads.extent");
-        while (<F>) {
-            my @v = split '\s+', $_;
-
-            (undef, $v[0]) = split ',', $v[0];
-
-            if ($v[3] < $v[4]) {
-                $mapBeg{$v[0]} = $v[3];
-                $mapEnd{$v[0]} = $v[4];
-            } else {
-                $mapBeg{$v[0]} = $v[4];
-                $mapEnd{$v[0]} = $v[3];
-            }
-        }
-        close(F);
-
-        #  Update the gkpStore
-        #
-        open(F, "> $gkpStore/reads.update");
-        foreach my $k (keys %allReads) {
-            my $mapLen = $mapEnd{$k} - $mapBeg{$k};
-
-            if ($mapLen < 64) {
-                print F "frg iid $k isdeleted t\n";
-                if ($allMates{$k} > 0) {
-                    print F "frg iid $k mateiid 0\n";
-                    print F "frg iid $allMates{$k} mateiid 0\n";
-                }
-            } else {
-                print F "frg iid $k orig   $mapBeg{$k} $mapEnd{$k}\n";
-                print F "frg iid $k obtini $mapBeg{$k} $mapEnd{$k}\n";
-                print F "frg iid $k obt    $mapBeg{$k} $mapEnd{$k}\n";
-            }
-        }
-        close(F);
-    }
-
-    if (! -e "$gkpStore/reads.updated") {
-        runCommand($wrk, "$bin/gatekeeper --edit $gkpStore/reads.update $gkpStore > $gkpStore/reads.update.out 2> $gkpStore/reads.update.err") and die;
-        touch "$gkpStore/reads.updated";
     }
 }
-
 
 sub preoverlap {
     my @fragFiles = @_;
@@ -1843,11 +1737,13 @@ sub preoverlap {
         }
 
         rename "$wrk/$asm.gkpStore.BUILDING",             "$wrk/$asm.gkpStore";
+        rename "$wrk/$asm.gkpStore.BUILDING.info",        "$wrk/$asm.gkpStore.info";
         rename "$wrk/$asm.gkpStore.BUILDING.errorLog",    "$wrk/$asm.gkpStore.errorLog";
         rename "$wrk/$asm.gkpStore.BUILDING.fastqUIDmap", "$wrk/$asm.gkpStore.fastqUIDmap";
     }
 
-    perfectTrimming();
+    #  This should never run; the info is now created by gatekeeper.
+    dumpInfo();
 
     generateVectorTrim();
 
@@ -5681,22 +5577,16 @@ sub terminate () {
     if (! -e "$termDir/$asm.qc") {
         my $qcOptions;
 
-        #if (! -e "$termDir/$asm.dumpinfo") {
-        #    if (runCommand($termDir, "$bin/gatekeeper -dumpinfo $wrk/$asm.gkpStore > $termDir/$asm.gkpinfo 2> $termDir/$asm.gkpinfo.err")) {
-        #        unlink "$termDir/$asm.gkpinfo";
-        #    }
-        #    unlink "$termDir/$asm.gkpinfo.err";
-        #}
-    	if ( -e "$wrk/$asm.frg" ) {
+        if ( -e "$wrk/$asm.frg" ) {
             link "$wrk/$asm.frg", "$termDir/$asm.frg";
             $qcOptions = "-metrics";
-	}
-    	if ( -e "$wrk/$asm.catmap" && !-e "$termDir/$asm.catmap" )  {
+        }
+        if ( -e "$wrk/$asm.catmap" && !-e "$termDir/$asm.catmap" )  {
             link "$wrk/$asm.catmap", "$termDir/$asm.catmap";
-	}
-    	if ( -e "$wrk/$asm.seq.features" && !-e "$termDir/$asm.seq.features" )  {
+        }
+        if ( -e "$wrk/$asm.seq.features" && !-e "$termDir/$asm.seq.features" )  {
             link "$wrk/$asm.seq.features", "$termDir/$asm.seq.features";
-	}
+        }
         if (runCommand("$termDir", "$perl $bin/caqc.pl -euid $qcOptions $termDir/$asm.asm")) {
             rename "$termDir/$asm.qc", "$termDir/$asm.qc.FAILED";
         }
@@ -5872,6 +5762,45 @@ sub terminate () {
             }
         }
     }
+
+    ########################################
+    #
+    #  FASTQ dump
+    #
+    ########################################
+
+    dumpInfo();
+
+    if ((getGlobal("dumpFASTQ") > 0) &&
+        (-e "$wrk/$asm.gkpStore.info")) {
+
+        open(I, "< $wrk/$asm.gkpStore.info");
+        while (<I>) {
+            my ($libIID, $bgnIID, $endIID, $active, $deleted, $mated, $totLen, $clrLen, $libName) = split '\s+', $_;
+
+            if ($libIID > 0) {
+                my $prefix = sprintf "$wrk/9-terminator/$asm.lib.%03d.$libName", $libIID;
+
+                if (! -e "$prefix.unmated.fastq") {
+                    $cmd  = "$bin/gatekeeper ";
+                    $cmd .= " -randomsubset $libIID 1.0 ";
+                    $cmd .= " -dumpfastq $prefix ";
+                    $cmd .= " $wrk/$asm.gkpStore ";
+                    $cmd .= "> $prefix.err 2>&1";
+
+                    runCommand($termDir, $cmd);
+                }
+            }
+        }
+        close(I);
+    }
+
+
+    ########################################
+    #
+    #  Link into the work directory
+    #
+    ########################################
 
     unlink "$wrk/$asm.asm";
     unlink "$wrk/$asm.qc";
