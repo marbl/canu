@@ -119,8 +119,8 @@ ifeq ($(OSTYPE), FreeBSD)
     ARCH_LDFLAGS += -D_GLIBCXX_PARALLEL -fopenmp -rpath /usr/local/lib/gcc46
   endif
 
-  ARCH_CFLAGS  += -g3 -DLIBUNWIND -I/usr/local/include
-  ARCH_LDFLAGS += -g3             -L/usr/local/lib -lunwind -lunwind-x86_64
+  ARCH_CFLAGS  += -DLIBUNWIND -I/usr/local/include
+  ARCH_LDFLAGS +=             -L/usr/local/lib -lunwind -lunwind-x86_64
 
   ifeq ($(BUILDDEBUG), 1)
     #  Inconveniently fix a problem where gcc46 doesn't work with gdb.
