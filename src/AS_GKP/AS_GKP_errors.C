@@ -207,7 +207,7 @@ AS_GKP_reportError(int error, uint32 libIID, ...) {
 
   errorCs[error]++;
 
-  if (libError.size() < libIID)
+  if (libError.size() <= libIID)
     libError.resize(libIID + 1);
 
   libError[libIID].errorCs[error]++;
