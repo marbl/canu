@@ -483,14 +483,14 @@ unitigConsensus::computePositionFromParent(bool doContained) {
     //  Hmmm, but if we shrank the read too much, add back in some of the length.  We want to end up
     //  with the read scaled by parentScale, and centered on the hangs.
 
-    uint32   fragmentLength = utgpos[tiid].end - utgpos[tiid].bgn;
+    int32   fragmentLength = utgpos[tiid].end - utgpos[tiid].bgn;
 
     if ((cnspos[tiid].bgn >= cnspos[tiid].end) ||
         (cnspos[tiid].end - cnspos[tiid].bgn < 0.75 * fragmentLength)) {
-      uint32  center = (cnspos[tiid].bgn + cnspos[tiid].end) / 2;
+      int32  center = (cnspos[tiid].bgn + cnspos[tiid].end) / 2;
 
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT) {
-        fprintf(stderr, "computePositionFromParent()--  frag %u in parent %u -- too short.  reposition around center %u with adjusted length %.0f\n",
+        fprintf(stderr, "computePositionFromParent()--  frag %u in parent %u -- too short.  reposition around center %d with adjusted length %.0f\n",
                 fraglist[tiid].ident,
                 fraglist[piid].ident,
                 center, fragmentLength * parentScale);
@@ -498,6 +498,14 @@ unitigConsensus::computePositionFromParent(bool doContained) {
 
       cnspos[tiid].bgn = center - fragmentLength * parentScale / 2;
       cnspos[tiid].end = center + fragmentLength * parentScale / 2;
+
+      //  We seem immune to having a negative position.  We only use this to pull out a region from
+      //  the partial consensus to align to.
+      //
+      //if (cnspos[tiid].bgn < 0) {
+      //  cnspos[tiid].bgn = 0;
+      //  cnspos[tiid].end = fragmentLength * parentScale;
+      //}
     }
 
     assert(cnspos[tiid].bgn < cnspos[tiid].end);
