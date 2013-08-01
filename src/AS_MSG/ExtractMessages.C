@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ExtractMessages.c,v 1.16 2008-10-08 22:02:57 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

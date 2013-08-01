@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_INSERT_SIZES
 #define INCLUDE_AS_INSERT_SIZES
 
-static const char *rcsid_INCLUDE_AS_BOG_INSERTSIZES = "$Id: AS_BOG_InsertSizes.hh,v 1.2 2010-10-01 13:10:37 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_INSERTSIZES = "$Id$";
 
 #include "AS_BOG_Datatypes.H"
 

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_CHUNKGRAPH
 #define INCLUDE_AS_BAT_CHUNKGRAPH
 
-static const char *rcsid_INCLUDE_AS_BAT_CHUNKGRAPH = "$Id: AS_BAT_ChunkGraph.H,v 1.2 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_CHUNKGRAPH = "$Id$";
 
 #include "AS_BAT_Datatypes.H"
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: MultiAlignUnitig.c,v 1.53 2012-07-26 15:11:42 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include "AS_global.H"
 #include "MultiAlignment_CNS.H"

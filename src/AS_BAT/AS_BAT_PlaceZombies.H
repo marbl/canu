@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_PLACEZOMBIES
 #define INCLUDE_AS_BAT_PLACEZOMBIES
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEZOMBIES = "$Id: AS_BAT_PlaceZombies.H,v 1.3 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEZOMBIES = "$Id$";
 
 void
 placeZombies(UnitigVector &unitigs, double erate, double elimit);

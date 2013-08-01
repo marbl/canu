@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_bogusUtil.C,v 1.14 2013-03-29 13:03:42 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BAT_bogusUtil.H"
 

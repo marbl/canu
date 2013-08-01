@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid= "$Id: AS_MSG_pmesg.c,v 1.57 2011-05-23 04:57:25 brianwalenz Exp $";
+static char *rcsid= "$Id$";
 
 #include "AS_MSG_pmesg_internal.H"
 

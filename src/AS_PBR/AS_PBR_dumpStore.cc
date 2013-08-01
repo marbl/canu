@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-const char *mainid = "$Id: AS_PBR_dumpStore.cc,v 1.1 2012-08-20 13:10:37 skoren Exp $";
+const char *mainid = "$Id$";
 
 using namespace std;
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.8 2012-08-28 21:09:39 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include "GraphCGW_T.H"
 #include "ScaffoldGraph_CGW.H"

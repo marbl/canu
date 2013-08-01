@@ -22,7 +22,7 @@
 #ifndef STATS_CGW_H
 #define STATS_CGW_H
 
-static const char *rcsid_STATS_CGW_H = "$Id: Stats_CGW.h,v 1.8 2009-02-02 13:51:14 brianwalenz Exp $";
+static const char *rcsid_STATS_CGW_H = "$Id$";
 
 void GenerateCIGraphStats(void);
 void GenerateCIGraph_U_Stats(void);

@@ -20,7 +20,7 @@
 #ifndef MULTIALIGNSIZEANALYSIS
 #define MULTIALIGNSIZEANALYSIS
 
-static const char *rcsid_MULTIALIGNSIZEANALYSIS = "$Id: MultiAlignSizeAnalysis.H,v 1.2 2012-06-26 14:08:30 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNSIZEANALYSIS = "$Id$";
 
 #include "AS_global.H"
 #include "AS_PER_gkpStore.H"

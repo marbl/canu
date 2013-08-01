@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: dumpSingletons.c,v 1.35 2010-03-22 20:07:47 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

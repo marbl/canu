@@ -22,7 +22,7 @@
 #ifndef WPACK_H
 #define WPACK_H
 
-static const char *rcsid_WPACK_H = "$Id: wpack.h,v 1.6 2008-10-08 22:03:02 brianwalenz Exp $";
+static const char *rcsid_WPACK_H = "$Id$";
 
 /*
   Minimal Retargetable Window Package

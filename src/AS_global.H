@@ -25,7 +25,7 @@
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
-static const char *rcsid_AS_GLOBAL_H = "$Id: AS_global.h,v 1.57 2013-02-22 12:18:52 brianwalenz Exp $";
+static const char *rcsid_AS_GLOBAL_H = "$Id$";
 
 //  ISO C99 says that to get INT32_MAX et al, these must be defined. (7.18.2, 7.18.4, 7.8.1)
 #ifndef __STDC_CONSTANT_MACROS

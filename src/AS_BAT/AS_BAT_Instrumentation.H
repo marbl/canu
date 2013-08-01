@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_INSTRUMENTATION
 #define INCLUDE_AS_BAT_INSTRUMENTATION
 
-static const char *rcsid_INCLUDE_AS_BAT_INSTRUMENTATION = "$Id: AS_BAT_Instrumentation.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_INSTRUMENTATION = "$Id$";
 
 
 void           checkUnitigMembership(UnitigVector &unitigs);

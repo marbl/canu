@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: UnionFind_AS.c,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include <stdlib.h>
 #include "UnionFind_AS.H"

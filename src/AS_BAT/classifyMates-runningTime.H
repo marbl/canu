@@ -20,7 +20,7 @@
 #ifndef CLASSIFYMATES_RUNNINGTIME_H
 #define CLASSIFYMATES_RUNNINGTIME_H
 
-static const char *rcsid_CLASSIFYMATES_RUNNINGTIME_H = "$Id: classifyMates-runningTime.H,v 1.1 2011-08-22 16:44:19 brianwalenz Exp $";
+static const char *rcsid_CLASSIFYMATES_RUNNINGTIME_H = "$Id$";
 
 #include <stdio.h>
 #include <math.h>

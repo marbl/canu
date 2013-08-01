@@ -22,7 +22,7 @@
 #ifndef GRAPH_CGW_H
 #define GRAPH_CGW_H
 
-static const char *rcsid_GRAPH_CGW_H = "$Id: GraphCGW_T.h,v 1.65 2012-09-10 10:55:44 brianwalenz Exp $";
+static const char *rcsid_GRAPH_CGW_H = "$Id$";
 
 #include "AS_UTL_Var.H"
 #include "AS_CGW_dataTypes.H"

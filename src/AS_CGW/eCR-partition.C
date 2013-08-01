@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: eCR-partition.C,v 1.3 2009-10-05 22:49:42 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "eCR.H"
 #include "ScaffoldGraph_CGW.H"

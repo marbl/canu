@@ -22,7 +22,7 @@
 #ifndef AS_UTL_STACKTRACE_H
 #define AS_UTL_STACKTRACE_H
 
-static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.3 2013/03/29 13:08:07 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id$";
 
 #include "AS_global.H"
 

@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: BuildUnitigs.cc,v 1.88 2012-01-15 23:49:34 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_BOG_Datatypes.H"
 #include "AS_BOG_ChunkGraph.H"

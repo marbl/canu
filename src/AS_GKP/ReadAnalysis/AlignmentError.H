@@ -22,7 +22,7 @@
 #ifndef ALIGNMENTERROR_H
 #define ALIGNMENTERROR_H
 
-static const char* rcsid_ALIGNMENTERROR_H = "$Id: AlignmentError.h,v 1.3 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTERROR_H = "$Id$";
 
 #include <cstdio>
 #include <cstdlib>

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_FragmentInfo.C,v 1.5 2012-08-06 23:32:32 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BAT_Datatypes.H"
 

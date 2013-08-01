@@ -22,7 +22,7 @@
 #ifndef AS_UTL_FILEIO_H
 #define AS_UTL_FILEIO_H
 
-static const char *rcsid_AS_UTL_FILEIO_H = "$Id: AS_UTL_fileIO.h,v 1.12 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_FILEIO_H = "$Id$";
 
 #include "AS_global.H"
 

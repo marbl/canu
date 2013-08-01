@@ -22,7 +22,7 @@
 #ifndef INTERLEAVED_MERGING_H
 #define INTERLEAVED_MERGING_H
 
-static const char *rcsid_INTERLEAVED_MERGING_H = "$Id: InterleavedMerging.h,v 1.15 2012-05-04 05:27:33 brianwalenz Exp $";
+static const char *rcsid_INTERLEAVED_MERGING_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_Var.H"

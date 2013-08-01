@@ -22,7 +22,7 @@
 #ifndef CONSISTENCY_CHECKS_H
 #define CONSISTENCY_CHECKS_H
 
-static const char *rcsid_CONSISTENCY_CHECKS_H = "$Id: ConsistencyChecksREZ.h,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_CONSISTENCY_CHECKS_H = "$Id$";
 
 #include "DataTypesREZ.H"
 

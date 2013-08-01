@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_EVALUATEMATES
 #define INCLUDE_AS_BAT_EVALUATEMATES
 
-static const char *rcsid_INCLUDE_AS_BAT_EVALUATEMATES = "$Id: AS_BAT_EvaluateMates.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_EVALUATEMATES = "$Id$";
 
 
 void evaluateMates(UnitigVector &unitigs, const char *output_prefix, const char *name);

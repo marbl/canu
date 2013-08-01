@@ -22,7 +22,7 @@
 #ifndef AS_ALN_ALIGNERS_H
 #define AS_ALN_ALIGNERS_H
 
-static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id: AS_ALN_aligners.h,v 1.20 2011-12-04 23:46:58 brianwalenz Exp $";
+static const char *rcsid_AS_ALN_ALIGNERS_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"

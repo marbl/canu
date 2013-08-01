@@ -21,7 +21,7 @@
 #ifndef DBTextOutput_HH
 #define DBTextOutput_HH
 
-static const char *rcsid_DBTextOutput_HH = "$Id: DBTextOutput.hh,v 1.13 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_DBTextOutput_HH = "$Id$";
 
 #include "AS_global.h"
 #include "IDBOutput.hh"

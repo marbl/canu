@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapInCore-Output.C,v 1.1 2011-07-30 01:16:05 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "overlapInCore.H"
 

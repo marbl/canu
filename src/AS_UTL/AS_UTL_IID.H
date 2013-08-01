@@ -22,7 +22,7 @@
 #ifndef AS_UTL_IID_H
 #define AS_UTL_IID_H
 
-static const char *rcsid_AS_UTL_IID_H = "$Id: AS_UTL_IID.h,v 1.6 2011-07-29 16:52:18 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_IID_H = "$Id$";
 
 typedef int32  CDS_CID_t;
 #define F_CID           F_S32

@@ -24,7 +24,7 @@
 
 #include "AS_ALN_aligners.H"
 
-static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id: AS_CGB_Bubble_Popper.h,v 1.11 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid__AS_CGB_BUBBLE_POPPER_H_ = "$Id$";
 
 /* The bubble popper will REJECT bubbles with more than this many fragments! */
 #define POPPER_MAX_BUBBLE_SIZE 200

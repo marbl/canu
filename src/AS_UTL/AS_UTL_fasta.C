@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_fasta.c,v 1.11 2013-03-20 17:25:27 skoren Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_UTL_fasta.H"
 #include "AS_UTL_fileIO.H"

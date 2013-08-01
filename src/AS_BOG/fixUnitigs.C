@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fixUnitigs.c,v 1.7 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"

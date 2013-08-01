@@ -3,7 +3,7 @@
 
 #include "memoryMappedFile.H"
 
-const char *mainid = "$Id: rewriteCache.C,v 1.2 2012-07-30 01:21:01 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 uint64  ovlCacheMagic = 0x65686361436c766fLLU;  //0102030405060708LLU;
 

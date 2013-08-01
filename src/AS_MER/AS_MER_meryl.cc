@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_MER_meryl.cc,v 1.14 2009-06-10 18:05:13 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -680,7 +680,7 @@ main(int argc, char **argv) {
           outputFile = argv[arg];
           break;
         case 'V':
-          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.14 2009-06-10 18:05:13 brianwalenz Exp $\n");
+          fprintf(stdout, "version: CA $Id$\n");
           exit(0);
           break;
         default:

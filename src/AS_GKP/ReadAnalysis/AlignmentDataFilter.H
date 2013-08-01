@@ -22,7 +22,7 @@
 #ifndef ALIGNMENTDATAFILTER_H
 #define ALIGNMENTDATAFILTER_H
 
-static const char* rcsid_ALIGNMENTDATAFILTER_H = "$Id: AlignmentDataFilter.h,v 1.1 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATAFILTER_H = "$Id$";
 
 #include <cstdio>
 #include <cstdlib>

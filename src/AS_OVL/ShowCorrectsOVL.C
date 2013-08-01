@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: ShowCorrectsOVL.c,v 1.14 2011-12-29 09:26:03 brianwalenz Exp $
+ * $Id$
  * $Revision: 1.14 $
 */
 
-static char *rcsid = "$Id: ShowCorrectsOVL.c,v 1.14 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 
 //  System include files

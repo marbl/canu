@@ -26,7 +26,7 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_olapstats.h,v 1.7 2008-10-08 22:02:58 brianwalenz Exp $
+ * $Id$
  * $Revision: 1.7 $
 */
 
@@ -34,7 +34,7 @@
 #ifndef AS_OVL_OLAPSTATS_H
 #define AS_OVL_OLAPSTATS_H
 
-static const char *rcsid_AS_OVL_OLAPSTATS_H = "$Id: AS_OVL_olapstats.h,v 1.7 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_AS_OVL_OLAPSTATS_H = "$Id$";
 
 //
 // Component:

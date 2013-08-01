@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_PlaceZombies.cc,v 1.5 2010-09-30 11:32:48 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BOG_Datatypes.H"
 #include "AS_BOG_UnitigGraph.H"

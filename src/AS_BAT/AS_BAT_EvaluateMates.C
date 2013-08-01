@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_EvaluateMates.C,v 1.4 2012-07-30 01:21:01 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_MateLocation.H"

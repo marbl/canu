@@ -20,7 +20,7 @@
 #ifndef AS_UTL_MEMORYMAPPEDFILE_H
 #define AS_UTL_MEMORYMAPPEDFILE_H
 
-//static const char *rcsid = "$Id: memoryMappedFile.H,v 1.3 2012-02-20 01:53:38 brianwalenz Exp $";
+//static const char *rcsid = "$Id$";
 
 #include <sys/types.h>
 #include <fcntl.h>

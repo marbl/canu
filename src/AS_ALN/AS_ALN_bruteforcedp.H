@@ -22,7 +22,7 @@
 #ifndef AS_ALN_BRUTEFORCEDP
 #define AS_ALN_BRUTEFORCEDP
 
-static const char *rcsid_AS_ALN_BRUTEFORCEDP = "$Id: AS_ALN_bruteforcedp.h,v 1.8 2011-02-11 04:15:03 brianwalenz Exp $";
+static const char *rcsid_AS_ALN_BRUTEFORCEDP = "$Id$";
 
 
 typedef struct {

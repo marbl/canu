@@ -22,7 +22,7 @@
 #ifndef READLENGTHALIGNMENTDATAFILTER_H
 #define READLENGTHALIGNMENTDATAFILTER_H
 
-static const char* rcsid_READLENGTHALIGNMENTDATAFILTER_H = "$Id: ReadLengthAlignmentDataFilter.h,v 1.1 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_READLENGTHALIGNMENTDATAFILTER_H = "$Id$";
 
 #include <cstdio>
 #include <cstdlib>

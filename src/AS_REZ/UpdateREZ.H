@@ -22,7 +22,7 @@
 #ifndef UPDATE_REZ_H
 #define UPDATE_REZ_H
 
-static const char *rcsid_UPDATE_REZ_H = "$Id: UpdateREZ.h,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_UPDATE_REZ_H = "$Id$";
 
 #define DEBUG_UPDATE              0 // 0 no debug, 1 some, 2 more, 3 for dump scaffold contents
 

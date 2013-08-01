@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_Outputs.C,v 1.4 2012-01-15 23:49:34 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"

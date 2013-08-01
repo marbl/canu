@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SYS_UIDclient_LOCAL.c,v 1.7 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 //  A very simple, but not very good, uid "server".  Reads the next
 //  available uid from a file, and then updates the file.

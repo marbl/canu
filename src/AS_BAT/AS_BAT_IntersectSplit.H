@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_INTERSECTSPLIT
 #define INCLUDE_AS_BAT_INTERSECTSPLIT
 
-static const char *rcsid_INCLUDE_AS_BAT_INTERSECTSPLIT = "$Id: AS_BAT_IntersectSplit.H,v 1.2 2011-02-15 08:10:11 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_INTERSECTSPLIT = "$Id$";
 
 
 

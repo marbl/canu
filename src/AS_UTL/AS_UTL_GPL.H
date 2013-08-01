@@ -22,7 +22,7 @@
 #ifndef AS_UTL_GLP_H
 #define AS_UTL_GLP_H
 
-static const char *rcsid_AS_UTL_GLP_H = "$Id: AS_UTL_GPL.h,v 1.4 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_GLP_H = "$Id$";
 
 #include "AS_global.H"
 

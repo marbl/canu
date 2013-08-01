@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 
-# $Id: ca2ace.pl,v 1.9 2008-11-19 21:43:54 brianwalenz Exp $
+# $Id$
 #
 # Converts from a Celera .asm file to a new .ace file
 #

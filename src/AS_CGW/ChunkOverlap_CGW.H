@@ -22,7 +22,7 @@
 #ifndef CHUNKOVERLAP_CGW_H
 #define CHUNKOVERLAP_CGW_H
 
-static const char *rcsid_CHUNKOVERLAP_CGW_H = "$Id: ChunkOverlap_CGW.h,v 1.13 2012-08-22 06:13:35 brianwalenz Exp $";
+static const char *rcsid_CHUNKOVERLAP_CGW_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_Hash.H"

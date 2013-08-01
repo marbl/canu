@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-const char *mainid = "$Id: OutputLayout.cc,v 1.19 2012-12-27 15:17:49 skoren Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"

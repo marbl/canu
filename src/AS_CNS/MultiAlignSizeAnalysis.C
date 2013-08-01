@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignSizeAnalysis.C,v 1.2 2012-06-26 14:08:30 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "MultiAlignSizeAnalysis.H"
 

@@ -21,7 +21,7 @@
 #ifndef FIXZLFCONTIGS_H
 #define FIXZLFCONTIGS_H
 
-static const char *rcsid_FIXZLFCONTIGS_H = "$Id: fixZLFContigs.h,v 1.6 2010-08-19 05:28:07 brianwalenz Exp $";
+static const char *rcsid_FIXZLFCONTIGS_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_Var.H"

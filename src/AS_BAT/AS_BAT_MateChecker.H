@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_MATECHECKER
 #define INCLUDE_AS_BAT_MATECHECKER
 
-static const char *rcsid_INCLUDE_AS_BAT_MATECHECKER = "$Id: AS_BAT_MateChecker.H,v 1.2 2011-03-17 05:33:36 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_MATECHECKER = "$Id$";
 
 vector<breakPoint> *computeMateCoverage(Unitig* tig,
                                         MateLocation *mates,

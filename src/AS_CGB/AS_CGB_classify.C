@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_classify.c,v 1.12 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 //  Description: These routines classify the fragments and overlaps in
 //  a local manner as to their status in chunks.

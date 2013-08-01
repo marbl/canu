@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: CIScaffoldT_CGW.c,v 1.79 2012-11-15 02:12:07 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG

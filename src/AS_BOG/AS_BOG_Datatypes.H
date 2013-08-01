@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_DATATYPES
 #define INCLUDE_AS_BOG_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id: AS_BOG_Datatypes.hh,v 1.53 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_DATATYPES = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"

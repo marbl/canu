@@ -22,7 +22,7 @@
 #ifndef SUBDELREZ_H
 #define SUBDELREZ_H
 
-static const char *rcsid_SUBDELREZ_H = "$Id: SUBDELREZ.h,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_SUBDELREZ_H = "$Id$";
 
 #include <assert.h>
 

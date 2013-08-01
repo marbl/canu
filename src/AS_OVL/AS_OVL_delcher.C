@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_OVL_delcher.c,v 1.10 2009-05-21 02:24:37 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 /*********************************************************************
    Module:  AS_OVL

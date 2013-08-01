@@ -22,7 +22,7 @@
 #ifndef AS_UTL_SKIPLIST_H
 #define AS_UTL_SKIPLIST_H
 
-static const char *rcsid_AS_UTL_SKIPLIST_H = "$Id: AS_UTL_skiplist.h,v 1.8 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_SKIPLIST_H = "$Id$";
 
 /********************************************************************/
 /* dynamic sorted sequences using skiplist (Pugh)

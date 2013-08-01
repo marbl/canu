@@ -46,7 +46,7 @@ using namespace std;
 #include <vector>
 #include <algorithm>
 
-static const char *rcsid_AS_PBR_CORRECT_C = "$Id: AS_PBR_correct.cc,v 1.5 2012-12-27 15:17:48 skoren Exp $";
+static const char *rcsid_AS_PBR_CORRECT_C = "$Id$";
 
 map<AS_IID, uint64> *globalFrgToScore;
 

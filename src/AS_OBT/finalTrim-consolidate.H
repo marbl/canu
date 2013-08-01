@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static const char *rcsid = "$Id: finalTrim-consolidate.H,v 1.1 2011-06-03 17:34:19 brianwalenz Exp $";
+//static const char *rcsid = "$Id$";
 
 #include "finalTrim.H"
 

@@ -22,7 +22,7 @@
 #ifndef FINALTRIM_H
 #define FINALTRIM_H
 
-static const char *rcsid_FINALTRIM_H = "$Id: finalTrim.H,v 1.1 2011/06/03 17:34:19 brianwalenz Exp $";
+static const char *rcsid_FINALTRIM_H = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

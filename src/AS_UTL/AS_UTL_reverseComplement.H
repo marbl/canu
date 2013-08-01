@@ -22,7 +22,7 @@
 #ifndef REVERSECOMPLEMENT_H
 #define REVERSECOMPLEMENT_H
 
-static const char *rcsid_REVERSECOMPLEMENT_H = "$Id: AS_UTL_reverseComplement.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_REVERSECOMPLEMENT_H = "$Id$";
 
 #include "AS_global.H"
 

@@ -51,7 +51,7 @@ using namespace std;
 #include <vector>
 #include <set>
 
-static const char *rcsid_AS_PBR_OUTPUT_C = "$Id: AS_PBR_output.cc,v 1.9 2012-12-27 15:17:49 skoren Exp $";
+static const char *rcsid_AS_PBR_OUTPUT_C = "$Id$";
 
 static const uint32 FUDGE_BP = 5;
 

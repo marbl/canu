@@ -21,7 +21,7 @@
 #ifndef SQLOutput_H
 #define SQLOutput_H
 
-static const char *rcsid_SQLOutput_H = "$Id: SQLOutput.hh,v 1.12 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_SQLOutput_H = "$Id$";
 
 #include "AS_global.h"
 #include "AS_UTL_Hash.h"

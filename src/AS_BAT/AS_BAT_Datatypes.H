@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_DATATYPES
 #define INCLUDE_AS_BAT_DATATYPES
 
-static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.17 2012-12-11 21:51:46 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"

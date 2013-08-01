@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildPosMap.c,v 1.26 2012-11-30 09:46:04 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include  <stdio.h>
 #include  <stdlib.h>

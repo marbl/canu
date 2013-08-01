@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: gkpStoreCreate.C,v 1.1 2012-02-06 08:30:19 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_PER_gkpStore.H"

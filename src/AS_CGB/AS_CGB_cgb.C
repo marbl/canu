@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cgb.c,v 1.31 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and

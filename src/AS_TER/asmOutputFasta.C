@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: asmOutputFasta.c,v 1.19 2011-12-21 00:52:46 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

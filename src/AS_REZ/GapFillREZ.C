@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: GapFillREZ.c,v 1.84 2012-11-15 03:44:36 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 /*************************************************
  * Module:  GapFillREZ.c

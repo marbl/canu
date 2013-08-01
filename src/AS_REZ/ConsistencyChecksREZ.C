@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char *rcsid = "$Id: ConsistencyChecksREZ.c,v 1.23 2012-08-01 02:23:38 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include "AS_global.H"
 

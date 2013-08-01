@@ -23,7 +23,7 @@
 #ifndef Sybase_H
 #define Sybase_H
 
-static const char *rcsid_Sybase_H = "$Id: Sybase.hh,v 1.5 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_Sybase_H = "$Id$";
 
 #include "AS_global.h"
 #include "AS_UTL_Hash.h"

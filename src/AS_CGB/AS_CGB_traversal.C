@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_traversal.c,v 1.11 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 //  Graph traversal for the Chunk Graph Builder.  This module takes the
 //  current marked graph and returns a best ranking of the verticies in

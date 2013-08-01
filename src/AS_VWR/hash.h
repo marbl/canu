@@ -22,7 +22,7 @@
 #ifndef HASH_H
 #define HASH_H
 
-static const char *rcsid_HASH_H = "$Id: hash.h,v 1.6 2008-10-08 22:03:02 brianwalenz Exp $";
+static const char *rcsid_HASH_H = "$Id$";
 
 typedef void HashTable;
 

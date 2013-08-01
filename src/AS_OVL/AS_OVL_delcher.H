@@ -28,7 +28,7 @@
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.h,v 1.10 2008-10-08 22:02:58 brianwalenz Exp $
+ * $Id$
  * $Revision: 1.10 $
 */
 
@@ -36,7 +36,7 @@
 #ifndef  __DELCHER_H_INCLUDED
 #define  __DELCHER_H_INCLUDED
 
-static const char *rcsid_DELCHER_H_INCLUDED = "$Id: AS_OVL_delcher.h,v 1.10 2008-10-08 22:02:58 brianwalenz Exp $";
+static const char *rcsid_DELCHER_H_INCLUDED = "$Id$";
 
 #include  <stdio.h>
 #include  <stdlib.h>

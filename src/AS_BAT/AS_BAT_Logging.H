@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_LOGGING
 #define INCLUDE_AS_BAT_LOGGING
 
-static const char *rcsid_INCLUDE_AS_BAT_LOGGING = "$Id: AS_BAT_Logging.H,v 1.1 2012-07-30 01:21:01 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_LOGGING = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_fileIO.H"

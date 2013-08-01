@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStats.c,v 1.13 2011-12-29 09:26:03 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 //  install.packages(c("akima"))
 //

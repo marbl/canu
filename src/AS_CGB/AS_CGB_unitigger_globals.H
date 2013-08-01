@@ -22,7 +22,7 @@
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 
-static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id: AS_CGB_unitigger_globals.h,v 1.21 2013-01-11 05:29:00 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_UNITIGGER_GLOBALS_INCLUDE = "$Id$";
 
 #include "AS_CGB_all.H"
 

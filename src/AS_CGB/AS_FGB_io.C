@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_io.c,v 1.39 2013-01-11 05:27:06 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it

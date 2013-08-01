@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: frgs2clones.c,v 1.43 2011-12-04 23:46:58 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_PER_gkpStore.H"

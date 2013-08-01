@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_IntersectSplit.cc,v 1.8 2010-10-27 09:03:01 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BOG_Datatypes.H"
 #include "AS_BOG_UnitigGraph.H"

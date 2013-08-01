@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.31 2009-05-15 17:57:26 skoren Exp $
+# $Id$
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_walk.c,v 1.8 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 //  Walks the skeleton fragment overlap graph to determine if an
 //  overlap is transitively inferable from the skeleton fragment

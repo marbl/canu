@@ -1,4 +1,4 @@
-# $Id: Foundation.pm,v 1.2 2008-06-27 06:29:20 brianwalenz Exp $
+# $Id$
 
 # Copyright @ 2002 - 2010 The Institute for Genomic Research (TIGR).
 # All rights reserved.

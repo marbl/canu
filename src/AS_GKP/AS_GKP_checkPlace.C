@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkPlace.C,v 1.1 2009-08-14 13:37:06 skoren Exp $";
+static char const *rcsid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

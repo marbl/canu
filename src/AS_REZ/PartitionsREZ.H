@@ -22,7 +22,7 @@
 #ifndef PARTITIONSREZ_H
 #define PARTITIONSREZ_H
 
-static const char *rcsid_PARTITIONSREZ_H = "$Id: PartitionsREZ.h,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_PARTITIONSREZ_H = "$Id$";
 
 typedef struct{
   int *part;

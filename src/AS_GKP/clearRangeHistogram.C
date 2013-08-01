@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: clearRangeHistogram.C,v 1.2 2011-06-27 15:05:41 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

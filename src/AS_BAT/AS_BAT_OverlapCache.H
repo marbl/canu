@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_OVERLAPCACHE
 #define INCLUDE_AS_BAT_OVERLAPCACHE
 
-static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id: AS_BAT_OverlapCache.H,v 1.12 2012-07-29 01:02:34 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_OVERLAPCACHE = "$Id$";
 
 #include "memoryMappedFile.H"
 

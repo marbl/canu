@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_INSERT_SIZES
 #define INCLUDE_AS_INSERT_SIZES
 
-static const char *rcsid_INCLUDE_AS_BAT_INSERTSIZES = "$Id: AS_BAT_InsertSizes.H,v 1.2 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_INSERTSIZES = "$Id$";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"

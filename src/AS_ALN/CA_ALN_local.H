@@ -22,7 +22,7 @@
 #ifndef CA_ALN_local_h
 #define CA_ALN_local_h
 
-static const char *rcsid_CA_ALN_local_h = "$Id: CA_ALN_local.h,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_CA_ALN_local_h = "$Id$";
 
 /* Local alignment record:
      Coordinates are in terms of the d.p. matrix that go from (0,0)

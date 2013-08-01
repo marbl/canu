@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapStore.c,v 1.36 2012-05-09 01:16:54 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "overlapStore.H"
 #include "AS_OVS_overlap.H"   //  Just to know the sizes of structs

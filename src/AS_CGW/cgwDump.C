@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: cgwDump.C,v 1.2 2012/10/30 16:49:09 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 

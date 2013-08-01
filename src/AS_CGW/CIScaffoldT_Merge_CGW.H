@@ -22,7 +22,7 @@
 #ifndef CISCAFFOLDT_MERGE_H
 #define CISCAFFOLDT_MERGE_H
 
-static const char *rcsid_CISCAFFOLDT_MERGE_H = "$Id: CIScaffoldT_Merge_CGW.h,v 1.1 2009-08-03 23:42:12 brianwalenz Exp $";
+static const char *rcsid_CISCAFFOLDT_MERGE_H = "$Id$";
 
 #include "AS_global.H"
 

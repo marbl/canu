@@ -22,7 +22,7 @@
 #ifndef BASEALIGNMENT_H
 #define BASEALIGNMENT_H
 
-static const char* rcsid_BASEALIGNMENT_H = "$Id: BaseAlignment.h,v 1.4 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_BASEALIGNMENT_H = "$Id$";
 
 #include <algorithm>
 #include <cstdio>

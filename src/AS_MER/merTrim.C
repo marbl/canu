@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: merTrim.C,v 1.42 2013-04-02 16:45:21 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_reverseComplement.H"

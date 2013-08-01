@@ -22,7 +22,7 @@
 #ifndef ALIGNMENTDATASTATS_H
 #define ALIGNMENTDATASTATS_H
 
-static const char* rcsid_ALIGNMENTDATASTATS_H = "$Id: AlignmentDataStats.h,v 1.4 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATASTATS_H = "$Id$";
 
 #include <cstdlib>
 #include <map>

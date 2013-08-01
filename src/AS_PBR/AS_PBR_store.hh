@@ -46,7 +46,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <map>
 #include "boost/dynamic_bitset.hpp"
 
-static const char *rcsid_AS_PBR_STORE_H = "$Id: AS_PBR_store.hh,v 1.2 2012-08-22 14:41:00 skoren Exp $";
+static const char *rcsid_AS_PBR_STORE_H = "$Id$";
 
 /*
  * Store and structures to read/write short-read mapping information

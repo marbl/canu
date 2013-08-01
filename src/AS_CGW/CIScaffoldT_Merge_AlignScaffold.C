@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CIScaffoldT_Merge_AlignScaffold.c,v 1.3 2012-08-12 21:49:31 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_global.H"
 #include "CIScaffoldT_Merge_AlignScaffold.H"

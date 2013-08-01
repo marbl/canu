@@ -22,7 +22,7 @@
 #ifndef AS_CGW_HISTO_H
 #define AS_CGW_HISTO_H
 
-static const char *rcsid_AS_CGW_HISTO_H = "$Id: AS_CGW_histo.h,v 1.5 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_AS_CGW_HISTO_H = "$Id$";
 
 #include <assert.h>
 

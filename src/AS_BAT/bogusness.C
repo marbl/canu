@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: bogusness.C,v 1.10 2011-08-15 06:11:42 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_BAT_bogusUtil.H"
 

@@ -22,7 +22,7 @@
 #ifndef UTILSREZ_H
 #define UTILSREZ_H
 
-static const char *rcsid_UTILSREZ_H = "$Id: UtilsREZ.h,v 1.9 2010-02-17 01:32:58 brianwalenz Exp $";
+static const char *rcsid_UTILSREZ_H = "$Id$";
 
 #include "DataTypesREZ.H"
 

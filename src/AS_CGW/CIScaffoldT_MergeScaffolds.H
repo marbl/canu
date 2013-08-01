@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid_CISCAFFOLDT_MERGESCAFFOLDS_H = "$Id: CIScaffoldT_MergeScaffolds.h,v 1.2 2012-08-02 21:56:32 brianwalenz Exp $";
+static const char *rcsid_CISCAFFOLDT_MERGESCAFFOLDS_H = "$Id$";
 
 #include "AS_global.H"
 #include "ScaffoldGraph_CGW.H"

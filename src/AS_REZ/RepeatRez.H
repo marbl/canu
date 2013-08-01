@@ -22,7 +22,7 @@
 #ifndef REPEAT_REZ_H
 #define REPEAT_REZ_H
 
-static const char *rcsid_REPEAT_REZ_H = "$Id: RepeatRez.h,v 1.7 2009-09-12 22:35:58 brianwalenz Exp $";
+static const char *rcsid_REPEAT_REZ_H = "$Id$";
 
 int  Fill_Gaps
     (char *, int, int redo_index);

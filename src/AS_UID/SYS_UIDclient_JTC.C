@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: SYS_UIDclient_JTC.c,v 1.10 2009-11-20 22:19:06 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include <string.h>
 #include <assert.h>

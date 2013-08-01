@@ -21,7 +21,7 @@
 #ifndef AS_UTL_FASTA_H
 #define AS_UTL_FASTA_H
 
-static const char *rcsid_AS_UTL_FASTA_H = "$Id: AS_UTL_fasta.h,v 1.9 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_FASTA_H = "$Id$";
 
 #include "AS_global.H"
 

@@ -18,12 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.91 2011-12-29 09:26:03 brianwalenz Exp $   */
+/* $Id$   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
 
-static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id: AS_MSG_pmesg.h,v 1.91 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INCLUDE_H = "$Id$";
 
 #include <cstdio>
 #include <ctime>

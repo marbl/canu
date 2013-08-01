@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: ctgcns.C,v 1.12 2012-01-05 18:29:43 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "MultiAlign.H"

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: AlignmentError.C,v 1.1 2011-09-02 14:59:27 mkotelbajcvi Exp $";
+static const char* rcsid = "$Id$";
 
 #include "AlignmentError.h"
 

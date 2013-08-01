@@ -22,7 +22,7 @@
 #ifndef FRAGCORRECTOVL_H
 #define FRAGCORRECTOVL_H
 
-static const char *rcsid_FRAGCORRECTOVL_H = "$Id: FragCorrectOVL.h,v 1.10 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static const char *rcsid_FRAGCORRECTOVL_H = "$Id$";
 
 #include "AS_UTL_IID.H"
 

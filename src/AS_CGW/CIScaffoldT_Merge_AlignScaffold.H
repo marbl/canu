@@ -22,7 +22,7 @@
 #ifndef CISCAFFOLDT_MERGE_ALIGNSCAFFOLD
 #define CISCAFFOLDT_MERGE_ALIGNSCAFFOLD
 
-static const char *rcsid_CISCAFFOLDT_MERGE_ALIGNSCAFFOLD = "$Id: CIScaffoldT_Merge_AlignScaffold.h,v 1.1 2012-05-04 05:27:33 brianwalenz Exp $";
+static const char *rcsid_CISCAFFOLDT_MERGE_ALIGNSCAFFOLD = "$Id$";
 
 #include "CA_ALN_local.H"     //  Local_Overlap
 #include "AS_ALN_aligners.H"  //  ALNoverlap

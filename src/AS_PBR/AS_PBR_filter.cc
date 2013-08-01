@@ -47,7 +47,7 @@ using namespace std;
 #include <set>
 #include <map>
 
-static const char *rcsid_AS_PBR_FILTER_C = "$Id: AS_PBR_filter.cc,v 1.4 2012-09-13 14:40:42 skoren Exp $";
+static const char *rcsid_AS_PBR_FILTER_C = "$Id$";
 
 /**
  * This function is responsible for computing the repeat threshold based on the number of PacBio sequences each short-read maps to

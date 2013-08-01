@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: fastqSample.C,v 1.10 2012-10-23 10:29:30 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 

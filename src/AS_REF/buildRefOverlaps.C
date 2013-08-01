@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: buildRefOverlaps.C,v 1.3 2010-10-04 08:51:44 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include <stdlib.h>
 #include <stdio.h>

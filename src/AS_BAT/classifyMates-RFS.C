@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: classifyMates-RFS.C,v 1.11 2012-06-27 20:11:51 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_global.H"
 

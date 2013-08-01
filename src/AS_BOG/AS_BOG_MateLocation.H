@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_MATE_LOCATION
 #define INCLUDE_AS_BOG_MATE_LOCATION
 
-static const char *rcsid_INCLUDE_AS_BOG_MATELOCATION = "$Id: AS_BOG_MateLocation.hh,v 1.3 2010-11-09 11:11:20 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_MATELOCATION = "$Id$";
 
 #include "AS_BOG_Datatypes.H"
 #include "AS_BOG_UnitigGraph.H"

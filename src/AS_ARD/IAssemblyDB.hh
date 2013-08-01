@@ -21,7 +21,7 @@
 #ifndef IAssemblyDB_HH
 #define IAssemblyDB_HH
 
-static const char *rcsid_IAssemblyDB_HH = "$Id: IAssemblyDB.hh,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_IAssemblyDB_HH = "$Id$";
 
 #include "AS_global.h"
 #include "SYS_UIDclient.h"

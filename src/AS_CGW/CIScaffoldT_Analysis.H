@@ -23,7 +23,7 @@
 #ifndef CISCAFFOLDT_ANALYSIS_H
 #define CISCAFFOLDT_ANALYSIS_H
 
-static const char *rcsid_CISCAFFOLDT_ANALYSIS_H = "$Id: CIScaffoldT_Analysis.H,v 1.3 2012-09-04 06:45:21 brianwalenz Exp $";
+static const char *rcsid_CISCAFFOLDT_ANALYSIS_H = "$Id$";
 
 #include "AS_global.H"
 

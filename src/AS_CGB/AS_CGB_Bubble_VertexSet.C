@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_Bubble_VertexSet.c,v 1.12 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include <string.h>
 #include "AS_CGB_all.H"

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_MOVECONTAINS
 #define INCLUDE_AS_BAT_MOVECONTAINS
 
-static const char *rcsid_INCLUDE_AS_BAT_MOVECONTAINS = "$Id: AS_BAT_MoveContains.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_MOVECONTAINS = "$Id$";
 
 void moveContains(UnitigVector &unitigs);
 

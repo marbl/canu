@@ -21,7 +21,7 @@
 #ifndef IDBConnection_HH
 #define IDBConnection_HH
 
-static const char *rcsid_IDBConnection_HH = "$Id: IDBConnection.hh,v 1.4 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_IDBConnection_HH = "$Id$";
 
 #include "AS_global.h"
 #include "AS_UTL_Hash.h"

@@ -22,7 +22,7 @@
 #ifndef AS_UTL_ALLOC_H
 #define AS_UTL_ALLOC_H
 
-static const char *rcsid_AS_UTL_ALLOC_H = "$Id: AS_UTL_alloc.h,v 1.9 2011-09-05 16:49:44 mkotelbajcvi Exp $";
+static const char *rcsid_AS_UTL_ALLOC_H = "$Id$";
 
 //
 //  The safe_*alloc routines are the same as the normal routines,

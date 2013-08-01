@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Unitig_PlaceFragUsingEdges.cc,v 1.6 2010-11-09 18:57:57 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BOG_Datatypes.H"
 #include "AS_BOG_Unitig.H"

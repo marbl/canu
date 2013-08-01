@@ -25,7 +25,7 @@
 //   Programmer:  A. Delcher
 //      Started:   4 Dec 2000
 
-const char *mainid = "$Id: FragCorrectOVL.c,v 1.42 2012-11-21 17:06:41 mcschatz Exp $";
+const char *mainid = "$Id$";
 
 #include  "AS_global.H"
 #include  "AS_OVL_delcher.H"

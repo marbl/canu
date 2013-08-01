@@ -22,7 +22,7 @@
 #ifndef AS_CGB_HISTO_INCLUDE
 #define AS_CGB_HISTO_INCLUDE
 
-static const char *rcsid_AS_CGB_HISTO_INCLUDE = "$Id: AS_CGB_histo.h,v 1.7 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_HISTO_INCLUDE = "$Id$";
 
 #include "AS_CGB_all.H"
 

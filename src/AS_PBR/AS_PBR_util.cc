@@ -39,7 +39,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using namespace std;
 
-static const char *rcsid_AS_PBR_UTIL_C = "$Id: AS_PBR_util.cc,v 1.3 2012-08-22 14:41:00 skoren Exp $";
+static const char *rcsid_AS_PBR_UTIL_C = "$Id$";
 
 #include "AS_PBR_util.hh"
 

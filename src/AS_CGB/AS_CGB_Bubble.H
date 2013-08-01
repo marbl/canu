@@ -28,7 +28,7 @@
 
 #include "AS_ALN_aligners.H"
 
-static const char *rcsid__AS_CGB_BUBBLE_H_ = "$Id: AS_CGB_Bubble.h,v 1.7 2010-08-12 19:19:48 brianwalenz Exp $";
+static const char *rcsid__AS_CGB_BUBBLE_H_ = "$Id$";
 
 /* For debugging only.  Set this to 1 only for test-size problems ... :-) */
 #define AS_CGB_BUBBLE_VERBOSE 0

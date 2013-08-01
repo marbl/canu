@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: MultiAlignStore.C,v 1.29 2012-11-16 22:03:56 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_fileIO.H"

@@ -22,7 +22,7 @@
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
-static const char *rcsid_GLOBALS_CGW_H = "$Id: Globals_CGW.h,v 1.39 2012-08-29 20:50:54 jasonmiller9704 Exp $";
+static const char *rcsid_GLOBALS_CGW_H = "$Id$";
 
 #include "AS_global.H"
 

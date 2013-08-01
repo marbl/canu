@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AS_PBR_util.hh"
 
-static const char *rcsid_AS_PBR_MATES_H = "$Id: AS_PBR_mates.hh,v 1.1 2012-06-28 20:02:45 skoren Exp $";
+static const char *rcsid_AS_PBR_MATES_H = "$Id$";
 
 extern void *estimateInsertSizes(void *ptr);
 extern void *screenBadMates(void *ptr);

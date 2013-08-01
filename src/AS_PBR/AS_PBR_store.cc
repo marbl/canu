@@ -37,7 +37,7 @@ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-static const char *rcsid_AS_PBR_STORE_C = "$Id: AS_PBR_store.cc,v 1.2 2012-08-22 14:41:00 skoren Exp $";
+static const char *rcsid_AS_PBR_STORE_C = "$Id$";
 
 using namespace std;
 

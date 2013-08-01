@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlap_partition.C,v 1.12 2012-07-30 01:03:46 skoren Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_decodeRange.H"

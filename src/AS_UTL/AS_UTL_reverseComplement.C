@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_reverseComplement.c,v 1.4 2009-05-29 17:27:15 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_global.H"
 

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_UNITIG
 #define INCLUDE_AS_BAT_UNITIG
 
-static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id: AS_BAT_Unitig.H,v 1.8 2013-03-18 15:11:05 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_UNITIG = "$Id$";
 
 #include "AS_BAT_Datatypes.H"
 

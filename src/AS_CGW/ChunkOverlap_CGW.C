@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: ChunkOverlap_CGW.c,v 1.63 2012-11-13 19:08:33 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include "ChunkOverlap_CGW.H"
 #include "AS_UTL_reverseComplement.H"

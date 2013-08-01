@@ -22,7 +22,7 @@
 #ifndef INPUTDATATYPES_CGW_H
 #define INPUTDATATYPES_CGW_H
 
-static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id: InputDataTypes_CGW.h,v 1.27 2012-06-21 09:12:16 brianwalenz Exp $";
+static const char *rcsid_INPUTDATATYPES_CGW_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"

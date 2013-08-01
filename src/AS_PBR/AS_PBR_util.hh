@@ -40,7 +40,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef AS_PBR_UTIL_H
 #define AS_PBR_UTIL_H
 
-static const char *rcsid_AS_PBR_UTIL_H = "$Id: AS_PBR_util.hh,v 1.7 2012-12-27 15:17:49 skoren Exp $";
+static const char *rcsid_AS_PBR_UTIL_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_OVS_overlapStore.H"

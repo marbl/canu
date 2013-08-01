@@ -22,7 +22,7 @@
 #ifndef COMMONREZ_H
 #define COMMONREZ_H
 
-static const char *rcsid_COMMONREZ_H = "$Id: CommonREZ.h,v 1.12 2012-11-15 03:21:00 brianwalenz Exp $";
+static const char *rcsid_COMMONREZ_H = "$Id$";
 
 #include "DataTypesREZ.H"
 

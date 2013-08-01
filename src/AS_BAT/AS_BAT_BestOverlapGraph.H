@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BAT_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id: AS_BAT_BestOverlapGraph.H,v 1.6 2012-02-15 03:41:08 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_BESTOVERLAPGRAPH = "$Id$";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_Unitig.H"

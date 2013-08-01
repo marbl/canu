@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_buildPartition.c,v 1.15 2011-12-29 06:19:34 brianwalenz Exp $";
+static char const *rcsid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

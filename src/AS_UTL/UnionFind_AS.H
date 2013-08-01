@@ -22,7 +22,7 @@
 #ifndef UNION_FIND_H
 #define UNION_FIND_H
 
-static const char *rcsid_UNION_FIND_H = "$Id: UnionFind_AS.h,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_UNION_FIND_H = "$Id$";
 
 /* Union Find code based on Aho Hopcroft Ullman pg 131
 

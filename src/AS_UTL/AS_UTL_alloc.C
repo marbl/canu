@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_alloc.c,v 1.17 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 //  We explicitly do not include AS_UTL_alloc.h here, because it
 //  redefines malloc(), calloc(), realloc() and free() to be errors.

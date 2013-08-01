@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_UTL_decodeRange.C,v 1.2 2012-02-13 08:30:41 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_UTL_decodeRange.H"
 

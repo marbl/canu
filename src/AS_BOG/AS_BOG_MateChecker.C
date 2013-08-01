@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MateChecker.cc,v 1.106 2013-02-22 12:18:52 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BOG_BestOverlapGraph.H"
 #include "AS_BOG_UnitigGraph.H"

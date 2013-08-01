@@ -22,7 +22,7 @@
 #ifndef READALIGNMENT_H
 #define READALIGNMENT_H
 
-static const char* rcsid_READALIGNMENT_H = "$Id: ReadAlignment.h,v 1.6 2011-09-06 01:11:56 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENT_H = "$Id$";
 
 #include <cstdio>
 #include <cstdlib>

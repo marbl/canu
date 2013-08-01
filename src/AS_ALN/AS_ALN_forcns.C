@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_ALN_forcns.c,v 1.32 2011-12-30 07:58:57 brianwalenz Exp $";
+static char const *rcsid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -22,7 +22,7 @@
 #ifndef GRAPH_EDGE_ITERATOR_H
 #define GRAPH_EDGE_ITERATOR_H
 
-static const char *rcsid_GRAPH_EDGE_ITERATOR_H = "$Id: GraphEdgeIterator.H,v 1.5 2012-08-28 21:09:39 brianwalenz Exp $";
+static const char *rcsid_GRAPH_EDGE_ITERATOR_H = "$Id$";
 
 //  includes are broken here
 //#include "GraphCGW_T.H"

@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 #define INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id: AS_BAT_PlaceFragUsingOverlaps.H,v 1.9 2012-02-15 03:41:08 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACEFRAGUSINGOVERLAPS = "$Id$";
 
 #include "AS_BAT_OverlapCache.H"
 

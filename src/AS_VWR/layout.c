@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: layout.c,v 1.8 2008-10-08 22:03:02 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

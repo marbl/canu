@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_Outputs.cc,v 1.11 2012-01-15 23:49:34 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BOG_Datatypes.H"
 #include "AS_BOG_UnitigGraph.H"

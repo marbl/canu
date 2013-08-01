@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: fragmentPlacement.c,v 1.42 2012-11-15 04:22:19 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_global.H"
 

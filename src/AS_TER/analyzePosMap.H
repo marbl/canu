@@ -23,7 +23,7 @@
 #ifndef ANALYZEPOSMAP_H
 #define ANALYZEPOSMAP_H
 
-static const char *rcsid_ANALYZEPOSMAP_H = "$Id: analyzePosMap.H,v 1.2 2012-12-06 01:51:57 brianwalenz Exp $";
+static const char *rcsid_ANALYZEPOSMAP_H = "$Id$";
 
 #include  <stdio.h>
 #include  <stdlib.h>

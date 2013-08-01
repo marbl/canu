@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_PLACECONTAINS
 #define INCLUDE_AS_BAT_PLACECONTAINS
 
-static const char *rcsid_INCLUDE_AS_BAT_PLACECONTAINS = "$Id: AS_BAT_PlaceContains.H,v 1.3 2012-01-05 16:29:26 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_PLACECONTAINS = "$Id$";
 
 void placeContainsUsingBestOverlaps(UnitigVector &unitigs);
 

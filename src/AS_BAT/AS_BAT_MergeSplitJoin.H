@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_MERGESPLITJOIN
 #define INCLUDE_AS_BAT_MERGESPLITJOIN
 
-static const char *rcsid_INCLUDE_AS_BAT_MERGESPLITJOIN = "$Id: AS_BAT_MergeSplitJoin.H,v 1.4 2012-02-22 19:16:36 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_MERGESPLITJOIN = "$Id$";
 
 void
 mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats);

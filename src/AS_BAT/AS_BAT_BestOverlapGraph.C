@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_BestOverlapGraph.C,v 1.13 2012-11-20 13:20:15 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"

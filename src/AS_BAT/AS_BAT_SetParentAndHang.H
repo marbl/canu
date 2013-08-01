@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_SETPARENTANDHANG
 #define INCLUDE_AS_BAT_SETPARENTANDHANG
 
-static const char *rcsid_INCLUDE_AS_BAT_SETPARENTANDHANG = "$Id: AS_BAT_SetParentAndHang.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_SETPARENTANDHANG = "$Id$";
 
 void setParentAndHang(UnitigVector &unitigs);
 

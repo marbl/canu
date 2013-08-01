@@ -22,7 +22,7 @@
 #ifndef AS_UTL_INTERVAL_H
 #define AS_UTL_INTERVAL_H
 
-static const char *rcsid_AS_UTL_INTERVAL_H = "$Id: AS_UTL_interval.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_INTERVAL_H = "$Id$";
 
 #include "AS_global.H"
 

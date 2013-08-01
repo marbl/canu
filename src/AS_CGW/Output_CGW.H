@@ -22,7 +22,7 @@
 #ifndef OUTPUT_CGW_H
 #define OUTPUT_CGW_H
 
-static const char *rcsid_OUTPUT_CGW_H = "$Id: Output_CGW.h,v 1.9 2012-10-30 16:48:26 brianwalenz Exp $";
+static const char *rcsid_OUTPUT_CGW_H = "$Id$";
 
 #include "Globals_CGW.H"
 #include "GraphCGW_T.H"

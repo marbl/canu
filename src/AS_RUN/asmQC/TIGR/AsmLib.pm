@@ -1,4 +1,4 @@
-# $Id: AsmLib.pm,v 1.2 2008-06-27 06:29:20 brianwalenz Exp $
+# $Id$
 #
 # File: AsmLib.pm
 # Authors: Mihai Pop

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: initialTrim.C,v 1.31 2012-03-05 09:09:17 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 //  Read a fragStore, does quality trimming based on quality scores,
 //  intersects the quality trim with a vector trim, and updates the

@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: analyzePosMap-gapFillProbability.C,v 1.2 2012-12-06 15:31:50 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "analyzePosMap.H"
 

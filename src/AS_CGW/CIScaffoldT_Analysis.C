@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: CIScaffoldT_Analysis.C,v 1.4 2012-09-19 12:05:32 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "CIScaffoldT_Analysis.H"
 

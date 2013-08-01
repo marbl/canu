@@ -22,7 +22,7 @@
 #ifndef AGREP_H
 #define AGREP_H
 
-static const char *rcsid_AGREP_H = "$Id: agrep.h,v 1.6 2008-10-08 22:03:02 brianwalenz Exp $";
+static const char *rcsid_AGREP_H = "$Id$";
 
 /* REGULAR EXPRESSION DATA TYPE:
      An e-nfa and work storage to do approximate matching.  Occupies

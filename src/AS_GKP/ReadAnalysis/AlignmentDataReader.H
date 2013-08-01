@@ -22,7 +22,7 @@
 #ifndef ALIGNMENTDATAREADER_H
 #define ALIGNMENTDATAREADER_H
 
-static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id: AlignmentDataReader.h,v 1.6 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_ALIGNMENTDATAREADER_H = "$Id$";
 
 #include <cstdio>
 #include <cstdlib>

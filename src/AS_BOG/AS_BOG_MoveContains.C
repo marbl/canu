@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BOG_MoveContains.cc,v 1.1 2010-10-01 13:43:49 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BOG_BestOverlapGraph.H"
 #include "AS_BOG_UnitigGraph.H"

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: upgrade-v6-to-v7.C,v 1.2 2011-11-29 16:00:07 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

@@ -22,7 +22,7 @@
 #ifndef SCAFFOLD_GRAPH_ITERATOR_H
 #define SCAFFOLD_GRAPH_ITERATOR_H
 
-static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id: ScaffoldGraphIterator_CGW.h,v 1.12 2012-08-15 15:07:15 brianwalenz Exp $";
+static const char *rcsid_SCAFFOLD_GRAPH_ITERATOR_H = "$Id$";
 
 #include "AS_CGW_dataTypes.H"
 #include "Globals_CGW.H"

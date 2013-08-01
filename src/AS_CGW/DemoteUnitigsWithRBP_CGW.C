@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: DemoteUnitigsWithRBP_CGW.c,v 1.12 2012-08-22 05:53:19 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

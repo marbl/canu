@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: SeqAn_CNS.c,v 1.10 2011-01-03 03:07:16 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include <assert.h>
 #include <stdio.h>

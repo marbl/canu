@@ -22,7 +22,7 @@
 #ifndef SNAPPERALIGNMENTDATAREADER_H
 #define SNAPPERALIGNMENTDATAREADER_H
 
-static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id: SnapperAlignmentDataReader.h,v 1.7 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_SNAPPERALIGNMENTDATAREADER_H = "$Id$";
 
 #include <cstdio>
 #include <cstdlib>

@@ -22,7 +22,7 @@
 #ifndef AS_UTL_PARAM_PROC
 #define AS_UTL_PARAM_PROC
 
-static const char *rcsid_AS_UTL_PARAM_PROC = "$Id: AS_UTL_param_proc.h,v 1.6 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_PARAM_PROC = "$Id$";
 
 /*************************************************************************
  Module:  AS_UTL_param_proc

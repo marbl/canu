@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.45 2013-01-08 02:51:06 brianwalenz Exp $
+ * $Id$
  * $Revision: 1.45 $
 */
 
-const char *mainid = "$Id: OlapFromSeedsOVL.c,v 1.45 2013-01-08 02:51:06 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "OlapFromSeedsOVL.H"
 

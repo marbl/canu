@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: removeMateOverlap.C,v 1.7 2013-01-08 02:33:46 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 //  Remove mate relationships for any fragments that overlap
 

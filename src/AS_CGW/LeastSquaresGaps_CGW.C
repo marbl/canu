@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: LeastSquaresGaps_CGW.c,v 1.76 2013-03-15 19:39:17 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_UTL_Var.H"

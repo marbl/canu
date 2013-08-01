@@ -21,7 +21,7 @@
 #ifndef IDBOutput_HH
 #define IDBOutput_HH
 
-static const char *rcsid_IDBOutput_HH = "$Id: IDBOutput.hh,v 1.15 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_IDBOutput_HH = "$Id$";
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"

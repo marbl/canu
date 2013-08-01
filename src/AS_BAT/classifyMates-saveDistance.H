@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid_CLASSIFYMATES_SAVEDISTANCE_H = "$Id: classifyMates-saveDistance.H,v 1.2 2012-02-13 11:41:03 brianwalenz Exp $";
+static const char *rcsid_CLASSIFYMATES_SAVEDISTANCE_H = "$Id$";
 
 //  Save the longest N overlaps.  Decreasing this value makes the search much much faster, but costs
 //  a bit in sensitivity.

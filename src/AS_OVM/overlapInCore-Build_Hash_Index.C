@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: overlapInCore-Build_Hash_Index.C,v 1.5 2012-01-30 19:28:02 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "overlapInCore.H"
 

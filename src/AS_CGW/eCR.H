@@ -21,7 +21,7 @@
 #ifndef ECR_H
 #define ECR_H
 
-static const char *rcsid_ECR_H = "$Id: eCR.h,v 1.11 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_ECR_H = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

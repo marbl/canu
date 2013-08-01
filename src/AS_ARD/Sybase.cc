@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: Sybase.cc,v 1.4 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #ifdef SYBASE
 

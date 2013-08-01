@@ -22,7 +22,7 @@
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
 
-static const char *rcsid_AS_CGB_ALL_INCLUDE = "$Id: AS_CGB_all.h,v 1.27 2009-06-10 18:05:13 brianwalenz Exp $";
+static const char *rcsid_AS_CGB_ALL_INCLUDE = "$Id$";
 
 #undef DONT_RUN_IN_SYMMETRIC_MODE      // Allow un-mated dovetail edges in CGB.  (??)
 

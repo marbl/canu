@@ -22,7 +22,7 @@
 #ifndef KMER_UTILS_H
 #define KMER_UTILS_H
 
-static const char *rcsid_KMER_UTILS_H = "$Id: kmer_utils.h,v 1.3 2008-10-08 22:02:57 brianwalenz Exp $";
+static const char *rcsid_KMER_UTILS_H = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

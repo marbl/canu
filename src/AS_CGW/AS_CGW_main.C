@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGW_main.c,v 1.116 2012-11-15 05:04:54 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #undef CHECK_CONTIG_ORDERS
 #undef CHECK_CONTIG_ORDERS_INCREMENTAL

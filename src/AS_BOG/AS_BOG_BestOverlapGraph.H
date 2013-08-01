@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id: AS_BOG_BestOverlapGraph.hh,v 1.66 2013-01-08 03:03:07 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_BESTOVERLAPGRAPH = "$Id$";
 
 #include "AS_BOG_Datatypes.H"
 

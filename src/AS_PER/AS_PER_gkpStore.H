@@ -22,7 +22,7 @@
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id: AS_PER_gkpStore.h,v 1.62 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_AS_PER_GKPFRGSTORE_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"

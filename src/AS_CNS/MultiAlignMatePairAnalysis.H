@@ -20,7 +20,7 @@
 #ifndef MULTIALIGNMATEPAIRANALYSIS
 #define MULTIALIGNMATEPAIRANALYSIS
 
-static const char *rcsid_MULTIALIGNMATEPAIRANALYSIS = "$Id: MultiAlignMatePairAnalysis.H,v 1.4 2012-06-28 20:01:18 skoren Exp $";
+static const char *rcsid_MULTIALIGNMATEPAIRANALYSIS = "$Id$";
 
 #include "AS_global.H"
 #include "AS_PER_gkpStore.H"

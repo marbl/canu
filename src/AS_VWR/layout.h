@@ -22,7 +22,7 @@
 #ifndef LAYOUT_H
 #define LAYOUT_H
 
-static const char *rcsid_LAYOUT_H = "$Id: layout.h,v 1.6 2008-10-08 22:03:02 brianwalenz Exp $";
+static const char *rcsid_LAYOUT_H = "$Id$";
 
 void SetCurrentFile(char *name);
 void ReadAssembly(FILE *);

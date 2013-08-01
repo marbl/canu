@@ -42,7 +42,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "AS_PBR_util.hh"
 
-static const char *rcsid_AS_PBR_CORRECT_H = "$Id: AS_PBR_correct.hh,v 1.2 2012-08-20 13:10:37 skoren Exp $";
+static const char *rcsid_AS_PBR_CORRECT_H = "$Id$";
 
 /**
  * This function is responsible for streaming through a subset of PacBio fragments and generating a tiling for them

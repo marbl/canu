@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_CGB_unitigger.c,v 1.45 2011-09-06 02:15:18 mkotelbajcvi Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_CGB_all.H"
 #include "AS_CGB_Bubble.H"

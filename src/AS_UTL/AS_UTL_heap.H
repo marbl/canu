@@ -22,7 +22,7 @@
 #ifndef AS_UTL_HEAP_H
 #define AS_UTL_HEAP_H
 
-static const char *rcsid_AS_UTL_HEAP_H = "$Id: AS_UTL_heap.h,v 1.11 2011-04-04 19:24:51 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_HEAP_H = "$Id$";
 
 #include "AS_global.H"
 

@@ -22,7 +22,7 @@
 #ifndef AS_UTL_RAND_H
 #define AS_UTL_RAND_H
 
-static const char *rcsid_AS_UTL_RAND_H = "$Id: AS_UTL_rand.h,v 1.4 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_RAND_H = "$Id$";
 
 #include "AS_global.H"
 

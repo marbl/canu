@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_UTL_Var.c,v 1.35 2012-05-08 23:17:55 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 /********************************************************************/
 /* Variable Length C Array Package

@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.13 2011-11-29 16:00:07 brianwalenz Exp $";
+static const char* rcsid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_PER_genericStore.H"

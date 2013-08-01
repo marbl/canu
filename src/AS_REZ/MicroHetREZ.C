@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: MicroHetREZ.c,v 1.25 2011-12-29 09:26:03 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"

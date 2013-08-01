@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BAT_SPLITDISCONTINUOUS
 #define INCLUDE_AS_BAT_SPLITDISCONTINUOUS
 
-static const char *rcsid_INCLUDE_AS_BAT_SPLITDISCONTINUOUS = "$Id: AS_BAT_SplitDiscontinuous.H,v 1.1 2010-12-06 08:03:48 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BAT_SPLITDISCONTINUOUS = "$Id$";
 
 void splitDiscontinuousUnitigs(UnitigVector &unitigs);
 

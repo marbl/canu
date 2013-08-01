@@ -22,7 +22,7 @@
 #ifndef AS_MSG_PMESG_INTERNAL_H
 #define AS_MSG_PMESG_INTERNAL_H
 
-static const char *rcsid_AS_MSG_PMESG_INTERNAL_H = "$Id: AS_MSG_pmesg_internal.h,v 1.14 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_AS_MSG_PMESG_INTERNAL_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_MSG_pmesg.H"

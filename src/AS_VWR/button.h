@@ -22,7 +22,7 @@
 #ifndef BUTTON_H
 #define BUTTON_H
 
-static const char *rcsid_BUTTON_H = "$Id: button.h,v 1.6 2008-10-08 22:03:02 brianwalenz Exp $";
+static const char *rcsid_BUTTON_H = "$Id$";
 
 typedef void MT_OBJECT;
 

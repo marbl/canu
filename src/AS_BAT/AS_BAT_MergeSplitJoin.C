@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_BAT_MergeSplitJoin.C,v 1.20 2012-08-06 23:36:44 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"

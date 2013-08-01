@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: finalTrim-evidenceBased.C,v 1.3 2011-06-13 22:41:10 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 #include "finalTrim.H"
 #include "finalTrim-consolidate.H"

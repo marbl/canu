@@ -22,7 +22,7 @@
 #ifndef AS_ARD_database_HH
 #define AS_ARD_database_HH
 
-static const char *rcsid_AS_ARD_database_HH = "$Id: AS_ARD_database.hh,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_AS_ARD_database_HH = "$Id$";
 
 #include "AS_global.h"
 #include "SYS_UIDclient.h"

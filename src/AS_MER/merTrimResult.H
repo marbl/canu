@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid_MERTRIMRESULT_H = "$Id: merTrimResult.H,v 1.1 2011-08-22 16:44:19 brianwalenz Exp $";
+static const char *rcsid_MERTRIMRESULT_H = "$Id$";
 
 #include <stdio.h>
 #include <stdlib.h>

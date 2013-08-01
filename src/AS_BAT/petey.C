@@ -17,7 +17,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: petey.C,v 1.11 2012-07-30 01:21:01 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_BAT_Datatypes.H"
 #include "AS_BAT_BestOverlapGraph.H"

@@ -47,7 +47,7 @@ using namespace std;
 #include <map>
 #include <vector>
 
-static const char *rcsid_AS_PBR_MATES_C = "$Id: AS_PBR_mates.cc,v 1.5 2012-09-26 20:26:29 skoren Exp $";
+static const char *rcsid_AS_PBR_MATES_C = "$Id$";
 
 const double 	Z_MAX	= 6;
 

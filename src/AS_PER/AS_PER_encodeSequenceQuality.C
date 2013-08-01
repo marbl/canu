@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_PER_encodeSequenceQuality.c,v 1.12 2012-05-11 18:34:42 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include "AS_global.H"
 #include "AS_PER_encodeSequenceQuality.H"

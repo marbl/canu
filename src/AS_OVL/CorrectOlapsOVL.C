@@ -33,7 +33,7 @@
 *
 *************************************************/
 
-const char *mainid = "$Id: CorrectOlapsOVL.c,v 1.44 2013-01-09 05:40:58 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include  "AS_global.H"
 

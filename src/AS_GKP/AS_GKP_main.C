@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: AS_GKP_main.c,v 1.105 2012-09-13 17:41:13 skoren Exp $";
+const char *mainid = "$Id$";
 
 #include "AS_global.H"
 

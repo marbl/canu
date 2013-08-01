@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_CGB_cga.c,v 1.26 2012-01-15 23:49:34 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation

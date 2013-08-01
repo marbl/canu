@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-const char *mainid = "$Id: overlapInCore.C,v 1.12 2013-01-11 11:11:04 brianwalenz Exp $";
+const char *mainid = "$Id$";
 
 #include "overlapInCore.H"
 #include "AS_UTL_decodeRange.H"

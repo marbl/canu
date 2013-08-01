@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid = "$Id: AS_FGB_main.c,v 1.29 2010-08-19 05:28:06 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include "AS_CGB_all.H"
 

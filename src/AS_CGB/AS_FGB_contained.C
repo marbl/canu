@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char *rcsid  = "$Id: AS_FGB_contained.c,v 1.9 2009-07-30 10:42:55 brianwalenz Exp $";
+static char *rcsid  = "$Id$";
 
 // Determines the contained status of the fragments.
 

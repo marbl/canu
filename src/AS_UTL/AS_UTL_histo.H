@@ -22,7 +22,7 @@
 #ifndef AS_UTL_HISTO_H
 #define AS_UTL_HISTO_H
 
-static const char *rcsid_AS_UTL_HISTO_H = "$Id: AS_UTL_histo.h,v 1.3 2008-10-08 22:03:00 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_HISTO_H = "$Id$";
 
 typedef void DataType;
 typedef void (*AggregateFn)(DataType *a,int ib,DataType *b);

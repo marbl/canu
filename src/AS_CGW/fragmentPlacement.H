@@ -22,7 +22,7 @@
 #ifndef FRAGMENTPLACEMENT_H
 #define FRAGMENTPLACEMENT_H
 
-static const char *rcsid_FRAGMENTPLACEMENT_H = "$Id: fragmentPlacement.h,v 1.10 2008-10-08 22:02:55 brianwalenz Exp $";
+static const char *rcsid_FRAGMENTPLACEMENT_H = "$Id$";
 
 void  resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
                         double cutoffToInferSingleCopyStatus);

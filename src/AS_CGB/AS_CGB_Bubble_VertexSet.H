@@ -21,7 +21,7 @@
 #ifndef _AS_CGB_BUBBLE_LABELSET_H_
 #define _AS_CGB_BUBBLE_LABELSET_H_
 
-static const char *rcsid__AS_CGB_BUBBLE_LABELSET_H_ = "$Id: AS_CGB_Bubble_VertexSet.h,v 1.3 2008-10-08 22:02:54 brianwalenz Exp $";
+static const char *rcsid__AS_CGB_BUBBLE_LABELSET_H_ = "$Id$";
 
 /*
  * CONSTANTS AND GLOBAL VARIABLES

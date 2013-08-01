@@ -22,7 +22,7 @@
 #ifndef OVERLAPSTOREBORINGSTUFF_H
 #define OVERLAPSTOREBORINGSTUFF_H
 
-static const char *rcsid_OVERLAPSTOREBORINGSTUFF_H = "$Id: overlapStatsBoringStuff.h,v 1.6 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_OVERLAPSTOREBORINGSTUFF_H = "$Id$";
 
     ////////////////////////////////////////
     //

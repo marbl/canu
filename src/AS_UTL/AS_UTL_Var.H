@@ -22,7 +22,7 @@
 #ifndef AS_UTL_VAR_H
 #define AS_UTL_VAR_H
 
-static const char *rcsid_AS_UTL_VAR_H = "$Id: AS_UTL_Var.h,v 1.24 2012-05-08 23:17:55 brianwalenz Exp $";
+static const char *rcsid_AS_UTL_VAR_H = "$Id$";
 
 #include "AS_global.H"
 

@@ -22,7 +22,7 @@
 #ifndef READALIGNMENTPROFILER_H
 #define READALIGNMENTPROFILER_H
 
-static const char* rcsid_READALIGNMENTPROFILER_H = "$Id: ReadAlignmentProfiler.h,v 1.6 2011-09-06 09:47:55 mkotelbajcvi Exp $";
+static const char* rcsid_READALIGNMENTPROFILER_H = "$Id$";
 
 #include <cmath>
 #include <cstdio>

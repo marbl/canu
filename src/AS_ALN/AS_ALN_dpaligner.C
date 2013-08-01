@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char *rcsid = "$Id: AS_ALN_dpaligner.c,v 1.22 2011-12-04 23:46:58 brianwalenz Exp $";
+static const char *rcsid = "$Id$";
 
 /* Dynamic programming sequence comparison of two fragments.  General
    purpose utility that uses bit-vector d.p. for detection (see, "A Fast

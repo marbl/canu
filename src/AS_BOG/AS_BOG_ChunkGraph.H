@@ -22,7 +22,7 @@
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id: AS_BOG_ChunkGraph.hh,v 1.23 2010-10-27 03:39:04 brianwalenz Exp $";
+static const char *rcsid_INCLUDE_AS_BOG_CHUNKGRAPH = "$Id$";
 
 #include "AS_BOG_Datatypes.H"
 

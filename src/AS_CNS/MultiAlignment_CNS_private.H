@@ -22,7 +22,7 @@
 #ifndef MULTIALIGNMENT_CNS_PRIVATE_H
 #define MULTIALIGNMENT_CNS_PRIVATE_H
 
-static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id: MultiAlignment_CNS_private.h,v 1.29 2013-01-08 03:19:29 brianwalenz Exp $";
+static const char *rcsid_MULTIALIGNMENT_CNS_PRIVATE_H = "$Id$";
 
 #include "AS_OVS_overlap.H"
 #include "AS_OVS_overlapStore.H"

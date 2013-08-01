@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char *rcsid = "$Id: AS_UTL_Hash.c,v 1.28 2012-05-08 23:17:55 brianwalenz Exp $";
+static char *rcsid = "$Id$";
 
 #include "AS_UTL_Hash.H"
 #include "AS_UTL_fileIO.H"

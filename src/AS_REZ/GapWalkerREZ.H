@@ -22,7 +22,7 @@
 #ifndef GAPWALKER_REZ_H
 #define GAPWALKER_REZ_H
 
-static const char *rcsid_GAPWALKER_REZ_H = "$Id: GapWalkerREZ.h,v 1.9 2011-12-29 09:26:03 brianwalenz Exp $";
+static const char *rcsid_GAPWALKER_REZ_H = "$Id$";
 
 #include "DataTypesREZ.H"
 
