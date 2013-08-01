@@ -28,8 +28,8 @@ static const char *rcsid = "$Id: AS_BAT_Outputs.C,v 1.4 2012-01-15 23:49:34 bria
 
 #include "AS_BAT_Outputs.H"
 
-#include "AS_CGB_histo.h"
-#include "MultiAlignStore.h"
+#include "AS_CGB_histo.H"
+#include "MultiAlignStore.H"
 
 
 

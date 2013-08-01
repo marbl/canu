@@ -21,11 +21,11 @@
 
 const char *mainid = "$Id: merTrim.C,v 1.42 2013-04-02 16:45:21 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_UTL_reverseComplement.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_PER_encodeSequenceQuality.h"  //  QUALITY_MAX, QV conversion
-#include "AS_OVS_overlapStore.h"
+#include "AS_global.H"
+#include "AS_UTL_reverseComplement.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_PER_encodeSequenceQuality.H"  //  QUALITY_MAX, QV conversion
+#include "AS_OVS_overlapStore.H"
 
 #include <algorithm>
 

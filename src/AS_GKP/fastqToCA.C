@@ -21,15 +21,15 @@
 
 const char *mainid = "$Id: fastqToCA.C,v 1.28 2013-04-03 17:52:04 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "AS_UTL_fileIO.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_MSG_pmesg.h"
+#include "AS_UTL_fileIO.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_MSG_pmesg.H"
 
 #include <vector>
 

@@ -24,10 +24,10 @@
 
 static const char *rcsid_INCLUDE_AS_BAT_DATATYPES = "$Id: AS_BAT_Datatypes.H,v 1.17 2012-12-11 21:51:46 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_MSG_pmesg.h"
-#include "AS_OVS_overlapStore.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_MSG_pmesg.H"
+#include "AS_OVS_overlapStore.H"
+#include "AS_PER_gkpStore.H"
 
 #include <map>
 #include <set>

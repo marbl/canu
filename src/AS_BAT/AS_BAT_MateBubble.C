@@ -25,7 +25,7 @@ static const char *rcsid = "$Id: AS_BAT_MateBubble.C,v 1.4 2012-07-30 01:21:01 b
 #include "AS_BAT_Unitig.H"
 #include "AS_BAT_BestOverlapGraph.H"
 
-#include "MultiAlignStore.h"
+#include "MultiAlignStore.H"
 
 
 void

@@ -22,8 +22,8 @@
 
 const char *mainid = "$Id: demotePosMap.C,v 1.1 2012-12-18 07:25:01 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
 
 #include "AS_UTL_splitToWords.H"
 

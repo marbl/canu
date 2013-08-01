@@ -21,10 +21,10 @@
 
 static char *rcsid = "$Id: Globals_CGW.C,v 1.8 2012-09-27 16:55:14 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "Globals_CGW.h"
+#include "AS_global.H"
+#include "Globals_CGW.H"
 
-#include "AS_UTL_fileIO.h"
+#include "AS_UTL_fileIO.H"
 
 Globals_CGW *GlobalData = NULL;
 

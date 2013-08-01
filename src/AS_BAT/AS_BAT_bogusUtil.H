@@ -22,7 +22,7 @@
 
 static const char *rcsid_INCLUDE_AS_BAT_BOGUSUTIL = "$Id: AS_BAT_bogusUtil.H,v 1.9 2011-12-29 09:26:03 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 #include "AS_UTL_splitToWords.H"
 #include "AS_UTL_intervalList.H"
 

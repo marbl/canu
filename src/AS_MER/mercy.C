@@ -25,7 +25,7 @@ const char *mainid = "$Id: mercy.C,v 1.6 2011-03-15 03:16:19 brianwalenz Exp $";
 #include <stdlib.h>
 #include <string.h>
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 #include "libmeryl.H"
 

@@ -21,7 +21,7 @@
 
 static char *rcsid = "$Id: AS_PER_gkStream.C,v 1.8 2012-01-31 07:09:21 brianwalenz Exp $";
 
-#include "AS_PER_gkpStore.h"
+#include "AS_PER_gkpStore.H"
 
 
 gkStream::gkStream(gkStore *gkp_, AS_IID beginIID_, AS_IID endIID_, uint32 flags_) {

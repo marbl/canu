@@ -19,12 +19,12 @@
 
 const char *mainid = "$Id: splitUnitigs.C,v 1.5 2012-07-26 20:45:14 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "MultiAlign.h"
-#include "MultiAlignStore.h"
-#include "MultiAlignment_CNS.h"
-#include "MultiAlignment_CNS_private.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "MultiAlign.H"
+#include "MultiAlignStore.H"
+#include "MultiAlignment_CNS.H"
+#include "MultiAlignment_CNS_private.H"
 
 #include <map>
 #include <set>

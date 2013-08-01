@@ -19,7 +19,7 @@
 
 static const char *rcsid = "$Id: classifyMates-DFS.C,v 1.10 2012-06-27 20:11:51 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 #include "classifyMates.H"
 #include "classifyMates-globalData.H"

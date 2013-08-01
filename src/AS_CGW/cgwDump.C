@@ -22,16 +22,16 @@
 
 const char *mainid = "$Id: cgwDump.C,v 1.2 2012/10/30 16:49:09 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
-#include "Globals_CGW.h"
-#include "AS_CGW_dataTypes.h"
-#include "Output_CGW.h"
-#include "ScaffoldGraph_CGW.h"
-#include "ScaffoldGraphIterator_CGW.h"
+#include "Globals_CGW.H"
+#include "AS_CGW_dataTypes.H"
+#include "Output_CGW.H"
+#include "ScaffoldGraph_CGW.H"
+#include "ScaffoldGraphIterator_CGW.H"
 
-#include "AS_UTL_fasta.h"
-#include "AS_UTL_reverseComplement.h"
+#include "AS_UTL_fasta.H"
+#include "AS_UTL_reverseComplement.H"
 
 #define DUMP_NOTHING       0
 

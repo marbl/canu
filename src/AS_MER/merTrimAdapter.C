@@ -21,7 +21,7 @@
 
 //const char *mainid = "$Id: merTrimAdapter.C,v 1.2 2012-05-21 18:29:57 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 #include "bio++.H"
 #include "sweatShop.H"

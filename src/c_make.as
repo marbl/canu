@@ -236,6 +236,8 @@ endif
 
 # Broken by the C++ switch: AS_VWR (won't link on Linux64)
 
+# Broken by the .c -> .C rename: AS_ARD (just didn't update it)
+
 SUBDIRS = AS_RUN \
           AS_UTL \
           AS_UID \
@@ -258,5 +260,4 @@ SUBDIRS = AS_RUN \
           AS_CGW \
           AS_TER \
           AS_ENV \
-          AS_ARD \
           AS_REF

@@ -21,16 +21,16 @@
 
 const char *mainid = "$Id: tigStore.C,v 1.26 2013-01-31 16:38:21 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 #include "AS_UTL_decodeRange.H"
 #include "AS_UTL_intervalList.H"
 
-#include "MultiAlign.h"
-#include "MultiAlignStore.h"
+#include "MultiAlign.H"
+#include "MultiAlignStore.H"
 #include "MultiAlignMatePairAnalysis.H"
 #include "MultiAlignSizeAnalysis.H"
-#include "MultiAlignment_CNS.h"
-#include "MultiAlignment_CNS_private.h"
+#include "MultiAlignment_CNS.H"
+#include "MultiAlignment_CNS_private.H"
 
 #define DUMP_PROPERTIES       1
 #define DUMP_FRAGS            2

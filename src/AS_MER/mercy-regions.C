@@ -26,7 +26,7 @@ const char *mainid = "$Id: mercy-regions.C,v 1.6 2011-12-29 09:26:03 brianwalenz
 #include <string.h>
 #include <errno.h>
 
-#include "AS_global.h"
+#include "AS_global.H"
 #include "AS_UTL_splitToWords.H"
 #include "AS_UTL_intervalList.H"
 

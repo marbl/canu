@@ -25,12 +25,12 @@ static char const *rcsid = "$Id: AS_GKP_illumina.C,v 1.37 2013-02-14 04:22:10 br
 #include <stdlib.h>
 #include <math.h>
 
-#include "AS_global.h"
-#include "AS_GKP_include.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_PER_encodeSequenceQuality.h"
-#include "AS_UTL_reverseComplement.h"
-#include "AS_UTL_fasta.h"
+#include "AS_global.H"
+#include "AS_GKP_include.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_PER_encodeSequenceQuality.H"
+#include "AS_UTL_reverseComplement.H"
+#include "AS_UTL_fasta.H"
 
 #define FASTQ_SANGER    0
 #define FASTQ_SOLEXA    1

@@ -24,7 +24,7 @@
 
 static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id: AS_UTL_stackTrace.C,v 1.3 2013/03/29 13:08:07 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 //  Derived from
 //    http://sourceware.org/git/?p=glibc.git;a=blob;f=debug/segfault.c

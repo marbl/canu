@@ -29,8 +29,8 @@ const char *mainid = "$Id: clearRangeHistogram.C,v 1.2 2011-06-27 15:05:41 brian
 #include <unistd.h>
 #include <ctype.h>
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
 
 
 

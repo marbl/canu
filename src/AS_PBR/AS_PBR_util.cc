@@ -43,7 +43,7 @@ static const char *rcsid_AS_PBR_UTIL_C = "$Id: AS_PBR_util.cc,v 1.3 2012-08-22 1
 
 #include "AS_PBR_util.hh"
 
-#include "AS_PER_encodeSequenceQuality.h"
+#include "AS_PER_encodeSequenceQuality.H"
 
 uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS_IID, char*> &frgToEnc) {
   gkFragment  fr;

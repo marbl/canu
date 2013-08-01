@@ -30,11 +30,11 @@ static char *rcsid = "$Id: AS_PER_gkStore.C,v 1.27 2012-02-22 21:59:20 brianwale
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "AS_global.h"
-#include "AS_PER_genericStore.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_PER_encodeSequenceQuality.h"
-#include "AS_UTL_fileIO.h"
+#include "AS_global.H"
+#include "AS_PER_genericStore.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_PER_encodeSequenceQuality.H"
+#include "AS_UTL_fileIO.H"
 
 
 #define AS_GKP_CURRENT_VERSION    9

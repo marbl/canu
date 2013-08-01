@@ -22,7 +22,7 @@
 #ifndef AS_UTL_SPLITTOWORDS
 #define AS_UTL_SPLITTOWORDS
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 class splitToWords {
 public:

@@ -22,7 +22,7 @@
 #ifndef AS_UTL_DECODERANGE_H
 #define AS_UTL_DECODERANGE_H
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 #include <set>
 

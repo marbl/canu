@@ -32,9 +32,9 @@ const char *mainid = "$Id: removeMateOverlap.C,v 1.7 2013-01-08 02:33:46 brianwa
 
 #include "readOverlap.H"
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_OVS_overlapStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_OVS_overlapStore.H"
 
 
 

@@ -31,18 +31,18 @@ const char *mainid = "$Id: terminator.C,v 1.17 2012-09-10 08:58:11 brianwalenz E
 #include  <unistd.h>
 #include  <assert.h>
 
-#include "AS_global.h"
-#include "AS_UTL_Var.h"
-#include "SYS_UIDclient.h"
+#include "AS_global.H"
+#include "AS_UTL_Var.H"
+#include "SYS_UIDclient.H"
 
-#include "AS_PER_gkpStore.h"
-#include "MultiAlignStore.h"
+#include "AS_PER_gkpStore.H"
+#include "MultiAlignStore.H"
 
-#include "Globals_CGW.h"
-#include "AS_CGW_dataTypes.h"
-#include "ScaffoldGraph_CGW.h"
-#include "ScaffoldGraphIterator_CGW.h"
-#include "ChiSquareTest_CGW.h"
+#include "Globals_CGW.H"
+#include "AS_CGW_dataTypes.H"
+#include "ScaffoldGraph_CGW.H"
+#include "ScaffoldGraphIterator_CGW.H"
+#include "ChiSquareTest_CGW.H"
 
 
 

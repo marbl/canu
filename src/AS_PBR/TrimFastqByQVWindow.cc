@@ -1,5 +1,5 @@
-#include "AS_UTL_fileIO.h"
-#include "AS_UTL_fasta.h"
+#include "AS_UTL_fileIO.H"
+#include "AS_UTL_fasta.H"
 
 #include <iostream>
 #include <fstream>

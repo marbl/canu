@@ -31,7 +31,7 @@ static const char *rcsid = "$Id: AS_BAT_IntersectBubble.C,v 1.10 2012-07-30 01:2
 #include "AS_BAT_IntersectBubble.H"
 
 //#include "AS_BAT_BestOverlapGraph.H"
-//#include "MultiAlignStore.h"
+//#include "MultiAlignStore.H"
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 

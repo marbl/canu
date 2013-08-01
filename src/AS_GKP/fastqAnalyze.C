@@ -21,7 +21,7 @@
 
 const char *mainid = "$Id: fastqAnalyze.C,v 1.9 2013-02-15 08:43:41 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 #include <vector>
 #include <algorithm>

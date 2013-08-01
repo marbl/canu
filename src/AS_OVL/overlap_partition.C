@@ -21,9 +21,9 @@
 
 const char *mainid = "$Id: overlap_partition.C,v 1.12 2012-07-30 01:03:46 skoren Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 #include "AS_UTL_decodeRange.H"
-#include "AS_PER_gkpStore.h"
+#include "AS_PER_gkpStore.H"
 
 
 //  Reads gkpStore, outputs four files:

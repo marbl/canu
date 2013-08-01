@@ -21,9 +21,9 @@
 
 static const char *rcsid = "$Id: MultiAlignStore.C,v 1.29 2012-11-16 22:03:56 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_UTL_fileIO.h"
-#include "MultiAlignStore.h"
+#include "AS_global.H"
+#include "AS_UTL_fileIO.H"
+#include "MultiAlignStore.H"
 
 uint32  MASRmagic   = 0x5253414d;  //  'MASR', as a big endian integer
 uint32  MASRversion = 1;

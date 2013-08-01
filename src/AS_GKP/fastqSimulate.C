@@ -24,9 +24,9 @@ const char *mainid = "$Id: fastqSimulate.C,v 1.20 2013-03-18 15:12:24 brianwalen
 #include <errno.h>
 #include <math.h>
 
-#include "AS_global.h"
-#include "AS_UTL_fileIO.h"
-#include "AS_UTL_reverseComplement.h"
+#include "AS_global.H"
+#include "AS_UTL_fileIO.H"
+#include "AS_UTL_reverseComplement.H"
 
 #include <vector>
 using namespace std;

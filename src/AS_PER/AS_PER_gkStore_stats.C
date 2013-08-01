@@ -21,8 +21,8 @@
 
 static char *rcsid = "$Id: $";
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
 
 
 gkStoreStats::gkStoreStats(const char *gkStoreName) {

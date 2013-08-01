@@ -43,8 +43,8 @@ using namespace std;
 
 #include "AS_PBR_store.hh"
 #include "MultiAlignMatePairAnalysis.H"
-#include "MultiAlign.h"
-#include "AS_UTL_alloc.h"
+#include "MultiAlign.H"
+#include "AS_UTL_alloc.H"
 
 #include <vector>
 

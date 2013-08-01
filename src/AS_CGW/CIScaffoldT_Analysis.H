@@ -25,12 +25,12 @@
 
 static const char *rcsid_CISCAFFOLDT_ANALYSIS_H = "$Id: CIScaffoldT_Analysis.H,v 1.3 2012-09-04 06:45:21 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
-#include "Globals_CGW.h"
-#include "AS_CGW_dataTypes.h"
-#include "ScaffoldGraph_CGW.h"
-#include "ScaffoldGraphIterator_CGW.h"
+#include "Globals_CGW.H"
+#include "AS_CGW_dataTypes.H"
+#include "ScaffoldGraph_CGW.H"
+#include "ScaffoldGraphIterator_CGW.H"
 
 #include <vector>
 #include <map>

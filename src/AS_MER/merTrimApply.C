@@ -21,8 +21,8 @@
 
 const char *mainid = "$Id: merTrimApply.C,v 1.5 2011-12-29 09:26:03 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
 #include "AS_UTL_splitToWords.H"
 
 #include "merTrimResult.H"

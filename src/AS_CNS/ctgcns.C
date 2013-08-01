@@ -21,11 +21,11 @@
 
 const char *mainid = "$Id: ctgcns.C,v 1.12 2012-01-05 18:29:43 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "MultiAlign.h"
-#include "MultiAlignStore.h"
-#include "MultiAlignment_CNS.h"
-#include "MultiAlignment_CNS_private.h"
+#include "AS_global.H"
+#include "MultiAlign.H"
+#include "MultiAlignStore.H"
+#include "MultiAlignment_CNS.H"
+#include "MultiAlignment_CNS_private.H"
 
 int
 main (int argc, char **argv) {

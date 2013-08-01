@@ -23,7 +23,7 @@
 
 const char *mainid = "$Id: meryl.C,v 1.8 2011-12-29 09:26:03 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 #include "bio++.H"
 #include "meryl.H"

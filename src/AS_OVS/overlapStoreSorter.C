@@ -21,16 +21,16 @@
 
 const char *mainid = "$Id: overlapStoreSorter.C,v 1.10 2012-08-19 04:13:52 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
-#include "AS_PER_gkpStore.h"
+#include "AS_PER_gkpStore.H"
 
-#include "overlapStore.h"
+#include "overlapStore.H"
 
-#include "AS_OVS_overlap.h"
-#include "AS_OVS_overlapFile.h"
-#include "AS_OVS_overlapStore.h"
-#include "AS_OBT_acceptableOverlap.h"
+#include "AS_OVS_overlap.H"
+#include "AS_OVS_overlapFile.H"
+#include "AS_OVS_overlapStore.H"
+#include "AS_OBT_acceptableOverlap.H"
 
 #include <ctype.h>
 #include <unistd.h>  //  sysconf()

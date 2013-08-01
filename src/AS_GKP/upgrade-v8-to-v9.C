@@ -20,11 +20,11 @@
 
 static const char* rcsid = "$Id: upgrade-v7-to-v8.C,v 1.13 2011-11-29 16:00:07 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_PER_genericStore.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_UTL_fileIO.h"
-#include "AS_UTL_Hash.h"
+#include "AS_global.H"
+#include "AS_PER_genericStore.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_UTL_fileIO.H"
+#include "AS_UTL_Hash.H"
 
 #include <map>
 

@@ -19,10 +19,10 @@
 
 const char *mainid = "$Id: classifyMatesPairwise.C,v 1.5 2013-01-08 03:16:34 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 #include "AS_UTL_decodeRange.H"
-#include "AS_OVS_overlapStore.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_OVS_overlapStore.H"
+#include "AS_PER_gkpStore.H"
 
 #include "classifyMates.H"
 #include "classifyMates-globalData.H"

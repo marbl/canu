@@ -19,12 +19,12 @@
 
 const char *mainid = "$Id: computeCoverageStat.C,v 1.8 2012-08-29 16:19:16 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "MultiAlign.h"
-#include "MultiAlignStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "MultiAlign.H"
+#include "MultiAlignStore.H"
 
-#include "AS_CGB_histo.h"
+#include "AS_CGB_histo.H"
 
 #include <algorithm>
 

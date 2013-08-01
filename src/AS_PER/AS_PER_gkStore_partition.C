@@ -30,11 +30,11 @@ static char *rcsid = "$Id: AS_PER_gkStore_partition.C,v 1.5 2012-02-29 00:23:15 
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "AS_global.h"
-#include "AS_PER_genericStore.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_PER_encodeSequenceQuality.h"
-#include "AS_UTL_fileIO.h"
+#include "AS_global.H"
+#include "AS_PER_genericStore.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_PER_encodeSequenceQuality.H"
+#include "AS_UTL_fileIO.H"
 
 void
 gkStore::gkStore_loadPartition(uint32 partition) {

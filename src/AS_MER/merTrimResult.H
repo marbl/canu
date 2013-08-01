@@ -24,7 +24,7 @@ static const char *rcsid_MERTRIMRESULT_H = "$Id: merTrimResult.H,v 1.1 2011-08-2
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 #ifndef MERTRIMRESULT_H
 #define MERTRIMRESULT_H

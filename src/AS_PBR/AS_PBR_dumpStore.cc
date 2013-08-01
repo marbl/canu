@@ -41,7 +41,7 @@ const char *mainid = "$Id: AS_PBR_dumpStore.cc,v 1.1 2012-08-20 13:10:37 skoren 
 
 using namespace std;
 
-#include "AS_global.h"
+#include "AS_global.H"
 #include "AS_PBR_store.hh"
 
 #include <vector>

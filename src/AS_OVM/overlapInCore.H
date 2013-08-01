@@ -30,10 +30,10 @@
 
 #include <pthread.h>
 
-#include "AS_UTL_fileIO.h"
-#include "AS_UTL_reverseComplement.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_OVS_overlapStore.h"
+#include "AS_UTL_fileIO.H"
+#include "AS_UTL_reverseComplement.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_OVS_overlapStore.H"
 
 
 #ifndef OVERLAPINCORE_H

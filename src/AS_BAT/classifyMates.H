@@ -22,9 +22,9 @@
 
 static const char *rcsid_CLASSIFYMATES_H = "$Id: classifyMates.H,v 1.5 2012-06-27 20:11:51 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_OVS_overlapStore.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_OVS_overlapStore.H"
+#include "AS_PER_gkpStore.H"
 
 
 //  At 16 bytes, this is bigger than I want.

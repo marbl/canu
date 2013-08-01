@@ -21,7 +21,7 @@
 
 const char *mainid = "$Id: fastqSample.C,v 1.10 2012-10-23 10:29:30 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 
 class aRead {

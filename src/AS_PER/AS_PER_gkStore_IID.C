@@ -30,11 +30,11 @@ static char *rcsid = "$Id: AS_PER_gkStore_IID.C,v 1.6 2012-02-03 08:57:49 brianw
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "AS_global.h"
-#include "AS_PER_genericStore.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_PER_encodeSequenceQuality.h"
-#include "AS_UTL_fileIO.h"
+#include "AS_global.H"
+#include "AS_PER_genericStore.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_PER_encodeSequenceQuality.H"
+#include "AS_UTL_fileIO.H"
 
 
 //  If IIDtoTYPE and IIDtoTIID are defined, these will map from a fragment IID to a (sub)store and

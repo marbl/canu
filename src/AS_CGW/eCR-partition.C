@@ -20,8 +20,8 @@
 
 const char *mainid = "$Id: eCR-partition.C,v 1.3 2009-10-05 22:49:42 brianwalenz Exp $";
 
-#include "eCR.h"
-#include "ScaffoldGraph_CGW.h"
+#include "eCR.H"
+#include "ScaffoldGraph_CGW.H"
 
 
 int

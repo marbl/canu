@@ -30,11 +30,11 @@ static char *rcsid = "$Id: AS_PER_gkStore_clearRange.C,v 1.16 2011-08-22 04:49:1
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "AS_global.h"
-#include "AS_PER_genericStore.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_PER_encodeSequenceQuality.h"
-#include "AS_UTL_fileIO.h"
+#include "AS_global.H"
+#include "AS_PER_genericStore.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_PER_encodeSequenceQuality.H"
+#include "AS_UTL_fileIO.H"
 
 
 uint32

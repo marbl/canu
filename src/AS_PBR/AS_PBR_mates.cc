@@ -42,7 +42,7 @@ using namespace std;
 #include "AS_PBR_mates.hh"
 #include "AS_PBR_store.hh"
 #include "MultiAlignMatePairAnalysis.H"
-#include "MultiAlign.h"
+#include "MultiAlign.H"
 
 #include <map>
 #include <vector>

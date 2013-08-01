@@ -28,9 +28,9 @@ const char *mainid = "$Id: chimera.C,v 1.54 2013-03-26 16:20:02 brianwalenz Exp 
 #include <math.h>
 #include <assert.h>
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_OVS_overlapStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_OVS_overlapStore.H"
 #include "AS_UTL_intervalList.H"
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)

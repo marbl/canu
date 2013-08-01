@@ -28,8 +28,8 @@ const char *mainid = "$Id: initialTrim.C,v 1.31 2012-03-05 09:09:17 brianwalenz 
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
 
 #include "trim.H"
 

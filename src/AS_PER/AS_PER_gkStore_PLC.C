@@ -21,7 +21,7 @@
 
 static char *rcsid = "$Id: AS_PER_gkStore_PLC.C,v 1.2 2009-10-27 12:26:41 skoren Exp $";
 
-#include "AS_PER_gkpStore.h"
+#include "AS_PER_gkpStore.H"
 
 
 //  A hash must be maintained that maps the read IIDS to the location in

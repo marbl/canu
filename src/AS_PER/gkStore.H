@@ -22,7 +22,7 @@
 #ifndef GKSTORE_H
 #define GKSTORE_H
 
-#include "AS_UTL_Hash.h"
+#include "AS_UTL_Hash.H"
 
 ////////////////////////////////////////
 //

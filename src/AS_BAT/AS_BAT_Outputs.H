@@ -24,7 +24,7 @@
 
 static const char *rcsid_INCLUDE_AS_BAT_OUTPUTS = "$Id: AS_BAT_Outputs.H,v 1.3 2012-01-15 23:49:34 brianwalenz Exp $";
 
-#include "MultiAlignStore.h"
+#include "MultiAlignStore.H"
 
 void unitigToMA(MultiAlignT *ma, uint32 iumiid, Unitig *utg);
 

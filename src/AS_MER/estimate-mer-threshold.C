@@ -24,7 +24,7 @@ const char *mainid = "$Id: estimate-mer-threshold.C,v 1.4 2012-03-06 21:37:16 br
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 #include "bio++.H"
 #include "sweatShop.H"

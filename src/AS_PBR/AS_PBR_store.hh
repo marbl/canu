@@ -41,7 +41,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define AS_PBR_STORE_H
 
 #include "AS_PBR_util.hh"
-#include "AS_PER_genericStore.h"
+#include "AS_PER_genericStore.H"
 
 #include <map>
 #include "boost/dynamic_bitset.hpp"

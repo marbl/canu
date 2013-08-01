@@ -21,11 +21,11 @@
 
 const char *mainid = "$Id: utgcns.C,v 1.16 2012-08-29 06:01:22 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "MultiAlign.h"
-#include "MultiAlignStore.h"
-#include "MultiAlignment_CNS.h"
-#include "MultiAlignment_CNS_private.h"
+#include "AS_global.H"
+#include "MultiAlign.H"
+#include "MultiAlignStore.H"
+#include "MultiAlignment_CNS.H"
+#include "MultiAlignment_CNS_private.H"
 
 #include "AS_UTL_decodeRange.H"
 

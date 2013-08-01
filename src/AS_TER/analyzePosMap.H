@@ -31,8 +31,8 @@ static const char *rcsid_ANALYZEPOSMAP_H = "$Id: analyzePosMap.H,v 1.2 2012-12-0
 #include  <unistd.h>
 #include  <assert.h>
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
 
 #include "AS_UTL_splitToWords.H"
 #include "AS_UTL_intervalList.H"

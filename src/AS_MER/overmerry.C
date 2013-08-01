@@ -21,9 +21,9 @@
 
 const char *mainid = "$Id: overmerry.C,v 1.41 2011-12-29 09:26:03 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_OVS_overlapStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_OVS_overlapStore.H"
 
 #include <algorithm>
 

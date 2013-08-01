@@ -21,11 +21,11 @@
 
 const char *mainid = "$Id: utgcnsfix.C,v 1.8 2013-03-08 19:25:43 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "MultiAlign.h"
-#include "MultiAlignStore.h"
-#include "MultiAlignment_CNS.h"
-#include "MultiAlignment_CNS_private.h"
+#include "AS_global.H"
+#include "MultiAlign.H"
+#include "MultiAlignStore.H"
+#include "MultiAlignment_CNS.H"
+#include "MultiAlignment_CNS_private.H"
 
 
 int

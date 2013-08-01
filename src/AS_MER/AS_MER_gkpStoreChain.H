@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "AS_PER_gkpStore.h"
+#include "AS_PER_gkpStore.H"
 
 #include "seqFile.H"
 #include "seqFactory.H"

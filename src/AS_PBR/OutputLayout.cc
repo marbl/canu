@@ -39,9 +39,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 const char *mainid = "$Id: OutputLayout.cc,v 1.19 2012-12-27 15:17:49 skoren Exp $";
 
-#include "AS_global.h"
-#include "AS_MSG_pmesg.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_MSG_pmesg.H"
+#include "AS_PER_gkpStore.H"
 
 #include "AS_PBR_util.hh"
 #include "AS_PBR_output.hh"

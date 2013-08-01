@@ -22,12 +22,12 @@
 
 static const char *rcsid_MULTIALIGNSIZEANALYSIS = "$Id: MultiAlignSizeAnalysis.H,v 1.2 2012-06-26 14:08:30 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "MultiAlign.h"
-#include "MultiAlignStore.h"
-#include "MultiAlignment_CNS.h"
-#include "MultiAlignment_CNS_private.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "MultiAlign.H"
+#include "MultiAlignStore.H"
+#include "MultiAlignment_CNS.H"
+#include "MultiAlignment_CNS_private.H"
 
 #include <vector>
 #include <algorithm>

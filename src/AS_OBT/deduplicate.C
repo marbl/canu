@@ -28,9 +28,9 @@ const char *mainid = "$Id: deduplicate.C,v 1.22 2013-01-08 02:33:39 brianwalenz 
 #include <math.h>
 #include <assert.h>
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_OVS_overlapStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_OVS_overlapStore.H"
 
 #define F_U32W(X)  "%" #X F_U32P
 #define F_U64W(X)  "%" #X F_U64P

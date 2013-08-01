@@ -22,7 +22,7 @@
 #ifndef AS_UTL_INTERVALLIST_H
 #define AS_UTL_INTERVALLIST_H
 
-#include "AS_global.h"
+#include "AS_global.H"
 
 //  This is kmer/libutil/intervalList.[CH], replacing u32bit with uint32.
 

@@ -21,9 +21,9 @@
 
 const char *mainid = "$Id: gkpStoreDumpFASTQ.C,v 1.1 2012-02-06 08:30:19 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_UTL_fasta.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_UTL_fasta.H"
 
   //  Currently doesn't support a single library, or figuring out which
   //  libraries are not in the dump range.

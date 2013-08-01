@@ -25,9 +25,9 @@
 static const char *rcsid_GRAPH_EDGE_ITERATOR_H = "$Id: GraphEdgeIterator.H,v 1.5 2012-08-28 21:09:39 brianwalenz Exp $";
 
 //  includes are broken here
-//#include "GraphCGW_T.h"
-//#include "AS_CGW_dataTypes.h"
-//#include "InputDataTypes_CGW.h"
+//#include "GraphCGW_T.H"
+//#include "AS_CGW_dataTypes.H"
+//#include "InputDataTypes_CGW.H"
 
 //  We can iterate over three types of edges:
 //    graph->SEdges          SEdgeT

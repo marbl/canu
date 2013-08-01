@@ -29,12 +29,12 @@ const char *mainid = "$Id: buildRefOverlaps.C,v 1.3 2010-10-04 08:51:44 brianwal
 #include <unistd.h>
 #include <math.h>
 
-#include "AS_global.h"
-#include "AS_UTL_Var.h"
-#include "AS_UTL_fileIO.h"
+#include "AS_global.H"
+#include "AS_UTL_Var.H"
+#include "AS_UTL_fileIO.H"
 #include "AS_UTL_splitToWords.H"
-#include "AS_MSG_pmesg.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_MSG_pmesg.H"
+#include "AS_PER_gkpStore.H"
 
 gkStore   *gkpStore = 0L;
 

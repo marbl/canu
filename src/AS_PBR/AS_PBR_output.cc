@@ -42,9 +42,9 @@ using namespace std;
 #include "AS_PBR_output.hh"
 #include "AS_PBR_store.hh"
 
-#include "AS_OVS_overlapStore.h"
-#include "AS_UTL_reverseComplement.h"
-#include "AS_PER_encodeSequenceQuality.h"
+#include "AS_OVS_overlapStore.H"
+#include "AS_UTL_reverseComplement.H"
+#include "AS_PER_encodeSequenceQuality.H"
 
 #include <sstream>
 #include <map>

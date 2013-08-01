@@ -24,8 +24,8 @@
 
 static const char *rcsid_INCLUDE_AS_BAT_LOGGING = "$Id: AS_BAT_Logging.H,v 1.1 2012-07-30 01:21:01 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_UTL_fileIO.h"
+#include "AS_global.H"
+#include "AS_UTL_fileIO.H"
 
 #include <stdio.h>
 #include <stdlib.h>

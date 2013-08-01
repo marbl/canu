@@ -24,9 +24,9 @@ static char const *rcsid = "$Id: AS_GKP_checkPlace.C,v 1.1 2009-08-14 13:37:06 s
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "AS_global.h"
-#include "AS_GKP_include.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_GKP_include.H"
+#include "AS_PER_gkpStore.H"
 
 int
 Check_PlacementMesg(PlacementMesg *plc_mesg) {

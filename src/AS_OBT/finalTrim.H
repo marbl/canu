@@ -33,9 +33,9 @@ static const char *rcsid_FINALTRIM_H = "$Id: finalTrim.H,v 1.1 2011/06/03 17:34:
 
 #include "trim.H"
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_OVS_overlapStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_OVS_overlapStore.H"
 #include "AS_UTL_intervalList.H"
 
 

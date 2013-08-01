@@ -42,7 +42,7 @@ using namespace std;
 #include "AS_PBR_filter.hh"
 #include "AS_PBR_store.hh"
 
-#include "AS_OVS_overlapStore.h"
+#include "AS_OVS_overlapStore.H"
 
 #include <set>
 #include <map>

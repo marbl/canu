@@ -25,36 +25,36 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-BOG_SOURCES = AS_BOG_BestOverlapGraph.cc \
-              AS_BOG_Breaking.cc \
-              AS_BOG_ChunkGraph.cc \
-              AS_BOG_EvaluateMates.cc \
-              AS_BOG_FragmentInfo.cc \
-              AS_BOG_Instrumentation.cc \
-              AS_BOG_IntersectBubble.cc \
-              AS_BOG_IntersectSplit.cc \
-              AS_BOG_InsertSizes.cc \
-              AS_BOG_Joining.cc \
-              AS_BOG_MateBubble.cc \
-              AS_BOG_MateChecker.cc \
-              AS_BOG_MateLocation.cc \
-              AS_BOG_MoveContains.cc \
-              AS_BOG_Outputs.cc \
-              AS_BOG_OverlapBubble.cc \
-              AS_BOG_PlaceContains.cc \
-              AS_BOG_PlaceFragUsingOverlaps.cc \
-              AS_BOG_PlaceZombies.cc \
-              AS_BOG_PopulateUnitig.cc \
-              AS_BOG_SetParentAndHang.cc \
-              AS_BOG_SplitDiscontinuous.cc \
-              AS_BOG_Unitig_AddAndPlaceFrag.cc \
-              AS_BOG_Unitig_AddFrag.cc \
-              AS_BOG_Unitig_PlaceFragUsingEdges.cc \
-              AS_BOG_Unitig.cc \
-              AS_BOG_UnitigGraph.cc
-BOG_OBJECTS = $(BOG_SOURCES:.cc=.o)
+BOG_SOURCES = AS_BOG_BestOverlapGraph.C \
+              AS_BOG_Breaking.C \
+              AS_BOG_ChunkGraph.C \
+              AS_BOG_EvaluateMates.C \
+              AS_BOG_FragmentInfo.C \
+              AS_BOG_Instrumentation.C \
+              AS_BOG_IntersectBubble.C \
+              AS_BOG_IntersectSplit.C \
+              AS_BOG_InsertSizes.C \
+              AS_BOG_Joining.C \
+              AS_BOG_MateBubble.C \
+              AS_BOG_MateChecker.C \
+              AS_BOG_MateLocation.C \
+              AS_BOG_MoveContains.C \
+              AS_BOG_Outputs.C \
+              AS_BOG_OverlapBubble.C \
+              AS_BOG_PlaceContains.C \
+              AS_BOG_PlaceFragUsingOverlaps.C \
+              AS_BOG_PlaceZombies.C \
+              AS_BOG_PopulateUnitig.C \
+              AS_BOG_SetParentAndHang.C \
+              AS_BOG_SplitDiscontinuous.C \
+              AS_BOG_Unitig_AddAndPlaceFrag.C \
+              AS_BOG_Unitig_AddFrag.C \
+              AS_BOG_Unitig_PlaceFragUsingEdges.C \
+              AS_BOG_Unitig.C \
+              AS_BOG_UnitigGraph.C
+BOG_OBJECTS = $(BOG_SOURCES:.C=.o)
 
-SOURCES     = BuildUnitigs.cc fixUnitigs.C analyzeBest.C $(BOG_SOURCES)
+SOURCES     = BuildUnitigs.C  fixUnitigs.C analyzeBest.C $(BOG_SOURCES)
 OBJECTS     = BuildUnitigs.o  fixUnitigs.o analyzeBest.o $(BOG_OBJECTS)
 
 CXX_PROGS = buildUnitigs fixUnitigs analyzeBest

@@ -21,7 +21,7 @@
 
 static char *rcsid = "$Id: AS_PER_gkStore_UID.C,v 1.7 2011-12-29 06:08:39 brianwalenz Exp $";
 
-#include "AS_PER_gkpStore.h"
+#include "AS_PER_gkpStore.H"
 
 
 //  For numeric UIDs (those with both isString and UID valid), you can

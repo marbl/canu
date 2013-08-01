@@ -28,9 +28,9 @@ static const char *rcsid = "$Id: finalTrim-largestCovered.C,v 1.2 2011/06/23 15:
 #include <math.h>
 #include <assert.h>
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_OVS_overlapStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_OVS_overlapStore.H"
 #include "AS_UTL_intervalList.H"
 
 

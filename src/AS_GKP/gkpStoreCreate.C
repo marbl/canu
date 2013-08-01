@@ -21,8 +21,8 @@
 
 const char *mainid = "$Id: gkpStoreCreate.C,v 1.1 2012-02-06 08:30:19 brianwalenz Exp $";
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
 #include "AS_UTL_splitToWords.H"
 
 

@@ -21,7 +21,7 @@
 
 static const char *rcsid = "$Id: AS_PER_gkLibrary.C,v 1.20 2012-06-21 09:12:16 brianwalenz Exp $";
 
-#include "AS_PER_gkpStore.h"
+#include "AS_PER_gkpStore.H"
 
 
 static

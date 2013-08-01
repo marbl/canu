@@ -22,12 +22,12 @@
 
 const char *mainid = "$Id: analyzeScaffolds.C,v 1.2 2012-07-16 09:13:17 brianwalenz Exp $";
 
-#include "AS_global.h"
+#include "AS_global.H"
 
-#include "Globals_CGW.h"
-#include "AS_CGW_dataTypes.h"
-#include "ScaffoldGraph_CGW.h"
-#include "ScaffoldGraphIterator_CGW.h"
+#include "Globals_CGW.H"
+#include "AS_CGW_dataTypes.H"
+#include "ScaffoldGraph_CGW.H"
+#include "ScaffoldGraphIterator_CGW.H"
 
 #include "CIScaffoldT_Analysis.H"
 

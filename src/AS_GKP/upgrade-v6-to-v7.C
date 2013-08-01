@@ -30,11 +30,11 @@ static char *rcsid = "$Id: upgrade-v6-to-v7.C,v 1.2 2011-11-29 16:00:07 brianwal
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "AS_global.h"
-#include "AS_PER_genericStore.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_PER_encodeSequenceQuality.h"
-#include "AS_UTL_fileIO.h"
+#include "AS_global.H"
+#include "AS_PER_genericStore.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_PER_encodeSequenceQuality.H"
+#include "AS_UTL_fileIO.H"
 
 //  Special one-off to upgrade a v6 store to a v7 store.
 //

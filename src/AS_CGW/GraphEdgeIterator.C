@@ -21,8 +21,8 @@
 
 static char *rcsid = "$Id: GraphEdgeIterator.C,v 1.8 2012-08-28 21:09:39 brianwalenz Exp $";
 
-#include "GraphCGW_T.h"
-#include "ScaffoldGraph_CGW.h"
+#include "GraphCGW_T.H"
+#include "ScaffoldGraph_CGW.H"
 //#include "GraphEdgeIterator.H"
 
 #include <vector>
