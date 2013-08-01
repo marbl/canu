@@ -19,18 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef AS_UTL_STACKTRACE_H
-#define AS_UTL_STACKTRACE_H
-
-static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id$";
+static const char *rcsid = "$Id$";
 
 #include "AS_global.H"
-
-//  Derived from
-//    http://sourceware.org/git/?p=glibc.git;a=blob;f=debug/segfault.c
-//
-//  Linux    g++ -rdynamic -g3 -o st1 st1.C
-//  FreeBSD  CC -o unwind unwind.C -I/usr/local/include -L/usr/local/lib -lunwind
 
 #include <execinfo.h>  //  backtrace
 #include <signal.h>
@@ -42,6 +33,21 @@ static const char *rcsid_AS_UTL_STACKTRACE_H = "$Id$";
 #include <unistd.h>
 
 #include <cxxabi.h>
+
+//  Derived from
+//    http://sourceware.org/git/?p=glibc.git;a=blob;f=debug/segfault.c
+
+//  Linux    g++ -rdynamic -g3 -o st1 st1.C
+//  FreeBSD  CC -o unwind unwind.C -I/usr/local/include -L/usr/local/lib -lunwind
+
+//  (Not sure what this is about, but it was with the GDB commands at the end of this file)
+//
+//  http://sourceware.org/gdb/onlinedocs/gdb/Separate-Debug-Files.html#Separate-Debug-Files
+//
+//  objcopy --only-kep-debug foo foo.debug
+//  strip -g foo
+//  objcopy --add-gnu-debuglink=foo.debug foo
+
 
 #define WRITE_STRING(S) write(2, S, strlen(S))
 
@@ -255,5 +261,153 @@ AS_UTL_installCrashCatcher(void) {
 }
 
 
-#endif  //  AS_UTL_STACKTRACE_H
 
+//
+//  Proposed commands for GDB.
+//
+//  print ""
+//  print "info thread"
+//  print ""
+//  info thread
+//  #
+//  print ""
+//  print "info proc all"
+//  print ""
+//  info proc all
+//  #
+//  print ""
+//  print "maintenance info sections"
+//  print ""
+//  maintenance info sections
+//  #
+//  print ""
+//  print "where"
+//  print ""
+//  where
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  up
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  up
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  up
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  up
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  up
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  up
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  up
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  up
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  up
+//  #
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info args
+//  #
+//  print ""
+//  print ""
+//  print ""
+//  info locals
+//  up
+//  #
+//  quit
+//
