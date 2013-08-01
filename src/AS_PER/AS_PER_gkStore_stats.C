@@ -64,6 +64,17 @@ gkStoreStats::init(gkStore *gkp) {
   readLengthPerLib  = new uint64 [gkp->gkStore_getNumLibraries() + 1];
   clearLengthPerLib = new uint64 [gkp->gkStore_getNumLibraries() + 1];
 
+  for (uint32 i=0; i<gkp->gkStore_getNumLibraries() + 1; i++) {
+    lowestIID[i]         = 0;
+    highestIID[i]        = 0;
+
+    numActivePerLib[i]   = 0;
+    numDeletedPerLib[i]  = 0;
+    numMatedPerLib[i]    = 0;
+    readLengthPerLib[i]  = 0;
+    clearLengthPerLib[i] = 0;
+  }
+
   while (fs->next(&fr)) {
     AS_IID     lib = fr.gkFragment_getLibraryIID();
     AS_IID     iid = fr.gkFragment_getReadIID();
