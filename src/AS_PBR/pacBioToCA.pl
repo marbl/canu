@@ -106,7 +106,7 @@ sub setDefaults() {
     $global{"gridTaskID"}				   = "SGE_TASK_ID";     # for lsf it is LSB_JOBINDEX
     $global{"gridArraySubmitID"}           = "\$TASK_ID";       # for lsf it is %I
     
-    $global{"shell"}                       = "/bin/sh";
+    $global{"shell"}                       = "/bin/bash";
 	
     $global{"utgErrorRate"} = 0.25;
     $global{"utgErrorLimit"} = 6.5;
