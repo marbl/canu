@@ -22,17 +22,15 @@
 const char *mainid = "$Id$";
 
 #include "AS_global.H"
+
 #include "AS_PER_gkpStore.H"
-#include "AS_OVS_overlapStore.H"
 #include "AS_UTL_intervalList.H"
+#include "AS_OBT_overlaps.H"
 
 #include <vector>
 #include <map>
 
 using namespace std;
-
-
-#define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 
 
 //  We trim each overlap end back by this amount.
@@ -1669,8 +1667,8 @@ main(int argc, char **argv) {
   char              *reportName         = 0L;
 
   gkStore           *gkp                = 0L;
-  OverlapStore      *ovsprimary         = 0L;
-  OverlapStore      *ovssecondary       = 0L;
+  OverlapStore      *ovlPrimary         = 0L;
+  OverlapStore      *ovlSecondary       = 0L;
 
   bool               doDeleteAggressive = false;
 
@@ -1679,15 +1677,15 @@ main(int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-gkp", 2) == 0) {
+    if        (strncmp(argv[arg], "-G", 2) == 0) {
       gkp = new gkStore(argv[++arg], FALSE, doUpdate);
       gkp->gkStore_metadataCaching(true);
 
-    } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
-      if (ovsprimary == NULL)
-        ovsprimary = AS_OVS_openOverlapStore(argv[++arg]);
-      else if (ovssecondary == NULL)
-        ovssecondary = AS_OVS_openOverlapStore(argv[++arg]);
+    } else if (strncmp(argv[arg], "-O", 2) == 0) {
+      if (ovlPrimary == NULL)
+        ovlPrimary = AS_OVS_openOverlapStore(argv[++arg]);
+      else if (ovlSecondary == NULL)
+        ovlSecondary = AS_OVS_openOverlapStore(argv[++arg]);
       else {
         fprintf(stderr, "Only two obtStores allowed.\n");
         err++;
@@ -1720,8 +1718,8 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((gkp == 0L) || (ovsprimary == 0L) || (err)) {
-    fprintf(stderr, "usage: %s -gkp <gkpStore> -ovs <ovsStore> [opts]\n", argv[0]);
+  if ((gkp == 0L) || (ovlPrimary == 0L) || (err)) {
+    fprintf(stderr, "usage: %s -G <gkpStore> -O <ovsStore> [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -mininniepair n    trim if at least n pairs of innie frags detect chimer\n");
     fprintf(stderr, "  -minoverhanging n  trim if at least n frags detect chimer\n");
@@ -1762,36 +1760,38 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", reportName, strerror(errno)), exit(1);
   }
 
-  uint32      ovlMax = MAX_OVERLAPS_PER_FRAG;
   uint32      ovlLen = 0;
+  uint32      ovlMax = 64 * 1024;
   OVSoverlap *ovl    = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * ovlMax);
 
-  AS_IID      iid    = 1;
-  AS_IID      max    = gkp->gkStore_getNumFragments() + 1;
+  memset(ovl, 0, sizeof(OVSoverlap) * ovlMax);
 
-  while ((clear[iid].doFix == false) && (iid < max))
-    iid++;
-
-  if (iid > 1) {
-    fprintf(stderr, "Reset overlap store range to "F_IID" to "F_IID"\n", iid, max);
-
-    AS_OVS_setRangeOverlapStore(ovsprimary,   iid, max);
-    AS_OVS_setRangeOverlapStore(ovssecondary, iid, max);
-  }
-
-  ovlLen  = 0;
-  ovlLen += AS_OVS_readOverlapsFromStore(ovsprimary,   ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
-  ovlLen += AS_OVS_readOverlapsFromStore(ovssecondary, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
-
-  //  NOTE!  We DO get multiple overlaps for the same pair of fragments in the partial overlap
-  //  output.  We used to pick one of the overlaps (the first seen) and ignore the rest.  We do not
-  //  do that anymore.  The multiple overlaps _should_ be opposite orientation.  In PacBio, these
-  //  can indicate subreads.
+  AS_IID      iidMin = 1;
+  AS_IID      iidMax = gkp->gkStore_getNumFragments() + 1;
 
   vector<chimeraOvl>  olist;
   vector<chimeraBad>  blist;
 
-  while (ovlLen > 0) {
+  for (uint32 iid=iidMin; iid<=iidMax; iid++) {
+
+    if (clear[iid].doFix == false)
+      continue;
+
+    //  NOTE!  We DO get multiple overlaps for the same pair of fragments in the partial overlap
+    //  output.  We used to pick one of the overlaps (the first seen) and ignore the rest.  We do not
+    //  do that anymore.  The multiple overlaps _should_ be opposite orientation.  In PacBio, these
+    //  can indicate subreads.
+
+    loadOverlaps(iid, ovl, ovlLen, ovlMax, ovlPrimary, ovlSecondary);
+
+    //  If there are no overlaps for this read, do nothing.
+
+    if ((iid < ovl[0].a_iid) ||
+        (ovlLen == 0))
+        continue;
+
+    //  Otherwise, trim!
+
     adjust(ovl, ovlLen, clear, olist);
 
     processSubRead(ovl[0].a_iid, clear, gkp, doUpdate, olist, blist);
@@ -1910,26 +1910,6 @@ main(int argc, char **argv) {
 
     olist.clear();
     blist.clear();
-
-    //  Skip past any reads that we aren't going to process
-
-    iid = ovl[0].a_iid + 1;
-
-    while ((clear[iid].doFix == false) && (iid < max))
-      iid++;
-
-    if (iid > ovl[0].a_iid + 1) {
-      fprintf(stderr, "Reset overlap store range to "F_IID" to "F_IID"\n", iid, max);
-
-      AS_OVS_setRangeOverlapStore(ovsprimary,   iid, max);
-      AS_OVS_setRangeOverlapStore(ovssecondary, iid, max);
-    }
-
-    //  Read more overlaps.
-
-    ovlLen  = 0;
-    ovlLen += AS_OVS_readOverlapsFromStore(ovsprimary,   ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
-    ovlLen += AS_OVS_readOverlapsFromStore(ovssecondary, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
   }
 
   delete gkp;

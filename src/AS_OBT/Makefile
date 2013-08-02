@@ -67,8 +67,10 @@ EXE_SOURCES = initialTrim.C \
               finalTrim-bestEdge.C \
               chimera.C \
               trim.C \
-              removeMateOverlap.C
-LIB_SOURCES = AS_OBT_acceptableOverlap.C
+              removeMateOverlap.C \
+
+LIB_SOURCES = AS_OBT_acceptableOverlap.C \
+              AS_OBT_overlaps.C
 
 SOURCES     = $(EXE_SOURCES) $(LIB_SOURCES)
 OBJECTS     = $(SOURCES:.C=.o) $(LIB_SOURCES:.C=.o)

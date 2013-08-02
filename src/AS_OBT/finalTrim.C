@@ -21,78 +21,12 @@
 
 const char *mainid = "$Id$";
 
+#include "AS_global.H"
+
 #include "finalTrim.H"
+
 #include "AS_UTL_decodeRange.H"
-
-uint32
-loadOverlaps(uint32         iid,
-             OVSoverlap   *&ovl,
-             uint32        &ovlLen,
-             uint32        &ovlMax,
-             OverlapStore  *ovlPrimary,
-             OverlapStore  *ovlSecondary) {
-
-  //  Allocate initial space
-
-  if (ovl == NULL) {
-    ovlLen = 0;
-    ovlMax = 65 * 1024;
-    ovl    = new OVSoverlap [ovlMax];
-  }
-
-  //  Return if the overlaps are for the current read, or some future read.
-
-  if (iid <= ovl[0].a_iid)
-    return(ovlLen);
-
-  //  Until we load the correct overlap, repeat.
-
-  do {
-    //  Count the number of overlaps to load
-    ovlLen  = 0;
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlPrimary,   NULL, 0, AS_OVS_TYPE_ANY);
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlSecondary, NULL, 0, AS_OVS_TYPE_ANY);
-
-    //  Quit now if there are no overlaps.  This simplifies the rest of the loop.
-    if (ovlLen == 0)
-      return(0);
-
-    //  Allocate space for these overlaps.
-    while (ovlMax < ovlLen) {
-      ovlMax *= 2;
-      delete [] ovl;
-      ovl = new OVSoverlap [ovlMax];
-    }
-
-    //  Load the overlaps
-    ovlLen  = 0;
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlPrimary,   ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
-    ovlLen += AS_OVS_readOverlapsFromStore(ovlSecondary, ovl + ovlLen, ovlMax - ovlLen, AS_OVS_TYPE_ANY);
-
-    //fprintf(stderr, "LOADED %d overlaps for a_iid %d\n", ovlLen, ovl[0].a_iid);
-
-    //  If we read overlaps for a fragment after 'iid', we're done.  The client will properly save
-    //  these overlaps until the iid becomes active.  And just in case it doesn't, we return above
-    //  if the iid passed in is less than the current overlap.
-    //
-    if (iid <= ovl[0].a_iid)
-      return(ovlLen);
-
-    //  On the otherhand, if we read overlaps for a fragment before 'iid', we can either keep reading
-    //  until we find the overlaps for this fragment, or jump to the correct spot to read overlaps.
-    //
-    //  The rule is simple.  If we're within 50 of the correct IID, keep streaming.  Otherwise, make
-    //  a jump.  AS_OVS_setRangeOverlapStore() seems to ALWAYS close and open a file, which is somewhat
-    //  expensive, especially if the file doesn't actually change.
-    //
-    if (50 < iid - ovl[0].a_iid) {
-      AS_OVS_setRangeOverlapStore(ovlPrimary,   iid, UINT32_MAX);
-      AS_OVS_setRangeOverlapStore(ovlSecondary, iid, UINT32_MAX);
-    }
-  } while (ovl[0].a_iid < iid);
-
-  return(ovlLen);
-}
+#include "AS_OBT_overlaps.H"
 
 
 bool
@@ -293,7 +227,6 @@ main(int argc, char **argv) {
   uint32      ovlLen       = 0;
   uint32      ovlMax       = 64 * 1024;
   OVSoverlap *ovl          = new OVSoverlap [ovlMax];
-  bool        ovlVal       = false;
 
   memset(ovl, 0, sizeof(OVSoverlap) * ovlMax);
 
@@ -323,24 +256,20 @@ main(int argc, char **argv) {
     uint32      lid = fr.gkFragment_getLibraryIID();
     gkLibrary  *lb  = gkpStore->gkStore_getLibrary(lid);
 
-    //fprintf(stderr, "FRAG %d starts.\n", iid);
-
     //  If the fragment is deleted, do nothing.  If the fragment was deleted AFTER overlaps were
     //  generated, then the overlaps will be out of sync -- we'll get overlaps for these fragments
     //  we skip.
-    if (fr.gkFragment_getIsDeleted() == 1) {
-      //fprintf(stderr, "FRAG %d is deleted.\n", iid);
+    //
+    if (fr.gkFragment_getIsDeleted() == 1)
       continue;
-    }
 
     //  If it did not request trimming, do nothing.  Similar to the above, we'll get overlaps to
     //  fragments we skip.
+    //
     if ((lb->doTrim_finalLargestCovered == false) &&
         (lb->doTrim_finalEvidenceBased  == false) &&
-        (lb->doTrim_finalBestEdge       == false)) {
-      //fprintf(stderr, "FRAG %d didn't request trimming.\n", iid);
+        (lb->doTrim_finalBestEdge       == false))
       continue;
-    }
 
     uint32      ibgn = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
     uint32      iend = fr.gkFragment_getClearRegionEnd  (AS_READ_CLEAR_OBTINITIAL);
@@ -354,14 +283,11 @@ main(int argc, char **argv) {
     uint32      fbgn = ibgn;
     uint32      fend = iend;
 
-
-    //  Load overlaps, unless we have already loaded them.
-    if (ovl[0].a_iid < iid)
-      loadOverlaps(iid, ovl, ovlLen, ovlMax, ovlPrimary, ovlSecondary);
+    loadOverlaps(iid, ovl, ovlLen, ovlMax, ovlPrimary, ovlSecondary);
 
     bool isGood = false;
 
-    //  If there are no overlaps for this fragment, do nothing.
+    //  If there are no overlaps for this read, do nothing.
     if ((iid < ovl[0].a_iid) ||
         (ovlLen == 0)) {
       isGood = trimWithoutOverlaps(ovl, ovlLen,
@@ -373,8 +299,10 @@ main(int argc, char **argv) {
                                    lb->doTrim_initialQualityBased);
       assert(fbgn <= fend);
 
-    } else if        (lb->doTrim_finalLargestCovered == true) {
-      //  Use the largest region covered by overlaps as the trim
+    }
+
+    //  Use the largest region covered by overlaps as the trim
+    else if        (lb->doTrim_finalLargestCovered == true) {
       isGood = largestCovered(ovl, ovlLen,
                               fr,
                               ibgn, iend, fbgn, fend,
@@ -386,8 +314,10 @@ main(int argc, char **argv) {
                               2);
       assert(fbgn <= fend);
 
-    } else if        (lb->doTrim_finalBestEdge == true) {
-      //  Use the largest region covered by overlaps as the trim
+    }
+
+    //  Use the largest region covered by overlaps as the trim
+    else if        (lb->doTrim_finalBestEdge == true) {
       isGood = bestEdge(ovl, ovlLen,
                         fr,
                         ibgn, iend, fbgn, fend,
@@ -399,8 +329,10 @@ main(int argc, char **argv) {
                         2);
       assert(fbgn <= fend);
 
-    } else if (lb->doTrim_finalEvidenceBased == true) {
-      //  Do Sanger-style heuristics
+    }
+
+    //  Do Sanger-style heuristics
+    else if (lb->doTrim_finalEvidenceBased == true) {
       isGood = evidenceBased(ovl, ovlLen,
                              fr,
                              ibgn, iend, fbgn, fend,
@@ -410,8 +342,10 @@ main(int argc, char **argv) {
                              lb->doTrim_initialQualityBased);
       assert(fbgn <= fend);
 
-    } else {
-      //  Do nothing.  Really shouldn't get here.
+    }
+
+    //  Do nothing.  Really shouldn't get here.
+    else {
       assert(0);
       continue;
     }
