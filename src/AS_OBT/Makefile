@@ -67,7 +67,6 @@ EXE_SOURCES = initialTrim.C \
               finalTrim-bestEdge.C \
               chimera.C \
               trim.C \
-              readOverlap.C \
               removeMateOverlap.C
 LIB_SOURCES = AS_OBT_acceptableOverlap.C
 
@@ -93,11 +92,11 @@ all: $(CXX_PROGS) $(SCRIPTS)
 libAS_OBT.a: $(LIB_SOURCES:.C=.o)
 libCA.a:     $(LIB_SOURCES:.C=.o)
 
-initialTrim:          initialTrim.o       trim.o           libCA.a
-deduplicate:          deduplicate.o       readOverlap.o    libCA.a
-finalTrim:            finalTrim.o         trim.o           finalTrim-largestCovered.o  finalTrim-evidenceBased.o  finalTrim-bestEdge.o libCA.a 
-chimera:              chimera.o           readOverlap.o    libCA.a
-removeMateOverlap:    removeMateOverlap.o readOverlap.o    libCA.a
+initialTrim:          initialTrim.o trim.o libCA.a
+deduplicate:          deduplicate.o libCA.a
+finalTrim:            finalTrim.o trim.o finalTrim-largestCovered.o finalTrim-evidenceBased.o finalTrim-bestEdge.o libCA.a
+chimera:              chimera.o libCA.a
+removeMateOverlap:    removeMateOverlap.o libCA.a
 
 figaro: $(FIGARO)/figaro
 	@cp $< $(LOCAL_BIN)/$@

@@ -30,8 +30,6 @@ const char *mainid = "$Id$";
 #include <math.h>
 #include <assert.h>
 
-#include "readOverlap.H"
-
 #include "AS_global.H"
 #include "AS_PER_gkpStore.H"
 #include "AS_OVS_overlapStore.H"
