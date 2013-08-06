@@ -117,9 +117,10 @@ uint32   chimeraDetectedGapNoMate = 0;
 
 class chimeraClear {
 public:
-  uint64   deleted     : 1;
-  uint64   doFix       : 1;
-  uint64   needsFix    : 1;
+  uint64   deleted        : 1;
+  uint64   doFixChimera   : 1;
+  uint64   doCheckSubRead : 1;
+  uint64   hasSubRead     : 1;  //  Result of compute, not in store
 
   uint64   length      : AS_READ_MAX_NORMAL_LEN_BITS;
 
@@ -160,7 +161,7 @@ class chimeraOvl {
 public:
   chimeraOvl() {
     flipped = false;
-    deleted = false;
+    ignore  = false;
     style   = 0;
     Alhang  = 0;
     Abeg    = 0;
@@ -178,7 +179,7 @@ public:
              uint64 Biid_, uint32 Blhang_, uint32 Bbeg_, uint32 Bend_, uint32 Brhang_, char ori_) {
 
     flipped = (ori_ == 'r');
-    deleted = false;
+    ignore  = false;
     style   = 0;
     Alhang  = Alhang_;
     Abeg    = Abeg_;
@@ -276,7 +277,7 @@ public:
 
 public:
   uint64   flipped  : 1;
-  uint64   deleted  : 1;
+  uint64   ignore   : 1;
   uint64   style    : 4;
   uint64   Alhang   : AS_READ_MAX_NORMAL_LEN_BITS;
   uint64   Abeg     : AS_READ_MAX_NORMAL_LEN_BITS;
@@ -384,9 +385,10 @@ readClearRanges(gkStore *gkp) {
     AS_IID       iid  = fr.gkFragment_getReadIID();
     gkLibrary   *lr   = gkp->gkStore_getLibrary(fr.gkFragment_getLibraryIID());
 
-    clear[iid].deleted       = fr.gkFragment_getIsDeleted() ? 1 : 0;
-    clear[iid].doFix         = lr->doRemoveChimericReads;
-    clear[iid].needsFix      = false;
+    clear[iid].deleted        = fr.gkFragment_getIsDeleted() ? 1 : 0;
+    clear[iid].doFixChimera   = lr->doRemoveChimericReads;
+    clear[iid].doCheckSubRead = lr->doCheckForSubReads;
+    clear[iid].hasSubRead     = false;
 
     clear[iid].length        = fr.gkFragment_getSequenceLength();
     clear[iid].initL         = fr.gkFragment_getClearRegionBegin(AS_READ_CLEAR_OBTINITIAL);
@@ -757,7 +759,7 @@ processChimera(const AS_IID           iid,
   if (olist.size() == 0)
     return(chimeraRes(iid, ola, ora));
 
-  if (clear[iid].doFix == false)
+  if (clear[iid].doFixChimera == false)
     return(chimeraRes(iid, ola, ora));
 
   readsProcessed++;
@@ -796,7 +798,7 @@ processChimera(const AS_IID           iid,
       uint32       ovllo = ovl->Abeg;
       uint32       ovlhi = ovl->Aend;
 
-      if (ovl->deleted == true)
+      if (ovl->ignore == true)
         continue;
 
       if (ovl->style == 0)
@@ -843,7 +845,7 @@ processChimera(const AS_IID           iid,
         uint32       ovllo =  ovl->Abeg;
         uint32       ovlhi =  ovl->Aend;
 
-        if (ovl->deleted == true)
+        if (ovl->ignore == true)
           continue;
 
         if (ovl->style == 0)
@@ -915,7 +917,7 @@ processChimera(const AS_IID           iid,
     int32        end   = 0;
     bool         ipc   = false;
 
-    if (ovl->deleted == true)
+    if (ovl->ignore == true)
       continue;
 
     switch (ovl->style) {
@@ -1085,7 +1087,7 @@ processChimera(const AS_IID           iid,
       for (uint32 i=0; i<olist.size(); i++) {
         chimeraOvl  *ovl = &olist[i];
 
-        if (ovl->deleted == true)
+        if (ovl->ignore == true)
           continue;
 
         switch (ovl->style) {
@@ -1245,7 +1247,7 @@ processChimera(const AS_IID           iid,
   for (uint32 i=0; i<olist.size(); i++) {
     chimeraOvl  *ovl = &olist[i];
 
-    if (ovl->deleted == true)
+    if (ovl->ignore == true)
       continue;
 
     switch (ovl->style) {
@@ -1504,6 +1506,11 @@ intervalOverlap(uint32 b1, uint32 e1, uint32 b2, uint32 e2) {
 //  Examine overlaps for a specific pattern indicating a read that flips back on itself.
 //  This requires multiple overlaps from the same read, in opposite orientation, to work.
 //
+//  If this read isn't suspected to contain sub reads, all we can do is mark some
+//  overlaps as junk.
+//
+//  If this read is suspected to contain sub reads, we want to mark the junction region.
+//
 void
 processSubRead(const AS_IID           iid,
                chimeraClear          *clear,
@@ -1511,6 +1518,14 @@ processSubRead(const AS_IID           iid,
                bool                   doUpdate,
                vector<chimeraOvl>    &olist,
                vector<chimeraBad>    &blist) {
+
+  //  No overlaps, nothing to do.
+  if (olist.size() == 0)
+    return;
+
+
+  if (clear[olist[0].Aiid].doCheckSubRead == false)
+    return;
 
   //  Find the last index for each overlap.
 
@@ -1533,6 +1548,12 @@ processSubRead(const AS_IID           iid,
       //  Only one overlap, can't indicate sub read!
       continue;
 
+    //  We should never get more than two overlaps per read pair.
+    if (numOlaps[olist[ii].Biid] > 2) {
+      fprintf(stderr, "WARNING: more overlaps than expected for pair %u %u.\n",
+              olist[ii].Aiid, olist[ii].Biid);
+      continue;
+    }
     assert(numOlaps[olist[ii].Biid] == 2);
 
     uint32 jj = secondIdx[olist[ii].Biid];
@@ -1541,18 +1562,28 @@ processSubRead(const AS_IID           iid,
       //  Already did this one!
       continue;
 
-    assert(olist[ii].Aiid    == olist[jj].Aiid);
-    assert(olist[ii].Biid    == olist[jj].Biid);
+    assert(olist[ii].Aiid == olist[jj].Aiid);
+    assert(olist[ii].Biid == olist[jj].Biid);
 
     if (olist[ii].flipped == olist[jj].flipped) {
-      fprintf(stderr, "ii %u %u %u flipped %lu\n", ii, olist[ii].Aiid, olist[ii].Biid, olist[ii].flipped);
-      fprintf(stderr, "jj %u %u %u flipped %lu\n", jj, olist[jj].Aiid, olist[jj].Biid, olist[jj].flipped);
+      fprintf(stderr, "WARNING: same orient duplicate overlaps for pair %u %u\n",
+              olist[ii].Aiid, olist[ii].Biid);
+      continue;
     }
     assert(olist[ii].flipped != olist[jj].flipped);
 
+
+    bool  AisSub = (clear[olist[ii].Aiid].doCheckSubRead == true);
+    bool  BisSub = (clear[olist[ii].Biid].doCheckSubRead == true);
+
+    if ((AisSub == false) &&
+        (BisSub == false))
+      //  Don't care either way.
+      continue;
+
     //  Decide what type of duplicate we have.
-    //    Overlap on the A read -> B read is bad, don't use overlaps
-    //    Overlap on the B read -> A read needs to be split
+    //    Overlap on the A read -> B read is potentially sub read containing -> don't use overlaps
+    //    Overlap on the B read -> A read is potentially sub read containing -> split this read
 
     uint32 Aoverlap = 0;
     uint32 Boverlap = 0;
@@ -1563,19 +1594,19 @@ processSubRead(const AS_IID           iid,
     //  Stronger overlap in the A reads.  The B read looks like it has subreads and we shouldn't use
     //  this for evidence.
     //
-    if (Boverlap < Aoverlap) {
-      olist[ii].deleted = true;
-      olist[jj].deleted = true;
+    if ((BisSub) && (Boverlap < Aoverlap)) {
+      olist[ii].ignore = true;
+      olist[jj].ignore = true;
       continue;
     }
 
     //  If the overlaps overlap on both reads by significant chunks, don't believe either.
     //  These are possibly both chimeric reads, at least PacBio junction reads.
     //
-    if ((Aoverlap > 50) &&
-        (Boverlap > 50)) {
-      olist[ii].deleted = true;
-      olist[jj].deleted = true;
+    if ((AisSub) && (Aoverlap > 50) &&
+        (BisSub) && (Boverlap > 50)) {
+      olist[ii].ignore = true;
+      olist[jj].ignore = true;
       //continue;
     }
 
@@ -1584,21 +1615,24 @@ processSubRead(const AS_IID           iid,
     //
     //  Tested on e.coli, removing these overlaps results in missing some true chimeric junctions.
     //
-    if (Aoverlap == 0) {
-      //olist[ii].deleted = true;
-      //olist[jj].deleted = true;
+    if (Aoverlap == 0)
       continue;
-    }
 
     //  Otherwise, the overlap is stronger on the B reads.  This is indicating that this we might
     //  have subreads in this read.
 
-    olist[ii].deleted = true;  //  First, also ignore these overlaps.  Why?  They're probably valid.
-    olist[jj].deleted = true;
+    if (AisSub == false)
+      //  Of course, if the read isn't suspected to have sub reads, leave it alone.
+      continue;
+
+    //  Don't trust these overlaps.  We _want_ to split this read, and these might just be keeping
+    //  it together.
+    olist[ii].ignore = true;
+    olist[jj].ignore = true;
 
     assert(olist[ii].Aiid == olist[jj].Aiid);
 
-    clear[olist[ii].Aiid].needsFix = true;
+    clear[olist[ii].Aiid].hasSubRead = true;
 
     //  Decide on a region in the read that is suspected to contain the chimer junction.
 
@@ -1774,7 +1808,7 @@ main(int argc, char **argv) {
 
   for (uint32 iid=iidMin; iid<=iidMax; iid++) {
 
-    if (clear[iid].doFix == false)
+    if (clear[iid].doFixChimera == false)
       continue;
 
     //  NOTE!  We DO get multiple overlaps for the same pair of fragments in the partial overlap

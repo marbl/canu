@@ -45,7 +45,8 @@ SOURCES   = AS_GKP_main.C \
             fastqAnalyze.C \
             gkpStoreDumpFASTQ.C \
             gkpStoreCreate.C \
-            upgrade-v8-to-v9.C
+            upgrade-v8-to-v9.C \
+            upgrade-v9-to-v10.C
 OBJECTS   = $(SOURCES:.C=.o)
 LIBRARIES =
 CXX_PROGS = gatekeeper \
@@ -58,7 +59,8 @@ CXX_PROGS = gatekeeper \
             fastqAnalyze \
             gkpStoreDumpFASTQ \
             gkpStoreCreate \
-            upgrade-v8-to-v9
+            upgrade-v8-to-v9 \
+            upgrade-v9-to-v10
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -76,3 +78,4 @@ fastqAnalyze:         fastqAnalyze.o                libCA.a
 gkpStoreDumpFASTQ:    gkpStoreDumpFASTQ.o           libCA.a
 gkpStoreCreate:       gkpStoreCreate.o              libCA.a
 upgrade-v8-to-v9:     upgrade-v8-to-v9.o            libCA.a
+upgrade-v9-to-v10:    upgrade-v9-to-v10.o           libCA.a

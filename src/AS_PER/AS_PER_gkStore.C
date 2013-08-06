@@ -37,7 +37,7 @@ static char *rcsid = "$Id$";
 #include "AS_UTL_fileIO.H"
 
 
-#define AS_GKP_CURRENT_VERSION    9
+#define AS_GKP_CURRENT_VERSION    10
 
 gkStore::gkStore() {
 

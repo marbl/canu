@@ -98,6 +98,8 @@ gkLibrary::gkLibrary_setFeature(char *fea, char *val) {
     doRemoveSpurReads = decodeBoolean("doRemoveSpurReads", val);
   else if (strcasecmp(fea, "doRemoveChimericReads") == 0)
     doRemoveChimericReads = decodeBoolean("doRemoveChimericReads", val);
+  else if (strcasecmp(fea, "doCheckForSubReads") == 0)
+    doCheckForSubReads = decodeBoolean("doCheckForSubReads", val);
 
   //  COMPATIBILITY OPTIONS
   else if (strcasecmp(fea, "doMerBasedTrimming") == 0) {
@@ -260,6 +262,7 @@ gkLibrary::gkLibrary_encodeFeatures(LibraryMesg *lmesg) {
 
   encodeFeature(doRemoveSpurReads);
   encodeFeature(doRemoveChimericReads);
+  encodeFeature(doCheckForSubReads);
 
   encodeFeature(doConsensusCorrection);
 

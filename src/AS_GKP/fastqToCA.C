@@ -317,6 +317,7 @@ main(int argc, char **argv) {
 
     gkl.doRemoveSpurReads          = 1;
     gkl.doRemoveChimericReads      = 1;
+    gkl.doCheckForSubReads         = 0;
 
     gkl.doConsensusCorrection      = 0;
 
@@ -338,6 +339,7 @@ main(int argc, char **argv) {
 
     gkl.doRemoveSpurReads          = 1;
     gkl.doRemoveChimericReads      = 1;
+    gkl.doCheckForSubReads         = 0;
 
     gkl.doConsensusCorrection      = 0;
 
@@ -359,6 +361,7 @@ main(int argc, char **argv) {
 
     gkl.doRemoveSpurReads          = 1;
     gkl.doRemoveChimericReads      = 1;
+    gkl.doCheckForSubReads         = 0;
 
     gkl.doConsensusCorrection      = 0;
 
@@ -380,6 +383,7 @@ main(int argc, char **argv) {
 
     gkl.doRemoveSpurReads          = 1;
     gkl.doRemoveChimericReads      = 1;
+    gkl.doCheckForSubReads         = 0;
 
     gkl.doConsensusCorrection      = 0;
 
@@ -401,6 +405,7 @@ main(int argc, char **argv) {
 
     gkl.doRemoveSpurReads          = 1;
     gkl.doRemoveChimericReads      = 1;
+    gkl.doCheckForSubReads         = 0;
 
     gkl.doConsensusCorrection      = 0;
    
@@ -422,6 +427,7 @@ main(int argc, char **argv) {
 
     gkl.doRemoveSpurReads          = 0;
     gkl.doRemoveChimericReads      = 0;
+    gkl.doCheckForSubReads         = 0;
 
     gkl.doConsensusCorrection      = 1;
     
@@ -443,6 +449,7 @@ main(int argc, char **argv) {
 
     gkl.doRemoveSpurReads          = 0;
     gkl.doRemoveChimericReads      = 0;
+    gkl.doCheckForSubReads         = 0;
 
     gkl.doConsensusCorrection      = 0;
     

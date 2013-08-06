@@ -713,6 +713,7 @@ editStore(char *editsFileName, char *gkpStoreName, int update) {
 
           setBoolean(doRemoveSpurReads)
           setBoolean(doRemoveChimericReads)
+          setBoolean(doCheckForSubReads)
  
           setBoolean(doConsensusCorrection)
 

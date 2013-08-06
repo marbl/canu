@@ -1835,6 +1835,7 @@ addLibrary(char *libraryName,
 
   gkl.doRemoveSpurReads          = 1;
   gkl.doRemoveChimericReads      = 1;
+  gkl.doCheckForSubReads         = 0;
 
   gkl.doConsensusCorrection      = 0;
 

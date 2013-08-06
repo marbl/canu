@@ -86,6 +86,7 @@ public:
 
     doRemoveSpurReads          = 1;  //  NOTE, NOT ZERO!
     doRemoveChimericReads      = 1;  //  NOTE, NOT ZERO!
+    doCheckForSubReads         = 0;
 
     //chimeraFromLinker          = 0;
     //chimeraFromBiotin          = 0;
@@ -126,7 +127,7 @@ public:
   uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 -> trust 'em
 
   //  OBT options
-  uint64         spareOBT:53;                  //  Spare for OBT changes
+  uint64         spareOBT:52;                  //  Spare for OBT changes
 
   uint64         doTrim_initialNone:1;         //  Don't trim, use whatever clear range is present
   uint64         doTrim_initialMerBased:1;     //  For Illumina reads
@@ -141,6 +142,7 @@ public:
 
   uint64         doRemoveSpurReads:1;          //  
   uint64         doRemoveChimericReads:1;      //  
+  uint64         doCheckForSubReads:1;         //  Default 0 -> reads don't contain subreads.  Added in v10
 
   uint64         doConsensusCorrection:1;      //  Default 0 -> fragments should be used with default correction
 
