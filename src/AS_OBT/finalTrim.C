@@ -108,8 +108,11 @@ enforceMaximumClearRange(OVSoverlap  *ovl,
     //  No maximum clear range set.
     return(true);
 
-  assert(mbgn < mend);
-  assert(fbgn < fend);
+  if (fbgn == fend)
+    return(true);
+
+  assert(mbgn <  mend);
+  assert(fbgn <= fend);
 
   if ((fend < mbgn) ||
       (mend < fbgn)) {
