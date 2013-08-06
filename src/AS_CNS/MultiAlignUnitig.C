@@ -95,10 +95,16 @@ MANode2Array(MANode    *ma,
 
     for (int32 ir=0; ir<depth; ir++) {
       if (ir + 1 == depth) {
+        int32 *nrp = new int32 [depth + max_depth];
+
+        memset(nrp, 0,      sizeof(int32) * (depth + max_depth));
+        memcpy(nrp, rowptr, sizeof(int32) * (depth));
+
         depth += max_depth;
-        assert(0);
-        // realloc rowptr
-        //rowptr = (int32 *)safe_realloc(rowptr, (*depth)*sizeof(int));
+
+        delete [] rowptr;
+
+        rowptr = nrp;
       }
 
       if (fbgn <  rowptr[ir])
