@@ -3953,8 +3953,7 @@ sub overlapTrim {
             $cmd  = "$bin/chimera \\\n";
             $cmd .= " -G $wrk/$asm.gkpStore \\\n";
             $cmd .= " -O $wrk/0-overlaptrim/$asm.obtStore \\\n";
-            $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary \\\n";
-            $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.log \\\n";
+            $cmd .= " -o $wrk/0-overlaptrim/$asm.chimera \\\n";
             $cmd .= " -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
             $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
 
