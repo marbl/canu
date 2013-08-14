@@ -265,7 +265,11 @@ InsertScaffoldContentsIntoScaffold(ScaffoldGraphT           *sgraph,
   //  If we adjust variances above, we need to reset scaffold length.  Just be nice and do it for everyone.
   SetCIScaffoldTLength(sgraph, newScaffold);
 
-  ScaffoldSanity(sgraph, newScaffold);
+  //  ScaffoldSantiy() is too aggressive here; LeastSquaresGapEstimates() really needs to be called
+  //  first.  This function (the one we're in) is only called by MergeScaffolds() and we'll leave it
+  //  up to that to do the work.
+  //
+  //ScaffoldSanity(sgraph, newScaffold);
 }
 
 
