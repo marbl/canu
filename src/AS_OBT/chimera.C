@@ -1749,6 +1749,9 @@ processSubRead(const AS_IID           iid,
 
 int
 main(int argc, char **argv) {
+
+  argc = AS_configure(argc, argv);
+
   gkStore           *gkp                = 0L;
   OverlapStore      *ovlPrimary         = 0L;
   OverlapStore      *ovlSecondary       = 0L;
@@ -1769,8 +1772,6 @@ main(int argc, char **argv) {
   FILE              *reportFile   = NULL;
   FILE              *subreadFile  = NULL;
 
-  argc = AS_configure(argc, argv);
-
   int arg=1;
   int err=0;
   while (arg < argc) {
@@ -1790,8 +1791,6 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-e") == 0) {
       errorRate = atof(argv[++arg]);
-      if (errorRate > AS_MAX_ERROR_RATE)
-        fprintf(stderr, "ERROR:  Error rate (-e) %s too large; must be 'fraction error' and below %f\n", argv[arg], AS_MAX_ERROR_RATE), exit(1);
 
     } else if (strcmp(argv[arg], "-E") == 0) {
       errorLimit = atof(argv[++arg]);
@@ -1823,6 +1822,12 @@ main(int argc, char **argv) {
     }
     arg++;
   }
+
+  if (errorRate < 0.0)
+    err++;
+  if (errorRate > AS_MAX_ERROR_RATE)
+    err++;
+
   if ((gkp == 0L) || (ovlPrimary == 0L) || (outputPrefix == NULL) || (err)) {
     fprintf(stderr, "usage: %s -G <gkpStore> -O <obtStore> [opts]\n", argv[0]);
     fprintf(stderr, "\n");
@@ -1841,6 +1846,13 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -subreadlog        write (large) subread logging file\n");
     fprintf(stderr, "\n");
+
+    if (errorRate < 0.0)
+      fprintf(stderr, "ERROR: Error rate (-e) value %f too small; must be 'fraction error' and above 0.0\n", errorRate);
+
+    if (errorRate > AS_MAX_ERROR_RATE)
+      fprintf(stderr, "ERROR:  Error rate (-e) value %f too large; must be 'fraction error' and below %f\n", errorRate, AS_MAX_ERROR_RATE);
+
     exit(1);
   }
 

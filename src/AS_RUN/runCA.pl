@@ -3950,9 +3950,14 @@ sub overlapTrim {
     if (getGlobal("doChimeraDetection") ne 'off') {
         if ((! -e "$wrk/0-overlaptrim/$asm.chimera.log") &&
             (! -e "$wrk/0-overlaptrim/$asm.chimera.log.bz2")) {
+            my $erate  = getGlobal("ovlErrorRate");
+            my $elimit = getGlobal("ovlErrorRate") * 10 + 0.5;
+
             $cmd  = "$bin/chimera \\\n";
             $cmd .= " -G $wrk/$asm.gkpStore \\\n";
             $cmd .= " -O $wrk/0-overlaptrim/$asm.obtStore \\\n";
+            $cmd .= " -e $erate \\\n";
+            $cmd .= " -E $elimit \\\n";
             $cmd .= " -o $wrk/0-overlaptrim/$asm.chimera \\\n";
             $cmd .= " -mininniepair 0 -minoverhanging 0 \\\n" if (getGlobal("doChimeraDetection") eq "aggressive");
             $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
