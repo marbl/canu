@@ -558,6 +558,9 @@ sub setDefaults () {
     $global{"batThreads"}                  = undef;
     $synops{"batThreads"}                  = "Number of threads to use in the Merge/Split/Join phase; default is whatever OpenMP wants";
 
+    $global{"doUnitigSplitting"}           = 1;
+    $synops{"doUnitigSplitting"}           = "Split unitigs based on low coverage and high bad mate evidence";
+
     #####  Scaffolder Options
 
     $global{"cgwPurgeCheckpoints"}         = 1;
@@ -4744,36 +4747,34 @@ sub postUnitiggerConsensus () {
     }
 
     #
-    #  Run the chimeric unitig splitter
+    #  Run the chimeric unitig splitter, and then the fixer again.
     #
 
-    if (! -e "$wrk/5-consensus-split/splitUnitigs.out") {
-        system("mkdir $wrk/5-consensus-split") if (! -d "$wrk/5-consensus-split");
+    if (getGlobal("doUnitigSplitting")) {
+        if (! -e "$wrk/5-consensus-split/splitUnitigs.out") {
+            system("mkdir $wrk/5-consensus-split") if (! -d "$wrk/5-consensus-split");
 
-        $cmd  = "$bin/splitUnitigs \\\n";
-        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
-        $cmd .= " -t $wrk/$asm.tigStore 3 \\\n";
-        $cmd .= "> $wrk/5-consensus-split/splitUnitigs.out 2>&1";
+            $cmd  = "$bin/splitUnitigs \\\n";
+            $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+            $cmd .= " -t $wrk/$asm.tigStore 3 \\\n";
+            $cmd .= "> $wrk/5-consensus-split/splitUnitigs.out 2>&1";
 
-        if (runCommand("$wrk/5-consensus-split", $cmd)) {
-            rename "$wrk/5-consensus-split/splitUnitigs.out", "$wrk/5-consensus-split/splitUnitigs.out.FAILED";
-            caFailure("Unitig splitter failed", "$wrk/5-consensus-split/splitUnitigs.out.FAILED");
+            if (runCommand("$wrk/5-consensus-split", $cmd)) {
+                rename "$wrk/5-consensus-split/splitUnitigs.out", "$wrk/5-consensus-split/splitUnitigs.out.FAILED";
+                caFailure("Unitig splitter failed", "$wrk/5-consensus-split/splitUnitigs.out.FAILED");
+            }
         }
-    }
 
-    #
-    #  And the fixer, again
-    #
+        if (! -e "$wrk/5-consensus-split/consensus-fix.out") {
+            $cmd  = "$bin/utgcnsfix \\\n";
+            $cmd .= " -g $wrk/$asm.gkpStore \\\n";
+            $cmd .= " -t $wrk/$asm.tigStore 4 \\\n";
+            $cmd .= "> $wrk/5-consensus-split/consensus-fix.out 2>&1";
 
-    if (! -e "$wrk/5-consensus-split/consensus-fix.out") {
-        $cmd  = "$bin/utgcnsfix \\\n";
-        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
-        $cmd .= " -t $wrk/$asm.tigStore 4 \\\n";
-        $cmd .= "> $wrk/5-consensus-split/consensus-fix.out 2>&1";
-
-        if (runCommand("$wrk/5-consensus-split", $cmd)) {
-            rename "$wrk/5-consensus-split/consensus-fix.out", "$wrk/5-consensus-split/consensus-fix.out.FAILED";
-            caFailure("Unitig consensus fixer (post split) failed", "$wrk/5-consensus-split/consensus-fix.out.FAILED");
+            if (runCommand("$wrk/5-consensus-split", $cmd)) {
+                rename "$wrk/5-consensus-split/consensus-fix.out", "$wrk/5-consensus-split/consensus-fix.out.FAILED";
+                caFailure("Unitig consensus fixer (post split) failed", "$wrk/5-consensus-split/consensus-fix.out.FAILED");
+            }
         }
     }
 
