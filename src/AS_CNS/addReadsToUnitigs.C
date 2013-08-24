@@ -353,8 +353,8 @@ main(int argc, char **argv) {
       frg.parent       = 0;
       frg.ahang        = 0;
       frg.bhang        = 0;
-      frg.position.bgn = (RM[ee].rFWD) ? RM[ee].tBGN : RM[ee].tEND;
-      frg.position.end = (RM[ee].rFWD) ? RM[ee].tEND : RM[ee].tBGN;
+      frg.position.bgn = (RM[ee].rFWD) ? bgn : end,
+      frg.position.end = (RM[ee].rFWD) ? end : bgn,
       frg.delta_length = 0;
       frg.delta        = NULL;
 
