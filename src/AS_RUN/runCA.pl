@@ -617,6 +617,9 @@ sub setDefaults () {
     $global{"cgwMinMergeWeight"}           = 2;
     $synops{"cgwMinMergeWeight"}           = "When merging scaffolds, do not use edges with weight below this.\n";
 
+    $global{"cgwPreserveConsensus"}        = 1;
+    $synops{"cgwPreserveConsensus"}        = "Do not remove the contig consensus sequence at the end of scaffolder; ctgcns will be skipped (faster) but quality will be lower.\n";
+
     #####  Consensus Options
 
     $global{"cnsPartitions"}               = 128;
@@ -4886,10 +4889,10 @@ sub CGW ($$$$$$) {
 
     my $P = getGlobal("closurePlacement");
     
-    my $shatterLevel = getGlobal("cgwContigShatterWeight");
-    my $missingMate  = getGlobal("cgwMergeMissingThreshold");
-    my $minWeight    = getGlobal("cgwMinMergeWeight");
-    my $filterLevel  = getGlobal("cgwMergeFilterLevel");
+    my $shatterLevel  = getGlobal("cgwContigShatterWeight");
+    my $missingMate   = getGlobal("cgwMergeMissingThreshold");
+    my $minWeight     = getGlobal("cgwMinMergeWeight");
+    my $filterLevel   = getGlobal("cgwMergeFilterLevel");
 
     $cmd  = "$bin/cgw $ckp \\\n";
     $cmd .= "  -j $astatLow -k $astatHigh \\\n";
@@ -4899,6 +4902,7 @@ sub CGW ($$$$$$) {
     $cmd .= "  -minmergeweight $minWeight \\\n";
     $cmd .= "  -S 0 \\\n"                                if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= "  -G \\\n"                                  if ($finalRun == 0);
+    $cmd .= "  -GG \\\n"                                 if (getGlobal("cgwPreserveConsensus") == 1);
     $cmd .= "  -z \\\n"                                  if (getGlobal("cgwDemoteRBP") == 1);
     $cmd .= "  -P $P \\\n"                               if (defined($P));
     $cmd .= "  -K \\\n"                                  if (getGlobal("kickOutNonOvlContigs") != 0);

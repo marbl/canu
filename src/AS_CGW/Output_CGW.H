@@ -36,7 +36,7 @@ ContigStatus  finalContigStatus(NodeCGW_T *contig);
 UnitigType    finalUnitigType(NodeCGW_T *unitig);
 
 void OutputUnitigsFromMultiAligns(void);
-void OutputContigsFromMultiAligns(int32 outputFragsPerPartition);
+void OutputContigsFromMultiAligns(int32 outputFragsPerPartition, int32 preserveConsensus);
 
 #endif
 

@@ -142,6 +142,7 @@ main(int argc, char **argv) {
   //  Options controlling main
 
   int    generateOutput = 1;
+  int    preserveConsensus = 0;
 
   int    preMergeRezLevel = -1;
   int    repeatRezLevel   = 0;
@@ -195,6 +196,9 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-G") == 0) {
       generateOutput = 0;
+
+    } else if (strcmp(argv[arg], "-GG") == 0) {
+      preserveConsensus = 1;
 
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->gkpStoreName, argv[++arg]);
@@ -325,6 +329,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "                              too small\n");
     fprintf(stderr, "   -g                     gkp Store path (required)\n");
     fprintf(stderr, "   -G                     Don't generate output (cgw or cam)\n");
+    fprintf(stderr, "   -GG                    Don't destroy consensus on output (ctgcns will do nothing)\n");
     fprintf(stderr, "   -I                     ignore chaff unitigs\n");
     fprintf(stderr, "   -i <thresh>            Set max coverage stat for microhet determination of non-uniqueness (default -1)\n");
     fprintf(stderr, "   -j <thresh>            Set min coverage stat for definite uniqueness\n");
@@ -1008,7 +1013,7 @@ main(int argc, char **argv) {
     //  only operation valid after this function is CheckpointScaffoldGraph().
 
     OutputUnitigsFromMultiAligns();
-    OutputContigsFromMultiAligns(outputFragsPerPartition);
+    OutputContigsFromMultiAligns(outputFragsPerPartition, preserveConsensus);
 
     CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_OUTPUT], "after output");
   }

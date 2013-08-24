@@ -158,7 +158,7 @@ OutputUnitigsFromMultiAligns(void) {
 
 
 void
-OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
+OutputContigsFromMultiAligns(int32 outputFragsPerPartition, int32 preserveConsensus) {
   GraphNodeIterator      nodes;
   ContigT		*ctg;
 
@@ -302,8 +302,10 @@ OutputContigsFromMultiAligns(int32 outputFragsPerPartition) {
       //        ma->maID, iup[i].ident, iup[i].position.bgn, iup[i].position.end);
     }
 
-    ResetVA_char(ma->consensus);
-    ResetVA_char(ma->quality);
+    if (preserveConsensus == 0) {
+      ResetVA_char(ma->consensus);
+      ResetVA_char(ma->quality);
+    }
 
     //  Important: we want to keep this ma in the cache, only so that we don't have to explicitly
     //  delete it right here.  When the store is deleted (below) the cache will get flushed.
