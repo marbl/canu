@@ -28,6 +28,10 @@ static const char *rcsid_MULTIALIGN_H = "$Id$";
 #include "AS_UTL_Var.H"
 #include "AS_PER_gkpStore.H"
 
+#include <vector>
+
+using namespace std;
+
 VA_DEF(char)
 VA_DEF(int32)
 
@@ -81,7 +85,9 @@ void         CheckMAValidity(MultiAlignT *ma);
 
 void         GetMultiAlignUngappedConsensus(MultiAlignT *ma, char *ungappedSequence, char *ungappedQuality);
 void         GetMultiAlignUngappedConsensus(MultiAlignT *ma, VA_TYPE(char) *ungappedSequence, VA_TYPE(char) *ungappedQuality);
-void         GetMultiAlignUngappedOffsets(MultiAlignT *ma, VA_TYPE(int32) *ungappedOffsets);
+
+void         GetMultiAlignGapToUngap(MultiAlignT *ma, vector<int32> &map);
+void         GetMultiAlignUngapToGap(MultiAlignT *ma, vector<int32> &map);
 
 void         MakeCanonicalMultiAlignT(MultiAlignT *ma);
 

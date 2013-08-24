@@ -603,23 +603,48 @@ GetMultiAlignUngappedConsensus(MultiAlignT *ma,
 
 
 void
-GetMultiAlignUngappedOffsets(MultiAlignT *ma,
-                             VA_TYPE(int32) *ungappedOffsets) {
+GetMultiAlignGapToUngap(MultiAlignT *ma, vector<int32> &map) {
 
-  Resetint32(ungappedOffsets);
+  map.clear();
 
-  if (ma) {
-    char *c = Getchar(ma->consensus, 0);
-    int32 u = 0;
+  if (ma == NULL)
+    return;
 
-    while (*c != 0) {
-      Appendint32(ungappedOffsets, &u);
-      if (*c != '-')
-        u++;
-      c++;
-    }
-    Appendint32(ungappedOffsets, &u);
+  char *c = Getchar(ma->consensus, 0);
+  int32 u = 0;
+
+  while (*c != 0) {
+    map.push_back(u);
+
+    if (*c != '-')
+      u++;
+    c++;
   }
+
+  map.push_back(u);
+}
+
+
+void
+GetMultiAlignUngapToGap(MultiAlignT *ma, vector<int32> &map) {
+
+  map.clear();
+
+  if (ma == NULL)
+    return;
+
+  char *c = Getchar(ma->consensus, 0);
+  int32 g = 0;
+
+  while (*c != 0) {
+    if (*c != '-')
+      map.push_back(g);
+
+    c++;
+    g++;
+  }
+
+  map.push_back(g);
 }
 
 

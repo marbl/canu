@@ -1481,22 +1481,15 @@ void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
 /* Update all the Unitigs belonging to the multiAlignment for contig
    contigID so that their membership and offsets are recorded properly. */
 
-static VA_TYPE(int32) *UngappedOffsets = NULL;
-
 void UpdateNodeUnitigs(MultiAlignT *ma, ContigT *contig){
   int32 i;
   int32 numCIs = GetNumIntUnitigPoss(ma->u_list);
   NodeCGW_T *previous = NULL;
-  int32 *offsets;
+  vector<int32>  offsets;
 
   contig->flags.bits.isChaff = FALSE;  // We need this one in the output
 
-  if(!UngappedOffsets){
-    UngappedOffsets = CreateVA_int32(1000);
-  }
-
-  GetMultiAlignUngappedOffsets(ma, UngappedOffsets);
-  offsets = Getint32(UngappedOffsets,0);
+  GetMultiAlignGapToUngap(ma, offsets);
 
   assert(numCIs > 0);
 
@@ -1552,8 +1545,8 @@ void UpdateNodeUnitigs(MultiAlignT *ma, ContigT *contig){
    Call this on either a CI or a Contig after it is created */
 void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
                          int markFragmentsPlaced, int markUnitigAndContig){
-  MultiAlignT *ma;
-  static VA_TYPE(int32) *ungappedOffsets = NULL;
+  MultiAlignT *ma; 
+  vector<int32>  offsets;
   NodeCGW_T *node = GetGraphNode(graph, cid);
   int isPlaced = markFragmentsPlaced || (node->scaffoldID != NULLINDEX);
   CDS_CID_t i;
@@ -1562,13 +1555,10 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
   int32 minOffset = INT32_MAX;
   int32 maxOffset = INT32_MIN;
 
-  if(ungappedOffsets == NULL)
-    ungappedOffsets = CreateVA_int32(10);
-
   ma = ScaffoldGraph->tigStore->loadMultiAlign(cid, graph->type == CI_GRAPH);
   assert(ma != NULL);
 
-  GetMultiAlignUngappedOffsets(ma, ungappedOffsets);
+  GetMultiAlignGapToUngap(ma, offsets);
 
   /* Determine extremal fragments so we can label the fragments */
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
@@ -1596,7 +1586,7 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
     //  This baloney is to adjust unitig fragment positions.  They should be asserts, but we'll just
     //  fix up positions so they are within bounds.
 
-    int32 utgLen = GetNumint32s(ungappedOffsets) - 1;
+    int32 utgLen = offsets.size() - 1;
     int32 bgn    = mp->position.bgn;
     int32 end    = mp->position.end;
 
@@ -1629,14 +1619,14 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
         end = 0;
     }
 
-    assert(0 <= bgn);
-    assert(bgn < ungappedOffsets->numElements);
+    assert(0   <= bgn);
+    assert(bgn <= offsets.size());
 
-    assert(0 <= end);
-    assert(end < ungappedOffsets->numElements);
+    assert(0   <= end);
+    assert(end <= offsets.size());
 
-    int32 ubgn = *Getint32(ungappedOffsets, bgn);
-    int32 uend = *Getint32(ungappedOffsets, end);
+    int32 ubgn = offsets[bgn];
+    int32 uend = offsets[end];
 
     //  if we fall entirely within a gap, give it at least a positive size.
 

@@ -102,9 +102,7 @@ DumpContigUngappedOffsets(char *label, int contigID) {
   int                    numCIs;
   int                    i;
   MultiAlignT           *cma;
-  int32                 *offsets;
-
-  static VA_TYPE(int32) *UngappedOffsets = NULL;
+  vector<int32>          offsets;
 
   if (label) {
     fprintf(debug.diagnosticFP, "\n%s\n", label);
@@ -112,13 +110,8 @@ DumpContigUngappedOffsets(char *label, int contigID) {
     fprintf(debug.diagnosticFP, "in DumpContigUngappedOffsets, dumping info on contig %8d\n", contigID);
   }
 
-  if(!UngappedOffsets) {
-    UngappedOffsets = CreateVA_int32(1000);
-  }
-
   cma = ScaffoldGraph->tigStore->loadMultiAlign(contigID, FALSE);
-  GetMultiAlignUngappedOffsets(cma, UngappedOffsets);
-  offsets = Getint32(UngappedOffsets, 0);
+  GetMultiAlignGapToUngap(cma, offsets);
 
   numCIs = GetNumIntUnitigPoss(cma->u_list);
 
