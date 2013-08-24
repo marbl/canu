@@ -5603,7 +5603,7 @@ int BuildFauxIntScaffoldMesg(ScaffoldGraphT * graph,
   IntContigPairs icp;
   int nextEnd;
   int32 numEssential;
-  ChunkInstanceT * nextCI;
+  ChunkInstanceT * nextCI = NULL;
   VA_TYPE(IntContigPairs) * icps = CreateVA_IntContigPairs(1000);
   assert(icps != NULL);
 
