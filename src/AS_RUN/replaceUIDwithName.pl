@@ -72,19 +72,24 @@ while (scalar(@ARGV)) {
         my $c = <F>;
         my $d = <F>;
 
-        if ($a =~ m/\@(\w+)\s*/) {
+        if ($a =~ m/\@(\w+),\w+\s*/) {
+            #  UID,IID
             $a = $1;
+
+        } elsif ($a =~ m/\@(\w+)\s*/) {
+            #  UID
+            $a = $1;
+
         } else {
-            print "Nope '$a'\n";
-            die;
+            die "Nope '$a'\n";
         }
 
         while (!exists($UIDtoNAME{$a})) {
             loadMoreNames();
 
-            if ((!exists($UIDtoNAME{$a})) && ($readsRenamed > 0)) {
-                print STDERR "WARNING:  Looping to load mode names; out of sync?\n";
-            }
+            #if ((!exists($UIDtoNAME{$a})) && ($readsRenamed > 0)) {
+            #    print STDERR "WARNING:  Looping to load more names; out of sync?\n";
+            #}
         }
 
         die "Didn't find UID '$a'\n"  if (!exists($UIDtoNAME{$a}));

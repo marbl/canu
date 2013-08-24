@@ -1050,8 +1050,8 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
       //  Unmated read, dump to the unmated reads file.
       //
       AS_UTL_writeFastQ(u, seq, len, qlt, len,
-                        "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                        AS_UID_toString(fr.gkFragment_getReadUID()),
+                        "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                        AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                         clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                         fr.gkFragment_getIsNonRandom() ? 'f' : 't');
       continue;
@@ -1064,14 +1064,14 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
 
     //  Write the first fragment (twice).
     AS_UTL_writeFastQ(a, seq, len, qlt, len,
-                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                      AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                       clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     AS_UTL_writeFastQ(p, seq, len, qlt, len,
-                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                      AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                       clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
@@ -1164,14 +1164,14 @@ dumpGateKeeperAsFastQ(char       *gkpStoreName,
 
     //  Write the second fragment (twice).
     AS_UTL_writeFastQ(b, seq, len, qlt, len,
-                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                      AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                       clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 
     AS_UTL_writeFastQ(p, seq, len, qlt, len,
-                      "@%s clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
-                      AS_UID_toString(fr.gkFragment_getReadUID()),
+                      "@%s,%u clr="F_U32","F_U32" clv="F_U32","F_U32" max="F_U32","F_U32" tnt="F_U32","F_U32" rnd=%c\n",
+                      AS_UID_toString(fr.gkFragment_getReadUID()), fr.gkFragment_getReadIID(),
                       clrBgn, clrEnd, vecBgn, vecEnd, maxBgn, maxEnd, tntBgn, tntEnd,
                       fr.gkFragment_getIsNonRandom() ? 'f' : 't');
 

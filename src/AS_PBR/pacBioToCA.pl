@@ -1801,6 +1801,7 @@ print STDOUT "Total split bases is $totalSplitBases vs $totalBP so ratio is " . 
 if (($totalSplitBases / $totalBP) > $MAX_SPLIT_PERCENTAGE && defined(getGlobal("maxCorrectionRounds")) && getGlobal("maxCorrectionRounds") > 1) { 
    if (! -e "$wrk/temp$libraryname/temproundTwo/corrected.fasta") {
       runCommand("$wrk", "$CA/gatekeeper -dumpfastq $wrk/temp$libraryname/$asm.split -iid $wrk/temp$libraryname/$asm.split.uid $wrk/temp$libraryname/$asm.gkpStore > $wrk/temp$libraryname/$asm.split.out 2> $wrk/temp$libraryname/$asm.split.err");
+      runCommand("$wrk", "$CA/replaceUIDwithName $wrk/temp$libraryname/$asm.gkpStore.fastqUIDmap $wrk/temp$libraryname/$asm.split.unmated.fastq > $wrk/temp$libraryname/$asm.rename.out 2> $wrk/temp$libraryname/$asm.rename.err");
       runCommand("$wrk", "$CA/gatekeeper -T -o $wrk/temp$libraryname/$asm.corrected.gkpStore $wrk/temp$libraryname/$libraryname.frg > $wrk/temp$libraryname/$asm.corrected.out 2> $wrk/temp$libraryname/$asm.corrected.err");
       runCommand("$wrk", "$CA/gatekeeper -dumpfragments -tabular $wrk/temp$libraryname/$asm.corrected.gkpStore |grep -v UID > $wrk/temp$libraryname/corrected.uids");
 
