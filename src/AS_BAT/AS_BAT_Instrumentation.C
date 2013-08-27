@@ -176,6 +176,7 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name) {
 
   uint32  numFragsT  = 0;
   uint32  numFragsP  = 0;
+  uint64  utgLen     = 0;
 
   //  Compute average frags per partition.
   for (uint32  ti=0; ti<unitigs.size(); ti++) {
@@ -185,9 +186,17 @@ reportUnitigs(UnitigVector &unitigs, const char *prefix, const char *name) {
       continue;
 
     numFragsT += utg->ufpath.size();
+
+    if (utg->ufpath.size() > 2)
+      utgLen    += utg->getLength();
   }
 
-  numFragsP = numFragsT / 7;
+  if      (utgLen < 16 * 1024 * 1024)
+    numFragsP = numFragsT / 7;
+  else if (utgLen < 64 * 1024 * 1024)
+    numFragsP = numFragsT / 63;
+  else
+    numFragsP = numFragsT / 127;
 
   char tigStorePath[FILENAME_MAX];
   sprintf(tigStorePath, "%s.%03u.%s.tigStore", prefix, logFileOrder, name);
