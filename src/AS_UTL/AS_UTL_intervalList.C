@@ -477,35 +477,32 @@ intervalDepth::computeIntervals(intervalDepthRegions *id, uint32 idlen) {
   _list[_listLen].de = id[0].cha;
 
   for (uint32 i=1; i<idlen; i++) {
-    if (_list[_listLen].de == 0) {
-      //  Update the start position if the current interval is at zero depth.
+    //  Update the end of the current interval.
+    _list[_listLen].hi = id[i].pos;
+
+    //fprintf(stderr, "ID %d %d - cur %d %d-%d %d\n",
+    //        id[i].pos, id[i].cha,
+    //        _listLen, _list[_listLen].lo, _list[_listLen].hi, _list[_listLen].de);
+
+    //  If the position is different than the last, make a new interval
+    if (id[i-1].pos != id[i].pos) {
+      _listLen++;
+
       _list[_listLen].lo = id[i].pos;
-    } else {
-
-      //  If we are at a position different from the start, we need to close out the current
-      //  interval and make a new one.
-      if (id[i-1].pos != id[i].pos) {
-        _list[_listLen].hi = id[i].pos;
-
-        _listLen++;
-
-        _list[_listLen].lo = id[i].pos;
-        _list[_listLen].hi = id[i].pos;
-        _list[_listLen].de = _list[_listLen-1].de;
-      }
+      _list[_listLen].de = _list[_listLen-1].de;
     }
 
-    //  Finally, update the depth of the current interval
+    //  Finally, update the depth and end of the current interval
+    _list[_listLen].hi  = id[i].pos;
     _list[_listLen].de += id[i].cha;
+
+    //fprintf(stderr, "ID %d %d - cur %d %d-%d %d POST\n",
+    //        id[i].pos, id[i].cha,
+    //        _listLen, _list[_listLen].lo, _list[_listLen].hi, _list[_listLen].de);
   }
 
   assert(_listLen > 0);
-
-  //  Toss out the last one if it's zero length -- I think it's always zero length, just can't
-  //  convince myself.
-
-  if (_list[_listLen].lo == _list[_listLen].hi)
-    _listLen--;
+  assert(_listLen < _listMax);
 }
 
 intervalDepth::~intervalDepth() {
