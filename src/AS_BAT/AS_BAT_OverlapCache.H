@@ -167,7 +167,8 @@ private:
 
   uint32                  _ovsMax;   //  For loading overlaps
   OVSoverlap             *_ovs;      //  
-  uint64                 *_ovsSco;   //
+  uint64                 *_ovsSco;   //  For scoring overlaps during the load
+  uint64                 *_ovsTmp;   //  For picking out a score threshold
 
   uint64                  _threadMax;
   OverlapCacheThreadData *_thread;

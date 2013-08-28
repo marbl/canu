@@ -156,6 +156,9 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-Em") == 0) {
       elimitMerge = atof(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-el") == 0) {
+      AS_OVERLAP_MIN_LEN = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-M") == 0) {
       ovlCacheMemory  = (uint64)(atof(argv[++arg]) * 1024 * 1024 * 1024);
 
@@ -279,6 +282,9 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  When popping bubbles and splitting repeat/unique junctions ('m'erging):\n");
     fprintf(stderr, "    -em 0.045   no more than 0.045 fraction (4.5%%) error when bubble popping and repeat splitting\n");
     fprintf(stderr, "    -Em 4       no more than r errors (useful with short reads)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  For both, the lower limit on overlap length\n");
+    fprintf(stderr, "    -el 40      no shorter than 40 bases; AS_OVERLAP_MIN_LEN\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Storage\n");
     fprintf(stderr, "\n");

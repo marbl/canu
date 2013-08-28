@@ -174,6 +174,7 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   _ovsMax  = 1 * 1024 * 1024;  //  At 16B each, this is 16MB
   _ovs     = new OVSoverlap [_ovsMax];
   _ovsSco  = new uint64     [_ovsMax];
+  _ovsTmp  = new uint64     [_ovsMax];
 
   _memUsed += _ovsMax * sizeof(OVSoverlap);
   _memUsed += _ovsMax * sizeof(uint64);
@@ -198,6 +199,10 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   computeOverlapLimit();
   computeErateMaps(erate, elimit);
   loadOverlaps(erate, elimit, prefix, onlySave, doSave);
+
+  delete [] _ovs;       _ovs    = NULL;
+  delete [] _ovsSco;    _ovsSco = NULL;
+  delete [] _ovsTmp;    _ovsTmp = NULL;
 
   if (doSave == true)
     save(prefix, erate, elimit, memlimit, maxOverlaps);
@@ -437,81 +442,50 @@ uint32
 OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
   uint32 ns = 0;
 
-  //  If there are fewer overlaps than the limit, accept all of them...below the error threshold.
-
-  if (no <= _maxPer) {
-    for (uint32 ii=0; ii<no; ii++)
-      if ((_ovs[ii].dat.ovl.corr_erate <= maxOVSerate) &&
-          (FI->fragmentLength(_ovs[ii].a_iid) != 0) &&
-          (FI->fragmentLength(_ovs[ii].b_iid) != 0)) {
-        _ovsSco[ii] = 1;
-        ns++;
-      } else {
-        _ovsSco[ii] = 0;
-      }
-
-    return(ns);
-  }
-
-  memset(_ovsSco, 0, sizeof(uint64) * no);
-
-  //  A simple filter based on quality; keep if good.
-#if 0
-  for (uint32 ii=0; ii<no; ii++)
-    if (_ovs[ii].dat.ovl.corr_erate <= maxOVSerate)
-      _ovsSco[ii] = 1;
-#endif
-
-  //  A simple filter based on length & quality of overlap.
-
-  uint32  maxLen = 0;
-  uint32  minLen = UINT32_MAX;
+  //  Score the overlaps.
 
   uint64  ERR_MASK = ((uint64)1 << AS_OVS_ERRBITS) - 1;
 
   uint32  SALT_BITS = (64 - AS_READ_MAX_NORMAL_LEN_BITS - AS_OVS_ERRBITS);
   uint64  SALT_MASK = (((uint64)1 << SALT_BITS) - 1);
 
-  //fprintf(stderr, "SALT_BITS %d SALT_MASK 0x%08x\n", SALT_BITS, SALT_MASK);
-
   for (uint32 ii=0; ii<no; ii++) {
-    if ((_ovs[ii].dat.ovl.corr_erate > maxOVSerate) ||
-        (FI->fragmentLength(_ovs[ii].a_iid) == 0) ||
-        (FI->fragmentLength(_ovs[ii].b_iid) == 0)) {
-      _ovsSco[ii] = 0;
-    } else {
-      _ovsSco[ii]   = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
+    uint32  olen = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
+
+    if ((_ovs[ii].dat.ovl.corr_erate <= maxOVSerate) &&
+        (AS_OVERLAP_MIN_LEN <= olen) &&
+        (FI->fragmentLength(_ovs[ii].a_iid) != 0) &&
+        (FI->fragmentLength(_ovs[ii].b_iid) != 0)) {
+      _ovsSco[ii]   = olen;
       _ovsSco[ii] <<= AS_OVS_ERRBITS;
       _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
       _ovsSco[ii] <<= SALT_BITS;
       _ovsSco[ii]  |= ii & SALT_MASK;
+      ns++;
+    } else {
+      _ovsSco[ii] = 0;
     }
+
+    _ovsTmp[ii] = _ovsSco[ii];
   }
 
-  //  Sort by longest overlap, then lowest error.
-  //  
-  sort(_ovsSco, _ovsSco + no);
+  //  If fewer than the limit, keep them all.  Should we reset ovsSco to be 1?
 
-  uint64  cutoff = _ovsSco[no - _maxPer];
+  if (ns <= _maxPer)
+    return(ns);
 
-  for (uint32 ii=0; ii<no; ii++) {
-    if ((_ovs[ii].dat.ovl.corr_erate > maxOVSerate) ||
-        (FI->fragmentLength(_ovs[ii].a_iid) == 0) ||
-        (FI->fragmentLength(_ovs[ii].b_iid) == 0)) {
-      _ovsSco[ii] = 0;
-    } else {
-      _ovsSco[ii]   = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
-      _ovsSco[ii] <<= AS_OVS_ERRBITS;
-      _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
-      _ovsSco[ii] <<= SALT_BITS;
-      _ovsSco[ii]  |= ii & SALT_MASK;
-    }
+  //  Otherwise, filter out the short and low quality.
 
+  sort(_ovsTmp, _ovsTmp + no);
+
+  uint64  cutoff = _ovsTmp[no - _maxPer];
+
+  for (uint32 ii=0; ii<no; ii++)
     if (_ovsSco[ii] < cutoff)
       _ovsSco[ii] = 0;
-  }
 
   //  Count how many overlaps we saved.
+
   for (uint32 ii=0; ii<no; ii++)
     if (_ovsSco[ii] > 0)
       ns++;
@@ -579,9 +553,12 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
       _ovsMax *= 2;
       delete [] _ovs;
       delete [] _ovsSco;
+      delete [] _ovsTmp;
       _ovs    = new OVSoverlap [_ovsMax];
       _ovsSco = new uint64     [_ovsMax];
+      _ovsTmp = new uint64     [_ovsMax];
       _memUsed += (_ovsMax) * sizeof(OVSoverlap);
+      _memUsed += (_ovsMax) * sizeof(uint64);
       _memUsed += (_ovsMax) * sizeof(uint64);
     }
 
@@ -643,9 +620,6 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
     fclose(ovlDat);
 
   writeLog("OverlapCache()-- Loading overlap information total:%12"F_U64P" loaded:%12"F_U64P"\n", numTotal, numLoaded);
-
-  delete [] _ovs;
-  _ovs = NULL;
 }
 
 
