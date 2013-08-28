@@ -1127,7 +1127,8 @@ markRepeats_filterJunctions(Unitig                          *target,
                             vector<repeatJunctionEvidence>  &evidence,
                             vector<repeatUniqueBreakPoint>  &breakpoints) {
 
-  map<FragmentEnd,uint32>   brkFrags;
+  map<FragmentEnd,uint32>                   brkFrags;
+  map<FragmentEnd,repeatUniqueBreakPoint>   brkJunct;
 
   for (uint32 bi=0; bi<regions.size(); bi++)
     writeLog("markRepeats()--  region["F_U32"] "F_U32","F_U32" length "F_U32"\n",
@@ -1163,7 +1164,7 @@ markRepeats_filterJunctions(Unitig                          *target,
 
     if ((bi >= regions.size()) ||
         (ruj.point < regions[bi].bgn)) {
-#if 1
+#if 0
       writeLog("markRepeats()--  junction: %s %6d %s at %d/%c' - DISCARD not in region\n",
               ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
               ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5');
@@ -1174,7 +1175,7 @@ markRepeats_filterJunctions(Unitig                          *target,
     //  If this region was marked as confirmed by mates, don't add the aplit points.
 
     if (regions[bi].ejectUnanchored == true) {
-#if 1
+#if 0
       writeLog("markRepeats()--  junction: %s %6d %s at %d/%c' - DISCARD not in a breakable region\n",
               ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
               ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5');
@@ -1187,16 +1188,33 @@ markRepeats_filterJunctions(Unitig                          *target,
 
     //  A new valid break point.
 
+#if 0
+    writeLog("markRepeats()--  junction: %s %6d %s at %d/%c'\n",
+             ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
+             ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5');
+#endif
+
+    //  NOTE!  ruj's seem to be different.  We used to save the 5th ruj, and switching to saving the
+    //  last showed differences in position (ruj.point) of the break.  The point comes directly from
+    //  the evidence[] above, so no surprise.
+
     brkFrags[evidence[ai].tigFrag]++;
+    brkJunct[evidence[ai].tigFrag] = ruj;
+  }
+
+  for (map<FragmentEnd,uint32>::iterator it=brkFrags.begin(); it != brkFrags.end(); it++) {
+    uint32                  cnt = brkFrags[it->first];
+    repeatUniqueBreakPoint  ruj = brkJunct[it->first];
+
+    if (cnt < 5)  //  ISECT_NEEDED_TO_BREAK
+      continue;
 
     writeLog("markRepeats()-- junction: %s %6d %s at %d/%c' - with "F_U32" intersections\n",
-            ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
-            ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5',
-            brkFrags[evidence[ai].tigFrag]);
+             ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
+             ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5',
+             cnt);
 
-    if (brkFrags[evidence[ai].tigFrag] == 5)
-      //if (brkFrags[evidence[ai].tigFrag] >= ISECT_NEEDED_TO_BREAK)
-      breakpoints.push_back(ruj);
+    breakpoints.push_back(ruj);
   }
 
   sort(breakpoints.begin(), breakpoints.end());
