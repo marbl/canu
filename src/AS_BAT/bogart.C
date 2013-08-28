@@ -335,10 +335,12 @@ main (int argc, char * argv []) {
   }
 
   fprintf(stderr, "\n");
-  fprintf(stderr, "Graph error threshold = %.3f (%.3f%%)\n", erateGraph, erateGraph * 100);
-  fprintf(stderr, "Graph error limit     = %.3f errors\n", elimitGraph);
-  fprintf(stderr, "Merge error threshold = %.3f (%.3f%%)\n", erateMerge, erateMerge * 100);
-  fprintf(stderr, "Merge error limit     = %.3f errors\n", elimitMerge);
+  fprintf(stderr, "Graph error threshold  = %.3f (%.3f%%)\n", erateGraph, erateGraph * 100);
+  fprintf(stderr, "Graph error limit      = %.3f errors\n", elimitGraph);
+  fprintf(stderr, "Merge error threshold  = %.3f (%.3f%%)\n", erateMerge, erateMerge * 100);
+  fprintf(stderr, "Merge error limit      = %.3f errors\n", elimitMerge);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Minimum overlap length = %u bases\n", AS_OVERLAP_MIN_LEN);
   fprintf(stderr, "\n");
 
 
