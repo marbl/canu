@@ -4,7 +4,9 @@ use strict;
 
 #  Computes various stats on the final trim log.  Should fold into the program itself.
 
-open(F, "< $ARGV[0]") or die "Failed to open final.trim.log '$ARGV[0]'.\n";
+die "usage: $0 prefix.finalTrim.log\n"  if (! -e "$ARGV[0]");
+
+open(F, "< $ARGV[0]") or die "Failed to open finalTrim.log '$ARGV[0]'.\n";
 
 my $header = <F>;
 
