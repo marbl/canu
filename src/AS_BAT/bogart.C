@@ -51,6 +51,9 @@ InsertSizes      *IS  = 0L;
 //  HACK
 extern uint32 examineOnly;
 
+extern uint32 SPURIOUS_COVERAGE_THRESHOLD;
+extern uint32 ISECT_NEEDED_TO_BREAK;
+extern uint32 REGION_END_WEIGHT;
 
 int
 main (int argc, char * argv []) {
@@ -137,6 +140,12 @@ main (int argc, char * argv []) {
     } else if (strcmp(argv[arg], "-examineonly") == 0) {
       //  HACK
       examineOnly = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-repeatdetect") == 0) {
+      //  HACK
+      SPURIOUS_COVERAGE_THRESHOLD  = atoi(argv[++arg]);
+      ISECT_NEEDED_TO_BREAK        = atoi(argv[++arg]);
+      REGION_END_WEIGHT            = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-RL") == 0) {
       minReadLen = atoi(argv[++arg]);
@@ -342,7 +351,10 @@ main (int argc, char * argv []) {
   fprintf(stderr, "\n");
   fprintf(stderr, "Minimum overlap length = %u bases\n", AS_OVERLAP_MIN_LEN);
   fprintf(stderr, "\n");
-
+  fprintf(stderr, "SPURIOUS_COVERAGE_THRESHOLD  "F_U32"\n", SPURIOUS_COVERAGE_THRESHOLD);
+  fprintf(stderr, "ISECT_NEEDED_TO_BREAK        "F_U32"\n", ISECT_NEEDED_TO_BREAK);
+  fprintf(stderr, "REGION_END_WEIGHT            "F_U32"\n", REGION_END_WEIGHT);
+  fprintf(stderr, "\n");
 
   if (numThreads > 0) {
     omp_set_num_threads(numThreads);

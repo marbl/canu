@@ -38,19 +38,14 @@ static const char *rcsid = "$Id$";
 #include "AS_BAT_Instrumentation.H"
 #include "AS_BAT_EvaluateMates.H"
 
+#include "AS_BAT_RepeatJunctionEvidence.H"
+
 #include "AS_UTL_intervalList.H"
 
 
-//  Over every frag in 'target' see if the unitig from any invading fragment can
-//  be merged in.
-
-#define FRAG_COVERS_REPEAT           10  //
-#define REPEAT_COVERS_FRAG            3  //
-#define SPURIOUS_REPEAT_THRESHOLD     5  //  repeat interval must have this many frags aligned to it
-#define ISECT_NEEDED_TO_BREAK         5
-
-#include "AS_BAT_RepeatJunctionEvidence.H"
-
+uint32 SPURIOUS_COVERAGE_THRESHOLD  = 6;   //  Need to have more than this coverage in non-unitig reads aligned to call it a repeat area
+uint32 ISECT_NEEDED_TO_BREAK        = 15;  //  Need to have at least  this number of reads confirming a repeat junction
+uint32 REGION_END_WEIGHT            = 15;  //  Pretend there are this many intersections at the end points of each repeat region
 
 #undef  LOG_BUBBLE_TESTS
 #undef  LOG_BUBBLE_FAILURE
@@ -848,79 +843,313 @@ markRepeats_placeAndProcessOverlaps(UnitigVector                     &unitigs,
 }
 
 
+#if 0
+uint32
+markRepeats_computeUnitigCoverage(Unitig *tig) {
+  intervalList   coverage;
+
+  for (uint32 fi=0; fi<tig->ufpath.size(); fi++) {
+    ufNode  frg         = tig->ufpath[fi];
+
+    if (frg.position.bgn < frg.position.end)
+      coverage.add(frg.position.bgn, frg.position.end - frg.position.bgn);
+    else
+      coverage.add(frg.position.end, frg.position.bgn - frg.position.end);
+  }
+
+  coverage.merge();
+  
+  intervalDepth  depth(coverage);
+
+  uint64   minCov = 0;           //  Probably 1 or 2
+  uint64   medCov = 0;           //  
+  uint64   aveCov = 0;           //  If repeats present, might be high
+  uint64   modCov = 0;           //  Probably not useful, due to read bias
+  uint64   maxCov = UINT32_MAX;  //  
+
+  for (uint32 dd=0; dd<depth.numberOfIntervals(); dd++)
+    maxCov = MAX(maxCov, depth.de(dd));
+  maxCov++;
+
+  uint32   *histogram = new uint32 [maxCov];
+
+  memset(histogram, 0, sizeof(uint32) * maxCov);
+
+  for (uint32 dd=0; dd<depth.numberOfIntervals(); dd++)
+    histogram[depth.de(dd)] += depth.hi(dd) - depth.lo(dd);
+
+  for (uint32 dd=0; dd<maxCov; dd++) {
+    if (depth.de(dd) == 0)
+      continue;
+
+    if (minCov < depth.de(dd))
+      minCov = depth.de(dd);
+
+    if (depth.de(dd) < maxCov)
+      maxCov = depth.de(dd);
+
+    //  blah.
+  }
+
+  return(medCov);
+}
+#endif
 
 
 
+//  Decide on a spurious coverage level using coverage in this unitig, global coverage, and
+//  statistics from the potential repeats.
+//
+//  This is the end consumer of the 'aligned' data.  It is used only to populate 'regions', and
+//  'regions' only cares about bgn,end coords, no underlying data.
+//
 void
 markRepeats_filterIntervalsSpannedByFragment(Unitig                    *target,
                                              intervalList              &aligned,
                                              vector<repeatRegion>      &regions) {
-  
+  uint32   tiglen  = target->getLength();
+
+  uint32   spuriousNoiseThreshold = SPURIOUS_COVERAGE_THRESHOLD;
+  uint32   filteredBases          = 0;
+  uint32   filteredCovered        = 0;
+
+  intervalDepth   depth(aligned);
+
+  aligned.merge();  //  Just for a stupid log message
+
+  writeLog("markRepeats()--  filtering low coverage spurious with t=%u in %u repeat regions (%u depth regions)\n",
+           spuriousNoiseThreshold, aligned.numberOfIntervals(), depth.numberOfIntervals());
+
   regions.clear();
+  aligned.clear();
+
+  //
+  //  Remove low coverage areas by making a new map for the high coverage areas.
+  //
+
+  for (uint32 dd=0; dd<depth.numberOfIntervals(); dd++) {
+    if (depth.de(dd) == 0)
+      continue;
+
+    if (depth.de(dd) <= spuriousNoiseThreshold) {
+      filteredBases += depth.hi(dd) - depth.lo(dd);
+      continue;
+    }
+
+    aligned.add(depth.lo(dd), depth.hi(dd) - depth.lo(dd));
+  }
+
   aligned.merge();
 
+  writeLog("markRepeats()--  filtered %u bases, now with %u repeat regions\n",
+           filteredBases, aligned.numberOfIntervals());
+
+  //
+  //  Adjust region boundaries so they land on the first read end that makes sense.
+  //
+  //  For the begin, decide if we need to expand or contract the region.  We will expand if the
+  //  start of the read before the region is not anchored.  We will contract otherwise.
+  //
+  //  For the end, it is more complicated because the end points are not sorted.
+  //
+
+  for (uint32 i=0; i<aligned.numberOfIntervals(); i++) {
+    uint32  intbgn  = aligned.lo(i);
+    uint32  intend  = aligned.hi(i);
+
+    for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
+      ufNode     *frg    = &target->ufpath[fi];
+      uint32      frgbgn = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
+      uint32      frgend = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
+
+      if (frgbgn + AS_OVERLAP_MIN_LEN / 2 < intbgn)
+        //  Anchored.
+        continue;
+
+      if (frgbgn == intbgn) {
+        //  Perfect!  Don't change a thing (unless we already expanded to get an unanchored read).
+        break;
+      }
+
+      if ((frgbgn <= intbgn) && (intbgn <= frgbgn + AS_OVERLAP_MIN_LEN / 2)) {
+        //  Not anchored, expand the region to this location
+#ifdef VERBOSE_REGION_FITTING
+        writeLog("markRepeats()--  region["F_U32"].bgn expands from "F_U32" to "F_U32" at frag "F_U32"\n", i, aligned.lo(i), frgbgn, frg->ident);
+#endif
+        aligned.lo(i) = frgbgn;
+        break;
+      }
+
+      if (intbgn <= frgbgn) {
+        //  First read begin that is inside the repeat region
+#ifdef VERBOSE_REGION_FITTING
+        writeLog("markRepeats()--  region["F_U32"].bgn contracts from "F_U32" to "F_U32" at frag "F_U32"\n", i, aligned.lo(i), frgbgn, frg->ident);
+#endif
+        aligned.lo(i) = frgbgn;
+        break;
+      }
+    }
+
+    uint32  newexp = 0, newexpid = UINT32_MAX;
+    uint32  newcnt = 0, newcntid = UINT32_MAX;
+
+    for (uint32 fi=target->ufpath.size(); fi-- > 0; ) {
+      ufNode     *frg    = &target->ufpath[fi];
+      uint32      frgbgn = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
+      uint32      frgend = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
+
+      if (intend + AS_OVERLAP_MIN_LEN / 2 < frgend)
+        //  Anchored.
+        continue;
+
+      if (frgend == intend) {
+        //  Perfect!
+        //newexpid = UINT32_MAX;
+        newcntid = UINT32_MAX;
+        break;
+      }
+
+      if ((intend < frgend) && (frgend <= intend + AS_OVERLAP_MIN_LEN / 2) && (newexp < frgend)) {
+        //  Not anchored, expand the region to this location (this will pick the largest expansion)
+        newexp   = frgend;
+        newexpid = frg->ident;
+        continue;
+      }
+
+      if ((frgend <= intend) && (newcnt < frgend)) {
+        //  Pick the largest read end that is within the repeat region
+        newcnt   = frgend;
+        newcntid = frg->ident;
+        continue;
+      }
+
+      if (frgbgn + AS_READ_MAX_NORMAL_LEN < intend)
+        //  All done, no more intersections possible
+        break;
+    }
+
+    //  Expand the region if one was found, otherwise contract if one was found.
+
+    if      (newexpid != UINT32_MAX) {
+#ifdef VERBOSE_REGION_FITTING
+      writeLog("markRepeats()--  region["F_U32"].end expands from "F_U32" to "F_U32" at frag "F_U32"\n", i, aligned.hi(i), newexp, newexpid);
+#endif
+      aligned.hi(i) = newexp;
+    }
+  
+    else if (newcntid != UINT32_MAX) {
+#ifdef VERBOSE_REGION_FITTING
+      writeLog("markRepeats()--  region["F_U32"].end contracts from "F_U32" to "F_U32" at frag "F_U32"\n", i, aligned.hi(i), newcnt, newcntid);
+#endif
+      aligned.hi(i) = newcnt;
+    }
+  }
+
+
+  {
+    uint32 nc = 0;
+
+    for (uint32 i=0; i<aligned.numberOfIntervals(); i++)
+      if (aligned.hi(i) < aligned.lo(i))
+        nc++;
+
+    writeLog("markRepeats()--  filtered "F_U32" repeat regions after picking read endpoints, now with "F_U32" repeat regions.\n",
+             nc, aligned.numberOfIntervals() - nc);
+  }
+
+  //
   //  Discard the interval if there is a fragment that contains it with enough overhang to
   //  unambiguously place it in a unitig.
-  
+  //
+
   for (uint32 i=0; i<aligned.numberOfIntervals(); i++) {
-    bool     isWeak       = (aligned.ct(i) < SPURIOUS_REPEAT_THRESHOLD);
     ufNode  *containedIn  = NULL;
 
-    if (isWeak == false) {
-      for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
-        ufNode     *frg   = &target->ufpath[fi];
-        uint32      bgn   = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
-        uint32      end   = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
+    //  If the region is backwards, then the region is contained in a read.  The easiest case to
+    //  argue is:
+    //
+    //           ------------
+    //                  -------RRR------
+    //                              --------------
+    //
+    //  The read with the repeat region is anchored on both sides, so it is contracted to the next
+    //  begin (for the start) and the previous end for the end)
+    //
+    if (aligned.hi(i) < aligned.lo(i)) {
+      //writeLog("markRepeats()--  repeat alignment "F_U64","F_U64" DISCARD - CONTRACTED TO NULL\n",
+      //         aligned.lo(i), aligned.hi(i));
+      continue;
+    }
 
-        if (end < aligned.lo(i))
-          //  Fragment is before the region.
-          continue;
+    //  Ensure that reads not near the end of the unitig have enough non-repeat sequence to anchor the read in this location.
+    //  This is done by increasing the size of the repeat.
 
-        if (aligned.hi(i) < bgn)
-          //  Fragment is after the region, we're finished.
-          break;
+    uint32   rptbgn  = aligned.lo(i);
+    uint32   rptend  = aligned.hi(i);
 
-        if ((bgn + FRAG_COVERS_REPEAT < aligned.lo(i)) &&
-            (aligned.hi(i)            < end - FRAG_COVERS_REPEAT)) {
-          //  Fragment contains the region with no acceptable overhangs into the non-repeat area.
-          containedIn  = frg;
-          break;
-        }
+    uint32   unique  = AS_OVERLAP_MIN_LEN / 2;
+
+    bool     bgnFull = true;
+    bool     endFull = true;
+
+    if (unique <= rptbgn) {
+      bgnFull = false;
+      rptbgn -= unique;
+    }
+
+    if (rptend + unique <= tiglen) {
+      endFull = false;
+      rptend += unique;
+    }
+
+    //  Search for a covering fragment.
+
+    for (uint32 fi=0; fi<target->ufpath.size(); fi++) {
+      ufNode     *frg    = &target->ufpath[fi];
+      uint32      frgbgn = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
+      uint32      frgend = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
+
+      if (frgend < rptbgn)
+        //  Fragment is before the region, keep searching for a spanning fragment.
+        continue;
+
+      if (rptend < frgbgn)
+        //  Fragment is after the region, we're finished.
+        break;
+
+      if ((frgbgn <= rptbgn) &&
+          (rptend <= frgend)) {
+        //  Fragment contains the region with acceptable overhangs into the non-repeat area.
+        containedIn = frg;
+        break;
       }
     }
 
     if (containedIn != NULL) {
-      writeLog("markRepeats()--  repeat alignment "F_U64","F_U64" count "F_U32" DISCARD - CONTAINED IN FRAGMENT "F_U32" "F_S32","F_S32"\n",
-              aligned.lo(i), aligned.hi(i), aligned.ct(i),
-              containedIn->ident,
-              containedIn->position.bgn, containedIn->position.end);
-      continue;
-    }
-
-    if (isWeak == true) {
-      writeLog("markRepeats()--  repeat alignment "F_S64","F_S64" count %u DISCARD - TOO WEAK\n",
-              aligned.lo(i), aligned.hi(i), aligned.ct(i));
+      filteredCovered++;
+      //writeLog("markRepeats()--  repeat alignment %s"F_U64","F_U64"%s DISCARD - CONTAINED IN FRAGMENT "F_U32" "F_S32","F_S32"\n",
+      //         (bgnFull ? "(end) " : ""), aligned.lo(i), aligned.hi(i), (endFull ? " (end)" : ""),
+      //         containedIn->ident, containedIn->position.bgn, containedIn->position.end);
       continue;
     }
 
     if ((regions.size() == 0) ||
         (regions.back().end + 100 < aligned.lo(i))) {
-      regions.push_back(repeatRegion(aligned.lo(i), aligned.hi(i), aligned.ct(i)));
-
-      writeLog("markRepeats()--  repeat alignment "F_U32","F_U32" count "F_U32"\n",
-              regions.back().bgn, regions.back().end, regions.back().overlaps);
+      regions.push_back(repeatRegion(aligned.lo(i), aligned.hi(i)));
+      //writeLog("markRepeats()--  repeat alignment "F_U32","F_U32"\n",
+      //        regions.back().bgn, regions.back().end);
 
     } else {
       regions.back().bgn       = MIN(regions.back().bgn, aligned.lo(i));
       regions.back().end       = MAX(regions.back().end, aligned.hi(i));
-      regions.back().overlaps += aligned.ct(i);
-
-      writeLog("markRepeats()--  repeat alignment "F_U32","F_U32" count "F_U32" (merged from "F_U64","F_U64")\n",
-              regions.back().bgn, regions.back().end, regions.back().overlaps,
-              aligned.lo(i), aligned.hi(i));
+      //writeLog("markRepeats()--  repeat alignment "F_U32","F_U32" (merged from "F_U64","F_U64")\n",
+      //        regions.back().bgn, regions.back().end,
+      //        aligned.lo(i), aligned.hi(i));
     }
-
   }
+
+  writeLog("markRepeats()--  filtered %u repeat regions contained in a read, now with %u repeat regions\n",
+           filteredCovered, regions.size());
 }
 
 
@@ -929,16 +1158,12 @@ void
 markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
                                           vector<repeatRegion>      &regions) {
 
-    //  Save the interval if it is small and has 'enough' mates spanning to convince us it is correct.  Spanning
-    //  mates must be anchored in non-repeat marked areas.  If we choose to keep it, eject any fragment that
-    //  is externally mated.  Also eject any non-mated fragments.
+  //  Save the interval if it is small and has 'enough' mates spanning to convince us it is correct.
+  //  Spanning mates must be anchored in non-repeat marked areas.  If we choose to keep it, eject
+  //  any fragment that is externally mated.  Also eject any non-mated fragments.
 
   for (uint32 i=0; i<regions.size(); i++) {
     assert(regions[i].bgn < regions[i].end);
-
-    if (regions[i].end - regions[i].bgn > 500)
-      //  Arbitrarily too large to be saved.
-      continue;
 
     uint32        spanGood       = 0;  //  Mate spans the region
     uint32        spanGoodMaybe  = 0;  //  Mate spans the region, but is slightly off in position
@@ -965,15 +1190,9 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
 
       AS_IID      lib      = FI->libraryIID(frg->ident);
 
-#if 1
       uint32      minD     = IS->mean(lib) - 3 * IS->stddev(lib);
       uint32      maxD     = IS->mean(lib) + 3 * IS->stddev(lib);
       uint32      stddev   = IS->stddev(lib);
-#else
-      uint32      minD     = FI->mean(lib) - 3 * FI->stddev(lib);
-      uint32      maxD     = FI->mean(lib) + 3 * FI->stddev(lib);
-      uint32      stddev   = FI->stddev(lib);
-#endif
 
       bool        isGood   = false;
       bool        isBad    = false;
@@ -1016,11 +1235,11 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
 
       if (target->id() != mrgtig) {
         //  Mate is not in this unitig, but it should be.  That's bad.
+#ifdef MATE_VERBOSE
+        writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"  expected "F_U32","F_U32"  mate in tig "F_U32"  BADMISSING\n",
+                frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgtig);
+#endif
         spanBad++;
-
-        //writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"  expected "F_U32","F_U32"  mate in tig "F_U32"  BAD\n",
-        //        frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgtig);
-
         continue;
       }
 
@@ -1036,44 +1255,42 @@ markRepeats_filterIntervalsSpannedByMates(Unitig                    *target,
       if ((expbgn <= mrgbgn) &&
           (mrgend <= expend) &&
           (frg53  != mrg53)) {
+#ifdef MATE_VERBOSE
+        writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  GOOD\n",
+                frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
+#endif
         spanGood++;
-        //writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  GOOD\n",
-        //        frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
 
       } else if ((expbgn              <= mrgbgn + 2 * stddev) &&
                  (mrgend + 2 * stddev <= expend) &&
                  (frg53  != mrg53)) {
+#ifdef MATE_VERBOSE
+        writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  GOODMAYBE\n",
+                frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
+#endif
         spanGoodMaybe++;
 
       } else {
+#ifdef MATE_VERBOSE
+        writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  BADDISTORIENT\n",
+                frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
+#endif
         spanBad++;
-        //writeLog("frg "F_U32","F_U32",%d  region "F_U32","F_U32"   expected "F_U32","F_U32"  mate "F_U32","F_U32",%d  BAD\n",
-        //        frgbgn, frgend, frg53, regions[i].bgn, regions[i].end, expbgn, expend, mrgbgn, mrgend, mrg53);
       }
     }
 
-    //  If we're mostly good/goodMaybe and very few bad, mark this is a repeat that we should
-    //  kick out unmated and externally mated reads from.
-    //
-    //  We're allowing 
+    //  If we're mostly good/goodMaybe and few bad, mark this is a repeat that we should kick out
+    //  unmated and externally mated reads from.
 
-    uint32  totalSpan = spanBad + spanGood + spanGoodMaybe;
-
-    double  sb = (double)spanBad       / totalSpan;
-    double  sg = (double)spanGood      / totalSpan;
-    double  sm = (double)spanGoodMaybe / totalSpan;
-
-    if ((sb < 0.05) &&
-        (sm < 0.10) &&
-        (10 < spanGood))
+    if ((2 * spanBad < 2 * spanGood + spanGoodMaybe) &&
+        (2 <= spanGood))
       regions[i].ejectUnanchored = true;
 
-    writeLog("markRepeats()-- region["F_U32"] "F_U32","F_U32" -- bad "F_U32" good "F_U32" goodmaybe "F_U32" -- sb=%.4f sg=%.4f sm-%.4f%s\n",
-            i,
-            regions[i].bgn, regions[i].end,
-            spanBad, spanGood, spanGoodMaybe,
-            sb, sg, sm,
-            regions[i].ejectUnanchored ? " -- DON'T SPLIT" : "");
+    writeLog("markRepeats()--  region["F_U32"] "F_U32","F_U32" -- length "F_U32" -- bad "F_U32" good "F_U32" goodmaybe "F_U32"%s\n",
+             i,
+             regions[i].bgn, regions[i].end, regions[i].end - regions[i].bgn,
+             spanBad, spanGood, spanGoodMaybe,
+             regions[i].ejectUnanchored ? " -- DON'T SPLIT" : "");
   }
 }
 
@@ -1095,8 +1312,18 @@ markRepeats_findFragsInRegions(Unitig                    *target,
       uint32      bgn   = (frg->position.bgn < frg->position.end) ? frg->position.bgn : frg->position.end;
       uint32      end   = (frg->position.bgn < frg->position.end) ? frg->position.end : frg->position.bgn;
 
-      if ((bgn + REPEAT_COVERS_FRAG < regions[i].bgn) ||
-          (regions[i].end + REPEAT_COVERS_FRAG < end))
+      if (regions[i].bgn == bgn)
+        regions[i].rujBgn = repeatUniqueBreakPoint(regions[i].bgn,
+                                                   FragmentEnd(frg->ident, end < bgn),
+                                                   false);
+
+      if (regions[i].end == end)
+        regions[i].rujEnd = repeatUniqueBreakPoint(regions[i].end,
+                                                   FragmentEnd(frg->ident, bgn < end),
+                                                   true);
+
+      if ((bgn + AS_OVERLAP_MIN_LEN/2 < regions[i].bgn) ||
+          (regions[i].end + AS_OVERLAP_MIN_LEN/2 < end))
         continue;
 
       if (regions[i].ejectUnanchored == false) {
@@ -1130,18 +1357,29 @@ markRepeats_filterJunctions(Unitig                          *target,
   map<FragmentEnd,uint32>                   brkFrags;
   map<FragmentEnd,repeatUniqueBreakPoint>   brkJunct;
 
-  for (uint32 bi=0; bi<regions.size(); bi++)
-    writeLog("markRepeats()--  region["F_U32"] "F_U32","F_U32" length "F_U32"\n",
-            bi, regions[bi].bgn, regions[bi].end, regions[bi].end - regions[bi].bgn);
+  //  Add breakpoints for each of the end points of the repeat region.
+
+  for (uint32 rr=0; rr<regions.size(); rr++) {
+    FragmentEnd &rujBgnFrg = regions[rr].rujBgn.breakFrag;
+    FragmentEnd &rujEndFrg = regions[rr].rujEnd.breakFrag;
+
+    if (rujBgnFrg.fragId() > 0) {
+      brkFrags[rujBgnFrg] = REGION_END_WEIGHT;
+      brkJunct[rujBgnFrg] = regions[rr].rujBgn;
+    }
+
+    if (rujEndFrg.fragId() > 0) {
+      brkFrags[rujEndFrg] = REGION_END_WEIGHT;
+      brkJunct[rujEndFrg] = regions[rr].rujEnd;
+    }
+  }
+
+  //
 
   sort(evidence.begin(), evidence.end());
 
   for (uint32 ai=0, bi=0; ai<evidence.size(); ai++) {
     repeatUniqueBreakPoint  ruj;
-
-    //if (brkFrags[evidence[ai].tigFrag] >= ISECT_NEEDED_TO_BREAK)
-    //  //  We've already logged a break on the fragment pointed to by the evidence.
-    //  continue;
 
     if (evidence[ai].is3 == false) {
       assert(evidence[ai].uncovered5bgn < evidence[ai].uncovered5end);
@@ -1163,36 +1401,18 @@ markRepeats_filterJunctions(Unitig                          *target,
     //  already ensured that the region end is after the point.
 
     if ((bi >= regions.size()) ||
-        (ruj.point < regions[bi].bgn)) {
-#if 0
-      writeLog("markRepeats()--  junction: %s %6d %s at %d/%c' - DISCARD not in region\n",
-              ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
-              ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5');
-#endif
+        (ruj.point < regions[bi].bgn))
       continue;
-    }
 
     //  If this region was marked as confirmed by mates, don't add the aplit points.
 
-    if (regions[bi].ejectUnanchored == true) {
-#if 0
-      writeLog("markRepeats()--  junction: %s %6d %s at %d/%c' - DISCARD not in a breakable region\n",
-              ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
-              ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5');
-#endif
+    if (regions[bi].ejectUnanchored == true)
       continue;
-    }
 
     assert(regions[bi].bgn <= ruj.point);
     assert(ruj.point       <= regions[bi].end);
 
     //  A new valid break point.
-
-#if 0
-    writeLog("markRepeats()--  junction: %s %6d %s at %d/%c'\n",
-             ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
-             ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5');
-#endif
 
     //  NOTE!  ruj's seem to be different.  We used to save the 5th ruj, and switching to saving the
     //  last showed differences in position (ruj.point) of the break.  The point comes directly from
@@ -1206,32 +1426,24 @@ markRepeats_filterJunctions(Unitig                          *target,
     uint32                  cnt = brkFrags[it->first];
     repeatUniqueBreakPoint  ruj = brkJunct[it->first];
 
-    if (cnt < 5)  //  ISECT_NEEDED_TO_BREAK
+    if (cnt < ISECT_NEEDED_TO_BREAK)
       continue;
-
-    writeLog("markRepeats()-- junction: %s %6d %s at %d/%c' - with "F_U32" intersections\n",
-             ruj.rptLeft ? "repeat" : "unique", ruj.point, ruj.rptLeft ? "unique" : "repeat",
-             ruj.breakFrag.fragId(), ruj.breakFrag.frag3p() ? '3' : '5',
-             cnt);
 
     breakpoints.push_back(ruj);
   }
 
   sort(breakpoints.begin(), breakpoints.end());
 
-  writeLog("markRepeats()--  unitig %d has "F_SIZE_T" interesting junctions at the following regions:\n",
+  writeLog("markRepeats()--  unitig %d has "F_SIZE_T" interesting junctions:\n",
           target->id(), breakpoints.size());
 
   for (uint32 ji=0; ji<breakpoints.size(); ji++)
-    writeLog("markRepeats()--  junction["F_U32"] at "F_IID"/%c' position "F_U32" repeat %s (count "F_U32"\n",
+    writeLog("markRepeats()--  junction["F_U32"] at "F_IID"/%c' position "F_U32" repeat %s count "F_U32"\n",
             ji,
             breakpoints[ji].breakFrag.fragId(), breakpoints[ji].breakFrag.frag3p() ? '3' : '5',
             breakpoints[ji].point,
             breakpoints[ji].rptLeft ? "<-" : "->",
             brkFrags[breakpoints[ji].breakFrag]);
-  for (uint32 bi=0; bi<regions.size(); bi++)
-    writeLog("markRepeats()--  region["F_U32"] "F_U32","F_U32" distToBreakPoint "F_U32","F_U32"\n",
-            bi, regions[bi].bgn, regions[bi].end, regions[bi].bgnDist, regions[bi].endDist);
 }
 
 

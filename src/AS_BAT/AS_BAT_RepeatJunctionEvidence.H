@@ -1,30 +1,5 @@
 
 
-
-class repeatRegion {
-public:
-  repeatRegion(uint32 bgn_, uint32 end_, uint32 overlaps_) {
-    bgn             = bgn_;
-    bgnDist         = UINT32_MAX;
-    end             = end_;
-    endDist         = UINT32_MAX;
-    overlaps        = overlaps_;
-    ejectUnanchored = false;
-  };
-
-  uint32         bgn;
-  uint32         end;
-
-  uint32         bgnDist;  //  Distance from end to first junction break point
-  uint32         endDist;
-
-  uint32         overlaps;
-
-  bool           ejectUnanchored;
-};
-
-
-
 class repeatJunctionEvidence {
 public:
   repeatJunctionEvidence(Unitig *target, overlapPlacement &op);
@@ -80,6 +55,25 @@ public:
   uint32        point;       //  Position in the unitig where we want to break
   FragmentEnd   breakFrag;   //  Fragment end that position is
   bool          rptLeft;     //  Repeat is to the left of the point
+};
+
+
+
+class repeatRegion {
+public:
+  repeatRegion(uint32 bgn_, uint32 end_) {
+    bgn             = bgn_;
+    end             = end_;
+    ejectUnanchored = false;
+  };
+
+  uint32         bgn;
+  uint32         end;
+
+  bool           ejectUnanchored;
+
+  repeatUniqueBreakPoint  rujBgn;
+  repeatUniqueBreakPoint  rujEnd;
 };
 
 
