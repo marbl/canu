@@ -60,40 +60,6 @@ public:
 };
 
 
-#if 0
-class repeatUniqueBreakRange {
-public:
-  repeatUniqueBreakRange() {
-    point       = 0;
-    bgn         = 0;
-    end         = 0;
-    breakFrag   = FragmentEnd();
-    rptLeft     = false;
-  };
-
-  repeatUniqueRange(uint32 point_, uint32 bgn_, uint32 end_, FragmentEnd breakFrag_, bool rptLeft_) {
-    point       = point_;
-    bgn         = bgn_;
-    end         = end_;
-    breakFrag   = breakFrag_;
-    rptLeft     = rptLeft_;
-  };
-
-  bool operator<(repeatUniqueRange const that) const {
-    return(point < that.point);
-  };
-
-  uint32        point;       //  Position in the unitig where we want to break
-
-  uint32        bgn;         //  Range of fragments that had a break on them
-  uint32        end;
-
-  FragmentEnd   breakFrag;   //  Fragment end that position is
-  bool          rptLeft;     //  Repeat is to the left of the point
-};
-#endif
-
-
 class repeatUniqueBreakPoint {
 public:
   repeatUniqueBreakPoint() {
