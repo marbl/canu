@@ -486,6 +486,8 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
 
   //  Count how many overlaps we saved.
 
+  ns = 0;
+
   for (uint32 ii=0; ii<no; ii++)
     if (_ovsSco[ii] > 0)
       ns++;
