@@ -25,9 +25,9 @@ const char *mainid = "$Id$";
 #include <stdlib.h>
 #include <string.h>
 
-#include "AS_global.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_PER_gkpStore.h"
+#include "AS_global.H"
+#include "AS_PER_gkpStore.H"
+#include "AS_PER_gkpStore.H"
 
 
 //  Parameters for the mer counter, and a nice utility function.
