@@ -123,9 +123,9 @@ public:
                                 intervalList &B);
 
 
-  intervalNumber      lo(uint32 i) { return(_list[i].lo); };
-  intervalNumber      hi(uint32 i) { return(_list[i].hi); };
-  uint32              ct(uint32 i) { return(_list[i].ct); };
+  intervalNumber     &lo(uint32 i) { return(_list[i].lo); };
+  intervalNumber     &hi(uint32 i) { return(_list[i].hi); };
+  uint32             &ct(uint32 i) { return(_list[i].ct); };
 
 private:
   bool                      _isSorted;
