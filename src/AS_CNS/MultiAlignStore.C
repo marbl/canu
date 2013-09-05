@@ -757,8 +757,8 @@ MultiAlignStore::flushDisk(void) {
     }
   }
 
-  fprintf(stderr, "MultiAlignStore::flushDisk()-- flushed %u unitigs and %u contigs.\n",
-          numUFlushed, numCFlushed);
+  //fprintf(stderr, "MultiAlignStore::flushDisk()-- flushed %u unitigs and %u contigs.\n",
+  //        numUFlushed, numCFlushed);
 }
 
 
@@ -786,8 +786,8 @@ MultiAlignStore::flushCache(void) {
     }
   }
 
-  fprintf(stderr, "MultiAlignStore::flushCache()-- flushed %u unitigs and %u contigs.\n",
-          numUFlushed, numCFlushed);
+  //fprintf(stderr, "MultiAlignStore::flushCache()-- flushed %u unitigs and %u contigs.\n",
+  //        numUFlushed, numCFlushed);
 
 #if 0
   for (uint32 p=0; p<MAX_PART; p++)
