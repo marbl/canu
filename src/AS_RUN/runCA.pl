@@ -617,7 +617,7 @@ sub setDefaults () {
     $global{"cgwMinMergeWeight"}           = 2;
     $synops{"cgwMinMergeWeight"}           = "When merging scaffolds, do not use edges with weight below this.\n";
 
-    $global{"cgwPreserveConsensus"}        = 1;
+    $global{"cgwPreserveConsensus"}        = 0;
     $synops{"cgwPreserveConsensus"}        = "Do not remove the contig consensus sequence at the end of scaffolder; ctgcns will be skipped (faster) but quality will be lower.\n";
 
     #####  Consensus Options
