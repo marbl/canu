@@ -51,6 +51,7 @@ uint32 REGION_END_WEIGHT            = 15;  //  Pretend there are this many inter
 #undef  LOG_BUBBLE_FAILURE
 #define LOG_BUBBLE_SUCCESS
 
+omp_lock_t  markRepeat_breakUnitigs_Lock;
 
 bool
 mergeBubbles_findEnds(UnitigVector &unitigs,
@@ -1560,14 +1561,19 @@ markRepeats_breakUnitigs(UnitigVector                    &unitigs,
               newTigs[i]->getLength(),
               newTigs[i]->ufpath.size());
 
+    writeLog("markRepeats()-- DELETE unitig %d\n", target->id());
     unitigs[target->id()] = NULL;
     delete target;
   }
 
   //  Run back over the ejected frags, and place them with either their mate, or at their best location.
 
-  for (set<AS_IID>::iterator it=ejtFrags.begin(); it!=ejtFrags.end(); it++)
+  for (set<AS_IID>::iterator it=ejtFrags.begin(); it!=ejtFrags.end(); it++) {
+    writeLog("markRepeats()-- EJECT frag "F_U32"\n", *it);
     placeFragInBestLocation(unitigs, *it);
+  }
+
+  writeLog("markRepeats()-- FINISHED.\n");
 }
 
 
@@ -1677,7 +1683,15 @@ markRepeats(UnitigVector &unitigs,
   markRepeats_filterJunctions(target, regions, evidence, breakpoints);
 
   //  Split at whatever junctions remain.
+
+  //  You'd think declaring this a critical region would work, but it resulted in deadlock on
+  //    Linux 2.6.32-279.22.1.el6.x86_64
+  //    g++ (GCC) 4.7.1
+  //#pragma omp critical
+
+  omp_set_lock(&markRepeat_breakUnitigs_Lock);
   markRepeats_breakUnitigs(unitigs, target, places, breakpoints, jctFrags, ejtFrags);
+  omp_unset_lock(&markRepeat_breakUnitigs_Lock);
 
   //  For each repeat unitig, shatter into fragments (not singleton unitigs) so we can later re-BOG.
   if (shatterRepeats)
@@ -1764,6 +1778,8 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
   setLogFile(prefix, "mergeSplitJoin");
   writeLog("repeatDetect()-- working on "F_U32" unitigs, with "F_U32" threads.\n", tiLimit, numThreads);
 
+  omp_init_lock(&markRepeat_breakUnitigs_Lock);
+ 
 #pragma omp parallel for schedule(dynamic, blockSize)
   for (uint32 ti=0; ti<tiLimit; ti++) {
     Unitig        *target = unitigs[ti];
@@ -1779,6 +1795,8 @@ mergeSplitJoin(UnitigVector &unitigs, const char *prefix, bool shatterRepeats) {
     markRepeats(unitigs, target, shatterRepeats);
     markChimera(unitigs, target);
   }
+
+  omp_destroy_lock(&markRepeat_breakUnitigs_Lock);
 
   reportOverlapsUsed(unitigs, prefix, "mergeSplitJoin");
   reportUnitigs(unitigs, prefix, "mergeSplitJoin");
