@@ -373,9 +373,9 @@ main (int argc, char **argv) {
     fprintf(stderr, "WARNING:  Total number of unitig failures = %d\n", numFailures);
     fprintf(stderr, "\n");
     fprintf(stderr, "Consensus did NOT finish successfully.\n");
-    return(1);
+  } else {
+    fprintf(stderr, "Consensus finished successfully.  Bye.\n");
   }
 
-  fprintf(stderr, "Consensus finished successfully.  Bye.\n");
   return(0);
 }

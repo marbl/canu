@@ -4688,6 +4688,30 @@ sub postUnitiggerConsensus () {
     }
 
     #
+    #  Check that consensus finished properly
+    #
+
+    my $failedJobs = 0;
+
+    open(F, "< $wrk/4-unitigger/$asm.partitioningInfo") or caFailure("can't open '$wrk/4-unitigger/$asm.partitioningInfo'", undef);
+    while (<F>) {
+        if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+unitigs\sand\s+(\d+)\s+fragments./) {
+            my $id = substr("000" . $1, -3);
+
+            if (! -e "$wrk/5-consensus/${asm}_$id.success") {
+                print STDERR "$wrk/5-consensus/${asm}_$id failed -- no .success.\n";
+                $failedJobs++;
+            }
+        }
+    }
+    close(F);
+
+    #  FAILUREHELPME
+    #
+    caFailure("$failedJobs unitig consensus jobs failed; remove $wrk/5-consensus/consensus.sh to try again", undef) if ($failedJobs);
+
+
+    #
     #  Run the consensus fixer
     #
 
@@ -5349,7 +5373,7 @@ sub postScaffolderConsensus () {
 
     #  FAILUREHELPME
     #
-    caFailure("$failedJobs consensusAfterScaffolder jobs failed; remove 8-consensus/consensus.sh to try again", undef) if ($failedJobs);
+    caFailure("$failedJobs consensusAfterScaffolder jobs failed; remove $wrk/8-consensus/consensus.sh to try again", undef) if ($failedJobs);
 
     #  All jobs finished.  Remove the partitioning from the gatekeeper store.
     #
