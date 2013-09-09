@@ -349,20 +349,6 @@ placeFragUsingOverlaps(UnitigVector             &unitigs,
     }
 
     assert((ovlPlace[i].position.bgn < ovlPlace[i].position.end) == (ovlPlace[i].verified.bgn < ovlPlace[i].verified.end));
-
-#if 0
-    //  redundant with those in the three place() functions above.
-#ifdef VERBOSE_PLACEMENT
-    if (logFileFlagSet(LOG_PLACE_FRAG))
-      writeLog("placeFragUsingOverlaps()-- place frag %u in unitig %u at position %d,%d (covered %d,%d) (verified %d,%d) from overlap to frag %u hang %d,%d\n",
-               frag.ident, utgID,
-               ovlPlace[i].position.bgn, ovlPlace[i].position.end,
-               ovlPlace[i].covered.bgn, ovlPlace[i].covered.end,
-               ovlPlace[i].verified.bgn, ovlPlace[i].verified.end,
-               ovl[i].b_iid,
-               ovl[i].a_hang, ovl[i].b_hang);
-#endif
-#endif
   }  //  Over all overlaps.
 
 
