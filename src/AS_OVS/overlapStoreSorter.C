@@ -207,6 +207,8 @@ main(int argc, char **argv) {
   bool            deleteIntermediateEarly = false;
   bool            deleteIntermediateLate  = false;
 
+  bool            forceRun = false;
+
   argc = AS_configure(argc, argv);
 
   int err=0;
@@ -238,6 +240,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-deletelate") == 0) {
       deleteIntermediateLate  = true;
 
+    } else if (strcmp(argv[arg], "-force") == 0) {
+      forceRun = true;
+
     } else {
       fprintf(stderr, "ERROR: unknown option '%s'\n", argv[arg]);
     }
@@ -260,8 +265,8 @@ main(int argc, char **argv) {
     char name[FILENAME_MAX];
     sprintf(name,"%s/%04d.ovs", ovlName, jobIndex);
 
-    if (AS_UTL_fileExists(name, FALSE, FALSE))
-      fprintf(stderr, "Job "F_U32" is running or finished.\n", jobIndex), exit(0);
+    if ((forceRun == false) && (AS_UTL_fileExists(name, FALSE, FALSE)))
+      fprintf(stderr, "Job "F_U32" is running or finished (remove '%s' or -force to try again).\n", jobIndex, name), exit(0);
 
     errno = 0;
     FILE *F = fopen(name, "w");
