@@ -32,8 +32,6 @@ const char *mainid = "$Id$";
 
 using namespace std;
 
-#undef  PLOT_COVERAGE
-
 #define READ_TRIM_BASES          (AS_OVERLAP_MIN_LEN / 2 - 1)
 #define MAX_SEQUENCE_COVERAGE     1
 #define MIN_BAD_CLONE_COVERAGE    3
@@ -41,6 +39,8 @@ using namespace std;
 #define LN_2                      0.693147
 
 #define CGW_CUTOFF 5
+
+bool              plotEvidence = false;
 
 AS_IID           *matePair     = NULL;
 AS_IID           *library      = NULL;
@@ -266,6 +266,45 @@ createCloneCoverageMap(uint32       *gcc,
 
 
 
+void
+findRegion(MultiAlignT *ma, uint32 endSkip, uint32 &minBase, uint32 &maxBase) {
+  uint32    numFrag = GetNumIntMultiPoss(ma->f_list);
+  uint32    bgnCount = 0,  bgnIdx = 0;
+  uint32    endCount = 0,  endIdx = numFrag;
+
+
+  for (bgnIdx=0; bgnIdx<numFrag; bgnIdx++) {
+    IntMultiPos *imp = GetIntMultiPos(ma->f_list, bgnIdx);
+
+    if (imp->contained == 0)
+      bgnCount++;
+
+    if (bgnCount > endSkip) {
+      minBase = MIN(imp->position.bgn, imp->position.end);
+      break;
+    }
+  }
+
+
+  for (endIdx=numFrag; endIdx-- > 0; ) {
+    IntMultiPos *imp = GetIntMultiPos(ma->f_list, endIdx);
+
+    if (imp->contained == 0)
+      endCount++;
+
+    if (endCount > endSkip) {
+      maxBase = MAX(imp->position.bgn, imp->position.end);
+      break;
+    }
+  }
+
+
+  //fprintf(stderr, "findRegion()-- unitig %u with %u reads of length %u - region read %u - %u position - %u - %u\n",
+  //        ma->maID, numFrag, GetMultiAlignLength(ma), bgnIdx, endIdx, minBase, maxBase);
+}
+
+
+
 
 
 int
@@ -280,8 +319,10 @@ main(int argc, char **argv) {
 
   int32      minLength = INT32_MAX;
   int32      minSplit  = INT32_MAX;
+  uint32     endSkip   = 0;
 
-  bool       doUpdate  = true;
+  bool       doConsensus  = true;
+  bool       doUpdate     = true;
 
   uint32     nShort      = 0;
   uint32     nTested     = 0;
@@ -305,11 +346,20 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-u") == 0) {
       onlID = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-N") == 0) {
+      doConsensus = false;
+
     } else if (strcmp(argv[arg], "-n") == 0) {
       doUpdate = false;
 
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE_MULTIALIGN_OUTPUT++;
+
+    } else if (strcmp(argv[arg], "-E") == 0) {
+      plotEvidence = true;
+
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      endSkip = atoi(argv[++arg]);
 
     } else {
       err++;
@@ -328,6 +378,19 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "  -g         Mandatory path to a gkpStore.\n");
     fprintf(stderr, "  -t         Mandatory path to a tigStore (can exist or not).\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -u i       Process only unitig IID i\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -s S       Do NOT split if the break occurs in the terminal S non-contained reads\n");
+    fprintf(stderr, "             The default 0 disables this feature\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -N         Do NOT recompute consensus sequence, only generate new split unitigs\n");
+    fprintf(stderr, "  -n         Do NOT modify the tigStore\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -V         Increase consensus verbosity\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -E         Generate a picture of the evidence for each unitig\n");
+    fprintf(stderr, "\n");
 
     if (gkpName == NULL)
       fprintf(stderr, "No gatekeeper store (-g option) supplied.\n");
@@ -454,6 +517,19 @@ main(int argc, char **argv) {
     while ((maxBase > READ_TRIM_BASES) && (rc[maxBase] <= 2))
       maxBase--;
 
+    //  Alternate.  Ignore the first/last non-contain read coverage.
+
+    if (endSkip > 0) {
+      uint32  minR = 0;
+      uint32  maxR = maLen;
+
+      findRegion(maOrig, endSkip, minR, maxR);
+
+      minBase = MAX(minBase, minR);
+      maxBase = MIN(maxBase, maxR);
+    }
+
+
     //  Find a first candidate interval
 
     for (curBase=minBase; curBase<maxBase; curBase++)
@@ -532,8 +608,7 @@ main(int argc, char **argv) {
 
     nSplit++;
 
-#ifdef PLOT_COVERAGE
-    {
+    if (plotEvidence) {
       char  N[FILENAME_MAX];
       FILE *F;
 
@@ -554,7 +629,6 @@ main(int argc, char **argv) {
       sprintf(N, "gnuplot < splitUnitigs-%08d.gp", maOrig->maID);
       system(N);
     }
-#endif
 
     //  Be nice and report the intervals
 
@@ -682,7 +756,8 @@ main(int argc, char **argv) {
       fprintf(stderr, "Creating new unitig %d with "F_SIZE_T" fragments\n",
               maNew[i]->maID, GetNumIntMultiPoss(maNew[i]->f_list));
 
-      if (GetNumchars(maOrig->consensus) > 1)
+      if ((doConsensus) &&
+          (GetNumchars(maOrig->consensus) > 1))
         if (MultiAlignUnitig(maNew[i], gkpStore, &options, NULL) == false)
           fprintf(stderr, "  Unitig %d FAILED.\n", maNew[i]->maID);
 
