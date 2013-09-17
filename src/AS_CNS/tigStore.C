@@ -690,7 +690,7 @@ main (int argc, char **argv) {
   uint32        dumpAll        = 0;
   char         *editName       = NULL;
   char         *replaceName    = NULL;
-  bool          replaceInPlace = TRUE;
+  bool          sameVersion    = true;
   char         *buildName      = NULL;
 
   uint32        minFmap        = 0;
@@ -812,7 +812,7 @@ main (int argc, char **argv) {
       replaceName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-N") == 0) {
-      replaceInPlace = FALSE;
+      sameVersion = false;
 
     } else if (strcmp(argv[arg], "-compress") == 0) {
       opType = OPERATION_COMPRESS;
@@ -880,9 +880,11 @@ main (int argc, char **argv) {
     fprintf(stderr, "                        before that specified on the '-t' option are created but are empty.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -R <layout>           Replace a multialign with this one (type and id are from the layout)\n");
+    fprintf(stderr, "                        The multialign is replaced in version <v> from -t.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -N                    Replace a multialign in the next version of the store.  This option is\n");
-    fprintf(stderr, "                        rarely useful, but is needed if the version of the store to add a multialign\n");
-    fprintf(stderr, "                        does not exist.\n");
+    fprintf(stderr, "                        needed if the version of the store to add a multialign does not exist.\n");
+    fprintf(stderr, "                        The multialign is replaced in version <v>+1 from -t.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -compress             Move tigs from earlier versions into the specified version.  This removes\n");
     fprintf(stderr, "                        historical versions of unitigs/contigs, and can save tremendous storage space,\n");
@@ -963,7 +965,11 @@ main (int argc, char **argv) {
     fprintf(stderr, "Reading layouts from '%s'.\n", replaceName);
 
     delete tigStore;
-    tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, replaceInPlace, !replaceInPlace);
+
+    if (sameVersion)
+      tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, true, false);  //  default
+    else
+      tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, TRUE, false, false);
 
     MultiAlignT  *ma       = CreateEmptyMultiAlignT();
     bool          isUnitig = false;
