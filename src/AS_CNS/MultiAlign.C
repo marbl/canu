@@ -698,7 +698,7 @@ DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
   for (uint32 i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
     IntMultiPos *imp = GetIntMultiPos(ma->f_list, i);
 
-    fprintf(stdout, "FRG type %c ident %9d container %9d parent %9d hang %6d %6d position %6d %6d\n",
+    fprintf(out, "FRG type %c ident %9d container %9d parent %9d hang %6d %6d position %6d %6d\n",
             imp->type,
             imp->ident,
             imp->contained,
@@ -710,7 +710,7 @@ DumpMultiAlignForHuman(FILE *out, MultiAlignT *ma, bool isUnitig) {
   for (uint32 i=0; i<GetNumIntUnitigPoss(ma->u_list); i++) {
     IntUnitigPos *iup = GetIntUnitigPos(ma->u_list, i);
 
-    fprintf(stdout, "UTG type %c ident %9d position %6d %6d num_instances %d\n",
+    fprintf(out, "UTG type %c ident %9d position %6d %6d num_instances %d\n",
             iup->type,
             iup->ident,
             iup->position.bgn, iup->position.end,
