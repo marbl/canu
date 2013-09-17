@@ -121,9 +121,7 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
                         char       *iidToDump,
                         int         asTable,
                         int         withoutUIDs) {
-  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE, withoutUIDs);
-
-  int       i;
+  gkStore   *gkp = new gkStore(gkpStoreName, FALSE, FALSE, TRUE);
 
   if (bgnIID < 1)
     bgnIID = 1;
@@ -133,7 +131,7 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
   if (asTable)
     fprintf(stdout, "UID\tIID\tOrientation\tMean\tStdDev\tNumFeatures\n");
 
-  for (i=bgnIID; i<=endIID; i++) {
+  for (int32 i=bgnIID; i<=endIID; i++) {
     if ((iidToDump == NULL) || (iidToDump[i])) {
       gkLibrary      *gkpl = gkp->gkStore_getLibrary(i);
       LibraryMesg     lmesg;
@@ -142,21 +140,20 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
 
       if (asTable) {
         fprintf(stdout, "%s\t"F_IID"\t%s\t%.3f\t%.3f\t%d\n",
-                (withoutUIDs == TRUE ? "NA" : AS_UID_toString(gkpl->libraryUID)), i,
+                gkpl->libraryName, i,
                 AS_READ_ORIENT_NAMES[gkpl->orientation],
                 gkpl->mean,
                 gkpl->stddev,
                 lmesg.num_features);
-      } else {
-        uint32 f;
 
-        fprintf(stdout, "libraryIdent         = %s,"F_IID"\n", AS_UID_toString(gkpl->libraryUID), i);
+      } else {
+        fprintf(stdout, "libraryIdent         = %s,"F_IID"\n", gkpl->libraryName, i);
         fprintf(stdout, "libraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl->orientation]);
         fprintf(stdout, "libraryMean          = %.3f\n", gkpl->mean);
         fprintf(stdout, "libraryStdDev        = %.3f\n", gkpl->stddev);
         fprintf(stdout, "libraryNumFeatures   = %d\n", lmesg.num_features);
 
-        for (f=0; f<lmesg.num_features; f++)
+        for (uint32 f=0; f<lmesg.num_features; f++)
           fprintf(stdout, "libraryFeature[%d]    = %s=%s\n", f, lmesg.features[f], lmesg.values[f]);
       }
 
