@@ -33,7 +33,8 @@ main (int argc, char **argv) {
   char  *gkpName = NULL;
 
   char  *tigName = NULL;
-  int32  tigVers = -1;
+  int32  tigVers = 0;
+  int32  tigPart = 0;
 
   AS_IID bgnID = 0;
   AS_IID onlID = UINT32_MAX;
@@ -43,6 +44,9 @@ main (int argc, char **argv) {
   bool   doUpdate   = true;
   bool   doNothing  = false;
   bool   doCache    = false;
+
+  char  *outputName = NULL;
+  FILE  *outputFile = NULL;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
@@ -63,8 +67,13 @@ main (int argc, char **argv) {
       tigName = argv[++arg];
       tigVers = atoi(argv[++arg]);
 
+      if (argv[++arg][0] != '.')
+        tigPart = atoi(argv[arg]);
+
       if (tigVers <= 0)
         fprintf(stderr, "invalid tigStore version (-t store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
+      if ((tigPart <= 0) && (argv[arg][0] != '.'))
+        fprintf(stderr, "invalid tigStore partition (-t store version partition) '-t %s %s %s'.\n", argv[arg-2], argv[arg-1], argv[arg]), exit(1);
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       onlID = atoi(argv[++arg]);
@@ -84,6 +93,9 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-l") == 0) {
       doCache = 1;
 
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      outputName = argv[++arg];
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -91,8 +103,10 @@ main (int argc, char **argv) {
 
     arg++;
   }
+  if ((tigPart > 0) && (outputName == NULL))
+    err++;
   if ((err) || (gkpName == NULL) || (tigName == NULL)) {
-    fprintf(stderr, "usage: %s -g gkpStore -t tigStore version [opts]\n", argv[0]);
+    fprintf(stderr, "usage: %s -g gkpStore -t tigStore version partition [opts]\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "    -v           Show multialigns.\n");
     fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
@@ -103,16 +117,41 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -N           Don't do anything, just report which unitigs are broken.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -l           Load the entire gkpStore into memory (faster, but more memory)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -o           Partitioned output file.  If 'partition' is not '.' or '0' this must\n");
+    fprintf(stderr, "                 be supplied.\n");
+    fprintf(stderr, "\n");
+    if ((tigPart > 0) && (outputName == NULL))
+      fprintf(stderr, "ERROR: Output name (-o) required if operating on a partition (-t store name part)\n");
     exit(1);
   }
 
-  gkpStore = new gkStore(gkpName, FALSE, FALSE);
-  tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, doUpdate, FALSE, FALSE);
+  if (outputName) {
+    fprintf(stderr, "Saving fixed unitigs to '%s'; store NOT updated.\n", outputName);
 
-  if (doCache) {
+    doUpdate = false;
+
+    errno = 0;
+    outputFile = fopen(outputName, "w");
+    if (errno)
+      fprintf(stderr, "Failed to open output file '%s' for write: %s\n", outputName, strerror(errno)), exit(1);
+  }
+
+
+  gkpStore = new gkStore(gkpName, false, false);
+  tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, doUpdate, false, false);
+
+  if (tigPart != 0) {
+    fprintf(stderr, "Loading reads into memory.\n");
+    gkpStore->gkStore_loadPartition(tigPart);
+  }
+
+  else if (doCache) {
     fprintf(stderr, "Loading all reads into memory.\n");
     gkpStore->gkStore_load(0, 0, GKFRAGMENT_QLT);
   }
+
+
 
   bgnID = 0;
   endID = tigStore->numUnitigs();
@@ -126,15 +165,14 @@ main (int argc, char **argv) {
       exit(1);
     }
   }
- 
+
   fprintf(stderr, "Checking unitig consensus for b="F_U32" to e="F_U32"\n", bgnID, endID);
 
   for (uint32 i=bgnID; i<endID; i++) {
-    MultiAlignT  *maOrig = tigStore->loadMultiAlign(i, TRUE);
+    MultiAlignT  *maOrig = tigStore->loadMultiAlign(i, true);
 
     if (maOrig == NULL) {
       //  Not in our partition, or deleted.
-      fprintf(stderr, "NULL ma for unitig "F_U32" -- already deleted?\n", i);
       continue;
     }
 
@@ -180,7 +218,7 @@ main (int argc, char **argv) {
       //  using those not placed.
 
     tryAgain:
-      fprintf(stderr, "\nFixing unitig %d ("F_SIZE_T" fragments remain)\n",
+      fprintf(stderr, " - Fixing unitig %d with "F_SIZE_T" fragments\n",
               maOrig->maID, GetNumIntMultiPoss(maTest->f_list));
 
       ResetVA_IntMultiPos(maFixd->f_list);
@@ -194,7 +232,7 @@ main (int argc, char **argv) {
 
         if (failed[i]) {
           AppendVA_IntMultiPos(maNext->f_list, imp);
-          fprintf(stderr, "  save fragment idx=%d ident=%d for next pass\n", i, imp->ident);
+          fprintf(stderr, "   - save fragment idx=%d ident=%d for next pass\n", i, imp->ident);
         } else {
           AppendVA_IntMultiPos(maFixd->f_list, imp);
           lastAdded = i;
@@ -211,13 +249,17 @@ main (int argc, char **argv) {
 
       maFixd->maID = tigStore->numUnitigs();
 
-      fprintf(stderr, "Testing new unitig %d with "F_SIZE_T" fragments ("F_SIZE_T" remain)\n",
-              maFixd->maID, GetNumIntMultiPoss(maFixd->f_list), GetNumIntMultiPoss(maNext->f_list));
+      if (GetNumIntMultiPoss(maNext->f_list) == 0)
+        fprintf(stderr, " - Testing new unitig %d with "F_SIZE_T" fragments\n",
+                maFixd->maID, GetNumIntMultiPoss(maFixd->f_list));
+      else
+        fprintf(stderr, " - Testing new unitig %d with "F_SIZE_T" fragments ("F_SIZE_T" remain for next pass)\n",
+                maFixd->maID, GetNumIntMultiPoss(maFixd->f_list), GetNumIntMultiPoss(maNext->f_list));
 
       assert(GetNumIntMultiPoss(maFixd->f_list) > 0);
 
       if (MultiAlignUnitig(maFixd, gkpStore, &options, NULL) == false) {
-        fprintf(stderr, "Unitig %d failed, again.\n", maFixd->maID);
+        fprintf(stderr, "   - Unitig %d failed, again.\n", maFixd->maID);
 
         failed[lastAdded] = 1;
         //assert(0);
@@ -226,14 +268,25 @@ main (int argc, char **argv) {
 
       //  Add the new unitig to the store (the asserts are duplicated in cgw too).
 
-      assert(1 == GetNumIntUnitigPoss(maFixd->u_list));  //  One unitig in the list (data.num_unitigs is updated on insertion)
+      assert(1            == GetNumIntUnitigPoss(maFixd->u_list));        //  One unitig in the list (data.num_unitigs is updated on insertion)
       assert(maFixd->maID == GetIntUnitigPos(maFixd->u_list, 0)->ident);  //  Unitig has correct ident
 
-      if (doUpdate)
-        tigStore->insertMultiAlign(maFixd, TRUE, FALSE);
+      if (doUpdate) {
+        tigStore->insertMultiAlign(maFixd, true, false);
+        fprintf(stderr, " - Added unitig %d with "F_SIZE_T" fragments.\n",
+                maFixd->maID, GetNumIntMultiPoss(maFixd->f_list));
+      } else {
+        //  Usually set by insertMultiAlign, need to force it here
+        maFixd->data.num_frags   = GetNumIntMultiPoss(maFixd->f_list);
+        maFixd->data.num_unitigs = GetNumIntUnitigPoss(maFixd->u_list);
+      }
 
-      fprintf(stderr, "Added unitig %d with "F_SIZE_T" fragments.\n",
-              maFixd->maID, GetNumIntMultiPoss(maFixd->f_list));
+      if (outputFile) {
+        maFixd->maID = -1;
+        DumpMultiAlignForHuman(outputFile, maFixd, true);
+        fprintf(stderr, " - Saved new unitig with "F_SIZE_T" fragments.\n",
+                GetNumIntMultiPoss(maFixd->f_list));
+      }
 
       if (showResult)
         PrintMultiAlignT(stdout, maFixd, gkpStore, false, false, AS_READ_CLEAR_LATEST);
@@ -246,15 +299,32 @@ main (int argc, char **argv) {
       ReuseClone_VA(maTest->f_list, maNext->f_list);
     }  //  Until the test unitig is empty
 
-    //  Now mark the original unitig as deleted.
+    //  Now mark the original unitig as deleted.  If we're writing to human output, a little more work
+    //  is needed to remove reads first.  The loader notices this and performs the delete.
 
-    if (doUpdate)
+    if (doUpdate) {
       tigStore->deleteMultiAlign(maOrig->maID, true);
+    }
+
+    if (outputFile) {
+      ResetVA_IntMultiPos(maOrig->f_list);
+      ResetVA_IntUnitigPos(maOrig->u_list);
+
+      maOrig->data.num_frags   = 0;  //  Usually set by insertMultiAlign, need to force it here
+      maOrig->data.num_unitigs = 0;
+
+      DumpMultiAlignForHuman(outputFile, maOrig, true);
+    }
+
+    tigStore->unloadMultiAlign(maOrig->maID, true);
   }
 
  finish:
   delete tigStore;
 
-  fprintf(stderr, "Consensus finished successfully.  Bye.\n");
+  if (outputFile)
+    fclose(outputFile);
+
+  fprintf(stderr, "\nConsensus finished successfully.  Bye.\n");
   return(0);
 }

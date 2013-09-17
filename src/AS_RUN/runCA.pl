@@ -4621,7 +4621,13 @@ sub createPostUnitiggerConsensusJobs (@) {
        print F "\$bin/utgcns \\\n";
        print F "  -g $wrk/$asm.gkpStore \\\n";
        print F "  -t $wrk/$asm.tigStore 1 \$jobid \\\n";
-       print F " > $wrk/5-consensus/${asm}_\$jobid.err 2>&1 \\\n";
+       print F "> $wrk/5-consensus/${asm}_\$jobid.cns.err 2>&1 \\\n";
+       print F "&& \\\n";
+       print F "\$bin/utgcnsfix \\\n";
+       print F "  -g $wrk/$asm.gkpStore \\\n";
+       print F "  -t $wrk/$asm.tigStore 2 \$jobid \\\n";
+       print F "  -o $wrk/5-consensus/${asm}_\$jobid.fixes \\\n";
+       print F "> $wrk/5-consensus/${asm}_\$jobid.fix.err 2>&1";
        print F "&& \\\n";
        print F "touch $wrk/5-consensus/${asm}_\$jobid.success\n";
     } elsif ($consensusType eq "seqan") {
@@ -4631,7 +4637,7 @@ sub createPostUnitiggerConsensusJobs (@) {
        print F "  -s \$bin/graph_consensus \\\n";
        print F "  -w $wrk/5-consensus/ \\\n";
        print F "  -o $wrk/5-consensus/${asm}_\$jobid.cgi \\\n";
-       print F " > $wrk/5-consensus/${asm}_\$jobid.err 2>&1 \\\n";
+       print F " > $wrk/5-consensus/${asm}_\$jobid.cns.err 2>&1 \\\n";
        print F "&& \\\n";
        print F "touch $wrk/5-consensus/${asm}_\$jobid.success\n";
     } else {
@@ -4710,20 +4716,37 @@ sub postUnitiggerConsensus () {
     #
     caFailure("$failedJobs unitig consensus jobs failed; remove $wrk/5-consensus/consensus.sh to try again", undef) if ($failedJobs);
 
-
     #
-    #  Run the consensus fixer
+    #  Apply the utgcnsfix changes
     #
 
-    if (! -e "$wrk/5-consensus/consensus-fix.out") {
-        $cmd  = "$bin/utgcnsfix \\\n";
-        $cmd .= " -g $wrk/$asm.gkpStore \\\n";
-        $cmd .= " -t $wrk/$asm.tigStore 2 \\\n";
-        $cmd .= "> $wrk/5-consensus/consensus-fix.out 2>&1";
+    if (! -e "$wrk/5-consensus/$asm.fixes") {
+        open(O, "> $wrk/5-consensus/$asm.fixes");
+        open(F, "< $wrk/4-unitigger/$asm.partitioningInfo") or caFailure("can't open '$wrk/4-unitigger/$asm.partitioningInfo'", undef);
+        while (<F>) {
+            if (m/Partition\s+(\d+)\s+has\s+(\d+)\s+unitigs\sand\s+(\d+)\s+fragments./) {
+                my $id = substr("000" . $1, -3);
+
+                open(G, "< $wrk/5-consensus/${asm}_$id.fixes") or die "Failed to open '$wrk/5-consensus/${asm}_$id.fixes'\n";
+                while (<G>) {
+                    print O $_;
+                }
+                close(G);
+            }
+        }
+        close(F);
+        close(O);
+
+        $cmd  = "$bin/tigStore";
+        $cmd .= " -g $wrk/$asm.gkpStore";
+        $cmd .= " -t $wrk/$asm.tigStore 2";
+        $cmd .= " -N";
+        $cmd .= " -R $wrk/5-consensus/$asm.fixes";
+        $cmd .= " > $asm.fixes.err 2>&1";
 
         if (runCommand("$wrk/5-consensus", $cmd)) {
-            rename "$wrk/5-consensus/consensus-fix.out", "$wrk/5-consensus/consensus-fix.out.FAILED";
-            caFailure("Unitig consensus fixer failed", "$wrk/5-consensus/consensus-fix.out");
+            caFailure("unitig utgcnsfix failed", "$wrk/5-consensus/$asm.fixes.err");
+            rename "$wrk/5-consensus/$asm.fixes", "$wrk/5-consensus/$asm.fixes.FAILED";
         }
     }
 
@@ -4795,12 +4818,12 @@ sub postUnitiggerConsensus () {
         if (! -e "$wrk/5-consensus-split/consensus-fix.out") {
             $cmd  = "$bin/utgcnsfix \\\n";
             $cmd .= " -g $wrk/$asm.gkpStore \\\n";
-            $cmd .= " -t $wrk/$asm.tigStore 4 \\\n";
+            $cmd .= " -t $wrk/$asm.tigStore 4 . \\\n";
             $cmd .= "> $wrk/5-consensus-split/consensus-fix.out 2>&1";
 
             if (runCommand("$wrk/5-consensus-split", $cmd)) {
                 rename "$wrk/5-consensus-split/consensus-fix.out", "$wrk/5-consensus-split/consensus-fix.out.FAILED";
-                caFailure("Unitig consensus fixer (post split) failed", "$wrk/5-consensus-split/consensus-fix.out.FAILED");
+                caFailure("post split utgcnsfix failed", "$wrk/5-consensus-split/consensus-fix.out.FAILED");
             }
         }
     }
