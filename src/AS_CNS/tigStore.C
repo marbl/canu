@@ -161,25 +161,21 @@ dumpProperties(MultiAlignStore *tigStore,
   fprintf(stdout, "unitigFUR           %c/%d\n",   ma->data.unitig_unique_rept, ma->data.unitig_unique_rept);
   fprintf(stdout, "contigStatus        %c/%d\n",   ma->data.contig_status, ma->data.contig_status);
 
-  #if GCCONTENT
+#if GCCONTENT
   float gcContent = 0.0;
   int ulen = 0;
   int glen = 0;
 
-  if (ma->consensus)
-  {
+  if (ma->consensus) {
     char *cns = Getchar(ma->consensus, 0);
 
-    if (cns && *cns)
-    {
+    if (cns && *cns) {
       int gcs = 0;
 
-      while (*cns)
-      {
+      while (*cns) {
         glen++;
 
-        if (*cns != '-')
-        {
+        if (*cns != '-') {
           if (*cns == 'G' || *cns == 'C') { gcs++; }
           ulen++;
         }
@@ -194,7 +190,7 @@ dumpProperties(MultiAlignStore *tigStore,
   fprintf(stdout, "gcContent           %f\n",      gcContent);
   fprintf(stdout, "uLen                %d\n",      ulen);
   fprintf(stdout, "gLen                %d\n",      glen);
-  #endif
+#endif
 
   fprintf(stdout, "numFrags            "F_U32" (vs "F_U64")\n", ma->data.num_frags, (uint64)GetNumIntMultiPoss(ma->f_list));
   fprintf(stdout, "numUnitigs          "F_U32" (vs "F_U64")\n", ma->data.num_unitigs, (uint64)GetNumIntUnitigPoss(ma->u_list));
@@ -386,7 +382,7 @@ dumpThinOverlap(MultiAlignStore *tigStore,
 
 #if 1
   for (uint32 i=0; i<ovlL.numberOfIntervals(); i++)
-    fprintf(stderr, "%s %u IL %u %u\n",
+    fprintf(stderr, "%s %u IL "F_U64" "F_U64"\n",
             (tigIsUnitig) ? "unitig" : "contig", tigID,
             ovlL.lo(i), ovlL.hi(i));
 #endif
@@ -402,7 +398,7 @@ dumpThinOverlap(MultiAlignStore *tigStore,
 
 #if 1
   for (uint32 i=0; i<badL.numberOfIntervals(); i++)
-    fprintf(stderr, "%s %u BAD %u %u\n",
+    fprintf(stderr, "%s %u BAD "F_U64" "F_U64"\n",
             (tigIsUnitig) ? "unitig" : "contig", tigID,
             badL.lo(i), badL.hi(i));
 #endif
@@ -631,24 +627,19 @@ operationCompress(char *tigName, int tigVers) {
 
 
 void
-operationFmap(char   *tigName,
-              int32   tigVers,
-              uint32  minFmap,
+operationFmap(uint32  minFmap,
               uint32  maxFmap,
               bool    tigIsUnitig,
-              uint32  tigID,
+              uint32  tigIDbgn,
+              uint32  tigIDend,
               bool    dumpAll) {
-  MultiAlignStore  *tigStore = new MultiAlignStore(tigName, tigVers, 0, 0, FALSE, FALSE, FALSE);
-
-  uint32  bgn = tigID;
-  uint32  end = tigID + 1;
 
   if (dumpAll == TRUE) {
-    bgn = 0;
-    end = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
+    tigIDbgn = 0;
+    tigIDend = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
   }
 
-  for (int32 ti=bgn; ti<end; ti++) {
+  for (int32 ti=tigIDbgn; ti<=tigIDend; ti++) {
     if (tigStore->isDeleted(ti, tigIsUnitig))
       continue;
 
@@ -681,7 +672,7 @@ main (int argc, char **argv) {
   int           tigVers        = -1;
   int           tigPartU       = 0;
   int           tigPartC       = 0;
-  uint32        tigID          = 0;
+  bool          tigIDset       = false;
   uint32        tigIDbgn       = 0;
   uint32        tigIDend       = UINT32_MAX;
   int32         tigIsUnitig    = TRUE;
@@ -726,21 +717,23 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       AS_UTL_decodeRange(argv[++arg], tigIDbgn, tigIDend);
-      tigID       = tigIDbgn;
       tigIsUnitig = TRUE;
+      tigIDset    = true;
 
     } else if (strcmp(argv[arg], "-U") == 0) {
       dumpAll     = TRUE;
       tigIsUnitig = TRUE;
+      tigIDset    = true;
 
     } else if (strcmp(argv[arg], "-c") == 0) {
       AS_UTL_decodeRange(argv[++arg], tigIDbgn, tigIDend);
-      tigID       = tigIDbgn;
       tigIsUnitig = FALSE;
+      tigIDset    = true;
 
     } else if (strcmp(argv[arg], "-C") == 0) {
       dumpAll     = TRUE;
       tigIsUnitig = FALSE;
+      tigIDset    = true;
 
     } else if (strcmp(argv[arg], "-d") == 0) {
       arg++;
@@ -890,7 +883,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "                        historical versions of unitigs/contigs, and can save tremendous storage space,\n");
     fprintf(stderr, "                        but makes it impossible to back up the assembly past the specified versions\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -fmap min max         Output a map of fragment id to unitig id, for unitigs with min <= x <= max fragments.\n");
+    fprintf(stderr, "  -fmap min max         Output a map of fragment id to tig id, for tigs with min <= x <= max fragments\n");
+    fprintf(stderr, "                        that are also in the -u, -U, -c, -C range.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  For '-d multialign':\n");
     fprintf(stderr, "  -w width              Width of the page.\n");
@@ -934,12 +928,6 @@ main (int argc, char **argv) {
   }
 
 
-  if (opType == OPERATION_FMAP) {
-    operationFmap(tigName, tigVers, minFmap, maxFmap, tigIsUnitig, tigID, dumpAll);
-    exit(0);
-  }
-
-
   gkpStore = new gkStore(gkpName, FALSE, FALSE);
   tigStore = new MultiAlignStore(tigName, tigVers, tigPartU, tigPartC, FALSE, FALSE, FALSE);
 
@@ -952,8 +940,8 @@ main (int argc, char **argv) {
 
 
   if ((opType == OPERATION_REPLACE) && (replaceName != NULL)) {
-    if (tigID) {
-      fprintf(stderr, "ERROR:  -R is incompatible with -c and -u.  Did you mean -cp or -up instead?\n");
+    if (tigIDset) {
+      fprintf(stderr, "ERROR:  -R is incompatible with -c, -u, -C and -U.  Did you mean -cp or -up instead?\n");
       exit(1);
     }
 
@@ -1022,33 +1010,35 @@ main (int argc, char **argv) {
   }
 
 
-  if (opType == OPERATION_TIG) {
-    int32  bgn = tigID;
-    int32  end = tigID + 1;
+  if (tigIDset == false) {
+    fprintf(stderr, "ERROR: No tig range set with -u, -c, -U or -C.\n");
+    exit(1);
+  }
 
-    if (tigIDbgn != tigIDend) {
-      bgn = tigIDbgn;
-      end = tigIDend + 1;
-    }
+
+  if (opType == OPERATION_FMAP) {
+    operationFmap(minFmap, maxFmap, tigIsUnitig, tigIDbgn, tigIDend, dumpAll);
+  }
+
+
+  if (opType == OPERATION_TIG) {
+    uint32   nTigs = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
 
     if (dumpAll == TRUE) {
-      bgn = 0;
-      end = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
+      tigIDbgn = 0;
+      tigIDend = nTigs - 1;
     }
 
-    if ((tigIsUnitig == true) && (tigStore->numUnitigs() <= tigID)) {
-      fprintf(stderr, "ERROR: only "F_U32" unitigs in the store; can't dump requested unitig "F_S32"\n",
-              tigStore->numUnitigs(), tigID);
-      bgn = 0;
-      end = 0;
+    if (nTigs <= tigIDbgn) {
+      fprintf(stderr, "ERROR: only "F_U32" %s in the store (IDs 0-"F_U32"); can't dump requested range "F_U32"-"F_U32"\n",
+              nTigs, nTigs-1,
+              (tigIsUnitig) ? "unitigs" : "contigs",
+              tigIDbgn, tigIDend);
     }
 
-    if ((tigIsUnitig == false) && (tigStore->numContigs() <= tigID)) {
-      fprintf(stderr, "ERROR: only "F_U32" contigs in the store; can't dump requested contig "F_S32"\n",
-              tigStore->numContigs(), tigID);
-      bgn = 0;
-      end = 0;
-    }
+    if (nTigs <= tigIDend)
+      tigIDend = nTigs - 1;
+
 
     if (dumpFlags == DUMP_MATEPAIR) {
       mpa = new matePairAnalysis(gkpName);
@@ -1062,7 +1052,7 @@ main (int argc, char **argv) {
         sizPrefix = tigName;
     }
 
-    for (tigID=bgn; tigID<end; tigID++) {
+    for (uint32 tigID=tigIDbgn; tigID<=tigIDend; tigID++) {
       ma = tigStore->loadMultiAlign(tigID, tigIsUnitig);
 
       if (ma == NULL)
