@@ -206,7 +206,12 @@ main (int argc, char **argv) {
     ReuseClone_VA(maTest->f_list, maOrig->f_list);  //  Copy the fragments to our 'test' unitig
 
     int32 *failed    = new int32 [GetNumIntMultiPoss(maOrig->f_list)];
-    int32  lastAdded = 0;
+    int32 *failmap   = new int32 [GetNumIntMultiPoss(maOrig->f_list)];
+    int32 *failag    = new int32 [GetNumIntMultiPoss(maOrig->f_list)];
+
+    memset(failed,  0, sizeof(int32) * GetNumIntMultiPoss(maOrig->f_list));
+    memset(failmap, 0, sizeof(int32) * GetNumIntMultiPoss(maOrig->f_list));
+    memset(failag,  0, sizeof(int32) * GetNumIntMultiPoss(maOrig->f_list));
 
     while (GetNumIntMultiPoss(maTest->f_list) > 0) {
 
@@ -234,8 +239,8 @@ main (int argc, char **argv) {
           AppendVA_IntMultiPos(maNext->f_list, imp);
           fprintf(stderr, "   - save fragment idx=%d ident=%d for next pass\n", i, imp->ident);
         } else {
+          failmap[GetNumIntMultiPoss(maFixd->f_list)] = i;  //  Map read failag[] in maFixd to read i in the test unitig
           AppendVA_IntMultiPos(maFixd->f_list, imp);
-          lastAdded = i;
         }
       }
 
@@ -258,10 +263,20 @@ main (int argc, char **argv) {
 
       assert(GetNumIntMultiPoss(maFixd->f_list) > 0);
 
-      if (MultiAlignUnitig(maFixd, gkpStore, &options, NULL) == false) {
-        fprintf(stderr, "   - Unitig %d failed, again.\n", maFixd->maID);
+      if (MultiAlignUnitig(maFixd, gkpStore, &options, failag) == false) {
+        fprintf(stderr, "   - Unitig %d failed, again!\n", maFixd->maID);
 
-        failed[lastAdded] = 1;
+        for (uint32 i=0; i<GetNumIntMultiPoss(maFixd->f_list); i++) {
+          if (failag[i]) {
+            fprintf(stderr, "     - fragment ident=%d failed.\n",
+                    GetIntMultiPos(maFixd->f_list, i)->ident);
+            failed[failmap[i]]++;
+
+            assert(GetIntMultiPos(maTest->f_list, failmap[i])->ident == GetIntMultiPos(maFixd->f_list, i)->ident);
+          }
+        }
+
+        //failed[lastAdded] = 1;
         //assert(0);
         goto tryAgain;
       }
@@ -298,6 +313,10 @@ main (int argc, char **argv) {
       ResetVA_IntMultiPos(maTest->f_list);
       ReuseClone_VA(maTest->f_list, maNext->f_list);
     }  //  Until the test unitig is empty
+
+    delete [] failed;
+    delete [] failmap;
+    delete [] failag;
 
     //  Now mark the original unitig as deleted.  If we're writing to human output, a little more work
     //  is needed to remove reads first.  The loader notices this and performs the delete.
