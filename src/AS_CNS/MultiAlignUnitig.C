@@ -1187,6 +1187,7 @@ MultiAlignUnitig(MultiAlignT     *ma,
                  CNS_Options     *opp,
                  int32           *failed) {
   double             origErate          = AS_CNS_ERROR_RATE;
+  uint32             origLen            = AS_OVERLAP_MIN_LEN;
   bool               failuresToFix      = false;
   unitigConsensus   *uc                 = NULL;
 
@@ -1227,10 +1228,14 @@ MultiAlignUnitig(MultiAlignT     *ma,
     }
 #endif
 
+    //  First attempt, all default parameters
+
     if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
+
+    //  Second attempt, higher error rate.
 
     if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
       fprintf(stderr, "MultiAlignUnitig()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 2.0 * AS_CNS_ERROR_RATE));
@@ -1244,6 +1249,25 @@ MultiAlignUnitig(MultiAlignT     *ma,
 
     AS_CNS_ERROR_RATE = origErate;
 
+    //  Third attempt, thinner overlaps.  These come from bogart repeat splitting, it apparently
+    //  doesn't enforce the minimum overlap length in those unitugs.
+
+    while (AS_OVERLAP_MIN_LEN > 40) {
+      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+        fprintf(stderr, "MultiAlignUnitig()-- decrease minimum overlap from %d to %d\n", AS_OVERLAP_MIN_LEN, MAX(40, AS_OVERLAP_MIN_LEN / 2));
+
+      AS_OVERLAP_MIN_LEN = MAX(40, AS_OVERLAP_MIN_LEN / 2);
+
+      if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
+      if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+      if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
+      if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
+    }
+
+    AS_OVERLAP_MIN_LEN = origLen;
+
+    //  Fourth attempt, default parameters after recomputing consensus sequence.
+
     if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
       fprintf(stderr, "MultiAlignUnitig()-- recompute full consensus\n");
 
@@ -1253,6 +1277,8 @@ MultiAlignUnitig(MultiAlignT     *ma,
     if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
+
+    //  Final attempt, higher error rate.
 
     if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
       fprintf(stderr, "MultiAlignUnitig()-- increase allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, MIN(AS_MAX_ERROR_RATE, 4.0 * AS_CNS_ERROR_RATE));
