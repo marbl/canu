@@ -1030,9 +1030,10 @@ main (int argc, char **argv) {
     }
 
     if (nTigs <= tigIDbgn) {
-      fprintf(stderr, "ERROR: only "F_U32" %s in the store (IDs 0-"F_U32"); can't dump requested range "F_U32"-"F_U32"\n",
-              nTigs, nTigs-1,
+      fprintf(stderr, "ERROR: only "F_U32" %s in the store (IDs 0-"F_U32" inclusive); can't dump requested range "F_U32"-"F_U32"\n",
+              nTigs,
               (tigIsUnitig) ? "unitigs" : "contigs",
+              nTigs-1,
               tigIDbgn, tigIDend);
     }
 
