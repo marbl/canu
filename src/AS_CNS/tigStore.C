@@ -43,6 +43,7 @@ const char *mainid = "$Id$";
 #define DUMP_SIZES            9
 #define DUMP_COVERAGE        10
 #define DUMP_THINOVERLAP     11
+#define DUMP_FMAP            12
 
 #define OPERATION_UNITIGLIST  1
 #define OPERATION_CONTIGLIST  2
@@ -52,7 +53,6 @@ const char *mainid = "$Id$";
 #define OPERATION_REPLACE     6
 #define OPERATION_BUILD       7
 #define OPERATION_COMPRESS    8
-#define OPERATION_FMAP        9
 
 void
 changeProperties(MultiAlignStore *tigStore,
@@ -627,37 +627,16 @@ operationCompress(char *tigName, int tigVers) {
 
 
 void
-operationFmap(uint32  minFmap,
-              uint32  maxFmap,
-              bool    tigIsUnitig,
-              uint32  tigIDbgn,
-              uint32  tigIDend,
-              bool    dumpAll) {
+dumpFmap(FILE         *out,
+         MultiAlignT  *ma,
+         bool          tigIsUnitig) {
+  uint32   fiMax = GetNumIntMultiPoss(ma->f_list);
 
-  if (dumpAll == TRUE) {
-    tigIDbgn = 0;
-    tigIDend = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
-  }
+  for (uint32 fi=0; fi<fiMax; fi++) {
+    IntMultiPos  *imp = GetIntMultiPos(ma->f_list, fi);
 
-  for (int32 ti=tigIDbgn; ti<=tigIDend; ti++) {
-    if (tigStore->isDeleted(ti, tigIsUnitig))
-      continue;
-
-    if ((tigStore->getNumFrags(ti, tigIsUnitig) < minFmap) ||
-        (maxFmap < tigStore->getNumFrags(ti, tigIsUnitig)))
-      continue;
-
-    MultiAlignT  *ma    = tigStore->loadMultiAlign(ti, tigIsUnitig);
-    uint32        fiMax = GetNumIntMultiPoss(ma->f_list);
-
-    for (uint32 fi=0; fi<fiMax; fi++) {
-      IntMultiPos  *imp = GetIntMultiPos(ma->f_list, fi);
-
-      fprintf(stdout, F_U32"\t"F_U32"\t"F_S32"\t"F_S32"\n",
-              imp->ident, ti, imp->position.bgn, imp->position.end);
-    }
-
-    tigStore->unloadMultiAlign(ti, tigIsUnitig);
+    fprintf(stdout, F_U32"\t"F_U32"\t"F_S32"\t"F_S32"\n",
+            imp->ident, ma->maID, imp->position.bgn, imp->position.end);
   }
 }
 
@@ -684,8 +663,8 @@ main (int argc, char **argv) {
   bool          sameVersion    = true;
   char         *buildName      = NULL;
 
-  uint32        minFmap        = 0;
-  uint32        maxFmap        = UINT32_MAX;
+  uint32        minNreads      = 0;
+  uint32        maxNreads      = UINT32_MAX;
 
   MultiAlignT  *ma             = NULL;
   int           showQV         = 0;
@@ -773,6 +752,9 @@ main (int argc, char **argv) {
       else if (strcmp(argv[arg], "overlap") == 0)
         dumpFlags = DUMP_THINOVERLAP;
 
+      else if (strcmp(argv[arg], "fmap") == 0)
+        dumpFlags = DUMP_FMAP;
+
       else
         fprintf(stderr, "%s: Unknown dump option '-d %s'\n", argv[0], argv[arg]);
 
@@ -810,10 +792,9 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-compress") == 0) {
       opType = OPERATION_COMPRESS;
 
-    } else if (strcmp(argv[arg], "-fmap") == 0) {
-      opType  = OPERATION_FMAP;
-      minFmap = atoi(argv[++arg]);
-      maxFmap = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-nreads") == 0) {
+      minNreads = atoi(argv[++arg]);
+      maxNreads = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-w") == 0) {
       MULTIALIGN_PRINT_WIDTH = atoi(argv[++arg]);
@@ -852,6 +833,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -U                    Dump ALL unitigs (for -d option)\n");
     fprintf(stderr, "  -C                    Dump ALL contigs (for -d option)\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "  -nreads min max       Dump tigs with between min and max reads (inclusive)\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "  -d <operation>        Dump something about a multialign (-c or -u) in the store\n");
     fprintf(stderr, "     properties         ...properties\n");
     fprintf(stderr, "     frags              ...a list of fragments\n");
@@ -864,6 +847,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "     sizes              ...an analysis of sizes of the tigs\n");
     fprintf(stderr, "     coverage           ...an analysis of read coverage of the tigs\n");
     fprintf(stderr, "     overlap            ...an analysis of read overlaps in the tigs\n");
+    fprintf(stderr, "     fmap               ...a map from fragment IID to unitig IID\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -E <editFile>         Change properties of multialigns\n");
@@ -882,9 +866,6 @@ main (int argc, char **argv) {
     fprintf(stderr, "  -compress             Move tigs from earlier versions into the specified version.  This removes\n");
     fprintf(stderr, "                        historical versions of unitigs/contigs, and can save tremendous storage space,\n");
     fprintf(stderr, "                        but makes it impossible to back up the assembly past the specified versions\n");
-    fprintf(stderr, "\n");
-    fprintf(stderr, "  -fmap min max         Output a map of fragment id to tig id, for tigs with min <= x <= max fragments\n");
-    fprintf(stderr, "                        that are also in the -u, -U, -c, -C range.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  For '-d multialign':\n");
     fprintf(stderr, "  -w width              Width of the page.\n");
@@ -1010,18 +991,12 @@ main (int argc, char **argv) {
   }
 
 
-  if (tigIDset == false) {
-    fprintf(stderr, "ERROR: No tig range set with -u, -c, -U or -C.\n");
-    exit(1);
-  }
-
-
-  if (opType == OPERATION_FMAP) {
-    operationFmap(minFmap, maxFmap, tigIsUnitig, tigIDbgn, tigIDend, dumpAll);
-  }
-
-
   if (opType == OPERATION_TIG) {
+    if (tigIDset == false) {
+      fprintf(stderr, "ERROR: No tig range set with -u, -c, -U or -C.\n");
+      exit(1);
+    }
+
     uint32   nTigs = (tigIsUnitig) ? tigStore->numUnitigs() : tigStore->numContigs();
 
     if (dumpAll == TRUE) {
@@ -1053,26 +1028,32 @@ main (int argc, char **argv) {
         sizPrefix = tigName;
     }
 
-    for (uint32 tigID=tigIDbgn; tigID<=tigIDend; tigID++) {
-      ma = tigStore->loadMultiAlign(tigID, tigIsUnitig);
+    for (uint32 ti=tigIDbgn; ti<=tigIDend; ti++) {
+      uint32  Nreads = tigStore->getNumFrags(ti, tigIsUnitig);
+  
+      if ((Nreads    < minNreads) ||
+          (maxNreads < Nreads))
+        continue;
+
+      ma = tigStore->loadMultiAlign(ti, tigIsUnitig);
 
       if (ma == NULL)
         continue;
 
       if (dumpFlags == DUMP_PROPERTIES)
-        dumpProperties(tigStore, tigID, tigIsUnitig, ma);
+        dumpProperties(tigStore, ti, tigIsUnitig, ma);
 
       if (dumpFlags == DUMP_FRAGS)
-        dumpFrags(tigStore, tigID, tigIsUnitig, ma);
+        dumpFrags(tigStore, ti, tigIsUnitig, ma);
 
       if (dumpFlags == DUMP_UNITIGS)
-        dumpUnitigs(tigStore, tigID, tigIsUnitig, ma);
+        dumpUnitigs(tigStore, ti, tigIsUnitig, ma);
 
       if (dumpFlags == DUMP_CONSENSUS)
-        dumpConsensus(tigStore, tigID, tigIsUnitig, ma, false);
+        dumpConsensus(tigStore, ti, tigIsUnitig, ma, false);
 
       if (dumpFlags == DUMP_CONSENSUSGAPPED)
-        dumpConsensus(tigStore, tigID, tigIsUnitig, ma, true);
+        dumpConsensus(tigStore, ti, tigIsUnitig, ma, true);
 
       if (dumpFlags == DUMP_LAYOUT)
         DumpMultiAlignForHuman(stdout, ma, tigIsUnitig);
@@ -1087,12 +1068,15 @@ main (int argc, char **argv) {
         siz->evaluateTig(ma, tigIsUnitig);
 
       if (dumpFlags == DUMP_COVERAGE)
-        dumpCoverage(tigStore, tigID, tigIsUnitig, ma, 2, UINT32_MAX);
+        dumpCoverage(tigStore, ti, tigIsUnitig, ma, 2, UINT32_MAX);
 
       if (dumpFlags == DUMP_THINOVERLAP)
-        dumpThinOverlap(tigStore, tigID, tigIsUnitig, ma, sizSize);
+        dumpThinOverlap(tigStore, ti, tigIsUnitig, ma, sizSize);
 
-      tigStore->unloadMultiAlign(tigID, tigIsUnitig);
+      if (dumpFlags == DUMP_FMAP)
+        dumpFmap(stdout, ma, tigIsUnitig);
+
+      tigStore->unloadMultiAlign(ti, tigIsUnitig);
     }
   }
 
