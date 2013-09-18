@@ -118,7 +118,7 @@ public:
   //  copy() will load and copy the MA.  It will not cache.  YOU OWN THIS OBJECT.
   //
   MultiAlignT   *loadMultiAlign(int32 maID, bool isUnitig);
-  void           unloadMultiAlign(int32 maID, bool isUnitig);
+  void           unloadMultiAlign(int32 maID, bool isUnitig, bool discard=false);
 
   void           copyMultiAlign(int32 maID, bool isUnitig, MultiAlignT *ma);
 
@@ -130,6 +130,7 @@ public:
   //  Flush the cache of loaded MAs.  Be aware that this is expensive in that the flushed things
   //  usually just get loaded back into core.
   //
+  void           flushCache(int32 maID, bool isUnitig, bool discard=false) { unloadMultiAlign(maID, isUnitig, discard); };
   void           flushCache(void);
 
   uint32         numUnitigs(void) { return(utgLen); };

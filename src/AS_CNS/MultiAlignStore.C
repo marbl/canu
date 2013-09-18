@@ -108,6 +108,8 @@ MultiAlignStore::MultiAlignStore(const char *path_,
   loadMASR(utgRecord, utgLen, utgMax, currentVersion, TRUE,  FALSE);
   loadMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE, FALSE);
 
+  //  Check that there are tigs.
+
   if ((utgLen == 0) && (ctgLen == 0) && (append == false)) {
     fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, didn't find any unitigs or contigs in the store.\n");
     fprintf(stderr, "MultiAlignStore::MultiAlignStore()--        asked for store '%s', correct?\n", path);
@@ -149,6 +151,22 @@ MultiAlignStore::MultiAlignStore(const char *path_,
       //  Unitigs are partitioned, so do NOT load the next version of contigs.  They shouldn't be changing.
       loadMASR(ctgRecord, ctgLen, ctgMax, currentVersion, FALSE, TRUE);
   }
+
+  //  Check that nothing is marked for flushing, if so, clear the flag.  This shouldn't ever trigger.
+
+  for (uint32 xx=0; xx<utgLen; xx++)
+    if (utgRecord[xx].flushNeeded != 0) {
+      fprintf(stderr, "WARNING: flushNeeded on unitig %u\n", xx);
+      utgRecord[xx].flushNeeded = 0;
+    }
+  for (uint32 xx=0; xx<ctgLen; xx++)
+    if (ctgRecord[xx].flushNeeded != 0) {
+      fprintf(stderr, "WARNING: flushNeeded on contig %u\n", xx);
+      ctgRecord[xx].flushNeeded = 0;
+    }
+  //fprintf(stderr, "MultiAlignStore::loadMASRfile()-- flushNeeded check finished on '%s'.\n", name);
+
+  //  Fail (again?) if there are no tigs loaded.
 
   if ((utgLen == 0) && (ctgLen == 0)) {
     fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, didn't find any unitigs or contigs in the store.  Correct version?\n");
@@ -672,9 +690,12 @@ MultiAlignStore::loadMultiAlign(int32 maID, bool isUnitig) {
 
 
 void
-MultiAlignStore::unloadMultiAlign(int32 maID, bool isUnitig) {
+MultiAlignStore::unloadMultiAlign(int32 maID, bool isUnitig, bool discard) {
   MultiAlignR            *maRecord = (isUnitig) ? utgRecord : ctgRecord;
   MultiAlignT           **maCache  = (isUnitig) ? utgCache  : ctgCache;
+
+  if (discard)
+    maRecord[maID].flushNeeded = 0;
 
   flushDisk(maID, isUnitig);
 
@@ -738,62 +759,30 @@ MultiAlignStore::flushDisk(int32 maID, bool isUnitig) {
 
 void
 MultiAlignStore::flushDisk(void) {
-  uint32  numUFlushed = 0;
-  uint32  numCFlushed = 0;
 
-  for (uint32 maID=0; maID<utgLen; maID++) {
-    if ((utgCache[maID]) && (utgRecord[maID].flushNeeded)) {
-      //fprintf(stderr, "MultiAlignStore::MultiAlignStore()--  Flush unitig %d to version %d\n", maID, currentVersion);
+  for (uint32 maID=0; maID<utgLen; maID++)
+    if ((utgCache[maID]) && (utgRecord[maID].flushNeeded))
       flushDisk(maID, TRUE);
-      numUFlushed++;
-    }
-  }
 
-  for (uint32 maID=0; maID<ctgLen; maID++) {
-    if ((ctgCache[maID]) && (ctgRecord[maID].flushNeeded)) {
-      //fprintf(stderr, "MultiAlignStore::MultiAlignStore()--  Flush contig %d to version %d\n", maID, currentVersion);
+  for (uint32 maID=0; maID<ctgLen; maID++)
+    if ((ctgCache[maID]) && (ctgRecord[maID].flushNeeded))
       flushDisk(maID, FALSE);
-      numCFlushed++;
-    }
-  }
-
-  //fprintf(stderr, "MultiAlignStore::flushDisk()-- flushed %u unitigs and %u contigs.\n",
-  //        numUFlushed, numCFlushed);
 }
 
 
 
 void
 MultiAlignStore::flushCache(void) {
-  uint32  numUFlushed = 0;
-  uint32  numCFlushed = 0;
 
   flushDisk();
 
-  for (uint32 i=0; i<utgLen; i++) {
-    if (utgCache[i]) {
+  for (uint32 i=0; i<utgLen; i++)
+    if (utgCache[i])
       DeleteMultiAlignT(utgCache[i]);
-      utgCache[i] = NULL;
-      numUFlushed++;
-    }
-  }
 
-  for (uint32 i=0; i<ctgLen; i++) {
-    if (ctgCache[i]) {
+  for (uint32 i=0; i<ctgLen; i++)
+    if (ctgCache[i])
       DeleteMultiAlignT(ctgCache[i]);
-      ctgCache[i] = NULL;
-      numCFlushed++;
-    }
-  }
-
-  //fprintf(stderr, "MultiAlignStore::flushCache()-- flushed %u unitigs and %u contigs.\n",
-  //        numUFlushed, numCFlushed);
-
-#if 0
-  for (uint32 p=0; p<MAX_PART; p++)
-    if (dataFile[currentVersion][p].FP)
-      fflush(dataFile[currentVersion][p].FP);
-#endif
 }
 
 
@@ -863,9 +852,6 @@ MultiAlignStore::loadMASRfile(char *name, MultiAlignR* R, uint32 L, uint32 M, ui
   uint32        indxLen = 0;
   uint32        masrLen = 0;
 
-  uint32       *indx    = NULL;
-  MultiAlignR  *masr    = NULL;
-
   if (AS_UTL_fileExists(name, false, false) == false)
     return(false);
 
@@ -900,8 +886,9 @@ MultiAlignStore::loadMASRfile(char *name, MultiAlignR* R, uint32 L, uint32 M, ui
   if (indxLen > 0) {
     //  A partitioned file.  Load the index, load the data, then copy the data into the real
     //  array.
-    indx = (uint32      *)safe_malloc(sizeof(uint32)      * indxLen);
-    masr = (MultiAlignR *)safe_malloc(sizeof(MultiAlignR) * masrLen);
+
+    uint32      *indx = (uint32      *)safe_malloc(sizeof(uint32)      * indxLen);
+    MultiAlignR *masr = (MultiAlignR *)safe_malloc(sizeof(MultiAlignR) * masrLen);
 
     AS_UTL_safeRead(F, indx, "indx", sizeof(uint32),      indxLen);
     AS_UTL_safeRead(F, masr, "masr", sizeof(MultiAlignR), masrLen);
