@@ -140,8 +140,9 @@ main (int argc, char **argv) {
   bool   ignoreContains = false;
   double ignoreContainT = 0.75;
 
-  bool   inplace = false;
-  bool   loadall = false;
+  bool   inplace  = false;
+  bool   loadall  = false;
+  bool   doUpdate = true;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
                           CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
@@ -193,6 +194,9 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-loadall") == 0) {
       loadall = true;
 
+    } else if (strcmp(argv[arg], "-n") == 0) {
+      doUpdate = false;
+
     } else {
       fprintf(stderr, "%s: Unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -218,6 +222,8 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  ADVANCED OPTIONS\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -n              Do not update the store after computing consensus.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -nocontains F   Do not use contains, if the unitig is more than fraction F\n");
     fprintf(stderr, "                    contained reads.  The consensus sequence will be computed from\n");
@@ -299,7 +305,7 @@ main (int argc, char **argv) {
 
   if (b < e) {
     delete tigStore;
-    tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, TRUE, inplace, !inplace);
+    tigStore = new MultiAlignStore(tigName, tigVers, tigPart, 0, doUpdate, inplace, !inplace);
   }
 
   fprintf(stderr, "Computing unitig consensus for b="F_U32" to e="F_U32"\n", b, e);
@@ -307,7 +313,7 @@ main (int argc, char **argv) {
   //  Now the usual case.  Iterate over all unitigs, compute and update.
 
   for (uint32 i=b; i<e; i++) {
-    MultiAlignT              *ma = tigStore->loadMultiAlign(i, TRUE);
+    MultiAlignT              *ma = tigStore->loadMultiAlign(i, true);
     VA_TYPE(IntMultiPos)     *fl = NULL;
 
     if (ma == NULL) {
@@ -344,9 +350,13 @@ main (int argc, char **argv) {
       if (ignoreContains)
         unstashContains(ma, fl);
 
-      tigStore->insertMultiAlign(ma, TRUE, FALSE);
+      if (doUpdate) {
+        tigStore->insertMultiAlign(ma, true, true);
+        tigStore->unloadMultiAlign(ma->maID, true, false);
+      } else {
+        tigStore->unloadMultiAlign(ma->maID, true, true);
+      }
 
-      DeleteMultiAlignT(ma);
     } else {
       fprintf(stderr, "MultiAlignUnitig()-- unitig %d failed.\n", ma->maID);
       numFailures++;
