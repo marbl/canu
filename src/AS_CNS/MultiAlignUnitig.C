@@ -460,7 +460,7 @@ unitigConsensus::computePositionFromParent(bool doContained) {
 
     if ((utgpos[piid].end < utgpos[tiid].bgn) ||
         (utgpos[tiid].end < utgpos[piid].bgn)) {
-      //  Is the parent, parent is placed, but the parent doesn't agree with the placement.
+      //  Is the parent, and parent is placed, but the parent doesn't agree with the placement.
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_PLACEMENT)
         fprintf(stderr, "computePositionFromParent()-- parent %d at utg %d,%d doesn't agree with my utg %d,%d.  FAIL\n",
                 parent,
@@ -967,18 +967,22 @@ unitigConsensus::alignFragment(void) {
         PrintALNoverlap("Optimal_Overlap", aseq, bseq, O);
       }
     }
+
+    //  At 0.06 error, this equals the previous value of 10.
+    double  pad = AS_CNS_ERROR_RATE * 500.0 / 3;
+
     if ((O) && (O->begpos < 0) && (frankBgn > 0)) {
-      bgnExtra += -O->begpos + 10;
+      bgnExtra += -O->begpos + pad;
       tryAgain = true;
       O = NULL;
     }
     if ((O) && (O->endpos > 0) && (allowBhang == false)) {
-      endExtra += O->endpos + 10;
+      endExtra += O->endpos + pad;
       tryAgain = true;
       O = NULL;
     }
     if ((O) && (O->endpos < 0) && (endTrim > 0)) {
-      endTrim -= -O->endpos + 10;
+      endTrim -= -O->endpos + pad;
       if (endTrim < 20)
         endTrim = 0;
       tryAgain = true;
@@ -1004,7 +1008,7 @@ unitigConsensus::alignFragment(void) {
 
       if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
         fprintf(stderr, "alignFragment()-- Alignment succeeded.\n");
-      
+
       return(true);
     }
 
@@ -1205,6 +1209,23 @@ MultiAlignUnitig(MultiAlignT     *ma,
 
     if (VERBOSE_MULTIALIGN_OUTPUT)
       uc->reportStartingWork();
+
+#if 0
+    //  Attempt at increasing quality for high error, didn't help.
+    if (AS_CNS_ERROR_RATE > 0.25) {
+      if (VERBOSE_MULTIALIGN_OUTPUT >= SHOW_ALGORITHM)
+        fprintf(stderr, "MultiAlignUnitig()-- high error, decrease allowed error rate from %f to %f\n", AS_CNS_ERROR_RATE, AS_CNS_ERROR_RATE * 2 / 3);
+
+      AS_CNS_ERROR_RATE = AS_CNS_ERROR_RATE * 2 / 3;
+
+      if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
+      if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
+      if (uc->computePositionFromLayout()      && uc->alignFragment())  goto applyAlignment;
+      if (uc->computePositionFromAlignment()   && uc->alignFragment())  goto applyAlignment;
+
+      AS_CNS_ERROR_RATE = origErate;
+    }
+#endif
 
     if (uc->computePositionFromParent(false) && uc->alignFragment())  goto applyAlignment;
     if (uc->computePositionFromParent(true)  && uc->alignFragment())  goto applyAlignment;
