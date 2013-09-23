@@ -630,17 +630,32 @@ analyzeLibraryFate(char *outPrefix) {
 
   char  N[FILENAME_MAX];
 
-  sprintf(N, "%s.badmate.ctgscf", outPrefix);
+  sprintf(N, "%s.mate.same.ctgscf", outPrefix);
   errno = 0;
-  FILE *SCFCTG = fopen(N, "w");
+  FILE *SCFsCTG = fopen(N, "w");
   if (errno)
     fprintf(stderr, "Couldn't open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
 
-  sprintf(N, "%s.badmate.utgscf", outPrefix);
+  sprintf(N, "%s.mate.diff.ctgscf", outPrefix);
   errno = 0;
-  FILE *SCFUTG = fopen(N, "w");
+  FILE *SCFdCTG = fopen(N, "w");
   if (errno)
     fprintf(stderr, "Couldn't open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+
+
+  sprintf(N, "%s.mate.same.utgscf", outPrefix);
+  errno = 0;
+  FILE *SCFsUTG = fopen(N, "w");
+  if (errno)
+    fprintf(stderr, "Couldn't open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+
+  sprintf(N, "%s.mate.diff.utgscf", outPrefix);
+  errno = 0;
+  FILE *SCFdUTG = fopen(N, "w");
+  if (errno)
+    fprintf(stderr, "Couldn't open '%s' for writing: %s\n", N, strerror(errno)), exit(1);
+
+
 
   for (uint32 fi=0; fi<frgMate.size(); fi++) {
     uint32 mi = frgMate[fi];
@@ -702,42 +717,32 @@ analyzeLibraryFate(char *outPrefix) {
     int32   maxIDist = libfate[li].size.scf.meanInnie + 3 * libfate[li].size.scf.sdevInnie;
     bool    validI   = false;
 
-    if ((libfate[li].size.scf.distInnie.size() >= 1000))
+    if ((libfate[li].size.scf.distInnie.size() >= 100))
       validI = true;
 
     int32   minODist = libfate[li].size.scf.meanOuttie - 3 * libfate[li].size.scf.sdevOuttie;
     int32   maxODist = libfate[li].size.scf.meanOuttie + 3 * libfate[li].size.scf.sdevOuttie;
     bool    validO   = false;
 
-    if ((libfate[li].size.scf.distOuttie.size() >= 1000))
+    if ((libfate[li].size.scf.distOuttie.size() >= 100))
       validO = true;
 
+    fprintf((fici == mici) ? SCFsCTG : SCFdCTG, "scf %s -- frg %s at "F_U32" "F_U32" %c in ctg %s -- frg %s at "F_U32" "F_U32" %c in ctg %s -- orient %c dist "F_S32"\n",
+            scfNam[fisi].c_str(),
+            frgNam[fi].c_str(), frgDat[fi].scf.bgn, frgDat[fi].scf.end, frgDat[fi].scf.ori, ctgNam[fici].c_str(),
+            frgNam[mi].c_str(), frgDat[mi].scf.bgn, frgDat[mi].scf.end, frgDat[mi].scf.ori, ctgNam[mici].c_str(),
+            orient, dist);
 
-    if ((validI) && (orient == 'I') && (minIDist <= dist) && (dist <= maxIDist))
-      //  Innie, at the correct distance.  Skip it.
-      continue;
-
-    if ((validO) && (orient == 'O') && (minODist <= dist) && (dist <= maxODist))
-      //  Outtie, at the correct distance.  Skip it.
-      continue;
-
-    if ((fisi == misi) &&
-        (fici != mici)) {
-      fprintf(SCFCTG, "scf %s frg %s at "F_U32" "F_U32" %c in ctg %s -- frg %s at "F_U32" "F_U32" %c in ctg %s\n",
-              scfNam[fisi].c_str(),
-              frgNam[fi].c_str(), frgDat[fi].scf.bgn, frgDat[fi].scf.end, frgDat[fi].scf.ori, ctgNam[fici].c_str(),
-              frgNam[mi].c_str(), frgDat[mi].scf.bgn, frgDat[mi].scf.end, frgDat[mi].scf.ori, ctgNam[mici].c_str());
-    }
-
-    if ((fisi == misi) &&
-        (fiui != miui)) {
-      fprintf(SCFUTG, "scf %s frg %s at "F_U32" "F_U32" %c in utg %s -- frg %s at "F_U32" "F_U32" %c in utg %s\n",
-              scfNam[fisi].c_str(),
-              frgNam[fi].c_str(), frgDat[fi].scf.bgn, frgDat[fi].scf.end, frgDat[fi].scf.ori, utgNam[fiui].c_str(),
-              frgNam[mi].c_str(), frgDat[mi].scf.bgn, frgDat[mi].scf.end, frgDat[mi].scf.ori, utgNam[miui].c_str());
-    }
+    fprintf((fiui == miui) ? SCFsUTG : SCFdUTG, "scf %s -- frg %s at "F_U32" "F_U32" %c in utg %s -- frg %s at "F_U32" "F_U32" %c in utg %s -- orient %c dist "F_S32"\n",
+            scfNam[fisi].c_str(),
+            frgNam[fi].c_str(), frgDat[fi].scf.bgn, frgDat[fi].scf.end, frgDat[fi].scf.ori, utgNam[fiui].c_str(),
+            frgNam[mi].c_str(), frgDat[mi].scf.bgn, frgDat[mi].scf.end, frgDat[mi].scf.ori, utgNam[miui].c_str(),
+            orient, dist);
   }
 
-  fclose(SCFCTG);
-  fclose(SCFUTG);
+  fclose(SCFsCTG);
+  fclose(SCFdCTG);
+
+  fclose(SCFsUTG);
+  fclose(SCFdUTG);
 }
