@@ -30,15 +30,15 @@ my @fragFiles;
 
 
 sub submitBatchJobs($$) {
-   my $SGE = shift @_;
-   my $TAG = shift @_;
+    my $SGE = shift @_;
+    my $TAG = shift @_;
 
-   if (runningOnGrid()) {
-       runCommand($wrk, $SGE) and caFailure("Failed to submit batch jobs.");
-       submitScript($TAG);
-   } else {
-       pleaseExecute($SGE);
-   }
+    if (runningOnGrid()) {
+        runCommand($wrk, $SGE) and caFailure("Failed to submit batch jobs.");
+        submitScript($TAG);
+    } else {
+        pleaseExecute($SGE);
+    }
 }
 
 
@@ -165,6 +165,36 @@ sub setGlobal ($$) {
         return;
     }
 
+    if (($var eq "gridEngine") && ($val eq "SGE")) {
+        setGlobal("gridSubmitCommand",      "qsub");
+        setGlobal("gridHoldOption",         "-hold_jid \"WAIT_TAG\"");
+        setGlobal("gridSyncOption",         "-sync y");
+        setGlobal("gridNameOption",         "-cwd -N");
+        setGlobal("gridArrayOption",        "-t ARRAY_JOBS");
+        setGlobal("gridArrayName",          "ARRAY_NAME");
+        setGlobal("gridOutputOption",       "-j y -o");
+        setGlobal("gridPropagateCommand",   "qalter -hold_jid \"WAIT_TAG\"");
+        setGlobal("gridNameToJobIDCommand", undef);
+        setGlobal("gridTaskID",             "SGE_TASK_ID");
+        setGlobal("gridArraySubmitID",      "\\\$TASK_ID");
+        setGlobal("gridJobID",              "JOB_ID");
+    }
+
+    if (($var eq "gridEngine") && ($val eq "LSF")) {
+        setGlobal("gridSubmitCommand",      "qsub");
+        setGlobal("gridHoldOption",         "-w done\(\"WAIT_TAG\"\)");
+        setGlobal("gridSyncOption",         "-K");
+        setGlobal("gridNameOption",         "-J");
+        setGlobal("gridArrayOption",        "");
+        setGlobal("gridArrayName",          "ARRAY_NAME\[ARRAY_JOBS\]");
+        setGlobal("gridOutputOption",       "-o");
+        setGlobal("gridPropagateCommand",   "bmodify -w done\(\"WAIT_TAG\"\)");
+        setGlobal("gridNameToJobIDCommand", "bjobs -J \"WAIT_TAG\" | grep -v JOBID");
+        setGlobal("gridTaskID",             "LSB_JOBINDEX");
+        setGlobal("gridArraySubmitID",      "%I");
+        setGlobal("gridJobID",              "LSB_JOBID");
+    }
+
     #  Update obsolete usage.
 
     if ($var eq "doOverlapTrimming") {
@@ -179,7 +209,7 @@ sub setGlobal ($$) {
         print STDERR " ovlHashBits=23\n ovlHashBlockLength= 30000000\n (replaces ovlMemory=2GB)\n";
         print STDERR " ovlHashBits=24\n ovlHashBlockLength=110000000\n (replaces ovlMemory=4GB)\n";
         print STDERR " ovlHashBits=25\n ovlHashBlockLength=180000000\n (replaces ovlMemory=8GB)\n";
-	exit(1);
+        exit(1);
     }
 
     if ($var eq "ovlHashBlockSize") {
@@ -219,8 +249,8 @@ sub setDefaults () {
     #  5) UPDATE THE DOCUMENTATION.
     #
 
-    $global{"overlapStoreOnGrid"}	   = 0;
-    $synops{"overlapStoreOnGrid"}	   = "Enable OverlapStore Build on Grid";
+    $global{"overlapStoreOnGrid"}          = 0;
+    $synops{"overlapStoreOnGrid"}          = "Enable OverlapStore Build on Grid";
 
 
     #####  General Configuration Options (aka miscellany)
@@ -276,25 +306,25 @@ sub setDefaults () {
     $global{"stopAfter"}                   = undef;
     $synops{"stopAfter"}                   = "Tell runCA when to halt execution";
 
-
     #####  Grid Engine configuration, how to submit jobs, etc
-    $global{"gridSubmitCommand"}		   = "qsub";
-    $global{"gridHoldOption"}		       = "-hold_jid \"WAIT_TAG\""; # for lsf it is -w "done("WAIT_TAG")"
-    $global{"gridSyncOption"}			   = "-sync y"; # for lsf it is -K
-    $global{"gridNameOption"}			   = "-cwd -N";         # for lsf it is -J
-    $global{"gridArrayOption"}			   = "-t ARRAY_JOBS";	# for lsf, empty ("")
-    $global{"gridArrayName"}			   = "ARRAY_NAME";		# for lsf, it is ARRAY_NAME[ARRAY_JOBS]
-    $global{"gridOutputOption"}			   = "-j y -o";         # for lsf, it is -o
-    $global{"gridPropagateCommand"}		   = "qalter -hold_jid \"WAIT_TAG\""; # for lsf it is bmodify -w "done(WAIT_TAG)"
-    $global{"gridNameToJobIDCommand"}      = undef;             # for lsf it is bjobs -J "WAIT_TAG" | grep -v JOBID
-    $global{"gridTaskID"}				   = "SGE_TASK_ID";     # for lsf it is LSB_JOBINDEX
-    $global{"gridArraySubmitID"}           = "\\\$TASK_ID";       # for lsf it is %I
-        
+
+    $global{"gridSubmitCommand"}           = "qsub";
+    $global{"gridHoldOption"}              = "-hold_jid \"WAIT_TAG\"";         # for lsf: -w "done("WAIT_TAG")"
+    $global{"gridSyncOption"}              = "-sync y";                        # for lsf: -K
+    $global{"gridNameOption"}              = "-cwd -N";                        # for lsf: -J
+    $global{"gridArrayOption"}             = "-t ARRAY_JOBS";                  # for lsf: empty ("")
+    $global{"gridArrayName"}               = "ARRAY_NAME";                     # for lsf: ARRAY_NAME[ARRAY_JOBS]
+    $global{"gridOutputOption"}            = "-j y -o";                        # for lsf: -o
+    $global{"gridPropagateCommand"}        = "qalter -hold_jid \"WAIT_TAG\"";  # for lsf: bmodify -w "done(WAIT_TAG)"
+    $global{"gridNameToJobIDCommand"}      = undef;                            # for lsf: bjobs -J "WAIT_TAG" | grep -v JOBID
+    $global{"gridTaskID"}                  = "SGE_TASK_ID";                    # for lsf: LSB_JOBINDEX
+    $global{"gridArraySubmitID"}           = "\\\$TASK_ID";                    # for lsf: %I
+    $global{"gridJobID"}                   = "JOB_ID";                         # for lsf: LSB_JOBID
+
     #####  Sun Grid Engine
 
     $global{"useGrid"}                     = 0;
     $synops{"useGrid"}                     = "Enable SGE globally";
-
 
     $global{"scriptOnGrid"}                = 0;
     $synops{"scriptOnGrid"}                = "Enable SGE for runCA (and unitigger, scaffolder, other sequential phases)";
@@ -387,12 +417,12 @@ sub setDefaults () {
 
     $global{"mbtConcurrency"}              = 1;
     $synops{"mbtConcurrency"}              = "If not SGE, number of mer-based trimming processes to run at the same time";
-    
+
     $global{"mbtIlluminaAdapter"}          = 0;
     $synops{"mbtIlluminaAdapter"}          = "Remove Illumina adapter sequence during merTrim";
-    
+
     $global{"mbt454Adapter"}               = 0;
-    $synops{"mbt454Adapter"}               = "Remove 454 adapter sequence during merTrim";       
+    $synops{"mbt454Adapter"}               = "Remove 454 adapter sequence during merTrim";
 
     #####  Overlapper
 
@@ -554,7 +584,7 @@ sub setDefaults () {
 
     $global{"batMemory"}                   = undef;
     $synops{"batMemory"}                   = "Approximate maximum memory usage for loading overlaps, in gigabytes, default is unlimited";
-    
+
     $global{"batThreads"}                  = undef;
     $synops{"batThreads"}                  = "Number of threads to use in the Merge/Split/Join phase; default is whatever OpenMP wants";
 
@@ -607,7 +637,7 @@ sub setDefaults () {
 
     $global{"doUnjiggleWhenMerging"}       = 0;
     $synops{"doUnjiggleWhenMerging"}       = "After inserting rocks/stones try shifting contig positions back to their original location when computing overlaps to see if they overlap with the rock/stone and allow them to merge if they do. EXPERT!\n";
-    
+
     $global{"cgwContigShatterWeight"}      = 0;
     $synops{"cgwContigShatterWeight"}      = "When starting from a checkpoint, for any contig connected to its scaffold by a link with less than cgwContigShatterWeight, remove it and place it into a singleton scaffold. EXPERT!\n";
 
@@ -669,7 +699,7 @@ sub setDefaults () {
     $global{"dumpFASTQ"}                   = undef;
     $synops{"dumpFASTQ"}                   = "At the end of a successful assembly, output final reads in FASTQ format";
 
-    #####  Options for toggling assembly. 
+    #####  Options for toggling assembly.
 
     $global{"doToggle"}                     = 0;
     $synops{"doToggle"}                     = "At the end of a successful assembly, search for placed surrogates and toggle them to be unique unitigs. Re-run the assembly starting from scaffolder";
@@ -682,7 +712,7 @@ sub setDefaults () {
 
     $global{"toggleMaxDistance"}            = 1000;
     $synops{"toggleMaxDistance"}            = "Toggling will look for surrogates that appear exactly twice, both at the end of a scaffold. This parameter specifies how close to the scaffold end the surrogate must be.";
-    
+
     $global{"toggleDoNotDemote"}            = 0;
     $synops{"toggleDoNotDemote"}            = "Do not allow CGW to demote toggled unitigs based on branching patterns.";
 
@@ -705,6 +735,14 @@ sub setDefaults () {
     $global{"options"}                     = 0;
     $synops{"options"}                     = undef;
 
+
+    #  If this is set, it breaks the consensus.sh and overlap.sh scripts.  Good grief!  Why
+    #  are you running runCA in a task array!?
+    #
+    if (exists($ENV{$global{"gridTaskID"}})) {
+        undef $ENV{$global{"gridTaskID"}};
+        print STDERR "ENV: $global{'gridTaskID'} needs to be unset, done.\n";
+    }
 
 
     if (exists($ENV{'AS_OVL_ERROR_RATE'})) {
@@ -742,7 +780,7 @@ sub makeAbsolute ($) {
         $val =~ s/\\\"/\"/g;
         $val =~ s/\"/\\\"/g;
         $val =~ s/\\\$/\$/g;
-        $val =~ s/\$/\\\$/g;        
+        $val =~ s/\$/\\\$/g;
         $commandLineOptions .= " \"$var=$val\" ";
     }
 }
@@ -883,7 +921,7 @@ sub setParameters () {
         caFailure("invalid consensus specified (" . getGlobal("consensus") . "); must be 'cns' or 'seqan'", undef);
     }
     if ((getGlobal("cnsPhasing") ne "0") && (getGlobal("cnsPhasing") ne "1")) {
-       caFailure("invalid cnsPhasing specified (" . getGlobal("cnsPhasing") . "); must be '0' or '1'", undef);
+        caFailure("invalid cnsPhasing specified (" . getGlobal("cnsPhasing") . "); must be '0' or '1'", undef);
     }
     if ((getGlobal("cleanup") ne "none") &&
         (getGlobal("cleanup") ne "light") &&
@@ -935,7 +973,7 @@ sub setParameters () {
         my $failureString = "Invalid stopAfter specified (" . getGlobal("stopAfter") . "); must be one of:\n";
 
         my @stopAfter = ("initialStoreBuilding",
-			 "meryl",
+                         "meryl",
                          "overlapper",
                          "OBT",
                          "overlapBasedTrimming",
@@ -1022,13 +1060,13 @@ sub setParameters () {
 }
 
 sub logVersion() {
-        system("$bin/gatekeeper   --version");
-        system("$bin/overlap      --version");
-        system("$bin/unitigger    --version");
-        system("$bin/buildUnitigs --version");
-        system("$bin/cgw          --version");
-        system("$bin/consensus    --version");
-        system("$bin/terminator   --version");
+    system("$bin/gatekeeper   --version");
+    system("$bin/overlap      --version");
+    system("$bin/unitigger    --version");
+    system("$bin/buildUnitigs --version");
+    system("$bin/cgw          --version");
+    system("$bin/consensus    --version");
+    system("$bin/terminator   --version");
 }
 
 sub printHelp () {
@@ -1253,8 +1291,8 @@ sub stopAfter ($) {
 }
 
 sub runningOnGrid () {
-	my $taskID = getGlobal("gridTaskID");
-    return(defined($ENV{$taskID}));
+    my $jobID = getGlobal("gridJobID");
+    return(exists($ENV{$jobID}));
 }
 
 sub findNextScriptOutputFile () {
@@ -1266,27 +1304,27 @@ sub findNextScriptOutputFile () {
 }
 
 sub buildGridArray($$$) {
-	my $name = shift @_;
-	my $maxLimit = shift @_;
-	my $globalValue = shift @_;
-	
-	my $arrayJobName = getGlobal($globalValue);
-	$arrayJobName =~ s/ARRAY_NAME/$name/g;
-	$arrayJobName =~ s/ARRAY_JOBS/1-$maxLimit/g;
-	
-	return $arrayJobName;
+    my $name = shift @_;
+    my $maxLimit = shift @_;
+    my $globalValue = shift @_;
+
+    my $arrayJobName = getGlobal($globalValue);
+    $arrayJobName =~ s/ARRAY_NAME/$name/g;
+    $arrayJobName =~ s/ARRAY_JOBS/1-$maxLimit/g;
+
+    return $arrayJobName;
 }
 
 sub getGridArrayName($$) {
-	my $name = shift @_;
-	my $maxLimit = shift @_;	
-	return buildGridArray($name, $maxLimit, "gridArrayName");
+    my $name = shift @_;
+    my $maxLimit = shift @_;
+    return buildGridArray($name, $maxLimit, "gridArrayName");
 }
 
 sub getGridArrayOption($$) {
-	my $name = shift @_;
-	my $maxLimit = shift @_;	
-	return buildGridArray($name, $maxLimit, "gridArrayOption");	
+    my $name = shift @_;
+    my $maxLimit = shift @_;
+    return buildGridArray($name, $maxLimit, "gridArrayOption");
 }
 
 sub submitScript ($) {
@@ -1325,78 +1363,78 @@ sub submitScript ($) {
     my $sgeName     = getGlobal("sgeName");
     my $sgeScript   = getGlobal("sgeScript");
     my $sgePropHold = getGlobal("sgePropagateHold");
-    
-    my $submitCommand 	= getGlobal("gridSubmitCommand");
-    my $holdOption 		= getGlobal("gridHoldOption");
-    my $nameOption 		= getGlobal("gridNameOption");
-    my $outputOption 	= getGlobal("gridOutputOption");
-    my $holdPropagateCommand 	= getGlobal("gridPropagateCommand");
 
-    $sgeName = "_$sgeName"              if (defined($sgeName));    
+    my $submitCommand  = getGlobal("gridSubmitCommand");
+    my $holdOption   = getGlobal("gridHoldOption");
+    my $nameOption   = getGlobal("gridNameOption");
+    my $outputOption  = getGlobal("gridOutputOption");
+    my $holdPropagateCommand  = getGlobal("gridPropagateCommand");
+
+    $sgeName = "_$sgeName"              if (defined($sgeName));
     my $jobName = "rCA_$asm$sgeName";
-    
-	if (defined($waitTag)) {
-	    my $hold = $holdOption;
-		$hold =~ s/WAIT_TAG/$waitTag/g;
-		$waitTag = $hold;
-	}
+
+    if (defined($waitTag)) {
+        my $hold = $holdOption;
+        $hold =~ s/WAIT_TAG/$waitTag/g;
+        $waitTag = $hold;
+    }
     my $qcmd = "$submitCommand $sge $sgeScript $nameOption \"$jobName\" $waitTag $outputOption $output  $script";
     runCommand($wrk, $qcmd) and caFailure("Failed to submit script.\n");
 
     if (defined($sgePropHold)) {
-		if (defined($holdPropagateCommand)) {
-           my $translateCmd = getGlobal("gridNameToJobIDCommand");
-           
-           # translate hold option to job id if necessary
-           if (defined($translateCmd) && $translateCmd ne "") {
-              my $tcmd = $translateCmd;
-              $tcmd =~ s/WAIT_TAG/$sgePropHold/g;
-              my $propJobCount = `$tcmd |wc -l`;
-              chomp $propJobCount;
-              if ($propJobCount != 1) {
-                 print STDERR "Warning: multiple IDs for job $sgePropHold got $propJobCount and should have been 1.\n";
-              }
-              #my $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
-              #chomp $jobID;
-              #print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
-              #$sgePropHold = $jobID;
-              open(PROPS, "$tcmd |awk '{print \$1}' | ") or die("Couldn't get list of jobs that need to hold", undef);
-              
-              # now we can get the job we are holding for
-              $tcmd = $translateCmd;
-              $tcmd =~ s/WAIT_TAG/$jobName/g;              
-              my $holdJobCount = `$tcmd |wc -l`;
-              chomp $propJobCount;
-              if ($propJobCount != 1) {
-                 print STDERR "Warning: multiple IDs for job $jobName got $propJobCount and should have been 1.\n";
-              }
-              #$jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
-              #chomp $jobID;
-              #print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
-              #$jobName = $jobID;
-              open(HOLDS, "$tcmd |awk '{print \$1}' | ") or die("Couldn't get list of jobs that should be held for", undef);
-              
-              # loop over all jobs and all sge hold commands to modify the jobs. We have no way to know which is the right one unfortunately               
-              while (my $prop = <PROPS>) {
-                 while (my $hold = <HOLDS>) {
-                  my $hcmd = $holdPropagateCommand;
-                  $hcmd =~ s/WAIT_TAG/$hold/g;
-                  my $acmd = "$hcmd $prop";
-                  print STDERR "Propagating hold to $prop to wait for job $hold\n";
-                  system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$prop'.\n";                  
-                 }
-              }
-              close(HOLDS);
-              close(PROPS);                
-           } else {
-              $sgePropHold = "\"$sgePropHold\"";
-              $holdPropagateCommand =~ s/WAIT_TAG/$jobName/g;
-              my $acmd = "$holdPropagateCommand $sgePropHold";
-              system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
-           }
+        if (defined($holdPropagateCommand)) {
+            my $translateCmd = getGlobal("gridNameToJobIDCommand");
+
+            # translate hold option to job id if necessary
+            if (defined($translateCmd) && $translateCmd ne "") {
+                my $tcmd = $translateCmd;
+                $tcmd =~ s/WAIT_TAG/$sgePropHold/g;
+                my $propJobCount = `$tcmd |wc -l`;
+                chomp $propJobCount;
+                if ($propJobCount != 1) {
+                    print STDERR "Warning: multiple IDs for job $sgePropHold got $propJobCount and should have been 1.\n";
+                }
+                #my $jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
+                #chomp $jobID;
+                #print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
+                #$sgePropHold = $jobID;
+                open(PROPS, "$tcmd |awk '{print \$1}' | ") or die("Couldn't get list of jobs that need to hold", undef);
+
+                # now we can get the job we are holding for
+                $tcmd = $translateCmd;
+                $tcmd =~ s/WAIT_TAG/$jobName/g;
+                my $holdJobCount = `$tcmd |wc -l`;
+                chomp $propJobCount;
+                if ($propJobCount != 1) {
+                    print STDERR "Warning: multiple IDs for job $jobName got $propJobCount and should have been 1.\n";
+                }
+                #$jobID = `$tcmd |head -n 1 |awk '{print \$1}'`;
+                #chomp $jobID;
+                #print STDERR "Translated job ID $sgePropHold to be job $jobID\n";
+                #$jobName = $jobID;
+                open(HOLDS, "$tcmd |awk '{print \$1}' | ") or die("Couldn't get list of jobs that should be held for", undef);
+
+                # loop over all jobs and all sge hold commands to modify the jobs. We have no way to know which is the right one unfortunately
+                while (my $prop = <PROPS>) {
+                    while (my $hold = <HOLDS>) {
+                        my $hcmd = $holdPropagateCommand;
+                        $hcmd =~ s/WAIT_TAG/$hold/g;
+                        my $acmd = "$hcmd $prop";
+                        print STDERR "Propagating hold to $prop to wait for job $hold\n";
+                        system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$prop'.\n";
+                    }
+                }
+                close(HOLDS);
+                close(PROPS);
+            } else {
+                $sgePropHold = "\"$sgePropHold\"";
+                $holdPropagateCommand =~ s/WAIT_TAG/$jobName/g;
+                my $acmd = "$holdPropagateCommand $sgePropHold";
+                system($acmd) and print STDERR "WARNING: Failed to reset hold_jid trigger on '$sgePropHold'.\n";
+            }
         } else {
-			print STDERR "WARNING: Failed to reset hold '$sgePropHold', not supported on current grid environment.\n";
-		}
+            print STDERR "WARNING: Failed to reset hold '$sgePropHold', not supported on current grid environment.\n";
+        }
     }
 
     exit(0);
@@ -1557,10 +1595,10 @@ sub schedulerForkProcess {
           # Parent
           #
           return($pid);
-     } elsif (defined $pid) {
-         # Child
-         #
-         exec($process);
+      } elsif (defined $pid) {
+          # Child
+          #
+          exec($process);
       } elsif ($! =~ /No more processes/) {
           # EAGIN, supposedly a recoverable fork error
           sleep 1;
@@ -1568,7 +1606,7 @@ sub schedulerForkProcess {
       } else {
           die "Can't fork: $!\n";
       }
-  }
+    }
 }
 
 sub schedulerReapProcess {
@@ -1675,7 +1713,7 @@ sub preoverlap {
     }
 
     caFailure("no fragment files specified, and stores not already created", undef)
-    	if (scalar(@fragFiles) == 0);
+        if (scalar(@fragFiles) == 0);
 
     if ((! -d "$wrk/$asm.gkpStore") ||
         (! -e "$wrk/$asm.gkpStore/inf")) {
@@ -2002,7 +2040,7 @@ sub shredContig ($$$$$) {
         #          ----------------2----------------
         #                  ----------------3----------------
         #
-        #	#### represents the distance between center of read 1 and read 3
+        # #### represents the distance between center of read 1 and read 3
         #            [$center_range_width]
         #       **** represents the distance between centers of consective reads
         #            [$center_increments]
@@ -2469,7 +2507,7 @@ sub meryl {
         print STDERR "Reset OBT mer threshold from ", getGlobal("obtMerThreshold"), " to $obtT.\n";
         setGlobal("obtMerThreshold", $obtT);
     }
-    
+
     if (($ovlT > 0) && (getGlobal("ovlMerThreshold") ne $ovlT)) {
         print STDERR "Reset OVL mer threshold from ", getGlobal("ovlMerThreshold"), " to $ovlT.\n";
         setGlobal("ovlMerThreshold", $ovlT);
@@ -2493,16 +2531,16 @@ sub getUMDOverlapperClearRange ($) {
 
         open(T, "< $_/revisedOrigTrimsForReads.txt") or caFailure("failed to open '$_/revisedOrigTrimsForReads.txt'", undef);
         while (<T>) {
-           my @trimData = split(/\s+/,$_);
-           my $uid = $trimData[0];
-           my $bgn = $trimData[1];
-           my $end = $trimData[2];
+            my @trimData = split(/\s+/,$_);
+            my $uid = $trimData[0];
+            my $bgn = $trimData[1];
+            my $end = $trimData[2];
 
-           if ($bgn < $end) {
-             print G "frg uid $uid obt all $bgn $end\n";
-           } else {
-             print G "frg uid $uid obt all $end $bgn\n";
-           }
+            if ($bgn < $end) {
+                print G "frg uid $uid obt all $bgn $end\n";
+            } else {
+                print G "frg uid $uid obt all $end $bgn\n";
+            }
         }
         close(T);
     }
@@ -2527,14 +2565,14 @@ sub UMDoverlapper () {
     #dump the frag file from gkp if it does not exist already
     # should check if vector clear then dump vec range else dump this range
     if (defined($vi)) {
-       if (runCommand($wrk, "$bin/gatekeeper -clear VEC -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.vec.frg")) {
-          caFailure("failed to dump gatekeeper store for UMD overlapper", "$wrk/gatekeeper.err");
-       }
+        if (runCommand($wrk, "$bin/gatekeeper -clear VEC -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.vec.frg")) {
+            caFailure("failed to dump gatekeeper store for UMD overlapper", "$wrk/gatekeeper.err");
+        }
     }
     elsif ( ! -s "$wrk/$asm.frg" ) {
-       if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
-          caFailure("failed to dump gatekeeper store for UMD overlapper", "$wrk/gatekeeper.err");
-       }
+        if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
+            caFailure("failed to dump gatekeeper store for UMD overlapper", "$wrk/gatekeeper.err");
+        }
     }
 
     # create a job list (we have only one job for right now)
@@ -2550,16 +2588,16 @@ sub UMDoverlapper () {
 
     # when we have vector clear, pass it to the overlapper, otherwise tell the overlapper to figure it out
     if (defined($vi)) {
-       $cmd .= "-vector-trim-file $wrk/$asm.vec.frg $wrk/$asm.vec.frg "
+        $cmd .= "-vector-trim-file $wrk/$asm.vec.frg $wrk/$asm.vec.frg ";
     } else {
-       $cmd .= "-calculate-trims $wrk/$asm.frg ";
+        $cmd .= "-calculate-trims $wrk/$asm.frg ";
     }
 
     $cmd .= "$wrk/$outDir/$jobID/$asm.umd.frg ";
     $cmd .= " > $wrk/$outDir/$jobID/overlapper.out 2>$wrk/$outDir/$jobID/overlapper.err";
 
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("failed to run UMD overlapper", "$wrk/$outDir/$jobID/overlapper.err");
+        caFailure("failed to run UMD overlapper", "$wrk/$outDir/$jobID/overlapper.err");
     }
 
     my $trimFile = getUMDOverlapperClearRange($outDir);
@@ -2567,7 +2605,7 @@ sub UMDoverlapper () {
     $cmd .= "$bin/gatekeeper --edit ";
     $cmd .= "$wrk/$outDir/$trimFile $wrk/$asm.gkpStore";
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("failed to update OBT trims", "undef");
+        caFailure("failed to update OBT trims", "undef");
     }
 
     # now create the binary overlaps
@@ -2578,7 +2616,7 @@ sub UMDoverlapper () {
     $cmd .= "-b -ovldump ";
     $cmd .= " > $wrk/$outDir/$jobID/$jobID.ovb";
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("failed to create overlaps", undef);
+        caFailure("failed to create overlaps", undef);
     }
 
     #cleanup
@@ -2626,7 +2664,7 @@ sub generateFigaroTrim($) {
     $cmd .= " > $wrk/$outDir/figaro.out 2>$wrk/$outDir/figaro.err";
 
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("figaro died", "$wrk/$outDir/figaro.err");
+        caFailure("figaro died", "$wrk/$outDir/figaro.err");
     }
 
     # update the gkpStore with newly computed clear ranges
@@ -2634,29 +2672,29 @@ sub generateFigaroTrim($) {
 }
 
 sub getUMDTrimClearRange($) {
-   my $outDir = shift @_;
-   my $fileName = "$asm.clv";
+    my $outDir = shift @_;
+    my $fileName = "$asm.clv";
 
-   # the umd output is CLR_BGN (in the same order as the input)
-   # to join it with the UID we first number both the list of UIDs in the fasta file and the CLR_BGN
-   runCommand("$wrk/$outDir", "cat $wrk/$asm.fasta | grep \">\" | awk '{print NR\" \"substr(\$1, 2, index(\$1, \",\")-2)}' > $wrk/$outDir/$asm.numberedUids");
-   runCommand("$wrk/$outDir", "awk '{print NR\" \"\$0}' $asm.vectorcuts > $asm.numberedCuts");
+    # the umd output is CLR_BGN (in the same order as the input)
+    # to join it with the UID we first number both the list of UIDs in the fasta file and the CLR_BGN
+    runCommand("$wrk/$outDir", "cat $wrk/$asm.fasta | grep \">\" | awk '{print NR\" \"substr(\$1, 2, index(\$1, \",\")-2)}' > $wrk/$outDir/$asm.numberedUids");
+    runCommand("$wrk/$outDir", "awk '{print NR\" \"\$0}' $asm.vectorcuts > $asm.numberedCuts");
 
-   # now we join them together
-   runCommand("$wrk/$outDir", "join $wrk/$outDir/$asm.numberedUids $wrk/$outDir/$asm.numberedCuts -o 1.2,2.2 > $wrk/$outDir/$asm.clrBgn");
+    # now we join them together
+    runCommand("$wrk/$outDir", "join $wrk/$outDir/$asm.numberedUids $wrk/$outDir/$asm.numberedCuts -o 1.2,2.2 > $wrk/$outDir/$asm.clrBgn");
 
-   # now we can join together the UID CLR_BGN with the read-end information for the full clear range
-   runCommand("$wrk/$outDir", "sort -nk 1 -T $wrk/$outDir $wrk/$outDir/$asm.clrBgn > $wrk/$outDir/$asm.clrBgn.sorted");
-   runCommand("$wrk/$outDir", "join $wrk/$outDir/$asm.clrBgn.sorted $wrk/$asm.untrimmed -o 1.1,1.2,2.3 > $wrk/$outDir/$fileName");
+    # now we can join together the UID CLR_BGN with the read-end information for the full clear range
+    runCommand("$wrk/$outDir", "sort -nk 1 -T $wrk/$outDir $wrk/$outDir/$asm.clrBgn > $wrk/$outDir/$asm.clrBgn.sorted");
+    runCommand("$wrk/$outDir", "join $wrk/$outDir/$asm.clrBgn.sorted $wrk/$asm.untrimmed -o 1.1,1.2,2.3 > $wrk/$outDir/$fileName");
 
-   # clean up
-   rmrf("$outDir/$asm.numberedUids");
-   rmrf("$outDir/$asm.numberedCuts");
-   rmrf("$outDir/$asm.clrBgn");
-   rmrf("$outDir/$asm.clrBgn.sorted");
-   rmrf("$outDir/vectorTrimIntermediateFile001.*");
+    # clean up
+    rmrf("$outDir/$asm.numberedUids");
+    rmrf("$outDir/$asm.numberedCuts");
+    rmrf("$outDir/$asm.clrBgn");
+    rmrf("$outDir/$asm.clrBgn.sorted");
+    rmrf("$outDir/vectorTrimIntermediateFile001.*");
 
-   return $fileName;
+    return $fileName;
 }
 
 sub generateUMDTrim($) {
@@ -2671,8 +2709,8 @@ sub generateUMDTrim($) {
     $cmd .= " > $wrk/$outDir/umd.out 2>$wrk/$outDir/umd.err";
 
     if (runCommand("$wrk/$outDir", $cmd)) {
-      caFailure("UMD overlapper dataWorkReduced/findVectorTrimPoints.perl died",
-                "$wrk/$outDir/umd.err");
+        caFailure("UMD overlapper dataWorkReduced/findVectorTrimPoints.perl died",
+                  "$wrk/$outDir/umd.err");
     }
 
     return getUMDTrimClearRange($outDir);
@@ -2691,25 +2729,25 @@ sub generateVectorTrim ($) {
 
     #dump the fasta file from gkp
     if ( ! -e "$wrk/$asm.fasta" ) {
-       if (runCommand($wrk, "$bin/gatekeeper -dumpfastaseq -clear UNTRIM $wrk/$asm.gkpStore 2> $wrk/$outDir/gatekeeper.err > $wrk/$asm.fasta")) {
-           caFailure("failed to dump gatekeeper store for figaro trimmer",
-                     "$wrk/$outDir/gatekeeper.err");
-       }
+        if (runCommand($wrk, "$bin/gatekeeper -dumpfastaseq -clear UNTRIM $wrk/$asm.gkpStore 2> $wrk/$outDir/gatekeeper.err > $wrk/$asm.fasta")) {
+            caFailure("failed to dump gatekeeper store for figaro trimmer",
+                      "$wrk/$outDir/gatekeeper.err");
+        }
     }
     #dump the clr range
     if ( ! -e "$wrk/$asm.untrimmed" ) {
-       if (runCommand($wrk, "$bin/gatekeeper -dumpfragments -tabular -clear UNTRIM $wrk/$asm.gkpStore 2> $wrk/$outDir/gatekeeper.err | grep -v 'UID' |awk '{print \$1\" \"\$12\" \"\$13}' | sort -nk 1 -T $wrk/ > $wrk/$asm.untrimmed")) {
-           caFailure("failed to dump gatekeeper quality trim points for figaro trimmer",
-                     "$wrk/$outDir/gatekeeper.err");
-       }
+        if (runCommand($wrk, "$bin/gatekeeper -dumpfragments -tabular -clear UNTRIM $wrk/$asm.gkpStore 2> $wrk/$outDir/gatekeeper.err | grep -v 'UID' |awk '{print \$1\" \"\$12\" \"\$13}' | sort -nk 1 -T $wrk/ > $wrk/$asm.untrimmed")) {
+            caFailure("failed to dump gatekeeper quality trim points for figaro trimmer",
+                      "$wrk/$outDir/gatekeeper.err");
+        }
     }
 
     if ($trimmer eq "figaro") {
-       $trimFile = generateFigaroTrim($outDir);
+        $trimFile = generateFigaroTrim($outDir);
     } elsif($trimmer eq "umd") {
-       $trimFile = generateUMDTrim($outDir);
+        $trimFile = generateUMDTrim($outDir);
     } else {
-       caFailure("unknown vector trimmer $trimmer", undef);
+        caFailure("unknown vector trimmer $trimmer", undef);
     }
 
     # set the global vector trim file so that the subsequent code will update the gkp for us
@@ -2883,17 +2921,17 @@ sub merTrim {
     #
     if (findMBTSuccess($mbtJobs) == 0) {
         if (getGlobal("useGrid") && getGlobal("mbtOnGrid")) {
-        	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
-        	my $nameOption 		= getGlobal("gridNameOption");
-    		my $outputOption 	= getGlobal("gridOutputOption");
-        	
+            my $submitCommand  = getGlobal("gridSubmitCommand");
+            my $nameOption   = getGlobal("gridNameOption");
+            my $outputOption  = getGlobal("gridOutputOption");
+
             my $sge        = getGlobal("sge");
             my $sgeName    = getGlobal("sgeName");
             my $sgeMerTrim = getGlobal("sgeMerTrim");
 
             $sgeName = "_$sgeName" if (defined($sgeName));
             my $jobName = getGridArrayName("mbt_$asm$sgeName", $mbtJobs);
-   	  		my $arrayOpt = getGridArrayOption("mbt_$asm$sgeName", $mbtJobs);
+            my $arrayOpt = getGridArrayOption("mbt_$asm$sgeName", $mbtJobs);
 
             my $SGE;
             $SGE  = "$submitCommand $sge $sgeMerTrim $nameOption \"$jobName\" $arrayOpt \\\n";
@@ -2907,7 +2945,7 @@ sub merTrim {
                 my $out = substr("0000" . $i, -4);
                 schedulerSubmit("$wrk/0-mertrim/mertrim.sh $i > $wrk/0-mertrim/$asm.$out.err 2>&1");
             }
-            
+
             schedulerSetNumberOfProcesses(getGlobal("mbtConcurrency"));
             schedulerFinish();
         }
@@ -3061,9 +3099,9 @@ sub merOverlapper($) {
     #  Need mer counts, unless there is only one partition.
     meryl() if (($ovmJobs > 1) || ($merylNeeded));
 
-	my $taskID       = getGlobal("gridTaskID");
-	my $submitTaskID = getGlobal("gridArraySubmitID");
-	
+    my $taskID       = getGlobal("gridTaskID");
+    my $submitTaskID = getGlobal("gridArraySubmitID");
+
     #  Create overmerry and olap-from-seeds jobs
     #
     open(F, "> $wrk/$outDir/overmerry.sh") or caFailure("can't open '$wrk/$outDir/overmerry.sh'", undef);
@@ -3216,17 +3254,17 @@ sub merOverlapper($) {
         #
         if (findOvermerrySuccess($outDir, $ovmJobs) == 0) {
             if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
-            	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
-        		my $nameOption 		= getGlobal("gridNameOption");
-    			my $outputOption 	= getGlobal("gridOutputOption");
-    		
+                my $submitCommand  = getGlobal("gridSubmitCommand");
+                my $nameOption   = getGlobal("gridNameOption");
+                my $outputOption  = getGlobal("gridOutputOption");
+
                 my $sge        = getGlobal("sge");
                 my $sgeName    = getGlobal("sgeName");
                 my $sgeOverlap = getGlobal("sgeMerOverlapSeed");
 
                 $sgeName = "_$sgeName" if (defined($sgeName));
-	   	  		my $jobName = getGridArrayName("mer_$asm$sgeName", $ovmJobs);
-	   	  		my $arrayOpt = getGridArrayOption("mer_$asm$sgeName", $ovmJobs);
+                my $jobName = getGridArrayName("mer_$asm$sgeName", $ovmJobs);
+                my $arrayOpt = getGridArrayOption("mer_$asm$sgeName", $ovmJobs);
 
                 my $SGE;
                 $SGE  = "$submitCommand $sge $sgeOverlap $nameOption \"$jobName\" $arrayOpt \\\n";
@@ -3240,7 +3278,7 @@ sub merOverlapper($) {
                     my $out = substr("0000" . $i, -4);
                     schedulerSubmit("$wrk/$outDir/overmerry.sh $i > $wrk/$outDir/seeds/$out.err 2>&1");
                 }
-                
+
                 schedulerSetNumberOfProcesses(getGlobal("merOverlapperSeedConcurrency"));
                 schedulerFinish();
             }
@@ -3308,17 +3346,17 @@ sub merOverlapper($) {
     #
     if (findOlapFromSeedsSuccess($outDir, $olpJobs) == 0) {
         if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
-        	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
-        	my $nameOption 		= getGlobal("gridNameOption");
-    		my $outputOption 	= getGlobal("gridOutputOption");
-    		
+            my $submitCommand  = getGlobal("gridSubmitCommand");
+            my $nameOption   = getGlobal("gridNameOption");
+            my $outputOption  = getGlobal("gridOutputOption");
+
             my $sge        = getGlobal("sge");
             my $sgeName    = getGlobal("sgeName");
             my $sgeOverlap = getGlobal("sgeMerOverlapExtend");
 
             $sgeName = "_$sgeName" if (defined($sgeName));
-   	  		my $jobName = getGridArrayName("olp_$asm$sgeName", $olpJobs);
-   	  		my $arrayOpt = getGridArrayOption("mer_$asm$sgeName", $ovmJobs);
+            my $jobName = getGridArrayName("olp_$asm$sgeName", $olpJobs);
+            my $arrayOpt = getGridArrayOption("mer_$asm$sgeName", $ovmJobs);
 
             my $SGE;
             $SGE  = "$submitCommand $sge $sgeOverlap $nameOption \"$jobName\" $arrayOpt \\\n";
@@ -3357,7 +3395,7 @@ sub createOverlapJobs($) {
     my $isTrim = shift @_;
 
     if (-d "$wrk/$asm.ovlStore") {
-       stopAfter("meryl");
+        stopAfter("meryl");
     }
     return if (-d "$wrk/$asm.ovlStore");
 
@@ -3384,7 +3422,7 @@ sub createOverlapJobs($) {
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");
 
     if (-e "$wrk/$outDir/overlap.sh") {
-       stopAfter("meryl");
+        stopAfter("meryl");
     }
     return if (-e "$wrk/$outDir/overlap.sh");
 
@@ -3424,9 +3462,9 @@ sub createOverlapJobs($) {
 
     meryl();
 
-	my $taskID       = getGlobal("gridTaskID");
-	my $submitTaskID = getGlobal("gridArraySubmitID");
-	
+    my $taskID       = getGlobal("gridTaskID");
+    my $submitTaskID = getGlobal("gridArraySubmitID");
+
     #  We make a giant job array for this -- we need to know hashBeg,
     #  hashEnd, refBeg and refEnd -- from that we compute batchName
     #  and jobName.
@@ -3547,10 +3585,10 @@ sub createOverlapJobs($) {
     #  things here
     #
     if (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
-        my $submitCommand 	= getGlobal("gridSubmitCommand");        	
-        my $nameOption 		= getGlobal("gridNameOption");
-    	my $outputOption 	= getGlobal("gridOutputOption");
-    		
+        my $submitCommand  = getGlobal("gridSubmitCommand");
+        my $nameOption   = getGlobal("gridNameOption");
+        my $outputOption  = getGlobal("gridOutputOption");
+
         my $sge        = getGlobal("sge");
         my $sgeName    = getGlobal("sgeName");
         my $sgeOverlap = getGlobal("sgeOverlap");
@@ -3564,7 +3602,7 @@ sub createOverlapJobs($) {
         $SGE .= "  $outputOption $wrk/$outDir/$submitTaskID.out \\\n";
         $SGE .= "  $wrk/$outDir/overlap.sh\n";
 
-	    submitBatchJobs($SGE, $jobName);
+        submitBatchJobs($SGE, $jobName);
         exit(0);
     } else {
         for (my $i=1; $i<=$jobs; $i++) {
@@ -3646,7 +3684,7 @@ sub checkMerOverlapper ($) {
             $failedJobs++;
         }
     }
-    
+
     caFailure("$failedJobs overlapper jobs failed", undef) if ($failedJobs);
 }
 
@@ -3704,11 +3742,11 @@ sub createOverlapStore {
     $cmd  = "$bin/overlapStoreBuild ";
     $cmd .= " -o $wrk/$asm.ovlStore.BUILDING ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
-    
+
     if (defined(getGlobal("closureOverlaps"))){
         $cmd .= " -i " . getGlobal("closureOverlaps");
     }
-    
+
     $cmd .= " -M " . getGlobal("ovlStoreMemory");
     $cmd .= " -L $wrk/$asm.ovlStore.list ";
     $cmd .= " > $wrk/$asm.ovlStore.err 2>&1";
@@ -3763,7 +3801,7 @@ sub overlapTrim {
         setGlobal("doDeDuplication", 0);
 
         if (system("$bin/gatekeeper -isfeatureset 0 doRemoveDuplicateReads $wrk/$asm.gkpStore") == 0) {
-            setGlobal("doDeDuplication", 1);   
+            setGlobal("doDeDuplication", 1);
         }
     }
 
@@ -4009,7 +4047,7 @@ sub overlapCorrection {
         my $batchSize   = getGlobal("frgCorrBatchSize");
         my $numThreads  = getGlobal("frgCorrThreads");
         my $jobs        = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
-        
+
         my $taskID       = getGlobal("gridTaskID");
         my $submitTaskID = getGlobal("gridArraySubmitID");
 
@@ -4066,17 +4104,17 @@ sub overlapCorrection {
 
         if (getGlobal("frgCorrOnGrid") && getGlobal("useGrid")) {
             #  Run the correction job on the grid.
-        	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
-        	my $nameOption 		= getGlobal("gridNameOption");
-    		my $outputOption 	= getGlobal("gridOutputOption");
-    		
+            my $submitCommand  = getGlobal("gridSubmitCommand");
+            my $nameOption   = getGlobal("gridNameOption");
+            my $outputOption  = getGlobal("gridOutputOption");
+
             my $sge                   = getGlobal("sge");
             my $sgeName               = getGlobal("sgeName");
             my $sgeFragmentCorrection = getGlobal("sgeFragmentCorrection");
 
             $sgeName = "_$sgeName" if (defined($sgeName));
-   	  		my $jobName = getGridArrayName("frg_$asm$sgeName", $jobs);
-   	  		my $arrayOpt = getGridArrayOption("ovl_$asm$sgeName", $jobs);
+            my $jobName = getGridArrayName("frg_$asm$sgeName", $jobs);
+            my $arrayOpt = getGridArrayOption("ovl_$asm$sgeName", $jobs);
 
             my $SGE;
             $SGE  = "$submitCommand $sge $sgeFragmentCorrection $nameOption \"$jobName\" $arrayOpt ";
@@ -4163,9 +4201,9 @@ sub overlapCorrection {
     if (! -e "$wrk/3-overlapcorrection/ovlcorr.sh") {
         my $batchSize  = getGlobal("ovlCorrBatchSize");
         my $jobs       = int($numFrags / $batchSize) + (($numFrags % $batchSize == 0) ? 0 : 1);
-		my $taskID       = getGlobal("gridTaskID");
-		my $submitTaskID = getGlobal("gridArraySubmitID");
-		
+        my $taskID       = getGlobal("gridTaskID");
+        my $submitTaskID = getGlobal("gridArraySubmitID");
+
         open(F, "> $wrk/3-overlapcorrection/ovlcorr.sh") or caFailure("failed to write '$wrk/3-overlapcorrection/ovlcorr.sh'", undef);
         print F "jobid=\$$taskID\n";
         print F "if [ x\$jobid = x -o x\$jobid = xundefined -o x\$jobid = x0 ]; then\n";
@@ -4207,17 +4245,17 @@ sub overlapCorrection {
 
         if (getGlobal("ovlCorrOnGrid") && getGlobal("useGrid")) {
             #  Run the correction job on the grid.
-        	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
-        	my $nameOption 		= getGlobal("gridNameOption");
-    		my $outputOption 	= getGlobal("gridOutputOption");
-    		
+            my $submitCommand  = getGlobal("gridSubmitCommand");
+            my $nameOption   = getGlobal("gridNameOption");
+            my $outputOption  = getGlobal("gridOutputOption");
+
             my $sge                   = getGlobal("sge");
             my $sgeName               = getGlobal("sgeName");
             my $sgeOverlapCorrection  = getGlobal("sgeOverlapCorrection");
 
             $sgeName = "_$sgeName" if (defined($sgeName));
-   	  		my $jobName = getGridArrayName("ovc_$asm$sgeName", $jobs);
-   	  		my $arrayOpt = getGridArrayOption("ovc_$asm$sgeName", $jobs);
+            my $jobName = getGridArrayName("ovc_$asm$sgeName", $jobs);
+            my $arrayOpt = getGridArrayOption("ovc_$asm$sgeName", $jobs);
 
             my $SGE;
             $SGE  = "$submitCommand $sge $sgeOverlapCorrection $nameOption \"$jobName\" $arrayOpt ";
@@ -4585,7 +4623,7 @@ sub createPostUnitiggerConsensusJobs (@) {
     }
     close(F);
 
-	my $taskID       = getGlobal("gridTaskID");
+    my $taskID       = getGlobal("gridTaskID");
     open(F, "> $wrk/5-consensus/consensus.sh") or caFailure("can't open '$wrk/5-consensus/consensus.sh'", undef);
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
@@ -4619,47 +4657,47 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F getBinDirectoryShellCode();
 
     if ($consensusType eq "cns") {
-       print F "\$bin/utgcns \\\n";
-       print F "  -g $wrk/$asm.gkpStore \\\n";
-       print F "  -t $wrk/$asm.tigStore 1 \$jobid \\\n";
-       print F "> $wrk/5-consensus/${asm}_\$jobid.cns.err 2>&1 \\\n";
-       print F "&& \\\n";
-       print F "\$bin/utgcnsfix \\\n";
-       print F "  -g $wrk/$asm.gkpStore \\\n";
-       print F "  -t $wrk/$asm.tigStore 2 \$jobid \\\n";
-       print F "  -o $wrk/5-consensus/${asm}_\$jobid.fixes \\\n";
-       print F "> $wrk/5-consensus/${asm}_\$jobid.fix.err 2>&1";
-       print F "&& \\\n";
-       print F "touch $wrk/5-consensus/${asm}_\$jobid.success\n";
+        print F "\$bin/utgcns \\\n";
+        print F "  -g $wrk/$asm.gkpStore \\\n";
+        print F "  -t $wrk/$asm.tigStore 1 \$jobid \\\n";
+        print F "> $wrk/5-consensus/${asm}_\$jobid.cns.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "\$bin/utgcnsfix \\\n";
+        print F "  -g $wrk/$asm.gkpStore \\\n";
+        print F "  -t $wrk/$asm.tigStore 2 \$jobid \\\n";
+        print F "  -o $wrk/5-consensus/${asm}_\$jobid.fixes \\\n";
+        print F "> $wrk/5-consensus/${asm}_\$jobid.fix.err 2>&1";
+        print F "&& \\\n";
+        print F "touch $wrk/5-consensus/${asm}_\$jobid.success\n";
     } elsif ($consensusType eq "seqan") {
-       print F "\$bin/SeqAn_CNS \\\n";
-       print F "  -G $wrk/$asm.gkpStore \\\n";
-       print F "  -c \$cgbfile \\\n";
-       print F "  -s \$bin/graph_consensus \\\n";
-       print F "  -w $wrk/5-consensus/ \\\n";
-       print F "  -o $wrk/5-consensus/${asm}_\$jobid.cgi \\\n";
-       print F " > $wrk/5-consensus/${asm}_\$jobid.cns.err 2>&1 \\\n";
-       print F "&& \\\n";
-       print F "touch $wrk/5-consensus/${asm}_\$jobid.success\n";
+        print F "\$bin/SeqAn_CNS \\\n";
+        print F "  -G $wrk/$asm.gkpStore \\\n";
+        print F "  -c \$cgbfile \\\n";
+        print F "  -s \$bin/graph_consensus \\\n";
+        print F "  -w $wrk/5-consensus/ \\\n";
+        print F "  -o $wrk/5-consensus/${asm}_\$jobid.cgi \\\n";
+        print F " > $wrk/5-consensus/${asm}_\$jobid.cns.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "touch $wrk/5-consensus/${asm}_\$jobid.success\n";
     } else {
-       caFailure("unknown consensus type $consensusType; should be 'cns' or 'seqan'", undef);
+        caFailure("unknown consensus type $consensusType; should be 'cns' or 'seqan'", undef);
     }
     close(F);
 
     chmod 0755, "$wrk/5-consensus/consensus.sh";
 
     if (getGlobal("useGrid") && getGlobal("cnsOnGrid")) {
-    	my $submitCommand 	= getGlobal("gridSubmitCommand");        	
-        my $nameOption 		= getGlobal("gridNameOption");
-    	my $outputOption 	= getGlobal("gridOutputOption");
-    		
+        my $submitCommand  = getGlobal("gridSubmitCommand");
+        my $nameOption   = getGlobal("gridNameOption");
+        my $outputOption  = getGlobal("gridOutputOption");
+
         my $sge          = getGlobal("sge");
         my $sgeName      = getGlobal("sgeName");
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         $sgeName = "_$sgeName" if (defined($sgeName));
-   		my $jobName = getGridArrayName("utg_$asm$sgeName", $jobs);
-   		my $arrayOpt = getGridArrayOption("ovc_$asm$sgeName", $jobs);
+        my $jobName = getGridArrayName("utg_$asm$sgeName", $jobs);
+        my $arrayOpt = getGridArrayOption("ovc_$asm$sgeName", $jobs);
 
         my $SGE;
         $SGE  = "$submitCommand $sge $sgeConsensus $nameOption \"$jobName\" $arrayOpt ";
@@ -4888,7 +4926,7 @@ sub CGW ($$$$$$) {
         $lastckp = findLastCheckpoint($lastDir);
     }
     if (defined($lastckp) && defined($logickp)) {
-        $ckp     = "-R $lastckp -N $logickp"  
+        $ckp     = "-R $lastckp -N $logickp"
     }
 
     #  If there is a timing file here, assume we are restarting.  Not
@@ -4936,7 +4974,7 @@ sub CGW ($$$$$$) {
     $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
 
     my $P = getGlobal("closurePlacement");
-    
+
     my $shatterLevel  = getGlobal("cgwContigShatterWeight");
     my $missingMate   = getGlobal("cgwMergeMissingThreshold");
     my $minWeight     = getGlobal("cgwMinMergeWeight");
@@ -5276,7 +5314,7 @@ sub createPostScaffolderConsensusJobs () {
     }
     close(F);
 
-	my $taskID       = getGlobal("gridTaskID");
+    my $taskID       = getGlobal("gridTaskID");
     open(F, "> $wrk/8-consensus/consensus.sh") or caFailure("can't open '$wrk/8-consensus/consensus.sh'", undef);
     print F "#!" . getGlobal("shell") . "\n";
     print F "\n";
@@ -5309,29 +5347,29 @@ sub createPostScaffolderConsensusJobs () {
     print F getBinDirectoryShellCode();
 
     if ($consensusType eq "cns") {
-       print F "\$bin/ctgcns \\\n";
-       print F "  -g $wrk/$asm.gkpStore \\\n";
-       print F "  -t $wrk/$asm.tigStore $tigVersion \$jobid \\\n";
-       print F "  -P ", getGlobal("cnsPhasing"), "\\\n";
-       print F " > $wrk/8-consensus/${asm}_\$jobid.err 2>&1 \\\n";
-       print F "&& \\\n";
-       print F "touch $wrk/8-consensus/${asm}_\$jobid.success\n";
+        print F "\$bin/ctgcns \\\n";
+        print F "  -g $wrk/$asm.gkpStore \\\n";
+        print F "  -t $wrk/$asm.tigStore $tigVersion \$jobid \\\n";
+        print F "  -P ", getGlobal("cnsPhasing"), "\\\n";
+        print F " > $wrk/8-consensus/${asm}_\$jobid.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "touch $wrk/8-consensus/${asm}_\$jobid.success\n";
     } elsif ($consensusType eq "seqan") {
-       print F "\$bin/SeqAn_CNS \\\n";
-       print F "  -G $wrk/$asm.gkpStore \\\n";
-       print F "  -u $wrk/$asm.SeqStore \\\n";
-       print F "  -V $tigVersion \\\n";
-       print F "  -p \$jobid \\\n";
-       print F "  -S \$jobid \\\n";
-       #print F "  -c $cgwDir/$asm.cgw_contigs.\$jobid \\\n";
-       print F "  -s \$bin/graph_consensus \\\n";
-       print F "  -w $wrk/8-consensus/ \\\n";
-       print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobid \\\n";
-       print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobid.err 2>&1 \\\n";
-       print F "&& \\\n";
-       print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobid.success\n";
+        print F "\$bin/SeqAn_CNS \\\n";
+        print F "  -G $wrk/$asm.gkpStore \\\n";
+        print F "  -u $wrk/$asm.SeqStore \\\n";
+        print F "  -V $tigVersion \\\n";
+        print F "  -p \$jobid \\\n";
+        print F "  -S \$jobid \\\n";
+        #print F "  -c $cgwDir/$asm.cgw_contigs.\$jobid \\\n";
+        print F "  -s \$bin/graph_consensus \\\n";
+        print F "  -w $wrk/8-consensus/ \\\n";
+        print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobid \\\n";
+        print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobid.err 2>&1 \\\n";
+        print F "&& \\\n";
+        print F "touch $wrk/8-consensus/$asm.cns_contigs.\$jobid.success\n";
     } else {
-       caFailure("unknown consensus type $consensusType; must be 'cns' or 'seqan'", undef);
+        caFailure("unknown consensus type $consensusType; must be 'cns' or 'seqan'", undef);
     }
     print F "exit 0\n";
     close(F);
@@ -5339,17 +5377,17 @@ sub createPostScaffolderConsensusJobs () {
     chmod 0755, "$wrk/8-consensus/consensus.sh";
 
     if (getGlobal("cnsOnGrid") && getGlobal("useGrid")) {
-        my $submitCommand 	= getGlobal("gridSubmitCommand");        	
-        my $nameOption 		= getGlobal("gridNameOption");
-    	my $outputOption 	= getGlobal("gridOutputOption");
-    		
+        my $submitCommand  = getGlobal("gridSubmitCommand");
+        my $nameOption   = getGlobal("gridNameOption");
+        my $outputOption  = getGlobal("gridOutputOption");
+
         my $sge          = getGlobal("sge");
         my $sgeName      = getGlobal("sgeName");
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         $sgeName = "_$sgeName" if (defined($sgeName));
-	  	my $jobName = getGridArrayName("ctg_$asm$sgeName", $jobs);
-	  	my $arrayOpt = getGridArrayOption("ctg_$asm$sgeName", $jobs);
+        my $jobName = getGridArrayName("ctg_$asm$sgeName", $jobs);
+        my $arrayOpt = getGridArrayOption("ctg_$asm$sgeName", $jobs);
 
         my $SGE;
         $SGE  = "$submitCommand $sge $sgeConsensus $nameOption \"$jobName\" $arrayOpt ";
@@ -6178,4 +6216,3 @@ toggler();
 cleaner();
 
 exit(0);
-
