@@ -449,55 +449,6 @@ readSeq(FILE       *F,
 
 
 static
-bool
-openFile(char *name, FILE *&file) {
-  char *cmd  = new char [strlen(name) + 256];
-  bool  pipe = false;
-
-  errno = 0;
-
-  if (AS_UTL_fileExists(name, FALSE, FALSE) == FALSE) {
-    fprintf(stderr, "ERROR:  Failed to open fastq input file '%s': %s\n", name, strerror(errno));
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, 0,
-                       name, strerror(errno));
-    exit(1);
-  }
-
-  if        (name == NULL) {
-    fprintf(stderr, "ERROR:  Failed to open fastq input file: no name supplied.\n");
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, 0,
-                       "(no-name-supplied)", "no name supplied");
-    exit(1);
-
-  } else if (strcasecmp(name+strlen(name)-3, ".gz") == 0) {
-    sprintf(cmd, "gzip -dc %s", name);
-    file = popen(cmd, "r");
-    pipe = true;
-
-  } else if (strcasecmp(name+strlen(name)-4, ".bz2") == 0) {
-    sprintf(cmd, "bzip2 -dc %s", name);
-    file = popen(cmd, "r");
-    pipe = true;
-
-  } else {
-    file = fopen(name, "r");
-    pipe = false;
-  }
-
-  if (errno) {
-    fprintf(stderr, "ERROR:  Failed to open fastq input file '%s': %s\n", name, strerror(errno));
-    AS_GKP_reportError(AS_GKP_ILL_CANT_OPEN_INPUT, 0,
-                       name, strerror(errno));
-    exit(1);
-  }
-
-  delete [] cmd;
-
-  return(pipe);
-}
-
-
-static
 void
 loadFastQReads(char    *lname,
                char    *rname,
@@ -525,15 +476,15 @@ loadFastQReads(char    *lname,
     }
   }
 
-  FILE *lfile = NULL, *rfile = NULL;
-  bool  lpipe = false, rpipe = false;
+  compressedFileReader   *lfile = NULL;
+  compressedFileReader   *rfile = NULL;
 
   if (strcmp(lname, rname) == 0) {
-    lpipe = openFile(lname, lfile);
+    lfile = new compressedFileReader(lname);
     rfile = lfile;
   } else {
-    lpipe = openFile(lname, lfile);
-    rpipe = openFile(rname, rfile);
+    lfile = new compressedFileReader(lname);
+    rfile = new compressedFileReader(rname);
   }
 
   ilFragment  *lfrg = new ilFragment;
@@ -542,11 +493,11 @@ loadFastQReads(char    *lname,
   lfrg->fr.gkFragment_enableGatekeeperMode(gkpStore);
   rfrg->fr.gkFragment_enableGatekeeperMode(gkpStore);
 
-  while (!feof(lfile) && !feof(rfile)) {
+  while (!feof(lfile->file()) && !feof(rfile->file())) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 lUID = readSeq(lfile, lname, lfrg, 'l', fastqType, fastqOrient, forcePacked, packedLength);
-    uint64 rUID = readSeq(rfile, rname, rfrg, 'r', fastqType, fastqOrient, forcePacked, packedLength);
+    uint64 lUID = readSeq(lfile->file(), lname, lfrg, 'l', fastqType, fastqOrient, forcePacked, packedLength);
+    uint64 rUID = readSeq(rfile->file(), rname, rfrg, 'r', fastqType, fastqOrient, forcePacked, packedLength);
 
     if       ((lfrg->fr.gkFragment_getIsDeleted() == 0) &&
               (rfrg->fr.gkFragment_getIsDeleted() == 0)) {
@@ -589,10 +540,10 @@ loadFastQReads(char    *lname,
   delete rfrg;
 
   if (strcmp(lname, rname) == 0) {
-    if (lpipe)  pclose(lfile);  else  fclose(lfile);
+    delete lfile;
   } else {
-    if (lpipe)  pclose(lfile);  else  fclose(lfile);
-    if (rpipe)  pclose(rfile);  else  fclose(rfile);
+    delete lfile;
+    delete rfile;
   }
 }
 
@@ -619,17 +570,16 @@ loadFastQReads(char    *uname,
     }
   }
 
-  FILE *ufile = NULL;
-  bool  upipe = openFile(uname, ufile);
+  compressedFileReader   *ufile = new compressedFileReader(uname);
 
   ilFragment  *ufrg = new ilFragment;
 
   ufrg->fr.gkFragment_enableGatekeeperMode(gkpStore);
 
-  while (!feof(ufile)) {
+  while (!feof(ufile->file())) {
     uint32 nfrg = gkpStore->gkStore_getNumFragments();
 
-    uint64 uUID = readSeq(ufile, uname, ufrg, 'u', fastqType, fastqOrient, forcePacked, packedLength);
+    uint64 uUID = readSeq(ufile->file(), uname, ufrg, 'u', fastqType, fastqOrient, forcePacked, packedLength);
 
     if (ufrg->fr.gkFragment_getIsDeleted() == 0) {
       //  Add a fragment.
@@ -644,8 +594,7 @@ loadFastQReads(char    *uname,
   }
 
   delete ufrg;
-
-  if (upipe)  pclose(ufile);  else  fclose(ufile);
+  delete ufile;
 }
 
 

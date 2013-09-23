@@ -327,3 +327,125 @@ AS_UTL_fseek(FILE *stream, off_t offset, int whence) {
     assert(AS_UTL_ftell(stream) == offset);
 }
 
+
+
+compressedFileReader::compressedFileReader(const char *filename) {
+  char  cmd[FILENAME_MAX * 2];
+
+  if (filename == NULL)
+    fprintf(stderr, "ERROR:  Failed to open input file: no name supplied.\n"), exit(1);
+
+  strcpy(_name, filename);
+  _file = NULL;
+  _pipe = false;
+  _stdi = false;
+
+  if (AS_UTL_fileExists(_name, FALSE, FALSE) == FALSE)
+    fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", _name, strerror(errno)), exit(1);
+
+  int32  len = strlen(_name);
+
+  errno = 0;
+
+  if        (strcasecmp(_name + len - 3, ".gz") == 0) {
+    sprintf(cmd, "gzip -dc %s", _name);
+    _file = popen(cmd, "r");
+    _pipe = true;
+
+  } else if (strcasecmp(_name + len - 4, ".bz2") == 0) {
+    sprintf(cmd, "bzip2 -dc %s", _name);
+    _file = popen(cmd, "r");
+    _pipe = true;
+
+  } else if (strcasecmp(_name + len - 3, ".xz") == 0) {
+    sprintf(cmd, "xz -dc %s", _name);
+    _file = popen(cmd, "r");
+    _pipe = true;
+
+  } else if (strcmp(_name, "-") == 0) {
+    _file = stdin;
+    _stdi = 1;
+
+  } else {
+    _file = fopen(_name, "r");
+    _pipe = false;
+  }
+
+  if (errno)
+    fprintf(stderr, "ERROR:  Failed to open input file '%s': %s\n", _name, strerror(errno)), exit(1);
+}
+
+
+compressedFileReader::~compressedFileReader() {
+
+  if (_file == NULL)
+    return;
+
+  if (_stdi)
+    return;
+
+  if (_pipe)
+    pclose(_file);
+  else
+    fclose(_file);
+}
+
+
+
+compressedFileWriter::compressedFileWriter(const char *filename, int32 level) {
+  char  cmd[FILENAME_MAX * 2];
+
+  if (filename == NULL)
+    fprintf(stderr, "ERROR:  Failed to open output file: no name supplied.\n"), exit(1);
+
+  strcpy(_name, filename);
+  _file = NULL;
+  _pipe = false;
+  _stdi = false;
+
+  int32  len = strlen(_name);
+
+  errno = 0;
+
+  if        (strcasecmp(_name + len - 3, ".gz") == 0) {
+    sprintf(cmd, "gzip -%dc > %s", level, _name);
+    _file = popen(cmd, "w");
+    _pipe = true;
+
+  } else if (strcasecmp(_name + len - 4, ".bz2") == 0) {
+    sprintf(cmd, "bzip2 -%dc > %s", level, _name);
+    _file = popen(cmd, "w");
+    _pipe = true;
+
+  } else if (strcasecmp(_name + len - 3, ".xz") == 0) {
+    sprintf(cmd, "xz -%dc > %s", level, _name);
+    _file = popen(cmd, "w");
+    _pipe = true;
+
+  } else if (strcmp(_name, "-") == 0) {
+    _file = stdout;
+    _stdi = 1;
+
+  } else {
+    _file = fopen(_name, "w");
+    _pipe = false;
+  }
+
+  if (errno)
+    fprintf(stderr, "ERROR:  Failed to open output file '%s': %s\n", _name, strerror(errno)), exit(1);
+}
+
+
+compressedFileWriter::~compressedFileWriter() {
+
+  if (_file == NULL)
+    return;
+
+  if (_stdi)
+    return;
+
+  if (_pipe)
+    pclose(_file);
+  else
+    fclose(_file);
+}

@@ -46,4 +46,38 @@ off_t   AS_UTL_sizeOfFile(const char *path);
 off_t   AS_UTL_ftell(FILE *stream);
 void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);
 
+class compressedFileReader {
+public:
+  compressedFileReader(char const *filename);
+  ~compressedFileReader();
+
+  FILE *operator*(void)     {  return(_file);  };
+  FILE *file(void)          {  return(_file);  };
+
+  bool  isCompressed(void)  {  return(_pipe);  };
+
+private:
+  char   _name[FILENAME_MAX];
+  FILE  *_file;
+  bool   _pipe;
+  bool   _stdi;
+};
+
+class compressedFileWriter {
+public:
+  compressedFileWriter(char const *filename, int32 level=1);
+  ~compressedFileWriter();
+
+  FILE *operator*(void)     {  return(_file);  };
+  FILE *file(void)          {  return(_file);  };
+
+  bool  isCompressed(void)  {  return(_pipe);  };
+
+private:
+  char   _name[FILENAME_MAX];
+  FILE  *_file;
+  bool   _pipe;
+  bool   _stdi;
+};
+
 #endif  //  AS_UTL_FILEIO_H

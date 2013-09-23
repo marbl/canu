@@ -134,14 +134,10 @@ public:
   ~mertrimGlobalData() {
     delete gkRead;
 
-    if (fqInput)
-      fclose(fqInput);
-    if (fqOutput)
-      fclose(fqOutput);
-    if (fqVerify)
-      fclose(fqVerify);
-    if (fqLog)
-      fclose(fqLog);
+    delete fqInput;
+    delete fqOutput;
+    delete fqVerify;
+    delete fqLog;
 
     delete genomicDB;
     delete adapterDB;
@@ -186,30 +182,16 @@ public:
     if (fqOutputPath == NULL)
       return;
 
-    errno = 0;
-    fqInput = fopen(fqInputPath, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open input file '%s': %s\n", fqInputPath, strerror(errno)), exit(1);
+    fqInput  = new compressedFileReader(fqInputPath);
+    fqOutput = new compressedFileWriter(fqOutputPath);
 
-    errno = 0;
-    fqOutput = fopen(fqOutputPath, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open output file '%s': %s\n", fqOutputPath, strerror(errno)), exit(1);
-
-    errno = 0;
-    if (fqVerifyPath)
-      fqVerify = fopen(fqVerifyPath, "r");
-    if (errno)
-      fprintf(stderr, "Failed to open verify file '%s': %s\n", fqVerifyPath, strerror(errno)), exit(1);
+    fqVerify = new compressedFileReader(fqVerifyPath);
 
     char fqName[FILENAME_MAX];
 
     sprintf(fqName, "%s.log", fqOutputPath);
 
-    errno = 0;
-    fqLog = fopen(fqName, "w");
-    if (errno)
-      fprintf(stderr, "Failed to open output file '%s': %s\n", fqName, strerror(errno)), exit(1);
+    fqLog    = new compressedFileWriter(fqName);
   };
 
   void              initialize(void) {
@@ -355,10 +337,10 @@ public:
   double        minVerifiedFraction;
   uint32        minVerified;
 
-  FILE         *fqInput;
-  FILE         *fqOutput;
-  FILE         *fqVerify;
-  FILE         *fqLog;
+  compressedFileReader  *fqInput;
+  compressedFileWriter  *fqOutput;
+  compressedFileReader  *fqVerify;
+  compressedFileWriter  *fqLog;
 
   existDB      *genomicDB;
   existDB      *adapterDB;
@@ -555,10 +537,10 @@ public:
       memset(verifySeq,  allocLen, 0);  //  Needed, for verified reads shorter than real reads
       memset(verifyErr,  allocLen, '-');
 
-      fgets(verifyName, 1024,     g->fqVerify);
-      fgets(verifySeq,  allocLen, g->fqVerify);
-      fgets(origQlt,    allocLen, g->fqVerify);  //  qv name line, ignored
-      fgets(origQlt,    allocLen, g->fqVerify);
+      fgets(verifyName, 1024,     g->fqVerify->file());
+      fgets(verifySeq,  allocLen, g->fqVerify->file());
+      fgets(origQlt,    allocLen, g->fqVerify->file());  //  qv name line, ignored
+      fgets(origQlt,    allocLen, g->fqVerify->file());
 
       chomp(verifyName);
       chomp(verifySeq);
@@ -566,12 +548,12 @@ public:
 
     //  Load a read to correct
 
-    fgets(readName, 1024,     g->fqInput);
-    fgets(origSeq,  allocLen, g->fqInput);
-    fgets(origQlt,  allocLen, g->fqInput);  //  qv name line, ignored
-    fgets(origQlt,  allocLen, g->fqInput);
+    fgets(readName, 1024,     g->fqInput->file());
+    fgets(origSeq,  allocLen, g->fqInput->file());
+    fgets(origQlt,  allocLen, g->fqInput->file());  //  qv name line, ignored
+    fgets(origQlt,  allocLen, g->fqInput->file());
 
-    if (feof(g->fqInput))
+    if (feof(g->fqInput->file()))
       return(false);
 
     chomp(readName);
@@ -2155,7 +2137,7 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
   if (s->verifySeq) {
   }
 
-  fprintf(g->fqLog, F_U32"\t"F_U32"\tchimer\t%c\t"F_U32"\t"F_U32"\tadapter\t%c\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\t%s\n",
+  fprintf(g->fqLog->file(), F_U32"\t"F_U32"\tchimer\t%c\t"F_U32"\t"F_U32"\tadapter\t%c\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t%s\t%s\n",
           s->clrBgn,
           s->clrEnd,
           s->suspectedChimer ? 't' : 'f',
@@ -2180,11 +2162,11 @@ mertrimWriterFASTQ(mertrimGlobalData *g, mertrimComputation *s) {
 
   if ((s->corrSeq[seqOffset] == 0) ||
       (s->corrQlt[seqOffset] == 0))
-    fprintf(g->fqOutput, "%s type=%s\nN\n+\n!\n",
+    fprintf(g->fqOutput->file(), "%s type=%s\nN\n+\n!\n",
             s->readName,
             label);
   else
-    fprintf(g->fqOutput, "%s type=%s\n%s\n+\n%s\n",
+    fprintf(g->fqOutput->file(), "%s type=%s\n%s\n+\n%s\n",
             s->readName,
             label,
             s->corrSeq + seqOffset,

@@ -872,8 +872,6 @@ processRead(sffHeader *h,
 
 int
 loadSFF(char *sffName) {
-  FILE                      *sff  = NULL;
-  int                        fic  = 0;
   sffHeader                  h;
   sffManifest                m;
   sffRead                    r;
@@ -886,39 +884,21 @@ loadSFF(char *sffName) {
 
   fr.gkFragment_enableGatekeeperMode(gkpStore);
 
-  errno = 0;
-
   fprintf(stderr, "loadSFF()-- Loading '%s'.\n", sffName);
 
-  if        (strcasecmp(sffName + strlen(sffName) - 3, ".gz") == 0) {
-    char  cmd[1024];
-    sprintf(cmd, "gzip -dc %s", sffName);
-    sff   = popen(cmd, "r");
-    fic   = 1;
-  } else if (strcasecmp(sffName + strlen(sffName) - 4, ".bz2") == 0) {
-    char  cmd[1024];
-    sprintf(cmd, "bzip2 -dc %s", sffName);
-    sff   = popen(cmd, "r");
-    fic   = 1;
-  } else {
-    sff   = fopen(sffName, "r");
-    fic   = 0;
-  }
-  if (errno)
-    fprintf(stderr, "ERROR!  Failed to open '%s': %s\n", sffName, strerror(errno)), exit(1);
+  compressedFileReader  *sff = new compressedFileReader(sffName);
 
-
-  readsff_header(sff, &h, &m);
+  readsff_header(sff->file(), &h, &m);
 
   for (rn=0; rn < h.number_of_reads; rn++) {
-    readsff_read(sff, &h, &r);
+    readsff_read(sff->file(), &h, &r);
     if (processRead(&h, &r, &fr))
       gkpStore->gkStore_addFragment(&fr);
   }
 
   //  Read the manifest if we haven't already done so.
   if (m.manifest_length == 0)
-    readsff_manifest(sff, &h, &m);
+    readsff_manifest(sff->file(), &h, &m);
 
   //  Make sure that the reads have been rescored.
   if (m.manifest != NULL)
@@ -927,12 +907,7 @@ loadSFF(char *sffName) {
 
   errno = 0;
 
-  if (fic)
-    pclose(sff);
-  else
-    fclose(sff);
-  if (errno)
-    fprintf(stderr, "WARNING!  Failed to close '%s': %s\n", sffName, strerror(errno));
+  delete sff;
 
   safe_free(h.data_block);
   safe_free(m.manifest);

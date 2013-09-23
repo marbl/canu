@@ -795,10 +795,7 @@ main(int argc, char **argv) {
 
 
   for (; firstFileArg < argc; firstFileArg++) {
-    FILE            *inFile            = NULL;
-    GenericMesg     *pmesg             = NULL;
-    int              fileIsCompressed  = 0;
-    int              fileIsStdIn       = 0;
+    GenericMesg           *pmesg             = NULL;
 
     fprintf(stderr, "\n");
     fprintf(stderr, "Starting file '%s'.\n", argv[firstFileArg]);
@@ -806,33 +803,9 @@ main(int argc, char **argv) {
     AS_MSG_resetProtoLineNum();
     AS_MSG_setFormatVersion(1);
 
-    if        (strcasecmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 3, ".gz") == 0) {
-      char  cmd[1024];
-      sprintf(cmd, "gzip -dc %s", argv[firstFileArg]);
-      errno = 0;
-      inFile = popen(cmd, "r");
-      fileIsCompressed = 1;
-    } else if (strcasecmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 4, ".bz2") == 0) {
-      char  cmd[1024];
-      sprintf(cmd, "bzip2 -dc %s", argv[firstFileArg]);
-      errno = 0;
-      inFile = popen(cmd, "r");
-      fileIsCompressed = 1;
-    } else if (strcmp(argv[firstFileArg], "-") == 0) {
-      inFile = stdin;
-      fileIsStdIn = 1;
-    } else {
-      errno = 0;
-      inFile = fopen(argv[firstFileArg], "r");
-    }
+    compressedFileReader *inFile = new compressedFileReader(argv[firstFileArg]);
 
-    if (errno)
-      fprintf(stderr, "%s: failed to open input '%s': %s\n", progName, argv[firstFileArg], strerror(errno)), exit(1);
-    if (inFile == NULL)
-      fprintf(stderr, "%s: failed to open input '%s': (returned null pointer)\n", progName, argv[firstFileArg]), exit(1);
-
-
-    while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
+    while (EOF != ReadProtoMesg_AS(inFile->file(), &pmesg)) {
       if        (pmesg->t == MESG_DST) {
         Check_DistanceMesg((DistanceMesg *)pmesg->m, fixInsertSizes);
       } else if (pmesg->t == MESG_LIB) {
@@ -851,14 +824,7 @@ main(int argc, char **argv) {
       }
     }
 
-    if (fileIsCompressed) {
-      errno = 0;
-      pclose(inFile);
-      if (errno)
-        fprintf(stderr, "%s: WARNING!  Failed to close '%s': %s\n", progName, argv[firstFileArg], strerror(errno));
-    } else if (fileIsStdIn == 0) {
-      fclose(inFile);
-    }
+    delete inFile;
   }
 
   delete gkFrag1;

@@ -1709,7 +1709,8 @@ sub preoverlap {
 
             if (($frg =~ m/^(.*)\.sff$/) ||
                 ($frg =~ m/^(.*)\.sff.gz$/) ||
-                ($frg =~ m/^(.*)\.sff.bz2$/)) {
+                ($frg =~ m/^(.*)\.sff.bz2$/) ||
+                ($frg =~ m/^(.*)\.sff.xz$/)) {
                 my @fff = split '/', $1;
                 my $sff = $frg;
                 my $nam = pop @fff;
@@ -6075,12 +6076,12 @@ while (scalar(@ARGV)) {
         #  Do nothing.  Handled above, but we still need to process it here.
         #setGlobal("options", 1);
 
-    } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/i) && (-e $arg)) {
+    } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$|frg\.xz$/i) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
         $commandLineOptions .= " \"$arg\"";
 
-    } elsif (($arg =~ /\.sff$|sff\.gz$|sff\.bz2$/i) && (-e $arg)) {
+    } elsif (($arg =~ /\.sff$|sff\.gz$|sff\.bz2$|sff\.xz$/i) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
         $commandLineOptions .= " \"$arg\"";

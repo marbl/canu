@@ -28,17 +28,19 @@ static const char *rcsid_AS_OVS_OVERLAPFILE_H = "$Id$";
 
 #include "AS_global.H"
 #include "AS_OVS_overlap.H"
+#include "AS_UTL_fileIO.H"
 
 typedef struct {
-  int           bufferLen;    //  length of valid data in the buffer
-  int           bufferPos;    //  position the read is at in the buffer
-  int           bufferMax;    //  allocated size of the buffer
-  uint32       *buffer;
-  int           isOutput;     //  if true, we can AS_OVS_writeOverlap()
-  int           isSeekable;   //  if true, we can AS_OVS_seekOverlap()
-  int           isPopened;    //  if true, we need to pclose()
-  int           isInternal;   //  if true, 3 words per overlap, else 4
-  FILE         *file;
+  int                    bufferLen;    //  length of valid data in the buffer
+  int                    bufferPos;    //  position the read is at in the buffer
+  int                    bufferMax;    //  allocated size of the buffer
+  uint32                *buffer;
+  int                    isOutput;     //  if true, we can AS_OVS_writeOverlap()
+  int                    isSeekable;   //  if true, we can AS_OVS_seekOverlap()
+  int                    isInternal;   //  if true, 3 words per overlap, else 4
+  compressedFileReader  *reader;
+  compressedFileWriter  *writer;
+  FILE                  *file;
 } BinaryOverlapFile;
 
 void               AS_OVS_setBinaryOverlapFileBufferSize(int size);
