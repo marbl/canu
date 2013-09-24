@@ -287,6 +287,97 @@ ProcessInputUnitig(MultiAlignT *uma) {
 }
 
 
+void
+ReloadMatesFromGatekeeper(void) {
+
+  fprintf(stderr, "Reading fragments - just for mate pairs.\n");
+
+  uint32      nAlreadySet = 0;
+  uint32      nNotMated   = 0;
+  uint32      nAdded      = 0;
+
+  gkFragment  fr;
+  gkStream   *fs = new gkStream(ScaffoldGraph->gkpStore, 0, 0, GKFRAGMENT_INF);
+
+  while (fs->next(&fr)) {
+    CIFragT   *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, fr.gkFragment_getReadIID());
+
+    if (cifrag->mate_iid > 0) {
+      //  Mate already set, do not modify the CIFragT.
+      nAlreadySet++;
+      continue;
+    }
+
+    if (fr.gkFragment_getMateIID() == 0) {
+      //  Not mated, do not modify the CIFragT.
+      nNotMated++;
+      continue;
+    }
+
+    nAdded++;
+
+    assert(cifrag->read_iid == fr.gkFragment_getReadIID());
+
+    cifrag->mate_iid                              = fr.gkFragment_getMateIID();
+    cifrag->dist                                  = fr.gkFragment_getLibraryIID();
+
+    cifrag->flags.bits.hasInternalOnlyCILinks     = FALSE;
+    cifrag->flags.bits.hasInternalOnlyContigLinks = FALSE;
+
+    cifrag->flags.bits.innieMate                  = (fr.gkFragment_getOrientation() == AS_READ_ORIENT_INNIE);
+    cifrag->flags.bits.hasMate                    = 1;
+
+    cifrag->flags.bits.edgeStatus                 = UNKNOWN_EDGE_STATUS;
+
+    //  Set in ComputeMatePairDetailedStatus() appears unused though
+    cifrag->flags.bits.mateDetail                 = UNASSIGNED_MATE;
+  }
+
+  delete fs;
+
+  fprintf(stderr, "Reading fragments - just for mate pairs - "F_U32" reads already mated; "F_U32" reads unmated; "F_U32" reads with new mate added.\n",
+          nAlreadySet, nNotMated, nAdded);
+
+  //  Decide if this unitig is a potential rock or stone (note, uses cid mark just set)
+
+  for (int32 i=0; i<ScaffoldGraph->tigStore->numUnitigs(); i++) {
+    MultiAlignT   *uma = ScaffoldGraph->tigStore->loadMultiAlign(i, TRUE);
+
+    if (uma == NULL)
+      continue;
+
+    uint32  numExternMates = 0;
+
+    for(int32 cfr=0; cfr<GetNumIntMultiPoss(uma->f_list); cfr++){
+      IntMultiPos *imp    = GetIntMultiPos(uma->f_list, cfr);
+      CIFragT     *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, imp->ident);
+
+      if (cifrag->flags.bits.hasMate == false)
+        continue;
+
+      CIFragT     *mifrag = GetCIFragT(ScaffoldGraph->CIFrags, cifrag->mate_iid);
+
+      if (cifrag->cid != mifrag->cid)
+        numExternMates++;
+    }
+
+    NodeCGW_T *CI = GetGraphNode(ScaffoldGraph->CIGraph, uma->maID);
+
+    if        (numExternMates == 0) {
+      CI->flags.bits.isPotentialRock  = FALSE;
+      CI->flags.bits.isPotentialStone = TRUE;
+      
+    } else if (numExternMates == 1) {
+      CI->flags.bits.isPotentialRock  = FALSE;
+      CI->flags.bits.isPotentialStone = TRUE;
+
+    } else {
+      CI->flags.bits.isPotentialRock  = TRUE;
+      CI->flags.bits.isPotentialStone = TRUE;
+    }
+  }
+}
+
 
 void
 ProcessInput(int optind, int argc, char *argv[]){

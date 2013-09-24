@@ -151,6 +151,7 @@ main(int argc, char **argv) {
   char  *restartFromLogical    = "ckp00-NUL";
 
   bool   recomputeLeastSquaresOnLoad = false;
+  bool   reloadMates                 = false;
 
   int    doResolveSurrogates               = 1;      //  resolveSurrogates
   int    placeAllFragsInSinglePlacedSurros = 0;      //  resolveSurrogates
@@ -297,6 +298,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-recomputegaps") == 0) {
       recomputeLeastSquaresOnLoad = true;
 
+    } else if (strcmp(argv[arg], "-reloadmates") == 0) {
+      reloadMates = true;
+
     } else if ((argv[arg][0] != '-') && (firstFileArg == 0)) {
       firstFileArg = arg;
       arg = argc;
@@ -360,6 +364,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "                            missing mates\n");
     fprintf(stderr, "   -minmergeweight <w>    Only use weight w or better edges for merging scaffolds.\n");
     fprintf(stderr, "   -recomputegaps         if loading a checkpoint, recompute gaps, merging contigs and splitting low weight scaffolds.\n");
+    fprintf(stderr, "   -reloadmates           If loading a checkpoint, also load any new mates from gkpStore.\n");
     fprintf(stderr, "   -U                     after inserting rocks/stones try shifting contig positions back to their original location\n");
     fprintf(stderr, "                            when computing overlaps to see if they overlap with the rock/stone and allow them to merge\n");
     fprintf(stderr, "                            if they do\n");
@@ -455,6 +460,9 @@ main(int argc, char **argv) {
     CheckpointScaffoldGraph(ckpNames[CHECKPOINT_AFTER_EDGE_BUILDING], "after building edges");
   } else {
     LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix,restartFromCheckpoint, TRUE);
+
+    if (ReloadMates)
+      ReloadMatesFromGatekeeper();
 
     //  Dump stats on the loaded checkpoint
     //GeneratePlacedContigGraphStats(tmpBuffer,0);

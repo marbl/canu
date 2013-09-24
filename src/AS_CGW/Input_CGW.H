@@ -26,6 +26,8 @@ static const char *rcsid_INPUT_CGW_H = "$Id$";
 
 void ProcessInput(int optind, int argc, char *argv[]);
 
+void ReloadMatesFromGatekeeper(void);
+
 void LoadClosureReadData(void);
 
 #endif
