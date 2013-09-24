@@ -461,7 +461,7 @@ main(int argc, char **argv) {
   } else {
     LoadScaffoldGraphFromCheckpoint(GlobalData->outputPrefix,restartFromCheckpoint, TRUE);
 
-    if (ReloadMates)
+    if (reloadMates)
       ReloadMatesFromGatekeeper();
 
     //  Dump stats on the loaded checkpoint
