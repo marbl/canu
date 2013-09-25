@@ -61,36 +61,36 @@ static const char *rcsid = "$Id$";
 
 #define WORD unsigned long  /* Bit vector unit */
 
-static int WordSize;        /* Size in bits of vector size */
+static int64   WordSize;        /* Size in bits of vector size */
 
-static int  WorkLimit = 0;  /* Current size of 2 arrays below */
-static int *HorzDelta;      /* Holds horizontal deltas during d.p. */
-static int *DistThresh;     /* Difference threshold values */
-static float *DPMatrix;     /* Holds ratio values during branch point d.p. */
+static int64   WorkLimit = 0;  /* Current size of 2 arrays below */
+static int32  *HorzDelta;      /* Holds horizontal deltas during d.p. */
+static int32  *DistThresh;     /* Difference threshold values */
+static float  *DPMatrix;     /* Holds ratio values during branch point d.p. */
 
 /* Probability that there are d or more errors in an alignment of
    length n (sum of substring lengths) over sequences at error rate e */
 
-static double BinomialProb(int n, int d, double e)
-{ static int     Nlast = -1, Dlast = -1; /* Last n- and d-values */
+static double BinomialProb(int64 n, int64 d, double e)
+{ static int64   Nlast = -1, Dlast = -1; /* Last n- and d-values */
   static double  Slast, Elast = -1.;     /* Last answer and e-value */
   static double  LogE, LogC;          /* log e and log (1-e) of last e-value */
   static double *LogTable;            /* LogTable[i] = log(i!) */
-  static int     LogMax = -1;         /* Max index for current LogTable */
+  static int64   LogMax = -1;         /* Max index for current LogTable */
 
   if (d == 0) return (1.);
 
   if (e < 1.e-50) return (0.);
 
   if (n > LogMax)    /* Need a bigger LogTable */
-    { int     max;
+    { int64     max;
       double *newp;
 				/* Re-allocate */
-      max = (int)((float)n*1.2 + 2048);
+      max = (int64)((float)n*1.2 + 2048);
       //fprintf(stderr,"DP_COMPARE (BinomialProb): reallocing " F_SIZE_T " bytes\n",(max+1)*sizeof(double));
       newp = (double *) safe_realloc(LogTable,(max+1)*sizeof(double));
 
-      { int k;			/* Fill in new part */
+      { int64 k;			/* Fill in new part */
 
         if (LogMax < 0)
           newp[LogMax = 0] = 0.;
@@ -119,7 +119,7 @@ static double BinomialProb(int n, int d, double e)
     }
 
   { double sum;
-    int    k;
+    int64  k;
 
     if (n < Nlast || d < Dlast || d < (n-Nlast) + (d-Dlast))
       { sum = 0.;                /* compute from scratch */
@@ -145,28 +145,28 @@ static double BinomialProb(int n, int d, double e)
   return (1. - Slast);
 }
 
-static int Space_n_Tables(int max, double erate, double thresh)
+static int64 Space_n_Tables(int64 max, double erate, double thresh)
 { static double LastErate, LastThresh;
-  static int    Firstime = 1;
+  static int64  Firstime = 1;
 
   if (Firstime)  /* Setup bitvector parameters if first call. */
     WordSize = 8*sizeof(WORD);
 
-  { int *newd;  /* If new maximum length, update working structures:
+  { int32 *newd;  /* If new maximum length, update working structures:
                        DistThresh, HorzDelta, BoundPos, BoundVal
                    and compute new DistThresh entries (if not about
                    to be computed below.                             */
     if (max > WorkLimit)
       {
-	max  = (int)(1.2*max);
+        max  = (int64)(1.2*max);
         max  = ((max + 2048)/WordSize + 1)*WordSize;
-	BinomialProb(2*max,1,.1);
-        //fprintf(stderr,"DP_COMPARE (Space_n_Tables): reallocing " F_SIZE_T " bytes\n",(2*max+2)*sizeof(int)+(max+1)*sizeof(float));
-        newd = (int *) safe_realloc(DistThresh,
-                            (2*max+2)*sizeof(int) + (max+1)*sizeof(float));
+        BinomialProb(2*max,1,.1);
+        //fprintf(stderr,"DP_COMPARE (Space_n_Tables): reallocing " F_SIZE_T " bytes\n",(2*max+2)*sizeof(int32)+(max+1)*sizeof(float));
+        newd = (int32 *) safe_realloc(DistThresh,
+                                    (2*max+2)*sizeof(int32) + (max+1)*sizeof(float));
 
         if (!Firstime && LastErate == erate && LastThresh == thresh)
-          { int n, d;
+          { int64 n, d;
             double p;
 
             d = newd[WorkLimit];
@@ -212,7 +212,7 @@ static int Space_n_Tables(int max, double erate, double thresh)
      called, then recompute new probability threshold table.           */
 
   if (Firstime || LastErate != erate || LastThresh != thresh)
-    { int n, d;
+    { int64 n, d;
       double p;
 
       LastErate  = erate;
@@ -256,24 +256,25 @@ static int Space_n_Tables(int max, double erate, double thresh)
    boundary position *spnt.  Return at *spnt the diagonal at which the
    alignment starts.                                                   */
 
-int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
-{ int diag, wpos, level;
-  int fcell, infinity;
+int32 *AS_ALN_OKNAlign(char *a, int64 alen, char *b, int64 blen, int32 *spnt, int64 diff)
+{ int64 diag, wpos, level;
+  int64 fcell, infinity;
 
-  static int    Wtop = -1;
-  static int   *Wave;
-  static int   *TraceBuffer;
+  static int64  Wtop = -1;
+  static int32 *Wave;
+  static int32 *TraceBuffer;
 
   if (diff >= Wtop)        /* Space for diff wave? */
-    { int max, del, *newp;
+    { int64 max, del;
+      int32 *newp;
 
-      max = (int)(1.2*diff) + 50;
+      max = (int64)(1.2*diff) + 50;
       del = (max+5)*(max+1);
-      //fprintf(stderr,"DP_COMPARE (AS_ALN_OKNAlign): reallocing " F_SIZE_T " bytes\n",del*sizeof(int)+(max+1)*sizeof(int));
-      newp = (int *) safe_realloc(Wave,del*sizeof(int) + (max+1)*sizeof(int));
+      //fprintf(stderr,"DP_COMPARE (AS_ALN_OKNAlign): reallocing " F_SIZE_T " bytes\n",del*sizeof(int32)+(max+1)*sizeof(int32));
+      newp = (int32 *) safe_realloc(Wave,del*sizeof(int32) + (max+1)*sizeof(int32));
       Wtop = max-1;
       Wave = newp;
-      TraceBuffer = (int *) (Wave + del);
+      TraceBuffer = (int32 *) (Wave + del);
     }
 
   diag     = (alen-blen) + (*spnt); /* Finish diagonal. */
@@ -281,7 +282,7 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
 
   /* Process 0-wave. */
 
-  { int i, j;
+  { int64 i, j;
 
     if (diff == 0) goto zeroscript;
 
@@ -303,9 +304,9 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
     Wave[3] = Wave[4] = infinity;
 
 #ifdef WAVE_DEBUG
-    { int k;
+    {
       fprintf(stderr, "\nLevel %2d:%*s",0,4*diff,"");
-      for (k = 0; k < 5; k++)
+      for (int64 k = 0; k < 5; k++)
         fprintf(stderr, " %3d",Wave[k]);
       fprintf(stderr, "\n");
     }
@@ -315,7 +316,7 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
   /* Compute waves 1 through d-1 do, each wave has
      two boundary cells at each of its ends.       */
 
-  { int m, n, k;
+  { int64 m, n, k;
 
     m = 5;
     n = 0;
@@ -328,7 +329,7 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
 #endif
         n += 1;
         for (k = -level; k <= level; k++)
-          { int i, j;
+          { int64 i, j;
 
             j = Wave[n] - 1;
             if ((i = Wave[n-1]-1) < j)
@@ -376,13 +377,13 @@ madeit:
   /* Trace back through wave structure and record
      trace of the alignment traced.                */
 
-  { int d, n, k, t;
+  { int64 d, n, k, t;
 
     t = 0;
     n = fcell;
     k = wpos;
     for (d = level-1; d >= 0; d--)
-      { int i, j, m;
+      { int64 i, j, m;
 
         j = Wave[m=n]-1;
         if ((i = Wave[n-1]-1) < j)
@@ -431,24 +432,24 @@ zeroscript:
    that is space inefficient, takes O(kn) space as opposed to the O(n) that
    is possible.                                                             */
 
-int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
-                      int *bpnt, int *epnt, int diff)
-{ int diag, jcrd;
-  int infinity;
-  int bwide, atop;
-  int *C, *I, *TraceBuffer, *TraceTwo;
-  int best, bdag = 0;
+int32 *AS_ALN_OKNAffine(char *a, int64 alen, char *b, int64 blen,
+                      int32 *bpnt, int32 *epnt, int64 diff)
+{ int64  diag, jcrd;
+  int64  infinity;
+  int64  bwide, atop;
+  int32 *C, *I, *TraceBuffer, *TraceTwo;
+  int64  best, bdag = 0;
 
-  static int    Amax  = -1;
-  static int   *Afarr = NULL;
+  static int64  Amax  = -1;
+  static int32 *Afarr = NULL;
 
   bwide = 2*diff + 1;
   if ((blen+1)*(2*bwide+2) >= Amax)
     {
       Amax = (blen+501)*(2*bwide+202);
-      Afarr = (int *) safe_realloc(Afarr,Amax*sizeof(int));
+      Afarr = (int32 *) safe_realloc(Afarr,Amax*sizeof(int32));
 #ifdef AFFINE_DEBUG
-      fprintf(stderr,"Affine align allocating %d bytes\n",max*2*sizeof(int));
+      fprintf(stderr,"Affine align allocating %d bytes\n",max*2*sizeof(int32));
 #endif
     }
   atop = (blen+1)*bwide;
@@ -458,7 +459,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
   diag     = (alen-blen) + (*epnt); /* Finish diagonal. */
   infinity = blen*(GAPCOST+SUBCOST+1)+2;
 
-  { int i, k, m;
+  { int64 i, k, m;
 
     if ((*epnt) <= 0) /* (i,j) = initial boundary pt. */
       { jcrd = blen;
@@ -496,8 +497,8 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
 
   best = infinity;
   for (jcrd--; jcrd >= 0; jcrd--)
-    { int i, m, k, x;
-      int deljk = 0;
+    { int64 i, m, k, x;
+      int64 deljk = 0;
 
       i = diag + jcrd;
       if (i+diff < 0) break;
@@ -587,7 +588,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
     }
 
   if (jcrd < 0)
-    { int m, k;
+    { int64 m, k;
 
       C = Afarr + diff;
       for (k = diff; k >= -diff; k--)
@@ -605,8 +606,8 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
 #define D_STATE 1
 #define I_STATE 2
 
-  { int i, k, s, x;
-    int deljk = 0, top;
+  { int64 i, k, s, x;
+    int64 deljk = 0, top;
 
     if (bdag >= 0)
       jcrd = 0;
@@ -666,12 +667,12 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
 #endif
   }
 
-  { int i, j;
-    int score, mxlev, mnlev;
-    int mxi, mxj;
-    int mni = 0, mnj = 0, mnp = 0;
-    int top = 0;
-    int c, p;       /* Reparse alignment */
+  { int64 i, j;
+    int64 score, mxlev, mnlev;
+    int64 mxi, mxj;
+    int64 mni = 0, mnj = 0, mnp = 0;
+    int64 top = 0;
+    int64 c, p;       /* Reparse alignment */
 
 #define UPTICK  1
 #define DWNTICK 1
@@ -696,10 +697,10 @@ reloop:
                 if (score > mxlev)
                   { if (mnlev < mxlev)
                       { if (mni-mxi != 1 || mnj-mxj != 1)
-                          { int k;
-                            for (k = mxi+1; k <= mni; k++)
+                          {
+                            for (int64 k = mxi+1; k <= mni; k++)
                               TraceTwo[top++] = mxj+1;
-                            for (k = mxj+1; k <= mnj; k++)
+                            for (int64 k = mxj+1; k <= mnj; k++)
                               TraceTwo[top++] = -(mni+1);
                           }
                         mxlev = mnlev = score = 0;
@@ -743,10 +744,10 @@ reloop:
                 if (score > mxlev)
                   { if (mnlev < mxlev)
                       { if (mni-mxi != 1 || mnj-mxj != 1)
-                          { int k;
-                            for (k = mxi+1; k <= mni; k++)
+                          {
+                            for (int64 k = mxi+1; k <= mni; k++)
                               TraceTwo[top++] = mxj+1;
-                            for (k = mxj+1; k <= mnj; k++)
+                            for (int64 k = mxj+1; k <= mnj; k++)
                               TraceTwo[top++] = -(mni+1);
                           }
                         mxlev = mnlev = score = 0;
@@ -794,10 +795,10 @@ reloop:
               if (score > mxlev)
                 { if (mnlev < mxlev)
                     { if (mni-mxi != 1 || mnj-mxj != 1)
-                        { int k;
-                          for (k = mxi+1; k <= mni; k++)
+                        {
+                          for (int64 k = mxi+1; k <= mni; k++)
                             TraceTwo[top++] = mxj+1;
-                          for (k = mxj+1; k <= mnj; k++)
+                          for (int64 k = mxj+1; k <= mnj; k++)
                             TraceTwo[top++] = -(mni+1);
                         }
                       mxlev = mnlev = score = 0;
@@ -829,12 +830,12 @@ reloop:
 
     if (score <= mxlev)
       if (i-mxi != 2 || j-mxj != 2)
-      { int k;
-        for (k = mxi+1; k <= i-1; k++)
-          TraceTwo[top++] = mxj+1;
-        for (k = mxj+1; k <= j-1; k++)
-          TraceTwo[top++] = -(i);
-      }
+        {
+          for (int64 k = mxi+1; k <= i-1; k++)
+            TraceTwo[top++] = mxj+1;
+          for (int64 k = mxj+1; k <= j-1; k++)
+            TraceTwo[top++] = -(i);
+        }
     TraceTwo[top] = 0;
   }
 
@@ -849,18 +850,18 @@ reloop:
    integer pointed at by diff.  Otherwise the impossible position blen
    is returned.                                                          */
 
-static int Boundary(char *a, int alen, char *b, int blen,
-                    int beg, int end, int minlen, int *diff, double ld_ratio)
-{ int lft,  rgt;
-  int lval, rval;
-  int prob_thresh;
-  int boundpos, boundval;
-  int preminpos, preminval;
-  int lastlocalminpos, lastlocalminscore,lastlft;
+static int64 Boundary(char *a, int64 alen, char *b, int64 blen,
+                    int64 beg, int64 end, int64 minlen, int32 *diff, double ld_ratio)
+{ int64 lft,  rgt;
+  int64 lval, rval;
+  int64 prob_thresh;
+  int64 boundpos, boundval;
+  int64 preminpos, preminval;
+  int64 lastlocalminpos, lastlocalminscore,lastlft;
 
-  static int Firstime = 1;
-  static WORD bvect[256];	/* bvect[a] is equal-bit vector of symbol a */
-  static int  slist[256], stop; /* slist[0..stop-1] == symbols in current
+  static int64  Firstime = 1;
+  static WORD   bvect[256];	/* bvect[a] is equal-bit vector of symbol a */
+  static int64  slist[256], stop; /* slist[0..stop-1] == symbols in current
                                    segment of b being compared.           */
 #ifdef DP_DEBUG
   fprintf(stderr, "\nBoundary (%d,%d):\n",beg,end);
@@ -869,7 +870,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
   if (end > alen) end = alen;
 
   if (Firstime)
-    { int i;
+    { int64 i;
 
       Firstime = 0;	/* Setup empty bvect array if first ever call */
       for (i = 0; i < 256; i++)
@@ -877,7 +878,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
       stop = 0;
     }
 
-  { int i;
+  { int64 i;
 
     lft  = beg;		/* Setup horizontal delta on a-boundary */
     rgt  = end;
@@ -898,33 +899,33 @@ static int Boundary(char *a, int alen, char *b, int blen,
     lastlft=0;
   }
 
-  { int j, bmax;	/* For every WordSize'th row do */
+  { int64 j, bmax;	/* For every WordSize'th row do */
 
     bmax = WordSize*((blen-1)/WordSize+1);
     for (j = 0; j < blen; j += WordSize)
       { WORD P, M, ebit = 0;
-        int  row, bval;
+        int64 row, bval;
 
         { WORD One; /* Compute list of chars in b[j+1..MAX(j+WordSize,blen)] */
-          int i;    /* and non-zero bvect[a] for each one.                   */
+          int64 i;    /* and non-zero bvect[a] for each one.                   */
 
           row = j + WordSize;
           if (row > blen) row = blen;
           One = 1;
           for (i = j+1; i <= row; i++)
-            { if (bvect[(int)(b[i])] == 0)
+            { if (bvect[(int32)b[i]] == 0)
                 { slist[stop++] = b[i];
-                  bvect[(int)(b[i])] = One;
+                  bvect[(int32)b[i]] = One;
                 }
               else
-                bvect[(int)(b[i])] |= One;
+                bvect[(int32)b[i]] |= One;
               ebit = One;
               One <<= 1;
             }
         }
 
 #ifdef DP_DEBUG
-        { int i, k;
+        { int64 i, k;
 
           fprintf(stderr, "\nSUBSEGMENT A(%d,%d) x B(%d,%d)\n",
                  lft,rgt,j+1,row);
@@ -940,7 +941,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
         }
 #endif
 
-        { int i, r, dj;          /* Must compute WordSize additional columns */
+        { int64 i, r, dj;          /* Must compute WordSize additional columns */
                                  /* beyond right border rgt.                 */
           dj = DistThresh[row];
           r = rgt + WordSize + (dj - prob_thresh);
@@ -953,7 +954,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
           prob_thresh = dj;
         }
 
-        { int  i, h;            /* Do d.p. accross blocks to get deltas at  */
+        { int64  i, h;            /* Do d.p. accross blocks to get deltas at  */
           WORD U, Y, X, mc, pc; /*   next level using bit-vector approach.  */
                                 /*   of Myers (JACM, 1999)                  */
           M = 0;
@@ -973,7 +974,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
               pc = (h > 0);
               mc = (h < 0);
 
-              U  = bvect[(int)(a[i])];
+              U  = bvect[(int32)a[i]];
               Y  = U | mc;
               X  = (((Y & P) + P) ^ P) | Y;
               U |= M;
@@ -997,7 +998,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 
 #ifdef DP_DEBUG
               { WORD p, m;
-                int  k, d;
+                int64  k, d;
 
                 p = P;
                 m = M;
@@ -1030,7 +1031,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
         }
 
         if (rgt == alen) /* Check values at right b-boundary */
-          { int i, p;
+          { int64 i, p;
 
             p = bval;
 #ifdef BOUND_DEBUG
@@ -1121,7 +1122,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
 		    // if better than best so far
 
 #ifdef BOUND_DEBUG
-		    fprintf(stderr, " [%d >?= %d (%f)] ",(int)((i-boundpos)*ld_ratio + boundval),p,p/(double)(i));
+		    fprintf(stderr, " [%d >?= %d (%f)] ",(int32)((i-boundpos)*ld_ratio + boundval),p,p/(double)(i));
 #endif
 
 		    if ((i-boundpos)*ld_ratio + boundval >= p) {
@@ -1220,15 +1221,15 @@ static int Boundary(char *a, int alen, char *b, int blen,
     boundpos = blen - boundpos;
 
     if (j >= blen && lft <= rgt)  /* Reached a-boundary: check values there */
-      { int i, v, p;
+      { int64 i, v, p;
 
-        v = boundval + (int)(((double)boundpos)*ld_ratio);
+        v = boundval + (int32)(((double)boundpos)*ld_ratio);
 #ifdef BOUND_DEBUG
 	fprintf(stderr, "v = %d = %d + [ %d = %d * %f\n",
-	       v,boundval,(int)(((double)boundpos)*ld_ratio),
+	       v,boundval,(int32)(((double)boundpos)*ld_ratio),
 	       boundpos,ld_ratio);
 #endif
-        p = (int)rval;
+        p = (int32)rval;
         if (lft < minlen) lft = minlen;
         for (i = rgt; i >= lft; i--)
           {
@@ -1320,9 +1321,9 @@ DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
               int opposite,
               double erate, double thresh, int minlen,
               CompareOptions what, int *where) {
-  char *aseq, *bseq;
-  int  ahang, bhang;
-  int  *trace;
+  char  *aseq, *bseq;
+  int64  ahang, bhang;
+  int32   *trace;
   ALNoverlap *rawOverlap;
   static ALNoverlapFull QVBuffer;  //Note: return is static storage--do not free
 
@@ -1424,9 +1425,9 @@ ALNoverlap *DP_Compare(char *aseq, char *bseq,
                        int opposite,
                        double erate, double thresh, int minlen,
                        CompareOptions what)
-{ int   alen,  blen;
-  int   pos1,  pos2;
-  int   dif1,  dif2;
+{ int64   alen,  blen;
+  int32   pos1,  pos2;  //  MUST be 32 bit, passed as pointer to function
+  int32   dif1,  dif2;  //  MUST be 32 bit, passed as pointer to function
 
   static ALNoverlap OVL;
 
@@ -1456,7 +1457,7 @@ ALNoverlap *DP_Compare(char *aseq, char *bseq,
   if (end > alen) end = alen;
   if (beg < -blen) beg = -blen;
 
-  { int max;
+  { int64 max;
 
     if (alen > blen)
       max = alen;
@@ -1468,7 +1469,7 @@ ALNoverlap *DP_Compare(char *aseq, char *bseq,
   if (opposite)                 /* Compare in opposite orientation. */
     reverseComplementSequence(bseq+1, blen);
 
-  { int mid;
+  { int64 mid;
 
     /* Compute critical overlap finish pt. from a-boundary (if any) */
 
@@ -1503,7 +1504,7 @@ ALNoverlap *DP_Compare(char *aseq, char *bseq,
      Compute the better based on the slope rule and record the best
      in (pos1,dif1).                                                  */
 
-  { int which, olen1, olen2;
+  { int64 which, olen1, olen2;
 
     if (pos1 >= blen)
       { if (pos2 <= -alen)
@@ -1584,12 +1585,12 @@ ALNoverlap *DP_Compare(char *aseq, char *bseq,
    becomes empty.
 */
 
-static double BPSuffixScore(char *a, int alen, char *b, int blen,
-                            int imax, int jmax, double bpmax)
+static double BPSuffixScore(char *a, int64 alen, char *b, int64 blen,
+                            int64 imax, int64 jmax, double bpmax)
 { float *dc;
-  int    lft, rgt;
+  int64  lft, rgt;
   double bprat, bprem;
-  int    longest;
+  int64  longest;
 
   dc = DPMatrix;         /* Name the row space something short */
 
@@ -1600,14 +1601,13 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
      invariant that any cells not in the [lft,rgt] active interval are
      zero or less.                                                     */
 
-  { int i;
-    for (i = 0; i <= alen; i++)
-      dc[i] = 0.;
-  }
+  for (int64 i = 0; i <= alen; i++)
+    dc[i] = 0.;
 
   /* Compute the active part of the first row */
 
-  { int i;
+  {
+    int64 i;
 
     dc[imax] = bpmax;
     lft = imax;
@@ -1626,7 +1626,7 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
   }
 
 #ifdef BP_TAILS
-  { int i;
+  { int64 i;
 
     fprintf(stderr, "\nTAIL SEGMENTS A(%d,%d) x B(%d,%d)\n",imax,alen,jmax,blen);
     fprintf(stderr, "           ");
@@ -1654,11 +1654,11 @@ static double BPSuffixScore(char *a, int alen, char *b, int blen,
   /* Compute active parts of all subsequent rows till reach last row
      or active region becomes empty                                  */
 
-  { int i, j, len;
+  { int64 i, j, len;
 
     for (j = jmax+1; j <= blen; j++)
       { double c, e;
-        int    posval = 0;
+        int32    posval = 0;
 
         /* Compute value in leftmost active column in new row */
 
@@ -1812,7 +1812,7 @@ CNS_PrintAlign(char   *aO,
 
   /* Output columns of alignment til reach trace end */
 
-  int p=0, c=0;
+  int32 p=0, c=0;
 
   while ((c = trace[p++]) != 0) {
     if (c < 0) {
@@ -1845,7 +1845,7 @@ CNS_PrintAlign(char   *aO,
 
   /* Output remaining column including unaligned suffix */
 
-  int x=0, y=1, s=0;
+  int32 x=0, y=1, s=0;
 
   while ((x = a[i++]) != 0) {
     if ((y = b[j++]) != 0) {
@@ -1945,7 +1945,7 @@ CopyALNoverlap(ALNoverlap *ovl) {
   while (ovl->trace[len] != 0)
     len += 1;
 
-  new_ovl->trace = (int *) safe_malloc(sizeof(int)*(len+1));
+  new_ovl->trace = (int32 *) safe_malloc(sizeof(int32)*(len+1));
 
   for (int32 i = 0; i <= len; i++)
     new_ovl->trace[i] = ovl->trace[i];

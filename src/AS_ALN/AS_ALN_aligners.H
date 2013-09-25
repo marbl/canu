@@ -155,7 +155,7 @@ void PrintAlign(FILE *file, int prefix, int suffix, char *a, char *b, int *trace
    a and b (of lengths alen and blen), that begins at finishing
    boundary position *spnt.  Return at *spnt the diagonal at which the
    alignment starts.                                                   */
-int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff);
+int32 *AS_ALN_OKNAlign(char *a, int64 alen, char *b, int64 blen, int32 *spnt, int64 diff);
 
 
 /* O(kn) affine gap cost alignment algorithm.  Find best alignment between
@@ -164,9 +164,7 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff);
    *spnt the diagonal at which the alignment starts.  A quick implementation
    that is space inefficient, takes O(kn) space as opposed to the O(n) that
    is possible.                                                             */
-int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
-                      int *bpnt, int *epnt, int diff);
-
+int32 *AS_ALN_OKNAffine(char *a, int64 alen, char *b, int64 blen, int32 *bpnt, int32 *epnt, int64 diff); 
 
 
 /* fix_overlapping_pieces():
