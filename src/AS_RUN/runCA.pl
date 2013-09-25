@@ -605,6 +605,9 @@ sub setDefaults () {
     $global{"cgwUseUnitigOverlaps"}        = 0;
     $synops{"cgwUseUnitigOverlaps"}        = "Use unused best overlaps (from BOG) in scaffolder (EXPERIMENTAL)";
 
+    $global{"cgwReloadMates"}              = 0;
+    $synops{"cgwReloadMates"}              = "Load new mate pairs from gkpStore after ckp is loaded (EXPERIMENTAL)";
+
     $global{"astatLowBound"}               = 1;
     $synops{"astatLowBound"}               = "EXPERT!";
 
@@ -4996,6 +4999,7 @@ sub CGW ($$$$$$) {
     $cmd .= "  -F \\\n"                                  if (getGlobal("toggleDoNotDemote") != 0);
     $cmd .= "  -B $B \\\n";
     $cmd .= "  -u $wrk/4-unitigger/$asm.unused.ovl \\\n" if (getGlobal("cgwUseUnitigOverlaps") != 0);
+    $cmd .= "  -reloadmates \\\n"                        if (getGlobal("cgwReloadMates") != 0);
     $cmd .= "  -shatter $shatterLevel \\\n";
     $cmd .= "  -missingMate $missingMate \\\n";
     $cmd .= "  -m $sampleSize \\\n";
