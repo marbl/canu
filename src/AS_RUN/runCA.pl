@@ -4940,7 +4940,6 @@ sub CGW ($$$$$$) {
 
         open(F, "< $wrk/$thisDir/$asm.timing");
         while (<F>) {
-            print STDERR $_;
             if (m/Writing.*ckp.(\d+)\s\(logical\s(.+)\)/) {
                 $restartckp = "-R $1 -N $2";
             }
