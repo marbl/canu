@@ -1084,23 +1084,23 @@ static void Complement(char *seq, int len)
 
 static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segment *seg)
 {
-  char aseg[100000],bseg[100000];
+  char *aseg,*bseg;
   char *aptr,*bptr;
-  int spnt=0;
+  int32 spnt=0;
 
-  int *trace;
-  int revA=0,revB=0;
-  int alen,blen;
+  int32 *trace;
+  int32 revA=0,revB=0;
+  int64 alen,blen;
 
   /*N.B. bseq[bepos] is *NOT* to be included in the segment!*/
   if(seg->abpos < seg->aepos){
     alen=seg->aepos - seg->abpos;
-    assert(alen<100000);
+    aseg = (char *)safe_malloc(sizeof(char) * (alen + 1));
     strncpy(aseg,A+seg->abpos,alen);
     aseg[alen]='\0';
   } else {
     alen=seg->abpos - seg->aepos;
-    assert(alen<100000);
+    aseg = (char *)safe_malloc(sizeof(char) * (alen + 1));
     strncpy(aseg,A+seg->aepos,alen);
     aseg[alen]='\0';
     revA=1;
@@ -1108,12 +1108,12 @@ static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segmen
 
   if(seg->bbpos < seg->bepos){
     blen=seg->bepos - seg->bbpos;
-    assert(blen<100000);
+    bseg = (char *)safe_malloc(sizeof(char) * (blen + 1));
     strncpy(bseg,B+seg->bbpos,blen);
     bseg[blen]='\0';
   } else {
     blen=seg->bbpos - seg->bepos;
-    assert(blen<100000);
+    bseg = (char *)safe_malloc(sizeof(char) * (blen + 1));
     strncpy(bseg,B+seg->bepos,blen);
     bseg[blen]='\0';
     revB=1;
@@ -1128,6 +1128,9 @@ static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segmen
   trace = AS_ALN_OKNAlign(aptr, alen, bptr, blen, &spnt, MAX(10,blen/50));
 
   PrintAlign(stderr,0,0,aseg,bseg,trace);
+
+  safe_free(aseg);
+  safe_free(bseg);
 }
 
 void Print_Local_Overlap_withAlign(FILE *file, Local_Overlap *desc,char *a,char *b)
