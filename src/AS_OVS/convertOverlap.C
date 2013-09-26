@@ -39,12 +39,12 @@ const char *mainid = "$Id$";
 
 
 void
-toBINARY(int format) {
+toBINARY(char *out, int format) {
   char         *ptrs[16];
   char          line[1024];
   OVSoverlap    olap;
 
-  BinaryOverlapFile  *output = AS_OVS_createBinaryOverlapFile(NULL, FALSE);
+  BinaryOverlapFile  *output = AS_OVS_createBinaryOverlapFile(out, FALSE);
 
   fgets(line, 1024, stdin);
   while (!feof(stdin)) {
@@ -71,8 +71,8 @@ toBINARY(int format) {
 
 
 void
-toASCII(void) {
-  BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(NULL, FALSE);
+toASCII(char *out) {
+  BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(out, FALSE);
   OVSoverlap          olap;
   char                olapstring[256];
 
@@ -89,6 +89,7 @@ main(int argc, char **argv) {
   int    toB = 0;
   int    toA = 0;
   int    fmt = FORMAT_NONE;
+  char  *out = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -110,6 +111,9 @@ main(int argc, char **argv) {
       toB++;
       fmt = FORMAT_MER;
 
+    } else if (strcmp(argv[arg], "-out") == 0) {
+      out = argv[++arg];
+
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
       err++;
@@ -119,8 +123,9 @@ main(int argc, char **argv) {
   }
 
   if ((err) ||
-      (toA + toB != 1)) {
-    fprintf(stderr, "usage: %s [-a | -ovl | -obt | -mer] < input > output\n", argv[0]);
+      (toA + toB != 1) ||
+      out == NULL) {
+    fprintf(stderr, "usage: %s [-a | -ovl | -obt | -mer] < input -out output\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "MANDATORY:  specify what to convert\n");
     fprintf(stderr, "  -a           convert to ASCII, from a BINARY overlap file.\n");
@@ -137,13 +142,15 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR:  what to do?  Supply exactly one of -a, -ovl, -obt and -mer.\n");
     if (toA + toB > 1)
       fprintf(stderr, "ERROR:  conflicting options.  Supply exactly one of -a, -ovl, -obt and -mer.\n");
+    if (out == NULL)
+      fprintf(stderr, "ERROR:  no output file specified. Supply one with -out <filename>\n");
     exit(1);
   }
 
   if (toA)
-    toASCII();
+    toASCII(out);
   else
-    toBINARY(fmt);
+    toBINARY(out, fmt);
 
   return(0);
 }
