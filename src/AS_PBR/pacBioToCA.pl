@@ -1553,7 +1553,7 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
       print F "      echo SamToCA conversion failed.\n";
       print F "      tail $wrk/temp$libraryname/1-overlapper/\$jobid.java.err && exit\n";
       print F "   fi\n";
-      print F "   \$bin/convertOverlap -ovl < $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovls -out $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovb\n";
+      print F "   \$bin/convertOverlap -ovl -i $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovls -o $wrk/temp$libraryname/1-overlapper/\$bat/\$job.ovb\n";
       close(F);
       chmod 0755, "$wrk/temp$libraryname/1-overlapper/overlap.sh";
       

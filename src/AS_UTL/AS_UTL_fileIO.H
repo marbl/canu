@@ -57,7 +57,6 @@ public:
   bool  isCompressed(void)  {  return(_pipe);  };
 
 private:
-  char   _name[FILENAME_MAX];
   FILE  *_file;
   bool   _pipe;
   bool   _stdi;
@@ -74,7 +73,6 @@ public:
   bool  isCompressed(void)  {  return(_pipe);  };
 
 private:
-  char   _name[FILENAME_MAX];
   FILE  *_file;
   bool   _pipe;
   bool   _stdi;

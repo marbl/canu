@@ -39,15 +39,16 @@ const char *mainid = "$Id$";
 
 
 void
-toBINARY(char *out, int format) {
+toBINARY(char *inf, char *otf, int format) {
   char         *ptrs[16];
   char          line[1024];
   OVSoverlap    olap;
 
-  BinaryOverlapFile  *output = AS_OVS_createBinaryOverlapFile(out, FALSE);
+  compressedFileReader  *input  = new compressedFileReader(inf);
+  BinaryOverlapFile     *output = AS_OVS_createBinaryOverlapFile(otf, FALSE);
 
-  fgets(line, 1024, stdin);
-  while (!feof(stdin)) {
+  fgets(line, 1024, input->file());
+  while (!feof(input->file())) {
     switch (format) {
       case FORMAT_OVL:
         if (AS_OVS_convertOVLdumpToOVSoverlap(line, &olap))
@@ -61,25 +62,28 @@ toBINARY(char *out, int format) {
         break;
     }
 
-    fgets(line, 1024, stdin);
+    fgets(line, 1024, input->file());
   }
 
-
+  delete input;
   AS_OVS_closeBinaryOverlapFile(output);
 }
 
 
 
 void
-toASCII(char *out) {
-  BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(out, FALSE);
+toASCII(char *inf, char *otf) {
   OVSoverlap          olap;
   char                olapstring[256];
 
+  BinaryOverlapFile     *input  = AS_OVS_openBinaryOverlapFile(inf, FALSE);
+  compressedFileWriter  *output = new compressedFileWriter(otf);
+
   while (AS_OVS_readOverlap(input, &olap))
-    fprintf(stdout, "%s\n", AS_OVS_toString(olapstring, olap));
+    fprintf(output->file(), "%s\n", AS_OVS_toString(olapstring, olap));
 
   AS_OVS_closeBinaryOverlapFile(input);
+  delete output;
 }
 
 
@@ -89,7 +93,8 @@ main(int argc, char **argv) {
   int    toB = 0;
   int    toA = 0;
   int    fmt = FORMAT_NONE;
-  char  *out = NULL;
+  char  *inf = NULL;
+  char  *otf = NULL;
 
   argc = AS_configure(argc, argv);
 
@@ -111,8 +116,11 @@ main(int argc, char **argv) {
       toB++;
       fmt = FORMAT_MER;
 
-    } else if (strcmp(argv[arg], "-out") == 0) {
-      out = argv[++arg];
+    } else if (strcmp(argv[arg], "-i") == 0) {
+      inf = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      otf = argv[++arg];
 
     } else {
       fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
@@ -123,15 +131,18 @@ main(int argc, char **argv) {
   }
 
   if ((err) ||
-      (toA + toB != 1) ||
-      out == NULL) {
-    fprintf(stderr, "usage: %s [-a | -ovl | -obt | -mer] < input -out output\n", argv[0]);
+      (toA + toB != 1)) {
+    fprintf(stderr, "usage: %s [-a | -ovl | -obt | -mer] < input > output\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "MANDATORY:  specify what to convert\n");
     fprintf(stderr, "  -a           convert to ASCII, from a BINARY overlap file.\n");
     fprintf(stderr, "  -ovl         convert to BINARY, from an ASCII overlap file.\n");
     fprintf(stderr, "  -obt         convert to BINARY, from an ASCII partial overlap file.\n");
     fprintf(stderr, "  -mer         convert to BINARY, from an ASCII mer overlap file.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "OPTIONAL:  specify input/output files (compressed is allowed)\n");
+    fprintf(stderr, "  -i in        read overlaps from 'in'; default is stdin\n");
+    fprintf(stderr, "  -o out       write overlaps to 'out'; default is stdout\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "ASCII formats are:\n");
     fprintf(stderr, "  OVL:   aIID bIID [I|N] aHang bHang error error_corrected\n");
@@ -142,15 +153,13 @@ main(int argc, char **argv) {
       fprintf(stderr, "ERROR:  what to do?  Supply exactly one of -a, -ovl, -obt and -mer.\n");
     if (toA + toB > 1)
       fprintf(stderr, "ERROR:  conflicting options.  Supply exactly one of -a, -ovl, -obt and -mer.\n");
-    if (out == NULL)
-      fprintf(stderr, "ERROR:  no output file specified. Supply one with -out <filename>\n");
     exit(1);
   }
 
   if (toA)
-    toASCII(out);
+    toASCII(inf, otf);
   else
-    toBINARY(out, fmt);
+    toBINARY(inf, otf, fmt);
 
   return(0);
 }
