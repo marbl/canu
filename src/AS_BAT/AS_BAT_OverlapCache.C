@@ -449,27 +449,37 @@ OverlapCache::filterOverlaps(uint32 maxOVSerate, uint32 no) {
   uint32  SALT_BITS = (64 - AS_READ_MAX_NORMAL_LEN_BITS - AS_OVS_ERRBITS);
   uint64  SALT_MASK = (((uint64)1 << SALT_BITS) - 1);
 
+  memset(_ovsSco, 0, sizeof(uint64) * no);
+
   for (uint32 ii=0; ii<no; ii++) {
+    if ((FI->fragmentLength(_ovs[ii].a_iid) == 0) ||
+        (FI->fragmentLength(_ovs[ii].b_iid) == 0))
+      //  At least one read deleted in the overlap
+      continue;
+
+    if (_ovs[ii].dat.ovl.corr_erate > maxOVSerate)
+      //  Too noisy.
+      continue;
+
     uint32  olen = FI->overlapLength(_ovs[ii].a_iid, _ovs[ii].b_iid, _ovs[ii].dat.ovl.a_hang, _ovs[ii].dat.ovl.b_hang);
 
-    if ((_ovs[ii].dat.ovl.corr_erate <= maxOVSerate) &&
-        (AS_OVERLAP_MIN_LEN <= olen) &&
-        (FI->fragmentLength(_ovs[ii].a_iid) != 0) &&
-        (FI->fragmentLength(_ovs[ii].b_iid) != 0)) {
-      _ovsSco[ii]   = olen;
-      _ovsSco[ii] <<= AS_OVS_ERRBITS;
-      _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
-      _ovsSco[ii] <<= SALT_BITS;
-      _ovsSco[ii]  |= ii & SALT_MASK;
-      ns++;
-    } else {
-      _ovsSco[ii] = 0;
-    }
+    if (olen < AS_OVERLAP_MIN_LEN)
+      //  Too short.
+      continue;
 
-    _ovsTmp[ii] = _ovsSco[ii];
+    //  Just right!
+
+    _ovsSco[ii]   = olen;
+    _ovsSco[ii] <<= AS_OVS_ERRBITS;
+    _ovsSco[ii]  |= (~_ovs[ii].dat.ovl.corr_erate) & ERR_MASK;
+    _ovsSco[ii] <<= SALT_BITS;
+    _ovsSco[ii]  |= ii & SALT_MASK;
+    ns++;
   }
 
-  //  If fewer than the limit, keep them all.  Should we reset ovsSco to be 1?
+  //  If fewer than the limit, keep them all.  Should we reset ovsSco to be 1?  Do we really need ovsTmp?
+
+  memcpy(_ovsTmp, _ovsSco, sizeof(uint64) * no);
 
   if (ns <= _maxPer)
     return(ns);
