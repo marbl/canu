@@ -196,8 +196,9 @@ main(int argc, char **argv) {
       (strcasecmp(technology, "454") != 0) &&
       (strcasecmp(technology, "illumina") != 0) &&
       (strcasecmp(technology, "illumina-long") != 0) &&
-      (strcasecmp(technology, "pacbio") != 0) &&
-      (strcasecmp(technology, "pacbio-long") != 0) &&
+      (strcasecmp(technology, "pacbio-ccs") != 0) &&
+      (strcasecmp(technology, "pacbio-corrected") != 0) &&
+      (strcasecmp(technology, "pacbio-raw") != 0) &&
       (strcasecmp(technology, "none") != 0))
      err++;
   if ((strcasecmp(type, "sanger") != 0) &&
@@ -218,13 +219,14 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -libraryname n     The UID of the library these reads are added to.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -technology p      What instrument were these reads generated on ('illumina' is the default):\n");
-    fprintf(stderr, "                       'none'          -- don't set any features; use -feature to set them manually\n");
-    fprintf(stderr, "                       'sanger'        -- reads from dideoxy sequencers\n");
-    fprintf(stderr, "                       '454'           -- reads from 454 Life Sciences; FLX, Titanium, FLX+\n");
-    fprintf(stderr, "                       'illumina'      -- reads from Illumina; GAIIx, MiSeq, HiSeq; shorter than 160bp\n");
-    fprintf(stderr, "                       'illumina-long' -- reads from Illumina; GAIIx, MiSeq, HiSeq; any length\n");
-    fprintf(stderr, "                       'pacbio'        -- reads from PacBio; Circular Consensus Sequence (CSS)\n");
-    fprintf(stderr, "                       'pacbio-long'   -- reads from PacBio; uncorrected reads\n");
+    fprintf(stderr, "                       'none'               -- don't set any features; use -feature to set them manually\n");
+    fprintf(stderr, "                       'sanger'             -- reads from dideoxy sequencers\n");
+    fprintf(stderr, "                       '454'                -- reads from 454 Life Sciences; FLX, Titanium, FLX+\n");
+    fprintf(stderr, "                       'illumina'           -- reads from Illumina; GAIIx, MiSeq, HiSeq; shorter than 160bp\n");
+    fprintf(stderr, "                       'illumina-long'      -- reads from Illumina; GAIIx, MiSeq, HiSeq; any length\n");
+    fprintf(stderr, "                       'pacbio-ccs'         -- reads from PacBio; Circular Consensus Sequence (CSS)\n");
+    fprintf(stderr, "                       'pacbio-corrected'   -- reads from PacBio; uncorrected reads\n");
+    fprintf(stderr, "                       'pacbio-raw'         -- reads from PacBio; uncorrected reads\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -type t            What type of fastq ('sanger' is the default):\n");
     fprintf(stderr, "                       'sanger'   -- QV's are PHRED, offset=33 '!', NCBI SRA data.\n");
@@ -261,8 +263,9 @@ main(int argc, char **argv) {
     if ((strcasecmp(technology, "sanger") != 0) &&
         (strcasecmp(technology, "454") != 0) &&
         (strcasecmp(technology, "illumina") != 0) &&
-        (strcasecmp(technology, "pacbio") != 0) &&
-        (strcasecmp(technology, "pacbio-long") != 0) &&
+        (strcasecmp(technology, "pacbio-ccs") != 0) &&
+        (strcasecmp(technology, "pacbio-corrected") != 0) &&
+        (strcasecmp(technology, "pacbio-raw") != 0) &&
         (strcasecmp(technology, "none") != 0))
       fprintf(stderr, "ERROR:  Invalid technology '%s' supplied with -technology.\n", technology);
 
