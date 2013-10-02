@@ -1040,7 +1040,7 @@ if (! -e "$wrk/temp$libraryname") {
 $specFile = "$wrk/temp$libraryname/$libraryname.spec";
 
 if (! -e "$wrk/temp$libraryname/$libraryname.frg") {
-   runCommand($wrk, "$CA/fastqToCA -libraryname $libraryname -type sanger -innie -technology pacbio-long -reads " . makeAbsolute($fastqFile) . " > $wrk/temp$libraryname/$libraryname.frg"); 
+   runCommand($wrk, "$CA/fastqToCA -libraryname $libraryname -type sanger -technology none -feature doConsensusCorrection 1 -reads " . makeAbsolute($fastqFile) . " > $wrk/temp$libraryname/$libraryname.frg"); 
 }
 
 # now that were ready, add the frg file info to the command line args
@@ -1867,7 +1867,7 @@ runCommand("$wrk/temp$libraryname", "cp $asm.layout.hist  $wrk/$libraryname.corr
 runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fasta |grep trim |sort -T . -rnk1` > $wrk/$libraryname.fasta");
 runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.qual |grep trim | sort -T . -rnk1` > $wrk/$libraryname.qual");
 runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fastq |grep trim | sort -T . -rnk1` > $wrk/$libraryname.fastq");
-runCommand("$wrk", "$CA/fastqToCA -libraryname $libraryname -technology pacbio -type sanger -reads $wrk/$libraryname.fastq > $wrk/$libraryname.frg");
+runCommand("$wrk", "$CA/fastqToCA -libraryname $libraryname -technology pacbio-corrected -type sanger -reads $wrk/$libraryname.fastq > $wrk/$libraryname.frg");
 
 my $numOutput = `ls $wrk/temp$libraryname/*sge.out* |wc -l`;
 chomp $numOutput;

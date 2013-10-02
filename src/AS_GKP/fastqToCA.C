@@ -389,13 +389,13 @@ main(int argc, char **argv) {
 
     gkl.forceShortReadFormat       = 0;
 
-  } else if (strcasecmp(technology, "pacbio") == 0) {
+  } else if (strcasecmp(technology, "pacbio-ccs") == 0) {
     gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 0;
 
-    gkl.doTrim_initialNone         = 0;
+    gkl.doTrim_initialNone         = 1;
     gkl.doTrim_initialMerBased     = 0;
-    gkl.doTrim_initialFlowBased    = 1;
+    gkl.doTrim_initialFlowBased    = 0;
     gkl.doTrim_initialQualityBased = 0;
 
     gkl.doRemoveDuplicateReads     = 1;
@@ -411,7 +411,29 @@ main(int argc, char **argv) {
    
     gkl.forceShortReadFormat       = 0;
 
-  } else if (strcasecmp(technology, "pacbio-long") == 0) {
+  } else if (strcasecmp(technology, "pacbio-corrected") == 0) {
+    gkl.forceBOGunitigger          = 1;
+    gkl.doNotTrustHomopolymerRuns  = 0;
+
+    gkl.doTrim_initialNone         = 1;
+    gkl.doTrim_initialMerBased     = 0;
+    gkl.doTrim_initialFlowBased    = 0;
+    gkl.doTrim_initialQualityBased = 0;
+
+    gkl.doRemoveDuplicateReads     = 1;
+
+    gkl.doTrim_finalLargestCovered = 1;
+    gkl.doTrim_finalEvidenceBased  = 0;
+
+    gkl.doRemoveSpurReads          = 1;
+    gkl.doRemoveChimericReads      = 1;
+    gkl.doCheckForSubReads         = 0;
+
+    gkl.doConsensusCorrection      = 0;
+    
+    gkl.forceShortReadFormat       = 0;
+
+  } else if (strcasecmp(technology, "pacbio-raw") == 0) {
     gkl.forceBOGunitigger          = 1;
     gkl.doNotTrustHomopolymerRuns  = 0;
 
@@ -422,14 +444,14 @@ main(int argc, char **argv) {
 
     gkl.doRemoveDuplicateReads     = 0;
 
-    gkl.doTrim_finalLargestCovered = 0;
+    gkl.doTrim_finalLargestCovered = 1;
     gkl.doTrim_finalEvidenceBased  = 0;
 
-    gkl.doRemoveSpurReads          = 0;
-    gkl.doRemoveChimericReads      = 0;
-    gkl.doCheckForSubReads         = 0;
+    gkl.doRemoveSpurReads          = 1;
+    gkl.doRemoveChimericReads      = 1;
+    gkl.doCheckForSubReads         = 1;
 
-    gkl.doConsensusCorrection      = 1;
+    gkl.doConsensusCorrection      = 0;
     
     gkl.forceShortReadFormat       = 0;
 
