@@ -1153,7 +1153,7 @@ unitigConsensus::generateConsensus(void) {
   //  done in CGW when loading unitigs (the only place the probability is used) but the code wants
   //  to load sequence and quality for every fragment, and that's too expensive.
   {
-    char **multia = NULL;
+    char   **multia = NULL;
     int32  **id_array = NULL;
 
     int32 depth = MANode2Array(manode, &multia, &id_array,0);
@@ -1161,12 +1161,12 @@ unitigConsensus::generateConsensus(void) {
     ma->data.unitig_microhet_prob = AS_REZ_MP_MicroHet_prob(multia, id_array, gkpStore, frankensteinLen, depth);
 
     for (int32 i=0;i<depth;i++) {
-      safe_free(multia[2*i]);
-      safe_free(multia[2*i+1]);
-      safe_free(id_array[i]);
+      delete [] multia[2*i];
+      delete [] multia[2*i+1];
+      delete [] id_array[i];
     }
-    safe_free(multia);
-    safe_free(id_array);
+    delete [] multia;
+    delete [] id_array;
   }
 }
 
