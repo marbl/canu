@@ -321,10 +321,6 @@ main (int argc, char **argv) {
     //  Now mark the original unitig as deleted.  If we're writing to human output, a little more work
     //  is needed to remove reads first.  The loader notices this and performs the delete.
 
-    if (doUpdate) {
-      tigStore->deleteMultiAlign(maOrig->maID, true);
-    }
-
     if (outputFile) {
       ResetVA_IntMultiPos(maOrig->f_list);
       ResetVA_IntUnitigPos(maOrig->u_list);
@@ -335,7 +331,10 @@ main (int argc, char **argv) {
       DumpMultiAlignForHuman(outputFile, maOrig, true);
     }
 
-    tigStore->unloadMultiAlign(maOrig->maID, true);
+    if (doUpdate)
+      tigStore->deleteMultiAlign(maOrig->maID, true);
+    else
+      tigStore->unloadMultiAlign(maOrig->maID, true);
   }
 
  finish:
