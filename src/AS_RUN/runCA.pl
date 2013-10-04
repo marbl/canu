@@ -475,22 +475,22 @@ sub setDefaults () {
     $synops{"obtFrequentMers"}              = "Do not seed overlaps with these kmers (fasta format)";
 
     $global{"ovlHashLibrary"}               = "0";
-    $synops{"ovlHashLibrary"}               = "Only load hash fragments from specified lib, 0 means all";
+    $synops{"ovlHashLibrary"}               = "For ovl overlaps, only load hash fragments from specified lib, 0 means all";
 
-    $global{"ovlRefLibrary"}                = 0;
-    $synops{"ovlRefLibrary"}                = "Only load ref fragments from specified lib, 0 means all";
+    $global{"ovlRefLibrary"}                = "0";
+    $synops{"ovlRefLibrary"}                = "For ovl overlaps, only load ref fragments from specified lib, 0 means all";
 
     $global{"obtHashLibrary"}               = "0";
-    $synops{"obtHashLibrary"}               = "Only load hash fragments from specified lib, 0 means all";
+    $synops{"obtHashLibrary"}               = "For obt overlaps, only load hash fragments from specified lib, 0 means all";
+
+    $global{"obtRefLibrary"}                = "0";
+    $synops{"obtRefLibrary"}                = "For obt overlaps, only load ref fragments from specified lib, 0 means all";
 
     $global{"obtCheckLibrary"}              = 1;
-    $synops{"obtCheckLibrary"}              = "Check that all libraries are used for overlapping in OBT step";
+    $synops{"obtCheckLibrary"}              = "Check that all libraries are used during obt overlaps";
 
     $global{"ovlCheckLibrary"}              = 1;
-    $synops{"ovlCheckLibrary"}              = "Check that all libraries are used for overlapping in OVL step";
-
-    $global{"obtRefLibrary"}                = 0;
-    $synops{"obtRefLibrary"}                = "Only load ref fragments from specified lib, 0 means all";
+    $synops{"ovlCheckLibrary"}              = "Check that all libraries are used during ovl overlaps";
 
 
     $global{"merCompression"}              = 1;
