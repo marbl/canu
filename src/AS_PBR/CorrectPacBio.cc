@@ -442,17 +442,16 @@ main (int argc, char * argv []) {
 
         // create and open the filtered store
         sprintf(command, "rm -rf %s.paired.ovlStore", thread_globals.prefix);
-        assert(system(command) == 0);
         sprintf(command, "find . \\( -name %s\\*ovb \\) -print > %s.paired.list", thread_globals.prefix, thread_globals.prefix);
-        assert(system(command) == 0);
         sprintf(command, "%soverlapStoreBuild -o %s.paired.ovlStore -g %s -M 8192 -L %s.paired.list", thread_globals.exePath, thread_globals.prefix, gkpStorePath, thread_globals.prefix);
-        assert(system(command) == 0);
-        sprintf(thread_globals.ovlStoreUniqPath, "%s.paired.ovlStore", thread_globals.prefix);
-        fprintf(stderr, "Updated overlap store path to be %s\n", thread_globals.ovlStoreUniqPath);
-
+        if (system(command) == 0) {
+           sprintf(thread_globals.ovlStoreUniqPath, "%s.paired.ovlStore", thread_globals.prefix);
+           fprintf(stderr, "Updated overlap store path to be %s\n", thread_globals.ovlStoreUniqPath);
+        } else {
+           fprintf(stderr, "Could not update overlap store path, using unfiltered mates");
+        }
         // remove intermediate files
         sprintf(command, "rm -rf %s*ovb", thread_globals.prefix);
-        assert(system(command) == 0);
     }
 
     // filter repeat reads out, currently based on coverage pre-mate filtering, should it be post-mate filtering?
