@@ -185,7 +185,8 @@ public:
     fqInput  = new compressedFileReader(fqInputPath);
     fqOutput = new compressedFileWriter(fqOutputPath);
 
-    fqVerify = new compressedFileReader(fqVerifyPath);
+    if (fqVerifyPath)
+      fqVerify = new compressedFileReader(fqVerifyPath);
 
     char fqName[FILENAME_MAX];
 
