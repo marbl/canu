@@ -27,6 +27,65 @@ const char *mainid = "$Id$";
 #include "MultiAlignment_CNS.H"
 #include "MultiAlignment_CNS_private.H"
 
+#include "AS_UTL_decodeRange.H"
+
+
+
+void
+writeToOutFile(char *outName, int32 tigPart, MultiAlignT *ma) {
+  errno = 0;
+
+  FILE *outFile = fopen(outName, "a");
+  if (errno)
+    fprintf(stderr, "ctgcns:  Failed to write contig %d to output file '%s': %s\n",
+            ma->maID, outName, strerror(errno)), exit(1);
+
+  fwrite(&ma->maID, sizeof(int32), 1, outFile);
+  fwrite(&tigPart,  sizeof(int32), 1, outFile);
+
+  SaveMultiAlignTToStream(ma, outFile);
+
+  fclose(outFile);
+}
+
+
+
+void
+importFromFile(char *inName, int32 tigPart) {
+  errno = 0;
+
+  FILE *inFile = fopen(inName, "r");
+  if (errno)
+    fprintf(stderr, "ctgcns:  Failed to open output file '%s' for input: %s\n",
+            inName, strerror(errno)), exit(1);
+
+  int32   maID  = 0;
+  int32   pt    = 0;
+
+  fread(&maID, sizeof(int32), 1, inFile);
+  fread(&pt,   sizeof(int32), 1, inFile);
+
+  while (!feof(inFile)) {
+    MultiAlignT *ma = LoadMultiAlignTFromStream(inFile);
+
+    assert(ma->maID == maID);
+    assert(tigPart  == pt);
+
+    fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments) - importing from load file\n",
+            ma->maID, ma->data.num_unitigs, ma->data.num_frags);
+    tigStore->insertMultiAlign(ma, false, false);
+
+    DeleteMultiAlignT(ma);
+
+    fread(&maID, sizeof(int32), 1, inFile);
+    fread(&pt,   sizeof(int32), 1, inFile);
+  }
+    
+  fclose(inFile);
+}
+
+
+
 int
 main (int argc, char **argv) {
   char   tmpName[FILENAME_MAX] = {0};
@@ -37,14 +96,19 @@ main (int argc, char **argv) {
   int32  tigVers = -1;
   int32  tigPart = -1;
 
-  int32  ctgTest = -1;
-  char  *ctgFile = NULL;
+  int64  ctgBgn = -1;
+  int64  ctgEnd = -1;
+
+  char  *ctgName = NULL;
+  char  *outName = NULL;
+  char  *inName  = NULL;
 
   bool   forceCompute = false;
 
   int32  numFailures = 0;
   int32  numSkipped  = 0;
 
+  bool   useUnitig  = false;
   bool   showResult = false;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
@@ -68,13 +132,21 @@ main (int argc, char **argv) {
       tigPart = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-c") == 0) {
-      ctgTest = atoi(argv[++arg]);
+      AS_UTL_decodeRange(argv[++arg], ctgBgn, ctgEnd);
 
     } else if (strcmp(argv[arg], "-T") == 0) {
-      ctgFile = argv[++arg];
+      ctgName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      outName = argv[++arg];
+    } else if (strcmp(argv[arg], "-I") == 0) {
+      inName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-f") == 0) {
       forceCompute = true;
+
+    } else if (strcmp(argv[arg], "-U") == 0) {
+      useUnitig = true;
 
     } else if (strcmp(argv[arg], "-v") == 0) {
       showResult = true;
@@ -97,10 +169,18 @@ main (int argc, char **argv) {
   }
   if ((err) || (gkpName == NULL) || (tigName == NULL)) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version partition [opts]\n", argv[0]);
-    fprintf(stderr, "    -c id        Compute only contig 'id' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -c b         Compute only contig ID 'b' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -c b-e       Compute only contigs from ID 'b' to ID 'e'\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "    -T file      Test the computation of the contig layout in 'file'\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -f           Recompute contigs that already have a multialignment\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -U           Recycle the unitig consensus for contigs with only a single\n");
+    fprintf(stderr, "                 unitig (EXPERIMENTAL!)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -O file      Don't update tigStore, dump a binary file instead.\n");
+    fprintf(stderr, "    -I file      Import binary file into tigStore\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -v           Show multialigns.\n");
     fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
@@ -111,8 +191,8 @@ main (int argc, char **argv) {
   }
 
   //  Open both stores for read only.
-  gkpStore = new gkStore(gkpName, FALSE, FALSE);
-  tigStore = new MultiAlignStore(tigName, tigVers, 0, tigPart, FALSE, FALSE, FALSE);
+  gkpStore = new gkStore(gkpName, false, false);
+  tigStore = new MultiAlignStore(tigName, tigVers, 0, tigPart, false, false, false);
 
   gkpStore->gkStore_loadPartition(tigPart);
 
@@ -120,18 +200,18 @@ main (int argc, char **argv) {
   uint32 b = 0;
   uint32 e = tigStore->numContigs();
 
-  if (ctgTest != -1) {
-    b = ctgTest;
-    e = ctgTest + 1;
+  if (ctgBgn != -1) {
+    b = ctgBgn;
+    e = ctgEnd + 1;
   }
 
   FORCE_UNITIG_ABUT = 1;
 
-  if (ctgFile != NULL) {
+  if (ctgName != NULL) {
     errno = 0;
-    FILE         *F = fopen(ctgFile, "r");
+    FILE         *F = fopen(ctgName, "r");
     if (errno)
-      fprintf(stderr, "Failed to open input contig file '%s': %s\n", ctgFile, strerror(errno)), exit(1);
+      fprintf(stderr, "Failed to open input contig file '%s': %s\n", ctgName, strerror(errno)), exit(1);
 
     MultiAlignT  *ma       = CreateEmptyMultiAlignT();
     bool          isUnitig = false;
@@ -155,41 +235,83 @@ main (int argc, char **argv) {
   }
 
   //  Reopen for writing, if we have work to do.
-  if (b < e) {
+  if (((inName) || (b < e)) && (outName == NULL)) {
     delete tigStore;
-    tigStore = new MultiAlignStore(tigName, tigVers, 0, tigPart, TRUE, FALSE, TRUE);
+    tigStore = new MultiAlignStore(tigName, tigVers, 0, tigPart, true, false, true);
   }
 
-  //  Now the usual case.  Iterate over all unitigs, compute and update.
-  for (uint32 i=b; i<e; i++) {
-    MultiAlignT  *ma = tigStore->loadMultiAlign(i, FALSE);
+  if (inName) {
+    importFromFile(inName, tigPart);
 
-    if (ma == NULL) {
+    b = e = 0;
+  }
+
+  //  Now the usual case.  Iterate over all contigs, compute and update.
+  for (uint32 i=b; i<e; i++) {
+    MultiAlignT  *cma = tigStore->loadMultiAlign(i, false);
+
+    if (cma == NULL) {
       //  Not in our partition, or deleted.
       continue;
     }
 
-    bool  exists = (ma->consensus != NULL) && (GetNumchars(ma->consensus) > 1);
+    bool  exists = (cma->consensus != NULL) && (GetNumchars(cma->consensus) > 1);
 
     if ((forceCompute == false) && (exists == true)) {
       //  Already finished contig consensus.
       fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments) - already computed, skipped\n",
-              ma->maID, ma->data.num_unitigs, ma->data.num_frags);
+              cma->maID, cma->data.num_unitigs, cma->data.num_frags);
+
       numSkipped++;
+
+      tigStore->unloadMultiAlign(cma->maID, false);
+
+      continue;
+    }
+
+    int32         uID = GetIntUnitigPos(cma->u_list, 0)->ident;
+
+    //  If this is a surrogate, we CANNOT recycle the unitig.  We need to process the contig so that
+    //  the unplaced reads are stripped out.  A surrogate should have different contig and unitig
+    //  IDs; we could also check the contig status.
+
+    if ((cma->data.num_unitigs == 1) &&
+        (cma->maID == uID) &&
+        (useUnitig == true)) {
+      fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments) - recycling unitig %d consensus\n",
+              cma->maID, cma->data.num_unitigs, cma->data.num_frags, uID);
+
+      MultiAlignT  *uma = tigStore->loadMultiAlign(uID, true);
+
+      tigStore->unloadMultiAlign(cma->maID, false);
+
+      if (outName)
+        writeToOutFile(outName, tigPart, uma);
+      else
+        tigStore->insertMultiAlign(uma, false, false);
+
+      tigStore->unloadMultiAlign(uma->maID, true);
+
       continue;
     }
 
     fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments)%s\n",
-            ma->maID, ma->data.num_unitigs, ma->data.num_frags,
+            cma->maID, cma->data.num_unitigs, cma->data.num_frags,
             (exists) ? " - already computed, recomputing" : "");
 
-    if (MultiAlignContig(ma, gkpStore, &options)) {
-      tigStore->insertMultiAlign(ma, FALSE, FALSE);
+    if (MultiAlignContig(cma, gkpStore, &options)) {
+
+      if (outName)
+        writeToOutFile(outName, tigPart, cma);
+      else
+        tigStore->insertMultiAlign(cma, false, true);
+
       if (showResult)
-        PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
-      DeleteMultiAlignT(ma);
+        PrintMultiAlignT(stdout, cma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
+
+      tigStore->unloadMultiAlign(cma->maID, false);
     } else {
-      fprintf(stderr, "MultiAlignContig()-- contig %d failed.\n", ma->maID);
+      fprintf(stderr, "MultiAlignContig()-- contig %d failed.\n", cma->maID);
       numFailures++;
     }
   }
