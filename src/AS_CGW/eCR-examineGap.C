@@ -333,32 +333,26 @@ examineGap(ContigT *lcontig, int lFragIid,
   // now lcompBuffer and rcompBuffer hold the sequence of the fragments in the correct strand
   // now prepare for call to Local_Overlap_AS_forCNS
 
-  ALNoverlap *overlap;
-  int beg, end, opposite = FALSE;
-  double erate, thresh, minlen;
-  CompareOptions what;
-  LengthT gapSize;
-
-  beg    = -strlen (rcompBuffer);
-  end    = strlen (lcompBuffer);
-  assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-  erate  = AS_CGW_ERROR_RATE + 0.02;  //  Historically, erate == 0.12.
-  thresh = CGW_DP_THRESH;
-  minlen = CGW_DP_MINLEN + 10;        //  Historically, minlen == 30.  Not sure if we should hardcode 30 or offset from CGW_DP_MINLEN.
-  what   = AS_FIND_LOCAL_ALIGN;
+  int32          beg       = -strlen (rcompBuffer);
+  int32          end       = strlen (lcompBuffer);
+  int32          opposite  = FALSE;
+  double         erate     = MIN(AS_MAX_ERROR_RATE, AS_CGW_ERROR_RATE + 0.02);  //  Historically, erate == 0.12.
+  double         thresh    = CGW_DP_THRESH;
+  double         minlen    = CGW_DP_MINLEN + 10;        //  Historically, minlen == 30.  Not sure if we should hardcode 30 or offset from CGW_DP_MINLEN.
+  CompareOptions what      = AS_FIND_LOCAL_ALIGN;
 
   if (debug.examineGapLV > 0)
     fprintf(debug.examineGapFP, "MaxBegGap: %d  MaxEndGap: %d", MaxBegGap, MaxEndGap);
 
-  overlap = Local_Overlap_AS_forCNS(lcompBuffer,
-                                    rcompBuffer,
-                                    beg, end,   //  band
-                                    -beg, end,  //  ahang,bhang not known
-                                    opposite,
-                                    erate,
-                                    thresh,
-                                    minlen,
-                                    what);
+  ALNoverlap *overlap = Local_Overlap_AS_forCNS(lcompBuffer,
+                                                rcompBuffer,
+                                                beg, end,   //  band
+                                                -beg, end,  //  ahang,bhang not known
+                                                opposite,
+                                                erate,
+                                                thresh,
+                                                minlen,
+                                                what);
 
   char *rcompBufferTrimmed = NULL;
 
@@ -490,7 +484,7 @@ examineGap(ContigT *lcontig, int lFragIid,
 
   int basesAdded = baseChangeLeftContig + overlap->length + baseChangeRightContig;
 
-  gapSize = FindGapLength(lcontig, rcontig, FALSE);
+  LengthT gapSize = FindGapLength(lcontig, rcontig, FALSE);
 
   totalContigsBaseChange += basesAdded;
 

@@ -2101,16 +2101,17 @@ ContigContainment(CIScaffoldT  *scaffold,
 #ifdef DEBUG_CONTIGCONTAINMENT
     fprintf(stderr, "ContigContainment()--  Try #7\n");
 #endif
-    int32 maxLength = MAX(lftCtg->bpLength.mean, rgtCtg->bpLength.mean);
+    int32   maxLength = MAX(lftCtg->bpLength.mean, rgtCtg->bpLength.mean);
+    double  origErate = AS_CGW_ERROR_RATE;
 
-    AS_CGW_ERROR_RATE += 0.02;
+    AS_CGW_ERROR_RATE = MIN(AS_MAX_ERROR_RATE, AS_CGW_ERROR_RATE + 0.02);
 
     ovl = OverlapContigs(lftCtg, rgtCtg, &overlapOrientation, minAhang, maxAhang, FALSE);
 
     if (ovl == NULL)
       ovl = OverlapContigs(lftCtg, rgtCtg, &overlapOrientation, -maxLength, maxLength, TRUE);
 
-    AS_CGW_ERROR_RATE -= 0.02;
+    AS_CGW_ERROR_RATE = origErate;
   }
 
   if (ovl == NULL) {
