@@ -108,6 +108,23 @@ AS_UTL_decodeRange(char *range, uint64 &lo, uint64 &hi) {
 
 
 void
+AS_UTL_decodeRange(char *range, int64 &lo, int64 &hi) {
+  char    *ap = range;
+
+  lo = hi = strtoll(ap, &ap, 10);
+
+  if (*ap == '-') {
+    ap++;
+    hi = strtoll(ap, &ap, 10);
+
+  } else if (*ap != 0) {
+    fprintf(stderr, "ERROR: invalid range '%s'\n", range);
+    exit(1);
+  }
+}
+
+
+void
 AS_UTL_decodeRange(char *range, uint32 &lo, uint32 &hi) {
   char    *ap = range;
 
@@ -116,6 +133,23 @@ AS_UTL_decodeRange(char *range, uint32 &lo, uint32 &hi) {
   if (*ap == '-') {
     ap++;
     hi = strtoul(ap, &ap, 10);
+
+  } else if (*ap != 0) {
+    fprintf(stderr, "ERROR: invalid range '%s'\n", range);
+    exit(1);
+  }
+}
+
+
+void
+AS_UTL_decodeRange(char *range, int32 &lo, int32 &hi) {
+  char    *ap = range;
+
+  lo = hi = strtol(ap, &ap, 10);
+
+  if (*ap == '-') {
+    ap++;
+    hi = strtol(ap, &ap, 10);
 
   } else if (*ap != 0) {
     fprintf(stderr, "ERROR: invalid range '%s'\n", range);
