@@ -126,8 +126,8 @@ main (int argc, char **argv) {
   int32  tigVers = -1;
   int32  tigPart = -1;
 
-  uint64 utgBgn = -1;
-  uint64 utgEnd = -1;
+  int64  utgBgn = -1;
+  int64  utgEnd = -1;
   char  *utgFile = NULL;
 
   bool   forceCompute = false;
