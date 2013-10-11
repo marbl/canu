@@ -1029,29 +1029,46 @@ ScaffoldSanity(ScaffoldGraphT *graph, CIScaffoldT *scaffold) {
 
     if (CI->flags.bits.isUnique != true)
       fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- marked as not unique\n", CI->id, scaffold->id), hasProblems++;
+
     if (CI->flags.bits.isDead   != false)
       fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- marked as dead\n", CI->id, scaffold->id), hasProblems++;
 
-    if (0.0 > CI->offsetAEnd.mean)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f negative\n", CI->id, scaffold->id, CI->offsetAEnd.mean), hasProblems++;
-    if (0.0 > CI->offsetBEnd.mean)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.mean %f negative\n", CI->id, scaffold->id, CI->offsetBEnd.mean), hasProblems++;
+    if (0.0 > CI->offsetAEnd.mean) {
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f negative -- FIXED\n", CI->id, scaffold->id, CI->offsetAEnd.mean);
+      CI->offsetAEnd.mean = 0.0;
+    }
+    if (0.0 > CI->offsetBEnd.mean) {
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.mean %f negative -- FIXED\n", CI->id, scaffold->id, CI->offsetBEnd.mean);
+      CI->offsetBEnd.mean = 0.0;
+    }
 
-    if (CI->offsetAEnd.mean > scaffold->bpLength.mean)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetAEnd.mean, scaffold->bpLength.mean), hasProblems++;
-    if (CI->offsetBEnd.mean > scaffold->bpLength.mean)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.mean %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetBEnd.mean, scaffold->bpLength.mean), hasProblems++;
+    if (CI->offsetAEnd.mean > scaffold->bpLength.mean) {
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.mean %f beyond scaffold end %f -- FIXED\n", CI->id, scaffold->id, CI->offsetAEnd.mean, scaffold->bpLength.mean);
+      CI->offsetAEnd.mean = scaffold->bpLength.mean;
+    }
+    if (CI->offsetBEnd.mean > scaffold->bpLength.mean) {
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.mean %f beyond scaffold end %f -- FIXED\n", CI->id, scaffold->id, CI->offsetBEnd.mean, scaffold->bpLength.mean);
+      CI->offsetBEnd.mean = scaffold->bpLength.mean;
+    }
 
-    if (0.0 > CI->offsetAEnd.variance)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f negative\n", CI->id, scaffold->id, CI->offsetAEnd.variance), hasProblems++;
-    if (0.0 > CI->offsetBEnd.variance)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.variance %f negative\n", CI->id, scaffold->id, CI->offsetBEnd.variance), hasProblems++;
+    if (0.0 > CI->offsetAEnd.variance) {
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f negative -- FIXED\n", CI->id, scaffold->id, CI->offsetAEnd.variance);
+      CI->offsetAEnd.variance = 0.0;
+    }
+    if (0.0 > CI->offsetBEnd.variance) {
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.variance %f negative -- FIXED\n", CI->id, scaffold->id, CI->offsetBEnd.variance);
+      CI->offsetBEnd.variance = 0.0;
+    }
 
     //  +1 for rounding errors
-    if (CI->offsetAEnd.variance > scaffold->bpLength.variance + 1.0)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetAEnd.variance, scaffold->bpLength.variance), hasProblems++;
-    if (CI->offsetBEnd.variance > scaffold->bpLength.variance + 1.0)
-      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.variance %f beyond scaffold end %f\n", CI->id, scaffold->id, CI->offsetBEnd.variance, scaffold->bpLength.variance), hasProblems++;
+    if (CI->offsetAEnd.variance > scaffold->bpLength.variance + 1.0) {
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetAEnd.variance %f beyond scaffold end %f -- FIXED\n", CI->id, scaffold->id, CI->offsetAEnd.variance, scaffold->bpLength.variance);
+      CI->offsetAEnd.variance = scaffold->bpLength.variance;
+    }
+    if (CI->offsetBEnd.variance > scaffold->bpLength.variance + 1.0) {
+      fprintf(stderr, "ScaffoldSanity()--  contig %d in scaffold %d -- offsetBEnd.variance %f beyond scaffold end %f -- FIXED\n", CI->id, scaffold->id, CI->offsetBEnd.variance, scaffold->bpLength.variance);
+      CI->offsetBEnd.variance = scaffold->bpLength.variance;
+    }
 
     if (numCtg == 0)
       if ((CI->offsetAEnd.mean != 0.0) && (CI->offsetBEnd.mean != 0.0))
