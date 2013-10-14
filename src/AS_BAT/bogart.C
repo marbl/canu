@@ -67,7 +67,7 @@ main (int argc, char * argv []) {
   double    erateMerge               = 0.045;
   double    elimitMerge              = 4.0;
 
-  int32     numThreads               = 1;
+  int32     numThreads               = 0;
 
   uint64    ovlCacheMemory           = UINT64_MAX;
   uint32    ovlCacheLimit            = UINT32_MAX;
@@ -277,9 +277,9 @@ main (int argc, char * argv []) {
     fprintf(stderr, "  -RL len    Force reads below 'len' bases to be singletons.\n");
     fprintf(stderr, "               This WILL cause CGW to fail; diagnostic only.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "  -threads N Use N compute threads during repeat detection.  EXPERIMENTAL!\n");
-    fprintf(stderr, "               0 - use OpenMP default\n");
-    fprintf(stderr, "               1 - use one thread (default)\n");
+    fprintf(stderr, "  -threads N Use N compute threads during repeat detection.\n");
+    fprintf(stderr, "               0 - use OpenMP default (default)\n");
+    fprintf(stderr, "               1 - use one thread\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Overlap Selection - an overlap will be considered for use in a unitig if either of\n");
     fprintf(stderr, "                    the following conditions hold:\n");
