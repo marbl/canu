@@ -112,7 +112,8 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   uint64 memUL = FI->numFragments() * sizeof(ufNode);           //  For fragment positions in unitigs
   uint64 memUT = FI->numFragments() * sizeof(uint32) / 16;      //  For unitigs (assumes 32 frag / unitig)
   uint64 memID = FI->numFragments() * sizeof(uint32) * 2;       //  For maps of fragment id to unitig id
-  uint64 memTT = memFI + memBE + memBC + memUL + memUT + memID;
+  uint64 memOS = (_memLimit == getMemorySize()) ? (0.1 * getMemorySize()) : 0.0;
+  uint64 memTT = memFI + memBE + memBC + memUL + memUT + memID + memOS;
 
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for fragment data.\n",                  memFI >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for best edges.\n",                     memBE >> 20);
@@ -120,6 +121,7 @@ OverlapCache::OverlapCache(OverlapStore *ovlStoreUniq,
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for unitig layouts.\n",                 memUL >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for unitigs.\n",                        memUT >> 20);
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for id maps.\n",                        memID >> 20);
+  fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for other processes.\n",                memOS >> 20);
   fprintf(stderr, "OverlapCache()-- ---------\n");
   fprintf(stderr, "OverlapCache()-- %7"F_U64P"MB for data structures (sum of above).\n", memTT >> 20);
 
@@ -294,7 +296,7 @@ OverlapCache::computeOverlapLimit(void) {
   uint64  totalLoad  = 0;  //  Total overlaps we would load at this threshold
 
   uint32  numBelow   = 0;  //  Number below the threshold
-  uint64  numBelowS  = 0;  //  Amount of space wasted beacuse of this
+  //uint64  numBelowS  = 0;  //  Amount of space wasted beacuse of this
   uint32  numEqual   = 0;
   uint32  numAbove   = 0;  //  Number of fragments above the threshold
 
@@ -305,14 +307,14 @@ OverlapCache::computeOverlapLimit(void) {
   while (adjust > 0) {
     totalLoad = 0;
     numBelow  = 0;
-    numBelowS = 0;
+    //numBelowS = 0;
     numEqual  = 0;
     numAbove  = 0;
 
     for (uint32 i=0; i<totlFrag; i++) {
       if (numPer[i] < _maxPer) {
         numBelow++;
-        numBelowS  += _maxPer - MAX(lastMax, numPer[i]);
+        //numBelowS  += _maxPer - MAX(lastMax, numPer[i]);  //  Number of extra overlaps we could still load; the unused space for this read
         totalLoad  += numPer[i];
 
       } else if (numPer[i] == _maxPer) {
@@ -325,22 +327,27 @@ OverlapCache::computeOverlapLimit(void) {
       }
     }
 
-    fprintf(stderr, "OverlapCache()-- _maxPer="F_U32" (numBelow="F_U32" numEqual="F_U32" numAbove="F_U32" totalLoad="F_U64" -- "F_U64" + "F_U64" = "F_U64" < "F_U64"\n",
+    fprintf(stderr, "OverlapCache()-- _maxPer=%7"F_U32P" (numBelow="F_U32" numEqual="F_U32" numAbove="F_U32" totalLoad="F_U64" -- "F_U64" + "F_U64" = "F_U64" <? "F_U64"\n",
             _maxPer, numBelow, numEqual, numAbove,
             totalLoad, _memUsed, totalLoad + _memUsed,
             totalLoad * sizeof(BAToverlapInt), _memLimit);
 
-    adjust = 0;
 
-    if (numAbove == 0) {
+    if ((numAbove == 0) && (_memUsed + totalLoad * sizeof(BAToverlapInt) < _memLimit)) {
       //  All done, nothing to do here.
+      adjust = 0;
 
     } else if (_memUsed + totalLoad * sizeof(BAToverlapInt) < _memLimit) {
       //  This limit worked, let's try moving it a little higher.
 
       lastMax  = _maxPer;
-      adjust   = (numAbove == 0) ? (0) : (numBelowS / numAbove);
+
+      adjust   = (_memLimit - _memUsed - totalLoad * sizeof(BAToverlapInt)) / numAbove / sizeof(BAToverlapInt);
       _maxPer += adjust;
+
+      fprintf(stderr, "OverlapCache()--                 ("F_U64" MB free, adjust by "F_U32")\n",
+              (_memLimit - _memUsed - totalLoad * sizeof(BAToverlapInt)) >> 20,
+              adjust);
 
       if (_maxPer > numPerMax)
         _maxPer = numPerMax;
@@ -348,18 +355,18 @@ OverlapCache::computeOverlapLimit(void) {
     } else {
       //  Whoops!  Too high!  Revert to the last and recompute statistics.
 
-      _maxPer = lastMax;
+      adjust    = 0;
+      _maxPer   = lastMax;
 
       totalLoad = 0;
       numBelow  = 0;
-      numBelowS = 0;
       numEqual  = 0;
       numAbove  = 0;
 
       for (uint32 i=0; i<totlFrag; i++) {
         if (numPer[i] < _maxPer) {
           numBelow++;
-          numBelowS  += _maxPer - numPer[i];
+          //numBelowS  += _maxPer - numPer[i];
           totalLoad  += numPer[i];
 
         } else if (numPer[i] == _maxPer) {
@@ -372,8 +379,7 @@ OverlapCache::computeOverlapLimit(void) {
         }
       }
 
-      fprintf(stderr, "OverlapCache()-- _maxPer="F_U32" (final)\n", _maxPer);
-
+      fprintf(stderr, "OverlapCache()-- _maxPer=%7"F_U32P" (overestimated, revert to last good and stop)\n", _maxPer);
     }
   }
 
@@ -386,7 +392,7 @@ OverlapCache::computeOverlapLimit(void) {
   fprintf(stderr, "OverlapCache()-- numBelow         = "F_U32" reads (all overlaps loaded)\n", numBelow);
   fprintf(stderr, "OverlapCache()-- numEqual         = "F_U32" reads (all overlaps loaded)\n", numEqual);
   fprintf(stderr, "OverlapCache()-- numAbove         = "F_U32" reads (some overlaps loaded)\n", numAbove);
-  fprintf(stderr, "OverlapCache()-- totalLoad        = "F_U64" overlaps\n", totalLoad);
+  fprintf(stderr, "OverlapCache()-- totalLoad        = "F_U64" overlaps (%6.2f%%)\n", totalLoad, 100.0 * totalLoad / AS_OVS_numOverlapsInRange(_ovlStoreUniq));
   fprintf(stderr, "\n");
   fprintf(stderr, "OverlapCache()-- availForOverlaps = "F_U64"MB\n", _memLimit >> 20);
   fprintf(stderr, "OverlapCache()-- totalMemory      = "F_U64"MB for organization\n", _memUsed >> 20);
@@ -541,6 +547,8 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
 
   AS_OVS_resetRangeOverlapStore(_ovlStoreUniq);
 
+  uint64 numStore = AS_OVS_numOverlapsInRange(_ovlStoreUniq);
+
   writeLog("OverlapCache()-- Loading overlap information\n");
 
   //  Could probably easily extend to multiple stores.  Needs to interleave the two store
@@ -620,7 +628,10 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
     assert(storEnd == _storLen);
 
     if ((numFrags++ % 1000000) == 0)
-      writeLog("OverlapCache()-- Loading overlap information fragments:%d total:%12"F_U64P" loaded:%12"F_U64P"\n", _ovs[0].a_iid, numTotal, numLoaded);
+      writeLog("OverlapCache()-- Loading overlap information: overlaps processed %12"F_U64P" (%06.2f%%) loaded %12"F_U64P" (%06.2f%%) (at read iid %d)\n",
+               numTotal,  100.0 * numTotal  / numStore,
+               numLoaded, 100.0 * numLoaded / numStore,
+               _ovs[0].a_iid);
   }
 
   if ((ovlDat) && (_storLen > 0))
@@ -631,7 +642,9 @@ OverlapCache::loadOverlaps(double erate, double elimit, const char *prefix, bool
   if (ovlDat)
     fclose(ovlDat);
 
-  writeLog("OverlapCache()-- Loading overlap information total:%12"F_U64P" loaded:%12"F_U64P"\n", numTotal, numLoaded);
+  writeLog("OverlapCache()-- Loading overlap information: overlaps processed %12"F_U64P" (%06.2f%%) loaded %12"F_U64P" (%06.2f%%)\n",
+           numTotal,  100.0 * numTotal  / numStore,
+           numLoaded, 100.0 * numLoaded / numStore);
 }
 
 
