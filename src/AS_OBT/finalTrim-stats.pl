@@ -10,25 +10,28 @@ open(F, "< $ARGV[0]") or die "Failed to open finalTrim.log '$ARGV[0]'.\n";
 
 my $header = <F>;
 
-my $numReadsIn;
-my $numBasesIn;
+my $numReadsIn = 0;
+my $numBasesIn = 0;
 
-my $numReadsOut;
-my $numBasesOut;
+my $numReadsOut = 0;
+my $numBasesOut = 0;
 
-my $trimL;
-my $trimR;
+my $trimL = 0;
+my $trimR = 0;
 
-my $noTrimL++;
-my $noTrimR++;
+my $noTrimL = 0;
+my $noTrimR = 0;
 
-my $bigL;
-my $bigR;
-my $bigE;
-my $bigB;
+my $bigL = 0;
+my $bigR = 0;
+my $bigE = 0;
+my $bigB = 0;
 
-my $noOvl++;
-my $del++;
+my $noOvl      = 0;
+my $noOvlBases = 0;
+
+my $del      = 0;
+my $delBases = 0;
 
 while (<F>) {
     chomp;
@@ -69,8 +72,14 @@ while (<F>) {
     $noTrimL++  if ($v[3] == $v[1]);
     $noTrimR++  if ($v[4] == $v[2]);
 
-    $noOvl++    if ($_ =~ m/no\soverlaps/);
-    $del++      if ($v[5] eq "DEL");
+    if ($_ =~ m/no\soverlaps/) {
+        $noOvl++;
+        $noOvlBases += $origLen;
+    }
+    if ($v[5] eq "DEL") {
+        $del++;
+        $delBases += $origLen;
+    }
 }
 close(F);
 
@@ -89,5 +98,5 @@ print "bigB        $bigB reads trimmed more than trimmedLength/2 from both sides
 print "\n";
 print "numReads    $numReadsOut reads in output\n";
 print "numBases    $numBasesOut bases in output\n";
-print "noOvl       $noOvl reads with no overlaps and no trimming done\n";
-print "del         $del reads deleted\n";
+print "noOvl       $noOvl reads $noOvlBases bp with no overlaps and no trimming done\n";
+print "del         $del reads $delBases bp deleted\n";
