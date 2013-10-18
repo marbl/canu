@@ -86,6 +86,9 @@ MultiAlignStore::MultiAlignStore(const char *path_,
                                  bool        inplace_,
                                  bool        append_) {
 
+  if (writable_ == false)
+    inplace_ = append_ = false;
+
   init(path_, version_, writable_, inplace_, append_);
 
   unitigPart = unitigPartition_;
@@ -93,12 +96,6 @@ MultiAlignStore::MultiAlignStore(const char *path_,
 
   if ((unitigPart != 0) && (contigPart != 0))
     fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, cannot set both unitigPart and contigPart.\n"), exit(1);
-
-  if ((writable == false) && (inplace == true))
-    fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, cannot operate inplace unless writable.\n"), exit(1);
-
-  if ((writable == false) && (append == true))
-    fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, cannot append unless writable.\n"), exit(1);
 
   if ((inplace == true) && (append == true))
     fprintf(stderr, "MultiAlignStore::MultiAlignStore()-- ERROR, cannot both append and be inplace.\n"), exit(1);
