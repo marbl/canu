@@ -857,11 +857,12 @@ while (scalar(@cmdArgs) > 0) {
     }   
  }
     
-if (($err) || ((scalar(@fragFiles) == 0) && (!defined(getGlobal("longReads")) || getGlobal("longReads") == 0)) || (!defined(getGlobal("fastqFile"))) || (!defined(getGlobal("specFile"))) || (!defined(getGlobal("libraryname")))) {
+if (($err) || ((scalar(@fragFiles) == 0) && (!defined(getGlobal("longReads")) || getGlobal("longReads") == 0)) || (!defined(getGlobal("fastqFile"))) || (!defined(getGlobal("specFile"))) || (!defined(getGlobal("libraryname"))) || (-e getGlobal("libraryname") . ".fastq")) {
    print STDERR "No frag files specified. Please specify at least one frag file containing high-accuracy data for correction.\n" if (scalar(@fragFiles) == 0);
    print STDERR "No fastq file specified. Please specify a fastq file containing PacBio sequences for correction using the -fastq parameter.\n" if (!defined(getGlobal("fastqFile")));
    print STDERR "No spec file defined. Please specify a spec file using the -s option.\n" if (!defined(getGlobal("specFile")));
    print STDERR "No library name provided. Please specify a name using the -library option.\n" if (!defined(getGlobal("libraryname")));  
+   print STDERR "Output file " . getGlobal("libraryname") . ".fastq already exists. Will not overwrite\n" if (-e getGlobal("libraryname") . ".fastq");
 
     print STDERR "usage: $0 [options] -s spec.file -fastq fastqfile <frg>\n";
     print STDERR "  -length                  Minimum length of PacBio sequences to correct/output.\n";
@@ -1092,6 +1093,8 @@ if (defined(getGlobal("longReads")) && getGlobal("longReads") == 1) {
 print STDERR "Will be correcting PacBio library $libToCorrect with librarie[s] $minCorrectLib - $maxCorrectLib\n";
 my $totalBP = 0;
 my $totalNumToCorrect = 0;
+my $minCorrectID = 0;
+my $maxCorrectID = 0;
 # compute the number of bases in the gateeeker to be corrected
 open(F, "$CA/gatekeeper -dumpinfo temp$libraryname/$asm.gkpStore |") or die("Couldn't open gatekeeper store", undef);
 
@@ -1102,6 +1105,8 @@ while (<F>) {
    my @array = split '\s+';
    if ($#array == 8 && $array[0] == $libToCorrect) { 
       $totalBP = $array[6];
+      $minCorrectID = $array[1];
+      $maxCorrectID = $array[2];
    }
 }
 close(F); 
@@ -1233,7 +1238,7 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
           $longReads = undef;
       } else {
          print STDERR "Warning: Blasr is required to align long reads to long reads. Switching blasr ON.\n";
-         setGlobal("blasr", defined(getGlobal("blasr")) ? getGlobal("blasr") . " maxLCPLength 16" : "-minReadLength 200 -maxScore -1000 -maxLCPLength 16");
+         setGlobal("blasr", defined(getGlobal("blasr")) ? getGlobal("blasr") . " -maxLCPLength 16" : "-minReadLength 200 -maxScore -1000 -maxLCPLength 16");
       }
    }
 
@@ -1363,15 +1368,11 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
          close(JOB);
          close(SA);
       } else {
-         #runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta long_reads -randomsubset $libToCorrect 1 $wrk/temp$libraryname/$asm.gkpStore");
          for (my $i = $minCorrectLib; $i <= $maxCorrectLib; $i++) {
-           #runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_lib ". (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases -longestovermin $i $length" : " -randomsubset $i 1") . " $wrk/temp$libraryname/$asm.gkpStore");
            runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta " . $i . "_subset " . (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases" : "") . " -randomsubset $i 0.01 $wrk/temp$libraryname/$asm.gkpStore");
          }
-         #runCommand("$wrk/temp$libraryname/1-overlapper", "cat `ls [0-9]*_lib.fasta` > correct_reads.fasta");
          runCommand("$wrk/temp$libraryname/1-overlapper", "cat `ls [0-9]*_subset.fasta` > correct_subset.fasta");
          runCommand("$wrk/temp$libraryname/1-overlapper", "rm `ls [0-9]*_subset.fasta*`");
-         #runCommand("$wrk/temp$libraryname/1-overlapper", "rm `ls [0-9]*_lib.fasta*`");
 
          # read in ovl options and partition data from the gatekeeper store
          my $i = 1;
@@ -1400,7 +1401,13 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
                # now the correction sequences
                my @startend=split(/-/, $values[3]);
                $correctIds="-b $startend[0] -e $startend[1]";
-               runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta correct_reads_part" . $i . (defined($longReads) && $longReads == 1 && $i == $libToCorrect ? " -allreads -allbases -longestovermin 0 $length" : " -randomsubset 0 1") . " $correctIds $wrk/temp$libraryname/$asm.gkpStore");
+               my $dumpAll = 0;
+               my $start = $startend[0] > $minCorrectID ? $startend[0] : $minCorrectID;
+               my $end = $startend[1] < $maxCorrectID ? $startend[1] : $maxCorrectID;
+               if ($end - $start >= 0) {
+                  $dumpAll = 1;
+               }
+               runCommand("$wrk/temp$libraryname/1-overlapper", "$CA/gatekeeper -dumpfasta correct_reads_part" . $i . (defined($longReads) && $longReads == 1 && $dumpAll ? " -allreads -allbases" : " -randomsubset 0 1") . " $correctIds $wrk/temp$libraryname/$asm.gkpStore");
                $i++;
                $correctIndex{$values[3]} = 1;
             }
@@ -1625,6 +1632,10 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
 }
 
 if (! -e "$wrk/temp$libraryname/$asm.layout.success") {
+   if ( -e "$wrk/temp$libraryname/$asm.layout.err") {
+      # avoid infinite loops
+      die "Error: found output from runCorrection. Stopping to avoid infinite loops. To try again, remove $asm.layout.*\n";
+   }
    open F, "> $wrk/temp$libraryname/runCorrection.sh" or die ("can't open '$wrk/temp$libraryname/runCorrection.sh'");
    print F "#!" . getGlobal("shell") ."\n";
    print F getBinDirectoryShellCode();
@@ -1723,7 +1734,7 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    print F "         $AMOS/bank2fasta -e -q $wrk/temp$libraryname/\$jobid.qual -b $wrk/temp$libraryname/" . $asm . ".bnk_partition\$jobid.bnk > $wrk/temp$libraryname/\$jobid.fasta\n";
    print F "      fi\n";
    print F "      if test -e $wrk/temp$libraryname/\$jobid.success ; then\n";
-   print F "         $CA/trimFastqByQVWindow $wrk/temp$libraryname/\$jobid.fasta $wrk/temp$libraryname/\$jobid.qual $wrk/temp$libraryname/\$jobid.trim.fasta $wrk/temp$libraryname/\$jobid.trim.qual $QV > $wrk/temp$libraryname/\$jobid.trim.fastq\n";
+   print F "         $CA/trimFastqByQVWindow $wrk/temp$libraryname/\$jobid.fasta $wrk/temp$libraryname/\$jobid.qual $wrk/temp$libraryname/\$jobid.trim.fasta $wrk/temp$libraryname/\$jobid.trim.qual $QV $length > $wrk/temp$libraryname/\$jobid.trim.fastq\n";
 
    print F "         rm -rf $wrk/temp$libraryname/$asm" . ".bnk_partition\$jobid.bnk\n";
    print F "         rm $wrk/temp$libraryname/bank-transact.\$jobid.err\n";
@@ -1855,7 +1866,7 @@ if (($totalSplitBases / $totalBP) > $MAX_SPLIT_PERCENTAGE && defined(getGlobal("
    runCommand("$wrk/temp$libraryname", "mv $asm.merged.qual corrected.qual");
    runCommand("$wrk/temp$libraryname", "rm [0-9]*.fasta");
    runCommand("$wrk/temp$libraryname", "rm [0=0]*.qual");
-   runCommand("$CA/trimFastqByQVWindow", "$wrk/temp$libraryname/corrected.fasta $wrk/temp$libraryname/corrected.qual $wrk/temp$libraryname/corrected.trim.fasta $wrk/temp$libraryname/corrected.trim.qual $QV > $wrk/temp$libraryname/corrected.trim.fastq");
+   runCommand("$CA/trimFastqByQVWindow", "$wrk/temp$libraryname/corrected.fasta $wrk/temp$libraryname/corrected.qual $wrk/temp$libraryname/corrected.trim.fasta $wrk/temp$libraryname/corrected.trim.qual $QV $length > $wrk/temp$libraryname/corrected.trim.fastq");
 
    #runCommand("$wrk/temp$libraryname", "rm -rf $wrk/temp$libraryname/temproundTwo");
 }

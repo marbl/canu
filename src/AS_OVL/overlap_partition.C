@@ -199,7 +199,7 @@ partitionFrags(gkStore      *gkp,
     refEnd = 0;
 
     while ((refBeg < refMax) &&
-           (refBeg < hashEnd)) {
+           ((refBeg < hashEnd) || (libToHash.size() != 0 && libToHash == libToRef))) {
       uint64  refLen  = 0;
 
       if (ovlRefBlockLength > 0) {
