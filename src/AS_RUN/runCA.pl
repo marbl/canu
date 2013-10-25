@@ -255,6 +255,9 @@ sub setDefaults () {
 
     #####  General Configuration Options (aka miscellany)
 
+    $global{"showNext"}                    = undef;
+    $synops{"showNext"}                    = "Don't run any commands, just report what would run";
+
     $global{"pathMap"}                     = undef;
     $synops{"pathMap"}                     = "File with a hostname to binary directory map";
 
@@ -265,6 +268,12 @@ sub setDefaults () {
 
     $global{"ovlErrorRate"}                = 0.06;
     $synops{"ovlErrorRate"}                = "Overlaps above this error rate are not computed";
+
+    $global{"obtErrorRate"}                = undef;
+    $synops{"obtErrorRate"}                = "Overlaps at or below this error rate are used for Overlap Based Trimming (OBT)";
+
+    $global{"obtErrorLimit"}               = undef;
+    $synops{"obtErrorLimit"}               = "Overlaps at or below this number of errors are used for Overlap Based Trimming (OBT)";
 
     $global{"utgErrorRate"}                = 0.015;
     $synops{"utgErrorRate"}                = "Overlaps at or below this error rate are used to construct unitigs (BOG and UTG)";
@@ -1515,6 +1524,11 @@ sub runCommand ($$) {
 
     if (! -d $dir) {
         caFailure("Directory '$dir' doesn't exist, can't run command.\n", "");
+    }
+
+    if (getGlobal('showNext')) {
+        print STDERR "----------------------------------------NEXT-COMMAND\n$cmd\n";
+        exit(0);
     }
 
     my $t = localtime();
@@ -3961,7 +3975,11 @@ sub overlapTrim {
 
         my $utg = getUnitigger();
 
-        if      ($utg eq "utg") {
+        if      (defined(getGlobal("obtErrorRate"))) {
+            $erate  = getGlobal("obtErrorRate");
+            $elimit = getGlobal("obtErrorLimit");
+
+        } elsif      ($utg eq "utg") {
             $erate  = getGlobal("utgErrorRate");
             $elimit = getGlobal("utgErrorLimit");
 
@@ -3981,7 +3999,7 @@ sub overlapTrim {
         $cmd .= "  -G $wrk/$asm.gkpStore \\\n";
         $cmd .= "  -O $wrk/0-overlaptrim/$asm.obtStore \\\n";
         $cmd .= "  -e $erate \\\n";
-        $cmd .= "  -E $elimit \\\n";
+        $cmd .= "  -E $elimit \\\n"  if (defined($elimit));
         $cmd .= "  -o $wrk/0-overlaptrim/$asm.finalTrim \\\n";
         $cmd .= "> $wrk/0-overlaptrim/$asm.finalTrim.err 2>&1";
 
