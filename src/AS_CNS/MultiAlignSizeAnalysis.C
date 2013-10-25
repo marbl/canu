@@ -131,7 +131,7 @@ sizeAnalysis::printSummary(FILE *out, char *description, vector<uint32> &data) {
   for (uint64 i=0; i<cnt; i++) {
     sum += data[i];
 
-    if (siz * nnn / 100 < sum) {
+    while (siz * nnn / 100 < sum) {
       fprintf(out, "%s n%2"F_U64P" siz %10"F_U32P" sum %10"F_U64P" idx %10"F_U64P"\n",
               description, nnn, data[i], sum, i);
       
