@@ -29,37 +29,105 @@ const char *mainid = "$Id$";
 
 #include "AS_UTL_decodeRange.H"
 
+#include <algorithm>
+
+
+inline
+bool
+IntMultiPos_PositionCompare(IntMultiPos const &a, IntMultiPos const &b) {
+  int32 al = (a.position.bgn < a.position.end) ? a.position.bgn : a.position.end;
+  int32 bl = (b.position.bgn < b.position.end) ? b.position.bgn : b.position.end;
+
+  int32 ah = (a.position.bgn < a.position.end) ? a.position.end : a.position.bgn;
+  int32 bh = (b.position.bgn < b.position.end) ? b.position.end : b.position.bgn;
+
+  if (al == bl)
+    return(ah > bh);
+
+  return(al < bl);
+}
+
+
+
+
 //  Create a new f_list for the ma that has no contained reads.
 //  The original f_list is returned.
 //
 VA_TYPE(IntMultiPos) *
-stashContains(MultiAlignT *ma, double threshold) {
+stashContains(MultiAlignT *ma) {
   VA_TYPE(IntMultiPos) *fl = ma->f_list;
 
-  int32  nOrig = GetNumIntMultiPoss(fl);
-  int32  nRedu = 0;
+  int32  nOrig     = GetNumIntMultiPoss(fl);
+  int32  nDove     = 0;
+  int32  nCont     = 0;
+  int64  nBase     = 0;
+  int64  nBaseDove = 0;
+  int64  nBaseCont = 0;
 
-  for (uint32 fi=0; fi<GetNumIntMultiPoss(fl); fi++) {
-    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+  int32        *isDove  = new int32 [nOrig];
+  IntMultiPos  *imp     = GetIntMultiPos(fl, 0);
 
-    if (imp->contained == 0)
-      nRedu++;
+  std::sort(imp, imp+nOrig, IntMultiPos_PositionCompare);
+
+  int32         loEnd = MIN(imp->position.bgn, imp->position.end);
+  int32         hiEnd = MAX(imp->position.bgn, imp->position.end);
+
+  isDove[0] = 1;
+  nDove     = 1;
+  nBaseDove += hiEnd - loEnd;
+  nBase     += hiEnd - loEnd;
+
+  for (uint32 fi=1; fi<nOrig; fi++) {
+    imp = GetIntMultiPos(fl, fi);
+
+    int32  lo = MIN(imp->position.bgn, imp->position.end);
+    int32  hi = MAX(imp->position.bgn, imp->position.end);
+
+    nBase += hi - lo;
+
+    if (hi <= hiEnd) {
+      isDove[fi] = 0;
+      nCont++;
+      nBaseCont += hi - lo;
+    } else {
+      isDove[fi] = 1;
+      nDove++;
+      nBaseDove += hi - lo;
+    }
+
+    hiEnd = MAX(hi, hiEnd);
   }
 
-  if (1.0 - (double)nRedu / nOrig < threshold)
-    return(NULL);
+  double fracCont = 100.0 * nBaseCont / nBase;
+  double fracDove = 100.0 * nBaseDove / nBase;
+  double totlCov  = (double)nBase / hiEnd;
 
-  fprintf(stderr, "Removed "F_S32" contains from unitig; processing only "F_S32" reads.\n",
-          nOrig - nRedu, nRedu);
+  fprintf(stderr, "  unitig %d detected "F_S32" contains (%.2fx, %.2f%%) "F_S32" dovetail (%.2fx, %.2f%%)\n",
+          ma->maID,
+          nCont, (double)nBaseCont / hiEnd, fracCont,
+          nDove, (double)nBaseDove / hiEnd, fracDove);
 
-  ma->f_list = CreateVA_IntMultiPos(0);
+  if ((fracCont >= 95.00) &&
+      (totlCov  >= 100.0)) {
+    fprintf(stderr, "    unitig %d removing "F_S32" contains; processing only "F_S32" reads\n",
+            ma->maID, nOrig - nDove, nDove);
 
-  for (uint32 fi=0; fi<GetNumIntMultiPoss(fl); fi++) {
-    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+    ma->f_list = CreateVA_IntMultiPos(0);
 
-    if (imp->contained == 0)
-      AppendVA_IntMultiPos(ma->f_list, imp);
+    for (uint32 fi=0; fi<nOrig; fi++) {
+      IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+
+      if (isDove[fi] == 1) {
+        fprintf(stderr, "    ident %9d position %6d %6d contained %9d\n",
+                imp->ident, imp->position.bgn, imp->position.end, imp->contained);
+        AppendVA_IntMultiPos(ma->f_list, imp);
+      }
+    }
+  } else {
+    fl = NULL;
   }
+
+  delete [] isDove;
 
   return(fl);
 }
@@ -93,12 +161,16 @@ unstashContains(MultiAlignT *ma, VA_TYPE(IntMultiPos) *fl) {
 
   double sf = (double)newMax / oldMax;
 
-  for (uint32 fi=0, ci=0; fi<GetNumIntMultiPoss(fl); fi++) {
-    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+  uint32  fi = 0, fiMax = GetNumIntMultiPoss(fl);
+  uint32  ci = 0, ciMax = GetNumIntMultiPoss(ma->f_list);
 
-    if (imp->contained == 0) {
+  for (; fi<fiMax; fi++) {
+    IntMultiPos  *imp = GetIntMultiPos(fl, fi);
+    IntMultiPos  *cmp = (ci < ciMax) ? GetVA_IntMultiPos(ma->f_list, ci) : NULL;
+
+    if ((cmp != NULL) && (imp->ident == cmp->ident)) {
       //  Copy the location used by consensus back to the original list
-      SetVA_IntMultiPos(fl, fi, GetVA_IntMultiPos(ma->f_list, ci));
+      SetVA_IntMultiPos(fl, fi, cmp);
       ci++;
 
     } else {
@@ -110,6 +182,8 @@ unstashContains(MultiAlignT *ma, VA_TYPE(IntMultiPos) *fl) {
       if (imp->position.end > newMax)  imp->position.end = newMax;
     }
   }
+
+  assert(ci == ciMax);
 
   DeleteVA_IntMultiPos(ma->f_list);
 
@@ -137,8 +211,7 @@ main (int argc, char **argv) {
 
   bool   showResult = false;
 
-  bool   ignoreContains = false;
-  double ignoreContainT = 0.75;
+  bool   reduceCoverage = true;
 
   bool   inplace  = false;
   bool   loadall  = false;
@@ -184,9 +257,8 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-V") == 0) {
       VERBOSE_MULTIALIGN_OUTPUT++;
 
-    } else if (strcmp(argv[arg], "-nocontains") == 0) {
-      ignoreContains = true;
-      ignoreContainT = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-noreduce") == 0) {
+      reduceCoverage = false;
 
     } else if (strcmp(argv[arg], "-inplace") == 0) {
       inplace = true;
@@ -211,24 +283,23 @@ main (int argc, char **argv) {
   if (err) {
     fprintf(stderr, "usage: %s -g gkpStore -t tigStore version partition [opts]\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -u b         Compute only unitig ID 'b' (must be in the correct partition!)\n");
-    fprintf(stderr, "    -u b-e       Compute only unitigs from ID 'b' to ID 'e'\n");
+    fprintf(stderr, "    -u b            Compute only unitig ID 'b' (must be in the correct partition!)\n");
+    fprintf(stderr, "    -u b-e          Compute only unitigs from ID 'b' to ID 'e'\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -T file      Test the computation of the unitig layout in 'file'\n");
+    fprintf(stderr, "    -T file         Test the computation of the unitig layout in 'file'\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -f           Recompute unitigs that already have a multialignment\n");
+    fprintf(stderr, "    -f              Recompute unitigs that already have a multialignment\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -v           Show multialigns.\n");
-    fprintf(stderr, "    -V           Enable debugging option 'verbosemultialign'.\n");
+    fprintf(stderr, "    -v              Show multialigns.\n");
+    fprintf(stderr, "    -V              Enable debugging option 'verbosemultialign'.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  ADVANCED OPTIONS\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -n              Do not update the store after computing consensus.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -nocontains F   Do not use contains, if the unitig is more than fraction F\n");
-    fprintf(stderr, "                    contained reads.  The consensus sequence will be computed from\n");
-    fprintf(stderr, "                    only the non-contained reads.  The layout will still retain the\n");
-    fprintf(stderr, "                    contained reads, but their location will not be precise.\n");
+    fprintf(stderr, "    -allcontains    Use all reads for consensus generation.  By default, unitigs with\n");
+    fprintf(stderr, "                    average depth at least 100x and more than 95%% of the bases in\n");
+    fprintf(stderr, "                    contained reads will use only the non-contained reads for consensus.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -inplace        Write the updated unitig to the same version it was read from.\n");
     fprintf(stderr, "\n");
@@ -340,14 +411,14 @@ main (int argc, char **argv) {
     //  Build a new ma if we're ignoring contains.  We'll need to put back the reads we remove
     //  before we add it to the store.
 
-    if (ignoreContains)
-      fl = stashContains(ma, ignoreContainT);
+    if ((reduceCoverage) && ((ma->data.num_frags > 1)))
+      fl = stashContains(ma);
 
     if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
       if (showResult)
         PrintMultiAlignT(stdout, ma, gkpStore, false, false, AS_READ_CLEAR_LATEST);
 
-      if (ignoreContains)
+      if (reduceCoverage)
         unstashContains(ma, fl);
 
       if (doUpdate) {
