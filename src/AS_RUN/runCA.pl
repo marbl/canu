@@ -676,6 +676,9 @@ sub setDefaults () {
     $global{"cnsPhasing"}                  = 0;
     $synops{"cnsPhasing"}                  = "Options for consensus phasing of SNPs\n\t0 - Do not phase SNPs to be consistent.\n\t1 - If two SNPs are joined by reads, phase them to be consistent.";
 
+    $global{"cnsRecycleUnitigs"}           = 0;
+    $synops{"cnsRecycleUnitigs"}           = "Do not compute single-unitig contigs again, just reuse the unitig.";
+
     $global{"consensus"}                   = "cns";
     $synops{"consensus"}                   = "Which consensus algorithm to use; currently only 'cns' is supported";
 
@@ -5371,7 +5374,8 @@ sub createPostScaffolderConsensusJobs () {
         print F "\$bin/ctgcns \\\n";
         print F "  -g $wrk/$asm.gkpStore \\\n";
         print F "  -t $wrk/$asm.tigStore $tigVersion \$jobid \\\n";
-        print F "  -P ", getGlobal("cnsPhasing"), "\\\n";
+        print F "  -P ", getGlobal("cnsPhasing"), " \\\n";
+        print F "  -U \\\n"  if (getGlobal("cnsRecycleUnitigs") != 0);
         print F " > $wrk/8-consensus/${asm}_\$jobid.err 2>&1 \\\n";
         print F "&& \\\n";
         print F "touch $wrk/8-consensus/${asm}_\$jobid.success\n";
