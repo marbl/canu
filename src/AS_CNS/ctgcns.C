@@ -283,6 +283,8 @@ main (int argc, char **argv) {
 
       MultiAlignT  *uma = tigStore->loadMultiAlign(uID, true);
 
+      uma->data = cma->data;
+
       tigStore->unloadMultiAlign(cma->maID, false);
 
       if (outName)
@@ -300,7 +302,6 @@ main (int argc, char **argv) {
             (exists) ? " - already computed, recomputing" : "");
 
     if (MultiAlignContig(cma, gkpStore, &options)) {
-
       if (outName)
         writeToOutFile(outName, tigPart, cma);
       else
