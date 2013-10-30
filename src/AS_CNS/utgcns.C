@@ -54,7 +54,9 @@ IntMultiPos_PositionCompare(IntMultiPos const &a, IntMultiPos const &b) {
 //  The original f_list is returned.
 //
 VA_TYPE(IntMultiPos) *
-stashContains(MultiAlignT *ma) {
+stashContains(MultiAlignT *ma,
+              double       coverageMax,
+              double       fracContMax) {
   VA_TYPE(IntMultiPos) *fl = ma->f_list;
 
   int32  nOrig     = GetNumIntMultiPoss(fl);
@@ -107,8 +109,8 @@ stashContains(MultiAlignT *ma) {
           nCont, (double)nBaseCont / hiEnd, fracCont,
           nDove, (double)nBaseDove / hiEnd, fracDove);
 
-  if ((fracCont >= 95.00) &&
-      (totlCov  >= 100.0)) {
+  if ((fracCont >= fracContMax) &&
+      (totlCov  >= coverageMax)) {
     fprintf(stderr, "    unitig %d removing "F_S32" contains; processing only "F_S32" reads\n",
             ma->maID, nOrig - nDove, nDove);
 
@@ -212,6 +214,8 @@ main (int argc, char **argv) {
   bool   showResult = false;
 
   bool   reduceCoverage = true;
+  double reduceCoverageMaxCov   = 100.0;
+  double reduceCoverageFracCont =  95.0;
 
   bool   inplace  = false;
   bool   loadall  = false;
@@ -259,6 +263,10 @@ main (int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-noreduce") == 0) {
       reduceCoverage = false;
+
+    } else if (strcmp(argv[arg], "-reduce") == 0) {
+      reduceCoverageMaxCov   = atof(argv[++arg]);
+      reduceCoverageFracCont = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-inplace") == 0) {
       inplace = true;
@@ -412,7 +420,7 @@ main (int argc, char **argv) {
     //  before we add it to the store.
 
     if ((reduceCoverage) && ((ma->data.num_frags > 1)))
-      fl = stashContains(ma);
+      fl = stashContains(ma, reduceCoverageMaxCov, reduceCoverageFracCont);
 
     if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
       if (showResult)
