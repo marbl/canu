@@ -29,6 +29,7 @@ const char *mainid = "$Id$";
 
 #include "AS_UTL_decodeRange.H"
 
+#include <map>
 #include <algorithm>
 
 
@@ -164,16 +165,33 @@ unstashContains(MultiAlignT *ma, VA_TYPE(IntMultiPos) *fl) {
   double sf = (double)newMax / oldMax;
 
   uint32  fi = 0, fiMax = GetNumIntMultiPoss(fl);
-  uint32  ci = 0, ciMax = GetNumIntMultiPoss(ma->f_list);
+  //uint32  ci = 0, ciMax = GetNumIntMultiPoss(ma->f_list);
+
+  //  Over all the reads in the original saved fragment list, update the position.  Either from the
+  //  computed result, or by extrapolating.
+
+  //  Dang, sorts the reads by position, which makes this rather complicated.  We first stash the
+  //  new coords in a map, then lookup the map to replace.  The original just needed to walk down
+  //  the two lists.
+
+  map<int32, IntMultiPos *>   cmp;
+
+  for (uint32 ci=0; ci<GetNumIntMultiPoss(ma->f_list); ci++) {
+    IntMultiPos *imp = GetVA_IntMultiPos(ma->f_list, ci);
+
+    cmp[imp->ident] = imp;
+  }
 
   for (; fi<fiMax; fi++) {
     IntMultiPos  *imp = GetIntMultiPos(fl, fi);
-    IntMultiPos  *cmp = (ci < ciMax) ? GetVA_IntMultiPos(ma->f_list, ci) : NULL;
+    //IntMultiPos  *cmp = (ci < ciMax) ? GetVA_IntMultiPos(ma->f_list, ci) : NULL;
 
-    if ((cmp != NULL) && (imp->ident == cmp->ident)) {
+    if (cmp.find(imp->ident) != cmp.end()) {
       //  Copy the location used by consensus back to the original list
-      SetVA_IntMultiPos(fl, fi, cmp);
-      ci++;
+      SetVA_IntMultiPos(fl, fi, cmp[imp->ident]);
+      //ci++;
+
+      cmp.erase(imp->ident);
 
     } else {
       //  Adjust old position
@@ -185,7 +203,10 @@ unstashContains(MultiAlignT *ma, VA_TYPE(IntMultiPos) *fl) {
     }
   }
 
-  assert(ci == ciMax);
+  if (cmp.empty() == false)
+    fprintf(stderr, "Failed to unstash the contained reads.  Still have "F_SIZE_T" reads unplaced.\n",
+            cmp.size());
+  assert(cmp.empty() == true);
 
   DeleteVA_IntMultiPos(ma->f_list);
 
@@ -305,9 +326,12 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -n              Do not update the store after computing consensus.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -allcontains    Use all reads for consensus generation.  By default, unitigs with\n");
+    fprintf(stderr, "    -noreduce       Use all reads for consensus generation.  By default, unitigs with\n");
     fprintf(stderr, "                    average depth at least 100x and more than 95%% of the bases in\n");
     fprintf(stderr, "                    contained reads will use only the non-contained reads for consensus.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    -reduce c f     Use only non-contained reads for unitigs with more than 'c' coverage\n");
+    fprintf(stderr, "                    and that are more than 'f' fraction of the bases in contained reads.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -inplace        Write the updated unitig to the same version it was read from.\n");
     fprintf(stderr, "\n");
