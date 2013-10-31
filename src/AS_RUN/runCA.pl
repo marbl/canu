@@ -159,6 +159,18 @@ sub setGlobal ($$) {
         return;
     }
 
+    if ($var eq "merDistinct") {
+        setGlobal("obtMerDistinct", $val);
+        setGlobal("ovlMerDistinct", $val);
+        return;
+    }
+
+    if ($var eq "merTotal") {
+        setGlobal("obtMerTotal", $val);
+        setGlobal("ovlMerTotal", $val);
+        return;
+    }
+
     if ($var eq "overlapper") {
         setGlobal("obtOverlapper", $val);
         setGlobal("ovlOverlapper", $val);
@@ -468,17 +480,29 @@ sub setDefaults () {
     $global{"ovlMerSize"}                  = 22;
     $synops{"ovlMerSize"}                  = "K-mer size for seeds in overlaps";
 
-    $global{"ovlMerThreshold"}             = "auto";
-    $synops{"ovlMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this are ignored";
+    $global{"ovlMerThreshold"}             = undef;
+    $synops{"ovlMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this count are ignored";
 
-    $global{"ovlFrequentMers"}              = undef;
-    $synops{"ovlFrequentMers"}              = "Do not seed overlaps with these kmers (fasta format)";
+    $global{"ovlMerDistinct"}              = undef;
+    $synops{"ovlMerDistinct"}              = "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps";
+
+    $global{"ovlMerTotal"}                 = undef;
+    $synops{"ovlMerTotal"}                 = "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps";
+
+    $global{"ovlFrequentMers"}             = undef;
+    $synops{"ovlFrequentMers"}             = "Do not seed overlaps with these kmers (fasta format)";
 
     $global{"obtMerSize"}                  = 22;
     $synops{"obtMerSize"}                  = "K-mer size";
 
-    $global{"obtMerThreshold"}             = "auto";
+    $global{"obtMerThreshold"}             = undef;
     $synops{"obtMerThreshold"}             = "K-mer frequency threshold; mers more frequent than this are ignored";
+
+    $global{"obtMerDistinct"}              = undef;
+    $synops{"obtMerDistinct"}              = "K-mer frequency threshold; the least frequent fraction of distinct mers can seed overlaps";
+
+    $global{"obtMerTotal"}                 = undef;
+    $synops{"obtMerTotal"}                 = "K-mer frequency threshold; the least frequent fraction of all mers can seed overlaps";
 
     $global{"obtFrequentMers"}              = undef;
     $synops{"obtFrequentMers"}              = "Do not seed overlaps with these kmers (fasta format)";
@@ -2264,16 +2288,23 @@ sub shredACE ($$) {
 ################################################################################
 
 
-sub runMeryl ($$$$$$) {
+sub runMeryl ($$$$$$$$) {
     my $merSize      = shift @_;
     my $merComp      = shift @_;
     my $merCanonical = shift @_;
     my $merThresh    = shift @_;
     my $merScale     = 1.0;
+    my $merDistinct  = shift @_;
+    my $merTotal     = shift @_;
     my $merType      = shift @_;
     my $merDump      = shift @_;
 
     system("mkdir $wrk/0-mercounts") if (! -d "$wrk/0-mercounts");
+
+    #  This is the historical default.
+    if (!defined($merThresh) && !defined($merDistinct) && !defined($merTotal)) {
+        $merThresh = "auto";
+    }
 
     #  The fasta file we should be creating.
     my $ffile = "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
@@ -2288,15 +2319,11 @@ sub runMeryl ($$$$$$) {
         $merScale  = 1.0 / $1;
     }
 
-    if (($merThresh ne "auto") && ($merThresh == 0)) {
+    #  And a special case; if the threshold is zero, we can skip the rest.
+    if (($merThresh ne "auto") && ($merThresh == 0) && (!defined($merDistinct)) && (!defined($merTotal))) {
         touch $ffile;
         return;
     }
-
-    #if (-e $ffile) {
-    #    print STDERR "runMeryl() would have returned.\n";
-    #}
-    #print STDERR "$ffile\n";
 
     if (merylVersion() eq "Mighty") {
 
@@ -2360,11 +2387,54 @@ sub runMeryl ($$$$$$) {
             $merThresh = <F>;
             $merThresh = int($merThresh * $merScale);
             close(F);
-
-            if ($merThresh == 0) {
-                caFailure("failed to estimate a mer threshold", "$ofile.estMerThresh.err");
-            }
         }
+
+        if (defined($merDistinct) || defined($merTotal)) {
+            if (! -e "$ofile.histogram") {
+                $cmd  = "$bin/meryl ";
+                $cmd .= " -Dh -s $ofile ";
+                $cmd .= " > $ofile.histogram ";
+                $cmd .= "2> $ofile.histogram.err";
+
+                stopBefore("meryl", $cmd);
+
+                if (runCommand("$wrk/0-mercounts", $cmd)) {
+                    rename "$ofile.histogram", "$ofile.histogram.FAILED";
+                    caFailure("meryl histogram failed", "$ofile.histogram.err");
+                }
+            }
+
+            my $lastThreshold = 0;
+
+            open(F, "< $ofile.histogram") or caFailure("failed to read mer histogram from '$ofile.histogram'", undef);
+            while (<F>) {
+                my ($threshold, $num, $distinct, $total) = split '\s+', $_;
+
+                if (($merThresh > 0) && ($merThresh < $threshold)) {
+                    print STDERR "Supplied merThreshold $merThresh is the smallest.\n";
+                    last;
+                }
+
+                if ((defined($merDistinct)) && ($merDistinct < $distinct)) {
+                    $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $lastThreshold;
+                    print STDERR "Supplied merDistinct $merDistinct with threshold $lastThreshold is the smallest.\n";
+                    last;
+                }
+
+                if ((defined($merTotal)) && ($merTotal < $total)) {
+                    $merThresh = (($merThresh > 0) && ($merThresh < $threshold)) ? $merThresh : $lastThreshold;
+                    print STDERR "Supplied merTotal $merTotal with threshold $lastThreshold is the smallest.\n";
+                    last;
+                }
+
+                $lastThreshold = $threshold;
+            }
+            close(F);
+        }
+
+        #if ($merThresh == 0) {
+        #    caFailure("failed to estimate a mer threshold", "$ofile.estMerThresh.err");
+        #}
 
         #  We only need the ascii dump if we're doing overlapper, mer
         #  overlapper reads meryl directly.
@@ -2511,14 +2581,14 @@ sub meryl {
 
     if ((getGlobal("doOverlapBasedTrimming")) &&
         ((getGlobal('obtOverlapper') eq 'mer') || (! -e "$wrk/0-mercounts/$asm.nmers.obt.fasta"))) {
-        $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming"));
+        $obtT = runMeryl(getGlobal('obtMerSize'), $obtc, $obtC, getGlobal("obtMerThreshold"), getGlobal("obtMerDistinct"), getGlobal("obtMerTotal"), "obt", $obtD) if (getGlobal("doOverlapBasedTrimming"));
     } else {
         print STDERR "No need to run meryl for OBT (OBT is disabled).\n"             if (getGlobal("doOverlapBasedTrimming") == 0);
         print STDERR "No need to run meryl for OBT ($asm.nmers.obt.fasta exists).\n" if (-e "$wrk/0-mercounts/$asm.nmers.obt.fasta");
     }
 
     if ((getGlobal('ovlOverlapper') eq 'mer') || (! -e "$wrk/0-mercounts/$asm.nmers.ovl.fasta")) {
-        $ovlT = runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), "ovl", $ovlD);
+        $ovlT = runMeryl(getGlobal('ovlMerSize'), $ovlc, $ovlC, getGlobal("ovlMerThreshold"), getGlobal("ovlMerDistinct"), getGlobal("ovlMerTotal"), "ovl", $ovlD);
     } else {
         print STDERR "No need to run meryl for OVL ($asm.nmers.ovl.fasta exists).\n";
     }
@@ -2861,7 +2931,7 @@ sub merTrim {
     my $taskID       = getGlobal("gridTaskID");
     my $submitTaskID = getGlobal("gridArraySubmitID");
 
-    runMeryl($merSize, $merComp, "-C", "auto", "mbt", 0);
+    runMeryl($merSize, $merComp, "-C", "auto", undef, undef, "mbt", 0);
 
     if (! -e "$wrk/0-mertrim/mertrim.sh") {
         open(F, "> $wrk/0-mertrim/mertrim.sh") or caFailure("can't open '$wrk/0-mertrim/mertrim.sh'", undef);
