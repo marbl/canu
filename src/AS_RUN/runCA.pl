@@ -700,8 +700,14 @@ sub setDefaults () {
     $global{"cnsPhasing"}                  = 0;
     $synops{"cnsPhasing"}                  = "Options for consensus phasing of SNPs\n\t0 - Do not phase SNPs to be consistent.\n\t1 - If two SNPs are joined by reads, phase them to be consistent.";
 
-    $global{"cnsRecycleUnitigs"}           = 0;
-    $synops{"cnsRecycleUnitigs"}           = "Do not compute single-unitig contigs again, just reuse the unitig.";
+    $global{"cnsReduceUnitigs"}            = undef;
+    $synops{"cnsReduceUnitigs"}            = "Set parameters for when and how to sample down coverage in deep unitigs.";
+
+    $global{"cnsReuseUnitigs"}             = 0;
+    $synops{"cnsReuseUnitigs"}             = "Do not compute single-unitig contigs again, just reuse the unitig.";
+
+    #$global{"cnsRecycleUnitigs"}          = 0;
+    #$synops{"cnsRecycleUnitigs"}          = "At some point, we'll come up with something for this.";
 
     $global{"consensus"}                   = "cns";
     $synops{"consensus"}                   = "Which consensus algorithm to use; currently only 'cns' is supported";
@@ -4751,9 +4757,12 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F getBinDirectoryShellCode();
 
     if ($consensusType eq "cns") {
+        my $reduce = getGlobal('cnsReduceUnitigs');
+
         print F "\$bin/utgcns \\\n";
         print F "  -g $wrk/$asm.gkpStore \\\n";
         print F "  -t $wrk/$asm.tigStore 1 \$jobid \\\n";
+        print F "  -reduce $reduce \\\n"  if (defined($reduce));
         print F "> $wrk/5-consensus/${asm}_\$jobid.cns.err 2>&1 \\\n";
         print F "&& \\\n";
         print F "\$bin/utgcnsfix \\\n";
@@ -5445,7 +5454,7 @@ sub createPostScaffolderConsensusJobs () {
         print F "  -g $wrk/$asm.gkpStore \\\n";
         print F "  -t $wrk/$asm.tigStore $tigVersion \$jobid \\\n";
         print F "  -P ", getGlobal("cnsPhasing"), " \\\n";
-        print F "  -U \\\n"  if (getGlobal("cnsRecycleUnitigs") != 0);
+        print F "  -U \\\n"  if (getGlobal("cnsReuseUnitigs") != 0);
         print F " > $wrk/8-consensus/${asm}_\$jobid.err 2>&1 \\\n";
         print F "&& \\\n";
         print F "touch $wrk/8-consensus/${asm}_\$jobid.success\n";

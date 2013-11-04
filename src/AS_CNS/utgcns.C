@@ -56,8 +56,8 @@ IntMultiPos_PositionCompare(IntMultiPos const &a, IntMultiPos const &b) {
 //
 VA_TYPE(IntMultiPos) *
 stashContains(MultiAlignT *ma,
-              double       coverageMax,
-              double       fracContMax) {
+              double       minCov,
+              double       minDove) {
   VA_TYPE(IntMultiPos) *fl = ma->f_list;
 
   int32  nOrig     = GetNumIntMultiPoss(fl);
@@ -101,17 +101,17 @@ stashContains(MultiAlignT *ma,
     hiEnd = MAX(hi, hiEnd);
   }
 
-  double fracCont = 100.0 * nBaseCont / nBase;
-  double fracDove = 100.0 * nBaseDove / nBase;
+  double percCont = 100.0 * nBaseCont / nBase;
+  double percDove = 100.0 * nBaseDove / nBase;
   double totlCov  = (double)nBase / hiEnd;
 
   fprintf(stderr, "  unitig %d detected "F_S32" contains (%.2fx, %.2f%%) "F_S32" dovetail (%.2fx, %.2f%%)\n",
           ma->maID,
-          nCont, (double)nBaseCont / hiEnd, fracCont,
-          nDove, (double)nBaseDove / hiEnd, fracDove);
+          nCont, (double)nBaseCont / hiEnd, percCont,
+          nDove, (double)nBaseDove / hiEnd, percDove);
 
-  if ((fracCont >= fracContMax) &&
-      (totlCov  >= coverageMax)) {
+  if ((totlCov  >= minCov) &&
+      (percDove >= minDove)) {
     fprintf(stderr, "    unitig %d removing "F_S32" contains; processing only "F_S32" reads\n",
             ma->maID, nOrig - nDove, nDove);
 
@@ -121,8 +121,8 @@ stashContains(MultiAlignT *ma,
       IntMultiPos  *imp = GetIntMultiPos(fl, fi);
 
       if (isDove[fi] == 1) {
-        fprintf(stderr, "    ident %9d position %6d %6d contained %9d\n",
-                imp->ident, imp->position.bgn, imp->position.end, imp->contained);
+        //fprintf(stderr, "    ident %9d position %6d %6d contained %9d\n",
+        //        imp->ident, imp->position.bgn, imp->position.end, imp->contained);
         AppendVA_IntMultiPos(ma->f_list, imp);
       }
     }
@@ -235,8 +235,8 @@ main (int argc, char **argv) {
   bool   showResult = false;
 
   bool   reduceCoverage = true;
-  double reduceCoverageMaxCov   = 100.0;
-  double reduceCoverageFracCont =  95.0;
+  double reduceCoverageMinCov   = 100.0;   //  100x coverage
+  double reduceCoverageMinDove  =   5.0;   //  5% bases in dovetail reads
 
   bool   inplace  = false;
   bool   loadall  = false;
@@ -286,8 +286,8 @@ main (int argc, char **argv) {
       reduceCoverage = false;
 
     } else if (strcmp(argv[arg], "-reduce") == 0) {
-      reduceCoverageMaxCov   = atof(argv[++arg]);
-      reduceCoverageFracCont = atof(argv[++arg]);
+      reduceCoverageMinCov   = atof(argv[++arg]);
+      reduceCoverageMinDove  = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-inplace") == 0) {
       inplace = true;
@@ -327,11 +327,13 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -n              Do not update the store after computing consensus.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -noreduce       Use all reads for consensus generation.  By default, unitigs with\n");
-    fprintf(stderr, "                    average depth at least 100x and more than 95%% of the bases in\n");
-    fprintf(stderr, "                    contained reads will use only the non-contained reads for consensus.\n");
+    fprintf(stderr, "                    average depth at least 100x and more than 5%% of the read bases in\n");
+    fprintf(stderr, "                    non-contained reads will use only the non-contained reads for consensus.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -reduce c f     Use only non-contained reads for unitigs with more than 'c' coverage\n");
-    fprintf(stderr, "                    and that are more than 'f' fraction of the bases in contained reads.\n");
+    fprintf(stderr, "    -reduce c f     Use only non-contained reads for consensus generation if the unitig\n");
+    fprintf(stderr, "                    has more than 'c' coverage and more than 'f' percent of the read bases\n");
+    fprintf(stderr, "                    are in non-contained reads.  The default is 100x (c=100) coverage and\n");
+    fprintf(stderr, "                    5%% (f=5) non-contained bases.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -inplace        Write the updated unitig to the same version it was read from.\n");
     fprintf(stderr, "\n");
@@ -444,7 +446,7 @@ main (int argc, char **argv) {
     //  before we add it to the store.
 
     if ((reduceCoverage) && ((ma->data.num_frags > 1)))
-      fl = stashContains(ma, reduceCoverageMaxCov, reduceCoverageFracCont);
+      fl = stashContains(ma, reduceCoverageMinCov, reduceCoverageMinDove);
 
     if (MultiAlignUnitig(ma, gkpStore, &options, NULL)) {
       if (showResult)

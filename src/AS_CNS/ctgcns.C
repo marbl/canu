@@ -176,7 +176,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -f           Recompute contigs that already have a multialignment\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "    -U           Recycle the unitig consensus for contigs with only a single\n");
+    fprintf(stderr, "    -U           Reuse the unitig consensus for contigs with only a single\n");
     fprintf(stderr, "                 unitig (EXPERIMENTAL!)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    -O file      Don't update tigStore, dump a binary file instead.\n");
@@ -271,14 +271,14 @@ main (int argc, char **argv) {
 
     int32         uID = GetIntUnitigPos(cma->u_list, 0)->ident;
 
-    //  If this is a surrogate, we CANNOT recycle the unitig.  We need to process the contig so that
+    //  If this is a surrogate, we CANNOT reuse the unitig.  We need to process the contig so that
     //  the unplaced reads are stripped out.  A surrogate should have different contig and unitig
     //  IDs; we could also check the contig status.
 
     if ((cma->data.num_unitigs == 1) &&
         (cma->maID == uID) &&
         (useUnitig == true)) {
-      fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments) - recycling unitig %d consensus\n",
+      fprintf(stderr, "Working on contig %d (%d unitigs and %d fragments) - reusing unitig %d consensus\n",
               cma->maID, cma->data.num_unitigs, cma->data.num_frags, uID);
 
       MultiAlignT  *uma = tigStore->loadMultiAlign(uID, true);
