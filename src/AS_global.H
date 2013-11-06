@@ -218,7 +218,7 @@ typedef uintptr_t INTPTR;
 //  amounts of memory too.
 //
 #define AS_READ_MAX_PACKED_LEN_BITS       8
-#define AS_READ_MAX_NORMAL_LEN_BITS       11
+#define AS_READ_MAX_NORMAL_LEN_BITS       16
 
 //  Do not define this.
 #undef OVS_DANGEROUSLY_OVERSIZE
