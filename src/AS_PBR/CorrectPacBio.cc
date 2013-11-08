@@ -442,7 +442,9 @@ main (int argc, char * argv []) {
 
         // create and open the filtered store
         sprintf(command, "rm -rf %s.paired.ovlStore", thread_globals.prefix);
+        system(command);
         sprintf(command, "find . \\( -name %s\\*ovb \\) -print > %s.paired.list", thread_globals.prefix, thread_globals.prefix);
+        system(command);
         sprintf(command, "%soverlapStoreBuild -o %s.paired.ovlStore -g %s -M 8192 -L %s.paired.list", thread_globals.exePath, thread_globals.prefix, gkpStorePath, thread_globals.prefix);
         if (system(command) == 0) {
            sprintf(thread_globals.ovlStoreUniqPath, "%s.paired.ovlStore", thread_globals.prefix);
