@@ -1228,18 +1228,9 @@ if (! -d "$wrk/temp$libraryname/$asm.ovlStore") {
    # now run the correction
    my $ovlThreshold = getGlobal("ovlMerThreshold");
 
-   if (defined(getGlobal("blasr")) && $totalBP > $MAX_BLASR_LIMIT) {
-       print STDERR "Warning: Blasr is currently limited to $MAX_BLASR_LIMIT. Switching to default aligner.\n";
-       setGlobal("blasr", undef);
-   }
    if (defined($longReads) && $longReads == 1) {
-      if ($totalBP > $MAX_BLASR_LIMIT) {
-          print STDERR "Warning: Cannot use blasr due to reference size limitation. Turning off long read option.\n";
-          $longReads = undef;
-      } else {
-         print STDERR "Warning: Blasr is required to align long reads to long reads. Switching blasr ON.\n";
-         setGlobal("blasr", defined(getGlobal("blasr")) ? getGlobal("blasr") . " -maxLCPLength 16" : "-minReadLength 200 -maxScore -1000 -maxLCPLength 16");
-      }
+      print STDERR "Warning: Blasr is required to align long reads to long reads. Switching blasr ON.\n";
+      setGlobal("blasr", defined(getGlobal("blasr")) ? getGlobal("blasr") . " -maxLCPLength 16" : "-minReadLength 200 -maxScore -1000 -maxLCPLength 16");
    }
 
    # when we were asked to not use CA's overlapper, first perform common options
