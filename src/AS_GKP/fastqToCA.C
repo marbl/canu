@@ -225,7 +225,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "                       'illumina'           -- reads from Illumina; GAIIx, MiSeq, HiSeq; shorter than 160bp\n");
     fprintf(stderr, "                       'illumina-long'      -- reads from Illumina; GAIIx, MiSeq, HiSeq; any length\n");
     fprintf(stderr, "                       'pacbio-ccs'         -- reads from PacBio; Circular Consensus Sequence (CSS)\n");
-    fprintf(stderr, "                       'pacbio-corrected'   -- reads from PacBio; uncorrected reads\n");
+    fprintf(stderr, "                       'pacbio-corrected'   -- reads from PacBio; corrected reads from pacBioToCA\n");
     fprintf(stderr, "                       'pacbio-raw'         -- reads from PacBio; uncorrected reads\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -type t            What type of fastq ('sanger' is the default):\n");
