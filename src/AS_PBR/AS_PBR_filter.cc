@@ -83,8 +83,44 @@ void computeRepeatThreshold(PBRThreadGlobals &thread_globals, AS_IID firstFrag) 
         variance /= N;
         sd = sqrt(variance);
 
+        double runningTotal = 0;
+        double firstQuartile = 0;
+        double thirdQuartile = 0;
+        // to avoid being skewed by outliers, we will compute the quartiles and only use those to get the stats
+        for (uint16_t iter=0; iter < MAX_COV_HIST; iter++) {
+            runningTotal += covHist[iter];
+            if (runningTotal / N >= FIRST_QUARTILE && firstQuartile == 0) {
+               firstQuartile = iter;
+            }
+            if (runningTotal / N >= THIRD_QUARTILE && thirdQuartile == 0) {
+               thirdQuartile = iter;
+            }
+        }
+        double IQD = 1.5 * (thirdQuartile-firstQuartile);
+        uint16_t minVal = IQD > firstQuartile ? 0 : (uint16_t)round(firstQuartile) - IQD;
+        uint16_t maxVal = (IQD + (uint16_t)round(thirdQuartile)) > MAX_COV_HIST ? MAX_COV_HIST : IQD + (uint16_t)round(thirdQuartile);
+        fprintf(stderr, "Computed mean %f sd %f using min value %d (%f) max %d (%f)\n", mean, sd, minVal, firstQuartile, maxVal, thirdQuartile);
+
+        // now that we've got the quartile dist, run and get the updated mean just within the quartile
+        mean = 0;
+        sd = 0;
+        N = 0;
+        variance = 0;
+
+        for (uint16_t iter=minVal; iter <= maxVal; iter++) {
+            uint16_t val = iter;
+            mean += iter * covHist[iter];
+            N+= covHist[iter];
+            variance += (iter * iter) * covHist[iter];
+
+        }
+        mean /= N;
+        variance = (variance / N) - (mean * mean);
+        sd = sqrt(variance);
+        fprintf(stderr, "After quartile adjustment mean is %f sd: %f\n", mean, sd);
+
         double prevRatio = 0;
-        double runningTotal = covHist[0] + covHist[1];
+        runningTotal = covHist[0] + covHist[1];
         uint16 overRatio = 0;
         for (uint16 iter = 2; iter < MAX_COV_HIST; iter++) {
             if (covHist[iter] <= covHist[iter-1] && (double)covHist[iter]/covHist[iter-1] > prevRatio && (runningTotal / N > CUMULATIVE_SUM)) {

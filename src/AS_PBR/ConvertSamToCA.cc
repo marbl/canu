@@ -1,10 +1,11 @@
 #include "AS_UTL_fileIO.H"
+#include "AS_UTL_IID.H"
 #include <map>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include "sam.h"
-
 using namespace std;
 
 /**
@@ -46,41 +47,60 @@ int main(int argc, char * argv[]) {
         debug = true;
     }
 
-    ifstream iids(argv[2], ifstream::in);
-    map < string, string > eidToIID;
-    map<string, uint32> iidToLen;
+    map <string, AS_IID > eidToIID;
+    map <AS_IID, uint32> iidToLen;
+    uint32 counter = 0;
 
-    while (iids.good()) {
-        string illumina;
-        string corrected;
 
-        iids >> illumina >> corrected;
-        eidToIID[illumina] = corrected;
+    stringstream inputIIDS(argv[2]);
+    char inputFile[FILENAME_MAX];
+
+    while (inputIIDS.getline(inputFile, FILENAME_MAX, ',')) {
+       cerr << "Processing input file " << inputFile << " from " << argv[2] << endl;
+
+       ifstream iids(inputFile, ifstream::in);
+       while (iids.good()) {
+          string eid;
+          string iid;
+
+          iids >> eid >> iid;
+          eidToIID[eid] = atoi(iid.c_str());
+          if (counter % 1000000 == 0) cerr << "Loaded " << counter << " eid entries" << endl;
+          counter++;
+       }
+       iids.close();
     }
-
-    iids.close();
 
     if (argc >= 4) {
-        iids.open(argv[3], ifstream::in);
+        stringstream inputLens(argv[3]);
+        while (inputLens.getline(inputFile, FILENAME_MAX, ',')) {
+           cerr << "Processing input file " << inputFile << " from " << argv[3] << endl;
+           ifstream iids(inputFile, ifstream::in);
 
-        while (iids.good()) {
-            string illumina;
-            string corrected;
+           counter = 0;
+           while (iids.good()) {
+              string iidStr;
+              string lenStr;
 
-            iids >> illumina >> corrected;
-            uint32 correctedInt = atol(corrected.c_str());
+              iids >> iidStr >> lenStr;
+              uint32 len = atol(lenStr.c_str());
 
-            if (correctedInt == 0) {
+              if (len == 0) {
                 continue;
-            }
-            if (eidToIID.find(illumina) != eidToIID.end()) {
-                iidToLen[eidToIID[illumina]] = correctedInt;
-            } else {
-                iidToLen[illumina] = correctedInt;
-            }
-        }
-        iids.close();
+              }
+              if (eidToIID.find(iidStr) != eidToIID.end()) {
+                iidToLen[eidToIID[iidStr]] = len;
+              } else {
+                AS_IID iid = atoi(iidStr.c_str());
+                iidToLen[iid] = len;
+              }
+              if (counter % 1000000 == 0) cerr << "Loaded " << counter << " eid entries" << endl;
+              counter++;
+           }
+           iids.close();
+       }
     }
+    cerr << "Loaded " << eidToIID.size() << " and " << iidToLen.size() << " eid/length translation" << endl;
 
     bam1_t *b = bam_init1();
     samfile_t * fp = open_alignment_file(argv[1]);
@@ -100,7 +120,7 @@ int main(int argc, char * argv[]) {
         }
 
         string id = bam1_qname(b);
-        string biid;
+        AS_IID biid;
         if (eidToIID.find(id) == eidToIID.end() && id.find_last_of(",")
                 != string::npos) {
             id = id.substr(0, id.find_last_of(","));
@@ -109,6 +129,7 @@ int main(int argc, char * argv[]) {
                     != string::npos) {
                 id = id.substr(0, id.find_last_of("/"));
                 if (eidToIID.find(id) == eidToIID.end()) {
+                    cerr << "Could not find iid for " << id << endl;
                     continue;
                 }
                 biid = eidToIID[id];
@@ -117,22 +138,25 @@ int main(int argc, char * argv[]) {
             }
         } else {
             if (eidToIID.find(id) == eidToIID.end()) {
+                cerr << "Could not find iid for " << id << endl;
                 continue;
             }
             biid = eidToIID[id];
         }
 
         string ref = head->target_name[core->tid];
-        string refiid;
+        AS_IID refiid;
         if (eidToIID.find(ref) == eidToIID.end() && ref.find_last_of(",")
                 != string::npos) {
             ref = ref.substr(0, ref.find_last_of(","));
             if (eidToIID.find(ref) == eidToIID.end()) {
+                cerr << "Could not find iid for " << ref << endl;
                 continue;
             }
             refiid = eidToIID[ref];
         } else {
             if (eidToIID.find(ref) == eidToIID.end()) {
+                cerr << "Could not find iid for " << ref << endl;
                 continue;
             }
             refiid = eidToIID[ref];

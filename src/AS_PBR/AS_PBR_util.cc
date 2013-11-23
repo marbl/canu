@@ -70,6 +70,17 @@ uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS_IID, c
   return counter;
 }
 
+int32 loadOneSequence(gkStore *fs, AS_IID readIID, char *seq) {
+   gkFragment fr;
+   fs->gkStore_getFragment(readIID, &fr, GKFRAGMENT_SEQ);
+   int32 len = fr.gkFragment_getClearRegionLength();
+
+   memcpy(seq, fr.gkFragment_getSequence() + fr.gkFragment_getClearRegionBegin(), len);
+   seq[len] = 0;
+   return len;
+}
+
+
 void convertOverlapToPosition(const OVSoverlap& olap, SeqInterval &pos, SeqInterval &bClr, uint32 alen, uint32 blen, bool forB) {
 	if (olap.dat.ovl.type == AS_OVS_TYPE_OVL) {
 		if (forB) {

@@ -59,6 +59,8 @@ static const char *rcsid_AS_PBR_UTIL_H = "$Id$";
 
 const uint16 	MAX_COV_HIST					= 	65535;
 const uint8 	MAX_COV							= 	255;
+const double    FIRST_QUARTILE			=   0.25;
+const double    THIRD_QUARTILE                  =   0.75;
 const double    ONE_SD_PERCENT                  =   0.341;
 const double    TWO_SD_PERCENT                  =   0.136;
 const double    CUMULATIVE_SUM                  =   (2*ONE_SD_PERCENT) + (2*TWO_SD_PERCENT);
@@ -330,6 +332,7 @@ static bool compare_tile ( const OverlapPos& a, const OverlapPos& b ) {
 }
 
 extern uint32 loadSequence(gkStore *fs, map<AS_IID, uint8> &readsToPrint, map<AS_IID, char*> &frgToEnc);
+extern int32 loadOneSequence(gkStore *fs, AS_IID readIID, char* seq);
 
 static bool isOvlForward(const OVSoverlap& olap) {
 	if (olap.dat.ovl.type == AS_OVS_TYPE_OVL) {
