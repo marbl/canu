@@ -31,6 +31,66 @@ typedef struct {
 } dpCell;
 
 
+
+class dpActions {
+public:
+  dpActions() {
+    actions = new uint64 * [2 * AS_READ_MAX_NORMAL_LEN];
+    memset(actions, 0, 2 * AS_READ_MAX_NORMAL_LEN * sizeof(uint64 *));
+  };
+
+  ~dpActions() {
+    for (uint32 i=0; i<2 * AS_READ_MAX_NORMAL_LEN; i++)
+      if (actions[i] != NULL)
+        delete [] actions[i];
+
+    delete [] actions;
+  };
+
+  //  Pointer to array of packed bits.
+  uint64  **actions;
+  uint32   *actionLength;
+
+  void      allocate(uint32 i) {
+    if (actions[i] != NULL)
+      return;
+
+    uint32  len = 2 * AS_READ_MAX_NORMAL_LEN * 2 / 64 + 1;
+
+    actions[i] = new uint64 [len];
+    memset(actions[i], 0, len * sizeof(uint64));  //  IMPORTANT, init to STOP
+  };
+
+  uint64    get(uint32 i, uint32 j) {
+    allocate(i);
+
+    uint32   addr = ((j >> 5) & 0x07ffffff);
+    uint32   bits = ((j     ) & 0x0000001f) << 1;
+
+    uint64   v = (actions[i][addr] >> bits) & 0x00000003llu;
+
+    //fprintf(stderr, "GET %u %u  %lu (%u %u)\n", i, j, v, addr, bits);
+
+    return(v);
+  };
+
+  void      set(uint32 i, uint32 j, uint64 v) {
+    allocate(i);
+
+    assert(v < 4);
+
+    uint32   addr = ((j >> 5) & 0x07ffffff);
+    uint32   bits = ((j     ) & 0x0000001f) << 1;
+
+    //fprintf(stderr, "SET %u %u to %lu (%u %u)\n", i, j, v, addr, bits);
+
+    actions[i][addr] &= ~(0x00000003llu << bits);
+    actions[i][addr] |=  (v             << bits);
+  };
+};
+
+
+
 typedef struct {
   int32   matches;
   int32   alignLen;
