@@ -860,7 +860,7 @@ if ((scalar(@fragFiles) == 0) && (!defined(getGlobal("longReads")) || getGlobal(
       print STDERR "Warning: no frag files specified, assuming self-correction of pacbio sequences.\n";
       setGlobal("longReads", 1);
 }
-  
+
 if (($err) || (!defined(getGlobal("fastqFile"))) || (!defined(getGlobal("specFile"))) || (!defined(getGlobal("libraryname")))) {
    print STDERR "No fastq file specified. Please specify a fastq file containing PacBio sequences for correction using the -fastq parameter.\n" if (!defined(getGlobal("fastqFile")));
    print STDERR "No spec file defined. Please specify a spec file using the -s option.\n" if (!defined(getGlobal("specFile")));
@@ -925,6 +925,12 @@ if (defined($scriptParams)) {
    if (!defined(getGlobal("sgeCorrection"))) {
    	setGlobal("sgeCorrection", $scriptParams);
    }
+}
+
+# check for previously existing file and do not overwrite
+if ( -e "$wrk/" . getGlobal("libraryname") . ".frg") {
+   print STDERR "Error: requested to output " . getGlobal("libraryname") . ".frg but file already exists. Will not overwrite. Please remove the file and try again.\n";
+   exit(1);
 }
 
 my $useGrid = getGlobal("useGrid");
@@ -1713,7 +1719,7 @@ if (! -e "$wrk/temp$libraryname/runPartition.sh") {
    if (defined($longReads) && $longReads == 1) {
    print F "      -L \\\n";
    }
-   print F "      -M $maxUncorrectedGap \\\n";
+   print F "      -e $ovlErrorRate -M $maxUncorrectedGap \\\n";
    print F "      -o $wrk/temp$libraryname/$asm \\\n";
    print F "      -p \$jobid \\\n";
    print F "      -l $length \\\n";

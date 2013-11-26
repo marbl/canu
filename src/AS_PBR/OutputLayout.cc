@@ -84,6 +84,7 @@ main (int argc, char * argv []) {
     thread_globals.hasMates                     = false;
     thread_globals.verboseLevel 			  = VERBOSE_OFF;
     thread_globals.allowLong                = FALSE;
+    thread_globals.erate             = 0.15;
 
     strcpy(thread_globals.prefix, "asm");
 
@@ -122,6 +123,9 @@ main (int argc, char * argv []) {
             thread_globals.verboseLevel = atoi(argv[++arg]);
             if (thread_globals.verboseLevel < VERBOSE_OFF) { thread_globals.verboseLevel = VERBOSE_OFF; }
             if (thread_globals.verboseLevel > VERBOSE_DEVELOPER) { thread_globals.verboseLevel = VERBOSE_DEVELOPER; }
+
+        } else if (strcmp(argv[arg], "-e") == 0) {
+            thread_globals.erate = atof(argv[++arg]);
 
         } else {
             err++;
