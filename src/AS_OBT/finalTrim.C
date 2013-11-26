@@ -313,8 +313,8 @@ main(int argc, char **argv) {
                               errorRate,
                               errorLimit,
                               lb->doTrim_initialQualityBased,
-                              AS_OVERLAP_MIN_LEN,
-                              2);
+                              MIN(500, AS_OVERLAP_MIN_LEN),
+                              1);
       assert(fbgn <= fend);
 
     }
@@ -328,7 +328,7 @@ main(int argc, char **argv) {
                         errorRate,
                         errorLimit,
                         lb->doTrim_initialQualityBased,
-                        AS_OVERLAP_MIN_LEN,
+                        MIN(500, AS_OVERLAP_MIN_LEN),
                         2);
       assert(fbgn <= fend);
 
