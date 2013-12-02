@@ -265,6 +265,7 @@ main(int argc, char **argv) {
     if ((strcasecmp(technology, "sanger") != 0) &&
         (strcasecmp(technology, "454") != 0) &&
         (strcasecmp(technology, "illumina") != 0) &&
+        (strcasecmp(technology, "moleculo") != 0) &&
         (strcasecmp(technology, "pacbio-ccs") != 0) &&
         (strcasecmp(technology, "pacbio-corrected") != 0) &&
         (strcasecmp(technology, "pacbio-raw") != 0) &&
