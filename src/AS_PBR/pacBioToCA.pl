@@ -1901,8 +1901,9 @@ if (($totalSplitBases / $totalBP) > $MAX_SPLIT_PERCENTAGE && defined(getGlobal("
 
 #save output from temporary directory
 runCommand("$wrk/temp$libraryname", "cp $asm.layout.err  $wrk/$libraryname.correction.err");
-runCommand("$wrk/temp$libraryname", "cp $asm.layout.hist  $wrk/$libraryname.correction.hist");
-
+if (-e "$wrk/temp$libraryname/$asm.layout.hist") {
+   runCommand("$wrk/temp$libraryname", "cp $asm.layout.hist  $wrk/$libraryname.correction.hist");
+}
 runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fasta |grep trim |sort -T . -rnk1` > $wrk/$libraryname.fasta");
 runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.qual |grep trim | sort -T . -rnk1` > $wrk/$libraryname.qual");
 runCommand("$wrk/temp$libraryname", "cat `ls [0-9]*.fastq |grep trim | sort -T . -rnk1` > $wrk/$libraryname.fastq");
